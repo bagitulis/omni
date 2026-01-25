@@ -1,0 +1,127 @@
+/* Grid Container */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  animation: containerFadeIn 300ms ease-out;
+}
+
+/* Option Button Styling */
+:deep(.btn) {
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border-radius: 0.5rem !important;
+  font-weight: 500 !important;
+}
+
+:deep(.btn-primary) {
+  background-color: hsl(var(--p)) !important;
+  border-color: hsl(var(--p)) !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 12px hsl(var(--p) / 0.3) !important;
+}
+
+:deep(.btn-primary:hover) {
+  background-color: hsl(var(--p) / 0.9) !important;
+  box-shadow: 0 6px 16px hsl(var(--p) / 0.4) !important;
+  transform: translateY(-2px);
+}
+
+:deep(.btn-outline) {
+  border-color: hsl(var(--bc) / 0.2) !important;
+  color: hsl(var(--bc)) !important;
+  background-color: hsl(var(--b2) / 0.5) !important;
+}
+
+:deep(.btn-outline:hover) {
+  border-color: hsl(var(--p) / 0.4) !important;
+  background-color: hsl(var(--p) / 0.08) !important;
+  color: hsl(var(--p)) !important;
+  box-shadow: 0 4px 12px hsl(var(--p) / 0.15) !important;
+  transform: translateY(-2px);
+}
+
+:deep(.badge-primary) {
+  background-color: hsl(var(--p)) !important;
+  color: #0f172a !important;
+}
+
+/* Loading Spinner */
+:deep(.loading-spinner) {
+  border-color: hsl(var(--p) / 0.2) !important;
+  border-right-color: hsl(var(--p)) !important;
+}
+
+/* Text Colors */
+:deep(.text-base-content) {
+  color: hsl(var(--bc)) !important;
+}
+
+:deep(.text-base-content\/70) {
+  color: hsl(var(--bc) / 0.7) !important;
+}
+
+/* Animations */
+@keyframes containerFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.grid > div {
+  animation: slideIn 300ms cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+
+.grid > div:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.grid > div:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.grid > div:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+.grid > div:nth-child(4) {
+  animation-delay: 0.2s;
+}
+
+.grid > div:nth-child(5) {
+  animation-delay: 0.25s;
+}
+
+/* Loading State */
+.flex-col {
+  animation: fadeIn 200ms ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .grid {
+    gap: 0.5rem;
+  }
+}

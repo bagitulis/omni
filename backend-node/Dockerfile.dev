@@ -1,0 +1,38 @@
+# ============================================
+# Development Dockerfile for Backend
+# With hot reload support
+# ============================================
+
+FROM node:22-alpine3.19
+
+WORKDIR /app
+
+# Install dependencies for native modules and dev tools
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    curl && \
+    apk upgrade --no-cache
+
+# Copy package files
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Install all dependencies (including devDependencies)
+RUN npm install
+
+# Install tsx globally for dev command
+RUN npm install -g tsx
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Copy source code (will be overridden by volume mount)
+COPY . .
+
+# Expose ports
+EXPOSE 3000 9229
+
+# Development command with hot reload
+CMD ["npm", "run", "dev"]

@@ -1,0 +1,163 @@
+/* ============================================
+   SKELETON COMPONENT STYLES - Phase 2.1
+   Loading placeholder animations
+   ============================================ */
+
+/* Shimmer Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Base Skeleton */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-tertiary, #f1f5f9) 25%,
+    var(--color-bg-secondary, #f8fafc) 50%,
+    var(--color-bg-tertiary, #f1f5f9) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite ease-in-out;
+  border-radius: var(--radius-md, 0.5rem);
+}
+
+/* Skeleton Types */
+.skeleton-text {
+  height: 1rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-text.short {
+  width: 60%;
+}
+.skeleton-text.medium {
+  width: 80%;
+}
+.skeleton-text.long {
+  width: 95%;
+}
+
+.skeleton-title {
+  height: 1.5rem;
+  width: 70%;
+  margin-bottom: 0.75rem;
+}
+
+.skeleton-avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-full, 9999px);
+  flex-shrink: 0;
+}
+
+.skeleton-avatar.sm {
+  width: 2rem;
+  height: 2rem;
+}
+.skeleton-avatar.lg {
+  width: 4rem;
+  height: 4rem;
+}
+.skeleton-avatar.xl {
+  width: 6rem;
+  height: 6rem;
+}
+
+.skeleton-image {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-lg, 0.75rem);
+}
+
+.skeleton-image.square {
+  aspect-ratio: 1 / 1;
+}
+.skeleton-image.portrait {
+  aspect-ratio: 3 / 4;
+}
+
+.skeleton-button {
+  height: 2.5rem;
+  width: 6rem;
+  border-radius: var(--radius-md, 0.5rem);
+}
+
+.skeleton-button.full {
+  width: 100%;
+}
+
+.skeleton-card {
+  padding: var(--space-lg, 1.5rem);
+  border-radius: var(--radius-lg, 0.75rem);
+  border: 1px solid var(--color-border, #e5e7eb);
+}
+
+/* Skeleton Layouts */
+.skeleton-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md, 1rem);
+  margin-bottom: var(--space-lg, 1.5rem);
+}
+
+.skeleton-lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm, 0.5rem);
+}
+
+.skeleton-grid {
+  display: grid;
+  gap: var(--space-md, 1rem);
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+/* Table Skeleton */
+.skeleton-table {
+  width: 100%;
+}
+
+.skeleton-table-row {
+  display: flex;
+  gap: var(--space-md, 1rem);
+  padding: var(--space-sm, 0.5rem) 0;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.skeleton-table-cell {
+  flex: 1;
+  height: 1rem;
+}
+
+.skeleton-table-cell:first-child {
+  flex: 0.5;
+}
+.skeleton-table-cell:last-child {
+  flex: 0.3;
+}
+
+/* Dark Mode */
+.dark .skeleton,
+[data-theme="dark"] .skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-tertiary, #334155) 25%,
+    var(--color-bg-secondary, #1e293b) 50%,
+    var(--color-bg-tertiary, #334155) 75%
+  );
+  background-size: 200% 100%;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--color-bg-tertiary, #f1f5f9);
+  }
+}

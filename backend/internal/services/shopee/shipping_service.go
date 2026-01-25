@@ -1,0 +1,207 @@
+package shopee
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/omni/backend/internal/services"
+	shopeePkg "github.com/omni/backend/pkg/shopee"
+)
+
+// ShippingService handles Shopee shipping operations
+type ShippingService struct {
+	apiClient   APIClient
+	tenantID    string
+	credService *services.CredentialService
+	dbPath      string
+}
+
+// NewShippingService creates a new shipping service
+func NewShippingService(apiClient APIClient, tenantID string) *ShippingService {
+	return &ShippingService{apiClient: apiClient, tenantID: tenantID}
+}
+
+// NewShippingServiceWithCreds creates a shipping service with credential support
+func NewShippingServiceWithCreds(tenantID, dbPath string) *ShippingService {
+	return &ShippingService{
+		tenantID:    tenantID,
+		dbPath:      dbPath,
+		credService: services.NewCredentialService(dbPath),
+	}
+}
+
+// ShippingOption represents a shipping option
+type ShippingOption struct {
+	LogisticID        int64   `json:"logisticId"`
+	LogisticName      string  `json:"logisticName"`
+	Enabled           bool    `json:"enabled"`
+	ShippingFeeType   string  `json:"shippingFeeType"`
+	EstimatedCost     float64 `json:"estimatedCost"`
+	EstimatedDays     int     `json:"estimatedDays"`
+	IsFreeShipping    bool    `json:"isFreeShipping"`
+	HasCOD            bool    `json:"hasCod"`
+	TrackingAvailable bool    `json:"trackingAvailable"`
+}
+
+// ShipmentInfo represents shipment information
+type ShipmentInfo struct {
+	OrderSN          string `json:"orderSn"`
+	PackageNumber    string `json:"packageNumber"`
+	LogisticID       int64  `json:"logisticId"`
+	LogisticName     string `json:"logisticName"`
+	TrackingNumber   string `json:"trackingNumber"`
+	ShippingStatus   string `json:"shippingStatus"`
+	PickupDoneTime   int64  `json:"pickupDoneTime,omitempty"`
+	DeliveryDoneTime int64  `json:"deliveryDoneTime,omitempty"`
+}
+
+// TrackingInfo represents tracking information
+type TrackingInfo struct {
+	TrackingNumber string         `json:"trackingNumber"`
+	LogisticName   string         `json:"logisticName"`
+	Status         string         `json:"status"`
+	History        []TrackingStep `json:"history"`
+}
+
+// TrackingStep represents a tracking step
+type TrackingStep struct {
+	Time        int64  `json:"time"`
+	Description string `json:"description"`
+	Location    string `json:"location,omitempty"`
+}
+
+// ArrangeShipmentRequest represents request to arrange shipment
+type ArrangeShipmentRequest struct {
+	OrderSN    string      `json:"orderSn"`
+	PackageNum string      `json:"packageNumber,omitempty"`
+	Pickup     *PickupInfo `json:"pickup,omitempty"`
+	DropOff    *DropOffInfo `json:"dropoff,omitempty"`
+}
+
+// PickupInfo represents pickup information
+type PickupInfo struct {
+	AddressID int64  `json:"addressId"`
+	Date      string `json:"date"`
+	TimeSlot  string `json:"timeSlot"`
+}
+
+// DropOffInfo represents drop-off information
+type DropOffInfo struct {
+	BranchID int64 `json:"branchId"`
+}
+
+// getClient creates a Shopee client with credentials
+func (s *ShippingService) getClient() (*shopeePkg.Client, error) {
+	if s.credService == nil {
+		return nil, fmt.Errorf("credential service not initialized")
+	}
+
+	creds, err := s.credService.GetPlatformCredentials(s.tenantID, "shopee")
+	if err != nil {
+		return nil, err
+	}
+
+	client := shopeePkg.NewClient(creds.PartnerID, creds.PartnerKey, creds.IsProduction)
+	client.SetShopCredentials(creds.ShopID, creds.AccessToken)
+	return client, nil
+}
+
+// GetShippingOptions gets available shipping options for an order
+func (s *ShippingService) GetShippingOptions(ctx context.Context, orderSN string) ([]ShippingOption, error) {
+	client, err := s.getClient()
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := client.GetShippingParameter(orderSN)
+	if err != nil {
+		return nil, fmt.Errorf("get shipping parameter: %w", err)
+	}
+
+	var options []ShippingOption
+	for _, pickup := range result.Response.InfoNeeded.Pickup {
+		options = append(options, ShippingOption{
+			LogisticID:   pickup.AddressID,
+			LogisticName: pickup.Address,
+			Enabled:      true,
+		})
+	}
+
+	return options, nil
+}
+
+// ArrangeShipment arranges shipment for an order
+func (s *ShippingService) ArrangeShipment(ctx context.Context, req ArrangeShipmentRequest) (*ShipmentInfo, error) {
+	client, err := s.getClient()
+	if err != nil {
+		return nil, err
+	}
+
+	shipReq := shopeePkg.ShipOrderRequest{
+		OrderSN:       req.OrderSN,
+		PackageNumber: req.PackageNum,
+	}
+
+	if req.Pickup != nil {
+		shipReq.Pickup = &shopeePkg.PickupInfo{
+			AddressID:    req.Pickup.AddressID,
+			PickupTimeID: req.Pickup.TimeSlot,
+		}
+	}
+
+	if req.DropOff != nil {
+		shipReq.Dropoff = &shopeePkg.DropoffInfo{
+			BranchID: req.DropOff.BranchID,
+		}
+	}
+
+	_, err = client.ShipOrder(shipReq)
+	if err != nil {
+		return nil, fmt.Errorf("ship order: %w", err)
+	}
+
+	return &ShipmentInfo{
+		OrderSN:        req.OrderSN,
+		ShippingStatus: "SHIPPED",
+	}, nil
+}
+
+// GetTrackingInfo gets tracking information for an order
+func (s *ShippingService) GetTrackingInfo(ctx context.Context, orderSN string) (*TrackingInfo, error) {
+	client, err := s.getClient()
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := client.GetTrackingNumber(orderSN)
+	if err != nil {
+		return nil, fmt.Errorf("get tracking number: %w", err)
+	}
+
+	return &TrackingInfo{
+		TrackingNumber: result.Response.TrackingNumber,
+		Status:         "SHIPPED",
+		History:        []TrackingStep{},
+	}, nil
+}
+
+// GetShipmentInfo gets shipment info for an order
+func (s *ShippingService) GetShipmentInfo(ctx context.Context, orderSN string) (*ShipmentInfo, error) {
+	trackingInfo, err := s.GetTrackingInfo(ctx, orderSN)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ShipmentInfo{
+		OrderSN:        orderSN,
+		TrackingNumber: trackingInfo.TrackingNumber,
+		ShippingStatus: trackingInfo.Status,
+	}, nil
+}
+
+// CalculateShippingFee calculates shipping fee (not directly available in Shopee API v2)
+func (s *ShippingService) CalculateShippingFee(ctx context.Context, orderSN string, logisticID int64) (float64, error) {
+	// Shopee doesn't expose shipping fee calculation directly
+	// This would need to be retrieved from order details
+	return 0, nil
+}

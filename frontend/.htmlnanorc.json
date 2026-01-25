@@ -1,0 +1,13 @@
+{
+  "minifyCss": true,
+  "minifyJs": true,
+  "minifySvg": true,
+  "removeComments": true,
+  "removeRedundantAttributes": true,
+  "removeEmptyAttributes": true,
+  "minifyClassNames": false,
+  "minifyConditionalComments": true,
+  "removeEmptyElements": true,
+  "sortAttributes": true,
+  "sortClassName": true
+}

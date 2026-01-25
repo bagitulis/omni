@@ -1,0 +1,12 @@
+{
+  "tab": "TikTok",
+  "timestamp": "2026-01-09T22:45:13.555Z",
+  "summary": {
+    "totalTests": 0,
+    "passed": 0,
+    "failed": 0,
+    "totalDuration": 0,
+    "successRate": "0%"
+  },
+  "error": "Authentication failed: Auth failed: Error"
+}

@@ -1,0 +1,231 @@
+package lazada
+
+import (
+	"context"
+	"log"
+
+	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/repositories"
+	lazadaPkg "github.com/omni/backend/pkg/lazada"
+	"gorm.io/gorm"
+)
+
+// SyncService handles syncing data from Lazada API
+type SyncService struct {
+	client    *lazadaPkg.Client
+	orderRepo *repositories.LazadaOrderRepository
+	prodRepo  *repositories.LazadaProductRepository
+	tenantID  string
+}
+
+// NewSyncService creates a new sync service
+func NewSyncService(client *lazadaPkg.Client, db *gorm.DB) *SyncService {
+	return &SyncService{
+		client:    client,
+		orderRepo: repositories.NewLazadaOrderRepository(db),
+		prodRepo:  repositories.NewLazadaProductRepository(db),
+	}
+}
+
+// NewSyncServiceWithTenant creates a new sync service with tenant ID
+func NewSyncServiceWithTenant(client *lazadaPkg.Client, db *gorm.DB, tenantID string) *SyncService {
+	return &SyncService{
+		client:    client,
+		orderRepo: repositories.NewLazadaOrderRepository(db),
+		prodRepo:  repositories.NewLazadaProductRepository(db),
+		tenantID:  tenantID,
+	}
+}
+
+// SyncOrders fetches orders from Lazada API and saves to database
+func (s *SyncService) SyncOrders(ctx context.Context, status string) (int, error) {
+	resp, err := s.client.GetOrders(status, 0, 100)
+	if err != nil {
+		return 0, err
+	}
+
+	count := 0
+	for _, order := range resp.Data.Orders {
+		dbOrder := &models.LazadaOrder{
+			OrderSN:     order.OrderID, // API returns OrderID, we store as OrderSN
+			OrderStatus: order.Status,
+		}
+
+		if err := s.orderRepo.Upsert(ctx, dbOrder); err == nil {
+			count++
+		}
+	}
+
+	return count, nil
+}
+
+// SyncProducts fetches products from Lazada API and saves to database
+func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
+	// Lazada API max limit per page is 50
+	resp, err := s.client.GetProducts(0, 50)
+	if err != nil {
+		return 0, err
+	}
+
+	count := 0
+	for _, prod := range resp.Data.Products {
+		dbProd := &models.LazadaProduct{
+			TenantID:    s.tenantID,
+			ItemID:      prod.ItemID.String(),
+			Name:        prod.Name,
+			Description: prod.Description,
+			Price:       prod.Price,
+			Status:      prod.Status,
+		}
+
+		if err := s.prodRepo.Upsert(ctx, dbProd); err == nil {
+			count++
+		}
+	}
+
+	return count, nil
+}
+
+// SyncProductsWithDetails fetches ALL products from Lazada API with pagination, saves to DB, and returns them
+// Used by GET /api/lazada/products to sync and return products
+func (s *SyncService) SyncProductsWithDetails(ctx context.Context, offset, limit int) ([]map[string]interface{}, int, error) {
+	log.Printf("[Lazada Sync] Starting product sync with pagination")
+
+	var allProducts []map[string]interface{}
+	savedProductCount := 0
+	savedSkuCount := 0
+	pageOffset := 0
+	pageLimit := 50 // Lazada max per page is 50
+
+	for {
+		log.Printf("[Lazada Sync] Fetching page offset=%d, limit=%d", pageOffset, pageLimit)
+
+		resp, err := s.client.GetProducts(pageOffset, pageLimit)
+		if err != nil {
+			log.Printf("[Lazada Sync] GetProducts error at offset %d: %v", pageOffset, err)
+			return nil, 0, err
+		}
+
+		totalProducts := resp.Data.TotalProducts
+		products := resp.Data.Products
+
+		log.Printf("[Lazada Sync] Got %d products, total=%d", len(products), totalProducts)
+
+		if len(products) == 0 {
+			break
+		}
+
+		for _, prod := range products {
+			// Convert FlexibleString to string for storage
+			itemID := prod.ItemID.String()
+
+			// Extract product name from attributes first, fallback to name field
+			productName := prod.Name
+			if prod.Attributes.Name != "" {
+				productName = prod.Attributes.Name
+			}
+
+			// Extract description from attributes first, fallback to description field
+			description := prod.Description
+			if prod.Attributes.Description != "" {
+				description = prod.Attributes.Description
+			}
+
+			// Extract brand
+			brand := prod.Brand
+			if prod.Attributes.Brand != "" {
+				brand = prod.Attributes.Brand
+			}
+
+			// Save product to database
+			dbProd := &models.LazadaProduct{
+				TenantID:    s.tenantID,
+				ItemID:      itemID,
+				Name:        productName,
+				Description: description,
+				Brand:       brand,
+				Price:       prod.Price,
+				Status:      prod.Status,
+			}
+
+			if err := s.prodRepo.Upsert(ctx, dbProd); err != nil {
+				log.Printf("[Lazada Sync] Failed to upsert product %s: %v", itemID, err)
+			} else {
+				savedProductCount++
+			}
+
+			// Save SKUs to database
+			for _, sku := range prod.Skus {
+				skuID := sku.SkuID.String()
+				skuName := sku.SellerSku
+				if skuName == "" {
+					skuName = sku.ShopSku
+				}
+
+				// Extract variation name from saleProp or Variation field
+				variantName := sku.Variation
+				if variantName == "" && sku.Pilihan != "" {
+					variantName = sku.Pilihan
+				}
+
+				dbSku := &models.LazadaSku{
+					TenantID:     s.tenantID,
+					ItemID:       itemID,
+					SkuID:        skuID,
+					ShopSku:      sku.ShopSku,
+					SellerSku:    sku.SellerSku,
+					Name:         skuName,
+					VariantName:  variantName,
+					Price:        sku.Price,
+					SpecialPrice: sku.SpecialPrice,
+					Quantity:     sku.Quantity,
+					Available:    sku.Available,
+				}
+
+				if err := s.prodRepo.UpsertSku(ctx, dbSku); err != nil {
+					log.Printf("[Lazada Sync] Failed to upsert SKU %s: %v", skuID, err)
+				} else {
+					savedSkuCount++
+				}
+
+				// Add each SKU as a row (matching frontend expectation)
+				productItem := map[string]interface{}{
+					"item_id":      itemID,
+					"sku_id":       skuID,
+					"sku_name":     skuName,
+					"product_name": productName,
+					"variant_name": variantName,
+					"price":        sku.Price,
+					"quantity":     sku.Quantity,
+					"status":       prod.Status,
+				}
+				allProducts = append(allProducts, productItem)
+			}
+
+			// If no SKUs, still add product row
+			if len(prod.Skus) == 0 {
+				productItem := map[string]interface{}{
+					"item_id":      itemID,
+					"sku_id":       "",
+					"sku_name":     productName,
+					"product_name": productName,
+					"variant_name": "",
+					"price":        prod.Price,
+					"quantity":     0,
+					"status":       prod.Status,
+				}
+				allProducts = append(allProducts, productItem)
+			}
+		}
+
+		// Check if we've fetched all products
+		pageOffset += pageLimit
+		if pageOffset >= totalProducts {
+			break
+		}
+	}
+
+	log.Printf("[Lazada Sync] Completed - products: %d, skus: %d, total rows: %d", savedProductCount, savedSkuCount, len(allProducts))
+
+	return allProducts, savedProductCount, nil
+}

@@ -1,0 +1,21 @@
+{
+  "spreadsheet_id": "1lSpIkQhVZURatSdM5DsYyF7pc8-5Zyiq4wYGnLp6jlc",
+  "sheet_name": "Data Utama",
+  "selected_columns": [
+    "SKU",
+    "Nama Barang",
+    "Nama Variasi",
+    "CEK",
+    "SHOPEE",
+    "TIKTOK",
+    "LAZADA",
+    "TOTAL",
+    "AUTO"
+  ],
+  "header_row": 1,
+  "data_start_row": 2,
+  "key_column": "",
+  "auto_sync": false,
+  "sync_interval_seconds": 300,
+  "last_sync_timestamp": null
+}

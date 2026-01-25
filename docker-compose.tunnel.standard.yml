@@ -1,0 +1,48 @@
+# ============================================
+# STANDARD Override untuk Tunnel
+# RAM: 4GB, CPU: 2 cores [RECOMMENDED]
+# Use: docker-compose -f docker-compose.tunnel.yml -f docker-compose.tunnel.standard.yml up
+# ============================================
+
+services:
+  backend:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=1024
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1536M
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  frontend:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=384
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  redis:
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123} --maxmemory 256mb --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+
+  nginx:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M

@@ -1,0 +1,87 @@
+package middleware
+
+import (
+	"log"
+	"net/http"
+	"os"
+	"runtime/debug"
+
+	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/errors"
+)
+
+// ErrorResponse is the standard error response format
+type ErrorResponse struct {
+	Success bool        `json:"success"`
+	Error   string      `json:"error"`
+	Type    string      `json:"type,omitempty"`
+	Details interface{} `json:"details,omitempty"`
+}
+
+// ErrorHandler is middleware that recovers from panics and handles errors
+func ErrorHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		defer func() {
+			if r := recover(); r != nil {
+				// Log panic with stack trace in development
+				if os.Getenv("GO_ENV") != "production" {
+					log.Printf("Panic recovered: %v\n%s", r, debug.Stack())
+				} else {
+					log.Printf("Panic recovered: %v", r)
+				}
+
+				c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{
+					Success: false,
+					Error:   "An unexpected error occurred",
+					Type:    errors.TypeInternal,
+				})
+			}
+		}()
+
+		c.Next()
+
+		// Handle errors set during request processing
+		if len(c.Errors) > 0 {
+			err := c.Errors.Last().Err
+			handleError(c, err)
+		}
+	}
+}
+
+// handleError converts error to appropriate HTTP response
+func handleError(c *gin.Context, err error) {
+	if appErr, ok := err.(*errors.AppError); ok {
+		response := ErrorResponse{
+			Success: false,
+			Error:   appErr.Message,
+			Type:    appErr.Type,
+			Details: appErr.Details,
+		}
+
+		// Don't expose internal error details in production
+		if appErr.InternalErr != nil && os.Getenv("GO_ENV") != "production" {
+			log.Printf("Internal error: %v", appErr.InternalErr)
+		}
+
+		c.AbortWithStatusJSON(appErr.Code, response)
+		return
+	}
+
+	// Generic error handling
+	c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{
+		Success: false,
+		Error:   "An unexpected error occurred",
+		Type:    errors.TypeInternal,
+	})
+}
+
+// AbortWithError is a helper to abort with an AppError
+func AbortWithError(c *gin.Context, err *errors.AppError) {
+	response := ErrorResponse{
+		Success: false,
+		Error:   err.Message,
+		Type:    err.Type,
+		Details: err.Details,
+	}
+	c.AbortWithStatusJSON(err.Code, response)
+}

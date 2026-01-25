@@ -1,0 +1,130 @@
+<template>
+  <div class="manual-trigger-section">
+    <!-- Section Header -->
+    <div class="section-header">
+      <div class="section-title">
+        <span class="section-icon">🔧</span>
+        <h3>Manual Trigger Mode</h3>
+        <span class="section-subtitle">Ketika user klik tombol di UI</span>
+      </div>
+      <button @click="$emit('show-add-new')" class="btn btn-add">
+        ➕ Add Route
+      </button>
+    </div>
+
+    <!-- Empty State -->
+    <div v-if="configs.length === 0" class="empty-state">
+      <p>No manual trigger routes configured</p>
+      <button @click="$emit('show-add-new')" class="btn btn-primary">
+        ➕ Add Route
+      </button>
+    </div>
+
+    <!-- Routes Table -->
+    <div v-else class="routes-table-container">
+      <table class="routes-table">
+        <thead>
+          <tr>
+            <th class="col-icon"></th>
+            <th class="col-route">Route</th>
+            <th class="col-mode">Mode</th>
+            <th class="col-priority">Priority</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="config in configs" :key="config.routeKey">
+            <td class="col-icon">{{ config.icon || "📋" }}</td>
+            <td class="col-route">
+              <div class="route-info">
+                <span class="route-name">{{ config.routeName }}</span>
+                <span class="route-desc">{{ config.description }}</span>
+              </div>
+            </td>
+            <td class="col-mode">
+              <select
+                :value="config.executionMode"
+                @change="handleModeChange(config.routeKey, $event)"
+                class="mode-select"
+                :class="'mode-' + config.executionMode"
+              >
+                <option value="queue">Queue</option>
+                <option value="direct">Direct</option>
+              </select>
+            </td>
+            <td class="col-priority">
+              <select
+                v-if="config.executionMode === 'queue'"
+                :value="config.priority"
+                @change="handlePriorityChange(config.routeKey, $event)"
+                class="priority-select"
+                :class="'priority-' + config.priority"
+              >
+                <option value="high">High</option>
+                <option value="normal">Normal</option>
+                <option value="low">Low</option>
+              </select>
+              <span v-else class="priority-na">-</span>
+            </td>
+            <td class="col-actions">
+              <button
+                @click="$emit('edit', config)"
+                class="btn-icon"
+                title="Edit"
+              >
+                ✎
+              </button>
+              <button
+                @click="$emit('delete', config.routeKey)"
+                class="btn-icon btn-danger"
+                title="Delete"
+              >
+                ✕
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <span class="legend-item">
+        <span class="mode-badge mode-queue">Queue</span>
+        Masuk antrian, termonitor
+      </span>
+      <span class="legend-item">
+        <span class="mode-badge mode-direct">Direct</span>
+        Langsung execute
+      </span>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import type { RouteExecutionConfig } from "@/types/routeExecutionConfig";
+
+defineProps<{
+  configs: RouteExecutionConfig[];
+}>();
+
+const emit = defineEmits<{
+  "show-add-new": [];
+  edit: [config: RouteExecutionConfig];
+  delete: [routeKey: string];
+  "update-mode": [routeKey: string, mode: string];
+  "update-priority": [routeKey: string, priority: string];
+}>();
+
+function handleModeChange(routeKey: string, event: Event) {
+  const select = event.target as HTMLSelectElement;
+  emit("update-mode", routeKey, select.value);
+}
+
+function handlePriorityChange(routeKey: string, event: Event) {
+  const select = event.target as HTMLSelectElement;
+  emit("update-priority", routeKey, select.value);
+}
+</script>
+
+<style src="./ManualTriggerSection.styles.css" scoped></style>

@@ -1,0 +1,296 @@
+# ============================================
+# Docker Compose dengan Cloudflare Tunnel + PostgreSQL
+# Untuk hosting di PC rumah tanpa perlu IP static
+# ============================================
+#
+# USAGE:
+#   docker-compose -f docker-compose.tunnel.yml up -d --build
+#
+# ============================================
+
+services:
+  # ============================================
+  # PostgreSQL 16 - Main Database Server
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: omni-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-omni}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-omni_secure_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-omni_main}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./scripts/postgres/init-multi-tenant.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./scripts/postgres/create-schemas.sql:/docker-entrypoint-initdb.d/02-schemas.sql:ro
+    networks:
+      - omni-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-omni} -d ${POSTGRES_DB:-omni_main}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=768MB"
+      - "-c"
+      - "work_mem=16MB"
+      - "-c"
+      - "maintenance_work_mem=128MB"
+      - "-c"
+      - "timezone=Asia/Jakarta"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  # ============================================
+  # PgBouncer - Connection Pooling
+  # ============================================
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: omni-pgbouncer
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-omni}:${POSTGRES_PASSWORD:-omni_secure_2026}@postgres:5432/${POSTGRES_DB:-omni_main}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 25
+      MIN_POOL_SIZE: 5
+      RESERVE_POOL_SIZE: 5
+      AUTH_TYPE: md5
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - omni-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64M
+
+  # ============================================
+  # Cloudflare Tunnel
+  # ============================================
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: omni-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --protocol http2 --edge-ip-version auto run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - omni-network
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+
+  # ============================================
+  # Backend Service (Go + PostgreSQL)
+  # ============================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: omni-backend
+    restart: unless-stopped
+    environment:
+      # Timezone - WIB (UTC+7)
+      - TZ=Asia/Jakarta
+      # Application settings
+      - GO_ENV=production
+      - PORT=3000
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      # Database - PostgreSQL
+      - DB_DRIVER=postgres
+      - PG_HOST=postgres
+      - PG_PORT=5432
+      - PG_USER=${POSTGRES_USER:-omni}
+      - PG_PASSWORD=${POSTGRES_PASSWORD:-omni_secure_2026}
+      - PG_DATABASE=${POSTGRES_DB:-omni_main}
+      - PG_SSLMODE=disable
+      # Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis123}
+      # Other settings
+      - LOG_LEVEL=info
+      - CORS_ORIGINS=https://yndigital.my.id,http://yndigital.my.id,https://www.yndigital.my.id,http://www.yndigital.my.id,http://localhost,http://localhost:80,http://localhost:3000
+      - SHOPEE_PARTNER_KEY=${SHOPEE_PARTNER_KEY}
+      # Frontend URL for OAuth redirects
+      - FRONTEND_URL=https://yndigital.my.id
+    volumes:
+      - ./backend/logs:/app/logs
+      - ./backend/config/static:/app/config/static
+    networks:
+      - omni-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/api/health",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  # ============================================
+  # Frontend Service
+  # ============================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NUXT_PUBLIC_API_BASE=/api
+    container_name: omni-frontend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NUXT_PUBLIC_API_BASE=/api
+    networks:
+      - omni-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+  # ============================================
+  # Redis Cache
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: omni-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
+    volumes:
+      - redis_data:/data
+    networks:
+      - omni-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis123}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # pgweb - Lightweight PostgreSQL Web Admin
+  # Access: http://localhost:8081
+  # ============================================
+  pgweb:
+    image: sosedoff/pgweb:latest
+    container_name: omni-pgweb
+    restart: unless-stopped
+    environment:
+      PGWEB_DATABASE_URL: postgres://${POSTGRES_USER:-omni}:${POSTGRES_PASSWORD:-omni_secure_2026}@postgres:5432/${POSTGRES_DB:-omni_main}?sslmode=disable
+    ports:
+      - "8081:8081"
+    networks:
+      - omni-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 32M
+        reservations:
+          cpus: "0.05"
+          memory: 16M
+
+  # ============================================
+  # Internal Nginx (untuk routing internal)
+  # ============================================
+  nginx:
+    image: nginx:alpine
+    container_name: omni-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d/tunnel.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/logs:/var/log/nginx
+    networks:
+      - omni-network
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost/health",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+
+networks:
+  omni-network:
+    driver: bridge
+
+volumes:
+  redis_data:

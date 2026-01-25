@@ -1,0 +1,38 @@
+# ===========================================
+# DEPENDENCIES ONLY - Data tetap di-track
+# Repo sudah private
+# ===========================================
+
+# Node.js dependencies
+node_modules/
+
+# PostgreSQL data directory (Docker volume)
+# JANGAN masuk git - ini binary data, bukan SQL
+# Untuk pindah PC, gunakan backups/db-tools/menu.bat
+data/postgres/
+
+# SQLite database files (backend-node - reference only)
+backend-node/**/*.db
+backend-node/**/*.db-shm
+backend-node/**/*.db-wal
+
+# Python dependencies & cache
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Build artifacts (bisa di-rebuild)
+backend/bin/
+*.exe
+
+# Temporary files
+*.log
+*.tmp
+*_copy*
+allcode-*.txt
+
+# IDE generated
+.vscode/mcp.json
+

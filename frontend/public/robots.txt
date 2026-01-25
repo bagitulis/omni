@@ -1,0 +1,36 @@
+# Omni E-commerce Platform - Security robots.txt
+# Blocks search engines from indexing sensitive areas
+
+User-agent: *
+Allow: /login
+
+# Block all sensitive administrative and operational areas
+Disallow: /admin
+Disallow: /admin/
+Disallow: /operation
+Disallow: /operation/
+Disallow: /product-manager
+Disallow: /product-manager/
+Disallow: /order-manager
+Disallow: /order-manager/
+Disallow: /inventory
+Disallow: /inventory/
+Disallow: /script-monitor
+Disallow: /script-monitor/
+Disallow: /analytics
+Disallow: /analytics/
+Disallow: /settings
+Disallow: /settings/
+Disallow: /route-mapping
+Disallow: /dev-preview
+Disallow: /dev-preview/
+
+# Block API endpoints
+Disallow: /api/
+Disallow: /api
+
+# Block query parameters that might expose data
+Disallow: /*?*
+
+# No sitemap - internal application only
+# Sitemap: none

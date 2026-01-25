@@ -1,0 +1,48 @@
+# ============================================
+# LOW SPEC Override untuk Tunnel
+# RAM: 2GB, CPU: 1 core
+# Use: docker-compose -f docker-compose.tunnel.yml -f docker-compose.tunnel.lowspec.yml up
+# ============================================
+
+services:
+  backend:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=256
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 384M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  frontend:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+
+  redis:
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123} --maxmemory 32mb --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
+
+  nginx:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 96M

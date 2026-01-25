@@ -1,0 +1,96 @@
+package shopee
+
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/config"
+	"github.com/omni/backend/internal/dto/response"
+	"github.com/omni/backend/internal/middleware"
+	"github.com/omni/backend/internal/repositories"
+)
+
+// OrderHandler handles Shopee order HTTP requests
+type OrderHandler struct {
+	basePath string
+}
+
+// NewOrderHandler creates a new order handler
+func NewOrderHandler(basePath string) *OrderHandler {
+	return &OrderHandler{basePath: basePath}
+}
+
+// GetOrders handles GET /api/shopee/orders
+func (h *OrderHandler) GetOrders(c *gin.Context) {
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		return
+	}
+
+	// Parse pagination
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	// Get database connection
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+
+	// Query orders
+	repo := repositories.NewShopeeOrderRepository(db)
+	orders, total, err := repo.FindAll(c.Request.Context(), page, pageSize)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to fetch orders"))
+		return
+	}
+
+	// Calculate pagination
+	totalPages := int(total) / pageSize
+	if int(total)%pageSize > 0 {
+		totalPages++
+	}
+
+	c.JSON(http.StatusOK, response.SuccessWithMeta(orders, &response.Meta{
+		Total:      int(total),
+		Page:       page,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+	}))
+}
+
+// GetOrderByID handles GET /api/shopee/orders/:orderSn
+func (h *OrderHandler) GetOrderByID(c *gin.Context) {
+	tenantID := middleware.GetTenantID(c)
+	orderSN := c.Param("orderSn")
+
+	if orderSN == "" {
+		c.JSON(http.StatusBadRequest, response.Error("Order SN required"))
+		return
+	}
+
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+
+	repo := repositories.NewShopeeOrderRepository(db)
+	order, err := repo.FindByOrderSN(c.Request.Context(), orderSN)
+	if err != nil {
+		c.JSON(http.StatusNotFound, response.Error("Order not found"))
+		return
+	}
+
+	c.JSON(http.StatusOK, response.Success(order))
+}

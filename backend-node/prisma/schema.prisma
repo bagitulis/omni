@@ -1,0 +1,1270 @@
+// ============================================================
+// ⚠️ MULTI-TENANT ARCHITECTURE - DO NOT CREATE dev.db! ⚠️
+// ============================================================
+// This project uses SEPARATE databases per tenant.
+// Database files are in: backend/config/databases/
+//   - {tenant}_bertigamart.db (main data per tenant)
+//   - {tenant}_jobs.db (jobs & auto-functions per tenant)
+// 
+// Tenants are defined in: backend/config/static/tenants.json
+// Runtime database selection: src/services/tenantManagementService.ts
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String    @id @default(cuid())
+  username             String    @unique
+  email                String    @unique
+  password             String
+  role                 String    @default("owner") // owner, admin, user, developer, service
+  failedLoginAttempts  Int       @default(0)
+  accountLockedUntil   DateTime?
+  lastFailedLogin      DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([username])
+  @@index([email])
+  @@index([role])
+}
+
+model PlatformConfig {
+  id          String   @id @default(cuid())
+  platform    String
+  configKey   String
+  configValue String
+  dataType    String   @default("string")
+  isEncrypted Boolean  @default(true)
+  metadata    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([platform, configKey])
+  @@index([platform])
+}
+
+model ShopeeOrder {
+  id              Int               @id @default(autoincrement())
+  tenantId        String
+  orderSn         String            @unique
+  shopId          BigInt?
+  orderStatus     String
+  orderTimestamp  Int?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  items           ShopeeOrderItem[]
+
+  @@unique([tenantId, orderSn], name: "idx_shopee_tenant_ordersn")
+  @@index([tenantId])
+  @@index([orderStatus])
+  @@index([createdAt])
+}
+
+model ShopeeOrderItem {
+  id        Int         @id @default(autoincrement())
+  orderSn   String
+  itemId    BigInt
+  modelId   BigInt?
+  itemName  String?
+  modelName String?
+  itemSku   String?
+  modelSku  String?
+  quantity  Int?
+  price     Float?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  order     ShopeeOrder @relation(fields: [orderSn], references: [orderSn], onDelete: Cascade)
+
+  @@index([orderSn])
+}
+
+model LazadaOrder {
+  id              Int               @id @default(autoincrement())
+  tenantId        String
+  orderSn         String            @unique
+  shopId          BigInt?
+  orderStatus     String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  items           LazadaOrderItem[]
+
+  @@unique([tenantId, orderSn], name: "idx_lazada_tenant_ordersn")
+  @@index([tenantId])
+  @@index([orderStatus])
+  @@index([createdAt])
+}
+
+model LazadaOrderItem {
+  id            Int         @id @default(autoincrement())
+  orderSn       String
+  itemId        BigInt
+  skuId         String?
+  sellerSku     String?
+  productName   String?
+  variationName String?
+  quantity      Int?
+  price         Float?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  order         LazadaOrder @relation(fields: [orderSn], references: [orderSn], onDelete: Cascade)
+
+  @@index([orderSn])
+}
+
+model TiktokOrder {
+  id              Int               @id @default(autoincrement())
+  tenantId        String
+  orderSn         String            @unique
+  shopId          BigInt?
+  orderStatus     String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  items           TiktokOrderItem[]
+
+  @@unique([tenantId, orderSn], name: "idx_tiktok_tenant_ordersn")
+  @@index([tenantId])
+  @@index([orderStatus])
+  @@index([createdAt])
+}
+
+model TiktokOrderItem {
+  id            Int         @id @default(autoincrement())
+  orderSn       String
+  lineItemId    String?
+  productId     BigInt
+  skuId         String?
+  sellerSku     String?
+  productName   String?
+  variationName String?
+  quantity      Int?
+  price         Float?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  order         TiktokOrder @relation(fields: [orderSn], references: [orderSn], onDelete: Cascade)
+
+  @@index([orderSn])
+}
+
+// ============================================
+// Order Today Item - Processed Orders with Tracking Info
+// Fresh fetch from API, stored for "Order Today" tab display
+// ============================================
+model OrderTodayItem {
+  id            Int      @id @default(autoincrement())
+  tenantId      String
+  platform      String   // shopee, lazada, tiktok
+  orderSn       String
+  trackingNo    String?
+  courier       String?
+  sellerSku     String?
+  productName   String?
+  variationName String?
+  quantity      Int      @default(1)
+  syncedAt      DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, platform, orderSn, sellerSku], name: "idx_order_today_unique")
+  @@index([tenantId])
+  @@index([platform])
+  @@index([syncedAt])
+}
+
+model GoogleSheetsSettings {
+  id                            String   @id @default(cuid())
+  spreadsheetId                 String?
+  selectedSheet                 String?
+  manualMode                    Boolean  @default(false)
+  walletSpreadsheetId           String?
+  shippingSpreadsheetId         String?
+  inventorySpreadsheetId        String?
+  inventorySheetName            String?
+  inventorySelectedColumns      String?
+  inventoryAvailableWorksheets  String?
+  walletAvailableWorksheets     String?
+  shippingAvailableWorksheets   String?
+  orderAvailableWorksheets      String?
+  orderSpreadsheetId            String?
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+  availableSpreadsheets         String?
+  availableWorksheets           String?
+}
+
+model InventorySettings {
+  id                  String    @id @default(cuid())
+  tenantId            String    // 🔒 Multi-tenant isolation (REQUIRED - no default)
+  spreadsheetId       String?
+  sheetName           String?
+  selectedColumns     String?
+  headerRow           Int       @default(1)
+  dataStartRow        Int       @default(2)
+  keyColumn           String?
+  autoSync            Boolean   @default(false)
+  syncIntervalSeconds Int       @default(300)
+  lastSyncTimestamp   DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  allColumns          String?
+  lastHeadersHash     String?
+  lastSyncStatus      String?
+
+  @@unique([tenantId])
+  @@index([tenantId])
+}
+
+model InventoryRecord {
+  id            String   @id @default(cuid())
+  tenantId      String   // 🔒 Multi-tenant isolation (REQUIRED - no default)
+  data          String
+  keyValue      String
+  keyColumnName String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, keyColumnName, keyValue])
+  @@index([tenantId])
+  @@index([keyColumnName, keyValue])
+  @@index([createdAt])
+}
+
+model InventorySyncHistory {
+  id            String   @id @default(cuid())
+  tenantId      String   // 🔒 Multi-tenant isolation (REQUIRED - no default)
+  syncDirection String
+  status        String
+  totalRecords  Int      @default(0)
+  syncedRecords Int      @default(0)
+  failedRecords Int      @default(0)
+  duration      Float    @default(0)
+  message       String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([syncDirection])
+  @@index([createdAt])
+}
+
+// 📸 SheetSnapshot - Mirror of Google Sheet for Delta Sync
+// Used to compare database changes vs last known sheet state
+model SheetSnapshot {
+  id            String   @id @default(cuid())
+  tenantId      String   // 🔒 Multi-tenant isolation (REQUIRED - no default)
+  sku           String                       // Primary key for lookup
+  snapshotData  String                       // JSON: { columnName: value }
+  rowIndex      Int                          // Row position in Google Sheet
+  dataHash      String?                      // Hash for quick change detection
+  syncedAt      DateTime @default(now())     // When this snapshot was taken
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+  @@index([sku])
+  @@index([syncedAt])
+}
+
+model LazadaProduct {
+  id          Int         @id @default(autoincrement())
+  tenantId    String      // 🔒 Multi-tenant isolation (REQUIRED - no default)
+  itemId      String
+  name        String
+  description String?
+  status      String
+  price       Float       @default(0)
+  quantity    Int         @default(0)
+  image       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  skus        LazadaSku[]
+
+  @@unique([tenantId, itemId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model LazadaSku {
+  id          Int           @id @default(autoincrement())
+  productId   Int
+  skuId       String        @unique
+  sellerSku   String?
+  price       Float         @default(0)
+  quantity    Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  variantData String?
+  variantName String?
+  product     LazadaProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([skuId])
+}
+
+model ShopeeProduct {
+  id          Int         @id @default(autoincrement())
+  tenantId    String      // 🔒 Multi-tenant isolation (REQUIRED - no default)
+  itemId      BigInt
+  name        String
+  description String?
+  status      String
+  price       Float       @default(0)
+  quantity    Int         @default(0)
+  image       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  skus        ShopeeSku[]
+
+  @@unique([tenantId, itemId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ShopeeSku {
+  id          Int           @id @default(autoincrement())
+  productId   Int
+  itemId      BigInt
+  modelId     BigInt?
+  sellerSku   String?
+  variantName String?
+  variantData String?
+  price       Float         @default(0)
+  quantity    Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  product     ShopeeProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([modelId])
+  @@index([itemId])
+}
+
+model TiktokProduct {
+  id          Int         @id @default(autoincrement())
+  tenantId    String      // 🔒 Multi-tenant isolation (REQUIRED - no default)
+  productId   String
+  name        String
+  description String?
+  status      String
+  price       Float       @default(0)
+  quantity    Int         @default(0)
+  image       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  skus        TiktokSku[]
+
+  @@unique([tenantId, productId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model TiktokSku {
+  id          Int           @id @default(autoincrement())
+  productId   Int
+  skuId       String        @unique
+  price       Float         @default(0)
+  quantity    Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  sellerSku   String?
+  variantData String?
+  variantName String?
+  product     TiktokProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([skuId])
+}
+
+model FilterPreference {
+  id             String   @id @default(cuid())
+  tenantId       String   // 🔒 Multi-tenant isolation (REQUIRED - no default)
+  platform       String
+  tab            String   @default("master")
+  visibleColumns String
+  columnFilters  String
+  searchQuery    String   @default("")
+  lockedColumns  String   @default("[]")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([tenantId, platform, tab])
+  @@index([tenantId])
+}
+
+model InventorySkuPlatformStatus {
+  id        String   @id @default(cuid())
+  tenantId  String   // 🔒 Multi-tenant isolation (REQUIRED - no default)
+  sku       String
+  lazada    Boolean  @default(false)
+  shopee    Boolean  @default(false)
+  tiktok    Boolean  @default(false)
+  checkedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+  @@index([sku])
+  @@index([updatedAt])
+}
+
+model RouteConfig {
+  id                 String    @id @default(cuid())
+  tenantId           String    // 🔒 Multi-tenant isolation (REQUIRED - no default)
+  routePath          String
+  routeMethod        String    @default("GET")
+  routeName          String?
+  description        String?
+  category           String?
+  enabled            Boolean   @default(true)
+  cachingEnabled     Boolean   @default(true)
+  cacheTTL           Int       @default(300)
+  cacheStrategy      String    @default("standard")
+  cacheKeyTemplate   String?
+  queueEnabled       Boolean   @default(true)
+  queueMaxSize       Int       @default(100)
+  queuePriority      String    @default("normal")
+  maxConcurrent      Int       @default(5)
+  rateLimitEnabled   Boolean   @default(false)
+  rateLimitWindow    Int       @default(60)
+  rateLimitMax       Int       @default(100)
+  minIntervalMs      Int       @default(0)
+  timeout            Int       @default(30000)
+  retryEnabled       Boolean   @default(true)
+  maxRetries         Int       @default(3)
+  retryDelayMs       Int       @default(1000)
+  lastExecuted       DateTime?
+  executionCount     Int       @default(0)
+  failureCount       Int       @default(0)
+  avgExecutionTimeMs Float     @default(0)
+  customConfig       String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([tenantId, routePath, routeMethod])
+  @@index([tenantId])
+  @@index([routePath])
+  @@index([enabled])
+  @@index([category])
+  @@index([lastExecuted])
+}
+
+model Spreadsheet {
+  id                String   @id @default(cuid())
+  spreadsheetId     String
+  spreadsheetUrl    String
+  spreadsheetName   String
+  purpose           String   @default("other")
+  sheets            String?
+  tenantId          String   // 🔒 Multi-tenant isolation (REQUIRED - no default)
+  registeredBy      String?
+  lastUsedAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([spreadsheetId, tenantId])
+  @@index([tenantId])
+  @@index([purpose])
+}
+
+model LockedOrder {
+  id               String   @id @default(cuid())
+  tenantId         String
+  sku              String
+  productName      String
+  variationName    String?
+  qty              Int
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, sku, productName, variationName])
+  @@index([tenantId])
+  @@index([sku])
+  @@index([createdAt])
+}
+
+// ============================================
+// Wholesale Settings (per tenant)
+// ============================================
+model WholesaleSettings {
+  id            String   @id @default(cuid())
+  tenantId      String   @unique
+  platform      String   @default("shopee")
+  
+  // Global settings
+  adminFee      Int      @default(1500)     // Admin Shopee (Rp)
+  maxOrderTier3 Int      @default(1000)     // Max qty for tier 3
+  
+  // Tier 1 settings (editable)
+  minOrder1     Int      @default(2)
+  maxOrder1     Int      @default(3)
+  
+  // Tier 2 & 3 are auto-calculated based on tier 1
+  // minOrder2 = maxOrder1 + 1
+  // maxOrder2 = minOrder2 + 1
+  // minOrder3 = maxOrder2 + 1
+  // maxOrder3 = maxOrderTier3 (from settings)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([platform])
+}
+
+// ============================================
+// Analytics - Escrow Sync Tracking
+// Record only created after successful sync (no pending state)
+// ============================================
+model ShopeeEscrowSync {
+  id          String   @id @default(cuid())
+  tenantId    String
+  month       Int
+  year        Int
+  totalOrders Int      @default(0)
+  syncedAt    DateTime @default(now()) // When sync completed
+
+  @@unique([tenantId, month, year])
+  @@index([tenantId])
+  @@index([month, year])
+}
+
+// ============================================
+// Analytics - Escrow Order (Order Level)
+// ============================================
+model ShopeeEscrowOrder {
+  id                    String   @id @default(cuid())
+  tenantId              String
+  orderSn               String
+  month                 Int
+  year                  Int
+  orderDate             DateTime?
+  buyerUserName         String?
+  
+  // Income fields
+  escrowAmount          Float    @default(0)
+  commissionFee         Float    @default(0)
+  serviceFee            Float    @default(0)
+  sellerProcessingFee   Float    @default(0)
+  
+  // Shipping fields
+  buyerPaidShippingFee  Float    @default(0)
+  actualShippingFee     Float    @default(0)
+  shopeeShippingRebate  Float    @default(0)
+  estimatedShippingFee  Float    @default(0)
+  
+  // Buyer payment
+  buyerTotalAmount      Float    @default(0)
+  buyerPaymentMethod    String?
+  
+  // Raw JSON for future use
+  rawOrderIncome        String?
+  rawBuyerPaymentInfo   String?
+  
+  syncedAt              DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // Relations
+  items                 ShopeeEscrowItem[]
+
+  @@unique([tenantId, orderSn])
+  @@index([tenantId])
+  @@index([month, year])
+  @@index([orderSn])
+}
+
+// ============================================
+// Analytics - Escrow Item (Item Level)
+// ============================================
+model ShopeeEscrowItem {
+  id                        String   @id @default(cuid())
+  tenantId                  String
+  escrowOrderId             String
+  
+  // Legacy fields (for backward compatibility with old data)
+  orderId                   String?
+  orderSn                   String?
+  month                     Int?
+  year                      Int?
+  
+  // SKU fields
+  itemId                    BigInt?
+  modelId                   BigInt?
+  sku                       String?
+  modelSku                  String?
+  itemName                  String?
+  modelName                 String?
+  
+  // Quantity & Price
+  quantity                  Int      @default(0)
+  originalPrice             Float    @default(0)
+  sellingPrice              Float    @default(0)
+  discountedPrice           Float    @default(0)
+  
+  // Discounts
+  sellerDiscount            Float    @default(0)
+  shopeeDiscount            Float    @default(0)
+  discountFromCoin          Float    @default(0)
+  discountFromVoucherSeller Float    @default(0)
+  discountFromVoucherShopee Float    @default(0)
+  
+  // Fees
+  amsCommissionFee          Float    @default(0)
+  sellerOrderProcessingFee  Float    @default(0)
+  
+  // Raw JSON
+  rawItemData               String?
+  
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  
+  // Relations
+  escrowOrder               ShopeeEscrowOrder @relation(fields: [escrowOrderId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([escrowOrderId])
+  @@index([sku])
+  @@index([modelSku])
+}
+
+// ============================================
+// Analytics Settings (per tenant, per platform)
+// ============================================
+model AnalyticsSettings {
+  id                    String   @id @default(cuid())
+  tenantId              String
+  platform              String   @default("shopee")
+  
+  // Column mapping
+  priceColumn           String   @default("HARGA")
+  
+  // Formula parameters
+  formulaDeduction      Float    @default(1500)
+  formulaMultiplier     Float    @default(0.84)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([tenantId, platform])
+  @@index([tenantId])
+}
+
+// ============================================
+// TikTok Analytics - Sync Tracking
+// ============================================
+model TiktokEscrowSync {
+  id          String   @id @default(cuid())
+  tenantId    String
+  month       Int      // 1-12
+  year        Int      // 2024, 2025, etc
+  totalOrders Int      @default(0)
+  syncedAt    DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, month, year])
+  @@index([tenantId])
+  @@index([month, year])
+}
+
+// ============================================
+// TikTok Analytics - Order Level (Settlement)
+// ============================================
+model TiktokEscrowOrder {
+  id                          String   @id @default(cuid())
+  tenantId                    String
+  orderId                     String   // TikTok order_id
+  month                       Int
+  year                        Int
+  orderStatus                 String?  // COMPLETED, etc
+  orderDate                   DateTime?
+  buyerName                   String?
+
+  // Settlement/Transaction info
+  transactionId               String?
+  transactionType             String?  // ORDER_SETTLEMENT
+  statementTime               DateTime?
+
+  // Financial summary
+  totalSettlementAmount       Float    @default(0)
+  productRevenue              Float    @default(0)
+  platformCommission          Float    @default(0)
+  transactionFee              Float    @default(0)
+
+  // Shipping fields
+  shippingFeeCustomerPaid     Float    @default(0)
+  shippingFeeActual           Float    @default(0)
+  shippingFeePlatformDiscount Float    @default(0)
+  sellerShippingDiscount      Float    @default(0)
+
+  // Other
+  refundAmount                Float    @default(0)
+  adjustment                  Float    @default(0)
+  buyerTotalAmount            Float    @default(0)
+  currency                    String   @default("IDR")
+
+  // Raw JSON for future use
+  rawTransactionData          String?
+  rawOrderData                String?
+
+  syncedAt                    DateTime @default(now())
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  // Relations
+  items                       TiktokEscrowItem[]
+
+  @@unique([tenantId, orderId])
+  @@index([tenantId])
+  @@index([month, year])
+  @@index([orderId])
+}
+
+// ============================================
+// TikTok Analytics - Item Level
+// ============================================
+model TiktokEscrowItem {
+  id                          String   @id @default(cuid())
+  tenantId                    String
+  escrowOrderId               String
+  orderId                     String   // For easier querying
+
+  // Product/SKU identifiers
+  productId                   String?
+  productName                 String?
+  skuId                       String?
+  sellerSku                   String?  // Important for inventory mapping!
+
+  // Pricing
+  quantity                    Int      @default(0)
+  salePrice                   Float    @default(0)
+  originalPrice               Float    @default(0)
+  subtotalAfterSellerDiscount Float    @default(0)
+
+  // Discounts
+  platformDiscount            Float    @default(0)
+  sellerDiscount              Float    @default(0)
+
+  // Fees (per item)
+  commission                  Float    @default(0)
+  transactionFeeItem          Float    @default(0)
+
+  // Settlement per item
+  settlementAmount            Float    @default(0)
+
+  // Metadata
+  rawItemData                 String?
+  syncedAt                    DateTime @default(now())
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  // Relations
+  escrowOrder                 TiktokEscrowOrder @relation(fields: [escrowOrderId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([escrowOrderId])
+  @@index([orderId])
+  @@index([sellerSku])
+}
+
+// ============================================
+// Platform OAuth State - Untuk OAuth Callback
+// ============================================
+model OAuthState {
+  id          String   @id @default(cuid())
+  tenantId    String
+  platform    String   // shopee, tiktok, lazada
+  state       String   @unique // Random state untuk keamanan OAuth
+  redirectUrl String?  // URL untuk redirect setelah OAuth selesai
+  metadata    String?  // JSON: tambahan data jika diperlukan
+  expiresAt   DateTime // State expire dalam 10 menit
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([platform])
+  @@index([state])
+  @@index([expiresAt])
+}
+
+// ============================================
+// OAuth Log - Log semua OAuth callbacks & token exchanges
+// ============================================
+model OAuthLog {
+  id           String   @id @default(cuid())
+  tenantId     String
+  platform     String   // shopee, tiktok, lazada
+  eventType    String   // callback_received, token_exchanged, token_refreshed, error
+  shopId       String?  // Shop ID dari platform
+  code         String?  // Authorization code
+  state        String?  // OAuth state
+  status       String   @default("received") // received, success, failed
+  errorMsg     String?  // Error message jika gagal
+  metadata     String?  // JSON: additional data (tokens summary, timestamps, dll)
+  processedAt  DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([platform])
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================
+// Webhook Log - Log semua webhook events
+// ============================================
+model WebhookLog {
+  id          String   @id @default(cuid())
+  tenantId    String?  // Bisa null jika belum tahu tenant-nya
+  platform    String   // shopee, tiktok, lazada
+  eventType   String   // order.created, payment.updated, dll
+  payload     String   // JSON: raw payload dari platform
+  headers     String?  // JSON: request headers
+  status      String   @default("received") // received, processed, failed
+  errorMsg    String?  // Error message jika gagal
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([platform])
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================
+// Webhook Order Event - Order status changes from webhooks
+// Append-only table for full audit trail
+// ============================================
+model WebhookOrderEvent {
+  id                Int      @id @default(autoincrement())
+  tenantId          String
+  platform          String   // shopee, tiktok, lazada
+  eventType         String   // order_status, fulfillment_status, etc
+  orderSn           String
+  shopId            String?
+  oldStatus         String?
+  newStatus         String?
+  fulfillmentStatus String?
+  packageNumber     String?
+  payload           String?  // JSON: raw event data
+  webhookLogId      String?  // Reference to WebhookLog
+  processedAt       DateTime?
+  createdAt         DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([orderSn])
+  @@index([platform])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+// ============================================
+// Webhook Product Event - Product push events
+// ============================================
+model WebhookProductEvent {
+  id          Int      @id @default(autoincrement())
+  tenantId    String
+  eventType   String   // item_add, item_update, item_delete, etc
+  shopId      String?
+  itemId      String?
+  variationId String?
+  action      String?
+  payload     String?  // JSON: raw event data
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([itemId])
+  @@index([eventType])
+}
+
+// ============================================
+// Webhook Marketing Event - Marketing/Promo push events
+// ============================================
+model WebhookMarketingEvent {
+  id            Int      @id @default(autoincrement())
+  tenantId      String
+  eventType     String   // promotion_start, promotion_end, etc
+  shopId        String?
+  itemId        String?
+  promotionId   String?
+  promotionType String?
+  action        String?
+  payload       String?  // JSON: raw event data
+  processedAt   DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([promotionId])
+  @@index([eventType])
+}
+
+// ============================================
+// Webhook Return Event - Return/Refund push events
+// ============================================
+model WebhookReturnEvent {
+  id          Int      @id @default(autoincrement())
+  tenantId    String
+  eventType   String   // return_created, return_approved, etc
+  shopId      String?
+  orderSn     String?
+  returnSn    String?
+  status      String?
+  reason      String?
+  payload     String?  // JSON: raw event data
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([orderSn])
+  @@index([returnSn])
+}
+
+// ============================================
+// Webhook Shopee Event - Shopee system events
+// ============================================
+model WebhookShopeeEvent {
+  id            Int      @id @default(autoincrement())
+  tenantId      String
+  eventType     String   // authorization_update, shop_update, etc
+  shopId        String?
+  action        String?
+  expiryTime    DateTime?
+  penaltyPoints Int?
+  payload       String?  // JSON: raw event data
+  processedAt   DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([shopId])
+  @@index([eventType])
+}
+
+// ============================================
+// Webhook Webchat Event - Chat/Message push events
+// ============================================
+model WebhookWebchatEvent {
+  id             Int      @id @default(autoincrement())
+  tenantId       String
+  eventType      String   // new_message, conversation_update, etc
+  shopId         String?
+  conversationId String?
+  messageType    String?
+  senderId       String?
+  payload        String?  // JSON: raw event data
+  processedAt    DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([conversationId])
+}
+
+// ============================================
+// Webhook FBS Event - Fulfillment by Shopee events
+// ============================================
+model WebhookFBSEvent {
+  id            Int      @id @default(autoincrement())
+  tenantId      String
+  eventType     String   // fbs_sellable_stock, fbs_br_invoice, etc
+  shopId        String?
+  itemId        String?
+  skuId         String?
+  stockChange   Int?
+  invoiceNumber String?
+  payload       String?  // JSON: raw event data
+  processedAt   DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([itemId])
+  @@index([eventType])
+}
+
+// ============================================
+// TikTok Ads - Upload Batch Tracking
+// ============================================
+model TiktokAdsUploadBatch {
+  id              String   @id @default(cuid())
+  tenantId        String
+  fileName        String
+  periodStart     DateTime
+  periodEnd       DateTime
+  totalRows       Int      @default(0)
+  insertedRows    Int      @default(0)
+  skippedRows     Int      @default(0)
+  updatedRows     Int      @default(0)
+  status          String   @default("pending") // pending, processing, completed, failed
+  errorMessage    String?
+  uploadedBy      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  creativeData    TiktokAdsCreativeData[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([periodStart, periodEnd])
+}
+
+// ============================================
+// TikTok Ads - Creative Data (Raw from Excel)
+// ============================================
+model TiktokAdsCreativeData {
+  id                      Int      @id @default(autoincrement())
+  tenantId                String
+  uploadBatchId           String?
+
+  // Period info (extracted from filename)
+  periodStart             DateTime
+  periodEnd               DateTime
+
+  // Campaign info
+  campaignId              String   // ID Campaign
+  campaignName            String   // Nama kampanye
+  
+  // Product info
+  productId               String   // ID produk
+  
+  // Creative info
+  creativeType            String   // Jenis materi iklan (Video/Kartu produk)
+  videoTitle              String?  // Judul video
+  videoId                 String?  // ID video
+  tiktokAccount           String?  // Akun TikTok
+  postingTime             DateTime? // Waktu posting
+  status                  String?  // Status (Ditayangkan, etc)
+  authorizationType       String?  // Jenis otorisasi
+
+  // Financial metrics
+  cost                    Float    @default(0)  // Biaya
+  ordersSku               Int      @default(0)  // Pesanan SKU
+  costPerOrder            Float    @default(0)  // Biaya per pesanan
+  grossRevenue            Float    @default(0)  // Pendapatan kotor
+  roi                     Float    @default(0)  // ROI
+
+  // Engagement metrics
+  impressions             Int      @default(0)  // Impresi iklan produk
+  clicks                  Int      @default(0)  // Jumlah klik iklan produk
+  ctr                     Float    @default(0)  // Tingkat klik iklan produk
+  conversionRate          Float    @default(0)  // Rasio konversi iklan
+
+  // Video watch metrics (stored as decimal 0-1)
+  watchRate2s             Float?   // Rasio tayang video iklan 2 detik
+  watchRate6s             Float?   // Rasio tayang video iklan 6 detik
+  watchRate25pct          Float?   // Rasio tayang video iklan 25%
+  watchRate50pct          Float?   // Rasio tayang video iklan 50%
+  watchRate75pct          Float?   // Rasio tayang video iklan 75%
+  watchRate100pct         Float?   // Rasio tayang video iklan 100%
+
+  currency                String   @default("IDR")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  // Relations
+  uploadBatch             TiktokAdsUploadBatch? @relation(fields: [uploadBatchId], references: [id], onDelete: SetNull)
+
+  // Unique constraint for deduplication
+  @@unique([tenantId, campaignId, productId, videoId, periodStart, periodEnd], name: "idx_tiktokads_unique_creative")
+  @@index([tenantId])
+  @@index([campaignId])
+  @@index([productId])
+  @@index([creativeType])
+  @@index([periodStart, periodEnd])
+  @@index([uploadBatchId])
+}
+
+// ============================================
+// TikTok Ads - Product Summary (Aggregated)
+// ============================================
+model TiktokAdsProductSummary {
+  id                  String   @id @default(cuid())
+  tenantId            String
+  productId           String
+  
+  // Period
+  periodType          String   // daily, weekly, monthly
+  periodDate          DateTime // Start of period
+  
+  // Aggregated metrics
+  totalCost           Float    @default(0)
+  totalOrders         Int      @default(0)
+  totalRevenue        Float    @default(0)
+  avgRoi              Float    @default(0)
+  avgCtr              Float    @default(0)
+  avgConversionRate   Float    @default(0)
+  totalImpressions    Int      @default(0)
+  totalClicks         Int      @default(0)
+  
+  // Best performers
+  bestCreativeType    String?  // Video or Kartu produk
+  topVideoId          String?
+  topVideoTitle       String?
+  
+  // Trend indicators
+  roiTrend            String?  // up, down, stable
+  costTrend           String?
+  ordersTrend         String?
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([tenantId, productId, periodType, periodDate])
+  @@index([tenantId])
+  @@index([productId])
+  @@index([periodType, periodDate])
+}
+
+// ============================================
+// TikTok Ads - ML Predictions
+// ============================================
+model TiktokAdsMLPrediction {
+  id                      String   @id @default(cuid())
+  tenantId                String
+  productId               String
+  
+  // Prediction period
+  predictionDate          DateTime // When prediction was made
+  targetMonth             Int      // Target month for prediction
+  targetYear              Int      // Target year for prediction
+  
+  // ROI Prediction
+  predictedRoi            Float?
+  roiConfidence           Float?   // 0-1 confidence score
+  
+  // Budget Recommendation
+  recommendedBudget       Float?
+  budgetReason            String?
+  
+  // Performance Score (A/B/C/D/F)
+  performanceScore        String?
+  performanceReason       String?
+  
+  // Creative Score
+  creativeScore           Float?   // 0-100
+  bestCreativeType        String?
+  
+  // Insights (JSON array of insights)
+  insights                String?  // JSON: ["insight1", "insight2", ...]
+  
+  // Anomaly Detection
+  hasAnomaly              Boolean  @default(false)
+  anomalyType             String?
+  anomalyDescription      String?
+  
+  // Model metadata
+  modelVersion            String   @default("v1.0")
+  modelType               String?  // xgboost, lightgbm, random_forest
+  trainingDataPoints      Int?
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([tenantId, productId, targetMonth, targetYear])
+  @@index([tenantId])
+  @@index([productId])
+  @@index([targetMonth, targetYear])
+  @@index([performanceScore])
+}
+
+// ============================================
+// Shopee Ads - Upload Batch (Tracking)
+// ============================================
+model ShopeeAdsUploadBatch {
+  id              String   @id @default(cuid())
+  tenantId        String
+  fileName        String
+  periodStart     DateTime
+  periodEnd       DateTime
+  totalRows       Int      @default(0)
+  insertedRows    Int      @default(0)
+  skippedRows     Int      @default(0)
+  updatedRows     Int      @default(0)
+  status          String   @default("pending") // pending, processing, completed, failed
+  errorMessage    String?
+  uploadedBy      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  productData     ShopeeAdsProductData[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([periodStart, periodEnd])
+}
+
+// ============================================
+// Shopee Ads - Product Data (Raw from CSV)
+// ============================================
+model ShopeeAdsProductData {
+  id                      Int      @id @default(autoincrement())
+  tenantId                String
+  uploadBatchId           String?
+
+  // Period info (extracted from filename - weekly)
+  periodStart             DateTime
+  periodEnd               DateTime
+  periodLabel             String?  // e.g., "2026-W02"
+
+  // Product info
+  productId               String   // Kode Produk
+  productName             String   // Nama Iklan
+  status                  String?  // Status (Berjalan, etc)
+  
+  // Ad configuration
+  biddingMode             String?  // Mode Bidding (GMV Max ROAS, etc)
+  placement               String?  // Penempatan Iklan
+  startDate               DateTime? // Tanggal Mulai campaign
+  endDate                 String?  // Tanggal Selesai (Tidak Terbatas)
+
+  // Engagement metrics
+  impressions             Int      @default(0)  // Dilihat
+  clicks                  Int      @default(0)  // Jumlah Klik
+  ctr                     Float    @default(0)  // Persentase Klik
+  
+  // Conversion metrics
+  conversions             Int      @default(0)  // Konversi
+  directConversions       Int      @default(0)  // Konversi Langsung
+  conversionRate          Float    @default(0)  // Tingkat konversi
+  directConversionRate    Float    @default(0)  // Tingkat Konversi Langsung
+  costPerConversion       Float    @default(0)  // Biaya per Konversi
+  costPerDirectConversion Float    @default(0)  // Biaya per Konversi Langsung
+  
+  // Sales metrics
+  unitsSold               Int      @default(0)  // Produk Terjual
+  directUnitsSold         Int      @default(0)  // Terjual Langsung
+  
+  // Financial metrics
+  revenue                 Float    @default(0)  // Omzet Penjualan
+  directRevenue           Float    @default(0)  // Penjualan Langsung (GMV Langsung)
+  cost                    Float    @default(0)  // Biaya
+  roas                    Float    @default(0)  // Efektifitas Iklan (ROAS)
+  directRoas              Float    @default(0)  // Efektivitas Langsung
+  acos                    Float    @default(0)  // ACOS
+  directAcos              Float    @default(0)  // ACOS Langsung
+
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  // Relations
+  uploadBatch             ShopeeAdsUploadBatch? @relation(fields: [uploadBatchId], references: [id], onDelete: SetNull)
+
+  // Unique constraint for deduplication
+  @@unique([tenantId, productId, periodStart, periodEnd], name: "idx_shopeeads_unique_product")
+  @@index([tenantId])
+  @@index([productId])
+  @@index([biddingMode])
+  @@index([periodStart, periodEnd])
+  @@index([uploadBatchId])
+}

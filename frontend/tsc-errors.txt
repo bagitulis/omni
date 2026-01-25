@@ -1,0 +1,48 @@
+src/components/content/InventoryContent/composables/useInventoryStockUpdate.ts(30,9): error TS6133: 'stockUpdate' is declared but its value is never read.
+src/components/content/InventoryContent/composables/useSortPersistence.ts(19,24): error TS2339: Property 'column' does not exist on type 'object'.
+src/components/content/InventoryContent/composables/useSortPersistence.ts(20,27): error TS2339: Property 'direction' does not exist on type 'object'.
+src/components/content/InventoryContent/HeaderFilterDropdown.vue(110,7): error TS6133: 'dropdownRef' is declared but its value is never read.
+src/components/content/InventoryContent/InventoryLockPanel.vue(68,22): error TS6133: 'onMounted' is declared but its value is never read.
+src/components/Modals/WalletModal.vue(5,19): error TS2345: Argument of type '"update:visible"' is not assignable to parameter of type '"update-wallet-params"'.
+src/components/RoleManager.vue(131,10): error TS7053: Element implicitly has an 'any' type because expression of type 'UserRole' can't be used to index type '{ owner: number; admin: number; user: number; }'.
+  Property 'developer' does not exist on type '{ owner: number; admin: number; user: number; }'.
+src/components/RouteMapper/RouteMappingViewer.vue(113,10): error TS2322: Type 'RouteSummary[]' is not assignable to type 'UnusedRoute[]'.
+  Type 'RouteSummary' is not assignable to type 'UnusedRoute'.
+    Types of property 'method' are incompatible.
+      Type 'string | undefined' is not assignable to type 'string'.
+        Type 'undefined' is not assignable to type 'string'.
+src/components/RouteMapper/RouteMappingViewer.vue(120,32): error TS2322: Type 'RouteSummary[]' is not assignable to type 'UnusedRoute[]'.
+  Type 'RouteSummary' is not assignable to type 'UnusedRoute'.
+    Types of property 'method' are incompatible.
+      Type 'string | undefined' is not assignable to type 'string'.
+        Type 'undefined' is not assignable to type 'string'.
+src/components/RouteMapper/RouteUnusedView.vue(33,10): error TS2440: Import declaration conflicts with local declaration of 'withDefaults'.
+src/components/Toast.vue(53,15): error TS2503: Cannot find namespace 'NodeJS'.
+src/composables/useBatchSkuCheck.ts(11,11): error TS6196: 'BatchCheckResponse' is declared but never used.
+src/composables/useScriptMonitorLogic.ts(281,7): error TS2322: Type '(AutoFunctionConfig | { nextScheduledExecution: null; id: number; name: string; enabled: boolean; intervalMinutes: number; startTime?: string | undefined; endTime?: string | undefined; lastExecuted?: string | ... 1 more ... | undefined; createdAt?: string | ... 1 more ... | undefined; updatedAt?: string | ... 1 more...' is not assignable to type 'AutoFunctionConfig[] | { id: number; name: string; enabled: boolean; intervalMinutes: number; startTime?: string | undefined; endTime?: string | undefined; lastExecuted?: string | ... 1 more ... | undefined; nextScheduledExecution?: string | ... 1 more ... | undefined; createdAt?: string | ... 1 more ... | undefined...'.
+  Type '(AutoFunctionConfig | { nextScheduledExecution: null; id: number; name: string; enabled: boolean; intervalMinutes: number; startTime?: string | undefined; endTime?: string | undefined; lastExecuted?: string | ... 1 more ... | undefined; createdAt?: string | ... 1 more ... | undefined; updatedAt?: string | ... 1 more...' is not assignable to type 'AutoFunctionConfig[]'.
+    Type 'AutoFunctionConfig | { nextScheduledExecution: null; id: number; name: string; enabled: boolean; intervalMinutes: number; startTime?: string | undefined; endTime?: string | undefined; lastExecuted?: string | ... 1 more ... | undefined; createdAt?: string | ... 1 more ... | undefined; updatedAt?: string | ... 1 more ...' is not assignable to type 'AutoFunctionConfig'.
+      Type '{ nextScheduledExecution: null; id: number; name: string; enabled: boolean; intervalMinutes: number; startTime?: string; endTime?: string; lastExecuted?: string | Date; createdAt?: string | Date; updatedAt?: string | Date; }' is not assignable to type 'AutoFunctionConfig'.
+        Types of property 'nextScheduledExecution' are incompatible.
+          Type 'null' is not assignable to type 'string | Date | undefined'.
+src/main.ts(30,34): error TS2339: Property 'getCLS' does not exist on type 'typeof import("C:/Users/PC/Desktop/Project/omni/frontend/node_modules/web-vitals/dist/modules/index")'.
+src/main.ts(30,42): error TS2339: Property 'getFID' does not exist on type 'typeof import("C:/Users/PC/Desktop/Project/omni/frontend/node_modules/web-vitals/dist/modules/index")'.
+src/main.ts(30,50): error TS2339: Property 'getFCP' does not exist on type 'typeof import("C:/Users/PC/Desktop/Project/omni/frontend/node_modules/web-vitals/dist/modules/index")'.
+src/main.ts(30,58): error TS2339: Property 'getLCP' does not exist on type 'typeof import("C:/Users/PC/Desktop/Project/omni/frontend/node_modules/web-vitals/dist/modules/index")'.
+src/main.ts(30,66): error TS2339: Property 'getTTFB' does not exist on type 'typeof import("C:/Users/PC/Desktop/Project/omni/frontend/node_modules/web-vitals/dist/modules/index")'.
+src/store/app.ts(13,1): error TS6192: All imports in import declaration are unused.
+src/store/app.ts(25,34): error TS2591: Cannot find name 'require'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/store/app.ts(29,32): error TS2591: Cannot find name 'require'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/utils/performance-config.ts(6,15): error TS2724: '"vue-router"' has no exported member named 'Route'. Did you mean 'Router'?
+src/views/analytics/TiktokAnalytics.vue(154,16): error TS2322: Type '{ orderId: string; orderDate: string | null; buyerPaid: number; actualFee: number; platformDiscount: number; difference: number; orderStatus: string | null; currency: string; }[]' is not assignable to type 'TiktokShippingFeeOrder[]'.
+  Type '{ orderId: string; orderDate: string | null; buyerPaid: number; actualFee: number; platformDiscount: number; difference: number; orderStatus: string | null; currency: string; }' is missing the following properties from type 'TiktokShippingFeeOrder': originalFee, sellerPays
+src/views/ScriptMonitor.vue(33,15): error TS6133: 'computed' is declared but its value is never read.
+src/views/ScriptMonitor.vue(57,7): error TS6198: All destructured elements are unused.
+src/views/ScriptMonitor.vue(63,7): error TS6133: 'lastUpdated' is declared but its value is never read.
+src/views/ScriptMonitor.vue(88,7): error TS6133: 'showTokenModal' is declared but its value is never read.
+src/views/ScriptMonitor.vue(92,7): error TS6133: 'executeOperation' is declared but its value is never read.
+src/views/Settings.vue(64,15): error TS6133: 'computed' is declared but its value is never read.
+src/views/Settings.vue(90,7): error TS6198: All destructured elements are unused.
+src/views/Settings.vue(96,7): error TS6133: 'lastUpdated' is declared but its value is never read.
+src/views/Settings.vue(109,7): error TS6133: 'showTokenModal' is declared but its value is never read.
+src/views/Settings.vue(113,7): error TS6133: 'executeOperation' is declared but its value is never read.

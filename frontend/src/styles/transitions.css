@@ -1,0 +1,287 @@
+/* ============================================
+   GLOBAL TRANSITIONS - Phase 1.2
+   Reusable transition utilities
+   ============================================ */
+
+/* Smooth transition utilities */
+.smooth-all {
+  transition: all var(--transition-base, 200ms ease);
+}
+
+.smooth-colors {
+  transition:
+    background-color var(--transition-base, 200ms ease),
+    border-color var(--transition-base, 200ms ease),
+    color var(--transition-base, 200ms ease);
+}
+
+.smooth-transform {
+  transition: transform var(--transition-fast, 150ms ease);
+}
+
+.smooth-opacity {
+  transition: opacity var(--transition-base, 200ms ease);
+}
+
+/* Hover effects */
+.hover-lift {
+  transition:
+    transform var(--transition-fast, 150ms ease),
+    box-shadow var(--transition-base, 200ms ease);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg, 0 10px 15px -3px rgb(0 0 0 / 0.1));
+}
+
+.hover-scale {
+  transition: transform var(--transition-fast, 150ms ease);
+}
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.hover-glow {
+  transition: box-shadow var(--transition-base, 200ms ease);
+}
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+/* Press/Active effect */
+.press-effect {
+  transition: transform var(--transition-fast, 150ms ease);
+}
+.press-effect:active {
+  transform: scale(0.98);
+}
+
+/* ============================================
+   MICRO-INTERACTIONS - Phase 2.3
+   Subtle feedback animations
+   ============================================ */
+
+/* Button Glow on Hover */
+.btn-glow {
+  transition:
+    box-shadow var(--transition-base, 200ms ease),
+    transform var(--transition-fast, 150ms ease);
+}
+.btn-glow:hover:not(:disabled) {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+}
+.btn-glow:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Card Hover Shadow */
+.card-hover {
+  transition:
+    transform var(--transition-base, 200ms ease),
+    box-shadow var(--transition-base, 200ms ease),
+    border-color var(--transition-base, 200ms ease);
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  border-color: var(--color-primary-200, #bfdbfe);
+}
+
+/* Link Underline Animation */
+.link-animated {
+  position: relative;
+  text-decoration: none;
+}
+.link-animated::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: currentColor;
+  transition: width var(--transition-base, 200ms ease);
+}
+.link-animated:hover::after {
+  width: 100%;
+}
+
+/* Icon Bounce on Hover */
+.icon-bounce:hover {
+  animation: iconBounce 0.4s ease;
+}
+@keyframes iconBounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Icon Rotate on Hover */
+.icon-rotate:hover {
+  transform: rotate(15deg);
+  transition: transform var(--transition-base, 200ms ease);
+}
+
+/* Pulse Notification Badge */
+.pulse-badge {
+  animation: pulseBadge 2s ease-in-out infinite;
+}
+@keyframes pulseBadge {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+/* Ripple Effect (apply via JS) */
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+.ripple::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.3) 10%,
+    transparent 10.01%
+  );
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition:
+    transform 0.5s,
+    opacity 0.5s;
+}
+.ripple:active::after {
+  transform: scale(0, 0);
+  opacity: 0.3;
+  transition: 0s;
+}
+
+/* Focus Ring */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-primary, #3b82f6);
+  outline-offset: 2px;
+}
+.focus-ring:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Vue Transition Classes - Fade */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--transition-base, 200ms ease);
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Vue Transition Classes - Slide Up */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition:
+    transform var(--transition-smooth, 300ms cubic-bezier(0.4, 0, 0.2, 1)),
+    opacity var(--transition-base, 200ms ease);
+}
+.slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* Vue Transition Classes - Slide Left */
+.slide-left-enter-active,
+.slide-left-leave-active {
+  transition:
+    transform var(--transition-smooth, 300ms cubic-bezier(0.4, 0, 0.2, 1)),
+    opacity var(--transition-base, 200ms ease);
+}
+.slide-left-enter-from {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+.slide-left-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+/* Vue Transition Classes - Slide Right */
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition:
+    transform var(--transition-smooth, 300ms cubic-bezier(0.4, 0, 0.2, 1)),
+    opacity var(--transition-base, 200ms ease);
+}
+.slide-right-enter-from {
+  opacity: 0;
+  transform: translateX(20px);
+}
+.slide-right-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+/* Vue Transition Classes - Scale */
+.scale-enter-active,
+.scale-leave-active {
+  transition:
+    transform var(--transition-smooth, 300ms cubic-bezier(0.4, 0, 0.2, 1)),
+    opacity var(--transition-base, 200ms ease);
+}
+.scale-enter-from,
+.scale-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .smooth-all,
+  .smooth-colors,
+  .smooth-transform,
+  .smooth-opacity,
+  .hover-lift,
+  .hover-scale,
+  .hover-glow,
+  .press-effect {
+    transition: none !important;
+  }
+
+  .hover-lift:hover,
+  .hover-scale:hover {
+    transform: none !important;
+  }
+
+  .fade-enter-active,
+  .fade-leave-active,
+  .slide-up-enter-active,
+  .slide-up-leave-active,
+  .slide-left-enter-active,
+  .slide-left-leave-active,
+  .slide-right-enter-active,
+  .slide-right-leave-active,
+  .scale-enter-active,
+  .scale-leave-active {
+    transition: none !important;
+  }
+}

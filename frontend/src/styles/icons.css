@@ -1,0 +1,191 @@
+/* Icon System - Responsive & Consistent Sizing */
+
+/* Base icon size system - follows 8px grid */
+:root {
+  --icon-2xs: 12px;
+  --icon-xs: 16px;
+  --icon-sm: 20px;
+  --icon-base: 24px;
+  --icon-md: 32px;
+  --icon-lg: 48px;
+  --icon-xl: 64px;
+  --icon-2xl: 80px;
+  --icon-3xl: 96px;
+}
+
+/* Platform Icon Styles */
+.platform-icon-2xs {
+  width: var(--icon-2xs);
+  height: var(--icon-2xs);
+  object-fit: contain;
+}
+
+.platform-icon-xs {
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+  object-fit: contain;
+}
+
+.platform-icon-sm {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  object-fit: contain;
+}
+
+.platform-icon-base {
+  width: var(--icon-base);
+  height: var(--icon-base);
+  object-fit: contain;
+}
+
+.platform-icon-md {
+  width: var(--icon-md);
+  height: var(--icon-md);
+  object-fit: contain;
+}
+
+.platform-icon-lg {
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+  object-fit: contain;
+}
+
+.platform-icon-xl {
+  width: var(--icon-xl);
+  height: var(--icon-xl);
+  object-fit: contain;
+}
+
+.platform-icon-2xl {
+  width: var(--icon-2xl);
+  height: var(--icon-2xl);
+  object-fit: contain;
+}
+
+.platform-icon-3xl {
+  width: var(--icon-3xl);
+  height: var(--icon-3xl);
+  object-fit: contain;
+}
+
+/* Icon Container Styles */
+.icon-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.icon-container-2xs {
+  width: var(--icon-2xs);
+  height: var(--icon-2xs);
+}
+
+.icon-container-xs {
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+}
+
+.icon-container-sm {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.icon-container-base {
+  width: var(--icon-base);
+  height: var(--icon-base);
+}
+
+.icon-container-md {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.icon-container-lg {
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+  background-color: #f0f4f8;
+}
+
+.icon-container-xl {
+  width: var(--icon-xl);
+  height: var(--icon-xl);
+  background-color: #f0f4f8;
+}
+
+.icon-container-2xl {
+  width: var(--icon-2xl);
+  height: var(--icon-2xl);
+  background-color: #f0f4f8;
+}
+
+.icon-container-3xl {
+  width: var(--icon-3xl);
+  height: var(--icon-3xl);
+  background-color: #f0f4f8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  :root {
+    --icon-lg: 40px;
+    --icon-xl: 56px;
+    --icon-2xl: 72px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --icon-lg: 32px;
+    --icon-xl: 48px;
+    --icon-2xl: 64px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --icon-base: 20px;
+    --icon-md: 28px;
+    --icon-lg: 24px;
+    --icon-xl: 32px;
+    --icon-2xl: 48px;
+  }
+}
+
+/* Animation utilities */
+.icon-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.icon-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Hover effects */
+.icon-hover-scale:hover {
+  transform: scale(1.1);
+}
+
+.icon-hover-lift:hover {
+  transform: translateY(-2px);
+}

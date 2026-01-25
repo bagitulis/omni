@@ -1,0 +1,72 @@
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+# package-lock.json - NEEDED for consistent dependency versions!
+.npm
+
+# Development
+.env
+.env.*
+!.env.example
+
+# TypeScript
+*.tsbuildinfo
+dist-test
+
+# Testing
+coverage
+*.test.ts
+*.spec.ts
+test-scripts
+tests
+test-results
+jest.config.js
+__tests__
+__mocks__
+
+# Logs
+logs
+*.log
+audit
+
+# Database files - DO NOT include in Docker image!
+# These are mounted as volumes at runtime
+config/databases
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+prisma/dev.db
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+docs
+
+# Scripts
+scripts/check-*
+scripts/test-*
+scripts/setup-db.js
+
+# Misc
+.editorconfig
+.prettierrc
+.eslintrc*
+# tsconfig.json - NEEDED for TypeScript build!

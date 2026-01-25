@@ -1,0 +1,3284 @@
+{
+  "testInfo": {
+    "startTime": "2026-01-10T12:27:48.188Z",
+    "endTime": "2026-01-10T12:39:06.904Z",
+    "duration": 678716,
+    "testType": "Lighthouse Performance Test",
+    "credentials": {
+      "username": "yumna"
+    }
+  },
+  "loginTest": {
+    "success": true,
+    "duration": 7358,
+    "error": null
+  },
+  "pageTests": [
+    {
+      "name": "Dashboard",
+      "path": "/",
+      "url": "http://localhost:80/",
+      "desktop": {
+        "success": true,
+        "duration": 10962,
+        "scores": {
+          "performance": 100,
+          "accessibility": 100,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 420.283,
+          "largestContentfulPaint": 577.566,
+          "totalBlockingTime": 2,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 424.9537753618557,
+          "timeToInteractive": 577.566
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "forced-reflow-insight",
+              "title": "Forced reflow",
+              "description": "A forced reflow occurs when JavaScript queries geometric properties (such as offsetWidth) after styles have been invalidated by a change to the DOM state. This can result in poor performance. Learn more about [forced reflows](https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts) and possible mitigations.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-dashboard.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 9136,
+        "scores": {
+          "performance": 95,
+          "accessibility": 100,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 2088.9376,
+          "largestContentfulPaint": 2513.768,
+          "totalBlockingTime": 35.5,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 2088.9376,
+          "timeToInteractive": 2513.768
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "largest-contentful-paint-element",
+              "title": "Largest Contentful Paint element",
+              "description": "This is the largest contentful element painted within the viewport. [Learn more about the Largest Contentful Paint element](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0.5,
+              "displayValue": "2,510 ms"
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.81,
+              "displayValue": "2.1 s"
+            },
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0.89,
+              "displayValue": "2.5 s"
+            }
+          ],
+          "accessibility": [],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-dashboard.png"
+      }
+    },
+    {
+      "name": "Operation - Shopee",
+      "path": "/operation/shopee",
+      "url": "http://localhost:80/operation/shopee",
+      "desktop": {
+        "success": true,
+        "duration": 8899,
+        "scores": {
+          "performance": 100,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 425.59944999999993,
+          "largestContentfulPaint": 599.1988999999999,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 710.7513100757374,
+          "timeToInteractive": 599.1988999999999
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-operation---shopee.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 8634,
+        "scores": {
+          "performance": 95,
+          "accessibility": 89,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1922.5828499999998,
+          "largestContentfulPaint": 2597.1657000000005,
+          "totalBlockingTime": 110.819525,
+          "cumulativeLayoutShift": 0.002325901261961384,
+          "speedIndex": 1922.5828499999998,
+          "timeToInteractive": 2597.1657000000005
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "mainthread-work-breakdown",
+              "title": "Minimize main-thread work",
+              "description": "Consider reducing the time spent parsing, compiling and executing JS. You may find delivering smaller JS payloads helps with this. [Learn how to minimize main-thread work](https://developer.chrome.com/docs/lighthouse/performance/mainthread-work-breakdown/)",
+              "score": 0,
+              "displayValue": "2.0 s"
+            },
+            {
+              "id": "largest-contentful-paint-element",
+              "title": "Largest Contentful Paint element",
+              "description": "This is the largest contentful element painted within the viewport. [Learn more about the Largest Contentful Paint element](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0,
+              "displayValue": "2,600 ms"
+            },
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.86,
+              "displayValue": "1.9 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "button-name",
+              "title": "Buttons do not have an accessible name",
+              "description": "When a button doesn't have an accessible name, screen readers announce it as \"button\", making it unusable for users who rely on screen readers. [Learn how to make buttons more accessible](https://dequeuniversity.com/rules/axe/4.10/button-name).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-operation---shopee.png"
+      }
+    },
+    {
+      "name": "Operation - Lazada",
+      "path": "/operation/lazada",
+      "url": "http://localhost:80/operation/lazada",
+      "desktop": {
+        "success": true,
+        "duration": 9057,
+        "scores": {
+          "performance": 100,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 418.5259,
+          "largestContentfulPaint": 587.0518,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0.00011106466888480283,
+          "speedIndex": 575.2667587807625,
+          "timeToInteractive": 587.0518
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-operation---lazada.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 8571,
+        "scores": {
+          "performance": 94,
+          "accessibility": 89,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1954.1448999999998,
+          "largestContentfulPaint": 2858.2897999999996,
+          "totalBlockingTime": 86.5,
+          "cumulativeLayoutShift": 0.003451891577082676,
+          "speedIndex": 1954.1448999999998,
+          "timeToInteractive": 2858.2897999999996
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "largest-contentful-paint-element",
+              "title": "Largest Contentful Paint element",
+              "description": "This is the largest contentful element painted within the viewport. [Learn more about the Largest Contentful Paint element](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0,
+              "displayValue": "2,860 ms"
+            },
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0.82,
+              "displayValue": "2.9 s"
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.85,
+              "displayValue": "2.0 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "button-name",
+              "title": "Buttons do not have an accessible name",
+              "description": "When a button doesn't have an accessible name, screen readers announce it as \"button\", making it unusable for users who rely on screen readers. [Learn how to make buttons more accessible](https://dequeuniversity.com/rules/axe/4.10/button-name).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-operation---lazada.png"
+      }
+    },
+    {
+      "name": "Operation - Tiktok",
+      "path": "/operation/tiktok",
+      "url": "http://localhost:80/operation/tiktok",
+      "desktop": {
+        "success": true,
+        "duration": 8505,
+        "scores": {
+          "performance": 100,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 451.28162499999996,
+          "largestContentfulPaint": 629.5632500000002,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0.00010833426363715961,
+          "speedIndex": 624.8844916721995,
+          "timeToInteractive": 629.5632500000002
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-operation---tiktok.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 7992,
+        "scores": {
+          "performance": 95,
+          "accessibility": 89,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1912.4200499999997,
+          "largestContentfulPaint": 2774.8401000000003,
+          "totalBlockingTime": 19,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1912.4200499999997,
+          "timeToInteractive": 2774.8401000000003
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "largest-contentful-paint-element",
+              "title": "Largest Contentful Paint element",
+              "description": "This is the largest contentful element painted within the viewport. [Learn more about the Largest Contentful Paint element](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0,
+              "displayValue": "2,770 ms"
+            },
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0.84,
+              "displayValue": "2.8 s"
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.87,
+              "displayValue": "1.9 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "button-name",
+              "title": "Buttons do not have an accessible name",
+              "description": "When a button doesn't have an accessible name, screen readers announce it as \"button\", making it unusable for users who rely on screen readers. [Learn how to make buttons more accessible](https://dequeuniversity.com/rules/axe/4.10/button-name).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-operation---tiktok.png"
+      }
+    },
+    {
+      "name": "Product Manager - Shopee",
+      "path": "/product-manager/shopee",
+      "url": "http://localhost:80/product-manager/shopee",
+      "desktop": {
+        "success": true,
+        "duration": 10218,
+        "scores": {
+          "performance": 100,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 463.6482500000001,
+          "largestContentfulPaint": 702.7558,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0.00013791875528996293,
+          "speedIndex": 582.3498491720735,
+          "timeToInteractive": 702.7558000000001
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-product-manager---shopee.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 9145,
+        "scores": {
+          "performance": 91,
+          "accessibility": 96,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1922.34895,
+          "largestContentfulPaint": 3314.69085,
+          "totalBlockingTime": 39.5,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1922.34895,
+          "timeToInteractive": 3314.69085
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "largest-contentful-paint-element",
+              "title": "Largest Contentful Paint element",
+              "description": "This is the largest contentful element painted within the viewport. [Learn more about the Largest Contentful Paint element](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0,
+              "displayValue": "3,310 ms"
+            },
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0.69,
+              "displayValue": "3.3 s"
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.86,
+              "displayValue": "1.9 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-product-manager---shopee.png"
+      }
+    },
+    {
+      "name": "Product Manager - Lazada",
+      "path": "/product-manager/lazada",
+      "url": "http://localhost:80/product-manager/lazada",
+      "desktop": {
+        "success": true,
+        "duration": 10614,
+        "scores": {
+          "performance": 100,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 440.24812499999996,
+          "largestContentfulPaint": 740.4232499999999,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0.0000022641041356565394,
+          "speedIndex": 529.9858427448061,
+          "timeToInteractive": 740.4232499999999
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-product-manager---lazada.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 9251,
+        "scores": {
+          "performance": 93,
+          "accessibility": 96,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1897.0217000000002,
+          "largestContentfulPaint": 3068.8440999999993,
+          "totalBlockingTime": 51.91305,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1897.0217000000002,
+          "timeToInteractive": 3068.8440999999993
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "largest-contentful-paint-element",
+              "title": "Largest Contentful Paint element",
+              "description": "This is the largest contentful element painted within the viewport. [Learn more about the Largest Contentful Paint element](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0,
+              "displayValue": "3,070 ms"
+            },
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0.76,
+              "displayValue": "3.1 s"
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.87,
+              "displayValue": "1.9 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-product-manager---lazada.png"
+      }
+    },
+    {
+      "name": "Product Manager - Tiktok",
+      "path": "/product-manager/tiktok",
+      "url": "http://localhost:80/product-manager/tiktok",
+      "desktop": {
+        "success": true,
+        "duration": 10735,
+        "scores": {
+          "performance": 100,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 419.23735,
+          "largestContentfulPaint": 640.3871499999999,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0.000003377987916995009,
+          "speedIndex": 535.7433852292527,
+          "timeToInteractive": 640.3871499999999
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-product-manager---tiktok.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 9040,
+        "scores": {
+          "performance": 93,
+          "accessibility": 96,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1890.43005,
+          "largestContentfulPaint": 3063.402149999999,
+          "totalBlockingTime": 40.17832499999997,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1890.43005,
+          "timeToInteractive": 3063.402149999999
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "largest-contentful-paint-element",
+              "title": "Largest Contentful Paint element",
+              "description": "This is the largest contentful element painted within the viewport. [Learn more about the Largest Contentful Paint element](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0,
+              "displayValue": "3,060 ms"
+            },
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0.76,
+              "displayValue": "3.1 s"
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.87,
+              "displayValue": "1.9 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-product-manager---tiktok.png"
+      }
+    },
+    {
+      "name": "Order Manager",
+      "path": "/order-manager",
+      "url": "http://localhost:80/order-manager",
+      "desktop": {
+        "success": true,
+        "duration": 10854,
+        "scores": {
+          "performance": 99,
+          "accessibility": 96,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 420.8491,
+          "largestContentfulPaint": 847.9255800000001,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 769.2180990960808,
+          "timeToInteractive": 847.9255800000001
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "forced-reflow-insight",
+              "title": "Forced reflow",
+              "description": "A forced reflow occurs when JavaScript queries geometric properties (such as offsetWidth) after styles have been invalidated by a change to the DOM state. This can result in poor performance. Learn more about [forced reflows](https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts) and possible mitigations.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-order-manager.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 10708,
+        "scores": {
+          "performance": 95,
+          "accessibility": 96,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1887.1783999999998,
+          "largestContentfulPaint": 2602.3568000000005,
+          "totalBlockingTime": 25.5,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1887.1783999999998,
+          "timeToInteractive": 2609.8568000000005
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "largest-contentful-paint-element",
+              "title": "Largest Contentful Paint element",
+              "description": "This is the largest contentful element painted within the viewport. [Learn more about the Largest Contentful Paint element](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0,
+              "displayValue": "2,600 ms"
+            },
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.87,
+              "displayValue": "1.9 s"
+            },
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0.87,
+              "displayValue": "2.6 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-order-manager.png"
+      }
+    },
+    {
+      "name": "Inventory",
+      "path": "/inventory",
+      "url": "http://localhost:80/inventory",
+      "desktop": {
+        "success": true,
+        "duration": 12285,
+        "scores": {
+          "performance": 100,
+          "accessibility": 93,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 439.62080000000003,
+          "largestContentfulPaint": 551.0965000000001,
+          "totalBlockingTime": 12.563199999999995,
+          "cumulativeLayoutShift": 0.011890245819105158,
+          "speedIndex": 842.8812024838005,
+          "timeToInteractive": 551.0965000000001
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "dom-size",
+              "title": "Avoid an excessive DOM size",
+              "description": "A large DOM will increase memory usage, cause longer [style calculations](https://developers.google.com/web/fundamentals/performance/rendering/reduce-the-scope-and-complexity-of-style-calculations), and produce costly [layout reflows](https://developers.google.com/speed/articles/reflow). [Learn how to avoid an excessive DOM size](https://developer.chrome.com/docs/lighthouse/performance/dom-size/).",
+              "score": 0.5,
+              "displayValue": "1,746 elements"
+            },
+            {
+              "id": "max-potential-fid",
+              "title": "Max Potential First Input Delay",
+              "description": "The maximum potential First Input Delay that your users could experience is the duration of the longest task. [Learn more about the Maximum Potential First Input Delay metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-max-potential-fid/).",
+              "score": 0.73,
+              "displayValue": "180 ms"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "heading-order",
+              "title": "Heading elements are not in a sequentially-descending order",
+              "description": "Properly ordered headings that do not skip levels convey the semantic structure of the page, making it easier to navigate and understand when using assistive technologies. [Learn more about heading order](https://dequeuniversity.com/rules/axe/4.10/heading-order).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "label",
+              "title": "Form elements do not have associated labels",
+              "description": "Labels ensure that form controls are announced properly by assistive technologies, like screen readers. [Learn more about form element labels](https://dequeuniversity.com/rules/axe/4.10/label).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-inventory.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 11313,
+        "scores": {
+          "performance": 94,
+          "accessibility": 94,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1882.98455,
+          "largestContentfulPaint": 2463.1252,
+          "totalBlockingTime": 155.21870000000013,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1882.98455,
+          "timeToInteractive": 2463.1252000000004
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "mainthread-work-breakdown",
+              "title": "Minimize main-thread work",
+              "description": "Consider reducing the time spent parsing, compiling and executing JS. You may find delivering smaller JS payloads helps with this. [Learn how to minimize main-thread work](https://developer.chrome.com/docs/lighthouse/performance/mainthread-work-breakdown/)",
+              "score": 0,
+              "displayValue": "2.7 s"
+            },
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "max-potential-fid",
+              "title": "Max Potential First Input Delay",
+              "description": "The maximum potential First Input Delay that your users could experience is the duration of the longest task. [Learn more about the Maximum Potential First Input Delay metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-max-potential-fid/).",
+              "score": 0.11,
+              "displayValue": "460 ms"
+            },
+            {
+              "id": "dom-size",
+              "title": "Avoid an excessive DOM size",
+              "description": "A large DOM will increase memory usage, cause longer [style calculations](https://developers.google.com/web/fundamentals/performance/rendering/reduce-the-scope-and-complexity-of-style-calculations), and produce costly [layout reflows](https://developers.google.com/speed/articles/reflow). [Learn how to avoid an excessive DOM size](https://developer.chrome.com/docs/lighthouse/performance/dom-size/).",
+              "score": 0.5,
+              "displayValue": "1,764 elements"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "heading-order",
+              "title": "Heading elements are not in a sequentially-descending order",
+              "description": "Properly ordered headings that do not skip levels convey the semantic structure of the page, making it easier to navigate and understand when using assistive technologies. [Learn more about heading order](https://dequeuniversity.com/rules/axe/4.10/heading-order).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "label",
+              "title": "Form elements do not have associated labels",
+              "description": "Labels ensure that form controls are announced properly by assistive technologies, like screen readers. [Learn more about form element labels](https://dequeuniversity.com/rules/axe/4.10/label).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-inventory.png"
+      }
+    },
+    {
+      "name": "Script Monitor - Current",
+      "path": "/script-monitor/current",
+      "url": "http://localhost:80/script-monitor/current",
+      "desktop": {
+        "success": true,
+        "duration": 9013,
+        "scores": {
+          "performance": 100,
+          "accessibility": 94,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 457.63365,
+          "largestContentfulPaint": 641.34375,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0.00019613300061290605,
+          "speedIndex": 556.605957705943,
+          "timeToInteractive": 641.34375
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "unused-css-rules",
+              "title": "Reduce unused CSS",
+              "description": "Reduce unused rules from stylesheets and defer CSS not used for above-the-fold content to decrease bytes consumed by network activity. [Learn how to reduce unused CSS](https://developer.chrome.com/docs/lighthouse/performance/unused-css-rules/).",
+              "score": 0.5,
+              "displayValue": "Est savings of 20 KiB"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-script-monitor---current.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 8771,
+        "scores": {
+          "performance": 93,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 2030.9104499999999,
+          "largestContentfulPaint": 2908.733,
+          "totalBlockingTime": 35.5,
+          "cumulativeLayoutShift": 0.00026939655172413793,
+          "speedIndex": 2030.9104499999999,
+          "timeToInteractive": 2908.733
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "largest-contentful-paint-element",
+              "title": "Largest Contentful Paint element",
+              "description": "This is the largest contentful element painted within the viewport. [Learn more about the Largest Contentful Paint element](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0,
+              "displayValue": "2,910 ms"
+            },
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "unused-css-rules",
+              "title": "Reduce unused CSS",
+              "description": "Reduce unused rules from stylesheets and defer CSS not used for above-the-fold content to decrease bytes consumed by network activity. [Learn how to reduce unused CSS](https://developer.chrome.com/docs/lighthouse/performance/unused-css-rules/).",
+              "score": 0.5,
+              "displayValue": "Est savings of 20 KiB"
+            },
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0.8,
+              "displayValue": "2.9 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-script-monitor---current.png"
+      }
+    },
+    {
+      "name": "Script Monitor - Queue",
+      "path": "/script-monitor/queue",
+      "url": "http://localhost:80/script-monitor/queue",
+      "desktop": {
+        "success": true,
+        "duration": 9035,
+        "scores": {
+          "performance": 100,
+          "accessibility": 94,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 461.6494,
+          "largestContentfulPaint": 645.2295,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0.00019613300061290605,
+          "speedIndex": 581.1817852012944,
+          "timeToInteractive": 645.2295
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "forced-reflow-insight",
+              "title": "Forced reflow",
+              "description": "A forced reflow occurs when JavaScript queries geometric properties (such as offsetWidth) after styles have been invalidated by a change to the DOM state. This can result in poor performance. Learn more about [forced reflows](https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts) and possible mitigations.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "unused-css-rules",
+              "title": "Reduce unused CSS",
+              "description": "Reduce unused rules from stylesheets and defer CSS not used for above-the-fold content to decrease bytes consumed by network activity. [Learn how to reduce unused CSS](https://developer.chrome.com/docs/lighthouse/performance/unused-css-rules/).",
+              "score": 0.5,
+              "displayValue": "Est savings of 20 KiB"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-script-monitor---queue.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 8810,
+        "scores": {
+          "performance": 92,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 2032.616,
+          "largestContentfulPaint": 3014.4345000000003,
+          "totalBlockingTime": 92,
+          "cumulativeLayoutShift": 0.00026939655172413793,
+          "speedIndex": 2032.616,
+          "timeToInteractive": 3014.4345000000003
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "largest-contentful-paint-element",
+              "title": "Largest Contentful Paint element",
+              "description": "This is the largest contentful element painted within the viewport. [Learn more about the Largest Contentful Paint element](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0,
+              "displayValue": "3,010 ms"
+            },
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "forced-reflow-insight",
+              "title": "Forced reflow",
+              "description": "A forced reflow occurs when JavaScript queries geometric properties (such as offsetWidth) after styles have been invalidated by a change to the DOM state. This can result in poor performance. Learn more about [forced reflows](https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts) and possible mitigations.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "unused-css-rules",
+              "title": "Reduce unused CSS",
+              "description": "Reduce unused rules from stylesheets and defer CSS not used for above-the-fold content to decrease bytes consumed by network activity. [Learn how to reduce unused CSS](https://developer.chrome.com/docs/lighthouse/performance/unused-css-rules/).",
+              "score": 0.5,
+              "displayValue": "Est savings of 20 KiB"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-script-monitor---queue.png"
+      }
+    },
+    {
+      "name": "Script Monitor - History",
+      "path": "/script-monitor/history",
+      "url": "http://localhost:80/script-monitor/history",
+      "desktop": {
+        "success": true,
+        "duration": 8939,
+        "scores": {
+          "performance": 100,
+          "accessibility": 90,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 458.51275000000004,
+          "largestContentfulPaint": 650.32025,
+          "totalBlockingTime": 7.000000000000028,
+          "cumulativeLayoutShift": 0.00019613300061290605,
+          "speedIndex": 640.0034895363186,
+          "timeToInteractive": 650.32025
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "forced-reflow-insight",
+              "title": "Forced reflow",
+              "description": "A forced reflow occurs when JavaScript queries geometric properties (such as offsetWidth) after styles have been invalidated by a change to the DOM state. This can result in poor performance. Learn more about [forced reflows](https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts) and possible mitigations.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "unused-css-rules",
+              "title": "Reduce unused CSS",
+              "description": "Reduce unused rules from stylesheets and defer CSS not used for above-the-fold content to decrease bytes consumed by network activity. [Learn how to reduce unused CSS](https://developer.chrome.com/docs/lighthouse/performance/unused-css-rules/).",
+              "score": 0.5,
+              "displayValue": "Est savings of 20 KiB"
+            },
+            {
+              "id": "dom-size",
+              "title": "Avoid an excessive DOM size",
+              "description": "A large DOM will increase memory usage, cause longer [style calculations](https://developers.google.com/web/fundamentals/performance/rendering/reduce-the-scope-and-complexity-of-style-calculations), and produce costly [layout reflows](https://developers.google.com/speed/articles/reflow). [Learn how to avoid an excessive DOM size](https://developer.chrome.com/docs/lighthouse/performance/dom-size/).",
+              "score": 0.5,
+              "displayValue": "1,051 elements"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "select-name",
+              "title": "Select elements do not have associated label elements.",
+              "description": "Form elements without effective labels can create frustrating experiences for screen reader users. [Learn more about the `select` element](https://dequeuniversity.com/rules/axe/4.10/select-name).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-script-monitor---history.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 8853,
+        "scores": {
+          "performance": 92,
+          "accessibility": 91,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 2033.312675,
+          "largestContentfulPaint": 3005.40875,
+          "totalBlockingTime": 95.5,
+          "cumulativeLayoutShift": 0.00026939655172413793,
+          "speedIndex": 2033.312675,
+          "timeToInteractive": 3005.40875
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "largest-contentful-paint-element",
+              "title": "Largest Contentful Paint element",
+              "description": "This is the largest contentful element painted within the viewport. [Learn more about the Largest Contentful Paint element](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0,
+              "displayValue": "3,010 ms"
+            },
+            {
+              "id": "dom-size",
+              "title": "Avoid an excessive DOM size",
+              "description": "A large DOM will increase memory usage, cause longer [style calculations](https://developers.google.com/web/fundamentals/performance/rendering/reduce-the-scope-and-complexity-of-style-calculations), and produce costly [layout reflows](https://developers.google.com/speed/articles/reflow). [Learn how to avoid an excessive DOM size](https://developer.chrome.com/docs/lighthouse/performance/dom-size/).",
+              "score": 0,
+              "displayValue": "1,069 elements"
+            },
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "forced-reflow-insight",
+              "title": "Forced reflow",
+              "description": "A forced reflow occurs when JavaScript queries geometric properties (such as offsetWidth) after styles have been invalidated by a change to the DOM state. This can result in poor performance. Learn more about [forced reflows](https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts) and possible mitigations.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "select-name",
+              "title": "Select elements do not have associated label elements.",
+              "description": "Form elements without effective labels can create frustrating experiences for screen reader users. [Learn more about the `select` element](https://dequeuniversity.com/rules/axe/4.10/select-name).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-script-monitor---history.png"
+      }
+    },
+    {
+      "name": "Script Monitor - Auto Functions",
+      "path": "/script-monitor/auto-functions",
+      "url": "http://localhost:80/script-monitor/auto-functions",
+      "desktop": {
+        "success": true,
+        "duration": 8877,
+        "scores": {
+          "performance": 100,
+          "accessibility": 90,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 465.67150000000004,
+          "largestContentfulPaint": 682.292,
+          "totalBlockingTime": 9.999999999999943,
+          "cumulativeLayoutShift": 0.00019613300061290605,
+          "speedIndex": 611.8000843223765,
+          "timeToInteractive": 682.2920000000001
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "forced-reflow-insight",
+              "title": "Forced reflow",
+              "description": "A forced reflow occurs when JavaScript queries geometric properties (such as offsetWidth) after styles have been invalidated by a change to the DOM state. This can result in poor performance. Learn more about [forced reflows](https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts) and possible mitigations.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "unused-css-rules",
+              "title": "Reduce unused CSS",
+              "description": "Reduce unused rules from stylesheets and defer CSS not used for above-the-fold content to decrease bytes consumed by network activity. [Learn how to reduce unused CSS](https://developer.chrome.com/docs/lighthouse/performance/unused-css-rules/).",
+              "score": 0.5,
+              "displayValue": "Est savings of 19 KiB"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "select-name",
+              "title": "Select elements do not have associated label elements.",
+              "description": "Form elements without effective labels can create frustrating experiences for screen reader users. [Learn more about the `select` element](https://dequeuniversity.com/rules/axe/4.10/select-name).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "td-has-header",
+              "title": "`<td>` elements in a large `<table>` do not have table headers.",
+              "description": "Screen readers have features to make navigating tables easier. Ensuring that `<td>` elements in a large table (3 or more cells in width and height) have an associated table header may improve the experience for screen reader users. [Learn more about table headers](https://dequeuniversity.com/rules/axe/4.10/td-has-header).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-script-monitor---auto-functions.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 8833,
+        "scores": {
+          "performance": 92,
+          "accessibility": 91,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 2031.9513500000003,
+          "largestContentfulPaint": 3025.9130000000005,
+          "totalBlockingTime": 107,
+          "cumulativeLayoutShift": 0.00026939655172413793,
+          "speedIndex": 2031.9513500000003,
+          "timeToInteractive": 3025.9130000000005
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "largest-contentful-paint-element",
+              "title": "Largest Contentful Paint element",
+              "description": "This is the largest contentful element painted within the viewport. [Learn more about the Largest Contentful Paint element](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0,
+              "displayValue": "3,030 ms"
+            },
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "forced-reflow-insight",
+              "title": "Forced reflow",
+              "description": "A forced reflow occurs when JavaScript queries geometric properties (such as offsetWidth) after styles have been invalidated by a change to the DOM state. This can result in poor performance. Learn more about [forced reflows](https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts) and possible mitigations.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "unused-css-rules",
+              "title": "Reduce unused CSS",
+              "description": "Reduce unused rules from stylesheets and defer CSS not used for above-the-fold content to decrease bytes consumed by network activity. [Learn how to reduce unused CSS](https://developer.chrome.com/docs/lighthouse/performance/unused-css-rules/).",
+              "score": 0.5,
+              "displayValue": "Est savings of 19 KiB"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "select-name",
+              "title": "Select elements do not have associated label elements.",
+              "description": "Form elements without effective labels can create frustrating experiences for screen reader users. [Learn more about the `select` element](https://dequeuniversity.com/rules/axe/4.10/select-name).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "td-has-header",
+              "title": "`<td>` elements in a large `<table>` do not have table headers.",
+              "description": "Screen readers have features to make navigating tables easier. Ensuring that `<td>` elements in a large table (3 or more cells in width and height) have an associated table header may improve the experience for screen reader users. [Learn more about table headers](https://dequeuniversity.com/rules/axe/4.10/td-has-header).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-script-monitor---auto-functions.png"
+      }
+    },
+    {
+      "name": "Analytics - Shopee",
+      "path": "/analytics/shopee",
+      "url": "http://localhost:80/analytics/shopee",
+      "desktop": {
+        "success": true,
+        "duration": 10685,
+        "scores": {
+          "performance": 100,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 439.99225,
+          "largestContentfulPaint": 559.9845,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 824.3170743462267,
+          "timeToInteractive": 559.9845
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-analytics---shopee.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 8949,
+        "scores": {
+          "performance": 97,
+          "accessibility": 96,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1857.9571499999997,
+          "largestContentfulPaint": 2362.2762,
+          "totalBlockingTime": 59,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1857.9571499999997,
+          "timeToInteractive": 2476.0266775
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.88,
+              "displayValue": "1.9 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-analytics---shopee.png"
+      }
+    },
+    {
+      "name": "Analytics - Tiktok",
+      "path": "/analytics/tiktok",
+      "url": "http://localhost:80/analytics/tiktok",
+      "desktop": {
+        "success": true,
+        "duration": 9667,
+        "scores": {
+          "performance": 100,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 428.125,
+          "largestContentfulPaint": 526.25,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 580.309711499582,
+          "timeToInteractive": 526.25
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-analytics---tiktok.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 8849,
+        "scores": {
+          "performance": 96,
+          "accessibility": 96,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1831.3394,
+          "largestContentfulPaint": 2460.8989999999994,
+          "totalBlockingTime": 38.11009999999999,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1831.3394,
+          "timeToInteractive": 2460.8989999999994
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.89,
+              "displayValue": "1.8 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-analytics---tiktok.png"
+      }
+    },
+    {
+      "name": "Settings - Google Sheets",
+      "path": "/settings/google-sheets",
+      "url": "http://localhost:80/settings/google-sheets",
+      "desktop": {
+        "success": true,
+        "duration": 9058,
+        "scores": {
+          "performance": 100,
+          "accessibility": 90,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 435.37934999999993,
+          "largestContentfulPaint": 546.3646,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 580.3557758903003,
+          "timeToInteractive": 546.3646
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "select-name",
+              "title": "Select elements do not have associated label elements.",
+              "description": "Form elements without effective labels can create frustrating experiences for screen reader users. [Learn more about the `select` element](https://dequeuniversity.com/rules/axe/4.10/select-name).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-settings---google-sheets.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 8962,
+        "scores": {
+          "performance": 95,
+          "accessibility": 91,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1984.4717499999997,
+          "largestContentfulPaint": 2614.629000000001,
+          "totalBlockingTime": 24.5,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1984.4717499999997,
+          "timeToInteractive": 2614.629000000001
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "largest-contentful-paint-element",
+              "title": "Largest Contentful Paint element",
+              "description": "This is the largest contentful element painted within the viewport. [Learn more about the Largest Contentful Paint element](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0,
+              "displayValue": "2,610 ms"
+            },
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.85,
+              "displayValue": "2.0 s"
+            },
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0.87,
+              "displayValue": "2.6 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "select-name",
+              "title": "Select elements do not have associated label elements.",
+              "description": "Form elements without effective labels can create frustrating experiences for screen reader users. [Learn more about the `select` element](https://dequeuniversity.com/rules/axe/4.10/select-name).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-settings---google-sheets.png"
+      }
+    },
+    {
+      "name": "Settings - Logs",
+      "path": "/settings/logs",
+      "url": "http://localhost:80/settings/logs",
+      "desktop": {
+        "success": true,
+        "duration": 10177,
+        "scores": {
+          "performance": 100,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 461.1526,
+          "largestContentfulPaint": 648.2553,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 539.9988535669887,
+          "timeToInteractive": 648.2553
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "dom-size",
+              "title": "Avoid an excessive DOM size",
+              "description": "A large DOM will increase memory usage, cause longer [style calculations](https://developers.google.com/web/fundamentals/performance/rendering/reduce-the-scope-and-complexity-of-style-calculations), and produce costly [layout reflows](https://developers.google.com/speed/articles/reflow). [Learn how to avoid an excessive DOM size](https://developer.chrome.com/docs/lighthouse/performance/dom-size/).",
+              "score": 0.5,
+              "displayValue": "1,137 elements"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-settings---logs.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 9053,
+        "scores": {
+          "performance": 94,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1987.0249,
+          "largestContentfulPaint": 2804.2797,
+          "totalBlockingTime": 49,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1987.0249,
+          "timeToInteractive": 2804.2797
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "largest-contentful-paint-element",
+              "title": "Largest Contentful Paint element",
+              "description": "This is the largest contentful element painted within the viewport. [Learn more about the Largest Contentful Paint element](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0,
+              "displayValue": "2,800 ms"
+            },
+            {
+              "id": "dom-size",
+              "title": "Avoid an excessive DOM size",
+              "description": "A large DOM will increase memory usage, cause longer [style calculations](https://developers.google.com/web/fundamentals/performance/rendering/reduce-the-scope-and-complexity-of-style-calculations), and produce costly [layout reflows](https://developers.google.com/speed/articles/reflow). [Learn how to avoid an excessive DOM size](https://developer.chrome.com/docs/lighthouse/performance/dom-size/).",
+              "score": 0,
+              "displayValue": "1,155 elements"
+            },
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0.83,
+              "displayValue": "2.8 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-settings---logs.png"
+      }
+    },
+    {
+      "name": "Settings - Resources",
+      "path": "/settings/resources",
+      "url": "http://localhost:80/settings/resources",
+      "desktop": {
+        "success": true,
+        "duration": 10005,
+        "scores": {
+          "performance": 100,
+          "accessibility": 94,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 451.6953,
+          "largestContentfulPaint": 610.1194,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 567.5527982948166,
+          "timeToInteractive": 610.1194
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-settings---resources.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 7823,
+        "scores": {
+          "performance": 96,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1946.8369000000002,
+          "largestContentfulPaint": 2528.7047000000002,
+          "totalBlockingTime": 7.193849999999998,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1946.8369000000002,
+          "timeToInteractive": 2528.7047000000002
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "largest-contentful-paint-element",
+              "title": "Largest Contentful Paint element",
+              "description": "This is the largest contentful element painted within the viewport. [Learn more about the Largest Contentful Paint element](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0,
+              "displayValue": "2,530 ms"
+            },
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.86,
+              "displayValue": "1.9 s"
+            },
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0.89,
+              "displayValue": "2.5 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-settings---resources.png"
+      }
+    },
+    {
+      "name": "Settings - Webhook",
+      "path": "/settings/webhook",
+      "url": "http://localhost:80/settings/webhook",
+      "desktop": {
+        "success": true,
+        "duration": 10312,
+        "scores": {
+          "performance": 100,
+          "accessibility": 90,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 459.32574999999997,
+          "largestContentfulPaint": 557.713375,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 510.39586680968875,
+          "timeToInteractive": 557.9746125
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "label",
+              "title": "Form elements do not have associated labels",
+              "description": "Labels ensure that form controls are announced properly by assistive technologies, like screen readers. [Learn more about form element labels](https://dequeuniversity.com/rules/axe/4.10/label).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-settings---webhook.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 9227,
+        "scores": {
+          "performance": 95,
+          "accessibility": 91,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1983.4971999999998,
+          "largestContentfulPaint": 2613.3296,
+          "totalBlockingTime": 101,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1983.4971999999998,
+          "timeToInteractive": 2613.3296
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "largest-contentful-paint-element",
+              "title": "Largest Contentful Paint element",
+              "description": "This is the largest contentful element painted within the viewport. [Learn more about the Largest Contentful Paint element](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0,
+              "displayValue": "2,610 ms"
+            },
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "max-potential-fid",
+              "title": "Max Potential First Input Delay",
+              "description": "The maximum potential First Input Delay that your users could experience is the duration of the longest task. [Learn more about the Maximum Potential First Input Delay metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-max-potential-fid/).",
+              "score": 0.84,
+              "displayValue": "150 ms"
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.85,
+              "displayValue": "2.0 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "label",
+              "title": "Form elements do not have associated labels",
+              "description": "Labels ensure that form controls are announced properly by assistive technologies, like screen readers. [Learn more about form element labels](https://dequeuniversity.com/rules/axe/4.10/label).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-settings---webhook.png"
+      }
+    },
+    {
+      "name": "Route Mapping",
+      "path": "/route-mapping",
+      "url": "http://localhost:80/route-mapping",
+      "desktop": {
+        "success": true,
+        "duration": 10998,
+        "scores": {
+          "performance": 100,
+          "accessibility": 93,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 428.10825,
+          "largestContentfulPaint": 493.84489999999994,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 523.7037500002322,
+          "timeToInteractive": 493.84489999999994
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "forced-reflow-insight",
+              "title": "Forced reflow",
+              "description": "A forced reflow occurs when JavaScript queries geometric properties (such as offsetWidth) after styles have been invalidated by a change to the DOM state. This can result in poor performance. Learn more about [forced reflows](https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts) and possible mitigations.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "heading-order",
+              "title": "Heading elements are not in a sequentially-descending order",
+              "description": "Properly ordered headings that do not skip levels convey the semantic structure of the page, making it easier to navigate and understand when using assistive technologies. [Learn more about heading order](https://dequeuniversity.com/rules/axe/4.10/heading-order).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-route-mapping.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 10627,
+        "scores": {
+          "performance": 98,
+          "accessibility": 93,
+          "bestPractices": 96,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1830.7332499999998,
+          "largestContentfulPaint": 2156.7332499999998,
+          "totalBlockingTime": 14.211125000000038,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1830.7332499999998,
+          "timeToInteractive": 2156.7332499999998
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.89,
+              "displayValue": "1.8 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "heading-order",
+              "title": "Heading elements are not in a sequentially-descending order",
+              "description": "Properly ordered headings that do not skip levels convey the semantic structure of the page, making it easier to navigate and understand when using assistive technologies. [Learn more about heading order](https://dequeuniversity.com/rules/axe/4.10/heading-order).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [
+            {
+              "id": "font-size",
+              "title": "Document doesn't use legible font sizes",
+              "description": "Font sizes less than 12px are too small to be legible and require mobile visitors to “pinch to zoom” in order to read. Strive to have >60% of page text ≥12px. [Learn more about legible font sizes](https://developer.chrome.com/docs/lighthouse/seo/font-size/).",
+              "score": 0,
+              "displayValue": "31.16% legible text"
+            }
+          ],
+          "seo": []
+        },
+        "screenshot": "mobile-route-mapping.png"
+      }
+    },
+    {
+      "name": "Admin - Dashboard",
+      "path": "/admin/dashboard",
+      "url": "http://localhost:80/admin/dashboard",
+      "desktop": {
+        "success": true,
+        "duration": 8757,
+        "scores": {
+          "performance": 100,
+          "accessibility": 100,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 438.803,
+          "largestContentfulPaint": 557.606,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 559.2231670821903,
+          "timeToInteractive": 557.606
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "forced-reflow-insight",
+              "title": "Forced reflow",
+              "description": "A forced reflow occurs when JavaScript queries geometric properties (such as offsetWidth) after styles have been invalidated by a change to the DOM state. This can result in poor performance. Learn more about [forced reflows](https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts) and possible mitigations.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-admin---dashboard.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 8801,
+        "scores": {
+          "performance": 98,
+          "accessibility": 100,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1796.9806,
+          "largestContentfulPaint": 2201.301,
+          "totalBlockingTime": 11.669899999999984,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1796.9806,
+          "timeToInteractive": 2201.3010000000004
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-admin---dashboard.png"
+      }
+    },
+    {
+      "name": "Admin - Users",
+      "path": "/admin/users",
+      "url": "http://localhost:80/admin/users",
+      "desktop": {
+        "success": true,
+        "duration": 8749,
+        "scores": {
+          "performance": 100,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 437.97412499999996,
+          "largestContentfulPaint": 514.1586,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 549.6781970822742,
+          "timeToInteractive": 514.1586
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-admin---users.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 8532,
+        "scores": {
+          "performance": 98,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1815.9806,
+          "largestContentfulPaint": 2069.6408,
+          "totalBlockingTime": 5.669899999999984,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1815.9806,
+          "timeToInteractive": 2069.6408
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.89,
+              "displayValue": "1.8 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-admin---users.png"
+      }
+    },
+    {
+      "name": "Admin - Roles",
+      "path": "/admin/roles",
+      "url": "http://localhost:80/admin/roles",
+      "desktop": {
+        "success": true,
+        "duration": 9006,
+        "scores": {
+          "performance": 100,
+          "accessibility": 92,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 410.7482,
+          "largestContentfulPaint": 485.9976,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 524.395277334354,
+          "timeToInteractive": 485.9976
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "heading-order",
+              "title": "Heading elements are not in a sequentially-descending order",
+              "description": "Properly ordered headings that do not skip levels convey the semantic structure of the page, making it easier to navigate and understand when using assistive technologies. [Learn more about heading order](https://dequeuniversity.com/rules/axe/4.10/heading-order).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-admin---roles.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 8540,
+        "scores": {
+          "performance": 97,
+          "accessibility": 93,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1832.4913499999998,
+          "largestContentfulPaint": 2311.3217999999997,
+          "totalBlockingTime": 46,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1832.4913499999998,
+          "timeToInteractive": 2311.3217999999997
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.89,
+              "displayValue": "1.8 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "heading-order",
+              "title": "Heading elements are not in a sequentially-descending order",
+              "description": "Properly ordered headings that do not skip levels convey the semantic structure of the page, making it easier to navigate and understand when using assistive technologies. [Learn more about heading order](https://dequeuniversity.com/rules/axe/4.10/heading-order).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-admin---roles.png"
+      }
+    },
+    {
+      "name": "Admin - Audit",
+      "path": "/admin/audit",
+      "url": "http://localhost:80/admin/audit",
+      "desktop": {
+        "success": true,
+        "duration": 8789,
+        "scores": {
+          "performance": 100,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 421.58314999999993,
+          "largestContentfulPaint": 519.4442,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 570.7838014166631,
+          "timeToInteractive": 519.4442
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-admin---audit.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 8499,
+        "scores": {
+          "performance": 97,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1837.1682,
+          "largestContentfulPaint": 2320.5576,
+          "totalBlockingTime": 6.5,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1837.1682,
+          "timeToInteractive": 2320.5576
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.89,
+              "displayValue": "1.8 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-admin---audit.png"
+      }
+    },
+    {
+      "name": "Admin - Settings",
+      "path": "/admin/settings",
+      "url": "http://localhost:80/admin/settings",
+      "desktop": {
+        "success": true,
+        "duration": 8551,
+        "scores": {
+          "performance": 100,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 438.722625,
+          "largestContentfulPaint": 473.26714999999996,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 519.2298690842832,
+          "timeToInteractive": 473.26715
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "desktop-admin---settings.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 8311,
+        "scores": {
+          "performance": 98,
+          "accessibility": 95,
+          "bestPractices": 100,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1832.64785,
+          "largestContentfulPaint": 2160.1478500000003,
+          "totalBlockingTime": 2.5,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1832.64785,
+          "timeToInteractive": 2160.1478500000003
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.89,
+              "displayValue": "1.8 s"
+            }
+          ],
+          "accessibility": [
+            {
+              "id": "color-contrast",
+              "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+              "description": "Low-contrast text is difficult or impossible for many users to read. [Learn how to provide sufficient color contrast](https://dequeuniversity.com/rules/axe/4.10/color-contrast).",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "bestPractices": [],
+          "seo": []
+        },
+        "screenshot": "mobile-admin---settings.png"
+      }
+    },
+    {
+      "name": "Admin - Shop Setup",
+      "path": "/admin/shop-setup",
+      "url": "http://localhost:80/admin/shop-setup",
+      "desktop": {
+        "success": true,
+        "duration": 8998,
+        "scores": {
+          "performance": 100,
+          "accessibility": 100,
+          "bestPractices": 96,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 428.36274999999995,
+          "largestContentfulPaint": 483.7804,
+          "totalBlockingTime": 0,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 558.306392166224,
+          "timeToInteractive": 483.7804
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "accessibility": [],
+          "bestPractices": [
+            {
+              "id": "errors-in-console",
+              "title": "Browser errors were logged to the console",
+              "description": "Errors logged to the console indicate unresolved problems. They can come from network request failures and other browser concerns. [Learn more about this errors in console diagnostic audit](https://developer.chrome.com/docs/lighthouse/best-practices/errors-in-console/)",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "seo": []
+        },
+        "screenshot": "desktop-admin---shop-setup.png"
+      },
+      "mobile": {
+        "success": true,
+        "duration": 8718,
+        "scores": {
+          "performance": 98,
+          "accessibility": 100,
+          "bestPractices": 96,
+          "seo": 100
+        },
+        "metrics": {
+          "firstContentfulPaint": 1803.15865,
+          "largestContentfulPaint": 2060.8782,
+          "totalBlockingTime": 66.28044999999997,
+          "cumulativeLayoutShift": 0,
+          "speedIndex": 1803.15865,
+          "timeToInteractive": 2060.8782
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "bf-cache",
+              "title": "Page prevented back/forward cache restoration",
+              "description": "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+              "score": 0,
+              "displayValue": "2 failure reasons"
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+              "score": 0,
+              "displayValue": null
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.89,
+              "displayValue": "1.8 s"
+            }
+          ],
+          "accessibility": [],
+          "bestPractices": [
+            {
+              "id": "errors-in-console",
+              "title": "Browser errors were logged to the console",
+              "description": "Errors logged to the console indicate unresolved problems. They can come from network request failures and other browser concerns. [Learn more about this errors in console diagnostic audit](https://developer.chrome.com/docs/lighthouse/best-practices/errors-in-console/)",
+              "score": 0,
+              "displayValue": null
+            }
+          ],
+          "seo": []
+        },
+        "screenshot": "mobile-admin---shop-setup.png"
+      }
+    }
+  ],
+  "summary": {
+    "totalPages": 26,
+    "desktopAvgPerformance": 100,
+    "desktopAvgAccessibility": 94,
+    "desktopAvgBestPractices": 100,
+    "desktopAvgSEO": 100,
+    "mobileAvgPerformance": 95,
+    "mobileAvgAccessibility": 94,
+    "mobileAvgBestPractices": 100,
+    "mobileAvgSEO": 100,
+    "totalScreenshots": 52,
+    "totalDuration": 678716
+  }
+}

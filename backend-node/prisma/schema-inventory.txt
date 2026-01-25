@@ -1,0 +1,26 @@
+// ============================================================================
+// INVENTORY SETTINGS MODEL
+// ============================================================================
+
+model InventorySettings {
+  id                        String   @id @default(cuid())
+  
+  // Spreadsheet reference
+  spreadsheetId             String?
+  sheetName                 String?
+  
+  // Column configuration
+  selectedColumns           String?  // JSON array of column names stored as string
+  headerRow                 Int      @default(1)
+  dataStartRow              Int      @default(2)
+  keyColumn                 String?
+  
+  // Sync settings
+  autoSync                  Boolean  @default(false)
+  syncIntervalSeconds       Int      @default(300)
+  lastSyncTimestamp         DateTime?
+  
+  // Metadata
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}

@@ -1,0 +1,135 @@
+{
+  "timestamp": "2026-01-09T22:45:13.560Z",
+  "summary": {
+    "totalTests": 0,
+    "passed": 0,
+    "failed": 0,
+    "totalDuration": 0,
+    "successRate": "NaN%"
+  },
+  "testSuites": [
+    {
+      "testSuite": "Operation",
+      "tab": "Operation",
+      "timestamp": "2026-01-09T22:45:13.498Z",
+      "summary": {
+        "totalTests": 0,
+        "passed": 0,
+        "failed": 0,
+        "totalDuration": 0,
+        "successRate": "0%"
+      },
+      "error": "Authentication failed: Auth failed: Error"
+    },
+    {
+      "testSuite": "Product Management",
+      "tab": "Product Management",
+      "timestamp": "2026-01-09T22:45:13.513Z",
+      "summary": {
+        "totalTests": 0,
+        "passed": 0,
+        "failed": 0,
+        "totalDuration": 0,
+        "successRate": "0%"
+      },
+      "error": "Authentication failed: Auth failed: Error"
+    },
+    {
+      "testSuite": "Order Manager",
+      "tab": "Order Manager",
+      "timestamp": "2026-01-09T22:45:13.520Z",
+      "summary": {
+        "totalTests": 0,
+        "passed": 0,
+        "failed": 0,
+        "totalDuration": 0,
+        "successRate": "0%"
+      },
+      "error": "Authentication failed: Auth failed: Error"
+    },
+    {
+      "testSuite": "Inventory",
+      "tab": "Inventory",
+      "timestamp": "2026-01-09T22:45:13.527Z",
+      "summary": {
+        "totalTests": 0,
+        "passed": 0,
+        "failed": 0,
+        "totalDuration": 0,
+        "successRate": "0%"
+      },
+      "error": "Authentication failed: Auth failed: Error"
+    },
+    {
+      "testSuite": "Route Mapper",
+      "tab": "Route Mapper",
+      "timestamp": "2026-01-09T22:45:13.531Z",
+      "summary": {
+        "totalTests": 0,
+        "passed": 0,
+        "failed": 0,
+        "totalDuration": 0,
+        "successRate": "0%"
+      },
+      "error": "Authentication failed: Auth failed: Error"
+    },
+    {
+      "testSuite": "Script Monitor",
+      "tab": "Script Monitor",
+      "timestamp": "2026-01-09T22:45:13.536Z",
+      "summary": {
+        "totalTests": 0,
+        "passed": 0,
+        "failed": 0,
+        "totalDuration": 0,
+        "successRate": "0%"
+      },
+      "error": "Authentication failed: Auth failed: Error",
+      "subMenus": [
+        "Current Running",
+        "Queue",
+        "History",
+        "Auto-Functions"
+      ]
+    },
+    {
+      "testSuite": "Analytics",
+      "tab": "Analytics",
+      "timestamp": "2026-01-09T22:45:13.541Z",
+      "summary": {
+        "totalTests": 0,
+        "passed": 0,
+        "failed": 0,
+        "totalDuration": 0,
+        "successRate": "0%"
+      },
+      "error": "Authentication failed: Auth failed: Error"
+    },
+    {
+      "testSuite": "Shopee",
+      "tab": "Shopee",
+      "timestamp": "2026-01-09T22:45:13.545Z",
+      "summary": {
+        "totalTests": 0,
+        "passed": 0,
+        "failed": 0,
+        "totalDuration": 0,
+        "successRate": "0%"
+      },
+      "error": "Authentication failed: Auth failed: Error"
+    },
+    {
+      "testSuite": "TikTok",
+      "tab": "TikTok",
+      "timestamp": "2026-01-09T22:45:13.555Z",
+      "summary": {
+        "totalTests": 0,
+        "passed": 0,
+        "failed": 0,
+        "totalDuration": 0,
+        "successRate": "0%"
+      },
+      "error": "Authentication failed: Auth failed: Error"
+    }
+  ]
+}

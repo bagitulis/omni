@@ -1,0 +1,210 @@
+// Package inventory provides inventory management services
+package inventory
+
+import (
+	"context"
+	"encoding/json"
+	"time"
+
+	"github.com/omni/backend/internal/models"
+	"gorm.io/gorm"
+)
+
+// InventoryService handles inventory operations
+type InventoryService struct {
+	db       *gorm.DB
+	tenantID string
+}
+
+// NewInventoryService creates a new inventory service
+func NewInventoryService(db *gorm.DB, tenantID string) *InventoryService {
+	return &InventoryService{db: db, tenantID: tenantID}
+}
+
+// ListFilter represents filter for inventory listing
+type ListFilter struct {
+	Search   string
+	Category string
+	Platform string // filter by platform status
+	LowStock bool
+	Limit    int
+	Offset   int
+}
+
+// ListResult represents paginated list result
+type ListResult struct {
+	Total    int64                    `json:"total"`
+	Returned int                      `json:"returned"`
+	Offset   int                      `json:"offset"`
+	Data     []models.InventoryRecord `json:"data"`
+}
+
+// GetRecords retrieves inventory records with filtering
+func (s *InventoryService) GetRecords(ctx context.Context, filter ListFilter) (*ListResult, error) {
+	query := s.db.WithContext(ctx).Where("tenant_id = ?", s.tenantID)
+
+	if filter.Search != "" {
+		search := "%" + filter.Search + "%"
+		query = query.Where("sku LIKE ? OR product_name LIKE ?", search, search)
+	}
+	if filter.Category != "" {
+		query = query.Where("category = ?", filter.Category)
+	}
+	if filter.LowStock {
+		query = query.Where("quantity <= min_stock")
+	}
+
+	var total int64
+	if err := query.Model(&models.InventoryRecord{}).Count(&total).Error; err != nil {
+		return nil, err
+	}
+
+	if filter.Limit == 0 {
+		filter.Limit = 50
+	}
+	query = query.Limit(filter.Limit).Offset(filter.Offset).Order("sku ASC")
+
+	var records []models.InventoryRecord
+	if err := query.Find(&records).Error; err != nil {
+		return nil, err
+	}
+
+	return &ListResult{
+		Total:    total,
+		Returned: len(records),
+		Offset:   filter.Offset,
+		Data:     records,
+	}, nil
+}
+
+// GetBySKU retrieves a single inventory record by SKU
+func (s *InventoryService) GetBySKU(ctx context.Context, sku string) (*models.InventoryRecord, error) {
+	var record models.InventoryRecord
+	err := s.db.WithContext(ctx).
+		Where("tenant_id = ? AND sku = ?", s.tenantID, sku).
+		First(&record).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &record, err
+}
+
+// Update updates an inventory record
+func (s *InventoryService) Update(ctx context.Context, sku string, updates map[string]interface{}) error {
+	return s.db.WithContext(ctx).
+		Model(&models.InventoryRecord{}).
+		Where("tenant_id = ? AND sku = ?", s.tenantID, sku).
+		Updates(updates).Error
+}
+
+// Delete deletes an inventory record
+func (s *InventoryService) Delete(ctx context.Context, sku string) error {
+	return s.db.WithContext(ctx).
+		Where("tenant_id = ? AND sku = ?", s.tenantID, sku).
+		Delete(&models.InventoryRecord{}).Error
+}
+
+// GetCategories retrieves distinct categories
+func (s *InventoryService) GetCategories(ctx context.Context) ([]string, error) {
+	var categories []string
+	err := s.db.WithContext(ctx).
+		Model(&models.InventoryRecord{}).
+		Where("tenant_id = ? AND category != ''", s.tenantID).
+		Distinct("category").
+		Pluck("category", &categories).Error
+	return categories, err
+}
+
+// GetSettings retrieves inventory settings
+func (s *InventoryService) GetSettings(ctx context.Context) (*models.InventorySettings, error) {
+	var settings models.InventorySettings
+	err := s.db.WithContext(ctx).
+		Where("tenant_id = ?", s.tenantID).
+		First(&settings).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &settings, err
+}
+
+// UpdateSettings updates inventory settings
+func (s *InventoryService) UpdateSettings(ctx context.Context, settings *models.InventorySettings) error {
+	settings.TenantID = s.tenantID
+	settings.UpdatedAt = time.Now()
+	return s.db.WithContext(ctx).Save(settings).Error
+}
+
+// SaveSettings creates or updates settings
+func (s *InventoryService) SaveSettings(ctx context.Context, input SettingsInput) error {
+	var existing models.InventorySettings
+	err := s.db.WithContext(ctx).
+		Where("tenant_id = ?", s.tenantID).
+		First(&existing).Error
+
+	if err == gorm.ErrRecordNotFound {
+		existing = models.InventorySettings{TenantID: s.tenantID}
+	} else if err != nil {
+		return err
+	}
+
+	existing.SpreadsheetID = input.SpreadsheetID
+	existing.SheetName = input.SheetName
+	existing.KeyColumn = input.KeyColumn
+	existing.HeaderRow = input.HeaderRow
+	existing.DataStartRow = input.DataStartRow
+	existing.AutoSync = input.AutoSync
+	existing.SyncIntervalSec = input.SyncIntervalSec
+
+	if input.AllColumns != nil {
+		data, _ := json.Marshal(input.AllColumns)
+		existing.AllColumns = string(data)
+	}
+	if input.SelectedColumns != nil {
+		data, _ := json.Marshal(input.SelectedColumns)
+		existing.SelectedColumns = string(data)
+	}
+
+	return s.db.WithContext(ctx).Save(&existing).Error
+}
+
+// SettingsInput represents input for settings update
+type SettingsInput struct {
+	SpreadsheetID   string   `json:"spreadsheetId"`
+	SheetName       string   `json:"sheetName"`
+	AllColumns      []string `json:"allColumns"`
+	SelectedColumns []string `json:"selectedColumns"`
+	KeyColumn       string   `json:"keyColumn"`
+	HeaderRow       int      `json:"headerRow"`
+	DataStartRow    int      `json:"dataStartRow"`
+	AutoSync        bool     `json:"autoSync"`
+	SyncIntervalSec int      `json:"syncIntervalSeconds"`
+}
+
+// GetSyncHistory retrieves sync history
+func (s *InventoryService) GetSyncHistory(ctx context.Context, limit int) ([]models.InventorySyncHistory, error) {
+	if limit == 0 {
+		limit = 20
+	}
+	var history []models.InventorySyncHistory
+	err := s.db.WithContext(ctx).
+		Where("tenant_id = ?", s.tenantID).
+		Order("synced_at DESC").
+		Limit(limit).
+		Find(&history).Error
+	return history, err
+}
+
+// RecordSyncHistory records a sync operation
+func (s *InventoryService) RecordSyncHistory(ctx context.Context, history *models.InventorySyncHistory) error {
+	history.TenantID = s.tenantID
+	if history.ID == "" {
+		history.ID = generateUUID()
+	}
+	if history.SyncedAt.IsZero() {
+		history.SyncedAt = time.Now()
+	}
+	if history.CreatedAt.IsZero() {
+		history.CreatedAt = time.Now()
+	}
+	return s.db.WithContext(ctx).Create(history).Error
+}

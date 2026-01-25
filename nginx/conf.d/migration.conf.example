@@ -1,0 +1,166 @@
+# NGINX Configuration for Go Backend Migration
+# This file enables gradual traffic split between Node.js and Go backends
+#
+# Usage:
+# 1. Copy this file to nginx/conf.d/migration.conf
+# 2. Adjust TRAFFIC_SPLIT variable (0-100)
+# 3. Reload nginx: docker compose exec nginx nginx -s reload
+
+# Backend upstreams
+upstream backend_nodejs {
+    least_conn;
+    server backend:3000 max_fails=3 fail_timeout=10s;
+    keepalive 32;
+}
+
+upstream backend_go {
+    least_conn;
+    server backend-go:8080 max_fails=3 fail_timeout=10s;
+    keepalive 32;
+}
+
+# Traffic split configuration
+# Change the percentage to control traffic distribution
+# 10% = 10% to Go, 90% to Node.js
+# 50% = 50/50 split
+# 100% = 100% to Go (full cutover)
+split_clients "${remote_addr}${request_uri}" $backend_upstream {
+    10%     backend_go;      # 10% traffic ke Go
+    *       backend_nodejs;  # 90% traffic ke Node.js
+}
+
+# Alternative: Method-based routing (READ to Go, WRITE to Node.js)
+map $request_method $backend_by_method {
+    GET      backend_go;
+    HEAD     backend_go;
+    OPTIONS  backend_go;
+    default  backend_nodejs;  # POST, PUT, DELETE → Node.js
+}
+
+# Alternative: Endpoint-based routing
+map $uri $backend_by_endpoint {
+    # Safe endpoints - route to Go
+    ~^/api/health           backend_go;
+    ~^/api/shopee/orders    backend_go;
+    ~^/api/shopee/products  backend_go;
+    ~^/api/lazada/orders    backend_go;
+    ~^/api/lazada/products  backend_go;
+    ~^/api/tiktok/orders    backend_go;
+    ~^/api/tiktok/products  backend_go;
+    ~^/api/inventory        backend_go;
+    ~^/api/auth/verify      backend_go;
+    ~^/api/auth/tenants     backend_go;
+    ~^/api/webhooks/logs    backend_go;
+    ~^/api/webhooks/stats   backend_go;
+    
+    # Everything else - keep on Node.js
+    default                 backend_nodejs;
+}
+
+# Logging for migration monitoring
+log_format migration '$remote_addr - $remote_user [$time_local] '
+                     '"$request" $status $body_bytes_sent '
+                     'backend=$upstream_addr rt=$request_time '
+                     'uct="$upstream_connect_time" '
+                     'uht="$upstream_header_time" '
+                     'urt="$upstream_response_time"';
+
+server {
+    listen 80;
+    server_name localhost;
+
+    # Enable migration logging
+    access_log /var/log/nginx/migration.log migration;
+
+    # API routes - use traffic split
+    location /api/ {
+        # Choose one of these strategies:
+        
+        # Strategy 1: Percentage-based split (recommended for testing)
+        proxy_pass http://$backend_upstream;
+        
+        # Strategy 2: Method-based (safe for writes)
+        # proxy_pass http://$backend_by_method;
+        
+        # Strategy 3: Endpoint-based (most control)
+        # proxy_pass http://$backend_by_endpoint;
+
+        # Proxy headers
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+        
+        # Timeouts
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+        
+        # Buffer settings
+        proxy_buffer_size 128k;
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
+        
+        # Add header to identify which backend served the request
+        add_header X-Served-By $upstream_addr always;
+    }
+
+    # Webhook routes - always Go (or Node.js based on preference)
+    location /api/webhooks/ {
+        # Webhooks are usually idempotent, safe to test on Go
+        proxy_pass http://backend_go;
+        
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+        
+        # Longer timeout for webhooks
+        proxy_read_timeout 120s;
+    }
+
+    # Health check endpoints
+    location = /api/health {
+        proxy_pass http://backend_go;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }
+
+    location = /api/health/nodejs {
+        proxy_pass http://backend_nodejs/api/health;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }
+
+    location = /api/health/go {
+        proxy_pass http://backend_go/api/health;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }
+
+    # Frontend (unchanged)
+    location / {
+        proxy_pass http://frontend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+
+# Monitoring server for migration stats
+server {
+    listen 8888;
+    server_name localhost;
+    
+    location /nginx_status {
+        stub_status on;
+        allow 127.0.0.1;
+        allow 172.16.0.0/12;  # Docker networks
+        deny all;
+    }
+}

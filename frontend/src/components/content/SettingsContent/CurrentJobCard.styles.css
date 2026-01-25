@@ -1,0 +1,309 @@
+.job-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  background: #ffffff;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  animation: fadeInScale 0.3s ease;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.job-card.job-running {
+  border-color: #27ae60;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+}
+
+.job-card.job-timeout-warning {
+  border-color: #e74c3c;
+  background: linear-gradient(135deg, #fdf8f7 0%, #ffffff 100%);
+  animation: pulse-warning 2s ease-in-out infinite;
+}
+
+@keyframes pulse-warning {
+  0%,
+  100% {
+    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.1);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(231, 76, 60, 0.2);
+  }
+}
+
+.job-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f0f1f3;
+}
+
+.job-title {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.job-title h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.job-id {
+  font-size: 12px;
+  color: #6b7280;
+  font-family: "Courier New", monospace;
+}
+
+.timeout-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: #e74c3c;
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.btn-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.btn-danger {
+  background: #e74c3c;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #c0392b;
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-urgent {
+  background: #f39c12;
+  color: white;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.btn-urgent:hover {
+  background: #e67e22;
+  box-shadow: 0 2px 8px rgba(243, 156, 18, 0.2);
+  transform: translateY(-1px);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.job-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-row .label {
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.detail-row span:not(.label) {
+  font-size: 14px;
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.badge-running {
+  background: #c6efce;
+  color: #270;
+}
+
+.badge-timeout {
+  background: #f8d7da;
+  color: #721c24;
+  animation: pulse-badge 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.priority-high {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.priority-normal {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.duration-warning {
+  color: #e74c3c;
+  font-weight: 700;
+}
+
+.duration-exceeded {
+  display: block;
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.data-preview {
+  display: block;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  color: #666;
+  word-break: break-all;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+.job-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.progress-bar {
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #27ae60, #2ecc71);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  animation: shimmer 2s infinite;
+}
+
+.progress-stuck .progress-fill {
+  background: linear-gradient(90deg, #e74c3c, #f39c12);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.progress-text {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  font-weight: 500;
+}
+
+.progress-stuck .progress-text {
+  color: #e74c3c;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .job-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .job-details {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-group {
+    justify-content: flex-start;
+  }
+}
