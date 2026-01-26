@@ -1,0 +1,17 @@
+name: AGENTS.md acknowledgement
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  agents-ack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate AGENTS.md acknowledgement
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          bash "scripts/github/validate-agents-ack.sh" "$PR_BODY"

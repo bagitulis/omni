@@ -104,7 +104,11 @@ func (s *TiktokEscrowSyncService) saveEscrowItems(
 	return 0
 }
 
-// saveSkuTransactions saves SKU transactions from Finance API
+// saveSkuTransactions saves SKU transactions from Finance API v202501
+// Mapping based on Node.js tiktokTransactionTransformer.ts:
+// - seller_sku = sku_name
+// - sale_price = revenue_amount
+// - settlement_amount = settlement_amount (SKU level)
 func (s *TiktokEscrowSyncService) saveSkuTransactions(
 	ctx context.Context,
 	escrowOrderID, orderID string,
@@ -117,21 +121,36 @@ func (s *TiktokEscrowSyncService) saveSkuTransactions(
 		if qty == 0 {
 			qty = 1 // Default to 1 (matches Node.js logic)
 		}
+
+		// Parse settlement amount - prefer SettlementAmount, fallback to SkuNetPayout
+		settlementAmt := ParseFloat(skuTx.SettlementAmount)
+		if settlementAmt == 0 {
+			settlementAmt = ParseFloat(skuTx.SkuNetPayout)
+		}
+
+		// Parse sale price from RevenueAmount (matches Node.js: sale_price = revenue_amount)
+		salePrice := ParseFloat(skuTx.RevenueAmount)
+		if salePrice == 0 {
+			salePrice = ParseFloat(skuTx.SkuSubtotalAfterDisc)
+		}
+
 		escrowItem := models.TiktokEscrowItem{
 			ID:                          uuid.New().String(),
 			TenantID:                    s.tenantID,
 			EscrowOrderID:               escrowOrderID,
 			OrderID:                     orderID,
 			SkuID:                       StringPtr(skuTx.SkuID),
+			SellerSku:                   StringPtr(skuTx.SkuName), // sku_name = seller_sku (Node.js)
 			ProductName:                 StringPtr(skuTx.ProductName),
 			Quantity:                    qty,
 			OriginalPrice:               ParseFloat(skuTx.SkuSubtotalBeforeDisc),
+			SalePrice:                   salePrice,
 			PlatformDiscount:            ParseFloat(skuTx.SkuPlatformDiscount),
 			SellerDiscount:              ParseFloat(skuTx.SkuSellerDiscount),
 			SubtotalAfterSellerDiscount: ParseFloat(skuTx.SkuSubtotalAfterDisc),
 			TransactionFeeItem:          ParseFloat(skuTx.TransactionFee),
 			Commission:                  ParseFloat(skuTx.ReferralFee),
-			SettlementAmount:            ParseFloat(skuTx.SkuNetPayout),
+			SettlementAmount:            settlementAmt,
 			RawItemData:                 StringPtr(string(rawSkuData)),
 			SyncedAt:                    time.Now(),
 			CreatedAt:                   time.Now(),

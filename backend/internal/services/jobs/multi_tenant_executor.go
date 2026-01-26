@@ -114,12 +114,12 @@ func (e *MultiTenantExecutor) processAllTenants() {
 // getTenantList retrieves list of all tenant IDs from system schema
 func (e *MultiTenantExecutor) getTenantList() ([]string, error) {
 	var tenants []struct {
-		ID string `gorm:"column:id"`
+		TenantID string `gorm:"column:tenant_id"`
 	}
 
-	// Query system.tenants table
+	// Query system.tenants table - use tenant_id (string) NOT id (UUID)
 	err := e.systemDB.Table("system.tenants").
-		Select("id").
+		Select("tenant_id").
 		Where("is_active = ?", true).
 		Find(&tenants).Error
 
@@ -129,7 +129,7 @@ func (e *MultiTenantExecutor) getTenantList() ([]string, error) {
 
 	ids := make([]string, len(tenants))
 	for i, t := range tenants {
-		ids[i] = t.ID
+		ids[i] = t.TenantID
 	}
 	return ids, nil
 }

@@ -3,6 +3,11 @@
     <div class="login-card">
       <h1>Login</h1>
 
+      <!-- Session Expired Notice -->
+      <div v-if="sessionExpired" class="session-expired-message" role="alert">
+        Session expired. Please login again.
+      </div>
+
       <!-- Account Locked Warning -->
       <div v-if="isLocked" class="locked-message" role="alert">
         <span aria-hidden="true">🔒</span>
@@ -68,14 +73,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { ref, reactive, computed, onMounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "../store/authStore";
 import { authService } from "../services/authService";
 import { captchaService } from "../services/captchaService";
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
+
+// Get returnUrl from query params (set when redirected due to expired token)
+const returnUrl = computed(() => {
+  const url = route.query.returnUrl as string;
+  // Validate returnUrl to prevent open redirect attacks
+  if (url && url.startsWith("/") && !url.startsWith("//")) {
+    return url;
+  }
+  return "/";
+});
+
+// Check if redirected due to session expiry
+const sessionExpired = computed(() => route.query.returnUrl !== undefined);
 
 const form = reactive({
   username: "",
@@ -132,7 +151,8 @@ const handleLogin = async () => {
       user: response.user,
     });
 
-    router.push("/");
+    // Redirect to returnUrl or home page
+    router.push(returnUrl.value);
   } catch (err: any) {
     error.value = err.message || "Login failed";
 
@@ -233,6 +253,17 @@ input:focus {
   background: #fef2f2;
   border: 1px solid #fecaca;
   color: #991b1b;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.session-expired-message {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
   padding: 12px;
   border-radius: 4px;
   margin-bottom: 20px;

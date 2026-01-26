@@ -158,7 +158,7 @@
             />
             <AnalyticsResultsTable
               v-if="reconciliationResult"
-              :skuGroups="reconciliationResult.skuGroups"
+              :skuGroups="reconciliationResult.sku_groups"
             />
           </template>
           <template v-if="analyticsTab === 'shipping'">

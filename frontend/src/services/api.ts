@@ -52,7 +52,7 @@ class ApiService {
         if (
           config.method &&
           ["post", "put", "patch", "delete"].includes(
-            config.method.toLowerCase()
+            config.method.toLowerCase(),
           )
         ) {
           const csrfToken = this.getCSRFToken();
@@ -66,12 +66,12 @@ class ApiService {
       (error) => {
         logger.error("Request failed", error.message);
         return Promise.reject(error);
-      }
+      },
     );
 
     this.client.interceptors.response.use(
       (response) => response,
-      (error: AxiosError) => this.handleResponseError(error)
+      (error: AxiosError) => this.handleResponseError(error),
     );
   }
 
@@ -97,13 +97,47 @@ class ApiService {
         : window.location.origin;
       logger.error("Network error - Backend not running?", backendUrl);
       return Promise.reject(
-        new Error(`Network error - cannot connect to ${backendUrl}`)
+        new Error(`Network error - cannot connect to ${backendUrl}`),
       );
+    }
+
+    // Handle 401 Unauthorized - JWT expired or invalid
+    if (error.response?.status === 401) {
+      const currentPath = window.location.pathname;
+      // Don't redirect if already on login page or auth endpoints
+      if (currentPath !== "/login" && !error.config?.url?.includes("/auth/")) {
+        logger.info("JWT token expired or invalid - redirecting to login");
+        this.handleAuthExpired();
+        return Promise.reject(
+          new Error("Session expired - please login again"),
+        );
+      }
     }
 
     const errorMsg = (error.response?.data as any)?.error || error.message;
     logger.error(`API Error [${error.response?.status}]`, errorMsg);
     return Promise.reject(error);
+  }
+
+  /**
+   * Handle expired/invalid JWT token
+   * Clear auth data and redirect to login page
+   */
+  private handleAuthExpired(): void {
+    // Clear all auth-related localStorage items
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("authUser");
+    localStorage.removeItem("tenantId");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userName");
+
+    // Redirect to login page with return URL
+    const currentPath = window.location.pathname;
+    const returnUrl =
+      currentPath !== "/"
+        ? `?returnUrl=${encodeURIComponent(currentPath)}`
+        : "";
+    window.location.href = `/login${returnUrl}`;
   }
 
   async get<T = any>(url: string, config: AxiosRequestConfig = {}): Promise<T> {
@@ -121,7 +155,7 @@ class ApiService {
   async post<T = any>(
     url: string,
     data?: any,
-    config: AxiosRequestConfig = {}
+    config: AxiosRequestConfig = {},
   ): Promise<T> {
     try {
       const response = await this.client.post<T>(url, data, {
@@ -137,7 +171,7 @@ class ApiService {
   async patch<T = any>(
     url: string,
     data?: any,
-    config: AxiosRequestConfig = {}
+    config: AxiosRequestConfig = {},
   ): Promise<T> {
     try {
       const response = await this.client.patch<T>(url, data, {
@@ -152,7 +186,7 @@ class ApiService {
 
   async delete<T = any>(
     url: string,
-    config: AxiosRequestConfig = {}
+    config: AxiosRequestConfig = {},
   ): Promise<T> {
     try {
       const response = await this.client.delete<T>(url, {
@@ -205,7 +239,7 @@ class ApiService {
         {},
         {
           timeout: 30000,
-        }
+        },
       );
       return response.data;
     } catch (error) {
@@ -215,7 +249,7 @@ class ApiService {
 
   async executeOperation(
     operation: string,
-    params: Record<string, any> = {}
+    params: Record<string, any> = {},
   ): Promise<ExecutionResponse> {
     try {
       const mapping = getPlatformOperationMapping(operation, params);
@@ -224,7 +258,7 @@ class ApiService {
         const response = await this.client.post<ExecutionResponse>(
           mapping.endpoint,
           params,
-          { timeout: 60000 }
+          { timeout: 60000 },
         );
         return response.data;
       }
@@ -232,7 +266,7 @@ class ApiService {
       const response = await this.client.post<ExecutionResponse>(
         "/execute",
         { operation, params },
-        { timeout: 60000 }
+        { timeout: 60000 },
       );
       return response.data;
     } catch (error) {
@@ -243,7 +277,7 @@ class ApiService {
 
   async executeSheetsOperation(
     operation: string,
-    params: Record<string, any> = {}
+    params: Record<string, any> = {},
   ): Promise<any> {
     try {
       const endpoint = mapSheetsOperation(operation);
@@ -263,7 +297,7 @@ class ApiService {
   async exportOrders(
     platform: string,
     orderType: string,
-    days: number = 7
+    days: number = 7,
   ): Promise<any> {
     try {
       const endpoint = mapOrderExport(platform, orderType);
@@ -284,7 +318,7 @@ class ApiService {
     try {
       const response = await this.client.get<ShippingFileResponse>(
         "/shipping/files",
-        { timeout: 15000 }
+        { timeout: 15000 },
       );
       return response.data;
     } catch (error) {
@@ -293,13 +327,13 @@ class ApiService {
   }
 
   async processShippingFile(
-    filename: string
+    filename: string,
   ): Promise<ShippingProcessResponse> {
     try {
       const response = await this.client.post<ShippingProcessResponse>(
         "/shipping/process-file",
         { filename },
-        { timeout: 30000 }
+        { timeout: 30000 },
       );
       return response.data;
     } catch (error) {

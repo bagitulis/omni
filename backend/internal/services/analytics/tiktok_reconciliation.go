@@ -149,8 +149,8 @@ func (s *TiktokReconciliationService) groupItemsBySKU(items []models.TiktokEscro
 		if _, exists := skuInfoMap[sku]; !exists {
 			skuInfoMap[sku] = &SkuInfo{
 				ItemName:  GetStringValue(item.ProductName),
-				ModelSku:  GetStringValue(item.SkuID),
-				ModelName: GetStringValue(item.SellerSku),
+				ModelSku:  GetStringValue(item.SellerSku), // Use SellerSku as ModelSku for display
+				ModelName: "",                             // TikTok doesn't have variant name in escrow items
 			}
 		}
 	}

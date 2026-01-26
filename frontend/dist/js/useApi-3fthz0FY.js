@@ -1,1 +1,0 @@
-function r(){return n}import{a as n}from"./index-Dih-VU0S.js";export{r as u};

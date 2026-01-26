@@ -28,11 +28,11 @@
                 {{ getStatusLabel(sku.status) }}
               </span>
             </td>
-            <td class="cell-sku">{{ sku.seller_sku || sku.sku }}</td>
+            <td class="cell-sku">{{ sku.model_sku || sku.sku }}</td>
             <td class="cell-name">
-              {{ sku.product_name }}
-              <span v-if="sku.variant_name" class="variant-name">
-                - {{ sku.variant_name }}
+              {{ sku.item_name }}
+              <span v-if="sku.model_name" class="variant-name">
+                - {{ sku.model_name }}
               </span>
             </td>
             <td class="cell-price">
@@ -73,9 +73,9 @@
 <script setup lang="ts">
 interface SkuGroup {
   sku: string;
-  seller_sku: string;
-  product_name: string;
-  variant_name?: string;
+  model_sku: string;
+  item_name: string;
+  model_name?: string;
   status: string;
   inventory_price: number | null;
   unique_unit_prices: number[];
