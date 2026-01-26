@@ -24,6 +24,9 @@ type Order struct {
 	TotalAmount   float64 `json:"total_amount"`
 	Currency      string  `json:"currency"`
 	BuyerUsername string  `json:"buyer_username"`
+	// Shipping info (for processed orders)
+	TrackingNumber  string `json:"tracking_number,omitempty"`
+	ShippingCarrier string `json:"shipping_carrier,omitempty"`
 	// Flattened item fields (for frontend compatibility - one row per item)
 	SKU           string `json:"sku"`
 	ProductName   string `json:"product_name"`

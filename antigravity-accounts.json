@@ -1,0 +1,50 @@
+{
+  "version": 3,
+  "accounts": [
+    {
+      "email": "assafiraa091@gmail.com",
+      "refreshToken": "1//0gqE1HpKwphIKCgYIARAAGBASNgF-L9Ir89rOzrfOOMXpi1pedC6ZKlkMqM5IyQK9D9Dm_K_haPqyy4uyCx2ATPnZBVk98ieoLw",
+      "projectId": "original-app-dsk6k",
+      "addedAt": 1769057556241,
+      "lastUsed": 1769400365038,
+      "rateLimitResetTimes": {},
+      "managedProjectId": "original-app-dsk6k"
+    },
+    {
+      "email": "k.nghaerin03@gmail.com",
+      "refreshToken": "1//0gQ_rYI1R7g5XCgYIARAAGBASNwF-L9Irsj4lYPUyaS0_ttPg1I7B_7phgI6WHHWd3c4IS7Olq70Us0lBWozbpBjlJ_Ip_stYcGw",
+      "addedAt": 1769057618418,
+      "lastUsed": 1769400365965,
+      "rateLimitResetTimes": {},
+      "managedProjectId": "hidef-catwalk-gllrg"
+    },
+    {
+      "email": "ahmaditobeni@gmail.com",
+      "refreshToken": "1//0gW742Tp9Z1JVCgYIARAAGBASNwF-L9IrI4dxhGTz1lDJZ98t5i7C5rYLD14HhA0WvbGM2S2mtG6JrP5MjKrFoSVl8mM35JMSPns",
+      "addedAt": 1769057661796,
+      "lastUsed": 1769400366615,
+      "rateLimitResetTimes": {},
+      "managedProjectId": "sinuous-buffer-r30wt"
+    },
+    {
+      "email": "bagitulis@gmail.com",
+      "refreshToken": "1//0gS4Np9K41s8bCgYIARAAGBASNwF-L9IrA3ACFZx4Kby-HuWb5vmFrVWbkqOVat2Pz3j3lQXXkBjUlfBgSoJinUg-w1Rbdc0A2UU",
+      "projectId": "exalted-octane-0fcgj",
+      "addedAt": 1769400286655,
+      "lastUsed": 1769400286655,
+      "rateLimitResetTimes": {}
+    },
+    {
+      "email": "yyumnaa@gmail.com",
+      "refreshToken": "1//0gWKruMI-Xw0kCgYIARAAGBASNwF-L9IrhXUmInE3EfBB62NPB6sF3ZPqBvNjQPmwDgJACnIaaW_IRkyUFW6MquAIE_RXflaUQ5Q",
+      "projectId": "groovy-agility-2xfg6",
+      "addedAt": 1769400331432,
+      "lastUsed": 1769400331432
+    }
+  ],
+  "activeIndex": 1,
+  "activeIndexByFamily": {
+    "claude": 1,
+    "gemini": 2
+  }
+}

@@ -27,7 +27,7 @@ func (c *Client) GetOrders(ctx context.Context, params OrderListParams) (*OrderL
 		timeRangeField = "create_time"
 	}
 
-	return c.api.GetOrderList(start.Unix(), end.Unix(), timeRangeField, params.Status)
+	return c.api.GetOrderList(start.Unix(), end.Unix(), timeRangeField, params.Status, "")
 }
 
 // GetOrderDetails fetches order details for up to 50 order_sn values.

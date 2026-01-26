@@ -26,6 +26,7 @@ func NewShopeeOrderManager(client *platform.ShopeeAPIClient, tenantID string) *S
 }
 
 // GetOrderList fetches orders from Shopee
+// For PROCESSED status, returns orders with tracking info from Package API
 func (m *ShopeeOrderManager) GetOrderList(ctx context.Context, status string, days int) ([]Order, error) {
 	if m.client == nil {
 		adapterLogger.WithTenantID(m.tenantID).Warn("Shopee client is nil - cannot fetch orders")
@@ -36,7 +37,7 @@ func (m *ShopeeOrderManager) GetOrderList(ctx context.Context, status string, da
 		return nil, fmt.Errorf("shopee client not initialized - check OAuth configuration")
 	}
 
-	adapterLogger.WithTenantID(m.tenantID).Info("Calling Shopee API: GetOrderList")
+	adapterLogger.WithTenantID(m.tenantID).Info("Calling Shopee API: GetOrderList for status=" + status)
 	rawOrders, err := m.client.GetOrderList(ctx, status, days)
 	if err != nil {
 		adapterLogger.WithTenantID(m.tenantID).Error("Shopee API error: " + err.Error())
@@ -53,10 +54,17 @@ func (m *ShopeeOrderManager) GetOrderList(ctx context.Context, status string, da
 		orderSN := getString(raw, "order_sn")
 		order := Order{
 			OrderSN:  orderSN,
-			OrderNo:  orderSN, // Alias for frontend compatibility
+			OrderNo:  orderSN,
 			Platform: strings.ToUpper("shopee"),
 			Status:   status,
 		}
+
+		// For PROCESSED orders, extract tracking info from Package API response
+		if status == "PROCESSED" {
+			order.TrackingNumber = getString(raw, "tracking_number")
+			order.ShippingCarrier = getString(raw, "shipping_carrier")
+		}
+
 		orders = append(orders, order)
 	}
 
@@ -193,29 +201,59 @@ func (m *LazadaOrderManager) GetOrderDetails(ctx context.Context, orderIDs []str
 		return nil, fmt.Errorf("lazada client not initialized")
 	}
 
-	rawOrders, err := m.client.GetOrderDetails(ctx, orderIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	orders := make([]Order, 0, len(rawOrders))
-	for _, raw := range rawOrders {
-		orderSN := getString(raw, "order_id")
-		order := Order{
-			OrderSN:       orderSN,
-			OrderNo:       orderSN, // Alias for frontend compatibility
-			Platform:      strings.ToUpper("lazada"),
-			Status:        getString(raw, "statuses"),
-			TotalAmount:   getFloat64(raw, "price"),
-			BuyerUsername: getString(raw, "customer_name"),
-		}
-		orders = append(orders, order)
+	// Lazada doesn't have a batch GetOrderDetails for headers only easily.
+	// But we can use the data from GetOrderList or fetch each.
+	// For now, let's assume we need to return basic Order structs.
+	orders := make([]Order, 0, len(orderIDs))
+	for _, id := range orderIDs {
+		orders = append(orders, Order{
+			OrderSN:  id,
+			OrderNo:  id,
+			Platform: strings.ToUpper("lazada"),
+		})
 	}
 
 	return orders, nil
 }
 
 // GetOrderItems fetches order items from Lazada
+// Uses /order/items/get endpoint which returns items with sku, name, variation fields
 func (m *LazadaOrderManager) GetOrderItems(ctx context.Context, orderIDs []string) (map[string][]OrderItem, error) {
-	return make(map[string][]OrderItem), nil
+	if m.client == nil {
+		return nil, fmt.Errorf("lazada client not configured")
+	}
+
+	// Use GetOrderDetails from client which calls /order/items/get
+	rawItems, err := m.client.GetOrderDetails(ctx, orderIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string][]OrderItem)
+	for _, raw := range rawItems {
+		orderID := getString(raw, "order_id")
+
+		// Lazada field mappings (from Node.js reference):
+		// - sku -> seller_sku (SKU)
+		// - name -> product_name
+		// - variation -> variation_name
+		// - paid_price -> price
+		item := OrderItem{
+			OrderID:       orderID,
+			SKU:           getString(raw, "sku"),       // Lazada uses 'sku' field
+			ProductName:   getString(raw, "name"),      // Lazada uses 'name' field
+			VariationName: getString(raw, "variation"), // Lazada uses 'variation' field
+			Quantity:      1,                           // Lazada items are separate rows
+			Price:         getFloat64(raw, "paid_price"),
+		}
+
+		result[orderID] = append(result[orderID], item)
+	}
+
+	adapterLogger.WithTenantID(m.tenantID).WithFields(map[string]interface{}{
+		"order_count": len(orderIDs),
+		"item_count":  len(rawItems),
+	}).Info("Lazada GetOrderItems completed")
+
+	return result, nil
 }

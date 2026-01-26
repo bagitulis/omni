@@ -33,39 +33,59 @@ func (s *OrderSyncService) SyncOrders(ctx context.Context, daysBack int) (int, e
 	timeTo := time.Now().Unix()
 	timeFrom := time.Now().AddDate(0, 0, -daysBack).Unix()
 
-	// Get order list (empty orderStatus = all statuses)
-	listResp, err := s.client.GetOrderList(timeFrom, timeTo, "create_time", "")
-	if err != nil {
-		return 0, err
+	// Get order list and handle pagination
+	var allOrderSNs []string
+	cursor := ""
+
+	for {
+		listResp, err := s.client.GetOrderList(timeFrom, timeTo, "create_time", "", cursor)
+		if err != nil {
+			return 0, err
+		}
+
+		if len(listResp.Response.OrderList) == 0 {
+			break
+		}
+
+		for _, order := range listResp.Response.OrderList {
+			allOrderSNs = append(allOrderSNs, order.OrderSN)
+		}
+
+		if !listResp.Response.More || listResp.Response.NextCursor == "" {
+			break
+		}
+		cursor = listResp.Response.NextCursor
 	}
 
-	if len(listResp.Response.OrderList) == 0 {
+	if len(allOrderSNs) == 0 {
 		return 0, nil
 	}
 
-	// Extract order SNs from OrderBasic structs
-	orderSNs := make([]string, len(listResp.Response.OrderList))
-	for i, order := range listResp.Response.OrderList {
-		orderSNs[i] = order.OrderSN
-	}
-
-	// Get order details
-	detailResp, err := s.client.GetOrderDetail(orderSNs)
-	if err != nil {
-		return 0, err
-	}
-
-	// Save to database
+	// Get order details in batches of 50 (Shopee limit)
 	count := 0
-	for _, order := range detailResp.Response.OrderList {
-		dbOrder := &models.ShopeeOrder{
-			TenantID:    s.tenantID,
-			OrderSN:     order.OrderSN,
-			OrderStatus: order.OrderStatus,
+	for i := 0; i < len(allOrderSNs); i += 50 {
+		end := i + 50
+		if end > len(allOrderSNs) {
+			end = len(allOrderSNs)
+		}
+		batchSNs := allOrderSNs[i:end]
+
+		detailResp, err := s.client.GetOrderDetail(batchSNs)
+		if err != nil {
+			continue
 		}
 
-		if err := s.orderRepo.Upsert(ctx, dbOrder); err == nil {
-			count++
+		// Save to database
+		for _, order := range detailResp.Response.OrderList {
+			dbOrder := &models.ShopeeOrder{
+				TenantID:    s.tenantID,
+				OrderSN:     order.OrderSN,
+				OrderStatus: order.OrderStatus,
+			}
+
+			if err := s.orderRepo.Upsert(ctx, dbOrder); err == nil {
+				count++
+			}
 		}
 	}
 

@@ -104,13 +104,31 @@ func (s *ShippingFeeService) GetMonthlyShippingFees(ctx context.Context, month, 
 	startDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 	endDate := startDate.AddDate(0, 1, 0).Add(-time.Second)
 
-	// Get order list for the period (empty orderStatus = all statuses)
-	orderResp, err := s.client.GetOrderList(startDate.Unix(), endDate.Unix(), "create_time", "")
-	if err != nil {
-		return nil, fmt.Errorf("get order list: %w", err)
+	// Get order list for the period (empty orderStatus = all statuses) with pagination
+	var allOrderSNs []string
+	cursor := ""
+
+	for {
+		orderResp, err := s.client.GetOrderList(startDate.Unix(), endDate.Unix(), "create_time", "", cursor)
+		if err != nil {
+			return nil, fmt.Errorf("get order list: %w", err)
+		}
+
+		if len(orderResp.Response.OrderList) == 0 {
+			break
+		}
+
+		for _, order := range orderResp.Response.OrderList {
+			allOrderSNs = append(allOrderSNs, order.OrderSN)
+		}
+
+		if !orderResp.Response.More || orderResp.Response.NextCursor == "" {
+			break
+		}
+		cursor = orderResp.Response.NextCursor
 	}
 
-	if len(orderResp.Response.OrderList) == 0 {
+	if len(allOrderSNs) == 0 {
 		return &ShippingFeeData{
 			Fees:  []map[string]interface{}{},
 			Total: 0,
@@ -118,14 +136,8 @@ func (s *ShippingFeeService) GetMonthlyShippingFees(ctx context.Context, month, 
 		}, nil
 	}
 
-	// Collect order SNs
-	orderSNs := make([]string, 0, len(orderResp.Response.OrderList))
-	for _, order := range orderResp.Response.OrderList {
-		orderSNs = append(orderSNs, order.OrderSN)
-	}
-
 	// Get shipping fees
-	feeResults, err := s.ProcessShippingFees(ctx, orderSNs)
+	feeResults, err := s.ProcessShippingFees(ctx, allOrderSNs)
 	if err != nil {
 		return nil, err
 	}
