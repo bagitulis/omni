@@ -17,16 +17,21 @@ const (
 // Matches PostgreSQL table: tenant_{name}.jobs
 // Note: No tenant_id column - schema isolation handles multi-tenancy
 type Job struct {
-	ID           string     `gorm:"column:id;primaryKey" json:"id"`
-	Type         string     `gorm:"column:type;not null" json:"type"`
-	Status       JobStatus  `gorm:"column:status;not null;default:pending" json:"status"`
-	Priority     string     `gorm:"column:priority;default:normal" json:"priority"`
-	Data         string     `gorm:"column:data;type:jsonb;not null" json:"data"`
-	ErrorMessage string     `gorm:"column:error_message" json:"error_message,omitempty"`
-	StartedAt    *time.Time `gorm:"column:started_at" json:"started_at,omitempty"`
-	CompletedAt  *time.Time `gorm:"column:completed_at" json:"completed_at,omitempty"`
-	CreatedAt    time.Time  `gorm:"column:created_at" json:"created_at"`
-	UpdatedAt    time.Time  `gorm:"column:updated_at" json:"updated_at"`
+	ID              string     `gorm:"column:id;primaryKey" json:"id"`
+	Type            string     `gorm:"column:type;not null" json:"type"`
+	Status          JobStatus  `gorm:"column:status;not null;default:pending" json:"status"`
+	Priority        string     `gorm:"column:priority;default:normal" json:"priority"`
+	Data            string     `gorm:"column:data;type:jsonb;not null" json:"data"`
+	ErrorMessage    string     `gorm:"column:error_message" json:"error_message,omitempty"`
+	ProgressPercent int        `gorm:"column:progress_percent;default:0" json:"progress_percent"`
+	ProgressMessage string     `gorm:"column:progress_message" json:"progress_message,omitempty"`
+	TotalItems      int        `gorm:"column:total_items;default:0" json:"total_items"`
+	ProcessedItems  int        `gorm:"column:processed_items;default:0" json:"processed_items"`
+	ResultData      string     `gorm:"column:result_data;type:jsonb" json:"result_data,omitempty"`
+	StartedAt       *time.Time `gorm:"column:started_at" json:"started_at,omitempty"`
+	CompletedAt     *time.Time `gorm:"column:completed_at" json:"completed_at,omitempty"`
+	CreatedAt       time.Time  `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt       time.Time  `gorm:"column:updated_at" json:"updated_at"`
 }
 
 // TableName returns the table name

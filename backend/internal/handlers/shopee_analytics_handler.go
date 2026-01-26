@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -8,7 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto"
+	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/analytics"
+	"github.com/omni/backend/internal/services/jobs"
 )
 
 // ShopeeAnalyticsHandler handles Shopee-specific analytics endpoints
@@ -95,6 +98,7 @@ func (h *ShopeeAnalyticsHandler) GetSyncStatus(c *gin.Context) {
 }
 
 // SyncEscrow handles POST /api/analytics/shopee/sync
+// Returns immediately with job_id for async background execution
 func (h *ShopeeAnalyticsHandler) SyncEscrow(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
@@ -137,26 +141,37 @@ func (h *ShopeeAnalyticsHandler) SyncEscrow(c *gin.Context) {
 		return
 	}
 
-	// Get basePath for credential service
-	basePath := config.GetDataDir()
+	// Create job data
+	jobData := models.EscrowSyncJobData{
+		TenantID:    tenantID,
+		Platform:    "shopee",
+		Month:       req.Month,
+		Year:        req.Year,
+		ForceResync: req.ForceResync,
+	}
+	jobDataJSON, _ := json.Marshal(jobData)
 
-	// Create escrow sync service that calls Shopee API
-	escrowSyncService := analytics.NewShopeeEscrowSyncService(tenantDB, tenantID, basePath)
-
-	result, err := escrowSyncService.SyncMonth(c.Request.Context(), req.Month, req.Year, req.ForceResync)
+	// Create queue manager and add job
+	qm := jobs.NewQueueManager(tenantDB, tenantID)
+	job, err := qm.AddJob(models.CreateJobRequest{
+		Type:     models.JobTypeShopeeEscrowSync,
+		Data:     string(jobDataJSON),
+		Priority: "normal",
+	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to create job: " + err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	// Return immediately with job_id for async polling
+	c.JSON(http.StatusAccepted, gin.H{
 		"success": true,
 		"data": gin.H{
-			"month":       req.Month,
-			"year":        req.Year,
-			"totalOrders": result.TotalOrders,
-			"totalItems":  result.TotalItems,
-			"message":     result.Message,
+			"job_id":  job.ID,
+			"month":   req.Month,
+			"year":    req.Year,
+			"status":  "pending",
+			"message": "Escrow sync job created. Poll /api/jobs/{job_id} for progress.",
 		},
 	})
 }

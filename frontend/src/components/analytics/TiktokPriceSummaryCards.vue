@@ -3,35 +3,35 @@
     <div class="summary-card total">
       <div class="card-icon">📦</div>
       <div class="card-content">
-        <div class="card-value">{{ summary.totalSku }}</div>
+        <div class="card-value">{{ summary.total_sku }}</div>
         <div class="card-label">Total SKU</div>
       </div>
     </div>
     <div class="summary-card transactions">
       <div class="card-icon">🛒</div>
       <div class="card-content">
-        <div class="card-value">{{ summary.totalTransactions }}</div>
+        <div class="card-value">{{ summary.total_transactions }}</div>
         <div class="card-label">Transactions</div>
       </div>
     </div>
     <div class="summary-card ok">
       <div class="card-icon">✅</div>
       <div class="card-content">
-        <div class="card-value">{{ summary.skuOk }}</div>
+        <div class="card-value">{{ summary.sku_ok }}</div>
         <div class="card-label">Price OK</div>
       </div>
     </div>
     <div class="summary-card warning">
       <div class="card-icon">⚠️</div>
       <div class="card-content">
-        <div class="card-value">{{ summary.skuWithPriceDiff }}</div>
+        <div class="card-value">{{ summary.sku_with_price_diff }}</div>
         <div class="card-label">Price Diff</div>
       </div>
     </div>
     <div class="summary-card info">
       <div class="card-icon">❓</div>
       <div class="card-content">
-        <div class="card-value">{{ summary.skuNoInventory }}</div>
+        <div class="card-value">{{ summary.sku_no_inventory }}</div>
         <div class="card-label">No Inventory</div>
       </div>
     </div>
@@ -40,11 +40,11 @@
 
 <script setup lang="ts">
 interface Summary {
-  totalSku: number;
-  totalTransactions: number;
-  skuOk: number;
-  skuWithPriceDiff: number;
-  skuNoInventory: number;
+  total_sku: number;
+  total_transactions: number;
+  sku_ok: number;
+  sku_with_price_diff: number;
+  sku_no_inventory: number;
 }
 
 defineProps<{ summary: Summary }>();

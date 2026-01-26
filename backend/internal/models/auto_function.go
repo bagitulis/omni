@@ -3,7 +3,7 @@ package models
 import "time"
 
 // AutoFunctionConfig represents auto function configuration
-// Compatible with Node.js backend format for frontend integration
+// JSON tags use snake_case as per AGENTS.md standard
 type AutoFunctionConfig struct {
 	ID                     uint       `gorm:"primaryKey" json:"id"`
 	Name                   string     `gorm:"column:name;not null" json:"name"`
@@ -59,7 +59,7 @@ func (RouteExecutionConfig) TableName() string {
 }
 
 // AutoFunctionRequest represents auto function creation/update request
-// Compatible with Node.js frontend format
+// JSON tags use snake_case as per AGENTS.md standard
 type AutoFunctionRequest struct {
 	Name            string  `json:"name" binding:"required"`
 	Enabled         bool    `json:"enabled"`

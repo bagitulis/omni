@@ -117,8 +117,8 @@ defineEmits<{
   "toggle-function": [name: string, enabled: boolean];
   "delete-function": [name: string];
   "save-config": [];
-  "increment-time": [field: "startTime" | "endTime", minutes: number];
-  "decrement-time": [field: "startTime" | "endTime", minutes: number];
+  "increment-time": [field: "start_time" | "end_time", minutes: number];
+  "decrement-time": [field: "start_time" | "end_time", minutes: number];
 }>();
 
 // Route Execution Config

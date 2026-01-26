@@ -116,3 +116,17 @@ func TiktokEscrowTables() EscrowSyncTables {
 		SyncTable:  "tiktok_escrow_sync",
 	}
 }
+
+// ProgressCallback is a function type for reporting sync progress
+// percent: 0-100, processed: items done, total: total items, message: status message
+type ProgressCallback func(percent, processed, total int, message string)
+
+// SyncResultWithProgress represents the result of a sync operation with progress tracking
+type SyncResultWithProgress struct {
+	TotalOrders     int    `json:"total_orders"`
+	ProcessedOrders int    `json:"processed_orders"`
+	FailedOrders    int    `json:"failed_orders"`
+	TotalItems      int    `json:"total_items"`
+	Message         string `json:"message"`
+	Cancelled       bool   `json:"cancelled"`
+}

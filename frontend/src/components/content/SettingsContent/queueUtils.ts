@@ -1,6 +1,7 @@
 /**
  * Queue Tab Utilities
  * Shared formatting and calculation functions for queue displays
+ * JSON uses snake_case as per AGENTS.md standard
  */
 
 export interface Job {
@@ -9,21 +10,21 @@ export interface Job {
   status: string;
   priority: string;
   data: Record<string, any>;
-  startedAt?: Date;
-  createdAt: Date;
+  started_at?: Date;
+  created_at: Date;
 }
 
 export interface AutoFunctionConfig {
   id: number;
   name: string;
   enabled: boolean;
-  intervalMinutes: number;
-  startTime?: string;
-  endTime?: string;
-  lastExecuted?: string | Date;
-  nextScheduledExecution?: string | Date;
-  createdAt?: string | Date;
-  updatedAt?: string | Date;
+  interval_minutes: number;
+  start_time?: string;
+  end_time?: string;
+  last_executed?: string | Date;
+  next_scheduled_execution?: string | Date;
+  created_at?: string | Date;
+  updated_at?: string | Date;
 }
 
 /**
@@ -65,11 +66,12 @@ export function formatDateTime(date: Date | string | undefined): string {
  * Calculate countdown to next trigger
  */
 export function getTimeUntilTrigger(config: AutoFunctionConfig): string {
-  if (!config.nextScheduledExecution) return "";
+  if (!config.next_scheduled_execution) return "";
 
-  const nextTime = typeof config.nextScheduledExecution === "string"
-    ? new Date(config.nextScheduledExecution).getTime()
-    : (config.nextScheduledExecution as Date).getTime();
+  const nextTime =
+    typeof config.next_scheduled_execution === "string"
+      ? new Date(config.next_scheduled_execution).getTime()
+      : (config.next_scheduled_execution as Date).getTime();
 
   const diffMs = nextTime - Date.now();
 
@@ -94,11 +96,12 @@ export function getTimeUntilTrigger(config: AutoFunctionConfig): string {
  * Check if schedule is overdue
  */
 export function isScheduleOverdue(config: AutoFunctionConfig): boolean {
-  if (!config.nextScheduledExecution) return false;
+  if (!config.next_scheduled_execution) return false;
 
-  const nextTime = typeof config.nextScheduledExecution === "string"
-    ? new Date(config.nextScheduledExecution).getTime()
-    : (config.nextScheduledExecution as Date).getTime();
+  const nextTime =
+    typeof config.next_scheduled_execution === "string"
+      ? new Date(config.next_scheduled_execution).getTime()
+      : (config.next_scheduled_execution as Date).getTime();
 
   return nextTime <= Date.now();
 }

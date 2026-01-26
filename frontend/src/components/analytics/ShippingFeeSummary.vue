@@ -3,36 +3,43 @@
     <div class="card card-total">
       <div class="card-icon">📦</div>
       <div class="card-content">
-        <span class="card-value">{{ summary.totalOrders }}</span>
+        <span class="card-value">{{ summary.total_orders }}</span>
         <span class="card-label">Total Orders</span>
       </div>
     </div>
     <div class="card card-diff">
       <div class="card-icon">⚠️</div>
       <div class="card-content">
-        <span class="card-value">{{ summary.ordersWithDifference }}</span>
+        <span class="card-value">{{ summary.orders_with_difference }}</span>
         <span class="card-label">With Difference</span>
       </div>
     </div>
     <div class="card card-profit">
       <div class="card-icon">📈</div>
       <div class="card-content">
-        <span class="card-value profit">{{ formatPrice(summary.totalProfit) }}</span>
+        <span class="card-value profit">{{
+          formatPrice(summary.total_profit)
+        }}</span>
         <span class="card-label">Total Profit</span>
       </div>
     </div>
     <div class="card card-loss">
       <div class="card-icon">📉</div>
       <div class="card-content">
-        <span class="card-value loss">{{ formatPrice(summary.totalLoss) }}</span>
+        <span class="card-value loss">{{
+          formatPrice(summary.total_loss)
+        }}</span>
         <span class="card-label">Total Loss</span>
       </div>
     </div>
     <div class="card card-net">
       <div class="card-icon">💰</div>
       <div class="card-content">
-        <span class="card-value" :class="summary.netImpact >= 0 ? 'profit' : 'loss'">
-          {{ formatPrice(summary.netImpact) }}
+        <span
+          class="card-value"
+          :class="summary.net_impact >= 0 ? 'profit' : 'loss'"
+        >
+          {{ formatPrice(summary.net_impact) }}
         </span>
         <span class="card-label">Net Impact</span>
       </div>
@@ -42,22 +49,25 @@
 
 <script setup lang="ts">
 interface ShippingFeeSummary {
-  totalOrders: number;
-  ordersWithDifference: number;
-  totalProfit: number;
-  totalLoss: number;
-  netImpact: number;
+  total_orders: number;
+  orders_with_difference: number;
+  total_profit: number;
+  total_loss: number;
+  net_impact: number;
 }
 
 defineProps<{ summary: ShippingFeeSummary }>();
 
 function formatPrice(price: number): string {
   const prefix = price >= 0 ? "+" : "";
-  return prefix + new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(price);
+  return (
+    prefix +
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(price)
+  );
 }
 </script>
 

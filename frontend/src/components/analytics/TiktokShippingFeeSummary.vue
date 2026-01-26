@@ -3,14 +3,14 @@
     <div class="card card-total">
       <div class="card-icon">📦</div>
       <div class="card-content">
-        <span class="card-value">{{ summary.totalOrders }}</span>
+        <span class="card-value">{{ summary.total_orders }}</span>
         <span class="card-label">Total Orders</span>
       </div>
     </div>
     <div class="card card-diff">
       <div class="card-icon">⚠️</div>
       <div class="card-content">
-        <span class="card-value">{{ summary.ordersWithDifference }}</span>
+        <span class="card-value">{{ summary.orders_with_difference }}</span>
         <span class="card-label">With Difference</span>
       </div>
     </div>
@@ -18,7 +18,7 @@
       <div class="card-icon">📈</div>
       <div class="card-content">
         <span class="card-value profit">{{
-          formatPrice(summary.totalProfit)
+          formatPrice(summary.total_profit)
         }}</span>
         <span class="card-label">Total Profit</span>
       </div>
@@ -27,7 +27,7 @@
       <div class="card-icon">📉</div>
       <div class="card-content">
         <span class="card-value loss">{{
-          formatPrice(summary.totalLoss)
+          formatPrice(summary.total_loss)
         }}</span>
         <span class="card-label">Total Loss</span>
       </div>
@@ -37,9 +37,9 @@
       <div class="card-content">
         <span
           class="card-value"
-          :class="summary.netImpact >= 0 ? 'profit' : 'loss'"
+          :class="summary.net_impact >= 0 ? 'profit' : 'loss'"
         >
-          {{ formatPrice(summary.netImpact) }}
+          {{ formatPrice(summary.net_impact) }}
         </span>
         <span class="card-label">Net Impact</span>
       </div>
@@ -49,11 +49,11 @@
 
 <script setup lang="ts">
 interface TiktokShippingFeeSummary {
-  totalOrders: number;
-  ordersWithDifference: number;
-  totalProfit: number;
-  totalLoss: number;
-  netImpact: number;
+  total_orders: number;
+  orders_with_difference: number;
+  total_profit: number;
+  total_loss: number;
+  net_impact: number;
 }
 
 defineProps<{ summary: TiktokShippingFeeSummary }>();

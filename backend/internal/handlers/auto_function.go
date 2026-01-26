@@ -105,7 +105,7 @@ func (h *AutoFunctionHandler) Create(c *gin.Context) {
 	}
 
 	if req.IntervalMinutes < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "intervalMinutes must be at least 1"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "interval_minutes must be at least 1"})
 		return
 	}
 
@@ -147,13 +147,13 @@ func (h *AutoFunctionHandler) Update(c *gin.Context) {
 	}
 
 	if req.IntervalMinutes < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "intervalMinutes must be at least 1"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "interval_minutes must be at least 1"})
 		return
 	}
 
 	// Validate time window if provided
 	if (req.StartTime != nil && req.EndTime == nil) || (req.StartTime == nil && req.EndTime != nil) {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Both startTime and endTime must be provided together, or neither"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Both start_time and end_time must be provided together, or neither"})
 		return
 	}
 

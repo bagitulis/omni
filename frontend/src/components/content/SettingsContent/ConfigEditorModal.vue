@@ -34,7 +34,7 @@
             −
           </button>
           <input
-            v-model.number="config.intervalMinutes"
+            v-model.number="config.interval_minutes"
             type="number"
             min="1"
             class="form-input"
@@ -56,13 +56,13 @@
           <label>Start Time (HH:mm) - Optional:</label>
           <div class="time-picker">
             <input
-              v-model="config.startTime"
+              v-model="config.start_time"
               type="time"
               class="form-input time-input"
             />
             <div class="time-controls">
               <button
-                @click="$emit('increment-time', 'startTime', 15)"
+                @click="$emit('increment-time', 'start_time', 15)"
                 class="btn-time-control"
                 title="Add 15 min"
                 type="button"
@@ -71,7 +71,7 @@
                 ↑
               </button>
               <button
-                @click="$emit('decrement-time', 'startTime', 15)"
+                @click="$emit('decrement-time', 'start_time', 15)"
                 class="btn-time-control"
                 title="Sub 15 min"
                 type="button"
@@ -87,13 +87,13 @@
           <label>End Time (HH:mm) - Optional:</label>
           <div class="time-picker">
             <input
-              v-model="config.endTime"
+              v-model="config.end_time"
               type="time"
               class="form-input time-input"
             />
             <div class="time-controls">
               <button
-                @click="$emit('increment-time', 'endTime', 15)"
+                @click="$emit('increment-time', 'end_time', 15)"
                 class="btn-time-control"
                 title="Add 15 min"
                 type="button"
@@ -102,7 +102,7 @@
                 ↑
               </button>
               <button
-                @click="$emit('decrement-time', 'endTime', 15)"
+                @click="$emit('decrement-time', 'end_time', 15)"
                 class="btn-time-control"
                 title="Sub 15 min"
                 type="button"
@@ -140,6 +140,7 @@
 /**
  * Config Editor Modal
  * Single Responsibility: Handle configuration form only
+ * JSON uses snake_case as per AGENTS.md standard
  */
 import { computed } from "vue";
 import { type AutoFunctionConfig } from "./configTableUtils";
@@ -152,23 +153,23 @@ const props = defineProps<{
 defineEmits<{
   "close-editor": [];
   "save-config": [];
-  "increment-time": [field: "startTime" | "endTime", minutes: number];
-  "decrement-time": [field: "startTime" | "endTime", minutes: number];
+  "increment-time": [field: "start_time" | "end_time", minutes: number];
+  "decrement-time": [field: "start_time" | "end_time", minutes: number];
 }>();
 
 const config = computed(() => props.config);
 
 const incrementInterval = () => {
   if (config.value) {
-    config.value.intervalMinutes++;
+    config.value.interval_minutes++;
   }
 };
 
 const decrementInterval = () => {
   if (config.value) {
-    config.value.intervalMinutes = Math.max(
+    config.value.interval_minutes = Math.max(
       1,
-      config.value.intervalMinutes - 1
+      config.value.interval_minutes - 1,
     );
   }
 };

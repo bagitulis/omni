@@ -2,7 +2,9 @@
   <div class="results-section">
     <div class="section-header">
       <h2>🚚 Shipping Fee Analysis</h2>
-      <span class="result-count">{{ orders.length }} orders with difference</span>
+      <span class="result-count"
+        >{{ orders.length }} orders with difference</span
+      >
     </div>
     <div class="table-container">
       <table class="results-table">
@@ -20,18 +22,21 @@
         <tbody>
           <tr
             v-for="order in orders"
-            :key="order.orderSn"
+            :key="order.order_sn"
             :class="getDifferenceClass(order.difference)"
           >
-            <td class="cell-date">{{ order.orderDate || "-" }}</td>
-            <td class="cell-order">{{ order.orderSn }}</td>
-            <td class="cell-price">{{ formatPrice(order.buyerPaid) }}</td>
-            <td class="cell-price">{{ formatPrice(order.actualFee) }}</td>
-            <td class="cell-price">{{ formatPrice(order.shopeeRebate) }}</td>
-            <td class="cell-price" :class="getDifferenceValueClass(order.difference)">
+            <td class="cell-date">{{ order.order_date || "-" }}</td>
+            <td class="cell-order">{{ order.order_sn }}</td>
+            <td class="cell-price">{{ formatPrice(order.buyer_paid) }}</td>
+            <td class="cell-price">{{ formatPrice(order.actual_fee) }}</td>
+            <td class="cell-price">{{ formatPrice(order.shopee_rebate) }}</td>
+            <td
+              class="cell-price"
+              :class="getDifferenceValueClass(order.difference)"
+            >
               {{ formatDifference(order.difference) }}
             </td>
-            <td class="cell-method">{{ order.paymentMethod || "-" }}</td>
+            <td class="cell-method">{{ order.payment_method || "-" }}</td>
           </tr>
         </tbody>
       </table>
@@ -41,14 +46,14 @@
 
 <script setup lang="ts">
 interface ShippingFeeOrder {
-  orderSn: string;
-  orderDate: string | null;
-  buyerPaid: number;
-  actualFee: number;
-  shopeeRebate: number;
+  order_sn: string;
+  order_date: string | null;
+  buyer_paid: number;
+  actual_fee: number;
+  shopee_rebate: number;
   difference: number;
-  buyerName: string | null;
-  paymentMethod: string | null;
+  buyer_name: string | null;
+  payment_method: string | null;
 }
 
 defineProps<{ orders: ShippingFeeOrder[] }>();
@@ -128,15 +133,33 @@ function formatDifference(diff: number): string {
   white-space: nowrap;
 }
 
-.col-date { width: 100px; }
-.col-order { width: 180px; }
-.col-price { width: 110px; text-align: right; }
-.col-method { width: 140px; }
+.col-date {
+  width: 100px;
+}
+.col-order {
+  width: 180px;
+}
+.col-price {
+  width: 110px;
+  text-align: right;
+}
+.col-method {
+  width: 140px;
+}
 
-.cell-date { color: var(--color-text-muted); }
-.cell-order { font-family: monospace; font-size: 0.8rem; }
-.cell-price { text-align: right; }
-.cell-method { color: var(--color-text-secondary); }
+.cell-date {
+  color: var(--color-text-muted);
+}
+.cell-order {
+  font-family: monospace;
+  font-size: 0.8rem;
+}
+.cell-price {
+  text-align: right;
+}
+.cell-method {
+  color: var(--color-text-secondary);
+}
 
 .row-profit {
   background: var(--color-success-bg, rgba(34, 197, 94, 0.05));

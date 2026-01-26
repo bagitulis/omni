@@ -20,18 +20,18 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="order in orders" :key="order.orderId" class="row-loss">
-            <td class="cell-date">{{ order.orderDate || "-" }}</td>
-            <td class="cell-order">{{ order.orderId }}</td>
-            <td class="cell-price">{{ formatPrice(order.originalFee) }}</td>
-            <td class="cell-price">{{ formatPrice(order.buyerPaid) }}</td>
+          <tr v-for="order in orders" :key="order.order_id" class="row-loss">
+            <td class="cell-date">{{ order.order_date || "-" }}</td>
+            <td class="cell-order">{{ order.order_id }}</td>
+            <td class="cell-price">{{ formatPrice(order.original_fee) }}</td>
+            <td class="cell-price">{{ formatPrice(order.buyer_paid) }}</td>
             <td class="cell-price">
-              {{ formatPrice(order.platformDiscount) }}
+              {{ formatPrice(order.platform_discount) }}
             </td>
             <td class="cell-price value-loss">
-              -{{ formatPrice(order.sellerPays) }}
+              -{{ formatPrice(order.seller_pays) }}
             </td>
-            <td class="cell-status">{{ order.orderStatus || "-" }}</td>
+            <td class="cell-status">{{ order.order_status || "-" }}</td>
           </tr>
         </tbody>
       </table>
@@ -41,13 +41,13 @@
 
 <script setup lang="ts">
 interface TiktokShippingFeeOrder {
-  orderId: string;
-  orderDate: string | null;
-  originalFee: number;
-  buyerPaid: number;
-  platformDiscount: number;
-  sellerPays: number;
-  orderStatus: string | null;
+  order_id: string;
+  order_date: string | null;
+  original_fee: number;
+  buyer_paid: number;
+  platform_discount: number;
+  seller_pays: number;
+  order_status: string | null;
   currency: string;
 }
 

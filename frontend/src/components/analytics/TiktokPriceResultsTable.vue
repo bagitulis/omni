@@ -28,24 +28,24 @@
                 {{ getStatusLabel(sku.status) }}
               </span>
             </td>
-            <td class="cell-sku">{{ sku.sellerSku || sku.sku }}</td>
+            <td class="cell-sku">{{ sku.seller_sku || sku.sku }}</td>
             <td class="cell-name">
-              {{ sku.productName }}
-              <span v-if="sku.variantName" class="variant-name">
-                - {{ sku.variantName }}
+              {{ sku.product_name }}
+              <span v-if="sku.variant_name" class="variant-name">
+                - {{ sku.variant_name }}
               </span>
             </td>
             <td class="cell-price">
-              <span v-for="(price, idx) in sku.uniqueUnitPrices" :key="idx">
+              <span v-for="(price, idx) in sku.unique_unit_prices" :key="idx">
                 {{ formatPrice(price)
-                }}<span v-if="idx < sku.uniqueUnitPrices.length - 1">, </span>
+                }}<span v-if="idx < sku.unique_unit_prices.length - 1">, </span>
               </span>
             </td>
-            <td class="cell-price">{{ formatPrice(sku.inventoryPrice) }}</td>
+            <td class="cell-price">{{ formatPrice(sku.inventory_price) }}</td>
             <td class="cell-price">
               <span
                 v-for="(income, idx) in getTopTwoSmallestIncomes(
-                  sku.uniqueActualIncomes
+                  sku.unique_actual_incomes,
                 )"
                 :key="idx"
               >
@@ -53,14 +53,15 @@
                 }}<span
                   v-if="
                     idx <
-                    getTopTwoSmallestIncomes(sku.uniqueActualIncomes).length - 1
+                    getTopTwoSmallestIncomes(sku.unique_actual_incomes).length -
+                      1
                   "
                   >,
                 </span>
               </span>
             </td>
             <td class="cell-price expected">
-              {{ formatPrice(sku.expectedIncome) }}
+              {{ formatPrice(sku.expected_income) }}
             </td>
           </tr>
         </tbody>
@@ -72,15 +73,15 @@
 <script setup lang="ts">
 interface SkuGroup {
   sku: string;
-  sellerSku: string;
-  productName: string;
-  variantName?: string;
+  seller_sku: string;
+  product_name: string;
+  variant_name?: string;
   status: string;
-  inventoryPrice: number | null;
-  uniqueUnitPrices: number[];
-  uniqueActualIncomes: number[];
-  expectedIncome: number | null;
-  totalTransactions: number;
+  inventory_price: number | null;
+  unique_unit_prices: number[];
+  unique_actual_incomes: number[];
+  expected_income: number | null;
+  total_transactions: number;
 }
 
 defineProps<{ skuGroups: SkuGroup[] }>();

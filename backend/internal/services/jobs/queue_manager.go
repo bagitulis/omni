@@ -201,3 +201,62 @@ func (m *QueueManager) EnqueueJob(jobType string, data map[string]interface{}, p
 
 	return job.ID, nil
 }
+
+// UpdateProgress updates job progress information
+func (m *QueueManager) UpdateProgress(jobID string, percent, processed, total int, message string) error {
+	return m.db.Model(&models.Job{}).Where("id = ?", jobID).Updates(map[string]interface{}{
+		"progress_percent": percent,
+		"progress_message": message,
+		"processed_items":  processed,
+		"total_items":      total,
+		"updated_at":       time.Now(),
+	}).Error
+}
+
+// CompleteJobWithResult marks job as completed and stores result data
+func (m *QueueManager) CompleteJobWithResult(jobID string, resultData interface{}) error {
+	resultJSON, err := SerializePayload(resultData)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+	return m.db.Model(&models.Job{}).Where("id = ?", jobID).Updates(map[string]interface{}{
+		"status":           models.JobStatusCompleted,
+		"progress_percent": 100,
+		"result_data":      resultJSON,
+		"completed_at":     &now,
+		"updated_at":       now,
+	}).Error
+}
+
+// FailJob marks job as failed with error message
+func (m *QueueManager) FailJob(jobID string, errMsg string) error {
+	now := time.Now()
+	return m.db.Model(&models.Job{}).Where("id = ?", jobID).Updates(map[string]interface{}{
+		"status":        models.JobStatusFailed,
+		"error_message": errMsg,
+		"completed_at":  &now,
+		"updated_at":    now,
+	}).Error
+}
+
+// GetRunningJobs returns all currently running jobs
+func (m *QueueManager) GetRunningJobs() ([]models.Job, error) {
+	var jobs []models.Job
+	err := m.db.Where("status = ?", models.JobStatusRunning).
+		Order("started_at ASC").
+		Find(&jobs).Error
+	return jobs, err
+}
+
+// GetJobsByType returns jobs of a specific type with status filter
+func (m *QueueManager) GetJobsByType(jobType string, status models.JobStatus) ([]models.Job, error) {
+	var jobs []models.Job
+	query := m.db.Where("type = ?", jobType)
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	err := query.Order("created_at DESC").Find(&jobs).Error
+	return jobs, err
+}

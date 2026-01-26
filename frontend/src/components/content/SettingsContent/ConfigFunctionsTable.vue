@@ -19,10 +19,10 @@
           :class="{ disabled: !config.enabled }"
         >
           <td class="function-name">{{ config.name }}</td>
-          <td class="interval">{{ config.intervalMinutes }}m</td>
+          <td class="interval">{{ config.interval_minutes }}m</td>
           <td class="time-window">
-            <span v-if="config.startTime"
-              >{{ config.startTime }} - {{ config.endTime }}</span
+            <span v-if="config.start_time"
+              >{{ config.start_time }} - {{ config.end_time }}</span
             >
             <span v-else class="text-muted">-</span>
           </td>
@@ -37,8 +37,8 @@
             </label>
           </td>
           <td class="last-executed">
-            <span v-if="config.lastExecuted" class="time-value">
-              {{ formatDateTime(config.lastExecuted) }}
+            <span v-if="config.last_executed" class="time-value">
+              {{ formatDateTime(config.last_executed) }}
             </span>
             <span v-else class="text-muted">Never</span>
           </td>
@@ -46,9 +46,9 @@
             class="next-trigger"
             :class="{ overdue: isScheduleOverdue(config) }"
           >
-            <div v-if="config.nextScheduledExecution">
+            <div v-if="config.next_scheduled_execution">
               <div class="time-value" :class="getNextTriggerClass(config)">
-                {{ formatDateTime(config.nextScheduledExecution) }}
+                {{ formatDateTime(config.next_scheduled_execution) }}
               </div>
               <div class="countdown-value">
                 {{ getTimeUntilTrigger(config) }}

@@ -1,32 +1,46 @@
 <template>
-  <div class="scheduled-item" :class="{ 'overdue': isScheduleOverdue(config) }">
+  <div class="scheduled-item" :class="{ overdue: isScheduleOverdue(config) }">
     <div class="scheduled-number">{{ index + 1 }}</div>
     <div class="scheduled-info">
       <div class="scheduled-title">{{ config.name }}</div>
       <div class="scheduled-meta">
-        <span class="scheduled-interval">{{ config.intervalMinutes }}m interval</span>
-        <span class="scheduled-status" :style="{ color: config.enabled ? '#28a745' : '#dc3545' }">
-          {{ config.enabled ? '✓ Enabled' : '✗ Disabled' }}
+        <span class="scheduled-interval"
+          >{{ config.interval_minutes }}m interval</span
+        >
+        <span
+          class="scheduled-status"
+          :style="{ color: config.enabled ? '#28a745' : '#dc3545' }"
+        >
+          {{ config.enabled ? "✓ Enabled" : "✗ Disabled" }}
         </span>
       </div>
     </div>
-    <div class="scheduled-time" v-if="config.nextScheduledExecution">
+    <div class="scheduled-time" v-if="config.next_scheduled_execution">
       <div class="scheduled-next">
         <span class="label">Next:</span>
-        <span class="time" :class="{ 'overdue': isScheduleOverdue(config) }">
-          {{ formatDateTime(config.nextScheduledExecution) }}
+        <span class="time" :class="{ overdue: isScheduleOverdue(config) }">
+          {{ formatDateTime(config.next_scheduled_execution) }}
         </span>
         <span class="countdown">{{ getTimeUntilTrigger(config) }}</span>
       </div>
     </div>
-    <button @click="$emit('cancel')" class="btn btn-danger btn-sm" title="Remove scheduled execution">
+    <button
+      @click="$emit('cancel')"
+      class="btn btn-danger btn-sm"
+      title="Remove scheduled execution"
+    >
       Cancel
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { formatDateTime, getTimeUntilTrigger, isScheduleOverdue, type AutoFunctionConfig } from "./queueUtils";
+import {
+  formatDateTime,
+  getTimeUntilTrigger,
+  isScheduleOverdue,
+  type AutoFunctionConfig,
+} from "./queueUtils";
 
 defineProps<{
   config: AutoFunctionConfig;
@@ -140,7 +154,7 @@ defineEmits<{
   font-size: 13px;
   font-weight: 600;
   color: #1a1a1a;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 .scheduled-next .time.overdue {
@@ -154,8 +168,13 @@ defineEmits<{
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .btn {

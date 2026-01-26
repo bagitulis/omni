@@ -1,17 +1,20 @@
 /**
  * Config Table Utilities
  * Formatting functions for auto-function configuration display
+ * JSON uses snake_case as per AGENTS.md standard
  */
 
 export interface AutoFunctionConfig {
   id: number;
   name: string;
   enabled: boolean;
-  intervalMinutes: number;
-  startTime?: string;
-  endTime?: string;
-  lastExecuted?: string | Date;
-  nextScheduledExecution?: string | Date;
+  interval_minutes: number;
+  start_time?: string;
+  end_time?: string;
+  last_executed?: string | Date;
+  next_scheduled_execution?: string | Date;
+  created_at?: string | Date;
+  updated_at?: string | Date;
 }
 
 /**
@@ -36,19 +39,20 @@ export function formatDateTime(date: Date | string | undefined): string {
  * Calculate time remaining until next trigger
  */
 export function getTimeUntilTrigger(config: AutoFunctionConfig): string {
-  if (!config.nextScheduledExecution) return "";
-  
-  const nextTime = typeof config.nextScheduledExecution === "string"
-    ? new Date(config.nextScheduledExecution).getTime()
-    : (config.nextScheduledExecution as Date).getTime();
-  
+  if (!config.next_scheduled_execution) return "";
+
+  const nextTime =
+    typeof config.next_scheduled_execution === "string"
+      ? new Date(config.next_scheduled_execution).getTime()
+      : (config.next_scheduled_execution as Date).getTime();
+
   const diffMs = nextTime - Date.now();
   if (diffMs < 0) return "(should trigger now)";
-  
+
   const diffSecs = Math.floor(diffMs / 1000);
   const diffMins = Math.floor(diffSecs / 60);
   const diffHours = Math.floor(diffMins / 60);
-  
+
   if (diffHours > 0) return `(in ${diffHours}h ${diffMins % 60}m)`;
   if (diffMins > 0) return `(in ${diffMins}m ${diffSecs % 60}s)`;
   return `(in ${diffSecs}s)`;
@@ -58,12 +62,13 @@ export function getTimeUntilTrigger(config: AutoFunctionConfig): string {
  * Get CSS class for next trigger urgency indicator
  */
 export function getNextTriggerClass(config: AutoFunctionConfig): string {
-  if (!config.nextScheduledExecution) return "";
-  
-  const nextTime = typeof config.nextScheduledExecution === "string"
-    ? new Date(config.nextScheduledExecution).getTime()
-    : (config.nextScheduledExecution as Date).getTime();
-  
+  if (!config.next_scheduled_execution) return "";
+
+  const nextTime =
+    typeof config.next_scheduled_execution === "string"
+      ? new Date(config.next_scheduled_execution).getTime()
+      : (config.next_scheduled_execution as Date).getTime();
+
   const diffMs = nextTime - Date.now();
   if (diffMs < 0) return "trigger-overdue";
   if (diffMs < 60000) return "trigger-soon";
@@ -74,9 +79,10 @@ export function getNextTriggerClass(config: AutoFunctionConfig): string {
  * Check if schedule is overdue
  */
 export function isScheduleOverdue(config: AutoFunctionConfig): boolean {
-  if (!config.nextScheduledExecution) return false;
-  const nextTime = typeof config.nextScheduledExecution === "string"
-    ? new Date(config.nextScheduledExecution).getTime()
-    : (config.nextScheduledExecution as Date).getTime();
+  if (!config.next_scheduled_execution) return false;
+  const nextTime =
+    typeof config.next_scheduled_execution === "string"
+      ? new Date(config.next_scheduled_execution).getTime()
+      : (config.next_scheduled_execution as Date).getTime();
   return nextTime <= Date.now();
 }

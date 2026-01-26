@@ -1,1 +1,0 @@
-function r(){return n}import{a as n}from"./index-BOTLkYSR.js";export{r as u};

@@ -16,7 +16,7 @@
       <div class="modal-body">
         <div class="form-group">
           <label>Price Column Name</label>
-          <select v-model="localSettings.priceColumn" class="form-control">
+          <select v-model="localSettings.price_column" class="form-control">
             <option value="">-- Select Column --</option>
             <option v-for="col in priceColumns" :key="col" :value="col">
               {{ col }}
@@ -31,8 +31,8 @@
           <label>Formula: Expected Income</label>
           <div class="formula-box">
             <code
-              >(Harga Marketplace - {{ localSettings.formulaDeduction }}) ×
-              {{ localSettings.formulaMultiplier }}</code
+              >(Harga Marketplace - {{ localSettings.formula_deduction }}) ×
+              {{ localSettings.formula_multiplier }}</code
             >
           </div>
         </div>
@@ -41,7 +41,7 @@
           <div class="form-group">
             <label>Admin Fee (Rp)</label>
             <input
-              v-model.number="localSettings.formulaDeduction"
+              v-model.number="localSettings.formula_deduction"
               type="number"
               min="0"
               class="form-control"
@@ -51,7 +51,7 @@
           <div class="form-group">
             <label>Multiplier</label>
             <input
-              v-model.number="localSettings.formulaMultiplier"
+              v-model.number="localSettings.formula_multiplier"
               type="number"
               step="0.01"
               min="0"
@@ -67,8 +67,8 @@
           <div class="example-content">
             <p>If Harga Marketplace = <strong>Rp 100,000</strong></p>
             <p>
-              Expected = (100,000 - {{ localSettings.formulaDeduction }}) ×
-              {{ localSettings.formulaMultiplier }}
+              Expected = (100,000 - {{ localSettings.formula_deduction }}) ×
+              {{ localSettings.formula_multiplier }}
             </p>
             <p class="result">
               = <strong>{{ formatPrice(calculateExample()) }}</strong>
@@ -114,7 +114,7 @@ async function fetchInventoryColumns() {
       const data = await response.json();
       if (data.success && data.data?.columns) {
         inventoryColumns.value = data.data.columns.map(
-          (c: any) => c.column_name || c.name || c
+          (c: any) => c.column_name || c.name || c,
         );
       }
     }
@@ -134,7 +134,7 @@ const priceColumns = computed(() => {
     );
   });
   const others = inventoryColumns.value.filter(
-    (name) => !suggested.includes(name)
+    (name) => !suggested.includes(name),
   );
   return [...suggested, ...others];
 });
@@ -147,14 +147,14 @@ watch(
   () => props.settings,
   (newVal) => {
     localSettings.value = { ...newVal };
-  }
+  },
 );
 
 function calculateExample(): number {
   const price = 100000;
   return (
-    (price - localSettings.value.formulaDeduction) *
-    localSettings.value.formulaMultiplier
+    (price - localSettings.value.formula_deduction) *
+    localSettings.value.formula_multiplier
   );
 }
 

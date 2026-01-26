@@ -70,12 +70,29 @@
             </div>
             <div class="sync-status">
               <span v-if="syncStatus?.synced" class="status-badge synced"
-                >✓ Synced ({{ syncStatus.totalOrders }} orders)</span
+                >✓ Synced ({{ syncStatus.total_orders }} orders)</span
               >
               <span v-else class="status-badge not-synced">⚠ Not synced</span>
-              <span v-if="syncStatus?.syncedAt" class="sync-date">{{
-                formatDate(syncStatus.syncedAt)
+              <span v-if="syncStatus?.synced_at" class="sync-date">{{
+                formatDate(syncStatus.synced_at)
               }}</span>
+            </div>
+          </div>
+          <!-- Progress bar for background sync -->
+          <div v-if="syncing && jobProgress" class="sync-progress-container">
+            <div class="sync-progress-info">
+              <span class="progress-label">{{ syncProgressMessage }}</span>
+              <span class="progress-percent">{{ syncProgressPercent }}%</span>
+            </div>
+            <div class="sync-progress-bar">
+              <div
+                class="sync-progress-fill"
+                :style="{ width: syncProgressPercent + '%' }"
+              ></div>
+            </div>
+            <div v-if="jobProgress.total_items > 0" class="progress-items">
+              {{ jobProgress.processed_items }} /
+              {{ jobProgress.total_items }} items
             </div>
           </div>
           <div class="action-bar">
@@ -178,7 +195,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUIStore } from "@/store/ui";
 import { useAppStore } from "@/store/app";
@@ -218,6 +235,9 @@ const {
   selectedMonth,
   selectedYear,
   canSync,
+  jobProgress,
+  syncProgressPercent,
+  syncProgressMessage,
   fetchSyncStatus,
   saveSettings,
   syncEscrowData,
@@ -225,6 +245,7 @@ const {
   fetchReconciliation,
   fetchShippingFeeAnalysis,
   initialize,
+  cleanup,
 } = useAnalytics();
 
 const showSettings = ref(false);
@@ -284,14 +305,14 @@ function exportPriceToCSV() {
   const rows = [
     ["Status", "SKU", "Item Name", "Inventory Price", "Expected Income", "Qty"],
   ];
-  reconciliationResult.value.skuGroups.forEach((sku) =>
+  reconciliationResult.value.sku_groups.forEach((sku) =>
     rows.push([
       sku.status,
-      sku.modelSku || sku.sku,
-      `"${sku.itemName.replace(/"/g, '""')}"`,
-      String(sku.inventoryPrice || 0),
-      String(sku.expectedIncome || 0),
-      String(sku.totalTransactions),
+      sku.model_sku || sku.sku,
+      `"${sku.item_name.replace(/"/g, '""')}"`,
+      String(sku.inventory_price || 0),
+      String(sku.expected_income || 0),
+      String(sku.total_transactions),
     ]),
   );
   downloadCSV(
@@ -315,13 +336,13 @@ function exportShippingToCSV() {
   ];
   shippingFeeResult.value.orders.forEach((o) =>
     rows.push([
-      o.orderDate || "",
-      o.orderSn,
-      String(o.buyerPaid),
-      String(o.actualFee),
-      String(o.shopeeRebate),
+      o.order_date || "",
+      o.order_sn,
+      String(o.buyer_paid),
+      String(o.actual_fee),
+      String(o.shopee_rebate),
       String(o.difference),
-      o.paymentMethod || "",
+      o.payment_method || "",
     ]),
   );
   downloadCSV(
@@ -386,6 +407,10 @@ onMounted(async () => {
       : await fetchShippingFeeAnalysis();
   }
 });
+
+onUnmounted(() => {
+  cleanup();
+});
 </script>
 
 <style scoped>
@@ -397,17 +422,54 @@ onMounted(async () => {
   height: 100vh;
   overflow: hidden;
 }
-
 .main-layout {
   display: flex;
   flex: 1;
   overflow: hidden;
 }
-
 .main-content {
   flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+}
+
+/* Progress bar styles */
+.sync-progress-container {
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.sync-progress-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+.progress-label {
+  color: var(--text-secondary, #666);
+}
+.progress-percent {
+  font-weight: 600;
+  color: var(--primary-color, #3b82f6);
+}
+.sync-progress-bar {
+  height: 8px;
+  background: var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.sync-progress-fill {
+  height: 100%;
+  background: var(--primary-color, #3b82f6);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+.progress-items {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-muted, #999);
+  text-align: right;
 }
 </style>

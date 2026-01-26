@@ -60,7 +60,7 @@ defineEmits<{
 
 const scheduledAutoFunctions = computed(() => {
   return props.autoFunctionConfigs.filter(
-    (config: AutoFunctionConfig) => config.nextScheduledExecution
+    (config: AutoFunctionConfig) => config.next_scheduled_execution,
   );
 });
 </script>

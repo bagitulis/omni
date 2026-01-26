@@ -135,6 +135,9 @@ func (s *MultiTenantScheduler) checkTenantAutoFunctions(tenantID string) {
 		return
 	}
 
+	// Ensure default auto functions exist for this tenant
+	s.ensureDefaultAutoFunctions(tenantDB, tenantID)
+
 	// Find all enabled auto functions that are due
 	var configs []models.AutoFunctionConfig
 	err = tenantDB.Where("enabled = ?", true).Find(&configs).Error
@@ -232,5 +235,55 @@ func (s *MultiTenantScheduler) recordHistory(tenantDB *gorm.DB, functionName, st
 
 	if err := tenantDB.Create(history).Error; err != nil {
 		log.Printf("❌ Failed to record auto function history: %v", err)
+	}
+}
+
+// defaultAutoFunctions defines the default auto functions to seed
+var defaultAutoFunctions = []struct {
+	Name            string
+	IntervalMinutes int
+	StartTime       string
+	EndTime         string
+}{
+	{Name: "locked_today", IntervalMinutes: 1440, StartTime: "22:00", EndTime: "23:59"},     // Daily at 22:00-23:59 WIB
+	{Name: "sync_from_sheets", IntervalMinutes: 30, StartTime: "08:00", EndTime: "22:00"},   // Every 30 min during business hours
+	{Name: "auto_update_token", IntervalMinutes: 180, StartTime: "00:00", EndTime: "23:59"}, // Every 3 hours
+}
+
+// ensureDefaultAutoFunctions ensures default auto functions exist for a tenant
+// This seeds the auto_functions_config table with default entries if empty
+func (s *MultiTenantScheduler) ensureDefaultAutoFunctions(tenantDB *gorm.DB, tenantID string) {
+	var count int64
+	tenantDB.Model(&models.AutoFunctionConfig{}).Count(&count)
+
+	// Only seed if table is empty
+	if count > 0 {
+		return
+	}
+
+	log.Printf("🌱 [%s] Seeding default auto functions...", tenantID)
+	now := time.Now()
+
+	for _, def := range defaultAutoFunctions {
+		startTime := def.StartTime
+		endTime := def.EndTime
+		nextExec := now.Add(time.Duration(def.IntervalMinutes) * time.Minute)
+
+		cfg := &models.AutoFunctionConfig{
+			Name:                   def.Name,
+			Enabled:                true,
+			IntervalMinutes:        def.IntervalMinutes,
+			StartTime:              &startTime,
+			EndTime:                &endTime,
+			NextScheduledExecution: &nextExec,
+			CreatedAt:              now,
+			UpdatedAt:              now,
+		}
+
+		if err := tenantDB.Create(cfg).Error; err != nil {
+			log.Printf("❌ [%s] Failed to seed %s: %v", tenantID, def.Name, err)
+		} else {
+			log.Printf("✅ [%s] Seeded auto function: %s (interval: %dm)", tenantID, def.Name, def.IntervalMinutes)
+		}
 	}
 }

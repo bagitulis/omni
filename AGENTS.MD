@@ -43,46 +43,46 @@
 - Batas file maksimal 300 baris (pecah ke file baru jika perlu).
 - Perbaiki semua error, warning, dan lint issues sebelum selesai.
 - Multi-tenant: tidak ada default tenant; selalu pakai `context.Context`.
-- Penamaan: DB kolom snake_case, JSON response snake_case, Go field PascalCase; jangan pakai alias untuk nama salah.
+- Penamaan: DB kolom `snake_case`, JSON response `snake_case`, Go field `PascalCase`; jangan pakai alias untuk nama salah.
 
 ### 0.2 ToDo List Implementasi Detail (Urutan Wajib)
 
-1) Analisis kode & database  
-   - Baca referensi `backend-node/` + SQLite schema untuk mapping ke Go/GORM.  
-   - Telusuri flow TikTok/Lazada SDK Golang dan panggilan route dari frontend.  
+1. Analisis kode & database
+   - Baca referensi `backend-node/` + SQLite schema untuk mapping ke Go/GORM.
+   - Telusuri flow TikTok/Lazada SDK Golang dan panggilan route dari frontend.
    - Audit `backend/internal/models/`, `table_naming.go`, dan migration `scripts/postgres/` agar konsisten dengan Omni-PostgreSQL.
-2) Perbaikan masalah fungsional  
-   - Identifikasi bug, nil pointer, race, tenant leak, atau query salah schema.  
-   - Betulkan snake_case/camelCase pada JSON/DB tag dan TableName() mapping.  
+2. Perbaikan masalah fungsional
+   - Identifikasi bug, nil pointer, race, tenant leak, atau query salah schema.
+   - Betulkan snake_case/camelCase pada JSON/DB tag dan TableName() mapping.
    - Hapus duplikasi/unused; pastikan SRP di handler/service/repo.
-3) Build & test dasar  
-   - `cd backend && go build ./...`  
-   - `go test ./...` (tambah/adjust test bila perlu).  
+3. Build & test dasar
+   - `cd backend && go build ./...`
+   - `go test ./...` (tambah/adjust test bila perlu).
    - Jalankan lint statis jika tersedia (golangci-lint, staticcheck).
-4) Perbaikan lanjut  
-   - Tindak semua error/warning build/test; lengkapi migrasi SQL bila ada perubahan schema.  
+4. Perbaikan lanjut
+   - Tindak semua error/warning build/test; lengkapi migrasi SQL bila ada perubahan schema.
    - Pastikan logging terstruktur dan tidak ada data sensitif.
-5) Cleanup akhir (SRP/DRY/OOP)  
-   - Refaktor agar fungsi tunggal tujuan, hilangkan duplikasi, pecah file >300 baris.  
+5. Cleanup akhir (SRP/DRY/OOP)
+   - Refaktor agar fungsi tunggal tujuan, hilangkan duplikasi, pecah file >300 baris.
    - Pastikan handler tidak berisi business logic; gunakan service/repo.
-6) Testing final  
-   - Ulangi `go test ./...` + sanity curl ke endpoint terkait (snake_case response).  
+6. Testing final
+   - Ulangi `go test ./...` + sanity curl ke endpoint terkait (snake_case response).
    - Jika relevan, `docker compose up -d --build backend-go` lalu cek log aplikasi.
-7) Iterasi  
+7. Iterasi
    - Ulangi siklus sampai semua langkah bersih tanpa warning/error.
 
 ### 0.3 Kriteria Keberhasilan (Butuh 2 Bukti)
 
-- Bukti 1: Log Docker menampilkan data valid (cek timestamp/tanggal).  
-- Bukti 2: Script/command menunjukkan keterangan keberhasilan.  
+- Bukti 1: Log Docker menampilkan data valid (cek timestamp/tanggal).
+- Bukti 2: Script/command menunjukkan keterangan keberhasilan.
 - Jika hanya ada 1 bukti, berhenti dan konfirmasi.
 
 ### 0.4 Rujukan Teknis Wajib
 
-- Selalu baca `backend-node/` untuk logic legacy dan mapping SQLite → PostgreSQL.  
-- Cek SDK TikTok/Lazada Golang yang digunakan sebelum mengubah flow.  
-- Pelajari alur pemanggilan route dari frontend agar response tetap backward compatible.  
-- Validasi ulang snake_case vs camelCase di setiap DTO/JSON tag sebelum merge.  
+- Selalu baca `backend-node/` untuk logic legacy dan mapping SQLite → PostgreSQL.
+- Cek SDK TikTok/Lazada Golang yang digunakan sebelum mengubah flow.
+- Pelajari alur pemanggilan route dari frontend agar response tetap backward compatible.
+- Validasi ulang snake_case vs camelCase di setiap DTO/JSON tag sebelum merge.
 - Dilarang caching; semua read langsung ke DB tenant yang benar.
 
 ---
@@ -105,9 +105,7 @@
 ### 1.2 JSON Naming Convention
 
 > [!IMPORTANT]
-> **Semua JSON response API WAJIB menggunakan snake_case** untuk backward compatibility dengan Node.js backend dan frontend.
-
-**Contoh BENAR:**
+> **Semua JSON response API WAJIB menggunakan `snake_case`** - tanpa exception.
 
 ```go
 type Order struct {
@@ -117,18 +115,16 @@ type Order struct {
     CreatedAt     time.Time `json:"created_at"`     // ✅ snake_case
 }
 
-type OrderItem struct {
-    ProductName   string `json:"product_name"`   // ✅ snake_case
-    VariationName string `json:"variation_name"` // ✅ snake_case
-}
-```
-
-**Contoh SALAH:**
-
-```go
-type Order struct {
-    OrderSN       string `json:"orderSn"`       // ❌ camelCase - JANGAN!
-    TotalAmount   float64 `json:"totalAmount"`  // ❌ camelCase - JANGAN!
+type AutoFunctionConfig struct {
+    ID              uint       `json:"id"`
+    Name            string     `json:"name"`
+    Enabled         bool       `json:"enabled"`
+    IntervalMinutes int        `json:"interval_minutes"` // ✅ snake_case
+    StartTime       *string    `json:"start_time"`       // ✅ snake_case
+    EndTime         *string    `json:"end_time"`         // ✅ snake_case
+    LastExecuted    *time.Time `json:"last_executed"`    // ✅ snake_case
+    CreatedAt       time.Time  `json:"created_at"`       // ✅ snake_case
+    UpdatedAt       time.Time  `json:"updated_at"`       // ✅ snake_case
 }
 ```
 

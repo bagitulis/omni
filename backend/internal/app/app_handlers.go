@@ -4,8 +4,10 @@ import (
 	"os"
 
 	"github.com/omni/backend/internal/handlers"
+	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/autofunction"
 	"github.com/omni/backend/internal/services/google"
+	"github.com/omni/backend/internal/services/jobs"
 	"gorm.io/gorm"
 )
 
@@ -83,6 +85,10 @@ func (a *App) InitExtendedHandlers(db *gorm.DB, googleAuth *google.AuthService) 
 	multiTenantScheduler := autofunction.NewMultiTenantScheduler(db, executor, basePath)
 	multiTenantScheduler.Start()
 
+	// Initialize and start background job executor for long-running operations
+	// This processes escrow sync jobs, order sync jobs, etc. that run in background
+	startBackgroundJobExecutor(db, basePath)
+
 	return &ExtendedHandlers{
 		// Utility handlers
 		CSRFHandler:  handlers.NewCSRFHandler(),
@@ -139,4 +145,20 @@ func registerDefaultAutoFunctionHandlers(executor *autofunction.Executor) {
 
 	// sync_from_sheets - syncs inventory from Google Sheets
 	executor.RegisterHandler("sync_from_sheets", syncFromSheetsHandler)
+}
+
+// startBackgroundJobExecutor initializes and starts the multi-tenant job executor
+// for processing long-running background jobs like escrow sync
+func startBackgroundJobExecutor(systemDB *gorm.DB, basePath string) {
+	jobExecutor := jobs.NewMultiTenantExecutor(systemDB, basePath)
+
+	// Create escrow sync handler
+	escrowHandler := jobs.NewEscrowSyncHandler(systemDB)
+
+	// Register handlers for escrow sync job types
+	jobExecutor.RegisterHandler(models.JobTypeShopeeEscrowSync, escrowHandler.HandleShopeeEscrowSync)
+	jobExecutor.RegisterHandler(models.JobTypeTiktokEscrowSync, escrowHandler.HandleTiktokEscrowSync)
+
+	// Start the executor
+	jobExecutor.Start()
 }

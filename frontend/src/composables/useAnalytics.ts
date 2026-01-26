@@ -1,6 +1,6 @@
 /**
  * Analytics Composable
- * Handles analytics API operations for price reconciliation
+ * Handles analytics API operations for Shopee price reconciliation
  * Single Responsibility: Analytics state and API calls
  */
 
@@ -10,83 +10,98 @@ import { useToast } from "./useToast";
 
 export interface SyncStatus {
   synced: boolean;
-  totalOrders: number;
-  syncedAt: string | null;
+  total_orders: number;
+  synced_at: string | null;
 }
 
 export interface AnalyticsSettings {
-  priceColumn: string;
-  formulaDeduction: number;
-  formulaMultiplier: number;
+  price_column: string;
+  formula_deduction: number;
+  formula_multiplier: number;
 }
 
 export interface PriceVariant {
   price: number;
   count: number;
-  totalEscrow: number;
-  avgEscrow: number;
+  total_escrow: number;
+  avg_escrow: number;
   transactions: TransactionDetail[];
 }
 
 export interface TransactionDetail {
-  orderSn: string;
-  orderDate: string;
+  order_sn: string;
+  order_date: string;
   price: number;
-  escrowAmount: number;
+  escrow_amount: number;
   quantity: number;
 }
 
 export interface SkuGroup {
   sku: string;
-  modelSku: string;
-  itemName: string;
-  modelName: string;
-  inventoryPrice: number | null;
-  expectedIncome: number | null;
-  totalTransactions: number;
-  uniqueUnitPrices: number[];
-  uniqueActualIncomes: number[];
-  priceVariants: PriceVariant[];
-  hasMultiplePrices: boolean;
-  hasPriceDifference: boolean;
+  model_sku: string;
+  item_name: string;
+  model_name: string;
+  inventory_price: number | null;
+  expected_income: number | null;
+  total_transactions: number;
+  unique_unit_prices: number[];
+  unique_actual_incomes: number[];
+  price_variants: PriceVariant[];
+  has_multiple_prices: boolean;
+  has_price_difference: boolean;
   status: "OK" | "PRICE_DIFF" | "NO_INVENTORY";
 }
 
 export interface ReconciliationSummary {
-  totalSku: number;
-  totalTransactions: number;
-  skuOk: number;
-  skuWithPriceDiff: number;
-  skuNoInventory: number;
+  total_sku: number;
+  total_transactions: number;
+  sku_ok: number;
+  sku_with_price_diff: number;
+  sku_no_inventory: number;
 }
 
 export interface ReconciliationResult {
   summary: ReconciliationSummary;
-  skuGroups: SkuGroup[];
+  sku_groups: SkuGroup[];
 }
 
 export interface ShippingFeeOrder {
-  orderSn: string;
-  orderDate: string | null;
-  buyerPaid: number;
-  actualFee: number;
-  shopeeRebate: number;
+  order_sn: string;
+  order_date: string | null;
+  buyer_paid: number;
+  actual_fee: number;
+  shopee_rebate: number;
   difference: number;
-  buyerName: string | null;
-  paymentMethod: string | null;
+  buyer_name: string | null;
+  payment_method: string | null;
 }
 
 export interface ShippingFeeSummary {
-  totalOrders: number;
-  ordersWithDifference: number;
-  totalProfit: number;
-  totalLoss: number;
-  netImpact: number;
+  total_orders: number;
+  orders_with_difference: number;
+  total_profit: number;
+  total_loss: number;
+  net_impact: number;
 }
 
 export interface ShippingFeeResult {
   summary: ShippingFeeSummary;
   orders: ShippingFeeOrder[];
+}
+
+// Job progress interface for background sync
+export interface JobProgress {
+  id: string;
+  type: string;
+  status: "pending" | "running" | "completed" | "failed" | "cancelled";
+  progress_percent: number;
+  progress_message: string;
+  total_items: number;
+  processed_items: number;
+  error_message?: string;
+  result_data?: string;
+  started_at?: string;
+  completed_at?: string;
 }
 
 export function useAnalytics() {
@@ -98,12 +113,17 @@ export function useAnalytics() {
   const syncing = ref(false);
   const syncStatus = ref<SyncStatus | null>(null);
   const settings = ref<AnalyticsSettings>({
-    priceColumn: "HARGA",
-    formulaDeduction: 1500,
-    formulaMultiplier: 0.84,
+    price_column: "HARGA",
+    formula_deduction: 1500,
+    formula_multiplier: 0.84,
   });
   const reconciliationResult = ref<ReconciliationResult | null>(null);
   const shippingFeeResult = ref<ShippingFeeResult | null>(null);
+
+  // Job progress state
+  const currentJobId = ref<string | null>(null);
+  const jobProgress = ref<JobProgress | null>(null);
+  const pollingInterval = ref<ReturnType<typeof setInterval> | null>(null);
 
   // Default to PREVIOUS month so sync button is enabled by default
   // (Current month cannot be synced - escrow data not finalized)
@@ -145,6 +165,78 @@ export function useAnalytics() {
     ];
     return `${months[selectedMonth.value]} ${selectedYear.value}`;
   });
+
+  // Job progress computed
+  const syncProgressPercent = computed(
+    () => jobProgress.value?.progress_percent ?? 0,
+  );
+  const syncProgressMessage = computed(
+    () => jobProgress.value?.progress_message ?? "",
+  );
+  const isSyncRunning = computed(() => jobProgress.value?.status === "running");
+
+  // Stop polling
+  function stopPolling(): void {
+    if (pollingInterval.value) {
+      clearInterval(pollingInterval.value);
+      pollingInterval.value = null;
+    }
+  }
+
+  // Poll job status
+  async function pollJobStatus(jobId: string): Promise<void> {
+    try {
+      const response = await api.get<{
+        success: boolean;
+        job: JobProgress;
+      }>(`/jobs/${jobId}`);
+
+      if (response.success && response.job) {
+        jobProgress.value = response.job;
+
+        // Check if job completed or failed
+        if (response.job.status === "completed") {
+          stopPolling();
+          syncing.value = false;
+          currentJobId.value = null;
+          showSuccess("Shopee escrow sync completed successfully");
+          await fetchSyncStatus();
+        } else if (response.job.status === "failed") {
+          stopPolling();
+          syncing.value = false;
+          currentJobId.value = null;
+          showError(response.job.error_message || "Escrow sync failed");
+        } else if (response.job.status === "cancelled") {
+          stopPolling();
+          syncing.value = false;
+          currentJobId.value = null;
+          showError("Escrow sync was cancelled");
+        }
+      }
+    } catch (error) {
+      console.error("Failed to poll job status:", error);
+      // Don't stop polling on error, retry
+    }
+  }
+
+  // Start polling for job progress
+  function startPolling(jobId: string): void {
+    stopPolling(); // Clear any existing polling
+    currentJobId.value = jobId;
+    jobProgress.value = {
+      id: jobId,
+      type: "shopee_escrow_sync",
+      status: "pending",
+      progress_percent: 0,
+      progress_message: "Starting sync...",
+      total_items: 0,
+      processed_items: 0,
+    };
+
+    // Poll immediately, then every 2 seconds
+    pollJobStatus(jobId);
+    pollingInterval.value = setInterval(() => pollJobStatus(jobId), 2000);
+  }
 
   // Actions
   async function fetchSyncStatus(): Promise<void> {
@@ -193,25 +285,39 @@ export function useAnalytics() {
 
     try {
       syncing.value = true;
+      jobProgress.value = null;
+
       const response = await api.post<{
         success: boolean;
         message: string;
-        data: { totalOrders: number; totalItems: number };
+        data?: {
+          job_id: string;
+          total_orders?: number;
+          total_items?: number;
+        };
       }>("/analytics/shopee/sync", {
         month: currentPeriod.value.month,
         year: currentPeriod.value.year,
-        forceResync,
+        force_resync: forceResync,
       });
 
       if (response.success) {
-        showSuccess(response.message);
-        await fetchSyncStatus();
+        // Check if this is async job response
+        if (response.data?.job_id) {
+          showSuccess("Escrow sync started. Monitoring progress...");
+          startPolling(response.data.job_id);
+        } else {
+          // Sync completed immediately (no background job)
+          showSuccess(response.message);
+          syncing.value = false;
+          await fetchSyncStatus();
+        }
       }
     } catch (error) {
+      syncing.value = false;
+      jobProgress.value = null;
       showError("Failed to sync escrow data");
       throw error;
-    } finally {
-      syncing.value = false;
     }
   }
 
@@ -292,11 +398,24 @@ export function useAnalytics() {
     }
   }
 
+  // Cancel ongoing sync
+  function cancelSync(): void {
+    stopPolling();
+    syncing.value = false;
+    currentJobId.value = null;
+    jobProgress.value = null;
+  }
+
   // Initialize
   async function initialize(): Promise<void> {
     // Default to previous month
     goToPreviousMonth();
     await Promise.all([fetchSyncStatus(), fetchSettings()]);
+  }
+
+  // Cleanup on unmount
+  function cleanup(): void {
+    stopPolling();
   }
 
   return {
@@ -309,6 +428,13 @@ export function useAnalytics() {
     shippingFeeResult,
     selectedMonth,
     selectedYear,
+
+    // Job progress state
+    currentJobId,
+    jobProgress,
+    syncProgressPercent,
+    syncProgressMessage,
+    isSyncRunning,
 
     // Computed
     currentPeriod,
@@ -326,6 +452,8 @@ export function useAnalytics() {
     setPeriod,
     goToPreviousMonth,
     goToNextMonth,
+    cancelSync,
     initialize,
+    cleanup,
   };
 }
