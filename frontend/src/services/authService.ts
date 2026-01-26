@@ -2,7 +2,7 @@ import api from "./api";
 
 interface LoginResponse {
   token: string;
-  tenantId: string; // At root level from backend
+  tenant_id: string; // snake_case from backend per AGENTS.MD
   user: {
     id: string;
     username: string;
@@ -40,7 +40,7 @@ class AuthService {
   async login(
     username: string,
     password: string,
-    recaptchaToken?: string
+    recaptchaToken?: string,
   ): Promise<LoginResponse> {
     try {
       const payload: Record<string, string> = { username, password };
@@ -65,7 +65,7 @@ class AuthService {
   async register(
     username: string,
     email: string,
-    password: string
+    password: string,
   ): Promise<RegisterResponse> {
     try {
       const response = await api.post<RegisterResponse>("/auth/register", {

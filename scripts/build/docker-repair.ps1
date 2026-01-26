@@ -108,8 +108,9 @@ function Repair-DockerDNSError {
     <#
     .SYNOPSIS
     Fix DNS resolution errors inside Docker containers
+    Handles: "no such host", "dial tcp: lookup", registry connection failures
     #>
-    Write-Fix "Repairing Docker DNS configuration..."
+    Write-Fix "Repairing Docker DNS/network configuration..."
     
     try {
         Write-Info "Flushing system DNS cache..."
@@ -128,14 +129,29 @@ function Repair-DockerDNSError {
         Write-Info "Resetting WSL network..."
         Stop-WSL -WaitSeconds 5
         
+        # Additional wait for network interfaces to stabilize
+        Write-Info "Waiting for network interfaces to stabilize..."
+        Start-Sleep -Seconds 10
+        
         Write-Info "Starting Docker Desktop..."
         if (-not (Start-DockerDesktop)) {
             return $false
         }
         
         if (Wait-ForDocker -TimeoutSeconds 90 -Activity "Waiting for Docker DNS...") {
-            Write-Success "Docker DNS restored"
-            return $true
+            # Test actual DNS resolution
+            Write-Info "Testing network connectivity..."
+            Start-Sleep -Seconds 5
+            $pingTest = Test-NetConnection -ComputerName "registry-1.docker.io" -Port 443 -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
+            if ($pingTest.TcpTestSucceeded) {
+                Write-Success "Docker DNS and network restored"
+                return $true
+            }
+            else {
+                Write-Warning "DNS restored but registry still unreachable - may need VPN check or retry"
+                # Still return true to allow retry
+                return $true
+            }
         }
         
         Write-Warning "Docker DNS recovery timeout - continuing anyway"

@@ -30,8 +30,10 @@ func (c *PostgresConfig) BuildDSN() string {
 		c.Host, c.Port, c.User, c.Password, c.DBName, c.SSLMode,
 	)
 
+	// Use options parameter to set search_path - this is the correct way for pgx/libpq
+	// The format is: options=-csearch_path=schema_name
 	if c.Schema != "" {
-		dsn += fmt.Sprintf(" search_path=%s,public", c.Schema)
+		dsn += fmt.Sprintf(" options='-csearch_path=%s,public'", c.Schema)
 	}
 	return dsn
 }

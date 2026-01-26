@@ -61,7 +61,7 @@ function Invoke-DockerAutoFix {
         "pipe.*docker|npipe.*error|named pipe" {
             $fixed = Repair-DockerPipeError
         }
-        "DNS lookup error|DNS.*name does not exist|fetch.*error" {
+        "DNS lookup error|DNS.*name does not exist|fetch.*error|no such host|dial tcp.*lookup|dialing.*registry.*connecting" {
             $fixed = Repair-DockerDNSError
         }
         "no matching manifest" {

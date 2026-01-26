@@ -23,6 +23,7 @@ func NewTiktokOrderManager(client *platform.TiktokAPIClient, tenantID string) *T
 }
 
 // GetOrderList fetches orders from TikTok
+// For AWAITING_COLLECTION status, also fetches order details for tracking info
 func (m *TiktokOrderManager) GetOrderList(ctx context.Context, status string, days int) ([]Order, error) {
 	if m.client == nil {
 		adapterLogger.WithTenantID(m.tenantID).Warn("TikTok client is nil - cannot fetch orders")
@@ -52,12 +53,55 @@ func (m *TiktokOrderManager) GetOrderList(ctx context.Context, status string, da
 		if orderSN == "" {
 			orderSN = getString(raw, "id")
 		}
+
 		order := Order{
 			OrderSN:  orderSN,
 			OrderNo:  orderSN, // Alias for frontend compatibility
 			Platform: strings.ToUpper("tiktok"),
 			Status:   status,
 		}
+
+		// For AWAITING_COLLECTION (processed), extract tracking info
+		// TikTok API returns tracking in multiple places - try all of them
+		if status == "AWAITING_COLLECTION" {
+			// Method 1: Order-level tracking
+			order.TrackingNumber = getString(raw, "tracking_number")
+			order.ShippingCarrier = getString(raw, "shipping_provider_name")
+			if order.ShippingCarrier == "" {
+				order.ShippingCarrier = getString(raw, "shipping_provider")
+			}
+
+			// Method 2: From packages array (TikTok may return tracking in packages)
+			if order.TrackingNumber == "" {
+				if packages, ok := raw["packages"].([]interface{}); ok && len(packages) > 0 {
+					if pkg, ok := packages[0].(map[string]interface{}); ok {
+						if trackingNo := getString(pkg, "tracking_number"); trackingNo != "" {
+							order.TrackingNumber = trackingNo
+						}
+						if carrier := getString(pkg, "shipping_provider_name"); carrier != "" {
+							order.ShippingCarrier = carrier
+						} else if carrier := getString(pkg, "shipping_provider"); carrier != "" {
+							order.ShippingCarrier = carrier
+						}
+					}
+				}
+			}
+
+			// Method 3: From line_items (each item may have its own tracking)
+			if order.TrackingNumber == "" {
+				if lineItems, ok := raw["line_items"].([]interface{}); ok && len(lineItems) > 0 {
+					if item, ok := lineItems[0].(map[string]interface{}); ok {
+						if trackingNo := getString(item, "tracking_number"); trackingNo != "" {
+							order.TrackingNumber = trackingNo
+						}
+						if carrier := getString(item, "shipping_provider_name"); carrier != "" {
+							order.ShippingCarrier = carrier
+						}
+					}
+				}
+			}
+		}
+
 		orders = append(orders, order)
 	}
 
@@ -80,15 +124,27 @@ func (m *TiktokOrderManager) GetOrderDetails(ctx context.Context, orderIDs []str
 
 	orders := make([]Order, 0, len(rawOrders))
 	for _, raw := range rawOrders {
-		orderSN := getString(raw, "order_id")
+		orderSN := getString(raw, "id")
+		if orderSN == "" {
+			orderSN = getString(raw, "order_id")
+		}
+
 		order := Order{
 			OrderSN:       orderSN,
-			OrderNo:       orderSN, // Alias for frontend compatibility
+			OrderNo:       orderSN,
 			Platform:      strings.ToUpper("tiktok"),
 			Status:        getString(raw, "order_status"),
 			TotalAmount:   getFloat64(raw, "payment_info.total_amount"),
 			BuyerUsername: getString(raw, "buyer_message"),
 		}
+
+		// Extract tracking info from order details
+		order.TrackingNumber = getString(raw, "tracking_number")
+		order.ShippingCarrier = getString(raw, "shipping_provider_name")
+		if order.ShippingCarrier == "" {
+			order.ShippingCarrier = getString(raw, "shipping_provider")
+		}
+
 		orders = append(orders, order)
 	}
 

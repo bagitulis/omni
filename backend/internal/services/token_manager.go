@@ -40,7 +40,8 @@ func NewTokenManager(globalConfigRepo *repositories.GlobalConfigRepository, encr
 // getTenantConfigRepo gets a TenantPlatformConfigRepository for a specific tenant
 // This reads from tenant schema's PlatformConfig table (key-value format)
 func (m *TokenManager) getTenantConfigRepo(tenantID string) (*repositories.TenantPlatformConfigRepository, error) {
-	db, err := config.GetTenantDB(tenantID, m.basePath)
+	// FIXED: Use GetTenantDBWithContext to properly set search_path for PostgreSQL
+	db, err := config.GetTenantDBWithContext(tenantID, m.basePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tenant DB for %s: %w", tenantID, err)
 	}

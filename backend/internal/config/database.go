@@ -58,36 +58,27 @@ func GetDatabaseDriver() DBDriver {
 	return globalDriver
 }
 
-// GetTenantDB returns database connection for a specific tenant
-// Uses dbPath from tenants.json to locate the correct database file
-// AGENTS.MD: TIDAK ADA DEFAULT TENANT - harus error jika kosong
-func GetTenantDB(tenantID string, basePath string) (*gorm.DB, error) {
-	// HARD GUARD: Reject empty tenant ID immediately
-	if tenantID == "" {
-		return nil, ErrMissingTenantID
-	}
-
+// getOrCreateTenantConnection returns the base DB connection for a tenant (cached)
+// This is internal - use GetTenantDB or GetTenantDBWithContext instead
+func getOrCreateTenantConnection(tenantID string) (*gorm.DB, error) {
 	mu.RLock()
-	if db, exists := tenantDBs[tenantID]; exists {
-		mu.RUnlock()
+	db, exists := tenantDBs[tenantID]
+	mu.RUnlock()
+
+	if exists {
 		return db, nil
 	}
-	mu.RUnlock()
 
 	mu.Lock()
 	defer mu.Unlock()
 
 	// Double-check after acquiring write lock
-	if db, exists := tenantDBs[tenantID]; exists {
+	if db, exists = tenantDBs[tenantID]; exists {
 		return db, nil
 	}
 
-	var db *gorm.DB
-	var err error
-
 	// PostgreSQL only
-	db, err = openPostgresForTenant(tenantID)
-
+	db, err := openPostgresForTenant(tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open tenant database: %w", err)
 	}
@@ -97,26 +88,33 @@ func GetTenantDB(tenantID string, basePath string) (*gorm.DB, error) {
 	return db, nil
 }
 
-// GetTenantDBWithContext returns a tenant DB with proper schema context for PostgreSQL
+// GetTenantDB returns database connection for a specific tenant
+// IMPORTANT: For PostgreSQL, the connection is created with search_path in DSN
+// The cached connection already has the correct schema set at connection time
 // AGENTS.MD: TIDAK ADA DEFAULT TENANT - harus error jika kosong
-func GetTenantDBWithContext(tenantID string, basePath string) (*gorm.DB, error) {
+func GetTenantDB(tenantID string, basePath string) (*gorm.DB, error) {
 	// HARD GUARD: Reject empty tenant ID immediately
 	if tenantID == "" {
 		return nil, ErrMissingTenantID
 	}
 
-	db, err := GetTenantDB(tenantID, basePath)
+	// For PostgreSQL, we create one connection pool per tenant with search_path in DSN
+	// This ensures ALL queries from this pool go to the correct schema
+	db, err := getOrCreateTenantConnection(tenantID)
 	if err != nil {
 		return nil, err
 	}
 
-	if globalDriver == DriverPostgres {
-		if err := SetTenantSchema(db, tenantID); err != nil {
-			return nil, err
-		}
-	}
-
 	return db, nil
+}
+
+// GetTenantDBWithContext returns a tenant DB with proper schema context for PostgreSQL
+// This is now equivalent to GetTenantDB since GetTenantDB already sets search_path
+// Kept for backward compatibility
+// AGENTS.MD: TIDAK ADA DEFAULT TENANT - harus error jika kosong
+func GetTenantDBWithContext(tenantID string, basePath string) (*gorm.DB, error) {
+	// Just delegate to GetTenantDB which now handles everything
+	return GetTenantDB(tenantID, basePath)
 }
 
 // SetTenantSchema sets PostgreSQL search_path for a tenant

@@ -7,7 +7,6 @@ import {
   ScriptMonitor,
   LoginView,
   DevPreview,
-  AdsDashboard,
   ShopeeAnalytics,
   TiktokAnalytics,
   TiktokAdsAnalytics,
@@ -164,15 +163,29 @@ export const reportRoutes: RouteRecordRaw[] = [
   },
 ];
 
-// Analytics routes
+// Analytics routes - Ads Performance
 export const analyticsRoutes: RouteRecordRaw[] = [
   {
     path: "/analytics",
     name: "Analytics",
-    component: AdsDashboard, // Use the new dashboard directly
+    redirect: "/analytics/tiktok-ads",
     meta: { section: "analytics" },
     children: [
-      // Keep children if you want specific URL states, but AdsDashboard handles switching internally
+      {
+        path: "tiktok-ads",
+        name: "TiktokAdsAnalytics",
+        component: TiktokAdsAnalytics,
+        meta: { section: "analytics", subsection: "tiktok-ads" },
+      },
+      {
+        path: "shopee-ads",
+        name: "ShopeeAdsAnalytics",
+        component: ShopeeAdsAnalytics,
+        meta: { section: "analytics", subsection: "shopee-ads" },
+      },
+      // Legacy redirects for backward compatibility
+      { path: "shopee", redirect: "/report/shopee" },
+      { path: "tiktok", redirect: "/report/tiktok" },
     ],
   },
 ];

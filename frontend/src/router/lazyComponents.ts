@@ -19,11 +19,22 @@ export const LoginView = () =>
 export const DevPreview = () =>
   import(/* webpackChunkName: "dev-preview" */ "../views/DevPreview.vue");
 
-// Analytics views
-export const AdsDashboard = () => import("../views/Analytics/AdsDashboard.vue");
+// Analytics views - Report (Escrow/Price/Shipping Fee Analysis)
+export const ShopeeAnalytics = () =>
+  import(
+    /* webpackChunkName: "shopee-analytics" */ "../views/analytics/ShopeeAnalytics.vue"
+  );
+export const TiktokAnalytics = () =>
+  import(
+    /* webpackChunkName: "tiktok-analytics" */ "../views/analytics/TiktokAnalytics.vue"
+  );
 
-// Redirect legacy analytics routes to the new AdsDashboard
-export const ShopeeAnalytics = AdsDashboard;
-export const TiktokAnalytics = AdsDashboard;
-export const TiktokAdsAnalytics = AdsDashboard;
-export const ShopeeAdsAnalytics = AdsDashboard;
+// Analytics views - Ads Performance
+export const ShopeeAdsAnalytics = () =>
+  import(
+    /* webpackChunkName: "shopee-ads-analytics" */ "../views/analytics/ShopeeAdsAnalytics.vue"
+  );
+export const TiktokAdsAnalytics = () =>
+  import(
+    /* webpackChunkName: "tiktok-ads-analytics" */ "../views/analytics/TiktokAdsAnalytics.vue"
+  );

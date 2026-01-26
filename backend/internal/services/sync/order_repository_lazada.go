@@ -48,12 +48,13 @@ func (r *GormOrderRepository) saveLazadaOrderItems(ctx context.Context, db *gorm
 		qty := item.Quantity
 		price := item.Price
 		itemModel := models.LazadaOrderItem{
-			TenantID:    r.tenantID,
-			OrderSN:     orderSN,
-			SellerSku:   item.SKU,
-			ProductName: item.ProductName,
-			Quantity:    &qty,
-			Price:       &price,
+			TenantID:      r.tenantID,
+			OrderSN:       orderSN,
+			SellerSku:     item.SKU,
+			ProductName:   item.ProductName,
+			VariationName: item.VariationName, // Map variation from Lazada API
+			Quantity:      &qty,
+			Price:         &price,
 		}
 		if err := db.WithContext(ctx).Create(&itemModel).Error; err != nil {
 			return err

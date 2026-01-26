@@ -179,7 +179,12 @@ func (m *LazadaOrderManager) GetOrderList(ctx context.Context, status string, da
 
 	orders := make([]Order, 0, len(rawOrders))
 	for _, raw := range rawOrders {
-		orderSN := getString(raw, "order_id")
+		// lazada_client_api.go maps order_id to order_sn at line 72
+		orderSN := getString(raw, "order_sn")
+		if orderSN == "" {
+			// Fallback to order_id if order_sn not present
+			orderSN = getString(raw, "order_id")
+		}
 		order := Order{
 			OrderSN:  orderSN,
 			OrderNo:  orderSN, // Alias for frontend compatibility
@@ -217,7 +222,7 @@ func (m *LazadaOrderManager) GetOrderDetails(ctx context.Context, orderIDs []str
 }
 
 // GetOrderItems fetches order items from Lazada
-// Uses /order/items/get endpoint which returns items with sku, name, variation fields
+// Uses /order/items/get endpoint which returns items with sku, name, variation, tracking fields
 func (m *LazadaOrderManager) GetOrderItems(ctx context.Context, orderIDs []string) (map[string][]OrderItem, error) {
 	if m.client == nil {
 		return nil, fmt.Errorf("lazada client not configured")
@@ -237,14 +242,21 @@ func (m *LazadaOrderManager) GetOrderItems(ctx context.Context, orderIDs []strin
 		// - sku -> seller_sku (SKU)
 		// - name -> product_name
 		// - variation -> variation_name
+		// - tracking_code -> tracking_number
+		// - shipment_provider -> shipping_carrier (needs parsing)
 		// - paid_price -> price
+		trackingCode := getString(raw, "tracking_code")
+		shippingCarrier := cleanLazadaShippingCarrier(getString(raw, "shipment_provider"))
+
 		item := OrderItem{
-			OrderID:       orderID,
-			SKU:           getString(raw, "sku"),       // Lazada uses 'sku' field
-			ProductName:   getString(raw, "name"),      // Lazada uses 'name' field
-			VariationName: getString(raw, "variation"), // Lazada uses 'variation' field
-			Quantity:      1,                           // Lazada items are separate rows
-			Price:         getFloat64(raw, "paid_price"),
+			OrderID:         orderID,
+			SKU:             getString(raw, "sku"),       // Lazada uses 'sku' field
+			ProductName:     getString(raw, "name"),      // Lazada uses 'name' field
+			VariationName:   getString(raw, "variation"), // Lazada uses 'variation' field
+			Quantity:        1,                           // Lazada items are separate rows
+			Price:           getFloat64(raw, "paid_price"),
+			TrackingNumber:  trackingCode,
+			ShippingCarrier: shippingCarrier,
 		}
 
 		result[orderID] = append(result[orderID], item)
@@ -256,4 +268,28 @@ func (m *LazadaOrderManager) GetOrderItems(ctx context.Context, orderIDs []strin
 	}).Info("Lazada GetOrderItems completed")
 
 	return result, nil
+}
+
+// cleanLazadaShippingCarrier extracts clean carrier name from Lazada format
+// Input: "Pickup: LEX ID, Delivery: LEX ID" -> Output: "LEX ID"
+func cleanLazadaShippingCarrier(provider string) string {
+	if provider == "" {
+		return ""
+	}
+
+	// Check for "Pickup: XXX" or "Delivery: XXX" format
+	if strings.Contains(provider, ":") {
+		// Extract the part after colon, before comma
+		parts := strings.SplitN(provider, ":", 2)
+		if len(parts) > 1 {
+			carrier := strings.TrimSpace(parts[1])
+			// Remove everything after comma if present
+			if idx := strings.Index(carrier, ","); idx > 0 {
+				carrier = strings.TrimSpace(carrier[:idx])
+			}
+			return carrier
+		}
+	}
+
+	return provider
 }

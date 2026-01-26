@@ -116,7 +116,11 @@ func RegisterOrderManagerRoutes(router *gin.RouterGroup, handler *handlers.Order
 		// Special endpoints - support both GET and POST for locked-today
 		orders.GET("/locked-today", handler.GetSavedLockedOrders)
 		orders.POST("/locked-today", handler.GetLockedTodayOrders)
-		orders.POST("/today", handler.GetOrdersToday)
+
+		// Order Today - GET retrieves saved, POST syncs fresh data
+		orders.GET("/today", handler.GetOrdersToday)
+		orders.POST("/today", handler.SyncOrdersToday)
+
 		orders.POST("/sync-all", handler.SyncAll)
 	}
 }

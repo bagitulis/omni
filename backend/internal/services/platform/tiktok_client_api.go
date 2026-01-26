@@ -70,6 +70,29 @@ func (c *TiktokAPIClient) GetOrderList(ctx context.Context, status string, days 
 				if id, ok := orderMap["id"].(string); ok {
 					orderMap["order_sn"] = id
 				}
+
+				// For AWAITING_COLLECTION (processed) orders, extract tracking info
+				// TikTok search API includes this at order level or in packages array
+				if status == "AWAITING_COLLECTION" {
+					// Try to get tracking from packages array first
+					if packages, ok := orderMap["packages"].([]interface{}); ok && len(packages) > 0 {
+						if pkg, ok := packages[0].(map[string]interface{}); ok {
+							if trackingNo, ok := pkg["tracking_number"].(string); ok && trackingNo != "" {
+								orderMap["tracking_number"] = trackingNo
+							}
+							if carrier, ok := pkg["shipping_provider_name"].(string); ok && carrier != "" {
+								orderMap["shipping_provider_name"] = carrier
+							}
+						}
+					}
+					// Fallback: check order-level tracking fields
+					if _, hasTracking := orderMap["tracking_number"]; !hasTracking {
+						if trackingNo, ok := orderMap["tracking_no"].(string); ok {
+							orderMap["tracking_number"] = trackingNo
+						}
+					}
+				}
+
 				allOrders = append(allOrders, orderMap)
 			}
 		}

@@ -109,7 +109,13 @@ function Invoke-DatabaseRestorePrompt {
     <#
     .SYNOPSIS
     Prompt user to restore database from backup if database is empty
+    .PARAMETER AutoRestore
+    If true, restore automatically without prompting (used in Full Build)
     #>
+    param(
+        [switch]$AutoRestore = $false
+    )
+    
     Write-Step "POST-DEPLOY" "Checking database state..."
     
     # Skip if postgres not ready
@@ -131,6 +137,7 @@ function Invoke-DatabaseRestorePrompt {
         Write-Host "  | This typically happens when:              |" -ForegroundColor White
         Write-Host "  |   - First time setup on new PC            |" -ForegroundColor Gray
         Write-Host "  |   - Docker volumes were reset             |" -ForegroundColor Gray
+        Write-Host "  |   - Full rebuild was executed             |" -ForegroundColor Gray
         Write-Host "  +-------------------------------------------+" -ForegroundColor Yellow
         Write-Host ""
         
@@ -139,12 +146,20 @@ function Invoke-DatabaseRestorePrompt {
             $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
             
             Write-Host "  Backup found: $($manifest.exported_at)" -ForegroundColor Green
-            Write-Host "  Tables: $($manifest.total_tables) | Rows: $($manifest.total_rows)" -ForegroundColor Green
+            Write-Host "  Schemas: $($manifest.schemas.PSObject.Properties.Count)" -ForegroundColor Green
             Write-Host ""
             
-            $choice = Read-Host "  Restore database from backup? (Y/n)"
+            $shouldRestore = $false
             
-            if ($choice -eq "" -or $choice -eq "Y" -or $choice -eq "y") {
+            if ($AutoRestore) {
+                Write-Host "  [AUTO] Restoring from backup automatically..." -ForegroundColor Cyan
+                $shouldRestore = $true
+            } else {
+                $choice = Read-Host "  Restore database from backup? (Y/n)"
+                $shouldRestore = ($choice -eq "" -or $choice -eq "Y" -or $choice -eq "y")
+            }
+            
+            if ($shouldRestore) {
                 Write-Host ""
                 Write-Info "Starting database restore..."
                 
@@ -164,9 +179,9 @@ function Invoke-DatabaseRestorePrompt {
             }
         }
         else {
-            Write-Warning "No backup found in backups\smart\"
-            Write-Info "If migrating from another PC, copy the backups folder first"
-            Write-Info "Then run: backups\db-tools\menu.bat -> [3] Smart Restore"
+            Write-Host "  No backup found - using fresh database" -ForegroundColor Cyan
+            Write-Info "Database initialized with empty tables"
+            Write-Info "If migrating from another PC, copy backups/smart/ folder first"
         }
         
         Write-Host ""
@@ -287,7 +302,13 @@ function Invoke-PostDeployTasks {
     .SYNOPSIS
     Run all post-deployment tasks
     NOTE: Updated for PostgreSQL - no more SQLite file copying
+    .PARAMETER AutoRestore
+    If true, restore database automatically without prompting (used in Full Build)
     #>
+    param(
+        [switch]$AutoRestore = $false
+    )
+    
     Write-Header "Post-Deploy Tasks"
     
     # Wait for containers to stabilize
@@ -298,7 +319,7 @@ function Invoke-PostDeployTasks {
     Test-PostgresConnection
     
     # Check if database is empty and offer restore
-    Invoke-DatabaseRestorePrompt
+    Invoke-DatabaseRestorePrompt -AutoRestore:$AutoRestore
     
     # Verify backend database config
     Test-BackendDbConfig

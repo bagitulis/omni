@@ -6,10 +6,7 @@
  * - Manage column selection state
  */
 
-import {
-  getAuthHeaders,
-  getApiBaseUrl,
-} from "../../../../utils/apiHeaders";
+import { getAuthHeaders, getApiBaseUrl } from "../../../../utils/apiHeaders";
 
 export function useColumnConfiguration() {
   const API_BASE_URL = getApiBaseUrl("/inventory");
@@ -24,15 +21,19 @@ export function useColumnConfiguration() {
       });
       const data = await response.json();
 
-      if (data.status === "SUCCESS") {
+      if (data.success === true) {
         console.log(
           "📋 Available columns:",
-          data.columns.map((c: any) => `${c.spreadsheet_column}: ${c.name}`)
+          (data.columns || []).map(
+            (c: any) => `${c.spreadsheet_column}: ${c.name}`,
+          ),
         );
         return data.columns || [];
       }
 
-      throw new Error(data.message || "Failed to load available columns");
+      throw new Error(
+        data.error || data.message || "Failed to load available columns",
+      );
     } catch (error: any) {
       console.error("❌ Error loading available columns:", error);
       throw error;
@@ -49,12 +50,14 @@ export function useColumnConfiguration() {
       });
       const data = await response.json();
 
-      if (data.status === "SUCCESS") {
+      if (data.success === true) {
         console.log("📋 Selected columns:", data.selected_columns);
         return data.selected_columns || [];
       }
 
-      throw new Error(data.message || "Failed to load selected columns");
+      throw new Error(
+        data.error || data.message || "Failed to load selected columns",
+      );
     } catch (error: any) {
       console.error("❌ Error loading selected columns:", error);
       throw error;
@@ -65,7 +68,7 @@ export function useColumnConfiguration() {
    * Save column selection to backend
    */
   async function saveColumnConfiguration(
-    selectedColumns: string[]
+    selectedColumns: string[],
   ): Promise<void> {
     try {
       const response = await fetch(`${API_BASE_URL}/columns/selected`, {
@@ -79,8 +82,10 @@ export function useColumnConfiguration() {
 
       const data = await response.json();
 
-      if (data.status !== "SUCCESS") {
-        throw new Error(data.message || "Failed to save column configuration");
+      if (!data.success) {
+        throw new Error(
+          data.error || data.message || "Failed to save column configuration",
+        );
       }
 
       console.log("✅ Column configuration saved");

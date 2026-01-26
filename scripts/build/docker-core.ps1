@@ -91,7 +91,7 @@ function Test-DockerReady {
     elseif ($dockerInfo -match "failed to connect.*pipe|error during connect.*pipe|The system cannot find the file specified|cannot connect to the Docker daemon") {
         $result.ErrorType = "PipeError"
     }
-    elseif ($dockerInfo -match "DNS lookup error|DNS.*name does not exist") {
+    elseif ($dockerInfo -match "DNS lookup error|DNS.*name does not exist|no such host|dial tcp.*lookup") {
         $result.ErrorType = "DNSError"
     }
     elseif ($LASTEXITCODE -ne 0) {

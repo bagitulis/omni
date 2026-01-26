@@ -114,16 +114,17 @@ const handleLogin = async () => {
     const response = await authService.login(
       form.username,
       form.password,
-      recaptchaToken
+      recaptchaToken,
     );
 
     // Store user data in localStorage for admin panel
     localStorage.setItem("authToken", response.token);
     localStorage.setItem("userRole", response.user.role || "user");
     localStorage.setItem("userName", response.user.username || "User");
+    // Backend returns tenant_id (snake_case) per AGENTS.MD convention
     localStorage.setItem(
       "tenantId",
-      response.tenantId || response.user.username || ""
+      response.tenant_id || response.user.username || "",
     );
 
     authStore.setAuth({

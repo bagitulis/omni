@@ -48,6 +48,9 @@ type OrderItem struct {
 	Quantity      int     `json:"quantity"`
 	Price         float64 `json:"price"`
 	TotalPrice    float64 `json:"total_price"`
+	// Tracking info (for Lazada items which have per-item tracking)
+	TrackingNumber  string `json:"tracking_number,omitempty"`
+	ShippingCarrier string `json:"shipping_carrier,omitempty"`
 }
 
 // OrderRepository interface for order persistence

@@ -68,8 +68,20 @@ func (c *LazadaAPIClient) GetOrderList(ctx context.Context, status string, days 
 		for _, o := range orders {
 			if orderMap, ok := o.(map[string]interface{}); ok {
 				// Map order_id to order_sn for consistency
+				// IMPORTANT: order_id is a large int64, may come as float64 from JSON
+				// Must convert properly to avoid scientific notation
 				if orderID, ok := orderMap["order_id"]; ok {
-					orderMap["order_sn"] = fmt.Sprintf("%v", orderID)
+					switch v := orderID.(type) {
+					case float64:
+						// Convert float64 to int64 string without scientific notation
+						orderMap["order_sn"] = fmt.Sprintf("%.0f", v)
+					case int64:
+						orderMap["order_sn"] = fmt.Sprintf("%d", v)
+					case string:
+						orderMap["order_sn"] = v
+					default:
+						orderMap["order_sn"] = fmt.Sprintf("%v", v)
+					}
 				}
 				orderMap["order_status"] = status
 				allOrders = append(allOrders, orderMap)
@@ -115,7 +127,8 @@ func (c *LazadaAPIClient) GetOrderDetails(ctx context.Context, orderIDs []string
 
 		result, err := c.request("/order/items/get", params)
 		if err != nil {
-			continue // Skip failed orders
+			// Skip failed orders, continue with others
+			continue
 		}
 
 		// Parse response

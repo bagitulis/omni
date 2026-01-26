@@ -120,6 +120,10 @@ func main() {
 	routes.RegisterTiktokAnalyticsRoutes(api, extHandlers.TiktokAnalyticsHandler)
 	routes.RegisterShopeeAnalyticsRoutes(api, extHandlers.ShopeeAnalyticsHandler)
 
+	// Ads Analytics routes (for frontend composables)
+	routes.RegisterShopeeAdsAnalyticsRoutes(api, cfg.DatabasePath)
+	routes.RegisterTiktokAdsAnalyticsRoutes(api, cfg.DatabasePath)
+
 	// ====== Google Routes ======
 	// Use the already initialized googleAuthService
 	googleQuotaService := googleService.NewQuotaService()

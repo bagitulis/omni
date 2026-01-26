@@ -360,6 +360,7 @@ function Invoke-FullRebuild {
     <#
     .SYNOPSIS
     Full rebuild - clean rebuild from scratch with robust error handling
+    Includes database reset with automatic restore from backup
     #>
     param(
         [string]$Spec = "standard",
@@ -368,21 +369,74 @@ function Invoke-FullRebuild {
     
     Write-Header "Full Rebuild Mode"
     
+    # Check if database has data and warn user
+    $hasLocalData = $false
+    $hasBackup = Test-Path (Join-Path $script:ProjectRoot "backups\smart\manifest.json")
+    
+    # Check if postgres container exists and has data
+    $pgExists = docker inspect "omni-postgres" 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        $pgStatus = docker inspect --format='{{.State.Status}}' "omni-postgres" 2>$null
+        if ($pgStatus -eq "running") {
+            $rowQuery = "SELECT COALESCE(SUM(n_live_tup), 0) FROM pg_stat_user_tables WHERE schemaname LIKE 'tenant_%';"
+            $rowResult = docker exec omni-postgres psql -U omni -d omni_main -t -A -c $rowQuery 2>&1
+            if ($LASTEXITCODE -eq 0 -and [int]($rowResult.Trim()) -gt 0) {
+                $hasLocalData = $true
+            }
+        }
+    }
+    
+    # Show warning if local database has data
+    if ($hasLocalData) {
+        Write-Host ""
+        Write-Host "  +-------------------------------------------+" -ForegroundColor Red
+        Write-Host "  | WARNING: DATABASE WILL BE RESET!          |" -ForegroundColor Red
+        Write-Host "  +-------------------------------------------+" -ForegroundColor Red
+        Write-Host "  | Full Rebuild will:                        |" -ForegroundColor White
+        Write-Host "  |   - Remove all Docker volumes             |" -ForegroundColor Yellow
+        Write-Host "  |   - Delete current database data          |" -ForegroundColor Yellow
+        if ($hasBackup) {
+            Write-Host "  |   - Auto-restore from backup             |" -ForegroundColor Green
+            Write-Host "  +-------------------------------------------+" -ForegroundColor Red
+            Write-Host ""
+            Write-Host "  Backup available - data will be restored automatically" -ForegroundColor Cyan
+        } else {
+            Write-Host "  |   - Start with EMPTY database            |" -ForegroundColor Red
+            Write-Host "  +-------------------------------------------+" -ForegroundColor Red
+            Write-Host ""
+            Write-Host "  NO BACKUP FOUND! Run backup first:" -ForegroundColor Red
+            Write-Host "    backups\db-tools\menu.bat -> [2] Smart Backup" -ForegroundColor Yellow
+        }
+        Write-Host ""
+        
+        $choice = Read-Host "  Continue with Full Rebuild? (y/N)"
+        if ($choice -ne "y" -and $choice -ne "Y") {
+            Write-Info "Full Rebuild cancelled"
+            Write-Info "TIP: Use Smart Build [2] to preserve database"
+            return $false
+        }
+        Write-Host ""
+    }
+    
     # Pre-checks
-    Write-Step "1/6" "Running pre-build checks..."
+    Write-Step "1/7" "Running pre-build checks..."
     if (-not (Invoke-PreBuildChecks)) { return $false }
     
-    # Clean
-    Write-Step "2/6" "Removing old build artifacts..."
+    # Clean including Docker volumes
+    Write-Step "2/7" "Removing old build artifacts and volumes..."
     Clear-OldBuildArtifacts
     Invoke-MediumCleanup
     
+    # Remove postgres volume to ensure fresh database
+    Write-Info "Removing database volume for fresh start..."
+    docker volume rm omni_postgres_data 2>$null | Out-Null
+    
     # Frontend
-    Write-Step "3/6" "Building frontend..."
+    Write-Step "3/7" "Building frontend..."
     if (-not (Invoke-FrontendBuild -Mode "full")) { return $false }
     
     # Reset WSL mount cache with proper Docker recovery
-    Write-Step "4/6" "Resetting WSL mount cache..."
+    Write-Step "4/7" "Resetting WSL mount cache..."
     wsl --shutdown 2>&1 | Out-Null
     Start-Sleep -Seconds 3
     
@@ -401,13 +455,13 @@ function Invoke-FullRebuild {
     Write-Success "Docker engine ready"
     
     # Build & deploy (no cache) with strict error handling
-    Write-Step "5/6" "Building Docker images (no cache)..."
+    Write-Step "5/7" "Building Docker images (no cache)..."
     if (-not (Invoke-DockerBuild -Spec $Spec -NoCache -ShowProgress $ShowBuildOutput)) {
         Write-Error "Docker build failed"
         return $false
     }
     
-    Write-Step "6/6" "Deploying and verifying..."
+    Write-Step "6/7" "Deploying and verifying..."
     if (-not (Invoke-DockerDeploy -Spec $Spec)) {
         Write-Error "Docker deploy failed"
         return $false
@@ -426,8 +480,9 @@ function Invoke-FullRebuild {
         return $false
     }
     
-    # Post-deploy
-    $null = Invoke-PostDeployTasks
+    # Post-deploy with AUTO-RESTORE (Full Build always auto-restores)
+    Write-Step "7/7" "Running post-deploy tasks with auto-restore..."
+    $null = Invoke-PostDeployTasks -AutoRestore
     Show-ContainerStatus -Spec $Spec | Out-Host
     Show-DeploymentSummary -Spec $Spec
     

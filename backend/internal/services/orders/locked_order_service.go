@@ -3,13 +3,15 @@ package orders
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 // LockedOrderItem represents a locked order item
 // NOTE: JSON tags use snake_case for frontend compatibility
+// NOTE: ID is VARCHAR(255) in PostgreSQL, uses UUID format
 type LockedOrderItem struct {
-	ID            uint   `gorm:"primaryKey" json:"id"`
+	ID            string `gorm:"column:id;primaryKey;type:varchar(255)" json:"id"`
 	TenantID      string `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
 	SKU           string `gorm:"column:sku;not null" json:"sku"`
 	ProductName   string `gorm:"column:product_name;not null" json:"product_name"`
@@ -49,10 +51,10 @@ func (s *LockedOrderService) SaveLockedOrders(
 		return 0, nil
 	}
 
-	// Set tenant ID and create
+	// Set tenant ID and generate UUID for each item
 	for i := range items {
+		items[i].ID = uuid.New().String()
 		items[i].TenantID = tenantID
-		items[i].ID = 0 // Reset ID for new records
 	}
 
 	if err := s.db.WithContext(ctx).Create(&items).Error; err != nil {

@@ -149,7 +149,7 @@ const switchTenant = async () => {
 
   try {
     const data = await api.post("/auth/switch-tenant", {
-      tenantId: selectedTenant.value,
+      tenant_id: selectedTenant.value, // snake_case per backend requirement
     });
 
     if (data?.token) {
