@@ -48,6 +48,9 @@ function Test-DatabaseEmpty {
     Check if database is empty (fresh install / migration from another PC)
     Returns $true if database has no tenant data
     Returns $false if postgres not running or has data
+    
+    IMPORTANT: Uses information_schema.tables instead of pg_stat_user_tables
+    because pg_stat statistics may not be updated immediately after container restart.
     #>
     try {
         # First check if postgres is running
@@ -56,8 +59,8 @@ function Test-DatabaseEmpty {
             return $false  # Can't check - assume not empty
         }
         
-        # Count tables in tenant schemas
-        $query = "SELECT COUNT(*) FROM pg_stat_user_tables WHERE schemaname LIKE 'tenant_%';"
+        # Count tables in tenant schemas using information_schema (more reliable than pg_stat)
+        $query = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema LIKE 'tenant_%' AND table_type = 'BASE TABLE';"
         $result = docker exec omni-postgres psql -U omni -d omni_main -t -A -c $query 2>&1
         
         if ($LASTEXITCODE -ne 0) {
@@ -76,19 +79,43 @@ function Test-DatabaseEmpty {
             return $true
         }
         
-        # Also check if tables exist but are empty (row count = 0)
-        $rowQuery = "SELECT COALESCE(SUM(n_live_tup), 0) FROM pg_stat_user_tables WHERE schemaname LIKE 'tenant_%';"
-        $rowResult = docker exec omni-postgres psql -U omni -d omni_main -t -A -c $rowQuery 2>&1
+        # Tables exist - check if at least one key table has data using dynamic schema
+        # This query dynamically finds the first tenant schema and checks shopee_orders
+        $rowQuery = @"
+DO `$`$
+DECLARE
+    tenant_schema TEXT;
+    row_count INT;
+BEGIN
+    -- Get first tenant schema
+    SELECT schema_name INTO tenant_schema
+    FROM information_schema.schemata 
+    WHERE schema_name LIKE 'tenant_%' 
+    LIMIT 1;
+    
+    IF tenant_schema IS NULL THEN
+        RAISE NOTICE 'NO_TENANT';
+        RETURN;
+    END IF;
+    
+    -- Check if shopee_orders table has data
+    EXECUTE format('SELECT COUNT(*) FROM %I.shopee_orders LIMIT 1', tenant_schema) INTO row_count;
+    RAISE NOTICE 'ROW_COUNT:%', row_count;
+END
+`$`$;
+"@
+        $rowResult = docker exec omni-postgres psql -U omni -d omni_main -c $rowQuery 2>&1
         
-        $totalRows = 0
-        if ($rowResult -is [string]) {
-            $totalRows = [int]($rowResult.Trim())
-        } elseif ($rowResult -is [array]) {
-            $firstLine = ($rowResult | Where-Object { $_ -match '^\d+$' } | Select-Object -First 1)
-            if ($firstLine) { $totalRows = [int]$firstLine }
+        $hasData = $false
+        $resultText = $rowResult -join "`n"
+        if ($resultText -match 'ROW_COUNT:(\d+)') {
+            $count = [int]$matches[1]
+            $hasData = ($count -gt 0)
+        } elseif ($resultText -match 'NO_TENANT') {
+            return $true  # No tenant = empty
         }
         
-        return $totalRows -eq 0
+        return -not $hasData
     }
     catch {
         Write-Warning "Error checking database: $_"

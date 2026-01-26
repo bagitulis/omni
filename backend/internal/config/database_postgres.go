@@ -74,8 +74,12 @@ func openPostgresDatabase(config *PostgresConfig) (*gorm.DB, error) {
 		logLevel = logger.Info
 	}
 
+	// Use custom logger that suppresses "record not found" logs
+	// These are expected behaviors when checking if settings exist
+	customLogger := NewSilentRecordNotFoundLogger(logLevel)
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logLevel),
+		Logger: customLogger,
 		// Disable prepared statement cache to avoid stale connection issues
 		PrepareStmt: false,
 	})
