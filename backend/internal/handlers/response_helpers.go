@@ -27,8 +27,14 @@ func respondInternalError(c *gin.Context, err error) {
 }
 
 // respondSuccess sends success response with data
+// NOTE: Uses both "data" and "items" for frontend compatibility
 func respondSuccess(c *gin.Context, data interface{}, count int) {
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": data, "count": count})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    data,
+		"items":   data,
+		"count":   count,
+	})
 }
 
 // respondWithConfig sends success response with single config

@@ -4,14 +4,15 @@ import "time"
 
 // LazadaOrder represents a Lazada order in database
 // Matches Prisma schema: LazadaOrder
+// NOTE: JSON tags use snake_case for frontend compatibility
 type LazadaOrder struct {
-	ID            uint      `gorm:"primaryKey" json:"id"`
-	TenantID      string    `gorm:"index;not null" json:"tenantId"`
-	OrderSN       string    `gorm:"uniqueIndex;not null" json:"orderSn"`
-	ShopID        *int64    `json:"shopId,omitempty"`
-	OrderStatus   string    `json:"orderStatus"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	TenantID    string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
+	OrderSN     string    `gorm:"column:order_sn;uniqueIndex;not null" json:"order_sn"`
+	ShopID      *int64    `gorm:"column:shop_id" json:"shop_id,omitempty"`
+	OrderStatus string    `gorm:"column:order_status" json:"order_status"`
+	CreatedAt   time.Time `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt   time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
 func (LazadaOrder) TableName() string {
@@ -20,19 +21,20 @@ func (LazadaOrder) TableName() string {
 
 // LazadaOrderItem represents order items
 // Matches Prisma schema: LazadaOrderItem
+// NOTE: JSON tags use snake_case for frontend compatibility
 type LazadaOrderItem struct {
 	ID            uint      `gorm:"primaryKey" json:"id"`
-	TenantID      string    `gorm:"index;not null" json:"tenantId"`
-	OrderSN       string    `gorm:"index;not null" json:"orderSn"`
-	ItemID        int64     `json:"itemId"`
-	SkuID         string    `json:"skuId,omitempty"`
-	SellerSku     string    `json:"sellerSku,omitempty"`
-	ProductName   string    `json:"productName,omitempty"`
-	VariationName string    `json:"variationName,omitempty"`
-	Quantity      *int      `json:"quantity,omitempty"`
-	Price         *float64  `json:"price,omitempty"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	TenantID      string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
+	OrderSN       string    `gorm:"column:order_sn;index;not null" json:"order_sn"`
+	ItemID        int64     `gorm:"column:item_id" json:"item_id"`
+	SkuID         string    `gorm:"column:sku_id" json:"sku_id,omitempty"`
+	SellerSku     string    `gorm:"column:seller_sku" json:"seller_sku,omitempty"`
+	ProductName   string    `gorm:"column:product_name" json:"product_name,omitempty"`
+	VariationName string    `gorm:"column:variation_name" json:"variation_name,omitempty"`
+	Quantity      *int      `gorm:"column:quantity" json:"quantity,omitempty"`
+	Price         *float64  `gorm:"column:price" json:"price,omitempty"`
+	CreatedAt     time.Time `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt     time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
 func (LazadaOrderItem) TableName() string {

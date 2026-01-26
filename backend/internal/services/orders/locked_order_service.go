@@ -7,13 +7,14 @@ import (
 )
 
 // LockedOrderItem represents a locked order item
+// NOTE: JSON tags use snake_case for frontend compatibility
 type LockedOrderItem struct {
 	ID            uint   `gorm:"primaryKey" json:"id"`
-	TenantID      string `gorm:"index;not null" json:"tenantId"`
-	SKU           string `gorm:"not null" json:"sku"`
-	ProductName   string `gorm:"not null" json:"productName"`
-	VariationName string `json:"variationName,omitempty"`
-	Qty           int    `gorm:"not null" json:"qty"`
+	TenantID      string `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
+	SKU           string `gorm:"column:sku;not null" json:"sku"`
+	ProductName   string `gorm:"column:product_name;not null" json:"product_name"`
+	VariationName string `gorm:"column:variation_name" json:"variation_name,omitempty"`
+	Qty           int    `gorm:"column:qty;not null" json:"qty"`
 }
 
 // TableName returns the table name for GORM

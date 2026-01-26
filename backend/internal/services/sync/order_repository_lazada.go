@@ -128,16 +128,17 @@ func (r *GormOrderRepository) flattenLazadaOrders(orderModels []models.LazadaOrd
 				}
 
 				orders = append(orders, Order{
-					ID:          fmt.Sprintf("%d", m.ID),
-					OrderSN:     m.OrderSN,
-					OrderNo:     m.OrderSN,
-					Platform:    strings.ToUpper("lazada"),
-					Status:      m.OrderStatus,
-					SKU:         item.SellerSku,
-					ProductName: item.ProductName,
-					Quantity:    qty,
-					CreatedAt:   m.CreatedAt,
-					UpdatedAt:   m.UpdatedAt,
+					ID:            fmt.Sprintf("%d", m.ID),
+					OrderSN:       m.OrderSN,
+					OrderNo:       m.OrderSN,
+					Platform:      strings.ToUpper("lazada"),
+					Status:        m.OrderStatus,
+					SKU:           item.SellerSku,
+					ProductName:   item.ProductName,
+					VariationName: item.VariationName,
+					Quantity:      qty,
+					CreatedAt:     m.CreatedAt,
+					UpdatedAt:     m.UpdatedAt,
 				})
 			}
 		}

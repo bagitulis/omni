@@ -25,8 +25,7 @@ func NewAuthHandler(authService *services.AuthService, multiTenantAuth *services
 	}
 }
 
-// Login handles user login - searches across ALL tenants
-// Matches Node.js behavior: findUserAcrossTenants
+// Login handles user login - searches across ALL tenants (matches Node.js findUserAcrossTenants)
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

@@ -162,9 +162,39 @@ func (s *OrderSyncOperations) fetchOrderItems(
 		"order_count": len(orderIDs),
 	}).Info("Fetching order items from platform")
 
-	items, err := manager.GetOrderItems(ctx, orderIDs)
-	if err != nil {
-		return err
+	// IMPORTANT: Platform APIs have batch limits
+	// Shopee: max 50 order IDs per request
+	// We'll batch by 50 to be safe for all platforms
+	const batchSize = 50
+	allItems := make(map[string][]OrderItem)
+
+	for i := 0; i < len(orderIDs); i += batchSize {
+		end := i + batchSize
+		if end > len(orderIDs) {
+			end = len(orderIDs)
+		}
+		batch := orderIDs[i:end]
+
+		s.logger.WithFields(map[string]interface{}{
+			"platform":   platform,
+			"batch":      i/batchSize + 1,
+			"batch_size": len(batch),
+		}).Info("Fetching order items batch")
+
+		items, err := manager.GetOrderItems(ctx, batch)
+		if err != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"platform": platform,
+				"batch":    i/batchSize + 1,
+				"error":    err.Error(),
+			}).Warn("Failed to fetch order items batch, continuing with next batch")
+			continue
+		}
+
+		// Merge items into allItems
+		for orderID, orderItems := range items {
+			allItems[orderID] = orderItems
+		}
 	}
 
 	// Count how many items were found
@@ -174,7 +204,7 @@ func (s *OrderSyncOperations) fetchOrderItems(
 	// Attach items to orders
 	for i := range orders {
 		orderID := orderIDs[i]
-		if orderItems, ok := items[orderID]; ok {
+		if orderItems, ok := allItems[orderID]; ok {
 			orders[i].Items = orderItems
 			totalItems += len(orderItems)
 			matchedOrders++

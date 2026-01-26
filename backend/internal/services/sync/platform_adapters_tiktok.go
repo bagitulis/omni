@@ -123,12 +123,26 @@ func (m *TiktokOrderManager) GetOrderItems(ctx context.Context, orderIDs []strin
 						sku = getString(itemMap, "sku_id")
 					}
 
+					// TikTok API doesn't always return quantity field
+					// Try multiple possible keys, default to 1 if not found
+					qty := getInt(itemMap, "quantity")
+					if qty == 0 {
+						qty = getInt(itemMap, "item_count")
+					}
+					if qty == 0 {
+						qty = getInt(itemMap, "qty")
+					}
+					if qty == 0 {
+						// Default to 1 - most TikTok orders have qty=1
+						qty = 1
+					}
+
 					orderItems = append(orderItems, OrderItem{
 						OrderID:       orderID,
 						SKU:           sku,
 						ProductName:   getString(itemMap, "product_name"),
 						VariationName: getString(itemMap, "sku_name"),
-						Quantity:      getInt(itemMap, "quantity"),
+						Quantity:      qty,
 						Price:         getFloat64(itemMap, "original_price"),
 					})
 				}
@@ -176,4 +190,13 @@ func getInt(m map[string]interface{}, key string) int {
 		}
 	}
 	return 0
+}
+
+// getMapKeys returns all keys in a map (for debugging)
+func getMapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }
