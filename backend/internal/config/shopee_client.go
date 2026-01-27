@@ -1,41 +1,120 @@
 package config
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
+	"os"
+	"strconv"
 
+	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/pkg/shopee"
+	"gorm.io/gorm"
 )
 
 // GetShopeeClient returns a configured Shopee client for the given tenant
-// For now, returns a test client with default credentials
-// TODO: Load from platform_configs table per tenant
+// Loads REAL credentials from database with ENV fallback - NO hardcoded test values
 func GetShopeeClient(tenantID, basePath string) (*shopee.Client, error) {
 	if tenantID == "" {
 		return nil, ErrMissingTenantID
 	}
 
-	// For now, create a test client with default credentials
-	// In production, this should load from platform_configs table
-	partnerID := int64(100000) // Test partner ID
-	partnerKey := "test_key"   // Test partner key
-	isProduction := false
+	// Get tenant database
+	tenantDB, err := GetTenantDB(tenantID, basePath)
+	if err != nil {
+		return nil, fmt.Errorf("get tenant DB: %w", err)
+	}
 
-	client := shopee.NewClient(partnerID, partnerKey, isProduction)
+	// Get system database for global config
+	systemDB, err := GetSystemDB(basePath)
+	if err != nil {
+		return nil, fmt.Errorf("get system DB: %w", err)
+	}
 
-	// Set shop credentials (should be loaded from database)
-	shopID := int64(123456)
-	accessToken := "test_token"
-	client.SetShopCredentials(shopID, accessToken)
+	// Load global credentials (partner_id, partner_key) with ENV fallback
+	globalCreds, err := loadShopeeGlobalCredentials(systemDB)
+	if err != nil {
+		return nil, fmt.Errorf("load global credentials: %w", err)
+	}
+
+	// Load tenant credentials (shop_id, access_token)
+	tenantCreds, err := loadShopeeTenantCredentials(context.Background(), tenantDB)
+	if err != nil {
+		return nil, fmt.Errorf("load tenant credentials: %w", err)
+	}
+
+	// Create client with REAL credentials from database
+	client := shopee.NewClient(globalCreds.PartnerID, globalCreds.PartnerKey, true)
+	client.SetShopCredentials(tenantCreds.ShopID, tenantCreds.AccessToken)
 
 	return client, nil
 }
 
-// Helper function to parse JSON from platform_config
-func parseConfigValue(value string) (map[string]interface{}, error) {
-	var result map[string]interface{}
-	if err := json.Unmarshal([]byte(value), &result); err != nil {
-		return nil, fmt.Errorf("failed to parse config value: %w", err)
+// loadShopeeGlobalCredentials loads partner_id and partner_key from system DB with ENV fallback
+func loadShopeeGlobalCredentials(db *gorm.DB) (*ShopeeGlobalCreds, error) {
+	var configs []models.GlobalConfig
+	if err := db.Where("platform = ?", "shopee").Find(&configs).Error; err != nil {
+		return nil, fmt.Errorf("query global config: %w", err)
 	}
-	return result, nil
+
+	creds := &ShopeeGlobalCreds{}
+	for _, cfg := range configs {
+		switch cfg.ConfigKey {
+		case "partner_id", "partnerId":
+			if pid, err := strconv.ParseInt(cfg.ConfigValue, 10, 64); err == nil {
+				creds.PartnerID = pid
+			}
+		case "partner_key", "partnerKey":
+			creds.PartnerKey = cfg.ConfigValue
+		}
+	}
+
+	// Fallback to ENV if not in database (matching Node backend behavior)
+	if creds.PartnerID == 0 {
+		if envPartnerID := os.Getenv("SHOPEE_PARTNER_ID"); envPartnerID != "" {
+			if pid, err := strconv.ParseInt(envPartnerID, 10, 64); err == nil {
+				creds.PartnerID = pid
+			}
+		}
+	}
+	if creds.PartnerKey == "" {
+		if envPartnerKey := os.Getenv("SHOPEE_PARTNER_KEY"); envPartnerKey != "" {
+			creds.PartnerKey = envPartnerKey
+		}
+	}
+
+	if creds.PartnerID == 0 || creds.PartnerKey == "" {
+		return nil, fmt.Errorf("Shopee credentials not configured (checked database and ENV vars)")
+	}
+
+	return creds, nil
+}
+
+// loadShopeeTenantCredentials loads shop_id and access_token from tenant DB
+func loadShopeeTenantCredentials(ctx context.Context, db *gorm.DB) (*ShopeeTenantCredentials, error) {
+	repo := repositories.NewTenantPlatformConfigRepository(db)
+	tokenInfo, err := repo.GetTokenInfo(ctx, "shopee")
+	if err != nil {
+		return nil, fmt.Errorf("get token info: %w", err)
+	}
+	if tokenInfo == nil {
+		return nil, fmt.Errorf("Shopee tenant credentials not found in database")
+	}
+
+	return &ShopeeTenantCredentials{
+		ShopID:      tokenInfo.ShopID,
+		AccessToken: tokenInfo.AccessToken,
+	}, nil
+}
+
+// ShopeeGlobalCreds holds global Shopee credentials (partner level)
+type ShopeeGlobalCreds struct {
+	PartnerID  int64
+	PartnerKey string
+}
+
+// ShopeeTenantCredentials holds shop-level credentials
+type ShopeeTenantCredentials struct {
+	ShopID      int64
+	AccessToken string
 }

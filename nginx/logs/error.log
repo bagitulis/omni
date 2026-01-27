@@ -634,3 +634,4 @@
 2026/01/27 14:07:43 [error] 21#21: *639 access forbidden by rule, client: 172.18.0.3, server: _, request: "GET /.env HTTP/1.1", host: "yndigital.my.id"
 2026/01/27 16:00:45 [error] 21#21: *289 access forbidden by rule, client: 172.18.0.3, server: _, request: "GET /.env HTTP/1.1", host: "yndigital.my.id"
 2026/01/27 16:00:46 [error] 21#21: *289 access forbidden by rule, client: 172.18.0.3, server: _, request: "GET /.env HTTP/1.1", host: "yndigital.my.id"
+2026/01/27 16:44:34 [error] 21#21: *3 access forbidden by rule, client: 172.18.0.3, server: _, request: "GET /.env HTTP/1.1", host: "yndigital.my.id"

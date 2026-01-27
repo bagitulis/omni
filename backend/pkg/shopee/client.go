@@ -57,9 +57,21 @@ func (c *Client) generateSign(path string, timestamp int64) string {
 	baseString := fmt.Sprintf("%d%s%d%s%d",
 		c.partnerID, path, timestamp, c.accessToken, c.shopID)
 
+	// 🔍 DEBUG: Log signature components
+	log.Printf("[Shopee Signature] 🔐 Path: %s", path)
+	log.Printf("[Shopee Signature] 🔐 Timestamp: %d", timestamp)
+	log.Printf("[Shopee Signature] 🔐 PartnerID: %d", c.partnerID)
+	log.Printf("[Shopee Signature] 🔐 ShopID: %d", c.shopID)
+	log.Printf("[Shopee Signature] 🔐 AccessToken (first 20): %s...", truncateString(c.accessToken, 20))
+	log.Printf("[Shopee Signature] 🔐 PartnerKey (first 20): %s...", truncateString(c.partnerKey, 20))
+	log.Printf("[Shopee Signature] 🔐 BaseString: %s", baseString)
+
 	h := hmac.New(sha256.New, []byte(c.partnerKey))
 	h.Write([]byte(baseString))
-	return hex.EncodeToString(h.Sum(nil))
+	signature := hex.EncodeToString(h.Sum(nil))
+
+	log.Printf("[Shopee Signature] 🔐 Signature: %s", signature)
+	return signature
 }
 
 // buildURL constructs the full API URL with required params
@@ -79,6 +91,8 @@ func (c *Client) buildURL(path string, params map[string]string) string {
 		q.Set(k, v)
 	}
 	u.RawQuery = q.Encode()
+
+	log.Printf("[Shopee URL] 📍 Final URL (truncated): %s", truncateString(u.String(), 200))
 	return u.String()
 }
 
