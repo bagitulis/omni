@@ -498,3 +498,6 @@
 2026/01/27 03:03:04 [error] 21#21: *206 connect() failed (111: Connection refused) while connecting to upstream, client: 172.18.0.8, server: _, request: "GET /api/health HTTP/1.1", upstream: "http://172.18.0.3:3000/api/health", host: "yndigital.my.id", referrer: "https://yndigital.my.id/inventory"
 2026/01/27 03:03:12 [error] 21#21: *206 connect() failed (111: Connection refused) while connecting to upstream, client: 172.18.0.8, server: _, request: "GET /api/health HTTP/1.1", upstream: "http://172.18.0.3:3000/api/health", host: "yndigital.my.id", referrer: "https://yndigital.my.id/inventory"
 2026/01/27 03:03:20 [error] 21#21: *1 connect() failed (111: Connection refused) while connecting to upstream, client: 172.18.0.9, server: _, request: "GET /api/health HTTP/1.1", upstream: "http://172.18.0.3:3000/api/health", host: "yndigital.my.id", referrer: "https://yndigital.my.id/inventory"
+2026/01/27 04:04:00 [error] 20#20: *79 connect() failed (113: Host is unreachable) while connecting to upstream, client: 172.18.0.8, server: _, request: "POST /api HTTP/1.1", upstream: "http://172.18.0.6:3000/api", host: "yndigital.my.id"
+2026/01/27 04:20:43 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 04:20:50 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75

@@ -56,9 +56,9 @@ func RegisterInventorySimpleRoutes(router *gin.RouterGroup, handler *handlers.In
 		inventory.POST("/update-stock", handler.UpdateStock)
 		inventory.POST("/update-stock-batch", handler.UpdateStockBatch)
 
-		// Price updates - DEPRECATED handler removed, use extended_routes.go
-		// inventory.POST("/update-price", handler.UpdatePrice)
-		// inventory.POST("/update-price-batch", handler.UpdatePriceBatch)
+		// Price updates (matches Node.js format: items array)
+		inventory.POST("/update-price", handler.UpdatePrice)
+		inventory.POST("/update-price-batch", handler.UpdatePriceBatch)
 
 		// ============================================================================
 		// CRUD Operations by Key Value (CRITICAL: Place AFTER specific routes!)

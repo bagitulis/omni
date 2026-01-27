@@ -193,3 +193,50 @@ func (s *TiktokAdsService) GetPredictions(ctx context.Context) ([]models.TiktokA
 		Find(&predictions).Error
 	return predictions, err
 }
+
+// GetDataWithCursor retrieves TikTok ads data with cursor-based pagination
+func (s *TiktokAdsService) GetDataWithCursor(ctx context.Context, periodLabel string, cursor *int, limit int) (*CursorPaginationResult, error) {
+	if limit <= 0 || limit > 1000 {
+		limit = 100 // Default limit
+	}
+
+	query := s.db.WithContext(ctx).Where("tenant_id = ?", s.tenantID)
+	if periodLabel != "" {
+		query = query.Where("period_label = ?", periodLabel)
+	}
+
+	// Get total count
+	var total int64
+	if err := query.Model(&models.TiktokAdsCreativeData{}).Count(&total).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply cursor
+	if cursor != nil {
+		query = query.Where("id > ?", *cursor)
+	}
+
+	var data []models.TiktokAdsCreativeData
+	if err := query.Order("id ASC").Limit(limit + 1).Find(&data).Error; err != nil {
+		return nil, err
+	}
+
+	hasMore := len(data) > limit
+	if hasMore {
+		data = data[:limit] // Trim to limit
+	}
+
+	var nextCursor *string
+	if hasMore && len(data) > 0 {
+		lastID := data[len(data)-1].ID
+		cursorStr := encodeIntCursor(int(lastID))
+		nextCursor = &cursorStr
+	}
+
+	return &CursorPaginationResult{
+		Data:       data,
+		NextCursor: nextCursor,
+		HasMore:    hasMore,
+		Total:      total,
+	}, nil
+}

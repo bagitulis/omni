@@ -124,6 +124,9 @@ func main() {
 	routes.RegisterShopeeAdsAnalyticsRoutes(api, cfg.DatabasePath)
 	routes.RegisterTiktokAdsAnalyticsRoutes(api, cfg.DatabasePath)
 
+	// ML Report routes
+	routes.RegisterMLReportRoutes(api, cfg.DatabasePath)
+
 	// ====== Google Routes ======
 	// Use the already initialized googleAuthService
 	googleQuotaService := googleService.NewQuotaService()

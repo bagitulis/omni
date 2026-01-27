@@ -41,11 +41,11 @@ var tableNameMapping = map[string]string{
 	"TiktokEscrowItem":  "tiktok_escrow_items",
 
 	// Inventory
-	"InventorySettings":         "inventory_settings",
-	"InventoryRecord":           "inventory_records",
-	"InventorySyncHistory":      "inventory_sync_history",
+	"InventorySettings":          "inventory_settings",
+	"InventoryRecord":            "inventory_records",
+	"InventorySyncHistory":       "inventory_sync_history",
 	"InventorySkuPlatformStatus": "inventory_sku_platform_status",
-	"SheetSnapshot":             "sheet_snapshots",
+	"SheetSnapshot":              "sheet_snapshots",
 
 	// Settings
 	"GoogleSheetsSettings": "google_sheets_settings",
@@ -53,7 +53,7 @@ var tableNameMapping = map[string]string{
 	"Spreadsheet":          "spreadsheets",
 	"RouteConfig":          "route_configs",
 	"WholesaleSettings":    "wholesale_settings",
-	
+
 	// Unified Products
 	"Product":    "products",
 	"ProductSKU": "product_skus",
@@ -92,6 +92,10 @@ var tableNameMapping = map[string]string{
 	"TiktokAdsCreativeData":   "tiktok_ads_creative_data",
 	"TiktokAdsProductSummary": "tiktok_ads_product_summaries",
 	"TiktokAdsMLPrediction":   "tiktok_ads_ml_predictions",
+
+	// ML Reports
+	"MLReport": "ml_reports",
+	"MLJob":    "ml_jobs",
 
 	// Global Config (system schema)
 	"GlobalConfig": "global_config",

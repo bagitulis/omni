@@ -1,0 +1,15 @@
+# Core dependencies - Production
+click>=8.1.7
+rich>=13.7.0
+docker>=7.0.0
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+psutil>=5.9.0
+requests>=2.31.0
+
+# Development dependencies
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.12.0
+mypy>=1.8.0
+ruff>=0.1.0

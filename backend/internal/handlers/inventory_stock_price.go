@@ -208,18 +208,18 @@ func (h *InventoryHandler) UpdatePrice(c *gin.Context) {
 }
 
 // UpdatePriceBatchRequest represents batch price update request
-// DEPRECATED: Use inventory/price_handler.go instead
-// This handler expects "skus" array, but Node.js sends "items" array
+// Updated to match Node.js format: { items: [{ sku, price, platforms? }] }
 type UpdatePriceBatchRequest struct {
-	SKUs      []string `json:"skus" binding:"required"`
-	Platform  string   `json:"platform"`
-	Platforms []string `json:"platforms"`
+	Items []struct {
+		SKU       string   `json:"sku" binding:"required"`
+		Price     float64  `json:"price" binding:"required"`
+		Platforms []string `json:"platforms,omitempty"`
+	} `json:"items" binding:"required"`
 }
 
 // UpdatePriceBatch handles POST /api/inventory/update-price-batch
-// DEPRECATED: Replaced by inventory/price_handler.go which matches Node.js format
-// Gets price from inventory_records for each SKU and syncs to marketplaces
-func (h *InventoryHandler) UpdatePriceBatch_OLD(c *gin.Context) {
+// Gets price from request (not from inventory_records) and syncs to marketplaces
+func (h *InventoryHandler) UpdatePriceBatch(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
@@ -238,12 +238,6 @@ func (h *InventoryHandler) UpdatePriceBatch_OLD(c *gin.Context) {
 		return
 	}
 
-	// Determine platforms to update
-	platforms := req.Platforms
-	if len(platforms) == 0 && req.Platform != "" {
-		platforms = []string{req.Platform}
-	}
-
 	// Initialize credential service
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
@@ -252,23 +246,19 @@ func (h *InventoryHandler) UpdatePriceBatch_OLD(c *gin.Context) {
 	credService := services.NewCredentialService(dbPath)
 
 	orchestrator := inventoryService.NewPriceUpdateOrchestrator(db, tenantID, credService)
-	results := make([]interface{}, 0, len(req.SKUs))
+	results := make([]interface{}, 0, len(req.Items))
 
-	for _, sku := range req.SKUs {
-		// Get price from inventory_records
-		var record models.InventoryRecord
-		err := db.WithContext(c.Request.Context()).
-			Where("tenant_id = ? AND key_value = ?", tenantID, sku).
-			First(&record).Error
-		if err != nil {
-			results = append(results, gin.H{"sku": sku, "success": false, "error": "SKU not found"})
-			continue
+	for _, item := range req.Items {
+		// Use price from request (not from inventory_records)
+		platforms := item.Platforms
+		if len(platforms) == 0 {
+			// Default to all platforms if not specified
+			platforms = []string{"shopee", "lazada", "tiktok"}
 		}
 
-		priceValue := inventoryService.GetPrice(record)
-		result, err := orchestrator.UpdatePrice(c.Request.Context(), sku, priceValue, platforms)
+		result, err := orchestrator.UpdatePrice(c.Request.Context(), item.SKU, item.Price, platforms)
 		if err != nil {
-			results = append(results, gin.H{"sku": sku, "success": false, "error": err.Error()})
+			results = append(results, gin.H{"sku": item.SKU, "success": false, "error": err.Error()})
 			continue
 		}
 		results = append(results, result)

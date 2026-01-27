@@ -265,6 +265,7 @@ export function useShopeeAdsAnalytics() {
     fetchDashboard,
     fetchProductData,
     fetchUploadHistory,
+    getDataWithCursor,
 
     // Formatters
     formatCurrency,
@@ -272,4 +273,25 @@ export function useShopeeAdsAnalytics() {
     formatPercent,
     formatRoas,
   };
+}
+
+// Cursor pagination method for virtual scrolling
+async function getDataWithCursor(
+  periodLabel: string = "",
+  cursor?: string,
+  limit: number = 100,
+) {
+  const params: Record<string, string> = {
+    limit: limit.toString(),
+  };
+
+  if (periodLabel) {
+    params.periodLabel = periodLabel;
+  }
+
+  if (cursor) {
+    params.cursor = cursor;
+  }
+
+  return api.get("/analytics/shopee-ads/data/cursor", { params });
 }

@@ -27,7 +27,11 @@ PROSES PENGEMBANGAN (WAJIB URUTAN INI):
 Perbaikan Container:
 
 - Jika kontainer Docker bermasalah, jalankan `build.bat` dari root repo untuk rebuild image & service agar environment kembali bersih.
-- Hanya gunakan mode Quick Apply dan Smart Build
+- Jalankan mode yang diizinkan saja:
+  - Smart Build (disarankan): build.bat smart
+  - Quick Apply (restart cepat): `build.bat quick`
+- Jangan gunakan full rebuild.
+- Saat build sedang berjalan, tunggu sampai script menyatakan selesai sukses; hindari menutup terminal atau menjalankan perintah lain (Docker/git/npm) agar proses container tidak terganggu.
 
 Kriteria Keberhasilan (Dua Bukti Wajib):
 Bukti 1: Log Docker yang menampilkan data valid spesifik (misal: tanggal terkait masalah, transaksi sukses).

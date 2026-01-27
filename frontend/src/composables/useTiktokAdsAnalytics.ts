@@ -108,7 +108,7 @@ export function useTiktokAdsAnalytics() {
   // API Methods
   async function uploadFile(
     file: File,
-    mode: "skip" | "update" = "skip"
+    mode: "skip" | "update" = "skip",
   ): Promise<UploadBatchResult | null> {
     uploading.value = true;
     error.value = null;
@@ -143,7 +143,7 @@ export function useTiktokAdsAnalytics() {
 
   async function fetchDashboard(
     periodStart?: string,
-    periodEnd?: string
+    periodEnd?: string,
   ): Promise<void> {
     loading.value = true;
     error.value = null;
@@ -181,7 +181,7 @@ export function useTiktokAdsAnalytics() {
       orderDir?: string;
       limit?: number;
       offset?: number;
-    } = {}
+    } = {},
   ): Promise<void> {
     loading.value = true;
     error.value = null;
@@ -266,6 +266,7 @@ export function useTiktokAdsAnalytics() {
     fetchDashboard,
     fetchCreativeData,
     fetchUploadHistory,
+    getDataWithCursor,
 
     // Formatters
     formatCurrency,
@@ -273,4 +274,25 @@ export function useTiktokAdsAnalytics() {
     formatPercent,
     formatRoi,
   };
+}
+
+// Cursor pagination method
+async function getDataWithCursor(
+  periodLabel: string = "",
+  cursor?: string,
+  limit: number = 100,
+) {
+  const params: Record<string, string> = {
+    limit: limit.toString(),
+  };
+
+  if (periodLabel) {
+    params.periodLabel = periodLabel;
+  }
+
+  if (cursor) {
+    params.cursor = cursor;
+  }
+
+  return api.get("/analytics/tiktok-ads/data/cursor", { params });
 }

@@ -1,0 +1,105 @@
+package routes
+
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/handlers"
+	"github.com/omni/backend/internal/handlers/analytics"
+	"github.com/omni/backend/internal/middleware"
+)
+
+// RegisterTiktokAnalyticsRoutes registers TikTok analytics routes
+// Maps to /api/analytics/tiktok/* (matching Node.js backend)
+func RegisterTiktokAnalyticsRoutes(router *gin.RouterGroup, handler *handlers.TiktokAnalyticsHandler) {
+	tiktok := router.Group("/analytics/tiktok")
+	tiktok.Use(middleware.Auth())
+	tiktok.Use(middleware.Tenant())
+	{
+		// Settings endpoints
+		tiktok.GET("/settings", handler.GetSettings)
+		tiktok.POST("/settings", handler.SaveSettings)
+
+		// Sync status endpoints
+		tiktok.GET("/sync-status", handler.GetSyncStatus)
+		tiktok.POST("/sync", handler.SyncEscrow)
+		tiktok.DELETE("/sync", handler.DeleteSyncData)
+
+		// Analysis endpoints
+		tiktok.GET("/reconciliation", handler.GetReconciliation)
+		tiktok.GET("/shipping-fee", handler.GetShippingFeeAnalysis)
+	}
+}
+
+// RegisterShopeeAnalyticsRoutes registers Shopee analytics routes
+// Maps to /api/analytics/shopee/* (matching Node.js backend)
+func RegisterShopeeAnalyticsRoutes(router *gin.RouterGroup, handler *handlers.ShopeeAnalyticsHandler) {
+	shopee := router.Group("/analytics/shopee")
+	shopee.Use(middleware.Auth())
+	shopee.Use(middleware.Tenant())
+	{
+		// Settings endpoints
+		shopee.GET("/settings", handler.GetSettings)
+		shopee.POST("/settings", handler.SaveSettings)
+
+		// Sync status endpoints
+		shopee.GET("/sync-status", handler.GetSyncStatus)
+		shopee.POST("/sync", handler.SyncEscrow)
+		shopee.DELETE("/sync", handler.DeleteSyncData)
+
+		// Analysis endpoints
+		shopee.GET("/reconciliation", handler.GetReconciliation)
+		shopee.GET("/shipping-fee", handler.GetShippingFeeAnalysis)
+	}
+}
+
+// RegisterAdsRoutes registers ads report routes
+func RegisterAdsRoutes(router *gin.RouterGroup, handler *handlers.AdsHandler) {
+	ads := router.Group("/ads")
+	ads.Use(middleware.Auth())
+	ads.Use(middleware.Tenant())
+	{
+		// Shopee Ads
+		ads.POST("/shopee/upload", handler.UploadShopeeAds)
+		ads.GET("/shopee", handler.GetShopeeAds)
+		ads.GET("/shopee/summary", handler.GetShopeeAdsSummary)
+		ads.GET("/shopee/trends", handler.GetShopeeAdsTrends)
+		ads.GET("/shopee/performance", handler.GetShopeeProductPerformance)
+
+		// TikTok Ads
+		ads.POST("/tiktok/upload", handler.UploadTiktokAds)
+		ads.GET("/tiktok", handler.GetTiktokAds)
+		ads.GET("/tiktok/summary", handler.GetTiktokAdsSummary)
+		ads.GET("/tiktok/trends", handler.GetTiktokAdsTrends)
+		ads.GET("/tiktok/performance", handler.GetTiktokProductPerformance)
+		ads.GET("/tiktok/predictions", handler.GetTiktokPredictions)
+	}
+}
+
+// RegisterShopeeAdsAnalyticsRoutes registers Shopee Ads analytics routes
+// Maps to /api/analytics/shopee-ads/* (matching frontend composable)
+func RegisterShopeeAdsAnalyticsRoutes(router *gin.RouterGroup, basePath string) {
+	handler := analytics.NewAdsHandler(basePath)
+	shopeeAds := router.Group("/analytics/shopee-ads")
+	shopeeAds.Use(middleware.Auth())
+	shopeeAds.Use(middleware.Tenant())
+	{
+		shopeeAds.GET("/dashboard", handler.GetDashboard)
+		shopeeAds.GET("/data", handler.GetData)
+		shopeeAds.GET("/uploads", handler.GetUploads)
+		shopeeAds.POST("/upload", handler.Upload)
+	}
+}
+
+// RegisterTiktokAdsAnalyticsRoutes registers TikTok Ads analytics routes
+// Maps to /api/analytics/tiktok-ads/* (matching frontend composable)
+func RegisterTiktokAdsAnalyticsRoutes(router *gin.RouterGroup, basePath string) {
+	handler := analytics.NewTiktokAdsHandler(basePath)
+	tiktokAds := router.Group("/analytics/tiktok-ads")
+	tiktokAds.Use(middleware.Auth())
+	tiktokAds.Use(middleware.Tenant())
+	{
+		tiktokAds.GET("/dashboard", handler.GetDashboard)
+		tiktokAds.GET("/data", handler.GetData)
+		tiktokAds.GET("/uploads", handler.GetUploads)
+		tiktokAds.POST("/upload", handler.Upload)
+	}
+}
