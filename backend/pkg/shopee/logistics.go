@@ -4,30 +4,32 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 )
 
 // ShipOrderRequest represents request to ship an order
 type ShipOrderRequest struct {
-	OrderSN   string       `json:"order_sn"`
-	PackageNumber string   `json:"package_number,omitempty"`
-	Pickup    *PickupInfo  `json:"pickup,omitempty"`
-	Dropoff   *DropoffInfo `json:"dropoff,omitempty"`
+	OrderSN       string             `json:"order_sn"`
+	PackageNumber string             `json:"package_number,omitempty"`
+	Pickup        *PickupInfo        `json:"pickup,omitempty"`
+	Dropoff       *DropoffInfo       `json:"dropoff,omitempty"`
 	NonIntegrated *NonIntegratedInfo `json:"non_integrated,omitempty"`
 }
 
 // PickupInfo represents pickup details
 type PickupInfo struct {
-	AddressID  int64  `json:"address_id"`
+	AddressID    int64  `json:"address_id"`
 	PickupTimeID string `json:"pickup_time_id,omitempty"`
 }
 
 // DropoffInfo represents dropoff details
 type DropoffInfo struct {
-	BranchID     int64  `json:"branch_id,omitempty"`
+	BranchID       int64  `json:"branch_id,omitempty"`
 	SenderRealName string `json:"sender_real_name,omitempty"`
-	TrackingNo   string `json:"tracking_no,omitempty"`
-	Slug         string `json:"slug,omitempty"`
+	TrackingNo     string `json:"tracking_no,omitempty"`
+	Slug           string `json:"slug,omitempty"`
 }
 
 // NonIntegratedInfo for non-integrated logistics
@@ -46,15 +48,15 @@ type ShipOrderResponse struct {
 
 // CancelOrderRequest represents request to cancel order
 type CancelOrderRequest struct {
-	OrderSN    string `json:"order_sn"`
-	CancelReason string `json:"cancel_reason"`
-	ItemList   []CancelItem `json:"item_list,omitempty"`
+	OrderSN      string       `json:"order_sn"`
+	CancelReason string       `json:"cancel_reason"`
+	ItemList     []CancelItem `json:"item_list,omitempty"`
 }
 
 // CancelItem represents item to cancel
 type CancelItem struct {
-	ItemID   int64 `json:"item_id"`
-	ModelID  int64 `json:"model_id"`
+	ItemID  int64 `json:"item_id"`
+	ModelID int64 `json:"model_id"`
 }
 
 // CancelOrderResponse represents cancel order API response
@@ -62,8 +64,8 @@ type CancelOrderResponse struct {
 	Error    string `json:"error"`
 	Message  string `json:"message"`
 	Response struct {
-		OrderSN       string `json:"order_sn"`
-		UpdateTime    int64  `json:"update_time"`
+		OrderSN    string `json:"order_sn"`
+		UpdateTime int64  `json:"update_time"`
 	} `json:"response"`
 }
 
@@ -73,16 +75,16 @@ type GetShippingParameterResponse struct {
 	Message  string `json:"message"`
 	Response struct {
 		InfoNeeded struct {
-			Pickup    []PickupAddressInfo `json:"pickup,omitempty"`
-			Dropoff   []BranchInfo        `json:"dropoff,omitempty"`
+			Pickup  []PickupAddressInfo `json:"pickup,omitempty"`
+			Dropoff []BranchInfo        `json:"dropoff,omitempty"`
 		} `json:"info_needed"`
 	} `json:"response"`
 }
 
 // PickupAddressInfo represents pickup address
 type PickupAddressInfo struct {
-	AddressID   int64    `json:"address_id"`
-	Address     string   `json:"address"`
+	AddressID    int64      `json:"address_id"`
+	Address      string     `json:"address"`
 	TimeSlotList []TimeSlot `json:"time_slot_list"`
 }
 
@@ -181,17 +183,41 @@ func (c *Client) GetTrackingNumber(orderSN string) (*GetTrackingNumberResponse, 
 func (c *Client) doPostRequest(path string, params map[string]string, body []byte, result interface{}) error {
 	reqURL := c.buildURL(path, params)
 
+	// 🔍 LOG REQUEST
+	log.Printf("[Shopee API] 📤 POST %s", path)
+	log.Printf("[Shopee API] 📦 Request Body: %s", string(body))
+
 	req, err := http.NewRequest("POST", reqURL, bytes.NewReader(body))
 	if err != nil {
+		log.Printf("[Shopee API] ❌ Failed to create request: %v", err)
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		log.Printf("[Shopee API] ❌ HTTP request failed: %v", err)
 		return err
 	}
 	defer resp.Body.Close()
 
-	return json.NewDecoder(resp.Body).Decode(result)
+	// Read response body for logging
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("[Shopee API] ❌ Failed to read response: %v", err)
+		return err
+	}
+
+	// 🔍 LOG RESPONSE
+	log.Printf("[Shopee API] 📥 Response Status: %s", resp.Status)
+	log.Printf("[Shopee API] 📥 Response Body: %s", string(respBody))
+
+	// Decode response
+	if err := json.Unmarshal(respBody, result); err != nil {
+		log.Printf("[Shopee API] ❌ Failed to parse response: %v", err)
+		return err
+	}
+
+	log.Printf("[Shopee API] ✅ Request completed successfully")
+	return nil
 }

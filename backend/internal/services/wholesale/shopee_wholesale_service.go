@@ -5,10 +5,12 @@ import (
 	"fmt"
 
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/pkg/shopee"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
-// WholesaleTier represents a single wholesale tier
+// WholesaleTier represents a single wholesale tier for API
 type WholesaleTier struct {
 	MinCount  int     `json:"min_count"`
 	MaxCount  int     `json:"max_count"`
@@ -17,40 +19,127 @@ type WholesaleTier struct {
 
 // ShopeeWholesaleService handles Shopee wholesale operations
 type ShopeeWholesaleService struct {
-	db       *gorm.DB
-	tenantID string
+	db        *gorm.DB
+	tenantID  string
+	shopeeAPI *shopee.ProductAPI
 }
 
 // NewShopeeWholesaleService creates a new Shopee wholesale service
-func NewShopeeWholesaleService(db *gorm.DB, tenantID string) *ShopeeWholesaleService {
+func NewShopeeWholesaleService(db *gorm.DB, tenantID string, shopeeAPI *shopee.ProductAPI) *ShopeeWholesaleService {
 	return &ShopeeWholesaleService{
-		db:       db,
-		tenantID: tenantID,
+		db:        db,
+		tenantID:  tenantID,
+		shopeeAPI: shopeeAPI,
 	}
 }
 
 // DeleteWholesaleTiers deletes wholesale tiers for an item
 func (s *ShopeeWholesaleService) DeleteWholesaleTiers(ctx context.Context, itemID int64) error {
-	// TODO: Call Shopee API to delete wholesale tiers
-	// This requires ShopeeAPIClient integration
-	return fmt.Errorf("not implemented: Shopee API integration required")
+	if s.shopeeAPI == nil {
+		return fmt.Errorf("Shopee API client not configured")
+	}
+
+	log.Info().
+		Str("tenant_id", s.tenantID).
+		Int64("item_id", itemID).
+		Msg("Deleting wholesale tiers")
+
+	// Call Shopee API to delete wholesale (empty array)
+	err := s.shopeeAPI.UpdateItemWholesale(ctx, itemID, []shopee.WholesaleTier{})
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("tenant_id", s.tenantID).
+			Int64("item_id", itemID).
+			Msg("Failed to delete wholesale tiers")
+		return err
+	}
+
+	log.Info().
+		Str("tenant_id", s.tenantID).
+		Int64("item_id", itemID).
+		Msg("Wholesale tiers deleted successfully")
+
+	return nil
 }
 
 // UpdateWholesaleTiers updates wholesale tiers for an item
 func (s *ShopeeWholesaleService) UpdateWholesaleTiers(ctx context.Context, itemID int64, tiers []WholesaleTier) error {
-	// TODO: Call Shopee API to update wholesale tiers
-	// This requires ShopeeAPIClient integration
-	return fmt.Errorf("not implemented: Shopee API integration required")
+	if s.shopeeAPI == nil {
+		return fmt.Errorf("Shopee API client not configured")
+	}
+
+	// Convert to Shopee API format
+	shopeeTiers := make([]shopee.WholesaleTier, len(tiers))
+	for i, t := range tiers {
+		shopeeTiers[i] = shopee.WholesaleTier{
+			MinCount:  t.MinCount,
+			MaxCount:  t.MaxCount,
+			UnitPrice: t.UnitPrice,
+		}
+	}
+
+	log.Info().
+		Str("tenant_id", s.tenantID).
+		Int64("item_id", itemID).
+		Int("tier_count", len(tiers)).
+		Msg("Updating wholesale tiers")
+
+	err := s.shopeeAPI.UpdateItemWholesale(ctx, itemID, shopeeTiers)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("tenant_id", s.tenantID).
+			Int64("item_id", itemID).
+			Msg("Failed to update wholesale tiers")
+		return err
+	}
+
+	log.Info().
+		Str("tenant_id", s.tenantID).
+		Int64("item_id", itemID).
+		Int("tier_count", len(tiers)).
+		Msg("Wholesale tiers updated successfully")
+
+	return nil
 }
 
 // GetWholesaleTiers gets wholesale tiers for an item
 func (s *ShopeeWholesaleService) GetWholesaleTiers(ctx context.Context, itemID int64) ([]WholesaleTier, error) {
-	// TODO: Call Shopee API to get wholesale tiers
-	// This requires ShopeeAPIClient integration
-	return nil, fmt.Errorf("not implemented: Shopee API integration required")
+	if s.shopeeAPI == nil {
+		return nil, fmt.Errorf("Shopee API client not configured")
+	}
+
+	log.Info().
+		Str("tenant_id", s.tenantID).
+		Int64("item_id", itemID).
+		Msg("Getting wholesale tiers")
+
+	// Call Shopee API to get item info
+	shopeeTiers, err := s.shopeeAPI.GetItemWholesale(ctx, itemID)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("tenant_id", s.tenantID).
+			Int64("item_id", itemID).
+			Msg("Failed to get wholesale tiers")
+		return nil, err
+	}
+
+	// Convert from Shopee API format
+	tiers := make([]WholesaleTier, len(shopeeTiers))
+	for i, t := range shopeeTiers {
+		tiers[i] = WholesaleTier{
+			MinCount:  t.MinCount,
+			MaxCount:  t.MaxCount,
+			UnitPrice: t.UnitPrice,
+		}
+	}
+
+	return tiers, nil
 }
 
-// BatchDeleteBySkus deletes wholesale for multiple SKUs (with deduplication)
+// BatchDeleteResult represents batch delete result
 type BatchDeleteResult struct {
 	TotalSKUs   int                     `json:"total_skus"`
 	UniqueItems int                     `json:"unique_items"`
@@ -61,6 +150,7 @@ type BatchDeleteResult struct {
 	Results     []SingleWholesaleResult `json:"results"`
 }
 
+// SingleWholesaleResult represents single operation result
 type SingleWholesaleResult struct {
 	ItemID  int64  `json:"item_id,omitempty"`
 	SKU     string `json:"sku,omitempty"`
@@ -69,6 +159,7 @@ type SingleWholesaleResult struct {
 	Message string `json:"message,omitempty"`
 }
 
+// BatchDeleteBySkus deletes wholesale for multiple SKUs (with deduplication)
 func (s *ShopeeWholesaleService) BatchDeleteBySkus(ctx context.Context, skus []string) (*BatchDeleteResult, error) {
 	result := &BatchDeleteResult{
 		TotalSKUs: len(skus),
@@ -79,9 +170,9 @@ func (s *ShopeeWholesaleService) BatchDeleteBySkus(ctx context.Context, skus []s
 	itemMap := make(map[int64][]string) // item_id -> []sku
 
 	for _, sku := range skus {
-		var product models.ShopeeProduct
+		var product models.ShopeeSku
 		err := s.db.WithContext(ctx).
-			Where("tenant_id = ? AND sku = ?", s.tenantID, sku).
+			Where("tenant_id = ? AND seller_sku = ?", s.tenantID, sku).
 			First(&product).Error
 
 		if err == gorm.ErrRecordNotFound {
@@ -136,7 +227,7 @@ func (s *ShopeeWholesaleService) BatchDeleteBySkus(ctx context.Context, skus []s
 	return result, nil
 }
 
-// BatchUpdateBySkus updates wholesale for multiple SKUs
+// BatchUpdateResult represents batch update result
 type BatchUpdateResult struct {
 	TotalSKUs   int                     `json:"total_skus"`
 	UniqueItems int                     `json:"unique_items"`
@@ -147,6 +238,7 @@ type BatchUpdateResult struct {
 	Results     []SingleWholesaleResult `json:"results"`
 }
 
+// BatchUpdateBySkus updates wholesale for multiple SKUs
 func (s *ShopeeWholesaleService) BatchUpdateBySkus(
 	ctx context.Context,
 	skuPriceMap map[string]float64,
@@ -164,9 +256,9 @@ func (s *ShopeeWholesaleService) BatchUpdateBySkus(
 	})
 
 	for sku, price := range skuPriceMap {
-		var product models.ShopeeProduct
+		var product models.ShopeeSku
 		err := s.db.WithContext(ctx).
-			Where("tenant_id = ? AND sku = ?", s.tenantID, sku).
+			Where("tenant_id = ? AND seller_sku = ?", s.tenantID, sku).
 			First(&product).Error
 
 		if err == gorm.ErrRecordNotFound {
@@ -225,9 +317,9 @@ func (s *ShopeeWholesaleService) BatchUpdateBySkus(
 
 // LookupItemIDBySKU finds item_id by SKU
 func (s *ShopeeWholesaleService) LookupItemIDBySKU(ctx context.Context, sku string) (int64, error) {
-	var product models.ShopeeProduct
+	var product models.ShopeeSku
 	err := s.db.WithContext(ctx).
-		Where("tenant_id = ? AND sku = ?", s.tenantID, sku).
+		Where("tenant_id = ? AND seller_sku = ?", s.tenantID, sku).
 		First(&product).Error
 
 	if err == gorm.ErrRecordNotFound {

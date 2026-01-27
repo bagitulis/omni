@@ -101,6 +101,7 @@ func RegisterTiktokProductExtendedRoutes(router *gin.RouterGroup, basePath strin
 func RegisterWholesaleExtendedRoutes(router *gin.RouterGroup, basePath string) {
 	// Pass nil for DB - handler will get DB from context
 	handler := handlers.NewWholesaleExtendedHandler(basePath, nil)
+	batchHandler := handlers.NewWholesaleBatchHandler(basePath, nil)
 
 	wholesale := router.Group("/wholesale")
 	wholesale.Use(middleware.Auth())
@@ -110,13 +111,16 @@ func RegisterWholesaleExtendedRoutes(router *gin.RouterGroup, basePath string) {
 		wholesale.DELETE("/shopee/:itemId", handler.DeleteWholesale)
 		wholesale.PUT("/shopee/:itemId", handler.UpdateWholesale)
 		wholesale.GET("/shopee/:itemId/info", handler.GetWholesaleInfo)
-		wholesale.POST("/shopee/batch-delete", handler.BatchDeleteByItemIds)
+		wholesale.POST("/shopee/batch-delete", batchHandler.BatchDeleteByItemIds)
 		wholesale.POST("/shopee/batch-add", handler.BatchAdd)
 		wholesale.GET("/shopee/lookup/:sku", handler.LookupItemId)
 		wholesale.POST("/shopee/preview", handler.Preview)
 		wholesale.POST("/shopee/import", handler.ImportWholesale)
 		wholesale.POST("/shopee/batch-mpq", handler.BatchSetMpq)
 		wholesale.POST("/shopee/batch-reset", handler.BatchWholesaleReset)
+
+		// NEW: Batch update by SKUs
+		wholesale.POST("/shopee/batch-update-skus", batchHandler.BatchUpdateBySkus)
 
 		// TikTok wholesale
 		wholesale.POST("/tiktok/batch-mpq", handler.BatchSetTiktokMpq)

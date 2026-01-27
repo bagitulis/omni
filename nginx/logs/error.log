@@ -511,3 +511,33 @@
 2026/01/27 07:52:48 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
 2026/01/27 07:57:33 [warn] 24#24: *78 an upstream response is buffered to a temporary file /var/cache/nginx/proxy_temp/1/00/0000000001 while reading upstream, client: 172.18.0.2, server: _, request: "GET /js/index-CLAZ5hlR.js HTTP/1.1", upstream: "http://172.18.0.4:80/js/index-CLAZ5hlR.js", host: "yndigital.my.id", referrer: "https://yndigital.my.id/login"
 2026/01/27 08:07:50 [warn] 23#23: *242 an upstream response is buffered to a temporary file /var/cache/nginx/proxy_temp/2/00/0000000002 while reading upstream, client: 172.18.0.2, server: _, request: "GET /js/index-CLAZ5hlR.js HTTP/1.1", upstream: "http://172.18.0.4:80/js/index-CLAZ5hlR.js", host: "yndigital.my.id", referrer: "https://yndigital.my.id/login"
+2026/01/27 08:14:09 [warn] 23#23: *366 an upstream response is buffered to a temporary file /var/cache/nginx/proxy_temp/3/00/0000000003 while reading upstream, client: 172.18.0.2, server: _, request: "GET /js/index-DEeEYj4C.js HTTP/1.1", upstream: "http://172.18.0.4:80/js/index-DEeEYj4C.js", host: "yndigital.my.id", referrer: "https://yndigital.my.id/"
+2026/01/27 08:52:10 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 08:52:48 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 08:52:55 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 08:53:03 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 08:53:09 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 08:53:16 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 08:53:22 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 08:54:12 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 08:54:47 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 08:54:56 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 08:55:04 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 08:55:10 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 08:55:16 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 08:55:23 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 08:55:30 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 08:55:41 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 09:05:11 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 09:05:46 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 09:05:52 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 09:05:59 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 09:06:05 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 09:14:11 [emerg] 1#1: resolving names at run time requires upstream "backend" in /etc/nginx/nginx.conf:73 to be in shared memory
+2026/01/27 09:14:12 [emerg] 1#1: resolving names at run time requires upstream "backend" in /etc/nginx/nginx.conf:73 to be in shared memory
+2026/01/27 09:14:13 [emerg] 1#1: resolving names at run time requires upstream "backend" in /etc/nginx/nginx.conf:73 to be in shared memory
+2026/01/27 09:14:13 [emerg] 1#1: resolving names at run time requires upstream "backend" in /etc/nginx/nginx.conf:73 to be in shared memory
+2026/01/27 09:14:14 [emerg] 1#1: resolving names at run time requires upstream "backend" in /etc/nginx/nginx.conf:73 to be in shared memory
+2026/01/27 09:14:16 [emerg] 1#1: resolving names at run time requires upstream "backend" in /etc/nginx/nginx.conf:73 to be in shared memory
+2026/01/27 09:14:20 [emerg] 1#1: resolving names at run time requires upstream "backend" in /etc/nginx/nginx.conf:73 to be in shared memory
+2026/01/27 09:14:27 [emerg] 1#1: resolving names at run time requires upstream "backend" in /etc/nginx/nginx.conf:73 to be in shared memory

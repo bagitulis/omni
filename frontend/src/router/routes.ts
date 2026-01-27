@@ -11,6 +11,7 @@ import {
   TiktokAnalytics,
   TiktokAdsAnalytics,
   ShopeeAdsAnalytics,
+  AIReportGallery,
 } from "./lazyComponents";
 
 // Auth routes
@@ -182,6 +183,12 @@ export const analyticsRoutes: RouteRecordRaw[] = [
         name: "ShopeeAdsAnalytics",
         component: ShopeeAdsAnalytics,
         meta: { section: "analytics", subsection: "shopee-ads" },
+      },
+      {
+        path: "ai-reports",
+        name: "AIReportGallery",
+        component: AIReportGallery,
+        meta: { section: "analytics", subsection: "ai-reports" },
       },
       // Legacy redirects for backward compatibility
       { path: "shopee", redirect: "/report/shopee" },

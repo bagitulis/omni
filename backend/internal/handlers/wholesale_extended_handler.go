@@ -10,6 +10,7 @@ import (
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/wholesale"
+	"github.com/omni/backend/pkg/shopee"
 	"gorm.io/gorm"
 )
 
@@ -55,7 +56,15 @@ func (h *WholesaleExtendedHandler) DeleteWholesale(c *gin.Context) {
 		return
 	}
 
-	service := wholesale.NewShopeeWholesaleService(db, tenantID)
+	// Get Shopee API client
+	shopeeClient, err := config.GetShopeeClient(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Shopee API configuration failed"))
+		return
+	}
+
+	shopeeAPI := shopee.NewProductAPI(shopeeClient)
+	service := wholesale.NewShopeeWholesaleService(db, tenantID, shopeeAPI)
 	err = service.DeleteWholesaleTiers(c.Request.Context(), itemID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))

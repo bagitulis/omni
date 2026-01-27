@@ -9,6 +9,8 @@ import {
 import apiService from "@/services/api";
 import { useModalsStore } from "./modals";
 import { useOrdersStore } from "./orders";
+import { useShippingStore } from "./shipping";
+import { useWalletStore } from "./wallet";
 import { loadStatusWithTokens, syncMasterProduct } from "./appOperations";
 import {
   addLog as sharedAddLog,
@@ -16,19 +18,10 @@ import {
 } from "@/composables/useSharedAppActions";
 
 export const useAppStore = defineStore("app", () => {
-  // Import other stores (no circular deps now)
   const modalsStore = useModalsStore();
   const ordersStore = useOrdersStore();
-
-  // Lazy load shipping/wallet stores to avoid any circular issues
-  const getShippingStore = () => {
-    const { useShippingStore } = require("./shipping");
-    return useShippingStore();
-  };
-  const getWalletStore = () => {
-    const { useWalletStore } = require("./wallet");
-    return useWalletStore();
-  };
+  const shippingStore = useShippingStore();
+  const walletStore = useWalletStore();
 
   // Connection
   const {
@@ -60,23 +53,22 @@ export const useAppStore = defineStore("app", () => {
   const showModal = modalsStore.showModal;
   const closeModal = modalsStore.closeModal;
 
-  // Delegate shipping (lazy loaded to avoid circular)
-  const shippingFiles = computed(() => getShippingStore().shippingFiles);
-  const getShippingFiles = () => getShippingStore().getShippingFiles();
+  // Delegate shipping
+  const shippingFiles = computed(() => shippingStore.shippingFiles);
+  const getShippingFiles = () => shippingStore.getShippingFiles();
   const processShippingFile = (f: string) =>
-    getShippingStore().processShippingFile(f);
+    shippingStore.processShippingFile(f);
   const processShippingFee = (p: Record<string, any>) =>
-    getShippingStore().processShippingFee(p);
+    shippingStore.processShippingFee(p);
 
-  // Delegate wallet (lazy loaded to avoid circular)
+  // Delegate wallet
   const getWalletTransactions = (p: Record<string, any>) =>
-    getWalletStore().getWalletTransactions(p);
+    walletStore.getWalletTransactions(p);
 
   // Delegate orders to ordersStore
   const executeOrderExport = ordersStore.executeOrderExport;
 
   async function initializeApp(): Promise<void> {
-    // Non-blocking: Set initial state immediately for faster FCP
     loading.value = true;
     connectionStatus.value = "connecting";
     addLog("🔄 Connecting to backend server...");
@@ -114,8 +106,6 @@ export const useAppStore = defineStore("app", () => {
       }
     };
 
-    // Use requestIdleCallback for non-critical health check
-    // Falls back to setTimeout for browsers without support
     if (typeof requestIdleCallback !== "undefined") {
       requestIdleCallback(() => performHealthCheck(), { timeout: 1000 });
     } else {

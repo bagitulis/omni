@@ -2,18 +2,17 @@
 """
 Omni Build System - Standalone Entry Point
 
-This script can be run directly without needing build.bat wrapper.
-Supports both actual builds and dry-run validation mode for testing.
+Pintasan:
+- Jalankan tanpa argumen untuk membuka menu interaktif.
+- Masih bisa jalan seperti biasa dengan subcommand (smart, quick, full, validate, clean, status).
 
-Usage:
+Contoh langsung:
     python build.py smart              # Smart build (RECOMMENDED)
     python build.py quick              # Quick restart
     python build.py full               # Full rebuild
     python build.py validate           # Validate environment only
     python build.py clean              # Cleanup Docker
     python build.py status             # Show container status
-    
-    # With options
     python build.py smart --spec=lowspec
     python build.py smart --skip-frontend
     python build.py smart --dry-run    # Validation mode (no actual build)
@@ -26,7 +25,55 @@ project_root = Path(__file__).parent
 python_build_dir = project_root / "scripts" / "python-build"
 sys.path.insert(0, str(python_build_dir))
 
-# Check if running in dry-run mode
+# ----- Interactive menu helper ------------------------------------------------
+def interactive_menu():
+    """Prompt user to choose a build action; returns list of CLI args."""
+    options = [
+        ("Smart build (recommended)", ["smart"]),
+        ("Quick restart (no rebuild)", ["quick"]),
+        ("Full rebuild (no cache)", ["full"]),
+        ("Validate only (no build)", ["validate"]),
+        ("Clean Docker resources", ["clean"]),
+        ("Show container status", ["status"]),
+        ("Smart build - DRY RUN", ["smart", "--dry-run"]),
+        ("Keluar / Batal", None),
+    ]
+
+    print("=" * 60)
+    print(" Omni Build Menu")
+    print("=" * 60)
+    for idx, (label, _) in enumerate(options, start=1):
+        print(f"  {idx}. {label}")
+    print()
+
+    while True:
+        try:
+            choice = input("Pilih menu [1-8]: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\nBatal.")
+            sys.exit(0)
+
+        if not choice.isdigit():
+            print("Input tidak valid, masukkan angka 1-8.")
+            continue
+
+        idx = int(choice)
+        if 1 <= idx <= len(options):
+            args = options[idx - 1][1]
+            if args is None:
+                print("Batal.")
+                sys.exit(0)
+            return args
+
+        print("Input di luar range, coba lagi.")
+
+
+# If no args and interactive terminal, show menu then rebuild argv
+if len(sys.argv) == 1 and sys.stdin.isatty():
+    selected_args = interactive_menu()
+    sys.argv = [sys.argv[0]] + selected_args
+
+# Check if running in dry-run mode (after possible menu rewrite)
 DRY_RUN = "--dry-run" in sys.argv or "--validate-only" in sys.argv
 
 if DRY_RUN:

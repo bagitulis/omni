@@ -113,6 +113,8 @@ services:
       dockerfile: Dockerfile
     container_name: omni-backend
     restart: unless-stopped
+    ports:
+      - "3000:3000"
     environment:
       # Timezone - WIB (UTC+7)
       - TZ=Asia/Jakarta

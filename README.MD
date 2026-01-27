@@ -30,8 +30,8 @@ Perbaikan Container:
 
 - Jika kontainer Docker bermasalah, jalankan `build.bat` dari root repo untuk rebuild image & service agar environment kembali bersih.
 - Jalankan mode yang diizinkan saja:
-  - Smart Build (disarankan): build.bat smart
-  - Quick Apply (restart cepat): `build.bat quick`
+  - Smart Build (disarankan): build.py smart
+  - Quick Apply (restart cepat): python build.py quick
 - Jangan gunakan full rebuild.
 - Saat build sedang berjalan, tunggu sampai script menyatakan selesai sukses; hindari menutup terminal atau menjalankan perintah lain (Docker/git/npm) agar proses container tidak terganggu.
 

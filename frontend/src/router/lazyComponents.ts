@@ -38,3 +38,7 @@ export const TiktokAdsAnalytics = () =>
   import(
     /* webpackChunkName: "tiktok-ads-analytics" */ "../views/analytics/TiktokAdsAnalytics.vue"
   );
+export const AIReportGallery = () =>
+  import(
+    /* webpackChunkName: "ai-report-gallery" */ "../views/analytics/AIReportGallery.vue"
+  );
