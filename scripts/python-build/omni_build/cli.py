@@ -141,39 +141,92 @@ class BuildOrchestrator:
         if mode == BuildMode.QUICK:
             log_info("Quick mode - restarting containers only...")
             
-            # Stop existing
-            if not self.docker_manager.stop_containers(spec):
-                warnings.append("Stop containers completed with warnings")
+            # Try 3 attempts with progressive fixes
+            max_quick_attempts = 3
             
-            # Start again
-            if not self.docker_manager.deploy_containers(spec):
-                errors.append("Failed to deploy containers")
-                duration = time.time() - start_time
-                return BuildResult(
-                    success=False,
-                    mode=mode,
-                    spec=spec,
-                    duration_seconds=duration,
-                    errors=errors,
-                    warnings=warnings,
-                )
+            for attempt in range(1, max_quick_attempts + 1):
+                log_info(f"Quick restart attempt {attempt}/{max_quick_attempts}")
+                
+                # Attempt 1: Simple restart
+                if attempt == 1:
+                    log_info("Trying simple restart...")
+                    if self.docker_manager.restart_containers(spec):
+                        # Verify containers are actually running
+                        time.sleep(3)
+                        if self.docker_manager.check_containers_running(spec):
+                            # Quick health check (60s timeout)
+                            if self.health_checker.wait_for_all_services(timeout=60):
+                                log_success("Quick restart succeeded!")
+                                duration = time.time() - start_time
+                                return BuildResult(
+                                    success=True,
+                                    mode=mode,
+                                    spec=spec,
+                                    duration_seconds=duration,
+                                )
+                
+                # Attempt 2-3: Stop and deploy fresh
+                log_info("Trying stop + deploy...")
+                
+                # Stop existing
+                if not self.docker_manager.stop_containers(spec):
+                    log_warning("Stop containers completed with warnings")
+                
+                # Deploy fresh
+                if not self.docker_manager.deploy_containers(spec):
+                    if attempt < max_quick_attempts:
+                        log_warning(f"Deploy failed, will retry (attempt {attempt}/{max_quick_attempts})...")
+                        
+                        # Apply quick fixes between attempts
+                        detected_errors = [
+                            "Quick restart failed - containers not starting properly"
+                        ]
+                        
+                        if attempt == 2:
+                            # Try light fixes on attempt 2
+                            log_info("Applying quick diagnostic fixes...")
+                            self.error_handler._light_cleanup()
+                            time.sleep(5)
+                        
+                        continue
+                    else:
+                        errors.append("Failed to deploy containers after 3 quick attempts")
+                        break
+                
+                # Health check (short timeout for quick mode)
+                log_info("Running health checks...")
+                if self.health_checker.wait_for_all_services(timeout=60):
+                    log_success("All services healthy after quick restart")
+                    
+                    duration = time.time() - start_time
+                    log_success(f"Quick restart completed successfully in {duration:.1f}s")
+                    
+                    return BuildResult(
+                        success=True,
+                        mode=mode,
+                        spec=spec,
+                        duration_seconds=duration,
+                    )
+                else:
+                    # Health check failed
+                    if attempt < max_quick_attempts:
+                        log_warning(f"Health check failed, will retry (attempt {attempt}/{max_quick_attempts})...")
+                        time.sleep(5)
+                        continue
             
-            # Health check
-            log_info("Running health checks...")
-            if self.health_checker.wait_for_all_services(timeout=60):
-                log_success("All services healthy")
-            else:
-                warnings.append("Some services failed health checks")
-            
+            # All quick attempts failed - offer fallback
             duration = time.time() - start_time
             
-            log_success(f"Quick restart completed in {duration:.1f}s")
+            log_error("Quick restart failed after 3 attempts")
+            log_error("Health checks did not pass - services not responding properly")
+            
             return BuildResult(
-                success=True,
+                success=False,
                 mode=mode,
                 spec=spec,
                 duration_seconds=duration,
-                warnings=warnings,
+                errors=["Quick restart failed - services failed health checks after 3 attempts"],
+                warnings=["Consider using 'smart' mode for a fresh build"],
             )
         
         # ============ SMART/FULL MODE ============
@@ -248,26 +301,38 @@ class BuildOrchestrator:
         
         log_success("Containers deployed")
         
-        # Health checks
+        # Health checks - CRITICAL: Must succeed or build fails
         log_info("Running health checks...")
         
         if self.health_checker.wait_for_all_services():
             log_success("All services healthy")
+            
+            # SUCCESS - All checks passed
+            duration = time.time() - start_time
+            log_success(f"Build completed successfully in {duration:.1f}s")
+            
+            return BuildResult(
+                success=True,
+                mode=mode,
+                spec=spec,
+                duration_seconds=duration,
+                warnings=warnings,
+            )
         else:
-            warnings.append("Some services failed health checks")
-        
-        # Final status
-        duration = time.time() - start_time
-        
-        log_success(f"Build completed in {duration:.1f}s")
-        
-        return BuildResult(
-            success=True,
-            mode=mode,
-            spec=spec,
-            duration_seconds=duration,
-            warnings=warnings,
-        )
+            # FAILURE - Health checks failed
+            errors.append("Health checks failed - services not responding properly")
+            duration = time.time() - start_time
+            
+            log_error(f"Build failed: Health checks did not pass after {duration:.1f}s")
+            
+            return BuildResult(
+                success=False,
+                mode=mode,
+                spec=spec,
+                duration_seconds=duration,
+                errors=errors,
+                warnings=warnings,
+            )
 
 
 # ============================================

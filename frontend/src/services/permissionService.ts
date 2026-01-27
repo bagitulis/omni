@@ -116,6 +116,15 @@ class PermissionService {
   canSwitchTenant(userRole: UserRole): boolean {
     return this.hasPermission(userRole, "tenant.switch");
   }
+
+  /**
+   * Check if user can access admin features
+   * Admin, owner, and developer roles can access admin panel
+   */
+  canAccessAdmin(userRole: UserRole | undefined): boolean {
+    if (!userRole) return false;
+    return ["developer", "owner", "admin"].includes(userRole);
+  }
 }
 
 export default new PermissionService();

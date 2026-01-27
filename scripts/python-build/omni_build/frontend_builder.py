@@ -221,27 +221,55 @@ class FrontendBuilder:
                         log_warning(f"Build succeeded but output not found: {output_dir}")
                         return True  # Still consider success
                 
-                # Build failed
+                # Build failed - DETAILED ERROR LOGGING
                 log_error(f"Build failed (attempt {attempt}): {result.returncode}")
                 
-                # Check for code errors (cannot auto-fix)
+                # Combine all output for analysis
                 error_output = result.stderr + "\n" + result.stdout
                 
+                # Show last 30 lines of output for debugging
+                output_lines = error_output.strip().split('\n')
+                last_lines = output_lines[-30:] if len(output_lines) > 30 else output_lines
+                
+                log_error("=== BUILD OUTPUT (last 30 lines) ===")
+                for line in last_lines:
+                    if line.strip():
+                        print(f"  {line}")
+                log_error("=== END BUILD OUTPUT ===")
+                
+                # Check for TypeScript errors (cannot auto-fix)
                 if "TS" in error_output and "error" in error_output:
-                    log_error("TypeScript errors detected - requires manual fix")
-                    log_error(error_output[:1000])
+                    log_error("TypeScript compilation errors detected - requires manual fix")
                     return False
                 
+                # Check for syntax errors
                 if "SyntaxError" in error_output:
-                    log_error("Syntax errors detected - requires manual fix")
-                    log_error(error_output[:1000])
+                    log_error("JavaScript/TypeScript syntax errors - requires manual fix")
                     return False
+                
+                # Check for memory issues
+                if "heap out of memory" in error_output.lower() or "fatal error" in error_output.lower():
+                    log_error("Node.js memory error - try increasing heap size")
+                    log_info("Set NODE_OPTIONS=--max-old-space-size=4096 in .env")
+                    return False
+                
+                # Check for missing modules
+                if "Cannot find module" in error_output or "Module not found" in error_output:
+                    log_warning("Missing module detected - forcing dependency reinstall")
+                    if attempt < max_retries:
+                        log_info("Reinstalling dependencies...")
+                        self._clean_npm_cache()
+                        if not self.install_dependencies():
+                            return False
+                        continue
                 
                 # Generic retry
                 if attempt >= max_retries:
                     log_error("Max retries reached - build failed")
-                    log_error(error_output[:1000])
                     return False
+                
+                # Wait before retry
+                time.sleep(3)
                 
             except subprocess.TimeoutExpired:
                 log_error(f"Build timed out after {self.config.npm_install_timeout}s")

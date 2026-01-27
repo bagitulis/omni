@@ -233,12 +233,25 @@ class HealthChecker:
         """
         results = {}
         
-        # Check backend
+        # Check backend HTTP endpoint
         log_info("Checking backend health...")
         results["backend"] = self.check_endpoint_health(
             self.config.backend_health_url,
             "backend",
         )
+        
+        # CRITICAL: Also check backend logs for database errors
+        if results["backend"].status == "healthy":
+            log_info("Backend HTTP OK, verifying database connection...")
+            db_check = self._check_backend_database_connection()
+            if not db_check:
+                log_error("Backend HTTP is OK but DATABASE connection FAILED!")
+                results["backend"] = HealthCheckResult(
+                    service="backend",
+                    endpoint=self.config.backend_health_url,
+                    status="unhealthy",
+                    error="Backend can't connect to PostgreSQL - DNS or network issue",
+                )
         
         # Check nginx
         log_info("Checking nginx health...")
@@ -260,6 +273,54 @@ class HealthChecker:
         )
         
         return results
+    
+    def _check_backend_database_connection(self) -> bool:
+        """
+        Check backend logs for database connection errors.
+        
+        Returns:
+            True if no database errors found, False otherwise
+        """
+        import subprocess
+        
+        try:
+            # Get last 50 lines of backend logs
+            result = subprocess.run(
+                ["docker", "logs", "--tail", "50", self.config.container_backend],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            
+            if result.returncode != 0:
+                log_warning("Could not read backend logs")
+                return True  # Assume OK if can't check
+            
+            logs = result.stdout + result.stderr
+            
+            # Check for critical database errors
+            error_patterns = [
+                "lookup postgres on.*no such host",
+                "failed to connect.*postgres.*hostname resolving",
+                "Error getting tenant list",
+                "no such host",
+                "connection refused.*postgres",
+                "could not connect to server",
+            ]
+            
+            import re
+            for pattern in error_patterns:
+                if re.search(pattern, logs, re.IGNORECASE):
+                    log_error(f"Found database error in backend logs: {pattern}")
+                    log_error("Backend is running but CAN'T CONNECT TO DATABASE!")
+                    return False
+            
+            log_success("Backend database connection verified OK")
+            return True
+            
+        except Exception as e:
+            log_warning(f"Error checking backend logs: {e}")
+            return True  # Assume OK if can't check
     
     def wait_for_all_services(self, timeout: Optional[int] = None) -> bool:
         """

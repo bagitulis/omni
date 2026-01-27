@@ -109,10 +109,24 @@ class ErrorHandler:
             ),
             ErrorPattern(
                 name="PostgresDataCorruption",
-                pattern=r"could not open directory.*pg_|pg_notify.*No such file|pg_wal.*No such file|pg_xact.*No such file|database.*shut down|FATAL.*postgres",
+                pattern=r"could not open directory.*pg_|pg_notify.*No such file|pg_wal.*No such file|pg_xact.*No such file|database.*shut down|FATAL.*postgres|could not open file.*pg_filenode",
                 description="PostgreSQL data directory corrupted",
                 severity=ErrorSeverity.CRITICAL,
                 fix_function="repair_postgres_data",
+            ),
+            ErrorPattern(
+                name="BackendHealthCheckTimeout",
+                pattern=r"backend.*did not become healthy|backend.*Timeout after|Health checks failed|services not responding",
+                description="Backend service health check timeout (Go backend initializing)",
+                severity=ErrorSeverity.MEDIUM,
+                fix_function="wait_for_backend_init",
+            ),
+            ErrorPattern(
+                name="ServiceUnhealthy",
+                pattern=r"service.*unhealthy|container reports unhealthy|Health status: unhealthy",
+                description="Service failed health check",
+                severity=ErrorSeverity.HIGH,
+                fix_function="restart_unhealthy_service",
             ),
             
             # === NETWORK/DNS ERRORS ===
@@ -122,6 +136,13 @@ class ErrorHandler:
                 description="DNS resolution failure",
                 severity=ErrorSeverity.HIGH,
                 fix_function="repair_dns",
+            ),
+            ErrorPattern(
+                name="DockerDNSPostgresError",
+                pattern=r"lookup postgres on.*no such host|failed to connect.*postgres.*hostname resolving|postgres.*127\.0\.0\.11.*no such host",
+                description="Docker internal DNS cannot resolve 'postgres' hostname",
+                severity=ErrorSeverity.CRITICAL,
+                fix_function="repair_docker_dns_postgres",
             ),
             ErrorPattern(
                 name="AlpineRepoError",
@@ -461,6 +482,66 @@ class ErrorHandler:
         time.sleep(5)
         return True
     
+    def _repair_docker_dns_postgres(self) -> bool:
+        """
+        Fix Docker internal DNS not resolving 'postgres' hostname.
+        
+        This happens when:
+        - Docker network is corrupted
+        - Internal DNS resolver (127.0.0.11) fails
+        - Container can't reach other containers by service name
+        
+        Solution:
+        1. Recreate Docker networks
+        2. Restart containers to re-establish DNS
+        """
+        log_fix("Repairing Docker internal DNS for postgres hostname...")
+        
+        # Step 1: Prune all unused networks
+        log_info("Pruning Docker networks...")
+        subprocess.run(
+            ["docker", "network", "prune", "-f"],
+            capture_output=True,
+            check=False
+        )
+        
+        # Step 2: Stop all omni containers
+        log_info("Stopping all containers to reset network...")
+        for container in ["omni-backend", "omni-frontend", "omni-postgres", "omni-redis", "omni-pgbouncer"]:
+            subprocess.run(
+                ["docker", "stop", container],
+                capture_output=True,
+                check=False,
+                timeout=30
+            )
+        
+        time.sleep(3)
+        
+        # Step 3: Remove containers to force network recreation
+        log_info("Removing containers to force network recreation...")
+        for container in ["omni-backend", "omni-frontend", "omni-postgres", "omni-redis", "omni-pgbouncer"]:
+            subprocess.run(
+                ["docker", "rm", container],
+                capture_output=True,
+                check=False
+            )
+        
+        # Step 4: Check Docker networks
+        log_info("Verifying Docker networks...")
+        result = subprocess.run(
+            ["docker", "network", "ls", "--format", "{{.Name}}"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        
+        if result.returncode == 0:
+            networks = result.stdout.strip().split('\n')
+            log_info(f"Available networks: {', '.join(networks)}")
+        
+        log_success("Docker DNS repair completed - containers will be redeployed with fresh network")
+        return True
+    
     def _repair_alpine_repo(self) -> bool:
         """Repair Alpine repository connectivity."""
         self._flush_dns()
@@ -505,6 +586,56 @@ class ErrorHandler:
         """Repair NPM integrity issues."""
         log_info("This will be handled by frontend builder")
         return True
+    
+    def _wait_for_backend_init(self) -> bool:
+        """Wait for Go backend to finish initializing (multi-tenant DB setup)."""
+        log_fix("Waiting for Go backend to initialize (tenant DB connections)...")
+        log_info("Go backend needs ~2-3 minutes for first run (PostgreSQL tenant setup)")
+        
+        # Progressive wait: 30s, 60s, 90s
+        wait_times = [30, 60, 90]
+        
+        for wait_time in wait_times:
+            log_info(f"Waiting {wait_time}s for backend initialization...")
+            time.sleep(wait_time)
+            
+            # Check if backend is responding
+            try:
+                import requests
+                response = requests.get("http://localhost:3000/api/health", timeout=10)
+                if response.status_code == 200:
+                    log_success(f"Backend is now healthy after {wait_time}s wait")
+                    return True
+            except:
+                pass  # Continue waiting
+        
+        log_warning("Backend still not responding - may need manual investigation")
+        return False
+    
+    def _restart_unhealthy_service(self) -> bool:
+        """Restart unhealthy containers."""
+        log_fix("Restarting unhealthy containers...")
+        
+        # Get unhealthy containers
+        result = subprocess.run(
+            ["docker", "ps", "--filter", "health=unhealthy", "--format", "{{.Names}}"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        
+        if result.returncode == 0 and result.stdout.strip():
+            unhealthy_containers = result.stdout.strip().split('\n')
+            for container in unhealthy_containers:
+                log_info(f"Restarting unhealthy container: {container}")
+                subprocess.run(["docker", "restart", container], 
+                             capture_output=True, check=False)
+            
+            log_info("Waiting 30s for restarted containers to initialize...")
+            time.sleep(30)
+            return True
+        
+        return False
     
     # ============================================
     # HELPER METHODS

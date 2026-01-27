@@ -483,6 +483,83 @@ class DockerManager:
             log_error(f"Error stopping containers: {e}")
             return False
     
+    def restart_containers(self, spec: SpecLevel) -> bool:
+        """
+        Restart containers using docker-compose restart.
+        
+        Args:
+            spec: Specification level
+            
+        Returns:
+            True if restarted successfully
+        """
+        compose_files = self.config.get_compose_files(spec)
+        log_info("Restarting containers...")
+        
+        cmd = ["docker-compose"]
+        for file in compose_files:
+            cmd.extend(["-f", file])
+        cmd.append("restart")
+        
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                cwd=str(self.config.project_root),
+            )
+            
+            if result.returncode == 0:
+                log_success("Containers restarted")
+                return True
+            else:
+                log_warning(f"Restart completed with warnings: {result.stderr}")
+                return False
+                
+        except Exception as e:
+            log_error(f"Error restarting containers: {e}")
+            return False
+    
+    def check_containers_running(self, spec: SpecLevel) -> bool:
+        """
+        Check if main containers are running.
+        
+        Args:
+            spec: Specification level
+            
+        Returns:
+            True if backend and frontend containers are running
+        """
+        try:
+            # Check backend
+            result = subprocess.run(
+                ["docker", "inspect", "--format", "{{.State.Status}}", self.config.container_backend],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            
+            if result.returncode != 0 or result.stdout.strip() != "running":
+                return False
+            
+            # Check frontend
+            result = subprocess.run(
+                ["docker", "inspect", "--format", "{{.State.Status}}", self.config.container_frontend],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            
+            if result.returncode != 0 or result.stdout.strip() != "running":
+                return False
+            
+            return True
+            
+        except Exception as e:
+            log_error(f"Error checking container status: {e}")
+            return False
+    
     def get_container_status(self) -> list[ContainerStatus]:
         """
         Get status of all Omni containers.

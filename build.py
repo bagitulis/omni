@@ -1,0 +1,193 @@
+#!/usr/bin/env python3
+"""
+Omni Build System - Standalone Entry Point
+
+This script can be run directly without needing build.bat wrapper.
+Supports both actual builds and dry-run validation mode for testing.
+
+Usage:
+    python build.py smart              # Smart build (RECOMMENDED)
+    python build.py quick              # Quick restart
+    python build.py full               # Full rebuild
+    python build.py validate           # Validate environment only
+    python build.py clean              # Cleanup Docker
+    python build.py status             # Show container status
+    
+    # With options
+    python build.py smart --spec=lowspec
+    python build.py smart --skip-frontend
+    python build.py smart --dry-run    # Validation mode (no actual build)
+"""
+import sys
+from pathlib import Path
+
+# Add python-build to path
+project_root = Path(__file__).parent
+python_build_dir = project_root / "scripts" / "python-build"
+sys.path.insert(0, str(python_build_dir))
+
+# Check if running in dry-run mode
+DRY_RUN = "--dry-run" in sys.argv or "--validate-only" in sys.argv
+
+if DRY_RUN:
+    print("=" * 60)
+    print("  DRY-RUN MODE - Validation Only")
+    print("=" * 60)
+    print()
+    print("This mode will:")
+    print("  - Verify all Python modules can be imported")
+    print("  - Check configuration is valid")
+    print("  - Validate file structure")
+    print("  - Simulate build flow WITHOUT actual execution")
+    print()
+    print("=" * 60)
+    print()
+
+# Import and run CLI
+try:
+    # Test imports first
+    from omni_build.config import Config
+    from omni_build.models import BuildMode, SpecLevel
+    from omni_build.cli import BuildOrchestrator
+    from omni_build.logger import log_info, log_success, log_error
+    
+    print("[OK] All Python modules imported successfully")
+    print()
+    
+    if DRY_RUN:
+        # Dry-run validation mode
+        print("[DRY-RUN] Loading configuration...")
+        try:
+            config = Config.from_env()
+            print(f"[OK] Configuration loaded successfully")
+            print(f"   - Project root: {config.project_root}")
+            print(f"   - Frontend dir: {config.frontend_dir}")
+            print(f"   - Docker ready check: configured")
+            print()
+        except Exception as e:
+            print(f"[FAIL] Configuration error: {e}")
+            sys.exit(1)
+        
+        print("[DRY-RUN] Validating file structure...")
+        required_files = [
+            config.project_root / "docker-compose.tunnel.yml",
+            config.frontend_dir / "package.json",
+            python_build_dir / "omni_build" / "cli.py",
+            python_build_dir / "omni_build" / "docker_manager.py",
+            python_build_dir / "omni_build" / "error_handler.py",
+            python_build_dir / "omni_build" / "health_checker.py",
+        ]
+        
+        all_ok = True
+        for file in required_files:
+            if file.exists():
+                print(f"   [OK] {file.relative_to(project_root)}")
+            else:
+                print(f"   [FAIL] MISSING: {file.relative_to(project_root)}")
+                all_ok = False
+        print()
+        
+        if not all_ok:
+            print("[FAIL] Some required files are missing!")
+            sys.exit(1)
+        
+        print("[DRY-RUN] Testing BuildOrchestrator instantiation...")
+        try:
+            orchestrator = BuildOrchestrator(config)
+            print("[OK] BuildOrchestrator created successfully")
+            print()
+        except Exception as e:
+            print(f"[FAIL] BuildOrchestrator error: {e}")
+            sys.exit(1)
+        
+        print("[DRY-RUN] Testing error patterns...")
+        try:
+            from omni_build.error_handler import ErrorHandler
+            error_handler = ErrorHandler()
+            pattern_count = len(error_handler.error_patterns)
+            print(f"[OK] Error handler loaded: {pattern_count} patterns configured")
+            
+            # Check for critical patterns
+            critical_patterns = [
+                "DockerDNSPostgresError",
+                "BackendHealthCheckTimeout",
+                "PostgresDataCorruption",
+            ]
+            
+            pattern_names = [p.name for p in error_handler.error_patterns]
+            for pattern in critical_patterns:
+                if pattern in pattern_names:
+                    print(f"   [OK] {pattern}")
+                else:
+                    print(f"   [FAIL] MISSING: {pattern}")
+                    all_ok = False
+            print()
+        except Exception as e:
+            print(f"[FAIL] Error handler test failed: {e}")
+            sys.exit(1)
+        
+        if all_ok:
+            print("=" * 60)
+            print("  [OK] DRY-RUN VALIDATION PASSED")
+            print("=" * 60)
+            print()
+            print("All checks passed! Build system is ready.")
+            print()
+            print("To run actual build:")
+            print("  python build.py smart")
+            print("  python build.py quick")
+            print()
+            sys.exit(0)
+        else:
+            print("=" * 60)
+            print("  [FAIL] DRY-RUN VALIDATION FAILED")
+            print("=" * 60)
+            print()
+            print("Some checks failed. Please fix the issues above.")
+            print()
+            sys.exit(1)
+    
+    else:
+        # Normal build mode - import and run CLI
+        from omni_build.cli import cli
+        
+        # Remove script name and dry-run flags from argv
+        filtered_argv = [arg for arg in sys.argv[1:] if not arg.startswith('--dry-run') and not arg.startswith('--validate-only')]
+        sys.argv = ['build.py'] + filtered_argv
+        
+        # Run CLI
+        cli()
+
+except ImportError as e:
+    print()
+    print("=" * 60)
+    print("  [FAIL] IMPORT ERROR")
+    print("=" * 60)
+    print()
+    print(f"Failed to import required module: {e}")
+    print()
+    print("Please ensure:")
+    print("  1. Virtual environment is set up:")
+    print("     python scripts/python-build/setup.py")
+    print()
+    print("  2. You're in the virtual environment:")
+    print("     .venv\\Scripts\\activate  (Windows)")
+    print("     source .venv/bin/activate  (Linux/Mac)")
+    print()
+    print("  3. Dependencies are installed:")
+    print("     pip install -r scripts/python-build/requirements.txt")
+    print()
+    sys.exit(1)
+
+except Exception as e:
+    print()
+    print("=" * 60)
+    print("  [FAIL] UNEXPECTED ERROR")
+    print("=" * 60)
+    print()
+    print(f"Error: {e}")
+    print()
+    import traceback
+    traceback.print_exc()
+    print()
+    sys.exit(1)

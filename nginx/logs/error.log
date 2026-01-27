@@ -501,3 +501,13 @@
 2026/01/27 04:04:00 [error] 20#20: *79 connect() failed (113: Host is unreachable) while connecting to upstream, client: 172.18.0.8, server: _, request: "POST /api HTTP/1.1", upstream: "http://172.18.0.6:3000/api", host: "yndigital.my.id"
 2026/01/27 04:20:43 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
 2026/01/27 04:20:50 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 07:51:54 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 07:52:01 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 07:52:08 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 07:52:14 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 07:52:21 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 07:52:29 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 07:52:37 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 07:52:48 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:75
+2026/01/27 07:57:33 [warn] 24#24: *78 an upstream response is buffered to a temporary file /var/cache/nginx/proxy_temp/1/00/0000000001 while reading upstream, client: 172.18.0.2, server: _, request: "GET /js/index-CLAZ5hlR.js HTTP/1.1", upstream: "http://172.18.0.4:80/js/index-CLAZ5hlR.js", host: "yndigital.my.id", referrer: "https://yndigital.my.id/login"
+2026/01/27 08:07:50 [warn] 23#23: *242 an upstream response is buffered to a temporary file /var/cache/nginx/proxy_temp/2/00/0000000002 while reading upstream, client: 172.18.0.2, server: _, request: "GET /js/index-CLAZ5hlR.js HTTP/1.1", upstream: "http://172.18.0.4:80/js/index-CLAZ5hlR.js", host: "yndigital.my.id", referrer: "https://yndigital.my.id/login"

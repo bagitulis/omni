@@ -1,3 +1,5 @@
+AI DILARANG MEMBUAT DOKUMENTASI JIKA TIDAK DIPERINTAH SECARA EKSPLISIT KECUALI UNTUK KEPENTINGAN TRACKING PROGRES PERBAIKAN (NANTI DIHAPUS LAGI SETELAH SELESAI)
+
 Saya menggunakan backend Golang dengan database Omni-PostgreSQL. Buatkan todolist lengkap dengan implementasi detail. Kode yang banyak tidak masalah.
 
 Informasi Kredensial:  
