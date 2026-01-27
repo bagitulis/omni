@@ -105,3 +105,91 @@ func (p *ProductAPI) GetItemWholesale(ctx context.Context, itemID int64) ([]Whol
 
 	return result.Response.ItemList[0].WholesaleTierList, nil
 }
+
+// UpdateItemMPQ sets minimum purchase quantity for an item
+func (p *ProductAPI) UpdateItemMPQ(ctx context.Context, itemID int64, mpq int) error {
+	req := map[string]interface{}{
+		"item_id": itemID,
+		"purchase_limit_info": map[string]interface{}{
+			"min_purchase_limit": mpq,
+		},
+	}
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("marshal request: %w", err)
+	}
+
+	var result struct {
+		Error    string `json:"error"`
+		Message  string `json:"message"`
+		Response struct {
+			ItemID int64 `json:"item_id"`
+		} `json:"response"`
+	}
+
+	if err := p.client.doPostRequest("/api/v2/product/update_item", nil, body, &result); err != nil {
+		return err
+	}
+
+	if result.Error != "" {
+		return fmt.Errorf("shopee API error: %s - %s", result.Error, result.Message)
+	}
+
+	return nil
+}
+
+// UpdatePrice updates price for an item/model
+func (p *ProductAPI) UpdatePrice(ctx context.Context, itemID int64, modelID *int64, price float64) error {
+	priceList := []map[string]interface{}{
+		{
+			"original_price": price,
+		},
+	}
+
+	if modelID != nil && *modelID != 0 {
+		priceList[0]["model_id"] = *modelID
+	} else {
+		priceList[0]["model_id"] = 0
+	}
+
+	req := map[string]interface{}{
+		"item_id":    itemID,
+		"price_list": priceList,
+	}
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("marshal request: %w", err)
+	}
+
+	var result struct {
+		Error    string `json:"error"`
+		Message  string `json:"message"`
+		Response struct {
+			SuccessList []struct {
+				ItemID  int64 `json:"item_id"`
+				ModelID int64 `json:"model_id"`
+			} `json:"success_list"`
+			FailureList []struct {
+				ItemID  int64  `json:"item_id"`
+				ModelID int64  `json:"model_id"`
+				Message string `json:"failed_reason"`
+			} `json:"failure_list"`
+		} `json:"response"`
+	}
+
+	if err := p.client.doPostRequest("/api/v2/product/update_price", nil, body, &result); err != nil {
+		return err
+	}
+
+	if result.Error != "" {
+		return fmt.Errorf("shopee API error: %s - %s", result.Error, result.Message)
+	}
+
+	if len(result.Response.FailureList) > 0 {
+		return fmt.Errorf("price update failed: %s", result.Response.FailureList[0].Message)
+	}
+
+	return nil
+}

@@ -8,6 +8,8 @@ import (
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/services/wholesale"
+	"github.com/omni/backend/pkg/shopee"
 )
 
 // =============================================================================
@@ -136,6 +138,7 @@ func (h *WholesaleExtendedHandler) ImportWholesale(c *gin.Context) {
 }
 
 // BatchSetMpq handles POST /api/wholesale/shopee/batch-mpq
+// Body: { items: [{ sku, price }], mpq: number }
 func (h *WholesaleExtendedHandler) BatchSetMpq(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
@@ -143,24 +146,68 @@ func (h *WholesaleExtendedHandler) BatchSetMpq(c *gin.Context) {
 		return
 	}
 
-	var req BatchSetMpqRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	// Parse request body
+	var reqBody struct {
+		Items []struct {
+			SKU   string  `json:"sku" binding:"required"`
+			Price float64 `json:"price" binding:"required"`
+		} `json:"items" binding:"required"`
+		MPQ int `json:"mpq" binding:"required,min=1"`
+	}
+
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
 		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
 		return
 	}
 
-	results := make([]map[string]interface{}, 0, len(req.Items))
-	for _, item := range req.Items {
-		results = append(results, map[string]interface{}{
-			"itemId":  item.ItemID,
-			"mpq":     item.MPQ,
-			"success": true,
-		})
+	if len(reqBody.Items) == 0 {
+		c.JSON(http.StatusBadRequest, response.Error("items array is required: [{ sku, price }]"))
+		return
 	}
 
+	// Get database
+	db, err := h.getDB(c, tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+
+	// Get Shopee API client
+	shopeeClient, err := config.GetShopeeClient(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Shopee API configuration failed"))
+		return
+	}
+
+	// Create MPQ service
+	shopeeAPI := shopee.NewProductAPI(shopeeClient)
+	mpqService := wholesale.NewShopeeMpqService(db, tenantID, shopeeAPI)
+
+	// Build SKU → Price map
+	skuPriceMap := make(map[string]float64)
+	for _, item := range reqBody.Items {
+		if item.SKU != "" && item.Price > 0 {
+			skuPriceMap[item.SKU] = item.Price
+		}
+	}
+
+	// Execute batch MPQ operation
+	result, err := mpqService.BatchSetMpqBySkus(c.Request.Context(), skuPriceMap, reqBody.MPQ)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
+		return
+	}
+
+	// Return response with snake_case
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"total":   len(req.Items),
-		"results": results,
+		"total_skus":   result.TotalSKUs,
+		"unique_items": result.UniqueItems,
+		"processed":    result.Processed,
+		"failed":       result.Failed,
+		"skipped":      result.Skipped,
+		"results":      result.Results,
+		"mpq":          reqBody.MPQ,
+		"message":      result.Success,
 	}))
 }
 
