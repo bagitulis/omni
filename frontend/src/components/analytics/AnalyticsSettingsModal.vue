@@ -101,12 +101,8 @@ const inventoryColumns = ref<string[]>([]);
 
 async function fetchInventoryColumns() {
   try {
-    const host = window.location.hostname;
-    const protocol = window.location.protocol;
-    const isLocalhost = host === "localhost" || host === "127.0.0.1";
-    const apiUrl = isLocalhost
-      ? `${protocol}//${host}:3000/api/inventory/stats`
-      : `${protocol}//${host}/api/inventory/stats`;
+    // Use centralized API URL function (supports localhost dev + production nginx proxy)
+    const apiUrl = getApiBaseUrl("/inventory/stats");
     const response = await fetch(apiUrl, {
       headers: getAuthHeaders(),
     });

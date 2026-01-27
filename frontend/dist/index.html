@@ -10,8 +10,7 @@
     <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet" />
 
     <!-- Preconnect to API for faster requests -->
-    <link rel="preconnect" href="http://localhost:3000" crossorigin />
-    <link rel="dns-prefetch" href="http://localhost:3000" />
+    <!-- Note: Removed hardcoded localhost:3000 - API calls use relative paths via nginx proxy -->
 
     <!-- Viewport for responsive design -->
     <meta
@@ -150,28 +149,28 @@
     <!-- Prevent unload handlers from blocking bfcache -->
     <meta name="cache-control" content="public" />
 
-    <!-- DNS prefetch for API -->
-    <link rel="dns-prefetch" href="//localhost:3000" />
+    <!-- DNS prefetch for API (same origin via nginx) -->
+    <link rel="dns-prefetch" href="/api" />
 
-    <!-- Preconnect to API server for faster first request -->
-    <link rel="preconnect" href="http://localhost:3000" crossorigin />
+    <!-- Preconnect to API server for faster first request (same origin) -->
+    <link rel="preconnect" href="/api" crossorigin />
 
     <title>Ecommerce Integration Platform</title>
-    <script type="module" crossorigin src="/js/index-DTONohKK.js"></script>
-    <link rel="modulepreload" crossorigin href="/js/vue-core-gQL7zdbd.js">
-    <link rel="modulepreload" crossorigin href="/js/state-C5k6lzH_.js">
+    <script type="module" crossorigin src="/js/index-D-OeKCY1.js"></script>
+    <link rel="modulepreload" crossorigin href="/js/vue-core-BZBw72J7.js">
+    <link rel="modulepreload" crossorigin href="/js/state-BZN4d9Bd.js">
     <link rel="modulepreload" crossorigin href="/js/api-CbPncbRj.js">
-    <link rel="stylesheet" crossorigin href="/css/index-u3PrdAKt.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="/css/index-u3PrdAKt.css"></noscript>
-  <link rel="modulepreload" href="/js/vue-core-gQL7zdbd.js">
-<link rel="modulepreload" href="/js/index-DTONohKK.js">
-<link rel="modulepreload" href="/js/RouteMapping-Bmf2vEwT.js">
-<link rel="modulepreload" href="/js/app-D6fpnOes.js">
-<link rel="modulepreload" href="/js/index-Bot4FkU4.js">
-<link rel="modulepreload" href="/js/index-DPf-ic2G.js">
+    <link rel="stylesheet" crossorigin href="/css/index-jb9t4s0G.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/css/index-jb9t4s0G.css"></noscript>
+  <link rel="modulepreload" href="/js/vue-core-BZBw72J7.js">
+<link rel="modulepreload" href="/js/index-pP9uGUSj.js">
+<link rel="modulepreload" href="/js/app-BbOuBILZ.js">
+<link rel="modulepreload" href="/js/RouteMapping-JVOxn5yZ.js">
+<link rel="modulepreload" href="/js/index-BiXk_y1I.js">
+<link rel="modulepreload" href="/js/index-D-OeKCY1.js">
 </head>
   <body>
     <div id="app"></div>
-    <!-- Defer main script to not block parsing -->
+    <!-- Defer main script to not block parsing -->
   </body>
 </html>

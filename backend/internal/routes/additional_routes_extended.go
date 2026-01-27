@@ -110,13 +110,16 @@ func RegisterWholesaleExtendedRoutes(router *gin.RouterGroup, basePath string) {
 		// Shopee wholesale
 		wholesale.DELETE("/shopee/:itemId", handler.DeleteWholesale)
 		wholesale.PUT("/shopee/:itemId", handler.UpdateWholesale)
+		wholesale.GET("/shopee/:itemId", handler.GetWholesaleInfo)
 		wholesale.GET("/shopee/:itemId/info", handler.GetWholesaleInfo)
 		wholesale.POST("/shopee/batch-delete", batchHandler.BatchDeleteByItemIds)
+		wholesale.POST("/shopee/batch-delete-skus", batchHandler.BatchDeleteBySkus)
 		wholesale.POST("/shopee/batch-add", handler.BatchAdd)
 		wholesale.GET("/shopee/lookup/:sku", handler.LookupItemId)
 		wholesale.POST("/shopee/preview", handler.Preview)
 		wholesale.POST("/shopee/import", handler.ImportWholesale)
 		wholesale.POST("/shopee/batch-mpq", handler.BatchSetMpq)
+		wholesale.POST("/shopee/batch-wholesale-reset", handler.BatchWholesaleReset)
 		wholesale.POST("/shopee/batch-reset", handler.BatchWholesaleReset)
 
 		// NEW: Batch update by SKUs

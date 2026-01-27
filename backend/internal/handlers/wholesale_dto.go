@@ -74,9 +74,9 @@ type MpqItem struct {
 	MPQ    int    `json:"mpq"`
 }
 
-// BatchResetRequest represents batch reset request
-type BatchResetRequest struct {
-	ItemIDs []int64 `json:"itemIds" binding:"required"`
+// BatchWholesaleResetRequest represents batch wholesale reset request
+type BatchWholesaleResetRequest struct {
+	Items []BatchUpdateItem `json:"items" binding:"required"`
 }
 
 // =============================================================================

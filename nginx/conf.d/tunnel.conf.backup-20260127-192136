@@ -62,15 +62,12 @@ server {
 
     # ============================================
     # API Backend
-    # UPDATED: Variable-based proxy untuk auto-detect backend IP changes
     # ============================================
     location /api {
         limit_req zone=api_limit burst=20 nodelay;
         limit_conn conn_limit 10;
 
-        # Variable-based proxy: DNS selalu di-resolve fresh (bypass upstream cache)
-        set $backend_upstream backend:3000;
-        proxy_pass http://$backend_upstream;
+        proxy_pass http://backend;
         proxy_http_version 1.1;
         
         proxy_set_header Upgrade $http_upgrade;
@@ -92,14 +89,11 @@ server {
 
     # ============================================
     # Frontend Application
-    # UPDATED: Variable-based proxy untuk auto-detect frontend IP changes
     # ============================================
     location / {
         limit_req zone=general_limit burst=50 nodelay;
         
-        # Variable-based proxy: DNS selalu di-resolve fresh
-        set $frontend_upstream frontend:80;
-        proxy_pass http://$frontend_upstream;
+        proxy_pass http://frontend;
         proxy_http_version 1.1;
         
         proxy_set_header Host $host;

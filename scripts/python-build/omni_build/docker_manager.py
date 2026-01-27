@@ -402,6 +402,10 @@ class DockerManager:
                 
                 if result.returncode == 0:
                     log_success(f"Deployment completed (attempt {attempt})")
+                    
+                    # Restart nginx to refresh DNS cache and ensure proper routing
+                    self._restart_nginx_after_deploy(spec)
+                    
                     return True
                 
                 # Deploy failed - analyze error
@@ -442,6 +446,55 @@ class DockerManager:
                 log_error(f"Deploy error: {e}")
                 if attempt >= max_retries:
                     return False
+        
+        return False
+    
+    def _restart_nginx_after_deploy(self, spec: SpecLevel) -> bool:
+        """
+        Restart nginx container after deployment to refresh DNS cache.
+        
+        This ensures nginx gets fresh DNS resolution for backend/frontend containers
+        that may have received new IP addresses during rebuild.
+        
+        Args:
+            spec: Specification level (used to get compose files)
+            
+        Returns:
+            True if restart succeeded, False otherwise
+        """
+        try:
+            compose_files = self.config.get_compose_files(spec)
+            
+            log_info("Restarting nginx to refresh DNS cache...")
+            
+            cmd = ["docker-compose"]
+            for file in compose_files:
+                cmd.extend(["-f", file])
+            cmd.extend(["restart", "nginx"])
+            
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=str(self.config.project_root),
+            )
+            
+            if result.returncode == 0:
+                log_success("Nginx restarted successfully - DNS cache refreshed")
+                return True
+            else:
+                log_warning(f"Nginx restart failed: {result.stderr}")
+                log_warning("This may cause stale DNS cache, but deployment succeeded")
+                return False
+                
+        except subprocess.TimeoutExpired:
+            log_warning("Nginx restart timed out - deployment succeeded but DNS may be stale")
+            return False
+        except Exception as e:
+            log_warning(f"Error restarting nginx: {e}")
+            log_warning("Deployment succeeded but nginx restart failed")
+            return False
         
         return False
     

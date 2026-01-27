@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -199,6 +200,66 @@ func (h *WholesaleBatchHandler) BatchDeleteByItemIds(c *gin.Context) {
 		"failed":    failed,
 		"success":   failed == 0,
 		"results":   results,
+	}))
+}
+
+// BatchDeleteBySkus handles POST /api/wholesale/shopee/batch-delete-skus
+// Body: { skus: string[] }
+func (h *WholesaleBatchHandler) BatchDeleteBySkus(c *gin.Context) {
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
+		return
+	}
+
+	var req struct {
+		SKUs []string `json:"skus" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
+		return
+	}
+
+	if len(req.SKUs) == 0 {
+		c.JSON(http.StatusBadRequest, response.Error("skus array is required"))
+		return
+	}
+
+	log.Info().
+		Str("tenant_id", tenantID).
+		Int("sku_count", len(req.SKUs)).
+		Msg("Batch delete wholesale by SKUs")
+
+	db, err := h.getDB(c, tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+
+	shopeeClient, err := config.GetShopeeClient(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Shopee API configuration failed"))
+		return
+	}
+
+	shopeeAPI := shopee.NewProductAPI(shopeeClient)
+	service := wholesale.NewShopeeWholesaleService(db, tenantID, shopeeAPI)
+
+	result, err := service.BatchDeleteBySkus(c.Request.Context(), req.SKUs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, response.Success(gin.H{
+		"total_skus":   result.TotalSKUs,
+		"unique_items": result.UniqueItems,
+		"processed":    result.Processed,
+		"failed":       result.Failed,
+		"skipped":      result.Skipped,
+		"success":      result.Success,
+		"results":      result.Results,
+		"message":      fmt.Sprintf("Deleted wholesale for %d/%d items", result.Processed, result.UniqueItems),
 	}))
 }
 

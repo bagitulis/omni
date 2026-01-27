@@ -10,8 +10,7 @@
     <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet" />
 
     <!-- Preconnect to API for faster requests -->
-    <link rel="preconnect" href="http://localhost:3000" crossorigin />
-    <link rel="dns-prefetch" href="http://localhost:3000" />
+    <!-- Note: Removed hardcoded localhost:3000 - API calls use relative paths via nginx proxy -->
 
     <!-- Viewport for responsive design -->
     <meta
@@ -150,11 +149,11 @@
     <!-- Prevent unload handlers from blocking bfcache -->
     <meta name="cache-control" content="public" />
 
-    <!-- DNS prefetch for API -->
-    <link rel="dns-prefetch" href="//localhost:3000" />
+    <!-- DNS prefetch for API (same origin via nginx) -->
+    <link rel="dns-prefetch" href="/api" />
 
-    <!-- Preconnect to API server for faster first request -->
-    <link rel="preconnect" href="http://localhost:3000" crossorigin />
+    <!-- Preconnect to API server for faster first request (same origin) -->
+    <link rel="preconnect" href="/api" crossorigin />
 
     <title>Ecommerce Integration Platform</title>
   </head>

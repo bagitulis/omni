@@ -1,1 +1,0 @@
-function r(){return n}import{d as n}from"./index-DTONohKK.js";export{r as u};

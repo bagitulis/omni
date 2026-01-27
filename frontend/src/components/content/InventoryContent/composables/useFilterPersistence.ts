@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import cacheService from "@/services/cacheService";
-import { getAuthHeaders } from "@/utils/apiHeaders";
+import { getAuthHeaders, getApiBaseUrl } from "@/utils/apiHeaders";
 
 /**
  * RESPONSIBILITY: API sync & cache persistence
@@ -21,17 +21,6 @@ const STORAGE_KEY = {
 const DIRECT_STORAGE_KEYS = [STORAGE_KEY.ORDER] as string[];
 
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours for filter preferences
-
-function getApiBaseUrl() {
-  const host = window.location.hostname;
-  const protocol = window.location.protocol;
-  // In production (non-localhost), use same origin without port
-  // In development (localhost), use port 3000 for backend
-  const isLocalhost = host === "localhost" || host === "127.0.0.1";
-  return isLocalhost
-    ? `${protocol}//${host}:3000/api`
-    : `${protocol}//${host}/api`;
-}
 
 export function useFilterPersistence() {
   const lastSyncTime = ref<number>(0);

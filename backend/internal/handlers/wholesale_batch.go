@@ -211,35 +211,6 @@ func (h *WholesaleExtendedHandler) BatchSetMpq(c *gin.Context) {
 	}))
 }
 
-// BatchWholesaleReset handles POST /api/wholesale/shopee/batch-reset
-func (h *WholesaleExtendedHandler) BatchWholesaleReset(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c)
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
-		return
-	}
-
-	var req BatchResetRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
-		return
-	}
-
-	results := make([]map[string]interface{}, 0, len(req.ItemIDs))
-	for _, itemID := range req.ItemIDs {
-		results = append(results, map[string]interface{}{
-			"itemId":  itemID,
-			"success": true,
-			"message": "Wholesale settings reset",
-		})
-	}
-
-	c.JSON(http.StatusOK, response.Success(gin.H{
-		"total":   len(req.ItemIDs),
-		"results": results,
-	}))
-}
-
 // BatchSetTiktokMpq handles POST /api/wholesale/tiktok/batch-mpq
 func (h *WholesaleExtendedHandler) BatchSetTiktokMpq(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)

@@ -41,17 +41,20 @@ export function getAuthHeaders(): Record<string, string> {
 
 /**
  * Get API base URL dynamically
+ * PRODUCTION: Use nginx proxy (same origin, no port)
+ * LOCALHOST DEV: Direct to backend port 3000
  */
 export function getApiBaseUrl(path: string = ""): string {
   const host = window.location.hostname;
   const protocol = window.location.protocol;
 
-  // In production (non-localhost), use same origin without port
-  // In development (localhost), use port 3000 for backend
+  // Only use port 3000 for true localhost development
+  // In production (any non-localhost domain), use nginx proxy without port
   const isLocalhost = host === "localhost" || host === "127.0.0.1";
+
   const baseUrl = isLocalhost
     ? `${protocol}//${host}:3000/api${path}`
-    : `${protocol}//${host}/api${path}`;
+    : `/api${path}`; // Relative URL for production (nginx proxy)
 
   return baseUrl;
 }

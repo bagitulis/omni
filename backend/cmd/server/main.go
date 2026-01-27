@@ -114,6 +114,7 @@ func main() {
 	routes.RegisterSpreadsheetRegistryRoutes(api, extHandlers.SpreadsheetRegistryHandler)
 	routes.RegisterFilterPreferenceRoutes(api, extHandlers.FilterPreferenceHandler)
 	routes.RegisterWholesaleRoutes(api, extHandlers.WholesaleHandler)
+	routes.RegisterWholesaleExtendedRoutes(api, cfg.DatabasePath)
 
 	// Ads routes
 	routes.RegisterAdsRoutes(api, extHandlers.AdsHandler)

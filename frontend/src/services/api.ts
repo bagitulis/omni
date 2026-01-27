@@ -18,8 +18,13 @@ import type {
 function getBackendUrl(): string {
   if (import.meta.env.DEV) {
     const currentUrl = window.location.origin;
-    return `${currentUrl.replace(/:\d+$/, "")}:3000/api`;
+    // Only add port 3000 for true localhost development
+    const isLocalhost =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+    return isLocalhost ? `${currentUrl.replace(/:\d+$/, "")}:3000/api` : "/api";
   }
+  // Production: Use relative URL (nginx proxy)
   return import.meta.env.VITE_API_URL || "/api";
 }
 
