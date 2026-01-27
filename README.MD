@@ -79,8 +79,8 @@
    - Verifikasi cleanup tidak merusak fitur
    - Test edge cases dan error scenarios
 
-5. **Verifikasi Keberhasilan**
-   - **Bukti 1**: Dapatkan Docker log dengan data spesifik
+5. **Verifikasi Keberhasilan** = WAJIB SUCCESS TRUE
+   - **Bukti 1**: Patikan data real
    - **Bukti 2**: Pastikan output script menunjukkan success
 
 6. **Iterasi Proses**

@@ -94,12 +94,65 @@ func (h *PriceHandler) UpdatePriceBatch(c *gin.Context) {
 		return
 	}
 
-	svc := inventoryService.NewPriceService(h.db, tenantID)
-	result, err := svc.UpdatePriceBatch(c.Request.Context(), req.Items)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
-		return
+	// Use orchestrator to sync to platforms instead of just updating DB
+	orchestrator := inventoryService.NewPriceUpdateOrchestrator(h.db, tenantID, h.credService)
+
+	allResults := make([]map[string]interface{}, 0, len(req.Items))
+	totalSuccess := 0
+	totalFailed := 0
+
+	for _, item := range req.Items {
+		result, err := orchestrator.UpdatePrice(c.Request.Context(), item.SKU, item.Price, item.Platforms)
+
+		itemResult := map[string]interface{}{
+			"sku":       item.SKU,
+			"price":     item.Price,
+			"platforms": make(map[string]interface{}),
+		}
+
+		if err != nil {
+			itemResult["success"] = false
+			itemResult["error"] = err.Error()
+			totalFailed++
+		} else {
+			itemResult["success"] = result.Success
+
+			// Add per-platform details
+			for platform, platformResult := range result.Platforms {
+				itemResult["platforms"].(map[string]interface{})[platform] = map[string]interface{}{
+					"success": platformResult.Success,
+					"error":   platformResult.Error,
+					"item_id": platformResult.ItemID,
+				}
+
+				// Log platform-specific errors
+				if !platformResult.Success && platformResult.Error != "" {
+					c.Writer.Header().Add("X-Platform-Error", platform+": "+platformResult.Error)
+				}
+			}
+
+			if result.Success {
+				totalSuccess++
+			} else {
+				totalFailed++
+				if len(result.Errors) > 0 {
+					itemResult["errors"] = result.Errors
+				}
+			}
+		}
+
+		allResults = append(allResults, itemResult)
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+	response := gin.H{
+		"success": totalFailed == 0,
+		"data": gin.H{
+			"total":   len(req.Items),
+			"success": totalSuccess,
+			"failed":  totalFailed,
+			"results": allResults,
+		},
+	}
+
+	c.JSON(http.StatusOK, response)
 }
