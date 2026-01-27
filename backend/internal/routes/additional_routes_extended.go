@@ -99,7 +99,8 @@ func RegisterTiktokProductExtendedRoutes(router *gin.RouterGroup, basePath strin
 
 // RegisterWholesaleExtendedRoutes registers wholesale extended routes
 func RegisterWholesaleExtendedRoutes(router *gin.RouterGroup, basePath string) {
-	handler := handlers.NewWholesaleExtendedHandler(basePath)
+	// Pass nil for DB - handler will get DB from context
+	handler := handlers.NewWholesaleExtendedHandler(basePath, nil)
 
 	wholesale := router.Group("/wholesale")
 	wholesale.Use(middleware.Auth())

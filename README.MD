@@ -24,11 +24,23 @@ PROSES PENGEMBANGAN (WAJIB URUTAN INI):
 6. Testing Final: Pastikan cleanup tidak merusak fungsionalitas
 7. Iterasi: Ulangi sampai berhasil
 
+Perbaikan Container:
+
+- Jika kontainer Docker bermasalah, jalankan `build.bat` dari root repo untuk rebuild image & service agar environment kembali bersih.
+- Hanya gunakan mode Quick Apply dan Smart Build
+
 Kriteria Keberhasilan (Dua Bukti Wajib):
 Bukti 1: Log Docker yang menampilkan data valid spesifik (misal: tanggal terkait masalah, transaksi sukses).
 Bukti 2: Output script dengan keterangan keberhasilan yang eksplisit terkait penyelesaian masalah.
 Catatan: Bukti harus relevan langsung dengan inti masalah yang didiskusikan. Bukti running umum tanpa konteks spesifik tidak dianggap sah.
 
 AI Harus: Pelajari flow backend-node + SQLite, SDK TikTok/Lazada Golang, dan pemanggilan route dari Frontend. Perhatikan juga masalah penggunaan snake_case dan camelCase.
+
+> [!REMINDER]
+> Counter Tugas AI:
+>
+> - Meski isu tidak disebabkan olehmu, tetap jalankan seluruh tugas perbaikan di README ini agar konsistensi kode terjaga.
+> - Jangan melewati langkah apa pun karena perubahan terdahulu; pastikan hasil akhir rapi dan aman.
+> - Jika ada batasan yang menghalangi eksekusi, laporkan secara eksplisit sambil menawarkan solusi yang sesuai panduan.
 
 ---

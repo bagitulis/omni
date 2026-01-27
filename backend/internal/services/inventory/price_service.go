@@ -19,10 +19,11 @@ func NewPriceService(db *gorm.DB, tenantID string) *PriceService {
 }
 
 // PriceUpdateItem represents a single price update request
+// Matches Node.js backend format: { sku, price, platforms?: string[] }
 type PriceUpdateItem struct {
-	SKU      string  `json:"sku"`
-	Price    float64 `json:"price"`
-	Platform string  `json:"platform"`
+	SKU       string   `json:"sku" binding:"required"`
+	Price     float64  `json:"price" binding:"required"`
+	Platforms []string `json:"platforms,omitempty"` // Optional: array of platforms
 }
 
 // PriceUpdateResult represents the result of a price update
@@ -104,7 +105,13 @@ func (s *PriceService) UpdatePriceBatch(ctx context.Context, items []PriceUpdate
 	}
 
 	for _, item := range items {
-		updateResult, err := s.UpdatePrice(ctx, item.SKU, item.Price, item.Platform)
+		// Use first platform if specified, otherwise empty string (all platforms)
+		platform := ""
+		if len(item.Platforms) > 0 {
+			platform = item.Platforms[0]
+		}
+
+		updateResult, err := s.UpdatePrice(ctx, item.SKU, item.Price, platform)
 		if err != nil {
 			result.Results = append(result.Results, PriceUpdateResult{
 				SKU:     item.SKU,

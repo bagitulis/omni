@@ -56,9 +56,21 @@ func RegisterInventorySimpleRoutes(router *gin.RouterGroup, handler *handlers.In
 		inventory.POST("/update-stock", handler.UpdateStock)
 		inventory.POST("/update-stock-batch", handler.UpdateStockBatch)
 
-		// Price updates
-		inventory.POST("/update-price", handler.UpdatePrice)
-		inventory.POST("/update-price-batch", handler.UpdatePriceBatch)
+		// Price updates - DEPRECATED handler removed, use extended_routes.go
+		// inventory.POST("/update-price", handler.UpdatePrice)
+		// inventory.POST("/update-price-batch", handler.UpdatePriceBatch)
+
+		// ============================================================================
+		// CRUD Operations by Key Value (CRITICAL: Place AFTER specific routes!)
+		// Added: 2026-01-27 - Fix 404 error on PUT /api/inventory/:keyValue
+		// Matches Node.js: backend-node/src/routes/inventoryDataRoutes.ts
+		// ============================================================================
+		// IMPORTANT: These MUST be LAST because :keyValue is a catch-all pattern!
+		// If placed before /config or /stats, they would match first and fail.
+		inventory.GET("/:keyValue", handler.GetRecordByKey)
+		inventory.PUT("/:keyValue", handler.UpdateRecordByKey) // ⚠️ FIXES 404 ERROR!
+		inventory.POST("", handler.CreateRecord)               // POST /api/inventory (no path param)
+		inventory.DELETE("/:keyValue", handler.DeleteRecordByKey)
 	}
 }
 

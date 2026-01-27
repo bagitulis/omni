@@ -355,6 +355,15 @@ watch([selectedMonth, selectedYear], async () => {
   await fetchSyncStatus();
   reconciliationResult.value = null;
   shippingFeeResult.value = null;
+
+  // Auto-fetch data if period is already synced
+  if (syncStatus.value?.synced) {
+    if (analyticsTab.value === "price") {
+      await fetchReconciliation();
+    } else if (analyticsTab.value === "shipping") {
+      await fetchShippingFeeAnalysis();
+    }
+  }
 });
 
 watch(

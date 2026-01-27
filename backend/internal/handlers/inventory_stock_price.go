@@ -208,6 +208,8 @@ func (h *InventoryHandler) UpdatePrice(c *gin.Context) {
 }
 
 // UpdatePriceBatchRequest represents batch price update request
+// DEPRECATED: Use inventory/price_handler.go instead
+// This handler expects "skus" array, but Node.js sends "items" array
 type UpdatePriceBatchRequest struct {
 	SKUs      []string `json:"skus" binding:"required"`
 	Platform  string   `json:"platform"`
@@ -215,8 +217,9 @@ type UpdatePriceBatchRequest struct {
 }
 
 // UpdatePriceBatch handles POST /api/inventory/update-price-batch
+// DEPRECATED: Replaced by inventory/price_handler.go which matches Node.js format
 // Gets price from inventory_records for each SKU and syncs to marketplaces
-func (h *InventoryHandler) UpdatePriceBatch(c *gin.Context) {
+func (h *InventoryHandler) UpdatePriceBatch_OLD(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})

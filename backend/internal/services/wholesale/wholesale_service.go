@@ -131,3 +131,25 @@ func (s *WholesaleService) applyToSingleProduct(ctx context.Context, api Platfor
 func (s *WholesaleService) applyDiscount(price, discountPercent float64) float64 {
 	return price * (1 - discountPercent/100)
 }
+
+// CalculateTiersFromSettings calculates wholesale tiers based on base price and settings (no context)
+// Used by batch handlers for tier calculation
+func (s *WholesaleService) CalculateTiersFromSettings(basePrice float64, settings *models.WholesaleSettings) []WholesaleTier {
+	return []WholesaleTier{
+		{
+			MinCount:  settings.MinQty1,
+			MaxCount:  settings.MinQty2 - 1,
+			UnitPrice: s.applyDiscount(basePrice, settings.Discount1),
+		},
+		{
+			MinCount:  settings.MinQty2,
+			MaxCount:  settings.MinQty3 - 1,
+			UnitPrice: s.applyDiscount(basePrice, settings.Discount2),
+		},
+		{
+			MinCount:  settings.MinQty3,
+			MaxCount:  0, // Unlimited
+			UnitPrice: s.applyDiscount(basePrice, settings.Discount3),
+		},
+	}
+}

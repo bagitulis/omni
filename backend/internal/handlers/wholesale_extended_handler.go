@@ -9,16 +9,30 @@ import (
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services/wholesale"
+	"gorm.io/gorm"
 )
 
 // WholesaleExtendedHandler handles extended wholesale endpoints
 type WholesaleExtendedHandler struct {
-	basePath string
+	basePath   string
+	fallbackDB *gorm.DB
 }
 
 // NewWholesaleExtendedHandler creates a new wholesale extended handler
-func NewWholesaleExtendedHandler(basePath string) *WholesaleExtendedHandler {
-	return &WholesaleExtendedHandler{basePath: basePath}
+func NewWholesaleExtendedHandler(basePath string, db *gorm.DB) *WholesaleExtendedHandler {
+	return &WholesaleExtendedHandler{
+		basePath:   basePath,
+		fallbackDB: db,
+	}
+}
+
+// getDB returns the appropriate database for the current request
+func (h *WholesaleExtendedHandler) getDB(c *gin.Context, tenantID string) (*gorm.DB, error) {
+	if h.fallbackDB != nil {
+		return h.fallbackDB, nil
+	}
+	return config.GetTenantDB(tenantID, h.basePath)
 }
 
 // DeleteWholesale handles DELETE /api/wholesale/shopee/:itemId
@@ -35,10 +49,23 @@ func (h *WholesaleExtendedHandler) DeleteWholesale(c *gin.Context) {
 		return
 	}
 
+	db, err := h.getDB(c, tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+
+	service := wholesale.NewShopeeWholesaleService(db, tenantID)
+	err = service.DeleteWholesaleTiers(c.Request.Context(), itemID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
+		return
+	}
+
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"itemId":  itemID,
+		"item_id": itemID,
 		"deleted": true,
-		"message": "Wholesale settings deleted successfully",
+		"message": "Wholesale tiers deleted successfully",
 	}))
 }
 
