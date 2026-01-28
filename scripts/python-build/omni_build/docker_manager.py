@@ -50,15 +50,36 @@ class DockerManager:
     def check_docker_ready(self) -> bool:
         """
         Check if Docker Desktop is running and ready.
-        If not ready, AUTO-FIX by restarting Docker.
+        AUTO-START if not running, AUTO-FIX if errors.
         
         Returns:
             True if Docker is ready, False otherwise
         """
         log_info("Checking Docker Desktop status...")
         
+        # GAP 1: Check if Docker Desktop process is running first
+        docker_process_running = self._is_docker_desktop_running()
+        
+        if not docker_process_running:
+            log_info("Docker Desktop not running, starting it...")
+            if not self._start_docker_desktop():
+                log_error("Failed to start Docker Desktop")
+                return False
+            
+            # Cold start needs more time - wait for Docker Desktop to initialize
+            log_info("Waiting for Docker Desktop cold start (this may take 60-90 seconds)...")
+            if not self._wait_for_docker(timeout_seconds=120, activity="Docker Desktop starting..."):
+                log_warning("Docker Desktop took too long to start, will retry...")
+                return self._auto_fix_docker()
+            
+            log_success("Docker Desktop started successfully")
+            return True
+        
+        # Docker Desktop is running - check if engine is ready
+        log_info("Docker Desktop process found, checking engine...")
+        
         try:
-            # Simple check like PowerShell: docker info with redirect stderr
+            # Try quick check first
             result = subprocess.run(
                 ["docker", "info"],
                 capture_output=True,
@@ -67,11 +88,17 @@ class DockerManager:
             )
             
             if result.returncode == 0:
-                log_success("Docker Desktop is ready")
+                log_success("Docker engine is ready")
                 return True
             
-            # Docker not ready - AUTO-FIX
-            log_warning("Docker Desktop is not ready - attempting auto-fix...")
+            # Engine not ready, wait for it
+            log_info("Docker engine not ready, waiting...")
+            if self._wait_for_docker(timeout_seconds=60, activity="Waiting for Docker engine..."):
+                log_success("Docker engine is now ready")
+                return True
+            
+            # Waited but still not ready - AUTO-FIX
+            log_warning("Docker engine not responding after wait, attempting repair...")
             return self._auto_fix_docker()
             
         except subprocess.TimeoutExpired:
@@ -85,43 +112,110 @@ class DockerManager:
     
     def _auto_fix_docker(self) -> bool:
         """
-        Auto-fix Docker issues by restarting engine.
+        Auto-fix Docker issues by restarting engine with robust retry mechanism.
         
         Returns:
             True if Docker is ready after fix
         """
         log_info("Applying Docker auto-fix...")
         
-        # Use error handler's repair method
+        # Use error handler's repair method (now with dockerd validation)
         if self.error_handler._repair_docker_engine():
-            log_success("Docker engine restarted")
+            log_success("Docker engine and daemon restarted successfully")
             
-            # Wait for Docker to be ready - INCREASED TIMEOUT (match PowerShell: 120s)
-            log_info("Waiting for Docker to initialize (max 2 minutes)...")
-            for attempt in range(1, 13):  # Max 120 seconds (12 * 10s)
+            # Wait for Docker API to be ready - REDUCED (daemon already verified)
+            log_info("Waiting for Docker API to be ready (max 90 seconds)...")
+            
+            max_attempts = 9  # 9 attempts * 10s = 90s (daemon already running, just waiting for API)
+            consecutive_timeouts = 0
+            
+            for attempt in range(1, max_attempts + 1):
+                # Consistent 10s wait (dockerd already running per error_handler check)
                 time.sleep(10)
+                elapsed_time = attempt * 10
                 
                 try:
+                    # Check if docker info responds
                     result = subprocess.run(
                         ["docker", "info"],
                         capture_output=True,
-                        timeout=5,
+                        text=True,
+                        timeout=15,
                     )
                     
                     if result.returncode == 0:
-                        log_success(f"Docker ready after {attempt * 10}s")
-                        return True
+                        log_success(f"Docker API ready after {elapsed_time}s (attempt {attempt})")
+                        
+                        # Additional verification - try docker ps
+                        try:
+                            verify = subprocess.run(
+                                ["docker", "ps"],
+                                capture_output=True,
+                                timeout=10,
+                            )
+                            if verify.returncode == 0:
+                                log_success("Docker fully operational - API responding")
+                                return True
+                            else:
+                                log_warning("Docker info OK but docker ps failed, waiting...")
+                                consecutive_timeouts = 0
+                                continue
+                        except:
+                            log_warning("Docker ps verification failed, continuing...")
+                            consecutive_timeouts = 0
+                            continue
                     
-                    log_info(f"Docker still initializing (attempt {attempt}/12)...")
+                    # Docker info returned non-zero - API still initializing
+                    consecutive_timeouts = 0
+                    log_info(f"Docker API initializing... ({elapsed_time}s elapsed, attempt {attempt}/{max_attempts})")
                     
                 except subprocess.TimeoutExpired:
-                    log_info(f"Docker still starting (attempt {attempt}/12)...")
+                    consecutive_timeouts += 1
+                    log_info(f"Docker API timeout (attempt {attempt}/{max_attempts}, timeout #{consecutive_timeouts})")
+                    
+                    # If too many timeouts, daemon might have crashed
+                    if consecutive_timeouts >= 3:
+                        log_error(f"Docker API not responding after {consecutive_timeouts} timeouts")
+                        log_error("dockerd daemon may have crashed or hung")
+                        
+                        # Check if dockerd still running
+                        try:
+                            result = subprocess.run(
+                                ["wsl", "-d", "docker-desktop", "sh", "-c", "pgrep dockerd"],
+                                capture_output=True,
+                                text=True,
+                                timeout=5,
+                                check=False
+                            )
+                            if result.returncode != 0 or not result.stdout.strip():
+                                log_error("dockerd daemon has stopped!")
+                                log_error("Docker Desktop initialization failed")
+                                return False
+                            else:
+                                log_info(f"dockerd still running (PID: {result.stdout.strip()})")
+                                log_warning("Docker daemon running but API not responding")
+                                consecutive_timeouts = 0  # Reset and continue
+                        except:
+                            log_warning("Cannot verify dockerd status")
+                    
+                    continue
+                
+                except Exception as e:
+                    log_warning(f"Unexpected error checking Docker: {e}")
+                    consecutive_timeouts = 0
                     continue
             
-            log_error("Docker did not become ready after 2 minutes")
+            # Max attempts reached
+            log_error(f"Docker API did not become ready after {max_attempts * 10}s")
+            log_error("Possible issues:")
+            log_error("  - Docker API server not starting")
+            log_error("  - Network configuration blocking API")
+            log_error("  - Docker Desktop GUI stuck")
+            log_info("Try: Manually restart Docker Desktop")
             return False
         
         log_error("Failed to restart Docker engine")
+        log_error("See error messages above for details")
         return False
     
     def check_linux_mode(self) -> bool:
@@ -156,6 +250,129 @@ class DockerManager:
         except Exception as e:
             log_warning(f"Could not verify Docker mode: {e}")
             return True  # Assume OK if we can't check
+    
+    def _is_docker_desktop_running(self) -> bool:
+        """
+        Check if Docker Desktop process is running.
+        
+        Returns:
+            True if Docker Desktop.exe process is found
+        """
+        try:
+            result = subprocess.run(
+                ["tasklist", "/FO", "CSV", "/NH"],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            
+            if "Docker Desktop.exe" in result.stdout:
+                log_info("Docker Desktop process is running")
+                return True
+            
+            log_info("Docker Desktop process not found")
+            return False
+            
+        except Exception as e:
+            log_warning(f"Could not check Docker Desktop process: {e}")
+            return False
+    
+    def _start_docker_desktop(self) -> bool:
+        """
+        Start Docker Desktop application.
+        
+        Returns:
+            True if started successfully
+        """
+        docker_paths = [
+            Path("C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe"),
+            Path("C:\\Program Files (x86)\\Docker\\Docker\\Docker Desktop.exe"),
+            Path.home() / "AppData" / "Local" / "Docker" / "Docker Desktop.exe",
+        ]
+        
+        for docker_path in docker_paths:
+            if docker_path.exists():
+                log_info(f"Starting Docker Desktop from: {docker_path}")
+                try:
+                    subprocess.Popen([str(docker_path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    
+                    # Wait for Docker Desktop process to start
+                    max_wait = 30
+                    waited = 0
+                    while waited < max_wait:
+                        time.sleep(2)
+                        waited += 2
+                        if self._is_docker_desktop_running():
+                            # Process started, wait a bit more for initialization
+                            time.sleep(5)
+                            log_success("Docker Desktop process started")
+                            return True
+                    
+                    log_warning(f"Docker Desktop process not detected after {max_wait}s")
+                    return True  # Continue anyway, might still work
+                    
+                except Exception as e:
+                    log_error(f"Failed to start Docker Desktop: {e}")
+                    return False
+        
+        log_error("Docker Desktop executable not found in standard locations")
+        return False
+    
+    def _wait_for_docker(self, timeout_seconds: int = 90, activity: str = "Waiting for Docker...") -> bool:
+        """
+        Wait for Docker to be ready with progressive backoff.
+        
+        Args:
+            timeout_seconds: Maximum time to wait
+            activity: Activity description for logging
+            
+        Returns:
+            True if Docker became ready, False if timeout
+        """
+        log_info(f"{activity} (timeout: {timeout_seconds}s)")
+        
+        elapsed = 0
+        interval = 3  # Start with shorter interval
+        consecutive_ready = 0  # Need 2 consecutive ready checks for stability
+        
+        while elapsed < timeout_seconds:
+            time.sleep(interval)
+            elapsed += interval
+            
+            # Progressive backoff - increase interval as we wait longer
+            if elapsed > 30 and interval < 8:
+                interval = 8
+                log_info("Increasing check interval for efficiency...")
+            
+            # Check if Docker is ready
+            try:
+                result = subprocess.run(
+                    ["docker", "info"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                
+                if result.returncode == 0:
+                    consecutive_ready += 1
+                    log_info(f"Docker responding ({consecutive_ready}/2 consecutive checks)")
+                    
+                    # Require 2 consecutive ready checks for stability
+                    if consecutive_ready >= 2:
+                        log_success(f"Docker ready after {elapsed}s")
+                        return True
+                else:
+                    consecutive_ready = 0  # Reset on failure
+                    
+            except subprocess.TimeoutExpired:
+                consecutive_ready = 0
+                log_info(f"Docker not responding yet ({elapsed}s elapsed)...")
+            except Exception as e:
+                consecutive_ready = 0
+                log_warning(f"Docker check error: {e}")
+        
+        log_error(f"Docker did not become ready after {timeout_seconds}s")
+        return False
     
     def build_images(
         self,
@@ -656,3 +873,130 @@ class DockerManager:
         except Exception as e:
             log_warning(f"Could not get container status: {e}")
             return []
+    
+    # ============================================
+    # HELPER METHODS - Docker Desktop Management
+    # ============================================
+    
+    def _is_docker_desktop_running(self) -> bool:
+        """
+        Check if Docker Desktop process is running.
+        
+        Returns:
+            True if Docker Desktop.exe process is found
+        """
+        try:
+            result = subprocess.run(
+                ["tasklist", "/FO", "CSV", "/NH"],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            
+            if "Docker Desktop.exe" in result.stdout:
+                log_info("Docker Desktop process is running")
+                return True
+            
+            log_info("Docker Desktop process not found")
+            return False
+            
+        except Exception as e:
+            log_warning(f"Could not check Docker Desktop process: {e}")
+            return False
+    
+    def _start_docker_desktop(self) -> bool:
+        """
+        Start Docker Desktop application.
+        
+        Returns:
+            True if started successfully
+        """
+        docker_paths = [
+            Path("C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe"),
+            Path("C:\\Program Files (x86)\\Docker\\Docker\\Docker Desktop.exe"),
+            Path.home() / "AppData" / "Local" / "Docker" / "Docker Desktop.exe",
+        ]
+        
+        for docker_path in docker_paths:
+            if docker_path.exists():
+                log_info(f"Starting Docker Desktop from: {docker_path}")
+                try:
+                    subprocess.Popen([str(docker_path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    
+                    # Wait for Docker Desktop process to start
+                    max_wait = 30
+                    waited = 0
+                    while waited < max_wait:
+                        time.sleep(2)
+                        waited += 2
+                        if self._is_docker_desktop_running():
+                            # Process started, wait a bit more for initialization
+                            time.sleep(5)
+                            log_success("Docker Desktop process started")
+                            return True
+                    
+                    log_warning(f"Docker Desktop process not detected after {max_wait}s")
+                    return True  # Continue anyway, might still work
+                    
+                except Exception as e:
+                    log_error(f"Failed to start Docker Desktop: {e}")
+                    return False
+        
+        log_error("Docker Desktop executable not found in standard locations")
+        return False
+    
+    def _wait_for_docker(self, timeout_seconds: int = 90, activity: str = "Waiting for Docker...") -> bool:
+        """
+        Wait for Docker to be ready with progressive backoff.
+        
+        Args:
+            timeout_seconds: Maximum time to wait
+            activity: Activity description for logging
+            
+        Returns:
+            True if Docker became ready, False if timeout
+        """
+        log_info(f"{activity} (timeout: {timeout_seconds}s)")
+        
+        elapsed = 0
+        interval = 3  # Start with shorter interval
+        consecutive_ready = 0  # Need 2 consecutive ready checks for stability
+        
+        while elapsed < timeout_seconds:
+            time.sleep(interval)
+            elapsed += interval
+            
+            # Progressive backoff - increase interval as we wait longer
+            if elapsed > 30 and interval < 8:
+                interval = 8
+                log_info("Increasing check interval for efficiency...")
+            
+            # Check if Docker is ready
+            try:
+                result = subprocess.run(
+                    ["docker", "info"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                
+                if result.returncode == 0:
+                    consecutive_ready += 1
+                    log_info(f"Docker responding ({consecutive_ready}/2 consecutive checks)")
+                    
+                    # Require 2 consecutive ready checks for stability
+                    if consecutive_ready >= 2:
+                        log_success(f"Docker ready after {elapsed}s")
+                        return True
+                else:
+                    consecutive_ready = 0  # Reset on failure
+                    
+            except subprocess.TimeoutExpired:
+                consecutive_ready = 0
+                log_info(f"Docker not responding yet ({elapsed}s elapsed)...")
+            except Exception as e:
+                consecutive_ready = 0
+                log_warning(f"Docker check error: {e}")
+        
+        log_error(f"Docker did not become ready after {timeout_seconds}s")
+        return False

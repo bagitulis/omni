@@ -13,6 +13,7 @@ Based on AGENTS.md requirements:
 import re
 import subprocess
 import time
+from pathlib import Path
 from typing import Callable, Optional
 
 from omni_build.logger import log_error, log_fix, log_info, log_success, log_warning
@@ -390,21 +391,150 @@ class ErrorHandler:
     # ============================================
     
     def _repair_docker_engine(self) -> bool:
-        """Repair Docker Desktop engine."""
+        """Repair Docker Desktop engine with robust restart mechanism."""
         log_info("Stopping Docker Desktop...")
-        subprocess.run(["taskkill", "/F", "/IM", "Docker Desktop.exe"], 
-                      capture_output=True, check=False)
-        time.sleep(5)
         
-        log_info("Stopping WSL...")
+        # Step 1: Kill all Docker processes thoroughly
+        docker_processes = [
+            "Docker Desktop.exe",
+            "com.docker.backend.exe",
+            "com.docker.vpnkit.exe",
+            "com.docker.proxy.exe",
+        ]
+        
+        for process in docker_processes:
+            subprocess.run(
+                ["taskkill", "/F", "/IM", process],
+                capture_output=True,
+                check=False
+            )
+        
+        time.sleep(3)
+        
+        log_info("Stopping WSL backend...")
+        # Force stop WSL to ensure clean slate
         subprocess.run(["wsl", "--shutdown"], capture_output=True, check=False)
         time.sleep(5)
         
-        log_info("Starting Docker Desktop...")
-        subprocess.Popen(["C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe"])
-        time.sleep(30)  # Wait for Docker to initialize
+        # Step 2: Verify WSL is stopped
+        result = subprocess.run(
+            ["wsl", "--list", "--running"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if result.returncode == 0 and "docker" in result.stdout.lower():
+            log_warning("WSL still running, forcing terminate...")
+            subprocess.run(["wsl", "--terminate", "docker-desktop"], capture_output=True, check=False)
+            subprocess.run(["wsl", "--terminate", "docker-desktop-data"], capture_output=True, check=False)
+            time.sleep(3)
         
-        return True
+        log_success("Docker and WSL stopped successfully")
+        
+        # Step 3: Start Docker Desktop
+        log_info("Starting Docker Desktop...")
+        try:
+            # Try default location first
+            docker_path = Path("C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe")
+            if not docker_path.exists():
+                log_warning("Docker Desktop not found in default location")
+                # Try alternative locations
+                alt_paths = [
+                    Path("C:\\Program Files (x86)\\Docker\\Docker\\Docker Desktop.exe"),
+                    Path.home() / "AppData" / "Local" / "Docker" / "Docker Desktop.exe",
+                ]
+                for alt_path in alt_paths:
+                    if alt_path.exists():
+                        docker_path = alt_path
+                        log_info(f"Found Docker Desktop at: {docker_path}")
+                        break
+                else:
+                    log_error("Could not find Docker Desktop executable")
+                    return False
+            
+            # Start Docker Desktop process
+            subprocess.Popen([str(docker_path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            log_info("Docker Desktop.exe started, waiting for initialization...")
+            
+            # Step 4: Wait for Docker Desktop process to be stable (not just started)
+            time.sleep(20)
+            
+            # Step 5: Verify Docker Desktop is running
+            for i in range(5):
+                result = subprocess.run(
+                    ["tasklist", "/FO", "CSV", "/NH"],
+                    capture_output=True,
+                    text=True,
+                    check=False
+                )
+                if "Docker Desktop.exe" in result.stdout:
+                    log_success("Docker Desktop process confirmed running")
+                    break
+                else:
+                    log_warning(f"Docker Desktop process not found, waiting... ({i+1}/5)")
+                    time.sleep(5)
+            else:
+                log_error("Docker Desktop process failed to start")
+                return False
+            
+            # Step 6: Wait for WSL backend to start
+            log_info("Waiting for WSL backend to initialize...")
+            time.sleep(15)
+            
+            # Verify WSL docker-desktop is running
+            for i in range(6):
+                result = subprocess.run(
+                    ["wsl", "--list", "--running"],
+                    capture_output=True,
+                    text=True,
+                    check=False
+                )
+                if "docker-desktop" in result.stdout.lower():
+                    log_success("WSL docker-desktop backend is running")
+                    break
+                else:
+                    log_info(f"Waiting for WSL backend... ({i+1}/6)")
+                    time.sleep(5)
+            else:
+                log_warning("WSL backend slow to start, continuing anyway...")
+            
+            # Step 7: Wait for dockerd daemon to start
+            log_info("Waiting for Docker daemon (dockerd) to start...")
+            time.sleep(10)
+            
+            # Verify dockerd is running in WSL
+            for i in range(8):
+                try:
+                    result = subprocess.run(
+                        ["wsl", "-d", "docker-desktop", "sh", "-c", "pgrep dockerd"],
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                        check=False
+                    )
+                    if result.returncode == 0 and result.stdout.strip():
+                        log_success(f"dockerd daemon is running (PID: {result.stdout.strip()})")
+                        break
+                    else:
+                        log_info(f"Waiting for dockerd daemon... ({i+1}/8)")
+                        time.sleep(5)
+                except:
+                    log_warning(f"dockerd check failed, retrying... ({i+1}/8)")
+                    time.sleep(5)
+            else:
+                log_error("dockerd daemon failed to start in WSL!")
+                log_error("Docker Desktop may be stuck in initialization")
+                return False
+            
+            log_success("Docker Desktop restart completed successfully")
+            log_info("Docker engine is starting, daemon is running")
+            return True
+            
+        except Exception as e:
+            log_error(f"Failed to start Docker Desktop: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
     
     def _repair_docker_pipe(self) -> bool:
         """Repair Docker named pipe."""
