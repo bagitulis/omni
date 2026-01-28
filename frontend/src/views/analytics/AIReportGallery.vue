@@ -85,7 +85,7 @@
                 <span class="report-type">{{ report.report_type }}</span>
               </div>
               <div class="card-body">
-                <h3>{{ report.title }}</h3>
+                <h3>{{ report.period_label || report.file_name }}</h3>
                 <div class="card-meta">
                   <div class="meta-item">
                     <span aria-hidden="true">📅</span>
@@ -120,7 +120,9 @@
           <div v-if="selectedReport" class="modal-overlay" @click="closeReport">
             <div class="modal-content" @click.stop>
               <div class="modal-header">
-                <h2>{{ selectedReport.title }}</h2>
+                <h2>
+                  {{ selectedReport.period_label || selectedReport.file_name }}
+                </h2>
                 <button @click="closeReport" class="btn-close" type="button">
                   ✕
                 </button>
@@ -216,14 +218,25 @@ function handlePlatformChange(platform: string) {
 async function handleGenerateReport() {
   const platform =
     selectedPlatform.value === "all" ? "shopee" : selectedPlatform.value;
-  await generateReport(platform, "performance_analysis");
-  await loadReports();
+  try {
+    await generateReport({
+      platform: platform as "shopee" | "tiktok",
+      report_type: "full",
+    });
+    await loadReports();
+  } catch (err) {
+    console.error("Failed to generate report:", err);
+  }
 }
 
 async function viewReport(report: any) {
   selectedReport.value = report;
   loadingReport.value = true;
-  await fetchReport(report.id);
+  try {
+    await fetchReport(report.platform, report.file_name);
+  } catch (err) {
+    console.error("Failed to load report:", err);
+  }
   loadingReport.value = false;
 }
 
@@ -232,7 +245,13 @@ function closeReport() {
 }
 
 async function loadReports() {
-  await fetchReports();
+  const platform =
+    selectedPlatform.value === "all" ? "tiktok" : selectedPlatform.value;
+  try {
+    await fetchReports(platform as "shopee" | "tiktok");
+  } catch (err) {
+    console.error("Failed to load reports:", err);
+  }
 }
 
 // Lifecycle

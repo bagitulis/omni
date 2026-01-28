@@ -103,3 +103,31 @@ func RegisterTiktokAdsAnalyticsRoutes(router *gin.RouterGroup, basePath string) 
 		tiktokAds.POST("/upload", handler.Upload)
 	}
 }
+
+// RegisterMLAnalyticsRoutes registers ML analytics routes
+// Maps to /api/analytics/ml/* (new ML-powered analytics)
+func RegisterMLAnalyticsRoutes(router *gin.RouterGroup) {
+	handler := analytics.NewMLHandler()
+	ml := router.Group("/analytics/ml")
+	ml.Use(middleware.Auth())
+	ml.Use(middleware.Tenant())
+	{
+		// Portfolio health (lightweight summary)
+		ml.GET("/portfolio-health", handler.GetPortfolioHealth)
+
+		// Products with scores (paginated)
+		ml.GET("/products", handler.GetProducts)
+
+		// Single product detail
+		ml.GET("/product/:id", handler.GetProductDetail)
+
+		// Alerts
+		ml.GET("/alerts", handler.GetAlerts)
+
+		// Budget simulation
+		ml.POST("/budget-sim", handler.SimulateBudget)
+
+		// Score distribution for charts
+		ml.GET("/distribution", handler.GetScoreDistribution)
+	}
+}

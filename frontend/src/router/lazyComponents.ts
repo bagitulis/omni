@@ -42,3 +42,9 @@ export const AIReportGallery = () =>
   import(
     /* webpackChunkName: "ai-report-gallery" */ "../views/analytics/AIReportGallery.vue"
   );
+
+// ML Analytics Dashboard
+export const MLDashboard = () =>
+  import(
+    /* webpackChunkName: "ml-dashboard" */ "../views/analytics/MLDashboard.vue"
+  );

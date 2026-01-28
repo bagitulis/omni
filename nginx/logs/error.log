@@ -652,3 +652,5 @@
 2026/01/28 02:22:08 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:76
 2026/01/28 02:22:17 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:76
 2026/01/28 02:22:28 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:76
+2026/01/28 13:22:56 [warn] 22#22: *10 an upstream response is buffered to a temporary file /var/cache/nginx/proxy_temp/1/00/0000000001 while reading upstream, client: 172.18.0.8, server: _, request: "GET /js/index-DSxXJoRw.js HTTP/1.1", upstream: "http://172.18.0.6:80/js/index-DSxXJoRw.js", host: "yndigital.my.id", referrer: "https://yndigital.my.id/login?returnUrl=%2Fanalytics%2Fai-reports"
+2026/01/28 13:24:42 [warn] 23#23: *245 an upstream response is buffered to a temporary file /var/cache/nginx/proxy_temp/2/00/0000000002 while reading upstream, client: 172.18.0.8, server: _, request: "GET /js/index-DSxXJoRw.js HTTP/1.1", upstream: "http://172.18.0.6:80/js/index-DSxXJoRw.js", host: "yndigital.my.id", referrer: "https://yndigital.my.id/login?returnUrl=%2Fanalytics%2Fai-reports"

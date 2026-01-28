@@ -12,6 +12,7 @@ import {
   TiktokAdsAnalytics,
   ShopeeAdsAnalytics,
   AIReportGallery,
+  MLDashboard,
 } from "./lazyComponents";
 
 // Auth routes
@@ -169,9 +170,15 @@ export const analyticsRoutes: RouteRecordRaw[] = [
   {
     path: "/analytics",
     name: "Analytics",
-    redirect: "/analytics/tiktok-ads",
+    redirect: "/analytics/ml",
     meta: { section: "analytics" },
     children: [
+      {
+        path: "ml",
+        name: "MLDashboard",
+        component: MLDashboard,
+        meta: { section: "analytics", subsection: "ml" },
+      },
       {
         path: "tiktok-ads",
         name: "TiktokAdsAnalytics",

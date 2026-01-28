@@ -1,7 +1,6 @@
 package lazada
 
 import (
-	"context"
 	"log"
 	"net/http"
 	"strconv"
@@ -248,52 +247,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	}))
 }
 
-// getLazadaClient creates Lazada API client for tenant
+// getLazadaClient creates Lazada API client for tenant using shared helper
 func (h *ProductHandler) getLazadaClient(tenantID string) (*lazadaPkg.Client, error) {
-	ctx := context.Background()
-	db, err := config.GetTenantDB(tenantID, h.basePath)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get platform credentials from tenant's key-value storage
-	// NOTE: PostgreSQL uses schema isolation, NOT tenant_id column
-	credRepo := repositories.NewPlatformCredentialsRepository(db)
-	tenantCreds, err := credRepo.GetLazadaCredentials(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if tenantCreds.AccessToken == "" {
-		return nil, err
-	}
-
-	// Use tenant credentials for appKey/appSecret if available, otherwise fall back to global
-	appKey := tenantCreds.AppKey
-	appSecret := tenantCreds.AppSecret
-	region := tenantCreds.Region
-	if region == "" {
-		region = "ID" // Default to Indonesia
-	}
-
-	if appKey == "" || appSecret == "" {
-		// Fall back to global credentials
-		systemDB, err := config.GetSystemDB(h.basePath)
-		if err != nil {
-			return nil, err
-		}
-		globalRepo := repositories.NewGlobalConfigRepository(systemDB)
-		globalCreds, err := globalRepo.GetLazadaCredentials(ctx)
-		if err != nil {
-			return nil, err
-		}
-		appKey = globalCreds.AppKey
-		appSecret = globalCreds.AppSecret
-		if region == "" {
-			region = globalCreds.Region
-		}
-	}
-
-	client := lazadaPkg.NewClient(appKey, appSecret, region)
-	client.SetAccessToken(tenantCreds.AccessToken)
-	return client, nil
+	return GetLazadaClient(tenantID, h.basePath)
 }

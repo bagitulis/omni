@@ -267,7 +267,9 @@ def run_with_menu_loop():
 # Main execution
 if __name__ == "__main__":
     # Check if we should run in interactive menu mode
-    INTERACTIVE_MODE = len(sys.argv) == 1 and sys.stdin.isatty()
+    # Always show menu when no args are provided, even if stdin isn't a TTY
+    # (e.g., when launched from VS Code task/debugger).
+    INTERACTIVE_MODE = len(sys.argv) == 1
 
     if INTERACTIVE_MODE:
         # Run with menu loop
@@ -276,4 +278,3 @@ if __name__ == "__main__":
         # Direct command mode - run once
         exit_code = run_build()
         sys.exit(exit_code)
-

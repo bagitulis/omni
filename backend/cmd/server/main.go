@@ -125,6 +125,9 @@ func main() {
 	routes.RegisterShopeeAdsAnalyticsRoutes(api, cfg.DatabasePath)
 	routes.RegisterTiktokAdsAnalyticsRoutes(api, cfg.DatabasePath)
 
+	// ML Analytics routes (new ML-powered analytics)
+	routes.RegisterMLAnalyticsRoutes(api)
+
 	// ML Report routes
 	routes.RegisterMLReportRoutes(api, cfg.DatabasePath)
 

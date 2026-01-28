@@ -1,7 +1,6 @@
 package lazada
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 
@@ -165,34 +164,9 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	}))
 }
 
-// getLazadaClient creates Lazada API client for tenant
+// getLazadaClient creates Lazada API client for tenant using shared helper
 func (h *OrderHandler) getLazadaClient(tenantID string) (*lazadaPkg.Client, error) {
-	ctx := context.Background()
-	db, err := config.GetTenantDB(tenantID, h.basePath)
-	if err != nil {
-		return nil, err
-	}
-
-	platformRepo := repositories.NewPlatformConfigRepository(db)
-	platformConfig, err := platformRepo.FindByTenantAndPlatform(ctx, tenantID, "lazada")
-	if err != nil {
-		return nil, err
-	}
-
-	// Get global config for app credentials
-	systemDB, err := config.GetSystemDB(h.basePath)
-	if err != nil {
-		return nil, err
-	}
-	globalRepo := repositories.NewGlobalConfigRepository(systemDB)
-	creds, err := globalRepo.GetLazadaCredentials(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	client := lazadaPkg.NewClient(creds.AppKey, creds.AppSecret, platformConfig.Region)
-	client.SetAccessToken(platformConfig.AccessToken)
-	return client, nil
+	return GetLazadaClient(tenantID, h.basePath)
 }
 
 // parsePagination extracts and validates pagination params

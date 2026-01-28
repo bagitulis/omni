@@ -74,5 +74,19 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%scripts\bui
 REM Capture exit code
 set "EXIT_CODE=%ERRORLEVEL%"
 
+REM Keep the window open so users can read the logs
+echo.
+echo ============================================
+if "%EXIT_CODE%"=="0" (
+    echo Build completed successfully. Exit code: %EXIT_CODE%
+) else (
+    echo Build finished with errors. Exit code: %EXIT_CODE%
+)
+echo ============================================
+echo Press any key to close this window...
+
+REM Allow bypassing the pause by setting NO_PAUSE=1
+if not defined NO_PAUSE pause >nul
+
 REM Exit with the same code
 exit /b %EXIT_CODE%

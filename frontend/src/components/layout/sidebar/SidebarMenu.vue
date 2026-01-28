@@ -163,6 +163,14 @@
       <!-- Submenu untuk Analytics -->
       <div class="submenu" v-if="expandedSections['analytics']">
         <router-link
+          to="/analytics/ml"
+          class="submenu-item"
+          :class="{ active: currentPathIs('/analytics/ml') }"
+        >
+          <span>🧠</span>
+          <span>ML Dashboard</span>
+        </router-link>
+        <router-link
           to="/analytics/shopee-ads"
           class="submenu-item"
           :class="{ active: currentPathIs('/analytics/shopee-ads') }"
@@ -177,6 +185,14 @@
         >
           <span>📈</span>
           <span>TikTok Ads</span>
+        </router-link>
+        <router-link
+          to="/analytics/ai-reports"
+          class="submenu-item"
+          :class="{ active: currentPathIs('/analytics/ai-reports') }"
+        >
+          <span>🤖</span>
+          <span>AI Reports</span>
         </router-link>
       </div>
     </div>

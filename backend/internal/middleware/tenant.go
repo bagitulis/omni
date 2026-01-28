@@ -32,7 +32,7 @@ func Tenant() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// First check if tenantID was already set by Auth middleware (from JWT)
 		tenantID := c.GetString("tenantID")
-		
+
 		// If not in context, check header (for backwards compatibility)
 		if tenantID == "" {
 			tenantID = c.GetHeader("x-tenant-id")
@@ -78,7 +78,8 @@ func Tenant() gin.HandlerFunc {
 		}
 
 		c.Set("tenantID", tenantID)
-		c.Set("tenantId", tenantID) // Also set camelCase for compatibility
+		c.Set("tenantId", tenantID)  // Also set camelCase for compatibility
+		c.Set("tenant_id", tenantID) // Also set snake_case for compatibility
 		c.Next()
 	}
 }
@@ -96,7 +97,11 @@ func GetTenantID(c *gin.Context) string {
 		// Try camelCase version
 		tenantID, exists = c.Get("tenantId")
 		if !exists {
-			return ""
+			// Try snake_case version
+			tenantID, exists = c.Get("tenant_id")
+			if !exists {
+				return ""
+			}
 		}
 	}
 	return tenantID.(string)
