@@ -39,3 +39,4 @@ allcode-*.txt
 # IDE generated
 .vscode/mcp.json
 
+opencode.exe

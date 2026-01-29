@@ -674,3 +674,14 @@
 2026/01/29 05:32:30 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:76
 2026/01/29 05:32:47 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:76
 2026/01/29 05:33:17 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:76
+2026/01/29 06:54:14 [error] 23#23: *3 backend could not be resolved (3: Host not found), client: 172.18.0.5, server: _, request: "GET /api/status HTTP/1.1", host: "yndigital.my.id", referrer: "https://yndigital.my.id/order-manager?type=processed"
+2026/01/29 06:54:21 [error] 23#23: *3 backend could not be resolved (3: Host not found), client: 172.18.0.5, server: _, request: "GET /api/status HTTP/1.1", host: "yndigital.my.id", referrer: "https://yndigital.my.id/order-manager?type=processed"
+2026/01/29 07:06:22 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:76
+2026/01/29 07:06:28 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:76
+2026/01/29 07:06:35 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:76
+2026/01/29 07:06:41 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:76
+2026/01/29 07:06:47 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:76
+2026/01/29 07:06:53 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:76
+2026/01/29 07:07:00 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:76
+2026/01/29 07:07:10 [emerg] 1#1: host not found in upstream "backend:3000" in /etc/nginx/nginx.conf:76
+2026/01/29 07:08:22 [warn] 21#21: *5 an upstream response is buffered to a temporary file /var/cache/nginx/proxy_temp/1/00/0000000001 while reading upstream, client: 172.18.0.6, server: _, request: "GET /js/index-obf1Mt-b.js HTTP/1.1", upstream: "http://172.18.0.3:80/js/index-obf1Mt-b.js", host: "yndigital.my.id", referrer: "https://yndigital.my.id/"

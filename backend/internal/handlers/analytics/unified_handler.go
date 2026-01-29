@@ -102,7 +102,7 @@ func (h *UnifiedHandler) GetUnifiedSummary(c *gin.Context) {
 }
 
 // GetUnifiedKPI handles GET /api/analytics/unified/kpi
-// Returns KPI cards data
+// Returns KPI cards data with action counts calculated from ROAS thresholds
 func (h *UnifiedHandler) GetUnifiedKPI(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
@@ -118,111 +118,45 @@ func (h *UnifiedHandler) GetUnifiedKPI(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	// Get portfolio health from MV
+	// Get basic portfolio metrics
 	var portfolioHealth struct {
 		TotalProducts int64   `gorm:"column:total_products"`
-		AvgRoas       float64 `gorm:"column:avg_roas"`
-		ScaleUpCount  int64   `gorm:"column:scale_up_count"`
-		MaintainCount int64   `gorm:"column:maintain_count"`
-		ReduceCount   int64   `gorm:"column:reduce_count"`
-		StopCount     int64   `gorm:"column:stop_count"`
+		OverallRoas   float64 `gorm:"column:overall_roas"`
 	}
 
 	db.WithContext(ctx).Table("mv_ml_portfolio_summary").
 		Where("tenant_id = ?", tenantID).
 		First(&portfolioHealth)
 
+	// Calculate action counts from product data based on ROAS thresholds
+	var actionCounts struct {
+		ScaleUpCount  int64 `gorm:"column:scale_up_count"`
+		MaintainCount int64 `gorm:"column:maintain_count"`
+		ReduceCount   int64 `gorm:"column:reduce_count"`
+		StopCount     int64 `gorm:"column:stop_count"`
+	}
+
+	db.WithContext(ctx).Table("mv_ml_product_analysis").
+		Where("tenant_id = ? AND total_cost > 0", tenantID).
+		Select(`
+			COUNT(CASE WHEN roas >= 5 THEN 1 END) as scale_up_count,
+			COUNT(CASE WHEN roas >= 2 AND roas < 5 THEN 1 END) as maintain_count,
+			COUNT(CASE WHEN roas >= 1 AND roas < 2 THEN 1 END) as reduce_count,
+			COUNT(CASE WHEN roas < 1 THEN 1 END) as stop_count
+		`).
+		Scan(&actionCounts)
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
 			"total_products": portfolioHealth.TotalProducts,
-			"avg_roas":       portfolioHealth.AvgRoas,
+			"avg_roas":       portfolioHealth.OverallRoas,
 			"actions": gin.H{
-				"scale_up": portfolioHealth.ScaleUpCount,
-				"maintain": portfolioHealth.MaintainCount,
-				"reduce":   portfolioHealth.ReduceCount,
-				"stop":     portfolioHealth.StopCount,
+				"scale_up": actionCounts.ScaleUpCount,
+				"maintain": actionCounts.MaintainCount,
+				"reduce":   actionCounts.ReduceCount,
+				"stop":     actionCounts.StopCount,
 			},
-		},
-	})
-}
-
-// GetClassifiedProducts handles GET /api/analytics/products/classified
-// Returns products grouped by recommended action
-func (h *UnifiedHandler) GetClassifiedProducts(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c)
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
-		return
-	}
-
-	db, err := config.GetTenantDB(tenantID, h.basePath)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	// Get products from MV with scores
-	var products []struct {
-		ProductID      string  `gorm:"column:product_id"`
-		ProductName    string  `gorm:"column:product_name"`
-		TotalCost      float64 `gorm:"column:total_cost"`
-		TotalRevenue   float64 `gorm:"column:total_revenue"`
-		Roas           float64 `gorm:"column:roas"`
-		CompositeScore float64 `gorm:"column:composite_score"`
-		Action         string  `gorm:"column:action"`
-	}
-
-	db.WithContext(ctx).Table("mv_ml_product_analysis").
-		Where("tenant_id = ?", tenantID).
-		Order("composite_score DESC").
-		Find(&products)
-
-	// Group by action
-	scaleUp := make([]gin.H, 0)
-	maintain := make([]gin.H, 0)
-	reduce := make([]gin.H, 0)
-	stop := make([]gin.H, 0)
-
-	for _, p := range products {
-		item := gin.H{
-			"product_id":      p.ProductID,
-			"product_name":    p.ProductName,
-			"total_cost":      p.TotalCost,
-			"total_revenue":   p.TotalRevenue,
-			"roas":            p.Roas,
-			"composite_score": p.CompositeScore,
-		}
-
-		switch p.Action {
-		case "SCALE_UP_AGGRESSIVE", "SCALE_UP_MODERATE":
-			scaleUp = append(scaleUp, item)
-		case "MAINTAIN":
-			maintain = append(maintain, item)
-		case "REDUCE_BUDGET":
-			reduce = append(reduce, item)
-		case "STOP_IMMEDIATELY":
-			stop = append(stop, item)
-		default:
-			maintain = append(maintain, item)
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data": gin.H{
-			"scale_up": scaleUp,
-			"maintain": maintain,
-			"reduce":   reduce,
-			"stop":     stop,
-		},
-		"counts": gin.H{
-			"scale_up": len(scaleUp),
-			"maintain": len(maintain),
-			"reduce":   len(reduce),
-			"stop":     len(stop),
 		},
 	})
 }
@@ -274,57 +208,6 @@ func (h *UnifiedHandler) GetCacheStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    status,
-	})
-}
-
-// GetTopProducts handles GET /api/analytics/products/top
-func (h *UnifiedHandler) GetTopProducts(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c)
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
-		return
-	}
-
-	db, err := config.GetTenantDB(tenantID, h.basePath)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
-		return
-	}
-
-	ctx := c.Request.Context()
-	limit := 10
-
-	// Get top products by revenue from both platforms
-	var tiktokTop []struct {
-		ProductID   string  `gorm:"column:product_id"`
-		ProductName string  `gorm:"column:product_name"`
-		Revenue     float64 `gorm:"column:total_revenue"`
-		Cost        float64 `gorm:"column:total_cost"`
-		Roas        float64 `gorm:"column:roas"`
-	}
-
-	db.WithContext(ctx).Table("mv_ml_product_analysis").
-		Where("tenant_id = ?", tenantID).
-		Order("total_revenue DESC").
-		Limit(limit).
-		Find(&tiktokTop)
-
-	// Format response
-	products := make([]gin.H, 0, len(tiktokTop))
-	for _, p := range tiktokTop {
-		products = append(products, gin.H{
-			"product_id":   p.ProductID,
-			"product_name": p.ProductName,
-			"revenue":      p.Revenue,
-			"cost":         p.Cost,
-			"roas":         p.Roas,
-			"source":       "tiktok",
-		})
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    products,
 	})
 }
 

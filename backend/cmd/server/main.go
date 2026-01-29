@@ -128,6 +128,12 @@ func main() {
 	// ML Analytics routes (new ML-powered analytics)
 	routes.RegisterMLAnalyticsRoutes(api)
 
+	// Budget Simulation & Intelligence routes
+	routes.RegisterSimulationRoutes(api, cfg.DatabasePath)
+
+	// Unified Analytics & Cache Management routes
+	routes.RegisterUnifiedAnalyticsRoutes(api, cfg.DatabasePath)
+
 	// ML Report routes
 	routes.RegisterMLReportRoutes(api, cfg.DatabasePath)
 
