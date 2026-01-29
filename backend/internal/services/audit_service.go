@@ -77,8 +77,8 @@ type AuditListResponse struct {
 	Data       []models.AuditLog `json:"data"`
 	Total      int64             `json:"total"`
 	Page       int               `json:"page"`
-	PageSize   int               `json:"pageSize"`
-	TotalPages int64             `json:"totalPages"`
+	PageSize   int               `json:"page_size"`
+	TotalPages int64             `json:"total_pages"`
 }
 
 // GetByUser gets audit logs by user

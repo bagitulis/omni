@@ -104,15 +104,15 @@ func padLeft(n, width int) string {
 
 // AdsSummary represents aggregated ads summary
 type AdsSummary struct {
-	TotalCost        float64 `json:"totalCost"`
-	TotalRevenue     float64 `json:"totalRevenue"`
-	TotalClicks      int     `json:"totalClicks"`
-	TotalImpressions int     `json:"totalImpressions"`
-	TotalConversions int     `json:"totalConversions"`
-	AvgROAS          float64 `json:"avgRoas"`
-	AvgACOS          float64 `json:"avgAcos"`
-	AvgCTR           float64 `json:"avgCtr"`
-	ProductCount     int     `json:"productCount"`
+	TotalCost        float64 `json:"total_cost"`
+	TotalRevenue     float64 `json:"total_revenue"`
+	TotalClicks      int     `json:"total_clicks"`
+	TotalImpressions int     `json:"total_impressions"`
+	TotalConversions int     `json:"total_conversions"`
+	AvgROAS          float64 `json:"avg_roas"`
+	AvgACOS          float64 `json:"avg_acos"`
+	AvgCTR           float64 `json:"avg_ctr"`
+	ProductCount     int     `json:"product_count"`
 }
 
 // calculateShopeeAdsSummary calculates summary from ads data

@@ -17,7 +17,7 @@ type HealthResponse struct {
 	Timestamp string            `json:"timestamp"`
 	Uptime    string            `json:"uptime"`
 	Version   string            `json:"version"`
-	GoVersion string            `json:"goVersion"`
+	GoVersion string            `json:"go_version"`
 	Services  map[string]string `json:"services"`
 }
 
@@ -26,9 +26,9 @@ type DetailedHealthResponse struct {
 	Status     string                     `json:"status"`
 	Timestamp  string                     `json:"timestamp"`
 	Uptime     string                     `json:"uptime"`
-	UptimeSec  int64                      `json:"uptimeSeconds"`
+	UptimeSec  int64                      `json:"uptime_seconds"`
 	Version    string                     `json:"version"`
-	GoVersion  string                     `json:"goVersion"`
+	GoVersion  string                     `json:"go_version"`
 	Memory     MemoryStats                `json:"memory"`
 	Goroutines int                        `json:"goroutines"`
 	Components map[string]ComponentHealth `json:"components"`
@@ -36,17 +36,17 @@ type DetailedHealthResponse struct {
 
 // MemoryStats represents memory usage statistics
 type MemoryStats struct {
-	Alloc      uint64 `json:"allocMB"`
-	TotalAlloc uint64 `json:"totalAllocMB"`
-	Sys        uint64 `json:"sysMB"`
-	NumGC      uint32 `json:"numGC"`
+	Alloc      uint64 `json:"alloc_mb"`
+	TotalAlloc uint64 `json:"total_alloc_mb"`
+	Sys        uint64 `json:"sys_mb"`
+	NumGC      uint32 `json:"num_gc"`
 }
 
 // ComponentHealth represents health status of a component
 type ComponentHealth struct {
 	Status     string `json:"status"`
 	Message    string `json:"message,omitempty"`
-	ResponseMs int64  `json:"responseMs,omitempty"`
+	ResponseMs int64  `json:"response_ms,omitempty"`
 }
 
 // HealthCheck handles GET /api/health

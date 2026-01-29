@@ -9,31 +9,31 @@ import (
 
 // ShippingFeeRecord represents a shipping fee record
 type ShippingFeeRecord struct {
-	ID              uint      `gorm:"primaryKey" json:"id"`
-	TenantID        string    `gorm:"index;not null" json:"tenantId"`
-	Platform        string    `gorm:"index;not null" json:"platform"`
-	OrderSN         string    `gorm:"index" json:"orderSn"`
-	TrackingNumber  string    `json:"trackingNumber,omitempty"`
-	Courier         string    `json:"courier"`
-	ShippingMethod  string    `json:"shippingMethod"`
-	Weight          float64   `json:"weight"`
-	WeightUnit      string    `json:"weightUnit"`
-	BaseFee         float64   `json:"baseFee"`
-	WeightFee       float64   `json:"weightFee"`
-	InsuranceFee    float64   `json:"insuranceFee"`
-	CodFee          float64   `json:"codFee"`
-	OtherFees       float64   `json:"otherFees"`
-	Discount        float64   `json:"discount"`
-	TotalFee        float64   `json:"totalFee"`
-	Currency        string    `json:"currency"`
-	PaidBy          string    `json:"paidBy"` // seller, buyer, platform
-	Status          string    `json:"status"`
-	ShipDate        time.Time `json:"shipDate,omitempty"`
-	DeliverDate     time.Time `json:"deliverDate,omitempty"`
-	Source          string    `json:"source"` // api, sheet
-	SheetConfigID   uint      `json:"sheetConfigId,omitempty"`
-	CreatedAt       time.Time `json:"createdAt"`
-	UpdatedAt       time.Time `json:"updatedAt"`
+	ID             uint      `gorm:"primaryKey" json:"id"`
+	TenantID       string    `gorm:"index;not null" json:"tenant_id"`
+	Platform       string    `gorm:"index;not null" json:"platform"`
+	OrderSN        string    `gorm:"index" json:"order_sn"`
+	TrackingNumber string    `json:"tracking_number,omitempty"`
+	Courier        string    `json:"courier"`
+	ShippingMethod string    `json:"shipping_method"`
+	Weight         float64   `json:"weight"`
+	WeightUnit     string    `json:"weight_unit"`
+	BaseFee        float64   `json:"base_fee"`
+	WeightFee      float64   `json:"weight_fee"`
+	InsuranceFee   float64   `json:"insurance_fee"`
+	CodFee         float64   `json:"cod_fee"`
+	OtherFees      float64   `json:"other_fees"`
+	Discount       float64   `json:"discount"`
+	TotalFee       float64   `json:"total_fee"`
+	Currency       string    `json:"currency"`
+	PaidBy         string    `json:"paid_by"` // seller, buyer, platform
+	Status         string    `json:"status"`
+	ShipDate       time.Time `json:"ship_date,omitempty"`
+	DeliverDate    time.Time `json:"deliver_date,omitempty"`
+	Source         string    `json:"source"` // api, sheet
+	SheetConfigID  uint      `json:"sheet_config_id,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 // TableName returns the table name for GORM
@@ -43,20 +43,20 @@ func (ShippingFeeRecord) TableName() string {
 
 // ShippingFeeSummary represents shipping fee summary
 type ShippingFeeSummary struct {
-	TotalOrders    int                    `json:"totalOrders"`
-	TotalFees      float64                `json:"totalFees"`
-	TotalDiscounts float64                `json:"totalDiscounts"`
-	NetFees        float64                `json:"netFees"`
-	AvgFeePerOrder float64                `json:"avgFeePerOrder"`
-	ByCourier      map[string]CourierStat `json:"byCourier"`
-	ByPlatform     map[string]float64     `json:"byPlatform"`
+	TotalOrders    int                    `json:"total_orders"`
+	TotalFees      float64                `json:"total_fees"`
+	TotalDiscounts float64                `json:"total_discounts"`
+	NetFees        float64                `json:"net_fees"`
+	AvgFeePerOrder float64                `json:"avg_fee_per_order"`
+	ByCourier      map[string]CourierStat `json:"by_courier"`
+	ByPlatform     map[string]float64     `json:"by_platform"`
 }
 
 // CourierStat represents statistics for a courier
 type CourierStat struct {
-	OrderCount int     `json:"orderCount"`
-	TotalFees  float64 `json:"totalFees"`
-	AvgFee     float64 `json:"avgFee"`
+	OrderCount int     `json:"order_count"`
+	TotalFees  float64 `json:"total_fees"`
+	AvgFee     float64 `json:"avg_fee"`
 }
 
 // ShippingFeeSheetService handles shipping fee sheet operations

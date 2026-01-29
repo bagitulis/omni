@@ -9,41 +9,41 @@ import (
 
 // ProductDetail represents detailed product information
 type ProductDetail struct {
-	ID               uint      `gorm:"primaryKey" json:"id"`
-	TenantID         string    `gorm:"index;not null" json:"tenantId"`
-	Platform         string    `gorm:"index;not null" json:"platform"`
-	ItemID           string    `gorm:"index;not null" json:"itemId"`
-	Name             string    `json:"name"`
-	Description      string    `json:"description"`
-	LongDescription  string    `json:"longDescription,omitempty"`
-	Price            float64   `json:"price"`
-	OriginalPrice    float64   `json:"originalPrice,omitempty"`
-	Currency         string    `json:"currency"`
-	Stock            int       `json:"stock"`
-	ReservedStock    int       `json:"reservedStock"`
-	Sales            int       `json:"sales"`
-	Views            int       `json:"views"`
-	Likes            int       `json:"likes"`
-	Rating           float64   `json:"rating"`
-	RatingCount      int       `json:"ratingCount"`
-	CategoryID       string    `json:"categoryId"`
-	CategoryName     string    `json:"categoryName"`
-	Brand            string    `json:"brand,omitempty"`
-	Weight           float64   `json:"weight"`
-	WeightUnit       string    `json:"weightUnit"`
-	Dimensions       string    `json:"dimensions,omitempty"`
-	Condition        string    `json:"condition"`
-	PreOrder         bool      `json:"preOrder"`
-	DaysToShip       int       `json:"daysToShip"`
-	Status           string    `json:"status"`
-	Images           string    `json:"images"` // JSON array
-	Videos           string    `json:"videos,omitempty"` // JSON array
-	Attributes       string    `json:"attributes,omitempty"` // JSON
-	LogisticsInfo    string    `json:"logisticsInfo,omitempty"` // JSON
-	WholesaleInfo    string    `json:"wholesaleInfo,omitempty"` // JSON
-	CreatedAt        time.Time `json:"createdAt"`
-	UpdatedAt        time.Time `json:"updatedAt"`
-	LastSyncAt       time.Time `json:"lastSyncAt"`
+	ID              uint      `gorm:"primaryKey" json:"id"`
+	TenantID        string    `gorm:"index;not null" json:"tenant_id"`
+	Platform        string    `gorm:"index;not null" json:"platform"`
+	ItemID          string    `gorm:"index;not null" json:"item_id"`
+	Name            string    `json:"name"`
+	Description     string    `json:"description"`
+	LongDescription string    `json:"long_description,omitempty"`
+	Price           float64   `json:"price"`
+	OriginalPrice   float64   `json:"original_price,omitempty"`
+	Currency        string    `json:"currency"`
+	Stock           int       `json:"stock"`
+	ReservedStock   int       `json:"reserved_stock"`
+	Sales           int       `json:"sales"`
+	Views           int       `json:"views"`
+	Likes           int       `json:"likes"`
+	Rating          float64   `json:"rating"`
+	RatingCount     int       `json:"rating_count"`
+	CategoryID      string    `json:"category_id"`
+	CategoryName    string    `json:"category_name"`
+	Brand           string    `json:"brand,omitempty"`
+	Weight          float64   `json:"weight"`
+	WeightUnit      string    `json:"weight_unit"`
+	Dimensions      string    `json:"dimensions,omitempty"`
+	Condition       string    `json:"condition"`
+	PreOrder        bool      `json:"pre_order"`
+	DaysToShip      int       `json:"days_to_ship"`
+	Status          string    `json:"status"`
+	Images          string    `json:"images"`                   // JSON array
+	Videos          string    `json:"videos,omitempty"`         // JSON array
+	Attributes      string    `json:"attributes,omitempty"`     // JSON
+	LogisticsInfo   string    `json:"logistics_info,omitempty"` // JSON
+	WholesaleInfo   string    `json:"wholesale_info,omitempty"` // JSON
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	LastSyncAt      time.Time `json:"last_sync_at"`
 }
 
 // TableName returns the table name for GORM

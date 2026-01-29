@@ -78,10 +78,10 @@ func (h *OrderHandler) GetOrderByID(c *gin.Context) {
 
 // ShipOrderRequest represents ship order request
 type ShipOrderRequest struct {
-	OrderID          string `json:"orderId" binding:"required"`
-	PackageID        string `json:"packageId" binding:"required"`
-	ShippingProvider string `json:"shippingProvider" binding:"required"`
-	TrackingNumber   string `json:"trackingNumber" binding:"required"`
+	OrderID          string `json:"order_id" binding:"required"`
+	PackageID        string `json:"package_id" binding:"required"`
+	ShippingProvider string `json:"shipping_provider" binding:"required"`
+	TrackingNumber   string `json:"tracking_number" binding:"required"`
 }
 
 // ShipOrder handles POST /api/tiktok/orders/ship
@@ -125,8 +125,8 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 
 // CancelOrderRequest represents cancel order request
 type CancelOrderRequest struct {
-	OrderID      string `json:"orderId" binding:"required"`
-	CancelReason string `json:"cancelReason" binding:"required"`
+	OrderID      string `json:"order_id" binding:"required"`
+	CancelReason string `json:"cancel_reason" binding:"required"`
 }
 
 // CancelOrder handles POST /api/tiktok/orders/cancel

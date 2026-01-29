@@ -9,19 +9,19 @@ import (
 
 // ShopConfig represents shop configuration
 type ShopConfig struct {
-	ID           uint      `gorm:"primaryKey" json:"id"`
-	TenantID     string    `gorm:"uniqueIndex;not null" json:"tenantId"`
-	ShopName     string    `json:"shopName"`
-	ShopID       string    `json:"shopId,omitempty"`
-	LogoURL      string    `json:"logoUrl,omitempty"`
-	Description  string    `json:"description,omitempty"`
-	Region       string    `json:"region"`
-	Currency     string    `json:"currency"`
-	Timezone     string    `json:"timezone"`
-	IsActive     bool      `gorm:"default:true" json:"isActive"`
-	Settings     string    `json:"settings,omitempty"` // JSON
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedAt    time.Time `json:"updatedAt"`
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	TenantID    string    `gorm:"uniqueIndex;not null" json:"tenant_id"`
+	ShopName    string    `json:"shop_name"`
+	ShopID      string    `json:"shop_id,omitempty"`
+	LogoURL     string    `json:"logo_url,omitempty"`
+	Description string    `json:"description,omitempty"`
+	Region      string    `json:"region"`
+	Currency    string    `json:"currency"`
+	Timezone    string    `json:"timezone"`
+	IsActive    bool      `gorm:"default:true" json:"is_active"`
+	Settings    string    `json:"settings,omitempty"` // JSON
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // TableName returns the table name for GORM
@@ -32,18 +32,18 @@ func (ShopConfig) TableName() string {
 // PlatformConfig represents platform-specific configuration
 type PlatformConfig struct {
 	ID           uint      `gorm:"primaryKey" json:"id"`
-	TenantID     string    `gorm:"index;not null" json:"tenantId"`
+	TenantID     string    `gorm:"index;not null" json:"tenant_id"`
 	Platform     string    `gorm:"index;not null" json:"platform"` // shopee, lazada, tiktok
-	ShopID       string    `json:"shopId"`
-	ShopName     string    `json:"shopName,omitempty"`
-	IsActive     bool      `gorm:"default:false" json:"isActive"`
-	IsConnected  bool      `gorm:"default:false" json:"isConnected"`
+	ShopID       string    `json:"shop_id"`
+	ShopName     string    `json:"shop_name,omitempty"`
+	IsActive     bool      `gorm:"default:false" json:"is_active"`
+	IsConnected  bool      `gorm:"default:false" json:"is_connected"`
 	AccessToken  string    `json:"-"` // Hidden in JSON
 	RefreshToken string    `json:"-"` // Hidden in JSON
-	TokenExpiry  time.Time `json:"tokenExpiry,omitempty"`
+	TokenExpiry  time.Time `json:"token_expiry,omitempty"`
 	Settings     string    `json:"settings,omitempty"` // JSON
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedAt    time.Time `json:"updatedAt"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 // TableName returns the table name for GORM

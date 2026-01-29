@@ -21,15 +21,15 @@ const (
 // QuotaConfig represents quota configuration
 type QuotaConfig struct {
 	ID          uint      `gorm:"primaryKey" json:"id"`
-	TenantID    string    `gorm:"index;not null" json:"tenantId"`
+	TenantID    string    `gorm:"index;not null" json:"tenant_id"`
 	Platform    string    `gorm:"index;not null" json:"platform"`
-	QuotaType   QuotaType `gorm:"index;not null" json:"quotaType"`
-	DailyLimit  int       `json:"dailyLimit"`
-	HourlyLimit int       `json:"hourlyLimit"`
-	MinuteLimit int       `json:"minuteLimit"`
-	IsEnabled   bool      `gorm:"default:true" json:"isEnabled"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	QuotaType   QuotaType `gorm:"index;not null" json:"quota_type"`
+	DailyLimit  int       `json:"daily_limit"`
+	HourlyLimit int       `json:"hourly_limit"`
+	MinuteLimit int       `json:"minute_limit"`
+	IsEnabled   bool      `gorm:"default:true" json:"is_enabled"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // TableName returns the table name for GORM
@@ -40,14 +40,14 @@ func (QuotaConfig) TableName() string {
 // QuotaUsage represents quota usage tracking
 type QuotaUsage struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
-	TenantID  string    `gorm:"index;not null" json:"tenantId"`
+	TenantID  string    `gorm:"index;not null" json:"tenant_id"`
 	Platform  string    `gorm:"index;not null" json:"platform"`
-	QuotaType QuotaType `gorm:"index;not null" json:"quotaType"`
+	QuotaType QuotaType `gorm:"index;not null" json:"quota_type"`
 	Period    string    `gorm:"index;not null" json:"period"` // YYYY-MM-DD or YYYY-MM-DD-HH
 	Usage     int       `json:"usage"`
 	Limit     int       `json:"limit"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // TableName returns the table name for GORM
@@ -57,14 +57,14 @@ func (QuotaUsage) TableName() string {
 
 // QuotaStatus represents current quota status
 type QuotaStatus struct {
-	QuotaType       QuotaType `json:"quotaType"`
-	DailyUsage      int       `json:"dailyUsage"`
-	DailyLimit      int       `json:"dailyLimit"`
-	DailyRemaining  int       `json:"dailyRemaining"`
-	HourlyUsage     int       `json:"hourlyUsage"`
-	HourlyLimit     int       `json:"hourlyLimit"`
-	HourlyRemaining int       `json:"hourlyRemaining"`
-	IsExhausted     bool      `json:"isExhausted"`
+	QuotaType       QuotaType `json:"quota_type"`
+	DailyUsage      int       `json:"daily_usage"`
+	DailyLimit      int       `json:"daily_limit"`
+	DailyRemaining  int       `json:"daily_remaining"`
+	HourlyUsage     int       `json:"hourly_usage"`
+	HourlyLimit     int       `json:"hourly_limit"`
+	HourlyRemaining int       `json:"hourly_remaining"`
+	IsExhausted     bool      `json:"is_exhausted"`
 }
 
 // QuotaManagementService handles quota management

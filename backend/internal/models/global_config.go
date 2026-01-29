@@ -7,12 +7,12 @@ import "time"
 type GlobalConfig struct {
 	ID          string    `gorm:"primaryKey;type:varchar(100)" json:"id"`
 	Platform    string    `gorm:"column:platform;not null" json:"platform"`
-	ConfigKey   string    `gorm:"column:config_key;not null" json:"configKey"`
-	ConfigValue string    `gorm:"column:config_value" json:"configValue"`
-	IsEncrypted bool      `gorm:"column:is_encrypted;default:false" json:"isEncrypted"`
+	ConfigKey   string    `gorm:"column:config_key;not null" json:"config_key"`
+	ConfigValue string    `gorm:"column:config_value" json:"config_value"`
+	IsEncrypted bool      `gorm:"column:is_encrypted;default:false" json:"is_encrypted"`
 	Description string    `gorm:"column:description" json:"description"`
-	CreatedAt   time.Time `gorm:"column:created_at" json:"createdAt"`
-	UpdatedAt   time.Time `gorm:"column:updated_at" json:"updatedAt"`
+	CreatedAt   time.Time `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt   time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
 func (GlobalConfig) TableName() string {

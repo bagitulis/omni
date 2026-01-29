@@ -20,19 +20,19 @@ const (
 // Product represents a master product - uses models.Product for table naming
 type Product struct {
 	ID          string        `gorm:"primaryKey;type:varchar(36)" json:"id"`
-	TenantID    string        `gorm:"index;not null;type:varchar(100)" json:"tenantId"`
+	TenantID    string        `gorm:"index;not null;type:varchar(100)" json:"tenant_id"`
 	Platform    string        `gorm:"index;not null;type:varchar(20)" json:"platform"`
-	ItemID      string        `gorm:"index;not null;type:varchar(100)" json:"itemId"`
+	ItemID      string        `gorm:"index;not null;type:varchar(100)" json:"item_id"`
 	SKU         string        `gorm:"index;type:varchar(100)" json:"sku"`
 	Name        string        `gorm:"type:varchar(500)" json:"name"`
 	Description string        `gorm:"type:text" json:"description,omitempty"`
 	Status      ProductStatus `gorm:"type:varchar(20);default:NORMAL" json:"status"`
 	Price       float64       `json:"price"`
 	Stock       int           `json:"stock"`
-	ImageURL    string        `gorm:"type:varchar(1000)" json:"imageUrl,omitempty"`
-	CategoryID  string        `gorm:"type:varchar(100)" json:"categoryId,omitempty"`
-	CreatedAt   time.Time     `json:"createdAt"`
-	UpdatedAt   time.Time     `json:"updatedAt"`
+	ImageURL    string        `gorm:"type:varchar(1000)" json:"image_url,omitempty"`
+	CategoryID  string        `gorm:"type:varchar(100)" json:"category_id,omitempty"`
+	CreatedAt   time.Time     `json:"created_at"`
+	UpdatedAt   time.Time     `json:"updated_at"`
 	SKUs        []ProductSKU  `gorm:"foreignKey:ProductID" json:"skus,omitempty"`
 }
 
@@ -44,12 +44,12 @@ func (Product) TableName() string {
 // ProductSKU represents a product SKU/variation
 type ProductSKU struct {
 	ID            string  `gorm:"primaryKey;type:varchar(36)" json:"id"`
-	ProductID     string  `gorm:"index;not null;type:varchar(36)" json:"productId"`
-	TenantID      string  `gorm:"index;not null;type:varchar(100)" json:"tenantId"`
-	ModelID       string  `gorm:"index;type:varchar(100)" json:"modelId"`
+	ProductID     string  `gorm:"index;not null;type:varchar(36)" json:"product_id"`
+	TenantID      string  `gorm:"index;not null;type:varchar(100)" json:"tenant_id"`
+	ModelID       string  `gorm:"index;type:varchar(100)" json:"model_id"`
 	SKU           string  `gorm:"index;not null;type:varchar(100)" json:"sku"`
 	Name          string  `gorm:"type:varchar(500)" json:"name"`
-	VariationName string  `gorm:"type:varchar(500)" json:"variationName,omitempty"`
+	VariationName string  `gorm:"type:varchar(500)" json:"variation_name,omitempty"`
 	Price         float64 `json:"price"`
 	Stock         int     `json:"stock"`
 }
@@ -61,12 +61,12 @@ func (ProductSKU) TableName() string {
 
 // ProductStats represents product statistics
 type ProductStats struct {
-	TotalProducts int     `json:"totalProducts"`
-	TotalSKUs     int     `json:"totalSkus"`
-	TotalStock    int     `json:"totalStock"`
-	TotalValue    float64 `json:"totalValue"`
-	ByStatus      map[ProductStatus]int `json:"byStatus"`
-	ByPlatform    map[string]int        `json:"byPlatform"`
+	TotalProducts int                   `json:"total_products"`
+	TotalSKUs     int                   `json:"total_skus"`
+	TotalStock    int                   `json:"total_stock"`
+	TotalValue    float64               `json:"total_value"`
+	ByStatus      map[ProductStatus]int `json:"by_status"`
+	ByPlatform    map[string]int        `json:"by_platform"`
 }
 
 // ProductQueryParams represents query parameters

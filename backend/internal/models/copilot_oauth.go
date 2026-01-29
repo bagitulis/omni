@@ -6,27 +6,27 @@ import "time"
 // Table name: "copilot_oauth_accounts" (PostgreSQL)
 type CopilotOAuthAccount struct {
 	ID          string `gorm:"primaryKey" json:"id"`
-	TenantID    string `gorm:"column:tenant_id;index;not null" json:"tenantId"`
-	UserID      string `gorm:"column:user_id;index;not null" json:"userId"`
-	GitHubID    string `gorm:"column:github_id;uniqueIndex;not null" json:"githubId"`
+	TenantID    string `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
+	UserID      string `gorm:"column:user_id;index;not null" json:"user_id"`
+	GitHubID    string `gorm:"column:github_id;uniqueIndex;not null" json:"github_id"`
 	Username    string `gorm:"column:username;not null" json:"username"`
 	Email       string `gorm:"column:email;not null" json:"email"`
-	DisplayName string `gorm:"column:display_name" json:"displayName"`
-	AvatarURL   string `gorm:"column:avatar_url" json:"avatarUrl"`
+	DisplayName string `gorm:"column:display_name" json:"display_name"`
+	AvatarURL   string `gorm:"column:avatar_url" json:"avatar_url"`
 
 	// OAuth tokens
 	AccessToken  string    `gorm:"column:access_token;not null" json:"-"` // Never expose in JSON
 	RefreshToken string    `gorm:"column:refresh_token" json:"-"`         // Never expose in JSON
-	TokenType    string    `gorm:"column:token_type;default:bearer" json:"tokenType"`
+	TokenType    string    `gorm:"column:token_type;default:bearer" json:"token_type"`
 	Scope        string    `gorm:"column:scope" json:"scope"`
-	ExpiresAt    time.Time `gorm:"column:expires_at;index" json:"expiresAt"`
+	ExpiresAt    time.Time `gorm:"column:expires_at;index" json:"expires_at"`
 
 	// Copilot specific
-	CopilotSeatActive bool       `gorm:"column:copilot_seat_active;default:false" json:"copilotSeatActive"`
-	LastSyncAt        *time.Time `gorm:"column:last_sync_at" json:"lastSyncAt,omitempty"`
+	CopilotSeatActive bool       `gorm:"column:copilot_seat_active;default:false" json:"copilot_seat_active"`
+	LastSyncAt        *time.Time `gorm:"column:last_sync_at" json:"last_sync_at,omitempty"`
 
-	CreatedAt time.Time `gorm:"column:created_at" json:"createdAt"`
-	UpdatedAt time.Time `gorm:"column:updated_at" json:"updatedAt"`
+	CreatedAt time.Time `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
 // TableName specifies the table name for GORM
@@ -48,13 +48,13 @@ func (c *CopilotOAuthAccount) ShouldRefresh() bool {
 // Table name: "copilot_oauth_states" (PostgreSQL)
 type CopilotOAuthState struct {
 	ID          string    `gorm:"primaryKey" json:"id"`
-	TenantID    string    `gorm:"column:tenant_id;index;not null" json:"tenantId"`
+	TenantID    string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
 	State       string    `gorm:"column:state;uniqueIndex;not null" json:"state"`
-	RedirectURL string    `gorm:"column:redirect_url" json:"redirectUrl,omitempty"`
-	UserAgent   string    `gorm:"column:user_agent" json:"userAgent,omitempty"`
-	IPAddress   string    `gorm:"column:ip_address" json:"ipAddress,omitempty"`
-	ExpiresAt   time.Time `gorm:"column:expires_at;index" json:"expiresAt"`
-	CreatedAt   time.Time `gorm:"column:created_at" json:"createdAt"`
+	RedirectURL string    `gorm:"column:redirect_url" json:"redirect_url,omitempty"`
+	UserAgent   string    `gorm:"column:user_agent" json:"user_agent,omitempty"`
+	IPAddress   string    `gorm:"column:ip_address" json:"ip_address,omitempty"`
+	ExpiresAt   time.Time `gorm:"column:expires_at;index" json:"expires_at"`
+	CreatedAt   time.Time `gorm:"column:created_at" json:"created_at"`
 }
 
 // TableName specifies the table name for GORM

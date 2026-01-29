@@ -93,9 +93,9 @@ func (h *ProductExtendedHandler) GetProductFromDB(c *gin.Context) {
 type Category struct {
 	ID       int64      `json:"id"`
 	Name     string     `json:"name"`
-	ParentID int64      `json:"parentId,omitempty"`
+	ParentID int64      `json:"parent_id,omitempty"`
 	Level    int        `json:"level"`
-	IsLeaf   bool       `json:"isLeaf"`
+	IsLeaf   bool       `json:"is_leaf"`
 	Children []Category `json:"children,omitempty"`
 }
 
@@ -120,13 +120,13 @@ func (h *ProductExtendedHandler) GetCategories(c *gin.Context) {
 
 // Attribute represents a Lazada category attribute
 type Attribute struct {
-	Name           string   `json:"name"`
-	Label          string   `json:"label"`
-	InputType      string   `json:"inputType"`
-	IsMandatory    bool     `json:"isMandatory"`
-	IsSaleProp     bool     `json:"isSaleProp"`
-	Options        []Option `json:"options,omitempty"`
-	AttributeType  string   `json:"attributeType"`
+	Name          string   `json:"name"`
+	Label         string   `json:"label"`
+	InputType     string   `json:"input_type"`
+	IsMandatory   bool     `json:"is_mandatory"`
+	IsSaleProp    bool     `json:"is_sale_prop"`
+	Options       []Option `json:"options,omitempty"`
+	AttributeType string   `json:"attribute_type"`
 }
 
 // Option represents an attribute option

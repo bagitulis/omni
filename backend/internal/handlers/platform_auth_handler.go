@@ -16,9 +16,9 @@ import (
 
 // PlatformAuthHandler handles platform auth status endpoints
 type PlatformAuthHandler struct {
-	configRepo   *repositories.GlobalConfigRepository
-	frontendURL  string
-	basePath     string
+	configRepo  *repositories.GlobalConfigRepository
+	frontendURL string
+	basePath    string
 }
 
 // NewPlatformAuthHandler creates a new platform auth handler
@@ -37,7 +37,7 @@ func NewPlatformAuthHandler(
 // OAuthURLInfo represents OAuth URL for a platform
 type OAuthURLInfo struct {
 	Platform string `json:"platform"`
-	AuthURL  string `json:"authUrl"`
+	AuthURL  string `json:"auth_url"`
 	Status   string `json:"status"`
 }
 
@@ -51,7 +51,7 @@ func (h *PlatformAuthHandler) GetOAuthURLs(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	backendURL := h.getBackendURL(c)
-	
+
 	urls := make([]OAuthURLInfo, 0, 3)
 
 	// Shopee OAuth URL
@@ -138,12 +138,12 @@ func (h *PlatformAuthHandler) disconnectPlatform(c *gin.Context, platform string
 type ConnectionStatus struct {
 	Platform    string    `json:"platform"`
 	Connected   bool      `json:"connected"`
-	ShopID      string    `json:"shopId,omitempty"`
-	ShopName    string    `json:"shopName,omitempty"`
-	ExpiresAt   int64     `json:"expiresAt,omitempty"`
-	ExpiresSoon bool      `json:"expiresSoon,omitempty"`
+	ShopID      string    `json:"shop_id,omitempty"`
+	ShopName    string    `json:"shop_name,omitempty"`
+	ExpiresAt   int64     `json:"expires_at,omitempty"`
+	ExpiresSoon bool      `json:"expires_soon,omitempty"`
 	Expired     bool      `json:"expired,omitempty"`
-	LastChecked time.Time `json:"lastChecked"`
+	LastChecked time.Time `json:"last_checked"`
 }
 
 // CheckAllConnections handles POST /api/platform-auth/check-all
@@ -184,7 +184,7 @@ func (h *PlatformAuthHandler) CheckAllConnections(c *gin.Context) {
 	for _, cfg := range configs {
 		expiresSoon := cfg.ExpiresAt > 0 && cfg.ExpiresAt < now.Add(24*time.Hour).Unix()
 		expired := cfg.ExpiresAt > 0 && cfg.ExpiresAt < now.Unix()
-		
+
 		statuses[cfg.Platform] = ConnectionStatus{
 			Platform:    cfg.Platform,
 			Connected:   cfg.IsActive && cfg.AccessToken != "",
@@ -202,5 +202,3 @@ func (h *PlatformAuthHandler) CheckAllConnections(c *gin.Context) {
 		"checkedAt":   now,
 	}))
 }
-
-

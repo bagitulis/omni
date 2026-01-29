@@ -11,12 +11,12 @@ import (
 type OperationType string
 
 const (
-	OpPrintLabel    OperationType = "print_label"
-	OpShipOrder     OperationType = "ship_order"
-	OpCancelOrder   OperationType = "cancel_order"
-	OpUpdateStock   OperationType = "update_stock"
-	OpUpdatePrice   OperationType = "update_price"
-	OpBulkUpdate    OperationType = "bulk_update"
+	OpPrintLabel  OperationType = "print_label"
+	OpShipOrder   OperationType = "ship_order"
+	OpCancelOrder OperationType = "cancel_order"
+	OpUpdateStock OperationType = "update_stock"
+	OpUpdatePrice OperationType = "update_price"
+	OpBulkUpdate  OperationType = "bulk_update"
 )
 
 // OperationStatus represents operation status
@@ -33,21 +33,21 @@ const (
 // ShopeeOperation represents a Shopee operation record
 type ShopeeOperation struct {
 	ID            uint            `gorm:"primaryKey" json:"id"`
-	TenantID      string          `gorm:"index;not null" json:"tenantId"`
-	OperationType OperationType   `gorm:"index;not null" json:"operationType"`
+	TenantID      string          `gorm:"index;not null" json:"tenant_id"`
+	OperationType OperationType   `gorm:"index;not null" json:"operation_type"`
 	Status        OperationStatus `gorm:"default:pending" json:"status"`
-	OrderSN       string          `gorm:"index" json:"orderSn,omitempty"`
-	ItemID        string          `json:"itemId,omitempty"`
-	RequestData   string          `json:"requestData,omitempty"` // JSON
-	ResponseData  string          `json:"responseData,omitempty"` // JSON
-	ErrorMessage  string          `json:"errorMessage,omitempty"`
-	RetryCount    int             `json:"retryCount"`
-	MaxRetries    int             `gorm:"default:3" json:"maxRetries"`
-	ScheduledAt   time.Time       `json:"scheduledAt,omitempty"`
-	StartedAt     time.Time       `json:"startedAt,omitempty"`
-	CompletedAt   time.Time       `json:"completedAt,omitempty"`
-	CreatedAt     time.Time       `json:"createdAt"`
-	UpdatedAt     time.Time       `json:"updatedAt"`
+	OrderSN       string          `gorm:"index" json:"order_sn,omitempty"`
+	ItemID        string          `json:"item_id,omitempty"`
+	RequestData   string          `json:"request_data,omitempty"`  // JSON
+	ResponseData  string          `json:"response_data,omitempty"` // JSON
+	ErrorMessage  string          `json:"error_message,omitempty"`
+	RetryCount    int             `json:"retry_count"`
+	MaxRetries    int             `gorm:"default:3" json:"max_retries"`
+	ScheduledAt   time.Time       `json:"scheduled_at,omitempty"`
+	StartedAt     time.Time       `json:"started_at,omitempty"`
+	CompletedAt   time.Time       `json:"completed_at,omitempty"`
+	CreatedAt     time.Time       `json:"created_at"`
+	UpdatedAt     time.Time       `json:"updated_at"`
 }
 
 // TableName returns the table name for GORM
@@ -57,18 +57,18 @@ func (ShopeeOperation) TableName() string {
 
 // OperationBatch represents a batch of operations
 type OperationBatch struct {
-	ID            uint            `gorm:"primaryKey" json:"id"`
-	TenantID      string          `gorm:"index;not null" json:"tenantId"`
-	OperationType OperationType   `json:"operationType"`
-	Status        OperationStatus `gorm:"default:pending" json:"status"`
-	TotalItems    int             `json:"totalItems"`
-	ProcessedItems int            `json:"processedItems"`
-	SuccessItems  int             `json:"successItems"`
-	FailedItems   int             `json:"failedItems"`
-	StartedAt     time.Time       `json:"startedAt,omitempty"`
-	CompletedAt   time.Time       `json:"completedAt,omitempty"`
-	CreatedAt     time.Time       `json:"createdAt"`
-	UpdatedAt     time.Time       `json:"updatedAt"`
+	ID             uint            `gorm:"primaryKey" json:"id"`
+	TenantID       string          `gorm:"index;not null" json:"tenant_id"`
+	OperationType  OperationType   `json:"operation_type"`
+	Status         OperationStatus `gorm:"default:pending" json:"status"`
+	TotalItems     int             `json:"total_items"`
+	ProcessedItems int             `json:"processed_items"`
+	SuccessItems   int             `json:"success_items"`
+	FailedItems    int             `json:"failed_items"`
+	StartedAt      time.Time       `json:"started_at,omitempty"`
+	CompletedAt    time.Time       `json:"completed_at,omitempty"`
+	CreatedAt      time.Time       `json:"created_at"`
+	UpdatedAt      time.Time       `json:"updated_at"`
 }
 
 // TableName returns the table name for GORM

@@ -9,18 +9,18 @@ import (
 
 // ScannedRoute represents a route found during scanning
 type ScannedRoute struct {
-	Method   string `json:"method"`
-	Path     string `json:"path"`
-	File     string `json:"file"`
-	Line     int    `json:"line"`
-	Handler  string `json:"handler,omitempty"`
+	Method  string `json:"method"`
+	Path    string `json:"path"`
+	File    string `json:"file"`
+	Line    int    `json:"line"`
+	Handler string `json:"handler,omitempty"`
 }
 
 // ScanResult represents the result of scanning
 type ScanResult struct {
-	Routes    []ScannedRoute `json:"routes"`
-	Files     int            `json:"filesScanned"`
-	Errors    []string       `json:"errors,omitempty"`
+	Routes []ScannedRoute `json:"routes"`
+	Files  int            `json:"files_scanned"`
+	Errors []string       `json:"errors,omitempty"`
 }
 
 // ScannerService provides route scanning functionality
@@ -41,7 +41,7 @@ func (s *ScannerService) ScanRoutes() ScanResult {
 
 	// Walk through internal directory
 	internalPath := filepath.Join(s.basePath, "internal")
-	
+
 	err := filepath.Walk(internalPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			result.Errors = append(result.Errors, "Error accessing "+path+": "+err.Error())
@@ -113,7 +113,7 @@ func (s *ScannerService) ScanForMiddleware() map[string][]string {
 	result := make(map[string][]string)
 
 	internalPath := filepath.Join(s.basePath, "internal")
-	
+
 	_ = filepath.Walk(internalPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() || !strings.HasSuffix(path, ".go") {
 			return nil
@@ -126,7 +126,7 @@ func (s *ScannerService) ScanForMiddleware() map[string][]string {
 
 		relPath, _ := filepath.Rel(s.basePath, path)
 		middlewares := extractMiddlewares(string(content))
-		
+
 		if len(middlewares) > 0 {
 			result[relPath] = middlewares
 		}

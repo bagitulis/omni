@@ -22,20 +22,20 @@ type AdsReportData struct {
 	Summary   AdsReportSummary `json:"summary"`
 	Daily     []DailyAdsReport `json:"daily"`
 	Campaigns []CampaignReport `json:"campaigns"`
-	DateRange DateRange        `json:"dateRange"`
+	DateRange DateRange        `json:"date_range"`
 }
 
 // AdsReportSummary represents ads report summary
 type AdsReportSummary struct {
-	TotalSpend       float64 `json:"totalSpend"`
-	TotalImpressions int64   `json:"totalImpressions"`
-	TotalClicks      int64   `json:"totalClicks"`
-	TotalConversions int64   `json:"totalConversions"`
-	TotalRevenue     float64 `json:"totalRevenue"`
+	TotalSpend       float64 `json:"total_spend"`
+	TotalImpressions int64   `json:"total_impressions"`
+	TotalClicks      int64   `json:"total_clicks"`
+	TotalConversions int64   `json:"total_conversions"`
+	TotalRevenue     float64 `json:"total_revenue"`
 	CTR              float64 `json:"ctr"`
 	CPC              float64 `json:"cpc"`
 	ROAS             float64 `json:"roas"`
-	ConversionRate   float64 `json:"conversionRate"`
+	ConversionRate   float64 `json:"conversion_rate"`
 }
 
 // DailyAdsReport represents daily ads report
@@ -53,8 +53,8 @@ type DailyAdsReport struct {
 
 // CampaignReport represents campaign report
 type CampaignReport struct {
-	CampaignID   string  `json:"campaignId"`
-	CampaignName string  `json:"campaignName"`
+	CampaignID   string  `json:"campaign_id"`
+	CampaignName string  `json:"campaign_name"`
 	Status       string  `json:"status"`
 	Spend        float64 `json:"spend"`
 	Impressions  int64   `json:"impressions"`
@@ -66,8 +66,8 @@ type CampaignReport struct {
 
 // DateRange represents date range
 type DateRange struct {
-	StartDate string `json:"startDate"`
-	EndDate   string `json:"endDate"`
+	StartDate string `json:"start_date"`
+	EndDate   string `json:"end_date"`
 }
 
 // GetShopeeAdsReport gets Shopee ads report

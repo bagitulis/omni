@@ -36,27 +36,27 @@ type TokenService interface {
 
 // Order represents a generic order (platform-agnostic)
 type Order struct {
-	ID           string  `json:"id"`
-	Platform     string  `json:"platform"`
-	OrderSN      string  `json:"orderSn"`
-	Status       string  `json:"status"`
-	TotalAmount  float64 `json:"totalAmount"`
-	Currency     string  `json:"currency"`
-	BuyerName    string  `json:"buyerName"`
-	CreatedAt    string  `json:"createdAt"`
-	UpdatedAt    string  `json:"updatedAt"`
+	ID          string  `json:"id"`
+	Platform    string  `json:"platform"`
+	OrderSN     string  `json:"order_sn"`
+	Status      string  `json:"status"`
+	TotalAmount float64 `json:"total_amount"`
+	Currency    string  `json:"currency"`
+	BuyerName   string  `json:"buyer_name"`
+	CreatedAt   string  `json:"created_at"`
+	UpdatedAt   string  `json:"updated_at"`
 }
 
 // Product represents a generic product (platform-agnostic)
 type Product struct {
-	ID          string   `json:"id"`
-	Platform    string   `json:"platform"`
-	Name        string   `json:"name"`
-	SKU         string   `json:"sku"`
-	Price       float64  `json:"price"`
-	Stock       int      `json:"stock"`
-	Status      string   `json:"status"`
-	Images      []string `json:"images"`
-	CreatedAt   string   `json:"createdAt"`
-	UpdatedAt   string   `json:"updatedAt"`
+	ID        string   `json:"id"`
+	Platform  string   `json:"platform"`
+	Name      string   `json:"name"`
+	SKU       string   `json:"sku"`
+	Price     float64  `json:"price"`
+	Stock     int      `json:"stock"`
+	Status    string   `json:"status"`
+	Images    []string `json:"images"`
+	CreatedAt string   `json:"created_at"`
+	UpdatedAt string   `json:"updated_at"`
 }

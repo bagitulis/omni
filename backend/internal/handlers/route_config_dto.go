@@ -5,8 +5,8 @@ import "time"
 // RouteConfig represents a route configuration
 type RouteConfig struct {
 	ID          string                 `json:"id"`
-	TenantID    string                 `json:"tenantId"`
-	RouteID     string                 `json:"routeId"`
+	TenantID    string                 `json:"tenant_id"`
+	RouteID     string                 `json:"route_id"`
 	Platform    string                 `json:"platform"`
 	Category    string                 `json:"category"`
 	Name        string                 `json:"name"`
@@ -14,10 +14,10 @@ type RouteConfig struct {
 	Enabled     bool                   `json:"enabled"`
 	Schedule    string                 `json:"schedule,omitempty"`
 	Config      map[string]interface{} `json:"config,omitempty"`
-	LastRun     *time.Time             `json:"lastRun,omitempty"`
-	NextRun     *time.Time             `json:"nextRun,omitempty"`
-	CreatedAt   time.Time              `json:"createdAt"`
-	UpdatedAt   time.Time              `json:"updatedAt"`
+	LastRun     *time.Time             `json:"last_run,omitempty"`
+	NextRun     *time.Time             `json:"next_run,omitempty"`
+	CreatedAt   time.Time              `json:"created_at"`
+	UpdatedAt   time.Time              `json:"updated_at"`
 }
 
 // UpdateConfigRequest represents update config request
@@ -31,7 +31,7 @@ type UpdateConfigRequest struct {
 
 // CreateConfigRequest represents create config request
 type CreateConfigRequest struct {
-	RouteID     string                 `json:"routeId" binding:"required"`
+	RouteID     string                 `json:"route_id" binding:"required"`
 	Platform    string                 `json:"platform" binding:"required"`
 	Category    string                 `json:"category" binding:"required"`
 	Name        string                 `json:"name" binding:"required"`
@@ -44,10 +44,10 @@ type CreateConfigRequest struct {
 // RouteExecutionLog represents route execution log
 type RouteExecutionLog struct {
 	ID        string    `json:"id"`
-	RouteID   string    `json:"routeId"`
+	RouteID   string    `json:"route_id"`
 	Status    string    `json:"status"`
-	StartTime time.Time `json:"startTime"`
-	EndTime   time.Time `json:"endTime"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
 	Duration  int64     `json:"duration"`
 	Message   string    `json:"message,omitempty"`
 	Error     string    `json:"error,omitempty"`

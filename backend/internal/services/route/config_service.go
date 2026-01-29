@@ -91,16 +91,16 @@ func (s *ConfigService) getDefaultConfig(routePath string) *models.RouteExecutio
 		TenantID:  s.tenantID,
 		RoutePath: routePath,
 		IsEnabled: true,
-		RateLimit: 60,  // 60 requests per minute
-		Timeout:   30,  // 30 seconds
+		RateLimit: 60, // 60 requests per minute
+		Timeout:   30, // 30 seconds
 	}
 }
 
 // RouteConfigRequest represents route config update request
 type RouteConfigRequest struct {
-	RoutePath string `json:"routePath"`
-	IsEnabled bool   `json:"isEnabled"`
-	RateLimit int    `json:"rateLimit"`
+	RoutePath string `json:"route_path"`
+	IsEnabled bool   `json:"is_enabled"`
+	RateLimit int    `json:"rate_limit"`
 	Timeout   int    `json:"timeout"`
 	Category  string `json:"category"`
 }

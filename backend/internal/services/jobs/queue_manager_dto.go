@@ -7,27 +7,27 @@ import (
 	"github.com/omni/backend/internal/models"
 )
 
-// HistoryItemResponse is the camelCase response format matching Node.js
+// HistoryItemResponse is the snake_case response format matching API standards
 // This ensures frontend compatibility
 type HistoryItemResponse struct {
 	ID           int        `json:"id"`
-	JobID        string     `json:"jobId"`
-	JobType      string     `json:"jobType"`
+	JobID        string     `json:"job_id"`
+	JobType      string     `json:"job_type"`
 	Status       string     `json:"status"`
-	ErrorMessage string     `json:"errorMessage,omitempty"`
-	DurationMs   int        `json:"durationMs"`
-	StartedAt    *time.Time `json:"startedAt,omitempty"`
-	CompletedAt  *time.Time `json:"completedAt,omitempty"`
-	CreatedAt    time.Time  `json:"createdAt"`
+	ErrorMessage string     `json:"error_message,omitempty"`
+	DurationMs   int        `json:"duration_ms"`
+	StartedAt    *time.Time `json:"started_at,omitempty"`
+	CompletedAt  *time.Time `json:"completed_at,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
 }
 
-// PaginatedHistoryResult for paginated history response with camelCase
+// PaginatedHistoryResult for paginated history response with snake_case
 type PaginatedHistoryResult struct {
 	Data       []HistoryItemResponse `json:"data"`
 	Total      int64                 `json:"total"`
 	Page       int                   `json:"page"`
-	PageSize   int                   `json:"pageSize"`
-	TotalPages int                   `json:"totalPages"`
+	PageSize   int                   `json:"page_size"`
+	TotalPages int                   `json:"total_pages"`
 }
 
 // QueueStatus represents queue status

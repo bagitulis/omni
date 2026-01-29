@@ -19,18 +19,18 @@ type RouteMapping struct {
 
 // RouteAnalysis represents analysis result of routes
 type RouteAnalysis struct {
-	TotalRoutes    int                       `json:"totalRoutes"`
-	ByMethod       map[string]int            `json:"byMethod"`
-	ByTag          map[string]int            `json:"byTag"`
-	Conflicts      []RouteConflict           `json:"conflicts,omitempty"`
-	UnprotectedRoutes []string              `json:"unprotectedRoutes,omitempty"`
+	TotalRoutes       int             `json:"total_routes"`
+	ByMethod          map[string]int  `json:"by_method"`
+	ByTag             map[string]int  `json:"by_tag"`
+	Conflicts         []RouteConflict `json:"conflicts,omitempty"`
+	UnprotectedRoutes []string        `json:"unprotected_routes,omitempty"`
 }
 
 // RouteConflict represents a potential route conflict
 type RouteConflict struct {
-	Route1  string `json:"route1"`
-	Route2  string `json:"route2"`
-	Reason  string `json:"reason"`
+	Route1 string `json:"route1"`
+	Route2 string `json:"route2"`
+	Reason string `json:"reason"`
 }
 
 // MappingService provides route mapping functionality
@@ -57,7 +57,7 @@ func (s *MappingService) RegisterRoute(mapping RouteMapping) {
 func (s *MappingService) GetAllMappings() []RouteMapping {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	result := make([]RouteMapping, len(s.routes))
 	copy(result, s.routes)
 	return result
@@ -117,7 +117,7 @@ func (s *MappingService) detectConflicts() []RouteConflict {
 	for i := 0; i < len(s.routes); i++ {
 		for j := i + 1; j < len(s.routes); j++ {
 			r1, r2 := s.routes[i], s.routes[j]
-			
+
 			if r1.Method != r2.Method {
 				continue
 			}
@@ -184,7 +184,7 @@ func couldConflict(path1, path2 string) bool {
 	// Check if paths could match same request
 	// e.g., /users/:id and /users/me
 	paramPattern := regexp.MustCompile(`:[^/]+`)
-	
+
 	normalized1 := paramPattern.ReplaceAllString(path1, ":param")
 	normalized2 := paramPattern.ReplaceAllString(path2, ":param")
 

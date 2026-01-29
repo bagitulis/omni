@@ -2,15 +2,15 @@ package request
 
 // LazadaShipOrderRequest for shipping a Lazada order
 type LazadaShipOrderRequest struct {
-	OrderID        string `json:"orderId" binding:"required"`
-	TrackingNumber string `json:"trackingNumber" binding:"required"`
-	ShippingType   string `json:"shippingType"`
+	OrderID        string `json:"order_id" binding:"required"`
+	TrackingNumber string `json:"tracking_number" binding:"required"`
+	ShippingType   string `json:"shipping_type"`
 }
 
 // LazadaCancelOrderRequest for cancelling a Lazada order
 type LazadaCancelOrderRequest struct {
-	OrderID      string `json:"orderId" binding:"required"`
-	CancelReason string `json:"cancelReason" binding:"required"`
+	OrderID      string `json:"order_id" binding:"required"`
+	CancelReason string `json:"cancel_reason" binding:"required"`
 }
 
 // LazadaCreateProductRequest for creating a Lazada product

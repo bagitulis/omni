@@ -5,17 +5,17 @@ import "time"
 // AuditLog represents an audit log entry
 type AuditLog struct {
 	ID             string    `gorm:"primaryKey" json:"id"`
-	TenantID       string    `gorm:"index" json:"tenantId"`
+	TenantID       string    `gorm:"index" json:"tenant_id"`
 	Action         string    `gorm:"index;not null" json:"action"`
-	UserID         string    `gorm:"index" json:"userId"`
-	TargetUserID   string    `json:"targetUserId,omitempty"`
-	TargetTenantID string    `json:"targetTenantId,omitempty"`
-	Details        string    `json:"details,omitempty"` // JSON string
+	UserID         string    `gorm:"index" json:"user_id"`
+	TargetUserID   string    `json:"target_user_id,omitempty"`
+	TargetTenantID string    `json:"target_tenant_id,omitempty"`
+	Details        string    `json:"details,omitempty"`            // JSON string
 	Status         string    `gorm:"index;not null" json:"status"` // success, failed
-	ErrorMessage   string    `json:"errorMessage,omitempty"`
-	IPAddress      string    `json:"ipAddress,omitempty"`
-	UserAgent      string    `json:"userAgent,omitempty"`
-	CreatedAt      time.Time `gorm:"index" json:"createdAt"`
+	ErrorMessage   string    `json:"error_message,omitempty"`
+	IPAddress      string    `json:"ip_address,omitempty"`
+	UserAgent      string    `json:"user_agent,omitempty"`
+	CreatedAt      time.Time `gorm:"index" json:"created_at"`
 }
 
 // TableName specifies the table name for GORM

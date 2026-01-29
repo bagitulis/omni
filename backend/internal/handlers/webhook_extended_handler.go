@@ -120,7 +120,7 @@ func (h *WebhookExtendedHandler) TiktokWebhookTenant(c *gin.Context) {
 // TestWebhookRequest represents test webhook request
 type TestWebhookRequest struct {
 	Platform  string                 `json:"platform" binding:"required"`
-	EventType string                 `json:"eventType" binding:"required"`
+	EventType string                 `json:"event_type" binding:"required"`
 	Data      map[string]interface{} `json:"data"`
 }
 
@@ -158,8 +158,8 @@ type WebhookConfigResponse struct {
 
 // WebhookPlatformConfig represents platform webhook config
 type WebhookPlatformConfig struct {
-	Enabled    bool   `json:"enabled"`
-	WebhookURL string `json:"webhookUrl"`
+	Enabled    bool     `json:"enabled"`
+	WebhookURL string   `json:"webhook_url"`
 	Events     []string `json:"events"`
 }
 

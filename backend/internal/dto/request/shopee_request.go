@@ -2,23 +2,23 @@ package request
 
 // ShipOrderRequest for shipping an order
 type ShipOrderRequest struct {
-	OrderSN        string `json:"orderSn" binding:"required"`
-	TrackingNumber string `json:"trackingNumber" binding:"required"`
-	ShippingCarrier string `json:"shippingCarrier"`
+	OrderSN         string `json:"order_sn" binding:"required"`
+	TrackingNumber  string `json:"tracking_number" binding:"required"`
+	ShippingCarrier string `json:"shipping_carrier"`
 }
 
 // CancelOrderRequest for cancelling an order
 type CancelOrderRequest struct {
-	OrderSN      string `json:"orderSn" binding:"required"`
-	CancelReason string `json:"cancelReason" binding:"required"`
+	OrderSN      string `json:"order_sn" binding:"required"`
+	CancelReason string `json:"cancel_reason" binding:"required"`
 }
 
 // CreateProductRequest for creating a product
 type CreateProductRequest struct {
 	Name          string   `json:"name" binding:"required"`
 	Description   string   `json:"description"`
-	CategoryID    int64    `json:"categoryId" binding:"required"`
-	OriginalPrice float64  `json:"originalPrice" binding:"required"`
+	CategoryID    int64    `json:"category_id" binding:"required"`
+	OriginalPrice float64  `json:"original_price" binding:"required"`
 	Stock         int      `json:"stock" binding:"required"`
 	Images        []string `json:"images"`
 	SKU           string   `json:"sku"`
@@ -29,7 +29,7 @@ type CreateProductRequest struct {
 type UpdateProductRequest struct {
 	Name          string   `json:"name"`
 	Description   string   `json:"description"`
-	OriginalPrice float64  `json:"originalPrice"`
+	OriginalPrice float64  `json:"original_price"`
 	Stock         int      `json:"stock"`
 	Images        []string `json:"images"`
 	Status        string   `json:"status"`
@@ -42,5 +42,5 @@ type UpdateStockRequest struct {
 
 // UpdatePriceRequest for updating price only
 type UpdatePriceRequest struct {
-	OriginalPrice float64 `json:"originalPrice" binding:"required"`
+	OriginalPrice float64 `json:"original_price" binding:"required"`
 }

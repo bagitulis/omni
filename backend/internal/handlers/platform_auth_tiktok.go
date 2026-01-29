@@ -16,11 +16,11 @@ import (
 
 // TiktokShop represents a TikTok shop
 type TiktokShop struct {
-	ShopID     string `json:"shopId"`
-	ShopName   string `json:"shopName"`
+	ShopID     string `json:"shop_id"`
+	ShopName   string `json:"shop_name"`
 	Region     string `json:"region"`
-	IsActive   bool   `json:"isActive"`
-	SellerType string `json:"sellerType,omitempty"`
+	IsActive   bool   `json:"is_active"`
+	SellerType string `json:"seller_type,omitempty"`
 }
 
 // GetTiktokShops handles GET /api/platform-auth/tiktok/shops
@@ -114,7 +114,7 @@ func (h *PlatformAuthHandler) GetStatus(c *gin.Context) {
 
 	// Use TenantPlatformConfigRepository which uses key-value pattern
 	repo := repositories.NewTenantPlatformConfigRepository(db)
-	
+
 	now := time.Now()
 	statuses := make(map[string]ConnectionStatus)
 	platforms := []string{models.PlatformShopee, models.PlatformLazada, models.PlatformTiktok}

@@ -10,20 +10,20 @@ import (
 // MPQRule represents a minimum purchase quantity rule
 type MPQRule struct {
 	ID          uint      `gorm:"primaryKey" json:"id"`
-	TenantID    string    `gorm:"index;not null" json:"tenantId"`
+	TenantID    string    `gorm:"index;not null" json:"tenant_id"`
 	Platform    string    `gorm:"index;not null" json:"platform"`
-	ItemID      string    `gorm:"index" json:"itemId,omitempty"`
+	ItemID      string    `gorm:"index" json:"item_id,omitempty"`
 	SKU         string    `gorm:"index" json:"sku,omitempty"`
-	CategoryID  string    `gorm:"index" json:"categoryId,omitempty"`
-	MinQty      int       `gorm:"not null" json:"minQty"`
-	MaxQty      int       `json:"maxQty,omitempty"`
-	IsActive    bool      `gorm:"default:true" json:"isActive"`
+	CategoryID  string    `gorm:"index" json:"category_id,omitempty"`
+	MinQty      int       `gorm:"not null" json:"min_qty"`
+	MaxQty      int       `json:"max_qty,omitempty"`
+	IsActive    bool      `gorm:"default:true" json:"is_active"`
 	Priority    int       `gorm:"default:0" json:"priority"` // Higher = more specific
 	Description string    `json:"description,omitempty"`
-	StartDate   time.Time `json:"startDate,omitempty"`
-	EndDate     time.Time `json:"endDate,omitempty"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	StartDate   time.Time `json:"start_date,omitempty"`
+	EndDate     time.Time `json:"end_date,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // TableName returns the table name for GORM
@@ -33,12 +33,12 @@ func (MPQRule) TableName() string {
 
 // MPQValidationResult represents MPQ validation result
 type MPQValidationResult struct {
-	IsValid     bool     `json:"isValid"`
-	MinQty      int      `json:"minQty"`
-	MaxQty      int      `json:"maxQty"`
-	RequestedQty int     `json:"requestedQty"`
-	RuleApplied *MPQRule `json:"ruleApplied,omitempty"`
-	Message     string   `json:"message"`
+	IsValid      bool     `json:"is_valid"`
+	MinQty       int      `json:"min_qty"`
+	MaxQty       int      `json:"max_qty"`
+	RequestedQty int      `json:"requested_qty"`
+	RuleApplied  *MPQRule `json:"rule_applied,omitempty"`
+	Message      string   `json:"message"`
 }
 
 // MPQService handles minimum purchase quantity operations

@@ -19,7 +19,6 @@ func NewSheetHandler(db *gorm.DB, sheetsClient inventoryService.SheetWriterClien
 	return &SheetHandler{db: db, sheetsClient: sheetsClient}
 }
 
-
 // ExportToSheet handles POST /api/inventory/export-to-sheet
 func (h *SheetHandler) ExportToSheet(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
@@ -29,12 +28,12 @@ func (h *SheetHandler) ExportToSheet(c *gin.Context) {
 	}
 
 	var req struct {
-		SpreadsheetID string   `json:"spreadsheetId" binding:"required"`
-		SheetName     string   `json:"sheetName"`
+		SpreadsheetID string   `json:"spreadsheet_id" binding:"required"`
+		SheetName     string   `json:"sheet_name"`
 		Columns       []string `json:"columns"`
 		Filter        struct {
 			Category string `json:"category"`
-			LowStock bool   `json:"lowStock"`
+			LowStock bool   `json:"low_stock"`
 		} `json:"filter"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -65,10 +64,10 @@ func (h *SheetHandler) ImportFromSheet(c *gin.Context) {
 	}
 
 	var req struct {
-		SpreadsheetID string `json:"spreadsheetId" binding:"required"`
-		SheetName     string `json:"sheetName"`
-		StartRow      int    `json:"startRow"`
-		HasHeader     bool   `json:"hasHeader"`
+		SpreadsheetID string `json:"spreadsheet_id" binding:"required"`
+		SheetName     string `json:"sheet_name"`
+		StartRow      int    `json:"start_row"`
+		HasHeader     bool   `json:"has_header"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
@@ -103,8 +102,8 @@ func (h *SheetHandler) SyncFromSheet(c *gin.Context) {
 	}
 
 	var req struct {
-		SpreadsheetID string `json:"spreadsheetId" binding:"required"`
-		SheetName     string `json:"sheetName"`
+		SpreadsheetID string `json:"spreadsheet_id" binding:"required"`
+		SheetName     string `json:"sheet_name"`
 		Mode          string `json:"mode"` // "merge" or "replace"
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -161,9 +160,9 @@ func (h *SheetHandler) PartialSync(c *gin.Context) {
 
 	var req struct {
 		SKUs          []string `json:"skus" binding:"required"`
-		SpreadsheetID string   `json:"spreadsheetId" binding:"required"`
-		SheetName     string   `json:"sheetName"`
-		KeyColumn     string   `json:"keyColumn"`
+		SpreadsheetID string   `json:"spreadsheet_id" binding:"required"`
+		SheetName     string   `json:"sheet_name"`
+		KeyColumn     string   `json:"key_column"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})

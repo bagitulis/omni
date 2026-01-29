@@ -10,19 +10,19 @@ import (
 // SheetConfig represents a Google Sheet configuration
 type SheetConfig struct {
 	ID            uint      `gorm:"primaryKey" json:"id"`
-	TenantID      string    `gorm:"index;not null" json:"tenantId"`
-	SpreadsheetID string    `gorm:"index;not null" json:"spreadsheetId"`
-	SheetName     string    `json:"sheetName"`
-	SheetType     string    `gorm:"index" json:"sheetType"` // inventory, wallet, shipping, etc.
-	RangeStart    string    `json:"rangeStart,omitempty"`
-	RangeEnd      string    `json:"rangeEnd,omitempty"`
-	HeaderRow     int       `gorm:"default:1" json:"headerRow"`
-	DataStartRow  int       `gorm:"default:2" json:"dataStartRow"`
-	ColumnMapping string    `json:"columnMapping,omitempty"` // JSON mapping
-	IsActive      bool      `gorm:"default:true" json:"isActive"`
-	LastSyncAt    time.Time `json:"lastSyncAt,omitempty"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	TenantID      string    `gorm:"index;not null" json:"tenant_id"`
+	SpreadsheetID string    `gorm:"index;not null" json:"spreadsheet_id"`
+	SheetName     string    `json:"sheet_name"`
+	SheetType     string    `gorm:"index" json:"sheet_type"` // inventory, wallet, shipping, etc.
+	RangeStart    string    `json:"range_start,omitempty"`
+	RangeEnd      string    `json:"range_end,omitempty"`
+	HeaderRow     int       `gorm:"default:1" json:"header_row"`
+	DataStartRow  int       `gorm:"default:2" json:"data_start_row"`
+	ColumnMapping string    `json:"column_mapping,omitempty"` // JSON mapping
+	IsActive      bool      `gorm:"default:true" json:"is_active"`
+	LastSyncAt    time.Time `json:"last_sync_at,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // TableName returns the table name for GORM
@@ -33,12 +33,12 @@ func (SheetConfig) TableName() string {
 // SheetSnapshot represents a snapshot of sheet data
 type SheetSnapshot struct {
 	ID            uint      `gorm:"primaryKey" json:"id"`
-	TenantID      string    `gorm:"index;not null" json:"tenantId"`
-	SheetConfigID uint      `gorm:"index;not null" json:"sheetConfigId"`
-	DataHash      string    `json:"dataHash"`
-	RowCount      int       `json:"rowCount"`
+	TenantID      string    `gorm:"index;not null" json:"tenant_id"`
+	SheetConfigID uint      `gorm:"index;not null" json:"sheet_config_id"`
+	DataHash      string    `json:"data_hash"`
+	RowCount      int       `json:"row_count"`
 	Snapshot      string    `json:"snapshot"` // JSON data
-	CreatedAt     time.Time `json:"createdAt"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 // TableName returns the table name for GORM

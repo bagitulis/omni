@@ -41,9 +41,9 @@ type MultiTenantLoginRequest struct {
 type MultiTenantLoginResponse struct {
 	User         *models.UserResponse `json:"user"`
 	AccessToken  string               `json:"token"`
-	RefreshToken string               `json:"refreshToken"`
-	TenantID     string               `json:"tenantId"`
-	ExpiresAt    time.Time            `json:"expiresAt"`
+	RefreshToken string               `json:"refresh_token"`
+	TenantID     string               `json:"tenant_id"`
+	ExpiresAt    time.Time            `json:"expires_at"`
 }
 
 // LoginAcrossTenants finds user across all tenants and authenticates
@@ -264,9 +264,9 @@ func (s *MultiTenantAuthService) GetLoginStatus(ctx context.Context, username st
 
 // LoginStatusResponse represents login status
 type LoginStatusResponse struct {
-	IsLocked             bool `json:"isLocked"`
-	RequiresCaptcha      bool `json:"requiresCaptcha"`
-	LockMinutesRemaining int  `json:"lockMinutesRemaining,omitempty"`
+	IsLocked             bool `json:"is_locked"`
+	RequiresCaptcha      bool `json:"requires_captcha"`
+	LockMinutesRemaining int  `json:"lock_minutes_remaining,omitempty"`
 }
 
 // SwitchTenant generates new token for different tenant (developer only)

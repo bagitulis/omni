@@ -43,10 +43,10 @@ type Config struct {
 // TenantConfig represents a tenant configuration
 // Matches Node.js tenants.json structure
 type TenantConfig struct {
-	ID       string `json:"-"`      // Populated from map key
-	DBPath   string `json:"dbPath"` // Path to tenant database
-	ShopName string `json:"shopName"`
-	IsGlobal bool   `json:"isGlobal,omitempty"` // True for system tenant
+	ID       string `json:"-"`       // Populated from map key
+	DBPath   string `json:"db_path"` // Path to tenant database
+	ShopName string `json:"shop_name"`
+	IsGlobal bool   `json:"is_global,omitempty"` // True for system tenant
 }
 
 // TenantsConfig holds all tenant configurations

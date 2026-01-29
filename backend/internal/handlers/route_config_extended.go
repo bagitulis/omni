@@ -149,7 +149,7 @@ func (h *RouteConfigHandler) BulkUpdate(c *gin.Context) {
 	}
 
 	var req struct {
-		RouteIDs []string               `json:"routeIds"`
+		RouteIDs []string               `json:"route_ids"`
 		Updates  map[string]interface{} `json:"updates"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -189,7 +189,7 @@ func (h *RouteConfigHandler) ApplyPreset(c *gin.Context) {
 
 	preset := c.Param("preset")
 	var req struct {
-		RouteIDs []string `json:"routeIds"`
+		RouteIDs []string `json:"route_ids"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

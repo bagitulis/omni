@@ -20,9 +20,9 @@ func NewProductImageHandler(basePath string) *ProductImageHandler {
 
 // UploadImageRequest represents image upload request
 type UploadImageRequest struct {
-	ImageURL  string `json:"imageUrl,omitempty"`
-	ImageData string `json:"imageData,omitempty"`
-	UseCase   string `json:"useCase"`
+	ImageURL  string `json:"image_url,omitempty"`
+	ImageData string `json:"image_data,omitempty"`
+	UseCase   string `json:"use_case"`
 }
 
 // ImageUploadResult represents upload result
@@ -62,11 +62,11 @@ func (h *ProductImageHandler) UploadImage(c *gin.Context) {
 
 // ImageUploadTask represents an image upload task
 type ImageUploadTask struct {
-	TaskID    string `json:"taskId"`
+	TaskID    string `json:"task_id"`
 	Status    string `json:"status"`
-	ImageURI  string `json:"imageUri,omitempty"`
+	ImageURI  string `json:"image_uri,omitempty"`
 	Error     string `json:"error,omitempty"`
-	CreatedAt int64  `json:"createdAt"`
+	CreatedAt int64  `json:"created_at"`
 }
 
 // GetUploadTasks handles GET /api/tiktok/products/image-upload-tasks

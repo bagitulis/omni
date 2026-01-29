@@ -9,25 +9,25 @@ import (
 
 // InventoryRecord represents an inventory record from sheets
 type InventoryRecord struct {
-	ID              uint      `gorm:"primaryKey" json:"id"`
-	TenantID        string    `gorm:"index;not null" json:"tenantId"`
-	SKU             string    `gorm:"index;not null" json:"sku"`
-	ProductName     string    `json:"productName"`
-	VariationName   string    `json:"variationName,omitempty"`
-	StockQuantity   int       `json:"stockQuantity"`
-	ReservedQty     int       `json:"reservedQty"`
-	AvailableQty    int       `json:"availableQty"`
-	MinStock        int       `json:"minStock"`
-	MaxStock        int       `json:"maxStock"`
-	ReorderPoint    int       `json:"reorderPoint"`
-	UnitCost        float64   `json:"unitCost"`
-	TotalValue      float64   `json:"totalValue"`
-	Location        string    `json:"location,omitempty"`
-	LastCountDate   time.Time `json:"lastCountDate,omitempty"`
-	Source          string    `json:"source"` // sheet, manual, api
-	SheetConfigID   uint      `json:"sheetConfigId,omitempty"`
-	CreatedAt       time.Time `json:"createdAt"`
-	UpdatedAt       time.Time `json:"updatedAt"`
+	ID            uint      `gorm:"primaryKey" json:"id"`
+	TenantID      string    `gorm:"index;not null" json:"tenant_id"`
+	SKU           string    `gorm:"index;not null" json:"sku"`
+	ProductName   string    `json:"product_name"`
+	VariationName string    `json:"variation_name,omitempty"`
+	StockQuantity int       `json:"stock_quantity"`
+	ReservedQty   int       `json:"reserved_qty"`
+	AvailableQty  int       `json:"available_qty"`
+	MinStock      int       `json:"min_stock"`
+	MaxStock      int       `json:"max_stock"`
+	ReorderPoint  int       `json:"reorder_point"`
+	UnitCost      float64   `json:"unit_cost"`
+	TotalValue    float64   `json:"total_value"`
+	Location      string    `json:"location,omitempty"`
+	LastCountDate time.Time `json:"last_count_date,omitempty"`
+	Source        string    `json:"source"` // sheet, manual, api
+	SheetConfigID uint      `json:"sheet_config_id,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // TableName returns the table name for GORM
@@ -37,17 +37,17 @@ func (InventoryRecord) TableName() string {
 
 // InventorySyncHistory represents sync history
 type InventorySyncHistory struct {
-	ID            uint      `gorm:"primaryKey" json:"id"`
-	TenantID      string    `gorm:"index;not null" json:"tenantId"`
-	SheetConfigID uint      `json:"sheetConfigId,omitempty"`
-	SyncType      string    `json:"syncType"` // full, delta
-	RecordsAdded  int       `json:"recordsAdded"`
-	RecordsUpdated int      `json:"recordsUpdated"`
-	RecordsDeleted int      `json:"recordsDeleted"`
-	Status        string    `json:"status"` // success, failed, partial
-	ErrorMessage  string    `json:"errorMessage,omitempty"`
-	Duration      int       `json:"duration"` // milliseconds
-	CreatedAt     time.Time `json:"createdAt"`
+	ID             uint      `gorm:"primaryKey" json:"id"`
+	TenantID       string    `gorm:"index;not null" json:"tenant_id"`
+	SheetConfigID  uint      `json:"sheet_config_id,omitempty"`
+	SyncType       string    `json:"sync_type"` // full, delta
+	RecordsAdded   int       `json:"records_added"`
+	RecordsUpdated int       `json:"records_updated"`
+	RecordsDeleted int       `json:"records_deleted"`
+	Status         string    `json:"status"` // success, failed, partial
+	ErrorMessage   string    `json:"error_message,omitempty"`
+	Duration       int       `json:"duration"` // milliseconds
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 // TableName returns the table name for GORM
@@ -57,13 +57,13 @@ func (InventorySyncHistory) TableName() string {
 
 // InventoryStats represents inventory statistics
 type InventoryStats struct {
-	TotalSKUs        int     `json:"totalSkus"`
-	TotalStock       int     `json:"totalStock"`
-	TotalValue       float64 `json:"totalValue"`
-	LowStockCount    int     `json:"lowStockCount"`
-	OutOfStockCount  int     `json:"outOfStockCount"`
-	OverstockCount   int     `json:"overstockCount"`
-	LastSyncAt       time.Time `json:"lastSyncAt,omitempty"`
+	TotalSKUs       int       `json:"total_skus"`
+	TotalStock      int       `json:"total_stock"`
+	TotalValue      float64   `json:"total_value"`
+	LowStockCount   int       `json:"low_stock_count"`
+	OutOfStockCount int       `json:"out_of_stock_count"`
+	OverstockCount  int       `json:"overstock_count"`
+	LastSyncAt      time.Time `json:"last_sync_at,omitempty"`
 }
 
 // InventorySheetService handles inventory sheet operations

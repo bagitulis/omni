@@ -135,7 +135,7 @@ func (h *SettingsHandler) ValidateLink(c *gin.Context) {
 	}
 
 	var req struct {
-		SpreadsheetURL string `json:"spreadsheetUrl"`
+		SpreadsheetURL string `json:"spreadsheet_url"`
 		URL            string `json:"url"` // Fallback for backward compatibility
 		Type           string `json:"type"`
 	}

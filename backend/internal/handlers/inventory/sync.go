@@ -29,8 +29,8 @@ func (h *SyncHandler) TriggerSync(c *gin.Context) {
 	}
 
 	var req struct {
-		SpreadsheetID string `json:"spreadsheetId"`
-		SheetName     string `json:"sheetName"`
+		SpreadsheetID string `json:"spreadsheet_id"`
+		SheetName     string `json:"sheet_name"`
 	}
 	_ = c.ShouldBindJSON(&req) // Optional body
 

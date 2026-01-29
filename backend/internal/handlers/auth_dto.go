@@ -4,19 +4,19 @@ package handlers
 type LoginRequest struct {
 	Username       string `json:"username" binding:"required"`
 	Password       string `json:"password" binding:"required"`
-	CaptchaToken   string `json:"captchaToken,omitempty"`
-	RecaptchaToken string `json:"recaptchaToken,omitempty"`
+	CaptchaToken   string `json:"captcha_token,omitempty"`
+	RecaptchaToken string `json:"recaptcha_token,omitempty"`
 }
 
 // RefreshTokenRequest represents refresh token request body
 type RefreshTokenRequest struct {
-	RefreshToken string `json:"refreshToken" binding:"required"`
+	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
 // ChangePasswordRequest represents change password request body
 type ChangePasswordRequest struct {
-	OldPassword string `json:"oldPassword" binding:"required"`
-	NewPassword string `json:"newPassword" binding:"required,min=8"`
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=8"`
 }
 
 // RegisterRequest represents registration request body
@@ -24,7 +24,7 @@ type RegisterRequest struct {
 	Username string `json:"username" binding:"required,min=3"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=8"`
-	ShopName string `json:"shopName,omitempty"`
+	ShopName string `json:"shop_name,omitempty"`
 }
 
 // SwitchTenantRequest represents switch tenant request body

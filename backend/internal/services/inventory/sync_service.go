@@ -32,15 +32,15 @@ func NewSyncService(db *gorm.DB, tenantID string, sheetsClient SheetsClient) *Sy
 type SheetSyncResult struct {
 	Status           string    `json:"status"` // SUCCESS, ERROR, PARTIAL
 	Message          string    `json:"message"`
-	TotalRecords     int       `json:"totalRecords"`
-	NewRecords       int       `json:"newRecords"`
-	UpdatedRecords   int       `json:"updatedRecords"`
-	UnchangedRecords int       `json:"unchangedRecords"`
-	FailedRecords    int       `json:"failedRecords"`
-	Duration         int       `json:"durationMs"`
-	HeadersChanged   bool      `json:"headersChanged"`
+	TotalRecords     int       `json:"total_records"`
+	NewRecords       int       `json:"new_records"`
+	UpdatedRecords   int       `json:"updated_records"`
+	UnchangedRecords int       `json:"unchanged_records"`
+	FailedRecords    int       `json:"failed_records"`
+	Duration         int       `json:"duration_ms"`
+	HeadersChanged   bool      `json:"headers_changed"`
 	Headers          []string  `json:"headers,omitempty"`
-	SyncedAt         time.Time `json:"syncedAt"`
+	SyncedAt         time.Time `json:"synced_at"`
 }
 
 // SyncFromSheets syncs inventory from Google Sheets
@@ -114,16 +114,16 @@ func (s *SyncService) SyncFromSheets(ctx context.Context, spreadsheetID, sheetNa
 		settings.LastHeadersHash = headersHash
 		settings.LastSyncTimestamp = &result.SyncedAt
 		settings.LastSyncStatus = result.Status
-		
+
 		// Always update AllColumns with discovered headers from sheet
 		allColumnsJSON, _ := json.Marshal(headers)
 		settings.AllColumns = string(allColumnsJSON)
-		
+
 		// Auto-populate SelectedColumns if empty (first sync scenario)
 		if settings.SelectedColumns == "" || settings.SelectedColumns == "[]" || settings.SelectedColumns == "null" {
 			settings.SelectedColumns = string(allColumnsJSON)
 		}
-		
+
 		_ = invSvc.UpdateSettings(ctx, settings)
 	}
 
@@ -217,7 +217,7 @@ func (s *SyncService) processRows(ctx context.Context, rows [][]interface{}, hea
 func (s *SyncService) upsertRecord(ctx context.Context, record *models.InventoryRecord) (string, error) {
 	var existing models.InventoryRecord
 	err := s.db.WithContext(ctx).
-		Where("tenant_id = ? AND key_column_name = ? AND key_value = ?", 
+		Where("tenant_id = ? AND key_column_name = ? AND key_value = ?",
 			s.tenantID, record.KeyColumnName, record.KeyValue).
 		First(&existing).Error
 
@@ -247,4 +247,3 @@ func (s *SyncService) upsertRecord(ctx context.Context, record *models.Inventory
 	}
 	return "updated", nil
 }
-

@@ -13,21 +13,21 @@ var orderTodayLogger = logger.Named("OrderTodayService")
 
 // OrderTodayItem represents an order item for "Order Today" feature
 // This is for API responses - maps to order_today_items table
-// NOTE: JSON uses camelCase to match Node.js backend for frontend compatibility
+// NOTE: JSON uses snake_case per project naming conventions
 type OrderTodayItem struct {
 	ID            uint      `gorm:"primaryKey" json:"id"`
-	TenantID      string    `gorm:"column:tenant_id;index;not null" json:"tenantId"`
+	TenantID      string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
 	Platform      string    `gorm:"column:platform;index;not null" json:"platform"`
-	OrderSN       string    `gorm:"column:order_sn;index;not null" json:"orderSn"`
-	TrackingNo    string    `gorm:"column:tracking_no" json:"trackingNo"`
+	OrderSN       string    `gorm:"column:order_sn;index;not null" json:"order_sn"`
+	TrackingNo    string    `gorm:"column:tracking_no" json:"tracking_no"`
 	Courier       string    `gorm:"column:courier" json:"courier"`
-	SellerSku     string    `gorm:"column:seller_sku" json:"sellerSku"`
-	ProductName   string    `gorm:"column:product_name" json:"productName"`
-	VariationName string    `gorm:"column:variation_name" json:"variationName"`
+	SellerSku     string    `gorm:"column:seller_sku" json:"seller_sku"`
+	ProductName   string    `gorm:"column:product_name" json:"product_name"`
+	VariationName string    `gorm:"column:variation_name" json:"variation_name"`
 	Quantity      int       `gorm:"column:quantity;default:1" json:"quantity"`
-	SyncedAt      time.Time `gorm:"column:synced_at;index" json:"syncedAt"`
-	CreatedAt     time.Time `gorm:"column:created_at" json:"createdAt"`
-	UpdatedAt     time.Time `gorm:"column:updated_at" json:"updatedAt"`
+	SyncedAt      time.Time `gorm:"column:synced_at;index" json:"synced_at"`
+	CreatedAt     time.Time `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt     time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
 // TableName returns the table name for GORM

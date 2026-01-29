@@ -6,13 +6,13 @@ import "time"
 // Matches Prisma schema: OAuthState
 type OAuthState struct {
 	ID          string    `gorm:"primaryKey" json:"id"`
-	TenantID    string    `gorm:"index;not null" json:"tenantId"`
+	TenantID    string    `gorm:"index;not null" json:"tenant_id"`
 	Platform    string    `gorm:"index;not null" json:"platform"` // shopee, lazada, tiktok
 	State       string    `gorm:"uniqueIndex;not null" json:"state"`
-	RedirectURL string    `json:"redirectUrl,omitempty"`
+	RedirectURL string    `json:"redirect_url,omitempty"`
 	Metadata    string    `json:"metadata,omitempty"` // JSON string
-	ExpiresAt   time.Time `gorm:"index" json:"expiresAt"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ExpiresAt   time.Time `gorm:"index" json:"expires_at"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // TableName specifies the table name for GORM
@@ -29,17 +29,17 @@ func (o *OAuthState) IsExpired() bool {
 // Matches Prisma schema: OAuthLog
 type OAuthLog struct {
 	ID          string     `gorm:"primaryKey" json:"id"`
-	TenantID    string     `gorm:"index;not null" json:"tenantId"`
+	TenantID    string     `gorm:"index;not null" json:"tenant_id"`
 	Platform    string     `gorm:"index;not null" json:"platform"`
-	EventType   string     `gorm:"index;not null" json:"eventType"` // callback_received, token_exchanged, token_refreshed, error
-	ShopID      string     `json:"shopId,omitempty"`
+	EventType   string     `gorm:"index;not null" json:"event_type"` // callback_received, token_exchanged, token_refreshed, error
+	ShopID      string     `json:"shop_id,omitempty"`
 	Code        string     `json:"code,omitempty"`
 	State       string     `json:"state,omitempty"`
 	Status      string     `gorm:"default:received;index" json:"status"` // received, success, failed
-	ErrorMsg    string     `json:"errorMsg,omitempty"`
+	ErrorMsg    string     `json:"error_msg,omitempty"`
 	Metadata    string     `json:"metadata,omitempty"` // JSON string
-	ProcessedAt *time.Time `json:"processedAt,omitempty"`
-	CreatedAt   time.Time  `gorm:"index" json:"createdAt"`
+	ProcessedAt *time.Time `json:"processed_at,omitempty"`
+	CreatedAt   time.Time  `gorm:"index" json:"created_at"`
 }
 
 // TableName specifies the table name for GORM

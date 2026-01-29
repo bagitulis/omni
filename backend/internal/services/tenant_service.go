@@ -14,8 +14,8 @@ import (
 // TenantInfo represents tenant information
 type TenantInfo struct {
 	ID       string `json:"id"`
-	ShopName string `json:"shopName"`
-	IsGlobal bool   `json:"isGlobal,omitempty"`
+	ShopName string `json:"shop_name"`
+	IsGlobal bool   `json:"is_global,omitempty"`
 }
 
 // TenantService manages multi-tenant operations

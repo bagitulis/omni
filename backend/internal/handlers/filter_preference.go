@@ -85,13 +85,13 @@ func (h *FilterPreferenceHandler) Get(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"data": gin.H{
-				"platform":       platform,
-				"tab":            tab,
-				"visibleColumns": []string{},
-				"columnFilters":  map[string]interface{}{},
-				"searchQuery":    "",
-				"lockedColumns":  []string{},
-				"items":          []interface{}{},
+				"platform":        platform,
+				"tab":             tab,
+				"visible_columns": []string{},
+				"column_filters":  map[string]interface{}{},
+				"search_query":    "",
+				"locked_columns":  []string{},
+				"items":           []interface{}{},
 			},
 			"pagination": gin.H{
 				"total":   0,
@@ -132,13 +132,13 @@ func (h *FilterPreferenceHandler) Get(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"platform":       platform,
-			"tab":            tab,
-			"visibleColumns": visibleColumns,
-			"columnFilters":  columnFilters,
-			"searchQuery":    pref.SearchQuery,
-			"lockedColumns":  lockedColumns,
-			"items":          []interface{}{},
+			"platform":        platform,
+			"tab":             tab,
+			"visible_columns": visibleColumns,
+			"column_filters":  columnFilters,
+			"search_query":    pref.SearchQuery,
+			"locked_columns":  lockedColumns,
+			"items":           []interface{}{},
 		},
 		"pagination": gin.H{
 			"total":   0,
@@ -154,11 +154,11 @@ type SaveFilterPreferenceRequest struct {
 	Platform       string                 `json:"platform" binding:"required"`
 	Page           string                 `json:"page"` // new parameter
 	Tab            string                 `json:"tab"`  // legacy parameter
-	VisibleColumns []string               `json:"visibleColumns"`
-	ColumnFilters  map[string]interface{} `json:"columnFilters"`
+	VisibleColumns []string               `json:"visible_columns"`
+	ColumnFilters  map[string]interface{} `json:"column_filters"`
 	Filters        map[string]interface{} `json:"filters"` // legacy parameter
-	SearchQuery    string                 `json:"searchQuery"`
-	LockedColumns  []string               `json:"lockedColumns"`
+	SearchQuery    string                 `json:"search_query"`
+	LockedColumns  []string               `json:"locked_columns"`
 }
 
 // Save handles POST /api/filter-preferences

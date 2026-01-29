@@ -23,11 +23,11 @@ func NewProductComplianceHandler(basePath string) *ProductComplianceHandler {
 
 // ComplianceStatus represents product compliance status
 type ComplianceStatus struct {
-	ProductID         string            `json:"productId"`
-	Status            string            `json:"status"`
+	ProductID         string                `json:"product_id"`
+	Status            string                `json:"status"`
 	Violations        []ComplianceViolation `json:"violations,omitempty"`
-	LastCheckedAt     int64             `json:"lastCheckedAt"`
-	RecommendedAction string            `json:"recommendedAction,omitempty"`
+	LastCheckedAt     int64                 `json:"last_checked_at"`
+	RecommendedAction string                `json:"recommended_action,omitempty"`
 }
 
 // ComplianceViolation represents a compliance violation
@@ -65,7 +65,7 @@ func (h *ProductComplianceHandler) GetCompliance(c *gin.Context) {
 
 // UpdateComplianceRequest represents compliance update request
 type UpdateComplianceRequest struct {
-	Action string `json:"action" binding:"required"`
+	Action string                 `json:"action" binding:"required"`
 	Fields map[string]interface{} `json:"fields,omitempty"`
 }
 
@@ -99,11 +99,11 @@ func (h *ProductComplianceHandler) UpdateCompliance(c *gin.Context) {
 
 // GlobalProduct represents a global product
 type GlobalProduct struct {
-	GlobalProductID string   `json:"globalProductId"`
+	GlobalProductID string   `json:"global_product_id"`
 	Title           string   `json:"title"`
 	Status          string   `json:"status"`
 	Markets         []string `json:"markets"`
-	LocalProducts   []string `json:"localProducts,omitempty"`
+	LocalProducts   []string `json:"local_products,omitempty"`
 }
 
 // GetGlobalProducts handles GET /api/tiktok/products/global-products
@@ -143,7 +143,7 @@ func (h *ProductComplianceHandler) GetGlobalProducts(c *gin.Context) {
 
 // PublishGlobalRequest represents global publish request
 type PublishGlobalRequest struct {
-	ProductID string   `json:"productId" binding:"required"`
+	ProductID string   `json:"product_id" binding:"required"`
 	Markets   []string `json:"markets" binding:"required"`
 }
 

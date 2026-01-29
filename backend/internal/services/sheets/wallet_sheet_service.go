@@ -10,22 +10,22 @@ import (
 // WalletTransaction represents a wallet/escrow transaction
 type WalletTransaction struct {
 	ID              uint      `gorm:"primaryKey" json:"id"`
-	TenantID        string    `gorm:"index;not null" json:"tenantId"`
+	TenantID        string    `gorm:"index;not null" json:"tenant_id"`
 	Platform        string    `gorm:"index;not null" json:"platform"`
-	TransactionID   string    `gorm:"index" json:"transactionId"`
-	OrderSN         string    `gorm:"index" json:"orderSn,omitempty"`
-	TransactionType string    `json:"transactionType"` // escrow_release, withdrawal, fee, etc.
+	TransactionID   string    `gorm:"index" json:"transaction_id"`
+	OrderSN         string    `gorm:"index" json:"order_sn,omitempty"`
+	TransactionType string    `json:"transaction_type"` // escrow_release, withdrawal, fee, etc.
 	Amount          float64   `json:"amount"`
 	Fee             float64   `json:"fee"`
-	NetAmount       float64   `json:"netAmount"`
+	NetAmount       float64   `json:"net_amount"`
 	Currency        string    `json:"currency"`
 	Status          string    `json:"status"`
 	Description     string    `json:"description,omitempty"`
-	TransactionDate time.Time `json:"transactionDate"`
+	TransactionDate time.Time `json:"transaction_date"`
 	Source          string    `json:"source"` // api, sheet
-	SheetConfigID   uint      `json:"sheetConfigId,omitempty"`
-	CreatedAt       time.Time `json:"createdAt"`
-	UpdatedAt       time.Time `json:"updatedAt"`
+	SheetConfigID   uint      `json:"sheet_config_id,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 // TableName returns the table name for GORM
@@ -35,16 +35,16 @@ func (WalletTransaction) TableName() string {
 
 // WalletBalance represents current wallet balance
 type WalletBalance struct {
-	ID             uint      `gorm:"primaryKey" json:"id"`
-	TenantID       string    `gorm:"index;not null" json:"tenantId"`
-	Platform       string    `gorm:"index;not null" json:"platform"`
-	AvailableBalance float64 `json:"availableBalance"`
-	PendingBalance   float64 `json:"pendingBalance"`
-	TotalBalance     float64 `json:"totalBalance"`
-	Currency       string    `json:"currency"`
-	LastUpdated    time.Time `json:"lastUpdated"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+	ID               uint      `gorm:"primaryKey" json:"id"`
+	TenantID         string    `gorm:"index;not null" json:"tenant_id"`
+	Platform         string    `gorm:"index;not null" json:"platform"`
+	AvailableBalance float64   `json:"available_balance"`
+	PendingBalance   float64   `json:"pending_balance"`
+	TotalBalance     float64   `json:"total_balance"`
+	Currency         string    `json:"currency"`
+	LastUpdated      time.Time `json:"last_updated"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
 }
 
 // TableName returns the table name for GORM
@@ -54,9 +54,9 @@ func (WalletBalance) TableName() string {
 
 // WalletSummary represents wallet summary across platforms
 type WalletSummary struct {
-	TotalAvailable float64                     `json:"totalAvailable"`
-	TotalPending   float64                     `json:"totalPending"`
-	ByPlatform     map[string]*WalletBalance   `json:"byPlatform"`
+	TotalAvailable float64                   `json:"total_available"`
+	TotalPending   float64                   `json:"total_pending"`
+	ByPlatform     map[string]*WalletBalance `json:"by_platform"`
 }
 
 // WalletSheetService handles wallet/escrow sheet operations

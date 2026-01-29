@@ -124,8 +124,8 @@ func (s *AnalyticsService) GetEscrowSyncStatus(ctx context.Context, tenantID str
 type EscrowSyncStatus struct {
 	Month      int                      `json:"month"`
 	Year       int                      `json:"year"`
-	ShopeeSync *models.ShopeeEscrowSync `json:"shopeeSync"`
-	TiktokSync *models.TiktokEscrowSync `json:"tiktokSync"`
+	ShopeeSync *models.ShopeeEscrowSync `json:"shopee_sync"`
+	TiktokSync *models.TiktokEscrowSync `json:"tiktok_sync"`
 }
 
 // UpdateShopeeEscrowSync updates Shopee escrow sync status

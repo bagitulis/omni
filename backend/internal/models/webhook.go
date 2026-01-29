@@ -6,15 +6,15 @@ import "time"
 // Matches Prisma schema: WebhookLog
 type WebhookLog struct {
 	ID          string     `gorm:"primaryKey" json:"id"`
-	TenantID    string     `gorm:"index" json:"tenantId,omitempty"`
+	TenantID    string     `gorm:"index" json:"tenant_id,omitempty"`
 	Platform    string     `gorm:"index;not null" json:"platform"`
-	EventType   string     `gorm:"index;not null" json:"eventType"`
+	EventType   string     `gorm:"index;not null" json:"event_type"`
 	Payload     string     `json:"payload"`           // JSON string
 	Headers     string     `json:"headers,omitempty"` // JSON string
 	Status      string     `gorm:"default:received;index" json:"status"`
-	ErrorMsg    string     `json:"errorMsg,omitempty"`
-	ProcessedAt *time.Time `json:"processedAt,omitempty"`
-	CreatedAt   time.Time  `gorm:"index" json:"createdAt"`
+	ErrorMsg    string     `json:"error_msg,omitempty"`
+	ProcessedAt *time.Time `json:"processed_at,omitempty"`
+	CreatedAt   time.Time  `gorm:"index" json:"created_at"`
 }
 
 // TableName specifies the table name for GORM
@@ -26,19 +26,19 @@ func (WebhookLog) TableName() string {
 // Matches Prisma schema: WebhookOrderEvent
 type WebhookOrderEvent struct {
 	ID                int        `gorm:"primaryKey;autoIncrement" json:"id"`
-	TenantID          string     `gorm:"index;not null" json:"tenantId"`
+	TenantID          string     `gorm:"index;not null" json:"tenant_id"`
 	Platform          string     `gorm:"index;not null" json:"platform"`
-	EventType         string     `gorm:"index;not null" json:"eventType"`
-	OrderSN           string     `gorm:"index;not null" json:"orderSn"`
-	ShopID            string     `json:"shopId,omitempty"`
-	OldStatus         string     `json:"oldStatus,omitempty"`
-	NewStatus         string     `json:"newStatus,omitempty"`
-	FulfillmentStatus string     `json:"fulfillmentStatus,omitempty"`
-	PackageNumber     string     `json:"packageNumber,omitempty"`
+	EventType         string     `gorm:"index;not null" json:"event_type"`
+	OrderSN           string     `gorm:"index;not null" json:"order_sn"`
+	ShopID            string     `json:"shop_id,omitempty"`
+	OldStatus         string     `json:"old_status,omitempty"`
+	NewStatus         string     `json:"new_status,omitempty"`
+	FulfillmentStatus string     `json:"fulfillment_status,omitempty"`
+	PackageNumber     string     `json:"package_number,omitempty"`
 	Payload           string     `json:"payload,omitempty"` // JSON string
-	WebhookLogID      string     `json:"webhookLogId,omitempty"`
-	ProcessedAt       *time.Time `json:"processedAt,omitempty"`
-	CreatedAt         time.Time  `gorm:"index" json:"createdAt"`
+	WebhookLogID      string     `json:"webhook_log_id,omitempty"`
+	ProcessedAt       *time.Time `json:"processed_at,omitempty"`
+	CreatedAt         time.Time  `gorm:"index" json:"created_at"`
 }
 
 // TableName specifies the table name for GORM
@@ -50,15 +50,15 @@ func (WebhookOrderEvent) TableName() string {
 // Matches Prisma schema: WebhookProductEvent
 type WebhookProductEvent struct {
 	ID          int        `gorm:"primaryKey;autoIncrement" json:"id"`
-	TenantID    string     `gorm:"index;not null" json:"tenantId"`
-	EventType   string     `gorm:"index;not null" json:"eventType"`
-	ShopID      string     `json:"shopId,omitempty"`
-	ItemID      string     `gorm:"index" json:"itemId,omitempty"`
-	VariationID string     `json:"variationId,omitempty"`
+	TenantID    string     `gorm:"index;not null" json:"tenant_id"`
+	EventType   string     `gorm:"index;not null" json:"event_type"`
+	ShopID      string     `json:"shop_id,omitempty"`
+	ItemID      string     `gorm:"index" json:"item_id,omitempty"`
+	VariationID string     `json:"variation_id,omitempty"`
 	Action      string     `json:"action,omitempty"`
 	Payload     string     `json:"payload,omitempty"`
-	ProcessedAt *time.Time `json:"processedAt,omitempty"`
-	CreatedAt   time.Time  `json:"createdAt"`
+	ProcessedAt *time.Time `json:"processed_at,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
 }
 
 // TableName specifies the table name for GORM
@@ -70,16 +70,16 @@ func (WebhookProductEvent) TableName() string {
 // Matches Prisma schema: WebhookReturnEvent
 type WebhookReturnEvent struct {
 	ID          int        `gorm:"primaryKey;autoIncrement" json:"id"`
-	TenantID    string     `gorm:"index;not null" json:"tenantId"`
-	EventType   string     `gorm:"index;not null" json:"eventType"`
-	ShopID      string     `json:"shopId,omitempty"`
-	OrderSN     string     `gorm:"index" json:"orderSn,omitempty"`
-	ReturnSN    string     `gorm:"index" json:"returnSn,omitempty"`
+	TenantID    string     `gorm:"index;not null" json:"tenant_id"`
+	EventType   string     `gorm:"index;not null" json:"event_type"`
+	ShopID      string     `json:"shop_id,omitempty"`
+	OrderSN     string     `gorm:"index" json:"order_sn,omitempty"`
+	ReturnSN    string     `gorm:"index" json:"return_sn,omitempty"`
 	Status      string     `json:"status,omitempty"`
 	Reason      string     `json:"reason,omitempty"`
 	Payload     string     `json:"payload,omitempty"`
-	ProcessedAt *time.Time `json:"processedAt,omitempty"`
-	CreatedAt   time.Time  `json:"createdAt"`
+	ProcessedAt *time.Time `json:"processed_at,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
 }
 
 // TableName specifies the table name for GORM
@@ -91,16 +91,16 @@ func (WebhookReturnEvent) TableName() string {
 // Matches Prisma schema: WebhookMarketingEvent
 type WebhookMarketingEvent struct {
 	ID            int        `gorm:"primaryKey;autoIncrement" json:"id"`
-	TenantID      string     `gorm:"index;not null" json:"tenantId"`
-	EventType     string     `gorm:"index;not null" json:"eventType"`
-	ShopID        string     `json:"shopId,omitempty"`
-	ItemID        string     `json:"itemId,omitempty"`
-	PromotionID   string     `gorm:"index" json:"promotionId,omitempty"`
-	PromotionType string     `json:"promotionType,omitempty"`
+	TenantID      string     `gorm:"index;not null" json:"tenant_id"`
+	EventType     string     `gorm:"index;not null" json:"event_type"`
+	ShopID        string     `json:"shop_id,omitempty"`
+	ItemID        string     `json:"item_id,omitempty"`
+	PromotionID   string     `gorm:"index" json:"promotion_id,omitempty"`
+	PromotionType string     `json:"promotion_type,omitempty"`
 	Action        string     `json:"action,omitempty"`
 	Payload       string     `json:"payload,omitempty"`
-	ProcessedAt   *time.Time `json:"processedAt,omitempty"`
-	CreatedAt     time.Time  `json:"createdAt"`
+	ProcessedAt   *time.Time `json:"processed_at,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
 }
 
 func (WebhookMarketingEvent) TableName() string {
@@ -111,15 +111,15 @@ func (WebhookMarketingEvent) TableName() string {
 // Matches Prisma schema: WebhookShopeeEvent
 type WebhookShopeeEvent struct {
 	ID            int        `gorm:"primaryKey;autoIncrement" json:"id"`
-	TenantID      string     `gorm:"index;not null" json:"tenantId"`
-	EventType     string     `gorm:"index;not null" json:"eventType"`
-	ShopID        string     `gorm:"index" json:"shopId,omitempty"`
+	TenantID      string     `gorm:"index;not null" json:"tenant_id"`
+	EventType     string     `gorm:"index;not null" json:"event_type"`
+	ShopID        string     `gorm:"index" json:"shop_id,omitempty"`
 	Action        string     `json:"action,omitempty"`
-	ExpiryTime    *time.Time `json:"expiryTime,omitempty"`
-	PenaltyPoints *int       `json:"penaltyPoints,omitempty"`
+	ExpiryTime    *time.Time `json:"expiry_time,omitempty"`
+	PenaltyPoints *int       `json:"penalty_points,omitempty"`
 	Payload       string     `json:"payload,omitempty"`
-	ProcessedAt   *time.Time `json:"processedAt,omitempty"`
-	CreatedAt     time.Time  `json:"createdAt"`
+	ProcessedAt   *time.Time `json:"processed_at,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
 }
 
 func (WebhookShopeeEvent) TableName() string {
@@ -130,15 +130,15 @@ func (WebhookShopeeEvent) TableName() string {
 // Matches Prisma schema: WebhookWebchatEvent
 type WebhookWebchatEvent struct {
 	ID             int        `gorm:"primaryKey;autoIncrement" json:"id"`
-	TenantID       string     `gorm:"index;not null" json:"tenantId"`
-	EventType      string     `gorm:"index;not null" json:"eventType"`
-	ShopID         string     `json:"shopId,omitempty"`
-	ConversationID string     `gorm:"index" json:"conversationId,omitempty"`
-	MessageType    string     `json:"messageType,omitempty"`
-	SenderID       string     `json:"senderId,omitempty"`
+	TenantID       string     `gorm:"index;not null" json:"tenant_id"`
+	EventType      string     `gorm:"index;not null" json:"event_type"`
+	ShopID         string     `json:"shop_id,omitempty"`
+	ConversationID string     `gorm:"index" json:"conversation_id,omitempty"`
+	MessageType    string     `json:"message_type,omitempty"`
+	SenderID       string     `json:"sender_id,omitempty"`
 	Payload        string     `json:"payload,omitempty"`
-	ProcessedAt    *time.Time `json:"processedAt,omitempty"`
-	CreatedAt      time.Time  `json:"createdAt"`
+	ProcessedAt    *time.Time `json:"processed_at,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
 }
 
 func (WebhookWebchatEvent) TableName() string {
@@ -149,16 +149,16 @@ func (WebhookWebchatEvent) TableName() string {
 // Matches Prisma schema: WebhookFBSEvent
 type WebhookFBSEvent struct {
 	ID            int        `gorm:"primaryKey;autoIncrement" json:"id"`
-	TenantID      string     `gorm:"index;not null" json:"tenantId"`
-	EventType     string     `gorm:"index;not null" json:"eventType"`
-	ShopID        string     `json:"shopId,omitempty"`
-	ItemID        string     `gorm:"index" json:"itemId,omitempty"`
-	SkuID         string     `json:"skuId,omitempty"`
-	StockChange   *int       `json:"stockChange,omitempty"`
-	InvoiceNumber string     `json:"invoiceNumber,omitempty"`
+	TenantID      string     `gorm:"index;not null" json:"tenant_id"`
+	EventType     string     `gorm:"index;not null" json:"event_type"`
+	ShopID        string     `json:"shop_id,omitempty"`
+	ItemID        string     `gorm:"index" json:"item_id,omitempty"`
+	SkuID         string     `json:"sku_id,omitempty"`
+	StockChange   *int       `json:"stock_change,omitempty"`
+	InvoiceNumber string     `json:"invoice_number,omitempty"`
 	Payload       string     `json:"payload,omitempty"`
-	ProcessedAt   *time.Time `json:"processedAt,omitempty"`
-	CreatedAt     time.Time  `json:"createdAt"`
+	ProcessedAt   *time.Time `json:"processed_at,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
 }
 
 func (WebhookFBSEvent) TableName() string {

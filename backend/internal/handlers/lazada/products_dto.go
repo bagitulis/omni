@@ -6,8 +6,8 @@ type CreateProductRequest struct {
 	Name            string  `json:"name" binding:"required"`
 	Description     string  `json:"description" binding:"required"`
 	Brand           string  `json:"brand,omitempty"`
-	PrimaryCategory int64   `json:"primaryCategory" binding:"required"`
-	SellerSku       string  `json:"sellerSku" binding:"required"`
+	PrimaryCategory int64   `json:"primary_category" binding:"required"`
+	SellerSku       string  `json:"seller_sku" binding:"required"`
 	Price           float64 `json:"price" binding:"required"`
 	Quantity        int     `json:"quantity" binding:"required"`
 }
