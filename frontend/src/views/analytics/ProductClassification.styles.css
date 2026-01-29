@@ -1,0 +1,292 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  background: #f3f4f6;
+}
+
+.classification-page {
+  padding: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.header-left h1 {
+  margin: 0;
+  font-size: 28px;
+  color: #1f2937;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.btn-refresh {
+  padding: 10px 20px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Summary Cards */
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.summary-card {
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.summary-card .count {
+  display: block;
+  font-size: 36px;
+  font-weight: 700;
+}
+
+.summary-card .label {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.summary-card.scale-up {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: white;
+}
+
+.summary-card.maintain {
+  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+  color: white;
+}
+
+.summary-card.reduce {
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  color: white;
+}
+
+.summary-card.stop {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  color: white;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: white;
+  padding: 8px;
+  border-radius: 12px;
+}
+
+.tab {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab:hover {
+  background: #f3f4f6;
+}
+
+.tab.active {
+  background: #3b82f6;
+  color: white;
+}
+
+.tab-count {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.tab.active .tab-count {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* States */
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 60px;
+  background: white;
+  border-radius: 12px;
+  color: #6b7280;
+}
+
+/* Products Grid */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.product-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  color: white;
+}
+
+.card-header.scale_up {
+  background: #059669;
+}
+.card-header.maintain {
+  background: #3b82f6;
+}
+.card-header.reduce {
+  background: #f59e0b;
+}
+.card-header.stop {
+  background: #dc2626;
+}
+
+.action-badge,
+.source-badge {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.card-body {
+  padding: 16px;
+}
+
+.card-body h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  color: #1f2937;
+}
+
+.metrics {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.metric {
+  flex: 1;
+}
+
+.metric .label {
+  display: block;
+  font-size: 11px;
+  color: #9ca3af;
+  text-transform: uppercase;
+}
+
+.metric .value {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.metric .value.cost {
+  color: #dc2626;
+}
+.metric .value.revenue {
+  color: #059669;
+}
+.metric .value.roas {
+  color: #3b82f6;
+}
+
+.status-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.trend,
+.confidence {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.trend.up {
+  background: #d1fae5;
+  color: #059669;
+}
+.trend.stable,
+.trend.stagnant {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+.trend.down {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.confidence {
+  background: #dbeafe;
+  color: #3b82f6;
+}
+
+.action-label {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .tabs {
+    flex-wrap: wrap;
+  }
+  .tab {
+    flex: none;
+    width: calc(50% - 4px);
+  }
+}

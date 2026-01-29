@@ -18,6 +18,8 @@ services:
           memory: 512M
 
   frontend:
+    ports:
+      - "80:80"
     environment:
       - NODE_OPTIONS=--max-old-space-size=384
     deploy:

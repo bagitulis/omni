@@ -131,3 +131,66 @@ func RegisterMLAnalyticsRoutes(router *gin.RouterGroup) {
 		ml.GET("/distribution", handler.GetScoreDistribution)
 	}
 }
+
+// RegisterSimulationRoutes registers budget simulation routes
+// Maps to /api/analytics/simulation/* and /api/analytics/products/*
+func RegisterSimulationRoutes(router *gin.RouterGroup, basePath string) {
+	handler := analytics.NewSimulationHandler(basePath)
+
+	// Simulation routes
+	sim := router.Group("/analytics/simulation")
+	sim.Use(middleware.Auth())
+	sim.Use(middleware.Tenant())
+	{
+		sim.POST("/calculate", handler.Simulate)
+	}
+
+	// Products from ads routes
+	products := router.Group("/analytics/products")
+	products.Use(middleware.Auth())
+	products.Use(middleware.Tenant())
+	{
+		products.GET("/from-ads", handler.GetProductsFromAds)
+	}
+
+	// Intelligence routes
+	intel := router.Group("/analytics/intelligence")
+	intel.Use(middleware.Auth())
+	intel.Use(middleware.Tenant())
+	{
+		intel.GET("/calendar", handler.GetCalendarEvents)
+	}
+}
+
+// RegisterUnifiedAnalyticsRoutes registers unified analytics routes
+// Maps to /api/analytics/unified/* and /api/analytics/cache/*
+func RegisterUnifiedAnalyticsRoutes(router *gin.RouterGroup, basePath string) {
+	handler := analytics.NewUnifiedHandler(basePath)
+
+	// Unified summary routes
+	unified := router.Group("/analytics/unified")
+	unified.Use(middleware.Auth())
+	unified.Use(middleware.Tenant())
+	{
+		unified.GET("/summary", handler.GetUnifiedSummary)
+		unified.GET("/kpi", handler.GetUnifiedKPI)
+	}
+
+	// Product classification routes
+	products := router.Group("/analytics/products")
+	products.Use(middleware.Auth())
+	products.Use(middleware.Tenant())
+	{
+		products.GET("/classified", handler.GetClassifiedProducts)
+		products.GET("/top", handler.GetTopProducts)
+	}
+
+	// Cache management routes
+	cache := router.Group("/analytics/cache")
+	cache.Use(middleware.Auth())
+	cache.Use(middleware.Tenant())
+	{
+		cache.POST("/refresh", handler.RefreshCache)
+		cache.GET("/status", handler.GetCacheStatus)
+	}
+}

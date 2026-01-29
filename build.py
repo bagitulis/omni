@@ -33,10 +33,13 @@ def interactive_menu():
         ("Smart build (recommended)", ["smart"]),
         ("Quick restart (no rebuild)", ["quick"]),
         ("Full rebuild (no cache)", ["full"]),
+        ("Full rebuild + DB restore (for new PC)", ["full", "--restore"]),
+        ("Smart build + DB restore", ["smart", "--restore"]),
+        ("Backup database", ["backup"]),
+        ("Restore database only", ["restore"]),
         ("Validate only (no build)", ["validate"]),
         ("Clean Docker resources", ["clean"]),
         ("Show container status", ["status"]),
-        ("Smart build - DRY RUN", ["smart", "--dry-run"]),
         ("Keluar / Batal", None),
     ]
 
@@ -52,13 +55,13 @@ def interactive_menu():
 
     while True:
         try:
-            choice = input("Pilih menu [1-8]: ").strip()
+            choice = input("Pilih menu [1-11]: ").strip()
         except (EOFError, KeyboardInterrupt):
             print("\nBatal.")
             sys.exit(0)
 
         if not choice.isdigit():
-            print("Input tidak valid, masukkan angka 1-8.")
+            print("Input tidak valid, masukkan angka 1-11.")
             continue
 
         idx = int(choice)
@@ -203,9 +206,13 @@ def run_build():
             filtered_argv = [arg for arg in sys.argv[1:] if not arg.startswith('--dry-run') and not arg.startswith('--validate-only')]
             sys.argv = ['build.py'] + filtered_argv
             
-            # Run CLI
-            cli()
-            return 0
+            # Run CLI - catch SystemExit to allow returning to menu
+            try:
+                cli()
+                return 0
+            except SystemExit as e:
+                # CLI called sys.exit(), capture the exit code
+                return e.code if e.code is not None else 0
 
     except ImportError as e:
         print()
@@ -275,6 +282,17 @@ if __name__ == "__main__":
         # Run with menu loop
         run_with_menu_loop()
     else:
-        # Direct command mode - run once
+        # Direct command mode - run once but still wait before exit
         exit_code = run_build()
-        sys.exit(exit_code)
+        print()
+        print("=" * 60)
+        try:
+            choice = input("Press Enter to exit, or 'm' to go to menu: ").strip().lower()
+            if choice == 'm':
+                # User wants to go to menu
+                run_with_menu_loop()
+            else:
+                sys.exit(exit_code)
+        except (EOFError, KeyboardInterrupt):
+            print("\nGoodbye!")
+            sys.exit(exit_code)

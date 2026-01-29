@@ -95,6 +95,7 @@ pw = password123
 
 **Aturan teknis penting**
 
+- Pastikan tidak ada FALSE POSITIF pada testing AI.
 - Alias : Tidak memakai ALIAS. Wajib perbaiki jika ada.
 - Multi-tenant: tidak ada default tenant; semua akses DB harus pakai `context.Context` dan tenant_id wajib ada.
 - Nama: kolom DB snake_case, JSON response snake_case, field Go PascalCase; mapping TableName wajib mengikuti `table_naming.go`.

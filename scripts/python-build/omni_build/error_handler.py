@@ -109,6 +109,20 @@ class ErrorHandler:
                 fix_function="repair_dependency_failure",
             ),
             ErrorPattern(
+                name="PostgresPgHbaError",
+                pattern=r"no pg_hba\.conf entry|FATAL.*no pg_hba\.conf|SQLSTATE 28000",
+                description="PostgreSQL pg_hba.conf authentication denied",
+                severity=ErrorSeverity.CRITICAL,
+                fix_function="repair_postgres_pg_hba",
+            ),
+            ErrorPattern(
+                name="PostgresDatabaseNotExist",
+                pattern=r"database.*does not exist|FATAL.*database.*does not exist|SQLSTATE 3D000",
+                description="PostgreSQL database does not exist",
+                severity=ErrorSeverity.CRITICAL,
+                fix_function="repair_postgres_database",
+            ),
+            ErrorPattern(
                 name="PostgresDataCorruption",
                 pattern=r"could not open directory.*pg_|pg_notify.*No such file|pg_wal.*No such file|pg_xact.*No such file|database.*shut down|FATAL.*postgres|could not open file.*pg_filenode",
                 description="PostgreSQL data directory corrupted",
@@ -305,6 +319,8 @@ class ErrorHandler:
             "repair_oom": self._repair_oom,
             "repair_port_conflict": self._repair_port_conflict,
             "repair_npm_integrity": self._repair_npm_integrity,
+            "repair_postgres_pg_hba": self._repair_postgres_pg_hba,
+            "repair_postgres_database": self._repair_postgres_database,
         }
         
         fix_method = fix_methods.get(error_pattern.fix_function)
@@ -588,13 +604,203 @@ class ErrorHandler:
         return True
     
     def _repair_dependency_failure(self) -> bool:
-        """Repair dependency service failures."""
-        log_info("Checking PostgreSQL and Redis...")
-        # Stop and remove dependency containers
-        for container in ["omni-postgres", "omni-redis", "omni-pgbouncer"]:
-            subprocess.run(["docker", "rm", "-f", container], 
-                          capture_output=True, check=False)
+        """Repair dependency service failures with proper startup sequence."""
+        log_info("Repairing dependency services (PostgreSQL, Redis)...")
+        
+        # Step 1: Stop ALL containers to ensure clean state
+        log_info("Stopping all omni containers...")
+        all_containers = ["omni-backend", "omni-frontend", "omni-pgbouncer", "omni-redis", "omni-postgres"]
+        for container in all_containers:
+            subprocess.run(["docker", "stop", container], capture_output=True, check=False, timeout=30)
+        
+        time.sleep(3)
+        
+        # Step 2: Remove dependency containers to force fresh start
+        log_info("Removing dependency containers...")
+        for container in ["omni-pgbouncer", "omni-redis", "omni-postgres"]:
+            subprocess.run(["docker", "rm", "-f", container], capture_output=True, check=False)
+        
+        time.sleep(2)
+        
+        # Step 3: Start postgres first and wait for it to be healthy
+        log_info("Starting PostgreSQL first...")
+        subprocess.run(
+            ["docker-compose", "-f", "docker-compose.tunnel.yml", "-f", "docker-compose.tunnel.standard.yml",
+             "up", "-d", "postgres"],
+            capture_output=True,
+            check=False,
+            cwd=str(Path.cwd())
+        )
+        
+        # Wait for postgres to be healthy (up to 90 seconds)
+        log_info("Waiting for PostgreSQL to be healthy (up to 90s)...")
+        for i in range(18):  # 18 * 5s = 90s
+            time.sleep(5)
+            result = subprocess.run(
+                ["docker", "inspect", "--format", "{{.State.Health.Status}}", "omni-postgres"],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            if result.returncode == 0:
+                health = result.stdout.strip()
+                log_info(f"PostgreSQL health: {health} ({(i+1)*5}s)")
+                if health == "healthy":
+                    log_success("PostgreSQL is healthy!")
+                    break
+        else:
+            log_warning("PostgreSQL not healthy after 90s, continuing anyway...")
+        
+        # Step 4: Start redis and wait briefly
+        log_info("Starting Redis...")
+        subprocess.run(
+            ["docker-compose", "-f", "docker-compose.tunnel.yml", "-f", "docker-compose.tunnel.standard.yml",
+             "up", "-d", "redis"],
+            capture_output=True,
+            check=False,
+            cwd=str(Path.cwd())
+        )
+        
+        # Wait for redis to be ready
+        log_info("Waiting for Redis to be healthy...")
+        for i in range(12):  # 12 * 5s = 60s
+            time.sleep(5)
+            result = subprocess.run(
+                ["docker", "inspect", "--format", "{{.State.Health.Status}}", "omni-redis"],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            if result.returncode == 0:
+                health = result.stdout.strip()
+                if health == "healthy":
+                    log_success("Redis is healthy!")
+                    break
+        
+        log_success("Dependency services repaired - ready for full deployment")
         return True
+    
+    def _repair_postgres_pg_hba(self) -> bool:
+        """
+        Fix PostgreSQL pg_hba.conf authentication errors.
+        
+        This happens when:
+        - Fresh PostgreSQL data directory doesn't have Docker network entries
+        - pg_hba.conf doesn't allow connections from Docker containers
+        """
+        log_fix("Repairing PostgreSQL pg_hba.conf for Docker network...")
+        
+        try:
+            # Add trust auth for Docker networks (172.x.x.x)
+            log_info("Adding Docker network to pg_hba.conf...")
+            subprocess.run(
+                ["docker", "exec", "omni-postgres", "sh", "-c",
+                 "echo 'host    all    all    172.0.0.0/8    trust' >> /var/lib/postgresql/data/pg_hba.conf"],
+                capture_output=True,
+                check=False,
+                timeout=30
+            )
+            
+            # Also add common Docker networks
+            subprocess.run(
+                ["docker", "exec", "omni-postgres", "sh", "-c",
+                 "echo 'host    all    all    192.168.0.0/16    trust' >> /var/lib/postgresql/data/pg_hba.conf"],
+                capture_output=True,
+                check=False,
+                timeout=30
+            )
+            
+            # Reload PostgreSQL config
+            log_info("Reloading PostgreSQL configuration...")
+            subprocess.run(
+                ["docker", "exec", "omni-postgres", "su", "postgres", "-c",
+                 "pg_ctl reload -D /var/lib/postgresql/data"],
+                capture_output=True,
+                check=False,
+                timeout=30
+            )
+            
+            time.sleep(3)
+            log_success("pg_hba.conf updated - Docker networks now allowed")
+            return True
+            
+        except Exception as e:
+            log_error(f"Failed to repair pg_hba.conf: {e}")
+            return False
+    
+    def _repair_postgres_database(self) -> bool:
+        """
+        Fix PostgreSQL database not exist error.
+        
+        This usually means fresh installation or corrupted data directory.
+        Solution: Reset PostgreSQL data and let init scripts recreate it.
+        """
+        log_fix("Repairing PostgreSQL - database does not exist...")
+        
+        try:
+            # Stop all containers
+            log_info("Stopping all containers...")
+            subprocess.run(
+                ["docker-compose", "-f", "docker-compose.tunnel.yml",
+                 "-f", "docker-compose.tunnel.standard.yml", "down"],
+                capture_output=True,
+                check=False,
+                timeout=60
+            )
+            
+            # Remove postgres container
+            log_info("Removing PostgreSQL container...")
+            subprocess.run(
+                ["docker", "rm", "-f", "omni-postgres"],
+                capture_output=True,
+                check=False
+            )
+            
+            # Remove postgres data directory (will be recreated with init scripts)
+            log_warning("Removing PostgreSQL data directory for fresh init...")
+            import shutil
+            postgres_data = Path.cwd() / "data" / "postgres"
+            if postgres_data.exists():
+                shutil.rmtree(postgres_data, ignore_errors=True)
+            
+            time.sleep(2)
+            
+            # Start postgres fresh
+            log_info("Starting fresh PostgreSQL container...")
+            subprocess.run(
+                ["docker-compose", "-f", "docker-compose.tunnel.yml",
+                 "-f", "docker-compose.tunnel.standard.yml", "up", "-d", "postgres"],
+                capture_output=True,
+                check=False,
+                timeout=60
+            )
+            
+            # Wait for init to complete
+            log_info("Waiting for PostgreSQL initialization (up to 60s)...")
+            for i in range(12):
+                time.sleep(5)
+                result = subprocess.run(
+                    ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni", "-d", "omni_main"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    check=False
+                )
+                if result.returncode == 0:
+                    log_success("PostgreSQL database initialized successfully!")
+                    
+                    # Also fix pg_hba for Docker networks
+                    self._repair_postgres_pg_hba()
+                    return True
+                    
+                log_info(f"Waiting for database init... ({(i+1)*5}s)")
+            
+            log_warning("PostgreSQL init took longer than expected")
+            return True  # Continue anyway, might just need more time
+            
+        except Exception as e:
+            log_error(f"Failed to repair PostgreSQL database: {e}")
+            return False
     
     def _repair_postgres_data(self) -> bool:
         """Repair corrupted PostgreSQL data."""

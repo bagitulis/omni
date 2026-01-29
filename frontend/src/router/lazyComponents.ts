@@ -40,11 +40,25 @@ export const TiktokAdsAnalytics = () =>
   );
 export const AIReportGallery = () =>
   import(
-    /* webpackChunkName: "ai-report-gallery" */ "../views/analytics/AIReportGallery.vue"
+    /* webpackChunkName: "ai-report-gallery" */ "../views/analytics/AIReportGallery/index.vue"
   );
 
 // ML Analytics Dashboard
 export const MLDashboard = () =>
   import(
-    /* webpackChunkName: "ml-dashboard" */ "../views/analytics/MLDashboard.vue"
+    /* webpackChunkName: "ml-dashboard" */ "../views/analytics/MLDashboard/index.vue"
+  );
+
+// New Analytics Views
+export const AnalyticsHub = () =>
+  import(
+    /* webpackChunkName: "analytics-hub" */ "../views/analytics/AnalyticsHub.vue"
+  );
+export const BudgetSimulator = () =>
+  import(
+    /* webpackChunkName: "budget-simulator" */ "../views/analytics/BudgetSimulator.vue"
+  );
+export const ProductClassification = () =>
+  import(
+    /* webpackChunkName: "product-classification" */ "../views/analytics/ProductClassification.vue"
   );

@@ -13,6 +13,8 @@ from rich.console import Console
 from rich.table import Table
 
 from omni_build.config import Config
+from omni_build.database_backup import DatabaseBackup
+from omni_build.database_restorer import DatabaseRestorer
 from omni_build.docker_manager import DockerManager
 from omni_build.error_handler import ErrorHandler
 from omni_build.frontend_builder import FrontendBuilder
@@ -43,12 +45,14 @@ class BuildOrchestrator:
         self.docker_manager = DockerManager(config, self.error_handler)
         self.frontend_builder = FrontendBuilder(config)
         self.health_checker = HealthChecker(config)
+        self.database_restorer = DatabaseRestorer(config)
     
     def execute_build(
         self,
         mode: BuildMode,
         spec: SpecLevel,
         skip_frontend: bool = False,
+        restore_db: bool = False,
     ) -> BuildResult:
         """
         Execute full build process.
@@ -57,6 +61,7 @@ class BuildOrchestrator:
             mode: Build mode (quick/smart/full/validate/clean)
             spec: Specification level (lowspec/standard/highspec)
             skip_frontend: Skip frontend build
+            restore_db: Restore database from backup after containers are up
             
         Returns:
             BuildResult with success status and metrics
@@ -301,6 +306,28 @@ class BuildOrchestrator:
         
         log_success("Containers deployed")
         
+        # ============ DATABASE RESTORE (if requested) ============
+        if restore_db:
+            print(f"\n{'='*60}")
+            print(f"STEP 3: DATABASE RESTORE")
+            print(f"{'='*60}\n")
+            sys.stdout.flush()
+            
+            log_info("Restoring database from backup...")
+            
+            # Wait for PostgreSQL to be ready first
+            if not self.database_restorer.wait_for_postgres(timeout=120):
+                errors.append("PostgreSQL not ready for restore")
+                warnings.append("Database restore skipped - continuing with build")
+            else:
+                success, message = self.database_restorer.restore(force=True)
+                if success:
+                    log_success("Database restored successfully!")
+                else:
+                    warnings.append(f"Database restore warning: {message}")
+                    log_warning(f"Database restore issue: {message}")
+                    log_warning("Continuing with build - database may need manual restore")
+        
         # Health checks - CRITICAL: Must succeed or build fails
         log_info("Running health checks...")
         
@@ -362,7 +389,12 @@ def cli():
     is_flag=True,
     help="Skip frontend build",
 )
-def smart(spec: str, skip_frontend: bool):
+@click.option(
+    "--restore",
+    is_flag=True,
+    help="Restore database from backup after containers are up",
+)
+def smart(spec: str, skip_frontend: bool, restore: bool):
     """
     Smart build (RECOMMENDED) - Cache dependencies, rebuild code.
     
@@ -372,6 +404,7 @@ def smart(spec: str, skip_frontend: bool):
     - Rebuilds frontend code
     - Rebuilds Docker images with cache
     - Deploys containers
+    - Optionally restores database from backup (--restore)
     - Runs health checks
     
     Typical time: 2-3 minutes
@@ -381,10 +414,20 @@ def smart(spec: str, skip_frontend: bool):
     
     spec_level = SpecLevel(spec.lower())
     
+    # Check if restore requested and backup exists
+    if restore:
+        if not orchestrator.database_restorer.has_backup():
+            log_error("No backup found! Cannot restore database.")
+            log_info("Run .\\backups\\db-tools\\backup-smart.ps1 first to create backup.")
+            sys.exit(1)
+        
+        orchestrator.database_restorer.print_backup_status()
+    
     result = orchestrator.execute_build(
         mode=BuildMode.SMART,
         spec=spec_level,
         skip_frontend=skip_frontend,
+        restore_db=restore,
     )
     
     _print_result(result)
@@ -437,7 +480,12 @@ def quick(spec: str):
     is_flag=True,
     help="Skip frontend build",
 )
-def full(spec: str, skip_frontend: bool):
+@click.option(
+    "--restore",
+    is_flag=True,
+    help="Restore database from backup after containers are up",
+)
+def full(spec: str, skip_frontend: bool, restore: bool):
     """
     Full rebuild - Clean build from scratch (no cache).
     
@@ -446,18 +494,30 @@ def full(spec: str, skip_frontend: bool):
     - Rebuilds frontend from scratch
     - Rebuilds Docker images without cache
     - Deploys containers
+    - Optionally restores database from backup (--restore)
     - Runs health checks
     
     Typical time: 5-10 minutes
     
     Use this when you have persistent build issues or need a clean slate.
+    Use --restore when moving to a new PC or need fresh database from backup.
     """
     config = Config.from_env()
     orchestrator = BuildOrchestrator(config)
     
     spec_level = SpecLevel(spec.lower())
     
-    log_warning("Full rebuild will take 5-10 minutes and clear all caches")
+    # Check if restore requested and backup exists
+    if restore:
+        if not orchestrator.database_restorer.has_backup():
+            log_error("No backup found! Cannot restore database.")
+            log_info("Run .\\backups\\db-tools\\backup-smart.ps1 first to create backup.")
+            sys.exit(1)
+        
+        orchestrator.database_restorer.print_backup_status()
+        log_warning("Full rebuild with database restore will take 5-10 minutes")
+    else:
+        log_warning("Full rebuild will take 5-10 minutes and clear all caches")
     
     if not confirm("Continue with full rebuild?"):
         log_info("Cancelled by user")
@@ -467,6 +527,7 @@ def full(spec: str, skip_frontend: bool):
         mode=BuildMode.FULL,
         spec=spec_level,
         skip_frontend=skip_frontend,
+        restore_db=restore,
     )
     
     _print_result(result)
@@ -591,6 +652,103 @@ def status():
         )
     
     console.print(health_table)
+
+
+@cli.command()
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Skip confirmations (for automation)",
+)
+@click.option(
+    "--keep-extra",
+    is_flag=True,
+    help="Keep tables not in backup (default: sync mode - deletes extra tables)",
+)
+def restore(force: bool, keep_extra: bool):
+    """
+    Restore database from backup (standalone command).
+    
+    This command:
+    - Checks if PostgreSQL container is running
+    - Restores database from backups/ directory
+    - Recreates schema structure from backup
+    - Imports all table data
+    
+    By default, this syncs database to match backup exactly.
+    Use --keep-extra to preserve local-only tables.
+    
+    Typical time: 1-5 minutes depending on database size.
+    """
+    config = Config.from_env()
+    restorer = DatabaseRestorer(config)
+    
+    if not restorer.has_backup():
+        log_error("No backup found!")
+        log_info("Run: python build.py backup")
+        sys.exit(1)
+    
+    restorer.print_backup_status()
+    
+    if not force:
+        if not confirm("Continue with database restore?"):
+            log_info("Cancelled by user")
+            sys.exit(0)
+    
+    # Check PostgreSQL
+    if not restorer.check_postgres_running():
+        log_error("PostgreSQL container is not running!")
+        log_info("Start containers first: python build.py quick")
+        sys.exit(1)
+    
+    success, message = restorer.restore(force=True, keep_extra=keep_extra)
+    
+    if success:
+        log_success("Database restore completed!")
+        sys.exit(0)
+    else:
+        log_error(f"Database restore failed: {message}")
+        sys.exit(1)
+
+
+@cli.command()
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Force export all tables (ignore change detection)",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Preview only, don't actually export",
+)
+def backup(force: bool, dry_run: bool):
+    """
+    Backup database (standalone command).
+    
+    This command:
+    - Detects changed tables since last backup
+    - Exports only changed tables (incremental)
+    - Chunks large tables (>50k rows) for efficiency
+    - Saves to backups/ directory
+    
+    Options:
+    - --force: Export all tables regardless of changes
+    - --dry-run: Preview what would be exported without doing it
+    
+    Typical time: 1-10 minutes depending on changes.
+    """
+    config = Config.from_env()
+    backup_handler = DatabaseBackup(config)
+    
+    success, message = backup_handler.backup(force=force, dry_run=dry_run)
+    
+    if success:
+        log_success(f"Backup completed: {message}")
+        sys.exit(0)
+    else:
+        log_error(f"Backup failed: {message}")
+        sys.exit(1)
 
 
 def _print_result(result: BuildResult) -> None:

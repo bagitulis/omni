@@ -598,17 +598,18 @@ class DockerManager:
         compose_files = self.config.get_compose_files(spec)
         log_info(f"Deploying containers (spec: {spec.value})...")
         
-        # Build docker-compose command
+        # Build docker-compose command - NOTE: no --build since images already built
         cmd = ["docker-compose"]
         for file in compose_files:
             cmd.extend(["-f", file])
-        cmd.extend(["up", "-d", "--build", "--remove-orphans"])
+        cmd.extend(["up", "-d", "--remove-orphans"])
         
         # Retry loop with progressive fixes
         for attempt in range(1, max_retries + 1):
             log_info(f"Deploy attempt {attempt}/{max_retries}...")
             
             try:
+                # STEP 1: Deploy with docker-compose
                 result = subprocess.run(
                     cmd,
                     capture_output=True,
@@ -617,23 +618,75 @@ class DockerManager:
                     cwd=str(self.config.project_root),
                 )
                 
-                if result.returncode == 0:
-                    log_success(f"Deployment completed (attempt {attempt})")
-                    
-                    # Restart nginx to refresh DNS cache and ensure proper routing
-                    self._restart_nginx_after_deploy(spec)
-                    
-                    return True
-                
-                # Deploy failed - analyze error
+                # Collect output for analysis
                 error_output = result.stderr + "\n" + result.stdout
-                log_error(f"Deploy failed (attempt {attempt}): {result.returncode}")
+                
+                # IMPORTANT: Even if exit code is non-zero, containers may have started
+                # This can happen when depends_on conditions fail but containers are up
+                log_info(f"Docker compose completed (exit code: {result.returncode})")
+                
+                # STEP 2: ALWAYS wait for containers regardless of exit code
+                # This is critical because docker-compose can return error even though
+                # containers started successfully (e.g., health check timeout in depends_on)
+                log_info("Checking container status...")
+                
+                # Give containers time to start
+                time.sleep(5)
+                
+                # Check if core containers are at least created/running
+                core_containers_status = self._check_core_containers_status()
+                
+                if core_containers_status['postgres_running'] and core_containers_status['backend_exists']:
+                    # Core containers exist, wait for them to be healthy
+                    log_info("Core containers are running, waiting for health...")
+                    
+                    if self._wait_for_all_containers_healthy(spec, timeout=240):
+                        log_success("All containers are healthy!")
+                        
+                        # Restart nginx to refresh DNS cache
+                        self._restart_nginx_after_deploy(spec)
+                        return True
+                    else:
+                        log_warning("Some containers not healthy after 240s")
+                        self._log_container_health_status()
+                        
+                        # Try one more time - maybe just needs more time
+                        if attempt < max_retries:
+                            log_info("Giving containers more time...")
+                            if self._wait_for_all_containers_healthy(spec, timeout=120):
+                                log_success("Containers finally healthy!")
+                                self._restart_nginx_after_deploy(spec)
+                                return True
+                
+                # If exit code was 0 but containers not healthy, something is wrong
+                if result.returncode == 0:
+                    log_warning("Docker compose succeeded but containers not healthy")
+                    self._log_container_health_status()
+                    
+                    if attempt < max_retries:
+                        log_info("Restarting unhealthy containers...")
+                        self._restart_unhealthy_containers()
+                        continue
+                
+                # Deploy failed with error - analyze error
+                log_error(f"Deploy attempt {attempt} failed")
+                
+                # Log detailed error only in debug
+                if "unhealthy" in error_output.lower() or "dependency" in error_output.lower():
+                    log_warning("Dependency health check issue detected")
                 
                 # Detect error pattern
                 error_pattern = self.error_handler.detect_error(error_output)
                 
                 if error_pattern:
                     log_warning(f"Error detected: {error_pattern.description}")
+                    
+                    # For dependency failures, try targeted fix
+                    if error_pattern.name == "DependencyFailedToStart":
+                        if attempt < max_retries:
+                            log_info("Applying targeted dependency fix...")
+                            self.error_handler.apply_fix(error_pattern)
+                            continue
                     
                     # Try to fix
                     if attempt < max_retries:
@@ -648,7 +701,8 @@ class DockerManager:
                     self.error_handler.apply_progressive_fix(fix_level)
                 else:
                     log_error("Max retries reached - deployment failed")
-                    log_error(error_output[:1000])
+                    self._log_container_health_status()
+                    log_error(error_output[:2000])
                     return False
                 
             except subprocess.TimeoutExpired:
@@ -665,6 +719,143 @@ class DockerManager:
                     return False
         
         return False
+    
+    def _check_core_containers_status(self) -> dict:
+        """Check status of core containers."""
+        status = {
+            'postgres_running': False,
+            'redis_running': False,
+            'backend_exists': False,
+            'frontend_exists': False,
+        }
+        
+        try:
+            for container, key in [
+                ('omni-postgres', 'postgres_running'),
+                ('omni-redis', 'redis_running'),
+                ('omni-backend', 'backend_exists'),
+                ('omni-frontend', 'frontend_exists'),
+            ]:
+                result = subprocess.run(
+                    ["docker", "inspect", "--format", "{{.State.Status}}", container],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                if result.returncode == 0:
+                    state = result.stdout.strip()
+                    if state in ['running', 'starting']:
+                        status[key] = True
+        except Exception as e:
+            log_warning(f"Error checking container status: {e}")
+        
+        return status
+    
+    def _restart_unhealthy_containers(self) -> None:
+        """Restart any unhealthy containers."""
+        try:
+            result = subprocess.run(
+                ["docker", "ps", "--filter", "health=unhealthy", "--format", "{{.Names}}"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                unhealthy = result.stdout.strip().split('\n')
+                for container in unhealthy:
+                    log_info(f"Restarting unhealthy container: {container}")
+                    subprocess.run(["docker", "restart", container], capture_output=True, timeout=30)
+                time.sleep(10)
+        except Exception as e:
+            log_warning(f"Error restarting unhealthy containers: {e}")
+    
+    def _wait_for_all_containers_healthy(self, spec: SpecLevel, timeout: int = 180) -> bool:
+        """
+        Wait for all critical containers to be healthy.
+        
+        Args:
+            spec: Specification level
+            timeout: Maximum wait time in seconds
+            
+        Returns:
+            True if all containers healthy, False otherwise
+        """
+        critical_containers = [
+            ("omni-postgres", True),   # Must be healthy
+            ("omni-redis", True),      # Must be healthy  
+            ("omni-backend", True),    # Must be running (health check optional)
+            ("omni-frontend", False),  # Just needs to be running
+        ]
+        
+        start_time = time.time()
+        check_interval = 10
+        
+        while (time.time() - start_time) < timeout:
+            all_healthy = True
+            
+            for container, must_be_healthy in critical_containers:
+                try:
+                    # Check if container exists and is running
+                    result = subprocess.run(
+                        ["docker", "inspect", "--format", 
+                         "{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}",
+                         container],
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+                    
+                    if result.returncode != 0:
+                        log_warning(f"{container}: not found")
+                        all_healthy = False
+                        continue
+                    
+                    status_parts = result.stdout.strip().split("|")
+                    running_status = status_parts[0] if len(status_parts) > 0 else "unknown"
+                    health_status = status_parts[1] if len(status_parts) > 1 else "unknown"
+                    
+                    if running_status != "running":
+                        log_warning(f"{container}: {running_status}")
+                        all_healthy = False
+                        continue
+                    
+                    # For containers that must be healthy
+                    if must_be_healthy and health_status not in ["healthy", "no-healthcheck"]:
+                        if health_status == "starting":
+                            log_info(f"{container}: starting...")
+                        else:
+                            log_warning(f"{container}: {health_status}")
+                        all_healthy = False
+                        continue
+                    
+                except Exception as e:
+                    log_warning(f"Error checking {container}: {e}")
+                    all_healthy = False
+            
+            if all_healthy:
+                return True
+            
+            elapsed = int(time.time() - start_time)
+            log_info(f"Waiting for containers... ({elapsed}s / {timeout}s)")
+            time.sleep(check_interval)
+        
+        return False
+    
+    def _log_container_health_status(self) -> None:
+        """Log detailed health status of all containers for debugging."""
+        log_info("Container health status:")
+        try:
+            result = subprocess.run(
+                ["docker", "ps", "-a", "--filter", "name=omni-",
+                 "--format", "  {{.Names}}: {{.Status}}"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                print(result.stdout)
+        except Exception as e:
+            log_warning(f"Could not get container status: {e}")
     
     def _restart_nginx_after_deploy(self, spec: SpecLevel) -> bool:
         """

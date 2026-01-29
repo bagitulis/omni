@@ -13,6 +13,9 @@ import {
   ShopeeAdsAnalytics,
   AIReportGallery,
   MLDashboard,
+  AnalyticsHub,
+  BudgetSimulator,
+  ProductClassification,
 } from "./lazyComponents";
 
 // Auth routes
@@ -170,9 +173,27 @@ export const analyticsRoutes: RouteRecordRaw[] = [
   {
     path: "/analytics",
     name: "Analytics",
-    redirect: "/analytics/ml",
+    redirect: "/analytics/hub",
     meta: { section: "analytics" },
     children: [
+      {
+        path: "hub",
+        name: "AnalyticsHub",
+        component: AnalyticsHub,
+        meta: { section: "analytics", subsection: "hub" },
+      },
+      {
+        path: "simulator",
+        name: "BudgetSimulator",
+        component: BudgetSimulator,
+        meta: { section: "analytics", subsection: "simulator" },
+      },
+      {
+        path: "classification",
+        name: "ProductClassification",
+        component: ProductClassification,
+        meta: { section: "analytics", subsection: "classification" },
+      },
       {
         path: "ml",
         name: "MLDashboard",

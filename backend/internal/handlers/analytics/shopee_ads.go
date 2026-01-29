@@ -2,6 +2,7 @@ package analytics
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
@@ -18,139 +19,6 @@ type AdsHandler struct {
 // NewAdsHandler creates a new ads handler
 func NewAdsHandler(basePath string) *AdsHandler {
 	return &AdsHandler{basePath: basePath}
-}
-
-// GetDashboard handles GET /api/analytics/shopee-ads/dashboard
-// Response format matches frontend useShopeeAdsAnalytics.ts DashboardSummary
-func (h *AdsHandler) GetDashboard(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c)
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
-		return
-	}
-
-	db, err := config.GetTenantDB(tenantID, h.basePath)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	// Query aggregated data from shopee_ads_product_data
-	var summary struct {
-		TotalCost          float64 `gorm:"column:total_cost"`
-		TotalRevenue       float64 `gorm:"column:total_revenue"`
-		TotalDirectRevenue float64 `gorm:"column:total_direct_revenue"`
-		TotalOrders        int64   `gorm:"column:total_orders"`
-		TotalImpressions   int64   `gorm:"column:total_impressions"`
-		TotalClicks        int64   `gorm:"column:total_clicks"`
-	}
-
-	db.WithContext(ctx).Model(&models.ShopeeAdsProductData{}).
-		Select(`
-			COALESCE(SUM(cost), 0) as total_cost,
-			COALESCE(SUM(revenue), 0) as total_revenue,
-			COALESCE(SUM(direct_revenue), 0) as total_direct_revenue,
-			COALESCE(SUM(conversions), 0) as total_orders,
-			COALESCE(SUM(impressions), 0) as total_impressions,
-			COALESCE(SUM(clicks), 0) as total_clicks
-		`).Scan(&summary)
-
-	// Calculate derived metrics
-	avgRoas := float64(0)
-	avgDirectRoas := float64(0)
-	avgCtr := float64(0)
-	avgConversionRate := float64(0)
-
-	if summary.TotalCost > 0 {
-		avgRoas = summary.TotalRevenue / summary.TotalCost
-		avgDirectRoas = summary.TotalDirectRevenue / summary.TotalCost
-	}
-	if summary.TotalImpressions > 0 {
-		avgCtr = float64(summary.TotalClicks) / float64(summary.TotalImpressions) * 100
-	}
-	if summary.TotalClicks > 0 {
-		avgConversionRate = float64(summary.TotalOrders) / float64(summary.TotalClicks) * 100
-	}
-
-	// Get top products by revenue
-	var topProducts []gin.H
-	var products []models.ShopeeAdsProductData
-	db.WithContext(ctx).Model(&models.ShopeeAdsProductData{}).
-		Select("product_id, product_name, COALESCE(SUM(cost), 0) as cost, COALESCE(SUM(revenue), 0) as revenue, COALESCE(SUM(conversions), 0) as orders").
-		Group("product_id, product_name").
-		Order("revenue DESC").
-		Limit(10).
-		Find(&products)
-
-	for _, p := range products {
-		roas := float64(0)
-		if p.Cost > 0 {
-			roas = p.Revenue / p.Cost
-		}
-		topProducts = append(topProducts, gin.H{
-			"product_id":   p.ProductID,
-			"product_name": p.ProductName,
-			"cost":         p.Cost,
-			"revenue":      p.Revenue,
-			"orders":       p.Conversions,
-			"roas":         roas,
-		})
-	}
-
-	// Get bidding mode comparison
-	var biddingModeStats []gin.H
-	var biddingModes []struct {
-		BiddingMode  string  `gorm:"column:bidding_mode"`
-		Cost         float64 `gorm:"column:cost"`
-		Revenue      float64 `gorm:"column:revenue"`
-		Orders       int     `gorm:"column:orders"`
-		ProductCount int     `gorm:"column:product_count"`
-	}
-	db.WithContext(ctx).Model(&models.ShopeeAdsProductData{}).
-		Select("bidding_mode, COALESCE(SUM(cost), 0) as cost, COALESCE(SUM(revenue), 0) as revenue, COALESCE(SUM(conversions), 0) as orders, COUNT(DISTINCT product_id) as product_count").
-		Group("bidding_mode").
-		Find(&biddingModes)
-
-	for _, bm := range biddingModes {
-		roas := float64(0)
-		costPerOrder := float64(0)
-		if bm.Cost > 0 {
-			roas = bm.Revenue / bm.Cost
-		}
-		if bm.Orders > 0 {
-			costPerOrder = bm.Cost / float64(bm.Orders)
-		}
-		biddingModeStats = append(biddingModeStats, gin.H{
-			"bidding_mode":   bm.BiddingMode,
-			"cost":           bm.Cost,
-			"revenue":        bm.Revenue,
-			"orders":         bm.Orders,
-			"roas":           roas,
-			"cost_per_order": costPerOrder,
-			"product_count":  bm.ProductCount,
-		})
-	}
-
-	// Response format matching frontend DashboardSummary interface
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data": gin.H{
-			"total_cost":              summary.TotalCost,
-			"total_revenue":           summary.TotalRevenue,
-			"total_direct_revenue":    summary.TotalDirectRevenue,
-			"total_orders":            summary.TotalOrders,
-			"avg_roas":                avgRoas,
-			"avg_direct_roas":         avgDirectRoas,
-			"total_impressions":       summary.TotalImpressions,
-			"total_clicks":            summary.TotalClicks,
-			"avg_ctr":                 avgCtr,
-			"avg_conversion_rate":     avgConversionRate,
-			"top_products":            topProducts,
-			"bidding_mode_comparison": biddingModeStats,
-		},
-	})
 }
 
 // GetData handles GET /api/analytics/shopee-ads/data
@@ -171,18 +39,16 @@ func (h *AdsHandler) GetData(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Parse query params
-	limit := 100
-	offset := 0
-	orderBy := "revenue"
-	orderDir := "desc"
+	limit, offset := 100, 0
+	orderBy, orderDir := "revenue", "desc"
 
 	if l := c.Query("limit"); l != "" {
-		if parsed, err := parseInt(l); err == nil && parsed > 0 {
+		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
 			limit = parsed
 		}
 	}
 	if o := c.Query("offset"); o != "" {
-		if parsed, err := parseInt(o); err == nil && parsed >= 0 {
+		if parsed, err := strconv.Atoi(o); err == nil && parsed >= 0 {
 			offset = parsed
 		}
 	}
@@ -193,8 +59,9 @@ func (h *AdsHandler) GetData(c *gin.Context) {
 		orderDir = od
 	}
 
-	// Build query
-	query := db.WithContext(ctx).Model(&models.ShopeeAdsProductData{})
+	// Build query with tenant filter
+	query := db.WithContext(ctx).Model(&models.ShopeeAdsProductData{}).
+		Where("tenant_id = ?", tenantID)
 
 	// Apply filters
 	if productId := c.Query("productId"); productId != "" {
@@ -216,7 +83,7 @@ func (h *AdsHandler) GetData(c *gin.Context) {
 		Find(&products)
 
 	// Transform to response format
-	var data []gin.H
+	data := make([]gin.H, 0, len(products))
 	for _, p := range products {
 		data = append(data, gin.H{
 			"id":              p.ID,
@@ -265,18 +132,21 @@ func (h *AdsHandler) GetUploads(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-
 	limit := 20
 	if l := c.Query("limit"); l != "" {
-		if parsed, err := parseInt(l); err == nil && parsed > 0 {
+		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
 			limit = parsed
 		}
 	}
 
 	var uploads []models.ShopeeAdsUploadBatch
-	db.WithContext(ctx).Order("uploaded_at DESC").Limit(limit).Find(&uploads)
+	db.WithContext(ctx).
+		Where("tenant_id = ?", tenantID).
+		Order("uploaded_at DESC").
+		Limit(limit).
+		Find(&uploads)
 
-	var data []gin.H
+	data := make([]gin.H, 0, len(uploads))
 	for _, u := range uploads {
 		data = append(data, gin.H{
 			"id":           u.ID,
@@ -301,8 +171,7 @@ func (h *AdsHandler) Upload(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement full upload logic
-	// For now, return placeholder response
+	// TODO: Implement full upload logic with MV refresh
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Upload functionality - implementation in progress",
@@ -316,23 +185,4 @@ func (h *AdsHandler) Upload(c *gin.Context) {
 			"errors":        []string{},
 		},
 	})
-}
-
-// parseInt helper function
-func parseInt(s string) (int, error) {
-	var result int
-	_, err := parseIntScan(s, &result)
-	return result, err
-}
-
-func parseIntScan(s string, result *int) (int, error) {
-	n := 0
-	for _, c := range s {
-		if c < '0' || c > '9' {
-			return 0, nil
-		}
-		n = n*10 + int(c-'0')
-	}
-	*result = n
-	return n, nil
 }
