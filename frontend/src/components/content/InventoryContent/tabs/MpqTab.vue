@@ -144,17 +144,17 @@ const tiers = computed(() => [
   {
     value: "tier1" as const,
     label: "Tier 1",
-    minQty: props.settings.minOrder1,
+    minQty: props.settings.min_order_1,
   },
   {
     value: "tier2" as const,
     label: "Tier 2",
-    minQty: props.settings.maxOrder1 + 1,
+    minQty: props.settings.max_order_1 + 1,
   },
   {
     value: "tier3" as const,
     label: "Tier 3",
-    minQty: props.settings.maxOrder1 + 3,
+    minQty: props.settings.max_order_1 + 3,
   },
 ]);
 
@@ -170,7 +170,7 @@ function calculateMpqPrice(originalPrice: number): number {
     props.settings,
   );
   const tierIndex = { tier1: 0, tier2: 1, tier3: 2 }[selectedTier.value] ?? 0;
-  return tierCalc[tierIndex]?.unitPrice || originalPrice;
+  return tierCalc[tierIndex]?.unit_price || originalPrice;
 }
 
 const shopeePreview = computed(() =>
@@ -212,7 +212,7 @@ async function handleUpdate() {
       const failedSkus =
         shopeeResult.data?.results
           ?.filter((r: any) => !r.success)
-          ?.map((r: any) => r.error || `Item ${r.itemId}`) || [];
+          ?.map((r: any) => r.error || `Item ${r.item_id}`) || [];
       results.push({
         platform: "shopee",
         processed: shopeeResult.data?.processed || 0,
@@ -236,7 +236,7 @@ async function handleUpdate() {
       const failedSkus =
         tiktokResult.data?.results
           ?.filter((r: any) => !r.success)
-          ?.map((r: any) => r.error || `Product ${r.productId}`) || [];
+          ?.map((r: any) => r.error || `Product ${r.product_id}`) || [];
       results.push({
         platform: "tiktok",
         processed: tiktokResult.data?.processed || 0,

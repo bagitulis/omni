@@ -6,15 +6,15 @@ package handlers
 
 // WholesaleTier represents a wholesale tier
 type WholesaleTier struct {
-	MinQty int     `json:"minQty"`
-	MaxQty int     `json:"maxQty"`
+	MinQty int     `json:"min_qty"`
+	MaxQty int     `json:"max_qty"`
 	Price  float64 `json:"price"`
 }
 
 // WholesaleInfo represents wholesale info for an item
 type WholesaleInfo struct {
-	ItemID  int64           `json:"itemId"`
-	HasTier bool            `json:"hasTier"`
+	ItemID  int64           `json:"item_id"`
+	HasTier bool            `json:"has_tier"`
 	Tiers   []WholesaleTier `json:"tiers"`
 	MPQ     int             `json:"mpq"`
 }
@@ -30,7 +30,7 @@ type UpdateWholesaleRequest struct {
 
 // BatchDeleteRequest represents batch delete request
 type BatchDeleteRequest struct {
-	ItemIDs []int64 `json:"itemIds" binding:"required"`
+	ItemIDs []int64 `json:"item_ids" binding:"required"`
 }
 
 // BatchAddRequest represents batch add wholesale request
@@ -40,7 +40,7 @@ type BatchAddRequest struct {
 
 // BatchAddItem represents an item for batch wholesale add
 type BatchAddItem struct {
-	ItemID int64           `json:"itemId"`
+	ItemID int64           `json:"item_id"`
 	SKU    string          `json:"sku,omitempty"`
 	Tiers  []WholesaleTier `json:"tiers"`
 }
@@ -48,7 +48,7 @@ type BatchAddItem struct {
 // PreviewRequest represents preview wholesale request
 type PreviewRequest struct {
 	SKUs          []string `json:"skus" binding:"required"`
-	DiscountRates []int    `json:"discountRates" binding:"required"`
+	DiscountRates []int    `json:"discount_rates" binding:"required"`
 }
 
 // ImportWholesaleRequest represents import wholesale request
@@ -69,7 +69,7 @@ type BatchSetMpqRequest struct {
 
 // MpqItem represents an MPQ item
 type MpqItem struct {
-	ItemID int64  `json:"itemId"`
+	ItemID int64  `json:"item_id"`
 	SKU    string `json:"sku,omitempty"`
 	MPQ    int    `json:"mpq"`
 }
@@ -90,8 +90,8 @@ type TiktokBatchMpqRequest struct {
 
 // TiktokMpqItem represents a TikTok MPQ item
 type TiktokMpqItem struct {
-	ProductID string `json:"productId"`
-	SKUID     string `json:"skuId,omitempty"`
+	ProductID string `json:"product_id"`
+	SKUID     string `json:"sku_id,omitempty"`
 	MPQ       int    `json:"mpq"`
 }
 

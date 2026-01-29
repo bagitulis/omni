@@ -44,7 +44,7 @@ export interface UseWholesaleUpdateReturn {
 export function useWholesaleUpdate(
   showRef: Ref<boolean>,
   itemsRef: Ref<UpdateItem[]>,
-  onCompleted: (result: BatchUpdateBySkusResult) => void
+  onCompleted: (result: BatchUpdateBySkusResult) => void,
 ): UseWholesaleUpdateReturn {
   const activeTab = ref<"preview" | "settings">("preview");
   const processing = ref(false);
@@ -53,15 +53,15 @@ export function useWholesaleUpdate(
   const settingsSaved = ref(false);
 
   const settings = ref<WholesaleSettings>({
-    tenantId: "",
+    tenant_id: "",
     platform: "shopee",
-    adminFee: 1500,
-    minOrder1: 2,
-    maxOrder1: 3,
-    maxOrderTier3: 1000,
+    admin_fee: 1500,
+    min_order_1: 2,
+    max_order_1: 3,
+    max_order_tier_3: 1000,
   });
 
-  const tier2Min = computed(() => settings.value.maxOrder1 + 1);
+  const tier2Min = computed(() => settings.value.max_order_1 + 1);
   const tier2Max = computed(() => tier2Min.value + 1);
   const tier3Min = computed(() => tier2Max.value + 1);
 
@@ -102,10 +102,10 @@ export function useWholesaleUpdate(
   async function saveSettings() {
     try {
       const res = await wholesaleService.updateSettings({
-        adminFee: settings.value.adminFee,
-        minOrder1: settings.value.minOrder1,
-        maxOrder1: settings.value.maxOrder1,
-        maxOrderTier3: settings.value.maxOrderTier3,
+        admin_fee: settings.value.admin_fee,
+        min_order_1: settings.value.min_order_1,
+        max_order_1: settings.value.max_order_1,
+        max_order_tier_3: settings.value.max_order_tier_3,
       });
       if (res.success) {
         settingsSaved.value = true;

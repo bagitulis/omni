@@ -76,9 +76,9 @@ func (h *OrderHandler) GetOrderByID(c *gin.Context) {
 
 // ShipOrderRequest represents ship order request
 type ShipOrderRequest struct {
-	OrderItemIDs     []string `json:"orderItemIds" binding:"required"`
-	ShippingProvider string   `json:"shippingProvider" binding:"required"`
-	TrackingNumber   string   `json:"trackingNumber,omitempty"`
+	OrderItemIDs     []string `json:"order_item_ids" binding:"required"`
+	ShippingProvider string   `json:"shipping_provider" binding:"required"`
+	TrackingNumber   string   `json:"tracking_number,omitempty"`
 }
 
 // ShipOrder handles POST /api/lazada/orders/ship
@@ -128,9 +128,9 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 
 // CancelOrderRequest represents cancel order request
 type CancelOrderRequest struct {
-	OrderItemID  string `json:"orderItemId" binding:"required"`
-	ReasonID     string `json:"reasonId" binding:"required"`
-	ReasonDetail string `json:"reasonDetail,omitempty"`
+	OrderItemID  string `json:"order_item_id" binding:"required"`
+	ReasonID     string `json:"reason_id" binding:"required"`
+	ReasonDetail string `json:"reason_detail,omitempty"`
 }
 
 // CancelOrder handles POST /api/lazada/orders/cancel

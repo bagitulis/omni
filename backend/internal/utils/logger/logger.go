@@ -40,9 +40,9 @@ type Entry struct {
 	Timestamp string                 `json:"timestamp"`
 	Level     string                 `json:"level"`
 	Message   string                 `json:"message"`
-	RequestID string                 `json:"requestId,omitempty"`
-	TenantID  string                 `json:"tenantId,omitempty"`
-	UserID    string                 `json:"userId,omitempty"`
+	RequestID string                 `json:"request_id,omitempty"`
+	TenantID  string                 `json:"tenant_id,omitempty"`
+	UserID    string                 `json:"user_id,omitempty"`
 	Fields    map[string]interface{} `json:"fields,omitempty"`
 }
 

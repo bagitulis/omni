@@ -5,11 +5,11 @@
         <label>Admin Fee (Rp)</label>
         <input
           type="number"
-          :value="settings.adminFee"
+          :value="settings.admin_fee"
           @input="
             updateField(
-              'adminFee',
-              parseInt(($event.target as HTMLInputElement).value)
+              'admin_fee',
+              parseInt(($event.target as HTMLInputElement).value),
             )
           "
           min="0"
@@ -24,11 +24,11 @@
         <label>Tier 1 Min Order</label>
         <input
           type="number"
-          :value="settings.minOrder1"
+          :value="settings.min_order_1"
           @input="
             updateField(
-              'minOrder1',
-              parseInt(($event.target as HTMLInputElement).value)
+              'min_order_1',
+              parseInt(($event.target as HTMLInputElement).value),
             )
           "
           min="2"
@@ -41,14 +41,14 @@
         <label>Tier 1 Max Order</label>
         <input
           type="number"
-          :value="settings.maxOrder1"
+          :value="settings.max_order_1"
           @input="
             updateField(
-              'maxOrder1',
-              parseInt(($event.target as HTMLInputElement).value)
+              'max_order_1',
+              parseInt(($event.target as HTMLInputElement).value),
             )
           "
-          :min="settings.minOrder1"
+          :min="settings.min_order_1"
           max="99"
         />
         <span class="setting-desc">Maksimal order untuk tier 1</span>
@@ -58,11 +58,11 @@
         <label>Tier 3 Max Order</label>
         <input
           type="number"
-          :value="settings.maxOrderTier3"
+          :value="settings.max_order_tier_3"
           @input="
             updateField(
-              'maxOrderTier3',
-              parseInt(($event.target as HTMLInputElement).value)
+              'max_order_tier_3',
+              parseInt(($event.target as HTMLInputElement).value),
             )
           "
           min="10"
@@ -74,12 +74,12 @@
       </div>
 
       <div class="tier-preview">
-        <h4>📊 Preview Tier Ranges</h4>
+        <h4>Preview Tier Ranges</h4>
         <div class="tier-ranges">
           <div class="tier-item">
             <span class="tier-label">Tier 1:</span>
             <span class="tier-value"
-              >{{ settings.minOrder1 }} - {{ settings.maxOrder1 }}</span
+              >{{ settings.min_order_1 }} - {{ settings.max_order_1 }}</span
             >
           </div>
           <div class="tier-item">
@@ -89,18 +89,16 @@
           <div class="tier-item">
             <span class="tier-label">Tier 3:</span>
             <span class="tier-value"
-              >{{ tier3Min }} - {{ settings.maxOrderTier3 }}</span
+              >{{ tier3Min }} - {{ settings.max_order_tier_3 }}</span
             >
           </div>
         </div>
       </div>
 
       <button class="btn-save-settings" @click="$emit('save')">
-        💾 Simpan Settings
+        Simpan Settings
       </button>
-      <p v-if="settingsSaved" class="settings-saved-msg">
-        ✅ Settings tersimpan!
-      </p>
+      <p v-if="settingsSaved" class="settings-saved-msg">Settings tersimpan!</p>
     </div>
   </div>
 </template>

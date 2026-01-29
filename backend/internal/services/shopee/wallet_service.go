@@ -34,22 +34,22 @@ func NewWalletServiceWithCreds(tenantID, dbPath string) *WalletService {
 
 // WalletBalance represents wallet balance
 type WalletBalance struct {
-	TotalBalance     float64 `json:"totalBalance"`
-	PendingBalance   float64 `json:"pendingBalance"`
-	AvailableBalance float64 `json:"availableBalance"`
+	TotalBalance     float64 `json:"total_balance"`
+	PendingBalance   float64 `json:"pending_balance"`
+	AvailableBalance float64 `json:"available_balance"`
 	Currency         string  `json:"currency"`
-	UpdatedAt        string  `json:"updatedAt"`
+	UpdatedAt        string  `json:"updated_at"`
 }
 
 // Transaction represents a wallet transaction
 type Transaction struct {
-	TransactionID   string    `json:"transactionId"`
-	TransactionType string    `json:"transactionType"`
+	TransactionID   string    `json:"transaction_id"`
+	TransactionType string    `json:"transaction_type"`
 	Amount          float64   `json:"amount"`
 	Status          string    `json:"status"`
-	OrderSN         string    `json:"orderSn,omitempty"`
+	OrderSN         string    `json:"order_sn,omitempty"`
 	Description     string    `json:"description"`
-	CreateTime      time.Time `json:"createTime"`
+	CreateTime      time.Time `json:"create_time"`
 }
 
 // TransactionFilter represents filter for transaction queries
@@ -64,9 +64,9 @@ type TransactionFilter struct {
 // TransactionResult represents paginated transaction result
 type TransactionResult struct {
 	Transactions []Transaction `json:"transactions"`
-	TotalCount   int           `json:"totalCount"`
-	HasMore      bool          `json:"hasMore"`
-	NextToken    string        `json:"nextPageToken,omitempty"`
+	TotalCount   int           `json:"total_count"`
+	HasMore      bool          `json:"has_more"`
+	NextToken    string        `json:"next_page_token,omitempty"`
 }
 
 // getClient creates a Shopee client with credentials
@@ -203,12 +203,12 @@ func (s *WalletService) CalculateNetIncome(ctx context.Context, startDate, endDa
 
 // NetIncome represents net income calculation
 type NetIncome struct {
-	GrossIncome  float64 `json:"grossIncome"`
-	TotalFees    float64 `json:"totalFees"`
-	NetIncome    float64 `json:"netIncome"`
-	OrderCount   int     `json:"orderCount"`
-	RefundAmount float64 `json:"refundAmount"`
-	RefundCount  int     `json:"refundCount"`
+	GrossIncome  float64 `json:"gross_income"`
+	TotalFees    float64 `json:"total_fees"`
+	NetIncome    float64 `json:"net_income"`
+	OrderCount   int     `json:"order_count"`
+	RefundAmount float64 `json:"refund_amount"`
+	RefundCount  int     `json:"refund_count"`
 }
 
 func (s *WalletService) calculateIncome(transactions []Transaction) *NetIncome {

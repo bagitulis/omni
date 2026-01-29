@@ -42,6 +42,17 @@ func (h *UnifiedHandler) GetUnifiedSummary(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
+	// Check if MVs are populated, auto-refresh if empty
+	var mvCount int64
+	db.WithContext(ctx).Table("mv_tiktok_ads_summary").
+		Where("tenant_id = ?", tenantID).
+		Count(&mvCount)
+
+	if mvCount == 0 {
+		// Auto-refresh MVs if not populated
+		h.cacheService.RefreshAllMVs(ctx, db, tenantID)
+	}
+
 	// Get TikTok summary from MV
 	var tiktokSummary struct {
 		TotalCost    float64 `gorm:"column:total_cost"`
@@ -83,19 +94,19 @@ func (h *UnifiedHandler) GetUnifiedSummary(c *gin.Context) {
 				"total_cost":    totalCost,
 				"total_revenue": totalRevenue,
 				"total_orders":  totalOrders,
-				"overall_roas":  combinedRoas,
+				"avg_roas":      combinedRoas,
 			},
 			"tiktok": gin.H{
 				"total_cost":    tiktokSummary.TotalCost,
 				"total_revenue": tiktokSummary.TotalRevenue,
 				"total_orders":  tiktokSummary.TotalOrders,
-				"overall_roas":  tiktokSummary.OverallRoas,
+				"avg_roas":      tiktokSummary.OverallRoas,
 			},
 			"shopee": gin.H{
 				"total_cost":    shopeeSummary.TotalCost,
 				"total_revenue": shopeeSummary.TotalRevenue,
 				"total_orders":  shopeeSummary.TotalOrders,
-				"overall_roas":  shopeeSummary.OverallRoas,
+				"avg_roas":      shopeeSummary.OverallRoas,
 			},
 		},
 	})
@@ -117,6 +128,17 @@ func (h *UnifiedHandler) GetUnifiedKPI(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
+
+	// Check if MVs are populated, auto-refresh if empty
+	var mvCount int64
+	db.WithContext(ctx).Table("mv_ml_portfolio_summary").
+		Where("tenant_id = ?", tenantID).
+		Count(&mvCount)
+
+	if mvCount == 0 {
+		// Auto-refresh MVs if not populated
+		h.cacheService.RefreshAllMVs(ctx, db, tenantID)
+	}
 
 	// Get basic portfolio metrics
 	var portfolioHealth struct {

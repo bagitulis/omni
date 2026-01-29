@@ -53,8 +53,8 @@ http://localhost:5173/order-manager
               {{ result.success ? "✅" : "⚠️" }} {{ result.message }}
             </div>
             <div class="result-details">
-              <p>Total SKU: {{ result.data.totalSkus }}</p>
-              <p>Item Unik: {{ result.data.uniqueItems }}</p>
+              <p>Total SKU: {{ result.data.total_skus }}</p>
+              <p>Item Unik: {{ result.data.unique_items }}</p>
               <p>Berhasil: {{ result.data.processed }}</p>
               <p v-if="result.data.failed > 0" class="failed">
                 Gagal: {{ result.data.failed }}
@@ -125,7 +125,7 @@ watch(
       error.value = "";
       uniqueItemCount.value = 0;
     }
-  }
+  },
 );
 
 function closeIfNotProcessing() {
@@ -144,7 +144,7 @@ async function handleDelete() {
   try {
     const deleteResult = await wholesaleService.batchDeleteBySkus(props.skus);
     result.value = deleteResult;
-    uniqueItemCount.value = deleteResult.data.uniqueItems;
+    uniqueItemCount.value = deleteResult.data.unique_items;
     emit("completed", deleteResult);
   } catch (err: any) {
     error.value = err.message || "Gagal menghapus wholesale";

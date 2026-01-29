@@ -4,21 +4,21 @@
  */
 
 export interface WholesaleTier {
-  minCount: number;
-  maxCount: number;
-  unitPrice: number;
+  min_qty: number;
+  max_qty: number;
+  price: number;
 }
 
 export interface WholesaleInfo {
-  itemId: number;
-  productName: string;
-  hasWholesale: boolean;
+  item_id: number;
+  product_name: string;
+  has_wholesale: boolean;
   tiers: WholesaleTier[];
 }
 
 export interface WholesaleResult {
   success: boolean;
-  itemId?: number;
+  item_id?: number;
   message?: string;
   error?: string;
   data?: any;
@@ -31,8 +31,8 @@ export interface BatchDeleteBySkusResult {
 }
 
 export interface BatchDeleteData {
-  totalSkus: number;
-  uniqueItems: number;
+  total_skus: number;
+  unique_items: number;
   processed: number;
   failed: number;
   skipped: string[];
@@ -40,26 +40,26 @@ export interface BatchDeleteData {
 }
 
 export interface SkuLookupResult {
-  itemId: string;
-  modelId: string | null;
-  sellerSku: string | null;
-  productName?: string;
+  item_id: string;
+  model_id: string | null;
+  seller_sku: string | null;
+  product_name?: string;
 }
 
 export interface WholesaleSettings {
-  tenantId: string;
+  tenant_id: string;
   platform: string;
-  adminFee: number;
-  minOrder1: number;
-  maxOrder1: number;
-  maxOrderTier3: number;
+  admin_fee: number;
+  min_order_1: number;
+  max_order_1: number;
+  max_order_tier_3: number;
 }
 
 export interface WholesaleTierCalculated {
   tier: number;
-  minCount: number;
-  maxCount: number;
-  unitPrice: number;
+  min_count: number;
+  max_count: number;
+  unit_price: number;
 }
 
 export interface BatchUpdateItem {
@@ -74,13 +74,13 @@ export interface BatchUpdateBySkusResult {
 }
 
 export interface BatchUpdateData {
-  totalSkus: number;
-  uniqueItems: number;
+  total_skus: number;
+  unique_items: number;
   processed: number;
   failed: number;
   skipped: string[];
   results: WholesaleResult[];
-  settingsUsed: WholesaleSettings;
+  settings_used: WholesaleSettings;
 }
 
 export interface BatchMpqResult {
@@ -90,8 +90,8 @@ export interface BatchMpqResult {
 }
 
 export interface BatchMpqData {
-  totalSkus: number;
-  uniqueItems: number;
+  total_skus: number;
+  unique_items: number;
   processed: number;
   failed: number;
   skipped: string[];
@@ -100,7 +100,7 @@ export interface BatchMpqData {
 
 export interface MpqItemResult {
   success: boolean;
-  itemId: number;
+  item_id: number;
   error?: string;
   message?: string;
 }
@@ -112,8 +112,8 @@ export interface TiktokBatchMpqResult {
 }
 
 export interface TiktokBatchMpqData {
-  totalSkus: number;
-  uniqueProducts: number;
+  total_skus: number;
+  unique_products: number;
   processed: number;
   failed: number;
   skipped: string[];
@@ -122,13 +122,13 @@ export interface TiktokBatchMpqData {
 
 export interface TiktokMpqItemResult {
   success: boolean;
-  productId: string;
+  product_id: string;
   error?: string;
   message?: string;
 }
 
 export interface TierPreviewResult {
-  basePrice: number;
+  base_price: number;
   settings: WholesaleSettings;
   tiers: WholesaleTierCalculated[];
 }

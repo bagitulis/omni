@@ -10,8 +10,8 @@ import (
 
 // JWTClaims represents JWT token claims
 type JWTClaims struct {
-	UserID   string `json:"userId"`
-	TenantID string `json:"tenantId"`
+	UserID   string `json:"user_id"`
+	TenantID string `json:"tenant_id"`
 	Role     string `json:"role"`
 	jwt.RegisteredClaims
 }

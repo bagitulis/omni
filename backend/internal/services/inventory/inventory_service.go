@@ -169,15 +169,15 @@ func (s *InventoryService) SaveSettings(ctx context.Context, input SettingsInput
 
 // SettingsInput represents input for settings update
 type SettingsInput struct {
-	SpreadsheetID   string   `json:"spreadsheetId"`
-	SheetName       string   `json:"sheetName"`
-	AllColumns      []string `json:"allColumns"`
-	SelectedColumns []string `json:"selectedColumns"`
-	KeyColumn       string   `json:"keyColumn"`
-	HeaderRow       int      `json:"headerRow"`
-	DataStartRow    int      `json:"dataStartRow"`
-	AutoSync        bool     `json:"autoSync"`
-	SyncIntervalSec int      `json:"syncIntervalSeconds"`
+	SpreadsheetID   string   `json:"spreadsheet_id"`
+	SheetName       string   `json:"sheet_name"`
+	AllColumns      []string `json:"all_columns"`
+	SelectedColumns []string `json:"selected_columns"`
+	KeyColumn       string   `json:"key_column"`
+	HeaderRow       int      `json:"header_row"`
+	DataStartRow    int      `json:"data_start_row"`
+	AutoSync        bool     `json:"auto_sync"`
+	SyncIntervalSec int      `json:"sync_interval_seconds"`
 }
 
 // GetSyncHistory retrieves sync history

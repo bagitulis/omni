@@ -71,12 +71,13 @@ func (h *OrderManagerHandler) getOrdersFromDatabase(c *gin.Context, category str
 	service, err := sync.GetOrderSyncService(tenantID)
 	if err != nil {
 		orderManagerLogger.WithTenantID(tenantID).Warn("Order sync service not available: " + err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"success": false,
+			"error":   "Order sync service not available: " + err.Error(),
+			"code":    "SERVICE_UNAVAILABLE",
 			"items":   []interface{}{},
 			"data":    []interface{}{},
 			"count":   0,
-			"message": "Order sync service not available: " + err.Error(),
 		})
 		return
 	}
@@ -89,12 +90,13 @@ func (h *OrderManagerHandler) getOrdersFromDatabase(c *gin.Context, category str
 	)
 	if err != nil {
 		orderManagerLogger.WithTenantID(tenantID).Error("Failed to get orders: " + err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to get orders: " + err.Error(),
+			"code":    "DATABASE_ERROR",
 			"items":   []interface{}{},
 			"data":    []interface{}{},
 			"count":   0,
-			"message": "Failed to get orders: " + err.Error(),
 		})
 		return
 	}
@@ -145,11 +147,12 @@ func (h *OrderManagerHandler) GetLockedTodayOrders(c *gin.Context) {
 	syncService, err := sync.GetOrderSyncService(tenantID)
 	if err != nil {
 		orderManagerLogger.WithTenantID(tenantID).Warn("Order sync service not available: " + err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"success": false,
+			"error":   "Order sync service not available: " + err.Error(),
+			"code":    "SERVICE_UNAVAILABLE",
 			"items":   []interface{}{},
 			"count":   0,
-			"message": "Order sync service not available: " + err.Error(),
 		})
 		return
 	}
@@ -261,8 +264,10 @@ func (h *OrderManagerHandler) GetSavedLockedOrders(c *gin.Context) {
 	lockedOrders, err := lockedService.GetLockedOrders(c.Request.Context(), tenantID)
 	if err != nil {
 		orderManagerLogger.WithTenantID(tenantID).Error("Failed to get locked orders: " + err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"success":   true,
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success":   false,
+			"error":     "Failed to get locked orders: " + err.Error(),
+			"code":      "DATABASE_ERROR",
 			"items":     []interface{}{},
 			"count":     0,
 			"total_qty": 0,
@@ -318,12 +323,13 @@ func (h *OrderManagerHandler) SyncOrdersToday(c *gin.Context) {
 
 	service, err := sync.GetOrderSyncService(tenantID)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"success": false,
+			"error":   "Order sync service not available: " + err.Error(),
+			"code":    "SERVICE_UNAVAILABLE",
 			"items":   []interface{}{},
 			"data":    []interface{}{},
 			"count":   0,
-			"message": "Order sync service not available: " + err.Error(),
 		})
 		return
 	}
@@ -465,8 +471,10 @@ func (h *OrderManagerHandler) GetOrdersToday(c *gin.Context) {
 	items, err := orderTodayService.GetOrderTodayItems(c.Request.Context(), tenantID)
 	if err != nil {
 		orderManagerLogger.WithTenantID(tenantID).Error("Failed to get order today items: " + err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to get order today items: " + err.Error(),
+			"code":    "DATABASE_ERROR",
 			"items":   []interface{}{},
 			"data":    []interface{}{},
 			"count":   0,
@@ -507,19 +515,21 @@ func (h *OrderManagerHandler) SyncAll(c *gin.Context) {
 
 	service, err := sync.GetOrderSyncService(tenantID)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"success": false,
+			"error":   "Order sync service not available: " + err.Error(),
+			"code":    "SERVICE_UNAVAILABLE",
 			"data":    map[string]interface{}{},
-			"message": "Order sync service not available",
 		})
 		return
 	}
 
 	if !service.IsInitialized() {
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"success": false,
+			"error":   "Order sync service not initialized",
+			"code":    "SERVICE_NOT_INITIALIZED",
 			"data":    map[string]interface{}{},
-			"message": "Order sync service not initialized",
 		})
 		return
 	}

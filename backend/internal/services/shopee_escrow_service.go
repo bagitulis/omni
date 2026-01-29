@@ -28,28 +28,28 @@ type EscrowData struct {
 
 // EscrowOrderSummary represents a single escrow order summary
 type EscrowOrderSummary struct {
-	OrderSN           string    `json:"orderSn"`
-	OrderStatus       string    `json:"orderStatus"`
-	ReleaseDate       time.Time `json:"releaseDate"`
-	OriginalPrice     float64   `json:"originalPrice"`
-	SellerDiscount    float64   `json:"sellerDiscount"`
-	ShippingFee       float64   `json:"shippingFee"`
+	OrderSN           string    `json:"order_sn"`
+	OrderStatus       string    `json:"order_status"`
+	ReleaseDate       time.Time `json:"release_date"`
+	OriginalPrice     float64   `json:"original_price"`
+	SellerDiscount    float64   `json:"seller_discount"`
+	ShippingFee       float64   `json:"shipping_fee"`
 	Commission        float64   `json:"commission"`
-	ServiceFee        float64   `json:"serviceFee"`
-	FinalAmount       float64   `json:"finalAmount"`
-	EscrowTax         float64   `json:"escrowTax"`
-	ActualShippingFee float64   `json:"actualShippingFee"`
+	ServiceFee        float64   `json:"service_fee"`
+	FinalAmount       float64   `json:"final_amount"`
+	EscrowTax         float64   `json:"escrow_tax"`
+	ActualShippingFee float64   `json:"actual_shipping_fee"`
 }
 
 // EscrowSummary represents summary of escrow data
 type EscrowSummary struct {
-	TotalOrders     int     `json:"totalOrders"`
-	TotalOriginal   float64 `json:"totalOriginal"`
-	TotalDiscount   float64 `json:"totalDiscount"`
-	TotalShipping   float64 `json:"totalShipping"`
-	TotalCommission float64 `json:"totalCommission"`
-	TotalServiceFee float64 `json:"totalServiceFee"`
-	TotalFinal      float64 `json:"totalFinal"`
+	TotalOrders     int     `json:"total_orders"`
+	TotalOriginal   float64 `json:"total_original"`
+	TotalDiscount   float64 `json:"total_discount"`
+	TotalShipping   float64 `json:"total_shipping"`
+	TotalCommission float64 `json:"total_commission"`
+	TotalServiceFee float64 `json:"total_service_fee"`
+	TotalFinal      float64 `json:"total_final"`
 }
 
 // PaginationInfo represents pagination info
@@ -57,59 +57,59 @@ type PaginationInfo struct {
 	Page       int `json:"page"`
 	Limit      int `json:"limit"`
 	Total      int `json:"total"`
-	TotalPages int `json:"totalPages"`
+	TotalPages int `json:"total_pages"`
 }
 
 // SyncResult represents sync result
 type SyncResult struct {
-	SyncID    string    `json:"syncId"`
+	SyncID    string    `json:"sync_id"`
 	Status    string    `json:"status"`
 	Synced    int       `json:"synced"`
 	Failed    int       `json:"failed"`
-	StartedAt time.Time `json:"startedAt"`
-	EndedAt   time.Time `json:"endedAt"`
+	StartedAt time.Time `json:"started_at"`
+	EndedAt   time.Time `json:"ended_at"`
 }
 
 // PriceReconciliationResult represents price reconciliation result
 type PriceReconciliationResult struct {
 	Items         []PriceDiscrepancy `json:"items"`
-	TotalItems    int                `json:"totalItems"`
+	TotalItems    int                `json:"total_items"`
 	Discrepancies int                `json:"discrepancies"`
 }
 
 // PriceDiscrepancy represents a price discrepancy
 type PriceDiscrepancy struct {
-	OrderSN        string  `json:"orderSn"`
+	OrderSN        string  `json:"order_sn"`
 	SKU            string  `json:"sku"`
-	ExpectedPrice  float64 `json:"expectedPrice"`
-	ActualPrice    float64 `json:"actualPrice"`
+	ExpectedPrice  float64 `json:"expected_price"`
+	ActualPrice    float64 `json:"actual_price"`
 	Difference     float64 `json:"difference"`
-	DiffPercentage float64 `json:"diffPercentage"`
+	DiffPercentage float64 `json:"diff_percentage"`
 }
 
 // ShippingAnalysisResult represents shipping analysis result
 type ShippingAnalysisResult struct {
 	Summary          ShippingSummary        `json:"summary"`
-	ByCarrier        []CarrierStats         `json:"byCarrier"`
-	ByStatus         []StatusStats          `json:"byStatus"`
-	CostDistribution []CostDistributionItem `json:"costDistribution"`
+	ByCarrier        []CarrierStats         `json:"by_carrier"`
+	ByStatus         []StatusStats          `json:"by_status"`
+	CostDistribution []CostDistributionItem `json:"cost_distribution"`
 }
 
 // ShippingSummary represents shipping summary
 type ShippingSummary struct {
-	TotalOrders       int     `json:"totalOrders"`
-	TotalShippingCost float64 `json:"totalShippingCost"`
-	AvgShippingCost   float64 `json:"avgShippingCost"`
-	TotalSellerPaid   float64 `json:"totalSellerPaid"`
-	TotalBuyerPaid    float64 `json:"totalBuyerPaid"`
+	TotalOrders       int     `json:"total_orders"`
+	TotalShippingCost float64 `json:"total_shipping_cost"`
+	AvgShippingCost   float64 `json:"avg_shipping_cost"`
+	TotalSellerPaid   float64 `json:"total_seller_paid"`
+	TotalBuyerPaid    float64 `json:"total_buyer_paid"`
 }
 
 // CarrierStats represents carrier statistics
 type CarrierStats struct {
 	Carrier    string  `json:"carrier"`
 	Orders     int     `json:"orders"`
-	TotalCost  float64 `json:"totalCost"`
-	AvgCost    float64 `json:"avgCost"`
+	TotalCost  float64 `json:"total_cost"`
+	AvgCost    float64 `json:"avg_cost"`
 	Percentage float64 `json:"percentage"`
 }
 

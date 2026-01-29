@@ -12,8 +12,9 @@ from pydantic import BaseModel, Field
 
 class BuildMode(str, Enum):
     """Build execution modes."""
-    QUICK = "quick"      # Restart only (~10s)
-    SMART = "smart"      # Cache deps, rebuild code (~2-3m) [RECOMMENDED]
+    QUICKFIX = "quickfix"  # Fix service issues (~30-60s) - FIRST OPTION
+    QUICK = "quick"      # Restart only (~10s) - DEPRECATED, use QUICKFIX
+    SMART = "smart"      # Cache deps, rebuild code (~2-3m) [RECOMMENDED for code changes]
     FULL = "full"        # Clean rebuild (~5-10m)
     VALIDATE = "validate"  # Check only (~5s)
     CLEAN = "clean"      # Cleanup only (~1-2m)

@@ -12,18 +12,18 @@ import (
 
 // DeltaSyncRecord represents a delta sync checkpoint
 type DeltaSyncRecord struct {
-	ID             uint      `gorm:"primaryKey" json:"id"`
-	TenantID       string    `gorm:"index;not null" json:"tenantId"`
-	Platform       string    `gorm:"index;not null" json:"platform"`
-	EntityType     string    `gorm:"index;not null" json:"entityType"` // orders, products, inventory
-	LastSyncTime   time.Time `json:"lastSyncTime"`
-	LastCursor     string    `json:"lastCursor,omitempty"`
-	LastHash       string    `json:"lastHash,omitempty"`
-	RecordsSynced  int       `json:"recordsSynced"`
-	Status         string    `json:"status"` // success, failed, partial
-	ErrorMessage   string    `json:"errorMessage,omitempty"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+	ID            uint      `gorm:"primaryKey" json:"id"`
+	TenantID      string    `gorm:"index;not null" json:"tenant_id"`
+	Platform      string    `gorm:"index;not null" json:"platform"`
+	EntityType    string    `gorm:"index;not null" json:"entity_type"` // orders, products, inventory
+	LastSyncTime  time.Time `json:"last_sync_time"`
+	LastCursor    string    `json:"last_cursor,omitempty"`
+	LastHash      string    `json:"last_hash,omitempty"`
+	RecordsSynced int       `json:"records_synced"`
+	Status        string    `json:"status"` // success, failed, partial
+	ErrorMessage  string    `json:"error_message,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // TableName returns the table name for GORM
@@ -33,17 +33,17 @@ func (DeltaSyncRecord) TableName() string {
 
 // ChangeRecord represents a tracked change for delta sync
 type ChangeRecord struct {
-	ID         uint      `gorm:"primaryKey" json:"id"`
-	TenantID   string    `gorm:"index;not null" json:"tenantId"`
-	Platform   string    `gorm:"index;not null" json:"platform"`
-	EntityType string    `gorm:"index;not null" json:"entityType"`
-	EntityID   string    `gorm:"index;not null" json:"entityId"`
-	ChangeType string    `json:"changeType"` // create, update, delete
-	OldData    string    `json:"oldData,omitempty"` // JSON
-	NewData    string    `json:"newData,omitempty"` // JSON
-	Processed  bool      `gorm:"default:false" json:"processed"`
-	ProcessedAt time.Time `json:"processedAt,omitempty"`
-	CreatedAt  time.Time `json:"createdAt"`
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	TenantID    string    `gorm:"index;not null" json:"tenant_id"`
+	Platform    string    `gorm:"index;not null" json:"platform"`
+	EntityType  string    `gorm:"index;not null" json:"entity_type"`
+	EntityID    string    `gorm:"index;not null" json:"entity_id"`
+	ChangeType  string    `json:"change_type"`        // create, update, delete
+	OldData     string    `json:"old_data,omitempty"` // JSON
+	NewData     string    `json:"new_data,omitempty"` // JSON
+	Processed   bool      `gorm:"default:false" json:"processed"`
+	ProcessedAt time.Time `json:"processed_at,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // TableName returns the table name for GORM

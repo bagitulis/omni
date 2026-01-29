@@ -110,7 +110,7 @@ export function useInventoryWholesale(state: WholesaleState) {
   function handleDeleteWholesale(inventoryList: InventoryItem[]): void {
     if (!inventoryList || inventoryList.length === 0) {
       alertMethods.showAlertWarning(
-        "⚠️ No Data",
+        "No Data",
         "Inventory list is empty. Please sync data first.",
       );
       return;
@@ -123,7 +123,7 @@ export function useInventoryWholesale(state: WholesaleState) {
 
     if (checkedSkus.length === 0) {
       alertMethods.showAlertWarning(
-        "⚠️ No Items Selected",
+        "No Items Selected",
         "Please check/select items to delete wholesale tiers",
       );
       return;
@@ -139,17 +139,17 @@ export function useInventoryWholesale(state: WholesaleState) {
   function handleWholesaleCompleted(result: any): void {
     if (result.success) {
       alertMethods.showAlertSuccess(
-        "✅ Wholesale Deleted",
+        "Wholesale Deleted",
         `Successfully deleted wholesale for ${result.data.processed} products`,
       );
     } else if (result.data.processed > 0) {
       alertMethods.showAlertWarning(
-        "⚠️ Partial Success",
-        `Deleted ${result.data.processed}/${result.data.uniqueItems} products. ${result.data.failed} failed.`,
+        "Partial Success",
+        `Deleted ${result.data.processed}/${result.data.unique_items} products. ${result.data.failed} failed.`,
       );
     } else {
       alertMethods.showAlertError(
-        "❌ Delete Failed",
+        "Delete Failed",
         result.message || "Failed to delete wholesale tiers",
       );
     }
@@ -161,7 +161,7 @@ export function useInventoryWholesale(state: WholesaleState) {
   function handleUpdateWholesale(filteredList: InventoryItem[]): void {
     if (!filteredList || filteredList.length === 0) {
       alertMethods.showAlertWarning(
-        "⚠️ No Data",
+        "No Data",
         "Inventory list is empty. Please sync data first.",
       );
       return;
@@ -177,7 +177,7 @@ export function useInventoryWholesale(state: WholesaleState) {
 
     if (checkedItems.length === 0) {
       alertMethods.showAlertWarning(
-        "⚠️ No Valid Items",
+        "No Valid Items",
         "Please check items with valid SKU and HARGA (price > 0)",
       );
       return;
@@ -193,17 +193,17 @@ export function useInventoryWholesale(state: WholesaleState) {
   function handleWholesaleUpdateCompleted(result: any): void {
     if (result.success) {
       alertMethods.showAlertSuccess(
-        "✅ Wholesale Updated",
+        "Wholesale Updated",
         `Successfully updated wholesale for ${result.data.processed} products`,
       );
     } else if (result.data.processed > 0) {
       alertMethods.showAlertWarning(
-        "⚠️ Partial Success",
-        `Updated ${result.data.processed}/${result.data.uniqueItems} products. ${result.data.failed} failed.`,
+        "Partial Success",
+        `Updated ${result.data.processed}/${result.data.unique_items} products. ${result.data.failed} failed.`,
       );
     } else {
       alertMethods.showAlertError(
-        "❌ Update Failed",
+        "Update Failed",
         result.message || "Failed to update wholesale tiers",
       );
     }
@@ -215,7 +215,7 @@ export function useInventoryWholesale(state: WholesaleState) {
   function handleOpenMpqModal(filteredList: InventoryItem[]): void {
     if (!filteredList || filteredList.length === 0) {
       alertMethods.showAlertWarning(
-        "⚠️ No Data",
+        "No Data",
         "Inventory list is empty. Please sync data first.",
       );
       return;
@@ -261,7 +261,7 @@ export function useInventoryWholesale(state: WholesaleState) {
 
     if (expandedItems.length === 0) {
       alertMethods.showAlertWarning(
-        "⚠️ No Valid Items",
+        "No Valid Items",
         "Please check items with valid SKU and HARGA (price > 0)",
       );
       return;
@@ -277,12 +277,12 @@ export function useInventoryWholesale(state: WholesaleState) {
   function handleWholesaleMpqCompleted(result: any): void {
     if (result.success) {
       alertMethods.showAlertSuccess(
-        "✅ Update Complete",
+        "Update Complete",
         "Bulk pricing update completed successfully",
       );
     } else {
       alertMethods.showAlertError(
-        "❌ Update Failed",
+        "Update Failed",
         result.message || "Failed to update bulk pricing",
       );
     }

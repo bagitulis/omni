@@ -29,12 +29,13 @@ class Config(BaseModel):
     compose_standard: str = Field(default="docker-compose.tunnel.standard.yml")
     compose_highspec: str = Field(default="docker-compose.tunnel.highspec.yml")
     
-    # Timeouts (seconds) - INCREASED for better reliability (matching PowerShell)
-    docker_start_timeout: int = Field(default=150, description="Timeout for Docker engine to start (2.5 min)")
-    docker_build_timeout: int = Field(default=1800, description="Timeout for Docker build (30 min)")
-    docker_deploy_timeout: int = Field(default=900, description="Timeout for deployment (15 min)")
-    health_check_timeout: int = Field(default=120, description="Timeout for health checks (2 min)")
-    npm_install_timeout: int = Field(default=600, description="Timeout for npm install (10 min)")
+    # Timeouts (seconds) - Optimized for reliability
+    # Not too fast (causes false failures), not too slow (wastes time)
+    docker_start_timeout: int = Field(default=150, description="Docker engine start (2.5 min)")
+    docker_build_timeout: int = Field(default=1800, description="Docker build (30 min - full build needs time)")
+    docker_deploy_timeout: int = Field(default=900, description="Deployment (15 min - includes health waits)")
+    health_check_timeout: int = Field(default=180, description="Health checks (3 min - Go backend needs tenant init)")
+    npm_install_timeout: int = Field(default=600, description="npm install (10 min - large node_modules)")
     
     # Retry configuration
     max_build_retries: int = Field(default=7, description="Maximum build retry attempts")

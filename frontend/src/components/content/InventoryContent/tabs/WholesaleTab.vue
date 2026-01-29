@@ -20,11 +20,11 @@
             <th scope="col">SKU</th>
             <th scope="col">Harga</th>
             <th scope="col">
-              T1 ({{ settings.minOrder1 }}-{{ settings.maxOrder1 }})
+              T1 ({{ settings.min_order_1 }}-{{ settings.max_order_1 }})
             </th>
             <th scope="col">T2 ({{ tier2Min }}-{{ tier2Max }})</th>
             <th scope="col">
-              T3 ({{ tier3Min }}-{{ settings.maxOrderTier3 }})
+              T3 ({{ tier3Min }}-{{ settings.max_order_tier_3 }})
             </th>
           </tr>
         </thead>
@@ -32,9 +32,9 @@
           <tr v-for="item in previewItems" :key="item.sku">
             <td class="sku-cell">{{ item.sku }}</td>
             <td class="price-cell">{{ formatPrice(item.price) }}</td>
-            <td>{{ formatPrice(item.tiers[0]?.unitPrice) }}</td>
-            <td>{{ formatPrice(item.tiers[1]?.unitPrice) }}</td>
-            <td>{{ formatPrice(item.tiers[2]?.unitPrice) }}</td>
+            <td>{{ formatPrice(item.tiers[0]?.unit_price) }}</td>
+            <td>{{ formatPrice(item.tiers[1]?.unit_price) }}</td>
+            <td>{{ formatPrice(item.tiers[2]?.unit_price) }}</td>
           </tr>
         </tbody>
       </table>
@@ -87,7 +87,7 @@ const emit = defineEmits<{
 const localProcessing = ref(false);
 
 // Computed tier ranges
-const tier2Min = computed(() => props.settings.maxOrder1 + 1);
+const tier2Min = computed(() => props.settings.max_order_1 + 1);
 const tier2Max = computed(() => tier2Min.value + 1);
 const tier3Min = computed(() => tier2Max.value + 1);
 

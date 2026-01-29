@@ -26,9 +26,9 @@
           <tr v-for="item in previewItems" :key="item.sku">
             <td class="sku-cell">{{ item.sku }}</td>
             <td class="price-cell">{{ formatPrice(item.price) }}</td>
-            <td>{{ formatPrice(item.tiers[0]?.unitPrice) }}</td>
-            <td>{{ formatPrice(item.tiers[1]?.unitPrice) }}</td>
-            <td>{{ formatPrice(item.tiers[2]?.unitPrice) }}</td>
+            <td>{{ formatPrice(item.tiers[0]?.unit_price) }}</td>
+            <td>{{ formatPrice(item.tiers[1]?.unit_price) }}</td>
+            <td>{{ formatPrice(item.tiers[2]?.unit_price) }}</td>
           </tr>
         </tbody>
       </table>

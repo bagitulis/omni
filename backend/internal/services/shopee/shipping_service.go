@@ -32,33 +32,33 @@ func NewShippingServiceWithCreds(tenantID, dbPath string) *ShippingService {
 
 // ShippingOption represents a shipping option
 type ShippingOption struct {
-	LogisticID        int64   `json:"logisticId"`
-	LogisticName      string  `json:"logisticName"`
+	LogisticID        int64   `json:"logistic_id"`
+	LogisticName      string  `json:"logistic_name"`
 	Enabled           bool    `json:"enabled"`
-	ShippingFeeType   string  `json:"shippingFeeType"`
-	EstimatedCost     float64 `json:"estimatedCost"`
-	EstimatedDays     int     `json:"estimatedDays"`
-	IsFreeShipping    bool    `json:"isFreeShipping"`
-	HasCOD            bool    `json:"hasCod"`
-	TrackingAvailable bool    `json:"trackingAvailable"`
+	ShippingFeeType   string  `json:"shipping_fee_type"`
+	EstimatedCost     float64 `json:"estimated_cost"`
+	EstimatedDays     int     `json:"estimated_days"`
+	IsFreeShipping    bool    `json:"is_free_shipping"`
+	HasCOD            bool    `json:"has_cod"`
+	TrackingAvailable bool    `json:"tracking_available"`
 }
 
 // ShipmentInfo represents shipment information
 type ShipmentInfo struct {
-	OrderSN          string `json:"orderSn"`
-	PackageNumber    string `json:"packageNumber"`
-	LogisticID       int64  `json:"logisticId"`
-	LogisticName     string `json:"logisticName"`
-	TrackingNumber   string `json:"trackingNumber"`
-	ShippingStatus   string `json:"shippingStatus"`
-	PickupDoneTime   int64  `json:"pickupDoneTime,omitempty"`
-	DeliveryDoneTime int64  `json:"deliveryDoneTime,omitempty"`
+	OrderSN          string `json:"order_sn"`
+	PackageNumber    string `json:"package_number"`
+	LogisticID       int64  `json:"logistic_id"`
+	LogisticName     string `json:"logistic_name"`
+	TrackingNumber   string `json:"tracking_number"`
+	ShippingStatus   string `json:"shipping_status"`
+	PickupDoneTime   int64  `json:"pickup_done_time,omitempty"`
+	DeliveryDoneTime int64  `json:"delivery_done_time,omitempty"`
 }
 
 // TrackingInfo represents tracking information
 type TrackingInfo struct {
-	TrackingNumber string         `json:"trackingNumber"`
-	LogisticName   string         `json:"logisticName"`
+	TrackingNumber string         `json:"tracking_number"`
+	LogisticName   string         `json:"logistic_name"`
 	Status         string         `json:"status"`
 	History        []TrackingStep `json:"history"`
 }
@@ -72,22 +72,22 @@ type TrackingStep struct {
 
 // ArrangeShipmentRequest represents request to arrange shipment
 type ArrangeShipmentRequest struct {
-	OrderSN    string      `json:"orderSn"`
-	PackageNum string      `json:"packageNumber,omitempty"`
-	Pickup     *PickupInfo `json:"pickup,omitempty"`
+	OrderSN    string       `json:"order_sn"`
+	PackageNum string       `json:"package_number,omitempty"`
+	Pickup     *PickupInfo  `json:"pickup,omitempty"`
 	DropOff    *DropOffInfo `json:"dropoff,omitempty"`
 }
 
 // PickupInfo represents pickup information
 type PickupInfo struct {
-	AddressID int64  `json:"addressId"`
+	AddressID int64  `json:"address_id"`
 	Date      string `json:"date"`
-	TimeSlot  string `json:"timeSlot"`
+	TimeSlot  string `json:"time_slot"`
 }
 
 // DropOffInfo represents drop-off information
 type DropOffInfo struct {
-	BranchID int64 `json:"branchId"`
+	BranchID int64 `json:"branch_id"`
 }
 
 // getClient creates a Shopee client with credentials

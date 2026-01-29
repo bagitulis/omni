@@ -16,7 +16,7 @@
         <label>Admin Fee (Rp)</label>
         <input
           type="number"
-          v-model.number="form.adminFee"
+          v-model.number="form.admin_fee"
           min="0"
           step="100"
           required
@@ -32,7 +32,7 @@
             <label>Min Order</label>
             <input
               type="number"
-              v-model.number="form.minOrder1"
+              v-model.number="form.min_order_1"
               min="2"
               required
             />
@@ -41,8 +41,8 @@
             <label>Max Order</label>
             <input
               type="number"
-              v-model.number="form.maxOrder1"
-              :min="form.minOrder1"
+              v-model.number="form.max_order_1"
+              :min="form.min_order_1"
               required
             />
           </div>
@@ -77,7 +77,7 @@
             <label>Max Order</label>
             <input
               type="number"
-              v-model.number="form.maxOrderTier3"
+              v-model.number="form.max_order_tier_3"
               :min="tier3Min"
               required
             />
@@ -103,7 +103,7 @@
           <tbody>
             <tr>
               <td>Tier 1</td>
-              <td>{{ form.minOrder1 }} - {{ form.maxOrder1 }}</td>
+              <td>{{ form.min_order_1 }} - {{ form.max_order_1 }}</td>
               <td class="price-cell">{{ formatPrice(calcTier1) }}</td>
             </tr>
             <tr>
@@ -113,7 +113,7 @@
             </tr>
             <tr>
               <td>Tier 3</td>
-              <td>{{ tier3Min }} - {{ form.maxOrderTier3 }}</td>
+              <td>{{ tier3Min }} - {{ form.max_order_tier_3 }}</td>
               <td class="price-cell">{{ formatPrice(calcTier3) }}</td>
             </tr>
           </tbody>
@@ -155,24 +155,24 @@ watch(
   },
 );
 
-const tier2Min = computed(() => form.value.maxOrder1 + 1);
+const tier2Min = computed(() => form.value.max_order_1 + 1);
 const tier2Max = computed(() => tier2Min.value + 1);
 const tier3Min = computed(() => tier2Max.value + 1);
 
 // Price calculations
 const calcTier1 = computed(() => {
-  const base = samplePrice.value - form.value.adminFee;
-  return base + form.value.adminFee / form.value.minOrder1;
+  const base = samplePrice.value - form.value.admin_fee;
+  return base + form.value.admin_fee / form.value.min_order_1;
 });
 
 const calcTier2 = computed(() => {
-  const base = samplePrice.value - form.value.adminFee;
-  return base + form.value.adminFee / tier2Min.value;
+  const base = samplePrice.value - form.value.admin_fee;
+  return base + form.value.admin_fee / tier2Min.value;
 });
 
 const calcTier3 = computed(() => {
-  const base = samplePrice.value - form.value.adminFee;
-  return base + form.value.adminFee / tier3Min.value;
+  const base = samplePrice.value - form.value.admin_fee;
+  return base + form.value.admin_fee / tier3Min.value;
 });
 
 function formatPrice(price: number): string {

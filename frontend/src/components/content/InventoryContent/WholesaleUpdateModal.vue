@@ -29,12 +29,12 @@
             v-if="activeTab === 'preview'"
             :item-count="items.length"
             :preview-items="previewItems"
-            :min-order1="settings.minOrder1"
-            :max-order1="settings.maxOrder1"
+            :min-order1="settings.min_order_1"
+            :max-order1="settings.max_order_1"
             :tier2-min="tier2Min"
             :tier2-max="tier2Max"
             :tier3-min="tier3Min"
-            :max-order-tier3="settings.maxOrderTier3"
+            :max-order-tier3="settings.max_order_tier_3"
             :format-price="formatPrice"
           />
 
@@ -59,8 +59,8 @@
               {{ result.success ? "✅" : "⚠️" }} {{ result.message }}
             </div>
             <div class="result-details">
-              <p>Total SKU: {{ result.data.totalSkus }}</p>
-              <p>Item Unik: {{ result.data.uniqueItems }}</p>
+              <p>Total SKU: {{ result.data.total_skus }}</p>
+              <p>Item Unik: {{ result.data.unique_items }}</p>
               <p>Berhasil: {{ result.data.processed }}</p>
               <p v-if="result.data.failed > 0" class="failed">
                 Gagal: {{ result.data.failed }}

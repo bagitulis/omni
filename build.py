@@ -4,11 +4,11 @@ Omni Build System - Standalone Entry Point
 
 Pintasan:
 - Jalankan tanpa argumen untuk membuka menu interaktif.
-- Masih bisa jalan seperti biasa dengan subcommand (smart, quick, full, validate, clean, status).
+- Masih bisa jalan seperti biasa dengan subcommand.
 
 Contoh langsung:
-    python build.py smart              # Smart build (RECOMMENDED)
-    python build.py quick              # Quick restart
+    python build.py quickfix           # Quick Fix (fix service issues, no rebuild) - FIRST OPTION
+    python build.py smart              # Smart build (RECOMMENDED for code changes)
     python build.py full               # Full rebuild
     python build.py validate           # Validate environment only
     python build.py clean              # Cleanup Docker
@@ -16,6 +16,11 @@ Contoh langsung:
     python build.py smart --spec=lowspec
     python build.py smart --skip-frontend
     python build.py smart --dry-run    # Validation mode (no actual build)
+
+Quick Fix vs Smart Build:
+- Quick Fix: Untuk memperbaiki service yang bermasalah TANPA rebuild.
+             Jika gagal, otomatis fallback ke Smart Build.
+- Smart Build: Untuk perubahan kode yang butuh rebuild image.
 """
 import sys
 import os
@@ -30,8 +35,8 @@ sys.path.insert(0, str(python_build_dir))
 def interactive_menu():
     """Prompt user to choose a build action; returns list of CLI args."""
     options = [
+        ("Quick Fix (fix service issues, no rebuild)", ["quickfix"]),
         ("Smart build (recommended)", ["smart"]),
-        ("Quick restart (no rebuild)", ["quick"]),
         ("Full rebuild (no cache)", ["full"]),
         ("Full rebuild + DB restore (for new PC)", ["full", "--restore"]),
         ("Smart build + DB restore", ["smart", "--restore"]),
