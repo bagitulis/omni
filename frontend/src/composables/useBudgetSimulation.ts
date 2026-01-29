@@ -89,7 +89,8 @@ export function useBudgetSimulation() {
     error.value = null;
     try {
       const response = await axios.get("/api/analytics/products/from-ads");
-      products.value = response.data.products || [];
+      // API returns { success: true, data: [...], count: N }
+      products.value = response.data.data || response.data.products || [];
     } catch (err: any) {
       error.value = err.response?.data?.error || "Failed to fetch products";
       products.value = [];
@@ -103,7 +104,9 @@ export function useBudgetSimulation() {
       const response = await axios.get(
         `/api/analytics/intelligence/calendar?days=${days}`,
       );
-      calendarEvents.value = response.data.events || [];
+      // API returns { success: true, data: { events: [...], days_ahead: N } }
+      const data = response.data.data || response.data;
+      calendarEvents.value = data.events || [];
     } catch (err: any) {
       console.error("Failed to fetch calendar events:", err);
       calendarEvents.value = [];
@@ -142,8 +145,10 @@ export function useBudgetSimulation() {
         "/api/analytics/simulation/calculate",
         request,
       );
-      simulationResult.value = response.data;
-      return response.data;
+      // API returns { success: true, data: { feasibility, ... } }
+      const result = response.data.data || response.data;
+      simulationResult.value = result;
+      return result;
     } catch (err: any) {
       error.value = err.response?.data?.error || "Simulation failed";
       return null;

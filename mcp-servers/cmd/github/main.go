@@ -2,7 +2,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"mcp-servers/pkg/mcp"
@@ -80,9 +83,23 @@ type account struct {
 	UserYumna    string `json:"userYumna"`
 }
 
-type accountWithBackup struct {
-	account
-	OneBackupCode string `json:"oneBackupCode"`
+type accountView struct {
+	RowIndex          int    `json:"rowIndex"`
+	Email             string `json:"email"`
+	Username          string `json:"username"`
+	Status            string `json:"status"`
+	UserYumna         string `json:"userYumna"`
+	PasswordSet       bool   `json:"passwordSet"`
+	Has2FASecret      bool   `json:"has2faSecret"`
+	BackupCodesCount  int    `json:"backupCodesCount"`
+}
+
+type addAccountPayload struct {
+	Email        string   `json:"email"`
+	Username     string   `json:"username"`
+	Password     string   `json:"password"`
+	CodeRecovery string   `json:"codeRecovery"`
+	Codes        []string `json:"codes"`
 }
 
 var sheetsService *sheets.Service
@@ -105,7 +122,7 @@ func main() {
 		},
 		{
 			Name:        "get_accounts_by_status",
-			Description: "TRIGGER: 'MCP GH status [STATUS]' or 'GH status [STATUS]' - Get accounts filtered by status",
+			Description: "TRIGGER: 'MCP GH status [STATUS]' or 'GH status [STATUS]' - Get accounts filtered by status (no passwords/2FA secrets returned)",
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{"status": {Type: "string", Description: "Status filter"}},
@@ -123,17 +140,29 @@ func main() {
 		},
 		{
 			Name:        "add_account",
-			Description: "TRIGGER: 'MCP GH add' or 'GH add' - Add new account. RECOGNITION RULES: 1) Code Recovery/2FA Secret = 16 characters, Base32, NO dash (e.g. BUCD6EOGDBBIOAKK). 2) Backup Codes = 11 characters with dash format xxxxx-xxxxx (e.g. 7c197-eb3b9). Always check character count and dash presence to distinguish them.",
+			Description: "TRIGGER: 'MCP GH add' or 'GH add' - Add new account. NOTE: Avoid pasting passwords/2FA/backup codes into chat. Prefer 'add_account_from_file' to keep secrets local. RECOGNITION RULES: 1) Code Recovery/2FA Secret = 16 characters, Base32, NO dash (e.g. BUCD6EOGDBBIOAKK). 2) Backup Codes = 11 characters with dash format xxxxx-xxxxx (e.g. 7c197-eb3b9). Always check character count and dash presence to distinguish them.",
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
 					"email":        {Type: "string", Description: "Email address"},
-					"password":     {Type: "string", Description: "Password"},
+					"password":     {Type: "string", Description: "Password (optional; prefer file-based flow)"},
 					"username":     {Type: "string", Description: "Username (optional)"},
-					"codeRecovery": {Type: "string", Description: "2FA/TOTP secret key - 16 chars, Base32, NO dash (e.g. BUCD6EOGDBBIOAKK)"},
-					"codes":        {Type: "array", Description: "Backup codes - format xxxxx-xxxxx with dash (e.g. 7c197-eb3b9)", Items: &mcp.Items{Type: "string"}},
+					"codeRecovery": {Type: "string", Description: "2FA/TOTP secret key - 16 chars, Base32, NO dash (optional; prefer file-based flow)"},
+					"codes":        {Type: "array", Description: "Backup codes - format xxxxx-xxxxx with dash (optional; prefer file-based flow)", Items: &mcp.Items{Type: "string"}},
 				},
-				Required: []string{"email", "password", "codes"},
+				Required: []string{"email"},
+			},
+		},
+		{
+			Name:        "add_account_from_file",
+			Description: "SAFE: Add new account from a local JSON file path, so secrets don't get pasted into chat. File format: {email, username?, password?, codeRecovery?, codes?: [..]}. You can place the file OUTSIDE the repo and optionally delete it after import.",
+			InputSchema: mcp.InputSchema{
+				Type: "object",
+				Properties: map[string]mcp.Property{
+					"path":        {Type: "string", Description: "Path to JSON file containing account payload"},
+					"deleteAfter": {Type: "boolean", Description: "If true, delete the JSON file after successful import"},
+				},
+				Required: []string{"path"},
 			},
 		},
 		{
@@ -152,7 +181,7 @@ func main() {
 		},
 		{
 			Name:        "get_all_accounts",
-			Description: "TRIGGER: 'MCP GH status all' - Get all accounts with status and backup codes",
+			Description: "TRIGGER: 'MCP GH status all' - Get all accounts (no passwords/2FA secrets/backup codes returned)",
 			InputSchema: mcp.InputSchema{Type: "object", Properties: map[string]mcp.Property{}, Required: []string{}},
 		},
 		{
@@ -188,6 +217,8 @@ func main() {
 			return deleteBackupCode(args["code"].(string))
 		case "add_account":
 			return addAccount(args)
+		case "add_account_from_file":
+			return addAccountFromFile(args)
 		case "delete_account":
 			return deleteAccount(args["email"].(string))
 		case "get_summary":
@@ -225,15 +256,15 @@ func getMenu() map[string]interface{} {
 	}
 }
 
-func getAllAccounts() ([]accountWithBackup, error) {
+func getAllAccounts() ([]accountView, error) {
 	accounts, err := getAccounts()
 	if err != nil {
 		return nil, err
 	}
-	return enrichWithBackupCode(accounts)
+	return toAccountViews(accounts)
 }
 
-func getAccountsByStatus(status string) ([]accountWithBackup, error) {
+func getAccountsByStatus(status string) ([]accountView, error) {
 	status = strings.ToUpper(status)
 	accounts, err := getAccounts()
 	if err != nil {
@@ -247,7 +278,7 @@ func getAccountsByStatus(status string) ([]accountWithBackup, error) {
 		}
 	}
 
-	return enrichWithBackupCode(filtered)
+	return toAccountViews(filtered)
 }
 
 func getAccounts() ([]account, error) {
@@ -285,14 +316,20 @@ func getAccounts() ([]account, error) {
 	return accounts, nil
 }
 
-func enrichWithBackupCode(accounts []account) ([]accountWithBackup, error) {
-	result := make([]accountWithBackup, len(accounts))
-	for i, acc := range accounts {
-		result[i] = accountWithBackup{account: acc}
+func toAccountViews(accounts []account) ([]accountView, error) {
+	result := make([]accountView, 0, len(accounts))
+	for _, acc := range accounts {
 		codes, _ := getBackupCodes(acc.Email)
-		if len(codes) > 0 {
-			result[i].OneBackupCode = codes[0]
-		}
+		result = append(result, accountView{
+			RowIndex:         acc.RowIndex,
+			Email:            acc.Email,
+			Username:         acc.Username,
+			Status:           acc.Status,
+			UserYumna:        acc.UserYumna,
+			PasswordSet:      strings.TrimSpace(acc.Password) != "",
+			Has2FASecret:     strings.TrimSpace(acc.CodeRecovery) != "",
+			BackupCodesCount: len(codes),
+		})
 	}
 	return result, nil
 }
@@ -351,14 +388,17 @@ func deleteBackupCode(code string) (map[string]interface{}, error) {
 }
 
 func addAccount(args map[string]interface{}) (map[string]interface{}, error) {
-	email := args["email"].(string)
-	password := args["password"].(string)
+	email := strings.TrimSpace(args["email"].(string))
 	username := ""
+	password := ""
 	codeRecovery := ""
 	var codes []string
 
 	if u, ok := args["username"].(string); ok {
-		username = u
+		username = strings.TrimSpace(u)
+	}
+	if p, ok := args["password"].(string); ok {
+		password = p
 	}
 	if cr, ok := args["codeRecovery"].(string); ok {
 		codeRecovery = cr
@@ -366,35 +406,96 @@ func addAccount(args map[string]interface{}) (map[string]interface{}, error) {
 	if c, ok := args["codes"].([]interface{}); ok {
 		for _, code := range c {
 			if s, ok := code.(string); ok {
-				codes = append(codes, s)
+				trimmed := strings.TrimSpace(s)
+				if trimmed != "" {
+					codes = append(codes, trimmed)
+				}
 			}
 		}
 	}
 
+	if email == "" {
+		return map[string]interface{}{"success": false, "message": "Email wajib diisi"}, nil
+	}
+
+	return addAccountData(addAccountPayload{
+		Email:        email,
+		Username:     username,
+		Password:     password,
+		CodeRecovery: codeRecovery,
+		Codes:        codes,
+	})
+}
+
+func addAccountFromFile(args map[string]interface{}) (map[string]interface{}, error) {
+	pathRaw := strings.TrimSpace(args["path"].(string))
+	deleteAfter := false
+	if v, ok := args["deleteAfter"].(bool); ok {
+		deleteAfter = v
+	}
+
+	if pathRaw == "" {
+		return map[string]interface{}{"success": false, "message": "Path wajib diisi"}, nil
+	}
+
+	path := filepath.Clean(pathRaw)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return map[string]interface{}{"success": false, "message": fmt.Sprintf("Gagal membaca file: %v", err)}, nil
+	}
+
+	var payload addAccountPayload
+	if err := json.Unmarshal(data, &payload); err != nil {
+		return map[string]interface{}{"success": false, "message": fmt.Sprintf("Format JSON tidak valid: %v", err)}, nil
+	}
+	payload.Email = strings.TrimSpace(payload.Email)
+	payload.Username = strings.TrimSpace(payload.Username)
+
+	if payload.Email == "" {
+		return map[string]interface{}{"success": false, "message": "Field 'email' wajib diisi"}, nil
+	}
+
+	result, err := addAccountData(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	if deleteAfter {
+		_ = os.Remove(path)
+		result["fileDeleted"] = true
+	}
+	result["source"] = "file"
+	result["path"] = path
+	return result, nil
+}
+
+func addAccountData(payload addAccountPayload) (map[string]interface{}, error) {
 	// Check if exists
 	accounts, _ := getAccounts()
 	for _, acc := range accounts {
-		if strings.EqualFold(acc.Email, email) {
-			return map[string]interface{}{"success": false, "message": fmt.Sprintf("Email %s sudah ada", email)}, nil
+		if strings.EqualFold(acc.Email, payload.Email) {
+			return map[string]interface{}{"success": false, "message": fmt.Sprintf("Email %s sudah ada", payload.Email)}, nil
 		}
 	}
 
 	// Add account row
-	row := []interface{}{email, username, password, codeRecovery, "AVAILABLE", ""}
+	row := []interface{}{payload.Email, payload.Username, payload.Password, payload.CodeRecovery, "AVAILABLE", ""}
 	if err := sheetsService.AppendRow(sheetMain, row); err != nil {
 		return nil, err
 	}
 
-	// Add backup codes
-	if len(codes) > 0 {
-		addBackupCodes(email, codes)
+	// Add backup codes (optional)
+	if len(payload.Codes) > 0 {
+		_ = addBackupCodes(payload.Email, payload.Codes)
 	}
 
 	return map[string]interface{}{
-		"success":    true,
-		"message":    fmt.Sprintf("Akun %s berhasil ditambahkan", email),
-		"email":      email,
-		"codesAdded": len(codes),
+		"success":         true,
+		"message":         fmt.Sprintf("Akun %s berhasil ditambahkan", payload.Email),
+		"email":           payload.Email,
+		"codesAdded":      len(payload.Codes),
+		"passwordStored":  strings.TrimSpace(payload.Password) != "",
+		"has2faSecret":    strings.TrimSpace(payload.CodeRecovery) != "",
 	}, nil
 }
 

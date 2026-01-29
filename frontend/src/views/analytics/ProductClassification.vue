@@ -82,11 +82,13 @@
               class="product-card"
             >
               <div class="card-header" :class="activeTab">
-                <span class="action-badge">{{ product.action }}</span>
-                <span class="source-badge">{{ product.source }}</span>
+                <span class="action-badge">{{ product.action_label }}</span>
+                <span class="roas-badge" :class="getRoasClass(product.roas)">
+                  {{ formatRoas(product.roas) }}
+                </span>
               </div>
               <div class="card-body">
-                <h3>{{ product.product_name }}</h3>
+                <h3>{{ truncateName(product.product_name) }}</h3>
                 <div class="metrics">
                   <div class="metric">
                     <span class="label">Cost</span>
@@ -101,22 +103,11 @@
                     }}</span>
                   </div>
                   <div class="metric">
-                    <span class="label">ROAS</span>
-                    <span class="value roas">{{
-                      formatRoas(product.roas)
-                    }}</span>
+                    <span class="label">Orders</span>
+                    <span class="value">{{ product.total_orders || 0 }}</span>
                   </div>
                 </div>
-                <div class="status-row">
-                  <span
-                    class="trend"
-                    :class="product.trend_direction.toLowerCase()"
-                  >
-                    {{ product.trend_direction }}
-                  </span>
-                  <span class="confidence">{{ product.confidence_level }}</span>
-                </div>
-                <p class="action-label">{{ product.action_label }}</p>
+                <p class="recommendation">{{ product.recommendation }}</p>
               </div>
             </div>
           </div>
@@ -168,6 +159,18 @@ const activeProducts = computed(() => {
 
 function getTabCount(key: string): number {
   return actionCounts.value[key as keyof typeof actionCounts.value] || 0;
+}
+
+function getRoasClass(roas: number): string {
+  if (roas >= 5) return "high";
+  if (roas >= 2) return "medium";
+  if (roas >= 1) return "low";
+  return "negative";
+}
+
+function truncateName(name: string): string {
+  if (!name) return "-";
+  return name.length > 60 ? name.substring(0, 60) + "..." : name;
 }
 
 type TabType =

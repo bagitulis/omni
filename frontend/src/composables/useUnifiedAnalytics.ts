@@ -80,7 +80,8 @@ export function useUnifiedAnalytics() {
     error.value = null;
     try {
       const response = await axios.get("/api/analytics/unified/kpi");
-      kpi.value = response.data;
+      // API returns { success: true, data: { ... } }
+      kpi.value = response.data.data || response.data;
     } catch (err: any) {
       error.value = err.response?.data?.error || "Failed to fetch KPI";
     } finally {
@@ -93,7 +94,8 @@ export function useUnifiedAnalytics() {
     error.value = null;
     try {
       const response = await axios.get("/api/analytics/unified/summary");
-      summary.value = response.data;
+      // API returns { success: true, data: { combined, tiktok, shopee } }
+      summary.value = response.data.data || response.data;
     } catch (err: any) {
       error.value = err.response?.data?.error || "Failed to fetch summary";
     } finally {
@@ -106,7 +108,8 @@ export function useUnifiedAnalytics() {
     error.value = null;
     try {
       const response = await axios.get("/api/analytics/products/classified");
-      classifiedProducts.value = response.data;
+      // API returns { success: true, data: { scale_up, maintain, reduce, stop }, counts: {...} }
+      classifiedProducts.value = response.data.data || response.data;
     } catch (err: any) {
       error.value = err.response?.data?.error || "Failed to fetch products";
     } finally {
@@ -117,7 +120,9 @@ export function useUnifiedAnalytics() {
   async function fetchCacheStatus(): Promise<void> {
     try {
       const response = await axios.get("/api/analytics/cache/status");
-      cacheStatus.value = response.data.metadata || [];
+      // API returns { success: true, data: { metadata: [...] } }
+      const data = response.data.data || response.data;
+      cacheStatus.value = data.metadata || [];
     } catch (err: any) {
       console.error("Failed to fetch cache status:", err);
     }

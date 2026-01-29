@@ -55,8 +55,8 @@ Kantor = C:\Users\PC\AppData\Roaming\opencode\antigravity-accounts.json
    - Optimasi performance queries
 
 5. **Container Management**
-   - Jalankan build.bat jika ada masalah container
-   - Gunakan Smart Build (build.py smart) atau Quick Apply
+   - Gunakan Smart Build (build.py smart) atau Quick Apply (Untuk restart masalah Service)
+   - Jangan pernah gunakan full build kecuali USER mengijinkan
    - Tunggu proses build selesai sepenuhnya
 
 **TAHAP 3: EVALUASI**
