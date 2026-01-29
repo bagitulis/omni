@@ -1229,6 +1229,9 @@ scripts/
 - [x] Production deployed (all containers healthy)
 - [x] Production verified (7/7 API tests pass)
 - [x] Frontend accessible (HTTP 200)
+- [x] Sidebar menu updated with new analytics pages
+- [x] Unused files deleted (cleanup)
+- [x] MVs recreated after database restore
 - [x] **SUCCESS = TRUE**
 
 ### Phase 4 Deployment Results (Session 4)
@@ -1260,6 +1263,96 @@ Production API Test Results:
 Frontend: https://yndigital.my.id/ - HTTP 200 OK
 
 *** ALL PHASES COMPLETED - SUCCESS = TRUE ***
+```
+
+### Session 5: Evaluation & Cleanup (2026-01-29)
+
+#### Issues Found & Fixed
+
+1. **Sidebar menu tidak menampilkan 3 menu baru**
+   - Fixed: Added Analytics Hub, Budget Simulator, Product Classification to SidebarMenu.vue
+
+2. **Materialized Views hilang setelah database restore**
+   - Fixed: Re-run `create-analytics-materialized-views.sql`
+   - Created 12 MVs in both tenant schemas
+
+3. **Unused files masih ada**
+   - Deleted: `AdsDashboard.vue` (no route)
+   - Deleted: `MLDashboard.vue` (replaced by MLDashboard/index.vue)
+   - Deleted: `AIReportGallery.vue` (replaced by AIReportGallery/index.vue)
+
+#### Files Modified in Session 5
+
+```
+frontend/src/components/layout/sidebar/SidebarMenu.vue
+  - Added 3 new menu items:
+    * Analytics Hub (/analytics/hub)
+    * Budget Simulator (/analytics/simulator)
+    * Product Classification (/analytics/classification)
+
+frontend/src/views/analytics/
+  - DELETED: AdsDashboard.vue (unused)
+  - DELETED: MLDashboard.vue (old, replaced by folder)
+  - DELETED: AIReportGallery.vue (old, replaced by folder)
+```
+
+#### Final Analytics Menu Structure
+
+| Menu                   | Path                        | Component                 | Status           |
+| ---------------------- | --------------------------- | ------------------------- | ---------------- |
+| Analytics Hub          | `/analytics/hub`            | AnalyticsHub.vue          | **NEW**          |
+| Budget Simulator       | `/analytics/simulator`      | BudgetSimulator.vue       | **NEW**          |
+| Product Classification | `/analytics/classification` | ProductClassification.vue | **NEW**          |
+| ML Dashboard           | `/analytics/ml`             | MLDashboard/index.vue     | EXISTING (split) |
+| Shopee Ads             | `/analytics/shopee-ads`     | ShopeeAdsAnalytics.vue    | EXISTING         |
+| TikTok Ads             | `/analytics/tiktok-ads`     | TiktokAdsAnalytics.vue    | EXISTING         |
+| AI Reports             | `/analytics/ai-reports`     | AIReportGallery/index.vue | EXISTING (split) |
+
+#### Database Objects Created by AI
+
+**Materialized Views (12 total):**
+
+```
+tenant_yumna_bertigamart:
+├── mv_ml_product_analysis
+├── mv_ml_portfolio_summary
+├── mv_tiktok_ads_summary
+├── mv_tiktok_ads_period_summary
+├── mv_shopee_ads_summary
+└── mv_shopee_ads_product_analysis
+
+tenant_tika_nusseyba:
+├── mv_ml_product_analysis
+├── mv_ml_portfolio_summary
+├── mv_tiktok_ads_summary
+├── mv_tiktok_ads_period_summary
+├── mv_shopee_ads_summary
+└── mv_shopee_ads_product_analysis
+```
+
+**Tables (per tenant schema):**
+
+```
+├── analytics_cache_metadata (MV refresh tracking)
+```
+
+#### Final Integration Test (Session 5)
+
+```
+============================================================
+ANALYTICS INTEGRATION TEST
+============================================================
+  [PASS] Login - tenant: yumna_bertigamart
+  [PASS] Unified Summary - ROAS: 7.44x, Revenue: 12.1B, Cost: 1.6B
+  [PASS] Unified KPI - 2711 products, avg ROAS: 7.22x
+  [PASS] Products from Ads - 149 products (TikTok + Shopee)
+  [PASS] Classified Products - scale_up=64, maintain=18, reduce=1, stop=9
+  [PASS] Budget Simulation - Engine working
+  [PASS] Calendar Events - 13 events (payday, twin dates)
+  [PASS] Cache Status - MV metadata available
+
+Total: 7/7 tests passed
+*** ALL TESTS PASSED - SUCCESS = TRUE ***
 ```
 
 ---

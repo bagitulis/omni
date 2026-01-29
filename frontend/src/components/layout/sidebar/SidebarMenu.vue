@@ -163,6 +163,30 @@
       <!-- Submenu untuk Analytics -->
       <div class="submenu" v-if="expandedSections['analytics']">
         <router-link
+          to="/analytics/hub"
+          class="submenu-item"
+          :class="{ active: currentPathIs('/analytics/hub') }"
+        >
+          <span>📊</span>
+          <span>Analytics Hub</span>
+        </router-link>
+        <router-link
+          to="/analytics/simulator"
+          class="submenu-item"
+          :class="{ active: currentPathIs('/analytics/simulator') }"
+        >
+          <span>🎯</span>
+          <span>Budget Simulator</span>
+        </router-link>
+        <router-link
+          to="/analytics/classification"
+          class="submenu-item"
+          :class="{ active: currentPathIs('/analytics/classification') }"
+        >
+          <span>📋</span>
+          <span>Product Classification</span>
+        </router-link>
+        <router-link
           to="/analytics/ml"
           class="submenu-item"
           :class="{ active: currentPathIs('/analytics/ml') }"
