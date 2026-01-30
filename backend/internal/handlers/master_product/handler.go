@@ -7,22 +7,22 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
 	masterProductService "github.com/omni/backend/internal/services/master_product"
 	"github.com/rs/zerolog/log"
-	"gorm.io/gorm"
 )
 
 // Handler handles Master Product HTTP requests
 type Handler struct {
-	service *masterProductService.Service
+	basePath string
 }
 
 // NewHandler creates a new Master Product handler
-func NewHandler(db *gorm.DB) *Handler {
+func NewHandler(basePath string) *Handler {
 	return &Handler{
-		service: masterProductService.NewService(db),
+		basePath: basePath,
 	}
 }
 
@@ -34,6 +34,13 @@ func (h *Handler) List(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
 		return
 	}
+
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+	service := masterProductService.NewService(db)
 
 	// Parse query parameters
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -48,7 +55,7 @@ func (h *Handler) List(c *gin.Context) {
 		Search: search,
 	}
 
-	result, err := h.service.List(c.Request.Context(), tenantID, filter)
+	result, err := service.List(c.Request.Context(), tenantID, filter)
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -80,6 +87,13 @@ func (h *Handler) GetByID(c *gin.Context) {
 		return
 	}
 
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+	service := masterProductService.NewService(db)
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -87,7 +101,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 		return
 	}
 
-	product, err := h.service.GetByID(c.Request.Context(), tenantID, uint(id))
+	product, err := service.GetByID(c.Request.Context(), tenantID, uint(id))
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -120,13 +134,20 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+	service := masterProductService.NewService(db)
+
 	var input masterProductService.CreateInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
 		return
 	}
 
-	product, err := h.service.Create(c.Request.Context(), tenantID, input)
+	product, err := service.Create(c.Request.Context(), tenantID, input)
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -186,6 +207,13 @@ func (h *Handler) Update(c *gin.Context) {
 		return
 	}
 
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+	service := masterProductService.NewService(db)
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -199,7 +227,7 @@ func (h *Handler) Update(c *gin.Context) {
 		return
 	}
 
-	product, err := h.service.Update(c.Request.Context(), tenantID, uint(id), input)
+	product, err := service.Update(c.Request.Context(), tenantID, uint(id), input)
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -254,6 +282,13 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+	service := masterProductService.NewService(db)
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -261,7 +296,7 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 
-	err = h.service.Delete(c.Request.Context(), tenantID, uint(id))
+	err = service.Delete(c.Request.Context(), tenantID, uint(id))
 	if err != nil {
 		log.Error().
 			Err(err).

@@ -4,13 +4,12 @@ import (
 	"github.com/gin-gonic/gin"
 	masterProductHandler "github.com/omni/backend/internal/handlers/master_product"
 	"github.com/omni/backend/internal/middleware"
-	"gorm.io/gorm"
 )
 
 // RegisterMasterProductRoutes registers Master Product API routes
 // Path: /api/master-products
-func RegisterMasterProductRoutes(router *gin.RouterGroup, db *gorm.DB) {
-	handler := masterProductHandler.NewHandler(db)
+func RegisterMasterProductRoutes(router *gin.RouterGroup, basePath string) {
+	handler := masterProductHandler.NewHandler(basePath)
 
 	masterProducts := router.Group("/master-products")
 	masterProducts.Use(middleware.Auth())
@@ -40,8 +39,8 @@ func RegisterMasterProductRoutes(router *gin.RouterGroup, db *gorm.DB) {
 
 // RegisterMasterProductImportRoutes registers import-related routes
 // Path: /api/master-products/import, /api/master-products/mapping
-func RegisterMasterProductImportRoutes(router *gin.RouterGroup, db *gorm.DB, basePath string) {
-	importHandler := masterProductHandler.NewImportHandler(db, basePath)
+func RegisterMasterProductImportRoutes(router *gin.RouterGroup, basePath string) {
+	importHandler := masterProductHandler.NewImportHandler(basePath)
 
 	masterProducts := router.Group("/master-products")
 	masterProducts.Use(middleware.Auth())
@@ -83,8 +82,8 @@ func RegisterMasterProductImportRoutes(router *gin.RouterGroup, db *gorm.DB, bas
 
 // RegisterMasterProductSyncRoutes registers sync-related routes
 // Path: /api/master-products/:id/sync, /api/master-products/:id/sync-status
-func RegisterMasterProductSyncRoutes(router *gin.RouterGroup, db *gorm.DB, basePath string) {
-	syncHandler := masterProductHandler.NewSyncHandler(db, basePath)
+func RegisterMasterProductSyncRoutes(router *gin.RouterGroup, basePath string) {
+	syncHandler := masterProductHandler.NewSyncHandler(basePath)
 
 	masterProducts := router.Group("/master-products")
 	masterProducts.Use(middleware.Auth())

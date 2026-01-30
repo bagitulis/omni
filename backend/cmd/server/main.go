@@ -100,9 +100,9 @@ func main() {
 	routes.RegisterSKUCheckRoutes(api, extHandlers.SKUCheckHandler)
 
 	// Master Product routes (unified product management)
-	routes.RegisterMasterProductRoutes(api, application.SystemDB)
-	routes.RegisterMasterProductImportRoutes(api, application.SystemDB, cfg.DatabasePath)
-	routes.RegisterMasterProductSyncRoutes(api, application.SystemDB, cfg.DatabasePath)
+	routes.RegisterMasterProductRoutes(api, cfg.DatabasePath)
+	routes.RegisterMasterProductImportRoutes(api, cfg.DatabasePath)
+	routes.RegisterMasterProductSyncRoutes(api, cfg.DatabasePath)
 
 	// Settings routes
 	routes.RegisterSettingsRoutes(api, extHandlers.SettingsHandler)

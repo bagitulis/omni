@@ -6,24 +6,22 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
 	masterProductService "github.com/omni/backend/internal/services/master_product"
 	"github.com/rs/zerolog/log"
-	"gorm.io/gorm"
 )
 
 // SyncHandler handles sync-related HTTP requests
 type SyncHandler struct {
-	syncService *masterProductService.SyncService
-	db          *gorm.DB
+	basePath string
 }
 
 // NewSyncHandler creates a new sync handler
-func NewSyncHandler(db *gorm.DB, basePath string) *SyncHandler {
+func NewSyncHandler(basePath string) *SyncHandler {
 	return &SyncHandler{
-		syncService: masterProductService.NewSyncService(db, basePath),
-		db:          db,
+		basePath: basePath,
 	}
 }
 
@@ -40,6 +38,13 @@ func (h *SyncHandler) Sync(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
 		return
 	}
+
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+	syncService := masterProductService.NewSyncService(db, h.basePath)
 
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -70,7 +75,7 @@ func (h *SyncHandler) Sync(c *gin.Context) {
 		return
 	}
 
-	result, err := h.syncService.SyncToPlatform(c.Request.Context(), tenantID, uint(id), req.TargetPlatform)
+	result, err := syncService.SyncToPlatform(c.Request.Context(), tenantID, uint(id), req.TargetPlatform)
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -111,6 +116,13 @@ func (h *SyncHandler) GetSyncStatus(c *gin.Context) {
 		return
 	}
 
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+	syncService := masterProductService.NewSyncService(db, h.basePath)
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -118,7 +130,7 @@ func (h *SyncHandler) GetSyncStatus(c *gin.Context) {
 		return
 	}
 
-	status, err := h.syncService.GetSyncStatus(c.Request.Context(), tenantID, uint(id))
+	status, err := syncService.GetSyncStatus(c.Request.Context(), tenantID, uint(id))
 	if err != nil {
 		log.Error().
 			Err(err).

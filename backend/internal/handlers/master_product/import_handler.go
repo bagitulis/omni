@@ -6,26 +6,22 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
 	masterProductService "github.com/omni/backend/internal/services/master_product"
 	"github.com/rs/zerolog/log"
-	"gorm.io/gorm"
 )
 
 // ImportHandler handles import-related HTTP requests
 type ImportHandler struct {
-	importService *masterProductService.ImportService
-	basePath      string
-	db            *gorm.DB
+	basePath string
 }
 
 // NewImportHandler creates a new import handler
-func NewImportHandler(db *gorm.DB, basePath string) *ImportHandler {
+func NewImportHandler(basePath string) *ImportHandler {
 	return &ImportHandler{
-		importService: masterProductService.NewImportService(db, basePath),
-		basePath:      basePath,
-		db:            db,
+		basePath: basePath,
 	}
 }
 
@@ -37,6 +33,13 @@ func (h *ImportHandler) Preview(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
 		return
 	}
+
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+	importService := masterProductService.NewImportService(db, h.basePath)
 
 	platform := c.Query("platform")
 	itemIDStr := c.Query("item_id")
@@ -58,7 +61,7 @@ func (h *ImportHandler) Preview(c *gin.Context) {
 		return
 	}
 
-	result, err := h.importService.PreviewFromShopee(c.Request.Context(), tenantID, itemID)
+	result, err := importService.PreviewFromShopee(c.Request.Context(), tenantID, itemID)
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -89,6 +92,13 @@ func (h *ImportHandler) Import(c *gin.Context) {
 		return
 	}
 
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+	importService := masterProductService.NewImportService(db, h.basePath)
+
 	var req ImportRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
@@ -107,7 +117,7 @@ func (h *ImportHandler) Import(c *gin.Context) {
 		return
 	}
 
-	result, err := h.importService.ImportFromShopee(c.Request.Context(), tenantID, itemID)
+	result, err := importService.ImportFromShopee(c.Request.Context(), tenantID, itemID)
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -149,6 +159,13 @@ func (h *ImportHandler) GetMappingStatus(c *gin.Context) {
 		return
 	}
 
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+	mapper := masterProductService.NewSkuMapper(db, tenantID)
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -156,7 +173,6 @@ func (h *ImportHandler) GetMappingStatus(c *gin.Context) {
 		return
 	}
 
-	mapper := masterProductService.NewSkuMapper(h.db, tenantID)
 	status, err := mapper.GetMappingStatus(c.Request.Context(), uint(id))
 	if err != nil {
 		log.Error().
@@ -186,13 +202,19 @@ func (h *ImportHandler) AutoMap(c *gin.Context) {
 		return
 	}
 
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+	mapper := masterProductService.NewSkuMapper(db, tenantID)
+
 	var req AutoMapRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
 		return
 	}
 
-	mapper := masterProductService.NewSkuMapper(h.db, tenantID)
 	results, err := mapper.AutoMapBySku(c.Request.Context(), req.SellerSku)
 	if err != nil {
 		log.Error().
@@ -217,14 +239,20 @@ func (h *ImportHandler) ManualLink(c *gin.Context) {
 		return
 	}
 
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+	mapper := masterProductService.NewSkuMapper(db, tenantID)
+
 	var req ManualLinkRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
 		return
 	}
 
-	mapper := masterProductService.NewSkuMapper(h.db, tenantID)
-	err := mapper.ManualLink(c.Request.Context(), req.MasterSkuID, req.Platform, req.PlatformItemID, req.PlatformSkuID)
+	err = mapper.ManualLink(c.Request.Context(), req.MasterSkuID, req.Platform, req.PlatformItemID, req.PlatformSkuID)
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -257,14 +285,20 @@ func (h *ImportHandler) Unlink(c *gin.Context) {
 		return
 	}
 
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+	mapper := masterProductService.NewSkuMapper(db, tenantID)
+
 	var req UnlinkRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
 		return
 	}
 
-	mapper := masterProductService.NewSkuMapper(h.db, tenantID)
-	err := mapper.UnlinkSku(c.Request.Context(), req.MasterSkuID, req.Platform)
+	err = mapper.UnlinkSku(c.Request.Context(), req.MasterSkuID, req.Platform)
 	if err != nil {
 		log.Error().
 			Err(err).
