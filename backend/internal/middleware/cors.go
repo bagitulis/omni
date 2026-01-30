@@ -11,9 +11,9 @@ func CORS() gin.HandlerFunc {
 
 		// Allowed origins
 		allowedOrigins := map[string]bool{
-			"http://localhost:5173":      true,
-			"http://localhost:80":        true,
-			"https://yndigital.my.id":    true,
+			"http://localhost:5173":       true,
+			"http://localhost:80":         true,
+			"https://yndigital.my.id":     true,
 			"https://www.yndigital.my.id": true,
 		}
 
@@ -26,6 +26,12 @@ func CORS() gin.HandlerFunc {
 		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, x-tenant-id, x-csrf-token")
 		c.Header("Access-Control-Allow-Credentials", "true")
 		c.Header("Access-Control-Max-Age", "86400")
+
+		// Security headers (defense-in-depth, also set by nginx)
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("X-Frame-Options", "SAMEORIGIN")
+		c.Header("X-XSS-Protection", "1; mode=block")
+		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
 
 		// Handle preflight
 		if c.Request.Method == "OPTIONS" {

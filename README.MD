@@ -1,7 +1,7 @@
 # 🚨 OMNI - Backend Development Guide (AI Agent Instructions)
 
 **Kantor:** `C:\Users\PC\AppData\Roaming\opencode\antigravity-accounts.json` (Account data - DO NOT COMMIT)
-
+https://github.com/anomalyco/opencode/releases
 **Config:** `C:\Users\PC\.config\opencode\opencode.json` (Plugin & model settings)
 
 > **⚠️ CRITICAL WARNING**

@@ -65,11 +65,12 @@
           to="/admin/dashboard"
           class="btn-admin hidden sm:inline-flex"
           title="Admin Panel"
+          aria-label="Admin Panel"
         >
           ⚙️
         </router-link>
 
-        <button @click="handleLogout" class="btn-logout">
+        <button @click="handleLogout" class="btn-logout" aria-label="Logout">
           <span class="hidden sm:inline">Logout</span>
           <span class="sm:hidden">🚪</span>
         </button>

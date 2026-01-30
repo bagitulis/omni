@@ -5,6 +5,13 @@
       class="token-trigger"
       :class="{ 'has-issues': hasTokenIssues }"
       :title="hasTokenIssues ? 'Some tokens need attention' : 'Token Status'"
+      :aria-label="
+        hasTokenIssues
+          ? 'Token status - some tokens need attention'
+          : 'View token status'
+      "
+      aria-haspopup="true"
+      :aria-expanded="isOpen"
     >
       <span class="token-icon">🔑</span>
       <span v-if="hasTokenIssues" class="issue-indicator">!</span>
@@ -19,6 +26,7 @@
             :disabled="loading"
             class="btn-refresh-all"
             title="Refresh All Tokens"
+            aria-label="Refresh all platform tokens"
           >
             <span :class="{ 'spin-animation': loading }">🔄</span>
             <span class="refresh-text">Refresh</span>
@@ -177,7 +185,7 @@ const getTokenStatusClass = (statusData: any) => {
 };
 
 const getTokenStatus = (
-  statusData: any
+  statusData: any,
 ): "valid" | "expiring" | "expired" | "unknown" => {
   if (!statusData) return "unknown";
   // Check expired - API returns isExpired boolean

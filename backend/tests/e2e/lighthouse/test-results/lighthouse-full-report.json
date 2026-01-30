@@ -1,0 +1,270 @@
+{
+  "test_info": {
+    "start_time": "2026-01-30T15:31:58.0290008+07:00",
+    "end_time": "2026-01-30T15:33:42.8901057+07:00",
+    "duration_ms": 104861,
+    "test_type": "Lighthouse Performance Test",
+    "base_url": "http://localhost:80",
+    "credentials": {
+      "username": "yumna"
+    }
+  },
+  "login_test": {
+    "success": true,
+    "duration_ms": 8650
+  },
+  "page_tests": [
+    {
+      "name": "Dashboard",
+      "path": "/",
+      "url": "http://localhost:80/",
+      "desktop": {
+        "success": true,
+        "duration_ms": 15436530400,
+        "scores": {
+          "performance": 99,
+          "accessibility": 92,
+          "best_practices": 96,
+          "seo": 63
+        },
+        "metrics": {
+          "first_contentful_paint": 671.470125,
+          "largest_contentful_paint": 832.76415,
+          "total_blocking_time": 4,
+          "cumulative_layout_shift": 0,
+          "speed_index": 716.6708186651042,
+          "time_to_interactive": 832.76415
+        },
+        "issues": {
+          "performance": [],
+          "accessibility": [],
+          "best_practices": [],
+          "seo": []
+        }
+      },
+      "mobile": {
+        "success": true,
+        "duration_ms": 14527782100,
+        "scores": {
+          "performance": 84,
+          "accessibility": 92,
+          "best_practices": 96,
+          "seo": 63
+        },
+        "metrics": {
+          "first_contentful_paint": 3029.723875,
+          "largest_contentful_paint": 3644.66865,
+          "total_blocking_time": 34,
+          "cumulative_layout_shift": 0,
+          "speed_index": 3029.723875,
+          "time_to_interactive": 3644.6686500000005
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0.6,
+              "display_value": "3.6 s"
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.49,
+              "display_value": "3.0 s"
+            }
+          ],
+          "accessibility": [],
+          "best_practices": [],
+          "seo": []
+        }
+      }
+    },
+    {
+      "name": "Order Manager",
+      "path": "/order-manager",
+      "url": "http://localhost:80/order-manager",
+      "desktop": {
+        "success": true,
+        "duration_ms": 18237501600,
+        "scores": {
+          "performance": 99,
+          "accessibility": 92,
+          "best_practices": 96,
+          "seo": 63
+        },
+        "metrics": {
+          "first_contentful_paint": 676.4395,
+          "largest_contentful_paint": 844.9274,
+          "total_blocking_time": 12,
+          "cumulative_layout_shift": 0,
+          "speed_index": 755.6522652495897,
+          "time_to_interactive": 844.9274
+        },
+        "issues": {
+          "performance": [],
+          "accessibility": [],
+          "best_practices": [],
+          "seo": []
+        }
+      },
+      "mobile": {
+        "success": true,
+        "duration_ms": 14989520200,
+        "scores": {
+          "performance": 82,
+          "accessibility": 92,
+          "best_practices": 96,
+          "seo": 63
+        },
+        "metrics": {
+          "first_contentful_paint": 3122.1105,
+          "largest_contentful_paint": 3872.1326000000004,
+          "total_blocking_time": 94.5,
+          "cumulative_layout_shift": 0,
+          "speed_index": 3122.1105,
+          "time_to_interactive": 3872.1326000000004
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.46,
+              "display_value": "3.1 s"
+            },
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0.53,
+              "display_value": "3.9 s"
+            },
+            {
+              "id": "interactive",
+              "title": "Time to Interactive",
+              "description": "Time to Interactive is the amount of time it takes for the page to become fully interactive. [Learn more about the Time to Interactive metric](https://developer.chrome.com/docs/lighthouse/performance/interactive/).",
+              "score": 0.89,
+              "display_value": "3.9 s"
+            }
+          ],
+          "accessibility": [],
+          "best_practices": [],
+          "seo": []
+        }
+      }
+    },
+    {
+      "name": "Analytics - Hub",
+      "path": "/analytics/hub",
+      "url": "http://localhost:80/analytics/hub",
+      "desktop": {
+        "success": true,
+        "duration_ms": 17119044400,
+        "scores": {
+          "performance": 99,
+          "accessibility": 92,
+          "best_practices": 96,
+          "seo": 63
+        },
+        "metrics": {
+          "first_contentful_paint": 663.23775,
+          "largest_contentful_paint": 865.8853,
+          "total_blocking_time": 5,
+          "cumulative_layout_shift": 0,
+          "speed_index": 722.9613961653081,
+          "time_to_interactive": 865.8853000000001
+        },
+        "issues": {
+          "performance": [],
+          "accessibility": [],
+          "best_practices": [],
+          "seo": []
+        }
+      },
+      "mobile": {
+        "success": true,
+        "duration_ms": 15876838600,
+        "scores": {
+          "performance": 83,
+          "accessibility": 92,
+          "best_practices": 96,
+          "seo": 63
+        },
+        "metrics": {
+          "first_contentful_paint": 3079.117,
+          "largest_contentful_paint": 3771.3404,
+          "total_blocking_time": 33,
+          "cumulative_layout_shift": 0,
+          "speed_index": 3079.117,
+          "time_to_interactive": 3771.3404
+        },
+        "issues": {
+          "performance": [
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+              "score": 0.56,
+              "display_value": "3.8 s"
+            },
+            {
+              "id": "first-contentful-paint",
+              "title": "First Contentful Paint",
+              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
+              "score": 0.47,
+              "display_value": "3.1 s"
+            }
+          ],
+          "accessibility": [],
+          "best_practices": [],
+          "seo": []
+        }
+      }
+    }
+  ],
+  "summary": {
+    "total_pages": 3,
+    "desktop_avg_performance": 99,
+    "desktop_avg_accessibility": 92,
+    "desktop_avg_best_practices": 96,
+    "desktop_avg_seo": 63,
+    "mobile_avg_performance": 83,
+    "mobile_avg_accessibility": 92,
+    "mobile_avg_best_practices": 96,
+    "mobile_avg_seo": 63,
+    "total_screenshots": 0,
+    "total_duration_ms": 104861
+  },
+  "common_issues": [
+    {
+      "id": "largest-contentful-paint",
+      "title": "Largest Contentful Paint",
+      "category": "performance",
+      "impact": "medium",
+      "occurrences": 3,
+      "affected_pages": [
+        "Dashboard",
+        "Order Manager",
+        "Analytics - Hub"
+      ],
+      "recommendation": "Refer to Lighthouse documentation for details"
+    },
+    {
+      "id": "first-contentful-paint",
+      "title": "First Contentful Paint",
+      "category": "performance",
+      "impact": "high",
+      "occurrences": 3,
+      "affected_pages": [
+        "Dashboard",
+        "Order Manager",
+        "Analytics - Hub"
+      ],
+      "recommendation": "Refer to Lighthouse documentation for details"
+    }
+  ]
+}
