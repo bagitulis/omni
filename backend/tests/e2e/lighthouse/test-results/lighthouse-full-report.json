@@ -1,8 +1,8 @@
 {
   "test_info": {
-    "start_time": "2026-01-30T15:35:48.4799935+07:00",
-    "end_time": "2026-01-30T15:37:36.17538+07:00",
-    "duration_ms": 107695,
+    "start_time": "2026-01-30T22:21:23.9814356+07:00",
+    "end_time": "2026-01-30T22:21:32.1296397+07:00",
+    "duration_ms": 8148,
     "test_type": "Lighthouse Performance Test",
     "base_url": "http://localhost:80",
     "credentials": {
@@ -11,7 +11,7 @@
   },
   "login_test": {
     "success": true,
-    "duration_ms": 9418
+    "duration_ms": 8065
   },
   "page_tests": [
     {
@@ -19,74 +19,54 @@
       "path": "/",
       "url": "http://localhost:80/",
       "desktop": {
-        "success": true,
-        "duration_ms": 17516197400,
+        "success": false,
+        "duration_ms": 11447500,
         "scores": {
-          "performance": 99,
-          "accessibility": 92,
-          "best_practices": 96,
-          "seo": 63
+          "performance": 0,
+          "accessibility": 0,
+          "best_practices": 0,
+          "seo": 0
         },
         "metrics": {
-          "first_contentful_paint": 687.72875,
-          "largest_contentful_paint": 857.8745,
-          "total_blocking_time": 12,
+          "first_contentful_paint": 0,
+          "largest_contentful_paint": 0,
+          "total_blocking_time": 0,
           "cumulative_layout_shift": 0,
-          "speed_index": 776.8699369987265,
-          "time_to_interactive": 857.8745
+          "speed_index": 0,
+          "time_to_interactive": 0
         },
         "issues": {
-          "performance": [],
-          "accessibility": [],
-          "best_practices": [],
-          "seo": []
-        }
+          "performance": null,
+          "accessibility": null,
+          "best_practices": null,
+          "seo": null
+        },
+        "error": "lighthouse command failed: exec: \"lighthouse\": executable file not found in %PATH% - "
       },
       "mobile": {
-        "success": true,
-        "duration_ms": 19436168300,
+        "success": false,
+        "duration_ms": 11661000,
         "scores": {
-          "performance": 82,
-          "accessibility": 92,
-          "best_practices": 96,
-          "seo": 63
+          "performance": 0,
+          "accessibility": 0,
+          "best_practices": 0,
+          "seo": 0
         },
         "metrics": {
-          "first_contentful_paint": 3142.1212500000006,
-          "largest_contentful_paint": 3830.1454999999996,
-          "total_blocking_time": 98,
+          "first_contentful_paint": 0,
+          "largest_contentful_paint": 0,
+          "total_blocking_time": 0,
           "cumulative_layout_shift": 0,
-          "speed_index": 3142.1212500000006,
-          "time_to_interactive": 3830.1454999999996
+          "speed_index": 0,
+          "time_to_interactive": 0
         },
         "issues": {
-          "performance": [
-            {
-              "id": "interactive",
-              "title": "Time to Interactive",
-              "description": "Time to Interactive is the amount of time it takes for the page to become fully interactive. [Learn more about the Time to Interactive metric](https://developer.chrome.com/docs/lighthouse/performance/interactive/).",
-              "score": 0.89,
-              "display_value": "3.8 s"
-            },
-            {
-              "id": "largest-contentful-paint",
-              "title": "Largest Contentful Paint",
-              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
-              "score": 0.54,
-              "display_value": "3.8 s"
-            },
-            {
-              "id": "first-contentful-paint",
-              "title": "First Contentful Paint",
-              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
-              "score": 0.45,
-              "display_value": "3.1 s"
-            }
-          ],
-          "accessibility": [],
-          "best_practices": [],
-          "seo": []
-        }
+          "performance": null,
+          "accessibility": null,
+          "best_practices": null,
+          "seo": null
+        },
+        "error": "lighthouse command failed: exec: \"lighthouse\": executable file not found in %PATH% - "
       }
     },
     {
@@ -94,67 +74,54 @@
       "path": "/order-manager",
       "url": "http://localhost:80/order-manager",
       "desktop": {
-        "success": true,
-        "duration_ms": 15028013800,
+        "success": false,
+        "duration_ms": 11375900,
         "scores": {
-          "performance": 99,
-          "accessibility": 92,
-          "best_practices": 96,
-          "seo": 63
+          "performance": 0,
+          "accessibility": 0,
+          "best_practices": 0,
+          "seo": 0
         },
         "metrics": {
-          "first_contentful_paint": 670.483125,
-          "largest_contentful_paint": 873.77975,
-          "total_blocking_time": 4,
+          "first_contentful_paint": 0,
+          "largest_contentful_paint": 0,
+          "total_blocking_time": 0,
           "cumulative_layout_shift": 0,
-          "speed_index": 729.4383955832534,
-          "time_to_interactive": 873.7797500000001
+          "speed_index": 0,
+          "time_to_interactive": 0
         },
         "issues": {
-          "performance": [],
-          "accessibility": [],
-          "best_practices": [],
-          "seo": []
-        }
+          "performance": null,
+          "accessibility": null,
+          "best_practices": null,
+          "seo": null
+        },
+        "error": "lighthouse command failed: exec: \"lighthouse\": executable file not found in %PATH% - "
       },
       "mobile": {
-        "success": true,
-        "duration_ms": 15100371700,
+        "success": false,
+        "duration_ms": 6819900,
         "scores": {
-          "performance": 84,
-          "accessibility": 92,
-          "best_practices": 96,
-          "seo": 63
+          "performance": 0,
+          "accessibility": 0,
+          "best_practices": 0,
+          "seo": 0
         },
         "metrics": {
-          "first_contentful_paint": 3031.135875,
-          "largest_contentful_paint": 3645.5630499999997,
-          "total_blocking_time": 33.5,
+          "first_contentful_paint": 0,
+          "largest_contentful_paint": 0,
+          "total_blocking_time": 0,
           "cumulative_layout_shift": 0,
-          "speed_index": 3031.135875,
-          "time_to_interactive": 3645.5630499999997
+          "speed_index": 0,
+          "time_to_interactive": 0
         },
         "issues": {
-          "performance": [
-            {
-              "id": "largest-contentful-paint",
-              "title": "Largest Contentful Paint",
-              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
-              "score": 0.59,
-              "display_value": "3.6 s"
-            },
-            {
-              "id": "first-contentful-paint",
-              "title": "First Contentful Paint",
-              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
-              "score": 0.48,
-              "display_value": "3.0 s"
-            }
-          ],
-          "accessibility": [],
-          "best_practices": [],
-          "seo": []
-        }
+          "performance": null,
+          "accessibility": null,
+          "best_practices": null,
+          "seo": null
+        },
+        "error": "lighthouse command failed: exec: \"lighthouse\": executable file not found in %PATH% - "
       }
     },
     {
@@ -162,128 +129,69 @@
       "path": "/analytics/hub",
       "url": "http://localhost:80/analytics/hub",
       "desktop": {
-        "success": true,
-        "duration_ms": 15248787000,
+        "success": false,
+        "duration_ms": 7527200,
         "scores": {
-          "performance": 99,
-          "accessibility": 92,
-          "best_practices": 96,
-          "seo": 63
+          "performance": 0,
+          "accessibility": 0,
+          "best_practices": 0,
+          "seo": 0
         },
         "metrics": {
-          "first_contentful_paint": 690.191375,
-          "largest_contentful_paint": 854.22965,
-          "total_blocking_time": 3,
+          "first_contentful_paint": 0,
+          "largest_contentful_paint": 0,
+          "total_blocking_time": 0,
           "cumulative_layout_shift": 0,
-          "speed_index": 738.0970252501835,
-          "time_to_interactive": 854.22965
+          "speed_index": 0,
+          "time_to_interactive": 0
         },
         "issues": {
-          "performance": [],
-          "accessibility": [],
-          "best_practices": [],
-          "seo": []
-        }
+          "performance": null,
+          "accessibility": null,
+          "best_practices": null,
+          "seo": null
+        },
+        "error": "lighthouse command failed: exec: \"lighthouse\": executable file not found in %PATH% - "
       },
       "mobile": {
-        "success": true,
-        "duration_ms": 15918881600,
+        "success": false,
+        "duration_ms": 8364400,
         "scores": {
-          "performance": 80,
-          "accessibility": 92,
-          "best_practices": 96,
-          "seo": 63
+          "performance": 0,
+          "accessibility": 0,
+          "best_practices": 0,
+          "seo": 0
         },
         "metrics": {
-          "first_contentful_paint": 3161.646375,
-          "largest_contentful_paint": 3951.97565,
-          "total_blocking_time": 135,
+          "first_contentful_paint": 0,
+          "largest_contentful_paint": 0,
+          "total_blocking_time": 0,
           "cumulative_layout_shift": 0,
-          "speed_index": 3161.646375,
-          "time_to_interactive": 3951.97565
+          "speed_index": 0,
+          "time_to_interactive": 0
         },
         "issues": {
-          "performance": [
-            {
-              "id": "largest-contentful-paint",
-              "title": "Largest Contentful Paint",
-              "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
-              "score": 0.51,
-              "display_value": "4.0 s"
-            },
-            {
-              "id": "first-contentful-paint",
-              "title": "First Contentful Paint",
-              "description": "First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).",
-              "score": 0.44,
-              "display_value": "3.2 s"
-            },
-            {
-              "id": "interactive",
-              "title": "Time to Interactive",
-              "description": "Time to Interactive is the amount of time it takes for the page to become fully interactive. [Learn more about the Time to Interactive metric](https://developer.chrome.com/docs/lighthouse/performance/interactive/).",
-              "score": 0.88,
-              "display_value": "4.0 s"
-            }
-          ],
-          "accessibility": [],
-          "best_practices": [],
-          "seo": []
-        }
+          "performance": null,
+          "accessibility": null,
+          "best_practices": null,
+          "seo": null
+        },
+        "error": "lighthouse command failed: exec: \"lighthouse\": executable file not found in %PATH% - "
       }
     }
   ],
   "summary": {
     "total_pages": 3,
-    "desktop_avg_performance": 99,
-    "desktop_avg_accessibility": 92,
-    "desktop_avg_best_practices": 96,
-    "desktop_avg_seo": 63,
-    "mobile_avg_performance": 82,
-    "mobile_avg_accessibility": 92,
-    "mobile_avg_best_practices": 96,
-    "mobile_avg_seo": 63,
+    "desktop_avg_performance": 0,
+    "desktop_avg_accessibility": 0,
+    "desktop_avg_best_practices": 0,
+    "desktop_avg_seo": 0,
+    "mobile_avg_performance": 0,
+    "mobile_avg_accessibility": 0,
+    "mobile_avg_best_practices": 0,
+    "mobile_avg_seo": 0,
     "total_screenshots": 0,
-    "total_duration_ms": 107695
+    "total_duration_ms": 8148
   },
-  "common_issues": [
-    {
-      "id": "interactive",
-      "title": "Time to Interactive",
-      "category": "performance",
-      "impact": "medium",
-      "occurrences": 2,
-      "affected_pages": [
-        "Dashboard",
-        "Analytics - Hub"
-      ],
-      "recommendation": "Refer to Lighthouse documentation for details"
-    },
-    {
-      "id": "largest-contentful-paint",
-      "title": "Largest Contentful Paint",
-      "category": "performance",
-      "impact": "medium",
-      "occurrences": 3,
-      "affected_pages": [
-        "Dashboard",
-        "Order Manager",
-        "Analytics - Hub"
-      ],
-      "recommendation": "Refer to Lighthouse documentation for details"
-    },
-    {
-      "id": "first-contentful-paint",
-      "title": "First Contentful Paint",
-      "category": "performance",
-      "impact": "high",
-      "occurrences": 3,
-      "affected_pages": [
-        "Dashboard",
-        "Order Manager",
-        "Analytics - Hub"
-      ],
-      "recommendation": "Refer to Lighthouse documentation for details"
-    }
-  ]
+  "common_issues": null
 }

@@ -4,6 +4,7 @@ import { ref, computed, Ref } from "vue";
 export interface ExpandedSections {
   "product-manager": boolean;
   "order-manager": boolean;
+  "master-product": boolean;
   settings: boolean;
   "script-monitor": boolean;
   analytics: boolean;
@@ -35,6 +36,7 @@ export const useUIStore = defineStore("ui", () => {
   const expandedSections: Ref<ExpandedSections> = ref({
     "product-manager": false,
     "order-manager": false,
+    "master-product": false,
     settings: false,
     "script-monitor": false,
     analytics: false,
@@ -101,6 +103,8 @@ export const useUIStore = defineStore("ui", () => {
     // Determine which section should be open based on route
     const sectionMap: Record<string, string> = {
       "/product-manager": "product-manager",
+      "/master-products": "master-product",
+      "/inventory": "master-product",
       "/script-monitor": "script-monitor",
       "/settings": "settings",
       "/analytics": "analytics",

@@ -3,6 +3,10 @@
 # Repo sudah private
 # ===========================================
 
+# ⚠️ SENSITIVE: OpenCode accounts (JANGAN COMMIT!)
+opencode-configs/antigravity-accounts.json
+antigravity_accounts_*.json
+
 # Node.js dependencies
 node_modules/
 

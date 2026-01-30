@@ -58,6 +58,11 @@ var tableNameMapping = map[string]string{
 	"Product":    "products",
 	"ProductSKU": "product_skus",
 
+	// Master Products
+	"MasterProduct":             "master_products",
+	"MasterProductSku":          "master_product_skus",
+	"MasterProductPlatformLink": "master_product_platform_links",
+
 	// OAuth
 	"OAuthState": "oauth_states",
 	"OAuthLog":   "oauth_logs",

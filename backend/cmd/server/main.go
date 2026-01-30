@@ -99,6 +99,11 @@ func main() {
 	routes.RegisterStockRoutes(api, extHandlers.StockHandler)
 	routes.RegisterSKUCheckRoutes(api, extHandlers.SKUCheckHandler)
 
+	// Master Product routes (unified product management)
+	routes.RegisterMasterProductRoutes(api, application.SystemDB)
+	routes.RegisterMasterProductImportRoutes(api, application.SystemDB, cfg.DatabasePath)
+	routes.RegisterMasterProductSyncRoutes(api, application.SystemDB, cfg.DatabasePath)
+
 	// Settings routes
 	routes.RegisterSettingsRoutes(api, extHandlers.SettingsHandler)
 	routes.RegisterRouteConfigRoutes(api, extHandlers.RouteConfigHandler)

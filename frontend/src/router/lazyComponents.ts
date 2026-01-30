@@ -62,3 +62,21 @@ export const ProductClassification = () =>
   import(
     /* webpackChunkName: "product-classification" */ "../views/analytics/ProductClassification.vue"
   );
+
+// Master Product views
+export const MasterProductList = () =>
+  import(
+    /* webpackChunkName: "master-product" */ "../views/MasterProduct/ProductList.vue"
+  );
+export const MasterProductAdd = () =>
+  import(
+    /* webpackChunkName: "master-product-add" */ "../views/MasterProduct/ProductAdd.vue"
+  );
+export const MasterProductEdit = () =>
+  import(
+    /* webpackChunkName: "master-product-edit" */ "../views/MasterProduct/ProductEdit.vue"
+  );
+export const MasterProductImport = () =>
+  import(
+    /* webpackChunkName: "master-product-import" */ "../views/MasterProduct/ProductImport.vue"
+  );

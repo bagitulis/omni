@@ -34,15 +34,59 @@
       <span>Order Manager</span>
     </router-link>
 
-    <!-- Inventory -->
-    <router-link
-      to="/inventory"
-      class="menu-item"
-      :class="{ active: isActive('inventory') }"
-    >
-      <span>📦</span>
-      <span>Inventory</span>
-    </router-link>
+    <!-- Master Produk Section -->
+    <div class="menu-section" :class="{ active: isActive('master-product') }">
+      <div
+        class="menu-item parent"
+        @click="$emit('toggle-expand', 'master-product')"
+      >
+        <div class="menu-label-flex">
+          <span>📦</span>
+          <span>Master Produk</span>
+        </div>
+        <span
+          class="expand-icon"
+          :class="{ rotated: expandedSections['master-product'] }"
+          >▼</span
+        >
+      </div>
+
+      <!-- Submenu untuk Master Produk -->
+      <div class="submenu" v-if="expandedSections['master-product']">
+        <router-link
+          to="/master-products"
+          class="submenu-item"
+          :class="{ active: currentPathIs('/master-products') }"
+        >
+          <span>📋</span>
+          <span>Daftar Produk</span>
+        </router-link>
+        <router-link
+          to="/master-products/add"
+          class="submenu-item"
+          :class="{ active: currentPathIs('/master-products/add') }"
+        >
+          <span>➕</span>
+          <span>Tambah Produk</span>
+        </router-link>
+        <router-link
+          to="/master-products/import"
+          class="submenu-item"
+          :class="{ active: currentPathIs('/master-products/import') }"
+        >
+          <span>📥</span>
+          <span>Import Produk</span>
+        </router-link>
+        <router-link
+          to="/inventory"
+          class="submenu-item"
+          :class="{ active: currentPathIs('/inventory') }"
+        >
+          <span>📊</span>
+          <span>Inventory</span>
+        </router-link>
+      </div>
+    </div>
 
     <!-- Route Mapper -->
     <router-link
@@ -264,6 +308,11 @@ export default defineComponent({
           return currentPath.startsWith("/product-manager");
         case "order-manager":
           return currentPath.startsWith("/order-manager");
+        case "master-product":
+          return (
+            currentPath.startsWith("/master-products") ||
+            currentPath === "/inventory"
+          );
         case "inventory":
           return currentPath === "/inventory";
         case "settings":

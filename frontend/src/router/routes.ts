@@ -16,6 +16,10 @@ import {
   AnalyticsHub,
   BudgetSimulator,
   ProductClassification,
+  MasterProductList,
+  MasterProductAdd,
+  MasterProductEdit,
+  MasterProductImport,
 } from "./lazyComponents";
 
 // Auth routes
@@ -249,6 +253,38 @@ export const settingsRoutes: RouteRecordRaw[] = [
   },
 ];
 
+// Master Product routes
+export const masterProductRoutes: RouteRecordRaw[] = [
+  {
+    path: "/master-products",
+    name: "MasterProductList",
+    component: MasterProductList,
+    meta: { section: "master-product", requiresAuth: true },
+  },
+  {
+    path: "/master-products/add",
+    name: "MasterProductAdd",
+    component: MasterProductAdd,
+    meta: { section: "master-product", subsection: "add", requiresAuth: true },
+  },
+  {
+    path: "/master-products/import",
+    name: "MasterProductImport",
+    component: MasterProductImport,
+    meta: {
+      section: "master-product",
+      subsection: "import",
+      requiresAuth: true,
+    },
+  },
+  {
+    path: "/master-products/:id",
+    name: "MasterProductEdit",
+    component: MasterProductEdit,
+    meta: { section: "master-product", subsection: "edit", requiresAuth: true },
+  },
+];
+
 // Core routes
 export const coreRoutes: RouteRecordRaw[] = [
   {
@@ -271,6 +307,7 @@ export const routes: RouteRecordRaw[] = [
   ...authRoutes,
   ...devRoutes,
   ...coreRoutes,
+  ...masterProductRoutes,
   ...productManagerRoutes,
   ...orderManagerRoutes,
   ...scriptMonitorRoutes,
