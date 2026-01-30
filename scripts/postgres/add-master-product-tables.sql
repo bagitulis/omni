@@ -23,7 +23,7 @@ BEGIN
             tenant_id VARCHAR(255) NOT NULL,
             title VARCHAR(120) NOT NULL,
             description TEXT,
-            images JSONB DEFAULT ''[]'',
+            images JSONB DEFAULT ''{}'',
             status VARCHAR(50) DEFAULT ''draft'' CHECK (status IN (''draft'', ''active'', ''archived'')),
             created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
