@@ -134,3 +134,15 @@ func StrictThresholds() ScoreThresholds {
 		SEO:           100,
 	}
 }
+
+// InternalAppThresholds returns thresholds for internal applications
+// SEO is lower because internal apps intentionally use noindex meta tags
+// to prevent search engine indexing (security best practice)
+func InternalAppThresholds() ScoreThresholds {
+	return ScoreThresholds{
+		Performance:   80,
+		Accessibility: 90,
+		BestPractices: 90,
+		SEO:           60, // Expected: noindex causes ~30-40 point penalty
+	}
+}

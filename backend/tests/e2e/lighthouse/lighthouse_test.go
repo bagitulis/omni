@@ -86,13 +86,8 @@ func TestLighthouseQuick(t *testing.T) {
 
 	runner.PrintSummary()
 
-	// Less strict thresholds for quick test
-	thresholds := lighthouse.ScoreThresholds{
-		Performance:   80,
-		Accessibility: 80,
-		BestPractices: 80,
-		SEO:           80,
-	}
+	// Use internal app thresholds (accounts for intentional noindex meta tags)
+	thresholds := lighthouse.InternalAppThresholds()
 	checkThresholds(t, report, thresholds)
 }
 
