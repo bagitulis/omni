@@ -9,35 +9,35 @@ import { useApi } from "./useApi";
 
 const api = useApi();
 
-// Types
+// Types - Using snake_case to match backend API responses
 export interface UploadBatchResult {
   success: boolean;
-  batchId: string;
-  fileName: string;
-  periodStart: string;
-  periodEnd: string;
-  totalRows: number;
-  insertedRows: number;
-  skippedRows: number;
-  updatedRows: number;
+  batch_id: string;
+  file_name: string;
+  period_start: string;
+  period_end: string;
+  total_rows: number;
+  inserted_rows: number;
+  skipped_rows: number;
+  updated_rows: number;
   errors: string[];
 }
 
 export interface DashboardSummary {
-  totalCost: number;
-  totalRevenue: number;
-  totalOrders: number;
-  avgRoi: number;
-  totalImpressions: number;
-  totalClicks: number;
-  avgCtr: number;
-  avgConversionRate: number;
-  topProducts: ProductPerformance[];
-  creativeTypeComparison: CreativeTypeStats[];
+  total_cost: number;
+  total_revenue: number;
+  total_orders: number;
+  avg_roi: number;
+  total_impressions: number;
+  total_clicks: number;
+  avg_ctr: number;
+  avg_conversion_rate: number;
+  top_products: ProductPerformance[];
+  creative_type_comparison: CreativeTypeStats[];
 }
 
 export interface ProductPerformance {
-  productId: string;
+  product_id: string;
   cost: number;
   revenue: number;
   orders: number;
@@ -45,43 +45,43 @@ export interface ProductPerformance {
 }
 
 export interface CreativeTypeStats {
-  creativeType: string;
+  creative_type: string;
   cost: number;
   revenue: number;
   orders: number;
   roi: number;
-  costPerOrder: number;
+  cost_per_order: number;
 }
 
 export interface CreativeData {
   id: number;
-  campaignId: string;
-  campaignName: string;
-  productId: string;
-  creativeType: string;
-  videoTitle: string | null;
+  campaign_id: string;
+  campaign_name: string;
+  product_id: string;
+  creative_type: string;
+  video_title: string | null;
   cost: number;
-  ordersSku: number;
-  grossRevenue: number;
+  orders_sku: number;
+  gross_revenue: number;
   roi: number;
   impressions: number;
   clicks: number;
   ctr: number;
-  conversionRate: number;
-  periodStart: string;
-  periodEnd: string;
+  conversion_rate: number;
+  period_start: string;
+  period_end: string;
 }
 
 export interface UploadBatch {
   id: string;
-  fileName: string;
-  periodStart: string;
-  periodEnd: string;
-  totalRows: number;
-  insertedRows: number;
-  skippedRows: number;
+  file_name: string;
+  period_start: string;
+  period_end: string;
+  total_rows: number;
+  inserted_rows: number;
+  skipped_rows: number;
   status: string;
-  createdAt: string;
+  created_at: string;
 }
 
 export interface UploadResult {

@@ -94,6 +94,8 @@ class DockerManager:
                         ["docker", "info"],
                         capture_output=True,
                         text=True,
+                        encoding='utf-8',
+                        errors='replace',
                         timeout=15,
                     )
                     
@@ -136,6 +138,8 @@ class DockerManager:
                 ["docker", "version", "--format", "{{.Server.Os}}"],
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=10,
             )
             
@@ -148,11 +152,12 @@ class DockerManager:
                     log_warning(f"Docker is in {os_type} mode - should be Linux")
                     return False
             
-            return True  # Assume OK
+            log_warning("Could not determine Docker mode")
+            return False  # Cannot verify = not OK
             
         except Exception as e:
             log_warning(f"Could not verify Docker mode: {e}")
-            return True
+            return False  # Cannot verify = not OK
     
     # === DELEGATE TO SPECIALIZED MANAGERS ===
     
@@ -190,6 +195,8 @@ class DockerManager:
                 cmd,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=60,
                 cwd=str(self.config.project_root),
             )
@@ -219,6 +226,8 @@ class DockerManager:
                 cmd,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=120,
                 cwd=str(self.config.project_root),
             )
@@ -242,6 +251,8 @@ class DockerManager:
                     ["docker", "inspect", "--format", "{{.State.Status}}", container],
                     capture_output=True,
                     text=True,
+                    encoding='utf-8',
+                    errors='replace',
                     timeout=10,
                 )
                 if result.returncode != 0 or result.stdout.strip() != "running":
@@ -262,6 +273,8 @@ class DockerManager:
                 ],
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=10,
             )
             

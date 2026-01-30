@@ -107,6 +107,7 @@ import { ref, onMounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useUIStore } from "@/store/ui";
 import { useAppStore } from "@/store/app";
+import { useUnifiedHeader } from "@/composables/useUnifiedHeader";
 import { useShopeeAdsAnalytics } from "@/composables/useShopeeAdsAnalytics";
 import LeftSidebar from "@/components/layout/LeftSidebar.vue";
 import ShopeeAdsDashboard from "@/components/analytics/ShopeeAdsDashboard.vue";
@@ -118,6 +119,7 @@ const router = useRouter();
 const route = useRoute();
 const uiStore = useUIStore();
 const appStore = useAppStore();
+const { setConnectionStatus } = useUnifiedHeader();
 
 const {
   loading,
@@ -209,8 +211,8 @@ async function handleUpload(file: File, periodLabel: string) {
       success: true,
       message: "Upload successful!",
       details: {
-        processed: result.insertedRows || 0,
-        skipped: result.skippedRows || 0,
+        processed: result.inserted_rows || 0,
+        skipped: result.skipped_rows || 0,
       },
     });
     await fetchDashboard();
@@ -241,6 +243,15 @@ onMounted(async () => {
     fetchUploadHistory(),
   ]);
 });
+
+// Sync connection status to unified header
+watch(
+  () => appStore.connectionStatus,
+  (newStatus) => {
+    setConnectionStatus(newStatus);
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>

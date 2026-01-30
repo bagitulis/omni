@@ -233,10 +233,14 @@ export default {
     });
 
     // Watch for changes to sync with header
-    watch([connectionStatus, loading], () => {
-      unifiedHeader.setConnectionStatus(connectionStatus.value);
-      unifiedHeader.setLoading(loading.value);
-    });
+    watch(
+      [connectionStatus, loading],
+      () => {
+        unifiedHeader.setConnectionStatus(connectionStatus.value);
+        unifiedHeader.setLoading(loading.value);
+      },
+      { immediate: true },
+    );
 
     const handleShowTokenModal = (platform: string) => {
       modalsStore.showModal("token", platform);

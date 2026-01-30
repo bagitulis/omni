@@ -40,3 +40,4 @@ allcode-*.txt
 .vscode/mcp.json
 
 opencode.exe
+backend-node/dist/

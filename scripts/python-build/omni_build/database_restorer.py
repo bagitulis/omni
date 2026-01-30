@@ -24,9 +24,11 @@ class PostgresHealthChecker:
         """Check if PostgreSQL container is running and ready."""
         try:
             result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni"],
+                ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni", "-d", "omni_main"],
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=10,
             )
             return result.returncode == 0
@@ -40,6 +42,8 @@ class PostgresHealthChecker:
                 ["docker", "inspect", "--format", "{{.State.Health.Status}}", "omni-postgres"],
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=10,
             )
             return result.returncode == 0 and result.stdout.strip() == "healthy"
@@ -50,7 +54,7 @@ class PostgresHealthChecker:
         """Quick check if PostgreSQL container is running and responsive."""
         try:
             result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni"],
+                ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni", "-d", "omni_main"],
                 capture_output=True, text=True, timeout=5
             )
             return result.returncode == 0
@@ -65,6 +69,8 @@ class PostgresHealthChecker:
                 ["docker", "start", "omni-postgres"],
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=30,
             )
             if result.returncode == 0:
@@ -84,7 +90,7 @@ class PostgresHealthChecker:
         try:
             result = subprocess.run(
                 ["docker", "inspect", "--format", "{{.State.Status}}", "omni-postgres"],
-                capture_output=True, text=True, timeout=10
+                capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10
             )
             status = result.stdout.strip()
             
@@ -133,6 +139,8 @@ class PostgresHealthChecker:
                      "omni-postgres"],
                     capture_output=True,
                     text=True,
+                    encoding='utf-8',
+                    errors='replace',
                     timeout=10,
                 )
                 
@@ -163,7 +171,7 @@ class PostgresHealthChecker:
                         verify = subprocess.run(
                             ["docker", "exec", "omni-postgres", 
                              "psql", "-U", "omni", "-d", "omni_main", "-c", "SELECT 1"],
-                            capture_output=True, text=True, timeout=10,
+                            capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10,
                         )
                         if verify.returncode == 0:
                             log_success(f"PostgreSQL is ready ({elapsed}s)")
@@ -186,7 +194,7 @@ class PostgresHealthChecker:
                 ["docker-compose", "-f", "docker-compose.tunnel.yml", 
                  "-f", "docker-compose.tunnel.standard.yml",
                  "up", "-d", "postgres"],
-                capture_output=True, text=True, timeout=60,
+                capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=60,
             )
             return result.returncode == 0
         except Exception as e:
@@ -220,7 +228,7 @@ class DatabaseRestorer:
         try:
             result = subprocess.run(
                 ["docker", "inspect", container_name],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10,
             )
             return result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError):

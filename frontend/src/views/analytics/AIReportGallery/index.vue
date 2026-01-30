@@ -130,10 +130,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useUIStore } from "@/store/ui";
 import { useAppStore } from "@/store/app";
+import { useUnifiedHeader } from "@/composables/useUnifiedHeader";
 import { useMLReports } from "@/composables/useMLReports";
 import LeftSidebar from "@/components/layout/LeftSidebar.vue";
 import ReportModal from "./ReportModal.vue";
@@ -141,6 +142,7 @@ import ReportModal from "./ReportModal.vue";
 const router = useRouter();
 const uiStore = useUIStore();
 const appStore = useAppStore();
+const { setConnectionStatus } = useUnifiedHeader();
 
 const {
   loading,
@@ -239,6 +241,15 @@ onMounted(async () => {
 
   await loadReports();
 });
+
+// Sync connection status to unified header
+watch(
+  () => appStore.connectionStatus,
+  (newStatus) => {
+    setConnectionStatus(newStatus);
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>

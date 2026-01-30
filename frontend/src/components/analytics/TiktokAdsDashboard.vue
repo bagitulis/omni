@@ -19,25 +19,25 @@
         <div class="card">
           <div class="card-label">Total Cost</div>
           <div class="card-value cost">
-            {{ formatCurrency(dashboard.totalCost) }}
+            {{ formatCurrency(dashboard.total_cost) }}
           </div>
         </div>
         <div class="card">
           <div class="card-label">Total Revenue</div>
           <div class="card-value revenue">
-            {{ formatCurrency(dashboard.totalRevenue) }}
+            {{ formatCurrency(dashboard.total_revenue) }}
           </div>
         </div>
         <div class="card">
           <div class="card-label">Total Orders</div>
           <div class="card-value">
-            {{ formatNumber(dashboard.totalOrders) }}
+            {{ formatNumber(dashboard.total_orders) }}
           </div>
         </div>
         <div class="card">
           <div class="card-label">Average ROI</div>
-          <div class="card-value" :class="roiClass(dashboard.avgRoi)">
-            {{ formatRoi(dashboard.avgRoi) }}x
+          <div class="card-value" :class="roiClass(dashboard.avg_roi)">
+            {{ formatRoi(dashboard.avg_roi) }}x
           </div>
         </div>
       </div>
@@ -47,23 +47,23 @@
         <div class="card">
           <div class="card-label">Impressions</div>
           <div class="card-value">
-            {{ formatNumber(dashboard.totalImpressions) }}
+            {{ formatNumber(dashboard.total_impressions) }}
           </div>
         </div>
         <div class="card">
           <div class="card-label">Clicks</div>
           <div class="card-value">
-            {{ formatNumber(dashboard.totalClicks) }}
+            {{ formatNumber(dashboard.total_clicks) }}
           </div>
         </div>
         <div class="card">
           <div class="card-label">CTR</div>
-          <div class="card-value">{{ formatPercent(dashboard.avgCtr) }}</div>
+          <div class="card-value">{{ formatPercent(dashboard.avg_ctr) }}</div>
         </div>
         <div class="card">
           <div class="card-label">Conversion Rate</div>
           <div class="card-value">
-            {{ formatPercent(dashboard.avgConversionRate) }}
+            {{ formatPercent(dashboard.avg_conversion_rate) }}
           </div>
         </div>
       </div>
@@ -73,15 +73,15 @@
         <h2>Creative Type Performance</h2>
         <div class="comparison-grid">
           <div
-            v-for="stat in dashboard.creativeTypeComparison"
-            :key="stat.creativeType"
+            v-for="stat in dashboard.creative_type_comparison"
+            :key="stat.creative_type"
             class="comparison-card"
           >
             <div class="type-header">
               <span class="type-icon" aria-hidden="true">{{
-                stat.creativeType === "Video" ? "🎬" : "🖼️"
+                stat.creative_type === "Video" ? "🎬" : "🖼️"
               }}</span>
-              <span class="type-name">{{ stat.creativeType }}</span>
+              <span class="type-name">{{ stat.creative_type }}</span>
             </div>
             <div class="type-metrics">
               <div class="metric">
@@ -105,7 +105,7 @@
               <div class="metric">
                 <span class="metric-label">Cost/Order</span>
                 <span class="metric-value">{{
-                  formatCurrency(stat.costPerOrder)
+                  formatCurrency(stat.cost_per_order)
                 }}</span>
               </div>
             </div>
@@ -130,11 +130,11 @@
             </thead>
             <tbody>
               <tr
-                v-for="(product, index) in dashboard.topProducts"
-                :key="product.productId"
+                v-for="(product, index) in dashboard.top_products"
+                :key="product.product_id"
               >
                 <td>{{ index + 1 }}</td>
-                <td class="product-id">{{ product.productId }}</td>
+                <td class="product-id">{{ product.product_id }}</td>
                 <td>{{ formatCurrency(product.cost) }}</td>
                 <td>{{ formatCurrency(product.revenue) }}</td>
                 <td>{{ formatNumber(product.orders) }}</td>
@@ -163,7 +163,7 @@ const props = defineProps<{
 }>();
 
 const hasData = computed(
-  () => props.dashboard && props.dashboard.totalCost > 0
+  () => props.dashboard && props.dashboard.total_cost > 0,
 );
 
 function formatPercent(value: number): string {

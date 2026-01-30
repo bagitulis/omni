@@ -61,18 +61,18 @@
         <tbody>
           <tr v-for="row in filteredData" :key="row.id">
             <td class="campaign-cell">
-              <div class="campaign-name">{{ row.campaignName }}</div>
-              <div class="campaign-id">{{ row.campaignId }}</div>
+              <div class="campaign-name">{{ row.campaign_name }}</div>
+              <div class="campaign-id">{{ row.campaign_id }}</div>
             </td>
-            <td class="product-id">{{ row.productId }}</td>
+            <td class="product-id">{{ row.product_id }}</td>
             <td>
-              <span class="type-badge" :class="typeClass(row.creativeType)">
-                {{ row.creativeType }}
+              <span class="type-badge" :class="typeClass(row.creative_type)">
+                {{ row.creative_type }}
               </span>
             </td>
             <td>{{ formatCurrency(row.cost) }}</td>
-            <td class="revenue">{{ formatCurrency(row.grossRevenue) }}</td>
-            <td>{{ formatNumber(row.ordersSku) }}</td>
+            <td class="revenue">{{ formatCurrency(row.gross_revenue) }}</td>
+            <td>{{ formatNumber(row.orders_sku) }}</td>
             <td :class="roiClass(row.roi)">{{ formatRoi(row.roi) }}x</td>
             <td>{{ formatPercent(row.ctr) }}</td>
           </tr>
@@ -114,20 +114,20 @@ const filteredData = computed(() => {
 
   // Filter by type
   if (filterType.value) {
-    result = result.filter((r) => r.creativeType === filterType.value);
+    result = result.filter((r) => r.creative_type === filterType.value);
   }
 
   // Sort
   result.sort((a, b) => {
     switch (sortBy.value) {
       case "revenue":
-        return b.grossRevenue - a.grossRevenue;
+        return b.gross_revenue - a.gross_revenue;
       case "cost":
         return b.cost - a.cost;
       case "roi":
         return b.roi - a.roi;
       case "orders":
-        return b.ordersSku - a.ordersSku;
+        return b.orders_sku - a.orders_sku;
       default:
         return 0;
     }

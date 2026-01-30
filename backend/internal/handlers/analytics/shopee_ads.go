@@ -142,7 +142,7 @@ func (h *AdsHandler) GetUploads(c *gin.Context) {
 	var uploads []models.ShopeeAdsUploadBatch
 	db.WithContext(ctx).
 		Where("tenant_id = ?", tenantID).
-		Order("uploaded_at DESC").
+		Order("created_at DESC").
 		Limit(limit).
 		Find(&uploads)
 

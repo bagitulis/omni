@@ -35,7 +35,7 @@ class DatabaseBackup:
         """Check if PostgreSQL is running and ready."""
         try:
             result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni"],
+                ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni", "-d", "omni_main"],
                 capture_output=True, text=True, timeout=10
             )
             return result.returncode == 0

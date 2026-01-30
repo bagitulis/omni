@@ -14,7 +14,7 @@ export interface ReportInfo {
   type: "full" | "executive";
   platform: "shopee" | "tiktok";
   period: string;
-  createdAt: string;
+  created_at: string;
   size: number;
 }
 
@@ -31,7 +31,7 @@ export function useAdsReports() {
       const response = await api.client.get<{
         success: boolean;
         data: ReportInfo[];
-      }>("/reports/shopee/list");
+      }>("/reports/shopee/ads");
       if (response.data?.success) {
         shopeeReports.value = response.data.data;
       }
@@ -50,7 +50,7 @@ export function useAdsReports() {
       const response = await api.client.get<{
         success: boolean;
         data: ReportInfo[];
-      }>("/reports/tiktok/list");
+      }>("/reports/tiktok/ads");
       if (response.data?.success) {
         tiktokReports.value = response.data.data;
       }

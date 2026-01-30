@@ -19,25 +19,25 @@
         <div class="card">
           <div class="card-label">Total Cost</div>
           <div class="card-value cost">
-            {{ formatCurrency(dashboard.totalCost) }}
+            {{ formatCurrency(dashboard.total_cost) }}
           </div>
         </div>
         <div class="card">
           <div class="card-label">Total Revenue</div>
           <div class="card-value revenue">
-            {{ formatCurrency(dashboard.totalRevenue) }}
+            {{ formatCurrency(dashboard.total_revenue) }}
           </div>
         </div>
         <div class="card">
           <div class="card-label">Total Orders</div>
           <div class="card-value">
-            {{ formatNumber(dashboard.totalOrders) }}
+            {{ formatNumber(dashboard.total_orders) }}
           </div>
         </div>
         <div class="card">
           <div class="card-label">Average ROAS</div>
-          <div class="card-value" :class="roasClass(dashboard.avgRoas)">
-            {{ formatRoas(dashboard.avgRoas) }}x
+          <div class="card-value" :class="roasClass(dashboard.avg_roas)">
+            {{ formatRoas(dashboard.avg_roas) }}x
           </div>
         </div>
       </div>
@@ -47,23 +47,23 @@
         <div class="card">
           <div class="card-label">Impressions</div>
           <div class="card-value">
-            {{ formatNumber(dashboard.totalImpressions) }}
+            {{ formatNumber(dashboard.total_impressions) }}
           </div>
         </div>
         <div class="card">
           <div class="card-label">Clicks</div>
           <div class="card-value">
-            {{ formatNumber(dashboard.totalClicks) }}
+            {{ formatNumber(dashboard.total_clicks) }}
           </div>
         </div>
         <div class="card">
           <div class="card-label">CTR</div>
-          <div class="card-value">{{ formatPercent(dashboard.avgCtr) }}</div>
+          <div class="card-value">{{ formatPercent(dashboard.avg_ctr) }}</div>
         </div>
         <div class="card">
           <div class="card-label">Conversion Rate</div>
           <div class="card-value">
-            {{ formatPercent(dashboard.avgConversionRate) }}
+            {{ formatPercent(dashboard.avg_conversion_rate) }}
           </div>
         </div>
       </div>
@@ -73,15 +73,15 @@
         <h2>Bidding Mode Performance</h2>
         <div class="comparison-grid">
           <div
-            v-for="stat in dashboard.biddingModeComparison"
-            :key="stat.biddingMode"
+            v-for="stat in dashboard.bidding_mode_stats"
+            :key="stat.bidding_mode"
             class="comparison-card"
           >
             <div class="type-header">
               <span class="type-icon" aria-hidden="true">{{
-                getBiddingIcon(stat.biddingMode)
+                getBiddingIcon(stat.bidding_mode)
               }}</span>
-              <span class="type-name">{{ stat.biddingMode }}</span>
+              <span class="type-name">{{ stat.bidding_mode }}</span>
             </div>
             <div class="type-metrics">
               <div class="metric">
@@ -105,7 +105,7 @@
               <div class="metric">
                 <span class="metric-label">Products</span>
                 <span class="metric-value">{{
-                  formatNumber(stat.productCount)
+                  formatNumber(stat.product_count || 0)
                 }}</span>
               </div>
             </div>
@@ -130,12 +130,12 @@
             </thead>
             <tbody>
               <tr
-                v-for="(product, index) in dashboard.topProducts"
-                :key="product.productId"
+                v-for="(product, index) in dashboard.top_products"
+                :key="product.product_id"
               >
                 <td>{{ index + 1 }}</td>
                 <td class="product-name">
-                  {{ truncateName(product.productName) }}
+                  {{ truncateName(product.product_name) }}
                 </td>
                 <td>{{ formatCurrency(product.cost) }}</td>
                 <td>{{ formatCurrency(product.revenue) }}</td>
@@ -165,28 +165,32 @@ const props = defineProps<{
 }>();
 
 const hasData = computed(
-  () => props.dashboard && props.dashboard.totalCost > 0,
+  () => props.dashboard && props.dashboard.total_cost > 0,
 );
 
 function formatPercent(value: number): string {
+  if (value == null) return "0.00%";
   return `${(value * 100).toFixed(2)}%`;
 }
 
 function roasClass(roas: number): string {
+  if (roas == null) return "roas-poor";
   if (roas >= 5) return "roas-excellent";
   if (roas >= 2) return "roas-good";
   if (roas >= 1) return "roas-ok";
   return "roas-poor";
 }
 
-function getBiddingIcon(mode: string): string {
+function getBiddingIcon(mode: string | null | undefined): string {
+  if (!mode) return "📊";
   if (mode.includes("GMV")) return "🎯";
   if (mode.includes("Auto")) return "🤖";
   if (mode.includes("Manual")) return "⚙️";
   return "📊";
 }
 
-function truncateName(name: string): string {
+function truncateName(name: string | null | undefined): string {
+  if (!name) return "-";
   return name.length > 40 ? name.substring(0, 40) + "..." : name;
 }
 </script>

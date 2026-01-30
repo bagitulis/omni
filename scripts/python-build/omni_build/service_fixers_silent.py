@@ -17,6 +17,8 @@ def _restart_container(container_name: str, timeout: int = 60) -> bool:
             ["docker", "restart", container_name],
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',
             timeout=timeout,
         )
         if result.returncode == 0:
@@ -39,7 +41,7 @@ class RedisSilentFixer:
         # Try to trigger BGSAVE
         result = subprocess.run(
             ["docker", "exec", "omni-redis", "redis-cli", "BGSAVE"],
-            capture_output=True, text=True, check=False, timeout=30
+            capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=30
         )
         
         if "Background saving started" in result.stdout:
@@ -65,7 +67,7 @@ class RedisSilentFixer:
         # Try MEMORY DOCTOR
         result = subprocess.run(
             ["docker", "exec", "omni-redis", "redis-cli", "MEMORY", "DOCTOR"],
-            capture_output=True, text=True, check=False, timeout=30
+            capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=30
         )
         
         log_info(f"Redis MEMORY DOCTOR: {result.stdout[:200] if result.stdout else 'N/A'}")
@@ -156,7 +158,7 @@ class CloudflaredSilentFixer:
         for container in ["omni-backend", "omni-nginx"]:
             result = subprocess.run(
                 ["docker", "inspect", "--format", "{{.State.Status}}", container],
-                capture_output=True, text=True, check=False, timeout=10
+                capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=10
             )
             if result.returncode != 0 or result.stdout.strip() != "running":
                 log_warning(f"{container} not running, restarting...")
@@ -192,8 +194,8 @@ class PgBouncerSilentFixer:
         
         # Check PostgreSQL health first
         result = subprocess.run(
-            ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni"],
-            capture_output=True, text=True, check=False, timeout=10
+            ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni", "-d", "omni_main"],
+            capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=10
         )
         
         if result.returncode != 0:

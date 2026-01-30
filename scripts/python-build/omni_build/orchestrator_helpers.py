@@ -139,7 +139,7 @@ class OrchestratorHelpers:
         try:
             result = subprocess.run(
                 ["docker", "logs", "--tail", "30", "omni-backend"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10,
             )
             
             if result.returncode != 0:
@@ -176,7 +176,7 @@ class OrchestratorHelpers:
                     ["docker", "inspect", "--format",
                      "{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}",
                      container],
-                    capture_output=True, text=True, timeout=10,
+                    capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10,
                 )
                 
                 if result.returncode != 0:
@@ -220,7 +220,7 @@ class OrchestratorHelpers:
                 try:
                     result = subprocess.run(
                         ["docker", "logs", "--tail", "50", container],
-                        capture_output=True, text=True, timeout=10,
+                        capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10,
                     )
                     if result.returncode == 0:
                         combined += f"=== {service} ===\n{result.stdout}{result.stderr}\n"
@@ -244,7 +244,7 @@ class OrchestratorHelpers:
                 log_info(f"Restarting {service}...")
                 result = subprocess.run(
                     ["docker", "restart", container],
-                    capture_output=True, text=True, timeout=60,
+                    capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=60,
                 )
                 if result.returncode == 0:
                     log_success(f"{service} restarted")

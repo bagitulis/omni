@@ -80,7 +80,8 @@ class DockerBuilder:
                     stderr=subprocess.STDOUT,
                     text=True,
                     bufsize=1,
-                    universal_newlines=True,
+                    encoding='utf-8',
+                    errors='replace',
                     cwd=str(self.config.project_root),
                 )
                 

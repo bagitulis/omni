@@ -58,6 +58,7 @@ import tiktokAnalyticsRouter from "../routes/tiktokAnalyticsRoutes";
 import tiktokAdsRouter from "../routes/tiktokAdsRoutes";
 import shopeeAdsRouter from "../routes/shopeeAdsRoutes";
 import adsReportsRouter from "../routes/adsReportsRoutes";
+import mlAnalyticsRouter from "../routes/mlAnalyticsRoutes";
 import platformAuthRoutes from "../routes/platformAuthRoutes";
 import webhookRoutes from "../routes/webhookRoutes";
 import shopSetupRoutes from "../routes/shopSetupRoutes";
@@ -185,6 +186,7 @@ export function registerRoutes(app: Express): void {
   app.use("/api/analytics/tiktok", tiktokAnalyticsRouter);
   app.use("/api/analytics/tiktok-ads", tiktokAdsRouter);
   app.use("/api/analytics/shopee-ads", shopeeAdsRouter);
+  app.use("/api/analytics/ml", mlAnalyticsRouter);
   app.use("/api/reports", adsReportsRouter);
 
   // System Management

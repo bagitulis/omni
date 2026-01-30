@@ -4,6 +4,8 @@ Build Orchestrator for Omni Build System.
 SRP: This module ONLY handles build orchestration logic.
 Helper methods are in orchestrator_helpers.py.
 """
+import shutil
+import subprocess
 import sys
 import time
 
@@ -240,6 +242,12 @@ class BuildOrchestrator:
         if not self.docker_manager.check_linux_mode():
             warnings.append("Docker not in Linux mode")
         
+        # For FULL mode with restore, clean up postgres data for fresh init
+        if mode == BuildMode.FULL and restore_db:
+            print(f"\n{'='*60}\nSTEP 0: CLEANUP FOR FRESH DATABASE\n{'='*60}\n")
+            sys.stdout.flush()
+            self._cleanup_postgres_data(spec)
+        
         if not skip_frontend:
             print(f"\n{'='*60}\nSTEP 1: FRONTEND BUILD\n{'='*60}\n")
             sys.stdout.flush()
@@ -290,3 +298,54 @@ class BuildOrchestrator:
             errors=["Health verification failed"],
             warnings=warnings,
         )
+    
+    def _cleanup_postgres_data(self, spec: SpecLevel) -> bool:
+        """
+        Clean up PostgreSQL data directory for fresh database initialization.
+        
+        This is called during FULL rebuild with restore to ensure:
+        1. Old corrupted/incompatible data is removed
+        2. Init scripts (init-multi-tenant.sql) run on fresh start
+        3. Database omni_main is created properly
+        """
+        log_warning("Cleaning up PostgreSQL data for fresh init...")
+        
+        # Step 1: Stop all containers
+        log_info("Stopping all containers...")
+        self.docker_manager.stop_containers(spec)
+        
+        # Step 2: Force remove postgres container
+        log_info("Removing PostgreSQL container...")
+        try:
+            subprocess.run(
+                ["docker", "rm", "-f", "omni-postgres"],
+                capture_output=True,
+                check=False,
+                timeout=30,
+            )
+        except Exception as e:
+            log_warning(f"Could not remove postgres container: {e}")
+        
+        # Step 3: Remove postgres data directory
+        postgres_data = self.config.project_root / "data" / "postgres"
+        if postgres_data.exists():
+            log_warning(f"Removing PostgreSQL data directory: {postgres_data}")
+            try:
+                shutil.rmtree(postgres_data, ignore_errors=True)
+                log_success("PostgreSQL data directory removed")
+            except Exception as e:
+                log_error(f"Failed to remove postgres data: {e}")
+                return False
+        else:
+            log_info("PostgreSQL data directory does not exist - fresh start")
+        
+        # Step 4: Recreate empty data directory
+        try:
+            postgres_data.mkdir(parents=True, exist_ok=True)
+            log_info("Created empty PostgreSQL data directory")
+        except Exception as e:
+            log_warning(f"Could not create data directory: {e}")
+        
+        time.sleep(2)
+        log_success("PostgreSQL cleanup completed - ready for fresh init")
+        return True

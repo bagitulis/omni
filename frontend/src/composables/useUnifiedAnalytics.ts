@@ -1,5 +1,5 @@
 import { ref, computed } from "vue";
-import axios from "axios";
+import { useApi } from "./useApi";
 
 export interface KPIData {
   total_products: number;
@@ -54,6 +54,7 @@ export interface CacheStatus {
 }
 
 export function useUnifiedAnalytics() {
+  const api = useApi();
   const loading = ref(false);
   const error = ref<string | null>(null);
 
@@ -79,7 +80,7 @@ export function useUnifiedAnalytics() {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get("/api/analytics/unified/kpi");
+      const response = await api.client.get("/analytics/unified/kpi");
       // API returns { success: true, data: { ... } }
       kpi.value = response.data.data || response.data;
     } catch (err: any) {
@@ -93,7 +94,7 @@ export function useUnifiedAnalytics() {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get("/api/analytics/unified/summary");
+      const response = await api.client.get("/analytics/unified/summary");
       // API returns { success: true, data: { combined, tiktok, shopee } }
       summary.value = response.data.data || response.data;
     } catch (err: any) {
@@ -107,7 +108,7 @@ export function useUnifiedAnalytics() {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get("/api/analytics/products/classified");
+      const response = await api.client.get("/analytics/products/classified");
       // API returns { success: true, data: { scale_up, maintain, reduce, stop }, counts: {...} }
       classifiedProducts.value = response.data.data || response.data;
     } catch (err: any) {
@@ -119,7 +120,7 @@ export function useUnifiedAnalytics() {
 
   async function fetchCacheStatus(): Promise<void> {
     try {
-      const response = await axios.get("/api/analytics/cache/status");
+      const response = await api.client.get("/analytics/cache/status");
       // API returns { success: true, data: { metadata: [...] } }
       const data = response.data.data || response.data;
       cacheStatus.value = data.metadata || [];
@@ -131,7 +132,7 @@ export function useUnifiedAnalytics() {
   async function refreshCache(): Promise<void> {
     loading.value = true;
     try {
-      await axios.post("/api/analytics/cache/refresh");
+      await api.client.post("/analytics/cache/refresh");
       await fetchCacheStatus();
     } catch (err: any) {
       error.value = err.response?.data?.error || "Failed to refresh cache";

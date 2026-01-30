@@ -30,7 +30,7 @@ class DatabaseBackupOps:
         """Quick check if PostgreSQL is responsive."""
         try:
             result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni"],
+                ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni", "-d", "omni_main"],
                 capture_output=True, text=True, timeout=5
             )
             return result.returncode == 0

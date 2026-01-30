@@ -9,39 +9,39 @@ import { useApi } from "./useApi";
 
 const api = useApi();
 
-// Types
+// Types - snake_case to match backend API response (per README convention)
 export interface UploadBatchResult {
   success: boolean;
-  batchId: string;
-  fileName: string;
-  periodStart: string;
-  periodEnd: string;
-  periodLabel: string;
-  totalRows: number;
-  insertedRows: number;
-  skippedRows: number;
-  updatedRows: number;
+  batch_id: string;
+  file_name: string;
+  period_start: string;
+  period_end: string;
+  period_label: string;
+  total_rows: number;
+  inserted_rows: number;
+  skipped_rows: number;
+  updated_rows: number;
   errors: string[];
 }
 
 export interface DashboardSummary {
-  totalCost: number;
-  totalRevenue: number;
-  totalDirectRevenue: number;
-  totalOrders: number;
-  avgRoas: number;
-  avgDirectRoas: number;
-  totalImpressions: number;
-  totalClicks: number;
-  avgCtr: number;
-  avgConversionRate: number;
-  topProducts: ProductPerformance[];
-  biddingModeComparison: BiddingModeStats[];
+  total_cost: number;
+  total_revenue: number;
+  total_direct_revenue: number;
+  total_orders: number;
+  avg_roas: number;
+  avg_direct_roas: number;
+  total_impressions: number;
+  total_clicks: number;
+  avg_ctr: number;
+  avg_conversion_rate: number;
+  top_products: ProductPerformance[];
+  bidding_mode_stats: BiddingModeStats[];
 }
 
 export interface ProductPerformance {
-  productId: string;
-  productName: string;
+  product_id: string;
+  product_name: string;
   cost: number;
   revenue: number;
   orders: number;
@@ -49,41 +49,41 @@ export interface ProductPerformance {
 }
 
 export interface BiddingModeStats {
-  biddingMode: string;
+  bidding_mode: string;
   cost: number;
   revenue: number;
   orders: number;
   roas: number;
-  costPerOrder: number;
-  productCount: number;
+  cost_per_order: number;
+  product_count: number;
 }
 
 export interface ProductData {
   id: number;
-  productId: string;
-  productName: string;
-  biddingMode: string | null;
+  product_id: string;
+  product_name: string;
+  bidding_mode: string | null;
   cost: number;
   revenue: number;
-  directRevenue: number;
+  direct_revenue: number;
   conversions: number;
   roas: number;
-  directRoas: number;
+  direct_roas: number;
   impressions: number;
   clicks: number;
   ctr: number;
-  conversionRate: number;
-  periodStart: string;
-  periodEnd: string;
-  periodLabel: string;
+  conversion_rate: number;
+  period_start: string;
+  period_end: string;
+  period_label: string;
 }
 
 export interface UploadBatch {
   id: string;
   filename: string;
-  periodLabel: string;
-  recordCount: number;
-  uploadedAt: string;
+  period_label: string;
+  record_count: number;
+  uploaded_at: string;
 }
 
 export function useShopeeAdsAnalytics() {

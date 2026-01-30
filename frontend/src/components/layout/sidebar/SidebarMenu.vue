@@ -179,22 +179,6 @@
           <span>Budget Simulator</span>
         </router-link>
         <router-link
-          to="/analytics/classification"
-          class="submenu-item"
-          :class="{ active: currentPathIs('/analytics/classification') }"
-        >
-          <span>📋</span>
-          <span>Product Classification</span>
-        </router-link>
-        <router-link
-          to="/analytics/ml"
-          class="submenu-item"
-          :class="{ active: currentPathIs('/analytics/ml') }"
-        >
-          <span>🧠</span>
-          <span>ML Dashboard</span>
-        </router-link>
-        <router-link
           to="/analytics/shopee-ads"
           class="submenu-item"
           :class="{ active: currentPathIs('/analytics/shopee-ads') }"
@@ -209,14 +193,6 @@
         >
           <span>📈</span>
           <span>TikTok Ads</span>
-        </router-link>
-        <router-link
-          to="/analytics/ai-reports"
-          class="submenu-item"
-          :class="{ active: currentPathIs('/analytics/ai-reports') }"
-        >
-          <span>🤖</span>
-          <span>AI Reports</span>
         </router-link>
       </div>
     </div>

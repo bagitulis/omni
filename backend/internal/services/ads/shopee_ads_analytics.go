@@ -23,7 +23,7 @@ func (s *ShopeeAdsService) GetBatches(ctx context.Context) ([]models.ShopeeAdsUp
 	var batches []models.ShopeeAdsUploadBatch
 	err := s.db.WithContext(ctx).
 		Where("tenant_id = ?", s.tenantID).
-		Order("uploaded_at DESC").
+		Order("created_at DESC").
 		Find(&batches).Error
 	return batches, err
 }

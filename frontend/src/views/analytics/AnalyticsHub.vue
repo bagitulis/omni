@@ -188,16 +188,18 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useUIStore } from "@/store/ui";
 import { useAppStore } from "@/store/app";
+import { useUnifiedHeader } from "@/composables/useUnifiedHeader";
 import { useUnifiedAnalytics } from "@/composables/useUnifiedAnalytics";
 import LeftSidebar from "@/components/layout/LeftSidebar.vue";
 
 const router = useRouter();
 const uiStore = useUIStore();
 const appStore = useAppStore();
+const { setConnectionStatus } = useUnifiedHeader();
 
 const {
   loading,
@@ -237,6 +239,15 @@ onMounted(async () => {
   if (appStore.connectionStatus !== "connected") appStore.initializeApp();
   await fetchAll();
 });
+
+// Sync connection status to unified header
+watch(
+  () => appStore.connectionStatus,
+  (newStatus) => {
+    setConnectionStatus(newStatus);
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>

@@ -54,6 +54,8 @@ class DockerDeployer:
                     cmd,
                     capture_output=True,
                     text=True,
+                    encoding='utf-8',
+                    errors='replace',
                     timeout=self.config.docker_deploy_timeout,
                     cwd=str(self.config.project_root),
                 )
@@ -146,6 +148,8 @@ class DockerDeployer:
                     ["docker", "inspect", "--format", "{{.State.Status}}", container],
                     capture_output=True,
                     text=True,
+                    encoding='utf-8',
+                    errors='replace',
                     timeout=10,
                 )
                 if result.returncode == 0:
@@ -164,6 +168,8 @@ class DockerDeployer:
                 ["docker", "ps", "--filter", "health=unhealthy", "--format", "{{.Names}}"],
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=10,
             )
             if result.returncode == 0 and result.stdout.strip():
@@ -206,6 +212,8 @@ class DockerDeployer:
                          container],
                         capture_output=True,
                         text=True,
+                        encoding='utf-8',
+                        errors='replace',
                         timeout=10,
                     )
                     
@@ -252,6 +260,8 @@ class DockerDeployer:
                  "--format", "  {{.Names}}: {{.Status}}"],
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=10,
             )
             if result.returncode == 0 and result.stdout.strip():
@@ -274,6 +284,8 @@ class DockerDeployer:
                 cmd,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=30,
                 cwd=str(self.config.project_root),
             )

@@ -55,6 +55,8 @@ class HealthChecker:
                 ],
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=10,
             )
             
@@ -289,12 +291,14 @@ class HealthChecker:
                 ["docker", "logs", "--tail", "50", self.config.container_backend],
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=10,
             )
             
             if result.returncode != 0:
-                log_warning("Could not read backend logs")
-                return True  # Assume OK if can't check
+                log_warning("Could not read backend logs - cannot verify DB connection")
+                return False  # Cannot verify = not OK
             
             logs = result.stdout + result.stderr
             
@@ -320,7 +324,7 @@ class HealthChecker:
             
         except Exception as e:
             log_warning(f"Error checking backend logs: {e}")
-            return True  # Assume OK if can't check
+            return False  # Cannot verify = not OK
     
     def wait_for_all_services(self, timeout: Optional[int] = None) -> bool:
         """

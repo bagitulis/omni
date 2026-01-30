@@ -16,7 +16,7 @@ export class LazadaProductController extends ProductControllerBase {
   constructor(
     prisma: PrismaClient,
     apiClient: LazadaAPIClient,
-    configManager: LazadaConfigManager
+    configManager: LazadaConfigManager,
   ) {
     super(prisma);
     this.apiClient = apiClient;
@@ -28,17 +28,24 @@ export class LazadaProductController extends ProductControllerBase {
       this.prisma,
       this.apiClient,
       this.configManager,
-      tenantId
+      tenantId,
     );
   }
 
-  private extractTenantId(req: Request): string {
-    // Extract tenantId from headers, query, or use default
-    return (
-      (req.headers["x-tenant-id"] as string) ||
-      (req.query.tenantId as string) ||
-      "default"
-    );
+  private extractTenantId(req: Request, res: Response): string | null {
+    // Extract tenantId from headers or query
+    const tenantId =
+      (req.headers["x-tenant-id"] as string) || (req.query.tenantId as string);
+
+    if (!tenantId) {
+      res.status(401).json({
+        success: false,
+        error: "Missing tenant_id - authentication required",
+      });
+      return null;
+    }
+
+    return tenantId;
   }
 
   /**
@@ -48,7 +55,9 @@ export class LazadaProductController extends ProductControllerBase {
   async getProducts(req: Request, res: Response): Promise<any> {
     try {
       // Extract tenant ID
-      const tenantId = this.extractTenantId(req);
+      const tenantId = this.extractTenantId(req, res);
+      if (!tenantId) return;
+
       const productService = this.getProductService(tenantId);
 
       // Ensure config is loaded
@@ -76,7 +85,9 @@ export class LazadaProductController extends ProductControllerBase {
    */
   async getMasterProductsFromDb(req: Request, res: Response): Promise<any> {
     try {
-      const tenantId = this.extractTenantId(req);
+      const tenantId = this.extractTenantId(req, res);
+      if (!tenantId) return;
+
       const productService = this.getProductService(tenantId);
 
       const offset = parseInt(req.query.offset as string) || 0;
@@ -153,7 +164,9 @@ export class LazadaProductController extends ProductControllerBase {
    */
   async getProductListFromDb(req: Request, res: Response): Promise<any> {
     try {
-      const tenantId = this.extractTenantId(req);
+      const tenantId = this.extractTenantId(req, res);
+      if (!tenantId) return;
+
       const productService = this.getProductService(tenantId);
 
       const offset = parseInt(req.query.offset as string) || 0;
@@ -176,7 +189,9 @@ export class LazadaProductController extends ProductControllerBase {
    */
   async getProductDetail(req: Request, res: Response): Promise<any> {
     try {
-      const tenantId = this.extractTenantId(req);
+      const tenantId = this.extractTenantId(req, res);
+      if (!tenantId) return;
+
       const productService = this.getProductService(tenantId);
 
       const itemId = req.params.itemId as string;

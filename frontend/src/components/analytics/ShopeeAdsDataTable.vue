@@ -63,13 +63,13 @@
           <tr v-for="row in filteredData" :key="row.id">
             <td class="product-cell">
               <div class="product-name">
-                {{ truncateName(row.productName) }}
+                {{ truncateName(row.product_name) }}
               </div>
-              <div class="product-id">{{ row.productId }}</div>
+              <div class="product-id">{{ row.product_id }}</div>
             </td>
             <td>
-              <span class="mode-badge" :class="modeClass(row.biddingMode)">
-                {{ row.biddingMode || "Unknown" }}
+              <span class="mode-badge" :class="modeClass(row.bidding_mode)">
+                {{ row.bidding_mode || "Unknown" }}
               </span>
             </td>
             <td>{{ formatCurrency(row.cost) }}</td>
@@ -77,7 +77,7 @@
             <td>{{ formatNumber(row.conversions) }}</td>
             <td :class="roasClass(row.roas)">{{ formatRoas(row.roas) }}x</td>
             <td>{{ formatPercent(row.ctr) }}</td>
-            <td class="period">{{ row.periodLabel }}</td>
+            <td class="period">{{ row.period_label }}</td>
           </tr>
         </tbody>
       </table>
@@ -117,7 +117,7 @@ const filteredData = computed(() => {
 
   // Filter by bidding mode
   if (filterMode.value) {
-    result = result.filter((r) => r.biddingMode?.includes(filterMode.value));
+    result = result.filter((r) => r.bidding_mode?.includes(filterMode.value));
   }
 
   // Sort
@@ -162,7 +162,8 @@ function roasClass(roas: number): string {
   return "roas-poor";
 }
 
-function truncateName(name: string): string {
+function truncateName(name: string | null | undefined): string {
+  if (!name) return "-";
   return name.length > 35 ? name.substring(0, 35) + "..." : name;
 }
 </script>

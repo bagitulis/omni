@@ -102,6 +102,7 @@ import { ref, onMounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useUIStore } from "@/store/ui";
 import { useAppStore } from "@/store/app";
+import { useUnifiedHeader } from "@/composables/useUnifiedHeader";
 import { useTiktokAdsAnalytics } from "@/composables/useTiktokAdsAnalytics";
 import LeftSidebar from "@/components/layout/LeftSidebar.vue";
 import TiktokAdsDashboard from "@/components/analytics/TiktokAdsDashboard.vue";
@@ -113,6 +114,7 @@ const router = useRouter();
 const route = useRoute();
 const uiStore = useUIStore();
 const appStore = useAppStore();
+const { setConnectionStatus } = useUnifiedHeader();
 
 const {
   loading,
@@ -232,6 +234,15 @@ onMounted(async () => {
   }
   // insights tab loads its own data via AdsReportViewer
 });
+
+// Sync connection status to unified header
+watch(
+  () => appStore.connectionStatus,
+  (newStatus) => {
+    setConnectionStatus(newStatus);
+  },
+  { immediate: true },
+);
 
 // Watch for tab changes and load data lazily
 watch(activeTab, async (newTab) => {

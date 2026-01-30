@@ -18,6 +18,8 @@ def _restart_container(container_name: str, timeout: int = 60) -> bool:
             ["docker", "restart", container_name],
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',
             timeout=timeout,
         )
         if result.returncode == 0:
@@ -119,6 +121,8 @@ class PostgresFixer:
                     ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni", "-d", "omni_main"],
                     capture_output=True,
                     text=True,
+                    encoding='utf-8',
+                    errors='replace',
                     timeout=10,
                     check=False
                 )
@@ -201,7 +205,7 @@ class PostgresFixer:
         result = subprocess.run(
             ["docker", "exec", "omni-postgres", "psql", "-U", "omni", "-d", "omni_main",
              "-c", "CHECKPOINT;"],
-            capture_output=True, text=True, check=False, timeout=60
+            capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=60
         )
         
         if result.returncode == 0:
@@ -236,7 +240,7 @@ class PostgresFixer:
                 AND state = 'active' 
                 AND pid <> pg_backend_pid();
              """],
-            capture_output=True, text=True, check=False, timeout=30
+            capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=30
         )
         
         if result.returncode == 0:
@@ -261,7 +265,7 @@ class PostgresFixer:
                 AND state_change < NOW() - INTERVAL '5 minutes'
                 AND pid <> pg_backend_pid();
              """],
-            capture_output=True, text=True, check=False, timeout=30
+            capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=30
         )
         
         if result.returncode == 0:

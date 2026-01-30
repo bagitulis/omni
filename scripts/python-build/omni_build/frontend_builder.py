@@ -218,8 +218,8 @@ class FrontendBuilder:
                         log_success(f"Build output verified: {output_dir}")
                         return True
                     else:
-                        log_warning(f"Build succeeded but output not found: {output_dir}")
-                        return True  # Still consider success
+                        log_error(f"Build succeeded but output not found: {output_dir}")
+                        return False  # No output = build failed
                 
                 # Build failed - DETAILED ERROR LOGGING
                 log_error(f"Build failed (attempt {attempt}): {result.returncode}")

@@ -26,6 +26,8 @@ class DockerDesktopManager:
                 ["tasklist", "/FO", "CSV", "/NH"],
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 check=False
             )
             
@@ -73,8 +75,8 @@ class DockerDesktopManager:
                             log_success("Docker Desktop process started")
                             return True
                     
-                    log_warning(f"Docker Desktop process not detected after {max_wait}s")
-                    return True  # Continue anyway
+                    log_warning(f"Docker Desktop process not detected after {max_wait}s - will verify in next step")
+                    return False  # Process not confirmed
                     
                 except Exception as e:
                     log_error(f"Failed to start Docker Desktop: {e}")
@@ -117,6 +119,8 @@ class DockerDesktopManager:
                     ["docker", "info"],
                     capture_output=True,
                     text=True,
+                    encoding='utf-8',
+                    errors='replace',
                     timeout=10,
                 )
                 
@@ -147,6 +151,8 @@ class DockerDesktopManager:
                 ["docker", "info"],
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=10,
             )
             return result.returncode == 0

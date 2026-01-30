@@ -27,6 +27,8 @@ class ServiceFixer:
                 ["docker", "restart", container_name],
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=timeout,
             )
             if result.returncode == 0:
@@ -97,6 +99,8 @@ class NginxFixer(ServiceFixer):
                 ["docker", "inspect", "--format", "{{.State.Status}}", container],
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=10,
                 check=False
             )
@@ -130,6 +134,8 @@ class PgBouncerFixer(ServiceFixer):
             ["docker", "inspect", "--format", "{{.State.Health.Status}}", "omni-postgres"],
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',
             timeout=10,
             check=False
         )
@@ -189,6 +195,8 @@ class BackendFixer(ServiceFixer):
             ["docker", "ps", "--filter", "health=unhealthy", "--format", "{{.Names}}"],
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',
             check=False,
         )
         

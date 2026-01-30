@@ -1,5 +1,7 @@
 import { ref, computed } from "vue";
-import axios from "axios";
+import { useApi } from "./useApi";
+
+const api = useApi();
 
 export interface ProductFromAds {
   product_id: string;
@@ -88,9 +90,11 @@ export function useBudgetSimulation() {
     loadingProducts.value = true;
     error.value = null;
     try {
-      const response = await axios.get("/api/analytics/products/from-ads");
-      // API returns { success: true, data: [...], count: N }
-      products.value = response.data.data || response.data.products || [];
+      const response = await api.client.get<{
+        success: boolean;
+        data: ProductFromAds[];
+      }>("/analytics/products/from-ads");
+      products.value = response.data?.data || [];
     } catch (err: any) {
       error.value = err.response?.data?.error || "Failed to fetch products";
       products.value = [];
@@ -101,12 +105,12 @@ export function useBudgetSimulation() {
 
   async function fetchCalendarEvents(days: number = 30): Promise<void> {
     try {
-      const response = await axios.get(
-        `/api/analytics/intelligence/calendar?days=${days}`,
-      );
-      // API returns { success: true, data: { events: [...], days_ahead: N } }
-      const data = response.data.data || response.data;
-      calendarEvents.value = data.events || [];
+      const response = await api.client.get<{
+        success: boolean;
+        data: { events: CalendarEvent[]; days_ahead: number };
+      }>(`/analytics/intelligence/calendar?days=${days}`);
+      const data = response.data?.data;
+      calendarEvents.value = data?.events || [];
     } catch (err: any) {
       console.error("Failed to fetch calendar events:", err);
       calendarEvents.value = [];
@@ -141,14 +145,16 @@ export function useBudgetSimulation() {
         period_days: periodDays.value,
       };
 
-      const response = await axios.post(
-        "/api/analytics/simulation/calculate",
-        request,
-      );
-      // API returns { success: true, data: { feasibility, ... } }
-      const result = response.data.data || response.data;
-      simulationResult.value = result;
-      return result;
+      const response = await api.client.post<{
+        success: boolean;
+        data: SimulationResult;
+      }>("/analytics/simulation/calculate", request);
+      const result = response.data?.data;
+      if (result) {
+        simulationResult.value = result;
+        return result;
+      }
+      return null;
     } catch (err: any) {
       error.value = err.response?.data?.error || "Simulation failed";
       return null;
