@@ -53,10 +53,10 @@ export function useRouteExecutionConfig() {
       });
 
       if (response.data.success) {
-        // Backend returns executionMode directly, not nested in data
+        // Backend returns execution_mode in snake_case
         return (
-          response.data.executionMode ||
-          response.data.data?.executionMode ||
+          response.data.execution_mode ||
+          response.data.data?.execution_mode ||
           "direct"
         );
       }

@@ -68,18 +68,3 @@ const (
 	PlatformLazada = "lazada"
 	PlatformTiktok = "tiktok"
 )
-
-// ValidPlatforms returns list of valid platforms
-func ValidPlatforms() []string {
-	return []string{PlatformShopee, PlatformLazada, PlatformTiktok}
-}
-
-// IsValidPlatform checks if platform is valid
-func IsValidPlatform(platform string) bool {
-	for _, p := range ValidPlatforms() {
-		if p == platform {
-			return true
-		}
-	}
-	return false
-}

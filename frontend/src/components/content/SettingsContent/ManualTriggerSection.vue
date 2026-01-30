@@ -33,20 +33,20 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="config in configs" :key="config.routeKey">
+          <tr v-for="config in configs" :key="config.route_key">
             <td class="col-icon">{{ config.icon || "📋" }}</td>
             <td class="col-route">
               <div class="route-info">
-                <span class="route-name">{{ config.routeName }}</span>
+                <span class="route-name">{{ config.route_name }}</span>
                 <span class="route-desc">{{ config.description }}</span>
               </div>
             </td>
             <td class="col-mode">
               <select
-                :value="config.executionMode"
-                @change="handleModeChange(config.routeKey, $event)"
+                :value="config.execution_mode"
+                @change="handleModeChange(config.route_key, $event)"
                 class="mode-select"
-                :class="'mode-' + config.executionMode"
+                :class="'mode-' + config.execution_mode"
               >
                 <option value="queue">Queue</option>
                 <option value="direct">Direct</option>
@@ -54,9 +54,9 @@
             </td>
             <td class="col-priority">
               <select
-                v-if="config.executionMode === 'queue'"
+                v-if="config.execution_mode === 'queue'"
                 :value="config.priority"
-                @change="handlePriorityChange(config.routeKey, $event)"
+                @change="handlePriorityChange(config.route_key, $event)"
                 class="priority-select"
                 :class="'priority-' + config.priority"
               >
@@ -75,7 +75,7 @@
                 ✎
               </button>
               <button
-                @click="$emit('delete', config.routeKey)"
+                @click="$emit('delete', config.route_key)"
                 class="btn-icon btn-danger"
                 title="Delete"
               >

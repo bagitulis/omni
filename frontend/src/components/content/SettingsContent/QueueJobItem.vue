@@ -5,7 +5,7 @@
       <div class="queue-title">{{ job.type }}</div>
       <div class="queue-meta">
         <span class="queue-id">{{ job.id.substring(0, 12) }}...</span>
-        <span class="queue-created">{{ formatTime(job.createdAt) }}</span>
+        <span class="queue-created">{{ formatTime(job.created_at) }}</span>
       </div>
     </div>
     <div class="queue-priority">
@@ -97,7 +97,7 @@ defineEmits<{
 }
 
 .queue-id {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 .queue-created::before {
@@ -130,8 +130,13 @@ defineEmits<{
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .btn {

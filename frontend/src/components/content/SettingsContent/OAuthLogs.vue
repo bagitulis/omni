@@ -20,13 +20,13 @@
         </thead>
         <tbody>
           <tr v-for="log in logs" :key="log.id">
-            <td>{{ formatDate(log.createdAt) }}</td>
+            <td>{{ formatDate(log.created_at) }}</td>
             <td>
               <span :class="['platform-badge', log.platform]">
                 {{ log.platform }}
               </span>
             </td>
-            <td>{{ formatEventType(log.eventType) }}</td>
+            <td>{{ formatEventType(log.event_type) }}</td>
             <td>
               <span :class="['status-badge', log.status]">
                 {{ log.status }}
@@ -65,10 +65,10 @@ import { ref } from "vue";
 interface OAuthLog {
   id: string;
   platform: string;
-  eventType: string;
+  event_type: string;
   status: string;
-  createdAt: string;
-  processedAt?: string;
+  created_at: string;
+  processed_at?: string;
   metadata?: Record<string, any>;
 }
 

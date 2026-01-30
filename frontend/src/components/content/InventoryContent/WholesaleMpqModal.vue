@@ -152,23 +152,23 @@ const error = ref("");
 
 // Settings
 const settings = ref<WholesaleSettings>({
-  tenantId: "",
+  tenant_id: "",
   platform: "shopee",
-  adminFee: 1500,
-  minOrder1: 2,
-  maxOrder1: 3,
-  maxOrderTier3: 1000,
+  admin_fee: 1500,
+  min_order_1: 2,
+  max_order_1: 3,
+  max_order_tier_3: 1000,
 });
 
 // Filter items by platform
 const shopeeItems = computed(() =>
-  props.items.filter((i) => i.platform === "shopee")
+  props.items.filter((i) => i.platform === "shopee"),
 );
 const tiktokItems = computed(() =>
-  props.items.filter((i) => i.platform === "tiktok")
+  props.items.filter((i) => i.platform === "tiktok"),
 );
 const lazadaItems = computed(() =>
-  props.items.filter((i) => i.platform === "lazada")
+  props.items.filter((i) => i.platform === "lazada"),
 );
 
 // Load settings on mount
@@ -184,7 +184,7 @@ watch(
       activeTab.value = "wholesale";
       await loadSettings();
     }
-  }
+  },
 );
 
 async function loadSettings() {

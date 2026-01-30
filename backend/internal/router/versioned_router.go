@@ -51,38 +51,3 @@ func (vr *VersionedRouter) V2() *gin.RouterGroup {
 func (vr *VersionedRouter) Legacy() *gin.RouterGroup {
 	return vr.engine.Group("/api")
 }
-
-// DeprecationMiddleware adds deprecation headers for old API versions
-func DeprecationMiddleware(deprecatedVersion APIVersion, sunset string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Header("Deprecation", "true")
-		c.Header("Sunset", sunset)
-		c.Header("Link", "</api/v2>; rel=\"successor-version\"")
-		c.Next()
-	}
-}
-
-// VersionNegotiation middleware for Accept-Version header support
-func VersionNegotiation(defaultVersion APIVersion) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		version := c.GetHeader("Accept-Version")
-		if version == "" {
-			version = c.GetHeader("X-API-Version")
-		}
-		if version == "" {
-			version = string(defaultVersion)
-		}
-
-		c.Set("api_version", version)
-		c.Header("X-API-Version", version)
-		c.Next()
-	}
-}
-
-// GetAPIVersion returns the API version from context
-func GetAPIVersion(c *gin.Context) string {
-	if v, exists := c.Get("api_version"); exists {
-		return v.(string)
-	}
-	return string(V1)
-}

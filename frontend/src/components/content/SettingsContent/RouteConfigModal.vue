@@ -18,7 +18,7 @@
           <div class="form-group">
             <label>Route Key *</label>
             <input
-              v-model="form.routeKey"
+              v-model="form.route_key"
               type="text"
               placeholder="e.g., update_stock"
               :disabled="isEdit"
@@ -30,7 +30,7 @@
           <div class="form-group">
             <label>Route Name *</label>
             <input
-              v-model="form.routeName"
+              v-model="form.route_name"
               type="text"
               placeholder="e.g., Update Stock"
               class="form-input"
@@ -50,7 +50,7 @@
           <div class="form-row">
             <div class="form-group">
               <label>Execution Mode *</label>
-              <select v-model="form.executionMode" class="form-select">
+              <select v-model="form.execution_mode" class="form-select">
                 <option value="queue">Queue</option>
                 <option value="direct">Direct</option>
               </select>
@@ -61,7 +61,7 @@
               <select
                 v-model="form.priority"
                 class="form-select"
-                :disabled="form.executionMode !== 'queue'"
+                :disabled="form.execution_mode !== 'queue'"
               >
                 <option value="high">High</option>
                 <option value="normal">Normal</option>
@@ -128,10 +128,10 @@ const emit = defineEmits<{
 const isSaving = ref(false);
 
 const form = ref({
-  routeKey: "",
-  routeName: "",
+  route_key: "",
+  route_name: "",
   description: "",
-  executionMode: "queue" as "queue" | "direct",
+  execution_mode: "queue" as "queue" | "direct",
   priority: "normal" as "low" | "normal" | "high",
   icon: "📋",
   category: "general",
@@ -140,7 +140,7 @@ const form = ref({
 const isEdit = computed(() => !!props.config);
 
 const isValid = computed(() => {
-  return form.value.routeKey.trim() && form.value.routeName.trim();
+  return form.value.route_key.trim() && form.value.route_name.trim();
 });
 
 watch(
@@ -148,27 +148,27 @@ watch(
   (newConfig) => {
     if (newConfig) {
       form.value = {
-        routeKey: newConfig.routeKey,
-        routeName: newConfig.routeName,
+        route_key: newConfig.route_key,
+        route_name: newConfig.route_name,
         description: newConfig.description || "",
-        executionMode: newConfig.executionMode,
+        execution_mode: newConfig.execution_mode,
         priority: newConfig.priority,
         icon: newConfig.icon || "📋",
         category: newConfig.category || "general",
       };
     } else {
       form.value = {
-        routeKey: "",
-        routeName: "",
+        route_key: "",
+        route_name: "",
         description: "",
-        executionMode: "queue",
+        execution_mode: "queue",
         priority: "normal",
         icon: "📋",
         category: "general",
       };
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 function handleSave() {

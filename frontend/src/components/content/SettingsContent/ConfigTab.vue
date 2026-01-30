@@ -152,7 +152,7 @@ async function handleDeleteRoute(routeKey: string) {
 
 async function handleUpdateMode(routeKey: string, mode: string) {
   await routeConfig.updateConfig(routeKey, {
-    executionMode: mode as "queue" | "direct",
+    execution_mode: mode as "queue" | "direct",
   });
 }
 
@@ -164,7 +164,7 @@ async function handleUpdatePriority(routeKey: string, priority: string) {
 
 async function handleSaveRoute(data: any) {
   if (editingRouteConfig.value) {
-    await routeConfig.updateConfig(editingRouteConfig.value.routeKey, data);
+    await routeConfig.updateConfig(editingRouteConfig.value.route_key, data);
   } else {
     await routeConfig.createConfig(data);
   }

@@ -26,9 +26,9 @@
         :key="record.id"
         :class="`history-${record.status}`"
       >
-        <td class="job-type">{{ record.jobType || "Unknown" }}</td>
-        <td class="job-id" :title="record.jobId">
-          {{ truncateId(record.jobId) }}
+        <td class="job-type">{{ record.job_type || "Unknown" }}</td>
+        <td class="job-id" :title="record.job_id">
+          {{ truncateId(record.job_id) }}
         </td>
         <td>
           <span class="badge" :class="`status-${record.status}`">
@@ -36,18 +36,18 @@
           </span>
         </td>
         <td class="duration">
-          {{ formatDuration(record.durationMs) }}
+          {{ formatDuration(record.duration_ms) }}
         </td>
         <td class="completed-time">
-          {{ formatDateTime(record.completedAt || record.createdAt) }}
+          {{ formatDateTime(record.completed_at || record.created_at) }}
         </td>
         <td class="error-msg">
           <span
-            v-if="record.errorMessage"
+            v-if="record.error_message"
             class="error-text"
-            :title="record.errorMessage"
+            :title="record.error_message"
           >
-            {{ truncateError(record.errorMessage) }}
+            {{ truncateError(record.error_message) }}
           </span>
           <span v-else class="text-muted">-</span>
         </td>

@@ -35,8 +35,8 @@
               />
             </td>
             <td class="cell-path">
-              <span class="path-text" :title="route.routePath">{{
-                route.routePath
+              <span class="path-text" :title="route.route_path">{{
+                route.route_path
               }}</span>
             </td>
             <td>
@@ -50,9 +50,9 @@
             <td>
               <span
                 class="method-badge"
-                :class="`method-${route.routeMethod.toLowerCase()}`"
+                :class="`method-${route.route_method.toLowerCase()}`"
               >
-                {{ route.routeMethod }}
+                {{ route.route_method }}
               </span>
             </td>
             <td>
@@ -64,18 +64,18 @@
               </button>
             </td>
             <td class="cell-cache">
-              <span v-if="route.cachingEnabled" class="cache-enabled"
-                >{{ route.cacheTTL }}s</span
+              <span v-if="route.caching_enabled" class="cache-enabled"
+                >{{ route.cache_ttl }}s</span
               >
               <span v-else class="cache-disabled">Disabled</span>
             </td>
             <td>
-              <span v-if="route.queueEnabled" class="badge badge-success">
-                Max: {{ route.queueMaxSize }}
+              <span v-if="route.queue_enabled" class="badge badge-success">
+                Max: {{ route.queue_max_size }}
               </span>
               <span v-else class="badge badge-danger">Disabled</span>
             </td>
-            <td class="cell-center">{{ route.maxConcurrent }}</td>
+            <td class="cell-center">{{ route.max_concurrent }}</td>
             <td class="cell-center">{{ route.timeout }}ms</td>
             <td class="cell-actions">
               <button

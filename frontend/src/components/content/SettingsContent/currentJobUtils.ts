@@ -1,6 +1,7 @@
 /**
  * Current Job Tab Utilities
  * Formatting and calculation functions for job display
+ * API types use snake_case to match backend JSON response
  */
 
 const JOB_TIMEOUT_MINUTES = 5;
@@ -11,8 +12,8 @@ export interface Job {
   status: string;
   priority: string;
   data: Record<string, any>;
-  startedAt?: Date;
-  createdAt: Date;
+  started_at?: Date;
+  created_at: Date;
 }
 
 /**
@@ -37,10 +38,13 @@ export function formatDateTime(date: Date | string | undefined): string {
 /**
  * Calculate elapsed time duration
  */
-export function calculateDuration(startedAt: Date | string | undefined): string {
-  if (!startedAt) return "-";
+export function calculateDuration(
+  started_at: Date | string | undefined,
+): string {
+  if (!started_at) return "-";
 
-  const start = typeof startedAt === "string" ? new Date(startedAt) : startedAt;
+  const start =
+    typeof started_at === "string" ? new Date(started_at) : started_at;
   const duration = Date.now() - start.getTime();
   const seconds = Math.floor(duration / 1000);
   const minutes = Math.floor(seconds / 60);
@@ -57,35 +61,34 @@ export function calculateDuration(startedAt: Date | string | undefined): string 
 /**
  * Get job duration in minutes (with decimals)
  */
-export function getJobDurationMinutes(startedAt: Date | string | undefined): number {
-  if (!startedAt) return 0;
+export function getJobDurationMinutes(
+  started_at: Date | string | undefined,
+): number {
+  if (!started_at) return 0;
 
-  const startTime = typeof startedAt === "string"
-    ? new Date(startedAt).getTime()
-    : (startedAt as Date).getTime();
+  const startTime =
+    typeof started_at === "string"
+      ? new Date(started_at).getTime()
+      : (started_at as Date).getTime();
 
-  return Math.round((Date.now() - startTime) / (1000 * 60) * 10) / 10;
+  return Math.round(((Date.now() - startTime) / (1000 * 60)) * 10) / 10;
 }
 
 /**
  * Calculate job progress percentage (0-100)
  */
-export function getJobProgressPercent(startedAt: Date | string | undefined): number {
-  if (!startedAt) return 0;
+export function getJobProgressPercent(
+  started_at: Date | string | undefined,
+): number {
+  if (!started_at) return 0;
 
-  const startTime = typeof startedAt === "string"
-    ? new Date(startedAt).getTime()
-    : (startedAt as Date).getTime();
+  const startTime =
+    typeof started_at === "string"
+      ? new Date(started_at).getTime()
+      : (started_at as Date).getTime();
 
   const elapsedMinutes = (Date.now() - startTime) / (1000 * 60);
   const percent = (elapsedMinutes / JOB_TIMEOUT_MINUTES) * 100;
 
   return Math.min(percent, 100);
-}
-
-/**
- * Get job timeout limit in minutes
- */
-export function getJobTimeoutMinutes(): number {
-  return JOB_TIMEOUT_MINUTES;
 }

@@ -44,7 +44,7 @@
       </div>
       <div class="detail-row">
         <span class="label">Started:</span>
-        <span>{{ formatDateTime(job.startedAt) }}</span>
+        <span>{{ formatDateTime(job.started_at) }}</span>
       </div>
       <div class="detail-row">
         <span class="label">Duration:</span>
@@ -101,12 +101,12 @@ defineEmits<{
   "force-cancel": [];
 }>();
 
-const duration = computed(() => calculateDuration(props.job.startedAt));
+const duration = computed(() => calculateDuration(props.job.started_at));
 const durationMinutes = computed(() =>
-  getJobDurationMinutes(props.job.startedAt)
+  getJobDurationMinutes(props.job.started_at),
 );
 const progressPercent = computed(() =>
-  getJobProgressPercent(props.job.startedAt)
+  getJobProgressPercent(props.job.started_at),
 );
 </script>
 

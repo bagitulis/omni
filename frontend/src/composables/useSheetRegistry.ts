@@ -8,7 +8,10 @@ import type { SpreadsheetData, RegistryState } from "@/types/sheetRegistry";
 import * as sheetApi from "@/services/sheetRegistryApi";
 
 // Re-export types for backwards compatibility
-export type { SpreadsheetData, RegistrationResult } from "@/types/sheetRegistry";
+export type {
+  SpreadsheetData,
+  RegistrationResult,
+} from "@/types/sheetRegistry";
 
 // Shared reactive state
 const state = reactive<RegistryState>({
@@ -29,7 +32,7 @@ const selectedSheet = computed(() => state.selectedSheet);
  * Wrapper to handle loading state and errors
  */
 async function withLoadingState<T>(
-  operation: () => Promise<T>
+  operation: () => Promise<T>,
 ): Promise<T | null> {
   state.loading = true;
   state.error = null;
@@ -49,7 +52,7 @@ async function withLoadingState<T>(
  */
 async function registerSheet(
   url: string,
-  purpose: string
+  purpose: string,
 ): Promise<SpreadsheetData | null> {
   return withLoadingState(async () => {
     const data = await sheetApi.registerSheet(url, purpose);
@@ -112,13 +115,13 @@ async function unlockSheet(id: string): Promise<boolean> {
 /**
  * Helper to update lock state in local state
  */
-function updateSheetLockState(id: string, isLocked: boolean): void {
+function updateSheetLockState(id: string, locked: boolean): void {
   const sheet = state.sheets.find((s) => s.id === id);
   if (sheet) {
-    sheet.isLocked = isLocked;
+    sheet.is_locked = locked;
   }
   if (state.selectedSheet?.id === id) {
-    state.selectedSheet.isLocked = isLocked;
+    state.selectedSheet.is_locked = locked;
   }
 }
 
@@ -144,7 +147,7 @@ async function deleteSheet(id: string): Promise<boolean> {
  */
 async function exportInventoryToSheet(
   sheetId: string,
-  data: Record<string, any>[]
+  data: Record<string, any>[],
 ): Promise<boolean> {
   const result = await withLoadingState(async () => {
     return sheetApi.exportInventoryToSheet(sheetId, data);
@@ -157,7 +160,7 @@ async function exportInventoryToSheet(
  */
 async function importInventoryFromSheet(
   sheetId: string,
-  sheetName?: string
+  sheetName?: string,
 ): Promise<Record<string, any>[] | null> {
   return withLoadingState(async () => {
     return sheetApi.importInventoryFromSheet(sheetId, sheetName);

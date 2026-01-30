@@ -5,6 +5,7 @@ import axios from "axios";
  * Route Cache Manager
  * Manage frontend caching dengan smart invalidation
  * Single Responsibility: Cache management & validation
+ * API types use snake_case to match backend JSON response
  */
 
 interface CacheConfig {
@@ -22,30 +23,31 @@ interface CacheEntry<T> {
   version: string | null; // ETag/version for smart invalidation
 }
 
+// API Response type - snake_case to match backend
 interface RouteConfig {
   id?: string;
-  routePath: string;
-  routeMethod: string;
-  routeName?: string;
+  route_path: string;
+  route_method: string;
+  route_name?: string;
   description?: string;
   category?: string;
   enabled: boolean;
-  cachingEnabled: boolean;
-  cacheTTL: number;
-  cacheStrategy: string;
-  queueEnabled: boolean;
-  queueMaxSize: number;
-  queuePriority: string;
-  maxConcurrent: number;
-  rateLimitEnabled: boolean;
-  rateLimitWindow: number;
-  rateLimitMax: number;
-  minIntervalMs: number;
+  caching_enabled: boolean;
+  cache_ttl: number;
+  cache_strategy: string;
+  queue_enabled: boolean;
+  queue_max_size: number;
+  queue_priority: string;
+  max_concurrent: number;
+  rate_limit_enabled: boolean;
+  rate_limit_window: number;
+  rate_limit_max: number;
+  min_interval_ms: number;
   timeout: number;
-  retryEnabled: boolean;
-  maxRetries: number;
-  retryDelayMs: number;
-  customConfig?: string;
+  retry_enabled: boolean;
+  max_retries: number;
+  retry_delay_ms: number;
+  custom_config?: string;
 }
 
 const CACHE_STORAGE_KEY = "route_configs_cache";
@@ -90,7 +92,7 @@ export function useRouteCacheManager() {
   const saveCacheConfig = (): void => {
     localStorage.setItem(
       CACHE_CONFIG_STORAGE_KEY,
-      JSON.stringify(cacheConfig.value)
+      JSON.stringify(cacheConfig.value),
     );
   };
 
@@ -218,7 +220,7 @@ export function useRouteCacheManager() {
       // Retry logic
       if (retryCount < cacheConfig.value.maxRetries) {
         await new Promise(
-          (resolve) => setTimeout(resolve, Math.pow(2, retryCount) * 1000) // Exponential backoff
+          (resolve) => setTimeout(resolve, Math.pow(2, retryCount) * 1000), // Exponential backoff
         );
         return fetchWithRetry(url, retryCount + 1);
       }

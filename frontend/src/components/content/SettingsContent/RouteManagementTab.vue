@@ -118,11 +118,13 @@ const showAddModal = ref(false);
 const filteredRoutes = computed(() => {
   return logic.allRoutes.value.filter((route) => {
     const matchesSearch =
-      route.routePath.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      route.route_path
+        .toLowerCase()
+        .includes(searchQuery.value.toLowerCase()) ||
       route.description
         ?.toLowerCase()
         .includes(searchQuery.value.toLowerCase()) ||
-      route.routeName?.toLowerCase().includes(searchQuery.value.toLowerCase());
+      route.route_name?.toLowerCase().includes(searchQuery.value.toLowerCase());
     const matchesCategory =
       !selectedCategory.value || route.category === selectedCategory.value;
     return matchesSearch && matchesCategory;

@@ -1,6 +1,7 @@
 /**
  * TikTok Analytics CSV Export Utils
  * CSV export functionality for TikTok analytics
+ * API types use snake_case to match backend JSON response
  */
 
 import type {
@@ -21,7 +22,7 @@ export function downloadCSV(rows: string[][], filename: string) {
 export function exportPriceToCSV(
   result: TiktokReconciliationResult,
   year: number,
-  month: number
+  month: number,
 ) {
   const rows: string[][] = [
     [
@@ -33,15 +34,15 @@ export function exportPriceToCSV(
       "Qty",
     ],
   ];
-  result.skuGroups.forEach((sku) =>
+  result.sku_groups.forEach((sku) =>
     rows.push([
       sku.status,
-      sku.sellerSku || sku.sku,
-      `"${sku.productName.replace(/"/g, '""')}"`,
-      String(sku.inventoryPrice || 0),
-      String(sku.expectedIncome || 0),
-      String(sku.totalTransactions),
-    ])
+      sku.seller_sku || sku.sku,
+      `"${sku.product_name.replace(/"/g, '""')}"`,
+      String(sku.inventory_price || 0),
+      String(sku.expected_income || 0),
+      String(sku.total_transactions),
+    ]),
   );
   downloadCSV(rows, `tiktok-price-${year}-${month + 1}.csv`);
 }
@@ -49,7 +50,7 @@ export function exportPriceToCSV(
 export function exportShippingToCSV(
   result: TiktokShippingFeeResult,
   year: number,
-  month: number
+  month: number,
 ) {
   const rows: string[][] = [
     [
@@ -64,14 +65,14 @@ export function exportShippingToCSV(
   ];
   result.orders.forEach((o) =>
     rows.push([
-      o.orderDate || "",
-      o.orderId,
-      String(o.buyerPaid),
-      String(o.actualFee),
-      String(o.platformDiscount),
+      o.order_date || "",
+      o.order_id,
+      String(o.buyer_paid),
+      String(o.actual_fee),
+      String(o.platform_discount),
       String(o.difference),
-      o.orderStatus || "",
-    ])
+      o.order_status || "",
+    ]),
   );
   downloadCSV(rows, `tiktok-shipping-${year}-${month + 1}.csv`);
 }

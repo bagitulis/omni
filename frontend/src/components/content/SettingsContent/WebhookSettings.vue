@@ -117,28 +117,28 @@ const platformStatus = ref({
   lazada: { connected: false, expiresAt: null as string | null },
 });
 
-// Webhook logs
+// Webhook logs - snake_case to match backend API response
 interface LogEntry {
   id: string;
   platform: string;
-  eventType: string | null;
-  createdAt: string; // API returns createdAt
-  status: string; // API returns status ("processed", "pending", etc)
+  event_type: string | null;
+  created_at: string;
+  status: string;
 }
 const webhookLogs = ref<LogEntry[]>([]);
 const logsLoading = ref(false);
 
-// OAuth logs
-interface OAuthLogEntry {
+// OAuth logs - snake_case to match backend API response
+interface OAuthLog {
   id: string;
   platform: string;
-  eventType: string;
+  event_type: string;
   status: string;
-  createdAt: string;
-  processedAt?: string;
+  created_at: string;
+  processed_at?: string;
   metadata?: Record<string, any>;
 }
-const oauthLogs = ref<OAuthLogEntry[]>([]);
+const oauthLogs = ref<OAuthLog[]>([]);
 const oauthLogsLoading = ref(false);
 
 // Toast
@@ -176,7 +176,7 @@ async function fetchWebhookLogs() {
     ) {
       showToast(
         response.error || "Invalid tenant. Please login again.",
-        "error"
+        "error",
       );
     }
   } catch (error: any) {

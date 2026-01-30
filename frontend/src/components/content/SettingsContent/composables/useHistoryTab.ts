@@ -1,16 +1,20 @@
 import { ref, computed, watch, type Ref, type ComputedRef } from "vue";
 import apiClient from "@/services/api";
 
+/**
+ * Job History Types
+ * API types use snake_case to match backend JSON response
+ */
 export interface JobHistory {
   id: number;
-  jobId: string;
-  jobType?: string;
+  job_id: string;
+  job_type?: string;
   status: string;
-  durationMs?: number;
-  errorMessage?: string;
-  createdAt: Date;
-  startedAt?: Date;
-  completedAt?: Date;
+  duration_ms?: number;
+  error_message?: string;
+  created_at: Date;
+  started_at?: Date;
+  completed_at?: Date;
 }
 
 export interface HistoryFilters {
@@ -90,7 +94,7 @@ export function useHistoryTab(activeTabRef: Ref<string>): UseHistoryTabReturn {
   const paginationEnd = computed(() => {
     return Math.min(
       currentPage.value * filters.value.pageSize,
-      totalItems.value
+      totalItems.value,
     );
   });
 
@@ -141,7 +145,7 @@ export function useHistoryTab(activeTabRef: Ref<string>): UseHistoryTabReturn {
       }
 
       const response = await apiClient.client.get(
-        `/jobs/history-paginated?${params}`
+        `/jobs/history-paginated?${params}`,
       );
 
       if (response.data.success) {

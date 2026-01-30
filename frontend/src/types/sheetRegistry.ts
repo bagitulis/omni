@@ -1,39 +1,43 @@
 /**
  * Sheet Registry Types
  * Interfaces for Google Sheets Registry operations
+ * API types use snake_case to match backend JSON response
  */
 
 export interface SpreadsheetData {
   id: string;
-  spreadsheetId: string;
-  spreadsheetName: string;
-  spreadsheetUrl: string;
+  spreadsheet_id: string;
+  spreadsheet_name: string;
+  spreadsheet_url: string;
   sheets: SheetInfo[];
-  registeredBy: string;
-  registeredAt: string;
-  lastUsedAt?: string;
-  isLocked: boolean;
-  editingLockedUntil?: string;
-  lastModifiedBy?: string;
+  registered_by: string;
+  registered_at: string;
+  last_used_at?: string;
+  is_locked: boolean;
+  locked_by?: string;
+  locked_at?: string;
   purpose: string;
-  syncSettings: SyncSettings;
+  sync_settings: SyncSettings;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface SheetInfo {
   name: string;
-  sheetId: number;
-  columnCount: number;
-  rowCount: number;
+  sheet_id: number;
+  column_count: number;
+  row_count: number;
 }
 
 export interface SyncSettings {
-  autoSync: boolean;
-  syncInterval: number;
+  auto_sync: boolean;
+  sync_interval: number;
 }
 
 export interface RegistrationResult {
-  spreadsheetId: string;
-  spreadsheetName: string;
+  spreadsheet_id: string;
+  spreadsheet_name: string;
   sheets: SheetInfo[];
 }
 
@@ -52,7 +56,7 @@ export interface ApiResponse<T> {
 }
 
 export interface SyncStatusData {
-  lastSync: string;
+  last_sync: string;
   status: string;
   changes: number;
 }

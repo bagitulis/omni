@@ -19,7 +19,7 @@
         </thead>
         <tbody>
           <tr v-for="log in logs" :key="log.id">
-            <td>{{ formatDate(log.createdAt) }}</td>
+            <td>{{ formatDate(log.created_at) }}</td>
             <td>
               <span :class="['platform-badge', log.platform]">
                 {{ log.platform }}
@@ -30,12 +30,12 @@
                 class="event-type"
                 :style="{
                   borderLeftColor: getEventCategoryColor(
-                    log.eventType,
+                    log.event_type,
                     log.platform,
                   ),
                 }"
               >
-                {{ getEventDisplay(log.eventType, log.platform) }}
+                {{ getEventDisplay(log.event_type, log.platform) }}
               </span>
             </td>
             <td>
@@ -65,9 +65,9 @@ import { formatEventType, getCategoryColor } from "@/constants/shopeePushCodes";
 interface LogEntry {
   id: string;
   platform: string;
-  eventType: string | null;
-  createdAt: string; // API returns createdAt
-  status: string; // API returns status ("processed", "pending", etc)
+  event_type: string | null;
+  created_at: string;
+  status: string;
 }
 
 defineProps<{
