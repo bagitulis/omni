@@ -5,6 +5,7 @@ import (
 	"github.com/omni/backend/internal/handlers"
 	"github.com/omni/backend/internal/handlers/analytics"
 	"github.com/omni/backend/internal/middleware"
+	"github.com/omni/backend/internal/services/cache"
 )
 
 // RegisterTiktokAnalyticsRoutes registers TikTok analytics routes
@@ -106,8 +107,8 @@ func RegisterTiktokAdsAnalyticsRoutes(router *gin.RouterGroup, basePath string) 
 
 // RegisterMLAnalyticsRoutes registers ML analytics routes
 // Maps to /api/analytics/ml/* (new ML-powered analytics)
-func RegisterMLAnalyticsRoutes(router *gin.RouterGroup) {
-	handler := analytics.NewMLHandler()
+func RegisterMLAnalyticsRoutes(router *gin.RouterGroup, appCache cache.CacheManager) {
+	handler := analytics.NewMLHandler(appCache)
 	ml := router.Group("/analytics/ml")
 	ml.Use(middleware.Auth())
 	ml.Use(middleware.Tenant())
@@ -164,8 +165,8 @@ func RegisterSimulationRoutes(router *gin.RouterGroup, basePath string) {
 
 // RegisterUnifiedAnalyticsRoutes registers unified analytics routes
 // Maps to /api/analytics/unified/* and /api/analytics/cache/*
-func RegisterUnifiedAnalyticsRoutes(router *gin.RouterGroup, basePath string) {
-	handler := analytics.NewUnifiedHandler(basePath)
+func RegisterUnifiedAnalyticsRoutes(router *gin.RouterGroup, basePath string, appCache cache.CacheManager) {
+	handler := analytics.NewUnifiedHandler(basePath, appCache)
 
 	// Unified summary routes
 	unified := router.Group("/analytics/unified")

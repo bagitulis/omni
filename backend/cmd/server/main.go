@@ -126,13 +126,13 @@ func main() {
 	routes.RegisterTiktokAdsAnalyticsRoutes(api, cfg.DatabasePath)
 
 	// ML Analytics routes (new ML-powered analytics)
-	routes.RegisterMLAnalyticsRoutes(api)
+	routes.RegisterMLAnalyticsRoutes(api, application.CacheService)
 
 	// Budget Simulation & Intelligence routes
 	routes.RegisterSimulationRoutes(api, cfg.DatabasePath)
 
 	// Unified Analytics & Cache Management routes
-	routes.RegisterUnifiedAnalyticsRoutes(api, cfg.DatabasePath)
+	routes.RegisterUnifiedAnalyticsRoutes(api, cfg.DatabasePath, application.CacheService)
 
 	// ML Report routes
 	routes.RegisterMLReportRoutes(api, cfg.DatabasePath)
@@ -149,15 +149,15 @@ func main() {
 	// Platform-specific handlers (existing)
 	sOrder := shopee.NewOrderHandler(cfg.DatabasePath)
 	sProd := shopee.NewProductHandler(cfg.DatabasePath)
-	sSync := shopee.NewSyncHandler(cfg.DatabasePath)
+	sSync := shopee.NewSyncHandlerWithCache(cfg.DatabasePath, application.CacheService)
 	sDBProd := shopee.NewDBProductHandler(cfg.DatabasePath)
 	lOrder := lazada.NewOrderHandler(cfg.DatabasePath)
 	lProd := lazada.NewProductHandler(cfg.DatabasePath)
-	lSync := lazada.NewSyncHandler(cfg.DatabasePath)
+	lSync := lazada.NewSyncHandlerWithCache(cfg.DatabasePath, application.CacheService)
 	lDBProd := lazada.NewDBProductHandler(cfg.DatabasePath)
 	tOrder := tiktok.NewOrderHandler(cfg.DatabasePath)
 	tProd := tiktok.NewProductHandler(cfg.DatabasePath)
-	tSync := tiktok.NewSyncHandler(cfg.DatabasePath)
+	tSync := tiktok.NewSyncHandlerWithCache(cfg.DatabasePath, application.CacheService)
 	tDBProd := tiktok.NewDBProductHandler(cfg.DatabasePath)
 
 	// Protected platform routes

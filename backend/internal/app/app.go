@@ -3,12 +3,14 @@ package app
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/handlers"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services"
+	"github.com/omni/backend/internal/services/cache"
 	"github.com/omni/backend/internal/services/oauth"
 	"github.com/omni/backend/internal/services/platform"
 	"github.com/omni/backend/internal/services/webhooks"
@@ -23,6 +25,9 @@ type App struct {
 	SystemDB   *gorm.DB
 	Encryption *utils.EncryptionService
 	JWTService *utils.JWTService
+
+	// Cache Service
+	CacheService cache.CacheManager
 
 	// Repositories
 	UserRepo         *repositories.UserRepository
@@ -133,6 +138,11 @@ func (a *App) initCore() error {
 	}
 	a.JWTService = utils.NewJWTService(jwtSecret)
 
+	// Initialize Cache Service
+	// Default: 5 minute expiration, 10 minute cleanup interval
+	a.CacheService = cache.New(5*time.Minute, 10*time.Minute)
+	log.Println("Cache service initialized (in-memory, multi-tenant)")
+
 	return nil
 }
 
@@ -229,11 +239,12 @@ func (a *App) initHandlers() {
 		frontendURL,
 	)
 
-	a.WebhookHandler = handlers.NewWebhookHandler(
+	a.WebhookHandler = handlers.NewWebhookHandlerWithCache(
 		a.ShopeeProcessor,
 		a.LazadaProcessor,
 		a.TiktokProcessor,
 		a.BasePath,
+		a.CacheService,
 	)
 
 	a.PlatformAuthHandler = handlers.NewPlatformAuthHandler(

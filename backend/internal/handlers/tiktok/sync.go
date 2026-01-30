@@ -8,18 +8,54 @@ import (
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services/cache"
 	tiktokService "github.com/omni/backend/internal/services/tiktok"
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
+	"github.com/rs/zerolog/log"
 )
 
 // SyncHandler handles TikTok sync operations
 type SyncHandler struct {
-	basePath string
+	basePath     string
+	cacheService cache.CacheManager
 }
 
 // NewSyncHandler creates a new sync handler
 func NewSyncHandler(basePath string) *SyncHandler {
 	return &SyncHandler{basePath: basePath}
+}
+
+// NewSyncHandlerWithCache creates a new sync handler with cache service
+func NewSyncHandlerWithCache(basePath string, cacheService cache.CacheManager) *SyncHandler {
+	return &SyncHandler{basePath: basePath, cacheService: cacheService}
+}
+
+// invalidateAnalyticsCache invalidates analytics cache after sync
+func (h *SyncHandler) invalidateAnalyticsCache(tenantID, operation string) {
+	if h.cacheService == nil {
+		return
+	}
+
+	// Invalidate relevant cache keys
+	keys := []string{
+		"analytics:unified:summary",
+		"analytics:ml:portfolio-health:tiktok",
+	}
+
+	for _, key := range keys {
+		if err := h.cacheService.Delete(tenantID, key); err != nil {
+			log.Warn().
+				Err(err).
+				Str("tenant_id", tenantID).
+				Str("cache_key", key).
+				Msg("Failed to invalidate cache")
+		}
+	}
+
+	log.Debug().
+		Str("tenant_id", tenantID).
+		Str("operation", operation).
+		Msg("Analytics cache invalidated after sync")
 }
 
 // SyncOrders handles POST /api/tiktok/sync/orders
@@ -58,6 +94,9 @@ func (h *SyncHandler) SyncOrders(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.Error("Sync failed: "+err.Error()))
 		return
 	}
+
+	// Invalidate analytics cache after successful sync
+	h.invalidateAnalyticsCache(tenantID, "sync_orders")
 
 	c.JSON(http.StatusOK, response.Success(map[string]interface{}{
 		"message": "Orders synced",
@@ -101,6 +140,9 @@ func (h *SyncHandler) SyncProducts(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.Error("Sync failed: "+err.Error()))
 		return
 	}
+
+	// Invalidate analytics cache after successful sync
+	h.invalidateAnalyticsCache(tenantID, "sync_products")
 
 	c.JSON(http.StatusOK, response.Success(map[string]interface{}{
 		"message": "Products synced",

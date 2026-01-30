@@ -3,19 +3,26 @@ package analytics
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto"
 	analyticsService "github.com/omni/backend/internal/services/analytics"
+	"github.com/omni/backend/internal/services/cache"
+	zlog "github.com/rs/zerolog/log"
 )
 
 // MLHandler handles ML analytics endpoints
-type MLHandler struct{}
+type MLHandler struct {
+	appCache cache.CacheManager
+}
 
 // NewMLHandler creates a new ML analytics handler
-func NewMLHandler() *MLHandler {
-	return &MLHandler{}
+func NewMLHandler(appCache cache.CacheManager) *MLHandler {
+	return &MLHandler{
+		appCache: appCache,
+	}
 }
 
 // getService creates ML analytics service from context
@@ -48,6 +55,37 @@ func (h *MLHandler) getService(c *gin.Context) (*analyticsService.MLAnalyticsSer
 // GET /api/analytics/ml/portfolio-health
 func (h *MLHandler) GetPortfolioHealth(c *gin.Context) {
 	platform := c.DefaultQuery("platform", "tiktok")
+
+	// Get tenant ID
+	tenantID := c.GetString("tenant_id")
+	if tenantID == "" {
+		tenantID = c.GetString("tenantID")
+	}
+	if tenantID == "" {
+		tenantID = c.GetString("tenantId")
+	}
+
+	cacheKey := "analytics:ml:portfolio-health:" + platform
+
+	// Try cache first
+	if h.appCache != nil && tenantID != "" {
+		if cached, found := h.appCache.Get(tenantID, cacheKey); found {
+			zlog.Debug().
+				Str("tenant_id", tenantID).
+				Str("cache_key", cacheKey).
+				Bool("cache_hit", true).
+				Msg("ML portfolio health cache hit")
+
+			c.JSON(http.StatusOK, cached)
+			return
+		}
+		zlog.Debug().
+			Str("tenant_id", tenantID).
+			Str("cache_key", cacheKey).
+			Bool("cache_hit", false).
+			Msg("ML portfolio health cache miss")
+	}
+
 	svc, err := h.getService(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -66,10 +104,23 @@ func (h *MLHandler) GetPortfolioHealth(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.PortfolioHealthResponse{
+	result := dto.PortfolioHealthResponse{
 		Success: true,
 		Data:    *health,
-	})
+	}
+
+	// Cache the result (60 seconds)
+	if h.appCache != nil && tenantID != "" {
+		if err := h.appCache.Set(tenantID, cacheKey, result, 60*time.Second); err != nil {
+			zlog.Warn().
+				Err(err).
+				Str("tenant_id", tenantID).
+				Str("cache_key", cacheKey).
+				Msg("Failed to cache ML portfolio health")
+		}
+	}
+
+	c.JSON(http.StatusOK, result)
 }
 
 // GetProducts returns paginated product analyses

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -12,7 +11,9 @@ import (
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services/cache"
 	"github.com/omni/backend/internal/services/webhooks"
+	"github.com/rs/zerolog/log"
 )
 
 // WebhookHandler handles webhook endpoints
@@ -21,6 +22,7 @@ type WebhookHandler struct {
 	lazadaProcessor *webhooks.LazadaWebhookProcessor
 	tiktokProcessor *webhooks.TiktokWebhookProcessor
 	basePath        string
+	cacheService    cache.CacheManager
 }
 
 // NewWebhookHandler creates a new webhook handler
@@ -38,6 +40,57 @@ func NewWebhookHandler(
 	}
 }
 
+// NewWebhookHandlerWithCache creates a new webhook handler with cache service
+func NewWebhookHandlerWithCache(
+	shopeeProcessor *webhooks.ShopeeWebhookProcessor,
+	lazadaProcessor *webhooks.LazadaWebhookProcessor,
+	tiktokProcessor *webhooks.TiktokWebhookProcessor,
+	basePath string,
+	cacheService cache.CacheManager,
+) *WebhookHandler {
+	return &WebhookHandler{
+		shopeeProcessor: shopeeProcessor,
+		lazadaProcessor: lazadaProcessor,
+		tiktokProcessor: tiktokProcessor,
+		basePath:        basePath,
+		cacheService:    cacheService,
+	}
+}
+
+// invalidateAnalyticsCache invalidates analytics cache after webhook processing
+func (h *WebhookHandler) invalidateAnalyticsCache(tenantID, platform string) {
+	if h.cacheService == nil || tenantID == "" {
+		return
+	}
+
+	// Invalidate relevant cache keys
+	keys := []string{
+		"analytics:unified:summary",
+	}
+
+	// Add platform-specific keys
+	if platform == "shopee" {
+		keys = append(keys, "analytics:ml:portfolio-health:shopee")
+	} else if platform == "tiktok" {
+		keys = append(keys, "analytics:ml:portfolio-health:tiktok")
+	}
+
+	for _, key := range keys {
+		if err := h.cacheService.Delete(tenantID, key); err != nil {
+			log.Warn().
+				Err(err).
+				Str("tenant_id", tenantID).
+				Str("cache_key", key).
+				Msg("Failed to invalidate cache after webhook")
+		}
+	}
+
+	log.Debug().
+		Str("tenant_id", tenantID).
+		Str("platform", platform).
+		Msg("Analytics cache invalidated after webhook")
+}
+
 // ShopeeWebhook handles Shopee webhook events
 func (h *WebhookHandler) ShopeeWebhook(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
@@ -53,14 +106,17 @@ func (h *WebhookHandler) ShopeeWebhook(c *gin.Context) {
 		tenantID = c.GetHeader("x-tenant-id")
 	}
 
-	log.Printf("[Webhook] Shopee received: tenant=%s", tenantID)
+	log.Debug().Str("tenant_id", tenantID).Msg("Shopee webhook received")
 
 	// Process webhook
 	if h.shopeeProcessor != nil && tenantID != "" {
 		requestURL := c.Request.URL.String()
 		if err := h.shopeeProcessor.Process(c.Request.Context(), tenantID, requestURL, string(body), signature); err != nil {
-			log.Printf("[Webhook] Shopee processing error: %v", err)
+			log.Warn().Err(err).Str("tenant_id", tenantID).Msg("Shopee webhook processing error")
 			// Still return success to prevent retries
+		} else {
+			// Invalidate cache on successful processing
+			h.invalidateAnalyticsCache(tenantID, "shopee")
 		}
 	}
 
@@ -81,11 +137,14 @@ func (h *WebhookHandler) LazadaWebhook(c *gin.Context) {
 		tenantID = c.GetHeader("x-tenant-id")
 	}
 
-	log.Printf("[Webhook] Lazada received: tenant=%s", tenantID)
+	log.Debug().Str("tenant_id", tenantID).Msg("Lazada webhook received")
 
 	if h.lazadaProcessor != nil && tenantID != "" {
 		if err := h.lazadaProcessor.Process(c.Request.Context(), tenantID, string(body), signature); err != nil {
-			log.Printf("[Webhook] Lazada processing error: %v", err)
+			log.Warn().Err(err).Str("tenant_id", tenantID).Msg("Lazada webhook processing error")
+		} else {
+			// Invalidate cache on successful processing
+			h.invalidateAnalyticsCache(tenantID, "lazada")
 		}
 	}
 
@@ -107,11 +166,14 @@ func (h *WebhookHandler) TiktokWebhook(c *gin.Context) {
 		tenantID = c.GetHeader("x-tenant-id")
 	}
 
-	log.Printf("[Webhook] TikTok received: tenant=%s", tenantID)
+	log.Debug().Str("tenant_id", tenantID).Msg("TikTok webhook received")
 
 	if h.tiktokProcessor != nil && tenantID != "" {
 		if err := h.tiktokProcessor.Process(c.Request.Context(), tenantID, string(body), timestamp, signature); err != nil {
-			log.Printf("[Webhook] TikTok processing error: %v", err)
+			log.Warn().Err(err).Str("tenant_id", tenantID).Msg("TikTok webhook processing error")
+		} else {
+			// Invalidate cache on successful processing
+			h.invalidateAnalyticsCache(tenantID, "tiktok")
 		}
 	}
 

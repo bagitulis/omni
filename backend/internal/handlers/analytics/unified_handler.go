@@ -2,6 +2,7 @@ package analytics
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
@@ -9,19 +10,28 @@ import (
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	analyticsService "github.com/omni/backend/internal/services/analytics"
+	"github.com/omni/backend/internal/services/cache"
+	"github.com/rs/zerolog/log"
+)
+
+// Cache TTL constants
+const (
+	CacheTTLAnalytics = 60 * time.Second // 1 minute for analytics
 )
 
 // UnifiedHandler handles combined analytics requests
 type UnifiedHandler struct {
 	basePath     string
 	cacheService *analyticsService.CacheService
+	appCache     cache.CacheManager
 }
 
 // NewUnifiedHandler creates a new unified handler
-func NewUnifiedHandler(basePath string) *UnifiedHandler {
+func NewUnifiedHandler(basePath string, appCache cache.CacheManager) *UnifiedHandler {
 	return &UnifiedHandler{
 		basePath:     basePath,
 		cacheService: analyticsService.NewCacheService(basePath),
+		appCache:     appCache,
 	}
 }
 
@@ -34,13 +44,33 @@ func (h *UnifiedHandler) GetUnifiedSummary(c *gin.Context) {
 		return
 	}
 
+	ctx := c.Request.Context()
+	cacheKey := "analytics:unified:summary"
+
+	// Try cache first
+	if h.appCache != nil {
+		if cached, found := h.appCache.Get(tenantID, cacheKey); found {
+			log.Debug().
+				Str("tenant_id", tenantID).
+				Str("cache_key", cacheKey).
+				Bool("cache_hit", true).
+				Msg("Unified summary cache hit")
+
+			c.JSON(http.StatusOK, cached)
+			return
+		}
+		log.Debug().
+			Str("tenant_id", tenantID).
+			Str("cache_key", cacheKey).
+			Bool("cache_hit", false).
+			Msg("Unified summary cache miss")
+	}
+
 	db, err := config.GetTenantDB(tenantID, h.basePath)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
 		return
 	}
-
-	ctx := c.Request.Context()
 
 	// Check if MVs are populated, auto-refresh if empty
 	var mvCount int64
@@ -87,7 +117,7 @@ func (h *UnifiedHandler) GetUnifiedSummary(c *gin.Context) {
 		combinedRoas = totalRevenue / totalCost
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	result := gin.H{
 		"success": true,
 		"data": gin.H{
 			"combined": gin.H{
@@ -109,7 +139,20 @@ func (h *UnifiedHandler) GetUnifiedSummary(c *gin.Context) {
 				"avg_roas":      shopeeSummary.OverallRoas,
 			},
 		},
-	})
+	}
+
+	// Cache the result (graceful - don't fail if cache fails)
+	if h.appCache != nil {
+		if err := h.appCache.Set(tenantID, cacheKey, result, CacheTTLAnalytics); err != nil {
+			log.Warn().
+				Err(err).
+				Str("tenant_id", tenantID).
+				Str("cache_key", cacheKey).
+				Msg("Failed to cache unified summary")
+		}
+	}
+
+	c.JSON(http.StatusOK, result)
 }
 
 // GetUnifiedKPI handles GET /api/analytics/unified/kpi

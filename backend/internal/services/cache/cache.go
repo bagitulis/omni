@@ -1,9 +1,21 @@
 package cache
 
 import (
+	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
+
+// CacheManager defines the interface for cache operations
+type CacheManager interface {
+	Get(tenantID, key string) (interface{}, bool)
+	Set(tenantID, key string, value interface{}, ttl time.Duration) error
+	Delete(tenantID, key string) error
+	DeletePattern(tenantID, pattern string) error
+	Count() int
+	Stop()
+}
 
 // Item represents a cached item with expiration
 type Item struct {
@@ -19,7 +31,7 @@ func (item Item) Expired() bool {
 	return time.Now().UnixNano() > item.Expiration
 }
 
-// Cache is a thread-safe in-memory cache with TTL support
+// Cache is a thread-safe in-memory cache with TTL and multi-tenant support
 type Cache struct {
 	items             map[string]Item
 	mu                sync.RWMutex
@@ -27,6 +39,9 @@ type Cache struct {
 	cleanupInterval   time.Duration
 	stopCleanup       chan bool
 }
+
+// Ensure Cache implements CacheManager
+var _ CacheManager = (*Cache)(nil)
 
 // New creates a new cache with default expiration and cleanup interval
 func New(defaultExpiration, cleanupInterval time.Duration) *Cache {
@@ -44,50 +59,102 @@ func New(defaultExpiration, cleanupInterval time.Duration) *Cache {
 	return c
 }
 
-// Set adds an item to the cache with the default expiration
-func (c *Cache) Set(key string, value interface{}) {
-	c.SetWithExpiration(key, value, c.defaultExpiration)
-}
-
-// SetWithExpiration adds an item with a custom expiration duration
-func (c *Cache) SetWithExpiration(key string, value interface{}, d time.Duration) {
-	var expiration int64
-	if d > 0 {
-		expiration = time.Now().Add(d).UnixNano()
-	}
-
-	c.mu.Lock()
-	c.items[key] = Item{
-		Value:      value,
-		Expiration: expiration,
-	}
-	c.mu.Unlock()
+// buildKey creates a tenant-scoped cache key
+func buildKey(tenantID, key string) string {
+	return fmt.Sprintf("tenant:%s:%s", tenantID, key)
 }
 
 // Get retrieves an item from the cache
-func (c *Cache) Get(key string) (interface{}, bool) {
+func (c *Cache) Get(tenantID, key string) (interface{}, bool) {
+	fullKey := buildKey(tenantID, key)
+
 	c.mu.RLock()
-	item, found := c.items[key]
+	item, found := c.items[fullKey]
 	c.mu.RUnlock()
 
-	if !found || item.Expired() {
+	if !found {
+		return nil, false
+	}
+
+	if item.Expired() {
+		c.Delete(tenantID, key)
 		return nil, false
 	}
 
 	return item.Value, true
 }
 
-// Delete removes an item from the cache
-func (c *Cache) Delete(key string) {
+// Set adds an item to the cache with TTL
+func (c *Cache) Set(tenantID, key string, value interface{}, ttl time.Duration) error {
+	fullKey := buildKey(tenantID, key)
+
+	var expiration int64
+	if ttl > 0 {
+		expiration = time.Now().Add(ttl).UnixNano()
+	} else if c.defaultExpiration > 0 {
+		expiration = time.Now().Add(c.defaultExpiration).UnixNano()
+	}
+
 	c.mu.Lock()
-	delete(c.items, key)
+	c.items[fullKey] = Item{
+		Value:      value,
+		Expiration: expiration,
+	}
 	c.mu.Unlock()
+
+	return nil
+}
+
+// Delete removes an item from the cache
+func (c *Cache) Delete(tenantID, key string) error {
+	fullKey := buildKey(tenantID, key)
+
+	c.mu.Lock()
+	delete(c.items, fullKey)
+	c.mu.Unlock()
+
+	return nil
+}
+
+// DeletePattern removes all items matching a pattern (e.g., "products:*")
+func (c *Cache) DeletePattern(tenantID, pattern string) error {
+	prefix := buildKey(tenantID, "")
+
+	// Handle wildcard pattern
+	searchPattern := pattern
+	if strings.HasSuffix(pattern, "*") {
+		searchPattern = pattern[:len(pattern)-1]
+	}
+	fullPrefix := prefix + searchPattern
+
+	c.mu.Lock()
+	for key := range c.items {
+		if strings.HasPrefix(key, fullPrefix) {
+			delete(c.items, key)
+		}
+	}
+	c.mu.Unlock()
+
+	return nil
 }
 
 // Clear removes all items from the cache
 func (c *Cache) Clear() {
 	c.mu.Lock()
 	c.items = make(map[string]Item)
+	c.mu.Unlock()
+}
+
+// ClearTenant removes all items for a specific tenant
+func (c *Cache) ClearTenant(tenantID string) {
+	prefix := buildKey(tenantID, "")
+
+	c.mu.Lock()
+	for key := range c.items {
+		if strings.HasPrefix(key, prefix) {
+			delete(c.items, key)
+		}
+	}
 	c.mu.Unlock()
 }
 

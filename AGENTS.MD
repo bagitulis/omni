@@ -244,7 +244,7 @@ flowchart TD
 │ PLANNING CHECKLIST                              │
 ├─────────────────────────────────────────────────┤
 │ □ Read this README.md completely                │
-│ □ Check backend-node/ for reference logic       │
+│ □ Check platform SDK docs for API reference     │
 │ □ Identify models/schemas needed                │
 │ □ Check if models exist in internal/models/     │
 │ □ Verify table_naming.go mapping                │
@@ -384,7 +384,7 @@ Service error but code is correct?
 
 - [ ] Success: `{"success": true, "data": ...}`
 - [ ] Error: `{"success": false, "error": "message"}`
-- [ ] Consistent with Node.js backend (backward compatible)
+- [ ] API response format consistent across all endpoints
 
 ---
 
@@ -827,7 +827,7 @@ package models
 import "time"
 
 // ShopeeOrder represents a Shopee order in database
-// Migration from: backend-node/prisma/schema.prisma → ShopeeOrder
+// Reference: Shopee Open Platform API documentation
 type ShopeeOrder struct {
     ID              uint       `gorm:"primaryKey" json:"id"`
     TenantID        string     `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
