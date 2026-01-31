@@ -2,31 +2,46 @@ package shopee
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"os"
+	"time"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services/image"
 	shopeePkg "github.com/omni/backend/pkg/shopee"
 	"gorm.io/gorm"
 )
 
 // ProductSyncService handles syncing products from Shopee API to database
 type ProductSyncService struct {
-	client   *shopeePkg.Client
-	db       *gorm.DB
-	prodRepo *repositories.ShopeeProductRepository
-	skuRepo  *repositories.ShopeeSkuRepository
-	tenantID string
+	client         *shopeePkg.Client
+	db             *gorm.DB
+	prodRepo       *repositories.ShopeeProductRepository
+	skuRepo        *repositories.ShopeeSkuRepository
+	tenantID       string
+	storageService *image.StorageService
+	webpService    *image.WebPService
 }
 
 // NewProductSyncService creates a new product sync service with tenant ID
 func NewProductSyncService(client *shopeePkg.Client, db *gorm.DB, tenantID string) *ProductSyncService {
+	basePath := os.Getenv("UPLOAD_PATH")
+	if basePath == "" {
+		basePath = "uploads/images"
+	}
 	return &ProductSyncService{
-		client:   client,
-		db:       db,
-		prodRepo: repositories.NewShopeeProductRepository(db),
-		skuRepo:  repositories.NewShopeeSkuRepository(db),
-		tenantID: tenantID,
+		client:         client,
+		db:             db,
+		prodRepo:       repositories.NewShopeeProductRepository(db),
+		skuRepo:        repositories.NewShopeeSkuRepository(db),
+		tenantID:       tenantID,
+		storageService: image.NewStorageService(basePath),
+		webpService:    image.NewWebPService(),
 	}
 }
 
@@ -101,6 +116,14 @@ func (s *ProductSyncService) SyncProducts(ctx context.Context) (int, error) {
 				if savedProd != nil {
 					// Sync SKUs for this product
 					s.syncProductSKUs(ctx, savedProd, prod.ItemID)
+
+					// Download and save product images locally
+					if len(prod.Images) > 0 {
+						localPaths := s.downloadAndSaveProductImages(ctx, prod.ItemID, prod.Images)
+						if len(localPaths) > 0 {
+							s.updateProductLocalImages(ctx, savedProd.ID, localPaths)
+						}
+					}
 				}
 			}
 		}
@@ -161,6 +184,85 @@ func (s *ProductSyncService) syncProductSKUs(ctx context.Context, product *model
 			VariantName: variantName,
 		}
 		s.skuRepo.Upsert(ctx, sku)
+	}
+}
+
+// downloadAndSaveProductImages downloads product images and saves locally
+// Returns slice of local paths. Errors are logged but don't break sync.
+func (s *ProductSyncService) downloadAndSaveProductImages(ctx context.Context, itemID int64, imageURLs []string) []string {
+	var localPaths []string
+
+	for i, url := range imageURLs {
+		if url == "" {
+			continue
+		}
+
+		// Download image
+		data, err := s.downloadImage(ctx, url)
+		if err != nil {
+			log.Printf("[Shopee Sync] Failed to download image %d for item %d: %v", i, itemID, err)
+			continue
+		}
+
+		// Convert to JPEG (graceful - returns original if fails)
+		jpegData, _ := s.webpService.ConvertToJPEG(data)
+
+		// Generate filename
+		filename := fmt.Sprintf("shopee_%d_%d.jpg", itemID, i)
+
+		// Save locally
+		localPath, err := s.storageService.SaveImage(s.tenantID, "products", filename, jpegData)
+		if err != nil {
+			log.Printf("[Shopee Sync] Failed to save image %d for item %d: %v", i, itemID, err)
+			continue
+		}
+
+		localPaths = append(localPaths, localPath)
+	}
+
+	return localPaths
+}
+
+// downloadImage fetches image data from URL
+func (s *ProductSyncService) downloadImage(ctx context.Context, url string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("http status: %d", resp.StatusCode)
+	}
+
+	return io.ReadAll(resp.Body)
+}
+
+// updateProductLocalImages updates the product with local image paths
+func (s *ProductSyncService) updateProductLocalImages(ctx context.Context, productID uint, localPaths []string) {
+	if len(localPaths) == 0 {
+		return
+	}
+
+	// Convert to JSON
+	pathsJSON, err := json.Marshal(localPaths)
+	if err != nil {
+		log.Printf("[Shopee Sync] Failed to marshal local paths: %v", err)
+		return
+	}
+
+	// Update product
+	err = s.db.Model(&models.ShopeeProduct{}).
+		Where("id = ?", productID).
+		Update("local_images", pathsJSON).Error
+	if err != nil {
+		log.Printf("[Shopee Sync] Failed to update local_images for product %d: %v", productID, err)
 	}
 }
 
@@ -252,6 +354,14 @@ func (s *ProductSyncService) SyncProductsWithDetails(ctx context.Context, itemSt
 				savedProd, _ := s.prodRepo.FindByItemID(ctx, prod.ItemID)
 				if savedProd != nil {
 					s.syncProductSKUs(ctx, savedProd, prod.ItemID)
+
+					// Download and save product images locally
+					if len(prod.Images) > 0 {
+						localPaths := s.downloadAndSaveProductImages(ctx, prod.ItemID, prod.Images)
+						if len(localPaths) > 0 {
+							s.updateProductLocalImages(ctx, savedProd.ID, localPaths)
+						}
+					}
 				}
 			}
 

@@ -142,6 +142,10 @@ func main() {
 	// ML Report routes
 	routes.RegisterMLReportRoutes(api, cfg.DatabasePath)
 
+	// Image Gallery routes
+	imageHandler := handlers.NewImageHandler(application.SystemDB)
+	routes.RegisterImageRoutes(api, imageHandler)
+
 	// ====== Google Routes ======
 	// Use the already initialized googleAuthService
 	googleQuotaService := googleService.NewQuotaService()

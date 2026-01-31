@@ -33,6 +33,7 @@ type ShopeeProduct struct {
 	Price       float64   `gorm:"column:price" json:"price"`
 	Quantity    int       `gorm:"column:quantity" json:"quantity"`
 	Image       string    `gorm:"column:image" json:"image"`
+	LocalImages JSONMap   `gorm:"column:local_images;type:jsonb" json:"local_images,omitempty"` // Local image paths after download/conversion
 	CreatedAt   time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt   time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
