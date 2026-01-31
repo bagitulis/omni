@@ -3,9 +3,6 @@
 # Repo sudah private
 # ===========================================
 
-# ⚠️ SENSITIVE: OpenCode accounts (JANGAN COMMIT!)
-opencode-configs/antigravity-accounts.json
-antigravity_accounts_*.json
 
 # Node.js dependencies
 node_modules/
@@ -15,10 +12,6 @@ node_modules/
 # Untuk pindah PC, gunakan backups/db-tools/menu.bat
 data/postgres/
 
-# SQLite database files (backend-node - reference only)
-backend-node/**/*.db
-backend-node/**/*.db-shm
-backend-node/**/*.db-wal
 
 # Python dependencies & cache
 .venv/
@@ -44,4 +37,3 @@ allcode-*.txt
 .vscode/mcp.json
 
 opencode.exe
-backend-node/dist/

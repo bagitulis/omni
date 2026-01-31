@@ -15,7 +15,7 @@
       "model": "openai/gpt-5.2"
     },
     "explore": {
-      "model": "openai/gpt-5.2"
+      "model": "openai/gpt-5-mini"
     },
     "multimodal-looker": {
       "model": "openai/gpt-5.2"
@@ -35,32 +35,8 @@
       "model": "openai/gpt-5.2",
       "reasoningEffort": "high"
     },
-    "executor": {
-      "model": "openai/gpt-5.2",
-      "reasoningEffort": "high"
-    },
-    "reviewer": {
-      "model": "openai/gpt-5.2",
-      "reasoningEffort": "high"
-    },
-    "tester": {
-      "model": "openai/gpt-5.2",
-      "reasoningEffort": "high"
-    },
-    "security-auditor": {
-      "model": "openai/gpt-5.2",
-      "reasoningEffort": "high"
-    },
-    "refactorer": {
-      "model": "openai/gpt-5.2",
-      "reasoningEffort": "high"
-    },
-    "doc-writer": {
-      "model": "openai/gpt-5.2"
-    },
     "sisyphus-junior": {
-      "model": "openai/gpt-5.2",
-      "reasoningEffort": "high"
+      "model": "openai/gpt-5.2"
     },
     "default": {
       "model": "openai/gpt-5.2"
@@ -80,9 +56,13 @@
       "reasoningEffort": "medium"
     },
     "quick": {
-      "model": "openai/gpt-5.2"
+      "model": "openai/gpt-5-mini"
     },
     "ultrabrain": {
+      "model": "openai/gpt-5.2",
+      "reasoningEffort": "high"
+    },
+    "deep": {
       "model": "openai/gpt-5.2",
       "reasoningEffort": "high"
     },
@@ -103,7 +83,7 @@
       "reasoningEffort": "high"
     },
     "unspecified-low": {
-      "model": "openai/gpt-5.2"
+      "model": "openai/gpt-5-mini"
     },
     "unspecified-high": {
       "model": "openai/gpt-5.2",

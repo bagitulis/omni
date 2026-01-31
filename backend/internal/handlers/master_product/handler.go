@@ -324,3 +324,76 @@ func (h *Handler) Delete(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response.Success(gin.H{"deleted": true}))
 }
+
+// UpdateSkuInput represents input for updating a SKU
+type UpdateSkuInput struct {
+	Price *float64 `json:"price,omitempty"`
+	Stock *int     `json:"stock,omitempty"`
+}
+
+// UpdateSku handles PUT /api/master-products/skus/:id
+// Updates price and stock for a single SKU
+func (h *Handler) UpdateSku(c *gin.Context) {
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+		return
+	}
+
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+	service := masterProductService.NewService(db)
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Error("Invalid SKU ID"))
+		return
+	}
+
+	var input UpdateSkuInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
+		return
+	}
+
+	// Build CreateSkuInput with existing values where not provided
+	skuInput := masterProductService.CreateSkuInput{}
+	if input.Price != nil {
+		skuInput.Price = *input.Price
+	}
+	if input.Stock != nil {
+		skuInput.Stock = *input.Stock
+	}
+
+	sku, err := service.UpdateSku(c.Request.Context(), tenantID, uint(id), skuInput)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("tenant_id", tenantID).
+			Uint64("sku_id", id).
+			Msg("Failed to update SKU")
+
+		if errors.Is(err, masterProductService.ErrSkuNotFound) {
+			c.JSON(http.StatusNotFound, response.Error("SKU not found"))
+			return
+		}
+		if errors.Is(err, masterProductService.ErrTenantIDRequired) {
+			c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to update SKU: "+err.Error()))
+		return
+	}
+
+	log.Info().
+		Str("tenant_id", tenantID).
+		Uint64("sku_id", id).
+		Msg("SKU updated via API")
+
+	c.JSON(http.StatusOK, response.Success(sku))
+}

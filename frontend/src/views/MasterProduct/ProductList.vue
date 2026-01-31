@@ -1,78 +1,121 @@
 <template>
-  <div class="master-product-list">
-    <div class="page-header">
-      <h1>Master Produk</h1>
-      <div class="header-actions">
-        <router-link to="/master-products/import" class="btn btn-secondary">
-          Import dari Shopee
-        </router-link>
-        <router-link to="/master-products/add" class="btn btn-primary">
-          Tambah Produk
-        </router-link>
-      </div>
-    </div>
-
-    <!-- Search & Filter -->
-    <div class="filter-bar">
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="Cari produk..."
-        class="search-input"
-        @input="debouncedSearch"
+  <div class="master-product-page">
+    <div class="main-layout">
+      <LeftSidebar
+        :collapsed="uiStore.leftSidebarCollapsed"
+        :active-tab="'master-products'"
+        :active-platform="uiStore.activePlatform"
+        @toggle="uiStore.toggleLeftSidebar"
+        @tab-change="handleTabChange"
+        @platform-change="handlePlatformChange"
       />
-      <select
-        v-model="statusFilter"
-        class="status-select"
-        @change="fetchProducts"
-      >
-        <option value="">Semua Status</option>
-        <option value="active">Active</option>
-        <option value="draft">Draft</option>
-        <option value="inactive">Inactive</option>
-      </select>
-    </div>
+      <main class="main-content">
+        <div class="master-product-list">
+          <div class="page-header">
+            <h1>Master Produk</h1>
+            <div class="header-actions">
+              <router-link
+                to="/master-products/import"
+                class="btn btn-secondary"
+              >
+                Import dari Shopee
+              </router-link>
+              <router-link to="/master-products/add" class="btn btn-primary">
+                Tambah Produk
+              </router-link>
+            </div>
+          </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="loading-container">
-      <div class="spinner"></div>
-      <p>Memuat produk...</p>
-    </div>
+          <!-- Search & Filter -->
+          <div class="filter-bar">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Cari produk..."
+              class="search-input"
+              @input="debouncedSearch"
+            />
+            <select
+              v-model="statusFilter"
+              class="status-select"
+              @change="fetchProducts"
+            >
+              <option value="">Semua Status</option>
+              <option value="active">Active</option>
+              <option value="draft">Draft</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
 
-    <!-- Error State -->
-    <div v-else-if="error" class="error-container">
-      <p class="error-message">{{ error }}</p>
-      <button @click="fetchProducts" class="btn btn-primary">Coba Lagi</button>
-    </div>
+          <!-- Loading State -->
+          <div v-if="loading" class="loading-container">
+            <div class="spinner"></div>
+            <p>Memuat produk...</p>
+          </div>
 
-    <!-- Empty State -->
-    <div v-else-if="products.length === 0" class="empty-container">
-      <p>Belum ada produk master.</p>
-      <router-link to="/master-products/add" class="btn btn-primary">
-        Tambah Produk Pertama
-      </router-link>
-    </div>
+          <!-- Error State -->
+          <div v-else-if="error" class="error-container">
+            <p class="error-message">{{ error }}</p>
+            <button @click="fetchProducts" class="btn btn-primary">
+              Coba Lagi
+            </button>
+          </div>
 
-    <!-- Product List -->
-    <div v-else class="product-list-container">
-      <ProductList
-        :products="products"
-        :loading="loading"
-        :current-page="currentPage"
-        :total-pages="totalPages"
-        @delete="handleDelete"
-        @page-change="handlePageChange"
-      />
+          <!-- Empty State -->
+          <div v-else-if="products.length === 0" class="empty-container">
+            <p>Belum ada produk master.</p>
+            <router-link to="/master-products/add" class="btn btn-primary">
+              Tambah Produk Pertama
+            </router-link>
+          </div>
+
+          <!-- Product List -->
+          <div v-else class="product-list-container">
+            <ProductList
+              :products="products"
+              :loading="loading"
+              :current-page="currentPage"
+              :total-pages="totalPages"
+              @delete="handleDelete"
+              @page-change="handlePageChange"
+            />
+          </div>
+        </div>
+      </main>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
+import { useUIStore } from "@/store/ui";
+import LeftSidebar from "@/components/layout/LeftSidebar.vue";
 import ProductList from "@/components/MasterProduct/ProductList.vue";
 import masterProductService, {
   type MasterProduct,
 } from "@/services/masterProductService";
+
+const router = useRouter();
+const uiStore = useUIStore();
+
+// Navigation Handlers
+const handleTabChange = (tab: string) => {
+  if (tab === "master-products") return;
+
+  if (["settings", "product-management", "order-management"].includes(tab)) {
+    // Navigate to dashboard with tab query
+    router.push({ path: "/dashboard", query: { tab } });
+    uiStore.setActiveTab(tab);
+  } else {
+    // Handle other tabs if they exist
+    router.push({ name: tab });
+  }
+};
+
+const handlePlatformChange = (platform: string) => {
+  uiStore.setActivePlatform(platform);
+};
 
 // State
 const loading = ref(false);
@@ -173,6 +216,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
+@import "../Dashboard.module.css";
+
 .master-product-list {
   padding: 1.5rem;
 }

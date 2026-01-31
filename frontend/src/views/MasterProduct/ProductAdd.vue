@@ -1,201 +1,248 @@
 <template>
-  <div class="product-add-page">
-    <div class="page-header">
-      <router-link to="/master-products" class="back-link"
-        >← Kembali</router-link
-      >
-      <h1>Tambah Produk Baru</h1>
+  <div class="master-product-page">
+    <div class="main-layout">
+      <LeftSidebar
+        :collapsed="uiStore.leftSidebarCollapsed"
+        :active-tab="'master-products'"
+        :active-platform="uiStore.activePlatform"
+        @toggle="uiStore.toggleLeftSidebar"
+        @tab-change="handleTabChange"
+        @platform-change="handlePlatformChange"
+      />
+      <main class="main-content">
+        <div class="product-add-page">
+          <div class="page-header">
+            <router-link to="/master-products" class="back-link"
+              >← Kembali</router-link
+            >
+            <h1>Tambah Produk Baru</h1>
+          </div>
+
+          <form @submit.prevent="handleSubmit" class="product-form">
+            <!-- Section 1: Basic Info -->
+            <section
+              class="form-section"
+              :class="{ collapsed: sections.basic }"
+            >
+              <div class="section-header" @click="toggleSection('basic')">
+                <h2>1. Informasi Dasar</h2>
+                <span class="toggle-icon">{{
+                  sections.basic ? "▼" : "▲"
+                }}</span>
+              </div>
+              <div class="section-content" v-show="!sections.basic">
+                <div class="form-group">
+                  <label>Nama Produk <span class="required">*</span></label>
+                  <input v-model="form.title" maxlength="120" required />
+                  <span
+                    class="char-count"
+                    :class="{ warning: form.title.length > 100 }"
+                  >
+                    {{ form.title.length }}/120
+                  </span>
+                </div>
+                <div class="form-group">
+                  <label>Deskripsi <span class="required">*</span></label>
+                  <textarea
+                    v-model="form.description"
+                    maxlength="5000"
+                    rows="6"
+                    required
+                  ></textarea>
+                  <span class="char-count"
+                    >{{ form.description.length }}/5000</span
+                  >
+                </div>
+              </div>
+            </section>
+
+            <!-- Section 2: Images (max 8) -->
+            <section class="form-section">
+              <div class="section-header" @click="toggleSection('images')">
+                <h2>2. Gambar Produk</h2>
+                <span class="image-count">{{ form.images.length }}/8</span>
+              </div>
+              <div class="section-content" v-show="!sections.images">
+                <div class="image-grid">
+                  <div
+                    v-for="(img, idx) in form.images"
+                    :key="idx"
+                    class="image-slot"
+                  >
+                    <img :src="img" alt="" />
+                    <button
+                      type="button"
+                      @click="removeImage(idx)"
+                      class="btn-remove"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div
+                    v-if="form.images.length < 8"
+                    class="image-slot add-slot"
+                    @click="triggerImageUpload"
+                  >
+                    <span>+ Tambah Gambar</span>
+                  </div>
+                </div>
+                <input
+                  type="file"
+                  ref="imageInput"
+                  @change="handleImageUpload"
+                  accept="image/*"
+                  hidden
+                />
+              </div>
+            </section>
+
+            <!-- Section 3: Variants & SKUs -->
+            <section class="form-section">
+              <div class="section-header" @click="toggleSection('variants')">
+                <h2>3. Varian & SKU</h2>
+                <span class="sku-count">{{ form.skus.length }}/50 SKU</span>
+              </div>
+              <div class="section-content" v-show="!sections.variants">
+                <div class="sku-list">
+                  <div
+                    v-for="(sku, idx) in form.skus"
+                    :key="idx"
+                    class="sku-row"
+                  >
+                    <input
+                      v-model="sku.seller_sku"
+                      placeholder="Seller SKU"
+                      required
+                    />
+                    <input
+                      v-model="sku.variant_name"
+                      placeholder="Nama Varian"
+                    />
+                    <input
+                      v-model.number="sku.price"
+                      type="number"
+                      placeholder="Harga"
+                      min="0"
+                      required
+                    />
+                    <input
+                      v-model.number="sku.stock"
+                      type="number"
+                      placeholder="Stok"
+                      min="0"
+                      required
+                    />
+                    <button
+                      type="button"
+                      @click="removeSku(idx)"
+                      class="btn-remove-sku"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  @click="addSku"
+                  class="btn-add-sku"
+                  :disabled="form.skus.length >= 50"
+                >
+                  + Tambah SKU
+                </button>
+              </div>
+            </section>
+
+            <!-- Section 4: Pricing Summary -->
+            <section class="form-section">
+              <div class="section-header" @click="toggleSection('pricing')">
+                <h2>4. Ringkasan Harga</h2>
+              </div>
+              <div class="section-content" v-show="!sections.pricing">
+                <div class="pricing-summary">
+                  <div class="price-item">
+                    <span>Harga Terendah:</span>
+                    <span class="price">{{ formatPrice(minPrice) }}</span>
+                  </div>
+                  <div class="price-item">
+                    <span>Harga Tertinggi:</span>
+                    <span class="price">{{ formatPrice(maxPrice) }}</span>
+                  </div>
+                  <div class="price-item">
+                    <span>Total Stok:</span>
+                    <span>{{ totalStock }} unit</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Section 5: Status -->
+            <section class="form-section">
+              <div class="section-header" @click="toggleSection('status')">
+                <h2>5. Status Produk</h2>
+              </div>
+              <div class="section-content" v-show="!sections.status">
+                <div class="status-options">
+                  <label class="radio-option">
+                    <input type="radio" v-model="form.status" value="draft" />
+                    <span>Draft</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" v-model="form.status" value="active" />
+                    <span>Aktif</span>
+                  </label>
+                </div>
+              </div>
+            </section>
+
+            <!-- Submit -->
+            <div class="form-actions">
+              <button type="button" @click="saveDraft" class="btn-draft">
+                Simpan Draft
+              </button>
+              <button
+                type="submit"
+                class="btn-submit"
+                :disabled="submitting || !isValid"
+              >
+                {{ submitting ? "Menyimpan..." : "Simpan Produk" }}
+              </button>
+            </div>
+          </form>
+
+          <!-- Messages -->
+          <div v-if="error" class="message error">{{ error }}</div>
+          <div v-if="success" class="message success">{{ success }}</div>
+        </div>
+      </main>
     </div>
-
-    <form @submit.prevent="handleSubmit" class="product-form">
-      <!-- Section 1: Basic Info -->
-      <section class="form-section" :class="{ collapsed: sections.basic }">
-        <div class="section-header" @click="toggleSection('basic')">
-          <h2>1. Informasi Dasar</h2>
-          <span class="toggle-icon">{{ sections.basic ? "▼" : "▲" }}</span>
-        </div>
-        <div class="section-content" v-show="!sections.basic">
-          <div class="form-group">
-            <label>Nama Produk <span class="required">*</span></label>
-            <input v-model="form.title" maxlength="120" required />
-            <span
-              class="char-count"
-              :class="{ warning: form.title.length > 100 }"
-            >
-              {{ form.title.length }}/120
-            </span>
-          </div>
-          <div class="form-group">
-            <label>Deskripsi <span class="required">*</span></label>
-            <textarea
-              v-model="form.description"
-              maxlength="5000"
-              rows="6"
-              required
-            ></textarea>
-            <span class="char-count">{{ form.description.length }}/5000</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- Section 2: Images (max 8) -->
-      <section class="form-section">
-        <div class="section-header" @click="toggleSection('images')">
-          <h2>2. Gambar Produk</h2>
-          <span class="image-count">{{ form.images.length }}/8</span>
-        </div>
-        <div class="section-content" v-show="!sections.images">
-          <div class="image-grid">
-            <div
-              v-for="(img, idx) in form.images"
-              :key="idx"
-              class="image-slot"
-            >
-              <img :src="img" alt="" />
-              <button
-                type="button"
-                @click="removeImage(idx)"
-                class="btn-remove"
-              >
-                ×
-              </button>
-            </div>
-            <div
-              v-if="form.images.length < 8"
-              class="image-slot add-slot"
-              @click="triggerImageUpload"
-            >
-              <span>+ Tambah Gambar</span>
-            </div>
-          </div>
-          <input
-            type="file"
-            ref="imageInput"
-            @change="handleImageUpload"
-            accept="image/*"
-            hidden
-          />
-        </div>
-      </section>
-
-      <!-- Section 3: Variants & SKUs -->
-      <section class="form-section">
-        <div class="section-header" @click="toggleSection('variants')">
-          <h2>3. Varian & SKU</h2>
-          <span class="sku-count">{{ form.skus.length }}/50 SKU</span>
-        </div>
-        <div class="section-content" v-show="!sections.variants">
-          <div class="sku-list">
-            <div v-for="(sku, idx) in form.skus" :key="idx" class="sku-row">
-              <input
-                v-model="sku.seller_sku"
-                placeholder="Seller SKU"
-                required
-              />
-              <input v-model="sku.variant_name" placeholder="Nama Varian" />
-              <input
-                v-model.number="sku.price"
-                type="number"
-                placeholder="Harga"
-                min="0"
-                required
-              />
-              <input
-                v-model.number="sku.stock"
-                type="number"
-                placeholder="Stok"
-                min="0"
-                required
-              />
-              <button
-                type="button"
-                @click="removeSku(idx)"
-                class="btn-remove-sku"
-              >
-                ×
-              </button>
-            </div>
-          </div>
-          <button
-            type="button"
-            @click="addSku"
-            class="btn-add-sku"
-            :disabled="form.skus.length >= 50"
-          >
-            + Tambah SKU
-          </button>
-        </div>
-      </section>
-
-      <!-- Section 4: Pricing Summary -->
-      <section class="form-section">
-        <div class="section-header" @click="toggleSection('pricing')">
-          <h2>4. Ringkasan Harga</h2>
-        </div>
-        <div class="section-content" v-show="!sections.pricing">
-          <div class="pricing-summary">
-            <div class="price-item">
-              <span>Harga Terendah:</span>
-              <span class="price">{{ formatPrice(minPrice) }}</span>
-            </div>
-            <div class="price-item">
-              <span>Harga Tertinggi:</span>
-              <span class="price">{{ formatPrice(maxPrice) }}</span>
-            </div>
-            <div class="price-item">
-              <span>Total Stok:</span>
-              <span>{{ totalStock }} unit</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Section 5: Status -->
-      <section class="form-section">
-        <div class="section-header" @click="toggleSection('status')">
-          <h2>5. Status Produk</h2>
-        </div>
-        <div class="section-content" v-show="!sections.status">
-          <div class="status-options">
-            <label class="radio-option">
-              <input type="radio" v-model="form.status" value="draft" />
-              <span>Draft</span>
-            </label>
-            <label class="radio-option">
-              <input type="radio" v-model="form.status" value="active" />
-              <span>Aktif</span>
-            </label>
-          </div>
-        </div>
-      </section>
-
-      <!-- Submit -->
-      <div class="form-actions">
-        <button type="button" @click="saveDraft" class="btn-draft">
-          Simpan Draft
-        </button>
-        <button
-          type="submit"
-          class="btn-submit"
-          :disabled="submitting || !isValid"
-        >
-          {{ submitting ? "Menyimpan..." : "Simpan Produk" }}
-        </button>
-      </div>
-    </form>
-
-    <!-- Messages -->
-    <div v-if="error" class="message error">{{ error }}</div>
-    <div v-if="success" class="message success">{{ success }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
+import { useUIStore } from "@/store/ui";
+import LeftSidebar from "@/components/layout/LeftSidebar.vue";
 import masterProductService from "@/services/masterProductService";
 
 const router = useRouter();
+const uiStore = useUIStore();
+
+// Navigation Handlers
+const handleTabChange = (tab: string) => {
+  if (tab === "master-products") return;
+
+  if (["settings", "product-management", "order-management"].includes(tab)) {
+    router.push({ path: "/dashboard", query: { tab } });
+    uiStore.setActiveTab(tab);
+  } else {
+    router.push({ name: tab });
+  }
+};
+
+const handlePlatformChange = (platform: string) => {
+  uiStore.setActivePlatform(platform);
+};
 
 // Form state
 const form = ref({
@@ -315,6 +362,8 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
+@import "../Dashboard.module.css";
+
 .product-add-page {
   padding: 1.5rem;
   max-width: 900px;

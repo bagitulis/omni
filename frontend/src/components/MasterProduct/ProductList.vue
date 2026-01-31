@@ -106,8 +106,8 @@
                 <tr>
                   <th>SKU</th>
                   <th>Varian</th>
-                  <th class="text-right">Harga</th>
-                  <th class="text-right">Stok</th>
+                  <th>Harga</th>
+                  <th>Stok</th>
                   <th>Platform</th>
                 </tr>
               </thead>
@@ -119,24 +119,164 @@
                 >
                   <td class="sku-cell">{{ sku.seller_sku }}</td>
                   <td class="variant-cell">{{ sku.variant_name || "-" }}</td>
-                  <td class="price-cell text-right">
-                    {{ formatPrice(sku.price) }}
+                  <td
+                    class="price-cell editable-cell"
+                    :class="{
+                      editing: isEditing(sku.id, 'price'),
+                      saving:
+                        savingCell?.skuId === sku.id &&
+                        savingCell?.field === 'price',
+                    }"
+                    @click="startEdit(sku.id, 'price', sku.price)"
+                  >
+                    <template v-if="isEditing(sku.id, 'price')">
+                      <input
+                        type="number"
+                        v-model.number="editedValue"
+                        class="inline-edit-input"
+                        @keydown.enter="saveEdit(sku, product)"
+                        @keydown.escape="cancelEdit"
+                        @blur="saveEdit(sku, product)"
+                        ref="editInputRef"
+                        min="0"
+                        step="1000"
+                      />
+                    </template>
+                    <template v-else>
+                      <span class="cell-value">{{
+                        formatPrice(sku.price)
+                      }}</span>
+                      <span
+                        class="edit-hint"
+                        v-if="
+                          savingCell?.skuId !== sku.id ||
+                          savingCell?.field !== 'price'
+                        "
+                        >✏️</span
+                      >
+                      <span
+                        class="saving-indicator"
+                        v-if="
+                          savingCell?.skuId === sku.id &&
+                          savingCell?.field === 'price'
+                        "
+                        >💾</span
+                      >
+                    </template>
                   </td>
-                  <td class="stock-cell text-right">{{ sku.stock }}</td>
+                  <td
+                    class="stock-cell editable-cell"
+                    :class="{
+                      editing: isEditing(sku.id, 'stock'),
+                      saving:
+                        savingCell?.skuId === sku.id &&
+                        savingCell?.field === 'stock',
+                    }"
+                    @click="startEdit(sku.id, 'stock', sku.stock)"
+                  >
+                    <template v-if="isEditing(sku.id, 'stock')">
+                      <input
+                        type="number"
+                        v-model.number="editedValue"
+                        class="inline-edit-input"
+                        @keydown.enter="saveEdit(sku, product)"
+                        @keydown.escape="cancelEdit"
+                        @blur="saveEdit(sku, product)"
+                        ref="editInputRef"
+                        min="0"
+                        step="1"
+                      />
+                    </template>
+                    <template v-else>
+                      <span class="cell-value">{{ sku.stock }}</span>
+                      <span
+                        class="edit-hint"
+                        v-if="
+                          savingCell?.skuId !== sku.id ||
+                          savingCell?.field !== 'stock'
+                        "
+                        >✏️</span
+                      >
+                      <span
+                        class="saving-indicator"
+                        v-if="
+                          savingCell?.skuId === sku.id &&
+                          savingCell?.field === 'stock'
+                        "
+                        >💾</span
+                      >
+                    </template>
+                  </td>
                   <td class="platform-cell">
                     <div class="platform-icons">
-                      <span
+                      <div
                         v-for="platform in ['shopee', 'tiktok', 'lazada']"
                         :key="platform"
-                        class="platform-icon"
-                        :class="[
-                          platform,
-                          { linked: isPlatformLinked(sku, platform) },
-                        ]"
-                        :title="getPlatformTitle(platform, sku)"
+                        class="platform-item"
                       >
-                        {{ getPlatformEmoji(platform) }}
-                      </span>
+                        <!-- Sync Button (only when needed) -->
+                        <button
+                          v-if="
+                            isPlatformLinked(sku, platform) &&
+                            needsSync(sku.id, platform) &&
+                            !getSyncState(sku.id, platform)
+                          "
+                          class="sync-btn"
+                          @click.stop="
+                            syncToPlatform(product.id, sku.id, platform)
+                          "
+                          title="Sinkronisasi perubahan"
+                        >
+                          🔄
+                        </button>
+
+                        <!-- Loading Spinner -->
+                        <div
+                          v-else-if="
+                            getSyncState(sku.id, platform) === 'syncing'
+                          "
+                          class="sync-spinner"
+                        ></div>
+
+                        <!-- Success Indicator -->
+                        <span
+                          v-else-if="
+                            getSyncState(sku.id, platform) === 'success'
+                          "
+                          class="sync-success"
+                          >✅</span
+                        >
+
+                        <!-- Error Indicator -->
+                        <span
+                          v-else-if="getSyncState(sku.id, platform) === 'error'"
+                          class="sync-error"
+                          title="Gagal sinkronisasi"
+                          @click="syncToPlatform(product.id, sku.id, platform)"
+                          >⚠️</span
+                        >
+
+                        <!-- Platform Icon -->
+                        <span
+                          class="platform-icon"
+                          :class="[
+                            platform,
+                            {
+                              linked: isPlatformLinked(sku, platform),
+                              'has-update': needsSync(sku.id, platform),
+                              'is-loading': isPlatformLoading(sku.id, platform),
+                            },
+                          ]"
+                          :title="getPlatformTitle(platform, sku)"
+                          @click.stop="handlePlatformClick(sku, platform)"
+                        >
+                          {{
+                            isPlatformLoading(sku.id, platform)
+                              ? "⏳"
+                              : getPlatformEmoji(platform)
+                          }}
+                        </span>
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -174,7 +314,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, nextTick } from "vue";
+import masterProductService from "@/services/masterProductService";
 
 // Types
 interface PlatformLink {
@@ -219,13 +360,169 @@ const props = defineProps<{
 }>();
 
 // Emits
-defineEmits<{
+const emit = defineEmits<{
   delete: [product: MasterProduct];
   "page-change": [page: number];
+  "sku-updated": [sku: ProductSku];
 }>();
 
 // State
 const expandedProducts = ref<Set<number>>(new Set());
+
+// Sync State
+const skusNeedingSync = ref<Map<number, Set<string>>>(new Map());
+const syncStatus = ref<Map<string, "syncing" | "success" | "error">>(new Map());
+const syncErrorMessages = ref<Map<string, string>>(new Map());
+
+// Platform Connect/Disconnect State
+const platformLoading = ref<Map<string, boolean>>(new Map());
+
+// Inline editing state
+const editingCell = ref<{ skuId: number; field: "price" | "stock" } | null>(
+  null,
+);
+const editedValue = ref<number>(0);
+const originalValue = ref<number>(0);
+const savingCell = ref<{ skuId: number; field: "price" | "stock" } | null>(
+  null,
+);
+const editInputRef = ref<HTMLInputElement | null>(null);
+
+// Inline editing methods
+const isEditing = (skuId: number, field: "price" | "stock"): boolean => {
+  return (
+    editingCell.value?.skuId === skuId && editingCell.value?.field === field
+  );
+};
+
+const startEdit = (skuId: number, field: "price" | "stock", value: number) => {
+  // Don't start edit if already saving
+  if (savingCell.value) return;
+
+  editingCell.value = { skuId, field };
+  editedValue.value = value;
+  originalValue.value = value;
+
+  // Focus the input after Vue updates the DOM
+  nextTick(() => {
+    const input = document.querySelector(
+      ".inline-edit-input",
+    ) as HTMLInputElement;
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  });
+};
+
+const cancelEdit = () => {
+  editingCell.value = null;
+  editedValue.value = 0;
+  originalValue.value = 0;
+};
+
+const syncToPlatform = async (
+  productId: number,
+  skuId: number,
+  platform: string,
+) => {
+  const syncKey = `${skuId}-${platform}`;
+  syncStatus.value.set(syncKey, "syncing");
+  syncErrorMessages.value.delete(syncKey);
+
+  try {
+    await masterProductService.sync(productId, platform);
+    syncStatus.value.set(syncKey, "success");
+
+    // Remove from needing sync list
+    const platformSet = skusNeedingSync.value.get(skuId);
+    if (platformSet) {
+      platformSet.delete(platform);
+      if (platformSet.size === 0) {
+        skusNeedingSync.value.delete(skuId);
+      }
+    }
+
+    // Clear success status after 3 seconds
+    setTimeout(() => {
+      syncStatus.value.delete(syncKey);
+    }, 3000);
+  } catch (error: any) {
+    console.error(`Sync to ${platform} failed:`, error);
+    syncStatus.value.set(syncKey, "error");
+    syncErrorMessages.value.set(
+      syncKey,
+      error.response?.data?.error || "Gagal sinkronisasi",
+    );
+  }
+};
+
+const saveEdit = async (sku: ProductSku, product: MasterProduct) => {
+  if (!editingCell.value) return;
+
+  const { skuId, field } = editingCell.value;
+
+  // Don't save if value hasn't changed
+  if (editedValue.value === originalValue.value) {
+    cancelEdit();
+    return;
+  }
+
+  // Validate value
+  if (editedValue.value < 0) {
+    editedValue.value = 0;
+  }
+
+  // Set saving state
+  savingCell.value = { skuId, field };
+  editingCell.value = null;
+
+  try {
+    const updateInput =
+      field === "price"
+        ? { price: editedValue.value }
+        : { stock: editedValue.value };
+
+    const updatedSku = await masterProductService.updateSku(skuId, updateInput);
+
+    // Update the local SKU data
+    if (product.skus) {
+      const skuIndex = product.skus.findIndex((s) => s.id === skuId);
+      if (skuIndex !== -1) {
+        product.skus[skuIndex] = { ...product.skus[skuIndex], ...updatedSku };
+      }
+    }
+
+    // Emit event for parent
+    emit("sku-updated", updatedSku);
+
+    // Mark as needing sync for all linked platforms
+    if (sku.platform_links?.length) {
+      if (!skusNeedingSync.value.has(sku.id)) {
+        skusNeedingSync.value.set(sku.id, new Set());
+      }
+      const platformSet = skusNeedingSync.value.get(sku.id)!;
+      sku.platform_links.forEach((link) => {
+        // Only if currently linked
+        if (link.platform && link.platform_sku_id) {
+          platformSet.add(link.platform);
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Failed to update SKU:", error);
+    // Revert to original value on error
+    if (field === "price") {
+      sku.price = originalValue.value;
+    } else {
+      sku.stock = originalValue.value;
+    }
+  } finally {
+    savingCell.value = null;
+    editedValue.value = 0;
+    originalValue.value = 0;
+  }
+};
 
 // Methods
 const toggleExpand = (productId: number) => {
@@ -296,11 +593,106 @@ const getPlatformEmoji = (platform: string): string => {
 };
 
 const getPlatformTitle = (platform: string, sku: ProductSku): string => {
+  const syncKey = `${sku.id}-${platform}`;
+  const errorMsg = syncErrorMessages.value.get(syncKey);
+  if (errorMsg) return errorMsg;
+
   const linked = isPlatformLinked(sku, platform);
   const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
   return linked
     ? `Terhubung ke ${platformName}`
     : `Belum terhubung ke ${platformName}`;
+};
+
+const needsSync = (skuId: number, platform: string): boolean => {
+  return skusNeedingSync.value.get(skuId)?.has(platform) ?? false;
+};
+
+const getSyncState = (skuId: number, platform: string) => {
+  return syncStatus.value.get(`${skuId}-${platform}`);
+};
+
+// Platform Connect/Disconnect Methods
+const isPlatformLoading = (skuId: number, platform: string): boolean => {
+  return platformLoading.value.get(`${skuId}-${platform}`) ?? false;
+};
+
+const handlePlatformClick = async (sku: ProductSku, platform: string) => {
+  const loadingKey = `${sku.id}-${platform}`;
+  if (platformLoading.value.get(loadingKey)) return;
+
+  const isLinked = isPlatformLinked(sku, platform);
+
+  if (isLinked) {
+    // Unlink Flow
+    if (confirm(`Putuskan koneksi dari ${platform}?`)) {
+      platformLoading.value.set(loadingKey, true);
+      try {
+        await masterProductService.unlinkSku(sku.id, platform);
+
+        // Update local state: remove the link
+        if (sku.platform_links) {
+          sku.platform_links = sku.platform_links.filter(
+            (link) => link.platform !== platform,
+          );
+        }
+      } catch (error: any) {
+        console.error(`Failed to unlink ${platform}:`, error);
+        alert(
+          `Gagal memutuskan koneksi: ${error.response?.data?.error || error.message}`,
+        );
+      } finally {
+        platformLoading.value.delete(loadingKey);
+      }
+    }
+  } else {
+    // Link Flow
+    const platformItemId = prompt(
+      `Masukkan ID Produk untuk ${platform} (Item ID):`,
+    );
+    if (!platformItemId) return;
+
+    // Optional: Ask for SKU ID if needed
+    // const platformSkuId = prompt(`Masukkan ID SKU (Variant ID) jika ada (opsional):`);
+
+    platformLoading.value.set(loadingKey, true);
+    try {
+      await masterProductService.manualLink(
+        sku.id,
+        platform,
+        platformItemId,
+        // platformSkuId || undefined
+      );
+
+      // Update local state: add the link
+      if (!sku.platform_links) {
+        sku.platform_links = [];
+      }
+
+      // Add a mock link so UI updates immediately (proper data comes on refresh)
+      sku.platform_links.push({
+        id: Date.now(), // Temporary ID
+        master_product_id: sku.master_product_id,
+        master_sku_id: sku.id,
+        platform: platform,
+        platform_product_id: platformItemId,
+        sync_status: "linked",
+      });
+
+      // Mark for sync if needed
+      if (!skusNeedingSync.value.has(sku.id)) {
+        skusNeedingSync.value.set(sku.id, new Set());
+      }
+      skusNeedingSync.value.get(sku.id)!.add(platform);
+    } catch (error: any) {
+      console.error(`Failed to link ${platform}:`, error);
+      alert(
+        `Gagal menghubungkan: ${error.response?.data?.error || error.message}`,
+      );
+    } finally {
+      platformLoading.value.delete(loadingKey);
+    }
+  }
 };
 </script>
 
@@ -666,20 +1058,180 @@ const getPlatformTitle = (platform: string, sku: ProductSku): string => {
   color: #dc2626;
 }
 
+/* Inline Editing Styles */
+.editable-cell {
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.editable-cell:hover:not(.editing):not(.saving) {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
+  border-radius: 0.25rem;
+}
+
+.editable-cell .cell-value {
+  display: inline-block;
+}
+
+.editable-cell .edit-hint {
+  opacity: 0;
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  transition: opacity 0.2s ease;
+}
+
+.editable-cell:hover .edit-hint {
+  opacity: 0.7;
+}
+
+.editable-cell.editing {
+  padding: 0.5rem !important;
+  background: #fffbeb !important;
+}
+
+.editable-cell.saving {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.saving-indicator {
+  margin-left: 0.5rem;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.inline-edit-input {
+  width: 100%;
+  max-width: 120px;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  border: 2px solid #3b82f6;
+  border-radius: 0.375rem;
+  background: white;
+  color: inherit;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  transition: all 0.2s ease;
+}
+
+.inline-edit-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+}
+
+.inline-edit-input::-webkit-outer-spin-button,
+.inline-edit-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.inline-edit-input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 .platform-cell {
-  width: 120px;
+  width: 140px;
 }
 
 .platform-icons {
   display: flex;
-  gap: 0.375rem;
+  gap: 0.5rem;
   align-items: center;
+}
+
+.platform-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  position: relative;
+}
+
+.sync-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0;
+  line-height: 1;
+  margin-bottom: -2px;
+  animation: bounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes bounce {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.sync-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 2px;
+}
+
+.sync-success {
+  font-size: 0.75rem;
+  margin-bottom: -2px;
+  animation: popIn 0.3s ease-out;
+}
+
+.sync-error {
+  font-size: 0.75rem;
+  margin-bottom: -2px;
+  cursor: pointer;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes popIn {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
 }
 
 .platform-icon {
   font-size: 1.125rem;
   opacity: 0.2;
-  cursor: help;
+  cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   filter: grayscale(100%);
   position: relative;
@@ -688,10 +1240,45 @@ const getPlatformTitle = (platform: string, sku: ProductSku): string => {
   justify-content: center;
 }
 
+.platform-icon:hover {
+  opacity: 0.8;
+  filter: grayscale(0%);
+  transform: scale(1.2);
+}
+
 .platform-icon.linked {
   opacity: 1;
   filter: grayscale(0%);
   transform: scale(1.1);
+}
+
+.platform-icon.is-loading {
+  opacity: 1;
+  filter: grayscale(0%);
+  animation: pulse 1.5s infinite;
+  cursor: wait;
+}
+
+.platform-icon.has-update {
+  position: relative;
+}
+
+.platform-icon.has-update::after {
+  content: "!";
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #f59e0b;
+  color: white;
+  font-size: 0.5rem;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid white;
+  font-weight: bold;
 }
 
 .platform-icon.linked::after {

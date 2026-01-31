@@ -3,11 +3,11 @@ package services
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -112,9 +112,16 @@ func (s *TenantService) MigrateAllTenants(ctx context.Context) error {
 	}
 
 	for _, t := range tenants {
-		log.Printf("Migrating tenant: %s", t.ID)
+		log.Info().
+			Str("service", "tenant").
+			Str("tenant_id", t.ID).
+			Msg("Migrating tenant")
 		if err := s.MigrateTenant(t.ID); err != nil {
-			log.Printf("Failed to migrate tenant %s: %v", t.ID, err)
+			log.Error().
+				Str("service", "tenant").
+				Str("tenant_id", t.ID).
+				Err(err).
+				Msg("Failed to migrate tenant")
 			// Continue with other tenants
 		}
 	}

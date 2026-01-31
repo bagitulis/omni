@@ -62,10 +62,10 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		// OAuth
 		&models.OAuthState{},
 		&models.OAuthLog{},
-		
+
 		// Platform Config
 		&models.PlatformConfig{},
-		
+
 		// Webhooks
 		&models.WebhookLog{},
 		&models.WebhookOrderEvent{},
@@ -75,7 +75,7 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		&models.WebhookShopeeEvent{},
 		&models.WebhookWebchatEvent{},
 		&models.WebhookFBSEvent{},
-		
+
 		// Analytics
 		&models.AnalyticsSettings{},
 		&models.ShopeeEscrowSync{},
@@ -84,47 +84,50 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		&models.TiktokEscrowSync{},
 		&models.TiktokEscrowOrder{},
 		&models.TiktokEscrowItem{},
-		
+
 		// Shopee
 		&models.ShopeeOrder{},
 		&models.ShopeeOrderItem{},
 		&models.ShopeeProduct{},
 		&models.ShopeeSku{},
-		
+
 		// Lazada
 		&models.LazadaOrder{},
 		&models.LazadaOrderItem{},
 		&models.LazadaProduct{},
 		&models.LazadaSku{},
-		
+
 		// TikTok
 		&models.TiktokOrder{},
 		&models.TiktokOrderItem{},
 		&models.TiktokProduct{},
 		&models.TiktokSku{},
-		
+
 		// Inventory
 		&models.InventorySettings{},
 		&models.InventoryRecord{},
 		&models.InventorySyncHistory{},
 		&models.SheetSnapshot{},
 		&models.InventorySkuPlatformStatus{},
-		
+
 		// Settings
 		&models.GoogleSheetsSettings{},
 		&models.FilterPreference{},
 		&models.Spreadsheet{},
 		&models.RouteConfig{},
 		&models.WholesaleSettings{},
-		
+
 		// Unified Products
 		&models.Product{},
 		&models.ProductSKU{},
-		
+
+		// Image Gallery
+		&models.Image{},
+
 		// Orders
 		&models.OrderTodayItem{},
 		&models.LockedOrder{},
-		
+
 		// Ads
 		&models.ShopeeAdsUploadBatch{},
 		&models.ShopeeAdsProductData{},
@@ -132,7 +135,7 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		&models.TiktokAdsCreativeData{},
 		&models.TiktokAdsProductSummary{},
 		&models.TiktokAdsMLPrediction{},
-		
+
 		// Jobs
 		&models.Job{},
 		&models.JobHistory{},

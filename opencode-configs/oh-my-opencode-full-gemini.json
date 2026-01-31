@@ -18,7 +18,7 @@
       "model": "google/gemini-3-flash-preview"
     },
     "multimodal-looker": {
-      "model": "google/antigravity-gemini-3-flash",
+      "model": "google/antigravity-gemini-3-pro",
       "variant": "high"
     },
     "prometheus": {
@@ -35,32 +35,7 @@
       "model": "google/antigravity-gemini-3-pro",
       "variant": "high"
     },
-    "executor": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "low"
-    },
-    "reviewer": {
-      "model": "google/gemini-3-pro-preview"
-    },
-    "tester": {
-      "model": "google/gemini-3-flash-preview"
-    },
-    "security-auditor": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
-    },
-    "refactorer": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
-    },
-    "doc-writer": {
-      "model": "google/gemini-2.5-flash"
-    },
-    "frontend-ui-ux-engineer": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
-    },
-    "document-writer": {
+    "sisyphus-junior": {
       "model": "google/antigravity-gemini-3-flash",
       "variant": "medium"
     },
@@ -84,6 +59,10 @@
       "model": "google/gemini-3-flash-preview"
     },
     "ultrabrain": {
+      "model": "google/antigravity-gemini-3-pro",
+      "variant": "high"
+    },
+    "deep": {
       "model": "google/antigravity-gemini-3-pro",
       "variant": "high"
     },

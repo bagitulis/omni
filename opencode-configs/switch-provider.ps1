@@ -9,10 +9,10 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $TargetConfig = "$env:USERPROFILE\.config\opencode\oh-my-opencode.json"
 
 $Profiles = @{
-    "antigravity" = "oh-my-opencode.json"
-    "copilot"     = "oh-my-opencode-copilot.json"
-    "gemini"      = "oh-my-opencode-full-gemini.json"
-    "openai"      = "oh-my-opencode-openai.json"
+    "copilot"     = "oh-my-opencode-copilot.json"           # GitHub Copilot (Claude via Copilot)
+    "antigravity" = "oh-my-opencode-full-claude.json"       # Antigravity (Claude via Google)
+    "gemini"      = "oh-my-opencode-full-gemini.json"       # Gemini native (Gemini models only)
+    "openai"      = "oh-my-opencode-openai.json"            # OpenAI (GPT-5.2)
 }
 
 # Show available providers

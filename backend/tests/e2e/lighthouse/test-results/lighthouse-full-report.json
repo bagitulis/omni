@@ -1,8 +1,8 @@
 {
   "test_info": {
-    "start_time": "2026-01-31T06:18:10.0833099+07:00",
-    "end_time": "2026-01-31T06:18:18.3192687+07:00",
-    "duration_ms": 8235,
+    "start_time": "2026-01-31T13:20:57.8178078+07:00",
+    "end_time": "2026-01-31T13:21:06.058367+07:00",
+    "duration_ms": 8240,
     "test_type": "Lighthouse Performance Test",
     "base_url": "http://localhost:80",
     "credentials": {
@@ -11,7 +11,7 @@
   },
   "login_test": {
     "success": true,
-    "duration_ms": 8152
+    "duration_ms": 8131
   },
   "page_tests": [
     {
@@ -20,7 +20,7 @@
       "url": "http://localhost:80/",
       "desktop": {
         "success": false,
-        "duration_ms": 13219100,
+        "duration_ms": 13666300,
         "scores": {
           "performance": 0,
           "accessibility": 0,
@@ -45,7 +45,7 @@
       },
       "mobile": {
         "success": false,
-        "duration_ms": 13342800,
+        "duration_ms": 15305500,
         "scores": {
           "performance": 0,
           "accessibility": 0,
@@ -75,7 +75,7 @@
       "url": "http://localhost:80/order-manager",
       "desktop": {
         "success": false,
-        "duration_ms": 10065100,
+        "duration_ms": 9116700,
         "scores": {
           "performance": 0,
           "accessibility": 0,
@@ -100,7 +100,7 @@
       },
       "mobile": {
         "success": false,
-        "duration_ms": 8032600,
+        "duration_ms": 8292200,
         "scores": {
           "performance": 0,
           "accessibility": 0,
@@ -130,7 +130,7 @@
       "url": "http://localhost:80/analytics/hub",
       "desktop": {
         "success": false,
-        "duration_ms": 8800200,
+        "duration_ms": 28715300,
         "scores": {
           "performance": 0,
           "accessibility": 0,
@@ -155,7 +155,7 @@
       },
       "mobile": {
         "success": false,
-        "duration_ms": 9174800,
+        "duration_ms": 12452100,
         "scores": {
           "performance": 0,
           "accessibility": 0,
@@ -191,7 +191,7 @@
     "mobile_avg_best_practices": 0,
     "mobile_avg_seo": 0,
     "total_screenshots": 0,
-    "total_duration_ms": 8235
+    "total_duration_ms": 8240
   },
   "common_issues": null
 }

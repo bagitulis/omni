@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +11,7 @@ import (
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/wholesale"
 	"github.com/omni/backend/pkg/shopee"
+	"github.com/rs/zerolog/log"
 )
 
 // =============================================================================
@@ -177,7 +177,11 @@ func (h *WholesaleExtendedHandler) BatchSetMpq(c *gin.Context) {
 	// Get Shopee API client
 	shopeeClient, err := config.GetShopeeClient(tenantID, h.basePath)
 	if err != nil {
-		log.Printf("[ERROR] Failed to get Shopee client for tenant %s: %v", tenantID, err)
+		log.Error().
+			Str("handler", "wholesale_batch").
+			Str("tenant_id", tenantID).
+			Err(err).
+			Msg("Failed to get Shopee client")
 		c.JSON(http.StatusInternalServerError, response.Error(fmt.Sprintf("Shopee API configuration failed: %v", err)))
 		return
 	}

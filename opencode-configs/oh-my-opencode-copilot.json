@@ -2,112 +2,79 @@
   "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
   "google_auth": false,
   "default_model": "github-copilot/claude-sonnet-4.5",
+
   "agents": {
     "sisyphus": {
-      "model": "github-copilot/claude-opus-4.5",
-      "thinking": true
-    },
-    "oracle": {
-      "model": "github-copilot/claude-opus-4.5",
-      "thinking": true
-    },
-    "librarian": {
-      "model": "github-copilot/claude-sonnet-4.5"
-    },
-    "explore": {
-      "model": "github-copilot/claude-sonnet-4.5"
-    },
-    "multimodal-looker": {
-      "model": "github-copilot/claude-sonnet-4.5"
+      "model": "github-copilot/claude-opus-4.5"
     },
     "prometheus": {
-      "model": "github-copilot/claude-opus-4.5",
-      "thinking": true
+      "model": "github-copilot/claude-opus-4.5"
     },
-    "metis": {
-      "model": "github-copilot/claude-sonnet-4.5",
-      "thinking": true
-    },
-    "momus": {
-      "model": "github-copilot/claude-sonnet-4.5"
+    "oracle": {
+      "model": "github-copilot/claude-opus-4.5"
     },
     "atlas": {
-      "model": "github-copilot/claude-opus-4.5",
-      "thinking": true
+      "model": "github-copilot/claude-opus-4.5"
     },
-    "executor": {
-      "model": "github-copilot/claude-sonnet-4.5",
-      "thinking": true
+    "librarian": {
+      "model": "github-copilot/gemini-3-pro-preview"
     },
-    "reviewer": {
-      "model": "github-copilot/claude-sonnet-4.5",
-      "thinking": true
+    "explore": {
+      "model": "github-copilot/claude-haiku-4.5"
     },
-    "tester": {
-      "model": "github-copilot/claude-sonnet-4.5",
-      "thinking": true
+    "multimodal-looker": {
+      "model": "github-copilot/gemini-3-pro-preview"
     },
-    "security-auditor": {
-      "model": "github-copilot/claude-opus-4.5",
-      "thinking": true
-    },
-    "refactorer": {
-      "model": "github-copilot/claude-sonnet-4.5",
-      "thinking": true
-    },
-    "doc-writer": {
+    "metis": {
       "model": "github-copilot/claude-sonnet-4.5"
     },
+    "momus": {
+      "model": "github-copilot/claude-opus-4.5"
+    },
     "sisyphus-junior": {
-      "model": "github-copilot/claude-sonnet-4.5",
-      "thinking": true
+      "model": "github-copilot/claude-sonnet-4.5"
     },
     "default": {
       "model": "github-copilot/claude-sonnet-4.5"
     }
   },
+
   "categories": {
     "visual-engineering": {
-      "model": "github-copilot/gemini-3-pro-preview",
-      "thinking": true
+      "model": "github-copilot/gemini-3-pro-preview"
     },
     "artistry": {
-      "model": "github-copilot/gemini-3-pro-preview",
-      "thinking": true
+      "model": "github-copilot/gemini-3-pro-preview"
     },
     "writing": {
-      "model": "github-copilot/gemini-3-flash-preview",
-      "thinking": true
+      "model": "github-copilot/claude-sonnet-4.5"
     },
     "quick": {
-      "model": "github-copilot/claude-sonnet-4.5"
+      "model": "github-copilot/claude-haiku-4.5"
     },
     "ultrabrain": {
-      "model": "github-copilot/claude-opus-4.5",
-      "thinking": true
+      "model": "github-copilot/claude-opus-4.5"
+    },
+    "deep": {
+      "model": "github-copilot/claude-opus-4.5"
     },
     "implementation": {
-      "model": "github-copilot/claude-sonnet-4.5",
-      "thinking": true
+      "model": "github-copilot/claude-opus-4.5"
     },
     "review": {
-      "model": "github-copilot/claude-sonnet-4.5",
-      "thinking": true
-    },
-    "testing": {
-      "model": "github-copilot/claude-sonnet-4.5",
-      "thinking": true
-    },
-    "security": {
-      "model": "github-copilot/claude-opus-4.5",
-      "thinking": true
-    },
-    "unspecified-low": {
       "model": "github-copilot/claude-sonnet-4.5"
     },
+    "testing": {
+      "model": "github-copilot/claude-sonnet-4.5"
+    },
+    "security": {
+      "model": "github-copilot/claude-opus-4.5"
+    },
+    "unspecified-low": {
+      "model": "github-copilot/claude-haiku-4.5"
+    },
     "unspecified-high": {
-      "model": "github-copilot/claude-sonnet-4.5",
-      "thinking": true
+      "model": "github-copilot/claude-opus-4.5"
     }
   }
 }

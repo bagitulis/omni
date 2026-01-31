@@ -2,13 +2,13 @@ package handlers
 
 import (
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/webhooks"
+	"github.com/rs/zerolog/log"
 )
 
 // WebhookExtendedHandler handles extended webhook endpoints
@@ -51,11 +51,19 @@ func (h *WebhookExtendedHandler) ShopeeWebhookTenant(c *gin.Context) {
 	signature := c.GetHeader("Authorization")
 	requestURL := c.Request.URL.String()
 
-	log.Printf("[Webhook] Shopee tenant-specific: tenant=%s", tenantID)
+	log.Debug().
+		Str("handler", "webhook").
+		Str("platform", "shopee").
+		Str("tenant_id", tenantID).
+		Msg("Shopee tenant-specific webhook received")
 
 	if h.shopeeProcessor != nil {
 		if err := h.shopeeProcessor.Process(c.Request.Context(), tenantID, requestURL, string(body), signature); err != nil {
-			log.Printf("[Webhook] Shopee processing error: %v", err)
+			log.Warn().
+				Str("handler", "webhook").
+				Str("platform", "shopee").
+				Err(err).
+				Msg("Shopee webhook processing error")
 		}
 	}
 
@@ -78,11 +86,19 @@ func (h *WebhookExtendedHandler) LazadaWebhookTenant(c *gin.Context) {
 
 	signature := c.GetHeader("Authorization")
 
-	log.Printf("[Webhook] Lazada tenant-specific: tenant=%s", tenantID)
+	log.Debug().
+		Str("handler", "webhook").
+		Str("platform", "lazada").
+		Str("tenant_id", tenantID).
+		Msg("Lazada tenant-specific webhook received")
 
 	if h.lazadaProcessor != nil {
 		if err := h.lazadaProcessor.Process(c.Request.Context(), tenantID, string(body), signature); err != nil {
-			log.Printf("[Webhook] Lazada processing error: %v", err)
+			log.Warn().
+				Str("handler", "webhook").
+				Str("platform", "lazada").
+				Err(err).
+				Msg("Lazada webhook processing error")
 		}
 	}
 
@@ -106,11 +122,19 @@ func (h *WebhookExtendedHandler) TiktokWebhookTenant(c *gin.Context) {
 	signature := c.GetHeader("x-tts-signature")
 	timestamp := c.GetHeader("x-tts-timestamp")
 
-	log.Printf("[Webhook] TikTok tenant-specific: tenant=%s", tenantID)
+	log.Debug().
+		Str("handler", "webhook").
+		Str("platform", "tiktok").
+		Str("tenant_id", tenantID).
+		Msg("TikTok tenant-specific webhook received")
 
 	if h.tiktokProcessor != nil {
 		if err := h.tiktokProcessor.Process(c.Request.Context(), tenantID, string(body), timestamp, signature); err != nil {
-			log.Printf("[Webhook] TikTok processing error: %v", err)
+			log.Warn().
+				Str("handler", "webhook").
+				Str("platform", "tiktok").
+				Err(err).
+				Msg("TikTok webhook processing error")
 		}
 	}
 

@@ -1,7 +1,6 @@
 package lazada
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/omni/backend/internal/repositories"
 	lazadaService "github.com/omni/backend/internal/services/lazada"
 	lazadaPkg "github.com/omni/backend/pkg/lazada"
+	"github.com/rs/zerolog/log"
 )
 
 // ProductHandler handles Lazada product HTTP requests
@@ -52,7 +52,11 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 	credRepo := repositories.NewPlatformCredentialsRepository(db)
 	tenantCreds, err := credRepo.GetLazadaCredentials(c.Request.Context())
 	if err != nil {
-		log.Printf("Failed to get Lazada credentials for tenant %s: %v", tenantID, err)
+		log.Error().
+			Str("handler", "lazada_products").
+			Str("tenant_id", tenantID).
+			Err(err).
+			Msg("Failed to get Lazada credentials")
 		c.JSON(http.StatusBadRequest, response.Error("Lazada not configured for this tenant"))
 		return
 	}
@@ -97,7 +101,11 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 	syncService := lazadaService.NewSyncServiceWithTenant(client, db, tenantID)
 	products, savedCount, err := syncService.SyncProductsWithDetails(c.Request.Context(), offset, limit)
 	if err != nil {
-		log.Printf("Sync products error: %v", err)
+		log.Error().
+			Str("handler", "lazada_products").
+			Str("tenant_id", tenantID).
+			Err(err).
+			Msg("Sync products error")
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to sync products: "+err.Error()))
 		return
 	}

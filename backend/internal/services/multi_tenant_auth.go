@@ -2,12 +2,12 @@ package services
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/utils"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -51,10 +51,15 @@ type MultiTenantLoginResponse struct {
 // Priority: 1. System schema (developer accounts) 2. Tenant schemas
 func (s *MultiTenantAuthService) LoginAcrossTenants(ctx context.Context, req *MultiTenantLoginRequest) (*MultiTenantLoginResponse, error) {
 	// Step 1: Check system schema first for developer accounts
-	log.Printf("[MultiTenantAuth] 🔍 Checking system schema for user: %s", req.Username)
+	log.Debug().
+		Str("service", "multi_tenant_auth").
+		Str("username", req.Username).
+		Msg("Checking system schema for user")
 	result, err := s.tryLoginInSystem(ctx, req)
 	if err == nil && result != nil {
-		log.Printf("[MultiTenantAuth] ✅ Developer user found in system schema")
+		log.Debug().
+			Str("service", "multi_tenant_auth").
+			Msg("Developer user found in system schema")
 		return result, nil
 	}
 	if err != nil {
@@ -64,7 +69,10 @@ func (s *MultiTenantAuthService) LoginAcrossTenants(ctx context.Context, req *Mu
 				return nil, err
 			}
 		}
-		log.Printf("[MultiTenantAuth] ❌ Not found in system: %v", err)
+		log.Debug().
+			Str("service", "multi_tenant_auth").
+			Err(err).
+			Msg("Not found in system")
 	}
 
 	// Step 2: Check all tenant schemas
@@ -73,14 +81,25 @@ func (s *MultiTenantAuthService) LoginAcrossTenants(ctx context.Context, req *Mu
 		return nil, err
 	}
 
-	log.Printf("[MultiTenantAuth] 🔍 Scanning %d tenants for user: %s", len(tenants), req.Username)
+	log.Debug().
+		Str("service", "multi_tenant_auth").
+		Int("tenant_count", len(tenants)).
+		Str("username", req.Username).
+		Msg("Scanning tenants for user")
 
 	for _, tenant := range tenants {
-		log.Printf("[MultiTenantAuth] 🔍 Checking tenant: %s", tenant.ID)
+		log.Debug().
+			Str("service", "multi_tenant_auth").
+			Str("tenant_id", tenant.ID).
+			Msg("Checking tenant")
 
 		result, err := s.tryLoginInTenant(ctx, tenant.ID, req)
 		if err != nil {
-			log.Printf("[MultiTenantAuth] ❌ Not found in %s: %v", tenant.ID, err)
+			log.Debug().
+				Str("service", "multi_tenant_auth").
+				Str("tenant_id", tenant.ID).
+				Err(err).
+				Msg("Not found in tenant")
 
 			// If account is locked, return immediately
 			if authErr, ok := err.(*AuthError); ok {
@@ -92,7 +111,10 @@ func (s *MultiTenantAuthService) LoginAcrossTenants(ctx context.Context, req *Mu
 		}
 
 		if result != nil {
-			log.Printf("[MultiTenantAuth] ✅ User found in tenant: %s", tenant.ID)
+			log.Debug().
+				Str("service", "multi_tenant_auth").
+				Str("tenant_id", tenant.ID).
+				Msg("User found in tenant")
 			return result, nil
 		}
 	}

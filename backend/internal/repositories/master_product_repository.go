@@ -57,6 +57,7 @@ func (r *MasterProductRepository) FindAll(ctx context.Context, tenantID string, 
 	err := r.db.WithContext(ctx).
 		Where("tenant_id = ?", tenantID).
 		Preload("SKUs").
+		Preload("SKUs.PlatformLinks").
 		Order("created_at DESC").
 		Offset(offset).
 		Limit(pageSize).
@@ -214,6 +215,7 @@ func (r *MasterProductRepository) FindByStatus(ctx context.Context, tenantID, st
 	offset := (page - 1) * pageSize
 	err := query.
 		Preload("SKUs").
+		Preload("SKUs.PlatformLinks").
 		Order("created_at DESC").
 		Offset(offset).
 		Limit(pageSize).
@@ -238,6 +240,7 @@ func (r *MasterProductRepository) SearchByTitle(ctx context.Context, tenantID, s
 	offset := (page - 1) * pageSize
 	err := query.
 		Preload("SKUs").
+		Preload("SKUs.PlatformLinks").
 		Order("created_at DESC").
 		Offset(offset).
 		Limit(pageSize).

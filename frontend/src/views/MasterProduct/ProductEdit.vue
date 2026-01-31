@@ -1,261 +1,295 @@
 <template>
-  <div class="product-edit-page">
-    <div class="page-header">
-      <router-link to="/master-products" class="back-link">
-        ← Kembali
-      </router-link>
-      <h1>Edit Produk</h1>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
-      <p>Memuat data produk...</p>
-    </div>
-
-    <!-- Error State -->
-    <div v-else-if="loadError" class="error-state">
-      <p>{{ loadError }}</p>
-      <button @click="loadProduct" class="btn-retry">Coba Lagi</button>
-    </div>
-
-    <!-- Edit Form -->
-    <form v-else @submit.prevent="handleSubmit" class="product-form">
-      <!-- Section 1: Basic Info -->
-      <section class="form-section" :class="{ collapsed: sections.basic }">
-        <div class="section-header" @click="toggleSection('basic')">
-          <h2>1. Informasi Dasar</h2>
-          <span class="toggle-icon">{{ sections.basic ? "▼" : "▲" }}</span>
-        </div>
-        <div class="section-content" v-show="!sections.basic">
-          <div class="form-group">
-            <label>Nama Produk <span class="required">*</span></label>
-            <input v-model="form.title" maxlength="120" required />
-            <span
-              class="char-count"
-              :class="{ warning: form.title.length > 100 }"
-            >
-              {{ form.title.length }}/120
-            </span>
+  <div class="master-product-page">
+    <div class="main-layout">
+      <LeftSidebar
+        :collapsed="uiStore.leftSidebarCollapsed"
+        :active-tab="'master-products'"
+        :active-platform="uiStore.activePlatform"
+        @toggle="uiStore.toggleLeftSidebar"
+        @tab-change="handleTabChange"
+        @platform-change="handlePlatformChange"
+      />
+      <main class="main-content">
+        <div class="product-edit-page">
+          <div class="page-header">
+            <router-link to="/master-products" class="back-link">
+              ← Kembali
+            </router-link>
+            <h1>Edit Produk</h1>
           </div>
-          <div class="form-group">
-            <label>Deskripsi <span class="required">*</span></label>
-            <textarea
-              v-model="form.description"
-              maxlength="5000"
-              rows="6"
-              required
-            ></textarea>
-            <span class="char-count">{{ form.description.length }}/5000</span>
-          </div>
-        </div>
-      </section>
 
-      <!-- Section 2: Images -->
-      <section class="form-section">
-        <div class="section-header" @click="toggleSection('images')">
-          <h2>2. Gambar Produk</h2>
-          <span class="image-count">{{ form.images.length }}/8</span>
-        </div>
-        <div class="section-content" v-show="!sections.images">
-          <div class="image-grid">
-            <div
-              v-for="(img, idx) in form.images"
-              :key="idx"
-              class="image-slot"
+          <!-- Loading State -->
+          <div v-if="loading" class="loading-state">
+            <div class="spinner"></div>
+            <p>Memuat data produk...</p>
+          </div>
+
+          <!-- Error State -->
+          <div v-else-if="loadError" class="error-state">
+            <p>{{ loadError }}</p>
+            <button @click="loadProduct" class="btn-retry">Coba Lagi</button>
+          </div>
+
+          <!-- Edit Form -->
+          <form v-else @submit.prevent="handleSubmit" class="product-form">
+            <!-- Section 1: Basic Info -->
+            <section
+              class="form-section"
+              :class="{ collapsed: sections.basic }"
             >
-              <img :src="img" alt="" loading="lazy" />
+              <div class="section-header" @click="toggleSection('basic')">
+                <h2>1. Informasi Dasar</h2>
+                <span class="toggle-icon">{{
+                  sections.basic ? "▼" : "▲"
+                }}</span>
+              </div>
+              <div class="section-content" v-show="!sections.basic">
+                <div class="form-group">
+                  <label>Nama Produk <span class="required">*</span></label>
+                  <input v-model="form.title" maxlength="120" required />
+                  <span
+                    class="char-count"
+                    :class="{ warning: form.title.length > 100 }"
+                  >
+                    {{ form.title.length }}/120
+                  </span>
+                </div>
+                <div class="form-group">
+                  <label>Deskripsi <span class="required">*</span></label>
+                  <textarea
+                    v-model="form.description"
+                    maxlength="5000"
+                    rows="6"
+                    required
+                  ></textarea>
+                  <span class="char-count"
+                    >{{ form.description.length }}/5000</span
+                  >
+                </div>
+              </div>
+            </section>
+
+            <!-- Section 2: Images -->
+            <section class="form-section">
+              <div class="section-header" @click="toggleSection('images')">
+                <h2>2. Gambar Produk</h2>
+                <span class="image-count">{{ form.images.length }}/8</span>
+              </div>
+              <div class="section-content" v-show="!sections.images">
+                <div class="image-grid">
+                  <div
+                    v-for="(img, idx) in form.images"
+                    :key="idx"
+                    class="image-slot"
+                  >
+                    <img :src="img" alt="" loading="lazy" />
+                    <button
+                      type="button"
+                      @click="removeImage(idx)"
+                      class="btn-remove"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div
+                    v-if="form.images.length < 8"
+                    class="image-slot add-slot"
+                    @click="triggerImageUpload"
+                    title="Upload dari Komputer"
+                  >
+                    <span>+ Upload</span>
+                  </div>
+                  <div
+                    v-if="form.images.length < 8"
+                    class="image-slot gallery-slot"
+                    @click="openGallery"
+                    title="Pilih dari Galeri"
+                  >
+                    <span>+ Galeri</span>
+                  </div>
+                </div>
+                <input
+                  type="file"
+                  ref="imageInput"
+                  @change="handleImageUpload"
+                  accept="image/*"
+                  hidden
+                />
+              </div>
+            </section>
+
+            <!-- Section 3: Variants & SKUs (Read-only display) -->
+            <section class="form-section">
+              <div class="section-header" @click="toggleSection('variants')">
+                <h2>3. Varian & SKU</h2>
+                <span class="sku-count"
+                  >{{ product?.skus?.length || 0 }} SKU</span
+                >
+              </div>
+              <div class="section-content" v-show="!sections.variants">
+                <div class="info-box">
+                  <p>
+                    ⚠️ SKU tidak dapat diedit. Untuk mengubah SKU, silakan buat
+                    produk baru.
+                  </p>
+                </div>
+                <div class="sku-list-readonly">
+                  <div
+                    v-for="sku in product?.skus"
+                    :key="sku.id"
+                    class="sku-row-readonly"
+                  >
+                    <div class="sku-field">
+                      <label>Seller SKU</label>
+                      <span>{{ sku.seller_sku }}</span>
+                    </div>
+                    <div class="sku-field">
+                      <label>Varian</label>
+                      <span>{{ sku.variant_name || "-" }}</span>
+                    </div>
+                    <div class="sku-field">
+                      <label>Harga</label>
+                      <span>{{ formatPrice(sku.price) }}</span>
+                    </div>
+                    <div class="sku-field">
+                      <label>Stok</label>
+                      <span>{{ sku.stock }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Section 4: Sync Status -->
+            <section class="form-section">
+              <div class="section-header" @click="toggleSection('sync')">
+                <h2>4. Status Sinkronisasi</h2>
+              </div>
+              <div class="section-content" v-show="!sections.sync">
+                <div class="sync-platforms">
+                  <div
+                    v-for="platform in platforms"
+                    :key="platform.name"
+                    class="platform-card"
+                  >
+                    <div class="platform-header">
+                      <span class="platform-icon">{{ platform.icon }}</span>
+                      <span class="platform-name">{{ platform.label }}</span>
+                    </div>
+                    <div class="platform-status">
+                      <span
+                        class="status-badge"
+                        :class="getSyncStatusClass(platform.name)"
+                      >
+                        {{ getSyncStatusLabel(platform.name) }}
+                      </span>
+                      <span
+                        v-if="getLastSyncTime(platform.name)"
+                        class="sync-time"
+                      >
+                        Terakhir: {{ getLastSyncTime(platform.name) }}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      @click="syncToPlatform(platform.name)"
+                      class="btn-sync"
+                      :disabled="syncing[platform.name]"
+                    >
+                      {{
+                        syncing[platform.name]
+                          ? "Menyinkronkan..."
+                          : "Sync Sekarang"
+                      }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Section 5: Pricing Summary -->
+            <section class="form-section">
+              <div class="section-header" @click="toggleSection('pricing')">
+                <h2>5. Ringkasan Harga</h2>
+              </div>
+              <div class="section-content" v-show="!sections.pricing">
+                <div class="pricing-summary">
+                  <div class="price-item">
+                    <span>Harga Terendah:</span>
+                    <span class="price">{{ formatPrice(minPrice) }}</span>
+                  </div>
+                  <div class="price-item">
+                    <span>Harga Tertinggi:</span>
+                    <span class="price">{{ formatPrice(maxPrice) }}</span>
+                  </div>
+                  <div class="price-item">
+                    <span>Total Stok:</span>
+                    <span>{{ totalStock }} unit</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Section 6: Status -->
+            <section class="form-section">
+              <div class="section-header" @click="toggleSection('status')">
+                <h2>6. Status Produk</h2>
+              </div>
+              <div class="section-content" v-show="!sections.status">
+                <div class="status-options">
+                  <label class="radio-option">
+                    <input type="radio" v-model="form.status" value="draft" />
+                    <span>Draft</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" v-model="form.status" value="active" />
+                    <span>Aktif</span>
+                  </label>
+                  <label class="radio-option">
+                    <input
+                      type="radio"
+                      v-model="form.status"
+                      value="inactive"
+                    />
+                    <span>Tidak Aktif</span>
+                  </label>
+                </div>
+              </div>
+            </section>
+
+            <!-- Submit -->
+            <div class="form-actions">
               <button
-                type="button"
-                @click="removeImage(idx)"
-                class="btn-remove"
+                type="submit"
+                class="btn-submit"
+                :disabled="submitting || !isValid"
               >
-                ×
+                {{ submitting ? "Menyimpan..." : "Simpan Perubahan" }}
               </button>
             </div>
-            <div
-              v-if="form.images.length < 8"
-              class="image-slot add-slot"
-              @click="triggerImageUpload"
-              title="Upload dari Komputer"
-            >
-              <span>+ Upload</span>
-            </div>
-            <div
-              v-if="form.images.length < 8"
-              class="image-slot gallery-slot"
-              @click="openGallery"
-              title="Pilih dari Galeri"
-            >
-              <span>+ Galeri</span>
-            </div>
-          </div>
-          <input
-            type="file"
-            ref="imageInput"
-            @change="handleImageUpload"
-            accept="image/*"
-            hidden
+          </form>
+
+          <!-- Messages -->
+          <div v-if="error" class="message error">{{ error }}</div>
+          <div v-if="success" class="message success">{{ success }}</div>
+
+          <!-- Image Gallery Modal -->
+          <ImageGalleryPicker
+            v-model:visible="showGallery"
+            :max-images="8 - form.images.length"
+            @select="handleGallerySelect"
           />
         </div>
-      </section>
-
-      <!-- Section 3: Variants & SKUs (Read-only display) -->
-      <section class="form-section">
-        <div class="section-header" @click="toggleSection('variants')">
-          <h2>3. Varian & SKU</h2>
-          <span class="sku-count">{{ product?.skus?.length || 0 }} SKU</span>
-        </div>
-        <div class="section-content" v-show="!sections.variants">
-          <div class="info-box">
-            <p>
-              ⚠️ SKU tidak dapat diedit. Untuk mengubah SKU, silakan buat produk
-              baru.
-            </p>
-          </div>
-          <div class="sku-list-readonly">
-            <div
-              v-for="sku in product?.skus"
-              :key="sku.id"
-              class="sku-row-readonly"
-            >
-              <div class="sku-field">
-                <label>Seller SKU</label>
-                <span>{{ sku.seller_sku }}</span>
-              </div>
-              <div class="sku-field">
-                <label>Varian</label>
-                <span>{{ sku.variant_name || "-" }}</span>
-              </div>
-              <div class="sku-field">
-                <label>Harga</label>
-                <span>{{ formatPrice(sku.price) }}</span>
-              </div>
-              <div class="sku-field">
-                <label>Stok</label>
-                <span>{{ sku.stock }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Section 4: Sync Status -->
-      <section class="form-section">
-        <div class="section-header" @click="toggleSection('sync')">
-          <h2>4. Status Sinkronisasi</h2>
-        </div>
-        <div class="section-content" v-show="!sections.sync">
-          <div class="sync-platforms">
-            <div
-              v-for="platform in platforms"
-              :key="platform.name"
-              class="platform-card"
-            >
-              <div class="platform-header">
-                <span class="platform-icon">{{ platform.icon }}</span>
-                <span class="platform-name">{{ platform.label }}</span>
-              </div>
-              <div class="platform-status">
-                <span
-                  class="status-badge"
-                  :class="getSyncStatusClass(platform.name)"
-                >
-                  {{ getSyncStatusLabel(platform.name) }}
-                </span>
-                <span v-if="getLastSyncTime(platform.name)" class="sync-time">
-                  Terakhir: {{ getLastSyncTime(platform.name) }}
-                </span>
-              </div>
-              <button
-                type="button"
-                @click="syncToPlatform(platform.name)"
-                class="btn-sync"
-                :disabled="syncing[platform.name]"
-              >
-                {{
-                  syncing[platform.name] ? "Menyinkronkan..." : "Sync Sekarang"
-                }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Section 5: Pricing Summary -->
-      <section class="form-section">
-        <div class="section-header" @click="toggleSection('pricing')">
-          <h2>5. Ringkasan Harga</h2>
-        </div>
-        <div class="section-content" v-show="!sections.pricing">
-          <div class="pricing-summary">
-            <div class="price-item">
-              <span>Harga Terendah:</span>
-              <span class="price">{{ formatPrice(minPrice) }}</span>
-            </div>
-            <div class="price-item">
-              <span>Harga Tertinggi:</span>
-              <span class="price">{{ formatPrice(maxPrice) }}</span>
-            </div>
-            <div class="price-item">
-              <span>Total Stok:</span>
-              <span>{{ totalStock }} unit</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Section 6: Status -->
-      <section class="form-section">
-        <div class="section-header" @click="toggleSection('status')">
-          <h2>6. Status Produk</h2>
-        </div>
-        <div class="section-content" v-show="!sections.status">
-          <div class="status-options">
-            <label class="radio-option">
-              <input type="radio" v-model="form.status" value="draft" />
-              <span>Draft</span>
-            </label>
-            <label class="radio-option">
-              <input type="radio" v-model="form.status" value="active" />
-              <span>Aktif</span>
-            </label>
-            <label class="radio-option">
-              <input type="radio" v-model="form.status" value="inactive" />
-              <span>Tidak Aktif</span>
-            </label>
-          </div>
-        </div>
-      </section>
-
-      <!-- Submit -->
-      <div class="form-actions">
-        <button
-          type="submit"
-          class="btn-submit"
-          :disabled="submitting || !isValid"
-        >
-          {{ submitting ? "Menyimpan..." : "Simpan Perubahan" }}
-        </button>
-      </div>
-    </form>
-
-    <!-- Messages -->
-    <div v-if="error" class="message error">{{ error }}</div>
-    <div v-if="success" class="message success">{{ success }}</div>
-
-    <!-- Image Gallery Modal -->
-    <ImageGalleryPicker
-      v-model:visible="showGallery"
-      :max-images="8 - form.images.length"
-      @select="handleGallerySelect"
-    />
+      </main>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { useUIStore } from "@/store/ui";
+import LeftSidebar from "@/components/layout/LeftSidebar.vue";
 import masterProductService, {
   type MasterProduct,
   type MasterProductPlatformLink,
@@ -265,6 +299,23 @@ import type { GalleryImage } from "@/services/imageService";
 
 const router = useRouter();
 const route = useRoute();
+const uiStore = useUIStore();
+
+// Navigation Handlers
+const handleTabChange = (tab: string) => {
+  if (tab === "master-products") return;
+
+  if (["settings", "product-management", "order-management"].includes(tab)) {
+    router.push({ path: "/dashboard", query: { tab } });
+    uiStore.setActiveTab(tab);
+  } else {
+    router.push({ name: tab });
+  }
+};
+
+const handlePlatformChange = (platform: string) => {
+  uiStore.setActivePlatform(platform);
+};
 
 // State
 const loading = ref(true);
@@ -519,6 +570,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
+@import "../Dashboard.module.css";
+
 .product-edit-page {
   padding: 1.5rem;
   max-width: 900px;

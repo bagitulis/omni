@@ -66,6 +66,11 @@ export interface UpdateMasterProductInput {
   status?: string;
 }
 
+export interface UpdateSkuInput {
+  price?: number;
+  stock?: number;
+}
+
 export interface ListFilter {
   page?: number;
   limit?: number;
@@ -232,6 +237,26 @@ class MasterProductService {
       return response;
     } catch (error) {
       console.error(`❌ Error deleting master product ${id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update a single SKU's price and/or stock
+   * PUT /api/master-products/skus/:id
+   */
+  async updateSku(
+    skuId: number,
+    input: UpdateSkuInput,
+  ): Promise<MasterProductSku> {
+    try {
+      const response = await apiService.client.put<{
+        success: boolean;
+        data: MasterProductSku;
+      }>(`${this.basePath}/skus/${skuId}`, input);
+      return response.data.data;
+    } catch (error) {
+      console.error(`❌ Error updating SKU ${skuId}:`, error);
       throw error;
     }
   }

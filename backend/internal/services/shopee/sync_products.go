@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/image"
 	shopeePkg "github.com/omni/backend/pkg/shopee"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -200,7 +200,12 @@ func (s *ProductSyncService) downloadAndSaveProductImages(ctx context.Context, i
 		// Download image
 		data, err := s.downloadImage(ctx, url)
 		if err != nil {
-			log.Printf("[Shopee Sync] Failed to download image %d for item %d: %v", i, itemID, err)
+			log.Warn().
+				Str("service", "shopee_sync").
+				Int("image_index", i).
+				Int64("item_id", itemID).
+				Err(err).
+				Msg("Failed to download image")
 			continue
 		}
 
@@ -213,7 +218,12 @@ func (s *ProductSyncService) downloadAndSaveProductImages(ctx context.Context, i
 		// Save locally
 		localPath, err := s.storageService.SaveImage(s.tenantID, "products", filename, jpegData)
 		if err != nil {
-			log.Printf("[Shopee Sync] Failed to save image %d for item %d: %v", i, itemID, err)
+			log.Warn().
+				Str("service", "shopee_sync").
+				Int("image_index", i).
+				Int64("item_id", itemID).
+				Err(err).
+				Msg("Failed to save image")
 			continue
 		}
 
@@ -253,7 +263,10 @@ func (s *ProductSyncService) updateProductLocalImages(ctx context.Context, produ
 	// Convert to JSON
 	pathsJSON, err := json.Marshal(localPaths)
 	if err != nil {
-		log.Printf("[Shopee Sync] Failed to marshal local paths: %v", err)
+		log.Warn().
+			Str("service", "shopee_sync").
+			Err(err).
+			Msg("Failed to marshal local paths")
 		return
 	}
 
@@ -262,7 +275,11 @@ func (s *ProductSyncService) updateProductLocalImages(ctx context.Context, produ
 		Where("id = ?", productID).
 		Update("local_images", pathsJSON).Error
 	if err != nil {
-		log.Printf("[Shopee Sync] Failed to update local_images for product %d: %v", productID, err)
+		log.Warn().
+			Str("service", "shopee_sync").
+			Uint("product_id", productID).
+			Err(err).
+			Msg("Failed to update local_images")
 	}
 }
 
@@ -273,17 +290,27 @@ func (s *ProductSyncService) SyncProductsWithDetails(ctx context.Context, itemSt
 	pageOffset := 0
 	pageSize := 100
 
-	log.Printf("[Shopee Sync] Starting product sync, itemStatus=%s", itemStatus)
+	log.Debug().
+		Str("service", "shopee_sync").
+		Str("item_status", itemStatus).
+		Msg("Starting product sync")
 
 	// Loop through all pages to collect item IDs
 	for {
 		listResp, err := s.client.GetProductList(pageOffset, pageSize)
 		if err != nil {
-			log.Printf("[Shopee Sync] GetProductList error: %v", err)
+			log.Error().
+				Str("service", "shopee_sync").
+				Err(err).
+				Msg("GetProductList error")
 			return nil, 0, err
 		}
 
-		log.Printf("[Shopee Sync] GetProductList returned %d items, hasNextPage=%v", len(listResp.Response.Item), listResp.Response.HasNextPage)
+		log.Debug().
+			Str("service", "shopee_sync").
+			Int("items_count", len(listResp.Response.Item)).
+			Bool("has_next_page", listResp.Response.HasNextPage).
+			Msg("GetProductList returned")
 
 		if len(listResp.Response.Item) == 0 {
 			break
@@ -301,10 +328,15 @@ func (s *ProductSyncService) SyncProductsWithDetails(ctx context.Context, itemSt
 		pageOffset = listResp.Response.NextOffset
 	}
 
-	log.Printf("[Shopee Sync] Total item IDs collected: %d", len(allItemIDs))
+	log.Debug().
+		Str("service", "shopee_sync").
+		Int("total_items", len(allItemIDs)).
+		Msg("Total item IDs collected")
 
 	if len(allItemIDs) == 0 {
-		log.Printf("[Shopee Sync] No products found from Shopee API")
+		log.Debug().
+			Str("service", "shopee_sync").
+			Msg("No products found from Shopee API")
 		return []map[string]interface{}{}, 0, nil
 	}
 
@@ -322,11 +354,17 @@ func (s *ProductSyncService) SyncProductsWithDetails(ctx context.Context, itemSt
 
 		detailResp, err := s.client.GetProductDetail(batchIDs)
 		if err != nil {
-			log.Printf("[Shopee Sync] GetProductDetail batch error: %v", err)
+			log.Warn().
+				Str("service", "shopee_sync").
+				Err(err).
+				Msg("GetProductDetail batch error")
 			continue
 		}
 
-		log.Printf("[Shopee Sync] GetProductDetail returned %d items for batch", len(detailResp.Response.ItemList))
+		log.Debug().
+			Str("service", "shopee_sync").
+			Int("items_count", len(detailResp.Response.ItemList)).
+			Msg("GetProductDetail returned for batch")
 
 		for _, prod := range detailResp.Response.ItemList {
 			// Filter by status if provided
@@ -346,7 +384,11 @@ func (s *ProductSyncService) SyncProductsWithDetails(ctx context.Context, itemSt
 			}
 
 			if err := s.prodRepo.Upsert(ctx, dbProd); err != nil {
-				log.Printf("[Shopee Sync] Failed to upsert product %d: %v", prod.ItemID, err)
+				log.Warn().
+					Str("service", "shopee_sync").
+					Int64("item_id", prod.ItemID).
+					Err(err).
+					Msg("Failed to upsert product")
 			} else {
 				savedCount++
 
@@ -386,7 +428,11 @@ func (s *ProductSyncService) SyncProductsWithDetails(ctx context.Context, itemSt
 		}
 	}
 
-	log.Printf("[Shopee Sync] Completed - total products: %d, saved: %d", len(products), savedCount)
+	log.Info().
+		Str("service", "shopee_sync").
+		Int("total_products", len(products)).
+		Int("saved_count", savedCount).
+		Msg("Product sync completed")
 
 	return products, savedCount, nil
 }
