@@ -5,10 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
+	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/pkg/shopee"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
@@ -128,41 +131,79 @@ func (s *SyncService) syncToShopee(ctx context.Context, tenantID string, product
 		Uint("product_id", product.ID).
 		Msg("Syncing to Shopee")
 
-	// Check for existing Shopee link
-	var existingLink *models.MasterProductPlatformLink
-	for _, sku := range product.SKUs {
-		for _, link := range sku.PlatformLinks {
-			if link.Platform == models.PlatformShopee {
-				existingLink = &link
-				break
+	// Get Shopee client
+	client, err := s.getShopeeClient(tenantID)
+	if err != nil {
+		return fmt.Errorf("failed to get Shopee client: %w", err)
+	}
+
+	syncedCount := 0
+	var lastItemID string
+
+	// Process each SKU with Shopee link
+	for i := range product.SKUs {
+		sku := &product.SKUs[i]
+		for j := range sku.PlatformLinks {
+			link := &sku.PlatformLinks[j]
+			if link.Platform != models.PlatformShopee || link.PlatformItemID == "" {
+				continue
 			}
-		}
-		if existingLink != nil {
-			break
+
+			// Parse item_id
+			itemID, err := strconv.ParseInt(link.PlatformItemID, 10, 64)
+			if err != nil {
+				log.Warn().Str("item_id", link.PlatformItemID).Msg("Invalid Shopee item_id")
+				continue
+			}
+
+			// Parse model_id (0 if not set - for non-variant products)
+			var modelID int64
+			if link.PlatformSkuID != "" {
+				modelID, _ = strconv.ParseInt(link.PlatformSkuID, 10, 64)
+			}
+
+			// Update price
+			priceReq := shopee.UpdatePriceRequest{
+				ItemID: itemID,
+				PriceList: []shopee.PriceInfo{
+					{ModelID: modelID, OriginalPrice: sku.Price},
+				},
+			}
+			if _, err := client.UpdatePrice(priceReq); err != nil {
+				log.Warn().Err(err).Int64("item_id", itemID).Msg("Failed to update price")
+				link.SyncStatus = models.SyncStatusError
+			} else {
+				// Update stock
+				stockReq := shopee.UpdateStockRequest{
+					ItemID: itemID,
+					StockList: []shopee.StockListItem{
+						{ModelID: modelID, SellerStock: []shopee.SellerStock{{Stock: sku.Stock}}},
+					},
+				}
+				if _, err := client.UpdateStock(stockReq); err != nil {
+					log.Warn().Err(err).Int64("item_id", itemID).Msg("Failed to update stock")
+					link.SyncStatus = models.SyncStatusError
+				} else {
+					link.SyncStatus = models.SyncStatusSynced
+					syncedCount++
+				}
+			}
+
+			link.LastSyncedAt = timePtr(time.Now())
+			if err := s.db.WithContext(ctx).Save(link).Error; err != nil {
+				log.Error().Err(err).Uint("link_id", link.ID).Msg("Failed to save link status")
+			}
+			lastItemID = link.PlatformItemID
 		}
 	}
 
-	// TODO: Implement actual Shopee API call using pkg/shopee
-	// The actual implementation would:
-	// 1. Get Shopee credentials from platform_configs
-	// 2. Use pkg/shopee/client.go to create/update product
-	// 3. Upload images to Shopee CDN
-	// 4. Get category recommendations
-	// 5. Create product with SKU variants
-	// 6. Store ItemId in the link record
+	result.SkusSynced = syncedCount
+	result.PlatformItemID = lastItemID
 
-	if existingLink != nil {
-		existingLink.SyncStatus = models.SyncStatusSynced
-		existingLink.LastSyncedAt = timePtr(time.Now())
-		if err := s.db.WithContext(ctx).Save(existingLink).Error; err != nil {
-			return fmt.Errorf("failed to update link status: %w", err)
-		}
-		result.PlatformItemID = existingLink.PlatformItemID
-	} else {
-		log.Warn().Msg("Shopee product creation not yet implemented - requires API integration")
+	if syncedCount == 0 && len(product.SKUs) > 0 {
+		log.Warn().Msg("No SKUs synced - products may not be linked to Shopee yet")
 	}
 
-	result.SkusSynced = len(product.SKUs)
 	return nil
 }
 
@@ -293,4 +334,38 @@ func (s *SyncService) GetSyncStatus(ctx context.Context, tenantID string, master
 // Helper function
 func timePtr(t time.Time) *time.Time {
 	return &t
+}
+
+// getShopeeClient creates a Shopee API client for the tenant
+func (s *SyncService) getShopeeClient(tenantID string) (*shopee.Client, error) {
+	tenantDB, err := config.GetTenantDB(tenantID, s.basePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tenant database: %w", err)
+	}
+
+	systemDB, err := config.GetSystemDB(s.basePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get system database: %w", err)
+	}
+
+	credRepo := repositories.NewPlatformCredentialsRepository(tenantDB)
+	tenantCreds, err := credRepo.GetShopeeCredentials(context.Background())
+	if err != nil {
+		return nil, ErrPlatformNotConfigured
+	}
+
+	if tenantCreds.ShopIDInt == 0 || tenantCreds.AccessToken == "" {
+		return nil, ErrPlatformNotConfigured
+	}
+
+	configRepo := repositories.NewGlobalConfigRepository(systemDB)
+	globalCreds, err := configRepo.GetShopeeCredentials(context.Background())
+	if err != nil || globalCreds.PartnerID == 0 {
+		return nil, ErrPlatformNotConfigured
+	}
+
+	client := shopee.NewClient(globalCreds.PartnerID, globalCreds.PartnerKey, true)
+	client.SetShopCredentials(tenantCreds.ShopIDInt, tenantCreds.AccessToken)
+
+	return client, nil
 }

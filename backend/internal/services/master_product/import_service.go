@@ -155,10 +155,11 @@ func (s *ImportService) ImportFromShopee(ctx context.Context, tenantID string, s
 		log.Warn().Err(err).Int64("item_id", shopeeItemID).Msg("Failed to fetch models")
 	}
 
-	// Build images JSONMap
-	images := make(models.JSONMap)
-	for i, imgURL := range limitImages(product.Image.ImageURLList, models.MasterProductMaxImages) {
-		images[fmt.Sprintf("image_%d", i)] = imgURL
+	// Build images as JSONArray (list of URLs)
+	imgList := limitImages(product.Image.ImageURLList, models.MasterProductMaxImages)
+	images := make(models.JSONArray, len(imgList))
+	for i, imgURL := range imgList {
+		images[i] = imgURL
 	}
 
 	// Create master product
@@ -267,6 +268,51 @@ func (s *ImportService) ImportFromShopee(ctx context.Context, tenantID string, s
 
 			if err := s.repo.CreatePlatformLink(ctx, skuLink); err != nil {
 				log.Error().Err(err).Msg("Failed to create SKU platform link")
+			} else {
+				result.PlatformLinks++
+			}
+		}
+	}
+
+	// Create default SKU for single-variant products (no models)
+	if result.SkusImported == 0 {
+		log.Info().
+			Str("tenant_id", tenantID).
+			Int64("shopee_item_id", shopeeItemID).
+			Msg("Creating default SKU for product without variants")
+
+		// Create default SKU with item_id as seller_sku
+		defaultSku := &models.MasterProductSku{
+			TenantID:        tenantID,
+			MasterProductID: masterProduct.ID,
+			SellerSku:       strconv.FormatInt(shopeeItemID, 10),
+			VariantName:     "",
+			VariantData:     make(models.JSONMap),
+			Price:           0,
+			Stock:           0,
+			CreatedAt:       time.Now(),
+			UpdatedAt:       time.Now(),
+		}
+
+		if err := s.repo.CreateSku(ctx, defaultSku); err != nil {
+			log.Error().Err(err).Msg("Failed to create default SKU")
+		} else {
+			result.SkusImported++
+
+			// Create platform link for default SKU
+			defaultSkuLink := &models.MasterProductPlatformLink{
+				MasterProductID: masterProduct.ID,
+				MasterSkuID:     &defaultSku.ID,
+				Platform:        models.PlatformShopee,
+				PlatformItemID:  strconv.FormatInt(shopeeItemID, 10),
+				SyncStatus:      models.SyncStatusSynced,
+				LastSyncedAt:    &now,
+				CreatedAt:       time.Now(),
+				UpdatedAt:       time.Now(),
+			}
+
+			if err := s.repo.CreatePlatformLink(ctx, defaultSkuLink); err != nil {
+				log.Error().Err(err).Msg("Failed to create default SKU platform link")
 			} else {
 				result.PlatformLinks++
 			}

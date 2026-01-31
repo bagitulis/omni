@@ -10,7 +10,7 @@ export interface MasterProduct {
   tenant_id: string;
   title: string;
   description: string;
-  images: Record<string, string>;
+  images: string[];
   status: string;
   created_at: string;
   updated_at: string;
@@ -240,25 +240,21 @@ class MasterProductService {
    * Helper: Get first image URL from product
    */
   getFirstImage(product: MasterProduct): string | null {
-    if (!product.images || Object.keys(product.images).length === 0) {
+    if (!product.images || product.images.length === 0) {
       return null;
     }
-    // Images are stored as { "image_0": "url", "image_1": "url", ... }
-    const keys = Object.keys(product.images).sort();
-    return product.images[keys[0]] || null;
+    // Images are stored as string array: ["url1", "url2", ...]
+    return product.images[0] || null;
   }
 
   /**
    * Helper: Get all image URLs from product
    */
   getAllImages(product: MasterProduct): string[] {
-    if (!product.images || Object.keys(product.images).length === 0) {
+    if (!product.images || product.images.length === 0) {
       return [];
     }
-    return Object.keys(product.images)
-      .sort()
-      .map((key) => product.images[key])
-      .filter(Boolean);
+    return product.images.filter(Boolean);
   }
 
   /**

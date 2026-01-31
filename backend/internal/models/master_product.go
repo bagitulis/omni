@@ -9,7 +9,7 @@ type MasterProduct struct {
 	TenantID    string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
 	Title       string    `gorm:"column:title;size:120;not null" json:"title"`
 	Description string    `gorm:"column:description;type:text" json:"description"`
-	Images      JSONMap   `gorm:"column:images;type:jsonb;default:'{}'" json:"images"`
+	Images      JSONArray `gorm:"column:images;type:jsonb;default:'[]'" json:"images"`
 	Status      string    `gorm:"column:status;size:50;default:'draft'" json:"status"`
 	CreatedAt   time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt   time.Time `gorm:"column:updated_at" json:"updated_at"`

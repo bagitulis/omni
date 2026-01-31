@@ -33,6 +33,7 @@
               :src="getFirstImage(product)"
               :alt="product.title"
               class="thumbnail-image"
+              loading="lazy"
             />
             <div v-else class="thumbnail-placeholder">
               <span>📷</span>
@@ -226,10 +227,8 @@ const toggleExpand = (productId: number) => {
 };
 
 const getFirstImage = (product: MasterProduct): string | null => {
-  if (!product.images) return null;
-  const keys = Object.keys(product.images);
-  if (keys.length === 0) return null;
-  return product.images[keys[0]] as string;
+  if (!product.images || product.images.length === 0) return null;
+  return product.images[0] || null;
 };
 
 const getStatusClass = (status: string): string => {

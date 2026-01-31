@@ -4,7 +4,6 @@ package master_product
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -101,12 +100,12 @@ func (s *Service) Create(ctx context.Context, tenantID string, input CreateInput
 		status = models.MasterProductStatusDraft
 	}
 
-	// Convert images to JSONMap
-	var images models.JSONMap
+	// Convert images to JSONArray (list of URLs)
+	var images models.JSONArray
 	if len(input.Images) > 0 {
-		images = make(models.JSONMap)
+		images = make(models.JSONArray, len(input.Images))
 		for i, img := range input.Images {
-			images[fmt.Sprintf("image_%d", i)] = img
+			images[i] = img
 		}
 	}
 
@@ -241,9 +240,9 @@ func (s *Service) Update(ctx context.Context, tenantID string, id uint, input Up
 		if len(input.Images) > models.MasterProductMaxImages {
 			return nil, ErrTooManyImages
 		}
-		images := make(models.JSONMap)
+		images := make(models.JSONArray, len(input.Images))
 		for i, img := range input.Images {
-			images[fmt.Sprintf("image_%d", i)] = img
+			images[i] = img
 		}
 		product.Images = images
 	}

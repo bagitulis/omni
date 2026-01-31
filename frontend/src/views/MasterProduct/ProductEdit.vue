@@ -64,7 +64,7 @@
               :key="idx"
               class="image-slot"
             >
-              <img :src="img" alt="" />
+              <img :src="img" alt="" loading="lazy" />
               <button
                 type="button"
                 @click="removeImage(idx)"
@@ -343,12 +343,11 @@ const loadProduct = async () => {
     form.value.description = product.value.description;
     form.value.status = product.value.status;
 
-    // Convert images object to array
-    if (product.value.images) {
-      form.value.images = Object.keys(product.value.images)
-        .sort()
-        .map((key) => product.value!.images[key])
-        .filter(Boolean);
+    // Images are already an array from the API
+    if (product.value.images && Array.isArray(product.value.images)) {
+      form.value.images = [...product.value.images].filter(Boolean);
+    } else {
+      form.value.images = [];
     }
   } catch (err: any) {
     loadError.value = err.message || "Gagal memuat data produk";
