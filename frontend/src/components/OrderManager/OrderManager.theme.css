@@ -1,0 +1,204 @@
+/* OrderManager Theme - Shopee-inspired design tokens */
+
+:root {
+  /* Primary Colors - Shopee Orange */
+  --om-primary: #ee4d2d;
+  --om-primary-hover: #d73211;
+  --om-primary-light: #fff0ed;
+
+  /* Status Colors */
+  --om-status-unpaid: #ffa726;
+  --om-status-toship: #42a5f5;
+  --om-status-shipped: #66bb6a;
+  --om-status-completed: #26a69a;
+  --om-status-cancelled: #ef5350;
+
+  /* Platform Colors */
+  --om-platform-shopee: #ee4d2d;
+  --om-platform-lazada: #0f146d;
+  --om-platform-tiktok: #000000;
+
+  /* Neutral Colors */
+  --om-text-primary: #212121;
+  --om-text-secondary: #757575;
+  --om-text-disabled: #bdbdbd;
+  --om-border: #e0e0e0;
+  --om-bg-primary: #ffffff;
+  --om-bg-secondary: #f5f5f5;
+  --om-bg-hover: #fafafa;
+
+  /* Typography */
+  --om-font-xs: 0.75rem;
+  --om-font-sm: 0.875rem;
+  --om-font-base: 1rem;
+  --om-font-lg: 1.125rem;
+  --om-font-xl: 1.25rem;
+
+  /* Spacing */
+  --om-spacing-xs: 0.25rem;
+  --om-spacing-sm: 0.5rem;
+  --om-spacing-md: 1rem;
+  --om-spacing-lg: 1.5rem;
+  --om-spacing-xl: 2rem;
+
+  /* Border Radius */
+  --om-radius-sm: 4px;
+  --om-radius-md: 8px;
+  --om-radius-lg: 12px;
+  --om-radius-full: 9999px;
+
+  /* Shadows */
+  --om-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --om-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --om-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+  /* Transitions */
+  --om-transition-fast: 150ms ease;
+  --om-transition-normal: 250ms ease;
+}
+
+/* Animation Keyframes */
+@keyframes om-fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes om-slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes om-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Common Component Styles */
+.om-card {
+  background: var(--om-bg-primary);
+  border: 1px solid var(--om-border);
+  border-radius: var(--om-radius-md);
+  box-shadow: var(--om-shadow-sm);
+  transition: box-shadow var(--om-transition-normal);
+}
+
+.om-card:hover {
+  box-shadow: var(--om-shadow-md);
+}
+
+.om-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--om-spacing-sm);
+  padding: var(--om-spacing-sm) var(--om-spacing-md);
+  font-size: var(--om-font-sm);
+  font-weight: 500;
+  border-radius: var(--om-radius-sm);
+  cursor: pointer;
+  transition: all var(--om-transition-fast);
+  border: none;
+}
+
+.om-btn-primary {
+  background: var(--om-primary);
+  color: white;
+}
+
+.om-btn-primary:hover:not(:disabled) {
+  background: var(--om-primary-hover);
+}
+
+.om-btn-secondary {
+  background: var(--om-bg-secondary);
+  color: var(--om-text-primary);
+  border: 1px solid var(--om-border);
+}
+
+.om-btn-secondary:hover:not(:disabled) {
+  background: var(--om-bg-hover);
+}
+
+.om-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Status Badges */
+.om-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--om-spacing-xs) var(--om-spacing-sm);
+  font-size: var(--om-font-xs);
+  font-weight: 600;
+  border-radius: var(--om-radius-full);
+}
+
+.om-status-unpaid {
+  background: #fff3e0;
+  color: var(--om-status-unpaid);
+}
+.om-status-toship {
+  background: #e3f2fd;
+  color: var(--om-status-toship);
+}
+.om-status-shipped {
+  background: #e8f5e9;
+  color: var(--om-status-shipped);
+}
+.om-status-completed {
+  background: #e0f2f1;
+  color: var(--om-status-completed);
+}
+.om-status-cancelled {
+  background: #ffebee;
+  color: var(--om-status-cancelled);
+}
+
+/* Platform Badges */
+.om-platform-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--om-spacing-xs);
+  padding: var(--om-spacing-xs) var(--om-spacing-sm);
+  font-size: var(--om-font-xs);
+  font-weight: 600;
+  border-radius: var(--om-radius-sm);
+  text-transform: capitalize;
+}
+
+.om-platform-shopee {
+  background: #fff0ed;
+  color: var(--om-platform-shopee);
+}
+.om-platform-lazada {
+  background: #e8eaf6;
+  color: var(--om-platform-lazada);
+}
+.om-platform-tiktok {
+  background: #f5f5f5;
+  color: var(--om-platform-tiktok);
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 768px) {
+  :root {
+    --om-spacing-md: 0.75rem;
+    --om-spacing-lg: 1rem;
+  }
+}
