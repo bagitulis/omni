@@ -104,6 +104,9 @@ var tableNameMapping = map[string]string{
 
 	// Global Config (system schema)
 	"GlobalConfig": "global_config",
+
+	// Image Gallery
+	"Image": "images",
 }
 
 // GetTableName returns the PostgreSQL table name (snake_case)

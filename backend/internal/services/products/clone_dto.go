@@ -73,6 +73,47 @@ type CloneTargetsResult struct {
 }
 
 // =============================================================================
+// Conflict Detection DTOs
+// =============================================================================
+
+// ConflictResult represents a potential clone conflict
+type ConflictResult struct {
+	HasConflict   bool            `json:"has_conflict"`
+	SourceProduct *ProductSummary `json:"source_product,omitempty"`
+	TargetProduct *ProductSummary `json:"target_product,omitempty"`
+	Differences   []Difference    `json:"differences,omitempty"`
+	Adjustments   *AdjustmentInfo `json:"adjustments,omitempty"`
+}
+
+// ProductSummary contains a summary of product data for comparison
+type ProductSummary struct {
+	Platform string   `json:"platform"`
+	ItemID   string   `json:"item_id"`
+	SKU      string   `json:"sku"`
+	Name     string   `json:"name"`
+	Price    float64  `json:"price"`
+	Stock    int      `json:"stock"`
+	Images   []string `json:"images"`
+}
+
+// Difference represents a single field difference between products
+type Difference struct {
+	Field       string `json:"field"`
+	SourceValue string `json:"source_value"`
+	TargetValue string `json:"target_value"`
+}
+
+// AdjustmentInfo contains info about adjustments that will be made
+type AdjustmentInfo struct {
+	TitleWillTruncate bool   `json:"title_will_truncate"`
+	DescWillTruncate  bool   `json:"desc_will_truncate"`
+	OriginalTitle     string `json:"original_title,omitempty"`
+	AdjustedTitle     string `json:"adjusted_title,omitempty"`
+	TitleLimit        int    `json:"title_limit"`
+	DescLimit         int    `json:"desc_limit"`
+}
+
+// =============================================================================
 // Product Data DTOs
 // =============================================================================
 

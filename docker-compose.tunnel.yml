@@ -145,6 +145,7 @@ services:
     volumes:
       - ./backend/logs:/app/logs
       - ./backend/config/static:/app/config/static
+      - ./backend/uploads:/app/uploads
     networks:
       - omni-network
     depends_on:
@@ -262,7 +263,9 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d/tunnel.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/conf.d/uploads.conf:/etc/nginx/conf.d/uploads.conf:ro
       - ./nginx/logs:/var/log/nginx
+      - ./backend/uploads:/app/uploads:ro
     networks:
       - omni-network
     depends_on:
