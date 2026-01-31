@@ -77,8 +77,17 @@
               v-if="form.images.length < 8"
               class="image-slot add-slot"
               @click="triggerImageUpload"
+              title="Upload dari Komputer"
             >
-              <span>+ Tambah Gambar</span>
+              <span>+ Upload</span>
+            </div>
+            <div
+              v-if="form.images.length < 8"
+              class="image-slot gallery-slot"
+              @click="openGallery"
+              title="Pilih dari Galeri"
+            >
+              <span>+ Galeri</span>
             </div>
           </div>
           <input
@@ -234,6 +243,13 @@
     <!-- Messages -->
     <div v-if="error" class="message error">{{ error }}</div>
     <div v-if="success" class="message success">{{ success }}</div>
+
+    <!-- Image Gallery Modal -->
+    <ImageGalleryPicker
+      v-model:visible="showGallery"
+      :max-images="8 - form.images.length"
+      @select="handleGallerySelect"
+    />
   </div>
 </template>
 
@@ -244,6 +260,8 @@ import masterProductService, {
   type MasterProduct,
   type MasterProductPlatformLink,
 } from "@/services/masterProductService";
+import ImageGalleryPicker from "@/components/MasterProduct/ImageGalleryPicker.vue";
+import type { GalleryImage } from "@/services/imageService";
 
 const router = useRouter();
 const route = useRoute();
@@ -252,6 +270,7 @@ const route = useRoute();
 const loading = ref(true);
 const loadError = ref("");
 const product = ref<MasterProduct | null>(null);
+const showGallery = ref(false);
 
 // Form state
 const form = ref({
@@ -370,6 +389,32 @@ const handleImageUpload = (e: Event) => {
 };
 
 const removeImage = (idx: number) => form.value.images.splice(idx, 1);
+
+const openGallery = () => {
+  showGallery.value = true;
+};
+
+const handleGallerySelect = (images: GalleryImage[]) => {
+  // Construct path: /uploads/images/{tenant_id}/{local_path}
+  // Note: We need tenant_id. If not in product, we might need to get it from auth store or context.
+  // But wait, the image object returned from API has tenant_id.
+
+  images.forEach((img) => {
+    // If form.images is full, stop
+    if (form.value.images.length >= 8) return;
+
+    // Check if image already added (by filename or path)
+    // This is a simple check, might need more robust if path format varies
+    const path = `/uploads/images/${img.tenant_id}/${img.local_path}`;
+    const alreadyExists = form.value.images.some(
+      (existing) => existing.includes(img.filename) || existing === path,
+    );
+
+    if (!alreadyExists) {
+      form.value.images.push(path);
+    }
+  });
+};
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("id-ID", {
@@ -627,6 +672,18 @@ onMounted(() => {
 .add-slot:hover {
   border-color: #3b82f6;
   color: #3b82f6;
+}
+
+.gallery-slot {
+  cursor: pointer;
+  color: #6b7280;
+  background: #f9fafb;
+}
+
+.gallery-slot:hover {
+  border-color: #ff6b2c;
+  color: #ff6b2c;
+  background: #fff5f0;
 }
 
 .btn-remove {
