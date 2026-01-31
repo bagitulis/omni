@@ -238,3 +238,63 @@ func (h *ProductCloneHandler) GetAvailableTargets(c *gin.Context) {
 		"targets": result.Targets,
 	})
 }
+
+// Preview handles GET /api/clone/preview
+// Returns preview of clone operation including conflict detection and adjustments
+func (h *ProductCloneHandler) Preview(c *gin.Context) {
+	tenantID := c.GetString("tenantID")
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		return
+	}
+
+	// Parse query params
+	sourcePlatform := c.Query("source_platform")
+	targetPlatform := c.Query("target_platform")
+	sourceItemID := c.Query("source_item_id")
+	sku := c.Query("sku")
+
+	if sourcePlatform == "" || targetPlatform == "" || sourceItemID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "source_platform, target_platform, and source_item_id are required",
+		})
+		return
+	}
+
+	// Validate platforms
+	validPlatforms := map[string]bool{"shopee": true, "lazada": true, "tiktok": true}
+	if !validPlatforms[sourcePlatform] || !validPlatforms[targetPlatform] {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid platform"})
+		return
+	}
+
+	if sourcePlatform == targetPlatform {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Source and target platform must be different"})
+		return
+	}
+
+	// Get tenant DB with proper schema context
+	db, err := h.getDB(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to get tenant database"})
+		return
+	}
+
+	// Build clone request for conflict check
+	req := products.CloneRequest{
+		SourcePlatform: sourcePlatform,
+		TargetPlatform: targetPlatform,
+		SourceItemID:   sourceItemID,
+		SKU:            sku,
+	}
+
+	svc := products.NewCloneServiceWithCreds(db, tenantID, h.dbPath)
+	result, err := svc.CheckConflict(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+}

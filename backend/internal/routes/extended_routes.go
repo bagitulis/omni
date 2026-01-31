@@ -174,5 +174,6 @@ func RegisterProductCloneRoutes(router *gin.RouterGroup, handler *handlers.Produ
 	{
 		cloneData.GET("/product-data", handler.GetProductData)
 		cloneData.GET("/available-targets", handler.GetAvailableTargets)
+		cloneData.GET("/preview", handler.Preview)
 	}
 }
