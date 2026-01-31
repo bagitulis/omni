@@ -135,6 +135,7 @@ type ProductDetailWithImagesResponse struct {
 }
 
 // ProductDetailWithImages contains product with image structure (not array)
+// Also includes price_info for products without variants
 type ProductDetailWithImages struct {
 	ItemID      int64  `json:"item_id"`
 	ItemName    string `json:"item_name"`
@@ -144,6 +145,17 @@ type ProductDetailWithImages struct {
 		ImageURLList []string `json:"image_url_list"`
 		ImageIDList  []string `json:"image_id_list"`
 	} `json:"image"`
+	// Price info for products without variants (single-SKU products)
+	PriceInfo []struct {
+		OriginalPrice float64 `json:"original_price"`
+		CurrentPrice  float64 `json:"current_price"`
+	} `json:"price_info"`
+	// Stock info for products without variants
+	StockInfoV2 struct {
+		SummaryInfo struct {
+			TotalAvailableStock int `json:"total_available_stock"`
+		} `json:"summary_info"`
+	} `json:"stock_info_v2"`
 }
 
 // ModelListResponse represents Shopee model list API response

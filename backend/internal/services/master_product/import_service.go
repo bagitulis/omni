@@ -281,6 +281,15 @@ func (s *ImportService) ImportFromShopee(ctx context.Context, tenantID string, s
 			Int64("shopee_item_id", shopeeItemID).
 			Msg("Creating default SKU for product without variants")
 
+		// Get price from product's price_info if available
+		var price float64
+		if len(product.PriceInfo) > 0 {
+			price = product.PriceInfo[0].CurrentPrice
+		}
+
+		// Get stock from product's stock_info_v2 if available
+		stock := product.StockInfoV2.SummaryInfo.TotalAvailableStock
+
 		// Create default SKU with item_id as seller_sku
 		defaultSku := &models.MasterProductSku{
 			TenantID:        tenantID,
@@ -288,8 +297,8 @@ func (s *ImportService) ImportFromShopee(ctx context.Context, tenantID string, s
 			SellerSku:       strconv.FormatInt(shopeeItemID, 10),
 			VariantName:     "",
 			VariantData:     make(models.JSONMap),
-			Price:           0,
-			Stock:           0,
+			Price:           price,
+			Stock:           stock,
 			CreatedAt:       time.Now(),
 			UpdatedAt:       time.Now(),
 		}

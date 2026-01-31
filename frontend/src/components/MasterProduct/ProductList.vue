@@ -47,6 +47,15 @@
               <span class="sku-count">
                 {{ product.skus?.length || 0 }} SKU
               </span>
+              <!-- Show price/stock for single-SKU products inline -->
+              <template v-if="product.skus?.length === 1">
+                <span class="product-price-inline">{{
+                  formatPrice(product.skus[0].price)
+                }}</span>
+                <span class="product-stock-inline"
+                  >Stok: {{ product.skus[0].stock }}</span
+                >
+              </template>
               <span
                 class="product-status"
                 :class="getStatusClass(product.status)"
@@ -70,8 +79,9 @@
             </div>
           </div>
 
-          <!-- Expand Toggle -->
+          <!-- Expand Toggle - Only show for products with more than 1 SKU -->
           <button
+            v-if="product.skus && product.skus.length > 1"
             class="expand-toggle"
             :class="{ expanded: expandedProducts.has(product.id) }"
             @click="toggleExpand(product.id)"
@@ -193,7 +203,7 @@ interface MasterProduct {
   tenant_id: string;
   title: string;
   description?: string;
-  images?: Record<string, string>;
+  images?: string[];
   status: string;
   skus?: ProductSku[];
   created_at: string;
@@ -449,6 +459,25 @@ const getPlatformTitle = (platform: string, sku: ProductSku): string => {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+}
+
+/* Inline price/stock for single-SKU products */
+.product-price-inline {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #059669;
+  padding: 0.25rem 0.5rem;
+  background: #ecfdf5;
+  border-radius: 0.25rem;
+}
+
+.product-stock-inline {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  padding: 0.25rem 0.5rem;
+  background: #f9fafb;
+  border-radius: 0.25rem;
 }
 
 .product-status {
