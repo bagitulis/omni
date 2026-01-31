@@ -34,10 +34,10 @@ export interface OrderTab {
 
 export const ORDER_TABS: OrderTab[] = [
   { label: "Unpaid", value: "unpaid" },
-  { label: "Unprocess", value: "unprocess" },
-  { label: "Processed", value: "processed" },
+  { label: "To Ship", value: "unprocess" },
+  { label: "Shipped", value: "processed" },
   { label: "Locked Today", value: "locked" },
-  { label: "Order Today", value: "today" },
+  { label: "Today's Orders", value: "today" },
 ];
 
 export function useOrderManager() {
@@ -87,7 +87,7 @@ export function useOrderManager() {
           o.order_no.toLowerCase().includes(query) ||
           o.sku.toLowerCase().includes(query) ||
           o.product_name.toLowerCase().includes(query) ||
-          (o.tracking_no && o.tracking_no.toLowerCase().includes(query))
+          (o.tracking_no && o.tracking_no.toLowerCase().includes(query)),
       );
     }
 
@@ -117,7 +117,7 @@ export function useOrderManager() {
       if (!syncResponse.ok) {
         console.warn(
           `Sync warning for ${category}:`,
-          syncData.error || "Sync completed with issues"
+          syncData.error || "Sync completed with issues",
         );
       }
 
@@ -145,7 +145,7 @@ export function useOrderManager() {
       if (!syncResponse.ok) {
         console.warn(
           "Sync-all warning:",
-          syncData.error || "Sync completed with issues"
+          syncData.error || "Sync completed with issues",
         );
       }
 
@@ -343,7 +343,7 @@ export function useOrderManager() {
           await syncAndFetchCategoryData(typeValue);
         }
       }
-    }
+    },
   );
 
   return {

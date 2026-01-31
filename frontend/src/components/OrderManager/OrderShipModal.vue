@@ -1,133 +1,105 @@
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="modal-overlay" @click.self="close">
-      <div class="modal-container">
-        <!-- Modal Header -->
-        <div class="modal-header">
-          <h3 class="modal-title">Arrange Shipment</h3>
-          <button @click="close" class="close-btn">
-            <i class="pi pi-times"></i>
-          </button>
+    <div v-if="visible" class="o" @click.self="close">
+      <div class="om">
+        <div class="h">
+          <h3>Arrange Shipment</h3>
+          <button @click="close"><i class="pi pi-times"></i></button>
         </div>
-
-        <!-- Modal Body -->
-        <div class="modal-body">
-          <!-- Order Info -->
-          <div class="order-info">
-            <div class="info-row">
-              <span class="info-label">Order No.</span>
-              <span class="info-value">{{ order?.order_no }}</span>
+        <div class="b">
+          <div class="i">
+            <div class="r">
+              <span>Order No.</span><span>{{ order?.order_no }}</span>
             </div>
-            <div class="info-row">
-              <span class="info-label">Platform</span>
-              <span
+            <div class="r">
+              <span>Platform</span
+              ><span
                 :class="[
                   'om-platform-badge',
                   `om-platform-${order?.platform?.toLowerCase()}`,
                 ]"
+                >{{ fmt(order?.platform) }}</span
               >
-                {{ formatPlatform(order?.platform) }}
-              </span>
             </div>
-            <div class="info-row">
-              <span class="info-label">Buyer</span>
-              <span class="info-value">{{ order?.buyer_username }}</span>
+            <div class="r">
+              <span>Buyer</span><span>{{ order?.buyer_username }}</span>
             </div>
           </div>
-
-          <!-- Shipping Form -->
-          <form @submit.prevent="submitShipment" class="shipping-form">
-            <!-- Shipping Provider (for non-integrated) -->
-            <div class="form-group">
-              <label for="shippingProvider" class="form-label"
-                >Shipping Provider</label
-              >
-              <select
-                id="shippingProvider"
-                v-model="formData.shipping_provider"
-                class="form-select"
-                :disabled="loading"
-              >
+          <form @submit.prevent="submit" class="f">
+            <div>
+              <label for="sp">Shipping Provider</label
+              ><select id="sp" v-model="f.sp" class="s" :disabled="loading">
                 <option value="">Select Provider...</option>
-                <option
-                  v-for="provider in shippingProviders"
-                  :key="provider.value"
-                  :value="provider.value"
-                >
-                  {{ provider.label }}
+                <option v-for="p in providers" :key="p.value" :value="p.value">
+                  {{ p.label }}
                 </option>
               </select>
             </div>
-
-            <!-- Tracking Number (optional for some platforms) -->
-            <div class="form-group">
-              <label for="trackingNumber" class="form-label">
-                Tracking Number
-                <span class="optional-text">(Optional)</span>
-              </label>
-              <input
-                id="trackingNumber"
-                v-model="formData.tracking_number"
+            <div>
+              <label for="tn"
+                >Tracking Number
+                <span style="font-weight: 400; color: var(--om-text-secondary)"
+                  >(Optional)</span
+                ></label
+              ><input
+                id="tn"
+                v-model="f.tn"
                 type="text"
-                class="form-input"
+                class="x"
                 placeholder="Enter tracking number..."
                 :disabled="loading"
               />
             </div>
-
-            <!-- Address Selection for Pickup (Shopee) -->
             <div
               v-if="
                 order?.platform?.toLowerCase() === 'shopee' &&
-                pickupAddresses.length > 0
+                pickupAddresses.length
               "
-              class="form-group"
             >
-              <label for="pickupAddress" class="form-label"
-                >Pickup Address</label
-              >
-              <select
-                id="pickupAddress"
-                v-model="formData.address_id"
-                class="form-select"
-                :disabled="loading"
-              >
+              <label for="pa">Pickup Address</label
+              ><select id="pa" v-model="f.aid" class="s" :disabled="loading">
                 <option value="">Select Pickup Address...</option>
                 <option
-                  v-for="addr in pickupAddresses"
-                  :key="addr.address_id"
-                  :value="addr.address_id"
+                  v-for="a in pickupAddresses"
+                  :key="a.address_id"
+                  :value="a.address_id"
                 >
-                  {{ addr.address }}
+                  {{ a.address }}
                 </option>
               </select>
             </div>
-
-            <!-- Error Message -->
-            <div v-if="error" class="error-message">
-              <i class="pi pi-exclamation-circle"></i>
-              <span>{{ error }}</span>
+            <div
+              v-if="error"
+              style="
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.5rem;
+                background: #ffebee;
+                color: var(--om-status-cancelled);
+                border-radius: 4px;
+                font-size: 0.875rem;
+              "
+            >
+              <i class="pi pi-exclamation-circle"></i><span>{{ error }}</span>
             </div>
           </form>
         </div>
-
-        <!-- Modal Footer -->
-        <div class="modal-footer">
+        <div class="ft">
           <button
             @click="close"
             class="om-btn om-btn-secondary"
             :disabled="loading"
           >
-            Cancel
-          </button>
-          <button
-            @click="submitShipment"
+            Cancel</button
+          ><button
+            @click="submit"
             class="om-btn om-btn-primary"
-            :disabled="loading || !isFormValid"
+            :disabled="loading || !valid"
           >
-            <i v-if="loading" class="pi pi-spin pi-spinner"></i>
-            <i v-else class="pi pi-truck"></i>
-            <span>{{ loading ? "Processing..." : "Confirm Shipment" }}</span>
+            <i v-if="loading" class="pi pi-spin pi-spinner"></i
+            ><i v-else class="pi pi-truck"></i
+            ><span>{{ loading ? "Processing..." : "Confirm Shipment" }}</span>
           </button>
         </div>
       </div>
@@ -137,31 +109,21 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-
-interface Order {
+interface O {
   order_no: string;
   platform: string;
   buyer_username: string;
-  [key: string]: any;
+  [k: string]: any;
 }
-
-interface ShippingProvider {
+interface P {
   value: string;
   label: string;
 }
-
-interface PickupAddress {
+interface A {
   address_id: number;
   address: string;
 }
-
-interface Props {
-  visible: boolean;
-  order: Order | null;
-}
-
-const props = defineProps<Props>();
-
+const props = defineProps<{ visible: boolean; order: O | null }>();
 const emit = defineEmits<{
   close: [];
   confirm: [
@@ -173,18 +135,10 @@ const emit = defineEmits<{
     },
   ];
 }>();
-
-// Form state
-const formData = ref({
-  shipping_provider: "",
-  tracking_number: "",
-  address_id: "",
-});
+const f = ref({ sp: "", tn: "", aid: "" });
 const loading = ref(false);
 const error = ref("");
-
-// Mock data - in real implementation, fetch from API
-const shippingProviders = ref<ShippingProvider[]>([
+const providers = ref<P[]>([
   { value: "jne", label: "JNE" },
   { value: "jnt", label: "J&T Express" },
   { value: "sicepat", label: "SiCepat" },
@@ -193,70 +147,46 @@ const shippingProviders = ref<ShippingProvider[]>([
   { value: "shopee_express", label: "Shopee Express" },
   { value: "lazada_logistics", label: "Lazada Logistics" },
 ]);
-
-const pickupAddresses = ref<PickupAddress[]>([]);
-
-// Computed
-const isFormValid = computed(() => {
-  return formData.value.shipping_provider !== "";
-});
-
-// Methods
-const formatPlatform = (platform?: string): string => {
-  if (!platform) return "";
-  const names: Record<string, string> = {
+const pickupAddresses = ref<A[]>([]);
+const valid = computed(() => f.value.sp !== "");
+const fmt = (p?: string): string => {
+  const m: Record<string, string> = {
     shopee: "Shopee",
     lazada: "Lazada",
     tiktok: "TikTok",
   };
-  return names[platform.toLowerCase()] || platform;
+  return m[p?.toLowerCase() || ""] || p || "";
 };
-
 const close = () => {
   if (!loading.value) {
-    resetForm();
+    f.value = { sp: "", tn: "", aid: "" };
+    error.value = "";
     emit("close");
   }
 };
-
-const resetForm = () => {
-  formData.value = {
-    shipping_provider: "",
-    tracking_number: "",
-    address_id: "",
-  };
-  error.value = "";
-};
-
-const submitShipment = async () => {
-  if (!isFormValid.value || !props.order) return;
-
+const submit = async () => {
+  if (!valid.value || !props.order) return;
   loading.value = true;
   error.value = "";
-
   try {
     emit("confirm", {
       order_no: props.order.order_no,
-      shipping_provider: formData.value.shipping_provider,
-      tracking_number: formData.value.tracking_number || undefined,
-      address_id: formData.value.address_id
-        ? Number(formData.value.address_id)
-        : undefined,
+      shipping_provider: f.value.sp,
+      tracking_number: f.value.tn || undefined,
+      address_id: f.value.aid ? Number(f.value.aid) : undefined,
     });
-  } catch (err: any) {
-    error.value = err.message || "Failed to process shipment";
+  } catch (e: any) {
+    error.value = e.message || "Failed";
   } finally {
     loading.value = false;
   }
 };
-
-// Watch for modal open to reset form
 watch(
   () => props.visible,
-  (newVal) => {
-    if (newVal) {
-      resetForm();
-      // TODO: Fetch shipping parameters from API based on order
+  (v) => {
+    if (v) {
+      f.value = { sp: "", tn: "", aid: "" };
+      error.value = "";
     }
   },
 );
@@ -264,8 +194,7 @@ watch(
 
 <style scoped>
 @import "./OrderManager.theme.css";
-
-.modal-overlay {
+.o {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
@@ -275,8 +204,7 @@ watch(
   z-index: 1000;
   animation: om-fadeIn var(--om-transition-fast);
 }
-
-.modal-container {
+.om {
   background: var(--om-bg-primary);
   border-radius: var(--om-radius-lg);
   box-shadow: var(--om-shadow-lg);
@@ -286,151 +214,112 @@ watch(
   overflow: hidden;
   animation: om-slideUp var(--om-transition-normal);
 }
-
-.modal-header {
+.h {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: var(--om-spacing-md) var(--om-spacing-lg);
   border-bottom: 1px solid var(--om-border);
 }
-
-.modal-title {
+.h h3 {
   font-size: var(--om-font-lg);
   font-weight: 600;
   color: var(--om-text-primary);
   margin: 0;
 }
-
-.close-btn {
+.h button {
   background: none;
   border: none;
   padding: var(--om-spacing-xs);
   cursor: pointer;
   color: var(--om-text-secondary);
   display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: var(--om-radius-sm);
   transition: all var(--om-transition-fast);
 }
-
-.close-btn:hover {
+.h button:hover {
   background: var(--om-bg-secondary);
   color: var(--om-text-primary);
 }
-
-.modal-body {
+.b {
   padding: var(--om-spacing-lg);
   overflow-y: auto;
   max-height: calc(90vh - 140px);
 }
-
-.order-info {
+.i {
   background: var(--om-bg-secondary);
   border-radius: var(--om-radius-md);
   padding: var(--om-spacing-md);
   margin-bottom: var(--om-spacing-lg);
 }
-
-.info-row {
+.r {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: var(--om-spacing-xs) 0;
+  font-size: var(--om-font-sm);
 }
-
-.info-row:not(:last-child) {
+.r:not(:last-child) {
   border-bottom: 1px solid var(--om-border);
   padding-bottom: var(--om-spacing-sm);
   margin-bottom: var(--om-spacing-sm);
 }
-
-.info-label {
-  font-size: var(--om-font-sm);
+.r span:first-child {
   color: var(--om-text-secondary);
 }
-
-.info-value {
-  font-size: var(--om-font-sm);
+.r span:last-child {
   font-weight: 500;
   color: var(--om-text-primary);
 }
-
-.shipping-form {
+.f {
   display: flex;
   flex-direction: column;
   gap: var(--om-spacing-md);
 }
-
-.form-group {
+.f > div {
   display: flex;
   flex-direction: column;
   gap: var(--om-spacing-xs);
 }
-
-.form-label {
+.f label {
   font-size: var(--om-font-sm);
   font-weight: 500;
   color: var(--om-text-primary);
 }
-
-.optional-text {
-  font-weight: 400;
-  color: var(--om-text-secondary);
-}
-
-.form-input,
-.form-select {
+.s,
+.x {
   padding: var(--om-spacing-sm) var(--om-spacing-md);
   border: 1px solid var(--om-border);
   border-radius: var(--om-radius-sm);
   font-size: var(--om-font-sm);
   transition: border-color var(--om-transition-fast);
 }
-
-.form-input:focus,
-.form-select:focus {
+.s:focus,
+.x:focus {
   outline: none;
   border-color: var(--om-primary);
 }
-
-.form-input:disabled,
-.form-select:disabled {
+.s:disabled,
+.x:disabled {
   background: var(--om-bg-secondary);
   cursor: not-allowed;
 }
-
-.error-message {
-  display: flex;
-  align-items: center;
-  gap: var(--om-spacing-sm);
-  padding: var(--om-spacing-sm);
-  background: #ffebee;
-  color: var(--om-status-cancelled);
-  border-radius: var(--om-radius-sm);
-  font-size: var(--om-font-sm);
-}
-
-.modal-footer {
+.ft {
   display: flex;
   justify-content: flex-end;
   gap: var(--om-spacing-sm);
   padding: var(--om-spacing-md) var(--om-spacing-lg);
   border-top: 1px solid var(--om-border);
 }
-
 @media (max-width: 768px) {
-  .modal-container {
+  .om {
     margin: var(--om-spacing-md);
     max-height: calc(100vh - 2rem);
   }
-
-  .modal-footer {
+  .ft {
     flex-direction: column;
   }
-
-  .modal-footer .om-btn {
+  .ft .om-btn {
     width: 100%;
   }
 }

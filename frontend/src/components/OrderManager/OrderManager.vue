@@ -12,6 +12,17 @@
         @platform-changed="selectedPlatform = $event"
       />
 
+      <!-- Filter Bar -->
+      <OrderFilterBar
+        :searchQuery="searchQuery"
+        :selectedPlatform="selectedPlatform"
+        :platforms="uniquePlatforms"
+        @update:searchQuery="searchQuery = $event"
+        @update:selectedPlatform="selectedPlatform = $event"
+        @apply-filters="applyFilters"
+        @reset-filters="resetFilters"
+      />
+
       <!-- Tabs & Actions -->
       <div class="tabs-actions-container">
         <!-- Tabs -->
@@ -28,7 +39,7 @@
             @click="refreshData"
             :disabled="loading"
             class="btn-refresh"
-            title="Refresh data terbaru"
+            title="Refresh latest data"
           >
             <i :class="loading ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"></i>
             <span class="btn-text">Refresh</span>
@@ -55,15 +66,15 @@
               <button
                 class="export-menu-item"
                 @click="handleExportToN8N"
-                title="Kirim data ke N8N untuk otomasi"
+                title="Send data to N8N for automation"
               >
                 <i class="pi pi-send" aria-hidden="true"></i>
-                <span>Export ke N8N</span>
+                <span>Export to N8N</span>
               </button>
               <button
                 class="export-menu-item"
                 @click="handleExportToCSV"
-                title="Download file CSV ke komputer"
+                title="Download CSV file"
               >
                 <i class="pi pi-file" aria-hidden="true"></i>
                 <span>Download CSV</span>
@@ -85,7 +96,14 @@
 
     <!-- Data table with summary -->
     <template v-if="!loading && !error && filteredOrders.length > 0">
-      <OrderTable :filteredOrders="filteredOrders" :activeTab="activeTab" />
+      <OrderTable
+        :filteredOrders="filteredOrders"
+        :activeTab="activeTab"
+        @ship-order="openShipModal"
+        @cancel-order="openCancelModal"
+        @view-detail="handleViewDetail"
+        @copy-order-number="handleCopyOrderNumber"
+      />
 
       <OrderSummary
         :filteredOrders="filteredOrders"
@@ -93,6 +111,22 @@
         :uniquePlatforms="uniquePlatforms"
       />
     </template>
+
+    <!-- Ship Modal -->
+    <OrderShipModal
+      :visible="showShipModal"
+      :order="selectedOrder"
+      @close="closeShipModal"
+      @confirm="handleShipConfirm"
+    />
+
+    <!-- Cancel Modal -->
+    <OrderCancelModal
+      :visible="showCancelModal"
+      :order="selectedOrder"
+      @close="closeCancelModal"
+      @confirm="handleCancelConfirm"
+    />
   </div>
 </template>
 
@@ -104,12 +138,21 @@ import {
   type Order,
 } from "./composables/useOrderManager";
 import { useOrderExport } from "./composables/useOrderExport";
+import {
+  useOrderActions,
+  type ShipOrderParams,
+  type CancelOrderParams,
+} from "./composables/useOrderActions";
 import OrderHeader from "./OrderHeader.vue";
 import OrderTabs from "./OrderTabs.vue";
 import OrderTable from "./OrderTable.vue";
 import OrderSummary from "./OrderSummary.vue";
 import OrderStates from "./OrderStates.vue";
+import OrderFilterBar from "./OrderFilterBar.vue";
+import OrderShipModal from "./OrderShipModal.vue";
+import OrderCancelModal from "./OrderCancelModal.vue";
 
+// Composables
 const {
   activeTab,
   orders,
@@ -127,11 +170,18 @@ const {
 } = useOrderManager();
 
 const { exportToCSVOnly, exportToN8NOnly } = useOrderExport();
+const { shipOrder, cancelOrder } = useOrderActions();
 
 // Export dropdown state
 const showExportMenu = ref(false);
 const exportDropdownRef = ref<HTMLElement | null>(null);
 
+// Modal state
+const showShipModal = ref(false);
+const showCancelModal = ref(false);
+const selectedOrder = ref<any>(null);
+
+// Export handlers
 const toggleExportMenu = () => {
   showExportMenu.value = !showExportMenu.value;
 };
@@ -148,6 +198,93 @@ const handleExportToN8N = async () => {
 const handleExportToCSV = async () => {
   closeExportMenu();
   await exportToCSVOnly(filteredOrders.value as Order[], activeTab.value);
+};
+
+// Filter handlers
+const applyFilters = () => {
+  // Filters are already reactive, this is for explicit apply action
+  console.log("Filters applied:", {
+    search: searchQuery.value,
+    platform: selectedPlatform.value,
+  });
+};
+
+const resetFilters = () => {
+  searchQuery.value = "";
+  selectedPlatform.value = "";
+};
+
+// Ship modal handlers
+const openShipModal = (order: any) => {
+  selectedOrder.value = order;
+  showShipModal.value = true;
+};
+
+const closeShipModal = () => {
+  showShipModal.value = false;
+  selectedOrder.value = null;
+};
+
+const handleShipConfirm = async (data: {
+  order_no: string;
+  shipping_provider: string;
+  tracking_number?: string;
+  address_id?: number;
+}) => {
+  const params: ShipOrderParams = {
+    order_no: data.order_no,
+    platform: selectedOrder.value?.platform || "shopee",
+    shipping_provider: data.shipping_provider,
+    tracking_number: data.tracking_number,
+    address_id: data.address_id,
+  };
+
+  const result = await shipOrder(params);
+  if (result.success) {
+    closeShipModal();
+    await refreshData();
+  }
+};
+
+// Cancel modal handlers
+const openCancelModal = (order: any) => {
+  selectedOrder.value = order;
+  showCancelModal.value = true;
+};
+
+const closeCancelModal = () => {
+  showCancelModal.value = false;
+  selectedOrder.value = null;
+};
+
+const handleCancelConfirm = async (data: {
+  order_no: string;
+  cancel_reason: string;
+  reason_detail?: string;
+}) => {
+  const params: CancelOrderParams = {
+    order_no: data.order_no,
+    platform: selectedOrder.value?.platform || "shopee",
+    cancel_reason: data.cancel_reason,
+    reason_detail: data.reason_detail,
+  };
+
+  const result = await cancelOrder(params);
+  if (result.success) {
+    closeCancelModal();
+    await refreshData();
+  }
+};
+
+// View detail handler
+const handleViewDetail = (order: any) => {
+  console.log("View detail:", order);
+  // TODO: Implement order detail view/modal
+};
+
+// Copy handler
+const handleCopyOrderNumber = (orderNo: string) => {
+  console.log("Copied order number:", orderNo);
 };
 
 // Close dropdown when clicking outside
@@ -172,6 +309,7 @@ onUnmounted(() => {
 
 <style scoped>
 @import "./OrderManager.styles.css";
+@import "./OrderManager.theme.css";
 
 /* Export Dropdown Styles */
 .export-dropdown {
@@ -196,9 +334,9 @@ onUnmounted(() => {
   right: 0;
   margin-top: 0.25rem;
   background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--om-border);
+  border-radius: var(--om-radius-md);
+  box-shadow: var(--om-shadow-lg);
   min-width: 180px;
   z-index: 100;
   overflow: hidden;
@@ -213,26 +351,26 @@ onUnmounted(() => {
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 0.875rem;
-  color: #374151;
+  font-size: var(--om-font-sm);
+  color: var(--om-text-primary);
   text-align: left;
-  transition: background-color 0.15s ease;
+  transition: background-color var(--om-transition-fast);
 }
 
 .export-menu-item:hover {
-  background-color: #f3f4f6;
+  background-color: var(--om-bg-secondary);
 }
 
 .export-menu-item:first-child {
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--om-border);
 }
 
 .export-menu-item i {
-  color: #6b7280;
+  color: var(--om-text-secondary);
   font-size: 1rem;
 }
 
 .export-menu-item:hover i {
-  color: #374151;
+  color: var(--om-text-primary);
 }
 </style>

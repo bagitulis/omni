@@ -3,16 +3,19 @@
     <button
       v-for="tab in orderTabs"
       :key="tab.value"
-      :class="['tab-button', { active: activeTab === tab.value }]"
+      :class="['tab-item', { active: activeTab === tab.value }]"
       @click="emit('tab-changed', tab.value)"
     >
       <span class="tab-label">{{ tab.label }}</span>
-      <span class="tab-count">{{ tabCounts[tab.value] || 0 }}</span>
+      <span class="tab-count">({{ tabCounts[tab.value] || 0 }})</span>
     </button>
+    <div class="tab-indicator" :style="indicatorStyle"></div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, watch, onMounted, nextTick } from "vue";
+
 interface TabCount {
   [key: string]: number;
 }
@@ -22,71 +25,106 @@ interface OrderTab {
   value: string;
 }
 
-defineProps<{
+const props = defineProps<{
   activeTab: string;
   tabCounts: TabCount;
   orderTabs: OrderTab[];
 }>();
 
 const emit = defineEmits<{
-  'tab-changed': [tabValue: string];
+  "tab-changed": [tabValue: string];
 }>();
+
+const indicatorStyle = ref({ left: "0px", width: "0px" });
+
+const updateIndicator = () => {
+  nextTick(() => {
+    const activeIndex = props.orderTabs.findIndex(
+      (t) => t.value === props.activeTab,
+    );
+    const buttons = document.querySelectorAll(".order-tabs .tab-item");
+    if (buttons[activeIndex]) {
+      const btn = buttons[activeIndex] as HTMLElement;
+      indicatorStyle.value = {
+        left: `${btn.offsetLeft}px`,
+        width: `${btn.offsetWidth}px`,
+      };
+    }
+  });
+};
+
+watch(() => props.activeTab, updateIndicator);
+onMounted(updateIndicator);
 </script>
 
 <style scoped>
-@import './OrderManager.styles.css';
+@import "./OrderManager.theme.css";
 
 .order-tabs {
   display: flex;
-  gap: 10px;
-  margin-bottom: 0;
-  flex-wrap: wrap;
+  gap: 0;
+  position: relative;
+  border-bottom: 2px solid var(--om-border);
+  background: var(--om-bg-primary);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.tab-button {
-  padding: 11px 20px;
-  border: 2px solid #e2e8f0;
-  background: white;
-  border-radius: 8px;
+.order-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-item {
+  position: relative;
+  padding: var(--om-spacing-md) var(--om-spacing-lg);
+  border: none;
+  background: transparent;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  color: #4a5568;
-  transition: all 0.3s;
+  font-size: var(--om-font-sm);
+  font-weight: 500;
+  color: var(--om-text-secondary);
+  transition: all var(--om-transition-fast);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--om-spacing-xs);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.tab-button:hover {
-  border-color: #3498db;
-  color: #3498db;
-  background: #f0f6ff;
+.tab-item:hover {
+  color: var(--om-primary);
+  background: var(--om-primary-light);
 }
 
-.tab-button.active {
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-  color: white;
-  border-color: #2980b9;
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+.tab-item.active {
+  color: var(--om-primary);
+  font-weight: 600;
 }
 
 .tab-label {
-  font-weight: 600;
+  font-weight: inherit;
 }
 
 .tab-count {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 700;
-  min-width: 28px;
-  text-align: center;
+  font-size: var(--om-font-xs);
+  color: inherit;
+  opacity: 0.8;
 }
 
-.tab-button.active .tab-count {
-  background: rgba(255, 255, 255, 0.3);
+.tab-indicator {
+  position: absolute;
+  bottom: -2px;
+  height: 3px;
+  background: var(--om-primary);
+  border-radius: 2px 2px 0 0;
+  transition: all var(--om-transition-normal);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .tab-item {
+    padding: var(--om-spacing-sm) var(--om-spacing-md);
+    font-size: var(--om-font-xs);
+  }
 }
 </style>

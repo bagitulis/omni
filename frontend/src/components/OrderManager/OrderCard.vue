@@ -79,7 +79,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import OrderProductItem from "./OrderProductItem.vue";
-
 interface OrderItem {
   sku: string;
   product_name: string;
@@ -88,7 +87,6 @@ interface OrderItem {
   price?: number;
   product_image?: string;
 }
-
 interface Order {
   order_no: string;
   platform: string;
@@ -99,21 +97,18 @@ interface Order {
   payment_method?: string;
   items: OrderItem[];
 }
-
 interface Props {
   order: Order;
   activeTab: string;
 }
-
 const props = defineProps<Props>();
 const emit = defineEmits<{
-  "ship-order": [order: Order];
-  "cancel-order": [order: Order];
-  "view-detail": [order: Order];
-  "copy-order-number": [orderNo: string];
+  "ship-order": [Order];
+  "cancel-order": [Order];
+  "view-detail": [Order];
+  "copy-order-number": [string];
 }>();
 const copied = ref(false);
-
 const showShipButton = computed(
   () =>
     ["unprocess", "unpaid"].includes(props.activeTab) &&
@@ -124,40 +119,29 @@ const showCancelButton = computed(
     ["unprocess", "unpaid"].includes(props.activeTab) &&
     props.order.status !== "CANCELLED",
 );
-
-const formatPlatform = (platform: string): string => {
-  const names = { shopee: "Shopee", lazada: "Lazada", tiktok: "TikTok" };
-  return names[platform.toLowerCase() as keyof typeof names] || platform;
-};
-
-const formatStatus = (status: string): string => {
-  const statuses: Record<string, string> = {
+const formatPlatform = (p: string) =>
+  ({ shopee: "Shopee", lazada: "Lazada", tiktok: "TikTok" })[p.toLowerCase()] ||
+  p;
+const formatStatus = (s: string) =>
+  ({
     UNPAID: "Unpaid",
     READY_TO_SHIP: "To Ship",
     SHIPPED: "Shipped",
     COMPLETED: "Completed",
     CANCELLED: "Cancelled",
     IN_CANCEL: "Cancelling",
-  };
-  return statuses[status.toUpperCase()] || status;
-};
-
-const getStatusClass = (status: string): string => {
-  const statusMap: Record<string, string> = {
+  })[s.toUpperCase()] || s;
+const getStatusClass = (s: string) =>
+  ({
     UNPAID: "om-status-unpaid",
     READY_TO_SHIP: "om-status-toship",
     SHIPPED: "om-status-shipped",
     COMPLETED: "om-status-completed",
     CANCELLED: "om-status-cancelled",
-  };
-  return statusMap[status.toUpperCase()] || "om-status-toship";
-};
-
-const getBuyerInitial = (username: string): string =>
-  username ? username.charAt(0).toUpperCase() : "?";
-
-const formatAmount = (amount: number, currency: string): string => {
-  const currencyMap = {
+  })[s.toUpperCase()] || "om-status-toship";
+const getBuyerInitial = (u: string) => (u ? u.charAt(0).toUpperCase() : "?");
+const formatAmount = (amt: number, cur: string) => {
+  const locales: Record<string, string> = {
     IDR: "id-ID",
     MYR: "ms-MY",
     SGD: "en-SG",
@@ -165,14 +149,12 @@ const formatAmount = (amount: number, currency: string): string => {
     THB: "th-TH",
     VND: "vi-VN",
   };
-  const locale = currencyMap[currency as keyof typeof currencyMap] || "id-ID";
-  return new Intl.NumberFormat(locale, {
+  return new Intl.NumberFormat(locales[cur] || "id-ID", {
     style: "currency",
-    currency: currency || "IDR",
+    currency: cur || "IDR",
     minimumFractionDigits: 0,
-  }).format(amount);
+  }).format(amt);
 };
-
 const copyOrderNumber = async () => {
   try {
     await navigator.clipboard.writeText(props.order.order_no);
@@ -181,11 +163,10 @@ const copyOrderNumber = async () => {
     setTimeout(() => {
       copied.value = false;
     }, 2000);
-  } catch (err) {
-    console.error("Failed to copy:", err);
+  } catch (e) {
+    console.error(e);
   }
 };
-
 const shipOrder = () => emit("ship-order", props.order);
 const cancelOrder = () => emit("cancel-order", props.order);
 const viewDetail = () => emit("view-detail", props.order);
@@ -193,7 +174,6 @@ const viewDetail = () => emit("view-detail", props.order);
 
 <style scoped>
 @import "./OrderManager.theme.css";
-
 .order-card {
   padding: var(--om-spacing-md);
   animation: om-slideUp var(--om-transition-normal) ease-out;
@@ -234,7 +214,6 @@ const viewDetail = () => emit("view-detail", props.order);
   cursor: pointer;
   color: var(--om-text-secondary);
   display: flex;
-  align-items: center;
   transition: color var(--om-transition-fast);
 }
 .copy-btn:hover {
@@ -268,7 +247,6 @@ const viewDetail = () => emit("view-detail", props.order);
 .card-footer {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   padding-top: var(--om-spacing-sm);
   border-top: 1px solid var(--om-border);
   flex-wrap: wrap;
@@ -311,7 +289,6 @@ const viewDetail = () => emit("view-detail", props.order);
 .cancel-btn:hover:not(:disabled) {
   background: #ffebee;
 }
-
 @media (max-width: 768px) {
   .card-header {
     flex-direction: column;
