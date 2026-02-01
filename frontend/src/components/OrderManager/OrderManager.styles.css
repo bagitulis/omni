@@ -248,18 +248,25 @@
 /* Tabs & Actions Container */
 .tabs-actions-container {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 15px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: var(--om-spacing-md);
+  margin-top: var(--om-spacing-md);
 }
 
-/* Actions */
-.order-actions {
+/* Tabs Row - full width */
+.tabs-actions-container .order-tabs {
+  width: 100%;
+}
+
+/* Actions Row - aligned right */
+.tabs-actions-container .order-actions {
   display: flex;
+  justify-content: flex-end;
   gap: 10px;
   flex-wrap: wrap;
 }
+
+/* Actions - already defined in .tabs-actions-container */
 
 .btn-refresh,
 .btn-export {

@@ -272,6 +272,7 @@ const viewDetail = () => emit("view-detail", props.order);
 @import "./OrderManager.theme.css";
 
 .order-row {
+  width: 100%;
   background: var(--om-bg-primary);
   border: 1px solid var(--om-border);
   border-radius: var(--om-radius-md);

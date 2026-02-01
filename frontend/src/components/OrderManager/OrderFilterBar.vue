@@ -52,17 +52,10 @@
       </select>
     </div>
 
-    <!-- Filter Actions -->
-    <div class="filter-actions">
-      <button @click="applyFilters" class="om-btn om-btn-primary">
-        <i class="pi pi-filter"></i>
-        <span>Apply</span>
-      </button>
-      <button @click="resetFilters" class="om-btn om-btn-secondary">
-        <i class="pi pi-refresh"></i>
-        <span>Reset</span>
-      </button>
-    </div>
+    <!-- Reset Button Only - filters apply automatically -->
+    <button @click="resetFilters" class="reset-btn" title="Reset all filters">
+      Reset
+    </button>
   </div>
 </template>
 

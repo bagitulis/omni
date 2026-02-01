@@ -233,10 +233,10 @@ const getTableTitle = computed(() => {
 @import "./OrderManager.theme.css";
 @import "./OrderTable.styles.css";
 
-/* Shopee Table Header */
+/* Shopee Table Header - must match OrderRow.vue grid */
 .shopee-table-header {
   display: grid;
-  grid-template-columns: 3fr 1.2fr 1fr 1.2fr 1.2fr 1.5fr;
+  grid-template-columns: 3fr 1.2fr 1fr 1.5fr 1.2fr 1fr;
   gap: var(--om-spacing-md);
   padding: var(--om-spacing-md);
   background: var(--om-bg-secondary);
@@ -271,7 +271,7 @@ const getTableTitle = computed(() => {
   }
 
   .header-cell {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
   }
 }
 
