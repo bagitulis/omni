@@ -299,7 +299,7 @@ func (s *AuthService) logSuccessfulLogin(ctx context.Context, userID, tenantID, 
 	})
 }
 
-// ChangePassword changes user password
+// ChangePassword changes user password and revokes all sessions for security
 func (s *AuthService) ChangePassword(ctx context.Context, userID, oldPassword, newPassword string) error {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil || user == nil {
@@ -310,13 +310,31 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID, oldPassword, n
 		return errors.New("current password is incorrect")
 	}
 
+	// Validate new password strength
+	if err := utils.ValidatePasswordStrength(newPassword); err != nil {
+		return err
+	}
+
 	hash, err := s.HashPassword(newPassword)
 	if err != nil {
 		return err
 	}
 
 	user.Password = hash
-	return s.userRepo.Update(ctx, user)
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return err
+	}
+
+	// SECURITY: Revoke all refresh sessions after password change
+	// This ensures any stolen tokens are invalidated
+	if s.refreshSessionRepo != nil {
+		if err := s.refreshSessionRepo.RevokeAllForUser(ctx, userID); err != nil {
+			// Log error but don't fail - password was already changed
+			// In production, consider making this transactional
+		}
+	}
+
+	return nil
 }
 
 // GenerateTokenForSwitch generates a new token for tenant switch

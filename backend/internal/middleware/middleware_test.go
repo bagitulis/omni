@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -213,5 +214,99 @@ func TestGetTenantID(t *testing.T) {
 	c2.Set("tenantId", "tenant456")
 	if got := GetTenantID(c2); got != "tenant456" {
 		t.Errorf("GetTenantID() camelCase = %v, want 'tenant456'", got)
+	}
+}
+
+// ===========================================
+// RATE LIMITING TESTS
+// ===========================================
+
+func TestRateLimiter_AllowsRequestsWithinLimit(t *testing.T) {
+	limiter := NewRateLimiter(10, time.Second, 10)
+
+	// Should allow 10 requests
+	for i := 0; i < 10; i++ {
+		if !limiter.Allow("test-key") {
+			t.Errorf("Request %d should be allowed", i+1)
+		}
+	}
+}
+
+func TestRateLimiter_BlocksExcessRequests(t *testing.T) {
+	limiter := NewRateLimiter(5, time.Second, 5)
+
+	// Use all tokens
+	for i := 0; i < 5; i++ {
+		limiter.Allow("test-key")
+	}
+
+	// Next request should be blocked
+	if limiter.Allow("test-key") {
+		t.Error("Request should be blocked after limit exceeded")
+	}
+}
+
+func TestRateLimiter_AllowWithInfo_ReturnsCorrectValues(t *testing.T) {
+	limiter := NewRateLimiter(5, time.Second, 5)
+
+	// First request
+	allowed, remaining, retryAfter := limiter.AllowWithInfo("test-key")
+	if !allowed {
+		t.Error("First request should be allowed")
+	}
+	if remaining != 4 {
+		t.Errorf("Expected 4 remaining, got %d", remaining)
+	}
+	if retryAfter != 0 {
+		t.Errorf("Expected retryAfter 0, got %v", retryAfter)
+	}
+
+	// Exhaust tokens
+	for i := 0; i < 4; i++ {
+		limiter.Allow("test-key")
+	}
+
+	// Should be blocked now
+	allowed, remaining, retryAfter = limiter.AllowWithInfo("test-key")
+	if allowed {
+		t.Error("Request should be blocked")
+	}
+	if remaining != 0 {
+		t.Errorf("Expected 0 remaining, got %d", remaining)
+	}
+	if retryAfter <= 0 {
+		t.Error("Expected positive retryAfter")
+	}
+}
+
+func TestRateLimiter_DifferentKeysAreSeparate(t *testing.T) {
+	limiter := NewRateLimiter(2, time.Second, 2)
+
+	// Exhaust key1
+	limiter.Allow("key1")
+	limiter.Allow("key1")
+	if limiter.Allow("key1") {
+		t.Error("key1 should be blocked")
+	}
+
+	// key2 should still work
+	if !limiter.Allow("key2") {
+		t.Error("key2 should be allowed")
+	}
+}
+
+func TestAuthRateLimitMiddleware_CreatesLimiter(t *testing.T) {
+	// Just verify it doesn't panic and creates a handler
+	handler := AuthRateLimitMiddleware()
+	if handler == nil {
+		t.Error("AuthRateLimitMiddleware should return a handler")
+	}
+}
+
+func TestAPIRateLimitMiddleware_CreatesLimiter(t *testing.T) {
+	// Just verify it doesn't panic and creates a handler
+	handler := APIRateLimitMiddleware()
+	if handler == nil {
+		t.Error("APIRateLimitMiddleware should return a handler")
 	}
 }
