@@ -35,6 +35,18 @@
 
         <!-- Actions -->
         <div class="order-actions">
+          <!-- Bulk Shipment Button -->
+          <button
+            v-if="activeTab === 'unprocess'"
+            @click="openBulkShipModal"
+            :disabled="loading"
+            class="btn-bulk-ship"
+            title="Ship multiple orders at once"
+          >
+            <i class="pi pi-truck"></i>
+            <span class="btn-text">Bulk Shipment</span>
+          </button>
+
           <button
             @click="refreshData"
             :disabled="loading"
@@ -176,6 +188,10 @@ const { shipOrder, cancelOrder } = useOrderActions();
 const showExportMenu = ref(false);
 const exportDropdownRef = ref<HTMLElement | null>(null);
 
+// Bulk Shipment state
+const selectedOrders = ref<string[]>([]);
+const showBulkShipModal = ref(false);
+
 // Modal state
 const showShipModal = ref(false);
 const showCancelModal = ref(false);
@@ -212,6 +228,10 @@ const applyFilters = () => {
 const resetFilters = () => {
   searchQuery.value = "";
   selectedPlatform.value = "";
+};
+
+const openBulkShipModal = () => {
+  showBulkShipModal.value = true;
 };
 
 // Ship modal handlers
@@ -372,5 +392,29 @@ onUnmounted(() => {
 
 .export-menu-item:hover i {
   color: var(--om-text-primary);
+}
+
+.btn-bulk-ship {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #ee4d2d;
+  color: white;
+  border: none;
+  border-radius: var(--om-radius-sm);
+  font-size: var(--om-font-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--om-transition-fast);
+}
+
+.btn-bulk-ship:hover:not(:disabled) {
+  background: #d73211;
+}
+
+.btn-bulk-ship:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

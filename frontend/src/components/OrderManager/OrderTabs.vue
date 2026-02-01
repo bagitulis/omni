@@ -92,12 +92,12 @@ onMounted(updateIndicator);
 }
 
 .tab-item:hover {
-  color: var(--om-primary);
-  background: var(--om-primary-light);
+  color: #ee4d2d;
+  background: rgba(238, 77, 45, 0.08);
 }
 
 .tab-item.active {
-  color: var(--om-primary);
+  color: #ee4d2d;
   font-weight: 600;
 }
 
@@ -106,16 +106,15 @@ onMounted(updateIndicator);
 }
 
 .tab-count {
-  font-size: var(--om-font-xs);
-  color: inherit;
-  opacity: 0.8;
+  font-size: 0.75rem;
+  margin-left: 4px;
 }
 
 .tab-indicator {
   position: absolute;
   bottom: -2px;
-  height: 3px;
-  background: var(--om-primary);
+  height: 2px;
+  background: #ee4d2d;
   border-radius: 2px 2px 0 0;
   transition: all var(--om-transition-normal);
 }

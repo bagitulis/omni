@@ -34,6 +34,24 @@
       </select>
     </div>
 
+    <!-- Shipping Filter -->
+    <div class="filter-shipping">
+      <select
+        :value="selectedShipping"
+        @change="onShippingChange"
+        class="shipping-select"
+      >
+        <option value="">All Shipping</option>
+        <option
+          v-for="provider in shippingProviders"
+          :key="provider"
+          :value="provider"
+        >
+          {{ provider }}
+        </option>
+      </select>
+    </div>
+
     <!-- Filter Actions -->
     <div class="filter-actions">
       <button @click="applyFilters" class="om-btn om-btn-primary">
@@ -53,6 +71,8 @@ interface Props {
   searchQuery: string;
   selectedPlatform: string;
   platforms: string[];
+  selectedShipping: string;
+  shippingProviders: string[];
 }
 
 const props = defineProps<Props>();
@@ -60,6 +80,7 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   "update:searchQuery": [value: string];
   "update:selectedPlatform": [value: string];
+  "update:selectedShipping": [value: string];
   "apply-filters": [];
   "reset-filters": [];
 }>();
@@ -86,6 +107,11 @@ const onPlatformChange = (event: Event) => {
   emit("update:selectedPlatform", value);
 };
 
+const onShippingChange = (event: Event) => {
+  const value = (event.target as HTMLSelectElement).value;
+  emit("update:selectedShipping", value);
+};
+
 const formatPlatformName = (platform: string): string => {
   const names: Record<string, string> = {
     shopee: "Shopee",
@@ -102,6 +128,7 @@ const applyFilters = () => {
 const resetFilters = () => {
   emit("update:searchQuery", "");
   emit("update:selectedPlatform", "");
+  emit("update:selectedShipping", "");
   emit("reset-filters");
 };
 </script>
@@ -189,6 +216,25 @@ const resetFilters = () => {
 }
 
 .platform-select:focus {
+  outline: none;
+  border-color: var(--om-primary);
+}
+
+.filter-shipping {
+  min-width: 150px;
+}
+
+.shipping-select {
+  width: 100%;
+  padding: var(--om-spacing-sm) var(--om-spacing-md);
+  border: 1px solid var(--om-border);
+  border-radius: var(--om-radius-sm);
+  font-size: var(--om-font-sm);
+  background: var(--om-bg-primary);
+  cursor: pointer;
+}
+
+.shipping-select:focus {
   outline: none;
   border-color: var(--om-primary);
 }
