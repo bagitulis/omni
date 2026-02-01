@@ -150,9 +150,9 @@ func (s *MultiTenantAuthService) tryLoginInTenant(ctx context.Context, tenantID 
 		// Increment failed attempts
 		userRepo.IncrementFailedAttempts(ctx, user.ID)
 
-		// Lock account if max attempts exceeded (5 attempts)
-		if user.FailedLoginAttempts+1 >= 5 {
-			userRepo.LockAccount(ctx, user.ID, 30*time.Minute)
+		// Lock account if max attempts exceeded (10 attempts - tuned for office users)
+		if user.FailedLoginAttempts+1 >= DefaultMaxAttempts {
+			userRepo.LockAccount(ctx, user.ID, DefaultLockDuration)
 		}
 
 		return nil, ErrInvalidCredentials
@@ -206,9 +206,9 @@ func (s *MultiTenantAuthService) tryLoginInSystem(ctx context.Context, req *Mult
 		// Increment failed attempts
 		userRepo.IncrementFailedAttempts(ctx, user.ID)
 
-		// Lock account if max attempts exceeded (5 attempts)
-		if user.FailedLoginAttempts+1 >= 5 {
-			userRepo.LockAccount(ctx, user.ID, 30*time.Minute)
+		// Lock account if max attempts exceeded (10 attempts - tuned for office users)
+		if user.FailedLoginAttempts+1 >= DefaultMaxAttempts {
+			userRepo.LockAccount(ctx, user.ID, DefaultLockDuration)
 		}
 
 		return nil, ErrInvalidCredentials

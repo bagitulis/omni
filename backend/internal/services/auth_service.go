@@ -29,6 +29,12 @@ var (
 	ErrInvalidToken       = &AuthError{Code: "INVALID_TOKEN", Message: "Invalid token"}
 )
 
+// Security settings - tuned for marketplace operations
+const (
+	DefaultMaxAttempts  = 10               // Increased from 5 - office users typo, password manager failures
+	DefaultLockDuration = 15 * time.Minute // Reduced from 30min - less impact during flash sales
+)
+
 // AuthService handles authentication operations
 type AuthService struct {
 	userRepo           *repositories.UserRepository
@@ -45,8 +51,8 @@ func NewAuthService(userRepo *repositories.UserRepository, auditRepo *repositori
 		userRepo:     userRepo,
 		auditRepo:    auditRepo,
 		jwtService:   jwtService,
-		maxAttempts:  10,               // Increased from 5 - office users typo, password manager failures
-		lockDuration: 15 * time.Minute, // Reduced from 30min - less impact during flash sales
+		maxAttempts:  DefaultMaxAttempts,
+		lockDuration: DefaultLockDuration,
 	}
 }
 
@@ -57,8 +63,8 @@ func NewAuthServiceWithRefresh(userRepo *repositories.UserRepository, auditRepo 
 		auditRepo:          auditRepo,
 		refreshSessionRepo: refreshSessionRepo,
 		jwtService:         jwtService,
-		maxAttempts:        10,               // Increased from 5 - office users typo, password manager failures
-		lockDuration:       15 * time.Minute, // Reduced from 30min - less impact during flash sales
+		maxAttempts:        DefaultMaxAttempts,
+		lockDuration:       DefaultLockDuration,
 	}
 }
 
