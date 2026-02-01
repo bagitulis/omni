@@ -45,8 +45,8 @@ func NewAuthService(userRepo *repositories.UserRepository, auditRepo *repositori
 		userRepo:     userRepo,
 		auditRepo:    auditRepo,
 		jwtService:   jwtService,
-		maxAttempts:  5,
-		lockDuration: 30 * time.Minute,
+		maxAttempts:  10,               // Increased from 5 - office users typo, password manager failures
+		lockDuration: 15 * time.Minute, // Reduced from 30min - less impact during flash sales
 	}
 }
 
@@ -57,8 +57,8 @@ func NewAuthServiceWithRefresh(userRepo *repositories.UserRepository, auditRepo 
 		auditRepo:          auditRepo,
 		refreshSessionRepo: refreshSessionRepo,
 		jwtService:         jwtService,
-		maxAttempts:        5,
-		lockDuration:       30 * time.Minute,
+		maxAttempts:        10,               // Increased from 5 - office users typo, password manager failures
+		lockDuration:       15 * time.Minute, // Reduced from 30min - less impact during flash sales
 	}
 }
 

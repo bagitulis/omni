@@ -192,45 +192,43 @@ func UserRateLimitMiddleware(rate int, interval time.Duration, bucketSize int) g
 //
 // Marketplace context considerations:
 // - High-frequency API sync (Shopee/Lazada/TikTok) - hundreds of calls per sync
-// - Multiple users from same IP (office, shared NAT)
+// - Multiple users from same IP (office, shared NAT) - up to 15-20 users per IP
 // - Background sync every 5-15 minutes
 // - Mobile + Desktop + Tablet simultaneous access
+// - Flash sales: 200+ orders in 5 minutes across 3 platforms
 //
 // Rate limits are designed to:
-// 1. Prevent brute force attacks on auth (but not block legitimate users)
+// 1. Prevent brute force attacks on auth (but not block legitimate office users)
 // 2. Allow high-throughput marketplace operations
 // 3. Protect against runaway scripts/bugs
+// 4. Handle flash sale webhook bursts
 
 // AuthRateLimitMiddleware creates rate limiter for authentication endpoints
 // Balanced to prevent brute force while allowing legitimate multi-device usage
 //
-// Config: 10 attempts per minute per IP, burst of 20
-// - Allows 10 login attempts/minute (enough for typos, multi-device)
+// Config: 30 attempts per minute per IP, burst of 50
+// - Office with 15 users on 1 IP can all login during morning rush
+// - Still prevents automated brute force (need 30+ min for 1000 attempts)
 // - Burst allows quick retries after password reset
-// - Still prevents automated brute force (would need 10+ minutes for 100 attempts)
 func AuthRateLimitMiddleware() gin.HandlerFunc {
-	// 10 attempts per minute per IP, burst of 20
-	limiter := NewRateLimiter(10, time.Minute, 20)
+	// 30 attempts per minute per IP, burst of 50
+	limiter := NewRateLimiter(30, time.Minute, 50)
 	return RateLimitMiddlewareWithHeaders(limiter, func(c *gin.Context) string {
 		return "auth:" + c.ClientIP()
 	})
 }
 
-// LoginRateLimitMiddleware creates stricter rate limiter specifically for login endpoint
-// This is per-username to prevent targeted brute force on specific accounts
+// LoginRateLimitMiddleware creates rate limiter specifically for login endpoint
+// Per-IP rate limiting with reasonable limits for shared office environments
 //
-// Config: 5 attempts per 5 minutes per username
-// - Prevents targeted attacks on known usernames
-// - User can retry after lockout naturally expires
-// - Combined with account lockout (5 failed = 30min lock) provides layered defense
+// Config: 10 attempts per minute per IP, burst of 20
+// - Prevents targeted brute force attacks
+// - Allows office users (NAT) to login without blocking each other
+// - Combined with account lockout (10 failed = 15min lock) provides layered defense
 func LoginRateLimitMiddleware() gin.HandlerFunc {
-	// 5 attempts per 5 minutes per username (extracted from request body)
-	// Note: This requires the handler to call limiter after parsing body
-	limiter := NewRateLimiter(1, time.Minute, 5)
+	// 10 attempts per minute per IP
+	limiter := NewRateLimiter(10, time.Minute, 20)
 	return RateLimitMiddlewareWithHeaders(limiter, func(c *gin.Context) string {
-		// For login specifically, we want to rate limit by username if available
-		// This is called before body is parsed, so we use IP as fallback
-		// The actual per-username limiting should be done in the login handler
 		return "login:" + c.ClientIP()
 	})
 }
@@ -269,12 +267,15 @@ func SyncRateLimitMiddleware() gin.HandlerFunc {
 // WebhookRateLimitMiddleware creates rate limiter for incoming webhooks
 // Platform webhooks can come in bursts during high-activity periods
 //
-// Config: 500 requests per minute per source IP
-// - Shopee/Lazada/TikTok send webhooks on order updates
-// - Flash sales can trigger hundreds of webhooks in minutes
-// - Should be generous to avoid missing important updates
+// Config: 1000 requests per minute per source IP, burst of 2000
+// Flash sale math:
+// - 200 orders in 5 minutes
+// - × 3 platforms (Shopee, Lazada, TikTok)
+// - × 3 webhook types (order.create, payment.confirm, inventory.update)
+// = 1,800 webhooks in 5 minutes = 360/min per platform
+// 1000/min with burst 2000 handles this comfortably
 func WebhookRateLimitMiddleware() gin.HandlerFunc {
-	limiter := NewRateLimiter(500, time.Minute, 1000)
+	limiter := NewRateLimiter(1000, time.Minute, 2000)
 	return RateLimitMiddlewareWithHeaders(limiter, func(c *gin.Context) string {
 		return "webhook:" + c.ClientIP()
 	})
