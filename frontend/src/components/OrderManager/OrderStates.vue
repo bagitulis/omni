@@ -17,7 +17,7 @@
     <div v-if="!loading && !error && isNoData" class="empty-state">
       <i class="pi pi-inbox" aria-hidden="true"></i>
       <p>
-        {{ searchActive ? "Tidak ada hasil yang cocok" : "Tidak ada order" }}
+        {{ searchActive ? "No matching results" : "No orders found" }}
       </p>
     </div>
   </div>
