@@ -14,11 +14,11 @@ import (
 // Token TTL constants
 const (
 	// AccessTokenTTL is the default access token lifetime
-	// 30 minutes balances security with marketplace usability:
-	// - Order processing workflows take 10-20 minutes
-	// - Flash sale management requires sustained sessions
-	// - Reduces unnecessary refresh calls during peak hours
-	AccessTokenTTL = 30 * time.Minute
+	// 8 hours matches a typical work day:
+	// - Users stay logged in throughout their shift
+	// - No need to re-login during business hours
+	// - Refresh token rotation still provides security
+	AccessTokenTTL = 8 * time.Hour
 
 	// RefreshTokenTTL is the default refresh token lifetime
 	// 7 days is appropriate for B2B - users expect to stay logged in across business days

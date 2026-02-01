@@ -312,8 +312,8 @@ func TestJWTService_ValidateAccessToken_RequiresIssuer(t *testing.T) {
 
 func TestJWTService_Constants(t *testing.T) {
 	// Verify security constants are properly set
-	if AccessTokenTTL != 30*time.Minute {
-		t.Errorf("AccessTokenTTL = %v, expected 30 minutes", AccessTokenTTL)
+	if AccessTokenTTL != 8*time.Hour {
+		t.Errorf("AccessTokenTTL = %v, expected 8 hours", AccessTokenTTL)
 	}
 
 	if RefreshTokenTTL != 7*24*time.Hour {
