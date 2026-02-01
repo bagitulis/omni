@@ -1,9 +1,7 @@
 package middleware
 
 import (
-	"log"
 	"net/http"
-	"os"
 	"regexp"
 	"sync"
 
@@ -35,7 +33,9 @@ func initTenants(databasePath string) {
 func Tenant() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// First check if tenantID was already set by Auth middleware (from JWT)
+		// If set from JWT, it's already validated - no need for file-based validation
 		tenantID := c.GetString("tenantID")
+		fromJWT := tenantID != ""
 
 		// If not in context, check header (for backwards compatibility)
 		if tenantID == "" {
@@ -52,40 +52,29 @@ func Tenant() gin.HandlerFunc {
 			return
 		}
 
-		// Validate tenant using config
-		if tenantsLoaded {
-			if !config.ValidateTenant(tenantID) {
-				c.JSON(http.StatusUnauthorized, gin.H{
-					"success": false,
-					"error":   "Invalid tenant ID",
-				})
-				c.Abort()
-				return
-			}
-		} else {
-			// SECURITY: In production, tenant config MUST be loaded
-			env := os.Getenv("GO_ENV")
-			if env == "production" {
-				log.Println("❌ CRITICAL: Tenant configuration not loaded in production")
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"success": false,
-					"error":   "Server configuration error",
-				})
-				c.Abort()
-				return
-			}
-
-			// Development fallback - log warning and validate format only
-			log.Printf("⚠️ WARNING: Using development tenant validation for: %s", tenantID)
-
-			// Validate tenant ID format (alphanumeric + underscore only)
-			if !tenantIDPattern.MatchString(tenantID) {
-				c.JSON(http.StatusUnauthorized, gin.H{
-					"success": false,
-					"error":   "Invalid tenant ID format",
-				})
-				c.Abort()
-				return
+		// If tenantID came from JWT, it's already validated by Auth middleware
+		// Only validate via config if tenantID came from header (legacy flow)
+		if !fromJWT {
+			// Validate tenant using config (if loaded)
+			if tenantsLoaded {
+				if !config.ValidateTenant(tenantID) {
+					c.JSON(http.StatusUnauthorized, gin.H{
+						"success": false,
+						"error":   "Invalid tenant ID",
+					})
+					c.Abort()
+					return
+				}
+			} else {
+				// Fallback: validate format only (alphanumeric + underscore)
+				if !tenantIDPattern.MatchString(tenantID) {
+					c.JSON(http.StatusUnauthorized, gin.H{
+						"success": false,
+						"error":   "Invalid tenant ID format",
+					})
+					c.Abort()
+					return
+				}
 			}
 		}
 
