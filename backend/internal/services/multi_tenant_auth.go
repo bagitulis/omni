@@ -9,6 +9,7 @@ import (
 	"github.com/omni/backend/internal/utils"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // MultiTenantAuthService handles authentication across all tenants
@@ -161,19 +162,41 @@ func (s *MultiTenantAuthService) tryLoginInTenant(ctx context.Context, tenantID 
 	// Reset failed attempts on successful login
 	userRepo.ResetFailedAttempts(ctx, user.ID)
 
-	// Generate JWT token with tenantID
-	accessToken, err := s.jwtService.GenerateToken(user.ID, tenantID, user.Role)
+	// Generate access token
+	accessToken, err := s.jwtService.GenerateAccessToken(user.ID, tenantID, user.Role)
 	if err != nil {
 		return nil, err
+	}
+
+	// Generate secure refresh token
+	refreshToken, err := s.jwtService.GenerateRefreshToken()
+	if err != nil {
+		return nil, err
+	}
+
+	// Store refresh session in database
+	refreshSessionRepo := repositories.NewRefreshSessionRepository(db)
+	refreshSession := &models.RefreshSession{
+		UserID:    user.ID,
+		TenantID:  tenantID,
+		TokenHash: repositories.HashToken(refreshToken),
+		ExpiresAt: time.Now().Add(utils.RefreshTokenTTL),
+		IPAddress: req.IPAddress,
+		UserAgent: req.UserAgent,
+	}
+	if err := refreshSessionRepo.Create(ctx, refreshSession); err != nil {
+		log.Warn().Err(err).Msg("Failed to store refresh session, continuing without it")
+		// Continue without refresh session - fallback to JWT-only refresh
+		refreshToken = accessToken
 	}
 
 	userResp := user.ToResponse()
 	return &MultiTenantLoginResponse{
 		User:         &userResp,
 		AccessToken:  accessToken,
-		RefreshToken: accessToken, // Simplified - same as access token
+		RefreshToken: refreshToken,
 		TenantID:     tenantID,
-		ExpiresAt:    time.Now().Add(24 * time.Hour),
+		ExpiresAt:    time.Now().Add(utils.AccessTokenTTL),
 	}, nil
 }
 
@@ -225,19 +248,40 @@ func (s *MultiTenantAuthService) tryLoginInSystem(ctx context.Context, req *Mult
 		defaultTenantID = tenants[0].ID
 	}
 
-	// Generate JWT token - developer gets first tenant as default
-	accessToken, err := s.jwtService.GenerateToken(user.ID, defaultTenantID, user.Role)
+	// Generate access token
+	accessToken, err := s.jwtService.GenerateAccessToken(user.ID, defaultTenantID, user.Role)
 	if err != nil {
 		return nil, err
+	}
+
+	// Generate secure refresh token
+	refreshToken, err := s.jwtService.GenerateRefreshToken()
+	if err != nil {
+		return nil, err
+	}
+
+	// Store refresh session in system database
+	refreshSessionRepo := repositories.NewRefreshSessionRepository(db)
+	refreshSession := &models.RefreshSession{
+		UserID:    user.ID,
+		TenantID:  defaultTenantID,
+		TokenHash: repositories.HashToken(refreshToken),
+		ExpiresAt: time.Now().Add(utils.RefreshTokenTTL),
+		IPAddress: req.IPAddress,
+		UserAgent: req.UserAgent,
+	}
+	if err := refreshSessionRepo.Create(ctx, refreshSession); err != nil {
+		log.Warn().Err(err).Msg("Failed to store refresh session for developer, continuing without it")
+		refreshToken = accessToken
 	}
 
 	userResp := user.ToResponse()
 	return &MultiTenantLoginResponse{
 		User:         &userResp,
 		AccessToken:  accessToken,
-		RefreshToken: accessToken,
+		RefreshToken: refreshToken,
 		TenantID:     defaultTenantID,
-		ExpiresAt:    time.Now().Add(24 * time.Hour),
+		ExpiresAt:    time.Now().Add(utils.AccessTokenTTL),
 	}, nil
 }
 
@@ -310,4 +354,161 @@ func (s *MultiTenantAuthService) SwitchTenant(ctx context.Context, userID, curre
 // GetAvailableTenants returns tenants for UI display
 func (s *MultiTenantAuthService) GetAvailableTenants(ctx context.Context) ([]TenantInfo, error) {
 	return s.tenantService.GetAvailableTenants(ctx)
+}
+
+// ChangePasswordForTenant changes password for a user in their tenant
+func (s *MultiTenantAuthService) ChangePasswordForTenant(ctx context.Context, userID, tenantID, oldPassword, newPassword string) error {
+	// Get tenant DB
+	db, err := s.tenantService.GetTenantDB(tenantID)
+	if err != nil {
+		// Try system DB for developer accounts
+		db, err = s.tenantService.GetSystemDB()
+		if err != nil {
+			return err
+		}
+	}
+
+	userRepo := repositories.NewUserRepository(db)
+
+	// Find user
+	user, err := userRepo.FindByID(ctx, userID)
+	if err != nil || user == nil {
+		return ErrUserNotFound
+	}
+
+	// Verify old password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword)); err != nil {
+		return &AuthError{Code: "INVALID_PASSWORD", Message: "Current password is incorrect"}
+	}
+
+	// Validate new password strength
+	if err := utils.ValidatePasswordStrength(newPassword); err != nil {
+		return err
+	}
+
+	// Hash new password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	// Update password
+	user.Password = string(hashedPassword)
+	if err := userRepo.Update(ctx, user); err != nil {
+		return err
+	}
+
+	// Revoke all refresh sessions for security
+	refreshSessionRepo := repositories.NewRefreshSessionRepository(db)
+	_ = refreshSessionRepo.RevokeAllForUser(ctx, userID)
+
+	return nil
+}
+
+// RefreshTokenForTenant refreshes tokens with rotation and reuse detection
+// Returns: (newAccessToken, newRefreshToken, error)
+func (s *MultiTenantAuthService) RefreshTokenForTenant(ctx context.Context, refreshToken, tenantID, ipAddress, userAgent string) (string, string, error) {
+	tokenHash := repositories.HashToken(refreshToken)
+
+	var db *gorm.DB
+	var session *models.RefreshSession
+	var refreshSessionRepo *repositories.RefreshSessionRepository
+	var userRepo *repositories.UserRepository
+
+	// Strategy: If tenantID provided, try that first. Otherwise search all DBs.
+	if tenantID != "" {
+		// Try specific tenant DB first
+		tenantDB, err := s.tenantService.GetTenantDB(tenantID)
+		if err == nil {
+			refreshSessionRepo = repositories.NewRefreshSessionRepository(tenantDB)
+			session, _ = refreshSessionRepo.FindByTokenHash(ctx, tokenHash)
+			if session != nil {
+				db = tenantDB
+				userRepo = repositories.NewUserRepository(db)
+			}
+		}
+	}
+
+	// If not found yet, search all tenant DBs
+	if session == nil {
+		tenants, _ := s.tenantService.GetAvailableTenants(ctx)
+		for _, tenant := range tenants {
+			tenantDB, err := s.tenantService.GetTenantDB(tenant.ID)
+			if err != nil {
+				continue
+			}
+			refreshSessionRepo = repositories.NewRefreshSessionRepository(tenantDB)
+			session, _ = refreshSessionRepo.FindByTokenHash(ctx, tokenHash)
+			if session != nil {
+				db = tenantDB
+				userRepo = repositories.NewUserRepository(db)
+				break
+			}
+		}
+	}
+
+	// Finally try system DB
+	if session == nil {
+		systemDB, err := s.tenantService.GetSystemDB()
+		if err != nil {
+			return "", "", ErrInvalidToken
+		}
+		refreshSessionRepo = repositories.NewRefreshSessionRepository(systemDB)
+		session, _ = refreshSessionRepo.FindByTokenHash(ctx, tokenHash)
+		if session != nil {
+			db = systemDB
+			userRepo = repositories.NewUserRepository(db)
+		}
+	}
+
+	// Not found anywhere
+	if session == nil {
+		return "", "", ErrInvalidToken
+	}
+
+	// SECURITY: Check for token reuse attack
+	if session.IsReused() {
+		// Token was already rotated! This is a potential theft
+		// Revoke ALL sessions for this user as precaution
+		refreshSessionRepo.RevokeSessionChain(ctx, session.UserID)
+		return "", "", &AuthError{Code: "TOKEN_REUSE", Message: "Refresh token reuse detected, all sessions revoked"}
+	}
+
+	// Check if session is still valid
+	if !session.IsValid() {
+		return "", "", ErrInvalidToken
+	}
+
+	// Get user for token generation
+	user, err := userRepo.FindByID(ctx, session.UserID)
+	if err != nil || user == nil {
+		return "", "", ErrUserNotFound
+	}
+
+	// Generate new tokens
+	newAccessToken, err := s.jwtService.GenerateAccessToken(user.ID, session.TenantID, user.Role)
+	if err != nil {
+		return "", "", err
+	}
+
+	newRefreshToken, err := s.jwtService.GenerateRefreshToken()
+	if err != nil {
+		return "", "", err
+	}
+
+	// Rotate: mark old token as replaced and create new session
+	newSession := &models.RefreshSession{
+		UserID:    session.UserID,
+		TenantID:  session.TenantID,
+		ExpiresAt: time.Now().Add(utils.RefreshTokenTTL),
+		IPAddress: ipAddress,
+		UserAgent: userAgent,
+	}
+	newTokenHash := repositories.HashToken(newRefreshToken)
+	if err := refreshSessionRepo.Rotate(ctx, tokenHash, newTokenHash, newSession); err != nil {
+		log.Warn().Err(err).Msg("Failed to rotate refresh session")
+		return "", "", err
+	}
+
+	return newAccessToken, newRefreshToken, nil
 }

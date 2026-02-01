@@ -132,10 +132,14 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		refreshToken = req.RefreshToken
 	}
 
-	// Try secure refresh with rotation first
-	accessToken, newRefreshToken, err := h.authService.RefreshTokenSecure(
+	// Get tenantID from context if available (set by middleware)
+	tenantID := c.GetString("tenantID")
+
+	// Use multi-tenant refresh with rotation (tries tenant DB first, then system DB)
+	accessToken, newRefreshToken, err := h.multiTenantAuth.RefreshTokenForTenant(
 		c.Request.Context(),
 		refreshToken,
+		tenantID,
 		c.ClientIP(),
 		c.Request.UserAgent(),
 	)
@@ -203,6 +207,7 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	}
 
 	userID := c.GetString("userID")
+	tenantID := c.GetString("tenantID")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
@@ -211,7 +216,8 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	if err := h.authService.ChangePassword(c.Request.Context(), userID, req.OldPassword, req.NewPassword); err != nil {
+	// Use multi-tenant auth for password change (tenant-aware)
+	if err := h.multiTenantAuth.ChangePasswordForTenant(c.Request.Context(), userID, tenantID, req.OldPassword, req.NewPassword); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   err.Error(),
