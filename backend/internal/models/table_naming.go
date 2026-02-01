@@ -107,6 +107,9 @@ var tableNameMapping = map[string]string{
 
 	// Image Gallery
 	"Image": "images",
+
+	// Security/Auth
+	"RefreshSession": "refresh_sessions",
 }
 
 // GetTableName returns the PostgreSQL table name (snake_case)

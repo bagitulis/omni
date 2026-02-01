@@ -167,3 +167,160 @@ func TestJWTClaims(t *testing.T) {
 		t.Errorf("claims.Role = %v, want 'admin'", claims.Role)
 	}
 }
+
+// =====================================================
+// Security Tests for New Token System
+// =====================================================
+
+func TestJWTService_GenerateAccessToken(t *testing.T) {
+	svc := NewJWTService("this-is-a-very-long-secret-key-for-testing")
+
+	token, err := svc.GenerateAccessToken("user123", "tenant_test", "admin")
+	if err != nil {
+		t.Fatalf("GenerateAccessToken failed: %v", err)
+	}
+
+	if token == "" {
+		t.Error("GenerateAccessToken returned empty token")
+	}
+
+	// Validate the token
+	claims, err := svc.ValidateAccessToken(token)
+	if err != nil {
+		t.Fatalf("ValidateAccessToken failed: %v", err)
+	}
+
+	// Check claims
+	if claims.UserID != "user123" {
+		t.Errorf("claims.UserID = %v, want 'user123'", claims.UserID)
+	}
+	if claims.TenantID != "tenant_test" {
+		t.Errorf("claims.TenantID = %v, want 'tenant_test'", claims.TenantID)
+	}
+	if claims.Role != "admin" {
+		t.Errorf("claims.Role = %v, want 'admin'", claims.Role)
+	}
+
+	// Check issuer
+	if claims.Issuer != TokenIssuer {
+		t.Errorf("claims.Issuer = %v, want '%s'", claims.Issuer, TokenIssuer)
+	}
+
+	// Check jti (token ID) is set
+	if claims.ID == "" {
+		t.Error("claims.ID (jti) should be set")
+	}
+}
+
+func TestJWTService_AccessTokenExpiration(t *testing.T) {
+	svc := NewJWTService("this-is-a-very-long-secret-key-for-testing")
+
+	token, err := svc.GenerateAccessToken("user123", "tenant_test", "admin")
+	if err != nil {
+		t.Fatalf("GenerateAccessToken failed: %v", err)
+	}
+
+	claims, err := svc.ValidateAccessToken(token)
+	if err != nil {
+		t.Fatalf("ValidateAccessToken failed: %v", err)
+	}
+
+	// Access token should expire in ~15 minutes (AccessTokenTTL)
+	if claims.ExpiresAt == nil {
+		t.Error("ExpiresAt should not be nil")
+		return
+	}
+
+	expiry := claims.ExpiresAt.Time
+	now := time.Now()
+	diff := expiry.Sub(now)
+
+	// Should be between 14 and 16 minutes (with some tolerance)
+	if diff < 14*time.Minute || diff > 16*time.Minute {
+		t.Errorf("Access token expiry diff = %v, expected ~15 minutes", diff)
+	}
+}
+
+func TestJWTService_AccessTokenWithCustomTTL(t *testing.T) {
+	svc := NewJWTService("this-is-a-very-long-secret-key-for-testing")
+
+	customTTL := 5 * time.Minute
+	token, err := svc.GenerateAccessTokenWithTTL("user123", "tenant_test", "admin", customTTL)
+	if err != nil {
+		t.Fatalf("GenerateAccessTokenWithTTL failed: %v", err)
+	}
+
+	claims, err := svc.ValidateAccessToken(token)
+	if err != nil {
+		t.Fatalf("ValidateAccessToken failed: %v", err)
+	}
+
+	expiry := claims.ExpiresAt.Time
+	now := time.Now()
+	diff := expiry.Sub(now)
+
+	// Should be between 4 and 6 minutes
+	if diff < 4*time.Minute || diff > 6*time.Minute {
+		t.Errorf("Custom TTL token expiry diff = %v, expected ~5 minutes", diff)
+	}
+}
+
+func TestJWTService_GenerateRefreshToken(t *testing.T) {
+	svc := NewJWTService("this-is-a-very-long-secret-key-for-testing")
+
+	token1, err := svc.GenerateRefreshToken()
+	if err != nil {
+		t.Fatalf("GenerateRefreshToken failed: %v", err)
+	}
+
+	// Refresh token should be non-empty
+	if token1 == "" {
+		t.Error("GenerateRefreshToken returned empty token")
+	}
+
+	// Refresh token should be base64 URL encoded (32 bytes = 43 chars + padding)
+	if len(token1) < 40 {
+		t.Errorf("Refresh token length = %d, expected >= 40", len(token1))
+	}
+
+	// Generate another token - should be different (random)
+	token2, err := svc.GenerateRefreshToken()
+	if err != nil {
+		t.Fatalf("GenerateRefreshToken (2nd) failed: %v", err)
+	}
+
+	if token1 == token2 {
+		t.Error("Two refresh tokens should be different (random)")
+	}
+}
+
+func TestJWTService_ValidateAccessToken_RequiresIssuer(t *testing.T) {
+	svc := NewJWTService("this-is-a-very-long-secret-key-for-testing")
+
+	// Generate token with OLD method (no issuer)
+	oldToken, err := svc.GenerateToken("user123", "tenant_test", "admin")
+	if err != nil {
+		t.Fatalf("GenerateToken failed: %v", err)
+	}
+
+	// ValidateAccessToken should reject tokens without proper issuer
+	_, err = svc.ValidateAccessToken(oldToken)
+	if err == nil {
+		t.Error("ValidateAccessToken should reject tokens without issuer claim")
+	}
+}
+
+func TestJWTService_Constants(t *testing.T) {
+	// Verify security constants are properly set
+	if AccessTokenTTL != 15*time.Minute {
+		t.Errorf("AccessTokenTTL = %v, expected 15 minutes", AccessTokenTTL)
+	}
+
+	if RefreshTokenTTL != 7*24*time.Hour {
+		t.Errorf("RefreshTokenTTL = %v, expected 7 days", RefreshTokenTTL)
+	}
+
+	if TokenIssuer != "omni-backend" {
+		t.Errorf("TokenIssuer = %v, expected 'omni-backend'", TokenIssuer)
+	}
+}

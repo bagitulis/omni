@@ -1,7 +1,10 @@
 package middleware
 
 import (
+	"log"
 	"net/http"
+	"os"
+	"regexp"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -9,8 +12,9 @@ import (
 )
 
 var (
-	tenantsLoaded bool
-	loadMu        sync.Once
+	tenantsLoaded   bool
+	loadMu          sync.Once
+	tenantIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_]+$`) // Only alphanumeric and underscore
 )
 
 // initTenants loads tenant configuration
@@ -59,18 +63,26 @@ func Tenant() gin.HandlerFunc {
 				return
 			}
 		} else {
-			// Fallback to hardcoded validation if tenants.json not loaded
-			// This should only happen in development
-			validTenants := map[string]bool{
-				"yumna_bertigamart": true,
-				"tika_nusseyba":     true,
-				"system":            true,
+			// SECURITY: In production, tenant config MUST be loaded
+			env := os.Getenv("GO_ENV")
+			if env == "production" {
+				log.Println("❌ CRITICAL: Tenant configuration not loaded in production")
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"success": false,
+					"error":   "Server configuration error",
+				})
+				c.Abort()
+				return
 			}
 
-			if !validTenants[tenantID] {
+			// Development fallback - log warning and validate format only
+			log.Printf("⚠️ WARNING: Using development tenant validation for: %s", tenantID)
+
+			// Validate tenant ID format (alphanumeric + underscore only)
+			if !tenantIDPattern.MatchString(tenantID) {
 				c.JSON(http.StatusUnauthorized, gin.H{
 					"success": false,
-					"error":   "Invalid tenant ID",
+					"error":   "Invalid tenant ID format",
 				})
 				c.Abort()
 				return

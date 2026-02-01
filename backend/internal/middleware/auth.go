@@ -14,12 +14,29 @@ var jwtService *utils.JWTService
 
 func init() {
 	secret := os.Getenv("JWT_SECRET")
+	env := os.Getenv("GO_ENV")
+
 	if secret == "" {
-		log.Println("⚠️ JWT_SECRET not set, using dev-secret-key")
-		secret = "dev-secret-key" // Only for development
+		if env == "production" {
+			// SECURITY: Never allow empty JWT_SECRET in production
+			log.Fatal("❌ FATAL: JWT_SECRET is required in production - server cannot start")
+		}
+		// Development only - use a long enough key for testing
+		log.Println("⚠️ WARNING: JWT_SECRET not set, using development key (NOT FOR PRODUCTION)")
+		secret = "dev-secret-key-minimum-32-chars-for-security"
 	} else {
-		log.Printf("✅ JWT_SECRET loaded (first 8 chars: %s...)", secret[:8])
+		// SECURITY: Don't log any part of the secret
+		log.Println("✅ JWT_SECRET loaded successfully")
 	}
+
+	// Validate minimum key length
+	if len(secret) < 32 {
+		if env == "production" {
+			log.Fatal("❌ FATAL: JWT_SECRET must be at least 32 characters")
+		}
+		log.Println("⚠️ WARNING: JWT_SECRET should be at least 32 characters")
+	}
+
 	jwtService = utils.NewJWTService(secret)
 }
 
@@ -51,14 +68,11 @@ func Auth() gin.HandlerFunc {
 		// Validate JWT
 		claims, err := jwtService.ValidateToken(token)
 		if err != nil {
-			tokenPreview := token
-			if len(token) > 20 {
-				tokenPreview = token[:20]
-			}
-			log.Printf("❌ JWT validation failed: %v (token prefix: %s...)", err, tokenPreview)
+			// SECURITY: Never log tokens or their parts
+			log.Printf("❌ JWT validation failed for request to %s: %v", c.Request.URL.Path, err)
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
-				"error":   "Invalid or expired token: " + err.Error(),
+				"error":   "Unauthorized", // Generic message - don't expose internal details
 			})
 			c.Abort()
 			return

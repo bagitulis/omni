@@ -161,14 +161,36 @@ func TestTenant_InvalidTenant(t *testing.T) {
 		c.JSON(http.StatusOK, gin.H{"success": true})
 	})
 
+	// Test invalid format (contains special characters)
+	// In development mode, any alphanumeric+underscore tenant is valid
+	// Only invalid formats should be rejected
 	req := httptest.NewRequest("GET", "/test", nil)
-	req.Header.Set("x-tenant-id", "invalid_tenant")
+	req.Header.Set("x-tenant-id", "invalid-tenant!@#") // Invalid format
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusUnauthorized {
-		t.Errorf("expected status %d, got %d", http.StatusUnauthorized, w.Code)
+		t.Errorf("expected status %d for invalid format, got %d", http.StatusUnauthorized, w.Code)
+	}
+}
+
+func TestTenant_ValidFormatDevelopment(t *testing.T) {
+	router := gin.New()
+	router.Use(Tenant())
+	router.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"success": true})
+	})
+
+	// In development mode (no tenant config), valid format should pass
+	req := httptest.NewRequest("GET", "/test", nil)
+	req.Header.Set("x-tenant-id", "any_valid_tenant_123")
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status %d for valid format in dev mode, got %d", http.StatusOK, w.Code)
 	}
 }
 
