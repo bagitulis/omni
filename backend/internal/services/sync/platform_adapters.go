@@ -68,7 +68,55 @@ func (m *ShopeeOrderManager) GetOrderList(ctx context.Context, status string, da
 		orders = append(orders, order)
 	}
 
+	// Enrich orders with details (total_amount, buyer_username, payment_method)
+	if len(orders) > 0 {
+		m.enrichOrdersWithDetails(ctx, orders)
+	}
+
 	return orders, nil
+}
+
+// enrichOrdersWithDetails fetches and merges order details into orders
+func (m *ShopeeOrderManager) enrichOrdersWithDetails(ctx context.Context, orders []Order) {
+	orderSNs := make([]string, len(orders))
+	for i, o := range orders {
+		orderSNs[i] = o.OrderSN
+	}
+
+	// Batch fetch details (50 per request per Shopee API limit)
+	detailMap := make(map[string]map[string]interface{})
+	for i := 0; i < len(orderSNs); i += 50 {
+		end := i + 50
+		if end > len(orderSNs) {
+			end = len(orderSNs)
+		}
+		batch := orderSNs[i:end]
+
+		details, err := m.client.GetOrderDetails(ctx, batch)
+		if err != nil {
+			adapterLogger.Warn("Failed to fetch order details for enrichment: " + err.Error())
+			continue
+		}
+
+		for _, d := range details {
+			if sn, ok := d["order_sn"].(string); ok {
+				detailMap[sn] = d
+			}
+		}
+	}
+
+	// Merge details into orders
+	for i := range orders {
+		if detail, ok := detailMap[orders[i].OrderSN]; ok {
+			orders[i].TotalAmount = getFloat64(detail, "total_amount")
+			orders[i].BuyerUsername = getString(detail, "buyer_username")
+			orders[i].PaymentMethod = getString(detail, "payment_method")
+			orders[i].Currency = getString(detail, "currency")
+			if orders[i].Currency == "" {
+				orders[i].Currency = "IDR"
+			}
+		}
+	}
 }
 
 // GetOrderDetails fetches order details from Shopee
@@ -95,6 +143,11 @@ func (m *ShopeeOrderManager) GetOrderDetails(ctx context.Context, orderIDs []str
 			Status:        getString(raw, "status"),
 			TotalAmount:   getFloat64(raw, "total_amount"),
 			BuyerUsername: getString(raw, "buyer_username"),
+			PaymentMethod: getString(raw, "payment_method"),
+			Currency:      getString(raw, "currency"),
+		}
+		if order.Currency == "" {
+			order.Currency = "IDR"
 		}
 		orders = append(orders, order)
 	}

@@ -3,7 +3,6 @@ package sync
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/omni/backend/internal/models"
 	"gorm.io/gorm"
@@ -12,10 +11,21 @@ import (
 // saveShopeeOrders saves Shopee orders using models package
 func (r *GormOrderRepository) saveShopeeOrders(ctx context.Context, db *gorm.DB, orders []Order) error {
 	for _, order := range orders {
+		var totalAmount *float64
+		if order.TotalAmount > 0 {
+			totalAmount = &order.TotalAmount
+		}
+
 		model := models.ShopeeOrder{
-			TenantID:    r.tenantID,
-			OrderSN:     order.OrderSN,
-			OrderStatus: order.Status,
+			TenantID:        r.tenantID,
+			OrderSN:         order.OrderSN,
+			OrderStatus:     order.Status,
+			TotalAmount:     totalAmount,
+			Currency:        order.Currency,
+			BuyerUsername:   order.BuyerUsername,
+			PaymentMethod:   order.PaymentMethod,
+			ShippingCarrier: order.ShippingCarrier,
+			BuyerMessage:    order.BuyerMessage,
 		}
 
 		result := db.WithContext(ctx).
@@ -107,20 +117,38 @@ func (r *GormOrderRepository) getShopeeOrdersByStatus(ctx context.Context, db *g
 // flattenShopeeOrders creates flattened order list for frontend
 func (r *GormOrderRepository) flattenShopeeOrders(orderModels []models.ShopeeOrder, itemsByOrder map[string][]models.ShopeeOrderItem) []Order {
 	orders := make([]Order, 0)
-	
+
 	for _, m := range orderModels {
 		orderItems := itemsByOrder[m.OrderSN]
+
+		// Get total amount
+		totalAmount := float64(0)
+		if m.TotalAmount != nil {
+			totalAmount = *m.TotalAmount
+		}
+
+		// Default currency
+		currency := m.Currency
+		if currency == "" {
+			currency = "IDR"
+		}
 
 		if len(orderItems) == 0 {
 			// No items - still include order with empty item fields
 			orders = append(orders, Order{
-				ID:        fmt.Sprintf("%d", m.ID),
-				OrderSN:   m.OrderSN,
-				OrderNo:   m.OrderSN,
-				Platform:  strings.ToUpper("shopee"),
-				Status:    m.OrderStatus,
-				CreatedAt: m.CreatedAt,
-				UpdatedAt: m.UpdatedAt,
+				ID:              fmt.Sprintf("%d", m.ID),
+				OrderSN:         m.OrderSN,
+				OrderNo:         m.OrderSN,
+				Platform:        "SHOPEE",
+				Status:          m.OrderStatus,
+				TotalAmount:     totalAmount,
+				Currency:        currency,
+				BuyerUsername:   m.BuyerUsername,
+				PaymentMethod:   m.PaymentMethod,
+				ShippingCarrier: m.ShippingCarrier,
+				BuyerMessage:    m.BuyerMessage,
+				CreatedAt:       m.CreatedAt,
+				UpdatedAt:       m.UpdatedAt,
 			})
 		} else {
 			// Flatten items - each item becomes a separate "order" row for frontend
@@ -130,24 +158,36 @@ func (r *GormOrderRepository) flattenShopeeOrders(orderModels []models.ShopeeOrd
 				if sku == "" {
 					sku = item.ItemSku
 				}
-				
+
 				qty := 0
 				if item.Quantity != nil {
 					qty = *item.Quantity
 				}
 
+				price := float64(0)
+				if item.Price != nil {
+					price = *item.Price
+				}
+
 				orders = append(orders, Order{
-					ID:            fmt.Sprintf("%d", m.ID),
-					OrderSN:       m.OrderSN,
-					OrderNo:       m.OrderSN,
-					Platform:      strings.ToUpper("shopee"),
-					Status:        m.OrderStatus,
-					SKU:           sku,
-					ProductName:   item.ItemName,
-					VariationName: item.ModelName,
-					Quantity:      qty,
-					CreatedAt:     m.CreatedAt,
-					UpdatedAt:     m.UpdatedAt,
+					ID:              fmt.Sprintf("%d", m.ID),
+					OrderSN:         m.OrderSN,
+					OrderNo:         m.OrderSN,
+					Platform:        "SHOPEE",
+					Status:          m.OrderStatus,
+					TotalAmount:     totalAmount,
+					Currency:        currency,
+					BuyerUsername:   m.BuyerUsername,
+					PaymentMethod:   m.PaymentMethod,
+					ShippingCarrier: m.ShippingCarrier,
+					BuyerMessage:    m.BuyerMessage,
+					SKU:             sku,
+					ProductName:     item.ItemName,
+					VariationName:   item.ModelName,
+					Quantity:        qty,
+					Price:           price,
+					CreatedAt:       m.CreatedAt,
+					UpdatedAt:       m.UpdatedAt,
 				})
 			}
 		}

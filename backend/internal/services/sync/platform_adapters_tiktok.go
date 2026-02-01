@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/omni/backend/internal/services/platform"
@@ -54,11 +55,51 @@ func (m *TiktokOrderManager) GetOrderList(ctx context.Context, status string, da
 			orderSN = getString(raw, "id")
 		}
 
+		// Extract payment info from nested payment object
+		totalAmount := float64(0)
+		currency := "IDR"
+		if payment, ok := raw["payment"].(map[string]interface{}); ok {
+			if ta := getString(payment, "total_amount"); ta != "" {
+				totalAmount, _ = strconv.ParseFloat(ta, 64)
+			}
+			if cur := getString(payment, "currency"); cur != "" {
+				currency = cur
+			}
+		}
+
+		// Extract buyer info
+		buyerUsername := getString(raw, "buyer_nickname")
+		if buyerUsername == "" {
+			buyerUsername = getString(raw, "user_id")
+		}
+
+		// Extract payment method
+		paymentMethod := getString(raw, "payment_method_name")
+		if paymentMethod == "" {
+			if isCod, ok := raw["is_cod"].(bool); ok && isCod {
+				paymentMethod = "COD"
+			}
+		}
+
+		// Extract shipping info
+		shippingCarrier := getString(raw, "shipping_provider")
+		if shippingCarrier == "" {
+			shippingCarrier = getString(raw, "shipping_provider_name")
+		}
+		shippingType := getString(raw, "shipping_type")
+
 		order := Order{
-			OrderSN:  orderSN,
-			OrderNo:  orderSN, // Alias for frontend compatibility
-			Platform: strings.ToUpper("tiktok"),
-			Status:   status,
+			OrderSN:         orderSN,
+			OrderNo:         orderSN, // Alias for frontend compatibility
+			Platform:        strings.ToUpper("tiktok"),
+			Status:          status,
+			TotalAmount:     totalAmount,
+			Currency:        currency,
+			BuyerUsername:   buyerUsername,
+			PaymentMethod:   paymentMethod,
+			ShippingCarrier: shippingCarrier,
+			ShippingType:    shippingType,
+			BuyerMessage:    getString(raw, "buyer_message"),
 		}
 
 		// For AWAITING_COLLECTION (processed), extract tracking info
@@ -66,7 +107,9 @@ func (m *TiktokOrderManager) GetOrderList(ctx context.Context, status string, da
 		if status == "AWAITING_COLLECTION" {
 			// Method 1: Order-level tracking
 			order.TrackingNumber = getString(raw, "tracking_number")
-			order.ShippingCarrier = getString(raw, "shipping_provider_name")
+			if order.ShippingCarrier == "" {
+				order.ShippingCarrier = getString(raw, "shipping_provider_name")
+			}
 			if order.ShippingCarrier == "" {
 				order.ShippingCarrier = getString(raw, "shipping_provider")
 			}

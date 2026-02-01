@@ -6,13 +6,19 @@ import "time"
 // Matches Prisma schema: TiktokOrder
 // NOTE: JSON tags use snake_case for frontend compatibility
 type TiktokOrder struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
-	TenantID    string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
-	OrderSN     string    `gorm:"column:order_sn;uniqueIndex;not null" json:"order_sn"`
-	ShopID      *int64    `gorm:"column:shop_id" json:"shop_id,omitempty"`
-	OrderStatus string    `gorm:"column:order_status" json:"order_status"`
-	CreatedAt   time.Time `gorm:"column:created_at" json:"created_at"`
-	UpdatedAt   time.Time `gorm:"column:updated_at" json:"updated_at"`
+	ID              uint      `gorm:"primaryKey" json:"id"`
+	TenantID        string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
+	OrderSN         string    `gorm:"column:order_sn;uniqueIndex;not null" json:"order_sn"`
+	ShopID          *int64    `gorm:"column:shop_id" json:"shop_id,omitempty"`
+	OrderStatus     string    `gorm:"column:order_status" json:"order_status"`
+	TotalAmount     *float64  `gorm:"column:total_amount" json:"total_amount,omitempty"`
+	Currency        string    `gorm:"column:currency;default:'IDR'" json:"currency,omitempty"`
+	BuyerUsername   string    `gorm:"column:buyer_username" json:"buyer_username,omitempty"`
+	PaymentMethod   string    `gorm:"column:payment_method" json:"payment_method,omitempty"`
+	ShippingCarrier string    `gorm:"column:shipping_carrier" json:"shipping_carrier,omitempty"`
+	BuyerMessage    string    `gorm:"column:buyer_message" json:"buyer_message,omitempty"`
+	CreatedAt       time.Time `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt       time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
 func (TiktokOrder) TableName() string {

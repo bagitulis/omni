@@ -13,20 +13,23 @@ https://github.com/anomalyco/opencode/releases
 
 ## 📑 Table of Contents
 
-1. [🚨 Critical Rules (Top 10)](#-critical-rules-top-10)
+1. [🚨 Critical Rules (Top 11)](#-critical-rules-top-11)
 2. [📋 AI Workflow Decision Tree](#-ai-workflow-decision-tree)
-3. [✅ Validation Checklist](#-validation-checklist)
-4. [📐 Naming Conventions](#-naming-conventions)
-5. [🏗️ Architecture Patterns](#️-architecture-patterns)
-6. [🔒 Security & Multi-Tenancy](#-security--multi-tenancy)
-7. [📝 Code Standards](#-code-standards)
-8. [🧪 Testing Requirements](#-testing-requirements)
-9. [🐳 Docker Build Policy](#-docker-build-policy)
-10. [📚 Reference](#-reference)
+3. [🎯 Prometheus Planning Mandatory Rules](#-prometheus-planning-mandatory-rules)
+4. [✅ Validation Checklist](#-validation-checklist)
+5. [📐 Naming Conventions](#-naming-conventions)
+6. [🏗️ Architecture Patterns](#️-architecture-patterns)
+7. [🔒 Security & Multi-Tenancy](#-security--multi-tenancy)
+8. [📝 Code Standards](#-code-standards)
+9. [🧪 Testing Requirements](#-testing-requirements)
+10. [🎯 Kriteria Keberhasilan](#-kriteria-keberhasilan-success-criteria)
+11. [📖 AI Learning Requirements](#-ai-learning-requirements)
+12. [🐳 Docker Build Policy](#-docker-build-policy)
+13. [📚 Reference](#-reference)
 
 ---
 
-## 🚨 Critical Rules (Top 10)
+## 🚨 Critical Rules (Top 11)
 
 > **These rules CANNOT be violated under any circumstances**
 
@@ -181,6 +184,41 @@ go build ./...    # Must pass
 go test ./...     # Must pass - no false positives
 ```
 
+### 11. 🔐 GIT OPERATIONS RESTRICTED
+
+**AI hanya boleh: `commit` dan `push` (dengan hati-hati)**
+
+```
+✅ DIIZINKAN (dengan hati-hati):
+├─ git add [files]
+├─ git commit -m "message"
+└─ git push
+
+❌ DILARANG KERAS (tanpa izin eksplisit user):
+├─ git reset --hard
+├─ git rebase
+├─ git merge
+├─ git checkout [branch]
+├─ git branch -d / -D
+├─ git stash
+├─ git revert
+├─ git cherry-pick
+├─ git push --force
+├─ git config (modifikasi apapun)
+└─ Operasi git lainnya yang memodifikasi history/state
+
+⚠️ SEBELUM COMMIT:
+1. Pastikan hanya file yang relevan yang di-add
+2. Tulis commit message yang jelas dan deskriptif
+3. JANGAN commit file sensitif (.env, credentials, dll)
+4. JANGAN commit file yang tidak diminta user
+
+⚠️ SEBELUM PUSH:
+1. Pastikan semua test pass (go build && go test)
+2. Konfirmasi dengan user jika ragu
+3. JANGAN push jika ada error/warning
+```
+
 ---
 
 ## 📋 AI Workflow Decision Tree
@@ -240,21 +278,21 @@ flowchart TD
 #### **PHASE 1: Planning & Analysis**
 
 ```
-┌─────────────────────────────────────────────────┐
-│ PLANNING CHECKLIST                              │
-├─────────────────────────────────────────────────┤
-│ □ Read this README.md completely                │
-│ □ Check platform SDK docs for API reference     │
-│ □ Identify models/schemas needed                │
-│ □ Check if models exist in internal/models/     │
-│ □ Verify table_naming.go mapping                │
-│ □ Check if migration SQL needed                 │
-│ □ Identify multi-tenant requirements            │
-│ □ Create comprehensive TODO list                │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ PLANNING STEPS (AI harus lakukan semua langkah ini)         │
+├─────────────────────────────────────────────────────────────┤
+│ 1. Baca AGENTS.md ini sampai selesai                        │
+│ 2. Cek dokumentasi SDK platform jika diperlukan             │
+│ 3. Identifikasi models/schemas yang dibutuhkan              │
+│ 4. Cek apakah model sudah ada di internal/models/           │
+│ 5. Verifikasi mapping di table_naming.go                    │
+│ 6. Tentukan apakah perlu migration SQL                      │
+│ 7. Identifikasi kebutuhan multi-tenant                      │
+│ 8. Buat TODO list yang komprehensif                         │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Output:** TODO list with all tasks identified
+**Output:** TODO list dengan semua task yang teridentifikasi
 
 #### **PHASE 2: Implementation**
 
@@ -275,17 +313,20 @@ DO NOT run tests yet - complete ALL tasks first
 #### **PHASE 3: Complete All Tasks**
 
 ```
-CLEANUP CHECKLIST:
-□ Remove all duplicate code
-□ Remove all dead/unused code
-□ Remove debugging logs
-□ Verify all files < 300 lines (or justified exception)
-□ Check for hardcoded values (move to config)
-□ Verify all JSON tags are snake_case
-□ Verify tenant_id validation in all handlers
+┌─────────────────────────────────────────────────────────────┐
+│ CLEANUP STEPS (AI harus lakukan semua langkah ini)          │
+├─────────────────────────────────────────────────────────────┤
+│ 1. Hapus semua duplicate code                               │
+│ 2. Hapus semua dead/unused code                             │
+│ 3. Hapus debugging logs (fmt.Println, console.log, dll)     │
+│ 4. Pastikan semua file < 300 baris (kecuali models/migration)│
+│ 5. Pindahkan hardcoded values ke config                     │
+│ 6. Pastikan semua JSON tags menggunakan snake_case          │
+│ 7. Pastikan semua handler memvalidasi tenant_id             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Output:** Clean, production-ready code
+**Output:** Kode bersih, siap production
 
 #### **PHASE 4: Testing (100% Success Required)**
 
@@ -325,6 +366,186 @@ Changed dependencies/Dockerfile?
 
 Service error but code is correct?
   → build.py quick-fix (restart without rebuild)
+```
+
+---
+
+## 🎯 Prometheus Planning Mandatory Rules
+
+> **⚠️ WAJIB: Section ini HARUS dibaca dan diterapkan oleh AI Prometheus sebelum membuat planning apapun**
+
+### Pre-Planning Steps (WAJIB)
+
+Sebelum membuat plan, Prometheus HARUS melakukan langkah-langkah ini:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ LANGKAH PRE-PLANNING (lakukan secara berurutan)             │
+├─────────────────────────────────────────────────────────────┤
+│ 1. Baca SELURUH AGENTS.md ini                               │
+│ 2. Identifikasi file mana saja yang akan dimodifikasi       │
+│ 3. Verifikasi apakah ada perubahan database/schema          │
+│ 4. Cek apakah task melibatkan multi-tenancy                 │
+│ 5. Tentukan estimasi jumlah baris per file (max 300)        │
+│ 6. Pastikan naming convention sudah benar di plan           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Planning Template (WAJIB DIIKUTI)
+
+Setiap plan yang dibuat Prometheus HARUS mengandung section-section berikut:
+
+```markdown
+## Task: [Nama Task]
+
+### Pre-Implementation Info
+
+- Sudah baca AGENTS.md: Ya
+- Affected files: [list files]
+- Database changes required: [Yes/No]
+- Multi-tenant consideration: [Yes/No]
+
+### Architecture Compliance
+
+- Layer yang terlibat: [Handler/Service/Repository]
+- Pattern: Handler → Service → Repository
+
+### Naming Convention
+
+- Go struct fields: PascalCase
+- JSON tags: snake_case
+- Database columns: snake_case
+- Local variables: camelCase
+
+### File Size Estimation
+
+| File       | Estimated Lines | Status     |
+| ---------- | --------------- | ---------- |
+| [filename] | ~[X] lines      | OK (< 300) |
+
+### Security Compliance
+
+- No default tenant: Ya
+- tenant_id validation: Ya
+- No sensitive data in logs: Ya
+
+### Success Criteria
+
+1. go build ./... passes
+2. go test ./... passes
+3. No false positives
+4. All JSON responses use snake_case
+```
+
+### ❌ Planning Anti-Patterns (DILARANG)
+
+```
+PROMETHEUS TIDAK BOLEH:
+
+1. ❌ Membuat plan tanpa menyebut file size limit
+   → WAJIB: Sebutkan "max 300 lines per file"
+
+2. ❌ Membuat plan dengan business logic di Handler
+   → WAJIB: Business logic di Service layer
+
+3. ❌ Mengabaikan tenant_id validation di plan
+   → WAJIB: Setiap endpoint protected harus validate tenant_id
+
+4. ❌ Menggunakan camelCase untuk JSON response di plan
+   → WAJIB: Semua JSON response menggunakan snake_case
+
+5. ❌ Membuat plan tanpa testing phase
+   → WAJIB: Plan harus include "go build" dan "go test" step
+
+6. ❌ Plan yang mengasumsikan default tenant
+   → WAJIB: Explicit error jika tenant_id missing
+
+7. ❌ Plan tanpa cleanup/refactor phase
+   → WAJIB: Setiap plan harus include cleanup sesuai DRY, SRP, OOP
+```
+
+### ✅ Planning Best Practices (WAJIB)
+
+```
+PROMETHEUS HARUS:
+
+1. ✅ Breakdown task menjadi phases:
+   - Phase 1: Planning & Analysis
+   - Phase 2: Implementation
+   - Phase 3: Cleanup (DRY, SRP, <300 lines)
+   - Phase 4: Testing (go build, go test)
+   - Phase 5: Docker Apply (jika needed)
+
+2. ✅ Setiap task di plan harus atomic dan testable
+
+3. ✅ Include rollback strategy jika implementation gagal
+
+4. ✅ Specify dependencies antar tasks dengan jelas
+
+5. ✅ Estimate waktu/complexity untuk setiap task
+
+6. ✅ Include validation checkpoints di setiap phase
+```
+
+### 📊 Plan Quality Gates
+
+Plan dianggap VALID jika memenuhi SEMUA kriteria berikut:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ KRITERIA VALIDASI PLAN (semua harus terpenuhi)              │
+├─────────────────────────────────────────────────────────────┤
+│ 1. Menyebut max 300 lines per file                          │
+│ 2. Architecture pattern Handler→Service→Repository benar   │
+│ 3. Naming convention sudah dispesifikasi                    │
+│ 4. Testing phase (go build + go test) sudah termasuk        │
+│ 5. Tidak ada asumsi default tenant                          │
+│ 6. Cleanup phase sudah termasuk                             │
+│ 7. Success criteria sudah didefinisikan                     │
+│ 8. Error handling pattern sudah dispesifikasi               │
+└─────────────────────────────────────────────────────────────┘
+
+Jika ada kriteria yang TIDAK terpenuhi → plan harus direvisi!
+```
+
+### 🔄 Plan Self-Review
+
+Setelah membuat plan, Prometheus harus melakukan self-review menggunakan logika berikut:
+
+```go
+// Pseudo-code untuk Plan Validation
+func validatePlan(plan Plan) error {
+    // 1. File size check
+    for _, file := range plan.AffectedFiles {
+        if file.EstimatedLines > 300 && !file.IsModelFile {
+            return errors.New("file exceeds 300 lines limit")
+        }
+    }
+
+    // 2. Architecture check
+    if plan.HasBusinessLogicInHandler {
+        return errors.New("business logic must be in Service layer")
+    }
+
+    // 3. Naming convention check
+    for _, jsonTag := range plan.JSONTags {
+        if !isSnakeCase(jsonTag) {
+            return errors.New("JSON tags must be snake_case")
+        }
+    }
+
+    // 4. Testing phase check
+    if !plan.HasTestingPhase {
+        return errors.New("plan must include testing phase")
+    }
+
+    // 5. Multi-tenancy check
+    if plan.RequiresAuth && !plan.HasTenantValidation {
+        return errors.New("protected endpoints must validate tenant_id")
+    }
+
+    return nil // Plan is valid
+}
 ```
 
 ---
@@ -1297,6 +1518,223 @@ func TestOrderService_GetOrders_MissingTenant(t *testing.T) {
 
 ---
 
+## 🎯 Kriteria Keberhasilan (Success Criteria)
+
+> **⚠️ WAJIB: Task TIDAK BOLEH dianggap selesai tanpa memenuhi kriteria ini**
+
+### Dua Bukti Wajib
+
+Sebelum menandai task sebagai "completed", AI HARUS menyediakan:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ BUKTI 1: Log Docker                                          │
+├─────────────────────────────────────────────────────────────┤
+│ Log Docker yang menampilkan data valid SPESIFIK:            │
+│ • Tanggal/waktu terkait masalah yang diperbaiki             │
+│ • Transaksi sukses yang relevan                             │
+│ • Data yang membuktikan fix berhasil                        │
+│                                                             │
+│ ❌ TIDAK VALID: Log running umum tanpa konteks spesifik     │
+│ ✅ VALID: Log yang menunjukkan masalah sudah teratasi       │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ BUKTI 2: Output Script/Test                                  │
+├─────────────────────────────────────────────────────────────┤
+│ Output dengan keterangan keberhasilan EKSPLISIT:            │
+│ • go build ./... → "Build successful"                       │
+│ • go test ./... → "PASS" untuk semua test                   │
+│ • Output API yang menunjukkan response benar                │
+│                                                             │
+│ ❌ TIDAK VALID: Output tanpa keterangan hasil               │
+│ ✅ VALID: Output yang jelas menunjukkan sukses/gagal        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Catatan Penting
+
+```
+⚠️ BUKTI HARUS RELEVAN LANGSUNG DENGAN INTI MASALAH
+
+Contoh VALID:
+- Masalah: "Order tidak tersimpan"
+- Bukti: Log menampilkan "Order TEST123 saved successfully"
+
+Contoh TIDAK VALID:
+- Masalah: "Order tidak tersimpan"
+- Bukti: Log menampilkan "Server started on port 3000"
+  → Ini bukti server jalan, BUKAN bukti order tersimpan
+```
+
+### Success Evidence Template
+
+Setiap task completion HARUS menyertakan:
+
+```markdown
+## Task Completion Evidence
+
+### Bukti 1: Docker Log
+
+\`\`\`
+[timestamp] INFO: Order processed successfully
+[timestamp] Data: {"order_sn": "TEST123", "status": "completed"}
+\`\`\`
+
+### Bukti 2: Test Output
+
+\`\`\`
+=== RUN TestOrderService_CreateOrder
+--- PASS: TestOrderService_CreateOrder (0.05s)
+PASS
+ok github.com/omni/backend/internal/services 0.123s
+\`\`\`
+
+### Relevansi dengan Masalah
+
+- Masalah awal: [deskripsi masalah]
+- Bukti menunjukkan: [bagaimana bukti membuktikan masalah teratasi]
+```
+
+---
+
+## 📖 AI Learning Requirements
+
+> **AI WAJIB mempelajari dan memahami area-area ini sebelum mengerjakan task**
+
+### 1. Flow Backend + Database
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ BACKEND FLOW YANG HARUS DIPAHAMI                             │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Request → Middleware → Handler → Service → Repository → DB │
+│                                                             │
+│  Database: PostgreSQL (multi-tenant)                        │
+│                                                             │
+│  Yang harus dipahami:                                       │
+│  • Multi-tenant schema separation                           │
+│  • Migration flow                                           │
+│  • Connection pooling                                       │
+│  • GORM query patterns                                      │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2. Platform SDK (Golang)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ SDK YANG HARUS DIPELAJARI                                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  SHOPEE:                                                    │
+│  • Shopee Open Platform API                                 │
+│  • Auth flow (shop authorization)                           │
+│  • Order API, Product API, Inventory API                    │
+│  • Webhook handling                                         │
+│                                                             │
+│  LAZADA:                                                    │
+│  • Lazada Open Platform API                                 │
+│  • Auth flow (seller authorization)                         │
+│  • Order API, Product API                                   │
+│  • Feed API untuk bulk operations                           │
+│                                                             │
+│  TIKTOK SHOP:                                               │
+│  • TikTok Shop Open Platform API                            │
+│  • Auth flow (shop authorization)                           │
+│  • Order API, Product API                                   │
+│  • Fulfillment API                                          │
+│                                                             │
+│  Yang harus dipahami:                                       │
+│  • Baca dokumentasi API resmi sebelum implement             │
+│  • Rate limiting per platform                               │
+│  • Error codes dan handling                                 │
+│  • Data format (request/response)                           │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 3. Frontend-Backend Integration
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ROUTE & API INTEGRATION                                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Frontend (Vue/TypeScript) → API Routes → Backend (Go)      │
+│                                                             │
+│  AI HARUS PAHAMI:                                           │
+│                                                             │
+│  1. Route Naming:                                           │
+│     Frontend calls: /api/orders/shopee                      │
+│     Backend handles: router.GET("/api/orders/:platform")    │
+│                                                             │
+│  2. Data Format:                                            │
+│     Backend sends: {"order_sn": "123"} (snake_case)         │
+│     Frontend receives: order_sn (snake_case in API types)   │
+│     Frontend uses: orderSn (camelCase in local vars)        │
+│                                                             │
+│  3. Auth Flow:                                              │
+│     Frontend: Sends JWT in Authorization header             │
+│     Backend: Middleware extracts tenant_id from JWT         │
+│     Handler: Gets tenant_id from c.Locals("tenant_id")      │
+│                                                             │
+│  4. Error Handling:                                         │
+│     Backend: {"success": false, "error": "message"}         │
+│     Frontend: Check response.success before processing      │
+│                                                             │
+│  Yang harus dilakukan:                                      │
+│  • Trace route dari frontend sampai handler                 │
+│  • Verify data format konsisten (snake_case API)            │
+│  • Pastikan error handling di kedua sisi                    │
+│  • Test integration dengan actual API calls                 │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 4. Pre-Task Learning Steps
+
+Sebelum mengerjakan task, AI harus melakukan langkah-langkah ini:
+
+```
+1. Baca file terkait di codebase
+2. Pahami struktur existing code
+3. Identifikasi dependencies
+4. Review test cases yang ada
+5. Cek dokumentasi platform SDK (jika terkait)
+6. Trace data flow dari frontend ke database
+```
+
+### 5. Knowledge Sources
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ REFERENSI YANG HARUS DIBACA                                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Internal:                                                  │
+│  • AGENTS.md - Development guidelines (THIS FILE)           │
+│  • PROMETHEUS_RULES.md - Planning rules                     │
+│  • backend/internal/models/ - Data structures               │
+│  • backend/internal/handlers/ - API endpoints               │
+│                                                             │
+│  External (Platform SDK):                                   │
+│  • https://open.shopee.com/documents                        │
+│  • https://open.lazada.com/doc/api.htm                      │
+│  • https://partner.tiktokshop.com/doc                       │
+│                                                             │
+│  Go Libraries:                                              │
+│  • GORM: https://gorm.io/docs/                              │
+│  • Fiber: https://docs.gofiber.io/                          │
+│  • Zerolog: https://github.com/rs/zerolog                   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## 🐳 Docker Build Policy
 
 ### Build Types
@@ -1489,9 +1927,19 @@ c.JSON(200, fiber.Map{
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
+│ PROMETHEUS PLANNING MUST:                                    │
+├─────────────────────────────────────────────────────────────┤
+│ 1. Read ENTIRE AGENTS.md before creating any plan           │
+│ 2. Apply "Prometheus Planning Mandatory Rules" section      │
+│ 3. Use Planning Template for every task                     │
+│ 4. Self-validate plan against Quality Gates                 │
+│ 5. Include ALL phases (Planning→Impl→Cleanup→Test→Docker)  │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
 │ BEFORE STARTING ANY TASK                                    │
 ├─────────────────────────────────────────────────────────────┤
-│ 1. Read this README.md completely                           │
+│ 1. Read this AGENTS.md completely                           │
 │ 2. Create TODO list with all phases                         │
 │ 3. Understand the architecture (Handler→Service→Repo)       │
 └─────────────────────────────────────────────────────────────┘

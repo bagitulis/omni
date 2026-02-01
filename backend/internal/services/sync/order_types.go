@@ -24,14 +24,20 @@ type Order struct {
 	TotalAmount   float64 `json:"total_amount"`
 	Currency      string  `json:"currency"`
 	BuyerUsername string  `json:"buyer_username"`
-	// Shipping info (for processed orders)
+	// Payment and shipping info (for Order Manager display)
+	PaymentMethod   string `json:"payment_method,omitempty"`
+	ShippingType    string `json:"shipping_type,omitempty"`
 	TrackingNumber  string `json:"tracking_number,omitempty"`
 	ShippingCarrier string `json:"shipping_carrier,omitempty"`
+	BuyerMessage    string `json:"buyer_message,omitempty"`
+	Countdown       string `json:"countdown,omitempty"`
 	// Flattened item fields (for frontend compatibility - one row per item)
-	SKU           string `json:"sku"`
-	ProductName   string `json:"product_name"`
-	VariationName string `json:"variation_name"`
-	Quantity      int    `json:"qty"` // frontend expects "qty" not "quantity"
+	SKU           string  `json:"sku"`
+	ProductName   string  `json:"product_name"`
+	VariationName string  `json:"variation_name"`
+	Quantity      int     `json:"qty"` // frontend expects "qty" not "quantity"
+	Price         float64 `json:"price,omitempty"`
+	ProductImage  string  `json:"product_image,omitempty"`
 	// Legacy nested items (optional, for backward compatibility)
 	Items     []OrderItem `json:"items,omitempty"`
 	CreatedAt time.Time   `json:"created_at"`
