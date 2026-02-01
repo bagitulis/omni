@@ -98,9 +98,22 @@
         </tbody>
       </table>
     </div>
-    <!-- Card View for Regular Orders -->
-    <div v-else class="orders-grid">
-      <OrderCard
+    <!-- Shopee-style Table Header -->
+    <div
+      v-if="!['locked', 'today'].includes(activeTab)"
+      class="shopee-table-header"
+    >
+      <div class="header-cell product-col">Product</div>
+      <div class="header-cell amount-col">Amount Paid</div>
+      <div class="header-cell status-col">Status</div>
+      <div class="header-cell countdown-col">Countdown</div>
+      <div class="header-cell shipping-col">Shipping</div>
+      <div class="header-cell action-col">Action</div>
+    </div>
+
+    <!-- Shopee-style Order List -->
+    <div v-else class="shopee-order-list">
+      <OrderRow
         v-for="order in groupedOrders"
         :key="order.order_no"
         :order="order"
@@ -116,7 +129,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import OrderCard from "./OrderCard.vue";
+import OrderRow from "./OrderRow.vue";
 
 interface OrderItem {
   sku: string;
@@ -138,6 +151,10 @@ interface Order {
   total_amount?: number;
   currency?: string;
   payment_method?: string;
+  shipping_carrier?: string;
+  shipping_type?: string;
+  countdown?: string;
+  buyer_message?: string;
   items?: OrderItem[];
   orderSn?: string;
   trackingNo?: string;
@@ -215,15 +232,56 @@ const getTableTitle = computed(() => {
 <style scoped>
 @import "./OrderManager.theme.css";
 @import "./OrderTable.styles.css";
-.orders-grid {
+
+/* Shopee Table Header */
+.shopee-table-header {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  grid-template-columns: 3fr 1.2fr 1fr 1.2fr 1.2fr 1.5fr;
   gap: var(--om-spacing-md);
-  padding: var(--om-spacing-md) 0;
+  padding: var(--om-spacing-md);
+  background: var(--om-bg-secondary);
+  border-bottom: 2px solid var(--om-border);
+  font-weight: 600;
+  font-size: var(--om-font-sm);
+  color: var(--om-text-primary);
+  border-radius: var(--om-radius-md) var(--om-radius-md) 0 0;
 }
+
+.header-cell {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: var(--om-font-xs);
+  font-weight: 700;
+  color: var(--om-text-secondary);
+}
+
+/* Shopee Order List */
+.shopee-order-list {
+  padding: var(--om-spacing-md) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--om-spacing-md);
+}
+
+@media (max-width: 1200px) {
+  .shopee-table-header {
+    grid-template-columns: 3fr 1fr 0.8fr 1fr 1fr 1.2fr;
+    gap: var(--om-spacing-sm);
+    padding: var(--om-spacing-sm);
+  }
+
+  .header-cell {
+    font-size: 0.7rem;
+  }
+}
+
 @media (max-width: 768px) {
-  .orders-grid {
-    grid-template-columns: 1fr;
+  .shopee-table-header {
+    display: none;
+  }
+
+  .shopee-order-list {
+    padding: 0;
   }
 }
 </style>
