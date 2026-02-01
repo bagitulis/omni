@@ -98,32 +98,32 @@
         </tbody>
       </table>
     </div>
-    <!-- Shopee-style Table Header -->
-    <div
-      v-if="!['locked', 'today'].includes(activeTab)"
-      class="shopee-table-header"
-    >
-      <div class="header-cell product-col">Product</div>
-      <div class="header-cell amount-col">Amount Paid</div>
-      <div class="header-cell status-col">Status</div>
-      <div class="header-cell countdown-col">Countdown</div>
-      <div class="header-cell shipping-col">Shipping</div>
-      <div class="header-cell action-col">Action</div>
-    </div>
+    <!-- Shopee-style Order List (for non-locked/today tabs) -->
+    <template v-if="!['locked', 'today'].includes(activeTab)">
+      <!-- Table Header -->
+      <div class="shopee-table-header">
+        <div class="header-cell product-col">Product</div>
+        <div class="header-cell amount-col">Amount Paid</div>
+        <div class="header-cell status-col">Status</div>
+        <div class="header-cell countdown-col">Countdown</div>
+        <div class="header-cell shipping-col">Shipping</div>
+        <div class="header-cell action-col">Action</div>
+      </div>
 
-    <!-- Shopee-style Order List -->
-    <div v-else class="shopee-order-list">
-      <OrderRow
-        v-for="order in groupedOrders"
-        :key="order.order_no"
-        :order="order"
-        :activeTab="activeTab"
-        @ship-order="$emit('ship-order', $event)"
-        @cancel-order="$emit('cancel-order', $event)"
-        @view-detail="$emit('view-detail', $event)"
-        @copy-order-number="$emit('copy-order-number', $event)"
-      />
-    </div>
+      <!-- Order Rows -->
+      <div class="shopee-order-list">
+        <OrderRow
+          v-for="order in groupedOrders"
+          :key="order.order_no"
+          :order="order"
+          :activeTab="activeTab"
+          @ship-order="$emit('ship-order', $event)"
+          @cancel-order="$emit('cancel-order', $event)"
+          @view-detail="$emit('view-detail', $event)"
+          @copy-order-number="$emit('copy-order-number', $event)"
+        />
+      </div>
+    </template>
   </div>
 </template>
 

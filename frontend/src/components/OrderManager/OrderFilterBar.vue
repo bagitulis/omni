@@ -71,8 +71,8 @@ interface Props {
   searchQuery: string;
   selectedPlatform: string;
   platforms: string[];
-  selectedShipping: string;
-  shippingProviders: string[];
+  selectedShipping?: string;
+  shippingProviders?: string[];
 }
 
 const props = defineProps<Props>();

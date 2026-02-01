@@ -29,50 +29,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Filter Section -->
-    <div class="filter-section">
-      <div class="filter-group">
-        <div class="search-wrapper">
-          <i class="pi pi-search" aria-hidden="true"></i>
-          <label for="order-search" class="visually-hidden"
-            >Search orders</label
-          >
-          <input
-            id="order-search"
-            :value="searchQuery"
-            @input="
-              $emit('search-changed', ($event.target as HTMLInputElement).value)
-            "
-            type="text"
-            placeholder="Search: Order No, SKU, Product Name..."
-            class="search-input"
-          />
-        </div>
-        <div class="platform-filter">
-          <label for="platform-filter">
-            <i class="pi pi-filter" aria-hidden="true"></i>
-            Platform:
-          </label>
-          <select
-            id="platform-filter"
-            :value="selectedPlatform"
-            @change="
-              $emit(
-                'platform-changed',
-                ($event.target as HTMLSelectElement).value
-              )
-            "
-            class="filter-select"
-          >
-            <option value="">All Platforms</option>
-            <option value="SHOPEE">🛍️ Shopee</option>
-            <option value="LAZADA">📦 Lazada</option>
-            <option value="TIKTOK">🎵 TikTok</option>
-          </select>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
