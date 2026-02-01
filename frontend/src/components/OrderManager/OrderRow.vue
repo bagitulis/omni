@@ -1,38 +1,34 @@
 <template>
   <div class="order-row">
-    <!-- Buyer Info Header Row -->
+    <!-- Buyer Header Row (gray background #f5f5f5) -->
     <div class="buyer-header">
-      <div class="buyer-info-left">
+      <div class="buyer-left">
         <div class="buyer-avatar">
           {{ getBuyerInitial(order.buyer_username) }}
         </div>
-        <div class="buyer-details">
-          <div class="buyer-name">{{ order.buyer_username }}</div>
-          <div class="buyer-actions">
-            <button class="chat-btn" title="Chat with buyer">
-              <i class="pi pi-comments"></i>
-            </button>
-          </div>
-        </div>
+        <span class="buyer-name">{{ order.buyer_username }}</span>
+        <button class="chat-icon-btn" title="Chat with buyer">
+          <i class="pi pi-envelope"></i>
+        </button>
       </div>
-      <div class="order-number-section">
-        <span class="order-number-label">Order No.</span>
-        <span class="order-number-value">{{ order.order_no }}</span>
+      <div class="buyer-right">
+        <span class="order-label">No. Pesanan</span>
+        <span class="order-number">{{ order.order_no }}</span>
         <button
           @click="copyOrderNumber"
           class="copy-btn"
-          title="Copy Order No."
+          title="Copy Order Number"
         >
           <i :class="copied ? 'pi pi-check' : 'pi pi-copy'"></i>
         </button>
       </div>
     </div>
 
-    <!-- Products Grid Header (visual alignment guide) -->
-    <div class="products-grid-container">
+    <!-- Order Content Grid - 6 columns -->
+    <div class="order-content">
       <!-- Product Column (3fr) -->
-      <div class="grid-column product-column">
-        <div v-for="(item, i) in order.items" :key="i" class="product-cell">
+      <div class="product-col">
+        <div v-for="(item, i) in order.items" :key="i" class="product-item">
           <div class="product-image">
             <img
               v-if="getProductImage(item)"
@@ -46,105 +42,94 @@
             </div>
           </div>
           <div class="product-info">
-            <div class="product-name-text">{{ item.product_name }}</div>
+            <div class="product-name">{{ item.product_name }}</div>
+            <span class="product-qty">x{{ item.qty }}</span>
             <div v-if="item.variation_name" class="product-variant">
-              {{ item.variation_name }}
+              Variasi: {{ item.variation_name }}
             </div>
-            <div class="product-qty-text">x{{ item.qty }}</div>
           </div>
         </div>
       </div>
 
-      <!-- Amount Paid Column (1.2fr) -->
-      <div class="grid-column amount-column">
-        <div v-for="(item, i) in order.items" :key="i" class="amount-cell">
-          <div v-if="i === 0" class="amount-value">
-            {{ formatAmount(order.total_amount, order.currency) }}
-          </div>
-          <div v-if="i === 0 && order.payment_method" class="payment-method">
-            {{ order.payment_method }}
-          </div>
+      <!-- Amount Column (1.2fr) -->
+      <div class="amount-col">
+        <div class="amount-value">
+          {{ formatAmount(order.total_amount, order.currency) }}
+        </div>
+        <div v-if="order.payment_method" class="payment-method">
+          {{ order.payment_method }}
         </div>
       </div>
 
       <!-- Status Column (1fr) -->
-      <div class="grid-column status-column">
-        <div v-for="(item, i) in order.items" :key="i" class="status-cell">
-          <div
-            v-if="i === 0"
-            :class="['status-badge', getStatusClass(order.status)]"
-          >
-            {{ formatStatus(order.status) }}
-          </div>
-        </div>
+      <div class="status-col">
+        <span :class="['status-badge', getStatusClass(order.status)]">
+          {{ formatStatus(order.status) }}
+        </span>
       </div>
 
-      <!-- Countdown Column (1.2fr) -->
-      <div class="grid-column countdown-column">
-        <div v-for="(item, i) in order.items" :key="i" class="countdown-cell">
-          <div v-if="i === 0 && order.countdown" class="countdown-text">
-            {{ order.countdown }}
-          </div>
-          <div v-else-if="i === 0" class="countdown-text">-</div>
+      <!-- Countdown Column (1.5fr) -->
+      <div class="countdown-col">
+        <div v-if="order.countdown" class="countdown-text">
+          {{ order.countdown }}
         </div>
+        <div v-else class="countdown-text">-</div>
       </div>
 
       <!-- Shipping Column (1.2fr) -->
-      <div class="grid-column shipping-column">
-        <div v-for="(item, i) in order.items" :key="i" class="shipping-cell">
-          <div v-if="i === 0" class="shipping-info">
-            <div v-if="order.shipping_carrier" class="carrier-name">
-              {{ order.shipping_carrier }}
-            </div>
-            <div v-if="order.shipping_type" class="shipping-type">
-              {{ order.shipping_type }}
-            </div>
-            <div v-if="!order.shipping_carrier" class="shipping-placeholder">
-              -
-            </div>
+      <div class="shipping-col">
+        <div v-if="order.shipping_carrier" class="shipping-info">
+          <div class="carrier-name">{{ order.shipping_carrier }}</div>
+          <div v-if="order.shipping_type" class="shipping-type">
+            {{ order.shipping_type }}
           </div>
         </div>
+        <div v-else class="shipping-placeholder">-</div>
       </div>
 
-      <!-- Action Column (1.5fr) -->
-      <div class="grid-column action-column">
-        <div v-for="(item, i) in order.items" :key="i" class="action-cell">
-          <div v-if="i === 0" class="action-buttons">
-            <button
-              v-if="showShipButton"
-              @click="shipOrder"
-              class="om-btn om-btn-primary"
-              title="Arrange Shipment"
-            >
-              <i class="pi pi-truck"></i>
-              <span>Arrange</span>
-            </button>
-            <button
-              v-if="showCancelButton"
-              @click="cancelOrder"
-              class="om-btn om-btn-secondary cancel-btn"
-              title="Cancel Order"
-            >
-              <i class="pi pi-times"></i>
-            </button>
-            <button
-              @click="viewDetail"
-              class="om-btn om-btn-secondary"
-              title="View Details"
-            >
-              <i class="pi pi-eye"></i>
-              <span>Details</span>
-            </button>
-          </div>
+      <!-- Action Column (1fr) -->
+      <div class="action-col">
+        <div class="action-buttons">
+          <button
+            v-if="showShipButton"
+            @click="shipOrder"
+            class="btn-action primary"
+            title="Arrange Shipment"
+          >
+            Atur Pengiriman
+          </button>
+          <button
+            v-else-if="showResponseButton"
+            @click="shipOrder"
+            class="btn-action primary"
+            title="Respond"
+          >
+            Respon
+          </button>
+          <button
+            v-if="showCancelButton"
+            @click="cancelOrder"
+            class="btn-action secondary"
+            title="Cancel Order"
+          >
+            <i class="pi pi-times"></i>
+          </button>
+          <button
+            @click="viewDetail"
+            class="btn-action secondary"
+            title="View Details"
+          >
+            <i class="pi pi-eye"></i>
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Buyer Message Section (if exists) -->
+    <!-- Buyer Message (optional, yellow background) -->
     <div v-if="order.buyer_message" class="buyer-message">
       <i class="pi pi-bell"></i>
-      <span class="message-text">Buyer message</span>
-      <a href="#" class="message-link">Open</a>
+      <span class="message-text">{{ order.buyer_message }}</span>
+      <a href="#" class="message-link">Buka</a>
     </div>
   </div>
 </template>
@@ -193,9 +178,11 @@ const copied = ref(false);
 const imageErrors = ref<Set<string>>(new Set());
 
 const showShipButton = computed(
-  () =>
-    ["unprocess", "unpaid"].includes(props.activeTab) &&
-    props.order.status !== "CANCELLED",
+  () => props.activeTab === "unprocess" && props.order.status !== "CANCELLED",
+);
+
+const showResponseButton = computed(
+  () => props.activeTab === "unpaid" && props.order.status !== "CANCELLED",
 );
 
 const showCancelButton = computed(
@@ -298,18 +285,19 @@ const viewDetail = () => emit("view-detail", props.order);
   box-shadow: var(--om-shadow-md);
 }
 
-/* Buyer Header */
+/* ============ BUYER HEADER ============ */
 .buyer-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: var(--om-spacing-md);
-  background: var(--om-bg-secondary);
+  background: #f5f5f5;
   border-bottom: 1px solid var(--om-border);
   gap: var(--om-spacing-md);
+  min-height: 56px;
 }
 
-.buyer-info-left {
+.buyer-left {
   display: flex;
   align-items: center;
   gap: var(--om-spacing-sm);
@@ -327,15 +315,8 @@ const viewDetail = () => emit("view-detail", props.order);
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: var(--om-font-base);
+  font-size: var(--om-font-sm);
   flex-shrink: 0;
-}
-
-.buyer-details {
-  display: flex;
-  align-items: center;
-  gap: var(--om-spacing-md);
-  min-width: 0;
 }
 
 .buyer-name {
@@ -347,13 +328,7 @@ const viewDetail = () => emit("view-detail", props.order);
   text-overflow: ellipsis;
 }
 
-.buyer-actions {
-  display: flex;
-  gap: var(--om-spacing-xs);
-  flex-shrink: 0;
-}
-
-.chat-btn {
+.chat-icon-btn {
   background: none;
   border: none;
   padding: 4px;
@@ -364,30 +339,32 @@ const viewDetail = () => emit("view-detail", props.order);
   justify-content: center;
   transition: color var(--om-transition-fast);
   font-size: 1rem;
+  flex-shrink: 0;
 }
 
-.chat-btn:hover {
+.chat-icon-btn:hover {
   color: var(--om-primary);
 }
 
-.order-number-section {
+.buyer-right {
   display: flex;
   align-items: center;
   gap: var(--om-spacing-xs);
   flex-shrink: 0;
 }
 
-.order-number-label {
+.order-label {
   font-size: var(--om-font-xs);
   color: var(--om-text-secondary);
   white-space: nowrap;
 }
 
-.order-number-value {
+.order-number {
   font-size: var(--om-font-sm);
   font-weight: 600;
   color: var(--om-text-primary);
   font-family: monospace;
+  white-space: nowrap;
 }
 
 .copy-btn {
@@ -408,28 +385,23 @@ const viewDetail = () => emit("view-detail", props.order);
   color: var(--om-primary);
 }
 
-/* Products Grid Container */
-.products-grid-container {
+/* ============ ORDER CONTENT GRID ============ */
+.order-content {
   display: grid;
-  grid-template-columns: 3fr 1.2fr 1fr 1.2fr 1.2fr 1.5fr;
+  grid-template-columns: 3fr 1.2fr 1fr 1.5fr 1.2fr 1fr;
   gap: var(--om-spacing-md);
   padding: var(--om-spacing-md);
-  border-bottom: 1px solid var(--om-border);
-  align-items: start;
-}
-
-.grid-column {
-  display: flex;
-  flex-direction: column;
-  gap: var(--om-spacing-sm);
+  align-items: flex-start;
 }
 
 /* Product Column */
-.product-column {
+.product-col {
+  display: flex;
+  flex-direction: column;
   gap: var(--om-spacing-md);
 }
 
-.product-cell {
+.product-item {
   display: flex;
   gap: var(--om-spacing-sm);
   align-items: flex-start;
@@ -442,6 +414,9 @@ const viewDetail = () => emit("view-detail", props.order);
   overflow: hidden;
   background: var(--om-bg-secondary);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .product-image img {
@@ -468,13 +443,20 @@ const viewDetail = () => emit("view-detail", props.order);
   min-width: 0;
 }
 
-.product-name-text {
+.product-name {
   font-size: var(--om-font-sm);
   font-weight: 500;
   color: var(--om-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.product-qty {
+  font-size: var(--om-font-xs);
+  color: var(--om-text-secondary);
+  font-weight: 500;
 }
 
 .product-variant {
@@ -485,21 +467,12 @@ const viewDetail = () => emit("view-detail", props.order);
   text-overflow: ellipsis;
 }
 
-.product-qty-text {
-  font-size: var(--om-font-xs);
-  color: var(--om-text-secondary);
-  font-weight: 500;
-}
-
 /* Amount Column */
-.amount-column {
-  justify-content: flex-start;
-}
-
-.amount-cell {
+.amount-col {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  justify-content: flex-start;
 }
 
 .amount-value {
@@ -514,11 +487,7 @@ const viewDetail = () => emit("view-detail", props.order);
 }
 
 /* Status Column */
-.status-column {
-  justify-content: flex-start;
-}
-
-.status-cell {
+.status-col {
   display: flex;
   align-items: flex-start;
 }
@@ -533,11 +502,7 @@ const viewDetail = () => emit("view-detail", props.order);
 }
 
 /* Countdown Column */
-.countdown-column {
-  justify-content: flex-start;
-}
-
-.countdown-cell {
+.countdown-col {
   display: flex;
   align-items: flex-start;
 }
@@ -545,15 +510,11 @@ const viewDetail = () => emit("view-detail", props.order);
 .countdown-text {
   font-size: var(--om-font-sm);
   color: var(--om-text-primary);
-  font-weight: 500;
+  line-height: 1.4;
 }
 
 /* Shipping Column */
-.shipping-column {
-  justify-content: flex-start;
-}
-
-.shipping-cell {
+.shipping-col {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -582,11 +543,7 @@ const viewDetail = () => emit("view-detail", props.order);
 }
 
 /* Action Column */
-.action-column {
-  justify-content: flex-start;
-}
-
-.action-cell {
+.action-col {
   display: flex;
   align-items: flex-start;
 }
@@ -595,68 +552,66 @@ const viewDetail = () => emit("view-detail", props.order);
   display: flex;
   gap: var(--om-spacing-xs);
   flex-wrap: wrap;
+  width: 100%;
 }
 
-.om-btn {
+.btn-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--om-spacing-xs);
-  padding: var(--om-spacing-xs) var(--om-spacing-sm);
+  padding: 6px 12px;
   font-size: var(--om-font-xs);
   font-weight: 500;
   border-radius: var(--om-radius-sm);
   cursor: pointer;
   transition: all var(--om-transition-fast);
-  border: none;
+  border: 1px solid transparent;
   white-space: nowrap;
+  flex: 1;
+  min-width: 60px;
 }
 
-.om-btn-primary {
-  background: var(--om-primary);
-  color: white;
+.btn-action.primary {
+  background: transparent;
+  color: #ee4d2d;
+  border: 1px solid #ee4d2d;
 }
 
-.om-btn-primary:hover:not(:disabled) {
-  background: var(--om-primary-hover);
+.btn-action.primary:hover:not(:disabled) {
+  background: #fff0ed;
+  color: #d73211;
+  border-color: #d73211;
 }
 
-.om-btn-secondary {
-  background: var(--om-bg-secondary);
-  color: var(--om-text-primary);
+.btn-action.secondary {
+  background: transparent;
+  color: var(--om-text-secondary);
   border: 1px solid var(--om-border);
 }
 
-.om-btn-secondary:hover:not(:disabled) {
-  background: var(--om-bg-hover);
+.btn-action.secondary:hover:not(:disabled) {
+  background: var(--om-bg-secondary);
+  color: var(--om-text-primary);
 }
 
-.om-btn:disabled {
+.btn-action:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.cancel-btn {
-  color: var(--om-status-cancelled);
-  border-color: var(--om-status-cancelled);
+.btn-action i {
+  font-size: 1rem;
 }
 
-.cancel-btn:hover:not(:disabled) {
-  background: #ffebee;
-}
-
-.om-btn span {
-  display: inline;
-}
-
-/* Buyer Message Section */
+/* ============ BUYER MESSAGE ============ */
 .buyer-message {
   display: flex;
   align-items: center;
   gap: var(--om-spacing-sm);
   padding: var(--om-spacing-sm) var(--om-spacing-md);
-  background: #fff9c4;
-  border-top: 1px solid #fff59d;
+  background: #fffbf0;
+  border-top: 1px solid #fff1c0;
   font-size: var(--om-font-sm);
   color: var(--om-text-primary);
 }
@@ -664,10 +619,14 @@ const viewDetail = () => emit("view-detail", props.order);
 .buyer-message i {
   font-size: 0.875rem;
   flex-shrink: 0;
+  color: #ff9800;
 }
 
 .message-text {
   flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .message-link {
@@ -676,25 +635,27 @@ const viewDetail = () => emit("view-detail", props.order);
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .message-link:hover {
   text-decoration: underline;
 }
 
-/* Responsive Design */
+/* ============ RESPONSIVE DESIGN ============ */
 @media (max-width: 1200px) {
-  .products-grid-container {
+  .order-content {
     grid-template-columns: 3fr 1fr 0.8fr 1fr 1fr 1.2fr;
     gap: var(--om-spacing-sm);
     padding: var(--om-spacing-sm);
   }
 
-  .om-btn span {
-    display: none;
+  .btn-action {
+    padding: 6px 8px;
+    font-size: var(--om-font-xs);
   }
 
-  .product-name-text {
+  .product-name {
     font-size: var(--om-font-xs);
   }
 
@@ -715,30 +676,36 @@ const viewDetail = () => emit("view-detail", props.order);
     padding: var(--om-spacing-sm);
   }
 
-  .buyer-info-left {
+  .buyer-left {
     width: 100%;
   }
 
-  .order-number-section {
+  .buyer-right {
     width: 100%;
     justify-content: flex-start;
   }
 
-  .products-grid-container {
+  .order-content {
     display: flex;
     flex-direction: column;
     gap: var(--om-spacing-md);
     padding: var(--om-spacing-sm);
-    border-bottom: 1px solid var(--om-border);
+    border-bottom: none;
   }
 
-  .grid-column {
+  .product-col,
+  .amount-col,
+  .status-col,
+  .countdown-col,
+  .shipping-col,
+  .action-col {
     border: 1px solid var(--om-border);
     border-radius: var(--om-radius-sm);
     padding: var(--om-spacing-sm);
+    background: var(--om-bg-secondary);
   }
 
-  .product-cell {
+  .product-item {
     gap: var(--om-spacing-xs);
   }
 
@@ -748,17 +715,12 @@ const viewDetail = () => emit("view-detail", props.order);
   }
 
   .action-buttons {
-    width: 100%;
     flex-direction: column;
   }
 
-  .om-btn {
+  .btn-action {
     width: 100%;
     justify-content: flex-start;
-  }
-
-  .om-btn span {
-    display: inline;
   }
 
   .buyer-message {
