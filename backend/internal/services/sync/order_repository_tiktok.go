@@ -3,7 +3,6 @@ package sync
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/omni/backend/internal/models"
 	"gorm.io/gorm"
@@ -12,10 +11,21 @@ import (
 // saveTiktokOrders saves TikTok orders using models package
 func (r *GormOrderRepository) saveTiktokOrders(ctx context.Context, db *gorm.DB, orders []Order) error {
 	for _, order := range orders {
+		var totalAmount *float64
+		if order.TotalAmount > 0 {
+			totalAmount = &order.TotalAmount
+		}
+
 		model := models.TiktokOrder{
-			TenantID:    r.tenantID,
-			OrderSN:     order.OrderSN,
-			OrderStatus: order.Status,
+			TenantID:        r.tenantID,
+			OrderSN:         order.OrderSN,
+			OrderStatus:     order.Status,
+			TotalAmount:     totalAmount,
+			Currency:        order.Currency,
+			BuyerUsername:   order.BuyerUsername,
+			PaymentMethod:   order.PaymentMethod,
+			ShippingCarrier: order.ShippingCarrier,
+			BuyerMessage:    order.BuyerMessage,
 		}
 
 		result := db.WithContext(ctx).
@@ -112,15 +122,33 @@ func (r *GormOrderRepository) flattenTiktokOrders(orderModels []models.TiktokOrd
 	for _, m := range orderModels {
 		orderItems := itemsByOrder[m.OrderSN]
 
+		// Get total amount
+		totalAmount := float64(0)
+		if m.TotalAmount != nil {
+			totalAmount = *m.TotalAmount
+		}
+
+		// Default currency
+		currency := m.Currency
+		if currency == "" {
+			currency = "IDR"
+		}
+
 		if len(orderItems) == 0 {
 			orders = append(orders, Order{
-				ID:        fmt.Sprintf("%d", m.ID),
-				OrderSN:   m.OrderSN,
-				OrderNo:   m.OrderSN,
-				Platform:  strings.ToUpper("tiktok"),
-				Status:    m.OrderStatus,
-				CreatedAt: m.CreatedAt,
-				UpdatedAt: m.UpdatedAt,
+				ID:              fmt.Sprintf("%d", m.ID),
+				OrderSN:         m.OrderSN,
+				OrderNo:         m.OrderSN,
+				Platform:        "TIKTOK",
+				Status:          m.OrderStatus,
+				TotalAmount:     totalAmount,
+				Currency:        currency,
+				BuyerUsername:   m.BuyerUsername,
+				PaymentMethod:   m.PaymentMethod,
+				ShippingCarrier: m.ShippingCarrier,
+				BuyerMessage:    m.BuyerMessage,
+				CreatedAt:       m.CreatedAt,
+				UpdatedAt:       m.UpdatedAt,
 			})
 		} else {
 			// Deduplicate by LineItemID
@@ -138,19 +166,31 @@ func (r *GormOrderRepository) flattenTiktokOrders(orderModels []models.TiktokOrd
 					qty = *item.Quantity
 				}
 
+				price := float64(0)
+				if item.Price != nil {
+					price = *item.Price
+				}
+
 				// TikTok uses SellerSku as the actual SKU
 				orders = append(orders, Order{
-					ID:            fmt.Sprintf("%d", m.ID),
-					OrderSN:       m.OrderSN,
-					OrderNo:       m.OrderSN,
-					Platform:      strings.ToUpper("tiktok"),
-					Status:        m.OrderStatus,
-					SKU:           item.SellerSku,
-					ProductName:   item.ProductName,
-					VariationName: item.VariationName,
-					Quantity:      qty,
-					CreatedAt:     m.CreatedAt,
-					UpdatedAt:     m.UpdatedAt,
+					ID:              fmt.Sprintf("%d", m.ID),
+					OrderSN:         m.OrderSN,
+					OrderNo:         m.OrderSN,
+					Platform:        "TIKTOK",
+					Status:          m.OrderStatus,
+					TotalAmount:     totalAmount,
+					Currency:        currency,
+					BuyerUsername:   m.BuyerUsername,
+					PaymentMethod:   m.PaymentMethod,
+					ShippingCarrier: m.ShippingCarrier,
+					BuyerMessage:    m.BuyerMessage,
+					SKU:             item.SellerSku,
+					ProductName:     item.ProductName,
+					VariationName:   item.VariationName,
+					Quantity:        qty,
+					Price:           price,
+					CreatedAt:       m.CreatedAt,
+					UpdatedAt:       m.UpdatedAt,
 				})
 			}
 		}
