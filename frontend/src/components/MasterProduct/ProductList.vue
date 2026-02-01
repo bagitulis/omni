@@ -1,5 +1,88 @@
 <template>
   <div class="product-list">
+    <!-- Batch Update Toolbar -->
+    <transition name="slide-down">
+      <div v-if="selectedSkus.size > 0" class="batch-toolbar">
+        <div class="batch-info">
+          <span class="batch-count"
+            >{{ selectedSkus.size }} varian dipilih</span
+          >
+          <button class="btn-clear-selection" @click="clearSelection">
+            ✕ Batal
+          </button>
+        </div>
+        <div class="batch-actions">
+          <button
+            class="btn-batch btn-batch-price"
+            @click="openBatchPriceModal"
+          >
+            💰 Update Harga
+          </button>
+          <button
+            class="btn-batch btn-batch-stock"
+            @click="openBatchStockModal"
+          >
+            📦 Update Stok
+          </button>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Batch Update Modal -->
+    <div
+      v-if="showBatchModal"
+      class="modal-overlay"
+      @click.self="closeBatchModal"
+    >
+      <div class="batch-modal">
+        <div class="modal-header">
+          <h3>
+            {{
+              batchModalType === "price"
+                ? "💰 Update Harga Batch"
+                : "📦 Update Stok Batch"
+            }}
+          </h3>
+          <button class="modal-close" @click="closeBatchModal">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-info">
+            Anda akan mengupdate <strong>{{ selectedSkus.size }}</strong> varian
+            sekaligus
+          </p>
+          <div class="form-group">
+            <label>{{
+              batchModalType === "price" ? "Harga Baru (Rp)" : "Stok Baru"
+            }}</label>
+            <input
+              type="number"
+              v-model.number="batchValue"
+              :placeholder="
+                batchModalType === 'price'
+                  ? 'Masukkan harga...'
+                  : 'Masukkan stok...'
+              "
+              :min="0"
+              :step="batchModalType === 'price' ? 1000 : 1"
+              class="batch-input"
+              ref="batchInputRef"
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="closeBatchModal">Batal</button>
+          <button
+            class="btn-confirm"
+            @click="executeBatchUpdate"
+            :disabled="batchUpdating || batchValue === null || batchValue < 0"
+          >
+            <span v-if="batchUpdating" class="spinner-small"></span>
+            {{ batchUpdating ? "Mengupdate..." : "Update Semua" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Loading State -->
     <div v-if="loading" class="loading-spinner">
       <div class="spinner"></div>
@@ -104,10 +187,18 @@
             <table class="variant-table">
               <thead>
                 <tr>
+                  <th class="checkbox-col">
+                    <input
+                      type="checkbox"
+                      :checked="isAllProductSkusSelected(product)"
+                      @change="toggleAllProductSkus(product, $event)"
+                      title="Pilih semua varian"
+                    />
+                  </th>
                   <th>SKU</th>
                   <th>Varian</th>
-                  <th>Harga</th>
-                  <th>Stok</th>
+                  <th class="text-left">Harga</th>
+                  <th class="text-left">Stok</th>
                   <th>Platform</th>
                 </tr>
               </thead>
@@ -116,11 +207,19 @@
                   v-for="sku in product.skus"
                   :key="sku.id"
                   class="variant-row"
+                  :class="{ 'is-selected': selectedSkus.has(sku.id) }"
                 >
+                  <td class="checkbox-col">
+                    <input
+                      type="checkbox"
+                      :checked="selectedSkus.has(sku.id)"
+                      @change="toggleSkuSelection(sku.id)"
+                    />
+                  </td>
                   <td class="sku-cell">{{ sku.seller_sku }}</td>
                   <td class="variant-cell">{{ sku.variant_name || "-" }}</td>
                   <td
-                    class="price-cell editable-cell"
+                    class="price-cell editable-cell text-left"
                     :class="{
                       editing: isEditing(sku.id, 'price'),
                       saving:
@@ -165,7 +264,7 @@
                     </template>
                   </td>
                   <td
-                    class="stock-cell editable-cell"
+                    class="stock-cell editable-cell text-left"
                     :class="{
                       editing: isEditing(sku.id, 'stock'),
                       saving:
@@ -281,7 +380,7 @@
                   </td>
                 </tr>
                 <tr v-if="!product.skus?.length">
-                  <td colspan="5" class="no-skus">Belum ada SKU</td>
+                  <td colspan="6" class="no-skus">Belum ada SKU</td>
                 </tr>
               </tbody>
             </table>
@@ -387,6 +486,146 @@ const savingCell = ref<{ skuId: number; field: "price" | "stock" } | null>(
   null,
 );
 const editInputRef = ref<HTMLInputElement | null>(null);
+
+// Batch update state
+const selectedSkus = ref<Set<number>>(new Set());
+const showBatchModal = ref(false);
+const batchModalType = ref<"price" | "stock">("price");
+const batchValue = ref<number | null>(null);
+const batchUpdating = ref(false);
+const batchInputRef = ref<HTMLInputElement | null>(null);
+
+// Batch selection methods
+const toggleSkuSelection = (skuId: number) => {
+  if (selectedSkus.value.has(skuId)) {
+    selectedSkus.value.delete(skuId);
+  } else {
+    selectedSkus.value.add(skuId);
+  }
+  // Force reactivity
+  selectedSkus.value = new Set(selectedSkus.value);
+};
+
+const isAllProductSkusSelected = (product: MasterProduct): boolean => {
+  if (!product.skus || product.skus.length === 0) return false;
+  return product.skus.every((sku) => selectedSkus.value.has(sku.id));
+};
+
+const toggleAllProductSkus = (product: MasterProduct, event: Event) => {
+  const checked = (event.target as HTMLInputElement).checked;
+  if (!product.skus) return;
+
+  if (checked) {
+    product.skus.forEach((sku) => selectedSkus.value.add(sku.id));
+  } else {
+    product.skus.forEach((sku) => selectedSkus.value.delete(sku.id));
+  }
+  // Force reactivity
+  selectedSkus.value = new Set(selectedSkus.value);
+};
+
+const clearSelection = () => {
+  selectedSkus.value = new Set();
+};
+
+// Batch modal methods
+const openBatchPriceModal = () => {
+  batchModalType.value = "price";
+  batchValue.value = null;
+  showBatchModal.value = true;
+  nextTick(() => {
+    batchInputRef.value?.focus();
+  });
+};
+
+const openBatchStockModal = () => {
+  batchModalType.value = "stock";
+  batchValue.value = null;
+  showBatchModal.value = true;
+  nextTick(() => {
+    batchInputRef.value?.focus();
+  });
+};
+
+const closeBatchModal = () => {
+  showBatchModal.value = false;
+  batchValue.value = null;
+  batchUpdating.value = false;
+};
+
+const executeBatchUpdate = async () => {
+  if (batchValue.value === null || batchValue.value < 0) return;
+  if (selectedSkus.value.size === 0) return;
+
+  batchUpdating.value = true;
+
+  try {
+    const input: { sku_ids: number[]; price?: number; stock?: number } = {
+      sku_ids: Array.from(selectedSkus.value),
+    };
+
+    if (batchModalType.value === "price") {
+      input.price = batchValue.value;
+    } else {
+      input.stock = batchValue.value;
+    }
+
+    const result = await masterProductService.batchUpdateSkus(input);
+
+    if (result.updated > 0) {
+      // Update local state for all updated SKUs
+      result.skus.forEach((updatedSku) => {
+        props.products.forEach((product) => {
+          if (product.skus) {
+            const skuIndex = product.skus.findIndex(
+              (s) => s.id === updatedSku.id,
+            );
+            if (skuIndex !== -1) {
+              product.skus[skuIndex] = {
+                ...product.skus[skuIndex],
+                ...updatedSku,
+              };
+              emit("sku-updated", updatedSku);
+            }
+          }
+        });
+      });
+
+      // Mark updated SKUs as needing sync
+      result.skus.forEach((sku) => {
+        const product = props.products.find((p) =>
+          p.skus?.some((s) => s.id === sku.id),
+        );
+        if (product) {
+          const productSku = product.skus?.find((s) => s.id === sku.id);
+          if (productSku?.platform_links?.length) {
+            if (!skusNeedingSync.value.has(sku.id)) {
+              skusNeedingSync.value.set(sku.id, new Set());
+            }
+            const platformSet = skusNeedingSync.value.get(sku.id)!;
+            productSku.platform_links.forEach((link) => {
+              if (link.platform && link.platform_sku_id) {
+                platformSet.add(link.platform);
+              }
+            });
+          }
+        }
+      });
+
+      alert(
+        `Berhasil mengupdate ${result.updated} varian!${result.failed > 0 ? ` (${result.failed} gagal)` : ""}`,
+      );
+    }
+
+    clearSelection();
+    closeBatchModal();
+  } catch (error: any) {
+    console.error("Batch update failed:", error);
+    alert(`Gagal mengupdate: ${error.response?.data?.error || error.message}`);
+  } finally {
+    batchUpdating.value = false;
+  }
+};
 
 // Inline editing methods
 const isEditing = (skuId: number, field: "price" | "stock"): boolean => {
@@ -701,6 +940,275 @@ const handlePlatformClick = async (sku: ProductSku, platform: string) => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+/* Batch Update Toolbar */
+.batch-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.batch-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.batch-count {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.btn-clear-selection {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  transition: background 0.2s;
+}
+
+.btn-clear-selection:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.batch-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-batch {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-batch-price {
+  background: #10b981;
+  color: white;
+}
+
+.btn-batch-price:hover {
+  background: #059669;
+}
+
+.btn-batch-stock {
+  background: #f59e0b;
+  color: white;
+}
+
+.btn-batch-stock:hover {
+  background: #d97706;
+}
+
+/* Batch Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.batch-modal {
+  background: white;
+  border-radius: 0.75rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  animation: modal-in 0.2s ease-out;
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s;
+}
+
+.modal-close:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.modal-body {
+  padding: 1.25rem;
+}
+
+.modal-info {
+  margin: 0 0 1rem 0;
+  color: #6b7280;
+  font-size: 0.9375rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.batch-input {
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.batch-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.btn-cancel {
+  padding: 0.625rem 1.25rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+  background: #f3f4f6;
+}
+
+.btn-confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border: none;
+  background: #3b82f6;
+  color: white;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-confirm:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.btn-confirm:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Slide down animation */
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* Checkbox column */
+.checkbox-col {
+  width: 40px;
+  text-align: center;
+}
+
+.checkbox-col input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
+.variant-row.is-selected {
+  background: #eff6ff !important;
+}
+
+.variant-row.is-selected td {
+  background: #eff6ff !important;
 }
 
 /* Loading State */
@@ -1023,6 +1531,10 @@ const handlePlatformClick = async (sku: ProductSku, platform: string) => {
 
 .variant-row:last-child td {
   border-bottom: none;
+}
+
+.text-left {
+  text-align: left;
 }
 
 .text-right {

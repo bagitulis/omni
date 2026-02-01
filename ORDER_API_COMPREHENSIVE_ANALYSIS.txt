@@ -1,0 +1,208 @@
+================================================================================
+COMPREHENSIVE ORDER MANAGEMENT ANALYSIS - OMNI BACKEND
+================================================================================
+Generated: 2024
+Status: READ-ONLY PLANNING ANALYSIS
+
+================================================================================
+EXECUTIVE SUMMARY
+================================================================================
+
+This codebase implements a multi-platform order synchronization and management 
+system for Shopee, Lazada, and TikTok. The architecture follows clean separation 
+between:
+  - Platform API wrappers (pkg/shopee, lazada-sdk, pkg/tiktok)
+  - Service layer (services/sync/order_*)
+  - HTTP handlers (handlers/shopee|lazada|tiktok/orders.go)
+  - Data persistence (repositories/*, models/*)
+  - Frontend integration (components/OrderManager, services/api.ts)
+
+================================================================================
+1. PLATFORM-SPECIFIC ORDER OPERATIONS
+================================================================================
+
+1.1 SHOPEE ORDERS
+-----------------
+
+Available Order Actions:
+  GET  /api/shopee/orders              - List orders (paginated)
+  GET  /api/shopee/orders/:orderSn     - Get order details
+  POST /api/shopee/orders/ship         - Ship an order
+  POST /api/shopee/orders/cancel       - Cancel an order
+
+Order Data Fields:
+  Core: order_sn, order_status, total_amount, currency, buyer_username, shop_id
+  Items: item_id, model_id, item_name, model_name, item_sku, model_sku, quantity, price
+  Timestamps: created_at, updated_at, order_timestamp
+
+Request Structures:
+  ShipOrder: { order_sn, tracking_number? }
+  CancelOrder: { order_sn, cancel_reason }
+
+SDK Methods (backend/pkg/shopee/order_api.go):
+  GetOrderList(timeFrom, timeTo, timeRangeField, orderStatus, cursor)
+  GetOrderDetail(orderSNList)  // Max 50 orders per request
+  ShipOrder(ShipOrderRequest)
+  CancelOrder(CancelOrderRequest)
+
+Order Statuses: UNPAID, UNSHIPPED, SHIPPED, COMPLETED, CANCELLED, RETURN_REFUND
+
+Limitations & Constraints:
+  - Batch limit: 50 order SNs per GetOrderDetail request
+  - Time range: 15 days maximum window
+  - Pagination: Cursor-based with next_cursor field
+  - Order-level operations (not item-level like Lazada)
+
+
+1.2 LAZADA ORDERS
+------------------
+
+Available Order Actions:
+  GET  /api/lazada/orders              - List orders
+  GET  /api/lazada/orders/:orderId     - Get order details
+  POST /api/lazada/orders/ship         - Ship order items (2-step)
+  POST /api/lazada/orders/cancel       - Cancel order items
+
+Order Data Fields:
+  Core: order_sn, order_status, shop_id
+  Items: item_id, sku_id, seller_sku, product_name, variation_name, quantity, price
+  Timestamps: created_at, updated_at
+
+Request Structures:
+  ShipOrder: { order_item_ids, shipping_provider (required), tracking_number? }
+    Note: 2-step process - Pack first, then Ready to Ship
+  CancelOrder: { order_item_id, reason_id, reason_detail? }
+
+SDK Methods (backend/lazada-sdk/order.go):
+  GetOrders(params)  // Status, date range, sorting, pagination
+  GetOrder(orderID)
+  GetOrderItems(orderID)
+  GetMultipleOrderItems(orderIDs)
+  SetStatusToPackedByMarketplace(orderItemIDs, shippingProvider)
+  SetStatusToReadyToShip(orderItemIDs, shippingProvider, trackingNumber)
+  SetStatusToCanceled(orderItemID, reasonID, reasonDetail)
+
+Order Statuses: PENDING, READY_TO_SHIP, SHIPPED, DELIVERED, CANCELLED, RETURNED
+
+Key Characteristics:
+  - Item-based operations (not order-level)
+  - 2-step fulfillment workflow: Pack → Ready to Ship
+  - Structured reason codes for cancellation
+  - Supports ISO8601 and RFC3339 date formats
+  - Per-item tracking support
+
+
+1.3 TIKTOK ORDERS
+-------------------
+
+Available Order Actions:
+  GET  /api/tiktok/orders              - List orders
+  GET  /api/tiktok/orders/:orderId     - Get order details
+  POST /api/tiktok/orders/ship         - Ship a package
+  POST /api/tiktok/orders/cancel       - Cancel an order
+
+Order Data Fields:
+  Core: order_sn, order_status, shop_id
+  Items: line_item_id, product_id, sku_id, seller_sku, product_name, variation_name, quantity
+  Payment: currency, total_amount, shipping_fee, platform_discount, seller_discount
+  Timestamps: created_at, updated_at
+
+Request Structures:
+  ShipPackage: { order_id, package_id, shipping_provider, tracking_number }
+  CancelOrder: { order_id, cancel_reason }
+
+SDK Methods (backend/pkg/tiktok/order.go):
+  SearchOrders(req, pageSize, pageToken)
+    - Filters: order_status, create_time_ge, create_time_lt
+    - Returns: orders, next_page_token, total_count
+  ShipPackage(ShipPackageRequest)
+  CancelOrder(CancelOrderRequest)
+
+Order Statuses: UNPAID, UNSHIPPED, SHIPPED, SHIPPED_CONFIRMED, COMPLETED, CANCELLED
+
+Key Characteristics:
+  - Package-based shipping (not item-based)
+  - Token-based pagination (cursor equivalent)
+  - Unix timestamp filtering (create_time_ge, create_time_lt)
+  - Full payment breakdown included in responses
+  - Line items with individual SKUs
+
+================================================================================
+2. UNIFIED ORDER SYNC SERVICE
+================================================================================
+
+Service Architecture:
+  OrderSyncOperations (backend/internal/services/sync/order_operations.go)
+  ├── SyncByCategory(category, days, platforms)
+  ├── SyncPlatformOrders(platform, category, days)
+  └── fetchOrderItems(platform, orders)
+      └── Platform-specific OrderManager implementations
+          ├── ShopeeOrderManager
+          ├── LazadaOrderManager
+          └── TiktokOrderManager
+
+Order Status Mapping (Cross-platform):
+  Frontend Category → Shopee Status → Lazada Status → TikTok Status
+  ─────────────────────────────────────────────────────────────────
+  unpaid           → UNPAID        → PENDING        → UNPAID
+  unprocess        → UNSHIPPED     → READY_TO_SHIP  → UNSHIPPED
+  processed        → SHIPPED       → SHIPPED        → SHIPPED
+
+Unified Order Data Structure (type Order):
+  id, order_sn, order_no (frontend display), platform, status, category
+  total_amount, currency, buyer_username
+  tracking_number, shipping_carrier
+  sku, product_name, variation_name, quantity (FLATTENED for frontend)
+  items (optional nested array for backward compatibility)
+  created_at, updated_at
+
+Sync Workflow:
+  1. Frontend POST /api/orders/sync/{category}
+  2. Backend fetches from platform APIs (date range: -7 days default)
+  3. Batch process order items (max 50 per batch for safety)
+  4. Clear old orders with same status from database
+  5. Insert/update fresh data in database
+  6. Return summary { platform: { success, count, error } }
+  7. Frontend then GET /api/orders/{category} to retrieve from DB
+
+Batching Details:
+  Platform Limits:
+    - Shopee: 50 order SNs per GetOrderDetail request
+    - Lazada: Item-based, safe for batching
+    - TikTok: Page token-based pagination
+  Implementation: Split into 50-item chunks, fetch separately, merge before save
+
+================================================================================
+3. BACKEND ENDPOINTS SUMMARY
+================================================================================
+
+UNIFIED ORDER ENDPOINTS (backend/internal/routes/additional_routes.go):
+
+POST /api/orders/sync/:category
+  Parameters: category (unpaid|unprocess|processed)
+  Query: days (default 7), platforms (array)
+  Body: { days: int }
+  Returns: { success, data: { [platform]: { success, count, error } } }
+
+POST /api/orders/sync/platform/:platform
+  Query: category, days
+  Returns: Sync results for specific platform
+
+GET /api/orders/:category
+  Parameters: category (unpaid|unprocess|processed)
+  Returns: { success, items: [], count, data: [] }
+
+POST /api/orders/sync-all
+  Syncs unpaid, unprocess, processed for all platforms
+
+GET /api/orders/locked-today
+  Returns: Saved locked orders from database
+
+POST /api/orders/locked-today
+  Syncs and returns locked orders (orders with items matching custom criteria)
+
+GET /api/orders/today
+  Returns: Saved orders created today
+
+POST /api/orders/today
+  Syn

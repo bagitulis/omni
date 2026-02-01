@@ -1,0 +1,151 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║         IMPORTED MASTER PRODUCTS: DRAFT STATUS ANALYSIS                    ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+█ CURRENT BEHAVIOR
+─────────────────────────────────────────────────────────────────────────────
+When user imports a Shopee product:
+
+  [Import Product]
+         ↓
+    [Fetch from Shopee API]
+         ↓
+    [Create Master Product]
+         ├─ ✅ Title, Description, Images
+         ├─ ✅ All SKUs created
+         ├─ ✅ Platform link to Shopee
+         └─ ❌ Status = "draft" ← HERE
+         ↓
+    [Product Created in System]
+         ├─ Shows in "Draft Products" section
+         └─ Needs activation to appear in main list
+
+Code Location: backend/internal/services/master_product/import_service.go:171
+    Status: models.MasterProductStatusDraft,
+
+
+█ WHY IS IT DRAFT? (Intentional Design)
+─────────────────────────────────────────────────────────────────────────────
+1. REVIEW WORKFLOW
+   - User inspects imported data
+   - Verifies title, description, images are correct
+   - Prevents bad data from going public
+
+2. DATA VALIDATION
+   - Some SKUs might be skipped (missing seller_sku)
+   - Images truncated to 8 (Lazada limit)
+   - Descriptions truncated to 5000 chars
+   - User should verify no important data lost
+
+3. TESTING GROUND
+   - Can test sync to TikTok/Lazada first
+   - Verify sync works before activating
+   - Only then publish to all platforms
+
+4. INDUSTRY BEST PRACTICE
+   - Shopify: Import → Review → Publish
+   - TikTok: Draft → Preview → Activate
+   - Amazon: Create → Save Draft → Publish
+
+
+█ STATUS OPTIONS COMPARISON
+─────────────────────────────────────────────────────────────────────────────
+
+┌─ OPTION A: KEEP AS-IS ─────────────────────────────────────────────────────┐
+│                                                                              │
+│  Products stay in draft forever until manually changed to active            │
+│                                                                              │
+│  PROS                          │  CONS                                      │
+│  ✅ Full review process        │  ❌ Not in main list                       │
+│  ✅ Data quality safe          │  ❌ Manual activation needed               │
+│  ✅ Test before activating     │  ❌ Confusing for users                    │
+│  ✅ No code changes            │                                            │
+│                                                                              │
+│  EFFORT: 0 hours               STATUS: ⭕ Current (Not recommended)         │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ OPTION B: AUTO-ACTIVATE ─────────────────────────────────────────────────┐
+│                                                                              │
+│  Change: models.MasterProductStatusDraft → models.MasterProductStatusActive │
+│                                                                              │
+│  PROS                          │  CONS                                      │
+│  ✅ Products visible instantly │  ❌ No review process                      │
+│  ✅ Faster workflow            │  ❌ Risk of bad data                       │
+│  ✅ Simpler for users          │  ❌ Hard to rollback                       │
+│                                │  ❌ Against best practices                 │
+│                                                                              │
+│  EFFORT: 15 minutes            STATUS: ⭕ Quick but Risky                   │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ OPTION C: ACTIVATE BUTTON ⭐ RECOMMENDED ─────────────────────────────────┐
+│                                                                              │
+│  Products import as draft, user clicks "Activate" to go live               │
+│                                                                              │
+│  PROS                          │  CONS                                      │
+│  ✅ Best of both worlds        │  ❌ Need API endpoint                      │
+│  ✅ Review + fast activation   │  ❌ Need UI button                         │
+│  ✅ Industry standard          │  ❌ More code to maintain                  │
+│  ✅ User expects this          │                                            │
+│  ✅ Professional UX            │                                            │
+│                                                                              │
+│  EFFORT: 4-6 hours             STATUS: 🟢 RECOMMENDED                       │
+│                                                                              │
+│  IMPLEMENTATION ROADMAP:                                                   │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │ Phase 1: Document current behavior                    (now)         │   │
+│  │ Phase 2: Add API endpoint (activate)                  (next sprint) │   │
+│  │ Phase 3: Add UI button & badge                        (following)  │   │
+│  │                                                                     │   │
+│  │ New Endpoint: POST /api/master-products/:id/activate               │   │
+│  │ Status Change: "draft" → "active"                                  │   │
+│  │ UI: "Activate" button, Draft badge, count in sidebar              │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+
+█ RECOMMENDATION
+─────────────────────────────────────────────────────────────────────────────
+    ⭐ USE OPTION C: ADD "ACTIVATE" BUTTON
+
+WHY:
+  1. Users expect imported products to appear in system
+  2. They also appreciate a review step before going live
+  3. One-click "Activate" button satisfies both needs
+  4. Every professional e-commerce platform works this way
+  5. Provides audit trail (imported vs. activated timestamps)
+
+RESULT:
+  - Draft products show: "🟡 DRAFT — Ready to activate"
+  - One click activates: "🟢 ACTIVE"
+  - Shows count in sidebar: "3 draft products"
+  - Professional, enterprise-grade UX
+
+
+█ QUICK REFERENCE
+─────────────────────────────────────────────────────────────────────────────
+Available Status Values:
+  • "draft"     — Product being reviewed (current)
+  • "active"    — Product published and visible
+  • "archived"  — Product deleted/hidden
+
+Key Files:
+  • Status constants        → backend/internal/models/master_product.go:72-74
+  • Import logic           → backend/internal/services/master_product/import_service.go:171
+  • Import handler         → backend/internal/handlers/master_product/import_handler.go
+  • Frontend service       → frontend/src/services/masterProductService.ts
+  • Product list view      → frontend/src/views/MasterProduct/ProductList.vue
+
+
+█ DECISION NEEDED
+─────────────────────────────────────────────────────────────────────────────
+Before proceeding, clarify with product team:
+
+1. Do users expect imported products to be immediately visible?
+2. Is there value in reviewing imported data before activation?
+3. Is manual activation a pain point for users?
+4. What's the timeline for implementation?
+
+═════════════════════════════════════════════════════════════════════════════

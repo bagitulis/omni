@@ -1,0 +1,215 @@
+================================================================================
+MULTI-TENANCY SECURITY - QUICK REFERENCE
+================================================================================
+
+ARCHITECTURE TYPE: Schema-per-Tenant Isolation + Application Filtering
+SECURITY GRADE: A- (Strong - Recommend Priority 1 fixes for A+)
+
+================================================================================
+1. HOW TENANT ISOLATION WORKS
+================================================================================
+
+PRIMARY MECHANISM: PostgreSQL Schema Isolation
+- Each tenant has separate schema: tenant_{tenantID}
+- Connections use search_path to restrict to tenant schema
+- Database enforces isolation at connection level
+- Example: tenant_yumna_bertigamart, tenant_tika_nusseyba
+
+CONTEXT PROPAGATION: JWT Token
+1. User login → System searches ALL tenants
+2. User found in specific tenant's schema
+3. JWT generated with tenantID claim
+4. Every request validated against JWT
+
+================================================================================
+2. SECURITY LAYERS
+================================================================================
+
+Layer 1: JWT Validation
+  Location: backend/internal/middleware/auth.go
+  Method: Extract & validate JWT, extract tenantID from claims
+  Status: ✅ IMPLEMENTED
+
+Layer 2: Tenant Validation
+  Location: backend/internal/middleware/tenant.go
+  Method: Validate tenantID against tenants.json config
+  Status: ✅ IMPLEMENTED
+
+Layer 3: Database Routing
+  Location: backend/internal/config/database.go
+  Method: GetTenantDB(tenantID) returns schema-specific connection
+  Status: ✅ IMPLEMENTED
+
+Layer 4: Application Filtering
+  Location: backend/internal/repositories/*.go
+  Method: WHERE "tenant_id = ?" filters
+  Status: ⚠️ PARTIALLY IMPLEMENTED (see risks below)
+
+Layer 5: PostgreSQL Enforcement
+  Location: database driver level
+  Method: search_path restricts queries to single schema
+  Status: ✅ ALWAYS ENFORCED
+
+================================================================================
+3. KEY FILES - TENANT CONFIGURATION
+================================================================================
+
+config/static/tenants.json
+  ├── yumna_bertigamart: DB path, shop name, is_global flag
+  ├── tika_nusseyba: DB path, shop name, is_global flag
+  └── system: is_global = true (not for user operations)
+
+backend/internal/config/config.go (lines 43-202)
+  - LoadTenants(): Reads tenants.json
+  - ValidateTenant(): Checks if tenant is valid for operations
+  - GetRealTenants(): Returns non-global tenants
+
+================================================================================
+4. KEY FILES - SECURITY BOUNDARIES
+================================================================================
+
+JWT Generation & Validation:
+  backend/internal/utils/jwt.go
+    - GenerateToken(userID, tenantID, role)
+    - ValidateToken(tokenString) → Claims.TenantID
+
+Tenant Context Extraction:
+  backend/internal/middleware/auth.go (line 69)
+    - c.Set("tenantID", claims.TenantID)
+  backend/internal/middleware/tenant.go (line 80)
+    - c.Set("tenantID", tenantID)
+
+Database Connection Routing:
+  backend/internal/config/database.go
+    - GetTenantDB(tenantID): Returns cached connection
+    - Each connection has search_path set to tenant schema
+
+Repository Layer:
+  backend/internal/repositories/master_product_repository.go ✅ GOOD
+    - All queries include WHERE "tenant_id = ?", tenantID
+  backend/internal/repositories/shopee_order_repository.go ⚠️ RISKY
+    - FindAll() doesn't filter by tenant
+    - FindByOrderSN() doesn't filter by tenant
+
+================================================================================
+5. CRITICAL SECURITY ISSUES
+================================================================================
+
+ISSUE #1: Repository Methods Without Tenant Filters
+  Severity: MEDIUM (mitigated by schema isolation)
+  Files:
+    - backend/internal/repositories/shopee_order_repository.go (line 37-61)
+    - backend/internal/repositories/lazada_order_repository.go
+    - backend/internal/repositories/tiktok_order_repository.go
+  
+  Problem:
+    repo.FindAll() → SELECT * FROM shopee_orders (no tenant filter!)
+    repo.FindByOrderSN() → WHERE order_sn = ? (no tenant filter!)
+  
+  Current Protection: ✅ Schema isolation prevents cross-tenant access
+  Recommendation: Add tenantID parameter & filter to all methods
+  Effort: 2-3 hours
+
+ISSUE #2: OAuth State Query Without Tenant Context
+  Severity: MEDIUM
+  File: backend/internal/repositories/oauth_repository.go (line 44)
+  
+  Problem:
+    FindStateByState(state) → WHERE state = ? (no tenant filter!)
+  
+  Current Protection: ✅ 10-minute token expiration
+  Recommendation: Add tenantID to OAuth state queries
+  Effort: 1 hour
+
+ISSUE #3: Webhook Tenant Parameter from URL
+  Severity: LOW
+  File: backend/internal/handlers/webhook_extended_handler.go (line 39)
+  
+  Status: ✅ ACCEPTABLE - tenantID validated against config
+
+================================================================================
+6. DATA ISOLATION VERIFICATION
+================================================================================
+
+Is TenantID in All Models?
+  ✅ YES - All models have: TenantID string `gorm:"index;not null"`
+  
+  Models checked:
+  - Product, ProductSKU
+  - ShopeeOrder, ShopeeProduct, ShopeeSku
+  - LazadaOrder, LazadaProduct, LazadaSku
+  - TiktokOrder, TiktokProduct, TiktokSku
+  - MasterProduct, MasterProductSku
+  - OrderTodayItem, LockedOrder
+  - Image, FilterPreference
+  - AuditLog, AnalyticsSettings
+  - ... and many more
+
+Are Queries Parameterized?
+  ✅ YES - All use GORM with parameterized placeholders
+  No string concatenation anywhere
+
+Is There Row-Level Security?
+  ❌ NO - Not needed because schema isolation is stronger
+  PostgreSQL schemas prevent access at connection level
+
+================================================================================
+7. THREAT ANALYSIS
+================================================================================
+
+Threat: Cross-Tenant Data Access
+  Path: API request → Handler → Repository → Database
+  Protection 1: JWT validation (extracts tenantID)
+  Protection 2: Schema routing (search_path set in DSN)
+  Protection 3: App filtering (WHERE tenant_id = ?)
+  Risk Level: 🟢 LOW (multiple layers)
+
+Threat: JWT Token Theft
+  Path: Attacker steals another user's JWT
+  Protection 1: Token signed with secret
+  Protection 2: Short expiration (typically 1 hour)
+  Protection 3: tenantID locked in token
+  Risk Level: 🟢 LOW (tenant-bound)
+
+Threat: SQL Injection
+  Path: Attacker injects SQL in input parameters
+  Protection 1: GORM parameterized queries
+  Protection 2: No string concatenation
+  Protection 3: Schema isolation as fallback
+  Risk Level: 🟢 LOW (multiple layers)
+
+Threat: Database Credential Compromise
+  Path: Attacker gains PostgreSQL login credentials
+  Protection 1: Stored in environment variables
+  Protection 2: Search_path in connection string
+  Protection 3: Recommended: VPC security groups
+  Risk Level: 🟠 MEDIUM (requires separate hardening)
+
+================================================================================
+8. QUICK AUDIT CHECKLIST
+================================================================================
+
+When reviewing code changes:
+
+☑️ Does handler extract tenantID from JWT?
+  Look for: middleware.GetTenantID(c)
+
+☑️ Does handler call GetTenantDB(tenantID)?
+  Look for: config.GetTenantDB(tenantID, basePath)
+
+☑️ Does handler/service validate tenantID before DB access?
+  Look for: if tenantID == "" { return error }
+
+☑️ Do repository methods include tenant_id in WHERE clause?
+  Look for: Where("tenant_id = ?", tenantID)
+
+☑️ Are all routes protected with middleware.Auth() and middleware.Tenant()?
+  Look for: protected.Use(middleware.Auth())
+            protected.Use(middleware.Tenant())
+
+☑️ Are new models including TenantID field?
+  Look for: TenantID string `gorm:"index;not null"`
+
+================================================================================
+9. PRIORITY FIXES
+================================================================================

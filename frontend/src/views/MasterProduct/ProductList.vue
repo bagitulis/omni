@@ -87,9 +87,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useUIStore } from "@/store/ui";
+import { useUnifiedHeader } from "@/composables/useUnifiedHeader";
 import LeftSidebar from "@/components/layout/LeftSidebar.vue";
 import ProductList from "@/components/MasterProduct/ProductList.vue";
 import masterProductService, {
@@ -98,6 +99,7 @@ import masterProductService, {
 
 const router = useRouter();
 const uiStore = useUIStore();
+const { setConnectionStatus } = useUnifiedHeader();
 
 // Navigation Handlers
 const handleTabChange = (tab: string) => {
@@ -137,6 +139,7 @@ let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 const fetchProducts = async () => {
   loading.value = true;
   error.value = null;
+  setConnectionStatus("connecting");
 
   try {
     const response = await masterProductService.list({
@@ -152,12 +155,15 @@ const fetchProducts = async () => {
         totalItems.value = response.meta.total;
         totalPages.value = Math.ceil(response.meta.total / pageSize.value);
       }
+      setConnectionStatus("connected");
     } else {
       error.value = response.error || "Gagal memuat produk";
+      setConnectionStatus("error");
     }
   } catch (err: any) {
     console.error("Error fetching products:", err);
     error.value = err.message || "Gagal memuat produk";
+    setConnectionStatus("error");
   } finally {
     loading.value = false;
   }
@@ -212,6 +218,12 @@ watch(statusFilter, () => {
 // Initial fetch
 onMounted(() => {
   fetchProducts();
+});
+
+// Cleanup on unmount
+onUnmounted(() => {
+  // Reset connection status when leaving the page
+  setConnectionStatus("connecting");
 });
 </script>
 

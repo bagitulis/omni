@@ -1,0 +1,157 @@
+/* ==========================================================================
+   OMNI CORE THEME & ACCESSIBILITY
+   Unified definition for Light/Dark modes, Accessibility, and Motion.
+   ========================================================================== */
+
+:root {
+  /* --- BASE PALETTE (Primitives) --- */
+
+  /* Onyx (Soft Black / Dark Grey) */
+  --color-onyx-900: #171717;
+  --color-onyx-800: #262626;
+  --color-onyx-main: #1a1a1a;
+
+  /* Clay (Warm White / Beige) */
+  --color-clay-100: #fafafa;
+  --color-clay-main: #f4f1ea;
+  --color-clay-contrast: #e8e4dc;
+
+  /* Accent (Burnt Sienna) */
+  --color-accent-main: #d65a31;
+  --color-accent-hover: #b84a25;
+  --color-accent-light: #fcece8;
+
+  /* Status */
+  --color-success: #10b981;
+  --color-error: #ef4444;
+
+  /* --- SEMANTIC VARIABLES (Light Theme Default) --- */
+  --bg-body: var(--color-clay-main);
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #fafafa;
+
+  --text-main: var(--color-onyx-main);
+  --text-muted: #737373;
+  --text-inverse: #ffffff;
+
+  --border-subtle: #e5e5e5;
+  --border-strong: #d4d4d4;
+  --border-focus: var(--color-accent-main);
+}
+
+/* --- DARK MODE CONFIGURATION --- */
+
+/* 1. Auto-detect via Media Query */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Override semantics for Dark Mode */
+    --bg-body: var(--color-onyx-main);
+    --bg-surface: #262626;
+    --bg-surface-elevated: #333333;
+
+    --text-main: var(--color-clay-main);
+    --text-muted: #a3a3a3;
+    --text-inverse: var(--color-onyx-main);
+
+    --border-subtle: #404040;
+    --border-strong: #525252;
+    --border-focus: #ff7e5f; /* Lighter accent for dark mode */
+  }
+}
+
+/* 2. Manual Class Override (Stronger specificity) */
+.dark-mode {
+  --bg-body: var(--color-onyx-main);
+  --bg-surface: #262626;
+  --bg-surface-elevated: #333333;
+
+  --text-main: var(--color-clay-main);
+  --text-muted: #a3a3a3;
+  --text-inverse: var(--color-onyx-main);
+
+  --border-subtle: #404040;
+  --border-strong: #525252;
+  --border-focus: #ff7e5f;
+}
+
+/* 3. Manual Light Mode Override (Resets to Light if system is Dark) */
+.light-mode {
+  --bg-body: var(--color-clay-main);
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #fafafa;
+
+  --text-main: var(--color-onyx-main);
+  --text-muted: #737373;
+  --text-inverse: #ffffff;
+
+  --border-subtle: #e5e5e5;
+  --border-strong: #d4d4d4;
+  --border-focus: var(--color-accent-main);
+}
+
+/* --- ACCESSIBILITY: FOCUS VISIBLE --- */
+/* Only show focus ring for keyboard users, not mouse clicks */
+:focus-visible {
+  outline: 3px solid var(--border-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* --- ACCESSIBILITY: REDUCED MOTION --- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- ACCESSIBILITY: HIGH CONTRAST --- */
+@media (prefers-contrast: more) {
+  :root {
+    --border-subtle: #000000;
+    --text-muted: #000000;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --border-subtle: #ffffff;
+      --text-muted: #ffffff;
+    }
+  }
+
+  .dark-mode {
+    --border-subtle: #ffffff;
+    --text-muted: #ffffff;
+  }
+}
+
+/* --- ACCESSIBILITY: SKIP LINK --- */
+/* Hidden navigation link that appears on focus */
+.skip-link {
+  position: absolute;
+  top: -100vh;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-accent-main);
+  color: #ffffff;
+  padding: 0.75rem 1.5rem;
+  z-index: 9999;
+  text-decoration: none;
+  font-weight: 700;
+  border-radius: 0 0 6px 6px;
+  transition: top 0.2s ease-out;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 3px solid var(--text-main);
+  outline-offset: -3px;
+}

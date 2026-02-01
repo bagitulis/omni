@@ -47,12 +47,10 @@
 
   "categories": {
     "visual-engineering": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
+      "model": "google/antigravity-claude-sonnet-4-5"
     },
     "artistry": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
+      "model": "google/antigravity-claude-sonnet-4-5"
     },
     "writing": {
       "model": "google/antigravity-claude-sonnet-4-5"

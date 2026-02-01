@@ -6,7 +6,7 @@
 @import "tailwindcss";
 
 /* Design System */
-@import "./design-tokens.css";
+@import "./variables.css";
 @import "./transitions.css";
 @import "./responsive.css";
 @import "./components.css";

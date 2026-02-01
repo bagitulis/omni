@@ -71,6 +71,19 @@ export interface UpdateSkuInput {
   stock?: number;
 }
 
+export interface BatchUpdateSkuInput {
+  sku_ids: number[];
+  price?: number;
+  stock?: number;
+}
+
+export interface BatchUpdateSkuResult {
+  updated: number;
+  failed: number;
+  skus: MasterProductSku[];
+  errors?: string[];
+}
+
 export interface ListFilter {
   page?: number;
   limit?: number;
@@ -257,6 +270,25 @@ class MasterProductService {
       return response.data.data;
     } catch (error) {
       console.error(`❌ Error updating SKU ${skuId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Batch update multiple SKUs' price and/or stock at once
+   * PUT /api/master-products/skus/batch
+   */
+  async batchUpdateSkus(
+    input: BatchUpdateSkuInput,
+  ): Promise<BatchUpdateSkuResult> {
+    try {
+      const response = await apiService.client.put<{
+        success: boolean;
+        data: BatchUpdateSkuResult;
+      }>(`${this.basePath}/skus/batch`, input);
+      return response.data.data;
+    } catch (error) {
+      console.error(`❌ Error batch updating SKUs:`, error);
       throw error;
     }
   }

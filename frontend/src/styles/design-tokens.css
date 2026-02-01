@@ -1,127 +1,78 @@
-/* ============================================
-   DESIGN TOKENS - Phase 1.1
-   Centralized design system variables
-   ============================================ */
+/* ==========================================================================
+   DESIGN SYSTEM: HYPER-MOMENTUM
+   Aesthetic: Speed, Precision, High-Voltage
+   ========================================================================== */
 
 :root {
-  /* Primary Colors (Blue Scale) */
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
+  /* ------------------------------------------------------------------
+     1. COLORS (RGB-P3 Gamut Preferred)
+     ------------------------------------------------------------------ */
+  /* Brand */
+  --color-primary: #000000; /* Absolute Black */
+  --color-secondary: #333333;
+  --color-accent: #3300ff; /* Hyper Blue */
 
-  /* Semantic Colors */
-  --color-primary: #3b82f6;
-  --color-secondary: #8b5cf6;
-  --color-accent: #00d9ff;
-  --color-accent-light: #67e8f9;
-  --color-accent-dark: #0891b2;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-info: #3b82f6;
+  /* Neutrals */
+  --color-neutral-50: #ffffff;
+  --color-neutral-100: #f3f3f3;
+  --color-neutral-200: #e6e6e6;
+  --color-neutral-300: #cccccc;
+  --color-neutral-900: #111111;
 
-  /* Background & Surface */
+  /* Surfaces */
   --color-bg-primary: #ffffff;
-  --color-bg-secondary: #f8fafc;
-  --color-bg-tertiary: #f1f5f9;
+  --color-bg-secondary: #f8f8f8;
   --color-surface: #ffffff;
-  --color-neutral: #f3f4f6;
 
-  /* Text Colors */
-  --color-text-primary: #1f2937;
-  --color-text-secondary: #4b5563; /* Improved from #6b7280 for WCAG AA 4.5:1 ratio */
-  --color-text-muted: #4b5563; /* Improved from #6b7280/#9ca3af for WCAG AA compliance (4.5:1 ratio) */
-  --color-text-inverse: #ffffff;
+  /* ------------------------------------------------------------------
+     2. TYPOGRAPHY (Augmented Fourth - 1.414)
+     ------------------------------------------------------------------ */
+  --text-xs: 0.707rem; /* 11.3px */
+  --text-sm: 1rem; /* 16px (Base) */
+  --text-md: 1.414rem; /* 22.6px */
+  --text-lg: 1.999rem; /* 31.9px */
+  --text-xl: 2.827rem; /* 45.2px */
+  --text-2xl: 3.998rem; /* 63.9px */
+  --text-3xl: 5.653rem; /* 90.4px (Display) */
 
-  /* Border Colors */
-  --color-border: #e5e7eb;
-  --color-border-light: #f3f4f6;
-  --color-border-focus: #3b82f6;
+  --leading-tight: 0.95; /* Compressed headings */
+  --leading-normal: 1.4;
+  --leading-loose: 1.7;
 
-  /* Spacing Scale */
-  --space-xs: 0.25rem;
-  --space-sm: 0.5rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-  --space-xl: 2rem;
-  --space-2xl: 3rem;
+  /* ------------------------------------------------------------------
+     3. SPACING (8px Geometric)
+     ------------------------------------------------------------------ */
+  --space-1: 0.5rem; /* 8px */
+  --space-2: 1rem; /* 16px */
+  --space-3: 1.5rem; /* 24px */
+  --space-4: 2rem; /* 32px */
+  --space-6: 3rem; /* 48px */
+  --space-8: 4rem; /* 64px */
+  --space-12: 6rem; /* 96px */
+  --space-16: 8rem; /* 128px */
+  --space-24: 12rem; /* 192px */
 
-  /* Border Radius */
-  --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
+  /* ------------------------------------------------------------------
+     4. RADIUS (Zero-Tolerance or Pill)
+     ------------------------------------------------------------------ */
+  --radius-none: 0px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
   --radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+  /* ------------------------------------------------------------------
+     5. SHADOWS (Hard Projection)
+     ------------------------------------------------------------------ */
+  --shadow-sm: 2px 2px 0px rgba(0, 0, 0, 1);
+  --shadow-md: 4px 4px 0px rgba(0, 0, 0, 1);
+  --shadow-lg: 8px 8px 0px rgba(0, 0, 0, 1);
 
-  /* Transitions */
-  --transition-fast: 150ms ease;
-  --transition-base: 200ms ease;
-  --transition-slow: 300ms ease;
-  --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
-
-  /* Z-Index Scale */
-  --z-dropdown: 50;
-  --z-sticky: 100;
-  --z-fixed: 200;
-  --z-sidebar: 500;
-  --z-overlay: 800;
-  --z-modal-backdrop: 900;
-  --z-modal: 1000;
-  --z-tooltip: 1100;
-  --z-toast: 1200;
-}
-
-/* Dark Mode Tokens */
-.dark,
-[data-theme="dark"] {
-  --color-primary: #60a5fa;
-  --color-secondary: #a78bfa;
-  --color-accent: #22d3ee;
-  --color-neutral: #374151;
-
-  --color-bg-primary: #0f172a;
-  --color-bg-secondary: #1e293b;
-  --color-bg-tertiary: #334155;
-  --color-surface: #1e293b;
-
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #cbd5e1;
-  --color-text-muted: #94a3b8;
-
-  --color-border: #334155;
-  --color-border-light: #475569;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --color-primary: #60a5fa;
-    --color-secondary: #a78bfa;
-    --color-accent: #22d3ee;
-    --color-neutral: #374151;
-
-    --color-bg-primary: #0f172a;
-    --color-bg-secondary: #1e293b;
-    --color-bg-tertiary: #334155;
-    --color-surface: #1e293b;
-
-    --color-text-primary: #f1f5f9;
-    --color-text-secondary: #cbd5e1;
-    --color-text-muted: #94a3b8;
-
-    --color-border: #334155;
-    --color-border-light: #475569;
-  }
+  /* ------------------------------------------------------------------
+     6. BREAKPOINTS
+     ------------------------------------------------------------------ */
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+  --bp-2xl: 1536px;
 }

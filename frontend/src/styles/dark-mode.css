@@ -1,293 +1,185 @@
-/* ============================================
-   DARK MODE POLISH - Phase 3.3
-   Comprehensive dark mode refinements
-   ============================================ */
+/* ==========================================================================
+   DARK MODE & ACCESSIBILITY SYSTEM
+   ========================================================================== */
 
-/* ===== GLOBAL DARK MODE FIXES ===== */
+/* --------------------------------------------------------------------------
+   1. SEMANTIC VARIABLE OVERRIDES (Theming)
+   -------------------------------------------------------------------------- */
 
-.dark {
-  color-scheme: dark;
+/* Define the Dark Theme variables grouping */
+:root {
+  /* High Contrast Mode Variables (Default false) */
+  --high-contrast-border: transparent;
+  --high-contrast-outline: transparent;
 }
 
-/* ===== SHADOWS FOR DARK MODE ===== */
+/* Mixin-like variable set for Dark Mode */
+.dark-mode,
+[data-theme="dark"] {
+  /* Core Colors - Inverted for Dark Mode */
+  --color-bg-body: #121212; /* Deep Onyx */
+  --color-bg-surface: #1e1e1e; /* Lighter Onyx for cards */
+  --color-bg-tertiary: #2d2d2d; /* Input backgrounds */
 
-.dark {
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6);
+  --color-text-main: #f4f1ea; /* Clay (Light) */
+  --color-text-muted: #a3a3a3; /* Neutral 400 */
+  --color-text-inverse: #1a1a1a; /* Onyx (Dark) */
 
-  /* Glow effects for dark mode */
-  --shadow-glow-primary: 0 0 20px rgba(96, 165, 250, 0.3);
-  --shadow-glow-accent: 0 0 20px rgba(34, 211, 238, 0.3);
+  --color-border-subtle: #404040; /* Neutral 700 */
+  --color-border-strong: #737373; /* Neutral 500 */
+  --color-border-light: #404040; /* Matching subtle for consistency */
+
+  /* Status Colors - Adjusted for Dark Backgrounds */
+  --color-status-error: #f87171; /* Red 400 (Softer/Brighter) */
+  --color-status-success: #34d399; /* Emerald 400 */
+
+  /* Shadows - Adjusted for Dark Mode (Light glow instead of dark shadow) */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md:
+    0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg:
+    0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+
+  /* Glow Effects */
+  --shadow-glow-primary: 0 0 20px rgba(96, 165, 250, 0.2);
 }
 
-/* ===== CARD STYLES DARK MODE ===== */
+/* --------------------------------------------------------------------------
+   2. PREFERS-COLOR-SCHEME (System Preference)
+   -------------------------------------------------------------------------- */
 
-.dark .card,
-.dark [class*="card-"] {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-border);
-  box-shadow: var(--shadow-md);
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-mode):not([data-theme="light"]) {
+    /* Re-apply the same variables as .dark-mode */
+    --color-bg-body: #121212;
+    --color-bg-surface: #1e1e1e;
+    --color-bg-tertiary: #2d2d2d;
+    --color-text-main: #f4f1ea;
+    --color-text-muted: #a3a3a3;
+    --color-text-inverse: #1a1a1a;
+    --color-border-subtle: #404040;
+    --color-border-strong: #737373;
+    --color-border-light: #404040;
+    --color-status-error: #f87171;
+    --color-status-success: #34d399;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+    --shadow-md:
+      0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    --shadow-lg:
+      0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+    --shadow-glow-primary: 0 0 20px rgba(96, 165, 250, 0.2);
+  }
 }
 
-.dark .card:hover {
-  border-color: var(--color-border-light);
+/* --------------------------------------------------------------------------
+   3. FOCUS VISIBLE (Accessibility)
+   -------------------------------------------------------------------------- */
+
+/* Standardize focus ring for keyboard navigation only */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(214, 90, 49, 0.2); /* Accent color glow */
 }
 
-/* ===== INPUT DARK MODE POLISH ===== */
-
-.dark input,
-.dark textarea,
-.dark select,
-.dark .form-input,
-.dark .form-textarea,
-.dark .form-select {
-  background: var(--color-bg-tertiary);
-  border-color: var(--color-border);
-  color: var(--color-text-primary);
+/* Remove default focus for mouse users where possible if not needed */
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
-.dark input:focus,
-.dark textarea:focus,
-.dark select:focus,
-.dark .form-input:focus,
-.dark .form-textarea:focus,
-.dark .form-select:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+/* --------------------------------------------------------------------------
+   4. REDUCED MOTION (Accessibility)
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
-.dark input::placeholder,
-.dark textarea::placeholder {
-  color: var(--color-text-muted);
+/* --------------------------------------------------------------------------
+   5. HIGH CONTRAST MODE (Accessibility)
+   -------------------------------------------------------------------------- */
+
+@media (forced-colors: active) {
+  :root {
+    --high-contrast-border: WindowText;
+    --high-contrast-outline: 2px solid WindowText;
+  }
+
+  /* Ensure borders are visible in high contrast mode where backgrounds might disappear */
+  .card,
+  .btn,
+  input,
+  select,
+  textarea {
+    border: 1px solid WindowText;
+  }
+
+  .btn-primary {
+    border: 2px solid WindowText;
+  }
 }
 
-/* ===== BUTTON DARK MODE POLISH ===== */
+/* --------------------------------------------------------------------------
+   6. SKIP LINK (Accessibility)
+   -------------------------------------------------------------------------- */
 
-.dark .btn-primary,
-.dark .btn-base.btn-primary {
-  background: var(--color-primary);
-  box-shadow: var(--shadow-glow-primary);
+/* Hidden by default, visible on focus */
+.skip-link {
+  position: absolute;
+  top: -9999px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-accent);
+  color: #fff;
+  padding: 1rem 2rem;
+  z-index: 9999;
+  text-decoration: none;
+  border-radius: 0 0 8px 8px;
+  font-weight: bold;
+  transition: top 0.3s ease;
 }
 
-.dark .btn-primary:hover:not(:disabled) {
-  background: #3b82f6;
-  box-shadow: 0 0 30px rgba(96, 165, 250, 0.4);
+.skip-link:focus {
+  top: 0;
+  outline: 3px solid #fff;
 }
 
-.dark .btn-ghost:hover:not(:disabled) {
-  background: var(--color-bg-tertiary);
+/* --------------------------------------------------------------------------
+   7. COMPONENT SPECIFIC OVERRIDES (Refined from legacy)
+   -------------------------------------------------------------------------- */
+
+/* Helper to apply styles when dark mode is active (via class or media query) */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-mode) .card,
+  :root:not(.light-mode) [class*="card-"] {
+    border-color: var(--color-border-subtle);
+  }
 }
 
-.dark .btn-outline {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+.dark-mode .card,
+.dark-mode [class*="card-"] {
+  border-color: var(--color-border-subtle);
 }
 
-.dark .btn-outline:hover:not(:disabled) {
-  background: rgba(96, 165, 250, 0.1);
+/* Inputs in Dark Mode */
+.dark-mode input,
+.dark-mode textarea,
+.dark-mode select {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-main);
 }
-
-/* ===== SIDEBAR DARK MODE ===== */
-
-.dark .sidebar,
-.dark .left-sidebar,
-.dark .right-sidebar {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-border);
-}
-
-.dark .menu-item:hover {
-  background: var(--color-bg-tertiary);
-}
-
-.dark .menu-item.active,
-.dark .menu-item.router-link-active {
-  background: rgba(96, 165, 250, 0.15);
-  color: var(--color-primary);
-}
-
-/* ===== MODAL DARK MODE ===== */
-
-.dark .modal-backdrop {
-  background: rgba(0, 0, 0, 0.7);
-}
-
-.dark .modal-container,
-.dark .modal-content {
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-}
-
-.dark .modal-header,
-.dark .modal-footer {
-  background: var(--color-bg-tertiary);
-  border-color: var(--color-border);
-}
-
-/* ===== TABLE DARK MODE ===== */
-
-.dark table,
-.dark .data-table {
-  background: var(--color-bg-secondary);
-}
-
-.dark thead,
-.dark th {
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-secondary);
-}
-
-.dark tbody tr {
-  border-color: var(--color-border);
-}
-
-.dark tbody tr:hover {
-  background: var(--color-bg-tertiary);
-}
-
-.dark tbody tr:nth-child(even) {
-  background: rgba(51, 65, 85, 0.3);
-}
-
-/* ===== DROPDOWN DARK MODE ===== */
-
-.dark .dropdown,
-.dark .dropdown-menu,
-.dark [class*="dropdown-"] {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-border);
-  box-shadow: var(--shadow-lg);
-}
-
-.dark .dropdown-item:hover {
-  background: var(--color-bg-tertiary);
-}
-
-/* ===== TAB DARK MODE ===== */
-
-.dark .tabs-list {
-  background: var(--color-bg-tertiary);
-}
-
-.dark .tab-button {
-  color: var(--color-text-secondary);
-}
-
-.dark .tab-button:hover {
-  color: var(--color-text-primary);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.dark .tab-button.active {
-  color: var(--color-primary);
-}
-
-.dark .tab-indicator {
-  background: var(--color-bg-secondary);
-}
-
-/* ===== SKELETON DARK MODE ===== */
-
-.dark .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--color-bg-tertiary) 25%,
-    rgba(71, 85, 105, 0.5) 50%,
-    var(--color-bg-tertiary) 75%
-  );
-}
-
-/* ===== TOAST/NOTIFICATION DARK MODE ===== */
-
-.dark .toast {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-border);
-  box-shadow: var(--shadow-lg);
-}
-
-/* ===== BADGE DARK MODE ===== */
-
-.dark .badge {
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
-}
-
-.dark .badge-primary {
-  background: rgba(96, 165, 250, 0.2);
-  color: var(--color-primary);
-}
-
-.dark .badge-success {
-  background: rgba(16, 185, 129, 0.2);
-  color: #34d399;
-}
-
-.dark .badge-warning {
-  background: rgba(245, 158, 11, 0.2);
-  color: #fbbf24;
-}
-
-.dark .badge-error {
-  background: rgba(239, 68, 68, 0.2);
-  color: #f87171;
-}
-
-/* ===== SCROLLBAR DARK MODE ===== */
-
-.dark ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.dark ::-webkit-scrollbar-track {
-  background: var(--color-bg-secondary);
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: var(--color-border-light);
-  border-radius: var(--radius-full);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-muted);
-}
-
-/* Firefox scrollbar */
-.dark * {
-  scrollbar-color: var(--color-border-light) var(--color-bg-secondary);
-  scrollbar-width: thin;
-}
-
-/* ===== DIVIDER/SEPARATOR DARK MODE ===== */
-
-.dark hr,
-.dark .divider,
-.dark .separator {
-  border-color: var(--color-border);
-}
-
-/* ===== TOOLTIP DARK MODE ===== */
-
-.dark .tooltip {
-  background: var(--color-bg-primary);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border);
-}
-
-/* ===== STATUS INDICATORS DARK MODE ===== */
-
-.dark .status-online {
-  background: #34d399;
-  box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
-}
-
-.dark .status-offline {
-  background: #6b7280;
-}
-
-.dark .status-busy {
-  background: #f87171;
-  box-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-mode) input,
+  :root:not(.light-mode) textarea,
+  :root:not(.light-mode) select {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-main);
+  }
 }

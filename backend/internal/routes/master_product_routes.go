@@ -35,6 +35,10 @@ func RegisterMasterProductRoutes(router *gin.RouterGroup, basePath string) {
 		// DELETE /api/master-products/:id
 		masterProducts.DELETE("/:id", handler.Delete)
 
+		// Batch update SKUs (price/stock)
+		// PUT /api/master-products/skus/batch
+		masterProducts.PUT("/skus/batch", handler.BatchUpdateSkus)
+
 		// Update single SKU (price/stock)
 		// PUT /api/master-products/skus/:id
 		masterProducts.PUT("/skus/:id", handler.UpdateSku)

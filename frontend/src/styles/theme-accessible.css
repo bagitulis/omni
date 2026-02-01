@@ -1,0 +1,180 @@
+/* 
+ * OMNI Accessible Theme System
+ * Integrates: Theming (Light/Dark), Accessibility, and Motion Preferences
+ * Aesthetic: "Midnight & Clay" - Editorial/Industrial
+ */
+
+/* =========================================
+   1. CORE VARIABLES (Light Mode Default)
+   ========================================= */
+:root {
+  /* --- PALETTE: Midnight & Clay --- */
+
+  /* Brand / Primary */
+  --color-primary: #0f172a; /* Deep Navy */
+  --color-primary-light: #1e293b;
+  --color-primary-dark: #020617;
+
+  /* Accent: International Orange */
+  --color-accent: #ff3300;
+  --color-accent-hover: #cc2900;
+  --color-accent-subtle: #fff0eb;
+
+  /* Neutrals */
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+  --color-neutral-950: #020617;
+
+  /* --- SEMANTIC TOKENS (Themable) --- */
+
+  /* Backgrounds */
+  --bg-body: #fdfbf7; /* Warm Alabaster */
+  --bg-surface: #ffffff; /* Pure White */
+  --bg-surface-elevated: #ffffff;
+  --bg-subtle: var(--color-neutral-50);
+  --bg-input: #ffffff;
+
+  /* Text */
+  --text-main: var(--color-primary-dark);
+  --text-secondary: var(--color-neutral-600);
+  --text-muted: var(--color-neutral-500);
+  --text-on-accent: #ffffff;
+
+  /* Borders */
+  --border-subtle: var(--color-neutral-200);
+  --border-default: var(--color-neutral-300);
+  --border-strong: var(--color-neutral-900);
+  --border-focus: var(--color-primary);
+
+  /* States */
+  --status-error: #ef4444;
+  --status-success: #10b981;
+  --focus-ring: 0 0 0 3px rgba(15, 23, 42, 0.2);
+}
+
+/* =========================================
+   2. DARK MODE (System Preference + Class)
+   ========================================= */
+
+/* Dark Mode Variables Mixin */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-body: var(--color-neutral-950);
+    --bg-surface: var(--color-neutral-900);
+    --bg-surface-elevated: var(--color-neutral-800);
+    --bg-subtle: var(--color-neutral-900);
+    --bg-input: var(--color-neutral-900);
+
+    --text-main: var(--color-neutral-50);
+    --text-secondary: var(--color-neutral-300);
+    --text-muted: var(--color-neutral-500);
+
+    --border-subtle: var(--color-neutral-800);
+    --border-default: var(--color-neutral-700);
+    --border-strong: var(--color-neutral-500);
+    --border-focus: #38bdf8; /* Sky Blue for better visibility on dark */
+
+    --color-primary: #38bdf8; /* Shift primary to lighter for dark mode readability */
+    --focus-ring: 0 0 0 3px rgba(56, 189, 248, 0.3);
+  }
+}
+
+/* Manual Override (.dark-mode class on body/html) */
+.dark-mode {
+  --bg-body: var(--color-neutral-950);
+  --bg-surface: var(--color-neutral-900);
+  --bg-surface-elevated: var(--color-neutral-800);
+  --bg-subtle: var(--color-neutral-900);
+  --bg-input: var(--color-neutral-900);
+
+  --text-main: var(--color-neutral-50);
+  --text-secondary: var(--color-neutral-300);
+  --text-muted: var(--color-neutral-500);
+
+  --border-subtle: var(--color-neutral-800);
+  --border-default: var(--color-neutral-700);
+  --border-strong: var(--color-neutral-500);
+  --border-focus: #38bdf8;
+
+  --color-primary: #38bdf8;
+  --focus-ring: 0 0 0 3px rgba(56, 189, 248, 0.3);
+}
+
+/* =========================================
+   3. ACCESSIBILITY UTILITIES
+   ========================================= */
+
+/* Focus Visible - High Visibility for Keyboard Users */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: 2px; /* Small radius for crisp look */
+  z-index: 10;
+}
+
+/* High Contrast Mode Adjustments */
+@media (prefers-contrast: more) {
+  :root,
+  .dark-mode {
+    --text-secondary: var(--color-neutral-900);
+    --border-subtle: var(--color-neutral-600);
+    --border-default: var(--color-neutral-900);
+  }
+}
+
+/* High Contrast + Dark Mode (System) */
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root {
+    --text-secondary: var(--color-neutral-100);
+    --border-subtle: var(--color-neutral-400);
+  }
+}
+
+/* High Contrast + Dark Mode (Manual Class) */
+@media (prefers-contrast: more) {
+  .dark-mode {
+    --text-secondary: var(--color-neutral-100);
+    --border-subtle: var(--color-neutral-400);
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Skip Link - Hidden until focused */
+.skip-link {
+  position: absolute;
+  top: -9999px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-accent);
+  color: white;
+  padding: 1rem 1.5rem;
+  z-index: 9999;
+  font-weight: bold;
+  text-decoration: none;
+  border-radius: 0 0 4px 4px;
+  transition: top 0.2s ease-out;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 3px solid white;
+}

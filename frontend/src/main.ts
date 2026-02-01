@@ -7,6 +7,7 @@ import router from "./router";
 
 // Import Tailwind styles
 import "./styles/tailwind.css";
+import "./styles/theme-unified.css";
 import "./styles/icons.css";
 import "./styles/compact-scale.css";
 

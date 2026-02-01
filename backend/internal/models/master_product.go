@@ -38,7 +38,7 @@ type MasterProductSku struct {
 	UpdatedAt       time.Time `gorm:"column:updated_at" json:"updated_at"`
 
 	// Relations
-	PlatformLinks []MasterProductPlatformLink `gorm:"foreignKey:MasterSkuID" json:"platform_links,omitempty"`
+	PlatformLinks []MasterProductPlatformLink `gorm:"foreignKey:MasterSkuID;references:ID" json:"platform_links,omitempty"`
 }
 
 // TableName specifies the PostgreSQL table name

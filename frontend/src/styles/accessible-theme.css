@@ -1,0 +1,219 @@
+/* ==========================================================================
+   ACCESSIBLE THEME SYSTEM
+   Integrated Dark Mode, High Contrast, and Reduced Motion Support
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. CSS VARIABLES & THEME TOKENS
+   -------------------------------------------------------------------------- */
+:root {
+  /* --- Light Theme Defaults --- */
+
+  /* Color Palette - Neutral */
+  --color-neutral-50: #f9fafb;
+  --color-neutral-100: #f3f4f6;
+  --color-neutral-200: #e5e7eb;
+  --color-neutral-300: #d1d5db;
+  --color-neutral-400: #9ca3af;
+  --color-neutral-500: #6b7280;
+  --color-neutral-600: #4b5563;
+  --color-neutral-700: #374151;
+  --color-neutral-800: #1f2937;
+  --color-neutral-900: #111827;
+
+  /* Color Palette - Brand (Example: Indigo) */
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-contrast: #ffffff;
+
+  /* Semantic - Backgrounds */
+  --bg-canvas: #ffffff;
+  --bg-surface: var(--color-neutral-50);
+  --bg-surface-elevated: #ffffff;
+
+  /* Semantic - Text */
+  --text-primary: var(--color-neutral-900);
+  --text-secondary: var(--color-neutral-600);
+  --text-tertiary: var(--color-neutral-400);
+  --text-inverted: #ffffff;
+
+  /* Semantic - Borders */
+  --border-subtle: var(--color-neutral-200);
+  --border-default: var(--color-neutral-300);
+  --border-focus: var(--color-brand-500);
+
+  /* Semantic - Feedback */
+  --color-error: #ef4444;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+
+  /* Focus Ring Configuration */
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: rgba(99, 102, 241, 0.5); /* Brand with opacity */
+  --focus-transition: box-shadow 0.2s ease-in-out;
+}
+
+/* --------------------------------------------------------------------------
+   2. PREFERS-COLOR-SCHEME (System Dark Mode)
+   -------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Backgrounds - Inverted */
+    --bg-canvas: var(--color-neutral-900);
+    --bg-surface: var(--color-neutral-800);
+    --bg-surface-elevated: var(--color-neutral-700);
+
+    /* Text - Inverted */
+    --text-primary: var(--color-neutral-50);
+    --text-secondary: var(--color-neutral-300);
+    --text-tertiary: var(--color-neutral-500);
+    --text-inverted: var(--color-neutral-900);
+
+    /* Borders - Darkened */
+    --border-subtle: var(--color-neutral-800);
+    --border-default: var(--color-neutral-700);
+
+    /* Brand adjustments for contrast */
+    --color-brand-500: #818cf8; /* Lighter indigo for dark mode */
+    --color-brand-600: #6366f1;
+
+    /* Focus Ring */
+    --focus-ring-color: rgba(129, 140, 248, 0.5);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   3. MANUAL OVERRIDE (.dark-mode class)
+   -------------------------------------------------------------------------- */
+/* 
+   Applied to <body> or <html> to force dark mode regardless of system preference.
+   Useful for user toggles.
+*/
+.dark-mode {
+  --bg-canvas: var(--color-neutral-900);
+  --bg-surface: var(--color-neutral-800);
+  --bg-surface-elevated: var(--color-neutral-700);
+
+  --text-primary: var(--color-neutral-50);
+  --text-secondary: var(--color-neutral-300);
+  --text-tertiary: var(--color-neutral-500);
+  --text-inverted: var(--color-neutral-900);
+
+  --border-subtle: var(--color-neutral-800);
+  --border-default: var(--color-neutral-700);
+
+  --color-brand-500: #818cf8;
+  --color-brand-600: #6366f1;
+
+  --focus-ring-color: rgba(129, 140, 248, 0.5);
+
+  color-scheme: dark; /* Helps browser UI (scrollbars, inputs) adapt */
+}
+
+/* Apply base styles */
+body {
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+/* --------------------------------------------------------------------------
+   4. ACCESSIBILITY: FOCUS VISIBLE
+   -------------------------------------------------------------------------- */
+/* 
+   Show focus styles ONLY when navigating by keyboard.
+   Preserves visual cleanliness for mouse users while maintaining a11y.
+*/
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--border-focus);
+  outline-offset: var(--focus-ring-offset);
+  box-shadow: 0 0 0 4px var(--focus-ring-color);
+  border-radius: 2px; /* Slight rounding for aesthetics */
+}
+
+/* Reset default browser outline for mouse users if they click */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* --------------------------------------------------------------------------
+   5. ACCESSIBILITY: REDUCED MOTION
+   -------------------------------------------------------------------------- */
+/*
+   Respects user system settings for reduced motion.
+   Essential for users with vestibular disorders.
+*/
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   6. ACCESSIBILITY: HIGH CONTRAST MODE
+   -------------------------------------------------------------------------- */
+/*
+   Support for Windows High Contrast Mode (forced-colors).
+   System colors (ButtonText, Canvas, etc.) are used instead of custom colors.
+*/
+@media (forced-colors: active) {
+  :root {
+    --border-focus: Highlight;
+    --focus-ring-color: transparent; /* Ring replaced by outline in HCM */
+  }
+
+  /* Ensure borders exist for boundaries */
+  button,
+  input,
+  textarea,
+  select,
+  .card,
+  .modal {
+    border: 1px solid ButtonText;
+  }
+
+  /* Ensure links are visible */
+  a {
+    color: LinkText;
+    text-decoration: underline;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   7. ACCESSIBILITY: SKIP LINK
+   -------------------------------------------------------------------------- */
+/*
+   Hidden link that becomes visible on focus.
+   Allows keyboard users to bypass navigation.
+   Usage: <a href="#main-content" class="skip-link">Skip to content</a>
+*/
+.skip-link {
+  position: absolute;
+  top: -9999px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+
+  background-color: var(--color-brand-600);
+  color: var(--color-brand-contrast);
+  font-weight: 700;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0 0 0.5rem 0.5rem;
+  text-decoration: none;
+
+  /* Smooth entrance animation */
+  transition: top 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 3px solid var(--border-focus);
+}
