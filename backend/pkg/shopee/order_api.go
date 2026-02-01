@@ -41,12 +41,45 @@ func (c *Client) GetOrderList(timeFrom, timeTo int64, timeRangeField string, ord
 }
 
 // GetOrderDetail gets order details by order SNs
-// Includes item_list via response_optional_fields
+// Includes buyer info, payment, shipping via response_optional_fields
 func (c *Client) GetOrderDetail(orderSNList []string) (*GetOrderDetailResponse, error) {
 	path := "/api/v2/order/get_order_detail"
+	// Request all important optional fields from Shopee API
+	optionalFields := strings.Join([]string{
+		"buyer_user_id",
+		"buyer_username",
+		"recipient_address",
+		"actual_shipping_fee",
+		"goods_to_declare",
+		"note",
+		"note_update_time",
+		"item_list",
+		"pay_time",
+		"dropshipper",
+		"dropshipper_phone",
+		"split_up",
+		"buyer_cancel_reason",
+		"cancel_by",
+		"cancel_reason",
+		"actual_shipping_fee_confirmed",
+		"buyer_cpf_id",
+		"fulfillment_flag",
+		"pickup_done_time",
+		"package_list",
+		"shipping_carrier",
+		"payment_method",
+		"total_amount",
+		"invoice_data",
+		"checkout_shipping_carrier",
+		"reverse_shipping_fee",
+		"order_chargeable_weight_gram",
+		"edt",
+		"prescription_images",
+		"prescription_check_status",
+	}, ",")
 	params := map[string]string{
 		"order_sn_list":            strings.Join(orderSNList, ","),
-		"response_optional_fields": "item_list",
+		"response_optional_fields": optionalFields,
 	}
 
 	var result GetOrderDetailResponse

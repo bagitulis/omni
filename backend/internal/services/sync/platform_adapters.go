@@ -70,14 +70,15 @@ func (m *ShopeeOrderManager) GetOrderList(ctx context.Context, status string, da
 
 	// Enrich orders with details (total_amount, buyer_username, payment_method)
 	if len(orders) > 0 {
-		m.enrichOrdersWithDetails(ctx, orders)
+		orders = m.enrichOrdersWithDetails(ctx, orders)
 	}
 
 	return orders, nil
 }
 
 // enrichOrdersWithDetails fetches and merges order details into orders
-func (m *ShopeeOrderManager) enrichOrdersWithDetails(ctx context.Context, orders []Order) {
+// Returns the enriched orders slice
+func (m *ShopeeOrderManager) enrichOrdersWithDetails(ctx context.Context, orders []Order) []Order {
 	orderSNs := make([]string, len(orders))
 	for i, o := range orders {
 		orderSNs[i] = o.OrderSN
@@ -98,6 +99,18 @@ func (m *ShopeeOrderManager) enrichOrdersWithDetails(ctx context.Context, orders
 			continue
 		}
 
+		adapterLogger.WithFields(map[string]interface{}{
+			"batch_size":   len(batch),
+			"details_size": len(details),
+		}).Info("Fetched order details for enrichment")
+
+		// Debug: print first detail
+		if len(details) > 0 {
+			d := details[0]
+			fmt.Printf("[enrichOrdersWithDetails] Sample detail: order_sn=%v, total_amount=%v, buyer_username=%v, payment_method=%v\n",
+				d["order_sn"], d["total_amount"], d["buyer_username"], d["payment_method"])
+		}
+
 		for _, d := range details {
 			if sn, ok := d["order_sn"].(string); ok {
 				detailMap[sn] = d
@@ -105,7 +118,8 @@ func (m *ShopeeOrderManager) enrichOrdersWithDetails(ctx context.Context, orders
 		}
 	}
 
-	// Merge details into orders
+	// Merge details into orders - create new slice with modified values
+	mergedCount := 0
 	for i := range orders {
 		if detail, ok := detailMap[orders[i].OrderSN]; ok {
 			orders[i].TotalAmount = getFloat64(detail, "total_amount")
@@ -115,8 +129,13 @@ func (m *ShopeeOrderManager) enrichOrdersWithDetails(ctx context.Context, orders
 			if orders[i].Currency == "" {
 				orders[i].Currency = "IDR"
 			}
+			mergedCount++
 		}
 	}
+
+	fmt.Printf("[enrichOrdersWithDetails] Merged %d orders with details\n", mergedCount)
+
+	return orders
 }
 
 // GetOrderDetails fetches order details from Shopee

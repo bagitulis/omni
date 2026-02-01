@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// saveShopeeOrders saves Shopee orders using models package
+// saveShopeeOrders saves Shopee orders using models package (upsert pattern)
 func (r *GormOrderRepository) saveShopeeOrders(ctx context.Context, db *gorm.DB, orders []Order) error {
 	for _, order := range orders {
 		var totalAmount *float64
@@ -16,24 +16,60 @@ func (r *GormOrderRepository) saveShopeeOrders(ctx context.Context, db *gorm.DB,
 			totalAmount = &order.TotalAmount
 		}
 
-		model := models.ShopeeOrder{
-			TenantID:        r.tenantID,
-			OrderSN:         order.OrderSN,
-			OrderStatus:     order.Status,
-			TotalAmount:     totalAmount,
-			Currency:        order.Currency,
-			BuyerUsername:   order.BuyerUsername,
-			PaymentMethod:   order.PaymentMethod,
-			ShippingCarrier: order.ShippingCarrier,
-			BuyerMessage:    order.BuyerMessage,
-		}
+		// Debug log
+		fmt.Printf("[saveShopeeOrders] OrderSN=%s TotalAmount=%.2f Buyer=%s PaymentMethod=%s\n",
+			order.OrderSN, order.TotalAmount, order.BuyerUsername, order.PaymentMethod)
 
-		result := db.WithContext(ctx).
-			Where("order_sn = ?", order.OrderSN).
-			Assign(model).
-			FirstOrCreate(&model)
-		if result.Error != nil {
-			return result.Error
+		// First, try to find existing record
+		var existing models.ShopeeOrder
+		result := db.WithContext(ctx).Where("order_sn = ?", order.OrderSN).First(&existing)
+
+		if result.Error == nil {
+			// Record exists - UPDATE it with new data
+			updates := map[string]interface{}{
+				"order_status": order.Status,
+			}
+			// Only update non-empty fields - use actual value not pointer for GORM
+			if order.TotalAmount > 0 {
+				updates["total_amount"] = order.TotalAmount
+			}
+			if order.Currency != "" {
+				updates["currency"] = order.Currency
+			}
+			if order.BuyerUsername != "" {
+				updates["buyer_username"] = order.BuyerUsername
+			}
+			if order.PaymentMethod != "" {
+				updates["payment_method"] = order.PaymentMethod
+			}
+			if order.ShippingCarrier != "" {
+				updates["shipping_carrier"] = order.ShippingCarrier
+			}
+			if order.BuyerMessage != "" {
+				updates["buyer_message"] = order.BuyerMessage
+			}
+
+			fmt.Printf("[saveShopeeOrders] Updating %s with updates=%+v\n", order.OrderSN, updates)
+
+			if err := db.WithContext(ctx).Model(&existing).Updates(updates).Error; err != nil {
+				return err
+			}
+		} else {
+			// Record doesn't exist - CREATE it
+			model := models.ShopeeOrder{
+				TenantID:        r.tenantID,
+				OrderSN:         order.OrderSN,
+				OrderStatus:     order.Status,
+				TotalAmount:     totalAmount,
+				Currency:        order.Currency,
+				BuyerUsername:   order.BuyerUsername,
+				PaymentMethod:   order.PaymentMethod,
+				ShippingCarrier: order.ShippingCarrier,
+				BuyerMessage:    order.BuyerMessage,
+			}
+			if err := db.WithContext(ctx).Create(&model).Error; err != nil {
+				return err
+			}
 		}
 
 		// Save order items if present

@@ -266,6 +266,13 @@ func (c *ShopeeAPIClient) GetOrderDetails(ctx context.Context, orderIDs []string
 		return []map[string]interface{}{}, nil
 	}
 
+	// Debug: Log first order details to verify API response
+	if len(response.Response.OrderList) > 0 {
+		first := response.Response.OrderList[0]
+		fmt.Printf("[Shopee GetOrderDetails] Sample: order_sn=%s, total_amount=%.2f, buyer=%s, payment=%s, carrier=%s\n",
+			first.OrderSN, first.TotalAmount, first.BuyerUsername, first.PaymentMethod, first.ShippingCarrier)
+	}
+
 	// Convert to generic format - includes items
 	result := make([]map[string]interface{}, 0, len(response.Response.OrderList))
 	for _, order := range response.Response.OrderList {
@@ -284,16 +291,31 @@ func (c *ShopeeAPIClient) GetOrderDetails(ctx context.Context, orderIDs []string
 			})
 		}
 
+		// Determine best shipping carrier from available fields
+		shippingCarrier := order.ShippingCarrier
+		if shippingCarrier == "" {
+			shippingCarrier = order.CheckoutShippingCarrier
+		}
+
+		// Determine buyer message
+		buyerMessage := order.Note
+		if buyerMessage == "" {
+			buyerMessage = order.MessageToSeller
+		}
+
 		result = append(result, map[string]interface{}{
-			"order_sn":       order.OrderSN,
-			"status":         order.OrderStatus,
-			"total_amount":   order.TotalAmount,
-			"currency":       order.Currency,
-			"buyer_username": order.BuyerUsername,
-			"payment_method": order.PaymentMethod,
-			"create_time":    order.CreateTime,
-			"platform":       "shopee",
-			"items":          items,
+			"order_sn":         order.OrderSN,
+			"status":           order.OrderStatus,
+			"total_amount":     order.TotalAmount,
+			"currency":         order.Currency,
+			"buyer_user_id":    order.BuyerUserID,
+			"buyer_username":   order.BuyerUsername,
+			"payment_method":   order.PaymentMethod,
+			"shipping_carrier": shippingCarrier,
+			"buyer_message":    buyerMessage,
+			"create_time":      order.CreateTime,
+			"platform":         "shopee",
+			"items":            items,
 		})
 	}
 

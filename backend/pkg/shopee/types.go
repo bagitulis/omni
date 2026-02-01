@@ -117,15 +117,20 @@ type GetOrderDetailResponse struct {
 
 // OrderDetailItem represents an order detail item
 type OrderDetailItem struct {
-	OrderSN       string            `json:"order_sn"`
-	OrderStatus   string            `json:"order_status"`
-	TotalAmount   float64           `json:"total_amount"`
-	Currency      string            `json:"currency"`
-	CreateTime    int64             `json:"create_time"`
-	UpdateTime    int64             `json:"update_time"`
-	PaymentMethod string            `json:"payment_method"`
-	BuyerUsername string            `json:"buyer_username"`
-	ItemList      []OrderItemDetail `json:"item_list"` // Order items
+	OrderSN                 string            `json:"order_sn"`
+	OrderStatus             string            `json:"order_status"`
+	TotalAmount             float64           `json:"total_amount"`
+	Currency                string            `json:"currency"`
+	CreateTime              int64             `json:"create_time"`
+	UpdateTime              int64             `json:"update_time"`
+	PaymentMethod           string            `json:"payment_method"`
+	BuyerUserID             int64             `json:"buyer_user_id"`
+	BuyerUsername           string            `json:"buyer_username"`
+	ShippingCarrier         string            `json:"shipping_carrier"`
+	CheckoutShippingCarrier string            `json:"checkout_shipping_carrier"`
+	Note                    string            `json:"note"`
+	MessageToSeller         string            `json:"message_to_seller"`
+	ItemList                []OrderItemDetail `json:"item_list"` // Order items
 }
 
 // OrderItemDetail represents an item in an order

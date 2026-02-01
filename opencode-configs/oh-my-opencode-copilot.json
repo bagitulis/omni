@@ -47,7 +47,7 @@
       "model": "github-copilot/gemini-3-pro-preview"
     },
     "writing": {
-      "model": "github-copilot/gpt-5.2"
+      "model": "github-copilot/claude-haiku-4.5"
     },
     "quick": {
       "model": "github-copilot/claude-haiku-4.5"
@@ -56,7 +56,7 @@
       "model": "github-copilot/claude-opus-4.5"
     },
     "deep": {
-      "model": "github-copilot/claude-opus-4.5"
+      "model": "github-copilot/gemini-3-pro-preview"
     },
     "implementation": {
       "model": "github-copilot/claude-opus-4.5"
@@ -74,7 +74,7 @@
       "model": "github-copilot/claude-haiku-4.5"
     },
     "unspecified-high": {
-      "model": "github-copilot/claude-haiku-4.5"
+      "model": "github-copilot/claude-opus-4.5"
     }
   }
 }
