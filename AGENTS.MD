@@ -416,8 +416,22 @@ Prometheus harus verifikasi:
 |------|----------|--------|
 
 ### Success Criteria
-- [ ] go build passes
-- [ ] go test passes
+
+#### Build & Test
+- [ ] go build ./... passes
+- [ ] go test ./... passes
+
+#### Code Quality
+- [ ] Format sesuai AGENTS.md (snake_case JSON, architecture)
+- [ ] Tidak ada duplicate/dead code
+
+#### Frontend (jika rubah frontend)
+- [ ] UI/UX layout tidak berantakan (cek langsung kode, BUKAN Playwright)
+- [ ] Component structure rapi
+
+#### Integrasi
+- [ ] Data muncul di tabel (tidak ada kolom kosong)
+- [ ] Backend-Frontend-Database terhubung dengan benar
 ```
 
 **Full details & examples**: See `PROMETHEUS_RULES.md`

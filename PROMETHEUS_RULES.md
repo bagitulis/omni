@@ -82,10 +82,30 @@ Sebelum membuat plan, Prometheus HARUS:
 | ... | ... | ... |
 
 ### Success Criteria
+
+#### Build & Test
 - [ ] go build ./... passes
 - [ ] go test ./... passes
-- [ ] Evidence terkumpul
 - [ ] Semua file < 300 baris
+
+#### Code Quality (sesuai AGENTS.md)
+- [ ] Format code sesuai AGENTS.md (snake_case JSON, architecture pattern)
+- [ ] Tidak ada duplicate/dead code
+- [ ] Tidak ada false positives (success: true hanya untuk sukses)
+
+#### Frontend (jika ada perubahan frontend)
+- [ ] UI/UX layout tidak berantakan (verifikasi langsung di kode, BUKAN pakai Playwright)
+- [ ] Component structure rapi dan reusable
+- [ ] Responsive design tetap terjaga
+
+#### Integrasi (Backend + Frontend + Database)
+- [ ] Data muncul di tabel frontend (tidak ada kolom kosong)
+- [ ] API response sesuai format (snake_case)
+- [ ] Database query mengembalikan data yang benar
+
+#### Evidence
+- [ ] Docker log menunjukkan operasi berhasil dengan data spesifik
+- [ ] Test output menunjukkan semua test PASS
 ```
 
 ---
@@ -224,9 +244,19 @@ kita testing dan cleanup...
 | `internal/utils/export_utils.go` | ~100 baris | Create |
 
 ### Success Criteria
-- [ ] go build passes
-- [ ] go test passes
+
+#### Build & Test
+- [ ] go build ./... passes
+- [ ] go test ./... passes
+
+#### Code Quality
+- [ ] Format sesuai AGENTS.md (snake_case JSON)
+- [ ] Tidak ada duplicate/dead code
+
+#### Integrasi
 - [ ] Export endpoint returns valid CSV/Excel
+- [ ] Data muncul lengkap (tidak ada kolom kosong)
+- [ ] Docker log menunjukkan export berhasil dengan jumlah record
 ```
 
 ---
