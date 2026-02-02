@@ -58,6 +58,26 @@ func getInt(m map[string]interface{}, key string) int {
 	return 0
 }
 
+// getInt64 gets an int64 value from a map, supporting nested keys with dot notation
+func getInt64(m map[string]interface{}, key string) int64 {
+	val := getNestedValue(m, key)
+	if val == nil {
+		return 0
+	}
+	switch v := val.(type) {
+	case int64:
+		return v
+	case int:
+		return int64(v)
+	case float64:
+		return int64(v)
+	case string:
+		i, _ := strconv.ParseInt(v, 10, 64)
+		return i
+	}
+	return 0
+}
+
 // getNestedValue retrieves a value from a nested map using dot notation
 func getNestedValue(m map[string]interface{}, key string) interface{} {
 	if !strings.Contains(key, ".") {
