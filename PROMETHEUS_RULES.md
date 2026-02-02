@@ -20,18 +20,135 @@ Prometheus TIDAK mengerjakan task. Prometheus MEMBUAT RENCANA dalam bentuk TODO 
 
 Sebelum membuat plan, Prometheus HARUS:
 
-| # | Langkah | Deskripsi |
-|---|---------|-----------|
-| 1 | Baca AGENTS.md | Fokus pada Critical Rules & Architecture |
-| 2 | Identifikasi file | List SEMUA file yang akan dimodifikasi |
-| 3 | Cek database | Perlu migration? |
-| 4 | Cek multi-tenant | Perlu validasi tenant_id? |
-| 5 | Estimasi baris | Max 300 per file (models: 500) |
-| 6 | Tentukan evidence | Unit→Test, Integration→Docker/Test, Full→Both |
+| #   | Langkah             | Deskripsi                                     |
+| --- | ------------------- | --------------------------------------------- |
+| 1   | Baca AGENTS.md      | Fokus pada Critical Rules & Architecture      |
+| 2   | Identifikasi file   | List SEMUA file yang akan dimodifikasi        |
+| 3   | Cek database        | Perlu migration?                              |
+| 4   | Cek multi-tenant    | Perlu validasi tenant_id?                     |
+| 5   | Estimasi baris      | Max 300 per file (models: 500)                |
+| 6   | Tentukan evidence   | Unit→Test, Integration→Docker/Test, Full→Both |
+| 7   | **ANALISIS DAMPAK** | **WAJIB - Lihat section di bawah**            |
 
 ---
 
-## 2. OUTPUT FORMAT: TODO LIST
+## 2. ANALISIS DAMPAK PERUBAHAN (WAJIB)
+
+> **⚠️ SANGAT PENTING:** Setiap perubahan HARUS dianalisis dampaknya secara komprehensif sebelum eksekusi.
+
+### Checklist Analisis Dampak
+
+Untuk SETIAP file yang akan dimodifikasi, Prometheus HARUS menganalisis:
+
+#### A. Dampak ke Backend
+
+| Pertanyaan                             | Harus Dijawab                             |
+| -------------------------------------- | ----------------------------------------- |
+| Function/method mana yang berubah?     | List semua function                       |
+| Siapa yang memanggil function ini?     | Cari semua caller (gunakan grep/LSP)      |
+| Apakah signature function berubah?     | Jika ya, semua caller harus diupdate      |
+| Apakah return type berubah?            | Jika ya, semua consumer harus diupdate    |
+| Apakah ada interface yang terpengaruh? | Jika ya, semua implementor harus diupdate |
+
+#### B. Dampak ke Frontend
+
+| Pertanyaan                                | Harus Dijawab                               |
+| ----------------------------------------- | ------------------------------------------- |
+| API endpoint mana yang berubah?           | List semua endpoint                         |
+| Component mana yang consume API ini?      | Cari semua component yang fetch             |
+| Apakah response format berubah?           | Jika ya, semua consumer harus diupdate      |
+| Apakah props/state berubah?               | Jika ya, parent/child component terpengaruh |
+| Apakah ada shared component yang berubah? | Jika ya, semua user component terpengaruh   |
+
+#### C. Dampak ke Database
+
+| Pertanyaan                               | Harus Dijawab             |
+| ---------------------------------------- | ------------------------- |
+| Tabel mana yang berubah?                 | List semua tabel          |
+| Kolom mana yang ditambah/diubah/dihapus? | Detail perubahan          |
+| Apakah ada foreign key yang terpengaruh? | Cek relasi                |
+| Apakah ada index yang perlu diupdate?    | Performance consideration |
+| Apakah data existing perlu dimigrate?    | Data migration plan       |
+
+#### D. Dampak Integrasi
+
+| Pertanyaan                                | Harus Dijawab                     |
+| ----------------------------------------- | --------------------------------- |
+| API contract berubah?                     | Frontend harus sync               |
+| Apakah breaking change?                   | Jika ya, harus ada migration path |
+| Apakah perlu update dokumentasi API?      | Swagger/OpenAPI                   |
+| Apakah ada service lain yang terpengaruh? | Microservice dependencies         |
+
+### Template Analisis Dampak (WAJIB ada di Plan)
+
+```markdown
+### Analisis Dampak Perubahan
+
+#### File: `[path/to/file]`
+
+- **Perubahan:** [deskripsi singkat]
+- **Caller/Consumer yang terpengaruh:**
+  - `file1.go` - function X memanggil function yang diubah
+  - `Component.vue` - consume API yang diubah
+- **Breaking change:** [Ya/Tidak]
+- **Action required:**
+  - [ ] Update caller di file1.go
+  - [ ] Update Component.vue untuk handle response baru
+```
+
+### Contoh Analisis Dampak
+
+#### ❌ SALAH (Tanpa Analisis Dampak)
+
+```
+## Task: Ubah format response order
+
+### TODO LIST
+1. [ ] Ubah response di order_handler.go
+2. [ ] Done
+```
+
+#### ✅ BENAR (Dengan Analisis Dampak)
+
+```
+## Task: Ubah format response order
+
+### Analisis Dampak Perubahan
+
+#### File: `internal/handlers/order_handler.go`
+- **Perubahan:** Ubah field `orderSn` menjadi `order_sn` (snake_case)
+- **Caller/Consumer yang terpengaruh:**
+  - `frontend/src/api/order.ts` - parsing response
+  - `frontend/src/views/OrderList.vue` - display di tabel
+  - `frontend/src/views/OrderDetail.vue` - display detail
+- **Breaking change:** Ya - frontend expect `orderSn`
+- **Action required:**
+  - [ ] Update order.ts interface
+  - [ ] Update OrderList.vue template binding
+  - [ ] Update OrderDetail.vue template binding
+  - [ ] Verify tabel tidak ada kolom kosong setelah perubahan
+
+### TODO LIST
+1. [ ] **[Phase 1] Analisis**
+   - [ ] Grep semua penggunaan `orderSn` di frontend
+   - [ ] List semua component yang terpengaruh
+
+2. [ ] **[Phase 2] Backend**
+   - [ ] Ubah response format di order_handler.go
+
+3. [ ] **[Phase 3] Frontend**
+   - [ ] Update interface di order.ts
+   - [ ] Update OrderList.vue
+   - [ ] Update OrderDetail.vue
+
+4. [ ] **[Phase 4] Testing**
+   - [ ] Verify data muncul di tabel (tidak ada kolom kosong)
+   - [ ] go build && go test
+```
+
+---
+
+## 3. OUTPUT FORMAT: TODO LIST
 
 **WAJIB:** Prometheus harus output dalam format TODO LIST yang bisa langsung dieksekusi.
 
@@ -41,11 +158,17 @@ Sebelum membuat plan, Prometheus HARUS:
 ## Task: [Nama Task]
 
 ### Pre-Planning Verification
+
 - AGENTS.md sudah dibaca: [Ya/Tidak]
 - File yang teridentifikasi: [list files]
 - Database changes: [Ya/Tidak - jika ya, migration required]
 - Multi-tenant: [Ya/Tidak - jika ya, tenant_id validation required]
 - Evidence type: [Unit/Integration/Full Feature]
+- **Analisis dampak sudah dilakukan: [Ya/Tidak]**
+
+### Analisis Dampak Perubahan
+
+[Wajib diisi - lihat template di Section 2]
 
 ### TODO LIST
 
@@ -76,88 +199,98 @@ Sebelum membuat plan, Prometheus HARUS:
    - [ ] Apply Docker jika perlu: build.py smart
 
 ### Affected Files
-| File | Estimasi Baris | Action |
-|------|----------------|--------|
-| `path/to/file.go` | ~150 baris | Create/Modify |
-| ... | ... | ... |
+
+| File              | Estimasi Baris | Action        |
+| ----------------- | -------------- | ------------- |
+| `path/to/file.go` | ~150 baris     | Create/Modify |
+| ...               | ...            | ...           |
 
 ### Success Criteria
 
 #### Build & Test
+
 - [ ] go build ./... passes
 - [ ] go test ./... passes
 - [ ] Semua file < 300 baris
 
 #### Code Quality (sesuai AGENTS.md)
+
 - [ ] Format code sesuai AGENTS.md (snake_case JSON, architecture pattern)
 - [ ] Tidak ada duplicate/dead code
 - [ ] Tidak ada false positives (success: true hanya untuk sukses)
 
 #### Frontend (jika ada perubahan frontend)
+
 - [ ] UI/UX layout tidak berantakan (verifikasi langsung di kode, BUKAN pakai Playwright)
 - [ ] Component structure rapi dan reusable
 - [ ] Responsive design tetap terjaga
 
 #### Integrasi (Backend + Frontend + Database)
+
 - [ ] Data muncul di tabel frontend (tidak ada kolom kosong)
 - [ ] API response sesuai format (snake_case)
 - [ ] Database query mengembalikan data yang benar
 
 #### Evidence
+
 - [ ] Docker log menunjukkan operasi berhasil dengan data spesifik
 - [ ] Test output menunjukkan semua test PASS
 ```
 
 ---
 
-## 3. QUALITY GATES
+## 4. QUALITY GATES
 
 Plan VALID hanya jika SEMUA gate terpenuhi:
 
-| # | Gate | Requirement |
-|---|------|-------------|
-| 1 | Ada TODO List | Format checklist [ ] yang bisa dieksekusi |
-| 2 | File Size | Semua file < 300 baris (models: 500) |
-| 3 | Architecture | Handler → Service → Repository |
-| 4 | JSON Tags | Semua snake_case |
-| 5 | Testing Phase | go build + go test ada di todo |
-| 6 | Tenant Check | Validasi tenant_id jika endpoint protected |
-| 7 | Cleanup Phase | DRY, SRP review ada di todo |
-| 8 | Evidence Type | Disebutkan di plan |
+| #   | Gate                | Requirement                                       |
+| --- | ------------------- | ------------------------------------------------- |
+| 1   | Ada TODO List       | Format checklist [ ] yang bisa dieksekusi         |
+| 2   | **Analisis Dampak** | **WAJIB ada untuk setiap file yang dimodifikasi** |
+| 3   | File Size           | Semua file < 300 baris (models: 500)              |
+| 4   | Architecture        | Handler → Service → Repository                    |
+| 5   | JSON Tags           | Semua snake_case                                  |
+| 6   | Testing Phase       | go build + go test ada di todo                    |
+| 7   | Tenant Check        | Validasi tenant_id jika endpoint protected        |
+| 8   | Cleanup Phase       | DRY, SRP review ada di todo                       |
+| 9   | Evidence Type       | Disebutkan di plan                                |
 
 **Jika ada gate yang GAGAL → revisi plan sebelum eksekusi.**
 
 ---
 
-## 4. ANTI-PATTERNS (DILARANG)
+## 5. ANTI-PATTERNS (DILARANG)
 
-| # | Jangan | Lakukan |
-|---|--------|---------|
-| 1 | Output prose/paragraph panjang | Output TODO LIST dengan [ ] |
-| 2 | Skip file size limit | Tulis "max 300 baris" di setiap file |
-| 3 | Business logic di Handler | Arahkan ke Service layer |
-| 4 | Skip tenant_id validation | Selalu validasi di protected endpoints |
-| 5 | camelCase di JSON response | Gunakan snake_case |
-| 6 | Skip testing phase | WAJIB ada go build + go test |
-| 7 | Assume default tenant | Explicit error jika missing |
-| 8 | Skip cleanup phase | WAJIB ada DRY/SRP review |
+| #   | Jangan                              | Lakukan                                    |
+| --- | ----------------------------------- | ------------------------------------------ |
+| 1   | Output prose/paragraph panjang      | Output TODO LIST dengan [ ]                |
+| 2   | **Skip analisis dampak**            | **WAJIB analisis dampak setiap perubahan** |
+| 3   | Skip file size limit                | Tulis "max 300 baris" di setiap file       |
+| 4   | Business logic di Handler           | Arahkan ke Service layer                   |
+| 5   | Skip tenant_id validation           | Selalu validasi di protected endpoints     |
+| 6   | camelCase di JSON response          | Gunakan snake_case                         |
+| 7   | Skip testing phase                  | WAJIB ada go build + go test               |
+| 8   | Assume default tenant               | Explicit error jika missing                |
+| 9   | Skip cleanup phase                  | WAJIB ada DRY/SRP review                   |
+| 10  | Ubah API tanpa cek frontend         | Cek semua consumer di frontend             |
+| 11  | Ubah DB schema tanpa migration plan | Selalu sertakan migration steps            |
 
 ---
 
-## 5. EVIDENCE REQUIREMENTS
+## 6. EVIDENCE REQUIREMENTS
 
-| Task Type | Required Evidence |
-|-----------|-------------------|
-| Unit Test / Code Only | Test output saja |
-| Integration / API | Docker log ATAU Test output |
-| Full Feature | Docker log DAN Test output |
-| Documentation | Visual confirmation |
+| Task Type             | Required Evidence           |
+| --------------------- | --------------------------- |
+| Unit Test / Code Only | Test output saja            |
+| Integration / API     | Docker log ATAU Test output |
+| Full Feature          | Docker log DAN Test output  |
+| Documentation         | Visual confirmation         |
 
 **Evidence harus membuktikan masalah spesifik sudah teratasi.**
 
 ---
 
-## 6. CRITICAL RULES (dari AGENTS.md)
+## 7. CRITICAL RULES (dari AGENTS.md)
 
 Rules ini TIDAK BOLEH dilanggar:
 
@@ -206,6 +339,7 @@ kita testing dan cleanup...
 ## Task: Add Order Export Feature
 
 ### Pre-Planning Verification
+
 - AGENTS.md sudah dibaca: Ya
 - File yang teridentifikasi: order_handler.go, order_service.go, export_utils.go
 - Database changes: Tidak
@@ -237,23 +371,27 @@ kita testing dan cleanup...
    - [ ] Collect Docker log sebagai evidence
 
 ### Affected Files
-| File | Estimasi | Action |
-|------|----------|--------|
-| `internal/handlers/order_handler.go` | +30 baris | Modify |
-| `internal/services/order_service.go` | +50 baris | Modify |
-| `internal/utils/export_utils.go` | ~100 baris | Create |
+
+| File                                 | Estimasi   | Action |
+| ------------------------------------ | ---------- | ------ |
+| `internal/handlers/order_handler.go` | +30 baris  | Modify |
+| `internal/services/order_service.go` | +50 baris  | Modify |
+| `internal/utils/export_utils.go`     | ~100 baris | Create |
 
 ### Success Criteria
 
 #### Build & Test
+
 - [ ] go build ./... passes
 - [ ] go test ./... passes
 
 #### Code Quality
+
 - [ ] Format sesuai AGENTS.md (snake_case JSON)
 - [ ] Tidak ada duplicate/dead code
 
 #### Integrasi
+
 - [ ] Export endpoint returns valid CSV/Excel
 - [ ] Data muncul lengkap (tidak ada kolom kosong)
 - [ ] Docker log menunjukkan export berhasil dengan jumlah record

@@ -380,7 +380,7 @@ Service error but code is correct?
 ## 🎯 Prometheus Planning Reference
 
 > **For AI Prometheus**: Detailed planning rules are in **PROMETHEUS_RULES.md**
-> 
+>
 > **PENTING:** Output Prometheus adalah **TODO LIST** yang siap dieksekusi, BUKAN checklist yang sudah selesai.
 
 ### Tugas Prometheus
@@ -393,11 +393,22 @@ Output: TODO LIST dengan format [ ] yang siap dieksekusi oleh Sisyphus/Builder
 ### Sebelum Membuat Plan
 
 Prometheus harus verifikasi:
+
 1. Sudah baca AGENTS.md (terutama Critical Rules & Architecture)
 2. Sudah identifikasi SEMUA file yang akan dimodifikasi
 3. Sudah cek apakah perlu database migration
 4. Sudah cek kebutuhan multi-tenancy (tenant_id validation)
 5. Sudah estimasi jumlah baris per file (max 300)
+6. **⚠️ WAJIB: Sudah analisis DAMPAK PERUBAHAN secara komprehensif**
+
+### Analisis Dampak (WAJIB)
+
+Untuk setiap file yang dimodifikasi, Prometheus HARUS menganalisis:
+
+- **Backend:** Siapa yang memanggil function ini? Apakah signature berubah?
+- **Frontend:** Component mana yang consume API ini? Apakah response format berubah?
+- **Database:** Tabel/kolom mana yang terpengaruh? Perlu migration?
+- **Integrasi:** Apakah breaking change? Semua consumer sudah diupdate?
 
 ### Format Output Prometheus
 
@@ -405,6 +416,7 @@ Prometheus harus verifikasi:
 ## Task: [Nama]
 
 ### TODO LIST
+
 1. [ ] **[Phase 1] Analisis** - task details...
 2. [ ] **[Phase 2] Implementasi** - task details...
 3. [ ] **[Phase 3] Cleanup** - DRY, SRP, <300 baris
@@ -412,24 +424,29 @@ Prometheus harus verifikasi:
 5. [ ] **[Phase 5] Finalisasi** - evidence collection
 
 ### Affected Files
+
 | File | Estimasi | Action |
-|------|----------|--------|
+| ---- | -------- | ------ |
 
 ### Success Criteria
 
 #### Build & Test
+
 - [ ] go build ./... passes
 - [ ] go test ./... passes
 
 #### Code Quality
+
 - [ ] Format sesuai AGENTS.md (snake_case JSON, architecture)
 - [ ] Tidak ada duplicate/dead code
 
 #### Frontend (jika rubah frontend)
+
 - [ ] UI/UX layout tidak berantakan (cek langsung kode, BUKAN Playwright)
 - [ ] Component structure rapi
 
 #### Integrasi
+
 - [ ] Data muncul di tabel (tidak ada kolom kosong)
 - [ ] Backend-Frontend-Database terhubung dengan benar
 ```
@@ -534,18 +551,18 @@ type Order struct {
 ```typescript
 // ❌ WRONG: camelCase in API interface (mismatch with backend)
 interface OrderResponse {
-  orderSn: string;    // WRONG! Won't match backend response
-  itemId: number;     // WRONG!
+  orderSn: string; // WRONG! Won't match backend response
+  itemId: number; // WRONG!
 }
 
 // ✅ CORRECT: snake_case in API interface (matches backend)
 interface OrderResponse {
-  order_sn: string;   // CORRECT - matches backend JSON
-  item_id: number;    // CORRECT
+  order_sn: string; // CORRECT - matches backend JSON
+  item_id: number; // CORRECT
 }
 
 // Then convert to camelCase for internal use:
-const orderSn = response.order_sn;  // CORRECT
+const orderSn = response.order_sn; // CORRECT
 ```
 
 ### Overview: Hybrid Approach (Per Layer)
@@ -1469,12 +1486,12 @@ func TestOrderService_GetOrders_MissingTenant(t *testing.T) {
 
 Evidence requirements vary based on task complexity:
 
-| Task Type | Required Evidence | Examples |
-|-----------|-------------------|----------|
-| **Unit Test/Code Only** | Test output only | Refactoring, bug fixes, new functions |
-| **Integration/API** | Docker log OR Test output | API endpoints, service integration |
-| **Full Feature** | Docker log AND Test output | New features, major changes |
-| **Documentation** | Visual confirmation | README updates, config changes |
+| Task Type               | Required Evidence          | Examples                              |
+| ----------------------- | -------------------------- | ------------------------------------- |
+| **Unit Test/Code Only** | Test output only           | Refactoring, bug fixes, new functions |
+| **Integration/API**     | Docker log OR Test output  | API endpoints, service integration    |
+| **Full Feature**        | Docker log AND Test output | New features, major changes           |
+| **Documentation**       | Visual confirmation        | README updates, config changes        |
 
 ### Evidence Guidelines
 
@@ -1518,18 +1535,21 @@ Evidence requirements vary based on task complexity:
 ### Example by Task Type
 
 **Unit Test Task (Code Only Evidence):**
+
 ```
 Task: Fix calculation bug in OrderService
 Evidence: Test output showing TestOrderService_Calculate PASS
 ```
 
 **Integration Task (Docker OR Test):**
+
 ```
 Task: Fix API endpoint returning wrong status code
 Evidence: curl output showing correct 200 response with expected data
 ```
 
 **Full Feature (Both Required):**
+
 ```
 Task: Implement new order sync feature
 Evidence 1: Docker log showing "Orders synced: 15 new, 3 updated"
