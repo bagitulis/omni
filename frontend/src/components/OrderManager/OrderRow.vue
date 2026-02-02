@@ -27,29 +27,7 @@
     <!-- Order Content Grid - 6 columns -->
     <div class="order-content">
       <!-- Product Column (3fr) -->
-      <div class="product-col">
-        <div v-for="(item, i) in order.items" :key="i" class="product-item">
-          <div class="product-image">
-            <img
-              v-if="getProductImage(item)"
-              :src="getProductImage(item)"
-              :alt="item.product_name"
-              @error="(e) => onImageError(e)"
-              loading="lazy"
-            />
-            <div v-else class="image-placeholder">
-              <i class="pi pi-image"></i>
-            </div>
-          </div>
-          <div class="product-info">
-            <div class="product-name">{{ item.product_name }}</div>
-            <span class="product-qty">x{{ item.qty }}</span>
-            <div v-if="item.variation_name" class="product-variant">
-              Variasi: {{ item.variation_name }}
-            </div>
-          </div>
-        </div>
-      </div>
+      <OrderProductCell :items="order.items" :platform="order.platform" />
 
       <!-- Amount Column (1.2fr) -->
       <div class="amount-col">
@@ -136,15 +114,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-
-interface OrderItem {
-  sku: string;
-  product_name: string;
-  variation_name?: string;
-  qty: number;
-  price?: number;
-  product_image?: string;
-}
+import OrderProductCell, { type OrderItem } from "./OrderProductCell.vue";
 
 interface Order {
   order_no: string;
@@ -175,7 +145,6 @@ const emit = defineEmits<{
 }>();
 
 const copied = ref(false);
-const imageErrors = ref<Set<string>>(new Set());
 
 const showShipButton = computed(
   () => props.activeTab === "unprocess" && props.order.status !== "CANCELLED",
@@ -227,27 +196,6 @@ const formatAmount = (amt: number, cur: string) => {
     currency: cur || "IDR",
     minimumFractionDigits: 0,
   }).format(amt);
-};
-
-const getProductImage = (item: OrderItem) => {
-  const key = item.sku;
-  if (imageErrors.value.has(key) || !item.product_image) {
-    return null;
-  }
-  const url = item.product_image;
-  if (props.order.platform === "shopee" && !url.includes("_tn")) {
-    return url.replace(/\.(jpg|jpeg|png)$/i, "_tn.$1");
-  }
-  return url;
-};
-
-const onImageError = (e: Event) => {
-  const img = e.target as HTMLImageElement;
-  const parent = img.closest(".product-image");
-  if (parent) {
-    const item = parent.parentElement?.querySelector(".product-name-text");
-    if (item) imageErrors.value.add(item.textContent || "");
-  }
 };
 
 const copyOrderNumber = async () => {
@@ -396,77 +344,7 @@ const viewDetail = () => emit("view-detail", props.order);
 }
 
 /* Product Column */
-.product-col {
-  display: flex;
-  flex-direction: column;
-  gap: var(--om-spacing-md);
-}
-
-.product-item {
-  display: flex;
-  gap: var(--om-spacing-sm);
-  align-items: flex-start;
-}
-
-.product-image {
-  width: 60px;
-  height: 60px;
-  border-radius: var(--om-radius-sm);
-  overflow: hidden;
-  background: var(--om-bg-secondary);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.product-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.image-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--om-text-disabled);
-  font-size: 1.5rem;
-}
-
-.product-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
-
-.product-name {
-  font-size: var(--om-font-sm);
-  font-weight: 500;
-  color: var(--om-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.4;
-}
-
-.product-qty {
-  font-size: var(--om-font-xs);
-  color: var(--om-text-secondary);
-  font-weight: 500;
-}
-
-.product-variant {
-  font-size: var(--om-font-xs);
-  color: var(--om-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+/* Moved to OrderProductCell.vue */
 
 /* Amount Column */
 .amount-col {
@@ -656,10 +534,6 @@ const viewDetail = () => emit("view-detail", props.order);
     font-size: var(--om-font-xs);
   }
 
-  .product-name {
-    font-size: var(--om-font-xs);
-  }
-
   .amount-value {
     font-size: var(--om-font-sm);
   }
@@ -694,7 +568,7 @@ const viewDetail = () => emit("view-detail", props.order);
     border-bottom: none;
   }
 
-  .product-col,
+  /* Product column styles moved to OrderProductCell.vue */
   .amount-col,
   .status-col,
   .countdown-col,
@@ -704,15 +578,6 @@ const viewDetail = () => emit("view-detail", props.order);
     border-radius: var(--om-radius-sm);
     padding: var(--om-spacing-sm);
     background: var(--om-bg-secondary);
-  }
-
-  .product-item {
-    gap: var(--om-spacing-xs);
-  }
-
-  .product-image {
-    width: 50px;
-    height: 50px;
   }
 
   .action-buttons {
