@@ -18,6 +18,7 @@ type ShopeeOrder struct {
 	PaymentMethod   string    `gorm:"column:payment_method" json:"payment_method,omitempty"`
 	ShippingCarrier string    `gorm:"column:shipping_carrier" json:"shipping_carrier,omitempty"`
 	BuyerMessage    string    `gorm:"column:buyer_message" json:"buyer_message,omitempty"`
+	ShipByDate      *int64    `gorm:"column:ship_by_date" json:"ship_by_date,omitempty"`
 	CreatedAt       time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt       time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
@@ -73,19 +74,20 @@ func (ShopeeSku) TableName() string {
 // ShopeeOrderItem represents order items
 // Matches Prisma schema: ShopeeOrderItem + tenant_id (added in database)
 type ShopeeOrderItem struct {
-	ID        uint      `gorm:"primaryKey" json:"id"`
-	TenantID  string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
-	OrderSN   string    `gorm:"column:order_sn;index;not null" json:"order_sn"`
-	ItemID    int64     `gorm:"column:item_id" json:"item_id"`
-	ModelID   *int64    `gorm:"column:model_id" json:"model_id,omitempty"`
-	ItemName  string    `gorm:"column:item_name" json:"item_name,omitempty"`
-	ModelName string    `gorm:"column:model_name" json:"model_name,omitempty"`
-	ItemSku   string    `gorm:"column:item_sku" json:"item_sku,omitempty"`
-	ModelSku  string    `gorm:"column:model_sku" json:"model_sku,omitempty"`
-	Quantity  *int      `gorm:"column:quantity" json:"quantity,omitempty"`
-	Price     *float64  `gorm:"column:price" json:"price,omitempty"`
-	CreatedAt time.Time `gorm:"column:created_at" json:"created_at"`
-	UpdatedAt time.Time `gorm:"column:updated_at" json:"updated_at"`
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	TenantID     string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
+	OrderSN      string    `gorm:"column:order_sn;index;not null" json:"order_sn"`
+	ItemID       int64     `gorm:"column:item_id" json:"item_id"`
+	ModelID      *int64    `gorm:"column:model_id" json:"model_id,omitempty"`
+	ItemName     string    `gorm:"column:item_name" json:"item_name,omitempty"`
+	ModelName    string    `gorm:"column:model_name" json:"model_name,omitempty"`
+	ItemSku      string    `gorm:"column:item_sku" json:"item_sku,omitempty"`
+	ModelSku     string    `gorm:"column:model_sku" json:"model_sku,omitempty"`
+	Quantity     *int      `gorm:"column:quantity" json:"quantity,omitempty"`
+	Price        *float64  `gorm:"column:price" json:"price,omitempty"`
+	ProductImage string    `gorm:"column:product_image" json:"product_image,omitempty"`
+	CreatedAt    time.Time `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt    time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
 func (ShopeeOrderItem) TableName() string {
