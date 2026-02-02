@@ -381,31 +381,46 @@ Service error but code is correct?
 
 > **For AI Prometheus**: Detailed planning rules are in **PROMETHEUS_RULES.md**
 > 
-> This section provides a brief summary. Full rules and templates are in the separate file.
+> **PENTING:** Output Prometheus adalah **TODO LIST** yang siap dieksekusi, BUKAN checklist yang sudah selesai.
 
-### Quick Checklist for Prometheus
+### Tugas Prometheus
 
-Before creating any plan, verify:
+```
+Input:  Request dari user
+Output: TODO LIST dengan format [ ] yang siap dieksekusi oleh Sisyphus/Builder
+```
 
-- [ ] Read AGENTS.md (this file) completely
-- [ ] Identify all files to be modified
-- [ ] Check if database changes are needed
-- [ ] Confirm multi-tenancy requirements
-- [ ] Estimate line counts (max 300 per file)
-- [ ] Specify naming conventions
+### Sebelum Membuat Plan
 
-### Plan Quality Gates (Summary)
+Prometheus harus verifikasi:
+1. Sudah baca AGENTS.md (terutama Critical Rules & Architecture)
+2. Sudah identifikasi SEMUA file yang akan dimodifikasi
+3. Sudah cek apakah perlu database migration
+4. Sudah cek kebutuhan multi-tenancy (tenant_id validation)
+5. Sudah estimasi jumlah baris per file (max 300)
 
-| Gate | Requirement |
-|------|-------------|
-| File Size | < 300 lines (models: 500, migrations: unlimited) |
-| Architecture | Handler → Service → Repository |
-| JSON Tags | snake_case |
-| Testing | go build + go test must pass |
-| Tenant | No default tenant, explicit validation |
-| Cleanup | DRY, SRP, remove dead code |
+### Format Output Prometheus
 
-**Full details**: See `PROMETHEUS_RULES.md`
+```markdown
+## Task: [Nama]
+
+### TODO LIST
+1. [ ] **[Phase 1] Analisis** - task details...
+2. [ ] **[Phase 2] Implementasi** - task details...
+3. [ ] **[Phase 3] Cleanup** - DRY, SRP, <300 baris
+4. [ ] **[Phase 4] Testing** - go build && go test
+5. [ ] **[Phase 5] Finalisasi** - evidence collection
+
+### Affected Files
+| File | Estimasi | Action |
+|------|----------|--------|
+
+### Success Criteria
+- [ ] go build passes
+- [ ] go test passes
+```
+
+**Full details & examples**: See `PROMETHEUS_RULES.md`
 
 ---
 
