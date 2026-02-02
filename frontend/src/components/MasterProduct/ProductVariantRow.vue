@@ -11,74 +11,35 @@
     <td class="variant-cell">{{ sku.variant_name || "-" }}</td>
 
     <!-- Price Cell -->
-    <td
-      class="price-cell editable-cell text-left"
-      :class="{
-        editing: isEditing('price'),
-        saving: isSaving('price'),
-      }"
-      @click="$emit('start-edit', sku.id, 'price', sku.price)"
-    >
-      <template v-if="isEditing('price')">
-        <input
-          type="number"
-          :value="editedValue"
-          @input="
-            $emit(
-              'update:editedValue',
-              ($event.target as HTMLInputElement).valueAsNumber,
-            )
-          "
-          class="inline-edit-input"
-          @keydown.enter="$emit('save-edit', sku)"
-          @keydown.escape="$emit('cancel-edit')"
-          @blur="$emit('save-edit', sku)"
-          min="0"
-          step="1000"
-          autoFocus
-        />
-      </template>
-      <template v-else>
-        <span class="cell-value">{{ formatPrice(sku.price) }}</span>
-        <span class="edit-hint" v-if="!isSaving('price')">✏️</span>
-        <span class="saving-indicator" v-if="isSaving('price')">💾</span>
-      </template>
-    </td>
+    <EditableCell
+      class="price-cell"
+      :value="sku.price"
+      :editing-value="editedValue"
+      :is-editing="isEditing('price')"
+      :is-saving="isSaving('price')"
+      :format-fn="formatPrice"
+      :min="0"
+      :step="1000"
+      @start-edit="$emit('start-edit', sku.id, 'price', sku.price)"
+      @update:editing-value="$emit('update:editedValue', $event)"
+      @save-edit="$emit('save-edit', sku)"
+      @cancel-edit="$emit('cancel-edit')"
+    />
 
     <!-- Stock Cell -->
-    <td
-      class="stock-cell editable-cell text-left"
-      :class="{
-        editing: isEditing('stock'),
-        saving: isSaving('stock'),
-      }"
-      @click="$emit('start-edit', sku.id, 'stock', sku.stock)"
-    >
-      <template v-if="isEditing('stock')">
-        <input
-          type="number"
-          :value="editedValue"
-          @input="
-            $emit(
-              'update:editedValue',
-              ($event.target as HTMLInputElement).valueAsNumber,
-            )
-          "
-          class="inline-edit-input"
-          @keydown.enter="$emit('save-edit', sku)"
-          @keydown.escape="$emit('cancel-edit')"
-          @blur="$emit('save-edit', sku)"
-          min="0"
-          step="1"
-          autoFocus
-        />
-      </template>
-      <template v-else>
-        <span class="cell-value">{{ sku.stock }}</span>
-        <span class="edit-hint" v-if="!isSaving('stock')">✏️</span>
-        <span class="saving-indicator" v-if="isSaving('stock')">💾</span>
-      </template>
-    </td>
+    <EditableCell
+      class="stock-cell"
+      :value="sku.stock"
+      :editing-value="editedValue"
+      :is-editing="isEditing('stock')"
+      :is-saving="isSaving('stock')"
+      :min="0"
+      :step="1"
+      @start-edit="$emit('start-edit', sku.id, 'stock', sku.stock)"
+      @update:editing-value="$emit('update:editedValue', $event)"
+      @save-edit="$emit('save-edit', sku)"
+      @cancel-edit="$emit('cancel-edit')"
+    />
 
     <!-- Platform Cell -->
     <td class="platform-cell">
@@ -104,6 +65,7 @@
 <script setup lang="ts">
 import { type ProductSku, type PlatformLink } from "./ProductList.types";
 import ProductPlatformAction from "./ProductPlatformAction.vue";
+import EditableCell from "./EditableCell.vue";
 
 const props = defineProps<{
   sku: ProductSku;
@@ -221,10 +183,6 @@ const getPlatformEmoji = (platform: string): string => {
   background: #eff6ff !important;
 }
 
-.text-left {
-  text-align: left;
-}
-
 .sku-cell {
   font-family: "SF Mono", "Monaco", "Cascadia Code", "Consolas", monospace;
   font-size: 0.8125rem;
@@ -254,79 +212,6 @@ const getPlatformEmoji = (platform: string): string => {
   color: #dc2626;
 }
 
-.editable-cell {
-  cursor: pointer;
-  position: relative;
-  transition: all 0.2s ease;
-  min-width: 100px;
-}
-
-.editable-cell:hover:not(.editing):not(.saving) {
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
-  border-radius: 0.25rem;
-}
-
-.editable-cell .cell-value {
-  display: inline-block;
-}
-
-.editable-cell .edit-hint {
-  opacity: 0;
-  margin-left: 0.5rem;
-  font-size: 0.75rem;
-  transition: opacity 0.2s ease;
-}
-
-.editable-cell:hover .edit-hint {
-  opacity: 0.7;
-}
-
-.editable-cell.editing {
-  padding: 0.5rem !important;
-  background: #fffbeb !important;
-}
-
-.editable-cell.saving {
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-.saving-indicator {
-  margin-left: 0.5rem;
-  animation: pulse 1s ease-in-out infinite;
-}
-
-.inline-edit-input {
-  width: 100%;
-  max-width: 120px;
-  padding: 0.375rem 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  border: 2px solid #3b82f6;
-  border-radius: 0.375rem;
-  background: white;
-  color: inherit;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  transition: all 0.2s ease;
-}
-
-.inline-edit-input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
-}
-
-.inline-edit-input::-webkit-outer-spin-button,
-.inline-edit-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.inline-edit-input[type="number"] {
-  -moz-appearance: textfield;
-}
-
 .platform-cell {
   width: 140px;
 }
@@ -347,15 +232,5 @@ const getPlatformEmoji = (platform: string): string => {
   height: 18px;
   cursor: pointer;
   accent-color: #3b82f6;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
 }
 </style>
