@@ -35,7 +35,7 @@ func (h *WholesaleExtendedHandler) BatchDeleteByItemIds(c *gin.Context) {
 	results := make([]map[string]interface{}, 0, len(req.ItemIDs))
 	for _, itemID := range req.ItemIDs {
 		results = append(results, map[string]interface{}{
-			"itemId":  itemID,
+			"item_id": itemID,
 			"success": true,
 		})
 	}
@@ -63,7 +63,7 @@ func (h *WholesaleExtendedHandler) BatchAdd(c *gin.Context) {
 	results := make([]map[string]interface{}, 0, len(req.Items))
 	for _, item := range req.Items {
 		results = append(results, map[string]interface{}{
-			"itemId":  item.ItemID,
+			"item_id": item.ItemID,
 			"sku":     item.SKU,
 			"success": true,
 		})
@@ -101,9 +101,9 @@ func (h *WholesaleExtendedHandler) Preview(c *gin.Context) {
 	previews := make([]map[string]interface{}, 0, len(req.SKUs))
 	for _, sku := range req.SKUs {
 		previews = append(previews, map[string]interface{}{
-			"sku":           sku,
-			"originalPrice": 100000,
-			"tiers":         GenerateTiers(100000, req.DiscountRates),
+			"sku":            sku,
+			"original_price": 100000,
+			"tiers":          GenerateTiers(100000, req.DiscountRates),
 		})
 	}
 
@@ -235,9 +235,9 @@ func (h *WholesaleExtendedHandler) BatchSetTiktokMpq(c *gin.Context) {
 	results := make([]map[string]interface{}, 0, len(req.Products))
 	for _, product := range req.Products {
 		results = append(results, map[string]interface{}{
-			"productId": product.ProductID,
-			"mpq":       product.MPQ,
-			"success":   true,
+			"product_id": product.ProductID,
+			"mpq":        product.MPQ,
+			"success":    true,
 		})
 	}
 

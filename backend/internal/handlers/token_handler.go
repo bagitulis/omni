@@ -55,14 +55,14 @@ func (h *TokenHandler) GetTokenStatus(c *gin.Context) {
 func (h *TokenHandler) GetAllTokenStatus(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "error": "Missing tenantID"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantID"})
 		return
 	}
 
 	statuses := h.buildAllPlatformStatuses(c, tenantID)
 
 	c.JSON(http.StatusOK, gin.H{
-		"status":    "success",
+		"success":   true,
 		"data":      statuses,
 		"timestamp": FormatISOTimestamp(time.Now()),
 	})
@@ -103,21 +103,24 @@ func (h *TokenHandler) RefreshToken(c *gin.Context) {
 func (h *TokenHandler) GetPlatformTokenStatus(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "error": "Missing tenantID"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantID"})
 		return
 	}
 
 	platform := c.Param("platform")
 	if !ValidatePlatform(platform) {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "error": "Invalid platform"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid platform"})
 		return
 	}
 
 	status, err := h.tokenManager.GetTokenStatus(c.Request.Context(), tenantID, platform)
 	if err != nil {
+		// Return success:false when token status retrieval fails
 		c.JSON(http.StatusOK, gin.H{
-			"status": "success", "platform": platform,
+			"success":   false,
+			"platform":  platform,
 			"data":      gin.H{"platform": platform, "isExpired": true},
+			"error":     "Token not found or expired",
 			"timestamp": FormatISOTimestamp(time.Now()),
 		})
 		return
@@ -125,7 +128,9 @@ func (h *TokenHandler) GetPlatformTokenStatus(c *gin.Context) {
 
 	data := h.buildPlatformStatusData(platform, status)
 	c.JSON(http.StatusOK, gin.H{
-		"status": "success", "platform": platform, "data": data,
+		"success":   true,
+		"platform":  platform,
+		"data":      data,
 		"timestamp": FormatISOTimestamp(time.Now()),
 	})
 }

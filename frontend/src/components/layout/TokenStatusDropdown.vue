@@ -139,7 +139,7 @@ const loadTokenStatus = async () => {
   loading.value = true;
   try {
     const response = await apiService.getTokenStatus();
-    if (response.status === "success" && response.data) {
+    if (response.success && response.data) {
       tokenStatus.value = response.data;
     }
   } catch (error) {

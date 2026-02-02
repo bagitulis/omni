@@ -184,7 +184,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, response.Success(gin.H{
 		"success": resp.Code == "0",
-		"itemId":  resp.Data.ItemID,
+		"item_id": resp.Data.ItemID,
 		"skus":    resp.Data.SkuList,
 	}))
 }
