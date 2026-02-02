@@ -127,6 +127,7 @@ func (m *ShopeeOrderManager) enrichOrdersWithDetails(ctx context.Context, orders
 			}
 			// Populate countdown from ship_by_date (Unix timestamp)
 			if shipByDate := getInt64(detail, "ship_by_date"); shipByDate > 0 {
+				orders[i].ShipByDate = shipByDate
 				orders[i].Countdown = formatShipByDate(shipByDate)
 			}
 			// Extract items with item_id for image fetching

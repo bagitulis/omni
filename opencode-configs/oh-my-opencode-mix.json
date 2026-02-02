@@ -1,91 +1,93 @@
 {
   "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
   "google_auth": false,
-  "default_model": "google/antigravity-gemini-3-pro",
+  "default_model": "github-copilot/claude-opus-4.5",
+
   "agents": {
     "sisyphus": {
+      "model": "github-copilot/claude-opus-4.5"
+    },
+    "prometheus": {
+      "model": "github-copilot/claude-opus-4.5"
+    },
+    "oracle": {
       "model": "google/antigravity-gemini-3-pro",
       "variant": "high"
     },
-    "oracle": {
-      "model": "google/gemini-3-pro-preview"
+    "atlas": {
+      "model": "github-copilot/claude-opus-4.5"
     },
     "librarian": {
-      "model": "google/antigravity-gemini-3-flash",
-      "variant": "medium"
+      "model": "google/antigravity-gemini-3-pro",
+      "variant": "high"
     },
     "explore": {
-      "model": "google/gemini-3-flash-preview"
+      "model": "google/antigravity-gemini-3-pro",
+      "variant": "high"
     },
     "multimodal-looker": {
       "model": "google/antigravity-gemini-3-pro",
       "variant": "high"
     },
-    "prometheus": {
+    "metis": {
       "model": "google/antigravity-gemini-3-pro",
       "variant": "high"
     },
-    "metis": {
-      "model": "google/gemini-3-pro-preview"
-    },
     "momus": {
-      "model": "google/gemini-2.5-flash"
-    },
-    "atlas": {
       "model": "google/antigravity-gemini-3-pro",
       "variant": "high"
     },
     "sisyphus-junior": {
-      "model": "google/antigravity-gemini-3-flash",
-      "variant": "medium"
+      "model": "google/antigravity-gemini-3-pro",
+      "variant": "high"
     },
     "default": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "low"
+      "model": "github-copilot/claude-opus-4.5"
     }
   },
+
   "categories": {
     "visual-engineering": {
       "model": "google/antigravity-gemini-3-pro",
       "variant": "high"
     },
     "artistry": {
-      "model": "google/gemini-3-pro-preview"
-    },
-    "writing": {
-      "model": "google/gemini-2.5-pro"
-    },
-    "quick": {
-      "model": "google/gemini-3-flash-preview"
-    },
-    "ultrabrain": {
       "model": "google/antigravity-gemini-3-pro",
       "variant": "high"
+    },
+    "writing": {
+      "model": "google/antigravity-gemini-3-flash",
+      "variant": "high"
+    },
+    "quick": {
+      "model": "github-copilot/claude-haiku-4.5"
+    },
+    "ultrabrain": {
+      "model": "github-copilot/claude-opus-4.5"
     },
     "deep": {
       "model": "google/antigravity-gemini-3-pro",
       "variant": "high"
     },
     "implementation": {
+      "model": "github-copilot/claude-opus-4.5"
+    },
+    "review": {
       "model": "google/antigravity-gemini-3-pro",
       "variant": "high"
     },
-    "review": {
-      "model": "google/gemini-3-pro-preview"
-    },
     "testing": {
-      "model": "google/antigravity-gemini-3-flash",
+      "model": "google/antigravity-gemini-3-pro",
       "variant": "high"
     },
     "security": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
+      "model": "github-copilot/claude-opus-4.5"
     },
     "unspecified-low": {
-      "model": "google/gemini-2.5-flash"
+      "model": "github-copilot/claude-haiku-4.5"
     },
     "unspecified-high": {
-      "model": "google/gemini-2.5-pro"
+      "model": "github-copilot/claude-opus-4.5"
     }
   }
 }

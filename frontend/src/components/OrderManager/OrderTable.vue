@@ -236,7 +236,7 @@ const getTableTitle = computed(() => {
 /* Shopee Table Header - must match OrderRow.vue grid */
 .shopee-table-header {
   display: grid;
-  grid-template-columns: 3fr 1.2fr 1fr 1.5fr 1.2fr 1fr;
+  grid-template-columns: 2.5fr 1fr 0.8fr 1fr 1fr 1fr;
   gap: var(--om-spacing-md);
   padding: var(--om-spacing-md);
   background: var(--om-bg-secondary);
@@ -245,6 +245,7 @@ const getTableTitle = computed(() => {
   font-size: var(--om-font-sm);
   color: var(--om-text-primary);
   border-radius: var(--om-radius-md) var(--om-radius-md) 0 0;
+  align-items: center;
 }
 
 .header-cell {
@@ -260,12 +261,12 @@ const getTableTitle = computed(() => {
   padding: var(--om-spacing-md) 0;
   display: flex;
   flex-direction: column;
-  gap: var(--om-spacing-md);
+  gap: 16px; /* Consistent row spacing */
 }
 
 @media (max-width: 1200px) {
   .shopee-table-header {
-    grid-template-columns: 3fr 1fr 0.8fr 1fr 1fr 1.2fr;
+    grid-template-columns: 2fr 1fr 0.8fr 1fr 1fr 1fr;
     gap: var(--om-spacing-sm);
     padding: var(--om-spacing-sm);
   }

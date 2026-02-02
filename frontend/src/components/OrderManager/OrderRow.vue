@@ -8,12 +8,13 @@
         </div>
         <span class="buyer-name">{{ order.buyer_username }}</span>
         <button class="chat-icon-btn" title="Chat with buyer">
-          <i class="pi pi-envelope"></i>
+          <i class="pi pi-comments"></i>
         </button>
       </div>
       <div class="buyer-right">
         <span class="order-label">No. Pesanan</span>
         <span class="order-number">{{ order.order_no }}</span>
+        <!-- Copy Button moved closer for better UX -->
         <button
           @click="copyOrderNumber"
           class="copy-btn"
@@ -122,26 +123,50 @@ const copied = ref(false);
 const getBuyerInitial = (username: string) =>
   username ? username.charAt(0).toUpperCase() : "?";
 
-const formatStatus = (s: string) =>
-  ({
+const formatStatus = (s: string) => {
+  if (!s) return "-";
+
+  const upper = s.toUpperCase();
+  const map: Record<string, string> = {
     UNPAID: "Unpaid",
-    READY_TO_SHIP: "To Ship",
+    READY_TO_SHIP: "Ready to Ship",
+    toship: "To Ship", // Handle "toship" explicitly if needed, though generic handles it
     SHIPPED: "Shipped",
     COMPLETED: "Completed",
     CANCELLED: "Cancelled",
     IN_CANCEL: "Cancelling",
-  })[s.toUpperCase()] || s;
+    TO_CONFIRM_RECEIVE: "To Confirm Receive",
+    TO_RETURN: "To Return",
+  };
 
-const getStatusClass = (s: string) =>
-  ({
+  if (map[upper]) return map[upper];
+
+  // Generic fallback: snake_case -> Title Case
+  return s
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (l) => l.toUpperCase());
+};
+
+const getStatusClass = (s: string) => {
+  if (!s) return "om-status-toship"; // Default fallback
+  const map: Record<string, string> = {
     UNPAID: "om-status-unpaid",
     READY_TO_SHIP: "om-status-toship",
+    PROCESSED: "om-status-shipped", // Added mapping
     SHIPPED: "om-status-shipped",
     COMPLETED: "om-status-completed",
     CANCELLED: "om-status-cancelled",
-  })[s.toUpperCase()] || "om-status-toship";
+    IN_CANCEL: "om-status-cancelled",
+    TO_CONFIRM_RECEIVE: "om-status-shipped", // Treat as shipped
+    TO_RETURN: "om-status-cancelled", // Treat as cancelled type
+  };
+  return map[s.toUpperCase()] || "om-status-toship";
+};
 
 const formatAmount = (amt: number, cur: string) => {
+  if (!amt) return "-";
+
   const locales: Record<string, string> = {
     IDR: "id-ID",
     MYR: "ms-MY",

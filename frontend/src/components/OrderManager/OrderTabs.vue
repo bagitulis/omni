@@ -62,12 +62,13 @@ onMounted(updateIndicator);
 
 .order-tabs {
   display: flex;
-  gap: 0;
+  gap: var(--om-spacing-xs);
   position: relative;
   border-bottom: 2px solid var(--om-border);
   background: var(--om-bg-primary);
   overflow-x: auto;
   scrollbar-width: none;
+  padding: 0 var(--om-spacing-sm);
 }
 
 .order-tabs::-webkit-scrollbar {

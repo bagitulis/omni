@@ -83,7 +83,7 @@ interface OrderItem {
   sku: string;
   product_name: string;
   variation_name?: string;
-  qty: number;
+  quantity: number; // Backend returns snake_case
   price?: number;
   product_image?: string;
 }
@@ -122,25 +122,41 @@ const showCancelButton = computed(
 const formatPlatform = (p: string) =>
   ({ shopee: "Shopee", lazada: "Lazada", tiktok: "TikTok" })[p.toLowerCase()] ||
   p;
-const formatStatus = (s: string) =>
-  ({
+const formatStatus = (s: string) => {
+  if (!s) return "-";
+  const upper = s.toUpperCase();
+  const map: Record<string, string> = {
     UNPAID: "Unpaid",
-    READY_TO_SHIP: "To Ship",
+    READY_TO_SHIP: "Ready to Ship",
     SHIPPED: "Shipped",
     COMPLETED: "Completed",
     CANCELLED: "Cancelled",
     IN_CANCEL: "Cancelling",
-  })[s.toUpperCase()] || s;
-const getStatusClass = (s: string) =>
-  ({
+    TO_CONFIRM_RECEIVE: "To Confirm Receive",
+    TO_RETURN: "To Return",
+  };
+  if (map[upper]) return map[upper];
+  // Generic fallback: snake_case -> Title Case
+  return s
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (l) => l.toUpperCase());
+};
+const getStatusClass = (s: string) => {
+  if (!s) return "om-status-toship";
+  const map: Record<string, string> = {
     UNPAID: "om-status-unpaid",
     READY_TO_SHIP: "om-status-toship",
     SHIPPED: "om-status-shipped",
     COMPLETED: "om-status-completed",
     CANCELLED: "om-status-cancelled",
-  })[s.toUpperCase()] || "om-status-toship";
+    IN_CANCEL: "om-status-cancelled",
+  };
+  return map[s.toUpperCase()] || "om-status-toship";
+};
 const getBuyerInitial = (u: string) => (u ? u.charAt(0).toUpperCase() : "?");
 const formatAmount = (amt: number, cur: string) => {
+  if (!amt) return "-";
   const locales: Record<string, string> = {
     IDR: "id-ID",
     MYR: "ms-MY",
@@ -174,138 +190,8 @@ const viewDetail = () => emit("view-detail", props.order);
 
 <style scoped>
 @import "./OrderManager.theme.css";
-.order-card {
-  padding: var(--om-spacing-md);
-  animation: om-slideUp var(--om-transition-normal) ease-out;
-}
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--om-spacing-md);
-  padding-bottom: var(--om-spacing-sm);
-  border-bottom: 1px solid var(--om-border);
-}
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: var(--om-spacing-md);
-  flex-wrap: wrap;
-}
-.order-number {
-  display: flex;
-  align-items: center;
-  gap: var(--om-spacing-xs);
-}
-.order-label {
-  font-size: var(--om-font-xs);
-  color: var(--om-text-secondary);
-}
-.order-value {
-  font-size: var(--om-font-sm);
-  font-weight: 600;
-  color: var(--om-text-primary);
-  font-family: monospace;
-}
-.copy-btn {
-  background: none;
-  border: none;
-  padding: 4px;
-  cursor: pointer;
-  color: var(--om-text-secondary);
-  display: flex;
-  transition: color var(--om-transition-fast);
-}
-.copy-btn:hover {
-  color: var(--om-primary);
-}
-.buyer-info {
-  display: flex;
-  align-items: center;
-  gap: var(--om-spacing-sm);
-  margin-bottom: var(--om-spacing-md);
-}
-.buyer-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--om-primary-light);
-  color: var(--om-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: var(--om-font-sm);
-}
-.buyer-name {
-  font-size: var(--om-font-sm);
-  color: var(--om-text-primary);
-}
-.products-list {
-  margin-bottom: var(--om-spacing-md);
-}
-.card-footer {
-  display: flex;
-  justify-content: space-between;
-  padding-top: var(--om-spacing-sm);
-  border-top: 1px solid var(--om-border);
-  flex-wrap: wrap;
-  gap: var(--om-spacing-md);
-}
-.footer-info {
-  display: flex;
-  align-items: center;
-  gap: var(--om-spacing-lg);
-}
-.payment-method {
-  display: flex;
-  align-items: center;
-  gap: var(--om-spacing-xs);
-  font-size: var(--om-font-sm);
-  color: var(--om-text-secondary);
-}
-.total-amount {
-  display: flex;
-  align-items: center;
-  gap: var(--om-spacing-xs);
-}
-.total-label {
-  font-size: var(--om-font-sm);
-  color: var(--om-text-secondary);
-}
-.total-value {
-  font-size: var(--om-font-lg);
-  font-weight: 700;
-  color: var(--om-primary);
-}
-.footer-actions {
-  display: flex;
-  gap: var(--om-spacing-sm);
-}
-.cancel-btn {
-  color: var(--om-status-cancelled);
-  border-color: var(--om-status-cancelled);
-}
-.cancel-btn:hover:not(:disabled) {
-  background: #ffebee;
-}
-@media (max-width: 768px) {
-  .card-header {
-    flex-direction: column;
-    gap: var(--om-spacing-sm);
-  }
-  .card-footer {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .footer-info {
-    justify-content: space-between;
-  }
-  .footer-actions {
-    flex-direction: column;
-  }
-  .footer-actions .om-btn {
-    width: 100%;
-  }
-}
+/* 
+ * Styles are centralized in OrderManager.theme.css 
+ * to keep the component under 300 lines.
+ */
 </style>

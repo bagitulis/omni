@@ -48,6 +48,9 @@ func (r *GormOrderRepository) saveShopeeOrders(ctx context.Context, db *gorm.DB,
 			if order.BuyerMessage != "" {
 				updates["buyer_message"] = order.BuyerMessage
 			}
+			if order.ShipByDate > 0 {
+				updates["ship_by_date"] = order.ShipByDate
+			}
 
 			fmt.Printf("[saveShopeeOrders] Updating %s with updates=%+v\n", order.OrderSN, updates)
 
@@ -56,6 +59,10 @@ func (r *GormOrderRepository) saveShopeeOrders(ctx context.Context, db *gorm.DB,
 			}
 		} else {
 			// Record doesn't exist - CREATE it
+			var shipByDate *int64
+			if order.ShipByDate > 0 {
+				shipByDate = &order.ShipByDate
+			}
 			model := models.ShopeeOrder{
 				TenantID:        r.tenantID,
 				OrderSN:         order.OrderSN,
@@ -66,6 +73,7 @@ func (r *GormOrderRepository) saveShopeeOrders(ctx context.Context, db *gorm.DB,
 				PaymentMethod:   order.PaymentMethod,
 				ShippingCarrier: order.ShippingCarrier,
 				BuyerMessage:    order.BuyerMessage,
+				ShipByDate:      shipByDate,
 			}
 			if err := db.WithContext(ctx).Create(&model).Error; err != nil {
 				return err
@@ -142,14 +150,61 @@ func (r *GormOrderRepository) getShopeeOrdersByStatus(ctx context.Context, db *g
 		}
 	}
 
-	// Group items by order_sn
-	itemsByOrder := make(map[string][]models.ShopeeOrderItem)
+	// Collect unique item_ids for image lookup
+	itemIDSet := make(map[int64]bool)
 	for _, item := range items {
-		itemsByOrder[item.OrderSN] = append(itemsByOrder[item.OrderSN], item)
+		if item.ItemID > 0 {
+			itemIDSet[item.ItemID] = true
+		}
+	}
+	itemIDs := make([]int64, 0, len(itemIDSet))
+	for id := range itemIDSet {
+		itemIDs = append(itemIDs, id)
+	}
+
+	// Fetch product images from shopee_products cache
+	imageMap := r.getProductImagesFromCache(ctx, db, itemIDs)
+
+	// Group items by order_sn and enrich with images
+	itemsByOrder := make(map[string][]models.ShopeeOrderItem)
+	for i := range items {
+		// Enrich item with cached product image if empty
+		if items[i].ProductImage == "" && items[i].ItemID > 0 {
+			if imgURL, ok := imageMap[items[i].ItemID]; ok {
+				items[i].ProductImage = imgURL
+			}
+		}
+		itemsByOrder[items[i].OrderSN] = append(itemsByOrder[items[i].OrderSN], items[i])
 	}
 
 	// Build flattened orders with items (same format as Node.js)
 	return r.flattenShopeeOrders(orderModels, itemsByOrder), nil
+}
+
+// getProductImagesFromCache fetches product images from shopee_products table
+func (r *GormOrderRepository) getProductImagesFromCache(ctx context.Context, db *gorm.DB, itemIDs []int64) map[int64]string {
+	result := make(map[int64]string)
+	if len(itemIDs) == 0 {
+		return result
+	}
+
+	var products []models.ShopeeProduct
+	err := db.WithContext(ctx).
+		Select("item_id, image").
+		Where("item_id IN ? AND image != ''", itemIDs).
+		Find(&products).Error
+
+	if err != nil {
+		fmt.Printf("Warning: failed to fetch product images: %v\n", err)
+		return result
+	}
+
+	for _, p := range products {
+		if p.Image != "" {
+			result[p.ItemID] = p.Image
+		}
+	}
+	return result
 }
 
 // flattenShopeeOrders creates flattened order list for frontend
@@ -171,6 +226,12 @@ func (r *GormOrderRepository) flattenShopeeOrders(orderModels []models.ShopeeOrd
 			currency = "IDR"
 		}
 
+		// Format countdown from ship_by_date
+		countdown := ""
+		if m.ShipByDate != nil && *m.ShipByDate > 0 {
+			countdown = formatShipByDateFromDB(*m.ShipByDate)
+		}
+
 		if len(orderItems) == 0 {
 			// No items - still include order with empty item fields
 			orders = append(orders, Order{
@@ -185,6 +246,7 @@ func (r *GormOrderRepository) flattenShopeeOrders(orderModels []models.ShopeeOrd
 				PaymentMethod:   m.PaymentMethod,
 				ShippingCarrier: m.ShippingCarrier,
 				BuyerMessage:    m.BuyerMessage,
+				Countdown:       countdown,
 				CreatedAt:       m.CreatedAt,
 				UpdatedAt:       m.UpdatedAt,
 			})
@@ -225,6 +287,7 @@ func (r *GormOrderRepository) flattenShopeeOrders(orderModels []models.ShopeeOrd
 					Quantity:        qty,
 					Price:           price,
 					ProductImage:    item.ProductImage,
+					Countdown:       countdown,
 					CreatedAt:       m.CreatedAt,
 					UpdatedAt:       m.UpdatedAt,
 				})

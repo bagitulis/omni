@@ -11,7 +11,7 @@
       "model": "github-copilot/claude-opus-4.5"
     },
     "oracle": {
-      "model": "github-copilot/gpt-5.2"
+      "model": "github-copilot/gemini-3-pro-preview"
     },
     "atlas": {
       "model": "github-copilot/claude-opus-4.5"
@@ -26,13 +26,13 @@
       "model": "github-copilot/gemini-3-pro-preview"
     },
     "metis": {
-      "model": "github-copilot/claude-sonnet-4.5"
+      "model": "github-copilot/gemini-3-pro-preview"
     },
     "momus": {
       "model": "github-copilot/gemini-3-pro-preview"
     },
     "sisyphus-junior": {
-      "model": "github-copilot/claude-sonnet-4.5"
+      "model": "github-copilot/gemini-3-pro-preview"
     },
     "default": {
       "model": "github-copilot/claude-opus-4.5"
@@ -65,7 +65,7 @@
       "model": "github-copilot/gemini-3-pro-preview"
     },
     "testing": {
-      "model": "github-copilot/claude-sonnet-4.5"
+      "model": "github-copilot/gemini-3-pro-preview"
     },
     "security": {
       "model": "github-copilot/claude-opus-4.5"

@@ -45,7 +45,7 @@ interface OrderProduct {
   sku: string;
   product_name: string;
   variation_name?: string;
-  qty: number;
+  qty: number; // Backend sends 'qty' field
   price?: number;
   product_image?: string;
 }
@@ -63,12 +63,17 @@ const imageUrl = computed(() => {
   if (imageError.value || !props.product.product_image) {
     return null;
   }
-  // Convert to webp thumbnail if possible (60x60)
   const url = props.product.product_image;
-  // Shopee images can use _tn suffix for thumbnails
-  if (props.platform === "shopee" && !url.includes("_tn")) {
-    return url.replace(/\.(jpg|jpeg|png)$/i, "_tn.$1");
+
+  // Shopee CDN: add _tn suffix for 60x60 thumbnail
+  // Format: https://cf.shopee.co.id/file/{image_id} -> add _tn
+  if (props.platform === "shopee" && url.includes("cf.shopee")) {
+    if (url.includes("_tn")) {
+      return url;
+    }
+    return `${url}_tn`;
   }
+
   return url;
 });
 

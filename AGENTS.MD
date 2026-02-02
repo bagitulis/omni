@@ -11,6 +11,42 @@ https://github.com/anomalyco/opencode/releases
 
 ---
 
+## 🔴 MANDATORY: Baca PROMETHEUS_RULES.md
+
+> **SEBELUM EKSEKUSI APAPUN, AI WAJIB:**
+>
+> 1. Baca `PROMETHEUS_RULES.md` untuk planning & execution rules
+> 2. Ikuti **Trace Flow Protocol** sebelum fix bug (JANGAN langsung fix-test loop!)
+> 3. Gunakan **@librarian** untuk cari SDK docs ketika stuck
+> 4. Gunakan **@explore** untuk cari existing pattern di codebase
+
+### ⚠️ STUCK PROTOCOL (WAJIB DIIKUTI)
+
+```
+KETIKA STUCK (Error berulang > 2x atau tidak progress > 10 menit):
+
+1. STOP - Jangan terus trial-and-error!
+2. TRACE FLOW - Ikuti data dari frontend → handler → service → repository → database
+3. IDENTIFY - Di layer mana data PERTAMA KALI salah?
+4. RESEARCH - Gunakan @librarian untuk cari docs, @explore untuk cari pattern
+5. FIX - Setelah dapat referensi yang jelas, baru fix
+
+⛔ DILARANG: Loop fix → test → gagal → fix → test tanpa trace flow!
+```
+
+### 🔢 FAILURE COUNTER RULE (OTOMATIS AKTIF)
+
+```
+FAILURE = 1 → Boleh fix langsung, tapi CATAT error-nya
+FAILURE = 2 → STOP! Wajib TRACE FLOW sebelum fix lagi
+FAILURE >= 3 → STOP! Wajib RESEARCH dengan @librarian/@explore
+
+AI WAJIB track failure count dan tulis di setiap fix attempt!
+Lihat detail di PROMETHEUS_RULES.md Section 8.
+```
+
+---
+
 ## 📑 Table of Contents
 
 1. [🚨 Critical Rules (Top 11)](#-critical-rules-top-11)
