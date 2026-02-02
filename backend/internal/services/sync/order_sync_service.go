@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/services/platform"
 	"github.com/omni/backend/internal/utils/logger"
 )
@@ -210,18 +211,26 @@ func GetOrderSyncService(tenantID string) (*OrderSyncService, error) {
 // initializeServiceWithPlatforms initializes the service with platform managers
 func initializeServiceWithPlatforms(service *OrderSyncService, tenantID string) error {
 	ctx := context.Background()
-	
+
 	// Get platform coordination service
 	coordService := platform.GetPlatformCoordinationService(tenantID)
 	if err := coordService.InitializePlatforms(ctx); err != nil {
 		return fmt.Errorf("initialize platforms: %w", err)
 	}
 
+	// Get tenant DB for ImageService
+	db, dbErr := config.GetTenantDBByID(tenantID)
+
 	// Create order managers from platform API clients
 	managers := make(map[PlatformType]OrderManager)
 
 	if shopeeClient := coordService.GetShopeeClient(); shopeeClient != nil {
-		managers[PlatformShopee] = NewShopeeOrderManager(shopeeClient, tenantID)
+		// Create ImageService if DB is available
+		var imageService *ImageService
+		if dbErr == nil && db != nil && shopeeClient.GetClient() != nil {
+			imageService = NewImageService(shopeeClient.GetClient(), db, tenantID)
+		}
+		managers[PlatformShopee] = NewShopeeOrderManager(shopeeClient, tenantID, imageService)
 	}
 
 	if lazadaClient := coordService.GetLazadaClient(); lazadaClient != nil {

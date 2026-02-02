@@ -48,12 +48,14 @@ type Order struct {
 type OrderItem struct {
 	ID            string  `json:"id"`
 	OrderID       string  `json:"order_id"`
+	ItemID        int64   `json:"item_id,omitempty"`
 	SKU           string  `json:"sku"`
 	ProductName   string  `json:"product_name"`
 	VariationName string  `json:"variation_name"`
 	Quantity      int     `json:"quantity"`
 	Price         float64 `json:"price"`
 	TotalPrice    float64 `json:"total_price"`
+	ProductImage  string  `json:"product_image,omitempty"`
 	// Tracking info (for Lazada items which have per-item tracking)
 	TrackingNumber  string `json:"tracking_number,omitempty"`
 	ShippingCarrier string `json:"shipping_carrier,omitempty"`

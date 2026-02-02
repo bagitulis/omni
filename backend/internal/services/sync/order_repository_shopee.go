@@ -94,13 +94,15 @@ func (r *GormOrderRepository) saveShopeeOrderItems(ctx context.Context, db *gorm
 		qty := item.Quantity
 		price := item.Price
 		itemModel := models.ShopeeOrderItem{
-			TenantID:  r.tenantID,
-			OrderSN:   orderSN,
-			ItemName:  item.ProductName,
-			ModelName: item.VariationName,
-			ModelSku:  item.SKU,
-			Quantity:  &qty,
-			Price:     &price,
+			TenantID:     r.tenantID,
+			OrderSN:      orderSN,
+			ItemID:       item.ItemID,
+			ItemName:     item.ProductName,
+			ModelName:    item.VariationName,
+			ModelSku:     item.SKU,
+			Quantity:     &qty,
+			Price:        &price,
+			ProductImage: item.ProductImage,
 		}
 		if err := db.WithContext(ctx).Create(&itemModel).Error; err != nil {
 			return err
@@ -222,6 +224,7 @@ func (r *GormOrderRepository) flattenShopeeOrders(orderModels []models.ShopeeOrd
 					VariationName:   item.ModelName,
 					Quantity:        qty,
 					Price:           price,
+					ProductImage:    item.ProductImage,
 					CreatedAt:       m.CreatedAt,
 					UpdatedAt:       m.UpdatedAt,
 				})

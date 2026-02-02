@@ -40,6 +40,11 @@ func (c *ShopeeAPIClient) IsInitialized() bool {
 	return c.initialized && c.config.IsConfigured()
 }
 
+// GetClient returns the underlying Shopee client for advanced operations
+func (c *ShopeeAPIClient) GetClient() *shopeePkg.Client {
+	return c.client
+}
+
 // GetOrderList fetches orders by status
 // For PROCESSED status, uses Package API (searchPackageList) as per Node.js implementation
 func (c *ShopeeAPIClient) GetOrderList(ctx context.Context, status string, days int) ([]map[string]interface{}, error) {

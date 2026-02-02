@@ -14,15 +14,17 @@ var adapterLogger = logger.Named("PlatformAdapters")
 
 // ShopeeOrderManager adapts Shopee API client to OrderManager interface
 type ShopeeOrderManager struct {
-	client   *platform.ShopeeAPIClient
-	tenantID string
+	client       *platform.ShopeeAPIClient
+	tenantID     string
+	imageService *ImageService
 }
 
 // NewShopeeOrderManager creates a Shopee order manager
-func NewShopeeOrderManager(client *platform.ShopeeAPIClient, tenantID string) *ShopeeOrderManager {
+func NewShopeeOrderManager(client *platform.ShopeeAPIClient, tenantID string, imageService *ImageService) *ShopeeOrderManager {
 	return &ShopeeOrderManager{
-		client:   client,
-		tenantID: tenantID,
+		client:       client,
+		tenantID:     tenantID,
+		imageService: imageService,
 	}
 }
 
@@ -105,13 +107,6 @@ func (m *ShopeeOrderManager) enrichOrdersWithDetails(ctx context.Context, orders
 			"details_size": len(details),
 		}).Info("Fetched order details for enrichment")
 
-		// Debug: print first detail
-		if len(details) > 0 {
-			d := details[0]
-			fmt.Printf("[enrichOrdersWithDetails] Sample detail: order_sn=%v, total_amount=%v, buyer_username=%v, payment_method=%v\n",
-				d["order_sn"], d["total_amount"], d["buyer_username"], d["payment_method"])
-		}
-
 		for _, d := range details {
 			if sn, ok := d["order_sn"].(string); ok {
 				detailMap[sn] = d
@@ -134,13 +129,105 @@ func (m *ShopeeOrderManager) enrichOrdersWithDetails(ctx context.Context, orders
 			if shipByDate := getInt64(detail, "ship_by_date"); shipByDate > 0 {
 				orders[i].Countdown = formatShipByDate(shipByDate)
 			}
+			// Extract items with item_id for image fetching
+			orders[i].Items = extractOrderItems(detail)
 			mergedCount++
 		}
 	}
 
-	fmt.Printf("[enrichOrdersWithDetails] Merged %d orders with details\n", mergedCount)
+	// Fetch product images for order items
+	if m.imageService != nil {
+		m.enrichOrdersWithImages(ctx, orders)
+	}
+
+	adapterLogger.WithFields(map[string]interface{}{
+		"merged_count": mergedCount,
+		"total_orders": len(orders),
+	}).Info("Enriched orders with details")
 
 	return orders
+}
+
+// enrichOrdersWithImages fetches and populates product images for order items
+func (m *ShopeeOrderManager) enrichOrdersWithImages(ctx context.Context, orders []Order) {
+	itemIDs := collectUniqueItemIDs(orders)
+	if len(itemIDs) == 0 {
+		return
+	}
+
+	images, err := m.imageService.GetProductImages(ctx, itemIDs)
+	if err != nil {
+		adapterLogger.WithTenantID(m.tenantID).Warn("Failed to fetch product images: " + err.Error())
+		return
+	}
+
+	// Populate images on order items
+	for i := range orders {
+		for j := range orders[i].Items {
+			if url, ok := images[orders[i].Items[j].ItemID]; ok {
+				orders[i].Items[j].ProductImage = url
+			}
+		}
+		// Also set on flattened order fields if single item
+		if len(orders[i].Items) == 1 {
+			orders[i].ProductImage = orders[i].Items[0].ProductImage
+		}
+	}
+
+	adapterLogger.WithFields(map[string]interface{}{
+		"item_ids_requested": len(itemIDs),
+		"images_found":       len(images),
+	}).Info("Enriched orders with product images")
+}
+
+// collectUniqueItemIDs extracts unique item IDs from orders
+func collectUniqueItemIDs(orders []Order) []int64 {
+	seen := make(map[int64]bool)
+	var ids []int64
+	for _, o := range orders {
+		for _, item := range o.Items {
+			if item.ItemID > 0 && !seen[item.ItemID] {
+				seen[item.ItemID] = true
+				ids = append(ids, item.ItemID)
+			}
+		}
+	}
+	return ids
+}
+
+// extractOrderItems extracts items from order detail response
+func extractOrderItems(detail map[string]interface{}) []OrderItem {
+	items, ok := detail["items"].([]interface{})
+	if !ok {
+		return nil
+	}
+
+	orderItems := make([]OrderItem, 0, len(items))
+	orderSN := getString(detail, "order_sn")
+
+	for _, item := range items {
+		itemMap, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		sku := getString(itemMap, "model_sku")
+		if sku == "" {
+			sku = getString(itemMap, "item_sku")
+		}
+
+		orderItems = append(orderItems, OrderItem{
+			OrderID:       orderSN,
+			ItemID:        getInt64(itemMap, "item_id"),
+			SKU:           sku,
+			ProductName:   getString(itemMap, "item_name"),
+			VariationName: getString(itemMap, "model_name"),
+			Quantity:      getInt(itemMap, "quantity"),
+			Price:         getFloat64(itemMap, "price"),
+		})
+	}
+
+	return orderItems
 }
 
 // GetOrderDetails fetches order details from Shopee
@@ -181,7 +268,6 @@ func (m *ShopeeOrderManager) GetOrderDetails(ctx context.Context, orderIDs []str
 
 // GetOrderItems fetches order items from Shopee
 func (m *ShopeeOrderManager) GetOrderItems(ctx context.Context, orderIDs []string) (map[string][]OrderItem, error) {
-	// Get order details which include items
 	rawOrders, err := m.client.GetOrderDetails(ctx, orderIDs)
 	if err != nil {
 		return nil, err
@@ -190,30 +276,8 @@ func (m *ShopeeOrderManager) GetOrderItems(ctx context.Context, orderIDs []strin
 	result := make(map[string][]OrderItem)
 	for _, raw := range rawOrders {
 		orderSN := getString(raw, "order_sn")
-		if items, ok := raw["items"].([]interface{}); ok {
-			orderItems := make([]OrderItem, 0, len(items))
-			for _, item := range items {
-				if itemMap, ok := item.(map[string]interface{}); ok {
-					// Use model_sku first, fallback to item_sku
-					sku := getString(itemMap, "model_sku")
-					if sku == "" {
-						sku = getString(itemMap, "item_sku")
-					}
-
-					orderItems = append(orderItems, OrderItem{
-						OrderID:       orderSN,
-						SKU:           sku,
-						ProductName:   getString(itemMap, "item_name"),
-						VariationName: getString(itemMap, "model_name"),
-						Quantity:      getInt(itemMap, "quantity"),
-						Price:         getFloat64(itemMap, "price"),
-					})
-				}
-			}
-			result[orderSN] = orderItems
-		}
+		result[orderSN] = extractOrderItems(raw)
 	}
-
 	return result, nil
 }
 
