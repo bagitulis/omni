@@ -15,7 +15,7 @@ https://github.com/anomalyco/opencode/releases
 
 1. [🚨 Critical Rules (Top 11)](#-critical-rules-top-11)
 2. [📋 AI Workflow Decision Tree](#-ai-workflow-decision-tree)
-3. [🎯 Prometheus Planning Mandatory Rules](#-prometheus-planning-mandatory-rules)
+3. [🎯 Prometheus Planning Reference](#-prometheus-planning-mandatory-rules)
 4. [✅ Validation Checklist](#-validation-checklist)
 5. [📐 Naming Conventions](#-naming-conventions)
 6. [🏗️ Architecture Patterns](#️-architecture-patterns)
@@ -76,10 +76,11 @@ if tenantID == "" {
 
 // ✅ CORRECT - Explicit error
 if tenantID == "" {
-    return c.Status(401).JSON(fiber.Map{
+    c.JSON(http.StatusUnauthorized, gin.H{
         "success": false,
         "error":   "Missing tenant_id - authentication required",
     })
+    return
 }
 ```
 
@@ -135,14 +136,20 @@ func (s *Service) GetOrders(tenantID string) ([]Order, error) {
 
 ```go
 // ✅ Handler only: parse, validate, call service, format
-func (h *Handler) GetOrders(c *fiber.Ctx) error {
-    tenantID := c.Locals("tenant_id").(string)  // 1. Parse
-    if tenantID == "" { return error }           // 2. Validate
+func (h *Handler) GetOrders(c *gin.Context) {
+    tenantID := c.GetString("tenant_id")  // 1. Parse
+    if tenantID == "" {                    // 2. Validate
+        c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
+        return
+    }
 
-    orders, err := h.service.GetOrders(ctx, tenantID)  // 3. Call service
-    if err != nil { return error }
+    orders, err := h.service.GetOrders(c.Request.Context(), tenantID)  // 3. Call service
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+        return
+    }
 
-    return c.JSON(fiber.Map{"success": true, "data": orders})  // 4. Format
+    c.JSON(http.StatusOK, gin.H{"success": true, "data": orders})  // 4. Format
 }
 ```
 
@@ -370,183 +377,35 @@ Service error but code is correct?
 
 ---
 
-## 🎯 Prometheus Planning Mandatory Rules
+## 🎯 Prometheus Planning Reference
 
-> **⚠️ WAJIB: Section ini HARUS dibaca dan diterapkan oleh AI Prometheus sebelum membuat planning apapun**
+> **For AI Prometheus**: Detailed planning rules are in **PROMETHEUS_RULES.md**
+> 
+> This section provides a brief summary. Full rules and templates are in the separate file.
 
-### Pre-Planning Steps (WAJIB)
+### Quick Checklist for Prometheus
 
-Sebelum membuat plan, Prometheus HARUS melakukan langkah-langkah ini:
+Before creating any plan, verify:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ LANGKAH PRE-PLANNING (lakukan secara berurutan)             │
-├─────────────────────────────────────────────────────────────┤
-│ 1. Baca SELURUH AGENTS.md ini                               │
-│ 2. Identifikasi file mana saja yang akan dimodifikasi       │
-│ 3. Verifikasi apakah ada perubahan database/schema          │
-│ 4. Cek apakah task melibatkan multi-tenancy                 │
-│ 5. Tentukan estimasi jumlah baris per file (max 300)        │
-│ 6. Pastikan naming convention sudah benar di plan           │
-└─────────────────────────────────────────────────────────────┘
-```
+- [ ] Read AGENTS.md (this file) completely
+- [ ] Identify all files to be modified
+- [ ] Check if database changes are needed
+- [ ] Confirm multi-tenancy requirements
+- [ ] Estimate line counts (max 300 per file)
+- [ ] Specify naming conventions
 
-### Planning Template (WAJIB DIIKUTI)
+### Plan Quality Gates (Summary)
 
-Setiap plan yang dibuat Prometheus HARUS mengandung section-section berikut:
+| Gate | Requirement |
+|------|-------------|
+| File Size | < 300 lines (models: 500, migrations: unlimited) |
+| Architecture | Handler → Service → Repository |
+| JSON Tags | snake_case |
+| Testing | go build + go test must pass |
+| Tenant | No default tenant, explicit validation |
+| Cleanup | DRY, SRP, remove dead code |
 
-```markdown
-## Task: [Nama Task]
-
-### Pre-Implementation Info
-
-- Sudah baca AGENTS.md: Ya
-- Affected files: [list files]
-- Database changes required: [Yes/No]
-- Multi-tenant consideration: [Yes/No]
-
-### Architecture Compliance
-
-- Layer yang terlibat: [Handler/Service/Repository]
-- Pattern: Handler → Service → Repository
-
-### Naming Convention
-
-- Go struct fields: PascalCase
-- JSON tags: snake_case
-- Database columns: snake_case
-- Local variables: camelCase
-
-### File Size Estimation
-
-| File       | Estimated Lines | Status     |
-| ---------- | --------------- | ---------- |
-| [filename] | ~[X] lines      | OK (< 300) |
-
-### Security Compliance
-
-- No default tenant: Ya
-- tenant_id validation: Ya
-- No sensitive data in logs: Ya
-
-### Success Criteria
-
-1. go build ./... passes
-2. go test ./... passes
-3. No false positives
-4. All JSON responses use snake_case
-```
-
-### ❌ Planning Anti-Patterns (DILARANG)
-
-```
-PROMETHEUS TIDAK BOLEH:
-
-1. ❌ Membuat plan tanpa menyebut file size limit
-   → WAJIB: Sebutkan "max 300 lines per file"
-
-2. ❌ Membuat plan dengan business logic di Handler
-   → WAJIB: Business logic di Service layer
-
-3. ❌ Mengabaikan tenant_id validation di plan
-   → WAJIB: Setiap endpoint protected harus validate tenant_id
-
-4. ❌ Menggunakan camelCase untuk JSON response di plan
-   → WAJIB: Semua JSON response menggunakan snake_case
-
-5. ❌ Membuat plan tanpa testing phase
-   → WAJIB: Plan harus include "go build" dan "go test" step
-
-6. ❌ Plan yang mengasumsikan default tenant
-   → WAJIB: Explicit error jika tenant_id missing
-
-7. ❌ Plan tanpa cleanup/refactor phase
-   → WAJIB: Setiap plan harus include cleanup sesuai DRY, SRP, OOP
-```
-
-### ✅ Planning Best Practices (WAJIB)
-
-```
-PROMETHEUS HARUS:
-
-1. ✅ Breakdown task menjadi phases:
-   - Phase 1: Planning & Analysis
-   - Phase 2: Implementation
-   - Phase 3: Cleanup (DRY, SRP, <300 lines)
-   - Phase 4: Testing (go build, go test)
-   - Phase 5: Docker Apply (jika needed)
-
-2. ✅ Setiap task di plan harus atomic dan testable
-
-3. ✅ Include rollback strategy jika implementation gagal
-
-4. ✅ Specify dependencies antar tasks dengan jelas
-
-5. ✅ Estimate waktu/complexity untuk setiap task
-
-6. ✅ Include validation checkpoints di setiap phase
-```
-
-### 📊 Plan Quality Gates
-
-Plan dianggap VALID jika memenuhi SEMUA kriteria berikut:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ KRITERIA VALIDASI PLAN (semua harus terpenuhi)              │
-├─────────────────────────────────────────────────────────────┤
-│ 1. Menyebut max 300 lines per file                          │
-│ 2. Architecture pattern Handler→Service→Repository benar   │
-│ 3. Naming convention sudah dispesifikasi                    │
-│ 4. Testing phase (go build + go test) sudah termasuk        │
-│ 5. Tidak ada asumsi default tenant                          │
-│ 6. Cleanup phase sudah termasuk                             │
-│ 7. Success criteria sudah didefinisikan                     │
-│ 8. Error handling pattern sudah dispesifikasi               │
-└─────────────────────────────────────────────────────────────┘
-
-Jika ada kriteria yang TIDAK terpenuhi → plan harus direvisi!
-```
-
-### 🔄 Plan Self-Review
-
-Setelah membuat plan, Prometheus harus melakukan self-review menggunakan logika berikut:
-
-```go
-// Pseudo-code untuk Plan Validation
-func validatePlan(plan Plan) error {
-    // 1. File size check
-    for _, file := range plan.AffectedFiles {
-        if file.EstimatedLines > 300 && !file.IsModelFile {
-            return errors.New("file exceeds 300 lines limit")
-        }
-    }
-
-    // 2. Architecture check
-    if plan.HasBusinessLogicInHandler {
-        return errors.New("business logic must be in Service layer")
-    }
-
-    // 3. Naming convention check
-    for _, jsonTag := range plan.JSONTags {
-        if !isSnakeCase(jsonTag) {
-            return errors.New("JSON tags must be snake_case")
-        }
-    }
-
-    // 4. Testing phase check
-    if !plan.HasTestingPhase {
-        return errors.New("plan must include testing phase")
-    }
-
-    // 5. Multi-tenancy check
-    if plan.RequiresAuth && !plan.HasTenantValidation {
-        return errors.New("protected endpoints must validate tenant_id")
-    }
-
-    return nil // Plan is valid
-}
-```
+**Full details**: See `PROMETHEUS_RULES.md`
 
 ---
 
@@ -610,6 +469,55 @@ func validatePlan(plan Plan) error {
 ---
 
 ## 📐 Naming Conventions
+
+### ⚡ Quick Reference Card (MEMORIZE THIS)
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│  WHERE?              │  CONVENTION   │  EXAMPLE               │
+├──────────────────────┼───────────────┼────────────────────────┤
+│  JSON response       │  snake_case   │  {"order_sn": "123"}   │
+│  Database column     │  snake_case   │  order_sn, tenant_id   │
+│  Go struct field     │  PascalCase   │  OrderSN, TenantID     │
+│  Go local variable   │  camelCase    │  orderService, itemID  │
+│  TS API interface    │  snake_case   │  order_sn: string      │
+│  TS local variable   │  camelCase    │  const orderSn = ...   │
+│  Vue template prop   │  kebab-case   │  :order-sn="orderSn"   │
+└──────────────────────┴───────────────┴────────────────────────┘
+```
+
+### ❌ Common Mistakes (AVOID THESE)
+
+```go
+// ❌ WRONG: camelCase in JSON tag
+type Order struct {
+    OrderSN string `json:"orderSn"`      // WRONG!
+    ItemID  int64  `json:"itemId"`       // WRONG!
+}
+
+// ✅ CORRECT: snake_case in JSON tag
+type Order struct {
+    OrderSN string `json:"order_sn"`     // CORRECT
+    ItemID  int64  `json:"item_id"`      // CORRECT
+}
+```
+
+```typescript
+// ❌ WRONG: camelCase in API interface (mismatch with backend)
+interface OrderResponse {
+  orderSn: string;    // WRONG! Won't match backend response
+  itemId: number;     // WRONG!
+}
+
+// ✅ CORRECT: snake_case in API interface (matches backend)
+interface OrderResponse {
+  order_sn: string;   // CORRECT - matches backend JSON
+  item_id: number;    // CORRECT
+}
+
+// Then convert to camelCase for internal use:
+const orderSn = response.order_sn;  // CORRECT
+```
 
 ### Overview: Hybrid Approach (Per Layer)
 
@@ -679,20 +587,21 @@ func (ShopeeProduct) TableName() string {
 }
 
 // Handler - camelCase local vars
-func (h *ProductHandler) GetProduct(c *fiber.Ctx) error {
-    tenantID := c.Locals("tenant_id").(string)
-    itemID := c.Params("itemId")
+func (h *ProductHandler) GetProduct(c *gin.Context) {
+    tenantID := c.GetString("tenant_id")
+    itemID := c.Param("itemId")
 
-    product, err := h.productService.GetByItemID(c.Context(), tenantID, itemID)
+    product, err := h.productService.GetByItemID(c.Request.Context(), tenantID, itemID)
     if err != nil {
-        return c.Status(500).JSON(fiber.Map{
+        c.JSON(http.StatusInternalServerError, gin.H{
             "success": false,
             "error":   err.Error(),
         })
+        return
     }
 
     // Response - snake_case JSON (automatic from struct tags)
-    return c.JSON(fiber.Map{
+    c.JSON(http.StatusOK, gin.H{
         "success": true,
         "data":    product,  // Will serialize as snake_case
     })
@@ -831,31 +740,33 @@ func NewOrderHandler(orderService *services.OrderService) *OrderHandler {
 }
 
 // ✅ CORRECT Handler Pattern
-func (h *OrderHandler) GetOrders(c *fiber.Ctx) error {
+func (h *OrderHandler) GetOrders(c *gin.Context) {
     // 1. Parse request
-    tenantID, ok := c.Locals("tenant_id").(string)
-    platform := c.Params("platform")
-    page := c.QueryInt("page", 1)
-    limit := c.QueryInt("limit", 20)
+    tenantID := c.GetString("tenant_id")
+    platform := c.Param("platform")
+    page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+    limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 
     // 2. Validate input
-    if !ok || tenantID == "" {
-        return c.Status(401).JSON(fiber.Map{
+    if tenantID == "" {
+        c.JSON(http.StatusUnauthorized, gin.H{
             "success": false,
             "error":   "Missing tenant_id - authentication required",
         })
+        return
     }
 
     if platform != "shopee" && platform != "lazada" && platform != "tiktok" {
-        return c.Status(400).JSON(fiber.Map{
+        c.JSON(http.StatusBadRequest, gin.H{
             "success": false,
             "error":   "Invalid platform",
         })
+        return
     }
 
     // 3. Call service (business logic here)
     orders, total, err := h.orderService.GetOrders(
-        c.Context(),
+        c.Request.Context(),
         tenantID,
         platform,
         page,
@@ -868,17 +779,18 @@ func (h *OrderHandler) GetOrders(c *fiber.Ctx) error {
             Str("platform", platform).
             Msg("Failed to get orders")
 
-        return c.Status(500).JSON(fiber.Map{
+        c.JSON(http.StatusInternalServerError, gin.H{
             "success": false,
             "error":   err.Error(),
         })
+        return
     }
 
     // 4. Format response
-    return c.JSON(fiber.Map{
+    c.JSON(http.StatusOK, gin.H{
         "success": true,
         "data":    orders,
-        "meta": fiber.Map{
+        "meta": gin.H{
             "total":     total,
             "page":      page,
             "page_size": limit,
@@ -887,8 +799,8 @@ func (h *OrderHandler) GetOrders(c *fiber.Ctx) error {
 }
 
 // ❌ WRONG - Business logic in handler
-func (h *OrderHandler) GetOrdersWrong(c *fiber.Ctx) error {
-    tenantID := c.Locals("tenant_id").(string)
+func (h *OrderHandler) GetOrdersWrong(c *gin.Context) {
+    tenantID := c.GetString("tenant_id")
 
     // ❌ Direct DB access from handler - WRONG!
     db := h.dbManager.GetTenantDB(tenantID)
@@ -900,7 +812,7 @@ func (h *OrderHandler) GetOrdersWrong(c *fiber.Ctx) error {
         orders[i].TotalAmount = orders[i].Price * float64(orders[i].Quantity)
     }
 
-    return c.JSON(orders)
+    c.JSON(http.StatusOK, orders)
 }
 ```
 
@@ -1101,16 +1013,17 @@ db := dbManager.GetTenantDB("yumna_bertigamart") // WRONG!
 
 // ✅ ALWAYS: Explicit validation
 if tenantID == "" {
-    return c.Status(401).JSON(fiber.Map{
+    c.JSON(http.StatusUnauthorized, gin.H{
         "success": false,
         "error":   "Missing tenant_id - authentication required",
     })
+    return
 }
 
 // ✅ ALWAYS: Dynamic tenant from context
-tenantID, ok := c.Locals("tenant_id").(string)
-if !ok || tenantID == "" {
-    return error
+tenantID := c.GetString("tenant_id")
+if tenantID == "" {
+    // return error
 }
 db := dbManager.GetTenantDB(tenantID)
 ```
@@ -1342,11 +1255,12 @@ var (
 
 // Usage in handler
 if tenantID == "" {
-    return c.Status(errors.ErrMissingTenantID.Status).JSON(fiber.Map{
+    c.JSON(http.StatusUnauthorized, gin.H{
         "success": false,
         "error":   errors.ErrMissingTenantID.Message,
         "code":    errors.ErrMissingTenantID.Code,
     })
+    return
 }
 ```
 
@@ -1522,78 +1436,75 @@ func TestOrderService_GetOrders_MissingTenant(t *testing.T) {
 
 > **⚠️ WAJIB: Task TIDAK BOLEH dianggap selesai tanpa memenuhi kriteria ini**
 
-### Dua Bukti Wajib
+### Evidence Requirements by Task Type
 
-Sebelum menandai task sebagai "completed", AI HARUS menyediakan:
+Evidence requirements vary based on task complexity:
+
+| Task Type | Required Evidence | Examples |
+|-----------|-------------------|----------|
+| **Unit Test/Code Only** | Test output only | Refactoring, bug fixes, new functions |
+| **Integration/API** | Docker log OR Test output | API endpoints, service integration |
+| **Full Feature** | Docker log AND Test output | New features, major changes |
+| **Documentation** | Visual confirmation | README updates, config changes |
+
+### Evidence Guidelines
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ BUKTI 1: Log Docker                                          │
+│ VALID EVIDENCE (choose appropriate for task type)            │
 ├─────────────────────────────────────────────────────────────┤
-│ Log Docker yang menampilkan data valid SPESIFIK:            │
-│ • Tanggal/waktu terkait masalah yang diperbaiki             │
-│ • Transaksi sukses yang relevan                             │
-│ • Data yang membuktikan fix berhasil                        │
 │                                                             │
-│ ❌ TIDAK VALID: Log running umum tanpa konteks spesifik     │
-│ ✅ VALID: Log yang menunjukkan masalah sudah teratasi       │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│ BUKTI 2: Output Script/Test                                  │
-├─────────────────────────────────────────────────────────────┤
-│ Output dengan keterangan keberhasilan EKSPLISIT:            │
-│ • go build ./... → "Build successful"                       │
+│ Option A: Test Output                                       │
+│ • go build ./... → passes without errors                    │
 │ • go test ./... → "PASS" untuk semua test                   │
-│ • Output API yang menunjukkan response benar                │
+│ • Relevant test case showing fix works                      │
 │                                                             │
-│ ❌ TIDAK VALID: Output tanpa keterangan hasil               │
-│ ✅ VALID: Output yang jelas menunjukkan sukses/gagal        │
+│ Option B: Docker/Runtime Log                                │
+│ • Log showing specific operation succeeded                  │
+│ • API response demonstrating correct behavior               │
+│ • Timestamp + relevant data proving fix                     │
+│                                                             │
+│ Option C: Visual/Manual Confirmation                        │
+│ • Screenshot of working UI (for frontend)                   │
+│ • curl output showing API response                          │
+│ • File diff showing documentation change                    │
+│                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Catatan Penting
+### What Makes Evidence VALID
 
 ```
-⚠️ BUKTI HARUS RELEVAN LANGSUNG DENGAN INTI MASALAH
+✅ VALID Evidence:
+- Directly proves the specific problem was fixed
+- Shows actual output/behavior, not just "it compiles"
+- Relevant to the task at hand
 
-Contoh VALID:
-- Masalah: "Order tidak tersimpan"
-- Bukti: Log menampilkan "Order TEST123 saved successfully"
-
-Contoh TIDAK VALID:
-- Masalah: "Order tidak tersimpan"
-- Bukti: Log menampilkan "Server started on port 3000"
-  → Ini bukti server jalan, BUKAN bukti order tersimpan
+❌ INVALID Evidence:
+- Generic "Server started" without context
+- Build passes but no proof fix works
+- Unrelated logs or test output
 ```
 
-### Success Evidence Template
+### Example by Task Type
 
-Setiap task completion HARUS menyertakan:
+**Unit Test Task (Code Only Evidence):**
+```
+Task: Fix calculation bug in OrderService
+Evidence: Test output showing TestOrderService_Calculate PASS
+```
 
-```markdown
-## Task Completion Evidence
+**Integration Task (Docker OR Test):**
+```
+Task: Fix API endpoint returning wrong status code
+Evidence: curl output showing correct 200 response with expected data
+```
 
-### Bukti 1: Docker Log
-
-\`\`\`
-[timestamp] INFO: Order processed successfully
-[timestamp] Data: {"order_sn": "TEST123", "status": "completed"}
-\`\`\`
-
-### Bukti 2: Test Output
-
-\`\`\`
-=== RUN TestOrderService_CreateOrder
---- PASS: TestOrderService_CreateOrder (0.05s)
-PASS
-ok github.com/omni/backend/internal/services 0.123s
-\`\`\`
-
-### Relevansi dengan Masalah
-
-- Masalah awal: [deskripsi masalah]
-- Bukti menunjukkan: [bagaimana bukti membuktikan masalah teratasi]
+**Full Feature (Both Required):**
+```
+Task: Implement new order sync feature
+Evidence 1: Docker log showing "Orders synced: 15 new, 3 updated"
+Evidence 2: go test ./... showing all related tests PASS
 ```
 
 ---
@@ -1679,7 +1590,7 @@ ok github.com/omni/backend/internal/services 0.123s
 │  3. Auth Flow:                                              │
 │     Frontend: Sends JWT in Authorization header             │
 │     Backend: Middleware extracts tenant_id from JWT         │
-│     Handler: Gets tenant_id from c.Locals("tenant_id")      │
+│     Handler: Gets tenant_id from c.GetString("tenant_id")   │
 │                                                             │
 │  4. Error Handling:                                         │
 │     Backend: {"success": false, "error": "message"}         │
@@ -1727,7 +1638,7 @@ Sebelum mengerjakan task, AI harus melakukan langkah-langkah ini:
 │                                                             │
 │  Go Libraries:                                              │
 │  • GORM: https://gorm.io/docs/                              │
-│  • Fiber: https://docs.gofiber.io/                          │
+│  • Gin: https://gin-gonic.com/docs/                         │
 │  • Zerolog: https://github.com/rs/zerolog                   │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
@@ -1908,14 +1819,14 @@ db.WithContext(ctx).Find(&orders)
 // Structured log
 log.Info().Str("key", val).Msg("message")
 
-// Error response
-c.JSON(500, fiber.Map{
+// Error response (GIN)
+c.JSON(http.StatusInternalServerError, gin.H{
     "success": false,
     "error":   err.Error(),
 })
 
-// Success response
-c.JSON(200, fiber.Map{
+// Success response (GIN)
+c.JSON(http.StatusOK, gin.H{
     "success": true,
     "data":    result,
 })
@@ -1927,13 +1838,11 @@ c.JSON(200, fiber.Map{
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ PROMETHEUS PLANNING MUST:                                    │
+│ PROMETHEUS PLANNING:                                         │
 ├─────────────────────────────────────────────────────────────┤
-│ 1. Read ENTIRE AGENTS.md before creating any plan           │
-│ 2. Apply "Prometheus Planning Mandatory Rules" section      │
-│ 3. Use Planning Template for every task                     │
-│ 4. Self-validate plan against Quality Gates                 │
-│ 5. Include ALL phases (Planning→Impl→Cleanup→Test→Docker)  │
+│ → See PROMETHEUS_RULES.md for complete planning rules       │
+│ → Must include Completion Block at start of every plan      │
+│ → Must pass all Quality Gates before execution              │
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
@@ -1966,13 +1875,14 @@ c.JSON(200, fiber.Map{
 │ 4. Run: go test ./...           (MUST PASS 100%)            │
 │ 5. Verify: No false positives                               │
 │ 6. Apply: build.py smart (or quick-fix if needed)           │
-│ 7. Mark: Task complete ✅                                   │
+│ 7. Provide evidence (appropriate for task type)             │
+│ 8. Mark: Task complete ✅                                   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-**End of README.md**
+**End of AGENTS.md**
 
-_Last Updated: 2026-01-29_  
-_Version: 2.0 (Consolidated from README.md + agentscopy.md)_
+_Last Updated: 2026-02-02_  
+_Version: 2.1 (Framework: GIN only, Flexible Evidence Rules)_
