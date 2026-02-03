@@ -94,7 +94,13 @@ func (r *GormOrderRepository) saveLazadaOrders(ctx context.Context, db *gorm.DB,
 func (r *GormOrderRepository) saveLazadaOrderItems(ctx context.Context, db *gorm.DB, orderSN string, items []OrderItem) error {
 	cacheService := imageService.NewProductImageCacheService()
 	urlCache := make(map[string]string)
+	masterImageMap := r.getLazadaMasterImages(ctx, db, items)
 	for i := range items {
+		itemID := fmt.Sprintf("%d", items[i].ItemID)
+		if masterImage, ok := masterImageMap[itemID]; ok && masterImage != "" {
+			items[i].ProductImage = masterImage
+			continue
+		}
 		items[i].ProductImage = r.cacheLazadaProductImage(ctx, db, cacheService, urlCache, items[i])
 	}
 
@@ -260,15 +266,19 @@ func (r *GormOrderRepository) getLazadaOrdersByStatus(ctx context.Context, db *g
 		itemIDs = append(itemIDs, id)
 	}
 
-	// Fetch product images from lazada_products cache
+	// Fetch master product images first, then lazada_products cache
+	masterImageMap := r.getMasterProductImagesByItemIDs(ctx, db, models.PlatformLazada, itemIDs)
 	imageMap := r.getLazadaProductImagesFromCache(ctx, db, itemIDs)
 
 	// Group items by order_sn and enrich with images
 	itemsByOrder := make(map[string][]models.LazadaOrderItem)
 	for i := range items {
+		itemIDStr := fmt.Sprintf("%d", items[i].ItemID)
+		if masterImage, ok := masterImageMap[itemIDStr]; ok && masterImage != "" {
+			items[i].ProductImage = masterImage
+		}
 		// Enrich item with cached product image if empty
 		if items[i].ProductImage == "" && items[i].ItemID > 0 {
-			itemIDStr := fmt.Sprintf("%d", items[i].ItemID)
 			if imgURL, ok := imageMap[itemIDStr]; ok {
 				items[i].ProductImage = imgURL
 			}
@@ -278,6 +288,23 @@ func (r *GormOrderRepository) getLazadaOrdersByStatus(ctx context.Context, db *g
 
 	// Build flattened orders with items
 	return r.flattenLazadaOrders(orderModels, itemsByOrder), nil
+}
+
+func (r *GormOrderRepository) getLazadaMasterImages(ctx context.Context, db *gorm.DB, items []OrderItem) map[string]string {
+	itemIDSet := make(map[string]bool)
+	for _, item := range items {
+		if item.ItemID > 0 {
+			itemIDSet[fmt.Sprintf("%d", item.ItemID)] = true
+		}
+	}
+	itemIDs := make([]string, 0, len(itemIDSet))
+	for id := range itemIDSet {
+		itemIDs = append(itemIDs, id)
+	}
+	if len(itemIDs) == 0 {
+		return map[string]string{}
+	}
+	return r.getMasterProductImagesByItemIDs(ctx, db, models.PlatformLazada, itemIDs)
 }
 
 // getLazadaProductImagesFromCache fetches product images from lazada_products table

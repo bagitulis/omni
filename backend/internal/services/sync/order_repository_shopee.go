@@ -98,8 +98,13 @@ func (r *GormOrderRepository) saveShopeeOrders(ctx context.Context, db *gorm.DB,
 func (r *GormOrderRepository) saveShopeeOrderItems(ctx context.Context, db *gorm.DB, orderSN string, items []OrderItem) error {
 	cacheService := imageService.NewProductImageCacheService()
 	urlCache := make(map[string]string)
+	masterImageMap := r.getShopeeMasterImages(ctx, db, items)
 
 	for i := range items {
+		if masterImage, ok := masterImageMap[items[i].ItemID]; ok && masterImage != "" {
+			items[i].ProductImage = masterImage
+			continue
+		}
 		items[i].ProductImage = r.cacheShopeeProductImage(ctx, db, cacheService, urlCache, items[i])
 	}
 
@@ -284,10 +289,16 @@ func (r *GormOrderRepository) getShopeeOrdersByStatus(ctx context.Context, db *g
 
 	// Fetch product images from shopee_products cache
 	imageMap := r.getProductImagesFromCache(ctx, db, itemIDs)
+	masterImageMap := r.getShopeeMasterImagesByIDs(ctx, db, itemIDs)
 
 	// Group items by order_sn and enrich with images
 	itemsByOrder := make(map[string][]models.ShopeeOrderItem)
 	for i := range items {
+		if items[i].ItemID > 0 {
+			if masterImage, ok := masterImageMap[items[i].ItemID]; ok && masterImage != "" {
+				items[i].ProductImage = masterImage
+			}
+		}
 		// Enrich item with cached product image if empty
 		if items[i].ProductImage == "" && items[i].ItemID > 0 {
 			if imgURL, ok := imageMap[items[i].ItemID]; ok {
@@ -299,6 +310,42 @@ func (r *GormOrderRepository) getShopeeOrdersByStatus(ctx context.Context, db *g
 
 	// Build flattened orders with items (same format as Node.js)
 	return r.flattenShopeeOrders(orderModels, itemsByOrder), nil
+}
+
+func (r *GormOrderRepository) getShopeeMasterImages(ctx context.Context, db *gorm.DB, items []OrderItem) map[int64]string {
+	itemIDSet := make(map[int64]bool)
+	for _, item := range items {
+		if item.ItemID > 0 {
+			itemIDSet[item.ItemID] = true
+		}
+	}
+	itemIDs := make([]int64, 0, len(itemIDSet))
+	for id := range itemIDSet {
+		itemIDs = append(itemIDs, id)
+	}
+	return r.getShopeeMasterImagesByIDs(ctx, db, itemIDs)
+}
+
+func (r *GormOrderRepository) getShopeeMasterImagesByIDs(ctx context.Context, db *gorm.DB, itemIDs []int64) map[int64]string {
+	result := make(map[int64]string)
+	if len(itemIDs) == 0 {
+		return result
+	}
+	itemIDStrings := make([]string, 0, len(itemIDs))
+	for _, id := range itemIDs {
+		if id > 0 {
+			itemIDStrings = append(itemIDStrings, fmt.Sprintf("%d", id))
+		}
+	}
+
+	masterMap := r.getMasterProductImagesByItemIDs(ctx, db, models.PlatformShopee, itemIDStrings)
+	for _, id := range itemIDs {
+		key := fmt.Sprintf("%d", id)
+		if image, ok := masterMap[key]; ok && image != "" {
+			result[id] = image
+		}
+	}
+	return result
 }
 
 // getProductImagesFromCache fetches product images from shopee_products table

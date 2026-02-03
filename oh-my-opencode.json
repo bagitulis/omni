@@ -1,0 +1,31 @@
+{
+  "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
+  "agents": {
+    "sisyphus": {
+      "prompt_append": "## Additional Rules\nRead and follow: SISYPHUS_RULES.md for orchestration patterns.",
+      "skills": ["stuck-recovery"]
+    },
+    "sisyphus-junior": {
+      "prompt_append": "## Additional Rules\nRead and follow: EXECUTOR_RULES.md for implementation patterns.",
+      "skills": ["stuck-recovery"]
+    },
+    "prometheus": {
+      "prompt_append": "## Additional Rules\nRead and follow: PROMETHEUS_RULES.md for planning patterns."
+    },
+    "oracle": {
+      "skills": ["oracle-rules"]
+    },
+    "librarian": {
+      "skills": ["librarian-rules"]
+    },
+    "explore": {
+      "skills": ["explore-rules"]
+    },
+    "metis": {
+      "skills": ["metis-rules"]
+    },
+    "momus": {
+      "skills": ["momus-rules"]
+    }
+  }
+}

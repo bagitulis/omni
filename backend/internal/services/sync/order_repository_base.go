@@ -192,3 +192,53 @@ func (r *GormOrderRepository) GetOrdersCount(ctx context.Context, platform Platf
 
 	return count, result.Error
 }
+
+func (r *GormOrderRepository) getMasterProductImagesByItemIDs(
+	ctx context.Context,
+	db *gorm.DB,
+	platform string,
+	itemIDs []string,
+) map[string]string {
+	result := make(map[string]string)
+	if len(itemIDs) == 0 {
+		return result
+	}
+
+	linkTable := models.GetTableName("MasterProductPlatformLink")
+	productTable := models.GetTableName("MasterProduct")
+
+	type masterProductImageRow struct {
+		PlatformItemID string           `gorm:"column:platform_item_id"`
+		Images         models.JSONArray `gorm:"column:images"`
+	}
+
+	var rows []masterProductImageRow
+	err := db.WithContext(ctx).
+		Table(linkTable+" links").
+		Select("links.platform_item_id, products.images").
+		Joins("JOIN "+productTable+" products ON products.id = links.master_product_id").
+		Where("links.platform = ?", platform).
+		Where("links.platform_item_id IN ?", itemIDs).
+		Find(&rows).Error
+	if err != nil {
+		return result
+	}
+
+	for _, row := range rows {
+		image := firstImageFromJSONArray(row.Images)
+		if image != "" {
+			result[row.PlatformItemID] = image
+		}
+	}
+
+	return result
+}
+
+func firstImageFromJSONArray(images models.JSONArray) string {
+	for _, entry := range images {
+		if value, ok := entry.(string); ok && value != "" {
+			return value
+		}
+	}
+	return ""
+}
