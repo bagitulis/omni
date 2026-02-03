@@ -20,6 +20,7 @@ type ShopeeOrder struct {
 	BuyerMessage    string    `gorm:"column:buyer_message" json:"buyer_message,omitempty"`
 	ShipByDate      *int64    `gorm:"column:ship_by_date" json:"ship_by_date"`
 	Countdown       *int64    `gorm:"-" json:"countdown"`
+	TrackingNumber  string    `gorm:"column:tracking_number" json:"tracking_number,omitempty"` // Shipping tracking number
 	CreatedAt       time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt       time.Time `gorm:"column:updated_at" json:"updated_at"`
 }

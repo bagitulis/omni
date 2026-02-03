@@ -284,7 +284,7 @@ func (c *ShopeeAPIClient) GetOrderDetails(ctx context.Context, orderIDs []string
 		// Convert item_list to generic format
 		items := make([]interface{}, 0, len(order.ItemList))
 		for _, item := range order.ItemList {
-			items = append(items, map[string]interface{}{
+			itemMap := map[string]interface{}{
 				"item_id":    item.ItemID,
 				"model_id":   item.ModelID,
 				"item_name":  item.ItemName,
@@ -293,7 +293,13 @@ func (c *ShopeeAPIClient) GetOrderDetails(ctx context.Context, orderIDs []string
 				"model_sku":  item.ModelSKU,
 				"quantity":   item.ModelQuantityPurchased,
 				"price":      item.ModelOriginalPrice,
-			})
+			}
+			if item.ImageInfo != nil && item.ImageInfo.ImageURL != "" {
+				itemMap["image_info"] = map[string]interface{}{
+					"image_url": item.ImageInfo.ImageURL,
+				}
+			}
+			items = append(items, itemMap)
 		}
 
 		// Determine best shipping carrier from available fields
@@ -318,6 +324,9 @@ func (c *ShopeeAPIClient) GetOrderDetails(ctx context.Context, orderIDs []string
 			"payment_method":   order.PaymentMethod,
 			"shipping_carrier": shippingCarrier,
 			"buyer_message":    buyerMessage,
+			"tracking_number":  order.TrackingNo,
+			"ship_by_date":     order.ShipByDate,
+			"days_to_ship":     order.DaysToShip,
 			"create_time":      order.CreateTime,
 			"platform":         "shopee",
 			"items":            items,

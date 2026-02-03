@@ -125,11 +125,38 @@ func (m *ShopeeOrderManager) enrichOrdersWithDetails(ctx context.Context, orders
 			if orders[i].Currency == "" {
 				orders[i].Currency = "IDR"
 			}
-			// Populate countdown from ship_by_date (Unix timestamp)
-			if shipByDate := getInt64(detail, "ship_by_date"); shipByDate > 0 {
+
+			// Extract shipping_carrier for ALL statuses (not just PROCESSED)
+			if shippingCarrier := getString(detail, "shipping_carrier"); shippingCarrier != "" {
+				orders[i].ShippingCarrier = shippingCarrier
+			}
+			// Fallback to checkout_shipping_carrier if shipping_carrier is empty
+			if orders[i].ShippingCarrier == "" {
+				if checkoutCarrier := getString(detail, "checkout_shipping_carrier"); checkoutCarrier != "" {
+					orders[i].ShippingCarrier = checkoutCarrier
+				}
+			}
+
+			// Extract buyer message
+			if buyerMsg := getString(detail, "message_to_seller"); buyerMsg != "" {
+				orders[i].BuyerMessage = buyerMsg
+			}
+
+			// Populate ship_by_date (Unix timestamp) - CRITICAL for countdown
+			shipByDate := getInt64(detail, "ship_by_date")
+			if shipByDate == 0 {
+				// Fallback: create_time + days_to_ship (Shopee provides days_to_ship)
+				createTime := getInt64(detail, "create_time")
+				daysToShip := getInt(detail, "days_to_ship")
+				if createTime > 0 && daysToShip > 0 {
+					shipByDate = createTime + int64(daysToShip*86400)
+				}
+			}
+			if shipByDate > 0 {
 				orders[i].ShipByDate = shipByDate
 				orders[i].Countdown = formatShipByDate(shipByDate)
 			}
+
 			// Extract items with item_id for image fetching
 			orders[i].Items = extractOrderItems(detail)
 			mergedCount++
@@ -217,6 +244,12 @@ func extractOrderItems(detail map[string]interface{}) []OrderItem {
 			sku = getString(itemMap, "item_sku")
 		}
 
+		// Extract product image from image_info (Shopee API includes this)
+		productImage := ""
+		if imageInfo, ok := itemMap["image_info"].(map[string]interface{}); ok {
+			productImage = getString(imageInfo, "image_url")
+		}
+
 		orderItems = append(orderItems, OrderItem{
 			OrderID:       orderSN,
 			ItemID:        getInt64(itemMap, "item_id"),
@@ -225,6 +258,7 @@ func extractOrderItems(detail map[string]interface{}) []OrderItem {
 			VariationName: getString(itemMap, "model_name"),
 			Quantity:      getInt(itemMap, "quantity"),
 			Price:         getFloat64(itemMap, "price"),
+			ProductImage:  productImage,
 		})
 	}
 

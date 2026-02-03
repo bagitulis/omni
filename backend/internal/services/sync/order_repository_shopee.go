@@ -2,11 +2,17 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/omni/backend/internal/models"
+	imageService "github.com/omni/backend/internal/services/image"
+	"github.com/omni/backend/internal/utils/logger"
 	"gorm.io/gorm"
 )
+
+var shopeeOrderRepoLogger = logger.Named("ShopeeOrderRepository")
 
 // saveShopeeOrders saves Shopee orders using models package (upsert pattern)
 func (r *GormOrderRepository) saveShopeeOrders(ctx context.Context, db *gorm.DB, orders []Order) error {
@@ -15,10 +21,6 @@ func (r *GormOrderRepository) saveShopeeOrders(ctx context.Context, db *gorm.DB,
 		if order.TotalAmount > 0 {
 			totalAmount = &order.TotalAmount
 		}
-
-		// Debug log
-		fmt.Printf("[saveShopeeOrders] OrderSN=%s TotalAmount=%.2f Buyer=%s PaymentMethod=%s\n",
-			order.OrderSN, order.TotalAmount, order.BuyerUsername, order.PaymentMethod)
 
 		// First, try to find existing record
 		var existing models.ShopeeOrder
@@ -48,11 +50,12 @@ func (r *GormOrderRepository) saveShopeeOrders(ctx context.Context, db *gorm.DB,
 			if order.BuyerMessage != "" {
 				updates["buyer_message"] = order.BuyerMessage
 			}
+			if order.TrackingNumber != "" {
+				updates["tracking_number"] = order.TrackingNumber
+			}
 			if order.ShipByDate > 0 {
 				updates["ship_by_date"] = order.ShipByDate
 			}
-
-			fmt.Printf("[saveShopeeOrders] Updating %s with updates=%+v\n", order.OrderSN, updates)
 
 			if err := db.WithContext(ctx).Model(&existing).Updates(updates).Error; err != nil {
 				return err
@@ -73,6 +76,7 @@ func (r *GormOrderRepository) saveShopeeOrders(ctx context.Context, db *gorm.DB,
 				PaymentMethod:   order.PaymentMethod,
 				ShippingCarrier: order.ShippingCarrier,
 				BuyerMessage:    order.BuyerMessage,
+				TrackingNumber:  order.TrackingNumber,
 				ShipByDate:      shipByDate,
 			}
 			if err := db.WithContext(ctx).Create(&model).Error; err != nil {
@@ -92,6 +96,13 @@ func (r *GormOrderRepository) saveShopeeOrders(ctx context.Context, db *gorm.DB,
 
 // saveShopeeOrderItems saves Shopee order items
 func (r *GormOrderRepository) saveShopeeOrderItems(ctx context.Context, db *gorm.DB, orderSN string, items []OrderItem) error {
+	cacheService := imageService.NewProductImageCacheService()
+	urlCache := make(map[string]string)
+
+	for i := range items {
+		items[i].ProductImage = r.cacheShopeeProductImage(ctx, db, cacheService, urlCache, items[i])
+	}
+
 	// Delete existing items first
 	if err := db.WithContext(ctx).Where("order_sn = ?", orderSN).Delete(&models.ShopeeOrderItem{}).Error; err != nil {
 		return err
@@ -117,6 +128,112 @@ func (r *GormOrderRepository) saveShopeeOrderItems(ctx context.Context, db *gorm
 		}
 	}
 	return nil
+}
+
+func (r *GormOrderRepository) cacheShopeeProductImage(
+	ctx context.Context,
+	db *gorm.DB,
+	cacheService *imageService.ProductImageCacheService,
+	urlCache map[string]string,
+	item OrderItem,
+) string {
+	if item.ProductImage == "" {
+		return ""
+	}
+	if isLocalImageURL(item.ProductImage) {
+		return item.ProductImage
+	}
+	if cached, ok := urlCache[item.ProductImage]; ok {
+		return cached
+	}
+
+	allowedHosts := []string{"shopee.co.id", "susercontent.com"}
+	localPath, err := cacheService.CacheRemoteImage(
+		ctx,
+		r.tenantID,
+		item.ProductImage,
+		fmt.Sprintf("shopee_%d", item.ItemID),
+		allowedHosts,
+	)
+	if err != nil || localPath == "" {
+		return item.ProductImage
+	}
+
+	urlCache[item.ProductImage] = localPath
+	r.upsertShopeeProductImageCache(ctx, db, item, localPath)
+	return localPath
+}
+
+func (r *GormOrderRepository) upsertShopeeProductImageCache(
+	ctx context.Context,
+	db *gorm.DB,
+	item OrderItem,
+	localPath string,
+) {
+	if item.ItemID == 0 || localPath == "" {
+		return
+	}
+
+	var product models.ShopeeProduct
+	err := db.WithContext(ctx).
+		Where("tenant_id = ? AND item_id = ?", r.tenantID, item.ItemID).
+		First(&product).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			newProduct := models.ShopeeProduct{
+				TenantID:    r.tenantID,
+				ItemID:      item.ItemID,
+				Name:        item.ProductName,
+				Image:       item.ProductImage,
+				LocalImages: models.JSONArray{localPath},
+			}
+			if createErr := db.WithContext(ctx).Create(&newProduct).Error; createErr != nil {
+				shopeeOrderRepoLogger.WithFields(map[string]interface{}{
+					"tenant_id": r.tenantID,
+					"item_id":   item.ItemID,
+				}).Warn("Failed to create shopee product cache: " + createErr.Error())
+			}
+		}
+		return
+	}
+
+	updatedImages := appendUniqueLocalImage(product.LocalImages, localPath)
+	updates := map[string]interface{}{
+		"local_images": updatedImages,
+	}
+	if product.Image == "" && item.ProductImage != "" {
+		updates["image"] = item.ProductImage
+	}
+	if product.Name == "" && item.ProductName != "" {
+		updates["name"] = item.ProductName
+	}
+
+	if updateErr := db.WithContext(ctx).
+		Model(&models.ShopeeProduct{}).
+		Where("id = ?", product.ID).
+		Updates(updates).Error; updateErr != nil {
+		shopeeOrderRepoLogger.WithFields(map[string]interface{}{
+			"tenant_id": r.tenantID,
+			"item_id":   item.ItemID,
+		}).Warn("Failed to update shopee product image cache: " + updateErr.Error())
+	}
+}
+
+func appendUniqueLocalImage(existing models.JSONArray, localPath string) models.JSONArray {
+	if localPath == "" {
+		return existing
+	}
+	for _, entry := range existing {
+		if path, ok := entry.(string); ok && path == localPath {
+			return existing
+		}
+	}
+	return append(existing, localPath)
+}
+
+func isLocalImageURL(url string) bool {
+	return strings.HasPrefix(url, "/uploads/") || strings.Contains(url, "/uploads/")
 }
 
 // getShopeeOrdersByStatus gets Shopee orders by status WITH ITEMS
@@ -146,7 +263,10 @@ func (r *GormOrderRepository) getShopeeOrdersByStatus(ctx context.Context, db *g
 	var items []models.ShopeeOrderItem
 	if len(orderSNs) > 0 {
 		if err := db.WithContext(ctx).Where("order_sn IN ?", orderSNs).Find(&items).Error; err != nil {
-			fmt.Printf("Warning: failed to fetch shopee items: %v\n", err)
+			shopeeOrderRepoLogger.WithFields(map[string]interface{}{
+				"tenant_id":   r.tenantID,
+				"order_count": len(orderSNs),
+			}).Warn("Failed to fetch shopee items: " + err.Error())
 		}
 	}
 
@@ -203,7 +323,10 @@ func (r *GormOrderRepository) getProductImagesFromCache(ctx context.Context, db 
 		Find(&products).Error
 
 	if err != nil {
-		fmt.Printf("Warning: failed to fetch product images: %v\n", err)
+		shopeeOrderRepoLogger.WithFields(map[string]interface{}{
+			"tenant_id":  r.tenantID,
+			"item_count": len(itemIDs),
+		}).Warn("Failed to fetch shopee product images: " + err.Error())
 		return result
 	}
 
@@ -248,10 +371,10 @@ func (r *GormOrderRepository) flattenShopeeOrders(orderModels []models.ShopeeOrd
 			currency = "IDR"
 		}
 
-		// Format countdown from ship_by_date
-		countdown := ""
+		// Extract ship_by_date as Unix timestamp for frontend countdown calculation
+		var shipByDate int64 = 0
 		if m.ShipByDate != nil && *m.ShipByDate > 0 {
-			countdown = formatShipByDateFromDB(*m.ShipByDate)
+			shipByDate = *m.ShipByDate
 		}
 
 		if len(orderItems) == 0 {
@@ -266,9 +389,10 @@ func (r *GormOrderRepository) flattenShopeeOrders(orderModels []models.ShopeeOrd
 				Currency:        currency,
 				BuyerUsername:   m.BuyerUsername,
 				PaymentMethod:   m.PaymentMethod,
+				TrackingNumber:  m.TrackingNumber,
 				ShippingCarrier: m.ShippingCarrier,
 				BuyerMessage:    m.BuyerMessage,
-				Countdown:       countdown,
+				ShipByDate:      shipByDate, // Unix timestamp for frontend
 				CreatedAt:       m.CreatedAt,
 				UpdatedAt:       m.UpdatedAt,
 			})
@@ -301,6 +425,7 @@ func (r *GormOrderRepository) flattenShopeeOrders(orderModels []models.ShopeeOrd
 					Currency:        currency,
 					BuyerUsername:   m.BuyerUsername,
 					PaymentMethod:   m.PaymentMethod,
+					TrackingNumber:  m.TrackingNumber,
 					ShippingCarrier: m.ShippingCarrier,
 					BuyerMessage:    m.BuyerMessage,
 					SKU:             sku,
@@ -309,7 +434,7 @@ func (r *GormOrderRepository) flattenShopeeOrders(orderModels []models.ShopeeOrd
 					Quantity:        qty,
 					Price:           price,
 					ProductImage:    item.ProductImage,
-					Countdown:       countdown,
+					ShipByDate:      shipByDate, // Unix timestamp for frontend countdown
 					CreatedAt:       m.CreatedAt,
 					UpdatedAt:       m.UpdatedAt,
 				})
