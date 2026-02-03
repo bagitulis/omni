@@ -11,6 +11,106 @@ https://github.com/anomalyco/opencode/releases
 
 ---
 
+## ⚡ SELF-REMINDER PROTOCOL (BACA SETIAP RESPONSE!)
+
+**SEBELUM MENULIS RESPONSE APAPUN, TANYAKAN KE DIRI SENDIRI:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 🧠 SELF-CHECK (WAJIB SEBELUM SETIAP ACTION)                             │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│ 1. "Apakah saya sudah TRACE FLOW sebelum fix?"                          │
+│    → JIKA BELUM: STOP! Trace dulu, jangan langsung edit.                │
+│                                                                         │
+│ 2. "Berapa FAILURE COUNT saya sekarang?"                                │
+│    → JIKA >= 2: WAJIB trace flow                                        │
+│    → JIKA >= 3: STOP TOTAL! Gunakan @explore/@librarian/@oracle         │
+│                                                                         │
+│ 3. "Apakah saya sedang LOOPING (fix-test-gagal-fix-test)?"              │
+│    → JIKA YA: STOP! Kamu sedang melanggar aturan. Trace flow.           │
+│                                                                         │
+│ 4. "Apakah ini melibatkan EXTERNAL API (Shopee/Lazada/TikTok)?"         │
+│    → JIKA YA: Research LOCAL SDK dulu sebelum implement                 │
+│                                                                         │
+│ 5. "Apakah task ini BESAR (new feature, refactor major)?"               │
+│    → JIKA YA: Delegate ke @prometheus untuk plan, lalu @atlas execute   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**FORMAT WAJIB DI AWAL SETIAP RESPONSE YANG MELIBATKAN FIX/DEBUG:**
+
+```markdown
+## 📊 Status Check
+
+- **Failure Count:** [0/1/2/3+]
+- **Last Error:** [none/deskripsi error]
+- **Protocol Active:** [NORMAL/TRACE_FLOW/RESEARCH]
+- **Looping Detected:** [YES/NO]
+```
+
+> ⚠️ **JIKA KAMU TIDAK MENULIS STATUS CHECK INI SAAT FIX BUG, KAMU MELANGGAR ATURAN!**
+
+---
+
+## 🏗️ ORCHESTRATION WORKFLOW (KAPAN PAKAI AGENT APA)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    TASK CLASSIFICATION FLOWCHART                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Task masuk                                                             │
+│      │                                                                  │
+│      ├── Task BESAR (new feature, refactor besar, integrasi)?           │
+│      │   └── YES → 🔴 WAJIB PLAN DULU!                                  │
+│      │             1. Delegate ke @prometheus untuk create plan         │
+│      │             2. Review plan (optional: @momus untuk critique)     │
+│      │             3. Delegate ke @atlas untuk execute plan             │
+│      │             4. Verify hasil (go build, go test)                  │
+│      │                                                                  │
+│      ├── Task MEDIUM (bug fix kompleks, fitur kecil)?                   │
+│      │   └── Bisa handle langsung DENGAN trace flow ATAU:               │
+│      │       - delegate_task(category="deep") untuk research-first      │
+│      │       - delegate_task(category="implementation") untuk impl      │
+│      │                                                                  │
+│      ├── Task SIMPLE (typo, single file edit, quick fix)?               │
+│      │   └── Handle langsung ATAU delegate_task(category="quick")       │
+│      │                                                                  │
+│      ├── Task UI/FRONTEND?                                              │
+│      │   └── delegate_task(category="visual-engineering",               │
+│      │                     load_skills=["frontend-ui-ux"])              │
+│      │                                                                  │
+│      └── STUCK atau ERROR BERULANG?                                     │
+│          └── @explore (codebase) → @librarian (docs) → @oracle (advice) │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 📋 QUICK DELEGATION TABLE
+
+| Situasi               | Agent/Method                    | Contoh                              |
+| --------------------- | ------------------------------- | ----------------------------------- |
+| Task besar/feature    | @prometheus → @atlas            | "Implement webhook system"          |
+| Bug fix kompleks      | Trace flow + @oracle jika stuck | "Order sync randomly fails"         |
+| Cari di codebase      | @explore                        | "Dimana handler untuk orders?"      |
+| Cari docs external    | @librarian                      | "Gimana Shopee API untuk orders?"   |
+| Architecture question | @oracle                         | "Pilih microservice atau monolith?" |
+| UI/Frontend           | category="visual-engineering"   | "Buat dashboard analytics"          |
+| Quick fix/typo        | Handle langsung                 | "Fix typo di error message"         |
+
+### 🔴 PROMETHEUS → ATLAS WORKFLOW (UNTUK TASK BESAR)
+
+```
+Step 1: delegate_task(subagent_type="prometheus", prompt="Create plan for: [TASK]")
+Step 2: (Optional) delegate_task(subagent_type="momus", prompt="Review plan: [PLAN]")
+Step 3: delegate_task(subagent_type="atlas", prompt="Execute plan: [PLAN]")
+Step 4: VERIFY! go build ./... && go test ./... (JANGAN trust "I'm done"!)
+```
+
+---
+
 ## 🔴 MANDATORY: Baca PROMETHEUS_RULES.md
 
 > **SEBELUM EKSEKUSI APAPUN, AI WAJIB:**

@@ -10,16 +10,16 @@
     </div>
     <!-- Locked Orders Table -->
     <div v-if="activeTab === 'locked'" class="table-responsive">
-      <table class="orders-table">
-        <thead>
+      <table class="orders-table" aria-label="Order list table">
+        <thead role="rowgroup">
           <tr>
-            <th style="width: 15%">SKU</th>
-            <th style="width: 40%">Product Name</th>
-            <th style="width: 30%">Variation</th>
-            <th style="width: 15%; text-align: center">Qty</th>
+            <th class="w-[15%]">SKU</th>
+            <th class="w-[40%]">Product Name</th>
+            <th class="w-[30%]">Variation</th>
+            <th class="w-[15%] text-center">Qty</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody role="rowgroup">
           <tr
             v-for="(item, index) in filteredOrders"
             :key="index"
@@ -38,7 +38,7 @@
                 item.variation_name || "-"
               }}</span>
             </td>
-            <td style="text-align: center">
+            <td class="text-center">
               <span class="qty-badge">{{ item.qty }}</span>
             </td>
           </tr>
@@ -47,19 +47,19 @@
     </div>
     <!-- Today's Orders Table -->
     <div v-else-if="activeTab === 'today'" class="table-responsive">
-      <table class="orders-table">
-        <thead>
+      <table class="orders-table" aria-label="Order list table">
+        <thead role="rowgroup">
           <tr>
-            <th style="width: 14%">Order No.</th>
-            <th style="width: 14%">Tracking No.</th>
-            <th style="width: 12%">Courier</th>
-            <th style="width: 12%">Seller SKU</th>
-            <th style="width: 22%">Product Name</th>
-            <th style="width: 16%">Variation</th>
-            <th style="width: 6%; text-align: center">Qty</th>
+            <th class="w-[14%]">Order No.</th>
+            <th class="w-[14%]">Tracking No.</th>
+            <th class="w-[12%]">Courier</th>
+            <th class="w-[12%]">Seller SKU</th>
+            <th class="w-[22%]">Product Name</th>
+            <th class="w-[16%]">Variation</th>
+            <th class="w-[6%] text-center">Qty</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody role="rowgroup">
           <tr
             v-for="(item, index) in filteredOrders"
             :key="index"
@@ -91,7 +91,7 @@
                 item.variationName || "-"
               }}</span>
             </td>
-            <td style="text-align: center">
+            <td class="text-center">
               <span class="qty-badge">{{ item.quantity || 1 }}</span>
             </td>
           </tr>
@@ -230,7 +230,8 @@ const getTableTitle = computed(() => {
 </script>
 
 <style scoped>
-@import "./OrderManager.theme.css";
+@import "./styles/variables.css";
+@import "./styles/components.css";
 @import "./OrderTable.styles.css";
 
 /* Shopee Table Header - must match OrderRow.vue grid */

@@ -2,20 +2,20 @@
   <div>
     <!-- Loading state -->
     <div v-if="loading" class="loading-state">
-      <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+      <Icon name="spinner" size="lg" spin />
       <p>Loading orders from all platforms...</p>
     </div>
 
     <!-- Error state -->
     <div v-if="error && !loading" class="error-state">
-      <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+      <Icon name="warning" size="lg" />
       <p>{{ error }}</p>
       <button @click="emit('close-error')" class="btn-close">Close</button>
     </div>
 
     <!-- Empty state -->
     <div v-if="!loading && !error && isNoData" class="empty-state">
-      <i class="pi pi-inbox" aria-hidden="true"></i>
+      <Icon name="inbox" size="xl" />
       <p>
         {{ searchActive ? "No matching results" : "No orders found" }}
       </p>
@@ -24,6 +24,8 @@
 </template>
 
 <script setup lang="ts">
+import Icon from "@/components/ui/Icon.vue";
+
 defineProps<{
   loading: boolean;
   error: string | null;

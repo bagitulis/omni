@@ -48,9 +48,23 @@ func (s *SyncService) SyncOrders(ctx context.Context, status string) (int, error
 
 	count := 0
 	for _, order := range resp.Data.OrderList {
+		// Get ship by date - prefer rts_sla_time, fallback to shipping_due_time
+		var shipByDate *int64
+		if order.RtsSlaTime > 0 {
+			shipByDate = &order.RtsSlaTime
+		} else if order.ShippingDueTime > 0 {
+			shipByDate = &order.ShippingDueTime
+		}
+
 		dbOrder := &models.TiktokOrder{
-			OrderSN:     order.OrderID, // API returns OrderID, we store as OrderSN
-			OrderStatus: order.OrderStatus,
+			TenantID:        s.tenantID,
+			OrderSN:         order.OrderID, // API returns OrderID, we store as OrderSN
+			OrderStatus:     order.OrderStatus,
+			ShippingCarrier: order.ShippingProvider,
+			TrackingNumber:  order.TrackingNumber,
+			BuyerUsername:   order.BuyerEmail,
+			BuyerMessage:    order.BuyerMessage,
+			ShipByDate:      shipByDate,
 		}
 
 		if err := s.orderRepo.Upsert(ctx, dbOrder); err == nil {

@@ -1,0 +1,300 @@
+/* Order Row & Card Layout Styles */
+@import "./variables.css";
+
+/* ============ ORDER ROW STYLES ============ */
+.order-row {
+  width: 100%;
+  background: var(--om-bg-primary);
+  border: 1px solid var(--om-border);
+  border-radius: var(--om-radius-md);
+  overflow: hidden;
+  animation: om-slideUp var(--om-transition-normal) ease-out;
+  transition: box-shadow var(--om-transition-normal);
+}
+
+.order-row:hover {
+  box-shadow: var(--om-shadow-md);
+}
+
+/* ============ BUYER HEADER ============ */
+.buyer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--om-spacing-md);
+  background: #f5f5f5;
+  border-bottom: 1px solid var(--om-border);
+  gap: var(--om-spacing-md);
+  min-height: 56px;
+}
+
+.buyer-left {
+  display: flex;
+  align-items: center;
+  gap: var(--om-spacing-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+.buyer-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--om-primary-light);
+  color: var(--om-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: var(--om-font-sm);
+  flex-shrink: 0;
+}
+
+.buyer-name {
+  font-size: var(--om-font-sm);
+  font-weight: 500;
+  color: var(--om-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-icon-btn {
+  background: none;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  color: var(--om-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--om-transition-fast);
+  font-size: 1rem;
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.chat-icon-btn:hover {
+  color: var(--om-primary);
+}
+
+.buyer-right {
+  display: flex;
+  align-items: center;
+  gap: var(--om-spacing-xs);
+  flex-shrink: 0;
+}
+
+.order-label {
+  font-size: var(--om-font-xs);
+  color: var(--om-text-secondary);
+  white-space: nowrap;
+}
+
+.order-number {
+  font-size: var(--om-font-sm);
+  font-weight: 600;
+  color: var(--om-text-primary);
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+.copy-btn {
+  background: none;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  color: var(--om-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--om-transition-fast);
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.copy-btn:hover {
+  color: var(--om-primary);
+}
+
+/* ============ ORDER CONTENT GRID ============ */
+.order-content {
+  display: grid;
+  grid-template-columns: 2.5fr 1fr 0.8fr 1fr 1fr 1fr;
+  gap: var(--om-spacing-md);
+  padding: var(--om-spacing-md);
+  align-items: center;
+}
+
+/* Amount Column */
+.amount-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  justify-content: flex-start;
+}
+
+.amount-value {
+  font-size: var(--om-font-base);
+  font-weight: 600;
+  color: var(--om-primary);
+}
+
+.payment-method {
+  font-size: var(--om-font-xs);
+  color: var(--om-text-secondary);
+}
+
+/* Status Column */
+.status-col {
+  display: flex;
+  align-items: flex-start;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--om-spacing-xs) var(--om-spacing-sm);
+  font-size: var(--om-font-xs);
+  font-weight: 600;
+  border-radius: var(--om-radius-full);
+}
+
+/* Countdown Column */
+.countdown-col {
+  display: flex;
+  align-items: flex-start;
+}
+
+.countdown-text {
+  font-size: var(--om-font-sm);
+  color: var(--om-text-primary);
+  line-height: 1.4;
+}
+
+/* Shipping Column */
+.shipping-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shipping-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.carrier-name {
+  font-size: var(--om-font-sm);
+  font-weight: 500;
+  color: var(--om-text-primary);
+}
+
+.shipping-type {
+  font-size: var(--om-font-xs);
+  color: var(--om-text-secondary);
+}
+
+.shipping-placeholder {
+  font-size: var(--om-font-sm);
+  color: var(--om-text-disabled);
+}
+
+/* ============ BUYER MESSAGE ============ */
+.buyer-message {
+  display: flex;
+  align-items: center;
+  gap: var(--om-spacing-sm);
+  padding: var(--om-spacing-sm) var(--om-spacing-md);
+  background: #fffbf0;
+  border-top: 1px solid #fff1c0;
+  font-size: var(--om-font-sm);
+  color: var(--om-text-primary);
+}
+
+.buyer-message i {
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  color: #ff9800;
+}
+
+.message-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.message-link {
+  color: var(--om-primary);
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.message-link:hover {
+  text-decoration: underline;
+}
+
+/* ============ RESPONSIVE DESIGN ============ */
+@media (max-width: 1200px) {
+  .order-content {
+    grid-template-columns: 2fr 1fr 0.8fr 1fr 1fr 1fr;
+    gap: var(--om-spacing-sm);
+    padding: var(--om-spacing-sm);
+  }
+
+  .amount-value {
+    font-size: var(--om-font-sm);
+  }
+}
+
+@media (max-width: 768px) {
+  .order-row {
+    border-radius: var(--om-radius-sm);
+  }
+
+  .buyer-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--om-spacing-sm);
+    padding: var(--om-spacing-sm);
+  }
+
+  .buyer-left,
+  .buyer-right {
+    width: 100%;
+  }
+
+  .buyer-right {
+    justify-content: flex-start;
+  }
+
+  .order-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--om-spacing-md);
+    padding: var(--om-spacing-sm);
+  }
+
+  .amount-col,
+  .status-col,
+  .countdown-col,
+  .shipping-col {
+    border: 1px solid var(--om-border);
+    border-radius: var(--om-radius-sm);
+    padding: var(--om-spacing-sm);
+    background: var(--om-bg-secondary);
+  }
+
+  .buyer-message {
+    padding: var(--om-spacing-xs) var(--om-spacing-sm);
+    font-size: var(--om-font-xs);
+  }
+}

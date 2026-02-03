@@ -12,28 +12,18 @@
         @platform-changed="selectedPlatform = $event"
       />
 
-      <!-- Filter Bar -->
-      <OrderFilterBar
-        :searchQuery="searchQuery"
-        :selectedPlatform="selectedPlatform"
-        :platforms="uniquePlatforms"
-        @update:searchQuery="searchQuery = $event"
-        @update:selectedPlatform="selectedPlatform = $event"
-        @apply-filters="applyFilters"
-        @reset-filters="resetFilters"
-      />
-
-      <!-- Tabs & Actions -->
-      <div class="tabs-actions-container">
-        <!-- Tabs -->
-        <OrderTabs
-          :activeTab="activeTab"
-          :tabCounts="tabCounts"
-          :orderTabs="ORDER_TABS"
-          @tab-changed="changeTab"
+      <!-- Filters + Actions -->
+      <div class="order-controls">
+        <OrderFilterBar
+          :searchQuery="searchQuery"
+          :selectedPlatform="selectedPlatform"
+          :platforms="uniquePlatforms"
+          @update:searchQuery="searchQuery = $event"
+          @update:selectedPlatform="selectedPlatform = $event"
+          @apply-filters="applyFilters"
+          @reset-filters="resetFilters"
         />
 
-        <!-- Actions -->
         <OrderActionsBar
           :activeTab="activeTab"
           :loading="loading"
@@ -44,6 +34,14 @@
           @export-csv="handleExportToCSV"
         />
       </div>
+
+      <!-- Tabs -->
+      <OrderTabs
+        :activeTab="activeTab"
+        :tabCounts="tabCounts"
+        :orderTabs="ORDER_TABS"
+        @tab-changed="changeTab"
+      />
     </div>
 
     <!-- States (loading, error, empty) -->
@@ -88,6 +86,13 @@
       @close="closeCancelModal"
       @confirm="handleCancelConfirm"
     />
+
+    <!-- Detail Modal -->
+    <OrderDetailModal
+      :visible="showDetailModal"
+      :order="selectedOrder"
+      @close="closeDetailModal"
+    />
   </div>
 </template>
 
@@ -113,6 +118,7 @@ import OrderFilterBar from "./OrderFilterBar.vue";
 import OrderShipModal from "./OrderShipModal.vue";
 import OrderCancelModal from "./OrderCancelModal.vue";
 import OrderActionsBar from "./OrderActionsBar.vue";
+import OrderDetailModal from "./OrderDetailModal.vue";
 
 // Composables
 const {
@@ -140,6 +146,7 @@ const showBulkShipModal = ref(false);
 // Modal state
 const showShipModal = ref(false);
 const showCancelModal = ref(false);
+const showDetailModal = ref(false);
 const selectedOrder = ref<any>(null);
 
 // Export handlers
@@ -232,7 +239,13 @@ const handleCancelConfirm = async (data: {
 
 // View detail handler
 const handleViewDetail = (order: any) => {
-  console.log("View detail:", order);
+  selectedOrder.value = order;
+  showDetailModal.value = true;
+};
+
+const closeDetailModal = () => {
+  showDetailModal.value = false;
+  selectedOrder.value = null;
 };
 
 // Copy handler
@@ -247,5 +260,7 @@ onMounted(() => {
 
 <style scoped>
 @import "./OrderManager.styles.css";
-@import "./OrderManager.theme.css";
+@import "./styles/variables.css";
+@import "./styles/components.css";
+@import "./styles/layout.css";
 </style>

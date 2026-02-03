@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="management-header">
       <div class="header-info">
-        <h3>🛣️ Route & Cache Management</h3>
+        <h3><Icon name="globe" size="sm" /> Route & Cache Management</h3>
         <p class="subtitle">
           Manage caching, queue, and timing for all routes dynamically
         </p>
@@ -13,15 +13,18 @@
           @click="logic.fetchRouteConfigs(true)"
           class="btn btn-primary"
           :disabled="logic.isLoading.value"
+          aria-label="Refresh routes"
         >
-          {{ logic.isLoading.value ? "Loading..." : "🔄 Refresh" }}
+          <Icon v-if="!logic.isLoading.value" name="refresh" size="sm" />
+          {{ logic.isLoading.value ? "Loading..." : "Refresh" }}
         </button>
       </div>
     </div>
 
     <!-- Error Banner -->
     <div v-if="logic.error.value" class="error-banner">
-      ⚠️ {{ logic.error.value }}
+      <Icon name="warning" size="sm" class="text-yellow-600" />
+      {{ logic.error.value }}
       <button
         @click="logic.error.value = ''"
         class="btn-close"
@@ -97,6 +100,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import Icon from "@/components/ui/Icon.vue";
 import { useRouteManagementLogic } from "./composables/useRouteManagementLogic";
 import RouteManagementContent from "./RouteManagementContent.vue";
 import RouteManagementTable from "./RouteManagementTable.vue";

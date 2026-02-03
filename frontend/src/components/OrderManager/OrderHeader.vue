@@ -1,9 +1,9 @@
 <template>
-  <div class="order-header">
+  <div class="order-header" role="banner">
     <!-- Title -->
     <div class="header-top">
       <h1 class="page-title">
-        <i class="pi pi-shopping-bag" aria-hidden="true"></i> Order Manager
+        <Icon name="shopping-bag" size="md" /> Order Manager
       </h1>
       <p class="page-subtitle">
         Manage and monitor all orders from various platforms
@@ -24,7 +24,7 @@
           <p class="stat-platform">{{ platform }}</p>
           <p class="stat-number">{{ getPlatformCount(platform) }}</p>
           <p class="stat-label">
-            {{ activeTab === "locked" ? "Produk" : "Order" }}
+            {{ activeTab === "locked" ? "Product" : "Order" }}
           </p>
         </div>
       </div>
@@ -34,6 +34,7 @@
 
 <script setup lang="ts">
 import PlatformBadge from "@/components/PlatformBadge.vue";
+import Icon from "@/components/ui/Icon.vue";
 
 interface Order {
   platform: string;

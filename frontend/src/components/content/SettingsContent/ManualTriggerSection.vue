@@ -3,12 +3,12 @@
     <!-- Section Header -->
     <div class="section-header">
       <div class="section-title">
-        <span class="section-icon">🔧</span>
+        <Icon name="settings" size="md" />
         <h3>Manual Trigger Mode</h3>
         <span class="section-subtitle">Ketika user klik tombol di UI</span>
       </div>
       <button @click="$emit('show-add-new')" class="btn btn-add">
-        ➕ Add Route
+        <Icon name="plus" size="xs" /> Add Route
       </button>
     </div>
 
@@ -16,7 +16,7 @@
     <div v-if="configs.length === 0" class="empty-state">
       <p>No manual trigger routes configured</p>
       <button @click="$emit('show-add-new')" class="btn btn-primary">
-        ➕ Add Route
+        <Icon name="plus" size="xs" /> Add Route
       </button>
     </div>
 
@@ -34,7 +34,12 @@
         </thead>
         <tbody>
           <tr v-for="config in configs" :key="config.route_key">
-            <td class="col-icon">{{ config.icon || "📋" }}</td>
+            <td class="col-icon">
+              <Icon v-if="config.icon" :name="config.icon" size="sm" /><span
+                v-else
+                ><Icon name="document" size="sm"
+              /></span>
+            </td>
             <td class="col-route">
               <div class="route-info">
                 <span class="route-name">{{ config.route_name }}</span>
@@ -72,14 +77,14 @@
                 class="btn-icon"
                 title="Edit"
               >
-                ✎
+                <Icon name="edit" size="sm" />
               </button>
               <button
                 @click="$emit('delete', config.route_key)"
                 class="btn-icon btn-danger"
                 title="Delete"
               >
-                ✕
+                <Icon name="close" size="sm" />
               </button>
             </td>
           </tr>
@@ -102,6 +107,7 @@
 </template>
 
 <script setup lang="ts">
+import Icon from "@/components/ui/Icon.vue";
 import type { RouteExecutionConfig } from "@/types/routeExecutionConfig";
 
 defineProps<{

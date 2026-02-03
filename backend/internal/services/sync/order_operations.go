@@ -148,6 +148,32 @@ func (s *OrderSyncOperations) fetchOrderItems(
 	manager OrderManager,
 	orders []Order,
 ) error {
+	// Check if orders already have items with images (e.g., Shopee enriched flow)
+	// Skip fetch to avoid overwriting enriched data
+	ordersWithItems := 0
+	ordersWithImages := 0
+	for _, o := range orders {
+		if len(o.Items) > 0 {
+			ordersWithItems++
+			for _, item := range o.Items {
+				if item.ProductImage != "" {
+					ordersWithImages++
+					break
+				}
+			}
+		}
+	}
+
+	// If most orders already have items with images, skip fetch
+	if ordersWithItems > 0 && ordersWithImages > len(orders)/2 {
+		s.logger.WithFields(map[string]interface{}{
+			"platform":           platform,
+			"orders_with_items":  ordersWithItems,
+			"orders_with_images": ordersWithImages,
+		}).Info("Orders already enriched with items and images, skipping fetch")
+		return nil
+	}
+
 	orderIDs := make([]string, len(orders))
 	for i, o := range orders {
 		if o.OrderSN != "" {

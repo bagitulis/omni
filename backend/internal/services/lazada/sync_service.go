@@ -3,6 +3,7 @@ package lazada
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
@@ -46,9 +47,26 @@ func (s *SyncService) SyncOrders(ctx context.Context, status string) (int, error
 
 	count := 0
 	for _, order := range resp.Data.Orders {
+		// Parse ship by date from promised_shipping_times (ISO date string)
+		var shipByDate *int64
+		if order.PromisedShipDate != "" {
+			// Try parsing various date formats
+			for _, layout := range []string{time.RFC3339, "2006-01-02 15:04:05", "2006-01-02"} {
+				if t, err := time.Parse(layout, order.PromisedShipDate); err == nil {
+					ts := t.Unix()
+					shipByDate = &ts
+					break
+				}
+			}
+		}
+
 		dbOrder := &models.LazadaOrder{
-			OrderSN:     order.OrderID, // API returns OrderID, we store as OrderSN
-			OrderStatus: order.Status,
+			TenantID:        s.tenantID,
+			OrderSN:         order.OrderID, // API returns OrderID, we store as OrderSN
+			OrderStatus:     order.Status,
+			BuyerUsername:   order.CustomerName,
+			ShippingCarrier: order.ShippingType,
+			ShipByDate:      shipByDate,
 		}
 
 		if err := s.orderRepo.Upsert(ctx, dbOrder); err == nil {

@@ -8,7 +8,7 @@
 
     <!-- No Data State -->
     <div v-else-if="!health || health.total_products === 0" class="empty-state">
-      <span class="empty-icon" aria-hidden="true">📊</span>
+      <Icon name="chart-bar" size="xl" class="empty-icon" />
       <p class="empty-title">No portfolio data available</p>
       <p class="empty-hint">
         Upload TikTok Ads data first via Analytics > TikTok Ads
@@ -96,7 +96,7 @@
 
       <!-- Alerts Badge -->
       <div v-if="health.active_alerts > 0" class="alerts-badge">
-        <span class="alert-icon" aria-hidden="true">⚠️</span>
+        <Icon name="warning" size="sm" />
         <span
           >{{ health.active_alerts }} Active Alert{{
             health.active_alerts > 1 ? "s" : ""
@@ -110,6 +110,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { PortfolioHealth } from "@/composables/useMLAnalytics";
+import Icon from "@/components/ui/Icon.vue";
 
 const props = defineProps<{
   health: PortfolioHealth | null;
@@ -241,6 +242,12 @@ const roasClass = computed(() => {
   font-size: 48px;
   display: block;
   margin-bottom: 8px;
+}
+
+.empty-icon :deep(.icon) {
+  width: 48px;
+  height: 48px;
+  color: #6b7280;
 }
 
 .empty-title {
@@ -410,7 +417,9 @@ const roasClass = computed(() => {
   margin-top: 16px;
 }
 
-.alert-icon {
-  font-size: 16px;
+.alerts-badge :deep(.icon) {
+  width: 16px;
+  height: 16px;
+  color: #d97706;
 }
 </style>

@@ -30,7 +30,7 @@
 
     <!-- Empty -->
     <div v-else-if="products.length === 0" class="empty-state">
-      <span aria-hidden="true">📋</span>
+      <Icon name="document" size="xl" class="empty-icon" />
       <p class="empty-title">No products to analyze</p>
       <p class="empty-hint">Upload TikTok Ads data to see product analysis</p>
     </div>
@@ -99,23 +99,21 @@
               {{ formatCurrency(product.total_revenue) }}
             </td>
             <td class="col-alerts">
-              <span
+              <Icon
                 v-if="product.has_fatigue_warning"
+                name="zap"
+                size="sm"
                 class="alert-icon fatigue"
                 title="Creative Fatigue"
-                >⚡</span
-              >
-              <span
-                v-if="product.has_churn_risk"
+              />
+              <Icon
+                v-else-if="product.has_churn_risk"
+                name="warning"
+                size="sm"
                 class="alert-icon churn"
                 title="Churn Risk"
-                >⚠️</span
-              >
-              <span
-                v-if="!product.has_fatigue_warning && !product.has_churn_risk"
-                class="no-alerts"
-                >-</span
-              >
+              />
+              <span v-else class="no-alerts">-</span>
             </td>
           </tr>
         </tbody>
@@ -139,6 +137,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import type { MLProductAnalysis } from "@/composables/useMLAnalytics";
+import Icon from "@/components/ui/Icon.vue";
 import ActionBadge from "./ActionBadge.vue";
 
 const props = defineProps<{
@@ -258,10 +257,12 @@ function roasClass(roas: number): string {
   color: #6b7280;
 }
 
-.empty-state span {
-  font-size: 48px;
+.empty-icon :deep(.icon) {
+  width: 48px;
+  height: 48px;
+  color: #6b7280;
+  margin: 0 auto 12px;
   display: block;
-  margin-bottom: 12px;
 }
 
 .empty-state .empty-title {
@@ -426,8 +427,23 @@ function roasClass(roas: number): string {
 }
 
 .alert-icon {
-  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-right: 4px;
+}
+
+.alert-icon :deep(.icon) {
+  width: 16px;
+  height: 16px;
+}
+
+.alert-icon.fatigue :deep(.icon) {
+  color: #f59e0b;
+}
+
+.alert-icon.churn :deep(.icon) {
+  color: #ef4444;
 }
 
 .no-alerts {

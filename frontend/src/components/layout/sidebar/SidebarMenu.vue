@@ -5,19 +5,24 @@
       <div
         class="menu-item parent"
         @click="$emit('toggle-expand', 'product-manager')"
+        role="button"
+        :aria-expanded="expandedSections['product-manager']"
+        aria-controls="submenu-product-manager"
       >
         <div class="menu-label-flex">
-          <span>🛍️</span>
+          <Icon name="shopping-bag" size="sm" />
           <span>Product Manager</span>
         </div>
-        <span
-          class="expand-icon"
-          :class="{ rotated: expandedSections['product-manager'] }"
-          >▼</span
-        >
+        <Icon
+          name="chevron-down"
+          size="sm"
+          :class="{ 'rotate-180': expandedSections['product-manager'] }"
+          class="transition-transform"
+        />
       </div>
       <MenuProductManagerSection
         v-if="expandedSections['product-manager']"
+        id="submenu-product-manager"
         :product-platforms="productPlatforms"
         :is-active="isActive('product-manager')"
         :active-platform="activePlatform"
@@ -30,7 +35,7 @@
       class="menu-item"
       :class="{ active: isActive('order-manager') }"
     >
-      <span>📋</span>
+      <Icon name="document" size="sm" />
       <span>Order Manager</span>
     </router-link>
 
@@ -39,26 +44,34 @@
       <div
         class="menu-item parent"
         @click="$emit('toggle-expand', 'master-product')"
+        role="button"
+        :aria-expanded="expandedSections['master-product']"
+        aria-controls="submenu-master-product"
       >
         <div class="menu-label-flex">
-          <span>📦</span>
+          <Icon name="shopping-cart" size="sm" />
           <span>Master Produk</span>
         </div>
-        <span
-          class="expand-icon"
-          :class="{ rotated: expandedSections['master-product'] }"
-          >▼</span
-        >
+        <Icon
+          name="chevron-down"
+          size="sm"
+          :class="{ 'rotate-180': expandedSections['master-product'] }"
+          class="transition-transform"
+        />
       </div>
 
       <!-- Submenu untuk Master Produk -->
-      <div class="submenu" v-if="expandedSections['master-product']">
+      <div
+        id="submenu-master-product"
+        class="submenu"
+        v-if="expandedSections['master-product']"
+      >
         <router-link
           to="/master-products"
           class="submenu-item"
           :class="{ active: currentPathIs('/master-products') }"
         >
-          <span>📋</span>
+          <Icon name="document" size="sm" />
           <span>Daftar Produk</span>
         </router-link>
         <router-link
@@ -66,7 +79,7 @@
           class="submenu-item"
           :class="{ active: currentPathIs('/master-products/add') }"
         >
-          <span>➕</span>
+          <Icon name="plus" size="sm" />
           <span>Tambah Produk</span>
         </router-link>
         <router-link
@@ -74,7 +87,7 @@
           class="submenu-item"
           :class="{ active: currentPathIs('/master-products/import') }"
         >
-          <span>📥</span>
+          <Icon name="download" size="sm" />
           <span>Import Produk</span>
         </router-link>
         <router-link
@@ -82,7 +95,7 @@
           class="submenu-item"
           :class="{ active: currentPathIs('/inventory') }"
         >
-          <span>📊</span>
+          <Icon name="chart-bar" size="sm" />
           <span>Inventory</span>
         </router-link>
       </div>
@@ -94,7 +107,7 @@
       class="menu-item"
       :class="{ active: isActive('route-mapping') }"
     >
-      <span>🗺️</span>
+      <Icon name="globe" size="sm" />
       <span>Route Mapper</span>
     </router-link>
 
@@ -103,26 +116,34 @@
       <div
         class="menu-item parent"
         @click="$emit('toggle-expand', 'script-monitor')"
+        role="button"
+        :aria-expanded="expandedSections['script-monitor']"
+        aria-controls="submenu-script-monitor"
       >
         <div class="menu-label-flex">
-          <span>🎬</span>
+          <Icon name="document" size="sm" />
           <span>Script Monitor</span>
         </div>
-        <span
-          class="expand-icon"
-          :class="{ rotated: expandedSections['script-monitor'] }"
-          >▼</span
-        >
+        <Icon
+          name="chevron-down"
+          size="sm"
+          :class="{ 'rotate-180': expandedSections['script-monitor'] }"
+          class="transition-transform"
+        />
       </div>
 
       <!-- Submenu untuk Script Monitor -->
-      <div class="submenu" v-if="expandedSections['script-monitor']">
+      <div
+        id="submenu-script-monitor"
+        class="submenu"
+        v-if="expandedSections['script-monitor']"
+      >
         <router-link
           to="/script-monitor/current"
           class="submenu-item"
           :class="{ active: currentPathIs('/script-monitor/current') }"
         >
-          <span>⏳</span>
+          <Icon name="spinner" size="sm" spin />
           <span>Current Running</span>
         </router-link>
         <router-link
@@ -130,7 +151,7 @@
           class="submenu-item"
           :class="{ active: currentPathIs('/script-monitor/queue') }"
         >
-          <span>📋</span>
+          <Icon name="document" size="sm" />
           <span>Queue</span>
         </router-link>
         <router-link
@@ -138,7 +159,7 @@
           class="submenu-item"
           :class="{ active: currentPathIs('/script-monitor/history') }"
         >
-          <span>✅</span>
+          <Icon name="check" size="sm" />
           <span>History</span>
         </router-link>
         <router-link
@@ -146,7 +167,7 @@
           class="submenu-item"
           :class="{ active: currentPathIs('/script-monitor/auto-functions') }"
         >
-          <span>⚙️</span>
+          <Icon name="settings" size="sm" />
           <span>Auto-Functions</span>
         </router-link>
       </div>
@@ -154,26 +175,37 @@
 
     <!-- Report Section (Shopee & TikTok Reports) -->
     <div class="menu-section" :class="{ active: isActive('report') }">
-      <div class="menu-item parent" @click="$emit('toggle-expand', 'report')">
+      <div
+        class="menu-item parent"
+        @click="$emit('toggle-expand', 'report')"
+        role="button"
+        :aria-expanded="expandedSections['report']"
+        aria-controls="submenu-report"
+      >
         <div class="menu-label-flex">
-          <span>📑</span>
+          <Icon name="clipboard" size="sm" />
           <span>Report</span>
         </div>
-        <span
-          class="expand-icon"
-          :class="{ rotated: expandedSections['report'] }"
-          >▼</span
-        >
+        <Icon
+          name="chevron-down"
+          size="sm"
+          :class="{ 'rotate-180': expandedSections['report'] }"
+          class="transition-transform"
+        />
       </div>
 
       <!-- Submenu untuk Report -->
-      <div class="submenu" v-if="expandedSections['report']">
+      <div
+        id="submenu-report"
+        class="submenu"
+        v-if="expandedSections['report']"
+      >
         <router-link
           to="/report/shopee"
           class="submenu-item"
           :class="{ active: currentPathIs('/report/shopee') }"
         >
-          <span>🟠</span>
+          <Icon name="store" size="sm" />
           <span>Shopee</span>
         </router-link>
         <router-link
@@ -181,7 +213,7 @@
           class="submenu-item"
           :class="{ active: currentPathIs('/report/tiktok') }"
         >
-          <span>🎵</span>
+          <Icon name="chart" size="sm" />
           <span>TikTok</span>
         </router-link>
       </div>
@@ -192,26 +224,34 @@
       <div
         class="menu-item parent"
         @click="$emit('toggle-expand', 'analytics')"
+        role="button"
+        :aria-expanded="expandedSections['analytics']"
+        aria-controls="submenu-analytics"
       >
         <div class="menu-label-flex">
-          <span>📊</span>
+          <Icon name="chart-bar" size="sm" />
           <span>Analytics</span>
         </div>
-        <span
-          class="expand-icon"
-          :class="{ rotated: expandedSections['analytics'] }"
-          >▼</span
-        >
+        <Icon
+          name="chevron-down"
+          size="sm"
+          :class="{ 'rotate-180': expandedSections['analytics'] }"
+          class="transition-transform"
+        />
       </div>
 
       <!-- Submenu untuk Analytics -->
-      <div class="submenu" v-if="expandedSections['analytics']">
+      <div
+        id="submenu-analytics"
+        class="submenu"
+        v-if="expandedSections['analytics']"
+      >
         <router-link
           to="/analytics/hub"
           class="submenu-item"
           :class="{ active: currentPathIs('/analytics/hub') }"
         >
-          <span>📊</span>
+          <Icon name="chart-bar" size="sm" />
           <span>Analytics Hub</span>
         </router-link>
         <router-link
@@ -219,7 +259,7 @@
           class="submenu-item"
           :class="{ active: currentPathIs('/analytics/simulator') }"
         >
-          <span>🎯</span>
+          <Icon name="adjustments" size="sm" />
           <span>Budget Simulator</span>
         </router-link>
         <router-link
@@ -227,7 +267,7 @@
           class="submenu-item"
           :class="{ active: currentPathIs('/analytics/shopee-ads') }"
         >
-          <span>🛒</span>
+          <Icon name="store" size="sm" />
           <span>Shopee Ads</span>
         </router-link>
         <router-link
@@ -235,7 +275,7 @@
           class="submenu-item"
           :class="{ active: currentPathIs('/analytics/tiktok-ads') }"
         >
-          <span>📈</span>
+          <Icon name="chart" size="sm" />
           <span>TikTok Ads</span>
         </router-link>
       </div>
@@ -257,6 +297,7 @@
 <script lang="ts">
 import { defineComponent, PropType } from "vue";
 import { useRoute } from "vue-router";
+import Icon from "@/components/ui/Icon.vue";
 import MenuProductManagerSection from "./MenuProductManagerSection.vue";
 import MenuSettingsSection from "./MenuSettingsSection.vue";
 import type { ExpandedSections } from "./composables/useMenuExpansion";
@@ -270,6 +311,7 @@ interface Platform {
 export default defineComponent({
   name: "SidebarMenu",
   components: {
+    Icon,
     MenuProductManagerSection,
     MenuSettingsSection,
   },

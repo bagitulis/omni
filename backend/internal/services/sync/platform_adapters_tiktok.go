@@ -236,13 +236,37 @@ func (m *TiktokOrderManager) GetOrderItems(ctx context.Context, orderIDs []strin
 						qty = 1
 					}
 
+					// Extract product_id for image lookup from product cache
+					productID := getInt64(itemMap, "product_id")
+
+					// Extract product image URL if available from API
+					productImage := getString(itemMap, "product_image")
+					if productImage == "" {
+						// TikTok may return image in sku_image or image field
+						productImage = getString(itemMap, "sku_image")
+					}
+					if productImage == "" {
+						productImage = getString(itemMap, "image")
+					}
+					// Try nested image object
+					if productImage == "" {
+						if imgObj, ok := itemMap["image"].(map[string]interface{}); ok {
+							productImage = getString(imgObj, "url")
+							if productImage == "" {
+								productImage = getString(imgObj, "thumb_url")
+							}
+						}
+					}
+
 					orderItems = append(orderItems, OrderItem{
 						OrderID:       orderID,
+						ItemID:        productID, // Use ItemID field for product_id
 						SKU:           sku,
 						ProductName:   getString(itemMap, "product_name"),
 						VariationName: getString(itemMap, "sku_name"),
 						Quantity:      qty,
 						Price:         getFloat64(itemMap, "original_price"),
+						ProductImage:  productImage,
 					})
 				}
 			}

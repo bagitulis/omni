@@ -1,7 +1,7 @@
 <template>
   <div class="tab-content">
     <div class="info-banner">
-      <span class="info-icon">⚙️</span>
+      <Icon name="settings" size="sm" />
       <div class="info-text">
         <strong>Pengaturan Bulk Pricing</strong>
         <p class="info-note">
@@ -122,8 +122,14 @@
 
       <!-- Save Button -->
       <div class="action-buttons">
-        <button type="submit" class="btn-save" :disabled="saving">
-          {{ saving ? "Menyimpan..." : "💾 Simpan Pengaturan" }}
+        <button
+          type="submit"
+          class="btn-save"
+          :disabled="saving"
+          aria-label="Save settings"
+        >
+          <Icon name="download" size="sm" />
+          {{ saving ? "Menyimpan..." : "Simpan Pengaturan" }}
         </button>
       </div>
     </form>
@@ -132,6 +138,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import Icon from "@/components/ui/Icon.vue";
 import type { WholesaleSettings } from "../../../../services/wholesaleService";
 import wholesaleService from "../../../../services/wholesaleService";
 

@@ -60,7 +60,7 @@
 
         <!-- Caching Section -->
         <div class="form-section">
-          <h5>⚙️ Caching</h5>
+          <h5><Icon name="settings" size="sm" /> Caching</h5>
           <label
             ><input v-model="formData.caching_enabled" type="checkbox" />
             Enable</label
@@ -89,7 +89,7 @@
 
         <!-- Queue Section -->
         <div class="form-section">
-          <h5>📋 Queue</h5>
+          <h5><Icon name="document" size="sm" /> Queue</h5>
           <label
             ><input v-model="formData.queue_enabled" type="checkbox" />
             Enable</label
@@ -120,7 +120,7 @@
 
         <!-- Rate Limit Section -->
         <div class="form-section">
-          <h5>⏱️ Rate Limit</h5>
+          <h5><Icon name="clock" size="sm" /> Rate Limit</h5>
           <label
             ><input v-model="formData.rate_limit_enabled" type="checkbox" />
             Enable</label
@@ -158,8 +158,14 @@
           >
             Cancel
           </button>
-          <button type="submit" class="btn btn-primary" :disabled="isSaving">
-            {{ isSaving ? "Saving..." : "💾 Save" }}
+          <button
+            type="submit"
+            class="btn btn-primary"
+            :disabled="isSaving"
+            aria-label="Save route"
+          >
+            <Icon name="download" size="sm" />
+            {{ isSaving ? "Saving..." : "Save" }}
           </button>
         </div>
       </form>
@@ -169,6 +175,7 @@
 
 <script setup lang="ts">
 import { reactive } from "vue";
+import Icon from "@/components/ui/Icon.vue";
 import type { RouteConfig } from "./types/routeManagement";
 
 interface Props {

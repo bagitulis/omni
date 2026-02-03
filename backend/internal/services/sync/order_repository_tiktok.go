@@ -90,11 +90,13 @@ func (r *GormOrderRepository) saveTiktokOrderItems(ctx context.Context, db *gorm
 		itemModel := models.TiktokOrderItem{
 			TenantID:      r.tenantID,
 			OrderSN:       orderSN,
+			ProductID:     item.ItemID, // ItemID contains product_id from TikTok API
 			SellerSku:     item.SKU,
 			ProductName:   item.ProductName,
 			VariationName: item.VariationName,
 			Quantity:      &qty,
 			Price:         &price,
+			ProductImage:  item.ProductImage,
 		}
 		if err := db.WithContext(ctx).Create(&itemModel).Error; err != nil {
 			return err
@@ -135,14 +137,72 @@ func (r *GormOrderRepository) getTiktokOrdersByStatus(ctx context.Context, db *g
 		}
 	}
 
-	// Group items by order_sn
-	itemsByOrder := make(map[string][]models.TiktokOrderItem)
+	// Collect unique product_ids for image lookup
+	productIDSet := make(map[int64]bool)
 	for _, item := range items {
-		itemsByOrder[item.OrderSN] = append(itemsByOrder[item.OrderSN], item)
+		if item.ProductID > 0 {
+			productIDSet[item.ProductID] = true
+		}
+	}
+	productIDs := make([]int64, 0, len(productIDSet))
+	for id := range productIDSet {
+		productIDs = append(productIDs, id)
+	}
+
+	// Fetch product images from tiktok_products cache
+	imageMap := r.getTiktokProductImagesFromCache(ctx, db, productIDs)
+
+	// Group items by order_sn and enrich with images
+	itemsByOrder := make(map[string][]models.TiktokOrderItem)
+	for i := range items {
+		// Enrich item with cached product image if empty
+		if items[i].ProductImage == "" && items[i].ProductID > 0 {
+			if imgURL, ok := imageMap[items[i].ProductID]; ok {
+				items[i].ProductImage = imgURL
+			}
+		}
+		itemsByOrder[items[i].OrderSN] = append(itemsByOrder[items[i].OrderSN], items[i])
 	}
 
 	// Build flattened orders with items and deduplication
 	return r.flattenTiktokOrders(orderModels, itemsByOrder), nil
+}
+
+// getTiktokProductImagesFromCache fetches product images from tiktok_products table
+func (r *GormOrderRepository) getTiktokProductImagesFromCache(ctx context.Context, db *gorm.DB, productIDs []int64) map[int64]string {
+	result := make(map[int64]string)
+	if len(productIDs) == 0 {
+		return result
+	}
+
+	// TikTok uses string product_id, we need to convert
+	strProductIDs := make([]string, 0, len(productIDs))
+	for _, id := range productIDs {
+		strProductIDs = append(strProductIDs, fmt.Sprintf("%d", id))
+	}
+
+	var products []models.TiktokProduct
+	err := db.WithContext(ctx).
+		Select("product_id, image").
+		Where("product_id IN ? AND image != ''", strProductIDs).
+		Find(&products).Error
+
+	if err != nil {
+		fmt.Printf("Warning: failed to fetch tiktok product images: %v\n", err)
+		return result
+	}
+
+	for _, p := range products {
+		if p.Image != "" {
+			// Convert string product_id back to int64 for map key
+			var productID int64
+			fmt.Sscanf(p.ProductID, "%d", &productID)
+			if productID > 0 {
+				result[productID] = p.Image
+			}
+		}
+	}
+	return result
 }
 
 // flattenTiktokOrders creates flattened order list for frontend with deduplication
@@ -219,6 +279,7 @@ func (r *GormOrderRepository) flattenTiktokOrders(orderModels []models.TiktokOrd
 					VariationName:   item.VariationName,
 					Quantity:        qty,
 					Price:           price,
+					ProductImage:    item.ProductImage,
 					CreatedAt:       m.CreatedAt,
 					UpdatedAt:       m.UpdatedAt,
 				})

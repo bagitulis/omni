@@ -59,7 +59,7 @@
     </div>
 
     <div v-if="error" class="error-box">
-      <i class="pi pi-exclamation-circle"></i>
+      <Icon name="warning" size="sm" />
       <span>{{ error }}</span>
     </div>
   </form>
@@ -67,6 +67,7 @@
 
 <script setup lang="ts">
 import type { ShippingProvider } from "../composables/useModalForm";
+import Icon from "@/components/ui/Icon.vue";
 
 interface Props {
   modelValue: { sp: string; tn: string; aid: string | number };

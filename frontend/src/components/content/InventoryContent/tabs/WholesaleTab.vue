@@ -2,7 +2,7 @@
   <div class="tab-content">
     <!-- Info Banner -->
     <div class="info-banner">
-      <span class="info-icon">ℹ️</span>
+      <Icon name="info" size="sm" />
       <div class="info-text">
         <strong>{{ items.length }} SKU</strong> dipilih - Shopee Only
         <p class="info-note">
@@ -56,7 +56,9 @@
           <span class="spinner"></span>
           Updating...
         </span>
-        <span v-else>📦 Update Wholesale</span>
+        <span v-else
+          ><Icon name="shopping-cart" size="sm" /> Update Wholesale</span
+        >
       </button>
     </div>
   </div>
@@ -64,6 +66,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import Icon from "@/components/ui/Icon.vue";
 import wholesaleService, {
   WholesaleSettings,
 } from "../../../../services/wholesaleService";

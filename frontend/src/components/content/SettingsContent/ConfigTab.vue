@@ -17,14 +17,14 @@
     <div class="auto-scheduled-section">
       <div class="section-header">
         <div class="section-title">
-          <span class="section-icon">⏰</span>
+          <Icon name="clock" size="md" class="section-icon" />
           <h3>Auto Scheduled</h3>
           <span class="section-subtitle"
             >Timer-based execution dengan repeat</span
           >
         </div>
         <button @click="$emit('show-add-new')" class="btn btn-add">
-          ➕ Add Schedule
+          <Icon name="plus" size="xs" /> Add Schedule
         </button>
       </div>
 
@@ -48,22 +48,22 @@
     <!-- Execution Stats -->
     <div class="execution-stats">
       <div class="stat-item stat-completed">
-        <span class="stat-icon">✅</span>
+        <Icon name="check" size="md" class="stat-icon text-green-600" />
         <span class="stat-value">{{ stats.completed }}</span>
         <span class="stat-label">Completed</span>
       </div>
       <div class="stat-item stat-failed">
-        <span class="stat-icon">❌</span>
+        <Icon name="close" size="md" class="stat-icon text-red-600" />
         <span class="stat-value">{{ stats.failed }}</span>
         <span class="stat-label">Failed</span>
       </div>
       <div class="stat-item stat-pending">
-        <span class="stat-icon">⏳</span>
+        <Icon name="spinner" size="md" class="stat-icon text-yellow-600" spin />
         <span class="stat-value">{{ stats.pending }}</span>
         <span class="stat-label">Pending</span>
       </div>
       <div class="stat-item stat-queue">
-        <span class="stat-icon">📋</span>
+        <Icon name="document" size="md" class="stat-icon text-blue-600" />
         <span class="stat-value">{{ stats.inQueue }}</span>
         <span class="stat-label">In Queue</span>
       </div>
@@ -95,6 +95,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
+import Icon from "@/components/ui/Icon.vue";
 import ConfigFunctionsTable from "./ConfigFunctionsTable.vue";
 import ConfigEditorModal from "./ConfigEditorModal.vue";
 import ManualTriggerSection from "./ManualTriggerSection.vue";

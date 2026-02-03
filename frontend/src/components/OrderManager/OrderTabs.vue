@@ -1,9 +1,12 @@
 <template>
-  <div class="order-tabs">
+  <div class="order-tabs" role="tablist">
     <button
       v-for="tab in orderTabs"
       :key="tab.value"
       :class="['tab-item', { active: activeTab === tab.value }]"
+      role="tab"
+      :aria-selected="activeTab === tab.value"
+      :tabindex="activeTab === tab.value ? 0 : -1"
       @click="emit('tab-changed', tab.value)"
     >
       <span class="tab-label">{{ tab.label }}</span>
@@ -64,11 +67,11 @@ onMounted(updateIndicator);
   display: flex;
   gap: var(--om-spacing-xs);
   position: relative;
-  border-bottom: 2px solid var(--om-border);
-  background: var(--om-bg-primary);
+  border-bottom: none;
+  background: transparent;
   overflow-x: auto;
   scrollbar-width: none;
-  padding: 0 var(--om-spacing-sm);
+  padding: 2px;
 }
 
 .order-tabs::-webkit-scrollbar {
@@ -77,12 +80,12 @@ onMounted(updateIndicator);
 
 .tab-item {
   position: relative;
-  padding: var(--om-spacing-md) var(--om-spacing-lg);
+  padding: 0.55rem 1.05rem;
   border: none;
   background: transparent;
   cursor: pointer;
   font-size: var(--om-font-sm);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--om-text-secondary);
   transition: all var(--om-transition-fast);
   display: flex;
@@ -90,16 +93,18 @@ onMounted(updateIndicator);
   gap: var(--om-spacing-xs);
   white-space: nowrap;
   flex-shrink: 0;
+  border-radius: var(--om-radius-full);
 }
 
 .tab-item:hover {
-  color: #ee4d2d;
-  background: rgba(238, 77, 45, 0.08);
+  color: var(--om-primary);
+  background: #fff2ee;
 }
 
 .tab-item.active {
-  color: #ee4d2d;
-  font-weight: 600;
+  color: var(--om-primary);
+  background: #fff2ee;
+  box-shadow: inset 0 0 0 1px rgba(238, 77, 45, 0.2);
 }
 
 .tab-label {
@@ -109,15 +114,11 @@ onMounted(updateIndicator);
 .tab-count {
   font-size: 0.75rem;
   margin-left: 4px;
+  color: inherit;
 }
 
 .tab-indicator {
-  position: absolute;
-  bottom: -2px;
-  height: 2px;
-  background: #ee4d2d;
-  border-radius: 2px 2px 0 0;
-  transition: all var(--om-transition-normal);
+  display: none;
 }
 
 /* Responsive */

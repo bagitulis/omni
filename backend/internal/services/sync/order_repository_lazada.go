@@ -50,11 +50,13 @@ func (r *GormOrderRepository) saveLazadaOrderItems(ctx context.Context, db *gorm
 		itemModel := models.LazadaOrderItem{
 			TenantID:      r.tenantID,
 			OrderSN:       orderSN,
+			ItemID:        item.ItemID, // ItemID for product cache lookup
 			SellerSku:     item.SKU,
 			ProductName:   item.ProductName,
-			VariationName: item.VariationName, // Map variation from Lazada API
+			VariationName: item.VariationName,
 			Quantity:      &qty,
 			Price:         &price,
+			ProductImage:  item.ProductImage,
 		}
 		if err := db.WithContext(ctx).Create(&itemModel).Error; err != nil {
 			return err
@@ -94,14 +96,62 @@ func (r *GormOrderRepository) getLazadaOrdersByStatus(ctx context.Context, db *g
 		}
 	}
 
-	// Group items by order_sn
-	itemsByOrder := make(map[string][]models.LazadaOrderItem)
+	// Collect unique item_ids for image lookup
+	itemIDSet := make(map[string]bool)
 	for _, item := range items {
-		itemsByOrder[item.OrderSN] = append(itemsByOrder[item.OrderSN], item)
+		if item.ItemID > 0 {
+			itemIDSet[fmt.Sprintf("%d", item.ItemID)] = true
+		}
+	}
+	itemIDs := make([]string, 0, len(itemIDSet))
+	for id := range itemIDSet {
+		itemIDs = append(itemIDs, id)
+	}
+
+	// Fetch product images from lazada_products cache
+	imageMap := r.getLazadaProductImagesFromCache(ctx, db, itemIDs)
+
+	// Group items by order_sn and enrich with images
+	itemsByOrder := make(map[string][]models.LazadaOrderItem)
+	for i := range items {
+		// Enrich item with cached product image if empty
+		if items[i].ProductImage == "" && items[i].ItemID > 0 {
+			itemIDStr := fmt.Sprintf("%d", items[i].ItemID)
+			if imgURL, ok := imageMap[itemIDStr]; ok {
+				items[i].ProductImage = imgURL
+			}
+		}
+		itemsByOrder[items[i].OrderSN] = append(itemsByOrder[items[i].OrderSN], items[i])
 	}
 
 	// Build flattened orders with items
 	return r.flattenLazadaOrders(orderModels, itemsByOrder), nil
+}
+
+// getLazadaProductImagesFromCache fetches product images from lazada_products table
+func (r *GormOrderRepository) getLazadaProductImagesFromCache(ctx context.Context, db *gorm.DB, itemIDs []string) map[string]string {
+	result := make(map[string]string)
+	if len(itemIDs) == 0 {
+		return result
+	}
+
+	var products []models.LazadaProduct
+	err := db.WithContext(ctx).
+		Select("item_id, image").
+		Where("item_id IN ? AND image != ''", itemIDs).
+		Find(&products).Error
+
+	if err != nil {
+		fmt.Printf("Warning: failed to fetch lazada product images: %v\n", err)
+		return result
+	}
+
+	for _, p := range products {
+		if p.Image != "" {
+			result[p.ItemID] = p.Image
+		}
+	}
+	return result
 }
 
 // flattenLazadaOrders creates flattened order list for frontend
@@ -138,6 +188,7 @@ func (r *GormOrderRepository) flattenLazadaOrders(orderModels []models.LazadaOrd
 					ProductName:   item.ProductName,
 					VariationName: item.VariationName,
 					Quantity:      qty,
+					ProductImage:  item.ProductImage,
 					CreatedAt:     m.CreatedAt,
 					UpdatedAt:     m.UpdatedAt,
 				})

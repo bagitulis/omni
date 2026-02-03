@@ -2,7 +2,7 @@
   <div class="platform-card" :class="platform">
     <div class="card-header">
       <div class="platform-info">
-        <span class="platform-icon">{{ icon }}</span>
+        <Icon :name="icon" size="lg" class="platform-icon" />
         <h3>{{ title }}</h3>
       </div>
       <div class="status-indicator" :class="getStatusClass()">
@@ -34,8 +34,9 @@
             @click="$emit('copy', callbackUrl)"
             class="mini-btn"
             title="Copy"
+            aria-label="Copy callback URL"
           >
-            📋
+            <Icon name="copy" size="sm" />
           </button>
         </div>
       </div>
@@ -48,8 +49,9 @@
             @click="$emit('copy', webhookUrl)"
             class="mini-btn"
             title="Copy"
+            aria-label="Copy webhook URL"
           >
-            📋
+            <Icon name="copy" size="sm" />
           </button>
         </div>
       </div>
@@ -60,14 +62,20 @@
         @click="$emit('authorize')"
         class="authorize-btn"
         :class="platform"
+        :aria-label="
+          status.connected ? 'Re-authorize ' + title : 'Connect ' + title
+        "
       >
-        {{ status.connected ? "🔄 Re-authorize" : "🔗 Connect" }}
+        <Icon :name="status.connected ? 'refresh' : 'link'" size="sm" />
+        {{ status.connected ? "Re-authorize" : "Connect" }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import Icon from "@/components/ui/Icon.vue";
+
 const props = defineProps<{
   platform: string;
   title: string;
@@ -90,10 +98,10 @@ function getStatusClass() {
 }
 
 function getStatusText() {
-  if (!props.status.connected) return "❌ Disconnected";
-  if (props.status.isExpired) return "⚠️ Expired";
-  if (isExpiringSoon()) return "⏳ Expiring Soon";
-  return "✅ Connected";
+  if (!props.status.connected) return "Disconnected";
+  if (props.status.isExpired) return "Expired";
+  if (isExpiringSoon()) return "Expiring Soon";
+  return "Connected";
 }
 
 function isExpiringSoon() {

@@ -7,7 +7,7 @@
       "projectId": "original-app-dsk6k",
       "managedProjectId": "original-app-dsk6k",
       "addedAt": 1769057556241,
-      "lastUsed": 1770024235158,
+      "lastUsed": 1770044128727,
       "rateLimitResetTimes": {
         "claude": 1770085315646.9001,
         "gemini-cli:gemini-3-flash-preview": 1769760435559
@@ -36,23 +36,23 @@
         },
         "gemini-pro": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-02T11:08:53Z",
+          "resetTime": "2026-02-02T16:52:34Z",
           "modelCount": 3
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-02T14:08:59Z",
+          "resetTime": "2026-02-02T14:59:53Z",
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770024236081
+      "cachedQuotaUpdatedAt": 1770043969585
     },
     {
       "email": "k.nghaerin03@gmail.com",
       "refreshToken": "1//0gQ_rYI1R7g5XCgYIARAAGBASNwF-L9Irsj4lYPUyaS0_ttPg1I7B_7phgI6WHHWd3c4IS7Olq70Us0lBWozbpBjlJ_Ip_stYcGw",
       "managedProjectId": "hidef-catwalk-gllrg",
       "addedAt": 1769057618418,
-      "lastUsed": 1770024244377,
+      "lastUsed": 1770044041106,
       "rateLimitResetTimes": {
         "claude": 1770085231554.929,
         "gemini-cli:gemini-3-flash-preview": 1769760453833
@@ -81,23 +81,23 @@
         },
         "gemini-pro": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-02T11:08:40Z",
+          "resetTime": "2026-02-02T16:48:02Z",
           "modelCount": 3
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-02T14:09:03Z",
+          "resetTime": "2026-02-02T15:01:01Z",
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770024245681
+      "cachedQuotaUpdatedAt": 1770043975813
     },
     {
       "email": "ahmaditobeni@gmail.com",
       "refreshToken": "1//0gW742Tp9Z1JVCgYIARAAGBASNwF-L9IrI4dxhGTz1lDJZ98t5i7C5rYLD14HhA0WvbGM2S2mtG6JrP5MjKrFoSVl8mM35JMSPns",
       "managedProjectId": "sinuous-buffer-r30wt",
       "addedAt": 1769057661796,
-      "lastUsed": 1770024276601,
+      "lastUsed": 1770044068691,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1769760447632
       },
@@ -118,11 +118,6 @@
         "createdAt": 1769562318837
       },
       "cachedQuota": {
-        "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-02T11:09:08Z",
-          "modelCount": 3
-        },
         "claude": {
           "remainingFraction": 0,
           "resetTime": "2026-02-03T02:21:20Z",
@@ -130,11 +125,16 @@
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-02T14:09:02Z",
+          "resetTime": "2026-02-02T19:48:01Z",
           "modelCount": 1
+        },
+        "gemini-pro": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-02T16:09:08Z",
+          "modelCount": 3
         }
       },
-      "cachedQuotaUpdatedAt": 1770024277464
+      "cachedQuotaUpdatedAt": 1770043979659
     },
     {
       "email": "yyumnaa@gmail.com",
@@ -142,7 +142,7 @@
       "projectId": "groovy-agility-2xfg6",
       "managedProjectId": "groovy-agility-2xfg6",
       "addedAt": 1769400331432,
-      "lastUsed": 1770024315514,
+      "lastUsed": 1770044067637,
       "fingerprint": {
         "deviceId": "95f43de5-7da4-4d0f-bde0-3c9f01ab006b",
         "sessionToken": "ff5169617c97bfcb82520bfd959325e1",
@@ -160,26 +160,28 @@
         "createdAt": 1769668583265
       },
       "rateLimitResetTimes": {
-        "gemini-cli:gemini-3-flash-preview": 1769760459486
+        "gemini-cli:gemini-3-flash-preview": 1769760459486,
+        "gemini-antigravity:antigravity-gemini-3-pro": 1770041499913.5034,
+        "gemini-antigravity:gemini-3-pro-preview": 1770034654858
       },
       "cachedQuota": {
-        "gemini-flash": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-07T02:39:02Z",
-          "modelCount": 1
-        },
-        "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-07T06:13:35Z",
-          "modelCount": 3
-        },
         "claude": {
           "remainingFraction": 1,
           "resetTime": "2026-02-07T02:43:43Z",
           "modelCount": 3
+        },
+        "gemini-pro": {
+          "remainingFraction": 0.4,
+          "resetTime": "2026-02-07T06:13:35Z",
+          "modelCount": 3
+        },
+        "gemini-flash": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-07T02:39:02Z",
+          "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770024316398
+      "cachedQuotaUpdatedAt": 1770043713297
     },
     {
       "email": "s43627991@gmail.com",
@@ -309,10 +311,11 @@
       "projectId": "yttriferous-vigil-vl2ws",
       "managedProjectId": "yttriferous-vigil-vl2ws",
       "addedAt": 1769563632478,
-      "lastUsed": 1770024338928,
+      "lastUsed": 1770044078383,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1769679592854,
-        "claude": 1769677645274
+        "claude": 1769677645274,
+        "gemini-antigravity:antigravity-gemini-3-pro": 1770036894295
       },
       "fingerprint": {
         "deviceId": "4f45f0b3-7bb3-40d3-b642-4f07a6a688e7",
@@ -334,21 +337,21 @@
       "cachedQuota": {
         "claude": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-02T14:25:33Z",
+          "resetTime": "2026-02-02T19:48:46Z",
           "modelCount": 3
         },
         "gemini-pro": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-02T13:01:12Z",
+          "resetTime": "2026-02-02T18:01:12Z",
           "modelCount": 3
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-02T14:25:33Z",
+          "resetTime": "2026-02-02T14:59:51Z",
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770024339874
+      "cachedQuotaUpdatedAt": 1770043726265
     },
     {
       "email": "bagitulis@gmail.com",
@@ -356,7 +359,7 @@
       "projectId": "exalted-octane-0fcgj",
       "managedProjectId": "exalted-octane-0fcgj",
       "addedAt": 1769400286655,
-      "lastUsed": 1770024180118,
+      "lastUsed": 1770044074534,
       "rateLimitResetTimes": {
         "claude": 1769960186794.1814,
         "gemini-cli:gemini-3-flash-preview": 1769760585997
@@ -378,23 +381,23 @@
         "createdAt": 1769562318837
       },
       "cachedQuota": {
-        "gemini-flash": {
+        "gemini-pro": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-02T14:22:55Z",
-          "modelCount": 1
+          "resetTime": "2026-02-02T16:48:34Z",
+          "modelCount": 3
         },
         "claude": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-02T14:22:55Z",
+          "resetTime": "2026-02-02T19:48:42Z",
           "modelCount": 3
         },
-        "gemini-pro": {
+        "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-02T11:08:36Z",
-          "modelCount": 3
+          "resetTime": "2026-02-02T18:01:50Z",
+          "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770024181020
+      "cachedQuotaUpdatedAt": 1770043722939
     },
     {
       "email": "yuoistarlk@gmail.com",
@@ -537,7 +540,7 @@
       "email": "fantanihardi@gmail.com",
       "refreshToken": "1//0gJS9ehc7ocsSCgYIARAAGBASNwF-L9IrAX7BawPfs5fpCL7dG7ufqoTNFjk1YDPnlYgb23WkS5kjykSE5sHMUf-AVzsyhmHHd84",
       "addedAt": 1770013137029,
-      "lastUsed": 1770024176956,
+      "lastUsed": 1770044088863,
       "enabled": true,
       "rateLimitResetTimes": {},
       "managedProjectId": "crested-champion-t4xv4",
@@ -560,69 +563,93 @@
       "cachedQuota": {
         "claude": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-02T14:22:52Z",
+          "resetTime": "2026-02-02T19:48:49Z",
+          "modelCount": 3
+        },
+        "gemini-pro": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-02T16:39:59Z",
           "modelCount": 3
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-02T11:43:54Z",
+          "resetTime": "2026-02-02T16:43:54Z",
           "modelCount": 1
-        },
-        "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-02T11:39:59Z",
-          "modelCount": 3
         }
       },
-      "cachedQuotaUpdatedAt": 1770024180116
+      "cachedQuotaUpdatedAt": 1770043729748
     },
     {
       "email": "mantogisatah@gmail.com",
       "refreshToken": "1//0gVY1XZ8ouqxaCgYIARAAGBASNwF-L9Ir-Kt6r3FhUgdQy26PTrw8pCwJA_LKPqFhdgeqWAsotQwZ-xfLgaXiZuvUeC4aJcW6gAw",
       "addedAt": 1770013187447,
-      "lastUsed": 1770024206923,
+      "lastUsed": 1770044110779,
       "enabled": true,
-      "rateLimitResetTimes": {},
+      "rateLimitResetTimes": {
+        "gemini-antigravity:antigravity-gemini-3-pro": 1770043895337
+      },
       "managedProjectId": "river-question-8jjzm",
       "fingerprint": {
-        "deviceId": "af504730-34bb-4f66-a5d6-0bf21f581984",
-        "sessionToken": "e386f1edc7c0057df32272f550ee6186",
-        "userAgent": "antigravity/1.15.8 win32/arm64",
-        "apiClient": "google-cloud-sdk android-studio/2024.1",
+        "deviceId": "eb88f629-dd61-40e5-85e4-5fb07392e19c",
+        "sessionToken": "ffbb4de210c8938aa9c4ba8746f26a8e",
+        "userAgent": "antigravity/1.15.8 linux/arm64",
+        "apiClient": "google-cloud-sdk vscode/1.86.0",
         "clientMetadata": {
-          "ideType": "IDE_UNSPECIFIED",
-          "platform": "WINDOWS",
+          "ideType": "VSCODE",
+          "platform": "LINUX",
           "pluginType": "GEMINI",
-          "osVersion": "10.0.19041",
+          "osVersion": "6.2.0",
           "arch": "arm64",
-          "sqmId": "{2823EF2A-25A0-433B-9987-BAA386211E0B}"
+          "sqmId": "{F4F6E473-988E-4FF4-9C47-DE2A241CB509}"
         },
-        "quotaUser": "device-41cdacf1ea8b735e",
-        "createdAt": 1770014213272
+        "quotaUser": "device-4a0710cf09a940e6",
+        "createdAt": 1770043830027
       },
       "cachedQuota": {
-        "claude": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-02T14:23:22Z",
-          "modelCount": 3
-        },
         "gemini-pro": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-02T11:40:13Z",
+          "resetTime": "2026-02-02T16:40:13Z",
+          "modelCount": 3
+        },
+        "claude": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-02T19:51:25Z",
           "modelCount": 3
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-02T11:44:08Z",
+          "resetTime": "2026-02-02T16:44:08Z",
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770024207912
+      "cachedQuotaUpdatedAt": 1770043885057,
+      "fingerprintHistory": [
+        {
+          "fingerprint": {
+            "deviceId": "af504730-34bb-4f66-a5d6-0bf21f581984",
+            "sessionToken": "e386f1edc7c0057df32272f550ee6186",
+            "userAgent": "antigravity/1.15.8 win32/arm64",
+            "apiClient": "google-cloud-sdk android-studio/2024.1",
+            "clientMetadata": {
+              "ideType": "IDE_UNSPECIFIED",
+              "platform": "WINDOWS",
+              "pluginType": "GEMINI",
+              "osVersion": "10.0.19041",
+              "arch": "arm64",
+              "sqmId": "{2823EF2A-25A0-433B-9987-BAA386211E0B}"
+            },
+            "quotaUser": "device-41cdacf1ea8b735e",
+            "createdAt": 1770014213272
+          },
+          "timestamp": 1770043830027,
+          "reason": "regenerated"
+        }
+      ]
     }
   ],
   "activeIndex": 9,
   "activeIndexByFamily": {
     "claude": 9,
-    "gemini": 9
+    "gemini": 0
   }
 }

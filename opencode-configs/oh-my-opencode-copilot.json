@@ -34,6 +34,9 @@
     "sisyphus-junior": {
       "model": "github-copilot/gemini-3-pro-preview"
     },
+    "hephaestus": {
+      "model": "github-copilot/claude-sonnet-4.5"
+    },
     "default": {
       "model": "github-copilot/claude-opus-4.5"
     }

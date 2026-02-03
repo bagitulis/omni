@@ -4,7 +4,7 @@
       <div class="om">
         <div class="h">
           <h3>Arrange Shipment</h3>
-          <button @click="close"><i class="pi pi-times"></i></button>
+          <button @click="close"><Icon name="close" size="md" /></button>
         </div>
         <div class="b">
           <OrderShipInfo :order="order" />
@@ -31,8 +31,8 @@
             class="om-btn om-btn-primary"
             :disabled="loading || !valid"
           >
-            <i v-if="loading" class="pi pi-spin pi-spinner"></i>
-            <i v-else class="pi pi-truck"></i>
+            <Icon v-if="loading" name="spinner" size="sm" spin />
+            <Icon v-else name="truck" size="sm" />
             <span>{{ loading ? "Processing..." : "Confirm Shipment" }}</span>
           </button>
         </div>
@@ -50,6 +50,7 @@ import {
 } from "./composables/useModalForm";
 import OrderShipInfo from "./partials/OrderShipInfo.vue";
 import OrderShipForm from "./partials/OrderShipForm.vue";
+import Icon from "@/components/ui/Icon.vue";
 
 interface Order {
   order_no: string;

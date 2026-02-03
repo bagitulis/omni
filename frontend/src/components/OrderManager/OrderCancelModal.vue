@@ -4,7 +4,7 @@
       <div class="om">
         <div class="h">
           <h3>Cancel Order</h3>
-          <button @click="close"><i class="pi pi-times"></i></button>
+          <button @click="close"><Icon name="close" size="md" /></button>
         </div>
         <div class="b">
           <OrderCancelWarning />
@@ -57,7 +57,7 @@
             </div>
 
             <div v-if="error" class="error-box">
-              <i class="pi pi-exclamation-circle"></i><span>{{ error }}</span>
+              <Icon name="warning" size="sm" /><span>{{ error }}</span>
             </div>
           </form>
         </div>
@@ -75,8 +75,8 @@
             class="cancel-btn"
             :disabled="loading || !valid"
           >
-            <i v-if="loading" class="pi pi-spin pi-spinner"></i>
-            <i v-else class="pi pi-times"></i>
+            <Icon v-if="loading" name="spinner" size="sm" spin />
+            <Icon v-else name="close" size="sm" />
             <span>{{ loading ? "Processing..." : "Cancel Order" }}</span>
           </button>
         </div>
@@ -95,6 +95,7 @@ import {
 import type { Order } from "./composables/useOrderManager";
 import OrderCancelWarning from "./OrderCancelWarning.vue";
 import OrderCancelInfo from "./OrderCancelInfo.vue";
+import Icon from "@/components/ui/Icon.vue";
 
 const props = defineProps<{ visible: boolean; order: Order | null }>();
 const emit = defineEmits<{

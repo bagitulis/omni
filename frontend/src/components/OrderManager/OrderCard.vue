@@ -18,7 +18,7 @@
             class="copy-btn"
             title="Copy Order No."
           >
-            <i :class="copied ? 'pi pi-check' : 'pi pi-copy'"></i>
+            <Icon :name="copied ? 'check' : 'copy'" size="sm" />
           </button>
         </div>
       </div>
@@ -43,8 +43,9 @@
     <div class="card-footer">
       <div class="footer-info">
         <div v-if="order.payment_method" class="payment-method">
-          <i class="pi pi-credit-card"></i
-          ><span>{{ order.payment_method }}</span>
+          <Icon name="dollar" size="sm" /><span>{{
+            order.payment_method
+          }}</span>
         </div>
         <div class="total-amount">
           <span class="total-label">Total:</span>
@@ -59,17 +60,17 @@
           @click="shipOrder"
           class="om-btn om-btn-primary"
         >
-          <i class="pi pi-truck"></i><span>Arrange Shipment</span>
+          <Icon name="truck" size="sm" /><span>Arrange Shipment</span>
         </button>
         <button
           v-if="showCancelButton"
           @click="cancelOrder"
           class="om-btn om-btn-secondary cancel-btn"
         >
-          <i class="pi pi-times"></i><span>Cancel Order</span>
+          <Icon name="close" size="sm" /><span>Cancel Order</span>
         </button>
         <button @click="viewDetail" class="om-btn om-btn-secondary">
-          <i class="pi pi-eye"></i><span>View Details</span>
+          <Icon name="eye" size="sm" /><span>View Details</span>
         </button>
       </div>
     </div>
@@ -79,6 +80,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import OrderProductItem from "./OrderProductItem.vue";
+import Icon from "@/components/ui/Icon.vue";
 interface OrderItem {
   sku: string;
   product_name: string;

@@ -128,6 +128,9 @@ type OrderDetailItem struct {
 	BuyerUsername           string            `json:"buyer_username"`
 	ShippingCarrier         string            `json:"shipping_carrier"`
 	CheckoutShippingCarrier string            `json:"checkout_shipping_carrier"`
+	ShipByDate              int64             `json:"ship_by_date"` // Deadline timestamp for shipping
+	DaysToShip              int               `json:"days_to_ship"` // Number of days to ship
+	TrackingNo              string            `json:"tracking_no"`  // Tracking number
 	Note                    string            `json:"note"`
 	MessageToSeller         string            `json:"message_to_seller"`
 	ItemList                []OrderItemDetail `json:"item_list"` // Order items
@@ -135,13 +138,19 @@ type OrderDetailItem struct {
 
 // OrderItemDetail represents an item in an order
 type OrderItemDetail struct {
-	ItemID                 int64   `json:"item_id"`
-	ModelID                int64   `json:"model_id"`
-	ItemName               string  `json:"item_name"`
-	ModelName              string  `json:"model_name"`
-	ItemSKU                string  `json:"item_sku"`
-	ModelSKU               string  `json:"model_sku"`
-	ModelQuantityPurchased int     `json:"model_quantity_purchased"`
-	ModelOriginalPrice     float64 `json:"model_original_price"`
-	ModelDiscountedPrice   float64 `json:"model_discounted_price"`
+	ItemID                 int64          `json:"item_id"`
+	ModelID                int64          `json:"model_id"`
+	ItemName               string         `json:"item_name"`
+	ModelName              string         `json:"model_name"`
+	ItemSKU                string         `json:"item_sku"`
+	ModelSKU               string         `json:"model_sku"`
+	ModelQuantityPurchased int            `json:"model_quantity_purchased"`
+	ModelOriginalPrice     float64        `json:"model_original_price"`
+	ModelDiscountedPrice   float64        `json:"model_discounted_price"`
+	ImageInfo              *ItemImageInfo `json:"image_info,omitempty"` // Product image info from Shopee API
+}
+
+// ItemImageInfo represents image info for an order item
+type ItemImageInfo struct {
+	ImageURL string `json:"image_url"` // Product image URL
 }

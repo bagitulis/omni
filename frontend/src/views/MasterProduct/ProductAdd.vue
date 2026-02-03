@@ -26,9 +26,10 @@
             >
               <div class="section-header" @click="toggleSection('basic')">
                 <h2>1. Informasi Dasar</h2>
-                <span class="toggle-icon">{{
-                  sections.basic ? "▼" : "▲"
-                }}</span>
+                <Icon
+                  :name="sections.basic ? 'chevron-down' : 'chevron-up'"
+                  size="sm"
+                />
               </div>
               <div class="section-content" v-show="!sections.basic">
                 <div class="form-group">
@@ -223,6 +224,7 @@ import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useUIStore } from "@/store/ui";
 import LeftSidebar from "@/components/layout/LeftSidebar.vue";
+import Icon from "@/components/ui/Icon.vue";
 import masterProductService from "@/services/masterProductService";
 
 const router = useRouter();

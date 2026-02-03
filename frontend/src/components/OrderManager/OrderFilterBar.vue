@@ -1,65 +1,82 @@
 <template>
   <div class="filter-bar">
     <!-- Search Input -->
-    <div class="filter-search">
-      <i class="pi pi-search search-icon"></i>
+    <div class="filter-search" role="search">
+      <Icon name="search" size="sm" class="search-icon" />
       <input
         type="text"
         :value="searchQuery"
         @input="onSearchInput"
         placeholder="Search by Order No., SKU, or Product..."
         class="search-input"
+        aria-label="Search orders by order number, SKU, or product name"
       />
       <button
         v-if="searchQuery"
         @click="clearSearch"
         class="clear-btn"
         title="Clear search"
+        aria-label="Clear search"
       >
-        <i class="pi pi-times"></i>
+        <Icon name="close" size="sm" />
       </button>
     </div>
 
-    <!-- Platform Filter -->
-    <div class="filter-platform">
-      <select
-        :value="selectedPlatform"
-        @change="onPlatformChange"
-        class="platform-select"
-      >
-        <option value="">All Platforms</option>
-        <option v-for="platform in platforms" :key="platform" :value="platform">
-          {{ formatPlatformName(platform) }}
-        </option>
-      </select>
-    </div>
-
-    <!-- Shipping Filter -->
-    <div class="filter-shipping">
-      <select
-        :value="selectedShipping"
-        @change="onShippingChange"
-        class="shipping-select"
-      >
-        <option value="">All Shipping</option>
-        <option
-          v-for="provider in shippingProviders"
-          :key="provider"
-          :value="provider"
+    <div class="filter-controls">
+      <!-- Platform Filter -->
+      <div class="filter-platform">
+        <select
+          :value="selectedPlatform"
+          @change="onPlatformChange"
+          class="platform-select"
+          aria-label="Filter by platform"
         >
-          {{ provider }}
-        </option>
-      </select>
-    </div>
+          <option value="">All Platforms</option>
+          <option
+            v-for="platform in platforms"
+            :key="platform"
+            :value="platform"
+          >
+            {{ formatPlatformName(platform) }}
+          </option>
+        </select>
+      </div>
 
-    <!-- Reset Button Only - filters apply automatically -->
-    <button @click="resetFilters" class="reset-btn" title="Reset all filters">
-      Reset
-    </button>
+      <!-- Shipping Filter -->
+      <div class="filter-shipping">
+        <select
+          :value="selectedShipping"
+          @change="onShippingChange"
+          class="shipping-select"
+          aria-label="Filter by shipping provider"
+        >
+          <option value="">All Shipping</option>
+          <option
+            v-for="provider in shippingProviders"
+            :key="provider"
+            :value="provider"
+          >
+            {{ provider }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Reset Button Only - filters apply automatically -->
+      <button
+        @click="resetFilters"
+        class="reset-btn"
+        title="Reset all filters"
+        aria-label="Reset all filters"
+      >
+        Reset
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import Icon from "@/components/ui/Icon.vue";
+
 interface Props {
   searchQuery: string;
   selectedPlatform: string;
@@ -132,17 +149,18 @@ const resetFilters = () => {
 .filter-bar {
   display: flex;
   align-items: center;
-  gap: var(--om-spacing-md);
-  padding: var(--om-spacing-md);
-  background: var(--om-bg-primary);
-  border: 1px solid var(--om-border);
+  gap: var(--om-spacing-sm);
+  padding: var(--om-spacing-sm);
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: var(--om-radius-md);
-  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
 }
 
 .filter-search {
-  flex: 1;
-  min-width: 250px;
+  flex: 1 1 320px;
+  min-width: 240px;
   position: relative;
 }
 
@@ -157,12 +175,13 @@ const resetFilters = () => {
 
 .search-input {
   width: 100%;
-  padding: var(--om-spacing-sm) var(--om-spacing-md);
+  padding: 0.65rem var(--om-spacing-md);
   padding-left: 2.25rem;
   padding-right: 2rem;
   border: 1px solid var(--om-border);
-  border-radius: var(--om-radius-sm);
+  border-radius: var(--om-radius-md);
   font-size: var(--om-font-sm);
+  background: var(--om-bg-primary);
   transition: border-color var(--om-transition-fast);
 }
 
@@ -184,57 +203,67 @@ const resetFilters = () => {
   border: none;
   color: var(--om-text-secondary);
   cursor: pointer;
-  padding: 4px;
+  padding: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .clear-btn:hover {
   color: var(--om-text-primary);
 }
 
-.filter-platform {
-  min-width: 150px;
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--om-spacing-sm);
+  flex-wrap: wrap;
 }
 
-.platform-select {
-  width: 100%;
-  padding: var(--om-spacing-sm) var(--om-spacing-md);
-  border: 1px solid var(--om-border);
-  border-radius: var(--om-radius-sm);
-  font-size: var(--om-font-sm);
-  background: var(--om-bg-primary);
-  cursor: pointer;
-}
-
-.platform-select:focus {
-  outline: none;
-  border-color: var(--om-primary);
-}
-
+.filter-platform,
 .filter-shipping {
-  min-width: 150px;
+  min-width: 160px;
 }
 
+.platform-select,
 .shipping-select {
   width: 100%;
-  padding: var(--om-spacing-sm) var(--om-spacing-md);
+  padding: 0.6rem 0.9rem;
   border: 1px solid var(--om-border);
-  border-radius: var(--om-radius-sm);
+  border-radius: var(--om-radius-md);
   font-size: var(--om-font-sm);
   background: var(--om-bg-primary);
   cursor: pointer;
+  transition:
+    border-color var(--om-transition-fast),
+    box-shadow var(--om-transition-fast);
 }
 
+.platform-select:focus,
 .shipping-select:focus {
   outline: none;
   border-color: var(--om-primary);
+  box-shadow: 0 0 0 2px var(--om-primary-light);
 }
 
-.filter-actions {
-  display: flex;
-  gap: var(--om-spacing-sm);
+.reset-btn {
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--om-radius-md);
+  border: 1px solid var(--om-border);
+  background: var(--om-bg-secondary);
+  font-size: var(--om-font-xs);
+  font-weight: 600;
+  color: var(--om-text-secondary);
+  cursor: pointer;
+  transition: all var(--om-transition-fast);
+}
+
+.reset-btn:hover {
+  border-color: var(--om-primary);
+  color: var(--om-primary);
+  background: var(--om-bg-primary);
 }
 
 /* Responsive */
@@ -252,12 +281,10 @@ const resetFilters = () => {
     width: 100%;
   }
 
-  .filter-actions {
-    justify-content: stretch;
-  }
-
-  .filter-actions .om-btn {
-    flex: 1;
+  .filter-controls {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 </style>

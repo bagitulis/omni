@@ -5,7 +5,9 @@
       <div class="queue-title">{{ job.type }}</div>
       <div class="queue-meta">
         <span class="queue-id">{{ job.id.substring(0, 12) }}...</span>
-        <span class="queue-created">{{ formatTime(job.created_at) }}</span>
+        <span class="queue-created"
+          ><Icon name="clock" size="xs" />{{ formatTime(job.created_at) }}</span
+        >
       </div>
     </div>
     <div class="queue-priority">
@@ -13,14 +15,19 @@
         {{ job.priority }}
       </span>
     </div>
-    <button @click="$emit('cancel')" class="btn btn-danger btn-sm">
-      ⚡ Force Cancel
+    <button
+      @click="$emit('cancel')"
+      class="btn btn-danger btn-sm"
+      aria-label="Force cancel job"
+    >
+      <Icon name="warning" size="sm" /> Force Cancel
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { formatTime, type Job } from "./queueUtils";
+import Icon from "@/components/ui/Icon.vue";
 
 defineProps<{
   job: Job;
@@ -100,9 +107,10 @@ defineEmits<{
   font-family: "Courier New", monospace;
 }
 
-.queue-created::before {
-  content: "⏰";
-  margin-right: 4px;
+.queue-created {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .queue-priority {

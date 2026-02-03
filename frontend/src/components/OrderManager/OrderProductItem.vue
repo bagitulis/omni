@@ -1,51 +1,50 @@
 <template>
-  <div class="product-item">
-    <!-- Product Image -->
-    <div class="product-image">
-      <img
-        v-if="imageUrl"
-        :src="imageUrl"
+  <div class="product-item-row">
+    <!-- Image -->
+    <div class="product-image-wrapper">
+      <ProductThumbnail
+        :src="product.product_image"
         :alt="product.product_name"
-        @error="onImageError"
-        loading="lazy"
+        :platform="platform"
+        size="medium"
       />
-      <div v-else class="image-placeholder">
-        <i class="pi pi-image"></i>
+    </div>
+
+    <!-- Details -->
+    <div class="product-details">
+      <div class="product-name" :title="product.product_name">
+        {{ product.product_name }}
+      </div>
+      <div class="product-meta">
+        <span v-if="product.variation_name" class="meta-tag variant">
+          {{ product.variation_name }}
+        </span>
+        <span v-if="product.sku" class="meta-tag sku">
+          {{ product.sku }}
+        </span>
       </div>
     </div>
 
-    <!-- Product Details -->
-    <div class="product-details">
-      <span class="product-name" :title="product.product_name">
-        {{ product.product_name }}
-      </span>
-      <span v-if="product.variation_name" class="product-variant">
-        {{ product.variation_name }}
-      </span>
-      <span class="product-sku">SKU: {{ product.sku }}</span>
-    </div>
-
-    <!-- Quantity -->
-    <div class="product-qty">
-      <span class="qty-label">Qty</span>
-      <span class="qty-value">{{ product.qty }}</span>
-    </div>
-
-    <!-- Price (optional) -->
-    <div v-if="product.price" class="product-price">
-      {{ formatPrice(product.price) }}
+    <!-- Pricing & Qty -->
+    <div class="product-pricing">
+      <div class="price-qty-group">
+        <span class="qty-badge">x{{ product.qty }}</span>
+        <span v-if="product.price" class="price-text">
+          {{ formatPrice(product.price) }}
+        </span>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import ProductThumbnail from "../Common/ProductThumbnail.vue";
 
 interface OrderProduct {
   sku: string;
   product_name: string;
   variation_name?: string;
-  qty: number; // Backend sends 'qty' field
+  qty: number;
   price?: number;
   product_image?: string;
 }
@@ -55,31 +54,7 @@ interface Props {
   platform: string;
 }
 
-const props = defineProps<Props>();
-
-const imageError = ref(false);
-
-const imageUrl = computed(() => {
-  if (imageError.value || !props.product.product_image) {
-    return null;
-  }
-  const url = props.product.product_image;
-
-  // Shopee CDN: add _tn suffix for 60x60 thumbnail
-  // Format: https://cf.shopee.co.id/file/{image_id} -> add _tn
-  if (props.platform === "shopee" && url.includes("cf.shopee")) {
-    if (url.includes("_tn")) {
-      return url;
-    }
-    return `${url}_tn`;
-  }
-
-  return url;
-});
-
-const onImageError = () => {
-  imageError.value = true;
-};
+defineProps<Props>();
 
 const formatPrice = (price: number): string => {
   return new Intl.NumberFormat("id-ID", {
@@ -93,49 +68,35 @@ const formatPrice = (price: number): string => {
 <style scoped>
 @import "./OrderManager.theme.css";
 
-.product-item {
+.product-item-row {
   display: flex;
   align-items: center;
   gap: var(--om-spacing-md);
-  padding: var(--om-spacing-sm) 0;
+  padding: var(--om-spacing-sm);
   border-bottom: 1px solid var(--om-border);
+  background: var(--om-bg-primary);
+  transition: background-color var(--om-transition-fast);
 }
 
-.product-item:last-child {
+.product-item-row:hover {
+  background-color: var(--om-bg-hover);
+}
+
+.product-item-row:last-child {
   border-bottom: none;
 }
 
-.product-image {
+.product-image-wrapper {
   flex-shrink: 0;
-  width: 60px;
-  height: 60px;
-  border-radius: var(--om-radius-sm);
-  overflow: hidden;
-  background: var(--om-bg-secondary);
 }
 
-.product-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.image-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--om-text-disabled);
-  font-size: 1.5rem;
-}
-
+/* Details */
 .product-details {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .product-name {
@@ -147,60 +108,73 @@ const formatPrice = (price: number): string => {
   text-overflow: ellipsis;
 }
 
-.product-variant {
+.product-meta {
+  display: flex;
+  gap: var(--om-spacing-xs);
+  flex-wrap: wrap;
+}
+
+.meta-tag {
   font-size: var(--om-font-xs);
+  padding: 2px 6px;
+  border-radius: var(--om-radius-sm);
+  background: var(--om-bg-secondary);
   color: var(--om-text-secondary);
 }
 
-.product-sku {
-  font-size: var(--om-font-xs);
-  color: var(--om-text-disabled);
+.meta-tag.sku {
   font-family: monospace;
+  background: #f0f0f0;
 }
 
-.product-qty {
+/* Pricing */
+.product-pricing {
+  text-align: right;
+  min-width: 100px;
+}
+
+.price-qty-group {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  min-width: 50px;
+  align-items: flex-end;
+  gap: 2px;
 }
 
-.qty-label {
+.qty-badge {
   font-size: var(--om-font-xs);
-  color: var(--om-text-secondary);
-}
-
-.qty-value {
-  font-size: var(--om-font-base);
   font-weight: 600;
   color: var(--om-text-primary);
+  background: var(--om-bg-secondary);
+  padding: 2px 8px;
+  border-radius: var(--om-radius-full);
 }
 
-.product-price {
-  min-width: 100px;
-  text-align: right;
+.price-text {
   font-size: var(--om-font-sm);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--om-primary);
 }
 
 @media (max-width: 768px) {
-  .product-item {
+  .product-item-row {
     flex-wrap: wrap;
   }
 
   .product-details {
-    flex: 1 1 calc(100% - 80px);
-    order: 1;
+    min-width: calc(100% - 70px);
   }
 
-  .product-image {
-    order: 0;
+  .product-pricing {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -10px;
   }
 
-  .product-qty,
-  .product-price {
-    order: 2;
+  .price-qty-group {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--om-spacing-sm);
   }
 }
 </style>

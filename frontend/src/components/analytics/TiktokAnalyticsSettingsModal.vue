@@ -2,7 +2,7 @@
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>⚙️ TikTok Analytics Settings</h2>
+        <h2><Icon name="settings" size="md" /> TikTok Analytics Settings</h2>
         <button
           class="btn-close"
           type="button"
@@ -63,7 +63,7 @@
         </div>
 
         <div class="example-box">
-          <h4>📝 Example Calculation</h4>
+          <h4><Icon name="document" size="sm" /> Example Calculation</h4>
           <div class="example-content">
             <p>If Harga Marketplace = <strong>Rp 100,000</strong></p>
             <p>
@@ -79,7 +79,9 @@
 
       <div class="modal-footer">
         <button class="btn-cancel" @click="$emit('close')">Cancel</button>
-        <button class="btn-save" @click="handleSave">💾 Save Settings</button>
+        <button class="btn-save" aria-label="Save settings" @click="handleSave">
+          <Icon name="download" size="sm" /> Save Settings
+        </button>
       </div>
     </div>
   </div>
@@ -89,6 +91,7 @@
 import { ref, watch, onMounted, computed } from "vue";
 import type { TiktokAnalyticsSettings } from "@/composables/useTiktokAnalytics";
 import { getAuthHeaders } from "@/utils/apiHeaders";
+import Icon from "@/components/ui/Icon.vue";
 
 const props = defineProps<{ settings: TiktokAnalyticsSettings }>();
 const emit = defineEmits<{

@@ -17,6 +17,7 @@
     "lighthouse:prod": "npm run build && npx serve -s dist -l 4173 & sleep 3 && lighthouse http://localhost:4173 --only-categories=performance --output=html --output-path=./lighthouse-report.html --chrome-flags=\"--headless\""
   },
   "dependencies": {
+    "@heroicons/vue": "^2.2.0",
     "@tanstack/vue-query": "^5.92.9",
     "@tanstack/vue-virtual": "^3.13.18",
     "@vueuse/core": "^14.1.0",

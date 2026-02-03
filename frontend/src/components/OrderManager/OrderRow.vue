@@ -8,11 +8,11 @@
         </div>
         <span class="buyer-name">{{ order.buyer_username }}</span>
         <button class="chat-icon-btn" title="Chat with buyer">
-          <i class="pi pi-comments"></i>
+          <Icon name="chat" size="sm" />
         </button>
       </div>
       <div class="buyer-right">
-        <span class="order-label">No. Pesanan</span>
+        <span class="order-label">Order Number</span>
         <span class="order-number">{{ order.order_no }}</span>
         <!-- Copy Button moved closer for better UX -->
         <button
@@ -20,7 +20,7 @@
           class="copy-btn"
           title="Copy Order Number"
         >
-          <i :class="copied ? 'pi pi-check' : 'pi pi-copy'"></i>
+          <Icon :name="copied ? 'check' : 'copy'" size="sm" />
         </button>
       </div>
     </div>
@@ -49,10 +49,9 @@
 
       <!-- Countdown Column (1.5fr) -->
       <div class="countdown-col">
-        <div v-if="order.countdown" class="countdown-text">
-          {{ order.countdown }}
+        <div :class="['countdown-text', countdownClass]">
+          {{ countdownText }}
         </div>
-        <div v-else class="countdown-text">-</div>
       </div>
 
       <!-- Shipping Column (1.2fr) -->
@@ -78,17 +77,18 @@
 
     <!-- Buyer Message (optional, yellow background) -->
     <div v-if="order.buyer_message" class="buyer-message">
-      <i class="pi pi-bell"></i>
+      <Icon name="bell" size="sm" />
       <span class="message-text">{{ order.buyer_message }}</span>
-      <a href="#" class="message-link">Buka</a>
+      <a href="#" class="message-link">View</a>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import OrderProductCell, { type OrderItem } from "./OrderProductCell.vue";
 import OrderActionCell from "./OrderActionCell.vue";
+import Icon from "@/components/ui/Icon.vue";
 
 interface Order {
   order_no: string;
@@ -100,7 +100,8 @@ interface Order {
   payment_method?: string;
   shipping_carrier?: string;
   shipping_type?: string;
-  countdown?: string;
+  ship_by_date?: number; // Unix timestamp for shipping deadline
+  countdown?: string; // Legacy: pre-calculated countdown string
   buyer_message?: string;
   items: OrderItem[];
 }
@@ -119,6 +120,64 @@ const emit = defineEmits<{
 }>();
 
 const copied = ref(false);
+const now = ref(Date.now());
+let countdownInterval: ReturnType<typeof setInterval> | null = null;
+
+// Calculate countdown from ship_by_date timestamp
+const countdownText = computed(() => {
+  // If pre-calculated countdown exists, use it
+  if (props.order.countdown) return props.order.countdown;
+
+  // If no ship_by_date, show dash
+  if (!props.order.ship_by_date) return "-";
+
+  const deadline = props.order.ship_by_date * 1000; // Convert to ms
+  const diff = deadline - now.value;
+
+  // If already passed
+  if (diff <= 0) return "Overdue";
+
+  // Calculate time components
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+    return `${days}d ${remainingHours}h`;
+  }
+
+  return `${hours}h ${minutes}m`;
+});
+
+// Countdown urgency class for styling
+const countdownClass = computed(() => {
+  if (!props.order.ship_by_date) return "";
+
+  const deadline = props.order.ship_by_date * 1000;
+  const diff = deadline - now.value;
+
+  if (diff <= 0) return "countdown-overdue";
+  if (diff <= 2 * 60 * 60 * 1000) return "countdown-urgent"; // < 2 hours
+  if (diff <= 6 * 60 * 60 * 1000) return "countdown-warning"; // < 6 hours
+  return "";
+});
+
+// Start countdown timer on mount
+onMounted(() => {
+  if (props.order.ship_by_date) {
+    countdownInterval = setInterval(() => {
+      now.value = Date.now();
+    }, 60000); // Update every minute
+  }
+});
+
+// Cleanup on unmount
+onUnmounted(() => {
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+  }
+});
 
 const getBuyerInitial = (username: string) =>
   username ? username.charAt(0).toUpperCase() : "?";
@@ -201,13 +260,7 @@ const viewDetail = () => emit("view-detail", props.order);
 </script>
 
 <style scoped>
-@import "./OrderManager.theme.css";
-
-/* 
- * Styles are now centralized in OrderManager.theme.css 
- * to reduce file size and maintain consistency.
- * 
- * This keeps the component under 300 lines (currently ~180 lines)
- * satisfying the style guide requirements.
- */
+@import "./styles/variables.css";
+@import "./styles/components.css";
+@import "./styles/layout.css";
 </style>

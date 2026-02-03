@@ -5,21 +5,21 @@
       v-if="activeTab === 'unprocess'"
       @click="$emit('bulk-ship')"
       :disabled="loading"
-      class="btn-bulk-ship"
+      class="btn-action btn-bulk-ship"
       title="Ship multiple orders at once"
     >
-      <i class="pi pi-truck"></i>
-      <span class="btn-text">Bulk Shipment</span>
+      <Icon name="truck" size="sm" />
+      <span>Bulk Shipment</span>
     </button>
 
     <button
       @click="$emit('refresh')"
       :disabled="loading"
-      class="btn-refresh"
+      class="btn-action btn-refresh"
       title="Refresh latest data"
     >
-      <i :class="loading ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"></i>
-      <span class="btn-text">Refresh</span>
+      <Icon :name="loading ? 'spinner' : 'refresh'" :spin="loading" size="sm" />
+      <span>Refresh</span>
     </button>
 
     <OrderExportMenu
@@ -33,6 +33,7 @@
 
 <script setup lang="ts">
 import OrderExportMenu from "./OrderExportMenu.vue";
+import Icon from "@/components/ui/Icon.vue";
 
 defineProps<{
   activeTab: string;
@@ -53,31 +54,52 @@ defineEmits<{
 
 .order-actions {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--om-spacing-sm);
   align-items: center;
+  flex-wrap: wrap;
 }
 
-.btn-bulk-ship {
+.btn-action {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: #ee4d2d;
-  color: white;
-  border: none;
-  border-radius: var(--om-radius-sm);
-  font-size: var(--om-font-sm);
-  font-weight: 500;
+  padding: 0.55rem 0.95rem;
+  border-radius: var(--om-radius-md);
+  font-size: var(--om-font-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  height: 36px;
   cursor: pointer;
-  transition: background-color var(--om-transition-fast);
+  transition: all var(--om-transition-fast);
+  border: 1px solid transparent;
+}
+
+.btn-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-bulk-ship {
+  background: var(--om-primary);
+  color: white;
+  border-color: var(--om-primary);
 }
 
 .btn-bulk-ship:hover:not(:disabled) {
   background: #d73211;
+  border-color: #d73211;
 }
 
-.btn-bulk-ship:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.btn-refresh {
+  background: var(--om-bg-primary);
+  color: var(--om-text-primary);
+  border-color: var(--om-border);
+}
+
+.btn-refresh:hover:not(:disabled) {
+  border-color: var(--om-primary);
+  color: var(--om-primary);
+  background: #fff7f4;
 }
 </style>

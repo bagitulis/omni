@@ -60,7 +60,13 @@
                 @click="emitToggleEnabled(route.id!, route.enabled)"
                 :class="['toggle-btn', route.enabled ? 'enabled' : 'disabled']"
               >
-                {{ route.enabled ? "✅" : "❌" }}
+                <Icon
+                  v-if="route.enabled"
+                  name="check"
+                  size="sm"
+                  class="text-green-600"
+                />
+                <Icon v-else name="close" size="sm" class="text-red-600" />
               </button>
             </td>
             <td class="cell-cache">
@@ -84,7 +90,7 @@
                 title="Edit"
                 aria-label="Edit route"
               >
-                <span aria-hidden="true">✏️</span>
+                <Icon name="edit" size="sm" />
               </button>
               <button
                 @click="emitDelete(route.id!)"
@@ -92,14 +98,14 @@
                 title="Delete"
                 aria-label="Delete route"
               >
-                <span aria-hidden="true">🗑️</span>
+                <Icon name="trash" size="sm" />
               </button>
             </td>
           </tr>
           <tr v-if="routes.length === 0" class="empty-row">
             <td colspan="10">
               <div class="empty-state">
-                <span class="empty-icon">📭</span>
+                <Icon name="mail" size="xl" class="opacity-50" />
                 <p>No routes found. Try adjusting filters.</p>
               </div>
             </td>
@@ -111,6 +117,7 @@
 </template>
 
 <script setup lang="ts">
+import Icon from "@/components/ui/Icon.vue";
 import type { RouteConfig } from "./types/routeManagement";
 
 defineProps<{
@@ -326,10 +333,6 @@ const emitDelete = (routeId: string) => {
   color: #6b7280;
 }
 
-.empty-icon {
-  font-size: 48px;
-  opacity: 0.5;
-}
 .empty-state p {
   margin: 0;
   font-size: 14px;

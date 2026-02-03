@@ -1,7 +1,7 @@
 <template>
   <div class="webhook-settings">
     <div class="section-header">
-      <h2>🔗 Platform Integration Settings</h2>
+      <h2><Icon name="link" size="md" /> Platform Integration Settings</h2>
       <p class="description">
         Configure OAuth callback URLs and webhook endpoints for marketplace
         platforms
@@ -20,7 +20,7 @@
       <PlatformCard
         platform="shopee"
         title="Shopee"
-        icon="🛒"
+        icon="store"
         :status="platformStatus.shopee"
         :callbackUrl="`${baseUrl}/api/platform-auth/shopee/callback`"
         :webhookUrl="
@@ -35,7 +35,7 @@
       <PlatformCard
         platform="tiktok"
         title="TikTok Shop"
-        icon="🎵"
+        icon="chart"
         :status="platformStatus.tiktok"
         :callbackUrl="`${baseUrl}/api/platform-auth/tiktok/callback`"
         :webhookUrl="
@@ -50,7 +50,7 @@
       <PlatformCard
         platform="lazada"
         title="Lazada"
-        icon="🏪"
+        icon="shopping-bag"
         :status="platformStatus.lazada"
         :callbackUrl="`${baseUrl}/api/platform-auth/lazada/callback`"
         :webhookUrl="
@@ -86,6 +86,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
+import Icon from "@/components/ui/Icon.vue";
 import PlatformCard from "./PlatformCard.vue";
 import IntegrationUrls from "./IntegrationUrls.vue";
 import WebhookLogs from "./WebhookLogs.vue";

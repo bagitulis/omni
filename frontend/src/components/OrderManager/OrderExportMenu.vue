@@ -7,9 +7,9 @@
       title="Export options"
       aria-label="Export options"
     >
-      <i class="pi pi-download" aria-hidden="true"></i>
+      <Icon name="download" size="sm" />
       <span class="btn-text">Export</span>
-      <i class="pi pi-chevron-down export-chevron" aria-hidden="true"></i>
+      <Icon name="chevron-down" size="sm" class="export-chevron" />
     </button>
 
     <div v-if="showExportMenu" class="export-menu">
@@ -18,7 +18,7 @@
         @click="handleExportToN8N"
         title="Send data to N8N for automation"
       >
-        <i class="pi pi-send" aria-hidden="true"></i>
+        <Icon name="share" size="sm" />
         <span>Export to N8N</span>
       </button>
       <button
@@ -26,7 +26,7 @@
         @click="handleExportToCSV"
         title="Download CSV file"
       >
-        <i class="pi pi-file" aria-hidden="true"></i>
+        <Icon name="document" size="sm" />
         <span>Download CSV</span>
       </button>
     </div>
@@ -35,6 +35,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
+import Icon from "@/components/ui/Icon.vue";
 
 defineProps<{
   loading: boolean;

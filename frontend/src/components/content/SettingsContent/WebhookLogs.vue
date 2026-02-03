@@ -1,9 +1,15 @@
 <template>
   <div class="logs-section">
     <div class="logs-header">
-      <h3>📜 Recent Webhook Logs</h3>
-      <button @click="$emit('refresh')" class="refresh-btn" :disabled="loading">
-        {{ loading ? "Loading..." : "🔄 Refresh" }}
+      <h3><Icon name="document" size="sm" /> Recent Webhook Logs</h3>
+      <button
+        @click="$emit('refresh')"
+        class="refresh-btn"
+        :disabled="loading"
+        aria-label="Refresh logs"
+      >
+        <Icon v-if="!loading" name="refresh" size="sm" />
+        {{ loading ? "Loading..." : "Refresh" }}
       </button>
     </div>
 
@@ -61,6 +67,7 @@
 
 <script setup lang="ts">
 import { formatEventType, getCategoryColor } from "@/constants/shopeePushCodes";
+import Icon from "@/components/ui/Icon.vue";
 
 interface LogEntry {
   id: string;

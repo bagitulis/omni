@@ -47,11 +47,15 @@ type OrderListResponse struct {
 	Data struct {
 		Count  int `json:"count"`
 		Orders []struct {
-			OrderID      string  `json:"order_id"`
-			OrderNumber  string  `json:"order_number"`
-			Status       string  `json:"status"`
-			Price        float64 `json:"price"`
-			CustomerName string  `json:"customer_first_name"`
+			OrderID          string  `json:"order_id"`
+			OrderNumber      string  `json:"order_number"`
+			Status           string  `json:"status"`
+			Price            float64 `json:"price"`
+			CustomerName     string  `json:"customer_first_name"`
+			PromisedShipDate string  `json:"promised_shipping_times"` // Shipping deadline (ISO date)
+			ShippingType     string  `json:"delivery_info"`           // Shipping carrier/type
+			CreatedAt        string  `json:"created_at"`              // Order creation time
+			UpdatedAt        string  `json:"updated_at"`              // Order update time
 		} `json:"orders"`
 	} `json:"data"`
 }
@@ -262,9 +266,9 @@ type SetStatusToPackedByMarketplaceResponse struct {
 	BaseResponse
 	Data struct {
 		OrderItems []struct {
-			OrderItemID   string `json:"order_item_id"`
-			ShipmentType  string `json:"shipment_type"`
-			ShipmentCode  string `json:"shipment_code"`
+			OrderItemID  string `json:"order_item_id"`
+			ShipmentType string `json:"shipment_type"`
+			ShipmentCode string `json:"shipment_code"`
 		} `json:"order_items"`
 	} `json:"data"`
 }
@@ -326,30 +330,30 @@ func (c *Client) CancelOrder(orderItemID, reasonDetail, reasonID string) (*BaseR
 
 // CreateProductRequest represents product creation request
 type CreateProductRequest struct {
-	Name          string              `json:"name"`
-	Description   string              `json:"description"`
-	Brand         string              `json:"brand"`
-	PrimaryCategory int64             `json:"primary_category"`
-	Skus          []CreateProductSku  `json:"skus"`
-	Images        []string            `json:"images"`
+	Name            string             `json:"name"`
+	Description     string             `json:"description"`
+	Brand           string             `json:"brand"`
+	PrimaryCategory int64              `json:"primary_category"`
+	Skus            []CreateProductSku `json:"skus"`
+	Images          []string           `json:"images"`
 }
 
 // CreateProductSku represents SKU in product creation
 type CreateProductSku struct {
-	SellerSku     string  `json:"seller_sku"`
-	Price         float64 `json:"price"`
-	Quantity      int     `json:"quantity"`
-	SpecialPrice  float64 `json:"special_price,omitempty"`
+	SellerSku    string  `json:"seller_sku"`
+	Price        float64 `json:"price"`
+	Quantity     int     `json:"quantity"`
+	SpecialPrice float64 `json:"special_price,omitempty"`
 }
 
 // CreateProductResponse represents product creation response
 type CreateProductResponse struct {
 	BaseResponse
 	Data struct {
-		ItemID FlexibleString `json:"item_id"`
+		ItemID  FlexibleString `json:"item_id"`
 		SkuList []struct {
 			SkuID     FlexibleString `json:"sku_id"`
-			SellerSku string `json:"seller_sku"`
+			SellerSku string         `json:"seller_sku"`
 		} `json:"sku_list"`
 		ItemStatus string `json:"item_status,omitempty"`
 	} `json:"data"`
@@ -390,11 +394,11 @@ type UpdateProductRequest struct {
 
 // UpdateProductSku represents SKU in product update
 type UpdateProductSku struct {
-	SkuID         string  `json:"sku_id"`
-	SellerSku     string  `json:"seller_sku,omitempty"`
-	Price         float64 `json:"price,omitempty"`
-	Quantity      int     `json:"quantity,omitempty"`
-	SpecialPrice  float64 `json:"special_price,omitempty"`
+	SkuID        string  `json:"sku_id"`
+	SellerSku    string  `json:"seller_sku,omitempty"`
+	Price        float64 `json:"price,omitempty"`
+	Quantity     int     `json:"quantity,omitempty"`
+	SpecialPrice float64 `json:"special_price,omitempty"`
 }
 
 // UpdateProduct updates an existing product

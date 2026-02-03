@@ -5,7 +5,10 @@ http://localhost:5173/order-manager
       <div class="modal-content wholesale-modal">
         <!-- Header -->
         <div class="modal-header">
-          <h3>🗑️ Hapus Wholesale - Shopee</h3>
+          <h3>
+            <Icon name="trash" size="sm" class="inline-block mr-2" />Hapus
+            Wholesale - Shopee
+          </h3>
           <button class="close-btn" @click="closeIfNotProcessing">✕</button>
         </div>
 
@@ -13,7 +16,7 @@ http://localhost:5173/order-manager
         <div class="modal-body">
           <!-- Selected Items Info -->
           <div class="info-banner">
-            <span class="info-icon">ℹ️</span>
+            <span class="info-icon"><Icon name="info" size="sm" /></span>
             <div class="info-text">
               <strong>{{ skus.length }} SKU</strong> dipilih
               <span v-if="uniqueItemCount > 0">
@@ -50,7 +53,14 @@ http://localhost:5173/order-manager
           <!-- Result Section -->
           <div v-if="result" class="result-section" :class="resultClass">
             <div class="result-header">
-              {{ result.success ? "✅" : "⚠️" }} {{ result.message }}
+              <Icon
+                v-if="result.success"
+                name="check"
+                size="sm"
+                class="text-green-600"
+              />
+              <Icon v-else name="warning" size="sm" class="text-yellow-600" />
+              {{ result.message }}
             </div>
             <div class="result-details">
               <p>Total SKU: {{ result.data.total_skus }}</p>
@@ -66,7 +76,10 @@ http://localhost:5173/order-manager
           </div>
 
           <!-- Error Message -->
-          <div v-if="error" class="error-message">⚠️ {{ error }}</div>
+          <div v-if="error" class="error-message">
+            <Icon name="warning" size="sm" class="text-yellow-600" />
+            {{ error }}
+          </div>
         </div>
 
         <!-- Footer -->
@@ -80,7 +93,9 @@ http://localhost:5173/order-manager
             @click="handleDelete"
             :disabled="skus.length === 0 || processing"
           >
-            {{ processing ? "Memproses..." : "🗑️ Hapus Wholesale" }}
+            <Icon name="trash" size="sm" class="inline-block mr-1" />{{
+              processing ? "Memproses..." : "Hapus Wholesale"
+            }}
           </button>
         </div>
       </div>
@@ -90,6 +105,7 @@ http://localhost:5173/order-manager
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import Icon from "@/components/ui/Icon.vue";
 import wholesaleService, {
   BatchDeleteBySkusResult,
 } from "../../../services/wholesaleService";

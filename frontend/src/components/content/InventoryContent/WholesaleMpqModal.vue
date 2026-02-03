@@ -4,7 +4,7 @@
       <div class="modal-content wholesale-modal">
         <!-- Header -->
         <div class="modal-header">
-          <h3>📦 Update Harga Grosir</h3>
+          <h3><Icon name="shopping-cart" size="sm" /> Update Harga Grosir</h3>
           <button class="close-btn" @click="closeIfNotProcessing">✕</button>
         </div>
 
@@ -17,28 +17,28 @@
               :class="{ active: activeTab === 'wholesale' }"
               @click="activeTab = 'wholesale'"
             >
-              📦 Wholesale
+              <Icon name="shopping-cart" size="sm" /> Wholesale
             </button>
             <button
               class="tab-btn"
               :class="{ active: activeTab === 'mpq' }"
               @click="activeTab = 'mpq'"
             >
-              🔢 MPQ
+              <Icon name="document" size="sm" /> MPQ
             </button>
             <button
               class="tab-btn delete"
               :class="{ active: activeTab === 'delete' }"
               @click="activeTab = 'delete'"
             >
-              🗑️ Delete
+              <Icon name="trash" size="sm" /> Delete
             </button>
             <button
               class="tab-btn"
               :class="{ active: activeTab === 'settings' }"
               @click="activeTab = 'settings'"
             >
-              ⚙️ Settings
+              <Icon name="settings" size="sm" /> Settings
             </button>
           </div>
 
@@ -81,16 +81,21 @@
           <!-- Platform Summary -->
           <div class="platform-summary">
             <span class="summary-item shopee">
-              🟠 Shopee: {{ shopeeItems.length }}
-              {{ activeTab === "wholesale" || activeTab === "mpq" ? "✅" : "" }}
+              <Icon name="store" size="sm" /> Shopee: {{ shopeeItems.length }}
+              <Icon
+                v-if="activeTab === 'wholesale' || activeTab === 'mpq'"
+                name="check"
+                size="sm"
+              />
             </span>
             <span class="summary-item tiktok">
-              🔵 TikTok: {{ tiktokItems.length }}
-              {{ activeTab === "mpq" ? "✅" : "⚠️" }}
+              <Icon name="chart" size="sm" /> TikTok: {{ tiktokItems.length }}
+              <Icon v-if="activeTab === 'mpq'" name="check" size="sm" />
+              <Icon v-else name="warning" size="sm" />
             </span>
             <span class="summary-item lazada">
-              🟣 Lazada: {{ lazadaItems.length }}
-              ⚠️ Tidak didukung
+              <Icon name="store" size="sm" /> Lazada: {{ lazadaItems.length }}
+              <Icon name="warning" size="sm" /> Tidak didukung
             </span>
           </div>
 
@@ -103,7 +108,9 @@
           />
 
           <!-- Error Message -->
-          <div v-if="error" class="error-message">⚠️ {{ error }}</div>
+          <div v-if="error" class="error-message">
+            <Icon name="warning" size="sm" /> {{ error }}
+          </div>
         </div>
 
         <!-- Footer -->
@@ -119,6 +126,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
+import Icon from "@/components/ui/Icon.vue";
 import WholesaleTab from "./tabs/WholesaleTab.vue";
 import MpqTab from "./tabs/MpqTab.vue";
 import DeleteTab from "./tabs/DeleteTab.vue";

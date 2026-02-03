@@ -7,7 +7,7 @@
         class="btn-action primary"
         title="Arrange Shipment"
       >
-        Atur Pengiriman
+        Arrange Shipment
       </button>
       <button
         v-else-if="showResponseButton"
@@ -15,7 +15,7 @@
         class="btn-action primary"
         title="Respond"
       >
-        Respon
+        Respond
       </button>
       <button
         v-if="showCancelButton"
@@ -23,14 +23,14 @@
         class="btn-action secondary"
         title="Cancel Order"
       >
-        <i class="pi pi-times"></i>
+        <Icon name="close" size="sm" />
       </button>
       <button
         @click="$emit('view-detail')"
         class="btn-action secondary"
         title="View Details"
       >
-        <i class="pi pi-eye"></i>
+        <Icon name="eye" size="sm" />
       </button>
     </div>
   </div>
@@ -38,6 +38,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import Icon from "@/components/ui/Icon.vue";
 
 interface Props {
   activeTab: string;

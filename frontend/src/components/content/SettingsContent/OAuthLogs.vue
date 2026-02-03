@@ -1,9 +1,15 @@
 <template>
   <div class="logs-section">
     <div class="logs-header">
-      <h3>🔐 OAuth Connection Logs</h3>
-      <button @click="$emit('refresh')" class="refresh-btn" :disabled="loading">
-        {{ loading ? "Loading..." : "🔄 Refresh" }}
+      <h3><Icon name="user" size="sm" /> OAuth Connection Logs</h3>
+      <button
+        @click="$emit('refresh')"
+        class="refresh-btn"
+        :disabled="loading"
+        aria-label="Refresh logs"
+      >
+        <Icon v-if="!loading" name="refresh" size="sm" />
+        {{ loading ? "Loading..." : "Refresh" }}
       </button>
     </div>
 
@@ -38,7 +44,12 @@
                 class="details-btn"
                 v-if="log.metadata"
               >
-                {{ expandedIds.has(log.id) ? "▼" : "▶" }}
+                <Icon
+                  name="chevron-down"
+                  size="sm"
+                  class="transition-transform"
+                  :class="{ 'rotate-[-90deg]': !expandedIds.has(log.id) }"
+                />
               </button>
             </td>
           </tr>
@@ -61,6 +72,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import Icon from "@/components/ui/Icon.vue";
 
 interface OAuthLog {
   id: string;

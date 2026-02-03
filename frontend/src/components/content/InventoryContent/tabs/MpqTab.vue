@@ -2,7 +2,7 @@
   <div class="tab-content">
     <!-- Platform Support Info -->
     <div class="info-banner">
-      <span class="info-icon">📦</span>
+      <Icon name="shopping-cart" size="sm" />
       <div class="info-text">
         <strong>MPQ (Min Purchase Quantity)</strong>
         <p class="info-note">
@@ -108,7 +108,7 @@
           <span class="spinner"></span>
           Updating...
         </span>
-        <span v-else>📦 Update MPQ</span>
+        <span v-else><Icon name="shopping-cart" size="sm" /> Update MPQ</span>
       </button>
     </div>
   </div>
@@ -116,6 +116,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import Icon from "@/components/ui/Icon.vue";
 import type { WholesaleSettings } from "../../../../services/wholesaleService";
 import wholesaleService from "../../../../services/wholesaleService";
 

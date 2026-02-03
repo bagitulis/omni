@@ -1,0 +1,143 @@
+/* OrderManager Design Tokens & CSS Variables */
+
+:root {
+  /* Primary Colors - Shopee Orange */
+  --om-primary: #ee4d2d;
+  --om-primary-hover: #d73211;
+  --om-primary-light: #fff0ed;
+  --om-primary-dark: #b82e14;
+
+  /* Status Colors */
+  --om-status-unpaid: #ff9800;
+  --om-status-unpaid-bg: #fff8e1;
+  --om-status-unpaid-border: #ffe0b2;
+
+  --om-status-toship: #ff9800;
+  --om-status-toship-bg: #fff3e0;
+  --om-status-toship-border: #ffe0b2;
+
+  --om-status-shipped: #4caf50;
+  --om-status-shipped-bg: #e8f5e9;
+  --om-status-shipped-border: #c8e6c9;
+
+  --om-status-completed: #26a69a;
+  --om-status-completed-bg: #e0f2f1;
+  --om-status-completed-border: #b2dfdb;
+
+  --om-status-cancelled: #f44336;
+  --om-status-cancelled-bg: #ffebee;
+  --om-status-cancelled-border: #ffcdd2;
+
+  /* Platform Colors */
+  --om-platform-shopee: #ee4d2d;
+  --om-platform-lazada: #0f146d;
+  --om-platform-tiktok: #000000;
+
+  /* Neutral Colors */
+  --om-text-primary: #212121;
+  --om-text-secondary: #757575;
+  --om-text-disabled: #bdbdbd;
+  --om-text-hint: #9e9e9e;
+
+  --om-border: #e0e0e0;
+  --om-border-light: #f5f5f5;
+  --om-border-dark: #bdbdbd;
+
+  --om-bg-primary: #ffffff;
+  --om-bg-secondary: #f5f5f5;
+  --om-bg-hover: #fafafa;
+  --om-bg-overlay: rgba(0, 0, 0, 0.5);
+
+  /* Typography */
+  --om-font-family: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --om-font-xs: 0.75rem;
+  --om-font-sm: 0.875rem;
+  --om-font-base: 1rem;
+  --om-font-lg: 1.125rem;
+  --om-font-xl: 1.25rem;
+  --om-font-2xl: 1.5rem;
+
+  --om-line-height-tight: 1.2;
+  --om-line-height-normal: 1.5;
+  --om-line-height-relaxed: 1.75;
+
+  /* Spacing */
+  --om-spacing-xs: 0.25rem;
+  --om-spacing-sm: 0.5rem;
+  --om-spacing-md: 1rem;
+  --om-spacing-lg: 1.5rem;
+  --om-spacing-xl: 2rem;
+  --om-spacing-2xl: 3rem;
+
+  /* Border Radius */
+  --om-radius-sm: 4px;
+  --om-radius-md: 8px;
+  --om-radius-lg: 12px;
+  --om-radius-xl: 16px;
+  --om-radius-full: 9999px;
+
+  /* Shadows */
+  --om-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --om-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --om-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --om-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --om-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+
+  /* Transitions */
+  --om-transition-fast: 150ms ease;
+  --om-transition-normal: 250ms ease;
+  --om-transition-slow: 350ms ease;
+
+  /* Z-Index */
+  --om-z-dropdown: 1000;
+  --om-z-modal: 1050;
+  --om-z-tooltip: 1100;
+}
+
+/* Animation Keyframes */
+@keyframes om-fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes om-slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes om-slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes om-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes om-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

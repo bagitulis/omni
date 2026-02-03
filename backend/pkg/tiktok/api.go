@@ -24,11 +24,17 @@ type OrderListResponse struct {
 	Message string `json:"message"`
 	Data    struct {
 		OrderList []struct {
-			OrderID     string  `json:"order_id"`
-			OrderStatus string  `json:"order_status"`
-			TotalAmount float64 `json:"payment_info.total_amount"`
-			CreateTime  int64   `json:"create_time"`
-			UpdateTime  int64   `json:"update_time"`
+			OrderID          string  `json:"order_id"`
+			OrderStatus      string  `json:"order_status"`
+			TotalAmount      float64 `json:"payment_info.total_amount"`
+			CreateTime       int64   `json:"create_time"`
+			UpdateTime       int64   `json:"update_time"`
+			RtsSlaTime       int64   `json:"rts_sla_time"`      // Ready-to-ship deadline (Unix timestamp)
+			ShippingDueTime  int64   `json:"shipping_due_time"` // Ship by deadline
+			ShippingProvider string  `json:"shipping_provider"` // Shipping carrier name
+			TrackingNumber   string  `json:"tracking_number"`   // Tracking number
+			BuyerMessage     string  `json:"buyer_message"`     // Buyer message/note
+			BuyerEmail       string  `json:"buyer_email"`       // Buyer email/username
 		} `json:"order_list"`
 		TotalCount int `json:"total_count"`
 	} `json:"data"`

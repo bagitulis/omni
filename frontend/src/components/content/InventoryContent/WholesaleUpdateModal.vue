@@ -3,7 +3,9 @@
     <div v-if="show" class="modal-overlay" @click.self="closeIfNotProcessing">
       <div class="modal-content wholesale-modal">
         <div class="modal-header">
-          <h3>📦 Update Wholesale - Shopee</h3>
+          <h3>
+            <Icon name="shopping-cart" size="sm" /> Update Wholesale - Shopee
+          </h3>
           <button class="close-btn" @click="closeIfNotProcessing">✕</button>
         </div>
 
@@ -14,14 +16,14 @@
               :class="{ active: activeTab === 'preview' }"
               @click="activeTab = 'preview'"
             >
-              🔍 Preview
+              <Icon name="search" size="sm" /> Preview
             </button>
             <button
               class="tab-btn"
               :class="{ active: activeTab === 'settings' }"
               @click="activeTab = 'settings'"
             >
-              ⚙️ Settings
+              <Icon name="settings" size="sm" /> Settings
             </button>
           </div>
 
@@ -56,7 +58,14 @@
 
           <div v-if="result" class="result-section" :class="resultClass">
             <div class="result-header">
-              {{ result.success ? "✅" : "⚠️" }} {{ result.message }}
+              <Icon
+                v-if="result.success"
+                name="check"
+                size="sm"
+                class="text-green-600"
+              />
+              <Icon v-else name="warning" size="sm" class="text-yellow-600" />
+              {{ result.message }}
             </div>
             <div class="result-details">
               <p>Total SKU: {{ result.data.total_skus }}</p>
@@ -71,7 +80,10 @@
             </div>
           </div>
 
-          <div v-if="error" class="error-message">⚠️ {{ error }}</div>
+          <div v-if="error" class="error-message">
+            <Icon name="warning" size="sm" class="text-yellow-600" />
+            {{ error }}
+          </div>
         </div>
 
         <div class="modal-footer">
@@ -84,7 +96,8 @@
             @click="handleUpdate(items)"
             :disabled="items.length === 0 || processing"
           >
-            {{ processing ? "Memproses..." : "📦 Update Wholesale" }}
+            <Icon name="shopping-cart" size="sm" />
+            {{ processing ? "Memproses..." : "Update Wholesale" }}
           </button>
         </div>
       </div>
@@ -94,6 +107,7 @@
 
 <script setup lang="ts">
 import { toRef } from "vue";
+import Icon from "@/components/ui/Icon.vue";
 import WholesalePreviewTab from "./WholesalePreviewTab.vue";
 import WholesaleSettingsTab from "./WholesaleSettingsTab.vue";
 import {

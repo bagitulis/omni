@@ -38,8 +38,10 @@
       "variant": "high"
     },
     "sisyphus-junior": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
+      "model": "github-copilot/gemini-3-pro-preview"
+    },
+    "hephaestus": {
+      "model": "github-copilot/claude-sonnet-4.5"
     },
     "default": {
       "model": "github-copilot/claude-opus-4.5"
@@ -60,7 +62,8 @@
       "variant": "high"
     },
     "quick": {
-      "model": "github-copilot/claude-haiku-4.5"
+      "model": "google/antigravity-gemini-3-pro",
+      "variant": "high"
     },
     "ultrabrain": {
       "model": "github-copilot/claude-opus-4.5"

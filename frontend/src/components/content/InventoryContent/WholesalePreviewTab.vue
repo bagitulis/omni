@@ -1,7 +1,7 @@
 <template>
   <div class="tab-content">
     <div class="info-banner">
-      <span class="info-icon">ℹ️</span>
+      <span class="info-icon"><Icon name="info" size="sm" /></span>
       <div class="info-text">
         <strong>{{ itemCount }} SKU</strong> dipilih
         <p class="info-note">
@@ -40,6 +40,7 @@
 </template>
 
 <script setup lang="ts">
+import Icon from "@/components/ui/Icon.vue";
 import type { PreviewItem } from "./composables/useWholesaleUpdate";
 
 defineProps<{

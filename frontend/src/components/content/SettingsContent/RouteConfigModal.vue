@@ -3,7 +3,14 @@
     <div v-if="show" class="modal-overlay" @click.self="$emit('close')">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>{{ isEdit ? "✎ Edit Route" : "➕ Add New Route" }}</h3>
+          <h3>
+            <Icon
+              :name="isEdit ? 'edit' : 'plus'"
+              size="sm"
+              class="inline-block mr-2"
+            />
+            {{ isEdit ? "Edit Route" : "Add New Route" }}
+          </h3>
           <button
             @click="$emit('close')"
             class="btn-close"
@@ -76,7 +83,7 @@
               <input
                 v-model="form.icon"
                 type="text"
-                placeholder="📋"
+                placeholder=""
                 class="form-input form-input-small"
               />
             </div>
@@ -114,6 +121,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import type { RouteExecutionConfig } from "@/types/routeExecutionConfig";
+import Icon from "@/components/ui/Icon.vue";
 
 const props = defineProps<{
   show: boolean;
@@ -133,7 +141,7 @@ const form = ref({
   description: "",
   execution_mode: "queue" as "queue" | "direct",
   priority: "normal" as "low" | "normal" | "high",
-  icon: "📋",
+  icon: "",
   category: "general",
 });
 
@@ -153,7 +161,7 @@ watch(
         description: newConfig.description || "",
         execution_mode: newConfig.execution_mode,
         priority: newConfig.priority,
-        icon: newConfig.icon || "📋",
+        icon: newConfig.icon || "",
         category: newConfig.category || "general",
       };
     } else {
@@ -163,7 +171,7 @@ watch(
         description: "",
         execution_mode: "queue",
         priority: "normal",
-        icon: "📋",
+        icon: "",
         category: "general",
       };
     }

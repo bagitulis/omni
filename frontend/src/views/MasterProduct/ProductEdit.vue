@@ -39,9 +39,10 @@
             >
               <div class="section-header" @click="toggleSection('basic')">
                 <h2>1. Informasi Dasar</h2>
-                <span class="toggle-icon">{{
-                  sections.basic ? "▼" : "▲"
-                }}</span>
+                <Icon
+                  :name="sections.basic ? 'chevron-down' : 'chevron-up'"
+                  size="sm"
+                />
               </div>
               <div class="section-content" v-show="!sections.basic">
                 <div class="form-group">
@@ -129,7 +130,8 @@
               <div class="section-content" v-show="!sections.variants">
                 <div class="info-box">
                   <p>
-                    ⚠️ SKU tidak dapat diedit. Untuk mengubah SKU, silakan buat
+                    <Icon name="warning" size="sm" class="text-yellow-500" />
+                    SKU tidak dapat diedit. Untuk mengubah SKU, silakan buat
                     produk baru.
                   </p>
                 </div>
@@ -173,7 +175,11 @@
                     class="platform-card"
                   >
                     <div class="platform-header">
-                      <span class="platform-icon">{{ platform.icon }}</span>
+                      <Icon
+                        :name="platform.icon"
+                        size="md"
+                        class="platform-icon"
+                      />
                       <span class="platform-name">{{ platform.label }}</span>
                     </div>
                     <div class="platform-status">
@@ -289,6 +295,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useUIStore } from "@/store/ui";
+import Icon from "@/components/ui/Icon.vue";
 import LeftSidebar from "@/components/layout/LeftSidebar.vue";
 import masterProductService, {
   type MasterProduct,
@@ -355,9 +362,9 @@ const syncing = ref<Record<string, boolean>>({
 
 // Platform definitions
 const platforms = [
-  { name: "shopee", label: "Shopee", icon: "🟠" },
-  { name: "tiktok", label: "TikTok", icon: "⬛" },
-  { name: "lazada", label: "Lazada", icon: "🔵" },
+  { name: "shopee", label: "Shopee", icon: "store" },
+  { name: "tiktok", label: "TikTok", icon: "chart" },
+  { name: "lazada", label: "Lazada", icon: "shopping-bag" },
 ];
 
 // Computed

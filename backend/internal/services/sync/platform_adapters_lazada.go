@@ -113,11 +113,34 @@ func (m *LazadaOrderManager) GetOrderItems(ctx context.Context, orderIDs []strin
 		// - tracking_code -> tracking_number
 		// - shipment_provider -> shipping_carrier (needs parsing)
 		// - paid_price -> price
+		// - item_id -> item ID for product cache lookup
+		// - product_main_image -> product image URL
 		trackingCode := getString(raw, "tracking_code")
 		shippingCarrier := cleanLazadaShippingCarrier(getString(raw, "shipment_provider"))
 
+		// Extract item_id for product cache lookup
+		itemID := getInt64(raw, "item_id")
+		if itemID == 0 {
+			itemID = getInt64(raw, "id")
+		}
+
+		// Extract product image URL
+		productImage := getString(raw, "product_main_image")
+		if productImage == "" {
+			productImage = getString(raw, "image")
+		}
+		if productImage == "" {
+			// Try product_detail_url as fallback (though not ideal)
+			if imgs, ok := raw["images"].([]interface{}); ok && len(imgs) > 0 {
+				if imgStr, ok := imgs[0].(string); ok {
+					productImage = imgStr
+				}
+			}
+		}
+
 		item := OrderItem{
 			OrderID:         orderID,
+			ItemID:          itemID,                      // For product cache lookup
 			SKU:             getString(raw, "sku"),       // Lazada uses 'sku' field
 			ProductName:     getString(raw, "name"),      // Lazada uses 'name' field
 			VariationName:   getString(raw, "variation"), // Lazada uses 'variation' field
@@ -125,6 +148,7 @@ func (m *LazadaOrderManager) GetOrderItems(ctx context.Context, orderIDs []strin
 			Price:           getFloat64(raw, "paid_price"),
 			TrackingNumber:  trackingCode,
 			ShippingCarrier: shippingCarrier,
+			ProductImage:    productImage,
 		}
 
 		result[orderID] = append(result[orderID], item)

@@ -77,10 +77,33 @@ func (s *OrderSyncService) SyncOrders(ctx context.Context, daysBack int) (int, e
 
 		// Save to database
 		for _, order := range detailResp.Response.OrderList {
+			// Get ship by date - use from API or calculate from create_time + days_to_ship
+			var shipByDate *int64
+			if order.ShipByDate > 0 {
+				shipByDate = &order.ShipByDate
+			} else if order.DaysToShip > 0 && order.CreateTime > 0 {
+				// Calculate: create_time + days_to_ship * 86400 (seconds per day)
+				calculated := order.CreateTime + int64(order.DaysToShip*86400)
+				shipByDate = &calculated
+			}
+
+			// Get shipping carrier - prefer actual carrier, fallback to checkout carrier
+			shippingCarrier := order.ShippingCarrier
+			if shippingCarrier == "" {
+				shippingCarrier = order.CheckoutShippingCarrier
+			}
+
 			dbOrder := &models.ShopeeOrder{
-				TenantID:    s.tenantID,
-				OrderSN:     order.OrderSN,
-				OrderStatus: order.OrderStatus,
+				TenantID:        s.tenantID,
+				OrderSN:         order.OrderSN,
+				OrderStatus:     order.OrderStatus,
+				TotalAmount:     &order.TotalAmount,
+				Currency:        order.Currency,
+				BuyerUsername:   order.BuyerUsername,
+				PaymentMethod:   order.PaymentMethod,
+				ShippingCarrier: shippingCarrier,
+				BuyerMessage:    order.MessageToSeller,
+				ShipByDate:      shipByDate,
 			}
 
 			if err := s.orderRepo.Upsert(ctx, dbOrder); err == nil {

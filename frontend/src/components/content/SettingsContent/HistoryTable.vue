@@ -11,10 +11,12 @@
           <div class="th-content">
             <span>{{ col.label }}</span>
             <span v-if="col.sortable" class="sort-icon">
-              <span v-if="sortBy === col.key">
-                {{ sortOrder === "asc" ? "↑" : "↓" }}
-              </span>
-              <span v-else class="sort-inactive">↕</span>
+              <Icon
+                v-if="sortBy === col.key"
+                :name="sortOrder === 'asc' ? 'sort-asc' : 'sort-desc'"
+                size="xs"
+              />
+              <Icon v-else name="chevron-up" size="xs" class="sort-inactive" />
             </span>
           </div>
         </th>
@@ -57,6 +59,7 @@
 </template>
 
 <script setup lang="ts">
+import Icon from "@/components/ui/Icon.vue";
 import type { JobHistory, ColumnDef } from "./composables/useHistoryTab";
 import {
   truncateId,

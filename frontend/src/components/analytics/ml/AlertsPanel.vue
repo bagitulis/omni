@@ -2,7 +2,7 @@
   <div class="alerts-panel">
     <div class="panel-header">
       <h3>
-        <span aria-hidden="true">⚠️</span> Active Alerts
+        <Icon name="warning" size="sm" /> Active Alerts
         <span v-if="alerts.length > 0" class="alert-count">{{
           alerts.length
         }}</span>
@@ -11,7 +11,7 @@
 
     <!-- Empty State -->
     <div v-if="alerts.length === 0" class="empty-alerts">
-      <span aria-hidden="true">✓</span>
+      <Icon name="check" size="lg" class="success-icon" />
       <p>No active alerts</p>
     </div>
 
@@ -24,7 +24,7 @@
         :class="'severity-' + alert.severity.toLowerCase()"
       >
         <div class="alert-icon">
-          {{ alertIcon(alert.alert_type) }}
+          <Icon :name="alertIcon(alert.alert_type)" size="md" />
         </div>
         <div class="alert-content">
           <div class="alert-header">
@@ -56,6 +56,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import type { MLAlert } from "@/composables/useMLAnalytics";
+import Icon from "@/components/ui/Icon.vue";
 
 const props = defineProps<{
   alerts: MLAlert[];
@@ -71,13 +72,13 @@ const displayedAlerts = computed(() => {
 function alertIcon(type: string): string {
   switch (type) {
     case "FATIGUE_WARNING":
-      return "⚡";
+      return "zap";
     case "CHURN_RISK":
-      return "📉";
+      return "trend-down";
     case "BUDGET_REC":
-      return "💰";
+      return "dollar-sign";
     default:
-      return "⚠️";
+      return "warning";
   }
 }
 
@@ -132,10 +133,14 @@ function formatAlertType(type: string): string {
   color: #10b981;
 }
 
-.empty-alerts span {
-  font-size: 32px;
-  display: block;
-  margin-bottom: 8px;
+.empty-alerts :deep(.icon) {
+  width: 32px;
+  height: 32px;
+  margin: 0 auto 8px;
+}
+
+.success-icon :deep(.icon) {
+  color: #10b981;
 }
 
 .empty-alerts p {

@@ -5,23 +5,24 @@
   >
     <div class="job-header">
       <div class="job-title">
-        <h3>🎬 {{ job.type }}</h3>
+        <h3><Icon name="document" size="sm" /> {{ job.type }}</h3>
         <span class="job-id">ID: {{ job.id.substring(0, 8) }}...</span>
-        <span v-if="isJobStuck" class="timeout-badge"
-          >⏱️ STUCK ({{ durationMinutes }}m)</span
-        >
+        <span v-if="isJobStuck" class="timeout-badge">
+          <Icon name="clock" size="xs" /> STUCK ({{ durationMinutes }}m)
+        </span>
       </div>
       <div class="btn-group">
         <button @click="$emit('cancel')" class="btn btn-danger btn-sm">
-          ❌ Cancel
+          <Icon name="close" size="sm" /> Cancel
         </button>
         <button
           v-if="isJobStuck"
           @click="$emit('force-cancel')"
           class="btn btn-urgent btn-sm"
           title="Force cancel stuck job"
+          aria-label="Force cancel stuck job"
         >
-          ⚡ Force Cancel
+          <Icon name="warning" size="sm" /> Force Cancel
         </button>
       </div>
     </div>
@@ -81,6 +82,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import Icon from "@/components/ui/Icon.vue";
 import {
   formatDateTime,
   calculateDuration,

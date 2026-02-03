@@ -17,6 +17,8 @@ type TiktokOrder struct {
 	PaymentMethod   string    `gorm:"column:payment_method" json:"payment_method,omitempty"`
 	ShippingCarrier string    `gorm:"column:shipping_carrier" json:"shipping_carrier,omitempty"`
 	BuyerMessage    string    `gorm:"column:buyer_message" json:"buyer_message,omitempty"`
+	ShipByDate      *int64    `gorm:"column:ship_by_date" json:"ship_by_date,omitempty"`       // Unix timestamp deadline for shipping
+	TrackingNumber  string    `gorm:"column:tracking_number" json:"tracking_number,omitempty"` // Shipping tracking number
 	CreatedAt       time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt       time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
@@ -40,6 +42,7 @@ type TiktokOrderItem struct {
 	VariationName string    `gorm:"column:variation_name" json:"variation_name,omitempty"`
 	Quantity      *int      `gorm:"column:quantity" json:"quantity,omitempty"`
 	Price         *float64  `gorm:"column:price" json:"price,omitempty"`
+	ProductImage  string    `gorm:"column:product_image" json:"product_image,omitempty"` // Product image URL
 	CreatedAt     time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt     time.Time `gorm:"column:updated_at" json:"updated_at"`
 }

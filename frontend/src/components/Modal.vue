@@ -1,18 +1,17 @@
 <template>
   <teleport to="body">
     <transition name="modal-fade">
-      <div
-        v-if="isOpen"
-        class="modal-backdrop"
-        @click="closeOnBackdrop"
-      >
+      <div v-if="isOpen" class="modal-backdrop" @click="closeOnBackdrop">
         <div
           class="modal-container"
+          role="dialog"
+          aria-modal="true"
+          :aria-labelledby="titleId"
           @click.stop
         >
           <!-- Header -->
           <div class="modal-header">
-            <h2 class="modal-title">
+            <h2 :id="titleId" class="modal-title">
               {{ title }}
             </h2>
             <button
@@ -43,10 +42,7 @@
           </div>
 
           <!-- Footer -->
-          <div
-            v-if="$slots.footer"
-            class="modal-footer"
-          >
+          <div v-if="$slots.footer" class="modal-footer">
             <slot name="footer" />
           </div>
         </div>
@@ -56,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch } from "vue";
+import { watch, computed } from "vue";
 
 interface Props {
   isOpen: boolean;
@@ -71,6 +67,11 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   close: [];
 }>();
+
+// Generate unique ID for aria-labelledby
+const titleId = computed(
+  () => `modal-title-${Math.random().toString(36).substr(2, 9)}`,
+);
 
 const closeOnBackdrop = () => {
   if (props.closeOnBackdropClick) {
@@ -87,7 +88,7 @@ watch(
     } else {
       document.body.style.overflow = "";
     }
-  }
+  },
 );
 </script>
 
@@ -110,7 +111,7 @@ watch(
 .modal-container {
   background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
   border-radius: 0.75rem;
-  box-shadow: 
+  box-shadow:
     0 20px 60px rgba(0, 0, 0, 0.3),
     0 0 1px rgba(148, 255, 255, 0.2);
   max-width: 32rem;
@@ -131,11 +132,7 @@ watch(
   padding: 1.5rem 1.5rem;
   border-bottom: 1px solid #e5e7eb;
   flex-shrink: 0;
-  background: linear-gradient(
-    135deg,
-    #f9fafb 0%,
-    #f3f4f6 100%
-  );
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
   border-top-left-radius: 0.75rem;
   border-top-right-radius: 0.75rem;
 }
@@ -207,11 +204,7 @@ watch(
   padding: 1rem 1.5rem;
   border-top: 1px solid #e5e7eb;
   flex-shrink: 0;
-  background: linear-gradient(
-    135deg,
-    #f9fafb 0%,
-    #f3f4f6 100%
-  );
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
   border-bottom-left-radius: 0.75rem;
   border-bottom-right-radius: 0.75rem;
 }
@@ -259,7 +252,7 @@ watch(
   }
 
   .modal-container {
-    box-shadow: 
+    box-shadow:
       0 20px 60px rgba(0, 0, 0, 0.5),
       0 0 1px rgba(148, 255, 255, 0.3);
   }

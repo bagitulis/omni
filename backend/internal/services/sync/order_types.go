@@ -30,8 +30,8 @@ type Order struct {
 	TrackingNumber  string `json:"tracking_number,omitempty"`
 	ShippingCarrier string `json:"shipping_carrier,omitempty"`
 	BuyerMessage    string `json:"buyer_message,omitempty"`
-	ShipByDate      int64  `json:"-"` // Unix timestamp for shipping deadline (internal)
-	Countdown       string `json:"countdown,omitempty"`
+	ShipByDate      int64  `json:"ship_by_date,omitempty"` // Unix timestamp for shipping deadline
+	Countdown       string `json:"countdown,omitempty"`    // Pre-calculated countdown (optional)
 	// Flattened item fields (for frontend compatibility - one row per item)
 	SKU           string  `json:"sku"`
 	ProductName   string  `json:"product_name"`
