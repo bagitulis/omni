@@ -2,11 +2,16 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/omni/backend/internal/models"
+	imageService "github.com/omni/backend/internal/services/image"
+	"github.com/omni/backend/internal/utils/logger"
 	"gorm.io/gorm"
 )
+
+var tiktokOrderRepoLogger = logger.Named("TiktokOrderRepository")
 
 // saveTiktokOrders saves TikTok orders using models package (upsert pattern)
 func (r *GormOrderRepository) saveTiktokOrders(ctx context.Context, db *gorm.DB, orders []Order) error {
@@ -44,12 +49,23 @@ func (r *GormOrderRepository) saveTiktokOrders(ctx context.Context, db *gorm.DB,
 			if order.BuyerMessage != "" {
 				updates["buyer_message"] = order.BuyerMessage
 			}
+			if order.TrackingNumber != "" {
+				updates["tracking_number"] = order.TrackingNumber
+			}
+			if order.ShipByDate > 0 {
+				updates["ship_by_date"] = order.ShipByDate
+			}
 
 			if err := db.WithContext(ctx).Model(&existing).Updates(updates).Error; err != nil {
 				return err
 			}
 		} else {
 			// Record doesn't exist - CREATE it
+			var shipByDate *int64
+			if order.ShipByDate > 0 {
+				shipByDate = &order.ShipByDate
+			}
+
 			model := models.TiktokOrder{
 				TenantID:        r.tenantID,
 				OrderSN:         order.OrderSN,
@@ -60,6 +76,8 @@ func (r *GormOrderRepository) saveTiktokOrders(ctx context.Context, db *gorm.DB,
 				PaymentMethod:   order.PaymentMethod,
 				ShippingCarrier: order.ShippingCarrier,
 				BuyerMessage:    order.BuyerMessage,
+				TrackingNumber:  order.TrackingNumber,
+				ShipByDate:      shipByDate,
 			}
 			if err := db.WithContext(ctx).Create(&model).Error; err != nil {
 				return err
@@ -78,6 +96,12 @@ func (r *GormOrderRepository) saveTiktokOrders(ctx context.Context, db *gorm.DB,
 
 // saveTiktokOrderItems saves TikTok order items
 func (r *GormOrderRepository) saveTiktokOrderItems(ctx context.Context, db *gorm.DB, orderSN string, items []OrderItem) error {
+	cacheService := imageService.NewProductImageCacheService()
+	urlCache := make(map[string]string)
+	for i := range items {
+		items[i].ProductImage = r.cacheTiktokProductImage(ctx, db, cacheService, urlCache, items[i])
+	}
+
 	// Delete existing items first
 	if err := db.WithContext(ctx).Where("order_sn = ?", orderSN).Delete(&models.TiktokOrderItem{}).Error; err != nil {
 		return err
@@ -116,6 +140,87 @@ func (r *GormOrderRepository) saveTiktokOrderItems(ctx context.Context, db *gorm
 	return nil
 }
 
+func (r *GormOrderRepository) cacheTiktokProductImage(
+	ctx context.Context,
+	db *gorm.DB,
+	cacheService *imageService.ProductImageCacheService,
+	urlCache map[string]string,
+	item OrderItem,
+) string {
+	if item.ProductImage == "" {
+		return ""
+	}
+	if isLocalImageURL(item.ProductImage) {
+		return item.ProductImage
+	}
+	if cached, ok := urlCache[item.ProductImage]; ok {
+		return cached
+	}
+
+	allowedHosts := []string{"ibyteimg.com", "tiktokcdn.com"}
+	localPath, err := cacheService.CacheRemoteImage(
+		ctx,
+		r.tenantID,
+		item.ProductImage,
+		fmt.Sprintf("tiktok_%d", item.ItemID),
+		allowedHosts,
+	)
+	if err != nil || localPath == "" {
+		return item.ProductImage
+	}
+
+	urlCache[item.ProductImage] = localPath
+	r.upsertTiktokProductImageCache(ctx, db, item, localPath)
+	return localPath
+}
+
+func (r *GormOrderRepository) upsertTiktokProductImageCache(
+	ctx context.Context,
+	db *gorm.DB,
+	item OrderItem,
+	localPath string,
+) {
+	if item.ItemID == 0 || localPath == "" {
+		return
+	}
+
+	var product models.TiktokProduct
+	err := db.WithContext(ctx).
+		Where("id = ?", item.ItemID).
+		First(&product).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return
+		}
+		tiktokOrderRepoLogger.WithFields(map[string]interface{}{
+			"tenant_id": r.tenantID,
+			"item_id":   item.ItemID,
+		}).Warn("Failed to find tiktok product cache: " + err.Error())
+		return
+	}
+
+	updatedImages := appendUniqueLocalImage(product.LocalImages, localPath)
+	updates := map[string]interface{}{
+		"local_images": updatedImages,
+	}
+	if product.Image == "" && item.ProductImage != "" {
+		updates["image"] = item.ProductImage
+	}
+	if product.Name == "" && item.ProductName != "" {
+		updates["name"] = item.ProductName
+	}
+
+	if updateErr := db.WithContext(ctx).
+		Model(&models.TiktokProduct{}).
+		Where("id = ?", product.ID).
+		Updates(updates).Error; updateErr != nil {
+		tiktokOrderRepoLogger.WithFields(map[string]interface{}{
+			"tenant_id": r.tenantID,
+			"item_id":   item.ItemID,
+		}).Warn("Failed to update tiktok product image cache: " + updateErr.Error())
+	}
+}
+
 // getTiktokOrdersByStatus gets TikTok orders by status WITH ITEMS
 // Returns flattened items format for frontend (same as Node.js OrderFormatterService)
 // TikTok has special logic: SellerSku for SKU, plus deduplication
@@ -144,7 +249,10 @@ func (r *GormOrderRepository) getTiktokOrdersByStatus(ctx context.Context, db *g
 	var items []models.TiktokOrderItem
 	if len(orderSNs) > 0 {
 		if err := db.WithContext(ctx).Where("order_sn IN ?", orderSNs).Find(&items).Error; err != nil {
-			fmt.Printf("Warning: failed to fetch tiktok items: %v\n", err)
+			tiktokOrderRepoLogger.WithFields(map[string]interface{}{
+				"tenant_id":   r.tenantID,
+				"order_count": len(orderSNs),
+			}).Warn("Failed to fetch tiktok items: " + err.Error())
 		}
 	}
 
@@ -203,7 +311,10 @@ func (r *GormOrderRepository) getTiktokProductImagesFromCache(ctx context.Contex
 		Find(&products).Error
 
 	if err != nil {
-		fmt.Printf("Warning: failed to fetch tiktok product images: %v\n", err)
+		tiktokOrderRepoLogger.WithFields(map[string]interface{}{
+			"tenant_id":  r.tenantID,
+			"item_count": len(productIDs),
+		}).Warn("Failed to fetch tiktok product images: " + err.Error())
 		return result
 	}
 
@@ -267,6 +378,7 @@ func (r *GormOrderRepository) flattenTiktokOrders(orderModels []models.TiktokOrd
 				Currency:        currency,
 				BuyerUsername:   m.BuyerUsername,
 				PaymentMethod:   m.PaymentMethod,
+				TrackingNumber:  m.TrackingNumber,
 				ShippingCarrier: m.ShippingCarrier,
 				BuyerMessage:    m.BuyerMessage,
 				ShipByDate:      shipByDate,
@@ -306,6 +418,7 @@ func (r *GormOrderRepository) flattenTiktokOrders(orderModels []models.TiktokOrd
 					Currency:        currency,
 					BuyerUsername:   m.BuyerUsername,
 					PaymentMethod:   m.PaymentMethod,
+					TrackingNumber:  m.TrackingNumber,
 					ShippingCarrier: m.ShippingCarrier,
 					BuyerMessage:    m.BuyerMessage,
 					SKU:             item.SellerSku,

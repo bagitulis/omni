@@ -88,6 +88,15 @@ func (m *TiktokOrderManager) GetOrderList(ctx context.Context, status string, da
 		}
 		shippingType := getString(raw, "shipping_type")
 
+		// Extract ship_by_date from TikTok deadline fields
+		shipByDate := int64(0)
+		// TikTok uses shipping_due_time or rts_sla_time (Ready to Ship SLA time)
+		if dueTime := getInt64(raw, "shipping_due_time"); dueTime > 0 {
+			shipByDate = dueTime
+		} else if rtsSla := getInt64(raw, "rts_sla_time"); rtsSla > 0 {
+			shipByDate = rtsSla
+		}
+
 		order := Order{
 			OrderSN:         orderSN,
 			OrderNo:         orderSN, // Alias for frontend compatibility
@@ -100,6 +109,7 @@ func (m *TiktokOrderManager) GetOrderList(ctx context.Context, status string, da
 			ShippingCarrier: shippingCarrier,
 			ShippingType:    shippingType,
 			BuyerMessage:    getString(raw, "buyer_message"),
+			ShipByDate:      shipByDate, // Unix timestamp for frontend countdown
 		}
 
 		// For AWAITING_COLLECTION (processed), extract tracking info
