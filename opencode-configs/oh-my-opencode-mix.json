@@ -1,29 +1,37 @@
 {
   "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
   "google_auth": false,
-  "default_model": "github-copilot/claude-opus-4.5",
+  "default_model": "google/antigravity-gemini-3-pro",
 
   "agents": {
     "sisyphus": {
-      "model": "github-copilot/claude-opus-4.5"
+      "model": "google/antigravity-claude-opus-4-5-thinking",
+      "variant": "max"
     },
     "prometheus": {
-      "model": "github-copilot/claude-opus-4.5"
-    },
-    "oracle": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
+      "model": "google/antigravity-claude-opus-4-5-thinking",
+      "variant": "max"
     },
     "atlas": {
-      "model": "github-copilot/claude-opus-4.5"
+      "model": "google/antigravity-claude-sonnet-4-5-thinking",
+      "variant": "max"
+    },
+    "hephaestus": {
+      "model": "openai/gpt-5.2-codex",
+      "reasoningEffort": "high",
+      "temperature": 0.1
+    },
+    "oracle": {
+      "model": "openai/gpt-5.2",
+      "reasoningEffort": "high",
+      "temperature": 0.1
     },
     "librarian": {
       "model": "google/antigravity-gemini-3-pro",
       "variant": "high"
     },
     "explore": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
+      "model": "github-copilot/claude-haiku-4.5"
     },
     "multimodal-looker": {
       "model": "google/antigravity-gemini-3-pro",
@@ -34,18 +42,17 @@
       "variant": "high"
     },
     "momus": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
+      "model": "openai/gpt-5.2",
+      "reasoningEffort": "high",
+      "temperature": 0.1
     },
     "sisyphus-junior": {
       "model": "google/antigravity-gemini-3-pro",
       "variant": "high"
     },
-    "hephaestus": {
-      "model": "github-copilot/claude-sonnet-4.5"
-    },
     "default": {
-      "model": "github-copilot/claude-opus-4.5"
+      "model": "google/antigravity-gemini-3-pro",
+      "variant": "high"
     }
   },
 
@@ -63,18 +70,20 @@
       "variant": "high"
     },
     "quick": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
+      "model": "github-copilot/claude-haiku-4.5"
     },
     "ultrabrain": {
-      "model": "github-copilot/claude-opus-4.5"
+      "model": "openai/gpt-5.2-codex",
+      "reasoningEffort": "high",
+      "temperature": 0.1
     },
     "deep": {
       "model": "google/antigravity-gemini-3-pro",
       "variant": "high"
     },
     "implementation": {
-      "model": "github-copilot/claude-opus-4.5"
+      "model": "google/antigravity-gemini-3-pro",
+      "variant": "high"
     },
     "review": {
       "model": "google/antigravity-gemini-3-pro",

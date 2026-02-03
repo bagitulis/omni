@@ -3,14 +3,17 @@
   "google_auth": false,
   "default_model": "google/antigravity-gemini-3-pro",
   "variant": "high",
+  "browser_automation_engine": {
+    "provider": "agent-browser"
+  },
 
   "agents": {
     "sisyphus": {
       "model": "google/antigravity-claude-opus-4-5-thinking",
-      "variant": "high"
+      "variant": "max"
     },
     "prometheus": {
-      "model": "google/antigravity-claude-sonnet-4-5-thinking",
+      "model": "google/antigravity-claude-opus-4-5-thinking",
       "variant": "max"
     },
     "oracle": {
@@ -42,15 +45,15 @@
       "variant": "high"
     },
     "sisyphus-junior": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
+      "model": "google/antigravity-claude-sonnet-4-5-thinking",
+      "variant": "max"
     },
     "hephaestus": {
       "model": "google/antigravity-claude-sonnet-4-5-thinking",
       "variant": "max"
     },
     "default": {
-      "model": "google/antigravity-claude-opus-4-5-thinking",
+      "model": "google/antigravity-claude-sonnet-4-5-thinking",
       "variant": "max"
     }
   },
