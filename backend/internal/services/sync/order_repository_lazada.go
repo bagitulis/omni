@@ -2,28 +2,82 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/omni/backend/internal/models"
+	imageService "github.com/omni/backend/internal/services/image"
+	"github.com/omni/backend/internal/utils/logger"
 	"gorm.io/gorm"
 )
+
+var lazadaOrderRepoLogger = logger.Named("LazadaOrderRepository")
 
 // saveLazadaOrders saves Lazada orders using models package
 func (r *GormOrderRepository) saveLazadaOrders(ctx context.Context, db *gorm.DB, orders []Order) error {
 	for _, order := range orders {
-		model := models.LazadaOrder{
-			TenantID:    r.tenantID,
-			OrderSN:     order.OrderSN,
-			OrderStatus: order.Status,
+		var totalAmount *float64
+		if order.TotalAmount > 0 {
+			totalAmount = &order.TotalAmount
 		}
 
-		result := db.WithContext(ctx).
-			Where("order_sn = ?", order.OrderSN).
-			Assign(model).
-			FirstOrCreate(&model)
-		if result.Error != nil {
-			return result.Error
+		var shipByDate *int64
+		if order.ShipByDate > 0 {
+			shipByDate = &order.ShipByDate
+		}
+
+		var existing models.LazadaOrder
+		result := db.WithContext(ctx).Where("order_sn = ?", order.OrderSN).First(&existing)
+		if result.Error == nil {
+			updates := map[string]interface{}{
+				"order_status": order.Status,
+			}
+			if order.TotalAmount > 0 {
+				updates["total_amount"] = order.TotalAmount
+			}
+			if order.Currency != "" {
+				updates["currency"] = order.Currency
+			}
+			if order.BuyerUsername != "" {
+				updates["buyer_username"] = order.BuyerUsername
+			}
+			if order.PaymentMethod != "" {
+				updates["payment_method"] = order.PaymentMethod
+			}
+			if order.ShippingCarrier != "" {
+				updates["shipping_carrier"] = order.ShippingCarrier
+			}
+			if order.BuyerMessage != "" {
+				updates["buyer_message"] = order.BuyerMessage
+			}
+			if order.TrackingNumber != "" {
+				updates["tracking_number"] = order.TrackingNumber
+			}
+			if order.ShipByDate > 0 {
+				updates["ship_by_date"] = order.ShipByDate
+			}
+
+			if err := db.WithContext(ctx).Model(&existing).Updates(updates).Error; err != nil {
+				return err
+			}
+		} else {
+			model := models.LazadaOrder{
+				TenantID:        r.tenantID,
+				OrderSN:         order.OrderSN,
+				OrderStatus:     order.Status,
+				TotalAmount:     totalAmount,
+				Currency:        order.Currency,
+				BuyerUsername:   order.BuyerUsername,
+				PaymentMethod:   order.PaymentMethod,
+				ShippingCarrier: order.ShippingCarrier,
+				BuyerMessage:    order.BuyerMessage,
+				TrackingNumber:  order.TrackingNumber,
+				ShipByDate:      shipByDate,
+			}
+			if err := db.WithContext(ctx).Create(&model).Error; err != nil {
+				return err
+			}
 		}
 
 		// Save order items if present
@@ -38,6 +92,12 @@ func (r *GormOrderRepository) saveLazadaOrders(ctx context.Context, db *gorm.DB,
 
 // saveLazadaOrderItems saves Lazada order items
 func (r *GormOrderRepository) saveLazadaOrderItems(ctx context.Context, db *gorm.DB, orderSN string, items []OrderItem) error {
+	cacheService := imageService.NewProductImageCacheService()
+	urlCache := make(map[string]string)
+	for i := range items {
+		items[i].ProductImage = r.cacheLazadaProductImage(ctx, db, cacheService, urlCache, items[i])
+	}
+
 	// Delete existing items first
 	if err := db.WithContext(ctx).Where("order_sn = ?", orderSN).Delete(&models.LazadaOrderItem{}).Error; err != nil {
 		return err
@@ -63,6 +123,95 @@ func (r *GormOrderRepository) saveLazadaOrderItems(ctx context.Context, db *gorm
 		}
 	}
 	return nil
+}
+
+func (r *GormOrderRepository) cacheLazadaProductImage(
+	ctx context.Context,
+	db *gorm.DB,
+	cacheService *imageService.ProductImageCacheService,
+	urlCache map[string]string,
+	item OrderItem,
+) string {
+	if item.ProductImage == "" {
+		return ""
+	}
+	if isLocalImageURL(item.ProductImage) {
+		return item.ProductImage
+	}
+	if cached, ok := urlCache[item.ProductImage]; ok {
+		return cached
+	}
+
+	localPath, err := cacheService.CacheRemoteImage(
+		ctx,
+		r.tenantID,
+		item.ProductImage,
+		fmt.Sprintf("lazada_%d", item.ItemID),
+		nil,
+	)
+	if err != nil || localPath == "" {
+		return item.ProductImage
+	}
+
+	urlCache[item.ProductImage] = localPath
+	r.upsertLazadaProductImageCache(ctx, db, item, localPath)
+	return localPath
+}
+
+func (r *GormOrderRepository) upsertLazadaProductImageCache(
+	ctx context.Context,
+	db *gorm.DB,
+	item OrderItem,
+	localPath string,
+) {
+	if item.ItemID == 0 || localPath == "" {
+		return
+	}
+	itemIDStr := fmt.Sprintf("%d", item.ItemID)
+
+	var product models.LazadaProduct
+	err := db.WithContext(ctx).
+		Where("tenant_id = ? AND item_id = ?", r.tenantID, itemIDStr).
+		First(&product).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			newProduct := models.LazadaProduct{
+				TenantID:    r.tenantID,
+				ItemID:      itemIDStr,
+				Name:        item.ProductName,
+				Image:       item.ProductImage,
+				LocalImages: models.JSONArray{localPath},
+			}
+			if createErr := db.WithContext(ctx).Create(&newProduct).Error; createErr != nil {
+				lazadaOrderRepoLogger.WithFields(map[string]interface{}{
+					"tenant_id": r.tenantID,
+					"item_id":   itemIDStr,
+				}).Warn("Failed to create lazada product cache: " + createErr.Error())
+			}
+		}
+		return
+	}
+
+	updatedImages := appendUniqueLocalImage(product.LocalImages, localPath)
+	updates := map[string]interface{}{
+		"local_images": updatedImages,
+	}
+	if product.Image == "" && item.ProductImage != "" {
+		updates["image"] = item.ProductImage
+	}
+	if product.Name == "" && item.ProductName != "" {
+		updates["name"] = item.ProductName
+	}
+
+	if updateErr := db.WithContext(ctx).
+		Model(&models.LazadaProduct{}).
+		Where("id = ?", product.ID).
+		Updates(updates).Error; updateErr != nil {
+		lazadaOrderRepoLogger.WithFields(map[string]interface{}{
+			"tenant_id": r.tenantID,
+			"item_id":   itemIDStr,
+		}).Warn("Failed to update lazada product image cache: " + updateErr.Error())
+	}
 }
 
 // getLazadaOrdersByStatus gets Lazada orders by status WITH ITEMS
@@ -92,7 +241,10 @@ func (r *GormOrderRepository) getLazadaOrdersByStatus(ctx context.Context, db *g
 	var items []models.LazadaOrderItem
 	if len(orderSNs) > 0 {
 		if err := db.WithContext(ctx).Where("order_sn IN ?", orderSNs).Find(&items).Error; err != nil {
-			fmt.Printf("Warning: failed to fetch lazada items: %v\n", err)
+			lazadaOrderRepoLogger.WithFields(map[string]interface{}{
+				"tenant_id":   r.tenantID,
+				"order_count": len(orderSNs),
+			}).Warn("Failed to fetch lazada items: " + err.Error())
 		}
 	}
 
@@ -150,7 +302,10 @@ func (r *GormOrderRepository) getLazadaProductImagesFromCache(ctx context.Contex
 		Find(&products).Error
 
 	if err != nil {
-		fmt.Printf("Warning: failed to fetch lazada product images: %v\n", err)
+		lazadaOrderRepoLogger.WithFields(map[string]interface{}{
+			"tenant_id":  r.tenantID,
+			"item_count": len(itemIDs),
+		}).Warn("Failed to fetch lazada product images: " + err.Error())
 		return result
 	}
 
@@ -194,28 +349,29 @@ func (r *GormOrderRepository) flattenLazadaOrders(orderModels []models.LazadaOrd
 			currency = "IDR"
 		}
 
-		// Format countdown from ship_by_date
-		countdown := ""
-		shipByDate := int64(0)
+		// Extract ship_by_date as Unix timestamp for frontend countdown calculation
+		var shipByDate int64 = 0
 		if m.ShipByDate != nil && *m.ShipByDate > 0 {
 			shipByDate = *m.ShipByDate
-			countdown = formatShipByDateFromDB(shipByDate)
 		}
 
 		if len(orderItems) == 0 {
 			orders = append(orders, Order{
-				ID:            fmt.Sprintf("%d", m.ID),
-				OrderSN:       m.OrderSN,
-				OrderNo:       m.OrderSN,
-				Platform:      strings.ToUpper("lazada"),
-				Status:        m.OrderStatus,
-				TotalAmount:   totalAmount,
-				Currency:      currency,
-				BuyerUsername: m.BuyerUsername,
-				ShipByDate:    shipByDate,
-				Countdown:     countdown,
-				CreatedAt:     m.CreatedAt,
-				UpdatedAt:     m.UpdatedAt,
+				ID:              fmt.Sprintf("%d", m.ID),
+				OrderSN:         m.OrderSN,
+				OrderNo:         m.OrderSN,
+				Platform:        strings.ToUpper("lazada"),
+				Status:          m.OrderStatus,
+				TotalAmount:     totalAmount,
+				Currency:        currency,
+				BuyerUsername:   m.BuyerUsername,
+				PaymentMethod:   m.PaymentMethod,
+				TrackingNumber:  m.TrackingNumber,
+				ShippingCarrier: m.ShippingCarrier,
+				BuyerMessage:    m.BuyerMessage,
+				ShipByDate:      shipByDate, // Unix timestamp for frontend
+				CreatedAt:       m.CreatedAt,
+				UpdatedAt:       m.UpdatedAt,
 			})
 		} else {
 			for _, item := range orderItems {
@@ -224,24 +380,32 @@ func (r *GormOrderRepository) flattenLazadaOrders(orderModels []models.LazadaOrd
 					qty = *item.Quantity
 				}
 
+				price := float64(0)
+				if item.Price != nil {
+					price = *item.Price
+				}
+
 				orders = append(orders, Order{
-					ID:            fmt.Sprintf("%d", m.ID),
-					OrderSN:       m.OrderSN,
-					OrderNo:       m.OrderSN,
-					Platform:      strings.ToUpper("lazada"),
-					Status:        m.OrderStatus,
-					TotalAmount:   totalAmount,
-					Currency:      currency,
-					BuyerUsername: m.BuyerUsername,
-					ShipByDate:    shipByDate,
-					SKU:           item.SellerSku,
-					ProductName:   item.ProductName,
-					VariationName: item.VariationName,
-					Quantity:      qty,
-					ProductImage:  item.ProductImage,
-					Countdown:     countdown,
-					CreatedAt:     m.CreatedAt,
-					UpdatedAt:     m.UpdatedAt,
+					ID:              fmt.Sprintf("%d", m.ID),
+					OrderSN:         m.OrderSN,
+					OrderNo:         m.OrderSN,
+					Platform:        strings.ToUpper("lazada"),
+					Status:          m.OrderStatus,
+					TotalAmount:     totalAmount,
+					Currency:        currency,
+					BuyerUsername:   m.BuyerUsername,
+					PaymentMethod:   m.PaymentMethod,
+					TrackingNumber:  m.TrackingNumber,
+					ShippingCarrier: m.ShippingCarrier, // From order header
+					ShipByDate:      shipByDate,        // Unix timestamp for frontend
+					SKU:             item.SellerSku,
+					ProductName:     item.ProductName,
+					VariationName:   item.VariationName,
+					Quantity:        qty,
+					Price:           price,
+					ProductImage:    item.ProductImage,
+					CreatedAt:       m.CreatedAt,
+					UpdatedAt:       m.UpdatedAt,
 				})
 			}
 		}

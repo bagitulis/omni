@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/omni/backend/internal/services/platform"
 )
@@ -53,13 +54,36 @@ func (m *LazadaOrderManager) GetOrderList(ctx context.Context, status string, da
 			// Fallback to order_id if order_sn not present
 			orderSN = getString(raw, "order_id")
 		}
+
 		order := Order{
-			OrderSN:  orderSN,
-			OrderNo:  orderSN, // Alias for frontend compatibility
-			Platform: strings.ToUpper("lazada"),
-			Status:   status,
+			OrderSN:       orderSN,
+			OrderNo:       orderSN, // Alias for frontend compatibility
+			Platform:      strings.ToUpper("lazada"),
+			Status:        status,
+			TotalAmount:   getFloat64(raw, "price"),
+			BuyerUsername: getString(raw, "customer_first_name"),
+			Currency:      "IDR", // Lazada default
 		}
+
+		// Extract promised_shipping_times and convert to ship_by_date Unix timestamp
+		if promisedShip := getString(raw, "promised_shipping_times"); promisedShip != "" {
+			// Lazada format: "2024-01-15" (ISO date) - convert to Unix timestamp
+			if timestamp := parseLazadaDateToUnix(promisedShip); timestamp > 0 {
+				order.ShipByDate = timestamp
+			}
+		}
+
+		// Extract shipping info from delivery_info
+		if deliveryInfo := getString(raw, "delivery_info"); deliveryInfo != "" {
+			order.ShippingCarrier = deliveryInfo
+		}
+
 		orders = append(orders, order)
+	}
+
+	// Enrich orders with items (to get detailed info and images)
+	if len(orders) > 0 {
+		orders = m.enrichLazadaOrdersWithItems(ctx, orders)
 	}
 
 	return orders, nil
@@ -184,4 +208,57 @@ func cleanLazadaShippingCarrier(provider string) string {
 	}
 
 	return provider
+}
+
+// enrichLazadaOrdersWithItems fetches order items and enriches orders
+func (m *LazadaOrderManager) enrichLazadaOrdersWithItems(ctx context.Context, orders []Order) []Order {
+	orderIDs := make([]string, len(orders))
+	for i, o := range orders {
+		orderIDs[i] = o.OrderSN
+	}
+
+	// Fetch items for all orders
+	itemsMap, err := m.GetOrderItems(ctx, orderIDs)
+	if err != nil {
+		adapterLogger.Warn("Failed to fetch Lazada order items: " + err.Error())
+		return orders
+	}
+
+	// Merge items into orders
+	for i := range orders {
+		if items, ok := itemsMap[orders[i].OrderSN]; ok && len(items) > 0 {
+			orders[i].Items = items
+
+			// Extract shipping carrier from first item (all items in order have same carrier)
+			if orders[i].ShippingCarrier == "" && items[0].ShippingCarrier != "" {
+				orders[i].ShippingCarrier = items[0].ShippingCarrier
+			}
+		}
+	}
+
+	return orders
+}
+
+// parseLazadaDateToUnix converts Lazada ISO date to Unix timestamp
+// Input: "2024-01-15" or "2024-01-15 10:30:00" -> Output: Unix timestamp
+func parseLazadaDateToUnix(dateStr string) int64 {
+	if dateStr == "" {
+		return 0
+	}
+
+	// Try parsing common formats
+	formats := []string{
+		"2006-01-02",
+		"2006-01-02 15:04:05",
+		"2006-01-02T15:04:05",
+		"2006-01-02T15:04:05Z",
+	}
+
+	for _, format := range formats {
+		if t, err := time.Parse(format, dateStr); err == nil {
+			return t.Unix()
+		}
+	}
+
+	return 0
 }
