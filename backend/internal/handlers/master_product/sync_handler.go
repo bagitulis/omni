@@ -2,6 +2,8 @@
 package master_product
 
 import (
+	"errors"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -29,6 +31,12 @@ func NewSyncHandler(basePath string) *SyncHandler {
 type SyncRequest struct {
 	TargetPlatform string `json:"target_platform" binding:"required"`
 	DryRun         bool   `json:"dry_run"`
+}
+
+// BackfillImagesRequest represents backfill request body
+type BackfillImagesRequest struct {
+	Limit int  `json:"limit"`
+	Force bool `json:"force"`
 }
 
 // Sync handles POST /api/master-products/:id/sync
@@ -148,4 +156,64 @@ func (h *SyncHandler) GetSyncStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response.Success(status))
+}
+
+// BackfillImages handles POST /api/master-products/images/backfill
+func (h *SyncHandler) BackfillImages(c *gin.Context) {
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+		return
+	}
+
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+	service := masterProductService.NewService(db)
+
+	var req BackfillImagesRequest
+	if err := c.ShouldBindJSON(&req); err != nil && !errors.Is(err, io.EOF) {
+		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
+		return
+	}
+
+	limit := req.Limit
+	if limit <= 0 {
+		limit = 200
+	}
+	if limit > 1000 {
+		limit = 1000
+	}
+
+	result, err := service.BackfillImages(c.Request.Context(), tenantID, limit, req.Force)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("tenant_id", tenantID).
+			Int("limit", limit).
+			Bool("force", req.Force).
+			Msg("Failed to backfill master product images")
+
+		if errors.Is(err, masterProductService.ErrTenantIDRequired) {
+			c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
+		return
+	}
+
+	log.Info().
+		Str("tenant_id", tenantID).
+		Int("limit", limit).
+		Bool("force", req.Force).
+		Int("processed", result.Processed).
+		Int("updated", result.Updated).
+		Int("skipped", result.Skipped).
+		Int("errors", result.Errors).
+		Msg("Master product image backfill completed")
+
+	c.JSON(http.StatusOK, response.Success(result))
 }

@@ -263,3 +263,52 @@ func (r *MasterProductRepository) FindPlatformLinksByItemID(ctx context.Context,
 
 	return links, err
 }
+
+// FindForImageBackfill returns master products for image backfill.
+// When force is false, only products with empty images are returned.
+func (r *MasterProductRepository) FindForImageBackfill(ctx context.Context, tenantID string, limit int, force bool) ([]models.MasterProduct, error) {
+	var products []models.MasterProduct
+
+	query := r.db.WithContext(ctx).
+		Model(&models.MasterProduct{}).
+		Select("id", "tenant_id", "images").
+		Where("tenant_id = ?", tenantID)
+
+	if !force {
+		query = query.Where("images IS NULL OR jsonb_array_length(images) = 0")
+	}
+
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+
+	err := query.Order("id ASC").Find(&products).Error
+	return products, err
+}
+
+// FindImagesByID returns the images array for a master product.
+func (r *MasterProductRepository) FindImagesByID(ctx context.Context, tenantID string, id uint) (models.JSONArray, error) {
+	var result struct {
+		Images models.JSONArray `gorm:"column:images"`
+	}
+
+	err := r.db.WithContext(ctx).
+		Model(&models.MasterProduct{}).
+		Select("images").
+		Where("id = ? AND tenant_id = ?", id, tenantID).
+		First(&result).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result.Images, nil
+}
+
+// UpdateImages updates the images array for a master product.
+func (r *MasterProductRepository) UpdateImages(ctx context.Context, tenantID string, id uint, images models.JSONArray) error {
+	return r.db.WithContext(ctx).
+		Model(&models.MasterProduct{}).
+		Where("id = ? AND tenant_id = ?", id, tenantID).
+		Update("images", images).Error
+}

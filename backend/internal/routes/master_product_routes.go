@@ -97,6 +97,10 @@ func RegisterMasterProductSyncRoutes(router *gin.RouterGroup, basePath string) {
 	masterProducts.Use(middleware.Auth())
 	masterProducts.Use(middleware.Tenant())
 	{
+		// Backfill master product images from platform cache
+		// POST /api/master-products/images/backfill
+		masterProducts.POST("/images/backfill", syncHandler.BackfillImages)
+
 		// Sync to platform
 		// POST /api/master-products/:id/sync
 		masterProducts.POST("/:id/sync", syncHandler.Sync)
