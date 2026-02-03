@@ -74,16 +74,16 @@ const showCancelButton = computed(
 /* Action Column */
 .action-col {
   display: flex;
-  align-items: flex-start;
-  /* Ensure it takes full width/height of its grid area if needed, 
-     but flex-start aligns it top-left usually */
+  align-items: center;
+  justify-content: flex-start;
+  padding: 8px 0;
 }
 
 .action-buttons {
   display: flex;
-  gap: var(--om-spacing-xs);
-  flex-wrap: wrap;
-  width: 100%;
+  gap: 8px;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
 .btn-action {
@@ -104,26 +104,39 @@ const showCancelButton = computed(
 }
 
 .btn-action.primary {
-  background: transparent;
-  color: #ee4d2d;
-  border: 1px solid #ee4d2d;
+  background: #ee4d2d !important;
+  color: #ffffff !important;
+  border: 1px solid #ee4d2d !important;
+  box-shadow: 0 2px 4px rgba(238, 77, 45, 0.25);
+  font-weight: 600;
+  padding: 8px 16px;
+  min-width: auto;
+  flex: none;
 }
 
 .btn-action.primary:hover:not(:disabled) {
-  background: #fff0ed;
-  color: #d73211;
-  border-color: #d73211;
+  background: #d73211 !important;
+  color: #ffffff !important;
+  border-color: #d73211 !important;
+  box-shadow: 0 4px 8px rgba(238, 77, 45, 0.35);
+  transform: translateY(-1px);
 }
 
 .btn-action.secondary {
-  background: transparent;
-  color: var(--om-text-secondary);
-  border: 1px solid var(--om-border);
+  background: #ffffff !important;
+  color: #757575 !important;
+  border: 1px solid #e0e0e0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  padding: 8px 10px;
+  min-width: 36px;
+  flex: none;
 }
 
 .btn-action.secondary:hover:not(:disabled) {
-  background: var(--om-bg-secondary);
-  color: var(--om-text-primary);
+  background: #f5f5f5 !important;
+  color: #212121 !important;
+  border-color: #bdbdbd !important;
+  transform: translateY(-1px);
 }
 
 .btn-action:disabled {

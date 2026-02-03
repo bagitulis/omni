@@ -82,25 +82,29 @@ defineEmits<{
 }
 
 .btn-bulk-ship {
-  background: var(--om-primary);
-  color: white;
-  border-color: var(--om-primary);
+  background: #ee4d2d !important;
+  color: #ffffff !important;
+  border: 1px solid #ee4d2d !important;
+  box-shadow: 0 2px 4px rgba(238, 77, 45, 0.2);
 }
 
 .btn-bulk-ship:hover:not(:disabled) {
-  background: #d73211;
-  border-color: #d73211;
+  background: #d73211 !important;
+  border-color: #d73211 !important;
+  box-shadow: 0 4px 8px rgba(238, 77, 45, 0.3);
 }
 
 .btn-refresh {
-  background: var(--om-bg-primary);
-  color: var(--om-text-primary);
-  border-color: var(--om-border);
+  background: #ffffff !important;
+  color: #212121 !important;
+  border: 1px solid #e0e0e0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .btn-refresh:hover:not(:disabled) {
-  border-color: var(--om-primary);
-  color: var(--om-primary);
-  background: #fff7f4;
+  border-color: #ee4d2d !important;
+  color: #ee4d2d !important;
+  background: #fff7f4 !important;
+  box-shadow: 0 2px 6px rgba(238, 77, 45, 0.15);
 }
 </style>
