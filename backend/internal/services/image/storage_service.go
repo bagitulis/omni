@@ -28,6 +28,14 @@ func NewStorageService(basePath string) *StorageService {
 	return &StorageService{basePath: basePath}
 }
 
+func getUploadBasePath() string {
+	basePath := os.Getenv("UPLOAD_PATH")
+	if basePath == "" {
+		basePath = "uploads"
+	}
+	return basePath
+}
+
 // SaveImage saves image data to local filesystem
 // Returns the relative path from basePath
 func (s *StorageService) SaveImage(tenantID, category, originalFilename string, data []byte) (string, error) {

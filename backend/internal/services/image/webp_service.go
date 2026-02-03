@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	_ "image/gif" // Register GIF decoder
 	"image/jpeg"
 	_ "image/png" // Register PNG decoder
 	"os"
