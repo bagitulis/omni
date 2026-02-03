@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"time"
 
 	"github.com/omni/backend/internal/models"
 	"gorm.io/gorm"
@@ -47,6 +48,23 @@ func (r *ShopeeOrderRepository) FindAll(ctx context.Context, page, pageSize int)
 		Limit(pageSize).
 		Find(&orders).Error
 
+	// Calculate countdown
+	now := time.Now().Unix()
+	for i := range orders {
+		if orders[i].ShipByDate != nil {
+			val := *orders[i].ShipByDate
+			// Only calculate if ship by date is in future
+			if val > now {
+				diff := val - now
+				orders[i].Countdown = &diff
+			} else {
+				// If past due, countdown is 0 or negative
+				diff := val - now
+				orders[i].Countdown = &diff
+			}
+		}
+	}
+
 	return orders, total, err
 }
 
@@ -57,6 +75,14 @@ func (r *ShopeeOrderRepository) FindByOrderSN(ctx context.Context, orderSN strin
 	if err != nil {
 		return nil, err
 	}
+
+	// Calculate countdown
+	if order.ShipByDate != nil {
+		now := time.Now().Unix()
+		diff := *order.ShipByDate - now
+		order.Countdown = &diff
+	}
+
 	return &order, nil
 }
 

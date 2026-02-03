@@ -188,10 +188,18 @@ func (r *GormOrderRepository) getProductImagesFromCache(ctx context.Context, db 
 		return result
 	}
 
-	var products []models.ShopeeProduct
+	// Use temporary struct to handle LocalImages as JSONArray
+	type ProductImage struct {
+		ItemID      int64            `gorm:"column:item_id"`
+		Image       string           `gorm:"column:image"`
+		LocalImages models.JSONArray `gorm:"column:local_images"`
+	}
+
+	var products []ProductImage
 	err := db.WithContext(ctx).
-		Select("item_id, image").
-		Where("item_id IN ? AND image != ''", itemIDs).
+		Model(&models.ShopeeProduct{}).
+		Select("item_id, image, local_images").
+		Where("item_id IN ?", itemIDs).
 		Find(&products).Error
 
 	if err != nil {
@@ -200,8 +208,22 @@ func (r *GormOrderRepository) getProductImagesFromCache(ctx context.Context, db 
 	}
 
 	for _, p := range products {
-		if p.Image != "" {
-			result[p.ItemID] = p.Image
+		imgURL := ""
+
+		// Try local_images first (JSONArray is []interface{})
+		if len(p.LocalImages) > 0 {
+			if path, ok := p.LocalImages[0].(string); ok && path != "" {
+				imgURL = path
+			}
+		}
+
+		// Fallback to image field
+		if imgURL == "" && p.Image != "" {
+			imgURL = p.Image
+		}
+
+		if imgURL != "" {
+			result[p.ItemID] = imgURL
 		}
 	}
 	return result

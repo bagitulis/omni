@@ -87,10 +87,21 @@ func (r *GormOrderRepository) saveTiktokOrderItems(ctx context.Context, db *gorm
 	for _, item := range items {
 		qty := item.Quantity
 		price := item.Price
+
+		// Fix: If product_id is 0, try to find it from tiktok_skus using SKU (SellerSku or SkuID)
+		productID := item.ItemID
+		if productID == 0 && item.SKU != "" {
+			var skuModel models.TiktokSku
+			// Try matching SKU against seller_sku or sku_id
+			if err := db.WithContext(ctx).Where("seller_sku = ? OR sku_id = ?", item.SKU, item.SKU).First(&skuModel).Error; err == nil {
+				productID = int64(skuModel.ProductID)
+			}
+		}
+
 		itemModel := models.TiktokOrderItem{
 			TenantID:      r.tenantID,
 			OrderSN:       orderSN,
-			ProductID:     item.ItemID, // ItemID contains product_id from TikTok API
+			ProductID:     productID, // ItemID contains product_id from TikTok API (or recovered from DB)
 			SellerSku:     item.SKU,
 			ProductName:   item.ProductName,
 			VariationName: item.VariationName,
@@ -169,22 +180,26 @@ func (r *GormOrderRepository) getTiktokOrdersByStatus(ctx context.Context, db *g
 }
 
 // getTiktokProductImagesFromCache fetches product images from tiktok_products table
+// NOTE: productIDs are INTERNAL IDs (tiktok_products.id), not TikTok API product_id strings
 func (r *GormOrderRepository) getTiktokProductImagesFromCache(ctx context.Context, db *gorm.DB, productIDs []int64) map[int64]string {
 	result := make(map[int64]string)
 	if len(productIDs) == 0 {
 		return result
 	}
 
-	// TikTok uses string product_id, we need to convert
-	strProductIDs := make([]string, 0, len(productIDs))
-	for _, id := range productIDs {
-		strProductIDs = append(strProductIDs, fmt.Sprintf("%d", id))
+	// Use temporary struct to handle LocalImages as JSONArray
+	// Query by internal ID (tiktok_products.id), not product_id (TikTok API string)
+	type ProductImage struct {
+		ID          int64            `gorm:"column:id"`
+		Image       string           `gorm:"column:image"`
+		LocalImages models.JSONArray `gorm:"column:local_images"`
 	}
 
-	var products []models.TiktokProduct
+	var products []ProductImage
 	err := db.WithContext(ctx).
-		Select("product_id, image").
-		Where("product_id IN ? AND image != ''", strProductIDs).
+		Model(&models.TiktokProduct{}).
+		Select("id, image, local_images").
+		Where("id IN ?", productIDs).
 		Find(&products).Error
 
 	if err != nil {
@@ -193,13 +208,22 @@ func (r *GormOrderRepository) getTiktokProductImagesFromCache(ctx context.Contex
 	}
 
 	for _, p := range products {
-		if p.Image != "" {
-			// Convert string product_id back to int64 for map key
-			var productID int64
-			fmt.Sscanf(p.ProductID, "%d", &productID)
-			if productID > 0 {
-				result[productID] = p.Image
+		imgURL := ""
+
+		// Try local_images first (JSONArray is []interface{})
+		if len(p.LocalImages) > 0 {
+			if path, ok := p.LocalImages[0].(string); ok && path != "" {
+				imgURL = path
 			}
+		}
+
+		// Fallback to image field
+		if imgURL == "" && p.Image != "" {
+			imgURL = p.Image
+		}
+
+		if imgURL != "" {
+			result[p.ID] = imgURL
 		}
 	}
 	return result
@@ -224,6 +248,14 @@ func (r *GormOrderRepository) flattenTiktokOrders(orderModels []models.TiktokOrd
 			currency = "IDR"
 		}
 
+		// Format countdown from ship_by_date
+		countdown := ""
+		shipByDate := int64(0)
+		if m.ShipByDate != nil && *m.ShipByDate > 0 {
+			shipByDate = *m.ShipByDate
+			countdown = formatShipByDateFromDB(shipByDate)
+		}
+
 		if len(orderItems) == 0 {
 			orders = append(orders, Order{
 				ID:              fmt.Sprintf("%d", m.ID),
@@ -237,6 +269,8 @@ func (r *GormOrderRepository) flattenTiktokOrders(orderModels []models.TiktokOrd
 				PaymentMethod:   m.PaymentMethod,
 				ShippingCarrier: m.ShippingCarrier,
 				BuyerMessage:    m.BuyerMessage,
+				ShipByDate:      shipByDate,
+				Countdown:       countdown,
 				CreatedAt:       m.CreatedAt,
 				UpdatedAt:       m.UpdatedAt,
 			})
@@ -280,6 +314,8 @@ func (r *GormOrderRepository) flattenTiktokOrders(orderModels []models.TiktokOrd
 					Quantity:        qty,
 					Price:           price,
 					ProductImage:    item.ProductImage,
+					ShipByDate:      shipByDate,
+					Countdown:       countdown,
 					CreatedAt:       m.CreatedAt,
 					UpdatedAt:       m.UpdatedAt,
 				})

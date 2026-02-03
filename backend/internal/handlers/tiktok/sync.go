@@ -1,6 +1,8 @@
 package tiktok
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -28,6 +30,47 @@ func NewSyncHandler(basePath string) *SyncHandler {
 // NewSyncHandlerWithCache creates a new sync handler with cache service
 func NewSyncHandlerWithCache(basePath string, cacheService cache.CacheManager) *SyncHandler {
 	return &SyncHandler{basePath: basePath, cacheService: cacheService}
+}
+
+// getTiktokClient creates TikTok API client with tenant-specific credentials
+func (h *SyncHandler) getTiktokClient(tenantID string) (*tiktokPkg.Client, error) {
+	ctx := context.Background()
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use PlatformCredentialsRepository for key-value based config (current schema)
+	credRepo := repositories.NewPlatformCredentialsRepository(db)
+	tenantCreds, err := credRepo.GetTiktokCredentials(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if tenantCreds.AccessToken == "" || tenantCreds.ShopCipher == "" {
+		return nil, fmt.Errorf("missing TikTok credentials: accessToken or shopCipher not configured")
+	}
+
+	// Use tenant credentials for appKey/appSecret if available, otherwise fall back to global
+	appKey := tenantCreds.AppKey
+	appSecret := tenantCreds.AppSecret
+
+	if appKey == "" || appSecret == "" {
+		systemDB, err := config.GetSystemDB(h.basePath)
+		if err != nil {
+			return nil, err
+		}
+		globalRepo := repositories.NewGlobalConfigRepository(systemDB)
+		globalCreds, err := globalRepo.GetTiktokCredentials(ctx)
+		if err != nil {
+			return nil, err
+		}
+		appKey = globalCreds.AppKey
+		appSecret = globalCreds.AppSecret
+	}
+
+	client := tiktokPkg.NewClient(appKey, appSecret)
+	client.SetCredentials(tenantCreds.AccessToken, tenantCreds.ShopCipher)
+	return client, nil
 }
 
 // invalidateAnalyticsCache invalidates analytics cache after sync
@@ -72,21 +115,15 @@ func (h *SyncHandler) SyncOrders(c *gin.Context) {
 		return
 	}
 
-	systemDB, err := config.GetSystemDB(h.basePath)
+	client, err := h.getTiktokClient(tenantID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("System database failed"))
+		log.Error().
+			Err(err).
+			Str("tenant_id", tenantID).
+			Msg("Failed to get TikTok client")
+		c.JSON(http.StatusBadRequest, response.Error("TikTok credentials not configured: "+err.Error()))
 		return
 	}
-
-	configRepo := repositories.NewGlobalConfigRepository(systemDB)
-	creds, _ := configRepo.GetTiktokCredentials(c.Request.Context())
-	if creds.AppKey == "" {
-		c.JSON(http.StatusBadRequest, response.Error("TikTok credentials not configured"))
-		return
-	}
-
-	client := tiktokPkg.NewClient(creds.AppKey, creds.AppSecret)
-	client.SetCredentials(creds.AccessToken, "")
 
 	syncService := tiktokService.NewSyncService(client, db)
 	count, err := syncService.SyncOrders(c.Request.Context(), "")
@@ -118,21 +155,15 @@ func (h *SyncHandler) SyncProducts(c *gin.Context) {
 		return
 	}
 
-	systemDB, err := config.GetSystemDB(h.basePath)
+	client, err := h.getTiktokClient(tenantID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("System database failed"))
+		log.Error().
+			Err(err).
+			Str("tenant_id", tenantID).
+			Msg("Failed to get TikTok client")
+		c.JSON(http.StatusBadRequest, response.Error("TikTok credentials not configured: "+err.Error()))
 		return
 	}
-
-	configRepo := repositories.NewGlobalConfigRepository(systemDB)
-	creds, _ := configRepo.GetTiktokCredentials(c.Request.Context())
-	if creds.AppKey == "" {
-		c.JSON(http.StatusBadRequest, response.Error("TikTok credentials not configured"))
-		return
-	}
-
-	client := tiktokPkg.NewClient(creds.AppKey, creds.AppSecret)
-	client.SetCredentials(creds.AccessToken, "")
 
 	syncService := tiktokService.NewSyncService(client, db)
 	count, err := syncService.SyncProducts(c.Request.Context())

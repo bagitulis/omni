@@ -22,17 +22,19 @@ var (
 
 // SkuMapper handles SKU mapping between Master Product and platforms
 type SkuMapper struct {
-	db       *gorm.DB
-	repo     *repositories.MasterProductRepository
-	tenantID string
+	db              *gorm.DB
+	repo            *repositories.MasterProductRepository
+	imageAggregator *ImageAggregator
+	tenantID        string
 }
 
 // NewSkuMapper creates a new SKU mapper
 func NewSkuMapper(db *gorm.DB, tenantID string) *SkuMapper {
 	return &SkuMapper{
-		db:       db,
-		repo:     repositories.NewMasterProductRepository(db),
-		tenantID: tenantID,
+		db:              db,
+		repo:            repositories.NewMasterProductRepository(db),
+		imageAggregator: NewImageAggregator(db),
+		tenantID:        tenantID,
 	}
 }
 
@@ -219,6 +221,14 @@ func (m *SkuMapper) ManualLink(ctx context.Context, masterSkuID uint, platform, 
 
 	if err := m.repo.CreatePlatformLink(ctx, link); err != nil {
 		return fmt.Errorf("failed to create platform link: %w", err)
+	}
+
+	// Aggregate images from platform product (non-blocking - log error and continue)
+	if err := m.imageAggregator.AggregateImagesForProduct(ctx, sku.MasterProductID); err != nil {
+		log.Warn().
+			Err(err).
+			Uint("master_product_id", sku.MasterProductID).
+			Msg("Failed to aggregate images after link creation")
 	}
 
 	log.Info().

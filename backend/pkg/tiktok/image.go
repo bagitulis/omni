@@ -93,7 +93,7 @@ func (c *Client) uploadImageBytes(imageData []byte, contentType, useCase string)
 	// shop_cipher is NOT added for image upload endpoint
 
 	// Generate signature (no body for multipart)
-	params["sign"] = c.generateSign(apiPath, params, nil)
+	params["sign"] = c.generateSign(apiPath, params)
 
 	// Build URL with params
 	u, _ := url.Parse(BaseURL + apiPath)

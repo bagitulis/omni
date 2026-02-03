@@ -8,7 +8,7 @@ import (
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
-	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services/shopee"
 )
 
 // OrderHandler handles Shopee order HTTP requests
@@ -47,9 +47,9 @@ func (h *OrderHandler) GetOrders(c *gin.Context) {
 		return
 	}
 
-	// Query orders
-	repo := repositories.NewShopeeOrderRepository(db)
-	orders, total, err := repo.FindAll(c.Request.Context(), page, pageSize)
+	// Use Service instead of Repo directly
+	service := shopee.NewOrderService(db)
+	orders, total, err := service.GetOrders(c.Request.Context(), page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to fetch orders"))
 		return
@@ -85,8 +85,8 @@ func (h *OrderHandler) GetOrderByID(c *gin.Context) {
 		return
 	}
 
-	repo := repositories.NewShopeeOrderRepository(db)
-	order, err := repo.FindByOrderSN(c.Request.Context(), orderSN)
+	service := shopee.NewOrderService(db)
+	order, err := service.GetOrderBySN(c.Request.Context(), orderSN)
 	if err != nil {
 		c.JSON(http.StatusNotFound, response.Error("Order not found"))
 		return

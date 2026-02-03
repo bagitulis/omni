@@ -15,9 +15,10 @@ type TiktokOrder struct {
 	Currency        string    `gorm:"column:currency;default:'IDR'" json:"currency,omitempty"`
 	BuyerUsername   string    `gorm:"column:buyer_username" json:"buyer_username,omitempty"`
 	PaymentMethod   string    `gorm:"column:payment_method" json:"payment_method,omitempty"`
-	ShippingCarrier string    `gorm:"column:shipping_carrier" json:"shipping_carrier,omitempty"`
+	ShippingCarrier string    `gorm:"column:shipping_carrier" json:"shipping_carrier"`
 	BuyerMessage    string    `gorm:"column:buyer_message" json:"buyer_message,omitempty"`
-	ShipByDate      *int64    `gorm:"column:ship_by_date" json:"ship_by_date,omitempty"`       // Unix timestamp deadline for shipping
+	ShipByDate      *int64    `gorm:"column:ship_by_date" json:"ship_by_date"` // Unix timestamp deadline for shipping
+	Countdown       *int64    `gorm:"-" json:"countdown"`
 	TrackingNumber  string    `gorm:"column:tracking_number" json:"tracking_number,omitempty"` // Shipping tracking number
 	CreatedAt       time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt       time.Time `gorm:"column:updated_at" json:"updated_at"`
@@ -64,6 +65,7 @@ type TiktokProduct struct {
 	Price       float64   `gorm:"column:price;default:0" json:"price"`
 	Quantity    int       `gorm:"column:quantity;default:0" json:"quantity"`
 	Image       string    `gorm:"column:image" json:"image,omitempty"`
+	LocalImages JSONMap   `gorm:"column:local_images;type:jsonb" json:"local_images"` // Local image paths after download/conversion
 	CreatedAt   time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt   time.Time `gorm:"column:updated_at" json:"updated_at"`
 }

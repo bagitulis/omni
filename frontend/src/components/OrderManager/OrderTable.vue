@@ -173,6 +173,9 @@ interface GroupedOrder {
   total_amount: number;
   currency: string;
   payment_method?: string;
+  shipping_carrier?: string;
+  countdown?: string;
+  ship_by_date?: number;
   items: OrderItem[];
 }
 
@@ -197,6 +200,9 @@ const groupedOrders = computed<GroupedOrder[]>(() => {
         total_amount: item.total_amount || 0,
         currency: item.currency || "IDR",
         payment_method: item.payment_method,
+        shipping_carrier: item.shipping_carrier,
+        countdown: item.countdown,
+        ship_by_date: item.ship_by_date,
         items: [],
       });
     }

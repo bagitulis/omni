@@ -238,6 +238,13 @@ func (m *TiktokOrderManager) GetOrderItems(ctx context.Context, orderIDs []strin
 
 					// Extract product_id for image lookup from product cache
 					productID := getInt64(itemMap, "product_id")
+					if productID == 0 {
+						// Fallback keys for product_id
+						productID = getInt64(itemMap, "item_id")
+					}
+					if productID == 0 {
+						productID = getInt64(itemMap, "combo_id")
+					}
 
 					// Extract product image URL if available from API
 					productImage := getString(itemMap, "product_image")

@@ -225,7 +225,7 @@ func TestJWTService_AccessTokenExpiration(t *testing.T) {
 		t.Fatalf("ValidateAccessToken failed: %v", err)
 	}
 
-	// Access token should expire in ~30 minutes (AccessTokenTTL)
+	// Access token should expire in ~8 hours (AccessTokenTTL)
 	if claims.ExpiresAt == nil {
 		t.Error("ExpiresAt should not be nil")
 		return
@@ -235,9 +235,9 @@ func TestJWTService_AccessTokenExpiration(t *testing.T) {
 	now := time.Now()
 	diff := expiry.Sub(now)
 
-	// Should be between 29 and 31 minutes (with some tolerance)
-	if diff < 29*time.Minute || diff > 31*time.Minute {
-		t.Errorf("Access token expiry diff = %v, expected ~30 minutes", diff)
+	// Should be between 7h59m and 8h01m (with some tolerance)
+	if diff < 7*time.Hour+59*time.Minute || diff > 8*time.Hour+1*time.Minute {
+		t.Errorf("Access token expiry diff = %v, expected ~8 hours", diff)
 	}
 }
 

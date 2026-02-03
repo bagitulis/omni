@@ -680,53 +680,7 @@
         }
       },
       "cachedQuotaUpdatedAt": 1770092584779
-    },
-    {
-      "refreshToken": "1//0gXufnCH3FXOiCgYIARAAGBASNwF-L9Irc8x2Sh8-8TkcOEmbF1cRvz-gfPTreIrWEwCS7VUvwgSdGOQC1JSRwVEEZs96tlUpQdo",
-      "projectId": "exalted-octane-0fcgj",
-      "managedProjectId": "exalted-octane-0fcgj",
-      "addedAt": 1770101170649,
-      "lastUsed": 1770105744363,
-      "fingerprint": {
-        "deviceId": "2e4c711f-9281-4e37-8cc4-89181878dd76",
-        "sessionToken": "018b84db3634bd07a7ab9d06dd8d1ce4",
-        "userAgent": "antigravity/1.15.8 darwin/arm64",
-        "apiClient": "google-cloud-sdk vscode/1.86.0",
-        "clientMetadata": {
-          "ideType": "INTELLIJ",
-          "platform": "MACOS",
-          "pluginType": "GEMINI",
-          "osVersion": "12.6.3",
-          "arch": "arm64",
-          "sqmId": "{7F299967-FD7F-4ABA-83ED-FEAE70727EA6}"
-        },
-        "quotaUser": "device-560cd13d3e28fca5",
-        "createdAt": 1770102578618
-      },
-      "cachedQuota": {
-        "gemini-pro": {
-          "remainingFraction": 0.6,
-          "resetTime": "2026-02-03T11:27:19Z",
-          "modelCount": 3
-        },
-        "gemini-flash": {
-          "remainingFraction": 0.8,
-          "resetTime": "2026-02-03T11:55:04Z",
-          "modelCount": 1
-        },
-        "claude": {
-          "remainingFraction": 0.8,
-          "resetTime": "2026-02-03T12:26:40Z",
-          "modelCount": 3
-        }
-      },
-      "cachedQuotaUpdatedAt": 1770105241545,
-      "rateLimitResetTimes": {}
     }
   ],
-  "activeIndex": 0,
-  "activeIndexByFamily": {
-    "claude": 0,
-    "gemini": 0
-  }
+  "activeIndex": 9
 }

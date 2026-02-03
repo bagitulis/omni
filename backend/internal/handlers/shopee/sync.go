@@ -86,17 +86,30 @@ func (h *SyncHandler) SyncOrders(c *gin.Context) {
 		return
 	}
 
-	// Get credentials from GlobalConfig
-	configRepo := repositories.NewGlobalConfigRepository(systemDB)
-	creds, err := configRepo.GetShopeeCredentials(c.Request.Context())
-	if err != nil || creds.PartnerID == 0 {
-		c.JSON(http.StatusBadRequest, response.Error("Shopee credentials not configured"))
+	// Get credentials from Tenant DB (ShopID, AccessToken)
+	credRepo := repositories.NewPlatformCredentialsRepository(db)
+	tenantCreds, err := credRepo.GetShopeeCredentials(c.Request.Context())
+	if err != nil {
+		log.Warn().Err(err).Str("tenant_id", tenantID).Msg("Failed to get Shopee tenant credentials")
+		c.JSON(http.StatusBadRequest, response.Error("Shopee not configured for this tenant"))
+		return
+	}
+	if tenantCreds.ShopIDInt == 0 || tenantCreds.AccessToken == "" {
+		c.JSON(http.StatusBadRequest, response.Error("Shopee shop not connected - missing shopId or accessToken"))
 		return
 	}
 
-	// Create API client with credentials
-	client := shopeePkg.NewClient(creds.PartnerID, creds.PartnerKey, true)
-	client.SetShopCredentials(creds.ShopID, creds.AccessToken)
+	// Get credentials from GlobalConfig (PartnerID, PartnerKey)
+	configRepo := repositories.NewGlobalConfigRepository(systemDB)
+	globalCreds, err := configRepo.GetShopeeCredentials(c.Request.Context())
+	if err != nil || globalCreds.PartnerID == 0 {
+		c.JSON(http.StatusBadRequest, response.Error("Shopee global credentials not configured"))
+		return
+	}
+
+	// Create API client with combined credentials
+	client := shopeePkg.NewClient(globalCreds.PartnerID, globalCreds.PartnerKey, true)
+	client.SetShopCredentials(tenantCreds.ShopIDInt, tenantCreds.AccessToken)
 
 	// Sync orders
 	syncService := shopeeService.NewSyncServiceWithTenant(client, db, tenantID)
@@ -137,14 +150,27 @@ func (h *SyncHandler) SyncProducts(c *gin.Context) {
 	}
 
 	configRepo := repositories.NewGlobalConfigRepository(systemDB)
-	creds, err := configRepo.GetShopeeCredentials(c.Request.Context())
-	if err != nil || creds.PartnerID == 0 {
-		c.JSON(http.StatusBadRequest, response.Error("Shopee credentials not configured"))
+	globalCreds, err := configRepo.GetShopeeCredentials(c.Request.Context())
+	if err != nil || globalCreds.PartnerID == 0 {
+		c.JSON(http.StatusBadRequest, response.Error("Shopee global credentials not configured"))
 		return
 	}
 
-	client := shopeePkg.NewClient(creds.PartnerID, creds.PartnerKey, true)
-	client.SetShopCredentials(creds.ShopID, creds.AccessToken)
+	// Get credentials from Tenant DB (ShopID, AccessToken)
+	credRepo := repositories.NewPlatformCredentialsRepository(db)
+	tenantCreds, err := credRepo.GetShopeeCredentials(c.Request.Context())
+	if err != nil {
+		log.Warn().Err(err).Str("tenant_id", tenantID).Msg("Failed to get Shopee tenant credentials")
+		c.JSON(http.StatusBadRequest, response.Error("Shopee not configured for this tenant"))
+		return
+	}
+	if tenantCreds.ShopIDInt == 0 || tenantCreds.AccessToken == "" {
+		c.JSON(http.StatusBadRequest, response.Error("Shopee shop not connected - missing shopId or accessToken"))
+		return
+	}
+
+	client := shopeePkg.NewClient(globalCreds.PartnerID, globalCreds.PartnerKey, true)
+	client.SetShopCredentials(tenantCreds.ShopIDInt, tenantCreds.AccessToken)
 
 	syncService := shopeeService.NewSyncServiceWithTenant(client, db, tenantID)
 	count, err := syncService.SyncProducts(c.Request.Context())

@@ -3,8 +3,8 @@ FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies (git needed for go mod)
-RUN apk add --no-cache gcc musl-dev git
+# Install dependencies (git needed for go mod, libwebp-dev for WebP encoding)
+RUN apk add --no-cache gcc musl-dev git libwebp-dev
 
 # Copy go mod files
 COPY go.mod go.sum ./
@@ -24,8 +24,8 @@ FROM alpine:3.19
 
 WORKDIR /app
 
-# Install runtime dependencies including timezone data
-RUN apk add --no-cache ca-certificates sqlite tzdata
+# Install runtime dependencies including timezone data and libwebp for image encoding
+RUN apk add --no-cache ca-certificates sqlite tzdata libwebp
 
 # Set timezone to Asia/Jakarta (WIB - UTC+7)
 ENV TZ=Asia/Jakarta

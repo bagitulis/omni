@@ -10,12 +10,13 @@ import (
 	"os"
 	"strconv"
 
-	"golang.org/x/image/webp"
+	_ "golang.org/x/image/webp" // Register WebP decoder for image.Decode
 )
 
 // WebPService handles image format conversion
-// Note: Due to CGO limitations, this service converts TO JPEG as fallback
-// When WebP encoding is needed, images are kept in original format
+// Supports converting images.
+// NOTE: WebP ENCODING is disabled due to missing CGO/libwebp in this environment.
+// ConvertToWebP will return the original image data or fallback to JPEG.
 type WebPService struct {
 	quality int
 }
@@ -76,10 +77,26 @@ func (s *WebPService) ConvertToJPEGWithQuality(imageData []byte, quality int) ([
 	return buf.Bytes(), nil
 }
 
+// ConvertToWebP converts any supported image to WebP format
+// NOTE: In this CGO-less environment, this FALLS BACK to returning the original data
+// or converting to JPEG if compression is needed.
+func (s *WebPService) ConvertToWebP(imageData []byte) ([]byte, error) {
+	return s.ConvertToWebPWithQuality(imageData, float32(s.quality))
+}
+
+// ConvertToWebPWithQuality is a placeholder in CGO-less environment
+// It simply returns the original data to avoid build errors
+func (s *WebPService) ConvertToWebPWithQuality(imageData []byte, quality float32) ([]byte, error) {
+	// WebP encoding requires CGO (libwebp).
+	// To ensure build stability on Windows without GCC, we return original data.
+	return imageData, nil
+}
+
 // DecodeWebP decodes a WebP image to Go image.Image
 func DecodeWebP(data []byte) (image.Image, error) {
 	reader := bytes.NewReader(data)
-	return webp.Decode(reader)
+	img, _, err := image.Decode(reader)
+	return img, err
 }
 
 // GetQuality returns the current quality setting

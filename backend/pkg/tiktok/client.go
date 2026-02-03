@@ -42,10 +42,16 @@ func (c *Client) SetCredentials(accessToken, shopCipher string) {
 	c.shopCipher = shopCipher
 }
 
-// generateSign creates signature for TikTok API
-// Mirrors Node.js implementation: tiktok_sdk/utils/generate-sign.ts
-// Signature format: HMAC-SHA256(appSecret, appSecret + path + sortedParams + bodyJSON + appSecret)
-func (c *Client) generateSign(path string, params map[string]string, body interface{}) string {
+// generateSign creates signature for TikTok API (without body)
+// Format: HMAC-SHA256(appSecret, appSecret + path + sortedParams + appSecret)
+func (c *Client) generateSign(path string, params map[string]string) string {
+	return c.generateSignWithBody(path, params, nil)
+}
+
+// generateSignWithBody creates signature for TikTok API with raw body bytes
+// This matches the official TikTok SDK signature algorithm
+// Format: HMAC-SHA256(appSecret, appSecret + path + sortedParams + bodyBytes + appSecret)
+func (c *Client) generateSignWithBody(path string, params map[string]string, bodyBytes []byte) string {
 	// Sort keys, excluding 'sign' and 'access_token'
 	keys := make([]string, 0, len(params))
 	for k := range params {
@@ -62,28 +68,31 @@ func (c *Client) generateSign(path string, params map[string]string, body interf
 		paramString.WriteString(params[k])
 	}
 
-	// Build sign string: pathname + paramString + bodyJSON (if present)
+	// Build sign string: path + sortedParams + body (matches official SDK)
 	var signString strings.Builder
 	signString.WriteString(path)
 	signString.WriteString(paramString.String())
 
-	// Append body JSON if not nil/empty
-	if body != nil {
-		bodyBytes, err := json.Marshal(body)
-		if err == nil && len(bodyBytes) > 2 { // > 2 means not empty "{}"
-			signString.Write(bodyBytes)
-		}
+	// Append raw body bytes if present (critical: use exact bytes, not re-marshaled)
+	if len(bodyBytes) > 0 {
+		signString.Write(bodyBytes)
 	}
 
 	// Wrap with appSecret: appSecret + signString + appSecret
-	var sb strings.Builder
-	sb.WriteString(c.appSecret)
-	sb.WriteString(signString.String())
-	sb.WriteString(c.appSecret)
+	finalInput := c.appSecret + signString.String() + c.appSecret
+
+	// Debug: log signature input
+	fmt.Printf("[TikTok Sign Debug] path=%s, params=%s, body_len=%d\n", path, paramString.String(), len(bodyBytes))
+	fmt.Printf("[TikTok Sign Debug] finalInput (first 200 chars): %s...\n", func() string {
+		if len(finalInput) > 200 {
+			return finalInput[:200]
+		}
+		return finalInput
+	}())
 
 	// HMAC-SHA256
 	h := hmac.New(sha256.New, []byte(c.appSecret))
-	h.Write([]byte(sb.String()))
+	h.Write([]byte(finalInput))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
@@ -102,14 +111,16 @@ func (c *Client) doRequest(method, apiPath string, params map[string]string, res
 	}
 
 	// Debug: log params before signing
-	fmt.Printf("[TikTok API Debug] %s %s - shop_cipher=%s, token_prefix=%s\n", 
+	fmt.Printf("[TikTok API Debug] %s %s - shop_cipher=%s, token_prefix=%s\n",
 		method, apiPath, c.shopCipher, func() string {
-			if len(c.accessToken) > 20 { return c.accessToken[:20] }
+			if len(c.accessToken) > 20 {
+				return c.accessToken[:20]
+			}
 			return c.accessToken
 		}())
 
 	// Generate signature (no body for GET requests)
-	params["sign"] = c.generateSign(apiPath, params, nil)
+	params["sign"] = c.generateSign(apiPath, params)
 
 	// Build URL
 	u, _ := url.Parse(BaseURL + apiPath)
@@ -157,8 +168,19 @@ func (c *Client) doRequestWithBody(method, apiPath string, params map[string]str
 		params["shop_cipher"] = c.shopCipher
 	}
 
-	// Generate signature WITH body included (critical for TikTok POST requests)
-	params["sign"] = c.generateSign(apiPath, params, body)
+	// CRITICAL: Marshal body ONCE and use same bytes for signature AND request
+	// This fixes the signature mismatch issue where re-marshaling could produce different JSON
+	var bodyBytes []byte
+	var err error
+	if body != nil {
+		bodyBytes, err = json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("failed to marshal body: %w", err)
+		}
+	}
+
+	// Generate signature using raw body bytes (matches official TikTok SDK)
+	params["sign"] = c.generateSignWithBody(apiPath, params, bodyBytes)
 
 	// Build URL
 	u, _ := url.Parse(BaseURL + apiPath)
@@ -168,12 +190,7 @@ func (c *Client) doRequestWithBody(method, apiPath string, params map[string]str
 	}
 	u.RawQuery = q.Encode()
 
-	// Marshal body
-	bodyBytes, err := json.Marshal(body)
-	if err != nil {
-		return err
-	}
-
+	// Use the SAME bodyBytes for request (critical for signature match)
 	req, err := http.NewRequest(method, u.String(), strings.NewReader(string(bodyBytes)))
 	if err != nil {
 		return err
@@ -194,6 +211,10 @@ func (c *Client) doRequestWithBody(method, apiPath string, params map[string]str
 	if err != nil {
 		return err
 	}
+
+	// Debug: log response for troubleshooting
+	fmt.Printf("[TikTok API Response] %s %s - status=%d, body_len=%d, body=%s\n",
+		method, apiPath, resp.StatusCode, len(respBody), string(respBody))
 
 	return json.Unmarshal(respBody, result)
 }

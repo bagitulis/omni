@@ -24,7 +24,7 @@ type ImageHandler struct {
 func NewImageHandler(db *gorm.DB) *ImageHandler {
 	basePath := os.Getenv("UPLOAD_PATH")
 	if basePath == "" {
-		basePath = "uploads/images"
+		basePath = "uploads"
 	}
 	return &ImageHandler{
 		fallbackDB:     db,

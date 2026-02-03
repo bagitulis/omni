@@ -104,8 +104,8 @@ func TestHealthEndpoint(t *testing.T) {
 		t.Errorf("Failed to parse response: %v", err)
 	}
 
-	if status, ok := result["status"].(string); !ok || status != "ok" {
-		t.Errorf("Expected status 'ok', got %v", result["status"])
+	if status, ok := result["status"].(string); !ok || status != "healthy" {
+		t.Errorf("Expected status 'healthy', got %v", result["status"])
 	}
 }
 

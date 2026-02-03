@@ -135,10 +135,18 @@ func (r *GormOrderRepository) getLazadaProductImagesFromCache(ctx context.Contex
 		return result
 	}
 
-	var products []models.LazadaProduct
+	// Use temporary struct to handle LocalImages as JSONArray
+	type ProductImage struct {
+		ItemID      string           `gorm:"column:item_id"`
+		Image       string           `gorm:"column:image"`
+		LocalImages models.JSONArray `gorm:"column:local_images"`
+	}
+
+	var products []ProductImage
 	err := db.WithContext(ctx).
-		Select("item_id, image").
-		Where("item_id IN ? AND image != ''", itemIDs).
+		Model(&models.LazadaProduct{}).
+		Select("item_id, image, local_images").
+		Where("item_id IN ?", itemIDs).
 		Find(&products).Error
 
 	if err != nil {
@@ -147,8 +155,22 @@ func (r *GormOrderRepository) getLazadaProductImagesFromCache(ctx context.Contex
 	}
 
 	for _, p := range products {
-		if p.Image != "" {
-			result[p.ItemID] = p.Image
+		imgURL := ""
+
+		// Try local_images first (JSONArray is []interface{})
+		if len(p.LocalImages) > 0 {
+			if path, ok := p.LocalImages[0].(string); ok && path != "" {
+				imgURL = path
+			}
+		}
+
+		// Fallback to image field
+		if imgURL == "" && p.Image != "" {
+			imgURL = p.Image
+		}
+
+		if imgURL != "" {
+			result[p.ItemID] = imgURL
 		}
 	}
 	return result
@@ -161,15 +183,39 @@ func (r *GormOrderRepository) flattenLazadaOrders(orderModels []models.LazadaOrd
 	for _, m := range orderModels {
 		orderItems := itemsByOrder[m.OrderSN]
 
+		// Get total amount, currency, buyer username from order model
+		totalAmount := float64(0)
+		if m.TotalAmount != nil {
+			totalAmount = *m.TotalAmount
+		}
+
+		currency := m.Currency
+		if currency == "" {
+			currency = "IDR"
+		}
+
+		// Format countdown from ship_by_date
+		countdown := ""
+		shipByDate := int64(0)
+		if m.ShipByDate != nil && *m.ShipByDate > 0 {
+			shipByDate = *m.ShipByDate
+			countdown = formatShipByDateFromDB(shipByDate)
+		}
+
 		if len(orderItems) == 0 {
 			orders = append(orders, Order{
-				ID:        fmt.Sprintf("%d", m.ID),
-				OrderSN:   m.OrderSN,
-				OrderNo:   m.OrderSN,
-				Platform:  strings.ToUpper("lazada"),
-				Status:    m.OrderStatus,
-				CreatedAt: m.CreatedAt,
-				UpdatedAt: m.UpdatedAt,
+				ID:            fmt.Sprintf("%d", m.ID),
+				OrderSN:       m.OrderSN,
+				OrderNo:       m.OrderSN,
+				Platform:      strings.ToUpper("lazada"),
+				Status:        m.OrderStatus,
+				TotalAmount:   totalAmount,
+				Currency:      currency,
+				BuyerUsername: m.BuyerUsername,
+				ShipByDate:    shipByDate,
+				Countdown:     countdown,
+				CreatedAt:     m.CreatedAt,
+				UpdatedAt:     m.UpdatedAt,
 			})
 		} else {
 			for _, item := range orderItems {
@@ -184,11 +230,16 @@ func (r *GormOrderRepository) flattenLazadaOrders(orderModels []models.LazadaOrd
 					OrderNo:       m.OrderSN,
 					Platform:      strings.ToUpper("lazada"),
 					Status:        m.OrderStatus,
+					TotalAmount:   totalAmount,
+					Currency:      currency,
+					BuyerUsername: m.BuyerUsername,
+					ShipByDate:    shipByDate,
 					SKU:           item.SellerSku,
 					ProductName:   item.ProductName,
 					VariationName: item.VariationName,
 					Quantity:      qty,
 					ProductImage:  item.ProductImage,
+					Countdown:     countdown,
 					CreatedAt:     m.CreatedAt,
 					UpdatedAt:     m.UpdatedAt,
 				})

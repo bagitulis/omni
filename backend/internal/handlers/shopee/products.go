@@ -92,7 +92,7 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"success":      true,
-		"products":     products,
+		"data":         products,
 		"total":        len(products),
 		"detail_saved": savedCount,
 	})
@@ -115,8 +115,8 @@ func (h *ProductHandler) GetProductByID(c *gin.Context) {
 		return
 	}
 
-	repo := repositories.NewShopeeProductRepository(db)
-	product, err := repo.FindByItemID(c.Request.Context(), itemID)
+	service := shopeeService.NewProductService(db)
+	product, err := service.GetProductByItemID(c.Request.Context(), itemID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, response.Error("Product not found"))
 		return

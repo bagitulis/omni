@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"time"
 
 	"github.com/omni/backend/internal/models"
 	"gorm.io/gorm"
@@ -31,6 +32,15 @@ func (r *LazadaOrderRepository) FindAll(ctx context.Context, page, pageSize int)
 		Limit(pageSize).
 		Find(&orders).Error
 
+	// Calculate countdown
+	now := time.Now().Unix()
+	for i := range orders {
+		if orders[i].ShipByDate != nil {
+			diff := *orders[i].ShipByDate - now
+			orders[i].Countdown = &diff
+		}
+	}
+
 	return orders, total, err
 }
 
@@ -41,6 +51,14 @@ func (r *LazadaOrderRepository) FindByOrderID(ctx context.Context, orderID strin
 	if err != nil {
 		return nil, err
 	}
+
+	// Calculate countdown
+	if order.ShipByDate != nil {
+		now := time.Now().Unix()
+		diff := *order.ShipByDate - now
+		order.Countdown = &diff
+	}
+
 	return &order, nil
 }
 

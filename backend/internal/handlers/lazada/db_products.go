@@ -26,15 +26,16 @@ func NewDBProductHandler(basePath string) *DBProductHandler {
 // FlattenedSkuRow represents a flattened SKU row for frontend display
 // Format matches frontend productManagerConfig.ts lazadaConfig (snake_case)
 type FlattenedSkuRow struct {
-	ItemID      string  `json:"item_id"`              // Product item_id
-	SkuID       string  `json:"sku_id"`               // SKU ID from Lazada
-	SkuName     string  `json:"sku_name"`             // seller_sku
-	ItemName    string  `json:"item_name"`            // Product name
-	VariantName string  `json:"variant_name"`         // Variant name
-	Price       float64 `json:"price"`                // Current price
-	Quantity    int     `json:"quantity"`             // Stock quantity
-	Status      string  `json:"status"`               // Product status
-	UpdatedAt   string  `json:"updated_at"`           // Last update time
+	ItemID      string         `json:"item_id"`      // Product item_id
+	SkuID       string         `json:"sku_id"`       // SKU ID from Lazada
+	SkuName     string         `json:"sku_name"`     // seller_sku
+	ItemName    string         `json:"item_name"`    // Product name
+	VariantName string         `json:"variant_name"` // Variant name
+	Price       float64        `json:"price"`        // Current price
+	Quantity    int            `json:"quantity"`     // Stock quantity
+	Status      string         `json:"status"`       // Product status
+	LocalImages models.JSONMap `json:"local_images"` // Local image paths
+	UpdatedAt   string         `json:"updated_at"`   // Last update time
 }
 
 // GetDBProducts handles GET /api/lazada/db/products
@@ -130,6 +131,7 @@ func (h *DBProductHandler) getFlattenedSkuRows(db *gorm.DB, offset, limit int) (
 		if product, ok := productMap[sku.ItemID]; ok {
 			row.ItemName = product.Name
 			row.Status = product.Status
+			row.LocalImages = product.LocalImages
 		}
 		result = append(result, row)
 	}
@@ -148,12 +150,13 @@ func (h *DBProductHandler) getProductsAsFlattenedRows(db *gorm.DB, offset, limit
 	result := make([]FlattenedSkuRow, 0, len(products))
 	for _, p := range products {
 		row := FlattenedSkuRow{
-			ItemID:    p.ItemID,
-			ItemName:  p.Name,
-			Price:     p.Price,
-			Quantity:  p.Quantity,
-			Status:    p.Status,
-			UpdatedAt: p.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			ItemID:      p.ItemID,
+			ItemName:    p.Name,
+			Price:       p.Price,
+			Quantity:    p.Quantity,
+			Status:      p.Status,
+			LocalImages: p.LocalImages,
+			UpdatedAt:   p.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}
 		result = append(result, row)
 	}

@@ -1,15 +1,16 @@
 {
   "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
   "google_auth": false,
-  "default_model": "google/antigravity-claude-opus-4-5-thinking",
+  "default_model": "google/antigravity-gemini-3-pro",
+  "variant": "high",
 
   "agents": {
     "sisyphus": {
       "model": "google/antigravity-claude-opus-4-5-thinking",
-      "variant": "max"
+      "variant": "high"
     },
     "prometheus": {
-      "model": "google/antigravity-claude-opus-4-5-thinking",
+      "model": "google/antigravity-claude-sonnet-4-5-thinking",
       "variant": "max"
     },
     "oracle": {
@@ -17,7 +18,7 @@
       "variant": "high"
     },
     "atlas": {
-      "model": "google/antigravity-claude-opus-4-5-thinking",
+      "model": "google/antigravity-claude-sonnet-4-5-thinking",
       "variant": "max"
     },
     "librarian": {
@@ -80,7 +81,7 @@
       "variant": "high"
     },
     "implementation": {
-      "model": "google/antigravity-claude-opus-4-5-thinking",
+      "model": "google/antigravity-claude-sonnet-4-5-thinking",
       "variant": "max"
     },
     "review": {

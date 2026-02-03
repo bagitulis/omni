@@ -38,7 +38,8 @@
       "variant": "high"
     },
     "sisyphus-junior": {
-      "model": "github-copilot/gemini-3-pro-preview"
+      "model": "google/antigravity-gemini-3-pro",
+      "variant": "high"
     },
     "hephaestus": {
       "model": "github-copilot/claude-sonnet-4.5"

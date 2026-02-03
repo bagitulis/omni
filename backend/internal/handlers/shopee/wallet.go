@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/dto/response"
+	"github.com/omni/backend/internal/middleware"
 	shopeeService "github.com/omni/backend/internal/services/shopee"
 )
 
@@ -20,9 +22,9 @@ func NewWalletHandler(getAPIClient func(tenantID string) shopeeService.APIClient
 
 // GetBalance handles GET /api/shopee/wallet/balance
 func (h *WalletHandler) GetBalance(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
@@ -31,18 +33,18 @@ func (h *WalletHandler) GetBalance(c *gin.Context) {
 
 	balance, err := svc.GetBalance(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": balance})
+	c.JSON(http.StatusOK, response.Success(balance))
 }
 
 // GetTransactions handles GET /api/shopee/wallet/transactions
 func (h *WalletHandler) GetTransactions(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
@@ -56,7 +58,7 @@ func (h *WalletHandler) GetTransactions(c *gin.Context) {
 	if startStr != "" {
 		startDate, err = time.Parse("2006-01-02", startStr)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid start_date format"})
+			c.JSON(http.StatusBadRequest, response.Error("Invalid start_date format"))
 			return
 		}
 	} else {
@@ -66,7 +68,7 @@ func (h *WalletHandler) GetTransactions(c *gin.Context) {
 	if endStr != "" {
 		endDate, err = time.Parse("2006-01-02", endStr)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid end_date format"})
+			c.JSON(http.StatusBadRequest, response.Error("Invalid end_date format"))
 			return
 		}
 	} else {
@@ -86,18 +88,18 @@ func (h *WalletHandler) GetTransactions(c *gin.Context) {
 
 	result, err := svc.GetTransactions(c.Request.Context(), filter)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+	c.JSON(http.StatusOK, response.Success(result))
 }
 
 // GetNetIncome handles GET /api/shopee/wallet/income
 func (h *WalletHandler) GetNetIncome(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
@@ -110,7 +112,7 @@ func (h *WalletHandler) GetNetIncome(c *gin.Context) {
 	if startStr != "" {
 		startDate, err = time.Parse("2006-01-02", startStr)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid start_date format"})
+			c.JSON(http.StatusBadRequest, response.Error("Invalid start_date format"))
 			return
 		}
 	} else {
@@ -120,7 +122,7 @@ func (h *WalletHandler) GetNetIncome(c *gin.Context) {
 	if endStr != "" {
 		endDate, err = time.Parse("2006-01-02", endStr)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid end_date format"})
+			c.JSON(http.StatusBadRequest, response.Error("Invalid end_date format"))
 			return
 		}
 	} else {
@@ -132,9 +134,9 @@ func (h *WalletHandler) GetNetIncome(c *gin.Context) {
 
 	income, err := svc.CalculateNetIncome(c.Request.Context(), startDate, endDate)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": income})
+	c.JSON(http.StatusOK, response.Success(income))
 }

@@ -2,27 +2,38 @@ package lazada
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"os"
 	"time"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services/image"
 	lazadaPkg "github.com/omni/backend/pkg/lazada"
+	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 )
 
 // SyncService handles syncing data from Lazada API
 type SyncService struct {
-	client    *lazadaPkg.Client
-	orderRepo *repositories.LazadaOrderRepository
-	prodRepo  *repositories.LazadaProductRepository
-	tenantID  string
+	client         *lazadaPkg.Client
+	db             *gorm.DB
+	orderRepo      *repositories.LazadaOrderRepository
+	prodRepo       *repositories.LazadaProductRepository
+	tenantID       string
+	storageService *image.StorageService
+	webpService    *image.WebPService
 }
 
 // NewSyncService creates a new sync service
 func NewSyncService(client *lazadaPkg.Client, db *gorm.DB) *SyncService {
 	return &SyncService{
 		client:    client,
+		db:        db,
 		orderRepo: repositories.NewLazadaOrderRepository(db),
 		prodRepo:  repositories.NewLazadaProductRepository(db),
 	}
@@ -30,11 +41,18 @@ func NewSyncService(client *lazadaPkg.Client, db *gorm.DB) *SyncService {
 
 // NewSyncServiceWithTenant creates a new sync service with tenant ID
 func NewSyncServiceWithTenant(client *lazadaPkg.Client, db *gorm.DB, tenantID string) *SyncService {
+	basePath := os.Getenv("UPLOAD_PATH")
+	if basePath == "" {
+		basePath = "uploads"
+	}
 	return &SyncService{
-		client:    client,
-		orderRepo: repositories.NewLazadaOrderRepository(db),
-		prodRepo:  repositories.NewLazadaProductRepository(db),
-		tenantID:  tenantID,
+		client:         client,
+		db:             db,
+		orderRepo:      repositories.NewLazadaOrderRepository(db),
+		prodRepo:       repositories.NewLazadaProductRepository(db),
+		tenantID:       tenantID,
+		storageService: image.NewStorageService(basePath),
+		webpService:    image.NewWebPService(),
 	}
 }
 
@@ -87,9 +105,11 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 
 	count := 0
 	for _, prod := range resp.Data.Products {
+		itemID := prod.ItemID.String()
+
 		dbProd := &models.LazadaProduct{
 			TenantID:    s.tenantID,
-			ItemID:      prod.ItemID.String(),
+			ItemID:      itemID,
 			Name:        prod.Name,
 			Description: prod.Description,
 			Price:       prod.Price,
@@ -98,6 +118,18 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 
 		if err := s.prodRepo.Upsert(ctx, dbProd); err == nil {
 			count++
+
+			// Download and save product images locally
+			if len(prod.Images) > 0 && s.storageService != nil {
+				// Get saved product to get its ID
+				savedProd, _ := s.prodRepo.FindByItemID(ctx, itemID)
+				if savedProd != nil {
+					localPaths := s.downloadAndSaveProductImages(ctx, itemID, prod.Images)
+					if len(localPaths) > 0 {
+						s.updateProductLocalImages(ctx, savedProd.ID, localPaths)
+					}
+				}
+			}
 		}
 	}
 
@@ -170,6 +202,18 @@ func (s *SyncService) SyncProductsWithDetails(ctx context.Context, offset, limit
 				log.Printf("[Lazada Sync] Failed to upsert product %s: %v", itemID, err)
 			} else {
 				savedProductCount++
+
+				// Download and save product images locally
+				if len(prod.Images) > 0 && s.storageService != nil {
+					// Get saved product to get its ID
+					savedProd, _ := s.prodRepo.FindByItemID(ctx, itemID)
+					if savedProd != nil {
+						localPaths := s.downloadAndSaveProductImages(ctx, itemID, prod.Images)
+						if len(localPaths) > 0 {
+							s.updateProductLocalImages(ctx, savedProd.ID, localPaths)
+						}
+					}
+				}
 			}
 
 			// Save SKUs to database
@@ -246,4 +290,113 @@ func (s *SyncService) SyncProductsWithDetails(ctx context.Context, offset, limit
 	log.Printf("[Lazada Sync] Completed - products: %d, skus: %d, total rows: %d", savedProductCount, savedSkuCount, len(allProducts))
 
 	return allProducts, savedProductCount, nil
+}
+
+// downloadAndSaveProductImages downloads product images and saves locally
+// Returns slice of local paths. Errors are logged but don't break sync.
+func (s *SyncService) downloadAndSaveProductImages(ctx context.Context, itemID string, imageURLs []string) []string {
+	var localPaths []string
+
+	zlog := zerolog.Ctx(ctx)
+	if zlog == nil {
+		zlog = &zerolog.Logger{}
+	}
+
+	for i, url := range imageURLs {
+		if url == "" {
+			continue
+		}
+
+		// Download image
+		data, err := s.downloadImage(ctx, url)
+		if err != nil {
+			zlog.Warn().
+				Str("service", "lazada_sync").
+				Int("image_index", i).
+				Str("item_id", itemID).
+				Err(err).
+				Msg("Failed to download image")
+			continue
+		}
+
+		// Convert to WebP (graceful - fallback to original if fails)
+		webpData, err := s.webpService.ConvertToWebP(data)
+		if err != nil {
+			webpData = data
+		}
+
+		// Generate filename: lazada_{item_id}_{index}.webp
+		filename := fmt.Sprintf("lazada_%s_%d.webp", itemID, i)
+
+		// Save locally
+		localPath, err := s.storageService.SaveImage(s.tenantID, "products", filename, webpData)
+		if err != nil {
+			zlog.Warn().
+				Str("service", "lazada_sync").
+				Int("image_index", i).
+				Str("item_id", itemID).
+				Err(err).
+				Msg("Failed to save image")
+			continue
+		}
+
+		localPaths = append(localPaths, localPath)
+	}
+
+	return localPaths
+}
+
+// downloadImage fetches image data from URL
+func (s *SyncService) downloadImage(ctx context.Context, url string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("http status: %d", resp.StatusCode)
+	}
+
+	return io.ReadAll(resp.Body)
+}
+
+// updateProductLocalImages updates the product with local image paths
+func (s *SyncService) updateProductLocalImages(ctx context.Context, productID uint, localPaths []string) {
+	if len(localPaths) == 0 {
+		return
+	}
+
+	zlog := zerolog.Ctx(ctx)
+	if zlog == nil {
+		zlog = &zerolog.Logger{}
+	}
+
+	// Convert to JSON
+	pathsJSON, err := json.Marshal(localPaths)
+	if err != nil {
+		zlog.Warn().
+			Str("service", "lazada_sync").
+			Err(err).
+			Msg("Failed to marshal local paths")
+		return
+	}
+
+	// Update product
+	err = s.db.Model(&models.LazadaProduct{}).
+		Where("id = ?", productID).
+		Update("local_images", pathsJSON).Error
+	if err != nil {
+		zlog.Warn().
+			Str("service", "lazada_sync").
+			Uint("product_id", productID).
+			Err(err).
+			Msg("Failed to update local_images")
+	}
 }

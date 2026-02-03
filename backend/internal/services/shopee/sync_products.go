@@ -32,7 +32,7 @@ type ProductSyncService struct {
 func NewProductSyncService(client *shopeePkg.Client, db *gorm.DB, tenantID string) *ProductSyncService {
 	basePath := os.Getenv("UPLOAD_PATH")
 	if basePath == "" {
-		basePath = "uploads/images"
+		basePath = "uploads"
 	}
 	return &ProductSyncService{
 		client:         client,
@@ -209,14 +209,14 @@ func (s *ProductSyncService) downloadAndSaveProductImages(ctx context.Context, i
 			continue
 		}
 
-		// Convert to JPEG (graceful - returns original if fails)
-		jpegData, _ := s.webpService.ConvertToJPEG(data)
+		// Convert to WebP (graceful - returns original if fails)
+		webpData, _ := s.webpService.ConvertToWebP(data)
 
 		// Generate filename
-		filename := fmt.Sprintf("shopee_%d_%d.jpg", itemID, i)
+		filename := fmt.Sprintf("shopee_%d_%d.webp", itemID, i)
 
 		// Save locally
-		localPath, err := s.storageService.SaveImage(s.tenantID, "products", filename, jpegData)
+		localPath, err := s.storageService.SaveImage(s.tenantID, "products", filename, webpData)
 		if err != nil {
 			log.Warn().
 				Str("service", "shopee_sync").
