@@ -798,3 +798,4 @@
 2026/01/31 22:59:16 [emerg] 1#1: "location" directive is not allowed here in /etc/nginx/conf.d/uploads.conf:2
 2026/01/31 23:54:15 [error] 21#21: *450 access forbidden by rule, client: 172.18.0.6, server: _, request: "GET /.vscode/env.js HTTP/1.1", host: "yndigital.my.id"
 2026/01/31 23:54:15 [error] 21#21: *450 access forbidden by rule, client: 172.18.0.6, server: _, request: "GET /.env HTTP/1.1", host: "yndigital.my.id"
+2026/02/03 13:40:22 [error] 21#21: *286 access forbidden by rule, client: 172.18.0.7, server: _, request: "GET /.env HTTP/1.1", host: "yndigital.my.id"
