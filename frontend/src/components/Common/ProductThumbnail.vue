@@ -1,13 +1,8 @@
 <template>
   <div class="product-thumbnail" :class="size">
-    <!-- Loading skeleton -->
-    <div v-if="isLoading" class="skeleton-loader">
-      <div class="skeleton-pulse"></div>
-    </div>
-
     <!-- Actual image -->
     <img
-      v-else-if="!hasError && imageUrl"
+      v-if="!hasError && imageUrl"
       :src="imageUrl"
       :alt="alt"
       class="product-img"
@@ -17,8 +12,13 @@
       @load="handleImageLoad"
     />
 
+    <!-- Loading skeleton -->
+    <div v-if="isLoading" class="skeleton-loader">
+      <div class="skeleton-pulse"></div>
+    </div>
+
     <!-- Fallback placeholder -->
-    <div v-else class="image-placeholder">
+    <div v-else-if="hasError || !imageUrl" class="image-placeholder">
       <Icon name="image" size="lg" />
     </div>
   </div>
@@ -88,8 +88,8 @@ const handleImageLoad = () => {
 
 watch(
   () => props.src,
-  () => {
-    isLoading.value = true;
+  (value) => {
+    isLoading.value = Boolean(value);
     hasError.value = false;
   },
   { immediate: true },
@@ -127,14 +127,19 @@ watch(
   object-fit: cover;
   display: block;
   transition: opacity 0.2s ease;
+  position: relative;
+  z-index: 0;
 }
 
 .skeleton-loader {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
   background-size: 200% 100%;
   animation: loading 1.5s ease-in-out infinite;
+  z-index: 1;
 }
 
 .image-placeholder {
@@ -145,6 +150,8 @@ watch(
   justify-content: center;
   color: #bdbdbd;
   font-size: 1.25rem;
+  position: absolute;
+  inset: 0;
 }
 
 @keyframes loading {
