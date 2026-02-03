@@ -243,7 +243,9 @@ const getTableTitle = computed(() => {
 /* Shopee Table Header - must match OrderRow.vue grid */
 .shopee-table-header {
   display: grid;
-  grid-template-columns: 2.5fr 1fr 0.8fr 1fr 1fr 1fr;
+  grid-template-columns:
+    minmax(200px, 2.5fr) minmax(100px, 1fr) 0.8fr minmax(100px, 1fr)
+    minmax(100px, 1fr) 1fr;
   gap: var(--om-spacing-md);
   padding: var(--om-spacing-md);
   background: var(--om-bg-secondary);
@@ -273,7 +275,10 @@ const getTableTitle = computed(() => {
 
 @media (max-width: 1200px) {
   .shopee-table-header {
-    grid-template-columns: 2fr 1fr 0.8fr 1fr 1fr 1fr;
+    grid-template-columns: minmax(150px, 2fr) minmax(80px, 1fr) 0.8fr minmax(
+        80px,
+        1fr
+      ) minmax(80px, 1fr) 1fr;
     gap: var(--om-spacing-sm);
     padding: var(--om-spacing-sm);
   }

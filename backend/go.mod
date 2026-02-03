@@ -3,6 +3,7 @@ module github.com/omni/backend
 go 1.24.5
 
 require (
+	github.com/chai2010/webp v1.4.0
 	github.com/chromedp/cdproto v0.0.0-20250803210736-d308e07a266d
 	github.com/chromedp/chromedp v0.14.2
 	github.com/fernet/fernet-go v0.0.0-20240119011108-303da6aec611

@@ -79,17 +79,17 @@
 }
 
 .stat-card.shopee {
-  border-left-color: #ff5722;
+  border-left-color: var(--om-platform-shopee);
   background: linear-gradient(135deg, #fff8f5 0%, #ffe8df 100%);
 }
 
 .stat-card.lazada {
-  border-left-color: #0066cc;
+  border-left-color: var(--om-platform-lazada);
   background: linear-gradient(135deg, #f3f7ff 0%, #e6efff 100%);
 }
 
 .stat-card.tiktok {
-  border-left-color: #111111;
+  border-left-color: var(--om-platform-tiktok);
   background: linear-gradient(135deg, #f7f7f7 0%, #ededed 100%);
 }
 
@@ -157,10 +157,11 @@
   text-transform: uppercase;
   display: inline-flex;
   align-items: center;
+  justify-content: center; /* Center content */
   gap: 0.5rem;
   transition: all var(--om-transition-fast);
   white-space: nowrap;
-  height: 36px;
+  min-height: 36px; /* Use min-height instead of fixed height */
 }
 
 .btn-text {
@@ -239,7 +240,7 @@
   }
 
   .stat-card {
-    padding: 14px;
+    padding: var(--om-spacing-md); /* Consistent padding */
   }
 
   .stat-icon {
@@ -255,17 +256,17 @@
   .order-controls {
     flex-direction: column;
     align-items: stretch;
+    gap: var(--om-spacing-md); /* Increased gap */
+  }
+
+  .order-controls .order-actions {
+    margin-left: 0; /* Reset margin */
+    width: 100%;
   }
 
   .order-tabs {
     flex-direction: column;
     gap: 8px;
-  }
-
-  .order-actions {
-    flex-direction: column;
-    gap: 8px;
-    width: 100%;
   }
 
   .btn-refresh,

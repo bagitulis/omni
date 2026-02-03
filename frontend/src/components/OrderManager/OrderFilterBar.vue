@@ -230,7 +230,7 @@ const resetFilters = () => {
 .platform-select,
 .shipping-select {
   width: 100%;
-  padding: 0.6rem 0.9rem;
+  padding: 0.65rem 0.95rem; /* Match input padding */
   border: 1px solid var(--om-border);
   border-radius: var(--om-radius-md);
   font-size: var(--om-font-sm);
@@ -239,6 +239,12 @@ const resetFilters = () => {
   transition:
     border-color var(--om-transition-fast),
     box-shadow var(--om-transition-fast);
+  appearance: none; /* Remove default arrow */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23757575'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  padding-right: 2.5rem; /* Space for arrow */
 }
 
 .platform-select:focus,

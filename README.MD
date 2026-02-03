@@ -31,6 +31,4 @@ Catatan: Bukti harus relevan langsung dengan inti masalah yang didiskusikan. Buk
 
 AI Harus: Pelajari flow backend Golang + PostgreSQL, SDK Shopee/TikTok/Lazada Golang, dan pemanggilan route dari Frontend. Perhatikan juga masalah penggunaan snake_case dan camelCase.
 
-terakhir evaluasi total ya termasuk layout UI UX nya dan patuhi aturan agents.md
-
 ---

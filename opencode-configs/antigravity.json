@@ -9,7 +9,7 @@
   "keep_thinking": false,
   "session_recovery": true,
   "auto_resume": true,
-  "resume_text": "Silahkan lanjut dan patuhi AGENTS.MD. Ingat flow: periksa flow lengkap mana saja yang bug > perbaiki > verifikasi > gagal? ulangi dari awal. Gunakan explore/librarian untuk delegasi supaya cepat. jangan lupa untuk COMMIT SEMUA PROJECT walaupun bukan yang diedit dan dipush , selain itu dilarang pake fungsi git lain",
+  "resume_text": "Silahkan lanjut dan patuhi AGENTS.MD. Ingat flow: periksa flow lengkap mana saja yang bug > perbaiki > verifikasi > gagal? ulangi dari awal. Selalu gunakan delegasi dengan efektif, efisien dan relevan supaya maksimal. Jangan lupa untuk COMMIT dan PUSH semua project termasuk project yang bukan sedang diedit. Jangan lupa untuk PUSH ke remote repository.",
 
   "quiet_mode": false,
   "debug": true,

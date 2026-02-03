@@ -54,7 +54,7 @@ defineEmits<{
 
 .order-actions {
   display: flex;
-  gap: var(--om-spacing-sm);
+  gap: var(--om-spacing-md); /* Increased gap */
   align-items: center;
   flex-wrap: wrap;
 }
@@ -62,6 +62,7 @@ defineEmits<{
 .btn-action {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   padding: 0.55rem 0.95rem;
   border-radius: var(--om-radius-md);
@@ -69,7 +70,7 @@ defineEmits<{
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  height: 36px;
+  min-height: 36px; /* Use min-height */
   cursor: pointer;
   transition: all var(--om-transition-fast);
   border: 1px solid transparent;

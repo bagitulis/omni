@@ -83,6 +83,22 @@
                 <div v-if="order.shipping_type" class="text-sm text-secondary">
                   {{ order.shipping_type }}
                 </div>
+                <div
+                  v-if="order.ship_by_date"
+                  class="deadline-section"
+                  :class="countdownClass"
+                >
+                  <div class="deadline-row">
+                    <span class="text-xs text-secondary">Ship by</span>
+                    <span class="font-medium">{{
+                      formatDeadline(order.ship_by_date)
+                    }}</span>
+                  </div>
+                  <div class="deadline-timer">
+                    <Icon name="clock" size="xs" />
+                    <span>{{ countdownText }}</span>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="info-card">
@@ -109,6 +125,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import Icon from "@/components/ui/Icon.vue";
 
 interface OrderItem {
@@ -132,197 +149,70 @@ interface Order {
   shipping_type?: string;
   buyer_message?: string;
   items: OrderItem[];
+  ship_by_date?: number;
+  countdown?: string;
 }
 
-defineProps<{ visible: boolean; order: Order | null }>();
+const props = defineProps<{ visible: boolean; order: Order | null }>();
 const emit = defineEmits<{ close: [] }>();
 const close = () => emit("close");
+
+const now = ref(Date.now());
+let countdownInterval: ReturnType<typeof setInterval> | null = null;
+
+const formatDeadline = (ts: number) => {
+  return new Date(ts * 1000).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const countdownText = computed(() => {
+  if (!props.order?.ship_by_date) return "";
+  if (props.order.countdown) return props.order.countdown;
+
+  const deadline = props.order.ship_by_date * 1000;
+  const diff = deadline - now.value;
+
+  if (diff <= 0) return "Overdue";
+
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+    return `${days}d ${remainingHours}h`;
+  }
+
+  return `${hours}h ${minutes}m`;
+});
+
+const countdownClass = computed(() => {
+  if (!props.order?.ship_by_date) return "";
+
+  const deadline = props.order.ship_by_date * 1000;
+  const diff = deadline - now.value;
+
+  if (diff <= 0) return "text-overdue";
+  if (diff <= 2 * 60 * 60 * 1000) return "text-urgent";
+  if (diff <= 6 * 60 * 60 * 1000) return "text-warning";
+  return "";
+});
+
+onMounted(() => {
+  countdownInterval = setInterval(() => {
+    now.value = Date.now();
+  }, 60000);
+});
+
+onUnmounted(() => {
+  if (countdownInterval) clearInterval(countdownInterval);
+});
 </script>
 
 <style scoped>
-@import "./OrderManager.theme.css";
-
-.o {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: om-fadeIn var(--om-transition-fast);
-}
-.om {
-  background: var(--om-bg-primary);
-  border-radius: var(--om-radius-lg);
-  box-shadow: var(--om-shadow-lg);
-  width: 100%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  animation: om-slideUp var(--om-transition-normal);
-}
-.h {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--om-spacing-md) var(--om-spacing-lg);
-  border-bottom: 1px solid var(--om-border);
-}
-.h h3 {
-  font-size: var(--om-font-lg);
-  font-weight: 600;
-  margin: 0;
-}
-.h button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--om-text-secondary);
-}
-.b {
-  padding: var(--om-spacing-lg);
-  overflow-y: auto;
-  flex: 1;
-}
-.footer {
-  padding: var(--om-spacing-md) var(--om-spacing-lg);
-  border-top: 1px solid var(--om-border);
-  display: flex;
-  justify-content: flex-end;
-}
-
-/* Internal Layout */
-.info-group {
-  margin-bottom: var(--om-spacing-md);
-}
-.flex-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.label {
-  color: var(--om-text-secondary);
-  font-size: var(--om-font-sm);
-}
-.value {
-  font-weight: 500;
-}
-.font-mono {
-  font-family: monospace;
-}
-.text-secondary {
-  color: var(--om-text-secondary);
-}
-.ml-2 {
-  margin-left: 0.5rem;
-}
-.badges {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
-}
-.badge {
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  background: var(--om-bg-secondary);
-}
-.badge.shopee {
-  background: #ee4d2d;
-  color: white;
-}
-.badge.tiktok {
-  background: #000;
-  color: white;
-}
-.badge.lazada {
-  background: #0f146d;
-  color: white;
-}
-.message {
-  background: var(--om-bg-secondary);
-  padding: 0.5rem;
-  border-radius: 4px;
-  font-style: italic;
-  margin-top: 0.5rem;
-  font-size: 0.9em;
-}
-
-.products-list {
-  border: 1px solid var(--om-border);
-  border-radius: 6px;
-  overflow: hidden;
-  margin: 1rem 0;
-}
-.product-item {
-  display: flex;
-  gap: 1rem;
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--om-border);
-}
-.product-item:last-child {
-  border-bottom: none;
-}
-.product-thumb {
-  width: 48px;
-  height: 48px;
-  object-fit: cover;
-  border-radius: 4px;
-  background: #eee;
-}
-.product-details {
-  flex: 1;
-}
-.product-name {
-  font-weight: 500;
-  font-size: 0.95rem;
-  line-height: 1.2;
-}
-.product-meta {
-  font-size: 0.8rem;
-  color: var(--om-text-secondary);
-  margin-top: 2px;
-}
-.sku {
-  margin-left: 0.5rem;
-  font-family: monospace;
-}
-.product-price {
-  margin-top: 4px;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-.info-card {
-  background: var(--om-bg-secondary);
-  padding: 0.75rem;
-  border-radius: 6px;
-}
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-}
-.card-body {
-  font-size: 0.9rem;
-}
-.total-amount {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--om-primary);
-  margin-top: 2px;
-}
+@import "./OrderDetailModal.styles.css";
 </style>

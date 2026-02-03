@@ -4,14 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
-	"time"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/image"
+	httputils "github.com/omni/backend/internal/utils/http"
 	shopeePkg "github.com/omni/backend/pkg/shopee"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
@@ -198,7 +196,7 @@ func (s *ProductSyncService) downloadAndSaveProductImages(ctx context.Context, i
 		}
 
 		// Download image
-		data, err := s.downloadImage(ctx, url)
+		data, err := httputils.DownloadImage(ctx, url)
 		if err != nil {
 			log.Warn().
 				Str("service", "shopee_sync").
@@ -231,27 +229,6 @@ func (s *ProductSyncService) downloadAndSaveProductImages(ctx context.Context, i
 	}
 
 	return localPaths
-}
-
-// downloadImage fetches image data from URL
-func (s *ProductSyncService) downloadImage(ctx context.Context, url string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
-	}
-
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("http request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("http status: %d", resp.StatusCode)
-	}
-
-	return io.ReadAll(resp.Body)
 }
 
 // updateProductLocalImages updates the product with local image paths
