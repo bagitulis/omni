@@ -64,7 +64,7 @@ type LazadaProduct struct {
 	Price       float64   `gorm:"default:0" json:"price"`
 	Quantity    int       `gorm:"default:0" json:"quantity"`
 	Image       string    `json:"image,omitempty"`
-	LocalImages JSONMap   `gorm:"column:local_images;type:jsonb" json:"local_images"` // Local image paths after download/conversion
+	LocalImages JSONArray `gorm:"column:local_images;type:jsonb" json:"local_images"` // Local image paths after download/conversion
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

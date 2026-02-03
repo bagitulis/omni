@@ -24,17 +24,17 @@ func NewDBProductHandler(basePath string) *DBProductHandler {
 
 // MasterProductItem represents a flattened SKU row
 type MasterProductItem struct {
-	ProductID   string         `json:"product_id"`
-	SKU         string         `json:"sku"`
-	SellerSKU   string         `json:"seller_sku"`
-	SkuID       string         `json:"sku_id,omitempty"`
-	VariantName string         `json:"variant_name"`
-	ItemName    string         `json:"item_name"`
-	Price       float64        `json:"price"`
-	Quantity    int            `json:"quantity"`
-	Status      string         `json:"status"`
-	LocalImages models.JSONMap `json:"local_images"`
-	UpdatedAt   string         `json:"updated_at"`
+	ProductID   string           `json:"product_id"`
+	SKU         string           `json:"sku"`
+	SellerSKU   string           `json:"seller_sku"`
+	SkuID       string           `json:"sku_id,omitempty"`
+	VariantName string           `json:"variant_name"`
+	ItemName    string           `json:"item_name"`
+	Price       float64          `json:"price"`
+	Quantity    int              `json:"quantity"`
+	Status      string           `json:"status"`
+	LocalImages models.JSONArray `json:"local_images"`
+	UpdatedAt   string           `json:"updated_at"`
 }
 
 // GetDBProducts handles GET /api/tiktok/db/products

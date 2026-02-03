@@ -26,16 +26,16 @@ func NewDBProductHandler(basePath string) *DBProductHandler {
 // FlattenedSkuRow represents a flattened SKU row for frontend display
 // Format matches frontend productManagerConfig.ts (snake_case)
 type FlattenedSkuRow struct {
-	ItemID      string         `json:"item_id"`            // Matches frontend columnFields
-	ModelID     string         `json:"model_id,omitempty"` // Matches frontend columnFields
-	SKU         string         `json:"sku"`                // seller_sku from DB
-	ItemName    string         `json:"item_name"`          // Product name from ShopeeProduct
-	SKUName     string         `json:"sku_name"`           // Variant name from ShopeeSku
-	Price       float64        `json:"price"`              // Current price
-	Stock       int            `json:"stock"`              // Quantity/stock
-	Status      string         `json:"status"`             // Product status
-	LocalImages models.JSONMap `json:"local_images"`       // Local image paths
-	UpdatedAt   string         `json:"updated_at"`         // Last update time
+	ItemID      string           `json:"item_id"`            // Matches frontend columnFields
+	ModelID     string           `json:"model_id,omitempty"` // Matches frontend columnFields
+	SKU         string           `json:"sku"`                // seller_sku from DB
+	ItemName    string           `json:"item_name"`          // Product name from ShopeeProduct
+	SKUName     string           `json:"sku_name"`           // Variant name from ShopeeSku
+	Price       float64          `json:"price"`              // Current price
+	Stock       int              `json:"stock"`              // Quantity/stock
+	Status      string           `json:"status"`             // Product status
+	LocalImages models.JSONArray `json:"local_images"`       // Local image paths
+	UpdatedAt   string           `json:"updated_at"`         // Last update time
 }
 
 // GetDBProducts handles GET /api/shopee/db/products

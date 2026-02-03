@@ -26,16 +26,16 @@ func NewDBProductHandler(basePath string) *DBProductHandler {
 // FlattenedSkuRow represents a flattened SKU row for frontend display
 // Format matches frontend productManagerConfig.ts lazadaConfig (snake_case)
 type FlattenedSkuRow struct {
-	ItemID      string         `json:"item_id"`      // Product item_id
-	SkuID       string         `json:"sku_id"`       // SKU ID from Lazada
-	SkuName     string         `json:"sku_name"`     // seller_sku
-	ItemName    string         `json:"item_name"`    // Product name
-	VariantName string         `json:"variant_name"` // Variant name
-	Price       float64        `json:"price"`        // Current price
-	Quantity    int            `json:"quantity"`     // Stock quantity
-	Status      string         `json:"status"`       // Product status
-	LocalImages models.JSONMap `json:"local_images"` // Local image paths
-	UpdatedAt   string         `json:"updated_at"`   // Last update time
+	ItemID      string           `json:"item_id"`      // Product item_id
+	SkuID       string           `json:"sku_id"`       // SKU ID from Lazada
+	SkuName     string           `json:"sku_name"`     // seller_sku
+	ItemName    string           `json:"item_name"`    // Product name
+	VariantName string           `json:"variant_name"` // Variant name
+	Price       float64          `json:"price"`        // Current price
+	Quantity    int              `json:"quantity"`     // Stock quantity
+	Status      string           `json:"status"`       // Product status
+	LocalImages models.JSONArray `json:"local_images"` // Local image paths
+	UpdatedAt   string           `json:"updated_at"`   // Last update time
 }
 
 // GetDBProducts handles GET /api/lazada/db/products
