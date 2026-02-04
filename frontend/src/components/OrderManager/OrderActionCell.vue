@@ -2,6 +2,16 @@
   <div class="action-col">
     <div class="action-buttons">
       <button
+        v-if="showPrintLabelButton"
+        @click="handlePrintLabel"
+        class="btn-action secondary"
+        title="Print Label"
+        :disabled="printingLabel"
+      >
+        <Icon v-if="printingLabel" name="refresh" spin size="sm" />
+        <Icon v-else name="printer" size="sm" />
+      </button>
+      <button
         v-if="showShipButton"
         @click="$emit('ship-order')"
         class="btn-action primary"
@@ -37,12 +47,25 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import Icon from "@/components/ui/Icon.vue";
+import { downloadShippingLabel } from "@/services/shippingLabelService";
+import { useToast } from "@/composables/useToast";
+
+interface Order {
+  order_sn?: string;
+  order_no?: string;
+  platform: string;
+  shipping_status?: string;
+  logistics_status?: string;
+  status?: string;
+  [key: string]: any;
+}
 
 interface Props {
   activeTab: string;
   orderStatus: string;
+  order: Order;
 }
 
 const props = defineProps<Props>();
@@ -52,6 +75,9 @@ defineEmits<{
   "cancel-order": [];
   "view-detail": [];
 }>();
+
+const toast = useToast();
+const printingLabel = ref(false);
 
 const showShipButton = computed(
   () => props.activeTab === "unprocess" && props.orderStatus !== "CANCELLED",
@@ -66,6 +92,55 @@ const showCancelButton = computed(
     ["unprocess", "unpaid"].includes(props.activeTab) &&
     props.orderStatus !== "CANCELLED",
 );
+
+const showPrintLabelButton = computed(() => {
+  // Show if shipped/ready_to_ship or has logistics status
+  // Also check if not cancelled
+  if (props.orderStatus === "CANCELLED") return false;
+
+  const status = props.orderStatus?.toUpperCase();
+  const shippingStatus = props.order.shipping_status?.toUpperCase();
+
+  return (
+    status === "SHIPPED" ||
+    status === "READY_TO_SHIP" ||
+    status === "PROCESSED" ||
+    status === "TO_CONFIRM_RECEIVE" ||
+    !!props.order.logistics_status ||
+    (shippingStatus && shippingStatus !== "UNSHIPPED")
+  );
+});
+
+async function handlePrintLabel() {
+  if (!props.order) return;
+
+  // Get ID: prefer order_sn, fallback to order_no
+  const orderId = props.order.order_sn || props.order.order_no;
+  if (!orderId) {
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: "Order ID missing",
+      life: 3000,
+    });
+    return;
+  }
+
+  printingLabel.value = true;
+  try {
+    await downloadShippingLabel(props.order.platform, orderId);
+  } catch (error: any) {
+    console.error("Failed to print label:", error);
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: error.message || "Failed to download label",
+      life: 3000,
+    });
+  } finally {
+    printingLabel.value = false;
+  }
+}
 </script>
 
 <style scoped>

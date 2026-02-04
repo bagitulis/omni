@@ -69,6 +69,7 @@
       <OrderActionCell
         :active-tab="activeTab"
         :order-status="order.status"
+        :order="order"
         @ship-order="shipOrder"
         @cancel-order="cancelOrder"
         @view-detail="viewDetail"
@@ -104,6 +105,7 @@ interface Order {
   countdown?: string; // Legacy: pre-calculated countdown string
   buyer_message?: string;
   items: OrderItem[];
+  [key: string]: any;
 }
 
 interface Props {

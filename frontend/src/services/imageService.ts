@@ -29,6 +29,72 @@ export interface UploadResponse {
   data: GalleryImage;
 }
 
+/**
+ * Compress image before upload
+ * - Resizes if dimensions exceed maxDimension
+ * - Compresses to target file size
+ * - Returns compressed file
+ */
+async function compressImage(
+  file: File,
+  maxSizeBytes: number = 2 * 1024 * 1024, // 2MB
+  maxDimension: number = 2000,
+): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      // Calculate new dimensions
+      let { width, height } = { width: img.width, height: img.height };
+      if (width > maxDimension || height > maxDimension) {
+        const ratio = Math.min(maxDimension / width, maxDimension / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+
+      // Draw to canvas
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Failed to get canvas context"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Convert to blob with compression
+      let quality = 0.9;
+      const tryCompress = () => {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error("Compression failed"));
+              return;
+            }
+
+            if (blob.size > maxSizeBytes && quality > 0.1) {
+              quality -= 0.1;
+              tryCompress();
+            } else {
+              // Create new file with original name
+              const compressedFile = new File([blob], file.name, {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            }
+          },
+          "image/jpeg",
+          quality,
+        );
+      };
+      tryCompress();
+    };
+    img.onerror = () => reject(new Error("Failed to load image"));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 class ImageService {
   /**
    * Get images from gallery with pagination and filtering
@@ -57,16 +123,12 @@ class ImageService {
     file: File,
     category: string = "",
   ): Promise<UploadResponse> {
-    const formData = new FormData();
-    formData.append("image", file);
-    if (category) formData.append("category", category);
+    // Compress image before upload
+    const compressedFile = await compressImage(file);
 
-    // Note: apiService.post handles JSON by default, but axios handles FormData correctly
-    // when passed as data. We might need to override headers if apiService forces JSON.
-    // Looking at apiService, it sets 'Content-Type': 'application/json' in constructor.
-    // Axios usually detects FormData and sets content-type to multipart/form-data with boundary.
-    // However, if the interceptor or default headers force application/json, it might be an issue.
-    // Let's try passing it directly, axios usually overrides it for FormData.
+    const formData = new FormData();
+    formData.append("image", compressedFile);
+    if (category) formData.append("category", category);
 
     return await apiService.post<UploadResponse>("/images/upload", formData, {
       headers: {
@@ -76,4 +138,5 @@ class ImageService {
   }
 }
 
+export { compressImage };
 export default new ImageService();
