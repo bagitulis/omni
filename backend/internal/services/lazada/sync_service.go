@@ -3,15 +3,12 @@ package lazada
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/image"
-	httputils "github.com/omni/backend/internal/utils/http"
 	lazadaPkg "github.com/omni/backend/pkg/lazada"
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
@@ -19,13 +16,11 @@ import (
 
 // SyncService handles syncing data from Lazada API
 type SyncService struct {
-	client         *lazadaPkg.Client
-	db             *gorm.DB
-	orderRepo      *repositories.LazadaOrderRepository
-	prodRepo       *repositories.LazadaProductRepository
-	tenantID       string
-	storageService *image.StorageService
-	webpService    *image.WebPService
+	client    *lazadaPkg.Client
+	db        *gorm.DB
+	orderRepo *repositories.LazadaOrderRepository
+	prodRepo  *repositories.LazadaProductRepository
+	tenantID  string
 }
 
 // NewSyncService creates a new sync service
@@ -40,18 +35,12 @@ func NewSyncService(client *lazadaPkg.Client, db *gorm.DB) *SyncService {
 
 // NewSyncServiceWithTenant creates a new sync service with tenant ID
 func NewSyncServiceWithTenant(client *lazadaPkg.Client, db *gorm.DB, tenantID string) *SyncService {
-	basePath := os.Getenv("UPLOAD_PATH")
-	if basePath == "" {
-		basePath = "uploads"
-	}
 	return &SyncService{
-		client:         client,
-		db:             db,
-		orderRepo:      repositories.NewLazadaOrderRepository(db),
-		prodRepo:       repositories.NewLazadaProductRepository(db),
-		tenantID:       tenantID,
-		storageService: image.NewStorageService(basePath),
-		webpService:    image.NewWebPService(),
+		client:    client,
+		db:        db,
+		orderRepo: repositories.NewLazadaOrderRepository(db),
+		prodRepo:  repositories.NewLazadaProductRepository(db),
+		tenantID:  tenantID,
 	}
 }
 
@@ -119,7 +108,7 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 			count++
 
 			// Download and save product images locally
-			if len(prod.Images) > 0 && s.storageService != nil {
+			if len(prod.Images) > 0 {
 				// Get saved product to get its ID
 				savedProd, _ := s.prodRepo.FindByItemID(ctx, itemID)
 				if savedProd != nil {
@@ -203,7 +192,7 @@ func (s *SyncService) SyncProductsWithDetails(ctx context.Context, offset, limit
 				savedProductCount++
 
 				// Download and save product images locally
-				if len(prod.Images) > 0 && s.storageService != nil {
+				if len(prod.Images) > 0 {
 					// Get saved product to get its ID
 					savedProd, _ := s.prodRepo.FindByItemID(ctx, itemID)
 					if savedProd != nil {
@@ -295,6 +284,7 @@ func (s *SyncService) SyncProductsWithDetails(ctx context.Context, offset, limit
 // Returns slice of local paths. Errors are logged but don't break sync.
 func (s *SyncService) downloadAndSaveProductImages(ctx context.Context, itemID string, imageURLs []string) []string {
 	var localPaths []string
+	cacheService := image.NewProductImageCacheService()
 
 	zlog := zerolog.Ctx(ctx)
 	if zlog == nil {
@@ -306,36 +296,20 @@ func (s *SyncService) downloadAndSaveProductImages(ctx context.Context, itemID s
 			continue
 		}
 
-		// Download image
-		data, err := httputils.DownloadImage(ctx, url)
+		localPath, err := cacheService.CacheRemoteImage(
+			ctx,
+			s.tenantID,
+			url,
+			"asset",
+			nil,
+		)
 		if err != nil {
 			zlog.Warn().
 				Str("service", "lazada_sync").
 				Int("image_index", i).
 				Str("item_id", itemID).
 				Err(err).
-				Msg("Failed to download image")
-			continue
-		}
-
-		// Convert to WebP (graceful - fallback to original if fails)
-		webpData, err := s.webpService.ConvertToWebP(data)
-		if err != nil {
-			webpData = data
-		}
-
-		// Generate filename: lazada_{item_id}_{index}.webp
-		filename := fmt.Sprintf("lazada_%s_%d.webp", itemID, i)
-
-		// Save locally
-		localPath, err := s.storageService.SaveImage(s.tenantID, "products", filename, webpData)
-		if err != nil {
-			zlog.Warn().
-				Str("service", "lazada_sync").
-				Int("image_index", i).
-				Str("item_id", itemID).
-				Err(err).
-				Msg("Failed to save image")
+				Msg("Failed to cache image")
 			continue
 		}
 

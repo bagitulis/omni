@@ -3,14 +3,11 @@ package tiktok
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/image"
-	httputils "github.com/omni/backend/internal/utils/http"
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
@@ -18,48 +15,34 @@ import (
 
 // SyncService handles syncing data from TikTok API
 type SyncService struct {
-	client         *tiktokPkg.Client
-	db             *gorm.DB
-	orderRepo      *repositories.TiktokOrderRepository
-	prodRepo       *repositories.TiktokProductRepository
-	skuRepo        *repositories.TiktokSkuRepository
-	tenantID       string
-	storageService *image.StorageService
-	webpService    *image.WebPService
+	client    *tiktokPkg.Client
+	db        *gorm.DB
+	orderRepo *repositories.TiktokOrderRepository
+	prodRepo  *repositories.TiktokProductRepository
+	skuRepo   *repositories.TiktokSkuRepository
+	tenantID  string
 }
 
 // NewSyncService creates a new sync service
 func NewSyncService(client *tiktokPkg.Client, db *gorm.DB) *SyncService {
-	basePath := os.Getenv("UPLOAD_PATH")
-	if basePath == "" {
-		basePath = "uploads"
-	}
 	return &SyncService{
-		client:         client,
-		db:             db,
-		orderRepo:      repositories.NewTiktokOrderRepository(db),
-		prodRepo:       repositories.NewTiktokProductRepository(db),
-		skuRepo:        repositories.NewTiktokSkuRepository(db),
-		storageService: image.NewStorageService(basePath),
-		webpService:    image.NewWebPService(),
+		client:    client,
+		db:        db,
+		orderRepo: repositories.NewTiktokOrderRepository(db),
+		prodRepo:  repositories.NewTiktokProductRepository(db),
+		skuRepo:   repositories.NewTiktokSkuRepository(db),
 	}
 }
 
 // NewSyncServiceWithTenant creates a new sync service with tenant ID
 func NewSyncServiceWithTenant(client *tiktokPkg.Client, db *gorm.DB, tenantID string) *SyncService {
-	basePath := os.Getenv("UPLOAD_PATH")
-	if basePath == "" {
-		basePath = "uploads"
-	}
 	return &SyncService{
-		client:         client,
-		db:             db,
-		orderRepo:      repositories.NewTiktokOrderRepository(db),
-		prodRepo:       repositories.NewTiktokProductRepository(db),
-		skuRepo:        repositories.NewTiktokSkuRepository(db),
-		tenantID:       tenantID,
-		storageService: image.NewStorageService(basePath),
-		webpService:    image.NewWebPService(),
+		client:    client,
+		db:        db,
+		orderRepo: repositories.NewTiktokOrderRepository(db),
+		prodRepo:  repositories.NewTiktokProductRepository(db),
+		skuRepo:   repositories.NewTiktokSkuRepository(db),
+		tenantID:  tenantID,
 	}
 }
 
@@ -191,43 +174,27 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 // Returns slice of local paths. Errors are logged but don't break sync.
 func (s *SyncService) downloadAndSaveProductImages(ctx context.Context, productID string, imageURLs []string) []string {
 	var localPaths []string
+	cacheService := image.NewProductImageCacheService()
 
 	for i, url := range imageURLs {
 		if url == "" {
 			continue
 		}
 
-		// Download image
-		data, err := httputils.DownloadImage(ctx, url)
+		localPath, err := cacheService.CacheRemoteImage(
+			ctx,
+			s.tenantID,
+			url,
+			"asset",
+			nil,
+		)
 		if err != nil {
 			log.Warn().
 				Str("service", "tiktok_sync").
 				Int("image_index", i).
 				Str("product_id", productID).
 				Err(err).
-				Msg("Failed to download image")
-			continue
-		}
-
-		// Convert to WebP if not already WebP (graceful - returns original if fails)
-		// TikTok often returns WebP directly, so this may be a pass-through
-		webpData, err := s.webpService.ConvertToWebP(data)
-		if err != nil {
-			webpData = data
-		}
-
-		// Generate filename with .webp extension
-		filename := fmt.Sprintf("tiktok_%s_%d.webp", productID, i)
-
-		// Save locally
-		localPath, err := s.storageService.SaveImage(s.tenantID, "products", filename, webpData)
-		if err != nil {
-			log.Warn().
-				Str("service", "tiktok_sync").
-				Int("image_index", i).
-				Str("product_id", productID).
-				Err(err).
-				Msg("Failed to save image")
+				Msg("Failed to cache image")
 			continue
 		}
 

@@ -3,13 +3,10 @@ package shopee
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"os"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/image"
-	httputils "github.com/omni/backend/internal/utils/http"
 	shopeePkg "github.com/omni/backend/pkg/shopee"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
@@ -17,29 +14,21 @@ import (
 
 // ProductSyncService handles syncing products from Shopee API to database
 type ProductSyncService struct {
-	client         *shopeePkg.Client
-	db             *gorm.DB
-	prodRepo       *repositories.ShopeeProductRepository
-	skuRepo        *repositories.ShopeeSkuRepository
-	tenantID       string
-	storageService *image.StorageService
-	webpService    *image.WebPService
+	client   *shopeePkg.Client
+	db       *gorm.DB
+	prodRepo *repositories.ShopeeProductRepository
+	skuRepo  *repositories.ShopeeSkuRepository
+	tenantID string
 }
 
 // NewProductSyncService creates a new product sync service with tenant ID
 func NewProductSyncService(client *shopeePkg.Client, db *gorm.DB, tenantID string) *ProductSyncService {
-	basePath := os.Getenv("UPLOAD_PATH")
-	if basePath == "" {
-		basePath = "uploads"
-	}
 	return &ProductSyncService{
-		client:         client,
-		db:             db,
-		prodRepo:       repositories.NewShopeeProductRepository(db),
-		skuRepo:        repositories.NewShopeeSkuRepository(db),
-		tenantID:       tenantID,
-		storageService: image.NewStorageService(basePath),
-		webpService:    image.NewWebPService(),
+		client:   client,
+		db:       db,
+		prodRepo: repositories.NewShopeeProductRepository(db),
+		skuRepo:  repositories.NewShopeeSkuRepository(db),
+		tenantID: tenantID,
 	}
 }
 
@@ -189,39 +178,27 @@ func (s *ProductSyncService) syncProductSKUs(ctx context.Context, product *model
 // Returns slice of local paths. Errors are logged but don't break sync.
 func (s *ProductSyncService) downloadAndSaveProductImages(ctx context.Context, itemID int64, imageURLs []string) []string {
 	var localPaths []string
+	cacheService := image.NewProductImageCacheService()
 
 	for i, url := range imageURLs {
 		if url == "" {
 			continue
 		}
 
-		// Download image
-		data, err := httputils.DownloadImage(ctx, url)
+		localPath, err := cacheService.CacheRemoteImage(
+			ctx,
+			s.tenantID,
+			url,
+			"asset",
+			nil,
+		)
 		if err != nil {
 			log.Warn().
 				Str("service", "shopee_sync").
 				Int("image_index", i).
 				Int64("item_id", itemID).
 				Err(err).
-				Msg("Failed to download image")
-			continue
-		}
-
-		// Convert to WebP (graceful - returns original if fails)
-		webpData, _ := s.webpService.ConvertToWebP(data)
-
-		// Generate filename
-		filename := fmt.Sprintf("shopee_%d_%d.webp", itemID, i)
-
-		// Save locally
-		localPath, err := s.storageService.SaveImage(s.tenantID, "products", filename, webpData)
-		if err != nil {
-			log.Warn().
-				Str("service", "shopee_sync").
-				Int("image_index", i).
-				Int64("item_id", itemID).
-				Err(err).
-				Msg("Failed to save image")
+				Msg("Failed to cache image")
 			continue
 		}
 
