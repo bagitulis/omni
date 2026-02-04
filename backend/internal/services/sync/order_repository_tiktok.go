@@ -99,6 +99,14 @@ func (r *GormOrderRepository) saveTiktokOrders(ctx context.Context, db *gorm.DB,
 func (r *GormOrderRepository) saveTiktokOrderItems(ctx context.Context, db *gorm.DB, orderSN string, items []OrderItem) error {
 	cacheService := imageService.NewProductImageCacheService()
 	urlCache := make(map[string]string)
+	for i := range items {
+		if items[i].ItemID == 0 && items[i].SKU != "" {
+			var skuModel models.TiktokSku
+			if err := db.WithContext(ctx).Where("seller_sku = ? OR sku_id = ?", items[i].SKU, items[i].SKU).First(&skuModel).Error; err == nil {
+				items[i].ItemID = int64(skuModel.ProductID)
+			}
+		}
+	}
 	masterImageMap := r.getTiktokMasterImages(ctx, db, items)
 	for i := range items {
 		if img, ok := masterImageMap[items[i].ItemID]; ok && img != "" {
@@ -117,16 +125,7 @@ func (r *GormOrderRepository) saveTiktokOrderItems(ctx context.Context, db *gorm
 	for _, item := range items {
 		qty := item.Quantity
 		price := item.Price
-
-		// Fix: If product_id is 0, try to find it from tiktok_skus using SKU (SellerSku or SkuID)
 		productID := item.ItemID
-		if productID == 0 && item.SKU != "" {
-			var skuModel models.TiktokSku
-			// Try matching SKU against seller_sku or sku_id
-			if err := db.WithContext(ctx).Where("seller_sku = ? OR sku_id = ?", item.SKU, item.SKU).First(&skuModel).Error; err == nil {
-				productID = int64(skuModel.ProductID)
-			}
-		}
 
 		itemModel := models.TiktokOrderItem{
 			TenantID:      r.tenantID,
@@ -247,17 +246,46 @@ func (r *GormOrderRepository) getTiktokMasterImagesByIDs(ctx context.Context, db
 		return result
 	}
 
+	internalMap := make(map[int64]string)
+	var products []struct {
+		ID        int64  `gorm:"column:id"`
+		ProductID string `gorm:"column:product_id"`
+	}
+	err := db.WithContext(ctx).
+		Model(&models.TiktokProduct{}).
+		Select("id", "product_id").
+		Where("id IN ?", productIDs).
+		Find(&products).Error
+	if err == nil {
+		for _, product := range products {
+			if product.ProductID != "" {
+				internalMap[product.ID] = product.ProductID
+			}
+		}
+	}
+
 	itemIDStrings := make([]string, 0, len(productIDs))
 	for _, id := range productIDs {
-		if id > 0 {
-			itemIDStrings = append(itemIDStrings, strconv.FormatInt(id, 10))
+		if id <= 0 {
+			continue
 		}
+		if productID, ok := internalMap[id]; ok && productID != "" {
+			itemIDStrings = append(itemIDStrings, productID)
+			continue
+		}
+		itemIDStrings = append(itemIDStrings, strconv.FormatInt(id, 10))
 	}
 
 	masterMap := r.getMasterProductImagesByItemIDs(ctx, db, models.PlatformTiktok, itemIDStrings)
 	for _, id := range productIDs {
-		key := strconv.FormatInt(id, 10)
-		if image, ok := masterMap[key]; ok && image != "" {
+		if id <= 0 {
+			continue
+		}
+		lookupID := strconv.FormatInt(id, 10)
+		if productID, ok := internalMap[id]; ok && productID != "" {
+			lookupID = productID
+		}
+		if image, ok := masterMap[lookupID]; ok && image != "" {
 			result[id] = image
 		}
 	}
