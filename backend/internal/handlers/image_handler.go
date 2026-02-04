@@ -83,28 +83,41 @@ func (h *ImageHandler) Upload(c *gin.Context) {
 	// Get image dimensions before conversion
 	width, height, _ := image.GetImageDimensions(data)
 
-	// Convert to JPEG (graceful - returns original if fails)
-	jpegData, _ := h.webpService.ConvertToJPEG(data)
+	// Convert to WebP (graceful - returns original if fails)
+	finalData, _ := h.webpService.ConvertToWebP(data)
+	ext := ".webp"
 
-	// Generate filename with .jpg extension
+	// If WebP conversion failed (still not WebP), try JPEG
+	if !image.IsWebP(finalData) {
+		finalData, _ = h.webpService.ConvertToJPEG(data)
+		ext = ".jpg"
+	}
+
+	// Generate filename
 	originalName := file.Filename
-	ext := ".jpg"
+	// If both conversions failed, use original extension
+	if !image.IsWebP(finalData) && !image.IsJPEG(finalData) {
+		ext = getExtension(originalName)
+	}
+
 	baseName := strings.TrimSuffix(originalName, getExtension(originalName))
 	filename := baseName + ext
 
 	// Save to local storage
-	localPath, err := h.storageService.SaveImage(tenantID, category, filename, jpegData)
+	localPath, err := h.storageService.SaveImage(tenantID, category, filename, finalData)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to save image: " + err.Error()})
 		return
 	}
 
 	// Determine MIME type
-	mimeType := "image/jpeg"
-	if image.IsPNG(jpegData) {
+	mimeType := "image/webp"
+	if image.IsJPEG(finalData) {
+		mimeType = "image/jpeg"
+	} else if image.IsPNG(finalData) {
 		mimeType = "image/png"
-	} else if image.IsWebP(jpegData) {
-		mimeType = "image/webp"
+	} else if !image.IsWebP(finalData) {
+		mimeType = "application/octet-stream"
 	}
 
 	// Create database record
@@ -114,7 +127,7 @@ func (h *ImageHandler) Upload(c *gin.Context) {
 		LocalPath: localPath,
 		Width:     width,
 		Height:    height,
-		Size:      int64(len(jpegData)),
+		Size:      int64(len(finalData)),
 		MimeType:  mimeType,
 		Category:  category,
 	}
