@@ -12,13 +12,13 @@ import (
 
 // ShippingHandler handles TikTok shipping requests
 type ShippingHandler struct {
-	service *serviceTiktok.ShippingService
+	Service *serviceTiktok.ShippingService
 }
 
 // NewShippingHandler creates a new shipping handler
 func NewShippingHandler(basePath string) *ShippingHandler {
 	return &ShippingHandler{
-		service: serviceTiktok.NewShippingService(basePath),
+		Service: serviceTiktok.NewShippingService(basePath),
 	}
 }
 
@@ -56,7 +56,7 @@ func (h *ShippingHandler) ArrangeShipment(c *gin.Context) {
 		SelfShipment:   req.SelfShipment,
 	}
 
-	result, err := h.service.ArrangeShipment(c.Request.Context(), tenantID, req.PackageID, sdkReq)
+	result, err := h.Service.ArrangeShipment(c.Request.Context(), tenantID, req.PackageID, sdkReq)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to arrange shipment: "+err.Error()))
 		return
@@ -86,7 +86,7 @@ func (h *ShippingHandler) GetShippingDocument(c *gin.Context) {
 
 	documentType := c.DefaultQuery("document_type", "SHIPPING_LABEL")
 
-	docURL, err := h.service.GetShippingLabel(c.Request.Context(), tenantID, packageID, documentType)
+	docURL, err := h.Service.GetShippingLabel(c.Request.Context(), tenantID, packageID, documentType)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to get shipping document: "+err.Error()))
 		return
