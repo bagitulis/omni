@@ -81,6 +81,7 @@ func TestDedupService_FindOrCreate(t *testing.T) {
 	})
 
 	t.Run("Find Existing Image by Hash", func(t *testing.T) {
+		tenantID := "tenant_hash_test"
 		// Insert first
 		img1, _, err := dedupService.FindOrCreate(ctx, imageData, "http://example.com/img2.png", tenantID, category)
 		require.NoError(t, err)
