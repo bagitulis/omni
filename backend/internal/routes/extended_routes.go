@@ -188,5 +188,6 @@ func RegisterTiktokShippingRoutes(router *gin.RouterGroup, basePath string) {
 	shipping.Use(middleware.Tenant())
 	{
 		shipping.GET("/document/:packageId", handler.GetShippingDocument)
+		shipping.POST("/arrange", handler.ArrangeShipment)
 	}
 }

@@ -248,3 +248,8 @@ func (c *Client) GetShippingDocument(packageID, documentType string) (string, er
 
 	return result.Data.DocURL, nil
 }
+
+// ArrangeShipment is a wrapper for ShipPackage to match the service interface
+func (c *Client) ArrangeShipment(packageID string, req *ShipPackageRequest) (*ShipPackageResponse, error) {
+	return c.ShipPackage(packageID, req)
+}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/omni/backend/internal/services"
 	shopeePkg "github.com/omni/backend/pkg/shopee"
+	"github.com/rs/zerolog/log"
 )
 
 // shippingClient interface for pkg/shopee.Client methods used by shipping service
@@ -184,13 +185,35 @@ func (s *ShippingService) ArrangeShipment(ctx context.Context, req ArrangeShipme
 		}
 	}
 
+	if shipReq.NonIntegrated == nil && shipReq.Pickup == nil && shipReq.Dropoff == nil {
+		return nil, fmt.Errorf("pickup, dropoff, or tracking_number is required")
+	}
+
+	if err := s.applyDefaultPickupTime(ctx, client, req.OrderSN, shipReq.Pickup); err != nil {
+		return nil, err
+	}
+
 	_, err = client.ShipOrder(shipReq)
 	if err != nil {
 		return nil, fmt.Errorf("ship order: %w", err)
 	}
 
+	var trackingNumber string
+	// Validate tracking exists, but don't fail if not ready yet
+	trackingResp, err := s.ensureShipmentReady(ctx, client, req.OrderSN, req.PackageNum)
+	if err != nil {
+		log.Warn().
+			Str("order_sn", req.OrderSN).
+			Str("package_number", req.PackageNum).
+			Err(err).
+			Msg("Shipment arranged but tracking number not yet available")
+	} else if trackingResp != nil {
+		trackingNumber = trackingResp.Response.TrackingNumber
+	}
+
 	return &ShipmentInfo{
 		OrderSN:        req.OrderSN,
+		TrackingNumber: trackingNumber,
 		ShippingStatus: "SHIPPED",
 	}, nil
 }
@@ -233,60 +256,4 @@ func (s *ShippingService) CalculateShippingFee(ctx context.Context, orderSN stri
 	// Shopee doesn't expose shipping fee calculation directly
 	// This would need to be retrieved from order details
 	return 0, nil
-}
-
-// ShippingLabelResult represents the shipping label download result
-type ShippingLabelResult struct {
-	OrderSN      string `json:"order_sn"`
-	Status       string `json:"status"`
-	FileData     string `json:"file_data,omitempty"`     // Base64 encoded PDF
-	ErrorMessage string `json:"error_message,omitempty"` // Error if failed
-}
-
-// GetShippingLabel downloads shipping document (waybill/label) for an order
-func (s *ShippingService) GetShippingLabel(ctx context.Context, orderSN, packageNumber, documentType string) (*ShippingLabelResult, error) {
-	client, err := s.getClient()
-	if err != nil {
-		return nil, err
-	}
-
-	// First, create the shipping document
-	createResult, err := client.CreateShippingDocument(orderSN, packageNumber)
-	if err != nil {
-		return nil, fmt.Errorf("create shipping document: %w", err)
-	}
-
-	// Check create result status
-	if len(createResult.Response.ResultList) > 0 {
-		status := createResult.Response.ResultList[0].Status
-		if status == "FAILED" {
-			return &ShippingLabelResult{
-				OrderSN:      orderSN,
-				Status:       "FAILED",
-				ErrorMessage: createResult.Response.ResultList[0].FailMessage,
-			}, nil
-		}
-	}
-
-	// Download the shipping document
-	downloadResult, err := client.DownloadShippingDocument(orderSN, packageNumber, documentType)
-	if err != nil {
-		return nil, fmt.Errorf("download shipping document: %w", err)
-	}
-
-	if len(downloadResult.Response.ResultList) == 0 {
-		return &ShippingLabelResult{
-			OrderSN:      orderSN,
-			Status:       "FAILED",
-			ErrorMessage: "No shipping document available",
-		}, nil
-	}
-
-	docResult := downloadResult.Response.ResultList[0]
-	return &ShippingLabelResult{
-		OrderSN:      orderSN,
-		Status:       docResult.Status,
-		FileData:     docResult.ShippingDocFile,
-		ErrorMessage: docResult.FailMessage,
-	}, nil
 }
