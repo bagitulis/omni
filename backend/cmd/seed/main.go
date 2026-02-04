@@ -1,3 +1,6 @@
+//go:build tools
+// +build tools
+
 package main
 
 import (
@@ -58,7 +61,7 @@ func seedTenantUser(tenantID string, basePath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get tenant db: %w", err)
 	}
-	
+
 	if err := config.MigrateTenantDatabase(db, tenantID); err != nil {
 		return fmt.Errorf("failed to migrate tenant db: %w", err)
 	}
@@ -105,5 +108,3 @@ func seedTenantUser(tenantID string, basePath string) error {
 
 	return nil
 }
-
-

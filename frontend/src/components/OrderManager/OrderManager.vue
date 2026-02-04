@@ -191,6 +191,9 @@ const handleShipConfirm = async (data: {
   shipping_provider: string;
   tracking_number?: string;
   address_id?: number;
+  pickup_time_id?: string;
+  branch_id?: number;
+  package_id?: string;
 }) => {
   const platform = (selectedOrder.value?.platform || "shopee").toLowerCase();
   const params: ShipOrderParams = {
@@ -200,6 +203,7 @@ const handleShipConfirm = async (data: {
     tracking_number: data.tracking_number,
     address_id: data.address_id,
     pickup_time_id: data.pickup_time_id,
+    branch_id: data.branch_id,
   };
 
   if (platform === "lazada") {

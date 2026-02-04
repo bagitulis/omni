@@ -38,6 +38,19 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 		OrderSN: req.OrderSN,
 	}
 
+	if req.AddressID != 0 {
+		shipReq.Pickup = &shopeePkg.PickupInfo{
+			AddressID:    req.AddressID,
+			PickupTimeID: req.PickupTimeID,
+		}
+	}
+
+	if req.BranchID != 0 {
+		shipReq.Dropoff = &shopeePkg.DropoffInfo{
+			BranchID: req.BranchID,
+		}
+	}
+
 	// Check if tracking number provided (non-integrated logistics)
 	if req.TrackingNumber != "" {
 		shipReq.NonIntegrated = &shopeePkg.NonIntegratedInfo{

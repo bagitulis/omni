@@ -1,17 +1,18 @@
 .o {
   position: fixed;
   inset: 0;
-  background: var(--om-bg-overlay);
+  background: var(--om-bg-overlay, rgba(0, 0, 0, 0.65));
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: var(--om-z-modal);
+  isolation: isolate;
   animation: om-fadeIn var(--om-transition-fast);
 }
 
 .om {
-  background: var(--om-bg-primary);
+  background: var(--om-bg-primary, #ffffff);
   border-radius: var(--om-radius-lg);
   box-shadow: var(--om-shadow-lg);
   width: 100%;

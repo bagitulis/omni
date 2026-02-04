@@ -3,8 +3,11 @@ package request
 // ShipOrderRequest for shipping an order
 type ShipOrderRequest struct {
 	OrderSN         string `json:"order_sn" binding:"required"`
-	TrackingNumber  string `json:"tracking_number" binding:"required"`
+	TrackingNumber  string `json:"tracking_number,omitempty"`
 	ShippingCarrier string `json:"shipping_carrier"`
+	AddressID       int64  `json:"address_id,omitempty"`
+	PickupTimeID    string `json:"pickup_time_id,omitempty"`
+	BranchID        int64  `json:"branch_id,omitempty"`
 }
 
 // CancelOrderRequest for cancelling an order

@@ -20,6 +20,7 @@ export interface ShipOrderParams {
   tracking_number?: string;
   address_id?: number;
   pickup_time_id?: string;
+  branch_id?: number;
   // Lazada specific
   order_item_ids?: string[];
   // TikTok specific
@@ -89,12 +90,22 @@ export function useOrderActions() {
     params: ShipOrderParams,
   ): Record<string, any> => {
     if (platform === "shopee") {
+      const pickup = params.address_id
+        ? {
+            address_id: params.address_id,
+            pickup_time_id: params.pickup_time_id,
+          }
+        : undefined;
+      const dropoff = params.branch_id
+        ? {
+            branch_id: params.branch_id,
+          }
+        : undefined;
       return {
         order_sn: params.order_no,
-        shipping_provider: params.shipping_provider,
+        pickup,
+        dropoff,
         tracking_number: params.tracking_number,
-        address_id: params.address_id,
-        pickup_time_id: params.pickup_time_id,
       };
     }
 
@@ -167,7 +178,9 @@ export function useOrderActions() {
         buildShipRequestBody(platform, params),
       );
 
-      const response = await fetch(`${baseUrl}/orders/ship`, {
+      const shipPath =
+        platform === "shopee" ? "/shipping/arrange" : "/orders/ship";
+      const response = await fetch(`${baseUrl}${shipPath}`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify(requestBody),

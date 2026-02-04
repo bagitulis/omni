@@ -13,7 +13,7 @@
       "variant": "max"
     },
     "atlas": {
-      "model": "google/antigravity-claude-sonnet-4-5-thinking",
+      "model": "google/antigravity-claude-opus-4-5-thinking",
       "variant": "max"
     },
     "hephaestus": {

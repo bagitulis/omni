@@ -13,6 +13,7 @@
             :loading="loading"
             :error="error"
             :pickupAddresses="pickupAddresses"
+            :dropoffBranches="dropoffBranches"
             :order="order"
             :providers="providers"
             @submit="submit"
@@ -66,6 +67,11 @@ interface PickupAddress {
   time_slots?: Array<{ pickup_time_id?: string; pickup_time?: string }>;
 }
 
+interface DropoffBranch {
+  branch_id: number;
+  address: string;
+}
+
 const props = defineProps<{ visible: boolean; order: Order | null }>();
 const emit = defineEmits<{
   close: [];
@@ -76,6 +82,7 @@ const emit = defineEmits<{
       tracking_number?: string;
       address_id?: number;
       pickup_time_id?: string;
+      branch_id?: number;
       package_id?: string;
     },
   ];
@@ -87,11 +94,14 @@ const { form, loading, error, resetForm } = useModalForm({
   aid: "",
   ptid: "",
   pid: "",
+  bid: "",
+  mode: "",
 });
 
 const providers = computed<ShippingProvider[]>(() => getShippingProviders());
 
 const pickupAddresses = ref<PickupAddress[]>([]);
+const dropoffBranches = ref<DropoffBranch[]>([]);
 
 const { getShippingParameters } = useOrderActions();
 
@@ -110,10 +120,21 @@ const loadShippingParams = async () => {
     pickupAddresses.value = data.map((option) => ({
       address_id: option.address_id ?? option.logistic_id,
       address: option.address ?? option.logistic_name,
-      time_slots: option.time_slots || [],
+      time_slots: option.time_slots || option.time_slot_list || [],
     }));
+    dropoffBranches.value = [];
   } else {
     pickupAddresses.value = data?.pickup_addresses || data?.pickup || [];
+    dropoffBranches.value = data?.dropoff || data?.dropoff_branches || [];
+  }
+  if (pickupAddresses.value.length > 0 && dropoffBranches.value.length > 0) {
+    form.value.mode = form.value.mode || "pickup";
+  } else if (pickupAddresses.value.length > 0) {
+    form.value.mode = "pickup";
+  } else if (dropoffBranches.value.length > 0) {
+    form.value.mode = "dropoff";
+  } else {
+    form.value.mode = "";
   }
   if (form.value.aid && pickupAddresses.value.length > 0) {
     const match = pickupAddresses.value.find(
@@ -130,7 +151,33 @@ const valid = computed(() => {
   if (!props.order?.platform) return false;
   const platform = props.order.platform.toLowerCase();
   if (platform === "tiktok") {
-    return form.value.tn.trim() !== "" && form.value.pid.trim() !== "";
+    return (
+      form.value.sp.trim() !== "" &&
+      form.value.tn.trim() !== "" &&
+      form.value.pid.trim() !== ""
+    );
+  }
+  if (platform === "shopee") {
+    if (
+      pickupAddresses.value.length === 0 &&
+      dropoffBranches.value.length === 0
+    ) {
+      return form.value.tn.trim() !== "";
+    }
+    if (form.value.mode === "pickup") {
+      if (!form.value.aid) return false;
+      const selected = pickupAddresses.value.find(
+        (address) => address.address_id === Number(form.value.aid),
+      );
+      if (selected?.time_slots?.length) {
+        return form.value.ptid.trim() !== "";
+      }
+      return true;
+    }
+    if (form.value.mode === "dropoff") {
+      return form.value.bid.toString().trim() !== "";
+    }
+    return false;
   }
   return form.value.sp.trim() !== "";
 });
@@ -145,13 +192,13 @@ const close = () => {
 const submit = async () => {
   if (!valid.value || !props.order) return;
   const platform = props.order.platform?.toLowerCase();
-  const provider = form.value.sp.trim();
   emit("confirm", {
     order_no: props.order.order_no,
-    shipping_provider: provider,
+    shipping_provider: form.value.sp.trim(),
     tracking_number: form.value.tn.trim() || undefined,
     address_id: form.value.aid ? Number(form.value.aid) : undefined,
     pickup_time_id: form.value.ptid || undefined,
+    branch_id: form.value.bid ? Number(form.value.bid) : undefined,
     package_id: form.value.pid.trim() || undefined,
   });
 };
@@ -161,6 +208,10 @@ watch(
   (v) => {
     if (v) {
       resetForm();
+      if (props.order?.platform?.toLowerCase() === "lazada") {
+        form.value.sp =
+          props.order.shipping_carrier || props.order.courier || "";
+      }
       loadShippingParams();
     }
   },
@@ -173,17 +224,18 @@ watch(
 .o {
   position: fixed;
   inset: 0;
-  background: var(--om-bg-overlay);
+  background: var(--om-bg-overlay, rgba(0, 0, 0, 0.65));
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: var(--om-z-modal);
+  isolation: isolate;
   animation: om-fadeIn var(--om-transition-fast);
 }
 
 .om {
-  background: var(--om-bg-primary);
+  background: var(--om-bg-primary, #ffffff);
   border-radius: var(--om-radius-lg);
   box-shadow: var(--om-shadow-lg);
   width: 100%;

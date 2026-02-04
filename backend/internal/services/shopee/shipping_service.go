@@ -76,13 +76,13 @@ type ArrangeShipmentRequest struct {
 	PackageNum string       `json:"package_number,omitempty"`
 	Pickup     *PickupInfo  `json:"pickup,omitempty"`
 	DropOff    *DropOffInfo `json:"dropoff,omitempty"`
+	TrackingNo string       `json:"tracking_number,omitempty"`
 }
 
 // PickupInfo represents pickup information
 type PickupInfo struct {
-	AddressID int64  `json:"address_id"`
-	Date      string `json:"date"`
-	TimeSlot  string `json:"time_slot"`
+	AddressID    int64  `json:"address_id"`
+	PickupTimeID string `json:"pickup_time_id,omitempty"`
 }
 
 // DropOffInfo represents drop-off information
@@ -106,8 +106,13 @@ func (s *ShippingService) getClient() (*shopeePkg.Client, error) {
 	return client, nil
 }
 
+type ShippingOptions struct {
+	Pickup  []shopeePkg.PickupAddressInfo `json:"pickup"`
+	Dropoff []shopeePkg.BranchInfo        `json:"dropoff"`
+}
+
 // GetShippingOptions gets available shipping options for an order
-func (s *ShippingService) GetShippingOptions(ctx context.Context, orderSN string) ([]ShippingOption, error) {
+func (s *ShippingService) GetShippingOptions(ctx context.Context, orderSN string) (*ShippingOptions, error) {
 	client, err := s.getClient()
 	if err != nil {
 		return nil, err
@@ -118,16 +123,10 @@ func (s *ShippingService) GetShippingOptions(ctx context.Context, orderSN string
 		return nil, fmt.Errorf("get shipping parameter: %w", err)
 	}
 
-	var options []ShippingOption
-	for _, pickup := range result.Response.InfoNeeded.Pickup {
-		options = append(options, ShippingOption{
-			LogisticID:   pickup.AddressID,
-			LogisticName: pickup.Address,
-			Enabled:      true,
-		})
-	}
-
-	return options, nil
+	return &ShippingOptions{
+		Pickup:  result.Response.InfoNeeded.Pickup,
+		Dropoff: result.Response.InfoNeeded.Dropoff,
+	}, nil
 }
 
 // ArrangeShipment arranges shipment for an order
@@ -142,16 +141,22 @@ func (s *ShippingService) ArrangeShipment(ctx context.Context, req ArrangeShipme
 		PackageNumber: req.PackageNum,
 	}
 
-	if req.Pickup != nil {
-		shipReq.Pickup = &shopeePkg.PickupInfo{
-			AddressID:    req.Pickup.AddressID,
-			PickupTimeID: req.Pickup.TimeSlot,
+	if req.TrackingNo != "" {
+		shipReq.NonIntegrated = &shopeePkg.NonIntegratedInfo{
+			TrackingNumber: req.TrackingNo,
 		}
-	}
+	} else {
+		if req.Pickup != nil {
+			shipReq.Pickup = &shopeePkg.PickupInfo{
+				AddressID:    req.Pickup.AddressID,
+				PickupTimeID: req.Pickup.PickupTimeID,
+			}
+		}
 
-	if req.DropOff != nil {
-		shipReq.Dropoff = &shopeePkg.DropoffInfo{
-			BranchID: req.DropOff.BranchID,
+		if req.DropOff != nil {
+			shipReq.Dropoff = &shopeePkg.DropoffInfo{
+				BranchID: req.DropOff.BranchID,
+			}
 		}
 	}
 
