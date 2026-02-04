@@ -5,6 +5,7 @@ import (
 	"github.com/omni/backend/internal/handlers"
 	inventoryHandler "github.com/omni/backend/internal/handlers/inventory"
 	shopeeHandler "github.com/omni/backend/internal/handlers/shopee"
+	tiktokHandler "github.com/omni/backend/internal/handlers/tiktok"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/google"
 	"github.com/omni/backend/internal/services/inventory"
@@ -61,6 +62,7 @@ func RegisterShopeeShippingRoutes(router *gin.RouterGroup, getAPIClient func(ten
 		shipping.POST("/arrange", handler.ArrangeShipment)
 		shipping.GET("/tracking/:orderSn", handler.GetTracking)
 		shipping.GET("/info/:orderSn", handler.GetShipment)
+		shipping.GET("/label/:orderSn", handler.GetShippingLabel)
 	}
 }
 
@@ -175,5 +177,16 @@ func RegisterProductCloneRoutes(router *gin.RouterGroup, handler *handlers.Produ
 		cloneData.GET("/product-data", handler.GetProductData)
 		cloneData.GET("/available-targets", handler.GetAvailableTargets)
 		cloneData.GET("/preview", handler.Preview)
+	}
+}
+
+// RegisterTiktokShippingRoutes registers TikTok shipping routes
+func RegisterTiktokShippingRoutes(router *gin.RouterGroup, basePath string) {
+	handler := tiktokHandler.NewShippingHandler(basePath)
+	shipping := router.Group("/tiktok/shipping")
+	shipping.Use(middleware.Auth())
+	shipping.Use(middleware.Tenant())
+	{
+		shipping.GET("/document/:packageId", handler.GetShippingDocument)
 	}
 }

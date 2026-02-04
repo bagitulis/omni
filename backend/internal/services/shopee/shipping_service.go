@@ -8,17 +8,33 @@ import (
 	shopeePkg "github.com/omni/backend/pkg/shopee"
 )
 
+// shippingClient interface for pkg/shopee.Client methods used by shipping service
+type shippingClient interface {
+	GetShippingParameter(orderSN string) (*shopeePkg.GetShippingParameterResponse, error)
+	ShipOrder(req shopeePkg.ShipOrderRequest) (*shopeePkg.ShipOrderResponse, error)
+	GetTrackingNumber(orderSN string) (*shopeePkg.GetTrackingNumberResponse, error)
+	CreateShippingDocument(orderSN, packageNumber string) (*shopeePkg.CreateShippingDocumentResponse, error)
+	DownloadShippingDocument(orderSN, packageNumber, documentType string) (*shopeePkg.DownloadShippingDocumentResponse, error)
+}
+
 // ShippingService handles Shopee shipping operations
 type ShippingService struct {
 	apiClient   APIClient
+	pkgClient   shippingClient // Direct reference to pkg/shopee.Client for shipping operations
 	tenantID    string
 	credService *services.CredentialService
 	dbPath      string
 }
 
-// NewShippingService creates a new shipping service
+// NewShippingService creates a new shipping service with API client
 func NewShippingService(apiClient APIClient, tenantID string) *ShippingService {
-	return &ShippingService{apiClient: apiClient, tenantID: tenantID}
+	// Type assert to get the underlying pkg/shopee.Client for shipping operations
+	pkgClient, _ := apiClient.(shippingClient)
+	return &ShippingService{
+		apiClient: apiClient,
+		pkgClient: pkgClient,
+		tenantID:  tenantID,
+	}
 }
 
 // NewShippingServiceWithCreds creates a shipping service with credential support
@@ -90,8 +106,14 @@ type DropOffInfo struct {
 	BranchID int64 `json:"branch_id"`
 }
 
-// getClient creates a Shopee client with credentials
-func (s *ShippingService) getClient() (*shopeePkg.Client, error) {
+// getClient returns a Shopee client - either the passed one or creates from credentials
+func (s *ShippingService) getClient() (shippingClient, error) {
+	// If we already have a pkgClient (from NewShippingService), use it
+	if s.pkgClient != nil {
+		return s.pkgClient, nil
+	}
+
+	// Otherwise, create from credentials
 	if s.credService == nil {
 		return nil, fmt.Errorf("credential service not initialized")
 	}
@@ -209,4 +231,60 @@ func (s *ShippingService) CalculateShippingFee(ctx context.Context, orderSN stri
 	// Shopee doesn't expose shipping fee calculation directly
 	// This would need to be retrieved from order details
 	return 0, nil
+}
+
+// ShippingLabelResult represents the shipping label download result
+type ShippingLabelResult struct {
+	OrderSN      string `json:"order_sn"`
+	Status       string `json:"status"`
+	FileData     string `json:"file_data,omitempty"`     // Base64 encoded PDF
+	ErrorMessage string `json:"error_message,omitempty"` // Error if failed
+}
+
+// GetShippingLabel downloads shipping document (waybill/label) for an order
+func (s *ShippingService) GetShippingLabel(ctx context.Context, orderSN, packageNumber, documentType string) (*ShippingLabelResult, error) {
+	client, err := s.getClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// First, create the shipping document
+	createResult, err := client.CreateShippingDocument(orderSN, packageNumber)
+	if err != nil {
+		return nil, fmt.Errorf("create shipping document: %w", err)
+	}
+
+	// Check create result status
+	if len(createResult.Response.ResultList) > 0 {
+		status := createResult.Response.ResultList[0].Status
+		if status == "FAILED" {
+			return &ShippingLabelResult{
+				OrderSN:      orderSN,
+				Status:       "FAILED",
+				ErrorMessage: createResult.Response.ResultList[0].FailMessage,
+			}, nil
+		}
+	}
+
+	// Download the shipping document
+	downloadResult, err := client.DownloadShippingDocument(orderSN, packageNumber, documentType)
+	if err != nil {
+		return nil, fmt.Errorf("download shipping document: %w", err)
+	}
+
+	if len(downloadResult.Response.ResultList) == 0 {
+		return &ShippingLabelResult{
+			OrderSN:      orderSN,
+			Status:       "FAILED",
+			ErrorMessage: "No shipping document available",
+		}, nil
+	}
+
+	docResult := downloadResult.Response.ResultList[0]
+	return &ShippingLabelResult{
+		OrderSN:      orderSN,
+		Status:       docResult.Status,
+		FileData:     docResult.ShippingDocFile,
+		ErrorMessage: docResult.FailMessage,
+	}, nil
 }

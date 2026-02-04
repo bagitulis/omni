@@ -224,6 +224,14 @@ func main() {
 	t.GET("/db/products", tDBProd.GetDBProducts)
 	t.GET("/db/products/master", tDBProd.GetMasterProducts)
 
+	// ====== Shipping Routes ======
+	// Shopee Shipping routes (arrange pickup, get label, tracking)
+	routes.RegisterShopeeShippingRoutes(api, extHandlers.ShopeeAPIClientFactory)
+	routes.RegisterShopeeShippingFeeRoutes(api, extHandlers.ShopeeAPIClientFactory, googleAuthService)
+
+	// TikTok Shipping routes (shipping document/label)
+	routes.RegisterTiktokShippingRoutes(api, cfg.DatabasePath)
+
 	// Note: Analytics routes are registered via routes.RegisterShopeeAnalyticsRoutes,
 	// routes.RegisterTiktokAnalyticsRoutes, and routes.RegisterAdsRoutes above.
 

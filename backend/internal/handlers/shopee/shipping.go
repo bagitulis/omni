@@ -122,3 +122,33 @@ func (h *ShippingHandler) GetShipment(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response.Success(info))
 }
+
+// GetShippingLabel handles GET /api/shopee/shipping/label/:orderSn
+// Downloads shipping document (waybill/label) for an order
+func (h *ShippingHandler) GetShippingLabel(c *gin.Context) {
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		return
+	}
+
+	orderSN := c.Param("orderSn")
+	if orderSN == "" {
+		c.JSON(http.StatusBadRequest, response.Error("orderSn required"))
+		return
+	}
+
+	packageNumber := c.Query("package_number")
+	documentType := c.DefaultQuery("document_type", "THERMAL_AIR_WAYBILL")
+
+	apiClient := h.getAPIClient(tenantID)
+	svc := shopeeService.NewShippingService(apiClient, tenantID)
+
+	result, err := svc.GetShippingLabel(c.Request.Context(), orderSN, packageNumber, documentType)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, response.Success(result))
+}

@@ -47,8 +47,8 @@
       "temperature": 0.1
     },
     "sisyphus-junior": {
-      "model": "google/antigravity-claude-sonnet-4-5-thinking",
-      "variant": "max"
+      "model": "github-copilot/claude-sonnet-4.5",
+      "variant": "thinking"
     },
     "default": {
       "model": "google/antigravity-gemini-3-pro",

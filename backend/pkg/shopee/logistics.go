@@ -179,6 +179,156 @@ func (c *Client) GetTrackingNumber(orderSN string) (*GetTrackingNumberResponse, 
 	return &result, nil
 }
 
+// CreateShippingDocumentRequest represents request to create shipping document
+type CreateShippingDocumentRequest struct {
+	OrderList []ShippingDocumentOrder `json:"order_list"`
+}
+
+// ShippingDocumentOrder represents an order for shipping document
+type ShippingDocumentOrder struct {
+	OrderSN       string `json:"order_sn"`
+	PackageNumber string `json:"package_number,omitempty"`
+}
+
+// CreateShippingDocumentResponse represents create shipping document response
+type CreateShippingDocumentResponse struct {
+	Error    string `json:"error"`
+	Message  string `json:"message"`
+	Response struct {
+		ResultList []struct {
+			OrderSN       string `json:"order_sn"`
+			PackageNumber string `json:"package_number"`
+			Status        string `json:"status"`
+			FailError     string `json:"fail_error,omitempty"`
+			FailMessage   string `json:"fail_message,omitempty"`
+		} `json:"result_list"`
+		Warning []string `json:"warning,omitempty"`
+	} `json:"response"`
+}
+
+// GetShippingDocumentResultRequest represents request to get shipping document result
+type GetShippingDocumentResultRequest struct {
+	OrderList []ShippingDocumentOrder `json:"order_list"`
+}
+
+// GetShippingDocumentResultResponse represents get shipping document result response
+type GetShippingDocumentResultResponse struct {
+	Error    string `json:"error"`
+	Message  string `json:"message"`
+	Response struct {
+		ResultList []struct {
+			OrderSN       string `json:"order_sn"`
+			PackageNumber string `json:"package_number"`
+			Status        string `json:"status"`
+			FailError     string `json:"fail_error,omitempty"`
+			FailMessage   string `json:"fail_message,omitempty"`
+		} `json:"result_list"`
+	} `json:"response"`
+}
+
+// DownloadShippingDocumentRequest represents request to download shipping document
+type DownloadShippingDocumentRequest struct {
+	OrderList    []ShippingDocumentOrder `json:"order_list"`
+	DocumentType string                  `json:"document_type,omitempty"` // THERMAL_AIR_WAYBILL, NORMAL_AIR_WAYBILL, THERMAL_WAYBILL, NORMAL_WAYBILL
+	DocumentSize string                  `json:"document_size,omitempty"` // A6, A5, A4
+}
+
+// DownloadShippingDocumentResponse represents response for download (contains file data or status)
+type DownloadShippingDocumentResponse struct {
+	Error    string `json:"error"`
+	Message  string `json:"message"`
+	Response struct {
+		ResultList []struct {
+			OrderSN         string `json:"order_sn"`
+			PackageNumber   string `json:"package_number"`
+			Status          string `json:"status"`
+			FailError       string `json:"fail_error,omitempty"`
+			FailMessage     string `json:"fail_message,omitempty"`
+			ShippingDocFile string `json:"shipping_document_file,omitempty"` // Base64 encoded file
+		} `json:"result_list"`
+	} `json:"response"`
+}
+
+// CreateShippingDocument creates shipping document for orders
+func (c *Client) CreateShippingDocument(orderSN string, packageNumber string) (*CreateShippingDocumentResponse, error) {
+	req := CreateShippingDocumentRequest{
+		OrderList: []ShippingDocumentOrder{
+			{OrderSN: orderSN, PackageNumber: packageNumber},
+		},
+	}
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request: %w", err)
+	}
+
+	var result CreateShippingDocumentResponse
+	if err := c.doPostRequest("/api/v2/logistics/create_shipping_document", nil, body, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Error != "" {
+		return &result, fmt.Errorf("shopee API error: %s - %s", result.Error, result.Message)
+	}
+
+	return &result, nil
+}
+
+// GetShippingDocumentResult gets shipping document creation result
+func (c *Client) GetShippingDocumentResult(orderSN string, packageNumber string) (*GetShippingDocumentResultResponse, error) {
+	req := GetShippingDocumentResultRequest{
+		OrderList: []ShippingDocumentOrder{
+			{OrderSN: orderSN, PackageNumber: packageNumber},
+		},
+	}
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request: %w", err)
+	}
+
+	var result GetShippingDocumentResultResponse
+	if err := c.doPostRequest("/api/v2/logistics/get_shipping_document_result", nil, body, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Error != "" {
+		return &result, fmt.Errorf("shopee API error: %s - %s", result.Error, result.Message)
+	}
+
+	return &result, nil
+}
+
+// DownloadShippingDocument downloads shipping document (waybill/label) for an order
+func (c *Client) DownloadShippingDocument(orderSN string, packageNumber string, documentType string) (*DownloadShippingDocumentResponse, error) {
+	if documentType == "" {
+		documentType = "THERMAL_AIR_WAYBILL"
+	}
+
+	req := DownloadShippingDocumentRequest{
+		OrderList: []ShippingDocumentOrder{
+			{OrderSN: orderSN, PackageNumber: packageNumber},
+		},
+		DocumentType: documentType,
+	}
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request: %w", err)
+	}
+
+	var result DownloadShippingDocumentResponse
+	if err := c.doPostRequest("/api/v2/logistics/download_shipping_document", nil, body, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Error != "" {
+		return &result, fmt.Errorf("shopee API error: %s - %s", result.Error, result.Message)
+	}
+
+	return &result, nil
+}
+
 // doPostRequest executes POST request with body
 func (c *Client) doPostRequest(path string, params map[string]string, body []byte, result interface{}) error {
 	reqURL := c.buildURL(path, params)
