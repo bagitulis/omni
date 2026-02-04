@@ -2,7 +2,6 @@ package master_product
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/omni/backend/internal/models"
@@ -128,7 +127,7 @@ func (s *Service) ensureLocalMasterProductImages(
 
 	updated := false
 	newImages := make([]string, 0, len(imageList))
-	for index, img := range imageList {
+	for _, img := range imageList {
 		if len(newImages) >= models.MasterProductMaxImages {
 			break
 		}
@@ -149,7 +148,7 @@ func (s *Service) ensureLocalMasterProductImages(
 			ctx,
 			tenantID,
 			img,
-			fmt.Sprintf("master_%d_%d", productID, index),
+			"asset",
 			nil,
 		)
 		if err != nil || localPath == "" {

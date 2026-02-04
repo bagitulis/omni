@@ -167,7 +167,7 @@ func (r *GormOrderRepository) cacheTiktokProductImage(
 		ctx,
 		r.tenantID,
 		item.ProductImage,
-		fmt.Sprintf("tiktok_%d", item.ItemID),
+		"asset",
 		allowedHosts,
 	)
 	if err != nil || localPath == "" {
