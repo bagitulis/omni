@@ -4,8 +4,11 @@ package lighthouse_test
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
+	"os/exec"
 	"testing"
+	"time"
 
 	"github.com/omni/backend/tests/e2e/lighthouse"
 )
@@ -18,7 +21,50 @@ var (
 
 func TestMain(m *testing.M) {
 	flag.Parse()
+	if skip, reason := shouldSkipLighthouse(); skip {
+		fmt.Printf("Skipping Lighthouse tests: %s\n", reason)
+		os.Exit(0)
+	}
 	os.Exit(m.Run())
+}
+
+func shouldSkipLighthouse() (bool, string) {
+	if os.Getenv("LIGHTHOUSE_SKIP") != "" {
+		return true, "LIGHTHOUSE_SKIP set"
+	}
+	if !chromeAvailable() {
+		return true, "chrome binary not found"
+	}
+	config := lighthouse.DefaultConfig()
+	if !urlReachable(config.FrontendURL + "/login") {
+		return true, "frontend not reachable at " + config.FrontendURL
+	}
+	return false, ""
+}
+
+func chromeAvailable() bool {
+	if os.Getenv("CHROME_PATH") != "" {
+		if _, err := os.Stat(os.Getenv("CHROME_PATH")); err == nil {
+			return true
+		}
+	}
+	binaries := []string{"google-chrome", "chromium", "chromium-browser", "chrome"}
+	for _, bin := range binaries {
+		if _, err := exec.LookPath(bin); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func urlReachable(url string) bool {
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return false
+	}
+	_ = resp.Body.Close()
+	return resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusBadRequest
 }
 
 // TestLighthouseFull runs the full Lighthouse test suite
