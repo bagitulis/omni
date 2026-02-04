@@ -89,12 +89,23 @@ func (c *Client) GetProducts(pageSize int) (*ProductListResponse, error) {
 // Order Operations (Shipping/Cancel)
 // =============================================================================
 
-// ShipPackageRequest represents ship package request
+// ShipPackageRequest represents ship package request for TikTok Shipping
 type ShipPackageRequest struct {
-	OrderID          string `json:"order_id"`
-	PackageID        string `json:"package_id"`
-	ShippingProvider string `json:"shipping_provider_id"`
-	TrackingNumber   string `json:"tracking_number"`
+	HandoverMethod string            `json:"handover_method,omitempty"` // PICKUP or DROP_OFF
+	PickupSlot     *PickupSlotInfo   `json:"pickup_slot,omitempty"`
+	SelfShipment   *SelfShipmentInfo `json:"self_shipment,omitempty"`
+}
+
+// PickupSlotInfo represents pickup time slot
+type PickupSlotInfo struct {
+	StartTime int64 `json:"start_time"`
+	EndTime   int64 `json:"end_time"`
+}
+
+// SelfShipmentInfo for seller shipping
+type SelfShipmentInfo struct {
+	TrackingNumber     string `json:"tracking_number"`
+	ShippingProviderID string `json:"shipping_provider_id"`
 }
 
 // ShipPackageResponse represents ship package response
@@ -105,18 +116,57 @@ type ShipPackageResponse struct {
 	} `json:"data"`
 }
 
-// ShipPackage marks a package as shipped
-func (c *Client) ShipPackage(req ShipPackageRequest) (*ShipPackageResponse, error) {
-	params := map[string]string{
-		"order_id":             req.OrderID,
-		"package_id":           req.PackageID,
-		"shipping_provider_id": req.ShippingProvider,
-		"tracking_number":      req.TrackingNumber,
-	}
+// ShipPackage ships a package using TikTok Shipping or Seller Shipping
+// packageID: obtained from order detail
+// For TikTok Shipping: set HandoverMethod to "PICKUP" or "DROP_OFF"
+// For Seller Shipping: set SelfShipment with tracking_number and shipping_provider_id
+func (c *Client) ShipPackage(packageID string, req *ShipPackageRequest) (*ShipPackageResponse, error) {
+	apiPath := fmt.Sprintf("/fulfillment/202309/packages/%s/ship", packageID)
+	params := map[string]string{}
 
 	var result ShipPackageResponse
-	err := c.doRequest("POST", "/fulfillment/202309/packages/ship", params, &result)
-	return &result, err
+	if err := c.doRequestWithBody("POST", apiPath, params, req, &result); err != nil {
+		return nil, fmt.Errorf("API request failed: %w", err)
+	}
+
+	if result.Code != 0 {
+		return &result, fmt.Errorf("TikTok API error: code=%d, message=%s", result.Code, result.Message)
+	}
+
+	return &result, nil
+}
+
+// GetPackageDetailResponse represents package detail response
+type GetPackageDetailResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    struct {
+		Packages []PackageInfo `json:"packages"`
+	} `json:"data"`
+}
+
+// PackageInfo represents TikTok package info
+type PackageInfo struct {
+	ID               string `json:"id"`
+	Status           string `json:"status"`
+	TrackingNumber   string `json:"tracking_number"`
+	ShippingProvider struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	} `json:"shipping_provider"`
+}
+
+// GetOrderPackages gets packages for an order
+func (c *Client) GetOrderPackages(orderID string) (*GetPackageDetailResponse, error) {
+	apiPath := fmt.Sprintf("/order/202309/orders/%s", orderID)
+	params := map[string]string{}
+
+	var result GetPackageDetailResponse
+	if err := c.doRequest("GET", apiPath, params, &result); err != nil {
+		return nil, fmt.Errorf("API request failed: %w", err)
+	}
+
+	return &result, nil
 }
 
 // CancelOrderRequest represents cancel order request

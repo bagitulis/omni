@@ -80,8 +80,9 @@ func (h *OrderHandler) GetOrderByID(c *gin.Context) {
 type ShipOrderRequest struct {
 	OrderID          string `json:"order_id" binding:"required"`
 	PackageID        string `json:"package_id" binding:"required"`
-	ShippingProvider string `json:"shipping_provider" binding:"required"`
-	TrackingNumber   string `json:"tracking_number" binding:"required"`
+	ShippingProvider string `json:"shipping_provider,omitempty"`
+	TrackingNumber   string `json:"tracking_number,omitempty"`
+	HandoverMethod   string `json:"handover_method,omitempty"` // PICKUP or DROP_OFF for TikTok Shipping
 }
 
 // ShipOrder handles POST /api/tiktok/orders/ship
@@ -104,22 +105,32 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 		return
 	}
 
-	shipReq := tiktokPkg.ShipPackageRequest{
-		OrderID:          req.OrderID,
-		PackageID:        req.PackageID,
-		ShippingProvider: req.ShippingProvider,
-		TrackingNumber:   req.TrackingNumber,
+	// Build ship package request
+	shipReq := &tiktokPkg.ShipPackageRequest{}
+
+	// Seller Shipping: use tracking number and shipping provider
+	if req.TrackingNumber != "" && req.ShippingProvider != "" {
+		shipReq.SelfShipment = &tiktokPkg.SelfShipmentInfo{
+			TrackingNumber:     req.TrackingNumber,
+			ShippingProviderID: req.ShippingProvider,
+		}
+	} else {
+		// TikTok Shipping: use handover method (PICKUP or DROP_OFF)
+		if req.HandoverMethod == "" {
+			req.HandoverMethod = "PICKUP" // Default to pickup
+		}
+		shipReq.HandoverMethod = req.HandoverMethod
 	}
 
-	resp, err := client.ShipPackage(shipReq)
+	resp, err := client.ShipPackage(req.PackageID, shipReq)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to ship order: "+err.Error()))
 		return
 	}
 
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"success":   resp.Code == 0,
-		"packageId": resp.Data.PackageID,
+		"success":    resp.Code == 0,
+		"package_id": resp.Data.PackageID,
 	}))
 }
 
