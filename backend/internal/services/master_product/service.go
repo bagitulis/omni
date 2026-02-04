@@ -27,8 +27,9 @@ var (
 
 // Service handles Master Product business logic
 type Service struct {
-	repo *repositories.MasterProductRepository
-	db   *gorm.DB
+	repo         *repositories.MasterProductRepository
+	db           *gorm.DB
+	imageManager *ImageManager // Optional - for join table support
 }
 
 // NewService creates a new Master Product service
@@ -36,6 +37,15 @@ func NewService(db *gorm.DB) *Service {
 	return &Service{
 		repo: repositories.NewMasterProductRepository(db),
 		db:   db,
+	}
+}
+
+// NewServiceWithImageManager creates a service with image management support
+func NewServiceWithImageManager(db *gorm.DB, imgMgr *ImageManager) *Service {
+	return &Service{
+		repo:         repositories.NewMasterProductRepository(db),
+		db:           db,
+		imageManager: imgMgr,
 	}
 }
 
@@ -130,6 +140,14 @@ func (s *Service) Create(ctx context.Context, tenantID string, input CreateInput
 		if err := s.createSkuForProduct(ctx, tenantID, product.ID, skuInput); err != nil {
 			log.Error().Err(err).Uint("product_id", product.ID).Msg("Failed to create SKU")
 			// Continue with other SKUs, don't fail the whole operation
+		}
+	}
+
+	// Create join table entries (dual-write)
+	if s.imageManager != nil && len(input.Images) > 0 {
+		if err := s.imageManager.ProcessAndLinkImages(ctx, tenantID, product.ID, input.Images); err != nil {
+			log.Warn().Err(err).Uint("product_id", product.ID).Msg("Failed to create image join entries (non-fatal)")
+			// Don't fail the whole operation - JSONB is still written
 		}
 	}
 
@@ -258,6 +276,13 @@ func (s *Service) Update(ctx context.Context, tenantID string, id uint, input Up
 		return nil, err
 	}
 
+	// Update join table entries (dual-write)
+	if s.imageManager != nil && input.Images != nil {
+		if err := s.imageManager.ProcessAndLinkImages(ctx, tenantID, id, input.Images); err != nil {
+			log.Warn().Err(err).Uint("product_id", id).Msg("Failed to update image join entries (non-fatal)")
+		}
+	}
+
 	log.Info().
 		Str("tenant_id", tenantID).
 		Uint("product_id", id).
@@ -279,6 +304,13 @@ func (s *Service) Delete(ctx context.Context, tenantID string, id uint) error {
 			return ErrProductNotFound
 		}
 		return err
+	}
+
+	// Delete image join entries and update ref counts
+	if s.imageManager != nil {
+		if err := s.imageManager.DeleteJoinTableEntries(ctx, id); err != nil {
+			log.Warn().Err(err).Uint("product_id", id).Msg("Failed to delete image join entries (non-fatal)")
+		}
 	}
 
 	// Delete associated SKUs first
