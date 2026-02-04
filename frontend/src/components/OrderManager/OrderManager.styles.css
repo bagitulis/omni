@@ -3,11 +3,11 @@
 .order-manager {
   min-height: 100%;
   width: 100%;
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
   box-sizing: border-box;
   background: linear-gradient(140deg, #f9fbff 0%, #f6f7fb 45%, #fdf6f0 100%);
-  padding: 8px 0 24px;
+  padding: 4px 0 20px;
   color: var(--om-text-primary);
   font-family: var(--om-font-family);
 }
@@ -15,8 +15,8 @@
 .order-header {
   background: var(--om-bg-primary);
   border-radius: 14px;
-  padding: 24px;
-  margin-bottom: 20px;
+  padding: 20px;
+  margin-bottom: 16px;
   box-shadow: var(--om-shadow-sm);
   border: 1px solid var(--om-border);
 }
