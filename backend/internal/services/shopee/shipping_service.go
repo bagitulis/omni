@@ -145,9 +145,11 @@ func (s *ShippingService) GetShippingOptions(ctx context.Context, orderSN string
 		return nil, fmt.Errorf("get shipping parameter: %w", err)
 	}
 
+	// Extract pickup addresses from response.pickup.address_list (correct Shopee API structure)
+	// and dropoff branches from response.dropoff.branch_list
 	return &ShippingOptions{
-		Pickup:  result.Response.InfoNeeded.Pickup,
-		Dropoff: result.Response.InfoNeeded.Dropoff,
+		Pickup:  result.Response.Pickup.AddressList,
+		Dropoff: result.Response.Dropoff.BranchList,
 	}, nil
 }
 

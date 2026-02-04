@@ -32,3 +32,6 @@ Catatan: Bukti harus relevan langsung dengan inti masalah yang didiskusikan. Buk
 AI Harus: Pelajari flow backend Golang + PostgreSQL, SDK Shopee/TikTok/Lazada Golang, dan pemanggilan route dari Frontend. Perhatikan juga masalah penggunaan snake_case dan camelCase.
 
 ---
+
+ini belum kanb? = silahkan evaluasi dari awal dan untuk testing terakhir nanti anda bisa [Image 1] atur pickup untuk wajib " tanggal besok"
+260203Q98DEKHK dan print resi ini shopee, jika ini belum ada mekanisme backend maupun frontend maka cek lagi SDK nya lagi dan perbaiki,, untuk tiktok bisa atur pengiriman 582445147764327664 dan print resi
