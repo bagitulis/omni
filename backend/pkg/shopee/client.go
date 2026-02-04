@@ -87,26 +87,41 @@ func (c *Client) buildURL(path string, params map[string]string) string {
 func (c *Client) doRequest(method, path string, params map[string]string, result interface{}) error {
 	reqURL := c.buildURL(path, params)
 
+	// 🔍 LOG REQUEST
+	log.Info().
+		Str("method", method).
+		Str("path", path).
+		Interface("params", params).
+		Msg("[Shopee API] Request")
+
 	req, err := http.NewRequest(method, reqURL, nil)
 	if err != nil {
+		log.Error().Err(err).Msg("[Shopee API] Failed to create request")
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		log.Error().Err(err).Msg("[Shopee API] HTTP request failed")
 		return err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		log.Error().Err(err).Msg("[Shopee API] Failed to read response body")
 		return err
 	}
 
-	// Debug: log raw response for item-related APIs
-	if strings.Contains(path, "get_item_extra_info") || strings.Contains(path, "get_item_base_info") {
-		log.Printf("[Shopee API Debug] %s response (truncated): %s", path, truncateString(string(body), 500))
+	// 🔍 LOG RESPONSE - always log for logistics and shipping APIs
+	if strings.Contains(path, "logistics") || strings.Contains(path, "shipping") ||
+		strings.Contains(path, "get_item_extra_info") || strings.Contains(path, "get_item_base_info") {
+		log.Info().
+			Str("path", path).
+			Int("status_code", resp.StatusCode).
+			Str("response", truncateString(string(body), 1000)).
+			Msg("[Shopee API] Response")
 	}
 
 	return json.Unmarshal(body, result)

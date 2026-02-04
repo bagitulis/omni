@@ -69,30 +69,44 @@ type CancelOrderResponse struct {
 	} `json:"response"`
 }
 
-// GetShippingParameterResponse represents shipping parameter response
+// GetShippingParameterResponse represents shipping parameter response from Shopee API
 type GetShippingParameterResponse struct {
 	Error    string `json:"error"`
 	Message  string `json:"message"`
 	Response struct {
 		InfoNeeded struct {
-			Pickup  []PickupAddressInfo `json:"pickup,omitempty"`
-			Dropoff []BranchInfo        `json:"dropoff,omitempty"`
+			Pickup  []string `json:"pickup,omitempty"`  // Array of required field names like ["address_id", "pickup_time_id"]
+			Dropoff []string `json:"dropoff,omitempty"` // Array of required field names
 		} `json:"info_needed"`
+		Pickup struct {
+			AddressList []PickupAddressInfo `json:"address_list,omitempty"`
+		} `json:"pickup,omitempty"`
+		Dropoff struct {
+			BranchList []BranchInfo `json:"branch_list,omitempty"`
+		} `json:"dropoff,omitempty"`
 	} `json:"response"`
 }
 
-// PickupAddressInfo represents pickup address
+// PickupAddressInfo represents pickup address from Shopee API
 type PickupAddressInfo struct {
 	AddressID    int64      `json:"address_id"`
+	Region       string     `json:"region,omitempty"`
+	State        string     `json:"state,omitempty"`
+	City         string     `json:"city,omitempty"`
+	District     string     `json:"district,omitempty"`
+	Town         string     `json:"town,omitempty"`
 	Address      string     `json:"address"`
+	Zipcode      string     `json:"zipcode,omitempty"`
+	AddressFlag  []string   `json:"address_flag,omitempty"`
 	TimeSlotList []TimeSlot `json:"time_slot_list"`
 }
 
 // TimeSlot represents time slot for pickup
 type TimeSlot struct {
-	PickupTimeID string `json:"pickup_time_id"`
-	Date         string `json:"date"`
-	TimeText     string `json:"time_text"`
+	PickupTimeID string   `json:"pickup_time_id"`
+	Date         int64    `json:"date"`                // Unix timestamp
+	TimeText     string   `json:"time_text,omitempty"` // May not be present in response
+	Flags        []string `json:"flags,omitempty"`     // e.g., ["recommended"]
 }
 
 // BranchInfo represents dropoff branch
@@ -160,6 +174,12 @@ func (c *Client) GetShippingParameter(orderSN string) (*GetShippingParameterResp
 	var result GetShippingParameterResponse
 	if err := c.doRequest("GET", "/api/v2/logistics/get_shipping_parameter", params, &result); err != nil {
 		return nil, err
+	}
+
+	// Check for API error in response
+	if result.Error != "" {
+		log.Printf("[Shopee API] GetShippingParameter error: %s - %s", result.Error, result.Message)
+		return &result, fmt.Errorf("shopee API error: %s - %s", result.Error, result.Message)
 	}
 
 	return &result, nil

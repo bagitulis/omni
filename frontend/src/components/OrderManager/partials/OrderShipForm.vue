@@ -218,10 +218,15 @@ const pickupTimes = computed(() => {
   if (!timeSlots) {
     return [] as { value: string; label: string }[];
   }
-  return timeSlots.map((slot: any) => ({
-    value: slot.pickup_time_id || slot.time_slot || "",
-    label: slot.pickup_time || slot.time || slot.time_slot || "",
-  }));
+  return timeSlots.map((slot: any) => {
+    const timeLabel =
+      slot.pickup_time || slot.time_text || slot.time || slot.time_slot || "";
+    const dateLabel = slot.date ? `${slot.date} - ` : "";
+    return {
+      value: slot.pickup_time_id || slot.time_slot || "",
+      label: `${dateLabel}${timeLabel}`,
+    };
+  });
 });
 
 const showPickupTimeSelect = computed(
