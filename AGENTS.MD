@@ -132,6 +132,12 @@ go test ./...
 | `git push`   | `git push --force` |
 |              | `git branch -D`    |
 
+### Commit Policy
+
+- Commit ALL files when requested (sensitive files already handled by user via .gitignore)
+- Always push after commit when requested
+- NEVER use destructive git commands that could damage remote repository
+
 ---
 
 ## 6. Database Configuration

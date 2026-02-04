@@ -89,13 +89,7 @@ const { form, loading, error, resetForm } = useModalForm({
   pid: "",
 });
 
-const providers = computed<ShippingProvider[]>(() => {
-  const platform = props.order?.platform?.toLowerCase();
-  if (platform === "tiktok") {
-    return [];
-  }
-  return getShippingProviders();
-});
+const providers = computed<ShippingProvider[]>(() => getShippingProviders());
 
 const pickupAddresses = ref<PickupAddress[]>([]);
 
