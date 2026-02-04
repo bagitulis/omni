@@ -1,0 +1,29 @@
+============================================================
+📊 ANTIGRAVITY ACCOUNT TEST REPORT
+📅 04/02/2026, 13.14.30
+============================================================
+
+Total Accounts: 17
+✅ OK: 17
+❌ Errors: 0
+
+------------------------------------------------------------
+✅ WORKING ACCOUNTS:
+------------------------------------------------------------
+[1] assafiraa091@gmail.com
+[2] k.nghaerin03@gmail.com
+[3] ahmaditobeni@gmail.com
+[4] yyumnaa@gmail.com
+[5] s43627991@gmail.com
+[6] zuzuzaza917@gmail.com
+[7] balerinatung3@gmail.com
+[8] felixstarlk576@gmail.com
+[9] bagitulis@gmail.com
+[10] yuoistarlk@gmail.com
+[11] kadarielkarim@gmail.com
+[12] ddanangttiossawardi@gmail.com
+[13] fantanihardi@gmail.com
+[14] mantogisatah@gmail.com
+[15] aminahsyah110@gmail.com
+[16] henasanjaya8@gmail.com
+[17] herisetia738@gmail.com
