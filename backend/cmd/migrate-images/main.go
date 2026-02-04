@@ -12,6 +12,7 @@ import (
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/image"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -67,77 +68,84 @@ func migrateTenantImages(tenantID, basePath string) error {
 	dedupService := image.NewDedupService(db, webpService, storageService, thumbnailService, refService)
 
 	// Fetch MasterProducts with images
+	// Use batching to avoid loading all into memory
 	var products []models.MasterProduct
-	// We only need ID and Images fields. GORM might load others if not specified, usually fine.
-	// Filtering where images is not null and not empty JSON array.
-	if err := db.Where("images IS NOT NULL AND jsonb_array_length(images) > 0").Find(&products).Error; err != nil {
-		return fmt.Errorf("failed to fetch products: %w", err)
-	}
 
-	log.Printf("Found %d products with images", len(products))
+	// Filtering where images is not null and not empty JSON array.
+	query := db.Where("images IS NOT NULL AND jsonb_array_length(images) > 0")
 
 	ctx := context.Background()
 
-	for _, product := range products {
-		log.Printf("Processing Product ID %d...", product.ID)
+	err = query.FindInBatches(&products, 100, func(tx *gorm.DB, batch int) error {
 
-		// product.Images is models.JSONArray ([]interface{})
-		for i, imgRaw := range product.Images {
-			imgURL, ok := imgRaw.(string)
-			if !ok {
-				log.Printf("  ⚠️ Skipping non-string image at index %d for product %d", i, product.ID)
-				continue
-			}
+		log.Printf("Processing batch %d...", batch)
 
-			if imgURL == "" {
-				continue
-			}
+		for _, product := range products {
+			log.Printf("Processing Product ID %d...", product.ID)
 
-			// Download Image
-			log.Printf("  Downloading: %s", imgURL)
-			imgData, err := downloadImage(imgURL)
-			if err != nil {
-				log.Printf("  ❌ Failed to download %s: %v", imgURL, err)
-				continue
-			}
+			// product.Images is models.JSONArray ([]interface{})
+			for i, imgRaw := range product.Images {
+				imgURL, ok := imgRaw.(string)
+				if !ok {
+					log.Printf("  ⚠️ Skipping non-string image at index %d for product %d", i, product.ID)
+					continue
+				}
 
-			// Dedup/Create Image
-			imgRecord, isNew, err := dedupService.FindOrCreate(ctx, imgData, imgURL, tenantID, "products")
-			if err != nil {
-				log.Printf("  ❌ DedupService error for %s: %v", imgURL, err)
-				continue
-			}
-			if isNew {
-				log.Printf("  ✨ Created new image record: %d", imgRecord.ID)
-			} else {
-				log.Printf("  🔗 Found existing image record: %d", imgRecord.ID)
-			}
+				if imgURL == "" {
+					continue
+				}
 
-			// Link to MasterProduct (Create Join Table Entry)
-			// Check if link already exists to avoid duplicates/errors
-			var existingLink models.MasterProductImage
-			checkLink := db.Where("product_id = ? AND image_id = ?", product.ID, imgRecord.ID).First(&existingLink)
-			if checkLink.Error == nil {
-				log.Printf("  ⚠️ Link already exists for Product %d - Image %d", product.ID, imgRecord.ID)
-				continue
-			}
+				// Download Image
+				log.Printf("  Downloading: %s", imgURL)
+				imgData, err := downloadImage(imgURL)
+				if err != nil {
+					log.Printf("  ❌ Failed to download %s: %v", imgURL, err)
+					continue
+				}
 
-			link := models.MasterProductImage{
-				ProductID: product.ID,
-				ImageID:   imgRecord.ID,
-				SortOrder: i,
-				Role:      "gallery", // Default role
-			}
-			if i == 0 {
-				link.Role = "main" // First image is main
-			}
+				// Dedup/Create Image
+				imgRecord, isNew, err := dedupService.FindOrCreate(ctx, imgData, imgURL, tenantID, "products")
+				if err != nil {
+					log.Printf("  ❌ DedupService error for %s: %v", imgURL, err)
+					continue
+				}
+				if isNew {
+					log.Printf("  ✨ Created new image record: %d", imgRecord.ID)
+				} else {
+					log.Printf("  🔗 Found existing image record: %d", imgRecord.ID)
+				}
 
-			if err := db.Create(&link).Error; err != nil {
-				log.Printf("  ❌ Failed to link image %d to product %d: %v", imgRecord.ID, product.ID, err)
-			} else {
-				log.Printf("  ✅ Linked image %d to product %d", imgRecord.ID, product.ID)
+				// Link to MasterProduct (Create Join Table Entry)
+				// Check if link already exists to avoid duplicates/errors
+				var existingLink models.MasterProductImage
+				checkLink := db.Where("product_id = ? AND image_id = ?", product.ID, imgRecord.ID).First(&existingLink)
+				if checkLink.Error == nil {
+					log.Printf("  ⚠️ Link already exists for Product %d - Image %d", product.ID, imgRecord.ID)
+					continue
+				}
+
+				link := models.MasterProductImage{
+					ProductID: product.ID,
+					ImageID:   imgRecord.ID,
+					SortOrder: i,
+					Role:      "gallery", // Default role
+				}
+				if i == 0 {
+					link.Role = "main" // First image is main
+				}
+
+				if err := db.Create(&link).Error; err != nil {
+					log.Printf("  ❌ Failed to link image %d to product %d: %v", imgRecord.ID, product.ID, err)
+				} else {
+					log.Printf("  ✅ Linked image %d to product %d", imgRecord.ID, product.ID)
+				}
 			}
 		}
+		return nil
+	}).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to process products: %w", err)
 	}
 
 	return nil
