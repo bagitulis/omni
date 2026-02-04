@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/omni/backend/internal/models"
 	imageService "github.com/omni/backend/internal/services/image"
@@ -98,7 +99,12 @@ func (r *GormOrderRepository) saveTiktokOrders(ctx context.Context, db *gorm.DB,
 func (r *GormOrderRepository) saveTiktokOrderItems(ctx context.Context, db *gorm.DB, orderSN string, items []OrderItem) error {
 	cacheService := imageService.NewProductImageCacheService()
 	urlCache := make(map[string]string)
+	masterImageMap := r.getTiktokMasterImages(ctx, db, items)
 	for i := range items {
+		if img, ok := masterImageMap[items[i].ItemID]; ok && img != "" {
+			items[i].ProductImage = img
+			continue
+		}
 		items[i].ProductImage = r.cacheTiktokProductImage(ctx, db, cacheService, urlCache, items[i])
 	}
 
@@ -221,6 +227,44 @@ func (r *GormOrderRepository) upsertTiktokProductImageCache(
 	}
 }
 
+func (r *GormOrderRepository) getTiktokMasterImages(ctx context.Context, db *gorm.DB, items []OrderItem) map[int64]string {
+	idSet := make(map[int64]bool)
+	for _, item := range items {
+		if item.ItemID > 0 {
+			idSet[item.ItemID] = true
+		}
+	}
+	ids := make([]int64, 0, len(idSet))
+	for id := range idSet {
+		ids = append(ids, id)
+	}
+	return r.getTiktokMasterImagesByIDs(ctx, db, ids)
+}
+
+func (r *GormOrderRepository) getTiktokMasterImagesByIDs(ctx context.Context, db *gorm.DB, productIDs []int64) map[int64]string {
+	result := make(map[int64]string)
+	if len(productIDs) == 0 {
+		return result
+	}
+
+	itemIDStrings := make([]string, 0, len(productIDs))
+	for _, id := range productIDs {
+		if id > 0 {
+			itemIDStrings = append(itemIDStrings, strconv.FormatInt(id, 10))
+		}
+	}
+
+	masterMap := r.getMasterProductImagesByItemIDs(ctx, db, models.PlatformTiktok, itemIDStrings)
+	for _, id := range productIDs {
+		key := strconv.FormatInt(id, 10)
+		if image, ok := masterMap[key]; ok && image != "" {
+			result[id] = image
+		}
+	}
+
+	return result
+}
+
 // getTiktokOrdersByStatus gets TikTok orders by status WITH ITEMS
 // Returns flattened items format for frontend (same as Node.js OrderFormatterService)
 // TikTok has special logic: SellerSku for SKU, plus deduplication
@@ -268,13 +312,18 @@ func (r *GormOrderRepository) getTiktokOrdersByStatus(ctx context.Context, db *g
 		productIDs = append(productIDs, id)
 	}
 
-	// Fetch product images from tiktok_products cache
+	// Fetch product images from master product cache first, then tiktok_products cache
+	masterImageMap := r.getTiktokMasterImagesByIDs(ctx, db, productIDs)
 	imageMap := r.getTiktokProductImagesFromCache(ctx, db, productIDs)
 
 	// Group items by order_sn and enrich with images
 	itemsByOrder := make(map[string][]models.TiktokOrderItem)
 	for i := range items {
-		// Enrich item with cached product image if empty
+		if items[i].ProductID > 0 {
+			if masterImg, ok := masterImageMap[items[i].ProductID]; ok && masterImg != "" {
+				items[i].ProductImage = masterImg
+			}
+		}
 		if items[i].ProductImage == "" && items[i].ProductID > 0 {
 			if imgURL, ok := imageMap[items[i].ProductID]; ok {
 				items[i].ProductImage = imgURL

@@ -3,10 +3,11 @@
 .order-manager {
   min-height: 100%;
   width: 100%;
-  max-width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
   box-sizing: border-box;
   background: linear-gradient(140deg, #f9fbff 0%, #f6f7fb 45%, #fdf6f0 100%);
-  padding: 16px;
+  padding: 8px 0 24px;
   color: var(--om-text-primary);
   font-family: var(--om-font-family);
 }
