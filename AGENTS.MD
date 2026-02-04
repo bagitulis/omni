@@ -191,7 +191,7 @@ Fallback chain:
 
 ---
 
-## 10. Anti-Patterns (GLOBAL - SEMUA AGENT)
+## 10. Anti-Patterns (GLOBAL - ALL AGENTS)
 
 | Forbidden               | Do Instead              |
 | ----------------------- | ----------------------- |
