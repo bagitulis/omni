@@ -430,6 +430,7 @@ func (r *GormOrderRepository) flattenLazadaOrders(orderModels []models.LazadaOrd
 					VariationName:   item.VariationName,
 					Quantity:        qty,
 					Price:           price,
+					OrderItemID:     item.ItemID,
 					ProductImage:    item.ProductImage,
 					CreatedAt:       m.CreatedAt,
 					UpdatedAt:       m.UpdatedAt,

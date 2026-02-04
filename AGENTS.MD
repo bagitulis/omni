@@ -79,6 +79,28 @@ All JSON response/request MUST use snake_case. Backend and Frontend must match.
 | Migrations | Unlimited |
 | Docs/Rules | Unlimited |
 
+### Code Quality Principles (MANDATORY)
+
+All code MUST follow these principles:
+
+| Principle      | Rule                                                                   |
+| -------------- | ---------------------------------------------------------------------- |
+| **DRY**        | Don't Repeat Yourself - extract duplicated code into functions/modules |
+| **SRP**        | Single Responsibility Principle - one function/class = one purpose     |
+| **OOP**        | Use proper encapsulation, inheritance where appropriate                |
+| **Clean Code** | Remove dead code, unused imports, commented-out code                   |
+
+```
+❌ WRONG: Copy-paste same logic in 3 places
+✅ CORRECT: Extract to shared utility function
+
+❌ WRONG: Function that does 5 different things
+✅ CORRECT: Split into 5 focused functions
+
+❌ WRONG: Leave unused variables and imports
+✅ CORRECT: Clean up before commit
+```
+
 ---
 
 ## 2. Architecture Pattern

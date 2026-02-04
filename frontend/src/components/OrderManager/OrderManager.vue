@@ -204,7 +204,7 @@ const handleShipConfirm = async (data: {
 
   if (platform === "lazada") {
     const orderItemIds = selectedOrder.value?.items
-      ?.map((item: any) => String(item.item_id || item.order_item_id || ""))
+      ?.map((item: any) => String(item.order_item_id || item.item_id || ""))
       .filter((id: string) => id !== "");
     params.order_item_ids = orderItemIds?.length
       ? orderItemIds
@@ -248,8 +248,8 @@ const handleCancelConfirm = async (data: {
 
   if (platform === "lazada") {
     const orderItemId =
-      selectedOrder.value?.items?.[0]?.item_id ||
       selectedOrder.value?.items?.[0]?.order_item_id ||
+      selectedOrder.value?.items?.[0]?.item_id ||
       selectedOrder.value?.order_item_id ||
       selectedOrder.value?.orderItemId ||
       data.order_no;

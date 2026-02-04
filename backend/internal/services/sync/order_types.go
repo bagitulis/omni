@@ -39,6 +39,7 @@ type Order struct {
 	Quantity      int     `json:"qty"` // frontend expects "qty" not "quantity"
 	Price         float64 `json:"price,omitempty"`
 	ProductImage  string  `json:"product_image,omitempty"`
+	OrderItemID   int64   `json:"order_item_id,omitempty"`
 	// Legacy nested items (optional, for backward compatibility)
 	Items     []OrderItem `json:"items,omitempty"`
 	CreatedAt time.Time   `json:"created_at"`
