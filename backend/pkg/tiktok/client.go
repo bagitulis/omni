@@ -218,3 +218,33 @@ func (c *Client) doRequestWithBody(method, apiPath string, params map[string]str
 
 	return json.Unmarshal(respBody, result)
 }
+
+// ShippingDocumentResponse represents the TikTok shipping document API response
+type ShippingDocumentResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    struct {
+		DocURL         string `json:"doc_url"`
+		TrackingNumber string `json:"tracking_number"`
+	} `json:"data"`
+}
+
+// GetShippingDocument retrieves shipping label/document URL for a package
+// documentType: "SHIPPING_LABEL", "PACKING_SLIP", etc.
+func (c *Client) GetShippingDocument(packageID, documentType string) (string, error) {
+	apiPath := fmt.Sprintf("/fulfillment/202309/packages/%s/shipping_documents", packageID)
+	params := map[string]string{
+		"document_type": documentType,
+	}
+
+	var result ShippingDocumentResponse
+	if err := c.doRequest("GET", apiPath, params, &result); err != nil {
+		return "", fmt.Errorf("API request failed: %w", err)
+	}
+
+	if result.Code != 0 {
+		return "", fmt.Errorf("TikTok API error: code=%d, message=%s", result.Code, result.Message)
+	}
+
+	return result.Data.DocURL, nil
+}
