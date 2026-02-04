@@ -2,7 +2,7 @@ package image
 
 import (
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -72,9 +72,10 @@ func (s *ProductImageCacheService) CacheRemoteImage(
 	}
 
 	data, ext := s.ensureWebP(data, contentType, parsed.Path)
-	filename := buildCacheFilename(filenamePrefix, imageURL, ext)
+	contentHash := hashBytes(data)
+	filename := buildCacheFilename(filenamePrefix, contentHash, ext)
 
-	relativePath, err := s.storage.SaveImage(tenantID, "products", filename, data)
+	relativePath, err := s.storage.SaveImageWithName(tenantID, "products", filename, data)
 	if err != nil {
 		return "", err
 	}
@@ -149,13 +150,16 @@ func extFromContentType(contentType, urlPath string) string {
 	return ".jpg"
 }
 
-func buildCacheFilename(prefix, imageURL, ext string) string {
+func buildCacheFilename(prefix, contentHash, ext string) string {
 	if prefix == "" {
-		prefix = "product"
+		prefix = "asset"
 	}
-	hash := sha1.Sum([]byte(imageURL))
-	shortHash := hex.EncodeToString(hash[:8])
-	return fmt.Sprintf("%s_%s%s", sanitizeFilename(prefix), shortHash, ext)
+	return fmt.Sprintf("%s_%s%s", sanitizeFilename(prefix), contentHash, ext)
+}
+
+func hashBytes(data []byte) string {
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
 }
 
 func hostAllowed(host string, allowed []string) bool {

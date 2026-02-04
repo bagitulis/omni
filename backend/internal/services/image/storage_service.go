@@ -56,6 +56,29 @@ func (s *StorageService) SaveImage(tenantID, category, originalFilename string, 
 	timestamp := time.Now().UnixNano()
 	filename := fmt.Sprintf("%d_%s%s", timestamp, baseName, ext)
 
+	return s.saveImageWithFilename(tenantID, category, filename, data)
+}
+
+// SaveImageWithName saves image data with a deterministic filename.
+// If the file already exists, it returns the existing path without overwriting.
+func (s *StorageService) SaveImageWithName(tenantID, category, filename string, data []byte) (string, error) {
+	if tenantID == "" {
+		return "", fmt.Errorf("tenant_id is required")
+	}
+
+	if category != "products" && category != "gallery" {
+		category = "gallery"
+	}
+
+	filename = sanitizeFilename(filename)
+	if filepath.Ext(filename) == "" {
+		return "", fmt.Errorf("filename must include extension")
+	}
+
+	return s.saveImageWithFilename(tenantID, category, filename, data)
+}
+
+func (s *StorageService) saveImageWithFilename(tenantID, category, filename string, data []byte) (string, error) {
 	// Build full path
 	dirPath := filepath.Join(s.basePath, tenantID, category)
 	fullPath := filepath.Join(dirPath, filename)
@@ -63,6 +86,11 @@ func (s *StorageService) SaveImage(tenantID, category, originalFilename string, 
 	// Create directory if not exists
 	if err := os.MkdirAll(dirPath, 0755); err != nil {
 		return "", fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	if _, err := os.Stat(fullPath); err == nil {
+		relativePath := filepath.Join(tenantID, category, filename)
+		return relativePath, nil
 	}
 
 	// Write file
