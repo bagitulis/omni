@@ -192,13 +192,28 @@ const handleShipConfirm = async (data: {
   tracking_number?: string;
   address_id?: number;
 }) => {
+  const platform = (selectedOrder.value?.platform || "shopee").toLowerCase();
   const params: ShipOrderParams = {
     order_no: data.order_no,
-    platform: selectedOrder.value?.platform || "shopee",
+    platform,
     shipping_provider: data.shipping_provider,
     tracking_number: data.tracking_number,
     address_id: data.address_id,
+    pickup_time_id: data.pickup_time_id,
   };
+
+  if (platform === "lazada") {
+    const orderItemIds = selectedOrder.value?.items
+      ?.map((item: any) => String(item.item_id || item.order_item_id || ""))
+      .filter((id: string) => id !== "");
+    params.order_item_ids = orderItemIds?.length
+      ? orderItemIds
+      : [data.order_no];
+  }
+
+  if (platform === "tiktok") {
+    params.package_id = data.package_id || "";
+  }
 
   const result = await shipOrder(params);
   if (result.success) {
@@ -223,12 +238,23 @@ const handleCancelConfirm = async (data: {
   cancel_reason: string;
   reason_detail?: string;
 }) => {
+  const platform = (selectedOrder.value?.platform || "shopee").toLowerCase();
   const params: CancelOrderParams = {
     order_no: data.order_no,
-    platform: selectedOrder.value?.platform || "shopee",
+    platform,
     cancel_reason: data.cancel_reason,
     reason_detail: data.reason_detail,
   };
+
+  if (platform === "lazada") {
+    const orderItemId =
+      selectedOrder.value?.items?.[0]?.item_id ||
+      selectedOrder.value?.items?.[0]?.order_item_id ||
+      selectedOrder.value?.order_item_id ||
+      selectedOrder.value?.orderItemId ||
+      data.order_no;
+    params.order_item_id = String(orderItemId);
+  }
 
   const result = await cancelOrder(params);
   if (result.success) {

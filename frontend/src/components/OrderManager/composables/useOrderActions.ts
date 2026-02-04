@@ -284,7 +284,7 @@ export function useOrderActions() {
 
     try {
       const response = await fetch(
-        `${SHOPEE_API}/orders/${orderNo}/shipping-params`,
+        `${SHOPEE_API}/shipping/options?orderSn=${encodeURIComponent(orderNo)}`,
         {
           method: "GET",
           headers: getAuthHeaders(),

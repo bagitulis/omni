@@ -1,6 +1,6 @@
 <template>
   <form @submit.prevent="$emit('submit')" class="form">
-    <div>
+    <div v-if="showProviderSelect">
       <label for="sp">Shipping Provider</label>
       <select
         id="sp"
@@ -16,11 +16,27 @@
       </select>
     </div>
 
+    <div v-else>
+      <label for="sp">Shipping Provider ID</label>
+      <input
+        id="sp"
+        :value="modelValue.sp"
+        @input="update('sp', ($event.target as HTMLInputElement).value)"
+        type="text"
+        class="input"
+        placeholder="Enter TikTok shipping provider ID..."
+        :disabled="loading"
+      />
+      <p v-if="showProviderHelp" class="helper-text">
+        For TikTok use the shipping_provider_id from the Shipping Provider API.
+      </p>
+    </div>
+
     <div>
       <label for="tn">
         Tracking Number
         <span style="font-weight: 400; color: var(--om-text-secondary)"
-          >(Optional)</span
+          >({{ trackingLabel }})</span
         >
       </label>
       <input
@@ -34,11 +50,25 @@
       />
     </div>
 
-    <div
-      v-if="
-        order?.platform?.toLowerCase() === 'shopee' && pickupAddresses.length
-      "
-    >
+    <div v-if="showPackageId">
+      <label for="pid">
+        Package ID
+        <span style="font-weight: 400; color: var(--om-text-secondary)"
+          >(Required)</span
+        >
+      </label>
+      <input
+        id="pid"
+        :value="modelValue.pid"
+        @input="update('pid', ($event.target as HTMLInputElement).value)"
+        type="text"
+        class="input"
+        placeholder="Enter package ID..."
+        :disabled="loading"
+      />
+    </div>
+
+    <div v-if="showPickupSelect">
       <label for="pa">Pickup Address</label>
       <select
         id="pa"
@@ -58,6 +88,22 @@
       </select>
     </div>
 
+    <div v-if="showPickupTimeSelect">
+      <label for="pt">Pickup Time</label>
+      <select
+        id="pt"
+        :value="modelValue.ptid"
+        @input="update('ptid', ($event.target as HTMLSelectElement).value)"
+        class="select"
+        :disabled="loading"
+      >
+        <option value="">Select Pickup Time...</option>
+        <option v-for="t in pickupTimes" :key="t.value" :value="t.value">
+          {{ t.label }}
+        </option>
+      </select>
+    </div>
+
     <div v-if="error" class="error-box">
       <Icon name="warning" size="sm" />
       <span>{{ error }}</span>
@@ -66,11 +112,18 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import type { ShippingProvider } from "../composables/useModalForm";
 import Icon from "@/components/ui/Icon.vue";
 
 interface Props {
-  modelValue: { sp: string; tn: string; aid: string | number };
+  modelValue: {
+    sp: string;
+    tn: string;
+    aid: string | number;
+    ptid?: string;
+    pid?: string;
+  };
   loading: boolean;
   error: string;
   pickupAddresses: any[];
@@ -83,6 +136,48 @@ const emit = defineEmits<{
   (e: "update:modelValue", value: any): void;
   (e: "submit"): void;
 }>();
+
+const showProviderSelect = computed(() => {
+  const platform = props.order?.platform?.toLowerCase();
+  return platform !== "tiktok";
+});
+
+const showProviderHelp = computed(() => {
+  const platform = props.order?.platform?.toLowerCase();
+  return platform === "tiktok";
+});
+
+const showPickupSelect = computed(() => {
+  const platform = props.order?.platform?.toLowerCase();
+  return platform === "shopee" && props.pickupAddresses.length > 0;
+});
+
+const pickupTimes = computed(() => {
+  const selected = props.pickupAddresses.find(
+    (address) => address.address_id === Number(props.modelValue.aid),
+  );
+  if (!selected?.time_slots) {
+    return [] as { value: string; label: string }[];
+  }
+  return selected.time_slots.map((slot: any) => ({
+    value: slot.pickup_time_id || slot.time_slot || "",
+    label: slot.pickup_time || slot.time || slot.time_slot || "",
+  }));
+});
+
+const showPickupTimeSelect = computed(
+  () => showPickupSelect.value && pickupTimes.value.length > 0,
+);
+
+const trackingLabel = computed(() => {
+  const platform = props.order?.platform?.toLowerCase();
+  return platform === "tiktok" ? "Required" : "Optional";
+});
+
+const showPackageId = computed(() => {
+  const platform = props.order?.platform?.toLowerCase();
+  return platform === "tiktok";
+});
 
 const update = (key: string, value: any) => {
   emit("update:modelValue", { ...props.modelValue, [key]: value });
@@ -140,5 +235,11 @@ const update = (key: string, value: any) => {
   color: var(--om-status-cancelled);
   border-radius: 4px;
   font-size: 0.875rem;
+}
+
+.helper-text {
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--om-text-secondary);
 }
 </style>

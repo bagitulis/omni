@@ -48,6 +48,7 @@ import {
   getShippingProviders,
   type ShippingProvider,
 } from "./composables/useModalForm";
+import { useOrderActions } from "./composables/useOrderActions";
 import OrderShipInfo from "./partials/OrderShipInfo.vue";
 import OrderShipForm from "./partials/OrderShipForm.vue";
 import Icon from "@/components/ui/Icon.vue";
@@ -62,6 +63,7 @@ interface Order {
 interface PickupAddress {
   address_id: number;
   address: string;
+  time_slots?: Array<{ pickup_time_id?: string; pickup_time?: string }>;
 }
 
 const props = defineProps<{ visible: boolean; order: Order | null }>();
@@ -73,6 +75,8 @@ const emit = defineEmits<{
       shipping_provider: string;
       tracking_number?: string;
       address_id?: number;
+      pickup_time_id?: string;
+      package_id?: string;
     },
   ];
 }>();
@@ -81,13 +85,61 @@ const { form, loading, error, resetForm } = useModalForm({
   sp: "",
   tn: "",
   aid: "",
+  ptid: "",
+  pid: "",
 });
 
-const providers = computed<ShippingProvider[]>(() => getShippingProviders());
+const providers = computed<ShippingProvider[]>(() => {
+  const platform = props.order?.platform?.toLowerCase();
+  if (platform === "tiktok") {
+    return [];
+  }
+  return getShippingProviders();
+});
 
 const pickupAddresses = ref<PickupAddress[]>([]);
 
-const valid = computed(() => form.value.sp !== "");
+const { getShippingParameters } = useOrderActions();
+
+const loadShippingParams = async () => {
+  if (!props.order?.order_no || !props.order.platform) {
+    pickupAddresses.value = [];
+    return;
+  }
+
+  const data = await getShippingParameters(
+    props.order.order_no,
+    props.order.platform,
+  );
+
+  if (Array.isArray(data)) {
+    pickupAddresses.value = data.map((option) => ({
+      address_id: option.address_id ?? option.logistic_id,
+      address: option.address ?? option.logistic_name,
+      time_slots: option.time_slots || [],
+    }));
+  } else {
+    pickupAddresses.value = data?.pickup_addresses || data?.pickup || [];
+  }
+  if (form.value.aid && pickupAddresses.value.length > 0) {
+    const match = pickupAddresses.value.find(
+      (address) => address.address_id === Number(form.value.aid),
+    );
+    if (!match) {
+      form.value.aid = "";
+      form.value.ptid = "";
+    }
+  }
+};
+
+const valid = computed(() => {
+  if (!props.order?.platform) return false;
+  const platform = props.order.platform.toLowerCase();
+  if (platform === "tiktok") {
+    return form.value.tn.trim() !== "" && form.value.pid.trim() !== "";
+  }
+  return form.value.sp.trim() !== "";
+});
 
 const close = () => {
   if (!loading.value) {
@@ -98,11 +150,15 @@ const close = () => {
 
 const submit = async () => {
   if (!valid.value || !props.order) return;
+  const platform = props.order.platform?.toLowerCase();
+  const provider = form.value.sp.trim();
   emit("confirm", {
     order_no: props.order.order_no,
-    shipping_provider: form.value.sp,
-    tracking_number: form.value.tn || undefined,
+    shipping_provider: provider,
+    tracking_number: form.value.tn.trim() || undefined,
     address_id: form.value.aid ? Number(form.value.aid) : undefined,
+    pickup_time_id: form.value.ptid || undefined,
+    package_id: form.value.pid.trim() || undefined,
   });
 };
 
@@ -111,6 +167,7 @@ watch(
   (v) => {
     if (v) {
       resetForm();
+      loadShippingParams();
     }
   },
 );
@@ -122,11 +179,12 @@ watch(
 .o {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--om-bg-overlay);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--om-z-modal);
   animation: om-fadeIn var(--om-transition-fast);
 }
 

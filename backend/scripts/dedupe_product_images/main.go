@@ -35,27 +35,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	cfg := config.Load()
-	if cfg.DBDriver != "postgres" {
-		fmt.Println("FAILED: DB_DRIVER must be postgres")
-		os.Exit(1)
-	}
-
-	config.SetDatabaseDriver(config.DriverPostgres, &config.PostgresConfig{
-		Host:     cfg.PGHost,
-		Port:     cfg.PGPort,
-		User:     cfg.PGUser,
-		Password: cfg.PGPassword,
-		DBName:   cfg.PGDatabase,
-		SSLMode:  cfg.PGSSLMode,
-	})
-
-	db, err := config.GetTenantDB(tenantID, cfg.DatabasePath)
-	if err != nil {
-		fmt.Printf("FAILED: unable to connect tenant DB: %v\n", err)
-		os.Exit(1)
-	}
-
 	basePath := os.Getenv("UPLOAD_PATH")
 	if basePath == "" {
 		basePath = "uploads"
@@ -63,9 +42,17 @@ func main() {
 
 	category := "products"
 	root := filepath.Join(basePath, tenantID, category)
+	if _, statErr := os.Stat(root); statErr != nil {
+		if os.IsNotExist(statErr) {
+			fmt.Printf("No uploads found at %s\n", root)
+			return
+		}
+		fmt.Printf("FAILED: unable to access %s: %v\n", root, statErr)
+		os.Exit(1)
+	}
 	mapping := make(map[string]string)
 
-	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, walkErr error) error {
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
@@ -124,6 +111,27 @@ func main() {
 	if *dryRun {
 		fmt.Printf("Dry run complete. Dedupe candidates: %d\n", len(mapping))
 		return
+	}
+
+	cfg := config.Load()
+	if cfg.DBDriver != "postgres" {
+		fmt.Println("FAILED: DB_DRIVER must be postgres")
+		os.Exit(1)
+	}
+
+	config.SetDatabaseDriver(config.DriverPostgres, &config.PostgresConfig{
+		Host:     cfg.PGHost,
+		Port:     cfg.PGPort,
+		User:     cfg.PGUser,
+		Password: cfg.PGPassword,
+		DBName:   cfg.PGDatabase,
+		SSLMode:  cfg.PGSSLMode,
+	})
+
+	db, err := config.GetTenantDB(tenantID, cfg.DatabasePath)
+	if err != nil {
+		fmt.Printf("FAILED: unable to connect tenant DB: %v\n", err)
+		os.Exit(1)
 	}
 
 	if err := updateProductImages(db, models.GetTableName("ShopeeProduct"), expanded); err != nil {

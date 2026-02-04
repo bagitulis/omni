@@ -3,8 +3,9 @@
 .o {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  background: var(--om-bg-overlay);
+  backdrop-filter: blur(4px);
+  z-index: var(--om-z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
