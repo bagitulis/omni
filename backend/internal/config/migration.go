@@ -124,6 +124,12 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		// Image Gallery
 		&models.Image{},
 
+		// Product-Image Join Tables
+		&models.MasterProductImage{},
+		&models.ShopeeProductImage{},
+		&models.TiktokProductImage{},
+		&models.LazadaProductImage{},
+
 		// Orders
 		&models.OrderTodayItem{},
 		&models.LockedOrder{},
