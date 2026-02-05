@@ -15,6 +15,10 @@ func RegisterAuthRoutes(router *gin.RouterGroup, authHandler *handlers.AuthHandl
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/refresh", authHandler.RefreshToken)
 		auth.GET("/verify", authHandler.VerifyToken)
+
+		// Dev-only routes (ONLY work when GO_ENV != "production")
+		auth.GET("/dev-info", authHandler.DevLoginInfo)
+		auth.POST("/dev-login", authHandler.DevLogin)
 	}
 }
 

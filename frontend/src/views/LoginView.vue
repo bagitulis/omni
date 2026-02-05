@@ -3,6 +3,32 @@
     <div class="login-card">
       <h1>Login</h1>
 
+      <!-- DEV MODE: Localhost bypass login -->
+      <div v-if="isLocalhost" class="dev-mode-section">
+        <div class="dev-mode-header">
+          <span aria-hidden="true">🔧</span> Dev Mode (Localhost Only)
+        </div>
+        <div class="dev-mode-content">
+          <label for="devTenant">Select Tenant:</label>
+          <select
+            id="devTenant"
+            v-model="selectedDevTenant"
+            class="dev-tenant-select"
+          >
+            <option value="yumna_bertigamart">Yumna - Bertigamart</option>
+            <option value="tika_nusseyba">Tika - Nusseyba</option>
+          </select>
+          <button
+            type="button"
+            @click="handleDevLogin"
+            :disabled="isLoading"
+            class="btn-dev-login"
+          >
+            {{ isLoading ? "Logging in..." : "Quick Dev Login (tester)" }}
+          </button>
+        </div>
+      </div>
+
       <!-- Session Expired Notice -->
       <div v-if="sessionExpired" class="session-expired-message" role="alert">
         Session expired. Please login again.
@@ -78,10 +104,20 @@ import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "../store/authStore";
 import { authService } from "../services/authService";
 import { captchaService } from "../services/captchaService";
+import api from "../services/api";
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
+
+// Check if running on localhost (for dev bypass)
+const isLocalhost = computed(() => {
+  const hostname = window.location.hostname;
+  return hostname === "localhost" || hostname === "127.0.0.1";
+});
+
+// Dev mode state
+const selectedDevTenant = ref("yumna_bertigamart");
 
 // Get returnUrl from query params (set when redirected due to expired token)
 const returnUrl = computed(() => {
@@ -111,6 +147,48 @@ const lockMinutesRemaining = ref(0);
 onMounted(async () => {
   await captchaService.init();
 });
+
+// Dev login handler - calls secure backend endpoint
+const handleDevLogin = async () => {
+  try {
+    isLoading.value = true;
+    error.value = "";
+
+    // Call backend dev-login endpoint (only works in dev mode on backend)
+    const response = await api.post<{
+      success: boolean;
+      token: string;
+      tenant_id: string;
+      user: { id: string; username: string; email: string; role: string };
+      dev_mode: boolean;
+    }>("/auth/dev-login", {
+      tenant_id: selectedDevTenant.value,
+    });
+
+    if (!response.success) {
+      throw new Error("Dev login failed");
+    }
+
+    // Store user data
+    localStorage.setItem("authToken", response.token);
+    localStorage.setItem("userRole", response.user.role || "user");
+    localStorage.setItem("userName", response.user.username || "User");
+    localStorage.setItem("tenantId", response.tenant_id);
+
+    authStore.setAuth({
+      token: response.token,
+      user: response.user,
+      tenant_id: response.tenant_id,
+    });
+
+    // Redirect to home
+    router.push(returnUrl.value);
+  } catch (err: any) {
+    error.value = err.message || "Dev login failed - is backend in dev mode?";
+  } finally {
+    isLoading.value = false;
+  }
+};
 
 const handleLogin = async () => {
   if (isLocked.value) return;
@@ -300,6 +378,72 @@ input:focus {
 
 input:disabled {
   background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+/* Dev Mode Styles */
+.dev-mode-section {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #f59e0b;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.dev-mode-header {
+  font-weight: 600;
+  color: #92400e;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.dev-mode-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dev-mode-content label {
+  color: #78350f;
+  font-size: 13px;
+  margin-bottom: 0;
+}
+
+.dev-tenant-select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d97706;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  color: #1f2937;
+}
+
+.dev-tenant-select:focus {
+  outline: none;
+  border-color: #b45309;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+
+.btn-dev-login {
+  width: 100%;
+  padding: 10px;
+  background: #d97706;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn-dev-login:hover:not(:disabled) {
+  background: #b45309;
+}
+
+.btn-dev-login:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
 }
 </style>
