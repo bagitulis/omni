@@ -58,23 +58,19 @@ func (s *ShippingService) applyDefaultPickupTime(ctx context.Context, client shi
 				return fmt.Errorf("no pickup time slots available")
 			}
 
-			// Try to find a slot for tomorrow
-			tomorrow := time.Now().AddDate(0, 0, 1)
-			tomorrowY, tomorrowM, tomorrowD := tomorrow.Date()
+			// Pick the first (earliest) available slot
+			earliestSlot := addr.TimeSlotList[0]
+			pickup.PickupTimeID = earliestSlot.PickupTimeID
 
-			for _, slot := range addr.TimeSlotList {
-				slotTime := time.Unix(slot.Date, 0)
-				y, m, d := slotTime.Date()
-				if y == tomorrowY && m == tomorrowM && d == tomorrowD {
-					pickup.PickupTimeID = slot.PickupTimeID
-					log.Info().Str("order_sn", orderSN).Str("slot_id", slot.PickupTimeID).Msg("Selected pickup slot for tomorrow")
-					return nil
-				}
-			}
+			// Log which slot was selected with date and time info
+			slotTime := time.Unix(earliestSlot.Date, 0)
+			log.Info().
+				Str("order_sn", orderSN).
+				Str("pickup_time_id", earliestSlot.PickupTimeID).
+				Time("slot_date", slotTime).
+				Str("slot_time_text", earliestSlot.TimeText).
+				Msg("Selected earliest available pickup slot")
 
-			// Fallback to first available slot if tomorrow is not found
-			pickup.PickupTimeID = addr.TimeSlotList[0].PickupTimeID
-			log.Info().Str("order_sn", orderSN).Str("slot_id", pickup.PickupTimeID).Msg("Selected first available pickup slot (tomorrow not available)")
 			return nil
 		}
 	}

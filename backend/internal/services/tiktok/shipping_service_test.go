@@ -2,6 +2,7 @@ package tiktok
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
@@ -9,7 +10,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockTikTokClient is a mock of the TikTokClient interface
+// MockTikTokClient for testing
 type MockTikTokClient struct {
 	mock.Mock
 }
@@ -27,74 +28,111 @@ func (m *MockTikTokClient) GetShippingDocument(packageID, documentType string) (
 	return args.String(0), args.Error(1)
 }
 
-func TestTikTok_ArrangeShipment_RealCase(t *testing.T) {
-	// Setup
+func (m *MockTikTokClient) GetOrderPackages(orderID string) (*tiktokPkg.GetPackageDetailResponse, error) {
+	args := m.Called(orderID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*tiktokPkg.GetPackageDetailResponse), args.Error(1)
+}
+
+func (m *MockTikTokClient) GetOrderDetail(orderIDs []string) (*tiktokPkg.OrderDetailResponse, error) {
+	args := m.Called(orderIDs)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*tiktokPkg.OrderDetailResponse), args.Error(1)
+}
+
+func (m *MockTikTokClient) GetHandoverTimeSlots(packageID string) (*tiktokPkg.HandoverTimeSlotsResponse, error) {
+	args := m.Called(packageID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*tiktokPkg.HandoverTimeSlotsResponse), args.Error(1)
+}
+
+func (m *MockTikTokClient) GetHandoverTimeSlotsForOrder(orderID string, lineItemIDs []string) (*tiktokPkg.HandoverTimeSlotsResponse, error) {
+	args := m.Called(orderID, lineItemIDs)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*tiktokPkg.HandoverTimeSlotsResponse), args.Error(1)
+}
+
+func (m *MockTikTokClient) ResolveOrderToPackageID(orderID string) (string, string, error) {
+	args := m.Called(orderID)
+	return args.String(0), args.String(1), args.Error(2)
+}
+
+func TestGetShippingLabel_DirectSuccess(t *testing.T) {
 	mockClient := new(MockTikTokClient)
+	// Expect direct success with packageID
+	mockClient.On("GetShippingDocument", "pkg_123", "SHIPPING_LABEL").Return("http://pdf.url", nil)
 
-	// Create service with mock factory
-	service := NewShippingServiceWithFactory("test_path", func(ctx context.Context, tenantID string) (TikTokClient, error) {
+	factory := func(ctx context.Context, tenantID string) (TikTokClient, error) {
 		return mockClient, nil
-	})
-
-	ctx := context.Background()
-	tenantID := "1"
-	packageID := "582445147764327664" // Real Package ID from user
-
-	// Mock Request
-	req := &tiktokPkg.ShipPackageRequest{
-		HandoverMethod: "PICKUP",
 	}
+	svc := NewShippingServiceWithFactory("base", factory)
 
-	// Mock Response
-	mockResp := &tiktokPkg.ShipPackageResponse{
-		BaseResponse: tiktokPkg.BaseResponse{
-			Code:    0,
-			Message: "Success",
-		},
-	}
-	mockResp.Data.PackageID = packageID
+	url, err := svc.GetShippingLabel(context.Background(), "tenant1", "pkg_123", "SHIPPING_LABEL")
 
-	// Expectation
-	mockClient.On("ArrangeShipment", packageID, req).Return(mockResp, nil)
-
-	// Execute
-	resp, err := service.ArrangeShipment(ctx, tenantID, packageID, req)
-
-	// Assert
 	assert.NoError(t, err)
-	assert.NotNil(t, resp)
-	assert.Equal(t, 0, resp.Code)
-	assert.Equal(t, packageID, resp.Data.PackageID)
-
+	assert.Equal(t, "http://pdf.url", url)
 	mockClient.AssertExpectations(t)
 }
 
-func TestTikTok_GetShippingLabel_RealCase(t *testing.T) {
-	// Setup
+func TestGetShippingLabel_FailoverToOrderLookup(t *testing.T) {
 	mockClient := new(MockTikTokClient)
 
-	// Create service with mock factory
-	service := NewShippingServiceWithFactory("test_path", func(ctx context.Context, tenantID string) (TikTokClient, error) {
+	// 1. First attempt fails (invalid package id, actually order sn)
+	mockClient.On("GetShippingDocument", "order_sn_123", "SHIPPING_LABEL").Return("", errors.New("not found"))
+
+	// 2. Lookup order packages
+	packagesResp := &tiktokPkg.GetPackageDetailResponse{
+		Data: struct {
+			Packages []tiktokPkg.PackageInfo `json:"packages"`
+		}{
+			Packages: []tiktokPkg.PackageInfo{
+				{ID: "real_pkg_456"},
+			},
+		},
+	}
+	mockClient.On("GetOrderPackages", "order_sn_123").Return(packagesResp, nil)
+
+	// 3. Retry with real package ID
+	mockClient.On("GetShippingDocument", "real_pkg_456", "SHIPPING_LABEL").Return("http://pdf.url/real", nil)
+
+	factory := func(ctx context.Context, tenantID string) (TikTokClient, error) {
 		return mockClient, nil
-	})
+	}
+	svc := NewShippingServiceWithFactory("base", factory)
 
-	ctx := context.Background()
-	tenantID := "1"
-	packageID := "582445147764327664" // Real Package ID from user
-	docType := "SHIPPING_LABEL"
+	url, err := svc.GetShippingLabel(context.Background(), "tenant1", "order_sn_123", "SHIPPING_LABEL")
 
-	// Mock Response
-	expectedURL := "https://tiktok.com/shipping/label.pdf"
-
-	// Expectation
-	mockClient.On("GetShippingDocument", packageID, docType).Return(expectedURL, nil)
-
-	// Execute
-	url, err := service.GetShippingLabel(ctx, tenantID, packageID, docType)
-
-	// Assert
 	assert.NoError(t, err)
-	assert.Equal(t, expectedURL, url)
+	assert.Equal(t, "http://pdf.url/real", url)
+	mockClient.AssertExpectations(t)
+}
 
+func TestGetShippingLabel_FailoverFails(t *testing.T) {
+	mockClient := new(MockTikTokClient)
+
+	// 1. First attempt fails
+	mockClient.On("GetShippingDocument", "order_sn_123", "SHIPPING_LABEL").Return("", errors.New("original error"))
+
+	// 2. Lookup fails too
+	mockClient.On("GetOrderPackages", "order_sn_123").Return(nil, errors.New("lookup error"))
+
+	factory := func(ctx context.Context, tenantID string) (TikTokClient, error) {
+		return mockClient, nil
+	}
+	svc := NewShippingServiceWithFactory("base", factory)
+
+	url, err := svc.GetShippingLabel(context.Background(), "tenant1", "order_sn_123", "SHIPPING_LABEL")
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "original error") // Should return original error
+	assert.Equal(t, "", url)
 	mockClient.AssertExpectations(t)
 }

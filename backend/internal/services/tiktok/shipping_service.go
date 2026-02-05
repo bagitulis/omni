@@ -14,6 +14,11 @@ import (
 type TikTokClient interface {
 	ArrangeShipment(packageID string, req *tiktokPkg.ShipPackageRequest) (*tiktokPkg.ShipPackageResponse, error)
 	GetShippingDocument(packageID, documentType string) (string, error)
+	GetOrderPackages(orderID string) (*tiktokPkg.GetPackageDetailResponse, error)
+	GetOrderDetail(orderIDs []string) (*tiktokPkg.OrderDetailResponse, error)
+	GetHandoverTimeSlots(packageID string) (*tiktokPkg.HandoverTimeSlotsResponse, error)
+	GetHandoverTimeSlotsForOrder(orderID string, lineItemIDs []string) (*tiktokPkg.HandoverTimeSlotsResponse, error)
+	ResolveOrderToPackageID(orderID string) (string, string, error)
 }
 
 // Ensure tiktokPkg.Client implements TikTokClient
@@ -100,5 +105,109 @@ func (s *ShippingService) GetShippingLabel(ctx context.Context, tenantID, packag
 	if err != nil {
 		return "", err
 	}
-	return client.GetShippingDocument(packageID, documentType)
+
+	// Try getting shipping document directly with packageID
+	docURL, err := client.GetShippingDocument(packageID, documentType)
+	if err == nil && docURL != "" {
+		return docURL, nil
+	}
+
+	// If failed, maybe packageID is actually orderSN? Try to resolve packageID from orderSN
+	// This handles the case where frontend sends order_sn because it doesn't have package_id
+	pkgResp, pkgErr := client.GetOrderPackages(packageID) // Treat 'packageID' input as 'orderID'
+	if pkgErr == nil && pkgResp != nil && len(pkgResp.Data.Packages) > 0 {
+		realPackageID := pkgResp.Data.Packages[0].ID
+		if realPackageID != "" && realPackageID != packageID {
+			// Retry with resolved packageID
+			return client.GetShippingDocument(realPackageID, documentType)
+		}
+	}
+
+	// If resolution failed or didn't help, return original error
+	return "", err
+}
+
+// GetHandoverTimeSlots retrieves available pickup/drop-off time slots
+func (s *ShippingService) GetHandoverTimeSlots(ctx context.Context, tenantID, orderOrPackageID string) (*tiktokPkg.HandoverTimeSlotsResponse, error) {
+	client, err := s.clientFactory(ctx, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	// First try treating input as package ID
+	resp, err := client.GetHandoverTimeSlots(orderOrPackageID)
+	if err == nil && resp != nil && len(resp.Data.TimeSlots) > 0 {
+		return resp, nil
+	}
+
+	// If failed, try treating input as order ID
+	resp, err = client.GetHandoverTimeSlotsForOrder(orderOrPackageID, nil)
+	if err == nil {
+		return resp, nil
+	}
+
+	return nil, fmt.Errorf("failed to get handover time slots: %w", err)
+}
+
+// GetOrderDetail retrieves detailed order info including packages
+func (s *ShippingService) GetOrderDetail(ctx context.Context, tenantID, orderID string) (*tiktokPkg.OrderDetailResponse, error) {
+	client, err := s.clientFactory(ctx, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	return client.GetOrderDetail([]string{orderID})
+}
+
+// ArrangeShipmentByOrder arranges shipment using order ID (resolves to package ID automatically)
+func (s *ShippingService) ArrangeShipmentByOrder(ctx context.Context, tenantID, orderID string, req *tiktokPkg.ShipPackageRequest) (*tiktokPkg.ShipPackageResponse, error) {
+	client, err := s.clientFactory(ctx, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Resolve order ID to package ID
+	packageID, status, err := client.ResolveOrderToPackageID(orderID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve order to package: %w", err)
+	}
+
+	// Check if package is already shipped
+	if status == "IN_TRANSIT" || status == "DELIVERED" || status == "SHIPPED" {
+		return nil, fmt.Errorf("package already shipped with status: %s", status)
+	}
+
+	return client.ArrangeShipment(packageID, req)
+}
+
+// GetShippingLabelByOrder retrieves shipping label using order ID
+func (s *ShippingService) GetShippingLabelByOrder(ctx context.Context, tenantID, orderID, documentType string) (string, *tiktokPkg.OrderDetailData, error) {
+	client, err := s.clientFactory(ctx, tenantID)
+	if err != nil {
+		return "", nil, err
+	}
+
+	// Get order detail to find package ID
+	orderDetail, err := client.GetOrderDetail([]string{orderID})
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to get order detail: %w", err)
+	}
+
+	if len(orderDetail.Data.Orders) == 0 {
+		return "", nil, fmt.Errorf("order not found: %s", orderID)
+	}
+
+	order := &orderDetail.Data.Orders[0]
+	if len(order.Packages) == 0 {
+		return "", order, fmt.Errorf("no packages found for order: %s", orderID)
+	}
+
+	// Get shipping document for first package
+	packageID := order.Packages[0].ID
+	docURL, err := client.GetShippingDocument(packageID, documentType)
+	if err != nil {
+		return "", order, fmt.Errorf("failed to get shipping document: %w", err)
+	}
+
+	return docURL, order, nil
 }

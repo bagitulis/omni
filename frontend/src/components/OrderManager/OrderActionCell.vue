@@ -128,7 +128,11 @@ async function handlePrintLabel() {
 
   printingLabel.value = true;
   try {
-    await downloadShippingLabel(props.order.platform, orderId);
+    await downloadShippingLabel(
+      props.order.platform,
+      orderId,
+      props.order.package_id,
+    );
   } catch (error: any) {
     console.error("Failed to print label:", error);
     toast.add({

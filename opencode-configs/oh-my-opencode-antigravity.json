@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
   "google_auth": false,
-  "default_model": "google/antigravity-gemini-3-pro",
+  "default_model": "google/gemini-3-pro",
   "variant": "high",
   "browser_automation_engine": {
     "provider": "agent-browser"
@@ -9,102 +9,102 @@
 
   "agents": {
     "sisyphus": {
-      "model": "google/antigravity-claude-opus-4-5-thinking",
+      "model": "google/claude-opus-4-5-thinking",
       "variant": "max"
     },
     "prometheus": {
-      "model": "google/antigravity-claude-opus-4-5-thinking",
+      "model": "google/claude-opus-4-5-thinking",
       "variant": "max"
-    },
-    "oracle": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
     },
     "atlas": {
-      "model": "google/antigravity-claude-sonnet-4-5-thinking",
-      "variant": "max"
-    },
-    "librarian": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
-    },
-    "explore": {
-      "model": "google/antigravity-gemini-3-flash",
-      "variant": "high"
-    },
-    "multimodal-looker": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
-    },
-    "metis": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
-    },
-    "momus": {
-      "model": "google/antigravity-gemini-3-pro",
-      "variant": "high"
-    },
-    "sisyphus-junior": {
-      "model": "google/antigravity-claude-sonnet-4-5-thinking",
+      "model": "google/claude-opus-4-5-thinking",
       "variant": "max"
     },
     "hephaestus": {
-      "model": "google/antigravity-claude-sonnet-4-5-thinking",
+      "model": "google/claude-sonnet-4-5-thinking",
+      "variant": "max"
+    },
+    "oracle": {
+      "model": "google/gemini-3-pro",
+      "variant": "high"
+    },
+    "librarian": {
+      "model": "google/gemini-3-pro",
+      "variant": "high"
+    },
+    "explore": {
+      "model": "google/gemini-3-flash",
+      "variant": "high"
+    },
+    "multimodal-looker": {
+      "model": "google/gemini-3-pro",
+      "variant": "high"
+    },
+    "metis": {
+      "model": "google/gemini-3-pro",
+      "variant": "high"
+    },
+    "momus": {
+      "model": "google/gemini-3-pro",
+      "variant": "high"
+    },
+    "sisyphus-junior": {
+      "model": "google/claude-sonnet-4-5-thinking",
       "variant": "max"
     },
     "default": {
-      "model": "google/antigravity-claude-sonnet-4-5-thinking",
+      "model": "google/claude-sonnet-4-5-thinking",
       "variant": "max"
     }
   },
 
   "categories": {
     "visual-engineering": {
-      "model": "google/antigravity-gemini-3-pro",
+      "model": "google/gemini-3-pro",
       "variant": "high"
     },
     "artistry": {
-      "model": "google/antigravity-gemini-3-pro",
+      "model": "google/gemini-3-pro",
       "variant": "high"
     },
     "writing": {
-      "model": "google/antigravity-gemini-3-flash",
+      "model": "google/gemini-3-flash",
       "variant": "high"
     },
     "quick": {
-      "model": "google/antigravity-gemini-3-flash",
+      "model": "google/gemini-3-flash",
       "variant": "high"
     },
     "ultrabrain": {
-      "model": "google/antigravity-claude-opus-4-5-thinking",
+      "model": "google/claude-opus-4-5-thinking",
       "variant": "max"
     },
     "deep": {
-      "model": "google/antigravity-gemini-3-pro",
+      "model": "google/gemini-3-pro",
       "variant": "high"
     },
     "implementation": {
-      "model": "google/antigravity-claude-sonnet-4-5-thinking",
+      "model": "google/claude-sonnet-4-5-thinking",
       "variant": "max"
     },
     "review": {
-      "model": "google/antigravity-gemini-3-pro",
+      "model": "google/gemini-3-pro",
       "variant": "high"
     },
     "testing": {
-      "model": "google/antigravity-gemini-3-pro",
+      "model": "google/gemini-3-pro",
       "variant": "high"
     },
     "security": {
-      "model": "google/antigravity-claude-opus-4-5-thinking",
+      "model": "google/claude-opus-4-5-thinking",
       "variant": "max"
     },
     "unspecified-low": {
-      "model": "google/antigravity-gemini-3-flash",
+      "model": "google/gemini-3-flash",
       "variant": "high"
     },
     "unspecified-high": {
-      "model": "google/antigravity-claude-opus-4-5-thinking",
+      "model": "google/claude-opus-4-5-thinking",
       "variant": "max"
     }
   }

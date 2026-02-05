@@ -16,7 +16,8 @@
       "temperature": 0.1
     },
     "atlas": {
-      "model": "github-copilot/claude-opus-4.5"
+      "model": "google/claude-sonnet-4-5-thinking",
+      "variant": "max"
     },
     "librarian": {
       "model": "github-copilot/gemini-3-pro-preview"

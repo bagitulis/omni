@@ -4,21 +4,43 @@
  * Test semua akun dengan menjalankan opencode command
  * dan capture response untuk detect error
  *
+ * Features:
+ * - Auto backup & restore config
+ * - Uses plugin-based auth (not proxy)
+ * - Detailed error categorization
+ *
  * Usage: node test-accounts.js
  */
 
 const fs = require("fs");
 const path = require("path");
-const { execSync, spawn } = require("child_process");
+const { execSync } = require("child_process");
 
-// Paths
-const SOURCE_ACCOUNTS = path.join(__dirname, "antigravity-accounts copy.json");
-const TARGET_FILE = path.join(
-  process.env.APPDATA,
+// === PATHS ===
+const CONFIG_DIR = path.join(__dirname);
+const TARGET_CONFIG_DIR = path.join(
+  process.env.USERPROFILE || process.env.HOME,
+  ".config",
   "opencode",
+);
+
+// Source files (in opencode-configs folder)
+const SOURCE_ACCOUNTS = path.join(CONFIG_DIR, "antigravity-accounts copy.json");
+const TESTER_CONFIG = path.join(CONFIG_DIR, "tester_config.json");
+
+// Target files (in ~/.config/opencode)
+const TARGET_OPENCODE_JSON = path.join(TARGET_CONFIG_DIR, "opencode.json");
+const TARGET_ACCOUNTS_JSON = path.join(
+  TARGET_CONFIG_DIR,
   "antigravity-accounts.json",
 );
-const REPORT_FILE = path.join(__dirname, "account-test-report.txt");
+
+// Backup files
+const BACKUP_OPENCODE_JSON = path.join(CONFIG_DIR, "_backup_opencode.json");
+const BACKUP_ACCOUNTS_JSON = path.join(CONFIG_DIR, "_backup_accounts.json");
+
+// Report file
+const REPORT_FILE = path.join(CONFIG_DIR, "account-test-report.txt");
 
 // Test command - using gemini flash (faster response)
 const TEST_CMD =
@@ -28,9 +50,65 @@ const TEST_CMD =
 const results = [];
 
 /**
+ * Backup current config files
+ */
+function backupConfigs() {
+  console.log("📦 Backing up current configs...");
+
+  if (fs.existsSync(TARGET_OPENCODE_JSON)) {
+    fs.copyFileSync(TARGET_OPENCODE_JSON, BACKUP_OPENCODE_JSON);
+    console.log("   ✓ opencode.json backed up");
+  }
+
+  if (fs.existsSync(TARGET_ACCOUNTS_JSON)) {
+    fs.copyFileSync(TARGET_ACCOUNTS_JSON, BACKUP_ACCOUNTS_JSON);
+    console.log("   ✓ antigravity-accounts.json backed up");
+  }
+}
+
+/**
+ * Restore original config files
+ */
+function restoreConfigs() {
+  console.log("\n🔄 Restoring original configs...");
+
+  if (fs.existsSync(BACKUP_OPENCODE_JSON)) {
+    fs.copyFileSync(BACKUP_OPENCODE_JSON, TARGET_OPENCODE_JSON);
+    fs.unlinkSync(BACKUP_OPENCODE_JSON);
+    console.log("   ✓ opencode.json restored");
+  }
+
+  if (fs.existsSync(BACKUP_ACCOUNTS_JSON)) {
+    fs.copyFileSync(BACKUP_ACCOUNTS_JSON, TARGET_ACCOUNTS_JSON);
+    fs.unlinkSync(BACKUP_ACCOUNTS_JSON);
+    console.log("   ✓ antigravity-accounts.json restored");
+  }
+}
+
+/**
+ * Setup tester config (plugin-based, not proxy)
+ */
+function setupTesterConfig() {
+  console.log("⚙️  Setting up tester config...");
+
+  // Ensure target directory exists
+  if (!fs.existsSync(TARGET_CONFIG_DIR)) {
+    fs.mkdirSync(TARGET_CONFIG_DIR, { recursive: true });
+  }
+
+  // Copy tester config
+  fs.copyFileSync(TESTER_CONFIG, TARGET_OPENCODE_JSON);
+  console.log("   ✓ tester_config.json -> opencode.json");
+}
+
+/**
  * Load all accounts from source
  */
 function loadAccounts() {
+  if (!fs.existsSync(SOURCE_ACCOUNTS)) {
+    console.error(`❌ Source accounts file not found: ${SOURCE_ACCOUNTS}`);
+    process.exit(1);
+  }
   const data = fs.readFileSync(SOURCE_ACCOUNTS, "utf8");
   return JSON.parse(data).accounts;
 }
@@ -45,7 +123,7 @@ function setAccount(account, index) {
     activeIndex: 0,
     activeIndexByFamily: { claude: 0, gemini: 0 },
   };
-  fs.writeFileSync(TARGET_FILE, JSON.stringify(config, null, 2));
+  fs.writeFileSync(TARGET_ACCOUNTS_JSON, JSON.stringify(config, null, 2));
   console.log(`\n[${index + 1}] Testing: ${account.email}`);
 }
 
@@ -77,7 +155,7 @@ function testAccount(account, index) {
       error = "Unexpected response";
     }
   } catch (err) {
-    output = err.stdout || "" + err.stderr || "";
+    output = (err.stdout || "") + (err.stderr || "");
 
     // Analyze error
     if (
@@ -199,25 +277,48 @@ function generateReport(results) {
 async function main() {
   console.log("🚀 Antigravity Account Tester");
   console.log("=".repeat(60));
+  console.log(`Config dir: ${TARGET_CONFIG_DIR}`);
   console.log(`Test command: ${TEST_CMD}`);
   console.log("=".repeat(60));
 
-  const accounts = loadAccounts();
-  console.log(`\n📂 Found ${accounts.length} accounts to test\n`);
+  // Step 1: Backup current configs
+  backupConfigs();
 
-  // Test each account
-  for (let i = 0; i < accounts.length; i++) {
-    const result = testAccount(accounts[i], i);
-    results.push(result);
+  // Step 2: Setup tester config (plugin-based)
+  setupTesterConfig();
 
-    // Small delay between tests
-    await new Promise((r) => setTimeout(r, 2000));
+  try {
+    const accounts = loadAccounts();
+    console.log(`\n📂 Found ${accounts.length} accounts to test\n`);
+
+    // Test each account
+    for (let i = 0; i < accounts.length; i++) {
+      const result = testAccount(accounts[i], i);
+      results.push(result);
+
+      // Small delay between tests
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+
+    // Generate report
+    generateReport(results);
+  } finally {
+    // Step 3: Always restore original configs
+    restoreConfigs();
   }
-
-  // Generate report
-  generateReport(results);
 
   console.log("\n✨ Done!");
 }
 
-main().catch(console.error);
+// Handle Ctrl+C gracefully
+process.on("SIGINT", () => {
+  console.log("\n\n⚠️  Interrupted! Restoring configs...");
+  restoreConfigs();
+  process.exit(1);
+});
+
+main().catch((err) => {
+  console.error("❌ Fatal error:", err);
+  restoreConfigs();
+  process.exit(1);
+});

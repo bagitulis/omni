@@ -187,7 +187,17 @@ func RegisterTiktokShippingRoutes(router *gin.RouterGroup, basePath string) {
 	shipping.Use(middleware.Auth())
 	shipping.Use(middleware.Tenant())
 	{
-		shipping.GET("/document/:packageId", handler.GetShippingDocument)
+		// Shipping arrangement
 		shipping.POST("/arrange", handler.ArrangeShipment)
+
+		// Shipping documents/labels
+		shipping.GET("/document/:packageId", handler.GetShippingDocument)
+		shipping.GET("/document/order/:orderId", handler.GetShippingDocumentByOrder)
+
+		// Handover time slots for pickup scheduling
+		shipping.GET("/timeslots/:orderOrPackageId", handler.GetHandoverTimeSlots)
+
+		// Order detail with package info
+		shipping.GET("/order/:orderId", handler.GetOrderDetail)
 	}
 }

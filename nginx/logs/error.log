@@ -799,3 +799,4 @@
 2026/01/31 23:54:15 [error] 21#21: *450 access forbidden by rule, client: 172.18.0.6, server: _, request: "GET /.vscode/env.js HTTP/1.1", host: "yndigital.my.id"
 2026/01/31 23:54:15 [error] 21#21: *450 access forbidden by rule, client: 172.18.0.6, server: _, request: "GET /.env HTTP/1.1", host: "yndigital.my.id"
 2026/02/03 13:40:22 [error] 21#21: *286 access forbidden by rule, client: 172.18.0.7, server: _, request: "GET /.env HTTP/1.1", host: "yndigital.my.id"
+2026/02/04 14:26:37 [error] 21#21: *1343 access forbidden by rule, client: 172.18.0.8, server: _, request: "GET /.gitlab-ci HTTP/1.1", host: "yndigital.my.id", referrer: "https://yandex.com/"

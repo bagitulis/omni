@@ -93,7 +93,7 @@ const { form, loading, error, resetForm } = useModalForm({
   tn: "",
   aid: "",
   ptid: "",
-  pid: "",
+  pid: props.order?.package_id || "",
   bid: "",
   mode: "",
 });
@@ -208,6 +208,9 @@ watch(
   (v) => {
     if (v) {
       resetForm();
+      if (props.order?.package_id) {
+        form.value.pid = props.order.package_id;
+      }
       if (props.order?.platform?.toLowerCase() === "lazada") {
         form.value.sp =
           props.order.shipping_carrier || props.order.courier || "";

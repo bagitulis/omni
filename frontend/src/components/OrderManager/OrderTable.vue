@@ -177,6 +177,7 @@ interface GroupedOrder {
   countdown?: string;
   ship_by_date?: number;
   items: OrderItem[];
+  package_id?: string;
 }
 
 const props = defineProps<{ filteredOrders: Order[]; activeTab: string }>();
@@ -203,6 +204,7 @@ const groupedOrders = computed<GroupedOrder[]>(() => {
         shipping_carrier: item.shipping_carrier,
         countdown: item.countdown,
         ship_by_date: item.ship_by_date,
+        package_id: item.package_id,
         items: [],
       });
     }
@@ -275,10 +277,9 @@ const getTableTitle = computed(() => {
 
 @media (max-width: 1200px) {
   .shopee-table-header {
-    grid-template-columns: minmax(150px, 2fr) minmax(80px, 1fr) 0.8fr minmax(
-        80px,
-        1fr
-      ) minmax(80px, 1fr) 1fr;
+    grid-template-columns:
+      minmax(150px, 2fr) minmax(80px, 1fr) 0.8fr minmax(80px, 1fr)
+      minmax(80px, 1fr) 1fr;
     gap: var(--om-spacing-sm);
     padding: var(--om-spacing-sm);
   }

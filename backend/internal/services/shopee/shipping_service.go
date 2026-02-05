@@ -189,8 +189,11 @@ func (s *ShippingService) ArrangeShipment(ctx context.Context, req ArrangeShipme
 		return nil, fmt.Errorf("pickup, dropoff, or tracking_number is required")
 	}
 
-	if err := s.applyDefaultPickupTime(ctx, client, req.OrderSN, shipReq.Pickup); err != nil {
-		return nil, err
+	// Only apply default pickup time if pickup is selected BUT no time slot provided
+	if shipReq.Pickup != nil && shipReq.Pickup.PickupTimeID == "" {
+		if err := s.applyDefaultPickupTime(ctx, client, req.OrderSN, shipReq.Pickup); err != nil {
+			return nil, err
+		}
 	}
 
 	_, err = client.ShipOrder(shipReq)

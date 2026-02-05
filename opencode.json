@@ -1,5 +1,82 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "instructions": ["AGENTS.md"],
-  "plugin": ["opencode-antigravity-auth@beta", "oh-my-opencode@latest"]
+  "plugin": ["oh-my-opencode@latest"],
+  "provider": {
+    "openai": {
+      "npm": "@ai-sdk/openai",
+      "options": {
+        "baseURL": "http://127.0.0.1:8045/v1",
+        "apiKey": "sk-bd144bed75f04835b27499a267a29581"
+      },
+      "models": {
+        "gpt-4": {
+          "name": "GPT-4 (Antigravity Proxy)",
+          "limit": {
+            "context": 128000,
+            "output": 16384
+          },
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          }
+        },
+        "gpt-4o": {
+          "name": "GPT-4o (Antigravity Proxy)",
+          "limit": {
+            "context": 128000,
+            "output": 16384
+          },
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          }
+        },
+        "gpt-3.5-turbo": {
+          "name": "GPT-3.5 Turbo (Antigravity Proxy)",
+          "limit": {
+            "context": 16384,
+            "output": 4096
+          },
+          "modalities": {
+            "input": ["text"],
+            "output": ["text"]
+          }
+        },
+        "claude-3-opus": {
+          "name": "Claude 3 Opus (Antigravity Proxy)",
+          "limit": {
+            "context": 200000,
+            "output": 64000
+          },
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          }
+        },
+        "claude-3-sonnet": {
+          "name": "Claude 3 Sonnet (Antigravity Proxy)",
+          "limit": {
+            "context": 200000,
+            "output": 64000
+          },
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          }
+        },
+        "claude-3.5-sonnet": {
+          "name": "Claude 3.5 Sonnet (Antigravity Proxy)",
+          "limit": {
+            "context": 200000,
+            "output": 64000
+          },
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          }
+        }
+      }
+    }
+  }
 }
