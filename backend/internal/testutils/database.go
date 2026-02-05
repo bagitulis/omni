@@ -22,7 +22,12 @@ type PostgresContainer struct {
 
 // SetupTestPostgres starts a postgres container and returns a GORM DB connection
 // The container and connection should be cleaned up by calling TeardownTestPostgres
+// In short mode, the test is skipped automatically.
 func SetupTestPostgres(t *testing.T) *gorm.DB {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
 	ctx := context.Background()
 
 	// Create postgres container request
