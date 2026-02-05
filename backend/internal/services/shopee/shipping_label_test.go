@@ -49,6 +49,22 @@ func (m *MockAPIClient) DownloadShippingDocument(orderSN, packageNumber, documen
 	return args.Get(0).(*shopeePkg.DownloadShippingDocumentResponse), args.Error(1)
 }
 
+func (m *MockAPIClient) GetShippingDocumentResult(orderSN, packageNumber string) (*shopeePkg.GetShippingDocumentResultResponse, error) {
+	args := m.Called(orderSN, packageNumber)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*shopeePkg.GetShippingDocumentResultResponse), args.Error(1)
+}
+
+func (m *MockAPIClient) GetShippingDocumentDataInfo(orderSN, packageNumber string) (*shopeePkg.ShippingDocumentDataInfoResponse, error) {
+	args := m.Called(orderSN, packageNumber)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*shopeePkg.ShippingDocumentDataInfoResponse), args.Error(1)
+}
+
 func TestGetShippingLabel_HandlesBatchApiAllFailed(t *testing.T) {
 	// Setup
 	mockClient := new(MockAPIClient)
@@ -87,6 +103,23 @@ func TestGetShippingLabel_HandlesBatchApiAllFailed(t *testing.T) {
 
 	// The client.CreateShippingDocument will return the response AND an error because Error string is set
 	mockClient.On("CreateShippingDocument", orderSN, pkgNum).Return(mockCreateResp, fmt.Errorf("shopee API error: %s - %s", mockCreateResp.Error, mockCreateResp.Message))
+
+	// Mock DownloadShippingDocument to also fail with the tracking number error
+	// The code proceeds to download even after batch_api_all_failed with tracking_number_invalid
+	mockDownloadResp := &shopeePkg.DownloadShippingDocumentResponse{
+		Error:   "logistics.tracking_number_invalid",
+		Message: "The tracking number is invalid",
+	}
+	mockClient.On("DownloadShippingDocument", orderSN, pkgNum, docType).Return(mockDownloadResp, fmt.Errorf("logistics.tracking_number_invalid: The tracking number is invalid"))
+
+	// Mock GetShippingDocumentDataInfo to fail - this is called in the fallback path
+	mockClient.On("GetShippingDocumentDataInfo", orderSN, pkgNum).Return(nil, fmt.Errorf("logistics.tracking_number_invalid: Cannot get document data"))
+
+	// Mock GetTrackingNumber to also fail so fallback chain fails completely
+	// Override the earlier mock by removing it and setting a new one
+	// Note: We need to set this AFTER the fallback-path specific mock
+	mockClient.On("GetTrackingNumber", orderSN).Unset()
+	mockClient.On("GetTrackingNumber", orderSN).Return(nil, fmt.Errorf("logistics.tracking_number_invalid: Tracking number is invalid"))
 
 	// Execute
 	result, err := service.GetShippingLabel(ctx, orderSN, pkgNum, docType)
