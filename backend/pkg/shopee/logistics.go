@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 )
 
 // ShipOrderRequest represents request to ship an order
@@ -267,6 +268,54 @@ type DownloadShippingDocumentResponse struct {
 			ShippingDocFile string `json:"shipping_document_file,omitempty"` // Base64 encoded file
 		} `json:"result_list"`
 	} `json:"response"`
+	// RawPDF holds raw binary PDF data if response is not JSON
+	RawPDF []byte `json:"-"`
+}
+
+// ShippingDocumentDataInfoRequest for get_shipping_document_data_info API
+type ShippingDocumentDataInfoRequest struct {
+	OrderSN       string `json:"order_sn"`
+	PackageNumber string `json:"package_number,omitempty"`
+}
+
+// ShippingDocumentDataInfoResponse represents response from get_shipping_document_data_info
+type ShippingDocumentDataInfoResponse struct {
+	Error    string `json:"error"`
+	Message  string `json:"message"`
+	Response struct {
+		OrderSN       string `json:"order_sn"`
+		PackageNumber string `json:"package_number"`
+		// Logistics channel info
+		LogisticsChannelID   int    `json:"logistics_channel_id"`
+		LogisticsChannelName string `json:"logistics_channel_name"`
+		// Tracking info
+		FirstMileTrackingNumber string `json:"first_mile_tracking_number"`
+		LastMileTrackingNumber  string `json:"last_mile_tracking_number"`
+		TrackingNumber          string `json:"tracking_number"`
+		ShippingCarrier         string `json:"shipping_carrier"`
+		// Sender info
+		SenderName     string `json:"sender_name"`
+		SenderPhone    string `json:"sender_phone"`
+		SenderAddress  string `json:"sender_address"`
+		SenderCity     string `json:"sender_city"`
+		SenderDistrict string `json:"sender_district"`
+		SenderState    string `json:"sender_state"`
+		SenderZipcode  string `json:"sender_zipcode"`
+		SenderCountry  string `json:"sender_country"`
+		// Recipient info
+		RecipientName     string `json:"recipient_name"`
+		RecipientPhone    string `json:"recipient_phone"`
+		RecipientAddress  string `json:"recipient_address"`
+		RecipientCity     string `json:"recipient_city"`
+		RecipientDistrict string `json:"recipient_district"`
+		RecipientState    string `json:"recipient_state"`
+		RecipientZipcode  string `json:"recipient_zipcode"`
+		RecipientCountry  string `json:"recipient_country"`
+		// Barcode
+		RecipientSortCode  string  `json:"recipient_sort_code"`
+		ServiceDescription string  `json:"service_description"`
+		BuyerCodAmount     float64 `json:"buyer_cod_amount"`
+	} `json:"response"`
 }
 
 // CreateShippingDocument creates shipping document for orders
@@ -320,6 +369,7 @@ func (c *Client) GetShippingDocumentResult(orderSN string, packageNumber string)
 }
 
 // DownloadShippingDocument downloads shipping document (waybill/label) for an order
+// Note: Shopee API can return either JSON (with base64 file) or raw binary PDF
 func (c *Client) DownloadShippingDocument(orderSN string, packageNumber string, documentType string) (*DownloadShippingDocumentResponse, error) {
 	if documentType == "" {
 		documentType = "THERMAL_AIR_WAYBILL"
@@ -337,8 +387,25 @@ func (c *Client) DownloadShippingDocument(orderSN string, packageNumber string, 
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	var result DownloadShippingDocumentResponse
-	if err := c.doPostRequest("/api/v2/logistics/download_shipping_document", nil, body, &result); err != nil {
+	// Use special download handler that can return both JSON and binary
+	return c.doDownloadRequest("/api/v2/logistics/download_shipping_document", body)
+}
+
+// GetShippingDocumentDataInfo gets shipping document data (addresses, tracking, barcode info) without downloading PDF
+// This API is useful for SPX orders where create_shipping_document fails but label data is available
+func (c *Client) GetShippingDocumentDataInfo(orderSN string, packageNumber string) (*ShippingDocumentDataInfoResponse, error) {
+	req := ShippingDocumentDataInfoRequest{
+		OrderSN:       orderSN,
+		PackageNumber: packageNumber,
+	}
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request: %w", err)
+	}
+
+	var result ShippingDocumentDataInfoResponse
+	if err := c.doPostRequest("/api/v2/logistics/get_shipping_document_data_info", nil, body, &result); err != nil {
 		return nil, err
 	}
 
@@ -346,6 +413,62 @@ func (c *Client) DownloadShippingDocument(orderSN string, packageNumber string, 
 		return &result, fmt.Errorf("shopee API error: %s - %s", result.Error, result.Message)
 	}
 
+	return &result, nil
+}
+
+// doDownloadRequest handles shipping document download which can return JSON or binary PDF
+func (c *Client) doDownloadRequest(path string, body []byte) (*DownloadShippingDocumentResponse, error) {
+	reqURL := c.buildURL(path, nil)
+
+	log.Printf("[Shopee API] 📤 POST %s (download)", path)
+	log.Printf("[Shopee API] 📦 Request Body: %s", string(body))
+
+	req, err := http.NewRequest("POST", reqURL, bytes.NewReader(body))
+	if err != nil {
+		log.Printf("[Shopee API] ❌ Failed to create request: %v", err)
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		log.Printf("[Shopee API] ❌ HTTP request failed: %v", err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("[Shopee API] ❌ Failed to read response: %v", err)
+		return nil, err
+	}
+
+	log.Printf("[Shopee API] 📥 Response Status: %s", resp.Status)
+	contentType := resp.Header.Get("Content-Type")
+	log.Printf("[Shopee API] 📥 Content-Type: %s", contentType)
+
+	var result DownloadShippingDocumentResponse
+
+	// Check if response is PDF (binary) or JSON
+	if strings.Contains(contentType, "application/pdf") || strings.Contains(contentType, "application/octet-stream") {
+		// Binary PDF response - store raw bytes
+		log.Printf("[Shopee API] 📥 Received binary PDF (%d bytes)", len(respBody))
+		result.RawPDF = respBody
+		return &result, nil
+	}
+
+	// JSON response - parse it
+	log.Printf("[Shopee API] 📥 Response Body: %s", string(respBody))
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		log.Printf("[Shopee API] ❌ Failed to parse response: %v", err)
+		return nil, err
+	}
+
+	if result.Error != "" {
+		return &result, fmt.Errorf("shopee API error: %s - %s", result.Error, result.Message)
+	}
+
+	log.Printf("[Shopee API] ✅ Request completed successfully")
 	return &result, nil
 }
 

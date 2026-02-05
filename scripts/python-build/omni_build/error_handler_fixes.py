@@ -79,19 +79,43 @@ class DockerInfraFixer:
     
     @staticmethod
     def repair_dependency_failure() -> bool:
-        """Repair dependency service failures with proper startup sequence."""
-        log_info("Repairing dependency services...")
+        """Repair dependency service failures by diagnosing and fixing specific issues."""
+        log_info("Diagnosing dependency failure...")
         
-        containers = ["omni-backend", "omni-frontend", "omni-pgbouncer", 
+        # Check backend logs for specific errors
+        specific_error = DockerInfraFixer._diagnose_backend_error()
+        
+        if specific_error == "database_not_exist":
+            log_info("Detected: PostgreSQL database does not exist")
+            from omni_build.service_fixers_postgres import PostgresFixer
+            return PostgresFixer.create_postgres_database_if_not_exists()
+        
+        if specific_error == "pg_hba_error":
+            log_info("Detected: PostgreSQL authentication error")
+            from omni_build.service_fixers_postgres import PostgresFixer
+            return PostgresFixer.repair_postgres_pg_hba()
+        
+        if specific_error == "connection_refused":
+            log_info("Detected: PostgreSQL connection refused")
+            # Restart postgres and wait
+            subprocess.run(["docker", "restart", "omni-postgres"],
+                          capture_output=True, check=False, timeout=60)
+            time.sleep(30)
+            return True
+        
+        # Generic fix: proper startup sequence
+        log_info("Applying generic dependency repair...")
+        
+        containers = ["omni-backend", "omni-frontend", "omni-pgbouncer",
                      "omni-redis", "omni-postgres"]
         for c in containers:
-            subprocess.run(["docker", "stop", c], 
+            subprocess.run(["docker", "stop", c],
                           capture_output=True, check=False, timeout=30)
         
         time.sleep(3)
         
         subprocess.run(
-            ["docker-compose", "-f", "docker-compose.tunnel.yml", 
+            ["docker-compose", "-f", "docker-compose.tunnel.yml",
              "-f", "docker-compose.tunnel.standard.yml", "up", "-d", "postgres"],
             capture_output=True, check=False)
         
@@ -105,6 +129,34 @@ class DockerInfraFixer:
         time.sleep(10)
         log_success("Dependency services repaired")
         return True
+    
+    @staticmethod
+    def _diagnose_backend_error() -> str | None:
+        """Check backend container logs to diagnose specific error."""
+        try:
+            result = subprocess.run(
+                ["docker", "logs", "omni-backend", "--tail", "30"],
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                timeout=10,
+            )
+            logs = result.stdout + result.stderr
+            
+            # Check for specific errors in order of likelihood
+            if "database" in logs.lower() and "does not exist" in logs.lower():
+                return "database_not_exist"
+            if "SQLSTATE 3D000" in logs:
+                return "database_not_exist"
+            if "no pg_hba.conf entry" in logs or "SQLSTATE 28000" in logs:
+                return "pg_hba_error"
+            if "connection refused" in logs.lower():
+                return "connection_refused"
+            
+            return None
+        except Exception:
+            return None
 
 
 class NetworkFixer:

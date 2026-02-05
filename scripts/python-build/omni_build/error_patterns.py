@@ -113,7 +113,7 @@ def get_postgres_patterns() -> list[ErrorPattern]:
             pattern=r"database.*does not exist|FATAL.*database.*does not exist|SQLSTATE 3D000",
             description="PostgreSQL database does not exist",
             severity=ErrorSeverity.CRITICAL,
-            fix_function="repair_postgres_database",
+            fix_function="create_postgres_database_if_not_exists",
         ),
         ErrorPattern(
             name="PostgresDataCorruption",

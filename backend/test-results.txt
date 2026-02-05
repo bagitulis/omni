@@ -1,0 +1,110 @@
+?   	github.com/omni/backend/cmd/migrate-images	[no test files]
+?   	github.com/omni/backend/cmd/server	[no test files]
+?   	github.com/omni/backend/internal/app	[no test files]
+ok  	github.com/omni/backend/internal/config	2.363s
+?   	github.com/omni/backend/internal/dto	[no test files]
+?   	github.com/omni/backend/internal/dto/request	[no test files]
+?   	github.com/omni/backend/internal/dto/response	[no test files]
+?   	github.com/omni/backend/internal/errors	[no test files]
+?   	github.com/omni/backend/internal/handlers	[no test files]
+?   	github.com/omni/backend/internal/handlers/analytics	[no test files]
+?   	github.com/omni/backend/internal/handlers/google	[no test files]
+?   	github.com/omni/backend/internal/handlers/inventory	[no test files]
+?   	github.com/omni/backend/internal/handlers/lazada	[no test files]
+?   	github.com/omni/backend/internal/handlers/master_product	[no test files]
+?   	github.com/omni/backend/internal/handlers/ml	[no test files]
+?   	github.com/omni/backend/internal/handlers/shopee	[no test files]
+ok  	github.com/omni/backend/internal/handlers/tiktok	0.368s
+ok  	github.com/omni/backend/internal/middleware	(cached)
+ok  	github.com/omni/backend/internal/models	(cached)
+?   	github.com/omni/backend/internal/repositories	[no test files]
+?   	github.com/omni/backend/internal/router	[no test files]
+?   	github.com/omni/backend/internal/routes	[no test files]
+?   	github.com/omni/backend/internal/services	[no test files]
+ok  	github.com/omni/backend/internal/services/ads	(cached)
+?   	github.com/omni/backend/internal/services/analytics	[no test files]
+?   	github.com/omni/backend/internal/services/analytics/intelligence	[no test files]
+?   	github.com/omni/backend/internal/services/autofunction	[no test files]
+ok  	github.com/omni/backend/internal/services/cache	(cached)
+?   	github.com/omni/backend/internal/services/google	[no test files]
+ok  	github.com/omni/backend/internal/services/image	(cached)
+?   	github.com/omni/backend/internal/services/inventory	[no test files]
+?   	github.com/omni/backend/internal/services/jobs	[no test files]
+?   	github.com/omni/backend/internal/services/lazada	[no test files]
+ok  	github.com/omni/backend/internal/services/master_product	3.472s
+?   	github.com/omni/backend/internal/services/ml	[no test files]
+?   	github.com/omni/backend/internal/services/monitoring	[no test files]
+?   	github.com/omni/backend/internal/services/oauth	[no test files]
+?   	github.com/omni/backend/internal/services/operations	[no test files]
+?   	github.com/omni/backend/internal/services/orders	[no test files]
+?   	github.com/omni/backend/internal/services/platform	[no test files]
+?   	github.com/omni/backend/internal/services/price	[no test files]
+?   	github.com/omni/backend/internal/services/products	[no test files]
+?   	github.com/omni/backend/internal/services/quota	[no test files]
+?   	github.com/omni/backend/internal/services/route	[no test files]
+?   	github.com/omni/backend/internal/services/security	[no test files]
+?   	github.com/omni/backend/internal/services/sheets	[no test files]
+?   	github.com/omni/backend/internal/services/shop	[no test files]
+{"level":"info","order_sn":"260203Q98DEKHK","fail_error":"logistics.tracking_number_invalid","time":"2026-02-05T12:02:49+07:00","message":"Create failed but will try download"}
+--- FAIL: TestGetShippingLabel_HandlesBatchApiAllFailed (0.00s)
+panic: 
+	assert: mock: I don't know what to return because the method call was unexpected.
+		Either do Mock.On("DownloadShippingDocument").Return(...) first, or remove the DownloadShippingDocument() call.
+		This method was unexpected:
+			DownloadShippingDocument(string,string,string)
+			0: "260203Q98DEKHK"
+			1: ""
+			2: "THERMAL_AIR_WAYBILL"
+		at: [C:/Users/PC/Desktop/Project/omni/backend/internal/services/shopee/shipping_label_test.go:48 C:/Users/PC/Desktop/Project/omni/backend/internal/services/shopee/shipping_label.go:76 C:/Users/PC/Desktop/Project/omni/backend/internal/services/shopee/shipping_label.go:31 C:/Users/PC/Desktop/Project/omni/backend/internal/services/shopee/shipping_label_test.go:108] [recovered, repanicked]
+
+goroutine 5 [running]:
+testing.tRunner.func1.2({0x7ff6f2bee0c0, 0xc000042350})
+	C:/Program Files/Go/src/testing/testing.go:1872 +0x239
+testing.tRunner.func1()
+	C:/Program Files/Go/src/testing/testing.go:1875 +0x35b
+panic({0x7ff6f2bee0c0?, 0xc000042350?})
+	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+github.com/stretchr/testify/mock.(*Mock).fail(0xc00007e0f0, {0x7ff6f2d66c50?, 0x4?}, {0xc000074280?, 0x3?, 0x3?})
+	C:/Users/PC/go/pkg/mod/github.com/stretchr/testify@v1.11.1/mock/mock.go:359 +0x125
+github.com/stretchr/testify/mock.(*Mock).MethodCalled(0xc00007e0f0, {0x7ff6f2fa31e4, 0x18}, {0xc00003c090, 0x3, 0x3})
+	C:/Users/PC/go/pkg/mod/github.com/stretchr/testify@v1.11.1/mock/mock.go:527 +0x77b
+github.com/stretchr/testify/mock.(*Mock).Called(0xc00007e0f0, {0xc00003c090, 0x3, 0x3})
+	C:/Users/PC/go/pkg/mod/github.com/stretchr/testify@v1.11.1/mock/mock.go:491 +0x125
+github.com/omni/backend/internal/services/shopee.(*MockAPIClient).DownloadShippingDocument(0xc00007e0f0, {0x7ff6f2d3bccf, 0xe}, {0x0, 0x0}, {0x7ff6f2d3f94c, 0x13})
+	C:/Users/PC/Desktop/Project/omni/backend/internal/services/shopee/shipping_label_test.go:48 +0x12c
+github.com/omni/backend/internal/services/shopee.(*ShippingService).tryStandardDownload(0xc00029bef8, {0x7ff6f2e5aad8, 0x7ff6f342fd60}, {0x7ff6f2e5ead0, 0xc00007e0f0}, {0x7ff6f2d3bccf, 0xe}, {0x0, 0x0}, {0x7ff6f2d3f94c, ...})
+	C:/Users/PC/Desktop/Project/omni/backend/internal/services/shopee/shipping_label.go:76 +0x20e
+github.com/omni/backend/internal/services/shopee.(*ShippingService).GetShippingLabel(0xc00029bef8, {0x7ff6f2e5aad8, 0x7ff6f342fd60}, {0x7ff6f2d3bccf, 0xe}, {0x0, 0x0}, {0x7ff6f2d3f94c, 0x13})
+	C:/Users/PC/Desktop/Project/omni/backend/internal/services/shopee/shipping_label.go:31 +0xcc
+github.com/omni/backend/internal/services/shopee.TestGetShippingLabel_HandlesBatchApiAllFailed(0xc000003340)
+	C:/Users/PC/Desktop/Project/omni/backend/internal/services/shopee/shipping_label_test.go:108 +0x468
+testing.tRunner(0xc000003340, 0x7ff6f2d76c88)
+	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+created by testing.(*T).Run in goroutine 1
+	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+FAIL	github.com/omni/backend/internal/services/shopee	0.248s
+?   	github.com/omni/backend/internal/services/sku	[no test files]
+?   	github.com/omni/backend/internal/services/spreadsheet	[no test files]
+?   	github.com/omni/backend/internal/services/stock	[no test files]
+?   	github.com/omni/backend/internal/services/sync	[no test files]
+ok  	github.com/omni/backend/internal/services/tiktok	1.414s
+?   	github.com/omni/backend/internal/services/webhooks	[no test files]
+?   	github.com/omni/backend/internal/services/wholesale	[no test files]
+ok  	github.com/omni/backend/internal/utils	(cached)
+?   	github.com/omni/backend/internal/utils/http	[no test files]
+?   	github.com/omni/backend/internal/utils/logger	[no test files]
+?   	github.com/omni/backend/lazada-sdk	[no test files]
+?   	github.com/omni/backend/pkg/lazada	[no test files]
+?   	github.com/omni/backend/pkg/sheets	[no test files]
+?   	github.com/omni/backend/pkg/shopee	[no test files]
+?   	github.com/omni/backend/pkg/tiktok	[no test files]
+?   	github.com/omni/backend/scripts	[no test files]
+?   	github.com/omni/backend/scripts/dedupe_product_images	[no test files]
+?   	github.com/omni/backend/shopee-sdk	[no test files]
+ok  	github.com/omni/backend/tests/e2e	(cached)
+ok  	github.com/omni/backend/tests/e2e/lighthouse	1.613s
+ok  	github.com/omni/backend/tests/integration	(cached)
+ok  	github.com/omni/backend/tests/parity	(cached)
+ok  	github.com/omni/backend/tests/security	(cached)
+ok  	github.com/omni/backend/tests/unit	3.526s
+FAIL

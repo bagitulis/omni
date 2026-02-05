@@ -3,6 +3,7 @@
     <transition name="modal-fade">
       <div v-if="isOpen" class="modal-backdrop" @click="closeOnBackdrop">
         <div
+          ref="containerRef"
           class="modal-container"
           role="dialog"
           aria-modal="true"
@@ -21,7 +22,8 @@
               aria-label="Close modal"
             >
               <svg
-                class="w-6 h-6"
+                width="20"
+                height="20"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -52,7 +54,8 @@
 </template>
 
 <script setup lang="ts">
-import { watch, computed } from "vue";
+import { ref, watch, computed, onMounted, onUnmounted, toRef } from "vue";
+import { useFocusTrap } from "@/composables/useFocusTrap";
 
 interface Props {
   isOpen: boolean;
@@ -67,6 +70,13 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   close: [];
 }>();
+
+// Container ref for focus trap
+const containerRef = ref<HTMLElement | null>(null);
+const isOpenRef = toRef(props, "isOpen");
+
+// Focus trap for accessibility
+useFocusTrap(containerRef, isOpenRef);
 
 // Generate unique ID for aria-labelledby
 const titleId = computed(
@@ -90,10 +100,26 @@ watch(
     }
   },
 );
+
+// ESC key to close modal
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === "Escape" && props.isOpen) {
+    emit("close");
+  }
+};
+
+onMounted(() => {
+  document.addEventListener("keydown", handleKeydown);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("keydown", handleKeydown);
+  document.body.style.overflow = "";
+});
 </script>
 
 <style scoped>
-/* Modal Backdrop */
+/* Modal Backdrop - Tokopedia Style */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -103,25 +129,22 @@ watch(
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  padding: 1rem;
-  animation: fadeIn 300ms ease-out;
+  padding: 16px;
+  animation: fadeIn 200ms ease-out;
 }
 
 /* Modal Container */
 .modal-container {
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
-  border-radius: 0.75rem;
-  box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.3),
-    0 0 1px rgba(148, 255, 255, 0.2);
-  max-width: 32rem;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  max-width: 500px;
   width: 100%;
   display: flex;
   flex-direction: column;
   max-height: 90vh;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
-  animation: slideUp 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideUp 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Modal Header */
@@ -129,51 +152,55 @@ watch(
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.5rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e0e0e0;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-  border-top-left-radius: 0.75rem;
-  border-top-right-radius: 0.75rem;
+  background: #ffffff;
 }
 
 .modal-title {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #1f2937;
-  letter-spacing: 0.3px;
+  color: #212121;
+  margin: 0;
+  line-height: 1.4;
 }
 
 .modal-close-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.375rem;
-  color: #6b7280;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: #6c727c;
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: all 200ms ease;
+  transition: all 150ms ease;
   padding: 0;
 }
 
 .modal-close-btn:hover {
-  background-color: #e5e7eb;
-  color: #3b82f6;
+  background-color: #f3f4f5;
+  color: #212121;
 }
 
 .modal-close-btn:active {
   transform: scale(0.95);
 }
 
+.modal-close-btn:focus-visible {
+  outline: 2px solid #027a0a;
+  outline-offset: 2px;
+}
+
 /* Modal Body */
 .modal-body {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem;
-  color: #1f2937;
+  padding: 20px;
+  color: #212121;
   background: #ffffff;
 }
 
@@ -182,17 +209,16 @@ watch(
 }
 
 .modal-body::-webkit-scrollbar-track {
-  background: #f9fafb;
-  border-radius: 3px;
+  background: transparent;
 }
 
 .modal-body::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: #e0e0e0;
   border-radius: 3px;
 }
 
 .modal-body::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: #bdbdbd;
 }
 
 /* Modal Footer */
@@ -200,13 +226,11 @@ watch(
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #e0e0e0;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-  border-bottom-left-radius: 0.75rem;
-  border-bottom-right-radius: 0.75rem;
+  background: #ffffff;
 }
 
 /* Animations */
@@ -232,7 +256,7 @@ watch(
 
 .modal-fade-enter-active,
 .modal-fade-leave-active {
-  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .modal-fade-enter-from,
@@ -245,28 +269,21 @@ watch(
   opacity: 1;
 }
 
-/* Dark Mode Adjustments */
-@media (prefers-color-scheme: dark) {
-  .modal-backdrop {
-    background-color: rgba(0, 0, 0, 0.6);
-  }
-
-  .modal-container {
-    box-shadow:
-      0 20px 60px rgba(0, 0, 0, 0.5),
-      0 0 1px rgba(148, 255, 255, 0.3);
-  }
-}
-
 /* Responsive */
 @media (max-width: 640px) {
+  .modal-backdrop {
+    padding: 0;
+  }
+
   .modal-container {
-    max-width: calc(100% - 1rem);
-    max-height: 95vh;
+    max-width: 100%;
+    max-height: 100%;
+    height: 100%;
+    border-radius: 0;
   }
 
   .modal-header {
-    padding: 1rem 1.25rem;
+    padding: 12px 16px;
   }
 
   .modal-title {
@@ -274,11 +291,24 @@ watch(
   }
 
   .modal-body {
-    padding: 1rem 1.25rem;
+    padding: 16px;
   }
 
   .modal-footer {
-    padding: 0.75rem 1.25rem;
+    padding: 12px 16px;
+    flex-direction: column;
+  }
+
+  .modal-footer > * {
+    width: 100%;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal-container {
+    animation: none;
   }
 }
 </style>

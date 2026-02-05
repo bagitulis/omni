@@ -16,8 +16,9 @@
       "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then PROMETHEUS_RULES.md."
     },
     "atlas": {
-      "model": "google/claude-sonnet-4-5-thinking",
-      "variant": "max"
+      "model": "google/claude-opus-4-5-thinking",
+      "variant": "max",
+      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then EXECUTOR_RULES.md."
     },
     "hephaestus": {
       "model": "google/claude-opus-4-5-thinking",

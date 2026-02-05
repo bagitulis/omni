@@ -222,87 +222,177 @@ watch(
 </script>
 
 <style scoped>
-@import "./OrderManager.theme.css";
+/* OrderShipModal - Unified Tokopedia Style */
 
 .o {
   position: fixed;
   inset: 0;
-  background: var(--om-bg-overlay, rgba(0, 0, 0, 0.65));
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: var(--om-z-modal);
-  isolation: isolate;
-  animation: om-fadeIn var(--om-transition-fast);
+  z-index: 9999;
+  padding: 16px;
+  animation: om-fadeIn 200ms ease-out;
 }
 
 .om {
-  background: var(--om-bg-primary, #ffffff);
-  border-radius: var(--om-radius-lg);
-  box-shadow: var(--om-shadow-lg);
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   width: 100%;
   max-width: 500px;
   max-height: 90vh;
   overflow: hidden;
-  animation: om-slideUp var(--om-transition-normal);
+  display: flex;
+  flex-direction: column;
+  animation: om-slideUp 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .h {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--om-spacing-md) var(--om-spacing-lg);
-  border-bottom: 1px solid var(--om-border);
+  padding: 16px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #ffffff;
+  flex-shrink: 0;
 }
 
 .h h3 {
-  font-size: var(--om-font-lg);
-  font-weight: 600;
-  color: var(--om-text-primary);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #212121;
   margin: 0;
 }
 
 .h button {
-  background: none;
-  border: none;
-  padding: var(--om-spacing-xs);
-  cursor: pointer;
-  color: var(--om-text-secondary);
   display: flex;
-  border-radius: var(--om-radius-sm);
-  transition: all var(--om-transition-fast);
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #6c727c;
+  border-radius: 6px;
+  transition: all 150ms ease;
 }
 
 .h button:hover {
-  background: var(--om-bg-secondary);
-  color: var(--om-text-primary);
+  background: #f3f4f5;
+  color: #212121;
+}
+
+.h button:focus-visible {
+  outline: 2px solid #03ac0e;
+  outline-offset: 2px;
 }
 
 .b {
-  padding: var(--om-spacing-lg);
+  padding: 20px;
   overflow-y: auto;
-  max-height: calc(90vh - 140px);
+  flex: 1;
+  background: #ffffff;
 }
 
 .footer {
   display: flex;
   justify-content: flex-end;
-  gap: var(--om-spacing-sm);
-  padding: var(--om-spacing-md) var(--om-spacing-lg);
-  border-top: 1px solid var(--om-border);
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #e0e0e0;
+  background: #ffffff;
+  flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
-  .om {
-    margin: var(--om-spacing-md);
-    max-height: calc(100vh - 2rem);
+.om-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  border: 1px solid #e0e0e0;
+  background: #ffffff;
+  color: #212121;
+}
+
+.om-btn:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #bdbdbd;
+}
+
+.om-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.om-btn:focus-visible {
+  outline: 2px solid #03ac0e;
+  outline-offset: 2px;
+}
+
+.om-btn-secondary {
+  background: #ffffff;
+  border-color: #e0e0e0;
+  color: #212121;
+}
+
+.om-btn-primary {
+  background: #03ac0e;
+  border-color: #03ac0e;
+  color: #ffffff;
+}
+
+.om-btn-primary:hover:not(:disabled) {
+  background: #029a0c;
+  border-color: #029a0c;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .o {
+    padding: 0;
   }
+
+  .om {
+    max-width: 100%;
+    max-height: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  .h {
+    padding: 12px 16px;
+  }
+
+  .b {
+    padding: 16px;
+  }
+
   .footer {
+    padding: 12px 16px;
     flex-direction: column;
   }
+
   .footer .om-btn {
     width: 100%;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .o,
+  .om {
+    animation: none;
   }
 }
 </style>

@@ -76,9 +76,164 @@ class PostgresFixer:
             return False
     
     @staticmethod
+    def create_postgres_database_if_not_exists() -> bool:
+        """Create PostgreSQL database and restore from backup if available.
+        
+        Priority:
+        1. If backup exists in backups/smart/ -> create DB + restore from backup
+        2. If no backup -> create DB + run init-multi-tenant.sql (empty tables)
+        """
+        log_fix("Checking PostgreSQL database status...")
+        
+        try:
+            # First ensure postgres container is running
+            result = subprocess.run(
+                ["docker", "inspect", "--format", "{{.State.Status}}", "omni-postgres"],
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                timeout=10,
+            )
+            
+            if result.returncode != 0 or result.stdout.strip() != "running":
+                log_info("PostgreSQL container not running, starting it...")
+                subprocess.run(
+                    ["docker-compose", "-f", "docker-compose.tunnel.yml",
+                     "-f", "docker-compose.tunnel.standard.yml", "up", "-d", "postgres"],
+                    capture_output=True,
+                    check=False,
+                    timeout=60
+                )
+                time.sleep(15)
+            
+            # Check if database exists first
+            log_info("Checking if database 'omni_main' exists...")
+            check_result = subprocess.run(
+                ["docker", "exec", "omni-postgres", "psql", "-U", "omni", "-d", "postgres",
+                 "-tAc", "SELECT 1 FROM pg_database WHERE datname='omni_main'"],
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                timeout=15,
+            )
+            
+            if check_result.stdout.strip() == "1":
+                log_success("Database 'omni_main' already exists!")
+                PostgresFixer.repair_postgres_pg_hba()
+                return True
+            
+            # Database doesn't exist - check if backup is available
+            backup_dir = Path.cwd() / "backups" / "smart"
+            manifest_file = backup_dir / "manifest.json"
+            has_backup = manifest_file.exists()
+            
+            if has_backup:
+                log_info("Backup found in backups/smart/ - will restore from backup")
+            else:
+                log_warning("No backup found - will create empty database with init script")
+            
+            # Create database first
+            log_info("Creating database 'omni_main'...")
+            create_result = subprocess.run(
+                ["docker", "exec", "omni-postgres", "psql", "-U", "omni", "-d", "postgres",
+                 "-c", "CREATE DATABASE omni_main WITH ENCODING='UTF8' LC_COLLATE='C' LC_CTYPE='C' TEMPLATE=template0;"],
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                timeout=30,
+            )
+            
+            if create_result.returncode != 0 and "already exists" not in create_result.stderr:
+                log_warning(f"Failed to create database: {create_result.stderr}")
+                return PostgresFixer.repair_postgres_database()
+            
+            log_success("Database 'omni_main' created successfully!")
+            
+            # Fix pg_hba.conf for Docker networks BEFORE restore
+            PostgresFixer.repair_postgres_pg_hba()
+            
+            if has_backup:
+                # Restore from backup using DatabaseRestorer
+                log_info("Restoring database from backup...")
+                try:
+                    from omni_build.config import Config
+                    from omni_build.database_restorer import DatabaseRestorer
+                    
+                    config = Config.from_env()
+                    restorer = DatabaseRestorer(config)
+                    
+                    # Print backup info
+                    restorer.print_backup_status()
+                    
+                    # Execute restore
+                    success, message = restorer.restore(force=True)
+                    
+                    if success:
+                        log_success("Database restored from backup successfully!")
+                        return True
+                    else:
+                        log_warning(f"Restore failed: {message}")
+                        log_info("Falling back to init script...")
+                        # Fall through to init script
+                except Exception as e:
+                    log_warning(f"Restore error: {e}")
+                    log_info("Falling back to init script...")
+                    # Fall through to init script
+            
+            # No backup or restore failed - run init script
+            init_script = Path.cwd() / "scripts" / "postgres" / "init-multi-tenant.sql"
+            if init_script.exists():
+                log_info("Running initialization script (creates empty tables)...")
+                
+                subprocess.run(
+                    ["docker", "cp", str(init_script), "omni-postgres:/tmp/init.sql"],
+                    capture_output=True,
+                    check=False,
+                    timeout=30
+                )
+                
+                result = subprocess.run(
+                    ["docker", "exec", "omni-postgres", "psql", "-U", "omni",
+                     "-d", "omni_main", "-f", "/tmp/init.sql"],
+                    capture_output=True,
+                    text=True,
+                    encoding='utf-8',
+                    errors='replace',
+                    timeout=60,
+                )
+                
+                if result.returncode == 0:
+                    log_success("Initialization script executed successfully!")
+                else:
+                    log_warning(f"Init script had issues: {result.stderr[:200]}")
+            
+            # Verify the database is ready
+            for _ in range(5):
+                time.sleep(2)
+                check = subprocess.run(
+                    ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni", "-d", "omni_main"],
+                    capture_output=True,
+                    timeout=10,
+                )
+                if check.returncode == 0:
+                    log_success("PostgreSQL database is ready!")
+                    return True
+            
+            log_warning("Database created but pg_isready check didn't pass")
+            return True
+            
+        except Exception as e:
+            log_error(f"Failed to create PostgreSQL database: {e}")
+            log_info("Falling back to full database reset...")
+            return PostgresFixer.repair_postgres_database()
+    
+    @staticmethod
     def repair_postgres_database() -> bool:
-        """Fix PostgreSQL database not exist error."""
-        log_fix("Repairing PostgreSQL - database does not exist...")
+        """Fix PostgreSQL database not exist error (DESTRUCTIVE - removes data)."""
+        log_fix("Repairing PostgreSQL - full reset (will delete data)...")
         
         try:
             log_info("Stopping all containers...")

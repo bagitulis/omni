@@ -189,17 +189,19 @@ func (r *GormOrderRepository) upsertTiktokProductImageCache(
 		return
 	}
 
+	// Query by product_id (TikTok API ID as string), not by internal id
+	productIDStr := strconv.FormatInt(item.ItemID, 10)
 	var product models.TiktokProduct
 	err := db.WithContext(ctx).
-		Where("id = ?", item.ItemID).
+		Where("product_id = ?", productIDStr).
 		First(&product).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return
 		}
 		tiktokOrderRepoLogger.WithFields(map[string]interface{}{
-			"tenant_id": r.tenantID,
-			"item_id":   item.ItemID,
+			"tenant_id":  r.tenantID,
+			"product_id": productIDStr,
 		}).Warn("Failed to find tiktok product cache: " + err.Error())
 		return
 	}
@@ -220,8 +222,8 @@ func (r *GormOrderRepository) upsertTiktokProductImageCache(
 		Where("id = ?", product.ID).
 		Updates(updates).Error; updateErr != nil {
 		tiktokOrderRepoLogger.WithFields(map[string]interface{}{
-			"tenant_id": r.tenantID,
-			"item_id":   item.ItemID,
+			"tenant_id":  r.tenantID,
+			"product_id": productIDStr,
 		}).Warn("Failed to update tiktok product image cache: " + updateErr.Error())
 	}
 }
@@ -246,45 +248,24 @@ func (r *GormOrderRepository) getTiktokMasterImagesByIDs(ctx context.Context, db
 		return result
 	}
 
-	internalMap := make(map[int64]string)
-	var products []struct {
-		ID        int64  `gorm:"column:id"`
-		ProductID string `gorm:"column:product_id"`
-	}
-	err := db.WithContext(ctx).
-		Model(&models.TiktokProduct{}).
-		Select("id", "product_id").
-		Where("id IN ?", productIDs).
-		Find(&products).Error
-	if err == nil {
-		for _, product := range products {
-			if product.ProductID != "" {
-				internalMap[product.ID] = product.ProductID
-			}
-		}
-	}
-
-	itemIDStrings := make([]string, 0, len(productIDs))
+	// Convert int64 product IDs to strings for product_id column query
+	productIDStrings := make([]string, 0, len(productIDs))
 	for _, id := range productIDs {
-		if id <= 0 {
-			continue
+		if id > 0 {
+			productIDStrings = append(productIDStrings, strconv.FormatInt(id, 10))
 		}
-		if productID, ok := internalMap[id]; ok && productID != "" {
-			itemIDStrings = append(itemIDStrings, productID)
-			continue
-		}
-		itemIDStrings = append(itemIDStrings, strconv.FormatInt(id, 10))
+	}
+	if len(productIDStrings) == 0 {
+		return result
 	}
 
-	masterMap := r.getMasterProductImagesByItemIDs(ctx, db, models.PlatformTiktok, itemIDStrings)
+	// Query master product images using TikTok API product_id strings
+	masterMap := r.getMasterProductImagesByItemIDs(ctx, db, models.PlatformTiktok, productIDStrings)
 	for _, id := range productIDs {
 		if id <= 0 {
 			continue
 		}
 		lookupID := strconv.FormatInt(id, 10)
-		if productID, ok := internalMap[id]; ok && productID != "" {
-			lookupID = productID
-		}
 		if image, ok := masterMap[lookupID]; ok && image != "" {
 			result[id] = image
 		}
@@ -365,17 +346,28 @@ func (r *GormOrderRepository) getTiktokOrdersByStatus(ctx context.Context, db *g
 }
 
 // getTiktokProductImagesFromCache fetches product images from tiktok_products table
-// NOTE: productIDs are INTERNAL IDs (tiktok_products.id), not TikTok API product_id strings
+// NOTE: productIDs are TikTok API product_id values (large 64-bit integers), queried via product_id column
 func (r *GormOrderRepository) getTiktokProductImagesFromCache(ctx context.Context, db *gorm.DB, productIDs []int64) map[int64]string {
 	result := make(map[int64]string)
 	if len(productIDs) == 0 {
 		return result
 	}
 
+	// Convert int64 IDs to strings for product_id column query
+	productIDStrings := make([]string, 0, len(productIDs))
+	for _, id := range productIDs {
+		if id > 0 {
+			productIDStrings = append(productIDStrings, strconv.FormatInt(id, 10))
+		}
+	}
+	if len(productIDStrings) == 0 {
+		return result
+	}
+
 	// Use temporary struct to handle LocalImages as JSONArray
-	// Query by internal ID (tiktok_products.id), not product_id (TikTok API string)
+	// Query by product_id (TikTok API string), not id (internal primary key)
 	type ProductImage struct {
-		ID          int64            `gorm:"column:id"`
+		ProductID   string           `gorm:"column:product_id"`
 		Image       string           `gorm:"column:image"`
 		LocalImages models.JSONArray `gorm:"column:local_images"`
 	}
@@ -383,8 +375,8 @@ func (r *GormOrderRepository) getTiktokProductImagesFromCache(ctx context.Contex
 	var products []ProductImage
 	err := db.WithContext(ctx).
 		Model(&models.TiktokProduct{}).
-		Select("id, image, local_images").
-		Where("id IN ?", productIDs).
+		Select("product_id, image, local_images").
+		Where("product_id IN ?", productIDStrings).
 		Find(&products).Error
 
 	if err != nil {
@@ -411,7 +403,10 @@ func (r *GormOrderRepository) getTiktokProductImagesFromCache(ctx context.Contex
 		}
 
 		if imgURL != "" {
-			result[p.ID] = imgURL
+			// Convert product_id string back to int64 for result map
+			if pid, err := strconv.ParseInt(p.ProductID, 10, 64); err == nil {
+				result[pid] = imgURL
+			}
 		}
 	}
 	return result

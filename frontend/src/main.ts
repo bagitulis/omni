@@ -9,6 +9,7 @@ import "./styles/tailwind.css";
 import "./styles/theme-unified.css";
 import "./styles/icons.css";
 import "./styles/compact-scale.css";
+import "./styles/modal-base.css";
 
 const app = createApp(App);
 

@@ -15,7 +15,9 @@ type shippingClient interface {
 	ShipOrder(req shopeePkg.ShipOrderRequest) (*shopeePkg.ShipOrderResponse, error)
 	GetTrackingNumber(orderSN string) (*shopeePkg.GetTrackingNumberResponse, error)
 	CreateShippingDocument(orderSN, packageNumber string) (*shopeePkg.CreateShippingDocumentResponse, error)
+	GetShippingDocumentResult(orderSN, packageNumber string) (*shopeePkg.GetShippingDocumentResultResponse, error)
 	DownloadShippingDocument(orderSN, packageNumber, documentType string) (*shopeePkg.DownloadShippingDocumentResponse, error)
+	GetShippingDocumentDataInfo(orderSN, packageNumber string) (*shopeePkg.ShippingDocumentDataInfoResponse, error)
 }
 
 // ShippingService handles Shopee shipping operations

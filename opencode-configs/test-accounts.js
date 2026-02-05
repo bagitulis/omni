@@ -5,8 +5,8 @@
  * dan capture response untuk detect error
  *
  * Features:
- * - Auto backup & restore config
  * - Uses plugin-based auth (not proxy)
+ * - Restore from master copy (antigravity-accounts copy.json)
  * - Detailed error categorization
  *
  * Usage: node test-accounts.js
@@ -26,18 +26,22 @@ const TARGET_CONFIG_DIR = path.join(
 
 // Source files (in opencode-configs folder)
 const SOURCE_ACCOUNTS = path.join(CONFIG_DIR, "antigravity-accounts copy.json");
-const TESTER_CONFIG = path.join(CONFIG_DIR, "tester_config.json");
+const SOURCE_OPENCODE = path.join(CONFIG_DIR, "opencode-plugin.json");
+const SOURCE_OHMYOPENCODE = path.join(
+  CONFIG_DIR,
+  "oh-my-opencode-antigravity.json",
+);
 
 // Target files (in ~/.config/opencode)
 const TARGET_OPENCODE_JSON = path.join(TARGET_CONFIG_DIR, "opencode.json");
+const TARGET_OHMYOPENCODE_JSON = path.join(
+  TARGET_CONFIG_DIR,
+  "oh-my-opencode.json",
+);
 const TARGET_ACCOUNTS_JSON = path.join(
   TARGET_CONFIG_DIR,
   "antigravity-accounts.json",
 );
-
-// Backup files
-const BACKUP_OPENCODE_JSON = path.join(CONFIG_DIR, "_backup_opencode.json");
-const BACKUP_ACCOUNTS_JSON = path.join(CONFIG_DIR, "_backup_accounts.json");
 
 // Report file
 const REPORT_FILE = path.join(CONFIG_DIR, "account-test-report.txt");
@@ -50,38 +54,27 @@ const TEST_CMD =
 const results = [];
 
 /**
- * Backup current config files
+ * Transform model names for plugin mode
+ * google/claude-* -> google/antigravity-claude-*
+ * google/gemini-* -> google/antigravity-gemini-*
  */
-function backupConfigs() {
-  console.log("📦 Backing up current configs...");
-
-  if (fs.existsSync(TARGET_OPENCODE_JSON)) {
-    fs.copyFileSync(TARGET_OPENCODE_JSON, BACKUP_OPENCODE_JSON);
-    console.log("   ✓ opencode.json backed up");
-  }
-
-  if (fs.existsSync(TARGET_ACCOUNTS_JSON)) {
-    fs.copyFileSync(TARGET_ACCOUNTS_JSON, BACKUP_ACCOUNTS_JSON);
-    console.log("   ✓ antigravity-accounts.json backed up");
-  }
+function transformForPlugin(content) {
+  return content
+    .replace(/google\/claude-/g, "google/antigravity-claude-")
+    .replace(/google\/gemini-/g, "google/antigravity-gemini-");
 }
 
 /**
- * Restore original config files
+ * Restore configs from master source (antigravity-accounts copy.json)
+ * No backup needed - always restore from master copy
  */
 function restoreConfigs() {
-  console.log("\n🔄 Restoring original configs...");
+  console.log("\n🔄 Restoring configs from master source...");
 
-  if (fs.existsSync(BACKUP_OPENCODE_JSON)) {
-    fs.copyFileSync(BACKUP_OPENCODE_JSON, TARGET_OPENCODE_JSON);
-    fs.unlinkSync(BACKUP_OPENCODE_JSON);
-    console.log("   ✓ opencode.json restored");
-  }
-
-  if (fs.existsSync(BACKUP_ACCOUNTS_JSON)) {
-    fs.copyFileSync(BACKUP_ACCOUNTS_JSON, TARGET_ACCOUNTS_JSON);
-    fs.unlinkSync(BACKUP_ACCOUNTS_JSON);
-    console.log("   ✓ antigravity-accounts.json restored");
+  // Restore accounts from master copy (always complete)
+  if (fs.existsSync(SOURCE_ACCOUNTS)) {
+    fs.copyFileSync(SOURCE_ACCOUNTS, TARGET_ACCOUNTS_JSON);
+    console.log("   ✓ antigravity-accounts.json restored from master copy");
   }
 }
 
@@ -96,9 +89,19 @@ function setupTesterConfig() {
     fs.mkdirSync(TARGET_CONFIG_DIR, { recursive: true });
   }
 
-  // Copy tester config
-  fs.copyFileSync(TESTER_CONFIG, TARGET_OPENCODE_JSON);
-  console.log("   ✓ tester_config.json -> opencode.json");
+  // Copy opencode-plugin.json -> opencode.json
+  fs.copyFileSync(SOURCE_OPENCODE, TARGET_OPENCODE_JSON);
+  console.log("   ✓ opencode-plugin.json -> opencode.json");
+
+  // Transform and copy oh-my-opencode-antigravity.json -> oh-my-opencode.json
+  if (fs.existsSync(SOURCE_OHMYOPENCODE)) {
+    const content = fs.readFileSync(SOURCE_OHMYOPENCODE, "utf8");
+    const transformed = transformForPlugin(content);
+    fs.writeFileSync(TARGET_OHMYOPENCODE_JSON, transformed);
+    console.log(
+      "   ✓ oh-my-opencode-antigravity.json -> oh-my-opencode.json (transformed)",
+    );
+  }
 }
 
 /**
@@ -281,10 +284,7 @@ async function main() {
   console.log(`Test command: ${TEST_CMD}`);
   console.log("=".repeat(60));
 
-  // Step 1: Backup current configs
-  backupConfigs();
-
-  // Step 2: Setup tester config (plugin-based)
+  // Setup tester config (plugin-based)
   setupTesterConfig();
 
   try {
@@ -303,7 +303,7 @@ async function main() {
     // Generate report
     generateReport(results);
   } finally {
-    // Step 3: Always restore original configs
+    // Always restore configs from master source
     restoreConfigs();
   }
 

@@ -63,6 +63,7 @@ func RegisterShopeeShippingRoutes(router *gin.RouterGroup, getAPIClient func(ten
 		shipping.GET("/tracking/:orderSn", handler.GetTracking)
 		shipping.GET("/info/:orderSn", handler.GetShipment)
 		shipping.GET("/label/:orderSn", handler.GetShippingLabel)
+		shipping.GET("/download/:orderSn", handler.DownloadShippingLabel)
 	}
 }
 
@@ -193,6 +194,10 @@ func RegisterTiktokShippingRoutes(router *gin.RouterGroup, basePath string) {
 		// Shipping documents/labels
 		shipping.GET("/document/:packageId", handler.GetShippingDocument)
 		shipping.GET("/document/order/:orderId", handler.GetShippingDocumentByOrder)
+
+		// Download shipping label to local file
+		shipping.GET("/download/order/:orderId", handler.DownloadShippingDocumentByOrder)
+		shipping.POST("/download/batch", handler.BatchDownloadShippingDocuments)
 
 		// Handover time slots for pickup scheduling
 		shipping.GET("/timeslots/:orderOrPackageId", handler.GetHandoverTimeSlots)
