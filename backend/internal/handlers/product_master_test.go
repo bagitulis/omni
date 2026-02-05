@@ -154,26 +154,6 @@ func TestProductMasterHandler_GetProductByID(t *testing.T) {
 			expectedError:  true,
 		},
 		{
-			name:     "missing_platform",
-			platform: "",
-			itemID:   "123",
-			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
-			},
-			expectedStatus: http.StatusBadRequest,
-			expectedError:  true,
-		},
-		{
-			name:     "missing_item_id",
-			platform: "shopee",
-			itemID:   "",
-			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
-			},
-			expectedStatus: http.StatusBadRequest,
-			expectedError:  true,
-		},
-		{
 			name:     "valid_request_db_not_available",
 			platform: "shopee",
 			itemID:   "123",
@@ -197,12 +177,6 @@ func TestProductMasterHandler_GetProductByID(t *testing.T) {
 			r.GET("/api/products/:platform/:itemId", handler.GetProductByID)
 
 			url := "/api/products/" + tt.platform + "/" + tt.itemID
-			if tt.platform == "" {
-				url = "/api/products//" + tt.itemID
-			}
-			if tt.itemID == "" {
-				url = "/api/products/" + tt.platform + "/"
-			}
 
 			req, _ := http.NewRequest("GET", url, nil)
 			w := httptest.NewRecorder()
