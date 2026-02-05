@@ -177,5 +177,5 @@ return response.data.data;
 | camelCase API types   | Use snake_case to match backend     |
 | Untyped API calls     | Always define TypeScript interfaces |
 | Empty catch blocks    | Show error to user + log            |
-| Props tanpa type      | Use `defineProps<T>()`              |
+| Props without type    | Use `defineProps<T>()`              |
 | Direct store mutation | Use actions/composables             |
