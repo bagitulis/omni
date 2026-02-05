@@ -1,11 +1,11 @@
 ============================================================
 📊 ANTIGRAVITY ACCOUNT TEST REPORT
-📅 05/02/2026, 09.15.30
+📅 06/02/2026, 06.37.45
 ============================================================
 
 Total Accounts: 19
-✅ OK: 19
-❌ Errors: 0
+✅ OK: 15
+❌ Errors: 4
 
 ------------------------------------------------------------
 ✅ WORKING ACCOUNTS:
@@ -17,15 +17,31 @@ Total Accounts: 19
 [5] s43627991@gmail.com
 [6] zuzuzaza917@gmail.com
 [7] balerinatung3@gmail.com
-[8] felixstarlk576@gmail.com
 [9] bagitulis@gmail.com
 [10] yuoistarlk@gmail.com
 [11] kadarielkarim@gmail.com
 [12] ddanangttiossawardi@gmail.com
 [13] fantanihardi@gmail.com
-[14] mantogisatah@gmail.com
-[15] aminahsyah110@gmail.com
 [16] henasanjaya8@gmail.com
 [17] herisetia738@gmail.com
-[18] santihara89@gmail.com
 [19] mikaniasari979@gmail.com
+
+------------------------------------------------------------
+❌ ERROR ACCOUNTS:
+------------------------------------------------------------
+[8] felixstarlk576@gmail.com
+     Status: UNKNOWN
+     Error: Unexpected response
+
+[14] mantogisatah@gmail.com
+     Status: UNKNOWN
+     Error: Unexpected response
+
+[15] aminahsyah110@gmail.com
+     Status: UNKNOWN
+     Error: Unexpected response
+
+[18] santihara89@gmail.com
+     Status: UNKNOWN
+     Error: Unexpected response
+

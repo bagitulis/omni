@@ -117,7 +117,7 @@ export function DashboardPage() {
         title="Recent Orders"
         className="shadow-sm"
         extra={
-          <Button type="link" href="/orders">
+          <Button type="link" href="/order-manager">
             View All <RightOutlined />
           </Button>
         }

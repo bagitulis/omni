@@ -11,23 +11,25 @@
     "sisyphus": {
       "model": "google/claude-opus-4-5-thinking",
       "variant": "max",
-      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then SISYPHUS_RULES.md.",
+      "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then SISYPHUS_RULES.md.",
       "skills": ["stuck-recovery"]
     },
     "prometheus": {
       "model": "google/claude-opus-4-5-thinking",
       "variant": "max",
-      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then PROMETHEUS_RULES.md."
+      "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then PROMETHEUS_RULES.md."
     },
     "atlas": {
       "model": "google/claude-opus-4-5-thinking",
-      "variant": "max"
+      "variant": "max",
+      "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then EXECUTOR_RULES.md.\n\n🎯 REACT MIGRATION MODE: You are implementing the React migration plan. Load skill 'react-frontend-rules' for Design System specs. After UI implementation, load 'playwright-layout-eval' skill and verify layout matches specifications.",
+      "skills": ["stuck-recovery", "react-frontend-rules"]
     },
     "hephaestus": {
       "model": "google/claude-opus-4-5-thinking",
       "variant": "max",
-      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then EXECUTOR_RULES.md.",
-      "skills": ["stuck-recovery"]
+      "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then EXECUTOR_RULES.md.",
+      "skills": ["stuck-recovery", "react-frontend-rules"]
     },
     "oracle": {
       "model": "google/gemini-3-pro",
@@ -61,8 +63,8 @@
     "sisyphus-junior": {
       "model": "google/claude-sonnet-4-5-thinking",
       "variant": "max",
-      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then EXECUTOR_RULES.md.",
-      "skills": ["stuck-recovery"]
+      "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then EXECUTOR_RULES.md.",
+      "skills": ["stuck-recovery", "react-frontend-rules"]
     },
     "default": {
       "model": "google/claude-sonnet-4-5-thinking",
@@ -73,7 +75,8 @@
   "categories": {
     "visual-engineering": {
       "model": "google/gemini-3-pro",
-      "variant": "high"
+      "variant": "high",
+      "skills": ["react-frontend-rules", "playwright-layout-eval"]
     },
     "artistry": {
       "model": "google/gemini-3-pro",

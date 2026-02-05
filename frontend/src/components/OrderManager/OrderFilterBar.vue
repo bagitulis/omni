@@ -159,8 +159,7 @@ const resetFilters = () => {
 }
 
 .filter-search {
-  flex: 1 1 320px;
-  min-width: 240px;
+  flex: 1 1 auto;
   position: relative;
 }
 
@@ -224,7 +223,7 @@ const resetFilters = () => {
 
 .filter-platform,
 .filter-shipping {
-  min-width: 160px;
+  min-width: 0;
 }
 
 .platform-select,
@@ -291,6 +290,32 @@ const resetFilters = () => {
     width: 100%;
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+@media (max-width: 640px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--om-spacing-xs);
+  }
+
+  .filter-search {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+
+  .filter-controls {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--om-spacing-xs);
+  }
+
+  .filter-platform,
+  .filter-shipping,
+  .reset-btn {
+    width: 100%;
   }
 }
 </style>

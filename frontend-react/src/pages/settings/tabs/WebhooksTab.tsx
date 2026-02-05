@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   Form,
@@ -13,6 +13,7 @@ import {
 } from "antd";
 import { CopyOutlined, SendOutlined, ReloadOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import apiClient from "@/api/client";
 
 const { Text, Title } = Typography;
 const { useToken } = theme;
@@ -29,11 +30,10 @@ export default function WebhooksTab() {
   const { token } = useToken();
   const [form] = Form.useForm();
   const [testing, setTesting] = useState(false);
+  const [webhookLogs, setWebhookLogs] = useState<WebhookLog[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const baseUrl =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "https://example.com";
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   const webhookUrls = {
     shopee: `${baseUrl}/api/webhooks/shopee`,
@@ -41,37 +41,25 @@ export default function WebhooksTab() {
     lazada: `${baseUrl}/api/webhooks/lazada`,
   };
 
-  // Mock webhook logs
-  const webhookLogs: WebhookLog[] = [
-    {
-      id: "1",
-      platform: "shopee",
-      event_type: "order.created",
-      status: "success",
-      created_at: "2026-02-05 10:30:00",
-    },
-    {
-      id: "2",
-      platform: "tiktok",
-      event_type: "order.shipped",
-      status: "success",
-      created_at: "2026-02-05 10:25:00",
-    },
-    {
-      id: "3",
-      platform: "lazada",
-      event_type: "product.update",
-      status: "failed",
-      created_at: "2026-02-05 10:20:00",
-    },
-    {
-      id: "4",
-      platform: "shopee",
-      event_type: "order.cancelled",
-      status: "success",
-      created_at: "2026-02-05 10:15:00",
-    },
-  ];
+  useEffect(() => {
+    fetchWebhookLogs();
+  }, []);
+
+  const fetchWebhookLogs = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.get<WebhookLog[]>("/webhooks/logs");
+      if (response.success && response.data) {
+        setWebhookLogs(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch webhook logs:", error);
+      // Show empty state if fetch fails
+      setWebhookLogs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const columns: ColumnsType<WebhookLog> = [
     {
@@ -213,7 +201,12 @@ export default function WebhooksTab() {
         size="small"
         style={{ borderRadius: token.borderRadius }}
         extra={
-          <Button icon={<ReloadOutlined />} size="small">
+          <Button
+            icon={<ReloadOutlined />}
+            size="small"
+            onClick={fetchWebhookLogs}
+            loading={loading}
+          >
             Refresh
           </Button>
         }

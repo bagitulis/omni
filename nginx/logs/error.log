@@ -802,3 +802,8 @@
 2026/02/04 14:26:37 [error] 21#21: *1343 access forbidden by rule, client: 172.18.0.8, server: _, request: "GET /.gitlab-ci HTTP/1.1", host: "yndigital.my.id", referrer: "https://yandex.com/"
 2026/02/05 04:05:23 [error] 23#23: *14 upstream timed out (110: Operation timed out) while reading response header from upstream, client: 172.18.0.9, server: _, request: "GET /api/lazada/products HTTP/1.1", upstream: "http://172.18.0.7:3000/api/lazada/products", host: "yndigital.my.id", referrer: "https://yndigital.my.id/product-manager/lazada"
 2026/02/05 06:30:37 [error] 24#24: *564 upstream timed out (110: Operation timed out) while reading response header from upstream, client: 172.18.0.2, server: _, request: "POST /api/orders/sync/processed HTTP/1.1", upstream: "http://172.18.0.9:3000/api/orders/sync/processed", host: "yndigital.my.id", referrer: "https://yndigital.my.id/order-manager"
+2026/02/05 12:28:47 [error] 21#21: *604 access forbidden by rule, client: 172.18.0.8, server: _, request: "GET /.vscode/sftp.json HTTP/1.1", host: "yndigital.my.id"
+2026/02/05 12:43:48 [error] 21#21: *707 backend could not be resolved (3: Host not found), client: 172.18.0.8, server: _, request: "POST /api HTTP/1.1", host: "yndigital.my.id"
+2026/02/05 12:43:48 [error] 21#21: *706 backend could not be resolved (3: Host not found), client: 172.18.0.8, server: _, request: "POST /api HTTP/1.1", host: "yndigital.my.id"
+2026/02/05 12:43:48 [error] 21#21: *692 backend could not be resolved (3: Host not found), client: 172.18.0.8, server: _, request: "POST /api HTTP/1.1", host: "yndigital.my.id"
+2026/02/05 12:43:53 [error] 21#21: *692 backend could not be resolved (3: Host not found), client: 172.18.0.8, server: _, request: "POST /api HTTP/1.1", host: "yndigital.my.id"

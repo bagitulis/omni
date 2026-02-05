@@ -10,17 +10,16 @@ import { Dayjs } from "dayjs";
 const { Title } = Typography;
 
 const ORDER_TABS = [
-  { key: "ALL", label: "All Orders" },
-  { key: "PENDING", label: "Pending" },
-  { key: "READY_TO_SHIP", label: "To Ship" },
-  { key: "SHIPPED", label: "Shipped" },
-  { key: "COMPLETED", label: "Completed" },
-  { key: "CANCELLED", label: "Cancelled" },
+  { key: "unpaid", label: "Unpaid" },
+  { key: "unprocess", label: "To Process" },
+  { key: "processed", label: "Processed" },
+  { key: "locked", label: "Locked" },
+  { key: "today", label: "Today" },
 ];
 
 export default function OrdersPage() {
   // State
-  const [activeTab, setActiveTab] = useState("ALL");
+  const [activeTab, setActiveTab] = useState("unpaid");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");

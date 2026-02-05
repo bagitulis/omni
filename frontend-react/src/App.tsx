@@ -32,6 +32,9 @@ import ShopeeAdsAnalyticsPage from "./pages/analytics/ShopeeAdsAnalyticsPage";
 import TiktokAdsAnalyticsPage from "./pages/analytics/TiktokAdsAnalyticsPage";
 import { MLDashboardPage } from "./pages/analytics/MLDashboardPage";
 import SettingsPage from "./pages/settings/SettingsPage";
+import ScriptMonitorPage from "./pages/script-monitor/ScriptMonitorPage";
+import { ProductManagerPage } from "./pages/product-manager/ProductManagerPage";
+import { RouteMappingPage } from "./pages/route-mapping/RouteMappingPage";
 
 export default function App() {
   // Theme state kept for future implementation
@@ -44,13 +47,33 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route element={<AppLayout />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/orders" element={<OrdersPage />} />
-              <Route path="/products" element={<ProductListPage />} />
-              <Route path="/products/add" element={<ProductAddPage />} />
-              <Route path="/products/edit/:id" element={<ProductEditPage />} />
-              <Route path="/products/import" element={<ProductImportPage />} />
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/dashboard" element={<Navigate to="/" replace />} />
+              <Route path="/order-manager" element={<OrdersPage />} />
+              <Route
+                path="/orders"
+                element={<Navigate to="/order-manager" replace />}
+              />
+              <Route path="/master-products" element={<ProductListPage />} />
+              <Route
+                path="/products"
+                element={<Navigate to="/master-products" replace />}
+              />
+              <Route path="/master-products/add" element={<ProductAddPage />} />
+              <Route
+                path="/master-products/import"
+                element={<ProductImportPage />}
+              />
+              <Route
+                path="/master-products/:id"
+                element={<ProductEditPage />}
+              />
+              <Route path="/product-manager" element={<ProductManagerPage />} />
+              <Route
+                path="/product-manager/:platform"
+                element={<ProductManagerPage />}
+              />
+              <Route path="/route-mapping" element={<RouteMappingPage />} />
               <Route path="/inventory" element={<InventoryPage />} />
               <Route path="/analytics" element={<AnalyticsHubPage />} />
               <Route
@@ -71,7 +94,8 @@ export default function App() {
               />
               <Route path="/analytics/ml" element={<MLDashboardPage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/script-monitor" element={<ScriptMonitorPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>
         </BrowserRouter>

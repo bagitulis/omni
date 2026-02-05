@@ -1,94 +1,105 @@
 <template>
-  <div class="modal-overlay" @click="$emit('close')">
-    <div class="modal-content" @click.stop>
-      <div class="modal-header">
-        <h3>Product Details</h3>
-        <button
-          class="modal-close-btn"
-          @click="$emit('close')"
-          aria-label="Close modal"
-          title="Close"
-        >
-          <svg
-            width="20"
-            height="20"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+  <Teleport to="body">
+    <div class="modal-overlay" @click="$emit('close')">
+      <div
+        class="modal-content"
+        @click.stop
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="titleId"
+      >
+        <div class="modal-header">
+          <h3 :id="titleId">Product Details</h3>
+          <button
+            class="modal-close-btn"
+            @click="$emit('close')"
+            aria-label="Close modal"
+            title="Close"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M6 18L18 6M6 6l12 12"
-            ></path>
-          </svg>
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <div class="product-header">
-          <div class="product-info">
-            <h4>Item ID: {{ product.item_id }}</h4>
-            <p class="shop-id">Shop ID: {{ product.shop_id }}</p>
-          </div>
-        </div>
-
-        <div class="details-section">
-          <div class="detail-item">
-            <span class="label">ID:</span>
-            <span class="value">{{ product.id }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="label">Item ID:</span>
-            <span class="value code">{{ product.item_id }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="label">Shop ID:</span>
-            <span class="value">{{ product.shop_id }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="label">Status:</span>
-            <span
-              class="status-badge"
-              :class="product.item_status?.toLowerCase() || 'normal'"
+            <svg
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              {{ product.item_status || "NORMAL" }}
-            </span>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              ></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="product-header">
+            <div class="product-info">
+              <h4>Item ID: {{ product.item_id }}</h4>
+              <p class="shop-id">Shop ID: {{ product.shop_id }}</p>
+            </div>
           </div>
-          <div class="detail-item">
-            <span class="label">Tag Kit:</span>
-            <span class="value">
-              <span v-if="product.tag_kit" class="tag-yes">Yes</span>
-              <span v-else class="tag-no">No</span>
-            </span>
-          </div>
-          <div class="detail-item">
-            <span class="label">Update Time:</span>
-            <span class="value">{{ formatDate(product.update_time_str) }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="label">Created At:</span>
-            <span class="value">{{ formatDate(product.created_at) }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="label">Updated At:</span>
-            <span class="value">{{ formatDate(product.updated_at) }}</span>
+
+          <div class="details-section">
+            <div class="detail-item">
+              <span class="label">ID:</span>
+              <span class="value">{{ product.id }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Item ID:</span>
+              <span class="value code">{{ product.item_id }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Shop ID:</span>
+              <span class="value">{{ product.shop_id }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Status:</span>
+              <span
+                class="status-badge"
+                :class="product.item_status?.toLowerCase() || 'normal'"
+              >
+                {{ product.item_status || "NORMAL" }}
+              </span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Tag Kit:</span>
+              <span class="value">
+                <span v-if="product.tag_kit" class="tag-yes">Yes</span>
+                <span v-else class="tag-no">No</span>
+              </span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Update Time:</span>
+              <span class="value">{{
+                formatDate(product.update_time_str)
+              }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Created At:</span>
+              <span class="value">{{ formatDate(product.created_at) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Updated At:</span>
+              <span class="value">{{ formatDate(product.updated_at) }}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="modal-footer">
-        <button class="modal-btn modal-btn-secondary" @click="$emit('close')">
-          Close
-        </button>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-secondary" @click="$emit('close')">
+            Close
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
 import { formatDate } from "@/utils/helpers";
+import { onMounted, onUnmounted } from "vue";
 
 interface Product {
   [key: string]: any;
@@ -99,9 +110,27 @@ interface Props {
 }
 
 defineProps<Props>();
-defineEmits<{
+const emit = defineEmits<{
   close: [];
 }>();
+
+const titleId = `modal-title-${Math.random().toString(36).substr(2, 9)}`;
+
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === "Escape") {
+    emit("close");
+  }
+};
+
+onMounted(() => {
+  document.body.style.overflow = "hidden";
+  document.addEventListener("keydown", handleKeydown);
+});
+
+onUnmounted(() => {
+  document.body.style.overflow = "";
+  document.removeEventListener("keydown", handleKeydown);
+});
 </script>
 
 <style scoped>

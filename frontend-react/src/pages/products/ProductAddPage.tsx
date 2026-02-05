@@ -69,7 +69,7 @@ export default function ProductAddPage() {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       console.log("Submitting Product Data:", finalData);
       message.success("Product created successfully!");
-      navigate("/products"); // Adjust route as needed
+      navigate("/master-products"); // Adjust route as needed
     } catch (error) {
       message.error("Failed to create product");
     } finally {
@@ -120,7 +120,10 @@ export default function ProductAddPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="mb-6 flex items-center gap-4">
-        <Link to="/products" className="text-gray-500 hover:text-blue-600">
+        <Link
+          to="/master-products"
+          className="text-gray-500 hover:text-blue-600"
+        >
           <ArrowLeftOutlined style={{ fontSize: 18 }} />
         </Link>
         <h1 className="text-2xl font-bold m-0">Add New Product</h1>

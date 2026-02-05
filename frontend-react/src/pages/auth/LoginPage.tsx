@@ -43,7 +43,7 @@ const LoginPage: React.FC = () => {
   const [selectedDevTenant, setSelectedDevTenant] =
     useState("yumna_bertigamart");
 
-  const returnUrl = searchParams.get("returnUrl") || "/dashboard";
+  const returnUrl = searchParams.get("returnUrl") || "/";
 
   // Redirect if already authenticated
   useEffect(() => {

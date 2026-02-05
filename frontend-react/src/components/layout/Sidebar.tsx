@@ -25,8 +25,8 @@ export default function Sidebar({ collapsed, onCollapse }: SidebarProps) {
 
   const menuItems = [
     { key: "/", icon: <DashboardOutlined />, label: "Dashboard" },
-    { key: "/orders", icon: <ShoppingOutlined />, label: "Orders" },
-    { key: "/products", icon: <SkinOutlined />, label: "Products" },
+    { key: "/order-manager", icon: <ShoppingOutlined />, label: "Orders" },
+    { key: "/master-products", icon: <SkinOutlined />, label: "Products" },
     { key: "/inventory", icon: <InboxOutlined />, label: "Inventory" },
     { key: "/analytics", icon: <BarChartOutlined />, label: "Analytics" },
     { key: "/settings", icon: <SettingOutlined />, label: "Settings" },

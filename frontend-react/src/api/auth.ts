@@ -19,23 +19,28 @@ export interface DevLoginResponse extends LoginResponse {
 
 /**
  * Authentication API Service
+ * Note: Auth endpoints return flat responses (not wrapped in 'data' field)
  */
 export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
-  const response = await api.post<LoginResponse>("/auth/login", payload);
-  if (!response.success || !response.data) {
-    throw new Error(response.error || "Login failed");
+  // Auth endpoints return flat response: {success, token, user, tenant_id}
+  const response = await api.client.post("/auth/login", payload);
+  const result = response.data;
+  if (!result.success) {
+    throw new Error(result.error || "Login failed");
   }
-  return response.data;
+  return result as LoginResponse;
 };
 
 export const devLogin = async (
   payload: DevLoginPayload,
 ): Promise<DevLoginResponse> => {
-  const response = await api.post<DevLoginResponse>("/auth/dev-login", payload);
-  if (!response.success || !response.data) {
-    throw new Error(response.error || "Dev login failed");
+  // Auth endpoints return flat response: {success, token, user, tenant_id, dev_mode}
+  const response = await api.client.post("/auth/dev-login", payload);
+  const result = response.data;
+  if (!result.success) {
+    throw new Error(result.error || "Dev login failed");
   }
-  return response.data;
+  return result as DevLoginResponse;
 };
 
 export const logout = async (): Promise<void> => {

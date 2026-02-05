@@ -53,7 +53,7 @@
   border: none;
   padding: 0;
   cursor: pointer;
-  color: #6c727c;
+  color: #5f656e;
   border-radius: 6px;
   transition: all 150ms ease;
 }
@@ -64,7 +64,7 @@
 }
 
 .h button:focus-visible {
-  outline: 2px solid #03ac0e;
+  outline: 2px solid #027a0a;
   outline-offset: 2px;
 }
 
@@ -116,7 +116,7 @@
 }
 
 .info-row span:first-child {
-  color: #6c727c;
+  color: #5f656e;
 }
 
 .info-row span:last-child {
@@ -164,7 +164,7 @@
 .select:focus,
 .textarea:focus {
   outline: none;
-  border-color: #03ac0e;
+  border-color: #027a0a;
   box-shadow: 0 0 0 3px rgba(3, 172, 14, 0.1);
 }
 
@@ -184,7 +184,7 @@
   gap: 8px;
   cursor: pointer;
   font-size: 0.875rem;
-  color: #6c727c;
+  color: #5f656e;
   font-weight: normal;
   line-height: 1.4;
 }

@@ -1,5 +1,5 @@
 import apiClient from "./client";
-import { OrderListResponse, Order } from "@/types/order";
+import { OrderListResponse, Order, BackendOrderResponse } from "@/types/order";
 
 /**
  * Order tab types matching Vue frontend
@@ -43,6 +43,19 @@ function getOrderEndpoint(status: string): string {
 }
 
 /**
+ * Transform backend order to frontend Order type
+ * Backend uses: order_no, status
+ * Frontend expects: order_sn, order_status (plus original fields)
+ */
+function transformOrder(backendOrder: Order): Order {
+  return {
+    ...backendOrder,
+    order_sn: backendOrder.order_no || backendOrder.order_sn,
+    order_status: backendOrder.status || backendOrder.order_status,
+  };
+}
+
+/**
  * Fetch orders by tab/status
  */
 export async function getOrders(
@@ -51,7 +64,9 @@ export async function getOrders(
   const status = params.status || "unpaid";
   const endpoint = getOrderEndpoint(status);
 
-  const response = await apiClient.get<OrderListResponse>(endpoint, {
+  // Backend returns flat response: { success, count, data: [...], items: [...] }
+  // NOT nested: { success, data: { count, data, items } }
+  const response = await apiClient.client.get(endpoint, {
     params: {
       page: params.page,
       pageSize: params.pageSize,
@@ -62,11 +77,25 @@ export async function getOrders(
     },
   });
 
-  if (!response.success) {
-    throw new Error(response.error || "Failed to fetch orders");
+  const backendData = response.data as BackendOrderResponse & {
+    success: boolean;
+  };
+
+  if (!backendData.success) {
+    throw new Error("Failed to fetch orders");
   }
 
-  return response.data!;
+  // Transform backend response to frontend format
+  const orders = (backendData.data || backendData.items || []).map(
+    transformOrder,
+  );
+
+  return {
+    orders,
+    total: backendData.count || orders.length,
+    page: params.page || 1,
+    page_size: params.pageSize || 10,
+  };
 }
 
 /**

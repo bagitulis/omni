@@ -11,6 +11,7 @@ import {
   Upload,
   Card,
   Badge,
+  Alert,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -19,47 +20,28 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 import { ProductBasicForm } from "../../components/forms/ProductBasicForm";
+import { getProductById } from "../../api/products";
 import type { UploadFile } from "antd/es/upload/interface";
 
-// Mock Data
-const MOCK_PRODUCT = {
-  item_id: "1",
-  item_name: "Samsung Galaxy S24 Ultra",
-  description: "Experience the new era of mobile AI.",
-  brand: "Samsung",
-  category: "Electronics",
-  price: 18999000,
-  stock: 50,
-  skus: [
-    {
-      key: "1",
-      seller_sku: "S24U-BLK-256",
-      variant_name: "Phantom Black, 256GB",
-      stock: 20,
-      price: 18999000,
-    },
-    {
-      key: "2",
-      seller_sku: "S24U-GRY-512",
-      variant_name: "Titanium Gray, 512GB",
-      stock: 15,
-      price: 21999000,
-    },
-  ],
-  images: [
-    {
-      uid: "-1",
-      name: "image.png",
-      status: "done",
-      url: "https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png",
-    },
-  ],
-  platforms: [
-    { platform: "Shopee", status: "synced", last_sync: "2023-10-25 10:00" },
-    { platform: "Lazada", status: "pending", last_sync: "2023-10-24 15:30" },
-    { platform: "TikTok", status: "failed", last_sync: "2023-10-25 09:00" },
-  ],
-};
+interface ProductData {
+  id: number;
+  title: string;
+  description: string;
+  images: string[];
+  status: string;
+  skus?: Array<{
+    key: string;
+    seller_sku: string;
+    variant_name: string;
+    stock: number;
+    price: number;
+  }>;
+  platforms?: Array<{
+    platform: string;
+    status: string;
+    last_sync: string;
+  }>;
+}
 
 const VariantsTab = ({ initialValues }: { initialValues: any[] }) => {
   const [dataSource, setDataSource] = useState(initialValues);
@@ -90,8 +72,8 @@ const VariantsTab = ({ initialValues }: { initialValues: any[] }) => {
             `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
           }
           parser={(value) => {
-            const val = value?.replace(/\D/g, "");
-            return val ? parseInt(val, 10) : 0;
+            const v = value?.replace(/\D/g, "");
+            return v ? parseInt(v, 10) : 0;
           }}
           style={{ width: "100%" }}
         />
@@ -206,18 +188,68 @@ const PlatformSyncTab = ({ platforms }: { platforms: any[] }) => {
 export default function ProductEditPage() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [product, setProduct] = useState<ProductData | null>(null);
 
   useEffect(() => {
-    // Mock fetch
-    setTimeout(() => setLoading(false), 800);
-  }, []);
+    if (!id) return;
 
-  if (loading)
+    async function fetchProduct() {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getProductById(id!);
+        setProduct({
+          id: data.id,
+          title: data.title,
+          description: data.description,
+          images: data.images || [],
+          status: data.status,
+          skus: [],
+          platforms: [],
+        });
+      } catch (err: any) {
+        setError(err.message || "Failed to load product");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
     return (
       <div className="p-12 text-center">
         <Spin size="large" />
+        <div className="mt-4">Loading product...</div>
       </div>
     );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="p-6">
+        <Alert
+          type="error"
+          message="Failed to load product"
+          description={error || "Product not found"}
+          action={
+            <Link to="/master-products">
+              <Button>Back to Products</Button>
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
+  const imageFiles: UploadFile[] = product.images.map((url, idx) => ({
+    uid: `-${idx}`,
+    name: `image-${idx}.png`,
+    status: "done",
+    url,
+  }));
 
   const items = [
     {
@@ -225,7 +257,10 @@ export default function ProductEditPage() {
       label: "Basic Info",
       children: (
         <ProductBasicForm
-          initialValues={MOCK_PRODUCT}
+          initialValues={{
+            item_name: product.title,
+            description: product.description,
+          }}
           onFinish={() => message.success("Saved")}
           submitLabel="Save Basic Info"
         />
@@ -234,38 +269,37 @@ export default function ProductEditPage() {
     {
       key: "2",
       label: "Variants",
-      children: <VariantsTab initialValues={MOCK_PRODUCT.skus} />,
+      children: <VariantsTab initialValues={product.skus || []} />,
     },
     {
       key: "3",
       label: "Images",
-      children: (
-        <ImagesTab initialValues={MOCK_PRODUCT.images as UploadFile[]} />
-      ),
+      children: <ImagesTab initialValues={imageFiles} />,
     },
     {
       key: "4",
       label: "Platform Sync",
-      children: <PlatformSyncTab platforms={MOCK_PRODUCT.platforms} />,
+      children: <PlatformSyncTab platforms={product.platforms || []} />,
     },
   ];
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="mb-6 flex items-center gap-4">
-        <Link to="/products" className="text-gray-500 hover:text-blue-600">
+        <Link
+          to="/master-products"
+          className="text-gray-500 hover:text-blue-600"
+        >
           <ArrowLeftOutlined style={{ fontSize: 18 }} />
         </Link>
         <h1 className="text-2xl font-bold m-0">
-          Edit Product: {MOCK_PRODUCT.item_name}
+          Edit Product: {product.title}
         </h1>
       </div>
       <Card>
         <Tabs defaultActiveKey="1" items={items} type="card" />
       </Card>
-      <div className="mt-4 text-xs text-gray-400">
-        Product ID: {id} (Mock Data)
-      </div>
+      <div className="mt-4 text-xs text-gray-400">Product ID: {id}</div>
     </div>
   );
 }

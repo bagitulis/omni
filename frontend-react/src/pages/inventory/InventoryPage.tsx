@@ -10,7 +10,9 @@ import {
   Space,
   Typography,
   InputNumber,
-  message,
+  Spin,
+  Empty,
+  Alert,
 } from "antd";
 import {
   SearchOutlined,
@@ -18,23 +20,25 @@ import {
   WarningOutlined,
   ExclamationCircleOutlined,
   CheckCircleOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { InventoryItem } from "../../types/product";
+import { useInventory, useUpdateStock } from "../../hooks/useInventory";
 
 // Inline editable stock cell component
 interface StockCellProps {
   value: number;
-  itemId: string;
+  itemSku: string;
   isEditing: boolean;
   onStartEdit: () => void;
-  onSave: (id: string, val: number) => void;
+  onSave: (sku: string, val: number) => void;
   onCancel: () => void;
 }
 
 function StockCell({
   value,
-  itemId,
+  itemSku,
   isEditing,
   onStartEdit,
   onSave,
@@ -46,7 +50,6 @@ function StockCell({
   useEffect(() => {
     if (isEditing) {
       setEditValue(value);
-      // Focus the input inside wrapper after render
       setTimeout(() => {
         const input = wrapperRef.current?.querySelector("input");
         input?.focus();
@@ -61,7 +64,7 @@ function StockCell({
       onCancel();
     } else if (e.key === "Enter") {
       e.preventDefault();
-      onSave(itemId, editValue);
+      onSave(itemSku, editValue);
     }
   };
 
@@ -91,7 +94,7 @@ function StockCell({
         min={0}
         onChange={(val) => setEditValue(val ?? 0)}
         onKeyDown={handleKeyDown}
-        onBlur={() => onSave(itemId, editValue)}
+        onBlur={() => onSave(itemSku, editValue)}
         style={{
           width: "100%",
           borderColor: "#0369a1",
@@ -102,20 +105,7 @@ function StockCell({
   );
 }
 
-const generateMockData = (count: number): InventoryItem[] =>
-  Array.from({ length: count }, (_, i) => ({
-    item_id: `inv_${i}`,
-    item_sku: `SKU-${1000 + i}`,
-    item_name: `Product ${i} - ${Math.random().toString(36).substring(7)}`,
-    current_stock: Math.floor(Math.random() * 100),
-    reserved_stock: Math.floor(Math.random() * 10),
-    available_stock: Math.floor(Math.random() * 90),
-    warehouse: ["Main", "North"][i % 2],
-    last_updated: new Date().toISOString(),
-  }));
-
 export default function InventoryPage() {
-  const [data, setData] = useState<InventoryItem[]>([]);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -127,45 +117,35 @@ export default function InventoryPage() {
     "warehouse",
   ]);
 
-  useEffect(() => {
-    setData(generateMockData(1000));
-  }, []);
+  const { data, isLoading, isError, error, refetch } = useInventory({
+    search: searchText || undefined,
+  });
 
-  const handleStockUpdate = (id: string, val: number) => {
-    setData((p) =>
-      p.map((i) =>
-        i.item_id === id
-          ? {
-              ...i,
-              available_stock: val,
-              current_stock: val + i.reserved_stock,
-            }
-          : i,
-      ),
-    );
+  const updateStockMutation = useUpdateStock();
+
+  const handleStockUpdate = (sku: string, val: number) => {
+    updateStockMutation.mutate({ sku, stock: val });
     setEditingId(null);
-    message.success("Updated");
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
   };
 
+  const items = data?.items || [];
+
   const filteredData = useMemo(
     () =>
-      data.filter((item) => {
-        const matchesSearch =
-          item.item_sku.toLowerCase().includes(searchText.toLowerCase()) ||
-          item.item_name.toLowerCase().includes(searchText.toLowerCase());
+      items.filter((item) => {
         const s = item.available_stock;
         const matchesFilter =
           statusFilter === "all" ||
           (statusFilter === "low" && s <= 10 && s > 0) ||
           (statusFilter === "out" && s === 0) ||
           (statusFilter === "ok" && s > 10);
-        return matchesSearch && matchesFilter;
+        return matchesFilter;
       }),
-    [data, searchText, statusFilter],
+    [items, statusFilter],
   );
 
   const allColumns: ColumnsType<InventoryItem> = [
@@ -191,7 +171,7 @@ export default function InventoryPage() {
       render: (v, r) => (
         <StockCell
           value={v}
-          itemId={r.item_id}
+          itemSku={r.item_sku}
           isEditing={editingId === r.item_id}
           onStartEdit={() => setEditingId(r.item_id)}
           onSave={handleStockUpdate}
@@ -241,9 +221,26 @@ export default function InventoryPage() {
       dataIndex: "last_updated",
       key: "last_updated",
       width: 160,
-      render: (v) => new Date(v).toLocaleString(),
+      render: (v) => (v ? new Date(v).toLocaleString() : "-"),
     },
   ];
+
+  if (isError) {
+    return (
+      <div style={{ padding: 24 }}>
+        <Alert
+          type="error"
+          message="Failed to load inventory"
+          description={error?.message || "Unknown error"}
+          action={
+            <Button size="small" onClick={() => refetch()}>
+              Retry
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -282,6 +279,13 @@ export default function InventoryPage() {
               { value: "out", label: "Out" },
             ]}
           />
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={() => refetch()}
+            loading={isLoading}
+          >
+            Refresh
+          </Button>
           <Popover
             trigger="click"
             placement="bottomRight"
@@ -310,18 +314,28 @@ export default function InventoryPage() {
           </Popover>
         </Space>
       </div>
-      <Table
-        virtual
-        columns={allColumns.filter((c) =>
-          visibleColumns.includes(c.key as string),
-        )}
-        dataSource={filteredData}
-        rowKey="item_id"
-        pagination={false}
-        scroll={{ y: 600, x: 1000 }}
-        size="small"
-        bordered
-      />
+
+      {isLoading ? (
+        <div style={{ textAlign: "center", padding: 48 }}>
+          <Spin size="large" />
+          <div style={{ marginTop: 16 }}>Loading inventory...</div>
+        </div>
+      ) : filteredData.length === 0 ? (
+        <Empty description="No inventory items found" />
+      ) : (
+        <Table
+          virtual
+          columns={allColumns.filter((c) =>
+            visibleColumns.includes(c.key as string),
+          )}
+          dataSource={filteredData}
+          rowKey="item_id"
+          pagination={false}
+          scroll={{ y: 600, x: 1000 }}
+          size="small"
+          bordered
+        />
+      )}
     </div>
   );
 }

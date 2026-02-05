@@ -185,7 +185,7 @@ export function ProductListPage() {
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => navigate("/products/add")}
+            onClick={() => navigate("/master-products/add")}
           >
             Add Product
           </Button>

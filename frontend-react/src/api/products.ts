@@ -1,5 +1,5 @@
 import apiClient from "./client";
-import { ProductListResponse, Product } from "@/types/product";
+import { ProductListResponse, Product, BackendProduct } from "@/types/product";
 
 export interface GetProductsParams {
   page?: number;
@@ -10,22 +10,62 @@ export interface GetProductsParams {
 }
 
 /**
+ * Backend response format for product lists
+ */
+interface BackendProductResponse {
+  success: boolean;
+  data: BackendProduct[];
+  meta: {
+    total: number;
+    page: number;
+    page_size: number;
+  };
+}
+
+/**
+ * Transform backend product to frontend format
+ * Sets all required mapped fields for UI components
+ */
+function transformProduct(backendProduct: BackendProduct): Product {
+  return {
+    ...backendProduct,
+    item_id: String(backendProduct.id),
+    item_name: backendProduct.title,
+    item_sku: `SKU-${backendProduct.id}`,
+    price: 0, // Master products don't have price - set from platform variants
+    stock: 0, // Master products don't have stock - set from platform variants
+    platform: "master", // Master products are platform-agnostic
+    image_url: backendProduct.images?.[0] || "",
+  };
+}
+
+/**
  * Fetch master products list
  * Backend route: GET /api/master-products
  */
 export async function getProducts(
   params?: GetProductsParams,
 ): Promise<ProductListResponse> {
-  const response = await apiClient.get<ProductListResponse>(
-    "/master-products",
-    {
-      params,
-    },
-  );
-  if (!response.success) {
-    throw new Error(response.error || "Failed to fetch products");
+  // Backend returns flat response: { success, data: [...], meta: {...} }
+  const response = await apiClient.client.get("/master-products", {
+    params,
+  });
+
+  const backendData = response.data as BackendProductResponse;
+
+  if (!backendData.success) {
+    throw new Error("Failed to fetch products");
   }
-  return response.data!;
+
+  // Transform backend response to frontend format
+  const products = (backendData.data || []).map(transformProduct);
+
+  return {
+    products,
+    total: backendData.meta?.total || products.length,
+    page: backendData.meta?.page || 1,
+    page_size: backendData.meta?.page_size || 20,
+  };
 }
 
 /**

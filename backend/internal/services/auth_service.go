@@ -347,3 +347,9 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID, oldPassword, n
 func (s *AuthService) GenerateTokenForSwitch(userID, tenantID, role string) (string, error) {
 	return s.jwtService.GenerateAccessToken(userID, tenantID, role)
 }
+
+// GenerateDevToken generates a token for dev-mode bypass login
+// SECURITY: Only called from DevLogin handler which checks localhost origin
+func (s *AuthService) GenerateDevToken(userID, tenantID, role string) (string, error) {
+	return s.jwtService.GenerateAccessToken(userID, tenantID, role)
+}

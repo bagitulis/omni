@@ -13,6 +13,7 @@ import {
   message,
   Tabs,
   theme,
+  Empty,
 } from "antd";
 import type { TableColumnsType, UploadProps } from "antd";
 import {
@@ -35,7 +36,7 @@ const { Dragger } = Upload;
 const { RangePicker } = DatePicker;
 const { useToken } = theme;
 
-// Mock data types - snake_case to match backend
+// Data types - snake_case to match backend
 interface TikTokAdsData {
   creative_id: string;
   creative_name: string;
@@ -55,45 +56,6 @@ interface TikTokAdsData {
 // Platform brand color
 const TIKTOK_BLACK = "#000000";
 const TIKTOK_ACCENT = "#fe2c55";
-
-// Generate mock TikTok ads data
-const generateMockData = (): TikTokAdsData[] => {
-  const creatives = [
-    "Product Demo - Unboxing",
-    "Customer Review Compilation",
-    "Behind The Scenes",
-    "How To Use Tutorial",
-    "Flash Sale Announcement",
-    "Influencer Collab",
-    "User Generated Content",
-    "Trending Sound Mix",
-  ];
-
-  return creatives.map((name, idx) => {
-    const views = Math.floor(Math.random() * 100000) + 20000;
-    const clicks = Math.floor(views * (Math.random() * 0.08 + 0.02));
-    const conversions = Math.floor(clicks * (Math.random() * 0.15 + 0.03));
-    const cost = Math.floor(Math.random() * 800000) + 150000;
-    const revenue = Math.floor(cost * (Math.random() * 4 + 1.5));
-    const videoPlays = Math.floor(views * 0.7);
-
-    return {
-      creative_id: `TT${String(idx + 1).padStart(4, "0")}`,
-      creative_name: name,
-      cost,
-      revenue,
-      views,
-      clicks,
-      ctr: (clicks / views) * 100,
-      cpc: cost / clicks,
-      roi: ((revenue - cost) / cost) * 100,
-      conversions,
-      video_plays: videoPlays,
-      engagement_rate: ((clicks + conversions) / views) * 100,
-      date: dayjs().subtract(idx, "day").format("YYYY-MM-DD"),
-    };
-  });
-};
 
 // Chart configuration
 const getChartOptions = (
@@ -133,14 +95,23 @@ export const TiktokAdsAnalyticsPage = () => {
   );
   const [loading, setLoading] = useState(false);
 
-  // Use uploaded data or mock data
-  const adsData = useMemo(
-    () => (uploadedData.length > 0 ? uploadedData : generateMockData()),
-    [uploadedData],
-  );
+  // Use uploaded data only - no mock data
+  const adsData = useMemo(() => uploadedData, [uploadedData]);
+  const hasData = adsData.length > 0;
 
   // Calculate summary metrics
   const summary = useMemo(() => {
+    if (!hasData) {
+      return {
+        totalCost: 0,
+        totalRevenue: 0,
+        avgRoi: 0,
+        avgCtr: 0,
+        totalViews: 0,
+        totalPlays: 0,
+        totalConversions: 0,
+      };
+    }
     const totalCost = adsData.reduce((sum, d) => sum + d.cost, 0);
     const totalRevenue = adsData.reduce((sum, d) => sum + d.revenue, 0);
     const totalViews = adsData.reduce((sum, d) => sum + d.views, 0);
@@ -150,21 +121,22 @@ export const TiktokAdsAnalyticsPage = () => {
     return {
       totalCost,
       totalRevenue,
-      avgRoi: ((totalRevenue - totalCost) / totalCost) * 100,
-      avgCtr: (totalClicks / totalViews) * 100,
+      avgRoi:
+        totalCost > 0 ? ((totalRevenue - totalCost) / totalCost) * 100 : 0,
+      avgCtr: totalViews > 0 ? (totalClicks / totalViews) * 100 : 0,
       totalViews,
       totalPlays,
       totalConversions: adsData.reduce((sum, d) => sum + d.conversions, 0),
     };
-  }, [adsData]);
+  }, [adsData, hasData]);
 
   // Chart data
   const chartCategories = adsData.slice(0, 6).map((d) => d.creative_name);
-  const costRevenueData = [
+  const costRevenueData: ApexAxisChartSeries = [
     { name: "Cost", data: adsData.slice(0, 6).map((d) => d.cost) },
     { name: "Revenue", data: adsData.slice(0, 6).map((d) => d.revenue) },
   ];
-  const performanceData = [
+  const performanceData: ApexAxisChartSeries = [
     {
       name: "CTR (%)",
       data: adsData.slice(0, 6).map((d) => Number(d.ctr.toFixed(2))),
@@ -175,7 +147,7 @@ export const TiktokAdsAnalyticsPage = () => {
     },
   ];
 
-  // Upload handlers
+  // Upload handlers - parse real CSV data
   const uploadProps: UploadProps = {
     name: "file",
     accept: ".csv",
@@ -183,10 +155,55 @@ export const TiktokAdsAnalyticsPage = () => {
     showUploadList: false,
     beforeUpload: (file) => {
       message.loading("Processing CSV...", 1);
-      setTimeout(() => {
-        setUploadedData(generateMockData());
-        message.success(`${file.name} processed successfully`);
-      }, 1000);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string;
+          const lines = text.split("\n").filter((l) => l.trim());
+          if (lines.length < 2) {
+            message.error("CSV file is empty or invalid");
+            return;
+          }
+          // Parse CSV
+          const data: TikTokAdsData[] = [];
+          for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(",");
+            if (values.length >= 5) {
+              const views = parseInt(values[4]) || 0;
+              const clicks = parseInt(values[5]) || 0;
+              const cost = parseFloat(values[2]) || 0;
+              const revenue = parseFloat(values[3]) || 0;
+              const videoPlays = Math.floor(views * 0.7);
+
+              data.push({
+                creative_id: values[0]?.trim() || `TT${i}`,
+                creative_name: values[1]?.trim() || `Creative ${i}`,
+                cost,
+                revenue,
+                views,
+                clicks,
+                ctr: views > 0 ? (clicks / views) * 100 : 0,
+                cpc: clicks > 0 ? cost / clicks : 0,
+                roi: cost > 0 ? ((revenue - cost) / cost) * 100 : 0,
+                conversions: parseInt(values[6]) || 0,
+                video_plays: videoPlays,
+                engagement_rate:
+                  views > 0
+                    ? ((clicks + (parseInt(values[6]) || 0)) / views) * 100
+                    : 0,
+                date: values[7]?.trim() || dayjs().format("YYYY-MM-DD"),
+              });
+            }
+          }
+          setUploadedData(data);
+          message.success(
+            `${file.name} processed - ${data.length} creatives loaded`,
+          );
+        } catch {
+          message.error("Failed to parse CSV file");
+        }
+      };
+      reader.readAsText(file);
       return false;
     },
   };
@@ -198,9 +215,8 @@ export const TiktokAdsAnalyticsPage = () => {
   const handleRefresh = () => {
     setLoading(true);
     setTimeout(() => {
-      setUploadedData(generateMockData());
       setLoading(false);
-      message.success("Data refreshed");
+      message.info("Refresh complete");
     }, 500);
   };
 
@@ -264,6 +280,32 @@ export const TiktokAdsAnalyticsPage = () => {
     },
   ];
 
+  // Empty state component
+  const EmptyState = () => (
+    <Card style={{ borderRadius: token.borderRadius }}>
+      <Empty
+        image={<InboxOutlined style={{ fontSize: 64, color: TIKTOK_BLACK }} />}
+        description={
+          <span>
+            No TikTok Ads data available.
+            <br />
+            <Text type="secondary">
+              Go to the Upload tab to import your TikTok Ads CSV export.
+            </Text>
+          </span>
+        }
+      >
+        <Button
+          type="primary"
+          style={{ backgroundColor: TIKTOK_BLACK }}
+          onClick={() => setActiveTab("upload")}
+        >
+          Upload CSV
+        </Button>
+      </Empty>
+    </Card>
+  );
+
   // Tab items
   const tabItems = [
     {
@@ -273,7 +315,9 @@ export const TiktokAdsAnalyticsPage = () => {
           <LineChartOutlined /> Dashboard
         </span>
       ),
-      children: (
+      children: !hasData ? (
+        <EmptyState />
+      ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Row gutter={[16, 16]}>
             <Col xs={12} sm={12} md={6}>
@@ -372,7 +416,9 @@ export const TiktokAdsAnalyticsPage = () => {
           <VideoCameraOutlined /> Creative Data
         </span>
       ),
-      children: (
+      children: !hasData ? (
+        <EmptyState />
+      ) : (
         <Card size="small">
           <Table
             columns={columns}
@@ -410,6 +456,12 @@ export const TiktokAdsAnalyticsPage = () => {
                   Upload TikTok Ads export file to analyze creative performance
                 </p>
               </Dragger>
+              <div style={{ marginTop: 16, fontSize: 12, color: "#666" }}>
+                <Text type="secondary">
+                  Expected CSV format: creative_id, creative_name, cost,
+                  revenue, views, clicks, conversions, date
+                </Text>
+              </div>
             </Card>
           </Col>
           <Col xs={24} lg={12}>

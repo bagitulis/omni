@@ -35,30 +35,47 @@
 ```
 AGENTS.md (ROOT)              ← YOU ARE HERE - Critical invariants
     ├── backend/AGENTS.md     ← Go/Backend context when working in backend/
-    ├── frontend/AGENTS.md    ← Vue/Frontend context when working in frontend/
+    ├── frontend/AGENTS.md    ← Vue/React Frontend context (both stacks)
     ├── mcp-servers/AGENTS.md ← MCP context when working in mcp-servers/
     │
     ├── SISYPHUS_RULES.md     ← Orchestrator-specific rules
     ├── EXECUTOR_RULES.md     ← Executor-specific rules
     └── PROMETHEUS_RULES.md   ← Planner-specific rules
+
+Skills (auto-loaded via oh-my-opencode.json):
+    ├── react-frontend-rules  ← React 19 + Ant Design specs
+    ├── playwright-layout-eval← UI/Layout verification with Playwright
+    ├── stuck-recovery        ← Subagent timeout/failure recovery
+    └── [agent]-rules         ← Agent-specific rules (oracle, librarian, etc.)
 ```
 
-**Precedence:** Root invariants > Directory context > Agent-role rules
+**Precedence:** Root invariants > Directory context > Agent-role rules > Skills
 
 ---
 
 ## Agent Rules Distribution
 
-| Agent               | Additional Rules                            |
-| ------------------- | ------------------------------------------- |
-| **Sisyphus**        | `SISYPHUS_RULES.md` + skill: stuck-recovery |
-| **Sisyphus-Junior** | `EXECUTOR_RULES.md` + skill: stuck-recovery |
-| **Prometheus**      | `PROMETHEUS_RULES.md`                       |
-| **Oracle**          | skill: oracle-rules                         |
-| **Librarian**       | skill: librarian-rules                      |
-| **Explore**         | skill: explore-rules                        |
-| **Metis**           | skill: metis-rules                          |
-| **Momus**           | skill: momus-rules                          |
+| Agent               | Additional Rules                                  |
+| ------------------- | ------------------------------------------------- |
+| **Sisyphus**        | `SISYPHUS_RULES.md` + skill: stuck-recovery       |
+| **Sisyphus-Junior** | `EXECUTOR_RULES.md` + skill: stuck-recovery       |
+| **Atlas**           | `EXECUTOR_RULES.md` + skill: react-frontend-rules |
+| **Hephaestus**      | `EXECUTOR_RULES.md` + skill: react-frontend-rules |
+| **Prometheus**      | `PROMETHEUS_RULES.md`                             |
+| **Oracle**          | skill: oracle-rules                               |
+| **Librarian**       | skill: librarian-rules                            |
+| **Explore**         | skill: explore-rules                              |
+| **Metis**           | skill: metis-rules                                |
+| **Momus**           | skill: momus-rules                                |
+
+### React Migration Skills
+
+| Skill                    | Purpose                                      |
+| ------------------------ | -------------------------------------------- |
+| `react-frontend-rules`   | React 19 + Ant Design + Ginee-style specs    |
+| `playwright-layout-eval` | UI/Layout verification against Design System |
+
+**Note:** For visual-engineering category, both skills auto-loaded.
 
 ---
 

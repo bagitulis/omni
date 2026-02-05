@@ -1,58 +1,67 @@
 <template>
-  <div v-if="show" class="modal-overlay" @click.self="$emit('close')">
-    <div class="batch-modal">
-      <div class="modal-header">
-        <h3>
-          {{
-            type === "price" ? "💰 Update Harga Batch" : "📦 Update Stok Batch"
-          }}
-        </h3>
-        <button class="modal-close" @click="$emit('close')">✕</button>
-      </div>
-      <div class="modal-body">
-        <p class="modal-info">
-          Anda akan mengupdate <strong>{{ count }}</strong> varian sekaligus
-        </p>
-        <div class="form-group">
-          <label>{{
-            type === "price" ? "Harga Baru (Rp)" : "Stok Baru"
-          }}</label>
-          <input
-            type="number"
-            :value="modelValue"
-            @input="
-              $emit(
-                'update:modelValue',
-                ($event.target as HTMLInputElement).valueAsNumber,
-              )
-            "
-            :placeholder="
-              type === 'price' ? 'Masukkan harga...' : 'Masukkan stok...'
-            "
-            :min="0"
-            :step="type === 'price' ? 1000 : 1"
-            class="batch-input"
-            ref="inputRef"
-          />
+  <Teleport to="body">
+    <div v-if="show" class="modal-overlay" @click.self="$emit('close')">
+      <div
+        class="batch-modal"
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="titleId"
+      >
+        <div class="modal-header">
+          <h3 :id="titleId">
+            {{
+              type === "price"
+                ? "💰 Update Harga Batch"
+                : "📦 Update Stok Batch"
+            }}
+          </h3>
+          <button class="modal-close" @click="$emit('close')">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-info">
+            Anda akan mengupdate <strong>{{ count }}</strong> varian sekaligus
+          </p>
+          <div class="form-group">
+            <label>{{
+              type === "price" ? "Harga Baru (Rp)" : "Stok Baru"
+            }}</label>
+            <input
+              type="number"
+              :value="modelValue"
+              @input="
+                $emit(
+                  'update:modelValue',
+                  ($event.target as HTMLInputElement).valueAsNumber,
+                )
+              "
+              :placeholder="
+                type === 'price' ? 'Masukkan harga...' : 'Masukkan stok...'
+              "
+              :min="0"
+              :step="type === 'price' ? 1000 : 1"
+              class="batch-input"
+              ref="inputRef"
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="$emit('close')">Batal</button>
+          <button
+            class="btn-confirm"
+            @click="$emit('confirm')"
+            :disabled="updating || modelValue === null || modelValue < 0"
+          >
+            <span v-if="updating" class="spinner-small"></span>
+            {{ updating ? "Mengupdate..." : "Update Semua" }}
+          </button>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn-cancel" @click="$emit('close')">Batal</button>
-        <button
-          class="btn-confirm"
-          @click="$emit('confirm')"
-          :disabled="updating || modelValue === null || modelValue < 0"
-        >
-          <span v-if="updating" class="spinner-small"></span>
-          {{ updating ? "Mengupdate..." : "Update Semua" }}
-        </button>
-      </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch, nextTick } from "vue";
+import { onMounted, onUnmounted, ref, watch, nextTick } from "vue";
 
 const props = defineProps<{
   show: boolean;
@@ -62,24 +71,43 @@ const props = defineProps<{
   modelValue: number | null;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   "update:modelValue": [value: number];
   close: [];
   confirm: [];
 }>();
 
 const inputRef = ref<HTMLInputElement | null>(null);
+const titleId = `modal-title-${Math.random().toString(36).substr(2, 9)}`;
 
 watch(
   () => props.show,
   (newVal) => {
     if (newVal) {
+      document.body.style.overflow = "hidden";
       nextTick(() => {
         inputRef.value?.focus();
       });
+    } else {
+      document.body.style.overflow = "";
     }
   },
 );
+
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === "Escape" && props.show) {
+    emit("close");
+  }
+};
+
+onMounted(() => {
+  document.addEventListener("keydown", handleKeydown);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("keydown", handleKeydown);
+  document.body.style.overflow = "";
+});
 </script>
 
 <style scoped>

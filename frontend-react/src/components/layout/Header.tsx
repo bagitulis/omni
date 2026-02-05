@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Layout,
   Button,
@@ -14,6 +15,8 @@ import {
   LogoutOutlined,
   SettingOutlined,
 } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
+import { STORAGE_KEYS } from "@/lib/constants";
 
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;
@@ -24,9 +27,27 @@ interface HeaderProps {
 }
 
 export default function Header({ collapsed, onCollapse }: HeaderProps) {
+  const navigate = useNavigate();
+  const [userName, setUserName] = useState<string>("");
   const {
     token: { colorBgContainer, colorBorderSecondary },
   } = theme.useToken();
+
+  useEffect(() => {
+    const storedName = localStorage.getItem(STORAGE_KEYS.USER_NAME);
+    if (storedName) {
+      setUserName(storedName);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+    localStorage.removeItem(STORAGE_KEYS.TENANT_ID);
+    localStorage.removeItem(STORAGE_KEYS.USER_ROLE);
+    localStorage.removeItem(STORAGE_KEYS.USER_NAME);
+    navigate("/login");
+  };
 
   const userMenu = [
     {
@@ -38,6 +59,7 @@ export default function Header({ collapsed, onCollapse }: HeaderProps) {
       key: "settings",
       label: "Settings",
       icon: <SettingOutlined />,
+      onClick: () => navigate("/settings"),
     },
     {
       type: "divider" as const,
@@ -47,6 +69,7 @@ export default function Header({ collapsed, onCollapse }: HeaderProps) {
       label: "Logout",
       icon: <LogoutOutlined />,
       danger: true,
+      onClick: handleLogout,
     },
   ];
 
@@ -88,7 +111,7 @@ export default function Header({ collapsed, onCollapse }: HeaderProps) {
         <Dropdown menu={{ items: userMenu }} placement="bottomRight">
           <Space style={{ cursor: "pointer" }}>
             <Avatar size="small" icon={<UserOutlined />} />
-            <Text className="username-label">Admin User</Text>
+            <Text className="username-label">{userName || "User"}</Text>
           </Space>
         </Dropdown>
       </div>

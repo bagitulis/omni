@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Card,
   Form,
@@ -8,8 +9,11 @@ import {
   Divider,
   message,
   theme,
+  Spin,
 } from "antd";
-import { UserOutlined, LockOutlined } from "@ant-design/icons";
+import { UserOutlined, LockOutlined, LoadingOutlined } from "@ant-design/icons";
+import apiClient from "@/api/client";
+import { STORAGE_KEYS } from "@/lib/constants";
 
 const { Text, Title } = Typography;
 const { useToken } = theme;
@@ -26,17 +30,55 @@ interface PasswordForm {
   confirm_password: string;
 }
 
+interface UserData {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+  phone?: string;
+}
+
 export default function AccountTab() {
   const { token } = useToken();
   const [profileForm] = Form.useForm<ProfileForm>();
   const [passwordForm] = Form.useForm<PasswordForm>();
+  const [user, setUser] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock user data
-  const user = {
-    name: "Admin User",
-    email: "admin@example.com",
-    phone: "+62 812 3456 7890",
-    avatar: null,
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.get<UserData>("/auth/me");
+      if (response.success && response.data) {
+        setUser(response.data);
+        profileForm.setFieldsValue({
+          name: response.data.username,
+          email: response.data.email,
+          phone: response.data.phone,
+        });
+      }
+    } catch {
+      // Fallback to localStorage
+      const storedUser = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
+      if (storedUser) {
+        try {
+          const parsed = JSON.parse(storedUser);
+          setUser(parsed);
+          profileForm.setFieldsValue({
+            name: parsed.username,
+            email: parsed.email,
+          });
+        } catch {
+          // Ignore parse error
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleProfileSave = (values: ProfileForm) => {
@@ -53,6 +95,21 @@ export default function AccountTab() {
     message.success("Password changed successfully");
     passwordForm.resetFields();
   };
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: 200,
+        }}
+      >
+        <Spin indicator={<LoadingOutlined spin />} size="large" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -85,10 +142,10 @@ export default function AccountTab() {
           />
           <div>
             <Text strong style={{ fontSize: 14, display: "block" }}>
-              {user.name}
+              {user?.username || "User"}
             </Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              {user.email}
+              {user?.email || ""}
             </Text>
           </div>
         </div>
@@ -96,11 +153,6 @@ export default function AccountTab() {
         <Form
           form={profileForm}
           layout="vertical"
-          initialValues={{
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-          }}
           onFinish={handleProfileSave}
           style={{ maxWidth: 400 }}
         >

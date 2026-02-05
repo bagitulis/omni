@@ -24,14 +24,31 @@ omni/
 │   ├── shopee-sdk/          # Shopee SDK
 │   ├── lazada-sdk/          # Lazada SDK
 │   └── tiktok_sdk/          # TikTok SDK
-├── frontend/                # Vue.js frontend
+├── frontend/                # Vue.js frontend (LEGACY)
 │   ├── src/
 │   │   ├── components/      # Vue components
 │   │   ├── views/           # Page views
 │   │   ├── api/             # API clients
 │   │   └── stores/          # Pinia stores
 │   └── public/
-└── mcp-servers/             # MCP server implementations
+├── frontend-react/          # React frontend (ACTIVE)
+│   ├── src/
+│   │   ├── api/             # Axios API clients
+│   │   ├── components/      # Reusable components
+│   │   │   ├── layout/      # AppLayout, Sidebar, Header
+│   │   │   ├── ui/          # Extended Ant Design
+│   │   │   ├── tables/      # Data tables
+│   │   │   ├── forms/       # Form components
+│   │   │   └── modals/      # Modal components
+│   │   ├── pages/           # Route pages
+│   │   ├── hooks/           # Custom hooks (useOrders, etc.)
+│   │   ├── stores/          # Zustand stores
+│   │   ├── types/           # TypeScript (snake_case!)
+│   │   ├── lib/             # Utilities
+│   │   └── styles/          # Theme (Ant Design overrides)
+│   └── public/
+├── mcp-servers/             # MCP server implementations
+└── .sisyphus/plans/         # Migration and feature plans
 ```
 
 ---

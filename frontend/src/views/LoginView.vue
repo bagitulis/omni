@@ -1,6 +1,12 @@
 <template>
   <div class="login-container">
-    <div class="login-card">
+    <!-- Auto-login loading overlay -->
+    <div v-if="autoLoginInProgress" class="auto-login-overlay">
+      <div class="auto-login-spinner"></div>
+      <p>Auto-logging in as tester...</p>
+    </div>
+
+    <div class="login-card" v-show="!autoLoginInProgress">
       <h1>Login</h1>
 
       <!-- DEV MODE: Localhost bypass login -->
@@ -143,9 +149,35 @@ const requiresCaptcha = ref(false);
 const isLocked = ref(false);
 const lockMinutesRemaining = ref(0);
 
-// Initialize reCAPTCHA on mount
+// Auto dev-login state
+const autoLoginAttempted = ref(false);
+const autoLoginInProgress = ref(false);
+
+// Initialize reCAPTCHA on mount and trigger auto dev-login if on localhost
 onMounted(async () => {
   await captchaService.init();
+
+  // AUTO DEV-LOGIN: Automatically login on localhost
+  // SECURITY: This only works when:
+  // 1. Frontend is on localhost (checked here)
+  // 2. Backend GO_ENV != "production" (checked server-side in auth_dev.go)
+  if (isLocalhost.value && !autoLoginAttempted.value) {
+    autoLoginAttempted.value = true;
+    autoLoginInProgress.value = true;
+
+    try {
+      // Use default tenant (yumna_bertigamart) for auto-login
+      await handleDevLogin();
+    } catch (err: any) {
+      // If auto-login fails, just show the normal login form
+      // User can still manually select tenant and click dev login button
+      console.warn(
+        "[Dev Auto-Login] Failed, falling back to manual:",
+        err.message,
+      );
+      autoLoginInProgress.value = false;
+    }
+  }
 });
 
 // Dev login handler - calls secure backend endpoint
@@ -185,6 +217,8 @@ const handleDevLogin = async () => {
     router.push(returnUrl.value);
   } catch (err: any) {
     error.value = err.message || "Dev login failed - is backend in dev mode?";
+    // If auto-login was in progress, hide the overlay so user can see the form
+    autoLoginInProgress.value = false;
   } finally {
     isLoading.value = false;
   }
@@ -445,5 +479,32 @@ input:disabled {
 .btn-dev-login:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Auto-login overlay styles */
+.auto-login-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  color: white;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.auto-login-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

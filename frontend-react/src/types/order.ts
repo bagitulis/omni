@@ -4,11 +4,25 @@
  */
 
 export interface Order {
-  order_sn: string;
-  order_status: string;
+  id: string;
+  order_sn: string; // Mapped from order_no
+  order_no: string; // Backend field name
+  order_status: string; // Mapped from status
+  status: string; // Backend field name
   platform: string;
+  category: string;
   buyer_username: string;
   total_amount: number;
+  currency: string;
+  payment_method: string;
+  shipping_carrier: string;
+  ship_by_date: number;
+  sku: string;
+  product_name: string;
+  variation_name: string;
+  qty: number;
+  price: number;
+  product_image: string;
   created_at: string;
   updated_at: string;
 }
@@ -39,6 +53,19 @@ export interface ShippingAddress {
   country: string;
 }
 
+/**
+ * Backend response format for order lists
+ * Backend returns: { success, count, data: [...], items: [...] }
+ */
+export interface BackendOrderResponse {
+  count: number;
+  data: Order[];
+  items: Order[];
+}
+
+/**
+ * Frontend-friendly format for order lists
+ */
 export interface OrderListResponse {
   orders: Order[];
   total: number;

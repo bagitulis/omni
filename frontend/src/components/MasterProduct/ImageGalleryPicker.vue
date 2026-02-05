@@ -1,65 +1,72 @@
 <template>
-  <div v-if="visible" class="modal-overlay" @click.self="close">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h3>Pilih Gambar dari Galeri</h3>
-        <button class="btn-close" @click="close">✕</button>
+  <Teleport to="body">
+    <div v-if="visible" class="modal-overlay" @click.self="close">
+      <div
+        class="modal-container"
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="titleId"
+      >
+        <div class="modal-header">
+          <h3 :id="titleId">Pilih Gambar dari Galeri</h3>
+          <button class="btn-close" @click="close">✕</button>
+        </div>
+
+        <ImageGalleryToolbar
+          :search-query="searchQuery"
+          :uploading="uploading"
+          @update:search-query="searchQuery = $event"
+          @search="debouncedSearch"
+          @clear="clearSearch"
+          @upload="handleUploadFiles"
+        />
+
+        <div class="gallery-content">
+          <div v-if="loading" class="loading-state">
+            <div class="spinner"></div>
+            <p>Memuat gambar...</p>
+          </div>
+
+          <div v-else-if="images.length === 0" class="empty-state">
+            <span class="empty-icon">🖼️</span>
+            <p v-if="searchQuery">Tidak ada gambar yang cocok</p>
+            <p v-else>Belum ada gambar di galeri</p>
+          </div>
+
+          <div v-else class="image-grid">
+            <ImageGalleryItem
+              v-for="img in images"
+              :key="img.id"
+              :image="img"
+              :image-url="getImageUrl(img)"
+              :selected="isSelected(img)"
+              @toggle="toggleSelection"
+            />
+          </div>
+        </div>
+
+        <ImageGalleryFooter
+          :selected-count="selectedImages.length"
+          :max-images="maxImages"
+          :meta="meta"
+          @page-change="changePage"
+          @cancel="close"
+          @confirm="confirm"
+        />
       </div>
 
-      <ImageGalleryToolbar
-        :search-query="searchQuery"
-        :uploading="uploading"
-        @update:search-query="searchQuery = $event"
-        @search="debouncedSearch"
-        @clear="clearSearch"
-        @upload="handleUploadFiles"
-      />
-
-      <div class="gallery-content">
-        <div v-if="loading" class="loading-state">
-          <div class="spinner"></div>
-          <p>Memuat gambar...</p>
+      <transition name="fade">
+        <div v-if="errorMessage" class="message error">
+          <span class="message-icon">✕</span>
+          {{ errorMessage }}
         </div>
-
-        <div v-else-if="images.length === 0" class="empty-state">
-          <span class="empty-icon">🖼️</span>
-          <p v-if="searchQuery">Tidak ada gambar yang cocok</p>
-          <p v-else>Belum ada gambar di galeri</p>
-        </div>
-
-        <div v-else class="image-grid">
-          <ImageGalleryItem
-            v-for="img in images"
-            :key="img.id"
-            :image="img"
-            :image-url="getImageUrl(img)"
-            :selected="isSelected(img)"
-            @toggle="toggleSelection"
-          />
-        </div>
-      </div>
-
-      <ImageGalleryFooter
-        :selected-count="selectedImages.length"
-        :max-images="maxImages"
-        :meta="meta"
-        @page-change="changePage"
-        @cancel="close"
-        @confirm="confirm"
-      />
+      </transition>
     </div>
-
-    <transition name="fade">
-      <div v-if="errorMessage" class="message error">
-        <span class="message-icon">✕</span>
-        {{ errorMessage }}
-      </div>
-    </transition>
-  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, onMounted, onUnmounted } from "vue";
 import type { GalleryImage } from "@/services/imageService";
 import { useImageGallery } from "@/composables/useImageGallery";
 import ImageGalleryItem from "./ImageGalleryItem.vue";
@@ -89,6 +96,7 @@ const {
 const selectedImages = ref<GalleryImage[]>([]);
 const searchQuery = ref("");
 const searchTimeout = ref<number | null>(null);
+const titleId = `modal-title-${Math.random().toString(36).substr(2, 9)}`;
 
 const handleUploadFiles = async (files: FileList) => {
   const { successCount } = await uploadFiles(files);
@@ -147,11 +155,29 @@ watch(
   () => props.visible,
   (newVal) => {
     if (newVal) {
+      document.body.style.overflow = "hidden";
       fetchImages(1, searchQuery.value);
       selectedImages.value = [];
+    } else {
+      document.body.style.overflow = "";
     }
   },
 );
+
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === "Escape" && props.visible) {
+    close();
+  }
+};
+
+onMounted(() => {
+  document.addEventListener("keydown", handleKeydown);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("keydown", handleKeydown);
+  document.body.style.overflow = "";
+});
 </script>
 
 <style scoped>

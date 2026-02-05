@@ -17,8 +17,8 @@ export default function MobileNav() {
 
   const navItems = [
     { key: "/", icon: <DashboardOutlined />, label: "Home" },
-    { key: "/orders", icon: <ShoppingOutlined />, label: "Orders" },
-    { key: "/products", icon: <SkinOutlined />, label: "Products" },
+    { key: "/order-manager", icon: <ShoppingOutlined />, label: "Orders" },
+    { key: "/master-products", icon: <SkinOutlined />, label: "Products" },
     { key: "/inventory", icon: <InboxOutlined />, label: "Stock" },
     { key: "/analytics", icon: <BarChartOutlined />, label: "Data" },
   ];

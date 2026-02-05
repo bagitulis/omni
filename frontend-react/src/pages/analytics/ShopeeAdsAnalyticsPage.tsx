@@ -13,6 +13,7 @@ import {
   message,
   Tabs,
   theme,
+  Empty,
 } from "antd";
 import type { TableColumnsType, UploadProps } from "antd";
 import {
@@ -34,7 +35,7 @@ const { Dragger } = Upload;
 const { RangePicker } = DatePicker;
 const { useToken } = theme;
 
-// Mock data types - snake_case to match backend
+// Data types - snake_case to match backend
 interface AdsData {
   product_id: string;
   product_name: string;
@@ -51,42 +52,6 @@ interface AdsData {
 
 // Platform brand color
 const SHOPEE_ORANGE = "#ee4d2d";
-
-// Generate mock ads data
-const generateMockData = (): AdsData[] => {
-  const products = [
-    "Premium Wireless Earbuds",
-    "Smart Watch Pro",
-    "Laptop Stand Aluminum",
-    "USB-C Hub 7-in-1",
-    "Mechanical Keyboard RGB",
-    "Gaming Mouse Wireless",
-    "Phone Case Silicone",
-    "Screen Protector Glass",
-  ];
-
-  return products.map((name, idx) => {
-    const impressions = Math.floor(Math.random() * 50000) + 10000;
-    const clicks = Math.floor(impressions * (Math.random() * 0.05 + 0.01));
-    const conversions = Math.floor(clicks * (Math.random() * 0.1 + 0.02));
-    const cost = Math.floor(Math.random() * 500000) + 100000;
-    const revenue = Math.floor(cost * (Math.random() * 3 + 1));
-
-    return {
-      product_id: `PROD${String(idx + 1).padStart(4, "0")}`,
-      product_name: name,
-      cost,
-      revenue,
-      clicks,
-      impressions,
-      ctr: (clicks / impressions) * 100,
-      cpc: cost / clicks,
-      roas: revenue / cost,
-      conversions,
-      date: dayjs().subtract(idx, "day").format("YYYY-MM-DD"),
-    };
-  });
-};
 
 // Shared chart configuration
 const getChartOptions = (
@@ -126,14 +91,22 @@ export const ShopeeAdsAnalyticsPage = () => {
   );
   const [loading, setLoading] = useState(false);
 
-  // Use uploaded data or mock data
-  const adsData = useMemo(
-    () => (uploadedData.length > 0 ? uploadedData : generateMockData()),
-    [uploadedData],
-  );
+  // Use uploaded data only - no mock data
+  const adsData = useMemo(() => uploadedData, [uploadedData]);
+  const hasData = adsData.length > 0;
 
   // Calculate summary metrics
   const summary = useMemo(() => {
+    if (!hasData) {
+      return {
+        totalCost: 0,
+        totalRevenue: 0,
+        avgRoas: 0,
+        avgCtr: 0,
+        avgCpc: 0,
+        totalConversions: 0,
+      };
+    }
     const totalCost = adsData.reduce((sum, d) => sum + d.cost, 0);
     const totalRevenue = adsData.reduce((sum, d) => sum + d.revenue, 0);
     const totalClicks = adsData.reduce((sum, d) => sum + d.clicks, 0);
@@ -142,20 +115,20 @@ export const ShopeeAdsAnalyticsPage = () => {
     return {
       totalCost,
       totalRevenue,
-      avgRoas: totalRevenue / totalCost,
-      avgCtr: (totalClicks / totalImpressions) * 100,
-      avgCpc: totalCost / totalClicks,
+      avgRoas: totalCost > 0 ? totalRevenue / totalCost : 0,
+      avgCtr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
+      avgCpc: totalClicks > 0 ? totalCost / totalClicks : 0,
       totalConversions: adsData.reduce((sum, d) => sum + d.conversions, 0),
     };
-  }, [adsData]);
+  }, [adsData, hasData]);
 
   // Chart data - numbers for bars
   const chartCategories = adsData.slice(0, 6).map((d) => d.product_name);
-  const costRevenueData: any[] = [
+  const costRevenueData: ApexAxisChartSeries = [
     { name: "Cost", data: adsData.slice(0, 6).map((d) => d.cost) },
     { name: "Revenue", data: adsData.slice(0, 6).map((d) => d.revenue) },
   ];
-  const performanceData: any[] = [
+  const performanceData: ApexAxisChartSeries = [
     {
       name: "CTR (%)",
       data: adsData.slice(0, 6).map((d) => Number(d.ctr.toFixed(2))),
@@ -166,7 +139,7 @@ export const ShopeeAdsAnalyticsPage = () => {
     },
   ];
 
-  // Upload handlers
+  // Upload handlers - parse real CSV data
   const uploadProps: UploadProps = {
     name: "file",
     accept: ".csv",
@@ -174,10 +147,50 @@ export const ShopeeAdsAnalyticsPage = () => {
     showUploadList: false,
     beforeUpload: (file) => {
       message.loading("Processing CSV...", 1);
-      setTimeout(() => {
-        setUploadedData(generateMockData());
-        message.success(`${file.name} processed successfully`);
-      }, 1000);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string;
+          const lines = text.split("\n").filter((l) => l.trim());
+          if (lines.length < 2) {
+            message.error("CSV file is empty or invalid");
+            return;
+          }
+          // Parse CSV (simple parser - assumes comma-separated)
+          const data: AdsData[] = [];
+          for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(",");
+            if (values.length >= 5) {
+              data.push({
+                product_id: values[0]?.trim() || `PROD${i}`,
+                product_name: values[1]?.trim() || `Product ${i}`,
+                cost: parseFloat(values[2]) || 0,
+                revenue: parseFloat(values[3]) || 0,
+                clicks: parseInt(values[4]) || 0,
+                impressions: parseInt(values[5]) || 0,
+                ctr: 0,
+                cpc: 0,
+                roas: 0,
+                conversions: parseInt(values[6]) || 0,
+                date: values[7]?.trim() || dayjs().format("YYYY-MM-DD"),
+              });
+            }
+          }
+          // Calculate derived metrics
+          data.forEach((d) => {
+            d.ctr = d.impressions > 0 ? (d.clicks / d.impressions) * 100 : 0;
+            d.cpc = d.clicks > 0 ? d.cost / d.clicks : 0;
+            d.roas = d.cost > 0 ? d.revenue / d.cost : 0;
+          });
+          setUploadedData(data);
+          message.success(
+            `${file.name} processed - ${data.length} products loaded`,
+          );
+        } catch {
+          message.error("Failed to parse CSV file");
+        }
+      };
+      reader.readAsText(file);
       return false;
     },
   };
@@ -189,9 +202,8 @@ export const ShopeeAdsAnalyticsPage = () => {
   const handleRefresh = () => {
     setLoading(true);
     setTimeout(() => {
-      setUploadedData(generateMockData());
       setLoading(false);
-      message.success("Data refreshed");
+      message.info("Refresh complete");
     }, 500);
   };
 
@@ -254,6 +266,32 @@ export const ShopeeAdsAnalyticsPage = () => {
     },
   ];
 
+  // Empty state component
+  const EmptyState = () => (
+    <Card style={{ borderRadius: token.borderRadius }}>
+      <Empty
+        image={<InboxOutlined style={{ fontSize: 64, color: SHOPEE_ORANGE }} />}
+        description={
+          <span>
+            No Shopee Ads data available.
+            <br />
+            <Text type="secondary">
+              Go to the Upload tab to import your Shopee Ads CSV export.
+            </Text>
+          </span>
+        }
+      >
+        <Button
+          type="primary"
+          style={{ backgroundColor: SHOPEE_ORANGE }}
+          onClick={() => setActiveTab("upload")}
+        >
+          Upload CSV
+        </Button>
+      </Empty>
+    </Card>
+  );
+
   // Tab items
   const tabItems = [
     {
@@ -263,7 +301,9 @@ export const ShopeeAdsAnalyticsPage = () => {
           <LineChartOutlined /> Dashboard
         </span>
       ),
-      children: (
+      children: !hasData ? (
+        <EmptyState />
+      ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Row gutter={[16, 16]}>
             <Col xs={12} sm={12} md={6}>
@@ -361,7 +401,9 @@ export const ShopeeAdsAnalyticsPage = () => {
           <ShoppingOutlined /> Product Data
         </span>
       ),
-      children: (
+      children: !hasData ? (
+        <EmptyState />
+      ) : (
         <Card size="small">
           <Table
             columns={columns}
@@ -399,6 +441,12 @@ export const ShopeeAdsAnalyticsPage = () => {
                   Upload Shopee Ads export file to analyze performance
                 </p>
               </Dragger>
+              <div style={{ marginTop: 16, fontSize: 12, color: "#666" }}>
+                <Text type="secondary">
+                  Expected CSV format: product_id, product_name, cost, revenue,
+                  clicks, impressions, conversions, date
+                </Text>
+              </div>
             </Card>
           </Col>
           <Col xs={24} lg={12}>

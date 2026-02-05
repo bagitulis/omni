@@ -1,18 +1,18 @@
 /* OrderManager Design Tokens & CSS Variables */
 
 :root {
-  /* Primary Colors - Shopee Orange */
-  --om-primary: #ee4d2d;
-  --om-primary-hover: #d73211;
+  /* Primary Colors - Shopee Orange (WCAG Compliant) */
+  --om-primary: #c5391d;
+  --om-primary-hover: #a52614;
   --om-primary-light: #fff0ed;
-  --om-primary-dark: #b82e14;
+  --om-primary-dark: #7a1810;
 
   /* Status Colors */
-  --om-status-unpaid: #ff9800;
+  --om-status-unpaid: #c85a00;
   --om-status-unpaid-bg: #fff8e1;
   --om-status-unpaid-border: #ffe0b2;
 
-  --om-status-toship: #ff9800;
+  --om-status-toship: #c85a00;
   --om-status-toship-bg: #fff3e0;
   --om-status-toship-border: #ffe0b2;
 
@@ -29,7 +29,7 @@
   --om-status-cancelled-border: #ffcdd2;
 
   /* Platform Colors */
-  --om-platform-shopee: #ee4d2d;
+  --om-platform-shopee: #c5391d;
   --om-platform-lazada: #0f146d;
   --om-platform-tiktok: #000000;
 

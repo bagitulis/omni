@@ -1,21 +1,45 @@
 package middleware
 
 import (
+	"os"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 )
 
 // CORS handles Cross-Origin Resource Sharing
 func CORS() gin.HandlerFunc {
+	// Build allowed origins from environment + defaults
+	allowedOrigins := make(map[string]bool)
+
+	// Default origins (always allowed)
+	defaults := []string{
+		"http://localhost:5173",
+		"http://localhost:3000",
+		"http://localhost:80",
+		"http://localhost",
+		"https://yndigital.my.id",
+		"https://www.yndigital.my.id",
+		"http://yndigital.my.id",
+		"http://www.yndigital.my.id",
+	}
+	for _, origin := range defaults {
+		allowedOrigins[origin] = true
+	}
+
+	// Add origins from CORS_ORIGINS env variable
+	corsEnv := os.Getenv("CORS_ORIGINS")
+	if corsEnv != "" {
+		for _, origin := range strings.Split(corsEnv, ",") {
+			origin = strings.TrimSpace(origin)
+			if origin != "" {
+				allowedOrigins[origin] = true
+			}
+		}
+	}
+
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-
-		// Allowed origins
-		allowedOrigins := map[string]bool{
-			"http://localhost:5173":       true,
-			"http://localhost:80":         true,
-			"https://yndigital.my.id":     true,
-			"https://www.yndigital.my.id": true,
-		}
 
 		// Check if origin is allowed
 		if allowedOrigins[origin] || origin == "" {
@@ -23,7 +47,7 @@ func CORS() gin.HandlerFunc {
 		}
 
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, x-tenant-id, x-csrf-token")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, x-tenant-id, x-csrf-token, Cache-Control, Pragma")
 		c.Header("Access-Control-Allow-Credentials", "true")
 		c.Header("Access-Control-Max-Age", "86400")
 
