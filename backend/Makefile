@@ -1,7 +1,7 @@
 # Makefile for Omni Go Backend
 # Usage: make <target>
 
-.PHONY: help build test test-unit test-integration test-security test-e2e test-all clean run docker-build docker-test
+.PHONY: help build test test-unit test-integration test-security test-e2e test-all clean run docker-build docker-test mocks
 
 # Default target
 help:
@@ -16,6 +16,7 @@ help:
 	@echo "  test-security     - Run security tests (requires running backend)"
 	@echo "  test-e2e          - Run end-to-end/lighthouse tests (requires running backend)"
 	@echo "  test-all          - Run all tests"
+	@echo "  mocks             - Generate mocks for all interfaces"
 	@echo "  docker-build      - Build Docker image"
 	@echo "  docker-test       - Run integration tests inside Docker"
 	@echo "  clean             - Clean build artifacts"
@@ -25,6 +26,12 @@ help:
 build:
 	@echo "Building backend..."
 	go build -o bin/omni-backend ./cmd/server
+
+# Generate mocks for all interfaces
+mocks:
+	@echo "Generating mocks..."
+	@mkdir -p internal/mocks
+	mockery --all --dir ./internal --output internal/mocks --outpkg mocks
 
 # Run locally
 run:

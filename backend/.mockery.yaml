@@ -1,0 +1,7 @@
+# Mockery Configuration for Auto-Generated Mocks
+# Reference: https://vektra.github.io/mockery/latest/
+
+packages:
+  github.com/omni/backend/internal:
+    config:
+      all: true
