@@ -1,0 +1,48 @@
+.import-preview-table {
+  width: 100%;
+}
+
+.import-preview-table .ant-table {
+  font-size: 12px;
+}
+
+.import-preview-table .ant-table-thead > tr > th {
+  background-color: #f8fafc;
+  font-weight: 600;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.import-preview-table .ant-table-tbody > tr {
+  transition: background-color 0.2s;
+}
+
+.import-preview-table .ant-table-tbody > tr.row-valid {
+  background-color: #f0fdf4;
+}
+
+.import-preview-table .ant-table-tbody > tr.row-valid:hover {
+  background-color: #e7f5ed;
+}
+
+.import-preview-table .ant-table-tbody > tr.row-invalid {
+  background-color: #fef2f2;
+}
+
+.import-preview-table .ant-table-tbody > tr.row-invalid:hover {
+  background-color: #fed7d7;
+}
+
+.error-badge {
+  display: inline-block;
+  background-color: #fee2e2;
+  color: #dc2626;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: help;
+}
+
+.import-preview-table .ant-pagination {
+  margin-top: 16px;
+}

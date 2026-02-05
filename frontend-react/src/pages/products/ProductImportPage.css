@@ -1,0 +1,121 @@
+.product-import-page {
+  padding: 24px;
+  background-color: #f9fafb;
+  min-height: 100vh;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.back-button {
+  margin-bottom: 16px;
+  padding-left: 0;
+}
+
+.page-header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 8px 0 0 0;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 4px 0 0 0;
+}
+
+.import-card {
+  background: white;
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.step-content {
+  min-height: 300px;
+  padding: 0 0 24px 0;
+}
+
+.stats-card {
+  margin-bottom: 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 3px;
+}
+
+.stats-card .ant-statistic-title {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.stats-card .ant-statistic-content {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.success-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.success-card {
+  text-align: center;
+  border: 1px solid #dcfce7;
+  background-color: #f0fdf4;
+  border-radius: 3px;
+  width: 100%;
+}
+
+.success-icon {
+  font-size: 64px;
+  color: #16a34a;
+  margin-bottom: 16px;
+  font-weight: 700;
+}
+
+.success-card h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+}
+
+.success-card p {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.step-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.step-actions .ant-button {
+  height: 32px;
+  padding: 0 16px;
+}
+
+@media (max-width: 768px) {
+  .product-import-page {
+    padding: 16px;
+  }
+
+  .import-card {
+    padding: 16px;
+  }
+
+  .step-actions {
+    flex-direction: column;
+  }
+
+  .step-actions .ant-button {
+    width: 100%;
+  }
+}
