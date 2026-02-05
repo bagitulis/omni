@@ -1,9 +1,32 @@
 # OMNI - Core Development Rules
 
-> **STATUS: MANDATORY** | **Version: 5.1** | **Updated: 2026-02-04**
+> **STATUS: MANDATORY** | **Version: 5.2** | **Updated: 2026-02-05**
 >
 > This file is the **IMMUTABLE CONSTITUTION** for ALL agents.
 > These rules apply GLOBALLY - cannot be overridden by child rules.
+
+---
+
+## ⚠️ CRITICAL RULES TABLE (MANDATORY - READ FIRST)
+
+**BEFORE doing ANY work, verify you understand these critical rules:**
+
+| Rule              | Requirement                     | Verification                   |
+| ----------------- | ------------------------------- | ------------------------------ |
+| **SRP**           | One function = one purpose      | Check before writing code      |
+| **DRY**           | No duplicated logic             | Extract to shared utilities    |
+| **OOP**           | Proper encapsulation            | Use interfaces and composition |
+| **300 Lines**     | Max per file (500 for models)   | Split if exceeding             |
+| **Commit ALL**    | Include ALL changed files       | No cherry-picking allowed      |
+| **Push Always**   | Push after every commit         | User expects remote sync       |
+| **Parallel Work** | Don't wait idle for delegations | Fire agents, continue working  |
+
+**REMINDER TRIGGERS:**
+
+- Starting a new task → Re-read this checklist
+- About to commit → Verify ALL files included
+- Delegating task → Fire in background, continue immediately
+- Editing code → Check SRP/DRY/OOP compliance
 
 ---
 

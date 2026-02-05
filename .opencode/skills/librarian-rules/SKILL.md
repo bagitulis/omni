@@ -9,10 +9,10 @@ description: Librarian research rules for OMNI project - documentation and OSS l
 
 ---
 
-## Research Priority Order (WAJIB!)
+## Research Priority Order (MANDATORY!)
 
 ```
-1️⃣ LOCAL SDK DULU (PRIORITAS TERTINGGI)
+1️⃣ LOCAL SDK FIRST (HIGHEST PRIORITY)
    backend/shopee-sdk/     - Shopee API
    backend/lazada-sdk/     - Lazada API
    backend/tiktok_sdk/     - TikTok API (100+ files)

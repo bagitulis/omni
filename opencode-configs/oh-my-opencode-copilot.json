@@ -5,45 +5,57 @@
 
   "agents": {
     "sisyphus": {
-      "model": "github-copilot/claude-opus-4.5"
+      "model": "github-copilot/claude-opus-4.5",
+      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then SISYPHUS_RULES.md.",
+      "skills": ["stuck-recovery"]
     },
     "prometheus": {
-      "model": "github-copilot/claude-opus-4.5"
+      "model": "github-copilot/claude-opus-4.5",
+      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then PROMETHEUS_RULES.md."
     },
     "oracle": {
       "model": "github-copilot/gpt-5.2-codex",
       "reasoningEffort": "high",
-      "temperature": 0.1
+      "temperature": 0.1,
+      "skills": ["oracle-rules"]
     },
     "atlas": {
       "model": "google/claude-sonnet-4-5-thinking",
       "variant": "max"
     },
     "librarian": {
-      "model": "github-copilot/gemini-3-pro-preview"
+      "model": "github-copilot/gemini-3-pro-preview",
+      "skills": ["librarian-rules"]
     },
     "explore": {
-      "model": "github-copilot/claude-haiku-4.5"
+      "model": "github-copilot/claude-haiku-4.5",
+      "skills": ["explore-rules"]
     },
     "multimodal-looker": {
       "model": "github-copilot/gemini-3-pro-preview"
     },
     "metis": {
-      "model": "github-copilot/gemini-3-pro-preview"
+      "model": "github-copilot/gemini-3-pro-preview",
+      "skills": ["metis-rules"]
     },
     "momus": {
       "model": "github-copilot/gpt-5.2-codex",
       "reasoningEffort": "xhigh",
-      "temperature": 0.1
+      "temperature": 0.1,
+      "skills": ["momus-rules"]
     },
     "sisyphus-junior": {
       "model": "github-copilot/claude-sonnet-4.5",
-      "variant": "thinking"
+      "variant": "thinking",
+      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then EXECUTOR_RULES.md.",
+      "skills": ["stuck-recovery"]
     },
     "hephaestus": {
       "model": "github-copilot/gpt-5.2-codex",
       "reasoningEffort": "xhigh",
-      "temperature": 0.1
+      "temperature": 0.1,
+      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then EXECUTOR_RULES.md.",
+      "skills": ["stuck-recovery"]
     },
     "default": {
       "model": "github-copilot/claude-opus-4.5"

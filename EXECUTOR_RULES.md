@@ -2,7 +2,21 @@
 
 > **STATUS: MANDATORY** | **For: Sisyphus-Junior, delegated implementation tasks**
 >
-> Rules ini di-load via `opencode.json` → `agents.sisyphus-junior.prompt_append`
+> This file is loaded via `oh-my-opencode.json` → `agents.sisyphus-junior.prompt_append`
+
+---
+
+## ⚠️ CRITICAL REMINDERS (Check BEFORE every action)
+
+| Rule                  | Requirement                                  |
+| --------------------- | -------------------------------------------- |
+| **READ AGENTS.md**    | Contains immutable constitution              |
+| **SRP**               | One function = one purpose                   |
+| **DRY**               | No duplicated logic - extract to utilities   |
+| **OOP**               | Proper encapsulation, use interfaces         |
+| **300 Lines Max**     | Split file if exceeding (500 for models)     |
+| **Commit ALL Files**  | Never cherry-pick, include ALL changed files |
+| **Push After Commit** | User expects remote sync immediately         |
 
 ---
 
@@ -30,14 +44,14 @@
 
 ## 2. Cleanup Checklist
 
-Setiap file yang diubah WAJIB:
+Every modified file MUST:
 
 - [ ] < 300 lines (models: 500)
 - [ ] No duplicate code
 - [ ] No dead code
 - [ ] No unused imports
 - [ ] Proper error handling (no empty catch)
-- [ ] Structured logging (zerolog, bukan fmt.Printf)
+- [ ] Structured logging (zerolog, not fmt.Printf)
 
 ---
 
@@ -75,42 +89,42 @@ lsp_diagnostics((filePath = "path/to/changed/file.go"), (severity = "error"));
 ## 5. Build & Test Protocol
 
 ```bash
-# WAJIB sebelum task complete
+# MUST pass before task complete
 go build ./...
 go test ./...
 
-# Jika ada Docker:
+# If using Docker:
 python build.py smart
 ```
 
-### Jika Build Gagal:
+### If Build Fails:
 
 1. Read error message carefully
 2. Fix the specific error
 3. Re-run build
-4. Max 3 attempts, lalu escalate
+4. Max 3 attempts, then escalate
 
 ---
 
 ## 6. Trace Flow Before Fix
 
-**WAJIB untuk bug fixes:**
+**MANDATORY for bug fixes:**
 
 ```
-1. FRONTEND → Apa yang dikirim?
-2. HANDLER → Apa yang diterima?
-3. SERVICE → Logic berjalan benar?
-4. REPOSITORY → Query correct?
-5. RESPONSE → Format benar?
+1. FRONTEND → What is sent?
+2. HANDLER → What is received?
+3. SERVICE → Is logic running correctly?
+4. REPOSITORY → Is query correct?
+5. RESPONSE → Is format correct?
 
-→ IDENTIFY: Di layer mana error PERTAMA KALI muncul?
-→ FIX: HANYA di layer tersebut
+→ IDENTIFY: In which layer did the error FIRST appear?
+→ FIX: ONLY in that layer
 ```
 
 ### Anti-Pattern:
 
 ```
-❌ Fix → Test → Gagal → Fix → Test → Gagal (LOOPING)
+❌ Fix → Test → Fail → Fix → Test → Fail (LOOPING)
 ✅ Trace → Identify Root Cause → Fix → Test → Done
 ```
 
@@ -118,11 +132,11 @@ python build.py smart
 
 ## 7. Failure Counter
 
-Track setiap attempt:
+Track each attempt:
 
 | Count | Action                                            |
 | ----- | ------------------------------------------------- |
-| 1     | Fix langsung, catat error                         |
+| 1     | Fix directly, record error                        |
 | 2     | TRACE FLOW activated                              |
 | 3+    | RESEARCH activated (delegate @explore/@librarian) |
 
@@ -148,7 +162,7 @@ Track setiap attempt:
 ## 8. SDK Usage Priority
 
 ```
-1️⃣ LOCAL SDK DULU
+1️⃣ LOCAL SDK FIRST
    backend/shopee-sdk/
    backend/lazada-sdk/
    backend/tiktok_sdk/
@@ -157,7 +171,7 @@ Track setiap attempt:
    internal/
 
 3️⃣ EXTERNAL DOCS (last resort)
-   @librarian untuk cari
+   @librarian to search
 ```
 
 ---
@@ -165,13 +179,13 @@ Track setiap attempt:
 ## 9. Response Format Compliance
 
 ```go
-// SUCCESS - HANYA jika benar-benar sukses
+// SUCCESS - ONLY if truly successful
 c.JSON(http.StatusOK, gin.H{
     "success": true,
     "data": result,
 })
 
-// ERROR - jika ada error apapun
+// ERROR - if there is any error
 c.JSON(http.StatusInternalServerError, gin.H{
     "success": false,
     "error": err.Error(),
@@ -184,9 +198,9 @@ c.JSON(http.StatusInternalServerError, gin.H{
 
 ## 10. Completion Criteria
 
-Task selesai HANYA jika:
+Task is complete ONLY if:
 
-- [ ] Semua edits saved
+- [ ] All edits saved
 - [ ] `lsp_diagnostics` clean
 - [ ] `go build ./...` passes
 - [ ] `go test ./...` passes
@@ -195,7 +209,7 @@ Task selesai HANYA jika:
 
 ---
 
-## 11. Anti-Patterns (DILARANG)
+## 11. Anti-Patterns (FORBIDDEN)
 
 | Forbidden                   | Do Instead              |
 | --------------------------- | ----------------------- |

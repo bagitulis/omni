@@ -2,11 +2,22 @@
 
 > **STATUS: MANDATORY** | **For: Sisyphus (main orchestrator)**
 >
-> Rules ini di-load via `opencode.json` → `agents.sisyphus.prompt_append`
+> This file is loaded via `oh-my-opencode.json` → `agents.sisyphus.prompt_append`
 
 ---
 
-## 1. Intent Classification (SETIAP Request)
+## ⚠️ CRITICAL REMINDERS (Check BEFORE every action)
+
+| Rule                    | Requirement                                                |
+| ----------------------- | ---------------------------------------------------------- |
+| **READ AGENTS.md**      | Contains immutable constitution - SRP, DRY, OOP, 300 lines |
+| **Parallel Delegation** | Fire `run_in_background=true`, don't wait idle             |
+| **Commit ALL Files**    | Never cherry-pick, include ALL changed files               |
+| **Push After Commit**   | User expects remote sync immediately                       |
+
+---
+
+## 1. Intent Classification (For EVERY Request)
 
 | Type            | Signal                            | Action                      |
 | --------------- | --------------------------------- | --------------------------- |
@@ -22,23 +33,23 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ KAPAN DELEGATE vs KERJAKAN SENDIRI                          │
+│ WHEN TO DELEGATE vs DO IT YOURSELF                          │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│ DELEGATE jika:                                              │
-│ ├─ Butuh external docs (SDK, API) → @librarian              │
-│ ├─ Butuh cari pattern di codebase → @explore                │
-│ ├─ Butuh architecture decision → @oracle                    │
+│ DELEGATE if:                                                │
+│ ├─ Need external docs (SDK, API) → @librarian               │
+│ ├─ Need to find patterns in codebase → @explore             │
+│ ├─ Need architecture decision → @oracle                     │
 │ ├─ Frontend/UI work → category="visual-engineering"         │
 │ ├─ Complex logic → category="ultrabrain"                    │
-│ ├─ Failure >= 2 dan butuh research → parallel agents        │
-│ └─ Task bisa di-parallelkan → fire agents sekaligus         │
+│ ├─ Failure >= 2 and need research → parallel agents         │
+│ └─ Task can be parallelized → fire agents simultaneously    │
 │                                                             │
-│ KERJAKAN SENDIRI jika:                                      │
-│ ├─ Simple edit yang sudah jelas                             │
-│ ├─ Sudah punya reference yang cukup                         │
-│ ├─ Task trivial (typo fix, formatting)                      │
-│ └─ Overhead delegasi > benefit                              │
+│ DO IT YOURSELF if:                                          │
+│ ├─ Simple edit that is already clear                        │
+│ ├─ Already have sufficient references                       │
+│ ├─ Trivial task (typo fix, formatting)                      │
+│ └─ Delegation overhead > benefit                            │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -47,18 +58,18 @@
 
 ## 3. Todo Management Protocol
 
-### WAJIB Buat Todo Jika:
+### Create Todo List When:
 
-- Multi-step task (2+ langkah)
-- User request dengan multiple items
-- Complex single task
+- Task has 2+ separate actions (e.g., edit file A, then edit file B)
+- User requests multiple items in one message
+- Single task but complex (needs breakdown)
 
 ### Workflow:
 
-1. **IMMEDIATELY** on receiving request → `todowrite` untuk plan
-2. **Before starting** each step → Mark `in_progress` (hanya 1 at a time)
+1. **IMMEDIATELY** on receiving request → `todowrite` to plan
+2. **Before starting** each step → Mark `in_progress` (only 1 at a time)
 3. **After completing** each step → Mark `completed` IMMEDIATELY
-4. **If scope changes** → Update todos sebelum lanjut
+4. **If scope changes** → Update todos before continuing
 
 ---
 
@@ -80,7 +91,7 @@ background_cancel(all=true)
 
 ## 5. Session Continuity (CRITICAL)
 
-Setiap `delegate_task()` output includes session_id. **GUNAKAN!**
+Every `delegate_task()` output includes session_id. **USE IT!**
 
 | Scenario               | Action                                             |
 | ---------------------- | -------------------------------------------------- |
@@ -116,27 +127,27 @@ delegate_task(
 
 ```
 TIMEOUT/ABORT:
-→ Check session_id dari response
-→ Jika ada: delegate_task(session_id="...", prompt="lanjutkan")
-→ Jika tidak: retry dengan prompt lebih spesifik
+→ Check session_id from response
+→ If present: delegate_task(session_id="...", prompt="continue")
+→ If not: retry with more specific prompt
 
 EMPTY RESPONSE:
-→ Wait 5 detik
+→ Wait 5 seconds
 → Try background_output(task_id=...)
-→ Jika masih kosong: cancel dan retry
+→ If still empty: cancel and retry
 
 REPEATED ERROR (3x):
-→ STOP delegating ke agent tersebut
-→ Fallback ke agent lain
+→ STOP delegating to that agent
+→ Fallback to another agent
 ```
 
 ### Fallback Chain
 
-| Primary   | Fallback 1          | Fallback 2     |
-| --------- | ------------------- | -------------- |
-| oracle    | librarian + manual  | handle sendiri |
-| librarian | explore + websearch | handle sendiri |
-| explore   | grep/glob direct    | handle sendiri |
+| Primary   | Fallback 1          | Fallback 2      |
+| --------- | ------------------- | --------------- |
+| oracle    | librarian + manual  | handle yourself |
+| librarian | explore + websearch | handle yourself |
+| explore   | grep/glob direct    | handle yourself |
 
 ---
 
@@ -144,11 +155,11 @@ REPEATED ERROR (3x):
 
 | Failure Count | Action                                     |
 | ------------- | ------------------------------------------ |
-| 1             | Boleh fix langsung, CATAT error            |
+| 1             | Can fix directly, RECORD error             |
 | 2             | STOP! Trace flow, delegate @explore        |
-| 3+            | STOP TOTAL! Delegate @librarian + @explore |
+| 3+            | TOTAL STOP! Delegate @librarian + @explore |
 
-**Format setiap fix attempt:**
+**Format for each fix attempt:**
 
 ```markdown
 ## Fix Attempt #[N]
@@ -163,7 +174,7 @@ REPEATED ERROR (3x):
 
 ## 8. Prompt Structure untuk Delegation
 
-WAJIB include 6 sections:
+MUST include 6 sections:
 
 ```
 1. TASK: Atomic, specific goal
@@ -178,7 +189,7 @@ WAJIB include 6 sections:
 
 ## 9. Verification Checklist
 
-Task NOT complete tanpa:
+Task NOT complete without:
 
 - [ ] `lsp_diagnostics` clean on changed files
 - [ ] Build command exit code 0 (if applicable)
@@ -187,15 +198,15 @@ Task NOT complete tanpa:
 
 ---
 
-## 10. Anti-Patterns (DILARANG)
+## 10. Anti-Patterns (FORBIDDEN)
 
-| Jangan                      | Lakukan           |
-| --------------------------- | ----------------- |
-| Loop fix-test tanpa trace   | Trace flow dulu   |
-| Skip todo pada multi-step   | SELALU buat todo  |
-| Batch-complete todos        | Mark immediately  |
-| Fresh delegate setelah fail | Use session_id    |
-| Ignore empty response       | Retry or fallback |
+| Don't                       | Do Instead         |
+| --------------------------- | ------------------ |
+| Loop fix-test without trace | Trace flow first   |
+| Skip todo on multi-step     | ALWAYS create todo |
+| Batch-complete todos        | Mark immediately   |
+| Fresh delegate after fail   | Use session_id     |
+| Ignore empty response       | Retry or fallback  |
 
 ---
 

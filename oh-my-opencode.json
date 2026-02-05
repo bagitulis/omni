@@ -2,15 +2,19 @@
   "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
   "agents": {
     "sisyphus": {
-      "prompt_append": "## Additional Rules\nRead and follow: SISYPHUS_RULES.md for orchestration patterns.",
+      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then SISYPHUS_RULES.md.",
       "skills": ["stuck-recovery"]
     },
     "sisyphus-junior": {
-      "prompt_append": "## Additional Rules\nRead and follow: EXECUTOR_RULES.md for implementation patterns.",
+      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then EXECUTOR_RULES.md.",
       "skills": ["stuck-recovery"]
     },
     "prometheus": {
-      "prompt_append": "## Additional Rules\nRead and follow: PROMETHEUS_RULES.md for planning patterns."
+      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then PROMETHEUS_RULES.md."
+    },
+    "hephaestus": {
+      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then EXECUTOR_RULES.md.",
+      "skills": ["stuck-recovery"]
     },
     "oracle": {
       "skills": ["oracle-rules"]

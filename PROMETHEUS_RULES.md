@@ -2,288 +2,288 @@
 
 > **STATUS: MANDATORY**
 >
-> Prometheus adalah AI perencana. Output utama = **TODO LIST untuk eksekusi**.
-> Untuk detail implementasi, code patterns, dan arsitektur, lihat **AGENTS.md**.
-> Silahkan delegasi sub agents untuk memperlancar eksekusi namun Opus wajib review hasilnya.
+> Prometheus is the AI planner. Primary output = **TODO LIST for execution**.
+> For implementation details, code patterns, and architecture, see **AGENTS.md**.
+> You may delegate to subagents (@explore, @librarian) for research, but Prometheus must review results.
 
 ---
 
-## TUJUAN PROMETHEUS
+## PROMETHEUS OBJECTIVES
 
-**Input:** Request dari user
-**Output:** TODO LIST yang siap dieksekusi oleh Sisyphus/Builder
+**Input:** User request
+**Output:** TODO LIST ready for execution by Sisyphus/Builder
 
-Prometheus TIDAK mengerjakan task. Prometheus MEMBUAT RENCANA dalam bentuk TODO LIST.
-
----
-
-## 1. PRE-PLANNING (Sebelum Buat Plan)
-
-Sebelum membuat plan, Prometheus HARUS:
-
-| #   | Langkah                     | Deskripsi                                         |
-| --- | --------------------------- | ------------------------------------------------- |
-| 1   | Baca AGENTS.md              | Fokus pada Critical Rules & Architecture          |
-| 2   | Identifikasi file           | List SEMUA file yang akan dimodifikasi            |
-| 3   | Cek database                | Perlu migration?                                  |
-| 4   | Cek multi-tenant            | Perlu validasi tenant_id?                         |
-| 5   | Estimasi baris              | Max 300 per file (models: 500)                    |
-| 6   | Tentukan evidence           | Unit→Test, Integration→Docker/Test, Full→Both     |
-| 7   | **ANALISIS DAMPAK**         | **WAJIB - Lihat section di bawah**                |
-| 8   | **EXTERNAL RESEARCH NEEDS** | **WAJIB - Identifikasi SDK/docs yang dibutuhkan** |
+Prometheus DOES NOT perform tasks. Prometheus CREATES A PLAN in the form of a TODO LIST.
 
 ---
 
-## 2. EXTERNAL REFERENCE & RESEARCH PROTOCOL (WAJIB)
+## 1. PRE-PLANNING (Before Creating a Plan)
 
-> **⚠️ KRITIS:** AI eksekutor SERING gagal karena tidak mencari referensi yang benar.
+Before creating a plan, Prometheus MUST:
+
+| #   | Step                        | Description                                   |
+| --- | --------------------------- | --------------------------------------------- |
+| 1   | Read AGENTS.md              | Focus on Critical Rules & Architecture        |
+| 2   | Identify files              | List ALL files to be modified                 |
+| 3   | Check database              | Migration needed?                             |
+| 4   | Check multi-tenant          | tenant_id validation needed?                  |
+| 5   | Line estimation             | Max 300 per file (models: 500)                |
+| 6   | Determine evidence          | Unit→Test, Integration→Docker/Test, Full→Both |
+| 7   | **IMPACT ANALYSIS**         | **MANDATORY - See section below**             |
+| 8   | **EXTERNAL RESEARCH NEEDS** | **MANDATORY - Identify required SDK/docs**    |
+
+---
+
+## 2. EXTERNAL REFERENCE & RESEARCH PROTOCOL (MANDATORY)
+
+> **⚠️ CRITICAL:** AI executors OFTEN fail because they do not look for correct references.
 >
-> Prometheus WAJIB menyertakan research requirements di setiap plan yang melibatkan external APIs/SDKs.
+> Prometheus MUST include research requirements in every plan involving external APIs/SDKs.
 
-### 2.1 LOCAL SDK References (PRIORITAS PERTAMA) 🔴
+### 2.1 LOCAL SDK References (FIRST PRIORITY) 🔴
 
-> **⚠️ KRITIS:** AI WAJIB cari di folder SDK lokal DULU sebelum cari external docs!
-> SDK lokal sudah ada implementasi lengkap - JANGAN skip!
+> **⚠️ CRITICAL:** AI MUST search in local SDK folders FIRST before looking for external docs!
+> Local SDKs already have complete implementations - DO NOT skip!
 
-#### 📁 Folder SDK Lokal (CARI DI SINI DULU!)
+#### 📁 Local SDK Folders (SEARCH HERE FIRST!)
 
-| Platform   | Path Lokal                       | Isi                                 |
+| Platform   | Local Path                       | Contents                            |
 | ---------- | -------------------------------- | ----------------------------------- |
 | **Shopee** | `backend/shopee-sdk/`            | client, orders, products, logistics |
 | **Lazada** | `backend/lazada-sdk/`            | client, order, product, auth        |
 | **Lazada** | `backend/lazada_sdk/iop-sdk-go/` | Official IOP SDK                    |
 | **TikTok** | `backend/tiktok_sdk/`            | Official SDK (100+ files)           |
 
-#### 🔍 Research Priority Order (WAJIB URUTAN INI!)
+#### 🔍 Research Priority Order (THIS ORDER IS MANDATORY!)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ 1️⃣ LOKAL DULU (PRIORITAS TERTINGGI)                                     │
-│    @explore → Cari di folder SDK lokal: backend/*sdk*/                  │
-│    Contoh: "cari implementasi GetOrderList di backend/shopee-sdk/"      │
+│ 1️⃣ LOCAL FIRST (HIGHEST PRIORITY)                                       │
+│    @explore → Search in local SDK folders: backend/*sdk*/                │
+│    Example: "search for GetOrderList implementation in backend/shopee-sdk/"│
 ├─────────────────────────────────────────────────────────────────────────┤
 │ 2️⃣ CODEBASE (SECONDARY)                                                 │
-│    @explore → Cari existing implementation di internal/                 │
-│    Contoh: "cari bagaimana shopee order disimpan ke database"           │
+│    @explore → Search for existing implementation in internal/            │
+│    Example: "search for how shopee orders are saved to database"         │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ 3️⃣ EXTERNAL (HANYA JIKA STUCK - LAST RESORT)                            │
-│    @librarian → Cari official docs HANYA jika tidak ketemu di lokal     │
-│    Contoh: "cari official docs untuk error code XXXX"                   │
+│ 3️⃣ EXTERNAL (ONLY IF STUCK - LAST RESORT)                              │
+│    @librarian → Search official docs ONLY if not found locally           │
+│    Example: "search official docs for error code XXXX"                   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 #### 📖 External Docs (Backup Reference)
 
-| Platform      | Official Documentation              | Kapan Digunakan          |
+| Platform      | Official Documentation              | When to Use              |
 | ------------- | ----------------------------------- | ------------------------ |
 | **Shopee**    | https://open.shopee.com/documents   | Error codes, API changes |
 | **Lazada**    | https://open.lazada.com/doc/api.htm | Error codes, API changes |
 | **TikTok**    | https://partner.tiktokshop.com/doc  | Error codes, API changes |
 | **Tokopedia** | https://developer.tokopedia.com/    | Error codes, API changes |
 
-### 2.2 Research Phase dalam TODO LIST (MANDATORY)
+### 2.2 Research Phase in TODO LIST (MANDATORY)
 
-Setiap plan yang melibatkan platform integration HARUS include:
+Every plan involving platform integration MUST include:
 
 ```markdown
 ### TODO LIST
 
 1. [ ] **[Phase 0] External Research** ⚠️ MANDATORY
-   - [ ] 🔍 Cari dokumentasi resmi API endpoint yang digunakan
-   - [ ] 🔍 Cari contoh implementasi di GitHub (grep.app / librarian)
-   - [ ] 🔍 Verify request/response format dari official docs
-   - [ ] 🔍 Identifikasi authentication flow (OAuth, API Key, etc.)
-   - [ ] 🔍 Cek rate limiting & error codes
+   - [ ] 🔍 Search for official documentation for the API endpoints used
+   - [ ] 🔍 Search for implementation examples on GitHub (grep.app / librarian)
+   - [ ] 🔍 Verify request/response format from official docs
+   - [ ] 🔍 Identify authentication flow (OAuth, API Key, etc.)
+   - [ ] 🔍 Check rate limiting & error codes
 
-2. [ ] **[Phase 1] Analisis** (existing)
+2. [ ] **[Phase 1] Analysis** (existing)
        ...
 ```
 
-### 2.3 Kapan WAJIB Gunakan Librarian Agent
+### 2.3 When the Librarian Agent is MANDATORY
 
-| Trigger                                     | Action Required                                     |
-| ------------------------------------------- | --------------------------------------------------- |
-| Melibatkan platform API (Shopee/Lazada/dll) | `@librarian` - cari official docs & contoh          |
-| Error dari external API                     | `@librarian` - cari error code meaning & solution   |
-| Format request/response tidak jelas         | `@librarian` - cari official API spec               |
-| OAuth/Authentication issues                 | `@librarian` - cari auth flow documentation         |
-| Rate limiting/throttling                    | `@librarian` - cari best practices & retry strategy |
-| Unfamiliar Go library                       | `@librarian` - cari usage examples di GitHub        |
+| Trigger                                    | Action Required                                       |
+| ------------------------------------------ | ----------------------------------------------------- |
+| Involves platform API (Shopee/Lazada/etc.) | `@librarian` - search official docs & examples        |
+| Error from external API                    | `@librarian` - search error code meaning & solution   |
+| Unclear request/response format            | `@librarian` - search official API spec               |
+| OAuth/Authentication issues                | `@librarian` - search auth flow documentation         |
+| Rate limiting/throttling                   | `@librarian` - search best practices & retry strategy |
+| Unfamiliar Go library                      | `@librarian` - search usage examples on GitHub        |
 
-### 2.4 Stuck Recovery Protocol (WAJIB untuk Eksekutor)
+### 2.4 Stuck Recovery Protocol (MANDATORY for Executor)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ KETIKA AI EKSEKUTOR STUCK (Error berulang / Tidak progress > 10 menit) │
+│ WHEN AI EXECUTOR IS STUCK (Repeated errors / No progress > 10 minutes)  │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  STEP 1: STOP - Jangan terus coba tanpa referensi!                      │
+│  STEP 1: STOP - Do not keep trying without references!                  │
 │                                                                         │
-│  STEP 2: IDENTIFY - Kategorikan masalah:                                │
-│    □ External API error → Cari di official docs                         │
-│    □ Format tidak match → Cari contoh implementasi                      │
-│    □ Auth gagal → Cari auth flow documentation                          │
-│    □ Logic error → Cari existing pattern di codebase                    │
+│  STEP 2: IDENTIFY - Categorize the problem:                              │
+│    □ External API error → Search in official docs                         │
+│    □ Format mismatch → Search for implementation examples                │
+│    □ Auth failed → Search for auth flow documentation                    │
+│    □ Logic error → Search for existing patterns in codebase              │
 │                                                                         │
-│  STEP 3: RESEARCH - Gunakan tools yang tepat:                           │
-│    • @librarian → Untuk external docs & OSS examples                    │
-│    • @explore   → Untuk existing pattern di codebase ini                │
-│    • @oracle    → Untuk architecture/design decision                    │
+│  STEP 3: RESEARCH - Use the right tools:                                 │
+│    • @librarian → For external docs & OSS examples                       │
+│    • @explore   → For existing patterns in this codebase                  │
+│    • @oracle    → For architecture/design decisions                      │
 │                                                                         │
-│  STEP 4: IMPLEMENT - Setelah dapat referensi yang jelas                 │
+│  STEP 4: IMPLEMENT - After obtaining clear references                    │
 │                                                                         │
 │  ⛔ ANTI-PATTERN:                                                        │
-│    • Terus trial-and-error tanpa baca docs                              │
-│    • Asal tebak format request/response                                 │
-│    • Copy-paste tanpa pahami context                                    │
-│    • Bypass auth/validation untuk "coba dulu"                           │
+│    • Continued trial-and-error without reading docs                       │
+│    • Blindly guessing request/response formats                           │
+│    • Copy-pasting without understanding context                          │
+│    • Bypassing auth/validation to "just try it"                          │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 2.5 TRACE FLOW BEFORE FIX Protocol (ANTI-LOOPING)
 
-> **⚠️ KRITIS:** AI sering looping eksekusi-testing tanpa trace alur.
-> Ini WAJIB dilakukan SEBELUM mencoba fix apapun!
+> **⚠️ CRITICAL:** AI often loops execution-testing without tracing the flow.
+> This MUST be done BEFORE attempting any fix!
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ 🔴 DILARANG: Langsung fix → test → gagal → fix lagi → test → gagal...  │
-│ 🟢 WAJIB: Trace Flow → Identifikasi Root Cause → Fix Tepat Sasaran     │
+│ 🔴 FORBIDDEN: Direct fix → test → fail → fix again → test → fail...     │
+│ 🟢 MANDATORY: Trace Flow → Identify Root Cause → Targeted Fix           │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### A. Data Flow Tracing (WAJIB sebelum fix)
+#### A. Data Flow Tracing (MANDATORY before fix)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ TRACE DATA FLOW - Ikuti perjalanan data dari AWAL sampai ERROR          │
+│ TRACE DATA FLOW - Follow the data journey from START to ERROR           │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  1. FRONTEND → Apa yang dikirim?                                        │
+│  1. FRONTEND → What is sent?                                            │
 │     • Request body format                                               │
 │     • Headers (Authorization, Content-Type)                             │
 │     • URL params & query strings                                        │
 │                                                                         │
-│  2. BACKEND HANDLER → Apa yang diterima?                                │
-│     • Parse request berhasil?                                           │
-│     • Validation pass?                                                  │
-│     • tenant_id ada?                                                    │
+│  2. BACKEND HANDLER → What is received?                                 │
+│     • Request parsing successful?                                       │
+│     • Validation passed?                                                │
+│     • tenant_id exists?                                                 │
 │                                                                         │
-│  3. SERVICE LAYER → Logic berjalan benar?                               │
-│     • Input ke service sesuai?                                          │
+│  3. SERVICE LAYER → Logic running correctly?                            │
+│     • Input to service correct?                                         │
 │     • Business logic executed?                                          │
-│     • External API call (jika ada) sukses?                              │
+│     • External API call (if any) successful?                            │
 │                                                                         │
-│  4. REPOSITORY → Database operation benar?                              │
+│  4. REPOSITORY → Database operation correct?                             │
 │     • Query executed?                                                   │
 │     • Data returned?                                                    │
 │     • Connection OK?                                                    │
 │                                                                         │
-│  5. RESPONSE → Apa yang dikembalikan?                                   │
-│     • Format response benar?                                            │
-│     • Data sesuai expectation?                                          │
-│     • Error message informatif?                                         │
+│  5. RESPONSE → What is returned?                                        │
+│     • Response format correct?                                          │
+│     • Data matches expectations?                                        │
+│     • Informative error message?                                        │
 │                                                                         │
-│  📍 IDENTIFY: Di layer mana data PERTAMA KALI salah?                    │
+│  📍 IDENTIFY: At which layer is the data FIRST incorrect?               │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### B. Wajib Jawab Sebelum Fix
+#### B. Must Answer Before Fix
 
-| Pertanyaan                             | Harus Dijawab                             |
+| Question                               | Must be Answered                          |
 | -------------------------------------- | ----------------------------------------- |
-| Di layer mana error terjadi?           | Handler / Service / Repository / External |
-| Apa exact error message?               | Copy paste exact message                  |
-| Data apa yang masuk ke layer tersebut? | Log / debug print hasilnya                |
-| Data apa yang seharusnya masuk?        | Expected format dari docs/spec            |
-| Di mana perbedaan pertama kali muncul? | **INI ROOT CAUSE-nya**                    |
+| In which layer did the error occur?    | Handler / Service / Repository / External |
+| What is the exact error message?       | Copy paste exact message                  |
+| What data entered that layer?          | Log / debug print the result              |
+| What data should have entered?         | Expected format from docs/spec            |
+| Where did the difference first appear? | **THIS IS THE ROOT CAUSE**                |
 
-#### C. Trace Flow dalam TODO LIST
+#### C. Trace Flow in TODO LIST
 
 ```markdown
 ### TODO LIST
 
-1. [ ] **[Phase 0.5] TRACE FLOW** ⚠️ SEBELUM FIX APAPUN
-   - [ ] Trace: Frontend mengirim apa? (cek Network tab / curl)
-   - [ ] Trace: Handler menerima apa? (tambah log temporary)
-   - [ ] Trace: Service memproses apa? (log input/output)
-   - [ ] Trace: Repository query apa? (log SQL query)
-   - [ ] Trace: Response apa yang dikembalikan?
-   - [ ] IDENTIFY: Layer mana yang pertama kali salah? → **[TULIS DISINI]**
+1. [ ] **[Phase 0.5] TRACE FLOW** ⚠️ BEFORE ANY FIX
+   - [ ] Trace: What does the Frontend send? (check Network tab / curl)
+   - [ ] Trace: What does the Handler receive? (add temporary logs)
+   - [ ] Trace: What does the Service process? (log input/output)
+   - [ ] Trace: What does the Repository query? (log SQL query)
+   - [ ] Trace: What response is returned?
+   - [ ] IDENTIFY: Which layer is incorrect first? → **[WRITE HERE]**
 
-2. [ ] **[Phase 1] Fix Berdasarkan Trace**
-   - [ ] Fix HANYA di layer yang teridentifikasi
-   - [ ] Jangan fix random di semua layer
+2. [ ] **[Phase 1] Fix Based on Trace**
+   - [ ] Fix ONLY in the identified layer
+   - [ ] Do not fix randomly across all layers
 ```
 
-#### D. Contoh Trace Flow
+#### D. Trace Flow Example
 
-##### ❌ SALAH (Langsung Fix Tanpa Trace)
-
-```
-Error: Order tidak muncul di frontend
-
-Fix attempt 1: Ubah query di repository → GAGAL
-Fix attempt 2: Ubah response format di handler → GAGAL
-Fix attempt 3: Ubah parsing di frontend → GAGAL
-Fix attempt 4: Ubah database schema → GAGAL
-... (looping terus)
-```
-
-##### ✅ BENAR (Trace Dulu, Fix Sekali)
+##### ❌ INCORRECT (Direct Fix Without Trace)
 
 ```
-Error: Order tidak muncul di frontend
+Error: Order does not appear on frontend
+
+Fix attempt 1: Change query in repository → FAILED
+Fix attempt 2: Change response format in handler → FAILED
+Fix attempt 3: Change parsing in frontend → FAILED
+Fix attempt 4: Change database schema → FAILED
+... (continuous looping)
+```
+
+##### ✅ CORRECT (Trace First, Fix Once)
+
+```
+Error: Order does not appear on frontend
 
 TRACE FLOW:
 1. Frontend request: GET /api/orders?tenant_id=xxx ✅
 2. Handler receive: tenant_id = "xxx" ✅
 3. Service call: GetOrders(ctx, "xxx") ✅
 4. Repository query: SELECT * FROM orders WHERE tenant_id = ?
-   → Result: 0 rows ❌ ← MASALAH PERTAMA DISINI
-5. Check database: Data ADA tapi tenant_id = "yyy" bukan "xxx"
+   → Result: 0 rows ❌ ← FIRST PROBLEM HERE
+5. Check database: Data EXISTS but tenant_id = "yyy" not "xxx"
 
-ROOT CAUSE: tenant_id yang disimpan berbeda dengan yang di-query
-SOLUTION: Fix di satu tempat - data ingestion (bukan di query/response)
+ROOT CAUSE: Stored tenant_id differs from the queried one
+SOLUTION: Fix in one place - data ingestion (not in query/response)
 ```
 
-#### E. Anti-Pattern yang DILARANG
+#### E. FORBIDDEN Anti-Patterns
 
-| ❌ Jangan Lakukan                     | ✅ Yang Harus Dilakukan                    |
-| ------------------------------------- | ------------------------------------------ |
-| Langsung edit code tanpa trace        | Trace flow dulu, identify root cause       |
-| Fix di semua layer sekaligus          | Fix HANYA di layer yang bermasalah         |
-| Loop: fix → test → gagal → fix → test | Trace → identify → fix tepat → test SEKALI |
-| Tebak-tebakan lokasi error            | Follow data dari awal sampai error         |
-| Hapus error handling untuk "bypass"   | Perbaiki actual cause, bukan hide error    |
+| ❌ Do Not Do                         | ✅ What Should be Done                     |
+| ------------------------------------ | ------------------------------------------ |
+| Directly edit code without trace     | Trace flow first, identify root cause      |
+| Fix in all layers simultaneously     | Fix ONLY in the problematic layer          |
+| Loop: fix → test → fail → fix → test | Trace → identify → precise fix → test ONCE |
+| Guessing error location              | Follow data from start to error            |
+| Delete error handling to "bypass"    | Fix actual cause, do not hide error        |
 
-### 2.5 Research Requirements di Pre-Planning
+### 2.5 Research Requirements in Pre-Planning
 
-Tambahkan di Pre-Planning Verification:
+Add to Pre-Planning Verification:
 
 ```markdown
 ### Pre-Planning Verification
 
-- AGENTS.md sudah dibaca: [Ya/Tidak]
-- File yang teridentifikasi: [list files]
-- Database changes: [Ya/Tidak]
-- Multi-tenant: [Ya/Tidak]
+- AGENTS.md has been read: [Yes/No]
+- Identified files: [list files]
+- Database changes: [Yes/No]
+- Multi-tenant: [Yes/No]
 - Evidence type: [Unit/Integration/Full Feature]
-- Analisis dampak sudah dilakukan: [Ya/Tidak]
-- **External Research Required: [Ya/Tidak]**
-  - Platform APIs: [Shopee/Lazada/TikTok/dll - sebutkan]
-  - Reference docs: [link ke official docs]
-  - Research agent: [@librarian/@explore - sebutkan yang akan digunakan]
-- **Trace Flow Required: [Ya/Tidak]**
-  - Jika BUG FIX → WAJIB Ya, trace flow sebelum fix
-  - Jika NEW FEATURE → Tidak wajib, tapi recommended
+- Impact analysis has been performed: [Yes/No]
+- **External Research Required: [Yes/No]**
+  - Platform APIs: [Shopee/Lazada/TikTok/etc - specify]
+  - Reference docs: [link to official docs]
+  - Research agent: [@librarian/@explore - specify which will be used]
+- **Trace Flow Required: [Yes/No]**
+  - If BUG FIX → MANDATORY Yes, trace flow before fix
+  - If NEW FEATURE → Not mandatory, but recommended
 ```
 
-### 2.6 Contoh Research Phase
+### 2.6 Research Phase Example
 
-#### ❌ SALAH (Skip Research)
+#### ❌ INCORRECT (Skip Research)
 
 ```
 ## Task: Fix Shopee Order Sync
@@ -294,153 +294,153 @@ Tambahkan di Pre-Planning Verification:
 3. [ ] Test
 ```
 
-#### ✅ BENAR (Dengan Research Phase)
+#### ✅ CORRECT (With Research Phase)
 
 ```
 ## Task: Fix Shopee Order Sync
 
 ### Pre-Planning Verification
-- External Research Required: **Ya**
+- External Research Required: **Yes**
   - Platform APIs: Shopee Order API
-  - LOCAL SDK: backend/shopee-sdk/orders.go (CARI DI SINI DULU!)
-  - Research agent: @explore untuk LOCAL SDK + existing pattern
+  - LOCAL SDK: backend/shopee-sdk/orders.go (SEARCH HERE FIRST!)
+  - Research agent: @explore for LOCAL SDK + existing pattern
 
 ### TODO LIST
 
-1. [ ] **[Phase 0] Research** ⚠️ MANDATORY (URUTAN WAJIB!)
-   - [ ] @explore: Cari GetOrderList di backend/shopee-sdk/orders.go (LOKAL DULU!)
-   - [ ] @explore: Cari existing shopee order pattern di internal/
-   - [ ] Verify auth flow dari existing implementation
-   - [ ] HANYA jika tidak ketemu → @librarian: Cari official docs
+1. [ ] **[Phase 0] Research** ⚠️ MANDATORY (MANDATORY ORDER!)
+   - [ ] @explore: Search for GetOrderList in backend/shopee-sdk/orders.go (LOCAL FIRST!)
+   - [ ] @explore: Search for existing shopee order pattern in internal/
+   - [ ] Verify auth flow from existing implementation
+   - [ ] ONLY if not found → @librarian: Search official docs
 
-2. [ ] **[Phase 1] Analisis**
-   - [ ] Baca error message dengan teliti
-   - [ ] Compare dengan implementasi di local SDK
-   - [ ] Identifikasi mismatch
+2. [ ] **[Phase 1] Analysis**
+   - [ ] Read error message carefully
+   - [ ] Compare with implementation in local SDK
+   - [ ] Identify mismatch
 
-3. [ ] **[Phase 2] Fix Berdasarkan Research**
-   - [ ] Update request format sesuai local SDK pattern
-   - [ ] Update response parsing sesuai actual format
-   - [ ] Add proper error handling untuk Shopee error codes
+3. [ ] **[Phase 2] Fix Based on Research**
+   - [ ] Update request format according to local SDK pattern
+   - [ ] Update response parsing according to actual format
+   - [ ] Add proper error handling for Shopee error codes
 
 4. [ ] **[Phase 3] Testing**
    - [ ] go build && go test
-   - [ ] Verify data masuk ke database
+   - [ ] Verify data enters database
 ```
 
 ---
 
-## 3. ANALISIS DAMPAK PERUBAHAN (WAJIB)
+## 3. IMPACT ANALYSIS OF CHANGES (MANDATORY)
 
-> **⚠️ SANGAT PENTING:** Setiap perubahan HARUS dianalisis dampaknya secara komprehensif sebelum eksekusi.
+> **⚠️ VERY IMPORTANT:** Every change MUST have its impact analyzed comprehensively before execution.
 
-### 3.1 Checklist Analisis Dampak
+### 3.1 Impact Analysis Checklist
 
-Untuk SETIAP file yang akan dimodifikasi, Prometheus HARUS menganalisis:
+For EVERY file to be modified, Prometheus MUST analyze:
 
-#### A. Dampak ke Backend
+#### A. Impact on Backend
 
-| Pertanyaan                             | Harus Dijawab                             |
-| -------------------------------------- | ----------------------------------------- |
-| Function/method mana yang berubah?     | List semua function                       |
-| Siapa yang memanggil function ini?     | Cari semua caller (gunakan grep/LSP)      |
-| Apakah signature function berubah?     | Jika ya, semua caller harus diupdate      |
-| Apakah return type berubah?            | Jika ya, semua consumer harus diupdate    |
-| Apakah ada interface yang terpengaruh? | Jika ya, semua implementor harus diupdate |
+| Question                            | Must be Answered                         |
+| ----------------------------------- | ---------------------------------------- |
+| Which function/method is changing?  | List all functions                       |
+| Who calls this function?            | Search for all callers (use grep/LSP)    |
+| Does the function signature change? | If yes, all callers must be updated      |
+| Does the return type change?        | If yes, all consumers must be updated    |
+| Is any interface affected?          | If yes, all implementors must be updated |
 
-#### B. Dampak ke Frontend
+#### B. Impact on Frontend
 
-| Pertanyaan                                | Harus Dijawab                               |
-| ----------------------------------------- | ------------------------------------------- |
-| API endpoint mana yang berubah?           | List semua endpoint                         |
-| Component mana yang consume API ini?      | Cari semua component yang fetch             |
-| Apakah response format berubah?           | Jika ya, semua consumer harus diupdate      |
-| Apakah props/state berubah?               | Jika ya, parent/child component terpengaruh |
-| Apakah ada shared component yang berubah? | Jika ya, semua user component terpengaruh   |
+| Question                           | Must be Answered                             |
+| ---------------------------------- | -------------------------------------------- |
+| Which API endpoint is changing?    | List all endpoints                           |
+| Which component consumes this API? | Search for all components that fetch         |
+| Does the response format change?   | If yes, all consumers must be updated        |
+| Do props/state change?             | If yes, parent/child components are affected |
+| Does any shared component change?  | If yes, all user components are affected     |
 
-#### C. Dampak ke Database
+#### C. Impact on Database
 
-| Pertanyaan                               | Harus Dijawab             |
-| ---------------------------------------- | ------------------------- |
-| Tabel mana yang berubah?                 | List semua tabel          |
-| Kolom mana yang ditambah/diubah/dihapus? | Detail perubahan          |
-| Apakah ada foreign key yang terpengaruh? | Cek relasi                |
-| Apakah ada index yang perlu diupdate?    | Performance consideration |
-| Apakah data existing perlu dimigrate?    | Data migration plan       |
+| Question                                | Must be Answered          |
+| --------------------------------------- | ------------------------- |
+| Which table is changing?                | List all tables           |
+| Which column is added/changed/deleted?  | Change details            |
+| Is any foreign key affected?            | Check relations           |
+| Is any index in need of update?         | Performance consideration |
+| Does existing data need to be migrated? | Data migration plan       |
 
-#### D. Dampak Integrasi
+#### D. Integration Impact
 
-| Pertanyaan                                | Harus Dijawab                     |
-| ----------------------------------------- | --------------------------------- |
-| API contract berubah?                     | Frontend harus sync               |
-| Apakah breaking change?                   | Jika ya, harus ada migration path |
-| Apakah perlu update dokumentasi API?      | Swagger/OpenAPI                   |
-| Apakah ada service lain yang terpengaruh? | Microservice dependencies         |
+| Question                          | Must be Answered                       |
+| --------------------------------- | -------------------------------------- |
+| API contract changed?             | Frontend must sync                     |
+| Is it a breaking change?          | If yes, there must be a migration path |
+| Need to update API documentation? | Swagger/OpenAPI                        |
+| Is any other service affected?    | Microservice dependencies              |
 
-### Template Analisis Dampak (WAJIB ada di Plan)
+### Impact Analysis Template (MANDATORY in Plan)
 
 ```markdown
-### Analisis Dampak Perubahan
+### Impact Analysis of Changes
 
 #### File: `[path/to/file]`
 
-- **Perubahan:** [deskripsi singkat]
-- **Caller/Consumer yang terpengaruh:**
-  - `file1.go` - function X memanggil function yang diubah
-  - `Component.vue` - consume API yang diubah
-- **Breaking change:** [Ya/Tidak]
+- **Changes:** [brief description]
+- **Affected Caller/Consumer:**
+  - `file1.go` - function X calls the modified function
+  - `Component.vue` - consumes the modified API
+- **Breaking change:** [Yes/No]
 - **Action required:**
-  - [ ] Update caller di file1.go
-  - [ ] Update Component.vue untuk handle response baru
+  - [ ] Update caller in file1.go
+  - [ ] Update Component.vue to handle new response
 ```
 
-### Contoh Analisis Dampak
+### Impact Analysis Example
 
-#### ❌ SALAH (Tanpa Analisis Dampak)
+#### ❌ INCORRECT (Without Impact Analysis)
 
 ```
-## Task: Ubah format response order
+## Task: Change order response format
 
 ### TODO LIST
-1. [ ] Ubah response di order_handler.go
+1. [ ] Change response in order_handler.go
 2. [ ] Done
 ```
 
-#### ✅ BENAR (Dengan Analisis Dampak)
+#### ✅ CORRECT (With Impact Analysis)
 
 ```
-## Task: Ubah format response order
+## Task: Change order response format
 
-### Analisis Dampak Perubahan
+### Impact Analysis of Changes
 
 #### File: `internal/handlers/order_handler.go`
-- **Perubahan:** Ubah field `orderSn` menjadi `order_sn` (snake_case)
-- **Caller/Consumer yang terpengaruh:**
+- **Changes:** Change field `orderSn` to `order_sn` (snake_case)
+- **Affected Caller/Consumer:**
   - `frontend/src/api/order.ts` - parsing response
-  - `frontend/src/views/OrderList.vue` - display di tabel
+  - `frontend/src/views/OrderList.vue` - display in table
   - `frontend/src/views/OrderDetail.vue` - display detail
-- **Breaking change:** Ya - frontend expect `orderSn`
+- **Breaking change:** Yes - frontend expects `orderSn`
 - **Action required:**
   - [ ] Update order.ts interface
   - [ ] Update OrderList.vue template binding
   - [ ] Update OrderDetail.vue template binding
-  - [ ] Verify tabel tidak ada kolom kosong setelah perubahan
+  - [ ] Verify table has no empty columns after changes
 
 ### TODO LIST
-1. [ ] **[Phase 1] Analisis**
-   - [ ] Grep semua penggunaan `orderSn` di frontend
-   - [ ] List semua component yang terpengaruh
+1. [ ] **[Phase 1] Analysis**
+   - [ ] Grep all usages of `orderSn` in frontend
+   - [ ] List all affected components
 
 2. [ ] **[Phase 2] Backend**
-   - [ ] Ubah response format di order_handler.go
+   - [ ] Change response format in order_handler.go
 
 3. [ ] **[Phase 3] Frontend**
-   - [ ] Update interface di order.ts
+   - [ ] Update interface in order.ts
    - [ ] Update OrderList.vue
    - [ ] Update OrderDetail.vue
 
 4. [ ] **[Phase 4] Testing**
-   - [ ] Verify data muncul di tabel (tidak ada kolom kosong)
+   - [ ] Verify data appears in table (no empty columns)
    - [ ] go build && go test
 ```
 
@@ -448,60 +448,60 @@ Untuk SETIAP file yang akan dimodifikasi, Prometheus HARUS menganalisis:
 
 ## 3. OUTPUT FORMAT: TODO LIST
 
-**WAJIB:** Prometheus harus output dalam format TODO LIST yang bisa langsung dieksekusi.
+**MANDATORY:** Prometheus must output in a TODO LIST format that can be directly executed.
 
 ### Template Todo List
 
 ```markdown
-## Task: [Nama Task]
+## Task: [Task Name]
 
 ### Pre-Planning Verification
 
-- AGENTS.md sudah dibaca: [Ya/Tidak]
-- File yang teridentifikasi: [list files]
-- Database changes: [Ya/Tidak - jika ya, migration required]
-- Multi-tenant: [Ya/Tidak - jika ya, tenant_id validation required]
+- AGENTS.md has been read: [Yes/No]
+- Identified files: [list files]
+- Database changes: [Yes/No - if yes, migration required]
+- Multi-tenant: [Yes/No - if yes, tenant_id validation required]
 - Evidence type: [Unit/Integration/Full Feature]
-- **Analisis dampak sudah dilakukan: [Ya/Tidak]**
+- **Impact analysis has been performed: [Yes/No]**
 
-### Analisis Dampak Perubahan
+### Impact Analysis of Changes
 
-[Wajib diisi - lihat template di Section 2]
+[Must be filled - see template in Section 2]
 
 ### TODO LIST
 
-1. [ ] **[Phase 1] Analisis**
-   - [ ] Baca file X untuk memahami struktur existing
-   - [ ] Identifikasi pattern yang digunakan
-   - [ ] Cek dependencies
+1. [ ] **[Phase 1] Analysis**
+   - [ ] Read file X to understand existing structure
+   - [ ] Identify the pattern used
+   - [ ] Check dependencies
 
-2. [ ] **[Phase 2] Implementasi**
-   - [ ] Buat/edit file: `path/to/file.go` (~X baris)
-   - [ ] Implement function X di service layer
+2. [ ] **[Phase 2] Implementation**
+   - [ ] Create/edit file: `path/to/file.go` (~X lines)
+   - [ ] Implement function X in service layer
    - [ ] Implement handler Y
-   - [ ] ...dst
+   - [ ] ...etc
 
 3. [ ] **[Phase 3] Cleanup**
-   - [ ] Pastikan semua file < 300 baris
-   - [ ] Hapus duplicate code
-   - [ ] Hapus dead code
+   - [ ] Ensure all files < 300 lines
+   - [ ] Remove duplicate code
+   - [ ] Remove dead code
    - [ ] Apply DRY & SRP
 
 4. [ ] **[Phase 4] Testing**
    - [ ] Run: go build ./...
    - [ ] Run: go test ./...
-   - [ ] Fix jika ada error
+   - [ ] Fix if there are errors
 
-5. [ ] **[Phase 5] Finalisasi**
-   - [ ] Kumpulkan evidence sesuai task type
-   - [ ] Apply Docker jika perlu: build.py smart
+5. [ ] **[Phase 5] Finalization**
+   - [ ] Collect evidence according to task type
+   - [ ] Apply Docker if needed: build.py smart
 
 ### Affected Files
 
-| File              | Estimasi Baris | Action        |
-| ----------------- | -------------- | ------------- |
-| `path/to/file.go` | ~150 baris     | Create/Modify |
-| ...               | ...            | ...           |
+| File              | Estimated Lines | Action        |
+| ----------------- | --------------- | ------------- |
+| `path/to/file.go` | ~150 lines      | Create/Modify |
+| ...               | ...             | ...           |
 
 ### Success Criteria
 
@@ -509,107 +509,107 @@ Untuk SETIAP file yang akan dimodifikasi, Prometheus HARUS menganalisis:
 
 - [ ] go build ./... passes
 - [ ] go test ./... passes
-- [ ] Semua file < 300 baris
+- [ ] All files < 300 lines
 
-#### Code Quality (sesuai AGENTS.md)
+#### Code Quality (according to AGENTS.md)
 
-- [ ] Format code sesuai AGENTS.md (snake_case JSON, architecture pattern)
-- [ ] Tidak ada duplicate/dead code
-- [ ] Tidak ada false positives (success: true hanya untuk sukses)
+- [ ] Format code according to AGENTS.md (snake_case JSON, architecture pattern)
+- [ ] No duplicate/dead code
+- [ ] No false positives (success: true only for success)
 
-#### Frontend (jika ada perubahan frontend)
+#### Frontend (if there are frontend changes)
 
-- [ ] UI/UX layout tidak berantakan (verifikasi langsung di kode, BUKAN pakai Playwright)
-- [ ] Component structure rapi dan reusable
-- [ ] Responsive design tetap terjaga
+- [ ] UI/UX layout not messy (verify directly in code, NOT using Playwright)
+- [ ] Component structure neat and reusable
+- [ ] Responsive design maintained
 
-#### Integrasi (Backend + Frontend + Database)
+#### Integration (Backend + Frontend + Database)
 
-- [ ] Data muncul di tabel frontend (tidak ada kolom kosong)
-- [ ] API response sesuai format (snake_case)
-- [ ] Database query mengembalikan data yang benar
+- [ ] Data appears in frontend table (no empty columns)
+- [ ] API response according to format (snake_case)
+- [ ] Database query returns correct data
 
 #### Evidence
 
-- [ ] Docker log menunjukkan operasi berhasil dengan data spesifik
-- [ ] Test output menunjukkan semua test PASS
+- [ ] Docker log shows successful operation with specific data
+- [ ] Test output shows all tests PASS
 ```
 
 ---
 
 ## 4. QUALITY GATES
 
-Plan VALID hanya jika SEMUA gate terpenuhi:
+Plan is VALID only if ALL gates are met:
 
-| #   | Gate                | Requirement                                       |
-| --- | ------------------- | ------------------------------------------------- |
-| 1   | Ada TODO List       | Format checklist [ ] yang bisa dieksekusi         |
-| 2   | **Analisis Dampak** | **WAJIB ada untuk setiap file yang dimodifikasi** |
-| 3   | File Size           | Semua file < 300 baris (models: 500)              |
-| 4   | Architecture        | Handler → Service → Repository                    |
-| 5   | JSON Tags           | Semua snake_case                                  |
-| 6   | Testing Phase       | go build + go test ada di todo                    |
-| 7   | Tenant Check        | Validasi tenant_id jika endpoint protected        |
-| 8   | Cleanup Phase       | DRY, SRP review ada di todo                       |
-| 9   | Evidence Type       | Disebutkan di plan                                |
+| #   | Gate                | Requirement                                 |
+| --- | ------------------- | ------------------------------------------- |
+| 1   | Todo List present   | Checklist format [ ] that can be executed   |
+| 2   | **Impact Analysis** | **MANDATORY for every file modified**       |
+| 3   | File Size           | All files < 300 lines (models: 500)         |
+| 4   | Architecture        | Handler → Service → Repository              |
+| 5   | JSON Tags           | All snake_case                              |
+| 6   | Testing Phase       | go build + go test present in todo          |
+| 7   | Tenant Check        | Validate tenant_id if endpoint is protected |
+| 8   | Cleanup Phase       | DRY, SRP review present in todo             |
+| 9   | Evidence Type       | Mentioned in plan                           |
 
-**Jika ada gate yang GAGAL → revisi plan sebelum eksekusi.**
+**If any gate FAILS → revise plan before execution.**
 
 ---
 
-## 5. ANTI-PATTERNS (DILARANG)
+## 5. ANTI-PATTERNS (FORBIDDEN)
 
-| #   | Jangan                              | Lakukan                                    |
-| --- | ----------------------------------- | ------------------------------------------ |
-| 1   | Output prose/paragraph panjang      | Output TODO LIST dengan [ ]                |
-| 2   | **Skip analisis dampak**            | **WAJIB analisis dampak setiap perubahan** |
-| 3   | Skip file size limit                | Tulis "max 300 baris" di setiap file       |
-| 4   | Business logic di Handler           | Arahkan ke Service layer                   |
-| 5   | Skip tenant_id validation           | Selalu validasi di protected endpoints     |
-| 6   | camelCase di JSON response          | Gunakan snake_case                         |
-| 7   | Skip testing phase                  | WAJIB ada go build + go test               |
-| 8   | Assume default tenant               | Explicit error jika missing                |
-| 9   | Skip cleanup phase                  | WAJIB ada DRY/SRP review                   |
-| 10  | Ubah API tanpa cek frontend         | Cek semua consumer di frontend             |
-| 11  | Ubah DB schema tanpa migration plan | Selalu sertakan migration steps            |
+| #   | Do Not Do                               | Do                                             |
+| --- | --------------------------------------- | ---------------------------------------------- |
+| 1   | Long prose/paragraph output             | Output TODO LIST with [ ]                      |
+| 2   | **Skip impact analysis**                | **MANDATORY impact analysis for every change** |
+| 3   | Skip file size limit                    | Write "max 300 lines" in every file            |
+| 4   | Business logic in Handler               | Direct to Service layer                        |
+| 5   | Skip tenant_id validation               | Always validate in protected endpoints         |
+| 6   | camelCase in JSON response              | Use snake_case                                 |
+| 7   | Skip testing phase                      | MANDATORY go build + go test                   |
+| 8   | Assume default tenant                   | Explicit error if missing                      |
+| 9   | Skip cleanup phase                      | MANDATORY DRY/SRP review                       |
+| 10  | Change API without checking frontend    | Check all consumers in frontend                |
+| 11  | Change DB schema without migration plan | Always include migration steps                 |
 
 ---
 
 ## 6. EVIDENCE REQUIREMENTS
 
-| Task Type             | Required Evidence           |
-| --------------------- | --------------------------- |
-| Unit Test / Code Only | Test output saja            |
-| Integration / API     | Docker log ATAU Test output |
-| Full Feature          | Docker log DAN Test output  |
-| Documentation         | Visual confirmation         |
+| Task Type             | Required Evidence          |
+| --------------------- | -------------------------- |
+| Unit Test / Code Only | Test output only           |
+| Integration / API     | Docker log OR Test output  |
+| Full Feature          | Docker log AND Test output |
+| Documentation         | Visual confirmation        |
 
-**Evidence harus membuktikan masalah spesifik sudah teratasi.**
+**Evidence must prove that the specific problem has been resolved.**
 
 ---
 
-## 7. CRITICAL RULES (dari AGENTS.md)
+## 7. CRITICAL RULES (from AGENTS.md)
 
-Rules ini TIDAK BOLEH dilanggar:
+These rules MUST NOT be violated:
 
-1. **❌ NO FALSE POSITIVES** - Jangan return `success: true` jika ada error
-2. **❌ NO ALIASES** - Fix nama langsung, jangan workaround
-3. **❌ NO DEFAULT TENANT** - Selalu validasi, error jika missing
-4. **🎯 JSON = snake_case** - Semua API responses
+1. **❌ NO FALSE POSITIVES** - Do not return `success: true` if there is an error
+2. **❌ NO ALIASES** - Fix names directly, no workarounds
+3. **❌ NO DEFAULT TENANT** - Always validate, error if missing
+4. **🎯 JSON = snake_case** - All API responses
 5. **📏 MAX 300 LINES** - Per file (models: 500, migrations: unlimited)
-6. **🔐 context.Context** - Semua DB/network operations
+6. **🔐 context.Context** - All DB/network operations
 7. **🏗️ CLEAN ARCHITECTURE** - Handler → Service → Repository
-8. **📝 STRUCTURED LOGGING** - zerolog saja, bukan fmt.Printf
-9. **🗄️ MIGRATIONS REQUIRED** - Tidak ada raw DDL changes
-10. **🧪 100% TEST SUCCESS** - go build && go test harus pass
-11. **🔐 GIT RESTRICTED** - Hanya add, commit, push (hati-hati)
+8. **📝 STRUCTURED LOGGING** - zerolog only, not fmt.Printf
+9. **🗄️ MIGRATIONS REQUIRED** - No raw DDL changes
+10. **🧪 100% TEST SUCCESS** - go build && go test must pass
+11. **🔐 GIT RESTRICTED** - Only add, commit, push (be careful)
 
 ---
 
 ## QUICK REFERENCE
 
 ```
-Framework:    GIN (bukan Fiber)
+Framework:    GIN (not Fiber)
 Database:     PostgreSQL (multi-tenant schemas)
 ORM:          GORM
 Logging:      zerolog
@@ -621,60 +621,60 @@ Docker:       build.py smart (default)
 
 ---
 
-## CONTOH OUTPUT PROMETHEUS
+## PROMETHEUS OUTPUT EXAMPLE
 
-### ❌ SALAH (Prose/paragraph)
+### ❌ INCORRECT (Prose/paragraph)
 
 ```
-Untuk task ini, kita perlu melakukan beberapa hal. Pertama, kita akan
-membaca file existing. Kemudian kita implement fitur baru. Setelah itu
-kita testing dan cleanup...
+For this task, we need to do several things. First, we will
+read existing files. Then we implement new features. After that
+we do testing and cleanup...
 ```
 
-### ✅ BENAR (TODO List)
+### ✅ CORRECT (TODO List)
 
 ```markdown
 ## Task: Add Order Export Feature
 
 ### Pre-Planning Verification
 
-- AGENTS.md sudah dibaca: Ya
-- File yang teridentifikasi: order_handler.go, order_service.go, export_utils.go
-- Database changes: Tidak
-- Multi-tenant: Ya - tenant_id validation required
+- AGENTS.md has been read: Yes
+- Identified files: order_handler.go, order_service.go, export_utils.go
+- Database changes: No
+- Multi-tenant: Yes - tenant_id validation required
 - Evidence type: Integration
 
 ### TODO LIST
 
-1. [ ] **[Phase 1] Analisis**
-   - [ ] Baca `internal/handlers/order_handler.go`
-   - [ ] Baca `internal/services/order_service.go`
-   - [ ] Identifikasi export pattern yang ada
+1. [ ] **[Phase 1] Analysis**
+   - [ ] Read `internal/handlers/order_handler.go`
+   - [ ] Read `internal/services/order_service.go`
+   - [ ] Identify existing export patterns
 
-2. [ ] **[Phase 2] Implementasi**
-   - [ ] Tambah method `ExportOrders` di `order_service.go` (~50 baris)
-   - [ ] Tambah handler `HandleExportOrders` di `order_handler.go` (~30 baris)
-   - [ ] Buat `internal/utils/export_utils.go` (~100 baris)
+2. [ ] **[Phase 2] Implementation**
+   - [ ] Add `ExportOrders` method in `order_service.go` (~50 lines)
+   - [ ] Add `HandleExportOrders` handler in `order_handler.go` (~30 lines)
+   - [ ] Create `internal/utils/export_utils.go` (~100 lines)
 
 3. [ ] **[Phase 3] Cleanup**
-   - [ ] Verify semua file < 300 baris
+   - [ ] Verify all files < 300 lines
    - [ ] Apply DRY - extract common export logic
 
 4. [ ] **[Phase 4] Testing**
    - [ ] Run: go build ./...
    - [ ] Run: go test ./...
 
-5. [ ] **[Phase 5] Finalisasi**
+5. [ ] **[Phase 5] Finalization**
    - [ ] Test endpoint via curl/Postman
-   - [ ] Collect Docker log sebagai evidence
+   - [ ] Collect Docker log as evidence
 
 ### Affected Files
 
-| File                                 | Estimasi   | Action |
+| File                                 | Estimation | Action |
 | ------------------------------------ | ---------- | ------ |
-| `internal/handlers/order_handler.go` | +30 baris  | Modify |
-| `internal/services/order_service.go` | +50 baris  | Modify |
-| `internal/utils/export_utils.go`     | ~100 baris | Create |
+| `internal/handlers/order_handler.go` | +30 lines  | Modify |
+| `internal/services/order_service.go` | +50 lines  | Modify |
+| `internal/utils/export_utils.go`     | ~100 lines | Create |
 
 ### Success Criteria
 
@@ -685,68 +685,68 @@ kita testing dan cleanup...
 
 #### Code Quality
 
-- [ ] Format sesuai AGENTS.md (snake_case JSON)
-- [ ] Tidak ada duplicate/dead code
+- [ ] Format according to AGENTS.md (snake_case JSON)
+- [ ] No duplicate/dead code
 
-#### Integrasi
+#### Integration
 
 - [ ] Export endpoint returns valid CSV/Excel
-- [ ] Data muncul lengkap (tidak ada kolom kosong)
-- [ ] Docker log menunjukkan export berhasil dengan jumlah record
+- [ ] Data appears complete (no empty columns)
+- [ ] Docker log shows export successful with record count
 ```
 
 ---
 
-## 8. DELEGATION RULES (MEMPERCEPAT EKSEKUSI)
+## 8. DELEGATION RULES (SPEEDING UP EXECUTION)
 
-> **Delegasi ke sub-agent untuk parallel processing dan expertise yang lebih fokus.**
-> **MAKSIMAL 2 delegasi paralel** untuk menghindari overload.
+> **Delegate to sub-agents for parallel processing and focused expertise.**
+> **MAXIMUM 2 parallel delegations** to avoid overload.
 
-### 8.1 Kapan WAJIB Delegate
+### 8.1 When Delegation is MANDATORY
 
-| Situasi                           | Delegate Ke                                    | Alasan                          |
-| --------------------------------- | ---------------------------------------------- | ------------------------------- |
-| Cari SDK docs / official API      | `@librarian`                                   | Expertise di external reference |
-| Cari existing pattern di codebase | `@explore`                                     | Faster contextual grep          |
-| Architecture/design question      | `@oracle`                                      | High-IQ reasoning               |
-| UI/UX / Frontend work             | `delegate_task(category="visual-engineering")` | Frontend specialist             |
-| Complex logic problem             | `delegate_task(category="ultrabrain")`         | Deep reasoning                  |
-| Quick/trivial fix                 | `delegate_task(category="quick")`              | Fast execution                  |
+| Situation                            | Delegate To                                    | Reason                           |
+| ------------------------------------ | ---------------------------------------------- | -------------------------------- |
+| Search SDK docs / official API       | `@librarian`                                   | Expertise in external references |
+| Search existing patterns in codebase | `@explore`                                     | Faster contextual grep           |
+| Architecture/design question         | `@oracle`                                      | High-IQ reasoning                |
+| UI/UX / Frontend work                | `delegate_task(category="visual-engineering")` | Frontend specialist              |
+| Complex logic problem                | `delegate_task(category="ultrabrain")`         | Deep reasoning                   |
+| Quick/trivial fix                    | `delegate_task(category="quick")`              | Fast execution                   |
 
 ### 8.2 Delegation Strategy
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ PARALLEL DELEGATION (Mempercepat Research)                              │
+│ PARALLEL DELEGATION (Speeding Up Research)                              │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  Ketika butuh research, fire 2 agent PARALEL:                           │
+│  When research is needed, fire 2 agents in PARALLEL:                    │
 │                                                                         │
-│  // Contoh: Fix Shopee API error                                        │
-│  @librarian: "Cari Shopee GetOrderList API docs, request/response"      │
-│  @explore: "Cari existing shopee API pattern di codebase ini"           │
+│  // Example: Fix Shopee API error                                       │
+│  @librarian: "Search Shopee GetOrderList API docs, request/response"      │
+│  @explore: "Search for existing shopee API pattern in codebase this"      │
 │                                                                         │
-│  → Keduanya jalan paralel, hasil digabung untuk fix                     │
+│  → Both run in parallel, results merged for fix                         │
 │                                                                         │
-│  ⚠️ MAKSIMAL 2 paralel untuk menghindari overload                       │
+│  ⚠️ MAXIMUM 2 parallel to avoid overload                                 │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 8.3 Delegation dalam TODO LIST
+### 8.3 Delegation in TODO LIST
 
 ```markdown
 ### TODO LIST
 
 1. [ ] **[Phase 0] Parallel Research** ⚠️ DELEGATE
-   - [ ] 🔀 PARALLEL #1: @librarian → Cari [specific docs]
-   - [ ] 🔀 PARALLEL #2: @explore → Cari [existing pattern]
-   - [ ] ⏳ Tunggu hasil, gabungkan findings
+   - [ ] 🔀 PARALLEL #1: @librarian → Search [specific docs]
+   - [ ] 🔀 PARALLEL #2: @explore → Search [existing pattern]
+   - [ ] ⏳ Wait for results, merge findings
 
-2. [ ] **[Phase 0.5] Trace Flow** (jika bug fix)
-   - [ ] Trace berdasarkan research result
-3. [ ] **[Phase 1] Implementasi**
-   - [ ] Fix berdasarkan research + trace
+2. [ ] **[Phase 0.5] Trace Flow** (if bug fix)
+   - [ ] Trace based on research results
+3. [ ] **[Phase 1] Implementation**
+   - [ ] Fix based on research + trace
 ```
 
 ### 8.4 Delegation Format
@@ -756,145 +756,145 @@ kita testing dan cleanup...
 
 **Agent:** @librarian / @explore / @oracle
 **Task:** [specific question/search]
-**Expected Output:** [apa yang diharapkan]
-**Context:** [background info yang relevan]
+**Expected Output:** [what is expected]
+**Context:** [relevant background info]
 ```
 
-### 8.5 Contoh Delegation yang Efektif
+### 8.5 Effective Delegation Example
 
-#### ❌ SALAH (Tidak Delegate, Semua Sendiri)
+#### ❌ INCORRECT (No Delegation, All by Self)
 
 ```
 Task: Fix Shopee order sync
 
-*coba fix sendiri*
-*gagal*
-*coba lagi*
-*gagal*
-*coba lagi*
-... (wasting time tanpa reference)
+*try to fix self*
+*fail*
+*try again*
+*fail*
+*try again*
+... (wasting time without reference)
 ```
 
-#### ✅ BENAR (Delegate untuk Research)
+#### ✅ CORRECT (Delegate for Research)
 
 ```
 Task: Fix Shopee order sync
 
 ## Fix Attempt #1
 **Failure Count:** 1
-*gagal - error: invalid signature*
+*failed - error: invalid signature*
 
 ## Fix Attempt #2 - TRACE FLOW + DELEGATION
 **Failure Count:** 2
 
 **Parallel Delegation:**
-🔀 @librarian: "Cari Shopee API signature generation docs,
-               termasuk parameter order dan hash algorithm"
-🔀 @explore: "Cari existing shopee signature generation di codebase"
+🔀 @librarian: "Search for Shopee API signature generation docs,
+               including parameter order and hash algorithm"
+🔀 @explore: "Search for existing shopee signature generation in codebase"
 
 **Results:**
 - @librarian: Signature = SHA256(base_string + secret),
-              base_string harus sorted by key
-- @explore: File `internal/shopee/auth.go` line 45 ada existing impl
+              base_string must be sorted by key
+- @explore: File `internal/shopee/auth.go` line 45 has existing impl
 
-**Root Cause:** Parameter tidak di-sort sebelum hash
-**Fix:** Update signature generation sesuai docs
+**Root Cause:** Parameters not sorted before hash
+**Fix:** Update signature generation according to docs
 
-*test* → BERHASIL
+*test* → SUCCESS
 ```
 
 ### 8.6 Delegation Decision Tree
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ KAPAN DELEGATE vs KERJAKAN SENDIRI                                      │
+│ WHEN TO DELEGATE vs DO IT YOURSELF                                      │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  DELEGATE jika:                                                         │
-│  ├─ Butuh external docs (SDK, API) → @librarian                         │
-│  ├─ Butuh cari pattern di codebase → @explore                           │
-│  ├─ Butuh architecture decision → @oracle                               │
+│  DELEGATE if:                                                           │
+│  ├─ Need external docs (SDK, API) → @librarian                         │
+│  ├─ Need to find patterns in codebase → @explore                        │
+│  ├─ Need architecture decision → @oracle                                │
 │  ├─ Frontend/UI work → delegate_task(visual-engineering)                │
-│  ├─ Failure >= 2 dan butuh research → @librarian + @explore             │
-│  └─ Task bisa di-parallelkan → fire 2 agent sekaligus                   │
+│  ├─ Failure >= 2 and need research → @librarian + @explore             │
+│  └─ Task can be paralleled → fire 2 agents at once                      │
 │                                                                         │
-│  KERJAKAN SENDIRI jika:                                                 │
-│  ├─ Simple edit yang sudah jelas                                        │
-│  ├─ Sudah punya reference yang cukup                                    │
-│  ├─ Task trivial (typo fix, formatting)                                 │
-│  └─ Overhead delegasi > benefit                                         │
+│  DO IT YOURSELF if:                                                    │
+│  ├─ Simple clear edit                                                   │
+│  ├─ Already have enough references                                      │
+│  ├─ Trivial task (typo fix, formatting)                                 │
+│  └─ Delegation overhead > benefit                                        │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 9. FAILURE COUNTER RULE (UNTUK EKSEKUTOR)
+## 9. FAILURE COUNTER RULE (FOR EXECUTOR)
 
-> **⚠️ RULE INI WAJIB DIIKUTI OLEH AI EKSEKUTOR (Sisyphus/Builder)**
+> **⚠️ THIS RULE MUST BE FOLLOWED BY AI EXECUTOR (Sisyphus/Builder)**
 >
-> AI sering tidak sadar sedang stuck/looping. Rule ini MEMAKSA awareness.
+> AI often does not realize it is stuck/looping. This rule FORCES awareness.
 
-### 9.1 Definisi Failure
+### 9.1 Failure Definition
 
-| Kondisi                                 | Count |
-| --------------------------------------- | ----- |
-| `go build` gagal setelah edit           | +1    |
-| `go test` gagal setelah fix             | +1    |
-| Error yang sama muncul lagi setelah fix | +1    |
-| API call gagal dengan error yang sama   | +1    |
-| Fix tidak menyelesaikan masalah         | +1    |
+| Condition                          | Count |
+| ---------------------------------- | ----- |
+| `go build` failed after edit       | +1    |
+| `go test` failed after fix         | +1    |
+| Same error appears again after fix | +1    |
+| API call fails with the same error | +1    |
+| Fix does not resolve the problem   | +1    |
 
 ### 9.2 Mandatory Action by Failure Count
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ FAILURE COUNT → MANDATORY ACTION (TIDAK BISA DIABAIKAN)                 │
+│ FAILURE COUNT → MANDATORY ACTION (CANNOT BE IGNORED)                   │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  FAILURE = 1 (Pertama kali gagal)                                       │
-│  → Boleh coba fix langsung                                              │
-│  → TAPI catat: "Failure #1: [error message]"                            │
+│  FAILURE = 1 (First time failed)                                        │
+│  → Allowed to try fix directly                                          │
+│  → BUT record: "Failure #1: [error message]"                             │
 │                                                                         │
-│  FAILURE = 2 (Gagal kedua kali) ⚠️ TRACE FLOW ACTIVATED                 │
-│  → STOP! Jangan langsung fix lagi                                       │
-│  → WAJIB: Trace flow dari frontend → database                           │
-│  → WAJIB: Identify di layer mana root cause                             │
-│  → Tulis: "Failure #2 - TRACE FLOW protocol activated"                  │
+│  FAILURE = 2 (Second time failed) ⚠️ TRACE FLOW ACTIVATED                │
+│  → STOP! Do not fix directly again                                      │
+│  → MANDATORY: Trace flow from frontend → database                       │
+│  → MANDATORY: Identify which layer has the root cause                   │
+│  → Write: "Failure #2 - TRACE FLOW protocol activated"                   │
 │                                                                         │
-│  FAILURE >= 3 (Gagal 3x atau lebih) 🚨 RESEARCH ACTIVATED               │
-│  → STOP TOTAL! Tidak boleh edit code tanpa research                     │
-│  → WAJIB: @librarian untuk cari SDK docs / official API docs            │
-│  → WAJIB: @explore untuk cari existing pattern di codebase              │
-│  → WAJIB: @oracle jika architecture/design issue                        │
-│  → Tulis: "Failure #3+ - RESEARCH protocol activated"                   │
+│  FAILURE >= 3 (Failed 3x or more) 🚨 RESEARCH ACTIVATED                 │
+│  → TOTAL STOP! No code editing without research                         │
+│  → MANDATORY: @librarian to search for SDK docs / official API docs     │
+│  → MANDATORY: @explore to search for existing patterns in the codebase   │
+│  → MANDATORY: @oracle if architecture/design issue                       │
+│  → Write: "Failure #3+ - RESEARCH protocol activated"                    │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 9.3 Format Wajib di Setiap Fix Attempt
+### 9.3 Mandatory Format in Every Fix Attempt
 
 ```markdown
 ## Fix Attempt #[N]
 
 **Failure Count:** [current count]
-**Previous Error:** [error sebelumnya]
-**Hypothesis:** [kenapa ini akan berhasil]
-**Action:** [apa yang akan dilakukan]
+**Previous Error:** [previous error]
+**Hypothesis:** [why this will succeed]
+**Action:** [what will be done]
 
-[Jika failure >= 2, WAJIB tambah:]
+[If failure >= 2, MANDATORY to add:]
 **Trace Flow Result:**
 
-- Frontend sends: [apa]
-- Handler receives: [apa]
-- Service processes: [apa]
-- Repository queries: [apa]
-- Root cause identified: [di layer mana]
+- Frontend sends: [what]
+- Handler receives: [what]
+- Service processes: [what]
+- Repository queries: [what]
+- Root cause identified: [in which layer]
 
-[Jika failure >= 3, WAJIB tambah:]
+[If failure >= 3, MANDATORY to add:]
 **Research Result:**
 
-- @librarian found: [hasil research]
+- @librarian found: [research results]
 - @explore found: [existing pattern]
 - Reference: [link/source]
 ```
@@ -903,72 +903,72 @@ Task: Fix Shopee order sync
 
 ## 10. EXECUTOR QUICK REFERENCE (CHEAT SHEET)
 
-> **Print ini dan ikuti setiap eksekusi task**
+> **Print this and follow every task execution**
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ EXECUTOR CHECKLIST - SEBELUM MULAI                                      │
+│ EXECUTOR CHECKLIST - BEFORE STARTING                                    │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ [ ] Baca AGENTS.md (Critical Rules section)                             │
-│ [ ] Baca PROMETHEUS_RULES.md (Section 2: Research & Trace Flow)         │
-│ [ ] Identify task type: BUG FIX atau NEW FEATURE?                       │
-│     • Bug fix → Siap-siap trace flow jika failure >= 2                  │
-│     • New feature dengan external API → Research dulu (delegate!)       │
+│ [ ] Read AGENTS.md (Critical Rules section)                             │
+│ [ ] Read PROMETHEUS_RULES.md (Section 2: Research & Trace Flow)         │
+│ [ ] Identify task type: BUG FIX or NEW FEATURE?                         │
+│     • Bug fix → Get ready to trace flow if failure >= 2                  │
+│     • New feature with external API → Research first (delegate!)        │
 └─────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ EXECUTOR CHECKLIST - SAAT EKSEKUSI                                      │
+│ EXECUTOR CHECKLIST - DURING EXECUTION                                   │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ [ ] Track failure count (WAJIB!)                                        │
-│ [ ] Failure = 1 → Boleh fix langsung, CATAT error                       │
+│ [ ] Track failure count (MANDATORY!)                                    │
+│ [ ] Failure = 1 → Allowed to fix directly, RECORD error                  │
 │ [ ] Failure = 2 → STOP, trace flow + delegate @explore                  │
-│ [ ] Failure >= 3 → STOP, delegate @librarian + @explore (PARALEL)       │
-│ [ ] Jangan loop fix-test tanpa trace/research!                          │
+│ [ ] Failure >= 3 → STOP, delegate @librarian + @explore (PARALLEL)      │
+│ [ ] Do not loop fix-test without trace/research!                        │
 └─────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ 🔴 LOCAL SDK PRIORITY (CARI DI SINI DULU!)                              │
+│ 🔴 LOCAL SDK PRIORITY (SEARCH HERE FIRST!)                              │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ Shopee  → backend/shopee-sdk/     (orders.go, products.go, client.go)  │
-│ Lazada  → backend/lazada-sdk/     (order.go, product.go, auth.go)      │
-│ Lazada  → backend/lazada_sdk/iop-sdk-go/  (Official IOP SDK)           │
-│ TikTok  → backend/tiktok_sdk/     (100+ files, comprehensive!)         │
+│ Shopee  → backend/shopee-sdk/     (orders.go, products.go, client.go)   │
+│ Lazada  → backend/lazada-sdk/     (order.go, product.go, auth.go)       │
+│ Lazada  → backend/lazada_sdk/iop-sdk-go/  (Official IOP SDK)            │
+│ TikTok  → backend/tiktok_sdk/     (100+ files, comprehensive!)          │
 │                                                                         │
-│ URUTAN WAJIB:                                                           │
-│ 1️⃣ @explore: "Cari di backend/*sdk*/" → LOKAL DULU                      │
-│ 2️⃣ @explore: "Cari di internal/" → EXISTING PATTERN                     │
-│ 3️⃣ @librarian: External docs → HANYA JIKA STUCK                         │
+│ MANDATORY ORDER:                                                        │
+│ 1️⃣ @explore: "Search in backend/*sdk*/" → LOCAL FIRST                   │
+│ 2️⃣ @explore: "Search in internal/" → EXISTING PATTERN                  │
+│ 3️⃣ @librarian: External docs → ONLY IF STUCK                            │
 └─────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ DELEGATION RULES (MEMPERCEPAT)                                          │
+│ DELEGATION RULES (SPEEDING UP)                                          │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ ⚠️ MAKSIMAL 2 DELEGASI PARALEL                                          │
+│ ⚠️ MAXIMUM 2 PARALLEL DELEGATIONS                                       │
 │                                                                         │
-│ @explore    → Existing pattern di codebase + LOCAL SDK                  │
-│ @librarian  → External docs (LAST RESORT - HANYA JIKA TIDAK DI LOKAL)  │
-│ @oracle     → Architecture decision                                     │
+│ @explore    → Existing pattern in codebase + LOCAL SDK                   │
+│ @librarian  → External docs (LAST RESORT - ONLY IF NOT LOCAL)           │
+│ @oracle     → Architecture decision                                      │
 │                                                                         │
-│ delegate_task(category="visual-engineering") → Frontend/UI work         │
-│ delegate_task(category="ultrabrain") → Complex logic                    │
-│ delegate_task(category="quick") → Trivial tasks                         │
+│ delegate_task(category="visual-engineering") → Frontend/UI work          │
+│ delegate_task(category="ultrabrain") → Complex logic                     │
+│ delegate_task(category="quick") → Trivial tasks                          │
 │                                                                         │
-│ CONTOH PARALEL:                                                         │
-│ 🔀 @explore: "Cari implementasi GetOrderList di backend/shopee-sdk/"    │
-│ 🔀 @explore: "Cari existing shopee order pattern di internal/"          │
-│ → Tunggu hasil → Gabungkan → Fix                                        │
+│ PARALLEL EXAMPLE:                                                        │
+│ 🔀 @explore: "Search for GetOrderList implementation in backend/shopee-sdk/"│
+│ 🔀 @explore: "Search for existing shopee order pattern in internal/"      │
+│ → Wait for result → Merge → Fix                                         │
 │                                                                         │
-│ HANYA JIKA TIDAK KETEMU:                                                │
-│ 🔀 @librarian: "Cari official Shopee API docs untuk error code X"       │
+│ ONLY IF NOT FOUND:                                                      │
+│ 🔀 @librarian: "Search official Shopee API docs for error code X"        │
 └─────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ EXECUTOR CHECKLIST - SEBELUM SELESAI                                    │
+│ EXECUTOR CHECKLIST - BEFORE FINISHING                                   │
 ├─────────────────────────────────────────────────────────────────────────┤
 │ [ ] go build ./... passes                                               │
 │ [ ] go test ./... passes                                                │
-│ [ ] Tidak ada looping (max 2 fix attempts tanpa trace)                  │
-│ [ ] Evidence sesuai task type sudah dikumpulkan                         │
+│ [ ] No looping (max 2 fix attempts without trace)                       │
+│ [ ] Evidence according to task type has been collected                  │
 └─────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────┐

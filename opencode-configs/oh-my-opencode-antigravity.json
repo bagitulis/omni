@@ -10,31 +10,39 @@
   "agents": {
     "sisyphus": {
       "model": "google/claude-opus-4-5-thinking",
-      "variant": "max"
+      "variant": "max",
+      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then SISYPHUS_RULES.md.",
+      "skills": ["stuck-recovery"]
     },
     "prometheus": {
       "model": "google/claude-opus-4-5-thinking",
-      "variant": "max"
+      "variant": "max",
+      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then PROMETHEUS_RULES.md."
     },
     "atlas": {
       "model": "google/claude-opus-4-5-thinking",
       "variant": "max"
     },
     "hephaestus": {
-      "model": "google/claude-sonnet-4-5-thinking",
-      "variant": "max"
+      "model": "google/claude-opus-4-5-thinking",
+      "variant": "max",
+      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then EXECUTOR_RULES.md.",
+      "skills": ["stuck-recovery"]
     },
     "oracle": {
       "model": "google/gemini-3-pro",
-      "variant": "high"
+      "variant": "high",
+      "skills": ["oracle-rules"]
     },
     "librarian": {
       "model": "google/gemini-3-pro",
-      "variant": "high"
+      "variant": "high",
+      "skills": ["librarian-rules"]
     },
     "explore": {
       "model": "google/gemini-3-flash",
-      "variant": "high"
+      "variant": "high",
+      "skills": ["explore-rules"]
     },
     "multimodal-looker": {
       "model": "google/gemini-3-pro",
@@ -42,15 +50,19 @@
     },
     "metis": {
       "model": "google/gemini-3-pro",
-      "variant": "high"
+      "variant": "high",
+      "skills": ["metis-rules"]
     },
     "momus": {
       "model": "google/gemini-3-pro",
-      "variant": "high"
+      "variant": "high",
+      "skills": ["momus-rules"]
     },
     "sisyphus-junior": {
       "model": "google/claude-sonnet-4-5-thinking",
-      "variant": "max"
+      "variant": "max",
+      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then EXECUTOR_RULES.md.",
+      "skills": ["stuck-recovery"]
     },
     "default": {
       "model": "google/claude-sonnet-4-5-thinking",
