@@ -31,7 +31,7 @@ Request → Handler → Service → Repository → Database
 
 ---
 
-## SDK Locations (CARI DI SINI DULU!)
+## SDK Locations (SEARCH HERE FIRST!)
 
 | Platform   | Path                             | Key Files                         |
 | ---------- | -------------------------------- | --------------------------------- |
@@ -103,7 +103,7 @@ if err != nil {
 }
 
 // ❌ NEVER empty catch
-// if err != nil { } ← DILARANG
+// if err != nil { } ← FORBIDDEN
 ```
 
 ---
@@ -118,7 +118,7 @@ if err != nil {
 // ✅ CORRECT - with context
 db.WithContext(ctx).Where("tenant_id = ?", tenantID).Find(&orders)
 
-// ❌ WRONG - tanpa context
+// ❌ WRONG - without context
 db.Where("tenant_id = ?", tenantID).Find(&orders)
 ```
 
@@ -145,7 +145,7 @@ c.JSON(http.StatusInternalServerError, gin.H{
 ## Testing
 
 ```bash
-# WAJIB pass sebelum task complete
+# MUST pass before task complete
 go build ./...
 go test ./...
 ```
@@ -159,5 +159,5 @@ go test ./...
 | Business logic in Handler | Move to Service layer         |
 | `fmt.Printf` for logging  | Use zerolog                   |
 | Empty error handling      | Always handle or wrap errors  |
-| DB calls tanpa context    | Always use `WithContext(ctx)` |
+| DB calls without context  | Always use `WithContext(ctx)` |
 | camelCase JSON tags       | Use snake_case                |

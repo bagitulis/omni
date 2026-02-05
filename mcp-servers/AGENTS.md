@@ -7,11 +7,11 @@
 
 ## CRITICAL: AI Behavior
 
-| Rule                 | Description                                                            |
-| -------------------- | ---------------------------------------------------------------------- |
-| **NO new scripts**   | JANGAN buat script Go/Python baru untuk operasi yang sudah ada MCP-nya |
-| **Use existing MCP** | LANGSUNG panggil MCP tool via JSON-RPC ke binary yang sesuai           |
-| **Read sub-README**  | BACA README di folder masing-masing MCP sebelum operasi                |
+| Rule                 | Description                                                              |
+| -------------------- | ------------------------------------------------------------------------ |
+| **NO new scripts**   | DO NOT create new Go/Python scripts for operations that already have MCP |
+| **Use existing MCP** | DIRECTLY call MCP tool via JSON-RPC to the appropriate binary            |
+| **Read sub-README**  | READ the README in each MCP folder before operation                      |
 
 ---
 
@@ -20,7 +20,7 @@
 - Go 1.21+
 - MCP Protocol (JSON-RPC 2.0)
 - Google Sheets API
-- Python (untuk ads analysis)
+- Python (for ads analysis)
 
 ---
 
@@ -46,12 +46,12 @@ mcp-servers/
 
 ## Available MCP Servers
 
-| Server          | Binary                | Trigger      | Purpose                 |
-| --------------- | --------------------- | ------------ | ----------------------- |
-| GitHub Accounts | `mcp-github.exe`      | `MCP GH`     | Kelola akun GitHub      |
-| Antigravity     | `mcp-antigravity.exe` | `MCP AG`     | Kelola akun Antigravity |
-| Shopee Ads      | `mcp-shopee-ads.exe`  | `MCP Shopee` | Analisis iklan Shopee   |
-| TikTok Ads      | `mcp-tiktok-ads.exe`  | `MCP TikTok` | Analisis iklan TikTok   |
+| Server          | Binary                | Trigger      | Purpose                     |
+| --------------- | --------------------- | ------------ | --------------------------- |
+| GitHub Accounts | `mcp-github.exe`      | `MCP GH`     | Manage GitHub accounts      |
+| Antigravity     | `mcp-antigravity.exe` | `MCP AG`     | Manage Antigravity accounts |
+| Shopee Ads      | `mcp-shopee-ads.exe`  | `MCP Shopee` | Analyze Shopee ads          |
+| TikTok Ads      | `mcp-tiktok-ads.exe`  | `MCP TikTok` | Analyze TikTok ads          |
 
 ---
 

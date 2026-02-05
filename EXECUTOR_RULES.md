@@ -192,7 +192,7 @@ c.JSON(http.StatusInternalServerError, gin.H{
 })
 ```
 
-**NEVER:** `success: true` dengan error message
+**NEVER:** `success: true` with error message
 
 ---
 

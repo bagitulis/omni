@@ -172,7 +172,7 @@ REPEATED ERROR (3x):
 
 ---
 
-## 8. Prompt Structure untuk Delegation
+## 8. Prompt Structure for Delegation
 
 MUST include 6 sections:
 
