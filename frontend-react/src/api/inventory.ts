@@ -1,0 +1,134 @@
+import apiClient from "./client";
+import { InventoryItem, InventoryListResponse } from "@/types/product";
+
+export interface GetInventoryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  category?: string;
+}
+
+/**
+ * Fetch inventory data
+ * Backend route: GET /api/inventory/data
+ */
+export async function getInventory(
+  params?: GetInventoryParams,
+): Promise<InventoryListResponse> {
+  const response = await apiClient.get<InventoryListResponse>(
+    "/inventory/data",
+    {
+      params,
+    },
+  );
+  if (!response.success) {
+    throw new Error(response.error || "Failed to fetch inventory");
+  }
+  return response.data!;
+}
+
+/**
+ * Get inventory item by SKU
+ * Backend route: GET /api/inventory/data/:sku
+ */
+export async function getInventoryBySku(sku: string): Promise<InventoryItem> {
+  const response = await apiClient.get<InventoryItem>(`/inventory/data/${sku}`);
+  if (!response.success) {
+    throw new Error(response.error || "Failed to fetch inventory item");
+  }
+  return response.data!;
+}
+
+/**
+ * Update stock for a single item
+ * Backend route: POST /api/inventory/update-stock
+ */
+export async function updateStock(
+  sku: string,
+  newStock: number,
+): Promise<void> {
+  const response = await apiClient.post("/inventory/update-stock", {
+    sku,
+    stock: newStock,
+  });
+  if (!response.success) {
+    throw new Error(response.error || "Failed to update stock");
+  }
+}
+
+/**
+ * Batch update stock for multiple items
+ * Backend route: POST /api/inventory/update-stock-batch
+ */
+export async function updateStockBatch(
+  updates: Array<{ sku: string; stock: number }>,
+): Promise<void> {
+  const response = await apiClient.post("/inventory/update-stock-batch", {
+    updates,
+  });
+  if (!response.success) {
+    throw new Error(response.error || "Failed to batch update stock");
+  }
+}
+
+/**
+ * Get inventory configuration
+ * Backend route: GET /api/inventory/config
+ */
+export async function getInventoryConfig(): Promise<any> {
+  const response = await apiClient.get("/inventory/config");
+  if (!response.success) {
+    throw new Error(response.error || "Failed to fetch inventory config");
+  }
+  return response.data;
+}
+
+/**
+ * Trigger inventory sync
+ * Backend route: POST /api/inventory/sync
+ */
+export async function syncInventory(): Promise<void> {
+  const response = await apiClient.post("/inventory/sync");
+  if (!response.success) {
+    throw new Error(response.error || "Failed to sync inventory");
+  }
+}
+
+/**
+ * Get available columns for inventory table
+ * Backend route: GET /api/inventory/columns/available
+ */
+export async function getAvailableColumns(): Promise<string[]> {
+  const response = await apiClient.get<string[]>(
+    "/inventory/columns/available",
+  );
+  if (!response.success) {
+    throw new Error(response.error || "Failed to fetch available columns");
+  }
+  return response.data || [];
+}
+
+/**
+ * Get selected columns for inventory table
+ * Backend route: GET /api/inventory/columns/selected
+ */
+export async function getSelectedColumns(): Promise<string[]> {
+  const response = await apiClient.get<string[]>("/inventory/columns/selected");
+  if (!response.success) {
+    throw new Error(response.error || "Failed to fetch selected columns");
+  }
+  return response.data || [];
+}
+
+/**
+ * Save selected columns
+ * Backend route: POST /api/inventory/columns/selected
+ */
+export async function saveSelectedColumns(columns: string[]): Promise<void> {
+  const response = await apiClient.post("/inventory/columns/selected", {
+    columns,
+  });
+  if (!response.success) {
+    throw new Error(response.error || "Failed to save column selection");
+  }
+}
