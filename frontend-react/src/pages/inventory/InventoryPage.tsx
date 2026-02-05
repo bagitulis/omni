@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Table,
   Input,
@@ -22,8 +22,88 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { InventoryItem } from "../../types/product";
 
+// Inline editable stock cell component
+interface StockCellProps {
+  value: number;
+  itemId: string;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onSave: (id: string, val: number) => void;
+  onCancel: () => void;
+}
+
+function StockCell({
+  value,
+  itemId,
+  isEditing,
+  onStartEdit,
+  onSave,
+  onCancel,
+}: StockCellProps) {
+  const [editValue, setEditValue] = useState(value);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      setEditValue(value);
+      // Focus the input inside wrapper after render
+      setTimeout(() => {
+        const input = wrapperRef.current?.querySelector("input");
+        input?.focus();
+        input?.select();
+      }, 0);
+    }
+  }, [isEditing, value]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      onCancel();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      onSave(itemId, editValue);
+    }
+  };
+
+  if (!isEditing) {
+    return (
+      <div
+        onDoubleClick={onStartEdit}
+        style={{
+          cursor: "pointer",
+          padding: "4px 8px",
+          borderRadius: 3,
+          minHeight: 24,
+          display: "flex",
+          alignItems: "center",
+        }}
+        title="Double-click to edit"
+      >
+        {value}
+      </div>
+    );
+  }
+
+  return (
+    <div ref={wrapperRef}>
+      <InputNumber
+        value={editValue}
+        min={0}
+        onChange={(val) => setEditValue(val ?? 0)}
+        onKeyDown={handleKeyDown}
+        onBlur={() => onSave(itemId, editValue)}
+        style={{
+          width: "100%",
+          borderColor: "#0369a1",
+          borderRadius: 3,
+        }}
+      />
+    </div>
+  );
+}
+
 const generateMockData = (count: number): InventoryItem[] =>
-  Array.from({ length: count }).map((_, i) => ({
+  Array.from({ length: count }, (_, i) => ({
     item_id: `inv_${i}`,
     item_sku: `SKU-${1000 + i}`,
     item_name: `Product ${i} - ${Math.random().toString(36).substring(7)}`,
@@ -38,6 +118,7 @@ export default function InventoryPage() {
   const [data, setData] = useState<InventoryItem[]>([]);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [visibleColumns, setVisibleColumns] = useState<string[]>([
     "item_sku",
     "item_name",
@@ -50,8 +131,7 @@ export default function InventoryPage() {
     setData(generateMockData(1000));
   }, []);
 
-  const handleStockUpdate = (id: string, val: number | null) => {
-    if (val === null) return;
+  const handleStockUpdate = (id: string, val: number) => {
     setData((p) =>
       p.map((i) =>
         i.item_id === id
@@ -63,7 +143,12 @@ export default function InventoryPage() {
           : i,
       ),
     );
+    setEditingId(null);
     message.success("Updated");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
   };
 
   const filteredData = useMemo(
@@ -104,13 +189,13 @@ export default function InventoryPage() {
       key: "available_stock",
       width: 120,
       render: (v, r) => (
-        <InputNumber
-          defaultValue={v}
-          min={0}
-          onBlur={(e) => handleStockUpdate(r.item_id, Number(e.target.value))}
-          onPressEnter={(e) =>
-            handleStockUpdate(r.item_id, Number(e.currentTarget.value))
-          }
+        <StockCell
+          value={v}
+          itemId={r.item_id}
+          isEditing={editingId === r.item_id}
+          onStartEdit={() => setEditingId(r.item_id)}
+          onSave={handleStockUpdate}
+          onCancel={handleCancelEdit}
         />
       ),
     },
@@ -120,20 +205,27 @@ export default function InventoryPage() {
       width: 120,
       render: (_, r) => {
         const s = r.available_stock;
+        const cfg =
+          s === 0
+            ? {
+                color: "error" as const,
+                icon: <ExclamationCircleOutlined />,
+                text: "Out",
+              }
+            : s <= 10
+              ? {
+                  color: "warning" as const,
+                  icon: <WarningOutlined />,
+                  text: "Low",
+                }
+              : {
+                  color: "success" as const,
+                  icon: <CheckCircleOutlined />,
+                  text: "OK",
+                };
         return (
-          <Tag
-            color={s === 0 ? "error" : s <= 10 ? "warning" : "success"}
-            icon={
-              s === 0 ? (
-                <ExclamationCircleOutlined />
-              ) : s <= 10 ? (
-                <WarningOutlined />
-              ) : (
-                <CheckCircleOutlined />
-              )
-            }
-          >
-            {s === 0 ? "Out" : s <= 10 ? "Low" : "OK"}
+          <Tag color={cfg.color} icon={cfg.icon}>
+            {cfg.text}
           </Tag>
         );
       },

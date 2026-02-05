@@ -23,8 +23,6 @@ export function DashboardPage() {
         return "blue";
       case "tiktok":
         return "black";
-      case "tokopedia":
-        return "green";
       default:
         return "default";
     }

@@ -111,8 +111,8 @@ export default function OrdersPage() {
 
       {/* Status Tabs */}
       <Card
-        bordered={false}
-        bodyStyle={{ padding: "0 16px" }}
+        variant="borderless"
+        styles={{ body: { padding: "0 16px" } }}
         className="mb-4 shadow-sm rounded-sm"
       >
         <Tabs

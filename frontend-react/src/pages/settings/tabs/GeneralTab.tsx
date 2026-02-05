@@ -1,0 +1,197 @@
+import {
+  Card,
+  Form,
+  Select,
+  Switch,
+  Button,
+  Typography,
+  Divider,
+  message,
+  theme,
+} from "antd";
+
+const { Text } = Typography;
+const { useToken } = theme;
+
+interface GeneralSettings {
+  language: string;
+  timezone: string;
+  notifications_email: boolean;
+  notifications_browser: boolean;
+  auto_sync: boolean;
+  sync_interval: string;
+}
+
+export default function GeneralTab() {
+  const { token } = useToken();
+  const [form] = Form.useForm<GeneralSettings>();
+
+  const handleSave = (values: GeneralSettings) => {
+    console.log("Saving general settings:", values);
+    message.success("Settings saved successfully");
+  };
+
+  return (
+    <div>
+      <Form
+        form={form}
+        layout="vertical"
+        initialValues={{
+          language: "en",
+          timezone: "Asia/Jakarta",
+          notifications_email: true,
+          notifications_browser: true,
+          auto_sync: true,
+          sync_interval: "30",
+        }}
+        onFinish={handleSave}
+        style={{ maxWidth: 600 }}
+      >
+        <Card
+          title="Language & Region"
+          size="small"
+          style={{ marginBottom: 16, borderRadius: token.borderRadius }}
+        >
+          <Form.Item
+            label="Language"
+            name="language"
+            style={{ marginBottom: 16 }}
+          >
+            <Select
+              options={[
+                { value: "en", label: "English" },
+                { value: "id", label: "Bahasa Indonesia" },
+                { value: "zh", label: "中文" },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item
+            label="Timezone"
+            name="timezone"
+            style={{ marginBottom: 0 }}
+          >
+            <Select
+              options={[
+                { value: "Asia/Jakarta", label: "Asia/Jakarta (WIB)" },
+                { value: "Asia/Singapore", label: "Asia/Singapore (SGT)" },
+                {
+                  value: "Asia/Kuala_Lumpur",
+                  label: "Asia/Kuala Lumpur (MYT)",
+                },
+                { value: "UTC", label: "UTC" },
+              ]}
+            />
+          </Form.Item>
+        </Card>
+
+        <Card
+          title="Notifications"
+          size="small"
+          style={{ marginBottom: 16, borderRadius: token.borderRadius }}
+        >
+          <Form.Item
+            name="notifications_email"
+            valuePropName="checked"
+            style={{ marginBottom: 12 }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <Text strong style={{ fontSize: 12 }}>
+                  Email Notifications
+                </Text>
+                <br />
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Receive order updates and alerts via email
+                </Text>
+              </div>
+              <Switch defaultChecked />
+            </div>
+          </Form.Item>
+          <Divider style={{ margin: "12px 0" }} />
+          <Form.Item
+            name="notifications_browser"
+            valuePropName="checked"
+            style={{ marginBottom: 0 }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <Text strong style={{ fontSize: 12 }}>
+                  Browser Notifications
+                </Text>
+                <br />
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Show desktop notifications for important events
+                </Text>
+              </div>
+              <Switch defaultChecked />
+            </div>
+          </Form.Item>
+        </Card>
+
+        <Card
+          title="Data Sync"
+          size="small"
+          style={{ marginBottom: 16, borderRadius: token.borderRadius }}
+        >
+          <Form.Item
+            name="auto_sync"
+            valuePropName="checked"
+            style={{ marginBottom: 12 }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <Text strong style={{ fontSize: 12 }}>
+                  Auto Sync
+                </Text>
+                <br />
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Automatically sync data with platforms
+                </Text>
+              </div>
+              <Switch defaultChecked />
+            </div>
+          </Form.Item>
+          <Divider style={{ margin: "12px 0" }} />
+          <Form.Item
+            label="Sync Interval"
+            name="sync_interval"
+            style={{ marginBottom: 0 }}
+          >
+            <Select
+              options={[
+                { value: "15", label: "Every 15 minutes" },
+                { value: "30", label: "Every 30 minutes" },
+                { value: "60", label: "Every hour" },
+                { value: "manual", label: "Manual only" },
+              ]}
+            />
+          </Form.Item>
+        </Card>
+
+        <Form.Item style={{ marginBottom: 0 }}>
+          <Button type="primary" htmlType="submit">
+            Save Settings
+          </Button>
+        </Form.Item>
+      </Form>
+    </div>
+  );
+}

@@ -8,7 +8,6 @@ const PLATFORM_CONFIG: Record<string, { color: string; label: string }> = {
   shopee: { color: "#ee4d2d", label: "Shopee" },
   tiktok: { color: "#000000", label: "TikTok" },
   lazada: { color: "#0f146d", label: "Lazada" },
-  tokopedia: { color: "#42b549", label: "Tokopedia" },
 };
 
 export function PlatformBadge({ platform }: PlatformBadgeProps) {

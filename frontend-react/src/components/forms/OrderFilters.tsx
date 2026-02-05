@@ -23,7 +23,7 @@ export function OrderFilters({
 }: OrderFiltersProps) {
   return (
     <Card
-      bodyStyle={{ padding: "16px" }}
+      styles={{ body: { padding: "16px" } }}
       className="mb-4 rounded-sm border-slate-200 shadow-sm"
     >
       <Row gutter={[16, 16]} align="middle">
@@ -40,7 +40,6 @@ export function OrderFilters({
                 { value: "shopee", label: "Shopee" },
                 { value: "tiktok", label: "TikTok" },
                 { value: "lazada", label: "Lazada" },
-                { value: "tokopedia", label: "Tokopedia" },
               ]}
             />
           </div>

@@ -28,5 +28,4 @@ export const platform = {
   shopee: "#ee4d2d",
   tiktok: "#000000",
   lazada: "#0f146d",
-  tokopedia: "#42b549",
 } as const;

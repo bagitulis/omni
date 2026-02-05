@@ -25,8 +25,13 @@ const queryClient = new QueryClient({
 
 // Placeholder pages for routes not yet implemented
 import InventoryPage from "./pages/inventory/InventoryPage";
-const Analytics = () => <h1>Analytics</h1>;
-const Settings = () => <h1>Settings</h1>;
+import AnalyticsHubPage from "./pages/analytics/AnalyticsHubPage";
+import ShopeeAnalyticsPage from "./pages/analytics/ShopeeAnalyticsPage";
+import TiktokAnalyticsPage from "./pages/analytics/TiktokAnalyticsPage";
+import ShopeeAdsAnalyticsPage from "./pages/analytics/ShopeeAdsAnalyticsPage";
+import TiktokAdsAnalyticsPage from "./pages/analytics/TiktokAdsAnalyticsPage";
+import { MLDashboardPage } from "./pages/analytics/MLDashboardPage";
+import SettingsPage from "./pages/settings/SettingsPage";
 
 export default function App() {
   // Theme state kept for future implementation
@@ -47,8 +52,25 @@ export default function App() {
               <Route path="/products/edit/:id" element={<ProductEditPage />} />
               <Route path="/products/import" element={<ProductImportPage />} />
               <Route path="/inventory" element={<InventoryPage />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/settings" element={<Settings />} />
+              <Route path="/analytics" element={<AnalyticsHubPage />} />
+              <Route
+                path="/analytics/shopee"
+                element={<ShopeeAnalyticsPage />}
+              />
+              <Route
+                path="/analytics/tiktok"
+                element={<TiktokAnalyticsPage />}
+              />
+              <Route
+                path="/analytics/shopee-ads"
+                element={<ShopeeAdsAnalyticsPage />}
+              />
+              <Route
+                path="/analytics/tiktok-ads"
+                element={<TiktokAdsAnalyticsPage />}
+              />
+              <Route path="/analytics/ml" element={<MLDashboardPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>
           </Routes>

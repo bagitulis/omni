@@ -8,7 +8,7 @@ export interface DashboardMetrics {
 export interface RecentOrder {
   order_sn: string;
   status: string;
-  platform: "shopee" | "lazada" | "tiktok" | "tokopedia" | "manual";
+  platform: "shopee" | "lazada" | "tiktok" | "manual";
   amount: number;
   buyer_username: string;
   created_at: string;

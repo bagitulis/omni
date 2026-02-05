@@ -37,7 +37,7 @@ export function ProductPricingForm({
     >
       <Card
         title="Shipping Information"
-        bordered={false}
+        variant="borderless"
         style={{ marginBottom: 24 }}
       >
         <Row gutter={16}>

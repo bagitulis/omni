@@ -145,7 +145,7 @@ const LoginPage: React.FC = () => {
           maxWidth: 400,
           boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)",
         }}
-        bordered={false}
+        variant="borderless"
       >
         <div style={{ textAlign: "center", marginBottom: 30 }}>
           <Title level={2} style={{ margin: 0 }}>

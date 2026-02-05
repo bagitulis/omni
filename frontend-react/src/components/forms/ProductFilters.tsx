@@ -60,7 +60,6 @@ export function ProductFilters({
           options={[
             { label: "All Platforms", value: "all" },
             { label: "Shopee", value: "shopee" },
-            { label: "Tokopedia", value: "tokopedia" },
             { label: "Lazada", value: "lazada" },
             { label: "TikTok", value: "tiktok" },
           ]}
