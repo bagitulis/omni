@@ -27,6 +27,11 @@ func (h *PriceHandler) List(c *gin.Context) {
 		return
 	}
 
+	if h.db == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "database not initialized"})
+		return
+	}
+
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
@@ -59,6 +64,11 @@ func (h *PriceHandler) GetBySKU(c *gin.Context) {
 	sku := c.Param("sku")
 	if sku == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "SKU required"})
+		return
+	}
+
+	if h.db == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "database not initialized"})
 		return
 	}
 
@@ -100,6 +110,11 @@ func (h *PriceHandler) Update(c *gin.Context) {
 		return
 	}
 
+	if h.db == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "database not initialized"})
+		return
+	}
+
 	svc := price.NewPriceService(h.db, tenantID)
 	result, err := svc.UpdatePrice(c.Request.Context(), price.PriceUpdateRequest{
 		SKU:       sku,
@@ -125,6 +140,11 @@ func (h *PriceHandler) BulkUpdate(c *gin.Context) {
 	var req price.BulkPriceUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if h.db == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "database not initialized"})
 		return
 	}
 
