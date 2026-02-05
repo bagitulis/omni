@@ -13,21 +13,17 @@
 }
 
 /* Modal Container */
-.modal-content {
+.modal-container {
   background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   width: 100%;
-  max-width: 600px;
+  max-width: 500px;
   max-height: 90vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   animation: slideUp 250ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.modal-content.modal-large {
-  max-width: 700px;
 }
 
 /* Modal Header */
@@ -41,14 +37,17 @@
   flex-shrink: 0;
 }
 
-.modal-header h4 {
+.modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
   font-size: 1.125rem;
   font-weight: 700;
   color: #212121;
 }
 
-.btn-close {
+.modal-close-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -60,118 +59,142 @@
   border-radius: 6px;
   color: #5f656e;
   cursor: pointer;
-  font-size: 1.25rem;
   transition: all 150ms ease;
 }
 
-.btn-close:hover {
+.modal-close-btn:hover {
   background: #f3f4f5;
   color: #212121;
 }
 
-.btn-close:focus-visible {
+.modal-close-btn:focus-visible {
   outline: 2px solid #027a0a;
   outline-offset: 2px;
 }
 
-/* Modal Body (form sections act as body) */
-.form-section {
-  margin: 0 20px 16px;
-  padding: 16px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
+/* Modal Body */
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background: #ffffff;
 }
 
-.form-section:first-of-type {
-  margin-top: 20px;
-}
-
-.form-section h5 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 16px 0;
+.description {
+  margin: 0 0 20px;
   font-size: 0.875rem;
-  font-weight: 700;
-  color: #212121;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: #5f656e;
+  line-height: 1.5;
 }
 
-.form-section label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.8125rem;
-  font-weight: 500;
+.description strong {
   color: #212121;
-  margin-bottom: 8px;
+}
+
+/* Drop Zone */
+.drop-zone {
+  border: 2px dashed #e0e0e0;
+  border-radius: 12px;
+  padding: 32px 20px;
+  text-align: center;
+  transition: all 200ms ease;
+  background: #f8f9fa;
   cursor: pointer;
 }
 
-/* Form Group */
-.form-group {
-  margin-bottom: 16px;
+.drop-zone:hover,
+.drop-zone.has-file {
+  border-color: #027a0a;
+  background: #f0fdf4;
+}
+
+.drop-content {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 12px;
 }
 
-.form-group label {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #212121;
-  margin-bottom: 0;
+.icon-wrapper {
+  color: #9fa6b0;
+  transition: color 200ms ease;
 }
 
-.form-input,
-.form-select {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+.drop-zone:hover .icon-wrapper {
+  color: #027a0a;
+}
+
+.upload-controls {
   font-size: 0.875rem;
   color: #212121;
-  background: #ffffff;
-  transition: all 150ms ease;
 }
 
-.form-input:focus,
-.form-select:focus {
-  outline: none;
-  border-color: #027a0a;
-  box-shadow: 0 0 0 3px rgba(2, 122, 10, 0.1);
+.file-label {
+  color: #027a0a;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.form-input:read-only {
-  background: #f3f4f5;
+.file-label:hover {
+  text-decoration: underline;
+}
+
+.text-secondary {
   color: #5f656e;
-  cursor: not-allowed;
+  margin-left: 4px;
 }
 
-.form-select {
+.file-hint {
+  font-size: 0.75rem;
+  color: #9fa6b0;
+  margin: 0;
+}
+
+/* File Status */
+.file-status {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+}
+
+.file-status.success {
+  background: #f0fdf4;
+  color: #027a0a;
+  border: 1px solid #dcfce7;
+}
+
+.file-status.error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fee2e2;
+}
+
+.file-name {
+  flex: 1;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.remove-file {
+  background: transparent;
+  border: none;
+  color: inherit;
   cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235f656e' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 36px;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  opacity: 0.7;
 }
 
-/* Form Row */
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-/* Checkbox styling */
-.form-section input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: #027a0a;
-  cursor: pointer;
+.remove-file:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.05);
 }
 
 /* Modal Footer */
@@ -186,7 +209,7 @@
 }
 
 /* Buttons */
-.btn {
+.modal-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -200,38 +223,51 @@
   border: 1px solid transparent;
 }
 
-.btn-secondary {
+.modal-btn-secondary {
   background: #ffffff;
   color: #212121;
   border-color: #e0e0e0;
 }
 
-.btn-secondary:hover:not(:disabled) {
+.modal-btn-secondary:hover {
   background: #f3f4f5;
   border-color: #bdbdbd;
 }
 
-.btn-primary {
+.modal-btn-primary {
   background: #027a0a;
   color: white;
   border-color: #027a0a;
 }
 
-.btn-primary:hover:not(:disabled) {
+.modal-btn-primary:hover {
   background: #026208;
   border-color: #026208;
 }
 
-.btn-primary:disabled {
+.modal-btn-primary:disabled {
   background: #e0e0e0;
   border-color: #e0e0e0;
   color: #9fa6b0;
   cursor: not-allowed;
 }
 
-.btn:focus-visible {
+.modal-btn:focus-visible {
   outline: 2px solid #027a0a;
   outline-offset: 2px;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Animations */
@@ -261,23 +297,18 @@
     padding: 0;
   }
 
-  .modal-content,
-  .modal-content.modal-large {
+  .modal-container {
     max-width: 100%;
     max-height: 100%;
     height: 100%;
     border-radius: 0;
   }
 
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
   .modal-footer {
     flex-direction: column;
   }
 
-  .btn {
+  .modal-btn {
     width: 100%;
   }
 }
@@ -285,7 +316,8 @@
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
   .modal-overlay,
-  .modal-content {
+  .modal-container,
+  .animate-spin {
     animation: none;
     transition: none;
   }
