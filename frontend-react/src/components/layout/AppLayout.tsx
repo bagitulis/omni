@@ -13,13 +13,16 @@ export default function AppLayout() {
     token: { colorBgLayout },
   } = theme.useToken();
 
+  // Calculate sidebar width based on collapsed state
+  const sidebarWidth = collapsed ? 80 : 220;
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sidebar collapsed={collapsed} onCollapse={setCollapsed} />
       <Layout
         className="site-layout"
         style={{
-          marginLeft: 0, // Default for mobile (sidebar hidden)
+          marginLeft: sidebarWidth, // Always apply margin for fixed sidebar
           background: colorBgLayout,
           transition: "margin-left 0.2s",
         }}
@@ -30,7 +33,7 @@ export default function AppLayout() {
         />
         <Content
           style={{
-            margin: "24px 24px 80px 24px", // Extra bottom margin for mobile nav
+            padding: 24,
             minHeight: 280,
             overflow: "initial",
           }}
@@ -40,12 +43,13 @@ export default function AppLayout() {
         <MobileNav />
       </Layout>
       <style>{`
-        @media (min-width: 768px) {
+        @media (max-width: 768px) {
           .site-layout {
-            margin-left: ${collapsed ? 80 : 220}px !important;
+            margin-left: 0 !important;
           }
           main.ant-layout-content {
-            margin-bottom: 24px !important; /* Reset bottom margin on desktop */
+            padding: 16px !important;
+            margin-bottom: 56px !important; /* Space for mobile nav */
           }
         }
       `}</style>

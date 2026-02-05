@@ -44,11 +44,12 @@ export default function Sidebar({ collapsed, onCollapse }: SidebarProps) {
       style={{
         background: colorBgContainer,
         height: "100vh",
-        position: "sticky",
+        position: "fixed",
         top: 0,
         left: 0,
-        borderRight: "1px solid #f0f0f0",
-        zIndex: 10,
+        borderRight: "1px solid #e2e8f0",
+        zIndex: 100,
+        overflow: "auto",
       }}
       // Class used for media query targeting in style tag below
       className="main-sidebar"
