@@ -122,6 +122,7 @@ func RegisterOrderManagerRoutes(router *gin.RouterGroup, handler *handlers.Order
 		orders.POST("/today", handler.SyncOrdersToday)
 
 		orders.POST("/sync-all", handler.SyncAll)
+		orders.POST("/bulk-print-labels", handler.BulkPrintLabels)
 	}
 }
 

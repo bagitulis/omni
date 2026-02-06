@@ -32905,3 +32905,7 @@
 172.18.0.8 - - [06/Feb/2026:00:04:56 +0000] "POST /index.php HTTP/1.1" 405 559 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36" "103.127.242.157" rt=0.041 uct="0.000" uht="0.001" urt="0.001"
 172.18.0.8 - - [06/Feb/2026:00:04:57 +0000] "POST /admin HTTP/1.1" 405 559 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36" "103.127.242.157" rt=0.001 uct="0.001" uht="0.001" urt="0.001"
 172.18.0.8 - - [06/Feb/2026:00:04:57 +0000] "POST /api HTTP/1.1" 404 18 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36" "103.127.242.157" rt=0.011 uct="0.001" uht="0.010" urt="0.010"
+172.18.0.1 - - [06/Feb/2026:03:36:48 +0000] "GET / HTTP/1.1" 500 170 "-" "curl/8.17.0" "-" rt=0.000 uct="-" uht="-" urt="-"
+172.18.0.1 - - [06/Feb/2026:03:36:49 +0000] "GET /api/health HTTP/1.1" 200 184 "-" "curl/8.17.0" "-" rt=0.002 uct="0.001" uht="0.002" urt="0.002"
+172.18.0.1 - - [06/Feb/2026:03:37:14 +0000] "GET / HTTP/1.1" 500 170 "-" "curl/8.17.0" "-" rt=0.000 uct="-" uht="-" urt="-"
+172.18.0.1 - - [06/Feb/2026:03:38:31 +0000] "GET / HTTP/1.1" 200 866 "-" "curl/8.17.0" "-" rt=0.001 uct="0.001" uht="0.001" urt="0.001"

@@ -157,9 +157,35 @@ export async function bulkShipOrders(orderSns: string[]): Promise<void> {
 }
 
 /**
- * Bulk print labels
+ * Bulk print labels response
  */
-export async function bulkPrintLabels(orderSns: string[]): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  console.log("Printing labels for:", orderSns);
+export interface BulkPrintLabelsResponse {
+  labels: Array<{
+    order_sn: string;
+    file_data: string; // Base64 encoded PDF
+    status: string;
+  }>;
+  failed: Array<{
+    order_sn: string;
+    error: string;
+  }>;
+  count: number;
+}
+
+/**
+ * Bulk print labels - calls real backend API
+ */
+export async function bulkPrintLabels(
+  orderSns: string[],
+): Promise<BulkPrintLabelsResponse> {
+  const response = await apiClient.post<BulkPrintLabelsResponse>(
+    "/orders/bulk-print-labels",
+    {
+      order_sns: orderSns,
+    },
+  );
+  if (!response.success) {
+    throw new Error(response.error || "Failed to print labels");
+  }
+  return response.data!;
 }

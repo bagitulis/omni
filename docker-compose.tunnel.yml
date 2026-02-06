@@ -177,37 +177,13 @@ services:
       start_period: 40s
 
   # ============================================
-  # Frontend Service
+  # Frontend Service (React - Primary at /)
   # ============================================
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        - NUXT_PUBLIC_API_BASE=/api
     container_name: omni-frontend
-    restart: unless-stopped
-    environment:
-      - NODE_ENV=production
-      - NUXT_PUBLIC_API_BASE=/api
-    networks:
-      - omni-network
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-        reservations:
-          cpus: "0.1"
-          memory: 64M
-  # ============================================
-  # Frontend React Service
-  # ============================================
-  frontend-react:
-    build:
-      context: ./frontend-react
-      dockerfile: Dockerfile
-    container_name: omni-frontend-react
     restart: unless-stopped
     ports:
       - "5174:80"
@@ -224,6 +200,25 @@ services:
         reservations:
           cpus: "0.1"
           memory: 64M
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost/",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ============================================
+  # NOTE: Vue legacy frontend disabled - build broken
+  # To enable: fix vite.config.ts in frontend-vue to include Vue plugin
+  # ============================================
 
   # ============================================
   # Redis Cache
@@ -284,6 +279,8 @@ services:
     image: nginx:alpine
     container_name: omni-nginx
     restart: unless-stopped
+    ports:
+      - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d/tunnel.conf:/etc/nginx/conf.d/default.conf:ro

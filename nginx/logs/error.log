@@ -807,3 +807,5 @@
 2026/02/05 12:43:48 [error] 21#21: *706 backend could not be resolved (3: Host not found), client: 172.18.0.8, server: _, request: "POST /api HTTP/1.1", host: "yndigital.my.id"
 2026/02/05 12:43:48 [error] 21#21: *692 backend could not be resolved (3: Host not found), client: 172.18.0.8, server: _, request: "POST /api HTTP/1.1", host: "yndigital.my.id"
 2026/02/05 12:43:53 [error] 21#21: *692 backend could not be resolved (3: Host not found), client: 172.18.0.8, server: _, request: "POST /api HTTP/1.1", host: "yndigital.my.id"
+2026/02/06 03:36:48 [error] 21#21: *2 rewrite or internal redirection cycle while internally redirecting to "/index.html", client: 172.18.0.1, server: _, request: "GET / HTTP/1.1", host: "localhost"
+2026/02/06 03:37:14 [error] 21#21: *9 rewrite or internal redirection cycle while internally redirecting to "/index.html", client: 172.18.0.1, server: _, request: "GET / HTTP/1.1", host: "localhost"

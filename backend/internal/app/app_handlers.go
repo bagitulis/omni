@@ -109,7 +109,7 @@ func (a *App) InitExtendedHandlers(db *gorm.DB, googleAuth *google.AuthService) 
 
 		// Business logic handlers
 		OrderSyncHandler:    handlers.NewOrderSyncHandler(),
-		OrderManagerHandler: handlers.NewOrderManagerHandler(),
+		OrderManagerHandler: handlers.NewOrderManagerHandler(basePath),
 		LockedOrderHandler:  handlers.NewLockedOrderHandler(db),
 		JobQueueHandler:     handlers.NewJobQueueHandler(db),
 

@@ -41,7 +41,7 @@ func TestOrderManagerHandler_SyncAll(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := gin.New()
-			handler := NewOrderManagerHandler()
+			handler := NewOrderManagerHandler("./data")
 
 			r.Use(func(c *gin.Context) {
 				tt.setupContext(c)

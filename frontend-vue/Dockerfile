@@ -1,10 +1,10 @@
 # ============================================
-# Multi-stage Dockerfile for React Frontend
+# Multi-stage Dockerfile for Vue Frontend
 # Build: node:20-alpine
 # Serve: nginx:alpine
 # ============================================
 
-# Stage 1: Build React app
+# Stage 1: Build Vue app
 FROM node:20-alpine AS builder
 
 WORKDIR /app

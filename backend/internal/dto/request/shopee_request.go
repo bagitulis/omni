@@ -47,3 +47,13 @@ type UpdateStockRequest struct {
 type UpdatePriceRequest struct {
 	OriginalPrice float64 `json:"original_price" binding:"required"`
 }
+
+// BulkShipRequest for bulk shipping multiple orders
+type BulkShipRequest struct {
+	OrderSNs []string `json:"order_sns" binding:"required"`
+}
+
+// BulkPrintLabelsRequest for bulk printing shipping labels
+type BulkPrintLabelsRequest struct {
+	OrderSNs []string `json:"order_sns" binding:"required"`
+}

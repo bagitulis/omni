@@ -114,7 +114,6 @@ export function OrderTable({
       title: "Actions",
       key: "actions",
       width: 120,
-      fixed: "right" as const,
       render: (_: any, record: Order) => {
         const menuItems: MenuProps["items"] = [
           {
@@ -169,7 +168,6 @@ export function OrderTable({
         showTotal: (total) => `Total ${total} orders`,
         size: "small",
       }}
-      scroll={{ x: 1000 }}
       size="small" // Data-dense
       className="border border-slate-200 rounded-sm"
     />

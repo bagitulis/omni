@@ -35,7 +35,8 @@
 ```
 AGENTS.md (ROOT)              ← YOU ARE HERE - Critical invariants
     ├── backend/AGENTS.md     ← Go/Backend context when working in backend/
-    ├── frontend/AGENTS.md    ← Vue/React Frontend context (both stacks)
+    ├── frontend/AGENTS.md    ← React Frontend context (primary app)
+    ├── frontend-vue/AGENTS.md← Vue Frontend context (legacy app)
     ├── mcp-servers/AGENTS.md ← MCP context when working in mcp-servers/
     │
     ├── SISYPHUS_RULES.md     ← Orchestrator-specific rules

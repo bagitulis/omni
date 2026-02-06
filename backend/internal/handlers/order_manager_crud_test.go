@@ -15,7 +15,7 @@ func TestOrderManagerHandler_GetUnpaidOrders_MissingTenant(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	handler := NewOrderManagerHandler()
+	handler := NewOrderManagerHandler("./data")
 	r.GET("/api/orders/unpaid", handler.GetUnpaidOrders)
 
 	req, _ := http.NewRequest("GET", "/api/orders/unpaid", nil)
@@ -35,7 +35,7 @@ func TestOrderManagerHandler_GetUnprocessOrders_MissingTenant(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	handler := NewOrderManagerHandler()
+	handler := NewOrderManagerHandler("./data")
 	r.GET("/api/orders/unprocess", handler.GetUnprocessOrders)
 
 	req, _ := http.NewRequest("GET", "/api/orders/unprocess", nil)
@@ -50,7 +50,7 @@ func TestOrderManagerHandler_GetProcessedOrders_MissingTenant(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	handler := NewOrderManagerHandler()
+	handler := NewOrderManagerHandler("./data")
 	r.GET("/api/orders/processed", handler.GetProcessedOrders)
 
 	req, _ := http.NewRequest("GET", "/api/orders/processed", nil)
@@ -70,7 +70,7 @@ func TestOrderManagerHandler_GetUnpaidOrders_EmptyTenant(t *testing.T) {
 		c.Next()
 	})
 
-	handler := NewOrderManagerHandler()
+	handler := NewOrderManagerHandler("./data")
 	r.GET("/api/orders/unpaid", handler.GetUnpaidOrders)
 
 	req, _ := http.NewRequest("GET", "/api/orders/unpaid", nil)

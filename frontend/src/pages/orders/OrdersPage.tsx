@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tabs, Button, Space, Typography, message, Card } from "antd";
 import { PrinterOutlined, SendOutlined } from "@ant-design/icons";
 import { useOrders, useOrderActions } from "@/hooks/useOrders";
@@ -19,7 +20,8 @@ const ORDER_TABS = [
 
 export default function OrdersPage() {
   // State
-  const [activeTab, setActiveTab] = useState("unpaid");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("type") || "unpaid";
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
@@ -39,7 +41,7 @@ export default function OrdersPage() {
 
   // Handlers
   const handleTabChange = (key: string) => {
-    setActiveTab(key);
+    setSearchParams({ type: key });
     setPage(1);
     setSelectedRowKeys([]);
   };
