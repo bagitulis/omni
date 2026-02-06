@@ -9,6 +9,7 @@ import {
   message,
   theme,
 } from "antd";
+import { saveGeneralSettings } from "@/api/settings";
 
 const { Text } = Typography;
 const { useToken } = theme;
@@ -26,9 +27,13 @@ export default function GeneralTab() {
   const { token } = useToken();
   const [form] = Form.useForm<GeneralSettings>();
 
-  const handleSave = (values: GeneralSettings) => {
-    console.log("Saving general settings:", values);
-    message.success("Settings saved successfully");
+  const handleSave = async (values: GeneralSettings) => {
+    try {
+      await saveGeneralSettings(values);
+      message.success("Settings saved successfully");
+    } catch (error) {
+      message.error((error as Error).message || "Failed to save settings");
+    }
   };
 
   return (

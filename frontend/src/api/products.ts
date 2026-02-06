@@ -142,3 +142,15 @@ export async function syncProduct(id: string): Promise<any> {
   }
   return response.data;
 }
+
+/**
+ * Import products in bulk
+ * Backend route: POST /api/master-products/import
+ */
+export async function importProducts(rows: any[]): Promise<{ imported: number }> {
+  const response = await apiClient.post("/master-products/import", { rows });
+  if (!response.success) {
+    throw new Error(response.error || "Failed to import products");
+  }
+  return response.data;
+}

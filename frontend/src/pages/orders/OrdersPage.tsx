@@ -5,7 +5,9 @@ import { PrinterOutlined, SendOutlined } from "@ant-design/icons";
 import { useOrders, useOrderActions } from "@/hooks/useOrders";
 import { OrderTable } from "@/components/tables/OrderTable";
 import { OrderFilters } from "@/components/forms/OrderFilters";
-import { Order } from "@/types/order";
+import { OrderDetailModal } from "@/components/modals/OrderDetailModal";
+import { Order, OrderDetail } from "@/types/order";
+import { getOrderById } from "@/api/orders";
 import { Dayjs } from "dayjs";
 
 const { Title } = Typography;
@@ -26,7 +28,10 @@ export default function OrdersPage() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
   const [platform, setPlatform] = useState("all");
+  const [dateRange, setDateRange] = useState<[string, string] | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Hooks
   const { data, isLoading, refetch } = useOrders({
@@ -35,6 +40,8 @@ export default function OrdersPage() {
     status: activeTab,
     platform,
     search,
+    startDate: dateRange?.[0],
+    endDate: dateRange?.[1],
   });
 
   const { shipOrders, printLabels, isShipping, isPrinting } = useOrderActions();
@@ -57,8 +64,14 @@ export default function OrdersPage() {
   };
 
   const handleDateChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
-    console.log("Date range changed:", dates);
-    // TODO: Implement date filtering logic
+    if (dates && dates[0] && dates[1]) {
+      setDateRange([
+        dates[0].format("YYYY-MM-DD"),
+        dates[1].format("YYYY-MM-DD"),
+      ]);
+    } else {
+      setDateRange(null);
+    }
     setPage(1);
   };
 
@@ -99,6 +112,24 @@ export default function OrdersPage() {
       message.success(`Printed label for ${order.order_sn}`);
     } catch (error) {
       // Error handled in hook
+    }
+  };
+
+  const handleViewDetails = async (order: Order) => {
+    try {
+      // Fetch full order details from API
+      const orderDetail = await getOrderById(order.order_sn);
+      setSelectedOrder(orderDetail);
+      setIsDetailModalOpen(true);
+    } catch (error) {
+      // Fallback to basic order data if API fails
+      const fallbackDetail: OrderDetail = {
+        ...order,
+        items: [],
+      };
+      setSelectedOrder(fallbackDetail);
+      setIsDetailModalOpen(true);
+      message.warning("Could not load full order details");
     }
   };
 
@@ -164,26 +195,37 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Data Table */}
-      <div className="bg-white p-4 rounded-sm border border-slate-200 shadow-sm">
-        <OrderTable
-          orders={data?.orders || []}
-          loading={isLoading}
-          pagination={{
-            current: page,
-            pageSize: pageSize,
-            total: data?.total || 0,
-            onChange: (p, ps) => {
-              setPage(p);
-              setPageSize(ps);
-            },
-          }}
-          selectedRowKeys={selectedRowKeys}
-          onSelectionChange={handleSelectionChange}
-          onShip={handleSingleShip}
-          onPrint={handleSinglePrint}
-        />
-      </div>
-    </div>
-  );
-}
+       {/* Data Table */}
+       <div className="bg-white p-4 rounded-sm border border-slate-200 shadow-sm">
+         <OrderTable
+           orders={data?.orders || []}
+           loading={isLoading}
+           pagination={{
+             current: page,
+             pageSize: pageSize,
+             total: data?.total || 0,
+             onChange: (p, ps) => {
+               setPage(p);
+               setPageSize(ps);
+             },
+           }}
+           selectedRowKeys={selectedRowKeys}
+           onSelectionChange={handleSelectionChange}
+           onShip={handleSingleShip}
+           onPrint={handleSinglePrint}
+           onViewDetail={handleViewDetails}
+         />
+       </div>
+       
+       {/* Order Detail Modal */}
+       <OrderDetailModal
+         open={isDetailModalOpen}
+         order={selectedOrder}
+         onClose={() => {
+           setIsDetailModalOpen(false);
+           setSelectedOrder(null);
+         }}
+       />
+     </div>
+   );
+ }

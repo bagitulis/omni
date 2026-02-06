@@ -1,5 +1,5 @@
 import apiClient from "./client";
-import { OrderListResponse, Order, BackendOrderResponse } from "@/types/order";
+import { OrderListResponse, Order, BackendOrderResponse, OrderDetail } from "@/types/order";
 
 /**
  * Order tab types matching Vue frontend
@@ -187,5 +187,18 @@ export async function bulkPrintLabels(
   if (!response.success) {
     throw new Error(response.error || "Failed to print labels");
   }
+  return response.data!;
+}
+
+/**
+ * Fetch detailed order information by order_sn
+ */
+export async function getOrderById(orderSn: string): Promise<OrderDetail> {
+  const response = await apiClient.get<OrderDetail>(`/orders/${orderSn}`);
+  
+  if (!response.success) {
+    throw new Error(response.error || "Failed to fetch order details");
+  }
+  
   return response.data!;
 }

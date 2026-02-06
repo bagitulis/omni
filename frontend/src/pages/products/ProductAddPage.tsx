@@ -18,6 +18,7 @@ import {
   ProductPricingForm,
   PricingFormValues,
 } from "../../components/forms/ProductPricingForm";
+import { createProduct } from "@/api/products";
 
 // Combined type for the full product form
 type ProductFormValues = BasicFormValues &
@@ -60,22 +61,27 @@ export default function ProductAddPage() {
     window.scrollTo(0, 0);
   };
 
-  const handleSubmit = async (values: Partial<ProductFormValues>) => {
-    const finalData = { ...formData, ...values };
-    setSubmitting(true);
-
-    // Mock API call
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log("Submitting Product Data:", finalData);
-      message.success("Product created successfully!");
-      navigate("/master-products"); // Adjust route as needed
-    } catch (error) {
-      message.error("Failed to create product");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+   const handleSubmit = async (values: Partial<ProductFormValues>) => {
+     const finalData = { ...formData, ...values };
+     setSubmitting(true);
+ 
+     try {
+       // Transform form data to API format
+       const apiData = {
+         ...finalData,
+         // Convert UploadFile[] to string[] (use response.url or name as fallback)
+         images: (finalData.images || []).map((file: any) => file.response?.url || file.url || file.name || ""),
+       };
+       
+       await createProduct(apiData);
+       message.success("Product created successfully!");
+       navigate("/master-products");
+     } catch (error) {
+       message.error((error as Error).message || "Failed to create product");
+     } finally {
+       setSubmitting(false);
+     }
+   };
 
   const steps = [
     {

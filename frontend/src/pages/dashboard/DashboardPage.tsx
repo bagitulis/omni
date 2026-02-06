@@ -6,6 +6,7 @@ import {
   CheckCircleOutlined,
   RightOutlined,
 } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 import { TaskCard } from "@/components/ui/TaskCard";
 import { useDashboard } from "@/hooks/useDashboard";
 
@@ -13,6 +14,7 @@ const { Title } = Typography;
 
 export function DashboardPage() {
   const { data, isLoading } = useDashboard();
+  const navigate = useNavigate();
   const metrics = data?.metrics;
 
   const getPlatformColor = (platform: string) => {
@@ -78,7 +80,7 @@ export function DashboardPage() {
             value={metrics?.orders_pending ?? 0}
             loading={isLoading}
             icon={<ShoppingOutlined className="mr-2 text-sky-700" />}
-            onClick={() => console.log("Go to pending orders")}
+            onClick={() => navigate("/order-manager?type=unpaid")}
           />
         </Col>
         <Col xs={24} sm={12} md={6}>
@@ -88,7 +90,7 @@ export function DashboardPage() {
             loading={isLoading}
             valueStyle={{ color: "#d97706" }} // Warning color
             icon={<AlertOutlined className="mr-2 text-amber-600" />}
-            onClick={() => console.log("Go to low stock")}
+            onClick={() => navigate("/inventory?filter=low")}
           />
         </Col>
         <Col xs={24} sm={12} md={6}>
@@ -97,7 +99,7 @@ export function DashboardPage() {
             value={metrics?.ready_to_ship ?? 0}
             loading={isLoading}
             icon={<CarOutlined className="mr-2 text-blue-600" />}
-            onClick={() => console.log("Go to ready to ship")}
+            onClick={() => navigate("/order-manager?type=unprocess")}
           />
         </Col>
         <Col xs={24} sm={12} md={6}>

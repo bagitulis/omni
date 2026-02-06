@@ -14,6 +14,7 @@ import {
 import { ArrowLeftOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import type { ImportPreviewData } from "@/types/product";
+import { importProducts } from "@/api/products";
 import { ImportUploader } from "@/components/forms/ImportUploader";
 import { ImportPreviewTable } from "@/components/tables/ImportPreviewTable";
 import "./ProductImportPage.css";
@@ -68,16 +69,9 @@ export default function ProductImportPage() {
     setImporting(true);
 
     try {
-      // Mock import - simulate API call with valid rows only
       const validRows = previewData.rows.filter((row) => row.valid);
-
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Mock success response
-      const importedCount = validRows.length;
-
-      message.success(`Successfully imported ${importedCount} products`);
+      const result = await importProducts(validRows);
+      message.success(`Successfully imported ${result.imported} products`);
       setCurrentStep(2);
 
       // Auto-redirect after 2 seconds

@@ -13,6 +13,7 @@ import {
 } from "antd";
 import { UserOutlined, LockOutlined, LoadingOutlined } from "@ant-design/icons";
 import apiClient from "@/api/client";
+import { updateProfile, changePassword } from "@/api/settings";
 import { STORAGE_KEYS } from "@/lib/constants";
 
 const { Text, Title } = Typography;
@@ -81,19 +82,31 @@ export default function AccountTab() {
     }
   };
 
-  const handleProfileSave = (values: ProfileForm) => {
-    console.log("Saving profile:", values);
-    message.success("Profile updated successfully");
+  const handleProfileSave = async (values: ProfileForm) => {
+    try {
+      await updateProfile({
+        name: values.name,
+        email: values.email,
+        phone: values.phone,
+      });
+      message.success("Profile updated successfully");
+    } catch (error) {
+      message.error((error as Error).message || "Failed to update profile");
+    }
   };
 
-  const handlePasswordChange = (values: PasswordForm) => {
-    console.log("Changing password:", values);
-    if (values.new_password !== values.confirm_password) {
-      message.error("Passwords do not match");
-      return;
+  const handlePasswordChange = async (values: PasswordForm) => {
+    try {
+      await changePassword({
+        current_password: values.current_password,
+        new_password: values.new_password,
+        confirm_password: values.confirm_password,
+      });
+      message.success("Password changed successfully");
+      passwordForm.resetFields();
+    } catch (error) {
+      message.error((error as Error).message || "Failed to change password");
     }
-    message.success("Password changed successfully");
-    passwordForm.resetFields();
   };
 
   if (loading) {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tabs, Typography, theme } from "antd";
 import {
   SettingOutlined,
@@ -18,7 +18,12 @@ const { useToken } = theme;
 
 export default function SettingsPage() {
   const { token } = useToken();
-  const [activeTab, setActiveTab] = useState("general");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "general";
+
+  const handleTabChange = (key: string) => {
+    setSearchParams({ tab: key });
+  };
 
   const tabItems = [
     {
@@ -86,7 +91,7 @@ export default function SettingsPage() {
 
       <Tabs
         activeKey={activeTab}
-        onChange={setActiveTab}
+        onChange={handleTabChange}
         items={tabItems}
         style={{
           background: token.colorBgContainer,

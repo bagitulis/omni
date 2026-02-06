@@ -34,6 +34,7 @@ interface OrderTableProps {
   onSelectionChange: (selectedRowKeys: React.Key[]) => void;
   onShip: (order: Order) => void;
   onPrint: (order: Order) => void;
+  onViewDetail?: (order: Order) => void;
 }
 
 export function OrderTable({
@@ -44,6 +45,7 @@ export function OrderTable({
   onSelectionChange,
   onShip,
   onPrint,
+  onViewDetail,
 }: OrderTableProps) {
   const rowSelection: TableRowSelection<Order> = {
     selectedRowKeys,
@@ -116,24 +118,25 @@ export function OrderTable({
       width: 120,
       render: (_: any, record: Order) => {
         const menuItems: MenuProps["items"] = [
-          {
-            key: "view",
-            label: "View Details",
-            icon: <EyeOutlined />,
-          },
-          {
-            key: "print",
-            label: "Print Label",
-            icon: <PrinterOutlined />,
-            onClick: () => onPrint(record),
-          },
-          {
-            key: "ship",
-            label: "Ship Order",
-            icon: <SendOutlined />,
-            onClick: () => onShip(record),
-          },
-        ];
+           {
+             key: "view",
+             label: "View Details",
+             icon: <EyeOutlined />,
+             onClick: () => onViewDetail?.(record),
+           },
+           {
+             key: "print",
+             label: "Print Label",
+             icon: <PrinterOutlined />,
+             onClick: () => onPrint(record),
+           },
+           {
+             key: "ship",
+             label: "Ship Order",
+             icon: <SendOutlined />,
+             onClick: () => onShip(record),
+           },
+         ];
 
         return (
           <Space size="small">
