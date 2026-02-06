@@ -1,25 +1,8 @@
-import {
-  Table,
-  Button,
-  Space,
-  Typography,
-  Tooltip,
-  Dropdown,
-  MenuProps,
-} from "antd";
-import {
-  PrinterOutlined,
-  SendOutlined,
-  MoreOutlined,
-  CopyOutlined,
-  EyeOutlined,
-} from "@ant-design/icons";
+import { useMemo } from "react";
+import { Pagination, Checkbox, Spin, Empty } from "antd";
 import { Order } from "@/types/order";
-import { PlatformBadge } from "../ui/PlatformBadge";
-import { StatusPipeline } from "../ui/StatusPipeline";
-import { TableRowSelection } from "antd/es/table/interface";
-
-const { Text } = Typography;
+import { OrderCard } from "./OrderCard";
+import { GroupedOrder } from "./OrderTypes";
 
 interface OrderTableProps {
   orders: Order[];
@@ -32,9 +15,9 @@ interface OrderTableProps {
   };
   selectedRowKeys: React.Key[];
   onSelectionChange: (selectedRowKeys: React.Key[]) => void;
-  onShip: (order: Order) => void;
-  onPrint: (order: Order) => void;
-  onViewDetail?: (order: Order) => void;
+  onShip: (order: any) => void; // Using any to accommodate GroupedOrder vs Order mismatch
+  onPrint: (order: any) => void;
+  onViewDetail?: (order: any) => void;
 }
 
 export function OrderTable({
@@ -47,132 +30,124 @@ export function OrderTable({
   onPrint,
   onViewDetail,
 }: OrderTableProps) {
-  const rowSelection: TableRowSelection<Order> = {
-    selectedRowKeys,
-    onChange: onSelectionChange,
+  
+  // Group orders by order_no
+  const groupedOrders = useMemo(() => {
+    const orderMap = new Map<string, GroupedOrder>();
+    
+    orders.forEach((item) => {
+      // Use order_no as grouping key
+      const key = item.order_no;
+      
+      if (!orderMap.has(key)) {
+        orderMap.set(key, {
+          ...item,
+          // Explicit overrides to ensure correct mapping if needed
+          items: [],
+          status: item.status || item.order_status,
+        });
+      }
+      
+      const order = orderMap.get(key)!;
+      // Add item to the list
+      order.items.push({
+        sku: item.sku,
+        product_name: item.product_name,
+        variation_name: item.variation_name,
+        qty: item.qty,
+        price: item.price,
+        product_image: item.product_image,
+      });
+      
+      // Update totals if needed (though usually total_amount is per order)
+    });
+    
+    return Array.from(orderMap.values());
+  }, [orders]);
+
+  const allSelected = groupedOrders.length > 0 && groupedOrders.every(o => selectedRowKeys.includes(o.order_sn || o.order_no));
+  const indeterminate = groupedOrders.some(o => selectedRowKeys.includes(o.order_sn || o.order_no)) && !allSelected;
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allKeys = groupedOrders.map(o => o.order_sn || o.order_no);
+      // Merge with existing keys if we want to keep selection across pages (optional, but standard behavior usually replaces on page select)
+      // Here assuming we select all on current page
+      onSelectionChange(allKeys);
+    } else {
+      onSelectionChange([]);
+    }
   };
 
-  const columns = [
-    {
-      title: "Order No.",
-      dataIndex: "order_sn",
-      key: "order_sn",
-      width: 180,
-      render: (text: string) => (
-        <Space>
-          <Text strong style={{ color: "#0369a1" }}>
-            {text}
-          </Text>
-          <Tooltip title="Copy Order ID">
-            <Button
-              type="text"
-              size="small"
-              icon={<CopyOutlined className="text-xs" />}
-              onClick={(e) => {
-                e.stopPropagation();
-                navigator.clipboard.writeText(text);
-              }}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
-    {
-      title: "Platform",
-      dataIndex: "platform",
-      key: "platform",
-      width: 100,
-      render: (platform: string) => <PlatformBadge platform={platform} />,
-    },
-    {
-      title: "Customer",
-      dataIndex: "buyer_username",
-      key: "buyer_username",
-      render: (text: string) => <Text>{text}</Text>,
-    },
-    {
-      title: "Total",
-      dataIndex: "total_amount",
-      key: "total_amount",
-      width: 120,
-      render: (amount: number) => (
-        <Text strong>
-          {new Intl.NumberFormat("id-ID", {
-            style: "currency",
-            currency: "IDR",
-            minimumFractionDigits: 0,
-          }).format(amount)}
-        </Text>
-      ),
-    },
-    {
-      title: "Status",
-      dataIndex: "order_status",
-      key: "status",
-      width: 150,
-      render: (status: string) => <StatusPipeline status={status} />,
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      width: 120,
-      render: (_: any, record: Order) => {
-        const menuItems: MenuProps["items"] = [
-           {
-             key: "view",
-             label: "View Details",
-             icon: <EyeOutlined />,
-             onClick: () => onViewDetail?.(record),
-           },
-           {
-             key: "print",
-             label: "Print Label",
-             icon: <PrinterOutlined />,
-             onClick: () => onPrint(record),
-           },
-           {
-             key: "ship",
-             label: "Ship Order",
-             icon: <SendOutlined />,
-             onClick: () => onShip(record),
-           },
-         ];
+  const handleSelectRow = (key: string, checked: boolean) => {
+    if (checked) {
+      onSelectionChange([...selectedRowKeys, key]);
+    } else {
+      onSelectionChange(selectedRowKeys.filter(k => k !== key));
+    }
+  };
 
-        return (
-          <Space size="small">
-            <Tooltip title="Ship Order">
-              <Button
-                size="small"
-                type="primary"
-                icon={<SendOutlined />}
-                onClick={() => onShip(record)}
-                disabled={record.order_status !== "READY_TO_SHIP"}
-              />
-            </Tooltip>
-            <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
-              <Button size="small" icon={<MoreOutlined />} />
-            </Dropdown>
-          </Space>
-        );
-      },
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (orders.length === 0) {
+    return <Empty description="No orders found" />;
+  }
 
   return (
-    <Table
-      rowKey="order_sn"
-      columns={columns}
-      dataSource={orders}
-      loading={loading}
-      rowSelection={rowSelection}
-      pagination={{
-        ...pagination,
-        showSizeChanger: true,
-        showTotal: (total) => `Total ${total} orders`,
-        size: "small",
-      }}
-      size="small" // Data-dense
-      className="border border-slate-200 rounded-sm"
-    />
+    <div className="flex flex-col gap-4">
+      {/* Table Header */}
+      <div 
+        className="bg-gray-100 p-4 border-b-2 border-slate-200 rounded-t-md text-xs font-bold text-slate-500 uppercase tracking-wide items-center sticky top-0 z-10"
+        style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 0.8fr 1fr 1fr 1fr' }}
+      >
+        <div className="flex items-center gap-3">
+          <Checkbox 
+            checked={allSelected} 
+            indeterminate={indeterminate}
+            onChange={(e) => handleSelectAll(e.target.checked)}
+          />
+          <span>Product</span>
+        </div>
+        <div className="pl-2 border-l border-slate-300">Amount Paid</div>
+        <div className="pl-2 border-l border-slate-300">Status</div>
+        <div className="pl-2 border-l border-slate-300">Countdown</div>
+        <div className="pl-2 border-l border-slate-300">Shipping</div>
+        <div className="pl-2 border-l border-slate-300">Action</div>
+      </div>
+
+      {/* Order List */}
+      <div className="flex flex-col">
+        {groupedOrders.map((order) => (
+          <OrderCard
+            key={order.order_sn || order.order_no}
+            order={order}
+            selected={selectedRowKeys.includes(order.order_sn || order.order_no)}
+            onSelect={(checked) => handleSelectRow(order.order_sn || order.order_no, checked)}
+            onShip={onShip}
+            onPrint={onPrint}
+            onViewDetail={onViewDetail}
+          />
+        ))}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex justify-end pt-4">
+        <Pagination
+          current={pagination.current}
+          pageSize={pagination.pageSize}
+          total={pagination.total}
+          onChange={pagination.onChange}
+          showSizeChanger
+          showTotal={(total) => `Total ${total} orders`}
+          size="small"
+        />
+      </div>
+    </div>
   );
 }

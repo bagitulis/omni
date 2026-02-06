@@ -20,7 +20,7 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 import { ProductBasicForm } from "../../components/forms/ProductBasicForm";
-import { getProductById } from "../../api/products";
+import { getProductById, updateProduct, syncProduct } from "../../api/products";
 import type { UploadFile } from "antd/es/upload/interface";
 
 interface ProductData {
@@ -43,7 +43,15 @@ interface ProductData {
   }>;
 }
 
-const VariantsTab = ({ initialValues }: { initialValues: any[] }) => {
+const VariantsTab = ({
+  initialValues,
+  onSave,
+  loading,
+}: {
+  initialValues: any[];
+  onSave: (data: any[]) => void;
+  loading: boolean;
+}) => {
   const [dataSource, setDataSource] = useState(initialValues);
 
   const columns = [
@@ -123,7 +131,12 @@ const VariantsTab = ({ initialValues }: { initialValues: any[] }) => {
         size="small"
       />
       <div className="mt-4 flex justify-end">
-        <Button type="primary" icon={<SaveOutlined />}>
+        <Button
+          type="primary"
+          icon={<SaveOutlined />}
+          onClick={() => onSave(dataSource)}
+          loading={loading}
+        >
           Save Variants
         </Button>
       </div>
@@ -131,7 +144,15 @@ const VariantsTab = ({ initialValues }: { initialValues: any[] }) => {
   );
 };
 
-const ImagesTab = ({ initialValues }: { initialValues: UploadFile[] }) => {
+const ImagesTab = ({
+  initialValues,
+  onSave,
+  loading,
+}: {
+  initialValues: UploadFile[];
+  onSave: (files: UploadFile[]) => void;
+  loading: boolean;
+}) => {
   const [fileList, setFileList] = useState<UploadFile[]>(initialValues);
   return (
     <div>
@@ -150,7 +171,12 @@ const ImagesTab = ({ initialValues }: { initialValues: UploadFile[] }) => {
         )}
       </Upload>
       <div className="mt-4 flex justify-end">
-        <Button type="primary" icon={<SaveOutlined />}>
+        <Button
+          type="primary"
+          icon={<SaveOutlined />}
+          onClick={() => onSave(fileList)}
+          loading={loading}
+        >
           Save Images
         </Button>
       </div>
@@ -158,7 +184,15 @@ const ImagesTab = ({ initialValues }: { initialValues: UploadFile[] }) => {
   );
 };
 
-const PlatformSyncTab = ({ platforms }: { platforms: any[] }) => {
+const PlatformSyncTab = ({
+  platforms,
+  onSync,
+  loading,
+}: {
+  platforms: any[];
+  onSync: (platform: string) => void;
+  loading: boolean;
+}) => {
   const columns = [
     { title: "Platform", dataIndex: "platform", key: "platform" },
     {
@@ -179,7 +213,15 @@ const PlatformSyncTab = ({ platforms }: { platforms: any[] }) => {
     {
       title: "Action",
       key: "action",
-      render: () => <Button size="small">Sync Now</Button>,
+      render: (_: any, record: any) => (
+        <Button
+          size="small"
+          onClick={() => onSync(record.platform)}
+          loading={loading}
+        >
+          Sync Now
+        </Button>
+      ),
     },
   ];
   return <Table dataSource={platforms} columns={columns} pagination={false} />;
@@ -190,6 +232,9 @@ export default function ProductEditPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [product, setProduct] = useState<ProductData | null>(null);
+  const [saveVariantsLoading, setSaveVariantsLoading] = useState(false);
+  const [saveImagesLoading, setSaveImagesLoading] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -217,6 +262,60 @@ export default function ProductEditPage() {
 
     fetchProduct();
   }, [id]);
+
+  const handleSaveVariants = async (variants: any[]) => {
+    if (!id) return;
+
+    setSaveVariantsLoading(true);
+    try {
+      // Prepare update data - include variants if backend supports it
+      const updateData = {
+        title: product?.title,
+        description: product?.description,
+        images: product?.images,
+      };
+      // Spread variants data for future backend compatibility
+      Object.assign(updateData, variants.length > 0 ? { variants } : {});
+      
+      await updateProduct(id, updateData);
+      message.success("Variants saved successfully!");
+    } catch (err) {
+      message.error((err as Error).message || "Failed to save variants");
+    } finally {
+      setSaveVariantsLoading(false);
+    }
+  };
+
+  const handleSaveImages = async (files: UploadFile[]) => {
+    if (!id) return;
+
+    setSaveImagesLoading(true);
+    try {
+      const imageUrls = files
+        .map((file) => file.url || file.response?.url)
+        .filter(Boolean);
+      await updateProduct(id, { images: imageUrls });
+      message.success("Images saved successfully!");
+    } catch (err) {
+      message.error((err as Error).message || "Failed to save images");
+    } finally {
+      setSaveImagesLoading(false);
+    }
+  };
+
+  const handleSyncProduct = async (platform: string) => {
+    if (!id) return;
+
+    setSyncLoading(true);
+    try {
+      await syncProduct(id);
+      message.success(`Product synced to ${platform} successfully!`);
+    } catch (err) {
+      message.error((err as Error).message || "Failed to sync product");
+    } finally {
+      setSyncLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -269,17 +368,35 @@ export default function ProductEditPage() {
     {
       key: "2",
       label: "Variants",
-      children: <VariantsTab initialValues={product.skus || []} />,
+      children: (
+        <VariantsTab
+          initialValues={product.skus || []}
+          onSave={handleSaveVariants}
+          loading={saveVariantsLoading}
+        />
+      ),
     },
     {
       key: "3",
       label: "Images",
-      children: <ImagesTab initialValues={imageFiles} />,
+      children: (
+        <ImagesTab
+          initialValues={imageFiles}
+          onSave={handleSaveImages}
+          loading={saveImagesLoading}
+        />
+      ),
     },
     {
       key: "4",
       label: "Platform Sync",
-      children: <PlatformSyncTab platforms={product.platforms || []} />,
+      children: (
+        <PlatformSyncTab
+          platforms={product.platforms || []}
+          onSync={handleSyncProduct}
+          loading={syncLoading}
+        />
+      ),
     },
   ];
 
