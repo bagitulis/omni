@@ -12,6 +12,8 @@ import {
   Card,
   Badge,
   Alert,
+  Flex,
+  Typography,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -19,6 +21,8 @@ import {
   PlusOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
+
+const { Title, Text } = Typography;
 import { ProductBasicForm } from "../../components/forms/ProductBasicForm";
 import { getProductById, updateProduct, syncProduct } from "../../api/products";
 import type { UploadFile } from "antd/es/upload/interface";
@@ -104,7 +108,7 @@ const VariantsTab = ({
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
+      <Flex justify="flex-end" style={{ marginBottom: 16 }}>
         <Button
           type="dashed"
           icon={<PlusOutlined />}
@@ -123,14 +127,14 @@ const VariantsTab = ({
         >
           Add Variant
         </Button>
-      </div>
+      </Flex>
       <Table
         dataSource={dataSource}
         columns={columns}
         pagination={false}
         size="small"
       />
-      <div className="mt-4 flex justify-end">
+      <Flex justify="flex-end" style={{ marginTop: 16 }}>
         <Button
           type="primary"
           icon={<SaveOutlined />}
@@ -139,7 +143,7 @@ const VariantsTab = ({
         >
           Save Variants
         </Button>
-      </div>
+      </Flex>
     </div>
   );
 };
@@ -170,7 +174,7 @@ const ImagesTab = ({
           </div>
         )}
       </Upload>
-      <div className="mt-4 flex justify-end">
+      <Flex justify="flex-end" style={{ marginTop: 16 }}>
         <Button
           type="primary"
           icon={<SaveOutlined />}
@@ -179,7 +183,7 @@ const ImagesTab = ({
         >
           Save Images
         </Button>
-      </div>
+      </Flex>
     </div>
   );
 };
@@ -319,16 +323,16 @@ export default function ProductEditPage() {
 
   if (loading) {
     return (
-      <div className="p-12 text-center">
+      <Flex vertical align="center" justify="center" style={{ padding: 48 }}>
         <Spin size="large" />
-        <div className="mt-4">Loading product...</div>
-      </div>
+        <Text style={{ marginTop: 16 }}>Loading product...</Text>
+      </Flex>
     );
   }
 
   if (error || !product) {
     return (
-      <div className="p-6">
+      <div style={{ padding: 24 }}>
         <Alert
           type="error"
           message="Failed to load product"
@@ -401,22 +405,21 @@ export default function ProductEditPage() {
   ];
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="mb-6 flex items-center gap-4">
-        <Link
-          to="/master-products"
-          className="text-gray-500 hover:text-blue-600"
-        >
-          <ArrowLeftOutlined style={{ fontSize: 18 }} />
+    <div style={{ padding: 24, maxWidth: 1024, margin: '0 auto' }}>
+      <Flex align="center" gap={16} style={{ marginBottom: 24 }}>
+        <Link to="/master-products">
+          <Button type="text" icon={<ArrowLeftOutlined />} />
         </Link>
-        <h1 className="text-2xl font-bold m-0">
+        <Title level={4} style={{ margin: 0 }}>
           Edit Product: {product.title}
-        </h1>
-      </div>
+        </Title>
+      </Flex>
       <Card>
         <Tabs defaultActiveKey="1" items={items} type="card" />
       </Card>
-      <div className="mt-4 text-xs text-gray-400">Product ID: {id}</div>
+      <Text type="secondary" style={{ fontSize: 12, marginTop: 16, display: 'block' }}>
+        Product ID: {id}
+      </Text>
     </div>
   );
 }

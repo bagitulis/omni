@@ -1,8 +1,42 @@
-import { useMemo } from "react";
-import { Pagination, Checkbox, Spin, Empty } from "antd";
+import { useMemo, useState } from "react";
+import { Table, Avatar, Button, Typography, Tag, Dropdown, Space, Flex } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import { 
+  UserOutlined, 
+  MessageOutlined, 
+  CopyOutlined, 
+  CheckOutlined, 
+  MoreOutlined,
+  ShoppingOutlined 
+} from "@ant-design/icons";
 import { Order } from "@/types/order";
-import { OrderCard } from "./OrderCard";
-import { GroupedOrder } from "./OrderTypes";
+import { StatusPipeline } from "../ui/StatusPipeline";
+
+const { Text } = Typography;
+
+interface OrderItem {
+  sku: string;
+  product_name: string;
+  variation_name?: string;
+  qty: number;
+  price: number;
+  product_image?: string;
+}
+
+interface GroupedOrder {
+  key: string;
+  order_no: string;
+  order_sn?: string;
+  buyer_username: string;
+  platform: string;
+  status: string;
+  total_amount: number;
+  currency: string;
+  payment_method?: string;
+  shipping_carrier?: string;
+  ship_by_date?: number;
+  items: OrderItem[];
+}
 
 interface OrderTableProps {
   orders: Order[];
@@ -15,10 +49,151 @@ interface OrderTableProps {
   };
   selectedRowKeys: React.Key[];
   onSelectionChange: (selectedRowKeys: React.Key[]) => void;
-  onShip: (order: any) => void; // Using any to accommodate GroupedOrder vs Order mismatch
+  onShip: (order: any) => void;
   onPrint: (order: any) => void;
   onViewDetail?: (order: any) => void;
 }
+
+// ============ HELPER FUNCTIONS ============
+
+function formatAmount(amt: number, cur: string): string {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: cur || "IDR",
+    minimumFractionDigits: 0,
+  }).format(amt);
+}
+
+function getCountdown(shipByDate?: number): string {
+  if (!shipByDate) return "-";
+  const now = Date.now();
+  const deadline = shipByDate * 1000;
+  const diff = deadline - now;
+  if (diff <= 0) return "Overdue";
+
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24);
+    return `${days}d ${hours % 24}h`;
+  }
+  return `${hours}h ${minutes}m`;
+}
+
+function getCountdownColor(shipByDate?: number): string {
+  if (!shipByDate) return "#666";
+  const now = Date.now();
+  const deadline = shipByDate * 1000;
+  const diff = deadline - now;
+  if (diff <= 0) return "#f5222d";
+  if (diff <= 24 * 60 * 60 * 1000) return "#fa8c16";
+  return "#666";
+}
+
+// ============ SUB COMPONENTS ============
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Button
+      type="text"
+      size="small"
+      icon={copied ? <CheckOutlined style={{ color: "#52c41a" }} /> : <CopyOutlined style={{ color: "#999" }} />}
+      onClick={handleCopy}
+      style={{ padding: 0, height: "auto" }}
+    />
+  );
+}
+
+// Product Cell with Buyer Header
+function ProductCellWithBuyer({ order }: { order: GroupedOrder }) {
+  return (
+    <Flex vertical gap={8}>
+      {/* Buyer Header */}
+      <Flex 
+        justify="space-between" 
+        align="center"
+        style={{
+          backgroundColor: "#f5f5f5",
+          padding: "8px 12px",
+          borderRadius: 4,
+          marginBottom: 4,
+        }}
+      >
+        <Space size="small">
+          <Avatar size={24} icon={<UserOutlined />} style={{ backgroundColor: "#0369a1" }} />
+          <Text strong style={{ fontSize: 13 }}>{order.buyer_username}</Text>
+          <Button type="text" size="small" icon={<MessageOutlined style={{ color: "#999", fontSize: 12 }} />} style={{ padding: 0 }} />
+        </Space>
+        <Space size={4}>
+          <Text type="secondary" style={{ fontSize: 11 }}>ID:</Text>
+          <Text style={{ fontSize: 12, fontFamily: "monospace" }}>{order.order_no}</Text>
+          <CopyButton text={order.order_no} />
+        </Space>
+      </Flex>
+
+      {/* Products */}
+      <Flex vertical gap={10}>
+        {order.items.map((item, idx) => (
+          <Flex key={`${item.sku || "item"}-${idx}`} gap={10} align="flex-start">
+            <Avatar
+              shape="square"
+              size={52}
+              src={item.product_image}
+              icon={<ShoppingOutlined />}
+              style={{ 
+                flexShrink: 0, 
+                border: "1px solid #e0e0e0",
+                backgroundColor: "#fafafa"
+              }}
+            />
+            <Flex vertical gap={2} style={{ flex: 1, minWidth: 0 }}>
+              <Flex justify="space-between" align="flex-start" gap={8}>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 500,
+                    lineHeight: 1.3,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                  title={item.product_name}
+                >
+                  {item.product_name}
+                </Text>
+                <Tag color="default" style={{ margin: 0, flexShrink: 0, fontSize: 11 }}>
+                  x{item.qty}
+                </Tag>
+              </Flex>
+              {item.variation_name && (
+                <Text type="secondary" style={{ fontSize: 11 }}>
+                  Var: {item.variation_name}
+                </Text>
+              )}
+              {item.sku && (
+                <Text type="secondary" style={{ fontSize: 10, fontFamily: "monospace" }}>
+                  SKU: {item.sku}
+                </Text>
+              )}
+            </Flex>
+          </Flex>
+        ))}
+      </Flex>
+    </Flex>
+  );
+}
+
+// ============ MAIN COMPONENT ============
 
 export function OrderTable({
   orders,
@@ -30,26 +205,23 @@ export function OrderTable({
   onPrint,
   onViewDetail,
 }: OrderTableProps) {
-  
   // Group orders by order_no
   const groupedOrders = useMemo(() => {
     const orderMap = new Map<string, GroupedOrder>();
-    
+
     orders.forEach((item) => {
-      // Use order_no as grouping key
       const key = item.order_no;
-      
+
       if (!orderMap.has(key)) {
         orderMap.set(key, {
+          key,
           ...item,
-          // Explicit overrides to ensure correct mapping if needed
           items: [],
           status: item.status || item.order_status,
         });
       }
-      
+
       const order = orderMap.get(key)!;
-      // Add item to the list
       order.items.push({
         sku: item.sku,
         product_name: item.product_name,
@@ -58,96 +230,133 @@ export function OrderTable({
         price: item.price,
         product_image: item.product_image,
       });
-      
-      // Update totals if needed (though usually total_amount is per order)
     });
-    
+
     return Array.from(orderMap.values());
   }, [orders]);
 
-  const allSelected = groupedOrders.length > 0 && groupedOrders.every(o => selectedRowKeys.includes(o.order_sn || o.order_no));
-  const indeterminate = groupedOrders.some(o => selectedRowKeys.includes(o.order_sn || o.order_no)) && !allSelected;
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      const allKeys = groupedOrders.map(o => o.order_sn || o.order_no);
-      // Merge with existing keys if we want to keep selection across pages (optional, but standard behavior usually replaces on page select)
-      // Here assuming we select all on current page
-      onSelectionChange(allKeys);
-    } else {
-      onSelectionChange([]);
-    }
-  };
-
-  const handleSelectRow = (key: string, checked: boolean) => {
-    if (checked) {
-      onSelectionChange([...selectedRowKeys, key]);
-    } else {
-      onSelectionChange(selectedRowKeys.filter(k => k !== key));
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Spin size="large" />
-      </div>
-    );
-  }
-
-  if (orders.length === 0) {
-    return <Empty description="No orders found" />;
-  }
+  // ============ TABLE COLUMNS ============
+  const columns: ColumnsType<GroupedOrder> = [
+    {
+      title: "Product",
+      key: "product",
+      width: 320,
+      render: (_, record) => <ProductCellWithBuyer order={record} />,
+    },
+    {
+      title: "Amount Paid",
+      key: "amount",
+      width: 120,
+      render: (_, record) => (
+        <Flex vertical gap={2}>
+          <Text strong style={{ color: "#0369a1", fontSize: 14 }}>
+            {formatAmount(record.total_amount, record.currency)}
+          </Text>
+          <Text type="secondary" style={{ fontSize: 11 }}>
+            {record.payment_method || "Online Payment"}
+          </Text>
+        </Flex>
+      ),
+    },
+    {
+      title: "Status",
+      key: "status",
+      width: 130,
+      render: (_, record) => <StatusPipeline status={record.status} />,
+    },
+    {
+      title: "Countdown",
+      key: "countdown",
+      width: 110,
+      render: (_, record) => (
+        <Flex vertical gap={2}>
+          <Text style={{ color: getCountdownColor(record.ship_by_date), fontWeight: 500, fontSize: 13 }}>
+            {getCountdown(record.ship_by_date)}
+          </Text>
+          {record.ship_by_date && (
+            <Text type="secondary" style={{ fontSize: 10 }}>
+              Ship by: {new Date(record.ship_by_date * 1000).toLocaleDateString()}
+            </Text>
+          )}
+        </Flex>
+      ),
+    },
+    {
+      title: "Shipping",
+      key: "shipping",
+      width: 120,
+      render: (_, record) => (
+        <Text style={{ fontWeight: 500, fontSize: 12 }}>{record.shipping_carrier || "-"}</Text>
+      ),
+    },
+    {
+      title: "Action",
+      key: "action",
+      width: 90,
+      fixed: "right",
+      render: (_, record) => (
+        <Flex vertical gap={6}>
+          <Button
+            type="primary"
+            size="small"
+            block
+            disabled={record.status !== "READY_TO_SHIP"}
+            onClick={() => onShip(record)}
+            style={{ 
+              backgroundColor: record.status === "READY_TO_SHIP" ? "#0369a1" : undefined,
+              fontSize: 12
+            }}
+          >
+            Ship
+          </Button>
+          <Flex justify="space-between" align="center">
+            <Button
+              type="link"
+              size="small"
+              style={{ padding: 0, fontSize: 11, height: "auto" }}
+              onClick={() => onViewDetail?.(record)}
+            >
+              Details
+            </Button>
+            <Dropdown
+              menu={{
+                items: [
+                  { key: "view", label: "View Details", onClick: () => onViewDetail?.(record) },
+                  { key: "print", label: "Print Label", onClick: () => onPrint(record) },
+                ],
+              }}
+              trigger={["click"]}
+            >
+              <Button type="text" size="small" icon={<MoreOutlined />} style={{ padding: 0 }} />
+            </Dropdown>
+          </Flex>
+        </Flex>
+      ),
+    },
+  ];
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Table Header */}
-      <div 
-        className="bg-gray-100 p-4 border-b-2 border-slate-200 rounded-t-md text-xs font-bold text-slate-500 uppercase tracking-wide items-center sticky top-0 z-10"
-        style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 0.8fr 1fr 1fr 1fr' }}
-      >
-        <div className="flex items-center gap-3">
-          <Checkbox 
-            checked={allSelected} 
-            indeterminate={indeterminate}
-            onChange={(e) => handleSelectAll(e.target.checked)}
-          />
-          <span>Product</span>
-        </div>
-        <div className="pl-2 border-l border-slate-300">Amount Paid</div>
-        <div className="pl-2 border-l border-slate-300">Status</div>
-        <div className="pl-2 border-l border-slate-300">Countdown</div>
-        <div className="pl-2 border-l border-slate-300">Shipping</div>
-        <div className="pl-2 border-l border-slate-300">Action</div>
-      </div>
-
-      {/* Order List */}
-      <div className="flex flex-col">
-        {groupedOrders.map((order) => (
-          <OrderCard
-            key={order.order_sn || order.order_no}
-            order={order}
-            selected={selectedRowKeys.includes(order.order_sn || order.order_no)}
-            onSelect={(checked) => handleSelectRow(order.order_sn || order.order_no, checked)}
-            onShip={onShip}
-            onPrint={onPrint}
-            onViewDetail={onViewDetail}
-          />
-        ))}
-      </div>
-
-      {/* Pagination */}
-      <div className="flex justify-end pt-4">
-        <Pagination
-          current={pagination.current}
-          pageSize={pagination.pageSize}
-          total={pagination.total}
-          onChange={pagination.onChange}
-          showSizeChanger
-          showTotal={(total) => `Total ${total} orders`}
-          size="small"
-        />
-      </div>
-    </div>
+    <Table<GroupedOrder>
+      columns={columns}
+      dataSource={groupedOrders}
+      loading={loading}
+      rowKey="key"
+      size="middle"
+      pagination={{
+        current: pagination.current,
+        pageSize: pagination.pageSize,
+        total: pagination.total,
+        onChange: pagination.onChange,
+        showSizeChanger: true,
+        showTotal: (total) => `Total ${total} orders`,
+        size: "small",
+      }}
+      rowSelection={{
+        selectedRowKeys,
+        onChange: onSelectionChange,
+      }}
+      scroll={{ x: 900 }}
+      style={{ backgroundColor: "#fff" }}
+    />
   );
 }

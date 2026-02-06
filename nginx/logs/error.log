@@ -809,3 +809,17 @@
 2026/02/05 12:43:53 [error] 21#21: *692 backend could not be resolved (3: Host not found), client: 172.18.0.8, server: _, request: "POST /api HTTP/1.1", host: "yndigital.my.id"
 2026/02/06 03:36:48 [error] 21#21: *2 rewrite or internal redirection cycle while internally redirecting to "/index.html", client: 172.18.0.1, server: _, request: "GET / HTTP/1.1", host: "localhost"
 2026/02/06 03:37:14 [error] 21#21: *9 rewrite or internal redirection cycle while internally redirecting to "/index.html", client: 172.18.0.1, server: _, request: "GET / HTTP/1.1", host: "localhost"
+2026/02/06 04:00:16 [error] 22#22: wrong ident 24482 in DNS response for frontend, expect 31082
+2026/02/06 06:46:41 [emerg] 1#1: host not found in upstream "frontend:80" in /etc/nginx/nginx.conf:82
+2026/02/06 06:46:48 [emerg] 1#1: host not found in upstream "frontend:80" in /etc/nginx/nginx.conf:82
+2026/02/06 06:46:54 [emerg] 1#1: host not found in upstream "frontend:80" in /etc/nginx/nginx.conf:82
+2026/02/06 06:47:00 [emerg] 1#1: host not found in upstream "frontend:80" in /etc/nginx/nginx.conf:82
+2026/02/06 06:47:06 [emerg] 1#1: host not found in upstream "frontend:80" in /etc/nginx/nginx.conf:82
+2026/02/06 06:47:12 [emerg] 1#1: host not found in upstream "frontend:80" in /etc/nginx/nginx.conf:82
+2026/02/06 06:47:19 [emerg] 1#1: host not found in upstream "frontend:80" in /etc/nginx/nginx.conf:82
+2026/02/06 06:47:29 [emerg] 1#1: host not found in upstream "frontend:80" in /etc/nginx/nginx.conf:82
+2026/02/06 06:47:46 [emerg] 1#1: host not found in upstream "frontend:80" in /etc/nginx/nginx.conf:82
+2026/02/06 06:48:15 [emerg] 1#1: host not found in upstream "frontend:80" in /etc/nginx/nginx.conf:82
+2026/02/06 06:49:10 [emerg] 1#1: host not found in upstream "frontend:80" in /etc/nginx/nginx.conf:82
+2026/02/06 06:50:14 [emerg] 1#1: host not found in upstream "frontend:80" in /etc/nginx/nginx.conf:82
+2026/02/06 06:51:18 [emerg] 1#1: host not found in upstream "frontend:80" in /etc/nginx/nginx.conf:82

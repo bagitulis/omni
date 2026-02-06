@@ -20,8 +20,7 @@
       "skills": ["oracle-rules"]
     },
     "atlas": {
-      "model": "google/claude-sonnet-4-5-thinking",
-      "variant": "max"
+      "model": "github-copilot/claude-sonnet-4.5"
     },
     "librarian": {
       "model": "github-copilot/gemini-3-pro-preview",
@@ -46,7 +45,6 @@
     },
     "sisyphus-junior": {
       "model": "github-copilot/claude-sonnet-4.5",
-      "variant": "thinking",
       "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then EXECUTOR_RULES.md.",
       "skills": ["stuck-recovery"]
     },

@@ -1,5 +1,7 @@
-import { Card, Statistic } from "antd";
+import { Card, Statistic, Typography } from "antd";
 import React, { ReactNode } from "react";
+
+const { Text } = Typography;
 
 interface TaskCardProps {
   title: string;
@@ -31,7 +33,7 @@ export function TaskCard({
       style={{ height: "100%" }}
     >
       <Statistic
-        title={<span className="text-gray-500 font-medium">{title}</span>}
+        title={<Text type="secondary" style={{ fontWeight: 500 }}>{title}</Text>}
         value={value}
         precision={precision}
         valueStyle={{ fontSize: 24, fontWeight: 600, ...valueStyle }}

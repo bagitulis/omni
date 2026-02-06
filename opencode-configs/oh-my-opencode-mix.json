@@ -36,6 +36,7 @@
     "librarian": {
       "model": "google/gemini-3-pro",
       "variant": "high",
+      "temperature": 0.1,
       "skills": ["librarian-rules"]
     },
     "explore": {
@@ -49,6 +50,7 @@
     "metis": {
       "model": "google/gemini-3-pro",
       "variant": "high",
+      "temperature": 0.1,
       "skills": ["metis-rules"]
     },
     "momus": {
@@ -65,7 +67,8 @@
     },
     "default": {
       "model": "google/gemini-3-pro",
-      "variant": "high"
+      "variant": "high",
+      "temperature": 0.1
     }
   },
 
@@ -73,15 +76,18 @@
     "visual-engineering": {
       "model": "google/gemini-3-pro",
       "variant": "high",
+      "temperature": 0.1,
       "skills": ["react-frontend-rules", "playwright-layout-eval"]
     },
     "artistry": {
       "model": "google/gemini-3-pro",
-      "variant": "high"
+      "variant": "high",
+      "temperature": 0.1
     },
     "writing": {
       "model": "google/gemini-3-flash",
-      "variant": "high"
+      "variant": "high",
+      "temperature": 0.1
     },
     "quick": {
       "model": "github-copilot/claude-haiku-4.5"
@@ -98,15 +104,18 @@
     },
     "implementation": {
       "model": "google/gemini-3-pro",
-      "variant": "high"
+      "variant": "high",
+      "temperature": 0.1
     },
     "review": {
       "model": "google/gemini-3-pro",
-      "variant": "high"
+      "variant": "high",
+      "temperature": 0.1
     },
     "testing": {
       "model": "google/gemini-3-pro",
-      "variant": "high"
+      "variant": "high",
+      "temperature": 0.1
     },
     "security": {
       "model": "github-copilot/claude-opus-4.5"

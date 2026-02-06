@@ -1,8 +1,9 @@
-import { Input, Select, DatePicker, Button, Space, Card, Row, Col } from "antd";
+import { Input, Select, DatePicker, Button, Space, Card, Row, Col, Flex, Typography } from "antd";
 import { ReloadOutlined, DownloadOutlined } from "@ant-design/icons";
 import { Dayjs } from "dayjs";
 
 const { RangePicker } = DatePicker;
+const { Text } = Typography;
 
 interface OrderFiltersProps {
   onSearch: (value: string) => void;
@@ -23,14 +24,14 @@ export function OrderFilters({
 }: OrderFiltersProps) {
   return (
     <Card
-      styles={{ body: { padding: "16px" } }}
-      className="mb-4 rounded-sm border-slate-200 shadow-sm"
+      styles={{ body: { padding: 16 } }}
+      style={{ marginBottom: 16, borderRadius: 4 }}
     >
-      <Row gutter={[16, 16]} align="middle">
+      <Row gutter={[16, 16]} align="bottom">
         {/* Platform Select */}
         <Col xs={24} sm={12} md={4}>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-slate-500 font-medium">Platform</span>
+          <Flex vertical gap={4}>
+            <Text type="secondary" style={{ fontSize: 12 }}>Platform</Text>
             <Select
               defaultValue="all"
               style={{ width: "100%" }}
@@ -42,50 +43,45 @@ export function OrderFilters({
                 { value: "lazada", label: "Lazada" },
               ]}
             />
-          </div>
+          </Flex>
         </Col>
 
         {/* Date Range */}
         <Col xs={24} sm={12} md={6}>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-slate-500 font-medium">
-              Order Date
-            </span>
+          <Flex vertical gap={4}>
+            <Text type="secondary" style={{ fontSize: 12 }}>Order Date</Text>
             <RangePicker style={{ width: "100%" }} onChange={onDateChange} />
-          </div>
+          </Flex>
         </Col>
 
         {/* Search */}
         <Col xs={24} sm={12} md={6}>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-slate-500 font-medium">Search</span>
+          <Flex vertical gap={4}>
+            <Text type="secondary" style={{ fontSize: 12 }}>Search</Text>
             <Input.Search
               placeholder="Order ID, Customer Name..."
               onSearch={onSearch}
               allowClear
             />
-          </div>
+          </Flex>
         </Col>
 
         {/* Actions */}
-        <Col
-          xs={24}
-          sm={12}
-          md={8}
-          className="flex justify-end items-end h-full mt-auto"
-        >
-          <Space>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={onRefresh}
-              loading={loading}
-            >
-              Refresh
-            </Button>
-            <Button icon={<DownloadOutlined />} onClick={onExport}>
-              Export
-            </Button>
-          </Space>
+        <Col xs={24} sm={12} md={8}>
+          <Flex justify="flex-end" align="flex-end" style={{ height: "100%" }}>
+            <Space>
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={onRefresh}
+                loading={loading}
+              >
+                Refresh
+              </Button>
+              <Button icon={<DownloadOutlined />} onClick={onExport}>
+                Export
+              </Button>
+            </Space>
+          </Flex>
         </Col>
       </Row>
     </Card>

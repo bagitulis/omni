@@ -1,11 +1,11 @@
 ============================================================
 📊 ANTIGRAVITY ACCOUNT TEST REPORT
-📅 06/02/2026, 06.56.47
+📅 06/02/2026, 15.45.15
 ============================================================
 
 Total Accounts: 19
-✅ OK: 17
-❌ Errors: 2
+✅ OK: 19
+❌ Errors: 0
 
 ------------------------------------------------------------
 ✅ WORKING ACCOUNTS:
@@ -23,19 +23,9 @@ Total Accounts: 19
 [11] kadarielkarim@gmail.com
 [12] ddanangttiossawardi@gmail.com
 [13] fantanihardi@gmail.com
+[14] mantogisatah@gmail.com
 [15] aminahsyah110@gmail.com
 [16] henasanjaya8@gmail.com
 [17] herisetia738@gmail.com
-[19] mikaniasari979@gmail.com
-
-------------------------------------------------------------
-❌ ERROR ACCOUNTS:
-------------------------------------------------------------
-[14] mantogisatah@gmail.com
-     Status: UNKNOWN
-     Error: Unexpected response
-
 [18] santihara89@gmail.com
-     Status: UNKNOWN
-     Error: Unexpected response
-
+[19] mikaniasari979@gmail.com

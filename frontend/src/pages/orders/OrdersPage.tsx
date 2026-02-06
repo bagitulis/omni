@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Tabs, Button, Space, Typography, message, Card } from "antd";
+import { Tabs, Button, Space, Typography, message, Card, Flex, Divider } from "antd";
 import { PrinterOutlined, SendOutlined } from "@ant-design/icons";
 import { useOrders, useOrderActions } from "@/hooks/useOrders";
 import { OrderTable } from "@/components/tables/OrderTable";
@@ -10,7 +10,7 @@ import { Order, OrderDetail } from "@/types/order";
 import { getOrderById } from "@/api/orders";
 import { Dayjs } from "dayjs";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const ORDER_TABS = [
   { key: "unpaid", label: "Unpaid" },
@@ -117,12 +117,10 @@ export default function OrdersPage() {
 
   const handleViewDetails = async (order: Order) => {
     try {
-      // Fetch full order details from API
       const orderDetail = await getOrderById(order.order_sn);
       setSelectedOrder(orderDetail);
       setIsDetailModalOpen(true);
     } catch (error) {
-      // Fallback to basic order data if API fails
       const fallbackDetail: OrderDetail = {
         ...order,
         items: [],
@@ -134,98 +132,106 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div style={{ padding: 24 }}>
+      <Flex vertical gap={16}>
         <Title level={2} style={{ margin: 0 }}>
           Order Management
         </Title>
-      </div>
 
-      {/* Status Tabs */}
-      <Card
-        variant="borderless"
-        styles={{ body: { padding: "0 16px" } }}
-        className="mb-4 shadow-sm rounded-sm"
-      >
-        <Tabs
-          activeKey={activeTab}
-          onChange={handleTabChange}
-          items={ORDER_TABS}
-          tabBarStyle={{ margin: 0 }}
+        {/* Status Tabs */}
+        <Card
+          variant="borderless"
+          styles={{ body: { padding: "0 16px" } }}
+          style={{ borderRadius: 4 }}
+        >
+          <Tabs
+            activeKey={activeTab}
+            onChange={handleTabChange}
+            items={ORDER_TABS}
+            tabBarStyle={{ margin: 0 }}
+          />
+        </Card>
+
+        {/* Filters */}
+        <OrderFilters
+          onSearch={handleSearch}
+          onPlatformChange={handlePlatformChange}
+          onDateChange={handleDateChange}
+          onRefresh={refetch}
+          onExport={() => message.info("Export functionality coming soon")}
+          loading={isLoading}
         />
-      </Card>
 
-      {/* Filters */}
-      <OrderFilters
-        onSearch={handleSearch}
-        onPlatformChange={handlePlatformChange}
-        onDateChange={handleDateChange}
-        onRefresh={refetch}
-        onExport={() => message.info("Export functionality coming soon")}
-        loading={isLoading}
-      />
+        {/* Bulk Actions Bar */}
+        {selectedRowKeys.length > 0 && (
+          <Card 
+            size="small"
+            style={{ 
+              backgroundColor: "#f0f9ff", 
+              border: "1px solid #bae6fd",
+              borderRadius: 4 
+            }}
+          >
+            <Flex justify="space-between" align="center">
+              <Space split={<Divider type="vertical" />}>
+                <Text strong style={{ color: "#0369a1" }}>
+                  {selectedRowKeys.length} orders selected
+                </Text>
+                <Button
+                  type="primary"
+                  icon={<SendOutlined />}
+                  onClick={handleBulkShip}
+                  loading={isShipping}
+                >
+                  Bulk Ship
+                </Button>
+                <Button
+                  icon={<PrinterOutlined />}
+                  onClick={handleBulkPrint}
+                  loading={isPrinting}
+                >
+                  Bulk Print Labels
+                </Button>
+              </Space>
+              <Button type="text" onClick={() => setSelectedRowKeys([])}>
+                Clear Selection
+              </Button>
+            </Flex>
+          </Card>
+        )}
 
-      {/* Bulk Actions Bar */}
-      {selectedRowKeys.length > 0 && (
-        <div className="mb-4 p-3 bg-sky-50 border border-sky-200 rounded-sm flex items-center justify-between">
-          <Space>
-            <span className="text-sky-700 font-medium">
-              {selectedRowKeys.length} orders selected
-            </span>
-            <div className="h-4 w-px bg-sky-200 mx-2" />
-            <Button
-              type="primary"
-              icon={<SendOutlined />}
-              onClick={handleBulkShip}
-              loading={isShipping}
-            >
-              Bulk Ship
-            </Button>
-            <Button
-              icon={<PrinterOutlined />}
-              onClick={handleBulkPrint}
-              loading={isPrinting}
-            >
-              Bulk Print Labels
-            </Button>
-          </Space>
-          <Button type="text" onClick={() => setSelectedRowKeys([])}>
-            Clear Selection
-          </Button>
-        </div>
-      )}
+        {/* Data Table */}
+        <Card style={{ borderRadius: 4 }}>
+          <OrderTable
+            orders={data?.orders || []}
+            loading={isLoading}
+            pagination={{
+              current: page,
+              pageSize: pageSize,
+              total: data?.total || 0,
+              onChange: (p, ps) => {
+                setPage(p);
+                setPageSize(ps);
+              },
+            }}
+            selectedRowKeys={selectedRowKeys}
+            onSelectionChange={handleSelectionChange}
+            onShip={handleSingleShip}
+            onPrint={handleSinglePrint}
+            onViewDetail={handleViewDetails}
+          />
+        </Card>
 
-       {/* Data Table */}
-       <div className="bg-white p-4 rounded-sm border border-slate-200 shadow-sm">
-         <OrderTable
-           orders={data?.orders || []}
-           loading={isLoading}
-           pagination={{
-             current: page,
-             pageSize: pageSize,
-             total: data?.total || 0,
-             onChange: (p, ps) => {
-               setPage(p);
-               setPageSize(ps);
-             },
-           }}
-           selectedRowKeys={selectedRowKeys}
-           onSelectionChange={handleSelectionChange}
-           onShip={handleSingleShip}
-           onPrint={handleSinglePrint}
-           onViewDetail={handleViewDetails}
-         />
-       </div>
-       
-       {/* Order Detail Modal */}
-       <OrderDetailModal
-         open={isDetailModalOpen}
-         order={selectedOrder}
-         onClose={() => {
-           setIsDetailModalOpen(false);
-           setSelectedOrder(null);
-         }}
-       />
-     </div>
-   );
- }
+        {/* Order Detail Modal */}
+        <OrderDetailModal
+          open={isDetailModalOpen}
+          order={selectedOrder}
+          onClose={() => {
+            setIsDetailModalOpen(false);
+            setSelectedOrder(null);
+          }}
+        />
+      </Flex>
+    </div>
+  );
+}
