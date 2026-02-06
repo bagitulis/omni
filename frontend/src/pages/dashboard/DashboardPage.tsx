@@ -15,7 +15,6 @@ const { Title, Text } = Typography;
 export function DashboardPage() {
   const { data, isLoading } = useDashboard();
   const navigate = useNavigate();
-  const metrics = data?.metrics;
 
   const getPlatformColor = (platform: string) => {
     switch (platform) {
@@ -55,12 +54,12 @@ export function DashboardPage() {
       key: "status",
       render: (status: string) => <Tag bordered={false}>{status}</Tag>,
     },
-    {
-      title: "Amount",
-      dataIndex: "amount",
-      key: "amount",
-      render: (amount: number) => `Rp ${amount.toLocaleString("id-ID")}`,
-    },
+     {
+       title: "Amount",
+       dataIndex: "total_amount",
+       key: "total_amount",
+       render: (amount: number) => `Rp ${(amount || 0).toLocaleString("id-ID")}`,
+     },
   ];
 
   return (
@@ -75,44 +74,46 @@ export function DashboardPage() {
 
         {/* Operational Task Counters */}
         <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} md={6}>
-            <TaskCard
-              title="Orders Pending"
-              value={metrics?.orders_pending ?? 0}
-              loading={isLoading}
-              icon={<ShoppingOutlined style={{ marginRight: 8, color: "#0369a1" }} />}
-              onClick={() => navigate("/order-manager?type=unpaid")}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <TaskCard
-              title="Stock Warning"
-              value={metrics?.stock_warning ?? 0}
-              loading={isLoading}
-              valueStyle={{ color: "#d97706" }}
-              icon={<AlertOutlined style={{ marginRight: 8, color: "#d97706" }} />}
-              onClick={() => navigate("/inventory?filter=low")}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <TaskCard
-              title="Ready to Ship"
-              value={metrics?.ready_to_ship ?? 0}
-              loading={isLoading}
-              icon={<CarOutlined style={{ marginRight: 8, color: "#2563eb" }} />}
-              onClick={() => navigate("/order-manager?type=unprocess")}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <TaskCard
-              title="Platform Status"
-              value={metrics?.platform_status ?? 0}
-              loading={isLoading}
-              suffix="%"
-              valueStyle={{ color: "#16a34a" }}
-              icon={<CheckCircleOutlined style={{ marginRight: 8, color: "#16a34a" }} />}
-            />
-          </Col>
+           <Col xs={24} sm={12} md={6}>
+             <TaskCard
+               title="Orders Pending"
+               value={data?.orders_pending ?? 0}
+               loading={isLoading}
+               icon={<ShoppingOutlined style={{ marginRight: 8, color: "#0369a1" }} />}
+               onClick={() => navigate("/order-manager?type=unpaid")}
+             />
+           </Col>
+           <Col xs={24} sm={12} md={6}>
+             <TaskCard
+               title="Total Orders"
+               value={data?.analytics?.total_orders ?? 0}
+               loading={isLoading}
+               icon={<AlertOutlined style={{ marginRight: 8, color: "#d97706" }} />}
+               onClick={() => navigate("/order-manager")}
+             />
+           </Col>
+           <Col xs={24} sm={12} md={6}>
+             <TaskCard
+               title="Ready to Ship"
+               value={data?.ready_to_ship ?? 0}
+               loading={isLoading}
+               icon={<CarOutlined style={{ marginRight: 8, color: "#2563eb" }} />}
+               onClick={() => navigate("/order-manager?type=unprocess")}
+             />
+           </Col>
+           <Col xs={24} sm={12} md={6}>
+             <TaskCard
+               title="Total Sales"
+               value={
+                 data?.analytics?.total_sales
+                   ? `Rp ${Math.floor(data.analytics.total_sales / 1_000_000)}M`
+                   : 0
+               }
+               loading={isLoading}
+               valueStyle={{ color: "#16a34a" }}
+               icon={<CheckCircleOutlined style={{ marginRight: 8, color: "#16a34a" }} />}
+             />
+           </Col>
         </Row>
 
         {/* Recent Orders Section */}
