@@ -7,7 +7,7 @@
       "projectId": "original-app-dsk6k",
       "managedProjectId": "original-app-dsk6k",
       "addedAt": 1769057556241,
-      "lastUsed": 1770502112373,
+      "lastUsed": 1770505919130,
       "rateLimitResetTimes": {
         "claude": 1770196161452,
         "gemini-cli:gemini-3-flash-preview": 1770273959224,
@@ -31,11 +31,6 @@
         "createdAt": 1770196098781
       },
       "cachedQuota": {
-        "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-08T02:03:18Z",
-          "modelCount": 3
-        },
         "claude": {
           "remainingFraction": 0.2,
           "resetTime": "2026-02-10T02:21:55Z",
@@ -43,18 +38,23 @@
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-08T03:08:31Z",
+          "resetTime": "2026-02-08T04:05:17Z",
           "modelCount": 1
+        },
+        "gemini-pro": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-08T02:03:18Z",
+          "modelCount": 3
         }
       },
-      "cachedQuotaUpdatedAt": 1770502113418
+      "cachedQuotaUpdatedAt": 1770505530173
     },
     {
       "email": "k.nghaerin03@gmail.com",
       "refreshToken": "1//0gQ_rYI1R7g5XCgYIARAAGBASNwF-L9Irsj4lYPUyaS0_ttPg1I7B_7phgI6WHHWd3c4IS7Olq70Us0lBWozbpBjlJ_Ip_stYcGw",
       "managedProjectId": "hidef-catwalk-gllrg",
       "addedAt": 1769057618418,
-      "lastUsed": 1770502003198,
+      "lastUsed": 1770505928865,
       "rateLimitResetTimes": {
         "claude": 1770197731832,
         "gemini-cli:gemini-3-flash-preview": 1770274123765,
@@ -78,30 +78,30 @@
         "createdAt": 1770197669495
       },
       "cachedQuota": {
-        "claude": {
-          "remainingFraction": 0.2,
-          "resetTime": "2026-02-10T02:20:29Z",
-          "modelCount": 3
-        },
-        "gemini-flash": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-08T03:06:42Z",
-          "modelCount": 1
-        },
         "gemini-pro": {
           "remainingFraction": 1,
           "resetTime": "2026-02-08T02:03:27Z",
           "modelCount": 3
+        },
+        "gemini-flash": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-08T04:05:33Z",
+          "modelCount": 1
+        },
+        "claude": {
+          "remainingFraction": 0.2,
+          "resetTime": "2026-02-10T02:20:29Z",
+          "modelCount": 3
         }
       },
-      "cachedQuotaUpdatedAt": 1770502004430
+      "cachedQuotaUpdatedAt": 1770505535915
     },
     {
       "email": "ahmaditobeni@gmail.com",
       "refreshToken": "1//0gW742Tp9Z1JVCgYIARAAGBASNwF-L9IrI4dxhGTz1lDJZ98t5i7C5rYLD14HhA0WvbGM2S2mtG6JrP5MjKrFoSVl8mM35JMSPns",
       "managedProjectId": "sinuous-buffer-r30wt",
       "addedAt": 1769057661796,
-      "lastUsed": 1770498218342,
+      "lastUsed": 1770505934909,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1770274125137,
         "claude": 1770261429071,
@@ -137,11 +137,11 @@
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-08T02:03:37Z",
+          "resetTime": "2026-02-08T04:12:13Z",
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770498219166
+      "cachedQuotaUpdatedAt": 1770505935820
     },
     {
       "email": "yyumnaa@gmail.com",
@@ -149,7 +149,7 @@
       "projectId": "groovy-agility-2xfg6",
       "managedProjectId": "groovy-agility-2xfg6",
       "addedAt": 1769400331432,
-      "lastUsed": 1770498232570,
+      "lastUsed": 1770505940094,
       "fingerprint": {
         "deviceId": "029946b7-c8c8-489c-9c77-ed7dfe2df381",
         "sessionToken": "61df4507083475c1a0df02ce5af50d15",
@@ -173,11 +173,6 @@
         "gemini-antigravity:antigravity-gemini-3-pro": 1770501997368
       },
       "cachedQuota": {
-        "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-08T01:59:14Z",
-          "modelCount": 3
-        },
         "claude": {
           "remainingFraction": 0.2,
           "resetTime": "2026-02-11T07:35:56Z",
@@ -185,11 +180,16 @@
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-08T01:59:18Z",
+          "resetTime": "2026-02-08T04:09:45Z",
           "modelCount": 1
+        },
+        "gemini-pro": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-08T01:59:14Z",
+          "modelCount": 3
         }
       },
-      "cachedQuotaUpdatedAt": 1770497960805,
+      "cachedQuotaUpdatedAt": 1770505786789,
       "enabled": true
     },
     {
@@ -198,7 +198,7 @@
       "projectId": "ace-amp-lllrg",
       "managedProjectId": "ace-amp-lllrg",
       "addedAt": 1769562912889,
-      "lastUsed": 1770497957825,
+      "lastUsed": 1770505947075,
       "fingerprint": {
         "deviceId": "82d58ef1-bd34-442a-81fb-af27a9dfa105",
         "sessionToken": "5b0dc8c550e114edf167030042010845",
@@ -222,14 +222,14 @@
         "gemini-antigravity:antigravity-gemini-3-pro": 1770501997343
       },
       "cachedQuota": {
+        "gemini-pro": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-08T02:03:53Z",
+          "modelCount": 3
+        },
         "claude": {
           "remainingFraction": 0.2,
           "resetTime": "2026-02-10T16:25:33Z",
-          "modelCount": 3
-        },
-        "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-08T01:59:17Z",
           "modelCount": 3
         },
         "gemini-flash": {
@@ -238,7 +238,7 @@
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770497958918,
+      "cachedQuotaUpdatedAt": 1770505787125,
       "enabled": true
     },
     {
@@ -247,7 +247,7 @@
       "projectId": "hidden-computer-fgdjz",
       "managedProjectId": "hidden-computer-fgdjz",
       "addedAt": 1769563072340,
-      "lastUsed": 1770497964483,
+      "lastUsed": 1770505955094,
       "fingerprint": {
         "deviceId": "03712653-77b4-4c42-8ccf-e611b33f7ad6",
         "sessionToken": "ffca2cdaca387e7fead87f96f19c3b6a",
@@ -271,11 +271,6 @@
         "gemini-antigravity:antigravity-gemini-3-pro": 1770501997358
       },
       "cachedQuota": {
-        "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-08T01:59:20Z",
-          "modelCount": 3
-        },
         "claude": {
           "remainingFraction": 0.2,
           "resetTime": "2026-02-10T16:24:49Z",
@@ -283,11 +278,16 @@
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-08T01:59:23Z",
+          "resetTime": "2026-02-08T04:09:52Z",
           "modelCount": 1
+        },
+        "gemini-pro": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-08T01:59:20Z",
+          "modelCount": 3
         }
       },
-      "cachedQuotaUpdatedAt": 1770497965298,
+      "cachedQuotaUpdatedAt": 1770505794331,
       "enabled": true
     },
     {
@@ -296,7 +296,7 @@
       "projectId": "elite-minutia-ljjzm",
       "managedProjectId": "elite-minutia-ljjzm",
       "addedAt": 1769563400333,
-      "lastUsed": 1770498040975,
+      "lastUsed": 1770505959864,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1770274134496,
         "claude": 1770197695145,
@@ -321,23 +321,23 @@
       },
       "enabled": true,
       "cachedQuota": {
-        "claude": {
-          "remainingFraction": 0.2,
-          "resetTime": "2026-02-10T16:30:19Z",
-          "modelCount": 3
-        },
         "gemini-pro": {
           "remainingFraction": 1,
           "resetTime": "2026-02-08T02:00:36Z",
           "modelCount": 3
         },
+        "claude": {
+          "remainingFraction": 0.2,
+          "resetTime": "2026-02-10T16:30:19Z",
+          "modelCount": 3
+        },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-08T02:00:40Z",
+          "resetTime": "2026-02-08T04:09:57Z",
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770498041798
+      "cachedQuotaUpdatedAt": 1770505799881
     },
     {
       "email": "felixstarlk576@gmail.com",
@@ -345,7 +345,7 @@
       "projectId": "yttriferous-vigil-vl2ws",
       "managedProjectId": "yttriferous-vigil-vl2ws",
       "addedAt": 1769563632478,
-      "lastUsed": 1770498041997,
+      "lastUsed": 1770506038270,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1770274136197,
         "claude": 1770196304931,
@@ -372,7 +372,7 @@
       "cachedQuota": {
         "gemini-pro": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-08T02:00:41Z",
+          "resetTime": "2026-02-08T04:10:03Z",
           "modelCount": 3
         },
         "claude": {
@@ -386,7 +386,7 @@
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770498042919
+      "cachedQuotaUpdatedAt": 1770505809856
     },
     {
       "email": "bagitulis@gmail.com",
@@ -394,7 +394,7 @@
       "projectId": "exalted-octane-0fcgj",
       "managedProjectId": "exalted-octane-0fcgj",
       "addedAt": 1769400286655,
-      "lastUsed": 1770498047426,
+      "lastUsed": 1770506037190,
       "rateLimitResetTimes": {
         "claude": 1770708400568.0796,
         "gemini-cli:gemini-3-flash-preview": 1770274137678,
@@ -418,30 +418,30 @@
         "createdAt": 1770196524126
       },
       "cachedQuota": {
-        "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-08T02:00:43Z",
-          "modelCount": 3
-        },
-        "gemini-flash": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-08T02:00:46Z",
-          "modelCount": 1
-        },
         "claude": {
           "remainingFraction": 0,
           "resetTime": "2026-02-10T07:26:40Z",
           "modelCount": 3
+        },
+        "gemini-flash": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-08T04:10:16Z",
+          "modelCount": 1
+        },
+        "gemini-pro": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-08T02:00:43Z",
+          "modelCount": 3
         }
       },
-      "cachedQuotaUpdatedAt": 1770498048348
+      "cachedQuotaUpdatedAt": 1770505818378
     },
     {
       "email": "yuoistarlk@gmail.com",
       "refreshToken": "1//0gyqc4JpIp668CgYIARAAGBASNwF-L9IrRUzfBa8cWgg5r56GbpjnTpNU439FqyKrs1AS2oOKQDKXsY30clfBTs9Nzlf5E-Lvzjk",
       "managedProjectId": "elaborate-weft-1ms83",
       "addedAt": 1769490038983,
-      "lastUsed": 1770502036137,
+      "lastUsed": 1770506045216,
       "fingerprint": {
         "deviceId": "af6f8b0a-caff-46e6-9504-72ef4cbc9348",
         "sessionToken": "a312a9a2baf1b0c60e2d2fec87fc3bc3",
@@ -470,18 +470,18 @@
           "resetTime": "2026-02-08T02:00:55Z",
           "modelCount": 3
         },
-        "gemini-flash": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-08T03:07:15Z",
-          "modelCount": 1
-        },
         "claude": {
           "remainingFraction": 0,
           "resetTime": "2026-02-10T05:04:52Z",
           "modelCount": 3
+        },
+        "gemini-flash": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-08T04:10:29Z",
+          "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770502037151,
+      "cachedQuotaUpdatedAt": 1770505832810,
       "enabled": true
     },
     {
@@ -490,7 +490,7 @@
       "projectId": "tribal-oven-4cx0h",
       "managedProjectId": "tribal-oven-4cx0h",
       "addedAt": 1769562766362,
-      "lastUsed": 1770502043491,
+      "lastUsed": 1770506066924,
       "fingerprint": {
         "deviceId": "14b7b2ee-418b-4568-bfec-e03f5cb5f1c2",
         "sessionToken": "5d3dfc97e13b2ae8013363a2275e32bf",
@@ -526,11 +526,11 @@
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-08T03:07:22Z",
+          "resetTime": "2026-02-08T04:10:38Z",
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770502044352,
+      "cachedQuotaUpdatedAt": 1770505840042,
       "enabled": true
     },
     {
@@ -539,7 +539,7 @@
       "projectId": "cohesive-avenue-fsdh5",
       "managedProjectId": "cohesive-avenue-fsdh5",
       "addedAt": 1769755016500,
-      "lastUsed": 1770502048796,
+      "lastUsed": 1770506096367,
       "fingerprint": {
         "deviceId": "8afb9fb1-a35a-420f-8ae0-101ffd181c93",
         "sessionToken": "98a1a5a477ba9859aa10a89a7afd8247",
@@ -563,6 +563,11 @@
         "gemini-antigravity:antigravity-gemini-3-pro": 1770501997372
       },
       "cachedQuota": {
+        "gemini-flash": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-08T04:10:46Z",
+          "modelCount": 1
+        },
         "gemini-pro": {
           "remainingFraction": 1,
           "resetTime": "2026-02-08T02:01:15Z",
@@ -572,21 +577,16 @@
           "remainingFraction": 0.2,
           "resetTime": "2026-02-10T15:05:17Z",
           "modelCount": 3
-        },
-        "gemini-flash": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-08T03:07:27Z",
-          "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770502049569,
+      "cachedQuotaUpdatedAt": 1770505847965,
       "enabled": true
     },
     {
       "email": "fantanihardi@gmail.com",
       "refreshToken": "1//0gJS9ehc7ocsSCgYIARAAGBASNwF-L9IrAX7BawPfs5fpCL7dG7ufqoTNFjk1YDPnlYgb23WkS5kjykSE5sHMUf-AVzsyhmHHd84",
       "addedAt": 1770013137029,
-      "lastUsed": 1770502056667,
+      "lastUsed": 1770506104729,
       "enabled": true,
       "rateLimitResetTimes": {
         "claude": 1770452187668,
@@ -612,29 +612,29 @@
         "createdAt": 1770196587651
       },
       "cachedQuota": {
-        "claude": {
-          "remainingFraction": 0.2,
-          "resetTime": "2026-02-10T08:09:18Z",
-          "modelCount": 3
+        "gemini-flash": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-08T04:10:56Z",
+          "modelCount": 1
         },
         "gemini-pro": {
           "remainingFraction": 1,
           "resetTime": "2026-02-08T02:01:23Z",
           "modelCount": 3
         },
-        "gemini-flash": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-08T03:07:35Z",
-          "modelCount": 1
+        "claude": {
+          "remainingFraction": 0.2,
+          "resetTime": "2026-02-10T08:09:18Z",
+          "modelCount": 3
         }
       },
-      "cachedQuotaUpdatedAt": 1770502057922
+      "cachedQuotaUpdatedAt": 1770505858338
     },
     {
       "email": "mantogisatah@gmail.com",
       "refreshToken": "1//0gVY1XZ8ouqxaCgYIARAAGBASNwF-L9Ir-Kt6r3FhUgdQy26PTrw8pCwJA_LKPqFhdgeqWAsotQwZ-xfLgaXiZuvUeC4aJcW6gAw",
       "addedAt": 1770013187447,
-      "lastUsed": 1770502061943,
+      "lastUsed": 1770506115167,
       "enabled": true,
       "rateLimitResetTimes": {
         "gemini-antigravity:gemini-3-flash-preview": 1770188136063,
@@ -660,29 +660,29 @@
         "createdAt": 1770195737578
       },
       "cachedQuota": {
-        "claude": {
-          "remainingFraction": 0.2,
-          "resetTime": "2026-02-10T01:18:34Z",
-          "modelCount": 3
-        },
         "gemini-pro": {
           "remainingFraction": 1,
           "resetTime": "2026-02-08T02:01:55Z",
           "modelCount": 3
         },
+        "claude": {
+          "remainingFraction": 0.2,
+          "resetTime": "2026-02-10T01:18:34Z",
+          "modelCount": 3
+        },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-08T03:06:49Z",
+          "resetTime": "2026-02-08T04:11:04Z",
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770502011320
+      "cachedQuotaUpdatedAt": 1770505866399
     },
     {
       "email": "aminahsyah110@gmail.com",
       "refreshToken": "1//0ggXp5tP_griBCgYIARAAGBASNwF-L9Irx5mpfa_WLCXdS9XBnX0JCF0XrSB6EjI8JePLHNQ-WbrUjSkETOxnosOuZkjlR-g22Ew",
       "addedAt": 1770081057601,
-      "lastUsed": 1770502067380,
+      "lastUsed": 1770506140625,
       "enabled": true,
       "rateLimitResetTimes": {
         "claude": 1770198024482,
@@ -708,6 +708,11 @@
         "createdAt": 1770382214415
       },
       "cachedQuota": {
+        "gemini-pro": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-08T02:02:16Z",
+          "modelCount": 3
+        },
         "claude": {
           "remainingFraction": 0.2,
           "resetTime": "2026-02-10T08:09:55Z",
@@ -715,22 +720,17 @@
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-08T03:06:58Z",
+          "resetTime": "2026-02-08T04:11:23Z",
           "modelCount": 1
-        },
-        "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-08T02:02:16Z",
-          "modelCount": 3
         }
       },
-      "cachedQuotaUpdatedAt": 1770502020446
+      "cachedQuotaUpdatedAt": 1770505885623
     },
     {
       "email": "henasanjaya8@gmail.com",
       "refreshToken": "1//0giZ-Eoi31RvKCgYIARAAGBASNwF-L9Ir9ZDVcguLR6OWdMxxukKGFFQ0nZI0NCfSVWejiaC6YZAG4k5OmXLKbb35_jV8I0jC0TE",
       "addedAt": 1770116378252,
-      "lastUsed": 1770502078285,
+      "lastUsed": 1770505890215,
       "enabled": true,
       "rateLimitResetTimes": {
         "claude": 1770271471420,
@@ -755,21 +755,21 @@
         "createdAt": 1770271409091
       },
       "managedProjectId": "silver-flag-cqrk4",
-      "cachedQuotaUpdatedAt": 1770502025974,
+      "cachedQuotaUpdatedAt": 1770505890980,
       "cachedQuota": {
-        "claude": {
-          "remainingFraction": 0.2,
-          "resetTime": "2026-02-10T11:25:57Z",
-          "modelCount": 3
-        },
         "gemini-pro": {
           "remainingFraction": 1,
           "resetTime": "2026-02-08T02:02:22Z",
           "modelCount": 3
         },
+        "claude": {
+          "remainingFraction": 0.2,
+          "resetTime": "2026-02-10T11:25:57Z",
+          "modelCount": 3
+        },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-08T03:07:04Z",
+          "resetTime": "2026-02-08T04:00:51Z",
           "modelCount": 1
         }
       }
@@ -778,7 +778,7 @@
       "email": "herisetia738@gmail.com",
       "refreshToken": "1//0gedvywgEvqjhCgYIARAAGBASNwF-L9Ir4KTzt5xexb1FOqZoyhPUVa4OjLpBV3kl00hdDbpZdkET-SQql091VP5U-f0k_a8axVg",
       "addedAt": 1770116419745,
-      "lastUsed": 1770502087763,
+      "lastUsed": 1770505896049,
       "enabled": true,
       "rateLimitResetTimes": {
         "claude": 1770195084172,
@@ -816,17 +816,17 @@
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-08T03:08:06Z",
+          "resetTime": "2026-02-08T04:11:35Z",
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770502088737
+      "cachedQuotaUpdatedAt": 1770505896806
     },
     {
       "email": "santihara89@gmail.com",
       "refreshToken": "1//0g9YcsZOLcZ-YCgYIARAAGBASNwF-L9Irk2DXIN0V9DXz6lE-iiTz93futPSp8c45cenrdhvTbmiqXkZJiXpamGQ4rKcMs09qtaE",
       "addedAt": 1770198265170,
-      "lastUsed": 1770502086554,
+      "lastUsed": 1770505907970,
       "enabled": true,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1770274118581,
@@ -866,35 +866,13 @@
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770502087626,
-      "fingerprintHistory": [
-        {
-          "fingerprint": {
-            "deviceId": "94e73388-ef73-49a5-95f8-652ebb907a72",
-            "sessionToken": "69e66a5da20838ef04b3b359e42fd083",
-            "userAgent": "antigravity/1.15.8 darwin/arm64",
-            "apiClient": "google-cloud-sdk intellij/2024.1",
-            "clientMetadata": {
-              "ideType": "CLOUD_SHELL_EDITOR",
-              "platform": "MACOS",
-              "pluginType": "GEMINI",
-              "osVersion": "13.5.2",
-              "arch": "arm64",
-              "sqmId": "{805F3F6D-677D-409C-A8C4-60C89BC6020C}"
-            },
-            "quotaUser": "device-13f35455fe4a70fa",
-            "createdAt": 1770258457184
-          },
-          "timestamp": 1770476311957,
-          "reason": "regenerated"
-        }
-      ]
+      "cachedQuotaUpdatedAt": 1770505517430
     },
     {
       "email": "mikaniasari979@gmail.com",
       "refreshToken": "1//0gnGTr00CT_oCCgYIARAAGBASNgF-L9Irp0DhGV81gAf0v7qjz9M6RJTxNr98IfUoFO3HoXhRvnZ-UJpXJcl5FfGh0R3WclhfhA",
       "addedAt": 1770198431807,
-      "lastUsed": 1770502108365,
+      "lastUsed": 1770505914045,
       "enabled": true,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1770274121206,
@@ -925,23 +903,23 @@
           "resetTime": "2026-02-08T02:03:04Z",
           "modelCount": 3
         },
+        "gemini-flash": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-08T04:05:29Z",
+          "modelCount": 1
+        },
         "claude": {
           "remainingFraction": 0.2,
           "resetTime": "2026-02-11T14:24:45Z",
           "modelCount": 3
-        },
-        "gemini-flash": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-08T03:08:27Z",
-          "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770502109331
+      "cachedQuotaUpdatedAt": 1770505535530
     }
   ],
   "activeIndex": 14,
   "activeIndexByFamily": {
     "claude": 14,
-    "gemini": 0
+    "gemini": 15
   }
 }

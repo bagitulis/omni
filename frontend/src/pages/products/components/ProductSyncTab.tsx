@@ -19,20 +19,20 @@ export const ProductSyncTab = ({
       dataIndex: "status",
       key: "status",
       render: (status: string) => {
-        const color =
+        const color: "success" | "warning" | "error" =
           status === "synced"
             ? "success"
             : status === "pending"
               ? "warning"
               : "error";
-        return <Badge status={color as any} text={status.toUpperCase()} />;
+        return <Badge status={color} text={status.toUpperCase()} />;
       },
     },
     { title: "Last Sync", dataIndex: "last_sync", key: "last_sync" },
     {
       title: "Action",
       key: "action",
-      render: (_: any, record: ProductPlatform) => (
+      render: (_: unknown, record: ProductPlatform) => (
         <Button
           size="small"
           onClick={() => onSync(record.platform)}

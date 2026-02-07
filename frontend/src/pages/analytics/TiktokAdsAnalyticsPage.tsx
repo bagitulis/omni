@@ -1,10 +1,9 @@
-import { useState, useMemo } from "react";
-import { DatePicker, Button, Space, message, Tabs, Typography } from "antd";
+import { useMemo, useState } from "react";
+import { DatePicker, Tabs, Typography } from "antd";
 import {
   LineChartOutlined,
   VideoCameraOutlined,
   UploadOutlined,
-  ReloadOutlined,
 } from "@ant-design/icons";
 import type { RangePickerProps } from "antd/es/date-picker";
 import dayjs from "dayjs";
@@ -22,7 +21,6 @@ export const TiktokAdsAnalyticsPage = () => {
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(
     null,
   );
-  const [loading, setLoading] = useState(false);
 
   const { uploadedData, uploadProps } = useTiktokAdsUpload();
 
@@ -31,14 +29,6 @@ export const TiktokAdsAnalyticsPage = () => {
 
   const handleDateChange: RangePickerProps["onChange"] = (dates) => {
     setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null);
-  };
-
-  const handleRefresh = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      message.info("Refresh complete");
-    }, 500);
   };
 
   const handleUploadClick = () => {
@@ -67,7 +57,7 @@ export const TiktokAdsAnalyticsPage = () => {
       children: (
         <DataTab
           adsData={adsData}
-          loading={loading}
+          loading={false}
           onUploadClick={handleUploadClick}
         />
       ),
@@ -105,12 +95,7 @@ export const TiktokAdsAnalyticsPage = () => {
             Creative performance & engagement insights
           </Text>
         </div>
-        <Space wrap>
-          <RangePicker onChange={handleDateChange} value={dateRange} />
-          <Button icon={<ReloadOutlined />} onClick={handleRefresh}>
-            Refresh
-          </Button>
-        </Space>
+        <RangePicker onChange={handleDateChange} value={dateRange} />
       </div>
       <Tabs
         activeKey={activeTab}
