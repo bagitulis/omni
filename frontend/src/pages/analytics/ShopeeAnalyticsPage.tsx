@@ -1,10 +1,6 @@
 import { useState } from "react";
-import { Card, Typography, DatePicker, Space, Button, Empty, Spin } from "antd";
-import {
-  DownloadOutlined,
-  ReloadOutlined,
-  ShopOutlined,
-} from "@ant-design/icons";
+import { Card, Typography, DatePicker, Space, Empty } from "antd";
+import { ShopOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
@@ -14,16 +10,10 @@ const { RangePicker } = DatePicker;
 const SHOPEE_ORANGE = "#ee4d2d";
 
 export const ShopeeAnalyticsPage = () => {
-  const [loading, setLoading] = useState(false);
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
     dayjs().subtract(14, "day"),
     dayjs(),
   ]);
-
-  const handleRefresh = () => {
-    setLoading(true);
-    setTimeout(() => setLoading(false), 1000);
-  };
 
   return (
     <div style={{ padding: 24, maxWidth: 1600, margin: "0 auto" }}>

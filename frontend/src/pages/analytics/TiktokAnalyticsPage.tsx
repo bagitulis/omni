@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, Typography, DatePicker, Space, Button, Empty, Spin } from "antd";
+import { Card, Typography, DatePicker, Space, Button, Empty } from "antd";
 import { DownloadOutlined, VideoCameraOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -10,16 +10,10 @@ const { RangePicker } = DatePicker;
 const TIKTOK_BLACK = "#000000";
 
 const TiktokAnalyticsPage = () => {
-  const [loading, setLoading] = useState(false);
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
     dayjs().subtract(7, "days"),
     dayjs(),
   ]);
-
-  const handleRefresh = () => {
-    setLoading(true);
-    setTimeout(() => setLoading(false), 1000);
-  };
 
   return (
     <div style={{ padding: 24 }}>
@@ -45,51 +39,36 @@ const TiktokAnalyticsPage = () => {
             onChange={(dates) => dates && setDateRange([dates[0]!, dates[1]!])}
             style={{ width: 260 }}
           />
-          <Button icon={<DownloadOutlined />}>Export</Button>
-          <Button
-            type="primary"
-            onClick={handleRefresh}
-            loading={loading}
-            style={{ backgroundColor: TIKTOK_BLACK }}
-          >
-            Refresh
+          <Button icon={<DownloadOutlined />} disabled>
+            Export
           </Button>
         </Space>
       </div>
 
-      {loading ? (
-        <div style={{ textAlign: "center", padding: 80 }}>
-          <Spin size="large" />
-          <div style={{ marginTop: 16 }}>
-            <Text type="secondary">Loading analytics...</Text>
-          </div>
-        </div>
-      ) : (
-        <Card>
-          <Empty
-            image={
-              <VideoCameraOutlined
-                style={{ fontSize: 64, color: TIKTOK_BLACK }}
-              />
-            }
-            description={
-              <span>
-                TikTok Analytics Coming Soon
-                <br />
-                <Text type="secondary">
-                  Connect your TikTok Shop to view revenue, video performance,
-                  and engagement metrics.
-                </Text>
-              </span>
-            }
-          >
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              Selected period: {dateRange[0].format("MMM DD, YYYY")} -{" "}
-              {dateRange[1].format("MMM DD, YYYY")}
-            </Text>
-          </Empty>
-        </Card>
-      )}
+      <Card>
+        <Empty
+          image={
+            <VideoCameraOutlined
+              style={{ fontSize: 64, color: TIKTOK_BLACK }}
+            />
+          }
+          description={
+            <span>
+              TikTok Analytics Coming Soon
+              <br />
+              <Text type="secondary">
+                Connect your TikTok Shop to view revenue, video performance, and
+                engagement metrics.
+              </Text>
+            </span>
+          }
+        >
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            Selected period: {dateRange[0].format("MMM DD, YYYY")} -{" "}
+            {dateRange[1].format("MMM DD, YYYY")}
+          </Text>
+        </Empty>
+      </Card>
     </div>
   );
 };
