@@ -18,8 +18,7 @@ services:
           memory: 512M
 
   frontend:
-    ports:
-      - "80:80"
+    # NOTE: Port 80 handled by nginx reverse proxy, not frontend directly
     environment:
       - NODE_OPTIONS=--max-old-space-size=384
     deploy:
