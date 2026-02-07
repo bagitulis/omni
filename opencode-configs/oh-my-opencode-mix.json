@@ -11,11 +11,11 @@
       "skills": ["stuck-recovery"]
     },
     "prometheus": {
-      "model": "github-copilot/claude-opus-4.5",
+      "model": "github-copilot/claude-opus-4.6",
       "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then PROMETHEUS_RULES.md."
     },
     "atlas": {
-      "model": "github-copilot/claude-opus-4.5",
+      "model": "github-copilot/claude-opus-4.6",
       "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then EXECUTOR_RULES.md.\n\n🎯 REACT MIGRATION MODE: You are implementing the React migration plan. Load skill 'react-frontend-rules' for Design System specs. After UI implementation, load 'playwright-layout-eval' skill and verify layout matches specifications.",
       "skills": ["stuck-recovery", "react-frontend-rules"]
     },
@@ -118,13 +118,13 @@
       "temperature": 0.1
     },
     "security": {
-      "model": "github-copilot/claude-opus-4.5"
+      "model": "github-copilot/claude-opus-4.6"
     },
     "unspecified-low": {
       "model": "github-copilot/claude-haiku-4.5"
     },
     "unspecified-high": {
-      "model": "github-copilot/claude-opus-4.5"
+      "model": "github-copilot/claude-opus-4.6"
     }
   }
 }

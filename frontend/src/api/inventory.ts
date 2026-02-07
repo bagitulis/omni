@@ -10,13 +10,13 @@ export interface GetInventoryParams {
 
 /**
  * Fetch inventory data
- * Backend route: GET /api/inventory/data
+ * Backend route: GET /api/inventory/list
  */
 export async function getInventory(
   params?: GetInventoryParams,
 ): Promise<InventoryListResponse> {
   const response = await apiClient.get<InventoryListResponse>(
-    "/inventory/data",
+    "/inventory/list",
     {
       params,
     },
@@ -29,10 +29,10 @@ export async function getInventory(
 
 /**
  * Get inventory item by SKU
- * Backend route: GET /api/inventory/data/:sku
+ * Backend route: GET /api/inventory/:keyValue
  */
 export async function getInventoryBySku(sku: string): Promise<InventoryItem> {
-  const response = await apiClient.get<InventoryItem>(`/inventory/data/${sku}`);
+  const response = await apiClient.get<InventoryItem>(`/inventory/${sku}`);
   if (!response.success) {
     throw new Error(response.error || "Failed to fetch inventory item");
   }
@@ -84,11 +84,17 @@ export async function getInventoryConfig(): Promise<any> {
 }
 
 /**
- * Trigger inventory sync
- * Backend route: POST /api/inventory/sync
+ * Trigger inventory sync from Google Sheets
+ * Backend route: POST /api/inventory/sync/from-sheets
  */
-export async function syncInventory(): Promise<void> {
-  const response = await apiClient.post("/inventory/sync");
+export async function syncInventory(
+  spreadsheetId?: string,
+  sheetName?: string,
+): Promise<void> {
+  const response = await apiClient.post("/inventory/sync/from-sheets", {
+    spreadsheet_id: spreadsheetId,
+    sheet_name: sheetName,
+  });
   if (!response.success) {
     throw new Error(response.error || "Failed to sync inventory");
   }
