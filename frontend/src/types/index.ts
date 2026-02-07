@@ -37,8 +37,8 @@ export {
   Product,
   ProductDetail,
   ProductListResponse,
-  InventoryItem,
-  InventoryListResponse,
+  InventoryRecord,
+  InventoryListResult,
 } from "./product";
 
 // Wholesale types

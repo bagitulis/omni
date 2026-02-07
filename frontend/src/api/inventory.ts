@@ -1,11 +1,10 @@
 import apiClient from "./client";
-import { InventoryItem, InventoryListResponse } from "@/types/product";
+import { InventoryRecord, InventoryListResult } from "@/types/product";
 
 export interface GetInventoryParams {
-  page?: number;
+  offset?: number;
   limit?: number;
   search?: string;
-  category?: string;
 }
 
 export interface InventoryConfig {
@@ -33,25 +32,28 @@ export interface InventoryConfig {
  */
 export async function getInventory(
   params?: GetInventoryParams,
-): Promise<InventoryListResponse> {
-  const response = await apiClient.get<InventoryListResponse>(
-    "/inventory/list",
-    {
-      params,
-    },
-  );
+): Promise<InventoryListResult> {
+  const response = await apiClient.get<InventoryRecord[]>("/inventory/list", {
+    params,
+  });
   if (!response.success) {
     throw new Error(response.error || "Failed to fetch inventory");
   }
-  return response.data!;
+  const raw = response as unknown as Record<string, unknown>;
+  return {
+    records: response.data || [],
+    total: (raw.total as number) || 0,
+    offset: (raw.offset as number) || 0,
+    limit: (raw.limit as number) || 100,
+  };
 }
 
 /**
  * Get inventory item by SKU
  * Backend route: GET /api/inventory/:keyValue
  */
-export async function getInventoryBySku(sku: string): Promise<InventoryItem> {
-  const response = await apiClient.get<InventoryItem>(`/inventory/${sku}`);
+export async function getInventoryBySku(sku: string): Promise<InventoryRecord> {
+  const response = await apiClient.get<InventoryRecord>(`/inventory/${sku}`);
   if (!response.success) {
     throw new Error(response.error || "Failed to fetch inventory item");
   }

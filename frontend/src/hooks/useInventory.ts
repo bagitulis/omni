@@ -1,27 +1,31 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { message } from "antd";
-import { getInventory, updateStock, GetInventoryParams } from "@/api/inventory";
+import { useQuery } from "@tanstack/react-query";
+import {
+  getInventory,
+  getSelectedColumns,
+  getAvailableColumns,
+  GetInventoryParams,
+} from "@/api/inventory";
 
 export function useInventory(params?: GetInventoryParams) {
   return useQuery({
     queryKey: ["inventory", params],
     queryFn: () => getInventory(params),
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 30 * 1000,
   });
 }
 
-export function useUpdateStock() {
-  const queryClient = useQueryClient();
+export function useSelectedColumns() {
+  return useQuery({
+    queryKey: ["inventory-columns-selected"],
+    queryFn: getSelectedColumns,
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
-  return useMutation({
-    mutationFn: ({ sku, stock }: { sku: string; stock: number }) =>
-      updateStock(sku, stock),
-    onSuccess: () => {
-      message.success("Stock updated successfully");
-      queryClient.invalidateQueries({ queryKey: ["inventory"] });
-    },
-    onError: (error: Error) => {
-      message.error(error.message || "Failed to update stock");
-    },
+export function useAvailableColumns() {
+  return useQuery({
+    queryKey: ["inventory-columns-available"],
+    queryFn: getAvailableColumns,
+    staleTime: 5 * 60 * 1000,
   });
 }

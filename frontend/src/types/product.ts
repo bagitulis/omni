@@ -55,22 +55,22 @@ export interface ProductListResponse {
   page_size: number;
 }
 
-export interface InventoryItem {
-  item_id: string;
-  item_sku: string;
-  item_name: string;
-  current_stock: number;
-  reserved_stock: number;
-  available_stock: number;
-  warehouse?: string;
-  last_updated: string;
+/** Matches backend InventoryListItem - dynamic JSONB data from Google Sheets */
+export interface InventoryRecord {
+  id: string;
+  key_value: string;
+  key_column_name: string;
+  data: Record<string, string | number | null>;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface InventoryListResponse {
-  items: InventoryItem[];
+/** Result from getInventory() - includes pagination metadata */
+export interface InventoryListResult {
+  records: InventoryRecord[];
   total: number;
-  page: number;
-  page_size: number;
+  offset: number;
+  limit: number;
 }
 
 export interface ImportRow {
