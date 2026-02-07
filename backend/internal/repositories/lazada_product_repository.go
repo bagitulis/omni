@@ -5,6 +5,8 @@ import (
 
 	"github.com/omni/backend/internal/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/logger"
 )
 
 // LazadaProductRepository handles Lazada product data access
@@ -46,18 +48,61 @@ func (r *LazadaProductRepository) FindByItemID(ctx context.Context, itemID strin
 
 // Upsert creates or updates product
 func (r *LazadaProductRepository) Upsert(ctx context.Context, product *models.LazadaProduct) error {
+	// IMPORTANT:
+	// - Avoid wiping existing non-empty string fields (name/image/etc) when upstream sends empty.
+	// - Use DB-level upsert to prevent race conditions.
+	// Lazada products table has a unique constraint on (tenant_id, item_id).
+	updates := map[string]interface{}{
+		"description":  gorm.Expr("COALESCE(NULLIF(EXCLUDED.description, ''), lazada_products.description)"),
+		"brand":        gorm.Expr("COALESCE(NULLIF(EXCLUDED.brand, ''), lazada_products.brand)"),
+		"status":       gorm.Expr("COALESCE(NULLIF(EXCLUDED.status, ''), lazada_products.status)"),
+		"price":        gorm.Expr("EXCLUDED.price"),
+		"quantity":     gorm.Expr("EXCLUDED.quantity"),
+		"image":        gorm.Expr("COALESCE(NULLIF(EXCLUDED.image, ''), lazada_products.image)"),
+		"name":         gorm.Expr("COALESCE(NULLIF(EXCLUDED.name, ''), lazada_products.name)"),
+		"local_images": gorm.Expr("COALESCE(EXCLUDED.local_images, lazada_products.local_images)"),
+		// Cross-database timestamp (SQLite + Postgres).
+		"updated_at": gorm.Expr("CURRENT_TIMESTAMP"),
+	}
+
+	// Use WithContext(ctx) and surface SQL in debug-level logs only.
 	return r.db.WithContext(ctx).
-		Where("item_id = ?", product.ItemID).
-		Assign(*product).
-		FirstOrCreate(product).Error
+		Session(&gorm.Session{Logger: r.db.Logger.LogMode(logger.Silent)}).
+		Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "tenant_id"}, {Name: "item_id"}},
+			DoUpdates: clause.Assignments(updates),
+		}).
+		Create(product).Error
 }
 
 // UpsertSku creates or updates a SKU
 func (r *LazadaProductRepository) UpsertSku(ctx context.Context, sku *models.LazadaSku) error {
+	// SKU table is unique on sku_id.
+	// Preserve non-empty string fields when upstream sends empty.
+	updates := map[string]interface{}{
+		"seller_sku":    gorm.Expr("COALESCE(NULLIF(EXCLUDED.seller_sku, ''), lazada_skus.seller_sku)"),
+		"shop_sku":      gorm.Expr("COALESCE(NULLIF(EXCLUDED.shop_sku, ''), lazada_skus.shop_sku)"),
+		"name":          gorm.Expr("COALESCE(NULLIF(EXCLUDED.name, ''), lazada_skus.name)"),
+		"variant_name":  gorm.Expr("COALESCE(NULLIF(EXCLUDED.variant_name, ''), lazada_skus.variant_name)"),
+		"variant_data":  gorm.Expr("COALESCE(EXCLUDED.variant_data, lazada_skus.variant_data)"),
+		"price":         gorm.Expr("EXCLUDED.price"),
+		"special_price": gorm.Expr("EXCLUDED.special_price"),
+		"quantity":      gorm.Expr("EXCLUDED.quantity"),
+		"available":     gorm.Expr("EXCLUDED.available"),
+		// Cross-database timestamp (SQLite + Postgres).
+		"updated_at": gorm.Expr("CURRENT_TIMESTAMP"),
+		"item_id":    gorm.Expr("COALESCE(NULLIF(EXCLUDED.item_id, ''), lazada_skus.item_id)"),
+		"tenant_id":  gorm.Expr("COALESCE(NULLIF(EXCLUDED.tenant_id, ''), lazada_skus.tenant_id)"),
+		"product_id": gorm.Expr("EXCLUDED.product_id"),
+	}
+
 	return r.db.WithContext(ctx).
-		Where("sku_id = ?", sku.SkuID).
-		Assign(*sku).
-		FirstOrCreate(sku).Error
+		Session(&gorm.Session{Logger: r.db.Logger.LogMode(logger.Silent)}).
+		Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "sku_id"}},
+			DoUpdates: clause.Assignments(updates),
+		}).
+		Create(sku).Error
 }
 
 // FindSkusByItemID returns all SKUs for a product

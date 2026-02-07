@@ -61,6 +61,13 @@ export const antdTheme: ThemeConfig = {
     // Shadows
     boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
     boxShadowSecondary: "0 4px 6px rgba(0, 0, 0, 0.1)",
+
+    // Motion (Ant Design 5 official tokens)
+    motionDurationFast: "0.1s",
+    motionDurationMid: "0.2s",
+    motionDurationSlow: "0.3s",
+    motionEaseInOut: "cubic-bezier(0.645, 0.045, 0.355, 1)",
+    motionEaseOut: "cubic-bezier(0.215, 0.61, 0.355, 1)",
   },
 
   components: {

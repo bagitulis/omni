@@ -41,35 +41,37 @@ export default function MobileNav() {
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.key;
-          return (
-            <button
-              type="button"
-              key={item.key}
-              onClick={() => navigate(item.key)}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                flex: 1,
-                height: "100%",
-                cursor: "pointer",
-                color: isActive ? colorPrimary : colorTextSecondary,
-                transition: "color 0.2s",
-                border: "none",
-                background: "transparent",
-                padding: 0,
-              }}
-            >
-              <div style={{ fontSize: 20, marginBottom: 2 }}>{item.icon}</div>
-              <div style={{ fontSize: 10, fontWeight: isActive ? 500 : 400 }}>
-                {item.label}
-              </div>
-            </button>
-          );
-        })}
+      {navItems.map((item) => {
+        const isActive = location.pathname === item.key;
+        return (
+          <button
+            type="button"
+            key={item.key}
+            onClick={() => navigate(item.key)}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              flex: 1,
+              height: "100%",
+              cursor: "pointer",
+              color: isActive ? colorPrimary : colorTextSecondary,
+              transition:
+                "color var(--motion-mid) var(--ease-standard), transform var(--motion-mid) var(--ease-standard)",
+              transform: isActive ? "scale(1.1)" : "scale(1)",
+              border: "none",
+              background: "transparent",
+              padding: 0,
+            }}
+          >
+            <div style={{ fontSize: 20, marginBottom: 2 }}>{item.icon}</div>
+            <div style={{ fontSize: 10, fontWeight: isActive ? 500 : 400 }}>
+              {item.label}
+            </div>
+          </button>
+        );
+      })}
       <style>{`
         @media (min-width: 768px) {
           .md\\:hidden {

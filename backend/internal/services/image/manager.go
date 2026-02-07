@@ -57,10 +57,10 @@ type Manager interface {
 	GetPaths(img *models.Image) ImagePaths
 
 	// AddRef increments reference count
-	AddRef(ctx context.Context, imageID int64) error
+	AddRef(ctx context.Context, imageID uint) error
 
 	// RemoveRef decrements reference count (does not delete, just marks for cleanup)
-	RemoveRef(ctx context.Context, imageID int64) error
+	RemoveRef(ctx context.Context, imageID uint) error
 
 	// CleanupOrphans deletes images with ref_count <= 0
 	CleanupOrphans(ctx context.Context, tenantID string) (int, error)
@@ -165,6 +165,8 @@ func (m *manager) CacheImage(ctx context.Context, tenantID, remoteURL string) (*
 		ContentHash: contentHash,
 		OriginalURL: normalizedURL,
 		LocalPath:   filepath.ToSlash(localPath),
+		MimeType:    "image/webp",
+		Category:    "gallery",
 		Width:       width,
 		Height:      height,
 		FileSize:    int64(len(imageData)),
@@ -193,7 +195,7 @@ func (m *manager) GetPaths(img *models.Image) ImagePaths {
 }
 
 // AddRef increments reference count
-func (m *manager) AddRef(ctx context.Context, imageID int64) error {
+func (m *manager) AddRef(ctx context.Context, imageID uint) error {
 	if imageID == 0 {
 		return fmt.Errorf("invalid image_id")
 	}
@@ -213,7 +215,7 @@ func (m *manager) AddRef(ctx context.Context, imageID int64) error {
 }
 
 // RemoveRef decrements reference count
-func (m *manager) RemoveRef(ctx context.Context, imageID int64) error {
+func (m *manager) RemoveRef(ctx context.Context, imageID uint) error {
 	if imageID == 0 {
 		return fmt.Errorf("invalid image_id")
 	}

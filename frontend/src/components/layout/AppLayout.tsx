@@ -24,7 +24,7 @@ export default function AppLayout() {
         style={{
           marginLeft: sidebarWidth, // Always apply margin for fixed sidebar
           background: colorBgLayout,
-          transition: "margin-left 0.2s",
+          transition: "margin-left var(--motion-mid)",
         }}
       >
         <Header

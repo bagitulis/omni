@@ -89,7 +89,7 @@ func (s *SyncService) SyncOrders(ctx context.Context, status string) (int, error
 // SyncProducts fetches products from Lazada API and saves to database
 func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 	// Lazada API max limit per page is 50
-	resp, err := s.client.GetProducts(0, 50)
+	resp, err := s.client.GetProductsWithContext(ctx, 0, 50)
 	if err != nil {
 		return 0, err
 	}
@@ -176,7 +176,7 @@ func (s *SyncService) SyncProductsWithDetails(ctx context.Context, offset, limit
 	for {
 		log.Printf("[Lazada Sync] Fetching page offset=%d, limit=%d", pageOffset, pageLimit)
 
-		resp, err := s.client.GetProducts(pageOffset, pageLimit)
+		resp, err := s.client.GetProductsWithContext(ctx, pageOffset, pageLimit)
 		if err != nil {
 			log.Printf("[Lazada Sync] GetProducts error at offset %d: %v", pageOffset, err)
 			return nil, 0, err

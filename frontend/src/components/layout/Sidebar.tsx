@@ -26,13 +26,21 @@ export default function Sidebar({ collapsed, onCollapse }: SidebarProps) {
     token: { colorBgContainer, colorPrimary, colorTextLightSolid },
   } = theme.useToken();
 
-const menuItems = [
+  const menuItems = [
     { key: "/", icon: <DashboardOutlined />, label: "Dashboard" },
     { key: "/order-manager", icon: <ShoppingOutlined />, label: "Orders" },
     { key: "/master-products", icon: <SkinOutlined />, label: "Products" },
-    { key: "/product-manager", icon: <AppstoreOutlined />, label: "Product Manager" },
+    {
+      key: "/product-manager",
+      icon: <AppstoreOutlined />,
+      label: "Product Manager",
+    },
     { key: "/inventory", icon: <InboxOutlined />, label: "Inventory" },
-    { key: "/route-mapping", icon: <NodeIndexOutlined />, label: "Route Mapping" },
+    {
+      key: "/route-mapping",
+      icon: <NodeIndexOutlined />,
+      label: "Route Mapping",
+    },
     { key: "/analytics", icon: <BarChartOutlined />, label: "Analytics" },
     { key: "/script-monitor", icon: <CodeOutlined />, label: "Script Monitor" },
     { key: "/settings", icon: <SettingOutlined />, label: "Settings" },
@@ -86,6 +94,10 @@ const menuItems = [
         theme="light"
       />
       <style>{`
+        .ant-menu-item {
+          transition: background-color var(--motion-mid) var(--ease-standard),
+                      color var(--motion-mid) var(--ease-standard) !important;
+        }
         .ant-menu-item-selected {
           background-color: ${colorPrimary} !important;
           color: ${colorTextLightSolid} !important;

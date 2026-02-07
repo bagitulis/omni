@@ -118,9 +118,9 @@ func (m *ImageManager) UpdateJoinTableEntries(ctx context.Context, productID uin
 			return err
 		}
 
-		var existingImageIDs []int64
+		var existingImageIDs []uint
 		for _, entry := range existingEntries {
-			existingImageIDs = append(existingImageIDs, int64(entry.ImageID))
+			existingImageIDs = append(existingImageIDs, entry.ImageID)
 		}
 
 		// 2. Decrement existing refs and delete links
@@ -165,9 +165,9 @@ func (m *ImageManager) DeleteJoinTableEntries(ctx context.Context, productID uin
 			return nil
 		}
 
-		var imageIDs []int64
+		var imageIDs []uint
 		for _, entry := range existingEntries {
-			imageIDs = append(imageIDs, int64(entry.ImageID))
+			imageIDs = append(imageIDs, entry.ImageID)
 		}
 
 		// 2. Delete entries

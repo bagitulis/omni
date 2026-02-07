@@ -55,8 +55,8 @@ func (LazadaOrderItem) TableName() string {
 // Matches Prisma schema: LazadaProduct
 type LazadaProduct struct {
 	ID          uint      `gorm:"primaryKey" json:"id"`
-	TenantID    string    `gorm:"index;not null" json:"tenant_id"`
-	ItemID      string    `gorm:"index;not null" json:"item_id"`
+	TenantID    string    `gorm:"column:tenant_id;index;not null;uniqueIndex:idx_lazada_products_tenant_item,priority:1" json:"tenant_id"`
+	ItemID      string    `gorm:"column:item_id;index;not null;uniqueIndex:idx_lazada_products_tenant_item,priority:2" json:"item_id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description,omitempty"`
 	Brand       string    `json:"brand,omitempty"`

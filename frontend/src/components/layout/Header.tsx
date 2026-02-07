@@ -100,6 +100,8 @@ export default function Header({ collapsed, onCollapse }: HeaderProps) {
             width: 48,
             height: 48,
             display: "none", // Hidden by default, shown via CSS for desktop
+            transition:
+              "color var(--motion-mid) var(--ease-standard), background-color var(--motion-mid) var(--ease-standard)",
           }}
           className="desktop-trigger"
         />

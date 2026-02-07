@@ -1,9 +1,13 @@
 package lazada
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"strconv"
+	"strings"
+	"time"
 )
 
 // FlexibleString handles JSON that can be either string or number
@@ -128,27 +132,100 @@ type ProductSku struct {
 
 // GetProducts fetches products from Lazada API
 func (c *Client) GetProducts(offset, limit int) (*ProductListResponse, error) {
+	// Backward-compatible wrapper. Prefer GetProductsWithContext.
+	return c.GetProductsWithContext(context.Background(), offset, limit)
+}
+
+func shouldRetryProductGet(code, message string) bool {
+	// Lazada returns numeric string codes (e.g. "1002") while embedding the
+	// prefixed error code in message (e.g. "E1002: ...").
+	if code == "1002" {
+		return true
+	}
+	if code == "506" {
+		// Lazada frequently returns transient ISP errors as 506.
+		// We retry a few times before giving up.
+		return true
+	}
+
+	msg := strings.ToLower(message)
+	if strings.Contains(msg, "e1002") || strings.Contains(msg, "sentinel") {
+		return true
+	}
+	if strings.Contains(msg, "system busy") || strings.Contains(msg, "throttle") {
+		return true
+	}
+	return false
+}
+
+// GetProductsWithContext fetches products from Lazada API with retry/backoff.
+func (c *Client) GetProductsWithContext(ctx context.Context, offset, limit int) (*ProductListResponse, error) {
 	params := map[string]string{
 		"filter": "live", // Filter live products only, same as Node.js
 		"offset": fmt.Sprintf("%d", offset),
 		"limit":  fmt.Sprintf("%d", limit),
 	}
 
-	var result ProductListResponse
-	err := c.doRequest("GET", "/products/get", params, &result)
-	if err != nil {
-		return nil, err
-	}
+	// Retry strategy: exponential backoff with small jitter.
+	// Keep this conservative to avoid amplifying traffic during throttling.
+	const maxRetries = 5
+	baseDelay := 1 * time.Second
 
-	// Check for API error in response - include message for better debugging
-	if result.Code != "0" && result.Code != "" {
-		if result.Message != "" {
-			return nil, fmt.Errorf("lazada API error: code=%s, message=%s", result.Code, result.Message)
+	var lastErr error
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		var raw json.RawMessage
+		err := c.RawGet(ctx, "/products/get", params, &raw)
+		if err == nil {
+			var result ProductListResponse
+			if unmarshalErr := json.Unmarshal(raw, &result); unmarshalErr != nil {
+				return nil, unmarshalErr
+			}
+
+			if result.Code == "0" || result.Code == "" {
+				return &result, nil
+			}
+
+			// Retryable Lazada-side throttling/system errors.
+			if shouldRetryProductGet(result.Code, result.Message) && attempt < maxRetries {
+				jitterMs := rand.Intn(250) // 0-249ms
+				delay := baseDelay * time.Duration(1<<attempt)
+				if delay > 30*time.Second {
+					delay = 30 * time.Second
+				}
+				delay += time.Duration(jitterMs) * time.Millisecond
+
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case <-time.After(delay):
+					continue
+				}
+			}
+
+			if result.Message != "" {
+				return nil, fmt.Errorf("lazada API error: code=%s, message=%s", result.Code, result.Message)
+			}
+			return nil, fmt.Errorf("lazada API error: code=%s", result.Code)
 		}
-		return nil, fmt.Errorf("lazada API error: code=%s", result.Code)
+
+		lastErr = err
+		if attempt >= maxRetries {
+			break
+		}
+
+		delay := baseDelay * time.Duration(1<<attempt)
+		if delay > 30*time.Second {
+			delay = 30 * time.Second
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(delay):
+			continue
+		}
 	}
 
-	return &result, nil
+	return nil, lastErr
 }
 
 // ===== Stock/Quantity Update API =====

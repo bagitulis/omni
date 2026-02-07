@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/oauth"
@@ -251,58 +252,96 @@ func (h *OAuthHandler) GetTokenStatus(c *gin.Context) {
 		return
 	}
 
-	configs, err := h.platformRepo.FindByTenant(c.Request.Context(), tenantID)
+	// Get tenant database connection
+	db, err := config.GetTenantDB(tenantID, h.basePath)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Database connection failed",
 		})
 		return
 	}
 
-	now := time.Now().Unix()
+	// Use TenantPlatformConfigRepository which uses key-value pattern
+	repo := repositories.NewTenantPlatformConfigRepository(db)
+
+	nowMs := time.Now().UnixMilli()
 	result := make(map[string]gin.H)
-
-	// Initialize all platforms with default status
 	platforms := []string{models.PlatformShopee, models.PlatformLazada, models.PlatformTiktok}
-	for _, p := range platforms {
-		result[p] = gin.H{
-			"isExpired":             true,
-			"expiresAt":             nil,
-			"refreshTokenExpiresAt": nil,
-			"status":                "not_configured",
-			"valid":                 false,
+
+	// Get config for each platform using key-value pattern
+	for _, platform := range platforms {
+		configMap, err := repo.GetAllConfigByPlatform(c.Request.Context(), platform)
+		if err != nil {
+			result[platform] = gin.H{
+				"isExpired":             true,
+				"expiresAt":             nil,
+				"refreshTokenExpiresAt": nil,
+				"status":                "not_configured",
+				"valid":                 false,
+			}
+			continue
 		}
-	}
 
-	// Update with actual config data
-	for _, config := range configs {
-		isExpired := config.ExpiresAt < now
-		expiresAt := time.Unix(config.ExpiresAt, 0).Format(time.RFC3339)
+		// Check if connected (has access token)
+		accessToken := configMap["accessToken"]
+		connected := accessToken != ""
 
-		// Refresh token typically expires in 30 days for most platforms
-		// This is an approximation - actual expiry depends on platform
-		refreshTokenExpiresAt := time.Unix(config.ExpiresAt, 0).Add(30 * 24 * time.Hour).Format(time.RFC3339)
+		if !connected {
+			result[platform] = gin.H{
+				"isExpired":             true,
+				"expiresAt":             nil,
+				"refreshTokenExpiresAt": nil,
+				"status":                "not_configured",
+				"valid":                 false,
+			}
+			continue
+		}
+
+		// Parse token expiry timestamp (stored in milliseconds)
+		var tokenExpiryMs int64
+		if expStr, ok := configMap["tokenExpiry"]; ok && expStr != "" {
+			fmt.Sscanf(expStr, "%d", &tokenExpiryMs)
+		}
+
+		// Parse refresh token expiry timestamp (stored in milliseconds)
+		var refreshTokenExpiryMs int64
+		if expStr, ok := configMap["refreshTokenExpiry"]; ok && expStr != "" {
+			fmt.Sscanf(expStr, "%d", &refreshTokenExpiryMs)
+		}
+
+		// Calculate expiry status
+		isExpired := tokenExpiryMs > 0 && tokenExpiryMs < nowMs
+		expiresSoon := tokenExpiryMs > 0 && tokenExpiryMs < nowMs+(24*60*60*1000)
 
 		status := "valid"
 		if isExpired {
 			status = "expired"
-		} else {
-			// Check if expiring soon (within 24 hours)
-			hoursLeft := float64(config.ExpiresAt-now) / 3600
-			if hoursLeft < 24 {
-				status = "expiring"
-			}
+		} else if expiresSoon {
+			status = "expiring"
 		}
 
-		result[config.Platform] = gin.H{
+		// Convert timestamps to RFC3339 format for frontend
+		var expiresAtStr, refreshTokenExpiresAtStr string
+		if tokenExpiryMs > 0 {
+			expiresAtStr = time.UnixMilli(tokenExpiryMs).Format(time.RFC3339)
+		}
+		if refreshTokenExpiryMs > 0 {
+			refreshTokenExpiresAtStr = time.UnixMilli(refreshTokenExpiryMs).Format(time.RFC3339)
+		}
+
+		// Get shop info
+		shopID := configMap["shopId"]
+		shopName := configMap["shopName"]
+
+		result[platform] = gin.H{
 			"isExpired":             isExpired,
-			"expiresAt":             expiresAt,
-			"refreshTokenExpiresAt": refreshTokenExpiresAt,
+			"expiresAt":             expiresAtStr,
+			"refreshTokenExpiresAt": refreshTokenExpiresAtStr,
 			"status":                status,
 			"valid":                 !isExpired,
-			"shopId":                config.ShopID,
-			"shopName":              config.ShopName,
+			"shopId":                shopID,
+			"shopName":              shopName,
 		}
 	}
 

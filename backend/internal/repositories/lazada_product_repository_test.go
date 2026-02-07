@@ -157,6 +157,31 @@ func TestLazadaProductRepository(t *testing.T) {
 			assert.Equal(t, "Upsert Updated Name", found.Name)
 			assert.Equal(t, "inactive", found.Status)
 		})
+
+		t.Run("does not wipe existing name/image when new data is empty", func(t *testing.T) {
+			product := createTestProduct(t, "LZD-ITEM-UPSERT03", "Existing Name")
+			err := db.Model(&models.LazadaProduct{}).
+				Where("id = ?", product.ID).
+				Updates(map[string]interface{}{"image": "https://example.com/existing.jpg"}).Error
+			require.NoError(t, err)
+
+			updateProduct := &models.LazadaProduct{
+				TenantID: product.TenantID,
+				ItemID:   product.ItemID,
+				Name:     "",
+				Image:    "",
+				Status:   "active",
+				Price:    12345,
+			}
+			err = repo.Upsert(ctx, updateProduct)
+			assert.NoError(t, err)
+
+			found, err := repo.FindByItemID(ctx, product.ItemID)
+			require.NoError(t, err)
+			require.NotNil(t, found)
+			assert.Equal(t, "Existing Name", found.Name)
+			assert.Equal(t, "https://example.com/existing.jpg", found.Image)
+		})
 	})
 
 	t.Run("UpsertSku", func(t *testing.T) {
@@ -208,6 +233,36 @@ func TestLazadaProductRepository(t *testing.T) {
 			require.NotNil(t, foundSku)
 			assert.Equal(t, "Updated SKU Name", foundSku.Name)
 			assert.Equal(t, float64(88888), foundSku.Price)
+		})
+
+		t.Run("does not wipe existing seller_sku/name when new data is empty", func(t *testing.T) {
+			sku := createTestSku(t, product, "LZD-SKU-EXIST02", "SELLER-SKU-EXIST")
+			updateSku := &models.LazadaSku{
+				TenantID:  sku.TenantID,
+				ItemID:    sku.ItemID,
+				ProductID: sku.ProductID,
+				SkuID:     sku.SkuID,
+				SellerSku: "",
+				Name:      "",
+				Price:     77777,
+				Quantity:  0,
+			}
+			err := repo.UpsertSku(ctx, updateSku)
+			assert.NoError(t, err)
+
+			skus, err := repo.FindSkusByItemID(ctx, product.ItemID)
+			require.NoError(t, err)
+			var foundSku *models.LazadaSku
+			for i := range skus {
+				if skus[i].SkuID == sku.SkuID {
+					foundSku = &skus[i]
+					break
+				}
+			}
+			require.NotNil(t, foundSku)
+			assert.Equal(t, "SELLER-SKU-EXIST", foundSku.SellerSku)
+			assert.Equal(t, "SKU Name", foundSku.Name)
+			assert.Equal(t, float64(77777), foundSku.Price)
 		})
 	})
 

@@ -41,10 +41,10 @@ func (m *TokenManager) executeShopeeTokenRefresh(ctx context.Context, tenantID, 
 	if val, ok := result["expire_in"].(float64); ok {
 		expiresIn = int64(val)
 	}
-	// Shopee refresh token valid for 30 days (fixed by Shopee API)
-	refreshExpiresIn := int64(30 * 24 * 60 * 60) // 30 days in seconds
+	// Shopee refresh token valid for 7 days per Shopee API documentation
+	refreshExpiresIn := int64(7 * 24 * 60 * 60) // 7 days in seconds
 
-	log.Printf("[SHOPEE REFRESH] Success! Access token expires in %d seconds, refresh token expires in %d days", expiresIn, refreshExpiresIn/86400)
+	log.Printf("[SHOPEE REFRESH] Success! Access token expires in %d seconds (%d hours), refresh token expires in %d days", expiresIn, expiresIn/3600, refreshExpiresIn/86400)
 
 	return m.saveNewTokens(ctx, tenantID, models.PlatformShopee, accessToken, newRefreshToken, expiresIn, refreshExpiresIn)
 }

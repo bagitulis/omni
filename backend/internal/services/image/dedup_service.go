@@ -121,9 +121,12 @@ func (s *DedupService) FindOrCreate(
 
 	newImage := models.Image{
 		TenantID:    tenantID,
+		Filename:    baseFilename,
 		OriginalURL: originalURL,
 		LocalPath:   localPath,
 		ContentHash: hashStr,
+		MimeType:    "image/webp",
+		Category:    category,
 		Width:       width,
 		Height:      height,
 		FileSize:    int64(len(webpData)),

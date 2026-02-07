@@ -23,7 +23,7 @@ func NewReferenceService(db *gorm.DB) *ReferenceService {
 
 // IncrementRef atomically increments ref_count for an image
 // Thread-safe using database transaction
-func (s *ReferenceService) IncrementRef(ctx context.Context, imageID int64) error {
+func (s *ReferenceService) IncrementRef(ctx context.Context, imageID uint) error {
 	// Atomic increment
 	err := s.db.WithContext(ctx).
 		Model(&models.Image{}).
@@ -40,7 +40,7 @@ func (s *ReferenceService) IncrementRef(ctx context.Context, imageID int64) erro
 
 // DecrementRef atomically decrements ref_count for an image
 // Thread-safe using database transaction
-func (s *ReferenceService) DecrementRef(ctx context.Context, imageID int64) error {
+func (s *ReferenceService) DecrementRef(ctx context.Context, imageID uint) error {
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Atomic decrement
 		if err := tx.Model(&models.Image{}).
@@ -58,8 +58,12 @@ func (s *ReferenceService) DecrementRef(ctx context.Context, imageID int64) erro
 
 		// If ref_count <= 0, delete the image record
 		if img.RefCount <= 0 {
-			if err := tx.Delete(&models.Image{}, imageID).Error; err != nil {
-				return fmt.Errorf("failed to delete image %d: %w", imageID, err)
+			now := time.Now()
+			if err := tx.Model(&models.Image{}).
+				Where("id = ?", imageID).
+				UpdateColumn("deleted_at", now).
+				Error; err != nil {
+				return fmt.Errorf("failed to soft delete image %d: %w", imageID, err)
 			}
 		}
 
@@ -68,7 +72,7 @@ func (s *ReferenceService) DecrementRef(ctx context.Context, imageID int64) erro
 }
 
 // GetRefCount returns current reference count for an image
-func (s *ReferenceService) GetRefCount(ctx context.Context, imageID int64) (int, error) {
+func (s *ReferenceService) GetRefCount(ctx context.Context, imageID uint) (int, error) {
 	var img models.Image
 	err := s.db.WithContext(ctx).
 		Select("ref_count").
@@ -84,7 +88,7 @@ func (s *ReferenceService) GetRefCount(ctx context.Context, imageID int64) (int,
 
 // BulkDecrement decrements ref_count for multiple images
 // Used when deleting a product with multiple images
-func (s *ReferenceService) BulkDecrement(ctx context.Context, imageIDs []int64) error {
+func (s *ReferenceService) BulkDecrement(ctx context.Context, imageIDs []uint) error {
 	if len(imageIDs) == 0 {
 		return nil
 	}
