@@ -94,9 +94,30 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 		return 0, err
 	}
 
+	log.Printf("[Lazada Sync] SyncProducts: Got %d products from API", len(resp.Data.Products))
+
 	count := 0
 	for _, prod := range resp.Data.Products {
 		itemID := prod.ItemID.String()
+
+		// Extract product name from attributes first, fallback to name field
+		// Lazada API returns name in attributes.name, NOT in top-level name field
+		productName := prod.Name
+		if prod.Attributes.Name != "" {
+			productName = prod.Attributes.Name
+		}
+
+		// Extract description from attributes first, fallback to description field
+		description := prod.Description
+		if prod.Attributes.Description != "" {
+			description = prod.Attributes.Description
+		}
+
+		// Extract brand from attributes first, fallback to brand field
+		brand := prod.Brand
+		if prod.Attributes.Brand != "" {
+			brand = prod.Attributes.Brand
+		}
 
 		// Extract first image URL for display
 		var imageURL string
@@ -104,11 +125,18 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 			imageURL = prod.Images[0]
 		}
 
+		// Debug log first product
+		if count == 0 {
+			log.Printf("[Lazada Sync] First product: itemID=%s, name='%s', attrName='%s', finalName='%s', images=%d, imageURL='%s'",
+				itemID, prod.Name, prod.Attributes.Name, productName, len(prod.Images), imageURL)
+		}
+
 		dbProd := &models.LazadaProduct{
 			TenantID:    s.tenantID,
 			ItemID:      itemID,
-			Name:        prod.Name,
-			Description: prod.Description,
+			Name:        productName,
+			Description: description,
+			Brand:       brand,
 			Price:       prod.Price,
 			Status:      prod.Status,
 			Image:       imageURL,
