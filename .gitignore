@@ -34,9 +34,9 @@ frontend-vue/dist/
 # OpenCode agent scratch
 .sisyphus/
 
-# Local artifacts
-nul
-null
+# Local artifacts - null/nul files (Windows device name artifacts)
+**/nul
+**/null
 dashboard-verified.png
 # Temporary files
 *.log
