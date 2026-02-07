@@ -36,6 +36,7 @@ frontend-vue/dist/
 
 # Local artifacts
 nul
+null
 dashboard-verified.png
 # Temporary files
 *.log
