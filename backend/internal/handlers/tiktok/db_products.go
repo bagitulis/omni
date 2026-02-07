@@ -30,6 +30,7 @@ type MasterProductItem struct {
 	SkuID       string           `json:"sku_id,omitempty"`
 	VariantName string           `json:"variant_name"`
 	ItemName    string           `json:"item_name"`
+	Image       string           `json:"image"` // Remote image URL (fallback when local_images empty)
 	Price       float64          `json:"price"`
 	Quantity    int              `json:"quantity"`
 	Status      string           `json:"status"`
@@ -134,6 +135,7 @@ func (h *DBProductHandler) getMasterProducts(db *gorm.DB, offset, limit int, ten
 			item.ProductID = product.ProductID
 			item.ItemName = product.Name
 			item.Status = product.Status
+			item.Image = product.Image
 			item.LocalImages = product.LocalImages
 		}
 		result = append(result, item)

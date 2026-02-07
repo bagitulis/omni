@@ -50,7 +50,7 @@ func (r *PlatformCredentialsRepository) GetConfigValue(ctx context.Context, plat
 		}
 		return "", err
 	}
-	
+
 	// Decrypt if encrypted
 	if config.IsEncrypted && config.ConfigValue != "" {
 		if encSvc := getEncryptionService(); encSvc != nil {
@@ -63,7 +63,7 @@ func (r *PlatformCredentialsRepository) GetConfigValue(ctx context.Context, plat
 			return decrypted, nil
 		}
 	}
-	
+
 	return config.ConfigValue, nil
 }
 
@@ -84,7 +84,7 @@ func (r *PlatformCredentialsRepository) GetAllConfigForPlatform(ctx context.Cont
 	result := make(map[string]string)
 	for _, c := range configs {
 		value := c.ConfigValue
-		
+
 		// Decrypt if encrypted
 		if c.IsEncrypted && value != "" && encSvc != nil {
 			decrypted, err := encSvc.Decrypt(value)
@@ -95,7 +95,7 @@ func (r *PlatformCredentialsRepository) GetAllConfigForPlatform(ctx context.Cont
 				value = decrypted
 			}
 		}
-		
+
 		result[c.ConfigKey] = value
 	}
 	return result, nil
@@ -216,6 +216,7 @@ func (r *PlatformCredentialsRepository) SetConfigValue(ctx context.Context, plat
 			ConfigValue: configValue,
 			DataType:    "string",
 			IsEncrypted: isEncrypted,
+			Metadata:    models.JSONMap{},
 		}
 		return r.db.WithContext(ctx).Create(&newConfig).Error
 	} else if err != nil {

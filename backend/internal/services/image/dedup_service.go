@@ -109,8 +109,8 @@ func (s *DedupService) FindOrCreate(
 		return nil, false, fmt.Errorf("failed to save image: %w", err)
 	}
 
-	// Generate Thumbnails
-	thumbs, err := s.thumbnailService.GenerateThumbnails(webpData, tenantID, category, baseFilename)
+	// Generate Thumbnails (if needed by other services)
+	_, err = s.thumbnailService.GenerateThumbnails(webpData, tenantID, category, baseFilename)
 	if err != nil {
 		// Cleanup saved image? In production yes, here maybe too complex for atomic task.
 		// Leaving as is for now.
@@ -121,23 +121,15 @@ func (s *DedupService) FindOrCreate(
 
 	newImage := models.Image{
 		TenantID:    tenantID,
-		Filename:    baseFilename,
 		OriginalURL: originalURL,
 		LocalPath:   localPath,
 		ContentHash: hashStr,
 		Width:       width,
 		Height:      height,
-		Size:        int64(len(webpData)),
-		MimeType:    "image/webp",
-		Category:    category,
+		FileSize:    int64(len(webpData)),
 		RefCount:    1,
-		Thumbnails: models.JSONMap{
-			"small":  thumbs.Small,
-			"medium": thumbs.Medium,
-			"large":  thumbs.Large,
-		},
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
 	if err := s.db.WithContext(ctx).Create(&newImage).Error; err != nil {

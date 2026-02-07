@@ -192,6 +192,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    volumes:
+      - ./backend/uploads:/app/uploads:ro
     deploy:
       resources:
         limits:

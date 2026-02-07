@@ -13,7 +13,7 @@ type PlatformConfigKV struct {
 	ConfigValue string    `gorm:"column:config_value;type:text" json:"config_value"`
 	DataType    string    `gorm:"column:data_type;type:varchar(50);default:'string'" json:"data_type"`
 	IsEncrypted bool      `gorm:"column:is_encrypted;default:true" json:"is_encrypted"`
-	Metadata    string    `gorm:"column:metadata;type:jsonb" json:"metadata,omitempty"`
+	Metadata    JSONMap   `gorm:"column:metadata;type:jsonb;default:'{}'" json:"metadata,omitempty"`
 	CreatedAt   time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt   time.Time `gorm:"column:updated_at" json:"updated_at"`
 }

@@ -126,7 +126,7 @@ func migrateTenantImages(tenantID, basePath string) error {
 
 				link := models.MasterProductImage{
 					ProductID: product.ID,
-					ImageID:   imgRecord.ID,
+					ImageID:   uint(imgRecord.ID),
 					SortOrder: i,
 					Role:      "gallery", // Default role
 				}

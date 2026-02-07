@@ -20,6 +20,7 @@ type SyncService struct {
 	orderRepo *repositories.TiktokOrderRepository
 	prodRepo  *repositories.TiktokProductRepository
 	skuRepo   *repositories.TiktokSkuRepository
+	imgMgr    image.Manager
 	tenantID  string
 }
 
@@ -31,6 +32,7 @@ func NewSyncService(client *tiktokPkg.Client, db *gorm.DB) *SyncService {
 		orderRepo: repositories.NewTiktokOrderRepository(db),
 		prodRepo:  repositories.NewTiktokProductRepository(db),
 		skuRepo:   repositories.NewTiktokSkuRepository(db),
+		imgMgr:    image.NewManager(db, ""),
 	}
 }
 
@@ -42,6 +44,7 @@ func NewSyncServiceWithTenant(client *tiktokPkg.Client, db *gorm.DB, tenantID st
 		orderRepo: repositories.NewTiktokOrderRepository(db),
 		prodRepo:  repositories.NewTiktokProductRepository(db),
 		skuRepo:   repositories.NewTiktokSkuRepository(db),
+		imgMgr:    image.NewManager(db, ""),
 		tenantID:  tenantID,
 	}
 }
@@ -170,24 +173,18 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-// downloadAndSaveProductImages downloads product images and saves locally
-// Returns slice of local paths. Errors are logged but don't break sync.
+// downloadAndSaveProductImages downloads product images using unified ImageManager
+// Returns slice of local paths (thumb size for display). Errors are logged but don't break sync.
 func (s *SyncService) downloadAndSaveProductImages(ctx context.Context, productID string, imageURLs []string) []string {
 	var localPaths []string
-	cacheService := image.NewProductImageCacheService()
 
 	for i, url := range imageURLs {
 		if url == "" {
 			continue
 		}
 
-		localPath, err := cacheService.CacheRemoteImage(
-			ctx,
-			s.tenantID,
-			url,
-			"asset",
-			nil,
-		)
+		// Use unified ImageManager - handles deduplication and thumbnails
+		img, err := s.imgMgr.CacheImage(ctx, s.tenantID, url)
 		if err != nil {
 			log.Warn().
 				Str("service", "tiktok_sync").
@@ -198,7 +195,9 @@ func (s *SyncService) downloadAndSaveProductImages(ctx context.Context, productI
 			continue
 		}
 
-		localPaths = append(localPaths, localPath)
+		// Get paths and use thumb for display in tables
+		paths := s.imgMgr.GetPaths(img)
+		localPaths = append(localPaths, paths.Thumb)
 	}
 
 	return localPaths

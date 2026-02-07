@@ -110,26 +110,13 @@ func (h *ImageHandler) Upload(c *gin.Context) {
 		return
 	}
 
-	// Determine MIME type
-	mimeType := "image/webp"
-	if image.IsJPEG(finalData) {
-		mimeType = "image/jpeg"
-	} else if image.IsPNG(finalData) {
-		mimeType = "image/png"
-	} else if !image.IsWebP(finalData) {
-		mimeType = "application/octet-stream"
-	}
-
 	// Create database record
 	img := &models.Image{
 		TenantID:  tenantID,
-		Filename:  filename,
 		LocalPath: localPath,
 		Width:     width,
 		Height:    height,
-		Size:      int64(len(finalData)),
-		MimeType:  mimeType,
-		Category:  category,
+		FileSize:  int64(len(finalData)),
 	}
 
 	if err := db.Create(img).Error; err != nil {

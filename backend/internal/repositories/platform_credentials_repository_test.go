@@ -24,6 +24,7 @@ func TestPlatformCredentialsRepository(t *testing.T) {
 			ConfigValue: value,
 			DataType:    "string",
 			IsEncrypted: encrypted,
+			Metadata:    models.JSONMap{},
 		}
 		err := db.WithContext(ctx).Create(config).Error
 		require.NoError(t, err)

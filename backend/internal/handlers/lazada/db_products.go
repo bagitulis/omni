@@ -31,6 +31,7 @@ type FlattenedSkuRow struct {
 	SkuName     string           `json:"sku_name"`     // seller_sku
 	ItemName    string           `json:"item_name"`    // Product name
 	VariantName string           `json:"variant_name"` // Variant name
+	Image       string           `json:"image"`        // Remote image URL (fallback when local_images empty)
 	Price       float64          `json:"price"`        // Current price
 	Quantity    int              `json:"quantity"`     // Stock quantity
 	Status      string           `json:"status"`       // Product status
@@ -131,6 +132,7 @@ func (h *DBProductHandler) getFlattenedSkuRows(db *gorm.DB, offset, limit int) (
 		if product, ok := productMap[sku.ItemID]; ok {
 			row.ItemName = product.Name
 			row.Status = product.Status
+			row.Image = product.Image
 			row.LocalImages = product.LocalImages
 		}
 		result = append(result, row)
@@ -155,6 +157,7 @@ func (h *DBProductHandler) getProductsAsFlattenedRows(db *gorm.DB, offset, limit
 			Price:       p.Price,
 			Quantity:    p.Quantity,
 			Status:      p.Status,
+			Image:       p.Image,
 			LocalImages: p.LocalImages,
 			UpdatedAt:   p.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}

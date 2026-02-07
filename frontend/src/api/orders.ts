@@ -6,6 +6,29 @@ import {
   OrderDetail,
 } from "@/types/order";
 
+function computeUniquePlatformCounts(orders: Order[]): Record<string, number> {
+  const orderIdsByPlatform = new Map<string, Set<string>>();
+
+  for (const order of orders) {
+    const platform = order.platform?.toLowerCase();
+    const orderId = order.order_no || order.order_sn;
+    if (!platform || !orderId) continue;
+
+    const existing = orderIdsByPlatform.get(platform);
+    if (existing) {
+      existing.add(orderId);
+      continue;
+    }
+    orderIdsByPlatform.set(platform, new Set([orderId]));
+  }
+
+  const result: Record<string, number> = {};
+  for (const [platform, ids] of orderIdsByPlatform.entries()) {
+    result[platform] = ids.size;
+  }
+  return result;
+}
+
 /**
  * Order tab types matching Vue frontend
  */
@@ -101,13 +124,7 @@ export async function getOrders(
   // Calculate platform counts from orders if not provided by backend
   let platformCounts = backendData.platform_counts;
   if (!platformCounts) {
-    platformCounts = {};
-    for (const order of orders) {
-      const platform = order.platform?.toLowerCase();
-      if (platform) {
-        platformCounts[platform] = (platformCounts[platform] || 0) + 1;
-      }
-    }
+    platformCounts = computeUniquePlatformCounts(orders);
   }
 
   return {
@@ -175,7 +192,23 @@ export function isSyncableOrderTab(status: string): status is SyncableOrderTab {
 export async function syncOrdersByCategory(
   category: SyncableOrderTab,
 ): Promise<void> {
-  const response = await apiClient.post(`/orders/sync/${category}`);
+  // Processed tab often needs a longer window to match marketplace reality.
+  // Also, syncing ALL platforms can be slow; for processed we prioritize Shopee.
+  if (category === "processed") {
+    const response = await apiClient.client.post(
+      "/orders/sync/processed?days=30&platforms=shopee",
+      {},
+      { timeout: 120_000 },
+    );
+    if (!response.data?.success) {
+      throw new Error(response.data?.error || "Failed to sync orders");
+    }
+    return;
+  }
+
+  const response = await apiClient.post(`/orders/sync/${category}`, {
+    days: 7,
+  });
   if (!response.success) {
     throw new Error(response.error || "Failed to sync orders");
   }

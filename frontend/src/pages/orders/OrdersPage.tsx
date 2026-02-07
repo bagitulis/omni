@@ -88,7 +88,7 @@ export default function OrdersPage() {
     const intervalId = window.setInterval(() => {
       if (isSyncing) return;
       void syncActiveTab(activeTab);
-    }, 60_000);
+    }, 30_000);
 
     return () => window.clearInterval(intervalId);
   }, [activeTab, autoRefresh, isSyncing, syncActiveTab]);

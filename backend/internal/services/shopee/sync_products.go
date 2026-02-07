@@ -18,6 +18,7 @@ type ProductSyncService struct {
 	db       *gorm.DB
 	prodRepo *repositories.ShopeeProductRepository
 	skuRepo  *repositories.ShopeeSkuRepository
+	imgMgr   image.Manager
 	tenantID string
 }
 
@@ -28,6 +29,7 @@ func NewProductSyncService(client *shopeePkg.Client, db *gorm.DB, tenantID strin
 		db:       db,
 		prodRepo: repositories.NewShopeeProductRepository(db),
 		skuRepo:  repositories.NewShopeeSkuRepository(db),
+		imgMgr:   image.NewManager(db, ""),
 		tenantID: tenantID,
 	}
 }
@@ -174,24 +176,18 @@ func (s *ProductSyncService) syncProductSKUs(ctx context.Context, product *model
 	}
 }
 
-// downloadAndSaveProductImages downloads product images and saves locally
-// Returns slice of local paths. Errors are logged but don't break sync.
+// downloadAndSaveProductImages downloads product images using unified ImageManager
+// Returns slice of local paths (thumb size for display). Errors are logged but don't break sync.
 func (s *ProductSyncService) downloadAndSaveProductImages(ctx context.Context, itemID int64, imageURLs []string) []string {
 	var localPaths []string
-	cacheService := image.NewProductImageCacheService()
 
 	for i, url := range imageURLs {
 		if url == "" {
 			continue
 		}
 
-		localPath, err := cacheService.CacheRemoteImage(
-			ctx,
-			s.tenantID,
-			url,
-			"asset",
-			nil,
-		)
+		// Use unified ImageManager - handles deduplication and thumbnails
+		img, err := s.imgMgr.CacheImage(ctx, s.tenantID, url)
 		if err != nil {
 			log.Warn().
 				Str("service", "shopee_sync").
@@ -202,7 +198,9 @@ func (s *ProductSyncService) downloadAndSaveProductImages(ctx context.Context, i
 			continue
 		}
 
-		localPaths = append(localPaths, localPath)
+		// Get paths and use thumb for display in tables
+		paths := s.imgMgr.GetPaths(img)
+		localPaths = append(localPaths, paths.Thumb)
 	}
 
 	return localPaths

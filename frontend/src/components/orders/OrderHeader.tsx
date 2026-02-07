@@ -76,6 +76,7 @@ export function OrderHeader({
           return (
             <Col xs={8} key={platform}>
               <Card
+                data-testid={`order-header-platform-${platform}`}
                 size="small"
                 style={{
                   borderRadius: 4,
@@ -101,6 +102,7 @@ export function OrderHeader({
                         {config.label}
                       </Text>
                       <div
+                        data-testid={`order-header-platform-count-${platform}`}
                         style={{
                           fontSize: 20,
                           fontWeight: 700,

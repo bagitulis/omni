@@ -86,13 +86,13 @@ func (m *ImageManager) CreateJoinTableEntries(ctx context.Context, productID uin
 		for i, img := range images {
 			entry := models.MasterProductImage{
 				ProductID: productID,
-				ImageID:   img.ID,
+				ImageID:   uint(img.ID),
 				SortOrder: i,
 				Role:      "gallery", // Default role
 			}
 
 			// We use FirstOrCreate to avoid duplicates if something went wrong or partially succeeded
-			if err := tx.Where(models.MasterProductImage{ProductID: productID, ImageID: img.ID}).
+			if err := tx.Where(models.MasterProductImage{ProductID: productID, ImageID: uint(img.ID)}).
 				Attrs(models.MasterProductImage{SortOrder: i, Role: "gallery"}).
 				FirstOrCreate(&entry).Error; err != nil {
 				return err
@@ -118,9 +118,9 @@ func (m *ImageManager) UpdateJoinTableEntries(ctx context.Context, productID uin
 			return err
 		}
 
-		var existingImageIDs []uint
+		var existingImageIDs []int64
 		for _, entry := range existingEntries {
-			existingImageIDs = append(existingImageIDs, entry.ImageID)
+			existingImageIDs = append(existingImageIDs, int64(entry.ImageID))
 		}
 
 		// 2. Decrement existing refs and delete links
@@ -139,7 +139,7 @@ func (m *ImageManager) UpdateJoinTableEntries(ctx context.Context, productID uin
 		for i, img := range newImages {
 			entry := models.MasterProductImage{
 				ProductID: productID,
-				ImageID:   img.ID,
+				ImageID:   uint(img.ID),
 				SortOrder: i,
 				Role:      "gallery",
 			}
@@ -165,9 +165,9 @@ func (m *ImageManager) DeleteJoinTableEntries(ctx context.Context, productID uin
 			return nil
 		}
 
-		var imageIDs []uint
+		var imageIDs []int64
 		for _, entry := range existingEntries {
-			imageIDs = append(imageIDs, entry.ImageID)
+			imageIDs = append(imageIDs, int64(entry.ImageID))
 		}
 
 		// 2. Delete entries
