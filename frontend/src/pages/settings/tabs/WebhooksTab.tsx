@@ -14,6 +14,7 @@ import {
 import { CopyOutlined, SendOutlined, ReloadOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import apiClient from "@/api/client";
+import { saveWebhookConfig } from "@/api/settings";
 
 const { Text, Title } = Typography;
 const { useToken } = theme;
@@ -30,6 +31,7 @@ export default function WebhooksTab() {
   const { token } = useToken();
   const [form] = Form.useForm();
   const [testing, setTesting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [webhookLogs, setWebhookLogs] = useState<WebhookLog[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -96,6 +98,27 @@ export default function WebhooksTab() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     message.success("Copied to clipboard");
+  };
+
+  const handleSaveConfig = async () => {
+    const values = form.getFieldsValue();
+    if (!values.custom_url) {
+      message.warning("Please enter a webhook URL");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await saveWebhookConfig({
+        custom_url: values.custom_url,
+        secret_key: values.secret_key,
+      });
+      message.success("Webhook configuration saved");
+    } catch (error) {
+      message.error("Failed to save webhook configuration");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const testWebhook = async () => {
@@ -196,7 +219,12 @@ export default function WebhooksTab() {
             <Input.Password placeholder="Optional: webhook signature key" />
           </Form.Item>
           <Space>
-            <Button type="primary" icon={<SendOutlined />}>
+            <Button
+              type="primary"
+              icon={<SendOutlined />}
+              onClick={handleSaveConfig}
+              loading={saving}
+            >
               Save Configuration
             </Button>
             <Button

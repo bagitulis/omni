@@ -1,4 +1,4 @@
-import api from "./client";
+import apiClient from "./client";
 
 export interface ProfileUpdatePayload {
   name: string;
@@ -21,41 +21,51 @@ export interface GeneralSettingsPayload {
   sync_interval: string;
 }
 
+export interface WebhookConfigPayload {
+  custom_url: string;
+  secret_key?: string;
+}
+
 /**
  * Settings API Service
  * Handles user profile, password, and general settings updates
- * TODO: Backend endpoints need to be implemented
  */
 
 export const updateProfile = async (
   payload: ProfileUpdatePayload,
 ): Promise<void> => {
-  // TODO: Implement backend endpoint POST/PUT /api/auth/profile
-  const response = await api.post("/auth/profile", payload);
-  if (!response.data.success) {
-    throw new Error(response.data.error || "Failed to update profile");
+  const response = await apiClient.post("/auth/profile", payload);
+  if (!response.success) {
+    throw new Error(response.error || "Failed to update profile");
   }
 };
 
 export const changePassword = async (
   payload: PasswordChangePayload,
 ): Promise<void> => {
-  // TODO: Implement backend endpoint POST /api/auth/change-password
-  const response = await api.post("/auth/change-password", {
+  const response = await apiClient.post("/auth/change-password", {
     current_password: payload.current_password,
     new_password: payload.new_password,
   });
-  if (!response.data.success) {
-    throw new Error(response.data.error || "Failed to change password");
+  if (!response.success) {
+    throw new Error(response.error || "Failed to change password");
   }
 };
 
 export const saveGeneralSettings = async (
   payload: GeneralSettingsPayload,
 ): Promise<void> => {
-  // TODO: Implement backend endpoint POST/PUT /api/settings/general
-  const response = await api.post("/settings/general", payload);
-  if (!response.data.success) {
-    throw new Error(response.data.error || "Failed to save settings");
+  const response = await apiClient.post("/settings/general", payload);
+  if (!response.success) {
+    throw new Error(response.error || "Failed to save settings");
+  }
+};
+
+export const saveWebhookConfig = async (
+  payload: WebhookConfigPayload,
+): Promise<void> => {
+  const response = await apiClient.post("/webhooks/config", payload);
+  if (!response.success) {
+    throw new Error(response.error || "Failed to save webhook configuration");
   }
 };
