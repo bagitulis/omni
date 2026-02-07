@@ -9,7 +9,8 @@ import { OrderDetailModal } from "@/components/Modals/OrderDetailModal";
 import { OrderHeader } from "@/components/orders/OrderHeader";
 import { OrdersBulkActionsBar } from "./components/OrdersBulkActionsBar";
 import { OrderStatusTabs } from "./components/OrderStatusTabs";
-import { Order, OrderDetail } from "@/types/order";
+import { OrderDetail } from "@/types/order";
+import type { GroupedOrder } from "@/components/tables/OrderTable.types";
 import { getOrderById } from "@/api/orders";
 import { Dayjs } from "dayjs";
 import { generateOrdersCSV, downloadCSV } from "./utils/csv";
@@ -112,35 +113,31 @@ export default function OrdersPage() {
     }
   };
 
-  const handleSingleShip = async (order: Order) => {
+  const handleSingleShip = async (order: GroupedOrder) => {
     try {
-      await shipOrders([order.order_sn]);
+      await shipOrders([order.order_sn || order.order_no]);
     } catch (error) {
       // Error handled in hook
     }
   };
 
-  const handleSinglePrint = async (order: Order) => {
+  const handleSinglePrint = async (order: GroupedOrder) => {
     try {
-      await printLabels([order.order_sn]);
-      message.success(`Printed label for ${order.order_sn}`);
+      const orderSn = order.order_sn || order.order_no;
+      await printLabels([orderSn]);
+      message.success(`Printed label for ${orderSn}`);
     } catch (error) {
       // Error handled in hook
     }
   };
 
-  const handleViewDetails = async (order: Order) => {
+  const handleViewDetails = async (order: GroupedOrder) => {
     try {
-      const orderDetail = await getOrderById(order.order_sn);
+      const orderSn = order.order_sn || order.order_no;
+      const orderDetail = await getOrderById(orderSn);
       setSelectedOrder(orderDetail);
       setIsDetailModalOpen(true);
     } catch (error) {
-      const fallbackDetail: OrderDetail = {
-        ...order,
-        items: [],
-      };
-      setSelectedOrder(fallbackDetail);
-      setIsDetailModalOpen(true);
       message.warning("Could not load full order details");
     }
   };

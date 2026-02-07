@@ -3,7 +3,7 @@ export interface Job {
   type: string;
   status: string;
   priority: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   started_at?: string;
   created_at: string;
 }

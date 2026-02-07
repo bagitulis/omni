@@ -35,7 +35,7 @@ export interface OrderTableProps {
   };
   selectedRowKeys: React.Key[];
   onSelectionChange: (selectedRowKeys: React.Key[]) => void;
-  onShip: (order: any) => void;
-  onPrint: (order: any) => void;
-  onViewDetail?: (order: any) => void;
+  onShip: (order: GroupedOrder) => void;
+  onPrint: (order: GroupedOrder) => void;
+  onViewDetail?: (order: GroupedOrder) => void;
 }

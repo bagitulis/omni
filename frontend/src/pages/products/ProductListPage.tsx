@@ -61,7 +61,10 @@ export function ProductListPage() {
     });
   }, [searchParams]);
 
-  const handleFilterChange = (key: string, value: any) => {
+  const handleFilterChange = (
+    key: string,
+    value: string | number | boolean | undefined,
+  ) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setPage(1); // Reset to first page
 

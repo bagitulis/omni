@@ -31,7 +31,7 @@ export interface StatusResponse {
   };
   success: boolean;
   timestamp: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -39,7 +39,7 @@ export interface StatusResponse {
  */
 export interface ExecutionResponse {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   message?: string;
 }
@@ -58,7 +58,7 @@ export interface ShippingFileResponse {
 export interface ShippingProcessResponse {
   success: boolean;
   message: string;
-  data?: any;
+  data?: unknown;
 }
 
 /**

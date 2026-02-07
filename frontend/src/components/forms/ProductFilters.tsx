@@ -12,7 +12,10 @@ interface ProductFiltersProps {
     platform: string;
     category: string;
   };
-  onFilterChange: (key: string, value: any) => void;
+  onFilterChange: (
+    key: string,
+    value: string | number | boolean | undefined,
+  ) => void;
   viewMode: "grid" | "list";
   onViewModeChange: (mode: "grid" | "list") => void;
 }

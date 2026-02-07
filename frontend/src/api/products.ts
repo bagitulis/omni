@@ -1,5 +1,10 @@
 import apiClient from "./client";
-import { ProductListResponse, Product, BackendProduct } from "@/types/product";
+import {
+  ProductListResponse,
+  Product,
+  BackendProduct,
+  ImportRow,
+} from "@/types/product";
 
 export interface GetProductsParams {
   page?: number;
@@ -123,8 +128,10 @@ export async function deleteProduct(id: string): Promise<boolean> {
  * Get product mapping status
  * Backend route: GET /api/master-products/:id/mapping
  */
-export async function getProductMappingStatus(id: string): Promise<any> {
-  const response = await apiClient.get(`/master-products/${id}/mapping`);
+export async function getProductMappingStatus(id: string): Promise<unknown> {
+  const response = await apiClient.get<unknown>(
+    `/master-products/${id}/mapping`,
+  );
   if (!response.success) {
     throw new Error(response.error || "Failed to fetch mapping status");
   }
@@ -135,8 +142,8 @@ export async function getProductMappingStatus(id: string): Promise<any> {
  * Sync product to platforms
  * Backend route: POST /api/master-products/:id/sync
  */
-export async function syncProduct(id: string): Promise<any> {
-  const response = await apiClient.post(`/master-products/${id}/sync`);
+export async function syncProduct(id: string): Promise<unknown> {
+  const response = await apiClient.post<unknown>(`/master-products/${id}/sync`);
   if (!response.success) {
     throw new Error(response.error || "Failed to sync product");
   }
@@ -147,10 +154,15 @@ export async function syncProduct(id: string): Promise<any> {
  * Import products in bulk
  * Backend route: POST /api/master-products/import
  */
-export async function importProducts(rows: any[]): Promise<{ imported: number }> {
-  const response = await apiClient.post("/master-products/import", { rows });
+export async function importProducts(
+  rows: ImportRow[],
+): Promise<{ imported: number }> {
+  const response = await apiClient.post<{ imported: number }>(
+    "/master-products/import",
+    { rows },
+  );
   if (!response.success) {
     throw new Error(response.error || "Failed to import products");
   }
-  return response.data;
+  return response.data!;
 }

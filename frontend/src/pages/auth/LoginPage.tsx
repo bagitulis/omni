@@ -74,8 +74,8 @@ const LoginPage: React.FC = () => {
         tenant_id: response.tenant_id,
       });
       navigate(returnUrl);
-    } catch (err: any) {
-      setError(err.message || "Login failed");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setIsLoading(false);
     }
@@ -94,13 +94,16 @@ const LoginPage: React.FC = () => {
         tenant_id: response.tenant_id,
       });
       navigate(returnUrl);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (auto) {
-        console.warn("Auto-login failed:", err.message);
+        console.warn(
+          "Auto-login failed:",
+          err instanceof Error ? err.message : "Unknown error",
+        );
         sessionStorage.setItem("autoLoginFailed", "true");
         setIsAutoLogin(false);
       } else {
-        setError(err.message || "Dev login failed");
+        setError(err instanceof Error ? err.message : "Dev login failed");
       }
     } finally {
       setIsLoading(false);

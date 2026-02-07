@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Steps, message, Card } from "antd";
+import type { UploadFile } from "antd/es/upload/interface";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import {
@@ -61,27 +62,30 @@ export default function ProductAddPage() {
     window.scrollTo(0, 0);
   };
 
-   const handleSubmit = async (values: Partial<ProductFormValues>) => {
-     const finalData = { ...formData, ...values };
-     setSubmitting(true);
- 
-     try {
-       // Transform form data to API format
-       const apiData = {
-         ...finalData,
-         // Convert UploadFile[] to string[] (use response.url or name as fallback)
-         images: (finalData.images || []).map((file: any) => file.response?.url || file.url || file.name || ""),
-       };
-       
-       await createProduct(apiData);
-       message.success("Product created successfully!");
-       navigate("/master-products");
-     } catch (error) {
-       message.error((error as Error).message || "Failed to create product");
-     } finally {
-       setSubmitting(false);
-     }
-   };
+  const handleSubmit = async (values: Partial<ProductFormValues>) => {
+    const finalData = { ...formData, ...values };
+    setSubmitting(true);
+
+    try {
+      // Transform form data to API format
+      const apiData = {
+        ...finalData,
+        // Convert UploadFile[] to string[] (use response.url or name as fallback)
+        images: (finalData.images || []).map(
+          (file: UploadFile) =>
+            file.response?.url || file.url || file.name || "",
+        ),
+      };
+
+      await createProduct(apiData);
+      message.success("Product created successfully!");
+      navigate("/master-products");
+    } catch (error) {
+      message.error((error as Error).message || "Failed to create product");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const steps = [
     {

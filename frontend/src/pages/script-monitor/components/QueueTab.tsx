@@ -43,7 +43,7 @@ export function QueueTab({ queue, loading }: Props) {
       dataIndex: "data",
       key: "data",
       ellipsis: true,
-      render: (data: any) => JSON.stringify(data),
+      render: (data: unknown) => JSON.stringify(data),
     },
   ];
 

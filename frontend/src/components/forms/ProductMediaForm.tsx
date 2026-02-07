@@ -42,7 +42,7 @@ export function ProductMediaForm({ initialValues, onFinish, onBack }: Props) {
     form.setFieldValue("images", newFileList);
   };
 
-  const normFile = (e: any) => {
+  const normFile = (e: { fileList: UploadFile[] } | UploadFile[]) => {
     if (Array.isArray(e)) {
       return e;
     }

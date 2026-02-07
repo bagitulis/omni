@@ -51,7 +51,7 @@ export const ProductVariantsTab = ({
     },
     {
       title: "Action",
-      render: (_: any, record: ProductSku) => (
+      render: (_: unknown, record: ProductSku) => (
         <Button
           type="text"
           danger

@@ -128,7 +128,9 @@ class ApiClient {
 
     // Generic error handling
     const errorMsg =
-      (error.response?.data as any)?.error || error.message || "Unknown error";
+      (error.response?.data as { error?: string })?.error ||
+      error.message ||
+      "Unknown error";
     console.error(`[API] Error [${error.response?.status}]:`, errorMsg);
     return Promise.reject(error);
   }
@@ -173,7 +175,7 @@ class ApiClient {
    */
   async post<T = any>(
     url: string,
-    data?: any,
+    data?: unknown,
     config: AxiosRequestConfig = {},
   ): Promise<ApiResponse<T>> {
     const response = await this.client.post<ApiResponse<T>>(url, data, {
@@ -188,7 +190,7 @@ class ApiClient {
    */
   async put<T = any>(
     url: string,
-    data?: any,
+    data?: unknown,
     config: AxiosRequestConfig = {},
   ): Promise<ApiResponse<T>> {
     const response = await this.client.put<ApiResponse<T>>(url, data, {
@@ -203,7 +205,7 @@ class ApiClient {
    */
   async patch<T = any>(
     url: string,
-    data?: any,
+    data?: unknown,
     config: AxiosRequestConfig = {},
   ): Promise<ApiResponse<T>> {
     const response = await this.client.patch<ApiResponse<T>>(url, data, {

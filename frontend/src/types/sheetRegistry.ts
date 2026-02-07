@@ -46,7 +46,7 @@ export interface RegistryState {
   loading: boolean;
   error: string | null;
   selectedSheet: SpreadsheetData | null;
-  syncStatus: Record<string, any>;
+  syncStatus: Record<string, unknown>;
 }
 
 export interface ApiResponse<T> {

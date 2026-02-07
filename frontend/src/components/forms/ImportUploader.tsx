@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Upload, message, Progress } from "antd";
 import { InboxOutlined } from "@ant-design/icons";
-import type { UploadFile } from "antd";
+import type { UploadFile, UploadChangeParam } from "antd/es/upload";
 import type { ImportPreviewData } from "@/types/product";
 import "./ImportUploader.css";
 
@@ -93,7 +93,7 @@ export function ImportUploader({
     return parseCSV(content);
   };
 
-  const handleChange = async (info: any) => {
+  const handleChange = async (info: UploadChangeParam) => {
     const { file } = info;
 
     if (file.status === "done" || file.status === "removed") {
@@ -130,7 +130,7 @@ export function ImportUploader({
     try {
       // Simulate file reading with progress
       const reader = new FileReader();
-      let progressInterval: any;
+      let progressInterval: ReturnType<typeof setInterval> | undefined;
 
       reader.onload = (e) => {
         clearInterval(progressInterval);
