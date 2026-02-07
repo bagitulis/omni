@@ -32,7 +32,8 @@
       "skills": ["oracle-rules"]
     },
     "librarian": {
-      "model": "github-copilot/gemini-3-pro-preview",
+      "model": "google/gemini-3-pro",
+      "variant": "high",
       "temperature": 0.1,
       "skills": ["librarian-rules"]
     },
@@ -45,7 +46,8 @@
       "reasoningEffort": "medium"
     },
     "metis": {
-      "model": "github-copilot/gemini-3-pro-preview",
+      "model": "google/gemini-3-pro",
+      "variant": "high",
       "temperature": 0.1,
       "skills": ["metis-rules"]
     },
@@ -61,24 +63,27 @@
       "skills": ["stuck-recovery", "react-frontend-rules"]
     },
     "default": {
-      "model": "github-copilot/gemini-3-pro-preview",
+      "model": "google/gemini-3-pro",
+      "variant": "high",
       "temperature": 0.1
     }
   },
 
   "categories": {
     "visual-engineering": {
-      "model": "github-copilot/gemini-3-pro-preview",
+      "model": "google/gemini-3-pro",
+      "variant": "high",
       "temperature": 0.1,
       "skills": ["react-frontend-rules", "playwright-layout-eval"],
       "prompt_append": "SCREENSHOT RULE: ALWAYS save screenshots to 'docs/Screenshots/' directory with descriptive names (e.g., docs/Screenshots/page-desktop.png). NEVER save to root folder."
     },
     "artistry": {
-      "model": "github-copilot/gemini-3-pro-preview",
+      "model": "google/gemini-3-pro",
+      "variant": "high",
       "temperature": 0.1
     },
     "writing": {
-      "model": "github-copilot/gemini-3-flash",
+      "model": "google/gemini-3-flash",
       "temperature": 0.1
     },
     "quick": {
@@ -90,19 +95,23 @@
       "temperature": 0.1
     },
     "deep": {
-      "model": "github-copilot/gemini-3-pro-preview",
+      "model": "google/gemini-3-pro",
+      "variant": "high",
       "temperature": 0.1
     },
     "implementation": {
-      "model": "github-copilot/gemini-3-pro-preview",
+      "model": "google/gemini-3-pro",
+      "variant": "high",
       "temperature": 0.1
     },
     "review": {
-      "model": "github-copilot/gemini-3-pro-preview",
+      "model": "google/gemini-3-pro",
+      "variant": "high",
       "temperature": 0.1
     },
     "testing": {
-      "model": "github-copilot/gemini-3-pro-preview",
+      "model": "google/gemini-3-pro",
+      "variant": "high",
       "temperature": 0.1
     },
     "security": {

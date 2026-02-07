@@ -4,7 +4,7 @@ import { Tabs, message, Card, Flex } from "antd";
 import { useOrders, useOrderActions } from "@/hooks/useOrders";
 import { OrderTable } from "@/components/tables/OrderTable";
 import { OrderFilters } from "@/components/forms/OrderFilters";
-import { OrderDetailModal } from "@/components/modals/OrderDetailModal";
+import { OrderDetailModal } from "@/components/Modals/OrderDetailModal";
 import { OrderHeader } from "@/components/orders/OrderHeader";
 import { OrdersBulkActionsBar } from "./components/OrdersBulkActionsBar";
 import { Order, OrderDetail } from "@/types/order";
