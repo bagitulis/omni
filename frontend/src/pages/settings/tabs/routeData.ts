@@ -2,17 +2,15 @@ interface RouteConfig {
   id: string;
   route_path: string;
   method: string;
-  enabled: boolean;
   cache_ttl: number;
   description: string;
 }
 
-export const MOCK_ROUTES: RouteConfig[] = [
+export const API_ROUTES: RouteConfig[] = [
   {
     id: "1",
     route_path: "/api/orders",
     method: "GET",
-    enabled: true,
     cache_ttl: 300,
     description: "Fetch order list",
   },
@@ -20,7 +18,6 @@ export const MOCK_ROUTES: RouteConfig[] = [
     id: "2",
     route_path: "/api/orders",
     method: "POST",
-    enabled: true,
     cache_ttl: 0,
     description: "Create order",
   },
@@ -28,7 +25,6 @@ export const MOCK_ROUTES: RouteConfig[] = [
     id: "3",
     route_path: "/api/products",
     method: "GET",
-    enabled: true,
     cache_ttl: 600,
     description: "Fetch products",
   },
@@ -36,7 +32,6 @@ export const MOCK_ROUTES: RouteConfig[] = [
     id: "4",
     route_path: "/api/products/:id",
     method: "GET",
-    enabled: true,
     cache_ttl: 300,
     description: "Product detail",
   },
@@ -44,7 +39,6 @@ export const MOCK_ROUTES: RouteConfig[] = [
     id: "5",
     route_path: "/api/products",
     method: "PUT",
-    enabled: false,
     cache_ttl: 0,
     description: "Update product",
   },
@@ -52,7 +46,6 @@ export const MOCK_ROUTES: RouteConfig[] = [
     id: "6",
     route_path: "/api/inventory",
     method: "GET",
-    enabled: true,
     cache_ttl: 120,
     description: "Fetch inventory",
   },

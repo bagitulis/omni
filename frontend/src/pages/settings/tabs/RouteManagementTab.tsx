@@ -1,18 +1,6 @@
-import { useState } from "react";
-import {
-  Table,
-  Switch,
-  Button,
-  Card,
-  Space,
-  Typography,
-  message,
-  theme,
-  Popconfirm,
-} from "antd";
-import { DeleteOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Table, Card, Typography, theme } from "antd";
 import { StatCard } from "./StatCard";
-import { MOCK_ROUTES, type RouteConfig } from "./routeData";
+import { API_ROUTES } from "./routeData";
 
 const { Text } = Typography;
 const { useToken } = theme;
@@ -26,24 +14,6 @@ const METHOD_COLORS: Record<string, string> = {
 
 export default function RouteManagementTab() {
   const { token } = useToken();
-  const [routes, setRoutes] = useState<RouteConfig[]>(MOCK_ROUTES);
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
-
-  const handleToggle = (id: string) => {
-    setRoutes(
-      routes.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r)),
-    );
-    message.success("Route status updated");
-  };
-
-  const handleClearCache = (id: string) => {
-    message.success(`Cache cleared for ${id}`);
-  };
-
-  const handleDelete = (id: string) => {
-    setRoutes(routes.filter((r) => r.id !== id));
-    message.success("Route deleted");
-  };
 
   const columns = [
     {
@@ -94,79 +64,28 @@ export default function RouteManagementTab() {
         </Text>
       ),
     },
-    {
-      title: "Status",
-      dataIndex: "enabled",
-      key: "enabled",
-      width: 70,
-      render: (e: boolean, r: RouteConfig) => (
-        <Switch checked={e} onChange={() => handleToggle(r.id)} size="small" />
-      ),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      width: 100,
-      render: (_: unknown, r: RouteConfig) => (
-        <Space size="small">
-          <Button
-            type="text"
-            size="small"
-            icon={<ReloadOutlined />}
-            onClick={() => handleClearCache(r.id)}
-            style={{ color: token.colorPrimary }}
-          />
-          <Popconfirm
-            title="Delete?"
-            description="Remove this route?"
-            onConfirm={() => handleDelete(r.id)}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Button type="text" size="small" icon={<DeleteOutlined />} danger />
-          </Popconfirm>
-        </Space>
-      ),
-    },
   ];
 
   return (
     <div>
       <Card
-        title="Route & Cache Management"
+        title="API Route Reference"
         size="small"
         style={{ marginBottom: 16, borderRadius: token.borderRadius }}
-        extra={
-          <Space>
-            {selectedKeys.length > 0 && (
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                {selectedKeys.length} selected
-              </Text>
-            )}
-            <Popconfirm
-              title="Clear All Cache?"
-              description="Clear cache for all routes?"
-              onConfirm={() => message.success("Cache cleared")}
-              okText="Yes"
-              cancelText="No"
-            >
-              <Button type="primary" size="small" icon={<ReloadOutlined />}>
-                Clear All
-              </Button>
-            </Popconfirm>
-          </Space>
-        }
       >
+        <Text
+          type="secondary"
+          style={{ fontSize: 12, marginBottom: 16, display: "block" }}
+        >
+          Reference view of available API routes. Route configuration is managed
+          server-side.
+        </Text>
         <Table
-          dataSource={routes}
+          dataSource={API_ROUTES}
           columns={columns}
           rowKey="id"
           size="small"
           pagination={{ pageSize: 10, showTotal: (t) => `${t} routes` }}
-          rowSelection={{
-            selectedRowKeys: selectedKeys,
-            onChange: (k) => setSelectedKeys(k as string[]),
-          }}
           style={{ fontSize: 12 }}
         />
       </Card>
@@ -181,23 +100,13 @@ export default function RouteManagementTab() {
         >
           <StatCard
             label="Total Routes"
-            value={routes.length}
+            value={API_ROUTES.length}
             color={token.colorPrimary}
           />
           <StatCard
-            label="Enabled"
-            value={routes.filter((r) => r.enabled).length}
-            color="#52c41a"
-          />
-          <StatCard
             label="With Cache"
-            value={routes.filter((r) => r.cache_ttl > 0).length}
+            value={API_ROUTES.filter((r) => r.cache_ttl > 0).length}
             color="#1890ff"
-          />
-          <StatCard
-            label="Total TTL"
-            value={routes.reduce((s, r) => s + r.cache_ttl, 0)}
-            color="#faad14"
           />
         </div>
       </Card>
