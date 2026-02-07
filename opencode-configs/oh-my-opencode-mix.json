@@ -99,6 +99,11 @@
       "reasoningEffort": "high",
       "temperature": 0.1
     },
+    "deep": {
+      "model": "google/gemini-3-pro",
+      "variant": "high",
+      "temperature": 0.1
+    },
     "implementation": {
       "model": "google/gemini-3-pro",
       "variant": "high",
