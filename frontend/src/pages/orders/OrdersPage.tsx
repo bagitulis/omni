@@ -26,6 +26,56 @@ const ORDER_TABS = [
   { key: "today", label: "Today" },
 ];
 
+// CSV export utility
+function generateOrdersCSV(orders: Order[]): string {
+  if (!orders || orders.length === 0) {
+    return ""; // Empty CSV headers
+  }
+
+  // CSV headers
+  const headers = [
+    "Order No",
+    "Platform",
+    "Status",
+    "Customer",
+    "Total",
+    "Date",
+  ];
+
+  // Convert orders to CSV rows
+  const rows = orders.map((order) => [
+    `"${order.order_sn || ""}"`, // Order No - quoted to preserve numbers
+    `"${order.platform || ""}"`, // Platform
+    `"${order.status || ""}"`, // Status
+    `"${order.buyer_username || ""}"`, // Customer
+    order.total_amount?.toFixed(2) || "0.00", // Total - no quotes for numbers
+    `"${order.created_at || ""}"`, // Date - quoted for timestamp
+  ]);
+
+  // Combine headers and rows
+  const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join(
+    "\n",
+  );
+
+  return csv;
+}
+
+function downloadCSV(csv: string, filename: string) {
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.style.visibility = "hidden";
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
+}
+
 export default function OrdersPage() {
   // State
   const [searchParams, setSearchParams] = useSearchParams();
@@ -189,6 +239,30 @@ export default function OrdersPage() {
     }
   };
 
+  const handleExport = () => {
+    if (!data?.orders || data.orders.length === 0) {
+      message.warning("No orders to export");
+      return;
+    }
+
+    try {
+      const csv = generateOrdersCSV(data.orders);
+      if (!csv) {
+        message.error("Failed to generate CSV");
+        return;
+      }
+
+      // Generate filename with status and current date
+      const dateStr = new Date().toISOString().split("T")[0];
+      const filename = `orders-${activeTab}-${dateStr}.csv`;
+
+      downloadCSV(csv, filename);
+      message.success("Orders exported successfully");
+    } catch (error) {
+      message.error("Failed to export orders");
+    }
+  };
+
   // Generate tab items with counts
   const orderTabItems = ORDER_TABS.map((tab) => {
     // For the active tab, show actual count from total
@@ -240,7 +314,7 @@ export default function OrdersPage() {
           onPlatformChange={handlePlatformChange}
           onDateChange={handleDateChange}
           onRefresh={handleRefresh}
-          onExport={() => message.info("Export functionality coming soon")}
+          onExport={handleExport}
           loading={isLoading || isSyncing}
           autoRefresh={autoRefresh}
           onAutoRefreshChange={setAutoRefresh}
