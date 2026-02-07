@@ -99,7 +99,7 @@ export function TokenStatusDropdown() {
         setTokenStatus(transformed);
       }
     } catch (error) {
-      console.error("Failed to load token status:", error);
+      // Error silently handled - loading state resets in finally block
     } finally {
       setLoading(false);
     }
@@ -117,7 +117,6 @@ export function TokenStatusDropdown() {
         key: "refresh",
       });
     } catch (error) {
-      console.error("Failed to refresh tokens:", error);
       message.error({ content: "Failed to refresh tokens", key: "refresh" });
     } finally {
       setLoading(false);

@@ -53,7 +53,6 @@ export default function WebhooksTab() {
         setWebhookLogs(response.data);
       }
     } catch (error) {
-      console.error("Failed to fetch webhook logs:", error);
       // Show empty state if fetch fails
       setWebhookLogs([]);
     } finally {
@@ -101,7 +100,6 @@ export default function WebhooksTab() {
 
   const testWebhook = async () => {
     setTesting(true);
-    console.log("Testing webhook...");
     setTimeout(() => {
       message.success("Webhook test successful");
       setTesting(false);
