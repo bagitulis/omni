@@ -8,6 +8,25 @@ export interface GetInventoryParams {
   category?: string;
 }
 
+export interface InventoryConfig {
+  id: string;
+  tenant_id: string;
+  spreadsheet_id: string;
+  sheet_name: string;
+  selected_columns: string;
+  all_columns: string;
+  header_row: number;
+  data_start_row: number;
+  key_column: string;
+  auto_sync: boolean;
+  sync_interval_seconds: number;
+  last_sync_timestamp: string | null;
+  last_headers_hash: string;
+  last_sync_status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 /**
  * Fetch inventory data
  * Backend route: GET /api/inventory/list
@@ -75,12 +94,12 @@ export async function updateStockBatch(
  * Get inventory configuration
  * Backend route: GET /api/inventory/config
  */
-export async function getInventoryConfig(): Promise<any> {
-  const response = await apiClient.get("/inventory/config");
+export async function getInventoryConfig(): Promise<InventoryConfig | null> {
+  const response = await apiClient.get<InventoryConfig>("/inventory/config");
   if (!response.success) {
     throw new Error(response.error || "Failed to fetch inventory config");
   }
-  return response.data;
+  return response.data || null;
 }
 
 /**

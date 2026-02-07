@@ -21,7 +21,7 @@ export interface WholesaleResult {
   item_id?: number;
   message?: string;
   error?: string;
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 export interface BatchDeleteBySkusResult {
@@ -133,8 +133,20 @@ export interface TierPreviewResult {
   tiers: WholesaleTierCalculated[];
 }
 
+export interface BatchWholesaleResetData {
+  total_skus: number;
+  unique_items: number;
+  processed: number;
+  failed: number;
+  skipped: string[];
+  results: WholesaleResult[];
+  settings_used: WholesaleSettings;
+  success: boolean;
+  message: string;
+}
+
 export interface BatchWholesaleResetResult {
   success: boolean;
-  data: any;
+  data: BatchWholesaleResetData;
   message?: string;
 }

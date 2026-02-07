@@ -99,11 +99,27 @@ export default function WebhooksTab() {
   };
 
   const testWebhook = async () => {
+    const url = form.getFieldValue("custom_url");
+    if (!url) {
+      message.warning("Please enter a webhook URL first");
+      return;
+    }
+
     setTesting(true);
-    setTimeout(() => {
-      message.success("Webhook test successful");
+    try {
+      const response = await apiClient.post("/webhooks/test", { url });
+      if (response.success) {
+        message.success("Webhook test successful");
+      } else {
+        message.error(response.error || "Webhook test failed");
+      }
+    } catch (error) {
+      // TODO: Backend endpoint /webhooks/test not yet implemented
+      // Once implemented, this will send a POST request to verify the webhook URL
+      message.error("Failed to test webhook");
+    } finally {
       setTesting(false);
-    }, 1500);
+    }
   };
 
   return (

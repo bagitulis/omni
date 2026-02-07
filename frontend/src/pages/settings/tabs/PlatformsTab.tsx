@@ -1,29 +1,15 @@
 import { useEffect, useState } from "react";
-import {
-  Card,
-  Row,
-  Col,
-  Button,
-  Tag,
-  Typography,
-  message,
-  theme,
-  Spin,
-} from "antd";
+import { Row, Col, Typography, message, Spin } from "antd";
 import {
   ShopOutlined,
   VideoCameraOutlined,
   ShoppingOutlined,
-  LinkOutlined,
-  DisconnectOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
   LoadingOutlined,
 } from "@ant-design/icons";
 import apiClient from "@/api/client";
+import { PlatformCard, type PlatformStatus } from "../components/PlatformCard";
 
 const { Text, Title } = Typography;
-const { useToken } = theme;
 
 // Platform brand colors
 const PLATFORM_COLORS: Record<string, string> = {
@@ -54,16 +40,6 @@ const PLATFORM_NAMES: Record<string, string> = {
   lazada: "Lazada",
 };
 
-interface PlatformStatus {
-  platform: string;
-  connected: boolean;
-  shop_id?: string;
-  shop_name?: string;
-  expires_at?: number;
-  expires_soon?: boolean;
-  last_checked?: string;
-}
-
 interface PlatformAuthResponse {
   shopee?: PlatformStatus;
   tiktok?: PlatformStatus;
@@ -71,7 +47,6 @@ interface PlatformAuthResponse {
 }
 
 export default function PlatformsTab() {
-  const { token } = useToken();
   const [platforms, setPlatforms] = useState<PlatformStatus[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -97,8 +72,7 @@ export default function PlatformsTab() {
 
         setPlatforms(platformList);
       }
-    } catch (error) {
-      console.error("Failed to fetch platform status:", error);
+    } catch {
       message.error("Failed to load platform status");
     } finally {
       setLoading(false);
@@ -171,132 +145,15 @@ export default function PlatformsTab() {
 
           return (
             <Col xs={24} md={8} key={platformId}>
-              <Card
-                style={{
-                  borderRadius: token.borderRadius,
-                  borderTop: `3px solid ${color}`,
-                  height: "100%",
-                }}
-                styles={{ body: { padding: 16 } }}
-              >
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 12 }}
-                >
-                  {/* Header */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
-                    >
-                      <div
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: token.borderRadius,
-                          background: `${color}15`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {icon}
-                      </div>
-                      <Text strong style={{ fontSize: 14 }}>
-                        {name}
-                      </Text>
-                    </div>
-                    <Tag
-                      icon={
-                        platform.connected ? (
-                          <CheckCircleOutlined />
-                        ) : (
-                          <CloseCircleOutlined />
-                        )
-                      }
-                      color={platform.connected ? "success" : "default"}
-                      style={{ margin: 0 }}
-                    >
-                      {platform.connected ? "Connected" : "Disconnected"}
-                    </Tag>
-                  </div>
-
-                  {/* Shop Info */}
-                  {platform.connected && (
-                    <div
-                      style={{
-                        padding: 12,
-                        background: token.colorFillTertiary,
-                        borderRadius: token.borderRadius,
-                      }}
-                    >
-                      {platform.shop_id && (
-                        <>
-                          <div style={{ marginBottom: 4 }}>
-                            <Text type="secondary" style={{ fontSize: 10 }}>
-                              SHOP ID
-                            </Text>
-                          </div>
-                          <Text style={{ fontSize: 12 }}>
-                            {platform.shop_id}
-                          </Text>
-                        </>
-                      )}
-                      {platform.expires_at && (
-                        <div style={{ marginTop: 8 }}>
-                          <Text
-                            type={
-                              platform.expires_soon ? "danger" : "secondary"
-                            }
-                            style={{ fontSize: 10 }}
-                          >
-                            {formatExpiry(platform.expires_at)}
-                          </Text>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div style={{ marginTop: "auto" }}>
-                    {platform.connected ? (
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <Button
-                          icon={<LinkOutlined />}
-                          onClick={() => handleConnect(platform)}
-                          style={{ flex: 1 }}
-                        >
-                          Re-authorize
-                        </Button>
-                        <Button
-                          icon={<DisconnectOutlined />}
-                          danger
-                          onClick={() => handleDisconnect(platform)}
-                        >
-                          Disconnect
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        type="primary"
-                        icon={<LinkOutlined />}
-                        onClick={() => handleConnect(platform)}
-                        style={{
-                          width: "100%",
-                          background: color,
-                          borderColor: color,
-                        }}
-                      >
-                        Connect {name}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </Card>
+              <PlatformCard
+                platform={platform}
+                color={color}
+                icon={icon}
+                name={name}
+                onConnect={handleConnect}
+                onDisconnect={handleDisconnect}
+                formatExpiry={formatExpiry}
+              />
             </Col>
           );
         })}
