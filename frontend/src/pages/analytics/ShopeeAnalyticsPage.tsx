@@ -42,50 +42,31 @@ export const ShopeeAnalyticsPage = () => {
             onChange={(dates) => dates && setDateRange([dates[0]!, dates[1]!])}
             style={{ width: 260 }}
           />
-          <Button icon={<DownloadOutlined />}>Export</Button>
-          <Button
-            type="primary"
-            icon={<ReloadOutlined />}
-            onClick={handleRefresh}
-            loading={loading}
-            style={{ backgroundColor: SHOPEE_ORANGE }}
-          >
-            Refresh Data
-          </Button>
         </Space>
       </div>
 
-      {loading ? (
-        <div style={{ textAlign: "center", padding: 80 }}>
-          <Spin size="large" />
-          <div style={{ marginTop: 16 }}>
-            <Text type="secondary">Loading analytics...</Text>
-          </div>
-        </div>
-      ) : (
-        <Card>
-          <Empty
-            image={
-              <ShopOutlined style={{ fontSize: 64, color: SHOPEE_ORANGE }} />
-            }
-            description={
-              <span>
-                Shopee Analytics Coming Soon
-                <br />
-                <Text type="secondary">
-                  Connect your Shopee store to view revenue, orders, and product
-                  performance.
-                </Text>
-              </span>
-            }
-          >
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              Selected period: {dateRange[0].format("MMM DD, YYYY")} -{" "}
-              {dateRange[1].format("MMM DD, YYYY")}
-            </Text>
-          </Empty>
-        </Card>
-      )}
+      <Card>
+        <Empty
+          image={
+            <ShopOutlined style={{ fontSize: 64, color: SHOPEE_ORANGE }} />
+          }
+          description={
+            <span>
+              Shopee Analytics Coming Soon
+              <br />
+              <Text type="secondary">
+                Connect your Shopee store to view revenue, orders, and product
+                performance.
+              </Text>
+            </span>
+          }
+        >
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            Selected period: {dateRange[0].format("MMM DD, YYYY")} -{" "}
+            {dateRange[1].format("MMM DD, YYYY")}
+          </Text>
+        </Empty>
+      </Card>
     </div>
   );
 };
