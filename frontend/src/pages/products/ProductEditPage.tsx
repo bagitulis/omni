@@ -5,231 +5,22 @@ import {
   Button,
   message,
   Spin,
-  Table,
-  Input,
-  InputNumber,
-  Upload,
   Card,
-  Badge,
   Alert,
   Flex,
   Typography,
 } from "antd";
-import {
-  ArrowLeftOutlined,
-  SaveOutlined,
-  PlusOutlined,
-  DeleteOutlined,
-} from "@ant-design/icons";
+import { ArrowLeftOutlined } from "@ant-design/icons";
 
-const { Title, Text } = Typography;
 import { ProductBasicForm } from "../../components/forms/ProductBasicForm";
 import { getProductById, updateProduct, syncProduct } from "../../api/products";
 import type { UploadFile } from "antd/es/upload/interface";
+import { ProductVariantsTab } from "./components/ProductVariantsTab";
+import { ProductImagesTab } from "./components/ProductImagesTab";
+import { ProductSyncTab } from "./components/ProductSyncTab";
+import type { ProductData, ProductSku } from "./types";
 
-interface ProductData {
-  id: number;
-  title: string;
-  description: string;
-  images: string[];
-  status: string;
-  skus?: Array<{
-    key: string;
-    seller_sku: string;
-    variant_name: string;
-    stock: number;
-    price: number;
-  }>;
-  platforms?: Array<{
-    platform: string;
-    status: string;
-    last_sync: string;
-  }>;
-}
-
-const VariantsTab = ({
-  initialValues,
-  onSave,
-  loading,
-}: {
-  initialValues: any[];
-  onSave: (data: any[]) => void;
-  loading: boolean;
-}) => {
-  const [dataSource, setDataSource] = useState(initialValues);
-
-  const columns = [
-    {
-      title: "Variant Name",
-      dataIndex: "variant_name",
-      render: (text: string) => <Input defaultValue={text} />,
-    },
-    {
-      title: "Seller SKU",
-      dataIndex: "seller_sku",
-      render: (text: string) => <Input defaultValue={text} />,
-    },
-    {
-      title: "Stock",
-      dataIndex: "stock",
-      render: (val: number) => <InputNumber defaultValue={val} />,
-    },
-    {
-      title: "Price",
-      dataIndex: "price",
-      render: (val: number) => (
-        <InputNumber
-          defaultValue={val}
-          formatter={(value) =>
-            `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-          }
-          parser={(value) => {
-            const v = value?.replace(/\D/g, "");
-            return v ? parseInt(v, 10) : 0;
-          }}
-          style={{ width: "100%" }}
-        />
-      ),
-    },
-    {
-      title: "Action",
-      render: (_: any, record: any) => (
-        <Button
-          type="text"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={() =>
-            setDataSource(dataSource.filter((item) => item.key !== record.key))
-          }
-        />
-      ),
-    },
-  ];
-
-  return (
-    <div>
-      <Flex justify="flex-end" style={{ marginBottom: 16 }}>
-        <Button
-          type="dashed"
-          icon={<PlusOutlined />}
-          onClick={() =>
-            setDataSource([
-              ...dataSource,
-              {
-                key: `${Date.now()}`,
-                variant_name: "",
-                seller_sku: "",
-                stock: 0,
-                price: 0,
-              },
-            ])
-          }
-        >
-          Add Variant
-        </Button>
-      </Flex>
-      <Table
-        dataSource={dataSource}
-        columns={columns}
-        pagination={false}
-        size="small"
-      />
-      <Flex justify="flex-end" style={{ marginTop: 16 }}>
-        <Button
-          type="primary"
-          icon={<SaveOutlined />}
-          onClick={() => onSave(dataSource)}
-          loading={loading}
-        >
-          Save Variants
-        </Button>
-      </Flex>
-    </div>
-  );
-};
-
-const ImagesTab = ({
-  initialValues,
-  onSave,
-  loading,
-}: {
-  initialValues: UploadFile[];
-  onSave: (files: UploadFile[]) => void;
-  loading: boolean;
-}) => {
-  const [fileList, setFileList] = useState<UploadFile[]>(initialValues);
-  return (
-    <div>
-      <Upload
-        listType="picture-card"
-        fileList={fileList}
-        onChange={({ fileList: newFileList }) => setFileList(newFileList)}
-        maxCount={8}
-        beforeUpload={() => false}
-      >
-        {fileList.length < 8 && (
-          <div>
-            <PlusOutlined />
-            <div style={{ marginTop: 8 }}>Upload</div>
-          </div>
-        )}
-      </Upload>
-      <Flex justify="flex-end" style={{ marginTop: 16 }}>
-        <Button
-          type="primary"
-          icon={<SaveOutlined />}
-          onClick={() => onSave(fileList)}
-          loading={loading}
-        >
-          Save Images
-        </Button>
-      </Flex>
-    </div>
-  );
-};
-
-const PlatformSyncTab = ({
-  platforms,
-  onSync,
-  loading,
-}: {
-  platforms: any[];
-  onSync: (platform: string) => void;
-  loading: boolean;
-}) => {
-  const columns = [
-    { title: "Platform", dataIndex: "platform", key: "platform" },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status: string) => {
-        const color =
-          status === "synced"
-            ? "success"
-            : status === "pending"
-              ? "warning"
-              : "error";
-        return <Badge status={color as any} text={status.toUpperCase()} />;
-      },
-    },
-    { title: "Last Sync", dataIndex: "last_sync", key: "last_sync" },
-    {
-      title: "Action",
-      key: "action",
-      render: (_: any, record: any) => (
-        <Button
-          size="small"
-          onClick={() => onSync(record.platform)}
-          loading={loading}
-        >
-          Sync Now
-        </Button>
-      ),
-    },
-  ];
-  return <Table dataSource={platforms} columns={columns} pagination={false} />;
-};
+const { Title, Text } = Typography;
 
 export default function ProductEditPage() {
   const { id } = useParams();
@@ -267,7 +58,7 @@ export default function ProductEditPage() {
     fetchProduct();
   }, [id]);
 
-  const handleSaveVariants = async (variants: any[]) => {
+  const handleSaveVariants = async (variants: ProductSku[]) => {
     if (!id) return;
 
     setSaveVariantsLoading(true);
@@ -280,7 +71,7 @@ export default function ProductEditPage() {
       };
       // Spread variants data for future backend compatibility
       Object.assign(updateData, variants.length > 0 ? { variants } : {});
-      
+
       await updateProduct(id, updateData);
       message.success("Variants saved successfully!");
     } catch (err) {
@@ -373,7 +164,7 @@ export default function ProductEditPage() {
       key: "2",
       label: "Variants",
       children: (
-        <VariantsTab
+        <ProductVariantsTab
           initialValues={product.skus || []}
           onSave={handleSaveVariants}
           loading={saveVariantsLoading}
@@ -384,7 +175,7 @@ export default function ProductEditPage() {
       key: "3",
       label: "Images",
       children: (
-        <ImagesTab
+        <ProductImagesTab
           initialValues={imageFiles}
           onSave={handleSaveImages}
           loading={saveImagesLoading}
@@ -395,7 +186,7 @@ export default function ProductEditPage() {
       key: "4",
       label: "Platform Sync",
       children: (
-        <PlatformSyncTab
+        <ProductSyncTab
           platforms={product.platforms || []}
           onSync={handleSyncProduct}
           loading={syncLoading}
@@ -405,7 +196,7 @@ export default function ProductEditPage() {
   ];
 
   return (
-    <div style={{ padding: 24, maxWidth: 1024, margin: '0 auto' }}>
+    <div style={{ padding: 24, maxWidth: 1024, margin: "0 auto" }}>
       <Flex align="center" gap={16} style={{ marginBottom: 24 }}>
         <Link to="/master-products">
           <Button type="text" icon={<ArrowLeftOutlined />} />
@@ -417,7 +208,10 @@ export default function ProductEditPage() {
       <Card>
         <Tabs defaultActiveKey="1" items={items} type="card" />
       </Card>
-      <Text type="secondary" style={{ fontSize: 12, marginTop: 16, display: 'block' }}>
+      <Text
+        type="secondary"
+        style={{ fontSize: 12, marginTop: 16, display: "block" }}
+      >
         Product ID: {id}
       </Text>
     </div>

@@ -1,6 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { message } from "antd";
-import * as api from "@/api/scriptMonitor";
+import {
+  getMonitorData,
+  getAutoFunctions,
+  cancelJob,
+  forceCancelJob,
+  clearHistory,
+  updateAutoFunction,
+  createAutoFunction,
+  deleteAutoFunction,
+  enableAutoFunction,
+  disableAutoFunction,
+  cancelScheduled,
+} from "@/api/scriptMonitor";
 import { AutoFunctionConfig } from "@/types/scriptMonitor";
 
 export function useScriptMonitor() {
@@ -8,17 +20,17 @@ export function useScriptMonitor() {
 
   const monitorQuery = useQuery({
     queryKey: ["script-monitor"],
-    queryFn: api.getMonitorData,
+    queryFn: getMonitorData,
     refetchInterval: 2000,
   });
 
   const autoFunctionsQuery = useQuery({
     queryKey: ["auto-functions"],
-    queryFn: api.getAutoFunctions,
+    queryFn: getAutoFunctions,
   });
 
   const cancelJobMutation = useMutation({
-    mutationFn: api.cancelJob,
+    mutationFn: cancelJob,
     onSuccess: () => {
       message.success("Job cancelled");
       queryClient.invalidateQueries({ queryKey: ["script-monitor"] });
@@ -27,7 +39,7 @@ export function useScriptMonitor() {
   });
 
   const forceCancelJobMutation = useMutation({
-    mutationFn: api.forceCancelJob,
+    mutationFn: forceCancelJob,
     onSuccess: () => {
       message.success("Job force cancelled");
       queryClient.invalidateQueries({ queryKey: ["script-monitor"] });
@@ -36,7 +48,7 @@ export function useScriptMonitor() {
   });
 
   const clearHistoryMutation = useMutation({
-    mutationFn: api.clearHistory,
+    mutationFn: clearHistory,
     onSuccess: () => {
       message.success("History cleared");
       queryClient.invalidateQueries({ queryKey: ["script-monitor"] });
@@ -45,7 +57,7 @@ export function useScriptMonitor() {
   });
 
   const enableAutoFunctionMutation = useMutation({
-    mutationFn: api.enableAutoFunction,
+    mutationFn: enableAutoFunction,
     onSuccess: () => {
       message.success("Auto-function enabled");
       queryClient.invalidateQueries({ queryKey: ["auto-functions"] });
@@ -54,7 +66,7 @@ export function useScriptMonitor() {
   });
 
   const disableAutoFunctionMutation = useMutation({
-    mutationFn: api.disableAutoFunction,
+    mutationFn: disableAutoFunction,
     onSuccess: () => {
       message.success("Auto-function disabled");
       queryClient.invalidateQueries({ queryKey: ["auto-functions"] });
@@ -69,7 +81,7 @@ export function useScriptMonitor() {
     }: {
       name: string;
       config: Partial<AutoFunctionConfig>;
-    }) => api.updateAutoFunction(name, config),
+    }) => updateAutoFunction(name, config),
     onSuccess: () => {
       message.success("Configuration updated");
       queryClient.invalidateQueries({ queryKey: ["auto-functions"] });
@@ -78,7 +90,7 @@ export function useScriptMonitor() {
   });
 
   const createAutoFunctionMutation = useMutation({
-    mutationFn: api.createAutoFunction,
+    mutationFn: createAutoFunction,
     onSuccess: () => {
       message.success("Auto-function created");
       queryClient.invalidateQueries({ queryKey: ["auto-functions"] });
@@ -87,7 +99,7 @@ export function useScriptMonitor() {
   });
 
   const deleteAutoFunctionMutation = useMutation({
-    mutationFn: api.deleteAutoFunction,
+    mutationFn: deleteAutoFunction,
     onSuccess: () => {
       message.success("Auto-function deleted");
       queryClient.invalidateQueries({ queryKey: ["auto-functions"] });
@@ -96,7 +108,7 @@ export function useScriptMonitor() {
   });
 
   const cancelScheduledMutation = useMutation({
-    mutationFn: api.cancelScheduled,
+    mutationFn: cancelScheduled,
     onSuccess: () => {
       message.success("Scheduled execution cancelled");
       queryClient.invalidateQueries({ queryKey: ["auto-functions"] });
