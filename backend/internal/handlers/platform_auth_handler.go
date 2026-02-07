@@ -161,40 +161,71 @@ func (h *PlatformAuthHandler) CheckAllConnections(c *gin.Context) {
 		return
 	}
 
-	repo := repositories.NewPlatformConfigRepository(db)
-	configs, err := repo.FindByTenant(c.Request.Context(), tenantID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Failed to get connections"))
-		return
-	}
+	// Use TenantPlatformConfigRepository which uses key-value pattern (NOT PlatformConfigRepository!)
+	repo := repositories.NewTenantPlatformConfigRepository(db)
 
 	now := time.Now()
 	statuses := make(map[string]ConnectionStatus)
 	platforms := []string{models.PlatformShopee, models.PlatformLazada, models.PlatformTiktok}
 
-	// Initialize all platforms as disconnected
-	for _, p := range platforms {
-		statuses[p] = ConnectionStatus{
-			Platform:    p,
-			Connected:   false,
-			LastChecked: now,
+	// Get config for each platform using key-value pattern
+	for _, platform := range platforms {
+		configMap, err := repo.GetAllConfigByPlatform(c.Request.Context(), platform)
+		if err != nil {
+			statuses[platform] = ConnectionStatus{
+				Platform:    platform,
+				Connected:   false,
+				LastChecked: now,
+			}
+			continue
 		}
-	}
 
-	// Update with actual status
-	for _, cfg := range configs {
-		expiresSoon := cfg.ExpiresAt > 0 && cfg.ExpiresAt < now.Add(24*time.Hour).Unix()
-		expired := cfg.ExpiresAt > 0 && cfg.ExpiresAt < now.Unix()
+		// Check if connected (has access token)
+		accessToken := configMap["accessToken"]
+		connected := accessToken != ""
 
-		statuses[cfg.Platform] = ConnectionStatus{
-			Platform:    cfg.Platform,
-			Connected:   cfg.IsActive && cfg.AccessToken != "",
-			ShopID:      cfg.ShopID,
-			ShopName:    cfg.ShopName,
-			ExpiresAt:   cfg.ExpiresAt,
-			ExpiresSoon: expiresSoon,
-			Expired:     expired,
-			LastChecked: now,
+		// Parse expiry timestamp
+		var expiresAt int64
+		if expStr, ok := configMap["tokenExpiry"]; ok && expStr != "" {
+			fmt.Sscanf(expStr, "%d", &expiresAt)
+		}
+
+		// Parse refresh token expiry
+		var refreshTokenExpiresAt int64
+		if expStr, ok := configMap["refreshTokenExpiry"]; ok && expStr != "" {
+			fmt.Sscanf(expStr, "%d", &refreshTokenExpiresAt)
+		}
+
+		// Normalize to milliseconds - if value is too small, it's in seconds
+		expiresAtMs := expiresAt
+		if expiresAt > 0 && expiresAt < 1_000_000_000_000 {
+			expiresAtMs = expiresAt * 1000
+		}
+
+		refreshTokenExpiresAtMs := refreshTokenExpiresAt
+		if refreshTokenExpiresAt > 0 && refreshTokenExpiresAt < 1_000_000_000_000 {
+			refreshTokenExpiresAtMs = refreshTokenExpiresAt * 1000
+		}
+
+		// Calculate expiry status using milliseconds
+		nowMs := now.UnixMilli()
+		expiresSoon := expiresAtMs > 0 && expiresAtMs < nowMs+(24*60*60*1000)
+		expired := expiresAtMs > 0 && expiresAtMs < nowMs
+
+		// Get shop info
+		shopID := configMap["shopId"]
+		shopName := configMap["shopName"]
+
+		statuses[platform] = ConnectionStatus{
+			Platform:              platform,
+			Connected:             connected,
+			ShopID:                shopID,
+			ShopName:              shopName,
+			ExpiresAt:             expiresAtMs,
+			RefreshTokenExpiresAt: refreshTokenExpiresAtMs,
+			ExpiresSoon:           expiresSoon,
+			Expired:               expired,
+			LastChecked:           now,
 		}
 	}
 

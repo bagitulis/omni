@@ -7,10 +7,8 @@ import (
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
-	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/cache"
 	lazadaService "github.com/omni/backend/internal/services/lazada"
-	lazadaPkg "github.com/omni/backend/pkg/lazada"
 	"github.com/rs/zerolog/log"
 )
 
@@ -71,21 +69,16 @@ func (h *SyncHandler) SyncOrders(c *gin.Context) {
 		return
 	}
 
-	systemDB, err := config.GetSystemDB(h.basePath)
+	// Use helper to get client with proper tenant credentials
+	client, err := GetLazadaClient(tenantID, h.basePath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("System database failed"))
+		if err == ErrMissingAccessToken {
+			c.JSON(http.StatusBadRequest, response.Error("Lazada access token not configured"))
+		} else {
+			c.JSON(http.StatusInternalServerError, response.Error("Failed to get Lazada client: "+err.Error()))
+		}
 		return
 	}
-
-	configRepo := repositories.NewGlobalConfigRepository(systemDB)
-	creds, _ := configRepo.GetLazadaCredentials(c.Request.Context())
-	if creds.AppKey == "" {
-		c.JSON(http.StatusBadRequest, response.Error("Lazada credentials not configured"))
-		return
-	}
-
-	client := lazadaPkg.NewClient(creds.AppKey, creds.AppSecret, creds.Region)
-	client.SetAccessToken(creds.AccessToken)
 
 	syncService := lazadaService.NewSyncServiceWithTenant(client, db, tenantID)
 	count, err := syncService.SyncOrders(c.Request.Context(), "")
@@ -117,21 +110,16 @@ func (h *SyncHandler) SyncProducts(c *gin.Context) {
 		return
 	}
 
-	systemDB, err := config.GetSystemDB(h.basePath)
+	// Use helper to get client with proper tenant credentials
+	client, err := GetLazadaClient(tenantID, h.basePath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("System database failed"))
+		if err == ErrMissingAccessToken {
+			c.JSON(http.StatusBadRequest, response.Error("Lazada access token not configured"))
+		} else {
+			c.JSON(http.StatusInternalServerError, response.Error("Failed to get Lazada client: "+err.Error()))
+		}
 		return
 	}
-
-	configRepo := repositories.NewGlobalConfigRepository(systemDB)
-	creds, _ := configRepo.GetLazadaCredentials(c.Request.Context())
-	if creds.AppKey == "" {
-		c.JSON(http.StatusBadRequest, response.Error("Lazada credentials not configured"))
-		return
-	}
-
-	client := lazadaPkg.NewClient(creds.AppKey, creds.AppSecret, creds.Region)
-	client.SetAccessToken(creds.AccessToken)
 
 	syncService := lazadaService.NewSyncServiceWithTenant(client, db, tenantID)
 	count, err := syncService.SyncProducts(c.Request.Context())
