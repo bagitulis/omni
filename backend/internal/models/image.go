@@ -7,7 +7,8 @@ import "time"
 type Image struct {
 	ID          int64     `gorm:"primaryKey" json:"id"`
 	TenantID    string    `gorm:"index;not null" json:"tenant_id"`
-	ContentHash string    `gorm:"size:64;index;not null" json:"content_hash"`
+	Filename    string    `gorm:"size:255;not null" json:"filename"` // Required for legacy compatibility
+	ContentHash string    `gorm:"size:64;index" json:"content_hash"` // Optional for legacy images
 	OriginalURL string    `gorm:"index" json:"original_url,omitempty"`
 	LocalPath   string    `gorm:"not null" json:"local_path"` // base path without size suffix (e.g., "uploads/tenant/images/hash")
 	Width       int       `json:"width"`

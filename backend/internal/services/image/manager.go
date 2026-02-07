@@ -161,6 +161,7 @@ func (m *manager) CacheImage(ctx context.Context, tenantID, remoteURL string) (*
 	localPath := filepath.Join(tenantID, "images", contentHash)
 	img := &models.Image{
 		TenantID:    tenantID,
+		Filename:    contentHash + ".webp", // Use content hash as filename for deduplication
 		ContentHash: contentHash,
 		OriginalURL: normalizedURL,
 		LocalPath:   filepath.ToSlash(localPath),
