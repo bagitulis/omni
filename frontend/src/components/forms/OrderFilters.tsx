@@ -1,5 +1,22 @@
-import { Input, Select, DatePicker, Button, Space, Card, Row, Col, Flex, Typography } from "antd";
-import { ReloadOutlined, DownloadOutlined } from "@ant-design/icons";
+import {
+  Input,
+  Select,
+  DatePicker,
+  Button,
+  Space,
+  Card,
+  Row,
+  Col,
+  Flex,
+  Typography,
+  Switch,
+  Tooltip,
+} from "antd";
+import {
+  ReloadOutlined,
+  DownloadOutlined,
+  SyncOutlined,
+} from "@ant-design/icons";
 import { Dayjs } from "dayjs";
 
 const { RangePicker } = DatePicker;
@@ -12,6 +29,8 @@ interface OrderFiltersProps {
   onRefresh: () => void;
   onExport: () => void;
   loading?: boolean;
+  autoRefresh?: boolean;
+  onAutoRefreshChange?: (enabled: boolean) => void;
 }
 
 export function OrderFilters({
@@ -21,6 +40,8 @@ export function OrderFilters({
   onRefresh,
   onExport,
   loading,
+  autoRefresh = true,
+  onAutoRefreshChange,
 }: OrderFiltersProps) {
   return (
     <Card
@@ -31,7 +52,9 @@ export function OrderFilters({
         {/* Platform Select */}
         <Col xs={24} sm={12} md={4}>
           <Flex vertical gap={4}>
-            <Text type="secondary" style={{ fontSize: 12 }}>Platform</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Platform
+            </Text>
             <Select
               defaultValue="all"
               style={{ width: "100%" }}
@@ -49,7 +72,9 @@ export function OrderFilters({
         {/* Date Range */}
         <Col xs={24} sm={12} md={6}>
           <Flex vertical gap={4}>
-            <Text type="secondary" style={{ fontSize: 12 }}>Order Date</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Order Date
+            </Text>
             <RangePicker style={{ width: "100%" }} onChange={onDateChange} />
           </Flex>
         </Col>
@@ -57,7 +82,9 @@ export function OrderFilters({
         {/* Search */}
         <Col xs={24} sm={12} md={6}>
           <Flex vertical gap={4}>
-            <Text type="secondary" style={{ fontSize: 12 }}>Search</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Search
+            </Text>
             <Input.Search
               placeholder="Order ID, Customer Name..."
               onSearch={onSearch}
@@ -68,7 +95,29 @@ export function OrderFilters({
 
         {/* Actions */}
         <Col xs={24} sm={12} md={8}>
-          <Flex justify="flex-end" align="flex-end" style={{ height: "100%" }}>
+          <Flex
+            justify="flex-end"
+            align="center"
+            gap={16}
+            style={{ height: "100%" }}
+          >
+            {/* Auto-Refresh Toggle */}
+            <Tooltip title="Auto-refresh every 30 seconds">
+              <Flex align="center" gap={6}>
+                <SyncOutlined
+                  spin={autoRefresh && loading}
+                  style={{ color: autoRefresh ? "#52c41a" : "#999" }}
+                />
+                <Text type="secondary" style={{ fontSize: 11 }}>
+                  Auto
+                </Text>
+                <Switch
+                  size="small"
+                  checked={autoRefresh}
+                  onChange={onAutoRefreshChange}
+                />
+              </Flex>
+            </Tooltip>
             <Space>
               <Button
                 icon={<ReloadOutlined />}

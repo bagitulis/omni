@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/models"
@@ -235,5 +236,125 @@ func (h *OAuthHandler) GetOAuthLogs(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    logs,
+	})
+}
+
+// GetTokenStatus returns token status for all platforms
+// GET /api/oauth/status
+func (h *OAuthHandler) GetTokenStatus(c *gin.Context) {
+	tenantID := c.GetString("tenantID")
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "Missing tenantID - authentication required",
+		})
+		return
+	}
+
+	configs, err := h.platformRepo.FindByTenant(c.Request.Context(), tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	now := time.Now().Unix()
+	result := make(map[string]gin.H)
+
+	// Initialize all platforms with default status
+	platforms := []string{models.PlatformShopee, models.PlatformLazada, models.PlatformTiktok}
+	for _, p := range platforms {
+		result[p] = gin.H{
+			"isExpired":             true,
+			"expiresAt":             nil,
+			"refreshTokenExpiresAt": nil,
+			"status":                "not_configured",
+			"valid":                 false,
+		}
+	}
+
+	// Update with actual config data
+	for _, config := range configs {
+		isExpired := config.ExpiresAt < now
+		expiresAt := time.Unix(config.ExpiresAt, 0).Format(time.RFC3339)
+
+		// Refresh token typically expires in 30 days for most platforms
+		// This is an approximation - actual expiry depends on platform
+		refreshTokenExpiresAt := time.Unix(config.ExpiresAt, 0).Add(30 * 24 * time.Hour).Format(time.RFC3339)
+
+		status := "valid"
+		if isExpired {
+			status = "expired"
+		} else {
+			// Check if expiring soon (within 24 hours)
+			hoursLeft := float64(config.ExpiresAt-now) / 3600
+			if hoursLeft < 24 {
+				status = "expiring"
+			}
+		}
+
+		result[config.Platform] = gin.H{
+			"isExpired":             isExpired,
+			"expiresAt":             expiresAt,
+			"refreshTokenExpiresAt": refreshTokenExpiresAt,
+			"status":                status,
+			"valid":                 !isExpired,
+			"shopId":                config.ShopID,
+			"shopName":              config.ShopName,
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    result,
+	})
+}
+
+// RefreshAllTokens refreshes tokens for all platforms
+// POST /api/oauth/refresh-all
+func (h *OAuthHandler) RefreshAllTokens(c *gin.Context) {
+	tenantID := c.GetString("tenantID")
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "Missing tenantID - authentication required",
+		})
+		return
+	}
+
+	configs, err := h.platformRepo.FindByTenant(c.Request.Context(), tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	results := make(map[string]gin.H)
+	for _, config := range configs {
+		// TODO: Implement actual token refresh for each platform
+		// For now, return status based on current expiry
+		now := time.Now().Unix()
+		isExpired := config.ExpiresAt < now
+
+		if isExpired {
+			results[config.Platform] = gin.H{
+				"success": false,
+				"error":   "Token expired - manual re-authorization required",
+			}
+		} else {
+			results[config.Platform] = gin.H{
+				"success": true,
+				"message": "Token is still valid",
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    results,
 	})
 }

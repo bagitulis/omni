@@ -54,13 +54,25 @@ export interface ShippingAddress {
 }
 
 /**
+ * Platform counts for order breakdown
+ * e.g., { shopee: 13, tiktok: 5, lazada: 2 }
+ */
+export interface PlatformCounts {
+  shopee?: number;
+  tiktok?: number;
+  lazada?: number;
+  [key: string]: number | undefined;
+}
+
+/**
  * Backend response format for order lists
- * Backend returns: { success, count, data: [...], items: [...] }
+ * Backend returns: { success, count, data: [...], items: [...], platform_counts: {...} }
  */
 export interface BackendOrderResponse {
   count: number;
   data: Order[];
   items: Order[];
+  platform_counts?: PlatformCounts;
 }
 
 /**
@@ -71,4 +83,5 @@ export interface OrderListResponse {
   total: number;
   page: number;
   page_size: number;
+  platform_counts?: PlatformCounts;
 }

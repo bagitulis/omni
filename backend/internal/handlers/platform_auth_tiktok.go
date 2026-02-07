@@ -141,6 +141,12 @@ func (h *PlatformAuthHandler) GetStatus(c *gin.Context) {
 			fmt.Sscanf(expStr, "%d", &expiresAt)
 		}
 
+		// Parse refresh token expiry - typically stored as refreshTokenExpiry
+		var refreshTokenExpiresAt int64
+		if expStr, ok := configMap["refreshTokenExpiry"]; ok && expStr != "" {
+			fmt.Sscanf(expStr, "%d", &refreshTokenExpiresAt)
+		}
+
 		// Normalize to milliseconds - if value is too small, it's in seconds
 		// Timestamps after year 2001 in ms are > 1_000_000_000_000
 		expiresAtMs := expiresAt
@@ -148,18 +154,24 @@ func (h *PlatformAuthHandler) GetStatus(c *gin.Context) {
 			expiresAtMs = expiresAt * 1000 // Convert seconds to milliseconds
 		}
 
+		refreshTokenExpiresAtMs := refreshTokenExpiresAt
+		if refreshTokenExpiresAt > 0 && refreshTokenExpiresAt < 1_000_000_000_000 {
+			refreshTokenExpiresAtMs = refreshTokenExpiresAt * 1000 // Convert seconds to milliseconds
+		}
+
 		expiresSoon := expiresAtMs > 0 && expiresAtMs < now.Add(24*time.Hour).UnixMilli()
 		expired := expiresAtMs > 0 && expiresAtMs < now.UnixMilli()
 
 		statuses[platform] = ConnectionStatus{
-			Platform:    platform,
-			Connected:   connected,
-			ShopID:      configMap["shopId"],
-			ShopName:    configMap["shopName"],
-			ExpiresAt:   expiresAtMs,
-			ExpiresSoon: expiresSoon,
-			Expired:     expired,
-			LastChecked: now,
+			Platform:              platform,
+			Connected:             connected,
+			ShopID:                configMap["shopId"],
+			ShopName:              configMap["shopName"],
+			ExpiresAt:             expiresAtMs,
+			RefreshTokenExpiresAt: refreshTokenExpiresAtMs,
+			ExpiresSoon:           expiresSoon,
+			Expired:               expired,
+			LastChecked:           now,
 		}
 	}
 

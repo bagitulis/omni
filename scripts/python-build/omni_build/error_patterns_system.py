@@ -115,6 +115,14 @@ def get_code_error_patterns() -> list[ErrorPattern]:
     """Code errors that cannot be auto-fixed."""
     return [
         ErrorPattern(
+            name="TypeScriptCasingError",
+            pattern=r"error TS1149:|error TS1261:|differs from.*only in casing|File name.*differs from already included file name",
+            description="TypeScript file casing mismatch (Windows case-insensitivity issue)",
+            severity=ErrorSeverity.HIGH,
+            fix_function=None,
+            is_code_error=True,
+        ),
+        ErrorPattern(
             name="TypeScriptError",
             pattern=r"error TS\d+:|Cannot find module|has no exported member|is not assignable to|Object is of type 'unknown'",
             description="TypeScript compilation error",

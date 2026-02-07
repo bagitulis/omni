@@ -222,8 +222,12 @@ def start_opencode():
     """Start OpenCode"""
     print("\n   Starting OpenCode...")
     print()
+    exe_path = SCRIPT_DIR / "opencode.exe"
     try:
-        subprocess.run(["opencode"], shell=True)
+        if exe_path.exists():
+            subprocess.run([str(exe_path)])
+        else:
+            print(f"   [ERROR] Failed to start OpenCode: {e}")
     except Exception as e:
         print(f"   [ERROR] Failed to start OpenCode: {e}")
 

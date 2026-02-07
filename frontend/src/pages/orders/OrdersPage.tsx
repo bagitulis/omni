@@ -1,16 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Tabs, Button, Space, Typography, message, Card, Flex, Divider } from "antd";
+import {
+  Tabs,
+  Button,
+  Space,
+  Typography,
+  message,
+  Card,
+  Flex,
+  Divider,
+} from "antd";
 import { PrinterOutlined, SendOutlined } from "@ant-design/icons";
 import { useOrders, useOrderActions } from "@/hooks/useOrders";
 import { OrderTable } from "@/components/tables/OrderTable";
 import { OrderFilters } from "@/components/forms/OrderFilters";
-import { OrderDetailModal } from "@/components/modals/OrderDetailModal";
+import { OrderDetailModal } from "@/components/Modals/OrderDetailModal";
+import { OrderHeader } from "@/components/orders/OrderHeader";
 import { Order, OrderDetail } from "@/types/order";
-import { getOrderById } from "@/api/orders";
+import {
+  getOrderById,
+  isSyncableOrderTab,
+  syncOrdersByCategory,
+  lockOrdersToday,
+  syncOrdersToday,
+} from "@/api/orders";
 import { Dayjs } from "dayjs";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const ORDER_TABS = [
   { key: "unpaid", label: "Unpaid" },
@@ -32,25 +48,56 @@ export default function OrdersPage() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Hooks
-  const { data, isLoading, refetch } = useOrders({
-    page,
-    pageSize,
-    status: activeTab,
-    platform,
-    search,
-    startDate: dateRange?.[0],
-    endDate: dateRange?.[1],
-  });
+  const { data, isLoading, refetch } = useOrders(
+    {
+      page,
+      pageSize,
+      status: activeTab,
+      platform,
+      search,
+      startDate: dateRange?.[0],
+      endDate: dateRange?.[1],
+    },
+    { autoRefresh },
+  );
 
   const { shipOrders, printLabels, isShipping, isPrinting } = useOrderActions();
+
+  const syncActiveTab = async (tabKey: string) => {
+    setIsSyncing(true);
+    try {
+      if (isSyncableOrderTab(tabKey)) {
+        await syncOrdersByCategory(tabKey);
+      } else if (tabKey === "today") {
+        await syncOrdersToday();
+      } else if (tabKey === "locked") {
+        await lockOrdersToday();
+      }
+    } catch (error) {
+      message.error("Failed to sync orders");
+    } finally {
+      setIsSyncing(false);
+      refetch();
+    }
+  };
+
+  useEffect(() => {
+    void syncActiveTab(activeTab);
+  }, [activeTab]);
 
   // Handlers
   const handleTabChange = (key: string) => {
     setSearchParams({ type: key });
     setPage(1);
     setSelectedRowKeys([]);
+  };
+
+  const handleRefresh = async () => {
+    await syncActiveTab(activeTab);
   };
 
   const handleSearch = (value: string) => {
@@ -131,12 +178,36 @@ export default function OrdersPage() {
     }
   };
 
+  // Generate tab items with counts
+  const orderTabItems = ORDER_TABS.map((tab) => {
+    // For the active tab, show actual count from total
+    const tabCount = tab.key === activeTab ? data?.total || 0 : 0;
+
+    return {
+      key: tab.key,
+      label: (
+        <span>
+          {tab.label}
+          {tab.key === activeTab && tabCount > 0 && (
+            <span style={{ marginLeft: 4, color: "#ee4d2d" }}>
+              ({tabCount})
+            </span>
+          )}
+        </span>
+      ),
+    };
+  });
+
   return (
     <div style={{ padding: 24 }}>
       <Flex vertical gap={16}>
-        <Title level={2} style={{ margin: 0 }}>
-          Order Management
-        </Title>
+        {/* Order Header with Platform Stats */}
+        <OrderHeader
+          activeTab={activeTab}
+          platformCounts={data?.platform_counts}
+          totalCount={data?.total || 0}
+          loading={isLoading}
+        />
 
         {/* Status Tabs */}
         <Card
@@ -147,7 +218,7 @@ export default function OrdersPage() {
           <Tabs
             activeKey={activeTab}
             onChange={handleTabChange}
-            items={ORDER_TABS}
+            items={orderTabItems}
             tabBarStyle={{ margin: 0 }}
           />
         </Card>
@@ -157,19 +228,21 @@ export default function OrdersPage() {
           onSearch={handleSearch}
           onPlatformChange={handlePlatformChange}
           onDateChange={handleDateChange}
-          onRefresh={refetch}
+          onRefresh={handleRefresh}
           onExport={() => message.info("Export functionality coming soon")}
-          loading={isLoading}
+          loading={isLoading || isSyncing}
+          autoRefresh={autoRefresh}
+          onAutoRefreshChange={setAutoRefresh}
         />
 
         {/* Bulk Actions Bar */}
         {selectedRowKeys.length > 0 && (
-          <Card 
+          <Card
             size="small"
-            style={{ 
-              backgroundColor: "#f0f9ff", 
+            style={{
+              backgroundColor: "#f0f9ff",
               border: "1px solid #bae6fd",
-              borderRadius: 4 
+              borderRadius: 4,
             }}
           >
             <Flex justify="space-between" align="center">

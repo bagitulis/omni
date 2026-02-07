@@ -136,14 +136,15 @@ func (h *PlatformAuthHandler) disconnectPlatform(c *gin.Context, platform string
 
 // ConnectionStatus represents platform connection status
 type ConnectionStatus struct {
-	Platform    string    `json:"platform"`
-	Connected   bool      `json:"connected"`
-	ShopID      string    `json:"shop_id,omitempty"`
-	ShopName    string    `json:"shop_name,omitempty"`
-	ExpiresAt   int64     `json:"expires_at,omitempty"`
-	ExpiresSoon bool      `json:"expires_soon,omitempty"`
-	Expired     bool      `json:"expired,omitempty"`
-	LastChecked time.Time `json:"last_checked"`
+	Platform              string    `json:"platform"`
+	Connected             bool      `json:"connected"`
+	ShopID                string    `json:"shop_id,omitempty"`
+	ShopName              string    `json:"shop_name,omitempty"`
+	ExpiresAt             int64     `json:"expires_at,omitempty"`
+	RefreshTokenExpiresAt int64     `json:"refresh_token_expires_at,omitempty"`
+	ExpiresSoon           bool      `json:"expires_soon,omitempty"`
+	Expired               bool      `json:"expired,omitempty"`
+	LastChecked           time.Time `json:"last_checked"`
 }
 
 // CheckAllConnections handles POST /api/platform-auth/check-all

@@ -17,6 +17,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { STORAGE_KEYS } from "@/lib/constants";
+import { TokenStatusDropdown } from "./TokenStatusDropdown";
 
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;
@@ -107,7 +108,11 @@ export default function Header({ collapsed, onCollapse }: HeaderProps) {
         </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {/* Token Status Dropdown */}
+        <TokenStatusDropdown />
+
+        {/* User Menu */}
         <Dropdown menu={{ items: userMenu }} placement="bottomRight">
           <Space style={{ cursor: "pointer" }}>
             <Avatar size="small" icon={<UserOutlined />} />

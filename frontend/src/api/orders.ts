@@ -1,5 +1,10 @@
 import apiClient from "./client";
-import { OrderListResponse, Order, BackendOrderResponse, OrderDetail } from "@/types/order";
+import {
+  OrderListResponse,
+  Order,
+  BackendOrderResponse,
+  OrderDetail,
+} from "@/types/order";
 
 /**
  * Order tab types matching Vue frontend
@@ -10,6 +15,9 @@ export type OrderTab =
   | "processed"
   | "locked"
   | "today";
+
+const SYNCABLE_TABS = ["unpaid", "unprocess", "processed"] as const;
+export type SyncableOrderTab = (typeof SYNCABLE_TABS)[number];
 
 export interface GetOrdersParams {
   page?: number;
@@ -90,11 +98,24 @@ export async function getOrders(
     transformOrder,
   );
 
+  // Calculate platform counts from orders if not provided by backend
+  let platformCounts = backendData.platform_counts;
+  if (!platformCounts) {
+    platformCounts = {};
+    for (const order of orders) {
+      const platform = order.platform?.toLowerCase();
+      if (platform) {
+        platformCounts[platform] = (platformCounts[platform] || 0) + 1;
+      }
+    }
+  }
+
   return {
     orders,
     total: backendData.count || orders.length,
     page: params.page || 1,
     page_size: params.pageSize || 10,
+    platform_counts: platformCounts,
   };
 }
 
@@ -139,6 +160,22 @@ export async function lockOrdersToday(): Promise<Order[]> {
  */
 export async function syncAllOrders(): Promise<void> {
   const response = await apiClient.post("/orders/sync-all");
+  if (!response.success) {
+    throw new Error(response.error || "Failed to sync orders");
+  }
+}
+
+export function isSyncableOrderTab(status: string): status is SyncableOrderTab {
+  return (SYNCABLE_TABS as readonly string[]).includes(status);
+}
+
+/**
+ * Sync orders by category (unpaid/unprocess/processed)
+ */
+export async function syncOrdersByCategory(
+  category: SyncableOrderTab,
+): Promise<void> {
+  const response = await apiClient.post(`/orders/sync/${category}`);
   if (!response.success) {
     throw new Error(response.error || "Failed to sync orders");
   }
@@ -195,10 +232,10 @@ export async function bulkPrintLabels(
  */
 export async function getOrderById(orderSn: string): Promise<OrderDetail> {
   const response = await apiClient.get<OrderDetail>(`/orders/${orderSn}`);
-  
+
   if (!response.success) {
     throw new Error(response.error || "Failed to fetch order details");
   }
-  
+
   return response.data!;
 }

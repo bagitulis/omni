@@ -7,12 +7,28 @@ import {
 } from "@/api/orders";
 import { message } from "antd";
 
-export function useOrders(params: GetOrdersParams) {
+interface UseOrdersOptions {
+  autoRefresh?: boolean;
+  refetchInterval?: number; // in milliseconds
+}
+
+const DEFAULT_REFETCH_INTERVAL = 30000; // 30 seconds
+
+export function useOrders(
+  params: GetOrdersParams,
+  options: UseOrdersOptions = {},
+) {
+  const { autoRefresh = true, refetchInterval = DEFAULT_REFETCH_INTERVAL } =
+    options;
+
   return useQuery({
     queryKey: ["orders", params],
     queryFn: () => getOrders(params),
-    staleTime: 30000, // 30 seconds
+    staleTime: 10000, // 10 seconds - data considered fresh
     placeholderData: (previousData) => previousData,
+    // Auto-refresh every 30 seconds when enabled
+    refetchInterval: autoRefresh ? refetchInterval : false,
+    refetchIntervalInBackground: false, // Don't refetch when tab is not focused
   });
 }
 
