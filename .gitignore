@@ -26,7 +26,17 @@ backend/bin/
 
 # Frontend build output
 frontend/dist/
-frontend-react/dist/
+frontend-vue/dist/
+
+# TypeScript incremental build artifacts
+*.tsbuildinfo
+
+# OpenCode agent scratch
+.sisyphus/
+
+# Local artifacts
+nul
+dashboard-verified.png
 # Temporary files
 *.log
 *.tmp

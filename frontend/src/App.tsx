@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ConfigProvider } from "antd";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { antdTheme, antdDarkTheme } from "./styles/theme";
 import { AppLayout } from "./components/layout";
@@ -33,8 +33,18 @@ import TiktokAdsAnalyticsPage from "./pages/analytics/TiktokAdsAnalyticsPage";
 import { MLDashboardPage } from "./pages/analytics/MLDashboardPage";
 import SettingsPage from "./pages/settings/SettingsPage";
 import ScriptMonitorPage from "./pages/script-monitor/ScriptMonitorPage";
-import { ProductManagerPage } from "./pages/product-manager/ProductManagerPage";
 import { RouteMappingPage } from "./pages/route-mapping/RouteMappingPage";
+
+function ProductManagerRedirect() {
+  const { platform } = useParams<{ platform?: string }>();
+
+  if (platform) {
+    const next = `/master-products?platform=${encodeURIComponent(platform)}`;
+    return <Navigate to={next} replace />;
+  }
+
+  return <Navigate to="/master-products" replace />;
+}
 
 export default function App() {
   // Theme state kept for future implementation
@@ -68,10 +78,13 @@ export default function App() {
                 path="/master-products/:id"
                 element={<ProductEditPage />}
               />
-              <Route path="/product-manager" element={<ProductManagerPage />} />
+              <Route
+                path="/product-manager"
+                element={<ProductManagerRedirect />}
+              />
               <Route
                 path="/product-manager/:platform"
-                element={<ProductManagerPage />}
+                element={<ProductManagerRedirect />}
               />
               <Route path="/route-mapping" element={<RouteMappingPage />} />
               <Route path="/inventory" element={<InventoryPage />} />

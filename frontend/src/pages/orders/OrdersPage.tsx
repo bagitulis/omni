@@ -1,21 +1,12 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import {
-  Tabs,
-  Button,
-  Space,
-  Typography,
-  message,
-  Card,
-  Flex,
-  Divider,
-} from "antd";
-import { PrinterOutlined, SendOutlined } from "@ant-design/icons";
+import { Tabs, message, Card, Flex } from "antd";
 import { useOrders, useOrderActions } from "@/hooks/useOrders";
 import { OrderTable } from "@/components/tables/OrderTable";
 import { OrderFilters } from "@/components/forms/OrderFilters";
-import { OrderDetailModal } from "@/components/Modals/OrderDetailModal";
+import { OrderDetailModal } from "@/components/modals/OrderDetailModal";
 import { OrderHeader } from "@/components/orders/OrderHeader";
+import { OrdersBulkActionsBar } from "./components/OrdersBulkActionsBar";
 import { Order, OrderDetail } from "@/types/order";
 import {
   getOrderById,
@@ -25,8 +16,6 @@ import {
   syncOrdersToday,
 } from "@/api/orders";
 import { Dayjs } from "dayjs";
-
-const { Text } = Typography;
 
 const ORDER_TABS = [
   { key: "unpaid", label: "Unpaid" },
@@ -67,27 +56,42 @@ export default function OrdersPage() {
 
   const { shipOrders, printLabels, isShipping, isPrinting } = useOrderActions();
 
-  const syncActiveTab = async (tabKey: string) => {
-    setIsSyncing(true);
-    try {
-      if (isSyncableOrderTab(tabKey)) {
-        await syncOrdersByCategory(tabKey);
-      } else if (tabKey === "today") {
-        await syncOrdersToday();
-      } else if (tabKey === "locked") {
-        await lockOrdersToday();
+  const syncActiveTab = useCallback(
+    async (tabKey: string) => {
+      setIsSyncing(true);
+      try {
+        if (isSyncableOrderTab(tabKey)) {
+          await syncOrdersByCategory(tabKey);
+        } else if (tabKey === "today") {
+          await syncOrdersToday();
+        } else if (tabKey === "locked") {
+          await lockOrdersToday();
+        }
+      } catch (error) {
+        message.error("Failed to sync orders");
+      } finally {
+        setIsSyncing(false);
+        refetch();
       }
-    } catch (error) {
-      message.error("Failed to sync orders");
-    } finally {
-      setIsSyncing(false);
-      refetch();
-    }
-  };
+    },
+    [refetch],
+  );
 
   useEffect(() => {
     void syncActiveTab(activeTab);
-  }, [activeTab]);
+  }, [activeTab, syncActiveTab]);
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+    if (!isSyncableOrderTab(activeTab)) return;
+
+    const intervalId = window.setInterval(() => {
+      if (isSyncing) return;
+      void syncActiveTab(activeTab);
+    }, 60_000);
+
+    return () => window.clearInterval(intervalId);
+  }, [activeTab, autoRefresh, isSyncing, syncActiveTab]);
 
   // Handlers
   const handleTabChange = (key: string) => {
@@ -235,43 +239,14 @@ export default function OrdersPage() {
           onAutoRefreshChange={setAutoRefresh}
         />
 
-        {/* Bulk Actions Bar */}
-        {selectedRowKeys.length > 0 && (
-          <Card
-            size="small"
-            style={{
-              backgroundColor: "#f0f9ff",
-              border: "1px solid #bae6fd",
-              borderRadius: 4,
-            }}
-          >
-            <Flex justify="space-between" align="center">
-              <Space split={<Divider type="vertical" />}>
-                <Text strong style={{ color: "#0369a1" }}>
-                  {selectedRowKeys.length} orders selected
-                </Text>
-                <Button
-                  type="primary"
-                  icon={<SendOutlined />}
-                  onClick={handleBulkShip}
-                  loading={isShipping}
-                >
-                  Bulk Ship
-                </Button>
-                <Button
-                  icon={<PrinterOutlined />}
-                  onClick={handleBulkPrint}
-                  loading={isPrinting}
-                >
-                  Bulk Print Labels
-                </Button>
-              </Space>
-              <Button type="text" onClick={() => setSelectedRowKeys([])}>
-                Clear Selection
-              </Button>
-            </Flex>
-          </Card>
-        )}
+        <OrdersBulkActionsBar
+          selectedCount={selectedRowKeys.length}
+          onBulkShip={() => void handleBulkShip()}
+          onBulkPrint={() => void handleBulkPrint()}
+          onClearSelection={() => setSelectedRowKeys([])}
+          isShipping={isShipping}
+          isPrinting={isPrinting}
+        />
 
         {/* Data Table */}
         <Card style={{ borderRadius: 4 }}>

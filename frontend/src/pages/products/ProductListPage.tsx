@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Button,
   Card,
@@ -25,6 +25,7 @@ import { PlatformBadge } from "@/components/ui/PlatformBadge";
 
 export function ProductListPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [filters, setFilters] = useState({
     search: "",
@@ -46,9 +47,37 @@ export function ProductListPage() {
 
   const deleteMutation = useDeleteProduct();
 
+  useEffect(() => {
+    const platformFromUrl = searchParams.get("platform");
+    if (!platformFromUrl) return;
+
+    const normalized = platformFromUrl.toLowerCase();
+    const allowedPlatforms = new Set(["all", "shopee", "lazada", "tiktok"]);
+    if (!allowedPlatforms.has(normalized)) return;
+
+    setFilters((prev) => {
+      if (prev.platform === normalized) return prev;
+      return { ...prev, platform: normalized };
+    });
+  }, [searchParams]);
+
   const handleFilterChange = (key: string, value: any) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setPage(1); // Reset to first page
+
+    if (key === "platform") {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+
+        if (value === "all") {
+          next.delete("platform");
+        } else {
+          next.set("platform", String(value));
+        }
+
+        return next;
+      });
+    }
   };
 
   const handleDelete = (id: string) => {
