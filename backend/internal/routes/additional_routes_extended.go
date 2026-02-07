@@ -146,6 +146,19 @@ func RegisterLazadaProductExtendedRoutes(router *gin.RouterGroup, basePath strin
 	}
 }
 
+// RegisterLazadaSyncRoutes registers Lazada sync routes
+func RegisterLazadaSyncRoutes(router *gin.RouterGroup, basePath string) {
+	handler := lazadaHandler.NewSyncHandler(basePath)
+
+	sync := router.Group("/lazada/sync")
+	sync.Use(middleware.Auth())
+	sync.Use(middleware.Tenant())
+	{
+		sync.POST("/orders", handler.SyncOrders)
+		sync.POST("/products", handler.SyncProducts)
+	}
+}
+
 // RegisterProductMetadataRoutes registers product metadata routes
 func RegisterProductMetadataRoutes(router *gin.RouterGroup, basePath string) {
 	handler := handlers.NewProductMetadataHandler(basePath)

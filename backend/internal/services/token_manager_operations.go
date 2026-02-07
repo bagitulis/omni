@@ -41,8 +41,10 @@ func (m *TokenManager) executeShopeeTokenRefresh(ctx context.Context, tenantID, 
 	if val, ok := result["expire_in"].(float64); ok {
 		expiresIn = int64(val)
 	}
-	// Shopee refresh token valid for 30 days
+	// Shopee refresh token valid for 30 days (fixed by Shopee API)
 	refreshExpiresIn := int64(30 * 24 * 60 * 60) // 30 days in seconds
+
+	log.Printf("[SHOPEE REFRESH] Success! Access token expires in %d seconds, refresh token expires in %d days", expiresIn, refreshExpiresIn/86400)
 
 	return m.saveNewTokens(ctx, tenantID, models.PlatformShopee, accessToken, newRefreshToken, expiresIn, refreshExpiresIn)
 }
@@ -82,13 +84,16 @@ func (m *TokenManager) executeLazadaTokenRefresh(ctx context.Context, tenantID, 
 	accessToken, _ := result["access_token"].(string)
 	newRefreshToken, _ := result["refresh_token"].(string)
 	expiresIn := int64(result["expires_in"].(float64))
-	// Lazada refresh token typically valid for 30 days
-	refreshExpiresIn := int64(30 * 24 * 60 * 60)
-	if val, ok := result["refresh_expires_in"].(float64); ok {
+	// Lazada refresh token - use actual value from API if provided
+	refreshExpiresIn := int64(30 * 24 * 60 * 60) // Default 30 days
+	if val, ok := result["refresh_expires_in"].(float64); ok && val > 0 {
 		refreshExpiresIn = int64(val)
+		log.Printf("[LAZADA REFRESH] refresh_expires_in from API: %d seconds = %d days", refreshExpiresIn, refreshExpiresIn/86400)
+	} else {
+		log.Printf("[LAZADA REFRESH] refresh_expires_in not provided, using default: 30 days")
 	}
 
-	log.Printf("[LAZADA REFRESH] Success! New token expires in %d seconds", expiresIn)
+	log.Printf("[LAZADA REFRESH] Success! New access token expires in %d seconds, refresh token expires in %d days", expiresIn, refreshExpiresIn/86400)
 	return m.saveNewTokens(ctx, tenantID, models.PlatformLazada, accessToken, newRefreshToken, expiresIn, refreshExpiresIn)
 }
 
@@ -165,10 +170,26 @@ func (m *TokenManager) executeTiktokTokenRefresh(ctx context.Context, tenantID, 
 		log.Printf("[TIKTOK REFRESH] access_token_expire_in not provided, using default: %d seconds", expiresIn)
 	}
 
-	// For refresh token: DO NOT use refresh_token_expire_in from API (unreliable)
-	// Instead, use reasonable default of 90 days (like Node.js backend)
-	refreshExpiresIn := int64(90 * 24 * 60 * 60) // 90 days in seconds
-	log.Printf("[TIKTOK REFRESH] Using default refresh token expiry: %d seconds (90 days)", refreshExpiresIn)
+	// Handle refresh token expiry - normalize like access token
+	refreshTokenExpireValue := int64(0)
+	if val, ok := data["refresh_token_expire_in"].(float64); ok {
+		refreshTokenExpireValue = int64(val)
+	}
+
+	var refreshExpiresIn int64
+	if refreshTokenExpireValue > nowSeconds {
+		// It's a Unix timestamp - convert to relative seconds
+		refreshExpiresIn = refreshTokenExpireValue - nowSeconds
+		log.Printf("[TIKTOK REFRESH] refresh_token_expire_in is Unix timestamp: %d (relative: %d seconds = %d days)", refreshTokenExpireValue, refreshExpiresIn, refreshExpiresIn/86400)
+	} else if refreshTokenExpireValue > 0 {
+		// It's relative seconds - use as-is
+		refreshExpiresIn = refreshTokenExpireValue
+		log.Printf("[TIKTOK REFRESH] refresh_token_expire_in is relative: %d seconds = %d days", refreshExpiresIn, refreshExpiresIn/86400)
+	} else {
+		// Default to 90 days if not provided
+		refreshExpiresIn = 90 * 24 * 60 * 60
+		log.Printf("[TIKTOK REFRESH] refresh_token_expire_in not provided, using default: %d seconds (90 days)", refreshExpiresIn)
+	}
 
 	log.Printf("[TIKTOK REFRESH] Success! New access token expires in %d seconds (%d days)", expiresIn, expiresIn/86400)
 	return m.saveNewTokens(ctx, tenantID, models.PlatformTiktok, accessToken, newRefreshToken, expiresIn, refreshExpiresIn)

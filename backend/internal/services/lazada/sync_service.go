@@ -98,6 +98,12 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 	for _, prod := range resp.Data.Products {
 		itemID := prod.ItemID.String()
 
+		// Extract first image URL for display
+		var imageURL string
+		if len(prod.Images) > 0 {
+			imageURL = prod.Images[0]
+		}
+
 		dbProd := &models.LazadaProduct{
 			TenantID:    s.tenantID,
 			ItemID:      itemID,
@@ -105,6 +111,7 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 			Description: prod.Description,
 			Price:       prod.Price,
 			Status:      prod.Status,
+			Image:       imageURL,
 		}
 
 		if err := s.prodRepo.Upsert(ctx, dbProd); err == nil {
@@ -178,6 +185,12 @@ func (s *SyncService) SyncProductsWithDetails(ctx context.Context, offset, limit
 				brand = prod.Attributes.Brand
 			}
 
+			// Extract first image URL for display
+			var imageURL string
+			if len(prod.Images) > 0 {
+				imageURL = prod.Images[0]
+			}
+
 			// Save product to database
 			dbProd := &models.LazadaProduct{
 				TenantID:    s.tenantID,
@@ -187,6 +200,7 @@ func (s *SyncService) SyncProductsWithDetails(ctx context.Context, offset, limit
 				Brand:       brand,
 				Price:       prod.Price,
 				Status:      prod.Status,
+				Image:       imageURL,
 			}
 
 			if err := s.prodRepo.Upsert(ctx, dbProd); err != nil {

@@ -87,7 +87,7 @@ func (h *SyncHandler) SyncOrders(c *gin.Context) {
 	client := lazadaPkg.NewClient(creds.AppKey, creds.AppSecret, creds.Region)
 	client.SetAccessToken(creds.AccessToken)
 
-	syncService := lazadaService.NewSyncService(client, db)
+	syncService := lazadaService.NewSyncServiceWithTenant(client, db, tenantID)
 	count, err := syncService.SyncOrders(c.Request.Context(), "")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Sync failed: "+err.Error()))
@@ -133,7 +133,7 @@ func (h *SyncHandler) SyncProducts(c *gin.Context) {
 	client := lazadaPkg.NewClient(creds.AppKey, creds.AppSecret, creds.Region)
 	client.SetAccessToken(creds.AccessToken)
 
-	syncService := lazadaService.NewSyncService(client, db)
+	syncService := lazadaService.NewSyncServiceWithTenant(client, db, tenantID)
 	count, err := syncService.SyncProducts(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Sync failed: "+err.Error()))

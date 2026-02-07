@@ -206,8 +206,46 @@ func (h *OAuthHandler) saveTiktokTokens(ctx context.Context, tenantID string, to
 	// Use TenantPlatformConfigRepository for key-value storage
 	tenantRepo := repositories.NewTenantPlatformConfigRepository(tenantDB)
 
-	// Update tokens
-	if err := tenantRepo.UpdateTokens(ctx, models.PlatformTiktok, tokenResp.Data.AccessToken, tokenResp.Data.RefreshToken, tokenResp.Data.AccessTokenExpireIn, tokenResp.Data.RefreshTokenExpireIn); err != nil {
+	// TikTok API returns expiry as Unix timestamps OR relative seconds
+	// We need to normalize to relative seconds for UpdateTokens()
+	nowSeconds := time.Now().Unix()
+
+	// Handle access token expiry
+	accessTokenExpireValue := tokenResp.Data.AccessTokenExpireIn
+	var expiresInSeconds int64
+	if accessTokenExpireValue > nowSeconds {
+		// It's a Unix timestamp - convert to relative seconds
+		expiresInSeconds = accessTokenExpireValue - nowSeconds
+		log.Printf("[TikTok OAuth] access_token_expire_in is Unix timestamp: %d (relative: %d seconds)", accessTokenExpireValue, expiresInSeconds)
+	} else if accessTokenExpireValue > 0 {
+		// It's relative seconds - use as-is
+		expiresInSeconds = accessTokenExpireValue
+		log.Printf("[TikTok OAuth] access_token_expire_in is relative: %d seconds", expiresInSeconds)
+	} else {
+		// Default to 7 days
+		expiresInSeconds = 7 * 24 * 60 * 60
+		log.Printf("[TikTok OAuth] access_token_expire_in not provided, using default: %d seconds", expiresInSeconds)
+	}
+
+	// Handle refresh token expiry
+	refreshTokenExpireValue := tokenResp.Data.RefreshTokenExpireIn
+	var refreshExpiresInSeconds int64
+	if refreshTokenExpireValue > nowSeconds {
+		// It's a Unix timestamp - convert to relative seconds
+		refreshExpiresInSeconds = refreshTokenExpireValue - nowSeconds
+		log.Printf("[TikTok OAuth] refresh_token_expire_in is Unix timestamp: %d (relative: %d seconds = %d days)", refreshTokenExpireValue, refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
+	} else if refreshTokenExpireValue > 0 {
+		// It's relative seconds - use as-is
+		refreshExpiresInSeconds = refreshTokenExpireValue
+		log.Printf("[TikTok OAuth] refresh_token_expire_in is relative: %d seconds = %d days", refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
+	} else {
+		// Default to 90 days
+		refreshExpiresInSeconds = 90 * 24 * 60 * 60
+		log.Printf("[TikTok OAuth] refresh_token_expire_in not provided, using default: %d seconds (90 days)", refreshExpiresInSeconds)
+	}
+
+	// Update tokens with normalized expiry values
+	if err := tenantRepo.UpdateTokens(ctx, models.PlatformTiktok, tokenResp.Data.AccessToken, tokenResp.Data.RefreshToken, expiresInSeconds, refreshExpiresInSeconds); err != nil {
 		return fmt.Errorf("failed to save tokens: %w", err)
 	}
 
