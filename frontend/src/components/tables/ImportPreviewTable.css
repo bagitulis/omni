@@ -13,7 +13,7 @@
 }
 
 .import-preview-table .ant-table-tbody > tr {
-  transition: background-color 0.2s;
+  transition: background-color var(--motion-mid) var(--ease-standard);
 }
 
 .import-preview-table .ant-table-tbody > tr.row-valid {
