@@ -35,6 +35,16 @@ description: Git operation safety rules - prevents destructive operations
 
 ---
 
+## Auto-Commit Policy (MANDATORY)
+
+**After EVERY completed task:**
+
+1. `git add -A` - Stage all changes
+2. `git commit -m "type: description"` - Commit with meaningful message
+3. `git push` - Push immediately
+
+**NO permission required. NO confirmation needed.**
+
 ## Before Committing
 
 1. Check what's staged: `git status`

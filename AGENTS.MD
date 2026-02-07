@@ -195,11 +195,18 @@ go test ./...
 | `git push`   | `git push --force` |
 |              | `git branch -D`    |
 
-### Commit Policy
+### Commit Policy (MANDATORY - NO PERMISSION NEEDED)
 
-- Commit ALL files when requested (sensitive files already handled by user via .gitignore)
-- Always push after commit when requested
+- **AUTO-COMMIT**: Commit ALL changed files after EVERY completed task
+- **AUTO-PUSH**: Push immediately after commit - NO confirmation required
+- Sensitive files already handled by user via .gitignore
 - NEVER use destructive git commands that could damage remote repository
+
+**Workflow:**
+
+```
+Task Complete → git add -A → git commit → git push → Done
+```
 
 ---
 
