@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Tabs, message, Card, Flex } from "antd";
+import { message, Card, Flex } from "antd";
 import { useQueryClient } from "@tanstack/react-query";
 import { useOrders, useOrderActions } from "@/hooks/useOrders";
 import { OrderTable } from "@/components/tables/OrderTable";
@@ -8,73 +8,12 @@ import { OrderFilters } from "@/components/forms/OrderFilters";
 import { OrderDetailModal } from "@/components/Modals/OrderDetailModal";
 import { OrderHeader } from "@/components/orders/OrderHeader";
 import { OrdersBulkActionsBar } from "./components/OrdersBulkActionsBar";
+import { OrderStatusTabs } from "./components/OrderStatusTabs";
 import { Order, OrderDetail } from "@/types/order";
-import {
-  getOrderById,
-  isSyncableOrderTab,
-  syncOrdersByCategory,
-  lockOrdersToday,
-  syncOrdersToday,
-} from "@/api/orders";
+import { getOrderById } from "@/api/orders";
 import { Dayjs } from "dayjs";
-
-const ORDER_TABS = [
-  { key: "unpaid", label: "Unpaid" },
-  { key: "unprocess", label: "To Process" },
-  { key: "processed", label: "Processed" },
-  { key: "locked", label: "Locked" },
-  { key: "today", label: "Today" },
-];
-
-// CSV export utility
-function generateOrdersCSV(orders: Order[]): string {
-  if (!orders || orders.length === 0) {
-    return ""; // Empty CSV headers
-  }
-
-  // CSV headers
-  const headers = [
-    "Order No",
-    "Platform",
-    "Status",
-    "Customer",
-    "Total",
-    "Date",
-  ];
-
-  // Convert orders to CSV rows
-  const rows = orders.map((order) => [
-    `"${order.order_sn || ""}"`, // Order No - quoted to preserve numbers
-    `"${order.platform || ""}"`, // Platform
-    `"${order.status || ""}"`, // Status
-    `"${order.buyer_username || ""}"`, // Customer
-    order.total_amount?.toFixed(2) || "0.00", // Total - no quotes for numbers
-    `"${order.created_at || ""}"`, // Date - quoted for timestamp
-  ]);
-
-  // Combine headers and rows
-  const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join(
-    "\n",
-  );
-
-  return csv;
-}
-
-function downloadCSV(csv: string, filename: string) {
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  const url = URL.createObjectURL(blob);
-
-  link.setAttribute("href", url);
-  link.setAttribute("download", filename);
-  link.style.visibility = "hidden";
-
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  URL.revokeObjectURL(url);
-}
+import { generateOrdersCSV, downloadCSV } from "./utils/csv";
+import { useOrderSync } from "./hooks/useOrderSync";
 
 export default function OrdersPage() {
   // State
@@ -89,7 +28,6 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   // Query client for cache invalidation
   const queryClient = useQueryClient();
@@ -109,43 +47,11 @@ export default function OrdersPage() {
   );
 
   const { shipOrders, printLabels, isShipping, isPrinting } = useOrderActions();
-
-  const syncActiveTab = useCallback(
-    async (tabKey: string) => {
-      setIsSyncing(true);
-      try {
-        if (isSyncableOrderTab(tabKey)) {
-          await syncOrdersByCategory(tabKey);
-        } else if (tabKey === "today") {
-          await syncOrdersToday();
-        } else if (tabKey === "locked") {
-          await lockOrdersToday();
-        }
-      } catch (error) {
-        message.error("Failed to sync orders");
-      } finally {
-        setIsSyncing(false);
-        refetch();
-      }
-    },
-    [refetch],
+  const { isSyncing, syncActiveTab } = useOrderSync(
+    activeTab,
+    refetch,
+    autoRefresh,
   );
-
-  useEffect(() => {
-    void syncActiveTab(activeTab);
-  }, [activeTab, syncActiveTab]);
-
-  useEffect(() => {
-    if (!autoRefresh) return;
-    if (!isSyncableOrderTab(activeTab)) return;
-
-    const intervalId = window.setInterval(() => {
-      if (isSyncing) return;
-      void syncActiveTab(activeTab);
-    }, 30_000);
-
-    return () => window.clearInterval(intervalId);
-  }, [activeTab, autoRefresh, isSyncing, syncActiveTab]);
 
   // Handlers
   const handleTabChange = (key: string) => {
@@ -263,26 +169,6 @@ export default function OrdersPage() {
     }
   };
 
-  // Generate tab items with counts
-  const orderTabItems = ORDER_TABS.map((tab) => {
-    // For the active tab, show actual count from total
-    const tabCount = tab.key === activeTab ? data?.total || 0 : 0;
-
-    return {
-      key: tab.key,
-      label: (
-        <span>
-          {tab.label}
-          {tab.key === activeTab && tabCount > 0 && (
-            <span style={{ marginLeft: 4, color: "#ee4d2d" }}>
-              ({tabCount})
-            </span>
-          )}
-        </span>
-      ),
-    };
-  });
-
   return (
     <div style={{ padding: 24 }}>
       <Flex vertical gap={16}>
@@ -295,18 +181,11 @@ export default function OrdersPage() {
         />
 
         {/* Status Tabs */}
-        <Card
-          variant="borderless"
-          styles={{ body: { padding: "0 16px" } }}
-          style={{ borderRadius: 4 }}
-        >
-          <Tabs
-            activeKey={activeTab}
-            onChange={handleTabChange}
-            items={orderTabItems}
-            tabBarStyle={{ margin: 0 }}
-          />
-        </Card>
+        <OrderStatusTabs
+          activeTab={activeTab}
+          onChange={handleTabChange}
+          totalCount={data?.total || 0}
+        />
 
         {/* Filters */}
         <OrderFilters

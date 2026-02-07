@@ -12,52 +12,21 @@ import {
   Badge,
   message,
 } from "antd";
-import {
-  KeyOutlined,
-  ReloadOutlined,
-  CheckCircleFilled,
-  CloseCircleFilled,
-  WarningFilled,
-} from "@ant-design/icons";
+import { KeyOutlined, ReloadOutlined } from "@ant-design/icons";
 import apiClient from "@/api/client";
+import {
+  TokenStatusMap,
+  BackendTokenStatusResponse,
+  PLATFORM_CONFIG,
+} from "./TokenStatusDropdown.types";
+import {
+  getTokenStatusType,
+  formatTimeRemaining,
+  getStatusIcon,
+  getStatusColor,
+} from "./TokenStatusDropdown.utils";
 
 const { Text } = Typography;
-
-interface TokenStatusData {
-  isExpired: boolean;
-  expiresAt: string | null;
-  refreshTokenExpiresAt: string | null;
-  status?: string;
-  valid?: boolean;
-}
-
-interface TokenStatusMap {
-  shopee?: TokenStatusData;
-  tiktok?: TokenStatusData;
-  lazada?: TokenStatusData;
-  [key: string]: TokenStatusData | undefined;
-}
-
-// Backend response format from /platform-auth/status
-interface BackendPlatformStatus {
-  connected: boolean;
-  expired: boolean;
-  expires_soon: boolean;
-  expires_at: number;
-  refresh_token_expires_at?: number;
-  shop_id?: string;
-  shop_name?: string;
-}
-
-interface BackendTokenStatusResponse {
-  [platform: string]: BackendPlatformStatus;
-}
-
-const PLATFORM_CONFIG: Record<string, { color: string; label: string }> = {
-  shopee: { color: "#ee4d2d", label: "Shopee" },
-  tiktok: { color: "#000000", label: "TikTok" },
-  lazada: { color: "#0f146d", label: "Lazada" },
-};
 
 export function TokenStatusDropdown() {
   const [open, setOpen] = useState(false);
@@ -67,12 +36,10 @@ export function TokenStatusDropdown() {
   const loadTokenStatus = async () => {
     setLoading(true);
     try {
-      // Use existing platform-auth/status endpoint
       const response = await apiClient.get<BackendTokenStatusResponse>(
         "/platform-auth/status",
       );
       if (response.success && response.data) {
-        // Transform backend format to frontend format
         const transformed: TokenStatusMap = {};
         Object.entries(response.data).forEach(([platform, platformData]) => {
           transformed[platform] = {
@@ -109,7 +76,6 @@ export function TokenStatusDropdown() {
     setLoading(true);
     message.loading({ content: "Refreshing tokens...", key: "refresh" });
     try {
-      // Force refresh all platform tokens
       await apiClient.post("/tokens/refresh-all?force=true");
       await loadTokenStatus();
       message.success({
@@ -129,77 +95,12 @@ export function TokenStatusDropdown() {
     }
   }, [open]);
 
-  const getTokenStatusType = (
-    data: TokenStatusData | undefined,
-  ): "valid" | "expiring" | "expired" | "unknown" | "not_configured" => {
-    if (!data) return "unknown";
-    if (data.status === "not_configured") return "not_configured";
-    if (data.isExpired || data.status === "expired" || data.valid === false) {
-      return "expired";
-    }
-    if (data.expiresAt) {
-      const expiresAt = new Date(data.expiresAt).getTime();
-      const diff = expiresAt - Date.now();
-      if (diff <= 0) return "expired";
-      const hoursLeft = diff / (1000 * 60 * 60);
-      if (hoursLeft < 24 && hoursLeft > 0) return "expiring";
-    }
-    return "valid";
-  };
-
-  const formatTimeRemaining = (dateString: string | null): string => {
-    if (!dateString) return "Unknown";
-    const expiresAt = new Date(dateString);
-    const diffMs = expiresAt.getTime() - Date.now();
-    if (diffMs <= 0) return "Expired";
-
-    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const hours = Math.floor(
-      (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-    );
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (days > 0) return `${days}d ${hours}h`;
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes}m`;
-  };
-
   const hasIssues = tokenStatus
     ? Object.values(tokenStatus).some((s) => {
         const status = getTokenStatusType(s);
         return status === "expired" || status === "expiring";
       })
     : false;
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "valid":
-        return <CheckCircleFilled style={{ color: "#52c41a" }} />;
-      case "expiring":
-        return <WarningFilled style={{ color: "#faad14" }} />;
-      case "expired":
-        return <CloseCircleFilled style={{ color: "#ff4d4f" }} />;
-      case "not_configured":
-        return <WarningFilled style={{ color: "#d9d9d9" }} />;
-      default:
-        return <WarningFilled style={{ color: "#999" }} />;
-    }
-  };
-
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case "valid":
-        return "success";
-      case "expiring":
-        return "warning";
-      case "expired":
-        return "error";
-      case "not_configured":
-        return "default";
-      default:
-        return "default";
-    }
-  };
 
   const dropdownContent = (
     <Card
