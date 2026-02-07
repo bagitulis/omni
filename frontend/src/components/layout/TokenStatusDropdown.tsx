@@ -10,6 +10,7 @@ import {
   Tooltip,
   Flex,
   Badge,
+  message,
 } from "antd";
 import {
   KeyOutlined,
@@ -76,12 +77,15 @@ export function TokenStatusDropdown() {
         Object.entries(response.data).forEach(([platform, platformData]) => {
           transformed[platform] = {
             isExpired: platformData.expired,
-            expiresAt: platformData.expires_at
-              ? new Date(platformData.expires_at).toISOString()
-              : null,
-            refreshTokenExpiresAt: platformData.refresh_token_expires_at
-              ? new Date(platformData.refresh_token_expires_at).toISOString()
-              : null,
+            expiresAt:
+              platformData.expires_at && platformData.expires_at > 0
+                ? new Date(platformData.expires_at).toISOString()
+                : null,
+            refreshTokenExpiresAt:
+              platformData.refresh_token_expires_at &&
+              platformData.refresh_token_expires_at > 0
+                ? new Date(platformData.refresh_token_expires_at).toISOString()
+                : null,
             status: platformData.expired
               ? "expired"
               : platformData.expires_soon
@@ -103,12 +107,18 @@ export function TokenStatusDropdown() {
 
   const refreshTokens = async () => {
     setLoading(true);
+    message.loading({ content: "Refreshing tokens...", key: "refresh" });
     try {
       // Force refresh all platform tokens
       await apiClient.post("/tokens/refresh-all?force=true");
       await loadTokenStatus();
+      message.success({
+        content: "Tokens refreshed successfully",
+        key: "refresh",
+      });
     } catch (error) {
       console.error("Failed to refresh tokens:", error);
+      message.error({ content: "Failed to refresh tokens", key: "refresh" });
     } finally {
       setLoading(false);
     }
@@ -122,14 +132,17 @@ export function TokenStatusDropdown() {
 
   const getTokenStatusType = (
     data: TokenStatusData | undefined,
-  ): "valid" | "expiring" | "expired" | "unknown" => {
+  ): "valid" | "expiring" | "expired" | "unknown" | "not_configured" => {
     if (!data) return "unknown";
+    if (data.status === "not_configured") return "not_configured";
     if (data.isExpired || data.status === "expired" || data.valid === false) {
       return "expired";
     }
     if (data.expiresAt) {
       const expiresAt = new Date(data.expiresAt).getTime();
-      const hoursLeft = (expiresAt - Date.now()) / (1000 * 60 * 60);
+      const diff = expiresAt - Date.now();
+      if (diff <= 0) return "expired";
+      const hoursLeft = diff / (1000 * 60 * 60);
       if (hoursLeft < 24 && hoursLeft > 0) return "expiring";
     }
     return "valid";
@@ -167,6 +180,8 @@ export function TokenStatusDropdown() {
         return <WarningFilled style={{ color: "#faad14" }} />;
       case "expired":
         return <CloseCircleFilled style={{ color: "#ff4d4f" }} />;
+      case "not_configured":
+        return <WarningFilled style={{ color: "#d9d9d9" }} />;
       default:
         return <WarningFilled style={{ color: "#999" }} />;
     }
@@ -180,6 +195,8 @@ export function TokenStatusDropdown() {
         return "warning";
       case "expired":
         return "error";
+      case "not_configured":
+        return "default";
       default:
         return "default";
     }
@@ -257,7 +274,9 @@ export function TokenStatusDropdown() {
                         ? "Expiring Soon"
                         : status === "expired"
                           ? "Expired"
-                          : "Unknown"}
+                          : status === "not_configured"
+                            ? "Not Configured"
+                            : "Unknown"}
                   </Tag>
                 </Flex>
 
