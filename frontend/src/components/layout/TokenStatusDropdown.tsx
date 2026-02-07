@@ -104,8 +104,8 @@ export function TokenStatusDropdown() {
   const refreshTokens = async () => {
     setLoading(true);
     try {
-      // Use check-all endpoint to verify connections
-      await apiClient.post("/platform-auth/check-all");
+      // Force refresh all platform tokens
+      await apiClient.post("/tokens/refresh-all?force=true");
       await loadTokenStatus();
     } catch (error) {
       console.error("Failed to refresh tokens:", error);
