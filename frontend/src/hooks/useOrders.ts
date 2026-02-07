@@ -21,15 +21,24 @@ export function useOrders(
   const { autoRefresh = true, refetchInterval = DEFAULT_REFETCH_INTERVAL } =
     options;
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ["orders", params],
     queryFn: () => getOrders(params),
-    staleTime: 10000, // 10 seconds - data considered fresh
-    placeholderData: (previousData) => previousData,
+    staleTime: 0, // Always refetch on tab change - ensures fresh data
+    gcTime: 0, // Don't cache data between tab switches - prevents stale data display
+    // NOTE: Removed placeholderData to show loading state immediately on tab switch
+    // This prevents showing stale data from previous tab while new data loads
     // Auto-refresh every 30 seconds when enabled
     refetchInterval: autoRefresh ? refetchInterval : false,
     refetchIntervalInBackground: false, // Don't refetch when tab is not focused
   });
+
+  return {
+    ...query,
+    // Combine isLoading (first load) and isFetching (any fetch) for comprehensive loading state
+    // This ensures loading indicator shows on tab switch, not just initial load
+    isLoading: query.isLoading || query.isFetching,
+  };
 }
 
 export function useOrderActions() {

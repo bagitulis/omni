@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, message, Card, Flex } from "antd";
+import { useQueryClient } from "@tanstack/react-query";
 import { useOrders, useOrderActions } from "@/hooks/useOrders";
 import { OrderTable } from "@/components/tables/OrderTable";
 import { OrderFilters } from "@/components/forms/OrderFilters";
@@ -39,6 +40,9 @@ export default function OrdersPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Query client for cache invalidation
+  const queryClient = useQueryClient();
 
   // Hooks
   const { data, isLoading, refetch } = useOrders(
@@ -95,6 +99,9 @@ export default function OrdersPage() {
 
   // Handlers
   const handleTabChange = (key: string) => {
+    // Clear all orders cache to ensure fresh data on tab switch
+    // This prevents showing stale data from previous tab (matches Vue behavior)
+    queryClient.removeQueries({ queryKey: ["orders"] });
     setSearchParams({ type: key });
     setPage(1);
     setSelectedRowKeys([]);
@@ -252,7 +259,7 @@ export default function OrdersPage() {
         <Card style={{ borderRadius: 4 }}>
           <OrderTable
             orders={data?.orders || []}
-            loading={isLoading}
+            loading={isLoading || isSyncing}
             pagination={{
               current: page,
               pageSize: pageSize,
