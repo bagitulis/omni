@@ -268,12 +268,29 @@ Scenario: Verify flat navigation (no nested menus)
 
 ### Screenshot Naming Convention
 
+**CRITICAL: ALL screenshots MUST be saved to `docs/Screenshots/` directory. NEVER save to root folder.**
+
 ```
-.sisyphus/evidence/
+docs/Screenshots/
 ├── task-{N}-{component}-desktop.png     # Desktop view
 ├── task-{N}-{component}-mobile.png      # Mobile view (375x667)
 ├── task-{N}-{component}-tablet.png      # Tablet view (768x1024)
 └── task-{N}-{component}-dark.png        # Dark mode (if applicable)
+```
+
+### Screenshot Tool Usage
+
+ALWAYS specify filename with `docs/Screenshots/` prefix:
+
+```javascript
+// CORRECT
+browser_take_screenshot({
+  type: "png",
+  filename: "docs/Screenshots/task-1-sidebar-desktop.png",
+});
+
+// WRONG - saves to root, creates mess
+browser_take_screenshot({ type: "png" });
 ```
 
 ### Required Screenshots Per Page

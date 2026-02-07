@@ -78,7 +78,8 @@
       "model": "google/gemini-3-pro",
       "variant": "high",
       "temperature": 0.1,
-      "skills": ["react-frontend-rules", "playwright-layout-eval"]
+      "skills": ["react-frontend-rules", "playwright-layout-eval"],
+      "prompt_append": "SCREENSHOT RULE: ALWAYS save screenshots to 'docs/Screenshots/' directory with descriptive names (e.g., docs/Screenshots/page-desktop.png). NEVER save to root folder."
     },
     "artistry": {
       "model": "google/gemini-3-pro",
