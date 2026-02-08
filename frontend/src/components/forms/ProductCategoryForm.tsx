@@ -13,13 +13,13 @@ interface Attribute {
   options?: string[];
 }
 
-const MOCK_CATEGORIES = [
+const CATEGORIES = [
   { label: "Electronics", value: "electronics" },
   { label: "Clothing", value: "clothing" },
   { label: "Home & Garden", value: "home_garden" },
 ];
 
-const MOCK_ATTRIBUTES: Record<string, Attribute[]> = {
+const CATEGORY_ATTRIBUTES: Record<string, Attribute[]> = {
   electronics: [
     { id: "screen_size", name: "Screen Size", required: true },
     { id: "processor", name: "Processor", required: false },
@@ -88,7 +88,7 @@ export function ProductCategoryForm({
   };
 
   const currentAttributes = selectedCategory
-    ? MOCK_ATTRIBUTES[selectedCategory] || []
+    ? CATEGORY_ATTRIBUTES[selectedCategory] || []
     : [];
 
   return (
@@ -105,7 +105,7 @@ export function ProductCategoryForm({
         rules={[{ required: true, message: "Please select a category" }]}
       >
         <Select
-          options={MOCK_CATEGORIES}
+          options={CATEGORIES}
           onChange={handleCategoryChange}
           placeholder="Select category"
         />

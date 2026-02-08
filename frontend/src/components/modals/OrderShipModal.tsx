@@ -26,7 +26,7 @@ interface OrderShipModalProps {
   loading?: boolean;
 }
 
-const MOCK_PROVIDERS = [
+const SHIPPING_PROVIDERS = [
   { label: "JNE", value: "jne" },
   { label: "J&T", value: "jnt" },
   { label: "Sicepat", value: "sicepat" },
@@ -119,7 +119,7 @@ export function OrderShipModal({
         >
           <Select
             placeholder="Select provider"
-            options={MOCK_PROVIDERS}
+            options={SHIPPING_PROVIDERS}
             showSearch
           />
         </Form.Item>
