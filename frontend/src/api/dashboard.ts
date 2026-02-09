@@ -7,7 +7,11 @@ import { Order } from "../types/order";
  * Backend route: GET /api/analytics/dashboard
  */
 async function getAnalytics(): Promise<SalesAnalytics> {
-  const response = await apiClient.get<SalesAnalytics>("/analytics/dashboard");
+  // Dashboard shows today's data
+  const today = new Date().toISOString().split("T")[0];
+  const response = await apiClient.get<SalesAnalytics>("/analytics/dashboard", {
+    params: { startDate: today, endDate: today },
+  });
   if (!response.success) {
     throw new Error(response.error || "Failed to fetch analytics");
   }

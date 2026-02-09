@@ -1,4 +1,4 @@
-import { apiClient } from "./client";
+import apiClient from "./client";
 
 // Types matching backend response
 export interface PortfolioHealth {
@@ -77,29 +77,6 @@ export interface AlertsMeta {
   low_priority: number;
 }
 
-// API Response types
-interface PortfolioHealthResponse {
-  success: boolean;
-  data: PortfolioHealth;
-}
-
-interface MLProductsResponse {
-  success: boolean;
-  data: MLProduct[];
-  meta: PaginationMeta;
-}
-
-interface MLAlertsResponse {
-  success: boolean;
-  data: MLAlert[];
-  meta: AlertsMeta;
-}
-
-interface ScoreDistributionResponse {
-  success: boolean;
-  data: ScoreDistribution[];
-}
-
 // Query params
 export interface MLProductsParams {
   platform?: string;
@@ -115,29 +92,29 @@ export interface MLProductsParams {
 export async function getPortfolioHealth(
   platform: string = "tiktok",
 ): Promise<PortfolioHealth> {
-  const response = await apiClient.get<PortfolioHealthResponse>(
+  const response = await apiClient.get<PortfolioHealth>(
     `/analytics/ml/portfolio-health`,
     { params: { platform } },
   );
   if (!response.data) {
     throw new Error("No data received from server");
   }
-  return response.data.data;
+  return response.data;
 }
 
 export async function getMLProducts(
   params: MLProductsParams = {},
 ): Promise<{ products: MLProduct[]; meta: PaginationMeta }> {
-  const response = await apiClient.get<MLProductsResponse>(
-    `/analytics/ml/products`,
-    { params },
-  );
-  if (!response.data) {
+  const response = await apiClient.client.get(`/analytics/ml/products`, {
+    params,
+  });
+  const data = response.data;
+  if (!data.success) {
     throw new Error("No data received from server");
   }
   return {
-    products: response.data.data || [],
-    meta: response.data.meta,
+    products: data.data || [],
+    meta: data.meta,
   };
 }
 
@@ -145,23 +122,23 @@ export async function getMLAlerts(): Promise<{
   alerts: MLAlert[];
   meta: AlertsMeta;
 }> {
-  const response =
-    await apiClient.get<MLAlertsResponse>(`/analytics/ml/alerts`);
-  if (!response.data) {
+  const response = await apiClient.client.get(`/analytics/ml/alerts`);
+  const data = response.data;
+  if (!data.success) {
     throw new Error("No data received from server");
   }
   return {
-    alerts: response.data.data || [],
-    meta: response.data.meta,
+    alerts: data.data || [],
+    meta: data.meta,
   };
 }
 
 export async function getScoreDistribution(): Promise<ScoreDistribution[]> {
-  const response = await apiClient.get<ScoreDistributionResponse>(
+  const response = await apiClient.get<ScoreDistribution[]>(
     `/analytics/ml/distribution`,
   );
   if (!response.data) {
     throw new Error("No data received from server");
   }
-  return response.data.data || [];
+  return response.data || [];
 }

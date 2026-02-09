@@ -126,13 +126,14 @@ export async function syncInventory(
  * Backend route: GET /api/inventory/columns/available
  */
 export async function getAvailableColumns(): Promise<string[]> {
-  const response = await apiClient.get<string[]>(
-    "/inventory/columns/available",
-  );
-  if (!response.success) {
-    throw new Error(response.error || "Failed to fetch available columns");
+  const response = await apiClient.client.get("/inventory/columns/available");
+  const data = response.data;
+  if (!data.success) {
+    throw new Error("Failed to fetch available columns");
   }
-  return response.data || [];
+  // Backend returns { columns: [{name, spreadsheet_column, type, position}] }
+  const columns = data.columns || [];
+  return columns.map((col: { name: string }) => col.name);
 }
 
 /**
@@ -140,11 +141,13 @@ export async function getAvailableColumns(): Promise<string[]> {
  * Backend route: GET /api/inventory/columns/selected
  */
 export async function getSelectedColumns(): Promise<string[]> {
-  const response = await apiClient.get<string[]>("/inventory/columns/selected");
-  if (!response.success) {
-    throw new Error(response.error || "Failed to fetch selected columns");
+  const response = await apiClient.client.get("/inventory/columns/selected");
+  const data = response.data;
+  if (!data.success) {
+    throw new Error("Failed to fetch selected columns");
   }
-  return response.data || [];
+  // Backend returns { selected_columns: [...] }
+  return data.selected_columns || [];
 }
 
 /**

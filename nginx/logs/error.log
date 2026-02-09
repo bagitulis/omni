@@ -864,3 +864,6 @@
 2026/02/07 07:07:16 [error] 21#21: *702 access forbidden by rule, client: 172.18.0.1, server: _, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost"
 2026/02/07 07:07:17 [error] 21#21: *697 access forbidden by rule, client: 172.18.0.1, server: _, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost"
 2026/02/07 10:31:14 [error] 21#21: *2750 backend could not be resolved (3: Host not found), client: 172.18.0.1, server: _, request: "GET /api/lazada/db/products?offset=0&limit=50 HTTP/1.1", host: "localhost", referrer: "http://localhost/product-manager/lazada"
+2026/02/07 13:55:05 [error] 21#21: *4248 access forbidden by rule, client: 172.18.0.1, server: _, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost"
+2026/02/07 18:45:21 [error] 21#21: *6132 access forbidden by rule, client: 172.18.0.8, server: _, request: "GET /.env.example HTTP/1.1", host: "yndigital.my.id"
+2026/02/07 18:45:22 [error] 21#21: *6132 access forbidden by rule, client: 172.18.0.8, server: _, request: "GET /.env.example HTTP/1.1", host: "yndigital.my.id"
