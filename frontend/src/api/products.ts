@@ -51,9 +51,21 @@ function transformProduct(backendProduct: BackendProduct): Product {
 export async function getProducts(
   params?: GetProductsParams,
 ): Promise<ProductListResponse> {
+  // Clean params - don't send "all" values to backend
+  const cleanParams: Record<string, unknown> = {};
+  if (params) {
+    if (params.page) cleanParams.page = params.page;
+    if (params.limit) cleanParams.limit = params.limit;
+    if (params.search) cleanParams.search = params.search;
+    if (params.status && params.status !== "all")
+      cleanParams.status = params.status;
+    if (params.platform && params.platform !== "all")
+      cleanParams.platform = params.platform;
+  }
+
   // Backend returns flat response: { success, data: [...], meta: {...} }
   const response = await apiClient.client.get("/master-products", {
-    params,
+    params: cleanParams,
   });
 
   const backendData = response.data as BackendProductResponse;
