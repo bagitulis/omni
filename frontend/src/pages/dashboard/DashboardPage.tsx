@@ -35,7 +35,9 @@ export function DashboardPage() {
       dataIndex: "order_sn",
       key: "order_sn",
       render: (text: string) => (
-        <span style={{ color: "#0369a1", fontWeight: 500, cursor: "pointer" }}>{text}</span>
+        <span style={{ color: "#0369a1", fontWeight: 500, cursor: "pointer" }}>
+          {text}
+        </span>
       ),
     },
     {
@@ -43,7 +45,10 @@ export function DashboardPage() {
       dataIndex: "platform",
       key: "platform",
       render: (platform: string) => (
-        <Tag color={getPlatformColor(platform)} style={{ textTransform: "capitalize" }}>
+        <Tag
+          color={getPlatformColor(platform)}
+          style={{ textTransform: "capitalize" }}
+        >
           {platform}
         </Tag>
       ),
@@ -54,12 +59,12 @@ export function DashboardPage() {
       key: "status",
       render: (status: string) => <Tag bordered={false}>{status}</Tag>,
     },
-     {
-       title: "Amount",
-       dataIndex: "total_amount",
-       key: "total_amount",
-       render: (amount: number) => `Rp ${(amount || 0).toLocaleString("id-ID")}`,
-     },
+    {
+      title: "Amount",
+      dataIndex: "total_amount",
+      key: "total_amount",
+      render: (amount: number) => `Rp ${(amount || 0).toLocaleString("id-ID")}`,
+    },
   ];
 
   return (
@@ -69,51 +74,67 @@ export function DashboardPage() {
           <Title level={2} style={{ margin: 0 }}>
             Dashboard
           </Title>
-          <Text type="secondary" style={{ fontSize: 14 }}>Overview of your operations</Text>
+          <Text type="secondary" style={{ fontSize: 14 }}>
+            Overview of your operations
+          </Text>
         </Flex>
 
         {/* Operational Task Counters */}
         <Row gutter={[16, 16]}>
-           <Col xs={24} sm={12} md={6}>
-             <TaskCard
-               title="Orders Pending"
-               value={data?.orders_pending ?? 0}
-               loading={isLoading}
-               icon={<ShoppingOutlined style={{ marginRight: 8, color: "#0369a1" }} />}
-               onClick={() => navigate("/order-manager?type=unpaid")}
-             />
-           </Col>
-           <Col xs={24} sm={12} md={6}>
-             <TaskCard
-               title="Total Orders"
-               value={data?.analytics?.total_orders ?? 0}
-               loading={isLoading}
-               icon={<AlertOutlined style={{ marginRight: 8, color: "#d97706" }} />}
-               onClick={() => navigate("/order-manager")}
-             />
-           </Col>
-           <Col xs={24} sm={12} md={6}>
-             <TaskCard
-               title="Ready to Ship"
-               value={data?.ready_to_ship ?? 0}
-               loading={isLoading}
-               icon={<CarOutlined style={{ marginRight: 8, color: "#2563eb" }} />}
-               onClick={() => navigate("/order-manager?type=unprocess")}
-             />
-           </Col>
-           <Col xs={24} sm={12} md={6}>
-             <TaskCard
-               title="Total Sales"
-               value={
-                 data?.analytics?.total_sales
-                   ? `Rp ${Math.floor(data.analytics.total_sales / 1_000_000)}M`
-                   : 0
-               }
-               loading={isLoading}
-               valueStyle={{ color: "#16a34a" }}
-               icon={<CheckCircleOutlined style={{ marginRight: 8, color: "#16a34a" }} />}
-             />
-           </Col>
+          <Col xs={24} sm={12} md={6}>
+            <TaskCard
+              title="Orders Pending"
+              value={data?.orders_pending ?? 0}
+              loading={isLoading}
+              icon={
+                <ShoppingOutlined
+                  style={{ marginRight: 8, color: "#0369a1" }}
+                />
+              }
+              onClick={() => navigate("/order-manager?type=unpaid")}
+            />
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <TaskCard
+              title="Total Orders"
+              subtitle="Last 30 Days"
+              value={data?.analytics?.total_orders ?? 0}
+              loading={isLoading}
+              icon={
+                <AlertOutlined style={{ marginRight: 8, color: "#d97706" }} />
+              }
+              onClick={() => navigate("/order-manager")}
+            />
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <TaskCard
+              title="Ready to Ship"
+              value={data?.ready_to_ship ?? 0}
+              loading={isLoading}
+              icon={
+                <CarOutlined style={{ marginRight: 8, color: "#2563eb" }} />
+              }
+              onClick={() => navigate("/order-manager?type=unprocess")}
+            />
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <TaskCard
+              title="Total Sales"
+              subtitle="Last 30 Days"
+              value={
+                data?.analytics?.total_sales
+                  ? `Rp ${Math.floor(data.analytics.total_sales / 1_000_000)}M`
+                  : 0
+              }
+              loading={isLoading}
+              valueStyle={{ color: "#16a34a" }}
+              icon={
+                <CheckCircleOutlined
+                  style={{ marginRight: 8, color: "#16a34a" }}
+                />
+              }
+            />
+          </Col>
         </Row>
 
         {/* Recent Orders Section */}

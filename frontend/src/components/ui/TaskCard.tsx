@@ -10,6 +10,7 @@ interface TaskCardProps {
   loading?: boolean;
   precision?: number;
   suffix?: ReactNode;
+  subtitle?: string;
   valueStyle?: React.CSSProperties;
   onClick?: () => void;
 }
@@ -21,6 +22,7 @@ export function TaskCard({
   loading,
   precision,
   suffix,
+  subtitle,
   valueStyle,
   onClick,
 }: TaskCardProps) {
@@ -32,14 +34,25 @@ export function TaskCard({
       onClick={onClick}
       style={{ height: "100%" }}
     >
-      <Statistic
-        title={<Text type="secondary" style={{ fontWeight: 500 }}>{title}</Text>}
-        value={value}
-        precision={precision}
-        valueStyle={{ fontSize: 24, fontWeight: 600, ...valueStyle }}
-        prefix={icon}
-        suffix={suffix}
-      />
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <Statistic
+          title={
+            <Text type="secondary" style={{ fontWeight: 500 }}>
+              {title}
+            </Text>
+          }
+          value={value}
+          precision={precision}
+          valueStyle={{ fontSize: 24, fontWeight: 600, ...valueStyle }}
+          prefix={icon}
+          suffix={suffix}
+        />
+        {subtitle && (
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {subtitle}
+          </Text>
+        )}
+      </div>
     </Card>
   );
 }
