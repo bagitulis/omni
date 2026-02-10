@@ -142,6 +142,9 @@ func main() {
 	// ML Report routes
 	routes.RegisterMLReportRoutes(api, cfg.DatabasePath)
 
+	// Ads Report routes (Shopee/TikTok ads reporting)
+	routes.RegisterReportRoutes(api, application.SystemDB)
+
 	// Image Gallery routes
 	imageHandler := handlers.NewImageHandler(application.SystemDB)
 	routes.RegisterImageRoutes(api, imageHandler)

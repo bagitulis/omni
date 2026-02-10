@@ -1,10 +1,21 @@
-import { Card, Statistic, Button, Space, Typography, Row, Col } from "antd";
+import {
+  Card,
+  Statistic,
+  Button,
+  Space,
+  Typography,
+  Row,
+  Col,
+  theme,
+} from "antd";
 import { ExportOutlined, WalletOutlined } from "@ant-design/icons";
 import { useWalletData } from "@/hooks/useDashboardWidgets";
 
 const { Text } = Typography;
+const { useToken } = theme;
 
 export function WalletWidget() {
+  const { token } = useToken();
   const { data: shopeeData, isLoading: isShopeeLoading } =
     useWalletData("shopee");
   const { data: tiktokData, isLoading: isTiktokLoading } =
@@ -35,7 +46,7 @@ export function WalletWidget() {
             value={totalBalance}
             prefix="Rp"
             precision={0}
-            valueStyle={{ color: "#0369a1", fontWeight: 600 }}
+            valueStyle={{ color: token.colorInfo, fontWeight: 600 }}
             loading={isShopeeLoading || isTiktokLoading}
           />
         </Col>

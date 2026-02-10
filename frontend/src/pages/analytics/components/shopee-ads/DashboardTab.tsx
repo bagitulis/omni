@@ -136,7 +136,7 @@ export const DashboardTab = ({
             <ReactApexChart
               options={getChartOptions(chartCategories, [
                 token.colorPrimary,
-                "#722ed1",
+                token.purple,
               ])}
               series={performanceData}
               type="bar"
