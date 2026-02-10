@@ -706,9 +706,9 @@ we do testing and cleanup...
 ## 9. DELEGATION RULES (SPEEDING UP EXECUTION)
 
 > **Delegate to sub-agents for parallel processing and focused expertise.**
-> **MAXIMUM 2 parallel delegations** to avoid overload.
+> **MAXIMUM 3 parallel delegations** to balance throughput and system load.
 
-### 8.1 When Delegation is MANDATORY
+### 9.1 When Delegation is MANDATORY
 
 | Situation                            | Delegate To                                    | Reason                           |
 | ------------------------------------ | ---------------------------------------------- | -------------------------------- |
@@ -719,14 +719,14 @@ we do testing and cleanup...
 | Complex logic problem                | `delegate_task(category="ultrabrain")`         | Deep reasoning                   |
 | Quick/trivial fix                    | `delegate_task(category="quick")`              | Fast execution                   |
 
-### 8.2 Delegation Strategy
+### 9.2 Delegation Strategy
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ PARALLEL DELEGATION (Speeding Up Research)                              │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  When research is needed, fire 2 agents in PARALLEL:                    │
+│  When research is needed, fire up to 3 agents in PARALLEL:               │
 │                                                                         │
 │  // Example: Fix Shopee API error                                       │
 │  @librarian: "Search Shopee GetOrderList API docs, request/response"      │
@@ -734,12 +734,12 @@ we do testing and cleanup...
 │                                                                         │
 │  → Both run in parallel, results merged for fix                         │
 │                                                                         │
-│  ⚠️ MAXIMUM 2 parallel to avoid overload                                 │
+│  ⚠️ MAXIMUM 3 parallel to balance throughput and system load             │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 8.3 Delegation in TODO LIST
+### 9.3 Delegation in TODO LIST
 
 ```markdown
 ### TODO LIST
@@ -755,7 +755,7 @@ we do testing and cleanup...
    - [ ] Fix based on research + trace
 ```
 
-### 8.4 Delegation Format
+### 9.4 Delegation Format
 
 ```markdown
 ## Delegation Request
@@ -766,7 +766,7 @@ we do testing and cleanup...
 **Context:** [relevant background info]
 ```
 
-### 8.5 Effective Delegation Example
+### 9.5 Effective Delegation Example
 
 #### ❌ INCORRECT (No Delegation, All by Self)
 
@@ -809,7 +809,7 @@ Task: Fix Shopee order sync
 *test* → SUCCESS
 ```
 
-### 8.6 Delegation Decision Tree
+### 9.6 Delegation Decision Tree
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -822,7 +822,7 @@ Task: Fix Shopee order sync
 │  ├─ Need architecture decision → @oracle                                │
 │  ├─ Frontend/UI work → delegate_task(visual-engineering)                │
 │  ├─ Failure >= 2 and need research → @librarian + @explore             │
-│  └─ Task can be paralleled → fire 2 agents at once                      │
+│  └─ Task can be paralleled → fire up to 3 agents at once                 │
 │                                                                         │
 │  DO IT YOURSELF if:                                                    │
 │  ├─ Simple clear edit                                                   │
@@ -841,7 +841,7 @@ Task: Fix Shopee order sync
 >
 > AI often does not realize it is stuck/looping. This rule FORCES awareness.
 
-### 9.1 Failure Definition
+### 10.1 Failure Definition
 
 | Condition                          | Count |
 | ---------------------------------- | ----- |
@@ -851,7 +851,7 @@ Task: Fix Shopee order sync
 | API call fails with the same error | +1    |
 | Fix does not resolve the problem   | +1    |
 
-### 9.2 Mandatory Action by Failure Count
+### 10.2 Mandatory Action by Failure Count
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -878,7 +878,7 @@ Task: Fix Shopee order sync
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 9.3 Mandatory Format in Every Fix Attempt
+### 10.3 Mandatory Format in Every Fix Attempt
 
 ```markdown
 ## Fix Attempt #[N]

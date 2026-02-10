@@ -15,6 +15,8 @@
 | **DRY**               | No duplicated logic - extract to utilities      |
 | **OOP**               | Proper encapsulation, use interfaces            |
 | **~300 Lines**        | Quality signal — review SRP/DRY/OOP if exceeded |
+| **Max 3 Parallel**    | Maximum 3 background delegations at any time    |
+| **Stay Responsive**   | Never block on delegation — continue working    |
 | **Commit ALL Files**  | Never cherry-pick, include ALL changed files    |
 | **Push After Commit** | User expects remote sync immediately            |
 

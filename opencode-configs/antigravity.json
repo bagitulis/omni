@@ -4,7 +4,7 @@
   "pid_offset_enabled": true,
 
   "quota_fallback": true,
-  "cli_first": false,
+  "cli_first": true,
   "soft_quota_threshold_percent": 85,
   "quota_refresh_interval_minutes": 10,
 

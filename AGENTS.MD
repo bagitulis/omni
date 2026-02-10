@@ -286,6 +286,8 @@ PostgreSQL (production - via env vars):
 
 ## 7. Delegation Quick Reference
 
+> **MAXIMUM 3 parallel background delegations.** Main agent must stay responsive to user.
+
 | Situation             | Delegate To                   |
 | --------------------- | ----------------------------- |
 | Large task/feature    | Prometheus → Sisyphus         |

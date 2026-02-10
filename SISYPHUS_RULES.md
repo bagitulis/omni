@@ -75,16 +75,39 @@
 
 ## 4. Background Task Management
 
+### Parallel Delegation Limits
+
+- **MAXIMUM 3 parallel background delegations** at any time
+- Keeps system responsive without overloading
+
+### Stay Responsive to User (CRITICAL)
+
+**NEVER block on delegation results.** The main agent (Sisyphus) MUST remain available to process new user messages immediately.
+
+| Rule                    | Behavior                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| **Fire & continue**     | After launching background tasks, continue working on other items or standby for user |
+| **Never wait idle**     | Do NOT sit and wait for `background_output` — system notifies on completion           |
+| **User priority**       | If user sends a message while delegations are running, process it IMMEDIATELY         |
+| **Collect when needed** | Only call `background_output` when you actually need the result for your next step    |
+
 ```typescript
 // CORRECT: Fire parallel, continue working
 delegate_task(subagent_type="explore", run_in_background=true, ...)
 delegate_task(subagent_type="librarian", run_in_background=true, ...)
+// → Continue with other work or standby for user input
+// → System will notify when agents complete
 
-// Continue immediately, collect later:
+// Collect results only when needed:
 background_output(task_id="...")
 
 // BEFORE final answer:
 background_cancel(all=true)
+```
+
+```
+❌ WRONG: Fire 3 agents → wait → wait → wait → then respond to user
+✅ CORRECT: Fire 3 agents → continue working / standby → user sends message → process immediately → collect agent results when needed
 ```
 
 ---
