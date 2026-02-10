@@ -11,7 +11,9 @@ import { useTiktokAdsUpload } from "./components/tiktok-ads/useTiktokAdsUpload";
 import { DashboardTab } from "./components/tiktok-ads/DashboardTab";
 import { DataTab } from "./components/tiktok-ads/DataTab";
 import { UploadTab } from "./components/tiktok-ads/UploadTab";
-import { TIKTOK_BLACK } from "./components/tiktok-ads/types";
+import { TikTokAdsData, TIKTOK_BLACK } from "./components/tiktok-ads/types";
+import { useTiktokAdsDashboard, useTiktokAdsData } from "@/hooks/useAds";
+import { TikTokAdsSummary } from "./components/tiktok-ads/useTiktokAdsSummary";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -24,8 +26,71 @@ export const TiktokAdsAnalyticsPage = () => {
 
   const { uploadedData, uploadProps } = useTiktokAdsUpload();
 
-  // Use uploaded data only - no mock data
-  const adsData = useMemo(() => uploadedData, [uploadedData]);
+  const { data: apiDashboard, isLoading: dashboardLoading } =
+    useTiktokAdsDashboard();
+  const { data: apiData, isLoading: dataLoading } = useTiktokAdsData();
+
+  // Determine if we are using uploaded data or API data
+  const hasUpload = uploadedData.length > 0;
+
+  // Map API Dashboard to Summary
+  const apiSummary: TikTokAdsSummary | undefined = useMemo(() => {
+    if (!apiDashboard?.data) return undefined;
+    const d = apiDashboard.data;
+    return {
+      totalCost: d.total_cost,
+      totalRevenue: d.total_revenue,
+      avgRoi: d.avg_roi,
+      avgCtr: d.avg_ctr,
+      totalViews: d.total_impressions,
+      totalPlays: d.total_clicks, // closest available metric
+      totalConversions: d.total_orders,
+    };
+  }, [apiDashboard]);
+
+  // Map API Top Products to AdsData for Dashboard Charts
+  const dashboardAdsData: TikTokAdsData[] = useMemo(() => {
+    if (hasUpload) return uploadedData;
+    if (!apiDashboard?.data?.top_products) return [];
+
+    return apiDashboard.data.top_products.map((p) => ({
+      creative_id: p.product_id,
+      creative_name: p.product_name,
+      cost: p.cost,
+      revenue: p.revenue,
+      views: 0,
+      clicks: 0,
+      ctr: 0,
+      cpc: 0,
+      roi: p.roas,
+      conversions: p.orders,
+      video_plays: 0,
+      engagement_rate: 0,
+      date: "",
+    }));
+  }, [hasUpload, uploadedData, apiDashboard]);
+
+  // Map API Data to AdsData for Data Table
+  const tableAdsData: TikTokAdsData[] = useMemo(() => {
+    if (hasUpload) return uploadedData;
+    if (!apiData?.data) return [];
+
+    return apiData.data.map((p) => ({
+      creative_id: p.campaign_id,
+      creative_name: p.video_title || p.campaign_name,
+      cost: p.cost,
+      revenue: p.gross_revenue,
+      views: p.impressions,
+      clicks: p.clicks,
+      ctr: p.ctr,
+      cpc: p.clicks > 0 ? p.cost / p.clicks : 0,
+      roi: p.roi,
+      conversions: p.orders_sku,
+      video_plays: 0,
+      engagement_rate: p.conversion_rate,
+      date: p.period_end,
+    }));
+  }, [hasUpload, uploadedData, apiData]);
 
   const handleDateChange: RangePickerProps["onChange"] = (dates) => {
     setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null);
@@ -44,7 +109,12 @@ export const TiktokAdsAnalyticsPage = () => {
         </span>
       ),
       children: (
-        <DashboardTab adsData={adsData} onUploadClick={handleUploadClick} />
+        <DashboardTab
+          adsData={dashboardAdsData}
+          loading={!hasUpload && dashboardLoading}
+          summaryOverride={!hasUpload ? apiSummary : undefined}
+          onUploadClick={handleUploadClick}
+        />
       ),
     },
     {
@@ -56,8 +126,8 @@ export const TiktokAdsAnalyticsPage = () => {
       ),
       children: (
         <DataTab
-          adsData={adsData}
-          loading={false}
+          adsData={tableAdsData}
+          loading={!hasUpload && dataLoading}
           onUploadClick={handleUploadClick}
         />
       ),
