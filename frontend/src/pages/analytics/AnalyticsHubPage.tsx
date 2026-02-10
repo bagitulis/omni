@@ -4,6 +4,9 @@ import {
   VideoCameraOutlined,
   FundOutlined,
   ExperimentOutlined,
+  CalculatorOutlined,
+  AppstoreOutlined,
+  FileSearchOutlined,
   ArrowRightOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
@@ -50,6 +53,27 @@ export const AnalyticsHubPage = () => {
       icon: <ExperimentOutlined style={{ fontSize: 24, color: "#722ed1" }} />,
       path: "/analytics/ml",
       bgColor: "#722ed115", // Purple tint
+    },
+    {
+      title: "Budget Simulator",
+      description: "Simulate ad budget allocation and predict campaign ROI",
+      icon: <CalculatorOutlined style={{ fontSize: 24, color: "#13c2c2" }} />,
+      path: "/analytics/budget-simulator",
+      bgColor: "#13c2c215", // Cyan tint
+    },
+    {
+      title: "Product Classification",
+      description: "AI-powered product categorization and performance grouping",
+      icon: <AppstoreOutlined style={{ fontSize: 24, color: "#52c41a" }} />,
+      path: "/analytics/product-classification",
+      bgColor: "#52c41a15", // Green tint
+    },
+    {
+      title: "AI Reports",
+      description: "Generate and browse AI-powered analytics reports",
+      icon: <FileSearchOutlined style={{ fontSize: 24, color: "#fa8c16" }} />,
+      path: "/analytics/ai-reports",
+      bgColor: "#fa8c1615", // Orange tint
     },
   ];
 

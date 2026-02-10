@@ -25,6 +25,9 @@ import TiktokAnalyticsPage from "./pages/analytics/TiktokAnalyticsPage";
 import ShopeeAdsAnalyticsPage from "./pages/analytics/ShopeeAdsAnalyticsPage";
 import TiktokAdsAnalyticsPage from "./pages/analytics/TiktokAdsAnalyticsPage";
 import { MLDashboardPage } from "./pages/analytics/MLDashboardPage";
+import BudgetSimulatorPage from "./pages/analytics/BudgetSimulatorPage";
+import ProductClassificationPage from "./pages/analytics/ProductClassificationPage";
+import AIReportGalleryPage from "./pages/analytics/AIReportGalleryPage";
 import SettingsPage from "./pages/settings/SettingsPage";
 import ScriptMonitorPage from "./pages/script-monitor/ScriptMonitorPage";
 import { RouteMappingPage } from "./pages/route-mapping/RouteMappingPage";
@@ -97,6 +100,18 @@ export default function App() {
                 element={<TiktokAdsAnalyticsPage />}
               />
               <Route path="/analytics/ml" element={<MLDashboardPage />} />
+              <Route
+                path="/analytics/budget-simulator"
+                element={<BudgetSimulatorPage />}
+              />
+              <Route
+                path="/analytics/product-classification"
+                element={<ProductClassificationPage />}
+              />
+              <Route
+                path="/analytics/ai-reports"
+                element={<AIReportGalleryPage />}
+              />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/script-monitor" element={<ScriptMonitorPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
