@@ -4,6 +4,7 @@ import {
   DeleteOutlined,
   WarningOutlined,
   CloseCircleOutlined,
+  CopyOutlined,
 } from "@ant-design/icons";
 import { Product } from "@/types/product";
 import { PlatformBadge } from "@/components/ui/PlatformBadge";
@@ -20,6 +21,7 @@ interface ProductTableProps {
   onPageChange: (page: number, pageSize: number) => void;
   onSelectionChange: (selectedRowKeys: React.Key[]) => void;
   onDelete: (id: string) => void;
+  onClone?: (product: Product) => void;
 }
 
 export function ProductTable({
@@ -32,6 +34,7 @@ export function ProductTable({
   onPageChange,
   onSelectionChange,
   onDelete,
+  onClone,
 }: ProductTableProps) {
   const columns: TableProps<Product>["columns"] = [
     {
@@ -128,9 +131,14 @@ export function ProductTable({
     {
       title: "Actions",
       key: "actions",
-      width: 100,
+      width: 120,
       render: (_, record) => (
         <Space>
+          <Button
+            size="small"
+            icon={<CopyOutlined />}
+            onClick={() => onClone?.(record)}
+          />
           <Button size="small" icon={<EditOutlined />} />
           <Button
             size="small"

@@ -17,11 +17,15 @@ import {
   CloudDownloadOutlined,
   EditOutlined,
   DeleteOutlined,
+  CopyOutlined,
 } from "@ant-design/icons";
 import { ProductFilters } from "@/components/forms/ProductFilters";
 import { ProductTable } from "@/components/tables/ProductTable";
+import { CloneProductModal } from "@/components/clone/CloneProductModal";
+import { CloneBatchModal } from "@/components/clone/CloneBatchModal";
 import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
 import { PlatformBadge } from "@/components/ui/PlatformBadge";
+import type { Product } from "@/types/product";
 
 export function ProductListPage() {
   const navigate = useNavigate();
@@ -36,6 +40,10 @@ export function ProductListPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [cloneModalOpen, setCloneModalOpen] = useState(false);
+  const [batchCloneModalOpen, setBatchCloneModalOpen] = useState(false);
+  const [selectedProductForClone, setSelectedProductForClone] =
+    useState<Product | null>(null);
 
   const { data, isLoading } = useProducts({
     page,
@@ -94,6 +102,11 @@ export function ProductListPage() {
         },
       });
     }
+  };
+
+  const handleClone = (product: Product) => {
+    setSelectedProductForClone(product);
+    setCloneModalOpen(true);
   };
 
   const renderGridView = () => {
@@ -257,6 +270,13 @@ export function ProductListPage() {
             <Space>
               <Button size="small">Bulk Edit Price</Button>
               <Button size="small">Bulk Edit Stock</Button>
+              <Button
+                size="small"
+                icon={<CopyOutlined />}
+                onClick={() => setBatchCloneModalOpen(true)}
+              >
+                Batch Clone
+              </Button>
               <Button size="small" danger>
                 Delete Selected
               </Button>
@@ -278,10 +298,30 @@ export function ProductListPage() {
             }}
             onSelectionChange={setSelectedRowKeys}
             onDelete={handleDelete}
+            onClone={handleClone}
           />
         ) : (
           renderGridView()
         )}
+
+        <CloneProductModal
+          open={cloneModalOpen}
+          onClose={() => {
+            setCloneModalOpen(false);
+            setSelectedProductForClone(null);
+          }}
+          initialSku={selectedProductForClone?.item_sku || ""}
+          initialPlatform={selectedProductForClone?.platform || "shopee"}
+        />
+
+        <CloneBatchModal
+          open={batchCloneModalOpen}
+          onClose={() => setBatchCloneModalOpen(false)}
+          products={
+            data?.products.filter((p) => selectedRowKeys.includes(p.item_id)) ||
+            []
+          }
+        />
       </Card>
     </div>
   );
