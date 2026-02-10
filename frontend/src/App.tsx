@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { ConfigProvider } from "antd";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/api/queryClient";
 import { antdTheme, antdDarkTheme } from "./styles/theme";
 import { AppLayout } from "./components/layout";
 import { useAuthStore } from "@/stores/authStore";
@@ -14,16 +15,6 @@ import ProductAddPage from "./pages/products/ProductAddPage";
 import ProductEditPage from "./pages/products/ProductEditPage";
 import ProductImportPage from "./pages/products/ProductImportPage";
 import "./styles/global.css";
-
-// Create a QueryClient instance for TanStack Query
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: 1,
-    },
-  },
-});
 
 // Placeholder pages for routes not yet implemented
 import InventoryPage from "./pages/inventory/InventoryPage";
