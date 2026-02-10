@@ -1,15 +1,23 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { message, Card, Flex } from "antd";
+import { message, Card, Flex, Modal } from "antd";
 import { useQueryClient } from "@tanstack/react-query";
 import { useOrders, useOrderActions } from "@/hooks/useOrders";
 import { OrderTable } from "@/components/tables/OrderTable";
 import { OrderFilters } from "@/components/forms/OrderFilters";
 import { OrderDetailModal } from "@/components/modals/OrderDetailModal";
+import {
+  OrderShipModal,
+  ShipFormValues,
+} from "@/components/modals/OrderShipModal";
+import {
+  OrderCancelModal,
+  CancelFormValues,
+} from "@/components/modals/OrderCancelModal";
 import { OrderHeader } from "@/components/orders/OrderHeader";
 import { OrdersBulkActionsBar } from "./components/OrdersBulkActionsBar";
 import { OrderStatusTabs } from "./components/OrderStatusTabs";
-import { OrderDetail } from "@/types/order";
+import { OrderDetail, Order } from "@/types/order";
 import type { GroupedOrder } from "@/components/tables/OrderTable.types";
 import { getOrderById, getLazadaDocument } from "@/api/orders";
 import { Dayjs } from "dayjs";
@@ -26,8 +34,12 @@ export default function OrdersPage() {
   const [platform, setPlatform] = useState("all");
   const [dateRange, setDateRange] = useState<[string, string] | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<
+    OrderDetail | Order | null
+  >(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isShipModalOpen, setIsShipModalOpen] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   // Query client for cache invalidation
@@ -47,7 +59,17 @@ export default function OrdersPage() {
     { autoRefresh },
   );
 
-  const { shipOrders, printLabels, isShipping, isPrinting } = useOrderActions();
+  const {
+    shipOrders,
+    printLabels,
+    cancelOrder,
+    shipOrder,
+    isShipping,
+    isPrinting,
+    isCancelling,
+    isSingleShipping,
+  } = useOrderActions();
+
   const { isSyncing, syncActiveTab } = useOrderSync(
     activeTab,
     refetch,
@@ -115,15 +137,123 @@ export default function OrdersPage() {
     }
   };
 
-  const handleSingleShip = async (order: GroupedOrder) => {
-    try {
-      await shipOrders(
-        [order.order_sn || order.order_no],
-        order.platform?.toLowerCase(),
-      );
-    } catch (error) {
-      // Error handled in hook
+  const handleBulkCancel = async () => {
+    if (selectedRowKeys.length === 0) return;
+
+    Modal.confirm({
+      title: "Bulk Cancel Orders",
+      content: `Are you sure you want to cancel ${selectedRowKeys.length} orders? This cannot be undone.`,
+      okText: "Yes, Cancel All",
+      okType: "danger",
+      cancelText: "No",
+      onOk: async () => {
+        try {
+          const hide = message.loading("Cancelling orders...", 0);
+
+          let successCount = 0;
+          let failCount = 0;
+
+          for (const key of selectedRowKeys) {
+            const orderSn = String(key);
+            const order = data?.orders.find(
+              (o) => (o.order_sn || o.order_no) === orderSn,
+            );
+            if (!order) continue;
+
+            try {
+              const params: any = {
+                order_no: orderSn,
+                platform: (order.platform || "shopee").toLowerCase(),
+                cancel_reason: "out_of_stock",
+                reason_detail: "Bulk cancellation via OMS",
+              };
+
+              await cancelOrder(params);
+              successCount++;
+            } catch (e) {
+              failCount++;
+            }
+          }
+
+          hide();
+          message.success(`Cancelled: ${successCount}, Failed: ${failCount}`);
+          setSelectedRowKeys([]);
+          refetch();
+        } catch (error) {
+          message.error("Failed to process bulk cancellation");
+        }
+      },
+    });
+  };
+
+  const handleSingleShip = (order: GroupedOrder) => {
+    setSelectedOrder(order as unknown as Order);
+    setIsShipModalOpen(true);
+  };
+
+  const handleShipConfirm = async (orderSn: string, values: ShipFormValues) => {
+    if (!selectedOrder) return;
+
+    const order = selectedOrder;
+    const orderPlatform = (order.platform || "shopee").toLowerCase();
+
+    const params: any = {
+      order_no: orderSn,
+      platform: orderPlatform,
+      shipping_provider: values.shipping_provider,
+      tracking_number: values.tracking_number,
+    };
+
+    if (orderPlatform === "lazada") {
+      const items = (order as any).items || [];
+      const orderItemIds = items
+        .map((item: any) => String(item.order_item_id || item.item_id || ""))
+        .filter((id: string) => id !== "");
+
+      params.order_item_ids = orderItemIds.length ? orderItemIds : [orderSn];
+    } else if (orderPlatform === "tiktok") {
+      // TikTok needs package_id logic if needed
     }
+
+    await shipOrder(params);
+  };
+
+  const handleSingleCancel = (order: GroupedOrder) => {
+    setSelectedOrder(order as unknown as Order);
+    setIsCancelModalOpen(true);
+  };
+
+  const handleCancelConfirm = async (
+    orderSn: string,
+    values: CancelFormValues,
+  ) => {
+    if (!selectedOrder) return;
+
+    const order = selectedOrder;
+    const orderPlatform = (order.platform || "shopee").toLowerCase();
+
+    const params: any = {
+      order_no: orderSn,
+      platform: orderPlatform,
+      cancel_reason: values.cancel_reason,
+      reason_detail: values.reason_detail,
+    };
+
+    if (orderPlatform === "lazada") {
+      const items = (order as any).items || [];
+      const firstItem = items[0];
+
+      const orderItemId =
+        firstItem?.order_item_id ||
+        firstItem?.item_id ||
+        (order as any).order_item_id ||
+        (order as any).orderItemId ||
+        orderSn;
+
+      params.order_item_id = String(orderItemId);
+    }
+
+    await cancelOrder(params);
   };
 
   const handleSinglePrint = async (order: GroupedOrder) => {
@@ -132,13 +262,10 @@ export default function OrdersPage() {
       const orderPlatform = (order.platform || "").toLowerCase();
 
       if (orderPlatform === "lazada") {
-        // Lazada uses its own document API with order_item_ids
-        // For single print, use order_sn as item reference
         const doc = await getLazadaDocument([orderSn], "shippingLabel");
         if (doc.document?.url) {
           window.open(doc.document.url, "_blank");
         } else if (doc.document?.file) {
-          // Base64 PDF - create a blob and open
           const byteChars = atob(doc.document.file);
           const byteNumbers = new Array(byteChars.length);
           for (let i = 0; i < byteChars.length; i++) {
@@ -151,7 +278,6 @@ export default function OrdersPage() {
         }
         message.success(`Printed label for ${orderSn}`);
       } else {
-        // Shopee / TikTok use the standard bulk-print-labels endpoint
         await printLabels([orderSn]);
         message.success(`Printed label for ${orderSn}`);
       }
@@ -184,7 +310,6 @@ export default function OrdersPage() {
         return;
       }
 
-      // Generate filename with status and current date
       const dateStr = new Date().toISOString().split("T")[0];
       const filename = `orders-${activeTab}-${dateStr}.csv`;
 
@@ -229,9 +354,11 @@ export default function OrdersPage() {
           selectedCount={selectedRowKeys.length}
           onBulkShip={() => void handleBulkShip()}
           onBulkPrint={() => void handleBulkPrint()}
+          onBulkCancel={() => void handleBulkCancel()}
           onClearSelection={() => setSelectedRowKeys([])}
           isShipping={isShipping}
           isPrinting={isPrinting}
+          isCancelling={isCancelling}
         />
 
         {/* Data Table */}
@@ -252,6 +379,7 @@ export default function OrdersPage() {
             onSelectionChange={handleSelectionChange}
             onShip={handleSingleShip}
             onPrint={handleSinglePrint}
+            onCancel={handleSingleCancel}
             onViewDetail={handleViewDetails}
           />
         </Card>
@@ -259,11 +387,35 @@ export default function OrdersPage() {
         {/* Order Detail Modal */}
         <OrderDetailModal
           open={isDetailModalOpen}
-          order={selectedOrder}
+          order={selectedOrder as OrderDetail}
           onClose={() => {
             setIsDetailModalOpen(false);
             setSelectedOrder(null);
           }}
+        />
+
+        {/* Order Ship Modal */}
+        <OrderShipModal
+          open={isShipModalOpen}
+          order={selectedOrder as Order}
+          onClose={() => {
+            setIsShipModalOpen(false);
+            setSelectedOrder(null);
+          }}
+          onConfirm={handleShipConfirm}
+          loading={isSingleShipping}
+        />
+
+        {/* Order Cancel Modal */}
+        <OrderCancelModal
+          open={isCancelModalOpen}
+          order={selectedOrder as Order}
+          onClose={() => {
+            setIsCancelModalOpen(false);
+            setSelectedOrder(null);
+          }}
+          onConfirm={handleCancelConfirm}
+          loading={isCancelling}
         />
       </Flex>
     </div>

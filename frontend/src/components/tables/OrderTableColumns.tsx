@@ -16,12 +16,14 @@ const { Text } = Typography;
 interface GetOrderTableColumnsProps {
   onShip: (order: GroupedOrder) => void;
   onPrint: (order: GroupedOrder) => void;
+  onCancel?: (order: GroupedOrder) => void;
   onViewDetail?: (order: GroupedOrder) => void;
 }
 
 export function getOrderTableColumns({
   onShip,
   onPrint,
+  onCancel,
   onViewDetail,
 }: GetOrderTableColumnsProps): ColumnsType<GroupedOrder> {
   return [
@@ -134,6 +136,12 @@ export function getOrderTableColumns({
                     key: "print",
                     label: "Print Label",
                     onClick: () => onPrint(record),
+                  },
+                  {
+                    key: "cancel",
+                    label: "Cancel Order",
+                    danger: true,
+                    onClick: () => onCancel?.(record),
                   },
                 ],
               }}

@@ -2,10 +2,10 @@ import { Tabs, Card } from "antd";
 
 export const ORDER_TABS = [
   { key: "unpaid", label: "Unpaid" },
-  { key: "unprocess", label: "To Process" },
-  { key: "processed", label: "Processed" },
-  { key: "locked", label: "Locked" },
-  { key: "today", label: "Today" },
+  { key: "unprocess", label: "To Ship" },
+  { key: "processed", label: "Shipped" },
+  { key: "locked", label: "Locked Today" },
+  { key: "today", label: "Today's Orders" },
 ];
 
 interface OrderStatusTabsProps {

@@ -3,6 +3,8 @@ import {
   getOrders,
   bulkShipOrders,
   bulkPrintLabels,
+  cancelOrder,
+  shipOrder,
   GetOrdersParams,
 } from "@/api/orders";
 import { message } from "antd";
@@ -71,11 +73,37 @@ export function useOrderActions() {
     },
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: cancelOrder,
+    onSuccess: () => {
+      message.success("Order cancelled successfully");
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+    onError: (error: Error) => {
+      message.error(`Failed to cancel order: ${error.message}`);
+    },
+  });
+
+  const singleShipMutation = useMutation({
+    mutationFn: shipOrder,
+    onSuccess: () => {
+      message.success("Order shipped successfully");
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+    onError: (error: Error) => {
+      message.error(`Failed to ship order: ${error.message}`);
+    },
+  });
+
   return {
     shipOrders: (orderSns: string[], platform?: string) =>
       shipMutation.mutateAsync({ orderSns, platform }),
     isShipping: shipMutation.isPending,
     printLabels: printMutation.mutateAsync,
     isPrinting: printMutation.isPending,
+    cancelOrder: cancelMutation.mutateAsync,
+    isCancelling: cancelMutation.isPending,
+    shipOrder: singleShipMutation.mutateAsync,
+    isSingleShipping: singleShipMutation.isPending,
   };
 }

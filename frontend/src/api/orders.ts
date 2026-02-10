@@ -95,18 +95,31 @@ export async function getOrders(
   const status = params.status || "unpaid";
   const endpoint = getOrderEndpoint(status);
 
-  // Backend returns flat response: { success, count, data: [...], items: [...] }
-  // NOT nested: { success, data: { count, data, items } }
-  const response = await apiClient.client.get(endpoint, {
-    params: {
+  // Use AxiosResponse type or any for now
+  let response: any;
+
+  // Special handling for locked and today tabs which require POST
+  if (status === "locked" || status === "today") {
+    response = await apiClient.client.post(endpoint, {
+      days: 7, // Default to 7 days like Vue
       page: params.page,
       pageSize: params.pageSize,
       platform: params.platform,
       search: params.search,
-      start_date: params.startDate,
-      end_date: params.endDate,
-    },
-  });
+    });
+  } else {
+    // Standard GET for other tabs
+    response = await apiClient.client.get(endpoint, {
+      params: {
+        page: params.page,
+        pageSize: params.pageSize,
+        platform: params.platform,
+        search: params.search,
+        start_date: params.startDate,
+        end_date: params.endDate,
+      },
+    });
+  }
 
   const backendData = response.data as BackendOrderResponse & {
     success: boolean;
@@ -280,8 +293,51 @@ export async function getOrderById(orderSn: string): Promise<OrderDetail> {
 }
 
 /**
- * Lazada document response
+ * Cancel order parameters
  */
+export interface CancelOrderParams {
+  order_no: string;
+  platform: string;
+  cancel_reason: string;
+  reason_detail?: string;
+  order_item_id?: string; // For Lazada
+}
+
+/**
+ * Cancel an order
+ */
+export async function cancelOrder(params: CancelOrderParams): Promise<void> {
+  const response = await apiClient.post("/orders/cancel", params);
+  if (!response.success) {
+    throw new Error(response.error || "Failed to cancel order");
+  }
+}
+
+/**
+ * Ship order parameters
+ */
+export interface ShipOrderParams {
+  order_no: string;
+  platform: string;
+  shipping_provider: string;
+  tracking_number?: string;
+  address_id?: number;
+  pickup_time_id?: string;
+  branch_id?: number;
+  package_id?: string;
+  order_item_ids?: string[]; // For Lazada
+}
+
+/**
+ * Ship a single order
+ */
+export async function shipOrder(params: ShipOrderParams): Promise<void> {
+  const response = await apiClient.post("/orders/ship", params);
+  if (!response.success) {
+    throw new Error(response.error || "Failed to ship order");
+  }
+}
+
 export interface LazadaDocumentResponse {
   document?: {
     file?: string;

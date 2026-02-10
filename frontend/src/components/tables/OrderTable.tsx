@@ -11,6 +11,7 @@ export function OrderTable({
   onSelectionChange,
   onShip,
   onPrint,
+  onCancel,
   onViewDetail,
 }: OrderTableProps) {
   // Group orders by order_no, then accumulate same-SKU items within each order
@@ -61,6 +62,7 @@ export function OrderTable({
   const columns = getOrderTableColumns({
     onShip,
     onPrint,
+    onCancel,
     onViewDetail,
   });
 

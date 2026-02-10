@@ -3,10 +3,7 @@
  * API types use snake_case to match backend JSON response
  */
 
-/**
- * Backend product format - raw response from API
- */
-export interface BackendProduct {
+export interface MasterProduct {
   id: number;
   tenant_id: string;
   title: string;
@@ -15,27 +12,75 @@ export interface BackendProduct {
   status: "active" | "inactive" | "draft";
   created_at: string;
   updated_at: string;
+  skus?: MasterProductSku[];
 }
 
-/**
- * Frontend product format - with mapped fields for UI components
- * transformProduct() always sets these fields, so they are required
- */
-export interface Product {
+export interface MasterProductSku {
   id: number;
   tenant_id: string;
-  title: string;
-  description: string;
-  images: string[];
-  status: "active" | "inactive" | "draft";
+  master_product_id: number;
+  seller_sku: string;
+  variant_name: string;
+  variant_data: Record<string, any>;
+  price: number;
+  stock: number;
   created_at: string;
   updated_at: string;
-  // Mapped fields for table compatibility - REQUIRED (set by transformProduct)
+  platform_links?: MasterProductPlatformLink[];
+}
+
+export interface MasterProductPlatformLink {
+  id: number;
+  master_product_id: number;
+  master_sku_id?: number;
+  platform: "shopee" | "tiktok" | "lazada";
+  platform_product_id?: string;
+  platform_sku_id?: string;
+  platform_item_id?: number;
+  sync_status: "synced" | "pending" | "failed" | "not_synced";
+  last_synced_at?: string;
+  error_message?: string;
+}
+
+export interface CreateMasterProductInput {
+  title: string;
+  description: string;
+  images?: string[];
+  status?: "active" | "inactive" | "draft";
+  skus?: CreateSkuInput[];
+}
+
+export interface CreateSkuInput {
+  seller_sku: string;
+  variant_name?: string;
+  variant_data?: Record<string, any>;
+  price: number;
+  stock: number;
+}
+
+export interface UpdateMasterProductInput {
+  title?: string;
+  description?: string;
+  images?: string[];
+  status?: "active" | "inactive" | "draft";
+  skus?: UpdateSkuInput[];
+}
+
+export interface UpdateSkuInput {
+  id?: number;
+  seller_sku?: string;
+  price?: number;
+  stock?: number;
+}
+
+// Legacy Product interface for table compatibility (can be refactored later)
+export interface Product extends MasterProduct {
+  // Mapped fields for table compatibility
   item_id: string;
   item_name: string;
   item_sku: string;
-  price: number | null;
-  stock: number | null;
+  price: number;
+  stock: number;
   platform: string;
   image_url: string;
 }
@@ -45,14 +90,27 @@ export interface ProductDetail extends Product {
   attributes?: Record<string, string>;
 }
 
-/**
- * Frontend-friendly format for product lists
- */
 export interface ProductListResponse {
-  products: Product[];
-  total: number;
-  page: number;
-  page_size: number;
+  success: boolean;
+  data: MasterProduct[];
+  meta?: {
+    total: number;
+    page: number;
+    page_size: number;
+  };
+}
+
+export interface SingleProductResponse {
+  success: boolean;
+  data: MasterProduct;
+}
+
+export interface ProductListFilter {
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+  platform?: string;
 }
 
 /** Matches backend InventoryListItem - dynamic JSONB data from Google Sheets */

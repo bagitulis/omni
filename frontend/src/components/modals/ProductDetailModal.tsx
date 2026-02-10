@@ -1,5 +1,5 @@
 import { Modal, Descriptions, Tag, Button, Typography } from "antd";
-import { ProductDetail } from "@/types/product";
+import { Product } from "@/types/product";
 import { theme } from "antd";
 
 const { Text } = Typography;
@@ -7,7 +7,7 @@ const { Text } = Typography;
 interface ProductDetailModalProps {
   open: boolean;
   onClose: () => void;
-  product: ProductDetail | null;
+  product: Product | null;
 }
 
 export function ProductDetailModal({

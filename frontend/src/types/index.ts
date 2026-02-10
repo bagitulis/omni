@@ -35,7 +35,6 @@ export {
 // Product types
 export {
   Product,
-  ProductDetail,
   ProductListResponse,
   InventoryRecord,
   InventoryListResult,

@@ -7,18 +7,22 @@ interface OrdersBulkActionsBarProps {
   selectedCount: number;
   onBulkShip: () => void;
   onBulkPrint: () => void;
+  onBulkCancel: () => void;
   onClearSelection: () => void;
   isShipping: boolean;
   isPrinting: boolean;
+  isCancelling: boolean;
 }
 
 export function OrdersBulkActionsBar({
   selectedCount,
   onBulkShip,
   onBulkPrint,
+  onBulkCancel,
   onClearSelection,
   isShipping,
   isPrinting,
+  isCancelling,
 }: OrdersBulkActionsBarProps) {
   if (selectedCount <= 0) return null;
 
@@ -50,6 +54,9 @@ export function OrdersBulkActionsBar({
             loading={isPrinting}
           >
             Bulk Print Labels
+          </Button>
+          <Button danger onClick={onBulkCancel} loading={isCancelling}>
+            Bulk Cancel
           </Button>
         </Space>
         <Button type="text" onClick={onClearSelection}>

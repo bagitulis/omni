@@ -70,6 +70,7 @@ export default function ProductAddPage() {
       // Transform form data to API format
       const apiData = {
         ...finalData,
+        title: finalData.item_name,
         // Convert UploadFile[] to string[] (use response.url or name as fallback)
         images: (finalData.images || []).map(
           (file: UploadFile) =>
