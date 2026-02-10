@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/api/queryClient";
 import { antdTheme, antdDarkTheme } from "./styles/theme";
 import { AppLayout } from "./components/layout";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { useAuthStore } from "@/stores/authStore";
 import LoginPage from "./pages/auth/LoginPage";
 import { DashboardPage } from "./pages/dashboard/DashboardPage";
@@ -43,7 +44,13 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route element={<AppLayout />}>
+            <Route
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route path="/" element={<DashboardPage />} />
               <Route path="/dashboard" element={<Navigate to="/" replace />} />
               <Route path="/order-manager" element={<OrdersPage />} />
