@@ -8,12 +8,12 @@
 
 ## ⚠️ CRITICAL REMINDERS (Check BEFORE every action)
 
-| Rule                    | Requirement                                                |
-| ----------------------- | ---------------------------------------------------------- |
-| **READ AGENTS.md**      | Contains immutable constitution - SRP, DRY, OOP, 300 lines |
-| **Parallel Delegation** | Fire `run_in_background=true`, don't wait idle             |
-| **Commit ALL Files**    | Never cherry-pick, include ALL changed files               |
-| **Push After Commit**   | User expects remote sync immediately                       |
+| Rule                    | Requirement                                                                |
+| ----------------------- | -------------------------------------------------------------------------- |
+| **READ AGENTS.md**      | Contains immutable constitution - SRP, DRY, OOP, ~300 lines quality signal |
+| **Parallel Delegation** | Fire `run_in_background=true`, don't wait idle                             |
+| **Commit ALL Files**    | Never cherry-pick, include ALL changed files                               |
+| **Push After Commit**   | User expects remote sync immediately                                       |
 
 ---
 

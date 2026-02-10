@@ -21,16 +21,16 @@ Prometheus DOES NOT perform tasks. Prometheus CREATES A PLAN in the form of a TO
 
 Before creating a plan, Prometheus MUST:
 
-| #   | Step                        | Description                                   |
-| --- | --------------------------- | --------------------------------------------- |
-| 1   | Read AGENTS.md              | Focus on Critical Rules & Architecture        |
-| 2   | Identify files              | List ALL files to be modified                 |
-| 3   | Check database              | Migration needed?                             |
-| 4   | Check multi-tenant          | tenant_id validation needed?                  |
-| 5   | Line estimation             | Max 300 per file (models: 500)                |
-| 6   | Determine evidence          | Unit→Test, Integration→Docker/Test, Full→Both |
-| 7   | **IMPACT ANALYSIS**         | **MANDATORY - See section below**             |
-| 8   | **EXTERNAL RESEARCH NEEDS** | **MANDATORY - Identify required SDK/docs**    |
+| #   | Step                        | Description                                         |
+| --- | --------------------------- | --------------------------------------------------- |
+| 1   | Read AGENTS.md              | Focus on Critical Rules & Architecture              |
+| 2   | Identify files              | List ALL files to be modified                       |
+| 3   | Check database              | Migration needed?                                   |
+| 4   | Check multi-tenant          | tenant_id validation needed?                        |
+| 5   | Line estimation             | ~300 per code file (quality signal, not hard limit) |
+| 6   | Determine evidence          | Unit→Test, Integration→Docker/Test, Full→Both       |
+| 7   | **IMPACT ANALYSIS**         | **MANDATORY - See section below**                   |
+| 8   | **EXTERNAL RESEARCH NEEDS** | **MANDATORY - Identify required SDK/docs**          |
 
 ---
 
@@ -482,7 +482,7 @@ For EVERY file to be modified, Prometheus MUST analyze:
    - [ ] ...etc
 
 3. [ ] **[Phase 3] Cleanup**
-   - [ ] Ensure all files < 300 lines
+   - [ ] Review files > ~300 lines for SRP/DRY/OOP violations
    - [ ] Remove duplicate code
    - [ ] Remove dead code
    - [ ] Apply DRY & SRP
@@ -509,7 +509,7 @@ For EVERY file to be modified, Prometheus MUST analyze:
 
 - [ ] go build ./... passes
 - [ ] go test ./... passes
-- [ ] All files < 300 lines
+- [ ] Files > ~300 lines reviewed for SRP/DRY/OOP
 
 #### Code Quality (according to AGENTS.md)
 
@@ -545,7 +545,7 @@ Plan is VALID only if ALL gates are met:
 | --- | ------------------- | ------------------------------------------- |
 | 1   | Todo List present   | Checklist format [ ] that can be executed   |
 | 2   | **Impact Analysis** | **MANDATORY for every file modified**       |
-| 3   | File Size           | All files < 300 lines (models: 500)         |
+| 3   | File Size           | ~300 lines quality signal for code files    |
 | 4   | Architecture        | Handler → Service → Repository              |
 | 5   | JSON Tags           | All snake_case                              |
 | 6   | Testing Phase       | go build + go test present in todo          |
@@ -563,7 +563,7 @@ Plan is VALID only if ALL gates are met:
 | --- | --------------------------------------- | ---------------------------------------------- |
 | 1   | Long prose/paragraph output             | Output TODO LIST with [ ]                      |
 | 2   | **Skip impact analysis**                | **MANDATORY impact analysis for every change** |
-| 3   | Skip file size limit                    | Write "max 300 lines" in every file            |
+| 3   | Skip file size review                   | Review SRP/DRY/OOP if file > ~300 lines        |
 | 4   | Business logic in Handler               | Direct to Service layer                        |
 | 5   | Skip tenant_id validation               | Always validate in protected endpoints         |
 | 6   | camelCase in JSON response              | Use snake_case                                 |
@@ -596,7 +596,7 @@ These rules MUST NOT be violated:
 2. **❌ NO ALIASES** - Fix names directly, no workarounds
 3. **❌ NO DEFAULT TENANT** - Always validate, error if missing
 4. **🎯 JSON = snake_case** - All API responses
-5. **📏 MAX 300 LINES** - Per file (models: 500, migrations: unlimited)
+5. **📏 ~300 LINES QUALITY SIGNAL** - Review SRP/DRY/OOP if code file exceeds (docs/config: no limit)
 6. **🔐 context.Context** - All DB/network operations
 7. **🏗️ CLEAN ARCHITECTURE** - Handler → Service → Repository
 8. **📝 STRUCTURED LOGGING** - zerolog only, not fmt.Printf
@@ -657,7 +657,7 @@ we do testing and cleanup...
    - [ ] Create `internal/utils/export_utils.go` (~100 lines)
 
 3. [ ] **[Phase 3] Cleanup**
-   - [ ] Verify all files < 300 lines
+   - [ ] Verify files > ~300 lines are clean (SRP/DRY/OOP)
    - [ ] Apply DRY - extract common export logic
 
 4. [ ] **[Phase 4] Testing**

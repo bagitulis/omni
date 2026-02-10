@@ -146,12 +146,14 @@ if err != nil {
 
 ---
 
-## Max Lines Per File
+## ~300 Lines Per File (Quality Signal)
 
-| Type          | Limit     |
-| ------------- | --------- |
-| Service files | 300 lines |
-| Helper files  | 300 lines |
-| DTO files     | 500 lines |
+> **Not a hard limit.** If a file exceeds ~300 lines, review for SRP/DRY/OOP violations.
+> If the code is clean (no duplication, single responsibility, no dead code), slightly exceeding is fine.
+
+| Type          | Guideline                       |
+| ------------- | ------------------------------- |
+| Service files | ~300 lines — review if exceeded |
+| Helper files  | ~300 lines — review if exceeded |
 
 **If exceeding:** Split by platform or responsibility.

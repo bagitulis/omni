@@ -173,11 +173,13 @@ panic("something went wrong")
 
 ---
 
-## Max Lines Per File
+## ~300 Lines Per File (Quality Signal)
 
-| Type          | Limit     |
-| ------------- | --------- |
-| Handler files | 300 lines |
-| Request types | 200 lines |
+> **Not a hard limit.** If a file exceeds ~300 lines, review for SRP/DRY/OOP violations.
+> If the code is clean (no duplication, single responsibility, no dead code), slightly exceeding is fine.
+
+| Type          | Guideline                       |
+| ------------- | ------------------------------- |
+| Handler files | ~300 lines — review if exceeded |
 
 **If exceeding:** Split by operation (create, read, update, delete).

@@ -11,15 +11,15 @@
 
 **BEFORE doing ANY work, verify you understand these critical rules:**
 
-| Rule              | Requirement                                     | Verification                   |
-| ----------------- | ----------------------------------------------- | ------------------------------ |
-| **SRP**           | One function = one purpose                      | Check before writing code      |
-| **DRY**           | No duplicated logic                             | Extract to shared utilities    |
-| **OOP**           | Proper encapsulation                            | Use interfaces and composition |
-| **300 Lines**     | Max per file (For code only not tutorial/other) | Split if exceeding             |
-| **Commit ALL**    | Include ALL changed files                       | No cherry-picking allowed      |
-| **Push Always**   | Push after every commit                         | User expects remote sync       |
-| **Parallel Work** | Don't wait idle for delegations                 | Fire agents, continue working  |
+| Rule              | Requirement                            | Verification                    |
+| ----------------- | -------------------------------------- | ------------------------------- |
+| **SRP**           | One function = one purpose             | Check before writing code       |
+| **DRY**           | No duplicated logic                    | Extract to shared utilities     |
+| **OOP**           | Proper encapsulation                   | Use interfaces and composition  |
+| **~300 Lines**    | Code file quality signal (SRP/DRY/OOP) | If exceeded → review & refactor |
+| **Commit ALL**    | Include ALL changed files              | No cherry-picking allowed       |
+| **Push Always**   | Push after every commit                | User expects remote sync        |
+| **Parallel Work** | Don't wait idle for delegations        | Fire agents, continue working   |
 
 **REMINDER TRIGGERS:**
 
@@ -27,6 +27,7 @@
 - About to commit → Verify ALL files included
 - Delegating task → Fire in background, continue immediately
 - Editing code → Check SRP/DRY/OOP compliance
+- File > ~300 lines → Review for SRP/DRY/OOP violation
 
 ---
 
@@ -111,14 +112,33 @@ All code, comments, variable names, UI labels, and menu items MUST be in English
 
 All JSON response/request MUST use snake_case. Backend and Frontend must match.
 
-### Max Lines Per File (CODE ONLY)
+### ~300 Lines Per Code File (Quality Signal)
 
-| Type       | Limit     |
-| ---------- | --------- |
-| General    | 300 lines |
-| Models     | 500 lines |
-| Migrations | Unlimited |
-| Docs/Rules | Unlimited |
+> **~300 lines is NOT a hard limit.** It's a quality signal.
+> If a code file exceeds ~300 lines, it usually means SRP/DRY/OOP is being violated.
+> **Review and refactor** — but if the code is already clean (no duplication, single responsibility, no dead code), slightly exceeding is fine.
+
+| Applies To                             | Rule                                      |
+| -------------------------------------- | ----------------------------------------- |
+| Code files (.go, .ts, .tsx, .js, .vue) | ~300 lines guideline — review if exceeded |
+| Migrations                             | No limit                                  |
+| Docs / Rules / Config                  | No limit                                  |
+
+**AFTER EVERY file edit, ask yourself:**
+
+1. Is this file doing more than one thing? → Split by responsibility
+2. Is there duplicated logic? → Extract to shared utility
+3. Is there dead code / unused imports? → Remove them
+4. Is there commented-out code? → Remove it
+
+**How to split when file is too long:**
+
+```
+1. Extract helper functions    → {module}_helpers.go / utils.ts
+2. Extract types/interfaces    → {module}_types.go / types.ts
+3. Extract constants           → {module}_constants.go / constants.ts
+4. Split by responsibility     → order_create.go + order_list.go + order_export.go
+```
 
 ### Code Quality Principles (MANDATORY)
 

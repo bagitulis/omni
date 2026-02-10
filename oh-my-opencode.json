@@ -2,23 +2,39 @@
   "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
   "categories": {
     "visual-engineering": {
-      "prompt_append": "SCREENSHOT RULE: ALWAYS save screenshots to 'docs/Screenshots/' directory with descriptive names (e.g., docs/Screenshots/page-desktop.png). NEVER save to root folder."
+      "prompt_append": "SCREENSHOT RULE: ALWAYS save screenshots to 'docs/Screenshots/' directory with descriptive names (e.g., docs/Screenshots/page-desktop.png). NEVER save to root folder.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code (no duplication, single responsibility, no dead code) slightly exceeding is OK. Docs/config/migrations have no limit."
+    },
+    "implementation": {
+      "prompt_append": "📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code (no duplication, single responsibility, no dead code) slightly exceeding is OK. Docs/config/migrations have no limit."
+    },
+    "quick": {
+      "prompt_append": "📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK."
+    },
+    "deep": {
+      "prompt_append": "📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code (no duplication, single responsibility, no dead code) slightly exceeding is OK. Docs/config/migrations have no limit."
+    },
+    "ultrabrain": {
+      "prompt_append": "📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code (no duplication, single responsibility, no dead code) slightly exceeding is OK. Docs/config/migrations have no limit."
     }
   },
   "agents": {
     "sisyphus": {
-      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then SISYPHUS_RULES.md.",
+      "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then SISYPHUS_RULES.md.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.",
       "skills": ["stuck-recovery"]
     },
     "sisyphus-junior": {
-      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then EXECUTOR_RULES.md.",
+      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then EXECUTOR_RULES.md.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Split by responsibility, extract helpers/types. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.",
       "skills": ["stuck-recovery"]
     },
     "prometheus": {
       "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then PROMETHEUS_RULES.md."
     },
+    "atlas": {
+      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then EXECUTOR_RULES.md.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Split by responsibility, extract helpers/types. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.",
+      "skills": ["stuck-recovery", "react-frontend-rules"]
+    },
     "hephaestus": {
-      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then EXECUTOR_RULES.md.",
+      "prompt_append": "⚠️ READ FILE: RULES.md (mandatory rules table). Then EXECUTOR_RULES.md.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Split by responsibility, extract helpers/types. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.",
       "skills": ["stuck-recovery"]
     },
     "oracle": {

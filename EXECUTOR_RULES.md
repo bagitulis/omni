@@ -8,15 +8,15 @@
 
 ## ⚠️ CRITICAL REMINDERS (Check BEFORE every action)
 
-| Rule                  | Requirement                                  |
-| --------------------- | -------------------------------------------- |
-| **READ AGENTS.md**    | Contains immutable constitution              |
-| **SRP**               | One function = one purpose                   |
-| **DRY**               | No duplicated logic - extract to utilities   |
-| **OOP**               | Proper encapsulation, use interfaces         |
-| **300 Lines Max**     | Split file if exceeding (500 for models)     |
-| **Commit ALL Files**  | Never cherry-pick, include ALL changed files |
-| **Push After Commit** | User expects remote sync immediately         |
+| Rule                  | Requirement                                     |
+| --------------------- | ----------------------------------------------- |
+| **READ AGENTS.md**    | Contains immutable constitution                 |
+| **SRP**               | One function = one purpose                      |
+| **DRY**               | No duplicated logic - extract to utilities      |
+| **OOP**               | Proper encapsulation, use interfaces            |
+| **~300 Lines**        | Quality signal — review SRP/DRY/OOP if exceeded |
+| **Commit ALL Files**  | Never cherry-pick, include ALL changed files    |
+| **Push After Commit** | User expects remote sync immediately            |
 
 ---
 
@@ -46,7 +46,7 @@
 
 Every modified file MUST:
 
-- [ ] < 300 lines (models: 500)
+- [ ] If > ~300 lines → verified SRP/DRY/OOP are clean (no dead code, no duplication)
 - [ ] No duplicate code
 - [ ] No dead code
 - [ ] No unused imports
