@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/omni/backend/internal/utils"
+	"github.com/rs/zerolog/log"
 )
 
 // GetOrderList fetches orders by status
@@ -17,7 +18,13 @@ func (c *LazadaAPIClient) GetOrderList(ctx context.Context, status string, days 
 
 	// IMPORTANT: Check token expiry and refresh if needed BEFORE API call
 	if err := c.config.EnsureValidToken(ctx); err != nil {
-		fmt.Printf("[WARN] Lazada token validation warning: %v\n", err)
+		expiry := c.config.GetTokenExpiry()
+		if expiry > 0 && time.Now().UnixMilli() >= expiry {
+			// Hard-expired: token is definitely expired and refresh failed — abort
+			return nil, fmt.Errorf("lazada: token expired and refresh failed: %w", err)
+		}
+		// Buffer/unknown expiry (expiry==0 or within buffer) — warn and continue
+		log.Warn().Err(err).Str("platform", "lazada").Msg("Token validation warning, continuing with existing token")
 	}
 
 	// Reload config from DB to get latest token (after potential refresh)
@@ -110,7 +117,13 @@ func (c *LazadaAPIClient) GetOrderDetails(ctx context.Context, orderIDs []string
 
 	// IMPORTANT: Check token expiry and refresh if needed BEFORE API call
 	if err := c.config.EnsureValidToken(ctx); err != nil {
-		fmt.Printf("[WARN] Lazada token validation warning: %v\n", err)
+		expiry := c.config.GetTokenExpiry()
+		if expiry > 0 && time.Now().UnixMilli() >= expiry {
+			// Hard-expired: token is definitely expired and refresh failed — abort
+			return nil, fmt.Errorf("lazada: token expired and refresh failed: %w", err)
+		}
+		// Buffer/unknown expiry (expiry==0 or within buffer) — warn and continue
+		log.Warn().Err(err).Str("platform", "lazada").Msg("Token validation warning, continuing with existing token")
 	}
 
 	// Reload config from DB to get latest token (after potential refresh)

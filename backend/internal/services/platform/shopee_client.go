@@ -153,7 +153,7 @@ func (c *ShopeeAPIClient) getProcessedOrdersViaPackageAPI(ctx context.Context) (
 		return []map[string]interface{}{}, nil
 	}
 
-	fmt.Printf("[Shopee] Found %d processed packages via Package API\n", len(allPackages))
+	log.Info().Str("platform", "shopee").Int("count", len(allPackages)).Msg("Found processed packages via Package API")
 
 	// Step 2: Get package details (tracking, carrier, SKU, qty) in batches of 50
 	packageInfoMap := make(map[string]*shopeePkg.PackageDetail)
@@ -173,7 +173,7 @@ func (c *ShopeeAPIClient) getProcessedOrdersViaPackageAPI(ctx context.Context) (
 
 		detailResp, err := c.client.GetPackageDetail(batch)
 		if err != nil {
-			fmt.Printf("[WARN] Failed to get package detail: %v\n", err)
+			log.Warn().Err(err).Str("platform", "shopee").Msg("Failed to get package detail")
 			continue
 		}
 
@@ -205,7 +205,7 @@ func (c *ShopeeAPIClient) getProcessedOrdersViaPackageAPI(ctx context.Context) (
 
 		details, err := c.GetOrderDetails(ctx, batch)
 		if err != nil {
-			fmt.Printf("[WARN] Failed to get order details: %v\n", err)
+			log.Warn().Err(err).Str("platform", "shopee").Msg("Failed to get order details")
 			continue
 		}
 
@@ -244,7 +244,7 @@ func (c *ShopeeAPIClient) getProcessedOrdersViaPackageAPI(ctx context.Context) (
 		})
 	}
 
-	fmt.Printf("[Shopee] Returning %d processed orders with tracking info\n", len(result))
+	log.Info().Str("platform", "shopee").Int("count", len(result)).Msg("Returning processed orders with tracking info")
 	return result, nil
 }
 
@@ -286,8 +286,14 @@ func (c *ShopeeAPIClient) GetOrderDetails(ctx context.Context, orderIDs []string
 	// Debug: Log first order details to verify API response
 	if len(response.Response.OrderList) > 0 {
 		first := response.Response.OrderList[0]
-		fmt.Printf("[Shopee GetOrderDetails] Sample: order_sn=%s, total_amount=%.2f, buyer=%s, payment=%s, carrier=%s\n",
-			first.OrderSN, first.TotalAmount, first.BuyerUsername, first.PaymentMethod, first.ShippingCarrier)
+		log.Debug().
+			Str("platform", "shopee").
+			Str("order_sn", first.OrderSN).
+			Float64("total_amount", first.TotalAmount).
+			Str("buyer", first.BuyerUsername).
+			Str("payment", first.PaymentMethod).
+			Str("carrier", first.ShippingCarrier).
+			Msg("Sample order details")
 	}
 
 	// Convert to generic format - includes items
