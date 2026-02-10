@@ -1,6 +1,7 @@
 import { Table, Tag, Progress, theme } from "antd";
 import { ThunderboltOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import dayjs from "dayjs";
 import type { Product } from "./types";
 import { getScoreColor, getScoreTag } from "./types";
 
@@ -58,23 +59,39 @@ export const ProductScoreTable = ({ products, loading }: Props) => {
       dataIndex: "recommendation",
       key: "recommendation",
       width: 250,
-      render: (text) => (
-        <span style={{ fontSize: 12, lineHeight: 1.4 }}>
-          <ThunderboltOutlined
-            style={{ marginRight: 6, color: token.colorPrimary }}
-          />
-          {text}
-        </span>
-      ),
+      render: (text) => {
+        if (!text) {
+          return (
+            <span style={{ fontSize: 12, color: "#999", fontStyle: "italic" }}>
+              No recommendation available
+            </span>
+          );
+        }
+        return (
+          <span style={{ fontSize: 12, lineHeight: 1.4 }}>
+            <ThunderboltOutlined
+              style={{ marginRight: 6, color: token.colorPrimary }}
+            />
+            {text}
+          </span>
+        );
+      },
     },
     {
       title: "Last Updated",
       dataIndex: "last_updated",
       key: "last_updated",
       width: 100,
-      render: (date) => (
-        <span style={{ fontSize: 11, color: "#666" }}>{date}</span>
-      ),
+      render: (date) => {
+        if (!date) {
+          return <span style={{ fontSize: 11, color: "#666" }}>—</span>;
+        }
+        return (
+          <span style={{ fontSize: 11, color: "#666" }}>
+            {dayjs(date).format("MMM DD, YYYY HH:mm")}
+          </span>
+        );
+      },
     },
   ];
 

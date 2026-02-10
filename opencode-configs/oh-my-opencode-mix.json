@@ -5,8 +5,7 @@
 
   "agents": {
     "sisyphus": {
-      "model": "google/claude-opus-4-5-thinking",
-      "variant": "max",
+      "model": "github-copilot/claude-opus-4.6",
       "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then SISYPHUS_RULES.md.",
       "skills": ["stuck-recovery"]
     },
@@ -59,8 +58,7 @@
       "skills": ["momus-rules"]
     },
     "sisyphus-junior": {
-      "model": "google/claude-sonnet-4-5-thinking",
-      "variant": "max",
+      "model": "github-copilot/claude-sonnet-4.5",
       "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then EXECUTOR_RULES.md.",
       "skills": ["stuck-recovery", "react-frontend-rules"]
     },

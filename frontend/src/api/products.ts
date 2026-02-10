@@ -37,8 +37,8 @@ function transformProduct(backendProduct: BackendProduct): Product {
     item_id: String(backendProduct.id),
     item_name: backendProduct.title,
     item_sku: `SKU-${backendProduct.id}`,
-    price: 0, // Master products don't have price - set from platform variants
-    stock: 0, // Master products don't have stock - set from platform variants
+    price: null, // Master products don't have price - set from platform variants
+    stock: null, // Master products don't have stock - set from platform variants
     platform: "master", // Master products are platform-agnostic
     image_url: backendProduct.images?.[0] || "",
   };

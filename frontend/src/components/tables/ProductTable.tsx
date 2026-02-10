@@ -65,6 +65,9 @@ export function ProductTable({
       dataIndex: "stock",
       key: "stock",
       render: (stock) => {
+        if (stock === null || stock === undefined) {
+          return <Typography.Text type="secondary">—</Typography.Text>;
+        }
         if (stock === 0) {
           return (
             <Tooltip title="Out of Stock">
@@ -90,12 +93,16 @@ export function ProductTable({
       title: "Price",
       dataIndex: "price",
       key: "price",
-      render: (price) =>
-        new Intl.NumberFormat("id-ID", {
+      render: (price) => {
+        if (price === null || price === undefined) {
+          return <Typography.Text type="secondary">—</Typography.Text>;
+        }
+        return new Intl.NumberFormat("id-ID", {
           style: "currency",
           currency: "IDR",
           maximumFractionDigits: 0,
-        }).format(price),
+        }).format(price);
+      },
     },
     {
       title: "Platform",

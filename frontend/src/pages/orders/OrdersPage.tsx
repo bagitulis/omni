@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useOrders, useOrderActions } from "@/hooks/useOrders";
 import { OrderTable } from "@/components/tables/OrderTable";
 import { OrderFilters } from "@/components/forms/OrderFilters";
-import { OrderDetailModal } from "@/components/Modals/OrderDetailModal";
+import { OrderDetailModal } from "@/components/modals/OrderDetailModal";
 import { OrderHeader } from "@/components/orders/OrderHeader";
 import { OrdersBulkActionsBar } from "./components/OrdersBulkActionsBar";
 import { OrderStatusTabs } from "./components/OrderStatusTabs";

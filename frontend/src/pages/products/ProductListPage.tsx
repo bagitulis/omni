@@ -158,22 +158,30 @@ export function ProductListPage() {
                         }}
                       >
                         <Typography.Text strong type="warning">
-                          {new Intl.NumberFormat("id-ID", {
-                            style: "currency",
-                            currency: "IDR",
-                            maximumFractionDigits: 0,
-                          }).format(product.price)}
+                          {product.price === null || product.price === undefined
+                            ? "—"
+                            : new Intl.NumberFormat("id-ID", {
+                                style: "currency",
+                                currency: "IDR",
+                                maximumFractionDigits: 0,
+                              }).format(product.price)}
                         </Typography.Text>
                         <Typography.Text
                           type={
-                            product.stock === 0
-                              ? "danger"
-                              : product.stock <= 10
-                                ? "warning"
-                                : "secondary"
+                            product.stock === null ||
+                            product.stock === undefined
+                              ? "secondary"
+                              : product.stock === 0
+                                ? "danger"
+                                : product.stock <= 10
+                                  ? "warning"
+                                  : "secondary"
                           }
                         >
-                          Stock: {product.stock}
+                          Stock:{" "}
+                          {product.stock === null || product.stock === undefined
+                            ? "—"
+                            : product.stock}
                         </Typography.Text>
                       </div>
                     </Space>

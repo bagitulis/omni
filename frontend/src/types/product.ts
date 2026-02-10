@@ -34,8 +34,8 @@ export interface Product {
   item_id: string;
   item_name: string;
   item_sku: string;
-  price: number;
-  stock: number;
+  price: number | null;
+  stock: number | null;
   platform: string;
   image_url: string;
 }
