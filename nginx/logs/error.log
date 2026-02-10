@@ -867,3 +867,4 @@
 2026/02/07 13:55:05 [error] 21#21: *4248 access forbidden by rule, client: 172.18.0.1, server: _, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost"
 2026/02/07 18:45:21 [error] 21#21: *6132 access forbidden by rule, client: 172.18.0.8, server: _, request: "GET /.env.example HTTP/1.1", host: "yndigital.my.id"
 2026/02/07 18:45:22 [error] 21#21: *6132 access forbidden by rule, client: 172.18.0.8, server: _, request: "GET /.env.example HTTP/1.1", host: "yndigital.my.id"
+2026/02/09 21:44:17 [error] 22#22: *1574 access forbidden by rule, client: 172.18.0.3, server: _, request: "GET /.well-known/security.txt HTTP/1.1", host: "www.yndigital.my.id"
