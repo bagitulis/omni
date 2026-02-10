@@ -70,8 +70,10 @@ const LoginPage: React.FC = () => {
       const response = await login(values);
       setAuth({
         token: response.token,
+        access_token: response.access_token,
         user: response.user,
         tenant_id: response.tenant_id,
+        expires_in: response.expires_in,
       });
       navigate(returnUrl);
     } catch (err: unknown) {
@@ -90,8 +92,10 @@ const LoginPage: React.FC = () => {
       const response = await devLogin({ tenant_id: selectedDevTenant });
       setAuth({
         token: response.token,
+        access_token: response.access_token,
         user: response.user,
         tenant_id: response.tenant_id,
+        expires_in: response.expires_in,
       });
       navigate(returnUrl);
     } catch (err: unknown) {

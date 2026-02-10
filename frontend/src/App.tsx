@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ConfigProvider } from "antd";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { antdTheme, antdDarkTheme } from "./styles/theme";
 import { AppLayout } from "./components/layout";
+import { useAuthStore } from "@/stores/authStore";
 import LoginPage from "./pages/auth/LoginPage";
 import { DashboardPage } from "./pages/dashboard/DashboardPage";
 import OrdersPage from "./pages/orders/OrdersPage";
@@ -36,10 +37,14 @@ import SettingsPage from "./pages/settings/SettingsPage";
 import ScriptMonitorPage from "./pages/script-monitor/ScriptMonitorPage";
 import { RouteMappingPage } from "./pages/route-mapping/RouteMappingPage";
 
-
 export default function App() {
   // Theme state kept for future implementation
   const [isDark] = useState(false);
+  const initializeAuth = useAuthStore((state) => state.initializeAuth);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
 
   return (
     <QueryClientProvider client={queryClient}>

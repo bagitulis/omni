@@ -11,9 +11,12 @@ export interface User {
 }
 
 export interface LoginResponse {
+  success: boolean;
   token: string;
+  access_token: string;
   tenant_id: string;
   user: User;
+  expires_in: number;
   requiresCaptcha?: boolean;
   isLocked?: boolean;
   lockMinutesRemaining?: number;

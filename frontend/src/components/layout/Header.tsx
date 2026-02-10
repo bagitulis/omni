@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   Layout,
   Button,
@@ -16,7 +15,7 @@ import {
   SettingOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { STORAGE_KEYS } from "@/lib/constants";
+import { useAuthStore } from "@/stores/authStore";
 import { TokenStatusDropdown } from "./TokenStatusDropdown";
 
 const { Header: AntHeader } = Layout;
@@ -29,24 +28,13 @@ interface HeaderProps {
 
 export default function Header({ collapsed, onCollapse }: HeaderProps) {
   const navigate = useNavigate();
-  const [userName, setUserName] = useState<string>("");
+  const { user, logout } = useAuthStore();
   const {
     token: { colorBgContainer, colorBorderSecondary },
   } = theme.useToken();
 
-  useEffect(() => {
-    const storedName = localStorage.getItem(STORAGE_KEYS.USER_NAME);
-    if (storedName) {
-      setUserName(storedName);
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
-    localStorage.removeItem(STORAGE_KEYS.TENANT_ID);
-    localStorage.removeItem(STORAGE_KEYS.USER_ROLE);
-    localStorage.removeItem(STORAGE_KEYS.USER_NAME);
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
@@ -118,7 +106,7 @@ export default function Header({ collapsed, onCollapse }: HeaderProps) {
         <Dropdown menu={{ items: userMenu }} placement="bottomRight">
           <Space style={{ cursor: "pointer" }}>
             <Avatar size="small" icon={<UserOutlined />} />
-            <Text className="username-label">{userName || "User"}</Text>
+            <Text className="username-label">{user?.username || "User"}</Text>
           </Space>
         </Dropdown>
       </div>

@@ -27,7 +27,6 @@ export const API_TIMEOUT = {
 
 // localStorage keys - must match Vue frontend for compatibility
 export const STORAGE_KEYS = {
-  AUTH_TOKEN: "authToken",
   AUTH_USER: "authUser",
   TENANT_ID: "tenantId",
   USER_ROLE: "userRole",
@@ -35,6 +34,4 @@ export const STORAGE_KEYS = {
 };
 
 // Cookie names
-export const COOKIE_NAMES = {
-  CSRF_TOKEN: "csrf_token",
-};
+export const COOKIE_NAMES = {};

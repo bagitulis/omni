@@ -63,8 +63,8 @@ export default function AccountTab() {
         });
       }
     } catch {
-      // Fallback to localStorage
-      const storedUser = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
+      // Fallback to sessionStorage
+      const storedUser = sessionStorage.getItem(STORAGE_KEYS.AUTH_USER);
       if (storedUser) {
         try {
           const parsed = JSON.parse(storedUser);

@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from "axios";
-import { API_BASE_URL, API_TIMEOUT, STORAGE_KEYS } from "@/lib/constants";
+import { API_BASE_URL, API_TIMEOUT } from "@/lib/constants";
+import { useAuthStore } from "@/stores/authStore";
 
 /**
  * API Response Type - matches backend response format
@@ -12,7 +13,7 @@ export interface ApiResponse<T = any> {
 }
 
 /**
- * API Client Service - Axios instance with auth and CSRF interceptors
+ * API Client Service - Axios instance with auth interceptors
  * Mirrors Vue frontend patterns for compatibility
  */
 class ApiClient {
@@ -32,32 +33,32 @@ class ApiClient {
    * Setup request and response interceptors
    */
   private setupInterceptors(): void {
-    // Request interceptor - add auth and CSRF tokens
+    // Request interceptor - add auth token
     this.client.interceptors.request.use(
-      (config) => {
-        // Add Bearer token from localStorage
-        const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+      async (config) => {
+        // Skip auth for login/refresh/dev-login endpoints to avoid loops
+        // Auth endpoints (login, refresh, dev-login) do not need the bearer token
+        // and attempting to get it might trigger a refresh loop
+        if (
+          config.url?.includes("/auth/login") ||
+          config.url?.includes("/auth/refresh") ||
+          config.url?.includes("/auth/dev-login")
+        ) {
+          return config;
+        }
+
+        // Get valid access token (handles auto-refresh)
+        // This is async because it might need to refresh the token
+        const token = await useAuthStore.getState().getValidToken();
+
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
-        // Add tenant ID from localStorage
-        const tenantId = localStorage.getItem(STORAGE_KEYS.TENANT_ID);
+        // Add tenant ID from store
+        const tenantId = useAuthStore.getState().tenantId;
         if (tenantId) {
           config.headers["x-tenant-id"] = tenantId;
-        }
-
-        // Add CSRF token for mutating requests (POST, PUT, PATCH, DELETE)
-        if (
-          config.method &&
-          ["post", "put", "patch", "delete"].includes(
-            config.method.toLowerCase(),
-          )
-        ) {
-          const csrfToken = this.getCSRFToken();
-          if (csrfToken) {
-            config.headers["x-csrf-token"] = csrfToken;
-          }
         }
 
         return config;
@@ -73,14 +74,6 @@ class ApiClient {
       (response) => response,
       (error: AxiosError) => this.handleResponseError(error),
     );
-  }
-
-  /**
-   * Extract CSRF token from cookies
-   */
-  private getCSRFToken(): string | null {
-    const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
-    return match ? decodeURIComponent(match[1]) : null;
   }
 
   /**
@@ -137,15 +130,11 @@ class ApiClient {
 
   /**
    * Handle expired/invalid JWT token
-   * Clears all auth-related localStorage and redirects to login
+   * Clears all auth-related state and redirects to login
    */
   private handleAuthExpired(): void {
-    // Clear all auth-related localStorage items
-    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
-    localStorage.removeItem(STORAGE_KEYS.TENANT_ID);
-    localStorage.removeItem(STORAGE_KEYS.USER_ROLE);
-    localStorage.removeItem(STORAGE_KEYS.USER_NAME);
+    // Clear all auth-related state
+    useAuthStore.getState().clearAuth();
 
     // Redirect to login page with return URL
     const currentPath = window.location.pathname;

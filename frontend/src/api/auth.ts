@@ -1,5 +1,5 @@
 import api from "./client";
-import { STORAGE_KEYS } from "@/lib/constants";
+import { useAuthStore } from "@/stores/authStore";
 import type { LoginResponse, User } from "@/types/auth";
 
 export interface LoginPayload {
@@ -22,8 +22,13 @@ export interface DevLoginResponse extends LoginResponse {
  * Note: Auth endpoints return flat responses (not wrapped in 'data' field)
  */
 export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
-  // Auth endpoints return flat response: {success, token, user, tenant_id}
-  const response = await api.client.post("/auth/login", payload);
+  // Auth endpoints return flat response: {success, token, access_token, user, tenant_id, expires_in}
+  // We use api.client directly to access full response if needed, but api.post handles wrapper
+  // But wait, api.post returns ApiResponse<T>.
+  // The backend for login returns flat JSON with success: true.
+  const response = await api.client.post("/auth/login", payload, {
+    withCredentials: true,
+  });
   const result = response.data;
   if (!result.success) {
     throw new Error(result.error || "Login failed");
@@ -34,8 +39,9 @@ export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
 export const devLogin = async (
   payload: DevLoginPayload,
 ): Promise<DevLoginResponse> => {
-  // Auth endpoints return flat response: {success, token, user, tenant_id, dev_mode}
-  const response = await api.client.post("/auth/dev-login", payload);
+  const response = await api.client.post("/auth/dev-login", payload, {
+    withCredentials: true,
+  });
   const result = response.data;
   if (!result.success) {
     throw new Error(result.error || "Dev login failed");
@@ -44,18 +50,7 @@ export const devLogin = async (
 };
 
 export const logout = async (): Promise<void> => {
-  try {
-    await api.post("/auth/logout");
-  } catch (error) {
-    console.error("Logout error:", error);
-  } finally {
-    // Clear all auth-related localStorage items
-    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
-    localStorage.removeItem(STORAGE_KEYS.TENANT_ID);
-    localStorage.removeItem(STORAGE_KEYS.USER_ROLE);
-    localStorage.removeItem(STORAGE_KEYS.USER_NAME);
-  }
+  await useAuthStore.getState().logout();
 };
 
 export const getCurrentUser = async (): Promise<User | null> => {
