@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
@@ -15,6 +16,17 @@ import (
 	"github.com/omni/backend/internal/services/webhooks"
 	"github.com/rs/zerolog/log"
 )
+
+// isSignatureError checks if the error is related to webhook signature verification
+func isSignatureError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errMsg := strings.ToLower(err.Error())
+	return strings.Contains(errMsg, "signature") ||
+		strings.Contains(errMsg, "verification failed") ||
+		strings.Contains(errMsg, "unauthorized")
+}
 
 // WebhookHandler handles webhook endpoints
 type WebhookHandler struct {
@@ -113,6 +125,10 @@ func (h *WebhookHandler) ShopeeWebhook(c *gin.Context) {
 		requestURL := c.Request.URL.String()
 		if err := h.shopeeProcessor.Process(c.Request.Context(), tenantID, requestURL, string(body), signature); err != nil {
 			log.Warn().Err(err).Str("tenant_id", tenantID).Msg("Shopee webhook processing error")
+			if isSignatureError(err) {
+				c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid webhook signature"})
+				return
+			}
 			// Still return success to prevent retries
 		} else {
 			// Invalidate cache on successful processing
@@ -142,6 +158,10 @@ func (h *WebhookHandler) LazadaWebhook(c *gin.Context) {
 	if h.lazadaProcessor != nil && tenantID != "" {
 		if err := h.lazadaProcessor.Process(c.Request.Context(), tenantID, string(body), signature); err != nil {
 			log.Warn().Err(err).Str("tenant_id", tenantID).Msg("Lazada webhook processing error")
+			if isSignatureError(err) {
+				c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid webhook signature"})
+				return
+			}
 		} else {
 			// Invalidate cache on successful processing
 			h.invalidateAnalyticsCache(tenantID, "lazada")
@@ -171,6 +191,10 @@ func (h *WebhookHandler) TiktokWebhook(c *gin.Context) {
 	if h.tiktokProcessor != nil && tenantID != "" {
 		if err := h.tiktokProcessor.Process(c.Request.Context(), tenantID, string(body), timestamp, signature); err != nil {
 			log.Warn().Err(err).Str("tenant_id", tenantID).Msg("TikTok webhook processing error")
+			if isSignatureError(err) {
+				c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid webhook signature"})
+				return
+			}
 		} else {
 			// Invalidate cache on successful processing
 			h.invalidateAnalyticsCache(tenantID, "tiktok")

@@ -10,7 +10,7 @@ import (
 func RegisterMLReportRoutes(router *gin.RouterGroup, basePath string) {
 	handler := ml.NewReportHandler(basePath)
 
-	mlGroup := router.Group("/ml/reports")
+	mlGroup := router.Group("/analytics/ml/reports")
 	mlGroup.Use(middleware.Auth())
 	mlGroup.Use(middleware.Tenant())
 	{

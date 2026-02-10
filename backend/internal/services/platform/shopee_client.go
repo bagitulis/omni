@@ -7,6 +7,7 @@ import (
 	"time"
 
 	shopeePkg "github.com/omni/backend/pkg/shopee"
+	"github.com/rs/zerolog/log"
 )
 
 // ShopeeAPIClient implements APIClient for Shopee
@@ -54,7 +55,13 @@ func (c *ShopeeAPIClient) GetOrderList(ctx context.Context, status string, days 
 
 	// IMPORTANT: Check token expiry and refresh if needed BEFORE API call
 	if err := c.config.EnsureValidToken(ctx); err != nil {
-		fmt.Printf("[WARN] Token validation warning: %v\n", err)
+		expiry := c.config.GetTokenExpiry()
+		if expiry > 0 && time.Now().UnixMilli() >= expiry {
+			// Hard-expired: token is definitely expired and refresh failed — abort
+			return nil, fmt.Errorf("shopee: token expired and refresh failed: %w", err)
+		}
+		// Buffer/unknown expiry (expiry==0 or within buffer) — warn and continue
+		log.Warn().Err(err).Str("platform", "shopee").Msg("Token validation warning, continuing with existing token")
 	}
 
 	// Reload config from DB to get latest token (after potential refresh)
@@ -249,8 +256,13 @@ func (c *ShopeeAPIClient) GetOrderDetails(ctx context.Context, orderIDs []string
 
 	// IMPORTANT: Check token expiry and refresh if needed BEFORE API call
 	if err := c.config.EnsureValidToken(ctx); err != nil {
-		// Log warning but continue - might still work if token is close to expiry
-		fmt.Printf("[WARN] Token validation warning: %v\n", err)
+		expiry := c.config.GetTokenExpiry()
+		if expiry > 0 && time.Now().UnixMilli() >= expiry {
+			// Hard-expired: token is definitely expired and refresh failed — abort
+			return nil, fmt.Errorf("shopee: token expired and refresh failed: %w", err)
+		}
+		// Buffer/unknown expiry (expiry==0 or within buffer) — warn and continue
+		log.Warn().Err(err).Str("platform", "shopee").Msg("Token validation warning, continuing with existing token")
 	}
 
 	// Reload config from DB to get latest token (after potential refresh)
