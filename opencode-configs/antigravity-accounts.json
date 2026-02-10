@@ -490,7 +490,7 @@
       "projectId": "tribal-oven-4cx0h",
       "managedProjectId": "tribal-oven-4cx0h",
       "addedAt": 1769562766362,
-      "lastUsed": 1770697391467,
+      "lastUsed": 1770698267087,
       "fingerprint": {
         "deviceId": "14b7b2ee-418b-4568-bfec-e03f5cb5f1c2",
         "sessionToken": "5d3dfc97e13b2ae8013363a2275e32bf",
@@ -530,7 +530,7 @@
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770697393124,
+      "cachedQuotaUpdatedAt": 1770698269818,
       "enabled": true
     },
     {
@@ -920,6 +920,6 @@
   "activeIndex": 9,
   "activeIndexByFamily": {
     "claude": 9,
-    "gemini": 14
+    "gemini": 10
   }
 }

@@ -180,13 +180,54 @@ Request → Handler → Service → Repository → Database
 
 ---
 
-## 3. Testing Requirements
+## 3. Build, Test & Deploy
+
+### Backend Testing
 
 ```bash
 # MUST pass before task complete
 go build ./...
 go test ./...
 ```
+
+### Frontend Testing
+
+```bash
+# React frontend (primary app)
+npm run build    # in frontend/
+npm run lint     # in frontend/
+
+# Vue frontend (legacy app)
+npm run build    # in frontend-vue/
+```
+
+### Docker Build & Deploy (build.py)
+
+Use `build.py` for all Docker operations:
+
+```bash
+python build.py smart      # Smart build (RECOMMENDED for code changes)
+python build.py quickfix    # Fix service issues without rebuild
+python build.py full        # Full rebuild from scratch (no cache)
+```
+
+### Database Backup on Schema Changes (MANDATORY)
+
+When ANY database schema is modified (migrations, DDL changes, new tables, altered columns):
+
+```bash
+# MANDATORY: Run backup AFTER schema changes are applied via build.py
+python build.py backup
+```
+
+> **Why AFTER?** The backup captures the latest schema so restore always has the most recent structure.
+> This ensures the team always has a backup file reflecting the current database state.
+
+| Trigger                   | Action                                             |
+| ------------------------- | -------------------------------------------------- |
+| New migration file added  | `python build.py smart` → `python build.py backup` |
+| Table/column altered      | `python build.py smart` → `python build.py backup` |
+| Code-only change (no DDL) | `python build.py smart` (no backup needed)         |
 
 ---
 

@@ -213,10 +213,13 @@ const processedOrders = computed(() => {
 
 ---
 
-## Max Lines Per File
+## ~300 Lines Per File (Quality Signal)
 
-| Type             | Limit     |
-| ---------------- | --------- |
-| Composable files | 300 lines |
+> **Not a hard limit.** If a file exceeds ~300 lines, review for SRP/DRY/OOP violations.
+> If the code is clean (no duplication, single responsibility, no dead code), slightly exceeding is fine.
+
+| Type             | Guideline                       |
+| ---------------- | ------------------------------- |
+| Composable files | ~300 lines — review if exceeded |
 
 **If exceeding:** Split into smaller composables by concern.

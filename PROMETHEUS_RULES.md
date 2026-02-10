@@ -446,7 +446,7 @@ For EVERY file to be modified, Prometheus MUST analyze:
 
 ---
 
-## 3. OUTPUT FORMAT: TODO LIST
+## 4. OUTPUT FORMAT: TODO LIST
 
 **MANDATORY:** Prometheus must output in a TODO LIST format that can be directly executed.
 
@@ -488,13 +488,14 @@ For EVERY file to be modified, Prometheus MUST analyze:
    - [ ] Apply DRY & SRP
 
 4. [ ] **[Phase 4] Testing**
-   - [ ] Run: go build ./...
-   - [ ] Run: go test ./...
+   - [ ] Backend: go build ./... + go test ./...
+   - [ ] Frontend (if changed): npm run build + npm run lint
    - [ ] Fix if there are errors
 
 5. [ ] **[Phase 5] Finalization**
    - [ ] Collect evidence according to task type
-   - [ ] Apply Docker if needed: build.py smart
+   - [ ] Apply Docker if needed: `python build.py smart`
+   - [ ] If schema changed: `python build.py backup` (AFTER migration applied)
 
 ### Affected Files
 
@@ -507,8 +508,10 @@ For EVERY file to be modified, Prometheus MUST analyze:
 
 #### Build & Test
 
-- [ ] go build ./... passes
-- [ ] go test ./... passes
+- [ ] Backend: go build ./... passes + go test ./... passes
+- [ ] Frontend (if changed): npm run build passes
+- [ ] Docker: `python build.py smart` succeeds (if deploying)
+- [ ] Schema changes: `python build.py backup` executed AFTER migration applied
 - [ ] Files > ~300 lines reviewed for SRP/DRY/OOP
 
 #### Code Quality (according to AGENTS.md)
@@ -519,7 +522,7 @@ For EVERY file to be modified, Prometheus MUST analyze:
 
 #### Frontend (if there are frontend changes)
 
-- [ ] UI/UX layout not messy (verify directly in code, NOT using Playwright)
+- [ ] UI/UX layout not messy (Prometheus verifies by reviewing code structure — executors verify via Playwright and MUST report any UI bugs found)
 - [ ] Component structure neat and reusable
 - [ ] Responsive design maintained
 
@@ -537,7 +540,7 @@ For EVERY file to be modified, Prometheus MUST analyze:
 
 ---
 
-## 4. QUALITY GATES
+## 5. QUALITY GATES
 
 Plan is VALID only if ALL gates are met:
 
@@ -557,25 +560,26 @@ Plan is VALID only if ALL gates are met:
 
 ---
 
-## 5. ANTI-PATTERNS (FORBIDDEN)
+## 6. ANTI-PATTERNS (FORBIDDEN)
 
-| #   | Do Not Do                               | Do                                             |
-| --- | --------------------------------------- | ---------------------------------------------- |
-| 1   | Long prose/paragraph output             | Output TODO LIST with [ ]                      |
-| 2   | **Skip impact analysis**                | **MANDATORY impact analysis for every change** |
-| 3   | Skip file size review                   | Review SRP/DRY/OOP if file > ~300 lines        |
-| 4   | Business logic in Handler               | Direct to Service layer                        |
-| 5   | Skip tenant_id validation               | Always validate in protected endpoints         |
-| 6   | camelCase in JSON response              | Use snake_case                                 |
-| 7   | Skip testing phase                      | MANDATORY go build + go test                   |
-| 8   | Assume default tenant                   | Explicit error if missing                      |
-| 9   | Skip cleanup phase                      | MANDATORY DRY/SRP review                       |
-| 10  | Change API without checking frontend    | Check all consumers in frontend                |
-| 11  | Change DB schema without migration plan | Always include migration steps                 |
+| #   | Do Not Do                               | Do                                                          |
+| --- | --------------------------------------- | ----------------------------------------------------------- |
+| 1   | Long prose/paragraph output             | Output TODO LIST with [ ]                                   |
+| 2   | **Skip impact analysis**                | **MANDATORY impact analysis for every change**              |
+| 3   | Skip file size review                   | Review SRP/DRY/OOP if file > ~300 lines                     |
+| 4   | Business logic in Handler               | Direct to Service layer                                     |
+| 5   | Skip tenant_id validation               | Always validate in protected endpoints                      |
+| 6   | camelCase in JSON response              | Use snake_case                                              |
+| 7   | Skip testing phase                      | MANDATORY go build + go test                                |
+| 8   | Assume default tenant                   | Explicit error if missing                                   |
+| 9   | Skip cleanup phase                      | MANDATORY DRY/SRP review                                    |
+| 10  | Change API without checking frontend    | Check all consumers in frontend                             |
+| 11  | Change DB schema without migration plan | Always include migration steps                              |
+| 12  | Skip DB backup after schema changes     | MANDATORY: `python build.py backup` after migration applied |
 
 ---
 
-## 6. EVIDENCE REQUIREMENTS
+## 7. EVIDENCE REQUIREMENTS
 
 | Task Type             | Required Evidence          |
 | --------------------- | -------------------------- |
@@ -588,7 +592,7 @@ Plan is VALID only if ALL gates are met:
 
 ---
 
-## 7. CRITICAL RULES (from AGENTS.md)
+## 8. CRITICAL RULES (from AGENTS.md)
 
 These rules MUST NOT be violated:
 
@@ -615,8 +619,10 @@ ORM:          GORM
 Logging:      zerolog
 JSON:         snake_case
 Architecture: Handler → Service → Repository
-Testing:      go build ./... && go test ./...
-Docker:       build.py smart (default)
+Testing:      go build ./... && go test ./... (backend)
+              npm run build && npm run lint (frontend)
+Docker:       python build.py smart (default)
+DB Backup:    python build.py backup (AFTER schema changes)
 ```
 
 ---
@@ -697,7 +703,7 @@ we do testing and cleanup...
 
 ---
 
-## 8. DELEGATION RULES (SPEEDING UP EXECUTION)
+## 9. DELEGATION RULES (SPEEDING UP EXECUTION)
 
 > **Delegate to sub-agents for parallel processing and focused expertise.**
 > **MAXIMUM 2 parallel delegations** to avoid overload.
@@ -829,7 +835,7 @@ Task: Fix Shopee order sync
 
 ---
 
-## 9. FAILURE COUNTER RULE (FOR EXECUTOR)
+## 10. FAILURE COUNTER RULE (FOR EXECUTOR)
 
 > **⚠️ THIS RULE MUST BE FOLLOWED BY AI EXECUTOR (Sisyphus/Builder)**
 >
@@ -901,7 +907,7 @@ Task: Fix Shopee order sync
 
 ---
 
-## 10. EXECUTOR QUICK REFERENCE (CHEAT SHEET)
+## 11. EXECUTOR QUICK REFERENCE (CHEAT SHEET)
 
 > **Print this and follow every task execution**
 

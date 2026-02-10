@@ -189,11 +189,14 @@ async function deleteSelected() {
 
 ---
 
-## Max Lines Per File
+## ~300 Lines Per File (Quality Signal)
 
-| Type           | Limit     |
-| -------------- | --------- |
-| Vue components | 300 lines |
-| Composables    | 300 lines |
+> **Not a hard limit.** If a file exceeds ~300 lines, review for SRP/DRY/OOP violations.
+> If the code is clean (no duplication, single responsibility, no dead code), slightly exceeding is fine.
+
+| Type           | Guideline                       |
+| -------------- | ------------------------------- |
+| Vue components | ~300 lines — review if exceeded |
+| Composables    | ~300 lines — review if exceeded |
 
 **If exceeding:** Extract logic to composables, split component.

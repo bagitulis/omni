@@ -1,8 +1,8 @@
-# EXECUTOR RULES (Sisyphus-Junior)
+# EXECUTOR RULES (Sisyphus-Junior, Atlas, Hephaestus)
 
-> **STATUS: MANDATORY** | **For: Sisyphus-Junior, delegated implementation tasks**
+> **STATUS: MANDATORY** | **For: Sisyphus-Junior, Atlas, Hephaestus — delegated implementation tasks**
 >
-> This file is loaded via `oh-my-opencode.json` → `agents.sisyphus-junior.prompt_append`
+> This file is loaded via `oh-my-opencode.json` → `agents.{sisyphus-junior,atlas,hephaestus}.prompt_append`
 
 ---
 
@@ -88,14 +88,50 @@ lsp_diagnostics((filePath = "path/to/changed/file.go"), (severity = "error"));
 
 ## 5. Build & Test Protocol
 
+### Backend (Go)
+
 ```bash
 # MUST pass before task complete
 go build ./...
 go test ./...
-
-# If using Docker:
-python build.py smart
 ```
+
+### Frontend (React/Vue)
+
+```bash
+# For React frontend (primary app)
+npm run build    # in frontend/
+npm run lint     # in frontend/
+
+# For Vue frontend (legacy app)
+npm run build    # in frontend-vue/
+```
+
+> See `react-frontend-rules` skill for React-specific patterns.
+
+### Docker Build & Deploy
+
+```bash
+# Smart build (RECOMMENDED for code changes)
+python build.py smart
+
+# Quick fix (service issues, no rebuild)
+python build.py quickfix
+
+# Full rebuild (no cache)
+python build.py full
+```
+
+### Database Schema Changes
+
+When ANY database schema is modified (migrations, DDL changes):
+
+```bash
+# MANDATORY: Backup database AFTER schema changes are applied
+python build.py backup
+```
+
+> **Why AFTER?** The backup captures the latest schema so restore always has the most recent structure.
 
 ### If Build Fails:
 
@@ -202,8 +238,10 @@ Task is complete ONLY if:
 
 - [ ] All edits saved
 - [ ] `lsp_diagnostics` clean
-- [ ] `go build ./...` passes
-- [ ] `go test ./...` passes
+- [ ] Backend: `go build ./...` passes + `go test ./...` passes
+- [ ] Frontend (if changed): `npm run build` passes
+- [ ] Docker (if needed): `python build.py smart` succeeds
+- [ ] Schema changes: `python build.py backup` executed AFTER migration applied
 - [ ] Evidence collected
 - [ ] Todo marked complete
 
