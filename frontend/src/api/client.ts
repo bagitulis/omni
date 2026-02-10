@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from "axios";
+import { message } from "antd";
 import { API_BASE_URL, API_TIMEOUT } from "@/lib/constants";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -24,6 +25,7 @@ class ApiClient {
       baseURL: API_BASE_URL,
       timeout: API_TIMEOUT.DEFAULT,
       headers: { "Content-Type": "application/json" },
+      withCredentials: true,
     });
 
     this.setupInterceptors();
@@ -36,6 +38,11 @@ class ApiClient {
     // Request interceptor - add auth token
     this.client.interceptors.request.use(
       async (config) => {
+        // Dev-mode logging
+        if (import.meta.env.DEV) {
+          console.debug(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+        }
+
         // Skip auth for login/refresh/dev-login endpoints to avoid loops
         // Auth endpoints (login, refresh, dev-login) do not need the bearer token
         // and attempting to get it might trigger a refresh loop
@@ -71,7 +78,13 @@ class ApiClient {
 
     // Response interceptor - handle errors
     this.client.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        // Dev-mode logging
+        if (import.meta.env.DEV) {
+          console.debug(`[API] ✓ ${response.status} ${response.config.url}`);
+        }
+        return response;
+      },
       (error: AxiosError) => this.handleResponseError(error),
     );
   }
@@ -81,6 +94,8 @@ class ApiClient {
    * - Timeout errors: log and reject
    * - Network errors: suggest backend URL issue
    * - 401 errors: clear auth and redirect to login
+   * - 403 errors: show permission denied toast
+   * - 500 errors: show error toast with backend message
    * - Other errors: reject with error message
    */
   private handleResponseError(error: AxiosError): Promise<never> {
@@ -117,6 +132,24 @@ class ApiClient {
           new Error("Session expired - please login again"),
         );
       }
+    }
+
+    // Handle 403 Forbidden - permission denied
+    if (error.response?.status === 403) {
+      const errorMsg = "Permission denied";
+      message.error(errorMsg);
+      console.error(`[API] 403 Forbidden:`, errorMsg);
+      return Promise.reject(new Error(errorMsg));
+    }
+
+    // Handle 500 Server Error
+    if (error.response?.status === 500) {
+      const backendError =
+        (error.response?.data as { error?: string })?.error || "Server error";
+      const errorMsg = `Server error - ${backendError}`;
+      message.error("Server error - please try again");
+      console.error(`[API] 500 Server Error:`, errorMsg);
+      return Promise.reject(new Error(errorMsg));
     }
 
     // Generic error handling
