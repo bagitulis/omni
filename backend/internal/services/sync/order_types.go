@@ -51,6 +51,7 @@ type OrderItem struct {
 	ID            string  `json:"id"`
 	OrderID       string  `json:"order_id"`
 	ItemID        int64   `json:"item_id,omitempty"`
+	SkuID         string  `json:"sku_id,omitempty"` // TikTok model number (always present, identifies variant)
 	SKU           string  `json:"sku"`
 	ProductName   string  `json:"product_name"`
 	VariationName string  `json:"variation_name"`

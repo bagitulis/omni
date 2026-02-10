@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jung-kurt/gofpdf"
+	shopeePkg "github.com/omni/backend/pkg/shopee"
 	"github.com/rs/zerolog/log"
 )
 
@@ -197,73 +198,37 @@ func (s *ShippingService) generateLabelFromData(ctx context.Context, client ship
 
 // createLabelPDF generates a thermal shipping label PDF from data
 func (s *ShippingService) createLabelPDF(orderSN string, data interface{}) ([]byte, error) {
-	// Type assertion for the data info response
-	type dataInfoResponse interface {
-		GetResponse() struct {
-			TrackingNumber    string
-			ShippingCarrier   string
-			RecipientName     string
-			RecipientPhone    string
-			RecipientAddress  string
-			RecipientCity     string
-			RecipientState    string
-			RecipientZipcode  string
-			SenderName        string
-			SenderPhone       string
-			SenderAddress     string
-			SenderCity        string
-			SenderState       string
-			RecipientSortCode string
-		}
-	}
-
-	// Extract data using reflection or type switch
+	// Extract fields from the known ShippingDocumentDataInfoResponse type
 	var trackingNumber, carrier, recipientName, recipientPhone, recipientAddress string
 	var recipientCity, recipientState, recipientZip string
 	var senderName, senderPhone, senderAddress, senderCity, senderState string
 	var sortCode string
 
-	// Use type switch to extract fields
-	switch v := data.(type) {
-	case interface{ GetTrackingNumber() string }:
-		trackingNumber = v.GetTrackingNumber()
-	default:
-		// Try to access fields directly via interface
-		if resp, ok := data.(interface {
-			GetResponse() interface{}
-		}); ok {
-			_ = resp // Use the response
+	if infoResp, ok := data.(*shopeePkg.ShippingDocumentDataInfoResponse); ok {
+		r := infoResp.Response
+		trackingNumber = r.TrackingNumber
+		if trackingNumber == "" {
+			trackingNumber = r.LastMileTrackingNumber
 		}
-	}
-
-	// For now, extract from the known structure
-	if dataResp, ok := data.(interface {
-		GetOrderSN() string
-	}); ok {
-		_ = dataResp
-	}
-
-	// Direct field access via reflection or known struct
-	// Since we know the type, cast it
-	if infoResp, ok := data.(*struct {
-		Response struct {
-			TrackingNumber   string
-			ShippingCarrier  string
-			RecipientName    string
-			RecipientPhone   string
-			RecipientAddress string
+		if trackingNumber == "" {
+			trackingNumber = r.FirstMileTrackingNumber
 		}
-	}); ok {
-		trackingNumber = infoResp.Response.TrackingNumber
-		carrier = infoResp.Response.ShippingCarrier
-		recipientName = infoResp.Response.RecipientName
-		recipientPhone = infoResp.Response.RecipientPhone
-		recipientAddress = infoResp.Response.RecipientAddress
+		carrier = r.ShippingCarrier
+		recipientName = r.RecipientName
+		recipientPhone = r.RecipientPhone
+		recipientAddress = r.RecipientAddress
+		recipientCity = r.RecipientCity
+		recipientState = r.RecipientState
+		recipientZip = r.RecipientZipcode
+		senderName = r.SenderName
+		senderPhone = r.SenderPhone
+		senderAddress = r.SenderAddress
+		senderCity = r.SenderCity
+		senderState = r.SenderState
+		sortCode = r.RecipientSortCode
 	}
 
-	// Fallback: use order info to get basic data
 	if trackingNumber == "" {
-		// We'll use the data we have
 		trackingNumber = "TRACKING_PENDING"
 	}
 

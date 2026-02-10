@@ -182,13 +182,20 @@ func (m *TiktokOrderManager) GetOrderDetails(ctx context.Context, orderIDs []str
 			orderSN = getString(raw, "order_id")
 		}
 
+		// Extract buyer info (same logic as GetOrders path)
+		buyerUsername := getString(raw, "buyer_nickname")
+		if buyerUsername == "" {
+			buyerUsername = getString(raw, "user_id")
+		}
+
 		order := Order{
 			OrderSN:       orderSN,
 			OrderNo:       orderSN,
 			Platform:      strings.ToUpper("tiktok"),
 			Status:        getString(raw, "order_status"),
 			TotalAmount:   getFloat64(raw, "payment_info.total_amount"),
-			BuyerUsername: getString(raw, "buyer_message"),
+			BuyerUsername: buyerUsername,
+			BuyerMessage:  getString(raw, "buyer_message"),
 		}
 
 		// Extract tracking info from order details
@@ -226,10 +233,12 @@ func (m *TiktokOrderManager) GetOrderItems(ctx context.Context, orderIDs []strin
 			orderItems := make([]OrderItem, 0, len(lineItems))
 			for _, item := range lineItems {
 				if itemMap, ok := item.(map[string]interface{}); ok {
-					// TikTok uses seller_sku or sku_id
+					// TikTok sku_id (model number) is the reliable grouping key
+					skuID := getString(itemMap, "sku_id")
+					// seller_sku is optional and may be empty
 					sku := getString(itemMap, "seller_sku")
 					if sku == "" {
-						sku = getString(itemMap, "sku_id")
+						sku = skuID
 					}
 
 					// TikTok API doesn't always return quantity field
@@ -276,8 +285,10 @@ func (m *TiktokOrderManager) GetOrderItems(ctx context.Context, orderIDs []strin
 					}
 
 					orderItems = append(orderItems, OrderItem{
+						ID:            getString(itemMap, "id"), // line_item_id
 						OrderID:       orderID,
 						ItemID:        productID, // Use ItemID field for product_id
+						SkuID:         skuID,
 						SKU:           sku,
 						ProductName:   getString(itemMap, "product_name"),
 						VariationName: getString(itemMap, "sku_name"),

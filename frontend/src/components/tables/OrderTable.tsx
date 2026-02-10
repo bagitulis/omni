@@ -13,7 +13,7 @@ export function OrderTable({
   onPrint,
   onViewDetail,
 }: OrderTableProps) {
-  // Group orders by order_no
+  // Group orders by order_no, then accumulate same-SKU items within each order
   const groupedOrders = useMemo(() => {
     const orderMap = new Map<string, GroupedOrder>();
 
@@ -30,14 +30,26 @@ export function OrderTable({
       }
 
       const order = orderMap.get(key)!;
-      order.items.push({
-        sku: item.sku,
-        product_name: item.product_name,
-        variation_name: item.variation_name,
-        qty: item.qty,
-        price: item.price,
-        product_image: item.product_image,
-      });
+      // Accumulate by SKU + variation_name as grouping key (safety net for un-grouped backend data)
+      const itemKey = `${item.sku || ""}|${item.variation_name || ""}|${item.product_name || ""}`;
+      const existing = order.items.find(
+        (i) =>
+          `${i.sku || ""}|${i.variation_name || ""}|${i.product_name || ""}` ===
+          itemKey,
+      );
+
+      if (existing) {
+        existing.qty += item.qty || 1;
+      } else {
+        order.items.push({
+          sku: item.sku,
+          product_name: item.product_name,
+          variation_name: item.variation_name,
+          qty: item.qty || 1,
+          price: item.price,
+          product_image: item.product_image,
+        });
+      }
     });
 
     return Array.from(orderMap.values());

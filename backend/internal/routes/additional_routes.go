@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/handlers"
+	lazadaHandler "github.com/omni/backend/internal/handlers/lazada"
 	"github.com/omni/backend/internal/middleware"
 )
 
@@ -123,6 +124,7 @@ func RegisterOrderManagerRoutes(router *gin.RouterGroup, handler *handlers.Order
 
 		orders.POST("/sync-all", handler.SyncAll)
 		orders.POST("/bulk-print-labels", handler.BulkPrintLabels)
+		orders.POST("/bulk-ship", handler.BulkShipOrders)
 	}
 }
 
@@ -187,5 +189,20 @@ func RegisterProductCreateRoutes(router *gin.RouterGroup, handler *handlers.Prod
 	categories.Use(middleware.Tenant())
 	{
 		categories.GET("/:platform", handler.GetCategories)
+	}
+}
+
+// RegisterLazadaOrderRoutes registers Lazada order routes
+func RegisterLazadaOrderRoutes(router *gin.RouterGroup, basePath string) {
+	handler := lazadaHandler.NewOrderHandler(basePath)
+	orders := router.Group("/lazada/orders")
+	orders.Use(middleware.Auth())
+	orders.Use(middleware.Tenant())
+	{
+		orders.GET("", handler.GetOrders)
+		orders.GET("/:orderId", handler.GetOrderByID)
+		orders.POST("/ship", handler.ShipOrder)
+		orders.POST("/cancel", handler.CancelOrder)
+		orders.POST("/document", handler.GetDocument)
 	}
 }

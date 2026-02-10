@@ -11,15 +11,15 @@
 
 **BEFORE doing ANY work, verify you understand these critical rules:**
 
-| Rule              | Requirement                     | Verification                   |
-| ----------------- | ------------------------------- | ------------------------------ |
-| **SRP**           | One function = one purpose      | Check before writing code      |
-| **DRY**           | No duplicated logic             | Extract to shared utilities    |
-| **OOP**           | Proper encapsulation            | Use interfaces and composition |
-| **300 Lines**     | Max per file (500 for models)   | Split if exceeding             |
-| **Commit ALL**    | Include ALL changed files       | No cherry-picking allowed      |
-| **Push Always**   | Push after every commit         | User expects remote sync       |
-| **Parallel Work** | Don't wait idle for delegations | Fire agents, continue working  |
+| Rule              | Requirement                                     | Verification                   |
+| ----------------- | ----------------------------------------------- | ------------------------------ |
+| **SRP**           | One function = one purpose                      | Check before writing code      |
+| **DRY**           | No duplicated logic                             | Extract to shared utilities    |
+| **OOP**           | Proper encapsulation                            | Use interfaces and composition |
+| **300 Lines**     | Max per file (For code only not tutorial/other) | Split if exceeding             |
+| **Commit ALL**    | Include ALL changed files                       | No cherry-picking allowed      |
+| **Push Always**   | Push after every commit                         | User expects remote sync       |
+| **Parallel Work** | Don't wait idle for delegations                 | Fire agents, continue working  |
 
 **REMINDER TRIGGERS:**
 

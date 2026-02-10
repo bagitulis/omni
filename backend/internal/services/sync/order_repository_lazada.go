@@ -378,8 +378,10 @@ func (r *GormOrderRepository) flattenLazadaOrders(orderModels []models.LazadaOrd
 
 		// Extract ship_by_date as Unix timestamp for frontend countdown calculation
 		var shipByDate int64 = 0
+		countdown := ""
 		if m.ShipByDate != nil && *m.ShipByDate > 0 {
 			shipByDate = *m.ShipByDate
+			countdown = formatShipByDateFromDB(shipByDate)
 		}
 
 		if len(orderItems) == 0 {
@@ -396,20 +398,60 @@ func (r *GormOrderRepository) flattenLazadaOrders(orderModels []models.LazadaOrd
 				TrackingNumber:  m.TrackingNumber,
 				ShippingCarrier: m.ShippingCarrier,
 				BuyerMessage:    m.BuyerMessage,
-				ShipByDate:      shipByDate, // Unix timestamp for frontend
+				ShipByDate:      shipByDate,
+				Countdown:       countdown,
 				CreatedAt:       m.CreatedAt,
 				UpdatedAt:       m.UpdatedAt,
 			})
 		} else {
+			// Group items by SKU to accumulate quantities
+			// Lazada may return duplicate items that should be accumulated
+			type groupedItem struct {
+				item models.LazadaOrderItem
+				qty  int
+			}
+			groupKey := func(item models.LazadaOrderItem) string {
+				if item.SkuID != "" {
+					return item.SkuID
+				}
+				if item.SellerSku != "" {
+					return item.SellerSku
+				}
+				// Last resort: product_name + variation_name
+				return item.ProductName + "|" + item.VariationName
+			}
+
+			seen := make(map[string]*groupedItem)
+			var keyOrder []string
 			for _, item := range orderItems {
-				qty := 0
+				key := groupKey(item)
+				itemQty := 0
 				if item.Quantity != nil {
-					qty = *item.Quantity
+					itemQty = *item.Quantity
+				}
+				if itemQty == 0 {
+					itemQty = 1
 				}
 
+				if existing, ok := seen[key]; ok {
+					existing.qty += itemQty
+				} else {
+					seen[key] = &groupedItem{item: item, qty: itemQty}
+					keyOrder = append(keyOrder, key)
+				}
+			}
+
+			for _, key := range keyOrder {
+				g := seen[key]
 				price := float64(0)
-				if item.Price != nil {
-					price = *item.Price
+				if g.item.Price != nil {
+					price = *g.item.Price
+				}
+
+				// Use seller_sku for display; fallback to sku_id
+				displaySku := g.item.SellerSku
+				if displaySku == "" {
+					displaySku = g.item.SkuID
 				}
 
 				orders = append(orders, Order{
@@ -423,15 +465,17 @@ func (r *GormOrderRepository) flattenLazadaOrders(orderModels []models.LazadaOrd
 					BuyerUsername:   m.BuyerUsername,
 					PaymentMethod:   m.PaymentMethod,
 					TrackingNumber:  m.TrackingNumber,
-					ShippingCarrier: m.ShippingCarrier, // From order header
-					ShipByDate:      shipByDate,        // Unix timestamp for frontend
-					SKU:             item.SellerSku,
-					ProductName:     item.ProductName,
-					VariationName:   item.VariationName,
-					Quantity:        qty,
+					ShippingCarrier: m.ShippingCarrier,
+					ShipByDate:      shipByDate,
+					Countdown:       countdown,
+					BuyerMessage:    m.BuyerMessage,
+					SKU:             displaySku,
+					ProductName:     g.item.ProductName,
+					VariationName:   g.item.VariationName,
+					Quantity:        g.qty,
 					Price:           price,
-					OrderItemID:     item.ItemID,
-					ProductImage:    item.ProductImage,
+					OrderItemID:     g.item.ItemID,
+					ProductImage:    g.item.ProductImage,
 					CreatedAt:       m.CreatedAt,
 					UpdatedAt:       m.UpdatedAt,
 				})

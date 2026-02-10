@@ -51,6 +51,7 @@ type UpdatePriceRequest struct {
 // BulkShipRequest for bulk shipping multiple orders
 type BulkShipRequest struct {
 	OrderSNs []string `json:"order_sns" binding:"required"`
+	Platform string   `json:"platform"`
 }
 
 // BulkPrintLabelsRequest for bulk printing shipping labels

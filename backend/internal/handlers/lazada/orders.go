@@ -102,8 +102,8 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 		return
 	}
 
-	// First pack the order
-	packResp, err := client.SetStatusToPackedByMarketplace(req.OrderItemIDs, req.ShippingProvider)
+	// First pack the order (default delivery_type "dropship" for seller-fulfilled)
+	packResp, err := client.SetStatusToPackedByMarketplace(req.OrderItemIDs, req.ShippingProvider, "")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to pack order: "+err.Error()))
 		return
@@ -113,8 +113,8 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 		return
 	}
 
-	// Then set ready to ship
-	rtsResp, err := client.SetStatusToReadyToShip(req.OrderItemIDs, req.ShippingProvider, req.TrackingNumber)
+	// Then set ready to ship (default delivery_type "dropship" for seller-fulfilled)
+	rtsResp, err := client.SetStatusToReadyToShip(req.OrderItemIDs, req.ShippingProvider, req.TrackingNumber, "")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to set ready to ship: "+err.Error()))
 		return
@@ -162,6 +162,48 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	c.JSON(http.StatusOK, response.Success(gin.H{
 		"success": resp.Code == "0",
 	}))
+}
+
+// GetDocumentRequest represents get document request body
+type GetDocumentRequest struct {
+	OrderItemIDs []string `json:"order_item_ids" binding:"required"`
+	DocType      string   `json:"doc_type" binding:"required"`
+}
+
+// GetDocument handles POST /api/lazada/orders/document
+func (h *OrderHandler) GetDocument(c *gin.Context) {
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		return
+	}
+
+	var req GetDocumentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
+		return
+	}
+
+	client, err := h.getLazadaClient(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get Lazada client: "+err.Error()))
+		return
+	}
+
+	docResp, err := client.GetDocument(lazadaPkg.GetDocumentRequest{
+		OrderItemIDs: req.OrderItemIDs,
+		DocType:      req.DocType,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get document: "+err.Error()))
+		return
+	}
+	if docResp.Code != "0" && docResp.Code != "" {
+		c.JSON(http.StatusBadRequest, response.Error("Get document failed: code "+docResp.Code))
+		return
+	}
+
+	c.JSON(http.StatusOK, response.Success(docResp.Data))
 }
 
 // getLazadaClient creates Lazada API client for tenant using shared helper

@@ -420,8 +420,10 @@ func (r *GormOrderRepository) flattenShopeeOrders(orderModels []models.ShopeeOrd
 
 		// Extract ship_by_date as Unix timestamp for frontend countdown calculation
 		var shipByDate int64 = 0
+		countdown := ""
 		if m.ShipByDate != nil && *m.ShipByDate > 0 {
 			shipByDate = *m.ShipByDate
+			countdown = formatShipByDateFromDB(shipByDate)
 		}
 
 		if len(orderItems) == 0 {
@@ -439,27 +441,60 @@ func (r *GormOrderRepository) flattenShopeeOrders(orderModels []models.ShopeeOrd
 				TrackingNumber:  m.TrackingNumber,
 				ShippingCarrier: m.ShippingCarrier,
 				BuyerMessage:    m.BuyerMessage,
-				ShipByDate:      shipByDate, // Unix timestamp for frontend
+				ShipByDate:      shipByDate,
+				Countdown:       countdown,
 				CreatedAt:       m.CreatedAt,
 				UpdatedAt:       m.UpdatedAt,
 			})
 		} else {
-			// Flatten items - each item becomes a separate "order" row for frontend
+			// Group items by SKU to accumulate quantities
+			// Shopee may return duplicate items that should be accumulated
+			type groupedItem struct {
+				item models.ShopeeOrderItem
+				qty  int
+			}
+			groupKey := func(item models.ShopeeOrderItem) string {
+				if item.ModelSku != "" {
+					return item.ModelSku
+				}
+				if item.ItemSku != "" {
+					return item.ItemSku
+				}
+				// Last resort: item_name + model_name
+				return item.ItemName + "|" + item.ModelName
+			}
+
+			seen := make(map[string]*groupedItem)
+			var keyOrder []string
 			for _, item := range orderItems {
-				// Use model_sku first, fallback to item_sku (same as Node.js)
-				sku := item.ModelSku
-				if sku == "" {
-					sku = item.ItemSku
-				}
-
-				qty := 0
+				key := groupKey(item)
+				itemQty := 0
 				if item.Quantity != nil {
-					qty = *item.Quantity
+					itemQty = *item.Quantity
+				}
+				if itemQty == 0 {
+					itemQty = 1
 				}
 
+				if existing, ok := seen[key]; ok {
+					existing.qty += itemQty
+				} else {
+					seen[key] = &groupedItem{item: item, qty: itemQty}
+					keyOrder = append(keyOrder, key)
+				}
+			}
+
+			for _, key := range keyOrder {
+				g := seen[key]
 				price := float64(0)
-				if item.Price != nil {
-					price = *item.Price
+				if g.item.Price != nil {
+					price = *g.item.Price
+				}
+
+				// Use model_sku first, fallback to item_sku (same as Node.js)
+				displaySku := g.item.ModelSku
+				if displaySku == "" {
+					displaySku = g.item.ItemSku
 				}
 
 				orders = append(orders, Order{
@@ -475,13 +510,14 @@ func (r *GormOrderRepository) flattenShopeeOrders(orderModels []models.ShopeeOrd
 					TrackingNumber:  m.TrackingNumber,
 					ShippingCarrier: m.ShippingCarrier,
 					BuyerMessage:    m.BuyerMessage,
-					SKU:             sku,
-					ProductName:     item.ItemName,
-					VariationName:   item.ModelName,
-					Quantity:        qty,
+					SKU:             displaySku,
+					ProductName:     g.item.ItemName,
+					VariationName:   g.item.ModelName,
+					Quantity:        g.qty,
 					Price:           price,
-					ProductImage:    item.ProductImage,
-					ShipByDate:      shipByDate, // Unix timestamp for frontend countdown
+					ProductImage:    g.item.ProductImage,
+					ShipByDate:      shipByDate,
+					Countdown:       countdown,
 					CreatedAt:       m.CreatedAt,
 					UpdatedAt:       m.UpdatedAt,
 				})

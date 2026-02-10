@@ -130,7 +130,9 @@ func (r *GormOrderRepository) saveTiktokOrderItems(ctx context.Context, db *gorm
 		itemModel := models.TiktokOrderItem{
 			TenantID:      r.tenantID,
 			OrderSN:       orderSN,
+			LineItemID:    item.ID,   // TikTok line_item id
 			ProductID:     productID, // ItemID contains product_id from TikTok API (or recovered from DB)
+			SkuID:         item.SkuID,
 			SellerSku:     item.SKU,
 			ProductName:   item.ProductName,
 			VariationName: item.VariationName,
@@ -459,27 +461,56 @@ func (r *GormOrderRepository) flattenTiktokOrders(orderModels []models.TiktokOrd
 				UpdatedAt:       m.UpdatedAt,
 			})
 		} else {
-			// Deduplicate by LineItemID
-			seenLineItems := make(map[string]bool)
+			// Group items by SkuID (model number) to accumulate quantities
+			// TikTok returns one line_item per unit, so 10x same SKU = 10 line_items with qty=1
+			type groupedItem struct {
+				item models.TiktokOrderItem
+				qty  int
+			}
+			groupKey := func(item models.TiktokOrderItem) string {
+				if item.SkuID != "" {
+					return item.SkuID
+				}
+				if item.SellerSku != "" {
+					return item.SellerSku
+				}
+				// Last resort: product_name + variation_name
+				return item.ProductName + "|" + item.VariationName
+			}
+
+			seen := make(map[string]*groupedItem)
+			var keyOrder []string
 			for _, item := range orderItems {
-				if item.LineItemID != "" && seenLineItems[item.LineItemID] {
-					continue
-				}
-				if item.LineItemID != "" {
-					seenLineItems[item.LineItemID] = true
-				}
-
-				qty := 0
+				key := groupKey(item)
+				itemQty := 0
 				if item.Quantity != nil {
-					qty = *item.Quantity
+					itemQty = *item.Quantity
+				}
+				if itemQty == 0 {
+					itemQty = 1
 				}
 
+				if existing, ok := seen[key]; ok {
+					existing.qty += itemQty
+				} else {
+					seen[key] = &groupedItem{item: item, qty: itemQty}
+					keyOrder = append(keyOrder, key)
+				}
+			}
+
+			for _, key := range keyOrder {
+				g := seen[key]
 				price := float64(0)
-				if item.Price != nil {
-					price = *item.Price
+				if g.item.Price != nil {
+					price = *g.item.Price
 				}
 
-				// TikTok uses SellerSku as the actual SKU
+				// Use SellerSku for display; fallback to SkuID
+				displaySku := g.item.SellerSku
+				if displaySku == "" {
+					displaySku = g.item.SkuID
+				}
+
 				orders = append(orders, Order{
 					ID:              fmt.Sprintf("%d", m.ID),
 					OrderSN:         m.OrderSN,
@@ -493,12 +524,12 @@ func (r *GormOrderRepository) flattenTiktokOrders(orderModels []models.TiktokOrd
 					TrackingNumber:  m.TrackingNumber,
 					ShippingCarrier: m.ShippingCarrier,
 					BuyerMessage:    m.BuyerMessage,
-					SKU:             item.SellerSku,
-					ProductName:     item.ProductName,
-					VariationName:   item.VariationName,
-					Quantity:        qty,
+					SKU:             displaySku,
+					ProductName:     g.item.ProductName,
+					VariationName:   g.item.VariationName,
+					Quantity:        g.qty,
 					Price:           price,
-					ProductImage:    item.ProductImage,
+					ProductImage:    g.item.ProductImage,
 					ShipByDate:      shipByDate,
 					Countdown:       countdown,
 					CreatedAt:       m.CreatedAt,

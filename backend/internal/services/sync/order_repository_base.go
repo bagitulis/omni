@@ -46,7 +46,11 @@ func (r *GormOrderRepository) SaveOrders(ctx context.Context, platform PlatformT
 	}
 }
 
-// GetOrdersByStatus gets orders by status (delegates to platform-specific methods)
+// GetOrdersByStatus gets orders by status (delegates to platform-specific methods).
+// NOTE: limit applies to the number of DB orders fetched BEFORE flatten.
+// After flatten, each order may produce multiple rows (one per item/SKU group).
+// All current callers pass limit=0 (no limit). If pagination is needed in the future,
+// it should be applied AFTER flatten to get correct row counts for the frontend.
 func (r *GormOrderRepository) GetOrdersByStatus(ctx context.Context, platform PlatformType, status string, limit int) ([]Order, error) {
 	db, err := r.getDB()
 	if err != nil {
