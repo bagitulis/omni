@@ -1,9 +1,17 @@
 import apiClient from "./client";
-import { SalesAnalytics, DashboardData, RecentOrder } from "../types/dashboard";
+import {
+  SalesAnalytics,
+  DashboardData,
+  RecentOrder,
+  WalletData,
+  ShippingFeeData,
+  SyncStatusData,
+} from "../types/dashboard";
 import { Order } from "../types/order";
 
 /**
  * Fetch dashboard summary data from analytics endpoint
+
  * Backend route: GET /api/analytics/dashboard
  */
 async function getAnalytics(): Promise<SalesAnalytics> {
@@ -127,4 +135,59 @@ export async function getRevenueAnalytics(params?: {
     throw new Error(response.error || "Failed to fetch revenue analytics");
   }
   return response.data;
+}
+
+/**
+ * Fetch wallet data for a platform
+ * Backend route: GET /api/{platform}/wallet/balance
+ */
+export async function getWalletData(_platform: string): Promise<WalletData> {
+  // Mocking for now since backend might not have unified wallet endpoint yet
+  // Real implementation would call:
+  // const response = await apiClient.get(`/${_platform}/wallet/balance`);
+
+  // Return mock data for UI development
+  return {
+    balance: Math.floor(Math.random() * 10000000),
+    currency: "IDR",
+    last_updated: new Date().toISOString(),
+  };
+}
+
+/**
+ * Fetch shipping fee analysis
+ * Backend route: GET /api/analytics/{platform}/shipping-fee
+ */
+export async function getShippingFeeData(
+  platform: string,
+): Promise<ShippingFeeData> {
+  const response = await apiClient.get(`/analytics/${platform}/shipping-fee`);
+  if (!response.success) {
+    // Return empty/safe default on error
+    return {
+      total_orders: 0,
+      discrepancy_count: 0,
+      total_discrepancy_amount: 0,
+      match_count: 0,
+      pending_count: 0,
+    };
+  }
+  return response.data as ShippingFeeData;
+}
+
+/**
+ * Fetch sync status for a platform
+ * Backend route: GET /api/analytics/{platform}/sync-status
+ */
+export async function getSyncStatus(platform: string): Promise<SyncStatusData> {
+  const response = await apiClient.get(`/analytics/${platform}/sync-status`);
+  if (!response.success) {
+    return {
+      platform,
+      status: "error",
+      last_sync: new Date().toISOString(),
+      details: response.error,
+    };
+  }
+  return response.data as SyncStatusData;
 }

@@ -7,5 +7,6 @@ export function useDashboard() {
     queryKey: ["dashboard"],
     queryFn: getDashboardData,
     staleTime: 60 * 1000, // 1 minute
+    refetchInterval: 60 * 1000, // Refetch every minute
   });
 }

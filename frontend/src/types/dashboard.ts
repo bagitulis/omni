@@ -38,3 +38,24 @@ export interface DashboardData {
   orders_pending: number;
   ready_to_ship: number;
 }
+
+export interface WalletData {
+  balance: number;
+  currency: string;
+  last_updated: string;
+}
+
+export interface ShippingFeeData {
+  total_orders: number;
+  discrepancy_count: number;
+  total_discrepancy_amount: number;
+  match_count: number;
+  pending_count: number;
+}
+
+export interface SyncStatusData {
+  platform: string;
+  status: "connected" | "disconnected" | "syncing" | "error";
+  last_sync: string;
+  details?: string;
+}

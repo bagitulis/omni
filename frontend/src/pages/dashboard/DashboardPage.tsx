@@ -9,6 +9,11 @@ import {
 import { useNavigate } from "react-router-dom";
 import { TaskCard } from "@/components/ui/TaskCard";
 import { useDashboard } from "@/hooks/useDashboard";
+import { WalletWidget } from "./components/WalletWidget";
+import { ShippingWidget } from "./components/ShippingWidget";
+import { PlatformHealthWidget } from "./components/PlatformHealthWidget";
+import { QuickActions } from "./components/QuickActions";
+import { DashboardModals } from "./components/DashboardModals";
 
 const { Title, Text } = Typography;
 
@@ -137,6 +142,25 @@ export function DashboardPage() {
           </Col>
         </Row>
 
+        {/* Widgets Row */}
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={16}>
+            <WalletWidget />
+          </Col>
+          <Col xs={24} md={8}>
+            <QuickActions />
+          </Col>
+        </Row>
+
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={12}>
+            <ShippingWidget />
+          </Col>
+          <Col xs={24} md={12}>
+            <PlatformHealthWidget />
+          </Col>
+        </Row>
+
         {/* Recent Orders Section */}
         <Card
           title="Recent Orders"
@@ -155,6 +179,8 @@ export function DashboardPage() {
             size="small"
           />
         </Card>
+
+        <DashboardModals />
       </Flex>
     </div>
   );
