@@ -20,7 +20,10 @@ export interface GroupedOrder {
   currency: string;
   payment_method?: string;
   shipping_carrier?: string;
+  tracking_number?: string;
   ship_by_date?: number;
+  countdown?: string;
+  buyer_message?: string;
   items: OrderItem[];
 }
 

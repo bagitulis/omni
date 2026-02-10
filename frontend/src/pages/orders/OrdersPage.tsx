@@ -11,7 +11,7 @@ import { OrdersBulkActionsBar } from "./components/OrdersBulkActionsBar";
 import { OrderStatusTabs } from "./components/OrderStatusTabs";
 import { OrderDetail } from "@/types/order";
 import type { GroupedOrder } from "@/components/tables/OrderTable.types";
-import { getOrderById } from "@/api/orders";
+import { getOrderById, getLazadaDocument } from "@/api/orders";
 import { Dayjs } from "dayjs";
 import { generateOrdersCSV, downloadCSV } from "./utils/csv";
 import { useOrderSync } from "./hooks/useOrderSync";
@@ -97,7 +97,9 @@ export default function OrdersPage() {
   const handleBulkShip = async () => {
     if (selectedRowKeys.length === 0) return;
     try {
-      await shipOrders(selectedRowKeys as string[]);
+      // Determine platform from current filter; if "all", backend defaults to "shopee"
+      const shipPlatform = platform !== "all" ? platform : undefined;
+      await shipOrders(selectedRowKeys as string[], shipPlatform);
       setSelectedRowKeys([]);
     } catch (error) {
       // Error handled in hook
@@ -115,7 +117,10 @@ export default function OrdersPage() {
 
   const handleSingleShip = async (order: GroupedOrder) => {
     try {
-      await shipOrders([order.order_sn || order.order_no]);
+      await shipOrders(
+        [order.order_sn || order.order_no],
+        order.platform?.toLowerCase(),
+      );
     } catch (error) {
       // Error handled in hook
     }
@@ -124,8 +129,32 @@ export default function OrdersPage() {
   const handleSinglePrint = async (order: GroupedOrder) => {
     try {
       const orderSn = order.order_sn || order.order_no;
-      await printLabels([orderSn]);
-      message.success(`Printed label for ${orderSn}`);
+      const orderPlatform = (order.platform || "").toLowerCase();
+
+      if (orderPlatform === "lazada") {
+        // Lazada uses its own document API with order_item_ids
+        // For single print, use order_sn as item reference
+        const doc = await getLazadaDocument([orderSn], "shippingLabel");
+        if (doc.document?.url) {
+          window.open(doc.document.url, "_blank");
+        } else if (doc.document?.file) {
+          // Base64 PDF - create a blob and open
+          const byteChars = atob(doc.document.file);
+          const byteNumbers = new Array(byteChars.length);
+          for (let i = 0; i < byteChars.length; i++) {
+            byteNumbers[i] = byteChars.charCodeAt(i);
+          }
+          const blob = new Blob([new Uint8Array(byteNumbers)], {
+            type: doc.document.mime_type || "application/pdf",
+          });
+          window.open(URL.createObjectURL(blob), "_blank");
+        }
+        message.success(`Printed label for ${orderSn}`);
+      } else {
+        // Shopee / TikTok use the standard bulk-print-labels endpoint
+        await printLabels([orderSn]);
+        message.success(`Printed label for ${orderSn}`);
+      }
     } catch (error) {
       // Error handled in hook
     }

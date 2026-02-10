@@ -45,7 +45,13 @@ export function useOrderActions() {
   const queryClient = useQueryClient();
 
   const shipMutation = useMutation({
-    mutationFn: bulkShipOrders,
+    mutationFn: ({
+      orderSns,
+      platform,
+    }: {
+      orderSns: string[];
+      platform?: string;
+    }) => bulkShipOrders(orderSns, platform),
     onSuccess: () => {
       message.success("Orders shipped successfully");
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -66,7 +72,8 @@ export function useOrderActions() {
   });
 
   return {
-    shipOrders: shipMutation.mutateAsync,
+    shipOrders: (orderSns: string[], platform?: string) =>
+      shipMutation.mutateAsync({ orderSns, platform }),
     isShipping: shipMutation.isPending,
     printLabels: printMutation.mutateAsync,
     isPrinting: printMutation.isPending,

@@ -216,10 +216,16 @@ export async function syncOrdersByCategory(
 
 /**
  * Bulk ship orders
+ * @param orderSns - Array of order serial numbers
+ * @param platform - Platform name: "shopee" | "tiktok" | "lazada" (defaults to "shopee" on backend)
  */
-export async function bulkShipOrders(orderSns: string[]): Promise<void> {
+export async function bulkShipOrders(
+  orderSns: string[],
+  platform?: string,
+): Promise<void> {
   const response = await apiClient.post("/orders/bulk-ship", {
     order_sns: orderSns,
+    platform: platform || "",
   });
   if (!response.success) {
     throw new Error(response.error || "Failed to ship orders");
@@ -270,5 +276,38 @@ export async function getOrderById(orderSn: string): Promise<OrderDetail> {
     throw new Error(response.error || "Failed to fetch order details");
   }
 
+  return response.data!;
+}
+
+/**
+ * Lazada document response
+ */
+export interface LazadaDocumentResponse {
+  document?: {
+    file?: string;
+    url?: string;
+    mime_type?: string;
+  };
+}
+
+/**
+ * Get Lazada document (shipping label or invoice)
+ * @param orderItemIds - Array of Lazada order item IDs
+ * @param docType - "shippingLabel" | "invoice"
+ */
+export async function getLazadaDocument(
+  orderItemIds: string[],
+  docType: string,
+): Promise<LazadaDocumentResponse> {
+  const response = await apiClient.post<LazadaDocumentResponse>(
+    "/lazada/orders/document",
+    {
+      order_item_ids: orderItemIds,
+      doc_type: docType,
+    },
+  );
+  if (!response.success) {
+    throw new Error(response.error || "Failed to get Lazada document");
+  }
   return response.data!;
 }

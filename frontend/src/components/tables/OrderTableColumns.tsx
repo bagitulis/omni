@@ -8,6 +8,7 @@ import {
   formatAmount,
   getCountdown,
   getCountdownColor,
+  canShipOrder,
 } from "./OrderTable.utils";
 
 const { Text } = Typography;
@@ -55,25 +56,30 @@ export function getOrderTableColumns({
       title: "Countdown",
       key: "countdown",
       width: 110,
-      render: (_, record) => (
-        <Flex vertical gap={2}>
-          <Text
-            style={{
-              color: getCountdownColor(record.ship_by_date),
-              fontWeight: 500,
-              fontSize: 13,
-            }}
-          >
-            {getCountdown(record.ship_by_date)}
-          </Text>
-          {record.ship_by_date && (
-            <Text type="secondary" style={{ fontSize: 10 }}>
-              Ship by:{" "}
-              {new Date(record.ship_by_date * 1000).toLocaleDateString()}
+      render: (_, record) => {
+        // Prefer backend pre-computed countdown; fallback to client-side calculation
+        const countdownText =
+          record.countdown || getCountdown(record.ship_by_date);
+        return (
+          <Flex vertical gap={2}>
+            <Text
+              style={{
+                color: getCountdownColor(record.ship_by_date),
+                fontWeight: 500,
+                fontSize: 13,
+              }}
+            >
+              {countdownText}
             </Text>
-          )}
-        </Flex>
-      ),
+            {record.ship_by_date && (
+              <Text type="secondary" style={{ fontSize: 10 }}>
+                Ship by:{" "}
+                {new Date(record.ship_by_date * 1000).toLocaleDateString()}
+              </Text>
+            )}
+          </Flex>
+        );
+      },
     },
     {
       title: "Shipping",
@@ -96,11 +102,12 @@ export function getOrderTableColumns({
             type="primary"
             size="small"
             block
-            disabled={record.status !== "READY_TO_SHIP"}
+            disabled={!canShipOrder(record.status, record.platform)}
             onClick={() => onShip(record)}
             style={{
-              backgroundColor:
-                record.status === "READY_TO_SHIP" ? "#0369a1" : undefined,
+              backgroundColor: canShipOrder(record.status, record.platform)
+                ? "#0369a1"
+                : undefined,
               fontSize: 12,
             }}
           >

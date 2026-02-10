@@ -26,6 +26,9 @@ export function OrderTable({
           ...item,
           items: [],
           status: item.status || item.order_status,
+          countdown: item.countdown,
+          tracking_number: item.tracking_number,
+          buyer_message: item.buyer_message,
         });
       }
 

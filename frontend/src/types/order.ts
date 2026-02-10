@@ -16,7 +16,10 @@ export interface Order {
   currency: string;
   payment_method: string;
   shipping_carrier: string;
+  tracking_number?: string;
   ship_by_date: number;
+  countdown?: string; // Pre-computed by backend, e.g. "2d 5h"
+  buyer_message?: string;
   sku: string;
   product_name: string;
   variation_name: string;
