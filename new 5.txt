@@ -1,0 +1,1178 @@
+
+
+
+
+Analytics Complete — Vue→React Migration Final Plan
+TL;DR
+> Quick Summary: Complete the Vue→React migration by implementing ShopeeAnalyticsPage and TiktokAnalyticsPage (currently "Coming Soon" placeholders), fix Products page data mapping, fix ML Analytics empty columns, then verify everything with Playwright, build Docker, commit and push.
+> 
+> Deliverables:
+> - frontend/src/types/analytics.ts — All analytics TypeScript types
+> - frontend/src/api/analytics.ts — Platform analytics API functions
+> - frontend/src/lib/analyticsHelpers.ts — Shared helpers (months, CSV export, formatters)
+> - frontend/src/hooks/useAnalytics.ts — Shared React hook for both platforms
+> - frontend/src/components/analytics/common/ — 5 shared components (SummaryCards, ResultsTable, ShippingFeeTable, SettingsModal split into parts, ProgressBar)
+> - frontend/src/pages/analytics/ShopeeAnalyticsPage.tsx — Full rewrite
+> - frontend/src/pages/analytics/TiktokAnalyticsPage.tsx — Full rewrite
+> - Fix Products page price=0, stock=0 display
+> - Fix ML Analytics empty "AI Recommendation" and "Last Updated" columns
+> - Playwright verification screenshots for ALL pages
+> - Docker build success
+> - Git commit and push
+> 
+> Estimated Effort: Large
+> Parallel Execution: YES — 3 waves
+> Critical Path: Task 1 → Task 2 → Task 3 → Task 4,5 → Task 6,7 → Task 8 → Task 9,10 → Task 11 → Task 12
+---
+Context
+Original Request
+User wants to complete remaining Vue→React migration work. Both ShopeeAnalyticsPage and TiktokAnalyticsPage are 75-77 line placeholder pages showing "Coming Soon". They need full implementation with real data from backend APIs. Additionally, Products page shows stock=0, price=Rp 0, status=DRAFT for all items, and ML Analytics has empty AI Recommendation and Last Updated columns.
+Interview Summary
+Key Discussions:
+- Max 3 delegations per process, work on other things while waiting
+- All data must be real, no dummy data, all tables must be filled
+- If bugs remain, trace the flow and fix with best mechanism even if complex
+- Success criteria: prove data shows in every menu with no bug/error
+- Use Playwright for layout verification
+- Use python build.py smart for Docker builds
+- Plan must be detailed, nothing missed, verify after creation
+Research Findings:
+- Vue composables useAnalytics.ts (460 lines) and useTiktokAnalytics.ts (448 lines) are nearly identical — share ~90% logic, differ only in platform param and field names
+- Both use polling mechanism (2s interval) for job progress tracking
+- Settings modal in Vue is 520 lines — MUST be split for React 300-line limit
+- Backend API endpoints all verified working via curl
+- apiClient.get<T>() returns ApiResponse<T> (unwrapped), apiClient.client.get() returns raw AxiosResponse
+- Month indexing: Frontend 0-indexed, API 1-indexed — must send selectedMonth + 1
+- Products page transformProduct() hardcodes price: 0, stock: 0 with comment "Master products don't have price"
+- ML Analytics recommendation and last_updated are mapped correctly in code but may be empty/null from backend
+- getAvailableColumns() in inventory API returns column names — needed for Settings modal price column dropdown
+- ShopeeAdsAnalyticsPage uses file-upload based data (not API fetch) — different pattern, NOT a reference for analytics pages
+- React Query (@tanstack/react-query) used for data fetching hooks (see useMLAnalytics.ts pattern)
+Metis Review
+Identified Gaps (addressed):
+- Shared Logic Strategy: Shopee and TikTok share ~90% logic → Create ONE parameterized hook useAnalytics(platform) instead of two separate hooks (DRY principle)
+- Modal Decomposition: Vue SettingsModal is 520 lines → Must split into SettingsModal.tsx (shell + tabs) + PriceConfigSection.tsx + FormulaPreview.tsx
+- Polling Cleanup: All setInterval must handle unmount cleanup via useEffect return
+- Products Bug Root Cause: transformProduct() in frontend/src/api/products.ts:34-45 hardcodes price: 0, stock: 0 — this is BY DESIGN for master products (they aggregate from platform variants). The fix is to show platform variant data or show "N/A" instead of misleading zeros
+- ML Analytics Empty Columns: Backend may return empty recommendation and last_updated — need null handling in render functions
+- Snake vs Camel Case: API returns snake_case, types must match exactly (no camelCase mapping needed since we use snake_case types per AGENTS.md rule)
+- Race Conditions: Tab switching while API request pending — need request cancellation or stale data handling
+- Empty State Handling: Analytics pages must show proper empty state when API returns no data
+---
+Work Objectives
+Core Objective
+Complete the final 2 placeholder pages (Shopee/TikTok Analytics) with full functionality ported from Vue, fix 2 data display bugs (Products, ML Analytics), verify all pages, build, commit and push.
+Concrete Deliverables
+- 5 new files created (types, API, helpers, hook, components)
+- 2 files fully rewritten (ShopeeAnalyticsPage, TiktokAnalyticsPage)
+- 2 files fixed (Products transform, ML table render)
+- Playwright screenshots of all pages
+- Docker build success
+- Git commit pushed to bm1 branch
+Definition of Done
+- npx tsc --noEmit → ZERO errors
+- npx vite build → SUCCESS
+- All analytics pages show real data from backend APIs
+- All tables populated (empty only if genuinely no data)
+- Zero as any, zero @ts-ignore, zero MOCK_ or TODO placeholders
+- Playwright screenshots prove every page works
+- Docker containers running with new code
+Must Have
+- Real API data on both analytics pages (reconciliation + shipping fee)
+- Sync/Force Resync/Delete Sync functionality
+- Job progress polling with progress bar
+- Settings modal with price column dropdown from inventory API
+- CSV export for both platforms
+- Tab navigation (Price Analysis / Shipping Fee)
+- Month/Year period selector
+- Sync status badge
+- Summary cards (5 per tab)
+- Data tables with sorting
+- Loading states and empty states
+- Products page showing meaningful data (not hardcoded zeros)
+- ML Analytics showing recommendation text and formatted dates
+Must NOT Have (Guardrails)
+- No as any, @ts-ignore, @ts-nocheck
+- No dummy/mock/fake data — ALL data from real API calls
+- No setTimeout to fake loading
+- No files exceeding 300 lines (500 for models/types)
+- No animation libraries — CSS-only transitions
+- No mobile-responsive redesign (desktop-first, complex data tables)
+- No new backend changes — frontend only
+- No chart libraries — these pages use tables and cards only (no charts)
+- No premature abstraction beyond the shared hook pattern
+- No scope creep: port Vue features 1:1, don't add "improvements"
+---
+Verification Strategy (MANDATORY)
+> UNIVERSAL RULE: ZERO HUMAN INTERVENTION
+> ALL tasks verifiable WITHOUT any human action.
+Test Decision
+- Infrastructure exists: YES (vite build, tsc)
+- Automated tests: NO (project has no test framework set up)
+- Agent-Executed QA: ALWAYS (Playwright for UI, curl for API)
+Agent-Executed QA Scenarios (MANDATORY — ALL tasks)
+Verification Tool by Deliverable Type:
+| Type | Tool | How Agent Verifies |
+|------|------|-------------------|
+| Analytics Pages | Playwright | Navigate, interact with tabs/dropdowns, assert data tables, screenshot |
+| Products Page | Playwright | Navigate, verify table columns show data, screenshot |
+| ML Analytics | Playwright | Navigate, verify recommendation text visible, screenshot |
+| TypeScript | Bash | npx tsc --noEmit → ZERO errors |
+| Build | Bash | npx vite build → SUCCESS |
+| Docker | Bash | python build.py smart → containers running |
+---
+Execution Strategy
+Parallel Execution Waves
+Wave 1 (Start Immediately — Foundation):
+├── Task 1: Create analytics types (no dependencies)
+├── Task 8: Fix Products page data display (no dependencies)
+└── Task 9: Fix ML Analytics empty columns (no dependencies)
+Wave 2 (After Task 1 — API + Helpers):
+├── Task 2: Create analytics API functions (depends: 1)
+└── Task 3: Create analytics helpers (depends: 1)
+Wave 3 (After Tasks 2,3 — Hook + Components):
+├── Task 4: Create useAnalytics hook (depends: 2, 3)
+└── Task 5: Create shared analytics components (depends: 1)
+Wave 4 (After Tasks 4,5 — Pages):
+├── Task 6: Rewrite ShopeeAnalyticsPage (depends: 4, 5)
+└── Task 7: Rewrite TiktokAnalyticsPage (depends: 4, 5)
+Wave 5 (After All — Verification):
+├── Task 10: TypeScript check + Vite build
+├── Task 11: Playwright verification all pages
+└── Task 12: Docker build + Git commit/push
+Dependency Matrix
+| Task | Depends On | Blocks | Can Parallelize With |
+|------|------------|--------|---------------------|
+| 1 | None | 2, 3, 4, 5 | 8, 9 |
+| 2 | 1 | 4 | 3, 8, 9 |
+| 3 | 1 | 4 | 2, 8, 9 |
+| 4 | 2, 3 | 6, 7 | 5 |
+| 5 | 1 | 6, 7 | 4 |
+| 6 | 4, 5 | 10 | 7 |
+| 7 | 4, 5 | 10 | 6 |
+| 8 | None | 10 | 1, 9 |
+| 9 | None | 10 | 1, 8 |
+| 10 | 6, 7, 8, 9 | 11 | None |
+| 11 | 10 | 12 | None |
+| 12 | 11 | None | None |
+Agent Dispatch Summary
+| Wave | Tasks | Recommended Agents |
+|------|-------|-------------------|
+| 1 | 1, 8, 9 | 3 parallel: quick(1), quick(8), quick(9) |
+| 2 | 2, 3 | 2 parallel: quick(2), quick(3) |
+| 3 | 4, 5 | 2 parallel: unspecified-high(4), visual-engineering(5) |
+| 4 | 6, 7 | 2 parallel: visual-engineering(6), visual-engineering(7) |
+| 5 | 10, 11, 12 | Sequential: quick(10) → visual-engineering(11) → quick(12) |
+---
+TODOs
+Task 1: Create Analytics TypeScript Types
+- [ ] 1. Create frontend/src/types/analytics.ts
+  What to do:
+  - Create all TypeScript interfaces for analytics data matching backend snake_case responses
+  - Shared types: SyncStatus, AnalyticsSettings, ReconciliationSummary, ShippingFeeSummary, JobProgress
+  - Shopee types: PriceVariant, TransactionDetail, SkuGroup, ReconciliationResult, ShopeeShippingFeeOrder, ShopeeShippingFeeResult
+  - TikTok types: TiktokSkuGroup, TiktokReconciliationResult, TiktokShippingFeeOrder, TiktokShippingFeeResult
+  - Platform union type: type Platform = "shopee" | "tiktok"
+  - All field names in snake_case to match backend JSON
+  Must NOT do:
+  - No camelCase field names — backend returns snake_case, types must match
+  - No any types
+  - No optional fields unless genuinely optional from backend
+  Recommended Agent Profile:
+  - Category: quick
+    - Reason: Single file creation with clear type specifications from Vue reference
+  - Skills: []
+    - No special skills needed — pure TypeScript type definitions
+  Parallelization:
+  - Can Run In Parallel: YES
+  - Parallel Group: Wave 1 (with Tasks 8, 9)
+  - Blocks: Tasks 2, 3, 4, 5, 6, 7
+  - Blocked By: None
+  References:
+  Pattern References:
+  - frontend/src/api/mlAnalytics.ts:1-78 — Example of how types are defined in this project (snake_case, interfaces with JSDoc)
+  - frontend/src/types/product.ts — Product type pattern to follow
+  API/Type References:
+  - frontend-vue/src/composables/useAnalytics.ts:1-50 — Vue Shopee types (ref interface section at top of file)
+  - frontend-vue/src/composables/useTiktokAnalytics.ts:1-50 — Vue TikTok types
+  Full Type Specification (from verified curl responses):
+    // Shared types
+  export type Platform = "shopee" | "tiktok";
+  export interface SyncStatus {
+    synced: boolean;
+    total_orders: number;
+    synced_at: string | null;
+  }
+  export interface AnalyticsSettings {
+    price_column: string;
+    formula_deduction: number;
+    formula_multiplier: number;
+  }
+  export interface ReconciliationSummary {
+    total_sku: number;
+    total_transactions: number;
+    sku_ok: number;
+    sku_with_price_diff: number;
+    sku_no_inventory: number;
+  }
+  export interface ShippingFeeSummary {
+    total_orders: number;
+    orders_with_difference: number;
+    total_profit: number;
+    total_loss: number;
+    net_impact: number;
+  }
+  export interface JobProgress {
+    id: string;
+    type: string;
+    status: "pending" | "running" | "completed" | "failed" | "cancelled";
+    progress_percent: number;
+    progress_message: string;
+    total_items: number;
+    processed_items: number;
+    error_message?: string;
+    result_data?: string;
+    started_at?: string;
+    completed_at?: string;
+  }
+  // Shopee-specific
+  export interface TransactionDetail {
+    order_sn: string;
+    order_date: string;
+    price: number;
+    escrow_amount: number;
+    quantity: number;
+  }
+  export interface PriceVariant {
+    price: number;
+    count: number;
+    total_escrow: number;
+    avg_escrow: number;
+    transactions: TransactionDetail[];
+  }
+  export interface SkuGroup {
+    sku: string;
+    model_sku: string;
+    item_name: string;
+    model_name: string;
+    inventory_price: number | null;
+    expected_income: number | null;
+    total_transactions: number;
+    unique_unit_prices: number[];
+    unique_actual_incomes: number[];
+    price_variants: PriceVariant[];
+    has_multiple_prices: boolean;
+    has_price_difference: boolean;
+    status: "OK" | "PRICE_DIFF" | "NO_INVENTORY";
+  }
+  export interface ReconciliationResult {
+    summary: ReconciliationSummary;
+    sku_groups: SkuGroup[];
+  }
+  export interface ShopeeShippingFeeOrder {
+    order_sn: string;
+    order_date: string | null;
+    buyer_paid: number;
+    actual_fee: number;
+    shopee_rebate: number;
+    difference: number;
+    buyer_name: string | null;
+    payment_method: string | null;
+  }
+  export interface ShopeeShippingFeeResult {
+    summary: ShippingFeeSummary;
+    orders: ShopeeShippingFeeOrder[];
+  }
+  // TikTok-specific
+  export interface TiktokSkuGroup {
+    sku: string;
+    seller_sku: string;
+    product_name: string;
+    inventory_price: number | null;
+    expected_income: number | null;
+    total_transactions: number;
+    unique_unit_prices: number[];
+    unique_actual_incomes: number[];
+    has_multiple_prices: boolean;
+    has_price_difference: boolean;
+    status: "OK" | "PRICE_DIFF" | "NO_INVENTORY";
+  }
+  export interface TiktokReconciliationResult {
+    summary: ReconciliationSummary;
+    sku_groups: TiktokSkuGroup[];
+  }
+  export interface TiktokShippingFeeOrder {
+    order_id: string;
+    order_date: string | null;
+    buyer_paid: number;
+    actual_fee: number;
+    platform_discount: number;
+    difference: number;
+    order_status: string | null;
+    currency: string;
+  }
+  export interface TiktokShippingFeeResult {
+    summary: ShippingFeeSummary;
+    orders: TiktokShippingFeeOrder[];
+  }
+  
+  Acceptance Criteria:
+  - [ ] File created at frontend/src/types/analytics.ts
+  - [ ] All types match snake_case backend response exactly
+  - [ ] Zero any types
+  - [ ] npx tsc --noEmit → no errors from this file
+  - [ ] File under 200 lines
+  Agent-Executed QA Scenarios:
+    Scenario: TypeScript compilation passes with new types
+    Tool: Bash
+    Preconditions: frontend/src/types/analytics.ts exists
+    Steps:
+      1. Run: npx tsc --noEmit (workdir: frontend)
+      2. Assert: Exit code 0
+      3. Assert: No errors mentioning "analytics"
+    Expected Result: Clean compilation
+    Evidence: Terminal output captured
+  
+  Commit: NO (groups with Task 2, 3)
+---
+Task 2: Create Analytics API Functions
+- [ ] 2. Create frontend/src/api/analytics.ts
+  What to do:
+  - Create API functions for all analytics endpoints
+  - getSettings(platform: Platform) → GET /analytics/{platform}/settings
+  - saveSettings(platform: Platform, settings: AnalyticsSettings) → POST /analytics/{platform}/settings
+  - getSyncStatus(platform: Platform, month: number, year: number) → GET /analytics/{platform}/sync-status (month is 1-indexed for API)
+  - syncEscrow(platform: Platform, month: number, year: number, forceResync: boolean) → POST /analytics/{platform}/sync (returns {job_id}, HTTP 202)
+  - deleteSyncData(platform: Platform, month: number, year: number) → DELETE /analytics/{platform}/sync
+  - getReconciliation(platform: Platform, month: number, year: number) → GET /analytics/{platform}/reconciliation
+  - getShippingFee(platform: Platform, month: number, year: number) → GET /analytics/{platform}/shipping-fee
+  - getJobStatus(jobId: string) → GET /jobs/{jobId}
+  CRITICAL API Pattern:
+  - For most GET endpoints: use apiClient.get<T>(url, { params }) — returns ApiResponse<T>, access response.data
+  - For sync POST (returns job_id): use apiClient.client.post(url, body) — returns raw AxiosResponse, access response.data.data.job_id
+  - For job status: use apiClient.client.get(url) — returns {success, job: {...}} (note: job not data)
+  - Month param: API expects 1-indexed. The hook will handle conversion; API functions receive already-converted values.
+  Must NOT do:
+  - No hardcoded tenant IDs — apiClient handles auth headers
+  - No as any casts
+  - No mock/dummy responses
+  Recommended Agent Profile:
+  - Category: quick
+    - Reason: Single file, clear API pattern from existing files
+  - Skills: []
+  Parallelization:
+  - Can Run In Parallel: YES
+  - Parallel Group: Wave 2 (with Task 3)
+  - Blocks: Task 4
+  - Blocked By: Task 1
+  References:
+  Pattern References:
+  - frontend/src/api/mlAnalytics.ts:92-144 — Example of both apiClient.get<T>() and apiClient.client.get() patterns in same file
+  - frontend/src/api/inventory.ts:33-49 — GET with params pattern
+  - frontend/src/api/client.ts:1-12 — ApiResponse<T> type definition
+  API/Type References:
+  - frontend/src/types/analytics.ts (Task 1 output) — All types to import
+  - frontend-vue/src/composables/useAnalytics.ts:80-180 — Vue API call patterns for reference
+  Backend Endpoints (verified via curl):
+  | Endpoint | Method | Params | Returns |
+  |----------|--------|--------|---------|
+  | /api/analytics/{platform}/settings | GET | none | {success, data: {price_column, formula_deduction, formula_multiplier}} |
+  | /api/analytics/{platform}/settings | POST | body | {success} |
+  | /api/analytics/{platform}/sync-status | GET | month, year | {success, data: {synced, total_orders, synced_at}} |
+  | /api/analytics/{platform}/sync | POST | body: {month, year, force_resync} | {success, data: {job_id, ...}} (HTTP 202) |
+  | /api/analytics/{platform}/sync | DELETE | month, year | {success} |
+  | /api/analytics/{platform}/reconciliation | GET | month, year | {success, data: {summary, sku_groups}} |
+  | /api/analytics/{platform}/shipping-fee | GET | month, year | {success, data: {summary, orders}} |
+  | /api/jobs/{jobId} | GET | none | {success, job: {id, status, progress_percent, ...}} |
+  Acceptance Criteria:
+  - [ ] File created at frontend/src/api/analytics.ts
+  - [ ] All 8 API functions exported
+  - [ ] Uses correct apiClient.get vs apiClient.client.get pattern per endpoint
+  - [ ] Job status uses response.data.job not response.data.data
+  - [ ] npx tsc --noEmit → no errors
+  - [ ] File under 150 lines
+  Agent-Executed QA Scenarios:
+    Scenario: API functions compile and export correctly
+    Tool: Bash
+    Preconditions: Task 1 complete, types file exists
+    Steps:
+      1. Run: npx tsc --noEmit (workdir: frontend)
+      2. Assert: Exit code 0
+      3. Grep analytics.ts for "export async function" — count should be 8
+    Expected Result: 8 exported functions, zero TS errors
+    Evidence: Terminal output
+  
+  Commit: NO (groups with Task 1, 3)
+---
+Task 3: Create Analytics Helpers
+- [ ] 3. Create frontend/src/lib/analyticsHelpers.ts
+  What to do:
+  - MONTHS constant: array of {value: 0, label: "January"} through {value: 11, label: "December"} (0-indexed for frontend Select)
+  - getAvailableYears(): returns [currentYear, currentYear-1, currentYear-2]
+  - formatAnalyticsDate(dateStr: string | null): format to locale date string, return "-" if null
+  - formatCurrency(amount: number): format to "Rp X.XXX" Indonesian locale
+  - downloadCSV(rows: string[][], filename: string): create Blob, trigger download
+  - exportShopeeReconciliationCSV(data: ReconciliationResult): format Shopee data to CSV rows + trigger download
+  - exportShopeeShippingCSV(data: ShopeeShippingFeeResult): format shipping data to CSV
+  - exportTiktokReconciliationCSV(data: TiktokReconciliationResult): format TikTok data to CSV
+  - exportTiktokShippingCSV(data: TiktokShippingFeeResult): format TikTok shipping to CSV
+  - getStatusColor(status: string): return color string for OK/PRICE_DIFF/NO_INVENTORY
+  - getStatusLabel(status: string): return human-readable label
+  Must NOT do:
+  - No hardcoded locale strings in Indonesian — use English labels per AGENTS.md
+  - No external date libraries beyond dayjs (already in project)
+  Recommended Agent Profile:
+  - Category: quick
+    - Reason: Utility functions with clear specs from Vue reference
+  - Skills: []
+  Parallelization:
+  - Can Run In Parallel: YES
+  - Parallel Group: Wave 2 (with Task 2)
+  - Blocks: Task 4
+  - Blocked By: Task 1
+  References:
+  Pattern References:
+  - frontend-vue/src/utils/analyticsHelpers.ts:1-43 — Vue helpers (MONTHS, getAvailableYears, formatDate)
+  - frontend-vue/src/utils/tiktokCsvExport.ts:1-79 — TikTok CSV export logic
+  Documentation References:
+  - Vue helpers use toLocaleDateString('id-ID') for date formatting
+  Acceptance Criteria:
+  - [ ] File created at frontend/src/lib/analyticsHelpers.ts
+  - [ ] MONTHS array has 12 entries, 0-indexed values
+  - [ ] All CSV export functions produce valid CSV with headers
+  - [ ] npx tsc --noEmit → no errors
+  - [ ] File under 200 lines
+  Agent-Executed QA Scenarios:
+    Scenario: Helpers compile without errors
+    Tool: Bash
+    Preconditions: Task 1 complete
+    Steps:
+      1. Run: npx tsc --noEmit (workdir: frontend)
+      2. Assert: Exit code 0
+    Expected Result: Clean compilation
+    Evidence: Terminal output
+  
+  Commit: YES (commit Tasks 1+2+3 together)
+  - Message: feat(analytics): add analytics types, API functions, and helpers
+  - Files: frontend/src/types/analytics.ts, frontend/src/api/analytics.ts, frontend/src/lib/analyticsHelpers.ts
+  - Pre-commit: npx tsc --noEmit
+---
+Task 4: Create useAnalytics Hook (Shared for Both Platforms)
+- [ ] 4. Create frontend/src/hooks/useAnalytics.ts
+  What to do:
+  - Create ONE parameterized hook: useAnalytics(platform: Platform)
+  - State management using useState:
+    - activeTab: "price" | "shipping" (default: "price")
+    - selectedMonth: number (default: previous month, 0-indexed)
+    - selectedYear: number (default: current year, or prev year if current month is January)
+    - syncing: boolean
+    - jobProgress: JobProgress | null
+    - settingsOpen: boolean
+  - React Query queries (following useMLAnalytics.ts pattern):
+    - useSyncStatus(platform, month+1, year) — auto-refetch
+    - useSettings(platform) — staleTime: 5min
+    - useReconciliation(platform, month+1, year) — enabled only when syncStatus.synced
+    - useShippingFee(platform, month+1, year) — enabled only when syncStatus.synced
+  - Mutations using useMutation:
+    - syncMutation — calls syncEscrow(), extracts job_id, starts polling
+    - deleteSyncMutation — calls deleteSyncData(), invalidates queries
+    - saveSettingsMutation — calls saveSettings(), invalidates settings query
+  - Job Polling using useEffect + setInterval:
+    - When jobProgress is set and status is "pending" or "running"
+    - Poll getJobStatus(jobId) every 2000ms
+    - On "completed": set syncing=false, clear jobProgress, invalidate syncStatus+reconciliation+shippingFee queries
+    - On "failed": set syncing=false, show error notification, clear jobProgress
+    - Cleanup: clear interval on unmount or when polling stops
+  - CRITICAL Month Indexing: Frontend state stores 0-indexed (Jan=0). All API calls pass selectedMonth + 1.
+  - Default Period: Previous month. If current month is January (0), default to December (11) of previous year.
+  Must NOT do:
+  - No duplicate hook for TikTok — ONE hook parameterized by platform
+  - No as any casts
+  - No direct fetch() calls — use API functions from Task 2
+  - No setTimeout to fake loading
+  Recommended Agent Profile:
+  - Category: unspecified-high
+    - Reason: Complex state management with polling, React Query integration, multiple queries/mutations
+  - Skills: ["react-frontend-rules"]
+    - react-frontend-rules: React 19 patterns, hooks best practices
+  Parallelization:
+  - Can Run In Parallel: YES
+  - Parallel Group: Wave 3 (with Task 5)
+  - Blocks: Tasks 6, 7
+  - Blocked By: Tasks 2, 3
+  References:
+  Pattern References:
+  - frontend/src/hooks/useMLAnalytics.ts:1-41 — React Query hook pattern used in this project (useQuery with queryKey, queryFn, staleTime)
+  - frontend/src/hooks/useInventory.ts — Another hook pattern example
+  - frontend/src/api/analytics.ts (Task 2 output) — API functions to call
+  API/Type References:
+  - frontend/src/types/analytics.ts (Task 1 output) — All types
+  - frontend/src/api/analytics.ts (Task 2 output) — All API functions
+  Vue References (porting logic from):
+  - frontend-vue/src/composables/useAnalytics.ts:55-130 — State variables and computed properties
+  - frontend-vue/src/composables/useAnalytics.ts:130-250 — API call functions (fetchSyncStatus, syncEscrowData, etc.)
+  - frontend-vue/src/composables/useAnalytics.ts:250-350 — Job polling mechanism (startPolling, stopPolling, pollJobStatus)
+  - frontend-vue/src/composables/useAnalytics.ts:350-420 — Lifecycle (onMounted init, onUnmounted cleanup)
+  Acceptance Criteria:
+  - [ ] File created at frontend/src/hooks/useAnalytics.ts
+  - [ ] Hook accepts platform: Platform parameter
+  - [ ] Default month = previous month (0-indexed), default year adjusts for January
+  - [ ] All API calls pass selectedMonth + 1 for month parameter
+  - [ ] Polling starts on sync, stops on complete/fail/unmount
+  - [ ] useEffect cleanup clears interval
+  - [ ] npx tsc --noEmit → no errors
+  - [ ] File under 250 lines
+  Agent-Executed QA Scenarios:
+    Scenario: Hook compiles and exports correctly
+    Tool: Bash
+    Preconditions: Tasks 1, 2, 3 complete
+    Steps:
+      1. Run: npx tsc --noEmit (workdir: frontend)
+      2. Assert: Exit code 0
+      3. Grep for "export function useAnalytics" in the file
+    Expected Result: Hook exported, zero errors
+    Evidence: Terminal output
+  Scenario: Month indexing is correct
+    Tool: Bash
+    Preconditions: Hook file exists
+    Steps:
+      1. Grep useAnalytics.ts for "month + 1" or "selectedMonth + 1"
+      2. Assert: At least 4 occurrences (syncStatus, reconciliation, shippingFee, sync calls)
+      3. Grep for "month:" or "month," without +1 — should NOT find API calls with raw month
+    Expected Result: All API calls use month+1
+    Evidence: Grep output
+  
+  Commit: NO (groups with Task 5)
+---
+Task 5: Create Shared Analytics Components
+- [ ] 5. Create shared components in frontend/src/components/analytics/common/
+  What to do:
+  Create 5 component files + 1 index file:
+  5a. AnalyticsSummaryCards.tsx (~80 lines):
+  - Props: { summary: ReconciliationSummary | ShippingFeeSummary; type: "reconciliation" | "shipping"; platformColor: string }
+  - Renders 5 <Card> components in a <Row gutter={[16,16]}>
+  - For reconciliation: Total SKU, Transactions, Price OK (green), Price Diff (orange), No Inventory (red)
+  - For shipping: Total Orders, With Difference, Total Profit (green), Total Loss (red), Net Impact
+  - Each card: title text + large number + colored icon
+  - Use formatCurrency() for monetary values
+  5b. ReconciliationTable.tsx (~120 lines):
+  - Props: { data: SkuGroup[] | TiktokSkuGroup[]; platform: Platform; loading: boolean }
+  - Ant Design <Table> with columns:
+    - Status (Tag: OK=green, PRICE_DIFF=orange, NO_INVENTORY=red)
+    - SKU
+    - Item/Product Name (Shopee: item_name, TikTok: product_name)
+    - Marketplace Price (from unique_unit_prices)
+    - Inventory Price
+    - Actual Income (from unique_actual_incomes)
+    - Expected Income
+  - Sortable by status, transactions
+  - Pagination: 20 per page
+  5c. ShippingFeeTable.tsx (~120 lines):
+  - Props: { data: ShopeeShippingFeeOrder[] | TiktokShippingFeeOrder[]; platform: Platform; loading: boolean }
+  - Ant Design <Table> with platform-specific columns:
+    - Shopee: Order Date, Order SN, Buyer Paid, Actual Fee, Rebate, Difference, Payment Method
+    - TikTok: Order Date, Order ID, Buyer Paid, Actual Fee, Platform Discount, Difference, Order Status
+  - Color difference column: green if positive (profit), red if negative (loss)
+  - Pagination: 20 per page
+  5d. SettingsModal.tsx (~150 lines):
+  - Props: { open: boolean; onClose: () => void; platform: Platform; settings: AnalyticsSettings; onSave: (settings: AnalyticsSettings) => void; loading: boolean }
+  - Ant Design <Modal> with form:
+    - Price Column: <Select> populated from getAvailableColumns() API (from inventory)
+    - Formula display: (Price - Admin Fee) × Multiplier = Expected Income
+    - Admin Fee: <InputNumber> (formula_deduction field)
+    - Multiplier: <InputNumber min={0} max={1} step={0.01}> (formula_multiplier field)
+    - Example calculation preview: shows formula with actual values
+  - Save and Cancel buttons
+  - Fetch available columns on modal open via useQuery
+  5e. SyncProgressBar.tsx (~60 lines):
+  - Props: { progress: JobProgress | null; visible: boolean }
+  - Shows Ant Design <Progress> bar with percent
+  - Message text below: progress.progress_message
+  - Items count: {processed_items}/{total_items}
+  - Hidden when !visible
+  5f. index.ts (~10 lines):
+  - Re-export all components
+  Must NOT do:
+  - No file over 200 lines
+  - No inline styles for complex layouts — use Ant Design layout components
+  - No hardcoded colors — use platform color prop or Ant Design tokens
+  Recommended Agent Profile:
+  - Category: visual-engineering
+    - Reason: UI components with Ant Design, layout, colors, responsive cards
+  - Skills: ["react-frontend-rules", "playwright-layout-eval"]
+    - react-frontend-rules: Ant Design component patterns, Ginee-style design specs
+    - playwright-layout-eval: Can verify component layout visually
+  Parallelization:
+  - Can Run In Parallel: YES
+  - Parallel Group: Wave 3 (with Task 4)
+  - Blocks: Tasks 6, 7
+  - Blocked By: Task 1
+  References:
+  Pattern References:
+  - frontend/src/components/analytics/ml/HealthCard.tsx — Card component pattern in this project
+  - frontend/src/components/analytics/ml/ProductScoreTable.tsx:1-99 — Table component pattern (columns, pagination, styling)
+  Vue References (porting from):
+  - frontend-vue/src/components/analytics/AnalyticsSummaryCards.vue:1-110 — Summary cards layout
+  - frontend-vue/src/components/analytics/AnalyticsResultsTable.vue:1-257 — Results table columns and rendering
+  - frontend-vue/src/components/analytics/ShippingFeeSummary.vue:1-120 — Shipping summary cards
+  - frontend-vue/src/components/analytics/ShippingFeeTable.vue:1-182 — Shipping table columns
+  - frontend-vue/src/components/analytics/AnalyticsSettingsModal.vue:1-520 — Settings modal (MUST be simplified/split for React)
+  API References:
+  - frontend/src/api/inventory.ts:128-137 — getAvailableColumns() function for Settings modal dropdown
+  Acceptance Criteria:
+  - [ ] 6 files created in frontend/src/components/analytics/common/
+  - [ ] Each file under 200 lines
+  - [ ] All components use Ant Design components (Table, Card, Modal, Progress, Tag, Select, InputNumber)
+  - [ ] Tables have proper column definitions with dataIndex matching snake_case field names
+  - [ ] npx tsc --noEmit → no errors
+  - [ ] Settings modal fetches inventory columns via existing API
+  Agent-Executed QA Scenarios:
+    Scenario: All components compile
+    Tool: Bash
+    Preconditions: Task 1 complete (types available)
+    Steps:
+      1. Run: npx tsc --noEmit (workdir: frontend)
+      2. Assert: Exit code 0
+      3. Verify 6 files exist in components/analytics/common/
+    Expected Result: All components compile
+    Evidence: Terminal output + file listing
+  
+  Commit: YES (commit Tasks 4+5 together)
+  - Message: feat(analytics): add useAnalytics hook and shared analytics components
+  - Files: frontend/src/hooks/useAnalytics.ts, frontend/src/components/analytics/common/*
+  - Pre-commit: npx tsc --noEmit
+---
+Task 6: Rewrite ShopeeAnalyticsPage
+- [ ] 6. Rewrite frontend/src/pages/analytics/ShopeeAnalyticsPage.tsx
+  What to do:
+  - Complete rewrite from 75-line placeholder to full analytics page
+  - Use useAnalytics("shopee") hook for all state and data
+  - Import shared components from @/components/analytics/common
+  Page Layout:
+    ├── Header: "Shopee Analytics" (orange #ee4d2d) + Settings ⚙️ button
+  ├── Tab Navigation: [Price Analysis] [Shipping Fee]
+  ├── Period Selector Row:
+  │   ├── Month <Select> (from MONTHS constant)
+  │   ├── Year <Select> (from getAvailableYears())
+  │   └── Sync Status <Tag> (green "Synced" / gray "Not Synced")
+  ├── SyncProgressBar (visible during sync)
+  ├── Action Bar:
+  │   ├── Left: [Sync Escrow Data] [Force Resync] [Analyze] [Delete Sync]
+  │   └── Right: [Export CSV]
+  ├── Tab Content:
+  │   ├── Price Tab: <AnalyticsSummaryCards type="reconciliation"> + <ReconciliationTable platform="shopee">
+  │   └── Shipping Tab: <AnalyticsSummaryCards type="shipping"> + <ShippingFeeTable platform="shopee">
+  ├── Empty State: <Empty> when no data synced
+  ├── Loading State: <Spin> during data fetch
+  └── <SettingsModal> (controlled by settingsOpen state)
+  
+  Button Logic:
+  - "Sync Escrow Data": calls syncMutation.mutate({forceResync: false}), disabled when syncing or already synced
+  - "Force Resync": calls syncMutation.mutate({forceResync: true}), disabled when syncing
+  - "Analyze": fetches reconciliation + shipping fee data (calls refetch on queries)
+  - "Delete Sync": confirmation modal → calls deleteSyncMutation.mutate(), disabled when not synced
+  - "Export CSV": calls exportShopeeReconciliationCSV() or exportShopeeShippingCSV() based on active tab
+  Must NOT do:
+  - No inline business logic — all in hook
+  - No file over 280 lines (target ~250)
+  - No mock data
+  - No DatePicker/RangePicker — use Month + Year Select dropdowns (per Vue original)
+  Recommended Agent Profile:
+  - Category: visual-engineering
+    - Reason: Full page layout with Ant Design, tabs, action bars, conditional rendering
+  - Skills: ["react-frontend-rules", "playwright-layout-eval"]
+    - react-frontend-rules: React 19 patterns, Ant Design, Ginee-style
+    - playwright-layout-eval: Visual verification
+  Parallelization:
+  - Can Run In Parallel: YES
+  - Parallel Group: Wave 4 (with Task 7)
+  - Blocks: Task 10
+  - Blocked By: Tasks 4, 5
+  References:
+  Pattern References:
+  - frontend/src/pages/analytics/MLDashboardPage.tsx:1-170 — Page layout pattern (header, loading, empty state, data cards + table)
+  - frontend/src/pages/analytics/ShopeeAdsAnalyticsPage.tsx:1-80 — Header + Tabs pattern
+  Vue References:
+  - frontend-vue/src/views/analytics/ShopeeAnalytics.vue:1-485 — Full page template, tab structure, action bar, conditional rendering
+  Component References (from Task 5):
+  - frontend/src/components/analytics/common/AnalyticsSummaryCards.tsx
+  - frontend/src/components/analytics/common/ReconciliationTable.tsx
+  - frontend/src/components/analytics/common/ShippingFeeTable.tsx
+  - frontend/src/components/analytics/common/SettingsModal.tsx
+  - frontend/src/components/analytics/common/SyncProgressBar.tsx
+  Hook Reference (from Task 4):
+  - frontend/src/hooks/useAnalytics.ts — useAnalytics("shopee")
+  Helper Reference (from Task 3):
+  - frontend/src/lib/analyticsHelpers.ts — MONTHS, getAvailableYears, export functions
+  Acceptance Criteria:
+  - [ ] File rewritten at frontend/src/pages/analytics/ShopeeAnalyticsPage.tsx
+  - [ ] Uses useAnalytics("shopee") hook
+  - [ ] Tab navigation between Price Analysis and Shipping Fee
+  - [ ] Month/Year selectors with proper defaults (previous month)
+  - [ ] All 5 action buttons functional
+  - [ ] Settings modal opens with ⚙️ button
+  - [ ] Shows loading spinner during fetch
+
+
+
+
+
+
+
+
+Lanjut dari Task 6 acceptance criteria:
+  - [ ] Shows empty state when no data synced
+  - [ ] Shows summary cards + data table when data available
+  - [ ] CSV export works for both tabs
+  - [ ] Sync status badge shows correct state
+  - [ ] Progress bar visible during sync
+  - [ ] File under 280 lines
+  - [ ] npx tsc --noEmit → no errors
+  Agent-Executed QA Scenarios:
+  Scenario: Shopee Analytics page loads with period selector
+    Tool: Playwright (playwright skill)
+    Preconditions: Dev server running on localhost:5173, logged in as yumna
+    Steps:
+      1. Navigate to: http://localhost:5173/analytics/shopee
+      2. Wait for: page load (timeout: 10s)
+      3. Assert: heading contains "Shopee Analytics"
+      4. Assert: Month select dropdown visible
+      5. Assert: Year select dropdown visible
+      6. Assert: Sync status tag visible (either "Synced" or "Not Synced")
+      7. Screenshot: .sisyphus/evidence/task-6-shopee-page-load.png
+    Expected Result: Page loads with all controls visible
+    Evidence: .sisyphus/evidence/task-6-shopee-page-load.png
+  Scenario: Tab switching works between Price and Shipping
+    Tool: Playwright (playwright skill)
+    Preconditions: Page loaded at /analytics/shopee
+    Steps:
+      1. Click: tab "Shipping Fee"
+      2. Wait for: shipping content visible (timeout: 5s)
+      3. Assert: Shipping tab is active
+      4. Click: tab "Price Analysis"
+      5. Wait for: price content visible (timeout: 5s)
+      6. Assert: Price tab is active
+      7. Screenshot: .sisyphus/evidence/task-6-shopee-tab-switch.png
+    Expected Result: Tabs switch content correctly
+    Evidence: .sisyphus/evidence/task-6-shopee-tab-switch.png
+  Scenario: Settings modal opens and shows form
+    Tool: Playwright (playwright skill)
+    Preconditions: Page loaded at /analytics/shopee
+    Steps:
+      1. Click: settings button (gear icon)
+      2. Wait for: modal visible (timeout: 5s)
+      3. Assert: modal title contains "Settings"
+      4. Assert: Price Column select exists
+      5. Assert: Admin Fee input exists
+      6. Assert: Multiplier input exists
+      7. Screenshot: .sisyphus/evidence/task-6-shopee-settings-modal.png
+    Expected Result: Settings modal shows with all form fields
+    Evidence: .sisyphus/evidence/task-6-shopee-settings-modal.png
+  Commit: NO (groups with Task 7)
+---
+Task 7: Rewrite TiktokAnalyticsPage
+- [ ] 7. Rewrite frontend/src/pages/analytics/TiktokAnalyticsPage.tsx
+  What to do:
+  - Complete rewrite from 77-line placeholder to full analytics page
+  - Use useAnalytics("tiktok") hook — SAME hook as Shopee, different platform param
+  - Nearly identical layout to ShopeeAnalyticsPage with these differences:
+    - Header: "TikTok Analytics" (black #000000 or brand color #00f2ea)
+    - Platform color: TikTok cyan/black instead of Shopee orange
+    - CSV export: calls exportTiktokReconciliationCSV() / exportTiktokShippingCSV()
+    - Table columns: TikTok-specific field names (order_id vs order_sn, platform_discount vs shopee_rebate, etc.)
+  - Pass platform="tiktok" to all shared components
+  Must NOT do:
+  - No copy-paste of ShopeeAnalyticsPage — use shared components, only the page shell differs
+  - No file over 280 lines
+  - No mock data
+  Recommended Agent Profile:
+  - Category: visual-engineering
+    - Reason: Full page layout with Ant Design
+  - Skills: ["react-frontend-rules", "playwright-layout-eval"]
+  Parallelization:
+  - Can Run In Parallel: YES
+  - Parallel Group: Wave 4 (with Task 6)
+  - Blocks: Task 10
+  - Blocked By: Tasks 4, 5
+  References:
+  Pattern References:
+  - frontend/src/pages/analytics/ShopeeAnalyticsPage.tsx (Task 6 output) — Near-identical page structure to follow
+  - frontend/src/pages/analytics/MLDashboardPage.tsx:1-170 — Page layout pattern
+  Vue References:
+  - frontend-vue/src/views/analytics/TiktokAnalytics.vue — TikTok page template
+  Component/Hook References (same as Task 6):
+  - frontend/src/hooks/useAnalytics.ts — useAnalytics("tiktok")
+  - frontend/src/components/analytics/common/* — All shared components
+  - frontend/src/lib/analyticsHelpers.ts — TikTok export functions
+  Acceptance Criteria:
+  - [ ] File rewritten at frontend/src/pages/analytics/TiktokAnalyticsPage.tsx
+  - [ ] Uses useAnalytics("tiktok") hook
+  - [ ] TikTok branding (color, title)
+  - [ ] Same functionality as Shopee page (tabs, period selector, sync, settings, export)
+  - [ ] File under 280 lines
+  - [ ] npx tsc --noEmit → no errors
+  Agent-Executed QA Scenarios:
+    Scenario: TikTok Analytics page loads correctly
+    Tool: Playwright (playwright skill)
+    Preconditions: Dev server running on localhost:5173, logged in
+    Steps:
+      1. Navigate to: http://localhost:5173/analytics/tiktok
+      2. Wait for: page load (timeout: 10s)
+      3. Assert: heading contains "TikTok Analytics"
+      4. Assert: Month/Year selectors visible
+      5. Assert: Tab navigation visible (Price Analysis, Shipping Fee)
+      6. Screenshot: .sisyphus/evidence/task-7-tiktok-page-load.png
+    Expected Result: Page loads with TikTok branding and all controls
+    Evidence: .sisyphus/evidence/task-7-tiktok-page-load.png
+  Scenario: TikTok sync button triggers API call
+    Tool: Playwright (playwright skill)
+    Preconditions: Page loaded, data not yet synced
+    Steps:
+      1. Click: "Sync Escrow Data" button
+      2. Wait for: progress bar visible OR loading state (timeout: 5s)
+      3. Assert: Button becomes disabled during sync
+      4. Screenshot: .sisyphus/evidence/task-7-tiktok-syncing.png
+    Expected Result: Sync initiates, progress shown
+    Evidence: .sisyphus/evidence/task-7-tiktok-syncing.png
+  
+  Commit: YES (commit Tasks 6+7 together)
+  - Message: feat(analytics): implement Shopee and TikTok analytics pages with full functionality
+  - Files: frontend/src/pages/analytics/ShopeeAnalyticsPage.tsx, frontend/src/pages/analytics/TiktokAnalyticsPage.tsx
+  - Pre-commit: npx tsc --noEmit
+---
+Task 8: Fix Products Page Data Display
+- [ ] 8. Fix frontend/src/api/products.ts — Products showing stock=0, price=Rp 0
+  What to do:
+  - Root cause identified: transformProduct() at line 34-45 hardcodes price: 0, stock: 0 with comment "Master products don't have price - set from platform variants"
+  - This is BY DESIGN — master products aggregate from platform variants. But the display is misleading.
+  - Fix approach: Instead of showing misleading zeros, show actual backend values if available, or show "N/A" indicator
+  - Step 1: Check what the backend actually returns via curl: curl -H "Authorization: Bearer TOKEN" http://localhost:3000/api/master-products
+  - Step 2: If backend returns real price/stock values → map them correctly in transformProduct()
+  - Step 3: If backend truly returns no price/stock for master products → update the Products table UI to show "-" or "N/A" instead of "Rp 0" and "0"
+  - Step 4: Also check if status: "DRAFT" is coming from backend or hardcoded — if from backend, it's correct; if hardcoded, fix it
+  Must NOT do:
+  - No backend changes — frontend only
+  - No fake/dummy data
+  - Do NOT show 0 if data genuinely doesn't exist — show "-" or "N/A"
+  Recommended Agent Profile:
+  - Category: quick
+    - Reason: Small targeted fix, 1-2 files
+  - Skills: []
+  Parallelization:
+  - Can Run In Parallel: YES
+  - Parallel Group: Wave 1 (with Tasks 1, 9)
+  - Blocks: Task 10
+  - Blocked By: None
+  References:
+  Pattern References:
+  - frontend/src/api/products.ts:34-45 — Current transformProduct() function with hardcoded zeros
+  - frontend/src/api/products.ts:66-86 — getProducts() function using apiClient.client.get
+  - frontend/src/types/product.ts — Product and BackendProduct type definitions
+  Diagnostic Steps:
+  - curl -s -H "Authorization: Bearer TOKEN" -H "x-tenant-id: yumna_bertigamart" http://localhost:3000/api/master-products | jq '.data[0]' — Check what backend actually returns
+  - Compare BackendProduct type fields vs what curl returns
+  - Determine if price/stock exist in backend response
+  Acceptance Criteria:
+  - [ ] Products page no longer shows misleading "Rp 0" and "0" for all items
+  - [ ] If backend has real values → displayed correctly
+  - [ ] If backend has no values → shows "-" or "N/A" instead of 0
+  - [ ] Status column shows actual backend value
+  - [ ] npx tsc --noEmit → no errors
+  Agent-Executed QA Scenarios:
+    Scenario: Products page shows correct data or N/A
+    Tool: Playwright (playwright skill)
+    Preconditions: Dev server running, logged in
+    Steps:
+      1. Navigate to: http://localhost:5173/products
+      2. Wait for: table loaded (timeout: 10s)
+      3. Assert: First row price column does NOT show "Rp 0" (shows real value or "-")
+      4. Assert: First row stock column does NOT show "0" unless genuinely zero
+      5. Screenshot: .sisyphus/evidence/task-8-products-fixed.png
+    Expected Result: Products show real data or N/A, not misleading zeros
+    Evidence: .sisyphus/evidence/task-8-products-fixed.png
+  Scenario: Verify backend response has data
+    Tool: Bash (curl)
+    Preconditions: Backend running on localhost:3000
+    Steps:
+      1. Login: curl POST /api/auth/login to get token
+      2. GET /api/master-products with auth headers
+      3. Parse first product from response
+      4. Check if price, stock, status fields exist and their values
+    Expected Result: Understand what backend actually returns
+    Evidence: curl response captured
+  
+  Commit: NO (groups with Task 9)
+---
+Task 9: Fix ML Analytics Empty Columns
+- [ ] 9. Fix ML Analytics — AI Recommendation shows only icon, Last Updated empty
+  What to do:
+  - Root cause: ProductScoreTable.tsx:57-68 renders recommendation field, but if backend returns empty string or null, only the icon shows
+  - Root cause: ProductScoreTable.tsx:71-77 renders last_updated field as raw string, but if null/empty, shows nothing
+  - Step 1: Check backend response: curl GET /api/analytics/ml/products — verify recommendation and last_updated fields
+  - Step 2: Fix recommendation column render:
+    - If text is empty/null → show "No recommendation available" in gray italic
+    - If text exists → show icon + text (current behavior)
+  - Step 3: Fix last_updated column render:
+    - If date is empty/null → show "-"
+    - If date exists → format with dayjs(date).format("MMM DD, YYYY HH:mm")
+  - Step 4: Also check MLDashboardPage.tsx:15-22 transformProduct() — verify it passes recommendation and last_updated correctly from API response
+  Must NOT do:
+  - No backend changes
+  - No removing the ThunderboltOutlined icon
+  - No changing table structure — just fix null handling
+  Recommended Agent Profile:
+  - Category: quick
+    - Reason: Small fix in 1-2 files, null handling in render functions
+  - Skills: []
+  Parallelization:
+  - Can Run In Parallel: YES
+  - Parallel Group: Wave 1 (with Tasks 1, 8)
+  - Blocks: Task 10
+  - Blocked By: None
+  References:
+  Pattern References:
+  - frontend/src/components/analytics/ml/ProductScoreTable.tsx:56-78 — Current column render functions that need null handling
+  - frontend/src/pages/analytics/MLDashboardPage.tsx:15-22 — transformProduct() mapping function
+  API References:
+  - frontend/src/api/mlAnalytics.ts:28-46 — MLProduct type (has recommendation: string and last_updated: string)
+  - frontend/src/api/mlAnalytics.ts:105-119 — getMLProducts() function
+  Diagnostic Steps:
+  - curl -s -H "Authorization: Bearer TOKEN" -H "x-tenant-id: yumna_bertigamart" http://localhost:3000/api/analytics/ml/products | jq '.data[0] | {recommendation, last_updated}'
+  Acceptance Criteria:
+  - [ ] AI Recommendation column shows text (or "No recommendation" if empty)
+  - [ ] Last Updated column shows formatted date (or "-" if empty)
+  - [ ] ThunderboltOutlined icon still present
+  - [ ] npx tsc --noEmit → no errors
+  Agent-Executed QA Scenarios:
+    Scenario: ML Analytics shows recommendation text
+    Tool: Playwright (playwright skill)
+    Preconditions: Dev server running, logged in, ML data exists
+    Steps:
+      1. Navigate to: http://localhost:5173/analytics/ml
+      2. Wait for: table loaded (timeout: 10s)
+      3. Assert: AI Recommendation column cells contain text (not just icon)
+      4. Assert: Last Updated column cells contain formatted date or "-"
+      5. Screenshot: .sisyphus/evidence/task-9-ml-fixed.png
+    Expected Result: Both columns display content
+    Evidence: .sisyphus/evidence/task-9-ml-fixed.png
+  Scenario: Verify ML API response fields
+    Tool: Bash (curl)
+    Preconditions: Backend running
+    Steps:
+      1. Login and GET /api/analytics/ml/products
+      2. Check recommendation and last_updated fields in response
+      3. Note if they are empty, null, or have values
+    Expected Result: Understand data availability
+    Evidence: curl response captured
+  
+  Commit: YES (commit Tasks 8+9 together)
+  - Message: fix(ui): fix Products page misleading zeros and ML Analytics empty columns
+  - Files: frontend/src/api/products.ts, frontend/src/components/analytics/ml/ProductScoreTable.tsx, possibly frontend/src/pages/analytics/MLDashboardPage.tsx
+  - Pre-commit: npx tsc --noEmit
+---
+Task 10: TypeScript Check + Vite Build
+- [ ] 10. Verify TypeScript and Vite build pass
+  What to do:
+  - Run npx tsc --noEmit — must produce ZERO errors
+  - Run npx vite build — must succeed
+  - If errors found → fix them (trace imports, fix types, resolve missing references)
+  - Verify no as any, @ts-ignore, MOCK_ in any changed files
+  Must NOT do:
+  - No suppressing errors with @ts-ignore
+  - No as any workarounds
+  Recommended Agent Profile:
+  - Category: quick
+    - Reason: Build verification, potentially small fixes
+  - Skills: []
+  Parallelization:
+  - Can Run In Parallel: NO
+  - Parallel Group: Sequential (after Wave 4)
+  - Blocks: Task 11
+  - Blocked By: Tasks 6, 7, 8, 9
+  References:
+  - All files created/modified in Tasks 1-9
+  Acceptance Criteria:
+  - [ ] npx tsc --noEmit → exit code 0, zero errors
+  - [ ] npx vite build → exit code 0, build success
+  - [ ] grep -r "as any\|@ts-ignore\|@ts-nocheck\|MOCK_" frontend/src/ → zero matches in changed files
+  Agent-Executed QA Scenarios:
+    Scenario: TypeScript compilation clean
+    Tool: Bash
+    Steps:
+      1. Run: npx tsc --noEmit (workdir: frontend)
+      2. Assert: Exit code 0
+      3. Assert: No output (no errors)
+    Expected Result: Zero errors
+    Evidence: Terminal output
+  Scenario: Vite build succeeds
+    Tool: Bash
+    Steps:
+      1. Run: npx vite build (workdir: frontend)
+      2. Assert: Exit code 0
+      3. Assert: Output contains "build" and file sizes
+    Expected Result: Build completes
+    Evidence: Terminal output
+  Scenario: No forbidden patterns
+    Tool: Bash
+    Steps:
+      1. grep -rn "as any" frontend/src/types/analytics.ts frontend/src/api/analytics.ts frontend/src/hooks/useAnalytics.ts frontend/src/lib/analyticsHelpers.ts frontend/src/components/analytics/common/ frontend/src/pages/analytics/ShopeeAnalyticsPage.tsx frontend/src/pages/analytics/TiktokAnalyticsPage.tsx
+      2. Assert: No matches found
+    Expected Result: Zero forbidden patterns
+    Evidence: grep output
+  
+  Commit: NO (no new changes if build passes)
+---
+Task 11: Playwright Verification — All Pages
+- [ ] 11. Playwright screenshot verification of ALL pages
+  What to do:
+  - Login as yumna (username: yumna, password: password123)
+  - Navigate to EACH page and take screenshots proving data is displayed
+  - Pages to verify:
+    1. Dashboard (/) — cards with data
+    2. Orders (/orders) — table with orders
+    3. Products (/products) — table with products (fixed, no misleading zeros)
+    4. Inventory (/inventory) — table with inventory data
+    5. Shopee Analytics (/analytics/shopee) — period selector, sync status, tabs
+    6. TikTok Analytics (/analytics/tiktok) — period selector, sync status, tabs
+    7. ML Analytics (/analytics/ml) — health cards, product table with recommendations
+    8. Shopee Ads (/analytics/shopee-ads) — upload-based page
+    9. TikTok Ads (/analytics/tiktok-ads) — upload-based page
+    10. Settings (/settings) — tabs with configuration
+    11. Script Monitor (/script-monitor) — queue/history tabs
+  - For analytics pages: also test tab switching, settings modal
+  Must NOT do:
+  - No skipping any page
+  - No "looks good" without screenshot proof
+  Recommended Agent Profile:
+  - Category: visual-engineering
+    - Reason: Playwright browser automation with screenshots
+  - Skills: ["playwright", "react-frontend-rules"]
+    - playwright: Browser automation
+    - react-frontend-rules: Know what to look for in UI
+  Parallelization:
+  - Can Run In Parallel: NO
+  - Parallel Group: Sequential (after Task 10)
+  - Blocks: Task 12
+  - Blocked By: Task 10
+  References:
+  - All pages in frontend/src/pages/
+  - Auth: username=yumna, password=password123
+  - Dev server: http://localhost:5173
+  Acceptance Criteria:
+  - [ ] 11+ screenshots saved to .sisyphus/evidence/
+  - [ ] Every page shows real data (not empty, not "Coming Soon", not all zeros)
+  - [ ] Zero console errors visible
+  - [ ] Shopee Analytics shows period selector + tabs + action buttons
+  - [ ] TikTok Analytics shows period selector + tabs + action buttons
+  - [ ] Products page shows corrected data display
+  - [ ] ML Analytics shows recommendation text
+  Agent-Executed QA Scenarios:
+    Scenario: Full app verification sweep
+    Tool: Playwright (playwright skill)
+    Preconditions: Dev server on localhost:5173, backend on localhost:3000
+    Steps:
+      1. Navigate to /login
+      2. Login with yumna/password123
+      3. Navigate to / → screenshot: .sisyphus/evidence/final-dashboard.png
+      4. Navigate to /orders → screenshot: .sisyphus/evidence/final-orders.png
+      5. Navigate to /products → screenshot: .sisyphus/evidence/final-products.png
+      6. Navigate to /inventory → screenshot: .sisyphus/evidence/final-inventory.png
+      7. Navigate to /analytics/shopee → screenshot: .sisyphus/evidence/final-shopee-analytics.png
+      8. Navigate to /analytics/tiktok → screenshot: .sisyphus/evidence/final-tiktok-analytics.png
+      9. Navigate to /analytics/ml → screenshot: .sisyphus/evidence/final-ml-analytics.png
+      10. Navigate to /analytics/shopee-ads → screenshot: .sisyphus/evidence/final-shopee-ads.png
+      11. Navigate to /analytics/tiktok-ads → screenshot: .sisyphus/evidence/final-tiktok-ads.png
+      12. Navigate to /settings → screenshot: .sisyphus/evidence/final-settings.png
+      13. Navigate to /script-monitor → screenshot: .sisyphus/evidence/final-script-monitor.png
+    Expected Result: All pages render with real data
+    Evidence: 11 screenshots in .sisyphus/evidence/
+  
+  Commit: NO
+---
+Task 12: Docker Build + Git Commit & Push
+- [ ] 12. Docker build and final git commit/push
+  What to do:
+  - Set NODE_OPTIONS=--max-old-space-size=8192 environment variable (prevent OOM during frontend build)
+  - Run python build.py smart to build both frontend and backend Docker images
+  - If build fails → diagnose and fix (likely OOM or TypeScript error)
+  - Verify containers start: docker compose -f docker-compose.tunnel.yml up -d
+  - Verify frontend serves new code: open http://localhost:5174 in Playwright
+  - Git: git add -A && git commit -m "feat(analytics): complete Shopee/TikTok analytics pages, fix Products and ML display" && git push
+  Must NOT do:
+  - No --skip-frontend flag — must build frontend
+  - No force push
+  - No skipping Docker verification
+  Recommended Agent Profile:
+  - Category: quick
+    - Reason: Build commands and git operations
+  - Skills: ["git-master"]
+    - git-master: Proper git commit/push
+  Parallelization:
+  - Can Run In Parallel: NO
+  - Parallel Group: Sequential (final task)
+  - Blocks: None
+  - Blocked By: Task 11
+  References:
+  - build.py — Build script
+  - docker-compose.tunnel.yml — Docker compose config
+  - OOM fix: set NODE_OPTIONS=--max-old-space-size=8192 (Windows)
+  Acceptance Criteria:
+  - [ ] python build.py smart → SUCCESS
+  - [ ] Docker containers running (omni-frontend, omni-backend healthy)
+  - [ ] http://localhost:5174 serves updated analytics pages
+  - [ ] Git commit created with all changes
+  - [ ] Git push to bm1 branch successful
+  Agent-Executed QA Scenarios:
+    Scenario: Docker build and deploy
+    Tool: Bash
+    Steps:
+      1. set NODE_OPTIONS=--max-old-space-size=8192
+      2. python build.py smart
+      3. Assert: exit code 0
+      4. docker compose -f docker-compose.tunnel.yml ps
+      5. Assert: omni-frontend and omni-backend are "Up"
+    Expected Result: Build success, containers running
+    Evidence: Terminal output
+  Scenario: Git commit and push
+    Tool: Bash
+    Steps:
+      1. git add -A
+      2. git status — verify files
+      3. git commit -m "feat(analytics): complete Shopee/TikTok analytics pages, fix Products and ML display"
+      4. git push
+      5. Assert: push successful
+    Expected Result: All changes pushed to bm1
+    Evidence: git log output
+  
+  Commit: YES (this IS the commit task)
+  - Message: feat(analytics): complete Shopee/TikTok analytics pages, fix Products and ML display
+  - Pre-commit: npx tsc --noEmit && npx vite build
+---
+Commit Strategy
+| After Tasks | Message | Key Files | Verification |
+|-------------|---------|-----------|--------------|
+| 1, 2, 3 | feat(analytics): add analytics types, API functions, and helpers | types/analytics.ts, api/analytics.ts, lib/analyticsHelpers.ts | npx tsc --noEmit |
+| 4, 5 | feat(analytics): add useAnalytics hook and shared analytics components | hooks/useAnalytics.ts, components/analytics/common/* | npx tsc --noEmit |
+| 6, 7 | feat(analytics): implement Shopee and TikTok analytics pages | pages/analytics/ShopeeAnalyticsPage.tsx, TiktokAnalyticsPage.tsx | npx tsc --noEmit |
+| 8, 9 | fix(ui): fix Products page misleading zeros and ML Analytics empty columns | api/products.ts, components/analytics/ml/ProductScoreTable.tsx | npx tsc --noEmit |
+| 12 | Final build + push | All files | python build.py smart |
+---
+Success Criteria
+Verification Commands
+npx tsc --noEmit          # Expected: zero errors
+npx vite build            # Expected: build success
+python build.py smart     # Expected: Docker build success
+git status                # Expected: clean working tree after push
+Final Checklist
+- [ ] ShopeeAnalyticsPage shows real data with tabs, sync, settings
+- [ ] TiktokAnalyticsPage shows real data with tabs, sync, settings
+- [ ] Products page shows meaningful data (not misleading zeros)
+- [ ] ML Analytics shows recommendation text and formatted dates
+- [ ] All 11 pages have Playwright screenshot evidence
+- [ ] Zero TypeScript errors
+- [ ] Zero as any, @ts-ignore, MOCK_
+- [ ] All files under 300 lines
+- [ ] Docker containers running with new code
+- [ ] Git pushed to bm1 branch
+- [ ] No "Coming Soon" placeholders remaining anywhere
+---
