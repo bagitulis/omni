@@ -8,17 +8,18 @@
 
 ## ⚠️ CRITICAL REMINDERS (Check BEFORE every action)
 
-| Rule                  | Requirement                                     |
-| --------------------- | ----------------------------------------------- |
-| **READ AGENTS.md**    | Contains immutable constitution                 |
-| **SRP**               | One function = one purpose                      |
-| **DRY**               | No duplicated logic - extract to utilities      |
-| **OOP**               | Proper encapsulation, use interfaces            |
-| **~300 Lines**        | Quality signal — review SRP/DRY/OOP if exceeded |
-| **Max 3 Parallel**    | Maximum 3 background delegations at any time    |
-| **Stay Responsive**   | Never block on delegation — continue working    |
-| **Commit ALL Files**  | Never cherry-pick, include ALL changed files    |
-| **Push After Commit** | User expects remote sync immediately            |
+| Rule                  | Requirement                                         |
+| --------------------- | --------------------------------------------------- |
+| **READ AGENTS.md**    | Contains immutable constitution                     |
+| **Understand Flow**   | Research RELEVANT flow for the topic FIRST (see §6) |
+| **SRP**               | One function = one purpose                          |
+| **DRY**               | No duplicated logic - extract to utilities          |
+| **OOP**               | Proper encapsulation, use interfaces                |
+| **~300 Lines**        | Quality signal — review SRP/DRY/OOP if exceeded     |
+| **Max 3 Parallel**    | Maximum 3 background delegations at any time        |
+| **Stay Responsive**   | Never block on delegation — continue working        |
+| **Commit ALL Files**  | Never cherry-pick, include ALL changed files        |
+| **Push After Commit** | User expects remote sync immediately                |
 
 ---
 
@@ -144,27 +145,55 @@ python build.py backup
 
 ---
 
-## 6. Trace Flow Before Fix
+## 6. Understand Flow BEFORE Fixing (MANDATORY)
 
-**MANDATORY for bug fixes:**
+**BEFORE writing ANY fix, you MUST understand the RELEVANT flow for the topic.**
+This is the #1 reason AI gets stuck in fix→test→fail loops.
+
+The flow depends on what you're working on — it's NOT always the same path:
+
+| Topic                     | Relevant Flow to Research                                      |
+| ------------------------- | -------------------------------------------------------------- |
+| **Platform integration**  | Platform API → SDK → Handler → Service → Repository → DB       |
+| **Database/Schema issue** | Migration → Schema → Repository → Service → Handler            |
+| **Backend API bug**       | Handler → Service → Repository → DB query → Response           |
+| **Frontend bug**          | Component → API call → Response → State → Render               |
+| **Full-stack feature**    | DB schema → Repository → Service → Handler → API → Frontend UI |
+
+### Step 1: Identify the Topic & Relevant Layers
 
 ```
-1. FRONTEND → What is sent?
-2. HANDLER → What is received?
-3. SERVICE → Is logic running correctly?
-4. REPOSITORY → Is query correct?
-5. RESPONSE → Is format correct?
+ASK: What layers are involved in THIS specific issue?
+→ NOT every task touches all layers
+→ Research ONLY the relevant layers, but research them THOROUGHLY
+```
 
+### Step 2: Research References (ALWAYS do this first)
+
+```
+For each relevant layer:
+→ @explore: Search codebase for existing patterns (SDK, handlers, services, repos, migrations)
+→ @librarian: Search external docs (API docs, library docs) if behavior is unclear
+→ Read the actual files — understand input/output at each layer
+```
+
+### Step 3: Identify Root Cause Layer
+
+```
 → IDENTIFY: In which layer did the error FIRST appear?
 → FIX: ONLY in that layer
+→ NEVER guess — trace with evidence
 ```
 
 ### Anti-Pattern:
 
 ```
-❌ Fix → Test → Fail → Fix → Test → Fail (LOOPING)
-✅ Trace → Identify Root Cause → Fix → Test → Done
+❌ Fix → Test → Fail → Fix → Test → Fail (LOOPING = you don't understand the flow)
+✅ Research → Trace → Identify Root Cause → Fix → Test → Done
 ```
+
+> **If you find yourself fixing the same thing twice, STOP.**
+> You don't understand the flow. Go back to Step 1.
 
 ---
 

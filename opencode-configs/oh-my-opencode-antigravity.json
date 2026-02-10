@@ -11,7 +11,7 @@
     "sisyphus": {
       "model": "google/claude-opus-4-5-thinking",
       "variant": "max",
-      "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then SISYPHUS_RULES.md.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.",
+      "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then SISYPHUS_RULES.md.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.",
       "skills": ["stuck-recovery"]
     },
     "prometheus": {
@@ -22,14 +22,14 @@
     "atlas": {
       "model": "google/claude-opus-4-5-thinking",
       "variant": "max",
-      "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then EXECUTOR_RULES.md.\n\n🎯 REACT MIGRATION MODE: You are implementing the React migration plan. Load skill 'react-frontend-rules' for Design System specs. After UI implementation, load 'playwright-layout-eval' skill and verify layout matches specifications.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Split by responsibility, extract helpers/types. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.",
+      "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then EXECUTOR_RULES.md.\n\n🎯 REACT MIGRATION MODE: You are implementing the React migration plan. Load skill 'react-frontend-rules' for Design System specs. After UI implementation, load 'playwright-layout-eval' skill and verify layout matches specifications.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Split by responsibility, extract helpers/types. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.",
       "skills": ["stuck-recovery", "react-frontend-rules"]
     },
     "hephaestus": {
       "model": "openai/gpt-5.3-codex",
       "reasoningEffort": "high",
       "temperature": 0.1,
-      "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then EXECUTOR_RULES.md.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Split by responsibility, extract helpers/types. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.",
+      "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then EXECUTOR_RULES.md.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Split by responsibility, extract helpers/types. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.",
       "skills": ["stuck-recovery", "react-frontend-rules"]
     },
     "oracle": {
@@ -69,7 +69,7 @@
     "sisyphus-junior": {
       "model": "google/claude-sonnet-4-5-thinking",
       "variant": "max",
-      "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then EXECUTOR_RULES.md.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Split by responsibility, extract helpers/types. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.",
+      "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then EXECUTOR_RULES.md.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Split by responsibility, extract helpers/types. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.",
       "skills": ["stuck-recovery", "react-frontend-rules"]
     },
     "default": {
@@ -85,7 +85,7 @@
       "variant": "high",
       "temperature": 0.1,
       "skills": ["react-frontend-rules", "playwright-layout-eval"],
-      "prompt_append": "SCREENSHOT RULE: ALWAYS save screenshots to 'docs/Screenshots/' directory with descriptive names (e.g., docs/Screenshots/page-desktop.png). NEVER save to root folder.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🐛 UI BUG REPORTING (MANDATORY): When using Playwright/browser, if you discover ANY layout bug (broken layout, missing table columns, overlapping elements, invisible UI, horizontal scroll, misaligned components) — you MUST report it to the main agent even if it is NOT part of your current task. Include: screenshot, page URL, description of the issue. Never silently ignore UI bugs."
+      "prompt_append": "SCREENSHOT RULE: ALWAYS save screenshots to 'docs/Screenshots/' directory with descriptive names (e.g., docs/Screenshots/page-desktop.png). NEVER save to root folder.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🐛 UI BUG REPORTING (MANDATORY): When using Playwright/browser, if you discover ANY layout bug (broken layout, missing table columns, overlapping elements, invisible UI, horizontal scroll, misaligned components) — you MUST report it to the main agent even if it is NOT part of your current task. Include: screenshot, page URL, description of the issue. Never silently ignore UI bugs.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs."
     },
     "artistry": {
       "model": "google/gemini-3-pro",
@@ -99,25 +99,25 @@
     "quick": {
       "model": "google/gemini-3-flash",
       "temperature": 0.1,
-      "prompt_append": "📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK."
+      "prompt_append": "📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic. NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs."
     },
     "ultrabrain": {
       "model": "openai/gpt-5.3-codex",
       "reasoningEffort": "high",
       "temperature": 0.1,
-      "prompt_append": "📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit."
+      "prompt_append": "📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs."
     },
     "deep": {
       "model": "google/gemini-3-pro",
       "variant": "high",
       "temperature": 0.1,
-      "prompt_append": "📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit."
+      "prompt_append": "📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs."
     },
     "implementation": {
       "model": "google/gemini-3-pro",
       "variant": "high",
       "temperature": 0.1,
-      "prompt_append": "📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit."
+      "prompt_append": "📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs."
     },
     "review": {
       "model": "google/gemini-3-pro",
