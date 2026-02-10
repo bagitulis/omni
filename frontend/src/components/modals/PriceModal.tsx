@@ -11,7 +11,6 @@ import {
   Typography,
   Space,
   Steps,
-  message,
 } from "antd";
 import { Product } from "@/types/product";
 import { usePriceUpdate } from "@/hooks/usePricing";
@@ -51,27 +50,29 @@ export function PriceModal({ open, onCancel, selectedProducts }: Props) {
     }
   }, [open]);
 
-  const calculateNewPrice = (oldPrice: number): number => {
-    let newPrice = oldPrice;
-    switch (adjustmentType) {
-      case "percentage_increase":
-        newPrice = oldPrice * (1 + value / 100);
-        break;
-      case "percentage_decrease":
-        newPrice = oldPrice * (1 - value / 100);
-        break;
-      case "fixed_increase":
-        newPrice = oldPrice + value;
-        break;
-      case "fixed_decrease":
-        newPrice = oldPrice - value;
-        break;
-      case "set_value":
-        newPrice = value;
-        break;
-    }
-    return Math.max(0, Math.round(newPrice)); // Ensure no negative and integer
-  };
+  const calculateNewPrice = useMemo(() => {
+    return (oldPrice: number): number => {
+      let newPrice = oldPrice;
+      switch (adjustmentType) {
+        case "percentage_increase":
+          newPrice = oldPrice * (1 + value / 100);
+          break;
+        case "percentage_decrease":
+          newPrice = oldPrice * (1 - value / 100);
+          break;
+        case "fixed_increase":
+          newPrice = oldPrice + value;
+          break;
+        case "fixed_decrease":
+          newPrice = oldPrice - value;
+          break;
+        case "set_value":
+          newPrice = value;
+          break;
+      }
+      return Math.max(0, Math.round(newPrice)); // Ensure no negative and integer
+    };
+  }, [adjustmentType, value]);
 
   const previewData = useMemo(() => {
     return selectedProducts.map((product) => {
@@ -83,7 +84,7 @@ export function PriceModal({ open, onCancel, selectedProducts }: Props) {
         price_diff: newPrice - currentPrice,
       };
     });
-  }, [selectedProducts, adjustmentType, value]);
+  }, [selectedProducts, calculateNewPrice]);
 
   const handleExecute = () => {
     const items: PriceUpdateItem[] = previewData.map((p) => ({
@@ -221,7 +222,7 @@ export function PriceModal({ open, onCancel, selectedProducts }: Props) {
                 title: "New Price",
                 dataIndex: "new_price",
                 width: 100,
-                render: (val, record) => (
+                render: (val) => (
                   <span
                     className={
                       val === 0

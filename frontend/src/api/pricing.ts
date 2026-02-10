@@ -31,11 +31,6 @@ export interface BatchPriceUpdateResult {
   results: PriceUpdateResult[];
 }
 
-export interface BatchPriceUpdateResponse {
-  success: boolean;
-  data: BatchPriceUpdateResult;
-}
-
 /**
  * Update price for a single SKU (using batch endpoint for consistency)
  */
