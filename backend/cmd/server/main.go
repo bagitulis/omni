@@ -196,6 +196,7 @@ func main() {
 	l.GET("/orders/:orderId", lOrder.GetOrderByID)
 	l.POST("/orders/ship", lOrder.ShipOrder)
 	l.POST("/orders/cancel", lOrder.CancelOrder)
+	l.POST("/orders/document", lOrder.GetDocument)
 	l.GET("/products", lProd.GetProducts)
 	l.GET("/products/:itemId", lProd.GetProductByID)
 	l.POST("/products", lProd.CreateProduct)
