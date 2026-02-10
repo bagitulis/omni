@@ -64,6 +64,11 @@ func (h *WebhookExtendedHandler) ShopeeWebhookTenant(c *gin.Context) {
 				Str("platform", "shopee").
 				Err(err).
 				Msg("Shopee webhook processing error")
+
+			if isSignatureError(err) {
+				c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid webhook signature"})
+				return
+			}
 		}
 	}
 
@@ -99,6 +104,11 @@ func (h *WebhookExtendedHandler) LazadaWebhookTenant(c *gin.Context) {
 				Str("platform", "lazada").
 				Err(err).
 				Msg("Lazada webhook processing error")
+
+			if isSignatureError(err) {
+				c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid webhook signature"})
+				return
+			}
 		}
 	}
 
@@ -135,6 +145,11 @@ func (h *WebhookExtendedHandler) TiktokWebhookTenant(c *gin.Context) {
 				Str("platform", "tiktok").
 				Err(err).
 				Msg("TikTok webhook processing error")
+
+			if isSignatureError(err) {
+				c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid webhook signature"})
+				return
+			}
 		}
 	}
 
