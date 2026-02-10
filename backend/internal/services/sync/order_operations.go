@@ -193,6 +193,7 @@ func (s *OrderSyncOperations) fetchOrderItems(
 	// We'll batch by 50 to be safe for all platforms
 	const batchSize = 50
 	allItems := make(map[string][]OrderItem)
+	var batchErrors []string
 
 	for i := 0; i < len(orderIDs); i += batchSize {
 		end := i + batchSize
@@ -214,6 +215,7 @@ func (s *OrderSyncOperations) fetchOrderItems(
 				"batch":    i/batchSize + 1,
 				"error":    err.Error(),
 			}).Warn("Failed to fetch order items batch, continuing with next batch")
+			batchErrors = append(batchErrors, fmt.Sprintf("batch %d: %s", i/batchSize+1, err.Error()))
 			continue
 		}
 
@@ -221,6 +223,14 @@ func (s *OrderSyncOperations) fetchOrderItems(
 		for orderID, orderItems := range items {
 			allItems[orderID] = orderItems
 		}
+	}
+
+	if len(batchErrors) > 0 {
+		s.logger.WithFields(map[string]interface{}{
+			"platform":    platform,
+			"error_count": len(batchErrors),
+			"errors":      batchErrors,
+		}).Warn("Some batches failed during order items fetch")
 	}
 
 	// Count how many items were found
