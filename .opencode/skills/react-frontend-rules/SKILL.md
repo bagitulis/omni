@@ -30,7 +30,18 @@ description: React frontend rules for OMNI React migration - Ant Design + Ginee-
   - Same border radius (3px sharp corners)
   - Same control heights (32px)
 
-### 3. Font Consistency (CRITICAL)
+### 3. Directory Casing (CRITICAL - Windows)
+
+> **RECURRING BUG**: `components/modals/` vs `components/Modals/` causes TS1261 build failures.
+
+- React frontend uses **lowercase** directory names: `modals/`, `tables/`, `forms/`, `layout/`, `ui/`
+- Vue legacy uses **uppercase** `Modals/` — this is intentional and must NOT be changed
+- On Windows (`core.ignorecase=true`), the OS may silently flip `modals/` → `Modals/`
+- **ALWAYS use lowercase** when creating/importing files: `@/components/modals/SomeModal`
+- **NEVER** use `@/components/Modals/` in React frontend imports
+- If build fails with TS1261 casing error: rename directory via temp name (`modals` → `_temp` → `modals`)
+
+### 4. Font Consistency (CRITICAL)
 
 ```css
 /* ONLY use this font stack - NO Google Fonts */

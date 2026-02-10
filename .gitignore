@@ -31,13 +31,10 @@ frontend-vue/dist/
 # TypeScript incremental build artifacts
 *.tsbuildinfo
 
-# OpenCode agent scratch
-.sisyphus/
-
 # Local artifacts - null/nul files (Windows device name artifacts)
 **/nul
 **/null
-dashboard-verified.png
+
 # Temporary files
 *.log
 *.tmp
