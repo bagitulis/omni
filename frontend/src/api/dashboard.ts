@@ -141,16 +141,22 @@ export async function getRevenueAnalytics(params?: {
  * Fetch wallet data for a platform
  * Backend route: GET /api/{platform}/wallet/balance
  */
-export async function getWalletData(_platform: string): Promise<WalletData> {
-  // Mocking for now since backend might not have unified wallet endpoint yet
-  // Real implementation would call:
-  // const response = await apiClient.get(`/${_platform}/wallet/balance`);
+export async function getWalletData(platform: string): Promise<WalletData> {
+  if (platform === "shopee") {
+    const response = await apiClient.get<WalletData>(`/shopee/wallet/balance`);
+    if (!response.success) {
+      throw new Error(response.error || "Failed to fetch wallet data");
+    }
+    return response.data!;
+  }
 
-  // Return mock data for UI development
+  // Return default for other platforms until implemented
   return {
-    balance: Math.floor(Math.random() * 10000000),
+    total_balance: 0,
+    pending_balance: 0,
+    available_balance: 0,
     currency: "IDR",
-    last_updated: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 }
 

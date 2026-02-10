@@ -10,7 +10,8 @@ export function WalletWidget() {
   const { data: tiktokData, isLoading: isTiktokLoading } =
     useWalletData("tiktok");
 
-  const totalBalance = (shopeeData?.balance || 0) + (tiktokData?.balance || 0);
+  const totalBalance =
+    (shopeeData?.total_balance || 0) + (tiktokData?.total_balance || 0);
 
   return (
     <Card
@@ -41,7 +42,7 @@ export function WalletWidget() {
         <Col span={12}>
           <Statistic
             title="Shopee"
-            value={shopeeData?.balance}
+            value={shopeeData?.total_balance}
             prefix="Rp"
             precision={0}
             valueStyle={{ fontSize: 16 }}
@@ -51,7 +52,7 @@ export function WalletWidget() {
         <Col span={12}>
           <Statistic
             title="TikTok"
-            value={tiktokData?.balance}
+            value={tiktokData?.total_balance}
             prefix="Rp"
             precision={0}
             valueStyle={{ fontSize: 16 }}

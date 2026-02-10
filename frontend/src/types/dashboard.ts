@@ -40,9 +40,11 @@ export interface DashboardData {
 }
 
 export interface WalletData {
-  balance: number;
+  total_balance: number;
+  pending_balance: number;
+  available_balance: number;
   currency: string;
-  last_updated: string;
+  updated_at: string;
 }
 
 export interface ShippingFeeData {

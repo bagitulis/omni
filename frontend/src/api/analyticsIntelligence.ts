@@ -127,7 +127,7 @@ export async function getUnifiedAnalytics(): Promise<UnifiedAnalyticsResponse> {
 }
 
 export async function getClassifiedProducts(): Promise<ClassifiedProductsResponse> {
-  const response = await api.get("/analytics/unified/classified-products");
+  const response = await api.get("/analytics/products/classified");
   if (!response.data.success) throw new Error(response.data.error);
   return response.data.data;
 }
