@@ -587,3 +587,52 @@ At minimum, test these 4 viewports:
 | Test only one viewport   | Test ALL 4 minimum viewports   |
 | Skip resize transitions  | Animate resize and check each  |
 | Ignore horizontal scroll | CRITICAL fail if present       |
+
+---
+
+## ⚠️ MANDATORY: UI Bug Reporting (Even When Not Your Task)
+
+> **This rule applies to ALL agents using Playwright/browser, regardless of their current task.**
+
+When you open a page in the browser (for ANY reason — testing, screenshots, verification, debugging), and you notice layout issues, **you MUST report them to the main agent (Sisyphus)**.
+
+### What Counts as Reportable
+
+| Issue                 | Example                                                         |
+| --------------------- | --------------------------------------------------------------- |
+| Broken layout         | Elements overlapping, content cut off, page structure collapsed |
+| Missing table columns | Table exists but columns are invisible or not rendering         |
+| Horizontal scroll     | Page has unwanted horizontal scrollbar                          |
+| Invisible UI elements | Buttons, forms, or sections that should be visible but aren't   |
+| Misaligned components | Cards, grids, or elements clearly out of alignment              |
+| Empty containers      | Sections that should have content but render as blank           |
+| Mobile layout broken  | Sidebar visible on mobile, bottom nav missing                   |
+
+### How to Report
+
+When you find a UI bug that is NOT part of your current task:
+
+1. **Take a screenshot** → save to `docs/Screenshots/bug-{page-name}-{issue}.png`
+2. **Include in your response** to the main agent:
+
+```
+🐛 UI BUG FOUND (not my current task):
+- Page: [URL or page name]
+- Issue: [brief description]
+- Screenshot: docs/Screenshots/bug-{name}.png
+- Severity: [CRITICAL / WARNING]
+```
+
+### Severity Guide
+
+| Severity     | When                                                          |
+| ------------ | ------------------------------------------------------------- |
+| **CRITICAL** | Page is unusable, data not visible, core functionality broken |
+| **WARNING**  | Layout is messy but functional, minor visual issues           |
+
+### Rules
+
+- **NEVER silently ignore** a layout bug you discover
+- **ALWAYS report** even if fixing it is not your task
+- **DO NOT fix it yourself** unless explicitly asked — just report
+- This applies to ALL pages you visit, not just the one you're working on

@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
   "categories": {
     "visual-engineering": {
-      "prompt_append": "SCREENSHOT RULE: ALWAYS save screenshots to 'docs/Screenshots/' directory with descriptive names (e.g., docs/Screenshots/page-desktop.png). NEVER save to root folder.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code (no duplication, single responsibility, no dead code) slightly exceeding is OK. Docs/config/migrations have no limit."
+      "prompt_append": "SCREENSHOT RULE: ALWAYS save screenshots to 'docs/Screenshots/' directory with descriptive names (e.g., docs/Screenshots/page-desktop.png). NEVER save to root folder.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code (no duplication, single responsibility, no dead code) slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🐛 UI BUG REPORTING (MANDATORY): When using Playwright/browser, if you discover ANY layout bug (broken layout, missing table columns, overlapping elements, invisible UI, horizontal scroll, misaligned components) — you MUST report it to the main agent even if it is NOT part of your current task. Include: screenshot, page URL, description of the issue. Never silently ignore UI bugs."
     },
     "implementation": {
       "prompt_append": "📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code (no duplication, single responsibility, no dead code) slightly exceeding is OK. Docs/config/migrations have no limit."

@@ -219,6 +219,26 @@ Task is complete ONLY if:
 | Shotgun debugging           | Trace flow first        |
 | Skip verification           | Always lsp_diagnostics  |
 | `success: true` + error msg | Use proper status codes |
+| Silently ignore UI bugs     | Report to main agent    |
+
+---
+
+## 12. UI Bug Reporting (MANDATORY)
+
+When using Playwright/browser for ANY task (testing, screenshots, verification):
+
+- If you discover a **layout bug** (broken layout, missing table columns, overlapping elements, invisible UI, horizontal scroll, misaligned components) → **MUST report to main agent**
+- Report even if the bug is **NOT part of your current task**
+- Take a screenshot → `docs/Screenshots/bug-{page}-{issue}.png`
+- Do NOT attempt to fix unless explicitly asked — just report
+
+```
+🐛 UI BUG FOUND (not my current task):
+- Page: [URL or page name]
+- Issue: [brief description]
+- Screenshot: docs/Screenshots/bug-{name}.png
+- Severity: CRITICAL / WARNING
+```
 
 ---
 
