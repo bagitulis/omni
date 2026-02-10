@@ -100,6 +100,26 @@ func (s *CloneService) Clone(ctx context.Context, req CloneRequest) (*CloneResul
 		productData.Price = req.NewPrice
 	}
 
+	// Apply price adjustment logic (percentage, fixed amount, etc.)
+	if req.PriceAdjustmentType != "" {
+		switch req.PriceAdjustmentType {
+		case "fixed":
+			if req.PriceAdjustmentValue > 0 {
+				productData.Price = req.PriceAdjustmentValue
+			}
+		case "percentage":
+			// Increase/Decrease by percentage. e.g. 10 means +10%, -10 means -10%
+			productData.Price = productData.Price * (1 + req.PriceAdjustmentValue/100)
+		case "amount":
+			// Increase/Decrease by fixed amount. e.g. 1000 means +1000
+			productData.Price = productData.Price + req.PriceAdjustmentValue
+		}
+		// Ensure price is not negative
+		if productData.Price < 0 {
+			productData.Price = 0
+		}
+	}
+
 	// 6. Create product on target platform
 	result.Progress = 80
 	targetItemID, err := s.createProduct(ctx, req.TargetPlatform, productData)
@@ -163,10 +183,14 @@ func (s *CloneService) BatchClone(ctx context.Context, req BatchCloneRequest) (*
 
 	for _, itemID := range req.SourceItemIDs {
 		cloneReq := CloneRequest{
-			SourcePlatform: req.SourcePlatform,
-			TargetPlatform: req.TargetPlatform,
-			SourceItemID:   itemID,
-			CategoryID:     req.CategoryID,
+			SourcePlatform:       req.SourcePlatform,
+			TargetPlatform:       req.TargetPlatform,
+			SourceItemID:         itemID,
+			CategoryID:           req.CategoryID,
+			PriceAdjustmentType:  req.PriceAdjustmentType,
+			PriceAdjustmentValue: req.PriceAdjustmentValue,
+			SaveAsDraft:          req.SaveAsDraft,
+			UseInventory:         true,
 		}
 
 		cloneResult, err := s.Clone(ctx, cloneReq)

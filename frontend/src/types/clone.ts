@@ -18,6 +18,8 @@ export interface CloneRequest {
   category_id?: string;
   update_price?: boolean;
   new_price?: number;
+  price_adjustment_type?: "fixed" | "percentage" | "amount";
+  price_adjustment_value?: number;
   use_inventory?: boolean;
   save_as_draft?: boolean;
 }
@@ -30,6 +32,9 @@ export interface BatchCloneRequest {
   target_platform: string;
   source_item_ids: string[];
   category_id?: string;
+  price_adjustment_type?: "fixed" | "percentage" | "amount";
+  price_adjustment_value?: number;
+  save_as_draft?: boolean;
 }
 
 /**

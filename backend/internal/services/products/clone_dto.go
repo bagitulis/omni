@@ -12,23 +12,28 @@ import (
 
 // CloneRequest represents a product clone request
 type CloneRequest struct {
-	SourcePlatform string  `json:"source_platform" binding:"required"`
-	TargetPlatform string  `json:"target_platform" binding:"required"`
-	SourceItemID   string  `json:"source_item_id" binding:"required"`
-	SKU            string  `json:"sku,omitempty"` // SKU to lookup inventory data
-	CategoryID     string  `json:"category_id,omitempty"`
-	UpdatePrice    bool    `json:"update_price,omitempty"`
-	NewPrice       float64 `json:"new_price,omitempty"`
-	UseInventory   bool    `json:"use_inventory,omitempty"` // Use inventory data for price/stock (default: true)
-	SaveAsDraft    bool    `json:"save_as_draft,omitempty"` // true = AS_DRAFT, false = LISTING (default: false = langsung aktif)
+	SourcePlatform       string  `json:"source_platform" binding:"required"`
+	TargetPlatform       string  `json:"target_platform" binding:"required"`
+	SourceItemID         string  `json:"source_item_id" binding:"required"`
+	SKU                  string  `json:"sku,omitempty"` // SKU to lookup inventory data
+	CategoryID           string  `json:"category_id,omitempty"`
+	UpdatePrice          bool    `json:"update_price,omitempty"`
+	NewPrice             float64 `json:"new_price,omitempty"`
+	PriceAdjustmentType  string  `json:"price_adjustment_type,omitempty"` // "fixed", "percentage", "amount"
+	PriceAdjustmentValue float64 `json:"price_adjustment_value,omitempty"`
+	UseInventory         bool    `json:"use_inventory,omitempty"` // Use inventory data for price/stock (default: true)
+	SaveAsDraft          bool    `json:"save_as_draft,omitempty"` // true = AS_DRAFT, false = LISTING (default: false = langsung aktif)
 }
 
 // BatchCloneRequest represents batch clone request
 type BatchCloneRequest struct {
-	SourcePlatform string   `json:"source_platform" binding:"required"`
-	TargetPlatform string   `json:"target_platform" binding:"required"`
-	SourceItemIDs  []string `json:"source_item_ids" binding:"required"`
-	CategoryID     string   `json:"category_id,omitempty"`
+	SourcePlatform       string   `json:"source_platform" binding:"required"`
+	TargetPlatform       string   `json:"target_platform" binding:"required"`
+	SourceItemIDs        []string `json:"source_item_ids" binding:"required"`
+	CategoryID           string   `json:"category_id,omitempty"`
+	PriceAdjustmentType  string   `json:"price_adjustment_type,omitempty"` // "fixed", "percentage", "amount"
+	PriceAdjustmentValue float64  `json:"price_adjustment_value,omitempty"`
+	SaveAsDraft          bool     `json:"save_as_draft,omitempty"`
 }
 
 // CloneResult represents clone operation result
