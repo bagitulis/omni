@@ -80,6 +80,10 @@ func (s *SyncService) SyncOrders(ctx context.Context, status string) (int, error
 
 		if err := s.orderRepo.Upsert(ctx, dbOrder); err == nil {
 			count++
+		} else {
+			// Fix Bug #10: Log error on upsert failure
+			zlog := zerolog.Ctx(ctx)
+			zlog.Error().Err(err).Str("order_sn", order.OrderID).Msg("Failed to upsert order")
 		}
 	}
 

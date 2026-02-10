@@ -83,7 +83,7 @@ func (c *Client) buildURL(path string, params map[string]string) string {
 	return u.String()
 }
 
-// doRequest executes HTTP request and parses response
+// doRequest executes HTTP request and parses response with centralized retry logic
 func (c *Client) doRequest(method, path string, params map[string]string, result interface{}) error {
 	reqURL := c.buildURL(path, params)
 
@@ -94,17 +94,49 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 		Interface("params", params).
 		Msg("[Shopee API] Request")
 
-	req, err := http.NewRequest(method, reqURL, nil)
-	if err != nil {
-		log.Error().Err(err).Msg("[Shopee API] Failed to create request")
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
+	var resp *http.Response
+	var err error
+	maxRetries := 3
 
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		log.Error().Err(err).Msg("[Shopee API] HTTP request failed")
-		return err
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if attempt > 0 {
+			// Exponential backoff: 200ms, 400ms, 800ms
+			backoff := time.Duration(1<<uint(attempt)) * 100 * time.Millisecond
+			log.Info().Int("attempt", attempt+1).Dur("backoff", backoff).Msg("[Shopee API] Retrying request due to rate limit/error")
+			time.Sleep(backoff)
+		}
+
+		req, reqErr := http.NewRequest(method, reqURL, nil)
+		if reqErr != nil {
+			log.Error().Err(reqErr).Msg("[Shopee API] Failed to create request")
+			return reqErr
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err = c.httpClient.Do(req)
+		if err != nil {
+			log.Error().Err(err).Msg("[Shopee API] HTTP request failed")
+			if attempt < maxRetries {
+				continue
+			}
+			return err
+		}
+
+		// Check for rate limit (429) or server errors (5xx)
+		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
+			resp.Body.Close()
+			if attempt < maxRetries {
+				log.Warn().Int("status", resp.StatusCode).Msg("[Shopee API] Rate limit or server error, retrying")
+				continue
+			}
+		}
+
+		// If we get here, it's either success or a non-retriable error (4xx)
+		break
+	}
+
+	if resp == nil {
+		return fmt.Errorf("request failed after %d retries", maxRetries)
 	}
 	defer resp.Body.Close()
 

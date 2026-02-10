@@ -142,32 +142,62 @@ func (c *Client) RawRequest(ctx context.Context, method, apiPath string, params 
 	baseURL := c.baseURLFor(apiPath)
 	u, _ := url.Parse(baseURL + apiPath)
 
-	var body io.Reader
-	if strings.EqualFold(method, http.MethodGet) {
-		q := u.Query()
-		for k, v := range params {
-			q.Set(k, v)
+	var resp *http.Response
+	var err error
+	maxRetries := 3
+
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if attempt > 0 {
+			// Exponential backoff: 200ms, 400ms, 800ms
+			backoff := time.Duration(1<<uint(attempt)) * 100 * time.Millisecond
+			time.Sleep(backoff)
 		}
-		u.RawQuery = q.Encode()
-	} else {
-		form := url.Values{}
-		for k, v := range params {
-			form.Set(k, v)
+
+		var body io.Reader
+		if strings.EqualFold(method, http.MethodGet) {
+			q := u.Query()
+			for k, v := range params {
+				q.Set(k, v)
+			}
+			u.RawQuery = q.Encode()
+		} else {
+			form := url.Values{}
+			for k, v := range params {
+				form.Set(k, v)
+			}
+			body = strings.NewReader(form.Encode())
 		}
-		body = strings.NewReader(form.Encode())
+
+		req, reqErr := http.NewRequestWithContext(ctx, method, u.String(), body)
+		if reqErr != nil {
+			return reqErr
+		}
+		if !strings.EqualFold(method, http.MethodGet) {
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
+		}
+
+		resp, err = c.httpClient.Do(req)
+		if err != nil {
+			if attempt < maxRetries {
+				continue
+			}
+			return err
+		}
+
+		// Check for rate limit (429) or server errors (5xx)
+		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
+			resp.Body.Close()
+			if attempt < maxRetries {
+				continue
+			}
+		}
+
+		// Success or non-retriable error
+		break
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
-	if err != nil {
-		return err
-	}
-	if !strings.EqualFold(method, http.MethodGet) {
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return err
+	if resp == nil {
+		return fmt.Errorf("request failed after %d retries", maxRetries)
 	}
 	defer resp.Body.Close()
 

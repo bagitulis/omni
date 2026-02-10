@@ -46,8 +46,10 @@ func (m *TokenManager) executeShopeeTokenRefresh(ctx context.Context, tenantID, 
 	accessToken, _ := result["access_token"].(string)
 	newRefreshToken, _ := result["refresh_token"].(string)
 	expiresIn := int64(14400) // Default 4 hours
-	if val, ok := result["expire_in"].(float64); ok {
+	if val, ok := result["expire_in"].(float64); ok && val > 0 {
 		expiresIn = int64(val)
+	} else {
+		log.Warn().Msg("[SHOPEE REFRESH] expire_in missing or invalid, using default: 4 hours")
 	}
 	// Shopee refresh token valid for 7 days per Shopee API documentation
 	refreshExpiresIn := int64(7 * 24 * 60 * 60) // 7 days in seconds
@@ -88,14 +90,27 @@ func (m *TokenManager) executeLazadaTokenRefresh(ctx context.Context, tenantID, 
 		return nil, err
 	}
 
-	if code, ok := result["code"].(string); ok && code != "0" {
-		log.Error().Str("code", code).Interface("message", result["message"]).Msg("[LAZADA REFRESH] API error")
-		return nil, fmt.Errorf("lazada token refresh failed: %v", result["message"])
+	var errCode string
+	if codeStr, ok := result["code"].(string); ok {
+		errCode = codeStr
+	} else if codeNum, ok := result["code"].(float64); ok {
+		errCode = fmt.Sprintf("%.0f", codeNum)
+	}
+
+	if errCode != "" && errCode != "0" {
+		log.Error().Str("code", errCode).Interface("message", result["message"]).Msg("[LAZADA REFRESH] API error")
+		return nil, fmt.Errorf("lazada token refresh failed: %s - %v", errCode, result["message"])
 	}
 
 	accessToken, _ := result["access_token"].(string)
 	newRefreshToken, _ := result["refresh_token"].(string)
-	expiresIn := int64(result["expires_in"].(float64))
+
+	expiresIn := int64(7 * 24 * 60 * 60) // Default 7 days
+	if val, ok := result["expires_in"].(float64); ok && val > 0 {
+		expiresIn = int64(val)
+	} else {
+		log.Warn().Msg("[LAZADA REFRESH] expires_in missing or invalid, using default: 7 days")
+	}
 	// Lazada refresh token - use actual value from API if provided
 	refreshExpiresIn := int64(30 * 24 * 60 * 60) // Default 30 days
 	if val, ok := result["refresh_expires_in"].(float64); ok && val > 0 {
@@ -146,8 +161,8 @@ func (m *TokenManager) executeTiktokTokenRefresh(ctx context.Context, tenantID, 
 	}
 
 	data, ok := result["data"].(map[string]interface{})
-	if !ok {
-		log.Error().Msg("[TIKTOK REFRESH] Invalid response structure")
+	if !ok || data == nil {
+		log.Error().Msg("[TIKTOK REFRESH] Invalid response structure: data is missing or nil")
 		return nil, fmt.Errorf("tiktok token refresh failed: invalid response structure")
 	}
 

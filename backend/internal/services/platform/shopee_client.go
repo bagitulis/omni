@@ -116,7 +116,6 @@ func (c *ShopeeAPIClient) getOrdersViaOrderListAPI(ctx context.Context, status s
 			break
 		}
 		cursor = response.Response.NextCursor
-		time.Sleep(100 * time.Millisecond)
 	}
 
 	return allOrders, nil
@@ -146,7 +145,6 @@ func (c *ShopeeAPIClient) getProcessedOrdersViaPackageAPI(ctx context.Context) (
 			break
 		}
 		cursor = response.Response.Pagination.NextCursor
-		time.Sleep(100 * time.Millisecond)
 	}
 
 	if len(allPackages) == 0 {
@@ -181,7 +179,6 @@ func (c *ShopeeAPIClient) getProcessedOrdersViaPackageAPI(ctx context.Context) (
 			pkg := &detailResp.Response.PackageList[idx]
 			packageInfoMap[pkg.OrderSN] = pkg
 		}
-		time.Sleep(100 * time.Millisecond)
 	}
 
 	// Step 3: Get order details for item_name and model_name
@@ -214,7 +211,6 @@ func (c *ShopeeAPIClient) getProcessedOrdersViaPackageAPI(ctx context.Context) (
 				orderDetails[orderSN] = detail
 			}
 		}
-		time.Sleep(100 * time.Millisecond)
 	}
 
 	// Step 4: Build result - merge package info with order details

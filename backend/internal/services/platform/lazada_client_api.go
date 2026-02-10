@@ -101,9 +101,6 @@ func (c *LazadaAPIClient) GetOrderList(ctx context.Context, status string, days 
 		if len(orders) < limit {
 			break
 		}
-
-		// Rate limiting
-		time.Sleep(200 * time.Millisecond)
 	}
 
 	return allOrders, nil
@@ -156,8 +153,6 @@ func (c *LazadaAPIClient) GetOrderDetails(ctx context.Context, orderIDs []string
 				allItems = append(allItems, itemMap)
 			}
 		}
-
-		time.Sleep(100 * time.Millisecond)
 	}
 
 	return allItems, nil

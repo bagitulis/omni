@@ -110,9 +110,6 @@ func (c *TiktokAPIClient) GetOrderList(ctx context.Context, status string, days 
 		} else {
 			break
 		}
-
-		// Rate limiting
-		time.Sleep(200 * time.Millisecond)
 	}
 
 	return allOrders, nil
@@ -176,8 +173,6 @@ func (c *TiktokAPIClient) GetOrderDetails(ctx context.Context, orderIDs []string
 				allOrders = append(allOrders, orderMap)
 			}
 		}
-
-		time.Sleep(100 * time.Millisecond)
 	}
 
 	return allOrders, nil
