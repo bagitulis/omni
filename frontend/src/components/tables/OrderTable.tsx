@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { Table } from "antd";
 import { GroupedOrder, OrderTableProps } from "./OrderTable.types";
 import { getOrderTableColumns } from "./OrderTableColumns";
+import { VirtualTable } from "@/components/common/VirtualTable";
 
 export function OrderTable({
   orders,
@@ -65,7 +65,7 @@ export function OrderTable({
   });
 
   return (
-    <Table<GroupedOrder>
+    <VirtualTable<GroupedOrder>
       columns={columns}
       dataSource={groupedOrders}
       loading={loading}
@@ -86,6 +86,8 @@ export function OrderTable({
       }}
       scroll={{ x: 900 }}
       style={{ backgroundColor: "#fff" }}
+      enableVirtual={groupedOrders.length > 20}
+      offsetBottom={320}
     />
   );
 }

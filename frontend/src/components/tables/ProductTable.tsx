@@ -1,4 +1,4 @@
-import { Table, Image, Button, Space, Typography, Tag, Tooltip } from "antd";
+import { Image, Button, Space, Typography, Tag, Tooltip } from "antd";
 import {
   EditOutlined,
   DeleteOutlined,
@@ -8,6 +8,7 @@ import {
 import { Product } from "@/types/product";
 import { PlatformBadge } from "@/components/ui/PlatformBadge";
 import type { TableProps } from "antd";
+import { VirtualTable } from "@/components/common/VirtualTable";
 
 interface ProductTableProps {
   loading: boolean;
@@ -143,7 +144,7 @@ export function ProductTable({
   ];
 
   return (
-    <Table
+    <VirtualTable
       rowKey="item_id"
       loading={loading}
       dataSource={products}
@@ -161,6 +162,8 @@ export function ProductTable({
       }}
       size="middle"
       scroll={{ x: 800 }}
+      enableVirtual={products.length > 20}
+      offsetBottom={280}
     />
   );
 }
