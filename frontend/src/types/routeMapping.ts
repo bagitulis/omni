@@ -61,3 +61,20 @@ export type ViewMode =
   | "disconnected"
   | "backend"
   | "unused";
+
+export interface BackendRoute {
+  method: string;
+  path: string;
+  handler: string;
+  middlewares?: string[];
+  description?: string;
+  tags?: string[];
+}
+
+export interface BackendAnalysis {
+  total_routes: number;
+  by_method: Record<string, number>;
+  by_tag: Record<string, number>;
+  conflicts?: Array<{ route1: string; route2: string; reason: string }>;
+  unprotected_routes?: string[];
+}
