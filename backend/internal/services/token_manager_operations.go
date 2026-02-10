@@ -6,14 +6,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/platform"
 	"github.com/omni/backend/internal/services/sync"
 )
+
+func maskToken(token string) string {
+	if len(token) <= 8 {
+		return "tok_****"
+	}
+	return "tok_****" + token[len(token)-4:]
+}
 
 // executeShopeeTokenRefresh executes Shopee token refresh
 func (m *TokenManager) executeShopeeTokenRefresh(ctx context.Context, tenantID, url string, body map[string]interface{}) (*TokenInfo, error) {
@@ -44,7 +52,11 @@ func (m *TokenManager) executeShopeeTokenRefresh(ctx context.Context, tenantID, 
 	// Shopee refresh token valid for 7 days per Shopee API documentation
 	refreshExpiresIn := int64(7 * 24 * 60 * 60) // 7 days in seconds
 
-	log.Printf("[SHOPEE REFRESH] Success! Access token expires in %d seconds (%d hours), refresh token expires in %d days", expiresIn, expiresIn/3600, refreshExpiresIn/86400)
+	log.Info().
+		Int64("expires_in", expiresIn).
+		Int64("expires_in_hours", expiresIn/3600).
+		Int64("refresh_expires_in_days", refreshExpiresIn/86400).
+		Msg("[SHOPEE REFRESH] Success! Tokens refreshed")
 
 	return m.saveNewTokens(ctx, tenantID, models.PlatformShopee, accessToken, newRefreshToken, expiresIn, refreshExpiresIn)
 }
@@ -58,26 +70,26 @@ func (m *TokenManager) executeLazadaTokenRefresh(ctx context.Context, tenantID, 
 	}
 	req.URL.RawQuery = q.Encode()
 
-	log.Printf("[LAZADA REFRESH] Request URL: %s", req.URL.String())
+	log.Info().Str("url", req.URL.String()).Msg("[LAZADA REFRESH] Requesting refresh")
 
 	resp, err := m.httpClient.Do(req)
 	if err != nil {
-		log.Printf("[LAZADA REFRESH] HTTP error: %v", err)
+		log.Error().Err(err).Msg("[LAZADA REFRESH] HTTP error")
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	respBody, _ := io.ReadAll(resp.Body)
-	log.Printf("[LAZADA REFRESH] Response: %s", string(respBody))
+	log.Info().Int("size", len(respBody)).Msg("[LAZADA REFRESH] Response received")
 
 	var result map[string]interface{}
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		log.Printf("[LAZADA REFRESH] JSON parse error: %v", err)
+		log.Error().Err(err).Msg("[LAZADA REFRESH] JSON parse error")
 		return nil, err
 	}
 
 	if code, ok := result["code"].(string); ok && code != "0" {
-		log.Printf("[LAZADA REFRESH] API error: code=%s, message=%v", code, result["message"])
+		log.Error().Str("code", code).Interface("message", result["message"]).Msg("[LAZADA REFRESH] API error")
 		return nil, fmt.Errorf("lazada token refresh failed: %v", result["message"])
 	}
 
@@ -88,12 +100,15 @@ func (m *TokenManager) executeLazadaTokenRefresh(ctx context.Context, tenantID, 
 	refreshExpiresIn := int64(30 * 24 * 60 * 60) // Default 30 days
 	if val, ok := result["refresh_expires_in"].(float64); ok && val > 0 {
 		refreshExpiresIn = int64(val)
-		log.Printf("[LAZADA REFRESH] refresh_expires_in from API: %d seconds = %d days", refreshExpiresIn, refreshExpiresIn/86400)
+		log.Info().Int64("days", refreshExpiresIn/86400).Msg("[LAZADA REFRESH] refresh_expires_in from API")
 	} else {
-		log.Printf("[LAZADA REFRESH] refresh_expires_in not provided, using default: 30 days")
+		log.Info().Msg("[LAZADA REFRESH] refresh_expires_in not provided, using default: 30 days")
 	}
 
-	log.Printf("[LAZADA REFRESH] Success! New access token expires in %d seconds, refresh token expires in %d days", expiresIn, refreshExpiresIn/86400)
+	log.Info().
+		Int64("expires_in", expiresIn).
+		Int64("refresh_expires_in_days", refreshExpiresIn/86400).
+		Msg("[LAZADA REFRESH] Success! Tokens refreshed")
 	return m.saveNewTokens(ctx, tenantID, models.PlatformLazada, accessToken, newRefreshToken, expiresIn, refreshExpiresIn)
 }
 
@@ -106,39 +121,39 @@ func (m *TokenManager) executeTiktokTokenRefresh(ctx context.Context, tenantID, 
 	}
 	req.URL.RawQuery = q.Encode()
 
-	log.Printf("[TIKTOK REFRESH] Request URL: %s", req.URL.String())
+	log.Info().Str("url", req.URL.String()).Msg("[TIKTOK REFRESH] Requesting refresh")
 
 	resp, err := m.httpClient.Do(req)
 	if err != nil {
-		log.Printf("[TIKTOK REFRESH] HTTP error: %v", err)
+		log.Error().Err(err).Msg("[TIKTOK REFRESH] HTTP error")
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	respBody, _ := io.ReadAll(resp.Body)
-	log.Printf("[TIKTOK REFRESH] Response: %s", string(respBody))
+	log.Info().Int("size", len(respBody)).Msg("[TIKTOK REFRESH] Response received")
 
 	var result map[string]interface{}
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		log.Printf("[TIKTOK REFRESH] JSON parse error: %v", err)
+		log.Error().Err(err).Msg("[TIKTOK REFRESH] JSON parse error")
 		return nil, err
 	}
 
 	// Check for error in response
 	if code, ok := result["code"].(float64); ok && code != 0 {
-		log.Printf("[TIKTOK REFRESH] API error: code=%v, message=%v", result["code"], result["message"])
+		log.Error().Interface("code", result["code"]).Interface("message", result["message"]).Msg("[TIKTOK REFRESH] API error")
 		return nil, fmt.Errorf("tiktok token refresh failed: %v", result["message"])
 	}
 
 	data, ok := result["data"].(map[string]interface{})
 	if !ok {
-		log.Printf("[TIKTOK REFRESH] Invalid response structure: %+v", result)
+		log.Error().Msg("[TIKTOK REFRESH] Invalid response structure")
 		return nil, fmt.Errorf("tiktok token refresh failed: invalid response structure")
 	}
 
 	accessToken, _ := data["access_token"].(string)
 	if accessToken == "" {
-		log.Printf("[TIKTOK REFRESH] No access_token in response data: %+v", data)
+		log.Error().Msg("[TIKTOK REFRESH] No access_token in response data")
 		return nil, fmt.Errorf("tiktok token refresh failed: no access_token in response")
 	}
 
@@ -159,15 +174,15 @@ func (m *TokenManager) executeTiktokTokenRefresh(ctx context.Context, tenantID, 
 	if accessTokenExpireValue > nowSeconds {
 		// It's a Unix timestamp (seconds) - convert to relative seconds
 		expiresIn = accessTokenExpireValue - nowSeconds
-		log.Printf("[TIKTOK REFRESH] access_token_expire_in is Unix timestamp: %d (relative: %d seconds)", accessTokenExpireValue, expiresIn)
+		log.Info().Int64("expires_in", expiresIn).Msg("[TIKTOK REFRESH] access_token_expire_in is Unix timestamp")
 	} else if accessTokenExpireValue > 0 {
 		// It's relative seconds - use as-is
 		expiresIn = accessTokenExpireValue
-		log.Printf("[TIKTOK REFRESH] access_token_expire_in is relative: %d seconds", expiresIn)
+		log.Info().Int64("expires_in", expiresIn).Msg("[TIKTOK REFRESH] access_token_expire_in is relative")
 	} else {
 		// Default to 7 days if not provided
 		expiresIn = 7 * 24 * 60 * 60
-		log.Printf("[TIKTOK REFRESH] access_token_expire_in not provided, using default: %d seconds", expiresIn)
+		log.Info().Int64("expires_in", expiresIn).Msg("[TIKTOK REFRESH] access_token_expire_in not provided, using default")
 	}
 
 	// Handle refresh token expiry - normalize like access token
@@ -180,18 +195,21 @@ func (m *TokenManager) executeTiktokTokenRefresh(ctx context.Context, tenantID, 
 	if refreshTokenExpireValue > nowSeconds {
 		// It's a Unix timestamp - convert to relative seconds
 		refreshExpiresIn = refreshTokenExpireValue - nowSeconds
-		log.Printf("[TIKTOK REFRESH] refresh_token_expire_in is Unix timestamp: %d (relative: %d seconds = %d days)", refreshTokenExpireValue, refreshExpiresIn, refreshExpiresIn/86400)
+		log.Info().Int64("refresh_expires_in", refreshExpiresIn).Int64("days", refreshExpiresIn/86400).Msg("[TIKTOK REFRESH] refresh_token_expire_in is Unix timestamp")
 	} else if refreshTokenExpireValue > 0 {
 		// It's relative seconds - use as-is
 		refreshExpiresIn = refreshTokenExpireValue
-		log.Printf("[TIKTOK REFRESH] refresh_token_expire_in is relative: %d seconds = %d days", refreshExpiresIn, refreshExpiresIn/86400)
+		log.Info().Int64("refresh_expires_in", refreshExpiresIn).Int64("days", refreshExpiresIn/86400).Msg("[TIKTOK REFRESH] refresh_token_expire_in is relative")
 	} else {
 		// Default to 90 days if not provided
 		refreshExpiresIn = 90 * 24 * 60 * 60
-		log.Printf("[TIKTOK REFRESH] refresh_token_expire_in not provided, using default: %d seconds (90 days)", refreshExpiresIn)
+		log.Info().Int64("refresh_expires_in", refreshExpiresIn).Msg("[TIKTOK REFRESH] refresh_token_expire_in not provided, using default")
 	}
 
-	log.Printf("[TIKTOK REFRESH] Success! New access token expires in %d seconds (%d days)", expiresIn, expiresIn/86400)
+	log.Info().
+		Int64("expires_in", expiresIn).
+		Int64("refresh_expires_in", refreshExpiresIn).
+		Msg("[TIKTOK REFRESH] Success! Tokens refreshed")
 	return m.saveNewTokens(ctx, tenantID, models.PlatformTiktok, accessToken, newRefreshToken, expiresIn, refreshExpiresIn)
 }
 

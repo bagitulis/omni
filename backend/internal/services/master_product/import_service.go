@@ -51,7 +51,7 @@ func (s *ImportService) PreviewFromShopee(ctx context.Context, tenantID string, 
 	alreadyExists := len(existingLinks) > 0
 
 	// Get Shopee client
-	client, err := s.getShopeeClient(tenantID)
+	client, err := s.getShopeeClient(ctx, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (s *ImportService) ImportFromShopee(ctx context.Context, tenantID string, s
 	}
 
 	// Get Shopee client
-	client, err := s.getShopeeClient(tenantID)
+	client, err := s.getShopeeClient(ctx, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -342,7 +342,7 @@ func (s *ImportService) ImportFromShopee(ctx context.Context, tenantID string, s
 }
 
 // getShopeeClient creates a Shopee API client for the tenant
-func (s *ImportService) getShopeeClient(tenantID string) (*shopee.Client, error) {
+func (s *ImportService) getShopeeClient(ctx context.Context, tenantID string) (*shopee.Client, error) {
 	// Get tenant database
 	tenantDB, err := config.GetTenantDB(tenantID, s.basePath)
 	if err != nil {
@@ -357,7 +357,7 @@ func (s *ImportService) getShopeeClient(tenantID string) (*shopee.Client, error)
 
 	// Get tenant credentials
 	credRepo := repositories.NewPlatformCredentialsRepository(tenantDB)
-	tenantCreds, err := credRepo.GetShopeeCredentials(context.Background())
+	tenantCreds, err := credRepo.GetShopeeCredentials(ctx)
 	if err != nil {
 		return nil, ErrShopeeNotConfigured
 	}
@@ -368,7 +368,7 @@ func (s *ImportService) getShopeeClient(tenantID string) (*shopee.Client, error)
 
 	// Get global credentials
 	configRepo := repositories.NewGlobalConfigRepository(systemDB)
-	globalCreds, err := configRepo.GetShopeeCredentials(context.Background())
+	globalCreds, err := configRepo.GetShopeeCredentials(ctx)
 	if err != nil || globalCreds.PartnerID == 0 {
 		return nil, ErrShopeeNotConfigured
 	}
