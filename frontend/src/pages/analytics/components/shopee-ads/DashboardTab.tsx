@@ -1,4 +1,4 @@
-import { Card, Col, Row, Statistic, theme } from "antd";
+import { Card, Col, Row, Statistic, theme, Spin } from "antd";
 import {
   DollarOutlined,
   ShoppingOutlined,
@@ -7,7 +7,7 @@ import {
 } from "@ant-design/icons";
 import ReactApexChart from "react-apexcharts";
 import { AdsData, SHOPEE_ORANGE } from "./types";
-import { useSummary } from "./useSummary";
+import { useSummary, Summary } from "./useSummary";
 import { getChartOptions } from "./utils";
 import { EmptyState } from "./EmptyState";
 
@@ -15,15 +15,31 @@ const { useToken } = theme;
 
 interface DashboardTabProps {
   adsData: AdsData[];
+  loading?: boolean;
+  summaryOverride?: Summary;
   onUploadClick: () => void;
 }
 
-export const DashboardTab = ({ adsData, onUploadClick }: DashboardTabProps) => {
+export const DashboardTab = ({
+  adsData,
+  loading,
+  summaryOverride,
+  onUploadClick,
+}: DashboardTabProps) => {
   const { token } = useToken();
-  const summary = useSummary(adsData);
+  const calculatedSummary = useSummary(adsData);
+  const summary = summaryOverride || calculatedSummary;
   const hasData = adsData.length > 0;
 
-  if (!hasData) {
+  if (loading) {
+    return (
+      <div style={{ padding: 48, textAlign: "center" }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (!hasData && !summaryOverride) {
     return <EmptyState onUploadClick={onUploadClick} />;
   }
 

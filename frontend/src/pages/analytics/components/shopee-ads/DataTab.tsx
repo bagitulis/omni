@@ -12,7 +12,7 @@ interface DataTabProps {
 export const DataTab = ({ adsData, loading, onUploadClick }: DataTabProps) => {
   const hasData = adsData.length > 0;
 
-  if (!hasData) {
+  if (!hasData && !loading) {
     return <EmptyState onUploadClick={onUploadClick} />;
   }
 
