@@ -624,29 +624,7 @@
       },
       "cachedQuotaUpdatedAt": 1770706184081,
       "rateLimitResetTimes": {},
-      "enabled": true,
-      "fingerprintHistory": [
-        {
-          "fingerprint": {
-            "deviceId": "4ac2811e-9571-4fc7-bc05-51cde80e7148",
-            "sessionToken": "5f08a4fb40926b99e8c206cf32b000de",
-            "userAgent": "antigravity/1.15.8 win32/x64",
-            "apiClient": "google-cloud-sdk vscode/1.86.0",
-            "clientMetadata": {
-              "ideType": "INTELLIJ",
-              "platform": "WINDOWS",
-              "pluginType": "GEMINI",
-              "osVersion": "10.0.22631",
-              "arch": "x64",
-              "sqmId": "{C216FB01-7E10-437D-A428-76D989CD2EC9}"
-            },
-            "quotaUser": "device-1d7d6e99850d481b",
-            "createdAt": 1770196587651
-          },
-          "timestamp": 1770706174313,
-          "reason": "regenerated"
-        }
-      ]
+      "enabled": true
     },
     {
       "email": "aminahsyah110@gmail.com",
@@ -867,6 +845,6 @@
   "activeIndex": 9,
   "activeIndexByFamily": {
     "claude": 9,
-    "gemini": 6
+    "gemini": 9
   }
 }
