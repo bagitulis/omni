@@ -108,13 +108,18 @@ func (h *AuthHandler) DevLogin(c *gin.Context) {
 	devRole := "developer"
 
 	// Generate JWT directly with the REQUESTED tenant_id via authService
-	accessToken, err := h.authService.GenerateDevToken(devUserID, req.TenantID, devRole)
+	accessToken, refreshToken, err := h.authService.GenerateDevToken(c.Request.Context(), devUserID, devUsername, devEmail, req.TenantID, devRole)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   "Failed to generate token: " + err.Error(),
 		})
 		return
+	}
+
+	// Set refresh token in HttpOnly cookie
+	if refreshToken != "" {
+		setRefreshTokenCookie(c, refreshToken, getRefreshTokenMaxAge())
 	}
 
 	// Return success with requested tenant_id in JWT
@@ -127,10 +132,11 @@ func (h *AuthHandler) DevLogin(c *gin.Context) {
 			"email":    devEmail,
 			"role":     devRole,
 		},
-		"token":        accessToken,
-		"access_token": accessToken,
-		"tenant_id":    req.TenantID,
-		"expires_in":   int(utils.AccessTokenTTL.Seconds()),
-		"dev_mode":     true,
+		"token":         accessToken,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken, // Include for debugging/fallback
+		"tenant_id":     req.TenantID,
+		"expires_in":    int(utils.AccessTokenTTL.Seconds()),
+		"dev_mode":      true,
 	})
 }

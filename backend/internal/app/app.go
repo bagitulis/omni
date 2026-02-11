@@ -30,13 +30,14 @@ type App struct {
 	CacheService cache.CacheManager
 
 	// Repositories
-	UserRepo         *repositories.UserRepository
-	AuditRepo        *repositories.AuditRepository
-	OAuthRepo        *repositories.OAuthRepository
-	WebhookRepo      *repositories.WebhookRepository
-	AnalyticsRepo    *repositories.AnalyticsRepository
-	GlobalConfigRepo *repositories.GlobalConfigRepository
-	PlatformRepo     *repositories.PlatformConfigRepository
+	UserRepo           *repositories.UserRepository
+	AuditRepo          *repositories.AuditRepository
+	OAuthRepo          *repositories.OAuthRepository
+	WebhookRepo        *repositories.WebhookRepository
+	AnalyticsRepo      *repositories.AnalyticsRepository
+	GlobalConfigRepo   *repositories.GlobalConfigRepository
+	PlatformRepo       *repositories.PlatformConfigRepository
+	RefreshSessionRepo *repositories.RefreshSessionRepository
 
 	// OAuth Services
 	ShopeeOAuth *oauth.ShopeeOAuthService
@@ -173,6 +174,7 @@ func (a *App) initRepositories() {
 	a.AnalyticsRepo = repositories.NewAnalyticsRepository(a.SystemDB)
 	a.GlobalConfigRepo = repositories.NewGlobalConfigRepository(a.SystemDB)
 	a.PlatformRepo = repositories.NewPlatformConfigRepository(a.SystemDB)
+	a.RefreshSessionRepo = repositories.NewRefreshSessionRepository(a.SystemDB)
 }
 
 // initOAuthServices initializes OAuth services for each platform
@@ -186,7 +188,7 @@ func (a *App) initOAuthServices() {
 
 // initServices initializes all services
 func (a *App) initServices() {
-	a.AuthService = services.NewAuthService(a.UserRepo, a.AuditRepo, a.JWTService)
+	a.AuthService = services.NewAuthServiceWithRefresh(a.UserRepo, a.AuditRepo, a.RefreshSessionRepo, a.JWTService)
 	a.UserService = services.NewUserManagementService(a.UserRepo, a.AuditRepo, a.AuthService)
 	a.AuditService = services.NewAuditService(a.AuditRepo)
 

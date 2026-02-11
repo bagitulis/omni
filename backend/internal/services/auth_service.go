@@ -350,6 +350,68 @@ func (s *AuthService) GenerateTokenForSwitch(userID, tenantID, role string) (str
 
 // GenerateDevToken generates a token for dev-mode bypass login
 // SECURITY: Only called from DevLogin handler which checks localhost origin
-func (s *AuthService) GenerateDevToken(userID, tenantID, role string) (string, error) {
-	return s.jwtService.GenerateAccessToken(userID, tenantID, role)
+func (s *AuthService) GenerateDevToken(ctx context.Context, userID, username, email, tenantID, role string) (string, string, error) {
+	// Ensure dev user exists in DB so refresh token works
+	if err := s.ensureDevUserExists(ctx, userID, username, email, role); err != nil {
+		return "", "", err
+	}
+
+	// Generate access token
+	accessToken, err := s.jwtService.GenerateAccessToken(userID, tenantID, role)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Generate refresh token and session
+	var refreshToken string
+	if s.refreshSessionRepo != nil {
+		refreshToken, err = s.jwtService.GenerateRefreshToken()
+		if err != nil {
+			return "", "", err
+		}
+
+		// Create refresh session in database
+		session := &models.RefreshSession{
+			UserID:    userID,
+			TenantID:  tenantID,
+			TokenHash: repositories.HashToken(refreshToken),
+			ExpiresAt: time.Now().Add(utils.RefreshTokenTTL),
+			IPAddress: "127.0.0.1", // Dev login always local
+			UserAgent: "DevLogin",
+		}
+		if err := s.refreshSessionRepo.Create(ctx, session); err != nil {
+			return "", "", err
+		}
+	}
+
+	return accessToken, refreshToken, nil
+}
+
+// ensureDevUserExists ensures the dev user exists in the database
+func (s *AuthService) ensureDevUserExists(ctx context.Context, userID, username, email, role string) error {
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user != nil {
+		return nil // User already exists
+	}
+
+	// Create dev user if not exists
+	// Use a dummy password hash (we won't use it for login anyway)
+	passwordHash, _ := s.HashPassword("dev-password-123") // Ignore error, just dev
+
+	newUser := &models.User{
+		ID:        userID,
+		Username:  username,
+		Email:     email,
+		Password:  passwordHash,
+		Role:      role,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	// We need to use a repository method that allows setting ID manually
+	// Most GORM create methods respect the ID if set
+	return s.userRepo.Create(ctx, newUser)
 }
