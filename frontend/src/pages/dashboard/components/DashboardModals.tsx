@@ -5,6 +5,7 @@ import {
   WalletModal,
   TokenModal,
   ChangePasswordModal,
+  DashboardShippingModal,
 } from "@/components/modals";
 
 export function DashboardModals() {
@@ -33,7 +34,10 @@ export function DashboardModals() {
         open={isModalOpen("changePassword")}
         onClose={() => closeModal("changePassword")}
       />
-      {/* DashboardShippingModal will be added in Task 2.6 */}
+      <DashboardShippingModal
+        open={isModalOpen("shipping")}
+        onClose={() => closeModal("shipping")}
+      />
     </>
   );
 }

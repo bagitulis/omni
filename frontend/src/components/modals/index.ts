@@ -19,6 +19,8 @@ export * from "./WholesaleUpdateModal";
 export * from "./WholesaleMpqModal";
 export * from "./WholesaleBatchDeleteModal";
 export * from "./ChangePasswordModal";
+export * from "./DashboardShippingModal";
+
 export * from "./ConfigEditorModal";
 export * from "./RouteConfigModal";
 export * from "./RouteManagementModal";
