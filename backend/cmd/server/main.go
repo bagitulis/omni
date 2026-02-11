@@ -233,6 +233,11 @@ func main() {
 	routes.RegisterShopeeShippingRoutes(api, extHandlers.ShopeeAPIClientFactory)
 	routes.RegisterShopeeShippingFeeRoutes(api, extHandlers.ShopeeAPIClientFactory, googleAuthService)
 
+	// Shopee Wallet & Escrow routes
+	routes.RegisterShopeeWalletRoutes(api, extHandlers.ShopeeAPIClientFactory)
+	routes.RegisterShopeeWalletReportRoutes(api, extHandlers.ShopeeAPIClientFactory, googleAuthService)
+	routes.RegisterShopeeEscrowRoutes(api, extHandlers.ShopeeAPIClientFactory)
+
 	// TikTok Shipping routes (shipping document/label)
 	routes.RegisterTiktokShippingRoutes(api, cfg.DatabasePath)
 
