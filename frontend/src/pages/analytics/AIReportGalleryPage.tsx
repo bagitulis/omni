@@ -159,6 +159,7 @@ export const AIReportGalleryPage = () => {
                 style={{ borderRadius: token.borderRadiusLG }}
                 actions={[
                   <Button
+                    key="view"
                     type="text"
                     icon={<EyeOutlined />}
                     onClick={() => handleView(report)}
@@ -166,6 +167,7 @@ export const AIReportGalleryPage = () => {
                     View
                   </Button>,
                   <Button
+                    key="download"
                     type="text"
                     icon={<DownloadOutlined />}
                     onClick={() => handleDownload(report)}

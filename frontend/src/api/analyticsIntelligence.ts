@@ -163,11 +163,20 @@ export async function getReports(
   page: number = 1,
   limit: number = 20,
 ): Promise<{ reports: MLReport[]; total: number }> {
-  const response = await api.get(`/analytics/ml/reports/${platform}/list`, {
-    params: { page, limit },
-  });
-  if (!response.data.success) throw new Error(response.data.error);
-  return response.data.data;
+  try {
+    const response = await api.get(`/analytics/ml/reports/${platform}/list`, {
+      params: { page, limit },
+    });
+    if (!response.data.success) throw new Error(response.data.error);
+    return response.data.data;
+  } catch (error: any) {
+    // Handle 404 gracefully (e.g., if backend feature is not enabled or reachable)
+    if (error.response && error.response.status === 404) {
+      console.warn("ML Reports endpoint not found (404), returning empty list");
+      return { reports: [], total: 0 };
+    }
+    throw error;
+  }
 }
 
 export async function getReportHTML(
