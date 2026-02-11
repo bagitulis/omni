@@ -1,13 +1,15 @@
-import { Image, Button, Space, Typography, Tag, Tooltip } from "antd";
+import { Image, Button, Space, Typography, Tag, Tooltip, Badge } from "antd";
+import { Link } from "react-router-dom";
 import {
   EditOutlined,
   DeleteOutlined,
   WarningOutlined,
   CloseCircleOutlined,
   CopyOutlined,
+  SyncOutlined,
 } from "@ant-design/icons";
 import { Product } from "@/types/product";
-import { PlatformBadge } from "@/components/ui/PlatformBadge";
+// PlatformBadge removed as it's not used in MasterProduct table (which shows aggregated status)
 import type { TableProps } from "antd";
 import { VirtualTable } from "@/components/common/VirtualTable";
 
@@ -57,7 +59,14 @@ export function ProductTable({
       title: "Product Name",
       dataIndex: "item_name",
       key: "name",
-      render: (text) => <Typography.Text strong>{text}</Typography.Text>,
+      render: (text, record) => (
+        <Space direction="vertical" size={0}>
+          <Typography.Text strong>{text}</Typography.Text>
+          <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+            ID: {record.item_id}
+          </Typography.Text>
+        </Space>
+      ),
     },
     {
       title: "SKU",
@@ -109,10 +118,34 @@ export function ProductTable({
       },
     },
     {
-      title: "Platform",
-      dataIndex: "platform",
-      key: "platform",
-      render: (platform) => <PlatformBadge platform={platform} />,
+      title: "Sync Status",
+      key: "sync_status",
+      render: (_, record) => {
+        // Aggregate sync status from all SKUs and their platform links
+        const links = record.skus?.flatMap((s) => s.platform_links || []) || [];
+        if (links.length === 0) {
+          return <Tag color="default">Not Synced</Tag>;
+        }
+
+        const platforms = Array.from(new Set(links.map((l) => l.platform)));
+        const allSynced = links.every((l) => l.sync_status === "synced");
+        const hasError = links.some((l) => l.sync_status === "failed");
+
+        if (hasError)
+          return (
+            <Tag color="error" icon={<WarningOutlined />}>
+              Sync Error
+            </Tag>
+          );
+        if (allSynced)
+          return <Tag color="success">Synced ({platforms.length})</Tag>;
+
+        return (
+          <Tag color="processing" icon={<SyncOutlined spin />}>
+            Syncing...
+          </Tag>
+        );
+      },
     },
     {
       title: "Status",
@@ -125,26 +158,30 @@ export function ProductTable({
             : status === "inactive"
               ? "error"
               : "default";
-        return <Tag color={color}>{status.toUpperCase()}</Tag>;
+        return <Badge status={color} text={status.toUpperCase()} />;
       },
     },
     {
       title: "Actions",
       key: "actions",
-      width: 120,
+      width: 140,
       render: (_, record) => (
         <Space>
           <Button
             size="small"
             icon={<CopyOutlined />}
             onClick={() => onClone?.(record)}
+            title="Clone"
           />
-          <Button size="small" icon={<EditOutlined />} />
+          <Link to={`/master-products/edit/${record.item_id}`}>
+            <Button size="small" icon={<EditOutlined />} title="Edit" />
+          </Link>
           <Button
             size="small"
             danger
             icon={<DeleteOutlined />}
             onClick={() => onDelete(record.item_id)}
+            title="Delete"
           />
         </Space>
       ),
@@ -169,7 +206,7 @@ export function ProductTable({
         onChange: onSelectionChange,
       }}
       size="middle"
-      scroll={{ x: 800 }}
+      scroll={{ x: 1000 }}
       enableVirtual={products.length > 20}
       offsetBottom={280}
     />

@@ -268,8 +268,12 @@ export function ProductListPage() {
           >
             <span>Selected {selectedRowKeys.length} items</span>
             <Space>
-              <Button size="small">Bulk Edit Price</Button>
-              <Button size="small">Bulk Edit Stock</Button>
+              <Button
+                size="small"
+                onClick={() => message.info("Bulk Sync feature coming soon")}
+              >
+                Bulk Sync
+              </Button>
               <Button
                 size="small"
                 icon={<CopyOutlined />}
@@ -277,7 +281,18 @@ export function ProductListPage() {
               >
                 Batch Clone
               </Button>
-              <Button size="small" danger>
+              <Button
+                size="small"
+                danger
+                onClick={() => {
+                  if (confirm(`Delete ${selectedRowKeys.length} items?`)) {
+                    selectedRowKeys.forEach((key) =>
+                      deleteMutation.mutate(String(key)),
+                    );
+                    setSelectedRowKeys([]);
+                  }
+                }}
+              >
                 Delete Selected
               </Button>
             </Space>

@@ -1,29 +1,28 @@
 import apiClient from "./client";
-import { InventoryRecord, InventoryListResult } from "@/types/product";
+import {
+  InventoryRecord,
+  InventoryListResult,
+  InventoryConfig,
+  InventoryStats,
+  SyncHistoryEntry,
+  BatchCheckResult,
+} from "@/types/inventory";
+
+export type {
+  InventoryRecord,
+  InventoryListResult,
+  InventoryConfig,
+  InventoryStats,
+  SyncHistoryEntry,
+  BatchCheckResult,
+};
 
 export interface GetInventoryParams {
   offset?: number;
   limit?: number;
   search?: string;
-}
-
-export interface InventoryConfig {
-  id: string;
-  tenant_id: string;
-  spreadsheet_id: string;
-  sheet_name: string;
-  selected_columns: string;
-  all_columns: string;
-  header_row: number;
-  data_start_row: number;
-  key_column: string;
-  auto_sync: boolean;
-  sync_interval_seconds: number;
-  last_sync_timestamp: string | null;
-  last_headers_hash: string;
-  last_sync_status: string;
-  created_at: string;
-  updated_at: string;
+  sort_by?: string;
+  sort_dir?: "asc" | "desc";
 }
 
 /**
@@ -119,6 +118,74 @@ export async function syncInventory(
   if (!response.success) {
     throw new Error(response.error || "Failed to sync inventory");
   }
+}
+
+/**
+ * Get inventory stats
+ * Backend route: GET /api/inventory/stats
+ */
+export async function getInventoryStats(): Promise<InventoryStats> {
+  const response = await apiClient.get<InventoryStats>("/inventory/stats");
+  if (!response.success) {
+    throw new Error(response.error || "Failed to fetch inventory stats");
+  }
+  return response.data!;
+}
+
+/**
+ * Get sync history
+ * Backend route: GET /api/inventory/sync/history
+ */
+export async function getSyncHistory(): Promise<SyncHistoryEntry[]> {
+  const response = await apiClient.get<SyncHistoryEntry[]>(
+    "/inventory/sync/history",
+  );
+  if (!response.success) {
+    throw new Error(response.error || "Failed to fetch sync history");
+  }
+  return response.data || [];
+}
+
+/**
+ * Update inventory configuration
+ * Backend route: PUT /api/inventory/config
+ */
+export async function updateInventoryConfig(
+  config: Partial<InventoryConfig>,
+): Promise<InventoryConfig> {
+  const response = await apiClient.put<InventoryConfig>(
+    "/inventory/config",
+    config,
+  );
+  if (!response.success) {
+    throw new Error(response.error || "Failed to update inventory config");
+  }
+  return response.data!;
+}
+
+/**
+ * Trigger inventory export to Google Sheets
+ * Backend route: POST /api/inventory/sync/to-sheets
+ */
+export async function syncToSheets(): Promise<void> {
+  const response = await apiClient.post("/inventory/sync/to-sheets");
+  if (!response.success) {
+    throw new Error(response.error || "Failed to export to sheets");
+  }
+}
+
+/**
+ * Batch check platform status
+ * Backend route: POST /api/inventory/batch-check
+ */
+export async function checkPlatformStatus(): Promise<BatchCheckResult[]> {
+  const response = await apiClient.post<BatchCheckResult[]>(
+    "/inventory/batch-check",
+  );
+  if (!response.success) {
+    throw new Error(response.error || "Failed to check platform status");
+  }
+  return response.data || [];
 }
 
 /**
