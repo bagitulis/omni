@@ -154,3 +154,51 @@ export interface ImportResponse {
   failed_count: number;
   message: string;
 }
+
+export interface AutoMapResult {
+  success: boolean;
+  mapped_count: number;
+  skipped_count: number;
+  mappings: {
+    master_sku: string;
+    platform: string;
+    platform_product_id: string;
+    platform_sku_id: string;
+  }[];
+  errors?: string[];
+}
+
+export interface MappingStatus {
+  total_master_skus: number;
+  mapped_skus: number;
+  unmapped_skus: number;
+  platforms: {
+    platform: string;
+    mapped_count: number;
+  }[];
+}
+
+export interface LinkSkuData {
+  master_sku_id: number;
+  platform: string;
+  platform_product_id: string;
+  platform_sku_id: string;
+}
+
+export interface UnlinkSkuData {
+  master_sku_id: number;
+  platform: string;
+}
+
+export interface BatchSkuUpdateItem {
+  id: number;
+  seller_sku?: string;
+  price?: number;
+  stock?: number;
+}
+
+export interface BatchSkuUpdateResult {
+  updated: number;
+  failed: number;
+  errors?: string[];
+}

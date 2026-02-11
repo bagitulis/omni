@@ -35,3 +35,45 @@ export async function syncPlatformProducts(
   }
   return data;
 }
+
+export interface FilterPreferences {
+  search: string;
+  column_visibility: Record<string, boolean>;
+  page_size: number;
+  sort_by?: string;
+  sort_dir?: "asc" | "desc";
+}
+
+export interface SaveFilterPreferencesRequest {
+  platform: string;
+  page: string;
+  preferences: FilterPreferences;
+}
+
+export async function getFilterPreferences(
+  platform: string,
+  page: string,
+): Promise<FilterPreferences | null> {
+  const response = await apiClient.get<FilterPreferences>(
+    "/filter-preferences",
+    {
+      params: { platform, page },
+    },
+  );
+
+  if (!response.success) {
+    return null;
+  }
+
+  return response.data || null;
+}
+
+export async function saveFilterPreferences(
+  request: SaveFilterPreferencesRequest,
+): Promise<void> {
+  const response = await apiClient.post("/filter-preferences", request);
+
+  if (!response.success) {
+    throw new Error(response.error || "Failed to save filter preferences");
+  }
+}

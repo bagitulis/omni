@@ -6,6 +6,13 @@ import type {
   CreateMasterProductInput,
   UpdateMasterProductInput,
   ImportRow,
+  ImportPreviewData,
+  AutoMapResult,
+  MappingStatus,
+  LinkSkuData,
+  UnlinkSkuData,
+  BatchSkuUpdateItem,
+  BatchSkuUpdateResult,
 } from "@/types/product";
 
 const BASE_PATH = "/master-products";
@@ -93,5 +100,88 @@ export async function importProducts(
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to import products");
   }
+  return response.data;
+}
+
+// Import preview — sends file to backend for parsing and validation
+export async function getImportPreview(file: File): Promise<ImportPreviewData> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await apiClient.client.post<any>(
+    `${BASE_PATH}/import/preview`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error || "Failed to preview import file");
+  }
+
+  return response.data.data;
+}
+
+// Auto-map SKUs to platform products
+export async function autoMapSkus(skus: string[]): Promise<AutoMapResult> {
+  const response = await apiClient.post<any>(`${BASE_PATH}/mapping/auto-link`, {
+    skus,
+  });
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Failed to auto-map SKUs");
+  }
+
+  return response.data;
+}
+
+// Get mapping status
+export async function getMappingStatus(): Promise<MappingStatus> {
+  const response = await apiClient.get<any>(`${BASE_PATH}/mapping/status`);
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Failed to fetch mapping status");
+  }
+
+  return response.data;
+}
+
+// Link a master SKU to a platform product
+export async function linkSkuToPlatform(data: LinkSkuData): Promise<void> {
+  const response = await apiClient.post(`${BASE_PATH}/mapping/link`, data);
+
+  if (!response.success) {
+    throw new Error(response.error || "Failed to link SKU to platform");
+  }
+}
+
+// Unlink a master SKU from a platform product
+export async function unlinkSkuFromPlatform(
+  data: UnlinkSkuData,
+): Promise<void> {
+  const response = await apiClient.delete(`${BASE_PATH}/mapping/link`, {
+    data,
+  });
+
+  if (!response.success) {
+    throw new Error(response.error || "Failed to unlink SKU from platform");
+  }
+}
+
+// Batch update SKUs (price, stock, seller_sku)
+export async function batchUpdateSkus(
+  items: BatchSkuUpdateItem[],
+): Promise<BatchSkuUpdateResult> {
+  const response = await apiClient.put<any>(`${BASE_PATH}/skus/batch`, {
+    items,
+  });
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Failed to batch update SKUs");
+  }
+
   return response.data;
 }

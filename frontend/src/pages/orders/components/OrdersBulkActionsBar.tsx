@@ -1,7 +1,18 @@
-import { Button, Card, Divider, Flex, Space, Typography } from "antd";
+import { Button, Card, Divider, Flex, Progress, Space, Typography } from "antd";
 import { PrinterOutlined, SendOutlined } from "@ant-design/icons";
 
 const { Text } = Typography;
+
+interface ProgressState {
+  current: number;
+  total: number;
+  status: "idle" | "processing" | "done";
+}
+
+interface BulkResult {
+  succeeded: string[];
+  failed: Array<{ order_sn: string; error: string }>;
+}
 
 interface OrdersBulkActionsBarProps {
   selectedCount: number;
@@ -12,6 +23,12 @@ interface OrdersBulkActionsBarProps {
   isShipping: boolean;
   isPrinting: boolean;
   isCancelling: boolean;
+  shipProgress: ProgressState;
+  printProgress: ProgressState;
+  cancelProgress: ProgressState;
+  shipResult: BulkResult;
+  printResult: BulkResult;
+  cancelResult: BulkResult;
 }
 
 export function OrdersBulkActionsBar({
@@ -23,8 +40,38 @@ export function OrdersBulkActionsBar({
   isShipping,
   isPrinting,
   isCancelling,
+  shipProgress,
+  printProgress,
+  cancelProgress,
+  shipResult,
+  printResult,
+  cancelResult,
 }: OrdersBulkActionsBarProps) {
   if (selectedCount <= 0) return null;
+
+  const getProgressText = (progress: ProgressState, action: string) => {
+    if (progress.status === "processing") {
+      return `${action} ${progress.current}/${progress.total}...`;
+    }
+    return null;
+  };
+
+  const getResultText = (
+    result: BulkResult,
+    progress: ProgressState,
+    action: string,
+  ) => {
+    if (
+      progress.status === "done" &&
+      (result.succeeded.length > 0 || result.failed.length > 0)
+    ) {
+      if (result.failed.length === 0) {
+        return `✓ ${result.succeeded.length} ${action}`;
+      }
+      return `${result.succeeded.length} ${action}, ${result.failed.length} failed`;
+    }
+    return null;
+  };
 
   return (
     <Card
@@ -35,33 +82,104 @@ export function OrdersBulkActionsBar({
         borderRadius: 4,
       }}
     >
-      <Flex justify="space-between" align="center">
-        <Space split={<Divider type="vertical" />}>
-          <Text strong style={{ color: "#0369a1" }}>
-            {selectedCount} orders selected
-          </Text>
-          <Button
-            type="primary"
-            icon={<SendOutlined />}
-            onClick={onBulkShip}
-            loading={isShipping}
-          >
-            Bulk Ship
+      <Flex vertical gap={8}>
+        <Flex justify="space-between" align="center">
+          <Space split={<Divider type="vertical" />}>
+            <Text strong style={{ color: "#0369a1" }}>
+              {selectedCount} orders selected
+            </Text>
+            <Button
+              type="primary"
+              icon={<SendOutlined />}
+              onClick={onBulkShip}
+              loading={isShipping}
+            >
+              Bulk Ship
+            </Button>
+            <Button
+              icon={<PrinterOutlined />}
+              onClick={onBulkPrint}
+              loading={isPrinting}
+            >
+              Bulk Print Labels
+            </Button>
+            <Button danger onClick={onBulkCancel} loading={isCancelling}>
+              Bulk Cancel
+            </Button>
+          </Space>
+          <Button type="text" onClick={onClearSelection}>
+            Clear Selection
           </Button>
-          <Button
-            icon={<PrinterOutlined />}
-            onClick={onBulkPrint}
-            loading={isPrinting}
-          >
-            Bulk Print Labels
-          </Button>
-          <Button danger onClick={onBulkCancel} loading={isCancelling}>
-            Bulk Cancel
-          </Button>
-        </Space>
-        <Button type="text" onClick={onClearSelection}>
-          Clear Selection
-        </Button>
+        </Flex>
+
+        {/* Ship Progress */}
+        {shipProgress.status === "processing" && (
+          <Flex align="center" gap={8}>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {getProgressText(shipProgress, "Shipping")}
+            </Text>
+            <Progress
+              percent={Math.round(
+                (shipProgress.current / shipProgress.total) * 100,
+              )}
+              size="small"
+              status="active"
+              style={{ flex: 1, margin: 0 }}
+            />
+          </Flex>
+        )}
+        {shipProgress.status === "done" &&
+          getResultText(shipResult, shipProgress, "shipped") && (
+            <Text type="success" style={{ fontSize: 12 }}>
+              {getResultText(shipResult, shipProgress, "shipped")}
+            </Text>
+          )}
+
+        {/* Print Progress */}
+        {printProgress.status === "processing" && (
+          <Flex align="center" gap={8}>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {getProgressText(printProgress, "Printing")}
+            </Text>
+            <Progress
+              percent={Math.round(
+                (printProgress.current / printProgress.total) * 100,
+              )}
+              size="small"
+              status="active"
+              style={{ flex: 1, margin: 0 }}
+            />
+          </Flex>
+        )}
+        {printProgress.status === "done" &&
+          getResultText(printResult, printProgress, "printed") && (
+            <Text type="success" style={{ fontSize: 12 }}>
+              {getResultText(printResult, printProgress, "printed")}
+            </Text>
+          )}
+
+        {/* Cancel Progress */}
+        {cancelProgress.status === "processing" && (
+          <Flex align="center" gap={8}>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {getProgressText(cancelProgress, "Cancelling")}
+            </Text>
+            <Progress
+              percent={Math.round(
+                (cancelProgress.current / cancelProgress.total) * 100,
+              )}
+              size="small"
+              status="active"
+              style={{ flex: 1, margin: 0 }}
+            />
+          </Flex>
+        )}
+        {cancelProgress.status === "done" &&
+          getResultText(cancelResult, cancelProgress, "cancelled") && (
+            <Text type="success" style={{ fontSize: 12 }}>
+              {getResultText(cancelResult, cancelProgress, "cancelled")}
+            </Text>
+          )}
       </Flex>
     </Card>
   );

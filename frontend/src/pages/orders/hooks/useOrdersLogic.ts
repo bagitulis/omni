@@ -49,8 +49,7 @@ export function useOrdersLogic() {
     { autoRefresh },
   );
 
-  const { isShipping, isPrinting, isCancelling, isSingleShipping } =
-    useOrderActions();
+  const { isSingleShipping } = useOrderActions();
 
   const { isSyncing, syncActiveTab } = useOrderSync(
     activeTab,
@@ -157,10 +156,16 @@ export function useOrdersLogic() {
       data,
       isLoading,
       isSyncing,
-      isShipping,
-      isPrinting,
-      isCancelling,
+      isShipping: bulkActions.isShipping,
+      isPrinting: bulkActions.isPrinting,
+      isCancelling: bulkActions.isCancelling,
       isSingleShipping,
+      shipProgress: bulkActions.shipProgress,
+      printProgress: bulkActions.printProgress,
+      cancelProgress: bulkActions.cancelProgress,
+      shipResult: bulkActions.shipResult,
+      printResult: bulkActions.printResult,
+      cancelResult: bulkActions.cancelResult,
     },
     setters: {
       setPage,

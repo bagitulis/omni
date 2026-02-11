@@ -14,9 +14,13 @@ import {
 import { ArrowLeftOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import type { ImportPreviewData } from "@/types/product";
-import { importProducts } from "@/api/products";
 import { ImportUploader } from "@/components/forms/ImportUploader";
 import { ImportPreviewTable } from "@/components/tables/ImportPreviewTable";
+import {
+  useImportPreview,
+  useImportProducts,
+  useAutoMapSkus,
+} from "@/hooks/useProductImport";
 import "./ProductImportPage.css";
 
 export default function ProductImportPage() {
@@ -25,11 +29,40 @@ export default function ProductImportPage() {
   const [previewData, setPreviewData] = useState<ImportPreviewData | null>(
     null,
   );
-  const [importing, setImporting] = useState(false);
 
-  const handlePreview = (data: ImportPreviewData) => {
-    setPreviewData(data);
-    setCurrentStep(1);
+  const previewMutation = useImportPreview();
+  const importMutation = useImportProducts();
+  const autoMapMutation = useAutoMapSkus();
+
+  const handleFileUpload = async (file: File) => {
+    try {
+      const data = await previewMutation.mutateAsync(file);
+      setPreviewData(data);
+      setCurrentStep(1);
+    } catch (error) {
+      console.error("Preview failed:", error);
+      // Error message already shown by mutation
+    }
+  };
+
+  const handleAutoMap = async () => {
+    if (!previewData) return;
+
+    const skus = previewData.rows
+      .filter((row) => row.valid)
+      .map((row) => row.item_sku);
+
+    if (skus.length === 0) {
+      message.warning("No valid SKUs to auto-map");
+      return;
+    }
+
+    try {
+      await autoMapMutation.mutateAsync(skus);
+    } catch (error) {
+      console.error("Auto-map failed:", error);
+      // Error message already shown by mutation
+    }
   };
 
   const handleConfirmImport = () => {
@@ -66,12 +99,8 @@ export default function ProductImportPage() {
   const performImport = async () => {
     if (!previewData) return;
 
-    setImporting(true);
-
     try {
-      const validRows = previewData.rows.filter((row) => row.valid);
-      const result = await importProducts(validRows);
-      message.success(`Successfully imported ${result.imported} products`);
+      await importMutation.mutateAsync(previewData.rows);
       setCurrentStep(2);
 
       // Auto-redirect after 2 seconds
@@ -79,9 +108,8 @@ export default function ProductImportPage() {
         navigate("/master-products");
       }, 2000);
     } catch (error) {
-      message.error((error as Error).message || "Import failed");
-    } finally {
-      setImporting(false);
+      console.error("Import failed:", error);
+      // Error message already shown by mutation
     }
   };
 
@@ -102,7 +130,10 @@ export default function ProductImportPage() {
               showIcon
               style={{ marginBottom: 24 }}
             />
-            <ImportUploader onPreview={handlePreview} loading={importing} />
+            <ImportUploader
+              onFileSelect={handleFileUpload}
+              loading={previewMutation.isPending}
+            />
           </div>
         );
 
@@ -146,6 +177,29 @@ export default function ProductImportPage() {
                 showIcon
                 style={{ marginTop: 16, marginBottom: 16 }}
               />
+            )}
+
+            {/* Auto-Map SKUs button */}
+            {previewData && previewData.valid_rows > 0 && (
+              <div style={{ marginTop: 16, marginBottom: 16 }}>
+                <Button
+                  type="default"
+                  onClick={handleAutoMap}
+                  loading={autoMapMutation.isPending}
+                  disabled={importMutation.isPending}
+                >
+                  Auto-Map SKUs to Platform Products
+                </Button>
+                <span
+                  style={{
+                    marginLeft: 12,
+                    fontSize: "12px",
+                    color: "#666",
+                  }}
+                >
+                  Automatically link imported SKUs to existing platform products
+                </span>
+              </div>
             )}
 
             {previewData && <ImportPreviewTable data={previewData.rows} />}
@@ -215,7 +269,7 @@ export default function ProductImportPage() {
               <Button
                 type="primary"
                 onClick={handleConfirmImport}
-                loading={importing}
+                loading={importMutation.isPending}
                 disabled={!previewData || previewData.valid_rows === 0}
               >
                 Confirm & Import

@@ -22,6 +22,7 @@ interface ProductManagerTableProps {
   onSelectionChange: (selectedRowKeys: React.Key[]) => void;
   skuCheckResults: SkuCheckResult[];
   getSkuResult: (sku: string) => SkuCheckResult | null;
+  columnVisibility: Record<string, boolean>;
 }
 
 function PriceCell({
@@ -273,11 +274,20 @@ export function ProductManagerTable({
   selectedRowKeys,
   onSelectionChange,
   getSkuResult,
+  columnVisibility,
 }: ProductManagerTableProps) {
-  const columns = useMemo(
+  const allColumns = useMemo(
     () => buildColumns(activeTab, onUpdatePrice, getSkuResult),
     [activeTab, onUpdatePrice, getSkuResult],
   );
+
+  // Filter columns based on visibility preferences
+  const columns = useMemo(() => {
+    return allColumns.filter((col) => {
+      if (!col.key) return true;
+      return columnVisibility[col.key as string] !== false;
+    });
+  }, [allColumns, columnVisibility]);
 
   return (
     <Table<DbProductRow>

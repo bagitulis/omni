@@ -3,28 +3,26 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Button,
   Card,
-  Col,
-  Row,
   Space,
   Typography,
-  Pagination,
-  Empty,
   message,
+  Modal,
+  Form,
+  InputNumber,
 } from "antd";
 import {
   PlusOutlined,
   UploadOutlined,
   CloudDownloadOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  CopyOutlined,
 } from "@ant-design/icons";
 import { ProductFilters } from "@/components/forms/ProductFilters";
 import { ProductTable } from "@/components/tables/ProductTable";
 import { CloneProductModal } from "@/components/clone/CloneProductModal";
 import { CloneBatchModal } from "@/components/clone/CloneBatchModal";
 import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
-import { PlatformBadge } from "@/components/ui/PlatformBadge";
+import { useBatchSkuUpdate } from "@/hooks/useBatchSkuUpdate";
+import { ProductGridView } from "./components/ProductGridView";
+import { ProductBatchBar } from "./components/ProductBatchBar";
 import type { Product } from "@/types/product";
 
 export function ProductListPage() {
@@ -42,8 +40,10 @@ export function ProductListPage() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
   const [batchCloneModalOpen, setBatchCloneModalOpen] = useState(false);
+  const [batchSkuModalOpen, setBatchSkuModalOpen] = useState(false);
   const [selectedProductForClone, setSelectedProductForClone] =
     useState<Product | null>(null);
+  const [batchSkuForm] = Form.useForm();
 
   const { data, isLoading } = useProducts({
     page,
@@ -54,6 +54,7 @@ export function ProductListPage() {
   });
 
   const deleteMutation = useDeleteProduct();
+  const { mutation: batchSkuUpdateMutation } = useBatchSkuUpdate();
 
   useEffect(() => {
     const platformFromUrl = searchParams.get("platform");
@@ -109,115 +110,22 @@ export function ProductListPage() {
     setCloneModalOpen(true);
   };
 
-  const renderGridView = () => {
-    if (!data?.products.length)
-      return <Empty description="No products found" />;
+  const handleBatchSkuUpdate = () => {
+    batchSkuForm.validateFields().then((values) => {
+      const items = selectedRowKeys.map((key) => ({
+        id: Number(key),
+        ...(values.price !== undefined && { price: values.price }),
+        ...(values.stock !== undefined && { stock: values.stock }),
+      }));
 
-    return (
-      <>
-        <Row gutter={[16, 16]}>
-          {data.products.map((product) => (
-            <Col key={product.item_id} xs={24} sm={12} md={8} lg={6} xl={4}>
-              <Card
-                hoverable
-                cover={
-                  <img
-                    alt={product.item_name}
-                    src={product.image_url}
-                    style={{ height: 200, objectFit: "cover" }}
-                  />
-                }
-                actions={[
-                  <Button type="text" icon={<EditOutlined />} key="edit" />,
-                  <Button
-                    type="text"
-                    danger
-                    icon={<DeleteOutlined />}
-                    key="delete"
-                    onClick={() => handleDelete(product.item_id)}
-                  />,
-                ]}
-              >
-                <Card.Meta
-                  title={
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Typography.Text strong ellipsis>
-                        {product.item_name}
-                      </Typography.Text>
-                    </div>
-                  }
-                  description={
-                    <Space
-                      direction="vertical"
-                      size={4}
-                      style={{ width: "100%" }}
-                    >
-                      <Space>
-                        <PlatformBadge platform={product.platform} />
-                        <Typography.Text type="secondary">
-                          {product.item_sku}
-                        </Typography.Text>
-                      </Space>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <Typography.Text strong type="warning">
-                          {product.price === null || product.price === undefined
-                            ? "—"
-                            : new Intl.NumberFormat("id-ID", {
-                                style: "currency",
-                                currency: "IDR",
-                                maximumFractionDigits: 0,
-                              }).format(product.price)}
-                        </Typography.Text>
-                        <Typography.Text
-                          type={
-                            product.stock === null ||
-                            product.stock === undefined
-                              ? "secondary"
-                              : product.stock === 0
-                                ? "danger"
-                                : product.stock <= 10
-                                  ? "warning"
-                                  : "secondary"
-                          }
-                        >
-                          Stock:{" "}
-                          {product.stock === null || product.stock === undefined
-                            ? "—"
-                            : product.stock}
-                        </Typography.Text>
-                      </div>
-                    </Space>
-                  }
-                />
-              </Card>
-            </Col>
-          ))}
-        </Row>
-        <div style={{ marginTop: 16, textAlign: "right" }}>
-          <Pagination
-            current={page}
-            pageSize={pageSize}
-            total={data.total}
-            onChange={(p, ps) => {
-              setPage(p);
-              setPageSize(ps);
-            }}
-            showSizeChanger
-          />
-        </div>
-      </>
-    );
+      batchSkuUpdateMutation.mutate(items, {
+        onSuccess: () => {
+          setBatchSkuModalOpen(false);
+          setSelectedRowKeys([]);
+          batchSkuForm.resetFields();
+        },
+      });
+    });
   };
 
   return (
@@ -253,51 +161,20 @@ export function ProductListPage() {
           onViewModeChange={setViewMode}
         />
 
-        {selectedRowKeys.length > 0 && (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: "8px 16px",
-              background: "#e6f7ff",
-              border: "1px solid #91d5ff",
-              borderRadius: 4,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <span>Selected {selectedRowKeys.length} items</span>
-            <Space>
-              <Button
-                size="small"
-                onClick={() => message.info("Bulk Sync feature coming soon")}
-              >
-                Bulk Sync
-              </Button>
-              <Button
-                size="small"
-                icon={<CopyOutlined />}
-                onClick={() => setBatchCloneModalOpen(true)}
-              >
-                Batch Clone
-              </Button>
-              <Button
-                size="small"
-                danger
-                onClick={() => {
-                  if (confirm(`Delete ${selectedRowKeys.length} items?`)) {
-                    selectedRowKeys.forEach((key) =>
-                      deleteMutation.mutate(String(key)),
-                    );
-                    setSelectedRowKeys([]);
-                  }
-                }}
-              >
-                Delete Selected
-              </Button>
-            </Space>
-          </div>
-        )}
+        <ProductBatchBar
+          selectedRowKeys={selectedRowKeys}
+          onBulkSync={() => message.info("Bulk Sync feature coming soon")}
+          onBatchSkuUpdate={() => setBatchSkuModalOpen(true)}
+          onBatchClone={() => setBatchCloneModalOpen(true)}
+          onDeleteSelected={() => {
+            if (confirm(`Delete ${selectedRowKeys.length} items?`)) {
+              selectedRowKeys.forEach((key) => {
+                deleteMutation.mutate(String(key));
+              });
+              setSelectedRowKeys([]);
+            }
+          }}
+        />
 
         {viewMode === "list" ? (
           <ProductTable
@@ -316,7 +193,17 @@ export function ProductListPage() {
             onClone={handleClone}
           />
         ) : (
-          renderGridView()
+          <ProductGridView
+            products={data?.products || []}
+            page={page}
+            pageSize={pageSize}
+            total={data?.total || 0}
+            onPageChange={(p, ps) => {
+              setPage(p);
+              setPageSize(ps);
+            }}
+            onDelete={handleDelete}
+          />
         )}
 
         <CloneProductModal
@@ -337,6 +224,46 @@ export function ProductListPage() {
             []
           }
         />
+
+        <Modal
+          title="Batch Update SKUs"
+          open={batchSkuModalOpen}
+          onOk={handleBatchSkuUpdate}
+          onCancel={() => {
+            setBatchSkuModalOpen(false);
+            batchSkuForm.resetFields();
+          }}
+          confirmLoading={batchSkuUpdateMutation.isPending}
+        >
+          <p>
+            Update price and/or stock for {selectedRowKeys.length} selected
+            product(s).
+          </p>
+          <Form form={batchSkuForm} layout="vertical">
+            <Form.Item
+              label="New Price"
+              name="price"
+              help="Leave empty to keep current price"
+            >
+              <InputNumber
+                style={{ width: "100%" }}
+                min={0}
+                placeholder="Enter new price"
+              />
+            </Form.Item>
+            <Form.Item
+              label="New Stock"
+              name="stock"
+              help="Leave empty to keep current stock"
+            >
+              <InputNumber
+                style={{ width: "100%" }}
+                min={0}
+                placeholder="Enter new stock"
+              />
+            </Form.Item>
+          </Form>
+        </Modal>
       </Card>
     </div>
   );

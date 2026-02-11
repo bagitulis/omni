@@ -1,9 +1,11 @@
-import { Button, Flex, Switch, Typography } from "antd";
+import { Button, Flex, Switch, Typography, Dropdown } from "antd";
 import {
   SyncOutlined,
   DollarOutlined,
   SearchOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
+import type { MenuProps } from "antd";
 
 const { Title, Text } = Typography;
 
@@ -19,6 +21,8 @@ interface ProductManagerHeaderProps {
   onCheckSku: () => void;
   skuCheckLoading: boolean;
   selectedCount: number;
+  columnVisibility: Record<string, boolean>;
+  onColumnVisibilityChange: (columnVisibility: Record<string, boolean>) => void;
 }
 
 export function ProductManagerHeader({
@@ -33,7 +37,37 @@ export function ProductManagerHeader({
   onCheckSku,
   skuCheckLoading,
   selectedCount,
+  columnVisibility,
+  onColumnVisibilityChange,
 }: ProductManagerHeaderProps) {
+  const columns = [
+    { key: "image", label: "Image" },
+    { key: "product", label: "Product" },
+    { key: "price", label: "Price" },
+    { key: "stock", label: "Stock" },
+    { key: "status", label: "Status" },
+    { key: "updated_at", label: "Updated" },
+  ];
+
+  const menuItems: MenuProps["items"] = columns.map((col) => ({
+    key: col.key,
+    label: (
+      <Flex align="center" gap={8}>
+        <input
+          type="checkbox"
+          checked={columnVisibility[col.key] !== false}
+          onChange={(e) => {
+            onColumnVisibilityChange({
+              ...columnVisibility,
+              [col.key]: e.target.checked,
+            });
+          }}
+          style={{ cursor: "pointer" }}
+        />
+        <span>{col.label}</span>
+      </Flex>
+    ),
+  }));
   return (
     <Flex justify="space-between" align="center">
       <div>
@@ -76,6 +110,9 @@ export function ProductManagerHeader({
           Check SKU Status
           {selectedCount > 0 && ` (${selectedCount})`}
         </Button>
+        <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+          <Button icon={<EyeOutlined />}>Columns</Button>
+        </Dropdown>
         <Button
           data-testid="product-manager-sync"
           type="primary"

@@ -63,6 +63,12 @@ export default function OrdersPage() {
           isShipping={state.isShipping}
           isPrinting={state.isPrinting}
           isCancelling={state.isCancelling}
+          shipProgress={state.shipProgress}
+          printProgress={state.printProgress}
+          cancelProgress={state.cancelProgress}
+          shipResult={state.shipResult}
+          printResult={state.printResult}
+          cancelResult={state.cancelResult}
         />
 
         {/* Data Table */}

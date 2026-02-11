@@ -10,6 +10,7 @@ import { PLATFORMS, coercePlatform, extractSku, getRowKey } from "./utils";
 import { ProductManagerHeader } from "./components/ProductManagerHeader";
 import { ProductManagerTable } from "./components/ProductManagerTable";
 import { usePriceUpdate } from "./hooks/usePriceUpdate";
+import { useFilterPreferences } from "./hooks/useFilterPreferences";
 
 export function ProductManagerPage() {
   const navigate = useNavigate();
@@ -29,6 +30,12 @@ export function ProductManagerPage() {
   const lastAutoSyncedPlatformRef = useRef<ProductManagerPlatform | null>(null);
 
   const {
+    preferences,
+    updatePreference,
+    isLoading: preferencesLoading,
+  } = useFilterPreferences(activeTab);
+
+  const {
     results,
     getSkuResult,
     clearResults,
@@ -43,6 +50,13 @@ export function ProductManagerPage() {
     setActiveTab(coercePlatform(platformParam));
     setSelectedRowKeys([]);
   }, [platformParam]);
+
+  // Apply loaded preferences to page size
+  useEffect(() => {
+    if (!preferencesLoading && preferences.page_size) {
+      setPageSize(preferences.page_size);
+    }
+  }, [preferencesLoading, preferences.page_size]);
 
   const offset = (page - 1) * pageSize;
 
@@ -94,6 +108,11 @@ export function ProductManagerPage() {
   const handlePageChange = (p: number, ps: number) => {
     setPage(p);
     setPageSize(ps);
+
+    // Save page size preference
+    if (ps !== preferences.page_size) {
+      updatePreference({ page_size: ps });
+    }
   };
 
   const handleSync = () => {
@@ -169,6 +188,12 @@ export function ProductManagerPage() {
     });
   };
 
+  const handleColumnVisibilityChange = (
+    columnVisibility: Record<string, boolean>,
+  ) => {
+    updatePreference({ column_visibility: columnVisibility });
+  };
+
   return (
     <div style={{ padding: 24 }}>
       <Flex vertical gap={16}>
@@ -184,6 +209,8 @@ export function ProductManagerPage() {
           selectedCount={selectedRowKeys.length}
           onUpdateBatch={handleOpenBatchModal}
           hasSelection={selectedRowKeys.length > 0}
+          columnVisibility={preferences.column_visibility}
+          onColumnVisibilityChange={handleColumnVisibilityChange}
         />
 
         <Card style={{ borderRadius: 4 }}>
@@ -205,6 +232,7 @@ export function ProductManagerPage() {
             onSelectionChange={handleSelectionChange}
             skuCheckResults={results}
             getSkuResult={getSkuResult}
+            columnVisibility={preferences.column_visibility}
           />
         </Card>
       </Flex>
