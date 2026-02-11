@@ -1,18 +1,22 @@
+import { useEffect, useMemo, useState } from "react";
 import {
-  Modal,
   Button,
+  Card,
+  Col,
+  Modal,
+  Row,
   Select,
   Slider,
   Typography,
-  Row,
-  Col,
-  Card,
   message,
+  theme,
 } from "antd";
-import { useState, useEffect, useMemo } from "react";
+import {
+  useInventoryConfig,
+  useUpdateInventoryConfig,
+} from "@/hooks/useInventory";
 
 const { Text, Title } = Typography;
-const { Option } = Select;
 
 interface MarketplaceSettings {
   totalColumn: string;
@@ -32,56 +36,87 @@ interface MarketplaceSettingsModalProps {
   schemaColumns: SchemaColumn[];
 }
 
+const defaultSettings: MarketplaceSettings = {
+  totalColumn: "",
+  autoColumn: "",
+  shopeeRatio: 0.6,
+  tiktokRatio: 0.3,
+};
+
+function parseColumns(value: string | undefined): string[] {
+  if (!value) return [];
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(
+          (item): item is string => typeof item === "string",
+        );
+      }
+    } catch {
+      return [];
+    }
+  }
+
+  return trimmed
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function encodeColumns(
+  original: string | undefined,
+  columns: string[],
+): string {
+  const unique = Array.from(new Set(columns.filter(Boolean)));
+  if ((original || "").trim().startsWith("[")) return JSON.stringify(unique);
+  return unique.join(",");
+}
+
 export function MarketplaceSettingsModal({
   open,
   onClose,
   schemaColumns,
 }: MarketplaceSettingsModalProps) {
-  const [settings, setSettings] = useState<MarketplaceSettings>({
-    totalColumn: "",
-    autoColumn: "",
-    shopeeRatio: 0.6,
-    tiktokRatio: 0.3,
-  });
+  const {
+    token: {
+      colorInfo,
+      colorText,
+      colorTextSecondary,
+      colorBgLayout,
+      colorSuccess,
+    },
+  } = theme.useToken();
+  const { data: inventoryConfig, isLoading: configLoading } =
+    useInventoryConfig();
+  const updateConfigMutation = useUpdateInventoryConfig();
+  const [settings, setSettings] =
+    useState<MarketplaceSettings>(defaultSettings);
 
   useEffect(() => {
-    if (open) {
-      // Mock load settings
-      // In real app, load from API/Storage
-      const loadedSettings = localStorage.getItem("marketplace_settings");
-      if (loadedSettings) {
-        setSettings(JSON.parse(loadedSettings));
-      }
+    if (!open || configLoading) {
+      return;
     }
-  }, [open]);
 
-  const handleSave = () => {
-    // Mock save settings
-    localStorage.setItem("marketplace_settings", JSON.stringify(settings));
-    message.success("Settings saved");
-    onClose();
-  };
+    const selectedColumns = parseColumns(inventoryConfig?.selected_columns);
+    const inferredAutoColumn =
+      selectedColumns.find((column) => column.toLowerCase().includes("auto")) ||
+      "";
 
-  const handleReset = () => {
-    setSettings({
-      totalColumn: "",
-      autoColumn: "",
-      shopeeRatio: 0.6,
-      tiktokRatio: 0.3,
-    });
-  };
+    setSettings((previous) => ({
+      ...previous,
+      totalColumn: inventoryConfig?.key_column || "",
+      autoColumn: inferredAutoColumn,
+    }));
+  }, [open, configLoading, inventoryConfig]);
 
-  // Filter columns logic (simplified from Vue)
-  const numericColumns = useMemo(() => {
-    return schemaColumns.map((c) => c.column_name);
-    // In real implementation, filter by type if available
-  }, [schemaColumns]);
+  const selectableColumns = useMemo(
+    () => schemaColumns.map((column) => column.column_name),
+    [schemaColumns],
+  );
 
-  const booleanColumns = useMemo(() => {
-    return schemaColumns.map((c) => c.column_name);
-  }, [schemaColumns]);
-
-  // Preview calculation
   const total = 20;
   const previewShopee = Math.min(
     Math.ceil(settings.shopeeRatio * total),
@@ -94,6 +129,41 @@ export function MarketplaceSettingsModal({
   );
   const previewLazada = Math.max(0, total - previewShopee - previewTiktok);
 
+  const handleSave = () => {
+    const existingColumns = parseColumns(inventoryConfig?.selected_columns);
+    const mergedColumns = encodeColumns(inventoryConfig?.selected_columns, [
+      ...existingColumns,
+      settings.totalColumn,
+      settings.autoColumn,
+    ]);
+
+    updateConfigMutation.mutate(
+      {
+        key_column: settings.totalColumn,
+        selected_columns: mergedColumns,
+      },
+      {
+        onSuccess: () => {
+          message.success("Settings saved");
+          onClose();
+        },
+        onError: (error) => {
+          message.error(
+            error instanceof Error ? error.message : "Failed to save settings",
+          );
+        },
+      },
+    );
+  };
+
+  const handleReset = () => {
+    setSettings(defaultSettings);
+  };
+  const selectOptions = selectableColumns.map((column) => ({
+    label: column,
+    value: column,
+  }));
+
   return (
     <Modal
       title="⚙️ Marketplace Allocation Settings"
@@ -103,62 +173,58 @@ export function MarketplaceSettingsModal({
         <Button key="reset" onClick={handleReset}>
           Reset Defaults
         </Button>,
-        <Button key="save" type="primary" onClick={handleSave}>
+        <Button
+          key="save"
+          type="primary"
+          onClick={handleSave}
+          loading={updateConfigMutation.isPending}
+        >
           Save Settings
         </Button>,
       ]}
       width={600}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-        {/* Column Mapping */}
         <div>
-          <Title level={5}>📊 Column Mapping</Title>
+          <Title level={5}>Column Mapping</Title>
           <Text type="secondary">
-            Select which columns to use for Total and Auto values
+            Select which columns to use for Total and Auto values.
           </Text>
           <Row gutter={16} style={{ marginTop: 12 }}>
             <Col span={12}>
               <Text strong>Total Column</Text>
               <Select
-                style={{ width: "100%" }}
-                value={settings.totalColumn}
-                onChange={(val) =>
-                  setSettings({ ...settings, totalColumn: val })
+                style={{ width: "100%", marginTop: 6 }}
+                value={settings.totalColumn || undefined}
+                onChange={(value) =>
+                  setSettings({ ...settings, totalColumn: value })
                 }
-                placeholder="Select Column"
-              >
-                {numericColumns.map((col) => (
-                  <Option key={col} value={col}>
-                    {col}
-                  </Option>
-                ))}
-              </Select>
+                placeholder="Select column"
+                options={selectOptions}
+                loading={configLoading}
+              />
             </Col>
             <Col span={12}>
               <Text strong>Auto Column (Boolean)</Text>
               <Select
-                style={{ width: "100%" }}
-                value={settings.autoColumn}
-                onChange={(val) =>
-                  setSettings({ ...settings, autoColumn: val })
+                style={{ width: "100%", marginTop: 6 }}
+                value={settings.autoColumn || undefined}
+                onChange={(value) =>
+                  setSettings({ ...settings, autoColumn: value })
                 }
-                placeholder="Select Column"
-              >
-                {booleanColumns.map((col) => (
-                  <Option key={col} value={col}>
-                    {col}
-                  </Option>
-                ))}
-              </Select>
+                placeholder="Select column"
+                options={selectOptions}
+                loading={configLoading}
+              />
             </Col>
           </Row>
         </div>
 
-        {/* Allocation Ratios */}
         <div>
-          <Title level={5}>📈 Allocation Ratios</Title>
+          <Title level={5}>Allocation Ratios</Title>
           <Text type="secondary">
-            Set the percentage ratio for each marketplace
+            Ratios are used for preview and can be fine-tuned later when backend
+            fields are available.
           </Text>
 
           <div style={{ marginTop: 16 }}>
@@ -170,24 +236,35 @@ export function MarketplaceSettingsModal({
               max={1}
               step={0.05}
               value={settings.shopeeRatio}
-              onChange={(val) => setSettings({ ...settings, shopeeRatio: val })}
+              onChange={(value) =>
+                setSettings({ ...settings, shopeeRatio: value })
+              }
             />
           </div>
 
           <div style={{ marginTop: 16 }}>
             <Text>
-              Tiktok Ratio: {(settings.tiktokRatio * 100).toFixed(0)}%
+              TikTok Ratio: {(settings.tiktokRatio * 100).toFixed(0)}%
             </Text>
             <Slider
               min={0}
               max={1}
               step={0.05}
               value={settings.tiktokRatio}
-              onChange={(val) => setSettings({ ...settings, tiktokRatio: val })}
+              onChange={(value) =>
+                setSettings({ ...settings, tiktokRatio: value })
+              }
             />
           </div>
 
-          <Card size="small" style={{ marginTop: 16, background: "#f5f5f5" }}>
+          <Card
+            size="small"
+            style={{
+              marginTop: 16,
+              background: colorBgLayout,
+              borderRadius: 3,
+            }}
+          >
             <div
               style={{
                 display: "flex",
@@ -195,27 +272,28 @@ export function MarketplaceSettingsModal({
                 fontWeight: 500,
               }}
             >
-              <span style={{ color: "#ee4d2d" }}>Shopee: {previewShopee}</span>
-              <span style={{ color: "#000000" }}>Tiktok: {previewTiktok}</span>
-              <span style={{ color: "#0f146d" }}>Lazada: {previewLazada}</span>
-              <span>Total: {total}</span>
+              <span style={{ color: colorInfo }}>Shopee: {previewShopee}</span>
+              <span style={{ color: colorText }}>TikTok: {previewTiktok}</span>
+              <span style={{ color: colorSuccess }}>
+                Lazada: {previewLazada}
+              </span>
+              <span style={{ color: colorTextSecondary }}>Total: {total}</span>
             </div>
           </Card>
         </div>
 
-        {/* Formula Reference */}
         <div>
-          <Title level={5}>📝 Formula Reference</Title>
+          <Title level={5}>Formula Reference</Title>
           <ul>
             <li>
-              <strong>Shopee:</strong> MIN(CEILING(ratio × Total), Total)
+              <strong>Shopee:</strong> MIN(CEILING(ratio * Total), Total)
             </li>
             <li>
-              <strong>Tiktok:</strong> MIN(CEILING(ratio × Total), Total -
+              <strong>TikTok:</strong> MIN(CEILING(ratio * Total), Total -
               Shopee)
             </li>
             <li>
-              <strong>Lazada:</strong> Total - Shopee - Tiktok
+              <strong>Lazada:</strong> Total - Shopee - TikTok
             </li>
             <li>
               <strong>Auto = TRUE:</strong> All platforms = Total

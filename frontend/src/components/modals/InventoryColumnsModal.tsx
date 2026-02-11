@@ -1,98 +1,163 @@
 import {
-  Modal,
+  Alert,
   Button,
-  Spin,
   Checkbox,
-  message,
-  Typography,
+  Collapse,
+  Empty,
+  Modal,
   Space,
+  Spin,
+  Tag,
+  Typography,
+  message,
+  theme,
 } from "antd";
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { saveSelectedColumns } from "@/api/inventory";
+import { useAvailableColumns, useSelectedColumns } from "@/hooks/useInventory";
 
 const { Text } = Typography;
-
-interface InventoryColumn {
-  name: string;
-  type: string;
-}
+const GROUPS = ["Product Info", "Stock", "Price", "Platform", "Other"] as const;
 
 interface InventoryColumnsModalProps {
   open: boolean;
   onClose: () => void;
 }
 
+function detectGroup(column: string): (typeof GROUPS)[number] {
+  const normalized = column.toLowerCase();
+  if (
+    normalized === "name" ||
+    normalized === "product_name" ||
+    normalized === "sku" ||
+    normalized === "key_value" ||
+    normalized.includes("name") ||
+    normalized.includes("sku")
+  ) {
+    return "Product Info";
+  }
+  if (
+    normalized === "stock" ||
+    normalized === "stok" ||
+    normalized.includes("stock") ||
+    normalized.includes("stok")
+  ) {
+    return "Stock";
+  }
+  if (
+    normalized === "price" ||
+    normalized === "harga" ||
+    normalized.includes("price") ||
+    normalized.includes("harga")
+  ) {
+    return "Price";
+  }
+  if (
+    normalized.startsWith("shopee_") ||
+    normalized.startsWith("tiktok_") ||
+    normalized.startsWith("lazada_")
+  ) {
+    return "Platform";
+  }
+  return "Other";
+}
+
+function buildGroups(columns: string[]) {
+  const grouped = GROUPS.reduce<Record<(typeof GROUPS)[number], string[]>>(
+    (acc, group) => ({ ...acc, [group]: [] }),
+    { "Product Info": [], Stock: [], Price: [], Platform: [], Other: [] },
+  );
+  for (const column of columns) {
+    grouped[detectGroup(column)].push(column);
+  }
+  return GROUPS.map((group) => ({
+    key: group,
+    label: `${group} (${grouped[group].length})`,
+    children: grouped[group],
+  })).filter((group) => group.children.length > 0);
+}
+
 export function InventoryColumnsModal({
   open,
   onClose,
 }: InventoryColumnsModalProps) {
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [availableColumns, setAvailableColumns] = useState<InventoryColumn[]>(
-    [],
-  );
+  const {
+    token: {
+      colorFillAlter,
+      colorBgContainer,
+      colorBorderSecondary,
+      borderRadius,
+    },
+  } = theme.useToken();
+  const queryClient = useQueryClient();
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadColumns = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Mock data
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        setAvailableColumns([
-          { name: "Product Name", type: "string" },
-          { name: "SKU", type: "string" },
-          { name: "Stock", type: "number" },
-          { name: "Price", type: "number" },
-        ]);
-        setSelectedColumns(["Product Name", "SKU", "Stock"]);
-      } catch (err) {
-        setError("Failed to load columns");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const {
+    data: availableColumns = [],
+    isLoading: isLoadingAvailable,
+    isError: isAvailableError,
+    error: availableError,
+    refetch: refetchAvailable,
+  } = useAvailableColumns();
+  const {
+    data: selectedColumnsFromApi = [],
+    isLoading: isLoadingSelected,
+    isError: isSelectedError,
+    error: selectedError,
+    refetch: refetchSelected,
+  } = useSelectedColumns();
 
-    if (open) {
-      loadColumns();
-    }
-  }, [open]);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+  const saveColumnsMutation = useMutation({
+    mutationFn: saveSelectedColumns,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["inventory-columns-selected"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
       message.success("Columns configuration saved");
       onClose();
-    } catch (err) {
-      message.error("Failed to save configuration");
-    } finally {
-      setSaving(false);
+    },
+    onError: (error: Error) => {
+      message.error(error.message || "Failed to save configuration");
+    },
+  });
+
+  useEffect(() => {
+    if (open) {
+      setSelectedColumns(selectedColumnsFromApi);
     }
-  };
+  }, [open, selectedColumnsFromApi]);
+
+  const groupedColumns = useMemo(
+    () => buildGroups(availableColumns),
+    [availableColumns],
+  );
+  const loading = isLoadingAvailable || isLoadingSelected;
+  const hasError = isAvailableError || isSelectedError;
+  const errorMessage =
+    (availableError as Error | null)?.message ||
+    (selectedError as Error | null)?.message;
+  const hasChanges = useMemo(() => {
+    if (selectedColumns.length !== selectedColumnsFromApi.length) return true;
+    const selectedSet = new Set(selectedColumns);
+    return selectedColumnsFromApi.some((column) => !selectedSet.has(column));
+  }, [selectedColumns, selectedColumnsFromApi]);
 
   const toggleColumn = (columnName: string) => {
-    if (selectedColumns.includes(columnName)) {
-      setSelectedColumns(selectedColumns.filter((c) => c !== columnName));
-    } else {
-      setSelectedColumns([...selectedColumns, columnName]);
-    }
-  };
-
-  const selectAll = () => {
-    setSelectedColumns(availableColumns.map((c) => c.name));
-  };
-
-  const clearAll = () => {
-    setSelectedColumns([]);
+    setSelectedColumns((prev) =>
+      prev.includes(columnName)
+        ? prev.filter((column) => column !== columnName)
+        : [...prev, columnName],
+    );
   };
 
   return (
     <Modal
-      title="⚙️ Inventory Column Configuration"
+      title="Inventory Column Configuration"
       open={open}
       onCancel={onClose}
+      width={700}
       footer={[
         <Button key="cancel" onClick={onClose}>
           Cancel
@@ -100,21 +165,36 @@ export function InventoryColumnsModal({
         <Button
           key="save"
           type="primary"
-          onClick={handleSave}
-          loading={saving}
-          disabled={loading}
+          onClick={() => saveColumnsMutation.mutate(selectedColumns)}
+          loading={saveColumnsMutation.isPending}
+          disabled={loading || !hasChanges}
         >
           Save
         </Button>,
       ]}
-      width={600}
     >
       {loading ? (
         <div style={{ textAlign: "center", padding: 24 }}>
           <Spin tip="Loading columns..." />
         </div>
-      ) : error ? (
-        <div style={{ color: "red", textAlign: "center" }}>{error}</div>
+      ) : hasError ? (
+        <Alert
+          type="error"
+          showIcon
+          message="Failed to load column configuration"
+          description={errorMessage || "Please try again."}
+          action={
+            <Button
+              size="small"
+              onClick={() => {
+                refetchAvailable();
+                refetchSelected();
+              }}
+            >
+              Retry
+            </Button>
+          }
+        />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Text type="secondary">
@@ -122,62 +202,33 @@ export function InventoryColumnsModal({
             table. Total: {availableColumns.length}
           </Text>
 
-          {/* Selected Columns */}
           {selectedColumns.length > 0 && (
             <div
               style={{
-                background: "#f5f5f5",
+                background: colorFillAlter,
+                border: `1px solid ${colorBorderSecondary}`,
+                borderRadius,
                 padding: 12,
-                borderRadius: 6,
               }}
             >
               <Text strong>Selected ({selectedColumns.length})</Text>
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 8,
-                  marginTop: 8,
-                }}
-              >
-                {selectedColumns.map((col) => (
-                  <div
-                    key={col}
-                    style={{
-                      background: "white",
-                      padding: "4px 8px",
-                      borderRadius: 4,
-                      border: "1px solid #d9d9d9",
-                      fontSize: 12,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
+              <Space size={[8, 8]} wrap style={{ marginTop: 8 }}>
+                {selectedColumns.map((column) => (
+                  <Tag
+                    key={column}
+                    closable
+                    onClose={(event) => {
+                      event.preventDefault();
+                      toggleColumn(column);
                     }}
                   >
-                    {col}
-                    <button
-                      type="button"
-                      style={{
-                        cursor: "pointer",
-                        color: "#999",
-                        fontWeight: "bold",
-                        background: "none",
-                        border: "none",
-                        padding: 0,
-                        marginLeft: 4,
-                      }}
-                      onClick={() => toggleColumn(col)}
-                      aria-label={`Remove ${col}`}
-                    >
-                      ×
-                    </button>
-                  </div>
+                    {column}
+                  </Tag>
                 ))}
-              </div>
+              </Space>
             </div>
           )}
 
-          {/* Available Columns */}
           <div>
             <div
               style={{
@@ -188,33 +239,60 @@ export function InventoryColumnsModal({
             >
               <Text strong>Available</Text>
               <Space>
-                <Button size="small" onClick={selectAll}>
+                <Button
+                  size="small"
+                  onClick={() => setSelectedColumns(availableColumns)}
+                >
                   Select All
                 </Button>
-                <Button size="small" onClick={clearAll}>
+                <Button size="small" onClick={() => setSelectedColumns([])}>
                   Clear All
                 </Button>
               </Space>
             </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-                gap: 8,
-                maxHeight: 300,
-                overflowY: "auto",
-              }}
-            >
-              {availableColumns.map((col) => (
-                <Checkbox
-                  key={col.name}
-                  checked={selectedColumns.includes(col.name)}
-                  onChange={() => toggleColumn(col.name)}
-                >
-                  {col.name}
-                </Checkbox>
-              ))}
-            </div>
+
+            {groupedColumns.length === 0 ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="No columns available"
+              />
+            ) : (
+              <Collapse
+                size="small"
+                defaultActiveKey={groupedColumns.map((group) => group.key)}
+                items={groupedColumns.map((group) => ({
+                  key: group.key,
+                  label: group.label,
+                  children: (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fill, minmax(180px, 1fr))",
+                        gap: 8,
+                        paddingTop: 4,
+                      }}
+                    >
+                      {group.children.map((column) => (
+                        <Checkbox
+                          key={column}
+                          checked={selectedColumns.includes(column)}
+                          onChange={() => toggleColumn(column)}
+                          style={{
+                            background: colorBgContainer,
+                            border: `1px solid ${colorBorderSecondary}`,
+                            borderRadius,
+                            padding: "6px 8px",
+                          }}
+                        >
+                          {column}
+                        </Checkbox>
+                      ))}
+                    </div>
+                  ),
+                }))}
+              />
+            )}
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
-import { useMemo } from "react";
-import { Tabs, Empty, Layout, theme } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import type { Key } from "react";
+import { Tabs, Layout, theme } from "antd";
 import {
   useInventory,
   useInventoryStats,
@@ -15,6 +16,9 @@ import { WholesaleTab } from "./components/WholesaleTab";
 import { MpqTab } from "./components/MpqTab";
 import { DeleteTab } from "./components/DeleteTab";
 import { InventoryFilterPanel } from "./components/InventoryFilterPanel";
+import { InventoryBatchBar } from "./components/InventoryBatchBar";
+import { InventoryLockPanel } from "./components/InventoryLockPanel";
+import { SyncHistoryTab } from "./components/SyncHistoryTab";
 import { InventoryRecord } from "@/types/inventory";
 
 const { Content } = Layout;
@@ -40,6 +44,8 @@ export default function InventoryPage() {
 
   const syncFromSheetsMutation = useSyncFromSheets();
   const syncToSheetsMutation = useSyncToSheets();
+  const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
+  const [selectedRecords, setSelectedRecords] = useState<InventoryRecord[]>([]);
 
   const handleSyncFromSheets = () => {
     syncFromSheetsMutation.mutate({});
@@ -93,6 +99,20 @@ export default function InventoryPage() {
     return result;
   }, [data?.records, platformFilter, stockFilter, config]);
 
+  useEffect(() => {
+    const recordMap = new Map(
+      filteredRecords.map((record) => [String(record.id), record]),
+    );
+    setSelectedRowKeys((prev) =>
+      prev.filter((key) => recordMap.has(String(key))),
+    );
+    setSelectedRecords((prev) =>
+      prev
+        .map((record) => recordMap.get(String(record.id)))
+        .filter((record): record is InventoryRecord => Boolean(record)),
+    );
+  }, [filteredRecords]);
+
   const tabsItems = [
     {
       key: "inventory",
@@ -103,6 +123,11 @@ export default function InventoryPage() {
           loading={isLoading}
           error={error as Error | null}
           onRetry={() => refetch()}
+          selectedRowKeys={selectedRowKeys}
+          onSelectionChange={(keys, rows) => {
+            setSelectedRowKeys(keys);
+            setSelectedRecords(rows);
+          }}
         />
       ),
     },
@@ -124,7 +149,7 @@ export default function InventoryPage() {
     {
       key: "sync-history",
       label: "Sync History",
-      children: <Empty description="Sync history will appear here" />,
+      children: <SyncHistoryTab />,
     },
   ];
 
@@ -160,11 +185,13 @@ export default function InventoryPage() {
           syncingToSheets={syncToSheetsMutation.isPending}
         />
 
+        <InventoryLockPanel />
+
         <div
           style={{
             flex: 1,
             background: colorBgContainer,
-            borderRadius: 8,
+            borderRadius: 6,
             padding: 16,
             overflow: "hidden",
             display: "flex",
@@ -178,6 +205,17 @@ export default function InventoryPage() {
             tabBarStyle={{ marginBottom: 16 }}
           />
         </div>
+
+        <InventoryBatchBar
+          selectedRows={selectedRecords}
+          onClearSelection={() => {
+            setSelectedRowKeys([]);
+            setSelectedRecords([]);
+          }}
+          onBatchComplete={() => {
+            refetch();
+          }}
+        />
       </Content>
     </Layout>
   );

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { Key } from "react";
 import { Table, Spin, Empty, Alert, Button } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useSelectedColumns } from "@/hooks/useInventory";
@@ -11,9 +12,18 @@ interface Props {
   loading: boolean;
   error: Error | null;
   onRetry: () => void;
+  selectedRowKeys: Key[];
+  onSelectionChange: (keys: Key[], rows: InventoryRecord[]) => void;
 }
 
-export function InventoryMainTab({ records, loading, error, onRetry }: Props) {
+export function InventoryMainTab({
+  records,
+  loading,
+  error,
+  onRetry,
+  selectedRowKeys,
+  onSelectionChange,
+}: Props) {
   const { data: selectedCols = [] } = useSelectedColumns();
 
   const dynamicColumns: ColumnsType<InventoryRecord> = useMemo(() => {
@@ -103,6 +113,10 @@ export function InventoryMainTab({ records, loading, error, onRetry }: Props) {
       columns={dynamicColumns}
       dataSource={records}
       rowKey="id"
+      rowSelection={{
+        selectedRowKeys,
+        onChange: onSelectionChange,
+      }}
       pagination={false}
       scroll={{ y: 600, x: 1000 }}
       size="small"

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Input,
   Button,
@@ -13,10 +14,12 @@ import {
   ReloadOutlined,
   CloudDownloadOutlined,
   CloudUploadOutlined,
+  ShopOutlined,
 } from "@ant-design/icons";
 import { useSelectedColumns, useAvailableColumns } from "@/hooks/useInventory";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { saveSelectedColumns } from "@/api/inventory";
+import { MarketplaceSettingsModal } from "@/components/modals/MarketplaceSettingsModal";
 
 interface InventoryHeaderProps {
   searchText: string;
@@ -39,9 +42,13 @@ export function InventoryHeader({
   onSyncToSheets,
   syncingToSheets,
 }: InventoryHeaderProps) {
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const queryClient = useQueryClient();
   const { data: selectedCols = [] } = useSelectedColumns();
   const { data: availableCols = [] } = useAvailableColumns();
+  const schemaColumns = availableCols.map((column) => ({
+    column_name: column,
+  }));
 
   const saveColumnsMutation = useMutation({
     mutationFn: saveSelectedColumns,
@@ -108,6 +115,13 @@ export function InventoryHeader({
           </Button>
         </Tooltip>
 
+        <Button
+          icon={<ShopOutlined />}
+          onClick={() => setSettingsModalOpen(true)}
+        >
+          Marketplace Settings
+        </Button>
+
         <Popover
           trigger="click"
           placement="bottomRight"
@@ -142,6 +156,12 @@ export function InventoryHeader({
           <Button icon={<SettingOutlined />}>Cols</Button>
         </Popover>
       </Space>
+
+      <MarketplaceSettingsModal
+        open={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+        schemaColumns={schemaColumns}
+      />
     </div>
   );
 }
