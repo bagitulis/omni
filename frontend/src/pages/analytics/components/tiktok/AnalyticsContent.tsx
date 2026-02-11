@@ -9,13 +9,14 @@ import {
 import {
   TiktokReconciliationResult,
   TiktokShippingFeeResult,
+  JobProgress,
 } from "@/types/analytics";
 
 const { Text } = Typography;
 
 interface AnalyticsContentProps {
   activeTab: "price" | "shipping";
-  jobProgress: any;
+  jobProgress: JobProgress | null;
   showProgressBar: boolean;
   isLoading: boolean;
   isSynced: boolean;

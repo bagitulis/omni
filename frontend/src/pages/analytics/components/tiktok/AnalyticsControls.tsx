@@ -10,13 +10,14 @@ import {
   getAvailableYears,
   formatAnalyticsDate,
 } from "@/lib/analyticsHelpers";
+import type { SyncStatus } from "@/types/analytics";
 
 interface AnalyticsControlsProps {
-  selectedMonth: string;
-  onMonthChange: (val: string) => void;
+  selectedMonth: number;
+  onMonthChange: (val: number) => void;
   selectedYear: number;
   onYearChange: (val: number) => void;
-  syncStatusData: any;
+  syncStatusData: SyncStatus | undefined;
   isSynced: boolean;
   canSync: boolean;
   isSyncing: boolean;
@@ -69,8 +70,8 @@ export const AnalyticsControls = ({
           />
           {syncStatusData?.synced ? (
             <Tag color="success">
-              Synced ({syncStatusData.total_orders} orders) •{" "}
-              {formatAnalyticsDate(syncStatusData.synced_at)}
+              Synced ({syncStatusData?.total_orders} orders) •{" "}
+              {formatAnalyticsDate(syncStatusData?.synced_at ?? null)}
             </Tag>
           ) : (
             <Tag color="warning">Not synced</Tag>

@@ -1,44 +1,18 @@
-import {
-  Button,
-  Select,
-  Space,
-  Typography,
-  Card,
-  Spin,
-  Empty,
-  Tag,
-  Modal,
-  message,
-  Tabs,
-  theme,
-} from "antd";
-import {
-  SettingOutlined,
-  SyncOutlined,
-  DeleteOutlined,
-  DownloadOutlined,
-  ReloadOutlined,
-  VideoCameraOutlined,
-} from "@ant-design/icons";
+import { Button, Typography, Modal, message, Tabs, theme } from "antd";
+import { SettingOutlined } from "@ant-design/icons";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { SettingsModal } from "@/components/analytics/common";
 import {
-  AnalyticsSummaryCards,
-  ReconciliationTable,
-  ShippingFeeTable,
-  SettingsModal,
-  SyncProgressBar,
-} from "@/components/analytics/common";
-import {
-  MONTHS,
-  getAvailableYears,
-  formatAnalyticsDate,
   exportTiktokReconciliationCSV,
   exportTiktokShippingCSV,
 } from "@/lib/analyticsHelpers";
 import type {
   TiktokReconciliationResult,
   TiktokShippingFeeResult,
+  AnalyticsSettings,
 } from "@/types/analytics";
+import { AnalyticsControls } from "./components/tiktok/AnalyticsControls";
+import { AnalyticsContent } from "./components/tiktok/AnalyticsContent";
 
 const { Title, Text } = Typography;
 
@@ -47,7 +21,6 @@ export const TiktokAnalyticsPage = () => {
   const [messageApi, contextHolder] = message.useMessage();
 
   const {
-    // From useAnalyticsParams
     activeTab,
     setActiveTab,
     selectedMonth,
@@ -58,29 +31,22 @@ export const TiktokAnalyticsPage = () => {
     setSettingsOpen,
     apiMonth,
     canSync,
-    // From useAnalyticsQueries
     syncStatusQuery,
     settingsQuery,
     reconciliationQuery,
     shippingFeeQuery,
-    // From useAnalyticsSync
     jobProgress,
     syncMutation,
     deleteMutation,
     saveSettingsMutation,
   } = useAnalytics("tiktok");
 
-  // Handlers
   const handleSync = (forceResync: boolean) => {
     syncMutation.mutate(
       { month: apiMonth, year: selectedYear, forceResync },
       {
-        onSuccess: () => {
-          messageApi.success("Sync job started");
-        },
-        onError: (error) => {
-          messageApi.error(`Sync failed: ${error.message}`);
-        },
+        onSuccess: () => messageApi.success("Sync job started"),
+        onError: (error) => messageApi.error(`Sync failed: ${error.message}`),
       },
     );
   };
@@ -96,12 +62,9 @@ export const TiktokAnalyticsPage = () => {
         deleteMutation.mutate(
           { month: apiMonth, year: selectedYear },
           {
-            onSuccess: () => {
-              messageApi.success("Data deleted successfully");
-            },
-            onError: (error) => {
-              messageApi.error(`Delete failed: ${error.message}`);
-            },
+            onSuccess: () => messageApi.success("Data deleted successfully"),
+            onError: (error) =>
+              messageApi.error(`Delete failed: ${error.message}`),
           },
         );
       },
@@ -127,121 +90,32 @@ export const TiktokAnalyticsPage = () => {
     }
   };
 
-  const handleSaveSettings = (settings: any) => {
+  const handleSaveSettings = (settings: AnalyticsSettings) => {
     saveSettingsMutation.mutate(settings, {
       onSuccess: () => {
         messageApi.success("Settings saved");
         setSettingsOpen(false);
       },
-      onError: (error) => {
-        messageApi.error(`Failed to save settings: ${error.message}`);
-      },
+      onError: (error) =>
+        messageApi.error(`Failed to save settings: ${error.message}`),
     });
   };
 
-  // Derived state
   const isSynced = syncStatusQuery.data?.synced;
   const showProgressBar = syncMutation.isPending || !!jobProgress;
   const isLoading =
     syncStatusQuery.isLoading ||
     (activeTab === "price" && reconciliationQuery.isLoading) ||
     (activeTab === "shipping" && shippingFeeQuery.isLoading);
-
   const hasData =
-    (activeTab === "price" && reconciliationQuery.data) ||
-    (activeTab === "shipping" && shippingFeeQuery.data);
-
-  // Constants
+    (activeTab === "price" && !!reconciliationQuery.data) ||
+    (activeTab === "shipping" && !!shippingFeeQuery.data);
   const TIKTOK_BLACK = "#000000";
-
-  // Render Content Logic
-  const renderContent = () => {
-    if (showProgressBar && jobProgress) {
-      return (
-        <div style={{ marginBottom: 24 }}>
-          <SyncProgressBar jobProgress={jobProgress} />
-        </div>
-      );
-    }
-
-    if (isLoading && !hasData) {
-      return (
-        <div style={{ textAlign: "center", padding: 80 }}>
-          <Spin size="large" />
-          <div style={{ marginTop: 16 }}>
-            <Text type="secondary">Loading analytics data...</Text>
-          </div>
-        </div>
-      );
-    }
-
-    if (!isSynced && !showProgressBar) {
-      return (
-        <Card style={{ borderRadius: token.borderRadius }}>
-          <Empty
-            image={
-              <VideoCameraOutlined
-                style={{ fontSize: 64, color: token.colorTextSecondary }}
-              />
-            }
-            description="Select a period and sync escrow data to start analysis"
-          />
-        </Card>
-      );
-    }
-
-    if (activeTab === "price" && reconciliationQuery.data) {
-      return (
-        <>
-          <AnalyticsSummaryCards
-            type="reconciliation"
-            summary={reconciliationQuery.data.summary}
-          />
-          <div style={{ marginTop: 24 }}>
-            <ReconciliationTable
-              platform="tiktok"
-              data={
-                (reconciliationQuery.data as TiktokReconciliationResult)
-                  .sku_groups
-              }
-              loading={reconciliationQuery.isLoading}
-            />
-          </div>
-        </>
-      );
-    }
-
-    if (activeTab === "shipping" && shippingFeeQuery.data) {
-      return (
-        <>
-          <AnalyticsSummaryCards
-            type="shipping"
-            summary={shippingFeeQuery.data.summary}
-          />
-          <div style={{ marginTop: 24 }}>
-            <ShippingFeeTable
-              platform="tiktok"
-              data={(shippingFeeQuery.data as TiktokShippingFeeResult).orders}
-              loading={shippingFeeQuery.isLoading}
-            />
-          </div>
-        </>
-      );
-    }
-
-    // Default empty state if synced but no data
-    return (
-      <Card style={{ borderRadius: token.borderRadius, marginTop: 24 }}>
-        <Empty description="No data found for this period" />
-      </Card>
-    );
-  };
 
   return (
     <div style={{ padding: 24 }}>
       {contextHolder}
 
-      {/* Header: Title + Settings button */}
       <div
         style={{
           display: "flex",
@@ -265,7 +139,6 @@ export const TiktokAnalyticsPage = () => {
         </Button>
       </div>
 
-      {/* Tab Navigation */}
       <Tabs
         activeKey={activeTab}
         onChange={(key) => setActiveTab(key as "price" | "shipping")}
@@ -276,96 +149,38 @@ export const TiktokAnalyticsPage = () => {
         style={{ marginBottom: 16 }}
       />
 
-      {/* Period Selector & Controls */}
-      <div style={{ marginBottom: 24 }}>
-        <Space
-          size="middle"
-          wrap
-          style={{ width: "100%", justifyContent: "space-between" }}
-        >
-          <Space>
-            <Select
-              value={selectedMonth}
-              onChange={setSelectedMonth}
-              options={MONTHS}
-              style={{ width: 150 }}
-            />
-            <Select
-              value={selectedYear}
-              onChange={setSelectedYear}
-              options={getAvailableYears().map((y) => ({
-                label: y,
-                value: y,
-              }))}
-              style={{ width: 100 }}
-            />
-            {syncStatusQuery.data?.synced ? (
-              <Tag color="success">
-                Synced ({syncStatusQuery.data.total_orders} orders) •{" "}
-                {formatAnalyticsDate(syncStatusQuery.data.synced_at)}
-              </Tag>
-            ) : (
-              <Tag color="warning">Not synced</Tag>
-            )}
-          </Space>
+      <AnalyticsControls
+        selectedMonth={selectedMonth}
+        onMonthChange={setSelectedMonth}
+        selectedYear={selectedYear}
+        onYearChange={setSelectedYear}
+        syncStatusData={syncStatusQuery.data}
+        isSynced={!!isSynced}
+        canSync={canSync}
+        isSyncing={syncMutation.isPending}
+        isDeleting={deleteMutation.isPending}
+        hasData={hasData}
+        onSync={handleSync}
+        onDelete={handleDelete}
+        onAnalyze={handleAnalyze}
+        onExport={handleExport}
+      />
 
-          <Space>
-            <Button
-              type="primary"
-              icon={<SyncOutlined spin={syncMutation.isPending} />}
-              onClick={() => handleSync(false)}
-              loading={syncMutation.isPending}
-              disabled={!canSync}
-              style={{ borderRadius: token.borderRadius }}
-            >
-              Sync Escrow
-            </Button>
+      <AnalyticsContent
+        activeTab={activeTab as "price" | "shipping"}
+        jobProgress={jobProgress}
+        showProgressBar={showProgressBar}
+        isLoading={isLoading}
+        isSynced={!!isSynced}
+        hasData={hasData}
+        reconciliationData={
+          reconciliationQuery.data as TiktokReconciliationResult
+        }
+        shippingFeeData={shippingFeeQuery.data as TiktokShippingFeeResult}
+        reconciliationLoading={reconciliationQuery.isLoading}
+        shippingFeeLoading={shippingFeeQuery.isLoading}
+      />
 
-            {isSynced && (
-              <>
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={() => handleSync(true)}
-                  disabled={syncMutation.isPending}
-                  style={{ borderRadius: token.borderRadius }}
-                >
-                  Force Resync
-                </Button>
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={handleAnalyze}
-                  style={{ borderRadius: token.borderRadius }}
-                >
-                  Analyze
-                </Button>
-                <Button
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={handleDelete}
-                  loading={deleteMutation.isPending}
-                  style={{ borderRadius: token.borderRadius }}
-                >
-                  Delete Sync
-                </Button>
-                {hasData && (
-                  <Button
-                    icon={<DownloadOutlined />}
-                    onClick={handleExport}
-                    style={{ borderRadius: token.borderRadius }}
-                  >
-                    Export CSV
-                  </Button>
-                )}
-              </>
-            )}
-          </Space>
-        </Space>
-      </div>
-
-      {/* Main Content */}
-      {renderContent()}
-
-      {/* Settings Modal */}
       <SettingsModal
         open={settingsOpen}
         settings={
