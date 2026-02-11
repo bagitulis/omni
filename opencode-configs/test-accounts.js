@@ -1,11 +1,12 @@
 /**
  * Antigravity Account Tester
  *
- * Test semua akun dengan menjalankan opencode command
- * dan capture response untuk detect error
+ * Tests all accounts by running opencode command
+ * and captures response to detect errors
  *
  * Features:
  * - Uses plugin-based auth (not proxy)
+ * - Generates oh-my-opencode.json from opencode-profiles.json (mix-antigravity profile)
  * - Restore from master copy (antigravity-accounts copy.json)
  * - Detailed error categorization
  *
@@ -15,6 +16,12 @@
 const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
+const {
+  transformForPlugin,
+  mergeProfile,
+  classifyError,
+  STATUS_ICONS,
+} = require("./test-accounts-helpers");
 
 // === PATHS ===
 const CONFIG_DIR = path.join(__dirname);
@@ -27,10 +34,7 @@ const TARGET_CONFIG_DIR = path.join(
 // Source files (in opencode-configs folder)
 const SOURCE_ACCOUNTS = path.join(CONFIG_DIR, "antigravity-accounts copy.json");
 const SOURCE_OPENCODE = path.join(CONFIG_DIR, "opencode-plugin.json");
-const SOURCE_OHMYOPENCODE = path.join(
-  CONFIG_DIR,
-  "oh-my-opencode-antigravity.json",
-);
+const SOURCE_PROFILES = path.join(CONFIG_DIR, "opencode-profiles.json");
 
 // Target files (in ~/.config/opencode)
 const TARGET_OPENCODE_JSON = path.join(TARGET_CONFIG_DIR, "opencode.json");
@@ -54,17 +58,6 @@ const TEST_CMD =
 const results = [];
 
 /**
- * Transform model names for plugin mode
- * google/claude-* -> google/antigravity-claude-*
- * google/gemini-* -> google/antigravity-gemini-*
- */
-function transformForPlugin(content) {
-  return content
-    .replace(/google\/claude-/g, "google/antigravity-claude-")
-    .replace(/google\/gemini-/g, "google/antigravity-gemini-");
-}
-
-/**
  * Restore configs from master source (antigravity-accounts copy.json)
  * No backup needed - always restore from master copy
  */
@@ -80,6 +73,7 @@ function restoreConfigs() {
 
 /**
  * Setup tester config (plugin-based, not proxy)
+ * Generates oh-my-opencode.json from opencode-profiles.json (mix-antigravity + plugin transform)
  */
 function setupTesterConfig() {
   console.log("⚙️  Setting up tester config...");
@@ -93,14 +87,27 @@ function setupTesterConfig() {
   fs.copyFileSync(SOURCE_OPENCODE, TARGET_OPENCODE_JSON);
   console.log("   ✓ opencode-plugin.json -> opencode.json");
 
-  // Transform and copy oh-my-opencode-antigravity.json -> oh-my-opencode.json
-  if (fs.existsSync(SOURCE_OHMYOPENCODE)) {
-    const content = fs.readFileSync(SOURCE_OHMYOPENCODE, "utf8");
+  // Generate oh-my-opencode.json from profiles (mix-antigravity + plugin transform)
+  if (fs.existsSync(SOURCE_PROFILES)) {
+    const profilesData = JSON.parse(fs.readFileSync(SOURCE_PROFILES, "utf8"));
+    const shared = profilesData.shared || {};
+    const profile = (profilesData.profiles || {})["mix-antigravity"];
+
+    if (!profile) {
+      console.error("   ✗ mix-antigravity profile not found in profiles.json");
+      process.exit(1);
+    }
+
+    const config = mergeProfile(shared, profile);
+    const content = JSON.stringify(config, null, 2) + "\n";
     const transformed = transformForPlugin(content);
     fs.writeFileSync(TARGET_OHMYOPENCODE_JSON, transformed);
     console.log(
-      "   ✓ oh-my-opencode-antigravity.json -> oh-my-opencode.json (transformed)",
+      "   ✓ opencode-profiles.json -> oh-my-opencode.json (mix-antigravity, plugin)",
     );
+  } else {
+    console.error(`   ✗ Profiles file not found: ${SOURCE_PROFILES}`);
+    process.exit(1);
   }
 }
 
@@ -139,83 +146,27 @@ function testAccount(account, index) {
   const startTime = Date.now();
   let status = "UNKNOWN";
   let error = null;
-  let output = "";
 
   try {
-    // Run opencode with timeout
-    output = execSync(TEST_CMD, {
-      timeout: 60000, // 60 second timeout
+    const output = execSync(TEST_CMD, {
+      timeout: 60000,
       encoding: "utf8",
       stdio: ["pipe", "pipe", "pipe"],
       windowsHide: true,
     });
 
-    // Check output for success indicators
     if (output.toLowerCase().includes("ok") || output.length > 10) {
       status = "OK";
     } else {
-      status = "UNKNOWN";
       error = "Unexpected response";
     }
   } catch (err) {
-    output = (err.stdout || "") + (err.stderr || "");
-
-    // Analyze error
-    if (
-      output.includes("invalid_grant") ||
-      output.includes("Token has been expired") ||
-      output.includes("Token has been revoked")
-    ) {
-      status = "TOKEN_EXPIRED";
-      error = "Refresh token expired or revoked";
-    } else if (
-      output.includes("quota") ||
-      output.includes("rate limit") ||
-      output.includes("429") ||
-      output.includes("RESOURCE_EXHAUSTED")
-    ) {
-      status = "RATE_LIMITED";
-      error = "Quota exhausted";
-    } else if (
-      output.includes("unauthorized") ||
-      output.includes("401") ||
-      output.includes("UNAUTHENTICATED")
-    ) {
-      status = "UNAUTHORIZED";
-      error = "Authentication failed";
-    } else if (
-      output.includes("permission") ||
-      output.includes("403") ||
-      output.includes("PERMISSION_DENIED")
-    ) {
-      status = "PERMISSION_DENIED";
-      error = "Permission denied - check project settings";
-    } else if (output.includes("project") && output.includes("not found")) {
-      status = "PROJECT_ERROR";
-      error = "GCP project not found";
-    } else if (err.killed || err.signal === "SIGTERM") {
-      status = "TIMEOUT";
-      error = "Request timed out";
-    } else {
-      status = "ERROR";
-      error = (err.message || "Unknown error").substring(0, 200);
-    }
+    const output = (err.stdout || "") + (err.stderr || "");
+    ({ status, error } = classifyError(output, err));
   }
 
   const duration = Date.now() - startTime;
-  const icon =
-    {
-      OK: "✅",
-      TOKEN_EXPIRED: "🔴",
-      RATE_LIMITED: "⚠️",
-      UNAUTHORIZED: "🔒",
-      PERMISSION_DENIED: "🚫",
-      PROJECT_ERROR: "📁",
-      TIMEOUT: "⏱️",
-      ERROR: "❌",
-      UNKNOWN: "❓",
-    }[status] || "?";
-
+  const icon = STATUS_ICONS[status] || "?";
   console.log(
     `    ${icon} ${status} (${(duration / 1000).toFixed(1)}s)${error ? " - " + error : ""}`,
   );

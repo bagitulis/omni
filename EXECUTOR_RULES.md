@@ -47,7 +47,7 @@
 
 Every modified file MUST:
 
-- [ ] If > ~300 lines → verified SRP/DRY/OOP are clean (no dead code, no duplication)
+- [ ] If > ~300 lines → verified SRP/DRY/OOP are clean (no dead code, no duplication). 400+ lines is NOT acceptable.
 - [ ] No duplicate code
 - [ ] No dead code
 - [ ] No unused imports

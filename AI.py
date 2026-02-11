@@ -1,281 +1,192 @@
 #!/usr/bin/env python3
 """
-AI.py - OpenCode Provider Switcher v3.1
-Python version with full functionality
+AI.py - OpenCode Provider Switcher v4.2
+Profile-based configuration system (CLI entry point)
 
-5 Modes: Copilot, Antigravity Proxy/Plugin, Mix Proxy/Plugin
-Smart Sync: 4 locations for antigravity configs
-Dynamic Transform: For plugin modes
+2 Profiles: Mix Copilot, Mix Antigravity
+Delivery: Proxy (clean names) or Plugin (antigravity-* names)
+Source: opencode-configs/opencode-profiles.json (shared + per-profile model assignments)
+Output: oh-my-opencode.json (valid schema, consumed by opencode)
+
+Helper modules (in opencode-configs/):
+  ai_profiles.py - Profile loading, merging, LSP detection, plugin transform
+  ai_sync.py     - Account/config file synchronization across locations
 """
 
 import json
 import os
-import sys
-import shutil
 import socket
 import subprocess
+import sys
 from pathlib import Path
-from datetime import datetime
+
+# Add opencode-configs to import path for helper modules
+sys.path.insert(0, str(Path(__file__).parent / "opencode-configs"))
+
+from ai_profiles import (
+    inject_lsp_config,
+    load_profiles,
+    merge_profile,
+    transform_for_plugin,
+)
+from ai_sync import copy_file, smart_sync_accounts
 
 # Paths
 SCRIPT_DIR = Path(__file__).parent
 CONFIG_DIR = SCRIPT_DIR / "opencode-configs"
+PROFILES_FILE = CONFIG_DIR / "opencode-profiles.json"
 TARGET_DIR = Path.home() / ".config" / "opencode"
-APPDATA_DIR = Path(os.environ.get("APPDATA", "")) / "opencode"
-LOCALAPPDATA_DIR = Path(os.environ.get("LOCALAPPDATA", "")) / "opencode"
+
+# AppData paths: only set if env vars are valid (non-empty)
+_appdata = os.environ.get("APPDATA", "")
+_localappdata = os.environ.get("LOCALAPPDATA", "")
+APPDATA_DIR = Path(_appdata) / "opencode" if _appdata else None
+LOCALAPPDATA_DIR = Path(_localappdata) / "opencode" if _localappdata else None
+
+# Profile and CLI mappings
+PROFILES = {"1": "mix-copilot", "2": "mix-antigravity"}
+CLI_ARGS = {
+    "mix-copilot": "1", "mix-copilot-proxy": "1p", "mix-copilot-plugin": "1l",
+    "mix-antigravity": "2", "mix-antigravity-proxy": "2p", "mix-antigravity-plugin": "2l",
+    "sync": "s", "current": "c",
+}
+
+
+def _is_cli_mode() -> bool:
+    """Return True if running with command-line arguments (non-interactive)."""
+    return len(sys.argv) > 1
 
 
 def clear_screen():
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-
-def transform_for_plugin(content: str) -> str:
-    """Transform model names for plugin mode (google/* -> google/antigravity-*)"""
-    content = content.replace('google/claude-', 'google/antigravity-claude-')
-    content = content.replace('google/gemini-', 'google/antigravity-gemini-')
-    return content
+    os.system("cls" if os.name == "nt" else "clear")
 
 
 def check_proxy_running(port: int = 8045) -> bool:
-    """Check if proxy is running on specified port"""
+    """Check if proxy is running on specified port."""
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(1)
-            result = s.connect_ex(('127.0.0.1', port))
-            return result == 0
-    except:
+            return s.connect_ex(("127.0.0.1", port)) == 0
+    except Exception:
         return False
-
-
-def get_file_mtime(filepath: Path) -> float:
-    """Get file modification time, return 0 if not exists"""
-    try:
-        return filepath.stat().st_mtime if filepath.exists() else 0
-    except:
-        return 0
-
-
-def copy_file(src: Path, dst: Path):
-    """Copy file, creating parent directories if needed"""
-    dst.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(src, dst)
-
-
-def smart_sync_accounts():
-    """Sync antigravity-accounts.json across all locations - newest wins"""
-    locations = [
-        (CONFIG_DIR / "antigravity-accounts.json", "opencode-configs"),
-        (TARGET_DIR / "antigravity-accounts.json", ".config/opencode"),
-        (APPDATA_DIR / "antigravity-accounts.json", "AppData/Roaming/opencode"),
-        (LOCALAPPDATA_DIR / "antigravity-accounts.json", "AppData/Local/opencode"),
-    ]
-    
-    # Ensure directories exist
-    TARGET_DIR.mkdir(parents=True, exist_ok=True)
-    APPDATA_DIR.mkdir(parents=True, exist_ok=True)
-    
-    # Find newest file
-    mtimes = [(loc, name, get_file_mtime(loc)) for loc, name in locations]
-    valid_files = [(loc, name, mtime) for loc, name, mtime in mtimes if mtime > 0]
-    
-    if not valid_files:
-        print("   [SKIP] No antigravity-accounts.json found in any location")
-        return
-    
-    newest = max(valid_files, key=lambda x: x[2])
-    print(f"   [SYNC] Newest accounts: {newest[1]}")
-    
-    # Copy to all other locations
-    for loc, name in locations:
-        if loc != newest[0]:
-            # Skip LOCALAPPDATA if directory doesn't exist
-            if "Local" in name and not LOCALAPPDATA_DIR.exists():
-                continue
-            try:
-                copy_file(newest[0], loc)
-                print(f"   [OK] -> {name}")
-            except Exception as e:
-                print(f"   [ERROR] -> {name}: {e}")
-    
-    # Also sync antigravity.json
-    sync_antigravity_json()
-
-
-def sync_antigravity_json():
-    """Sync antigravity.json across locations"""
-    locations = [
-        CONFIG_DIR / "antigravity.json",
-        TARGET_DIR / "antigravity.json",
-        APPDATA_DIR / "antigravity.json",
-    ]
-    
-    mtimes = [(loc, get_file_mtime(loc)) for loc in locations]
-    valid_files = [(loc, mtime) for loc, mtime in mtimes if mtime > 0]
-    
-    if not valid_files:
-        return
-    
-    newest = max(valid_files, key=lambda x: x[1])
-    
-    for loc, _ in mtimes:
-        if loc != newest[0] and loc.parent.exists():
-            try:
-                copy_file(newest[0], loc)
-            except:
-                pass
 
 
 def detect_current_provider() -> str:
-    """Detect current provider from oh-my-opencode.json"""
+    """Detect current provider from oh-my-opencode.json."""
     config_file = TARGET_DIR / "oh-my-opencode.json"
-    
     if not config_file.exists():
         return "[None]"
-    
+
     try:
-        content = config_file.read_text(encoding='utf-8')
-        
-        has_copilot = 'github-copilot' in content
-        has_antigravity = 'google/antigravity-' in content
-        has_google = 'google/' in content
-        
+        content = config_file.read_text(encoding="utf-8")
+        has_copilot = "github-copilot" in content
+        has_antigravity = "google/antigravity-" in content
+        has_google = "google/" in content
+
         if has_copilot:
             if has_antigravity:
-                return "Mix Plugin"
-            elif has_google:
-                return "Mix Proxy"
-            else:
-                return "Copilot"
-        elif has_antigravity:
-            return "Antigravity Plugin"
-        elif has_google:
-            return "Antigravity Proxy"
-        
+                return "Mix Copilot (Plugin)"
+            if has_google:
+                return "Mix Copilot (Proxy)"
+            return "Mix Copilot"
+        if has_antigravity:
+            return "Mix Antigravity (Plugin)"
+        if has_google:
+            return "Mix Antigravity (Proxy)"
+
         return "[Unknown]"
-    except:
+    except Exception:
         return "[Error]"
 
 
-def detect_lsp_servers() -> dict:
-    """Detect LSP servers available on this machine and return config dict.
-    
-    Uses shutil.which() to find binaries dynamically so it works on any PC.
-    Returns a dict suitable for the 'lsp' key in oh-my-opencode.json.
+def apply_profile(profile_name: str, delivery: str) -> bool:
+    """Apply a profile with specified delivery method.
+
+    Args:
+        profile_name: 'mix-copilot' or 'mix-antigravity'
+        delivery: 'proxy' or 'plugin'
+
+    Returns True on success.
     """
-    servers = {}
-    
-    # LSP servers to detect: (id, binary, extensions, priority)
-    lsp_candidates = [
-        ("gopls", "gopls", [".go"], 10),
-        ("biome", "biome", [".ts", ".tsx", ".js", ".jsx", ".json", ".css"], 10),
-    ]
-    
-    for server_id, binary, extensions, priority in lsp_candidates:
-        binary_path = shutil.which(binary)
-        if binary_path:
-            binary_path = str(Path(binary_path).resolve())
-            servers[server_id] = {
-                "command": [binary_path, "lsp-proxy", "--stdio"] if server_id == "biome" else [binary_path],
-                "extensions": extensions,
-                "priority": priority
-            }
-    
-    return servers
+    is_proxy = delivery == "proxy"
+    is_plugin = delivery == "plugin"
 
+    # Check proxy if needed (in CLI mode, just fail instead of prompting)
+    if is_proxy and not check_proxy_running(8045):
+        print("\n   [WARNING] Antigravity Proxy NOT running on port 8045!")
+        print("   Please start Antigravity Tools and enable proxy first.")
+        if _is_cli_mode():
+            return False
+        response = input("\n   Continue anyway? [y/N]: ").strip().lower()
+        if response != "y":
+            return False
 
-def inject_lsp_config(content: str) -> str:
-    """Inject dynamically detected LSP server paths into config content.
-    
-    Parses the JSON, adds/merges the 'lsp' key with detected servers,
-    and serializes back to JSON preserving formatting.
-    """
-    lsp_servers = detect_lsp_servers()
-    if not lsp_servers:
-        return content
-    
-    try:
-        config = json.loads(content)
-        # Merge: user-defined LSP entries take precedence
-        existing_lsp = config.get("lsp", {})
-        for server_id, server_config in lsp_servers.items():
-            if server_id not in existing_lsp:
-                existing_lsp[server_id] = server_config
-        config["lsp"] = existing_lsp
-        return json.dumps(config, indent=2, ensure_ascii=False) + "\n"
-    except json.JSONDecodeError:
-        # If JSON parsing fails, return content unchanged
-        return content
+    # Load and merge profile
+    profiles_data = load_profiles(PROFILES_FILE)
+    shared = profiles_data.get("shared", {})
+    profile = profiles_data.get("profiles", {}).get(profile_name)
 
-
-def apply_config(provider: str, ohmyopencode_file: str, opencode_file: str,
-                 need_proxy: bool, need_plugin: bool, transform_plugin: bool):
-    """Apply the selected configuration"""
-    
-    src_ohmyopencode = CONFIG_DIR / ohmyopencode_file
-    
-    if not src_ohmyopencode.exists():
-        print(f"\n   [ERROR] Config not found: {ohmyopencode_file}")
-        input("   Press Enter to continue...")
+    if not profile:
+        print(f"\n   [ERROR] Profile not found: {profile_name}")
         return False
-    
-    # Check proxy if needed
-    if need_proxy:
-        if not check_proxy_running(8045):
-            print("\n   [WARNING] Antigravity Proxy NOT running on port 8045!")
-            print("   Please start Antigravity Tools and enable proxy first.")
-            response = input("\n   Continue anyway? [y/N]: ").strip().lower()
-            if response != 'y':
-                return False
-    
-    # Ensure target directory exists
-    TARGET_DIR.mkdir(parents=True, exist_ok=True)
-    
-    # Copy/Transform oh-my-opencode config + inject LSP servers
-    dst_ohmyopencode = TARGET_DIR / "oh-my-opencode.json"
-    content = src_ohmyopencode.read_text(encoding='utf-8')
-    
-    if transform_plugin:
-        # Transform for plugin mode
+
+    config = merge_profile(shared, profile)
+    config = inject_lsp_config(config)
+
+    # Serialize and optionally transform for plugin mode
+    content = json.dumps(config, indent=2, ensure_ascii=False) + "\n"
+    if is_plugin:
         content = transform_for_plugin(content)
-    
-    # Inject dynamically detected LSP server paths (e.g. gopls)
-    content = inject_lsp_config(content)
-    
-    dst_ohmyopencode.write_text(content, encoding='utf-8')
-    if transform_plugin:
-        print(f"   [OK] Transformed {ohmyopencode_file} -> oh-my-opencode.json (plugin mode)")
-    else:
-        print(f"   [OK] Copied {ohmyopencode_file} -> oh-my-opencode.json")
-    
-    # Copy opencode.json if specified
-    if opencode_file:
-        src_opencode = CONFIG_DIR / opencode_file
-        if src_opencode.exists():
-            copy_file(src_opencode, TARGET_DIR / "opencode.json")
-            print(f"   [OK] Copied {opencode_file} -> opencode.json")
-    
-    # Copy antigravity.json for non-Copilot modes
-    if provider != "Copilot":
-        src_antigravity = CONFIG_DIR / "antigravity.json"
-        if src_antigravity.exists():
-            copy_file(src_antigravity, TARGET_DIR / "antigravity.json")
-            print("   [OK] Copied antigravity.json")
-    
+
+    # Write oh-my-opencode.json
+    TARGET_DIR.mkdir(parents=True, exist_ok=True)
+    dst = TARGET_DIR / "oh-my-opencode.json"
+    dst.write_text(content, encoding="utf-8")
+
+    mode_label = "plugin" if is_plugin else "proxy"
+    print(f"   [OK] Generated oh-my-opencode.json ({profile_name}, {mode_label})")
+
+    # Copy opencode.json (proxy or plugin provider config)
+    opencode_file = "opencode-plugin.json" if is_plugin else "opencode-proxy.json"
+    src_opencode = CONFIG_DIR / opencode_file
+    if src_opencode.exists():
+        copy_file(src_opencode, TARGET_DIR / "opencode.json")
+        print(f"   [OK] Copied {opencode_file} -> opencode.json")
+
+    # Copy antigravity.json
+    src_antigravity = CONFIG_DIR / "antigravity.json"
+    if src_antigravity.exists():
+        copy_file(src_antigravity, TARGET_DIR / "antigravity.json")
+        print("   [OK] Copied antigravity.json")
+
     # Smart sync accounts for plugin modes
-    if need_plugin:
-        smart_sync_accounts()
-    
-    print(f"\n   [OK] Switched to {provider}")
-    if need_proxy:
+    if is_plugin:
+        smart_sync_accounts(CONFIG_DIR, TARGET_DIR, APPDATA_DIR, LOCALAPPDATA_DIR)
+
+    print(f"\n   [OK] Switched to {profile_name} ({mode_label})")
+    if is_proxy:
         print("   [INFO] Using Antigravity Proxy at localhost:8045")
-    if need_plugin:
+    if is_plugin:
         print("   [INFO] Using Antigravity Auth Plugin")
-    
+
     return True
 
 
+def ask_delivery() -> str:
+    """Ask user for delivery method (proxy vs plugin)."""
+    print()
+    print("   Delivery method:")
+    print("   [P] Proxy  - Via localhost:8045 (clean model names)")
+    print("   [L] Plugin - Via Auth Plugin (antigravity-* names)")
+    print()
+    choice = input("   Select [P/L]: ").strip().lower()
+    if choice in ("l", "plugin"):
+        return "plugin"
+    return "proxy"
+
+
 def start_opencode():
-    """Start OpenCode"""
+    """Start OpenCode."""
     print("\n   Starting OpenCode...")
     print()
     exe_path = SCRIPT_DIR / "opencode.exe"
@@ -283,137 +194,92 @@ def start_opencode():
         if exe_path.exists():
             subprocess.run([str(exe_path)])
         else:
-            print(f"   [ERROR] Failed to start OpenCode: {e}")
+            print("   [ERROR] opencode.exe not found")
     except Exception as e:
         print(f"   [ERROR] Failed to start OpenCode: {e}")
 
 
 def show_menu():
-    """Display the main menu"""
+    """Display the main menu."""
     clear_screen()
     print()
     print("  +==================================================================+")
-    print("  |           AI.py - OpenCode Provider Switcher v3.1               |")
+    print("  |           AI.py - OpenCode Provider Switcher v4.2               |")
     print("  +==================================================================+")
     print("  |                                                                  |")
-    print("  |   [1] Copilot            - GitHub Copilot Only                   |")
+    print("  |   [1] Mix Copilot      - Copilot + Google + OpenAI              |")
+    print("  |   [2] Mix Antigravity  - Google + OpenAI (no Copilot)           |")
     print("  |                                                                  |")
-    print("  |   [2] Antigravity Proxy  - Via localhost:8045 (clean names)      |")
-    print("  |   [3] Antigravity Plugin - Via Auth Plugin (antigravity-* names) |")
+    print("  |   After selecting a profile, choose delivery:                    |")
+    print("  |     [P] Proxy  - Via localhost:8045 (clean names)               |")
+    print("  |     [L] Plugin - Via Auth Plugin (antigravity-* names)          |")
     print("  |                                                                  |")
-    print("  |   [4] Mix Proxy          - Copilot + Antigravity Proxy           |")
-    print("  |   [5] Mix Plugin         - Copilot + Antigravity Plugin          |")
-    print("  |                                                                  |")
-    print("  |   [S] Sync               - Sync accounts across 4 locations      |")
+    print("  |   [S] Sync    - Sync accounts across locations                   |")
+    print("  |   [C] Current - Show current provider                            |")
     print("  |   [Q] Quit                                                       |")
     print("  |                                                                  |")
     print("  +==================================================================+")
     print()
-    
     current = detect_current_provider()
     print(f"   Current Provider: {current}")
     print()
 
 
-# Provider configurations
-PROVIDERS = {
-    '1': {
-        'name': 'Copilot',
-        'ohmyopencode': 'oh-my-opencode-copilot.json',
-        'opencode': '',
-        'need_proxy': False,
-        'need_plugin': False,
-        'transform': False,
-    },
-    '2': {
-        'name': 'Antigravity Proxy',
-        'ohmyopencode': 'oh-my-opencode-antigravity.json',
-        'opencode': 'opencode-proxy.json',
-        'need_proxy': True,
-        'need_plugin': False,
-        'transform': False,
-    },
-    '3': {
-        'name': 'Antigravity Plugin',
-        'ohmyopencode': 'oh-my-opencode-antigravity.json',
-        'opencode': 'opencode-plugin.json',
-        'need_proxy': False,
-        'need_plugin': True,
-        'transform': True,
-    },
-    '4': {
-        'name': 'Mix Proxy',
-        'ohmyopencode': 'oh-my-opencode-mix.json',
-        'opencode': 'opencode-proxy.json',
-        'need_proxy': True,
-        'need_plugin': False,
-        'transform': False,
-    },
-    '5': {
-        'name': 'Mix Plugin',
-        'ohmyopencode': 'oh-my-opencode-mix.json',
-        'opencode': 'opencode-plugin.json',
-        'need_proxy': False,
-        'need_plugin': True,
-        'transform': True,
-    },
-}
-
-
 def main():
-    # Handle command line arguments
-    if len(sys.argv) > 1:
+    """Main entry point with CLI and interactive support."""
+    cli_mode = _is_cli_mode()
+
+    if cli_mode:
         arg = sys.argv[1].lower()
-        arg_map = {
-            'copilot': '1',
-            'antigravity-proxy': '2',
-            'antigravity-plugin': '3',
-            'mix-proxy': '4',
-            'mix-plugin': '5',
-            'sync': 's',
-            'current': 'c',
-        }
-        choice = arg_map.get(arg, arg)
+        choice = CLI_ARGS.get(arg, arg)
     else:
         show_menu()
-        choice = input("   Select [1-5, S, Q]: ").strip().lower()
-    
+        choice = input("   Select [1-2, S, C, Q]: ").strip().lower()
+
     while True:
-        if choice == 'q':
+        if choice == "q":
             break
-        elif choice == 's':
+
+        elif choice == "s":
             print("\n   Syncing accounts across all locations...")
-            smart_sync_accounts()
+            smart_sync_accounts(CONFIG_DIR, TARGET_DIR, APPDATA_DIR, LOCALAPPDATA_DIR)
+            if cli_mode:
+                break
             print()
             input("   Press Enter to continue...")
-        elif choice == 'c':
+
+        elif choice == "c":
             current = detect_current_provider()
             print(f"\n   Current Provider: {current}")
+            if cli_mode:
+                break
             print()
             input("   Press Enter to continue...")
-        elif choice in PROVIDERS:
-            p = PROVIDERS[choice]
-            success = apply_config(
-                provider=p['name'],
-                ohmyopencode_file=p['ohmyopencode'],
-                opencode_file=p['opencode'],
-                need_proxy=p['need_proxy'],
-                need_plugin=p['need_plugin'],
-                transform_plugin=p['transform'],
-            )
-            if success:
+
+        elif choice in PROFILES:
+            profile_name = PROFILES[choice]
+            delivery = ask_delivery()
+            if apply_profile(profile_name, delivery):
                 start_opencode()
             break
+
+        elif len(choice) == 2 and choice[0] in PROFILES and choice[1] in ("p", "l"):
+            profile_name = PROFILES[choice[0]]
+            delivery = "plugin" if choice[1] == "l" else "proxy"
+            if apply_profile(profile_name, delivery):
+                start_opencode()
+            break
+
         else:
             print("\n   Invalid choice!")
-        
-        # Show menu again for interactive mode
-        if len(sys.argv) <= 1:
+
+        # Show menu again for interactive mode only
+        if not cli_mode:
             show_menu()
-            choice = input("   Select [1-5, S, Q]: ").strip().lower()
+            choice = input("   Select [1-2, S, C, Q]: ").strip().lower()
         else:
             break
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

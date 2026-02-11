@@ -215,11 +215,15 @@ const processedOrders = computed(() => {
 
 ## ~300 Lines Per File (Quality Signal)
 
-> **Not a hard limit.** If a file exceeds ~300 lines, review for SRP/DRY/OOP violations.
-> If the code is clean (no duplication, single responsibility, no dead code), slightly exceeding is fine.
+> **~300 lines is NOT a hard limit.** It's a quality signal that MUST trigger a refactor attempt.
+> If a code file exceeds ~300 lines, you MUST attempt to refactor it (extract helpers, split by responsibility, remove dead code).
+> After a genuine refactor effort, if the minimum achievable is slightly above 300 (e.g. 310-330) and the code satisfies SRP/DRY/OOP with no dead code — that's acceptable.
+> This is NOT a license for 400+ line files. If your file is 400+ lines, you haven't refactored hard enough.
 
-| Type             | Guideline                       |
-| ---------------- | ------------------------------- |
-| Composable files | ~300 lines — review if exceeded |
+| Type             | Guideline                                      |
+| ---------------- | ---------------------------------------------- |
+| Composable files | ~300 lines — MUST refactor if exceeded         |
+| After refactor   | Slightly above 300 OK if SRP/DRY/OOP satisfied |
+| 400+ lines       | NOT acceptable — refactor harder or split      |
 
 **If exceeding:** Split into smaller composables by concern.

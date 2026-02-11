@@ -4,20 +4,57 @@
 
 ---
 
+## Architecture Overview (v4.2)
+
+```
+AI.py (root, CLI entry point) imports from opencode-configs/:
+    ├── ai_profiles.py  ← Profile loading, merging, LSP detection, plugin transform
+    └── ai_sync.py      ← Account/config file sync across filesystem locations
+
+opencode-configs/
+    ├── opencode-profiles.json  ← Single source of truth (shared + profiles)
+    ├── ai_profiles.py          ← Helper module (imported by AI.py)
+    ├── ai_sync.py              ← Helper module (imported by AI.py)
+    ├── test-accounts.js        ← Account tester (imports test-accounts-helpers.js)
+    └── test-accounts-helpers.js← Shared helpers for test-accounts.js
+
+AI.py reads profiles.json → merges shared + profile → generates:
+    ~/.config/opencode/oh-my-opencode.json   (valid schema, consumed by opencode)
+    ~/.config/opencode/opencode.json         (proxy or plugin provider config)
+```
+
+**Delivery methods** (sub-option after profile selection):
+
+- **Proxy** — Via localhost:8045, clean model names (google/gemini-3-pro)
+- **Plugin** — Via Auth Plugin, transformed names (google/antigravity-gemini-3-pro)
+
+---
+
 ## File Ownership & Purpose
 
-| File                              | Purpose                               | Who Updates            |
-| --------------------------------- | ------------------------------------- | ---------------------- |
-| `antigravity-accounts copy.json`  | **MASTER BACKUP** - Complete accounts | **USER ONLY (manual)** |
-| `antigravity-accounts.json`       | Working file for daily use            | AI.py smart_sync       |
-| `oh-my-opencode-antigravity.json` | Source config (proxy mode names)      | User                   |
-| `oh-my-opencode-mix.json`         | Source config (Copilot + Antigravity) | User                   |
-| `oh-my-opencode-copilot.json`     | Source config (Copilot only)          | User                   |
-| `opencode-plugin.json`            | Plugin mode config                    | User                   |
-| `opencode-proxy.json`             | Proxy mode config                     | User                   |
-| `antigravity.json`                | Plugin settings                       | AI.py sync             |
-| `test-accounts.js`                | Account tester script                 | AI (with approval)     |
-| `AI.py`                           | Provider switcher                     | AI (with approval)     |
+| File                             | Purpose                                          | Who Updates            |
+| -------------------------------- | ------------------------------------------------ | ---------------------- |
+| `opencode-profiles.json`         | **PRIMARY** - Unified profiles (shared + models) | User / AI              |
+| `antigravity-accounts copy.json` | **MASTER BACKUP** - Complete accounts            | **USER ONLY (manual)** |
+| `antigravity-accounts.json`      | Working file for daily use                       | AI.py smart_sync       |
+| `opencode-plugin.json`           | Plugin mode provider config                      | User                   |
+| `opencode-proxy.json`            | Proxy mode provider config                       | User                   |
+| `antigravity.json`               | Plugin settings                                  | AI.py sync             |
+| `test-accounts.js`               | Account tester script                            | AI (with approval)     |
+| `test-accounts-helpers.js`       | Shared helpers for test-accounts.js              | AI (with approval)     |
+| `ai_profiles.py`                 | Profile loading, merging, LSP, plugin transform  | AI (with approval)     |
+| `ai_sync.py`                     | Account/config file sync utilities               | AI (with approval)     |
+| `../AI.py` (root)                | Provider switcher v4.2 (CLI entry point)         | AI (with approval)     |
+
+### Legacy Files (Deprecated / Deleted)
+
+| File                              | Status     | Notes                              |
+| --------------------------------- | ---------- | ---------------------------------- |
+| `oh-my-opencode-antigravity.json` | Deprecated | Replaced by opencode-profiles.json |
+| `oh-my-opencode-mix.json`         | Deprecated | Replaced by opencode-profiles.json |
+| `oh-my-opencode-copilot.json`     | Deprecated | Replaced by opencode-profiles.json |
+| `switch-provider.ps1`             | Deleted    | Replaced by AI.py CLI args         |
+| `test-provider.ps1`               | Deleted    | Replaced by AI.py CLI args         |
 
 ---
 
@@ -55,14 +92,89 @@ google/gemini-*  →  google/antigravity-gemini-*
 
 When switching to **Proxy mode**, model names stay as-is (no prefix).
 
+**Note:** Transform happens AFTER merge (on serialized JSON string), so only google/_ models are affected. github-copilot/_ and openai/\* models pass through unchanged.
+
+---
+
+## AI.py Flow (v4.2)
+
+```
+PROFILE SELECTION:
+  1. Mix Copilot      - Copilot + Google + OpenAI
+  2. Mix Antigravity  - Google + OpenAI (no Copilot)
+
+DELIVERY SUB-OPTION:
+  [P] Proxy  - opencode-proxy.json, clean model names
+  [L] Plugin - opencode-plugin.json, antigravity-* model names
+
+PROCESS:
+  1. Load opencode-profiles.json           (ai_profiles.load_profiles)
+  2. Deep-merge shared + selected profile   (ai_profiles.merge_profile)
+  3. Inject LSP servers (gopls, biome)      (ai_profiles.inject_lsp_config)
+  4. Serialize to JSON
+  5. Transform for plugin (if plugin)       (ai_profiles.transform_for_plugin)
+  6. Write oh-my-opencode.json to ~/.config/opencode/
+  7. Copy opencode.json (proxy or plugin)
+  8. Copy antigravity.json
+  9. Sync accounts (plugin only)            (ai_sync.smart_sync_accounts)
+  10. Start opencode
+
+CLI ARGS:
+  python AI.py mix-copilot-proxy      → profile 1, proxy delivery
+  python AI.py mix-copilot-plugin     → profile 1, plugin delivery
+  python AI.py mix-antigravity-proxy  → profile 2, proxy delivery
+  python AI.py mix-antigravity-plugin → profile 2, plugin delivery
+  python AI.py mix-copilot            → profile 1, interactive delivery choice
+  python AI.py mix-antigravity        → profile 2, interactive delivery choice
+  python AI.py sync                   → sync accounts only
+  python AI.py current                → show current provider
+```
+
+---
+
+## opencode-profiles.json Structure
+
+```json
+{
+  "shared": {
+    "$schema": "...",
+    "google_auth": false,
+    "browser_automation_engine": { "provider": "agent-browser" },
+    "agents": {
+      "sisyphus": { "prompt_append": "...", "skills": ["..."] }
+    },
+    "categories": {
+      "visual-engineering": { "skills": ["..."], "prompt_append": "..." }
+    }
+  },
+  "profiles": {
+    "mix-copilot": {
+      "default_model": "github-copilot/claude-opus-4.5",
+      "agents": {
+        "sisyphus": { "model": "github-copilot/claude-opus-4.5" }
+      },
+      "categories": {}
+    },
+    "mix-antigravity": {
+      "default_model": "google/gemini-3-pro",
+      "variant": "high",
+      "agents": {},
+      "categories": {}
+    }
+  }
+}
+```
+
+**Merge logic:** For each agent/category, start with deep copy of shared entry (prompt_append, skills), then `.update()` with profile entry (model, variant, temperature, reasoningEffort).
+
 ---
 
 ## test-accounts.js Flow
 
 ```
 SETUP:
-  opencode-plugin.json           → ~/.config/opencode/opencode.json
-  oh-my-opencode-antigravity.json → ~/.config/opencode/oh-my-opencode.json (TRANSFORMED)
+  opencode-plugin.json            → ~/.config/opencode/opencode.json
+  oh-my-opencode (via profiles)   → ~/.config/opencode/oh-my-opencode.json (TRANSFORMED)
 
 TEST LOOP:
   For each account in "copy.json":
@@ -76,30 +188,14 @@ RESTORE (always):
 
 ---
 
-## AI.py Flow
-
-```
-MODE SELECTION:
-  1. Copilot         - oh-my-opencode-copilot.json (no transform)
-  2. Antigravity Proxy  - oh-my-opencode-antigravity.json + opencode-proxy.json
-  3. Antigravity Plugin - oh-my-opencode-antigravity.json (TRANSFORM) + opencode-plugin.json
-  4. Mix Proxy       - oh-my-opencode-mix.json + opencode-proxy.json
-  5. Mix Plugin      - oh-my-opencode-mix.json (TRANSFORM) + opencode-plugin.json
-
-SYNC (Plugin modes only):
-  smart_sync_accounts() - newest wins across 4 locations
-```
-
----
-
 ## When Modifying These Scripts
 
 ### Allowed Changes
 
-- Bug fixes in test-accounts.js or AI.py
-- Adding new provider modes
+- Bug fixes in test-accounts.js, AI.py, ai_profiles.py, or ai_sync.py
+- Adding new profiles to opencode-profiles.json
 - Improving error handling
-- Updating model names in config files
+- Updating model names in profiles
 
 ### Forbidden Changes
 
@@ -107,17 +203,19 @@ SYNC (Plugin modes only):
 - Removing transform logic for plugin mode
 - Changing restore source from `copy.json` to anything else
 - Creating backup mechanisms that read from `~/.config/opencode/`
+- Adding invalid keys to oh-my-opencode.json output (must pass schema validation)
 
 ---
 
 ## Troubleshooting
 
-| Symptom                        | Cause                                 | Fix                                                           |
-| ------------------------------ | ------------------------------------- | ------------------------------------------------------------- |
-| "Model not found" error        | Wrong mode (plugin vs proxy mismatch) | Check oh-my-opencode.json has correct prefixes                |
-| Accounts missing after test    | Restore failed                        | Manually copy from `copy.json`                                |
-| Sync overwrites with 1 account | Race condition (legacy)               | Should not happen after fix - restore always from `copy.json` |
+| Symptom                        | Cause                                 | Fix                                                             |
+| ------------------------------ | ------------------------------------- | --------------------------------------------------------------- |
+| "Model not found" error        | Wrong mode (plugin vs proxy mismatch) | Check oh-my-opencode.json has correct prefixes                  |
+| Accounts missing after test    | Restore failed                        | Manually copy from `copy.json`                                  |
+| Sync overwrites with 1 account | Race condition (legacy)               | Should not happen after fix - restore always from `copy.json`   |
+| Profile merge missing fields   | Shared or profile entry incomplete    | Check opencode-profiles.json has entry in both shared + profile |
 
 ---
 
-**Version:** 1.0 | **Updated:** 2026-02-05
+**Version:** 2.2 | **Updated:** 2026-02-11

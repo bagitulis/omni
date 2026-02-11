@@ -21,17 +21,17 @@ Prometheus DOES NOT perform tasks. Prometheus CREATES A PLAN in the form of a TO
 
 Before creating a plan, Prometheus MUST:
 
-| #   | Step                        | Description                                         |
-| --- | --------------------------- | --------------------------------------------------- |
-| 1   | Read AGENTS.md              | Focus on Critical Rules & Architecture              |
-| 2   | **FLOW MAP**                | **MANDATORY - Map the data flow (see §1.1)**        |
-| 3   | Identify files              | List ALL files to be modified                       |
-| 4   | Check database              | Migration needed?                                   |
-| 5   | Check multi-tenant          | tenant_id validation needed?                        |
-| 6   | Line estimation             | ~300 per code file (quality signal, not hard limit) |
-| 7   | Determine evidence          | Unit→Test, Integration→Docker/Test, Full→Both       |
-| 8   | **IMPACT ANALYSIS**         | **MANDATORY - See section below**                   |
-| 9   | **EXTERNAL RESEARCH NEEDS** | **MANDATORY - Identify required SDK/docs**          |
+| #   | Step                        | Description                                                         |
+| --- | --------------------------- | ------------------------------------------------------------------- |
+| 1   | Read AGENTS.md              | Focus on Critical Rules & Architecture                              |
+| 2   | **FLOW MAP**                | **MANDATORY - Map the data flow (see §1.1)**                        |
+| 3   | Identify files              | List ALL files to be modified                                       |
+| 4   | Check database              | Migration needed?                                                   |
+| 5   | Check multi-tenant          | tenant_id validation needed?                                        |
+| 6   | Line estimation             | ~300 per code file (MUST refactor if exceeded, 400+ NOT acceptable) |
+| 7   | Determine evidence          | Unit→Test, Integration→Docker/Test, Full→Both                       |
+| 8   | **IMPACT ANALYSIS**         | **MANDATORY - See section below**                                   |
+| 9   | **EXTERNAL RESEARCH NEEDS** | **MANDATORY - Identify required SDK/docs**                          |
 
 ### 1.1 FLOW MAP (MANDATORY)
 
@@ -455,7 +455,7 @@ For EVERY file to be modified, Prometheus MUST analyze:
    - [ ] ...etc
 
 3. [ ] **[Phase 3] Cleanup**
-   - [ ] Review files > ~300 lines for SRP/DRY/OOP violations
+   - [ ] Review files > ~300 lines for SRP/DRY/OOP violations (400+ NOT acceptable)
    - [ ] Remove duplicate code
    - [ ] Remove dead code
    - [ ] Apply DRY & SRP
@@ -485,7 +485,7 @@ For EVERY file to be modified, Prometheus MUST analyze:
 - [ ] Frontend (if changed): npm run build passes
 - [ ] Docker: `python build.py smart` succeeds (if deploying)
 - [ ] Schema changes: `python build.py backup` executed AFTER migration applied
-- [ ] Files > ~300 lines reviewed for SRP/DRY/OOP
+- [ ] Files > ~300 lines reviewed for SRP/DRY/OOP (400+ NOT acceptable)
 
 #### Code Quality (according to AGENTS.md)
 
@@ -517,18 +517,18 @@ For EVERY file to be modified, Prometheus MUST analyze:
 
 Plan is VALID only if ALL gates are met:
 
-| #   | Gate                | Requirement                                   |
-| --- | ------------------- | --------------------------------------------- |
-| 1   | Todo List present   | Checklist format [ ] that can be executed     |
-| 2   | **Flow Map**        | **MANDATORY - data path declared end-to-end** |
-| 3   | **Impact Analysis** | **MANDATORY for every file modified**         |
-| 4   | File Size           | ~300 lines quality signal for code files      |
-| 5   | Architecture        | Handler → Service → Repository                |
-| 6   | JSON Tags           | All snake_case                                |
-| 7   | Testing Phase       | go build + go test present in todo            |
-| 8   | Tenant Check        | Validate tenant_id if endpoint is protected   |
-| 9   | Cleanup Phase       | DRY, SRP review present in todo               |
-| 10  | Evidence Type       | Mentioned in plan                             |
+| #   | Gate                | Requirement                                           |
+| --- | ------------------- | ----------------------------------------------------- |
+| 1   | Todo List present   | Checklist format [ ] that can be executed             |
+| 2   | **Flow Map**        | **MANDATORY - data path declared end-to-end**         |
+| 3   | **Impact Analysis** | **MANDATORY for every file modified**                 |
+| 4   | File Size           | ~300 lines MUST trigger refactor, 400+ NOT acceptable |
+| 5   | Architecture        | Handler → Service → Repository                        |
+| 6   | JSON Tags           | All snake_case                                        |
+| 7   | Testing Phase       | go build + go test present in todo                    |
+| 8   | Tenant Check        | Validate tenant_id if endpoint is protected           |
+| 9   | Cleanup Phase       | DRY, SRP review present in todo                       |
+| 10  | Evidence Type       | Mentioned in plan                                     |
 
 **If any gate FAILS → revise plan before execution.**
 
@@ -536,22 +536,22 @@ Plan is VALID only if ALL gates are met:
 
 ## 6. ANTI-PATTERNS (FORBIDDEN)
 
-| #   | Do Not Do                               | Do                                                          |
-| --- | --------------------------------------- | ----------------------------------------------------------- |
-| 1   | Long prose/paragraph output             | Output TODO LIST with [ ]                                   |
-| 2   | **Skip Flow Map**                       | **MANDATORY flow map for every plan**                       |
-| 3   | **Skip impact analysis**                | **MANDATORY impact analysis for every change**              |
-| 4   | Skip file size review                   | Review SRP/DRY/OOP if file > ~300 lines                     |
-| 5   | Business logic in Handler               | Direct to Service layer                                     |
-| 6   | Skip tenant_id validation               | Always validate in protected endpoints                      |
-| 7   | camelCase in JSON response              | Use snake_case                                              |
-| 8   | Skip testing phase                      | MANDATORY go build + go test                                |
-| 9   | Assume default tenant                   | Explicit error if missing                                   |
-| 10  | Skip cleanup phase                      | MANDATORY DRY/SRP review                                    |
-| 11  | Change API without checking frontend    | Check all consumers in frontend                             |
-| 12  | Change DB schema without migration plan | Always include migration steps                              |
-| 13  | Skip DB backup after schema changes     | MANDATORY: `python build.py backup` after migration applied |
-| 14  | Plan on broken/missing flow             | Fix/create flow BEFORE feature work                         |
+| #   | Do Not Do                               | Do                                                                 |
+| --- | --------------------------------------- | ------------------------------------------------------------------ |
+| 1   | Long prose/paragraph output             | Output TODO LIST with [ ]                                          |
+| 2   | **Skip Flow Map**                       | **MANDATORY flow map for every plan**                              |
+| 3   | **Skip impact analysis**                | **MANDATORY impact analysis for every change**                     |
+| 4   | Skip file size review                   | MUST review SRP/DRY/OOP if file > ~300 lines (400+ NOT acceptable) |
+| 5   | Business logic in Handler               | Direct to Service layer                                            |
+| 6   | Skip tenant_id validation               | Always validate in protected endpoints                             |
+| 7   | camelCase in JSON response              | Use snake_case                                                     |
+| 8   | Skip testing phase                      | MANDATORY go build + go test                                       |
+| 9   | Assume default tenant                   | Explicit error if missing                                          |
+| 10  | Skip cleanup phase                      | MANDATORY DRY/SRP review                                           |
+| 11  | Change API without checking frontend    | Check all consumers in frontend                                    |
+| 12  | Change DB schema without migration plan | Always include migration steps                                     |
+| 13  | Skip DB backup after schema changes     | MANDATORY: `python build.py backup` after migration applied        |
+| 14  | Plan on broken/missing flow             | Fix/create flow BEFORE feature work                                |
 
 ---
 
@@ -573,7 +573,7 @@ Plan is VALID only if ALL gates are met:
 > **Canonical source: AGENTS.md §1-§5.** Do NOT duplicate rules here — follow AGENTS.md directly.
 >
 > Key invariants: English-only, no false positives, no default tenant, snake_case JSON,
-> ~300 lines quality signal (code files), Handler→Service→Repository architecture,
+> ~300 lines MUST trigger refactor (400+ NOT acceptable), Handler→Service→Repository architecture,
 > git add/commit/push only (no destructive commands).
 
 ### Test Policy
@@ -662,7 +662,7 @@ Router → OrderHandler.HandleExportOrders → OrderService.ExportOrders → Ord
    - [ ] Create `internal/utils/export_utils.go` (~100 lines)
 
 3. [ ] **[Phase 3] Cleanup**
-   - [ ] Verify files > ~300 lines are clean (SRP/DRY/OOP)
+   - [ ] Verify files > ~300 lines are clean (SRP/DRY/OOP, 400+ NOT acceptable)
    - [ ] Apply DRY - extract common export logic
 
 4. [ ] **[Phase 4] Testing**

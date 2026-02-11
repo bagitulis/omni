@@ -131,15 +131,18 @@ All JSON response/request MUST use snake_case. Backend and Frontend must match.
 
 ### ~300 Lines Per Code File (Quality Signal)
 
-> **~300 lines is NOT a hard limit.** It's a quality signal.
-> If a code file exceeds ~300 lines, it usually means SRP/DRY/OOP is being violated.
-> **Review and refactor** — but if the code is already clean (no duplication, single responsibility, no dead code), slightly exceeding is fine.
+> **~300 lines is NOT a hard limit.** It's a quality signal that MUST trigger a refactor attempt.
+> If a code file exceeds ~300 lines, you MUST attempt to refactor it (extract helpers, split by responsibility, remove dead code).
+> After a genuine refactor effort, if the minimum achievable is slightly above 300 (e.g. 310-330) and the code satisfies SRP/DRY/OOP with no dead code — that's acceptable.
+> This is NOT a license for 400+ line files. If your file is 400+ lines, you haven't refactored hard enough.
 
-| Applies To                             | Rule                                      |
-| -------------------------------------- | ----------------------------------------- |
-| Code files (.go, .ts, .tsx, .js, .vue) | ~300 lines guideline — review if exceeded |
-| Migrations                             | No limit                                  |
-| Docs / Rules / Config                  | No limit                                  |
+| Applies To                             | Rule                                           |
+| -------------------------------------- | ---------------------------------------------- |
+| Code files (.go, .ts, .tsx, .js, .vue) | ~300 lines — MUST refactor if exceeded         |
+| Code files after refactor              | Slightly above 300 OK if SRP/DRY/OOP satisfied |
+| Code files 400+ lines                  | NOT acceptable — refactor harder or split      |
+| Migrations                             | No limit                                       |
+| Docs / Rules / Config / JSON           | No limit                                       |
 
 **AFTER EVERY file edit, ask yourself:**
 
