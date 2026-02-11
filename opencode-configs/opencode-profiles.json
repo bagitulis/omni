@@ -5,8 +5,16 @@
   "shared": {
     "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
     "google_auth": false,
+    "auto_update": true,
+    "notification": {
+      "force_enable": true
+    },
     "browser_automation_engine": {
       "provider": "agent-browser"
+    },
+    "background_task": {
+      "defaultConcurrency": 4,
+      "staleTimeoutMs": 300000
     },
 
     "agents": {

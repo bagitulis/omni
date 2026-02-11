@@ -1,11 +1,12 @@
 {
+  "$schema": "https://raw.githubusercontent.com/NoeFabris/opencode-antigravity-auth/main/assets/antigravity.schema.json",
   "account_selection_strategy": "round-robin",
   "switch_on_first_rate_limit": true,
   "pid_offset_enabled": true,
 
   "quota_fallback": true,
   "cli_first": true,
-  "soft_quota_threshold_percent": 85,
+  "soft_quota_threshold_percent": 70,
   "quota_refresh_interval_minutes": 10,
 
   "keep_thinking": false,
@@ -16,5 +17,5 @@
   "quiet_mode": false,
   "debug": false,
   "toast_scope": "root_only",
-  "max_rate_limit_wait_seconds": 120
+  "max_rate_limit_wait_seconds": 0
 }
