@@ -302,16 +302,17 @@ return response.data.data;
 
 ---
 
-## File Size Limits
+## File Size Quality Signal (~300 Lines)
 
-| Type      | Max Lines |
-| --------- | --------- |
-| Component | 300       |
-| Page      | 300       |
-| Hook      | 200       |
-| Store     | 200       |
+> **~300 lines is NOT a hard limit.** It's a quality signal for SRP/DRY/OOP compliance.
+> If a code file exceeds ~300 lines, review for violations. Clean code slightly exceeding is OK.
 
-Split if exceeding limits.
+| Type      | Guideline  | Action if Exceeded                 |
+| --------- | ---------- | ---------------------------------- |
+| Component | ~300 lines | Review — split if SRP/DRY violated |
+| Page      | ~300 lines | Review — extract sections/hooks    |
+| Hook      | ~200 lines | Review — split complex logic       |
+| Store     | ~200 lines | Review — separate concerns         |
 
 ---
 

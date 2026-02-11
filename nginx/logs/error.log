@@ -869,3 +869,5 @@
 2026/02/07 18:45:22 [error] 21#21: *6132 access forbidden by rule, client: 172.18.0.8, server: _, request: "GET /.env.example HTTP/1.1", host: "yndigital.my.id"
 2026/02/09 21:44:17 [error] 22#22: *1574 access forbidden by rule, client: 172.18.0.3, server: _, request: "GET /.well-known/security.txt HTTP/1.1", host: "www.yndigital.my.id"
 2026/02/10 13:38:31 [error] 24#24: *1072 access forbidden by rule, client: 172.18.0.5, server: _, request: "GET /.vscode/sftp.json HTTP/1.1", host: "yndigital.my.id"
+2026/02/11 02:45:18 [error] 22#22: *105 access forbidden by rule, client: 172.18.0.3, server: _, request: "GET /.env HTTP/1.1", host: "yndigital.my.id"
+2026/02/11 02:51:52 [warn] 22#22: *205 an upstream response is buffered to a temporary file /var/cache/nginx/proxy_temp/1/00/0000000001 while reading upstream, client: 172.18.0.1, server: _, request: "GET /assets/vendor-charts-_XZHYqLj.js HTTP/1.1", upstream: "http://172.18.0.9:80/assets/vendor-charts-_XZHYqLj.js", host: "localhost", referrer: "http://localhost/login"

@@ -210,7 +210,26 @@ MUST include 6 sections:
 
 ---
 
-## 9. Verification Checklist
+## 9. Verification Checklist (NO PREMATURE DONE)
+
+**BEFORE saying "done" to the user, perform a completion self-check.**
+AI tends to claim "done" prematurely without proper evaluation. This is FORBIDDEN.
+
+### Completion Self-Check (MANDATORY):
+
+```
+BEFORE writing "done" or any completion message, ASK YOURSELF:
+1. Did I verify ALL changes with evidence (build/test/lsp)?
+2. Are there remaining TODO items I haven't addressed?
+3. Is there anything I could improve that I'm skipping?
+4. Did I actually TEST the result, or am I ASSUMING it works?
+5. Are there obvious next steps I should do or mention?
+6. Would a senior engineer approve this, or send it back?
+```
+
+**If ANY answer is "no" or "not sure" → you are NOT done. Keep working.**
+
+### Verification Gates:
 
 Task NOT complete without:
 
@@ -218,19 +237,54 @@ Task NOT complete without:
 - [ ] Build command exit code 0 (if applicable)
 - [ ] Test pass (or note pre-existing failures)
 - [ ] Delegation result received and verified
+- [ ] Executor followed "Understand Flow" (not just trial-and-error)
+- [ ] If schema changed: `python build.py backup` was executed
+- [ ] If Docker deploy needed: `python build.py smart` succeeded
 
 ---
 
-## 10. Anti-Patterns (FORBIDDEN)
+## 10. Build & Deploy Awareness
 
-| Don't                       | Do Instead         |
-| --------------------------- | ------------------ |
-| Loop fix-test without trace | Trace flow first   |
-| Skip todo on multi-step     | ALWAYS create todo |
-| Batch-complete todos        | Mark immediately   |
-| Fresh delegate after fail   | Use session_id     |
-| Ignore empty response       | Retry or fallback  |
+Sisyphus orchestrates executors — ensure they follow build rules:
+
+| Trigger                   | Executor Must Do                                 |
+| ------------------------- | ------------------------------------------------ |
+| Code changes (backend)    | `go build ./...` + `go test ./...`               |
+| Code changes (frontend)   | `npm run build` + `npm run lint`                 |
+| Code changes (full-stack) | Run ALL applicable checks (backend + frontend)   |
+| Docker deploy needed      | `python build.py smart`                          |
+| Database schema changed   | `python build.py backup` AFTER migration applied |
+
+> See AGENTS.md §3 and EXECUTOR_RULES.md §5 for details.
 
 ---
 
-**Version:** 1.0 | **Updated:** 2026-02-03
+## 11. Loop Mode (ULP) Reference
+
+When running in `/ulw-loop` mode, Sisyphus follows additional rules from the `ulp-loop` skill:
+
+- **Double evaluation**: Backend verification first, then UI/integration verification
+- **Pipeline management**: Keep 3 slots filled, process completions as they arrive
+- **Stop conditions**: Exit on 5+ failures on same issue, escalate to user
+- **Git discipline**: Commit after each completed batch, not just at the end
+
+> Full loop-mode rules: `.opencode/skills/ulp-loop/SKILL.md`
+
+---
+
+## 12. Anti-Patterns (FORBIDDEN)
+
+| Don't                                   | Do Instead                       |
+| --------------------------------------- | -------------------------------- |
+| Loop fix-test without trace             | Trace flow first                 |
+| Skip todo on multi-step                 | ALWAYS create todo               |
+| Batch-complete todos                    | Mark immediately                 |
+| Fresh delegate after fail               | Use session_id                   |
+| Ignore empty response                   | Retry or fallback                |
+| Claim "done" without self-check         | Run completion self-check (§9)   |
+| Skip re-reading original task           | Re-read to confirm full coverage |
+| Assume work is correct without evidence | Build/test/lsp THEN say done     |
+
+---
+
+**Version:** 2.0 | **Updated:** 2026-02-11

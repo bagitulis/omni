@@ -24,13 +24,91 @@ Before creating a plan, Prometheus MUST:
 | #   | Step                        | Description                                         |
 | --- | --------------------------- | --------------------------------------------------- |
 | 1   | Read AGENTS.md              | Focus on Critical Rules & Architecture              |
-| 2   | Identify files              | List ALL files to be modified                       |
-| 3   | Check database              | Migration needed?                                   |
-| 4   | Check multi-tenant          | tenant_id validation needed?                        |
-| 5   | Line estimation             | ~300 per code file (quality signal, not hard limit) |
-| 6   | Determine evidence          | Unit→Test, Integration→Docker/Test, Full→Both       |
-| 7   | **IMPACT ANALYSIS**         | **MANDATORY - See section below**                   |
-| 8   | **EXTERNAL RESEARCH NEEDS** | **MANDATORY - Identify required SDK/docs**          |
+| 2   | **FLOW MAP**                | **MANDATORY - Map the data flow (see §1.1)**        |
+| 3   | Identify files              | List ALL files to be modified                       |
+| 4   | Check database              | Migration needed?                                   |
+| 5   | Check multi-tenant          | tenant_id validation needed?                        |
+| 6   | Line estimation             | ~300 per code file (quality signal, not hard limit) |
+| 7   | Determine evidence          | Unit→Test, Integration→Docker/Test, Full→Both       |
+| 8   | **IMPACT ANALYSIS**         | **MANDATORY - See section below**                   |
+| 9   | **EXTERNAL RESEARCH NEEDS** | **MANDATORY - Identify required SDK/docs**          |
+
+### 1.1 FLOW MAP (MANDATORY)
+
+> **⚠️ CRITICAL:** Every plan MUST begin with a Flow Map that shows the data path for the feature/bug.
+> If the flow is unknown, incomplete, or messy → fixing/creating it becomes the FIRST task.
+
+#### Flow Map Template (MUST be filled in every plan)
+
+```markdown
+### Flow Map
+
+**Entry Point:** [UI route/page | webhook | cron job | external trigger]
+
+**Frontend Path:**
+Page/Component → State/Store → API Client → Endpoint Called
+
+**Backend Path:**
+Router → Handler → Service → Repository → DB Tables/Queries
+
+**Data Contracts:**
+
+- Request: [JSON keys, snake_case] → [validation rules]
+- Response: [JSON keys, snake_case] → [error shapes]
+
+**External Dependencies:**
+
+- SDK/API: [platform + local SDK path, e.g., backend/shopee-sdk/orders.go]
+- Rate limits / retries: [if relevant]
+
+**Breakpoints (top 3 likely failure points):**
+
+1. [layer + what could fail + how to observe]
+2. [layer + what could fail + how to observe]
+3. [layer + what could fail + how to observe]
+```
+
+#### Flow Map Rules
+
+| Rule                         | Description                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------- |
+| **Every plan has one**       | No exceptions — even trivial tasks have a flow                                              |
+| **Topic-aware**              | Flow path depends on what you're working on (see table below)                               |
+| **Executor references flow** | Each executor task must state which flow node it modifies                                   |
+| **Missing flow = fix first** | If flow can't be written → add Flow Repair tasks BEFORE feature tasks                       |
+| **Broken flow = fix first**  | If flow violates architecture (biz logic in handler, direct DB in handler) → refactor first |
+
+#### Topic-Specific Flow Paths
+
+| Topic                    | Relevant Flow                                            |
+| ------------------------ | -------------------------------------------------------- |
+| **Platform integration** | Platform API → SDK → Handler → Service → Repository → DB |
+| **Database/Schema**      | Migration → Schema → Repository → Service → Handler      |
+| **Backend API**          | Handler → Service → Repository → DB → Response           |
+| **Frontend**             | Component → API call → Response → State → Render         |
+| **Full-stack feature**   | DB schema → Repo → Service → Handler → API → Frontend UI |
+
+#### Flow Repair (When Flow is Missing or Messy)
+
+If Prometheus cannot write the Flow Map because:
+
+- The flow **doesn't exist yet** → Add "Create Flow" tasks first
+- The flow **violates architecture** (e.g., business logic in handler, direct DB calls from handler) → Add refactoring tasks first
+- The flow **is inconsistent** (e.g., some endpoints use service layer, others skip it) → Add alignment tasks first
+
+```markdown
+### TODO LIST
+
+0. [ ] **[Phase -1] Flow Repair** ⚠️ BEFORE FEATURE WORK
+   - [ ] Identify architecture violations in current flow
+   - [ ] Move business logic from Handler → Service
+   - [ ] Add missing Service/Repository layers
+   - [ ] Verify flow follows: Handler → Service → Repository → DB
+   - [ ] Update Flow Map after repair
+
+1. [ ] **[Phase 1] Implementation** (uses repaired flow)
+       ...
+```
 
 ---
 
@@ -66,8 +144,10 @@ Before creating a plan, Prometheus MUST:
 │    @explore → Search for existing implementation in internal/            │
 │    Example: "search for how shopee orders are saved to database"         │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ 3️⃣ EXTERNAL (ONLY IF STUCK - LAST RESORT)                              │
-│    @librarian → Search official docs ONLY if not found locally           │
+│ 3️⃣ EXTERNAL (WHEN LOCAL IS INSUFFICIENT)                                │
+│    @librarian → Search official docs if local SDK doesn't cover it       │
+│    Use cases: error codes, API changes, auth flow clarification,         │
+│    rate limits, new endpoints not yet in local SDK                       │
 │    Example: "search official docs for error code XXXX"                   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -81,136 +161,56 @@ Before creating a plan, Prometheus MUST:
 | **TikTok**    | https://partner.tiktokshop.com/doc  | Error codes, API changes |
 | **Tokopedia** | https://developer.tokopedia.com/    | Error codes, API changes |
 
-### 2.2 Research Phase in TODO LIST (MANDATORY)
+### 2.2 Research Phase in TODO LIST (MANDATORY for Platform Integrations)
 
-Every plan involving platform integration MUST include:
+Every plan involving platform integration MUST include a research phase.
+**Research priority: local SDK → existing codebase → external docs (when local is insufficient).**
 
 ```markdown
 ### TODO LIST
 
-1. [ ] **[Phase 0] External Research** ⚠️ MANDATORY
-   - [ ] 🔍 Search for official documentation for the API endpoints used
-   - [ ] 🔍 Search for implementation examples on GitHub (grep.app / librarian)
-   - [ ] 🔍 Verify request/response format from official docs
+1. [ ] **[Phase 0] External Research** ⚠️ MANDATORY (LOCAL SDK → CODEBASE → EXTERNAL)
+   - [ ] 🔍 Search local SDK for existing implementation (`@explore` → `backend/*sdk*/`)
+   - [ ] 🔍 Search existing patterns in codebase (@explore → internal/)
+   - [ ] 🔍 Verify request/response format from local SDK or official docs
    - [ ] 🔍 Identify authentication flow (OAuth, API Key, etc.)
-   - [ ] 🔍 Check rate limiting & error codes
+   - [ ] 🔍 ONLY if local insufficient → Search official docs & GitHub examples (@librarian)
 
 2. [ ] **[Phase 1] Analysis** (existing)
        ...
 ```
 
-### 2.3 When the Librarian Agent is MANDATORY
+### 2.3 When the Librarian Agent is REQUIRED
 
-| Trigger                                    | Action Required                                       |
-| ------------------------------------------ | ----------------------------------------------------- |
-| Involves platform API (Shopee/Lazada/etc.) | `@librarian` - search official docs & examples        |
-| Error from external API                    | `@librarian` - search error code meaning & solution   |
-| Unclear request/response format            | `@librarian` - search official API spec               |
-| OAuth/Authentication issues                | `@librarian` - search auth flow documentation         |
-| Rate limiting/throttling                   | `@librarian` - search best practices & retry strategy |
-| Unfamiliar Go library                      | `@librarian` - search usage examples on GitHub        |
+> **Priority**: Always search local SDK (`@explore`) first. Use `@librarian` only when local sources don't cover the need.
 
-### 2.4 Stuck Recovery Protocol (MANDATORY for Executor)
+| Trigger                                              | Action Required                                       |
+| ---------------------------------------------------- | ----------------------------------------------------- |
+| Local SDK doesn't cover the platform API need        | `@librarian` - search official docs & examples        |
+| Error from external API (code not in local SDK)      | `@librarian` - search error code meaning & solution   |
+| Unclear request/response format after checking local | `@librarian` - search official API spec               |
+| OAuth/Authentication issues not covered locally      | `@librarian` - search auth flow documentation         |
+| Rate limiting/throttling (not documented locally)    | `@librarian` - search best practices & retry strategy |
+| Unfamiliar Go library (no local examples)            | `@librarian` - search usage examples on GitHub        |
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ WHEN AI EXECUTOR IS STUCK (Repeated errors / No progress > 10 minutes)  │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  STEP 1: STOP - Do not keep trying without references!                  │
-│                                                                         │
-│  STEP 2: IDENTIFY - Categorize the problem:                              │
-│    □ External API error → Search in official docs                         │
-│    □ Format mismatch → Search for implementation examples                │
-│    □ Auth failed → Search for auth flow documentation                    │
-│    □ Logic error → Search for existing patterns in codebase              │
-│                                                                         │
-│  STEP 3: RESEARCH - Use the right tools:                                 │
-│    • @librarian → For external docs & OSS examples                       │
-│    • @explore   → For existing patterns in this codebase                  │
-│    • @oracle    → For architecture/design decisions                      │
-│                                                                         │
-│  STEP 4: IMPLEMENT - After obtaining clear references                    │
-│                                                                         │
-│  ⛔ ANTI-PATTERN:                                                        │
-│    • Continued trial-and-error without reading docs                       │
-│    • Blindly guessing request/response formats                           │
-│    • Copy-pasting without understanding context                          │
-│    • Bypassing auth/validation to "just try it"                          │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+### 2.4 Stuck Recovery Protocol
 
-### 2.5 TRACE FLOW BEFORE FIX Protocol (ANTI-LOOPING)
+> Executor stuck-recovery details are in **EXECUTOR_RULES.md §6-§7** and the `stuck-recovery` skill.
+> Prometheus should include research phases in plans so executors have references BEFORE they get stuck.
 
-> **⚠️ CRITICAL:** AI often loops execution-testing without tracing the flow.
-> This MUST be done BEFORE attempting any fix!
+### 2.5 TRACE FLOW — Plan Directive for Bug Fixes
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ 🔴 FORBIDDEN: Direct fix → test → fail → fix again → test → fail...     │
-│ 🟢 MANDATORY: Trace Flow → Identify Root Cause → Targeted Fix           │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+> **For bug fix tasks, Prometheus MUST include a Trace Flow phase in the plan.**
+> Executors follow detailed trace flow protocol in **EXECUTOR_RULES.md §6**.
 
-#### A. Data Flow Tracing (MANDATORY before fix)
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ TRACE DATA FLOW - Follow the data journey from START to ERROR           │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  1. FRONTEND → What is sent?                                            │
-│     • Request body format                                               │
-│     • Headers (Authorization, Content-Type)                             │
-│     • URL params & query strings                                        │
-│                                                                         │
-│  2. BACKEND HANDLER → What is received?                                 │
-│     • Request parsing successful?                                       │
-│     • Validation passed?                                                │
-│     • tenant_id exists?                                                 │
-│                                                                         │
-│  3. SERVICE LAYER → Logic running correctly?                            │
-│     • Input to service correct?                                         │
-│     • Business logic executed?                                          │
-│     • External API call (if any) successful?                            │
-│                                                                         │
-│  4. REPOSITORY → Database operation correct?                             │
-│     • Query executed?                                                   │
-│     • Data returned?                                                    │
-│     • Connection OK?                                                    │
-│                                                                         │
-│  5. RESPONSE → What is returned?                                        │
-│     • Response format correct?                                          │
-│     • Data matches expectations?                                        │
-│     • Informative error message?                                        │
-│                                                                         │
-│  📍 IDENTIFY: At which layer is the data FIRST incorrect?               │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-#### B. Must Answer Before Fix
-
-| Question                               | Must be Answered                          |
-| -------------------------------------- | ----------------------------------------- |
-| In which layer did the error occur?    | Handler / Service / Repository / External |
-| What is the exact error message?       | Copy paste exact message                  |
-| What data entered that layer?          | Log / debug print the result              |
-| What data should have entered?         | Expected format from docs/spec            |
-| Where did the difference first appear? | **THIS IS THE ROOT CAUSE**                |
-
-#### C. Trace Flow in TODO LIST
+#### Include in Bug Fix Plans:
 
 ```markdown
 ### TODO LIST
 
 1. [ ] **[Phase 0.5] TRACE FLOW** ⚠️ BEFORE ANY FIX
-   - [ ] Trace: What does the Frontend send? (check Network tab / curl)
-   - [ ] Trace: What does the Handler receive? (add temporary logs)
-   - [ ] Trace: What does the Service process? (log input/output)
-   - [ ] Trace: What does the Repository query? (log SQL query)
-   - [ ] Trace: What response is returned?
+   - [ ] Identify which layers are involved in the bug
+   - [ ] Trace data flow through each relevant layer
    - [ ] IDENTIFY: Which layer is incorrect first? → **[WRITE HERE]**
 
 2. [ ] **[Phase 1] Fix Based on Trace**
@@ -218,48 +218,15 @@ Every plan involving platform integration MUST include:
    - [ ] Do not fix randomly across all layers
 ```
 
-#### D. Trace Flow Example
+#### Pre-Planning Verification (Bug Fix):
 
-##### ❌ INCORRECT (Direct Fix Without Trace)
+| Question                                | Must Answer                        |
+| --------------------------------------- | ---------------------------------- |
+| Is this a bug fix?                      | If yes → Trace Flow phase REQUIRED |
+| Which layers are potentially involved?  | List them in the plan              |
+| Does executor need research references? | Include Phase 0 delegation if yes  |
 
-```
-Error: Order does not appear on frontend
-
-Fix attempt 1: Change query in repository → FAILED
-Fix attempt 2: Change response format in handler → FAILED
-Fix attempt 3: Change parsing in frontend → FAILED
-Fix attempt 4: Change database schema → FAILED
-... (continuous looping)
-```
-
-##### ✅ CORRECT (Trace First, Fix Once)
-
-```
-Error: Order does not appear on frontend
-
-TRACE FLOW:
-1. Frontend request: GET /api/orders?tenant_id=xxx ✅
-2. Handler receive: tenant_id = "xxx" ✅
-3. Service call: GetOrders(ctx, "xxx") ✅
-4. Repository query: SELECT * FROM orders WHERE tenant_id = ?
-   → Result: 0 rows ❌ ← FIRST PROBLEM HERE
-5. Check database: Data EXISTS but tenant_id = "yyy" not "xxx"
-
-ROOT CAUSE: Stored tenant_id differs from the queried one
-SOLUTION: Fix in one place - data ingestion (not in query/response)
-```
-
-#### E. FORBIDDEN Anti-Patterns
-
-| ❌ Do Not Do                         | ✅ What Should be Done                     |
-| ------------------------------------ | ------------------------------------------ |
-| Directly edit code without trace     | Trace flow first, identify root cause      |
-| Fix in all layers simultaneously     | Fix ONLY in the problematic layer          |
-| Loop: fix → test → fail → fix → test | Trace → identify → precise fix → test ONCE |
-| Guessing error location              | Follow data from start to error            |
-| Delete error handling to "bypass"    | Fix actual cause, do not hide error        |
-
-### 2.5 Research Requirements in Pre-Planning
+### 2.6 Research Requirements in Pre-Planning
 
 Add to Pre-Planning Verification:
 
@@ -267,6 +234,7 @@ Add to Pre-Planning Verification:
 ### Pre-Planning Verification
 
 - AGENTS.md has been read: [Yes/No]
+- **Flow Map completed: [Yes/No — if No, add Flow Repair phase]**
 - Identified files: [list files]
 - Database changes: [Yes/No]
 - Multi-tenant: [Yes/No]
@@ -281,7 +249,7 @@ Add to Pre-Planning Verification:
   - If NEW FEATURE → Not mandatory, but recommended
 ```
 
-### 2.6 Research Phase Example
+### 2.7 Research Phase Example
 
 #### ❌ INCORRECT (Skip Research)
 
@@ -458,15 +426,20 @@ For EVERY file to be modified, Prometheus MUST analyze:
 ### Pre-Planning Verification
 
 - AGENTS.md has been read: [Yes/No]
+- **Flow Map completed: [Yes/No — if No, add Flow Repair phase]**
 - Identified files: [list files]
 - Database changes: [Yes/No - if yes, migration required]
 - Multi-tenant: [Yes/No - if yes, tenant_id validation required]
 - Evidence type: [Unit/Integration/Full Feature]
 - **Impact analysis has been performed: [Yes/No]**
 
+### Flow Map
+
+[MANDATORY - see §1.1 for template]
+
 ### Impact Analysis of Changes
 
-[Must be filled - see template in Section 2]
+[Must be filled - see template in Section 3]
 
 ### TODO LIST
 
@@ -544,17 +517,18 @@ For EVERY file to be modified, Prometheus MUST analyze:
 
 Plan is VALID only if ALL gates are met:
 
-| #   | Gate                | Requirement                                 |
-| --- | ------------------- | ------------------------------------------- |
-| 1   | Todo List present   | Checklist format [ ] that can be executed   |
-| 2   | **Impact Analysis** | **MANDATORY for every file modified**       |
-| 3   | File Size           | ~300 lines quality signal for code files    |
-| 4   | Architecture        | Handler → Service → Repository              |
-| 5   | JSON Tags           | All snake_case                              |
-| 6   | Testing Phase       | go build + go test present in todo          |
-| 7   | Tenant Check        | Validate tenant_id if endpoint is protected |
-| 8   | Cleanup Phase       | DRY, SRP review present in todo             |
-| 9   | Evidence Type       | Mentioned in plan                           |
+| #   | Gate                | Requirement                                   |
+| --- | ------------------- | --------------------------------------------- |
+| 1   | Todo List present   | Checklist format [ ] that can be executed     |
+| 2   | **Flow Map**        | **MANDATORY - data path declared end-to-end** |
+| 3   | **Impact Analysis** | **MANDATORY for every file modified**         |
+| 4   | File Size           | ~300 lines quality signal for code files      |
+| 5   | Architecture        | Handler → Service → Repository                |
+| 6   | JSON Tags           | All snake_case                                |
+| 7   | Testing Phase       | go build + go test present in todo            |
+| 8   | Tenant Check        | Validate tenant_id if endpoint is protected   |
+| 9   | Cleanup Phase       | DRY, SRP review present in todo               |
+| 10  | Evidence Type       | Mentioned in plan                             |
 
 **If any gate FAILS → revise plan before execution.**
 
@@ -565,17 +539,19 @@ Plan is VALID only if ALL gates are met:
 | #   | Do Not Do                               | Do                                                          |
 | --- | --------------------------------------- | ----------------------------------------------------------- |
 | 1   | Long prose/paragraph output             | Output TODO LIST with [ ]                                   |
-| 2   | **Skip impact analysis**                | **MANDATORY impact analysis for every change**              |
-| 3   | Skip file size review                   | Review SRP/DRY/OOP if file > ~300 lines                     |
-| 4   | Business logic in Handler               | Direct to Service layer                                     |
-| 5   | Skip tenant_id validation               | Always validate in protected endpoints                      |
-| 6   | camelCase in JSON response              | Use snake_case                                              |
-| 7   | Skip testing phase                      | MANDATORY go build + go test                                |
-| 8   | Assume default tenant                   | Explicit error if missing                                   |
-| 9   | Skip cleanup phase                      | MANDATORY DRY/SRP review                                    |
-| 10  | Change API without checking frontend    | Check all consumers in frontend                             |
-| 11  | Change DB schema without migration plan | Always include migration steps                              |
-| 12  | Skip DB backup after schema changes     | MANDATORY: `python build.py backup` after migration applied |
+| 2   | **Skip Flow Map**                       | **MANDATORY flow map for every plan**                       |
+| 3   | **Skip impact analysis**                | **MANDATORY impact analysis for every change**              |
+| 4   | Skip file size review                   | Review SRP/DRY/OOP if file > ~300 lines                     |
+| 5   | Business logic in Handler               | Direct to Service layer                                     |
+| 6   | Skip tenant_id validation               | Always validate in protected endpoints                      |
+| 7   | camelCase in JSON response              | Use snake_case                                              |
+| 8   | Skip testing phase                      | MANDATORY go build + go test                                |
+| 9   | Assume default tenant                   | Explicit error if missing                                   |
+| 10  | Skip cleanup phase                      | MANDATORY DRY/SRP review                                    |
+| 11  | Change API without checking frontend    | Check all consumers in frontend                             |
+| 12  | Change DB schema without migration plan | Always include migration steps                              |
+| 13  | Skip DB backup after schema changes     | MANDATORY: `python build.py backup` after migration applied |
+| 14  | Plan on broken/missing flow             | Fix/create flow BEFORE feature work                         |
 
 ---
 
@@ -592,21 +568,20 @@ Plan is VALID only if ALL gates are met:
 
 ---
 
-## 8. CRITICAL RULES (from AGENTS.md)
+## 8. CRITICAL RULES
 
-These rules MUST NOT be violated:
+> **Canonical source: AGENTS.md §1-§5.** Do NOT duplicate rules here — follow AGENTS.md directly.
+>
+> Key invariants: English-only, no false positives, no default tenant, snake_case JSON,
+> ~300 lines quality signal (code files), Handler→Service→Repository architecture,
+> git add/commit/push only (no destructive commands).
 
-1. **❌ NO FALSE POSITIVES** - Do not return `success: true` if there is an error
-2. **❌ NO ALIASES** - Fix names directly, no workarounds
-3. **❌ NO DEFAULT TENANT** - Always validate, error if missing
-4. **🎯 JSON = snake_case** - All API responses
-5. **📏 ~300 LINES QUALITY SIGNAL** - Review SRP/DRY/OOP if code file exceeds (docs/config: no limit)
-6. **🔐 context.Context** - All DB/network operations
-7. **🏗️ CLEAN ARCHITECTURE** - Handler → Service → Repository
-8. **📝 STRUCTURED LOGGING** - zerolog only, not fmt.Printf
-9. **🗄️ MIGRATIONS REQUIRED** - No raw DDL changes
-10. **🧪 100% TEST SUCCESS** - go build && go test must pass
-11. **🔐 GIT RESTRICTED** - Only add, commit, push (be careful)
+### Test Policy
+
+- Run `go build ./...` + `go test ./...` (backend) and `npm run build` + `npm run lint` (frontend, if changed)
+- **No test file exists for changed code** → MUST create test file with meaningful tests covering the changes
+- **Pre-existing test failures**: Document them explicitly, prove your changes did NOT introduce or worsen them
+- New test failures from your changes → MUST fix before task is complete
 
 ---
 
@@ -614,7 +589,7 @@ These rules MUST NOT be violated:
 
 ```
 Framework:    GIN (not Fiber)
-Database:     PostgreSQL (multi-tenant schemas)
+Database:     SQLite (dev) / PostgreSQL (prod, multi-tenant)
 ORM:          GORM
 Logging:      zerolog
 JSON:         snake_case
@@ -645,10 +620,34 @@ we do testing and cleanup...
 ### Pre-Planning Verification
 
 - AGENTS.md has been read: Yes
+- **Flow Map completed: Yes**
 - Identified files: order_handler.go, order_service.go, export_utils.go
 - Database changes: No
 - Multi-tenant: Yes - tenant_id validation required
 - Evidence type: Integration
+
+### Flow Map
+
+**Entry Point:** UI → Order List page → "Export" button click
+
+**Frontend Path:**
+OrderList.tsx → exportOrders() → API client → GET /api/orders/export
+
+**Backend Path:**
+Router → OrderHandler.HandleExportOrders → OrderService.ExportOrders → OrderRepository.GetOrders → orders table
+
+**Data Contracts:**
+
+- Request: `GET /api/orders/export?tenant_id=xxx&format=csv`
+- Response: CSV file download (Content-Type: text/csv)
+
+**External Dependencies:** None
+
+**Breakpoints:**
+
+1. Handler: tenant_id validation might be missing
+2. Service: Large dataset could cause memory issues
+3. Repository: Query might not filter by date range
 
 ### TODO LIST
 
@@ -703,43 +702,26 @@ we do testing and cleanup...
 
 ---
 
-## 9. DELEGATION RULES (SPEEDING UP EXECUTION)
+## 9. DELEGATION GUIDELINES FOR PLANS
 
-> **Delegate to sub-agents for parallel processing and focused expertise.**
+> **Prometheus plans SHOULD include delegation directives when appropriate.**
 > **MAXIMUM 3 parallel delegations** to balance throughput and system load.
+> For detailed executor rules (failure counter, trace flow, SDK priority), see **EXECUTOR_RULES.md**.
 
-### 9.1 When Delegation is MANDATORY
+### 9.1 Delegation Quick Reference
 
-| Situation                            | Delegate To                                    | Reason                           |
-| ------------------------------------ | ---------------------------------------------- | -------------------------------- |
-| Search SDK docs / official API       | `@librarian`                                   | Expertise in external references |
-| Search existing patterns in codebase | `@explore`                                     | Faster contextual grep           |
-| Architecture/design question         | `@oracle`                                      | High-IQ reasoning                |
-| UI/UX / Frontend work                | `delegate_task(category="visual-engineering")` | Frontend specialist              |
-| Complex logic problem                | `delegate_task(category="ultrabrain")`         | Deep reasoning                   |
-| Quick/trivial fix                    | `delegate_task(category="quick")`              | Fast execution                   |
+| Situation                            | Delegate To                                    |
+| ------------------------------------ | ---------------------------------------------- |
+| Search SDK docs / official API       | `@librarian`                                   |
+| Search existing patterns in codebase | `@explore`                                     |
+| Architecture/design question         | `@oracle`                                      |
+| UI/UX / Frontend work                | `delegate_task(category="visual-engineering")` |
+| Complex logic problem                | `delegate_task(category="ultrabrain")`         |
+| Quick/trivial fix                    | `delegate_task(category="quick")`              |
 
-### 9.2 Delegation Strategy
+### 9.2 Delegation in TODO LIST
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ PARALLEL DELEGATION (Speeding Up Research)                              │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  When research is needed, fire up to 3 agents in PARALLEL:               │
-│                                                                         │
-│  // Example: Fix Shopee API error                                       │
-│  @librarian: "Search Shopee GetOrderList API docs, request/response"      │
-│  @explore: "Search for existing shopee API pattern in codebase this"      │
-│                                                                         │
-│  → Both run in parallel, results merged for fix                         │
-│                                                                         │
-│  ⚠️ MAXIMUM 3 parallel to balance throughput and system load             │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### 9.3 Delegation in TODO LIST
+When plans require research or parallel work, include delegation phases:
 
 ```markdown
 ### TODO LIST
@@ -755,7 +737,7 @@ we do testing and cleanup...
    - [ ] Fix based on research + trace
 ```
 
-### 9.4 Delegation Format
+### 9.3 Delegation Format
 
 ```markdown
 ## Delegation Request
@@ -766,230 +748,12 @@ we do testing and cleanup...
 **Context:** [relevant background info]
 ```
 
-### 9.5 Effective Delegation Example
-
-#### ❌ INCORRECT (No Delegation, All by Self)
-
-```
-Task: Fix Shopee order sync
-
-*try to fix self*
-*fail*
-*try again*
-*fail*
-*try again*
-... (wasting time without reference)
-```
-
-#### ✅ CORRECT (Delegate for Research)
-
-```
-Task: Fix Shopee order sync
-
-## Fix Attempt #1
-**Failure Count:** 1
-*failed - error: invalid signature*
-
-## Fix Attempt #2 - TRACE FLOW + DELEGATION
-**Failure Count:** 2
-
-**Parallel Delegation:**
-🔀 @librarian: "Search for Shopee API signature generation docs,
-               including parameter order and hash algorithm"
-🔀 @explore: "Search for existing shopee signature generation in codebase"
-
-**Results:**
-- @librarian: Signature = SHA256(base_string + secret),
-              base_string must be sorted by key
-- @explore: File `internal/shopee/auth.go` line 45 has existing impl
-
-**Root Cause:** Parameters not sorted before hash
-**Fix:** Update signature generation according to docs
-
-*test* → SUCCESS
-```
-
-### 9.6 Delegation Decision Tree
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ WHEN TO DELEGATE vs DO IT YOURSELF                                      │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  DELEGATE if:                                                           │
-│  ├─ Need external docs (SDK, API) → @librarian                         │
-│  ├─ Need to find patterns in codebase → @explore                        │
-│  ├─ Need architecture decision → @oracle                                │
-│  ├─ Frontend/UI work → delegate_task(visual-engineering)                │
-│  ├─ Failure >= 2 and need research → @librarian + @explore             │
-│  └─ Task can be paralleled → fire up to 3 agents at once                 │
-│                                                                         │
-│  DO IT YOURSELF if:                                                    │
-│  ├─ Simple clear edit                                                   │
-│  ├─ Already have enough references                                      │
-│  ├─ Trivial task (typo fix, formatting)                                 │
-│  └─ Delegation overhead > benefit                                        │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+> **Note:** Executors follow their own failure counter and trace flow protocols.
+> See **EXECUTOR_RULES.md §6-7** for details. Prometheus does NOT need to duplicate those rules.
 
 ---
 
-## 10. FAILURE COUNTER RULE (FOR EXECUTOR)
-
-> **⚠️ THIS RULE MUST BE FOLLOWED BY AI EXECUTOR (Sisyphus/Builder)**
->
-> AI often does not realize it is stuck/looping. This rule FORCES awareness.
-
-### 10.1 Failure Definition
-
-| Condition                          | Count |
-| ---------------------------------- | ----- |
-| `go build` failed after edit       | +1    |
-| `go test` failed after fix         | +1    |
-| Same error appears again after fix | +1    |
-| API call fails with the same error | +1    |
-| Fix does not resolve the problem   | +1    |
-
-### 10.2 Mandatory Action by Failure Count
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ FAILURE COUNT → MANDATORY ACTION (CANNOT BE IGNORED)                   │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  FAILURE = 1 (First time failed)                                        │
-│  → Allowed to try fix directly                                          │
-│  → BUT record: "Failure #1: [error message]"                             │
-│                                                                         │
-│  FAILURE = 2 (Second time failed) ⚠️ TRACE FLOW ACTIVATED                │
-│  → STOP! Do not fix directly again                                      │
-│  → MANDATORY: Trace flow from frontend → database                       │
-│  → MANDATORY: Identify which layer has the root cause                   │
-│  → Write: "Failure #2 - TRACE FLOW protocol activated"                   │
-│                                                                         │
-│  FAILURE >= 3 (Failed 3x or more) 🚨 RESEARCH ACTIVATED                 │
-│  → TOTAL STOP! No code editing without research                         │
-│  → MANDATORY: @librarian to search for SDK docs / official API docs     │
-│  → MANDATORY: @explore to search for existing patterns in the codebase   │
-│  → MANDATORY: @oracle if architecture/design issue                       │
-│  → Write: "Failure #3+ - RESEARCH protocol activated"                    │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### 10.3 Mandatory Format in Every Fix Attempt
-
-```markdown
-## Fix Attempt #[N]
-
-**Failure Count:** [current count]
-**Previous Error:** [previous error]
-**Hypothesis:** [why this will succeed]
-**Action:** [what will be done]
-
-[If failure >= 2, MANDATORY to add:]
-**Trace Flow Result:**
-
-- Frontend sends: [what]
-- Handler receives: [what]
-- Service processes: [what]
-- Repository queries: [what]
-- Root cause identified: [in which layer]
-
-[If failure >= 3, MANDATORY to add:]
-**Research Result:**
-
-- @librarian found: [research results]
-- @explore found: [existing pattern]
-- Reference: [link/source]
-```
-
----
-
-## 11. EXECUTOR QUICK REFERENCE (CHEAT SHEET)
-
-> **Print this and follow every task execution**
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ EXECUTOR CHECKLIST - BEFORE STARTING                                    │
-├─────────────────────────────────────────────────────────────────────────┤
-│ [ ] Read AGENTS.md (Critical Rules section)                             │
-│ [ ] Read PROMETHEUS_RULES.md (Section 2: Research & Trace Flow)         │
-│ [ ] Identify task type: BUG FIX or NEW FEATURE?                         │
-│     • Bug fix → Get ready to trace flow if failure >= 2                  │
-│     • New feature with external API → Research first (delegate!)        │
-└─────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│ EXECUTOR CHECKLIST - DURING EXECUTION                                   │
-├─────────────────────────────────────────────────────────────────────────┤
-│ [ ] Track failure count (MANDATORY!)                                    │
-│ [ ] Failure = 1 → Allowed to fix directly, RECORD error                  │
-│ [ ] Failure = 2 → STOP, trace flow + delegate @explore                  │
-│ [ ] Failure >= 3 → STOP, delegate @librarian + @explore (PARALLEL)      │
-│ [ ] Do not loop fix-test without trace/research!                        │
-└─────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│ 🔴 LOCAL SDK PRIORITY (SEARCH HERE FIRST!)                              │
-├─────────────────────────────────────────────────────────────────────────┤
-│ Shopee  → backend/shopee-sdk/     (orders.go, products.go, client.go)   │
-│ Lazada  → backend/lazada-sdk/     (order.go, product.go, auth.go)       │
-│ Lazada  → backend/lazada_sdk/iop-sdk-go/  (Official IOP SDK)            │
-│ TikTok  → backend/tiktok_sdk/     (100+ files, comprehensive!)          │
-│                                                                         │
-│ MANDATORY ORDER:                                                        │
-│ 1️⃣ @explore: "Search in backend/*sdk*/" → LOCAL FIRST                   │
-│ 2️⃣ @explore: "Search in internal/" → EXISTING PATTERN                  │
-│ 3️⃣ @librarian: External docs → ONLY IF STUCK                            │
-└─────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│ DELEGATION RULES (SPEEDING UP)                                          │
-├─────────────────────────────────────────────────────────────────────────┤
-│ ⚠️ MAXIMUM 2 PARALLEL DELEGATIONS                                       │
-│                                                                         │
-│ @explore    → Existing pattern in codebase + LOCAL SDK                   │
-│ @librarian  → External docs (LAST RESORT - ONLY IF NOT LOCAL)           │
-│ @oracle     → Architecture decision                                      │
-│                                                                         │
-│ delegate_task(category="visual-engineering") → Frontend/UI work          │
-│ delegate_task(category="ultrabrain") → Complex logic                     │
-│ delegate_task(category="quick") → Trivial tasks                          │
-│                                                                         │
-│ PARALLEL EXAMPLE:                                                        │
-│ 🔀 @explore: "Search for GetOrderList implementation in backend/shopee-sdk/"│
-│ 🔀 @explore: "Search for existing shopee order pattern in internal/"      │
-│ → Wait for result → Merge → Fix                                         │
-│                                                                         │
-│ ONLY IF NOT FOUND:                                                      │
-│ 🔀 @librarian: "Search official Shopee API docs for error code X"        │
-└─────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│ EXECUTOR CHECKLIST - BEFORE FINISHING                                   │
-├─────────────────────────────────────────────────────────────────────────┤
-│ [ ] go build ./... passes                                               │
-│ [ ] go test ./... passes                                                │
-│ [ ] No looping (max 2 fix attempts without trace)                       │
-│ [ ] Evidence according to task type has been collected                  │
-└─────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│ PLATFORM SDK REFERENCES                                                 │
-├─────────────────────────────────────────────────────────────────────────┤
-│ Shopee:    https://open.shopee.com/documents                            │
-│ Lazada:    https://open.lazada.com/doc/api.htm                          │
-│ TikTok:    https://partner.tiktokshop.com/doc                           │
-│ Tokopedia: https://developer.tokopedia.com/                             │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-**File Version:** 3.0  
-**Last Updated:** 2026-02-02  
+**File Version:** 4.0  
+**Last Updated:** 2026-02-11  
 **Status:** ACTIVE - MANDATORY COMPLIANCE
-**Changes:** Added Delegation Rules, Failure Counter Rule, Trace Flow Protocol, Research Protocol, Executor Quick Reference
+**Changes:** v4.0 - Slimmed down executor-facing content (§9-11 → §9 only), moved to EXECUTOR_RULES.md. Fixed MAXIMUM 3 parallel delegations.

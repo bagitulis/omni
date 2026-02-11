@@ -53,7 +53,7 @@ description: Librarian research rules for OMNI project - documentation and OSS l
 | Trigger               | Action                       |
 | --------------------- | ---------------------------- |
 | External API error    | Find error code meaning      |
-| Format tidak match    | Find official API spec       |
+| Format mismatch       | Find official API spec       |
 | OAuth/Auth issues     | Find auth flow documentation |
 | Rate limiting         | Find best practices          |
 | Unfamiliar Go library | Find usage examples          |

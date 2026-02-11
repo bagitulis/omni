@@ -16,8 +16,6 @@
 | **DRY**               | No duplicated logic - extract to utilities          |
 | **OOP**               | Proper encapsulation, use interfaces                |
 | **~300 Lines**        | Quality signal — review SRP/DRY/OOP if exceeded     |
-| **Max 3 Parallel**    | Maximum 3 background delegations at any time        |
-| **Stay Responsive**   | Never block on delegation — continue working        |
 | **Commit ALL Files**  | Never cherry-pick, include ALL changed files        |
 | **Push After Commit** | User expects remote sync immediately                |
 
@@ -237,7 +235,7 @@ Track each attempt:
 2️⃣ EXISTING PATTERN
    internal/
 
-3️⃣ EXTERNAL DOCS (last resort)
+3️⃣ EXTERNAL DOCS (when local is insufficient)
    @librarian to search
 ```
 
@@ -263,32 +261,53 @@ c.JSON(http.StatusInternalServerError, gin.H{
 
 ---
 
-## 10. Completion Criteria
+## 10. Completion Criteria (NO PREMATURE DONE)
 
-Task is complete ONLY if:
+**BEFORE saying "done", you MUST perform a completion self-check.**
+Do NOT claim completion based on "I think it works" — verify with evidence.
+
+### Completion Self-Check (MANDATORY before reporting done):
+
+```
+ASK YOURSELF:
+1. Did I verify ALL changes with evidence (build/test/lsp)?
+2. Are there remaining TODO items I haven't addressed?
+3. Is there anything I could improve that I'm skipping out of laziness?
+4. Did I actually TEST the result, or am I ASSUMING it works?
+5. Would a senior engineer approve this, or would they send it back?
+```
+
+**If ANY answer is "no" or "not sure" → you are NOT done. Keep working.**
+
+### Completion Gates (ALL must pass):
 
 - [ ] All edits saved
-- [ ] `lsp_diagnostics` clean
+- [ ] `lsp_diagnostics` clean on ALL changed files (not just the last one)
 - [ ] Backend: `go build ./...` passes + `go test ./...` passes
 - [ ] Frontend (if changed): `npm run build` passes
 - [ ] Docker (if needed): `python build.py smart` succeeds
 - [ ] Schema changes: `python build.py backup` executed AFTER migration applied
-- [ ] Evidence collected
+- [ ] Evidence collected (screenshots, logs, exit codes)
 - [ ] Todo marked complete
+- [ ] **Re-read the original task** — does my work fully address what was asked?
+- [ ] **Check for next steps** — is there follow-up work I should mention?
 
 ---
 
 ## 11. Anti-Patterns (FORBIDDEN)
 
-| Forbidden                   | Do Instead              |
-| --------------------------- | ----------------------- |
-| `as any`, `@ts-ignore`      | Fix the type properly   |
-| Empty catch `catch(e) {}`   | Handle or log error     |
-| Delete failing tests        | Fix the code            |
-| Shotgun debugging           | Trace flow first        |
-| Skip verification           | Always lsp_diagnostics  |
-| `success: true` + error msg | Use proper status codes |
-| Silently ignore UI bugs     | Report to main agent    |
+| Forbidden                       | Do Instead                        |
+| ------------------------------- | --------------------------------- |
+| `as any`, `@ts-ignore`          | Fix the type properly             |
+| Empty catch `catch(e) {}`       | Handle or log error               |
+| Delete failing tests            | Fix the code                      |
+| Shotgun debugging               | Trace flow first                  |
+| Skip verification               | Always lsp_diagnostics            |
+| `success: true` + error msg     | Use proper status codes           |
+| Silently ignore UI bugs         | Report to main agent              |
+| Claim "done" without evidence   | Run completion self-check first   |
+| Assume it works without testing | Verify with build/test/lsp        |
+| Skip re-reading original task   | Re-read and confirm full coverage |
 
 ---
 

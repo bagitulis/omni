@@ -57,18 +57,18 @@ Skills (auto-loaded via oh-my-opencode.json):
 
 ## Agent Rules Distribution
 
-| Agent               | Additional Rules                                  |
-| ------------------- | ------------------------------------------------- |
-| **Sisyphus**        | `SISYPHUS_RULES.md` + skill: stuck-recovery       |
-| **Sisyphus-Junior** | `EXECUTOR_RULES.md` + skill: stuck-recovery       |
-| **Atlas**           | `EXECUTOR_RULES.md` + skill: react-frontend-rules |
-| **Hephaestus**      | `EXECUTOR_RULES.md` + skill: react-frontend-rules |
-| **Prometheus**      | `PROMETHEUS_RULES.md`                             |
-| **Oracle**          | skill: oracle-rules                               |
-| **Librarian**       | skill: librarian-rules                            |
-| **Explore**         | skill: explore-rules                              |
-| **Metis**           | skill: metis-rules                                |
-| **Momus**           | skill: momus-rules                                |
+| Agent               | Additional Rules                                                   |
+| ------------------- | ------------------------------------------------------------------ |
+| **Sisyphus**        | `SISYPHUS_RULES.md` + skills: stuck-recovery, ulp-loop             |
+| **Sisyphus-Junior** | `EXECUTOR_RULES.md` + skills: stuck-recovery, react-frontend-rules |
+| **Atlas**           | `EXECUTOR_RULES.md` + skills: stuck-recovery, react-frontend-rules |
+| **Hephaestus**      | `EXECUTOR_RULES.md` + skills: stuck-recovery, react-frontend-rules |
+| **Prometheus**      | `PROMETHEUS_RULES.md`                                              |
+| **Oracle**          | skill: oracle-rules                                                |
+| **Librarian**       | skill: librarian-rules                                             |
+| **Explore**         | skill: explore-rules                                               |
+| **Metis**           | skill: metis-rules                                                 |
+| **Momus**           | skill: momus-rules                                                 |
 
 ### React Migration Skills
 
@@ -78,6 +78,20 @@ Skills (auto-loaded via oh-my-opencode.json):
 | `playwright-layout-eval` | UI/Layout verification against Design System |
 
 **Note:** For visual-engineering category, both skills auto-loaded.
+
+### Config Variants
+
+Not all configs include every agent. The agent table above is the **full set** (base + copilot + antigravity configs).
+
+| Config      | Agents Available                                                            |
+| ----------- | --------------------------------------------------------------------------- |
+| Base        | All agents listed above                                                     |
+| Copilot     | All agents listed above                                                     |
+| Antigravity | All agents listed above                                                     |
+| Mix         | Sisyphus, Prometheus, Atlas, Hephaestus, Sisyphus-Junior only (reduced set) |
+
+> **Mix mode**: Advisory agents (oracle, librarian, explore, metis, momus) are unavailable.
+> Delegate work via categories instead. This is by design — Mix uses a hybrid model set with limited slots.
 
 ---
 
@@ -102,6 +116,9 @@ All code, comments, variable names, UI labels, and menu items MUST be in English
 ```
 
 ### NO DEFAULT TENANT
+
+> **Protected endpoint** = any endpoint that reads/writes tenant-specific data.
+> Only truly public endpoints (health checks, login, static assets) are exempt.
 
 ```
 ❌ WRONG: if tenantID == "" { tenantID = "default" }
@@ -162,6 +179,17 @@ All code MUST follow these principles:
 ✅ CORRECT: Clean up before commit
 ```
 
+### Understand Flow BEFORE Acting
+
+> Before fixing any bug or implementing features, research the RELEVANT flow for the topic.
+> Never guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow.
+
+### No Premature Done
+
+> Before claiming completion, self-check: (1) ALL changes verified with evidence? (2) Any remaining TODOs?
+> (3) Did I TEST or just ASSUME? (4) Re-read original task — fully addressed?
+> If ANY answer is "no" → NOT done, keep working.
+
 ---
 
 ## 2. Architecture Pattern
@@ -189,6 +217,13 @@ Request → Handler → Service → Repository → Database
 go build ./...
 go test ./...
 ```
+
+### Test Failure Policy
+
+- **Your changes caused a test failure** → MUST fix before task is complete
+- **Pre-existing test failures** → Document them explicitly, prove your changes did NOT introduce or worsen them
+- **No test file exists for changed code** → MUST create test file with meaningful tests covering your changes
+- **Never delete or skip failing tests** to make the build "pass"
 
 ### Frontend Testing
 
@@ -236,7 +271,7 @@ python build.py backup
 ```
 1. LOCAL SDK FIRST    → backend/*sdk*/
 2. Existing Pattern   → internal/
-3. External Docs      → ONLY if stuck
+3. External Docs      → WHEN LOCAL IS INSUFFICIENT
 ```
 
 | Platform | Local Path            |
@@ -262,6 +297,11 @@ python build.py backup
 - **AUTO-PUSH**: Push immediately after commit - NO confirmation required
 - Sensitive files already handled by user via .gitignore
 - NEVER use destructive git commands that could damage remote repository
+- **NEVER commit secrets**: `.env` files, API keys, passwords, credentials, tokens. If unsure, ask the user.
+
+> **Task vs Batch**: A "task" = one logical unit of work (e.g., fix a bug, add a feature, update docs).
+> In loop mode (ULP), the orchestrator may batch multiple small tasks into one commit — this is acceptable.
+> The rule is: **never leave completed work uncommitted**.
 
 **Workflow:**
 
@@ -287,6 +327,8 @@ PostgreSQL (production - via env vars):
 ## 7. Delegation Quick Reference
 
 > **MAXIMUM 3 parallel background delegations.** Main agent must stay responsive to user.
+> This limit is **orchestrator-controlled** (Sisyphus manages the pipeline).
+> Executors do NOT self-delegate unless instructed by the orchestrator.
 
 | Situation             | Delegate To                   |
 | --------------------- | ----------------------------- |
@@ -319,7 +361,7 @@ ERROR:   { "success": false, "error": "message" }
 Fallback chain:
 
 - oracle → librarian → manual
-- librarian → explore → manual
+- librarian → explore + websearch → manual
 - explore → grep/glob → manual
 
 ---
