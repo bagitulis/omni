@@ -394,7 +394,16 @@ func (s *AuthService) ensureDevUserExists(ctx context.Context, userID, username,
 		return err
 	}
 	if user != nil {
-		return nil // User already exists
+		return nil // User already exists with this ID
+	}
+
+	// Check if user with this email already exists (from previous attempt)
+	userByEmail, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+	if userByEmail != nil {
+		return nil // User exists with this email, skip creation
 	}
 
 	// Create dev user if not exists
