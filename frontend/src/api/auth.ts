@@ -61,3 +61,16 @@ export const getCurrentUser = async (): Promise<User | null> => {
     return null;
   }
 };
+
+export const changePassword = async (
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> => {
+  const response = await api.post("/auth/change-password", {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+  if (!response.success) {
+    throw new Error(response.error || "Failed to change password");
+  }
+};

@@ -1,87 +1,103 @@
 import {
-  Drawer,
+  Modal,
   Button,
   Space,
-  Divider,
   Statistic,
   Table,
-  Modal,
-  Form,
-  InputNumber,
+  Select,
+  Row,
+  Col,
+  Spin,
+  Alert,
   Typography,
 } from "antd";
-import { DollarOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  DollarOutlined,
+  DownloadOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useState } from "react";
+import {
+  useWalletBalance,
+  useWalletTransactions,
+  useExportWalletToSheets,
+  type WalletTransaction,
+} from "@/hooks/useWallet";
 
 const { Text } = Typography;
-
-export interface Transaction {
-  id: string;
-  type: "topup" | "purchase" | "refund";
-  amount: number;
-  description: string;
-  timestamp: string;
-}
 
 interface WalletModalProps {
   open: boolean;
   onClose: () => void;
-  balance: number;
-  transactions?: Transaction[];
-  onTopUp?: (amount: number) => Promise<void>;
 }
 
-const COLOR_MAP: Record<string, string> = {
-  topup: "green",
-  purchase: "red",
-  refund: "blue",
-};
+export function WalletModal({ open, onClose }: WalletModalProps) {
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
 
-export function WalletModal({
-  open,
-  onClose,
-  balance,
-  transactions = [],
-  onTopUp,
-}: WalletModalProps) {
-  const [topupOpen, setTopupOpen] = useState(false);
-  const [topupLoading, setTopupLoading] = useState(false);
-  const [topupForm] = Form.useForm();
+  const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
 
-  const handleTopupSubmit = async () => {
-    try {
-      const { amount } = await topupForm.validateFields();
-      if (!onTopUp) return;
-      setTopupLoading(true);
-      await onTopUp(amount);
-      setTopupLoading(false);
-      topupForm.resetFields();
-      setTopupOpen(false);
-    } catch (error) {
-      setTopupLoading(false);
-    }
+  // Fetch wallet balance
+  const {
+    data: walletData,
+    isLoading: balanceLoading,
+    error: balanceError,
+    refetch: refetchBalance,
+  } = useWalletBalance();
+
+  // Fetch wallet transactions with filters
+  const {
+    data: transactionsData,
+    isLoading: transactionsLoading,
+    error: transactionsError,
+    refetch: refetchTransactions,
+  } = useWalletTransactions({
+    month: selectedMonth,
+    year: selectedYear,
+  });
+
+  // Export mutation
+  const { mutate: exportToSheets, isPending: exporting } =
+    useExportWalletToSheets();
+
+  const handleExport = () => {
+    exportToSheets({ month: selectedMonth, year: selectedYear });
   };
 
-  const columns: ColumnsType<Transaction> = [
+  const handleRefresh = () => {
+    refetchBalance();
+    refetchTransactions();
+  };
+
+  // Table columns
+  const columns: ColumnsType<WalletTransaction> = [
+    {
+      title: "Date",
+      dataIndex: "created_at",
+      key: "created_at",
+      width: 130,
+      render: (date) => new Date(date).toLocaleDateString(),
+    },
     {
       title: "Type",
       dataIndex: "type",
       key: "type",
-      width: 80,
-      render: (type) => <span style={{ color: COLOR_MAP[type] }}>{type}</span>,
+      width: 100,
     },
     {
       title: "Amount",
       dataIndex: "amount",
       key: "amount",
-      width: 100,
+      width: 120,
+      align: "right",
       render: (amount, record) => {
-        const isIncome = record.type === "topup" || record.type === "refund";
+        const isIncome = record.type === "income" || record.type === "refund";
         return (
-          <Text strong style={{ color: isIncome ? "green" : "red" }}>
+          <Text strong style={{ color: isIncome ? "#16a34a" : "#dc2626" }}>
             {isIncome ? "+" : "-"}
-            {amount.toLocaleString()}
+            {walletData?.currency} {Math.abs(amount).toLocaleString()}
           </Text>
         );
       },
@@ -90,97 +106,125 @@ export function WalletModal({
       title: "Description",
       dataIndex: "description",
       key: "description",
-      render: (text) => <Text ellipsis>{text}</Text>,
-    },
-    {
-      title: "Date",
-      dataIndex: "timestamp",
-      key: "timestamp",
-      width: 130,
-      render: (ts) => new Date(ts).toLocaleString(),
+      ellipsis: true,
     },
   ];
 
+  // Generate month options (last 12 months)
+  const monthOptions = Array.from({ length: 12 }, (_, i) => ({
+    label: new Date(0, i).toLocaleString("en", { month: "long" }),
+    value: i + 1,
+  }));
+
+  // Generate year options (current year and 2 previous years)
+  const yearOptions = Array.from({ length: 3 }, (_, i) => ({
+    label: String(currentYear - i),
+    value: currentYear - i,
+  }));
+
   return (
-    <>
-      <Drawer
-        title="Wallet"
-        placement="right"
-        width={500}
-        onClose={onClose}
-        open={open}
-        footer={
-          <Space style={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button onClick={onClose}>Close</Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setTopupOpen(true)}
-            >
-              Top Up
-            </Button>
-          </Space>
-        }
-      >
-        <div style={{ marginBottom: 32 }}>
-          <Statistic
-            title="Wallet Balance"
-            value={balance}
-            prefix={<DollarOutlined />}
-            precision={2}
-            valueStyle={{ color: "#0369a1" }}
-          />
-        </div>
-        <Divider />
-        <Typography.Title level={5}>Transaction History</Typography.Title>
-        <Table<Transaction>
+    <Modal
+      title="Wallet"
+      open={open}
+      onCancel={onClose}
+      width={800}
+      footer={
+        <Space>
+          <Button onClick={onClose}>Close</Button>
+          <Button
+            type="primary"
+            icon={<DownloadOutlined />}
+            loading={exporting}
+            onClick={handleExport}
+          >
+            Export to Sheets
+          </Button>
+        </Space>
+      }
+    >
+      {/* Balance Summary */}
+      {balanceError ? (
+        <Alert
+          message="Failed to load wallet balance"
+          description={(balanceError as Error).message}
+          type="error"
+          showIcon
+          style={{ marginBottom: 24 }}
+        />
+      ) : (
+        <Spin spinning={balanceLoading}>
+          <Row gutter={16} style={{ marginBottom: 24 }}>
+            <Col span={8}>
+              <Statistic
+                title="Total Balance"
+                value={walletData?.total_balance || 0}
+                prefix={<DollarOutlined />}
+                suffix={walletData?.currency || "IDR"}
+                valueStyle={{ color: "#0369a1", fontSize: 20 }}
+              />
+            </Col>
+            <Col span={8}>
+              <Statistic
+                title="Available"
+                value={walletData?.available_balance || 0}
+                suffix={walletData?.currency || "IDR"}
+                valueStyle={{ color: "#16a34a", fontSize: 20 }}
+              />
+            </Col>
+            <Col span={8}>
+              <Statistic
+                title="Pending"
+                value={walletData?.pending_balance || 0}
+                suffix={walletData?.currency || "IDR"}
+                valueStyle={{ color: "#d97706", fontSize: 20 }}
+              />
+            </Col>
+          </Row>
+        </Spin>
+      )}
+
+      {/* Filters */}
+      <Space style={{ marginBottom: 16 }}>
+        <Select
+          value={selectedMonth}
+          onChange={setSelectedMonth}
+          options={monthOptions}
+          style={{ width: 140 }}
+        />
+        <Select
+          value={selectedYear}
+          onChange={setSelectedYear}
+          options={yearOptions}
+          style={{ width: 100 }}
+        />
+        <Button icon={<ReloadOutlined />} onClick={handleRefresh}>
+          Refresh
+        </Button>
+      </Space>
+
+      {/* Transaction Table */}
+      {transactionsError ? (
+        <Alert
+          message="Failed to load transactions"
+          description={(transactionsError as Error).message}
+          type="error"
+          showIcon
+        />
+      ) : (
+        <Table<WalletTransaction>
           columns={columns}
-          dataSource={transactions}
-          rowKey="id"
-          pagination={false}
+          dataSource={transactionsData?.transactions || []}
+          rowKey="transaction_id"
+          loading={transactionsLoading}
+          pagination={{
+            pageSize: 10,
+            showTotal: (total) => `Total ${total} transactions`,
+            showSizeChanger: false,
+          }}
           size="small"
           bordered
         />
-      </Drawer>
-
-      <Modal
-        title="Top Up Wallet"
-        open={topupOpen}
-        onCancel={() => setTopupOpen(false)}
-        footer={[
-          <Button key="cancel" onClick={() => setTopupOpen(false)}>
-            Cancel
-          </Button>,
-          <Button
-            key="submit"
-            type="primary"
-            loading={topupLoading}
-            onClick={handleTopupSubmit}
-          >
-            Confirm
-          </Button>,
-        ]}
-      >
-        <Form form={topupForm} layout="vertical">
-          <Form.Item
-            name="amount"
-            label="Amount"
-            rules={[
-              { required: true, message: "Please enter amount" },
-              { type: "number", min: 10, message: "Minimum top up is 10" },
-            ]}
-          >
-            <InputNumber
-              prefix="$"
-              placeholder="Enter amount"
-              min={10}
-              step={10}
-              precision={2}
-              style={{ width: "100%" }}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
-    </>
+      )}
+    </Modal>
   );
 }

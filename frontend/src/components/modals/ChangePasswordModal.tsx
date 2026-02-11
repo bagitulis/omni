@@ -1,5 +1,6 @@
 import { Modal, Form, Input, Button, message } from "antd";
 import { useState } from "react";
+import { changePassword } from "@/api/auth";
 
 interface ChangePasswordModalProps {
   open: boolean;
@@ -27,14 +28,15 @@ export function ChangePasswordModal({
       }
 
       setLoading(true);
-      // Mock API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await changePassword(values.currentPassword, values.newPassword);
       message.success("Password changed successfully");
       form.resetFields();
       onClose();
     } catch (error) {
       // Validation error or API error
-      console.error(error);
+      if (error instanceof Error) {
+        message.error(error.message);
+      }
     } finally {
       setLoading(false);
     }

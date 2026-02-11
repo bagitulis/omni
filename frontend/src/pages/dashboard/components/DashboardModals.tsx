@@ -8,12 +8,7 @@ import {
 } from "@/components/modals";
 
 export function DashboardModals() {
-  const { isModalOpen, closeModal, getModalData } = useModalsStore();
-
-  const handleTokenOperation = (operation: string) => {
-    console.log("Token operation:", operation);
-    // TODO: Implement token operation logic
-  };
+  const { isModalOpen, closeModal } = useModalsStore();
 
   return (
     <>
@@ -29,13 +24,10 @@ export function DashboardModals() {
       <WalletModal
         open={isModalOpen("wallet")}
         onClose={() => closeModal("wallet")}
-        balance={getModalData("wallet")?.balance || 0}
       />
       <TokenModal
         open={isModalOpen("token")}
         onClose={() => closeModal("token")}
-        platform={getModalData("token")?.platform}
-        onTokenOperation={handleTokenOperation}
       />
       <ChangePasswordModal
         open={isModalOpen("changePassword")}
