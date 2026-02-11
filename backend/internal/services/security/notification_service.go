@@ -7,11 +7,11 @@ import (
 
 // NotificationService handles security notifications and alerts
 type NotificationService struct {
-	mu            sync.RWMutex
-	alerts        []SecurityAlert
-	maxAlerts     int
-	rateLimiter   map[string]time.Time // alertType -> lastSent
-	minInterval   time.Duration
+	mu          sync.RWMutex
+	alerts      []SecurityAlert
+	maxAlerts   int
+	rateLimiter map[string]time.Time // alertType -> lastSent
+	minInterval time.Duration
 }
 
 // NewNotificationService creates a new notification service
@@ -142,9 +142,9 @@ func (s *NotificationService) GetStats() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"total":           len(s.alerts),
-		"by_severity":     severityCounts,
-		"by_type":         typeCounts,
+		"total":       len(s.alerts),
+		"by_severity": severityCounts,
+		"by_type":     typeCounts,
 	}
 }
 

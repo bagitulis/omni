@@ -11,15 +11,15 @@ import (
 
 // ImageMigrateResponse represents the response from POST /image/migrate
 type ImageMigrateResponse struct {
-	Code    string          `json:"code"`
-	Message string          `json:"message,omitempty"`
+	Code    string            `json:"code"`
+	Message string            `json:"message,omitempty"`
 	Data    *ImageMigrateData `json:"data,omitempty"`
 }
 
 // ImageMigrateData contains the migrated image data
 type ImageMigrateData struct {
-	Image  *ImageInfo   `json:"image,omitempty"`
-	Images *ImagesList  `json:"images,omitempty"`
+	Image  *ImageInfo  `json:"image,omitempty"`
+	Images *ImagesList `json:"images,omitempty"`
 }
 
 // ImagesList represents the images array in response

@@ -40,7 +40,7 @@ func LazadaOAuthURL(appKey, redirectURI, region string) string {
 		baseURL, url.QueryEscape(redirectURI), appKey)
 }
 
-// TiktokOAuthURL generates TikTok authorization URL  
+// TiktokOAuthURL generates TikTok authorization URL
 func TiktokOAuthURL(appKey, redirectURI string) string {
 	baseURL := "https://auth.tiktok-shops.com/oauth/authorize"
 	return fmt.Sprintf("%s?app_key=%s&redirect_uri=%s&state=omni",

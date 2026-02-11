@@ -5,9 +5,9 @@ import "fmt"
 // PlatformFactory creates platform-specific services
 // Implements Factory Pattern for OOP
 type PlatformFactory struct {
-	shopeeOrder  OrderService
-	lazadaOrder  OrderService
-	tiktokOrder  OrderService
+	shopeeOrder   OrderService
+	lazadaOrder   OrderService
+	tiktokOrder   OrderService
 	shopeeProduct ProductService
 	lazadaProduct ProductService
 	tiktokProduct ProductService

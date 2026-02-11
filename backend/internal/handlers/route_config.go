@@ -173,5 +173,3 @@ func (h *RouteConfigHandler) ListAll(c *gin.Context) {
 		},
 	})
 }
-
-

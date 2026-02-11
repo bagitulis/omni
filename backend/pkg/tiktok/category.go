@@ -10,10 +10,10 @@ import (
 
 // RecommendCategoryRequest is the request body for POST /product/202309/categories/recommend
 type RecommendCategoryRequest struct {
-	ProductTitle   string                         `json:"product_title"`
-	Description    string                         `json:"description,omitempty"`
-	Images         []RecommendCategoryImage       `json:"images,omitempty"`
-	CategoryVersion string                        `json:"category_version,omitempty"` // "v1" or "v2"
+	ProductTitle    string                   `json:"product_title"`
+	Description     string                   `json:"description,omitempty"`
+	Images          []RecommendCategoryImage `json:"images,omitempty"`
+	CategoryVersion string                   `json:"category_version,omitempty"` // "v1" or "v2"
 }
 
 // RecommendCategoryImage represents an image for category recommendation
@@ -23,23 +23,23 @@ type RecommendCategoryImage struct {
 
 // RecommendCategoryResponse is the API response
 type RecommendCategoryResponse struct {
-	Code    int                         `json:"code"`
-	Message string                      `json:"message"`
-	Data    *RecommendCategoryData      `json:"data"`
+	Code    int                    `json:"code"`
+	Message string                 `json:"message"`
+	Data    *RecommendCategoryData `json:"data"`
 }
 
 // RecommendCategoryData contains the recommendation result
 type RecommendCategoryData struct {
-	LeafCategoryID string                     `json:"leaf_category_id"`
-	Categories     []RecommendedCategory      `json:"categories"`
+	LeafCategoryID string                `json:"leaf_category_id"`
+	Categories     []RecommendedCategory `json:"categories"`
 }
 
 // RecommendedCategory represents a recommended category in the hierarchy
 type RecommendedCategory struct {
-	ID                string   `json:"id"`
-	Name              string   `json:"name"`
-	Level             int      `json:"level"`
-	IsLeaf            bool     `json:"is_leaf"`
+	ID                 string   `json:"id"`
+	Name               string   `json:"name"`
+	Level              int      `json:"level"`
+	IsLeaf             bool     `json:"is_leaf"`
 	PermissionStatuses []string `json:"permission_statuses,omitempty"`
 }
 
@@ -99,9 +99,9 @@ func (c *Client) GetRecommendedCategoryID(title, description string, imageURIs [
 
 // GetAttributesResponse is the response from Get Attributes API
 type GetAttributesResponse struct {
-	Code    int                    `json:"code"`
-	Message string                 `json:"message"`
-	Data    *GetAttributesData     `json:"data"`
+	Code    int                `json:"code"`
+	Message string             `json:"message"`
+	Data    *GetAttributesData `json:"data"`
 }
 
 // GetAttributesData contains the attributes list
@@ -113,8 +113,8 @@ type GetAttributesData struct {
 type CategoryAttribute struct {
 	ID                    string               `json:"id"`
 	Name                  string               `json:"name"`
-	Type                  string               `json:"type"`                    // PRODUCT_PROPERTY or SALES_PROPERTY
-	IsRequired            bool                 `json:"is_requried"`             // Note: TikTok API has typo
+	Type                  string               `json:"type"`        // PRODUCT_PROPERTY or SALES_PROPERTY
+	IsRequired            bool                 `json:"is_requried"` // Note: TikTok API has typo
 	IsCustomizable        bool                 `json:"is_customizable"`
 	IsMultipleSelection   bool                 `json:"is_multiple_selection"`
 	Values                []AttributeValueInfo `json:"values"`

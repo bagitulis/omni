@@ -7,10 +7,10 @@ import (
 
 // AppError represents an application-specific error
 type AppError struct {
-	Code       int         `json:"-"`
-	Type       string      `json:"type"`
-	Message    string      `json:"message"`
-	Details    interface{} `json:"details,omitempty"`
+	Code        int         `json:"-"`
+	Type        string      `json:"type"`
+	Message     string      `json:"message"`
+	Details     interface{} `json:"details,omitempty"`
 	InternalErr error       `json:"-"`
 }
 

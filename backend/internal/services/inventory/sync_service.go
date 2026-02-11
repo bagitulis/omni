@@ -18,8 +18,9 @@ func generateUUID() string {
 
 // SyncService handles inventory synchronization
 type SyncService struct {
-	db           *gorm.DB
-	tenantID     string
+	db       *gorm.DB
+	tenantID string
+	// SheetsClient is an interface wrapper for Google Sheets API
 	sheetsClient SheetsClient
 }
 

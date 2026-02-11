@@ -12,12 +12,12 @@ type TokenResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Data    struct {
-		AccessToken      string `json:"access_token"`
-		RefreshToken     string `json:"refresh_token"`
-		AccessTokenExpire int64  `json:"access_token_expire_in"`
-		RefreshTokenExpire int64 `json:"refresh_token_expire_in"`
-		OpenID           string `json:"open_id"`
-		SellerName       string `json:"seller_name"`
+		AccessToken        string `json:"access_token"`
+		RefreshToken       string `json:"refresh_token"`
+		AccessTokenExpire  int64  `json:"access_token_expire_in"`
+		RefreshTokenExpire int64  `json:"refresh_token_expire_in"`
+		OpenID             string `json:"open_id"`
+		SellerName         string `json:"seller_name"`
 	} `json:"data"`
 }
 

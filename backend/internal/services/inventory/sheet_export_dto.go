@@ -22,7 +22,7 @@ type ImportOptions struct {
 type SyncOptions struct {
 	SpreadsheetID string `json:"spreadsheet_id"`
 	SheetName     string `json:"sheet_name"`
-	SyncMode      string `json:"sync_mode"` // "full", "incremental"
+	SyncMode      string `json:"sync_mode"`  // "full", "incremental"
 	KeyColumn     string `json:"key_column"` // Column to use as unique key
 }
 

@@ -23,10 +23,10 @@ func NewSheetsService(authService *AuthService, tenantID string) *SheetsService 
 
 // SpreadsheetInfo contains spreadsheet metadata
 type SpreadsheetInfo struct {
-	ID         string       `json:"spreadsheet_id"`
-	Title      string       `json:"title"`
-	URL        string       `json:"url"`
-	Sheets     []SheetInfo  `json:"sheets"`
+	ID     string      `json:"spreadsheet_id"`
+	Title  string      `json:"title"`
+	URL    string      `json:"url"`
+	Sheets []SheetInfo `json:"sheets"`
 }
 
 // SheetInfo contains worksheet metadata

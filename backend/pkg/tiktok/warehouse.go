@@ -16,11 +16,11 @@ type WarehouseResponse struct {
 
 // Warehouse represents a TikTok warehouse
 type Warehouse struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
+	ID            string `json:"id"`
+	Name          string `json:"name"`
 	WarehouseType string `json:"warehouse_type"` // SELLER_WAREHOUSE, SALES_WAREHOUSE, etc
-	IsDefault    bool   `json:"is_default"`
-	Address      struct {
+	IsDefault     bool   `json:"is_default"`
+	Address       struct {
 		Region        string `json:"region"`
 		State         string `json:"state"`
 		City          string `json:"city"`
@@ -45,11 +45,11 @@ func (c *Client) GetWarehouses() (*WarehouseResponse, error) {
 		return nil, err
 	}
 
-	log.Printf("[TikTok Warehouse] Response: code=%d, message=%s, warehouse_count=%d", 
+	log.Printf("[TikTok Warehouse] Response: code=%d, message=%s, warehouse_count=%d",
 		result.Code, result.Message, len(result.Data.Warehouses))
-	
+
 	for i, w := range result.Data.Warehouses {
-		log.Printf("[TikTok Warehouse] [%d] id=%s, name=%s, type=%s, is_default=%v", 
+		log.Printf("[TikTok Warehouse] [%d] id=%s, name=%s, type=%s, is_default=%v",
 			i, w.ID, w.Name, w.WarehouseType, w.IsDefault)
 	}
 

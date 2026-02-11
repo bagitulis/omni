@@ -12,9 +12,9 @@ import (
 
 // CategorySuggestionResponse represents the response from GET /category/suggestion/get
 type CategorySuggestionResponse struct {
-	Code    string                `json:"code"`
-	Message string                `json:"message,omitempty"`
-	Data    *CategorySuggestions  `json:"data,omitempty"`
+	Code    string               `json:"code"`
+	Message string               `json:"message,omitempty"`
+	Data    *CategorySuggestions `json:"data,omitempty"`
 }
 
 // CategorySuggestions contains category suggestion results
@@ -26,7 +26,7 @@ type CategorySuggestions struct {
 // CategorySuggestion represents a single category suggestion
 // API response example: { categoryPath: "...", categoryName: "T-Shirt", categoryId: "2342" }
 type CategorySuggestion struct {
-	CategoryID   FlexibleInt `json:"categoryId"`   // Can be string or number
+	CategoryID   FlexibleInt `json:"categoryId"` // Can be string or number
 	CategoryName string      `json:"categoryName"`
 	CategoryPath string      `json:"categoryPath"`
 }
@@ -88,18 +88,18 @@ type Category struct {
 
 // CategoryAttributesResponse represents the response from GET /category/attributes/get
 type CategoryAttributesResponse struct {
-	Code    string               `json:"code"`
-	Message string               `json:"message,omitempty"`
-	Data    []CategoryAttribute  `json:"data,omitempty"`
+	Code    string              `json:"code"`
+	Message string              `json:"message,omitempty"`
+	Data    []CategoryAttribute `json:"data,omitempty"`
 }
 
 // CategoryAttribute represents a Lazada category attribute
 type CategoryAttribute struct {
-	Name          string                   `json:"name"`
-	InputType     string                   `json:"input_type"`     // dropDownList, freeText, etc.
-	IsMandatory   bool                     `json:"is_mandatory"`
-	AttributeType string                   `json:"attribute_type"` // sku, normal
-	Label         string                   `json:"label"`
+	Name          string                    `json:"name"`
+	InputType     string                    `json:"input_type"` // dropDownList, freeText, etc.
+	IsMandatory   bool                      `json:"is_mandatory"`
+	AttributeType string                    `json:"attribute_type"` // sku, normal
+	Label         string                    `json:"label"`
 	Options       []CategoryAttributeOption `json:"options,omitempty"`
 }
 

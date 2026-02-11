@@ -18,8 +18,8 @@ func NewDataOperations(sheetsService *SheetsService) *DataOperations {
 
 // ColumnMapping represents detected column mapping
 type ColumnMapping struct {
-	Index      int    `json:"index"`
-	Header     string `json:"header"`
+	Index          int    `json:"index"`
+	Header         string `json:"header"`
 	SuggestedField string `json:"suggested_field"`
 }
 

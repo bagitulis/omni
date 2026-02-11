@@ -13,11 +13,11 @@ import (
 
 // InventoryData holds price and stock from inventory_records
 type InventoryData struct {
-	Found    bool    `json:"found"`
-	SKU      string  `json:"sku"`
-	Price    float64 `json:"price"`
-	Stock    int     `json:"stock"`
-	RawData  map[string]interface{} `json:"raw_data,omitempty"`
+	Found   bool                   `json:"found"`
+	SKU     string                 `json:"sku"`
+	Price   float64                `json:"price"`
+	Stock   int                    `json:"stock"`
+	RawData map[string]interface{} `json:"raw_data,omitempty"`
 }
 
 // InventoryFetcher fetches inventory data for cloning
@@ -110,7 +110,7 @@ func (f *InventoryFetcher) parseData(dataStr string) map[string]interface{} {
 // getPrice extracts price from data using common column names
 func (f *InventoryFetcher) getPrice(data map[string]interface{}) float64 {
 	priceColumns := []string{"HARGA", "Harga", "harga", "Price", "price", "PRICE", "HargaJual", "harga_jual"}
-	
+
 	for _, col := range priceColumns {
 		if val, ok := data[col]; ok {
 			switch v := val.(type) {
@@ -130,7 +130,7 @@ func (f *InventoryFetcher) getPrice(data map[string]interface{}) float64 {
 // getStock extracts stock from data using common column names
 func (f *InventoryFetcher) getStock(data map[string]interface{}) int {
 	stockColumns := []string{"Stock", "stock", "STOCK", "Quantity", "quantity", "QTY", "qty", "Stok", "stok", "Jumlah", "jumlah"}
-	
+
 	for _, col := range stockColumns {
 		if val, ok := data[col]; ok {
 			switch v := val.(type) {
@@ -150,7 +150,7 @@ func (f *InventoryFetcher) getStock(data map[string]interface{}) int {
 // GetProductNameFromInventory gets product name from inventory data
 func (f *InventoryFetcher) GetProductNameFromInventory(data map[string]interface{}) string {
 	nameColumns := []string{"Nama Barang", "NamaBarang", "nama_barang", "Nama", "nama", "Name", "name", "ProductName", "product_name", "Title", "title"}
-	
+
 	for _, col := range nameColumns {
 		if val, ok := data[col]; ok {
 			if str, ok := val.(string); ok && str != "" {

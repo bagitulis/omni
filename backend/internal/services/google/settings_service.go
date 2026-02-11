@@ -55,10 +55,10 @@ type SpreadsheetLinkInput struct {
 // getOrCreateSettings gets existing settings or creates default one
 func (s *SettingsService) getOrCreateSettings(ctx context.Context) (*models.GoogleSheetsSettings, error) {
 	var settings models.GoogleSheetsSettings
-	
+
 	// Try to find first record (schema-level isolation means only one record per tenant)
 	result := s.db.WithContext(ctx).First(&settings)
-	
+
 	if result.Error == gorm.ErrRecordNotFound {
 		// Create new record with default ID
 		settings = models.GoogleSheetsSettings{
@@ -71,11 +71,11 @@ func (s *SettingsService) getOrCreateSettings(ctx context.Context) (*models.Goog
 		}
 		return &settings, nil
 	}
-	
+
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	
+
 	return &settings, nil
 }
 
@@ -105,12 +105,12 @@ func (s *SettingsService) GetDetailedSettings(ctx context.Context) (*DetailedSet
 // UpdateDetailedSettings updates detailed settings
 func (s *SettingsService) UpdateDetailedSettings(ctx context.Context, input *DetailedSettingsInput) error {
 	selectedColumnsJSON, _ := json.Marshal(input.InventorySelectedColumns)
-	
+
 	settings, err := s.getOrCreateSettings(ctx)
 	if err != nil {
 		return err
 	}
-	
+
 	// Update fields
 	settings.WalletSpreadsheetID = input.WalletSpreadsheetID
 	settings.ShippingSpreadsheetID = input.ShippingSpreadsheetID
@@ -119,7 +119,7 @@ func (s *SettingsService) UpdateDetailedSettings(ctx context.Context, input *Det
 	settings.InventorySheetName = input.InventorySheetName
 	settings.InventorySelectedColumns = string(selectedColumnsJSON)
 	settings.UpdatedAt = time.Now()
-	
+
 	return s.db.WithContext(ctx).Save(settings).Error
 }
 
@@ -137,7 +137,7 @@ func (s *SettingsService) SaveSpreadsheetLinks(ctx context.Context, links interf
 	if err != nil {
 		return err
 	}
-	
+
 	// Handle links as LinksByType struct
 	if linksByType, ok := links.(*LinksByType); ok {
 		settings.InventorySpreadsheetID = linksByType.Inventory
@@ -145,7 +145,7 @@ func (s *SettingsService) SaveSpreadsheetLinks(ctx context.Context, links interf
 		settings.ShippingSpreadsheetID = linksByType.Shipping
 		settings.OrderSpreadsheetID = linksByType.Order
 	}
-	
+
 	// Also store as JSON for backward compatibility
 	linksJSON, err := json.Marshal(links)
 	if err != nil {
@@ -153,7 +153,7 @@ func (s *SettingsService) SaveSpreadsheetLinks(ctx context.Context, links interf
 	}
 	settings.AvailableSpreadsheets = string(linksJSON)
 	settings.UpdatedAt = time.Now()
-	
+
 	return s.db.WithContext(ctx).Save(settings).Error
 }
 

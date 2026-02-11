@@ -28,7 +28,7 @@ func NewRouteHandler(basePath string) *RouteHandler {
 // @Router /api/routes [get]
 func (h *RouteHandler) GetAllRoutes(c *gin.Context) {
 	routes := h.mappingService.GetAllMappings()
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    routes,

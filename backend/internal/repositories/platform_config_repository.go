@@ -21,7 +21,7 @@ type PlatformConfig struct {
 	RefreshToken string
 	ExpiresAt    int64
 	Region       string
-	IsActive     bool      `gorm:"default:true"`
+	IsActive     bool `gorm:"default:true"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

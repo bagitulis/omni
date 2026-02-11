@@ -32,7 +32,7 @@ type WholesaleTier struct {
 
 // WholesaleCalculateRequest represents wholesale calculation request
 type WholesaleCalculateRequest struct {
-	OriginalPrice float64 `json:"original_price" binding:"required"`
+	OriginalPrice float64  `json:"original_price" binding:"required"`
 	SKUs          []string `json:"skus,omitempty"` // Optional: specific SKUs
 }
 

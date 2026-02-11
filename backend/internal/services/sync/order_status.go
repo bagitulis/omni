@@ -42,9 +42,9 @@ var OrderStatusMappings = map[PlatformType]OrderStatusMapping{
 	PlatformLazada: {
 		// Node.js: lazada: { unprocess: "topack", processed: "toship" }
 		// Note: Lazada tidak punya unpaid status
-		StatusUnpaid:    "",        // Lazada tidak support unpaid
-		StatusUnprocess: "topack",  // Ready to pack
-		StatusProcessed: "toship",  // Ready to ship
+		StatusUnpaid:    "",       // Lazada tidak support unpaid
+		StatusUnprocess: "topack", // Ready to pack
+		StatusProcessed: "toship", // Ready to ship
 		StatusShipped:   "shipped",
 		StatusCompleted: "delivered",
 		StatusCancelled: "canceled",

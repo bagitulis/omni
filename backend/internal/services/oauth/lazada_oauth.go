@@ -96,11 +96,11 @@ func (s *LazadaOAuthService) GenerateSignature(apiPath string, params map[string
 // BuildCommonParams builds common API parameters
 func (s *LazadaOAuthService) BuildCommonParams() map[string]string {
 	return map[string]string{
-		"app_key":      s.config.AppKey,
-		"sign_method":  "sha256",
-		"timestamp":    fmt.Sprintf("%d000", time.Now().Unix()), // Lazada uses milliseconds
-		"partner_id":   "lazop-sdk-go",
-		"debug":        "false",
+		"app_key":     s.config.AppKey,
+		"sign_method": "sha256",
+		"timestamp":   fmt.Sprintf("%d000", time.Now().Unix()), // Lazada uses milliseconds
+		"partner_id":  "lazop-sdk-go",
+		"debug":       "false",
 	}
 }
 

@@ -34,10 +34,10 @@ type APIClient interface {
 	// Order operations
 	GetOrderList(ctx context.Context, status string, days int) ([]map[string]interface{}, error)
 	GetOrderDetails(ctx context.Context, orderIDs []string) ([]map[string]interface{}, error)
-	
+
 	// Product operations (optional)
 	GetProductList(ctx context.Context, offset, limit int) ([]map[string]interface{}, error)
-	
+
 	// Check if client is initialized
 	IsInitialized() bool
 }
@@ -45,12 +45,12 @@ type APIClient interface {
 // PlatformCoordinationService manages all platform clients and configs
 // Multi-tenant: Each tenant has its own instance
 type PlatformCoordinationService struct {
-	platformClients  map[PlatformType]APIClient
-	configManagers   map[PlatformType]ConfigManager
-	tenantID         string
-	logger           *logger.Logger
-	initialized      bool
-	mu               sync.RWMutex
+	platformClients map[PlatformType]APIClient
+	configManagers  map[PlatformType]ConfigManager
+	tenantID        string
+	logger          *logger.Logger
+	initialized     bool
+	mu              sync.RWMutex
 }
 
 // NewPlatformCoordinationService creates a new service for a tenant
@@ -100,14 +100,14 @@ func (s *PlatformCoordinationService) initShopee(ctx context.Context) error {
 	if err := config.LoadConfig(ctx); err != nil {
 		return fmt.Errorf("load shopee config: %w", err)
 	}
-	
+
 	// Setup token refresher if available
 	if refreshSvc := GetTokenRefreshService(); refreshSvc != nil {
 		config.SetTokenRefresher(func(ctx context.Context, tenantID string) (string, string, error) {
 			return refreshSvc.RefreshShopeeToken(ctx, tenantID)
 		})
 	}
-	
+
 	s.configManagers[PlatformShopee] = config
 
 	client := NewShopeeAPIClient(config)
@@ -121,14 +121,14 @@ func (s *PlatformCoordinationService) initLazada(ctx context.Context) error {
 	if err := config.LoadConfig(ctx); err != nil {
 		return fmt.Errorf("load lazada config: %w", err)
 	}
-	
+
 	// Setup token refresher if available
 	if refreshSvc := GetTokenRefreshService(); refreshSvc != nil {
 		config.SetTokenRefresher(func(ctx context.Context, tenantID string) (string, string, error) {
 			return refreshSvc.RefreshLazadaToken(ctx, tenantID)
 		})
 	}
-	
+
 	s.configManagers[PlatformLazada] = config
 
 	client := NewLazadaAPIClient(config)
@@ -142,14 +142,14 @@ func (s *PlatformCoordinationService) initTiktok(ctx context.Context) error {
 	if err := config.LoadConfig(ctx); err != nil {
 		return fmt.Errorf("load tiktok config: %w", err)
 	}
-	
+
 	// Setup token refresher if available
 	if refreshSvc := GetTokenRefreshService(); refreshSvc != nil {
 		config.SetTokenRefresher(func(ctx context.Context, tenantID string) (string, string, error) {
 			return refreshSvc.RefreshTiktokToken(ctx, tenantID)
 		})
 	}
-	
+
 	s.configManagers[PlatformTiktok] = config
 
 	client := NewTiktokAPIClient(config)
@@ -209,7 +209,7 @@ func (s *PlatformCoordinationService) GetTenantID() string {
 func (s *PlatformCoordinationService) GetShopeeClient() *ShopeeAPIClient {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	if client, ok := s.platformClients[PlatformShopee]; ok {
 		if typed, ok := client.(*ShopeeAPIClient); ok {
 			return typed
@@ -222,7 +222,7 @@ func (s *PlatformCoordinationService) GetShopeeClient() *ShopeeAPIClient {
 func (s *PlatformCoordinationService) GetLazadaClient() *LazadaAPIClient {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	if client, ok := s.platformClients[PlatformLazada]; ok {
 		if typed, ok := client.(*LazadaAPIClient); ok {
 			return typed
@@ -235,7 +235,7 @@ func (s *PlatformCoordinationService) GetLazadaClient() *LazadaAPIClient {
 func (s *PlatformCoordinationService) GetTiktokClient() *TiktokAPIClient {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	if client, ok := s.platformClients[PlatformTiktok]; ok {
 		if typed, ok := client.(*TiktokAPIClient); ok {
 			return typed

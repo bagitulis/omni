@@ -8,12 +8,12 @@ import (
 
 // MetricsService collects and provides system metrics
 type MetricsService struct {
-	mu              sync.RWMutex
-	requestCounts   map[string]int64      // endpoint -> count
-	responseTimes   map[string][]int64    // endpoint -> latencies (ms)
-	errorCounts     map[string]int64      // endpoint -> error count
-	startTime       time.Time
-	maxLatencies    int
+	mu            sync.RWMutex
+	requestCounts map[string]int64   // endpoint -> count
+	responseTimes map[string][]int64 // endpoint -> latencies (ms)
+	errorCounts   map[string]int64   // endpoint -> error count
+	startTime     time.Time
+	maxLatencies  int
 }
 
 // NewMetricsService creates a new metrics service

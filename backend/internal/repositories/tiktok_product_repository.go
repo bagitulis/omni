@@ -58,7 +58,7 @@ func (r *TiktokProductRepository) Search(ctx context.Context, query string, page
 	var total int64
 
 	searchQuery := "%" + query + "%"
-	
+
 	r.db.Model(&models.TiktokProduct{}).
 		Where("name ILIKE ? OR description ILIKE ? OR product_id ILIKE ?", searchQuery, searchQuery, searchQuery).
 		Count(&total)

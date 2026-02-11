@@ -23,10 +23,10 @@ type SKUStatus struct {
 
 // PlatformSKUStatus represents SKU status across platforms
 type PlatformSKUStatus struct {
-	SKU     string               `json:"sku"`
-	Shopee  *SKUStatus           `json:"shopee,omitempty"`
-	Lazada  *SKUStatus           `json:"lazada,omitempty"`
-	Tiktok  *SKUStatus           `json:"tiktok,omitempty"`
+	SKU    string     `json:"sku"`
+	Shopee *SKUStatus `json:"shopee,omitempty"`
+	Lazada *SKUStatus `json:"lazada,omitempty"`
+	Tiktok *SKUStatus `json:"tiktok,omitempty"`
 }
 
 // CheckService handles SKU checking operations
@@ -89,7 +89,7 @@ func (s *CheckService) CheckBatch(ctx context.Context, skus []string, apis map[s
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			
+
 			// Placeholder for parallel execution
 			_ = idx
 			_ = s

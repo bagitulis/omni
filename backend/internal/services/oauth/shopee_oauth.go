@@ -109,7 +109,7 @@ func (s *ShopeeOAuthService) BuildRefreshTokenRequest(refreshToken string, shopI
 	params.Add("partner_id", strconv.FormatInt(s.config.PartnerID, 10))
 	params.Add("timestamp", strconv.FormatInt(timestamp, 10))
 	params.Add("sign", sign)
-	
+
 	fullURL := fmt.Sprintf("%s%s?%s", s.GetBaseURL(), path, params.Encode())
 
 	// Build POST body

@@ -29,13 +29,13 @@ type AccountQuota struct {
 
 // QuotaStatus represents overall quota status
 type QuotaStatus struct {
-	TotalRequests   int64           `json:"total_requests"`
-	DailyLimit      int64           `json:"daily_limit"`
-	UsagePercent    float64         `json:"usage_percent"`
-	ActiveAccount   string          `json:"active_account"`
-	AccountsCount   int             `json:"accounts_count"`
-	ResetTime       time.Time       `json:"reset_time"`
-	Accounts        []*AccountQuota `json:"accounts"`
+	TotalRequests int64           `json:"total_requests"`
+	DailyLimit    int64           `json:"daily_limit"`
+	UsagePercent  float64         `json:"usage_percent"`
+	ActiveAccount string          `json:"active_account"`
+	AccountsCount int             `json:"accounts_count"`
+	ResetTime     time.Time       `json:"reset_time"`
+	Accounts      []*AccountQuota `json:"accounts"`
 }
 
 // QuotaDetailedStats represents detailed quota statistics

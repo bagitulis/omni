@@ -7,9 +7,9 @@ import (
 
 // SKUCache provides thread-safe caching for SKU status
 type SKUCache struct {
-	mu     sync.RWMutex
-	data   map[string]*cacheEntry
-	ttl    time.Duration
+	mu   sync.RWMutex
+	data map[string]*cacheEntry
+	ttl  time.Duration
 }
 
 type cacheEntry struct {
@@ -23,10 +23,10 @@ func NewSKUCache() *SKUCache {
 		data: make(map[string]*cacheEntry),
 		ttl:  5 * time.Minute,
 	}
-	
+
 	// Start cleanup goroutine
 	go cache.cleanup()
-	
+
 	return cache
 }
 

@@ -90,7 +90,7 @@ func (m *BaseConfigManager) IsTokenExpired() bool {
 	if expiry == 0 {
 		return true // No expiry set, consider expired
 	}
-	
+
 	// Token expires if current time + 5 minute buffer >= expiry time
 	now := time.Now().UnixMilli()
 	buffer := int64(5 * 60 * 1000) // 5 minutes in milliseconds
@@ -127,7 +127,7 @@ func (m *BaseConfigManager) EnsureValidToken(ctx context.Context) error {
 	m.mu.Unlock()
 
 	m.logger.WithTenantID(m.tenantID).Info("Token refreshed successfully")
-	
+
 	// Reload config from DB to get updated expiry
 	return m.LoadConfigFromDB(ctx)
 }
@@ -196,7 +196,7 @@ func (m *BaseConfigManager) LoadConfigFromDB(ctx context.Context) error {
 	m.mu.Lock()
 	for _, cfg := range configs {
 		value := cfg.ConfigValue
-		
+
 		// Decrypt if encrypted and encryption service is available
 		if cfg.IsEncrypted && encryptionSvc != nil {
 			decrypted, err := encryptionSvc.Decrypt(cfg.ConfigValue)
@@ -206,7 +206,7 @@ func (m *BaseConfigManager) LoadConfigFromDB(ctx context.Context) error {
 				m.logger.WithTenantID(m.tenantID).Warn("Failed to decrypt " + cfg.ConfigKey + ": " + err.Error())
 			}
 		}
-		
+
 		m.configs[cfg.ConfigKey] = value
 		if cfg.ConfigKey == "accessToken" {
 			m.accessToken = value

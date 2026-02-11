@@ -18,12 +18,12 @@ import (
 
 // TenantPlatformConfig matches the database table structure
 type TenantPlatformConfig struct {
-	ID          string    `gorm:"primaryKey"`
-	Platform    string    `gorm:"index;not null"`
-	ConfigKey   string    `gorm:"not null"`
-	ConfigValue string    `gorm:"not null"`
-	DataType    string    `gorm:"default:string"`
-	IsEncrypted bool      `gorm:"default:true"`
+	ID          string `gorm:"primaryKey"`
+	Platform    string `gorm:"index;not null"`
+	ConfigKey   string `gorm:"not null"`
+	ConfigValue string `gorm:"not null"`
+	DataType    string `gorm:"default:string"`
+	IsEncrypted bool   `gorm:"default:true"`
 	Metadata    *string
 	CreatedAt   time.Time `gorm:"autoCreateTime"`
 	UpdatedAt   time.Time `gorm:"autoUpdateTime"`
@@ -100,7 +100,7 @@ func main() {
 				maxReasonable := now.Add(10 * 365 * 24 * time.Hour)
 				if currentDate.After(maxReasonable) {
 					fmt.Printf("    ⚠️  UNREASONABLE! Date is more than 10 years in the future\n")
-					
+
 					// Calculate new reasonable value
 					var newExpiryMs int64
 					if cfg.ConfigKey == "tokenExpiry" {

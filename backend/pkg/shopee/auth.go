@@ -9,12 +9,12 @@ import (
 
 // TokenResponse represents Shopee OAuth token response
 type TokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpireIn     int64  `json:"expire_in"`
+	AccessToken  string  `json:"access_token"`
+	RefreshToken string  `json:"refresh_token"`
+	ExpireIn     int64   `json:"expire_in"`
 	ShopIDList   []int64 `json:"shop_id_list"`
-	Error        string `json:"error"`
-	Message      string `json:"message"`
+	Error        string  `json:"error"`
+	Message      string  `json:"message"`
 }
 
 // GetAccessToken exchanges auth code for access token

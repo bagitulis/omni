@@ -15,12 +15,12 @@ import (
 // TenantPlatformConfig represents key-value config in tenant database
 // Matches Node.js Prisma schema for PlatformConfig table
 type TenantPlatformConfig struct {
-	ID          string    `gorm:"primaryKey"`
-	Platform    string    `gorm:"index;not null"`
-	ConfigKey   string    `gorm:"not null"`
-	ConfigValue string    `gorm:"not null"`
-	DataType    string    `gorm:"default:string"`
-	IsEncrypted bool      `gorm:"default:true"`
+	ID          string `gorm:"primaryKey"`
+	Platform    string `gorm:"index;not null"`
+	ConfigKey   string `gorm:"not null"`
+	ConfigValue string `gorm:"not null"`
+	DataType    string `gorm:"default:string"`
+	IsEncrypted bool   `gorm:"default:true"`
 	Metadata    *string
 	CreatedAt   time.Time `gorm:"autoCreateTime"`
 	UpdatedAt   time.Time `gorm:"autoUpdateTime"`
@@ -136,14 +136,14 @@ func (r *TenantPlatformConfigRepository) GetAllConfigByPlatform(ctx context.Cont
 
 // TenantTokenInfo represents token information from tenant database
 type TenantTokenInfo struct {
-	Platform            string
-	ShopID              int64
-	AccessToken         string
-	RefreshToken        string
-	TokenExpiry         int64  // milliseconds since epoch
-	RefreshTokenExpiry  int64  // milliseconds since epoch
-	ShopCipherOfSeller  string // TikTok cipher
-	Region              string // Lazada region
+	Platform           string
+	ShopID             int64
+	AccessToken        string
+	RefreshToken       string
+	TokenExpiry        int64  // milliseconds since epoch
+	RefreshTokenExpiry int64  // milliseconds since epoch
+	ShopCipherOfSeller string // TikTok cipher
+	Region             string // Lazada region
 }
 
 // GetTokenInfo retrieves all token-related config for a platform
