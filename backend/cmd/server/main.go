@@ -211,7 +211,6 @@ func main() {
 	l.GET("/db/products/master", lDBProd.GetMasterProducts)
 
 	// TikTok
-	tSearch := tiktok.NewProductSearchHandler(cfg.DatabasePath)
 	t := protected.Group("/tiktok")
 	t.GET("/orders", tOrder.GetOrders)
 	t.GET("/orders/:orderId", tOrder.GetOrderByID)
@@ -222,7 +221,6 @@ func main() {
 	t.POST("/products", tProd.CreateProduct)
 	t.PUT("/products/:productId", tProd.UpdateProduct)
 	t.DELETE("/products/:productId", tProd.DeleteProduct)
-	t.POST("/products/search", tSearch.SearchProducts) // Sync from TikTok API
 	t.POST("/sync/orders", tSync.SyncOrders)
 	t.POST("/sync/products", tSync.SyncProducts)
 	t.GET("/db/products", tDBProd.GetDBProducts)
@@ -243,6 +241,19 @@ func main() {
 
 	// Note: Analytics routes are registered via routes.RegisterShopeeAnalyticsRoutes,
 	// routes.RegisterTiktokAnalyticsRoutes, and routes.RegisterAdsRoutes above.
+
+	// ====== Extended Platform Routes ======
+	// Lazada Product Extended routes (db products, categories, attributes)
+	routes.RegisterLazadaProductExtendedRoutes(api, cfg.DatabasePath)
+
+	// TikTok Product Extended routes (search, draft, db, categories, compliance, image)
+	routes.RegisterTiktokProductExtendedRoutes(api, cfg.DatabasePath)
+
+	// Product Metadata routes (Shopee/Lazada/TikTok categories, attributes, brands for product creation)
+	routes.RegisterProductMetadataRoutes(api, cfg.DatabasePath)
+
+	// Webhook Extended routes (tenant-specific webhooks, test, config)
+	routes.RegisterWebhookExtendedRoutes(api, application.ShopeeProcessor, application.LazadaProcessor, application.TiktokProcessor, cfg.DatabasePath)
 
 	port := cfg.Port
 	if port == "" {
