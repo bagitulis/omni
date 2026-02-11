@@ -75,6 +75,10 @@ export default function App() {
                   />
                   <Route path="/order-manager" element={<OrdersPage />} />
                   <Route
+                    path="/order-manager/:platform"
+                    element={<OrdersPage />}
+                  />
+                  <Route
                     path="/orders"
                     element={<Navigate to="/order-manager" replace />}
                   />

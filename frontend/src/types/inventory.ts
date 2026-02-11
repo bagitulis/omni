@@ -62,3 +62,10 @@ export interface BatchCheckResult {
   local_price?: number;
   message?: string;
 }
+
+export interface SkuCheckResult {
+  sku: string;
+  shopee: boolean;
+  lazada: boolean;
+  tiktok: boolean;
+}

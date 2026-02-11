@@ -1,4 +1,4 @@
-import { Flex, Card } from "antd";
+import { Flex, Card, Tabs } from "antd";
 import { OrderTable } from "@/components/tables/OrderTable";
 import { OrderHeader } from "@/components/orders/OrderHeader";
 import { OrdersBulkActionsBar } from "./components/OrdersBulkActionsBar";
@@ -21,11 +21,25 @@ export default function OrdersPage() {
           loading={state.isLoading}
         />
 
+        {/* Platform Tabs */}
+        <Tabs
+          activeKey={state.platform}
+          onChange={handlers.handlePlatformChange}
+          items={[
+            { key: "all", label: "All Platforms" },
+            { key: "shopee", label: "Shopee" },
+            { key: "lazada", label: "Lazada" },
+            { key: "tiktok", label: "TikTok" },
+          ]}
+          style={{ marginBottom: -16, zIndex: 1 }}
+        />
+
         {/* Status Tabs */}
         <OrderStatusTabs
           activeTab={state.activeTab}
           onChange={handlers.handleTabChange}
           totalCount={state.data?.total || 0}
+          platform={state.platform}
         />
 
         {/* Filters */}

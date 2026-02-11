@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import { message } from "antd";
 import { useQueryClient } from "@tanstack/react-query";
 import { useOrders, useOrderActions } from "@/hooks/useOrders";
@@ -13,11 +13,15 @@ import { generateOrdersCSV, downloadCSV } from "../utils/csv";
 export function useOrdersLogic() {
   // State
   const [searchParams, setSearchParams] = useSearchParams();
+  const { platform: routePlatform } = useParams();
+  const navigate = useNavigate();
   const activeTab = searchParams.get("type") || "unpaid";
+  const platform = routePlatform || "all";
+
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
-  const [platform, setPlatform] = useState("all");
+  // platform state is now derived from URL
   const [dateRange, setDateRange] = useState<[string, string] | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<
@@ -89,7 +93,11 @@ export function useOrdersLogic() {
   };
 
   const handlePlatformChange = (value: string) => {
-    setPlatform(value);
+    if (value === "all") {
+      navigate("/order-manager");
+    } else {
+      navigate(`/order-manager/${value}`);
+    }
     setPage(1);
   };
 
