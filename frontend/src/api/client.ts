@@ -2,6 +2,13 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from "axios";
 import { message } from "antd";
 import { API_BASE_URL, API_TIMEOUT } from "@/lib/constants";
 import { useAuthStore } from "@/stores/authStore";
+import {
+  getPlatformOperationMapping,
+  mapSheetsOperation,
+  mapOrderExport,
+  isDirectOrderExport,
+  isDirectSheetsOperation,
+} from "./operationMappers";
 
 /**
  * API Response Type - matches backend response format
@@ -11,6 +18,25 @@ export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
   message?: string;
+}
+
+export interface ExecutionResponse {
+  success: boolean;
+  data?: any;
+  error?: string;
+  message?: string;
+}
+
+export interface ShippingFileResponse {
+  success: boolean;
+  data?: { files: string[] };
+  error?: string;
+}
+
+export interface ShippingProcessResponse {
+  success: boolean;
+  data?: { processed: number; errors: string[] };
+  error?: string;
 }
 
 /**
@@ -32,6 +58,14 @@ class ApiClient {
   }
 
   /**
+   * Get CSRF token from cookies
+   */
+  private getCSRFToken(): string | null {
+    const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  /**
    * Setup request and response interceptors
    */
   private setupInterceptors(): void {
@@ -44,8 +78,6 @@ class ApiClient {
         }
 
         // Skip auth for login/refresh/dev-login endpoints to avoid loops
-        // Auth endpoints (login, refresh, dev-login) do not need the bearer token
-        // and attempting to get it might trigger a refresh loop
         if (
           config.url?.includes("/auth/login") ||
           config.url?.includes("/auth/refresh") ||
@@ -55,7 +87,6 @@ class ApiClient {
         }
 
         // Get valid access token (handles auto-refresh)
-        // This is async because it might need to refresh the token
         const token = await useAuthStore.getState().getValidToken();
 
         if (token) {
@@ -66,6 +97,19 @@ class ApiClient {
         const tenantId = useAuthStore.getState().tenantId;
         if (tenantId) {
           config.headers["x-tenant-id"] = tenantId;
+        }
+
+        // Add CSRF token for mutating requests (POST, PUT, PATCH, DELETE)
+        if (
+          config.method &&
+          ["post", "put", "patch", "delete"].includes(
+            config.method.toLowerCase(),
+          )
+        ) {
+          const csrfToken = this.getCSRFToken();
+          if (csrfToken) {
+            config.headers["x-csrf-token"] = csrfToken;
+          }
         }
 
         return config;
@@ -91,15 +135,8 @@ class ApiClient {
 
   /**
    * Handle response errors
-   * - Timeout errors: log and reject
-   * - Network errors: suggest backend URL issue
-   * - 401 errors: clear auth and redirect to login
-   * - 403 errors: show permission denied toast
-   * - 500 errors: show error toast with backend message
-   * - Other errors: reject with error message
    */
   private handleResponseError(error: AxiosError): Promise<never> {
-    // Handle timeout
     if (error.code === "ECONNABORTED") {
       const timeoutMsg =
         "Request timeout - server is taking too long to respond";
@@ -107,7 +144,6 @@ class ApiClient {
       return Promise.reject(new Error(timeoutMsg));
     }
 
-    // Handle network errors (no response)
     if (!error.response) {
       const host = window.location.hostname;
       const isLocalhost = host === "localhost" || host === "127.0.0.1";
@@ -163,13 +199,9 @@ class ApiClient {
 
   /**
    * Handle expired/invalid JWT token
-   * Clears all auth-related state and redirects to login
    */
   private handleAuthExpired(): void {
-    // Clear all auth-related state
     useAuthStore.getState().clearAuth();
-
-    // Redirect to login page with return URL
     const currentPath = window.location.pathname;
     const returnUrl =
       currentPath !== "/"
@@ -178,9 +210,6 @@ class ApiClient {
     window.location.href = `/login${returnUrl}`;
   }
 
-  /**
-   * GET request
-   */
   async get<T = any>(
     url: string,
     config: AxiosRequestConfig = {},
@@ -192,9 +221,6 @@ class ApiClient {
     return response.data;
   }
 
-  /**
-   * POST request
-   */
   async post<T = any>(
     url: string,
     data?: unknown,
@@ -207,9 +233,6 @@ class ApiClient {
     return response.data;
   }
 
-  /**
-   * PUT request
-   */
   async put<T = any>(
     url: string,
     data?: unknown,
@@ -222,9 +245,6 @@ class ApiClient {
     return response.data;
   }
 
-  /**
-   * PATCH request
-   */
   async patch<T = any>(
     url: string,
     data?: unknown,
@@ -237,9 +257,6 @@ class ApiClient {
     return response.data;
   }
 
-  /**
-   * DELETE request
-   */
   async delete<T = any>(
     url: string,
     config: AxiosRequestConfig = {},
@@ -251,16 +268,114 @@ class ApiClient {
     return response.data;
   }
 
-  /**
-   * Health check endpoint
-   */
   async healthCheck(): Promise<ApiResponse<any>> {
     return this.get("/health", { timeout: API_TIMEOUT.HEALTH });
   }
+
+  // --- NEW OPERATION METHODS ---
+
+  async executeOperation(
+    operation: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    params: Record<string, any> = {},
+  ): Promise<ExecutionResponse> {
+    try {
+      const mapping = getPlatformOperationMapping(operation, params);
+
+      if (mapping) {
+        const response = await this.client.post<ExecutionResponse>(
+          mapping.endpoint,
+          params,
+          { timeout: API_TIMEOUT.LONG },
+        );
+        return response.data;
+      }
+
+      const response = await this.client.post<ExecutionResponse>(
+        "/execute",
+        { operation, params },
+        { timeout: API_TIMEOUT.LONG },
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`[API] Operation ${operation} failed:`, error);
+      throw error;
+    }
+  }
+
+  async executeSheetsOperation(
+    operation: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    params: Record<string, any> = {},
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): Promise<any> {
+    try {
+      const endpoint = mapSheetsOperation(operation);
+      const body = isDirectSheetsOperation(operation)
+        ? params
+        : { operation, params };
+
+      const response = await this.client.post<any>(endpoint, body, {
+        timeout: API_TIMEOUT.LONG,
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`[API] Sheets operation ${operation} failed:`, error);
+      throw error;
+    }
+  }
+
+  async exportOrders(
+    platform: string,
+    orderType: string,
+    days: number = 7,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): Promise<any> {
+    try {
+      const endpoint = mapOrderExport(platform, orderType);
+      const body = isDirectOrderExport(platform, orderType)
+        ? { days }
+        : { platform, order_type: orderType, days };
+
+      const response = await this.client.post<any>(endpoint, body, {
+        timeout: API_TIMEOUT.LONG,
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`[API] Export orders ${platform} failed:`, error);
+      throw error;
+    }
+  }
+
+  async getShippingFiles(): Promise<ShippingFileResponse> {
+    try {
+      const response = await this.client.get<ShippingFileResponse>(
+        "/shipping/files",
+        { timeout: API_TIMEOUT.SHORT },
+      );
+      return response.data;
+    } catch (error) {
+      console.error("[API] Get shipping files failed:", error);
+      throw error;
+    }
+  }
+
+  async processShippingFile(
+    filename: string,
+  ): Promise<ShippingProcessResponse> {
+    try {
+      const response = await this.client.post<ShippingProcessResponse>(
+        "/shipping/process-file",
+        { filename },
+        { timeout: API_TIMEOUT.DEFAULT },
+      );
+      return response.data;
+    } catch (error) {
+      console.error("[API] Process shipping file failed:", error);
+      throw error;
+    }
+  }
 }
 
-// Export singleton instance
 export const apiClient = new ApiClient();
-
-// Export for convenience in components
 export default apiClient;
