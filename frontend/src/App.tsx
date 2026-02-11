@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { ConfigProvider } from "antd";
+import { ConfigProvider, App as AntApp } from "antd";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/api/queryClient";
+import apiClient from "@/api/client";
 import { antdTheme, antdDarkTheme } from "./styles/theme";
 import { AppLayout } from "./components/layout";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useAuthStore } from "@/stores/authStore";
 import LoginPage from "./pages/auth/LoginPage";
 import { DashboardPage } from "./pages/dashboard/DashboardPage";
@@ -41,83 +43,112 @@ export default function App() {
     initializeAuth();
   }, [initializeAuth]);
 
+  useEffect(() => {
+    // Fetch CSRF token on mount - sets cookie for API interceptor
+    apiClient.get("/csrf-token").catch(() => {
+      // Silent fail - CSRF will be retried on next mutation
+      console.debug(
+        "[App] CSRF token fetch failed - will retry on next request",
+      );
+    });
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ConfigProvider theme={isDark ? antdDarkTheme : antdTheme}>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/dashboard" element={<Navigate to="/" replace />} />
-              <Route path="/order-manager" element={<OrdersPage />} />
-              <Route
-                path="/orders"
-                element={<Navigate to="/order-manager" replace />}
-              />
-              <Route path="/master-products" element={<ProductListPage />} />
-              <Route
-                path="/products"
-                element={<Navigate to="/master-products" replace />}
-              />
-              <Route path="/master-products/add" element={<ProductAddPage />} />
-              <Route
-                path="/master-products/import"
-                element={<ProductImportPage />}
-              />
-              <Route
-                path="/master-products/:id"
-                element={<ProductEditPage />}
-              />
-              <Route path="/product-manager" element={<ProductManagerPage />} />
-              <Route
-                path="/product-manager/:platform"
-                element={<ProductManagerPage />}
-              />
-              <Route path="/route-mapping" element={<RouteMappingPage />} />
-              <Route path="/inventory" element={<InventoryPage />} />
-              <Route path="/analytics" element={<AnalyticsHubPage />} />
-              <Route
-                path="/analytics/shopee"
-                element={<ShopeeAnalyticsPage />}
-              />
-              <Route
-                path="/analytics/tiktok"
-                element={<TiktokAnalyticsPage />}
-              />
-              <Route
-                path="/analytics/shopee-ads"
-                element={<ShopeeAdsAnalyticsPage />}
-              />
-              <Route
-                path="/analytics/tiktok-ads"
-                element={<TiktokAdsAnalyticsPage />}
-              />
-              <Route path="/analytics/ml" element={<MLDashboardPage />} />
-              <Route
-                path="/analytics/budget-simulator"
-                element={<BudgetSimulatorPage />}
-              />
-              <Route
-                path="/analytics/product-classification"
-                element={<ProductClassificationPage />}
-              />
-              <Route
-                path="/analytics/ai-reports"
-                element={<AIReportGalleryPage />}
-              />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/script-monitor" element={<ScriptMonitorPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
+        <AntApp>
+          <ErrorBoundary>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route path="/" element={<DashboardPage />} />
+                  <Route
+                    path="/dashboard"
+                    element={<Navigate to="/" replace />}
+                  />
+                  <Route path="/order-manager" element={<OrdersPage />} />
+                  <Route
+                    path="/orders"
+                    element={<Navigate to="/order-manager" replace />}
+                  />
+                  <Route
+                    path="/master-products"
+                    element={<ProductListPage />}
+                  />
+                  <Route
+                    path="/products"
+                    element={<Navigate to="/master-products" replace />}
+                  />
+                  <Route
+                    path="/master-products/add"
+                    element={<ProductAddPage />}
+                  />
+                  <Route
+                    path="/master-products/import"
+                    element={<ProductImportPage />}
+                  />
+                  <Route
+                    path="/master-products/:id"
+                    element={<ProductEditPage />}
+                  />
+                  <Route
+                    path="/product-manager"
+                    element={<ProductManagerPage />}
+                  />
+                  <Route
+                    path="/product-manager/:platform"
+                    element={<ProductManagerPage />}
+                  />
+                  <Route path="/route-mapping" element={<RouteMappingPage />} />
+                  <Route path="/inventory" element={<InventoryPage />} />
+                  <Route path="/analytics" element={<AnalyticsHubPage />} />
+                  <Route
+                    path="/analytics/shopee"
+                    element={<ShopeeAnalyticsPage />}
+                  />
+                  <Route
+                    path="/analytics/tiktok"
+                    element={<TiktokAnalyticsPage />}
+                  />
+                  <Route
+                    path="/analytics/shopee-ads"
+                    element={<ShopeeAdsAnalyticsPage />}
+                  />
+                  <Route
+                    path="/analytics/tiktok-ads"
+                    element={<TiktokAdsAnalyticsPage />}
+                  />
+                  <Route path="/analytics/ml" element={<MLDashboardPage />} />
+                  <Route
+                    path="/analytics/budget-simulator"
+                    element={<BudgetSimulatorPage />}
+                  />
+                  <Route
+                    path="/analytics/product-classification"
+                    element={<ProductClassificationPage />}
+                  />
+                  <Route
+                    path="/analytics/ai-reports"
+                    element={<AIReportGalleryPage />}
+                  />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route
+                    path="/script-monitor"
+                    element={<ScriptMonitorPage />}
+                  />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Route>
+              </Routes>
+            </BrowserRouter>
+          </ErrorBoundary>
+        </AntApp>
       </ConfigProvider>
     </QueryClientProvider>
   );

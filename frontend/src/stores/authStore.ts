@@ -183,7 +183,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           }
           return true;
         }
-      } catch (e) {
+      } catch {
         sessionStorage.removeItem(STORAGE_KEYS.AUTH_USER);
       }
     }

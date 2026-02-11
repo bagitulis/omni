@@ -86,13 +86,13 @@
         "atlas": { "model": "github-copilot/claude-opus-4.6" },
         "hephaestus": {
           "model": "openai/gpt-5.3-codex",
-          "reasoningEffort": "high",
+          "reasoningEffort": "medium",
           "temperature": 0.1
         },
         "sisyphus-junior": { "model": "github-copilot/claude-sonnet-4.5" },
         "oracle": {
           "model": "openai/gpt-5.3-codex",
-          "reasoningEffort": "high",
+          "reasoningEffort": "medium",
           "temperature": 0.1
         },
         "librarian": {
@@ -102,16 +102,15 @@
         },
         "explore": { "model": "github-copilot/claude-haiku-4.5" },
         "multimodal-looker": {
-          "model": "openai/gpt-5.3-codex",
-          "reasoningEffort": "medium"
-        },
-        "metis": {
-          "model": "google/gemini-3-pro",
-          "variant": "high",
+          "model": "google/gemini-3-flash",
           "temperature": 0.1
         },
+        "metis": {
+          "model": "google/claude-opus-4-6-thinking",
+          "variant": "max"
+        },
         "momus": {
-          "model": "openai/gpt-5.3-codex",
+          "model": "openai/gpt-5.2",
           "reasoningEffort": "high",
           "temperature": 0.1
         },
@@ -133,117 +132,13 @@
           "variant": "high",
           "temperature": 0.1
         },
-        "quick": { "model": "github-copilot/claude-haiku-4.5" },
-        "deep": {
-          "model": "google/gemini-3-pro",
-          "variant": "high",
-          "temperature": 0.1
-        },
-        "ultrabrain": {
-          "model": "openai/gpt-5.3-codex",
-          "reasoningEffort": "high",
-          "temperature": 0.1
-        },
-        "artistry": {
-          "model": "google/gemini-3-pro",
-          "variant": "high",
-          "temperature": 0.1
-        },
-        "writing": { "model": "google/gemini-3-flash", "temperature": 0.1 },
-        "review": {
-          "model": "google/gemini-3-pro",
-          "variant": "high",
-          "temperature": 0.1
-        },
-        "testing": {
-          "model": "google/gemini-3-pro",
-          "variant": "high",
-          "temperature": 0.1
-        },
-        "security": { "model": "github-copilot/claude-opus-4.6" },
-        "unspecified-low": { "model": "github-copilot/claude-haiku-4.5" },
-        "unspecified-high": { "model": "github-copilot/claude-opus-4.6" }
-      }
-    },
-
-    "mix-antigravity": {
-      "_description": "Google Antigravity primary + OpenAI secondary. All agents available. Supports proxy and plugin delivery.",
-      "default_model": "google/gemini-3-pro",
-      "variant": "high",
-
-      "agents": {
-        "sisyphus": {
-          "model": "google/claude-sonnet-4-6-thinking",
-          "variant": "max"
-        },
-        "prometheus": {
-          "model": "google/claude-sonnet-4-6-thinking",
-          "variant": "max"
-        },
-        "atlas": {
-          "model": "google/claude-sonnet-4-6-thinking",
-          "variant": "max"
-        },
-        "hephaestus": {
-          "model": "openai/gpt-5.3-codex",
-          "reasoningEffort": "high",
-          "temperature": 0.1
-        },
-        "sisyphus-junior": {
+        "quick": {
           "model": "google/claude-sonnet-4-5-thinking",
           "variant": "max"
         },
-        "oracle": {
-          "model": "openai/gpt-5.3-codex",
-          "reasoningEffort": "high",
-          "temperature": 0.1
-        },
-        "librarian": {
-          "model": "google/gemini-3-pro",
-          "variant": "high",
-          "temperature": 0.1
-        },
-        "explore": {
-          "model": "google/gemini-3-flash",
-          "variant": "high",
-          "temperature": 0.1
-        },
-        "multimodal-looker": {
-          "model": "openai/gpt-5.3-codex",
-          "reasoningEffort": "medium"
-        },
-        "metis": {
-          "model": "google/gemini-3-pro",
-          "variant": "high",
-          "temperature": 0.1
-        },
-        "momus": {
-          "model": "openai/gpt-5.3-codex",
-          "reasoningEffort": "high",
-          "temperature": 0.1
-        },
-        "default": {
-          "model": "google/gemini-3-pro",
-          "variant": "high",
-          "temperature": 0.1
-        }
-      },
-
-      "categories": {
-        "visual-engineering": {
-          "model": "google/gemini-3-pro",
-          "variant": "high",
-          "temperature": 0.1
-        },
-        "implementation": {
-          "model": "google/gemini-3-pro",
-          "variant": "high",
-          "temperature": 0.1
-        },
-        "quick": { "model": "google/gemini-3-flash", "temperature": 0.1 },
         "deep": {
-          "model": "google/gemini-3-pro",
-          "variant": "high",
+          "model": "openai/gpt-5.3-codex",
+          "reasoningEffort": "medium",
           "temperature": 0.1
         },
         "ultrabrain": {
@@ -268,12 +163,127 @@
           "temperature": 0.1
         },
         "security": {
-          "model": "google/claude-sonnet-4-6-thinking",
+          "model": "google/claude-opus-4-6-thinking",
+          "variant": "max"
+        },
+        "unspecified-low": { "model": "github-copilot/claude-haiku-4.5" },
+        "unspecified-high": {
+          "model": "google/claude-opus-4-6-thinking",
+          "variant": "max"
+        }
+      }
+    },
+
+    "mix-antigravity": {
+      "_description": "Google Antigravity primary + OpenAI secondary. All agents available. Supports proxy and plugin delivery.",
+      "default_model": "google/gemini-3-pro",
+      "variant": "high",
+
+      "agents": {
+        "sisyphus": {
+          "model": "google/claude-opus-4-6-thinking",
+          "variant": "max"
+        },
+        "prometheus": {
+          "model": "google/claude-opus-4-6-thinking",
+          "variant": "max"
+        },
+        "atlas": {
+          "model": "google/claude-opus-4-6-thinking",
+          "variant": "max"
+        },
+        "hephaestus": {
+          "model": "openai/gpt-5.3-codex",
+          "reasoningEffort": "medium",
+          "temperature": 0.1
+        },
+        "sisyphus-junior": {
+          "model": "google/claude-sonnet-4-5-thinking",
+          "variant": "max"
+        },
+        "oracle": {
+          "model": "openai/gpt-5.3-codex",
+          "reasoningEffort": "medium",
+          "temperature": 0.1
+        },
+        "librarian": {
+          "model": "google/gemini-3-pro",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "explore": {
+          "model": "google/gemini-3-flash",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "multimodal-looker": {
+          "model": "google/gemini-3-flash",
+          "temperature": 0.1
+        },
+        "metis": {
+          "model": "google/claude-opus-4-6-thinking",
+          "variant": "max"
+        },
+        "momus": {
+          "model": "openai/gpt-5.2",
+          "reasoningEffort": "high",
+          "temperature": 0.1
+        },
+        "default": {
+          "model": "google/gemini-3-pro",
+          "variant": "high",
+          "temperature": 0.1
+        }
+      },
+
+      "categories": {
+        "visual-engineering": {
+          "model": "google/gemini-3-pro",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "implementation": {
+          "model": "google/gemini-3-pro",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "quick": {
+          "model": "google/claude-sonnet-4-5-thinking",
+          "variant": "max"
+        },
+        "deep": {
+          "model": "openai/gpt-5.3-codex",
+          "reasoningEffort": "medium",
+          "temperature": 0.1
+        },
+        "ultrabrain": {
+          "model": "openai/gpt-5.3-codex",
+          "reasoningEffort": "high",
+          "temperature": 0.1
+        },
+        "artistry": {
+          "model": "google/gemini-3-pro",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "writing": { "model": "google/gemini-3-flash", "temperature": 0.1 },
+        "review": {
+          "model": "google/gemini-3-pro",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "testing": {
+          "model": "google/gemini-3-pro",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "security": {
+          "model": "google/claude-opus-4-6-thinking",
           "variant": "max"
         },
         "unspecified-low": { "model": "google/gemini-3-flash" },
         "unspecified-high": {
-          "model": "google/claude-sonnet-4-6-thinking",
+          "model": "google/claude-opus-4-6-thinking",
           "variant": "max"
         }
       }
