@@ -78,12 +78,12 @@
   "profiles": {
     "mix-copilot": {
       "_description": "GitHub Copilot primary + Google/OpenAI secondary. All agents available.",
-      "default_model": "github-copilot/claude-opus-4.5",
+      "default_model": "github-copilot/claude-opus-4.6",
 
       "agents": {
-        "sisyphus": { "model": "github-copilot/claude-opus-4.5" },
-        "prometheus": { "model": "github-copilot/claude-opus-4.5" },
-        "atlas": { "model": "github-copilot/claude-opus-4.5" },
+        "sisyphus": { "model": "github-copilot/claude-opus-4.6" },
+        "prometheus": { "model": "github-copilot/claude-opus-4.6" },
+        "atlas": { "model": "github-copilot/claude-opus-4.6" },
         "hephaestus": {
           "model": "openai/gpt-5.3-codex",
           "reasoningEffort": "high",
@@ -91,7 +91,7 @@
         },
         "sisyphus-junior": { "model": "github-copilot/claude-sonnet-4.5" },
         "oracle": {
-          "model": "openai/gpt-5.3",
+          "model": "openai/gpt-5.3-codex",
           "reasoningEffort": "high",
           "temperature": 0.1
         },
@@ -102,7 +102,7 @@
         },
         "explore": { "model": "github-copilot/claude-haiku-4.5" },
         "multimodal-looker": {
-          "model": "openai/gpt-5.3",
+          "model": "openai/gpt-5.3-codex",
           "reasoningEffort": "medium"
         },
         "metis": {
@@ -160,9 +160,9 @@
           "variant": "high",
           "temperature": 0.1
         },
-        "security": { "model": "github-copilot/claude-opus-4.5" },
+        "security": { "model": "github-copilot/claude-opus-4.6" },
         "unspecified-low": { "model": "github-copilot/claude-haiku-4.5" },
-        "unspecified-high": { "model": "github-copilot/claude-opus-4.5" }
+        "unspecified-high": { "model": "github-copilot/claude-opus-4.6" }
       }
     },
 
@@ -173,15 +173,15 @@
 
       "agents": {
         "sisyphus": {
-          "model": "google/claude-opus-4-5-thinking",
+          "model": "google/claude-sonnet-4-6-thinking",
           "variant": "max"
         },
         "prometheus": {
-          "model": "google/claude-opus-4-5-thinking",
+          "model": "google/claude-sonnet-4-6-thinking",
           "variant": "max"
         },
         "atlas": {
-          "model": "google/claude-opus-4-5-thinking",
+          "model": "google/claude-sonnet-4-6-thinking",
           "variant": "max"
         },
         "hephaestus": {
@@ -194,7 +194,7 @@
           "variant": "max"
         },
         "oracle": {
-          "model": "openai/gpt-5.3",
+          "model": "openai/gpt-5.3-codex",
           "reasoningEffort": "high",
           "temperature": 0.1
         },
@@ -209,7 +209,7 @@
           "temperature": 0.1
         },
         "multimodal-looker": {
-          "model": "openai/gpt-5.3",
+          "model": "openai/gpt-5.3-codex",
           "reasoningEffort": "medium"
         },
         "metis": {
@@ -268,12 +268,12 @@
           "temperature": 0.1
         },
         "security": {
-          "model": "google/claude-opus-4-5-thinking",
+          "model": "google/claude-sonnet-4-6-thinking",
           "variant": "max"
         },
         "unspecified-low": { "model": "google/gemini-3-flash" },
         "unspecified-high": {
-          "model": "google/claude-opus-4-5-thinking",
+          "model": "google/claude-sonnet-4-6-thinking",
           "variant": "max"
         }
       }
