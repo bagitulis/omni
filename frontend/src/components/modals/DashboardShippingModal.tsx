@@ -9,6 +9,9 @@ import {
   Result,
   Alert,
   Spin,
+  Row,
+  Col,
+  Flex,
 } from "antd";
 import {
   CloudDownloadOutlined,
@@ -63,13 +66,11 @@ export function DashboardShippingModal({
   const handleOptionSelect = (option: "wallet" | "file") => {
     setSelectedOption(option);
     if (option === "file") {
-      setCurrentStep(1); // Go to Load Files
+      setCurrentStep(1);
       refetchFiles();
     } else {
-      // Wallet option - trigger export immediately or go to a confirmation step?
-      // Requirement says "Get from Wallet" (export shipping to sheets)
-      // Let's trigger it and show loading in a "Processing" step
-      setCurrentStep(2); // Skip to Process
+      // Wallet option: export shipping to sheets
+      setCurrentStep(2);
       handleExportToSheets();
     }
   };
@@ -79,13 +80,9 @@ export function DashboardShippingModal({
       {},
       {
         onSuccess: () => {
-          setCurrentStep(3); // Result
+          setCurrentStep(3);
         },
         onError: () => {
-          // Error handling is managed by the hook's onError/message, but we might want to show it in Result step too?
-          // Or stay in processing step with error?
-          // Let's stay in step 2 but show error? Or go to Result with error status?
-          // Going to Result with error status is cleaner.
           setCurrentStep(3);
         },
       },
@@ -116,31 +113,39 @@ export function DashboardShippingModal({
 
   // Step 0: Select Option Content
   const renderOptionSelection = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-8">
-      <Card
-        hoverable
-        className="text-center cursor-pointer border-sky-100 hover:border-sky-500 transition-colors"
-        onClick={() => handleOptionSelect("wallet")}
-      >
-        <CloudDownloadOutlined className="text-4xl text-sky-600 mb-4" />
-        <Title level={4}>Get from Wallet</Title>
-        <Text type="secondary">
-          Export shipping fees directly from platform wallet to Google Sheets
-        </Text>
-      </Card>
+    <Row gutter={16} style={{ paddingTop: 32, paddingBottom: 32 }}>
+      <Col span={12}>
+        <Card
+          hoverable
+          onClick={() => handleOptionSelect("wallet")}
+          style={{ textAlign: "center", cursor: "pointer" }}
+        >
+          <CloudDownloadOutlined
+            style={{ fontSize: 36, color: "#0369a1", marginBottom: 16 }}
+          />
+          <Title level={4}>Get from Wallet</Title>
+          <Text type="secondary">
+            Export shipping fees directly from platform wallet to Google Sheets
+          </Text>
+        </Card>
+      </Col>
 
-      <Card
-        hoverable
-        className="text-center cursor-pointer border-sky-100 hover:border-sky-500 transition-colors"
-        onClick={() => handleOptionSelect("file")}
-      >
-        <FileTextOutlined className="text-4xl text-emerald-600 mb-4" />
-        <Title level={4}>Process Shipping File</Title>
-        <Text type="secondary">
-          Load and process downloaded shipping files from local storage
-        </Text>
-      </Card>
-    </div>
+      <Col span={12}>
+        <Card
+          hoverable
+          onClick={() => handleOptionSelect("file")}
+          style={{ textAlign: "center", cursor: "pointer" }}
+        >
+          <FileTextOutlined
+            style={{ fontSize: 36, color: "#16a34a", marginBottom: 16 }}
+          />
+          <Title level={4}>Process Shipping File</Title>
+          <Text type="secondary">
+            Load and process downloaded shipping files from local storage
+          </Text>
+        </Card>
+      </Col>
+    </Row>
   );
 
   // Step 1: Load Files Content
@@ -156,7 +161,7 @@ export function DashboardShippingModal({
         title: "Action",
         key: "action",
         width: 120,
-        render: (_: any, record: { name: string }) => (
+        render: (_: unknown, record: { name: string }) => (
           <Button
             type="primary"
             size="small"
@@ -173,9 +178,13 @@ export function DashboardShippingModal({
       filesData?.data?.files?.map((file) => ({ key: file, name: file })) || [];
 
     return (
-      <div className="py-4">
-        <div className="flex justify-between items-center mb-4">
-          <Title level={5} className="m-0">
+      <div style={{ paddingTop: 16, paddingBottom: 16 }}>
+        <Flex
+          justify="space-between"
+          align="center"
+          style={{ marginBottom: 16 }}
+        >
+          <Title level={5} style={{ margin: 0 }}>
             Available Files
           </Title>
           <Button
@@ -185,10 +194,12 @@ export function DashboardShippingModal({
           >
             Refresh
           </Button>
-        </div>
+        </Flex>
 
         {isLoadingFiles ? (
-          <div className="text-center py-8">
+          <div
+            style={{ textAlign: "center", paddingTop: 32, paddingBottom: 32 }}
+          >
             <Spin tip="Loading files..." />
           </div>
         ) : (
@@ -207,9 +218,9 @@ export function DashboardShippingModal({
 
   // Step 2: Processing Content
   const renderProcessing = () => (
-    <div className="text-center py-12">
+    <div style={{ textAlign: "center", paddingTop: 48, paddingBottom: 48 }}>
       <Spin size="large" />
-      <div className="mt-4">
+      <div style={{ marginTop: 16 }}>
         <Title level={4}>Processing...</Title>
         <Text type="secondary">
           {selectedOption === "wallet"
@@ -288,15 +299,22 @@ export function DashboardShippingModal({
         ]}
       >
         {hasProcessingErrors && (
-          <div className="text-left mt-4">
+          <div style={{ textAlign: "left", marginTop: 16 }}>
             <Alert
               message="Errors encountered"
               description={
-                <ul className="pl-4 mt-2 max-h-40 overflow-y-auto">
+                <ul
+                  style={{
+                    paddingLeft: 16,
+                    marginTop: 8,
+                    maxHeight: 160,
+                    overflowY: "auto",
+                  }}
+                >
                   {errorList.map((err, idx) => (
                     <li
                       key={`${idx}-${err.substring(0, 10)}`}
-                      className="text-xs"
+                      style={{ fontSize: 12 }}
                     >
                       {err}
                     </li>
@@ -332,10 +350,10 @@ export function DashboardShippingModal({
         current={currentStep}
         items={steps}
         size="small"
-        className="mb-6"
+        style={{ marginBottom: 24 }}
       />
 
-      <div className="min-h-[300px]">
+      <div style={{ minHeight: 300 }}>
         {currentStep === 0 && renderOptionSelection()}
         {currentStep === 1 && renderFileList()}
         {currentStep === 2 && renderProcessing()}
