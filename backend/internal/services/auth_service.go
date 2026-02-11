@@ -350,16 +350,19 @@ func (s *AuthService) GenerateTokenForSwitch(userID, tenantID, role string) (str
 
 // GenerateDevToken generates a token for dev-mode bypass login
 // SECURITY: Only called from DevLogin handler which checks localhost origin
-func (s *AuthService) GenerateDevToken(ctx context.Context, userID, username, email, tenantID, role string) (string, string, error) {
+// Returns: accessToken, refreshToken, actualUserID, error
+func (s *AuthService) GenerateDevToken(ctx context.Context, userID, username, email, tenantID, role string) (string, string, string, error) {
 	// Ensure dev user exists in DB so refresh token works
-	if err := s.ensureDevUserExists(ctx, userID, username, email, role); err != nil {
-		return "", "", err
+	// This returns the actual user ID (found or created)
+	actualUserID, err := s.ensureDevUserExists(ctx, userID, username, email, role)
+	if err != nil {
+		return "", "", "", err
 	}
 
-	// Generate access token
-	accessToken, err := s.jwtService.GenerateAccessToken(userID, tenantID, role)
+	// Generate access token using the ACTUAL user ID
+	accessToken, err := s.jwtService.GenerateAccessToken(actualUserID, tenantID, role)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	// Generate refresh token and session
@@ -367,12 +370,12 @@ func (s *AuthService) GenerateDevToken(ctx context.Context, userID, username, em
 	if s.refreshSessionRepo != nil {
 		refreshToken, err = s.jwtService.GenerateRefreshToken()
 		if err != nil {
-			return "", "", err
+			return "", "", "", err
 		}
 
-		// Create refresh session in database
+		// Create refresh session in database using ACTUAL user ID
 		session := &models.RefreshSession{
-			UserID:    userID,
+			UserID:    actualUserID,
 			TenantID:  tenantID,
 			TokenHash: repositories.HashToken(refreshToken),
 			ExpiresAt: time.Now().Add(utils.RefreshTokenTTL),
@@ -380,30 +383,31 @@ func (s *AuthService) GenerateDevToken(ctx context.Context, userID, username, em
 			UserAgent: "DevLogin",
 		}
 		if err := s.refreshSessionRepo.Create(ctx, session); err != nil {
-			return "", "", err
+			return "", "", "", err
 		}
 	}
 
-	return accessToken, refreshToken, nil
+	return accessToken, refreshToken, actualUserID, nil
 }
 
 // ensureDevUserExists ensures the dev user exists in the database
-func (s *AuthService) ensureDevUserExists(ctx context.Context, userID, username, email, role string) error {
+// Returns the actual user ID (either found by ID, found by email, or newly created)
+func (s *AuthService) ensureDevUserExists(ctx context.Context, userID, username, email, role string) (string, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if user != nil {
-		return nil // User already exists with this ID
+		return user.ID, nil // User already exists with this ID
 	}
 
 	// Check if user with this email already exists (from previous attempt)
 	userByEmail, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if userByEmail != nil {
-		return nil // User exists with this email, skip creation
+		return userByEmail.ID, nil // User exists with this email, return their ID
 	}
 
 	// Create dev user if not exists
@@ -422,5 +426,8 @@ func (s *AuthService) ensureDevUserExists(ctx context.Context, userID, username,
 
 	// We need to use a repository method that allows setting ID manually
 	// Most GORM create methods respect the ID if set
-	return s.userRepo.Create(ctx, newUser)
+	if err := s.userRepo.Create(ctx, newUser); err != nil {
+		return "", err
+	}
+	return userID, nil
 }

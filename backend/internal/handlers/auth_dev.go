@@ -102,13 +102,14 @@ func (h *AuthHandler) DevLogin(c *gin.Context) {
 
 	// BYPASS AUTH: Generate token directly with requested tenant
 	// No database lookup needed - hardcoded dev user info
-	devUserID := "dev-tester-00000000-0000-0000-0000-000000000001"
+	devUserID := "00000000-0000-0000-0000-000000000001"
 	devUsername := "tester"
 	devEmail := "tester@dev.local"
 	devRole := "developer"
 
 	// Generate JWT directly with the REQUESTED tenant_id via authService
-	accessToken, refreshToken, err := h.authService.GenerateDevToken(c.Request.Context(), devUserID, devUsername, devEmail, req.TenantID, devRole)
+	// GenerateDevToken will return the actual user ID (either found or created)
+	accessToken, refreshToken, actualUserID, err := h.authService.GenerateDevToken(c.Request.Context(), devUserID, devUsername, devEmail, req.TenantID, devRole)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -127,7 +128,7 @@ func (h *AuthHandler) DevLogin(c *gin.Context) {
 		"success": true,
 		"message": "Dev login successful",
 		"user": gin.H{
-			"id":       devUserID,
+			"id":       actualUserID,
 			"username": devUsername,
 			"email":    devEmail,
 			"role":     devRole,
