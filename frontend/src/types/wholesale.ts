@@ -150,3 +150,57 @@ export interface BatchWholesaleResetResult {
   data: BatchWholesaleResetData;
   message?: string;
 }
+
+// --- Inventory Module Wholesale/MPQ Types ---
+
+export interface InventoryWholesaleTier {
+  id?: string;
+  sku: string;
+  min_qty: number;
+  price: number;
+  discount_percent?: number;
+}
+
+export interface InventoryWholesaleInfo {
+  sku: string;
+  tiers: InventoryWholesaleTier[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface InventoryWholesaleSettings {
+  enabled: boolean;
+  default_tiers?: InventoryWholesaleTier[];
+  apply_to_all?: boolean;
+}
+
+export interface InventoryWholesaleBatchUpdateItem {
+  sku: string;
+  tiers: InventoryWholesaleTier[];
+}
+
+export interface InventoryWholesaleBatchResult {
+  total: number;
+  successful: number;
+  failed: number;
+  errors?: string[];
+}
+
+export interface InventoryMpqSettings {
+  sku: string;
+  min_purchase_qty: number;
+  enabled: boolean;
+}
+
+export interface InventoryMpqBatchItem {
+  sku: string;
+  min_purchase_qty: number;
+  enabled?: boolean;
+}
+
+export interface InventoryMpqBatchResult {
+  total: number;
+  successful: number;
+  failed: number;
+  errors?: string[];
+}
