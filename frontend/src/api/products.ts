@@ -2,7 +2,6 @@ import apiClient from "./client";
 import type {
   MasterProduct,
   ProductListResponse,
-  SingleProductResponse,
   ProductListFilter,
   CreateMasterProductInput,
   UpdateMasterProductInput,
@@ -23,51 +22,48 @@ export async function getProducts(
   if (params.platform && params.platform !== "all")
     cleanParams.platform = params.platform;
 
-  const response = await apiClient.get<ProductListResponse>(BASE_PATH, {
+  // Cast to any to handle the response shape correctly
+  // Backend returns { success, data: [...], meta: {...} } which IS ProductListResponse
+  const response = await apiClient.get<any>(BASE_PATH, {
     params: cleanParams,
   });
 
-  if (!response.success || !response.data) {
+  if (!response.success) {
     throw new Error(response.error || "Failed to fetch products");
   }
 
-  return response.data;
+  return response as ProductListResponse;
 }
 
 export async function getProductById(
   id: string | number,
 ): Promise<MasterProduct> {
-  const response = await apiClient.get<SingleProductResponse>(
-    `${BASE_PATH}/${id}`,
-  );
+  const response = await apiClient.get<any>(`${BASE_PATH}/${id}`);
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to fetch product");
   }
-  return response.data.data;
+  return response.data;
 }
 
 export async function createProduct(
   data: CreateMasterProductInput,
 ): Promise<MasterProduct> {
-  const response = await apiClient.post<SingleProductResponse>(BASE_PATH, data);
+  const response = await apiClient.post<any>(BASE_PATH, data);
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to create product");
   }
-  return response.data.data;
+  return response.data;
 }
 
 export async function updateProduct(
   id: string | number,
   data: UpdateMasterProductInput,
 ): Promise<MasterProduct> {
-  const response = await apiClient.put<SingleProductResponse>(
-    `${BASE_PATH}/${id}`,
-    data,
-  );
+  const response = await apiClient.put<any>(`${BASE_PATH}/${id}`, data);
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to update product");
   }
-  return response.data.data;
+  return response.data;
 }
 
 export async function deleteProduct(id: string | number): Promise<void> {
@@ -81,26 +77,21 @@ export async function syncProduct(
   id: string | number,
   platform?: string,
 ): Promise<{ skus_synced: number; platform: string }> {
-  const response = await apiClient.post<{
-    success: boolean;
-    data: { skus_synced: number; platform: string };
-  }>(`${BASE_PATH}/${id}/sync`, { target_platform: platform });
+  const response = await apiClient.post<any>(`${BASE_PATH}/${id}/sync`, {
+    target_platform: platform,
+  });
   if (!response.success || !response.data) {
     throw new Error("Failed to sync product");
   }
-  return response.data.data;
+  return response.data;
 }
 
 export async function importProducts(
   rows: ImportRow[],
 ): Promise<{ imported: number }> {
-  const response = await apiClient.post<{
-    success: boolean;
-    data: { imported: number };
-    error?: string;
-  }>(`${BASE_PATH}/import`, { rows });
+  const response = await apiClient.post<any>(`${BASE_PATH}/import`, { rows });
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to import products");
   }
-  return response.data.data;
+  return response.data;
 }
