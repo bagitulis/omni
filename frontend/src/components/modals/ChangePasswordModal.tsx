@@ -47,6 +47,7 @@ export function ChangePasswordModal({
       title="Change Password"
       open={open}
       onCancel={onClose}
+      destroyOnHidden
       footer={null}
       width={400}
     >

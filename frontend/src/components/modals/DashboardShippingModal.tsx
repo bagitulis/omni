@@ -342,9 +342,9 @@ export function DashboardShippingModal({
       title="Shipping Workflow"
       open={open}
       onCancel={handleClose}
+      destroyOnHidden
       footer={null}
       width={700}
-      destroyOnClose
     >
       <Steps
         current={currentStep}

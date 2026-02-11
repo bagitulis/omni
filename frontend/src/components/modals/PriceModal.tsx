@@ -264,6 +264,7 @@ export function PriceModal({ open, onCancel, selectedProducts }: Props) {
     <Modal
       open={open}
       onCancel={onCancel}
+      destroyOnHidden
       title="Update Prices"
       width={700}
       footer={[

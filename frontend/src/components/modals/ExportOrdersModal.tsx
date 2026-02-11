@@ -82,6 +82,7 @@ export const ExportOrdersModal: React.FC<ExportOrdersModalProps> = ({
       title="Export Orders"
       open={open}
       onCancel={handleClose}
+      destroyOnHidden
       footer={[
         <Button key="cancel" onClick={handleClose} disabled={isPending}>
           Cancel

@@ -148,6 +148,7 @@ export const TokenModal: React.FC<TokenModalProps> = ({ open, onClose }) => {
       title="Token Management"
       open={open}
       onCancel={onClose}
+      destroyOnHidden
       width={700}
       footer={[
         <Button

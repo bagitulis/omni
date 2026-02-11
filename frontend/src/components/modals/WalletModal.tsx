@@ -127,6 +127,7 @@ export function WalletModal({ open, onClose }: WalletModalProps) {
       title="Wallet"
       open={open}
       onCancel={onClose}
+      destroyOnHidden
       width={800}
       footer={
         <Space>
