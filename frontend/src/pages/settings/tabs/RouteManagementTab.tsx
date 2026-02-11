@@ -1,115 +1,212 @@
-import { Table, Card, Typography, theme } from "antd";
-import { StatCard } from "./StatCard";
-import { API_ROUTES } from "./routeData";
+import { useMemo, useState } from "react";
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  Dropdown,
+  Row,
+  Space,
+  Spin,
+  Statistic,
+  Table,
+  message,
+  theme,
+} from "antd";
+import type { MenuProps } from "antd";
+import {
+  useBulkUpdateRouteConfigs,
+  useRouteConfigs,
+  useUpdateRouteConfig,
+} from "@/hooks/useRouteConfig";
+import type { RouteConfig } from "@/types/routeConfig";
+import { RouteConfigModal } from "../components/RouteConfigModal";
+import {
+  ROUTE_PRESETS,
+  createRouteColumns,
+} from "../components/RouteManagementTableColumns";
 
-const { Text } = Typography;
 const { useToken } = theme;
-
-const METHOD_COLORS: Record<string, string> = {
-  GET: "#52c41a",
-  POST: "#1890ff",
-  PUT: "#faad14",
-  DELETE: "#f5222d",
-};
 
 export default function RouteManagementTab() {
   const { token } = useToken();
+  const [editingRoute, setEditingRoute] = useState<RouteConfig | null>(null);
 
-  const columns = [
-    {
-      title: "Route Path",
-      dataIndex: "route_path",
-      key: "route_path",
-      render: (t: string) => (
-        <Text code style={{ fontSize: 12 }}>
-          {t}
-        </Text>
-      ),
-    },
-    {
-      title: "Method",
-      dataIndex: "method",
-      key: "method",
-      width: 80,
-      render: (m: string) => (
-        <span
-          style={{
-            color: METHOD_COLORS[m] || "#666",
-            fontWeight: 600,
-            fontSize: 12,
-          }}
-        >
-          {m}
-        </span>
-      ),
-    },
-    {
-      title: "Description",
-      dataIndex: "description",
-      key: "description",
-      render: (t: string) => (
-        <Text type="secondary" style={{ fontSize: 12 }}>
-          {t}
-        </Text>
-      ),
-    },
-    {
-      title: "TTL (s)",
-      dataIndex: "cache_ttl",
-      key: "cache_ttl",
-      width: 80,
-      render: (t: number) => (
-        <Text style={{ fontSize: 12 }}>
-          {t > 0 ? t : <span style={{ color: "#999" }}>Off</span>}
-        </Text>
-      ),
-    },
+  const {
+    data: routes = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useRouteConfigs();
+  const updateRouteConfig = useUpdateRouteConfig();
+  const bulkUpdateRouteConfigs = useBulkUpdateRouteConfigs();
+
+  const isMutating =
+    updateRouteConfig.isPending || bulkUpdateRouteConfigs.isPending;
+
+  const stats = useMemo(
+    () => ({
+      total_routes: routes.length,
+      enabled_routes: routes.filter((route) => route.enabled).length,
+      cached_routes: routes.filter((route) => route.caching_enabled).length,
+      queued_routes: routes.filter((route) => route.queue_enabled).length,
+    }),
+    [routes],
+  );
+
+  const updateBooleanField = (
+    id: number,
+    field: "enabled" | "caching_enabled" | "queue_enabled",
+    value: boolean,
+  ) => {
+    updateRouteConfig.mutate({ id, data: { [field]: value } });
+  };
+
+  const applyBulkUpdate = (data: Partial<RouteConfig>) => {
+    if (routes.length === 0) {
+      message.warning("No route configs available");
+      return;
+    }
+
+    bulkUpdateRouteConfigs.mutate({
+      ids: routes.map((route) => route.id),
+      data,
+    });
+  };
+
+  const handlePresetSelect: MenuProps["onClick"] = ({ key }) => {
+    const preset = ROUTE_PRESETS[key];
+    if (!preset) {
+      return;
+    }
+    applyBulkUpdate(preset);
+  };
+
+  const presetMenuItems: MenuProps["items"] = [
+    { key: "api_heavy", label: "API-Heavy" },
+    { key: "cache_heavy", label: "Cache-Heavy" },
+    { key: "balanced", label: "Balanced" },
   ];
 
-  return (
-    <div>
-      <Card
-        title="API Route Reference"
-        size="small"
-        style={{ marginBottom: 16, borderRadius: token.borderRadius }}
+  const columns = createRouteColumns({
+    isMutating,
+    fontSizeSM: token.fontSizeSM,
+    fontWeightStrong: token.fontWeightStrong,
+    textSecondaryColor: token.colorTextSecondary,
+    onToggleBoolean: updateBooleanField,
+    onEdit: setEditingRoute,
+  });
+
+  if (isLoading) {
+    return (
+      <div
+        style={{
+          minHeight: 240,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <Text
-          type="secondary"
-          style={{ fontSize: 12, marginBottom: 16, display: "block" }}
-        >
-          Reference view of available API routes. Route configuration is managed
-          server-side.
-        </Text>
-        <Table
-          dataSource={API_ROUTES}
-          columns={columns}
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to load route configs";
+
+    return (
+      <Alert
+        type="error"
+        showIcon
+        message="Unable to load route configuration"
+        description={errorMessage}
+        action={
+          <Button size="small" onClick={() => refetch()}>
+            Retry
+          </Button>
+        }
+      />
+    );
+  }
+
+  return (
+    <Space direction="vertical" size={16} style={{ width: "100%" }}>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card size="small">
+            <Statistic title="Total Routes" value={stats.total_routes} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card size="small">
+            <Statistic title="Enabled Routes" value={stats.enabled_routes} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card size="small">
+            <Statistic title="Cached Routes" value={stats.cached_routes} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card size="small">
+            <Statistic title="Queued Routes" value={stats.queued_routes} />
+          </Card>
+        </Col>
+      </Row>
+
+      <Card
+        size="small"
+        title="Route Configuration"
+        extra={
+          <Space wrap>
+            <Button
+              onClick={() => applyBulkUpdate({ enabled: true })}
+              disabled={isMutating || routes.length === 0}
+            >
+              Enable All
+            </Button>
+            <Button
+              onClick={() => applyBulkUpdate({ enabled: false })}
+              disabled={isMutating || routes.length === 0}
+            >
+              Disable All
+            </Button>
+            <Dropdown
+              menu={{ items: presetMenuItems, onClick: handlePresetSelect }}
+              trigger={["click"]}
+              disabled={isMutating || routes.length === 0}
+            >
+              <Button>Apply Preset</Button>
+            </Dropdown>
+          </Space>
+        }
+        style={{ borderRadius: token.borderRadius }}
+      >
+        <Table<RouteConfig>
           rowKey="id"
+          columns={columns}
+          dataSource={routes}
           size="small"
-          pagination={{ pageSize: 10, showTotal: (t) => `${t} routes` }}
-          style={{ fontSize: 12 }}
+          scroll={{ x: 1240 }}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total) => `${total} routes`,
+          }}
+          onRow={(record) => ({
+            onClick: () => setEditingRoute(record),
+          })}
         />
       </Card>
 
-      <Card
-        title="Cache Configuration"
-        size="small"
-        style={{ borderRadius: token.borderRadius }}
-      >
-        <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}
-        >
-          <StatCard
-            label="Total Routes"
-            value={API_ROUTES.length}
-            color={token.colorPrimary}
-          />
-          <StatCard
-            label="With Cache"
-            value={API_ROUTES.filter((r) => r.cache_ttl > 0).length}
-            color="#1890ff"
-          />
-        </div>
-      </Card>
-    </div>
+      <RouteConfigModal
+        open={Boolean(editingRoute)}
+        route={editingRoute}
+        onClose={() => setEditingRoute(null)}
+      />
+    </Space>
   );
 }

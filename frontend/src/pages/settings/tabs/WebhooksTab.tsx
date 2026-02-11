@@ -1,104 +1,25 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
+  Button,
   Card,
   Form,
   Input,
-  Button,
-  Table,
-  Tag,
+  Space,
+  Tabs,
   Typography,
   message,
-  theme,
-  Space,
 } from "antd";
-import { CopyOutlined, SendOutlined, ReloadOutlined } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
-import apiClient from "@/api/client";
+import { SendOutlined } from "@ant-design/icons";
 import { saveWebhookConfig } from "@/api/settings";
+import IntegrationUrls from "../components/IntegrationUrls";
+import WebhookLogsViewer from "../components/WebhookLogsViewer";
+import OAuthLogsViewer from "../components/OAuthLogsViewer";
 
 const { Text, Title } = Typography;
-const { useToken } = theme;
-
-interface WebhookLog {
-  id: string;
-  platform: string;
-  event_type: string;
-  status: string;
-  created_at: string;
-}
 
 export default function WebhooksTab() {
-  const { token } = useToken();
   const [form] = Form.useForm();
-  const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [webhookLogs, setWebhookLogs] = useState<WebhookLog[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-
-  const webhookUrls = {
-    shopee: `${baseUrl}/api/webhooks/shopee`,
-    tiktok: `${baseUrl}/api/webhooks/tiktok`,
-    lazada: `${baseUrl}/api/webhooks/lazada`,
-  };
-
-  useEffect(() => {
-    fetchWebhookLogs();
-  }, []);
-
-  const fetchWebhookLogs = async () => {
-    try {
-      setLoading(true);
-      const response = await apiClient.get<WebhookLog[]>("/webhooks/logs");
-      if (response.success && response.data) {
-        setWebhookLogs(response.data);
-      }
-    } catch (error) {
-      // Show empty state if fetch fails
-      setWebhookLogs([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const columns: ColumnsType<WebhookLog> = [
-    {
-      title: "Platform",
-      dataIndex: "platform",
-      key: "platform",
-      width: 100,
-      render: (platform: string) => (
-        <Tag
-          color={
-            platform === "shopee"
-              ? "orange"
-              : platform === "tiktok"
-                ? "default"
-                : "blue"
-          }
-        >
-          {platform}
-        </Tag>
-      ),
-    },
-    { title: "Event", dataIndex: "event_type", key: "event_type", width: 150 },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      width: 100,
-      render: (status: string) => (
-        <Tag color={status === "success" ? "success" : "error"}>{status}</Tag>
-      ),
-    },
-    { title: "Time", dataIndex: "created_at", key: "created_at", width: 180 },
-  ];
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    message.success("Copied to clipboard");
-  };
 
   const handleSaveConfig = async () => {
     const values = form.getFieldsValue();
@@ -114,36 +35,63 @@ export default function WebhooksTab() {
         secret_key: values.secret_key,
       });
       message.success("Webhook configuration saved");
-    } catch (error) {
+    } catch {
       message.error("Failed to save webhook configuration");
     } finally {
       setSaving(false);
     }
   };
 
-  const testWebhook = async () => {
-    const url = form.getFieldValue("custom_url");
-    if (!url) {
-      message.warning("Please enter a webhook URL first");
-      return;
-    }
+  const tabItems = [
+    {
+      key: "configuration",
+      label: "Configuration",
+      children: (
+        <div>
+          <IntegrationUrls />
 
-    setTesting(true);
-    try {
-      const response = await apiClient.post("/webhooks/test", { url });
-      if (response.success) {
-        message.success("Webhook test successful");
-      } else {
-        message.error(response.error || "Webhook test failed");
-      }
-    } catch (error) {
-      // TODO: Backend endpoint /webhooks/test not yet implemented
-      // Once implemented, this will send a POST request to verify the webhook URL
-      message.error("Failed to test webhook");
-    } finally {
-      setTesting(false);
-    }
-  };
+          <Card title="Custom Webhook" size="small">
+            <Form form={form} layout="vertical">
+              <Form.Item
+                label="Webhook URL"
+                name="custom_url"
+                style={{ marginBottom: 12 }}
+              >
+                <Input placeholder="https://your-server.com/webhook" />
+              </Form.Item>
+              <Form.Item
+                label="Secret Key"
+                name="secret_key"
+                style={{ marginBottom: 12 }}
+              >
+                <Input.Password placeholder="Optional: webhook signature key" />
+              </Form.Item>
+              <Space>
+                <Button
+                  type="primary"
+                  icon={<SendOutlined />}
+                  onClick={handleSaveConfig}
+                  loading={saving}
+                >
+                  Save Configuration
+                </Button>
+              </Space>
+            </Form>
+          </Card>
+        </div>
+      ),
+    },
+    {
+      key: "webhook_logs",
+      label: "Webhook Logs",
+      children: <WebhookLogsViewer />,
+    },
+    {
+      key: "oauth_logs",
+      label: "OAuth Logs",
+      children: <OAuthLogsViewer />,
+    },
+  ];
 
   return (
     <div>
@@ -152,115 +100,11 @@ export default function WebhooksTab() {
           Webhook Configuration
         </Title>
         <Text type="secondary" style={{ fontSize: 12 }}>
-          Configure webhook endpoints for receiving platform events
+          Configure webhook endpoints and review integration activity logs
         </Text>
       </div>
 
-      <Card
-        title="Webhook URLs"
-        size="small"
-        style={{ marginBottom: 16, borderRadius: token.borderRadius }}
-      >
-        {Object.entries(webhookUrls).map(([platform, url]) => (
-          <div
-            key={platform}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "8px 0",
-              borderBottom: `1px solid ${token.colorBorderSecondary}`,
-            }}
-          >
-            <div>
-              <Text
-                strong
-                style={{ fontSize: 12, textTransform: "capitalize" }}
-              >
-                {platform}
-              </Text>
-              <br />
-              <Text
-                type="secondary"
-                style={{ fontSize: 11, fontFamily: "monospace" }}
-              >
-                {url}
-              </Text>
-            </div>
-            <Button
-              icon={<CopyOutlined />}
-              size="small"
-              onClick={() => copyToClipboard(url)}
-            >
-              Copy
-            </Button>
-          </div>
-        ))}
-      </Card>
-
-      <Card
-        title="Custom Webhook"
-        size="small"
-        style={{ marginBottom: 16, borderRadius: token.borderRadius }}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            label="Webhook URL"
-            name="custom_url"
-            style={{ marginBottom: 12 }}
-          >
-            <Input placeholder="https://your-server.com/webhook" />
-          </Form.Item>
-          <Form.Item
-            label="Secret Key"
-            name="secret_key"
-            style={{ marginBottom: 12 }}
-          >
-            <Input.Password placeholder="Optional: webhook signature key" />
-          </Form.Item>
-          <Space>
-            <Button
-              type="primary"
-              icon={<SendOutlined />}
-              onClick={handleSaveConfig}
-              loading={saving}
-            >
-              Save Configuration
-            </Button>
-            <Button
-              icon={<SendOutlined />}
-              loading={testing}
-              onClick={testWebhook}
-            >
-              Test Webhook
-            </Button>
-          </Space>
-        </Form>
-      </Card>
-
-      <Card
-        title="Recent Webhook Events"
-        size="small"
-        style={{ borderRadius: token.borderRadius }}
-        extra={
-          <Button
-            icon={<ReloadOutlined />}
-            size="small"
-            onClick={fetchWebhookLogs}
-            loading={loading}
-          >
-            Refresh
-          </Button>
-        }
-      >
-        <Table
-          columns={columns}
-          dataSource={webhookLogs}
-          rowKey="id"
-          size="small"
-          pagination={{ pageSize: 5 }}
-        />
-      </Card>
+      <Tabs defaultActiveKey="configuration" items={tabItems} />
     </div>
   );
 }
