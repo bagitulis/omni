@@ -12,9 +12,13 @@ import {
   PlayCircleOutlined,
   DeleteOutlined,
   ClockCircleOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
+import { useState } from "react";
 import type { ColumnsType } from "antd/es/table";
-import { AutoFunctionConfig } from "@/types/scriptMonitor";
+import type { AutoFunctionConfig } from "@/types/scriptMonitor";
+import { ConfigEditorModal } from "./ConfigEditorModal";
+import { ManualTriggerSection } from "./ManualTriggerSection";
 
 interface Props {
   configs: AutoFunctionConfig[];
@@ -23,6 +27,11 @@ interface Props {
   onDisable: (name: string) => void;
   onDelete: (name: string) => void;
   onCancelScheduled: (id: number) => void;
+  onCreate: (config: AutoFunctionConfig, onSuccess: () => void) => void;
+  onUpdate: (
+    payload: { name: string; config: Partial<AutoFunctionConfig> },
+    onSuccess: () => void,
+  ) => void;
 }
 
 export function ConfigTab({
@@ -32,7 +41,32 @@ export function ConfigTab({
   onDisable,
   onDelete,
   onCancelScheduled,
+  onCreate,
+  onUpdate,
 }: Props) {
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
+  const [editingConfig, setEditingConfig] = useState<AutoFunctionConfig | null>(
+    null,
+  );
+
+  const openCreateEditor = () => {
+    setEditorMode("create");
+    setEditingConfig(null);
+    setEditorOpen(true);
+  };
+
+  const openEditEditor = (config: AutoFunctionConfig) => {
+    setEditorMode("edit");
+    setEditingConfig(config);
+    setEditorOpen(true);
+  };
+
+  const closeEditor = () => {
+    setEditorOpen(false);
+    setEditingConfig(null);
+  };
+
   const columns: ColumnsType<AutoFunctionConfig> = [
     {
       title: "Function Name",
@@ -106,6 +140,13 @@ export function ConfigTab({
               </Button>
             </Popconfirm>
           )}
+          <Button
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => openEditEditor(record)}
+          >
+            Edit
+          </Button>
           <Popconfirm
             title="Delete configuration?"
             description="This cannot be undone."
@@ -119,21 +160,34 @@ export function ConfigTab({
   ];
 
   return (
-    <Card
-      title="Auto-Function Configurations"
-      extra={
-        <Button type="primary" disabled>
-          + Add New
-        </Button>
-      }
-    >
-      <Table
-        dataSource={configs}
-        columns={columns}
-        rowKey="id"
-        loading={loading}
-        pagination={false}
+    <>
+      <Card
+        title="Auto-Function Configurations"
+        extra={
+          <Button type="primary" onClick={openCreateEditor}>
+            + Add New
+          </Button>
+        }
+      >
+        <Table
+          dataSource={configs}
+          columns={columns}
+          rowKey="id"
+          loading={loading}
+          pagination={false}
+        />
+      </Card>
+
+      <ManualTriggerSection configs={configs} onTrigger={onEnable} />
+
+      <ConfigEditorModal
+        open={editorOpen}
+        mode={editorMode}
+        initialData={editingConfig || undefined}
+        onClose={closeEditor}
+        onCreate={onCreate}
+        onUpdate={onUpdate}
       />
-    </Card>
+    </>
   );
 }
