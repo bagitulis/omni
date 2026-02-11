@@ -86,23 +86,19 @@ def sync_antigravity_json(
     target_dir: Path,
     appdata_dir: Path | None,
 ):
-    """Sync antigravity.json across locations - newest wins."""
-    locations = [config_dir / "antigravity.json", target_dir / "antigravity.json"]
-
-    if appdata_dir and str(appdata_dir) != "opencode":
-        locations.append(appdata_dir / "antigravity.json")
-
-    mtimes = [(loc, get_file_mtime(loc)) for loc in locations]
-    valid_files = [(loc, mtime) for loc, mtime in mtimes if mtime > 0]
-
-    if not valid_files:
+    """Copy antigravity.json from config_dir (source of truth) to other locations."""
+    source = config_dir / "antigravity.json"
+    if not source.exists():
+        print("   [SKIP] No antigravity.json in opencode-configs")
         return
 
-    newest = max(valid_files, key=lambda x: x[1])
+    destinations = [target_dir / "antigravity.json"]
+    if appdata_dir and str(appdata_dir) != "opencode":
+        destinations.append(appdata_dir / "antigravity.json")
 
-    for loc, _ in mtimes:
-        if loc != newest[0] and loc.parent.exists():
+    for dst in destinations:
+        if dst.parent.exists():
             try:
-                copy_file(newest[0], loc)
+                copy_file(source, dst)
             except Exception:
                 pass
