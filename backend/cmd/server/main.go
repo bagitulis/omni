@@ -113,6 +113,7 @@ func main() {
 	// Inventory routes - simple routes for basic operations + Google Sheets sync
 	// Stock/Price update routes are registered separately at /api/stock and /api/price
 	routes.RegisterInventorySimpleRoutes(api, extHandlers.InventoryHandler)
+
 	routes.RegisterSkuBatchCheckRoutes(api, extHandlers.SkuBatchCheckHandler)
 
 	// Integration routes
@@ -232,7 +233,7 @@ func main() {
 	routes.RegisterShopeeShippingFeeRoutes(api, extHandlers.ShopeeAPIClientFactory, googleAuthService)
 
 	// Shopee Wallet & Escrow routes
-	routes.RegisterShopeeWalletRoutes(api, extHandlers.ShopeeAPIClientFactory)
+	routes.RegisterShopeeWalletRoutes(api, extHandlers.ShopeeAPIClientFactory, cfg.DatabasePath)
 	routes.RegisterShopeeWalletReportRoutes(api, extHandlers.ShopeeAPIClientFactory, googleAuthService)
 	routes.RegisterShopeeEscrowRoutes(api, extHandlers.ShopeeAPIClientFactory)
 

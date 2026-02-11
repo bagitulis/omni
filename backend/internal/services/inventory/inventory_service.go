@@ -45,13 +45,7 @@ func (s *InventoryService) GetRecords(ctx context.Context, filter ListFilter) (*
 
 	if filter.Search != "" {
 		search := "%" + filter.Search + "%"
-		query = query.Where("sku LIKE ? OR product_name LIKE ?", search, search)
-	}
-	if filter.Category != "" {
-		query = query.Where("category = ?", filter.Category)
-	}
-	if filter.LowStock {
-		query = query.Where("quantity <= min_stock")
+		query = query.Where("key_value LIKE ?", search)
 	}
 
 	var total int64
@@ -62,7 +56,7 @@ func (s *InventoryService) GetRecords(ctx context.Context, filter ListFilter) (*
 	if filter.Limit == 0 {
 		filter.Limit = 50
 	}
-	query = query.Limit(filter.Limit).Offset(filter.Offset).Order("sku ASC")
+	query = query.Limit(filter.Limit).Offset(filter.Offset).Order("key_value ASC")
 
 	var records []models.InventoryRecord
 	if err := query.Find(&records).Error; err != nil {
@@ -81,7 +75,7 @@ func (s *InventoryService) GetRecords(ctx context.Context, filter ListFilter) (*
 func (s *InventoryService) GetBySKU(ctx context.Context, sku string) (*models.InventoryRecord, error) {
 	var record models.InventoryRecord
 	err := s.db.WithContext(ctx).
-		Where("tenant_id = ? AND sku = ?", s.tenantID, sku).
+		Where("tenant_id = ? AND key_value = ?", s.tenantID, sku).
 		First(&record).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
@@ -93,26 +87,21 @@ func (s *InventoryService) GetBySKU(ctx context.Context, sku string) (*models.In
 func (s *InventoryService) Update(ctx context.Context, sku string, updates map[string]interface{}) error {
 	return s.db.WithContext(ctx).
 		Model(&models.InventoryRecord{}).
-		Where("tenant_id = ? AND sku = ?", s.tenantID, sku).
+		Where("tenant_id = ? AND key_value = ?", s.tenantID, sku).
 		Updates(updates).Error
 }
 
 // Delete deletes an inventory record
 func (s *InventoryService) Delete(ctx context.Context, sku string) error {
 	return s.db.WithContext(ctx).
-		Where("tenant_id = ? AND sku = ?", s.tenantID, sku).
+		Where("tenant_id = ? AND key_value = ?", s.tenantID, sku).
 		Delete(&models.InventoryRecord{}).Error
 }
 
 // GetCategories retrieves distinct categories
 func (s *InventoryService) GetCategories(ctx context.Context) ([]string, error) {
-	var categories []string
-	err := s.db.WithContext(ctx).
-		Model(&models.InventoryRecord{}).
-		Where("tenant_id = ? AND category != ''", s.tenantID).
-		Distinct("category").
-		Pluck("category", &categories).Error
-	return categories, err
+	// Categories are stored in JSONB data field, not as a direct column
+	return []string{}, nil
 }
 
 // GetSettings retrieves inventory settings

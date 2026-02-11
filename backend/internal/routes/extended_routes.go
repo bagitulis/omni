@@ -14,8 +14,8 @@ import (
 )
 
 // RegisterShopeeWalletRoutes registers Shopee wallet routes
-func RegisterShopeeWalletRoutes(router *gin.RouterGroup, getAPIClient func(tenantID string) shopeeService.APIClient) {
-	handler := shopeeHandler.NewWalletHandler(getAPIClient)
+func RegisterShopeeWalletRoutes(router *gin.RouterGroup, getAPIClient func(tenantID string) shopeeService.APIClient, dbPath string) {
+	handler := shopeeHandler.NewWalletHandler(getAPIClient, dbPath)
 	wallet := router.Group("/shopee/wallet")
 	wallet.Use(middleware.Auth())
 	wallet.Use(middleware.Tenant())

@@ -13,11 +13,15 @@ import (
 // WalletHandler handles Shopee wallet endpoints
 type WalletHandler struct {
 	getAPIClient func(tenantID string) shopeeService.APIClient
+	dbPath       string
 }
 
 // NewWalletHandler creates a new wallet handler
-func NewWalletHandler(getAPIClient func(tenantID string) shopeeService.APIClient) *WalletHandler {
-	return &WalletHandler{getAPIClient: getAPIClient}
+func NewWalletHandler(getAPIClient func(tenantID string) shopeeService.APIClient, dbPath string) *WalletHandler {
+	return &WalletHandler{
+		getAPIClient: getAPIClient,
+		dbPath:       dbPath,
+	}
 }
 
 // GetBalance handles GET /api/shopee/wallet/balance
@@ -28,8 +32,7 @@ func (h *WalletHandler) GetBalance(c *gin.Context) {
 		return
 	}
 
-	apiClient := h.getAPIClient(tenantID)
-	svc := shopeeService.NewWalletService(apiClient, tenantID)
+	svc := shopeeService.NewWalletServiceWithCreds(tenantID, h.dbPath)
 
 	balance, err := svc.GetBalance(c.Request.Context())
 	if err != nil {
@@ -75,8 +78,7 @@ func (h *WalletHandler) GetTransactions(c *gin.Context) {
 		endDate = time.Now()
 	}
 
-	apiClient := h.getAPIClient(tenantID)
-	svc := shopeeService.NewWalletService(apiClient, tenantID)
+	svc := shopeeService.NewWalletServiceWithCreds(tenantID, h.dbPath)
 
 	filter := shopeeService.TransactionFilter{
 		StartDate: startDate,
@@ -129,8 +131,7 @@ func (h *WalletHandler) GetNetIncome(c *gin.Context) {
 		endDate = time.Now()
 	}
 
-	apiClient := h.getAPIClient(tenantID)
-	svc := shopeeService.NewWalletService(apiClient, tenantID)
+	svc := shopeeService.NewWalletServiceWithCreds(tenantID, h.dbPath)
 
 	income, err := svc.CalculateNetIncome(c.Request.Context(), startDate, endDate)
 	if err != nil {
