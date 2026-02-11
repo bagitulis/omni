@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { message } from "antd";
 import { apiClient } from "@/api/client";
-import type { ShippingProcessResponse } from "@/api/client";
+import type { ShippingProcessResponse, ExecutionResponse } from "@/api/client";
 
 export function useShippingFiles() {
   return useQuery({
@@ -32,9 +32,9 @@ export function useProcessShippingFile() {
 
 export function useExportShippingToSheets() {
   return useMutation({
-    mutationFn: (params: Record<string, any> = {}) =>
+    mutationFn: (params: Record<string, unknown> = {}) =>
       apiClient.executeSheetsOperation("shipping_fee_to_sheets", params),
-    onSuccess: (response: any) => {
+    onSuccess: (response: ExecutionResponse) => {
       if (response?.success === false) {
         message.error(response.error || "Failed to export to sheets");
       } else {
