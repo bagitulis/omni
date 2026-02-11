@@ -8,6 +8,7 @@ Smart Sync: 4 locations for antigravity configs
 Dynamic Transform: For plugin modes
 """
 
+import json
 import os
 import sys
 import shutil
@@ -155,6 +156,52 @@ def detect_current_provider() -> str:
         return "[Error]"
 
 
+def detect_lsp_servers() -> dict:
+    """Detect LSP servers available on this machine and return config dict.
+    
+    Uses shutil.which() to find binaries dynamically so it works on any PC.
+    Returns a dict suitable for the 'lsp' key in oh-my-opencode.json.
+    """
+    servers = {}
+    
+    # Detect gopls for Go
+    gopls_path = shutil.which("gopls")
+    if gopls_path:
+        # Normalize path separators for JSON
+        gopls_path = str(Path(gopls_path).resolve())
+        servers["gopls"] = {
+            "command": [gopls_path],
+            "extensions": [".go"],
+            "priority": 10
+        }
+    
+    return servers
+
+
+def inject_lsp_config(content: str) -> str:
+    """Inject dynamically detected LSP server paths into config content.
+    
+    Parses the JSON, adds/merges the 'lsp' key with detected servers,
+    and serializes back to JSON preserving formatting.
+    """
+    lsp_servers = detect_lsp_servers()
+    if not lsp_servers:
+        return content
+    
+    try:
+        config = json.loads(content)
+        # Merge: user-defined LSP entries take precedence
+        existing_lsp = config.get("lsp", {})
+        for server_id, server_config in lsp_servers.items():
+            if server_id not in existing_lsp:
+                existing_lsp[server_id] = server_config
+        config["lsp"] = existing_lsp
+        return json.dumps(config, indent=2, ensure_ascii=False) + "\n"
+    except json.JSONDecodeError:
+        # If JSON parsing fails, return content unchanged
+        return content
+
+
 def apply_config(provider: str, ohmyopencode_file: str, opencode_file: str,
                  need_proxy: bool, need_plugin: bool, transform_plugin: bool):
     """Apply the selected configuration"""
@@ -178,17 +225,21 @@ def apply_config(provider: str, ohmyopencode_file: str, opencode_file: str,
     # Ensure target directory exists
     TARGET_DIR.mkdir(parents=True, exist_ok=True)
     
-    # Copy/Transform oh-my-opencode config
+    # Copy/Transform oh-my-opencode config + inject LSP servers
     dst_ohmyopencode = TARGET_DIR / "oh-my-opencode.json"
+    content = src_ohmyopencode.read_text(encoding='utf-8')
     
     if transform_plugin:
         # Transform for plugin mode
-        content = src_ohmyopencode.read_text(encoding='utf-8')
-        transformed = transform_for_plugin(content)
-        dst_ohmyopencode.write_text(transformed, encoding='utf-8')
+        content = transform_for_plugin(content)
+    
+    # Inject dynamically detected LSP server paths (e.g. gopls)
+    content = inject_lsp_config(content)
+    
+    dst_ohmyopencode.write_text(content, encoding='utf-8')
+    if transform_plugin:
         print(f"   [OK] Transformed {ohmyopencode_file} -> oh-my-opencode.json (plugin mode)")
     else:
-        copy_file(src_ohmyopencode, dst_ohmyopencode)
         print(f"   [OK] Copied {ohmyopencode_file} -> oh-my-opencode.json")
     
     # Copy opencode.json if specified
