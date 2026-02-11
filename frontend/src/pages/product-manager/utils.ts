@@ -68,3 +68,15 @@ export function getProductImage(row: DbProductRow): string | null {
 
   return null;
 }
+
+export function extractSku(row: DbProductRow): string {
+  return typeof row.sku === "string"
+    ? row.sku
+    : typeof row.sku_name === "string"
+      ? row.sku_name
+      : typeof row.seller_sku === "string"
+        ? row.seller_sku
+        : typeof row.shop_sku === "string"
+          ? row.shop_sku
+          : "";
+}

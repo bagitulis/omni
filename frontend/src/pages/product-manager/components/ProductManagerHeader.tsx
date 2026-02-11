@@ -1,5 +1,9 @@
 import { Button, Flex, Switch, Typography } from "antd";
-import { SyncOutlined } from "@ant-design/icons";
+import {
+  SyncOutlined,
+  DollarOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
@@ -10,6 +14,11 @@ interface ProductManagerHeaderProps {
   setAutoSync: (val: boolean) => void;
   syncLoading: boolean;
   onSync: () => void;
+  onUpdateBatch?: () => void;
+  hasSelection?: boolean;
+  onCheckSku: () => void;
+  skuCheckLoading: boolean;
+  selectedCount: number;
 }
 
 export function ProductManagerHeader({
@@ -19,6 +28,11 @@ export function ProductManagerHeader({
   setAutoSync,
   syncLoading,
   onSync,
+  onUpdateBatch,
+  hasSelection,
+  onCheckSku,
+  skuCheckLoading,
+  selectedCount,
 }: ProductManagerHeaderProps) {
   return (
     <Flex justify="space-between" align="center">
@@ -43,6 +57,25 @@ export function ProductManagerHeader({
           <Text style={{ fontSize: 12 }}>Auto sync</Text>
           <Switch checked={autoSync} onChange={setAutoSync} size="small" />
         </Flex>
+        {onUpdateBatch && (
+          <Button
+            icon={<DollarOutlined />}
+            onClick={onUpdateBatch}
+            disabled={!hasSelection}
+          >
+            Update Prices
+          </Button>
+        )}
+        <Button
+          data-testid="product-manager-check-sku"
+          icon={<SearchOutlined />}
+          loading={skuCheckLoading}
+          onClick={onCheckSku}
+          disabled={selectedCount === 0}
+        >
+          Check SKU Status
+          {selectedCount > 0 && ` (${selectedCount})`}
+        </Button>
         <Button
           data-testid="product-manager-sync"
           type="primary"

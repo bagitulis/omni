@@ -6,6 +6,7 @@ import {
   InventoryStats,
   SyncHistoryEntry,
   BatchCheckResult,
+  SkuCheckResult,
 } from "@/types/inventory";
 
 export type {
@@ -15,6 +16,7 @@ export type {
   InventoryStats,
   SyncHistoryEntry,
   BatchCheckResult,
+  SkuCheckResult,
 };
 
 export interface GetInventoryParams {
@@ -228,4 +230,97 @@ export async function saveSelectedColumns(columns: string[]): Promise<void> {
   if (!response.success) {
     throw new Error(response.error || "Failed to save column selection");
   }
+}
+
+export interface PriceUpdateItem {
+  sku: string;
+  price: number;
+  platforms?: string[];
+}
+
+export interface PlatformPriceResult {
+  success: boolean;
+  item_id?: string;
+  model_id?: string;
+  sku_id?: string;
+  product_id?: string;
+  error?: string;
+}
+
+export interface PriceUpdateResult {
+  sku: string;
+  success: boolean;
+  platforms: {
+    shopee?: PlatformPriceResult;
+    lazada?: PlatformPriceResult;
+    tiktok?: PlatformPriceResult;
+  };
+  errors: string[];
+  skipped: string[];
+}
+
+export interface BatchPriceUpdateResult {
+  total: number;
+  successful: number;
+  failed: number;
+  skipped: number;
+  results: PriceUpdateResult[];
+}
+
+/**
+ * Update price for a single item
+ * Backend route: POST /api/inventory/update-price
+ */
+export async function updatePrice(
+  sku: string,
+  price: number,
+  platforms?: string[],
+): Promise<PriceUpdateResult> {
+  const response = await apiClient.post<PriceUpdateResult>(
+    "/inventory/update-price",
+    {
+      sku,
+      price,
+      platforms,
+    },
+  );
+  if (!response.success) {
+    throw new Error(response.error || "Failed to update price");
+  }
+  return response.data!;
+}
+
+/**
+ * Batch update price for multiple items
+ * Backend route: POST /api/inventory/update-price-batch
+ */
+export async function updatePriceBatch(
+  items: PriceUpdateItem[],
+): Promise<BatchPriceUpdateResult> {
+  const response = await apiClient.post<BatchPriceUpdateResult>(
+    "/inventory/update-price-batch",
+    {
+      items,
+    },
+  );
+  if (!response.success) {
+    throw new Error(response.error || "Failed to batch update price");
+  }
+  return response.data!;
+}
+
+/**
+ * Batch check SKU status across platforms
+ * Backend route: POST /api/inventory/batch-check-sku
+ */
+export async function batchCheckSku(skus: string[]): Promise<SkuCheckResult[]> {
+  const response = await apiClient.post<{
+    total: number;
+    checked: number;
+    results: SkuCheckResult[];
+  }>("/inventory/batch-check-sku", { skus });
+  if (!response.success) {
+    throw new Error(response.error || "Failed to check SKU status");
+  }
+  return response.data?.results || [];
 }
