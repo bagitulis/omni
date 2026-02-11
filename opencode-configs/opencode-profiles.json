@@ -115,9 +115,8 @@
           "temperature": 0.1
         },
         "default": {
-          "model": "google/gemini-3-pro",
-          "variant": "high",
-          "temperature": 0.1
+          "model": "google/claude-sonnet-4-5-thinking",
+          "variant": "max"
         }
       },
 
@@ -128,9 +127,8 @@
           "temperature": 0.1
         },
         "implementation": {
-          "model": "google/gemini-3-pro",
-          "variant": "high",
-          "temperature": 0.1
+          "model": "google/claude-sonnet-4-5-thinking",
+          "variant": "max"
         },
         "quick": {
           "model": "google/claude-sonnet-4-5-thinking",
@@ -230,9 +228,8 @@
           "temperature": 0.1
         },
         "default": {
-          "model": "google/gemini-3-pro",
-          "variant": "high",
-          "temperature": 0.1
+          "model": "google/claude-sonnet-4-5-thinking",
+          "variant": "max"
         }
       },
 
@@ -243,9 +240,8 @@
           "temperature": 0.1
         },
         "implementation": {
-          "model": "google/gemini-3-pro",
-          "variant": "high",
-          "temperature": 0.1
+          "model": "google/claude-sonnet-4-5-thinking",
+          "variant": "max"
         },
         "quick": {
           "model": "google/claude-sonnet-4-5-thinking",

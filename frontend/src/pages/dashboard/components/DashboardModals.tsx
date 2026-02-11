@@ -4,6 +4,7 @@ import {
   ExportOrdersModal,
   WalletModal,
   TokenModal,
+  ChangePasswordModal,
 } from "@/components/modals";
 
 export function DashboardModals() {
@@ -36,6 +37,11 @@ export function DashboardModals() {
         platform={getModalData("token")?.platform}
         onTokenOperation={handleTokenOperation}
       />
+      <ChangePasswordModal
+        open={isModalOpen("changePassword")}
+        onClose={() => closeModal("changePassword")}
+      />
+      {/* DashboardShippingModal will be added in Task 2.6 */}
     </>
   );
 }

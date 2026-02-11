@@ -91,24 +91,22 @@ def _merge_section(shared_section: dict, profile_section: dict) -> dict:
 def detect_lsp_servers() -> dict:
     """Detect LSP servers available on this machine.
 
-    Uses shutil.which() to find binaries dynamically.
+    Uses shutil.which() to verify availability, but writes portable binary
+    names (not full paths) so configs work across machines.
     Returns a dict suitable for the 'lsp' key in oh-my-opencode.json.
     """
     servers = {}
 
+    # (server_id, binary, extra_args, extensions, priority)
     lsp_candidates = [
-        ("gopls", "gopls", [".go"], 10),
-        ("biome", "biome", [".ts", ".tsx", ".js", ".jsx", ".json", ".css"], 10),
+        ("gopls", "gopls", [], [".go"], 10),
+        ("typescript", "typescript-language-server", ["--stdio"], [".ts", ".tsx"], 10),
+        ("biome", "biome", ["lsp-proxy", "--stdio"], [".ts", ".tsx", ".js", ".jsx", ".json", ".css"], 5),
     ]
 
-    for server_id, binary, extensions, priority in lsp_candidates:
-        binary_path = shutil.which(binary)
-        if binary_path:
-            binary_path = str(Path(binary_path).resolve())
-            if server_id == "biome":
-                cmd = [binary_path, "lsp-proxy", "--stdio"]
-            else:
-                cmd = [binary_path]
+    for server_id, binary, extra_args, extensions, priority in lsp_candidates:
+        if shutil.which(binary):
+            cmd = [binary] + extra_args if extra_args else [binary]
             servers[server_id] = {
                 "command": cmd,
                 "extensions": extensions,
