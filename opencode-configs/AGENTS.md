@@ -4,7 +4,7 @@
 
 ---
 
-## Architecture Overview (v4.2)
+## Architecture Overview (v4.3)
 
 ```
 AI.py (root, CLI entry point) imports from opencode-configs/:
@@ -23,7 +23,7 @@ AI.py reads profiles.json → merges shared + profile → generates:
     ~/.config/opencode/opencode.json         (proxy or plugin provider config)
 ```
 
-**Delivery methods** (sub-option after profile selection):
+**Delivery methods** (included in flat menu options):
 
 - **Proxy** — Via localhost:8045, clean model names (google/gemini-3-pro)
 - **Plugin** — Via Auth Plugin, transformed names (google/antigravity-gemini-3-pro)
@@ -44,17 +44,17 @@ AI.py reads profiles.json → merges shared + profile → generates:
 | `test-accounts-helpers.js`       | Shared helpers for test-accounts.js              | AI (with approval)     |
 | `ai_profiles.py`                 | Profile loading, merging, LSP, plugin transform  | AI (with approval)     |
 | `ai_sync.py`                     | Account/config file sync utilities               | AI (with approval)     |
-| `../AI.py` (root)                | Provider switcher v4.2 (CLI entry point)         | AI (with approval)     |
+| `../AI.py` (root)                | Provider switcher v4.3 (CLI entry point)         | AI (with approval)     |
 
-### Legacy Files (Deprecated / Deleted)
+### Legacy Files (Deleted)
 
-| File                              | Status     | Notes                              |
-| --------------------------------- | ---------- | ---------------------------------- |
-| `oh-my-opencode-antigravity.json` | Deprecated | Replaced by opencode-profiles.json |
-| `oh-my-opencode-mix.json`         | Deprecated | Replaced by opencode-profiles.json |
-| `oh-my-opencode-copilot.json`     | Deprecated | Replaced by opencode-profiles.json |
-| `switch-provider.ps1`             | Deleted    | Replaced by AI.py CLI args         |
-| `test-provider.ps1`               | Deleted    | Replaced by AI.py CLI args         |
+| File                              | Status  | Notes                              |
+| --------------------------------- | ------- | ---------------------------------- |
+| `oh-my-opencode-antigravity.json` | Deleted | Replaced by opencode-profiles.json |
+| `oh-my-opencode-mix.json`         | Deleted | Replaced by opencode-profiles.json |
+| `oh-my-opencode-copilot.json`     | Deleted | Replaced by opencode-profiles.json |
+| `switch-provider.ps1`             | Deleted | Replaced by AI.py CLI args         |
+| `test-provider.ps1`               | Deleted | Replaced by AI.py CLI args         |
 
 ---
 
@@ -96,16 +96,17 @@ When switching to **Proxy mode**, model names stay as-is (no prefix).
 
 ---
 
-## AI.py Flow (v4.2)
+## AI.py Flow (v4.3)
 
 ```
-PROFILE SELECTION:
-  1. Mix Copilot      - Copilot + Google + OpenAI
-  2. Mix Antigravity  - Google + OpenAI (no Copilot)
-
-DELIVERY SUB-OPTION:
-  [P] Proxy  - opencode-proxy.json, clean model names
-  [L] Plugin - opencode-plugin.json, antigravity-* model names
+FLAT MENU (single-step selection):
+  [1a] Mix Copilot   - Proxy   (Copilot + Google + OpenAI, clean names)
+  [1b] Mix Copilot   - Plugin  (Copilot + Google + OpenAI, antigravity-* names)
+  [2a] Mix Antigravity - Proxy  (Google + OpenAI, clean names)
+  [2b] Mix Antigravity - Plugin (Google + OpenAI, antigravity-* names)
+  [S]  Sync accounts across locations
+  [C]  Show current provider
+  [Q]  Quit
 
 PROCESS:
   1. Load opencode-profiles.json           (ai_profiles.load_profiles)
@@ -120,12 +121,10 @@ PROCESS:
   10. Start opencode
 
 CLI ARGS:
-  python AI.py mix-copilot-proxy      → profile 1, proxy delivery
-  python AI.py mix-copilot-plugin     → profile 1, plugin delivery
-  python AI.py mix-antigravity-proxy  → profile 2, proxy delivery
-  python AI.py mix-antigravity-plugin → profile 2, plugin delivery
-  python AI.py mix-copilot            → profile 1, interactive delivery choice
-  python AI.py mix-antigravity        → profile 2, interactive delivery choice
+  python AI.py mix-copilot-proxy      → 1a (proxy delivery)
+  python AI.py mix-copilot-plugin     → 1b (plugin delivery)
+  python AI.py mix-antigravity-proxy  → 2a (proxy delivery)
+  python AI.py mix-antigravity-plugin → 2b (plugin delivery)
   python AI.py sync                   → sync accounts only
   python AI.py current                → show current provider
 ```
@@ -218,4 +217,4 @@ RESTORE (always):
 
 ---
 
-**Version:** 2.2 | **Updated:** 2026-02-11
+**Version:** 2.3 | **Updated:** 2026-02-11

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AI.py - OpenCode Provider Switcher v4.2
+AI.py - OpenCode Provider Switcher v4.3
 Profile-based configuration system (CLI entry point)
 
 2 Profiles: Mix Copilot, Mix Antigravity
@@ -44,10 +44,15 @@ APPDATA_DIR = Path(_appdata) / "opencode" if _appdata else None
 LOCALAPPDATA_DIR = Path(_localappdata) / "opencode" if _localappdata else None
 
 # Profile and CLI mappings
-PROFILES = {"1": "mix-copilot", "2": "mix-antigravity"}
+MENU_OPTIONS = {
+    "1a": ("mix-copilot", "proxy"),
+    "1b": ("mix-copilot", "plugin"),
+    "2a": ("mix-antigravity", "proxy"),
+    "2b": ("mix-antigravity", "plugin"),
+}
 CLI_ARGS = {
-    "mix-copilot": "1", "mix-copilot-proxy": "1p", "mix-copilot-plugin": "1l",
-    "mix-antigravity": "2", "mix-antigravity-proxy": "2p", "mix-antigravity-plugin": "2l",
+    "mix-copilot-proxy": "1a", "mix-copilot-plugin": "1b",
+    "mix-antigravity-proxy": "2a", "mix-antigravity-plugin": "2b",
     "sync": "s", "current": "c",
 }
 
@@ -172,19 +177,6 @@ def apply_profile(profile_name: str, delivery: str) -> bool:
     return True
 
 
-def ask_delivery() -> str:
-    """Ask user for delivery method (proxy vs plugin)."""
-    print()
-    print("   Delivery method:")
-    print("   [P] Proxy  - Via localhost:8045 (clean model names)")
-    print("   [L] Plugin - Via Auth Plugin (antigravity-* names)")
-    print()
-    choice = input("   Select [P/L]: ").strip().lower()
-    if choice in ("l", "plugin"):
-        return "plugin"
-    return "proxy"
-
-
 def start_opencode():
     """Start OpenCode."""
     print("\n   Starting OpenCode...")
@@ -204,15 +196,16 @@ def show_menu():
     clear_screen()
     print()
     print("  +==================================================================+")
-    print("  |           AI.py - OpenCode Provider Switcher v4.2               |")
+    print("  |           AI.py - OpenCode Provider Switcher v4.3               |")
     print("  +==================================================================+")
     print("  |                                                                  |")
-    print("  |   [1] Mix Copilot      - Copilot + Google + OpenAI              |")
-    print("  |   [2] Mix Antigravity  - Google + OpenAI (no Copilot)           |")
+    print("  |   Mix Copilot (Copilot + Google + OpenAI)                        |")
+    print("  |     [1a] Proxy   - Via localhost:8045 (clean names)              |")
+    print("  |     [1b] Plugin  - Via Auth Plugin (antigravity-* names)         |")
     print("  |                                                                  |")
-    print("  |   After selecting a profile, choose delivery:                    |")
-    print("  |     [P] Proxy  - Via localhost:8045 (clean names)               |")
-    print("  |     [L] Plugin - Via Auth Plugin (antigravity-* names)          |")
+    print("  |   Mix Antigravity (Google + OpenAI, no Copilot)                  |")
+    print("  |     [2a] Proxy   - Via localhost:8045 (clean names)              |")
+    print("  |     [2b] Plugin  - Via Auth Plugin (antigravity-* names)         |")
     print("  |                                                                  |")
     print("  |   [S] Sync    - Sync accounts across locations                   |")
     print("  |   [C] Current - Show current provider                            |")
@@ -234,7 +227,7 @@ def main():
         choice = CLI_ARGS.get(arg, arg)
     else:
         show_menu()
-        choice = input("   Select [1-2, S, C, Q]: ").strip().lower()
+        choice = input("   Select [1a/1b/2a/2b, S, C, Q]: ").strip().lower()
 
     while True:
         if choice == "q":
@@ -256,16 +249,8 @@ def main():
             print()
             input("   Press Enter to continue...")
 
-        elif choice in PROFILES:
-            profile_name = PROFILES[choice]
-            delivery = ask_delivery()
-            if apply_profile(profile_name, delivery):
-                start_opencode()
-            break
-
-        elif len(choice) == 2 and choice[0] in PROFILES and choice[1] in ("p", "l"):
-            profile_name = PROFILES[choice[0]]
-            delivery = "plugin" if choice[1] == "l" else "proxy"
+        elif choice in MENU_OPTIONS:
+            profile_name, delivery = MENU_OPTIONS[choice]
             if apply_profile(profile_name, delivery):
                 start_opencode()
             break
@@ -276,7 +261,7 @@ def main():
         # Show menu again for interactive mode only
         if not cli_mode:
             show_menu()
-            choice = input("   Select [1-2, S, C, Q]: ").strip().lower()
+            choice = input("   Select [1a/1b/2a/2b, S, C, Q]: ").strip().lower()
         else:
             break
 
