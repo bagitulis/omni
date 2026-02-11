@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { InputNumber, message, theme } from "antd";
-import { useUpdateStock } from "@/hooks/useInventory";
+import { useUpdatePrice } from "@/hooks/useInventory";
 import { InventoryRecord } from "@/types/inventory";
 
 interface Props {
@@ -9,15 +9,14 @@ interface Props {
   value: unknown;
 }
 
-export function StockCell({ record, value }: Props) {
+export function PriceCell({ record, value }: Props) {
   const [editing, setEditing] = useState(false);
   const [localValue, setLocalValue] = useState<number | null>(null);
   const [flash, setFlash] = useState<"success" | "error" | null>(null);
   const { token } = theme.useToken();
 
-  const { mutate: updateStock } = useUpdateStock();
+  const { mutate: updatePrice } = useUpdatePrice();
 
-  // Sync with prop value when not editing
   useEffect(() => {
     if (!editing) {
       setLocalValue(Number(value) || 0);
@@ -35,7 +34,6 @@ export function StockCell({ record, value }: Props) {
   }, [flash]);
 
   const handleSave = () => {
-    // If value hasn't changed, just exit edit mode
     if (localValue === Number(value)) {
       setEditing(false);
       return;
@@ -43,17 +41,17 @@ export function StockCell({ record, value }: Props) {
 
     setEditing(false);
 
-    updateStock(
-      { sku: record.key_value, stock: localValue || 0 },
+    updatePrice(
+      { sku: record.key_value, price: localValue || 0 },
       {
         onSuccess: () => {
           setFlash("success");
-          message.success("Stock updated");
+          message.success("Price updated");
         },
         onError: () => {
           setFlash("error");
-          setLocalValue(Number(value) || 0); // Revert
-          message.error("Failed to update stock");
+          setLocalValue(Number(value) || 0);
+          message.error("Failed to update price");
         },
       },
     );
@@ -74,6 +72,16 @@ export function StockCell({ record, value }: Props) {
     return "transparent";
   };
 
+  // Format as IDR
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(val);
+  };
+
   if (editing) {
     return (
       <InputNumber
@@ -85,6 +93,10 @@ export function StockCell({ record, value }: Props) {
         style={{ width: "100%" }}
         size="small"
         min={0}
+        formatter={(value) =>
+          `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        }
+        parser={(value) => Number(value?.replace(/Rp\s?|(,*)/g, ""))}
       />
     );
   }
@@ -108,7 +120,7 @@ export function StockCell({ record, value }: Props) {
         minHeight: 22,
       }}
     >
-      {localValue}
+      {localValue != null ? formatCurrency(localValue) : "-"}
     </div>
   );
 }

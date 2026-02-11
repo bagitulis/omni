@@ -1,171 +1,148 @@
 import {
   Modal,
-  Tabs,
-  Button,
-  message,
-  Table,
   Form,
   InputNumber,
-  Card,
-  Alert,
+  Button,
+  Space,
+  Typography,
+  message,
 } from "antd";
-import { useState } from "react";
-
-export interface UpdateItem {
-  sku: string;
-  price: number;
-  platform: "shopee" | "tiktok" | "lazada";
-}
+import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import { useEffect } from "react";
+import { useBatchUpdateInventoryWholesale } from "@/hooks/useWholesale";
+import type { InventoryWholesaleTier } from "@/types/wholesale";
 
 interface WholesaleUpdateModalProps {
   open: boolean;
   onClose: () => void;
-  items: UpdateItem[];
-}
-
-interface WholesaleSettings {
-  min_order_1: number;
-  max_order_1: number;
-  max_order_tier_3: number;
-  // Simplified for this implementation
+  selectedSkus: string[];
 }
 
 export function WholesaleUpdateModal({
   open,
   onClose,
-  items,
+  selectedSkus,
 }: WholesaleUpdateModalProps) {
-  const [activeTab, setActiveTab] = useState("preview");
-  const [processing, setProcessing] = useState(false);
-  const [settings, setSettings] = useState<WholesaleSettings>({
-    min_order_1: 2,
-    max_order_1: 3,
-    max_order_tier_3: 1000,
-  });
+  const [form] = Form.useForm();
+  const { mutate: batchUpdate, isPending } = useBatchUpdateInventoryWholesale();
 
-  const handleUpdate = async () => {
-    setProcessing(true);
+  useEffect(() => {
+    if (open) {
+      form.resetFields();
+    }
+  }, [open, form]);
+
+  const handleSubmit = async () => {
     try {
-      // Mock update
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      message.success("Wholesale updated successfully");
-      onClose();
-    } catch (error) {
-      message.error("Failed to update wholesale");
-    } finally {
-      setProcessing(false);
+      const values = await form.validateFields();
+      const tiers = values.tiers as InventoryWholesaleTier[];
+
+      if (!tiers || tiers.length === 0) {
+        message.error("Please add at least one tier");
+        return;
+      }
+
+      const items = selectedSkus.map((sku) => ({
+        sku,
+        tiers: tiers.map((t) => ({
+          ...t,
+          sku,
+        })),
+      }));
+
+      batchUpdate(items, {
+        onSuccess: (data) => {
+          message.success(
+            `Update successful: ${data.successful} updated, ${data.failed} failed`,
+          );
+          onClose();
+        },
+        onError: (error) => {
+          message.error(`Failed to update: ${error.message}`);
+        },
+      });
+    } catch {
+      // Form validation error
     }
   };
 
-  const PreviewTab = () => {
-    const columns = [
-      { title: "SKU", dataIndex: "sku", key: "sku" },
-      {
-        title: "Current Price",
-        dataIndex: "price",
-        key: "price",
-        render: (val: number) => `Rp ${val.toLocaleString()}`,
-      },
-      {
-        title: "Platform",
-        dataIndex: "platform",
-        key: "platform",
-        render: (val: string) => val.toUpperCase(),
-      },
-    ];
-
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <Alert
-          message={`Selected ${items.length} items for wholesale update`}
-          type="info"
-          showIcon
-        />
-        <Table
-          dataSource={items}
-          columns={columns}
-          rowKey="sku"
-          pagination={{ pageSize: 5 }}
-          size="small"
-        />
-      </div>
-    );
-  };
-
-  const SettingsTab = () => {
-    return (
-      <Form layout="vertical">
-        <Card size="small" title="Tier Configuration">
-          <div style={{ display: "flex", gap: 16 }}>
-            <Form.Item label="Min Order Tier 1">
-              <InputNumber
-                value={settings.min_order_1}
-                onChange={(val) =>
-                  setSettings({ ...settings, min_order_1: val || 2 })
-                }
-              />
-            </Form.Item>
-            <Form.Item label="Max Order Tier 1">
-              <InputNumber
-                value={settings.max_order_1}
-                onChange={(val) =>
-                  setSettings({ ...settings, max_order_1: val || 3 })
-                }
-              />
-            </Form.Item>
-            <Form.Item label="Max Order Tier 3">
-              <InputNumber
-                value={settings.max_order_tier_3}
-                onChange={(val) =>
-                  setSettings({ ...settings, max_order_tier_3: val || 1000 })
-                }
-              />
-            </Form.Item>
-          </div>
-        </Card>
-      </Form>
-    );
-  };
-
-  const itemsTab = [
-    {
-      key: "preview",
-      label: "Preview",
-      children: <PreviewTab />,
-    },
-    {
-      key: "settings",
-      label: "Settings",
-      children: <SettingsTab />,
-    },
-  ];
-
   return (
     <Modal
-      title="🛒 Update Wholesale - Shopee"
+      title={`Batch Update Wholesale (${selectedSkus.length} items)`}
       open={open}
       onCancel={onClose}
-      width={700}
+      destroyOnClose
+      width={600}
       footer={[
-        <Button key="cancel" onClick={onClose} disabled={processing}>
+        <Button key="cancel" onClick={onClose}>
           Cancel
         </Button>,
         <Button
-          key="update"
+          key="submit"
           type="primary"
-          onClick={handleUpdate}
-          loading={processing}
+          onClick={handleSubmit}
+          loading={isPending}
         >
-          Update Wholesale
+          Update All
         </Button>,
       ]}
     >
-      <Tabs
-        activeKey={activeTab}
-        onChange={setActiveTab}
-        items={itemsTab}
-        style={{ marginBottom: 16 }}
-      />
+      <div style={{ marginBottom: 16 }}>
+        <Typography.Text type="secondary">
+          This will apply the following wholesale tiers to all selected SKUs.
+          Existing tiers will be replaced.
+        </Typography.Text>
+      </div>
+
+      <Form form={form} layout="vertical">
+        <Form.List name="tiers" initialValue={[{ min_qty: 1, price: 0 }]}>
+          {(fields, { add, remove }) => (
+            <>
+              {fields.map(({ key, name, ...restField }) => (
+                <Space
+                  key={key}
+                  style={{ display: "flex", marginBottom: 8 }}
+                  align="baseline"
+                >
+                  <Form.Item
+                    {...restField}
+                    name={[name, "min_qty"]}
+                    label={key === 0 ? "Min Qty" : undefined}
+                    rules={[{ required: true, message: "Missing min qty" }]}
+                  >
+                    <InputNumber min={1} placeholder="Min Qty" />
+                  </Form.Item>
+                  <Form.Item
+                    {...restField}
+                    name={[name, "price"]}
+                    label={key === 0 ? "Unit Price" : undefined}
+                    rules={[{ required: true, message: "Missing price" }]}
+                  >
+                    <InputNumber
+                      min={0}
+                      precision={2}
+                      prefix="$"
+                      placeholder="Price"
+                      style={{ width: "100%" }}
+                    />
+                  </Form.Item>
+                  <MinusCircleOutlined onClick={() => remove(name)} />
+                </Space>
+              ))}
+              <Form.Item>
+                <Button
+                  type="dashed"
+                  onClick={() => add()}
+                  block
+                  icon={<PlusOutlined />}
+                >
+                  Add Tier
+                </Button>
+              </Form.Item>
+            </>
+          )}
+        </Form.List>
+      </Form>
     </Modal>
   );
 }

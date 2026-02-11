@@ -10,6 +10,9 @@ import {
 import { InventoryHeader } from "./components/InventoryHeader";
 import { InventoryMainTab } from "./components/InventoryMainTab";
 import { InventoryStats } from "./components/InventoryStats";
+import { WholesaleTab } from "./components/WholesaleTab";
+import { MpqTab } from "./components/MpqTab";
+import { DeleteTab } from "./components/DeleteTab";
 
 export default function InventoryPage() {
   const [searchText, setSearchText] = useState("");
@@ -48,17 +51,17 @@ export default function InventoryPage() {
     {
       key: "wholesale",
       label: "Wholesale",
-      children: <Empty description="Wholesale settings will appear here" />,
+      children: <WholesaleTab />,
     },
     {
       key: "mpq",
       label: "MPQ",
-      children: <Empty description="MPQ settings will appear here" />,
+      children: <MpqTab />,
     },
     {
       key: "delete",
       label: "Delete",
-      children: <Empty description="Delete settings will appear here" />,
+      children: <DeleteTab />,
     },
     {
       key: "sync-history",

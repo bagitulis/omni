@@ -3,6 +3,8 @@ import { Table, Spin, Empty, Alert, Button } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useSelectedColumns } from "@/hooks/useInventory";
 import { InventoryRecord } from "@/types/inventory";
+import { StockCell } from "./StockCell";
+import { PriceCell } from "./PriceCell";
 
 interface Props {
   records: InventoryRecord[];
@@ -26,6 +28,10 @@ export function InventoryMainTab({ records, loading, error, onRetry }: Props) {
     ];
 
     for (const colName of selectedCols) {
+      const lowerName = colName.toLowerCase();
+      const isStock = lowerName === "stock" || lowerName === "stok";
+      const isPrice = lowerName === "price" || lowerName === "harga";
+
       cols.push({
         title: colName,
         key: colName,
@@ -33,6 +39,18 @@ export function InventoryMainTab({ records, loading, error, onRetry }: Props) {
         ellipsis: true,
         render: (_, record) => {
           const val = record.data?.[colName];
+
+          if (isStock) {
+            return (
+              <StockCell record={record} dataIndex={colName} value={val} />
+            );
+          }
+          if (isPrice) {
+            return (
+              <PriceCell record={record} dataIndex={colName} value={val} />
+            );
+          }
+
           return val != null ? String(val) : "-";
         },
       });

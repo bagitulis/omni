@@ -11,6 +11,7 @@ import {
   syncToSheets,
   checkPlatformStatus,
   updateStock,
+  updatePrice,
   GetInventoryParams,
 } from "@/api/inventory";
 
@@ -109,6 +110,17 @@ export function useUpdateStock() {
   return useMutation({
     mutationFn: ({ sku, stock }: { sku: string; stock: number }) =>
       updateStock(sku, stock),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
+  });
+}
+
+export function useUpdatePrice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sku, price }: { sku: string; price: number }) =>
+      updatePrice(sku, price),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
     },

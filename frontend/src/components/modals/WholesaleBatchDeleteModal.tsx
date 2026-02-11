@@ -1,48 +1,42 @@
-import { Modal, Button, Alert, Typography, List, message } from "antd";
-import { useState } from "react";
-
-const { Text } = Typography;
+import { Modal, Button, Typography, message, List } from "antd";
+import { useBatchDeleteInventoryWholesale } from "@/hooks/useWholesale";
 
 interface WholesaleBatchDeleteModalProps {
   open: boolean;
   onClose: () => void;
-  skus: string[];
-  onConfirm?: (skus: string[]) => Promise<void>;
+  selectedSkus: string[];
 }
 
 export function WholesaleBatchDeleteModal({
   open,
   onClose,
-  skus,
-  onConfirm,
+  selectedSkus,
 }: WholesaleBatchDeleteModalProps) {
-  const [processing, setProcessing] = useState(false);
+  const { mutate: batchDelete, isPending } = useBatchDeleteInventoryWholesale();
 
-  const handleDelete = async () => {
-    setProcessing(true);
-    try {
-      if (onConfirm) {
-        await onConfirm(skus);
-      } else {
-        // Mock delete
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        message.success("Wholesale pricing removed successfully");
-      }
-      onClose();
-    } catch (error) {
-      message.error("Failed to delete wholesale");
-    } finally {
-      setProcessing(false);
-    }
+  const handleDelete = () => {
+    batchDelete(selectedSkus, {
+      onSuccess: () => {
+        message.success(
+          `Removed wholesale tiers for ${selectedSkus.length} items`,
+        );
+        onClose();
+      },
+      onError: (error) => {
+        message.error(`Failed to delete: ${error.message}`);
+      },
+    });
   };
 
   return (
     <Modal
-      title="🗑️ Delete Wholesale"
+      title="Delete Wholesale Tiers"
       open={open}
       onCancel={onClose}
+      destroyOnClose
+      width={500}
       footer={[
-        <Button key="cancel" onClick={onClose} disabled={processing}>
+        <Button key="cancel" onClick={onClose}>
           Cancel
         </Button>,
         <Button
@@ -50,51 +44,35 @@ export function WholesaleBatchDeleteModal({
           type="primary"
           danger
           onClick={handleDelete}
-          loading={processing}
-          disabled={skus.length === 0}
+          loading={isPending}
         >
-          Delete Wholesale
+          Confirm Delete
         </Button>,
       ]}
-      width={500}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <Alert
-          message={
-            <div>
-              <strong>{skus.length} SKU</strong> selected. Wholesale will be
-              removed per product (item_id), not per SKU.
-            </div>
-          }
-          type="warning"
-          showIcon
-        />
+      <div style={{ marginBottom: 16 }}>
+        <Typography.Text type="danger">
+          Are you sure you want to remove wholesale pricing tiers for the
+          following <strong>{selectedSkus.length}</strong> items? This action
+          cannot be undone.
+        </Typography.Text>
+      </div>
 
-        <div>
-          <Text strong>Selected SKUs:</Text>
-          <div
-            style={{
-              maxHeight: 200,
-              overflowY: "auto",
-              marginTop: 8,
-              border: "1px solid #f0f0f0",
-              borderRadius: 4,
-            }}
-          >
-            <List
-              size="small"
-              dataSource={skus.slice(0, 10)}
-              renderItem={(item) => <List.Item>{item}</List.Item>}
-              footer={
-                skus.length > 10 ? (
-                  <div style={{ padding: "8px 16px", color: "#999" }}>
-                    ... and {skus.length - 10} others
-                  </div>
-                ) : null
-              }
-            />
-          </div>
-        </div>
+      <div
+        style={{
+          maxHeight: 200,
+          overflowY: "auto",
+          marginTop: 8,
+          border: "1px solid #f0f0f0",
+          borderRadius: 4,
+          padding: 8,
+        }}
+      >
+        <List
+          size="small"
+          dataSource={selectedSkus}
+          renderItem={(sku) => <List.Item>{sku}</List.Item>}
+        />
       </div>
     </Modal>
   );
