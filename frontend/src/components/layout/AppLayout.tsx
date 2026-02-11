@@ -34,8 +34,9 @@ export default function AppLayout() {
         <Content
           style={{
             padding: 24,
-            minHeight: 280,
-            overflow: "initial",
+            minHeight: 0,
+            overflow: "auto",
+            flex: 1,
           }}
         >
           <Outlet />

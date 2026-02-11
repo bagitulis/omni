@@ -243,7 +243,13 @@ export function DashboardPage() {
   ];
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <div
+      style={{
+        height: "calc(100vh - 96px)",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       {/* Top Action Bar */}
       <div
         style={{
