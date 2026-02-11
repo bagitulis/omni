@@ -110,12 +110,11 @@ func (a *App) initCore() error {
 	// This prevents creating new connections for each config fetch
 	config.InitGlobalConfigService(systemDB)
 
-	// DISABLED: Auto-migration disabled - use manual migrations instead
-	// To run migrations manually, use: go run cmd/migrate/main.go
-	// if err := config.MigrateSystemDatabase(systemDB); err != nil {
-	// 	log.Printf("Warning: System database migration failed: %v", err)
-	// }
-	//
+	// Run system database migrations
+	if err := config.MigrateSystemDatabase(systemDB); err != nil {
+		log.Printf("Warning: System database migration failed: %v", err)
+	}
+
 	// // Run tenant database migrations for all known tenants
 	// if err := a.migrateTenantDatabases(); err != nil {
 	// 	log.Printf("Warning: Tenant database migration failed: %v", err)

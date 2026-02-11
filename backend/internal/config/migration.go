@@ -28,6 +28,8 @@ func MigrateSystemDatabase(db *gorm.DB) error {
 		&models.User{},
 		&models.AuditLog{},
 		&models.GlobalConfig{},
+		&models.MLReport{},
+		&models.MLJob{},
 	}
 
 	for _, model := range systemModels {
