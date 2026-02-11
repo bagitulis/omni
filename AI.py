@@ -164,16 +164,21 @@ def detect_lsp_servers() -> dict:
     """
     servers = {}
     
-    # Detect gopls for Go
-    gopls_path = shutil.which("gopls")
-    if gopls_path:
-        # Normalize path separators for JSON
-        gopls_path = str(Path(gopls_path).resolve())
-        servers["gopls"] = {
-            "command": [gopls_path],
-            "extensions": [".go"],
-            "priority": 10
-        }
+    # LSP servers to detect: (id, binary, extensions, priority)
+    lsp_candidates = [
+        ("gopls", "gopls", [".go"], 10),
+        ("biome", "biome", [".ts", ".tsx", ".js", ".jsx", ".json", ".css"], 10),
+    ]
+    
+    for server_id, binary, extensions, priority in lsp_candidates:
+        binary_path = shutil.which(binary)
+        if binary_path:
+            binary_path = str(Path(binary_path).resolve())
+            servers[server_id] = {
+                "command": [binary_path, "lsp-proxy", "--stdio"] if server_id == "biome" else [binary_path],
+                "extensions": extensions,
+                "priority": priority
+            }
     
     return servers
 
