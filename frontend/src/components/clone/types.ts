@@ -1,3 +1,13 @@
+import { ProductData, CloneTargetsResult, ConflictResult } from "@/types/clone";
+
+export type PriceAdjustmentType =
+  | "none"
+  | "fixed"
+  | "percentage_inc"
+  | "percentage_dec"
+  | "amount_inc"
+  | "amount_dec";
+
 export interface CloneProductModalProps {
   open: boolean;
   onClose: () => void;
@@ -13,7 +23,7 @@ export interface CloneSourceStepProps {
   onSearch: () => void;
   isLoadingProduct: boolean;
   productError: Error | null;
-  productData: any; // Ideally this should be a specific type from @/types/clone or similar
+  productData: ProductData | undefined;
 }
 
 export interface CloneTargetStepProps {
@@ -22,16 +32,15 @@ export interface CloneTargetStepProps {
   sourcePlatform: string;
   isLoadingTargets: boolean;
   targetsError: Error | null;
-  targetsData: any; // Ideally specific type
+  targetsData: CloneTargetsResult | undefined;
 }
 
 export interface CloneConfigurationStepProps {
   previewError: Error | null;
-  productData: any;
-  previewData: any;
+  productData: ProductData | undefined;
+  previewData: ConflictResult | undefined;
   targetPlatform: string;
   isLoadingPreview: boolean;
-  newPrice: number | undefined;
   setNewPrice: (value: number | undefined) => void;
   saveAsDraft: boolean;
   setSaveAsDraft: (value: boolean) => void;
@@ -46,7 +55,7 @@ export interface CloneResultStepProps {
   sourcePlatform: string;
   sku: string;
   newPrice: number | undefined;
-  productData: any;
+  productData: ProductData | undefined;
   saveAsDraft: boolean;
   onClose: () => void;
   onReset: () => void;
