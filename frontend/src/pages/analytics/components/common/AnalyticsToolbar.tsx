@@ -13,16 +13,16 @@ import {
 
 interface AnalyticsToolbarProps {
   // Period Selection
-  selectedMonth: string;
-  onMonthChange: (month: string) => void;
-  selectedYear: string;
-  onYearChange: (year: string) => void;
+  selectedMonth: number;
+  onMonthChange: (month: number) => void;
+  selectedYear: number;
+  onYearChange: (year: number) => void;
 
   // Sync Status
   isSynced: boolean;
   syncData?: {
     total_orders: number;
-    synced_at: string;
+    synced_at: string | null;
   };
 
   // Actions

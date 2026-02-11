@@ -1,11 +1,11 @@
-import { Card, Col, Row, Statistic } from "antd";
 import {
   ApiOutlined,
+  AppstoreOutlined,
   CheckCircleOutlined,
   DisconnectOutlined,
-  AppstoreOutlined,
 } from "@ant-design/icons";
-import { RouteData } from "@/types/routeMapping";
+import { Card, Col, Row, Statistic } from "antd";
+import type { RouteData } from "@/types/routeMapping";
 
 interface RouteStatsProps {
   data: RouteData | undefined;

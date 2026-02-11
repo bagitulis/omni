@@ -1,5 +1,5 @@
-import { Tag, Typography } from "antd";
 import { DisconnectOutlined } from "@ant-design/icons";
+import { Tag, Typography } from "antd";
 
 const { Text } = Typography;
 

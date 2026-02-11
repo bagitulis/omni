@@ -1,6 +1,6 @@
-import { Card, Col, Empty, Row, Tag } from "antd";
 import { ApiOutlined } from "@ant-design/icons";
-import { ComponentDetail } from "@/types/routeMapping";
+import { Card, Col, Empty, Row, Tag } from "antd";
+import type { ComponentDetail } from "@/types/routeMapping";
 
 interface ComponentsListProps {
   filteredComponents: Record<string, ComponentDetail>;
