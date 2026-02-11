@@ -22,6 +22,8 @@ export function ScriptMonitorPage() {
     clearHistory,
     enableAutoFunction,
     disableAutoFunction,
+    createAutoFunction,
+    updateAutoFunction,
     deleteAutoFunction,
     cancelScheduled,
   } = useScriptMonitor();
@@ -77,6 +79,8 @@ export function ScriptMonitorPage() {
         <QueueTab
           queue={monitorData?.pending_queue || []}
           loading={isLoadingMonitor}
+          onCancel={cancelJob}
+          onForceCancel={forceCancelJob}
         />
       ),
     },
@@ -112,6 +116,16 @@ export function ScriptMonitorPage() {
           onDisable={disableAutoFunction}
           onDelete={deleteAutoFunction}
           onCancelScheduled={cancelScheduled}
+          onCreate={(config, onSuccess) =>
+            createAutoFunction(config, {
+              onSuccess,
+            })
+          }
+          onUpdate={(payload, onSuccess) =>
+            updateAutoFunction(payload, {
+              onSuccess,
+            })
+          }
         />
       ),
     },

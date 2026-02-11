@@ -1,13 +1,16 @@
-import { Table, Tag, Card } from "antd";
+import { Button, Card, Popconfirm, Space, Table, Tag } from "antd";
+import { PauseCircleOutlined, StopOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
-import { Job } from "@/types/scriptMonitor";
+import type { Job } from "@/types/scriptMonitor";
 
 interface Props {
   queue: Job[];
   loading?: boolean;
+  onCancel: (jobId: string) => void;
+  onForceCancel: (jobId: string) => void;
 }
 
-export function QueueTab({ queue, loading }: Props) {
+export function QueueTab({ queue, loading, onCancel, onForceCancel }: Props) {
   const columns: ColumnsType<Job> = [
     {
       title: "ID",
@@ -44,6 +47,32 @@ export function QueueTab({ queue, loading }: Props) {
       key: "data",
       ellipsis: true,
       render: (data: unknown) => JSON.stringify(data),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <Space>
+          <Popconfirm
+            title="Cancel this job?"
+            onConfirm={() => onCancel(record.id)}
+          >
+            <Button size="small" icon={<PauseCircleOutlined />}>
+              Cancel
+            </Button>
+          </Popconfirm>
+
+          <Popconfirm
+            title="Force cancel this stuck job?"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => onForceCancel(record.id)}
+          >
+            <Button size="small" danger icon={<StopOutlined />}>
+              Force Cancel
+            </Button>
+          </Popconfirm>
+        </Space>
+      ),
     },
   ];
 
