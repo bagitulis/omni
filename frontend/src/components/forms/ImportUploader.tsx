@@ -128,12 +128,17 @@ export function ImportUploader({
     setProgress(0);
 
     try {
-      // Simulate file reading with progress
+      // Read file with real progress tracking
       const reader = new FileReader();
-      let progressInterval: ReturnType<typeof setInterval> | undefined;
+
+      reader.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          setProgress(percent > 90 ? 90 : percent); // Cap at 90, reader.onload sets 100
+        }
+      };
 
       reader.onload = (e) => {
-        clearInterval(progressInterval);
         setProgress(100);
 
         try {
@@ -162,14 +167,6 @@ export function ImportUploader({
           setProgress(0);
         }
       };
-
-      // Simulate progress
-      progressInterval = setInterval(() => {
-        setProgress((prev) => {
-          const next = prev + Math.random() * 40;
-          return next > 90 ? 90 : next;
-        });
-      }, 100);
 
       reader.readAsText(file);
       return false; // Prevent automatic upload
