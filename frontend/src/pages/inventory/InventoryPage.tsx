@@ -20,6 +20,7 @@ import { InventoryBatchBar } from "./components/InventoryBatchBar";
 import { InventoryLockPanel } from "./components/InventoryLockPanel";
 import { SyncHistoryTab } from "./components/SyncHistoryTab";
 import { InventoryRecord } from "@/types/inventory";
+import { InventoryPagination } from "./components/InventoryPagination";
 
 const { Content } = Layout;
 
@@ -32,12 +33,22 @@ export default function InventoryPage() {
     search,
     platform: platformFilter,
     stockStatus: stockFilter,
+    page,
+    pageSize,
     setSearch,
+    setPage,
+    setPageSize,
   } = useInventoryFilterStore();
+
+  const [activeTab, setActiveTab] = useState("inventory");
 
   const { data, isLoading, error, refetch } = useInventory({
     search: search || undefined,
+    offset: (page - 1) * pageSize,
+    limit: pageSize,
   });
+
+  const total = data?.total || 0;
 
   const { data: stats, isLoading: statsLoading } = useInventoryStats();
   const { data: config } = useInventoryConfig();
@@ -201,9 +212,31 @@ export default function InventoryPage() {
           <Tabs
             defaultActiveKey="inventory"
             items={tabsItems}
+            activeKey={activeTab}
+            onChange={setActiveTab}
             style={{ height: "100%" }}
             tabBarStyle={{ marginBottom: 16 }}
           />
+
+          {activeTab === "inventory" && (
+            <InventoryPagination
+              current={page}
+              pageSize={pageSize}
+              total={total}
+              onChange={(nextPage, nextPageSize) => {
+                if (nextPageSize !== pageSize) {
+                  setPageSize(nextPageSize);
+                  setPage(1);
+                  return;
+                }
+                setPage(nextPage);
+              }}
+              onShowSizeChange={(_, size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+            />
+          )}
         </div>
 
         <InventoryBatchBar

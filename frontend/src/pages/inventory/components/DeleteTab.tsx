@@ -1,10 +1,20 @@
 import { useState } from "react";
-import { Table, Button, Space, Popconfirm, message, Typography } from "antd";
+import type { Key } from "react";
+import {
+  Table,
+  Button,
+  Space,
+  Popconfirm,
+  message,
+  Typography,
+  Empty,
+} from "antd";
 import { useInventory } from "@/hooks/useInventory";
 import { useBatchDeleteInventoryWholesale } from "@/hooks/useWholesale";
 
 export function DeleteTab() {
   const { data, isLoading } = useInventory();
+  const records = data?.records || [];
   const [selectedSkus, setSelectedSkus] = useState<string[]>([]);
   const { mutate: batchDelete, isPending } = useBatchDeleteInventoryWholesale();
 
@@ -59,15 +69,20 @@ export function DeleteTab() {
       </Space>
 
       <Table
-        dataSource={data?.records || []}
+        dataSource={records}
         columns={columns}
         rowKey="key_value"
         loading={isLoading}
         rowSelection={{
           selectedRowKeys: selectedSkus,
-          onChange: (keys) => setSelectedSkus(keys as string[]),
+          onChange: (keys: Key[]) => setSelectedSkus(keys.map(String)),
         }}
         pagination={{ pageSize: 20 }}
+        locale={{
+          emptyText: (
+            <Empty description="No inventory items available for delete actions" />
+          ),
+        }}
       />
     </div>
   );

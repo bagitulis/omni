@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Table, Button, Space, Tag } from "antd";
+import type { Key } from "react";
+import { Table, Button, Space, Tag, Empty, Typography } from "antd";
 import { useInventory } from "@/hooks/useInventory";
 import type { InventoryRecord } from "@/types/inventory";
 import { WholesaleUpdateModal } from "@/components/modals/WholesaleUpdateModal";
@@ -11,12 +12,12 @@ function WholesaleTiersList({ sku }: { sku: string }) {
 
   if (isLoading) return <span>Loading...</span>;
   if (!tiers || tiers.length === 0)
-    return <span style={{ color: "#999" }}>No tiers</span>;
+    return <Typography.Text type="secondary">No tiers</Typography.Text>;
 
   return (
     <Space direction="vertical" size="small">
-      {tiers.map((tier, index) => (
-        <Tag key={index} color="blue">
+      {tiers.map((tier) => (
+        <Tag key={`${tier.min_qty}-${tier.price}`} color="blue">
           Qty {tier.min_qty}+ : ${tier.price}
         </Tag>
       ))}
@@ -26,6 +27,7 @@ function WholesaleTiersList({ sku }: { sku: string }) {
 
 export function WholesaleTab() {
   const { data, isLoading } = useInventory();
+  const records = data?.records || [];
   const [selectedSkus, setSelectedSkus] = useState<string[]>([]);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -53,8 +55,8 @@ export function WholesaleTab() {
 
   const rowSelection = {
     selectedRowKeys: selectedSkus,
-    onChange: (selectedRowKeys: React.Key[]) => {
-      setSelectedSkus(selectedRowKeys as string[]);
+    onChange: (selectedRowKeys: Key[]) => {
+      setSelectedSkus(selectedRowKeys.map(String));
     },
   };
 
@@ -78,12 +80,17 @@ export function WholesaleTab() {
       </Space>
 
       <Table
-        dataSource={data?.records || []}
+        dataSource={records}
         columns={columns}
         rowKey="key_value"
         loading={isLoading}
         rowSelection={rowSelection}
         pagination={{ pageSize: 20 }}
+        locale={{
+          emptyText: (
+            <Empty description="No inventory items available for wholesale settings" />
+          ),
+        }}
       />
 
       <WholesaleUpdateModal

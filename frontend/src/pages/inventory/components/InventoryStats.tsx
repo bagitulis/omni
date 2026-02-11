@@ -1,4 +1,5 @@
-import { Card, Statistic, Row, Col } from "antd";
+import type { ReactNode } from "react";
+import { Card, Statistic, Row, Col, Skeleton, theme } from "antd";
 import {
   DatabaseOutlined,
   TableOutlined,
@@ -17,19 +18,37 @@ interface Props {
 }
 
 export function InventoryStats({ stats, loading, syncStatus }: Props) {
+  const {
+    token: {
+      colorSuccess,
+      colorWarning,
+      colorError,
+      colorTextTertiary,
+      colorPrimary,
+    },
+  } = theme.useToken();
+
   const getStatusIcon = () => {
     switch (syncStatus?.toLowerCase()) {
       case "success":
-        return <CheckCircleOutlined style={{ color: "#52c41a" }} />;
+        return <CheckCircleOutlined style={{ color: colorSuccess }} />;
       case "partial":
-        return <WarningOutlined style={{ color: "#faad14" }} />;
+        return <WarningOutlined style={{ color: colorWarning }} />;
       case "error":
-        return <CloseCircleOutlined style={{ color: "#ff4d4f" }} />;
+        return <CloseCircleOutlined style={{ color: colorError }} />;
       case "syncing":
-        return <SyncOutlined spin style={{ color: "#1890ff" }} />;
+        return <SyncOutlined spin style={{ color: colorPrimary }} />;
       default:
-        return <ClockCircleOutlined style={{ color: "#d9d9d9" }} />;
+        return <ClockCircleOutlined style={{ color: colorTextTertiary }} />;
     }
+  };
+
+  const renderCardContent = (content: ReactNode) => {
+    if (loading) {
+      return <Skeleton active paragraph={{ rows: 1 }} title={false} />;
+    }
+
+    return content;
   };
 
   const formatLastSync = (dateStr?: string) => {
@@ -58,44 +77,48 @@ export function InventoryStats({ stats, loading, syncStatus }: Props) {
     <Row gutter={16} style={{ marginBottom: 16 }}>
       <Col span={6}>
         <Card bordered={false} size="small">
-          <Statistic
-            title="Total Items"
-            value={stats?.total_records || 0}
-            prefix={<DatabaseOutlined />}
-            loading={loading}
-          />
+          {renderCardContent(
+            <Statistic
+              title="Total Items"
+              value={stats?.total_records || 0}
+              prefix={<DatabaseOutlined />}
+            />,
+          )}
         </Card>
       </Col>
       <Col span={6}>
         <Card bordered={false} size="small">
-          <Statistic
-            title="Columns"
-            value={stats?.total_columns || 0}
-            prefix={<TableOutlined />}
-            loading={loading}
-          />
+          {renderCardContent(
+            <Statistic
+              title="Columns"
+              value={stats?.total_columns || 0}
+              prefix={<TableOutlined />}
+            />,
+          )}
         </Card>
       </Col>
       <Col span={6}>
         <Card bordered={false} size="small">
-          <Statistic
-            title="Last Sync"
-            value={formatLastSync(stats?.last_sync)}
-            prefix={<ClockCircleOutlined />}
-            loading={loading}
-            valueStyle={{ fontSize: 16 }}
-          />
+          {renderCardContent(
+            <Statistic
+              title="Last Sync"
+              value={formatLastSync(stats?.last_sync)}
+              prefix={<ClockCircleOutlined />}
+              valueStyle={{ fontSize: 16 }}
+            />,
+          )}
         </Card>
       </Col>
       <Col span={6}>
         <Card bordered={false} size="small">
-          <Statistic
-            title="Status"
-            value={syncStatus || "Unknown"}
-            prefix={getStatusIcon()}
-            loading={loading}
-            valueStyle={{ fontSize: 16, textTransform: "capitalize" }}
-          />
+          {renderCardContent(
+            <Statistic
+              title="Status"
+              value={syncStatus || "Unknown"}
+              prefix={getStatusIcon()}
+              valueStyle={{ fontSize: 16, textTransform: "capitalize" }}
+            />,
+          )}
         </Card>
       </Col>
     </Row>

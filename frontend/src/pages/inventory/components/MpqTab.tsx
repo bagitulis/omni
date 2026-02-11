@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { Table, Button, Switch, Space } from "antd";
+import type { Key } from "react";
+import { Table, Button, Switch, Space, Empty } from "antd";
 import { useInventory } from "@/hooks/useInventory";
 import type { InventoryRecord } from "@/types/inventory";
 import {
@@ -10,6 +11,7 @@ import { WholesaleMpqModal } from "@/components/modals/WholesaleMpqModal";
 
 export function MpqTab() {
   const { data: inventory, isLoading: isInventoryLoading } = useInventory();
+  const records = inventory?.records || [];
   const { data: mpqSettings, isLoading: isMpqLoading } =
     useInventoryMpqSettings();
   const { mutate: updateMpq } = useUpdateInventoryMpqSettings();
@@ -20,7 +22,9 @@ export function MpqTab() {
   const mpqMap = useMemo(() => {
     const map = new Map();
     if (mpqSettings) {
-      mpqSettings.forEach((s) => map.set(s.sku, s));
+      mpqSettings.forEach((setting) => {
+        map.set(setting.sku, setting);
+      });
     }
     return map;
   }, [mpqSettings]);
@@ -73,15 +77,20 @@ export function MpqTab() {
       </Space>
 
       <Table
-        dataSource={inventory?.records || []}
+        dataSource={records}
         columns={columns}
         rowKey="key_value"
         loading={isInventoryLoading || isMpqLoading}
         rowSelection={{
           selectedRowKeys: selectedSkus,
-          onChange: (keys) => setSelectedSkus(keys as string[]),
+          onChange: (keys: Key[]) => setSelectedSkus(keys.map(String)),
         }}
         pagination={{ pageSize: 20 }}
+        locale={{
+          emptyText: (
+            <Empty description="No inventory items available for MPQ configuration" />
+          ),
+        }}
       />
 
       <WholesaleMpqModal
