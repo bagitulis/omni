@@ -53,7 +53,7 @@ export const ReportModal = ({
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
   };
 
   return (
@@ -114,7 +114,7 @@ export const ReportModal = ({
           maxHeight: "75vh",
           overflowY: "auto",
           padding: 16,
-          background: "#fff",
+          background: token.colorBgContainer,
           border: `1px solid ${token.colorBorderSecondary}`,
           borderRadius: token.borderRadius,
         }}
@@ -124,7 +124,16 @@ export const ReportModal = ({
             <Spin size="large" tip="Loading report content..." />
           </div>
         ) : htmlContent ? (
-          <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+          <iframe
+            title="ML report content"
+            srcDoc={htmlContent}
+            style={{
+              width: "100%",
+              minHeight: "58vh",
+              border: "none",
+              background: token.colorBgContainer,
+            }}
+          />
         ) : (
           <Empty description="Report content not available" />
         )}
