@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/config"
+	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/sync"
 )
 
@@ -98,4 +100,209 @@ func (h *OrderManagerHandler) getOrdersFromDatabase(c *gin.Context, category str
 		"data":    orders,
 		"count":   len(orders),
 	})
+}
+
+// GetOrderByOrderSn gets order detail by order_sn
+// Searches across all platforms and returns the order with items
+// @Summary Get order detail by order_sn
+// @Tags Orders
+// @Success 200 {object} map[string]interface{}
+// @Router /api/orders/:orderSn [get]
+func (h *OrderManagerHandler) GetOrderByOrderSn(c *gin.Context) {
+	tenantID := c.GetString("tenantID")
+	if tenantID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Missing tenant_id",
+		})
+		return
+	}
+
+	orderSn := c.Param("orderSn")
+	if orderSn == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Missing order_sn",
+		})
+		return
+	}
+
+	orderManagerLogger.WithTenantID(tenantID).WithFields(map[string]interface{}{
+		"order_sn": orderSn,
+	}).Info("Fetching order detail by order_sn")
+
+	// Get database connection
+	db, err := config.GetTenantDBByID(tenantID)
+	if err != nil {
+		orderManagerLogger.WithTenantID(tenantID).Error("Failed to get database connection: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Database connection failed",
+		})
+		return
+	}
+
+	// Try to find order in each platform table
+	// Search Shopee
+	var shopeeOrder models.ShopeeOrder
+	if err := db.WithContext(c.Request.Context()).Where("order_sn = ?", orderSn).First(&shopeeOrder).Error; err == nil {
+		// Found in Shopee, get items
+		var items []models.ShopeeOrderItem
+		db.WithContext(c.Request.Context()).Where("order_sn = ?", orderSn).Find(&items)
+
+		// Convert to frontend format
+		orderDetail := h.convertShopeeOrderToDetail(&shopeeOrder, items)
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    orderDetail,
+		})
+		return
+	}
+
+	// Search Lazada
+	var lazadaOrder models.LazadaOrder
+	if err := db.WithContext(c.Request.Context()).Where("order_sn = ?", orderSn).First(&lazadaOrder).Error; err == nil {
+		// Found in Lazada, get items
+		var items []models.LazadaOrderItem
+		db.WithContext(c.Request.Context()).Where("order_sn = ?", orderSn).Find(&items)
+
+		// Convert to frontend format
+		orderDetail := h.convertLazadaOrderToDetail(&lazadaOrder, items)
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    orderDetail,
+		})
+		return
+	}
+
+	// Search TikTok
+	var tiktokOrder models.TiktokOrder
+	if err := db.WithContext(c.Request.Context()).Where("order_sn = ?", orderSn).First(&tiktokOrder).Error; err == nil {
+		// Found in TikTok, get items
+		var items []models.TiktokOrderItem
+		db.WithContext(c.Request.Context()).Where("order_sn = ?", orderSn).Find(&items)
+
+		// Convert to frontend format
+		orderDetail := h.convertTiktokOrderToDetail(&tiktokOrder, items)
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    orderDetail,
+		})
+		return
+	}
+
+	// Order not found in any platform
+	orderManagerLogger.WithTenantID(tenantID).WithFields(map[string]interface{}{
+		"order_sn": orderSn,
+	}).Warn("Order not found")
+	c.JSON(http.StatusNotFound, gin.H{
+		"success": false,
+		"error":   "Order not found",
+	})
+}
+
+// Helper functions to convert platform orders to frontend format
+func (h *OrderManagerHandler) convertShopeeOrderToDetail(order *models.ShopeeOrder, items []models.ShopeeOrderItem) map[string]interface{} {
+	orderItems := make([]map[string]interface{}, len(items))
+	for i, item := range items {
+		orderItems[i] = map[string]interface{}{
+			"item_id":   item.ItemID,
+			"item_name": item.ItemName,
+			"item_sku":  item.ItemSku,
+			"quantity":  item.Quantity,
+			"price":     item.Price,
+			"total":     float64(*item.Quantity) * *item.Price,
+		}
+	}
+
+	return map[string]interface{}{
+		"id":               order.ID,
+		"order_sn":         order.OrderSN,
+		"order_no":         order.OrderSN,
+		"order_status":     order.OrderStatus,
+		"status":           order.OrderStatus,
+		"platform":         "shopee",
+		"category":         "", // Category not stored in order model
+		"buyer_username":   order.BuyerUsername,
+		"total_amount":     order.TotalAmount,
+		"currency":         order.Currency,
+		"payment_method":   order.PaymentMethod,
+		"shipping_carrier": order.ShippingCarrier,
+		"tracking_number":  order.TrackingNumber,
+		"ship_by_date":     order.ShipByDate,
+		"buyer_message":    order.BuyerMessage,
+		"created_at":       order.CreatedAt,
+		"updated_at":       order.UpdatedAt,
+		"items":            orderItems,
+	}
+}
+
+func (h *OrderManagerHandler) convertLazadaOrderToDetail(order *models.LazadaOrder, items []models.LazadaOrderItem) map[string]interface{} {
+	orderItems := make([]map[string]interface{}, len(items))
+	for i, item := range items {
+		orderItems[i] = map[string]interface{}{
+			"item_id":   item.ItemID,
+			"item_name": item.ProductName,
+			"item_sku":  item.SellerSku,
+			"quantity":  item.Quantity,
+			"price":     item.Price,
+			"total":     float64(*item.Quantity) * *item.Price,
+		}
+	}
+
+	return map[string]interface{}{
+		"id":               order.ID,
+		"order_sn":         order.OrderSN,
+		"order_no":         order.OrderSN,
+		"order_status":     order.OrderStatus,
+		"status":           order.OrderStatus,
+		"platform":         "lazada",
+		"category":         "",
+		"buyer_username":   order.BuyerUsername,
+		"total_amount":     order.TotalAmount,
+		"currency":         order.Currency,
+		"payment_method":   order.PaymentMethod,
+		"shipping_carrier": order.ShippingCarrier,
+		"tracking_number":  order.TrackingNumber,
+		"ship_by_date":     order.ShipByDate,
+		"buyer_message":    order.BuyerMessage,
+		"created_at":       order.CreatedAt,
+		"updated_at":       order.UpdatedAt,
+		"items":            orderItems,
+	}
+}
+
+func (h *OrderManagerHandler) convertTiktokOrderToDetail(order *models.TiktokOrder, items []models.TiktokOrderItem) map[string]interface{} {
+	orderItems := make([]map[string]interface{}, len(items))
+	for i, item := range items {
+		orderItems[i] = map[string]interface{}{
+			"item_id":   item.ProductID,
+			"item_name": item.ProductName,
+			"item_sku":  item.SellerSku,
+			"quantity":  item.Quantity,
+			"price":     item.Price,
+			"total":     float64(*item.Quantity) * *item.Price,
+		}
+	}
+
+	return map[string]interface{}{
+		"id":               order.ID,
+		"order_sn":         order.OrderSN,
+		"order_no":         order.OrderSN,
+		"order_status":     order.OrderStatus,
+		"status":           order.OrderStatus,
+		"platform":         "tiktok",
+		"category":         "",
+		"buyer_username":   order.BuyerUsername,
+		"total_amount":     order.TotalAmount,
+		"currency":         order.Currency,
+		"payment_method":   order.PaymentMethod,
+		"shipping_carrier": order.ShippingCarrier,
+		"tracking_number":  order.TrackingNumber,
+		"ship_by_date":     order.ShipByDate,
+		"buyer_message":    order.BuyerMessage,
+		"created_at":       order.CreatedAt,
+		"updated_at":       order.UpdatedAt,
+		"items":            orderItems,
+	}
 }

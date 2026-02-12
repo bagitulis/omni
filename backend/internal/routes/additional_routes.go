@@ -125,6 +125,9 @@ func RegisterOrderManagerRoutes(router *gin.RouterGroup, handler *handlers.Order
 		orders.POST("/sync-all", handler.SyncAll)
 		orders.POST("/bulk-print-labels", handler.BulkPrintLabels)
 		orders.POST("/bulk-ship", handler.BulkShipOrders)
+
+		// IMPORTANT: This MUST be last - catch-all pattern for order_sn
+		orders.GET("/:orderSn", handler.GetOrderByOrderSn)
 	}
 }
 
@@ -189,6 +192,17 @@ func RegisterProductCreateRoutes(router *gin.RouterGroup, handler *handlers.Prod
 	categories.Use(middleware.Tenant())
 	{
 		categories.GET("/:platform", handler.GetCategories)
+	}
+}
+
+// RegisterShippingFilesRoutes registers shipping files routes
+func RegisterShippingFilesRoutes(router *gin.RouterGroup, handler *handlers.ShippingFilesHandler) {
+	shipping := router.Group("/shipping")
+	shipping.Use(middleware.Auth())
+	shipping.Use(middleware.Tenant())
+	{
+		shipping.GET("/files", handler.GetShippingFiles)
+		shipping.POST("/process-file", handler.ProcessShippingFile)
 	}
 }
 

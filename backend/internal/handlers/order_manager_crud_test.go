@@ -87,3 +87,55 @@ func TestOrderManagerHandler_GetUnpaidOrders_EmptyTenant(t *testing.T) {
 	// Handler may return success with empty data or error
 	// Both are valid responses for nonexistent tenant
 }
+
+// TestOrderManagerHandler_GetOrderByOrderSn_MissingTenant tests GetOrderByOrderSn without tenant
+func TestOrderManagerHandler_GetOrderByOrderSn_MissingTenant(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	handler := NewOrderManagerHandler("./data")
+	r.GET("/api/orders/:orderSn", handler.GetOrderByOrderSn)
+
+	req, _ := http.NewRequest("GET", "/api/orders/TEST123", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.False(t, resp["success"].(bool))
+	assert.Contains(t, resp["error"], "Missing tenant_id")
+}
+
+// TestOrderManagerHandler_GetOrderByOrderSn_MissingOrderSn tests GetOrderByOrderSn with empty orderSn
+func TestOrderManagerHandler_GetOrderByOrderSn_MissingOrderSn(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	r.Use(func(c *gin.Context) {
+		c.Set("tenantID", "test-tenant")
+		c.Next()
+	})
+
+	handler := NewOrderManagerHandler("./data")
+	r.GET("/api/orders/:orderSn", handler.GetOrderByOrderSn)
+
+	// This test verifies empty param validation
+	// Note: Gin router won't match this route if orderSn is empty
+	// But if it does, handler should validate
+	req, _ := http.NewRequest("GET", "/api/orders/", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	// 404 because route won't match
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// TestOrderManagerHandler_GetOrderByOrderSn_HandlerExists tests handler is properly initialized
+func TestOrderManagerHandler_GetOrderByOrderSn_HandlerExists(t *testing.T) {
+	handler := NewOrderManagerHandler("./data")
+	assert.NotNil(t, handler)
+	assert.Equal(t, "./data", handler.basePath)
+}
