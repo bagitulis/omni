@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Table, Tag, InputNumber, Button, Space, message } from "antd";
+import { Tag, InputNumber, Button, Space, message } from "antd";
 import { CheckOutlined, CloseOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import type {
@@ -7,6 +7,7 @@ import type {
   ProductManagerPlatform,
 } from "@/types/product_manager";
 import type { SkuCheckResult } from "@/types/inventory";
+import { VirtualTable } from "@/components/common/VirtualTable";
 import { getProductImage, getRowKey, extractSku } from "../utils";
 
 interface ProductManagerTableProps {
@@ -81,7 +82,8 @@ function PriceCell({
   }
 
   return (
-    <div
+    <button
+      type="button"
       onClick={() => {
         setPrice(value);
         setEditing(true);
@@ -92,6 +94,9 @@ function PriceCell({
         borderRadius: 4,
         border: "1px solid transparent",
         transition: "border-color 0.2s",
+        background: "transparent",
+        textAlign: "left",
+        width: "100%",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.borderColor = "#d9d9d9";
@@ -101,7 +106,7 @@ function PriceCell({
       }}
     >
       {value != null ? `Rp ${Math.round(value).toLocaleString("id-ID")}` : "—"}
-    </div>
+    </button>
   );
 }
 
@@ -290,7 +295,7 @@ export function ProductManagerTable({
   }, [allColumns, columnVisibility]);
 
   return (
-    <Table<DbProductRow>
+    <VirtualTable<DbProductRow>
       data-testid="product-manager-table"
       style={{ marginTop: 12 }}
       loading={isLoading}
@@ -309,6 +314,8 @@ export function ProductManagerTable({
         onChange: onPageChange,
         showSizeChanger: true,
       }}
+      enableVirtual={products.length > 50}
+      offsetBottom={360}
     />
   );
 }

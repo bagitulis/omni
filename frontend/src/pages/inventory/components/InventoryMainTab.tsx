@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import type { Key } from "react";
-import { Table, Spin, Empty, Alert, Button } from "antd";
+import { Spin, Empty, Alert, Button } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import { VirtualTable } from "@/components/common/VirtualTable";
 import { useSelectedColumns } from "@/hooks/useInventory";
-import { InventoryRecord } from "@/types/inventory";
+import type { InventoryRecord } from "@/types/inventory";
 import { StockCell } from "./StockCell";
 import { PriceCell } from "./PriceCell";
 
@@ -108,8 +109,7 @@ export function InventoryMainTab({
   }
 
   return (
-    <Table
-      virtual
+    <VirtualTable<InventoryRecord>
       columns={dynamicColumns}
       dataSource={records}
       rowKey="id"
@@ -118,9 +118,11 @@ export function InventoryMainTab({
         onChange: onSelectionChange,
       }}
       pagination={false}
-      scroll={{ y: 600, x: 1000 }}
+      scroll={{ x: 1000 }}
       size="small"
       bordered
+      enableVirtual={records.length > 50}
+      offsetBottom={420}
     />
   );
 }

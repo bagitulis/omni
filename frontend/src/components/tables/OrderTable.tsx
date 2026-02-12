@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
-import { GroupedOrder, OrderTableProps } from "./OrderTable.types";
 import { getOrderTableColumns } from "./OrderTableColumns";
+import type { GroupedOrder, OrderTableProps } from "./OrderTable.types";
 import { VirtualTable } from "@/components/common/VirtualTable";
 
 function OrderTable({
@@ -33,7 +33,11 @@ function OrderTable({
         });
       }
 
-      const order = orderMap.get(key)!;
+      const order = orderMap.get(key);
+      if (!order) {
+        return;
+      }
+
       // Accumulate by SKU + variation_name as grouping key (safety net for un-grouped backend data)
       const itemKey = `${item.sku || ""}|${item.variation_name || ""}|${item.product_name || ""}`;
       const existing = order.items.find(
@@ -88,7 +92,7 @@ function OrderTable({
       }}
       scroll={{ x: 900 }}
       style={{ backgroundColor: "#fff" }}
-      enableVirtual={groupedOrders.length > 20}
+      enableVirtual={groupedOrders.length > 50}
       offsetBottom={320}
     />
   );
