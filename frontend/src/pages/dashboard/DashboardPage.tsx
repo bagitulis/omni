@@ -9,7 +9,6 @@ import {
   Button,
   Flex,
   Menu,
-  Result,
 } from "antd";
 import {
   ShoppingOutlined,
@@ -194,34 +193,25 @@ export function DashboardPage() {
     </Flex>
   );
 
+  const handleMenuClick = ({ key }: { key: string }) => {
+    // Navigation map for features that have dedicated pages
+    const navigationMap: Record<string, string> = {
+      "product-management": "/product-manager",
+      "order-management": "/order-manager",
+      settings: "/settings",
+    };
+
+    if (navigationMap[key]) {
+      navigate(navigationMap[key]);
+    } else {
+      setActiveTab(key);
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case "overview":
         return renderOverview();
-      case "product-management":
-        return (
-          <Result
-            icon={<ShoppingOutlined />}
-            title="Product Management"
-            subTitle="Coming soon in Plan 3"
-          />
-        );
-      case "order-management":
-        return (
-          <Result
-            icon={<FileTextOutlined />}
-            title="Order Management"
-            subTitle="Coming soon in Plan 5"
-          />
-        );
-      case "settings":
-        return (
-          <Result
-            icon={<SettingOutlined />}
-            title="Settings"
-            subTitle="Coming soon"
-          />
-        );
       default:
         return null;
     }
@@ -274,7 +264,7 @@ export function DashboardPage() {
             mode="inline"
             selectedKeys={[activeTab]}
             items={menuItems}
-            onClick={({ key }) => setActiveTab(key)}
+            onClick={handleMenuClick}
             style={{ borderRight: 0, height: "100%" }}
           />
         </div>

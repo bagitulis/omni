@@ -224,7 +224,11 @@ const LoginPage: React.FC = () => {
             label="Username"
             rules={[{ required: true, message: "Please input your username!" }]}
           >
-            <Input prefix={<UserOutlined />} placeholder="Username" />
+            <Input
+              prefix={<UserOutlined />}
+              placeholder="Username"
+              autoComplete="username"
+            />
           </Form.Item>
 
           <Form.Item
@@ -232,7 +236,11 @@ const LoginPage: React.FC = () => {
             label="Password"
             rules={[{ required: true, message: "Please input your password!" }]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="Password" />
+            <Input.Password
+              prefix={<LockOutlined />}
+              placeholder="Password"
+              autoComplete="current-password"
+            />
           </Form.Item>
 
           <Form.Item>

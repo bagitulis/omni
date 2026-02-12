@@ -1,4 +1,4 @@
-import { Form, Input, Button } from "antd";
+import { Form, Input, Button, Typography } from "antd";
 import { useEffect } from "react";
 
 export interface BasicFormValues {
@@ -36,7 +36,7 @@ export function ProductBasicForm({
       style={{ maxWidth: 600, margin: "0 auto" }}
     >
       <Form.Item
-        label={<span className="font-medium">Product Name</span>}
+        label={<Typography.Text strong>Product Name</Typography.Text>}
         name="item_name"
         rules={[
           { required: true, message: "Please enter product name" },
@@ -51,7 +51,7 @@ export function ProductBasicForm({
       </Form.Item>
 
       <Form.Item
-        label={<span className="font-medium">Description</span>}
+        label={<Typography.Text strong>Description</Typography.Text>}
         name="description"
         rules={[
           { required: true, message: "Please enter description" },
@@ -67,7 +67,7 @@ export function ProductBasicForm({
       </Form.Item>
 
       <Form.Item
-        label={<span className="font-medium">Brand</span>}
+        label={<Typography.Text strong>Brand</Typography.Text>}
         name="brand"
       >
         <Input placeholder="Ex: Samsung" />

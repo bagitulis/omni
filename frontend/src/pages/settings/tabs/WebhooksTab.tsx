@@ -64,7 +64,10 @@ export default function WebhooksTab() {
                 name="secret_key"
                 style={{ marginBottom: 12 }}
               >
-                <Input.Password placeholder="Optional: webhook signature key" />
+                <Input.Password
+                  placeholder="Optional: webhook signature key"
+                  autoComplete="off"
+                />
               </Form.Item>
               <Space>
                 <Button

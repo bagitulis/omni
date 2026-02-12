@@ -10,6 +10,8 @@ import {
   Tabs,
   Tooltip,
   Typography,
+  theme,
+  Flex,
 } from "antd";
 import { useRouteMapping } from "@/hooks/useRouteMapping";
 import type { ViewMode } from "@/types/routeMapping";
@@ -25,6 +27,7 @@ import { RouteStats } from "./components/RouteStats";
 const { Title, Text } = Typography;
 
 export function RouteMappingPage() {
+  const { token } = theme.useToken();
   const {
     data,
     isLoading,
@@ -46,7 +49,7 @@ export function RouteMappingPage() {
 
   if (error) {
     return (
-      <div className="p-6">
+      <div style={{ padding: 24 }}>
         <Alert
           message="Error Loading Route Mapping"
           description={(error as Error).message}
@@ -76,104 +79,106 @@ export function RouteMappingPage() {
   );
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <Title level={2} style={{ margin: 0 }}>
-            Route Mapping
-          </Title>
-          <Text type="secondary">
-            Visualize and analyze API route connections
-          </Text>
-        </div>
-        <div className="flex gap-2">
-          <Input
-            placeholder="Search routes or components..."
-            prefix={<SearchOutlined />}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ width: 300 }}
-            allowClear
-          />
-          <Tooltip title="Refresh Data">
-            <Button
-              icon={<ReloadOutlined spin={isFetching} />}
-              onClick={() => refetch()}
-              loading={isFetching}
+    <div style={{ padding: 24 }}>
+      <Flex vertical gap={24}>
+        <Flex justify="space-between" align="center">
+          <div>
+            <Title level={2} style={{ margin: 0 }}>
+              Route Mapping
+            </Title>
+            <Text type="secondary">
+              Visualize and analyze API route connections
+            </Text>
+          </div>
+          <Flex gap={8}>
+            <Input
+              placeholder="Search routes or components..."
+              prefix={<SearchOutlined />}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ width: 300 }}
+              allowClear
             />
-          </Tooltip>
-        </div>
-      </div>
+            <Tooltip title="Refresh Data">
+              <Button
+                icon={<ReloadOutlined spin={isFetching} />}
+                onClick={() => refetch()}
+                loading={isFetching}
+              />
+            </Tooltip>
+          </Flex>
+        </Flex>
 
-      {isLoading && !data ? (
-        <div className="flex justify-center p-12">
-          <Spin size="large" tip="Analyzing Routes..." />
-        </div>
-      ) : (
-        <>
-          <RouteStats data={data} categoryStats={categoryStats} />
+        {isLoading && !data ? (
+          <Flex justify="center" style={{ padding: 48 }}>
+            <Spin size="large" tip="Analyzing Routes..." />
+          </Flex>
+        ) : (
+          <>
+            <RouteStats data={data} categoryStats={categoryStats} />
 
-          <Card
-            bordered={false}
-            bodyStyle={{ padding: "0" }}
-            className="overflow-hidden"
-          >
-            <Tabs
-              activeKey={viewMode}
-              onChange={handleTabChange}
-              type="card"
-              size="large"
-              tabBarStyle={{
-                margin: 0,
-                padding: "8px 8px 0 8px",
-                background: "#fafafa",
-              }}
-              items={[
-                {
-                  key: "categories",
-                  label: `Connected (${categoryStats.connected})`,
-                  children: renderTable(
-                    filteredLists.connected,
-                    columnsConnected,
-                  ),
-                },
-                {
-                  key: "component",
-                  label: `Components (${Object.keys(filteredComponents).length})`,
-                  children: (
-                    <ComponentsList filteredComponents={filteredComponents} />
-                  ),
-                },
-                {
-                  key: "disconnected",
-                  label: (
-                    <span className="text-red-500">
-                      Frontend Only ({categoryStats.frontend_only})
-                    </span>
-                  ),
-                  children: renderTable(
-                    filteredLists.frontendOnly,
-                    columnsFrontendOnly,
-                  ),
-                },
-                {
-                  key: "backend",
-                  label: `Backend Only (${categoryStats.backend_only})`,
-                  children: renderTable(
-                    filteredLists.backendOnly,
-                    columnsBackendOnly,
-                  ),
-                },
-                {
-                  key: "unused",
-                  label: `Unused (${categoryStats.unused})`,
-                  children: renderTable(filteredLists.unused, columnsUnused),
-                },
-              ]}
-            />
-          </Card>
-        </>
-      )}
+            <Card
+              bordered={false}
+              bodyStyle={{ padding: "0" }}
+              style={{ overflow: "hidden" }}
+            >
+              <Tabs
+                activeKey={viewMode}
+                onChange={handleTabChange}
+                type="card"
+                size="large"
+                tabBarStyle={{
+                  margin: 0,
+                  padding: "8px 8px 0 8px",
+                  background: "#fafafa",
+                }}
+                items={[
+                  {
+                    key: "categories",
+                    label: `Connected (${categoryStats.connected})`,
+                    children: renderTable(
+                      filteredLists.connected,
+                      columnsConnected,
+                    ),
+                  },
+                  {
+                    key: "component",
+                    label: `Components (${Object.keys(filteredComponents).length})`,
+                    children: (
+                      <ComponentsList filteredComponents={filteredComponents} />
+                    ),
+                  },
+                  {
+                    key: "disconnected",
+                    label: (
+                      <span style={{ color: token.colorError }}>
+                        Frontend Only ({categoryStats.frontend_only})
+                      </span>
+                    ),
+                    children: renderTable(
+                      filteredLists.frontendOnly,
+                      columnsFrontendOnly,
+                    ),
+                  },
+                  {
+                    key: "backend",
+                    label: `Backend Only (${categoryStats.backend_only})`,
+                    children: renderTable(
+                      filteredLists.backendOnly,
+                      columnsBackendOnly,
+                    ),
+                  },
+                  {
+                    key: "unused",
+                    label: `Unused (${categoryStats.unused})`,
+                    children: renderTable(filteredLists.unused, columnsUnused),
+                  },
+                ]}
+              />
+            </Card>
+          </>
+        )}
+      </Flex>
     </div>
   );
 }

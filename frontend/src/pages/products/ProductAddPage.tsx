@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Steps, message, Card } from "antd";
+import { Steps, message, Card, Typography, theme, Flex } from "antd";
 import type { UploadFile } from "antd/es/upload/interface";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeftOutlined } from "@ant-design/icons";
@@ -47,6 +47,7 @@ const INITIAL_VALUES: ProductFormValues = {
 
 export default function ProductAddPage() {
   const navigate = useNavigate();
+  const { token } = theme.useToken();
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<ProductFormValues>(INITIAL_VALUES);
   const [submitting, setSubmitting] = useState(false);
@@ -129,25 +130,31 @@ export default function ProductAddPage() {
   ];
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="mb-6 flex items-center gap-4">
+    <div style={{ padding: 24, maxWidth: 1024, margin: "0 auto" }}>
+      <Flex align="center" gap={16} style={{ marginBottom: 24 }}>
         <Link
           to="/master-products"
-          className="text-gray-500 hover:text-blue-600"
+          style={{
+            color: token.colorTextSecondary,
+            fontSize: 18,
+            lineHeight: 1,
+          }}
         >
-          <ArrowLeftOutlined style={{ fontSize: 18 }} />
+          <ArrowLeftOutlined />
         </Link>
-        <h1 className="text-2xl font-bold m-0">Add New Product</h1>
-      </div>
+        <Typography.Title level={2} style={{ margin: 0 }}>
+          Add New Product
+        </Typography.Title>
+      </Flex>
 
       <Card>
         <Steps
           current={currentStep}
           items={steps.map((item) => ({ title: item.title }))}
-          className="mb-8 max-w-3xl mx-auto"
+          style={{ marginBottom: 32, maxWidth: 768, marginInline: "auto" }}
         />
 
-        <div className="mt-8">{steps[currentStep].content}</div>
+        <div style={{ marginTop: 32 }}>{steps[currentStep].content}</div>
       </Card>
     </div>
   );

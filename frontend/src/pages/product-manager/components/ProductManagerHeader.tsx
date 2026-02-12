@@ -55,7 +55,7 @@ export function ProductManagerHeader({
       <Flex align="center" gap={8}>
         <input
           type="checkbox"
-          checked={columnVisibility[col.key] !== false}
+          checked={columnVisibility?.[col.key] ?? true}
           onChange={(e) => {
             onColumnVisibilityChange({
               ...columnVisibility,

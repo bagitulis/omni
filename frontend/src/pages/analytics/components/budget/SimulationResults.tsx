@@ -143,40 +143,39 @@ export const SimulationResults = ({
             icon={<InfoCircleOutlined />}
           />
 
-          {simulationResult.alternatives &&
-            simulationResult.alternatives.length > 0 && (
-              <div>
-                <Divider orientation="left">Alternatives</Divider>
-                <ul style={{ paddingLeft: 20 }}>
-                  {simulationResult.alternatives.map((alt, idx) => (
-                    <li
-                      key={`${idx}-${alt.target_roas}-${alt.budget}`}
-                      style={{ marginBottom: 8 }}
-                    >
-                      <Text>
-                        {alt.target_roas && alt.required_budget ? (
-                          <>
-                            To reach ROAS{" "}
-                            <Text strong>{formatRoas(alt.target_roas)}</Text>,
-                            you need{" "}
-                            <Text strong>
-                              {formatCurrency(alt.required_budget)}/day
-                            </Text>
-                          </>
-                        ) : alt.budget && alt.expected_roas ? (
-                          <>
-                            Budget{" "}
-                            <Text strong>{formatCurrency(alt.budget)}/day</Text>{" "}
-                            yields{" "}
-                            <Text strong>{formatRoas(alt.expected_roas)}</Text>
-                          </>
-                        ) : null}
-                      </Text>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+          {(simulationResult?.alternatives ?? []).length > 0 && (
+            <div>
+              <Divider orientation="left">Alternatives</Divider>
+              <ul style={{ paddingLeft: 20 }}>
+                {(simulationResult?.alternatives ?? []).map((alt, idx) => (
+                  <li
+                    key={`${idx}-${alt.target_roas}-${alt.budget}`}
+                    style={{ marginBottom: 8 }}
+                  >
+                    <Text>
+                      {alt.target_roas && alt.required_budget ? (
+                        <>
+                          To reach ROAS{" "}
+                          <Text strong>{formatRoas(alt.target_roas)}</Text>, you
+                          need{" "}
+                          <Text strong>
+                            {formatCurrency(alt.required_budget)}/day
+                          </Text>
+                        </>
+                      ) : alt.budget && alt.expected_roas ? (
+                        <>
+                          Budget{" "}
+                          <Text strong>{formatCurrency(alt.budget)}/day</Text>{" "}
+                          yields{" "}
+                          <Text strong>{formatRoas(alt.expected_roas)}</Text>
+                        </>
+                      ) : null}
+                    </Text>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </Card>

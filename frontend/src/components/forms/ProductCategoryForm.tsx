@@ -1,4 +1,4 @@
-import { Form, Select, Input, Button } from "antd";
+import { Form, Select, Input, Button, Typography, theme } from "antd";
 import { useState, useEffect } from "react";
 
 export interface CategoryFormValues {
@@ -67,6 +67,7 @@ export function ProductCategoryForm({
   onFinish,
   onBack,
 }: Props) {
+  const { token } = theme.useToken();
   const [form] = Form.useForm<CategoryFormValues>();
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
     initialValues.category,
@@ -100,7 +101,7 @@ export function ProductCategoryForm({
       style={{ maxWidth: 600, margin: "0 auto" }}
     >
       <Form.Item
-        label={<span className="font-medium">Category</span>}
+        label={<Typography.Text strong>Category</Typography.Text>}
         name="category"
         rules={[{ required: true, message: "Please select a category" }]}
       >
@@ -114,19 +115,31 @@ export function ProductCategoryForm({
       {selectedCategory && (
         <div
           style={{
-            background: "#f8fafc",
+            background: token.colorBgLayout,
             padding: 24,
-            borderRadius: 8,
+            borderRadius: token.borderRadiusLG,
             marginBottom: 24,
-            border: "1px solid #e2e8f0",
+            border: `1px solid ${token.colorBorderSecondary}`,
           }}
         >
-          <h4 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 600 }}>
+          <h4
+            style={{
+              margin: "0 0 16px",
+              fontSize: 14,
+              fontWeight: 600,
+              color: token.colorText,
+            }}
+          >
             Category Attributes
           </h4>
 
           {currentAttributes.length === 0 ? (
-            <div style={{ color: "#64748b", fontStyle: "italic" }}>
+            <div
+              style={{
+                color: token.colorTextSecondary,
+                fontStyle: "italic",
+              }}
+            >
               No specific attributes for this category.
             </div>
           ) : (

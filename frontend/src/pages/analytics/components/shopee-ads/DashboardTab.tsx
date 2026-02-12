@@ -29,9 +29,9 @@ const DashboardTab = ({
   onUploadClick,
 }: DashboardTabProps) => {
   const { token } = useToken();
-  const calculatedSummary = useSummary(adsData);
+  const calculatedSummary = useSummary(adsData ?? []);
   const summary = summaryOverride || calculatedSummary;
-  const hasData = adsData.length > 0;
+  const hasData = (adsData ?? []).length > 0;
 
   if (loading) {
     return (
@@ -45,27 +45,28 @@ const DashboardTab = ({
     return <EmptyState onUploadClick={onUploadClick} />;
   }
 
-  const chartCategories = adsData.slice(0, 6).map((d) => d.product_name);
+  const safeAdsData = adsData ?? [];
+  const chartCategories = safeAdsData.slice(0, 6).map((d) => d.product_name);
 
   const costRevenueData = [
-    { name: "Cost", data: adsData.slice(0, 6).map((d) => d.cost) },
-    { name: "Revenue", data: adsData.slice(0, 6).map((d) => d.revenue) },
+    { name: "Cost", data: safeAdsData.slice(0, 6).map((d) => d.cost) },
+    { name: "Revenue", data: safeAdsData.slice(0, 6).map((d) => d.revenue) },
   ];
 
   const performanceData = [
     {
       name: "CTR (%)",
-      data: adsData.slice(0, 6).map((d) => Number(d.ctr.toFixed(2))),
+      data: safeAdsData.slice(0, 6).map((d) => Number(d.ctr.toFixed(2))),
     },
     {
       name: "ROAS",
-      data: adsData.slice(0, 6).map((d) => Number(d.roas.toFixed(2))),
+      data: safeAdsData.slice(0, 6).map((d) => Number(d.roas.toFixed(2))),
     },
   ];
 
   // Map AdsData to PerformanceData format for the table
   // AdsData has product_id, product_name, cost, revenue, orders (as conversions), roas
-  const performanceTableData = adsData.slice(0, 10).map((d) => ({
+  const performanceTableData = safeAdsData.slice(0, 10).map((d) => ({
     product_id: d.product_id,
     product_name: d.product_name,
     cost: d.cost,

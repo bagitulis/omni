@@ -89,8 +89,8 @@ export const AIReportGalleryPage = () => {
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
         )
       : platform === "tiktok"
-        ? tiktokReportsQuery.data?.reports
-        : shopeeReportsQuery.data?.reports;
+        ? (tiktokReportsQuery.data?.reports ?? [])
+        : (shopeeReportsQuery.data?.reports ?? []);
 
   const isLoading =
     platform === "all"

@@ -11,6 +11,8 @@ import {
   Typography,
   Space,
   Steps,
+  theme,
+  Flex,
 } from "antd";
 import { Product } from "@/types/product";
 import { usePriceUpdate } from "@/hooks/usePricing";
@@ -31,6 +33,7 @@ type AdjustmentType =
   | "set_value";
 
 export function PriceModal({ open, onCancel, selectedProducts }: Props) {
+  const { token } = theme.useToken();
   const [step, setStep] = useState<number>(0);
   const [adjustmentType, setAdjustmentType] = useState<AdjustmentType>(
     "percentage_increase",
@@ -104,7 +107,7 @@ export function PriceModal({ open, onCancel, selectedProducts }: Props) {
     {
       title: "Configure",
       content: (
-        <div className="flex flex-col gap-4 py-4">
+        <Flex vertical gap={16} style={{ paddingBlock: 16 }}>
           <Alert
             message="Bulk Price Update"
             description={`You are about to update prices for ${selectedProducts.length} selected products.`}
@@ -141,7 +144,7 @@ export function PriceModal({ open, onCancel, selectedProducts }: Props) {
 
             <Form.Item label="Value">
               <InputNumber
-                className="w-full"
+                style={{ width: "100%" }}
                 value={value}
                 onChange={(val) => setValue(val || 0)}
                 min={0}
@@ -159,19 +162,26 @@ export function PriceModal({ open, onCancel, selectedProducts }: Props) {
                 value={platforms}
                 onChange={(vals) => setPlatforms(vals as string[])}
               />
-              <Typography.Text type="secondary" className="block mt-1 text-xs">
+              <Typography.Text
+                type="secondary"
+                style={{
+                  display: "block",
+                  marginTop: 4,
+                  fontSize: token.fontSizeSM,
+                }}
+              >
                 If none selected, prices will be updated in Omni system only
                 (and synced later).
               </Typography.Text>
             </Form.Item>
           </Form>
-        </div>
+        </Flex>
       ),
     },
     {
       title: "Preview",
       content: (
-        <div className="flex flex-col gap-4 py-4">
+        <Flex vertical gap={16} style={{ paddingBlock: 16 }}>
           <Alert
             message="Review Changes"
             description="Please review the price changes below before confirming. Red rows indicate potential issues (e.g. zero price)."
@@ -196,14 +206,28 @@ export function PriceModal({ open, onCancel, selectedProducts }: Props) {
                     <img
                       src={record.image_url || "/placeholder.png"}
                       alt=""
-                      className="w-8 h-8 object-cover rounded-sm"
+                      style={{
+                        width: 32,
+                        height: 32,
+                        objectFit: "cover",
+                        borderRadius: 2,
+                      }}
                     />
-                    <div className="flex flex-col">
-                      <span className="font-medium text-xs">{text}</span>
-                      <span className="text-xs text-gray-400">
+                    <Flex vertical>
+                      <span
+                        style={{ fontWeight: 500, fontSize: token.fontSizeSM }}
+                      >
+                        {text}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: token.fontSizeSM,
+                          color: token.colorTextDescription,
+                        }}
+                      >
                         {record.item_sku}
                       </span>
-                    </div>
+                    </Flex>
                   </Space>
                 ),
               },
@@ -216,7 +240,11 @@ export function PriceModal({ open, onCancel, selectedProducts }: Props) {
               {
                 title: "",
                 width: 30,
-                render: () => <ArrowRightOutlined className="text-gray-400" />,
+                render: () => (
+                  <ArrowRightOutlined
+                    style={{ color: token.colorTextDescription }}
+                  />
+                ),
               },
               {
                 title: "New Price",
@@ -224,11 +252,10 @@ export function PriceModal({ open, onCancel, selectedProducts }: Props) {
                 width: 100,
                 render: (val) => (
                   <span
-                    className={
-                      val === 0
-                        ? "text-red-500 font-bold"
-                        : "text-green-600 font-bold"
-                    }
+                    style={{
+                      fontWeight: "bold",
+                      color: val === 0 ? token.colorError : token.colorSuccess,
+                    }}
                   >
                     {val?.toLocaleString()}
                   </span>
@@ -240,13 +267,14 @@ export function PriceModal({ open, onCancel, selectedProducts }: Props) {
                 width: 100,
                 render: (val) => (
                   <span
-                    className={
-                      val > 0
-                        ? "text-green-600"
-                        : val < 0
-                          ? "text-red-500"
-                          : "text-gray-400"
-                    }
+                    style={{
+                      color:
+                        val > 0
+                          ? token.colorSuccess
+                          : val < 0
+                            ? token.colorError
+                            : token.colorTextDescription,
+                    }}
                   >
                     {val > 0 ? "+" : ""}
                     {val?.toLocaleString()}
@@ -255,7 +283,7 @@ export function PriceModal({ open, onCancel, selectedProducts }: Props) {
               },
             ]}
           />
-        </div>
+        </Flex>
       ),
     },
   ];
@@ -297,7 +325,7 @@ export function PriceModal({ open, onCancel, selectedProducts }: Props) {
         current={step}
         items={steps.map((s) => ({ title: s.title }))}
         size="small"
-        className="mb-4"
+        style={{ marginBottom: 16 }}
       />
       {steps[step].content}
     </Modal>
