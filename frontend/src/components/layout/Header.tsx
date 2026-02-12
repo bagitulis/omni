@@ -13,10 +13,13 @@ import {
   UserOutlined,
   LogoutOutlined,
   SettingOutlined,
+  SunOutlined,
+  MoonOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { TokenStatusDropdown } from "./TokenStatusDropdown";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;
@@ -32,6 +35,7 @@ export default function Header({ collapsed, onCollapse }: HeaderProps) {
   const {
     token: { colorBgContainer, colorBorderSecondary },
   } = theme.useToken();
+  const { isDark, toggle } = useTheme();
 
   const handleLogout = async () => {
     await logout();
@@ -99,6 +103,14 @@ export default function Header({ collapsed, onCollapse }: HeaderProps) {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Button
+          type="text"
+          icon={isDark ? <SunOutlined /> : <MoonOutlined />}
+          onClick={toggle}
+          aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          style={{ fontSize: 16 }}
+        />
+
         {/* Token Status Dropdown */}
         <TokenStatusDropdown />
 
