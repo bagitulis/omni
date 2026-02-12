@@ -8,11 +8,12 @@ import (
 	"github.com/omni/backend/internal/dto/request"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
-	shopeeService "github.com/omni/backend/internal/services/shopee"
+	labelSvc "github.com/omni/backend/internal/services/label"
 )
 
 // BulkPrintLabels handles POST /api/orders/bulk-print-labels
-// @Summary Bulk print shipping labels for multiple orders
+// Routes to the correct platform's shipping label service per order.
+// @Summary Bulk print shipping labels for multiple orders (multi-platform)
 // @Tags Orders
 // @Accept json
 // @Produce json
@@ -37,26 +38,19 @@ func (h *OrderManagerHandler) BulkPrintLabels(c *gin.Context) {
 		return
 	}
 
-	// Use real ShippingService
-	shippingService := shopeeService.NewShippingServiceWithCreds(tenantID, h.basePath)
+	labelService := labelSvc.NewLabelService(h.basePath)
 	ctx := context.Background()
 
 	labels := []map[string]interface{}{}
 	failed := []map[string]interface{}{}
 
 	for _, orderSN := range req.OrderSNs {
-		result, err := shippingService.GetShippingLabel(ctx, orderSN, "", "THERMAL_AIR_WAYBILL")
-		if err != nil {
-			failed = append(failed, map[string]interface{}{
-				"order_sn": orderSN,
-				"error":    err.Error(),
-			})
-			continue
-		}
+		result := labelService.GetLabel(ctx, tenantID, orderSN, "")
 
 		if result.Status == "FAILED" {
 			failed = append(failed, map[string]interface{}{
 				"order_sn": orderSN,
+				"platform": result.Platform,
 				"error":    result.ErrorMessage,
 			})
 			continue
@@ -64,7 +58,8 @@ func (h *OrderManagerHandler) BulkPrintLabels(c *gin.Context) {
 
 		labels = append(labels, map[string]interface{}{
 			"order_sn":  result.OrderSN,
-			"file_data": result.FileData, // Base64 encoded PDF
+			"platform":  result.Platform,
+			"file_data": result.FileData,
 			"status":    result.Status,
 		})
 	}
