@@ -37,6 +37,7 @@ export interface OrderItem {
   quantity: number;
   price: number;
   total: number;
+  order_item_id?: string; // Lazada-specific
 }
 
 export interface OrderDetail extends Order {

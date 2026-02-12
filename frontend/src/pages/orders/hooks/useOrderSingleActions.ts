@@ -6,7 +6,11 @@ import { OrderDetail, Order } from "@/types/order";
 import { GroupedOrder } from "@/components/tables/OrderTable.types";
 import { ShipConfirmPayload } from "@/components/modals/OrderShipModal";
 import { CancelFormValues } from "@/components/modals/OrderCancelModal";
-import { getOrderById, getLazadaDocument } from "@/api/orders";
+import {
+  getOrderById,
+  getLazadaDocument,
+  type CancelOrderParams,
+} from "@/api/orders";
 import {
   arrangeLazadaShipment,
   arrangeShopeeShipment,
@@ -74,7 +78,7 @@ export function useOrderSingleActions({
     const order = selectedOrder;
     const orderPlatform = (order.platform || "shopee").toLowerCase();
 
-    const params: any = {
+    const params: CancelOrderParams = {
       order_no: orderSn,
       platform: orderPlatform,
       cancel_reason: values.cancel_reason,
@@ -82,20 +86,23 @@ export function useOrderSingleActions({
     };
 
     if (orderPlatform === "lazada") {
-      const items = (order as any).items || [];
+      const detail = order as OrderDetail;
+      const items = detail.items || [];
       const firstItem = items[0];
 
       const orderItemId =
-        firstItem?.order_item_id ||
-        firstItem?.item_id ||
-        (order as any).order_item_id ||
-        (order as any).orderItemId ||
-        orderSn;
+        firstItem?.order_item_id || firstItem?.item_id || orderSn;
 
       params.order_item_id = String(orderItemId);
     }
 
-    await cancelOrder(params);
+    try {
+      await cancelOrder(params);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to cancel order";
+      message.error(errorMessage);
+    }
   };
 
   const handleSinglePrint = async (order: GroupedOrder) => {
@@ -124,7 +131,9 @@ export function useOrderSingleActions({
         message.success(`Printed label for ${orderSn}`);
       }
     } catch (error) {
-      // Error handled in hook
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to print label";
+      message.error(errorMessage);
     }
   };
 

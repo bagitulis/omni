@@ -88,7 +88,7 @@ export function ProductManagerPage() {
     if (lastAutoSyncedPlatformRef.current === activeTab) return;
 
     lastAutoSyncedPlatformRef.current = activeTab;
-    void syncMutation.mutateAsync();
+    syncMutation.mutate();
   }, [activeTab, autoSync, syncMutation]);
 
   const handleTabChange = (key: string) => {
