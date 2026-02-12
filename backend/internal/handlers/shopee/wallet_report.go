@@ -137,9 +137,15 @@ func (h *WalletReportHandler) ExportWallet(c *gin.Context) {
 	}
 
 	if len(transactions) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "No transactions found",
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "No transactions found for the selected period",
+			"data": gin.H{
+				"transactions": []interface{}{},
+				"count":        0,
+				"totalAmount":  0,
+				"period":       strconv.Itoa(req.Month) + "/" + strconv.Itoa(req.Year),
+			},
 		})
 		return
 	}

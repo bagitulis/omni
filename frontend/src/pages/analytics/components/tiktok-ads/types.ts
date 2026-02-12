@@ -17,5 +17,5 @@ export interface TikTokAdsData {
   date: string;
 }
 
-export const TIKTOK_BLACK = "#000000";
-export const TIKTOK_ACCENT = "#fe2c55";
+export const TIKTOK_BLACK = "currentColor";
+export const TIKTOK_ACCENT = "currentColor";

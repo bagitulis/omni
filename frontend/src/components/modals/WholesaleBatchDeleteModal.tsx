@@ -1,4 +1,4 @@
-import { Modal, Button, Typography, message, List } from "antd";
+import { Modal, Button, Typography, message, List, theme } from "antd";
 import { useBatchDeleteInventoryWholesale } from "@/hooks/useWholesale";
 
 interface WholesaleBatchDeleteModalProps {
@@ -12,6 +12,7 @@ export function WholesaleBatchDeleteModal({
   onClose,
   selectedSkus,
 }: WholesaleBatchDeleteModalProps) {
+  const { token } = theme.useToken();
   const { mutate: batchDelete, isPending } = useBatchDeleteInventoryWholesale();
 
   const handleDelete = () => {
@@ -63,7 +64,7 @@ export function WholesaleBatchDeleteModal({
           maxHeight: 200,
           overflowY: "auto",
           marginTop: 8,
-          border: "1px solid #f0f0f0",
+          border: `1px solid ${token.colorBorder}`,
           borderRadius: 4,
           padding: 8,
         }}

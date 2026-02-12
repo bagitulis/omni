@@ -1,4 +1,13 @@
-import { Button, Card, Divider, Flex, Progress, Space, Typography } from "antd";
+import {
+  Button,
+  Card,
+  Divider,
+  Flex,
+  Progress,
+  Space,
+  Typography,
+  theme,
+} from "antd";
 import { PrinterOutlined, SendOutlined } from "@ant-design/icons";
 
 const { Text } = Typography;
@@ -47,6 +56,7 @@ export function OrdersBulkActionsBar({
   printResult,
   cancelResult,
 }: OrdersBulkActionsBarProps) {
+  const { token } = theme.useToken();
   if (selectedCount <= 0) return null;
 
   const getProgressText = (progress: ProgressState, action: string) => {
@@ -77,15 +87,15 @@ export function OrdersBulkActionsBar({
     <Card
       size="small"
       style={{
-        backgroundColor: "#f0f9ff",
-        border: "1px solid #bae6fd",
+        backgroundColor: token.colorFillQuaternary,
+        border: `1px solid ${token.colorBorderSecondary}`,
         borderRadius: 4,
       }}
     >
       <Flex vertical gap={8}>
         <Flex justify="space-between" align="center">
           <Space split={<Divider type="vertical" />}>
-            <Text strong style={{ color: "#0369a1" }}>
+            <Text strong style={{ color: token.colorPrimary }}>
               {selectedCount} orders selected
             </Text>
             <Button

@@ -1,4 +1,4 @@
-import { Tabs, Card } from "antd";
+import { Tabs, Card, theme } from "antd";
 
 export const ALL_TABS = [
   { key: "unpaid", label: "Unpaid" },
@@ -52,6 +52,7 @@ export function OrderStatusTabs({
   totalCount,
   platform = "all",
 }: OrderStatusTabsProps) {
+  const { token } = theme.useToken();
   const getTabs = () => {
     switch (platform) {
       case "shopee":
@@ -73,7 +74,7 @@ export function OrderStatusTabs({
         <span>
           {tab.label}
           {tab.key === activeTab && tabCount > 0 && (
-            <span style={{ marginLeft: 4, color: "#ee4d2d" }}>
+            <span style={{ marginLeft: 4, color: token.colorPrimary }}>
               ({tabCount})
             </span>
           )}

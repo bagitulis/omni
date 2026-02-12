@@ -24,8 +24,8 @@ export function ActionSummaryCard({ portfolioHealth }: MLRecommendationsProps) {
         <div
           style={{
             padding: 12,
-            backgroundColor: "#dcfce7",
-            borderLeft: `3px solid #16a34a`,
+            backgroundColor: token.colorSuccessBg,
+            borderLeft: `3px solid ${token.colorSuccess}`,
             borderRadius: 3,
           }}
         >
@@ -35,15 +35,15 @@ export function ActionSummaryCard({ portfolioHealth }: MLRecommendationsProps) {
           >
             Scale Up ({portfolioHealth.scale_up_count})
           </Text>
-          <Text style={{ fontSize: 11, color: "#666" }}>
+          <Text style={{ fontSize: 11, color: token.colorTextSecondary }}>
             Products showing strong performance. Increase budget allocation.
           </Text>
         </div>
         <div
           style={{
             padding: 12,
-            backgroundColor: "#fef3c7",
-            borderLeft: `3px solid #f59e0b`,
+            backgroundColor: token.colorWarningBg,
+            borderLeft: `3px solid ${token.colorWarning}`,
             borderRadius: 3,
           }}
         >
@@ -53,15 +53,15 @@ export function ActionSummaryCard({ portfolioHealth }: MLRecommendationsProps) {
           >
             Maintain ({portfolioHealth.maintain_count})
           </Text>
-          <Text style={{ fontSize: 11, color: "#666" }}>
+          <Text style={{ fontSize: 11, color: token.colorTextSecondary }}>
             Stable performers. Continue current strategy.
           </Text>
         </div>
         <div
           style={{
             padding: 12,
-            backgroundColor: "#fee2e2",
-            borderLeft: `3px solid #dc2626`,
+            backgroundColor: token.colorErrorBg,
+            borderLeft: `3px solid ${token.colorError}`,
             borderRadius: 3,
           }}
         >
@@ -72,7 +72,7 @@ export function ActionSummaryCard({ portfolioHealth }: MLRecommendationsProps) {
             Reduce/Stop (
             {portfolioHealth.reduce_count + portfolioHealth.stop_count})
           </Text>
-          <Text style={{ fontSize: 11, color: "#666" }}>
+          <Text style={{ fontSize: 11, color: token.colorTextSecondary }}>
             Underperforming products. Consider budget reduction or pause.
           </Text>
         </div>
@@ -103,8 +103,8 @@ export function PortfolioHealthScoreCard({
             percent={Math.round(portfolioHealth.health_score)}
             width={120}
             strokeColor={{
-              "0%": "#722ed1",
-              "100%": "#0369a1",
+              "0%": token.colorInfo,
+              "100%": token.colorPrimary,
             }}
             format={(percent) => (
               <div>
@@ -117,7 +117,7 @@ export function PortfolioHealthScoreCard({
                 >
                   {percent}%
                 </div>
-                <div style={{ fontSize: 11, color: "#666" }}>
+                <div style={{ fontSize: 11, color: token.colorTextSecondary }}>
                   {portfolioHealth.health_label}
                 </div>
               </div>
@@ -131,12 +131,12 @@ export function PortfolioHealthScoreCard({
       <div
         style={{
           padding: 12,
-          backgroundColor: "#f0f9ff",
+          backgroundColor: token.colorFillQuaternary,
           borderRadius: 3,
           marginTop: 12,
         }}
       >
-        <Text style={{ fontSize: 11, color: "#666" }}>
+        <Text style={{ fontSize: 11, color: token.colorTextSecondary }}>
           <ThunderboltOutlined style={{ marginRight: 6 }} />
           {portfolioHealth.active_alerts > 0
             ? `${portfolioHealth.active_alerts} active alerts`

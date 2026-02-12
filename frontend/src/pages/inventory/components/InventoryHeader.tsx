@@ -7,6 +7,7 @@ import {
   Space,
   Typography,
   Tooltip,
+  theme,
 } from "antd";
 import {
   SearchOutlined,
@@ -42,6 +43,7 @@ export function InventoryHeader({
   onSyncToSheets,
   syncingToSheets,
 }: InventoryHeaderProps) {
+  const { token } = theme.useToken();
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const queryClient = useQueryClient();
   const { data: selectedCols = [] } = useSelectedColumns();
@@ -146,7 +148,7 @@ export function InventoryHeader({
                   </Checkbox>
                 ))
               ) : (
-                <div style={{ padding: 8, color: "#999" }}>
+                <div style={{ padding: 8, color: token.colorTextSecondary }}>
                   No columns available
                 </div>
               )}

@@ -8,6 +8,7 @@ import {
   Space,
   Button,
   Result,
+  theme,
 } from "antd";
 import {
   CheckCircleOutlined,
@@ -39,6 +40,7 @@ const CloneProgressItem: React.FC<CloneProgressItemProps> = ({
   initialResult,
   productName,
 }) => {
+  const { token } = theme.useToken();
   // Use the hook to poll for status
   // We can't conditionally call the hook, but we can rely on React Query's caching
   // to return the latest status.
@@ -57,13 +59,13 @@ const CloneProgressItem: React.FC<CloneProgressItemProps> = ({
   let statusColor = "default";
 
   if (currentResult.status === "success") {
-    statusIcon = <CheckCircleOutlined style={{ color: "#52c41a" }} />;
+    statusIcon = <CheckCircleOutlined style={{ color: token.colorSuccess }} />;
     statusColor = "success";
   } else if (currentResult.status === "failed") {
-    statusIcon = <CloseCircleOutlined style={{ color: "#ff4d4f" }} />;
+    statusIcon = <CloseCircleOutlined style={{ color: token.colorError }} />;
     statusColor = "error";
   } else if (currentResult.status === "processing" || isLoading) {
-    statusIcon = <SyncOutlined spin style={{ color: "#1890ff" }} />;
+    statusIcon = <SyncOutlined spin style={{ color: token.colorPrimary }} />;
     statusColor = "processing";
   }
 

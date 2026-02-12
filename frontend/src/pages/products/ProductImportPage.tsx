@@ -10,6 +10,7 @@ import {
   Col,
   message,
   Modal,
+  theme,
 } from "antd";
 import { ArrowLeftOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
@@ -24,6 +25,7 @@ import {
 import "./ProductImportPage.css";
 
 export default function ProductImportPage() {
+  const { token } = theme.useToken();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [previewData, setPreviewData] = useState<ImportPreviewData | null>(
@@ -78,7 +80,7 @@ export default function ProductImportPage() {
           <p>
             Are you sure you want to import {previewData.valid_rows} products?
           </p>
-          <p style={{ color: "#666", fontSize: "12px" }}>
+          <p style={{ color: token.colorTextSecondary, fontSize: "12px" }}>
             {previewData.invalid_rows > 0 && (
               <>
                 Note: {previewData.invalid_rows} row(s) with errors will be
@@ -146,14 +148,14 @@ export default function ProductImportPage() {
                   <Statistic
                     title="Total Rows"
                     value={previewData?.total_rows || 0}
-                    valueStyle={{ color: "#0369a1" }}
+                    valueStyle={{ color: token.colorPrimary }}
                   />
                 </Col>
                 <Col span={6}>
                   <Statistic
                     title="Valid Rows"
                     value={previewData?.valid_rows || 0}
-                    valueStyle={{ color: "#16a34a" }}
+                    valueStyle={{ color: token.colorSuccess }}
                     prefix={<CheckCircleOutlined />}
                   />
                 </Col>
@@ -162,7 +164,9 @@ export default function ProductImportPage() {
                     title="Invalid Rows"
                     value={previewData?.invalid_rows || 0}
                     valueStyle={{
-                      color: previewData?.invalid_rows ? "#dc2626" : "#0369a1",
+                      color: previewData?.invalid_rows
+                        ? token.colorError
+                        : token.colorPrimary,
                     }}
                   />
                 </Col>
@@ -194,7 +198,7 @@ export default function ProductImportPage() {
                   style={{
                     marginLeft: 12,
                     fontSize: "12px",
-                    color: "#666",
+                    color: token.colorTextSecondary,
                   }}
                 >
                   Automatically link imported SKUs to existing platform products
@@ -213,7 +217,7 @@ export default function ProductImportPage() {
               <div className="success-icon">✓</div>
               <h2>Import Complete!</h2>
               <p>Your products have been successfully imported.</p>
-              <p style={{ fontSize: "12px", color: "#666" }}>
+              <p style={{ fontSize: "12px", color: token.colorTextSecondary }}>
                 Redirecting to products page in 2 seconds...
               </p>
             </Card>

@@ -1,4 +1,4 @@
-import { Button, Typography, Dropdown, Flex } from "antd";
+import { Button, Typography, Dropdown, Flex, theme } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { MoreOutlined } from "@ant-design/icons";
 import { StatusPipeline } from "../ui/StatusPipeline";
@@ -26,6 +26,7 @@ export function getOrderTableColumns({
   onCancel,
   onViewDetail,
 }: GetOrderTableColumnsProps): ColumnsType<GroupedOrder> {
+  const token = theme.getDesignToken();
   return [
     {
       title: "Product",
@@ -39,7 +40,7 @@ export function getOrderTableColumns({
       width: 120,
       render: (_, record) => (
         <Flex vertical gap={2}>
-          <Text strong style={{ color: "#0369a1", fontSize: 14 }}>
+          <Text strong style={{ color: token.colorPrimary, fontSize: 14 }}>
             {formatAmount(record.total_amount, record.currency)}
           </Text>
           <Text type="secondary" style={{ fontSize: 11 }}>
@@ -66,7 +67,7 @@ export function getOrderTableColumns({
           <Flex vertical gap={2}>
             <Text
               style={{
-                color: getCountdownColor(record.ship_by_date),
+                color: getCountdownColor(token, record.ship_by_date),
                 fontWeight: 500,
                 fontSize: 13,
               }}
@@ -108,7 +109,7 @@ export function getOrderTableColumns({
             onClick={() => onShip(record)}
             style={{
               backgroundColor: canShipOrder(record.status, record.platform)
-                ? "#0369a1"
+                ? token.colorPrimary
                 : undefined,
               fontSize: 12,
             }}

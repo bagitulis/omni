@@ -12,6 +12,7 @@ import {
   Row,
   Col,
   Flex,
+  theme,
 } from "antd";
 import {
   CloudDownloadOutlined,
@@ -35,6 +36,7 @@ export function DashboardShippingModal({
   open,
   onClose,
 }: DashboardShippingModalProps) {
+  const { token } = theme.useToken();
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedOption, setSelectedOption] = useState<
     "wallet" | "file" | null
@@ -121,7 +123,11 @@ export function DashboardShippingModal({
           style={{ textAlign: "center", cursor: "pointer" }}
         >
           <CloudDownloadOutlined
-            style={{ fontSize: 36, color: "#0369a1", marginBottom: 16 }}
+            style={{
+              fontSize: 36,
+              color: token.colorPrimary,
+              marginBottom: 16,
+            }}
           />
           <Title level={4}>Get from Wallet</Title>
           <Text type="secondary">
@@ -137,7 +143,11 @@ export function DashboardShippingModal({
           style={{ textAlign: "center", cursor: "pointer" }}
         >
           <FileTextOutlined
-            style={{ fontSize: 36, color: "#16a34a", marginBottom: 16 }}
+            style={{
+              fontSize: 36,
+              color: token.colorSuccess,
+              marginBottom: 16,
+            }}
           />
           <Title level={4}>Process Shipping File</Title>
           <Text type="secondary">

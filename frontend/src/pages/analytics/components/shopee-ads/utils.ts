@@ -26,5 +26,5 @@ export const getChartOptions = (
   tooltip: {
     y: { formatter: (val: number) => val.toLocaleString("id-ID") },
   },
-  grid: { borderColor: "#f0f0f0" },
+  grid: { borderColor: "currentColor" },
 });

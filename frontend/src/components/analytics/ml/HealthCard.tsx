@@ -23,7 +23,9 @@ export const HealthCard = ({ label, value, color }: Props) => {
       styles={{ body: { padding: 16 } }}
     >
       <div style={{ textAlign: "center" }}>
-        <Text style={{ fontSize: 12, color: "#666" }}>{label}</Text>
+        <Text style={{ fontSize: 12, color: token.colorTextSecondary }}>
+          {label}
+        </Text>
         <div
           style={{
             fontSize: 28,

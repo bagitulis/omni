@@ -10,6 +10,7 @@ import {
   Spin,
   Alert,
   Typography,
+  theme,
 } from "antd";
 import {
   DollarOutlined,
@@ -33,6 +34,7 @@ interface WalletModalProps {
 }
 
 export function WalletModal({ open, onClose }: WalletModalProps) {
+  const { token } = theme.useToken();
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
@@ -95,7 +97,10 @@ export function WalletModal({ open, onClose }: WalletModalProps) {
       render: (amount, record) => {
         const isIncome = record.type === "income" || record.type === "refund";
         return (
-          <Text strong style={{ color: isIncome ? "#16a34a" : "#dc2626" }}>
+          <Text
+            strong
+            style={{ color: isIncome ? token.colorSuccess : token.colorError }}
+          >
             {isIncome ? "+" : "-"}
             {walletData?.currency} {Math.abs(amount).toLocaleString()}
           </Text>
@@ -161,7 +166,7 @@ export function WalletModal({ open, onClose }: WalletModalProps) {
                 value={walletData?.total_balance || 0}
                 prefix={<DollarOutlined />}
                 suffix={walletData?.currency || "IDR"}
-                valueStyle={{ color: "#0369a1", fontSize: 20 }}
+                valueStyle={{ color: token.colorPrimary, fontSize: 20 }}
               />
             </Col>
             <Col span={8}>
@@ -169,7 +174,7 @@ export function WalletModal({ open, onClose }: WalletModalProps) {
                 title="Available"
                 value={walletData?.available_balance || 0}
                 suffix={walletData?.currency || "IDR"}
-                valueStyle={{ color: "#16a34a", fontSize: 20 }}
+                valueStyle={{ color: token.colorSuccess, fontSize: 20 }}
               />
             </Col>
             <Col span={8}>
@@ -177,7 +182,7 @@ export function WalletModal({ open, onClose }: WalletModalProps) {
                 title="Pending"
                 value={walletData?.pending_balance || 0}
                 suffix={walletData?.currency || "IDR"}
-                valueStyle={{ color: "#d97706", fontSize: 20 }}
+                valueStyle={{ color: token.colorWarning, fontSize: 20 }}
               />
             </Col>
           </Row>

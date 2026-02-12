@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Avatar, Button, Typography, Tag, Space, Flex } from "antd";
+import { Avatar, Button, Typography, Tag, Space, Flex, theme } from "antd";
 import {
   UserOutlined,
   MessageOutlined,
@@ -12,6 +12,7 @@ import { GroupedOrder } from "./OrderTable.types";
 const { Text } = Typography;
 
 export function CopyButton({ text }: { text: string }) {
+  const { token } = theme.useToken();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -26,9 +27,9 @@ export function CopyButton({ text }: { text: string }) {
       size="small"
       icon={
         copied ? (
-          <CheckOutlined style={{ color: "#52c41a" }} />
+          <CheckOutlined style={{ color: token.colorSuccess }} />
         ) : (
-          <CopyOutlined style={{ color: "#999" }} />
+          <CopyOutlined style={{ color: token.colorTextSecondary }} />
         )
       }
       onClick={handleCopy}
@@ -39,6 +40,7 @@ export function CopyButton({ text }: { text: string }) {
 
 // Product Cell with Buyer Header
 export function ProductCellWithBuyer({ order }: { order: GroupedOrder }) {
+  const { token } = theme.useToken();
   return (
     <Flex vertical gap={8}>
       {/* Buyer Header */}
@@ -46,7 +48,7 @@ export function ProductCellWithBuyer({ order }: { order: GroupedOrder }) {
         justify="space-between"
         align="center"
         style={{
-          backgroundColor: "#f5f5f5",
+          backgroundColor: token.colorFillQuaternary,
           padding: "8px 12px",
           borderRadius: 4,
           marginBottom: 4,
@@ -56,7 +58,7 @@ export function ProductCellWithBuyer({ order }: { order: GroupedOrder }) {
           <Avatar
             size={24}
             icon={<UserOutlined />}
-            style={{ backgroundColor: "#0369a1" }}
+            style={{ backgroundColor: token.colorPrimary }}
           />
           <Text strong style={{ fontSize: 13 }}>
             {order.buyer_username}
@@ -64,7 +66,11 @@ export function ProductCellWithBuyer({ order }: { order: GroupedOrder }) {
           <Button
             type="text"
             size="small"
-            icon={<MessageOutlined style={{ color: "#999", fontSize: 12 }} />}
+            icon={
+              <MessageOutlined
+                style={{ color: token.colorTextSecondary, fontSize: 12 }}
+              />
+            }
             style={{ padding: 0 }}
           />
         </Space>
@@ -94,8 +100,8 @@ export function ProductCellWithBuyer({ order }: { order: GroupedOrder }) {
               icon={<ShoppingOutlined />}
               style={{
                 flexShrink: 0,
-                border: "1px solid #e0e0e0",
-                backgroundColor: "#fafafa",
+                border: `1px solid ${token.colorBorderSecondary}`,
+                backgroundColor: token.colorFillQuaternary,
               }}
             />
             <Flex vertical gap={2} style={{ flex: 1, minWidth: 0 }}>

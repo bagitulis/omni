@@ -23,14 +23,17 @@ export function getCountdown(shipByDate?: number): string {
   return `${hours}h ${minutes}m`;
 }
 
-export function getCountdownColor(shipByDate?: number): string {
-  if (!shipByDate) return "#666";
+export function getCountdownColor(
+  token: GlobalToken,
+  shipByDate?: number,
+): string {
+  if (!shipByDate) return token.colorTextSecondary;
   const now = Date.now();
   const deadline = shipByDate * 1000;
   const diff = deadline - now;
-  if (diff <= 0) return "#f5222d";
-  if (diff <= 24 * 60 * 60 * 1000) return "#fa8c16";
-  return "#666";
+  if (diff <= 0) return token.colorError;
+  if (diff <= 24 * 60 * 60 * 1000) return token.colorWarning;
+  return token.colorTextSecondary;
 }
 
 /**
@@ -58,3 +61,4 @@ export function canShipOrder(
       return s === "READY_TO_SHIP";
   }
 }
+import type { GlobalToken } from "antd";

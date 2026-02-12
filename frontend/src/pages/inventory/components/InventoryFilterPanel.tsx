@@ -18,7 +18,7 @@ const { Panel } = Collapse;
 
 export function InventoryFilterPanel() {
   const {
-    token: { colorBgContainer, colorBorderSecondary },
+    token: { colorBgContainer, colorBorderSecondary, colorSuccess },
   } = theme.useToken();
 
   const [collapsed, setCollapsed] = useState(false);
@@ -101,7 +101,7 @@ export function InventoryFilterPanel() {
               {activeCount > 0 && (
                 <Badge
                   count={activeCount}
-                  style={{ backgroundColor: "#52c41a" }}
+                  style={{ backgroundColor: colorSuccess }}
                 />
               )}
             </>

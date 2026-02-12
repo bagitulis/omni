@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Row, Col, Typography, message, Spin } from "antd";
+import { useCallback, useEffect, useState } from "react";
+import { Row, Col, Typography, message, Spin, theme } from "antd";
 import {
   ShopOutlined,
   VideoCameraOutlined,
@@ -10,28 +10,6 @@ import apiClient from "@/api/client";
 import { PlatformCard, type PlatformStatus } from "../components/PlatformCard";
 
 const { Text, Title } = Typography;
-
-// Platform brand colors
-const PLATFORM_COLORS: Record<string, string> = {
-  shopee: "#ee4d2d",
-  tiktok: "#000000",
-  lazada: "#0f146d",
-};
-
-// Platform icons
-const PLATFORM_ICONS: Record<string, React.ReactNode> = {
-  shopee: (
-    <ShopOutlined style={{ fontSize: 24, color: PLATFORM_COLORS.shopee }} />
-  ),
-  tiktok: (
-    <VideoCameraOutlined
-      style={{ fontSize: 24, color: PLATFORM_COLORS.tiktok }}
-    />
-  ),
-  lazada: (
-    <ShoppingOutlined style={{ fontSize: 24, color: PLATFORM_COLORS.lazada }} />
-  ),
-};
 
 // Platform display names
 const PLATFORM_NAMES: Record<string, string> = {
@@ -47,14 +25,11 @@ interface PlatformAuthResponse {
 }
 
 export default function PlatformsTab() {
+  const { token } = theme.useToken();
   const [platforms, setPlatforms] = useState<PlatformStatus[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchPlatformStatus();
-  }, []);
-
-  const fetchPlatformStatus = async () => {
+  const fetchPlatformStatus = useCallback(async () => {
     try {
       setLoading(true);
       const response = await apiClient.get<PlatformAuthResponse>(
@@ -77,7 +52,11 @@ export default function PlatformsTab() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchPlatformStatus();
+  }, [fetchPlatformStatus]);
 
   const handleConnect = (platform: PlatformStatus) => {
     const platformName = PLATFORM_NAMES[platform.platform] || platform.platform;
@@ -139,8 +118,30 @@ export default function PlatformsTab() {
       <Row gutter={[16, 16]}>
         {platforms.map((platform) => {
           const platformId = platform.platform;
-          const color = PLATFORM_COLORS[platformId] || "#666";
-          const icon = PLATFORM_ICONS[platformId];
+          const colorMap: Record<string, string> = {
+            shopee: token.colorPrimary,
+            tiktok: token.colorText,
+            lazada: token.colorInfo,
+          };
+          const iconMap: Record<string, React.ReactNode> = {
+            shopee: (
+              <ShopOutlined
+                style={{ fontSize: 24, color: token.colorPrimary }}
+              />
+            ),
+            tiktok: (
+              <VideoCameraOutlined
+                style={{ fontSize: 24, color: token.colorText }}
+              />
+            ),
+            lazada: (
+              <ShoppingOutlined
+                style={{ fontSize: 24, color: token.colorInfo }}
+              />
+            ),
+          };
+          const color = colorMap[platformId] || token.colorTextSecondary;
+          const icon = iconMap[platformId];
           const name = PLATFORM_NAMES[platformId] || platformId;
 
           return (

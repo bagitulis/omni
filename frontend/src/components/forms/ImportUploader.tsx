@@ -1,4 +1,4 @@
-import { Upload, message } from "antd";
+import { Upload, message, theme } from "antd";
 import { InboxOutlined } from "@ant-design/icons";
 import "./ImportUploader.css";
 
@@ -13,6 +13,7 @@ export function ImportUploader({
   onFileSelect,
   loading = false,
 }: ImportUploaderProps) {
+  const { token } = theme.useToken();
   const beforeUpload = async (file: File) => {
     const isCSV = file.type === "text/csv" || file.name.endsWith(".csv");
     const isExcel =
@@ -57,7 +58,9 @@ export function ImportUploader({
           Supported formats: CSV, XLSX, XLS (max 10MB)
         </p>
         {loading && (
-          <p style={{ color: "#0369a1" }}>Uploading and parsing file...</p>
+          <p style={{ color: token.colorPrimary }}>
+            Uploading and parsing file...
+          </p>
         )}
       </Dragger>
     </div>

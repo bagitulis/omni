@@ -1,4 +1,4 @@
-import { Form, Input, Button, Upload, InputNumber, Table } from "antd";
+import { Form, Input, Button, Upload, InputNumber, Table, theme } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import type { UploadFile } from "antd/es/upload/interface";
@@ -20,6 +20,7 @@ interface Props {
 }
 
 export function ProductMediaForm({ initialValues, onFinish, onBack }: Props) {
+  const { token } = theme.useToken();
   const [form] = Form.useForm<MediaFormValues>();
   const [fileList, setFileList] = useState<UploadFile[]>(
     initialValues.images || [],
@@ -59,11 +60,11 @@ export function ProductMediaForm({ initialValues, onFinish, onBack }: Props) {
     >
       <div
         style={{
-          background: "#fff",
+          background: token.colorBgContainer,
           padding: 24,
           borderRadius: 8,
           marginBottom: 24,
-          border: "1px solid #e5e7eb",
+          border: `1px solid ${token.colorBorderSecondary}`,
         }}
       >
         <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>
@@ -97,11 +98,11 @@ export function ProductMediaForm({ initialValues, onFinish, onBack }: Props) {
 
       <div
         style={{
-          background: "#fff",
+          background: token.colorBgContainer,
           padding: 24,
           borderRadius: 8,
           marginBottom: 24,
-          border: "1px solid #e5e7eb",
+          border: `1px solid ${token.colorBorderSecondary}`,
         }}
       >
         <div

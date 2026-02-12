@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal, Button, Table, Tag, Space, Alert, Spin } from "antd";
+import { Modal, Button, Table, Tag, Space, Alert, Spin, theme } from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
 import {
   useAllTokenStatus,
@@ -15,6 +15,7 @@ interface TokenModalProps {
 }
 
 export const TokenModal: React.FC<TokenModalProps> = ({ open, onClose }) => {
+  const { token } = theme.useToken();
   const { data: tokenStatuses, isLoading, error } = useAllTokenStatus();
   const { mutate: refreshToken, isPending: isRefreshing } = useRefreshToken();
   const { mutate: refreshAll, isPending: isRefreshingAll } =
@@ -100,7 +101,7 @@ export const TokenModal: React.FC<TokenModalProps> = ({ open, onClose }) => {
       return (
         <div style={{ textAlign: "center", padding: "48px 0" }}>
           <Spin size="large" />
-          <div style={{ marginTop: "16px", color: "#666" }}>
+          <div style={{ marginTop: "16px", color: token.colorTextSecondary }}>
             Loading token status...
           </div>
         </div>

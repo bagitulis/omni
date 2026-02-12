@@ -7,6 +7,7 @@ import {
   Button,
   Alert,
   Typography,
+  theme,
 } from "antd";
 import { Order } from "@/types/order";
 import { useState, useEffect } from "react";
@@ -42,6 +43,7 @@ export function OrderCancelModal({
   order,
   loading = false,
 }: OrderCancelModalProps) {
+  const { token } = theme.useToken();
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
@@ -136,9 +138,9 @@ export function OrderCancelModal({
         style={{
           marginTop: 16,
           padding: "12px",
-          background: "#fff1f0",
+          background: token.colorErrorBg,
           borderRadius: 4,
-          border: "1px solid #ffccc7",
+          border: `1px solid ${token.colorBorder}`,
         }}
       >
         <Checkbox

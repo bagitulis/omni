@@ -1,10 +1,20 @@
-import { Card, Row, Col, Statistic, Progress, Typography, Space } from "antd";
+import {
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Progress,
+  Typography,
+  Space,
+  theme,
+} from "antd";
 import { CarOutlined, WarningOutlined } from "@ant-design/icons";
 import { useShippingFeeData } from "@/hooks/useDashboardWidgets";
 
 const { Text } = Typography;
 
 export function ShippingWidget() {
+  const { token } = theme.useToken();
   const { data: shopeeData, isLoading: isShopeeLoading } =
     useShippingFeeData("shopee");
   // TikTok shipping fee API might be different, but we'll try to use the same structure
@@ -36,7 +46,7 @@ export function ShippingWidget() {
           <Statistic
             title="Discrepancies"
             value={shopeeData?.discrepancy_count || 0}
-            valueStyle={{ color: "#dc2626", fontSize: 18 }}
+            valueStyle={{ color: token.colorError, fontSize: 18 }}
             prefix={<WarningOutlined />}
           />
         </Col>
@@ -54,8 +64,8 @@ export function ShippingWidget() {
             </div>
             <Progress
               percent={100 - discrepancyRate}
-              strokeColor="#16a34a"
-              trailColor="#fee2e2"
+              strokeColor={token.colorSuccess}
+              trailColor={token.colorErrorBg}
               showInfo={false}
               size="small"
             />

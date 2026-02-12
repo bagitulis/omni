@@ -1,4 +1,4 @@
-import { Card, List, Tag, Typography, Space } from "antd";
+import { Card, List, Tag, Typography, Space, theme } from "antd";
 import {
   ApiOutlined,
   CheckCircleFilled,
@@ -12,6 +12,7 @@ import { useSyncStatus } from "@/hooks/useDashboardWidgets";
 const { Text } = Typography;
 
 export function PlatformHealthWidget() {
+  const { token } = theme.useToken();
   const { data: shopeeStatus, isLoading: isShopeeLoading } =
     useSyncStatus("shopee");
   const { data: tiktokStatus, isLoading: isTiktokLoading } =
@@ -30,13 +31,13 @@ export function PlatformHealthWidget() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "connected":
-        return <CheckCircleFilled style={{ color: "#16a34a" }} />;
+        return <CheckCircleFilled style={{ color: token.colorSuccess }} />;
       case "disconnected":
-        return <CloseCircleFilled style={{ color: "#dc2626" }} />;
+        return <CloseCircleFilled style={{ color: token.colorError }} />;
       case "syncing":
-        return <SyncOutlined spin style={{ color: "#0369a1" }} />;
+        return <SyncOutlined spin style={{ color: token.colorPrimary }} />;
       case "error":
-        return <CloseCircleFilled style={{ color: "#dc2626" }} />;
+        return <CloseCircleFilled style={{ color: token.colorError }} />;
       default:
         return <ApiOutlined />;
     }

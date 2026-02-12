@@ -41,7 +41,10 @@ export const PlatformComparison = ({ summary }: Props) => {
                 Details
               </Button>
             }
-            style={{ height: "100%", borderTop: "3px solid #000000" }}
+            style={{
+              height: "100%",
+              borderTop: `3px solid ${token.colorText}`,
+            }}
           >
             <Row gutter={16}>
               <Col span={8}>
@@ -85,7 +88,11 @@ export const PlatformComparison = ({ summary }: Props) => {
             title={
               <div style={{ display: "flex", alignItems: "center" }}>
                 <ShopOutlined
-                  style={{ marginRight: 8, fontSize: 20, color: "#ee4d2d" }}
+                  style={{
+                    marginRight: 8,
+                    fontSize: 20,
+                    color: token.colorPrimary,
+                  }}
                 />
                 Shopee
               </div>
@@ -95,7 +102,10 @@ export const PlatformComparison = ({ summary }: Props) => {
                 Details
               </Button>
             }
-            style={{ height: "100%", borderTop: "3px solid #ee4d2d" }}
+            style={{
+              height: "100%",
+              borderTop: `3px solid ${token.colorPrimary}`,
+            }}
           >
             <Row gutter={16}>
               <Col span={8}>

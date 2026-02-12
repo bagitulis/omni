@@ -1,19 +1,20 @@
-import { Tag } from "antd";
+import { Tag, theme } from "antd";
 
 interface PlatformBadgeProps {
   platform: string;
 }
 
 const PLATFORM_CONFIG: Record<string, { color: string; label: string }> = {
-  shopee: { color: "#ee4d2d", label: "Shopee" },
-  tiktok: { color: "#000000", label: "TikTok" },
-  lazada: { color: "#0f146d", label: "Lazada" },
+  shopee: { color: "processing", label: "Shopee" },
+  tiktok: { color: "default", label: "TikTok" },
+  lazada: { color: "warning", label: "Lazada" },
 };
 
 export function PlatformBadge({ platform }: PlatformBadgeProps) {
+  const { token } = theme.useToken();
   const normalizedPlatform = platform.toLowerCase();
   const config = PLATFORM_CONFIG[normalizedPlatform] || {
-    color: "#888",
+    color: "default",
     label: platform,
   };
 
@@ -22,7 +23,7 @@ export function PlatformBadge({ platform }: PlatformBadgeProps) {
       color={config.color}
       style={{
         marginRight: 0,
-        color: "white",
+        color: token.colorBgContainer,
         fontWeight: 500,
         border: "none",
         fontSize: "10px",

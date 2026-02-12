@@ -97,9 +97,9 @@ export function SyncHistoryTab() {
   }, [data]);
 
   const statusColor: Record<SyncHistoryRow["status"], string> = {
-    success: colorSuccess || "#52c41a",
-    error: colorError || "#ff4d4f",
-    pending: colorWarning || "#faad14",
+    success: colorSuccess,
+    error: colorError,
+    pending: colorWarning,
   };
 
   const columns: ColumnsType<SyncHistoryRow> = [

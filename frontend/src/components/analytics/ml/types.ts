@@ -15,9 +15,9 @@ export interface PortfolioHealth {
 }
 
 export const getScoreColor = (score: number): string => {
-  if (score >= 80) return "#16a34a";
-  if (score >= 50) return "#f59e0b";
-  return "#dc2626";
+  if (score >= 80) return "green";
+  if (score >= 50) return "orange";
+  return "red";
 };
 
 export const getScoreTag = (score: number) => {

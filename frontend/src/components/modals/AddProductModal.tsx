@@ -10,6 +10,7 @@ import {
   Typography,
   Upload,
   Space,
+  theme,
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { logger } from "@/lib/logger";
@@ -28,23 +29,12 @@ export function AddProductModal({
   onClose,
   platform,
 }: AddProductModalProps) {
+  const { token } = theme.useToken();
   const [currentStep, setCurrentStep] = useState(0);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
-  // Platform specific styles
-  const getPlatformColor = () => {
-    switch (platform) {
-      case "shopee":
-        return "#ee4d2d";
-      case "tiktok":
-        return "#000000";
-      case "lazada":
-        return "#0f146d";
-      default:
-        return "#1890ff";
-    }
-  };
+  const getPlatformColor = () => token.colorPrimary;
 
   const steps = [
     { title: "Basic Info", content: "basic" },

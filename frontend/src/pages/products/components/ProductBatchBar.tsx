@@ -1,4 +1,4 @@
-import { Button, Space } from "antd";
+import { Button, Space, theme } from "antd";
 import { CopyOutlined } from "@ant-design/icons";
 
 interface ProductBatchBarProps {
@@ -16,6 +16,7 @@ export function ProductBatchBar({
   onBatchClone,
   onDeleteSelected,
 }: ProductBatchBarProps) {
+  const { token } = theme.useToken();
   if (selectedRowKeys.length === 0) return null;
 
   return (
@@ -23,8 +24,8 @@ export function ProductBatchBar({
       style={{
         marginBottom: 16,
         padding: "8px 16px",
-        background: "#e6f7ff",
-        border: "1px solid #91d5ff",
+        background: token.colorFillQuaternary,
+        border: `1px solid ${token.colorBorderSecondary}`,
         borderRadius: 4,
         display: "flex",
         alignItems: "center",

@@ -22,30 +22,36 @@ export const QuickActions = () => {
     {
       title: "Shopee Analytics",
       description: "Sales performance and traffic insights for Shopee stores",
-      icon: <ShopOutlined style={{ fontSize: 24, color: "#ee4d2d" }} />,
+      icon: (
+        <ShopOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
+      ),
       path: "/analytics/shopee",
-      bgColor: "#ee4d2d15", // Orange tint
+      bgColor: token.colorFillQuaternary,
     },
     {
       title: "Shopee Ads",
       description: "Shopee advertising ROI, CTR, CPC, and ROAS tracking",
-      icon: <FundOutlined style={{ fontSize: 24, color: "#ee4d2d" }} />,
+      icon: (
+        <FundOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
+      ),
       path: "/analytics/shopee-ads",
-      bgColor: "#ee4d2d15", // Orange tint
+      bgColor: token.colorFillQuaternary,
     },
     {
       title: "TikTok Analytics",
       description: "Video engagement and livestream metrics for TikTok Shop",
-      icon: <VideoCameraOutlined style={{ fontSize: 24, color: "#000000" }} />,
+      icon: (
+        <VideoCameraOutlined style={{ fontSize: 24, color: token.colorText }} />
+      ),
       path: "/analytics/tiktok",
-      bgColor: "#00000010", // Black tint
+      bgColor: token.colorFillSecondary,
     },
     {
       title: "TikTok Ads",
       description: "TikTok creative performance, ROI, and engagement metrics",
-      icon: <FundOutlined style={{ fontSize: 24, color: "#000000" }} />,
+      icon: <FundOutlined style={{ fontSize: 24, color: token.colorText }} />,
       path: "/analytics/tiktok-ads",
-      bgColor: "#00000010", // Black tint
+      bgColor: token.colorFillSecondary,
     },
     {
       title: "ML Dashboard",

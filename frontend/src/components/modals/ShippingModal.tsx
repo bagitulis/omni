@@ -9,6 +9,7 @@ import {
   Alert,
   Divider,
   Descriptions,
+  theme,
 } from "antd";
 import { Order } from "@/types/order";
 import { useState, useEffect } from "react";
@@ -52,6 +53,7 @@ export function ShippingModal({
   order,
   loading = false,
 }: ShippingModalProps) {
+  const { token } = theme.useToken();
   const [form] = Form.useForm<ShippingFormValues>();
   const [submitting, setSubmitting] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
@@ -170,10 +172,20 @@ export function ShippingModal({
         <>
           <Divider />
           <div
-            style={{ padding: "16px", background: "#f5f5f5", borderRadius: 3 }}
+            style={{
+              padding: "16px",
+              background: token.colorBgLayout,
+              borderRadius: 3,
+            }}
           >
             <Text strong>Label Preview</Text>
-            <div style={{ marginTop: 12, fontSize: 12, color: "#666" }}>
+            <div
+              style={{
+                marginTop: 12,
+                fontSize: 12,
+                color: token.colorTextSecondary,
+              }}
+            >
               <p>Provider: {selectedProvider.toUpperCase()}</p>
               <p>Tracking: {form.getFieldValue("tracking_number") || "—"}</p>
               <p>Format: {form.getFieldValue("label_format")}</p>

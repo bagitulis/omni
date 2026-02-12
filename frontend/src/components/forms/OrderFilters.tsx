@@ -11,6 +11,7 @@ import {
   Typography,
   Switch,
   Tooltip,
+  theme,
 } from "antd";
 import {
   ReloadOutlined,
@@ -43,6 +44,7 @@ export function OrderFilters({
   autoRefresh = true,
   onAutoRefreshChange,
 }: OrderFiltersProps) {
+  const { token } = theme.useToken();
   return (
     <Card
       styles={{ body: { padding: 16 } }}
@@ -106,7 +108,11 @@ export function OrderFilters({
               <Flex align="center" gap={6}>
                 <SyncOutlined
                   spin={autoRefresh && loading}
-                  style={{ color: autoRefresh ? "#52c41a" : "#999" }}
+                  style={{
+                    color: autoRefresh
+                      ? token.colorSuccess
+                      : token.colorTextSecondary,
+                  }}
                 />
                 <Text type="secondary" style={{ fontSize: 11 }}>
                   Auto

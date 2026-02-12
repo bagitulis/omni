@@ -111,7 +111,7 @@ func (h *ShippingFeeHandler) ExportShippingFee(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Missing required fields: month and year are required. " + err.Error(),
 		})
 		return
 	}
@@ -141,6 +141,20 @@ func (h *ShippingFeeHandler) ExportShippingFee(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
+		})
+		return
+	}
+
+	if len(feeData.Fees) == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "No shipping fee data found for the selected period",
+			"data": gin.H{
+				"fees":   []interface{}{},
+				"total":  0,
+				"count":  0,
+				"period": strconv.Itoa(req.Month) + "/" + strconv.Itoa(req.Year),
+			},
 		})
 		return
 	}
@@ -178,7 +192,15 @@ func (h *ShippingFeeHandler) ExportToSheets(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Missing required fields: spreadsheet_id, sheet_name, month, and year are required. " + err.Error(),
+		})
+		return
+	}
+
+	if h.googleAuthService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"success": false,
+			"error":   "Google Sheets integration not configured. Service account credentials required.",
 		})
 		return
 	}
@@ -214,9 +236,10 @@ func (h *ShippingFeeHandler) ExportToSheets(c *gin.Context) {
 	}
 
 	if len(feeData.Fees) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "No shipping fee data found",
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "No shipping fee data to export",
+			"data":    gin.H{"exported": 0},
 		})
 		return
 	}

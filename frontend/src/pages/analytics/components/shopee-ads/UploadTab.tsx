@@ -1,7 +1,7 @@
 import { Card, Col, Row, Upload, Typography, Table, theme } from "antd";
 import { InboxOutlined } from "@ant-design/icons";
 import type { UploadProps } from "antd";
-import { AdsData, SHOPEE_ORANGE } from "./types";
+import { AdsData } from "./types";
 import { columns } from "./columns";
 
 const { Dragger } = Upload;
@@ -23,14 +23,22 @@ export const UploadTab = ({ uploadProps, uploadedData }: UploadTabProps) => {
         <Card title="Upload CSV" size="small">
           <Dragger {...uploadProps} style={{ padding: 16 }}>
             <p className="ant-upload-drag-icon">
-              <InboxOutlined style={{ color: SHOPEE_ORANGE, fontSize: 48 }} />
+              <InboxOutlined
+                style={{ color: token.colorPrimary, fontSize: 48 }}
+              />
             </p>
             <p className="ant-upload-text">Click or drag CSV file to upload</p>
             <p className="ant-upload-hint">
               Upload Shopee Ads export file to analyze performance
             </p>
           </Dragger>
-          <div style={{ marginTop: 16, fontSize: 12, color: "#666" }}>
+          <div
+            style={{
+              marginTop: 16,
+              fontSize: 12,
+              color: token.colorTextSecondary,
+            }}
+          >
             <Text type="secondary">
               Expected CSV format: product_id, product_name, cost, revenue,
               clicks, impressions, conversions, date

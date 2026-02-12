@@ -1,7 +1,7 @@
 import { Card, Col, Row, Upload, Typography, Table, theme } from "antd";
 import { InboxOutlined } from "@ant-design/icons";
 import type { UploadProps } from "antd";
-import { TikTokAdsData, TIKTOK_BLACK } from "./types";
+import { TikTokAdsData } from "./types";
 import { columns } from "./columns";
 
 const { Dragger } = Upload;
@@ -23,14 +23,20 @@ export const UploadTab = ({ uploadProps, uploadedData }: UploadTabProps) => {
         <Card title="Upload CSV" size="small">
           <Dragger {...uploadProps} style={{ padding: 16 }}>
             <p className="ant-upload-drag-icon">
-              <InboxOutlined style={{ color: TIKTOK_BLACK, fontSize: 48 }} />
+              <InboxOutlined style={{ color: token.colorText, fontSize: 48 }} />
             </p>
             <p className="ant-upload-text">Click or drag CSV file to upload</p>
             <p className="ant-upload-hint">
               Upload TikTok Ads export file to analyze creative performance
             </p>
           </Dragger>
-          <div style={{ marginTop: 16, fontSize: 12, color: "#666" }}>
+          <div
+            style={{
+              marginTop: 16,
+              fontSize: 12,
+              color: token.colorTextSecondary,
+            }}
+          >
             <Text type="secondary">
               Expected CSV format: creative_id, creative_name, cost, revenue,
               views, clicks, conversions, date
