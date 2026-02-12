@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from "axios";
 import { message } from "antd";
 import { API_BASE_URL, API_TIMEOUT } from "@/lib/constants";
 import { useAuthStore } from "@/stores/authStore";
+import { logger } from "@/lib/logger";
 import {
   getPlatformOperationMapping,
   mapSheetsOperation,
@@ -74,7 +75,7 @@ class ApiClient {
       async (config) => {
         // Dev-mode logging
         if (import.meta.env.DEV) {
-          console.debug(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+          logger.debug(`[API] ${config.method?.toUpperCase()} ${config.url}`);
         }
 
         // Skip auth for login/refresh/dev-login endpoints to avoid loops
@@ -115,7 +116,7 @@ class ApiClient {
         return config;
       },
       (error) => {
-        console.error("[API] Request failed:", error.message);
+        logger.error("[API] Request failed:", { message: error.message });
         return Promise.reject(error);
       },
     );
@@ -125,7 +126,7 @@ class ApiClient {
       (response) => {
         // Dev-mode logging
         if (import.meta.env.DEV) {
-          console.debug(`[API] ✓ ${response.status} ${response.config.url}`);
+          logger.debug(`[API] ✓ ${response.status} ${response.config.url}`);
         }
         return response;
       },
@@ -140,7 +141,7 @@ class ApiClient {
     if (error.code === "ECONNABORTED") {
       const timeoutMsg =
         "Request timeout - server is taking too long to respond";
-      console.error("[API]", timeoutMsg);
+      logger.error("[API]", { error: timeoutMsg });
       return Promise.reject(new Error(timeoutMsg));
     }
 
@@ -151,7 +152,7 @@ class ApiClient {
         ? window.location.origin.replace(/:\d+$/, "") + ":3000"
         : window.location.origin;
       const networkMsg = `Network error - cannot connect to ${backendUrl}`;
-      console.error("[API]", networkMsg);
+      logger.error("[API]", { error: networkMsg });
       return Promise.reject(new Error(networkMsg));
     }
 
@@ -160,7 +161,7 @@ class ApiClient {
       const currentPath = window.location.pathname;
       // Don't redirect if already on login page or auth endpoints
       if (currentPath !== "/login" && !error.config?.url?.includes("/auth/")) {
-        console.info(
+        logger.info(
           "[API] JWT token expired or invalid - redirecting to login",
         );
         this.handleAuthExpired();
@@ -174,7 +175,7 @@ class ApiClient {
     if (error.response?.status === 403) {
       const errorMsg = "Permission denied";
       message.error(errorMsg);
-      console.error(`[API] 403 Forbidden:`, errorMsg);
+      logger.error(`[API] 403 Forbidden:`, { error: errorMsg });
       return Promise.reject(new Error(errorMsg));
     }
 
@@ -184,7 +185,7 @@ class ApiClient {
         (error.response?.data as { error?: string })?.error || "Server error";
       const errorMsg = `Server error - ${backendError}`;
       message.error("Server error - please try again");
-      console.error(`[API] 500 Server Error:`, errorMsg);
+      logger.error(`[API] 500 Server Error:`, { error: errorMsg });
       return Promise.reject(new Error(errorMsg));
     }
 
@@ -193,7 +194,9 @@ class ApiClient {
       (error.response?.data as { error?: string })?.error ||
       error.message ||
       "Unknown error";
-    console.error(`[API] Error [${error.response?.status}]:`, errorMsg);
+    logger.error(`[API] Error [${error.response?.status}]:`, {
+      error: errorMsg,
+    });
     return Promise.reject(error);
   }
 
@@ -298,7 +301,7 @@ class ApiClient {
       );
       return response.data;
     } catch (error) {
-      console.error(`[API] Operation ${operation} failed:`, error);
+      logger.error(`[API] Operation ${operation} failed:`, { error });
       throw error;
     }
   }
@@ -320,7 +323,7 @@ class ApiClient {
       });
       return response.data;
     } catch (error) {
-      console.error(`[API] Sheets operation ${operation} failed:`, error);
+      logger.error(`[API] Sheets operation ${operation} failed:`, { error });
       throw error;
     }
   }
@@ -342,7 +345,7 @@ class ApiClient {
       });
       return response.data;
     } catch (error) {
-      console.error(`[API] Export orders ${platform} failed:`, error);
+      logger.error(`[API] Export orders ${platform} failed:`, { error });
       throw error;
     }
   }
@@ -355,7 +358,7 @@ class ApiClient {
       );
       return response.data;
     } catch (error) {
-      console.error("[API] Get shipping files failed:", error);
+      logger.error("[API] Get shipping files failed:", { error });
       throw error;
     }
   }
@@ -371,7 +374,7 @@ class ApiClient {
       );
       return response.data;
     } catch (error) {
-      console.error("[API] Process shipping file failed:", error);
+      logger.error("[API] Process shipping file failed:", { error });
       throw error;
     }
   }

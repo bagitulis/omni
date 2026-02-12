@@ -1,4 +1,5 @@
 import api from "./client";
+import { logger } from "@/lib/logger";
 
 export interface AnalyticsKPI {
   total_products: number;
@@ -172,7 +173,7 @@ export async function getReports(
   } catch (error: any) {
     // Handle 404 gracefully (e.g., if backend feature is not enabled or reachable)
     if (error.response && error.response.status === 404) {
-      console.warn("ML Reports endpoint not found (404), returning empty list");
+      logger.warn("ML Reports endpoint not found (404), returning empty list");
       return { reports: [], total: 0 };
     }
     throw error;

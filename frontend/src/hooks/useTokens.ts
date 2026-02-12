@@ -6,6 +6,7 @@ import {
   refreshAllTokens,
 } from "@/api/tokens";
 import { message } from "antd";
+import { logger } from "@/lib/logger";
 
 /**
  * Hook to fetch status of all platform tokens
@@ -74,7 +75,7 @@ export function useRefreshAllTokens() {
         message.warning(
           `Refreshed with errors on: ${errors.join(", ")}. Check console for details.`,
         );
-        console.warn("Token refresh errors:", data);
+        logger.warn("Token refresh errors:", data);
       } else {
         message.success("All tokens refreshed successfully");
       }

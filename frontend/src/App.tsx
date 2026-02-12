@@ -9,6 +9,7 @@ import { AppLayout } from "./components/layout";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useAuthStore } from "@/stores/authStore";
+import { logger } from "@/lib/logger";
 import LoginPage from "./pages/auth/LoginPage";
 import { DashboardPage } from "./pages/dashboard/DashboardPage";
 import OrdersPage from "./pages/orders/OrdersPage";
@@ -47,7 +48,7 @@ function AppContent() {
     // Fetch CSRF token on mount - sets cookie for API interceptor
     apiClient.get("/csrf-token").catch(() => {
       // Silent fail - CSRF will be retried on next mutation
-      console.debug(
+      logger.debug(
         "[App] CSRF token fetch failed - will retry on next request",
       );
     });

@@ -20,6 +20,7 @@ import {
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { login, devLogin, LoginPayload } from "@/api/auth";
 import { useAuthStore } from "@/stores/authStore";
+import { logger } from "@/lib/logger";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -100,9 +101,11 @@ const LoginPage: React.FC = () => {
       navigate(returnUrl);
     } catch (err: unknown) {
       if (auto) {
-        console.warn(
+        logger.warn(
           "Auto-login failed:",
-          err instanceof Error ? err.message : "Unknown error",
+          err instanceof Error
+            ? { message: err.message }
+            : { error: "Unknown error" },
         );
         sessionStorage.setItem("autoLoginFailed", "true");
         setIsAutoLogin(false);

@@ -9,6 +9,7 @@ import {
 } from "@ant-design/icons";
 
 import { useModalsStore } from "@/stores/modalsStore";
+import { logger } from "@/lib/logger";
 
 export function QuickActions() {
   const { openModal } = useModalsStore();
@@ -54,7 +55,7 @@ export function QuickActions() {
             type="primary"
             block
             icon={<SyncOutlined />}
-            onClick={() => console.log("Sync All")}
+            onClick={() => logger.debug("Sync All")}
           >
             Sync All
           </Button>

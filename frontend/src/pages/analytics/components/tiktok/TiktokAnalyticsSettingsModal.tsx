@@ -16,6 +16,7 @@ import {
 import type { AnalyticsSettings } from "@/types/analytics";
 import { getAvailableColumns } from "@/api/inventory";
 import { formatCurrency } from "@/lib/analyticsHelpers";
+import { logger } from "@/lib/logger";
 
 const { Text, Paragraph } = Typography;
 
@@ -49,7 +50,7 @@ export function TiktokAnalyticsSettingsModal({
       const cols = await getAvailableColumns();
       setColumns(cols);
     } catch (error) {
-      console.error("Failed to fetch columns:", error);
+      logger.error("Failed to fetch columns:", { error });
     } finally {
       setFetchingColumns(false);
     }

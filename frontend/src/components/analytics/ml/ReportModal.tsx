@@ -6,6 +6,7 @@ import {
   DownloadOutlined,
 } from "@ant-design/icons";
 import type { MLReport } from "@/api/analyticsIntelligence";
+import { logger } from "@/lib/logger";
 
 const { Text } = Typography;
 const { useToken } = theme;
@@ -33,7 +34,7 @@ export const ReportModal = ({
     // or we could implement blob download if needed.
     // Placeholder behavior matching AIReportGalleryPage intention.
     if (report) {
-      console.log("Downloading report:", report.file_name);
+      logger.debug("Downloading report:", { file_name: report.file_name });
     }
   };
 

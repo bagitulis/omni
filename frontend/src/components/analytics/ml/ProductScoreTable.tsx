@@ -63,7 +63,13 @@ export const ProductScoreTable = ({ products, loading, onRowClick }: Props) => {
       render: (text) => {
         if (!text) {
           return (
-            <span style={{ fontSize: 12, color: "#999", fontStyle: "italic" }}>
+            <span
+              style={{
+                fontSize: 12,
+                color: token.colorTextSecondary,
+                fontStyle: "italic",
+              }}
+            >
               No recommendation available
             </span>
           );
@@ -85,10 +91,14 @@ export const ProductScoreTable = ({ products, loading, onRowClick }: Props) => {
       width: 100,
       render: (date) => {
         if (!date) {
-          return <span style={{ fontSize: 11, color: "#666" }}>—</span>;
+          return (
+            <span style={{ fontSize: 11, color: token.colorTextSecondary }}>
+              —
+            </span>
+          );
         }
         return (
-          <span style={{ fontSize: 11, color: "#666" }}>
+          <span style={{ fontSize: 11, color: token.colorTextSecondary }}>
             {dayjs(date).format("MMM DD, YYYY HH:mm")}
           </span>
         );
@@ -106,7 +116,9 @@ export const ProductScoreTable = ({ products, loading, onRowClick }: Props) => {
         pageSize: 10,
         showSizeChanger: true,
         showTotal: (total) => (
-          <span style={{ fontSize: 12, color: "#666" }}>{total} products</span>
+          <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
+            {total} products
+          </span>
         ),
       }}
       style={{ fontSize: 12 }}

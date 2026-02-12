@@ -31,7 +31,9 @@ export function AnalyticsSummaryCards(props: Props) {
       }}
       styles={{ body: { padding: 12 } }}
     >
-      <Text style={{ fontSize: 11, color: "#666" }}>{label}</Text>
+      <Text style={{ fontSize: 11, color: token.colorTextSecondary }}>
+        {label}
+      </Text>
       <div style={{ fontSize: 20, fontWeight: 600, color }}>{value}</div>
     </Card>
   );
@@ -51,13 +53,21 @@ export function AnalyticsSummaryCards(props: Props) {
           )}
         </Col>
         <Col span={5} lg={5} md={8} sm={12} xs={24}>
-          {renderCard("Price OK", summary.sku_ok, "#16a34a")}
+          {renderCard("Price OK", summary.sku_ok, token.colorSuccess)}
         </Col>
         <Col span={5} lg={5} md={8} sm={12} xs={24}>
-          {renderCard("Price Diff", summary.sku_with_price_diff, "#f59e0b")}
+          {renderCard(
+            "Price Diff",
+            summary.sku_with_price_diff,
+            token.colorWarning,
+          )}
         </Col>
         <Col span={5} lg={5} md={8} sm={12} xs={24}>
-          {renderCard("No Inventory", summary.sku_no_inventory, "#dc2626")}
+          {renderCard(
+            "No Inventory",
+            summary.sku_no_inventory,
+            token.colorError,
+          )}
         </Col>
       </Row>
     );
@@ -80,21 +90,21 @@ export function AnalyticsSummaryCards(props: Props) {
         {renderCard(
           "Total Profit",
           formatCurrency(summary.total_profit),
-          "#16a34a",
+          token.colorSuccess,
         )}
       </Col>
       <Col span={5} lg={5} md={8} sm={12} xs={24}>
         {renderCard(
           "Total Loss",
           formatCurrency(summary.total_loss),
-          "#dc2626",
+          token.colorError,
         )}
       </Col>
       <Col span={5} lg={5} md={8} sm={12} xs={24}>
         {renderCard(
           "Net Impact",
           formatCurrency(summary.net_impact),
-          "#0369a1",
+          token.colorPrimary,
         )}
       </Col>
     </Row>

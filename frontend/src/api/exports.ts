@@ -1,4 +1,5 @@
 import apiClient from "@/api/client";
+import { logger } from "@/lib/logger";
 
 /**
  * Export orders request parameters
@@ -52,7 +53,7 @@ export async function exportOrders(
 
     return true;
   } catch (error) {
-    console.error("Export failed:", error);
+    logger.error("Export failed:", { error });
     throw error;
   }
 }

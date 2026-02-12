@@ -50,30 +50,42 @@ export const QuickActions = () => {
     {
       title: "ML Dashboard",
       description: "AI-driven predictions and inventory optimization models",
-      icon: <ExperimentOutlined style={{ fontSize: 24, color: "#722ed1" }} />,
+      icon: (
+        <ExperimentOutlined
+          style={{ fontSize: 24, color: token.colorPrimary }}
+        />
+      ),
       path: "/analytics/ml",
-      bgColor: "#722ed115", // Purple tint
+      bgColor: token.colorFillSecondary,
     },
     {
       title: "Budget Simulator",
       description: "Simulate ad budget allocation and predict campaign ROI",
-      icon: <CalculatorOutlined style={{ fontSize: 24, color: "#13c2c2" }} />,
+      icon: (
+        <CalculatorOutlined style={{ fontSize: 24, color: token.colorInfo }} />
+      ),
       path: "/analytics/budget-simulator",
-      bgColor: "#13c2c215", // Cyan tint
+      bgColor: token.colorFillSecondary,
     },
     {
       title: "Product Classification",
       description: "AI-powered product categorization and performance grouping",
-      icon: <AppstoreOutlined style={{ fontSize: 24, color: "#52c41a" }} />,
+      icon: (
+        <AppstoreOutlined style={{ fontSize: 24, color: token.colorSuccess }} />
+      ),
       path: "/analytics/product-classification",
-      bgColor: "#52c41a15", // Green tint
+      bgColor: token.colorFillSecondary,
     },
     {
       title: "AI Reports",
       description: "Generate and browse AI-powered analytics reports",
-      icon: <FileSearchOutlined style={{ fontSize: 24, color: "#fa8c16" }} />,
+      icon: (
+        <FileSearchOutlined
+          style={{ fontSize: 24, color: token.colorWarning }}
+        />
+      ),
       path: "/analytics/ai-reports",
-      bgColor: "#fa8c1615", // Orange tint
+      bgColor: token.colorFillSecondary,
     },
   ];
 

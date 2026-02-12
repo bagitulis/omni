@@ -1,8 +1,17 @@
-import { Modal, Form, Select, InputNumber, Typography, Space } from "antd";
+import {
+  Modal,
+  Form,
+  Select,
+  InputNumber,
+  Typography,
+  Space,
+  theme,
+} from "antd";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import type { AnalyticsSettings } from "@/types/analytics";
 import { getAvailableColumns } from "@/api/inventory";
 import { formatCurrency } from "@/lib/analyticsHelpers";
+import { logger } from "@/lib/logger";
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -22,6 +31,8 @@ export function SettingsModal({
   loading,
 }: Props) {
   const [form] = Form.useForm<AnalyticsSettings>();
+  const [modalApi, contextHolder] = Modal.useModal();
+  const { token } = theme.useToken();
   const [columns, setColumns] = useState<string[]>([]);
   const [fetchingColumns, setFetchingColumns] = useState(false);
 
@@ -35,7 +46,7 @@ export function SettingsModal({
       const cols = await getAvailableColumns();
       setColumns(cols);
     } catch (error) {
-      console.error("Failed to fetch columns:", error);
+      logger.error("Failed to fetch columns:", { error });
     } finally {
       setFetchingColumns(false);
     }
@@ -61,7 +72,10 @@ export function SettingsModal({
       const values = await form.validateFields();
       onSave(values);
     } catch (error) {
-      // Validation failed
+      modalApi.error({
+        title: "Invalid settings",
+        content: "Please correct the highlighted fields before saving.",
+      });
     }
   };
 
@@ -83,6 +97,7 @@ export function SettingsModal({
       confirmLoading={loading}
       okText="Save Settings"
     >
+      {contextHolder}
       <Form
         form={form}
         layout="vertical"
@@ -111,11 +126,11 @@ export function SettingsModal({
 
         <div
           style={{
-            background: "#f8fafc",
+            background: token?.colorFillAlter,
             padding: 16,
-            borderRadius: 6,
+            borderRadius: token?.borderRadius ?? 6,
             marginBottom: 24,
-            border: "1px solid #e2e8f0",
+            border: `1px solid ${token?.colorBorder}`,
           }}
         >
           <Title level={5} style={{ fontSize: 14, marginTop: 0 }}>
@@ -171,8 +186,8 @@ export function SettingsModal({
             style={{
               marginTop: 4,
               padding: 8,
-              background: "#f0fdf4",
-              border: "1px solid #bbf7d0",
+              background: token?.colorSuccessBg,
+              border: `1px solid ${token?.colorSuccessBorder}`,
               borderRadius: 4,
               fontSize: 12,
             }}

@@ -12,6 +12,7 @@ import {
   Space,
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
+import { logger } from "@/lib/logger";
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -69,12 +70,12 @@ export function AddProductModal({
     try {
       setLoading(true);
       const values = await form.validateFields();
-      console.log("Submitting:", values);
+      logger.debug("Submitting:", values);
       // TODO: Implement actual submission logic using platform-specific API
       message.success("Product created successfully (Mock)");
       onClose();
     } catch (error) {
-      console.error("Submission failed:", error);
+      logger.error("Submission failed:", { error });
     } finally {
       setLoading(false);
     }

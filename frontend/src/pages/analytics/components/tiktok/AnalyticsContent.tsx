@@ -1,4 +1,4 @@
-import { Card, Empty, Spin, Typography } from "antd";
+import { Card, Empty, Spin, Typography, theme } from "antd";
 import { VideoCameraOutlined } from "@ant-design/icons";
 import { SyncProgressBar } from "@/components/analytics/common";
 import type {
@@ -38,6 +38,8 @@ export const AnalyticsContent = ({
   reconciliationLoading,
   shippingFeeLoading,
 }: AnalyticsContentProps) => {
+  const { token } = theme.useToken();
+
   if (showProgressBar && jobProgress) {
     return (
       <div style={{ marginBottom: 24 }}>
@@ -59,10 +61,12 @@ export const AnalyticsContent = ({
 
   if (!isSynced && !showProgressBar) {
     return (
-      <Card style={{ borderRadius: 8 }}>
+      <Card style={{ borderRadius: token.borderRadius }}>
         <Empty
           image={
-            <VideoCameraOutlined style={{ fontSize: 64, color: "#d9d9d9" }} />
+            <VideoCameraOutlined
+              style={{ fontSize: 64, color: token.colorTextTertiary }}
+            />
           }
           description="Select a period and sync escrow data to start analysis"
         />
@@ -100,7 +104,7 @@ export const AnalyticsContent = ({
 
   // Default empty state if synced but no data
   return (
-    <Card style={{ borderRadius: 8, marginTop: 24 }}>
+    <Card style={{ borderRadius: token.borderRadius, marginTop: 24 }}>
       <Empty description="No data found for this period" />
     </Card>
   );

@@ -1,6 +1,7 @@
 import { Modal, Form, InputNumber, Button, message, Tabs, Select } from "antd";
 import { useState, useEffect, useCallback } from "react";
 import api from "../../api/client";
+import { logger } from "@/lib/logger";
 
 interface Props {
   open: boolean;
@@ -21,7 +22,7 @@ export const AnalyticsSettingsModal = ({ open, onClose }: Props) => {
         form.setFieldsValue(response.data.data);
       }
     } catch (error) {
-      console.error("Failed to load settings:", error);
+      logger.error("Failed to load settings:", { error });
       message.error("Failed to load settings");
     } finally {
       setLoading(false);
@@ -47,7 +48,7 @@ export const AnalyticsSettingsModal = ({ open, onClose }: Props) => {
         message.error(response.data.error || "Failed to save settings");
       }
     } catch (error) {
-      console.error("Save error:", error);
+      logger.error("Save error:", { error });
       message.error("Failed to save settings");
     } finally {
       setSaving(false);

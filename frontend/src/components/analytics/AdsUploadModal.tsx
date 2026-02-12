@@ -3,6 +3,7 @@ import { InboxOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import type { UploadFile } from "antd/es/upload/interface";
 import api from "../../api/client";
+import { logger } from "@/lib/logger";
 
 const { Text } = Typography;
 const { Dragger } = Upload;
@@ -59,7 +60,7 @@ export const AdsUploadModal = ({ open, onClose, onSuccess }: Props) => {
         message.error(response.data.error || "Upload failed");
       }
     } catch (error: any) {
-      console.error("Upload error:", error);
+      logger.error("Upload error:", { error });
       message.error(error.message || "Failed to upload file");
     } finally {
       setUploading(false);
