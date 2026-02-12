@@ -22,7 +22,7 @@ function TiktokPriceSummaryCards({ summary }: Props) {
         <Card
           styles={{ body: { padding: 20 } }}
           bordered={false}
-          style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
+          style={{ boxShadow: token.boxShadowSecondary }}
         >
           <Statistic
             title="Total SKU"
@@ -36,7 +36,7 @@ function TiktokPriceSummaryCards({ summary }: Props) {
         <Card
           styles={{ body: { padding: 20 } }}
           bordered={false}
-          style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
+          style={{ boxShadow: token.boxShadowSecondary }}
         >
           <Statistic
             title="Transactions"
@@ -51,7 +51,7 @@ function TiktokPriceSummaryCards({ summary }: Props) {
           styles={{ body: { padding: 20 } }}
           bordered={false}
           style={{
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            boxShadow: token.boxShadowSecondary,
             borderLeft: `3px solid ${token.colorSuccess}`,
           }}
         >
@@ -76,7 +76,7 @@ function TiktokPriceSummaryCards({ summary }: Props) {
           styles={{ body: { padding: 20 } }}
           bordered={false}
           style={{
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            boxShadow: token.boxShadowSecondary,
             borderLeft: `3px solid ${token.colorWarning}`,
           }}
         >
@@ -101,7 +101,7 @@ function TiktokPriceSummaryCards({ summary }: Props) {
           styles={{ body: { padding: 20 } }}
           bordered={false}
           style={{
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            boxShadow: token.boxShadowSecondary,
             borderLeft: `3px solid ${token.colorInfo}`,
           }}
         >

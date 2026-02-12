@@ -23,7 +23,7 @@ export function TiktokShippingFeeSummary({ summary }: Props) {
           styles={{ body: { padding: 20 } }}
           bordered={false}
           style={{
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            boxShadow: token.boxShadowSecondary,
             borderLeft: `3px solid ${token.colorPrimary}`,
           }}
         >
@@ -44,7 +44,7 @@ export function TiktokShippingFeeSummary({ summary }: Props) {
           styles={{ body: { padding: 20 } }}
           bordered={false}
           style={{
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            boxShadow: token.boxShadowSecondary,
             borderLeft: `3px solid ${token.colorWarning}`,
           }}
         >
@@ -69,7 +69,7 @@ export function TiktokShippingFeeSummary({ summary }: Props) {
           styles={{ body: { padding: 20 } }}
           bordered={false}
           style={{
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            boxShadow: token.boxShadowSecondary,
             borderLeft: `3px solid ${token.colorSuccess}`,
           }}
         >
@@ -95,7 +95,7 @@ export function TiktokShippingFeeSummary({ summary }: Props) {
           styles={{ body: { padding: 20 } }}
           bordered={false}
           style={{
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            boxShadow: token.boxShadowSecondary,
             borderLeft: `3px solid ${token.colorError}`,
           }}
         >
@@ -119,7 +119,7 @@ export function TiktokShippingFeeSummary({ summary }: Props) {
           styles={{ body: { padding: 20 } }}
           bordered={false}
           style={{
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            boxShadow: token.boxShadowSecondary,
             borderLeft: `3px solid ${token.colorInfo}`,
           }}
         >

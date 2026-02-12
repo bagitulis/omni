@@ -162,8 +162,8 @@ export function TiktokShippingFeeTable({ orders, loading }: Props) {
       />
       <style>
         {`
-          .table-row-profit { background-color: rgba(34, 197, 94, 0.05); }
-          .table-row-loss { background-color: rgba(239, 68, 68, 0.05); }
+          .table-row-profit { background-color: ${token.colorSuccessBg}; }
+          .table-row-loss { background-color: ${token.colorErrorBg}; }
         `}
       </style>
     </div>

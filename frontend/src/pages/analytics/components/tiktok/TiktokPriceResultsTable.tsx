@@ -250,9 +250,9 @@ function TiktokPriceResultsTable({ skuGroups, loading }: Props) {
       />
       <style>
         {`
-          .table-row-ok { background-color: rgba(34, 197, 94, 0.03); }
-          .table-row-warning { background-color: rgba(245, 158, 11, 0.05); }
-          .table-row-info { background-color: rgba(59, 130, 246, 0.03); }
+          .table-row-ok { background-color: ${token.colorSuccessBg}; }
+          .table-row-warning { background-color: ${token.colorWarningBg}; }
+          .table-row-info { background-color: ${token.colorFillSecondary}; }
         `}
       </style>
     </div>
