@@ -68,34 +68,47 @@ Step 5: Implement
 
 Track each attempt:
 
-| Count | Action                                                                              |
-| ----- | ----------------------------------------------------------------------------------- |
-| 1     | Fix directly, record error. Document what you tried.                                |
-| 2     | **STOP.** TRACE FLOW activated. Research full chain before next fix.                |
-| 3+    | **TOTAL STOP.** RESEARCH activated. Delegate `@explore` + `@librarian` in parallel. |
+<!-- MASTER:failure-counter -->
+| Count | Action                                                                          |
+| ----- | ------------------------------------------------------------------------------- |
+| 1     | Fix directly, record error. Document what was tried.                            |
+| 2     | **STOP.** TRACE FLOW activated. Research full chain before fix.                 |
+| 3+    | **TOTAL STOP.** RESEARCH activated. Delegate @explore + @librarian in parallel. |
+| 5+    | **STOP the task.** Report to orchestrator/user with full failure log.           |
+<!-- /MASTER:failure-counter -->
 
 ### Mandatory Format
 
+<!-- MASTER:failure-counter-format -->
 ```markdown
-## Fix Attempt #N
+## Fix Attempt #[N]
 
-**Failure Count:** N
+**Failure Count:** [current]
 **Previous Error:** [error message]
 **Hypothesis:** [why this fix should work]
-**Flow Understanding:**
-
-- Platform API expects: [what]
-- SDK sends: [what]
-- Handler receives: [what]
-- Service processes: [what]
-- Root cause: [which layer, what's wrong]
-
 **Action:** [specific fix in specific layer]
 ```
+<!-- /MASTER:failure-counter-format -->
 
 ---
 
 ## Subagent Timeout & Failure Recovery
+
+### Failure Escalation (MANDATORY)
+
+<!-- MASTER:failure-escalation -->
+When a delegated task **fails or produces incorrect results** (NOT due to connection loss or timeout):
+
+| Failure Type             | Action                                                     |
+| ------------------------ | ---------------------------------------------------------- |
+| **Timeout / connection** | Retry with `session_id` in same category                   |
+| **Wrong output / error** | **MUST retry using `category="deep"`** on the same task    |
+| **Deep also fails**      | Escalate to `@oracle` for analysis, then retry or ask user |
+
+> **Why `deep`?** The `deep` category uses a stronger reasoning model with autonomous problem-solving.
+> It performs thorough research before acting — ideal for tasks that lighter categories failed on.
+> This prevents wasting retries on the same weak model that already failed.
+<!-- /MASTER:failure-escalation -->
 
 ### Detection Signals
 
@@ -141,31 +154,37 @@ Step 4: If all fallbacks fail → handle manually
 
 ## Fallback Chain
 
-| Primary Agent | Fallback 1                  | Fallback 2       | Last Resort       |
-| ------------- | --------------------------- | ---------------- | ----------------- |
-| oracle        | librarian + manual analysis | handle yourself  | ask user          |
-| librarian     | explore + websearch         | grep/glob direct | ask user          |
-| explore       | grep/glob direct            | AST search       | ask user          |
-| momus         | manual review checklist     | skip review      | proceed carefully |
-| metis         | manual pre-analysis         | skip analysis    | proceed carefully |
+<!-- MASTER:fallback-chain -->
+- oracle → librarian → manual
+- librarian → explore + websearch → manual
+- explore → grep/glob → manual
+<!-- /MASTER:fallback-chain -->
 
 ---
 
 ## Session Continuity Pattern
 
-```typescript
-// ALWAYS save session_id from delegation
-const result = await delegate_task({...});
-const sessionId = result.session_id;
+<!-- MASTER:session-continuity -->
+Every `delegate_task()` output includes a `session_id`. **ALWAYS use it.**
 
-// On failure, RESUME instead of retry fresh
-if (failed) {
-  await delegate_task({
-    session_id: sessionId,
-    prompt: "Fix: [specific error]. Continue."
-  });
-}
+| Scenario               | Action                                             |
+| ---------------------- | -------------------------------------------------- |
+| Task failed/incomplete | `session_id="...", prompt="Fix: [specific error]"` |
+| Follow-up question     | `session_id="...", prompt="Also: [question]"`      |
+| Verification failed    | `session_id="...", prompt="Failed: [error]. Fix."` |
+| Multi-turn with agent  | `session_id="..."` — NEVER start fresh             |
+
+**Why session_id is CRITICAL:**
+- Agent has FULL conversation context preserved
+- No repeated file reads, exploration, or setup
+- Saves 70%+ tokens on follow-ups
+- Agent knows what it already tried/learned
+
 ```
+❌ WRONG: Task failed → new delegation from scratch (loses all context)
+✅ CORRECT: Task failed → session_id="ses_xxx", prompt="Fix: [error]"
+```
+<!-- /MASTER:session-continuity -->
 
 ---
 

@@ -75,10 +75,35 @@
 
 ## 4. Background Task Management
 
-### Parallel Delegation Limits
+### Parallel Delegation Strategy
 
-- **MAXIMUM 3 parallel background delegations** at any time
-- Keeps system responsive without overloading
+> **Launch aggressively, run max 3.** The system queues excess tasks automatically.
+> Fire as many delegations as the task requires — the queue handles concurrency.
+> But only **3 run simultaneously** (`defaultConcurrency: 3` in system config).
+
+<!-- MASTER:concurrency -->
+| Setting               | Value | Controlled By                               |
+| --------------------- | ----- | ------------------------------------------- |
+| **Max running tasks** | 3     | System config (`defaultConcurrency: 3`)     |
+| **Max queued tasks**  | ∞     | System auto-queues excess                   |
+| **Stale timeout**     | 10min | System config (`staleTimeoutMs: 600000`)    |
+| **Manual throttling** | NONE  | System handles concurrency — don't throttle |
+
+**Strategy:**
+
+- **Launch aggressively**: Fire as many delegations as the task warrants (5, 6, 10 — doesn't matter)
+- **System queues excess**: Only 3 run simultaneously; rest wait in queue automatically
+- **Stay productive**: While agents run, continue on other work items or standby for user
+- **Never block**: Don't wait idle for delegation results — system notifies on completion
+
+```
+❌ WRONG: "I'll limit myself to 3 delegations"
+✅ CORRECT: Fire all needed delegations → system queues → collect results when ready
+
+❌ WRONG: Fire 3 agents → wait → wait → wait → respond
+✅ CORRECT: Fire agents → continue working / standby → process results as they arrive
+```
+<!-- /MASTER:concurrency -->
 
 ### Stay Responsive to User (CRITICAL)
 
@@ -116,11 +141,27 @@ background_cancel(all=true)
 
 Every `delegate_task()` output includes session_id. **USE IT!**
 
+<!-- MASTER:session-continuity -->
+Every `delegate_task()` output includes a `session_id`. **ALWAYS use it.**
+
 | Scenario               | Action                                             |
 | ---------------------- | -------------------------------------------------- |
-| Task failed/incomplete | `session_id="...", prompt="Fix: [error]"`          |
+| Task failed/incomplete | `session_id="...", prompt="Fix: [specific error]"` |
 | Follow-up question     | `session_id="...", prompt="Also: [question]"`      |
 | Verification failed    | `session_id="...", prompt="Failed: [error]. Fix."` |
+| Multi-turn with agent  | `session_id="..."` — NEVER start fresh             |
+
+**Why session_id is CRITICAL:**
+- Agent has FULL conversation context preserved
+- No repeated file reads, exploration, or setup
+- Saves 70%+ tokens on follow-ups
+- Agent knows what it already tried/learned
+
+```
+❌ WRONG: Task failed → new delegation from scratch (loses all context)
+✅ CORRECT: Task failed → session_id="ses_xxx", prompt="Fix: [error]"
+```
+<!-- /MASTER:session-continuity -->
 
 ```typescript
 // ❌ WRONG: Starting fresh loses context
@@ -146,6 +187,28 @@ delegate_task(
 | session_id but no answer | Partial execution       |
 | 3x same error            | Stuck in loop           |
 
+### Failure Escalation (MANDATORY)
+
+When a delegated task **fails or produces incorrect results**:
+
+<!-- MASTER:failure-escalation -->
+When a delegated task **fails or produces incorrect results** (NOT due to connection loss or timeout):
+
+| Failure Type             | Action                                                     |
+| ------------------------ | ---------------------------------------------------------- |
+| **Timeout / connection** | Retry with `session_id` in same category                   |
+| **Wrong output / error** | **MUST retry using `category="deep"`** on the same task    |
+| **Deep also fails**      | Escalate to `@oracle` for analysis, then retry or ask user |
+
+> **Why `deep`?** The `deep` category uses a stronger reasoning model with autonomous problem-solving.
+> It performs thorough research before acting — ideal for tasks that lighter categories failed on.
+> This prevents wasting retries on the same weak model that already failed.
+<!-- /MASTER:failure-escalation -->
+
+> **Why `deep` for retry?** The `deep` category uses a stronger reasoning model (e.g., GPT-5.3 Codex)
+> with autonomous problem-solving. It researches thoroughly before acting.
+> Retrying with the SAME weak model that already failed is wasteful — escalate to `deep` immediately.
+
 ### Recovery Actions
 
 ```
@@ -154,44 +217,55 @@ TIMEOUT/ABORT:
 → If present: delegate_task(session_id="...", prompt="continue")
 → If not: retry with more specific prompt
 
+WRONG OUTPUT (NOT timeout):
+→ MUST use category="deep" for retry
+→ Include the error/wrong output in the prompt so deep agent knows what failed
+→ Example: delegate_task(category="deep", prompt="Previous attempt failed with: [error]. Fix: [task]")
+
 EMPTY RESPONSE:
 → Wait 5 seconds
 → Try background_output(task_id=...)
-→ If still empty: cancel and retry
+→ If still empty: cancel and retry with category="deep"
 
 REPEATED ERROR (3x):
 → STOP delegating to that agent
-→ Fallback to another agent
+→ Escalate to @oracle for analysis
+→ If oracle can't solve: ask user
 ```
 
 ### Fallback Chain
 
-| Primary   | Fallback 1          | Fallback 2      |
-| --------- | ------------------- | --------------- |
-| oracle    | librarian + manual  | handle yourself |
-| librarian | explore + websearch | handle yourself |
-| explore   | grep/glob direct    | handle yourself |
+<!-- MASTER:fallback-chain -->
+- oracle → librarian → manual
+- librarian → explore + websearch → manual
+- explore → grep/glob → manual
+<!-- /MASTER:fallback-chain -->
 
 ---
 
 ## 7. Failure Counter Rule
 
-| Failure Count | Action                                     |
-| ------------- | ------------------------------------------ |
-| 1             | Can fix directly, RECORD error             |
-| 2             | STOP! Trace flow, delegate @explore        |
-| 3+            | TOTAL STOP! Delegate @librarian + @explore |
+<!-- MASTER:failure-counter -->
+| Count | Action                                                                          |
+| ----- | ------------------------------------------------------------------------------- |
+| 1     | Fix directly, record error. Document what was tried.                            |
+| 2     | **STOP.** TRACE FLOW activated. Research full chain before fix.                 |
+| 3+    | **TOTAL STOP.** RESEARCH activated. Delegate @explore + @librarian in parallel. |
+| 5+    | **STOP the task.** Report to orchestrator/user with full failure log.           |
+<!-- /MASTER:failure-counter -->
 
 **Format for each fix attempt:**
 
+<!-- MASTER:failure-counter-format -->
 ```markdown
 ## Fix Attempt #[N]
 
 **Failure Count:** [current]
-**Previous Error:** [error]
-**Hypothesis:** [why this will work]
-**Action:** [what to do]
+**Previous Error:** [error message]
+**Hypothesis:** [why this fix should work]
+**Action:** [specific fix in specific layer]
 ```
+<!-- /MASTER:failure-counter-format -->
 
 ---
 

@@ -139,7 +139,7 @@ python build.py backup
 1. Read error message carefully
 2. Fix the specific error
 3. Re-run build
-4. Max 3 attempts, then escalate
+4. Max 3 attempts, then escalate (see **DELEGATION_RULES.md §3** for escalation protocol)
 
 ---
 
@@ -197,15 +197,22 @@ For each relevant layer:
 
 ## 7. Failure Counter
 
+> **Full escalation rules**: See **DELEGATION_RULES.md §3 (Failure Escalation)** and **§6 (Failure Counter)**.
+
 Track each attempt:
 
-| Count | Action                                            |
-| ----- | ------------------------------------------------- |
-| 1     | Fix directly, record error                        |
-| 2     | TRACE FLOW activated                              |
-| 3+    | RESEARCH activated (delegate @explore/@librarian) |
+<!-- MASTER:failure-counter -->
+| Count | Action                                                                          |
+| ----- | ------------------------------------------------------------------------------- |
+| 1     | Fix directly, record error. Document what was tried.                            |
+| 2     | **STOP.** TRACE FLOW activated. Research full chain before fix.                 |
+| 3+    | **TOTAL STOP.** RESEARCH activated. Delegate @explore + @librarian in parallel. |
+| 5+    | **STOP the task.** Report to orchestrator/user with full failure log.           |
+<!-- /MASTER:failure-counter -->
 
 **Format:**
+
+<!-- MASTER:failure-counter-format -->
 
 ```markdown
 ## Fix Attempt #N
@@ -221,6 +228,24 @@ Track each attempt:
 - Service processes: ...
 - Root cause: [layer + issue]
 ```
+
+<!-- /MASTER:failure-counter-format -->
+
+### Failure Escalation (from DELEGATION_RULES.md §3)
+
+<!-- MASTER:failure-escalation -->
+When a delegated task **fails or produces incorrect results** (NOT due to connection loss or timeout):
+
+| Failure Type             | Action                                                     |
+| ------------------------ | ---------------------------------------------------------- |
+| **Timeout / connection** | Retry with `session_id` in same category                   |
+| **Wrong output / error** | **MUST retry using `category="deep"`** on the same task    |
+| **Deep also fails**      | Escalate to `@oracle` for analysis, then retry or ask user |
+
+> **Why `deep`?** The `deep` category uses a stronger reasoning model with autonomous problem-solving.
+> It performs thorough research before acting — ideal for tasks that lighter categories failed on.
+> This prevents wasting retries on the same weak model that already failed.
+<!-- /MASTER:failure-escalation -->
 
 ---
 

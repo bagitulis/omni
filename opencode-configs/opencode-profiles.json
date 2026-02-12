@@ -1,7 +1,6 @@
 {
   "_comment": "Unified config profiles for AI.py. AI.py reads this, merges shared + profile, generates oh-my-opencode.json",
   "_version": "1.0",
-
   "shared": {
     "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
     "google_auth": false,
@@ -13,65 +12,88 @@
       "provider": "agent-browser"
     },
     "background_task": {
-      "defaultConcurrency": 4,
-      "staleTimeoutMs": 300000
+      "defaultConcurrency": 3,
+      "staleTimeoutMs": 600000
     },
-
     "agents": {
       "sisyphus": {
         "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then SISYPHUS_RULES.md.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit. 400+ lines is NOT acceptable — refactor harder. Docs/config/migrations have no limit. 400+ lines is NOT acceptable — refactor harder.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.\n\n✅ NO PREMATURE DONE: Before saying 'done', self-check: (1) ALL changes verified with evidence? (2) Any remaining TODOs? (3) Anything improvable I'm skipping? (4) Did I TEST or just ASSUME? (5) Re-read original task — fully addressed? If ANY answer is no → NOT done, keep working.",
-        "skills": ["stuck-recovery", "ulp-loop"]
+        "skills": [
+          "stuck-recovery",
+          "ulp-loop"
+        ]
       },
       "prometheus": {
         "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then PROMETHEUS_RULES.md.\n\n🎯 MANDATORY OUTPUT: TODO LIST with Flow Map + Impact Analysis. No prose paragraphs. Max 3 parallel delegations. Every plan needs: Pre-Planning Verification, Flow Map (§1.1), Impact Analysis (§3), phased TODO LIST, Success Criteria."
       },
       "atlas": {
         "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then EXECUTOR_RULES.md.\n\n🎯 REACT MIGRATION MODE: You are implementing the React migration plan. Load skill 'react-frontend-rules' for Design System specs. After UI implementation, load 'playwright-layout-eval' skill and verify layout matches specifications.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Split by responsibility, extract helpers/types. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.\n\n✅ NO PREMATURE DONE: Before saying 'done', self-check: (1) ALL changes verified with evidence? (2) Any remaining TODOs? (3) Anything improvable I'm skipping? (4) Did I TEST or just ASSUME? (5) Re-read original task — fully addressed? If ANY answer is no → NOT done, keep working.",
-        "skills": ["stuck-recovery", "react-frontend-rules"]
+        "skills": [
+          "stuck-recovery",
+          "react-frontend-rules"
+        ]
       },
       "hephaestus": {
         "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then EXECUTOR_RULES.md.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Split by responsibility, extract helpers/types. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.\n\n✅ NO PREMATURE DONE: Before saying 'done', self-check: (1) ALL changes verified with evidence? (2) Any remaining TODOs? (3) Anything improvable I'm skipping? (4) Did I TEST or just ASSUME? (5) Re-read original task — fully addressed? If ANY answer is no → NOT done, keep working.",
-        "skills": ["stuck-recovery", "react-frontend-rules"]
+        "skills": [
+          "stuck-recovery",
+          "react-frontend-rules"
+        ]
       },
       "sisyphus-junior": {
         "prompt_append": "⚠️ READ FILE: AGENTS.md (mandatory rules table). Then EXECUTOR_RULES.md.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Split by responsibility, extract helpers/types. Clean code slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.\n\n✅ NO PREMATURE DONE: Before saying 'done', self-check: (1) ALL changes verified with evidence? (2) Any remaining TODOs? (3) Anything improvable I'm skipping? (4) Did I TEST or just ASSUME? (5) Re-read original task — fully addressed? If ANY answer is no → NOT done, keep working.",
-        "skills": ["stuck-recovery", "react-frontend-rules"]
+        "skills": [
+          "stuck-recovery",
+          "react-frontend-rules"
+        ]
       },
       "oracle": {
-        "skills": ["oracle-rules"]
+        "skills": [
+          "oracle-rules"
+        ]
       },
       "librarian": {
-        "skills": ["librarian-rules"]
+        "skills": [
+          "librarian-rules"
+        ]
       },
       "explore": {
-        "skills": ["explore-rules"]
+        "skills": [
+          "explore-rules"
+        ]
       },
       "multimodal-looker": {},
       "metis": {
-        "skills": ["metis-rules"]
+        "skills": [
+          "metis-rules"
+        ]
       },
       "momus": {
-        "skills": ["momus-rules"]
+        "skills": [
+          "momus-rules"
+        ]
       },
       "default": {}
     },
-
     "categories": {
       "visual-engineering": {
-        "skills": ["react-frontend-rules", "playwright-layout-eval"],
-        "prompt_append": "⚠️ CONSTITUTION: Follow AGENTS.md invariants (English-only, snake_case JSON, no false positives, no default tenant, no destructive git).\n\nSCREENSHOT RULE: ALWAYS save screenshots to 'docs/Screenshots/' directory with descriptive names (e.g., docs/Screenshots/page-desktop.png). NEVER save to root folder.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code (no duplication, single responsibility, no dead code) slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🐛 UI BUG REPORTING (MANDATORY): When using Playwright/browser, if you discover ANY layout bug (broken layout, missing table columns, overlapping elements, invisible UI, horizontal scroll, misaligned components) — you MUST report it to the main agent even if it is NOT part of your current task. Include: screenshot, page URL, description of the issue. Never silently ignore UI bugs.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.\n\n✅ NO PREMATURE DONE: Before saying 'done', self-check: (1) ALL changes verified with evidence? (2) Any remaining TODOs? (3) Anything improvable I'm skipping? (4) Did I TEST or just ASSUME? (5) Re-read original task — fully addressed? If ANY answer is no → NOT done, keep working."
+        "skills": [
+          "react-frontend-rules",
+          "playwright-layout-eval"
+        ],
+        "prompt_append": "⚠️ CONSTITUTION: Follow AGENTS.md invariants (English-only, snake_case JSON, no false positives, no default tenant, no destructive git).\n\nSCREENSHOT RULE: ALWAYS save screenshots to 'docs/Screenshots/' directory with descriptive names (e.g., docs/Screenshots/page-desktop.png). NEVER save to root folder.\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit. 400+ lines is NOT acceptable — refactor harder. Docs/config/migrations have no limit. 400+ lines is NOT acceptable — refactor harder.\n\n🐛 UI BUG REPORTING (MANDATORY): When using Playwright/browser, if you discover ANY layout bug (broken layout, missing table columns, overlapping elements, invisible UI, horizontal scroll, misaligned components) — you MUST report it to the main agent even if it is NOT part of your current task. Include: screenshot, page URL, description of the issue. Never silently ignore UI bugs.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.\n\n✅ NO PREMATURE DONE: Before saying 'done', self-check: (1) ALL changes verified with evidence? (2) Any remaining TODOs? (3) Anything improvable I'm skipping? (4) Did I TEST or just ASSUME? (5) Re-read original task — fully addressed? If ANY answer is no → NOT done, keep working."
       },
       "implementation": {
-        "prompt_append": "⚠️ CONSTITUTION: Follow AGENTS.md invariants (English-only, snake_case JSON, no false positives, no default tenant, no destructive git).\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code (no duplication, single responsibility, no dead code) slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.\n\n✅ NO PREMATURE DONE: Before saying 'done', self-check: (1) ALL changes verified with evidence? (2) Any remaining TODOs? (3) Anything improvable I'm skipping? (4) Did I TEST or just ASSUME? (5) Re-read original task — fully addressed? If ANY answer is no → NOT done, keep working."
+        "prompt_append": "⚠️ CONSTITUTION: Follow AGENTS.md invariants (English-only, snake_case JSON, no false positives, no default tenant, no destructive git).\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit. 400+ lines is NOT acceptable — refactor harder. Docs/config/migrations have no limit. 400+ lines is NOT acceptable — refactor harder.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.\n\n✅ NO PREMATURE DONE: Before saying 'done', self-check: (1) ALL changes verified with evidence? (2) Any remaining TODOs? (3) Anything improvable I'm skipping? (4) Did I TEST or just ASSUME? (5) Re-read original task — fully addressed? If ANY answer is no → NOT done, keep working."
       },
       "quick": {
-        "prompt_append": "⚠️ CONSTITUTION: Follow AGENTS.md invariants (English-only, snake_case JSON, no false positives, no default tenant, no destructive git).\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit. 400+ lines is NOT acceptable — refactor harder.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic. NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.\n\n✅ NO PREMATURE DONE: Before saying 'done', self-check: (1) ALL changes verified with evidence? (2) Any remaining TODOs? (3) Did I TEST or just ASSUME? (4) Anything improvable I'm skipping? (5) Re-read original task — fully addressed? If ANY answer is no → NOT done, keep working."
+        "prompt_append": "⚠️ CONSTITUTION: Follow AGENTS.md invariants (English-only, snake_case JSON, no false positives, no default tenant, no destructive git).\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit. 400+ lines is NOT acceptable — refactor harder. Docs/config/migrations have no limit. 400+ lines is NOT acceptable — refactor harder.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.\n\n✅ NO PREMATURE DONE: Before saying 'done', self-check: (1) ALL changes verified with evidence? (2) Any remaining TODOs? (3) Anything improvable I'm skipping? (4) Did I TEST or just ASSUME? (5) Re-read original task — fully addressed? If ANY answer is no → NOT done, keep working."
       },
       "deep": {
-        "prompt_append": "⚠️ CONSTITUTION: Follow AGENTS.md invariants (English-only, snake_case JSON, no false positives, no default tenant, no destructive git).\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code (no duplication, single responsibility, no dead code) slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.\n\n✅ NO PREMATURE DONE: Before saying 'done', self-check: (1) ALL changes verified with evidence? (2) Any remaining TODOs? (3) Anything improvable I'm skipping? (4) Did I TEST or just ASSUME? (5) Re-read original task — fully addressed? If ANY answer is no → NOT done, keep working."
+        "prompt_append": "⚠️ CONSTITUTION: Follow AGENTS.md invariants (English-only, snake_case JSON, no false positives, no default tenant, no destructive git).\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit. 400+ lines is NOT acceptable — refactor harder. Docs/config/migrations have no limit. 400+ lines is NOT acceptable — refactor harder.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.\n\n✅ NO PREMATURE DONE: Before saying 'done', self-check: (1) ALL changes verified with evidence? (2) Any remaining TODOs? (3) Anything improvable I'm skipping? (4) Did I TEST or just ASSUME? (5) Re-read original task — fully addressed? If ANY answer is no → NOT done, keep working."
       },
       "ultrabrain": {
-        "prompt_append": "⚠️ CONSTITUTION: Follow AGENTS.md invariants (English-only, snake_case JSON, no false positives, no default tenant, no destructive git).\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code (no duplication, single responsibility, no dead code) slightly exceeding is OK. Docs/config/migrations have no limit.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.\n\n✅ NO PREMATURE DONE: Before saying 'done', self-check: (1) ALL changes verified with evidence? (2) Any remaining TODOs? (3) Anything improvable I'm skipping? (4) Did I TEST or just ASSUME? (5) Re-read original task — fully addressed? If ANY answer is no → NOT done, keep working."
+        "prompt_append": "⚠️ CONSTITUTION: Follow AGENTS.md invariants (English-only, snake_case JSON, no false positives, no default tenant, no destructive git).\n\n📏 CODE QUALITY: After editing code files, if file > ~300 lines → review for SRP/DRY/OOP violations. Clean code slightly exceeding is OK. Docs/config/migrations have no limit. 400+ lines is NOT acceptable — refactor harder. Docs/config/migrations have no limit. 400+ lines is NOT acceptable — refactor harder.\n\n🔍 UNDERSTAND FLOW FIRST: Before fixing ANY bug or implementing features, research the RELEVANT flow for the topic (e.g., DB schema→migration→repo→service, or API→SDK→handler→service, or backend→API→frontend — depends on what you're working on). NEVER guess — trace with evidence. If you fix the same thing twice, STOP: you don't understand the flow. Use @explore for codebase, @librarian for external docs.\n\n✅ NO PREMATURE DONE: Before saying 'done', self-check: (1) ALL changes verified with evidence? (2) Any remaining TODOs? (3) Anything improvable I'm skipping? (4) Did I TEST or just ASSUME? (5) Re-read original task — fully addressed? If ANY answer is no → NOT done, keep working."
       },
       "artistry": {},
       "writing": {},
@@ -82,18 +104,23 @@
       "unspecified-high": {}
     }
   },
-
   "profiles": {
     "mix-copilot": {
       "_description": "GitHub Copilot primary + Google/OpenAI secondary. All agents available.",
       "default_model": "github-copilot/claude-opus-4.6",
-
       "agents": {
-        "sisyphus": { "model": "github-copilot/claude-opus-4.6" },
-        "prometheus": { "model": "github-copilot/claude-opus-4.6" },
-        "atlas": { "model": "github-copilot/claude-opus-4.6" },
+        "sisyphus": {
+          "model": "github-copilot/claude-opus-4.6"
+        },
+        "prometheus": {
+          "model": "github-copilot/claude-opus-4.6"
+        },
+        "atlas": {
+          "model": "github-copilot/claude-opus-4.6"
+        },
         "hephaestus": {
-          "model": "github-copilot/GPT-5.3-Codex",
+          "model": "github-copilot/gpt-5.2-codex",
+          "variant": "xhigh",
           "temperature": 0.1
         },
         "sisyphus-junior": {
@@ -110,7 +137,9 @@
           "variant": "high",
           "temperature": 0.1
         },
-        "explore": { "model": "github-copilot/claude-haiku-4.5" },
+        "explore": {
+          "model": "github-copilot/claude-haiku-4.5"
+        },
         "multimodal-looker": {
           "model": "google/gemini-3-flash",
           "temperature": 0.1
@@ -129,7 +158,6 @@
           "variant": "max"
         }
       },
-
       "categories": {
         "visual-engineering": {
           "model": "google/gemini-3-pro",
@@ -159,7 +187,10 @@
           "variant": "high",
           "temperature": 0.1
         },
-        "writing": { "model": "google/gemini-3-flash", "temperature": 0.1 },
+        "writing": {
+          "model": "google/gemini-3-flash",
+          "temperature": 0.1
+        },
         "review": {
           "model": "google/gemini-3-pro",
           "variant": "high",
@@ -174,19 +205,19 @@
           "model": "google/claude-opus-4-6-thinking",
           "variant": "max"
         },
-        "unspecified-low": { "model": "github-copilot/claude-haiku-4.5" },
+        "unspecified-low": {
+          "model": "github-copilot/claude-haiku-4.5"
+        },
         "unspecified-high": {
           "model": "google/claude-opus-4-6-thinking",
           "variant": "max"
         }
       }
     },
-
     "mix-antigravity": {
       "_description": "Google Antigravity primary + OpenAI secondary. All agents available. Supports proxy and plugin delivery.",
       "default_model": "google/gemini-3-pro",
       "variant": "high",
-
       "agents": {
         "sisyphus": {
           "model": "google/claude-sonnet-4-5-thinking",
@@ -242,7 +273,6 @@
           "variant": "max"
         }
       },
-
       "categories": {
         "visual-engineering": {
           "model": "google/gemini-3-pro",
@@ -272,7 +302,10 @@
           "variant": "high",
           "temperature": 0.1
         },
-        "writing": { "model": "google/gemini-3-flash", "temperature": 0.1 },
+        "writing": {
+          "model": "google/gemini-3-flash",
+          "temperature": 0.1
+        },
         "review": {
           "model": "google/gemini-3-pro",
           "variant": "high",
@@ -287,7 +320,9 @@
           "model": "google/claude-opus-4-6-thinking",
           "variant": "max"
         },
-        "unspecified-low": { "model": "google/gemini-3-flash" },
+        "unspecified-low": {
+          "model": "google/gemini-3-flash"
+        },
         "unspecified-high": {
           "model": "google/claude-opus-4-6-thinking",
           "variant": "max"

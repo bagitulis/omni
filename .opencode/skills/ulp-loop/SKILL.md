@@ -24,9 +24,29 @@ You are the **Main Controller** and **Quality Lead**. Your job is to:
 
 ### Parallel Execution
 
-- Keep up to **3 tasks running at once** (per AGENTS.md §7)
-- As soon as one finishes, pull the next from the queue — keep the pipeline moving
-- **Stay responsive** — never block on delegation results (per SISYPHUS_RULES.md §4)
+<!-- MASTER:concurrency -->
+| Setting               | Value | Controlled By                               |
+| --------------------- | ----- | ------------------------------------------- |
+| **Max running tasks** | 3     | System config (`defaultConcurrency: 3`)     |
+| **Max queued tasks**  | ∞     | System auto-queues excess                   |
+| **Stale timeout**     | 10min | System config (`staleTimeoutMs: 600000`)    |
+| **Manual throttling** | NONE  | System handles concurrency — don't throttle |
+
+**Strategy:**
+
+- **Launch aggressively**: Fire as many delegations as the task warrants (5, 6, 10 — doesn't matter)
+- **System queues excess**: Only 3 run simultaneously; rest wait in queue automatically
+- **Stay productive**: While agents run, continue on other work items or standby for user
+- **Never block**: Don't wait idle for delegation results — system notifies on completion
+
+```
+❌ WRONG: "I'll limit myself to 3 delegations"
+✅ CORRECT: Fire all needed delegations → system queues → collect results when ready
+
+❌ WRONG: Fire 3 agents → wait → wait → wait → respond
+✅ CORRECT: Fire agents → continue working / standby → process results as they arrive
+```
+<!-- /MASTER:concurrency -->
 
 ### Task Flow
 
@@ -131,12 +151,14 @@ Long-running loops MUST use `session_id` for delegation:
 
 ## 5. Failure Handling in Loops
 
-| Failure Count | Action                                                         |
-| ------------- | -------------------------------------------------------------- |
-| 1             | Fix directly, record error                                     |
-| 2             | Activate Trace Flow — executor must trace before fixing        |
-| 3+            | Activate Research — delegate @explore + @librarian in parallel |
-| 5+            | STOP the loop — report to user with full failure log           |
+<!-- MASTER:failure-counter -->
+| Count | Action                                                                          |
+| ----- | ------------------------------------------------------------------------------- |
+| 1     | Fix directly, record error. Document what was tried.                            |
+| 2     | **STOP.** TRACE FLOW activated. Research full chain before fix.                 |
+| 3+    | **TOTAL STOP.** RESEARCH activated. Delegate @explore + @librarian in parallel. |
+| 5+    | **STOP the task.** Report to orchestrator/user with full failure log.           |
+<!-- /MASTER:failure-counter -->
 
 ---
 

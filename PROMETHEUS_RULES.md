@@ -705,21 +705,68 @@ Router → OrderHandler.HandleExportOrders → OrderService.ExportOrders → Ord
 ## 9. DELEGATION GUIDELINES FOR PLANS
 
 > **Prometheus plans SHOULD include delegation directives when appropriate.**
-> **MAXIMUM 3 parallel delegations** to balance throughput and system load.
+> For full delegation, escalation, and concurrency rules, see **DELEGATION_RULES.md** (master reference).
 > For detailed executor rules (failure counter, trace flow, SDK priority), see **EXECUTOR_RULES.md**.
 
-### 9.1 Delegation Quick Reference
+### 9.1 Concurrency (from DELEGATION_RULES.md §1)
 
-| Situation                            | Delegate To                                    |
-| ------------------------------------ | ---------------------------------------------- |
-| Search SDK docs / official API       | `@librarian`                                   |
-| Search existing patterns in codebase | `@explore`                                     |
-| Architecture/design question         | `@oracle`                                      |
-| UI/UX / Frontend work                | `delegate_task(category="visual-engineering")` |
-| Complex logic problem                | `delegate_task(category="ultrabrain")`         |
-| Quick/trivial fix                    | `delegate_task(category="quick")`              |
+<!-- MASTER:concurrency -->
+| Setting               | Value | Controlled By                               |
+| --------------------- | ----- | ------------------------------------------- |
+| **Max running tasks** | 3     | System config (`defaultConcurrency: 3`)     |
+| **Max queued tasks**  | ∞     | System auto-queues excess                   |
+| **Stale timeout**     | 10min | System config (`staleTimeoutMs: 600000`)    |
+| **Manual throttling** | NONE  | System handles concurrency — don't throttle |
 
-### 9.2 Delegation in TODO LIST
+**Strategy:**
+
+- **Launch aggressively**: Fire as many delegations as the task warrants (5, 6, 10 — doesn't matter)
+- **System queues excess**: Only 3 run simultaneously; rest wait in queue automatically
+- **Stay productive**: While agents run, continue on other work items or standby for user
+- **Never block**: Don't wait idle for delegation results — system notifies on completion
+
+```
+❌ WRONG: "I'll limit myself to 3 delegations"
+✅ CORRECT: Fire all needed delegations → system queues → collect results when ready
+
+❌ WRONG: Fire 3 agents → wait → wait → wait → respond
+✅ CORRECT: Fire agents → continue working / standby → process results as they arrive
+```
+<!-- /MASTER:concurrency -->
+
+### 9.2 Delegation Quick Reference
+
+<!-- MASTER:delegation-routing-compact -->
+| Situation             | Delegate To                   |
+| --------------------- | ----------------------------- |
+| Large task/feature    | Prometheus → Sisyphus         |
+| Search in codebase    | `@explore`                    |
+| Search external docs  | `@librarian`                  |
+| Architecture question | `@oracle`                     |
+| UI/Frontend           | category="visual-engineering" |
+| Quick fix             | category="quick"              |
+<!-- /MASTER:delegation-routing-compact -->
+
+### 9.3 Failure Escalation in Plans (from DELEGATION_RULES.md §3)
+
+<!-- MASTER:failure-escalation -->
+When a delegated task **fails or produces incorrect results** (NOT due to connection loss or timeout):
+
+| Failure Type             | Action                                                     |
+| ------------------------ | ---------------------------------------------------------- |
+| **Timeout / connection** | Retry with `session_id` in same category                   |
+| **Wrong output / error** | **MUST retry using `category="deep"`** on the same task    |
+| **Deep also fails**      | Escalate to `@oracle` for analysis, then retry or ask user |
+
+> **Why `deep`?** The `deep` category uses a stronger reasoning model with autonomous problem-solving.
+> It performs thorough research before acting — ideal for tasks that lighter categories failed on.
+> This prevents wasting retries on the same weak model that already failed.
+<!-- /MASTER:failure-escalation -->
+
+> Include this awareness in plans: executor tasks that involve risky/complex logic should note
+> "If this fails, escalate per DELEGATION_RULES.md §3" in the TODO item.
+
+### 9.4 Delegation in TODO LIST
 
 When plans require research or parallel work, include delegation phases:
 
@@ -737,7 +784,7 @@ When plans require research or parallel work, include delegation phases:
    - [ ] Fix based on research + trace
 ```
 
-### 9.3 Delegation Format
+### 9.5 Delegation Format
 
 ```markdown
 ## Delegation Request

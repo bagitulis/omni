@@ -329,18 +329,37 @@ PostgreSQL (production - via env vars):
 
 ## 7. Delegation Quick Reference
 
-> **MAXIMUM 3 parallel background delegations.** Main agent must stay responsive to user.
+> **Launch delegations aggressively for maximum throughput.** Don't hold back — fire multiple agents in parallel.
+> **MAXIMUM 3 background delegations RUNNING simultaneously.** System queues excess tasks automatically (`defaultConcurrency: 3`).
 > This limit is **orchestrator-controlled** (Sisyphus manages the pipeline).
 > Executors do NOT self-delegate unless instructed by the orchestrator.
 
+<!-- MASTER:delegation-routing-compact -->
 | Situation             | Delegate To                   |
 | --------------------- | ----------------------------- |
 | Large task/feature    | Prometheus → Sisyphus         |
-| Search in codebase    | @explore                      |
-| Search external docs  | @librarian                    |
-| Architecture question | @oracle                       |
+| Search in codebase    | `@explore`                    |
+| Search external docs  | `@librarian`                  |
+| Architecture question | `@oracle`                     |
 | UI/Frontend           | category="visual-engineering" |
 | Quick fix             | category="quick"              |
+<!-- /MASTER:delegation-routing-compact -->
+
+### Delegation Failure Escalation (MANDATORY)
+
+<!-- MASTER:failure-escalation -->
+When a delegated task **fails or produces incorrect results** (NOT due to connection loss or timeout):
+
+| Failure Type             | Action                                                     |
+| ------------------------ | ---------------------------------------------------------- |
+| **Timeout / connection** | Retry with `session_id` in same category                   |
+| **Wrong output / error** | **MUST retry using `category="deep"`** on the same task    |
+| **Deep also fails**      | Escalate to `@oracle` for analysis, then retry or ask user |
+
+> **Why `deep`?** The `deep` category uses a stronger reasoning model with autonomous problem-solving.
+> It performs thorough research before acting — ideal for tasks that lighter categories failed on.
+> This prevents wasting retries on the same weak model that already failed.
+<!-- /MASTER:failure-escalation -->
 
 ---
 
@@ -363,9 +382,11 @@ ERROR:   { "success": false, "error": "message" }
 
 Fallback chain:
 
+<!-- MASTER:fallback-chain -->
 - oracle → librarian → manual
 - librarian → explore + websearch → manual
 - explore → grep/glob → manual
+<!-- /MASTER:fallback-chain -->
 
 ---
 

@@ -12,7 +12,7 @@
   "keep_thinking": false,
   "session_recovery": true,
   "auto_resume": true,
-  "resume_text": "Continue and follow AGENTS.MD. Remember the flow: check full flow for bugs > fix > verify > failed? restart from beginning. Always use delegation effectively, efficiently and relevantly for maximum results. Don't forget to COMMIT and PUSH all projects including projects not currently being edited. Don't forget to PUSH to remote repository.",
+  "resume_text": "Continue and follow AGENTS.MD. Remember the flow: check full flow for bugs > fix > verify > failed? restart from beginning. Always use delegation effectively, efficiently and relevantly for maximum results.",
 
   "quiet_mode": false,
   "debug": false,
