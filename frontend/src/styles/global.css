@@ -12,10 +12,32 @@
   /* Colors mapped from theme for usage in CSS */
   --primary-color: #0369a1;
   --bg-layout: #f8fafc;
+  --color-border: #e2e8f0;
+  --color-text: #334155;
+  --color-text-secondary: #6b7280;
+  --color-primary-bg: #f0f9ff;
+  --color-success: #16a34a;
+  --color-success-bg: #f0fdf4;
+  --color-success-bg-hover: #dcfce7;
+  --color-error: #dc2626;
+  --color-error-bg: #fef2f2;
+  --color-error-bg-hover: #fee2e2;
+  --color-warning: #d97706;
 }
 
 body.dark-mode {
   --bg-layout: #0b1220;
+  --color-border: #1e293b;
+  --color-text: #e2e8f0;
+  --color-text-secondary: #94a3b8;
+  --color-primary-bg: #0c2d48;
+  --color-success: #22c55e;
+  --color-success-bg: #052e16;
+  --color-success-bg-hover: #14532d;
+  --color-error: #ef4444;
+  --color-error-bg: #450a0a;
+  --color-error-bg-hover: #7f1d1d;
+  --color-warning: #f59e0b;
 }
 
 *,

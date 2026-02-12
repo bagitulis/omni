@@ -185,9 +185,9 @@ export function sanitizeHtml(html: string | null | undefined): string {
 export function formatSafeStatusHtml(text: string): string {
   return escapeHtml(text)
     .replace(/\n/g, "<br>")
-    .replace(/✅/g, '<span style="color: #27ae60;">✅</span>')
-    .replace(/❌/g, '<span style="color: #e74c3c;">❌</span>')
-    .replace(/⚠️/g, '<span style="color: #f39c12;">⚠️</span>');
+    .replace(/✅/g, '<span style="color: var(--color-success);">✅</span>')
+    .replace(/❌/g, '<span style="color: var(--color-error);">❌</span>')
+    .replace(/⚠️/g, '<span style="color: var(--color-warning);">⚠️</span>');
 }
 
 export default {
