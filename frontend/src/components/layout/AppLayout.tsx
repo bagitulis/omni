@@ -22,6 +22,43 @@ export default function AppLayout() {
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
+      {/* Skip to content link for keyboard navigation accessibility */}
+      <a
+        href="#main-content"
+        className="skip-to-content"
+        style={{
+          position: "absolute",
+          left: "-9999px",
+          top: "auto",
+          width: "1px",
+          height: "1px",
+          overflow: "hidden",
+          zIndex: 9999,
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.position = "fixed";
+          e.currentTarget.style.top = "8px";
+          e.currentTarget.style.left = "8px";
+          e.currentTarget.style.width = "auto";
+          e.currentTarget.style.height = "auto";
+          e.currentTarget.style.overflow = "visible";
+          e.currentTarget.style.padding = "8px 16px";
+          e.currentTarget.style.background = "#0369a1";
+          e.currentTarget.style.color = "#fff";
+          e.currentTarget.style.borderRadius = "3px";
+          e.currentTarget.style.textDecoration = "none";
+          e.currentTarget.style.fontWeight = "600";
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.position = "absolute";
+          e.currentTarget.style.left = "-9999px";
+          e.currentTarget.style.width = "1px";
+          e.currentTarget.style.height = "1px";
+          e.currentTarget.style.overflow = "hidden";
+        }}
+      >
+        Skip to main content
+      </a>
       <Sidebar collapsed={collapsed} onCollapse={setCollapsed} />
       <Layout
         className="site-layout"

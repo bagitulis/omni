@@ -7,7 +7,7 @@ export function PageLoading() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        minHeight: "400px",
+        minHeight: "calc(100vh - 48px)",
         width: "100%",
       }}
     >
