@@ -25,7 +25,7 @@ export default function MobileNav() {
 
   return (
     <div
-      className="md:hidden"
+      className="mobile-nav"
       style={{
         position: "fixed",
         bottom: 0,
@@ -74,7 +74,7 @@ export default function MobileNav() {
       })}
       <style>{`
         @media (min-width: 768px) {
-          .md\\:hidden {
+          .mobile-nav {
             display: none !important;
           }
         }

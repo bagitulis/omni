@@ -1,4 +1,4 @@
-import { Form, InputNumber, Button, Card, Row, Col } from "antd";
+import { Form, InputNumber, Button, Card, Row, Col, Typography } from "antd";
 import { useEffect } from "react";
 
 export interface PricingFormValues {
@@ -43,7 +43,7 @@ export function ProductPricingForm({
         <Row gutter={16}>
           <Col span={24}>
             <Form.Item
-              label={<span className="font-medium">Weight (grams)</span>}
+              label={<Typography.Text strong>Weight (grams)</Typography.Text>}
               name="weight"
               rules={[{ required: true, message: "Weight is required" }]}
             >

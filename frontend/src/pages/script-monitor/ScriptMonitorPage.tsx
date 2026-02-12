@@ -1,4 +1,4 @@
-import { Tabs, Spin, Alert } from "antd";
+import { Tabs, Spin, Alert, Typography } from "antd";
 import { useScriptMonitor } from "@/hooks/useScriptMonitor";
 import { CurrentJobTab } from "./components/CurrentJobTab";
 import { QueueTab } from "./components/QueueTab";
@@ -132,8 +132,10 @@ export function ScriptMonitorPage() {
   ];
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Script Monitor</h1>
+    <div style={{ padding: 24 }}>
+      <Typography.Title level={2} style={{ marginBottom: 24, marginTop: 0 }}>
+        Script Monitor
+      </Typography.Title>
       <Tabs defaultActiveKey="current" items={items} destroyInactiveTabPane />
     </div>
   );
