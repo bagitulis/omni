@@ -1,7 +1,7 @@
-import { Card, Table } from "antd";
+import { Card } from "antd";
 import { TikTokAdsData } from "./types";
-import { columns } from "./columns";
 import { EmptyState } from "./EmptyState";
+import { AdsVirtualTable } from "@/components/analytics/ads/AdsVirtualTable";
 
 interface DataTabProps {
   adsData: TikTokAdsData[];
@@ -17,16 +17,8 @@ export const DataTab = ({ adsData, loading, onUploadClick }: DataTabProps) => {
   }
 
   return (
-    <Card size="small">
-      <Table
-        columns={columns}
-        dataSource={adsData}
-        rowKey="creative_id"
-        size="small"
-        loading={loading}
-        pagination={{ pageSize: 10, showSizeChanger: true }}
-        scroll={{ x: 800 }}
-      />
+    <Card size="small" bodyStyle={{ padding: 0 }}>
+      <AdsVirtualTable data={adsData} loading={loading} platform="tiktok" />
     </Card>
   );
 };

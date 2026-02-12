@@ -10,6 +10,7 @@ import { TikTokAdsData, TIKTOK_ACCENT, TIKTOK_BLACK } from "./types";
 import { useTiktokAdsSummary, TikTokAdsSummary } from "./useTiktokAdsSummary";
 import { getChartOptions } from "./utils";
 import { EmptyState } from "./EmptyState";
+import { AdsPerformanceTable } from "@/components/analytics/ads/AdsPerformanceTable";
 
 const { useToken } = theme;
 
@@ -60,6 +61,17 @@ export const DashboardTab = ({
       data: adsData.slice(0, 6).map((d) => Number(d.roi.toFixed(2))),
     },
   ];
+
+  // Map TikTokAdsData to PerformanceData format for the table
+  // TikTokAdsData has creative_name (as product_name), cost, revenue, conversions, roi (as roas)
+  const performanceTableData = adsData.slice(0, 10).map((d) => ({
+    product_id: d.creative_id,
+    product_name: d.creative_name,
+    cost: d.cost,
+    revenue: d.revenue,
+    orders: d.conversions,
+    roas: d.roi, // Mapping ROI to ROAS for table compatibility
+  }));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -134,6 +146,7 @@ export const DashboardTab = ({
               options={getChartOptions(chartCategories, [
                 TIKTOK_ACCENT,
                 token.colorPrimary,
+                token.purple,
               ])}
               series={performanceData}
               type="bar"
@@ -142,6 +155,10 @@ export const DashboardTab = ({
           </Card>
         </Col>
       </Row>
+
+      <Card title="Top Performing Creatives" size="small">
+        <AdsPerformanceTable data={performanceTableData} />
+      </Card>
     </div>
   );
 };

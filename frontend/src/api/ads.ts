@@ -62,3 +62,30 @@ export async function getTiktokAdsData(params?: TiktokAdsDataParams) {
   }>("/analytics/tiktok-ads/data", { params });
   return response.data;
 }
+
+// --- Ads Reports ---
+
+export interface ReportInfo {
+  filename: string;
+  type: "full" | "executive";
+  platform: "shopee" | "tiktok";
+  period: string;
+  created_at: string;
+  size: number;
+}
+
+export async function getShopeeAdsReports() {
+  const response = await apiClient.get<{
+    success: boolean;
+    data: ReportInfo[];
+  }>("/reports/shopee/ads");
+  return response.data;
+}
+
+export async function getTiktokAdsReports() {
+  const response = await apiClient.get<{
+    success: boolean;
+    data: ReportInfo[];
+  }>("/reports/tiktok/ads");
+  return response.data;
+}

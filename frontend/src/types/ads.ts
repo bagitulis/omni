@@ -113,3 +113,12 @@ export interface TiktokAdsCreativeData {
   period_start: string;
   period_end: string;
 }
+
+export interface ReportInfo {
+  filename: string;
+  type: "full" | "executive";
+  platform: "shopee" | "tiktok";
+  period: string;
+  created_at: string;
+  size: number;
+}

@@ -10,6 +10,7 @@ import { AdsData, SHOPEE_ORANGE } from "./types";
 import { useSummary, Summary } from "./useSummary";
 import { getChartOptions } from "./utils";
 import { EmptyState } from "./EmptyState";
+import { AdsPerformanceTable } from "@/components/analytics/ads/AdsPerformanceTable";
 
 const { useToken } = theme;
 
@@ -60,6 +61,17 @@ export const DashboardTab = ({
       data: adsData.slice(0, 6).map((d) => Number(d.roas.toFixed(2))),
     },
   ];
+
+  // Map AdsData to PerformanceData format for the table
+  // AdsData has product_id, product_name, cost, revenue, orders (as conversions), roas
+  const performanceTableData = adsData.slice(0, 10).map((d) => ({
+    product_id: d.product_id,
+    product_name: d.product_name,
+    cost: d.cost,
+    revenue: d.revenue,
+    orders: d.conversions, // Using conversions as orders
+    roas: d.roas,
+  }));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -145,6 +157,10 @@ export const DashboardTab = ({
           </Card>
         </Col>
       </Row>
+
+      <Card title="Top Performing Products" size="small">
+        <AdsPerformanceTable data={performanceTableData} />
+      </Card>
     </div>
   );
 };
