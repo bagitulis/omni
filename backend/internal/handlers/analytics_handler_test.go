@@ -25,13 +25,13 @@ func TestGetDashboardSummary_MissingTenant(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	// Should fail because no tenant ID
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
-	assert.Contains(t, resp["error"], "tenantID")
+	assert.Contains(t, resp["error"], "tenant")
 }
 
 // TestGetOrderAnalytics_MissingTenant tests order analytics without tenant
@@ -47,7 +47,7 @@ func TestGetOrderAnalytics_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
@@ -68,7 +68,7 @@ func TestGetRevenueAnalytics_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestGetAnalyticsSettings_MissingTenant tests getting settings without tenant
@@ -84,7 +84,7 @@ func TestGetAnalyticsSettings_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestUpdateAnalyticsSettings_MissingTenant tests updating settings without tenant
@@ -102,7 +102,7 @@ func TestUpdateAnalyticsSettings_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // NOTE: TestUpdateAnalyticsSettings_InvalidBody requires a DB mock to test properly.
@@ -123,7 +123,7 @@ func TestGetEscrowSyncStatus_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestAnalyticsHandler_ParseDateRange tests date range parsing

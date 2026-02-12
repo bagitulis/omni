@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto/response"
+	"github.com/omni/backend/internal/handlers"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/ml"
 )
@@ -24,7 +24,7 @@ func NewReportHandler(basePath string) *ReportHandler {
 func (h *ReportHandler) Generate(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -39,9 +39,9 @@ func (h *ReportHandler) Generate(c *gin.Context) {
 		return
 	}
 
-	db, err := config.GetSystemDB(h.basePath)
+	db, err := handlers.GetTenantDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Database connection failed"})
 		return
 	}
 
@@ -75,7 +75,7 @@ func (h *ReportHandler) Generate(c *gin.Context) {
 func (h *ReportHandler) List(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -85,9 +85,9 @@ func (h *ReportHandler) List(c *gin.Context) {
 		return
 	}
 
-	db, err := config.GetSystemDB(h.basePath)
+	db, err := handlers.GetTenantDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Database connection failed"})
 		return
 	}
 
@@ -125,7 +125,7 @@ func (h *ReportHandler) List(c *gin.Context) {
 func (h *ReportHandler) GetLatest(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -135,9 +135,9 @@ func (h *ReportHandler) GetLatest(c *gin.Context) {
 		return
 	}
 
-	db, err := config.GetSystemDB(h.basePath)
+	db, err := handlers.GetTenantDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Database connection failed"})
 		return
 	}
 
@@ -177,7 +177,7 @@ func (h *ReportHandler) GetLatest(c *gin.Context) {
 func (h *ReportHandler) GetByFilename(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -189,9 +189,9 @@ func (h *ReportHandler) GetByFilename(c *gin.Context) {
 		return
 	}
 
-	db, err := config.GetSystemDB(h.basePath)
+	db, err := handlers.GetTenantDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Database connection failed"})
 		return
 	}
 

@@ -56,3 +56,8 @@ func respondCreated(c *gin.Context, config interface{}) {
 func respondDeleted(c *gin.Context, msg string) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": msg})
 }
+
+// respondServiceUnavailable sends service unavailable error response
+func respondServiceUnavailable(c *gin.Context, msg string) {
+	c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": msg})
+}

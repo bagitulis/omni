@@ -22,7 +22,7 @@ func TestRouteConfigHandler_GetCategories_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestRouteConfigHandler_GetCategories_DBError tests GetCategories with DB error
@@ -58,7 +58,7 @@ func TestRouteConfigHandler_GetByCategory_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestRouteConfigHandler_GetByCategory_DBError tests GetByCategory with DB error
@@ -94,7 +94,7 @@ func TestRouteConfigHandler_Create_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestRouteConfigHandler_Create_InvalidJSON tests Create with invalid JSON
@@ -155,7 +155,7 @@ func TestRouteConfigHandler_Delete_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestRouteConfigHandler_Delete_DBError tests Delete with DB error
@@ -191,7 +191,7 @@ func TestRouteConfigHandler_BulkUpdate_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestRouteConfigHandler_BulkUpdate_InvalidJSON tests BulkUpdate with invalid JSON
@@ -229,7 +229,7 @@ func TestRouteConfigHandler_ApplyPreset_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestRouteConfigHandler_ApplyPreset_InvalidJSON tests ApplyPreset with invalid JSON

@@ -23,8 +23,9 @@ func NewAnalyticsHandler(db *gorm.DB) *AnalyticsHandler {
 }
 
 // getDB returns the appropriate database for the current request
+// Uses GetTenantDB for proper SQLite and PostgreSQL support
 func (h *AnalyticsHandler) getDB(c *gin.Context) (*gorm.DB, error) {
-	return GetTenantDBFromContext(c, h.fallbackDB)
+	return GetTenantDB(c)
 }
 
 // getService creates analytics service with tenant-specific DB
@@ -41,16 +42,13 @@ func (h *AnalyticsHandler) getService(c *gin.Context) (*services.AnalyticsServic
 func (h *AnalyticsHandler) GetDashboardSummary(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		respondUnauthorized(c, "Missing tenantID - authentication required")
+		respondBadRequest(c, "Missing tenant_id")
 		return
 	}
 
 	service, err := h.getService(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to get tenant database: " + err.Error(),
-		})
+		respondServiceUnavailable(c, "Database unavailable: "+err.Error())
 		return
 	}
 
@@ -76,19 +74,13 @@ func (h *AnalyticsHandler) GetDashboardSummary(c *gin.Context) {
 func (h *AnalyticsHandler) GetOrderAnalytics(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"error":   "Missing tenantID - authentication required",
-		})
+		respondBadRequest(c, "Missing tenant_id")
 		return
 	}
 
 	service, err := h.getService(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to get tenant database: " + err.Error(),
-		})
+		respondServiceUnavailable(c, "Database unavailable: "+err.Error())
 		return
 	}
 
@@ -113,19 +105,13 @@ func (h *AnalyticsHandler) GetOrderAnalytics(c *gin.Context) {
 func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"error":   "Missing tenantID - authentication required",
-		})
+		respondBadRequest(c, "Missing tenant_id")
 		return
 	}
 
 	service, err := h.getService(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to get tenant database: " + err.Error(),
-		})
+		respondServiceUnavailable(c, "Database unavailable: "+err.Error())
 		return
 	}
 
@@ -150,19 +136,13 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 func (h *AnalyticsHandler) GetAnalyticsSettings(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"error":   "Missing tenantID - authentication required",
-		})
+		respondBadRequest(c, "Missing tenant_id")
 		return
 	}
 
 	service, err := h.getService(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to get tenant database: " + err.Error(),
-		})
+		respondServiceUnavailable(c, "Database unavailable: "+err.Error())
 		return
 	}
 
@@ -190,19 +170,13 @@ func (h *AnalyticsHandler) GetAnalyticsSettings(c *gin.Context) {
 func (h *AnalyticsHandler) UpdateAnalyticsSettings(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"error":   "Missing tenantID - authentication required",
-		})
+		respondBadRequest(c, "Missing tenant_id")
 		return
 	}
 
 	service, err := h.getService(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to get tenant database: " + err.Error(),
-		})
+		respondServiceUnavailable(c, "Database unavailable: "+err.Error())
 		return
 	}
 
@@ -241,19 +215,13 @@ func (h *AnalyticsHandler) UpdateAnalyticsSettings(c *gin.Context) {
 func (h *AnalyticsHandler) GetEscrowSyncStatus(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"error":   "Missing tenantID - authentication required",
-		})
+		respondBadRequest(c, "Missing tenant_id")
 		return
 	}
 
 	service, err := h.getService(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to get tenant database: " + err.Error(),
-		})
+		respondServiceUnavailable(c, "Database unavailable: "+err.Error())
 		return
 	}
 

@@ -28,7 +28,7 @@ func TestRouteConfigHandler_List_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestRouteConfigHandler_Get_MissingTenant tests Get without tenant
@@ -43,7 +43,7 @@ func TestRouteConfigHandler_Get_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestRouteConfigHandler_Update_MissingTenant tests Update without tenant
@@ -58,7 +58,7 @@ func TestRouteConfigHandler_Update_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestRouteConfigHandler_Update_InvalidJSON tests Update with invalid JSON
@@ -96,7 +96,7 @@ func TestRouteConfigHandler_Reset_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestRouteConfigHandler_ListAll_MissingTenant tests ListAll without tenant
@@ -111,5 +111,5 @@ func TestRouteConfigHandler_ListAll_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }

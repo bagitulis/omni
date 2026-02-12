@@ -11,20 +11,20 @@ import (
 func (h *RouteConfigHandler) GetCategories(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	svc := route.NewConfigService(db, tenantID)
 	categories, err := svc.GetCategories()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -38,13 +38,13 @@ func (h *RouteConfigHandler) GetCategories(c *gin.Context) {
 func (h *RouteConfigHandler) GetByCategory(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -52,7 +52,7 @@ func (h *RouteConfigHandler) GetByCategory(c *gin.Context) {
 	svc := route.NewConfigService(db, tenantID)
 	routes, err := svc.GetByCategory(category)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -70,24 +70,24 @@ func (h *RouteConfigHandler) GetByCategory(c *gin.Context) {
 func (h *RouteConfigHandler) Create(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	var req route.RouteConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	if req.RoutePath == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "routePath is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "routePath is required"})
 		return
 	}
 
@@ -98,7 +98,7 @@ func (h *RouteConfigHandler) Create(c *gin.Context) {
 		if err.Error() == "route already exists" {
 			statusCode = http.StatusBadRequest
 		}
-		c.JSON(statusCode, gin.H{"error": err.Error()})
+		c.JSON(statusCode, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -109,13 +109,13 @@ func (h *RouteConfigHandler) Create(c *gin.Context) {
 func (h *RouteConfigHandler) Delete(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -127,7 +127,7 @@ func (h *RouteConfigHandler) Delete(c *gin.Context) {
 		if err.Error() == "route not found" {
 			statusCode = http.StatusNotFound
 		}
-		c.JSON(statusCode, gin.H{"error": err.Error()})
+		c.JSON(statusCode, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -138,13 +138,13 @@ func (h *RouteConfigHandler) Delete(c *gin.Context) {
 func (h *RouteConfigHandler) BulkUpdate(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -153,14 +153,14 @@ func (h *RouteConfigHandler) BulkUpdate(c *gin.Context) {
 		Updates  map[string]interface{} `json:"updates"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	svc := route.NewConfigService(db, tenantID)
 	routes, err := svc.BulkUpdate(req.RouteIDs, req.Updates)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -177,13 +177,13 @@ func (h *RouteConfigHandler) BulkUpdate(c *gin.Context) {
 func (h *RouteConfigHandler) ApplyPreset(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -192,7 +192,7 @@ func (h *RouteConfigHandler) ApplyPreset(c *gin.Context) {
 		RouteIDs []string `json:"route_ids"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -203,7 +203,7 @@ func (h *RouteConfigHandler) ApplyPreset(c *gin.Context) {
 		if err.Error() == "unknown preset" {
 			statusCode = http.StatusBadRequest
 		}
-		c.JSON(statusCode, gin.H{"error": err.Error()})
+		c.JSON(statusCode, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 

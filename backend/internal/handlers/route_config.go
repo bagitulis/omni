@@ -27,20 +27,20 @@ func (h *RouteConfigHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 func (h *RouteConfigHandler) List(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	svc := route.NewConfigService(db, tenantID)
 	configs, err := svc.GetAll()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -51,26 +51,26 @@ func (h *RouteConfigHandler) List(c *gin.Context) {
 func (h *RouteConfigHandler) Get(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	routePath := c.Param("path")
 	if routePath == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "route path required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "route path required"})
 		return
 	}
 
 	svc := route.NewConfigService(db, tenantID)
 	config, err := svc.Get(routePath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -81,32 +81,32 @@ func (h *RouteConfigHandler) Get(c *gin.Context) {
 func (h *RouteConfigHandler) Update(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	routePath := c.Param("path")
 	if routePath == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "route path required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "route path required"})
 		return
 	}
 
 	var req route.RouteConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	svc := route.NewConfigService(db, tenantID)
 	config, err := svc.Update(routePath, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -117,13 +117,13 @@ func (h *RouteConfigHandler) Update(c *gin.Context) {
 func (h *RouteConfigHandler) Reset(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -137,7 +137,7 @@ func (h *RouteConfigHandler) Reset(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -148,20 +148,20 @@ func (h *RouteConfigHandler) Reset(c *gin.Context) {
 func (h *RouteConfigHandler) ListAll(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	svc := route.NewConfigService(db, tenantID)
 	routes, err := svc.GetAll()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
