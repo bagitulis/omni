@@ -1,4 +1,4 @@
-import { Row, Col, Card, Typography, Flex, Skeleton } from "antd";
+import { Row, Col, Card, Typography, Flex, Skeleton, theme } from "antd";
 import { ShoppingOutlined } from "@ant-design/icons";
 import { PlatformCounts } from "@/types/order";
 
@@ -11,15 +11,6 @@ interface OrderHeaderProps {
   loading?: boolean;
 }
 
-const PLATFORM_CONFIG: Record<
-  string,
-  { color: string; bgColor: string; label: string }
-> = {
-  shopee: { color: "#ee4d2d", bgColor: "#fff5f3", label: "Shopee" },
-  tiktok: { color: "#000000", bgColor: "#f5f5f5", label: "TikTok" },
-  lazada: { color: "#0f146d", bgColor: "#f0f1ff", label: "Lazada" },
-};
-
 const PLATFORMS = ["shopee", "tiktok", "lazada"];
 
 export function OrderHeader({
@@ -28,6 +19,28 @@ export function OrderHeader({
   totalCount,
   loading,
 }: OrderHeaderProps) {
+  const { token } = theme.useToken();
+  const platformConfig: Record<
+    string,
+    { color: string; bgColor: string; label: string }
+  > = {
+    shopee: {
+      color: token.colorPrimary,
+      bgColor: token.colorFillQuaternary,
+      label: "Shopee",
+    },
+    tiktok: {
+      color: token.colorText,
+      bgColor: token.colorFillQuaternary,
+      label: "TikTok",
+    },
+    lazada: {
+      color: token.colorInfo,
+      bgColor: token.colorFillSecondary,
+      label: "Lazada",
+    },
+  };
+
   const getTabLabel = () => {
     switch (activeTab) {
       case "unpaid":
@@ -51,7 +64,9 @@ export function OrderHeader({
       <Flex justify="space-between" align="center">
         <div>
           <Flex align="center" gap={8}>
-            <ShoppingOutlined style={{ fontSize: 20, color: "#0369a1" }} />
+            <ShoppingOutlined
+              style={{ fontSize: 20, color: token.colorPrimary }}
+            />
             <Title level={3} style={{ margin: 0 }}>
               Order Manager
             </Title>
@@ -70,7 +85,7 @@ export function OrderHeader({
       {/* Platform Stats Cards */}
       <Row gutter={[12, 12]}>
         {PLATFORMS.map((platform) => {
-          const config = PLATFORM_CONFIG[platform];
+          const config = platformConfig[platform];
           const count = platformCounts?.[platform] ?? 0;
 
           return (

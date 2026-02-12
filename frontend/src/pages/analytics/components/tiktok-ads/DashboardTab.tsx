@@ -29,9 +29,9 @@ const DashboardTab = ({
   onUploadClick,
 }: DashboardTabProps) => {
   const { token } = useToken();
-  const calculatedSummary = useTiktokAdsSummary(adsData);
+  const calculatedSummary = useTiktokAdsSummary(adsData ?? []);
   const summary = summaryOverride || calculatedSummary;
-  const hasData = adsData.length > 0;
+  const hasData = (adsData ?? []).length > 0;
 
   if (loading) {
     return (
@@ -45,27 +45,28 @@ const DashboardTab = ({
     return <EmptyState onUploadClick={onUploadClick} />;
   }
 
-  const chartCategories = adsData.slice(0, 6).map((d) => d.creative_name);
+  const safeAdsData = adsData ?? [];
+  const chartCategories = safeAdsData.slice(0, 6).map((d) => d.creative_name);
 
   const costRevenueData = [
-    { name: "Cost", data: adsData.slice(0, 6).map((d) => d.cost) },
-    { name: "Revenue", data: adsData.slice(0, 6).map((d) => d.revenue) },
+    { name: "Cost", data: safeAdsData.slice(0, 6).map((d) => d.cost) },
+    { name: "Revenue", data: safeAdsData.slice(0, 6).map((d) => d.revenue) },
   ];
 
   const performanceData = [
     {
       name: "CTR (%)",
-      data: adsData.slice(0, 6).map((d) => Number(d.ctr.toFixed(2))),
+      data: safeAdsData.slice(0, 6).map((d) => Number(d.ctr.toFixed(2))),
     },
     {
       name: "ROI (%)",
-      data: adsData.slice(0, 6).map((d) => Number(d.roi.toFixed(2))),
+      data: safeAdsData.slice(0, 6).map((d) => Number(d.roi.toFixed(2))),
     },
   ];
 
   // Map TikTokAdsData to PerformanceData format for the table
   // TikTokAdsData has creative_name (as product_name), cost, revenue, conversions, roi (as roas)
-  const performanceTableData = adsData.slice(0, 10).map((d) => ({
+  const performanceTableData = safeAdsData.slice(0, 10).map((d) => ({
     product_id: d.creative_id,
     product_name: d.creative_name,
     cost: d.cost,

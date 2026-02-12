@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { theme } from "antd";
 import { getOrderTableColumns } from "./OrderTableColumns";
 import type { GroupedOrder, OrderTableProps } from "./OrderTable.types";
 import { VirtualTable } from "@/components/common/VirtualTable";
@@ -14,6 +15,7 @@ function OrderTable({
   onCancel,
   onViewDetail,
 }: OrderTableProps) {
+  const { token } = theme.useToken();
   // Group orders by order_no, then accumulate same-SKU items within each order
   const groupedOrders = useMemo(() => {
     const orderMap = new Map<string, GroupedOrder>();
@@ -91,7 +93,7 @@ function OrderTable({
         onChange: onSelectionChange,
       }}
       scroll={{ x: 900 }}
-      style={{ backgroundColor: "#fff" }}
+      style={{ backgroundColor: token.colorBgContainer }}
       enableVirtual={groupedOrders.length > 50}
       offsetBottom={320}
     />

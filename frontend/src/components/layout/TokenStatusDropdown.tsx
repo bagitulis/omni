@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dropdown,
   Button,
@@ -11,6 +11,7 @@ import {
   Flex,
   Badge,
   message,
+  theme,
 } from "antd";
 import { KeyOutlined, ReloadOutlined } from "@ant-design/icons";
 import apiClient from "@/api/client";
@@ -29,11 +30,12 @@ import {
 const { Text } = Typography;
 
 export function TokenStatusDropdown() {
+  const { token } = theme.useToken();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [tokenStatus, setTokenStatus] = useState<TokenStatusMap | null>(null);
 
-  const loadTokenStatus = async () => {
+  const loadTokenStatus = useCallback(async () => {
     setLoading(true);
     try {
       const response = await apiClient.get<BackendTokenStatusResponse>(
@@ -70,7 +72,7 @@ export function TokenStatusDropdown() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const refreshTokens = async () => {
     setLoading(true);
@@ -93,7 +95,7 @@ export function TokenStatusDropdown() {
     if (open && !tokenStatus) {
       loadTokenStatus();
     }
-  }, [open]);
+  }, [open, tokenStatus, loadTokenStatus]);
 
   const hasIssues = tokenStatus
     ? Object.values(tokenStatus).some((s) => {
@@ -122,7 +124,7 @@ export function TokenStatusDropdown() {
           </Button>
         </Flex>
       }
-      style={{ width: 320, boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}
+      style={{ width: 320, boxShadow: token.boxShadowSecondary }}
       styles={{ body: { padding: "8px 0" } }}
     >
       {loading && !tokenStatus ? (
@@ -133,7 +135,7 @@ export function TokenStatusDropdown() {
         <Space direction="vertical" size={0} style={{ width: "100%" }}>
           {Object.entries(tokenStatus).map(([platform, data]) => {
             const config = PLATFORM_CONFIG[platform] || {
-              color: "#666",
+              color: "default",
               label: platform,
             };
             const status = getTokenStatusType(data);
@@ -143,12 +145,12 @@ export function TokenStatusDropdown() {
                 key={platform}
                 style={{
                   padding: "10px 16px",
-                  borderBottom: "1px solid #f0f0f0",
+                  borderBottom: `1px solid ${token.colorBorder}`,
                   background:
                     status === "expired"
-                      ? "#fff1f0"
+                      ? token.colorErrorBg
                       : status === "expiring"
-                        ? "#fffbe6"
+                        ? token.colorWarningBg
                         : "transparent",
                 }}
               >
@@ -183,7 +185,11 @@ export function TokenStatusDropdown() {
                 <Flex
                   vertical
                   gap={2}
-                  style={{ marginTop: 8, fontSize: 11, color: "#666" }}
+                  style={{
+                    marginTop: 8,
+                    fontSize: 11,
+                    color: token.colorTextSecondary,
+                  }}
                 >
                   <Flex justify="space-between">
                     <Text type="secondary" style={{ fontSize: 11 }}>
@@ -192,7 +198,9 @@ export function TokenStatusDropdown() {
                     <Text
                       style={{
                         fontSize: 11,
-                        color: data?.isExpired ? "#ff4d4f" : "#52c41a",
+                        color: data?.isExpired
+                          ? token.colorError
+                          : token.colorSuccess,
                       }}
                     >
                       {data?.isExpired ? "Expired" : "Valid"} •{" "}
@@ -234,7 +242,7 @@ export function TokenStatusDropdown() {
             type="text"
             icon={
               <KeyOutlined
-                style={{ color: hasIssues ? "#faad14" : undefined }}
+                style={{ color: hasIssues ? token.colorWarning : undefined }}
               />
             }
             style={{ height: 40, width: 40 }}

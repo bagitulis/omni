@@ -9,6 +9,7 @@ import {
   Button,
   Flex,
   Menu,
+  theme,
 } from "antd";
 import {
   ShoppingOutlined,
@@ -33,6 +34,7 @@ import { DashboardActionBar } from "./components/DashboardActionBar";
 const { Title, Text } = Typography;
 
 export function DashboardPage() {
+  const { token } = theme.useToken();
   const { data, isLoading } = useDashboard();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
@@ -56,7 +58,13 @@ export function DashboardPage() {
       dataIndex: "order_sn",
       key: "order_sn",
       render: (text: string) => (
-        <span style={{ color: "#0369a1", fontWeight: 500, cursor: "pointer" }}>
+        <span
+          style={{
+            color: token.colorPrimary,
+            fontWeight: 500,
+            cursor: "pointer",
+          }}
+        >
           {text}
         </span>
       ),
@@ -107,7 +115,9 @@ export function DashboardPage() {
             value={data?.orders_pending ?? 0}
             loading={isLoading}
             icon={
-              <ShoppingOutlined style={{ marginRight: 8, color: "#0369a1" }} />
+              <ShoppingOutlined
+                style={{ marginRight: 8, color: token.colorPrimary }}
+              />
             }
             onClick={() => navigate("/order-manager?type=unpaid")}
           />
@@ -119,7 +129,9 @@ export function DashboardPage() {
             value={data?.analytics?.total_orders ?? 0}
             loading={isLoading}
             icon={
-              <AlertOutlined style={{ marginRight: 8, color: "#d97706" }} />
+              <AlertOutlined
+                style={{ marginRight: 8, color: token.colorWarning }}
+              />
             }
             onClick={() => navigate("/order-manager")}
           />
@@ -129,7 +141,9 @@ export function DashboardPage() {
             title="Ready to Ship"
             value={data?.ready_to_ship ?? 0}
             loading={isLoading}
-            icon={<CarOutlined style={{ marginRight: 8, color: "#2563eb" }} />}
+            icon={
+              <CarOutlined style={{ marginRight: 8, color: token.colorInfo }} />
+            }
             onClick={() => navigate("/order-manager?type=unprocess")}
           />
         </Col>
@@ -143,10 +157,10 @@ export function DashboardPage() {
                 : 0
             }
             loading={isLoading}
-            valueStyle={{ color: "#16a34a" }}
+            valueStyle={{ color: token.colorSuccess }}
             icon={
               <CheckCircleOutlined
-                style={{ marginRight: 8, color: "#16a34a" }}
+                style={{ marginRight: 8, color: token.colorSuccess }}
               />
             }
           />
@@ -244,8 +258,8 @@ export function DashboardPage() {
       <div
         style={{
           padding: "12px 24px",
-          background: "#fff",
-          borderBottom: "1px solid #f0f0f0",
+          background: token.colorBgContainer,
+          borderBottom: `1px solid ${token.colorBorder}`,
         }}
       >
         <DashboardActionBar />
@@ -256,8 +270,8 @@ export function DashboardPage() {
         <div
           style={{
             width: 200,
-            background: "#fff",
-            borderRight: "1px solid #f0f0f0",
+            background: token.colorBgContainer,
+            borderRight: `1px solid ${token.colorBorder}`,
           }}
         >
           <Menu
@@ -275,7 +289,7 @@ export function DashboardPage() {
             flex: 1,
             overflowY: "auto",
             padding: 24,
-            background: "#f5f5f5",
+            background: token.colorBgLayout,
           }}
         >
           {renderContent()}

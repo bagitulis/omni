@@ -103,6 +103,12 @@ func (h *OAuthHandler) saveLazadaTokens(ctx context.Context, tenantID string, to
 	// Use TenantPlatformConfigRepository for key-value storage
 	tenantRepo := repositories.NewTenantPlatformConfigRepository(tenantDB)
 
+	// Lazada API returns expiry as relative seconds from NOW
+	// Example: expires_in: 604800 (7 days in seconds)
+	//          refresh_expires_in: 2592000 (30 days in seconds)
+	log.Printf("[Lazada OAuth] expires_in: %d seconds (%d days)", tokenResp.ExpiresIn, tokenResp.ExpiresIn/86400)
+	log.Printf("[Lazada OAuth] refresh_expires_in: %d seconds (%d days)", tokenResp.RefreshExpiresIn, tokenResp.RefreshExpiresIn/86400)
+
 	// Update tokens using the correct key-value pattern
 	if err := tenantRepo.UpdateTokens(ctx, models.PlatformLazada, tokenResp.AccessToken, tokenResp.RefreshToken, tokenResp.ExpiresIn, tokenResp.RefreshExpiresIn); err != nil {
 		return fmt.Errorf("failed to save tokens: %w", err)
@@ -206,42 +212,28 @@ func (h *OAuthHandler) saveTiktokTokens(ctx context.Context, tenantID string, to
 	// Use TenantPlatformConfigRepository for key-value storage
 	tenantRepo := repositories.NewTenantPlatformConfigRepository(tenantDB)
 
-	// TikTok API returns expiry as Unix timestamps OR relative seconds
-	// We need to normalize to relative seconds for UpdateTokens()
-	nowSeconds := time.Now().Unix()
+	// TikTok API returns expiry as relative seconds from NOW (not Unix timestamps)
+	// Example: access_token_expire_in: 604800 (7 days in seconds)
+	//          refresh_token_expire_in: 15552000 (180 days in seconds)
 
 	// Handle access token expiry
-	accessTokenExpireValue := tokenResp.Data.AccessTokenExpireIn
-	var expiresInSeconds int64
-	if accessTokenExpireValue > nowSeconds {
-		// It's a Unix timestamp - convert to relative seconds
-		expiresInSeconds = accessTokenExpireValue - nowSeconds
-		log.Printf("[TikTok OAuth] access_token_expire_in is Unix timestamp: %d (relative: %d seconds)", accessTokenExpireValue, expiresInSeconds)
-	} else if accessTokenExpireValue > 0 {
-		// It's relative seconds - use as-is
-		expiresInSeconds = accessTokenExpireValue
-		log.Printf("[TikTok OAuth] access_token_expire_in is relative: %d seconds", expiresInSeconds)
-	} else {
-		// Default to 7 days
+	expiresInSeconds := tokenResp.Data.AccessTokenExpireIn
+	if expiresInSeconds <= 0 {
+		// Default to 7 days if not provided
 		expiresInSeconds = 7 * 24 * 60 * 60
-		log.Printf("[TikTok OAuth] access_token_expire_in not provided, using default: %d seconds", expiresInSeconds)
+		log.Printf("[TikTok OAuth] access_token_expire_in not provided, using default: %d seconds (7 days)", expiresInSeconds)
+	} else {
+		log.Printf("[TikTok OAuth] access_token_expire_in: %d seconds (%d days)", expiresInSeconds, expiresInSeconds/86400)
 	}
 
 	// Handle refresh token expiry
-	refreshTokenExpireValue := tokenResp.Data.RefreshTokenExpireIn
-	var refreshExpiresInSeconds int64
-	if refreshTokenExpireValue > nowSeconds {
-		// It's a Unix timestamp - convert to relative seconds
-		refreshExpiresInSeconds = refreshTokenExpireValue - nowSeconds
-		log.Printf("[TikTok OAuth] refresh_token_expire_in is Unix timestamp: %d (relative: %d seconds = %d days)", refreshTokenExpireValue, refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
-	} else if refreshTokenExpireValue > 0 {
-		// It's relative seconds - use as-is
-		refreshExpiresInSeconds = refreshTokenExpireValue
-		log.Printf("[TikTok OAuth] refresh_token_expire_in is relative: %d seconds = %d days", refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
-	} else {
-		// Default to 90 days
+	refreshExpiresInSeconds := tokenResp.Data.RefreshTokenExpireIn
+	if refreshExpiresInSeconds <= 0 {
+		// Default to 90 days if not provided
 		refreshExpiresInSeconds = 90 * 24 * 60 * 60
 		log.Printf("[TikTok OAuth] refresh_token_expire_in not provided, using default: %d seconds (90 days)", refreshExpiresInSeconds)
+	} else {
+		log.Printf("[TikTok OAuth] refresh_token_expire_in: %d seconds (%d days)", refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
 	}
 
 	// Update tokens with normalized expiry values

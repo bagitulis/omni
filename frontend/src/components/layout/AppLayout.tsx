@@ -10,7 +10,7 @@ const { Content } = Layout;
 export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const {
-    token: { colorBgLayout },
+    token: { colorBgLayout, colorPrimary, colorBgContainer },
   } = theme.useToken();
 
   // Calculate sidebar width based on collapsed state
@@ -43,8 +43,8 @@ export default function AppLayout() {
           e.currentTarget.style.height = "auto";
           e.currentTarget.style.overflow = "visible";
           e.currentTarget.style.padding = "8px 16px";
-          e.currentTarget.style.background = "#0369a1";
-          e.currentTarget.style.color = "#fff";
+          e.currentTarget.style.background = colorPrimary;
+          e.currentTarget.style.color = colorBgContainer;
           e.currentTarget.style.borderRadius = "3px";
           e.currentTarget.style.textDecoration = "none";
           e.currentTarget.style.fontWeight = "600";

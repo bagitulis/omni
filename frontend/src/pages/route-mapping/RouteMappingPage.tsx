@@ -130,7 +130,7 @@ export function RouteMappingPage() {
                 tabBarStyle={{
                   margin: 0,
                   padding: "8px 8px 0 8px",
-                  background: "#fafafa",
+                  background: token.colorFillQuaternary,
                 }}
                 items={[
                   {

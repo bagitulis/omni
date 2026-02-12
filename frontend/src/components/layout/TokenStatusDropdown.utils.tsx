@@ -3,6 +3,7 @@ import {
   CloseCircleFilled,
   WarningFilled,
 } from "@ant-design/icons";
+import { theme } from "antd";
 import { type TokenStatusData } from "./TokenStatusDropdown.types";
 
 export function getTokenStatusType(
@@ -39,17 +40,18 @@ export function formatTimeRemaining(dateString: string | null): string {
 }
 
 export function getStatusIcon(status: string) {
+  const token = theme.getDesignToken();
   switch (status) {
     case "valid":
-      return <CheckCircleFilled style={{ color: "#52c41a" }} />;
+      return <CheckCircleFilled style={{ color: token.colorSuccess }} />;
     case "expiring":
-      return <WarningFilled style={{ color: "#faad14" }} />;
+      return <WarningFilled style={{ color: token.colorWarning }} />;
     case "expired":
-      return <CloseCircleFilled style={{ color: "#ff4d4f" }} />;
+      return <CloseCircleFilled style={{ color: token.colorError }} />;
     case "not_configured":
-      return <WarningFilled style={{ color: "#d9d9d9" }} />;
+      return <WarningFilled style={{ color: token.colorBorder }} />;
     default:
-      return <WarningFilled style={{ color: "#999" }} />;
+      return <WarningFilled style={{ color: token.colorTextSecondary }} />;
   }
 }
 

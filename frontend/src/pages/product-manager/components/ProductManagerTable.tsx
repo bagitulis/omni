@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Tag, InputNumber, Button, Space, message } from "antd";
+import { Tag, InputNumber, Button, Space, message, theme } from "antd";
 import { CheckOutlined, CloseOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import type {
@@ -35,6 +35,7 @@ function PriceCell({
   row: DbProductRow;
   onSave: (sku: string, price: number) => Promise<void>;
 }) {
+  const { token } = theme.useToken();
   const [editing, setEditing] = useState(false);
   const [price, setPrice] = useState<number | null>(value);
 
@@ -99,7 +100,7 @@ function PriceCell({
         width: "100%",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "#d9d9d9";
+        e.currentTarget.style.borderColor = token.colorBorder;
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.borderColor = "transparent";
@@ -114,6 +115,7 @@ function buildColumns(
   platform: ProductManagerPlatform,
   onUpdatePrice: (sku: string, price: number) => Promise<void>,
   getSkuResult: (sku: string) => SkuCheckResult | null,
+  token: ReturnType<typeof theme.useToken>["token"],
 ): ColumnsType<DbProductRow> {
   const base: ColumnsType<DbProductRow> = [
     {
@@ -122,7 +124,8 @@ function buildColumns(
       width: 64,
       render: (_, row) => {
         const image = getProductImage(row);
-        if (!image) return <span style={{ color: "#94a3b8" }}>—</span>;
+        if (!image)
+          return <span style={{ color: token.colorTextTertiary }}>—</span>;
         return (
           <img
             src={image}
@@ -132,7 +135,7 @@ function buildColumns(
             style={{
               objectFit: "cover",
               borderRadius: 4,
-              border: "1px solid #e2e8f0",
+              border: `1px solid ${token.colorBorder}`,
             }}
           />
         );
@@ -148,10 +151,12 @@ function buildColumns(
 
         return (
           <div>
-            <div style={{ fontWeight: 600, color: "#0f172a" }}>
+            <div style={{ fontWeight: 600, color: token.colorText }}>
               {name || "(Unnamed)"}
             </div>
-            <div style={{ fontSize: 12, color: "#64748b" }}>{sku}</div>
+            <div style={{ fontSize: 12, color: token.colorTextSecondary }}>
+              {sku}
+            </div>
             {skuResult && (
               <Space size={4} style={{ marginTop: 4 }}>
                 <Tag
@@ -281,9 +286,10 @@ export function ProductManagerTable({
   getSkuResult,
   columnVisibility,
 }: ProductManagerTableProps) {
+  const { token } = theme.useToken();
   const allColumns = useMemo(
-    () => buildColumns(activeTab, onUpdatePrice, getSkuResult),
-    [activeTab, onUpdatePrice, getSkuResult],
+    () => buildColumns(activeTab, onUpdatePrice, getSkuResult, token),
+    [activeTab, onUpdatePrice, getSkuResult, token],
   );
 
   // Filter columns based on visibility preferences

@@ -17,6 +17,7 @@ import {
   useGoogleSheetsDetails,
   useGoogleSheetsLinks,
   useSaveLinks,
+  useUpdateSettings,
   useValidateLink,
 } from "@/hooks/useGoogleSheets";
 import type { SpreadsheetLinks, ValidationResult } from "@/types/googleSheets";
@@ -61,6 +62,9 @@ export default function GoogleSheetsTab() {
   const [validationResults, setValidationResults] = useState<
     Partial<Record<LinkType, ValidationResult>>
   >({});
+  const [selectedSheets, setSelectedSheets] = useState<
+    Partial<Record<LinkType, string>>
+  >({});
 
   const { data: savedLinks, isLoading: isLinksLoading } =
     useGoogleSheetsLinks();
@@ -68,6 +72,7 @@ export default function GoogleSheetsTab() {
     useGoogleSheetsDetails();
   const validateLinkMutation = useValidateLink();
   const saveLinksMutation = useSaveLinks();
+  const updateSettingsMutation = useUpdateSettings();
 
   useEffect(() => {
     if (!savedLinks) {
@@ -123,6 +128,24 @@ export default function GoogleSheetsTab() {
     });
   };
 
+  const handleSheetSelect = (type: LinkType, sheetName: string) => {
+    const result = validationResults[type];
+    if (!result) return;
+
+    setSelectedSheets((previous) => ({
+      ...previous,
+      [type]: previous[type] === sheetName ? undefined : sheetName,
+    }));
+
+    // Persist selection via updateSettings API
+    const sheetNameKey = `${type}_sheet_name` as const;
+    const spreadsheetIdKey = `${type}_spreadsheet_id` as const;
+    updateSettingsMutation.mutate({
+      [spreadsheetIdKey]: result.spreadsheet_id,
+      [sheetNameKey]: sheetName,
+    });
+  };
+
   const renderValidationResult = (type: LinkType) => {
     const result = validationResults[type];
 
@@ -137,13 +160,17 @@ export default function GoogleSheetsTab() {
             Spreadsheet: <Text strong>{result.name}</Text>
           </Text>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            Sheets found: {result.sheets.length}
+            Sheets found: {result.sheets.length} — click to select active sheet
           </Text>
           <Space size={[4, 4]} wrap>
             {result.sheets.map((sheet) => (
-              <Tag key={`${result.spreadsheet_id}-${sheet.sheet_id}`}>
+              <Tag.CheckableTag
+                key={`${result.spreadsheet_id}-${sheet.sheet_id}`}
+                checked={selectedSheets[type] === sheet.name}
+                onChange={() => handleSheetSelect(type, sheet.name)}
+              >
                 {sheet.name}
-              </Tag>
+              </Tag.CheckableTag>
             ))}
           </Space>
         </Space>

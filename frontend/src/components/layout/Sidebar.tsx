@@ -24,7 +24,13 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const {
-    token: { colorBgContainer, colorPrimary, colorTextLightSolid },
+    token: {
+      colorBgContainer,
+      colorPrimary,
+      colorTextLightSolid,
+      colorBorder,
+      colorFillSecondary,
+    },
   } = theme.useToken();
 
   const menuItems = useMemo(
@@ -69,7 +75,7 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         position: "fixed",
         top: 0,
         left: 0,
-        borderRight: "1px solid #e2e8f0",
+        borderRight: `1px solid ${colorBorder}`,
         zIndex: 100,
         overflow: "auto",
       }}
@@ -80,7 +86,7 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         style={{
           height: 48,
           margin: 16,
-          background: "rgba(3, 105, 161, 0.1)", // sky-700 with opacity
+          background: colorFillSecondary,
           borderRadius: 3,
           display: "flex",
           alignItems: "center",

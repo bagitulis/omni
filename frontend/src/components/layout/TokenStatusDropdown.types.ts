@@ -30,7 +30,7 @@ export interface BackendTokenStatusResponse {
 
 export const PLATFORM_CONFIG: Record<string, { color: string; label: string }> =
   {
-    shopee: { color: "#ee4d2d", label: "Shopee" },
-    tiktok: { color: "#000000", label: "TikTok" },
-    lazada: { color: "#0f146d", label: "Lazada" },
+    shopee: { color: "processing", label: "Shopee" },
+    tiktok: { color: "default", label: "TikTok" },
+    lazada: { color: "warning", label: "Lazada" },
   };

@@ -20,6 +20,11 @@ func NewOrderSyncHandler() *OrderSyncHandler {
 	return &OrderSyncHandler{}
 }
 
+// SyncByCategoryBody represents the request body for sync by category
+type SyncByCategoryBody struct {
+	Days int `json:"days"`
+}
+
 // SyncByCategory syncs orders by category from platform APIs
 // This is called by frontend BEFORE calling GET /orders/:category
 // @Summary Sync orders by category
@@ -32,13 +37,19 @@ func NewOrderSyncHandler() *OrderSyncHandler {
 func (h *OrderSyncHandler) SyncByCategory(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		respondUnauthorized(c, "Missing tenant ID")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "Missing tenant ID",
+		})
 		return
 	}
 
 	category := c.Param("category")
 	if category == "" {
-		respondBadRequest(c, "Missing category")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Missing category",
+		})
 		return
 	}
 
@@ -83,7 +94,13 @@ func (h *OrderSyncHandler) SyncByCategory(c *gin.Context) {
 	// If service not initialized, return partial success indicating sync requires platform config
 	if !service.IsInitialized() {
 		orderSyncLogger.WithTenantID(tenantID).Warn("Order sync service not initialized - OAuth configuration required")
-		c.JSON(http.StatusOK, NotInitializedSyncResponse(category, days))
+		c.JSON(http.StatusOK, gin.H{
+			"success":  true,
+			"data":     map[string]interface{}{},
+			"message":  "Platform OAuth configuration required - please complete OAuth setup in Settings",
+			"category": category,
+			"days":     days,
+		})
 		return
 	}
 
@@ -124,7 +141,10 @@ func (h *OrderSyncHandler) SyncByCategory(c *gin.Context) {
 func (h *OrderSyncHandler) SyncPlatformOrders(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		respondUnauthorized(c, "Missing tenant ID")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "Missing tenant ID",
+		})
 		return
 	}
 
@@ -133,20 +153,28 @@ func (h *OrderSyncHandler) SyncPlatformOrders(c *gin.Context) {
 	days, _ := strconv.Atoi(c.DefaultQuery("days", "7"))
 
 	if platform == "" || category == "" {
-		respondBadRequest(c, "Missing platform or category")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Missing platform or category",
+		})
 		return
 	}
 
 	service, err := sync.GetOrderSyncService(tenantID)
 	if err != nil {
-		respondInternalError(c, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
 		return
 	}
 
 	// If service not initialized, return response indicating platform needs OAuth config
 	if !service.IsInitialized() {
 		c.JSON(http.StatusOK, gin.H{
-			"success": true, "data": []interface{}{}, "count": 0,
+			"success": true,
+			"data":    []interface{}{},
+			"count":   0,
 			"message": "Platform not configured - complete OAuth setup first",
 		})
 		return
@@ -159,18 +187,28 @@ func (h *OrderSyncHandler) SyncPlatformOrders(c *gin.Context) {
 		days,
 	)
 	if err != nil {
-		respondInternalError(c, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
 		return
 	}
 
-	respondSuccess(c, orders, len(orders))
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    orders,
+		"count":   len(orders),
+	})
 }
 
 // GetOrdersByCategory gets orders by category
 func (h *OrderSyncHandler) GetOrdersByCategory(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		respondUnauthorized(c, "Missing tenant ID")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "Missing tenant ID",
+		})
 		return
 	}
 
@@ -179,7 +217,10 @@ func (h *OrderSyncHandler) GetOrdersByCategory(c *gin.Context) {
 
 	service, err := sync.GetOrderSyncService(tenantID)
 	if err != nil {
-		respondInternalError(c, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
 		return
 	}
 
@@ -195,18 +236,28 @@ func (h *OrderSyncHandler) GetOrdersByCategory(c *gin.Context) {
 		platform,
 	)
 	if err != nil {
-		respondInternalError(c, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
 		return
 	}
 
-	respondSuccess(c, orders, len(orders))
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    orders,
+		"count":   len(orders),
+	})
 }
 
 // GetOrderDetails gets detailed order information
 func (h *OrderSyncHandler) GetOrderDetails(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		respondUnauthorized(c, "Missing tenant ID")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "Missing tenant ID",
+		})
 		return
 	}
 
@@ -214,13 +265,19 @@ func (h *OrderSyncHandler) GetOrderDetails(c *gin.Context) {
 	orderIDs := c.QueryArray("orderIds")
 
 	if platform == "" || len(orderIDs) == 0 {
-		respondBadRequest(c, "Missing platform or order IDs")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Missing platform or order IDs",
+		})
 		return
 	}
 
 	service, err := sync.GetOrderSyncService(tenantID)
 	if err != nil {
-		respondInternalError(c, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
 		return
 	}
 
@@ -230,9 +287,16 @@ func (h *OrderSyncHandler) GetOrderDetails(c *gin.Context) {
 		orderIDs,
 	)
 	if err != nil {
-		respondInternalError(c, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
 		return
 	}
 
-	respondSuccess(c, orders, len(orders))
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    orders,
+		"count":   len(orders),
+	})
 }

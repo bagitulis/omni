@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Form,
   Input,
@@ -53,17 +53,6 @@ const LoginPage: React.FC = () => {
     }
   }, [isAuthenticated, navigate, returnUrl]);
 
-  // Auto Login Logic for Dev
-  useEffect(() => {
-    if (
-      isLocalhost &&
-      !isAuthenticated &&
-      !sessionStorage.getItem("autoLoginFailed")
-    ) {
-      handleDevLogin(true);
-    }
-  }, [isLocalhost, isAuthenticated]);
-
   const handleLogin = async (values: LoginPayload) => {
     setIsLoading(true);
     setError(null);
@@ -84,38 +73,52 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const handleDevLogin = async (auto = false) => {
-    if (auto) setIsAutoLogin(true);
-    setIsLoading(true);
-    setError(null);
+  const handleDevLogin = useCallback(
+    async (auto = false) => {
+      if (auto) setIsAutoLogin(true);
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const response = await devLogin({ tenant_id: selectedDevTenant });
-      setAuth({
-        token: response.token,
-        access_token: response.access_token,
-        user: response.user,
-        tenant_id: response.tenant_id,
-        expires_in: response.expires_in,
-      });
-      navigate(returnUrl);
-    } catch (err: unknown) {
-      if (auto) {
-        logger.warn(
-          "Auto-login failed:",
-          err instanceof Error
-            ? { message: err.message }
-            : { error: "Unknown error" },
-        );
-        sessionStorage.setItem("autoLoginFailed", "true");
-        setIsAutoLogin(false);
-      } else {
-        setError(err instanceof Error ? err.message : "Dev login failed");
+      try {
+        const response = await devLogin({ tenant_id: selectedDevTenant });
+        setAuth({
+          token: response.token,
+          access_token: response.access_token,
+          user: response.user,
+          tenant_id: response.tenant_id,
+          expires_in: response.expires_in,
+        });
+        navigate(returnUrl);
+      } catch (err: unknown) {
+        if (auto) {
+          logger.warn(
+            "Auto-login failed:",
+            err instanceof Error
+              ? { message: err.message }
+              : { error: "Unknown error" },
+          );
+          sessionStorage.setItem("autoLoginFailed", "true");
+          setIsAutoLogin(false);
+        } else {
+          setError(err instanceof Error ? err.message : "Dev login failed");
+        }
+      } finally {
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
+    },
+    [navigate, returnUrl, selectedDevTenant, setAuth],
+  );
+
+  // Auto Login Logic for Dev
+  useEffect(() => {
+    if (
+      isLocalhost &&
+      !isAuthenticated &&
+      !sessionStorage.getItem("autoLoginFailed")
+    ) {
+      handleDevLogin(true);
     }
-  };
+  }, [isLocalhost, isAuthenticated, handleDevLogin]);
 
   if (isAutoLogin) {
     return (
@@ -126,7 +129,7 @@ const LoginPage: React.FC = () => {
           justifyContent: "center",
           alignItems: "center",
           flexDirection: "column",
-          background: `linear-gradient(135deg, ${token.colorPrimary} 0%, #0f172a 100%)`,
+          background: `linear-gradient(135deg, ${token.colorPrimary} 0%, ${token.colorBgBase} 100%)`,
           color: "white",
         }}
       >
@@ -145,7 +148,7 @@ const LoginPage: React.FC = () => {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        background: `linear-gradient(135deg, ${token.colorPrimary} 0%, #0f172a 100%)`,
+        background: `linear-gradient(135deg, ${token.colorPrimary} 0%, ${token.colorBgBase} 100%)`,
         padding: 20,
       }}
     >
@@ -153,7 +156,7 @@ const LoginPage: React.FC = () => {
         style={{
           width: "100%",
           maxWidth: 400,
-          boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)",
+          boxShadow: token.boxShadowSecondary,
         }}
         variant="borderless"
       >
@@ -176,8 +179,8 @@ const LoginPage: React.FC = () => {
         {isLocalhost && (
           <div
             style={{
-              background: "#fffbeb",
-              border: "1px solid #fcd34d",
+              background: token.colorWarningBg,
+              border: `1px solid ${token.colorWarning}`,
               borderRadius: 6,
               padding: 16,
               marginBottom: 24,
@@ -185,8 +188,8 @@ const LoginPage: React.FC = () => {
           >
             <Space direction="vertical" style={{ width: "100%" }}>
               <Space>
-                <ToolOutlined style={{ color: "#d97706" }} />
-                <Text strong style={{ color: "#92400e" }}>
+                <ToolOutlined style={{ color: token.colorWarning }} />
+                <Text strong style={{ color: token.colorText }}>
                   Dev Mode (Localhost)
                 </Text>
               </Space>
@@ -200,7 +203,7 @@ const LoginPage: React.FC = () => {
               </Select>
               <Button
                 type="primary"
-                style={{ backgroundColor: "#d97706" }}
+                style={{ backgroundColor: token.colorWarning }}
                 block
                 onClick={() => handleDevLogin(false)}
                 loading={isLoading}
