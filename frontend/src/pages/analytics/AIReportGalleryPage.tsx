@@ -7,7 +7,6 @@ import {
   Col,
   Empty,
   Spin,
-  Modal,
   Tag,
   theme,
   message,
@@ -27,6 +26,7 @@ import {
   useReportHTML,
 } from "../../hooks/useAnalyticsIntelligence";
 import type { MLReport } from "../../api/analyticsIntelligence";
+import { ReportModal } from "@/components/analytics/ml";
 
 const { Title, Text } = Typography;
 const { useToken } = theme;
@@ -226,32 +226,13 @@ export const AIReportGalleryPage = () => {
       )}
 
       {/* Report Viewer Modal */}
-      <Modal
-        title={selectedReport?.file_name || "Report Viewer"}
+      <ReportModal
+        report={selectedReport}
         open={!!selectedReport}
-        onCancel={() => setSelectedReport(null)}
-        width="90%"
-        style={{ top: 20 }}
-        footer={[
-          <Button key="close" onClick={() => setSelectedReport(null)}>
-            Close
-          </Button>,
-        ]}
-      >
-        <div
-          style={{ minHeight: "60vh", maxHeight: "80vh", overflowY: "auto" }}
-        >
-          {loadingHtml ? (
-            <div style={{ textAlign: "center", padding: 40 }}>
-              <Spin tip="Loading report content..." />
-            </div>
-          ) : reportHtml ? (
-            <div dangerouslySetInnerHTML={{ __html: reportHtml }} />
-          ) : (
-            <Empty description="Report content not available" />
-          )}
-        </div>
-      </Modal>
+        onClose={() => setSelectedReport(null)}
+        htmlContent={reportHtml || null}
+        loading={loadingHtml}
+      />
     </div>
   );
 };

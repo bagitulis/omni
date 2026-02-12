@@ -43,6 +43,19 @@ export interface MLProduct {
   fatigue_status: string;
   churn_risk_score: number;
   last_updated: string;
+  // Detailed scores
+  roas_score: number;
+  trend_score: number;
+  volatility_score: number;
+  momentum_score: number;
+  // Action details
+  action_label: string;
+  budget_change_pct: number;
+  confidence_level: string;
+  success_probability: number;
+  // Trend details
+  trend_direction: string;
+  trend_strength: number;
 }
 
 export interface MLAlert {

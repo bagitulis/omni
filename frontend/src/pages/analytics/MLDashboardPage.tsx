@@ -1,6 +1,12 @@
 import { Card, Row, Col, Button, Typography, theme, Empty, Spin } from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
-import { HealthCard, ProductScoreTable } from "@/components/analytics/ml";
+import { useState } from "react";
+import {
+  HealthCard,
+  ProductScoreTable,
+  ProductDetailModal,
+  type Product,
+} from "@/components/analytics/ml";
 import { usePortfolioHealth, useMLProducts } from "@/hooks/useMLAnalytics";
 import type { MLProduct } from "@/api/mlAnalytics";
 import {
@@ -36,6 +42,10 @@ export const MLDashboardPage = () => {
     refetch: refetchProducts,
   } = useMLProducts({ limit: 20, sort_by: "unified_score", sort_dir: "desc" });
 
+  const [selectedProduct, setSelectedProduct] = useState<MLProduct | null>(
+    null,
+  );
+
   const loading = healthLoading || productsLoading;
 
   const handleRefresh = () => {
@@ -47,6 +57,15 @@ export const MLDashboardPage = () => {
 
   // Show empty state if no data
   const hasData = portfolioHealth && portfolioHealth.total_products > 0;
+
+  const handleProductClick = (product: Product) => {
+    const fullProduct = productsData?.products?.find(
+      (p) => p.product_id === product.id,
+    );
+    if (fullProduct) {
+      setSelectedProduct(fullProduct);
+    }
+  };
 
   return (
     <div style={{ padding: 24 }}>
@@ -148,8 +167,18 @@ export const MLDashboardPage = () => {
             style={{ borderRadius: token.borderRadius }}
             styles={{ body: { padding: 0 } }}
           >
-            <ProductScoreTable products={products} loading={loading} />
+            <ProductScoreTable
+              products={products}
+              loading={loading}
+              onRowClick={handleProductClick}
+            />
           </Card>
+
+          <ProductDetailModal
+            product={selectedProduct}
+            open={!!selectedProduct}
+            onClose={() => setSelectedProduct(null)}
+          />
 
           {/* Recommendations Summary */}
           <Row gutter={[16, 16]} style={{ marginTop: 24 }}>

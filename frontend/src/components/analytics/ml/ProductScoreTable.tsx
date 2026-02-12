@@ -10,9 +10,10 @@ const { useToken } = theme;
 interface Props {
   products: Product[];
   loading: boolean;
+  onRowClick?: (product: Product) => void;
 }
 
-export const ProductScoreTable = ({ products, loading }: Props) => {
+export const ProductScoreTable = ({ products, loading, onRowClick }: Props) => {
   const { token } = useToken();
 
   const columns: ColumnsType<Product> = [
@@ -110,6 +111,10 @@ export const ProductScoreTable = ({ products, loading }: Props) => {
       }}
       style={{ fontSize: 12 }}
       bordered
+      onRow={(record) => ({
+        onClick: () => onRowClick?.(record),
+        style: { cursor: onRowClick ? "pointer" : "default" },
+      })}
     />
   );
 };
