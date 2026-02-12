@@ -1,5 +1,5 @@
 import { Modal, Form, InputNumber, Button, message, Tabs, Select } from "antd";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import api from "../../api/client";
 
 interface Props {
@@ -13,13 +13,7 @@ export const AnalyticsSettingsModal = ({ open, onClose }: Props) => {
   const [saving, setSaving] = useState(false);
 
   // Load settings
-  useEffect(() => {
-    if (open) {
-      fetchSettings();
-    }
-  }, [open]);
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     setLoading(true);
     try {
       const response = await api.get("/analytics/settings");
@@ -32,7 +26,13 @@ export const AnalyticsSettingsModal = ({ open, onClose }: Props) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [form]);
+
+  useEffect(() => {
+    if (open) {
+      fetchSettings();
+    }
+  }, [open, fetchSettings]);
 
   const handleSave = async () => {
     try {
@@ -106,15 +106,7 @@ export const AnalyticsSettingsModal = ({ open, onClose }: Props) => {
         <InputNumber
           min={0}
           step={1000}
-          formatter={(value) =>
-            `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-          }
-          parser={
-            ((value: string | undefined) => {
-              const val = value?.replace(/Rp\s?|(,*)/g, "");
-              return val ? Number(val) : 0;
-            }) as any
-          }
+          addonBefore="Rp"
           style={{ width: "100%" }}
         />
       </Form.Item>

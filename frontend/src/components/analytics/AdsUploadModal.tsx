@@ -26,9 +26,15 @@ export const AdsUploadModal = ({ open, onClose, onSuccess }: Props) => {
         return;
       }
 
+      const rawFile = fileList[0].originFileObj;
+      if (!rawFile) {
+        message.error("Selected file is invalid");
+        return;
+      }
+
       setUploading(true);
       const formData = new FormData();
-      formData.append("file", fileList[0] as any);
+      formData.append("file", rawFile);
       formData.append("platform", values.platform);
 
       // Determine endpoint based on platform

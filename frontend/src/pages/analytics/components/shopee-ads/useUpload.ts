@@ -30,6 +30,7 @@ export const useUpload = () => {
               data.push({
                 product_id: values[0]?.trim() || `PROD${i}`,
                 product_name: values[1]?.trim() || `Product ${i}`,
+                bidding_mode: values[8]?.trim() || "Manual",
                 cost: parseFloat(values[2]) || 0,
                 revenue: parseFloat(values[3]) || 0,
                 clicks: parseInt(values[4]) || 0,
@@ -39,6 +40,7 @@ export const useUpload = () => {
                 roas: 0,
                 conversions: parseInt(values[6]) || 0,
                 date: values[7]?.trim() || dayjs().format("YYYY-MM-DD"),
+                period_label: values[9]?.trim() || "Uploaded CSV",
               });
             }
           }

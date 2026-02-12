@@ -3,11 +3,31 @@ import { TikTokAdsData } from "./types";
 
 export const columns: TableColumnsType<TikTokAdsData> = [
   {
-    title: "Creative",
-    dataIndex: "creative_name",
-    key: "creative_name",
-    width: 180,
+    title: "Campaign",
+    dataIndex: "campaign_name",
+    key: "campaign_name",
+    width: 220,
     ellipsis: true,
+    render: (_: string, record: TikTokAdsData) => (
+      <div>
+        <div>{record.campaign_name || record.creative_name}</div>
+        <div style={{ fontSize: 11, opacity: 0.7 }}>{record.creative_id}</div>
+      </div>
+    ),
+  },
+  {
+    title: "Product ID",
+    dataIndex: "product_id",
+    key: "product_id",
+    width: 120,
+    render: (v?: string) => v || "-",
+  },
+  {
+    title: "Type",
+    dataIndex: "creative_type",
+    key: "creative_type",
+    width: 120,
+    render: (v?: string) => v || "Unknown",
   },
   {
     title: "Cost",
@@ -32,14 +52,6 @@ export const columns: TableColumnsType<TikTokAdsData> = [
     width: 80,
     render: (v: number) => `${v.toFixed(1)}%`,
     sorter: (a: TikTokAdsData, b: TikTokAdsData) => a.roi - b.roi,
-  },
-  {
-    title: "Views",
-    dataIndex: "views",
-    key: "views",
-    width: 90,
-    render: (v: number) => v.toLocaleString(),
-    sorter: (a: TikTokAdsData, b: TikTokAdsData) => a.views - b.views,
   },
   {
     title: "CTR",

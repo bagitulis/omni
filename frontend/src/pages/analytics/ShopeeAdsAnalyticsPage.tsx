@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
-import { Typography, DatePicker, Tabs } from "antd";
+import { Typography, DatePicker, Tabs, Alert, Button } from "antd";
 import {
   LineChartOutlined,
   ShoppingOutlined,
   UploadOutlined,
+  FileSearchOutlined,
 } from "@ant-design/icons";
 import type { RangePickerProps } from "antd/es/date-picker";
 import dayjs from "dayjs";
@@ -17,6 +18,7 @@ import {
 import { useShopeeAdsDashboard, useShopeeAdsData } from "@/hooks/useAds";
 import { AdsData } from "./components/shopee-ads/types";
 import { Summary } from "./components/shopee-ads/useSummary";
+import { AdsReportViewer } from "@/components/analytics/ads/AdsReportViewer";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -29,9 +31,18 @@ export const ShopeeAdsAnalyticsPage = () => {
 
   const { uploadedData, uploadProps } = useUpload();
 
-  const { data: apiDashboard, isLoading: dashboardLoading } =
-    useShopeeAdsDashboard();
-  const { data: apiData, isLoading: dataLoading } = useShopeeAdsData();
+  const {
+    data: apiDashboard,
+    isLoading: dashboardLoading,
+    error: dashboardError,
+    refetch: refetchDashboard,
+  } = useShopeeAdsDashboard();
+  const {
+    data: apiData,
+    isLoading: dataLoading,
+    error: dataError,
+    refetch: refetchData,
+  } = useShopeeAdsData();
 
   // Determine if we are using uploaded data or API data
   const hasUpload = uploadedData.length > 0;
@@ -78,6 +89,7 @@ export const ShopeeAdsAnalyticsPage = () => {
     return apiData.data.map((p) => ({
       product_id: p.product_id,
       product_name: p.product_name,
+      bidding_mode: p.bidding_mode,
       cost: p.cost,
       revenue: p.revenue,
       clicks: p.clicks,
@@ -87,12 +99,20 @@ export const ShopeeAdsAnalyticsPage = () => {
       roas: p.roas,
       conversions: p.conversions,
       date: p.period_end,
+      period_label: p.period_label,
     }));
   }, [hasUpload, uploadedData, apiData]);
 
   const handleDateChange: RangePickerProps["onChange"] = (dates) => {
     setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null);
   };
+
+  const activeError =
+    activeTab === "dashboard"
+      ? dashboardError
+      : activeTab === "data"
+        ? dataError
+        : null;
 
   // Tab items
   const tabItems = [
@@ -138,6 +158,15 @@ export const ShopeeAdsAnalyticsPage = () => {
         <UploadTab uploadProps={uploadProps} uploadedData={uploadedData} />
       ),
     },
+    {
+      key: "insights",
+      label: (
+        <span>
+          <FileSearchOutlined /> AI Insights
+        </span>
+      ),
+      children: <AdsReportViewer platform="shopee" />,
+    },
   ];
 
   return (
@@ -162,12 +191,34 @@ export const ShopeeAdsAnalyticsPage = () => {
         </div>
         <RangePicker onChange={handleDateChange} value={dateRange} />
       </div>
-      <Tabs
-        activeKey={activeTab}
-        onChange={setActiveTab}
-        items={tabItems}
-        style={{ marginTop: 8 }}
-      />
+      {activeError ? (
+        <Alert
+          type="error"
+          showIcon
+          message="Failed to load Shopee ads analytics"
+          description={
+            activeError instanceof Error ? activeError.message : "Unknown error"
+          }
+          action={
+            <Button
+              size="small"
+              onClick={() => {
+                refetchDashboard();
+                refetchData();
+              }}
+            >
+              Retry
+            </Button>
+          }
+        />
+      ) : (
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={tabItems}
+          style={{ marginTop: 8 }}
+        />
+      )}
     </div>
   );
 };

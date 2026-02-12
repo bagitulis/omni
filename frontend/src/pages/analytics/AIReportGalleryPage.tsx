@@ -10,6 +10,7 @@ import {
   Tag,
   theme,
   message,
+  Alert,
 } from "antd";
 import {
   RobotOutlined,
@@ -33,25 +34,35 @@ const { useToken } = theme;
 
 export const AIReportGalleryPage = () => {
   const { token } = useToken();
-  const [platform, setPlatform] = useState<"shopee" | "tiktok">("tiktok");
+  const [platform, setPlatform] = useState<"all" | "shopee" | "tiktok">("all");
   const [selectedReport, setSelectedReport] = useState<MLReport | null>(null);
 
-  const { data, isLoading, refetch } = useReports(platform);
+  const tiktokReportsQuery = useReports("tiktok");
+  const shopeeReportsQuery = useReports("shopee");
   const { mutate: generate, isPending: generating } = useGenerateReport();
+
+  const queryPlatform = platform === "all" ? "tiktok" : platform;
 
   // HTML content for preview
   const { data: reportHtml, isLoading: loadingHtml } = useReportHTML(
-    selectedReport?.platform || "tiktok",
+    selectedReport?.platform || queryPlatform,
     selectedReport?.file_name || null,
   );
 
   const handleGenerate = () => {
     generate(
-      { platform, report_type: "full" },
+      { platform: queryPlatform, report_type: "full" },
       {
         onSuccess: () => {
           message.success("Report generation started");
-          refetch();
+          if (platform === "all") {
+            tiktokReportsQuery.refetch();
+            shopeeReportsQuery.refetch();
+          } else if (platform === "tiktok") {
+            tiktokReportsQuery.refetch();
+          } else {
+            shopeeReportsQuery.refetch();
+          }
         },
         onError: (err: Error) => {
           message.error(`Failed to generate report: ${err.message}`);
@@ -65,17 +76,49 @@ export const AIReportGalleryPage = () => {
   };
 
   const handleDownload = (report: MLReport) => {
-    // This assumes the backend serves the file or we can download the HTML
-    // For now, we'll assume we can create a blob from the HTML if we fetch it,
-    // or trigger a direct download if the API supports it.
-    // Given the hook fetches HTML, let's wait for HTML then download.
-    // Actually, simpler to just open the HTML in a new window/tab or trigger download
-    // Let's implement a simple download function if we have the content,
-    // but without content we can't easily download.
-    // Ideally the API would provide a download endpoint.
-    // For this MVP, let's open the view modal and use a print/save function there
-    // or just show a message that download is handled via view.
     setSelectedReport(report);
+  };
+
+  const reports =
+    platform === "all"
+      ? [
+          ...(tiktokReportsQuery.data?.reports ?? []),
+          ...(shopeeReportsQuery.data?.reports ?? []),
+        ].sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )
+      : platform === "tiktok"
+        ? tiktokReportsQuery.data?.reports
+        : shopeeReportsQuery.data?.reports;
+
+  const isLoading =
+    platform === "all"
+      ? tiktokReportsQuery.isLoading || shopeeReportsQuery.isLoading
+      : platform === "tiktok"
+        ? tiktokReportsQuery.isLoading
+        : shopeeReportsQuery.isLoading;
+
+  const error =
+    platform === "all"
+      ? tiktokReportsQuery.error || shopeeReportsQuery.error
+      : platform === "tiktok"
+        ? tiktokReportsQuery.error
+        : shopeeReportsQuery.error;
+
+  const refetchReports = () => {
+    if (platform === "all") {
+      tiktokReportsQuery.refetch();
+      shopeeReportsQuery.refetch();
+      return;
+    }
+
+    if (platform === "tiktok") {
+      tiktokReportsQuery.refetch();
+      return;
+    }
+
+    shopeeReportsQuery.refetch();
   };
 
   const formatDate = (dateString: string) => {
@@ -134,25 +177,38 @@ export const AIReportGalleryPage = () => {
           onChange={setPlatform}
           style={{ width: 200 }}
           options={[
+            { value: "all", label: "All Platforms" },
             { value: "tiktok", label: "TikTok Shop" },
             { value: "shopee", label: "Shopee" },
           ]}
         />
       </div>
 
-      {isLoading ? (
+      {error ? (
+        <Alert
+          type="error"
+          showIcon
+          message="Failed to load AI reports"
+          description={error instanceof Error ? error.message : "Unknown error"}
+          action={
+            <Button size="small" onClick={refetchReports}>
+              Retry
+            </Button>
+          }
+        />
+      ) : isLoading ? (
         <div style={{ textAlign: "center", padding: 80 }}>
           <Spin size="large" />
           <div style={{ marginTop: 16 }}>Loading reports...</div>
         </div>
-      ) : !data?.reports || data.reports.length === 0 ? (
+      ) : !reports || reports.length === 0 ? (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description="No reports found. Generate one to get started!"
         />
       ) : (
         <Row gutter={[16, 16]}>
-          {data.reports.map((report: MLReport) => (
+          {reports.map((report: MLReport) => (
             <Col xs={24} sm={12} md={8} lg={6} key={report.id}>
               <Card
                 hoverable

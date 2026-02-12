@@ -36,6 +36,10 @@ export const useTiktokAdsUpload = () => {
               data.push({
                 creative_id: values[0]?.trim() || `TT${i}`,
                 creative_name: values[1]?.trim() || `Creative ${i}`,
+                campaign_name:
+                  values[8]?.trim() || values[1]?.trim() || `Campaign ${i}`,
+                product_id: values[9]?.trim() || `P${i}`,
+                creative_type: values[10]?.trim() || "Video",
                 cost,
                 revenue,
                 views,

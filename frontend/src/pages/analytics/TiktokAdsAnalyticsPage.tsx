@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { DatePicker, Tabs, Typography } from "antd";
+import { DatePicker, Tabs, Typography, Alert, Button } from "antd";
 import {
   LineChartOutlined,
   VideoCameraOutlined,
   UploadOutlined,
+  FileSearchOutlined,
 } from "@ant-design/icons";
 import type { RangePickerProps } from "antd/es/date-picker";
 import dayjs from "dayjs";
@@ -14,6 +15,7 @@ import { UploadTab } from "./components/tiktok-ads/UploadTab";
 import { TikTokAdsData, TIKTOK_BLACK } from "./components/tiktok-ads/types";
 import { useTiktokAdsDashboard, useTiktokAdsData } from "@/hooks/useAds";
 import { TikTokAdsSummary } from "./components/tiktok-ads/useTiktokAdsSummary";
+import { AdsReportViewer } from "@/components/analytics/ads/AdsReportViewer";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -26,9 +28,18 @@ export const TiktokAdsAnalyticsPage = () => {
 
   const { uploadedData, uploadProps } = useTiktokAdsUpload();
 
-  const { data: apiDashboard, isLoading: dashboardLoading } =
-    useTiktokAdsDashboard();
-  const { data: apiData, isLoading: dataLoading } = useTiktokAdsData();
+  const {
+    data: apiDashboard,
+    isLoading: dashboardLoading,
+    error: dashboardError,
+    refetch: refetchDashboard,
+  } = useTiktokAdsDashboard();
+  const {
+    data: apiData,
+    isLoading: dataLoading,
+    error: dataError,
+    refetch: refetchData,
+  } = useTiktokAdsData();
 
   // Determine if we are using uploaded data or API data
   const hasUpload = uploadedData.length > 0;
@@ -78,6 +89,9 @@ export const TiktokAdsAnalyticsPage = () => {
     return apiData.data.map((p) => ({
       creative_id: p.campaign_id,
       creative_name: p.video_title || p.campaign_name,
+      campaign_name: p.campaign_name,
+      product_id: p.product_id,
+      creative_type: p.creative_type,
       cost: p.cost,
       revenue: p.gross_revenue,
       views: p.impressions,
@@ -143,7 +157,23 @@ export const TiktokAdsAnalyticsPage = () => {
         <UploadTab uploadProps={uploadProps} uploadedData={uploadedData} />
       ),
     },
+    {
+      key: "insights",
+      label: (
+        <span>
+          <FileSearchOutlined /> AI Insights
+        </span>
+      ),
+      children: <AdsReportViewer platform="tiktok" />,
+    },
   ];
+
+  const activeError =
+    activeTab === "dashboard"
+      ? dashboardError
+      : activeTab === "data"
+        ? dataError
+        : null;
 
   return (
     <div style={{ padding: 24 }}>
@@ -167,12 +197,34 @@ export const TiktokAdsAnalyticsPage = () => {
         </div>
         <RangePicker onChange={handleDateChange} value={dateRange} />
       </div>
-      <Tabs
-        activeKey={activeTab}
-        onChange={setActiveTab}
-        items={tabItems}
-        style={{ marginTop: 8 }}
-      />
+      {activeError ? (
+        <Alert
+          type="error"
+          showIcon
+          message="Failed to load TikTok ads analytics"
+          description={
+            activeError instanceof Error ? activeError.message : "Unknown error"
+          }
+          action={
+            <Button
+              size="small"
+              onClick={() => {
+                refetchDashboard();
+                refetchData();
+              }}
+            >
+              Retry
+            </Button>
+          }
+        />
+      ) : (
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={tabItems}
+          style={{ marginTop: 8 }}
+        />
+      )}
     </div>
   );
 };

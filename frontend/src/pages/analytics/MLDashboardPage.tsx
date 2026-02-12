@@ -1,4 +1,14 @@
-import { Card, Row, Col, Button, Typography, theme, Empty, Spin } from "antd";
+import {
+  Card,
+  Row,
+  Col,
+  Button,
+  Typography,
+  theme,
+  Empty,
+  Spin,
+  Alert,
+} from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import {
@@ -33,12 +43,14 @@ export const MLDashboardPage = () => {
   const {
     data: portfolioHealth,
     isLoading: healthLoading,
+    error: healthError,
     refetch: refetchHealth,
   } = usePortfolioHealth("tiktok");
 
   const {
     data: productsData,
     isLoading: productsLoading,
+    error: productsError,
     refetch: refetchProducts,
   } = useMLProducts({ limit: 20, sort_by: "unified_score", sort_dir: "desc" });
 
@@ -47,6 +59,7 @@ export const MLDashboardPage = () => {
   );
 
   const loading = healthLoading || productsLoading;
+  const pageError = healthError || productsError;
 
   const handleRefresh = () => {
     refetchHealth();
@@ -99,7 +112,21 @@ export const MLDashboardPage = () => {
         </Text>
       </div>
 
-      {loading ? (
+      {pageError ? (
+        <Alert
+          type="error"
+          showIcon
+          message="Failed to load ML dashboard"
+          description={
+            pageError instanceof Error ? pageError.message : "Unknown error"
+          }
+          action={
+            <Button size="small" onClick={handleRefresh}>
+              Retry
+            </Button>
+          }
+        />
+      ) : loading ? (
         <div style={{ textAlign: "center", padding: 80 }}>
           <Spin size="large" />
           <div style={{ marginTop: 16 }}>
@@ -133,21 +160,21 @@ export const MLDashboardPage = () => {
               <HealthCard
                 label="Star Performers"
                 value={portfolioHealth.star_count}
-                color="#16a34a"
+                color={token.colorSuccess}
               />
             </Col>
             <Col xs={12} sm={12} md={6} lg={6}>
               <HealthCard
                 label="Watch List"
                 value={portfolioHealth.watch_count}
-                color="#f59e0b"
+                color={token.colorWarning}
               />
             </Col>
             <Col xs={12} sm={12} md={6} lg={6}>
               <HealthCard
                 label="Problems"
                 value={portfolioHealth.problem_count}
-                color="#dc2626"
+                color={token.colorError}
               />
             </Col>
           </Row>

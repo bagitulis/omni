@@ -8,6 +8,19 @@ export const columns: TableColumnsType<AdsData> = [
     key: "product_name",
     width: 200,
     ellipsis: true,
+    render: (name: string, record: AdsData) => (
+      <div>
+        <div>{name}</div>
+        <div style={{ fontSize: 11, opacity: 0.7 }}>{record.product_id}</div>
+      </div>
+    ),
+  },
+  {
+    title: "Bidding Mode",
+    dataIndex: "bidding_mode",
+    key: "bidding_mode",
+    width: 140,
+    render: (v?: string) => v || "Unknown",
   },
   {
     title: "Cost",
@@ -26,20 +39,20 @@ export const columns: TableColumnsType<AdsData> = [
     sorter: (a: AdsData, b: AdsData) => a.revenue - b.revenue,
   },
   {
+    title: "Orders",
+    dataIndex: "conversions",
+    key: "conversions",
+    width: 90,
+    render: (v: number) => v.toLocaleString("id-ID"),
+    sorter: (a: AdsData, b: AdsData) => a.conversions - b.conversions,
+  },
+  {
     title: "ROAS",
     dataIndex: "roas",
     key: "roas",
     width: 80,
-    render: (v: number) => v.toFixed(2),
+    render: (v: number) => `${v.toFixed(2)}x`,
     sorter: (a: AdsData, b: AdsData) => a.roas - b.roas,
-  },
-  {
-    title: "Clicks",
-    dataIndex: "clicks",
-    key: "clicks",
-    width: 80,
-    render: (v: number) => v.toLocaleString(),
-    sorter: (a: AdsData, b: AdsData) => a.clicks - b.clicks,
   },
   {
     title: "CTR",
@@ -50,11 +63,10 @@ export const columns: TableColumnsType<AdsData> = [
     sorter: (a: AdsData, b: AdsData) => a.ctr - b.ctr,
   },
   {
-    title: "CPC",
-    dataIndex: "cpc",
-    key: "cpc",
-    width: 100,
-    render: (v: number) => `Rp ${v.toFixed(0)}`,
-    sorter: (a: AdsData, b: AdsData) => a.cpc - b.cpc,
+    title: "Period",
+    dataIndex: "period_label",
+    key: "period_label",
+    width: 140,
+    render: (v?: string, record?: AdsData) => v || record?.date || "-",
   },
 ];
