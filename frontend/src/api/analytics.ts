@@ -8,9 +8,27 @@ import type {
   ShopeeShippingFeeResult,
   TiktokShippingFeeResult,
   JobProgress,
+  KPIData,
+  UnifiedSummary,
 } from "@/types/analytics";
 
-export async function getSettings(platform: Platform): Promise<AnalyticsSettings> {
+export async function getUnifiedKPI(): Promise<KPIData> {
+  const response = await apiClient.get<KPIData>("/analytics/unified/kpi");
+  if (!response.data) throw new Error("Failed to fetch unified KPI");
+  return response.data;
+}
+
+export async function getUnifiedSummary(): Promise<UnifiedSummary> {
+  const response = await apiClient.get<UnifiedSummary>(
+    "/analytics/unified/summary",
+  );
+  if (!response.data) throw new Error("Failed to fetch unified summary");
+  return response.data;
+}
+
+export async function getSettings(
+  platform: Platform,
+): Promise<AnalyticsSettings> {
   const response = await apiClient.get<AnalyticsSettings>(
     `/analytics/${platform}/settings`,
   );
@@ -66,10 +84,9 @@ export async function deleteSyncData(
   month: number,
   year: number,
 ): Promise<void> {
-  const response = await apiClient.delete(
-    `/analytics/${platform}/sync`,
-    { params: { month, year } },
-  );
+  const response = await apiClient.delete(`/analytics/${platform}/sync`, {
+    params: { month, year },
+  });
   if (!response.success) {
     throw new Error(response.error || "Failed to delete sync data");
   }

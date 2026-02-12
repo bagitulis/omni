@@ -3,6 +3,33 @@
  * API types use snake_case to match backend JSON response
  */
 
+// Unified Analytics Types
+
+export interface KPIData {
+  total_products: number;
+  avg_roas: number;
+  actions: {
+    scale_up: number;
+    maintain: number;
+    reduce: number;
+    stop: number;
+  };
+}
+
+export interface PlatformSummary {
+  total_cost: number;
+  total_revenue: number;
+  total_orders: number;
+  avg_roas: number;
+  products_count: number;
+}
+
+export interface UnifiedSummary {
+  combined: PlatformSummary;
+  tiktok: PlatformSummary;
+  shopee: PlatformSummary;
+}
+
 // Platform type for parameterized analytics
 export type Platform = "shopee" | "tiktok";
 
