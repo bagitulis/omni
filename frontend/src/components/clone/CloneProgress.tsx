@@ -161,6 +161,7 @@ export const CloneProgress: React.FC<CloneProgressProps> = ({
               key="retry"
               icon={<ReloadOutlined />}
               onClick={() => onRetry(failedItems)}
+              aria-label={`Retry ${failedItems.length} failed clone operations`}
             >
               Retry Failed ({failedItems.length})
             </Button>

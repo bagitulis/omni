@@ -1,3 +1,4 @@
+import React from "react";
 import { Table, Tag, Typography, Tooltip, theme } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -15,7 +16,7 @@ interface Props {
   loading?: boolean;
 }
 
-export function TiktokPriceResultsTable({ skuGroups, loading }: Props) {
+function TiktokPriceResultsTable({ skuGroups, loading }: Props) {
   const { token } = theme.useToken();
 
   const getStatusColor = (status: string) => {
@@ -258,4 +259,5 @@ export function TiktokPriceResultsTable({ skuGroups, loading }: Props) {
   );
 }
 
-export default TiktokPriceResultsTable;
+export default React.memo(TiktokPriceResultsTable);
+export { TiktokPriceResultsTable };

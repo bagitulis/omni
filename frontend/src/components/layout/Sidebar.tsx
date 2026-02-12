@@ -1,3 +1,4 @@
+import React, { useMemo } from "react";
 import { Layout, Menu, theme } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -19,32 +20,39 @@ interface SidebarProps {
   onCollapse: (collapsed: boolean) => void;
 }
 
-export default function Sidebar({ collapsed, onCollapse }: SidebarProps) {
+function Sidebar({ collapsed, onCollapse }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const {
     token: { colorBgContainer, colorPrimary, colorTextLightSolid },
   } = theme.useToken();
 
-  const menuItems = [
-    { key: "/", icon: <DashboardOutlined />, label: "Dashboard" },
-    { key: "/order-manager", icon: <ShoppingOutlined />, label: "Orders" },
-    { key: "/master-products", icon: <SkinOutlined />, label: "Products" },
-    {
-      key: "/product-manager",
-      icon: <AppstoreOutlined />,
-      label: "Product Manager",
-    },
-    { key: "/inventory", icon: <InboxOutlined />, label: "Inventory" },
-    {
-      key: "/route-mapping",
-      icon: <NodeIndexOutlined />,
-      label: "Route Mapping",
-    },
-    { key: "/analytics", icon: <BarChartOutlined />, label: "Analytics" },
-    { key: "/script-monitor", icon: <CodeOutlined />, label: "Script Monitor" },
-    { key: "/settings", icon: <SettingOutlined />, label: "Settings" },
-  ];
+  const menuItems = useMemo(
+    () => [
+      { key: "/", icon: <DashboardOutlined />, label: "Dashboard" },
+      { key: "/order-manager", icon: <ShoppingOutlined />, label: "Orders" },
+      { key: "/master-products", icon: <SkinOutlined />, label: "Products" },
+      {
+        key: "/product-manager",
+        icon: <AppstoreOutlined />,
+        label: "Product Manager",
+      },
+      { key: "/inventory", icon: <InboxOutlined />, label: "Inventory" },
+      {
+        key: "/route-mapping",
+        icon: <NodeIndexOutlined />,
+        label: "Route Mapping",
+      },
+      { key: "/analytics", icon: <BarChartOutlined />, label: "Analytics" },
+      {
+        key: "/script-monitor",
+        icon: <CodeOutlined />,
+        label: "Script Monitor",
+      },
+      { key: "/settings", icon: <SettingOutlined />, label: "Settings" },
+    ],
+    [],
+  );
 
   return (
     <Sider
@@ -114,3 +122,5 @@ export default function Sidebar({ collapsed, onCollapse }: SidebarProps) {
     </Sider>
   );
 }
+
+export default React.memo(Sidebar);

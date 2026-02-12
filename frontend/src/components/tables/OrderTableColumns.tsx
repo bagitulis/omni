@@ -152,6 +152,7 @@ export function getOrderTableColumns({
                 size="small"
                 icon={<MoreOutlined />}
                 style={{ padding: 0 }}
+                aria-label="More actions"
               />
             </Dropdown>
           </Flex>

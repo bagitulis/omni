@@ -189,7 +189,7 @@
 
       "agents": {
         "sisyphus": {
-          "model": "google/claude-opus-4-6-thinking",
+          "model": "google/claude-sonnet-4-5-thinking",
           "variant": "max"
         },
         "prometheus": {

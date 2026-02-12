@@ -1,3 +1,4 @@
+import React from "react";
 import { Button, Typography, theme } from "antd";
 import { SettingOutlined } from "@ant-design/icons";
 import type { ReactNode } from "react";
@@ -10,7 +11,7 @@ interface AnalyticsPageHeaderProps {
   onSettingsClick: () => void;
 }
 
-export const AnalyticsPageHeader = ({
+const AnalyticsPageHeader = ({
   title,
   subtitle,
   onSettingsClick,
@@ -42,3 +43,6 @@ export const AnalyticsPageHeader = ({
     </div>
   );
 };
+
+export default React.memo(AnalyticsPageHeader);
+export { AnalyticsPageHeader };

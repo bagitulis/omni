@@ -1,3 +1,4 @@
+import React from "react";
 import { Card, Col, Row, Statistic, theme } from "antd";
 import {
   CodeSandboxOutlined,
@@ -12,7 +13,7 @@ interface Props {
   summary: ReconciliationSummary;
 }
 
-export function TiktokPriceSummaryCards({ summary }: Props) {
+function TiktokPriceSummaryCards({ summary }: Props) {
   const { token } = theme.useToken();
 
   return (
@@ -124,4 +125,5 @@ export function TiktokPriceSummaryCards({ summary }: Props) {
   );
 }
 
-export default TiktokPriceSummaryCards;
+export default React.memo(TiktokPriceSummaryCards);
+export { TiktokPriceSummaryCards };

@@ -65,3 +65,5 @@ export const UploadTab = ({ uploadProps, uploadedData }: UploadTabProps) => {
     </Row>
   );
 };
+
+export default UploadTab;

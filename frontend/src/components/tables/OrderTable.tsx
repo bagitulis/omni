@@ -1,9 +1,9 @@
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { GroupedOrder, OrderTableProps } from "./OrderTable.types";
 import { getOrderTableColumns } from "./OrderTableColumns";
 import { VirtualTable } from "@/components/common/VirtualTable";
 
-export function OrderTable({
+function OrderTable({
   orders,
   loading,
   pagination,
@@ -93,3 +93,6 @@ export function OrderTable({
     />
   );
 }
+
+export const OrderTableMemo = React.memo(OrderTable);
+export { OrderTableMemo as OrderTable };

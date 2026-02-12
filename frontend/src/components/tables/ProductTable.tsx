@@ -1,3 +1,4 @@
+import React from "react";
 import { Image, Button, Space, Typography, Tag, Tooltip, Badge } from "antd";
 import { Link } from "react-router-dom";
 import {
@@ -26,7 +27,7 @@ interface ProductTableProps {
   onClone?: (product: Product) => void;
 }
 
-export function ProductTable({
+function ProductTable({
   loading,
   products,
   total,
@@ -172,9 +173,15 @@ export function ProductTable({
             icon={<CopyOutlined />}
             onClick={() => onClone?.(record)}
             title="Clone"
+            aria-label="Clone product"
           />
           <Link to={`/master-products/edit/${record.item_id}`}>
-            <Button size="small" icon={<EditOutlined />} title="Edit" />
+            <Button
+              size="small"
+              icon={<EditOutlined />}
+              title="Edit"
+              aria-label="Edit product"
+            />
           </Link>
           <Button
             size="small"
@@ -182,6 +189,7 @@ export function ProductTable({
             icon={<DeleteOutlined />}
             onClick={() => onDelete(record.item_id)}
             title="Delete"
+            aria-label="Delete product"
           />
         </Space>
       ),
@@ -212,3 +220,6 @@ export function ProductTable({
     />
   );
 }
+
+export const ProductTableMemo = React.memo(ProductTable);
+export { ProductTableMemo as ProductTable };

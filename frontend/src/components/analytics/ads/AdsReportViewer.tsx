@@ -58,7 +58,11 @@ export const AdsReportViewer: React.FC<AdsReportViewerProps> = ({
             }))}
             loading={loading}
           />
-          <Button icon={<ReloadOutlined />} onClick={() => refetch()} />
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={() => refetch()}
+            aria-label="Reload reports"
+          />
         </div>
       }
       bodyStyle={{ padding: 0, height: 600 }}

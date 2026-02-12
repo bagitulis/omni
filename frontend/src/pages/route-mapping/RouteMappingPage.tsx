@@ -177,3 +177,5 @@ export function RouteMappingPage() {
     </div>
   );
 }
+
+export default RouteMappingPage;

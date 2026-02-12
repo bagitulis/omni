@@ -1,3 +1,4 @@
+import React from "react";
 import { Card, Col, Row, Statistic, theme, Spin } from "antd";
 import {
   DollarOutlined,
@@ -21,7 +22,7 @@ interface DashboardTabProps {
   onUploadClick: () => void;
 }
 
-export const DashboardTab = ({
+const DashboardTab = ({
   adsData,
   loading,
   summaryOverride,
@@ -162,3 +163,6 @@ export const DashboardTab = ({
     </div>
   );
 };
+
+export default React.memo(DashboardTab);
+export { DashboardTab };

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Layout, theme } from "antd";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
@@ -16,6 +16,10 @@ export default function AppLayout() {
   // Calculate sidebar width based on collapsed state
   const sidebarWidth = collapsed ? 80 : 220;
 
+  const handleToggle = useCallback(() => {
+    setCollapsed((prev) => !prev);
+  }, []);
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sidebar collapsed={collapsed} onCollapse={setCollapsed} />
@@ -27,11 +31,9 @@ export default function AppLayout() {
           transition: "margin-left var(--motion-mid)",
         }}
       >
-        <Header
-          collapsed={collapsed}
-          onCollapse={() => setCollapsed(!collapsed)}
-        />
+        <Header collapsed={collapsed} onCollapse={handleToggle} />
         <Content
+          id="main-content"
           style={{
             padding: 24,
             minHeight: 0,

@@ -1,3 +1,4 @@
+import React, { useMemo, useCallback } from "react";
 import {
   Layout,
   Button,
@@ -29,7 +30,7 @@ interface HeaderProps {
   onCollapse: () => void;
 }
 
-export default function Header({ collapsed, onCollapse }: HeaderProps) {
+function Header({ collapsed, onCollapse }: HeaderProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const {
@@ -37,34 +38,37 @@ export default function Header({ collapsed, onCollapse }: HeaderProps) {
   } = theme.useToken();
   const { isDark, toggle } = useTheme();
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await logout();
     navigate("/login");
-  };
+  }, [logout, navigate]);
 
-  const userMenu = [
-    {
-      key: "profile",
-      label: "Profile",
-      icon: <UserOutlined />,
-    },
-    {
-      key: "settings",
-      label: "Settings",
-      icon: <SettingOutlined />,
-      onClick: () => navigate("/settings"),
-    },
-    {
-      type: "divider" as const,
-    },
-    {
-      key: "logout",
-      label: "Logout",
-      icon: <LogoutOutlined />,
-      danger: true,
-      onClick: handleLogout,
-    },
-  ];
+  const userMenu = useMemo(
+    () => [
+      {
+        key: "profile",
+        label: "Profile",
+        icon: <UserOutlined />,
+      },
+      {
+        key: "settings",
+        label: "Settings",
+        icon: <SettingOutlined />,
+        onClick: () => navigate("/settings"),
+      },
+      {
+        type: "divider" as const,
+      },
+      {
+        key: "logout",
+        label: "Logout",
+        icon: <LogoutOutlined />,
+        danger: true,
+        onClick: handleLogout,
+      },
+    ],
+    [navigate, handleLogout],
+  );
 
   return (
     <AntHeader
@@ -87,6 +91,7 @@ export default function Header({ collapsed, onCollapse }: HeaderProps) {
           type="text"
           icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           onClick={onCollapse}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           style={{
             fontSize: "16px",
             width: 48,
@@ -150,3 +155,5 @@ export default function Header({ collapsed, onCollapse }: HeaderProps) {
     </AntHeader>
   );
 }
+
+export default React.memo(Header);

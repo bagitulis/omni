@@ -22,3 +22,5 @@ export const DataTab = ({ adsData, loading, onUploadClick }: DataTabProps) => {
     </Card>
   );
 };
+
+export default DataTab;

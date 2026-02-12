@@ -261,3 +261,5 @@ export function ProductManagerPage() {
     </div>
   );
 }
+
+export default ProductManagerPage;
