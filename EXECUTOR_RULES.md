@@ -213,22 +213,14 @@ Track each attempt:
 **Format:**
 
 <!-- MASTER:failure-counter-format -->
-
 ```markdown
-## Fix Attempt #N
+## Fix Attempt #[N]
 
-**Failure Count:** N
-**Previous Error:** [error]
-**Action:** [what to do]
-
-[If N >= 2]
-**Trace Flow Result:**
-
-- Handler receives: ...
-- Service processes: ...
-- Root cause: [layer + issue]
+**Failure Count:** [current]
+**Previous Error:** [error message]
+**Hypothesis:** [why this fix should work]
+**Action:** [specific fix in specific layer]
 ```
-
 <!-- /MASTER:failure-counter-format -->
 
 ### Failure Escalation (from DELEGATION_RULES.md §3)

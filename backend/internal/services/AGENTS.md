@@ -146,6 +146,7 @@ if err != nil {
 
 ---
 
+<!-- MASTER:file-size-quality -->
 ## ~300 Lines Per File (Quality Signal)
 
 > **~300 lines is NOT a hard limit.** It's a quality signal that MUST trigger a refactor attempt.
@@ -155,9 +156,9 @@ if err != nil {
 
 | Type           | Guideline                                      |
 | -------------- | ---------------------------------------------- |
-| Service files  | ~300 lines — MUST refactor if exceeded         |
-| Helper files   | ~300 lines — MUST refactor if exceeded         |
+| Code files     | ~300 lines — MUST refactor if exceeded         |
 | After refactor | Slightly above 300 OK if SRP/DRY/OOP satisfied |
 | 400+ lines     | NOT acceptable — refactor harder or split      |
+<!-- /MASTER:file-size-quality -->
 
 **If exceeding:** Split by platform or responsibility.

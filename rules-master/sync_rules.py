@@ -27,6 +27,10 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 RULES_JSON = os.path.join(SCRIPT_DIR, "rules.json")
 
+# Import validation helpers (extracted for SRP / ~300 line target)
+sys.path.insert(0, SCRIPT_DIR)
+from validators import scan_orphan_markers, validate_compose_coverage
+
 MARKER_OPEN = "<!-- MASTER:{key} -->"
 MARKER_CLOSE = "<!-- /MASTER:{key} -->"
 MARKER_PATTERN = re.compile(
@@ -120,12 +124,15 @@ def generate_full_doc(filepath, config, blocks, dry_run=False):
 
 
 def inject_blocks(filepath, block_keys, blocks, dry_run=False):
-    """Replace content between MASTER markers in a file."""
+    """Replace content between MASTER markers in a file.
+
+    Returns: (changed: bool, status: str, missing: list[str])
+    """
     abs_path = os.path.join(PROJECT_ROOT, filepath)
 
     if not os.path.exists(abs_path):
         print(f"  WARNING: Target file not found: {filepath}")
-        return False, "not found"
+        return False, "not found", []
 
     with open(abs_path, "r", encoding="utf-8", newline="") as f:
         raw_content = f.read()
@@ -165,15 +172,15 @@ def inject_blocks(filepath, block_keys, blocks, dry_run=False):
         print(f"  MISSING MARKERS in {filepath}: {missing_markers}")
 
     if not changed:
-        return False, "up-to-date"
+        return False, "up-to-date", missing_markers
 
     if dry_run:
-        return True, "would update"
+        return True, "would update", missing_markers
 
     final_content = apply_line_ending(content, ending)
     with open(abs_path, "w", encoding="utf-8", newline="") as f:
         f.write(final_content)
-    return True, "updated"
+    return True, "updated", missing_markers
 
 
 def compose_prompt(block_keys, prompt_blocks):
@@ -261,6 +268,7 @@ def main():
     compose_targets = targets.get("compose_json", {})
 
     any_changed = False
+    has_warnings = False
     results = []
 
     # --- Generate full docs ---
@@ -290,10 +298,12 @@ def main():
             if not block_keys:
                 continue
 
-        changed, status = inject_blocks(filepath, block_keys, blocks, dry_run=args.dry_run or args.check)
+        changed, status, missing = inject_blocks(filepath, block_keys, blocks, dry_run=args.dry_run or args.check)
         results.append((filepath, status))
         if changed:
             any_changed = True
+        if missing:
+            has_warnings = True
 
     # --- Compose JSON (prompt_append) ---
     if not args.section:  # compose_json applies to whole file, not individual sections
@@ -310,17 +320,40 @@ def main():
                 any_changed = True
 
     # --- Report ---
+
+    # --- Orphan marker detection ---
+    if not args.section and not args.target:
+        orphans = scan_orphan_markers(inject_targets, PROJECT_ROOT)
+        if orphans:
+            has_warnings = True
+            print("\n--- Orphan Markers (in file but NOT registered in rules.json) ---")
+            for filepath, key in orphans:
+                print(f"  ⚠ {filepath}: <!-- MASTER:{key} --> not in targets")
+
+    # --- Compose coverage validation ---
+    if not args.section and not args.target:
+        for filepath in compose_targets:
+            gaps = validate_compose_coverage(prompt_compose, filepath, PROJECT_ROOT)
+            if gaps:
+                has_warnings = True
+                print("\n--- Compose Coverage Gaps (in shared but NOT in prompt_compose or COMPOSE_EXEMPT) ---")
+                for kind, name in gaps:
+                    print(f"  ⚠ {kind} '{name}' has no prompt_compose mapping")
+
     print("\n--- Sync Results ---")
     for filepath, status in results:
         icon = "*" if "update" in status or "generate" in status else " "
         print(f"  [{icon}] {filepath}: {status}")
 
     if args.check:
-        if any_changed:
-            print("\nDRIFT DETECTED: Run 'python rules-master/sync_rules.py' to fix.")
+        if any_changed or has_warnings:
+            if any_changed:
+                print("\nDRIFT DETECTED: Run 'python rules-master/sync_rules.py' to fix.")
+            if has_warnings:
+                print("\nWARNINGS FOUND: Fix orphan markers or compose gaps in rules.json.")
             sys.exit(1)
         else:
-            print("\nAll targets up-to-date.")
+            print("\nAll targets up-to-date. No warnings.")
             sys.exit(0)
 
     if args.dry_run:
