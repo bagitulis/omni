@@ -16,7 +16,7 @@ func init() {
 }
 
 func TestReportHandler_Generate(t *testing.T) {
-	t.Run("missing tenant ID returns 401", func(t *testing.T) {
+	t.Run("missing tenant ID returns 400", func(t *testing.T) {
 		handler := NewReportHandler("")
 
 		w := httptest.NewRecorder()
@@ -26,7 +26,7 @@ func TestReportHandler_Generate(t *testing.T) {
 
 		handler.Generate(c)
 
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
@@ -69,7 +69,7 @@ func TestReportHandler_Generate(t *testing.T) {
 }
 
 func TestReportHandler_List(t *testing.T) {
-	t.Run("missing tenant ID returns 401", func(t *testing.T) {
+	t.Run("missing tenant ID returns 400", func(t *testing.T) {
 		handler := NewReportHandler("")
 
 		w := httptest.NewRecorder()
@@ -79,7 +79,7 @@ func TestReportHandler_List(t *testing.T) {
 
 		handler.List(c)
 
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
