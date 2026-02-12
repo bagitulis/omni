@@ -1,10 +1,17 @@
 import { message } from "antd";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useOrderActions } from "@/hooks/useOrders";
 import { OrderDetail, Order } from "@/types/order";
 import { GroupedOrder } from "@/components/tables/OrderTable.types";
-import { ShipFormValues } from "@/components/modals/OrderShipModal";
+import { ShipConfirmPayload } from "@/components/modals/OrderShipModal";
 import { CancelFormValues } from "@/components/modals/OrderCancelModal";
 import { getOrderById, getLazadaDocument } from "@/api/orders";
+import {
+  arrangeLazadaShipment,
+  arrangeShopeeShipment,
+  arrangeTikTokShipment,
+} from "@/hooks/useOrders";
 
 interface UseOrderSingleActionsProps {
   selectedOrder: OrderDetail | Order | null;
@@ -21,44 +28,36 @@ export function useOrderSingleActions({
   setIsCancelModalOpen,
   setIsDetailModalOpen,
 }: UseOrderSingleActionsProps) {
-  const {
-    shipOrder,
-    cancelOrder,
-    printLabels,
-    isSingleShipping,
-    isCancelling,
-  } = useOrderActions();
+  const queryClient = useQueryClient();
+  const [isSingleShipping, setIsSingleShipping] = useState(false);
+  const { cancelOrder, printLabels, isCancelling } = useOrderActions();
 
   const handleSingleShip = (order: GroupedOrder) => {
     setSelectedOrder(order as unknown as Order);
     setIsShipModalOpen(true);
   };
 
-  const handleShipConfirm = async (orderSn: string, values: ShipFormValues) => {
-    if (!selectedOrder) return;
+  const handleShipConfirm = async (payload: ShipConfirmPayload) => {
+    setIsSingleShipping(true);
+    try {
+      if (payload.platform === "shopee") {
+        await arrangeShopeeShipment(payload.data);
+      } else if (payload.platform === "tiktok") {
+        await arrangeTikTokShipment(payload.data);
+      } else {
+        await arrangeLazadaShipment(payload.data);
+      }
 
-    const order = selectedOrder;
-    const orderPlatform = (order.platform || "shopee").toLowerCase();
-
-    const params: any = {
-      order_no: orderSn,
-      platform: orderPlatform,
-      shipping_provider: values.shipping_provider,
-      tracking_number: values.tracking_number,
-    };
-
-    if (orderPlatform === "lazada") {
-      const items = (order as any).items || [];
-      const orderItemIds = items
-        .map((item: any) => String(item.order_item_id || item.item_id || ""))
-        .filter((id: string) => id !== "");
-
-      params.order_item_ids = orderItemIds.length ? orderItemIds : [orderSn];
-    } else if (orderPlatform === "tiktok") {
-      // TikTok needs package_id logic if needed
+      await queryClient.invalidateQueries({ queryKey: ["orders"] });
+      message.success("Order shipped successfully");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to ship order";
+      message.error(errorMessage);
+      throw error;
+    } finally {
+      setIsSingleShipping(false);
     }
-
-    await shipOrder(params);
   };
 
   const handleSingleCancel = (order: GroupedOrder) => {

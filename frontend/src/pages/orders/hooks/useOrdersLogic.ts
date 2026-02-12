@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import { message } from "antd";
 import { useQueryClient } from "@tanstack/react-query";
-import { useOrders, useOrderActions } from "@/hooks/useOrders";
+import { useOrders } from "@/hooks/useOrders";
 import { useOrderSync } from "./useOrderSync";
 import { useOrderBulkActions } from "./useOrderBulkActions";
 import { useOrderSingleActions } from "./useOrderSingleActions";
@@ -48,8 +48,6 @@ export function useOrdersLogic() {
     },
     { autoRefresh },
   );
-
-  const { isSingleShipping } = useOrderActions();
 
   const { isSyncing, syncActiveTab } = useOrderSync(
     activeTab,
@@ -159,7 +157,7 @@ export function useOrdersLogic() {
       isShipping: bulkActions.isShipping,
       isPrinting: bulkActions.isPrinting,
       isCancelling: bulkActions.isCancelling,
-      isSingleShipping,
+      isSingleShipping: singleActions.isSingleShipping,
       shipProgress: bulkActions.shipProgress,
       printProgress: bulkActions.printProgress,
       cancelProgress: bulkActions.cancelProgress,

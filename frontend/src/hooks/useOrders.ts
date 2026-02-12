@@ -7,6 +7,7 @@ import {
   shipOrder,
   GetOrdersParams,
 } from "@/api/orders";
+import apiClient from "@/api/client";
 import { message } from "antd";
 
 interface UseOrdersOptions {
@@ -15,6 +16,132 @@ interface UseOrdersOptions {
 }
 
 const DEFAULT_REFETCH_INTERVAL = 30000; // 30 seconds
+
+export interface ShopeeTimeSlot {
+  pickup_time_id?: string;
+  pickup_time?: string;
+  date?: string;
+  time_text?: string;
+  time_slot?: string;
+  time?: string;
+}
+
+export interface ShopeePickupAddress {
+  address_id: number;
+  address: string;
+  time_slots?: ShopeeTimeSlot[];
+  time_slot_list?: ShopeeTimeSlot[];
+}
+
+export interface ShopeeDropoffBranch {
+  branch_id: number;
+  address: string;
+}
+
+export interface ShopeeShippingOptions {
+  pickup?: ShopeePickupAddress[];
+  dropoff?: ShopeeDropoffBranch[];
+}
+
+export interface ShopeeArrangeShipmentPayload {
+  order_sn: string;
+  pickup?: {
+    address_id: number;
+    pickup_time_id?: string;
+  };
+  dropoff?: {
+    branch_id: number;
+  };
+  tracking_number?: string;
+}
+
+export interface TikTokTimeSlot {
+  start_time: number;
+  end_time: number;
+  type?: string;
+}
+
+export interface TikTokHandoverSlots {
+  time_slots: TikTokTimeSlot[];
+}
+
+export interface TikTokArrangeShipmentPayload {
+  package_id?: string;
+  order_id?: string;
+  handover_method: "PICKUP" | "DROP_OFF" | "SELF_SHIPMENT";
+  pickup_slot?: {
+    start_time: number;
+    end_time: number;
+  };
+  self_shipment?: {
+    tracking_number: string;
+    shipping_provider_id: string;
+  };
+}
+
+export interface LazadaArrangeShipmentPayload {
+  order_item_ids: string[];
+  shipping_provider: string;
+  tracking_number?: string;
+}
+
+export async function getShippingOptions(
+  orderSn: string,
+): Promise<ShopeeShippingOptions> {
+  const response = await apiClient.get<ShopeeShippingOptions>(
+    "/shopee/shipping/options",
+    {
+      params: { orderSn },
+    },
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Failed to load Shopee shipping options");
+  }
+
+  return response.data;
+}
+
+export async function getHandoverTimeSlots(
+  orderOrPackageId: string,
+): Promise<TikTokHandoverSlots> {
+  const response = await apiClient.get<TikTokHandoverSlots>(
+    `/tiktok/shipping/timeslots/${encodeURIComponent(orderOrPackageId)}`,
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Failed to load TikTok handover slots");
+  }
+
+  return response.data;
+}
+
+export async function arrangeShopeeShipment(
+  data: ShopeeArrangeShipmentPayload,
+): Promise<void> {
+  const response = await apiClient.post("/shopee/shipping/arrange", data);
+  if (!response.success) {
+    throw new Error(response.error || "Failed to arrange Shopee shipment");
+  }
+}
+
+export async function arrangeTikTokShipment(
+  data: TikTokArrangeShipmentPayload,
+): Promise<void> {
+  const response = await apiClient.post("/tiktok/shipping/arrange", data);
+  if (!response.success) {
+    throw new Error(response.error || "Failed to arrange TikTok shipment");
+  }
+}
+
+export async function arrangeLazadaShipment(
+  data: LazadaArrangeShipmentPayload,
+): Promise<void> {
+  const response = await apiClient.post("/lazada/orders/ship", data);
+  if (!response.success) {
+    throw new Error(response.error || "Failed to arrange Lazada shipment");
+  }
+}
 
 export function useOrders(
   params: GetOrdersParams,

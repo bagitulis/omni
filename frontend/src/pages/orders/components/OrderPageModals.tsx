@@ -1,7 +1,7 @@
 import { OrderDetailModal } from "@/components/modals/OrderDetailModal";
 import {
   OrderShipModal,
-  ShipFormValues,
+  ShipConfirmPayload,
 } from "@/components/modals/OrderShipModal";
 import {
   OrderCancelModal,
@@ -17,7 +17,7 @@ interface OrderPageModalsProps {
   onDetailClose: () => void;
   onShipClose: () => void;
   onCancelClose: () => void;
-  onShipConfirm: (orderSn: string, values: ShipFormValues) => Promise<void>;
+  onShipConfirm: (payload: ShipConfirmPayload) => Promise<void>;
   onCancelConfirm: (orderSn: string, values: CancelFormValues) => Promise<void>;
   isSingleShipping: boolean;
   isCancelling: boolean;

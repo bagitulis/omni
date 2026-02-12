@@ -1,140 +1,139 @@
-import {
-  Drawer,
-  Form,
-  Select,
-  Input,
-  Button,
-  Space,
-  Typography,
-  Alert,
-} from "antd";
+import { Alert, Drawer, Space, Tag, Typography, theme } from "antd";
 import { Order } from "@/types/order";
-import { useState, useEffect } from "react";
+import { ShopeeShipForm } from "@/components/modals/ship/ShopeeShipForm";
+import { TikTokShipForm } from "@/components/modals/ship/TikTokShipForm";
+import { LazadaShipForm } from "@/components/modals/ship/LazadaShipForm";
+import {
+  LazadaArrangeShipmentPayload,
+  ShopeeArrangeShipmentPayload,
+  TikTokArrangeShipmentPayload,
+  arrangeLazadaShipment,
+  arrangeShopeeShipment,
+  arrangeTikTokShipment,
+} from "@/hooks/useOrders";
 
 const { Text } = Typography;
 
-export interface ShipFormValues {
-  shipping_provider: string;
-  tracking_number: string;
-}
+export type ShipConfirmPayload =
+  | { platform: "shopee"; data: ShopeeArrangeShipmentPayload }
+  | { platform: "tiktok"; data: TikTokArrangeShipmentPayload }
+  | { platform: "lazada"; data: LazadaArrangeShipmentPayload };
 
 interface OrderShipModalProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (orderSn: string, values: ShipFormValues) => Promise<void>;
   order: Order | null;
+  onConfirm?: (payload: ShipConfirmPayload) => Promise<void>;
   loading?: boolean;
 }
 
-const SHIPPING_PROVIDERS = [
-  { label: "JNE", value: "jne" },
-  { label: "J&T", value: "jnt" },
-  { label: "Sicepat", value: "sicepat" },
-  { label: "GoSend", value: "gosend" },
-  { label: "GrabExpress", value: "grabexpress" },
-  { label: "AnterAja", value: "anteraja" },
-  { label: "Shopee Xpress", value: "shopee_xpress" },
-];
+const resolvePlatform = (
+  value?: string,
+): "shopee" | "tiktok" | "lazada" | "" => {
+  const normalized = value?.toLowerCase();
+  if (
+    normalized === "shopee" ||
+    normalized === "tiktok" ||
+    normalized === "lazada"
+  ) {
+    return normalized;
+  }
+  return "";
+};
+
+async function submitByPlatform(payload: ShipConfirmPayload): Promise<void> {
+  if (payload.platform === "shopee") {
+    await arrangeShopeeShipment(payload.data);
+    return;
+  }
+  if (payload.platform === "tiktok") {
+    await arrangeTikTokShipment(payload.data);
+    return;
+  }
+  await arrangeLazadaShipment(payload.data);
+}
 
 export function OrderShipModal({
   open,
   onClose,
-  onConfirm,
   order,
+  onConfirm,
   loading = false,
 }: OrderShipModalProps) {
-  const [form] = Form.useForm<ShipFormValues>();
-  const [submitting, setSubmitting] = useState(false);
+  const { token } = theme.useToken();
 
-  useEffect(() => {
-    if (open && order) {
-      form.resetFields();
+  if (!order) {
+    return null;
+  }
+
+  const platform = resolvePlatform(order.platform);
+  const handleConfirm = async (payload: ShipConfirmPayload) => {
+    if (onConfirm) {
+      await onConfirm(payload);
+      return;
     }
-  }, [open, order, form]);
-
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-      if (!order) return;
-
-      setSubmitting(true);
-      await onConfirm(order.order_sn, values);
-      setSubmitting(false);
-      onClose();
-    } catch (error) {
-      setSubmitting(false);
-      // Validation failed or onConfirm failed
-    }
+    await submitByPlatform(payload);
   };
-
-  if (!order) return null;
 
   return (
     <Drawer
       title="Arrange Shipment"
       placement="right"
-      width={400}
-      onClose={onClose}
+      width={420}
       open={open}
-      footer={
-        <Space style={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button disabled={submitting || loading} onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            type="primary"
-            onClick={handleSubmit}
-            loading={submitting || loading}
-          >
-            Confirm Shipment
-          </Button>
-        </Space>
-      }
+      onClose={onClose}
+      destroyOnClose
     >
-      <div style={{ marginBottom: 24 }}>
-        <Text type="secondary">Order SN: </Text>
-        <Text strong copyable>
-          {order.order_sn}
-        </Text>
-      </div>
-
-      <Alert
-        message="Please ensure the tracking number is correct."
-        type="info"
-        showIcon
-        style={{ marginBottom: 24 }}
-      />
-
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={{ shipping_provider: "", tracking_number: "" }}
-      >
-        <Form.Item
-          name="shipping_provider"
-          label="Shipping Provider"
-          rules={[
-            { required: true, message: "Please select a shipping provider" },
-          ]}
+      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+        <Space
+          align="center"
+          style={{ justifyContent: "space-between", width: "100%" }}
         >
-          <Select
-            placeholder="Select provider"
-            options={SHIPPING_PROVIDERS}
-            showSearch
+          <Text type="secondary">Order SN</Text>
+          <Text strong copyable>
+            {order.order_sn}
+          </Text>
+        </Space>
+        <Space align="center">
+          <Text type="secondary">Platform</Text>
+          <Tag color="blue">{platform || "unknown"}</Tag>
+        </Space>
+
+        {platform === "shopee" && (
+          <ShopeeShipForm
+            order={order}
+            loading={loading}
+            onConfirm={handleConfirm}
+            onClose={onClose}
           />
-        </Form.Item>
+        )}
+        {platform === "tiktok" && (
+          <TikTokShipForm
+            order={order}
+            loading={loading}
+            onConfirm={handleConfirm}
+            onClose={onClose}
+          />
+        )}
+        {platform === "lazada" && (
+          <LazadaShipForm
+            order={order}
+            loading={loading}
+            onConfirm={handleConfirm}
+            onClose={onClose}
+          />
+        )}
 
-        <Form.Item
-          name="tracking_number"
-          label="Tracking Number"
-          rules={[
-            { required: true, message: "Please enter tracking number" },
-            { min: 5, message: "Tracking number seems too short" },
-          ]}
-        >
-          <Input placeholder="Enter tracking number" />
-        </Form.Item>
-      </Form>
+        {!platform && (
+          <Alert
+            type="error"
+            showIcon
+            message="Unsupported platform"
+            description={`Shipping flow for platform '${order.platform || "unknown"}' is not implemented.`}
+            style={{ borderColor: token.colorErrorBorder }}
+          />
+        )}
+      </Space>
     </Drawer>
   );
 }
