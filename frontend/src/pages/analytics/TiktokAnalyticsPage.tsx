@@ -1,7 +1,6 @@
 import { Button, Typography, Modal, message, Tabs, theme } from "antd";
 import { SettingOutlined } from "@ant-design/icons";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import { SettingsModal } from "@/components/analytics/common";
 import {
   exportTiktokReconciliationCSV,
   exportTiktokShippingCSV,
@@ -13,6 +12,7 @@ import type {
 } from "@/types/analytics";
 import { AnalyticsControls } from "./components/tiktok/AnalyticsControls";
 import { AnalyticsContent } from "./components/tiktok/AnalyticsContent";
+import { TiktokAnalyticsSettingsModal } from "./components/tiktok/TiktokAnalyticsSettingsModal";
 
 const { Title, Text } = Typography;
 
@@ -181,7 +181,7 @@ export const TiktokAnalyticsPage = () => {
         shippingFeeLoading={shippingFeeQuery.isLoading}
       />
 
-      <SettingsModal
+      <TiktokAnalyticsSettingsModal
         open={settingsOpen}
         settings={
           settingsQuery.data || {

@@ -1,16 +1,15 @@
 import { Card, Empty, Spin, Typography } from "antd";
 import { VideoCameraOutlined } from "@ant-design/icons";
-import {
-  AnalyticsSummaryCards,
-  ReconciliationTable,
-  ShippingFeeTable,
-  SyncProgressBar,
-} from "@/components/analytics/common";
-import {
+import { SyncProgressBar } from "@/components/analytics/common";
+import type {
   TiktokReconciliationResult,
   TiktokShippingFeeResult,
   JobProgress,
 } from "@/types/analytics";
+import { TiktokPriceSummaryCards } from "./TiktokPriceSummaryCards";
+import { TiktokPriceResultsTable } from "./TiktokPriceResultsTable";
+import { TiktokShippingFeeSummary } from "./TiktokShippingFeeSummary";
+import { TiktokShippingFeeTable } from "./TiktokShippingFeeTable";
 
 const { Text } = Typography;
 
@@ -74,14 +73,10 @@ export const AnalyticsContent = ({
   if (activeTab === "price" && reconciliationData) {
     return (
       <>
-        <AnalyticsSummaryCards
-          type="reconciliation"
-          summary={reconciliationData.summary}
-        />
+        <TiktokPriceSummaryCards summary={reconciliationData.summary} />
         <div style={{ marginTop: 24 }}>
-          <ReconciliationTable
-            platform="tiktok"
-            data={reconciliationData.sku_groups}
+          <TiktokPriceResultsTable
+            skuGroups={reconciliationData.sku_groups}
             loading={reconciliationLoading}
           />
         </div>
@@ -92,14 +87,10 @@ export const AnalyticsContent = ({
   if (activeTab === "shipping" && shippingFeeData) {
     return (
       <>
-        <AnalyticsSummaryCards
-          type="shipping"
-          summary={shippingFeeData.summary}
-        />
+        <TiktokShippingFeeSummary summary={shippingFeeData.summary} />
         <div style={{ marginTop: 24 }}>
-          <ShippingFeeTable
-            platform="tiktok"
-            data={shippingFeeData.orders}
+          <TiktokShippingFeeTable
+            orders={shippingFeeData.orders}
             loading={shippingFeeLoading}
           />
         </div>
