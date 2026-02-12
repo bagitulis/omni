@@ -84,6 +84,8 @@ func RegisterSettingsRoutes(router *gin.RouterGroup, handler *handlers.SettingsH
 		settings.PUT("/inventory", handler.UpdateInventorySettings)
 		settings.GET("/google-sheets", handler.GetGoogleSheetsSettings)
 		settings.PUT("/google-sheets", handler.UpdateGoogleSheetsSettings)
+		settings.GET("/general", handler.GetGeneralSettings)
+		settings.POST("/general", handler.UpdateGeneralSettings)
 	}
 }
 

@@ -112,3 +112,57 @@ func TestGenerateID_Unique(t *testing.T) {
 	assert.NotEmpty(t, id2)
 	assert.NotEqual(t, id1, id2)
 }
+
+// TestSettingsHandler_GetGeneralSettings_MissingTenant tests GetGeneralSettings without tenant
+func TestSettingsHandler_GetGeneralSettings_MissingTenant(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	handler := NewSettingsHandler(nil)
+	r.GET("/api/settings/general", handler.GetGeneralSettings)
+
+	req, _ := http.NewRequest("GET", "/api/settings/general", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.False(t, resp["success"].(bool))
+}
+
+// TestSettingsHandler_UpdateGeneralSettings_MissingTenant tests UpdateGeneralSettings without tenant
+func TestSettingsHandler_UpdateGeneralSettings_MissingTenant(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	handler := NewSettingsHandler(nil)
+	r.POST("/api/settings/general", handler.UpdateGeneralSettings)
+
+	req, _ := http.NewRequest("POST", "/api/settings/general", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+// TestGeneralSettingsRequest_Structure tests GeneralSettingsRequest struct
+func TestGeneralSettingsRequest_Structure(t *testing.T) {
+	req := GeneralSettingsRequest{
+		Language:             "en",
+		Timezone:             "Asia/Jakarta",
+		NotificationsEmail:   true,
+		NotificationsBrowser: true,
+		AutoSync:             true,
+		SyncInterval:         "30",
+	}
+
+	assert.Equal(t, "en", req.Language)
+	assert.Equal(t, "Asia/Jakarta", req.Timezone)
+	assert.True(t, req.NotificationsEmail)
+	assert.True(t, req.NotificationsBrowser)
+	assert.True(t, req.AutoSync)
+	assert.Equal(t, "30", req.SyncInterval)
+}

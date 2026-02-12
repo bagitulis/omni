@@ -88,6 +88,10 @@ func main() {
 	routes.RegisterLockedOrderRoutes(api, extHandlers.LockedOrderHandler)
 	routes.RegisterJobQueueRoutes(api, extHandlers.JobQueueHandler)
 
+	// Shipping files routes
+	shippingFilesHandler := handlers.NewShippingFilesHandler(cfg.DatabasePath)
+	routes.RegisterShippingFilesRoutes(api, shippingFilesHandler)
+
 	// Auto Function routes (Script Monitor)
 	routes.RegisterAutoFunctionRoutes(api, extHandlers.AutoFunctionHandler)
 

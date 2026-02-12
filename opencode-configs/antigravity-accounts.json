@@ -976,11 +976,18 @@
         }
       },
       "cachedQuotaUpdatedAt": 1770889062108
+    },
+    {
+      "email": "jenasusanto397@gmail.com",
+      "refreshToken": "1//0gO2z4Hsn1WQNCgYIARAAGBASNwF-L9IrgDrnhajL8nkhxdc0ePB8iczlqbTeRpixOfe_IOOirUzmpUJ6lfwTo64dxkVGXz4ovb0",
+      "addedAt": 1770894139023,
+      "lastUsed": 1770894139023,
+      "enabled": true
     }
   ],
   "activeIndex": 9,
   "activeIndexByFamily": {
     "claude": 9,
-    "gemini": 3
+    "gemini": 9
   }
 }

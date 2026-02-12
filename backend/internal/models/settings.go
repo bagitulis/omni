@@ -82,3 +82,19 @@ type RouteConfig struct {
 }
 
 func (RouteConfig) TableName() string { return GetTableName("RouteConfig") }
+
+// GeneralSettings stores general application settings per tenant
+type GeneralSettings struct {
+	ID                   string    `gorm:"column:id;primaryKey;type:varchar(255)" json:"id"`
+	TenantID             string    `gorm:"column:tenant_id;index" json:"tenant_id"`
+	Language             string    `gorm:"column:language;type:varchar(10);default:en" json:"language"`
+	Timezone             string    `gorm:"column:timezone;type:varchar(100);default:Asia/Jakarta" json:"timezone"`
+	NotificationsEmail   bool      `gorm:"column:notifications_email;default:true" json:"notifications_email"`
+	NotificationsBrowser bool      `gorm:"column:notifications_browser;default:true" json:"notifications_browser"`
+	AutoSync             bool      `gorm:"column:auto_sync;default:true" json:"auto_sync"`
+	SyncInterval         string    `gorm:"column:sync_interval;type:varchar(20);default:30" json:"sync_interval"`
+	CreatedAt            time.Time `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt            time.Time `gorm:"column:updated_at" json:"updated_at"`
+}
+
+func (GeneralSettings) TableName() string { return GetTableName("GeneralSettings") }

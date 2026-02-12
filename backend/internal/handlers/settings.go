@@ -166,6 +166,87 @@ func (h *SettingsHandler) UpdateGoogleSheetsSettings(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "settings": settings})
 }
 
+// GetGeneralSettings handles GET /api/settings/general
+func (h *SettingsHandler) GetGeneralSettings(c *gin.Context) {
+	tenantID := c.GetString("tenantID")
+	if tenantID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "tenant ID required"})
+		return
+	}
+
+	db, err := h.getDB(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	ctx := c.Request.Context()
+	var settings models.GeneralSettings
+	err = db.WithContext(ctx).Where("tenant_id = ?", tenantID).First(&settings).Error
+	if err == gorm.ErrRecordNotFound {
+		// Return default settings
+		settings = models.GeneralSettings{
+			TenantID:             tenantID,
+			Language:             "en",
+			Timezone:             "Asia/Jakarta",
+			NotificationsEmail:   true,
+			NotificationsBrowser: true,
+			AutoSync:             true,
+			SyncInterval:         "30",
+		}
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": settings})
+}
+
+// UpdateGeneralSettings handles POST /api/settings/general
+func (h *SettingsHandler) UpdateGeneralSettings(c *gin.Context) {
+	tenantID := c.GetString("tenantID")
+	if tenantID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "tenant ID required"})
+		return
+	}
+
+	db, err := h.getDB(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	var req GeneralSettingsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	ctx := c.Request.Context()
+	var settings models.GeneralSettings
+	err = db.WithContext(ctx).Where("tenant_id = ?", tenantID).First(&settings).Error
+	if err == gorm.ErrRecordNotFound {
+		settings = models.GeneralSettings{
+			ID:       generateID(),
+			TenantID: tenantID,
+		}
+	}
+
+	settings.Language = req.Language
+	settings.Timezone = req.Timezone
+	settings.NotificationsEmail = req.NotificationsEmail
+	settings.NotificationsBrowser = req.NotificationsBrowser
+	settings.AutoSync = req.AutoSync
+	settings.SyncInterval = req.SyncInterval
+
+	if err := db.WithContext(ctx).Save(&settings).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": settings})
+}
+
 // InventorySettingsRequest represents inventory settings request
 type InventorySettingsRequest struct {
 	SpreadsheetID string `json:"spreadsheet_id"`
@@ -179,4 +260,14 @@ type GoogleSheetsSettingsRequest struct {
 	ServiceAccountEmail  string `json:"service_account_email"`
 	DefaultSpreadsheetID string `json:"default_spreadsheet_id"`
 	IsConnected          bool   `json:"is_connected"`
+}
+
+// GeneralSettingsRequest represents general settings request
+type GeneralSettingsRequest struct {
+	Language             string `json:"language"`
+	Timezone             string `json:"timezone"`
+	NotificationsEmail   bool   `json:"notifications_email"`
+	NotificationsBrowser bool   `json:"notifications_browser"`
+	AutoSync             bool   `json:"auto_sync"`
+	SyncInterval         string `json:"sync_interval"`
 }
