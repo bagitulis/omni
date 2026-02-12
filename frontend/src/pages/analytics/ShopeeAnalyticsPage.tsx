@@ -119,9 +119,6 @@ export const ShopeeAnalyticsPage = () => {
     (activeTab === "price" && reconciliationQuery.data) ||
     (activeTab === "shipping" && shippingFeeQuery.data);
 
-  // Constants
-  const SHOPEE_ORANGE = "#ee4d2d";
-
   return (
     <div style={{ padding: 24 }}>
       {contextHolder}
@@ -129,7 +126,7 @@ export const ShopeeAnalyticsPage = () => {
       <AnalyticsPageHeader
         title={
           <span>
-            <span style={{ color: SHOPEE_ORANGE }}>Shopee</span> Analytics
+            <span style={{ color: token.colorPrimary }}>Shopee</span> Analytics
           </span>
         }
         subtitle="Price & Shipping Fee Analysis"

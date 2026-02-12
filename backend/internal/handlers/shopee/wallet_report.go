@@ -181,7 +181,16 @@ func (h *WalletReportHandler) ExportToSheets(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Missing required fields: spreadsheet_id, sheet_name, month, and year are required. " + err.Error(),
+		})
+		return
+	}
+
+	// Check if Google Auth is configured
+	if h.googleAuthService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"success": false,
+			"error":   "Google Sheets integration not configured. Service account credentials required.",
 		})
 		return
 	}
@@ -207,9 +216,12 @@ func (h *WalletReportHandler) ExportToSheets(c *gin.Context) {
 	}
 
 	if len(transactions) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "No transactions found",
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "No transactions to export",
+			"data": gin.H{
+				"exported": 0,
+			},
 		})
 		return
 	}

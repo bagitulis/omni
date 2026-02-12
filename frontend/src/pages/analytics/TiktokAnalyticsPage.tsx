@@ -110,8 +110,6 @@ export const TiktokAnalyticsPage = () => {
   const hasData =
     (activeTab === "price" && !!reconciliationQuery.data) ||
     (activeTab === "shipping" && !!shippingFeeQuery.data);
-  const TIKTOK_BLACK = "#000000";
-
   return (
     <div style={{ padding: 24 }}>
       {contextHolder}
@@ -126,7 +124,7 @@ export const TiktokAnalyticsPage = () => {
       >
         <div>
           <Title level={2} style={{ margin: 0 }}>
-            <span style={{ color: TIKTOK_BLACK }}>TikTok</span> Analytics
+            <span style={{ color: token.colorText }}>TikTok</span> Analytics
           </Title>
           <Text type="secondary">Price & Shipping Fee Analysis</Text>
         </div>

@@ -4,7 +4,7 @@ import {
   CheckCircleOutlined,
   DisconnectOutlined,
 } from "@ant-design/icons";
-import { Card, Col, Row, Statistic } from "antd";
+import { Card, Col, Row, Statistic, theme } from "antd";
 import type { RouteData } from "@/types/routeMapping";
 
 interface RouteStatsProps {
@@ -18,6 +18,7 @@ interface RouteStatsProps {
 }
 
 export function RouteStats({ data, categoryStats }: RouteStatsProps) {
+  const { token } = theme.useToken();
   return (
     <Row gutter={[16, 16]}>
       <Col xs={24} sm={12} md={4} style={{ flex: 1 }}>
@@ -25,7 +26,7 @@ export function RouteStats({ data, categoryStats }: RouteStatsProps) {
           <Statistic
             title="Total Routes"
             value={data?.total_routes || 0}
-            prefix={<ApiOutlined style={{ color: "#1890ff" }} />}
+            prefix={<ApiOutlined style={{ color: token.colorPrimary }} />}
             valueStyle={{ fontSize: "1.25rem", fontWeight: 600 }}
           />
         </Card>
@@ -35,7 +36,9 @@ export function RouteStats({ data, categoryStats }: RouteStatsProps) {
           <Statistic
             title="Connection Rate"
             value={data?.connection_rate || "0%"}
-            prefix={<CheckCircleOutlined style={{ color: "#52c41a" }} />}
+            prefix={
+              <CheckCircleOutlined style={{ color: token.colorSuccess }} />
+            }
             valueStyle={{ fontSize: "1.25rem", fontWeight: 600 }}
           />
         </Card>
@@ -45,7 +48,7 @@ export function RouteStats({ data, categoryStats }: RouteStatsProps) {
           <Statistic
             title="Frontend Only"
             value={categoryStats.frontend_only}
-            prefix={<DisconnectOutlined style={{ color: "#ff4d4f" }} />}
+            prefix={<DisconnectOutlined style={{ color: token.colorError }} />}
             valueStyle={{ fontSize: "1.25rem", fontWeight: 600 }}
           />
         </Card>
@@ -55,7 +58,7 @@ export function RouteStats({ data, categoryStats }: RouteStatsProps) {
           <Statistic
             title="Backend Only"
             value={categoryStats.backend_only}
-            prefix={<ApiOutlined style={{ color: "#faad14" }} />}
+            prefix={<ApiOutlined style={{ color: token.colorWarning }} />}
             valueStyle={{ fontSize: "1.25rem", fontWeight: 600 }}
           />
         </Card>
@@ -65,7 +68,7 @@ export function RouteStats({ data, categoryStats }: RouteStatsProps) {
           <Statistic
             title="Components"
             value={data?.total_components || 0}
-            prefix={<AppstoreOutlined style={{ color: "#722ed1" }} />}
+            prefix={<AppstoreOutlined style={{ color: token.colorInfo }} />}
             valueStyle={{ fontSize: "1.25rem", fontWeight: 600 }}
           />
         </Card>

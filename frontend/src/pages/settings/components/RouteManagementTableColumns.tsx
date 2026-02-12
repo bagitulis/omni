@@ -24,10 +24,10 @@ export const ROUTE_PRESETS: Record<string, Partial<RouteConfig>> = {
 };
 
 const METHOD_COLORS: Record<string, string> = {
-  GET: "#52c41a",
-  POST: "#1890ff",
-  PUT: "#faad14",
-  DELETE: "#f5222d",
+  GET: "success",
+  POST: "processing",
+  PUT: "warning",
+  DELETE: "error",
 };
 
 interface CreateRouteColumnsParams {
