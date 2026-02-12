@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "accounts": [
     {
       "email": "assafiraa091@gmail.com",
@@ -7,139 +7,148 @@
       "projectId": "original-app-dsk6k",
       "managedProjectId": "original-app-dsk6k",
       "addedAt": 1769057556241,
-      "lastUsed": 1770274064563,
+      "lastUsed": 1770888563702,
       "rateLimitResetTimes": {
         "claude": 1770196161452,
         "gemini-cli:gemini-3-flash-preview": 1770273959224,
         "gemini-antigravity:gemini-3-flash-preview": 1770188136047
       },
-      "fingerprint": {
-        "deviceId": "042f088c-8261-41ed-befb-80c7eb6bca41",
-        "sessionToken": "26516314523414a1caa085df8da35488",
-        "userAgent": "antigravity/1.15.8 linux/x64",
-        "apiClient": "google-cloud-sdk vscode_cloudshelleditor/0.1",
-        "clientMetadata": {
-          "ideType": "ANDROID_STUDIO",
-          "platform": "LINUX",
-          "pluginType": "GEMINI",
-          "osVersion": "6.5.0",
-          "arch": "x64",
-          "sqmId": "{AE530C62-15B3-4F7D-866E-D167C8C2DF28}"
-        },
-        "quotaUser": "device-b8b9edb9dd6eaa07",
-        "createdAt": 1770196098781
-      },
       "cachedQuota": {
-        "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-04T14:31:43Z",
-          "modelCount": 3
-        },
         "claude": {
-          "remainingFraction": 0.8,
-          "resetTime": "2026-02-04T09:45:42Z",
-          "modelCount": 3
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T12:28:10Z",
+          "modelCount": 4
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T13:07:15Z",
+          "resetTime": "2026-02-12T11:21:26Z",
           "modelCount": 1
+        },
+        "gemini-pro": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T13:37:13Z",
+          "modelCount": 3
         }
       },
-      "cachedQuotaUpdatedAt": 1770197511006
+      "cachedQuotaUpdatedAt": 1770888564049,
+      "enabled": true,
+      "fingerprint": {
+        "deviceId": "60eadcdf-72db-4dab-a9d2-7c4a3606885c",
+        "sessionToken": "0e35625643bdd5bdaafbc6c9413a2bb5",
+        "userAgent": "antigravity/1.16.5 win32/arm64",
+        "apiClient": "google-cloud-sdk vscode/1.86.0",
+        "clientMetadata": {
+          "ideType": "ANTIGRAVITY",
+          "platform": "WINDOWS",
+          "pluginType": "GEMINI"
+        },
+        "createdAt": 1770885104366
+      },
+      "fingerprintHistory": [
+        {
+          "fingerprint": {
+            "deviceId": "19d2daba-e8ae-438f-8785-14a769972c42",
+            "sessionToken": "c3fd7d5cb3527ef6fa961c8f1eae45a3",
+            "userAgent": "antigravity/1.16.5 win32/arm64",
+            "apiClient": "google-cloud-sdk vscode/1.87.0",
+            "clientMetadata": {
+              "ideType": "ANTIGRAVITY",
+              "platform": "WINDOWS",
+              "pluginType": "GEMINI"
+            },
+            "createdAt": 1770859259502
+          },
+          "timestamp": 1770885104366,
+          "reason": "regenerated"
+        }
+      ]
     },
     {
       "email": "k.nghaerin03@gmail.com",
       "refreshToken": "1//0gQ_rYI1R7g5XCgYIARAAGBASNwF-L9Irsj4lYPUyaS0_ttPg1I7B_7phgI6WHHWd3c4IS7Olq70Us0lBWozbpBjlJ_Ip_stYcGw",
       "managedProjectId": "hidef-catwalk-gllrg",
       "addedAt": 1769057618418,
-      "lastUsed": 1770273953927,
+      "lastUsed": 1770888624008,
       "rateLimitResetTimes": {
         "claude": 1770197731832,
         "gemini-cli:gemini-3-flash-preview": 1770274123765,
         "gemini-antigravity:antigravity-gemini-3-pro": 1770131256105,
         "gemini-antigravity:gemini-3-flash-preview": 1770188136046
       },
+      "cachedQuotaUpdatedAt": 1770888624371,
+      "enabled": true,
       "fingerprint": {
-        "deviceId": "bf4b11e0-b20a-4427-8e94-2723842aba29",
-        "sessionToken": "f3f47acb6b5b57fabee126d08d6fc049",
-        "userAgent": "antigravity/1.15.8 darwin/arm64",
-        "apiClient": "google-cloud-sdk android-studio/2024.1",
+        "deviceId": "f611ed93-be48-4800-9414-4e036e036f8b",
+        "sessionToken": "a6f92907e0c9014b2e61bba23099f600",
+        "userAgent": "antigravity/1.16.5 linux/x64",
+        "apiClient": "google-cloud-sdk vscode/1.96.0",
         "clientMetadata": {
-          "ideType": "ANDROID_STUDIO",
-          "platform": "MACOS",
-          "pluginType": "GEMINI",
-          "osVersion": "12.6.3",
-          "arch": "arm64",
-          "sqmId": "{71BF0E58-F7AA-47C9-9FC2-00B71325C95F}"
+          "ideType": "ANTIGRAVITY",
+          "platform": "LINUX",
+          "pluginType": "GEMINI"
         },
-        "quotaUser": "device-d63fc9fd7665bbe6",
-        "createdAt": 1770197669495
+        "createdAt": 1770859259502
       },
       "cachedQuota": {
-        "claude": {
+        "gemini-pro": {
           "remainingFraction": 0.8,
-          "resetTime": "2026-02-04T09:45:56Z",
+          "resetTime": "2026-02-12T12:20:14Z",
           "modelCount": 3
         },
-        "gemini-pro": {
+        "claude": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T14:42:18Z",
-          "modelCount": 3
+          "resetTime": "2026-02-12T12:20:15Z",
+          "modelCount": 4
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T13:10:17Z",
+          "resetTime": "2026-02-12T11:21:16Z",
           "modelCount": 1
         }
-      },
-      "cachedQuotaUpdatedAt": 1770198145829
+      }
     },
     {
       "email": "ahmaditobeni@gmail.com",
       "refreshToken": "1//0gW742Tp9Z1JVCgYIARAAGBASNwF-L9IrI4dxhGTz1lDJZ98t5i7C5rYLD14HhA0WvbGM2S2mtG6JrP5MjKrFoSVl8mM35JMSPns",
       "managedProjectId": "sinuous-buffer-r30wt",
       "addedAt": 1769057661796,
-      "lastUsed": 1770273963167,
+      "lastUsed": 1770888623027,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1770274125137,
         "claude": 1770261429071,
         "gemini-antigravity:gemini-3-flash-preview": 1770188136065
       },
+      "cachedQuotaUpdatedAt": 1770888623697,
+      "enabled": true,
       "fingerprint": {
-        "deviceId": "1257517d-5e97-4403-88d7-9e46de8de706",
-        "sessionToken": "ae4d5085d1ee74495c4a7f45c7238ce7",
-        "userAgent": "antigravity/1.15.8 win32/x64",
-        "apiClient": "google-cloud-sdk vscode_cloudshelleditor/0.1",
+        "deviceId": "11a3def8-2863-49d4-966a-c9cb6b3cdd80",
+        "sessionToken": "c1a91ecb8c035a59ec9c250fb36fcfbd",
+        "userAgent": "antigravity/1.16.5 darwin/x64",
+        "apiClient": "google-cloud-sdk vscode/1.87.0",
         "clientMetadata": {
-          "ideType": "ANDROID_STUDIO",
-          "platform": "WINDOWS",
-          "pluginType": "GEMINI",
-          "osVersion": "10.0.19041",
-          "arch": "x64",
-          "sqmId": "{6D51EB08-A764-41F9-8FBF-C12AF9311F6F}"
+          "ideType": "ANTIGRAVITY",
+          "platform": "MACOS",
+          "pluginType": "GEMINI"
         },
-        "quotaUser": "device-e982cb20276c8204",
-        "createdAt": 1770195329804
+        "createdAt": 1770859259502
       },
       "cachedQuota": {
-        "claude": {
-          "remainingFraction": 0.8,
-          "resetTime": "2026-02-04T09:46:10Z",
-          "modelCount": 3
-        },
         "gemini-pro": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T14:26:19Z",
+          "resetTime": "2026-02-12T11:58:19Z",
           "modelCount": 3
+        },
+        "claude": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T12:29:39Z",
+          "modelCount": 4
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T13:54:55Z",
+          "resetTime": "2026-02-12T11:21:06Z",
           "modelCount": 1
         }
-      },
-      "cachedQuotaUpdatedAt": 1770197187212
+      }
     },
     {
       "email": "yyumnaa@gmail.com",
@@ -147,47 +156,43 @@
       "projectId": "groovy-agility-2xfg6",
       "managedProjectId": "groovy-agility-2xfg6",
       "addedAt": 1769400331432,
-      "lastUsed": 1770273964254,
-      "fingerprint": {
-        "deviceId": "029946b7-c8c8-489c-9c77-ed7dfe2df381",
-        "sessionToken": "61df4507083475c1a0df02ce5af50d15",
-        "userAgent": "antigravity/1.15.8 darwin/arm64",
-        "apiClient": "google-cloud-sdk vscode/1.86.0",
-        "clientMetadata": {
-          "ideType": "IDE_UNSPECIFIED",
-          "platform": "MACOS",
-          "pluginType": "GEMINI",
-          "osVersion": "14.5",
-          "arch": "arm64",
-          "sqmId": "{39061ABF-F668-4331-9051-B3100063DA6C}"
-        },
-        "quotaUser": "device-c6ce2571aad58f4e",
-        "createdAt": 1770195919865
-      },
+      "lastUsed": 1770888680821,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1770274127838,
         "claude": 1770260851403,
         "gemini-antigravity:gemini-3-flash-preview": 1770188136032
       },
       "cachedQuota": {
-        "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-04T12:45:05Z",
-          "modelCount": 3
-        },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T12:34:47Z",
+          "resetTime": "2026-02-12T11:21:14Z",
           "modelCount": 1
         },
-        "claude": {
+        "gemini-pro": {
           "remainingFraction": 0.8,
-          "resetTime": "2026-02-04T12:35:56Z",
+          "resetTime": "2026-02-12T12:20:03Z",
           "modelCount": 3
+        },
+        "claude": {
+          "remainingFraction": 0.4,
+          "resetTime": "2026-02-18T07:35:56Z",
+          "modelCount": 4
         }
       },
-      "cachedQuotaUpdatedAt": 1770198042101,
-      "enabled": true
+      "cachedQuotaUpdatedAt": 1770888681545,
+      "enabled": true,
+      "fingerprint": {
+        "deviceId": "bc240085-234e-4722-88ef-cc6267759b8d",
+        "sessionToken": "174e0931aad154216cf2c85bb2cae53d",
+        "userAgent": "antigravity/1.16.5 linux/x64",
+        "apiClient": "google-cloud-sdk vscode/1.96.0",
+        "clientMetadata": {
+          "ideType": "IDE_UNSPECIFIED",
+          "platform": "LINUX",
+          "pluginType": "GEMINI"
+        },
+        "createdAt": 1770859259503
+      }
     },
     {
       "email": "s43627991@gmail.com",
@@ -195,47 +200,43 @@
       "projectId": "ace-amp-lllrg",
       "managedProjectId": "ace-amp-lllrg",
       "addedAt": 1769562912889,
-      "lastUsed": 1770273993563,
-      "fingerprint": {
-        "deviceId": "82d58ef1-bd34-442a-81fb-af27a9dfa105",
-        "sessionToken": "5b0dc8c550e114edf167030042010845",
-        "userAgent": "antigravity/1.15.8 linux/x64",
-        "apiClient": "google-cloud-sdk vscode_cloudshelleditor/0.1",
-        "clientMetadata": {
-          "ideType": "IDE_UNSPECIFIED",
-          "platform": "LINUX",
-          "pluginType": "GEMINI",
-          "osVersion": "6.5.0",
-          "arch": "x64",
-          "sqmId": "{7A94C18F-6D14-4DAA-AA78-F3EE5AEBB678}"
-        },
-        "quotaUser": "device-1d4cf18161902b54",
-        "createdAt": 1770198076476
-      },
+      "lastUsed": 1770888682245,
       "rateLimitResetTimes": {
         "claude": 1770261420378,
-        "gemini-cli:gemini-3-flash-preview": 1770274211718,
+        "gemini-cli:gemini-3-flash-preview": 1770883957078,
         "gemini-antigravity:gemini-3-flash-preview": 1770188136041
       },
       "cachedQuota": {
-        "gemini-flash": {
+        "claude": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T14:19:40Z",
-          "modelCount": 1
+          "resetTime": "2026-02-12T14:21:45Z",
+          "modelCount": 4
         },
         "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-04T14:19:40Z",
+          "remainingFraction": 0.8,
+          "resetTime": "2026-02-12T12:21:02Z",
           "modelCount": 3
         },
-        "claude": {
-          "remainingFraction": 0.8,
-          "resetTime": "2026-02-04T09:46:23Z",
-          "modelCount": 3
+        "gemini-flash": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T11:20:17Z",
+          "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770196787591,
-      "enabled": true
+      "cachedQuotaUpdatedAt": 1770888682665,
+      "enabled": true,
+      "fingerprint": {
+        "deviceId": "9fded1af-53e4-4a11-8a88-8a904b916c5a",
+        "sessionToken": "c07158317f5c39a553999c4259c7ae1b",
+        "userAgent": "antigravity/1.16.5 win32/arm64",
+        "apiClient": "google-cloud-sdk vscode/1.96.0",
+        "clientMetadata": {
+          "ideType": "ANTIGRAVITY",
+          "platform": "WINDOWS",
+          "pluginType": "GEMINI"
+        },
+        "createdAt": 1770859259503
+      }
     },
     {
       "email": "zuzuzaza917@gmail.com",
@@ -243,23 +244,7 @@
       "projectId": "hidden-computer-fgdjz",
       "managedProjectId": "hidden-computer-fgdjz",
       "addedAt": 1769563072340,
-      "lastUsed": 1770274006206,
-      "fingerprint": {
-        "deviceId": "03712653-77b4-4c42-8ccf-e611b33f7ad6",
-        "sessionToken": "ffca2cdaca387e7fead87f96f19c3b6a",
-        "userAgent": "antigravity/1.15.8 darwin/x64",
-        "apiClient": "google-cloud-sdk vscode_cloudshelleditor/0.1",
-        "clientMetadata": {
-          "ideType": "IDE_UNSPECIFIED",
-          "platform": "MACOS",
-          "pluginType": "GEMINI",
-          "osVersion": "11.6.8",
-          "arch": "x64",
-          "sqmId": "{C4976626-FFCF-42D7-B5FA-78A8E948D6A5}"
-        },
-        "quotaUser": "device-426eee94cac73866",
-        "createdAt": 1770260367795
-      },
+      "lastUsed": 1770888708844,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1770274218553,
         "claude": 1770260429387,
@@ -268,23 +253,35 @@
       },
       "cachedQuota": {
         "claude": {
-          "remainingFraction": 0.8,
-          "resetTime": "2026-02-04T09:46:36Z",
-          "modelCount": 3
-        },
-        "gemini-pro": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T12:45:31Z",
-          "modelCount": 3
+          "resetTime": "2026-02-12T11:21:49Z",
+          "modelCount": 4
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T14:30:09Z",
+          "resetTime": "2026-02-12T11:21:47Z",
           "modelCount": 1
+        },
+        "gemini-pro": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T13:18:36Z",
+          "modelCount": 3
         }
       },
-      "cachedQuotaUpdatedAt": 1770197701381,
-      "enabled": true
+      "cachedQuotaUpdatedAt": 1770888709140,
+      "enabled": true,
+      "fingerprint": {
+        "deviceId": "d86130d8-606d-4e87-9e56-aa6f44831b9d",
+        "sessionToken": "c4f312f9a31e9255baa1a796d918bb0f",
+        "userAgent": "antigravity/1.16.5 darwin/x64",
+        "apiClient": "google-cloud-sdk vscode/1.96.0",
+        "clientMetadata": {
+          "ideType": "IDE_UNSPECIFIED",
+          "platform": "MACOS",
+          "pluginType": "GEMINI"
+        },
+        "createdAt": 1770859259503
+      }
     },
     {
       "email": "balerinatung3@gmail.com",
@@ -292,47 +289,43 @@
       "projectId": "elite-minutia-ljjzm",
       "managedProjectId": "elite-minutia-ljjzm",
       "addedAt": 1769563400333,
-      "lastUsed": 1770273199308,
+      "lastUsed": 1770888727231,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1770274134496,
         "claude": 1770197695145,
         "gemini-antigravity:gemini-3-flash-preview": 1770188136023
       },
-      "fingerprint": {
-        "deviceId": "e9a957ad-90e8-4dc2-92f0-511a07b7f71a",
-        "sessionToken": "f8c3cc1a997d90fe98f4b52c68fee60e",
-        "userAgent": "antigravity/1.15.8 darwin/x64",
-        "apiClient": "google-cloud-sdk vscode/1.86.0",
-        "clientMetadata": {
-          "ideType": "ANDROID_STUDIO",
-          "platform": "MACOS",
-          "pluginType": "GEMINI",
-          "osVersion": "14.5",
-          "arch": "x64",
-          "sqmId": "{0193E6FE-EF92-42D4-AD30-D0285F93E7BD}"
-        },
-        "quotaUser": "device-f052694b5757c569",
-        "createdAt": 1770197632132
-      },
       "enabled": true,
       "cachedQuota": {
-        "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-04T14:35:14Z",
-          "modelCount": 3
-        },
         "claude": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T11:21:51Z",
+          "modelCount": 4
+        },
+        "gemini-pro": {
           "remainingFraction": 0.8,
-          "resetTime": "2026-02-04T09:46:52Z",
+          "resetTime": "2026-02-12T12:21:29Z",
           "modelCount": 3
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T13:10:55Z",
+          "resetTime": "2026-02-12T11:21:53Z",
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770197721941
+      "cachedQuotaUpdatedAt": 1770888728021,
+      "fingerprint": {
+        "deviceId": "2d0c891a-0dd5-42d2-8756-2d49e1eeb421",
+        "sessionToken": "718b7194e658889b3d6e4cf1dde53824",
+        "userAgent": "antigravity/1.16.5 linux/arm64",
+        "apiClient": "google-cloud-sdk vscode/1.96.0",
+        "clientMetadata": {
+          "ideType": "ANTIGRAVITY",
+          "platform": "LINUX",
+          "pluginType": "GEMINI"
+        },
+        "createdAt": 1770859259503
+      }
     },
     {
       "email": "felixstarlk576@gmail.com",
@@ -340,47 +333,43 @@
       "projectId": "yttriferous-vigil-vl2ws",
       "managedProjectId": "yttriferous-vigil-vl2ws",
       "addedAt": 1769563632478,
-      "lastUsed": 1770274018367,
+      "lastUsed": 1770888348059,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1770274136197,
         "claude": 1770196304931,
         "gemini-antigravity:gemini-3-flash-preview": 1770188136017
       },
-      "fingerprint": {
-        "deviceId": "a9cbb34d-a769-4d8a-ab2b-92ddf4f4519b",
-        "sessionToken": "0e86f58fe62bc7b74fad9965d14d700e",
-        "userAgent": "antigravity/1.15.8 linux/arm64",
-        "apiClient": "google-cloud-sdk vscode/1.87.0",
-        "clientMetadata": {
-          "ideType": "INTELLIJ",
-          "platform": "LINUX",
-          "pluginType": "GEMINI",
-          "osVersion": "6.6.0",
-          "arch": "arm64",
-          "sqmId": "{DC39F875-1C6B-4AB1-A594-51C5282AC478}"
-        },
-        "quotaUser": "device-e0b8ec6ffff3ef45",
-        "createdAt": 1770196241346
-      },
       "enabled": true,
       "cachedQuota": {
         "claude": {
-          "remainingFraction": 0.8,
-          "resetTime": "2026-02-04T09:47:03Z",
-          "modelCount": 3
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T12:05:18Z",
+          "modelCount": 4
         },
         "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-04T13:55:07Z",
+          "remainingFraction": 0.8,
+          "resetTime": "2026-02-12T12:21:15Z",
           "modelCount": 3
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T14:35:27Z",
+          "resetTime": "2026-02-12T11:21:41Z",
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770197734590
+      "cachedQuotaUpdatedAt": 1770888348851,
+      "fingerprint": {
+        "deviceId": "aa7e31ee-5890-4c2a-8660-5f5ce97268d8",
+        "sessionToken": "450db08a9ed68f203e743b3b76260cc6",
+        "userAgent": "antigravity/1.16.5 darwin/x64",
+        "apiClient": "google-cloud-sdk vscode/1.86.0",
+        "clientMetadata": {
+          "ideType": "IDE_UNSPECIFIED",
+          "platform": "MACOS",
+          "pluginType": "GEMINI"
+        },
+        "createdAt": 1770859259506
+      }
     },
     {
       "email": "bagitulis@gmail.com",
@@ -388,70 +377,51 @@
       "projectId": "exalted-octane-0fcgj",
       "managedProjectId": "exalted-octane-0fcgj",
       "addedAt": 1769400286655,
-      "lastUsed": 1770273245716,
+      "lastUsed": 1770888369428,
       "rateLimitResetTimes": {
         "claude": 1770196588620,
         "gemini-cli:gemini-3-flash-preview": 1770274137678,
         "gemini-antigravity:gemini-3-flash-preview": 1770188136031,
         "gemini-antigravity:antigravity-gemini-3-pro": 1770191075509
       },
-      "fingerprint": {
-        "deviceId": "21f63360-98f1-42e7-8a36-28fab276521f",
-        "sessionToken": "c9aba7691498bab164e0e5ee066df485",
-        "userAgent": "antigravity/1.15.8 win32/x64",
-        "apiClient": "gcloud-python/1.2.0 grpc-google-iam-v1/0.12.6",
-        "clientMetadata": {
-          "ideType": "VSCODE",
-          "platform": "WINDOWS",
-          "pluginType": "GEMINI",
-          "osVersion": "10.0.19041",
-          "arch": "x64",
-          "sqmId": "{1ADD8369-0E9F-42ED-8B15-F8FE38520710}"
-        },
-        "quotaUser": "device-4942169d90465456",
-        "createdAt": 1770196524126
-      },
       "cachedQuota": {
-        "gemini-flash": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-04T11:11:02Z",
-          "modelCount": 1
-        },
-        "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-04T13:55:29Z",
-          "modelCount": 3
-        },
         "claude": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T09:47:16Z",
+          "resetTime": "2026-02-12T14:12:46Z",
+          "modelCount": 4
+        },
+        "gemini-pro": {
+          "remainingFraction": 0.8,
+          "resetTime": "2026-02-12T12:20:48Z",
           "modelCount": 3
+        },
+        "gemini-flash": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T11:20:11Z",
+          "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770197289396
+      "cachedQuotaUpdatedAt": 1770888370330,
+      "enabled": true,
+      "fingerprint": {
+        "deviceId": "5ec78ef8-9b00-4677-93d0-8bd399137bca",
+        "sessionToken": "ef845c10ca404b4b113631713d2b2cb4",
+        "userAgent": "antigravity/1.16.5 linux/arm64",
+        "apiClient": "google-cloud-sdk vscode_cloudshelleditor/0.1",
+        "clientMetadata": {
+          "ideType": "IDE_UNSPECIFIED",
+          "platform": "LINUX",
+          "pluginType": "GEMINI"
+        },
+        "createdAt": 1770859259506
+      }
     },
     {
       "email": "yuoistarlk@gmail.com",
       "refreshToken": "1//0gyqc4JpIp668CgYIARAAGBASNwF-L9IrRUzfBa8cWgg5r56GbpjnTpNU439FqyKrs1AS2oOKQDKXsY30clfBTs9Nzlf5E-Lvzjk",
       "managedProjectId": "elaborate-weft-1ms83",
       "addedAt": 1769490038983,
-      "lastUsed": 1770274081063,
-      "fingerprint": {
-        "deviceId": "af6f8b0a-caff-46e6-9504-72ef4cbc9348",
-        "sessionToken": "a312a9a2baf1b0c60e2d2fec87fc3bc3",
-        "userAgent": "antigravity/1.15.8 win32/x64",
-        "apiClient": "google-cloud-sdk vscode_cloudshelleditor/0.1",
-        "clientMetadata": {
-          "ideType": "VSCODE",
-          "platform": "WINDOWS",
-          "pluginType": "GEMINI",
-          "osVersion": "10.0.19041",
-          "arch": "x64",
-          "sqmId": "{E16D3F7C-C845-4658-A551-9BDA01E74E1B}"
-        },
-        "quotaUser": "device-882b2e111a226ef9",
-        "createdAt": 1770195680831
-      },
+      "lastUsed": 1770888366003,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1770274083536,
         "claude": 1770271652551,
@@ -459,23 +429,35 @@
       },
       "cachedQuota": {
         "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-04T11:11:08Z",
+          "remainingFraction": 0.6,
+          "resetTime": "2026-02-12T12:06:31Z",
           "modelCount": 3
+        },
+        "claude": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T12:30:36Z",
+          "modelCount": 4
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T11:49:07Z",
+          "resetTime": "2026-02-12T11:22:04Z",
           "modelCount": 1
-        },
-        "claude": {
-          "remainingFraction": 0.8,
-          "resetTime": "2026-02-04T09:44:03Z",
-          "modelCount": 3
         }
       },
-      "cachedQuotaUpdatedAt": 1770197988141,
-      "enabled": true
+      "cachedQuotaUpdatedAt": 1770888366730,
+      "enabled": true,
+      "fingerprint": {
+        "deviceId": "9ab55b77-fbdd-48ea-9663-a4acd95cd198",
+        "sessionToken": "5589c5e2326918219aeaa92ed336331c",
+        "userAgent": "antigravity/1.16.5 win32/x64",
+        "apiClient": "google-cloud-sdk vscode/1.87.0",
+        "clientMetadata": {
+          "ideType": "ANTIGRAVITY",
+          "platform": "WINDOWS",
+          "pluginType": "GEMINI"
+        },
+        "createdAt": 1770859259506
+      }
     },
     {
       "email": "kadarielkarim@gmail.com",
@@ -483,23 +465,7 @@
       "projectId": "tribal-oven-4cx0h",
       "managedProjectId": "tribal-oven-4cx0h",
       "addedAt": 1769562766362,
-      "lastUsed": 1770274082673,
-      "fingerprint": {
-        "deviceId": "14b7b2ee-418b-4568-bfec-e03f5cb5f1c2",
-        "sessionToken": "5d3dfc97e13b2ae8013363a2275e32bf",
-        "userAgent": "antigravity/1.15.8 win32/x64",
-        "apiClient": "google-cloud-sdk android-studio/2024.1",
-        "clientMetadata": {
-          "ideType": "IDE_UNSPECIFIED",
-          "platform": "WINDOWS",
-          "pluginType": "GEMINI",
-          "osVersion": "10.0.22000",
-          "arch": "x64",
-          "sqmId": "{63DCCAEE-9D37-41EE-91B3-15E7B2643C0C}"
-        },
-        "quotaUser": "device-2d6cb2ade838b3fc",
-        "createdAt": 1770271708036
-      },
+      "lastUsed": 1770888374850,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1770274090633,
         "claude": 1770271771295,
@@ -507,46 +473,36 @@
         "gemini-antigravity:antigravity-gemini-3-pro": 1770192576951
       },
       "cachedQuota": {
-        "gemini-flash": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-04T14:39:55Z",
-          "modelCount": 1
-        },
-        "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-04T11:11:16Z",
-          "modelCount": 3
-        },
         "claude": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T09:44:17Z",
+          "resetTime": "2026-02-12T14:15:35Z",
+          "modelCount": 4
+        },
+        "gemini-pro": {
+          "remainingFraction": 0.8,
+          "resetTime": "2026-02-12T12:22:07Z",
           "modelCount": 3
+        },
+        "gemini-flash": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T11:22:09Z",
+          "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770198003219,
+      "cachedQuotaUpdatedAt": 1770888375225,
       "enabled": true,
-      "fingerprintHistory": [
-        {
-          "fingerprint": {
-            "deviceId": "778e1a50-f2ef-4450-8cd9-56ea2eab819f",
-            "sessionToken": "9f16de907321b61d7a4620adcb311afc",
-            "userAgent": "antigravity/1.15.8 win32/x64",
-            "apiClient": "google-cloud-sdk android-studio/2024.1",
-            "clientMetadata": {
-              "ideType": "IDE_UNSPECIFIED",
-              "platform": "WINDOWS",
-              "pluginType": "GEMINI",
-              "osVersion": "10.0.22621",
-              "arch": "x64",
-              "sqmId": "{D2FC8F13-B955-4A62-8508-28441B6AF2B9}"
-            },
-            "quotaUser": "device-0a7513168f6ec6cd",
-            "createdAt": 1770192515196
-          },
-          "timestamp": 1770271708036,
-          "reason": "regenerated"
-        }
-      ]
+      "fingerprint": {
+        "deviceId": "17e7c55b-0fbf-472d-8040-48883bde2af3",
+        "sessionToken": "bfe602263f4997f4481697f6360338e4",
+        "userAgent": "antigravity/1.16.5 linux/x64",
+        "apiClient": "google-cloud-sdk vscode/1.86.0",
+        "clientMetadata": {
+          "ideType": "ANTIGRAVITY",
+          "platform": "LINUX",
+          "pluginType": "GEMINI"
+        },
+        "createdAt": 1770859259506
+      }
     },
     {
       "email": "ddanangttiossawardi@gmail.com",
@@ -554,23 +510,7 @@
       "projectId": "cohesive-avenue-fsdh5",
       "managedProjectId": "cohesive-avenue-fsdh5",
       "addedAt": 1769755016500,
-      "lastUsed": 1770274085166,
-      "fingerprint": {
-        "deviceId": "8afb9fb1-a35a-420f-8ae0-101ffd181c93",
-        "sessionToken": "98a1a5a477ba9859aa10a89a7afd8247",
-        "userAgent": "antigravity/1.15.8 darwin/x64",
-        "apiClient": "google-cloud-sdk vscode/1.86.0",
-        "clientMetadata": {
-          "ideType": "CLOUD_SHELL_EDITOR",
-          "platform": "MACOS",
-          "pluginType": "GEMINI",
-          "osVersion": "14.2.1",
-          "arch": "x64",
-          "sqmId": "{B2F0ECAF-7994-4488-8CC8-B692AB5878C9}"
-        },
-        "quotaUser": "device-468d9dfd27e7eb65",
-        "createdAt": 1770196764313
-      },
+      "lastUsed": 1770888382557,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1770274096890,
         "claude": 1770196828339,
@@ -580,28 +520,40 @@
       "cachedQuota": {
         "claude": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T13:13:27Z",
-          "modelCount": 3
+          "resetTime": "2026-02-12T12:57:29Z",
+          "modelCount": 4
         },
         "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-04T14:29:03Z",
+          "remainingFraction": 0.8,
+          "resetTime": "2026-02-12T12:22:15Z",
           "modelCount": 3
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T10:47:39Z",
+          "resetTime": "2026-02-12T11:22:37Z",
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770197355982,
-      "enabled": true
+      "cachedQuotaUpdatedAt": 1770888383296,
+      "enabled": true,
+      "fingerprint": {
+        "deviceId": "8d02eaab-b6d7-4365-96c8-f7d55ac31357",
+        "sessionToken": "71fc9b0d3f9cbf1b8e1b5941de681684",
+        "userAgent": "antigravity/1.16.5 darwin/arm64",
+        "apiClient": "google-cloud-sdk vscode/1.96.0",
+        "clientMetadata": {
+          "ideType": "IDE_UNSPECIFIED",
+          "platform": "MACOS",
+          "pluginType": "GEMINI"
+        },
+        "createdAt": 1770859259506
+      }
     },
     {
       "email": "fantanihardi@gmail.com",
       "refreshToken": "1//0gJS9ehc7ocsSCgYIARAAGBASNwF-L9IrAX7BawPfs5fpCL7dG7ufqoTNFjk1YDPnlYgb23WkS5kjykSE5sHMUf-AVzsyhmHHd84",
       "addedAt": 1770013137029,
-      "lastUsed": 1770274116239,
+      "lastUsed": 1770888399978,
       "enabled": true,
       "rateLimitResetTimes": {
         "claude": 1770273207093,
@@ -609,46 +561,42 @@
         "gemini-cli:gemini-3-flash-preview": 1770274105033
       },
       "managedProjectId": "crested-champion-t4xv4",
-      "fingerprint": {
-        "deviceId": "4ac2811e-9571-4fc7-bc05-51cde80e7148",
-        "sessionToken": "5f08a4fb40926b99e8c206cf32b000de",
-        "userAgent": "antigravity/1.15.8 win32/x64",
-        "apiClient": "google-cloud-sdk vscode/1.86.0",
-        "clientMetadata": {
-          "ideType": "INTELLIJ",
-          "platform": "WINDOWS",
-          "pluginType": "GEMINI",
-          "osVersion": "10.0.22631",
-          "arch": "x64",
-          "sqmId": "{C216FB01-7E10-437D-A428-76D989CD2EC9}"
-        },
-        "quotaUser": "device-1d7d6e99850d481b",
-        "createdAt": 1770196587651
-      },
       "cachedQuota": {
         "claude": {
-          "remainingFraction": 0.8,
-          "resetTime": "2026-02-04T09:44:34Z",
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T13:09:30Z",
+          "modelCount": 4
+        },
+        "gemini-pro": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T14:05:39Z",
           "modelCount": 3
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T14:29:28Z",
+          "resetTime": "2026-02-12T11:22:51Z",
           "modelCount": 1
-        },
-        "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-04T11:11:34Z",
-          "modelCount": 3
         }
       },
-      "cachedQuotaUpdatedAt": 1770197375730
+      "cachedQuotaUpdatedAt": 1770888400797,
+      "fingerprint": {
+        "deviceId": "7d2340ef-2250-472e-9904-0c238e35f157",
+        "sessionToken": "3f9cfe4fca50a708b54c1c3d5afc0ed1",
+        "userAgent": "antigravity/1.16.5 darwin/x64",
+        "apiClient": "google-cloud-sdk vscode/1.96.0",
+        "clientMetadata": {
+          "ideType": "ANTIGRAVITY",
+          "platform": "MACOS",
+          "pluginType": "GEMINI"
+        },
+        "createdAt": 1770859259506
+      }
     },
     {
       "email": "mantogisatah@gmail.com",
       "refreshToken": "1//0gVY1XZ8ouqxaCgYIARAAGBASNwF-L9Ir-Kt6r3FhUgdQy26PTrw8pCwJA_LKPqFhdgeqWAsotQwZ-xfLgaXiZuvUeC4aJcW6gAw",
       "addedAt": 1770013187447,
-      "lastUsed": 1770274122287,
+      "lastUsed": 1770888412561,
       "enabled": true,
       "rateLimitResetTimes": {
         "gemini-antigravity:gemini-3-flash-preview": 1770188136063,
@@ -656,46 +604,42 @@
         "gemini-cli:gemini-3-flash-preview": 1770274003076
       },
       "managedProjectId": "river-question-8jjzm",
-      "fingerprint": {
-        "deviceId": "3e75ed7e-d2f6-44ec-93ee-ec432f94b33c",
-        "sessionToken": "12f588b9c346b29ea7065fb7e483e682",
-        "userAgent": "antigravity/1.15.8 darwin/arm64",
-        "apiClient": "google-cloud-sdk vscode/1.86.0",
-        "clientMetadata": {
-          "ideType": "CLOUD_SHELL_EDITOR",
-          "platform": "MACOS",
-          "pluginType": "GEMINI",
-          "osVersion": "14.5",
-          "arch": "arm64",
-          "sqmId": "{DFDD1024-33EA-4B8B-9721-C155200CF8CE}"
-        },
-        "quotaUser": "device-b46b9ab448c9dd2b",
-        "createdAt": 1770195737578
-      },
       "cachedQuota": {
-        "claude": {
+        "gemini-pro": {
           "remainingFraction": 0.8,
-          "resetTime": "2026-02-04T09:44:47Z",
+          "resetTime": "2026-02-12T12:22:25Z",
           "modelCount": 3
         },
-        "gemini-pro": {
+        "claude": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T14:29:33Z",
-          "modelCount": 3
+          "resetTime": "2026-02-12T12:22:21Z",
+          "modelCount": 4
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T09:48:07Z",
+          "resetTime": "2026-02-12T11:22:40Z",
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770197385982
+      "cachedQuotaUpdatedAt": 1770888412940,
+      "fingerprint": {
+        "deviceId": "9ccceba3-cf74-401b-b896-1cd24b642350",
+        "sessionToken": "d020f4fe9808e7fea41570d686186da3",
+        "userAgent": "antigravity/1.16.5 win32/x64",
+        "apiClient": "google-cloud-sdk vscode/1.96.0",
+        "clientMetadata": {
+          "ideType": "ANTIGRAVITY",
+          "platform": "WINDOWS",
+          "pluginType": "GEMINI"
+        },
+        "createdAt": 1770859259506
+      }
     },
     {
       "email": "aminahsyah110@gmail.com",
       "refreshToken": "1//0ggXp5tP_griBCgYIARAAGBASNwF-L9Irx5mpfa_WLCXdS9XBnX0JCF0XrSB6EjI8JePLHNQ-WbrUjSkETOxnosOuZkjlR-g22Ew",
       "addedAt": 1770081057601,
-      "lastUsed": 1770273944878,
+      "lastUsed": 1770888418283,
       "enabled": true,
       "rateLimitResetTimes": {
         "claude": 1770198024482,
@@ -704,106 +648,110 @@
         "gemini-cli:gemini-3-flash-preview": 1770274109305
       },
       "managedProjectId": "solar-mediator-b9hpx",
-      "fingerprint": {
-        "deviceId": "1b2f3c90-1d25-4ae5-ac36-262d9eda4ee8",
-        "sessionToken": "7c3b754fbef05dc04a3c983d23a49775",
-        "userAgent": "antigravity/1.15.8 linux/arm64",
-        "apiClient": "google-cloud-sdk intellij/2024.1",
-        "clientMetadata": {
-          "ideType": "INTELLIJ",
-          "platform": "LINUX",
-          "pluginType": "GEMINI",
-          "osVersion": "6.6.0",
-          "arch": "arm64",
-          "sqmId": "{E1E248F0-9B72-4370-8F53-19135FFB5142}"
-        },
-        "quotaUser": "device-2b164c673f46a25d",
-        "createdAt": 1770197961132
-      },
       "cachedQuota": {
-        "gemini-pro": {
-          "remainingFraction": 1,
-          "resetTime": "2026-02-04T14:30:20Z",
-          "modelCount": 3
-        },
         "claude": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T12:32:24Z",
+          "modelCount": 4
+        },
+        "gemini-pro": {
           "remainingFraction": 0.8,
-          "resetTime": "2026-02-04T09:45:02Z",
+          "resetTime": "2026-02-12T12:22:33Z",
           "modelCount": 3
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T10:48:20Z",
+          "resetTime": "2026-02-12T11:22:54Z",
           "modelCount": 1
         }
       },
-      "cachedQuotaUpdatedAt": 1770197428579
+      "cachedQuotaUpdatedAt": 1770888418660,
+      "fingerprint": {
+        "deviceId": "04f0a3f3-344c-456e-b082-e3ad11d75acd",
+        "sessionToken": "e3d6a4e85084b40d7d6a5630e51355e4",
+        "userAgent": "antigravity/1.16.5 linux/x64",
+        "apiClient": "google-cloud-sdk vscode_cloudshelleditor/0.1",
+        "clientMetadata": {
+          "ideType": "ANTIGRAVITY",
+          "platform": "LINUX",
+          "pluginType": "GEMINI"
+        },
+        "createdAt": 1770859259506
+      }
     },
     {
       "email": "henasanjaya8@gmail.com",
       "refreshToken": "1//0giZ-Eoi31RvKCgYIARAAGBASNwF-L9Ir9ZDVcguLR6OWdMxxukKGFFQ0nZI0NCfSVWejiaC6YZAG4k5OmXLKbb35_jV8I0jC0TE",
       "addedAt": 1770116378252,
-      "lastUsed": 1770273345181,
+      "lastUsed": 1770888430422,
       "enabled": true,
       "rateLimitResetTimes": {
         "claude": 1770271471420,
         "gemini-antigravity:gemini-3-flash-preview": 1770188136029,
         "gemini-cli:gemini-3-flash-preview": 1770274111770
       },
-      "fingerprint": {
-        "deviceId": "5decb525-8a72-4995-8428-b4edb97eabba",
-        "sessionToken": "39b2e589f1f1ad7d22055899865d8597",
-        "userAgent": "antigravity/1.15.8 linux/x64",
-        "apiClient": "google-cloud-sdk android-studio/2024.1",
-        "clientMetadata": {
-          "ideType": "CLOUD_SHELL_EDITOR",
-          "platform": "LINUX",
-          "pluginType": "GEMINI",
-          "osVersion": "6.6.0",
-          "arch": "x64",
-          "sqmId": "{06D9A089-E71E-4FC0-B76E-3B6C68D35F6B}"
-        },
-        "quotaUser": "device-5eeb1bf748b6dcdf",
-        "createdAt": 1770271409091
-      },
       "managedProjectId": "silver-flag-cqrk4",
-      "cachedQuotaUpdatedAt": 1770197075311,
+      "cachedQuotaUpdatedAt": 1770888430887,
       "cachedQuota": {
-        "claude": {
+        "gemini-pro": {
           "remainingFraction": 0.8,
-          "resetTime": "2026-02-04T09:45:15Z",
+          "resetTime": "2026-02-12T12:22:46Z",
           "modelCount": 3
         },
-        "gemini-pro": {
+        "claude": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T14:24:27Z",
-          "modelCount": 3
+          "resetTime": "2026-02-12T12:22:46Z",
+          "modelCount": 4
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T11:07:52Z",
+          "resetTime": "2026-02-12T11:22:32Z",
           "modelCount": 1
         }
+      },
+      "fingerprint": {
+        "deviceId": "4a956b80-d74e-4670-931f-c1862cc111d0",
+        "sessionToken": "fd893ceea424eea6e0598d14cc0cf69f",
+        "userAgent": "antigravity/1.16.5 darwin/x64",
+        "apiClient": "google-cloud-sdk vscode/1.96.0",
+        "clientMetadata": {
+          "ideType": "ANTIGRAVITY",
+          "platform": "MACOS",
+          "pluginType": "GEMINI"
+        },
+        "createdAt": 1770887740374
       },
       "fingerprintHistory": [
         {
           "fingerprint": {
-            "deviceId": "2fdfe412-1a7c-4e3c-ad2d-14e4e58307f7",
-            "sessionToken": "c9023da525417b51e2705310efb03706",
-            "userAgent": "antigravity/1.15.8 darwin/arm64",
-            "apiClient": "gcloud-python/1.2.0 grpc-google-iam-v1/0.12.6",
+            "deviceId": "b9fda879-af6a-4e14-b7c9-1a9caa8cf93d",
+            "sessionToken": "d6a4334d0fd2239ca6cc401f0f368e7f",
+            "userAgent": "antigravity/1.16.5 darwin/arm64",
+            "apiClient": "google-cloud-sdk vscode/1.87.0",
             "clientMetadata": {
-              "ideType": "VSCODE",
+              "ideType": "ANTIGRAVITY",
               "platform": "MACOS",
-              "pluginType": "GEMINI",
-              "osVersion": "14.2.1",
-              "arch": "arm64",
-              "sqmId": "{C6E2D1F9-B827-42E6-AC7F-1F4689558420}"
+              "pluginType": "GEMINI"
             },
-            "quotaUser": "device-703acf3bcb408c28",
-            "createdAt": 1770196460369
+            "createdAt": 1770883116786
           },
-          "timestamp": 1770271409090,
+          "timestamp": 1770887740374,
+          "reason": "regenerated"
+        },
+        {
+          "fingerprint": {
+            "deviceId": "4186f5e7-eeb5-4bf4-bc36-02af7bfaf757",
+            "sessionToken": "4a2ae02f96e75c2c9d6aa13f26659bea",
+            "userAgent": "antigravity/1.16.5 win32/arm64",
+            "apiClient": "google-cloud-sdk vscode/1.96.0",
+            "clientMetadata": {
+              "ideType": "ANTIGRAVITY",
+              "platform": "WINDOWS",
+              "pluginType": "GEMINI"
+            },
+            "createdAt": 1770859259506
+          },
+          "timestamp": 1770883116786,
           "reason": "regenerated"
         }
       ]
@@ -812,7 +760,7 @@
       "email": "herisetia738@gmail.com",
       "refreshToken": "1//0gedvywgEvqjhCgYIARAAGBASNwF-L9Ir4KTzt5xexb1FOqZoyhPUVa4OjLpBV3kl00hdDbpZdkET-SQql091VP5U-f0k_a8axVg",
       "addedAt": 1770116419745,
-      "lastUsed": 1770273948563,
+      "lastUsed": 1770888479111,
       "enabled": true,
       "rateLimitResetTimes": {
         "claude": 1770195084172,
@@ -820,101 +768,158 @@
         "gemini-antigravity:antigravity-gemini-3-pro": 1770191143225,
         "gemini-cli:gemini-3-flash-preview": 1770274117071
       },
-      "fingerprint": {
-        "deviceId": "35dd4fae-7d46-4499-9803-cca04146441b",
-        "sessionToken": "47641d8c96d3498fc1694d7586876386",
-        "userAgent": "antigravity/1.15.8 win32/x64",
-        "apiClient": "google-cloud-sdk vscode/1.87.0",
-        "clientMetadata": {
-          "ideType": "VSCODE",
-          "platform": "WINDOWS",
-          "pluginType": "GEMINI",
-          "osVersion": "10.0.22621",
-          "arch": "x64",
-          "sqmId": "{6B05E1F5-A1FF-4116-85C0-2F0A54D83756}"
-        },
-        "quotaUser": "device-7b5ad3223c6f2045",
-        "createdAt": 1770195019947
-      },
       "managedProjectId": "isentropic-scanner-6jjzm",
       "cachedQuota": {
+        "claude": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T12:22:56Z",
+          "modelCount": 4
+        },
         "gemini-pro": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T14:41:26Z",
+          "resetTime": "2026-02-12T11:22:35Z",
           "modelCount": 3
         },
         "gemini-flash": {
           "remainingFraction": 1,
-          "resetTime": "2026-02-04T12:41:27Z",
+          "resetTime": "2026-02-12T13:00:46Z",
           "modelCount": 1
-        },
-        "claude": {
-          "remainingFraction": 0.8,
-          "resetTime": "2026-02-04T09:45:29Z",
-          "modelCount": 3
         }
       },
-      "cachedQuotaUpdatedAt": 1770198094913
+      "cachedQuotaUpdatedAt": 1770888480166,
+      "fingerprint": {
+        "deviceId": "cc5ebc75-d5f4-44b6-a106-60f55dd4464f",
+        "sessionToken": "aedb1501e0cf0df04d8299c2addcd109",
+        "userAgent": "antigravity/1.16.5 darwin/x64",
+        "apiClient": "google-cloud-sdk vscode/1.87.0",
+        "clientMetadata": {
+          "ideType": "ANTIGRAVITY",
+          "platform": "MACOS",
+          "pluginType": "GEMINI"
+        },
+        "createdAt": 1770884138622
+      },
+      "fingerprintHistory": [
+        {
+          "fingerprint": {
+            "deviceId": "76d2a8a6-227e-4b15-afab-c50670870b5d",
+            "sessionToken": "9d2c8ed9bdc910e4c4a6ecc884a1a9d0",
+            "userAgent": "antigravity/1.16.5 win32/arm64",
+            "apiClient": "google-cloud-sdk vscode/1.86.0",
+            "clientMetadata": {
+              "ideType": "ANTIGRAVITY",
+              "platform": "WINDOWS",
+              "pluginType": "GEMINI"
+            },
+            "createdAt": 1770859259506
+          },
+          "timestamp": 1770884138621,
+          "reason": "regenerated"
+        }
+      ]
     },
     {
       "email": "santihara89@gmail.com",
       "refreshToken": "1//0g9YcsZOLcZ-YCgYIARAAGBASNwF-L9Irk2DXIN0V9DXz6lE-iiTz93futPSp8c45cenrdhvTbmiqXkZJiXpamGQ4rKcMs09qtaE",
       "addedAt": 1770198265170,
-      "lastUsed": 1770273944827,
+      "lastUsed": 1770888478629,
       "enabled": true,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1770274118581
       },
+      "managedProjectId": "avian-wavelet-cfcgj",
       "fingerprint": {
-        "deviceId": "94e73388-ef73-49a5-95f8-652ebb907a72",
-        "sessionToken": "69e66a5da20838ef04b3b359e42fd083",
-        "userAgent": "antigravity/1.15.8 darwin/arm64",
-        "apiClient": "google-cloud-sdk intellij/2024.1",
+        "deviceId": "dc860982-61b3-4351-b65e-33e43dcbb2d5",
+        "sessionToken": "7f6d5dffe6bdd47857a955eb9a7bd1ec",
+        "userAgent": "antigravity/1.16.5 linux/x64",
+        "apiClient": "google-cloud-sdk vscode/1.87.0",
         "clientMetadata": {
-          "ideType": "CLOUD_SHELL_EDITOR",
-          "platform": "MACOS",
-          "pluginType": "GEMINI",
-          "osVersion": "13.5.2",
-          "arch": "arm64",
-          "sqmId": "{805F3F6D-677D-409C-A8C4-60C89BC6020C}"
+          "ideType": "ANTIGRAVITY",
+          "platform": "LINUX",
+          "pluginType": "GEMINI"
         },
-        "quotaUser": "device-13f35455fe4a70fa",
-        "createdAt": 1770258457184
+        "createdAt": 1770859259506
       },
-      "managedProjectId": "avian-wavelet-cfcgj"
+      "cachedQuota": {
+        "gemini-pro": {
+          "remainingFraction": 0.8,
+          "resetTime": "2026-02-12T12:22:57Z",
+          "modelCount": 3
+        },
+        "claude": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T13:07:12Z",
+          "modelCount": 4
+        },
+        "gemini-flash": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T11:22:52Z",
+          "modelCount": 1
+        }
+      },
+      "cachedQuotaUpdatedAt": 1770888479362
     },
     {
       "email": "mikaniasari979@gmail.com",
       "refreshToken": "1//0gnGTr00CT_oCCgYIARAAGBASNgF-L9Irp0DhGV81gAf0v7qjz9M6RJTxNr98IfUoFO3HoXhRvnZ-UJpXJcl5FfGh0R3WclhfhA",
       "addedAt": 1770198431807,
-      "lastUsed": 1770273948994,
+      "lastUsed": 1770888564041,
       "enabled": true,
       "rateLimitResetTimes": {
         "gemini-cli:gemini-3-flash-preview": 1770274121206,
         "claude": 1770258932176
       },
+      "managedProjectId": "rising-wares-1rm7p",
       "fingerprint": {
-        "deviceId": "92cf0acd-acdc-4c20-9edd-0ae90924d574",
-        "sessionToken": "1123c27726ec01278b441d90cc6d941a",
-        "userAgent": "antigravity/1.15.8 win32/x64",
-        "apiClient": "google-cloud-sdk intellij/2024.1",
+        "deviceId": "0374fd24-bfff-4e31-8e84-f78dcfd721f7",
+        "sessionToken": "8a6d3f22c1e942e01537cdfc37669003",
+        "userAgent": "antigravity/1.16.5 darwin/x64",
+        "apiClient": "google-cloud-sdk vscode/1.87.0",
         "clientMetadata": {
           "ideType": "IDE_UNSPECIFIED",
-          "platform": "WINDOWS",
-          "pluginType": "GEMINI",
-          "osVersion": "10.0.19043",
-          "arch": "x64",
-          "sqmId": "{A6727768-4D1C-4023-8E0C-387CC7537764}"
+          "platform": "MACOS",
+          "pluginType": "GEMINI"
         },
-        "quotaUser": "device-130900df17e7c939",
-        "createdAt": 1770258869692
+        "createdAt": 1770859259506
       },
-      "managedProjectId": "rising-wares-1rm7p"
+      "cachedQuota": {
+        "claude": {
+          "remainingFraction": 0.4,
+          "resetTime": "2026-02-18T14:24:45Z",
+          "modelCount": 4
+        },
+        "gemini-flash": {
+          "remainingFraction": 1,
+          "resetTime": "2026-02-12T11:22:31Z",
+          "modelCount": 1
+        },
+        "gemini-pro": {
+          "remainingFraction": 0.8,
+          "resetTime": "2026-02-12T12:23:09Z",
+          "modelCount": 3
+        }
+      },
+      "cachedQuotaUpdatedAt": 1770888564433
+    },
+    {
+      "email": "bertigahemat@gmail.com",
+      "refreshToken": "1//0gANwQE8GCIV8CgYIARAAGBASNwF-L9IrUk7YOrM-EjrAZ3TbIFAKTdcyg3-pkrivHQwahCQGdeesm5DxrvPjK_56HZZdztfLfr8",
+      "addedAt": 1770888817327,
+      "lastUsed": 1770888817327,
+      "enabled": true,
+      "rateLimitResetTimes": {}
+    },
+    {
+      "email": "asepmei28@gmail.com",
+      "refreshToken": "1//0gIDkuOlImdbZCgYIARAAGBASNwF-L9Ir_VbvYGE2bu8IjyTEzyu3RuNoQXi-t4oTu8KWRKYelP8DZzJLgiuPM6p_bQJUIdzqvC8",
+      "addedAt": 1770888838978,
+      "lastUsed": 1770888838978,
+      "enabled": true
     }
   ],
-  "activeIndex": 3,
+  "activeIndex": 5,
   "activeIndexByFamily": {
-    "claude": 3,
+    "claude": 5,
     "gemini": 5
   }
 }

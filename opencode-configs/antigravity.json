@@ -6,7 +6,7 @@
 
   "quota_fallback": true,
   "cli_first": true,
-  "soft_quota_threshold_percent": 70,
+  "soft_quota_threshold_percent": 60,
   "quota_refresh_interval_minutes": 1,
 
   "keep_thinking": false,
