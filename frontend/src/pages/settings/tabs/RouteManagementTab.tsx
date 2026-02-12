@@ -10,6 +10,7 @@ import {
   Spin,
   Statistic,
   Table,
+  Tabs,
   message,
   theme,
 } from "antd";
@@ -25,6 +26,7 @@ import {
   ROUTE_PRESETS,
   createRouteColumns,
 } from "../components/RouteManagementTableColumns";
+import { RouteMonitoringTab } from "../components/route-monitoring/RouteMonitoringTab";
 
 const { useToken } = theme;
 
@@ -132,7 +134,7 @@ export default function RouteManagementTab() {
     );
   }
 
-  return (
+  const configuration_content = (
     <Space direction="vertical" size={16} style={{ width: "100%" }}>
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
@@ -208,5 +210,22 @@ export default function RouteManagementTab() {
         onClose={() => setEditingRoute(null)}
       />
     </Space>
+  );
+
+  return (
+    <Tabs
+      items={[
+        {
+          key: "configuration",
+          label: "Configuration",
+          children: configuration_content,
+        },
+        {
+          key: "monitoring",
+          label: "Monitoring",
+          children: <RouteMonitoringTab routes={routes} />,
+        },
+      ]}
+    />
   );
 }
