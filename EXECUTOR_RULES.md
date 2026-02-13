@@ -309,6 +309,34 @@ ASK YOURSELF:
 - [ ] **Re-read the original task** — does my work fully address what was asked?
 - [ ] **Check for next steps** — is there follow-up work I should mention?
 
+<!-- MASTER:git-commit-gate -->
+### Git Commit Evidence (MANDATORY)
+
+If orchestrator instructed commit, you MUST provide:
+
+```bash
+# Step 1: Add all changes
+git add -A
+
+# Step 2: Commit with proper format
+git commit -m "type(scope): task N — description"
+
+# Step 3: Push to remote
+git push
+
+# Step 4: Capture evidence
+git status        # Must show "working tree clean"
+git log -1 --oneline  # Capture commit hash + subject
+```
+
+**Evidence to Report:**
+- Working tree status (must be clean)
+- Commit hash + subject line
+- Push confirmation output
+
+**NO evidence = task incomplete, will be rejected by orchestrator.**
+<!-- /MASTER:git-commit-gate -->
+
 ---
 
 ## 11. Anti-Patterns (FORBIDDEN)

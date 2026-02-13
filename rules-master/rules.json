@@ -13,7 +13,8 @@
     "failure-counter": "| Count | Action                                                                          |\n| ----- | ------------------------------------------------------------------------------- |\n| 1     | Fix directly, record error. Document what was tried.                            |\n| 2     | **STOP.** TRACE FLOW activated. Research full chain before fix.                 |\n| 3+    | **TOTAL STOP.** RESEARCH activated. Delegate @explore + @librarian in parallel. |\n| 5+    | **STOP the task.** Report to orchestrator/user with full failure log.           |",
     "failure-counter-format": "```markdown\n## Fix Attempt #[N]\n\n**Failure Count:** [current]\n**Previous Error:** [error message]\n**Hypothesis:** [why this fix should work]\n**Action:** [specific fix in specific layer]\n```",
     "prompt-structure": "Every delegation prompt MUST include 6 sections:\n\n```\n1. TASK: Atomic, specific goal (one action per delegation)\n2. EXPECTED OUTCOME: Concrete deliverables with success criteria\n3. REQUIRED TOOLS: Explicit tool whitelist (prevents tool sprawl)\n4. MUST DO: Exhaustive requirements — leave NOTHING implicit\n5. MUST NOT DO: Forbidden actions — anticipate and block rogue behavior\n6. CONTEXT: File paths, existing patterns, constraints\n```\n\n**Vague prompts = poor results. Be exhaustive.**",
-    "file-size-quality": "## ~300 Lines Per File (Quality Signal)\n\n> **~300 lines is NOT a hard limit.** It's a quality signal that MUST trigger a refactor attempt.\n> If a code file exceeds ~300 lines, you MUST attempt to refactor it (extract helpers, split by responsibility, remove dead code).\n> After a genuine refactor effort, if the minimum achievable is slightly above 300 (e.g. 310-330) and the code satisfies SRP/DRY/OOP with no dead code — that's acceptable.\n> This is NOT a license for 400+ line files. If your file is 400+ lines, you haven't refactored hard enough.\n\n| Type           | Guideline                                      |\n| -------------- | ---------------------------------------------- |\n| Code files     | ~300 lines — MUST refactor if exceeded         |\n| After refactor | Slightly above 300 OK if SRP/DRY/OOP satisfied |\n| 400+ lines     | NOT acceptable — refactor harder or split      |"
+    "file-size-quality": "## ~300 Lines Per File (Quality Signal)\n\n> **~300 lines is NOT a hard limit.** It's a quality signal that MUST trigger a refactor attempt.\n> If a code file exceeds ~300 lines, you MUST attempt to refactor it (extract helpers, split by responsibility, remove dead code).\n> After a genuine refactor effort, if the minimum achievable is slightly above 300 (e.g. 310-330) and the code satisfies SRP/DRY/OOP with no dead code — that's acceptable.\n> This is NOT a license for 400+ line files. If your file is 400+ lines, you haven't refactored hard enough.\n\n| Type           | Guideline                                      |\n| -------------- | ---------------------------------------------- |\n| Code files     | ~300 lines — MUST refactor if exceeded         |\n| After refactor | Slightly above 300 OK if SRP/DRY/OOP satisfied |\n| 400+ lines     | NOT acceptable — refactor harder or split      |",
+    "git-commit-gate": "### Git Commit Evidence (MANDATORY)\n\nIf orchestrator instructed commit, you MUST provide:\n\n```bash\n# Step 1: Add all changes\ngit add -A\n\n# Step 2: Commit with proper format\ngit commit -m \"type(scope): task N — description\"\n\n# Step 3: Push to remote\ngit push\n\n# Step 4: Capture evidence\ngit status        # Must show \"working tree clean\"\ngit log -1 --oneline  # Capture commit hash + subject\n```\n\n**Evidence to Report:**\n- Working tree status (must be clean)\n- Commit hash + subject line\n- Push confirmation output\n\n**NO evidence = task incomplete, will be rejected by orchestrator.**"
   },
 
   "prompt_blocks": {
@@ -29,7 +30,9 @@
     "screenshot-rule": "SCREENSHOT RULE: ALWAYS save screenshots to 'docs/Screenshots/' directory with descriptive names (e.g., docs/Screenshots/page-desktop.png). NEVER save to root folder.",
     "ui-bug-reporting": "🐛 UI BUG REPORTING (MANDATORY): When using Playwright/browser, if you discover ANY layout bug (broken layout, missing table columns, overlapping elements, invisible UI, horizontal scroll, misaligned components) — you MUST report it to the main agent even if it is NOT part of your current task. Include: screenshot, page URL, description of the issue. Never silently ignore UI bugs.",
     "react-migration": "🎯 REACT MIGRATION MODE: You are implementing the React migration plan. Load skill 'react-frontend-rules' for Design System specs. After UI implementation, load 'playwright-layout-eval' skill and verify layout matches specifications.",
-    "prometheus-output": "🎯 MANDATORY OUTPUT: TODO LIST with Flow Map + Impact Analysis. No prose paragraphs. Max 3 parallel delegations. Every plan needs: Pre-Planning Verification, Flow Map (§1.1), Impact Analysis (§3), phased TODO LIST, Success Criteria."
+    "prometheus-output": "🎯 MANDATORY OUTPUT: TODO LIST with Flow Map + Impact Analysis. No prose paragraphs. Max 3 parallel delegations. Every plan needs: Pre-Planning Verification, Flow Map (§1.1), Impact Analysis (§3), phased TODO LIST, Success Criteria.",
+    "zero-tolerance-linting": "🚫 ZERO TOLERANCE LINTING: MUST fix ALL TypeScript/ESLint errors and warnings in changed files + directly impacted files. Run lsp_diagnostics on affected scope (changed files + package). MUST NOT increase total error/warning count compared to baseline. If unrelated lint debt is large (>20 warnings), split: (1) commit main task with zero new errors, (2) create follow-up ticket for debt cleanup.\n\n**Bug Tracking (MANDATORY):**\nWhen observing/researching code (via explore, librarian, code reading), if you discover:\n- TypeScript/ESLint errors/warnings\n- Runtime bugs or potential bugs\n- Critical bugs (data corruption, security issues)\n- Code smell or anti-patterns\n\n→ IMMEDIATELY add to TODO list with priority:\n- CRITICAL bugs: priority=high, fix in current session\n- Errors/warnings: priority=high, fix before task completion\n- Non-critical bugs: priority=medium, track for follow-up\n\n**Test File Creation (MANDATORY):**\nIf you changed code files but NO test file exists:\n- Backend (.go): MUST create *_test.go with meaningful test cases\n- Frontend (.ts/.tsx): MUST create *.test.ts/.tsx or *.spec.ts/.tsx\n- Cover: happy path + edge cases + error scenarios\n- NO EXCEPTIONS: Every code change MUST have tests\n\n**Principle:** Quality > Speed. Taking longer to ensure zero bugs is EXPECTED and PREFERRED.",
+    "git-commit-enforcement": "📝 GIT COMMIT (MANDATORY - MUST DELEGATE):\n\n**CRITICAL: Commit/push MUST be delegated to allow main agent to continue other work.**\n\n**Delegation Pattern (Orchestrators: Sisyphus/Prometheus):**\n```\ntask(\n  category=\"quick\",\n  load_skills=[\"git-master\"],\n  run_in_background=true,\n  description=\"Commit and push changes for task N\",\n  prompt=\"\nTASK: Commit all changes and push to remote\nEXPECTED OUTCOME: Clean working tree, commit pushed to origin\nREQUIRED TOOLS: git (add, commit, push, status, log)\nMUST DO:\n- git add -A (ALL changed files, no cherry-picking)\n- git commit with message: [format below]\n- git push (no confirmation needed)\n- Capture git status, last commit hash, push confirmation\nMUST NOT DO:\n- Cherry-pick files\n- Skip push\n- Use destructive git commands\nCONTEXT: [list changed files or summary]\n  \"\n)\n```\n\n**Commit Message Format:**\n- Prometheus plan task? Use: `type(scope): task N — description`\n  Example: `feat(frontend): task 12 — add OrderShipModal with platform forms`\n- Ad-hoc work? Use: `type(scope): description`\n  Example: `fix(backend): resolve token refresh calculation error`\n\n**Executor Agents (Atlas/Hephaestus/Sisyphus-Junior):**\nIf you are executor and orchestrator explicitly instructed commit:\n1. git add -A\n2. git commit -m \"[message]\"\n3. git push\n4. Capture evidence: git status + git log -1 --oneline + push output\n5. Report evidence to orchestrator\n\n**Verification Gate:**\n- Working tree clean (git status)\n- Commit hash + subject captured\n- Push confirmation captured\n- No evidence = task incomplete\n\n**Enforcement:**\n- Prometheus plan context but no `task N` in message → STOP, get task number\n- Changed files but not committed → STOP, commit required\n- Main agent waiting for commit to finish → WRONG, delegate it"
   },
 
   "prompt_compose": {
@@ -39,7 +42,9 @@
         "read-file-sisyphus",
         "code-quality",
         "understand-flow",
-        "no-premature-done"
+        "zero-tolerance-linting",
+        "no-premature-done",
+        "git-commit-enforcement"
       ],
       "prometheus": ["read-file-prometheus", "prometheus-output"],
       "atlas": [
@@ -47,19 +52,25 @@
         "react-migration",
         "code-quality-atlas",
         "understand-flow",
-        "no-premature-done"
+        "zero-tolerance-linting",
+        "no-premature-done",
+        "git-commit-enforcement"
       ],
       "hephaestus": [
         "read-file-executor",
         "code-quality-atlas",
         "understand-flow",
-        "no-premature-done"
+        "zero-tolerance-linting",
+        "no-premature-done",
+        "git-commit-enforcement"
       ],
       "sisyphus-junior": [
         "read-file-executor",
         "code-quality-atlas",
         "understand-flow",
-        "no-premature-done"
+        "zero-tolerance-linting",
+        "no-premature-done",
+        "git-commit-enforcement"
       ]
     },
     "categories": {
@@ -69,31 +80,41 @@
         "code-quality",
         "ui-bug-reporting",
         "understand-flow",
-        "no-premature-done"
+        "zero-tolerance-linting",
+        "no-premature-done",
+        "git-commit-enforcement"
       ],
       "implementation": [
         "constitution",
         "code-quality",
         "understand-flow",
-        "no-premature-done"
+        "zero-tolerance-linting",
+        "no-premature-done",
+        "git-commit-enforcement"
       ],
       "quick": [
         "constitution",
         "code-quality",
         "understand-flow",
-        "no-premature-done"
+        "zero-tolerance-linting",
+        "no-premature-done",
+        "git-commit-enforcement"
       ],
       "deep": [
         "constitution",
         "code-quality",
         "understand-flow",
-        "no-premature-done"
+        "zero-tolerance-linting",
+        "no-premature-done",
+        "git-commit-enforcement"
       ],
       "ultrabrain": [
         "constitution",
         "code-quality",
         "understand-flow",
-        "no-premature-done"
+        "zero-tolerance-linting",
+        "no-premature-done",
+        "git-commit-enforcement"
       ]
     }
   },
@@ -174,7 +195,8 @@
       "EXECUTOR_RULES.md": {
         "failure-counter": {},
         "failure-counter-format": {},
-        "failure-escalation": {}
+        "failure-escalation": {},
+        "git-commit-gate": {}
       },
       "PROMETHEUS_RULES.md": {
         "concurrency": {},
