@@ -9,6 +9,7 @@ import {
 
 export function useOrderSync(
   activeTab: string,
+  platform: string,
   refetch: () => void,
   autoRefresh: boolean,
 ) {
@@ -19,20 +20,22 @@ export function useOrderSync(
       setIsSyncing(true);
       try {
         if (isSyncableOrderTab(tabKey)) {
-          await syncOrdersByCategory(tabKey);
+          await syncOrdersByCategory(tabKey, platform);
         } else if (tabKey === "today") {
           await syncOrdersToday();
         } else if (tabKey === "locked") {
           await lockOrdersToday();
         }
-      } catch {
-        message.error("Failed to sync orders");
+      } catch (error) {
+        message.error(
+          error instanceof Error ? error.message : "Failed to sync orders",
+        );
       } finally {
         setIsSyncing(false);
         refetch();
       }
     },
-    [refetch],
+    [platform, refetch],
   );
 
   useEffect(() => {

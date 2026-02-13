@@ -36,8 +36,8 @@ func GetDatabaseDriver() DatabaseDriver {
 // AGENTS.MD: JSON tags MUST be snake_case
 type User struct {
 	ID                  string     `gorm:"column:id;primaryKey" json:"id"`
-	Username            string     `gorm:"column:username;uniqueIndex;not null" json:"username"`
-	Email               string     `gorm:"column:email;uniqueIndex;not null" json:"email"`
+	Username            string     `gorm:"column:username;unique;not null" json:"username"`
+	Email               string     `gorm:"column:email;unique;not null" json:"email"`
 	Password            string     `gorm:"column:password" json:"-"` // Never expose in JSON
 	Role                string     `gorm:"column:role;default:owner" json:"role"`
 	FailedLoginAttempts int        `gorm:"column:failed_login_attempts;default:0" json:"failed_login_attempts"`

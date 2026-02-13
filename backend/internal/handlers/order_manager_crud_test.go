@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/services/sync"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -138,4 +139,44 @@ func TestOrderManagerHandler_GetOrderByOrderSn_HandlerExists(t *testing.T) {
 	handler := NewOrderManagerHandler("./data")
 	assert.NotNil(t, handler)
 	assert.Equal(t, "./data", handler.basePath)
+}
+
+func TestParseOrderPlatformFilter(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected *sync.PlatformType
+		wantErr  bool
+	}{
+		{name: "empty returns nil", input: "", expected: nil, wantErr: false},
+		{name: "all returns nil", input: "all", expected: nil, wantErr: false},
+		{name: "uppercase shopee", input: "SHOPEE", expected: platformPtr(sync.PlatformShopee), wantErr: false},
+		{name: "lazada", input: "lazada", expected: platformPtr(sync.PlatformLazada), wantErr: false},
+		{name: "tiktok", input: "tiktok", expected: platformPtr(sync.PlatformTiktok), wantErr: false},
+		{name: "invalid platform", input: "tokopedia", expected: nil, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseOrderPlatformFilter(tt.input)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+			if tt.expected == nil {
+				assert.Nil(t, got)
+				return
+			}
+
+			if assert.NotNil(t, got) {
+				assert.Equal(t, *tt.expected, *got)
+			}
+		})
+	}
+}
+
+func platformPtr(platform sync.PlatformType) *sync.PlatformType {
+	return &platform
 }

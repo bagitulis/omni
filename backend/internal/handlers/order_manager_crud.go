@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
@@ -70,11 +72,20 @@ func (h *OrderManagerHandler) getOrdersFromDatabase(c *gin.Context, category str
 		return
 	}
 
+	platformFilter, err := parseOrderPlatformFilter(c.Query("platform"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
 	// Get orders from database (no sync - frontend already called /sync/:category)
 	orders, err := service.GetOrdersByCategory(
 		c.Request.Context(),
 		sync.OrderStatusCategory(category),
-		nil,
+		platformFilter,
 	)
 	if err != nil {
 		orderManagerLogger.WithTenantID(tenantID).Error("Failed to get orders: " + err.Error())
@@ -100,6 +111,25 @@ func (h *OrderManagerHandler) getOrdersFromDatabase(c *gin.Context, category str
 		"data":    orders,
 		"count":   len(orders),
 	})
+}
+
+func parseOrderPlatformFilter(platform string) (*sync.PlatformType, error) {
+	if platform == "" {
+		return nil, nil
+	}
+
+	normalized := strings.ToLower(strings.TrimSpace(platform))
+	if normalized == "" || normalized == "all" {
+		return nil, nil
+	}
+
+	switch normalized {
+	case string(sync.PlatformShopee), string(sync.PlatformLazada), string(sync.PlatformTiktok):
+		selected := sync.PlatformType(normalized)
+		return &selected, nil
+	default:
+		return nil, fmt.Errorf("invalid platform filter: %s", platform)
+	}
 }
 
 // GetOrderByOrderSn gets order detail by order_sn

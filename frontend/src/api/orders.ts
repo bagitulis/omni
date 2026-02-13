@@ -5,6 +5,18 @@ import type {
   BackendOrderResponse,
   OrderDetail,
 } from "@/types/order";
+import {
+  getOrderEndpointFromTab,
+  getSyncCategoryFromTab,
+} from "./orderTabMapping";
+
+type RawOrder = Partial<Order> & {
+  tracking_no?: string;
+  courier?: string;
+  seller_sku?: string;
+  quantity?: number;
+  synced_at?: string;
+};
 
 function computeUniquePlatformCounts(orders: Order[]): Record<string, number> {
   const orderIdsByPlatform = new Map<string, Set<string>>();
@@ -36,11 +48,11 @@ export type OrderTab =
   | "unpaid"
   | "unprocess"
   | "processed"
+  | "shipped"
+  | "completed"
+  | "cancelled"
   | "locked"
   | "today";
-
-const SYNCABLE_TABS = ["unpaid", "unprocess", "processed"] as const;
-export type SyncableOrderTab = (typeof SYNCABLE_TABS)[number];
 
 export interface GetOrdersParams {
   page?: number;
@@ -53,36 +65,46 @@ export interface GetOrdersParams {
 }
 
 /**
- * Map status to backend endpoint
- * Backend routes:
- * - /orders/unpaid
- * - /orders/unprocess
- * - /orders/processed
- * - /orders/locked-today
- * - /orders/today
- */
-function getOrderEndpoint(status: string): string {
-  const endpointMap: Record<string, string> = {
-    unpaid: "/orders/unpaid",
-    unprocess: "/orders/unprocess",
-    processed: "/orders/processed",
-    locked: "/orders/locked-today",
-    today: "/orders/today",
-    ALL: "/orders/unpaid", // Default to unpaid
-  };
-  return endpointMap[status] || "/orders/unpaid";
-}
-
-/**
  * Transform backend order to frontend Order type
  * Backend uses: order_no, status
  * Frontend expects: order_sn, order_status (plus original fields)
  */
-function transformOrder(backendOrder: Order): Order {
+function transformOrder(backendOrder: RawOrder): Order {
+  const orderNo = backendOrder.order_no || backendOrder.order_sn || "";
+  const status = backendOrder.status || backendOrder.order_status || "";
+  const platform = (backendOrder.platform || "").toLowerCase();
+
   return {
     ...backendOrder,
-    order_sn: backendOrder.order_no || backendOrder.order_sn,
-    order_status: backendOrder.status || backendOrder.order_status,
+    id: backendOrder.id || orderNo,
+    order_no: orderNo,
+    order_sn: orderNo,
+    order_status: status,
+    status,
+    platform,
+    category: backendOrder.category || "",
+    buyer_username: backendOrder.buyer_username || "",
+    total_amount: backendOrder.total_amount || 0,
+    currency: backendOrder.currency || "IDR",
+    payment_method: backendOrder.payment_method || "",
+    shipping_carrier:
+      backendOrder.shipping_carrier || backendOrder.courier || "",
+    tracking_number:
+      backendOrder.tracking_number || backendOrder.tracking_no || "",
+    ship_by_date: backendOrder.ship_by_date || 0,
+    buyer_message: backendOrder.buyer_message || "",
+    sku: backendOrder.sku || backendOrder.seller_sku || "",
+    product_name: backendOrder.product_name || "",
+    variation_name: backendOrder.variation_name || "",
+    qty: backendOrder.qty || backendOrder.quantity || 1,
+    price: backendOrder.price || 0,
+    product_image: backendOrder.product_image || "",
+    created_at: backendOrder.created_at || backendOrder.synced_at || "",
+    updated_at:
+      backendOrder.updated_at ||
+      backendOrder.created_at ||
+      backendOrder.synced_at ||
+      "",
   };
 }
 
@@ -93,14 +115,16 @@ export async function getOrders(
   params: GetOrdersParams = {},
 ): Promise<OrderListResponse> {
   const status = params.status || "unpaid";
-  const endpoint = getOrderEndpoint(status);
+  const endpoint = getOrderEndpointFromTab(status);
 
   // Use axios AxiosResponse type for direct client calls
   interface AxiosResponse<T> {
     data: T;
   }
 
-  let axiosResponse: AxiosResponse<BackendOrderResponse & { success: boolean }>;
+  let axiosResponse: AxiosResponse<
+    BackendOrderResponse & { success: boolean; error?: string }
+  >;
 
   // Special handling for locked and today tabs which require POST
   if (status === "locked" || status === "today") {
@@ -132,12 +156,12 @@ export async function getOrders(
   const backendData = axiosResponse.data;
 
   if (!backendData.success) {
-    throw new Error("Failed to fetch orders");
+    throw new Error(backendData.error || "Failed to fetch orders");
   }
 
   // Transform backend response to frontend format
-  const orders = (backendData.data || backendData.items || []).map(
-    transformOrder,
+  const orders = (backendData.data || backendData.items || []).map((order) =>
+    transformOrder(order as RawOrder),
   );
 
   // Calculate platform counts from orders if not provided by backend
@@ -159,7 +183,7 @@ export async function getOrders(
  * Fetch orders by specific tab
  */
 export async function getOrdersByTab(tab: OrderTab): Promise<Order[]> {
-  const endpoint = getOrderEndpoint(tab);
+  const endpoint = getOrderEndpointFromTab(tab);
   const response = await apiClient.get<Order[]>(endpoint);
 
   if (!response.success) {
@@ -201,35 +225,39 @@ export async function syncAllOrders(): Promise<void> {
   }
 }
 
-export function isSyncableOrderTab(status: string): status is SyncableOrderTab {
-  return (SYNCABLE_TABS as readonly string[]).includes(status);
-}
+export { isSyncableOrderTab } from "./orderTabMapping";
 
 /**
  * Sync orders by category (unpaid/unprocess/processed)
  */
 export async function syncOrdersByCategory(
-  category: SyncableOrderTab,
+  tabKey: string,
+  platform?: string,
 ): Promise<void> {
-  // Processed tab often needs a longer window to match marketplace reality.
-  // Also, syncing ALL platforms can be slow; for processed we prioritize Shopee.
-  if (category === "processed") {
-    const response = await apiClient.client.post(
-      "/orders/sync/processed?days=30&platforms=shopee",
-      {},
-      { timeout: 120_000 },
-    );
-    if (!response.data?.success) {
-      throw new Error(response.data?.error || "Failed to sync orders");
-    }
+  const category = getSyncCategoryFromTab(tabKey);
+  if (!category) {
     return;
   }
 
-  const response = await apiClient.post(`/orders/sync/${category}`, {
-    days: 7,
-  });
-  if (!response.success) {
-    throw new Error(response.error || "Failed to sync orders");
+  const normalizedPlatform = (platform || "").toLowerCase();
+  const isSpecificPlatform =
+    normalizedPlatform === "shopee" ||
+    normalizedPlatform === "lazada" ||
+    normalizedPlatform === "tiktok";
+  const platformQuery = isSpecificPlatform
+    ? `?platforms=${encodeURIComponent(normalizedPlatform)}`
+    : "";
+
+  const endpoint = `/orders/sync/${category}${platformQuery}`;
+  const days = category === "processed" ? 30 : 7;
+
+  const response = await apiClient.client.post(
+    endpoint,
+    { days },
+    { timeout: 120_000 },
+  );
+  if (!response.data?.success) {
+    throw new Error(response.data?.error || "Failed to sync orders");
   }
 }
 

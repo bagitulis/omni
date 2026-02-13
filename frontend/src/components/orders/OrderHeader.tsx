@@ -49,6 +49,12 @@ export function OrderHeader({
         return "To Process";
       case "processed":
         return "Processed";
+      case "shipped":
+        return "Shipped";
+      case "completed":
+        return "Completed";
+      case "cancelled":
+        return "Cancelled";
       case "locked":
         return "Locked Products";
       case "today":

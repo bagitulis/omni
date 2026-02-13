@@ -4,6 +4,7 @@ import { message } from "antd";
 import { useQueryClient } from "@tanstack/react-query";
 import { useOrders } from "@/hooks/useOrders";
 import { useOrderSync } from "./useOrderSync";
+import { normalizeOrderTabKey } from "@/api/orderTabMapping";
 import { useOrderBulkActions } from "./useOrderBulkActions";
 import { useOrderSingleActions } from "./useOrderSingleActions";
 import type { OrderDetail, Order } from "@/types/order";
@@ -15,7 +16,7 @@ export function useOrdersLogic() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { platform: routePlatform } = useParams();
   const navigate = useNavigate();
-  const activeTab = searchParams.get("type") || "unpaid";
+  const activeTab = normalizeOrderTabKey(searchParams.get("type") || "unpaid");
   const platform = routePlatform || "all";
 
   const [page, setPage] = useState(1);
@@ -51,6 +52,7 @@ export function useOrdersLogic() {
 
   const { isSyncing, syncActiveTab } = useOrderSync(
     activeTab,
+    platform,
     refetch,
     autoRefresh,
   );
@@ -74,7 +76,7 @@ export function useOrdersLogic() {
 
   // Handlers
   const handleTabChange = (key: string) => {
-    queryClient.removeQueries({ queryKey: ["orders"] });
+    queryClient.cancelQueries({ queryKey: ["orders"] });
     setSearchParams({ type: key });
     setPage(1);
     setSelectedRowKeys([]);
@@ -90,10 +92,11 @@ export function useOrdersLogic() {
   };
 
   const handlePlatformChange = (value: string) => {
+    const normalizedTab = normalizeOrderTabKey(activeTab);
     if (value === "all") {
-      navigate("/order-manager");
+      navigate(`/order-manager?type=${normalizedTab}`);
     } else {
-      navigate(`/order-manager/${value}`);
+      navigate(`/order-manager/${value}?type=${normalizedTab}`);
     }
     setPage(1);
   };
