@@ -121,7 +121,7 @@ func TestGetShippingLabel_HandlesBatchApiAllFailed(t *testing.T) {
 	assert.NoError(t, err) // Should NOT return error
 	assert.NotNil(t, result)
 	assert.Equal(t, "FAILED", result.Status)
-	assert.Equal(t, "official Shopee shipping document is not available for this order", result.ErrorMessage)
+	assert.Equal(t, "shopee API error: logistics.tracking_number_invalid - The tracking number is invalid", result.ErrorMessage)
 
 	mockClient.AssertExpectations(t)
 }
