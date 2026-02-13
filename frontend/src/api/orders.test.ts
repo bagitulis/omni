@@ -141,4 +141,25 @@ describe("getOrders", () => {
       platform: "tiktok",
     });
   });
+
+  it("uses POST for uppercase TODAY status after normalization", async () => {
+    mockClientPost.mockResolvedValue({
+      data: {
+        success: true,
+        data: [],
+        count: 0,
+      },
+    });
+
+    await getOrders({ status: "TODAY" });
+
+    expect(mockClientPost).toHaveBeenCalledWith("/orders/today", {
+      days: 7,
+      page: undefined,
+      pageSize: undefined,
+      platform: undefined,
+      search: undefined,
+    });
+    expect(mockClientGet).not.toHaveBeenCalled();
+  });
 });

@@ -8,6 +8,7 @@ import type {
 import {
   getOrderEndpointFromTab,
   getSyncCategoryFromTab,
+  normalizeOrderTabKey,
 } from "./orderTabMapping";
 
 type RawOrder = Partial<Order> & {
@@ -115,7 +116,8 @@ export async function getOrders(
   params: GetOrdersParams = {},
 ): Promise<OrderListResponse> {
   const status = params.status || "unpaid";
-  const endpoint = getOrderEndpointFromTab(status);
+  const normalizedStatus = normalizeOrderTabKey(status);
+  const endpoint = getOrderEndpointFromTab(normalizedStatus);
 
   // Use axios AxiosResponse type for direct client calls
   interface AxiosResponse<T> {
@@ -127,7 +129,7 @@ export async function getOrders(
   >;
 
   // Special handling for locked and today tabs which require POST
-  if (status === "locked" || status === "today") {
+  if (normalizedStatus === "locked" || normalizedStatus === "today") {
     axiosResponse = await apiClient.client.post<
       BackendOrderResponse & { success: boolean }
     >(endpoint, {
