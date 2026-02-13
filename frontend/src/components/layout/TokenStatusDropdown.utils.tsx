@@ -3,7 +3,7 @@ import {
   CloseCircleFilled,
   WarningFilled,
 } from "@ant-design/icons";
-import { theme } from "antd";
+import type { GlobalToken } from "antd";
 import { type TokenStatusData } from "./TokenStatusDropdown.types";
 
 export function getTokenStatusType(
@@ -39,8 +39,7 @@ export function formatTimeRemaining(dateString: string | null): string {
   return `${minutes}m`;
 }
 
-export function getStatusIcon(status: string) {
-  const token = theme.getDesignToken();
+export function getStatusIcon(status: string, token: GlobalToken) {
   switch (status) {
     case "valid":
       return <CheckCircleFilled style={{ color: token.colorSuccess }} />;

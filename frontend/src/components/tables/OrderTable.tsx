@@ -91,6 +91,7 @@ function OrderTable({
       rowSelection={{
         selectedRowKeys,
         onChange: onSelectionChange,
+        columnWidth: 40,
       }}
       scroll={{ x: 900 }}
       style={{ backgroundColor: token.colorBgContainer }}

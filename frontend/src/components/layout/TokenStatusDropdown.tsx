@@ -15,10 +15,10 @@ import {
 } from "antd";
 import { KeyOutlined, ReloadOutlined } from "@ant-design/icons";
 import apiClient from "@/api/client";
-import {
-  TokenStatusMap,
+import { PLATFORM_CONFIG } from "./TokenStatusDropdown.types";
+import type {
   BackendTokenStatusResponse,
-  PLATFORM_CONFIG,
+  TokenStatusMap,
 } from "./TokenStatusDropdown.types";
 import {
   getTokenStatusType,
@@ -167,7 +167,7 @@ export function TokenStatusDropdown() {
                     >
                       {config.label.toUpperCase()}
                     </Tag>
-                    {getStatusIcon(status)}
+                    {getStatusIcon(status, token)}
                   </Flex>
                   <Tag color={getStatusColor(status)} bordered={false}>
                     {status === "valid"

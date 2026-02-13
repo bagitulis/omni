@@ -257,7 +257,7 @@ export async function bulkShipOrders(
 export interface BulkPrintLabelsResponse {
   labels: Array<{
     order_sn: string;
-    file_data: string; // Base64 encoded PDF
+    file_data: string; // Base64 encoded PDF or URL document
     status: string;
   }>;
   failed: Array<{

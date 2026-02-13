@@ -35,7 +35,7 @@ export interface OrderTab {
 export const ORDER_TABS: OrderTab[] = [
   { label: "Unpaid", value: "unpaid" },
   { label: "To Ship", value: "unprocess" },
-  { label: "Shipped", value: "processed" },
+  { label: "Processed", value: "processed" },
   { label: "Locked Today", value: "locked" },
   { label: "Today's Orders", value: "today" },
 ];

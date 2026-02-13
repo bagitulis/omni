@@ -2,12 +2,13 @@ import { message } from "antd";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useOrderActions } from "@/hooks/useOrders";
-import { OrderDetail, Order } from "@/types/order";
-import { GroupedOrder } from "@/components/tables/OrderTable.types";
-import { ShipConfirmPayload } from "@/components/modals/OrderShipModal";
-import { CancelFormValues } from "@/components/modals/OrderCancelModal";
+import type { OrderDetail, Order } from "@/types/order";
+import type { GroupedOrder } from "@/components/tables/OrderTable.types";
+import type { ShipConfirmPayload } from "@/components/modals/OrderShipModal";
+import type { CancelFormValues } from "@/components/modals/OrderCancelModal";
 import {
   getOrderById,
+  bulkPrintLabels,
   getLazadaDocument,
   type CancelOrderParams,
 } from "@/api/orders";
@@ -16,6 +17,7 @@ import {
   arrangeShopeeShipment,
   arrangeTikTokShipment,
 } from "@/hooks/useOrders";
+import { downloadOrderLabel } from "../utils/labelDownload";
 
 interface UseOrderSingleActionsProps {
   selectedOrder: OrderDetail | Order | null;
@@ -34,7 +36,7 @@ export function useOrderSingleActions({
 }: UseOrderSingleActionsProps) {
   const queryClient = useQueryClient();
   const [isSingleShipping, setIsSingleShipping] = useState(false);
-  const { cancelOrder, printLabels, isCancelling } = useOrderActions();
+  const { cancelOrder, isCancelling } = useOrderActions();
 
   const handleSingleShip = (order: GroupedOrder) => {
     setSelectedOrder(order as unknown as Order);
@@ -127,7 +129,14 @@ export function useOrderSingleActions({
         }
         message.success(`Printed label for ${orderSn}`);
       } else {
-        await printLabels([orderSn]);
+        const response = await bulkPrintLabels([orderSn]);
+        const label = response.labels[0];
+        if (!label?.file_data) {
+          const reason =
+            response.failed[0]?.error || "Label data is not available";
+          throw new Error(reason);
+        }
+        downloadOrderLabel(label.file_data, orderSn);
         message.success(`Printed label for ${orderSn}`);
       }
     } catch (error) {

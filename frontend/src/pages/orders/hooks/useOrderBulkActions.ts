@@ -4,6 +4,7 @@ import { useOrderActions } from "@/hooks/useOrders";
 import type { OrderListResponse } from "@/types/order";
 import type { CancelOrderParams } from "@/api/orders";
 import { bulkPrintLabels } from "@/api/orders";
+import { downloadOrderLabel } from "../utils/labelDownload";
 
 interface UseOrderBulkActionsProps {
   selectedRowKeys: React.Key[];
@@ -152,25 +153,10 @@ export function useOrderBulkActions({
       });
       setPrintResult({ succeeded, failed });
 
-      // Download PDFs
+      // Download labels (base64 PDF or platform URL)
       if (response.labels.length > 0) {
-        // Combine all PDFs into one download or download individually
         response.labels.forEach((label) => {
-          const byteCharacters = atob(label.file_data);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: "application/pdf" });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = `label_${label.order_sn}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
+          downloadOrderLabel(label.file_data, label.order_sn);
         });
       }
 

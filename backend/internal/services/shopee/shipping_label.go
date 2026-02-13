@@ -20,24 +20,44 @@ type ShippingLabelResult struct {
 	ErrorMessage string `json:"error_message,omitempty"` // Error if failed
 }
 
-// GetShippingLabel downloads shipping document (waybill/label) for an order
-// Flow: Try standard API -> If fails, fallback to generate from data
+// GetShippingLabel downloads shipping document (waybill/label) for an order.
+// This path only returns official Shopee documents from API responses.
 func (s *ShippingService) GetShippingLabel(ctx context.Context, orderSN, packageNumber, documentType string) (*ShippingLabelResult, error) {
 	client, err := s.getClient()
 	if err != nil {
 		return nil, err
 	}
 
-	// Step 1: Try standard flow first
-	result, err := s.tryStandardDownload(ctx, client, orderSN, packageNumber, documentType)
-	if err == nil && result.Status == "SUCCESS" && result.FileData != "" {
-		return result, nil
+	documentTypes := []string{
+		documentType,
+		"THERMAL_AIR_WAYBILL",
+		"NORMAL_AIR_WAYBILL",
+		"THERMAL_WAYBILL",
+		"NORMAL_WAYBILL",
 	}
 
-	log.Info().Str("order_sn", orderSN).Msg("Standard download failed, trying fallback with data info API")
+	tried := make(map[string]struct{}, len(documentTypes))
+	for _, docType := range documentTypes {
+		if docType == "" {
+			continue
+		}
+		if _, exists := tried[docType]; exists {
+			continue
+		}
+		tried[docType] = struct{}{}
 
-	// Step 2: Fallback - Get label data and generate PDF ourselves
-	return s.generateLabelFromData(ctx, client, orderSN, packageNumber)
+		result, downloadErr := s.tryStandardDownload(ctx, client, orderSN, packageNumber, docType)
+		if downloadErr == nil && result.Status == "SUCCESS" && result.FileData != "" {
+			return result, nil
+		}
+	}
+
+	log.Warn().Str("order_sn", orderSN).Msg("Shopee did not return official shipping document")
+	return &ShippingLabelResult{
+		OrderSN:      orderSN,
+		Status:       "FAILED",
+		ErrorMessage: "official Shopee shipping document is not available for this order",
+	}, nil
 }
 
 // tryStandardDownload attempts the standard Shopee document download flow

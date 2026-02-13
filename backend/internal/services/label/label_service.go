@@ -3,6 +3,8 @@ package label
 import (
 	"context"
 	"fmt"
+	"strings"
+	"unicode"
 
 	"github.com/omni/backend/internal/config"
 	lazadaHandler "github.com/omni/backend/internal/handlers/lazada"
@@ -83,7 +85,38 @@ func (s *LabelService) detectPlatform(ctx context.Context, tenantID, orderSN str
 		return "lazada", nil
 	}
 
+	var orderToday models.OrderTodayItem
+	if err := db.WithContext(ctx).
+		Where("order_sn = ?", orderSN).
+		Order("updated_at DESC").
+		First(&orderToday).Error; err == nil {
+		platform := strings.ToLower(strings.TrimSpace(orderToday.Platform))
+		if platform == "shopee" || platform == "tiktok" || platform == "lazada" {
+			return platform, nil
+		}
+	}
+
+	if isLikelyTikTokOrderID(orderSN) {
+		log.Warn().Str("order_sn", orderSN).Msg("Platform not found in DB, defaulting to TikTok by order ID format")
+		return "tiktok", nil
+	}
+
 	return "", fmt.Errorf("order %s not found in any platform", orderSN)
+}
+
+func isLikelyTikTokOrderID(orderSN string) bool {
+	trimmed := strings.TrimSpace(orderSN)
+	if len(trimmed) < 16 {
+		return false
+	}
+
+	for _, ch := range trimmed {
+		if !unicode.IsDigit(ch) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // existsInTable checks if an order_sn exists in the given platform order table
