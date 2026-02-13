@@ -27,23 +27,26 @@ func (s *ShippingService) GetShippingLabel(ctx context.Context, orderSN, package
 	}
 
 	effectivePackageNumber := packageNumber
-	resolvedPackageNumber, packageResolveError := resolvePackageNumberFromDocumentData(client, orderSN, packageNumber)
+	trackingResp, trackingErr := s.ensureShipmentReady(ctx, client, orderSN, effectivePackageNumber)
+	trackingNumber := ""
+	if trackingResp != nil {
+		trackingNumber = strings.TrimSpace(trackingResp.Response.TrackingNumber)
+	}
+
+	resolvedPackageNumber, packageResolveError := resolvePackageNumber(client, orderSN, packageNumber, trackingResp)
 	if resolvedPackageNumber != "" {
 		effectivePackageNumber = resolvedPackageNumber
 	}
 
-	trackingResp, trackingErr := s.ensureShipmentReady(ctx, client, orderSN, packageNumber)
 	trackingErrorMessage := firstNonEmpty(
 		extractShopeeTrackingError(trackingResp, trackingErr),
 		packageResolveError,
 	)
 
-	documentTypes := []string{
-		documentType,
-		"THERMAL_AIR_WAYBILL",
-		"NORMAL_AIR_WAYBILL",
-		"THERMAL_WAYBILL",
-		"NORMAL_WAYBILL",
+	documentTypes, documentTypeError := resolveDocumentTypes(client, orderSN, effectivePackageNumber, documentType)
+	if documentTypeError != "" {
+		lastShopeeError := firstNonEmpty(documentTypeError, trackingErrorMessage)
+		return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: lastShopeeError}, nil
 	}
 
 	tried := make(map[string]struct{}, len(documentTypes))
@@ -57,7 +60,7 @@ func (s *ShippingService) GetShippingLabel(ctx context.Context, orderSN, package
 		}
 		tried[docType] = struct{}{}
 
-		result, downloadErr := s.tryStandardDownload(ctx, client, orderSN, effectivePackageNumber, docType)
+		result, downloadErr := s.tryStandardDownload(ctx, client, orderSN, effectivePackageNumber, trackingNumber, docType)
 		if downloadErr == nil && result.Status == "SUCCESS" && result.FileData != "" {
 			return result, nil
 		}
@@ -75,12 +78,15 @@ func (s *ShippingService) GetShippingLabel(ctx context.Context, orderSN, package
 		}, nil
 	}
 
-	return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: "shopee API error: empty error payload from Shopee endpoints"}, nil
+	return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED"}, nil
 }
 
-func (s *ShippingService) tryStandardDownload(ctx context.Context, client shippingClient, orderSN, packageNumber, documentType string) (*ShippingLabelResult, error) {
+func (s *ShippingService) tryStandardDownload(ctx context.Context, client shippingClient, orderSN, packageNumber, trackingNumber, documentType string) (*ShippingLabelResult, error) {
 	_ = ctx
-	createResult, err := client.CreateShippingDocument(orderSN, packageNumber)
+	createResult, err := client.CreateShippingDocumentWithOptions(orderSN, packageNumber, shopeePkg.ShippingDocumentRequestOptions{
+		TrackingNumber:       trackingNumber,
+		ShippingDocumentType: documentType,
+	})
 	createErrorMessage := extractShopeeCreateError(createResult, err)
 	effectivePackageNumber := packageNumber
 
@@ -95,6 +101,9 @@ func (s *ShippingService) tryStandardDownload(ctx context.Context, client shippi
 				effectivePackageNumber = item.PackageNumber
 			}
 			if item.FailError != "" || item.FailMessage != "" {
+				if item.FailError == "logistics.tracking_number_invalid" && packageNumber != "" {
+					return s.tryStandardDownload(ctx, client, orderSN, "", trackingNumber, documentType)
+				}
 				if item.FailError != "logistics.document_already_created" {
 					return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: firstNonEmpty(formatShopeeError(item.FailError, item.FailMessage), createErrorMessage)}, nil
 				}
@@ -174,27 +183,6 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
-func resolvePackageNumberFromDocumentData(client shippingClient, orderSN, packageNumber string) (string, string) {
-	if packageNumber != "" {
-		return packageNumber, ""
-	}
-
-	resp, err := client.GetShippingDocumentDataInfo(orderSN, "")
-	if err != nil {
-		return "", err.Error()
-	}
-
-	if resp == nil {
-		return "", ""
-	}
-
-	if rawError := formatShopeeError(resp.Error, resp.Message); rawError != "" {
-		return "", rawError
-	}
-
-	return resp.Response.PackageNumber, ""
-}
-
 func extractShopeeTrackingError(trackingResp *shopeePkg.GetTrackingNumberResponse, trackingErr error) string {
 	if trackingErr != nil {
 		return trackingErr.Error()
@@ -215,13 +203,87 @@ func extractShopeeTrackingError(trackingResp *shopeePkg.GetTrackingNumberRespons
 	return ""
 }
 
+func resolveDocumentTypes(client shippingClient, orderSN, packageNumber, requestedType string) ([]string, string) {
+	result := make([]string, 0, 8)
+	seen := make(map[string]struct{}, 8)
+	appendType := func(value string) {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			return
+		}
+		if _, exists := seen[trimmed]; exists {
+			return
+		}
+		seen[trimmed] = struct{}{}
+		result = append(result, trimmed)
+	}
+
+	appendType(requestedType)
+
+	var lastError string
+	apiResult, err := client.GetShippingDocumentParameter(orderSN, packageNumber)
+	if err != nil {
+		lastError = err.Error()
+	} else {
+		lastError = appendDocumentTypesFromParameter(apiResult, appendType)
+	}
+
+	if packageNumber != "" && len(result) == 1 {
+		fallbackResult, fallbackErr := client.GetShippingDocumentParameter(orderSN, "")
+		if fallbackErr != nil {
+			if lastError == "" {
+				lastError = fallbackErr.Error()
+			}
+		} else {
+			fallbackParamErr := appendDocumentTypesFromParameter(fallbackResult, appendType)
+			if lastError == "" {
+				lastError = fallbackParamErr
+			}
+		}
+	}
+
+	appendType("THERMAL_AIR_WAYBILL")
+	appendType("NORMAL_AIR_WAYBILL")
+	appendType("THERMAL_WAYBILL")
+	appendType("NORMAL_WAYBILL")
+
+	return result, lastError
+}
+
+func appendDocumentTypesFromParameter(resp *shopeePkg.GetShippingDocumentParameterResponse, appendType func(string)) string {
+	if resp == nil {
+		return ""
+	}
+
+	if resp.Error != "" || resp.Message != "" {
+		return formatShopeeError(resp.Error, resp.Message)
+	}
+
+	if len(resp.Response.ResultList) == 0 {
+		return ""
+	}
+
+	item := resp.Response.ResultList[0]
+	if item.FailError != "" || item.FailMessage != "" {
+		return formatShopeeError(item.FailError, item.FailMessage)
+	}
+
+	appendType(item.SuggestShippingDocumentType)
+	for _, selectable := range item.SelectableShippingDocumentType {
+		appendType(selectable)
+	}
+
+	return ""
+}
+
 func (s *ShippingService) pollAndDownload(ctx context.Context, client shippingClient, orderSN, packageNumber, documentType, createErrorMessage string) (*ShippingLabelResult, error) {
 	_ = ctx
 	lastStatus := ""
-	lastErrorMessage := ""
 	effectivePackageNumber := packageNumber
 	for i := 0; i < 30; i++ {
-		resultResp, err := client.GetShippingDocumentResult(orderSN, effectivePackageNumber)
+		resultResp, err := client.GetShippingDocumentResultWithOptions(orderSN, effectivePackageNumber, shopeePkg.ShippingDocumentRequestOptions{
+			ShippingDocumentType: documentType,
+		})
 		if err != nil {
 			return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: err.Error()}, nil
 		}
@@ -251,7 +313,7 @@ func (s *ShippingService) pollAndDownload(ctx context.Context, client shippingCl
 					if createErrorMessage != "" {
 						return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: createErrorMessage}, nil
 					}
-					return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: "shopee API error: shipping_document_result status=FAILED without fail payload"}, nil
+					return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED"}, nil
 				}
 				if status == "READY" || status == "SUCCESS" {
 					downloadResult, dlErr := client.DownloadShippingDocument(orderSN, effectivePackageNumber, documentType)
@@ -276,7 +338,7 @@ func (s *ShippingService) pollAndDownload(ctx context.Context, client shippingCl
 					if createErrorMessage != "" {
 						return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: createErrorMessage}, nil
 					}
-					return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: "shopee API error: download_shipping_document returned no file_data and no fail payload"}, nil
+					return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED"}, nil
 				}
 			}
 		}
@@ -286,18 +348,15 @@ func (s *ShippingService) pollAndDownload(ctx context.Context, client shippingCl
 		}
 	}
 
-	if lastErrorMessage != "" {
-		return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: lastErrorMessage}, nil
-	}
 	if lastStatus != "" {
 		if createErrorMessage != "" {
 			return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: createErrorMessage}, nil
 		}
-		return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: "shopee API error: shipping_document_result status=" + lastStatus + " without fail payload"}, nil
+		return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED"}, nil
 	}
 	if createErrorMessage != "" {
 		return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: createErrorMessage}, nil
 	}
 
-	return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: "shopee API error: get_shipping_document_result returned empty result_list and no error payload"}, nil
+	return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED"}, nil
 }

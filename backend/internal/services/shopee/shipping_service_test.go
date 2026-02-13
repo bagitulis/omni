@@ -39,6 +39,14 @@ func (m *MockShippingClient) GetTrackingNumber(orderSN string) (*shopeePkg.GetTr
 	return args.Get(0).(*shopeePkg.GetTrackingNumberResponse), args.Error(1)
 }
 
+func (m *MockShippingClient) GetShippingDocumentParameter(orderSN, packageNumber string) (*shopeePkg.GetShippingDocumentParameterResponse, error) {
+	args := m.Called(orderSN, packageNumber)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*shopeePkg.GetShippingDocumentParameterResponse), args.Error(1)
+}
+
 func (m *MockShippingClient) CreateShippingDocument(orderSN, packageNumber string) (*shopeePkg.CreateShippingDocumentResponse, error) {
 	args := m.Called(orderSN, packageNumber)
 	if args.Get(0) == nil {
@@ -47,8 +55,24 @@ func (m *MockShippingClient) CreateShippingDocument(orderSN, packageNumber strin
 	return args.Get(0).(*shopeePkg.CreateShippingDocumentResponse), args.Error(1)
 }
 
+func (m *MockShippingClient) CreateShippingDocumentWithOptions(orderSN, packageNumber string, options shopeePkg.ShippingDocumentRequestOptions) (*shopeePkg.CreateShippingDocumentResponse, error) {
+	args := m.Called(orderSN, packageNumber, options)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*shopeePkg.CreateShippingDocumentResponse), args.Error(1)
+}
+
 func (m *MockShippingClient) GetShippingDocumentResult(orderSN, packageNumber string) (*shopeePkg.GetShippingDocumentResultResponse, error) {
 	args := m.Called(orderSN, packageNumber)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*shopeePkg.GetShippingDocumentResultResponse), args.Error(1)
+}
+
+func (m *MockShippingClient) GetShippingDocumentResultWithOptions(orderSN, packageNumber string, options shopeePkg.ShippingDocumentRequestOptions) (*shopeePkg.GetShippingDocumentResultResponse, error) {
+	args := m.Called(orderSN, packageNumber, options)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -69,6 +93,22 @@ func (m *MockShippingClient) GetShippingDocumentDataInfo(orderSN, packageNumber 
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*shopeePkg.ShippingDocumentDataInfoResponse), args.Error(1)
+}
+
+func (m *MockShippingClient) SearchPackageList(packageStatus int, cursor string, pageSize int) (*shopeePkg.SearchPackageListResponse, error) {
+	args := m.Called(packageStatus, cursor, pageSize)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*shopeePkg.SearchPackageListResponse), args.Error(1)
+}
+
+func (m *MockShippingClient) GetPackageDetail(packageNumbers []string) (*shopeePkg.GetPackageDetailResponse, error) {
+	args := m.Called(packageNumbers)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*shopeePkg.GetPackageDetailResponse), args.Error(1)
 }
 
 func TestNewShippingService_WithMock(t *testing.T) {

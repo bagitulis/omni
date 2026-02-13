@@ -156,11 +156,7 @@ func (h *ShippingHandler) DownloadShippingLabel(c *gin.Context) {
 	}
 
 	if result.Status == "FAILED" || result.FileData == "" {
-		errMsg := result.ErrorMessage
-		if errMsg == "" {
-			errMsg = "Failed to get shipping label"
-		}
-		c.JSON(http.StatusInternalServerError, response.Error(errMsg))
+		c.JSON(http.StatusInternalServerError, response.Error(result.ErrorMessage))
 		return
 	}
 
@@ -225,11 +221,7 @@ func (h *ShippingHandler) GetShippingLabel(c *gin.Context) {
 	}
 
 	if result.Status == "FAILED" || result.FileData == "" {
-		errMsg := result.ErrorMessage
-		if errMsg == "" {
-			errMsg = "Failed to get shipping label"
-		}
-		c.JSON(http.StatusInternalServerError, response.Error(errMsg))
+		c.JSON(http.StatusInternalServerError, response.Error(result.ErrorMessage))
 		return
 	}
 
