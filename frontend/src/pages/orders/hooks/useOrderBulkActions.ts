@@ -5,6 +5,10 @@ import type { OrderListResponse } from "@/types/order";
 import type { CancelOrderParams } from "@/api/orders";
 import { bulkPrintLabels } from "@/api/orders";
 import { downloadOrderLabel } from "../utils/labelDownload";
+import {
+  buildBulkPrintOptions,
+  shouldPromptTikTokPackingSlip,
+} from "./printOptions";
 
 interface UseOrderBulkActionsProps {
   selectedRowKeys: React.Key[];
@@ -23,6 +27,21 @@ interface ProgressState {
 interface BulkResult {
   succeeded: string[];
   failed: Array<{ order_sn: string; error: string }>;
+}
+
+function askIncludeProductsOption(): Promise<boolean> {
+  return new Promise((resolve) => {
+    Modal.confirm({
+      title: "Print option",
+      content:
+        "Include product list (packing slip) for TikTok labels? Choose 'With List' or 'Label Only'.",
+      okText: "With List",
+      cancelText: "Label Only",
+      onOk: () => resolve(true),
+      onCancel: () => resolve(false),
+      centered: true,
+    });
+  });
 }
 
 export function useOrderBulkActions({
@@ -130,6 +149,11 @@ export function useOrderBulkActions({
     if (selectedRowKeys.length === 0) return;
 
     const orderSns = selectedRowKeys as string[];
+    let includeProducts: boolean | undefined;
+    if (shouldPromptTikTokPackingSlip(platform, data, orderSns)) {
+      includeProducts = await askIncludeProductsOption();
+    }
+
     setPrintProgress({
       current: 0,
       total: orderSns.length,
@@ -138,7 +162,10 @@ export function useOrderBulkActions({
     setPrintResult({ succeeded: [], failed: [] });
 
     try {
-      const response = await bulkPrintLabels(orderSns);
+      const response = await bulkPrintLabels(
+        orderSns,
+        buildBulkPrintOptions(platform, includeProducts),
+      );
 
       const succeeded = response.labels.map((label) => label.order_sn);
       const failed = response.failed.map((f) => ({

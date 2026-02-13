@@ -224,5 +224,14 @@ func (h *ShippingHandler) GetShippingLabel(c *gin.Context) {
 		return
 	}
 
+	if result.Status == "FAILED" || result.FileData == "" {
+		errMsg := result.ErrorMessage
+		if errMsg == "" {
+			errMsg = "Failed to get shipping label"
+		}
+		c.JSON(http.StatusInternalServerError, response.Error(errMsg))
+		return
+	}
+
 	c.JSON(http.StatusOK, response.Success(result))
 }

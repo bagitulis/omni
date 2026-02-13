@@ -45,7 +45,16 @@ func (h *OrderManagerHandler) BulkPrintLabels(c *gin.Context) {
 	failed := []map[string]interface{}{}
 
 	for _, orderSN := range req.OrderSNs {
-		result := labelService.GetLabel(ctx, tenantID, orderSN, "")
+		result := labelService.GetLabelWithOptions(
+			ctx,
+			tenantID,
+			orderSN,
+			req.Platform,
+			labelSvc.LabelOptions{
+				IncludeProducts:    req.IncludeProducts,
+				TikTokDocumentType: req.TikTokDocumentType,
+			},
+		)
 
 		if result.Status == "FAILED" {
 			failed = append(failed, map[string]interface{}{

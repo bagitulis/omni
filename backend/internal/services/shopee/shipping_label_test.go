@@ -99,6 +99,14 @@ func TestGetShippingLabel_HandlesBatchApiAllFailed(t *testing.T) {
 	// The client.CreateShippingDocument will return the response AND an error because Error string is set
 	mockClient.On("CreateShippingDocument", orderSN, pkgNum).Return(mockCreateResp, fmt.Errorf("shopee API error: %s - %s", mockCreateResp.Error, mockCreateResp.Message))
 
+	// Mock tracking number exists (shipment arranged) so print flow can proceed
+	mockClient.On("GetTrackingNumber", orderSN).Return(&shopeePkg.GetTrackingNumberResponse{
+		Response: struct {
+			TrackingNumber string `json:"tracking_number"`
+			Hint           string `json:"hint,omitempty"`
+		}{TrackingNumber: "SPX123456789"},
+	}, nil)
+
 	// Mock DownloadShippingDocument to fail for any requested official document type
 	mockDownloadResp := &shopeePkg.DownloadShippingDocumentResponse{
 		Error:   "logistics.tracking_number_invalid",
@@ -114,6 +122,26 @@ func TestGetShippingLabel_HandlesBatchApiAllFailed(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.Equal(t, "FAILED", result.Status)
 	assert.Equal(t, "official Shopee shipping document is not available for this order", result.ErrorMessage)
+
+	mockClient.AssertExpectations(t)
+}
+
+func TestGetShippingLabel_FailsWhenTrackingNotReady(t *testing.T) {
+	mockClient := new(MockAPIClient)
+	service := &ShippingService{pkgClient: mockClient}
+
+	ctx := context.Background()
+	orderSN := "260203Q98DEKHK"
+
+	// ensureShipmentReady retries up to 3 times before failing
+	mockClient.On("GetTrackingNumber", orderSN).Return(&shopeePkg.GetTrackingNumberResponse{}, nil).Times(3)
+
+	result, err := service.GetShippingLabel(ctx, orderSN, "", "THERMAL_AIR_WAYBILL")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "FAILED", result.Status)
+	assert.Equal(t, "shipment is not ready for printing: tracking number is unavailable", result.ErrorMessage)
 
 	mockClient.AssertExpectations(t)
 }

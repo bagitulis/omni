@@ -1,4 +1,4 @@
-import { message } from "antd";
+import { message, Modal } from "antd";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useOrderActions } from "@/hooks/useOrders";
@@ -11,6 +11,7 @@ import {
   bulkPrintLabels,
   getLazadaDocument,
   type CancelOrderParams,
+  type BulkPrintLabelsOptions,
 } from "@/api/orders";
 import {
   arrangeLazadaShipment,
@@ -18,6 +19,21 @@ import {
   arrangeTikTokShipment,
 } from "@/hooks/useOrders";
 import { downloadOrderLabel } from "../utils/labelDownload";
+
+function askIncludeProductsOption(): Promise<boolean> {
+  return new Promise((resolve) => {
+    Modal.confirm({
+      title: "Print option",
+      content:
+        "Include product list (packing slip) for TikTok label? Choose 'With List' or 'Label Only'.",
+      okText: "With List",
+      cancelText: "Label Only",
+      onOk: () => resolve(true),
+      onCancel: () => resolve(false),
+      centered: true,
+    });
+  });
+}
 
 interface UseOrderSingleActionsProps {
   selectedOrder: OrderDetail | Order | null;
@@ -129,7 +145,15 @@ export function useOrderSingleActions({
         }
         message.success(`Printed label for ${orderSn}`);
       } else {
-        const response = await bulkPrintLabels([orderSn]);
+        const printOptions: BulkPrintLabelsOptions = {
+          platform: orderPlatform || undefined,
+        };
+
+        if (orderPlatform === "tiktok") {
+          printOptions.include_products = await askIncludeProductsOption();
+        }
+
+        const response = await bulkPrintLabels([orderSn], printOptions);
         const label = response.labels[0];
         if (!label?.file_data) {
           const reason =

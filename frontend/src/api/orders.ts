@@ -1,5 +1,5 @@
 import apiClient from "./client";
-import {
+import type {
   OrderListResponse,
   Order,
   BackendOrderResponse,
@@ -267,22 +267,38 @@ export interface BulkPrintLabelsResponse {
   count: number;
 }
 
+export interface BulkPrintLabelsOptions {
+  platform?: string;
+  include_products?: boolean;
+  tiktok_document_type?:
+    | "SHIPPING_LABEL"
+    | "PACKING_SLIP"
+    | "SHIPPING_LABEL_AND_PACKING_SLIP";
+}
+
 /**
  * Bulk print labels - calls real backend API
  */
 export async function bulkPrintLabels(
   orderSns: string[],
+  options?: BulkPrintLabelsOptions,
 ): Promise<BulkPrintLabelsResponse> {
   const response = await apiClient.post<BulkPrintLabelsResponse>(
     "/orders/bulk-print-labels",
     {
       order_sns: orderSns,
+      platform: options?.platform,
+      include_products: options?.include_products,
+      tiktok_document_type: options?.tiktok_document_type,
     },
   );
   if (!response.success) {
     throw new Error(response.error || "Failed to print labels");
   }
-  return response.data!;
+  if (!response.data) {
+    throw new Error("Failed to print labels");
+  }
+  return response.data;
 }
 
 /**
@@ -294,8 +310,10 @@ export async function getOrderById(orderSn: string): Promise<OrderDetail> {
   if (!response.success) {
     throw new Error(response.error || "Failed to fetch order details");
   }
-
-  return response.data!;
+  if (!response.data) {
+    throw new Error("Failed to fetch order details");
+  }
+  return response.data;
 }
 
 /**
@@ -371,5 +389,8 @@ export async function getLazadaDocument(
   if (!response.success) {
     throw new Error(response.error || "Failed to get Lazada document");
   }
-  return response.data!;
+  if (!response.data) {
+    throw new Error("Failed to get Lazada document");
+  }
+  return response.data;
 }

@@ -5,8 +5,8 @@ import {
   bulkPrintLabels,
   cancelOrder,
   shipOrder,
-  GetOrdersParams,
 } from "@/api/orders";
+import type { GetOrdersParams } from "@/api/orders";
 import apiClient from "@/api/client";
 import { message } from "antd";
 
@@ -191,7 +191,7 @@ export function useOrderActions() {
   });
 
   const printMutation = useMutation({
-    mutationFn: bulkPrintLabels,
+    mutationFn: (orderSns: string[]) => bulkPrintLabels(orderSns),
     onSuccess: () => {
       message.success("Labels generated successfully");
     },

@@ -56,5 +56,8 @@ type BulkShipRequest struct {
 
 // BulkPrintLabelsRequest for bulk printing shipping labels
 type BulkPrintLabelsRequest struct {
-	OrderSNs []string `json:"order_sns" binding:"required"`
+	OrderSNs           []string `json:"order_sns" binding:"required"`
+	Platform           string   `json:"platform,omitempty"`
+	IncludeProducts    bool     `json:"include_products,omitempty"`
+	TikTokDocumentType string   `json:"tiktok_document_type,omitempty"`
 }

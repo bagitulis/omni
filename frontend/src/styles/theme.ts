@@ -114,6 +114,10 @@ export const antdTheme: ThemeConfig = {
     Badge: {
       fontSize: 10,
     },
+    Tooltip: {
+      colorBgSpotlight: "#f1f5f9",
+      colorTextLightSolid: "#334155",
+    },
   },
 };
 
@@ -139,6 +143,11 @@ export const antdDarkTheme: ThemeConfig = {
       headerBg: "#1E293B",
       rowHoverBg: "#1E293B",
       borderColor: "#334155",
+    },
+    Tooltip: {
+      ...antdTheme.components?.Tooltip,
+      colorBgSpotlight: "#1E293B",
+      colorTextLightSolid: "#E2E8F0",
     },
   },
 };

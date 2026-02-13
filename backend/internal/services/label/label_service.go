@@ -30,6 +30,11 @@ type LabelService struct {
 	basePath string
 }
 
+type LabelOptions struct {
+	IncludeProducts    bool
+	TikTokDocumentType string
+}
+
 // NewLabelService creates a new LabelService
 func NewLabelService(basePath string) *LabelService {
 	return &LabelService{basePath: basePath}
@@ -38,6 +43,10 @@ func NewLabelService(basePath string) *LabelService {
 // GetLabel retrieves a shipping label for an order, routing to the correct platform.
 // If platform is empty, it auto-detects by searching the DB.
 func (s *LabelService) GetLabel(ctx context.Context, tenantID, orderSN, platform string) *LabelResult {
+	return s.GetLabelWithOptions(ctx, tenantID, orderSN, platform, LabelOptions{})
+}
+
+func (s *LabelService) GetLabelWithOptions(ctx context.Context, tenantID, orderSN, platform string, options LabelOptions) *LabelResult {
 	if platform == "" {
 		detected, err := s.detectPlatform(ctx, tenantID, orderSN)
 		if err != nil {
@@ -55,7 +64,7 @@ func (s *LabelService) GetLabel(ctx context.Context, tenantID, orderSN, platform
 	case "shopee":
 		return s.getShopeeLabel(ctx, tenantID, orderSN)
 	case "tiktok":
-		return s.getTikTokLabel(ctx, tenantID, orderSN)
+		return s.getTikTokLabel(ctx, tenantID, orderSN, options)
 	case "lazada":
 		return s.getLazadaLabel(ctx, tenantID, orderSN)
 	default:
@@ -149,12 +158,23 @@ func (s *LabelService) getShopeeLabel(ctx context.Context, tenantID, orderSN str
 }
 
 // getTikTokLabel retrieves a shipping label via TikTok's shipping service
-func (s *LabelService) getTikTokLabel(ctx context.Context, tenantID, orderSN string) *LabelResult {
+func resolveTikTokDocumentType(options LabelOptions) string {
+	if options.TikTokDocumentType != "" {
+		return strings.TrimSpace(options.TikTokDocumentType)
+	}
+	if options.IncludeProducts {
+		return "SHIPPING_LABEL_AND_PACKING_SLIP"
+	}
+	return "SHIPPING_LABEL"
+}
+
+func (s *LabelService) getTikTokLabel(ctx context.Context, tenantID, orderSN string, options LabelOptions) *LabelResult {
 	svc := tiktokService.NewShippingService(s.basePath)
-	docURL, _, err := svc.GetShippingLabelByOrder(ctx, tenantID, orderSN, "SHIPPING_LABEL")
+	documentType := resolveTikTokDocumentType(options)
+	docURL, _, err := svc.GetShippingLabelByOrder(ctx, tenantID, orderSN, documentType)
 	if err != nil {
 		// Fallback: try with packageID directly
-		docURL2, err2 := svc.GetShippingLabel(ctx, tenantID, orderSN, "SHIPPING_LABEL")
+		docURL2, err2 := svc.GetShippingLabel(ctx, tenantID, orderSN, documentType)
 		if err2 != nil {
 			return &LabelResult{
 				OrderSN:      orderSN,
