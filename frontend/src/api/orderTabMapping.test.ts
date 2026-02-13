@@ -9,14 +9,22 @@ import {
 describe("orderTabMapping", () => {
   it("normalizes platform-specific keys to category", () => {
     expect(normalizeOrderTabKey("READY_TO_SHIP")).toBe("unprocess");
+    expect(normalizeOrderTabKey("readytoship")).toBe("unprocess");
+    expect(normalizeOrderTabKey("ready-to-ship")).toBe("unprocess");
+    expect(normalizeOrderTabKey("ready to ship")).toBe("unprocess");
     expect(normalizeOrderTabKey("topack")).toBe("unprocess");
+    expect(normalizeOrderTabKey("to pack")).toBe("unprocess");
+    expect(normalizeOrderTabKey("to_ship")).toBe("processed");
+    expect(normalizeOrderTabKey("to ship")).toBe("processed");
     expect(normalizeOrderTabKey("AWAITING_COLLECTION")).toBe("processed");
     expect(normalizeOrderTabKey("completed")).toBe("completed");
   });
 
   it("maps locked and today keys correctly", () => {
     expect(normalizeOrderTabKey("locked")).toBe("locked");
+    expect(normalizeOrderTabKey("locked today")).toBe("locked");
     expect(normalizeOrderTabKey("today")).toBe("today");
+    expect(normalizeOrderTabKey("todays orders")).toBe("today");
   });
 
   it("maps tabs to backend endpoints", () => {

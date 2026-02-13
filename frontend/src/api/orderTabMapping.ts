@@ -11,10 +11,14 @@ export type OrderTabKey = OrderCategory | "locked" | "today";
 const TAB_TO_CATEGORY: Record<string, OrderCategory> = {
   UNPAID: "unpaid",
   UNPROCESS: "unprocess",
+  UNPROCESSED: "unprocess",
   READY_TO_SHIP: "unprocess",
+  READY_TO_PACK: "unprocess",
+  TO_PACK: "unprocess",
   TOPACK: "unprocess",
   AWAITING_SHIPMENT: "unprocess",
   PROCESSED: "processed",
+  TO_SHIP: "processed",
   TOSHIP: "processed",
   AWAITING_COLLECTION: "processed",
   SHIPPED: "shipped",
@@ -28,6 +32,36 @@ const TAB_TO_CATEGORY: Record<string, OrderCategory> = {
   RETURNED: "cancelled",
 };
 
+const TAB_TO_SPECIAL: Record<
+  string,
+  Extract<OrderTabKey, "locked" | "today">
+> = {
+  LOCKED: "locked",
+  LOCKED_TODAY: "locked",
+  LOCKEDTODAY: "locked",
+  TODAY: "today",
+  TODAYS_ORDERS: "today",
+  TODAYSORDERS: "today",
+};
+
+const TAB_TO_CATEGORY_COMPACT: Record<string, OrderCategory> =
+  Object.fromEntries(
+    Object.entries(TAB_TO_CATEGORY).map(([key, value]) => [
+      key.replace(/[^A-Z0-9]/g, ""),
+      value,
+    ]),
+  );
+
+const TAB_TO_SPECIAL_COMPACT: Record<
+  string,
+  Extract<OrderTabKey, "locked" | "today">
+> = Object.fromEntries(
+  Object.entries(TAB_TO_SPECIAL).map(([key, value]) => [
+    key.replace(/[^A-Z0-9]/g, ""),
+    value,
+  ]),
+);
+
 const SYNCABLE_CATEGORIES: readonly OrderCategory[] = [
   "unpaid",
   "unprocess",
@@ -38,14 +72,17 @@ const SYNCABLE_CATEGORIES: readonly OrderCategory[] = [
 ];
 
 export function normalizeOrderTabKey(tabKey: string): OrderTabKey {
-  const normalized = tabKey.trim().toUpperCase();
-  if (normalized === "LOCKED") {
-    return "locked";
+  const normalized = tabKey.trim().toUpperCase().replace(/\s+/g, "_");
+  const compact = normalized.replace(/[^A-Z0-9]/g, "");
+
+  const special = TAB_TO_SPECIAL[normalized] ?? TAB_TO_SPECIAL_COMPACT[compact];
+  if (special) {
+    return special;
   }
-  if (normalized === "TODAY") {
-    return "today";
-  }
-  return TAB_TO_CATEGORY[normalized] ?? "unpaid";
+
+  return (
+    TAB_TO_CATEGORY[normalized] ?? TAB_TO_CATEGORY_COMPACT[compact] ?? "unpaid"
+  );
 }
 
 export function getOrderEndpointFromTab(tabKey: string): string {

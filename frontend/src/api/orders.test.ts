@@ -107,6 +107,29 @@ describe("getOrders", () => {
     });
   });
 
+  it("maps compact alias status to canonical unprocess endpoint", async () => {
+    mockClientGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: [],
+        count: 0,
+      },
+    });
+
+    await getOrders({ status: "readytoship", platform: "shopee" });
+
+    expect(mockClientGet).toHaveBeenCalledWith("/orders/unprocess", {
+      params: {
+        page: undefined,
+        pageSize: undefined,
+        platform: "shopee",
+        search: undefined,
+        start_date: undefined,
+        end_date: undefined,
+      },
+    });
+  });
+
   it("normalizes today payload fields to table-compatible order fields", async () => {
     mockClientPost.mockResolvedValue({
       data: {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import { message } from "antd";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,8 +16,19 @@ export function useOrdersLogic() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { platform: routePlatform } = useParams();
   const navigate = useNavigate();
-  const activeTab = normalizeOrderTabKey(searchParams.get("type") || "unpaid");
+  const rawType = searchParams.get("type");
+  const activeTab = normalizeOrderTabKey(rawType || "unpaid");
   const platform = routePlatform || "all";
+
+  useEffect(() => {
+    if (rawType === activeTab) {
+      return;
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("type", activeTab);
+    setSearchParams(nextParams, { replace: true });
+  }, [activeTab, rawType, searchParams, setSearchParams]);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -76,8 +87,9 @@ export function useOrdersLogic() {
 
   // Handlers
   const handleTabChange = (key: string) => {
+    const normalizedKey = normalizeOrderTabKey(key);
     queryClient.cancelQueries({ queryKey: ["orders"] });
-    setSearchParams({ type: key });
+    setSearchParams({ type: normalizedKey });
     setPage(1);
     setSelectedRowKeys([]);
   };
