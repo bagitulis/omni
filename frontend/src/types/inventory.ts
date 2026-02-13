@@ -2,7 +2,7 @@ export interface InventoryRecord {
   id: string;
   key_value: string;
   key_column_name: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }

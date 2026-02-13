@@ -47,7 +47,7 @@ export function AddProductModal({
     try {
       await form.validateFields();
       setCurrentStep(currentStep + 1);
-    } catch (error) {
+    } catch {
       // Form validation failed
     }
   };

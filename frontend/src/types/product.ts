@@ -21,7 +21,7 @@ export interface MasterProductSku {
   master_product_id: number;
   seller_sku: string;
   variant_name: string;
-  variant_data: Record<string, any>;
+  variant_data: Record<string, unknown>;
   price: number;
   stock: number;
   created_at: string;
@@ -53,7 +53,7 @@ export interface CreateMasterProductInput {
 export interface CreateSkuInput {
   seller_sku: string;
   variant_name?: string;
-  variant_data?: Record<string, any>;
+  variant_data?: Record<string, unknown>;
   price: number;
   stock: number;
 }

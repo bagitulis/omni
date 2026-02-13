@@ -14,7 +14,7 @@ import {
 /**
  * API Response Type - matches backend response format
  */
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -23,7 +23,7 @@ export interface ApiResponse<T = any> {
 
 export interface ExecutionResponse {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   message?: string;
 }
@@ -213,7 +213,7 @@ class ApiClient {
     window.location.href = `/login${returnUrl}`;
   }
 
-  async get<T = any>(
+  async get<T = unknown>(
     url: string,
     config: AxiosRequestConfig = {},
   ): Promise<ApiResponse<T>> {
@@ -224,7 +224,7 @@ class ApiClient {
     return response.data;
   }
 
-  async post<T = any>(
+  async post<T = unknown>(
     url: string,
     data?: unknown,
     config: AxiosRequestConfig = {},
@@ -236,7 +236,7 @@ class ApiClient {
     return response.data;
   }
 
-  async put<T = any>(
+  async put<T = unknown>(
     url: string,
     data?: unknown,
     config: AxiosRequestConfig = {},
@@ -248,7 +248,7 @@ class ApiClient {
     return response.data;
   }
 
-  async patch<T = any>(
+  async patch<T = unknown>(
     url: string,
     data?: unknown,
     config: AxiosRequestConfig = {},
@@ -260,7 +260,7 @@ class ApiClient {
     return response.data;
   }
 
-  async delete<T = any>(
+  async delete<T = unknown>(
     url: string,
     config: AxiosRequestConfig = {},
   ): Promise<ApiResponse<T>> {
@@ -271,7 +271,7 @@ class ApiClient {
     return response.data;
   }
 
-  async healthCheck(): Promise<ApiResponse<any>> {
+  async healthCheck(): Promise<ApiResponse<unknown>> {
     return this.get("/health", { timeout: API_TIMEOUT.HEALTH });
   }
 
@@ -279,8 +279,7 @@ class ApiClient {
 
   async executeOperation(
     operation: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    params: Record<string, any> = {},
+    params: Record<string, unknown> = {},
   ): Promise<ExecutionResponse> {
     try {
       const mapping = getPlatformOperationMapping(operation, params);
@@ -318,7 +317,7 @@ class ApiClient {
         ? params
         : { operation, params };
 
-      const response = await this.client.post<any>(endpoint, body, {
+      const response = await this.client.post<unknown>(endpoint, body, {
         timeout: API_TIMEOUT.LONG,
       });
       return response.data;
@@ -340,7 +339,7 @@ class ApiClient {
         ? { days }
         : { platform, order_type: orderType, days };
 
-      const response = await this.client.post<any>(endpoint, body, {
+      const response = await this.client.post<unknown>(endpoint, body, {
         timeout: API_TIMEOUT.LONG,
       });
       return response.data;

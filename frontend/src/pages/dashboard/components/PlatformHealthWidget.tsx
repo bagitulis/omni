@@ -23,7 +23,7 @@ export function PlatformHealthWidget() {
     { name: "TikTok", data: tiktokStatus, loading: isTiktokLoading },
     {
       name: "Lazada",
-      data: { status: "disconnected", last_sync: null } as any,
+      data: { status: "disconnected", last_sync: null },
       loading: false,
     },
   ];

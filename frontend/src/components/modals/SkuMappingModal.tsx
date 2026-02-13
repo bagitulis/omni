@@ -24,7 +24,7 @@ export function SkuMappingModal({
     try {
       const values = await form.validateFields();
       onSubmit(values);
-    } catch (error) {
+    } catch {
       // Validation failed
     }
   };

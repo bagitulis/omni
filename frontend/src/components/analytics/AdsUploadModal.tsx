@@ -59,9 +59,11 @@ export const AdsUploadModal = ({ open, onClose, onSuccess }: Props) => {
       } else {
         message.error(response.data.error || "Upload failed");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error("Upload error:", { error });
-      message.error(error.message || "Failed to upload file");
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to upload file";
+      message.error(errorMessage);
     } finally {
       setUploading(false);
     }

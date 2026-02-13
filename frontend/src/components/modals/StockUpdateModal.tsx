@@ -46,7 +46,7 @@ export function StockUpdateModal({
       await onConfirm(values);
       setSubmitting(false);
       onClose();
-    } catch (error) {
+    } catch {
       setSubmitting(false);
     }
   };

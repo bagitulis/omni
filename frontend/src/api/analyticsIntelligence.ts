@@ -170,11 +170,16 @@ export async function getReports(
     });
     if (!response.data.success) throw new Error(response.data.error);
     return response.data.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle 404 gracefully (e.g., if backend feature is not enabled or reachable)
-    if (error.response && error.response.status === 404) {
-      logger.warn("ML Reports endpoint not found (404), returning empty list");
-      return { reports: [], total: 0 };
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 404) {
+        logger.warn(
+          "ML Reports endpoint not found (404), returning empty list",
+        );
+        return { reports: [], total: 0 };
+      }
     }
     throw error;
   }

@@ -71,7 +71,7 @@ export function useRouteMapping() {
     const query = searchQuery.toLowerCase();
     if (!query) return data.components;
 
-    const filtered: Record<string, any> = {};
+    const filtered: Record<string, unknown> = {};
     Object.entries(data.components).forEach(([name, component]) => {
       if (!component.routes_called?.length) return;
 

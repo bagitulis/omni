@@ -43,16 +43,16 @@ export interface RouteData {
   category_labels: Record<string, RouteCategoryLabel>;
   category_stats: Record<string, number>;
   components: Record<string, ComponentDetail>;
-  disconnected_routes: Record<string, any>;
-  backend_only_routes: Record<string, any>;
-  unused_routes: Record<string, any>;
+  disconnected_routes: Record<string, unknown>;
+  backend_only_routes: Record<string, unknown>;
+  unused_routes: Record<string, unknown>;
   button_to_endpoints: Record<string, Record<string, string[]>>;
-  statistics?: Record<string, any>;
+  statistics?: Record<string, unknown>;
   timestamp: string;
 }
 
 export interface RouteStatistics {
-  statistics: Record<string, any>;
+  statistics: Record<string, unknown>;
 }
 
 export type ViewMode =

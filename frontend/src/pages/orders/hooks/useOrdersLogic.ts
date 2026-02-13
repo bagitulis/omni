@@ -132,7 +132,7 @@ export function useOrdersLogic() {
 
       downloadCSV(csv, filename);
       message.success("Orders exported successfully");
-    } catch (error) {
+    } catch {
       message.error("Failed to export orders");
     }
   };

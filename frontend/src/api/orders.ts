@@ -95,8 +95,8 @@ export async function getOrders(
   const status = params.status || "unpaid";
   const endpoint = getOrderEndpoint(status);
 
-  // Use AxiosResponse type or any for now
-  let response: any;
+  // Use unknown type for axios response
+  let response: unknown;
 
   // Special handling for locked and today tabs which require POST
   if (status === "locked" || status === "today") {

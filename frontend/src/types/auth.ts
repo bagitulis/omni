@@ -30,4 +30,4 @@ export interface LoginErrorResponse {
   lockMinutesRemaining?: number;
 }
 
-export interface RegisterResponse extends LoginResponse {}
+export type RegisterResponse = LoginResponse;

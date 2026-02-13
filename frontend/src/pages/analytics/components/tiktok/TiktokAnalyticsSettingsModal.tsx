@@ -75,7 +75,7 @@ export function TiktokAnalyticsSettingsModal({
     try {
       const values = await form.validateFields();
       onSave(values);
-    } catch (error) {
+    } catch {
       // Validation failed
     }
   };
@@ -169,7 +169,7 @@ export function TiktokAnalyticsSettingsModal({
                 `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
               }
               parser={(value) => {
-                const val = value?.replace(/\Rp\s?|(,*)/g, "") || "";
+                const val = value?.replace(/Rp\s?|(,*)/g, "") || "";
                 return Number(val);
               }}
             />

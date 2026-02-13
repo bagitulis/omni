@@ -69,11 +69,11 @@ export function RouteManagementModal({
     }
   }, [open, route, form]);
 
-  const handleFinish = (values: any) => {
+  const handleFinish = (values: unknown) => {
     onSave({
-      ...route,
+      ...(route as Record<string, unknown>),
       ...values,
-    });
+    } as RouteConfig);
     onClose();
   };
 

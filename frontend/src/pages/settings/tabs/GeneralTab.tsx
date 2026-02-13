@@ -82,7 +82,7 @@ export default function GeneralTab() {
     try {
       await saveGeneralSettings(values);
       message.success("Settings saved successfully");
-    } catch (error) {
+    } catch {
       message.warning("Settings saved locally (server unavailable)");
     }
 

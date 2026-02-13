@@ -119,7 +119,7 @@ export function useOrderBulkActions({
 
       setSelectedRowKeys([]);
       refetch();
-    } catch (error) {
+    } catch {
       setShipProgress({ current: 0, total: 0, status: "idle" });
       message.error("Failed to process bulk ship");
     }
@@ -268,7 +268,7 @@ export function useOrderBulkActions({
 
           setSelectedRowKeys([]);
           refetch();
-        } catch (error) {
+        } catch {
           setCancelProgress({ current: 0, total: 0, status: "idle" });
           message.error("Failed to process bulk cancellation");
         }

@@ -1,0 +1,140 @@
+
+> omni-react@0.1.0 lint
+> eslint src --ext .ts,.tsx
+
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\api\analyticsIntelligence.ts
+  173:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\api\client.ts
+   17:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   26:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  216:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  227:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  239:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  251:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  263:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  274:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  321:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  343:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\api\orders.ts
+  99:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\api\products.ts
+   34:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   48:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   58:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   69:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   87:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   99:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  130:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  143:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  178:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\components\analytics\AdsUploadModal.tsx
+  62:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\components\analytics\common\SettingsModal.tsx
+   74:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  158:47  error  Unnecessary escape character: \R   no-useless-escape
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\components\layout\TokenStatusDropdown.tsx
+  70:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  87:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\components\modals\AddProductModal.tsx
+  50:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\components\modals\ConfigEditorModal.tsx
+  55:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\components\modals\ExportOrdersModal.tsx
+  69:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\components\modals\OrderCancelModal.tsx
+  67:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\components\modals\RouteConfigModal.tsx
+  38:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\components\modals\RouteManagementModal.tsx
+  72:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\components\modals\ShippingModal.tsx
+  77:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\components\modals\SkuMappingModal.tsx
+  27:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\components\modals\StockUpdateModal.tsx
+  49:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\contexts\ThemeContext.tsx
+  63:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\hooks\useRouteMapping.ts
+  74:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\pages\analytics\ShopeeAnalyticsPage.tsx
+  99:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\pages\analytics\components\tiktok\TiktokAnalyticsSettingsModal.tsx
+   78:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  172:45  error  Unnecessary escape character: \R   no-useless-escape
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\pages\dashboard\components\PlatformHealthWidget.tsx
+  26:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\pages\orders\components\OrderStatusTabs.tsx
+   3:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  11:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  21:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  31:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\pages\orders\hooks\useOrderBulkActions.ts
+  122:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  271:18  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\pages\orders\hooks\useOrderSingleActions.ts
+  146:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\pages\orders\hooks\useOrderSync.ts
+  28:16  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\pages\orders\hooks\useOrdersLogic.ts
+  135:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\pages\settings\tabs\AccountTab.tsx
+  51:6  warning  React Hook useEffect has a missing dependency: 'fetchUserProfile'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\pages\settings\tabs\GeneralTab.tsx
+  79:6   warning  React Hook useEffect has a missing dependency: 'defaultSettings'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  85:14  error    'error' is defined but never used                                                                                   @typescript-eslint/no-unused-vars
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\pages\settings\tabs\PlatformsTab.tsx
+  74:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\types\api.ts
+  6:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\types\auth.ts
+  33:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\types\inventory.ts
+  5:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\types\product.ts
+  24:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PC\Desktop\Project\omni\frontend\src\types\routeMapping.ts
+  46:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  47:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  48:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  50:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  55:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 65 problems (58 errors, 7 warnings)
+

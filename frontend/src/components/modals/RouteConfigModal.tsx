@@ -35,11 +35,11 @@ export function RouteConfigModal({
     }
   }, [open, config, form]);
 
-  const handleFinish = (values: any) => {
+  const handleFinish = (values: unknown) => {
     onSave({
-      ...config,
+      ...(config as Record<string, unknown>),
       ...values,
-    });
+    } as RouteExecutionConfig);
     onClose();
   };
 

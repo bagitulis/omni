@@ -31,7 +31,7 @@ export async function getProducts(
 
   // Cast to any to handle the response shape correctly
   // Backend returns { success, data: [...], meta: {...} } which IS ProductListResponse
-  const response = await apiClient.get<any>(BASE_PATH, {
+  const response = await apiClient.get<unknown>(BASE_PATH, {
     params: cleanParams,
   });
 
@@ -45,7 +45,7 @@ export async function getProducts(
 export async function getProductById(
   id: string | number,
 ): Promise<MasterProduct> {
-  const response = await apiClient.get<any>(`${BASE_PATH}/${id}`);
+  const response = await apiClient.get<unknown>(`${BASE_PATH}/${id}`);
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to fetch product");
   }
@@ -55,7 +55,7 @@ export async function getProductById(
 export async function createProduct(
   data: CreateMasterProductInput,
 ): Promise<MasterProduct> {
-  const response = await apiClient.post<any>(BASE_PATH, data);
+  const response = await apiClient.post<unknown>(BASE_PATH, data);
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to create product");
   }
@@ -66,7 +66,7 @@ export async function updateProduct(
   id: string | number,
   data: UpdateMasterProductInput,
 ): Promise<MasterProduct> {
-  const response = await apiClient.put<any>(`${BASE_PATH}/${id}`, data);
+  const response = await apiClient.put<unknown>(`${BASE_PATH}/${id}`, data);
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to update product");
   }
@@ -84,7 +84,7 @@ export async function syncProduct(
   id: string | number,
   platform?: string,
 ): Promise<{ skus_synced: number; platform: string }> {
-  const response = await apiClient.post<any>(`${BASE_PATH}/${id}/sync`, {
+  const response = await apiClient.post<unknown>(`${BASE_PATH}/${id}/sync`, {
     target_platform: platform,
   });
   if (!response.success || !response.data) {
@@ -96,7 +96,7 @@ export async function syncProduct(
 export async function importProducts(
   rows: ImportRow[],
 ): Promise<{ imported: number }> {
-  const response = await apiClient.post<any>(`${BASE_PATH}/import`, { rows });
+  const response = await apiClient.post<unknown>(`${BASE_PATH}/import`, { rows });
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to import products");
   }
@@ -108,7 +108,7 @@ export async function getImportPreview(file: File): Promise<ImportPreviewData> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await apiClient.client.post<any>(
+  const response = await apiClient.client.post<unknown>(
     `${BASE_PATH}/import/preview`,
     formData,
     {
@@ -127,7 +127,7 @@ export async function getImportPreview(file: File): Promise<ImportPreviewData> {
 
 // Auto-map SKUs to platform products
 export async function autoMapSkus(skus: string[]): Promise<AutoMapResult> {
-  const response = await apiClient.post<any>(`${BASE_PATH}/mapping/auto-link`, {
+  const response = await apiClient.post<unknown>(`${BASE_PATH}/mapping/auto-link`, {
     skus,
   });
 
@@ -140,7 +140,7 @@ export async function autoMapSkus(skus: string[]): Promise<AutoMapResult> {
 
 // Get mapping status
 export async function getMappingStatus(): Promise<MappingStatus> {
-  const response = await apiClient.get<any>(`${BASE_PATH}/mapping/status`);
+  const response = await apiClient.get<unknown>(`${BASE_PATH}/mapping/status`);
 
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to fetch mapping status");
@@ -175,7 +175,7 @@ export async function unlinkSkuFromPlatform(
 export async function batchUpdateSkus(
   items: BatchSkuUpdateItem[],
 ): Promise<BatchSkuUpdateResult> {
-  const response = await apiClient.put<any>(`${BASE_PATH}/skus/batch`, {
+  const response = await apiClient.put<unknown>(`${BASE_PATH}/skus/batch`, {
     items,
   });
 

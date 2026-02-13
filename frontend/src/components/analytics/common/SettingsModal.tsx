@@ -71,7 +71,7 @@ export function SettingsModal({
     try {
       const values = await form.validateFields();
       onSave(values);
-    } catch (error) {
+    } catch {
       modalApi.error({
         title: "Invalid settings",
         content: "Please correct the highlighted fields before saving.",
@@ -155,7 +155,7 @@ export function SettingsModal({
                   `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                 }
                 parser={(value) => {
-                  const val = value?.replace(/\Rp\s?|(,*)/g, "") || "";
+                  const val = value?.replace(/Rp\s?|(,*)/g, "") || "";
                   return Number(val);
                 }}
               />

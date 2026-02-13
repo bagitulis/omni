@@ -71,7 +71,7 @@ export default function PlatformsTab() {
       await apiClient.get(`/platform-auth/${platform.platform}/disconnect`);
       message.success(`Disconnected from ${platformName}`);
       fetchPlatformStatus();
-    } catch (error) {
+    } catch {
       message.error(`Failed to disconnect from ${platformName}`);
     }
   };

@@ -143,7 +143,7 @@ export function useOrderSingleActions({
       const orderDetail = await getOrderById(orderSn);
       setSelectedOrder(orderDetail);
       setIsDetailModalOpen(true);
-    } catch (error) {
+    } catch {
       message.warning("Could not load full order details");
     }
   };

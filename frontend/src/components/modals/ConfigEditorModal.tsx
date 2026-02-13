@@ -52,7 +52,7 @@ export function ConfigEditorModal({
     }
   }, [open, config, form]);
 
-  const handleFinish = (values: any) => {
+  const handleFinish = (values: unknown) => {
     const newConfig: AutoFunctionConfig = {
       ...config,
       ...values,

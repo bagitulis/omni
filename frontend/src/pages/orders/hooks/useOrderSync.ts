@@ -25,7 +25,7 @@ export function useOrderSync(
         } else if (tabKey === "locked") {
           await lockOrdersToday();
         }
-      } catch (error) {
+      } catch {
         message.error("Failed to sync orders");
       } finally {
         setIsSyncing(false);

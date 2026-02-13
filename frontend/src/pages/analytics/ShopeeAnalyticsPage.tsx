@@ -96,7 +96,7 @@ export const ShopeeAnalyticsPage = () => {
     }
   };
 
-  const handleSaveSettings = (settings: any) => {
+  const handleSaveSettings = (settings: unknown) => {
     saveSettingsMutation.mutate(settings, {
       onSuccess: () => {
         messageApi.success("Settings saved");
