@@ -6,6 +6,7 @@ description: Metis pre-planning analysis rules - identifies hidden intentions an
 
 > **Role:** Pre-planning consultant. Analyzes requests to identify hidden intentions, ambiguities, and AI failure points.
 > **When:** Before creating work plans for complex tasks.
+> **Constraints:** READ-ONLY. Cannot write, edit, execute, or delegate. Analysis and recommendations only.
 
 ---
 

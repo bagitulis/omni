@@ -19,6 +19,10 @@
 | **Commit ALL Files**  | Never cherry-pick, include ALL changed files        |
 | **Push After Commit** | User expects remote sync immediately                |
 
+> **Exception — Hephaestus**: Hephaestus MUST NOT auto-commit or auto-push.
+> Requires **explicit user confirmation** before any git operation.
+> See AGENTS.md § Commit Policy for details.
+
 ---
 
 ## 1. Code Change Patterns
@@ -241,6 +245,8 @@ When a delegated task **fails or produces incorrect results** (NOT due to connec
 > **Why `deep`?** The `deep` category uses a stronger reasoning model with autonomous problem-solving.
 > It performs thorough research before acting — ideal for tasks that lighter categories failed on.
 > This prevents wasting retries on the same weak model that already failed.
+
+> **Mix mode note:** If `@oracle` is unavailable (Mix config), use `category="deep"` with detailed analysis prompt instead. See AGENTS.md § Mix Mode Fallback Matrix.
 <!-- /MASTER:failure-escalation -->
 
 ---

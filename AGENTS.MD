@@ -1,6 +1,6 @@
 # OMNI - Core Development Rules
 
-> **STATUS: MANDATORY** | **Version: 5.2** | **Updated: 2026-02-05**
+> **STATUS: MANDATORY** | **Version: 5.3** | **Updated: 2026-02-13**
 >
 > This file is the **IMMUTABLE CONSTITUTION** for ALL agents.
 > These rules apply GLOBALLY - cannot be overridden by child rules.
@@ -92,6 +92,19 @@ Not all configs include every agent. The agent table above is the **full set** (
 
 > **Mix mode**: Advisory agents (oracle, librarian, explore, metis, momus) are unavailable.
 > Delegate work via categories instead. This is by design — Mix uses a hybrid model set with limited slots.
+
+#### Mix Mode Fallback Matrix
+
+When advisory agents are unavailable in Mix mode, use these alternative escalation paths:
+
+| Normal Path         | Mix Mode Fallback                                                  |
+| ------------------- | ------------------------------------------------------------------ |
+| `@oracle` consult   | `category="deep"` with detailed analysis prompt                    |
+| `@librarian` lookup | `category="deep"` with explicit search instructions + web tools    |
+| `@explore` search   | Direct `grep`/`glob`/`ast_grep_search` tools                       |
+| `@metis` analysis   | Orchestrator performs pre-planning inline (follow Metis framework) |
+| `@momus` review     | Orchestrator performs plan review inline (follow Momus criteria)   |
+| Deep also fails     | Ask user for guidance — do NOT loop endlessly                      |
 
 ---
 
@@ -302,6 +315,11 @@ python build.py backup
 - NEVER use destructive git commands that could damage remote repository
 - **NEVER commit secrets**: `.env` files, API keys, passwords, credentials, tokens. If unsure, ask the user.
 
+> **Exception — Hephaestus**: Hephaestus (testing agent) MUST NOT auto-commit or auto-push.
+> Hephaestus requires **explicit user confirmation** before any git commit/push.
+> This is intentional — testing results must be reviewed before committing.
+> All other agents follow the auto-commit/auto-push policy above.
+
 > **Task vs Batch**: A "task" = one logical unit of work (e.g., fix a bug, add a feature, update docs).
 > In loop mode (ULP), the orchestrator may batch multiple small tasks into one commit — this is acceptable.
 > The rule is: **never leave completed work uncommitted**.
@@ -359,6 +377,8 @@ When a delegated task **fails or produces incorrect results** (NOT due to connec
 > **Why `deep`?** The `deep` category uses a stronger reasoning model with autonomous problem-solving.
 > It performs thorough research before acting — ideal for tasks that lighter categories failed on.
 > This prevents wasting retries on the same weak model that already failed.
+
+> **Mix mode note:** If `@oracle` is unavailable (Mix config), use `category="deep"` with detailed analysis prompt instead. See AGENTS.md § Mix Mode Fallback Matrix.
 <!-- /MASTER:failure-escalation -->
 
 ---

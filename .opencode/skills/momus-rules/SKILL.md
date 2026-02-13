@@ -74,7 +74,7 @@ Blocking Issues:
 1. [Issue + specific fix needed]
 2. [Issue + specific fix needed]
 
-[session_id for continuation]
+Recommended next step: [Specific action the caller should take to address blocking issues]
 ```
 
 ---

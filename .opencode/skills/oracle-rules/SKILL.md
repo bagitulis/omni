@@ -37,7 +37,7 @@ Provide structured response:
 2. [Specific step]
    ...
 
-**Effort estimate**: [Short/Medium/Long]
+**Effort estimate**: [Quick (< 1h) / Short (1-4h) / Medium (1-2d) / Large (3d+)]
 
 **Why this approach**
 [Brief reasoning]

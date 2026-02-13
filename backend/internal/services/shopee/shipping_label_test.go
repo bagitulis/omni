@@ -81,6 +81,9 @@ func TestGetShippingLabel_HandlesBatchApiAllFailed(t *testing.T) {
 		Error:   "common.batch_api_all_failed",
 		Message: "All failed",
 	}
+
+	// Package lookup can be empty and should not block flow
+	mockClient.On("GetShippingDocumentDataInfo", orderSN, "").Return(&shopeePkg.ShippingDocumentDataInfoResponse{}, nil)
 	// Add the failure details
 	failDetail := struct {
 		OrderSN       string `json:"order_sn"`
@@ -125,6 +128,7 @@ func TestGetShippingLabel_UsesRawDownloadErrorWhenTrackingUnavailable(t *testing
 
 	ctx := context.Background()
 	orderSN := "260203Q98DEKHK"
+	mockClient.On("GetShippingDocumentDataInfo", orderSN, "").Return(&shopeePkg.ShippingDocumentDataInfoResponse{}, nil)
 
 	// ensureShipmentReady retries up to 3 times and returns empty tracking payload
 	mockClient.On("GetTrackingNumber", orderSN).Return(&shopeePkg.GetTrackingNumberResponse{}, nil).Times(3)
@@ -157,6 +161,73 @@ func TestGetShippingLabel_UsesRawDownloadErrorWhenTrackingUnavailable(t *testing
 	assert.NotNil(t, result)
 	assert.Equal(t, "FAILED", result.Status)
 	assert.Equal(t, "shopee API error: logistics.tracking_number_invalid - The tracking number is invalid", result.ErrorMessage)
+
+	mockClient.AssertExpectations(t)
+}
+
+func TestGetShippingLabel_UsesResolvedPackageNumber(t *testing.T) {
+	mockClient := new(MockAPIClient)
+	service := &ShippingService{pkgClient: mockClient}
+
+	ctx := context.Background()
+	orderSN := "260203Q98DEKHK"
+	resolvedPackage := "PKG-123"
+
+	mockClient.On("GetShippingDocumentDataInfo", orderSN, "").Return(&shopeePkg.ShippingDocumentDataInfoResponse{
+		Response: struct {
+			OrderSN                 string  `json:"order_sn"`
+			PackageNumber           string  `json:"package_number"`
+			LogisticsChannelID      int     `json:"logistics_channel_id"`
+			LogisticsChannelName    string  `json:"logistics_channel_name"`
+			FirstMileTrackingNumber string  `json:"first_mile_tracking_number"`
+			LastMileTrackingNumber  string  `json:"last_mile_tracking_number"`
+			TrackingNumber          string  `json:"tracking_number"`
+			ShippingCarrier         string  `json:"shipping_carrier"`
+			SenderName              string  `json:"sender_name"`
+			SenderPhone             string  `json:"sender_phone"`
+			SenderAddress           string  `json:"sender_address"`
+			SenderCity              string  `json:"sender_city"`
+			SenderDistrict          string  `json:"sender_district"`
+			SenderState             string  `json:"sender_state"`
+			SenderZipcode           string  `json:"sender_zipcode"`
+			SenderCountry           string  `json:"sender_country"`
+			RecipientName           string  `json:"recipient_name"`
+			RecipientPhone          string  `json:"recipient_phone"`
+			RecipientAddress        string  `json:"recipient_address"`
+			RecipientCity           string  `json:"recipient_city"`
+			RecipientDistrict       string  `json:"recipient_district"`
+			RecipientState          string  `json:"recipient_state"`
+			RecipientZipcode        string  `json:"recipient_zipcode"`
+			RecipientCountry        string  `json:"recipient_country"`
+			RecipientSortCode       string  `json:"recipient_sort_code"`
+			ServiceDescription      string  `json:"service_description"`
+			BuyerCodAmount          float64 `json:"buyer_cod_amount"`
+		}{PackageNumber: resolvedPackage},
+	}, nil)
+
+	mockClient.On("GetTrackingNumber", orderSN).Return(&shopeePkg.GetTrackingNumberResponse{}, nil).Times(3)
+	mockClient.On("CreateShippingDocument", orderSN, resolvedPackage).Return(&shopeePkg.CreateShippingDocumentResponse{}, nil)
+
+	mockResultResp := &shopeePkg.GetShippingDocumentResultResponse{}
+	mockResultResp.Response.ResultList = append(mockResultResp.Response.ResultList, struct {
+		OrderSN       string `json:"order_sn"`
+		PackageNumber string `json:"package_number"`
+		Status        string `json:"status"`
+		FailError     string `json:"fail_error,omitempty"`
+		FailMessage   string `json:"fail_message,omitempty"`
+	}{OrderSN: orderSN, PackageNumber: resolvedPackage, Status: "READY"})
+	mockClient.On("GetShippingDocumentResult", orderSN, resolvedPackage).Return(mockResultResp, nil)
+
+	mockDownloadResp := &shopeePkg.DownloadShippingDocumentResponse{}
+	mockDownloadResp.RawPDF = []byte("pdf")
+	mockClient.On("DownloadShippingDocument", orderSN, resolvedPackage, mock.AnythingOfType("string")).Return(mockDownloadResp, nil)
+
+	result, err := service.GetShippingLabel(ctx, orderSN, "", "THERMAL_AIR_WAYBILL")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "SUCCESS", result.Status)
+	assert.NotEmpty(t, result.FileData)
 
 	mockClient.AssertExpectations(t)
 }
