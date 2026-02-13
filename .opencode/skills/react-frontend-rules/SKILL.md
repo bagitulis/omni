@@ -4,7 +4,7 @@ description: React frontend rules for OMNI React migration - Ant Design + Ginee-
 
 # React Frontend Rules
 
-> **Role:** Rules for agents implementing React frontend (frontend-react/).
+> **Role:** Rules for agents implementing React frontend (frontend/).
 > **Stack:** React 19 + Vite 6 + Ant Design 5 + TypeScript + Zustand + TanStack Query
 
 ---
@@ -69,7 +69,7 @@ font-family:
 ## Project Structure
 
 ```
-frontend-react/
+frontend/
 ├── src/
 │   ├── api/                    # API client functions
 │   │   ├── client.ts           # Axios instance
@@ -318,8 +318,8 @@ return response.data.data;
 
 ## References
 
-- Design System: `.sisyphus/plans/react-migration.md` (Design System section)
-- Vue Reference: `frontend/src/` (for logic patterns only, NOT layout)
+- Design System: Defined in this document (see Design System section above)
+- Vue Legacy Reference: `frontend-vue/src/` (for logic patterns only, NOT layout)
 - Ginee Style: Task-first dashboard, flat navigation, data-dense tables
 
 ---

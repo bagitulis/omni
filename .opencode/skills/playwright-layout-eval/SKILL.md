@@ -268,10 +268,10 @@ Scenario: Verify flat navigation (no nested menus)
 
 ### Screenshot Naming Convention
 
-**CRITICAL: ALL screenshots MUST be saved to `docs/Screenshots/` directory. NEVER save to root folder.**
+**CRITICAL: ALL screenshots MUST be saved to `.sisyphus/evidence/` directory. NEVER save to root folder.**
 
 ```
-docs/Screenshots/
+.sisyphus/evidence/
 ├── task-{N}-{component}-desktop.png     # Desktop view
 ├── task-{N}-{component}-mobile.png      # Mobile view (375x667)
 ├── task-{N}-{component}-tablet.png      # Tablet view (768x1024)
@@ -280,13 +280,13 @@ docs/Screenshots/
 
 ### Screenshot Tool Usage
 
-ALWAYS specify filename with `docs/Screenshots/` prefix:
+ALWAYS specify filename with `.sisyphus/evidence/` prefix:
 
 ```javascript
 // CORRECT
 browser_take_screenshot({
   type: "png",
-  filename: "docs/Screenshots/task-1-sidebar-desktop.png",
+  filename: ".sisyphus/evidence/task-1-sidebar-desktop.png",
 });
 
 // WRONG - saves to root, creates mess
@@ -305,7 +305,7 @@ browser_take_screenshot({ type: "png" });
 
 ### PASS Conditions
 
-- All layout dimensions match within 2px tolerance
+- All layout dimensions match within 5px tolerance (≤5px difference)
 - Primary color is #0369a1 (rgb(3, 105, 161))
 - Font size is 12px for body/tables
 - System fonts used (no Google Fonts requests)
@@ -314,7 +314,7 @@ browser_take_screenshot({ type: "png" });
 
 ### FAIL Conditions
 
-- Layout dimensions off by > 5px
+- Layout dimensions off by > 5px (more than 5px difference)
 - Wrong primary color used
 - Google Fonts loaded (check network requests)
 - Nested submenus present
@@ -612,14 +612,14 @@ When you open a page in the browser (for ANY reason — testing, screenshots, ve
 
 When you find a UI bug that is NOT part of your current task:
 
-1. **Take a screenshot** → save to `docs/Screenshots/bug-{page-name}-{issue}.png`
+1. **Take a screenshot** → save to `.sisyphus/evidence/bug-{page-name}-{issue}.png`
 2. **Include in your response** to the main agent:
 
 ```
 🐛 UI BUG FOUND (not my current task):
 - Page: [URL or page name]
 - Issue: [brief description]
-- Screenshot: docs/Screenshots/bug-{name}.png
+- Screenshot: .sisyphus/evidence/bug-{name}.png
 - Severity: [CRITICAL / WARNING]
 ```
 

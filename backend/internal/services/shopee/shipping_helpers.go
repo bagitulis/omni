@@ -30,7 +30,11 @@ func (s *ShippingService) ensureShipmentReady(ctx context.Context, client shippi
 		}
 	}
 
-	return nil, fmt.Errorf("shipment not ready: please arrange shipment (pickup/dropoff) first to generate tracking number")
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 // applyDefaultPickupTime selects the preferred pickup time slot (tomorrow) or first available

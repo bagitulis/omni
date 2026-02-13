@@ -111,16 +111,16 @@ ASK YOURSELF before marking ANY task complete:
 
 **If ANY answer is "no" → NOT done. Keep working.**
 
-| Gate       | Check                               | Method                                                      |
-| ---------- | ----------------------------------- | ----------------------------------------------------------- |
-| **Build**  | All builds pass                     | Direct: `go build`, `npm run build`                         |
-| **Test**   | All tests pass                      | Direct: `go test`, `npm run lint`                           |
-| **LSP**    | No diagnostics errors               | Direct: `lsp_diagnostics`                                   |
-| **Schema** | Backup executed if schema changed   | Direct: `python build.py backup`                            |
-| **Docker** | Deployed if needed                  | Direct: `python build.py smart`                             |
-| **Git**    | All files committed and pushed      | Direct: `git add -A && git commit && git push`              |
-| **UI**     | Data displays correctly             | Delegate: Playwright verification                           |
-| **Flow**   | Executor followed "Understand Flow" | Review: check executor traced the flow, not trial-and-error |
+| Gate       | Check                               | Method                                                       |
+| ---------- | ----------------------------------- | ------------------------------------------------------------ |
+| **Build**  | All builds pass                     | Direct: `go build`, `npm run build`                          |
+| **Test**   | All tests pass                      | Direct: `go test`, `npm run lint`                            |
+| **LSP**    | No diagnostics errors               | Direct: `lsp_diagnostics`                                    |
+| **Schema** | Backup executed if schema changed   | Direct: `python build.py backup`                             |
+| **Docker** | Deployed if needed                  | Direct: `python build.py smart`                              |
+| **Git**    | All files committed and pushed      | Delegate: task(category="quick", load_skills=["git-master"]) |
+| **UI**     | Data displays correctly             | Delegate: Playwright verification                            |
+| **Flow**   | Executor followed "Understand Flow" | Review: check executor traced the flow, not trial-and-error  |
 
 ### Stop Conditions (When to EXIT the Loop)
 

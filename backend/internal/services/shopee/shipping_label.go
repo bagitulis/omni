@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"time"
 
 	shopeePkg "github.com/omni/backend/pkg/shopee"
@@ -26,13 +27,7 @@ func (s *ShippingService) GetShippingLabel(ctx context.Context, orderSN, package
 	}
 
 	trackingResp, trackingErr := s.ensureShipmentReady(ctx, client, orderSN, packageNumber)
-	if trackingErr != nil || trackingResp == nil || trackingResp.Response.TrackingNumber == "" {
-		return &ShippingLabelResult{
-			OrderSN:      orderSN,
-			Status:       "FAILED",
-			ErrorMessage: "shipment is not ready for printing: tracking number is unavailable",
-		}, nil
-	}
+	trackingErrorMessage := extractShopeeTrackingError(trackingResp, trackingErr)
 
 	documentTypes := []string{
 		documentType,
@@ -43,7 +38,7 @@ func (s *ShippingService) GetShippingLabel(ctx context.Context, orderSN, package
 	}
 
 	tried := make(map[string]struct{}, len(documentTypes))
-	lastShopeeError := ""
+	lastShopeeError := trackingErrorMessage
 	for _, docType := range documentTypes {
 		if docType == "" {
 			continue
@@ -74,74 +69,37 @@ func (s *ShippingService) GetShippingLabel(ctx context.Context, orderSN, package
 	return &ShippingLabelResult{
 		OrderSN:      orderSN,
 		Status:       "FAILED",
-		ErrorMessage: "shopee API error: no shipping document details returned",
+		ErrorMessage: "shopee API error: no error payload returned by create/result/download endpoints",
 	}, nil
 }
 
 func (s *ShippingService) tryStandardDownload(ctx context.Context, client shippingClient, orderSN, packageNumber, documentType string) (*ShippingLabelResult, error) {
+	_ = ctx
 	createResult, err := client.CreateShippingDocument(orderSN, packageNumber)
 	createErrorMessage := extractShopeeCreateError(createResult, err)
 
-	canProceedToDownload := err == nil
-	if err != nil {
-		if createResult != nil && createResult.Error == "common.batch_api_all_failed" && len(createResult.Response.ResultList) > 0 {
-			failErr := createResult.Response.ResultList[0].FailError
-			if failErr == "logistics.document_already_created" || failErr == "logistics.tracking_number_invalid" {
-				canProceedToDownload = true
+	if createResult == nil && err != nil {
+		return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: err.Error()}, nil
+	}
+
+	if createResult != nil {
+		if len(createResult.Response.ResultList) > 0 {
+			item := createResult.Response.ResultList[0]
+			if item.FailError != "" || item.FailMessage != "" {
+				if item.FailError != "logistics.document_already_created" {
+					return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: formatShopeeError(item.FailError, item.FailMessage)}, nil
+				}
 			}
 		}
-		if !canProceedToDownload {
-			canProceedToDownload = true
+
+		if createResult.Error != "" || createResult.Message != "" {
+			if createResult.Error != "common.batch_api_all_failed" {
+				return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: formatShopeeError(createResult.Error, createResult.Message)}, nil
+			}
 		}
 	}
 
-	if !canProceedToDownload {
-		return &ShippingLabelResult{
-			OrderSN:      orderSN,
-			Status:       "FAILED",
-			ErrorMessage: createErrorMessage,
-		}, nil
-	}
-
-	downloadResult, err := client.DownloadShippingDocument(orderSN, packageNumber, documentType)
-	if err != nil {
-		if downloadResult != nil && downloadResult.Error == "logistics.shipping_document_should_print_first" {
-			return s.pollAndDownload(ctx, client, orderSN, packageNumber, documentType)
-		}
-		return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: extractShopeeDocumentError(downloadResult, err)}, nil
-	}
-
-	if len(downloadResult.RawPDF) > 0 {
-		return &ShippingLabelResult{
-			OrderSN:  orderSN,
-			Status:   "SUCCESS",
-			FileData: base64.StdEncoding.EncodeToString(downloadResult.RawPDF),
-		}, nil
-	}
-
-	if len(downloadResult.Response.ResultList) > 0 {
-		docResult := downloadResult.Response.ResultList[0]
-		if docResult.ShippingDocFile != "" {
-			return &ShippingLabelResult{OrderSN: orderSN, Status: "SUCCESS", FileData: docResult.ShippingDocFile}, nil
-		}
-	}
-
-	if len(downloadResult.Response.ResultList) > 0 {
-		docResult := downloadResult.Response.ResultList[0]
-		if docResult.FailError != "" || docResult.FailMessage != "" {
-			return &ShippingLabelResult{
-				OrderSN:      orderSN,
-				Status:       "FAILED",
-				ErrorMessage: formatShopeeError(docResult.FailError, docResult.FailMessage),
-			}, nil
-		}
-	}
-
-	if createErrorMessage != "" {
-		return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: createErrorMessage}, nil
-	}
-
-	return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: "shopee API error: empty shipping document response"}, nil
+	return s.pollAndDownload(ctx, client, orderSN, packageNumber, documentType, createErrorMessage)
 }
 
 func extractShopeeCreateError(createResult *shopeePkg.CreateShippingDocumentResponse, err error) string {
@@ -197,46 +155,96 @@ func formatShopeeError(errorCode, message string) string {
 	}
 }
 
-func (s *ShippingService) pollAndDownload(ctx context.Context, client shippingClient, orderSN, packageNumber, documentType string) (*ShippingLabelResult, error) {
-	for i := 0; i < 5; i++ {
+func extractShopeeTrackingError(trackingResp *shopeePkg.GetTrackingNumberResponse, trackingErr error) string {
+	if trackingErr != nil {
+		return trackingErr.Error()
+	}
+
+	if trackingResp == nil {
+		return ""
+	}
+
+	if trackingResp.Error != "" || trackingResp.Message != "" {
+		return formatShopeeError(trackingResp.Error, trackingResp.Message)
+	}
+
+	if trackingResp.Response.Hint != "" {
+		return formatShopeeError("", trackingResp.Response.Hint)
+	}
+
+	return ""
+}
+
+func (s *ShippingService) pollAndDownload(ctx context.Context, client shippingClient, orderSN, packageNumber, documentType, createErrorMessage string) (*ShippingLabelResult, error) {
+	_ = ctx
+	lastStatus := ""
+	lastErrorMessage := ""
+	for i := 0; i < 30; i++ {
 		resultResp, err := client.GetShippingDocumentResult(orderSN, packageNumber)
-		if err == nil && len(resultResp.Response.ResultList) > 0 {
-			resultItem := resultResp.Response.ResultList[0]
-			status := resultItem.Status
-			if resultItem.FailError != "" || resultItem.FailMessage != "" {
-				return &ShippingLabelResult{
-					OrderSN:      orderSN,
-					Status:       "FAILED",
-					ErrorMessage: formatShopeeError(resultItem.FailError, resultItem.FailMessage),
-				}, nil
+		if err != nil {
+			return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: err.Error()}, nil
+		}
+
+		if resultResp != nil {
+			if resultResp.Error != "" || resultResp.Message != "" {
+				return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: formatShopeeError(resultResp.Error, resultResp.Message)}, nil
 			}
-			if status == "READY" || status == "SUCCESS" {
-				downloadResult, dlErr := client.DownloadShippingDocument(orderSN, packageNumber, documentType)
-				if dlErr == nil {
+
+			if len(resultResp.Response.ResultList) > 0 {
+				resultItem := resultResp.Response.ResultList[0]
+				status := strings.ToUpper(resultItem.Status)
+				if status != "" {
+					lastStatus = status
+				}
+				if resultItem.FailError != "" || resultItem.FailMessage != "" {
+					return &ShippingLabelResult{
+						OrderSN:      orderSN,
+						Status:       "FAILED",
+						ErrorMessage: formatShopeeError(resultItem.FailError, resultItem.FailMessage),
+					}, nil
+				}
+				if status == "FAILED" {
+					return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: formatShopeeError("", "shipping_document_result status=FAILED")}, nil
+				}
+				if status == "READY" || status == "SUCCESS" {
+					downloadResult, dlErr := client.DownloadShippingDocument(orderSN, packageNumber, documentType)
+					if dlErr != nil {
+						return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: extractShopeeDocumentError(downloadResult, dlErr)}, nil
+					}
 					if len(downloadResult.RawPDF) > 0 {
 						return &ShippingLabelResult{OrderSN: orderSN, Status: "SUCCESS", FileData: base64.StdEncoding.EncodeToString(downloadResult.RawPDF)}, nil
 					}
 					if len(downloadResult.Response.ResultList) > 0 {
 						docResult := downloadResult.Response.ResultList[0]
-						fileData := docResult.ShippingDocFile
-						if fileData != "" {
-							return &ShippingLabelResult{OrderSN: orderSN, Status: "SUCCESS", FileData: fileData}, nil
+						if docResult.ShippingDocFile != "" {
+							return &ShippingLabelResult{OrderSN: orderSN, Status: "SUCCESS", FileData: docResult.ShippingDocFile}, nil
 						}
 						if docResult.FailError != "" || docResult.FailMessage != "" {
 							return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: formatShopeeError(docResult.FailError, docResult.FailMessage)}, nil
 						}
 					}
-				} else {
-					return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: extractShopeeDocumentError(downloadResult, dlErr)}, nil
+					if downloadResult.Error != "" || downloadResult.Message != "" {
+						return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: formatShopeeError(downloadResult.Error, downloadResult.Message)}, nil
+					}
+					return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: formatShopeeError("", "download_shipping_document returned no file data")}, nil
 				}
 			}
-		} else if err != nil {
-			return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: err.Error()}, nil
 		}
-		if i < 4 {
-			time.Sleep(1 * time.Second)
+
+		if i < 29 {
+			time.Sleep(2 * time.Second)
 		}
 	}
 
-	return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: "shopee API error: shipping document not ready after polling"}, nil
+	if lastErrorMessage != "" {
+		return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: lastErrorMessage}, nil
+	}
+	if lastStatus != "" {
+		return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: formatShopeeError("", "shipping_document_result status="+lastStatus)}, nil
+	}
+	if createErrorMessage != "" {
+		return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: createErrorMessage}, nil
+	}
+
+	return &ShippingLabelResult{OrderSN: orderSN, Status: "FAILED", ErrorMessage: formatShopeeError("", "get_shipping_document_result returned no result status")}, nil
 }
