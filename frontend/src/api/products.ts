@@ -45,7 +45,7 @@ export async function getProducts(
 export async function getProductById(
   id: string | number,
 ): Promise<MasterProduct> {
-  const response = await apiClient.get<unknown>(`${BASE_PATH}/${id}`);
+  const response = await apiClient.get<MasterProduct>(`${BASE_PATH}/${id}`);
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to fetch product");
   }
@@ -55,7 +55,7 @@ export async function getProductById(
 export async function createProduct(
   data: CreateMasterProductInput,
 ): Promise<MasterProduct> {
-  const response = await apiClient.post<unknown>(BASE_PATH, data);
+  const response = await apiClient.post<MasterProduct>(BASE_PATH, data);
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to create product");
   }
@@ -66,7 +66,10 @@ export async function updateProduct(
   id: string | number,
   data: UpdateMasterProductInput,
 ): Promise<MasterProduct> {
-  const response = await apiClient.put<unknown>(`${BASE_PATH}/${id}`, data);
+  const response = await apiClient.put<MasterProduct>(
+    `${BASE_PATH}/${id}`,
+    data,
+  );
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to update product");
   }
@@ -84,7 +87,10 @@ export async function syncProduct(
   id: string | number,
   platform?: string,
 ): Promise<{ skus_synced: number; platform: string }> {
-  const response = await apiClient.post<unknown>(`${BASE_PATH}/${id}/sync`, {
+  const response = await apiClient.post<{
+    skus_synced: number;
+    platform: string;
+  }>(`${BASE_PATH}/${id}/sync`, {
     target_platform: platform,
   });
   if (!response.success || !response.data) {
@@ -96,7 +102,10 @@ export async function syncProduct(
 export async function importProducts(
   rows: ImportRow[],
 ): Promise<{ imported: number }> {
-  const response = await apiClient.post<unknown>(`${BASE_PATH}/import`, { rows });
+  const response = await apiClient.post<{ imported: number }>(
+    `${BASE_PATH}/import`,
+    { rows },
+  );
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to import products");
   }
@@ -108,15 +117,15 @@ export async function getImportPreview(file: File): Promise<ImportPreviewData> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await apiClient.client.post<unknown>(
-    `${BASE_PATH}/import/preview`,
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+  const response = await apiClient.client.post<{
+    success: boolean;
+    data?: ImportPreviewData;
+    error?: string;
+  }>(`${BASE_PATH}/import/preview`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
     },
-  );
+  });
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error || "Failed to preview import file");
@@ -127,9 +136,12 @@ export async function getImportPreview(file: File): Promise<ImportPreviewData> {
 
 // Auto-map SKUs to platform products
 export async function autoMapSkus(skus: string[]): Promise<AutoMapResult> {
-  const response = await apiClient.post<unknown>(`${BASE_PATH}/mapping/auto-link`, {
-    skus,
-  });
+  const response = await apiClient.post<AutoMapResult>(
+    `${BASE_PATH}/mapping/auto-link`,
+    {
+      skus,
+    },
+  );
 
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to auto-map SKUs");
@@ -140,7 +152,9 @@ export async function autoMapSkus(skus: string[]): Promise<AutoMapResult> {
 
 // Get mapping status
 export async function getMappingStatus(): Promise<MappingStatus> {
-  const response = await apiClient.get<unknown>(`${BASE_PATH}/mapping/status`);
+  const response = await apiClient.get<MappingStatus>(
+    `${BASE_PATH}/mapping/status`,
+  );
 
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to fetch mapping status");
@@ -175,9 +189,12 @@ export async function unlinkSkuFromPlatform(
 export async function batchUpdateSkus(
   items: BatchSkuUpdateItem[],
 ): Promise<BatchSkuUpdateResult> {
-  const response = await apiClient.put<unknown>(`${BASE_PATH}/skus/batch`, {
-    items,
-  });
+  const response = await apiClient.put<BatchSkuUpdateResult>(
+    `${BASE_PATH}/skus/batch`,
+    {
+      items,
+    },
+  );
 
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to batch update SKUs");

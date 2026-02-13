@@ -14,7 +14,7 @@ import {
   Flex,
 } from "antd";
 import { useRouteMapping } from "@/hooks/useRouteMapping";
-import type { ViewMode } from "@/types/routeMapping";
+import type { ViewMode, ComponentDetail } from "@/types/routeMapping";
 import {
   columnsBackendOnly,
   columnsConnected,
@@ -145,7 +145,11 @@ export function RouteMappingPage() {
                     key: "component",
                     label: `Components (${Object.keys(filteredComponents).length})`,
                     children: (
-                      <ComponentsList filteredComponents={filteredComponents} />
+                      <ComponentsList
+                        filteredComponents={
+                          filteredComponents as Record<string, ComponentDetail>
+                        }
+                      />
                     ),
                   },
                   {

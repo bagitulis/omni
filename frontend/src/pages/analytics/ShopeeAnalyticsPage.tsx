@@ -14,6 +14,7 @@ import {
 import type {
   ReconciliationResult,
   ShopeeShippingFeeResult,
+  AnalyticsSettings,
 } from "@/types/analytics";
 import { AnalyticsPageHeader } from "./components/common/AnalyticsPageHeader";
 import { AnalyticsToolbar } from "./components/common/AnalyticsToolbar";
@@ -96,7 +97,7 @@ export const ShopeeAnalyticsPage = () => {
     }
   };
 
-  const handleSaveSettings = (settings: unknown) => {
+  const handleSaveSettings = (settings: AnalyticsSettings) => {
     saveSettingsMutation.mutate(settings, {
       onSuccess: () => {
         messageApi.success("Settings saved");

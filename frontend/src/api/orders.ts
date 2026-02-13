@@ -95,12 +95,18 @@ export async function getOrders(
   const status = params.status || "unpaid";
   const endpoint = getOrderEndpoint(status);
 
-  // Use unknown type for axios response
-  let response: unknown;
+  // Use axios AxiosResponse type for direct client calls
+  interface AxiosResponse<T> {
+    data: T;
+  }
+
+  let axiosResponse: AxiosResponse<BackendOrderResponse & { success: boolean }>;
 
   // Special handling for locked and today tabs which require POST
   if (status === "locked" || status === "today") {
-    response = await apiClient.client.post(endpoint, {
+    axiosResponse = await apiClient.client.post<
+      BackendOrderResponse & { success: boolean }
+    >(endpoint, {
       days: 7, // Default to 7 days like Vue
       page: params.page,
       pageSize: params.pageSize,
@@ -109,7 +115,9 @@ export async function getOrders(
     });
   } else {
     // Standard GET for other tabs
-    response = await apiClient.client.get(endpoint, {
+    axiosResponse = await apiClient.client.get<
+      BackendOrderResponse & { success: boolean }
+    >(endpoint, {
       params: {
         page: params.page,
         pageSize: params.pageSize,
@@ -121,9 +129,7 @@ export async function getOrders(
     });
   }
 
-  const backendData = response.data as BackendOrderResponse & {
-    success: boolean;
-  };
+  const backendData = axiosResponse.data;
 
   if (!backendData.success) {
     throw new Error("Failed to fetch orders");

@@ -17,9 +17,11 @@ export const AnalyticsSettingsModal = ({ open, onClose }: Props) => {
   const fetchSettings = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await api.get("/analytics/settings");
-      if (response.data.success) {
-        form.setFieldsValue(response.data.data);
+      const response = await api.get<Record<string, unknown>>(
+        "/analytics/settings",
+      );
+      if (response.success && response.data) {
+        form.setFieldsValue(response.data);
       }
     } catch (error) {
       logger.error("Failed to load settings:", { error });
@@ -39,13 +41,13 @@ export const AnalyticsSettingsModal = ({ open, onClose }: Props) => {
     try {
       const values = await form.validateFields();
       setSaving(true);
-      const response = await api.post("/analytics/settings", values);
+      const response = await api.post<unknown>("/analytics/settings", values);
 
-      if (response.data.success) {
+      if (response.success) {
         message.success("Settings saved successfully");
         onClose();
       } else {
-        message.error(response.data.error || "Failed to save settings");
+        message.error(response.error || "Failed to save settings");
       }
     } catch (error) {
       logger.error("Save error:", { error });

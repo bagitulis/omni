@@ -84,5 +84,6 @@ export async function getRouteMappingStatistics(): Promise<RouteStatistics> {
   }
 
   // The backend returns the analysis object directly in data
-  return { statistics: response.data || {} };
+  const analysisData = response.data || {};
+  return { statistics: analysisData as Record<string, unknown> };
 }

@@ -35,9 +35,9 @@ export function RouteConfigModal({
     }
   }, [open, config, form]);
 
-  const handleFinish = (values: unknown) => {
+  const handleFinish = (values: Record<string, unknown>) => {
     onSave({
-      ...(config as Record<string, unknown>),
+      ...(config || {}),
       ...values,
     } as RouteExecutionConfig);
     onClose();

@@ -52,13 +52,31 @@ export function ConfigEditorModal({
     }
   }, [open, config, form]);
 
-  const handleFinish = (values: unknown) => {
+  const handleFinish = (values: Record<string, unknown>) => {
+    // Type assertion with runtime validation
+    const hasStartTime =
+      values.start_time &&
+      typeof values.start_time === "object" &&
+      "format" in values.start_time;
+    const hasEndTime =
+      values.end_time &&
+      typeof values.end_time === "object" &&
+      "format" in values.end_time;
+
     const newConfig: AutoFunctionConfig = {
       ...config,
       ...values,
-      start_time: values.start_time ? values.start_time.format("HH:mm") : null,
-      end_time: values.end_time ? values.end_time.format("HH:mm") : null,
-    };
+      start_time: hasStartTime
+        ? (values.start_time as { format: (fmt: string) => string }).format(
+            "HH:mm",
+          )
+        : null,
+      end_time: hasEndTime
+        ? (values.end_time as { format: (fmt: string) => string }).format(
+            "HH:mm",
+          )
+        : null,
+    } as AutoFunctionConfig;
     onSave(newConfig);
     onClose();
   };

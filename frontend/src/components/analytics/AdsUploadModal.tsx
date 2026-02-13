@@ -44,20 +44,24 @@ export const AdsUploadModal = ({ open, onClose, onSuccess }: Props) => {
           ? "/analytics/tiktok/upload"
           : "/analytics/shopee/upload";
 
-      const response = await api.post(endpoint, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
+      const response = await api.post<{ success?: boolean; error?: string }>(
+        endpoint,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         },
-      });
+      );
 
-      if (response.data.success) {
+      if (response.success) {
         message.success("File uploaded successfully");
         form.resetFields();
         setFileList([]);
         onSuccess();
         onClose();
       } else {
-        message.error(response.data.error || "Upload failed");
+        message.error(response.error || "Upload failed");
       }
     } catch (error: unknown) {
       logger.error("Upload error:", { error });
