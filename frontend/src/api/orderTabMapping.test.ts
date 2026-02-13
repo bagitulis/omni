@@ -47,4 +47,9 @@ describe("orderTabMapping", () => {
     expect(isSyncableOrderTab("cancelled")).toBe(true);
     expect(isSyncableOrderTab("today")).toBe(false);
   });
+
+  it("defaults unknown tabs to unprocess", () => {
+    expect(normalizeOrderTabKey("UNKNOWN_STATUS")).toBe("unprocess");
+    expect(getOrderEndpointFromTab("UNKNOWN_STATUS")).toBe("/orders/unprocess");
+  });
 });

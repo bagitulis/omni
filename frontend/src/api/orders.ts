@@ -115,7 +115,7 @@ function transformOrder(backendOrder: RawOrder): Order {
 export async function getOrders(
   params: GetOrdersParams = {},
 ): Promise<OrderListResponse> {
-  const status = params.status || "unpaid";
+  const status = params.status || "unprocess";
   const normalizedStatus = normalizeOrderTabKey(status);
   const endpoint = getOrderEndpointFromTab(normalizedStatus);
 

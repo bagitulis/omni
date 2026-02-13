@@ -1,10 +1,5 @@
 import { Tabs, Card, theme } from "antd";
-import {
-  ALL_TABS,
-  SHOPEE_TABS,
-  LAZADA_TABS,
-  TIKTOK_TABS,
-} from "./OrderStatusTabs.constants";
+import { ORDER_TABS } from "./OrderStatusTabs.constants";
 
 interface OrderStatusTabsProps {
   activeTab: string;
@@ -17,23 +12,11 @@ export function OrderStatusTabs({
   activeTab,
   onChange,
   totalCount,
-  platform = "all",
+  platform: _platform = "all",
 }: OrderStatusTabsProps) {
   const { token } = theme.useToken();
-  const getTabs = () => {
-    switch (platform) {
-      case "shopee":
-        return SHOPEE_TABS;
-      case "lazada":
-        return LAZADA_TABS;
-      case "tiktok":
-        return TIKTOK_TABS;
-      default:
-        return ALL_TABS;
-    }
-  };
 
-  const items = getTabs().map((tab) => {
+  const items = ORDER_TABS.map((tab) => {
     const tabCount = tab.key === activeTab ? totalCount : 0;
     return {
       key: tab.key,

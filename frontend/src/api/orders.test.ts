@@ -107,6 +107,29 @@ describe("getOrders", () => {
     });
   });
 
+  it("uses unprocess as default tab endpoint when status is missing", async () => {
+    mockClientGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: [],
+        count: 0,
+      },
+    });
+
+    await getOrders({ platform: "all" });
+
+    expect(mockClientGet).toHaveBeenCalledWith("/orders/unprocess", {
+      params: {
+        page: undefined,
+        pageSize: undefined,
+        platform: "all",
+        search: undefined,
+        start_date: undefined,
+        end_date: undefined,
+      },
+    });
+  });
+
   it("maps compact alias status to canonical unprocess endpoint", async () => {
     mockClientGet.mockResolvedValue({
       data: {

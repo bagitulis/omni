@@ -96,4 +96,33 @@ describe("useOrdersLogic", () => {
     expect(result.current.state.activeTab).toBe("unprocess");
     expect(setSearchParamsMock).not.toHaveBeenCalled();
   });
+
+  it("rewrites unsupported tab to visible default tab", async () => {
+    currentSearchParams = new URLSearchParams("type=unpaid");
+
+    const { result } = renderHook(() => useOrdersLogic());
+
+    expect(result.current.state.activeTab).toBe("unprocess");
+    await waitFor(() => {
+      expect(setSearchParamsMock).toHaveBeenCalled();
+    });
+
+    const [nextParams, options] = setSearchParamsMock.mock.calls[0];
+    expect(nextParams.get("type")).toBe("unprocess");
+    expect(options).toEqual({ replace: true });
+  });
+
+  it("sets default type to unprocess when URL type is missing", async () => {
+    currentSearchParams = new URLSearchParams();
+
+    renderHook(() => useOrdersLogic());
+
+    await waitFor(() => {
+      expect(setSearchParamsMock).toHaveBeenCalled();
+    });
+
+    const [nextParams, options] = setSearchParamsMock.mock.calls[0];
+    expect(nextParams.get("type")).toBe("unprocess");
+    expect(options).toEqual({ replace: true });
+  });
 });

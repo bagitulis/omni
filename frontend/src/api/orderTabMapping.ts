@@ -81,7 +81,9 @@ export function normalizeOrderTabKey(tabKey: string): OrderTabKey {
   }
 
   return (
-    TAB_TO_CATEGORY[normalized] ?? TAB_TO_CATEGORY_COMPACT[compact] ?? "unpaid"
+    TAB_TO_CATEGORY[normalized] ??
+    TAB_TO_CATEGORY_COMPACT[compact] ??
+    "unprocess"
   );
 }
 
@@ -104,7 +106,7 @@ export function getOrderEndpointFromTab(tabKey: string): string {
     case "cancelled":
       return `/orders/category/${normalized}`;
     default:
-      return "/orders/unpaid";
+      return "/orders/unprocess";
   }
 }
 

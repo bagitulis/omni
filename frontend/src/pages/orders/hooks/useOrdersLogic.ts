@@ -11,13 +11,32 @@ import type { OrderDetail, Order } from "@/types/order";
 import type { Dayjs } from "dayjs";
 import { generateOrdersCSV, downloadCSV } from "../utils/csv";
 
+const ORDER_MANAGER_VISIBLE_TABS = new Set([
+  "unprocess",
+  "processed",
+  "shipped",
+  "completed",
+  "cancelled",
+  "locked",
+  "today",
+]);
+
+function getVisibleTab(tabKey: string): string {
+  if (ORDER_MANAGER_VISIBLE_TABS.has(tabKey)) {
+    return tabKey;
+  }
+
+  return "unprocess";
+}
+
 export function useOrdersLogic() {
   // State
   const [searchParams, setSearchParams] = useSearchParams();
   const { platform: routePlatform } = useParams();
   const navigate = useNavigate();
   const rawType = searchParams.get("type");
-  const activeTab = normalizeOrderTabKey(rawType || "unpaid");
+  const normalizedType = normalizeOrderTabKey(rawType || "unprocess");
+  const activeTab = getVisibleTab(normalizedType);
   const platform = routePlatform || "all";
 
   useEffect(() => {
