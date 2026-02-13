@@ -8,26 +8,23 @@ import {
   Typography,
   theme,
 } from "antd";
-import { PrinterOutlined, SendOutlined } from "@ant-design/icons";
+import {
+  FileSearchOutlined,
+  PrinterOutlined,
+  SendOutlined,
+} from "@ant-design/icons";
+import { useState } from "react";
+import { BulkPrintResultModal } from "./BulkPrintResultModal";
+import type { BulkResult, ProgressState } from "../hooks/bulkActionTypes";
 
 const { Text } = Typography;
-
-interface ProgressState {
-  current: number;
-  total: number;
-  status: "idle" | "processing" | "done";
-}
-
-interface BulkResult {
-  succeeded: string[];
-  failed: Array<{ order_sn: string; error: string }>;
-}
 
 interface OrdersBulkActionsBarProps {
   selectedCount: number;
   onBulkShip: () => void;
   onBulkPrint: () => void;
   onBulkCancel: () => void;
+  onRetryFailedPrint: () => void;
   onClearSelection: () => void;
   isShipping: boolean;
   isPrinting: boolean;
@@ -45,6 +42,7 @@ export function OrdersBulkActionsBar({
   onBulkShip,
   onBulkPrint,
   onBulkCancel,
+  onRetryFailedPrint,
   onClearSelection,
   isShipping,
   isPrinting,
@@ -56,6 +54,7 @@ export function OrdersBulkActionsBar({
   printResult,
   cancelResult,
 }: OrdersBulkActionsBarProps) {
+  const [isPrintDetailsOpen, setIsPrintDetailsOpen] = useState(false);
   const { token } = theme.useToken();
   if (selectedCount <= 0) return null;
 
@@ -163,9 +162,21 @@ export function OrdersBulkActionsBar({
         )}
         {printProgress.status === "done" &&
           getResultText(printResult, printProgress, "printed") && (
-            <Text type="success" style={{ fontSize: 12 }}>
-              {getResultText(printResult, printProgress, "printed")}
-            </Text>
+            <Flex align="center" justify="space-between" gap={8}>
+              <Text
+                type={printResult.failed.length > 0 ? "warning" : "success"}
+                style={{ fontSize: 12 }}
+              >
+                {getResultText(printResult, printProgress, "printed")}
+              </Text>
+              <Button
+                size="small"
+                icon={<FileSearchOutlined />}
+                onClick={() => setIsPrintDetailsOpen(true)}
+              >
+                View Print Details
+              </Button>
+            </Flex>
           )}
 
         {/* Cancel Progress */}
@@ -191,6 +202,14 @@ export function OrdersBulkActionsBar({
             </Text>
           )}
       </Flex>
+
+      <BulkPrintResultModal
+        open={isPrintDetailsOpen}
+        result={printResult}
+        onClose={() => setIsPrintDetailsOpen(false)}
+        onRetryFailed={onRetryFailedPrint}
+        isRetrying={isPrinting}
+      />
     </Card>
   );
 }

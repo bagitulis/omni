@@ -137,8 +137,12 @@ func (s *ShippingService) getClient() (shippingClient, error) {
 }
 
 type ShippingOptions struct {
-	Pickup  []shopeePkg.PickupAddressInfo `json:"pickup"`
-	Dropoff []shopeePkg.BranchInfo        `json:"dropoff"`
+	Pickup     []shopeePkg.PickupAddressInfo `json:"pickup"`
+	Dropoff    []shopeePkg.BranchInfo        `json:"dropoff"`
+	InfoNeeded struct {
+		Pickup  []string `json:"pickup,omitempty"`
+		Dropoff []string `json:"dropoff,omitempty"`
+	} `json:"info_needed"`
 }
 
 // GetShippingOptions gets available shipping options for an order
@@ -158,6 +162,13 @@ func (s *ShippingService) GetShippingOptions(ctx context.Context, orderSN string
 	return &ShippingOptions{
 		Pickup:  result.Response.Pickup.AddressList,
 		Dropoff: result.Response.Dropoff.BranchList,
+		InfoNeeded: struct {
+			Pickup  []string `json:"pickup,omitempty"`
+			Dropoff []string `json:"dropoff,omitempty"`
+		}{
+			Pickup:  result.Response.InfoNeeded.Pickup,
+			Dropoff: result.Response.InfoNeeded.Dropoff,
+		},
 	}, nil
 }
 

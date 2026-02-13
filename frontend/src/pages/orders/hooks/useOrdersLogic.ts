@@ -6,8 +6,8 @@ import { useOrders } from "@/hooks/useOrders";
 import { useOrderSync } from "./useOrderSync";
 import { useOrderBulkActions } from "./useOrderBulkActions";
 import { useOrderSingleActions } from "./useOrderSingleActions";
-import { OrderDetail, Order } from "@/types/order";
-import { Dayjs } from "dayjs";
+import type { OrderDetail, Order } from "@/types/order";
+import type { Dayjs } from "dayjs";
 import { generateOrdersCSV, downloadCSV } from "../utils/csv";
 
 export function useOrdersLogic() {
@@ -99,7 +99,7 @@ export function useOrdersLogic() {
   };
 
   const handleDateChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
-    if (dates && dates[0] && dates[1]) {
+    if (dates?.[0] && dates[1]) {
       setDateRange([
         dates[0].format("YYYY-MM-DD"),
         dates[1].format("YYYY-MM-DD"),
@@ -184,6 +184,7 @@ export function useOrdersLogic() {
       handleSelectionChange,
       handleBulkShip: bulkActions.handleBulkShip,
       handleBulkPrint: bulkActions.handleBulkPrint,
+      handleRetryFailedPrint: bulkActions.handleRetryFailedPrint,
       handleBulkCancel: bulkActions.handleBulkCancel,
       handleSingleShip: singleActions.handleSingleShip,
       handleShipConfirm: singleActions.handleShipConfirm,

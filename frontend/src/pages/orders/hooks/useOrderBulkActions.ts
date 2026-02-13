@@ -2,13 +2,18 @@ import { useState } from "react";
 import { message, Modal } from "antd";
 import { useOrderActions } from "@/hooks/useOrders";
 import type { OrderListResponse } from "@/types/order";
-import type { CancelOrderParams } from "@/api/orders";
+import type { BulkPrintLabelsOptions, CancelOrderParams } from "@/api/orders";
 import { bulkPrintLabels } from "@/api/orders";
 import { downloadOrderLabel } from "../utils/labelDownload";
 import {
   buildBulkPrintOptions,
   shouldPromptTikTokPackingSlip,
 } from "./printOptions";
+import type {
+  BulkActionFailure,
+  BulkResult,
+  ProgressState,
+} from "./bulkActionTypes";
 
 interface UseOrderBulkActionsProps {
   selectedRowKeys: React.Key[];
@@ -16,17 +21,6 @@ interface UseOrderBulkActionsProps {
   data?: OrderListResponse;
   refetch: () => void;
   platform: string;
-}
-
-interface ProgressState {
-  current: number;
-  total: number;
-  status: "idle" | "processing" | "done";
-}
-
-interface BulkResult {
-  succeeded: string[];
-  failed: Array<{ order_sn: string; error: string }>;
 }
 
 function askIncludeProductsOption(): Promise<boolean> {
@@ -86,6 +80,74 @@ export function useOrderBulkActions({
     succeeded: [],
     failed: [],
   });
+
+  const [lastPrintOptions, setLastPrintOptions] =
+    useState<BulkPrintLabelsOptions>();
+
+  const mergeUniqueOrderSns = (items: string[]) => Array.from(new Set(items));
+
+  const runBulkPrint = async (
+    orderSns: string[],
+    options: BulkPrintLabelsOptions | undefined,
+    previousSucceeded: string[] = [],
+  ) => {
+    setPrintProgress({
+      current: 0,
+      total: orderSns.length,
+      status: "processing",
+    });
+
+    try {
+      const response = await bulkPrintLabels(orderSns, options);
+
+      const succeeded = mergeUniqueOrderSns([
+        ...previousSucceeded,
+        ...response.labels.map((label) => label.order_sn),
+      ]);
+      const failed: BulkActionFailure[] = response.failed.map((f) => ({
+        order_sn: f.order_sn,
+        error: f.error,
+      }));
+
+      if (response.labels.length > 0) {
+        response.labels.forEach((label) => {
+          try {
+            downloadOrderLabel(label.file_data, label.order_sn);
+          } catch (error) {
+            failed.push({
+              order_sn: label.order_sn,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to trigger browser download",
+            });
+          }
+        });
+      }
+
+      setPrintProgress({
+        current: orderSns.length,
+        total: orderSns.length,
+        status: "done",
+      });
+      setPrintResult({ succeeded, failed });
+
+      if (failed.length === 0) {
+        message.success(
+          `All ${succeeded.length} labels downloaded successfully`,
+        );
+      } else {
+        message.warning(
+          `${succeeded.length} labels downloaded, ${failed.length} failed. Open Print Details for raw errors.`,
+        );
+      }
+    } catch (error) {
+      setPrintProgress({ current: 0, total: 0, status: "idle" });
+      message.error(
+        error instanceof Error ? error.message : "Failed to print labels",
+      );
+    }
+  };
 
   const handleBulkShip = async () => {
     if (selectedRowKeys.length === 0) return;
@@ -154,55 +216,23 @@ export function useOrderBulkActions({
       includeProducts = await askIncludeProductsOption();
     }
 
-    setPrintProgress({
-      current: 0,
-      total: orderSns.length,
-      status: "processing",
-    });
     setPrintResult({ succeeded: [], failed: [] });
+    const printOptions = buildBulkPrintOptions(platform, includeProducts);
+    setLastPrintOptions(printOptions);
+    await runBulkPrint(orderSns, printOptions);
+  };
 
-    try {
-      const response = await bulkPrintLabels(
-        orderSns,
-        buildBulkPrintOptions(platform, includeProducts),
-      );
-
-      const succeeded = response.labels.map((label) => label.order_sn);
-      const failed = response.failed.map((f) => ({
-        order_sn: f.order_sn,
-        error: f.error,
-      }));
-
-      setPrintProgress({
-        current: orderSns.length,
-        total: orderSns.length,
-        status: "done",
-      });
-      setPrintResult({ succeeded, failed });
-
-      // Download labels (base64 PDF or platform URL)
-      if (response.labels.length > 0) {
-        response.labels.forEach((label) => {
-          downloadOrderLabel(label.file_data, label.order_sn);
-        });
-      }
-
-      // Show summary
-      if (failed.length === 0) {
-        message.success(
-          `All ${succeeded.length} labels generated successfully`,
-        );
-      } else {
-        message.warning(
-          `${succeeded.length} labels generated, ${failed.length} failed`,
-        );
-      }
-    } catch (error) {
-      setPrintProgress({ current: 0, total: 0, status: "idle" });
-      message.error(
-        error instanceof Error ? error.message : "Failed to print labels",
-      );
+  const handleRetryFailedPrint = async () => {
+    if (printResult.failed.length === 0) {
+      message.info("No failed labels to retry");
+      return;
     }
+
+    const retryOrderSns = mergeUniqueOrderSns(
+      printResult.failed.map((item) => item.order_sn),
+    );
+
+    await runBulkPrint(retryOrderSns, lastPrintOptions, printResult.succeeded);
   };
 
   const handleBulkCancel = async () => {
@@ -292,6 +322,7 @@ export function useOrderBulkActions({
   return {
     handleBulkShip,
     handleBulkPrint,
+    handleRetryFailedPrint,
     handleBulkCancel,
     isShipping,
     isPrinting: printProgress.status === "processing",

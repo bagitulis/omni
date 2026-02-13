@@ -20,10 +20,15 @@ const DEFAULT_REFETCH_INTERVAL = 30000; // 30 seconds
 export interface ShopeeTimeSlot {
   pickup_time_id?: string;
   pickup_time?: string;
-  date?: string;
+  date?: string | number;
   time_text?: string;
   time_slot?: string;
   time?: string;
+}
+
+export interface ShopeeInfoNeeded {
+  pickup?: string[];
+  dropoff?: string[];
 }
 
 export interface ShopeePickupAddress {
@@ -41,6 +46,7 @@ export interface ShopeeDropoffBranch {
 export interface ShopeeShippingOptions {
   pickup?: ShopeePickupAddress[];
   dropoff?: ShopeeDropoffBranch[];
+  info_needed?: ShopeeInfoNeeded;
 }
 
 export interface ShopeeArrangeShipmentPayload {

@@ -54,6 +54,54 @@ export function useOrderSingleActions({
   const [isSingleShipping, setIsSingleShipping] = useState(false);
   const { cancelOrder, isCancelling } = useOrderActions();
 
+  const printLabelForPlatform = async (
+    orderSn: string,
+    orderPlatform: string,
+    tiktokIncludeProducts?: boolean,
+  ) => {
+    if (orderPlatform === "lazada") {
+      const doc = await getLazadaDocument([orderSn], "shippingLabel");
+      if (doc.document?.url) {
+        window.open(doc.document.url, "_blank");
+        return;
+      }
+      if (doc.document?.file) {
+        const byteChars = atob(doc.document.file);
+        const byteNumbers = new Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) {
+          byteNumbers[i] = byteChars.charCodeAt(i);
+        }
+        const blob = new Blob([new Uint8Array(byteNumbers)], {
+          type: doc.document.mime_type || "application/pdf",
+        });
+        window.open(URL.createObjectURL(blob), "_blank");
+        return;
+      }
+
+      throw new Error("lazada API error: shipping document is unavailable");
+    }
+
+    const printOptions: BulkPrintLabelsOptions = {
+      platform: orderPlatform || undefined,
+    };
+
+    if (orderPlatform === "tiktok") {
+      if (typeof tiktokIncludeProducts === "boolean") {
+        printOptions.include_products = tiktokIncludeProducts;
+      } else {
+        printOptions.include_products = await askIncludeProductsOption();
+      }
+    }
+
+    const response = await bulkPrintLabels([orderSn], printOptions);
+    const label = response.labels[0];
+    if (!label?.file_data) {
+      const reason = response.failed[0]?.error || "Label data is not available";
+      throw new Error(reason);
+    }
+    downloadOrderLabel(label.file_data, orderSn);
+  };
+
   const handleSingleShip = (order: GroupedOrder) => {
     setSelectedOrder(order as unknown as Order);
     setIsShipModalOpen(true);
@@ -70,8 +118,37 @@ export function useOrderSingleActions({
         await arrangeLazadaShipment(payload.data);
       }
 
+      let didAutoPrintSucceed = false;
+
+      if (payload.platform === "shopee" || payload.platform === "tiktok") {
+        const orderSn =
+          selectedOrder?.order_sn || selectedOrder?.order_no || "";
+        if (orderSn) {
+          try {
+            await printLabelForPlatform(
+              orderSn,
+              payload.platform,
+              payload.platform === "tiktok" ? false : undefined,
+            );
+            didAutoPrintSucceed = true;
+          } catch (printError) {
+            const printErrorMessage =
+              printError instanceof Error
+                ? printError.message
+                : "Unknown print error";
+            message.warning(
+              `Shipment arranged but label print failed: ${printErrorMessage}`,
+            );
+          }
+        }
+      }
+
       await queryClient.invalidateQueries({ queryKey: ["orders"] });
-      message.success("Order shipped successfully");
+      message.success(
+        didAutoPrintSucceed
+          ? "Shipment arranged and label downloaded"
+          : "Order shipped successfully",
+      );
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to ship order";
@@ -127,42 +204,8 @@ export function useOrderSingleActions({
     try {
       const orderSn = order.order_sn || order.order_no;
       const orderPlatform = (order.platform || "").toLowerCase();
-
-      if (orderPlatform === "lazada") {
-        const doc = await getLazadaDocument([orderSn], "shippingLabel");
-        if (doc.document?.url) {
-          window.open(doc.document.url, "_blank");
-        } else if (doc.document?.file) {
-          const byteChars = atob(doc.document.file);
-          const byteNumbers = new Array(byteChars.length);
-          for (let i = 0; i < byteChars.length; i++) {
-            byteNumbers[i] = byteChars.charCodeAt(i);
-          }
-          const blob = new Blob([new Uint8Array(byteNumbers)], {
-            type: doc.document.mime_type || "application/pdf",
-          });
-          window.open(URL.createObjectURL(blob), "_blank");
-        }
-        message.success(`Printed label for ${orderSn}`);
-      } else {
-        const printOptions: BulkPrintLabelsOptions = {
-          platform: orderPlatform || undefined,
-        };
-
-        if (orderPlatform === "tiktok") {
-          printOptions.include_products = await askIncludeProductsOption();
-        }
-
-        const response = await bulkPrintLabels([orderSn], printOptions);
-        const label = response.labels[0];
-        if (!label?.file_data) {
-          const reason =
-            response.failed[0]?.error || "Label data is not available";
-          throw new Error(reason);
-        }
-        downloadOrderLabel(label.file_data, orderSn);
-        message.success(`Printed label for ${orderSn}`);
-      }
+      await printLabelForPlatform(orderSn, orderPlatform);
+      message.success(`Printed label for ${orderSn}`);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to print label";

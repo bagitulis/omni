@@ -58,6 +58,7 @@ export default function OrdersPage() {
           selectedCount={state.selectedRowKeys.length}
           onBulkShip={() => void handlers.handleBulkShip()}
           onBulkPrint={() => void handlers.handleBulkPrint()}
+          onRetryFailedPrint={() => void handlers.handleRetryFailedPrint()}
           onBulkCancel={() => void handlers.handleBulkCancel()}
           onClearSelection={() => setters.setSelectedRowKeys([])}
           isShipping={state.isShipping}
