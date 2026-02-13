@@ -166,6 +166,9 @@ func (q *OrderQueryService) GetOrdersByCategory(
 
 	for _, p := range platforms {
 		status := GetPlatformStatus(p, category)
+		if status == "" {
+			continue
+		}
 		orders, err := q.repository.GetOrdersByStatus(ctx, p, status, 0)
 		if err != nil {
 			continue
