@@ -10,7 +10,7 @@ import {
   theme,
   Spin,
 } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { saveGeneralSettings } from "@/api/settings";
 import apiClient from "@/api/client";
 
@@ -31,14 +31,17 @@ export default function GeneralTab() {
   const [form] = Form.useForm<GeneralSettings>();
   const [loading, setLoading] = useState(true);
 
-  const defaultSettings: GeneralSettings = {
-    language: "en",
-    timezone: "Asia/Jakarta",
-    notifications_email: true,
-    notifications_browser: true,
-    auto_sync: true,
-    sync_interval: "30",
-  };
+  const defaultSettings = useMemo<GeneralSettings>(
+    () => ({
+      language: "en",
+      timezone: "Asia/Jakarta",
+      notifications_email: true,
+      notifications_browser: true,
+      auto_sync: true,
+      sync_interval: "30",
+    }),
+    [],
+  );
 
   // Load settings on mount: try API first, then localStorage, then defaults
   useEffect(() => {
@@ -76,7 +79,7 @@ export default function GeneralTab() {
     };
 
     loadSettings();
-  }, [form]);
+  }, [form, defaultSettings]);
 
   const handleSave = async (values: GeneralSettings) => {
     try {

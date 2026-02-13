@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Card,
   Form,
@@ -46,11 +46,7 @@ export default function AccountTab() {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchUserProfile();
-  }, []);
-
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     try {
       setLoading(true);
       const response = await apiClient.get<UserData>("/auth/me");
@@ -80,7 +76,11 @@ export default function AccountTab() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [profileForm]);
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, [fetchUserProfile]);
 
   const handleProfileSave = async (values: ProfileForm) => {
     try {

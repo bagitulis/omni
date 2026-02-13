@@ -20,7 +20,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { TokenStatusDropdown } from "./TokenStatusDropdown";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/contexts/ThemeContext.hooks";
 
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;

@@ -12,7 +12,8 @@ import { useAuthStore } from "@/stores/authStore";
 import { logger } from "@/lib/logger";
 import LoginPage from "./pages/auth/LoginPage";
 import "./styles/global.css";
-import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { useTheme } from "./contexts/ThemeContext.hooks";
 import { PageLoading } from "@/components/common/PageLoading";
 
 // Lazy-loaded pages for code splitting
