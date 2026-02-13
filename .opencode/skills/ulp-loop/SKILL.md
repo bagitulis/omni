@@ -51,7 +51,7 @@ You are the **Main Controller** and **Quality Lead**. Your job is to:
 ### Task Flow
 
 ```
-Prometheus Plan → TODO Queue → Delegate (max 3) → Verify → Next
+Prometheus Plan → TODO Queue → Delegate → Verify → Next
                                     ↑                    |
                                     └────────────────────┘
                                     (if verification fails)
@@ -124,13 +124,13 @@ ASK YOURSELF before marking ANY task complete:
 
 ### Stop Conditions (When to EXIT the Loop)
 
-| Condition                                   | Action                               |
-| ------------------------------------------- | ------------------------------------ |
-| All TODO items completed + all gates passed | Exit with completion promise         |
-| Same error 3+ times across attempts         | STOP — escalate to user              |
-| Executor stuck in fix→test→fail loop        | STOP executor, invoke stuck-recovery |
-| Blocking question requires user input       | STOP — ask user, resume after answer |
-| Max iterations reached                      | Exit with progress summary           |
+| Condition                                   | Action                                                   |
+| ------------------------------------------- | -------------------------------------------------------- |
+| All TODO items completed + all gates passed | Exit with completion promise                             |
+| Same error 5+ times across attempts         | ASK USER — confirm: continue / skip / different approach |
+| Executor stuck in fix→test→fail loop        | STOP executor, invoke stuck-recovery                     |
+| Blocking question requires user input       | STOP — ask user, resume after answer                     |
+| Max iterations reached                      | Exit with progress summary                               |
 
 ---
 
@@ -152,12 +152,16 @@ Long-running loops MUST use `session_id` for delegation:
 ## 5. Failure Handling in Loops
 
 <!-- MASTER:failure-counter -->
-| Count | Action                                                                          |
-| ----- | ------------------------------------------------------------------------------- |
-| 1     | Fix directly, record error. Document what was tried.                            |
-| 2     | **STOP.** TRACE FLOW activated. Research full chain before fix.                 |
-| 3+    | **TOTAL STOP.** RESEARCH activated. Delegate @explore + @librarian in parallel. |
-| 5+    | **STOP the task.** Report to orchestrator/user with full failure log.           |
+**Failure counter tracks SAME error/issue.** If a DIFFERENT error occurs, reset counter to 1.
+
+| Count | Action                                                                                |
+| ----- | ------------------------------------------------------------------------------------- |
+| 1     | Fix directly, record error. Document what was tried.                                  |
+| 2     | **STOP fixing.** FULL RESEARCH: trace flow + docs + SDK + references. Fix with evidence. |
+| 3-4   | Continue fixing, but MUST use research from step 2. No guessing.                      |
+| 5+    | **ASK USER.** Confirm: continue / skip / try different approach. Full failure log.    |
+
+**Reset rule:** Different error = new counter starting at 1. Same error repeating = increment counter.
 <!-- /MASTER:failure-counter -->
 
 ---

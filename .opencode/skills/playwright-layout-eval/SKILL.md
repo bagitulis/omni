@@ -353,16 +353,16 @@ Scenario: Verify layout transitions smoothly during resize
   Steps:
     1. browser_navigate to page URL
     2. browser_resize(width=1400, height=900) - Start at desktop
-    3. browser_take_screenshot(filename="resize-1400.png")
+     3. browser_take_screenshot(filename=".sisyphus/evidence/resize-1400.png")
     4. browser_resize(width=1024, height=768) - Tablet landscape
     5. browser_wait_for(time=0.5) - Wait for CSS transition
-    6. browser_take_screenshot(filename="resize-1024.png")
+     6. browser_take_screenshot(filename=".sisyphus/evidence/resize-1024.png")
     7. browser_resize(width=768, height=1024) - Tablet portrait
     8. browser_wait_for(time=0.5)
-    9. browser_take_screenshot(filename="resize-768.png")
+     9. browser_take_screenshot(filename=".sisyphus/evidence/resize-768.png")
     10. browser_resize(width=375, height=667) - Mobile
     11. browser_wait_for(time=0.5)
-    12. browser_take_screenshot(filename="resize-375.png")
+     12. browser_take_screenshot(filename=".sisyphus/evidence/resize-375.png")
   Expected: No overlapping elements, no broken layout, smooth transitions
 ```
 

@@ -112,12 +112,16 @@ Every `delegate_task()` output includes a `session_id`. **ALWAYS use it.**
 
 ## 6. Failure Counter (For Executors)
 
-| Count | Action                                                                          |
-| ----- | ------------------------------------------------------------------------------- |
-| 1     | Fix directly, record error. Document what was tried.                            |
-| 2     | **STOP.** TRACE FLOW activated. Research full chain before fix.                 |
-| 3+    | **TOTAL STOP.** RESEARCH activated. Delegate @explore + @librarian in parallel. |
-| 5+    | **STOP the task.** Report to orchestrator/user with full failure log.           |
+**Failure counter tracks SAME error/issue.** If a DIFFERENT error occurs, reset counter to 1.
+
+| Count | Action                                                                                |
+| ----- | ------------------------------------------------------------------------------------- |
+| 1     | Fix directly, record error. Document what was tried.                                  |
+| 2     | **STOP fixing.** FULL RESEARCH: trace flow + docs + SDK + references. Fix with evidence. |
+| 3-4   | Continue fixing, but MUST use research from step 2. No guessing.                      |
+| 5+    | **ASK USER.** Confirm: continue / skip / try different approach. Full failure log.    |
+
+**Reset rule:** Different error = new counter starting at 1. Same error repeating = increment counter.
 
 ### Format
 
