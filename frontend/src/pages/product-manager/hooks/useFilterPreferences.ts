@@ -46,29 +46,32 @@ export function useFilterPreferences(platform: string) {
     };
   }, [platform]);
 
-  // Save preferences with debounce (500ms)
+  // Save preferences with debounce (500ms) - FIXED: use functional setState to avoid stale closure
   const updatePreference = useCallback(
     (updates: Partial<FilterPreferences>) => {
-      const newPreferences = { ...preferences, ...updates };
-      setPreferences(newPreferences);
+      setPreferences((currentPreferences) => {
+        const newPreferences = { ...currentPreferences, ...updates };
 
-      // Clear existing timeout
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
+        // Clear existing timeout
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+        }
 
-      // Debounce save
-      saveTimeoutRef.current = setTimeout(() => {
-        saveFilterPreferences({
-          platform,
-          page: "product-manager",
-          preferences: newPreferences,
-        }).catch((error) => {
-          console.error("Failed to save filter preferences:", error);
-        });
-      }, 500);
+        // Debounce save
+        saveTimeoutRef.current = setTimeout(() => {
+          saveFilterPreferences({
+            platform,
+            page: "product-manager",
+            preferences: newPreferences,
+          }).catch((error) => {
+            console.error("Failed to save filter preferences:", error);
+          });
+        }, 500);
+
+        return newPreferences;
+      });
     },
-    [platform, preferences],
+    [platform],
   );
 
   // Cleanup timeout on unmount

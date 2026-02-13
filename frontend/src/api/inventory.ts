@@ -297,16 +297,25 @@ export async function updatePrice(
 export async function updatePriceBatch(
   items: PriceUpdateItem[],
 ): Promise<BatchPriceUpdateResult> {
-  const response = await apiClient.post<BatchPriceUpdateResult>(
-    "/inventory/update-price-batch",
-    {
-      items,
-    },
-  );
+  const response = await apiClient.post<{
+    total: number;
+    success: number;
+    failed: number;
+    results: PriceUpdateResult[];
+  }>("/inventory/update-price-batch", {
+    items,
+  });
   if (!response.success) {
     throw new Error(response.error || "Failed to batch update price");
   }
-  return response.data!;
+  // Normalize backend response: backend returns "success" (count), we expect "successful"
+  return {
+    total: response.data?.total ?? 0,
+    successful: response.data?.success ?? 0, // Map "success" to "successful"
+    failed: response.data?.failed ?? 0,
+    skipped: 0,
+    results: response.data?.results ?? [],
+  };
 }
 
 /**

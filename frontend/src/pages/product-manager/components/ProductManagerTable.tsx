@@ -296,6 +296,10 @@ export function ProductManagerTable({
   const columns = useMemo(() => {
     return allColumns.filter((col) => {
       if (!col.key) return true;
+      // Defensive check: ensure columnVisibility exists and is an object
+      if (!columnVisibility || typeof columnVisibility !== "object") {
+        return true; // Show all columns if visibility settings are missing
+      }
       return columnVisibility[col.key as string] !== false;
     });
   }, [allColumns, columnVisibility]);

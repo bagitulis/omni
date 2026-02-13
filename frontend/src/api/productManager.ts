@@ -54,24 +54,59 @@ export async function getFilterPreferences(
   platform: string,
   page: string,
 ): Promise<FilterPreferences | null> {
-  const response = await apiClient.get<FilterPreferences>(
-    "/filter-preferences",
-    {
-      params: { platform, page },
-    },
-  );
+  const response = await apiClient.get<{
+    platform: string;
+    tab: string;
+    visible_columns: string[];
+    column_filters: Record<string, unknown>;
+    search_query: string;
+    locked_columns: string[];
+  }>("/filter-preferences", {
+    params: { platform, page },
+  });
 
-  if (!response.success) {
+  if (!response.success || !response.data) {
     return null;
   }
 
-  return response.data || null;
+  // Normalize backend response shape to frontend expectations
+  const backendData = response.data;
+  const normalized: FilterPreferences = {
+    search: backendData.search_query || "",
+    column_visibility:
+      backendData.visible_columns?.reduce(
+        (acc, col) => {
+          acc[col] = true;
+          return acc;
+        },
+        {} as Record<string, boolean>,
+      ) || {},
+    page_size: 50, // Default page size
+    sort_by: undefined,
+    sort_dir: undefined,
+  };
+
+  return normalized;
 }
 
 export async function saveFilterPreferences(
   request: SaveFilterPreferencesRequest,
 ): Promise<void> {
-  const response = await apiClient.post("/filter-preferences", request);
+  // Transform frontend shape to backend expectations
+  const visibleColumns = Object.keys(
+    request.preferences.column_visibility,
+  ).filter((key) => request.preferences.column_visibility[key]);
+
+  const backendPayload = {
+    platform: request.platform,
+    page: request.page,
+    visible_columns: visibleColumns,
+    column_filters: {},
+    search_query: request.preferences.search || "",
+    locked_columns: [],
+  };
+
+  const response = await apiClient.post("/filter-preferences", backendPayload);
 
   if (!response.success) {
     throw new Error(response.error || "Failed to save filter preferences");
