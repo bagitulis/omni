@@ -14,19 +14,23 @@ import {
   cancelScheduled,
 } from "@/api/scriptMonitor";
 import { AutoFunctionConfig } from "@/types/scriptMonitor";
+import { useAuthStore } from "@/stores/authStore";
 
 export function useScriptMonitor() {
   const queryClient = useQueryClient();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const monitorQuery = useQuery({
     queryKey: ["script-monitor"],
     queryFn: getMonitorData,
     refetchInterval: 2000,
+    enabled: isAuthenticated, // Wait for auth before querying
   });
 
   const autoFunctionsQuery = useQuery({
     queryKey: ["auto-functions"],
     queryFn: getAutoFunctions,
+    enabled: isAuthenticated, // Wait for auth before querying
   });
 
   const cancelJobMutation = useMutation({
