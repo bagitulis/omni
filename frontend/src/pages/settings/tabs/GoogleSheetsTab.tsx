@@ -82,6 +82,20 @@ export default function GoogleSheetsTab() {
     form.setFieldsValue(savedLinks);
   }, [form, savedLinks]);
 
+  useEffect(() => {
+    if (!details) {
+      return;
+    }
+
+    setSelectedSheets((previous) => ({
+      ...previous,
+      inventory: details.inventory_sheet_name || previous.inventory,
+      wallet: details.wallet_sheet_name || previous.wallet,
+      shipping: details.shipping_sheet_name || previous.shipping,
+      order: details.order_sheet_name || previous.order,
+    }));
+  }, [details]);
+
   const hasMetadata = useMemo(() => {
     if (!details?.sheets_metadata) {
       return false;

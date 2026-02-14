@@ -18,7 +18,18 @@ export async function getSavedLinks(): Promise<SpreadsheetLinks> {
   if (!response.success) {
     throw new Error(response.error || "Failed to fetch saved links");
   }
-  return response.data as SpreadsheetLinks;
+  const data = response.data as {
+    inventory?: string;
+    wallet?: string;
+    shipping?: string;
+    order?: string;
+  };
+  return {
+    inventory_url: data?.inventory ?? "",
+    wallet_url: data?.wallet ?? "",
+    shipping_url: data?.shipping ?? "",
+    order_url: data?.order ?? "",
+  };
 }
 
 /**

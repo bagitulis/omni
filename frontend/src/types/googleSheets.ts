@@ -4,10 +4,10 @@
  */
 
 export interface SpreadsheetLinks {
-  inventory_url: string;
-  wallet_url: string;
-  shipping_url: string;
-  order_url: string;
+  inventory_url?: string;
+  wallet_url?: string;
+  shipping_url?: string;
+  order_url?: string;
 }
 
 export interface SheetMetadata {
@@ -26,9 +26,18 @@ export interface ValidationResult {
 }
 
 export interface GoogleSheetsSettings {
-  links: SpreadsheetLinks;
-  sheets_metadata: Record<string, SheetMetadata[]>;
-  last_updated: string;
+  links?: SpreadsheetLinks;
+  sheets_metadata?: Record<string, SheetMetadata[]>;
+  last_updated?: string;
+  wallet_spreadsheet_id?: string;
+  shipping_spreadsheet_id?: string;
+  inventory_spreadsheet_id?: string;
+  order_spreadsheet_id?: string;
+  inventory_sheet_name?: string;
+  wallet_sheet_name?: string;
+  shipping_sheet_name?: string;
+  order_sheet_name?: string;
+  inventory_selected_columns?: string[];
 }
 
 export interface ValidateLinkPayload {

@@ -15,6 +15,9 @@ type GoogleSheetsSettings struct {
 	ShippingSpreadsheetID        string    `gorm:"column:shipping_spreadsheet_id;type:varchar(500)" json:"shipping_spreadsheet_id"`
 	InventorySpreadsheetID       string    `gorm:"column:inventory_spreadsheet_id;type:varchar(500)" json:"inventory_spreadsheet_id"`
 	InventorySheetName           string    `gorm:"column:inventory_sheet_name;type:varchar(500)" json:"inventory_sheet_name"`
+	WalletSheetName              string    `gorm:"column:wallet_sheet_name;type:varchar(500)" json:"wallet_sheet_name"`
+	ShippingSheetName            string    `gorm:"column:shipping_sheet_name;type:varchar(500)" json:"shipping_sheet_name"`
+	OrderSheetName               string    `gorm:"column:order_sheet_name;type:varchar(500)" json:"order_sheet_name"`
 	InventorySelectedColumns     string    `gorm:"column:inventory_selected_columns;type:text" json:"inventory_selected_columns"`
 	InventoryAvailableWorksheets string    `gorm:"column:inventory_available_worksheets;type:text" json:"inventory_available_worksheets"`
 	WalletAvailableWorksheets    string    `gorm:"column:wallet_available_worksheets;type:text" json:"wallet_available_worksheets"`

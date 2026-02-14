@@ -17,10 +17,14 @@ type SpreadsheetLink struct {
 
 // SaveLinksRequest represents the request body from frontend
 type SaveLinksRequest struct {
-	Inventory *string `json:"inventory"`
-	Wallet    *string `json:"wallet"`
-	Shipping  *string `json:"shipping"`
-	Order     *string `json:"order"`
+	InventoryURL *string `json:"inventory_url"`
+	WalletURL    *string `json:"wallet_url"`
+	ShippingURL  *string `json:"shipping_url"`
+	OrderURL     *string `json:"order_url"`
+	Inventory    *string `json:"inventory"`
+	Wallet       *string `json:"wallet"`
+	Shipping     *string `json:"shipping"`
+	Order        *string `json:"order"`
 }
 
 // SaveLinks handles POST /api/google/settings/save-links
@@ -54,12 +58,7 @@ func (h *SettingsHandler) SaveLinks(c *gin.Context) {
 	}
 
 	// Convert to LinksByType for service
-	links := &google.LinksByType{
-		Inventory: getStringValue(req.Inventory),
-		Wallet:    getStringValue(req.Wallet),
-		Shipping:  getStringValue(req.Shipping),
-		Order:     getStringValue(req.Order),
-	}
+	links := buildLinksFromRequest(req)
 
 	settingsService := google.NewSettingsService(db, tenantID)
 	if err := settingsService.SaveSpreadsheetLinks(c.Request.Context(), links); err != nil {
@@ -82,6 +81,22 @@ func getStringValue(ptr *string) string {
 		return ""
 	}
 	return *ptr
+}
+
+func getPreferredStringValue(primary, fallback *string) string {
+	if primary != nil {
+		return *primary
+	}
+	return getStringValue(fallback)
+}
+
+func buildLinksFromRequest(req SaveLinksRequest) *google.LinksByType {
+	return &google.LinksByType{
+		Inventory: getPreferredStringValue(req.InventoryURL, req.Inventory),
+		Wallet:    getPreferredStringValue(req.WalletURL, req.Wallet),
+		Shipping:  getPreferredStringValue(req.ShippingURL, req.Shipping),
+		Order:     getPreferredStringValue(req.OrderURL, req.Order),
+	}
 }
 
 // GetSavedLinks handles GET /api/google/settings/saved-links

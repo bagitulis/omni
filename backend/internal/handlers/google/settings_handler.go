@@ -23,7 +23,7 @@ func NewSettingsHandler(authService *google.AuthService, db *gorm.DB) *SettingsH
 
 // getTenantDB returns the proper tenant DB with schema set
 func (h *SettingsHandler) getTenantDB(c *gin.Context) (*gorm.DB, error) {
-	return handlers.GetTenantDB(c)
+	return handlers.GetTenantDBFromContext(c, h.db)
 }
 
 // DetailedSettings represents the Google Sheets settings structure
@@ -33,6 +33,9 @@ type DetailedSettings struct {
 	InventorySpreadsheetID   string   `json:"inventory_spreadsheet_id"`
 	OrderSpreadsheetID       string   `json:"order_spreadsheet_id"`
 	InventorySheetName       string   `json:"inventory_sheet_name"`
+	WalletSheetName          string   `json:"wallet_sheet_name"`
+	ShippingSheetName        string   `json:"shipping_sheet_name"`
+	OrderSheetName           string   `json:"order_sheet_name"`
 	InventorySelectedColumns []string `json:"inventory_selected_columns"`
 }
 
@@ -110,6 +113,9 @@ func (h *SettingsHandler) UpdateDetailedSettings(c *gin.Context) {
 		InventorySpreadsheetID:   req.InventorySpreadsheetID,
 		OrderSpreadsheetID:       req.OrderSpreadsheetID,
 		InventorySheetName:       req.InventorySheetName,
+		WalletSheetName:          req.WalletSheetName,
+		ShippingSheetName:        req.ShippingSheetName,
+		OrderSheetName:           req.OrderSheetName,
 		InventorySelectedColumns: req.InventorySelectedColumns,
 	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

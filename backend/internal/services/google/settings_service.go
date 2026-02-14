@@ -31,6 +31,9 @@ type DetailedSettingsInput struct {
 	InventorySpreadsheetID   string
 	OrderSpreadsheetID       string
 	InventorySheetName       string
+	WalletSheetName          string
+	ShippingSheetName        string
+	OrderSheetName           string
 	InventorySelectedColumns []string
 }
 
@@ -41,6 +44,9 @@ type DetailedSettingsOutput struct {
 	InventorySpreadsheetID   string   `json:"inventory_spreadsheet_id"`
 	OrderSpreadsheetID       string   `json:"order_spreadsheet_id"`
 	InventorySheetName       string   `json:"inventory_sheet_name"`
+	WalletSheetName          string   `json:"wallet_sheet_name"`
+	ShippingSheetName        string   `json:"shipping_sheet_name"`
+	OrderSheetName           string   `json:"order_sheet_name"`
 	InventorySelectedColumns []string `json:"inventory_selected_columns"`
 }
 
@@ -98,6 +104,9 @@ func (s *SettingsService) GetDetailedSettings(ctx context.Context) (*DetailedSet
 		InventorySpreadsheetID:   settings.InventorySpreadsheetID,
 		OrderSpreadsheetID:       settings.OrderSpreadsheetID,
 		InventorySheetName:       settings.InventorySheetName,
+		WalletSheetName:          settings.WalletSheetName,
+		ShippingSheetName:        settings.ShippingSheetName,
+		OrderSheetName:           settings.OrderSheetName,
 		InventorySelectedColumns: selectedColumns,
 	}, nil
 }
@@ -117,6 +126,9 @@ func (s *SettingsService) UpdateDetailedSettings(ctx context.Context, input *Det
 	settings.InventorySpreadsheetID = input.InventorySpreadsheetID
 	settings.OrderSpreadsheetID = input.OrderSpreadsheetID
 	settings.InventorySheetName = input.InventorySheetName
+	settings.WalletSheetName = input.WalletSheetName
+	settings.ShippingSheetName = input.ShippingSheetName
+	settings.OrderSheetName = input.OrderSheetName
 	settings.InventorySelectedColumns = string(selectedColumnsJSON)
 	settings.UpdatedAt = time.Now()
 
