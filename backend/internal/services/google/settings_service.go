@@ -113,26 +113,46 @@ func (s *SettingsService) GetDetailedSettings(ctx context.Context) (*DetailedSet
 
 // UpdateDetailedSettings updates detailed settings
 func (s *SettingsService) UpdateDetailedSettings(ctx context.Context, input *DetailedSettingsInput) error {
-	selectedColumnsJSON, _ := json.Marshal(input.InventorySelectedColumns)
-
 	settings, err := s.getOrCreateSettings(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Update fields
-	settings.WalletSpreadsheetID = input.WalletSpreadsheetID
-	settings.ShippingSpreadsheetID = input.ShippingSpreadsheetID
-	settings.InventorySpreadsheetID = input.InventorySpreadsheetID
-	settings.OrderSpreadsheetID = input.OrderSpreadsheetID
-	settings.InventorySheetName = input.InventorySheetName
-	settings.WalletSheetName = input.WalletSheetName
-	settings.ShippingSheetName = input.ShippingSheetName
-	settings.OrderSheetName = input.OrderSheetName
-	settings.InventorySelectedColumns = string(selectedColumnsJSON)
-	settings.UpdatedAt = time.Now()
+	// Build map of fields to update (only non-empty values)
+	updates := make(map[string]interface{})
 
-	return s.db.WithContext(ctx).Save(settings).Error
+	if input.WalletSpreadsheetID != "" {
+		updates["wallet_spreadsheet_id"] = input.WalletSpreadsheetID
+	}
+	if input.ShippingSpreadsheetID != "" {
+		updates["shipping_spreadsheet_id"] = input.ShippingSpreadsheetID
+	}
+	if input.InventorySpreadsheetID != "" {
+		updates["inventory_spreadsheet_id"] = input.InventorySpreadsheetID
+	}
+	if input.OrderSpreadsheetID != "" {
+		updates["order_spreadsheet_id"] = input.OrderSpreadsheetID
+	}
+	if input.InventorySheetName != "" {
+		updates["inventory_sheet_name"] = input.InventorySheetName
+	}
+	if input.WalletSheetName != "" {
+		updates["wallet_sheet_name"] = input.WalletSheetName
+	}
+	if input.ShippingSheetName != "" {
+		updates["shipping_sheet_name"] = input.ShippingSheetName
+	}
+	if input.OrderSheetName != "" {
+		updates["order_sheet_name"] = input.OrderSheetName
+	}
+	if input.InventorySelectedColumns != nil {
+		selectedColumnsJSON, _ := json.Marshal(input.InventorySelectedColumns)
+		updates["inventory_selected_columns"] = string(selectedColumnsJSON)
+	}
+
+	updates["updated_at"] = time.Now()
+
+	return s.db.WithContext(ctx).Model(settings).Updates(updates).Error
 }
 
 // LinksByType represents spreadsheet links mapped by type
@@ -150,12 +170,23 @@ func (s *SettingsService) SaveSpreadsheetLinks(ctx context.Context, links interf
 		return err
 	}
 
+	// Build map of fields to update (only non-empty values)
+	updates := make(map[string]interface{})
+
 	// Handle links as LinksByType struct
 	if linksByType, ok := links.(*LinksByType); ok {
-		settings.InventorySpreadsheetID = linksByType.Inventory
-		settings.WalletSpreadsheetID = linksByType.Wallet
-		settings.ShippingSpreadsheetID = linksByType.Shipping
-		settings.OrderSpreadsheetID = linksByType.Order
+		if linksByType.Inventory != "" {
+			updates["inventory_spreadsheet_id"] = linksByType.Inventory
+		}
+		if linksByType.Wallet != "" {
+			updates["wallet_spreadsheet_id"] = linksByType.Wallet
+		}
+		if linksByType.Shipping != "" {
+			updates["shipping_spreadsheet_id"] = linksByType.Shipping
+		}
+		if linksByType.Order != "" {
+			updates["order_spreadsheet_id"] = linksByType.Order
+		}
 	}
 
 	// Also store as JSON for backward compatibility
@@ -163,10 +194,10 @@ func (s *SettingsService) SaveSpreadsheetLinks(ctx context.Context, links interf
 	if err != nil {
 		return fmt.Errorf("marshal links: %w", err)
 	}
-	settings.AvailableSpreadsheets = string(linksJSON)
-	settings.UpdatedAt = time.Now()
+	updates["available_spreadsheets"] = string(linksJSON)
+	updates["updated_at"] = time.Now()
 
-	return s.db.WithContext(ctx).Save(settings).Error
+	return s.db.WithContext(ctx).Model(settings).Updates(updates).Error
 }
 
 // SpreadsheetLinksResponse is the response format expected by frontend
