@@ -105,46 +105,7 @@ export const scriptMonitorRoutes: RouteRecordRaw[] = [
     path: "/script-monitor",
     name: "ScriptMonitor",
     component: ScriptMonitor,
-    meta: { section: "script-monitor", subsection: "current" },
-    redirect: "/script-monitor/current",
-    children: [
-      {
-        path: "current",
-        name: "ScriptMonitorCurrent",
-        component: ScriptMonitor,
-        meta: {
-          section: "script-monitor",
-          subsection: "current",
-          tab: "current",
-        },
-      },
-      {
-        path: "queue",
-        name: "ScriptMonitorQueue",
-        component: ScriptMonitor,
-        meta: { section: "script-monitor", subsection: "queue", tab: "queue" },
-      },
-      {
-        path: "history",
-        name: "ScriptMonitorHistory",
-        component: ScriptMonitor,
-        meta: {
-          section: "script-monitor",
-          subsection: "history",
-          tab: "history",
-        },
-      },
-      {
-        path: "auto-functions",
-        name: "ScriptMonitorAutoFunctions",
-        component: ScriptMonitor,
-        meta: {
-          section: "script-monitor",
-          subsection: "auto-functions",
-          tab: "config",
-        },
-      },
-    ],
+    meta: { section: "script-monitor" },
   },
 ];
 

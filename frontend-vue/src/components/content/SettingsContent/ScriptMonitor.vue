@@ -173,39 +173,40 @@ const tabs = computed(() => [
   },
 ]);
 
+// Initialize from URL query parameter on mount
 onMounted(() => {
-  const tabFromRoute = route.meta.tab as string;
-  if (tabFromRoute) {
-    activeTab.value = tabFromRoute as any;
+  const tabFromQuery = route.query.tab as string;
+  if (
+    tabFromQuery &&
+    ["current", "queue", "history", "config"].includes(tabFromQuery)
+  ) {
+    activeTab.value = tabFromQuery as any;
   }
 });
 
+// Watch for URL query changes (browser back/forward)
 watch(
-  () => route.meta.tab,
+  () => route.query.tab,
   (newTab) => {
-    if (newTab) {
+    if (
+      newTab &&
+      ["current", "queue", "history", "config"].includes(newTab as string)
+    ) {
       activeTab.value = newTab as any;
     }
-  }
+  },
 );
 
+// Update URL when tab changes
 watch(activeTab, (newTab) => {
-  const tabRouteMap: Record<string, string> = {
-    current: "/script-monitor/current",
-    queue: "/script-monitor/queue",
-    history: "/script-monitor/history",
-    config: "/script-monitor/auto-functions",
-  };
-
-  if (tabRouteMap[newTab]) {
-    router.push(tabRouteMap[newTab]);
-  }
+  const query = { ...route.query, tab: newTab };
+  router.push({ path: "/script-monitor", query }).catch(() => {});
 });
 
 async function clearBrowserCache() {
   if (
     !confirm(
-      "🧹 Clear all cache? This will:\n• Clear localStorage\n• Clear sessionStorage\n• Unregister service workers\n• Hard reload the page"
+      "🧹 Clear all cache? This will:\n• Clear localStorage\n• Clear sessionStorage\n• Unregister service workers\n• Hard reload the page",
     )
   ) {
     return;

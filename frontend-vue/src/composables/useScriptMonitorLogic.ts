@@ -320,7 +320,7 @@ export function useScriptMonitorLogic() {
       autoFunctionConfigs.value = autoFunctionConfigs.value.map(
         (config: AutoFunctionConfig) => {
           if (config.id === configId) {
-            return { ...config, next_scheduled_execution: null };
+            return { ...config, next_scheduled_execution: undefined };
           }
           return config;
         },

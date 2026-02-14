@@ -94,7 +94,9 @@
           "model": "github-copilot/claude-opus-4.6"
         },
         "hephaestus": {
-          "model": "github-copilot/gpt-5.3-codex"
+          "model": "openai/gpt-5.3-codex",
+          "variant": "high",
+          "temperature": 0.1
         },
         "sisyphus-junior": {
           "model": "google/claude-sonnet-4-5-thinking",
@@ -193,7 +195,7 @@
       "variant": "high",
       "agents": {
         "sisyphus": {
-          "model": "google/claude-opus-4-6-thinking",
+          "model": "google/claude-sonnet-4-5-thinking",
           "variant": "max"
         },
         "prometheus": {
