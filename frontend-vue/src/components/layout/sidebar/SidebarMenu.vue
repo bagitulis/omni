@@ -139,33 +139,45 @@
         v-if="expandedSections['script-monitor']"
       >
         <router-link
-          to="/script-monitor/current"
+          to="/script-monitor?tab=current"
           class="submenu-item"
-          :class="{ active: currentPathIs('/script-monitor/current') }"
+          :class="{
+            active:
+              currentPathIs('/script-monitor') && route.query.tab === 'current',
+          }"
         >
           <Icon name="spinner" size="sm" spin />
           <span>Current Running</span>
         </router-link>
         <router-link
-          to="/script-monitor/queue"
+          to="/script-monitor?tab=queue"
           class="submenu-item"
-          :class="{ active: currentPathIs('/script-monitor/queue') }"
+          :class="{
+            active:
+              currentPathIs('/script-monitor') && route.query.tab === 'queue',
+          }"
         >
           <Icon name="document" size="sm" />
           <span>Queue</span>
         </router-link>
         <router-link
-          to="/script-monitor/history"
+          to="/script-monitor?tab=history"
           class="submenu-item"
-          :class="{ active: currentPathIs('/script-monitor/history') }"
+          :class="{
+            active:
+              currentPathIs('/script-monitor') && route.query.tab === 'history',
+          }"
         >
           <Icon name="check" size="sm" />
           <span>History</span>
         </router-link>
         <router-link
-          to="/script-monitor/auto-functions"
+          to="/script-monitor?tab=config"
           class="submenu-item"
-          :class="{ active: currentPathIs('/script-monitor/auto-functions') }"
+          :class="{
+            active:
+              currentPathIs('/script-monitor') && route.query.tab === 'config',
+          }"
         >
           <Icon name="settings" size="sm" />
           <span>Auto-Functions</span>
