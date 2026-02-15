@@ -214,7 +214,7 @@
       }
     },
     "mix-antigravity": {
-      "_description": "Google Antigravity primary + OpenAI secondary. All agents available. Supports proxy and plugin delivery.",
+      "_description": "Google Antigravity primary + OpenAI secondary. All agents available. Plugin delivery.",
       "default_model": "google/gemini-3-pro",
       "variant": "high",
       "agents": {

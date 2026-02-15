@@ -32,6 +32,7 @@ type InventoryRecord struct {
 	Data          string    `gorm:"column:data;type:jsonb;not null" json:"data"`                     // JSONB: dynamic columns from sheet
 	KeyValue      string    `gorm:"column:key_value;size:500;not null" json:"key_value"`             // Value of key column (e.g., SKU value)
 	KeyColumnName string    `gorm:"column:key_column_name;size:255;not null" json:"key_column_name"` // Name of key column (e.g., "SKU")
+	SyncStatus    string    `gorm:"column:sync_status;size:50" json:"sync_status"`                   // Sync status: "synced", "not_synced", "error", or empty
 	CreatedAt     time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt     time.Time `gorm:"column:updated_at" json:"updated_at"`
 }

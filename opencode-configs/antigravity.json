@@ -7,7 +7,7 @@
   "max_cache_first_wait_seconds": 30,
   "request_jitter_max_ms": 500,
   "quota_fallback": true,
-  "cli_first": false,
+  "cli_first": true,
   "soft_quota_threshold_percent": 60,
   "quota_refresh_interval_minutes": 1,
   "soft_quota_cache_ttl_minutes": 2,

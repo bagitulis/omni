@@ -26,6 +26,9 @@ export interface GetInventoryParams {
   search?: string;
   sort_by?: string;
   sort_dir?: "asc" | "desc";
+  sync_status?: string[];
+  stock_status?: string;
+  platform?: string[];
 }
 
 /** Backend response for /inventory/list includes pagination fields at top level */

@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/google"
+	"github.com/omni/backend/internal/services/inventory"
 	"gorm.io/gorm"
 )
 
@@ -50,12 +51,25 @@ type InventoryConfig struct {
 
 // InventoryListItem represents a single inventory item with JSONB data
 type InventoryListItem struct {
-	ID            string                 `json:"id"`
-	KeyValue      string                 `json:"key_value"`
-	KeyColumnName string                 `json:"key_column_name"`
-	Data          map[string]interface{} `json:"data"`
-	CreatedAt     string                 `json:"created_at,omitempty"`
-	UpdatedAt     string                 `json:"updated_at,omitempty"`
+	ID             string                 `json:"id"`
+	KeyValue       string                 `json:"key_value"`
+	KeyColumnName  string                 `json:"key_column_name"`
+	Data           map[string]interface{} `json:"data"`
+	SyncStatus     string                 `json:"sync_status"`
+	PlatformStatus []PlatformStatusItem   `json:"platform_status"`
+	CreatedAt      string                 `json:"created_at,omitempty"`
+	UpdatedAt      string                 `json:"updated_at,omitempty"`
+}
+
+// PlatformStatusItem represents platform sync status for a SKU
+type PlatformStatusItem struct {
+	Platform          string  `json:"platform"`
+	PlatformProductID string  `json:"platform_product_id"`
+	PlatformItemID    string  `json:"platform_item_id"`
+	PlatformSKU       string  `json:"platform_sku"`
+	Status            string  `json:"status"`
+	Stock             int     `json:"stock"`
+	Price             float64 `json:"price"`
 }
 
 // parseCommaSeparatedColumns parses a comma-separated string into a slice of column names
@@ -198,9 +212,13 @@ func (h *InventoryHandler) GetList(c *gin.Context) {
 		return
 	}
 
+	// Parse query parameters
 	offsetStr := c.DefaultQuery("offset", "0")
 	limitStr := c.DefaultQuery("limit", "100")
 	search := c.Query("search")
+	syncStatus := c.QueryArray("sync_status")
+	stockStatus := c.Query("stock_status")
+	platform := c.QueryArray("platform")
 
 	offset, _ := strconv.Atoi(offsetStr)
 	limit, _ := strconv.Atoi(limitStr)
@@ -208,42 +226,81 @@ func (h *InventoryHandler) GetList(c *gin.Context) {
 		limit = 500
 	}
 
-	var records []models.InventoryRecord
-	query := db.WithContext(c.Request.Context()).Where("tenant_id = ?", tenantID)
-
-	if search != "" {
-		query = query.Where("key_value LIKE ? OR data::text LIKE ?", "%"+search+"%", "%"+search+"%")
+	// Use service layer
+	svc := inventory.NewInventoryService(db, tenantID)
+	filter := inventory.ListFilter{
+		Search:            search,
+		SyncStatus:        syncStatus,
+		StockStatus:       stockStatus,
+		Platform:          platform,
+		LowStockThreshold: 10,
+		Limit:             limit,
+		Offset:            offset,
 	}
 
-	var total int64
-	query.Model(&models.InventoryRecord{}).Count(&total)
-
-	if err := query.Offset(offset).Limit(limit).Find(&records).Error; err != nil {
+	result, err := svc.GetRecords(c.Request.Context(), filter)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
-	items := make([]InventoryListItem, 0, len(records))
-	for _, rec := range records {
+	// Enrich with platform status
+	skus := make([]string, 0, len(result.Data))
+	for _, rec := range result.Data {
+		skus = append(skus, rec.KeyValue)
+	}
+
+	var platformStatuses []models.InventorySkuPlatformStatus
+	if len(skus) > 0 {
+		db.WithContext(c.Request.Context()).
+			Where("tenant_id = ? AND sku IN ?", tenantID, skus).
+			Find(&platformStatuses)
+	}
+
+	// Group by SKU
+	platformMap := make(map[string][]PlatformStatusItem)
+	for _, ps := range platformStatuses {
+		platformMap[ps.SKU] = append(platformMap[ps.SKU], PlatformStatusItem{
+			Platform:          ps.Platform,
+			PlatformProductID: ps.PlatformProductID,
+			PlatformItemID:    ps.PlatformItemID,
+			PlatformSKU:       ps.PlatformSKU,
+			Status:            ps.Status,
+			Stock:             ps.Stock,
+			Price:             ps.Price,
+		})
+	}
+
+	// Build response items
+	items := make([]InventoryListItem, 0, len(result.Data))
+	for _, rec := range result.Data {
 		var data map[string]interface{}
 		if rec.Data != "" {
 			json.Unmarshal([]byte(rec.Data), &data)
 		}
+
+		platformStatus := platformMap[rec.KeyValue]
+		if platformStatus == nil {
+			platformStatus = []PlatformStatusItem{}
+		}
+
 		items = append(items, InventoryListItem{
-			ID:            rec.ID,
-			KeyValue:      rec.KeyValue,
-			KeyColumnName: rec.KeyColumnName,
-			Data:          data,
-			CreatedAt:     rec.CreatedAt.Format(time.RFC3339),
-			UpdatedAt:     rec.UpdatedAt.Format(time.RFC3339),
+			ID:             rec.ID,
+			KeyValue:       rec.KeyValue,
+			KeyColumnName:  rec.KeyColumnName,
+			Data:           data,
+			SyncStatus:     rec.SyncStatus,
+			PlatformStatus: platformStatus,
+			CreatedAt:      rec.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:      rec.UpdatedAt.Format(time.RFC3339),
 		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    items,
-		"total":   total,
-		"offset":  offset,
+		"total":   result.Total,
+		"offset":  result.Offset,
 		"limit":   limit,
 	})
 }

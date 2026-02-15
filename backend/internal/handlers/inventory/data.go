@@ -31,12 +31,13 @@ func (h *DataHandler) List(c *gin.Context) {
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
 	filter := inventoryService.ListFilter{
-		Search:   c.Query("search"),
-		Category: c.Query("category"),
-		Platform: c.Query("platform"),
-		LowStock: c.Query("low_stock") == "true",
-		Limit:    limit,
-		Offset:   offset,
+		Search:            c.Query("search"),
+		SyncStatus:        c.QueryArray("sync_status"),
+		StockStatus:       c.Query("stock_status"),
+		Platform:          c.QueryArray("platform"),
+		LowStockThreshold: 10,
+		Limit:             limit,
+		Offset:            offset,
 	}
 
 	svc := inventoryService.NewInventoryService(h.db, tenantID)

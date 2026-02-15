@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import type { Key } from "react";
 import { Tabs, Layout, theme } from "antd";
 import {
@@ -15,7 +15,8 @@ import { InventoryStats } from "./components/InventoryStats";
 import { WholesaleTab } from "./components/WholesaleTab";
 import { MpqTab } from "./components/MpqTab";
 import { DeleteTab } from "./components/DeleteTab";
-import { InventoryFilterPanel } from "./components/InventoryFilterPanel";
+import { InventoryToolbar } from "./components/InventoryToolbar";
+import { InventoryQuickView } from "./components/InventoryQuickView";
 import { InventoryBatchBar } from "./components/InventoryBatchBar";
 import { InventoryLockPanel } from "./components/InventoryLockPanel";
 import { SyncHistoryTab } from "./components/SyncHistoryTab";
@@ -31,8 +32,9 @@ export default function InventoryPage() {
 
   const {
     search,
-    platform: platformFilter,
-    stockStatus: stockFilter,
+    platform,
+    stockStatus,
+    syncStatus,
     page,
     pageSize,
     setSearch,
@@ -46,9 +48,13 @@ export default function InventoryPage() {
     search: search || undefined,
     offset: (page - 1) * pageSize,
     limit: pageSize,
+    sync_status: syncStatus.length > 0 ? syncStatus : undefined,
+    stock_status: stockStatus || undefined,
+    platform: platform.length > 0 ? platform : undefined,
   });
 
   const total = data?.total || 0;
+  const records = useMemo(() => data?.records || [], [data?.records]);
 
   const { data: stats, isLoading: statsLoading } = useInventoryStats();
   const { data: config } = useInventoryConfig();
@@ -66,53 +72,9 @@ export default function InventoryPage() {
     syncToSheetsMutation.mutate();
   };
 
-  // Client-side filtering logic
-  const filteredRecords = useMemo(() => {
-    let result = data?.records || [];
-
-    // Platform Filter
-    if (platformFilter.length > 0) {
-      result = result.filter((record: InventoryRecord) => {
-        // Check if any key in data contains the platform name
-        return platformFilter.some((p) =>
-          Object.keys(record.data || {}).some(
-            (key) =>
-              key.toLowerCase().includes(p.toLowerCase()) &&
-              record.data[key] != null &&
-              String(record.data[key]) !== "",
-          ),
-        );
-      });
-    }
-
-    // Stock Status Filter
-    if (stockFilter.length > 0) {
-      const threshold = config?.low_stock_threshold || 10;
-      result = result.filter((record: InventoryRecord) => {
-        // Find stock value (heuristic matching stock/stok columns)
-        const stockKey = Object.keys(record.data || {}).find(
-          (k) => k.toLowerCase() === "stock" || k.toLowerCase() === "stok",
-        );
-        const stock = stockKey ? Number(record.data[stockKey]) : 0;
-
-        return stockFilter.some((status) => {
-          if (status === "in_stock") return stock > threshold;
-          if (status === "low_stock") return stock > 0 && stock <= threshold;
-          if (status === "out_of_stock") return stock <= 0;
-          return false;
-        });
-      });
-    }
-
-    // Sync Status Filter - implementation deferred (requires clearer data model)
-    // if (syncFilter.length > 0) { ... }
-
-    return result;
-  }, [data?.records, platformFilter, stockFilter, config]);
-
   useEffect(() => {
     const recordMap = new Map(
-      filteredRecords.map((record) => [String(record.id), record]),
+      records.map((record) => [String(record.id), record]),
     );
     setSelectedRowKeys((prev) =>
       prev.filter((key) => recordMap.has(String(key))),
@@ -122,7 +84,7 @@ export default function InventoryPage() {
         .map((record) => recordMap.get(String(record.id)))
         .filter((record): record is InventoryRecord => Boolean(record)),
     );
-  }, [filteredRecords]);
+  }, [records]);
 
   const tabsItems = [
     {
@@ -130,7 +92,7 @@ export default function InventoryPage() {
       label: "Inventory",
       children: (
         <InventoryMainTab
-          records={filteredRecords}
+          records={records}
           loading={isLoading}
           error={error as Error | null}
           onRetry={() => refetch()}
@@ -165,11 +127,16 @@ export default function InventoryPage() {
   ];
 
   return (
-    <Layout style={{ height: "100%", background: "transparent" }}>
-      {/* Filter Sidebar */}
-      <InventoryFilterPanel />
+    <Layout
+      style={{
+        height: "100%",
+        background: "transparent",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <InventoryToolbar />
 
-      {/* Main Content */}
       <Content
         style={{
           padding: 24,
@@ -197,6 +164,10 @@ export default function InventoryPage() {
         />
 
         <InventoryLockPanel />
+
+        <div style={{ padding: "0 0 16px 0" }}>
+          <InventoryQuickView />
+        </div>
 
         <div
           style={{

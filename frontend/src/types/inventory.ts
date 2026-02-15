@@ -1,8 +1,20 @@
+export interface PlatformStatusItem {
+  platform: string;
+  platform_product_id: string;
+  platform_item_id?: string;
+  platform_sku?: string;
+  status: string;
+  stock: number;
+  price: number;
+}
+
 export interface InventoryRecord {
   id: string;
   key_value: string;
   key_column_name: string;
   data: Record<string, unknown>;
+  sync_status?: string;
+  platform_status?: PlatformStatusItem[];
   created_at: string;
   updated_at: string;
 }

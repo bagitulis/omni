@@ -23,12 +23,13 @@ func NewInventoryService(db *gorm.DB, tenantID string) *InventoryService {
 
 // ListFilter represents filter for inventory listing
 type ListFilter struct {
-	Search   string
-	Category string
-	Platform string // filter by platform status
-	LowStock bool
-	Limit    int
-	Offset   int
+	Search            string
+	SyncStatus        []string // "synced", "not_synced", "error"
+	StockStatus       string   // "in_stock", "low_stock", "out_of_stock", ""
+	Platform          []string // "shopee", "lazada", "tiktok"
+	LowStockThreshold int      // For stock_status filtering
+	Limit             int
+	Offset            int
 }
 
 // ListResult represents paginated list result
@@ -46,6 +47,36 @@ func (s *InventoryService) GetRecords(ctx context.Context, filter ListFilter) (*
 	if filter.Search != "" {
 		search := "%" + filter.Search + "%"
 		query = query.Where("key_value LIKE ?", search)
+	}
+
+	// SyncStatus filter
+	if len(filter.SyncStatus) > 0 {
+		query = query.Where("sync_status IN ?", filter.SyncStatus)
+	}
+
+	// Platform filter (JOIN with InventorySkuPlatformStatus)
+	if len(filter.Platform) > 0 {
+		query = query.Joins("LEFT JOIN inventory_sku_platform_status ON inventory_sku_platform_status.sku = inventory_records.key_value AND inventory_sku_platform_status.tenant_id = ?", s.tenantID).
+			Where("inventory_sku_platform_status.platform IN ?", filter.Platform).
+			Distinct()
+	}
+
+	// StockStatus filter
+	if filter.StockStatus != "" {
+		threshold := filter.LowStockThreshold
+		if threshold == 0 {
+			threshold = 10 // Default threshold
+		}
+
+		// Extract stock from JSONB data field
+		switch filter.StockStatus {
+		case "in_stock":
+			query = query.Where("CAST(data->'stock' AS INTEGER) > ?", threshold)
+		case "low_stock":
+			query = query.Where("CAST(data->'stock' AS INTEGER) > 0 AND CAST(data->'stock' AS INTEGER) <= ?", threshold)
+		case "out_of_stock":
+			query = query.Where("CAST(data->'stock' AS INTEGER) <= 0 OR data->'stock' IS NULL")
+		}
 	}
 
 	var total int64

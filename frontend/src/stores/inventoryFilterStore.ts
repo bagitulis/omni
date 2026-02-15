@@ -4,7 +4,7 @@ import { persist } from "zustand/middleware";
 interface InventoryFilterState {
   search: string;
   platform: string[];
-  stockStatus: string[];
+  stockStatus: "" | "in_stock" | "low_stock" | "out_of_stock";
   syncStatus: string[];
   page: number;
   pageSize: number;
@@ -12,7 +12,9 @@ interface InventoryFilterState {
   // Actions
   setSearch: (search: string) => void;
   setPlatformFilter: (platforms: string[]) => void;
-  setStockStatusFilter: (statuses: string[]) => void;
+  setStockStatusFilter: (
+    status: "" | "in_stock" | "low_stock" | "out_of_stock",
+  ) => void;
   setSyncStatusFilter: (statuses: string[]) => void;
   setPage: (page: number) => void;
   setPageSize: (pageSize: number) => void;
@@ -25,7 +27,7 @@ export const useInventoryFilterStore = create<InventoryFilterState>()(
     (set, get) => ({
       search: "",
       platform: [],
-      stockStatus: [],
+      stockStatus: "",
       syncStatus: [],
       page: 1,
       pageSize: 50,
@@ -41,7 +43,7 @@ export const useInventoryFilterStore = create<InventoryFilterState>()(
         set({
           search: "",
           platform: [],
-          stockStatus: [],
+          stockStatus: "",
           syncStatus: [],
           page: 1,
           pageSize: 50,
@@ -49,7 +51,7 @@ export const useInventoryFilterStore = create<InventoryFilterState>()(
 
       getActiveFilterCount: () => {
         const { platform, stockStatus, syncStatus } = get();
-        return platform.length + stockStatus.length + syncStatus.length;
+        return platform.length + (stockStatus ? 1 : 0) + syncStatus.length;
       },
     }),
     {

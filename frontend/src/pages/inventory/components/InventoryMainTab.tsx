@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Key } from "react";
-import { Spin, Empty, Alert, Button } from "antd";
+import { Spin, Empty, Alert, Button, Space, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { VirtualTable } from "@/components/common/VirtualTable";
 import { useSelectedColumns } from "@/hooks/useInventory";
@@ -35,6 +35,52 @@ export function InventoryMainTab({
         key: "key_value",
         width: 150,
         fixed: "left" as const,
+      },
+      {
+        title: "Platforms",
+        key: "platforms",
+        width: 140,
+        render: (_, record) => {
+          const platforms = record.platform_status || [];
+          if (platforms.length === 0) {
+            return (
+              <span style={{ color: "#999", fontSize: 11 }}>Not Listed</span>
+            );
+          }
+          return (
+            <Space size={4} wrap>
+              {platforms.map((ps) => (
+                <Tag
+                  key={ps.platform}
+                  color={ps.status === "active" ? "green" : "red"}
+                  style={{ fontSize: 10, margin: 0, padding: "0 4px" }}
+                >
+                  {ps.platform.charAt(0).toUpperCase() + ps.platform.slice(1)}
+                </Tag>
+              ))}
+            </Space>
+          );
+        },
+      },
+      {
+        title: "Sync Status",
+        key: "sync_status",
+        width: 100,
+        render: (_, record) => {
+          const statusMap: Record<string, { color: string; label: string }> = {
+            synced: { color: "green", label: "Synced" },
+            not_synced: { color: "default", label: "Not Synced" },
+            error: { color: "red", label: "Error" },
+          };
+          const status =
+            statusMap[record.sync_status || "not_synced"] ||
+            statusMap.not_synced;
+          return (
+            <Tag color={status.color} style={{ fontSize: 11 }}>
+              {status.label}
+            </Tag>
+          );
+        },
       },
     ];
 

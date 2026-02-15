@@ -8,6 +8,7 @@ import {
   Typography,
   Tooltip,
   theme,
+  Dropdown,
 } from "antd";
 import {
   SearchOutlined,
@@ -16,6 +17,8 @@ import {
   CloudDownloadOutlined,
   CloudUploadOutlined,
   ShopOutlined,
+  SyncOutlined,
+  DownOutlined,
 } from "@ant-design/icons";
 import { useSelectedColumns, useAvailableColumns } from "@/hooks/useInventory";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -97,25 +100,33 @@ export function InventoryHeader({
           />
         </Tooltip>
 
-        <Tooltip title="Pull latest data from Google Sheets">
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: "sync-from",
+                label: "Sync From Sheets",
+                icon: <CloudDownloadOutlined />,
+                onClick: onSyncFromSheets,
+                disabled: syncingFromSheets,
+              },
+              {
+                key: "sync-to",
+                label: "Sync To Sheets",
+                icon: <CloudUploadOutlined />,
+                onClick: onSyncToSheets,
+                disabled: syncingToSheets,
+              },
+            ],
+          }}
+        >
           <Button
-            icon={<CloudDownloadOutlined />}
-            onClick={onSyncFromSheets}
-            loading={syncingFromSheets}
+            icon={<SyncOutlined />}
+            loading={syncingFromSheets || syncingToSheets}
           >
-            Sync from Sheets
+            Sync <DownOutlined />
           </Button>
-        </Tooltip>
-
-        <Tooltip title="Push changes to Google Sheets">
-          <Button
-            icon={<CloudUploadOutlined />}
-            onClick={onSyncToSheets}
-            loading={syncingToSheets}
-          >
-            Sync to Sheets
-          </Button>
-        </Tooltip>
+        </Dropdown>
 
         <Button
           icon={<ShopOutlined />}

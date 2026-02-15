@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-AI.py - OpenCode Provider Switcher v4.3
+AI.py - OpenCode Provider Switcher v5.0
 Profile-based configuration system (CLI entry point)
 
 2 Profiles: Mix Copilot, Mix Antigravity
-Delivery: Proxy (clean names) or Plugin (antigravity-* names)
+Delivery: Plugin only (antigravity-* names via Auth Plugin)
 Source: opencode-configs/opencode-profiles.json (shared + per-profile model assignments)
 Output: oh-my-opencode.json (valid schema, consumed by opencode)
 
@@ -15,7 +15,6 @@ Helper modules (in opencode-configs/):
 
 import json
 import os
-import socket
 import subprocess
 import sys
 from pathlib import Path
@@ -45,15 +44,22 @@ LOCALAPPDATA_DIR = Path(_localappdata) / "opencode" if _localappdata else None
 
 # Profile and CLI mappings
 MENU_OPTIONS = {
-    "1a": ("mix-copilot", "proxy"),
-    "1b": ("mix-copilot", "plugin"),
-    "2a": ("mix-antigravity", "proxy"),
-    "2b": ("mix-antigravity", "plugin"),
+    "1": "mix-copilot",
+    "2": "mix-antigravity",
 }
 CLI_ARGS = {
-    "mix-copilot-proxy": "1a", "mix-copilot-plugin": "1b",
-    "mix-antigravity-proxy": "2a", "mix-antigravity-plugin": "2b",
-    "sync": "s", "current": "c",
+    "mix-copilot": "1",
+    "mix-antigravity": "2",
+    "sync": "s",
+    "current": "c",
+}
+
+# Backward-compat aliases (old proxy/plugin CLI args → new profile names)
+_DEPRECATED_CLI_ARGS = {
+    "mix-copilot-proxy": "1",
+    "mix-copilot-plugin": "1",
+    "mix-antigravity-proxy": "2",
+    "mix-antigravity-plugin": "2",
 }
 
 
@@ -66,16 +72,6 @@ def clear_screen():
     os.system("cls" if os.name == "nt" else "clear")
 
 
-def check_proxy_running(port: int = 8045) -> bool:
-    """Check if proxy is running on specified port."""
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(1)
-            return s.connect_ex(("127.0.0.1", port)) == 0
-    except Exception:
-        return False
-
-
 def detect_current_provider() -> str:
     """Detect current provider from oh-my-opencode.json."""
     config_file = TARGET_DIR / "oh-my-opencode.json"
@@ -83,49 +79,27 @@ def detect_current_provider() -> str:
         return "[None]"
 
     try:
-        content = config_file.read_text(encoding="utf-8")
-        has_copilot = "github-copilot" in content
-        has_antigravity = "google/antigravity-" in content
-        has_google = "google/" in content
+        config = json.loads(config_file.read_text(encoding="utf-8"))
+        default_model = config.get("default_model", "")
 
-        if has_copilot:
-            if has_antigravity:
-                return "Mix Copilot (Plugin)"
-            if has_google:
-                return "Mix Copilot (Proxy)"
-            return "Mix Copilot"
-        if has_antigravity:
+        if "github-copilot" in default_model:
+            return "Mix Copilot (Plugin)"
+        if "google/" in default_model:
             return "Mix Antigravity (Plugin)"
-        if has_google:
-            return "Mix Antigravity (Proxy)"
 
-        return "[Unknown]"
+        return f"[Unknown: {default_model}]"
     except Exception:
         return "[Error]"
 
 
-def apply_profile(profile_name: str, delivery: str) -> bool:
-    """Apply a profile with specified delivery method.
+def apply_profile(profile_name: str) -> bool:
+    """Apply a profile using plugin delivery.
 
     Args:
         profile_name: 'mix-copilot' or 'mix-antigravity'
-        delivery: 'proxy' or 'plugin'
 
     Returns True on success.
     """
-    is_proxy = delivery == "proxy"
-    is_plugin = delivery == "plugin"
-
-    # Check proxy if needed (in CLI mode, just fail instead of prompting)
-    if is_proxy and not check_proxy_running(8045):
-        print("\n   [WARNING] Antigravity Proxy NOT running on port 8045!")
-        print("   Please start Antigravity Tools and enable proxy first.")
-        if _is_cli_mode():
-            return False
-        response = input("\n   Continue anyway? [y/N]: ").strip().lower()
-        if response != "y":
-            return False
-
     # Load and merge profile
     profiles_data = load_profiles(PROFILES_FILE)
     shared = profiles_data.get("shared", {})
@@ -138,25 +112,22 @@ def apply_profile(profile_name: str, delivery: str) -> bool:
     config = merge_profile(shared, profile)
     config = inject_lsp_config(config)
 
-    # Serialize and optionally transform for plugin mode
+    # Serialize and transform for plugin mode
     content = json.dumps(config, indent=2, ensure_ascii=False) + "\n"
-    if is_plugin:
-        content = transform_for_plugin(content)
+    content = transform_for_plugin(content)
 
     # Write oh-my-opencode.json
     TARGET_DIR.mkdir(parents=True, exist_ok=True)
     dst = TARGET_DIR / "oh-my-opencode.json"
     dst.write_text(content, encoding="utf-8")
 
-    mode_label = "plugin" if is_plugin else "proxy"
-    print(f"   [OK] Generated oh-my-opencode.json ({profile_name}, {mode_label})")
+    print(f"   [OK] Generated oh-my-opencode.json ({profile_name}, plugin)")
 
-    # Copy opencode.json (proxy or plugin provider config)
-    opencode_file = "opencode-plugin.json" if is_plugin else "opencode-proxy.json"
-    src_opencode = CONFIG_DIR / opencode_file
+    # Copy opencode.json (plugin provider config)
+    src_opencode = CONFIG_DIR / "opencode-plugin.json"
     if src_opencode.exists():
         copy_file(src_opencode, TARGET_DIR / "opencode.json")
-        print(f"   [OK] Copied {opencode_file} -> opencode.json")
+        print("   [OK] Copied opencode-plugin.json -> opencode.json")
 
     # Copy antigravity.json
     src_antigravity = CONFIG_DIR / "antigravity.json"
@@ -164,15 +135,11 @@ def apply_profile(profile_name: str, delivery: str) -> bool:
         copy_file(src_antigravity, TARGET_DIR / "antigravity.json")
         print("   [OK] Copied antigravity.json")
 
-    # Smart sync accounts for plugin modes
-    if is_plugin:
-        smart_sync_accounts(CONFIG_DIR, TARGET_DIR, APPDATA_DIR, LOCALAPPDATA_DIR)
+    # Smart sync accounts
+    smart_sync_accounts(CONFIG_DIR, TARGET_DIR, APPDATA_DIR, LOCALAPPDATA_DIR)
 
-    print(f"\n   [OK] Switched to {profile_name} ({mode_label})")
-    if is_proxy:
-        print("   [INFO] Using Antigravity Proxy at localhost:8045")
-    if is_plugin:
-        print("   [INFO] Using Antigravity Auth Plugin")
+    print(f"\n   [OK] Switched to {profile_name} (plugin)")
+    print("   [INFO] Using Antigravity Auth Plugin")
 
     return True
 
@@ -196,16 +163,11 @@ def show_menu():
     clear_screen()
     print()
     print("  +==================================================================+")
-    print("  |           AI.py - OpenCode Provider Switcher v4.3               |")
+    print("  |           AI.py - OpenCode Provider Switcher v5.0               |")
     print("  +==================================================================+")
     print("  |                                                                  |")
-    print("  |   Mix Copilot (Copilot + Google + OpenAI)                        |")
-    print("  |     [1a] Proxy   - Via localhost:8045 (clean names)              |")
-    print("  |     [1b] Plugin  - Via Auth Plugin (antigravity-* names)         |")
-    print("  |                                                                  |")
-    print("  |   Mix Antigravity (Google + OpenAI, no Copilot)                  |")
-    print("  |     [2a] Proxy   - Via localhost:8045 (clean names)              |")
-    print("  |     [2b] Plugin  - Via Auth Plugin (antigravity-* names)         |")
+    print("  |   [1] Mix Copilot      (Copilot + Google + OpenAI)              |")
+    print("  |   [2] Mix Antigravity  (Google + OpenAI, no Copilot)            |")
     print("  |                                                                  |")
     print("  |   [S] Sync    - Sync accounts across locations                   |")
     print("  |   [C] Current - Show current provider                            |")
@@ -224,10 +186,15 @@ def main():
 
     if cli_mode:
         arg = sys.argv[1].lower()
-        choice = CLI_ARGS.get(arg, arg)
+        if arg in _DEPRECATED_CLI_ARGS:
+            new_arg = arg.replace("-proxy", "").replace("-plugin", "")
+            print(f"   [DEPRECATED] '{arg}' is deprecated. Use '{new_arg}' instead.")
+            choice = _DEPRECATED_CLI_ARGS[arg]
+        else:
+            choice = CLI_ARGS.get(arg, arg)
     else:
         show_menu()
-        choice = input("   Select [1a/1b/2a/2b, S, C, Q]: ").strip().lower()
+        choice = input("   Select [1, 2, S, C, Q]: ").strip().lower()
 
     while True:
         if choice == "q":
@@ -250,8 +217,8 @@ def main():
             input("   Press Enter to continue...")
 
         elif choice in MENU_OPTIONS:
-            profile_name, delivery = MENU_OPTIONS[choice]
-            if apply_profile(profile_name, delivery):
+            profile_name = MENU_OPTIONS[choice]
+            if apply_profile(profile_name):
                 start_opencode()
             break
 
@@ -261,7 +228,7 @@ def main():
         # Show menu again for interactive mode only
         if not cli_mode:
             show_menu()
-            choice = input("   Select [1a/1b/2a/2b, S, C, Q]: ").strip().lower()
+            choice = input("   Select [1, 2, S, C, Q]: ").strip().lower()
         else:
             break
 
