@@ -12,14 +12,13 @@ import { useInventoryFilterStore } from "@/stores/inventoryFilterStore";
 import { InventoryHeader } from "./components/InventoryHeader";
 import { InventoryMainTab } from "./components/InventoryMainTab";
 import { InventoryStats } from "./components/InventoryStats";
-import { WholesaleTab } from "./components/WholesaleTab";
-import { MpqTab } from "./components/MpqTab";
 import { DeleteTab } from "./components/DeleteTab";
 import { InventoryToolbar } from "./components/InventoryToolbar";
 import { InventoryQuickView } from "./components/InventoryQuickView";
 import { InventoryBatchBar } from "./components/InventoryBatchBar";
 import { InventoryLockPanel } from "./components/InventoryLockPanel";
 import { SyncHistoryTab } from "./components/SyncHistoryTab";
+import { WholesaleMpqModal } from "./components/modals/WholesaleMpqModal";
 import { InventoryRecord } from "@/types/inventory";
 import { InventoryPagination } from "./components/InventoryPagination";
 
@@ -43,6 +42,7 @@ export default function InventoryPage() {
   } = useInventoryFilterStore();
 
   const [activeTab, setActiveTab] = useState("inventory");
+  const [showBulkPricingModal, setShowBulkPricingModal] = useState(false);
 
   const { data, isLoading, error, refetch } = useInventory({
     search: search || undefined,
@@ -105,16 +105,6 @@ export default function InventoryPage() {
       ),
     },
     {
-      key: "wholesale",
-      label: "Wholesale",
-      children: <WholesaleTab />,
-    },
-    {
-      key: "mpq",
-      label: "MPQ",
-      children: <MpqTab />,
-    },
-    {
       key: "delete",
       label: "Delete",
       children: <DeleteTab />,
@@ -161,6 +151,7 @@ export default function InventoryPage() {
           syncingFromSheets={syncFromSheetsMutation.isPending}
           onSyncToSheets={handleSyncToSheets}
           syncingToSheets={syncToSheetsMutation.isPending}
+          onOpenBulkPricing={() => setShowBulkPricingModal(true)}
         />
 
         <InventoryLockPanel />
@@ -219,6 +210,10 @@ export default function InventoryPage() {
           onBatchComplete={() => {
             refetch();
           }}
+        />
+        <WholesaleMpqModal
+          open={showBulkPricingModal}
+          onClose={() => setShowBulkPricingModal(false)}
         />
       </Content>
     </Layout>

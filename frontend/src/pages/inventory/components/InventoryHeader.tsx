@@ -34,6 +34,7 @@ interface InventoryHeaderProps {
   syncingFromSheets: boolean;
   onSyncToSheets: () => void;
   syncingToSheets: boolean;
+  onOpenBulkPricing?: () => void;
 }
 
 export function InventoryHeader({
@@ -45,6 +46,7 @@ export function InventoryHeader({
   syncingFromSheets,
   onSyncToSheets,
   syncingToSheets,
+  onOpenBulkPricing,
 }: InventoryHeaderProps) {
   const { token } = theme.useToken();
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
@@ -116,6 +118,12 @@ export function InventoryHeader({
                 icon: <CloudUploadOutlined />,
                 onClick: onSyncToSheets,
                 disabled: syncingToSheets,
+              },
+              {
+                key: "bulk-pricing",
+                label: "Bulk Pricing (MPQ/Wholesale)",
+                icon: <SettingOutlined />,
+                onClick: onOpenBulkPricing,
               },
             ],
           }}
