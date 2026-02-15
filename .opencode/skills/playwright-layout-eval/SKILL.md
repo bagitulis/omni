@@ -7,7 +7,7 @@ description: Playwright layout evaluation rules for React migration - verifies U
 <!-- MASTER:skill-playwright-role -->
 > **Role:** Verify UI/Layout implementation matches Design System specifications.
 > **When:** After implementing any layout, page, or component in React migration.
-> **Tool:** Use `skill_mcp(mcp_name="playwright", ...)` for browser automation.
+> **Tool:** Use browser tools directly (browser_navigate, browser_evaluate, browser_take_screenshot, etc.). Provider: agent-browser.
 <!-- /MASTER:skill-playwright-role -->
 
 ---
@@ -159,7 +159,7 @@ description: Playwright layout evaluation rules for React migration - verifies U
 
 ```
 Scenario: Verify layout dimensions match Design System
-  Tool: skill_mcp(mcp_name="playwright")
+  Tool: Browser tools (agent-browser provider)
   Steps:
     1. browser_navigate to page URL
     2. browser_snapshot to capture accessibility tree
@@ -176,7 +176,7 @@ Scenario: Verify layout dimensions match Design System
 
 ```
 Scenario: Verify mobile responsive behavior
-  Tool: skill_mcp(mcp_name="playwright")
+  Tool: Browser tools (agent-browser provider)
   Steps:
     1. browser_resize(width=375, height=667)
     2. browser_navigate to page URL
@@ -194,7 +194,7 @@ Scenario: Verify mobile responsive behavior
 
 ```
 Scenario: Verify primary color application
-  Tool: skill_mcp(mcp_name="playwright")
+  Tool: Browser tools (agent-browser provider)
   Steps:
     1. browser_navigate to page URL
     2. browser_evaluate with function:
@@ -210,7 +210,7 @@ Scenario: Verify primary color application
 
 ```
 Scenario: Verify flat navigation (no nested menus)
-  Tool: skill_mcp(mcp_name="playwright")
+  Tool: Browser tools (agent-browser provider)
   Steps:
     1. browser_navigate to page URL
     2. browser_evaluate:
@@ -228,7 +228,7 @@ Scenario: Verify flat navigation (no nested menus)
 ### Check Element Dimensions
 
 ```javascript
-(page) => {
+() => {
   const element = document.querySelector(".ant-layout-sider");
   const rect = element.getBoundingClientRect();
   return {
@@ -242,7 +242,7 @@ Scenario: Verify flat navigation (no nested menus)
 ### Check Computed Styles
 
 ```javascript
-(page) => {
+() => {
   const element = document.querySelector(".ant-btn-primary");
   const styles = getComputedStyle(element);
   return {
@@ -257,7 +257,7 @@ Scenario: Verify flat navigation (no nested menus)
 ### Check Mobile Layout
 
 ```javascript
-(page) => {
+() => {
   const sidebar = document.querySelector(".ant-layout-sider");
   const mobileNav = document.querySelector('[data-testid="mobile-nav"]');
   return {
@@ -366,7 +366,7 @@ Every page MUST be tested for smooth responsive transitions:
 
 ```
 Scenario: Verify layout transitions smoothly during resize
-  Tool: skill_mcp(mcp_name="playwright")
+  Tool: Browser tools (agent-browser provider)
   Steps:
     1. browser_navigate to page URL
     2. browser_resize(width=1400, height=900) - Start at desktop
