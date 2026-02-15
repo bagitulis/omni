@@ -23,7 +23,7 @@ func TestInventoryHandler_GetRecordByKey_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
@@ -37,7 +37,7 @@ func TestInventoryHandler_GetRecordByKey_EmptyKeyValue(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -65,7 +65,7 @@ func TestInventoryHandler_UpdateRecordByKey_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestInventoryHandler_UpdateRecordByKey_InvalidBody tests UpdateRecordByKey with invalid JSON
@@ -74,7 +74,7 @@ func TestInventoryHandler_UpdateRecordByKey_InvalidBody(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -101,7 +101,7 @@ func TestInventoryHandler_CreateRecord_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestInventoryHandler_CreateRecord_InvalidBody tests CreateRecord with invalid JSON
@@ -110,7 +110,7 @@ func TestInventoryHandler_CreateRecord_InvalidBody(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -131,7 +131,7 @@ func TestInventoryHandler_CreateRecord_MissingKeyValue(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -164,5 +164,5 @@ func TestInventoryHandler_DeleteRecordByKey_MissingTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }

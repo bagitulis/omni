@@ -49,35 +49,9 @@ func (s *InventoryService) GetRecords(ctx context.Context, filter ListFilter) (*
 		query = query.Where("key_value LIKE ?", search)
 	}
 
-	// SyncStatus filter
-	if len(filter.SyncStatus) > 0 {
-		query = query.Where("sync_status IN ?", filter.SyncStatus)
-	}
-
-	// Platform filter (JOIN with InventorySkuPlatformStatus)
-	if len(filter.Platform) > 0 {
-		query = query.Joins("LEFT JOIN inventory_sku_platform_status ON inventory_sku_platform_status.sku = inventory_records.key_value AND inventory_sku_platform_status.tenant_id = ?", s.tenantID).
-			Where("inventory_sku_platform_status.platform IN ?", filter.Platform).
-			Distinct()
-	}
-
-	// StockStatus filter
-	if filter.StockStatus != "" {
-		threshold := filter.LowStockThreshold
-		if threshold == 0 {
-			threshold = 10 // Default threshold
-		}
-
-		// Extract stock from JSONB data field
-		switch filter.StockStatus {
-		case "in_stock":
-			query = query.Where("CAST(data->'stock' AS INTEGER) > ?", threshold)
-		case "low_stock":
-			query = query.Where("CAST(data->'stock' AS INTEGER) > 0 AND CAST(data->'stock' AS INTEGER) <= ?", threshold)
-		case "out_of_stock":
-			query = query.Where("CAST(data->'stock' AS INTEGER) <= 0 OR data->'stock' IS NULL")
-		}
-	}
+	query = buildSyncStatusFilter(query, filter)
+	query = buildPlatformFilter(query, filter, s.tenantID)
+	query = buildStockStatusFilter(query, filter)
 
 	var total int64
 	if err := query.Model(&models.InventoryRecord{}).Count(&total).Error; err != nil {
@@ -100,6 +74,62 @@ func (s *InventoryService) GetRecords(ctx context.Context, filter ListFilter) (*
 		Offset:   filter.Offset,
 		Data:     records,
 	}, nil
+}
+
+// PlatformStatusItem represents platform sync status for a SKU
+type PlatformStatusItem struct {
+	Platform          string  `json:"platform"`
+	PlatformProductID string  `json:"platform_product_id"`
+	PlatformItemID    string  `json:"platform_item_id"`
+	PlatformSKU       string  `json:"platform_sku"`
+	Status            string  `json:"status"`
+	Stock             int     `json:"stock"`
+	Price             float64 `json:"price"`
+	LastSyncAt        string  `json:"last_sync_at"`
+	ErrorMessage      string  `json:"error_message,omitempty"`
+}
+
+// GetRecordsWithPlatformStatus retrieves inventory records with platform status enrichment
+func (s *InventoryService) GetRecordsWithPlatformStatus(ctx context.Context, filter ListFilter) (*ListResult, map[string][]PlatformStatusItem, error) {
+	// Get base records
+	result, err := s.GetRecords(ctx, filter)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Extract SKUs
+	skus := make([]string, 0, len(result.Data))
+	for _, rec := range result.Data {
+		skus = append(skus, rec.KeyValue)
+	}
+
+	// Fetch platform statuses
+	platformMap := make(map[string][]PlatformStatusItem)
+	if len(skus) > 0 {
+		var platformStatuses []models.InventorySkuPlatformStatus
+		err = s.db.WithContext(ctx).
+			Where("tenant_id = ? AND sku IN ?", s.tenantID, skus).
+			Find(&platformStatuses).Error
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// Group by SKU
+		for _, ps := range platformStatuses {
+			platformMap[ps.SKU] = append(platformMap[ps.SKU], PlatformStatusItem{
+				Platform:          ps.Platform,
+				PlatformProductID: ps.PlatformProductID,
+				PlatformItemID:    ps.PlatformItemID,
+				PlatformSKU:       ps.PlatformSKU,
+				Status:            ps.Status,
+				Stock:             ps.Stock,
+				Price:             ps.Price,
+				LastSyncAt:        ps.LastCheckedAt.Format(time.RFC3339),
+			})
+		}
+	}
+
+	return result, platformMap, nil
 }
 
 // GetBySKU retrieves a single inventory record by SKU

@@ -6,7 +6,6 @@ import { DeleteTab } from "@/pages/inventory/components/DeleteTab";
 interface WholesaleMpqModalProps {
   open: boolean;
   onClose: () => void;
-  items?: any[];
 }
 
 export function WholesaleMpqModal({ open, onClose }: WholesaleMpqModalProps) {

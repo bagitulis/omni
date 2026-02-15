@@ -14,7 +14,7 @@ import (
 func TestInventoryHandler_GetConfig(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	t.Run("missing tenant ID returns 401", func(t *testing.T) {
+	t.Run("missing tenant ID returns 400", func(t *testing.T) {
 		handler := NewInventoryHandler(nil)
 
 		w := httptest.NewRecorder()
@@ -24,11 +24,11 @@ func TestInventoryHandler_GetConfig(t *testing.T) {
 
 		handler.GetConfig(c)
 
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "tenant_id is required")
+		assert.Contains(t, resp["error"], "Missing tenant_id")
 	})
 
 	t.Run("valid request with no DB returns error", func(t *testing.T) {
@@ -37,7 +37,7 @@ func TestInventoryHandler_GetConfig(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/inventory/config", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.GetConfig(c)
 
@@ -49,7 +49,7 @@ func TestInventoryHandler_GetConfig(t *testing.T) {
 func TestInventoryHandler_GetList(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	t.Run("missing tenant ID returns 401", func(t *testing.T) {
+	t.Run("missing tenant ID returns 400", func(t *testing.T) {
 		handler := NewInventoryHandler(nil)
 
 		w := httptest.NewRecorder()
@@ -59,11 +59,11 @@ func TestInventoryHandler_GetList(t *testing.T) {
 
 		handler.GetList(c)
 
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "tenant ID required")
+		assert.Contains(t, resp["error"], "Missing tenant_id")
 	})
 
 	t.Run("valid request with no DB returns error", func(t *testing.T) {
@@ -72,7 +72,7 @@ func TestInventoryHandler_GetList(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/inventory/list", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.GetList(c)
 
@@ -84,7 +84,7 @@ func TestInventoryHandler_GetList(t *testing.T) {
 func TestInventoryHandler_GetRecordByKey(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	t.Run("missing tenant ID returns 401", func(t *testing.T) {
+	t.Run("missing tenant ID returns 400", func(t *testing.T) {
 		handler := NewInventoryHandler(nil)
 
 		w := httptest.NewRecorder()
@@ -95,11 +95,11 @@ func TestInventoryHandler_GetRecordByKey(t *testing.T) {
 
 		handler.GetRecordByKey(c)
 
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "tenant ID required")
+		assert.Contains(t, resp["error"], "Missing tenant_id")
 	})
 
 	t.Run("missing keyValue returns 400", func(t *testing.T) {
@@ -108,7 +108,7 @@ func TestInventoryHandler_GetRecordByKey(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/inventory/", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "keyValue", Value: ""}}
 
 		handler.GetRecordByKey(c)
@@ -126,7 +126,7 @@ func TestInventoryHandler_GetRecordByKey(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/inventory/SKU001", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "keyValue", Value: "SKU001"}}
 
 		handler.GetRecordByKey(c)
@@ -139,7 +139,7 @@ func TestInventoryHandler_GetRecordByKey(t *testing.T) {
 func TestInventoryHandler_UpdateRecordByKey(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	t.Run("missing tenant ID returns 401", func(t *testing.T) {
+	t.Run("missing tenant ID returns 400", func(t *testing.T) {
 		handler := NewInventoryHandler(nil)
 
 		body := map[string]interface{}{"quantity": 100}
@@ -154,11 +154,11 @@ func TestInventoryHandler_UpdateRecordByKey(t *testing.T) {
 
 		handler.UpdateRecordByKey(c)
 
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "tenant ID required")
+		assert.Contains(t, resp["error"], "Missing tenant_id")
 	})
 
 	t.Run("missing keyValue returns 400", func(t *testing.T) {
@@ -171,7 +171,7 @@ func TestInventoryHandler_UpdateRecordByKey(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodPut, "/api/inventory/", bytes.NewReader(bodyBytes))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "keyValue", Value: ""}}
 
 		handler.UpdateRecordByKey(c)
@@ -190,7 +190,7 @@ func TestInventoryHandler_UpdateRecordByKey(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodPut, "/api/inventory/SKU001", bytes.NewReader([]byte("invalid json")))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "keyValue", Value: "SKU001"}}
 
 		handler.UpdateRecordByKey(c)
@@ -212,7 +212,7 @@ func TestInventoryHandler_UpdateRecordByKey(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodPut, "/api/inventory/SKU001", bytes.NewReader(bodyBytes))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "keyValue", Value: "SKU001"}}
 
 		handler.UpdateRecordByKey(c)
@@ -225,7 +225,7 @@ func TestInventoryHandler_UpdateRecordByKey(t *testing.T) {
 func TestInventoryHandler_CreateRecord(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	t.Run("missing tenant ID returns 401", func(t *testing.T) {
+	t.Run("missing tenant ID returns 400", func(t *testing.T) {
 		handler := NewInventoryHandler(nil)
 
 		body := map[string]interface{}{"keyValue": "SKU001", "quantity": 100}
@@ -239,11 +239,11 @@ func TestInventoryHandler_CreateRecord(t *testing.T) {
 
 		handler.CreateRecord(c)
 
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "tenant ID required")
+		assert.Contains(t, resp["error"], "Missing tenant_id")
 	})
 
 	t.Run("invalid JSON returns 400", func(t *testing.T) {
@@ -253,7 +253,7 @@ func TestInventoryHandler_CreateRecord(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory", bytes.NewReader([]byte("invalid json")))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.CreateRecord(c)
 
@@ -274,7 +274,7 @@ func TestInventoryHandler_CreateRecord(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory", bytes.NewReader(bodyBytes))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.CreateRecord(c)
 
@@ -295,7 +295,7 @@ func TestInventoryHandler_CreateRecord(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory", bytes.NewReader(bodyBytes))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.CreateRecord(c)
 
@@ -318,11 +318,11 @@ func TestInventoryHandler_DeleteRecordByKey(t *testing.T) {
 
 		handler.DeleteRecordByKey(c)
 
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "tenant ID required")
+		assert.Contains(t, resp["error"], "Missing tenant_id")
 	})
 
 	t.Run("missing keyValue returns 400", func(t *testing.T) {
@@ -331,7 +331,7 @@ func TestInventoryHandler_DeleteRecordByKey(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodDelete, "/api/inventory/", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "keyValue", Value: ""}}
 
 		handler.DeleteRecordByKey(c)
@@ -349,7 +349,7 @@ func TestInventoryHandler_DeleteRecordByKey(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodDelete, "/api/inventory/SKU001", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "keyValue", Value: "SKU001"}}
 
 		handler.DeleteRecordByKey(c)

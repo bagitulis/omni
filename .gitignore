@@ -41,6 +41,13 @@ frontend-vue/dist/
 *_copy*
 allcode-*.txt
 
+# Database backups (generated artifacts, can be regenerated)
+backups/smart/
+backups/db-tools/
+
+# Nginx logs (runtime generated, potential PII)
+nginx/logs/
+
 # IDE generated
 .vscode/mcp.json
 

@@ -20,9 +20,9 @@ import (
 
 // GetRecordByKey handles GET /api/inventory/:keyValue
 func (h *InventoryHandler) GetRecordByKey(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := c.GetString("tenant_id")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -73,9 +73,9 @@ func (h *InventoryHandler) GetRecordByKey(c *gin.Context) {
 // UpdateRecordByKey handles PUT /api/inventory/:keyValue
 // 🔴 CRITICAL - This fixes the 404 error!
 func (h *InventoryHandler) UpdateRecordByKey(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := c.GetString("tenant_id")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -134,9 +134,9 @@ func (h *InventoryHandler) UpdateRecordByKey(c *gin.Context) {
 
 // CreateRecord handles POST /api/inventory
 func (h *InventoryHandler) CreateRecord(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := c.GetString("tenant_id")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -199,9 +199,9 @@ func (h *InventoryHandler) CreateRecord(c *gin.Context) {
 
 // DeleteRecordByKey handles DELETE /api/inventory/:keyValue
 func (h *InventoryHandler) DeleteRecordByKey(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := c.GetString("tenant_id")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 

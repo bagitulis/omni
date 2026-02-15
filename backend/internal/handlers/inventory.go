@@ -51,25 +51,14 @@ type InventoryConfig struct {
 
 // InventoryListItem represents a single inventory item with JSONB data
 type InventoryListItem struct {
-	ID             string                 `json:"id"`
-	KeyValue       string                 `json:"key_value"`
-	KeyColumnName  string                 `json:"key_column_name"`
-	Data           map[string]interface{} `json:"data"`
-	SyncStatus     string                 `json:"sync_status"`
-	PlatformStatus []PlatformStatusItem   `json:"platform_status"`
-	CreatedAt      string                 `json:"created_at,omitempty"`
-	UpdatedAt      string                 `json:"updated_at,omitempty"`
-}
-
-// PlatformStatusItem represents platform sync status for a SKU
-type PlatformStatusItem struct {
-	Platform          string  `json:"platform"`
-	PlatformProductID string  `json:"platform_product_id"`
-	PlatformItemID    string  `json:"platform_item_id"`
-	PlatformSKU       string  `json:"platform_sku"`
-	Status            string  `json:"status"`
-	Stock             int     `json:"stock"`
-	Price             float64 `json:"price"`
+	ID             string                         `json:"id"`
+	KeyValue       string                         `json:"key_value"`
+	KeyColumnName  string                         `json:"key_column_name"`
+	Data           map[string]interface{}         `json:"data"`
+	SyncStatus     string                         `json:"sync_status"`
+	PlatformStatus []inventory.PlatformStatusItem `json:"platform_status"`
+	CreatedAt      string                         `json:"created_at,omitempty"`
+	UpdatedAt      string                         `json:"updated_at,omitempty"`
 }
 
 // parseCommaSeparatedColumns parses a comma-separated string into a slice of column names
@@ -109,9 +98,9 @@ func extractSpreadsheetIDFromURL(urlOrID string) string {
 
 // GetConfig handles GET /api/inventory/config
 func (h *InventoryHandler) GetConfig(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := c.GetString("tenant_id")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant_id is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -200,9 +189,9 @@ func (h *InventoryHandler) GetConfig(c *gin.Context) {
 
 // GetList handles GET /api/inventory/list
 func (h *InventoryHandler) GetList(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := c.GetString("tenant_id")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -226,7 +215,7 @@ func (h *InventoryHandler) GetList(c *gin.Context) {
 		limit = 500
 	}
 
-	// Use service layer
+	// Use service layer with platform enrichment
 	svc := inventory.NewInventoryService(db, tenantID)
 	filter := inventory.ListFilter{
 		Search:            search,
@@ -238,37 +227,10 @@ func (h *InventoryHandler) GetList(c *gin.Context) {
 		Offset:            offset,
 	}
 
-	result, err := svc.GetRecords(c.Request.Context(), filter)
+	result, platformMap, err := svc.GetRecordsWithPlatformStatus(c.Request.Context(), filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
-	}
-
-	// Enrich with platform status
-	skus := make([]string, 0, len(result.Data))
-	for _, rec := range result.Data {
-		skus = append(skus, rec.KeyValue)
-	}
-
-	var platformStatuses []models.InventorySkuPlatformStatus
-	if len(skus) > 0 {
-		db.WithContext(c.Request.Context()).
-			Where("tenant_id = ? AND sku IN ?", tenantID, skus).
-			Find(&platformStatuses)
-	}
-
-	// Group by SKU
-	platformMap := make(map[string][]PlatformStatusItem)
-	for _, ps := range platformStatuses {
-		platformMap[ps.SKU] = append(platformMap[ps.SKU], PlatformStatusItem{
-			Platform:          ps.Platform,
-			PlatformProductID: ps.PlatformProductID,
-			PlatformItemID:    ps.PlatformItemID,
-			PlatformSKU:       ps.PlatformSKU,
-			Status:            ps.Status,
-			Stock:             ps.Stock,
-			Price:             ps.Price,
-		})
 	}
 
 	// Build response items
@@ -281,7 +243,7 @@ func (h *InventoryHandler) GetList(c *gin.Context) {
 
 		platformStatus := platformMap[rec.KeyValue]
 		if platformStatus == nil {
-			platformStatus = []PlatformStatusItem{}
+			platformStatus = []inventory.PlatformStatusItem{}
 		}
 
 		items = append(items, InventoryListItem{
