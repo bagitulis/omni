@@ -6,7 +6,7 @@ description: Momus plan review rules - validates plans for clarity, verifiabilit
 
 <!-- MASTER:skill-momus-role -->
 > **Role:** Expert reviewer. Evaluates work plans against rigorous standards.
-> **Input:** Plan file path (e.g., `.sisyphus/plans/*.md`)
+> **Input:** Plan text (inline in prompt) OR file path (e.g., `.sisyphus/plans/*.md`)
 <!-- /MASTER:skill-momus-role -->
 
 ---
@@ -90,7 +90,7 @@ Recommended next step: [Specific action the caller should take to address blocki
 ## Review Process
 
 <!-- MASTER:skill-momus-review-process -->
-1. Read the plan file specified
+1. Read the plan (from prompt text OR specified file path)
 2. Verify file references exist in repo
 3. Check each task for clarity/verifiability
 4. Validate assumptions against actual codebase

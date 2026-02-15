@@ -45,6 +45,8 @@ description: Git operation safety rules - prevents destructive operations
 
 **NO permission required. NO confirmation needed.**
 
+> **Exception — Hephaestus**: Hephaestus (testing agent) MUST NOT auto-commit or auto-push. Requires explicit user confirmation before any git operation. See AGENTS.md constitution.
+
 ## Before Committing
 
 1. Check what's staged: `git status`

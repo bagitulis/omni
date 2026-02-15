@@ -118,8 +118,8 @@
 
 ```typescript
 // CORRECT: Fire parallel, continue working
-delegate_task(subagent_type="explore", run_in_background=true, ...)
-delegate_task(subagent_type="librarian", run_in_background=true, ...)
+task(subagent_type="explore", run_in_background=true, ...)
+task(subagent_type="librarian", run_in_background=true, ...)
 // → Continue with other work or standby for user input
 // → System will notify when agents complete
 
@@ -139,10 +139,14 @@ background_cancel(all=true)
 
 ## 5. Session Continuity (CRITICAL)
 
-Every `delegate_task()` output includes session_id. **USE IT!**
+Every `task()` output includes session_id. **USE IT!**
+
+> **Note:** `task(...)` is the delegation primitive. Older examples may reference `delegate_task()` — treat them as equivalent.
 
 <!-- MASTER:session-continuity -->
-Every `delegate_task()` output includes a `session_id`. **ALWAYS use it.**
+Every `task()` output includes a `session_id`. **ALWAYS use it.**
+
+> **Note:** `task(...)` is the delegation primitive. Older examples may reference `delegate_task()` — treat them as equivalent.
 
 | Scenario               | Action                                             |
 | ---------------------- | -------------------------------------------------- |
@@ -165,13 +169,10 @@ Every `delegate_task()` output includes a `session_id`. **ALWAYS use it.**
 
 ```typescript
 // ❌ WRONG: Starting fresh loses context
-delegate_task((prompt = "Fix the type error..."));
+task((prompt = "Fix the type error..."));
 
 // ✅ CORRECT: Resume preserves everything
-delegate_task(
-  (session_id = "ses_abc123"),
-  (prompt = "Fix: Type error on line 42"),
-);
+task((session_id = "ses_abc123"), (prompt = "Fix: Type error on line 42"));
 ```
 
 ---
@@ -216,13 +217,13 @@ When a delegated task **fails or produces incorrect results** (NOT due to connec
 ```
 TIMEOUT/ABORT:
 → Check session_id from response
-→ If present: delegate_task(session_id="...", prompt="continue")
+→ If present: task(session_id="...", prompt="continue")
 → If not: retry with more specific prompt
 
 WRONG OUTPUT (NOT timeout):
 → MUST use category="deep" for retry
 → Include the error/wrong output in the prompt so deep agent knows what failed
-→ Example: delegate_task(category="deep", prompt="Previous attempt failed with: [error]. Fix: [task]")
+→ Example: task(category="deep", prompt="Previous attempt failed with: [error]. Fix: [task]")
 
 EMPTY RESPONSE:
 → Wait 5 seconds
@@ -339,7 +340,7 @@ Sisyphus orchestrates executors — ensure they follow build rules:
 
 ---
 
-## 11. Loop Mode (ULP) Reference
+## 11. Loop Mode (ULW) Reference
 
 When running in `/ulw-loop` mode, Sisyphus follows additional rules from the `ulw-loop` skill:
 

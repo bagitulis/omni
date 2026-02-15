@@ -82,7 +82,9 @@ When a delegated task **fails or produces incorrect results** (NOT due to connec
 
 ## 4. Session Continuity (MANDATORY)
 
-Every `delegate_task()` output includes a `session_id`. **ALWAYS use it.**
+Every `task()` output includes a `session_id`. **ALWAYS use it.**
+
+> **Note:** `task(...)` is the delegation primitive. Older examples may reference `delegate_task()` — treat them as equivalent.
 
 | Scenario               | Action                                             |
 | ---------------------- | -------------------------------------------------- |

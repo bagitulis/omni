@@ -202,7 +202,9 @@ Switch to manual handling when:
 ## Session Continuity (CRITICAL)
 
 <!-- MASTER:session-continuity -->
-Every `delegate_task()` output includes a `session_id`. **ALWAYS use it.**
+Every `task()` output includes a `session_id`. **ALWAYS use it.**
+
+> **Note:** `task(...)` is the delegation primitive. Older examples may reference `delegate_task()` — treat them as equivalent.
 
 | Scenario               | Action                                             |
 | ---------------------- | -------------------------------------------------- |

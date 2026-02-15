@@ -319,13 +319,26 @@ python build.py backup
 > All other agents follow the auto-commit/auto-push policy above.
 
 > **Task vs Batch**: A "task" = one logical unit of work (e.g., fix a bug, add a feature, update docs).
-> In loop mode (ULP), the orchestrator may batch multiple small tasks into one commit — this is acceptable.
+> In loop mode (ULW), the orchestrator may batch multiple small tasks into one commit — this is acceptable.
 > The rule is: **never leave completed work uncommitted**.
 
 **Workflow:**
 
 ```
 Task Complete → git add -A → git commit → git push → Done
+```
+
+### Screenshot Evidence Policy (GLOBAL)
+
+> **All screenshots (any agent, any purpose) MUST be saved under `.sisyphus/evidence/`.**
+> Never save screenshots to root folder or random locations.
+
+```
+.sisyphus/evidence/
+├── task-{N}-{component}-desktop.png
+├── task-{N}-{component}-mobile.png
+├── bug-{page}-{issue}.png
+└── verification-{feature}.png
 ```
 
 ---

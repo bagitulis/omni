@@ -21,8 +21,11 @@ description: Oracle consultation rules for OMNI project - high-IQ reasoning spec
 | Multi-system tradeoffs          | Yes                     |
 | Security/performance concerns   | Yes                     |
 | Code review of significant work | Yes                     |
+| **Oracle ACC gate (3+ files)**  | **Yes (MANDATORY)**     |
 | Simple file operations          | NO - use direct tools   |
 | First attempt at any fix        | NO - try yourself first |
+
+> **Note:** "First attempt at any fix" refers to *problem-solving consults*, not *post-implementation review gates*. The Oracle ACC gate (required for 3+ file changes per EXECUTOR_RULES) is a mandatory evaluation gate, not a first-attempt consultation.
 <!-- /MASTER:skill-oracle-when-to-use -->
 
 ---
