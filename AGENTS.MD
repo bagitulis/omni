@@ -59,7 +59,7 @@ Skills (auto-loaded via oh-my-opencode.json):
 
 | Agent               | Additional Rules                                                   |
 | ------------------- | ------------------------------------------------------------------ |
-| **Sisyphus**        | `SISYPHUS_RULES.md` + skills: stuck-recovery, ulp-loop             |
+| **Sisyphus**        | `SISYPHUS_RULES.md` + skills: stuck-recovery, ulw-loop             |
 | **Sisyphus-Junior** | `EXECUTOR_RULES.md` + skills: stuck-recovery, react-frontend-rules |
 | **Atlas**           | `EXECUTOR_RULES.md` + skills: stuck-recovery, react-frontend-rules |
 | **Hephaestus**      | `EXECUTOR_RULES.md` + skills: stuck-recovery, react-frontend-rules |

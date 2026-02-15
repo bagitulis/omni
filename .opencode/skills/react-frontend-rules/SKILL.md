@@ -4,13 +4,19 @@ description: React frontend rules for OMNI React migration - Ant Design + Ginee-
 
 # React Frontend Rules
 
+<!-- MASTER:skill-react-role -->
 > **Role:** Rules for agents implementing React frontend (frontend/).
+<!-- /MASTER:skill-react-role -->
+
+<!-- MASTER:skill-react-stack -->
 > **Stack:** React 19 + Vite 6 + Ant Design 5 + TypeScript + Zustand + TanStack Query
+<!-- /MASTER:skill-react-stack -->
 
 ---
 
 ## ⚠️ CRITICAL PRINCIPLES (READ FIRST)
 
+<!-- MASTER:skill-react-critical-principles -->
 ### 1. Backend Integration is MANDATORY
 
 - Frontend MUST integrate with existing Go backend API
@@ -63,11 +69,13 @@ font-family:
 ```
 
 **NEVER mix font sizes randomly. Use the scale above.**
+<!-- /MASTER:skill-react-critical-principles -->
 
 ---
 
 ## Project Structure
 
+<!-- MASTER:skill-react-project-structure -->
 ```
 frontend/
 ├── src/
@@ -100,11 +108,13 @@ frontend/
 │   ├── lib/                    # Utilities
 │   └── styles/                 # Theme and global CSS
 ```
+<!-- /MASTER:skill-react-project-structure -->
 
 ---
 
 ## Design System (CRITICAL)
 
+<!-- MASTER:skill-react-design-system -->
 ### Primary Color: Sky Blue
 
 | Token     | Hex       | Usage                 |
@@ -153,11 +163,13 @@ frontend/
 | `font-semibold` | 600    | Headings, buttons      |
 
 **CRITICAL: Only use sizes from the scale above. No 13px, 15px, 17px, etc.**
+<!-- /MASTER:skill-react-design-system -->
 
 ---
 
 ## Naming Conventions
 
+<!-- MASTER:skill-react-naming-conventions -->
 | Type       | Convention     | Example                |
 | ---------- | -------------- | ---------------------- |
 | Components | PascalCase     | `OrderTable.tsx`       |
@@ -166,11 +178,13 @@ frontend/
 | Local vars | camelCase      | `orderList`            |
 | Files      | PascalCase     | `DashboardPage.tsx`    |
 | Stores     | camelCase      | `authStore.ts`         |
+<!-- /MASTER:skill-react-naming-conventions -->
 
 ---
 
 ## API Type Matching (CRITICAL!)
 
+<!-- MASTER:skill-react-api-type-matching -->
 Backend returns snake_case JSON. Types **MUST** match exactly:
 
 ```typescript
@@ -188,11 +202,13 @@ interface Order {
   createdAt: string; // Backend sends created_at
 }
 ```
+<!-- /MASTER:skill-react-api-type-matching -->
 
 ---
 
 ## Component Structure
 
+<!-- MASTER:skill-react-component-structure -->
 ```tsx
 // 1. Imports
 import { useState, useEffect } from 'react';
@@ -221,11 +237,13 @@ export function OrderCard({ orderId }: Props) {
   );
 }
 ```
+<!-- /MASTER:skill-react-component-structure -->
 
 ---
 
 ## Ant Design Theme Override
 
+<!-- MASTER:skill-react-antd-theme-override -->
 ```typescript
 // src/styles/theme.ts
 export const antdTheme: ThemeConfig = {
@@ -247,11 +265,13 @@ export const antdTheme: ThemeConfig = {
   },
 };
 ```
+<!-- /MASTER:skill-react-antd-theme-override -->
 
 ---
 
 ## Localhost Bypass
 
+<!-- MASTER:skill-react-localhost-bypass -->
 Dev mode bypasses authentication on localhost:
 
 ```typescript
@@ -262,11 +282,13 @@ if (isLocalhost) {
   return true;
 }
 ```
+<!-- /MASTER:skill-react-localhost-bypass -->
 
 ---
 
 ## API Response Format
 
+<!-- MASTER:skill-react-api-response-format -->
 Backend always returns:
 
 ```json
@@ -284,11 +306,13 @@ if (!response.data.success) {
 }
 return response.data.data;
 ```
+<!-- /MASTER:skill-react-api-response-format -->
 
 ---
 
 ## Anti-Patterns (FORBIDDEN)
 
+<!-- MASTER:skill-react-anti-patterns -->
 | Forbidden              | Do Instead                      |
 | ---------------------- | ------------------------------- |
 | camelCase API types    | Use snake_case to match backend |
@@ -299,6 +323,7 @@ return response.data.data;
 | Nested submenus        | Flat navigation (Ginee-style)   |
 | Empty catch blocks     | Handle or log error             |
 | Rounded corners > 6px  | Use 3px (sharp, Ginee-style)    |
+<!-- /MASTER:skill-react-anti-patterns -->
 
 ---
 
@@ -321,14 +346,17 @@ return response.data.data;
 
 ## References
 
+<!-- MASTER:skill-react-references -->
 - Design System: Defined in this document (see Design System section above)
 - Vue Legacy Reference: `frontend-vue/src/` (for logic patterns only, NOT layout)
 - Ginee Style: Task-first dashboard, flat navigation, data-dense tables
+<!-- /MASTER:skill-react-references -->
 
 ---
 
 ## Backend Integration Guide
 
+<!-- MASTER:skill-react-backend-integration-guide -->
 ### API Base Configuration
 
 ```typescript
@@ -416,11 +444,13 @@ export function useOrders(filters?: { status?: string }) {
 | `/api/inventory`    | GET     | List inventory           |
 | `/api/analytics/*`  | GET     | Analytics data           |
 | `/api/health`       | GET     | Health check             |
+<!-- /MASTER:skill-react-backend-integration-guide -->
 
 ---
 
 ## Consistency Enforcement
 
+<!-- MASTER:skill-react-consistency-enforcement -->
 ### Color Tokens (USE ONLY THESE)
 
 ```typescript
@@ -475,11 +505,13 @@ borderRadius: 8,      // Too rounded
 borderRadius: 16,     // Way too rounded
 borderRadius: 9999,   // Pill (only for avatars/badges)
 ```
+<!-- /MASTER:skill-react-consistency-enforcement -->
 
 ---
 
 ## Pre-Implementation Checklist
 
+<!-- MASTER:skill-react-pre-implementation-checklist -->
 Before implementing any component/page:
 
 - [ ] Backend API endpoint exists and works (`curl` test)
@@ -489,9 +521,13 @@ Before implementing any component/page:
 - [ ] Using 12px base font size
 - [ ] Using 3px border radius
 - [ ] Using system fonts only
+<!-- /MASTER:skill-react-pre-implementation-checklist -->
+
+---
 
 ## Post-Implementation Checklist
 
+<!-- MASTER:skill-react-post-implementation-checklist -->
 After implementing any component/page:
 
 - [ ] API integration works (data loads correctly)
@@ -501,3 +537,4 @@ After implementing any component/page:
 - [ ] Fonts consistent (check DevTools)
 - [ ] Colors match Design System
 - [ ] Layout not messy/broken at any viewport
+<!-- /MASTER:skill-react-post-implementation-checklist -->

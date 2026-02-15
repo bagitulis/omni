@@ -288,7 +288,99 @@ c.JSON(http.StatusInternalServerError, gin.H{
 
 ---
 
-## 10. Completion Criteria (NO PREMATURE DONE)
+## 10. HYBRID EVALUATION GATE (MANDATORY)
+
+> **This gate is IN ADDITION to existing `post-task-evaluation` and `no-premature-done` rules. It does NOT replace them.**
+
+<!-- MASTER:executor-hybrid-evaluation -->
+**EXECUTOR RULE:** All completed work requires evaluation. Evaluation depth scales with task size.
+
+**Task Size Determination:**
+| Changed Files | Task Size | Evaluation Required |
+| ------------- | --------- | ------------------- |
+| 1-2 files     | Small     | Self-evaluation only |
+| 3+ files      | Large     | Self-evaluation + Oracle ACC |
+
+---
+
+**SMALL TASKS (1-2 files) — Self-Evaluation:**
+
+1. **Build/Test**: Run relevant build and test commands
+2. **Lint**: Run `lsp_diagnostics` on changed files, fix all errors/warnings
+3. **Evidence**: Capture proof of passing build/test/lint
+4. **Return to orchestrator** with evidence
+
+**Evidence Format (Small):**
+```
+✅ SELF-EVALUATION COMPLETE (1-2 files)
+
+Files Changed:
+- [file1.ts] — [what changed]
+- [file2.ts] — [what changed]
+
+Verification:
+- Build: PASS [command + output]
+- Lint: CLEAN [lsp_diagnostics result]
+- Test: PASS [if applicable]
+
+Ready for orchestrator review.
+```
+
+---
+
+**LARGE TASKS (3+ files) — Self-Evaluation + Oracle ACC:**
+
+1. **Self-Evaluation**: Same as small tasks (build/test/lint)
+2. **Oracle Consultation**: Submit work for Oracle review
+3. **On ACC**: Return to orchestrator
+4. **On REJECT**: Fix issues, re-test, re-consult Oracle (use session_id)
+
+**Oracle Consultation Format:**
+```
+task(
+  subagent_type="oracle",
+  session_id="[previous session if re-submitting]",
+  prompt="
+## EXECUTOR EVALUATION REQUEST
+
+### Task Completed:
+[what was implemented/fixed]
+
+### Files Changed (3+ = requires Oracle ACC):
+[list all changed files]
+
+### Self-Evaluation Evidence:
+- Build: [pass/fail + output]
+- Lint: [clean/issues + output]
+- Tests: [pass/fail + output]
+
+### Verification Done:
+[what you tested and how]
+
+Please evaluate. ACC or REJECT with issues to fix.
+  "
+)
+```
+
+**Oracle ACC required before claiming done on 3+ files.**
+
+**On REJECT from Oracle:**
+1. Read Oracle's issues carefully
+2. Fix ALL issues mentioned
+3. Re-run build/test/lint
+4. Re-consult Oracle with session_id (preserve context)
+5. Repeat until ACC
+
+**Fallback (if Oracle unavailable for large tasks):**
+1. Retry Oracle with session_id
+2. If unavailable, use `category="deep"` with Oracle-style evaluation prompt
+3. If still unavailable, perform thorough self-review checklist
+4. Document that Oracle was unavailable, proceed with caution
+<!-- /MASTER:executor-hybrid-evaluation -->
+
+---
+
+## 11. Completion Criteria (NO PREMATURE DONE)
 
 **BEFORE saying "done", you MUST perform a completion self-check.**
 Do NOT claim completion based on "I think it works" — verify with evidence.
@@ -349,7 +441,7 @@ git log -1 --oneline  # Capture commit hash + subject
 
 ---
 
-## 11. Anti-Patterns (FORBIDDEN)
+## 12. Anti-Patterns (FORBIDDEN)
 
 | Forbidden                       | Do Instead                        |
 | ------------------------------- | --------------------------------- |
@@ -366,7 +458,7 @@ git log -1 --oneline  # Capture commit hash + subject
 
 ---
 
-## 12. UI Bug Reporting (MANDATORY)
+## 13. UI Bug Reporting (MANDATORY)
 
 When using Playwright/browser for ANY task (testing, screenshots, verification):
 

@@ -4,14 +4,17 @@ description: Playwright layout evaluation rules for React migration - verifies U
 
 # Playwright Layout Evaluation Rules
 
+<!-- MASTER:skill-playwright-role -->
 > **Role:** Verify UI/Layout implementation matches Design System specifications.
 > **When:** After implementing any layout, page, or component in React migration.
 > **Tool:** Use `skill_mcp(mcp_name="playwright", ...)` for browser automation.
+<!-- /MASTER:skill-playwright-role -->
 
 ---
 
 ## Evaluation Checklist
 
+<!-- MASTER:skill-playwright-evaluation-checklist -->
 ### 1. Layout Dimensions
 
 | Element           | Expected | Selector                      |
@@ -145,11 +148,13 @@ description: Playwright layout evaluation rules for React migration - verifies U
 | Mobile   | 375px  | Bottom nav visible, sidebar hidden |
 | Tablet   | 768px  | Sidebar collapsible                |
 | Desktop  | 1200px | Sidebar expanded                   |
+<!-- /MASTER:skill-playwright-evaluation-checklist -->
 
 ---
 
 ## Standard Verification Scenarios
 
+<!-- MASTER:skill-playwright-standard-verification-scenarios -->
 ### Layout Verification
 
 ```
@@ -213,11 +218,13 @@ Scenario: Verify flat navigation (no nested menus)
     3. Assert: Count is 0 (flat navigation)
   Expected: No nested submenus (Ginee-style flat nav)
 ```
+<!-- /MASTER:skill-playwright-standard-verification-scenarios -->
 
 ---
 
 ## JavaScript Evaluation Templates
 
+<!-- MASTER:skill-playwright-js-evaluation-templates -->
 ### Check Element Dimensions
 
 ```javascript
@@ -261,6 +268,7 @@ Scenario: Verify flat navigation (no nested menus)
   };
 };
 ```
+<!-- /MASTER:skill-playwright-js-evaluation-templates -->
 
 ---
 
@@ -295,16 +303,19 @@ browser_take_screenshot({ type: "png" });
 ```
 <!-- /MASTER:screenshot-evidence -->
 
+<!-- MASTER:skill-playwright-evidence-collection -->
 ### Required Screenshots Per Page
 
 1. **Desktop full page** - Default viewport
 2. **Mobile responsive** - 375x667 viewport
 3. **Key interactions** - Hover states, active states
+<!-- /MASTER:skill-playwright-evidence-collection -->
 
 ---
 
 ## Pass/Fail Criteria
 
+<!-- MASTER:skill-playwright-pass-fail-criteria -->
 ### PASS Conditions
 
 - All layout dimensions match within 5px tolerance (≤5px difference)
@@ -322,11 +333,13 @@ browser_take_screenshot({ type: "png" });
 - Nested submenus present
 - Mobile nav missing on mobile viewport
 - Border radius > 6px (should be 3px sharp corners)
+<!-- /MASTER:skill-playwright-pass-fail-criteria -->
 
 ---
 
 ## Integration with Task Workflow
 
+<!-- MASTER:skill-playwright-integration-with-task-workflow -->
 1. **After implementing layout/page:**
    - Load this skill
    - Run verification scenarios
@@ -340,11 +353,13 @@ browser_take_screenshot({ type: "png" });
    - Fix the specific issue
    - Re-run verification
    - Update evidence
+<!-- /MASTER:skill-playwright-integration-with-task-workflow -->
 
 ---
 
 ## Responsive Transition Verification (CRITICAL)
 
+<!-- MASTER:skill-playwright-responsive-transition-verification -->
 ### Smooth Resize Test (MANDATORY)
 
 Every page MUST be tested for smooth responsive transitions:
@@ -469,11 +484,13 @@ Scenario: Verify layout transitions smoothly during resize
   };
 };
 ```
+<!-- /MASTER:skill-playwright-responsive-transition-verification -->
 
 ---
 
 ## Required Viewport Tests (MANDATORY)
 
+<!-- MASTER:skill-playwright-required-viewport-tests -->
 | Viewport    | Width x Height | What to Check                                 |
 | ----------- | -------------- | --------------------------------------------- |
 | Desktop XL  | 1920 x 1080    | Full sidebar, wide tables                     |
@@ -493,11 +510,13 @@ At minimum, test these 4 viewports:
 2. **768x1024** - Tablet (transition point)
 3. **375x667** - Mobile standard
 4. **320x568** - Mobile minimum (catch edge cases)
+<!-- /MASTER:skill-playwright-required-viewport-tests -->
 
 ---
 
 ## Layout Messiness Detection
 
+<!-- MASTER:skill-playwright-layout-messiness-detection -->
 ### What Counts as "Messy/Broken" Layout
 
 | Issue                       | Detection Method                       |
@@ -574,11 +593,13 @@ At minimum, test these 4 viewports:
   return report;
 };
 ```
+<!-- /MASTER:skill-playwright-layout-messiness-detection -->
 
 ---
 
 ## Anti-Patterns
 
+<!-- MASTER:skill-playwright-anti-patterns -->
 | Don't                    | Do Instead                     |
 | ------------------------ | ------------------------------ |
 | Skip layout verification | ALWAYS verify dimensions       |
@@ -589,11 +610,13 @@ At minimum, test these 4 viewports:
 | Test only one viewport   | Test ALL 4 minimum viewports   |
 | Skip resize transitions  | Animate resize and check each  |
 | Ignore horizontal scroll | CRITICAL fail if present       |
+<!-- /MASTER:skill-playwright-anti-patterns -->
 
 ---
 
 ## ⚠️ MANDATORY: UI Bug Reporting (Even When Not Your Task)
 
+<!-- MASTER:skill-playwright-ui-bug-reporting -->
 > **This rule applies to ALL agents using Playwright/browser, regardless of their current task.**
 
 When you open a page in the browser (for ANY reason — testing, screenshots, verification, debugging), and you notice layout issues, **you MUST report them to the main agent (Sisyphus)**.
@@ -638,3 +661,4 @@ When you find a UI bug that is NOT part of your current task:
 - **ALWAYS report** even if fixing it is not your task
 - **DO NOT fix it yourself** unless explicitly asked — just report
 - This applies to ALL pages you visit, not just the one you're working on
+<!-- /MASTER:skill-playwright-ui-bug-reporting -->

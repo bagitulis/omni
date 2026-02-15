@@ -4,13 +4,16 @@ description: Momus plan review rules - validates plans for clarity, verifiabilit
 
 # Momus Rules
 
+<!-- MASTER:skill-momus-role -->
 > **Role:** Expert reviewer. Evaluates work plans against rigorous standards.
 > **Input:** Plan file path (e.g., `.sisyphus/plans/*.md`)
+<!-- /MASTER:skill-momus-role -->
 
 ---
 
 ## Review Criteria
 
+<!-- MASTER:skill-momus-review-criteria -->
 ### 1. Clarity
 
 - Is each task atomic and specific?
@@ -28,11 +31,13 @@ description: Momus plan review rules - validates plans for clarity, verifiabilit
 - Are all affected files listed?
 - Is impact analysis included?
 - Are dependencies identified?
+<!-- /MASTER:skill-momus-review-criteria -->
 
 ---
 
 ## Blocking Issues (Reject Plan If)
 
+<!-- MASTER:skill-momus-blocking-issues -->
 | Issue Type            | Example                                 |
 | --------------------- | --------------------------------------- |
 | Missing file paths    | "Update the handler" (which one?)       |
@@ -40,11 +45,13 @@ description: Momus plan review rules - validates plans for clarity, verifiabilit
 | Undefined scope       | "Refactor as needed" (what scope?)      |
 | No success criteria   | Tasks without completion evidence       |
 | Incorrect assumptions | References non-existent mechanisms      |
+<!-- /MASTER:skill-momus-blocking-issues -->
 
 ---
 
 ## Output Format
 
+<!-- MASTER:skill-momus-output-format -->
 ### If APPROVED:
 
 ```markdown
@@ -76,13 +83,16 @@ Blocking Issues:
 
 Recommended next step: [Specific action the caller should take to address blocking issues]
 ```
+<!-- /MASTER:skill-momus-output-format -->
 
 ---
 
 ## Review Process
 
+<!-- MASTER:skill-momus-review-process -->
 1. Read the plan file specified
 2. Verify file references exist in repo
 3. Check each task for clarity/verifiability
 4. Validate assumptions against actual codebase
 5. Provide structured verdict
+<!-- /MASTER:skill-momus-review-process -->

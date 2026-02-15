@@ -534,7 +534,77 @@ Plan is VALID only if ALL gates are met:
 
 ---
 
-## 6. ANTI-PATTERNS (FORBIDDEN)
+## 6. MOMUS PLAN ACC GATE (MANDATORY)
+
+> **This gate is IN ADDITION to existing quality gates above. It does NOT replace them.**
+
+<!-- MASTER:momus-plan-acc-gate -->
+**PLANNER RULE:** After creating a plan, you MUST consult Momus for review and iterate until ACC.
+
+**Flow:**
+```
+Create Plan → Momus Review → ACC/REJECT
+                   ↓              ↓
+             REJECT?         ACC?
+                ↓               ↓
+         Revise plan        DONE — Hand off
+         Re-submit          to orchestrator
+```
+
+**Momus Review Criteria:**
+- **Completeness**: Does the plan cover ALL requirements?
+- **Clarity**: Are tasks unambiguous? Can an executor understand exactly what to do?
+- **Verifiability**: Does each task have clear success criteria?
+- **Risk Analysis**: Are blockers and dependencies identified?
+- **Bug Coverage**: Are discovered bugs included as fix-tasks?
+
+**Consultation Format:**
+```
+task(
+  subagent_type="momus",
+  session_id="[previous session if revising]",
+  prompt="
+## PLAN REVIEW REQUEST
+
+### Original Request:
+[user's request]
+
+### Research Done:
+[what you explored/discovered]
+
+### Proposed Plan:
+[your TODO LIST with phases]
+
+### Potential Risks:
+[blockers, dependencies, unknowns]
+
+Please evaluate. ACC or REJECT with issues to fix.
+  "
+)
+```
+
+**On REJECT:**
+1. Read Momus's feedback carefully
+2. Address ALL issues mentioned (missing scope, unclear tasks, etc.)
+3. Revise plan with explicit fixes
+4. Re-consult Momus with session_id (preserve context)
+5. Repeat until ACC
+
+**On ACC:**
+- Plan is approved for execution
+- Hand off to orchestrator (Sisyphus) with confidence
+- Include Momus ACC confirmation in handoff
+
+**Fallback (if Momus unavailable):**
+1. Retry Momus with session_id
+2. If unavailable, use `category="deep"` with Momus-style review prompt
+3. If still unavailable, perform documented self-review using Momus criteria checklist
+4. Document that Momus was unavailable, proceed with caution
+<!-- /MASTER:momus-plan-acc-gate -->
+
+---
+
+## 7. ANTI-PATTERNS (FORBIDDEN)
 
 | #   | Do Not Do                               | Do                                                                 |
 | --- | --------------------------------------- | ------------------------------------------------------------------ |
@@ -552,10 +622,11 @@ Plan is VALID only if ALL gates are met:
 | 12  | Change DB schema without migration plan | Always include migration steps                                     |
 | 13  | Skip DB backup after schema changes     | MANDATORY: `python build.py backup` after migration applied        |
 | 14  | Plan on broken/missing flow             | Fix/create flow BEFORE feature work                                |
+| 15  | **Hand off plan without Momus ACC**     | **MANDATORY Momus review before handoff**                          |
 
 ---
 
-## 7. EVIDENCE REQUIREMENTS
+## 8. EVIDENCE REQUIREMENTS
 
 | Task Type             | Required Evidence          |
 | --------------------- | -------------------------- |
@@ -568,7 +639,7 @@ Plan is VALID only if ALL gates are met:
 
 ---
 
-## 8. CRITICAL RULES
+## 9. CRITICAL RULES
 
 > **Canonical source: AGENTS.md §1-§5.** Do NOT duplicate rules here — follow AGENTS.md directly.
 >

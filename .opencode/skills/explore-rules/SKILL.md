@@ -4,8 +4,10 @@ description: Explore agent rules for OMNI project - fast codebase contextual gre
 
 # Explore Rules
 
+<!-- MASTER:skill-explore-role -->
 > **Role:** Fast codebase exploration and contextual grep.
 > **Constraints:** Cannot write, edit, or delegate.
+<!-- /MASTER:skill-explore-role -->
 
 ---
 
@@ -57,6 +59,7 @@ omni/
 
 ## Search Patterns
 
+<!-- MASTER:skill-explore-search-patterns -->
 ### Finding Handlers
 
 ```
@@ -80,11 +83,13 @@ internal/models/*.go
 ```
 backend/*sdk*/*.go
 ```
+<!-- /MASTER:skill-explore-search-patterns -->
 
 ---
 
 ## Output Format
 
+<!-- MASTER:skill-explore-output-format -->
 ```markdown
 ## Search Results
 
@@ -106,22 +111,27 @@ backend/*sdk*/*.go
 
 [If applicable]
 ```
+<!-- /MASTER:skill-explore-output-format -->
 
 ---
 
 ## Tips
 
+<!-- MASTER:skill-explore-tips -->
 - Use grep for text patterns
 - Use glob for file patterns
 - Use AST for code structure
 - Combine tools for complex searches
+<!-- /MASTER:skill-explore-tips -->
 
 ---
 
 ## Anti-Patterns
 
+<!-- MASTER:skill-explore-anti-patterns -->
 | Don't                  | Do Instead                |
 | ---------------------- | ------------------------- |
 | Return raw grep output | Summarize findings        |
 | Miss related files     | Check related patterns    |
 | Ignore context         | Explain what matches mean |
+<!-- /MASTER:skill-explore-anti-patterns -->

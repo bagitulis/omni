@@ -4,11 +4,16 @@ description: Stuck recovery protocol for handling subagent timeouts and failures
 
 # Stuck Recovery Protocol
 
+<!-- MASTER:skill-stuck-recovery-role -->
 > **Purpose:** Prevent fix→test→fail loops by enforcing flow understanding BEFORE fixing.
 > **For:** Sisyphus, Sisyphus-Junior, Atlas, Hephaestus — ALL agents that implement or fix code.
+<!-- /MASTER:skill-stuck-recovery-role -->
 
 ---
 
+## Understanding Flow FIRST (CRITICAL)
+
+<!-- MASTER:skill-stuck-recovery-understand-flow -->
 ## ⚠️ THE #1 RULE: UNDERSTAND THE FLOW FIRST
 
 **The most common reason AI gets stuck is: it doesn't understand the relevant flow.**
@@ -36,9 +41,13 @@ Before writing ANY fix, you MUST:
 ```
 
 > **If you fix the same thing twice, STOP. You don't understand the flow.**
+<!-- /MASTER:skill-stuck-recovery-understand-flow -->
 
 ---
 
+## Research Protocol (Before Fixing)
+
+<!-- MASTER:skill-stuck-recovery-research-protocol -->
 ## Research Protocol (MANDATORY before fix attempt)
 
 ### For Bug Fixes
@@ -61,6 +70,7 @@ Step 3: @librarian → Search API docs for any external integrations
 Step 4: Plan implementation following existing patterns
 Step 5: Implement
 ```
+<!-- /MASTER:skill-stuck-recovery-research-protocol -->
 
 ---
 
@@ -98,24 +108,9 @@ Track each attempt:
 
 ## Subagent Timeout & Failure Recovery
 
-### Failure Escalation (MANDATORY)
+### Detection Signals
 
-<!-- MASTER:failure-escalation -->
-When a delegated task **fails or produces incorrect results** (NOT due to connection loss or timeout):
-
-| Failure Type             | Action                                                     |
-| ------------------------ | ---------------------------------------------------------- |
-| **Timeout / connection** | Retry with `session_id` in same category                   |
-| **Wrong output / error** | **MUST retry using `category="deep"`** on the same task    |
-| **Deep also fails**      | Escalate to `@oracle` for analysis, then retry or ask user |
-
-> **Why `deep`?** The `deep` category uses a stronger reasoning model with autonomous problem-solving.
-> It performs thorough research before acting — ideal for tasks that lighter categories failed on.
-> This prevents wasting retries on the same weak model that already failed.
-
-> **Fallback note:** If `@oracle` is unavailable (rate limit, timeout), use `category="deep"` with detailed analysis prompt instead. See AGENTS.md § Advisory Agent Fallback Matrix.
-<!-- /MASTER:failure-escalation -->
-
+<!-- MASTER:skill-stuck-recovery-detection-signals -->
 ### Detection Signals
 
 | Signal                     | Meaning                 | Severity |
@@ -125,7 +120,11 @@ When a delegated task **fails or produces incorrect results** (NOT due to connec
 | `session_id` but no answer | Partial execution       | Low      |
 | 3x same error              | Stuck in loop           | High     |
 | No response after 60s      | Complete timeout        | High     |
+<!-- /MASTER:skill-stuck-recovery-detection-signals -->
 
+### Recovery Actions
+
+<!-- MASTER:skill-stuck-recovery-recovery-actions -->
 ### Recovery Actions
 
 #### TIMEOUT/ABORT
@@ -155,10 +154,27 @@ Step 2: Log the error pattern
 Step 3: Switch to fallback agent
 Step 4: If all fallbacks fail → handle manually
 ```
+<!-- /MASTER:skill-stuck-recovery-recovery-actions -->
 
----
+### Failure Escalation (MANDATORY)
 
-## Fallback Chain
+<!-- MASTER:failure-escalation -->
+When a delegated task **fails or produces incorrect results** (NOT due to connection loss or timeout):
+
+| Failure Type             | Action                                                     |
+| ------------------------ | ---------------------------------------------------------- |
+| **Timeout / connection** | Retry with `session_id` in same category                   |
+| **Wrong output / error** | **MUST retry using `category="deep"`** on the same task    |
+| **Deep also fails**      | Escalate to `@oracle` for analysis, then retry or ask user |
+
+> **Why `deep`?** The `deep` category uses a stronger reasoning model with autonomous problem-solving.
+> It performs thorough research before acting — ideal for tasks that lighter categories failed on.
+> This prevents wasting retries on the same weak model that already failed.
+
+> **Fallback note:** If `@oracle` is unavailable (rate limit, timeout), use `category="deep"` with detailed analysis prompt instead. See AGENTS.md § Advisory Agent Fallback Matrix.
+<!-- /MASTER:failure-escalation -->
+
+### Fallback Chain
 
 <!-- MASTER:fallback-chain -->
 - oracle → librarian → manual
@@ -168,7 +184,22 @@ Step 4: If all fallbacks fail → handle manually
 
 ---
 
-## Session Continuity Pattern
+## Manual Takeover (When to Ask User)
+
+<!-- MASTER:skill-stuck-recovery-manual-takeover -->
+## Manual Takeover Triggers
+
+Switch to manual handling when:
+
+- 2+ retries failed for same task
+- Critical path blocked
+- User explicitly requests
+- All fallback agents exhausted
+<!-- /MASTER:skill-stuck-recovery-manual-takeover -->
+
+---
+
+## Session Continuity (CRITICAL)
 
 <!-- MASTER:session-continuity -->
 Every `delegate_task()` output includes a `session_id`. **ALWAYS use it.**
@@ -194,17 +225,9 @@ Every `delegate_task()` output includes a `session_id`. **ALWAYS use it.**
 
 ---
 
-## Manual Takeover Triggers
+## Anti-Patterns
 
-Switch to manual handling when:
-
-- 2+ retries failed for same task
-- Critical path blocked
-- User explicitly requests
-- All fallback agents exhausted
-
----
-
+<!-- MASTER:skill-stuck-recovery-anti-patterns -->
 ## Anti-Patterns (FORBIDDEN)
 
 | Don't                          | Do Instead                                     |
@@ -218,3 +241,4 @@ Switch to manual handling when:
 | Silent failure                 | Log and escalate                               |
 | Same prompt on retry           | Adjust prompt specificity                      |
 | Skip SDK/API reference         | ALWAYS check local SDK first                   |
+<!-- /MASTER:skill-stuck-recovery-anti-patterns -->

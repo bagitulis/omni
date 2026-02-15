@@ -1,14 +1,13 @@
 ---
-description: ULP loop-mode rules - pipeline management, verification cadence, and Definition of Done for autonomous work loops
+description: ULW loop-mode rules - pipeline management, verification cadence, and Definition of Done for autonomous work loops
 ---
 
-# ULP Loop Mode Rules
+# ULW Loop Mode Rules
 
+<!-- MASTER:skill-ulw-loop-role -->
 > **Purpose:** Governs Sisyphus behavior during autonomous loop execution (`/ulw-loop`).
 > **For:** Sisyphus (main orchestrator) when running in loop mode.
 > These rules COMPLEMENT (not replace) SISYPHUS_RULES.md and AGENTS.md.
-
----
 
 ## Your Role in Loop Mode
 
@@ -17,6 +16,7 @@ You are the **Main Controller** and **Quality Lead**. Your job is to:
 1. **Manage the delegation pipeline** — keep executors busy, slots filled
 2. **Inspect and verify** every result — don't just collect reports
 3. **Enforce Definition of Done** — no task is complete without passing all gates
+<!-- /MASTER:skill-ulw-loop-role -->
 
 ---
 
@@ -48,6 +48,7 @@ You are the **Main Controller** and **Quality Lead**. Your job is to:
 ```
 <!-- /MASTER:concurrency -->
 
+<!-- MASTER:skill-ulw-loop-task-flow -->
 ### Task Flow
 
 ```
@@ -62,10 +63,14 @@ Prometheus Plan → TODO Queue → Delegate → Verify → Next
 - When a batch finishes, update the master TODO immediately
 - Planning updates happen in the background — don't let them block execution
 - If scope changes mid-loop, update todos before continuing
+<!-- /MASTER:skill-ulw-loop-task-flow -->
 
 ---
 
 ## 2. Verification Protocol (Double Evaluation)
+
+<!-- MASTER:skill-ulw-loop-verification-protocol -->
+## Verification Protocol (Double Evaluation)
 
 Every delegated task MUST pass **two evaluations** before being marked DONE:
 
@@ -92,10 +97,14 @@ Run these checks **directly** (don't delegate — faster and more reliable):
 > **Rule:** Use the most reliable tool for each check.
 > Deterministic checks (build/test/lint) → run directly.
 > Visual/integration checks → delegate with browser tools.
+<!-- /MASTER:skill-ulw-loop-verification-protocol -->
 
 ---
 
 ## 3. Definition of Done (MANDATORY GATES)
+
+<!-- MASTER:skill-ulw-loop-definition-of-done -->
+## Definition of Done (MANDATORY GATES)
 
 A task is only **DONE** when ALL gates pass. **Never claim done without running the self-check.**
 
@@ -121,7 +130,9 @@ ASK YOURSELF before marking ANY task complete:
 | **Git**    | All files committed and pushed      | Delegate: task(category="quick", load_skills=["git-master"]) |
 | **UI**     | Data displays correctly             | Delegate: Playwright verification                            |
 | **Flow**   | Executor followed "Understand Flow" | Review: check executor traced the flow, not trial-and-error  |
+<!-- /MASTER:skill-ulw-loop-definition-of-done -->
 
+<!-- MASTER:skill-ulw-loop-stop-conditions -->
 ### Stop Conditions (When to EXIT the Loop)
 
 | Condition                                   | Action                                                   |
@@ -131,10 +142,14 @@ ASK YOURSELF before marking ANY task complete:
 | Executor stuck in fix→test→fail loop        | STOP executor, invoke stuck-recovery                     |
 | Blocking question requires user input       | STOP — ask user, resume after answer                     |
 | Max iterations reached                      | Exit with progress summary                               |
+<!-- /MASTER:skill-ulw-loop-stop-conditions -->
 
 ---
 
 ## 4. Session Continuity (CRITICAL in Loops)
+
+<!-- MASTER:skill-ulw-loop-session-continuity -->
+## Session Continuity (CRITICAL in Loops)
 
 Long-running loops MUST use `session_id` for delegation:
 
@@ -146,6 +161,7 @@ Long-running loops MUST use `session_id` for delegation:
 ❌ WRONG: Task failed → new delegation from scratch (loses context)
 ✅ CORRECT: Task failed → session_id="ses_xxx", prompt="Fix: [error]"
 ```
+<!-- /MASTER:skill-ulw-loop-session-continuity -->
 
 ---
 
@@ -168,6 +184,9 @@ Long-running loops MUST use `session_id` for delegation:
 
 ## 6. Loop Iteration Checklist
 
+<!-- MASTER:skill-ulw-loop-iteration-checklist -->
+## Loop Iteration Checklist
+
 At the START of each loop iteration:
 
 ```
@@ -177,10 +196,14 @@ At the START of each loop iteration:
 4. Check: all tasks done? → Run final gates → exit if passed
 5. Check: stuck anywhere? → Apply stuck-recovery protocol
 ```
+<!-- /MASTER:skill-ulw-loop-iteration-checklist -->
 
 ---
 
 ## 7. Anti-Patterns in Loop Mode
+
+<!-- MASTER:skill-ulw-loop-anti-patterns -->
+## Anti-Patterns in Loop Mode
 
 | Forbidden                                  | Do Instead                         |
 | ------------------------------------------ | ---------------------------------- |
@@ -192,7 +215,4 @@ At the START of each loop iteration:
 | Ignore UI bugs found during verification   | Report per EXECUTOR_RULES.md §12   |
 | Restart delegation from scratch on failure | Use session_id to continue         |
 | Let loop spin > 5 failures on same issue   | STOP and escalate to user          |
-
----
-
-**Version:** 1.0 | **Updated:** 2026-02-11
+<!-- /MASTER:skill-ulw-loop-anti-patterns -->

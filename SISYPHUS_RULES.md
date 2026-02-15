@@ -341,14 +341,14 @@ Sisyphus orchestrates executors — ensure they follow build rules:
 
 ## 11. Loop Mode (ULP) Reference
 
-When running in `/ulw-loop` mode, Sisyphus follows additional rules from the `ulp-loop` skill:
+When running in `/ulw-loop` mode, Sisyphus follows additional rules from the `ulw-loop` skill:
 
 - **Double evaluation**: Backend verification first, then UI/integration verification
 - **Pipeline management**: Keep 3 slots filled, process completions as they arrive
 - **Stop conditions**: Exit on 5+ failures on same issue, escalate to user
 - **Git discipline**: Commit after each completed batch, not just at the end
 
-> Full loop-mode rules: `.opencode/skills/ulp-loop/SKILL.md`
+> Full loop-mode rules: `.opencode/skills/ulw-loop/SKILL.md`
 
 ---
 
