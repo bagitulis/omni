@@ -1,6 +1,11 @@
 import apiClient from "./client";
 import { MonitorData, AutoFunctionConfig } from "@/types/scriptMonitor";
 
+interface AutoFunctionsPayload {
+  configs: AutoFunctionConfig[];
+  total: number;
+}
+
 /**
  * Get monitor data (current job, queue, history)
  */
@@ -16,13 +21,17 @@ export async function getMonitorData(): Promise<MonitorData> {
  * Get auto-function configurations
  */
 export async function getAutoFunctions(): Promise<AutoFunctionConfig[]> {
-  const response = await apiClient.get<AutoFunctionConfig[]>(
-    "/jobs/auto-functions",
-  );
+  const response = await apiClient.get<
+    AutoFunctionConfig[] | AutoFunctionsPayload
+  >("/jobs/auto-functions");
   if (!response.success) {
     throw new Error(response.error || "Failed to fetch auto-functions");
   }
-  return response.data || [];
+  const data = response.data;
+  if (Array.isArray(data)) {
+    return data;
+  }
+  return data?.configs || [];
 }
 
 /**

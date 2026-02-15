@@ -1,4 +1,5 @@
 import { Tabs, Spin, Alert, Typography } from "antd";
+import { useSearchParams } from "react-router-dom";
 import { useScriptMonitor } from "@/hooks/useScriptMonitor";
 import { CurrentJobTab } from "./components/CurrentJobTab";
 import { QueueTab } from "./components/QueueTab";
@@ -12,6 +13,22 @@ import {
 } from "@ant-design/icons";
 
 export function ScriptMonitorPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawTab = searchParams.get("tab");
+  const tabParamByKey: Record<string, string> = {
+    current: "current",
+    queue: "queue",
+    history: "history",
+    config: "auto-functions",
+  };
+  const keyByTabParam: Record<string, string> = {
+    current: "current",
+    queue: "queue",
+    history: "history",
+    "auto-functions": "config",
+    config: "config",
+  };
+  const activeTab = keyByTabParam[rawTab || ""] || "current";
   const {
     monitorData,
     isLoadingMonitor,
@@ -136,7 +153,16 @@ export function ScriptMonitorPage() {
       <Typography.Title level={2} style={{ marginBottom: 24, marginTop: 0 }}>
         Script Monitor
       </Typography.Title>
-      <Tabs defaultActiveKey="current" items={items} destroyInactiveTabPane />
+      <Tabs
+        activeKey={activeTab}
+        onChange={(key) => {
+          const next = new URLSearchParams(searchParams);
+          next.set("tab", tabParamByKey[key] || "current");
+          setSearchParams(next);
+        }}
+        items={items}
+        destroyInactiveTabPane
+      />
     </div>
   );
 }

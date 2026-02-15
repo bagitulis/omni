@@ -54,11 +54,29 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         key: "/script-monitor",
         icon: <CodeOutlined />,
         label: "Script Monitor",
+        children: [
+          { key: "/script-monitor?tab=current", label: "Current Job" },
+          { key: "/script-monitor?tab=queue", label: "Queue" },
+          { key: "/script-monitor?tab=history", label: "History" },
+          {
+            key: "/script-monitor?tab=auto-functions",
+            label: "Auto-Functions",
+          },
+        ],
       },
       { key: "/settings", icon: <SettingOutlined />, label: "Settings" },
     ],
     [],
   );
+
+  const selectedKey = useMemo(() => {
+    if (location.pathname !== "/script-monitor") {
+      return location.pathname;
+    }
+    return location.search
+      ? `${location.pathname}${location.search}`
+      : "/script-monitor";
+  }, [location.pathname, location.search]);
 
   return (
     <Sider
@@ -101,7 +119,7 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
       </div>
       <Menu
         mode="inline"
-        selectedKeys={[location.pathname]}
+        selectedKeys={[selectedKey]}
         onClick={({ key }) => navigate(key)}
         items={menuItems}
         style={{ borderRight: 0 }}

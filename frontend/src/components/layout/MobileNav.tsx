@@ -6,6 +6,7 @@ import {
   SkinOutlined,
   InboxOutlined,
   BarChartOutlined,
+  CodeOutlined,
 } from "@ant-design/icons";
 
 export default function MobileNav() {
@@ -21,6 +22,11 @@ export default function MobileNav() {
     { key: "/master-products", icon: <SkinOutlined />, label: "Products" },
     { key: "/inventory", icon: <InboxOutlined />, label: "Stock" },
     { key: "/analytics", icon: <BarChartOutlined />, label: "Data" },
+    {
+      key: "/script-monitor?tab=current",
+      icon: <CodeOutlined />,
+      label: "Scripts",
+    },
   ];
 
   return (
@@ -42,7 +48,10 @@ export default function MobileNav() {
       }}
     >
       {navItems.map((item) => {
-        const isActive = location.pathname === item.key;
+        const isScriptMonitor = item.key.startsWith("/script-monitor");
+        const isActive = isScriptMonitor
+          ? location.pathname === "/script-monitor"
+          : location.pathname === item.key;
         return (
           <button
             type="button"
