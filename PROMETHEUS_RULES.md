@@ -762,7 +762,7 @@ When a delegated task **fails or produces incorrect results** (NOT due to connec
 > It performs thorough research before acting — ideal for tasks that lighter categories failed on.
 > This prevents wasting retries on the same weak model that already failed.
 
-> **Mix mode note:** If `@oracle` is unavailable (Mix config), use `category="deep"` with detailed analysis prompt instead. See AGENTS.md § Mix Mode Fallback Matrix.
+> **Fallback note:** If `@oracle` is unavailable (rate limit, timeout), use `category="deep"` with detailed analysis prompt instead. See AGENTS.md § Advisory Agent Fallback Matrix.
 <!-- /MASTER:failure-escalation -->
 
 > Include this awareness in plans: executor tasks that involve risky/complex logic should note

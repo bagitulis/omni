@@ -266,6 +266,7 @@ Scenario: Verify flat navigation (no nested menus)
 
 ## Evidence Collection
 
+<!-- MASTER:screenshot-evidence -->
 ### Screenshot Naming Convention
 
 **CRITICAL: ALL screenshots MUST be saved to `.sisyphus/evidence/` directory. NEVER save to root folder.**
@@ -292,6 +293,7 @@ browser_take_screenshot({
 // WRONG - saves to root, creates mess
 browser_take_screenshot({ type: "png" });
 ```
+<!-- /MASTER:screenshot-evidence -->
 
 ### Required Screenshots Per Page
 

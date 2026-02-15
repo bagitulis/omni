@@ -246,7 +246,7 @@ When a delegated task **fails or produces incorrect results** (NOT due to connec
 > It performs thorough research before acting — ideal for tasks that lighter categories failed on.
 > This prevents wasting retries on the same weak model that already failed.
 
-> **Mix mode note:** If `@oracle` is unavailable (Mix config), use `category="deep"` with detailed analysis prompt instead. See AGENTS.md § Mix Mode Fallback Matrix.
+> **Fallback note:** If `@oracle` is unavailable (rate limit, timeout), use `category="deep"` with detailed analysis prompt instead. See AGENTS.md § Advisory Agent Fallback Matrix.
 <!-- /MASTER:failure-escalation -->
 
 ---
@@ -372,14 +372,14 @@ When using Playwright/browser for ANY task (testing, screenshots, verification):
 
 - If you discover a **layout bug** (broken layout, missing table columns, overlapping elements, invisible UI, horizontal scroll, misaligned components) → **MUST report to main agent**
 - Report even if the bug is **NOT part of your current task**
-- Take a screenshot → `docs/Screenshots/bug-{page}-{issue}.png`
+- Take a screenshot → `.sisyphus/evidence/bug-{page}-{issue}.png`
 - Do NOT attempt to fix unless explicitly asked — just report
 
 ```
 🐛 UI BUG FOUND (not my current task):
 - Page: [URL or page name]
 - Issue: [brief description]
-- Screenshot: docs/Screenshots/bug-{name}.png
+- Screenshot: .sisyphus/evidence/bug-{name}.png
 - Severity: CRITICAL / WARNING
 ```
 

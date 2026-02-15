@@ -1,6 +1,6 @@
 # OMNI - Core Development Rules
 
-> **STATUS: MANDATORY** | **Version: 5.3** | **Updated: 2026-02-13**
+> **STATUS: MANDATORY** | **Version: 6.0** | **Updated: 2026-02-15**
 >
 > This file is the **IMMUTABLE CONSTITUTION** for ALL agents.
 > These rules apply GLOBALLY - cannot be overridden by child rules.
@@ -83,19 +83,17 @@ Skills (auto-loaded via oh-my-opencode.json):
 
 Not all configs include every agent. The agent table above is the **full set** (base + copilot + antigravity configs).
 
-| Config      | Agents Available                                                            |
-| ----------- | --------------------------------------------------------------------------- |
-| Base        | All agents listed above                                                     |
-| Copilot     | All agents listed above                                                     |
-| Antigravity | All agents listed above                                                     |
-| Mix         | Sisyphus, Prometheus, Atlas, Hephaestus, Sisyphus-Junior only (reduced set) |
+| Config          | Agents Available        |
+| --------------- | ----------------------- |
+| Mix Copilot     | All agents listed above |
+| Mix Antigravity | All agents listed above |
 
-> **Mix mode**: Advisory agents (oracle, librarian, explore, metis, momus) are unavailable.
-> Delegate work via categories instead. This is by design — Mix uses a hybrid model set with limited slots.
+> **Note**: All profiles include advisory agents (oracle, librarian, explore, metis, momus).
+> The fallback matrix below applies when an advisory agent **fails or is unavailable** (e.g., rate limit, timeout).
 
-#### Mix Mode Fallback Matrix
+#### Advisory Agent Fallback Matrix
 
-When advisory agents are unavailable in Mix mode, use these alternative escalation paths:
+When an advisory agent is unavailable or fails, use these alternative paths:
 
 | Normal Path         | Mix Mode Fallback                                                  |
 | ------------------- | ------------------------------------------------------------------ |
@@ -378,7 +376,7 @@ When a delegated task **fails or produces incorrect results** (NOT due to connec
 > It performs thorough research before acting — ideal for tasks that lighter categories failed on.
 > This prevents wasting retries on the same weak model that already failed.
 
-> **Mix mode note:** If `@oracle` is unavailable (Mix config), use `category="deep"` with detailed analysis prompt instead. See AGENTS.md § Mix Mode Fallback Matrix.
+> **Fallback note:** If `@oracle` is unavailable (rate limit, timeout), use `category="deep"` with detailed analysis prompt instead. See AGENTS.md § Advisory Agent Fallback Matrix.
 <!-- /MASTER:failure-escalation -->
 
 ---

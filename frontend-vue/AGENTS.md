@@ -1,22 +1,22 @@
 # Frontend Development Context
 
-> Auto-injected when working in `frontend/` or `frontend-react/` directory.
+> Auto-injected when working in `frontend/` or `frontend-vue/` directory.
 > **Parent rules:** See root `AGENTS.md` for critical rules.
 
 ---
 
 ## Active Stacks
 
-| Directory         | Stack                          | Status     |
-| ----------------- | ------------------------------ | ---------- |
-| `frontend/`       | Vue 3 + Composition API + Vite | Legacy     |
-| `frontend-react/` | React 19 + Ant Design + Vite   | **ACTIVE** |
+| Directory       | Stack                          | Status     |
+| --------------- | ------------------------------ | ---------- |
+| `frontend/`     | React 19 + Ant Design + Vite   | **ACTIVE** |
+| `frontend-vue/` | Vue 3 + Composition API + Vite | Legacy     |
 
-**IMPORTANT:** New development should target `frontend-react/`. Vue app is reference only.
+**IMPORTANT:** New development should target `frontend/` (React). Vue app (`frontend-vue/`) is reference only.
 
 ---
 
-## React Stack (frontend-react/) - PRIMARY
+## React Stack (frontend/) - PRIMARY
 
 - React 19
 - TypeScript 5.7+
@@ -29,7 +29,7 @@
 ### React Structure
 
 ```
-frontend-react/
+frontend/
 ├── src/
 │   ├── api/             # API client functions
 │   ├── components/      # Reusable components
@@ -73,7 +73,7 @@ frontend-react/
 
 ---
 
-## Vue Stack (frontend/) - LEGACY REFERENCE
+## Vue Stack (frontend-vue/) - LEGACY REFERENCE
 
 - Vue 3 + Composition API
 - TypeScript
@@ -84,7 +84,7 @@ frontend-react/
 ### Vue Structure
 
 ```
-frontend/
+frontend-vue/
 ├── src/
 │   ├── components/      # Reusable Vue components
 │   ├── views/           # Page views

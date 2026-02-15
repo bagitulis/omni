@@ -302,17 +302,20 @@ return response.data.data;
 
 ---
 
-## File Size Quality Signal (~300 Lines)
+<!-- MASTER:file-size-quality -->
+## ~300 Lines Per File (Quality Signal)
 
-> **~300 lines is NOT a hard limit.** It's a quality signal for SRP/DRY/OOP compliance.
-> If a code file exceeds ~300 lines, review for violations. Clean code slightly exceeding is OK.
+> **~300 lines is NOT a hard limit.** It's a quality signal that MUST trigger a refactor attempt.
+> If a code file exceeds ~300 lines, you MUST attempt to refactor it (extract helpers, split by responsibility, remove dead code).
+> After a genuine refactor effort, if the minimum achievable is slightly above 300 (e.g. 310-330) and the code satisfies SRP/DRY/OOP with no dead code — that's acceptable.
+> This is NOT a license for 400+ line files. If your file is 400+ lines, you haven't refactored hard enough.
 
-| Type      | Guideline  | Action if Exceeded                 |
-| --------- | ---------- | ---------------------------------- |
-| Component | ~300 lines | Review — split if SRP/DRY violated |
-| Page      | ~300 lines | Review — extract sections/hooks    |
-| Hook      | ~200 lines | Review — split complex logic       |
-| Store     | ~200 lines | Review — separate concerns         |
+| Type           | Guideline                                      |
+| -------------- | ---------------------------------------------- |
+| Code files     | ~300 lines — MUST refactor if exceeded         |
+| After refactor | Slightly above 300 OK if SRP/DRY/OOP satisfied |
+| 400+ lines     | NOT acceptable — refactor harder or split      |
+<!-- /MASTER:file-size-quality -->
 
 ---
 

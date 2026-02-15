@@ -9,6 +9,7 @@ description: Explore agent rules for OMNI project - fast codebase contextual gre
 
 ---
 
+<!-- MASTER:codebase-structure -->
 ## Codebase Structure
 
 ```
@@ -50,6 +51,7 @@ omni/
 ├── mcp-servers/             # MCP server implementations
 └── .sisyphus/plans/         # Migration and feature plans
 ```
+<!-- /MASTER:codebase-structure -->
 
 ---
 

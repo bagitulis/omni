@@ -6,14 +6,16 @@
     "concurrency": "| Setting               | Value | Controlled By                               |\n| --------------------- | ----- | ------------------------------------------- |\n| **Max running tasks** | 3     | System config (`defaultConcurrency: 3`)     |\n| **Max queued tasks**  | ∞     | System auto-queues excess                   |\n| **Stale timeout**     | 10min | System config (`staleTimeoutMs: 600000`)    |\n| **Manual throttling** | NONE  | System handles concurrency — don't throttle |\n\n**Strategy:**\n\n- **Launch aggressively**: Fire as many delegations as the task warrants (5, 6, 10 — doesn't matter)\n- **System queues excess**: Only 3 run simultaneously; rest wait in queue automatically\n- **Stay productive**: While agents run, continue on other work items or standby for user\n- **Never block**: Don't wait idle for delegation results — system notifies on completion\n\n```\n❌ WRONG: \"I'll limit myself to 3 delegations\"\n✅ CORRECT: Fire all needed delegations → system queues → collect results when ready\n\n❌ WRONG: Fire 3 agents → wait → wait → wait → respond\n✅ CORRECT: Fire agents → continue working / standby → process results as they arrive\n```",
     "delegation-routing": "### Agent-Based Delegation\n\n| Need                  | Delegate To  | Mode       |\n| --------------------- | ------------ | ---------- |\n| Search in codebase    | `@explore`   | Background |\n| Search external docs  | `@librarian` | Background |\n| Architecture question | `@oracle`    | Sync       |\n| Pre-planning analysis | `@metis`     | Sync       |\n| Plan review           | `@momus`     | Sync       |\n\n### Category-Based Delegation\n\n| Need                    | Category             | Model Tier |\n| ----------------------- | -------------------- | ---------- |\n| UI/Frontend             | `visual-engineering` | Mid-tier   |\n| Standard coding         | `implementation`     | Mid-tier   |\n| Quick/trivial fix       | `quick`              | Mid-tier   |\n| Failed task retry       | `deep`               | High-tier  |\n| Hard logic problem      | `ultrabrain`         | High-tier  |\n| Creative/unconventional | `artistry`           | Mid-tier   |\n| Documentation           | `writing`            | Low-tier   |\n| Code review             | `review`             | Mid-tier   |\n| Testing                 | `testing`            | Mid-tier   |\n| Security analysis       | `security`           | High-tier  |",
     "delegation-routing-compact": "| Situation             | Delegate To                   |\n| --------------------- | ----------------------------- |\n| Large task/feature    | Prometheus → Sisyphus         |\n| Search in codebase    | `@explore`                    |\n| Search external docs  | `@librarian`                  |\n| Architecture question | `@oracle`                     |\n| UI/Frontend           | category=\"visual-engineering\" |\n| Quick fix             | category=\"quick\"              |",
-    "failure-escalation": "When a delegated task **fails or produces incorrect results** (NOT due to connection loss or timeout):\n\n| Failure Type             | Action                                                     |\n| ------------------------ | ---------------------------------------------------------- |\n| **Timeout / connection** | Retry with `session_id` in same category                   |\n| **Wrong output / error** | **MUST retry using `category=\"deep\"`** on the same task    |\n| **Deep also fails**      | Escalate to `@oracle` for analysis, then retry or ask user |\n\n> **Why `deep`?** The `deep` category uses a stronger reasoning model with autonomous problem-solving.\n> It performs thorough research before acting — ideal for tasks that lighter categories failed on.\n> This prevents wasting retries on the same weak model that already failed.\n\n> **Mix mode note:** If `@oracle` is unavailable (Mix config), use `category=\"deep\"` with detailed analysis prompt instead. See AGENTS.md § Mix Mode Fallback Matrix.",
+    "failure-escalation": "When a delegated task **fails or produces incorrect results** (NOT due to connection loss or timeout):\n\n| Failure Type             | Action                                                     |\n| ------------------------ | ---------------------------------------------------------- |\n| **Timeout / connection** | Retry with `session_id` in same category                   |\n| **Wrong output / error** | **MUST retry using `category=\"deep\"`** on the same task    |\n| **Deep also fails**      | Escalate to `@oracle` for analysis, then retry or ask user |\n\n> **Why `deep`?** The `deep` category uses a stronger reasoning model with autonomous problem-solving.\n> It performs thorough research before acting — ideal for tasks that lighter categories failed on.\n> This prevents wasting retries on the same weak model that already failed.\n\n> **Fallback note:** If `@oracle` is unavailable (rate limit, timeout), use `category=\"deep\"` with detailed analysis prompt instead. See AGENTS.md § Advisory Agent Fallback Matrix.",
     "session-continuity": "Every `delegate_task()` output includes a `session_id`. **ALWAYS use it.**\n\n| Scenario               | Action                                             |\n| ---------------------- | -------------------------------------------------- |\n| Task failed/incomplete | `session_id=\"...\", prompt=\"Fix: [specific error]\"` |\n| Follow-up question     | `session_id=\"...\", prompt=\"Also: [question]\"`      |\n| Verification failed    | `session_id=\"...\", prompt=\"Failed: [error]. Fix.\"` |\n| Multi-turn with agent  | `session_id=\"...\"` — NEVER start fresh             |\n\n**Why session_id is CRITICAL:**\n- Agent has FULL conversation context preserved\n- No repeated file reads, exploration, or setup\n- Saves 70%+ tokens on follow-ups\n- Agent knows what it already tried/learned\n\n```\n❌ WRONG: Task failed → new delegation from scratch (loses all context)\n✅ CORRECT: Task failed → session_id=\"ses_xxx\", prompt=\"Fix: [error]\"\n```",
     "fallback-chain": "- oracle → librarian → manual\n- librarian → explore + websearch → manual\n- explore → grep/glob → manual",
     "failure-counter": "**Failure counter tracks SAME error/issue.** If a DIFFERENT error occurs, reset counter to 1.\n\n| Count | Action                                                                                |\n| ----- | ------------------------------------------------------------------------------------- |\n| 1     | Fix directly, record error. Document what was tried.                                  |\n| 2     | **STOP fixing.** FULL RESEARCH: trace flow + docs + SDK + references. Fix with evidence. |\n| 3-4   | Continue fixing, but MUST use research from step 2. No guessing.                      |\n| 5+    | **ASK USER.** Confirm: continue / skip / try different approach. Full failure log.    |\n\n**Reset rule:** Different error = new counter starting at 1. Same error repeating = increment counter.",
     "failure-counter-format": "```markdown\n## Fix Attempt #[N]\n\n**Failure Count:** [current]\n**Previous Error:** [error message]\n**Hypothesis:** [why this fix should work]\n**Action:** [specific fix in specific layer]\n```",
     "prompt-structure": "Every delegation prompt MUST include 6 sections:\n\n```\n1. TASK: Atomic, specific goal (one action per delegation)\n2. EXPECTED OUTCOME: Concrete deliverables with success criteria\n3. REQUIRED TOOLS: Explicit tool whitelist (prevents tool sprawl)\n4. MUST DO: Exhaustive requirements — leave NOTHING implicit\n5. MUST NOT DO: Forbidden actions — anticipate and block rogue behavior\n6. CONTEXT: File paths, existing patterns, constraints\n```\n\n**Vague prompts = poor results. Be exhaustive.**",
     "file-size-quality": "## ~300 Lines Per File (Quality Signal)\n\n> **~300 lines is NOT a hard limit.** It's a quality signal that MUST trigger a refactor attempt.\n> If a code file exceeds ~300 lines, you MUST attempt to refactor it (extract helpers, split by responsibility, remove dead code).\n> After a genuine refactor effort, if the minimum achievable is slightly above 300 (e.g. 310-330) and the code satisfies SRP/DRY/OOP with no dead code — that's acceptable.\n> This is NOT a license for 400+ line files. If your file is 400+ lines, you haven't refactored hard enough.\n\n| Type           | Guideline                                      |\n| -------------- | ---------------------------------------------- |\n| Code files     | ~300 lines — MUST refactor if exceeded         |\n| After refactor | Slightly above 300 OK if SRP/DRY/OOP satisfied |\n| 400+ lines     | NOT acceptable — refactor harder or split      |",
-    "git-commit-gate": "### Git Commit Evidence (MANDATORY)\n\nIf orchestrator instructed commit, you MUST provide:\n\n```bash\n# Step 1: Add all changes\ngit add -A\n\n# Step 2: Commit with proper format\ngit commit -m \"type(scope): task N — description\"\n\n# Step 3: Push to remote\ngit push\n\n# Step 4: Capture evidence\ngit status        # Must show \"working tree clean\"\ngit log -1 --oneline  # Capture commit hash + subject\n```\n\n**Evidence to Report:**\n- Working tree status (must be clean)\n- Commit hash + subject line\n- Push confirmation output\n\n**NO evidence = task incomplete, will be rejected by orchestrator.**"
+    "git-commit-gate": "### Git Commit Evidence (MANDATORY)\n\nIf orchestrator instructed commit, you MUST provide:\n\n```bash\n# Step 1: Add all changes\ngit add -A\n\n# Step 2: Commit with proper format\ngit commit -m \"type(scope): task N — description\"\n\n# Step 3: Push to remote\ngit push\n\n# Step 4: Capture evidence\ngit status        # Must show \"working tree clean\"\ngit log -1 --oneline  # Capture commit hash + subject\n```\n\n**Evidence to Report:**\n- Working tree status (must be clean)\n- Commit hash + subject line\n- Push confirmation output\n\n**NO evidence = task incomplete, will be rejected by orchestrator.**",
+    "screenshot-evidence": "### Screenshot Naming Convention\n\n**CRITICAL: ALL screenshots MUST be saved to `.sisyphus/evidence/` directory. NEVER save to root folder.**\n\n```\n.sisyphus/evidence/\n├── task-{N}-{component}-desktop.png     # Desktop view\n├── task-{N}-{component}-mobile.png      # Mobile view (375x667)\n├── task-{N}-{component}-tablet.png      # Tablet view (768x1024)\n└── task-{N}-{component}-dark.png        # Dark mode (if applicable)\n```\n\n### Screenshot Tool Usage\n\nALWAYS specify filename with `.sisyphus/evidence/` prefix:\n\n```javascript\n// CORRECT\nbrowser_take_screenshot({\n  type: \"png\",\n  filename: \".sisyphus/evidence/task-1-sidebar-desktop.png\",\n});\n\n// WRONG - saves to root, creates mess\nbrowser_take_screenshot({ type: \"png\" });\n```",
+    "codebase-structure": "## Codebase Structure\n\n```\nomni/\n├── backend/                 # Go backend\n│   ├── cmd/server/          # Entry point\n│   ├── internal/            # Core implementation\n│   │   ├── handlers/        # HTTP handlers\n│   │   ├── services/        # Business logic\n│   │   ├── repositories/    # Database access\n│   │   ├── models/          # Data models\n│   │   └── config/          # Configuration\n│   ├── shopee-sdk/          # Shopee SDK\n│   ├── lazada-sdk/          # Lazada SDK\n│   └── tiktok_sdk/          # TikTok SDK\n├── frontend-vue/            # Vue.js frontend (LEGACY)\n│   ├── src/\n│   │   ├── components/      # Vue components\n│   │   ├── views/           # Page views\n│   │   ├── api/             # API clients\n│   │   └── stores/          # Pinia stores\n│   └── public/\n├── frontend/                # React frontend (ACTIVE)\n│   ├── src/\n│   │   ├── api/             # Axios API clients\n│   │   ├── components/      # Reusable components\n│   │   │   ├── layout/      # AppLayout, Sidebar, Header\n│   │   │   ├── ui/          # Extended Ant Design\n│   │   │   ├── tables/      # Data tables\n│   │   │   ├── forms/       # Form components\n│   │   │   └── modals/      # Modal components\n│   │   ├── pages/           # Route pages\n│   │   ├── hooks/           # Custom hooks (useOrders, etc.)\n│   │   ├── stores/          # Zustand stores\n│   │   ├── types/           # TypeScript (snake_case!)\n│   │   ├── lib/             # Utilities\n│   │   └── styles/          # Theme (Ant Design overrides)\n│   └── public/\n├── mcp-servers/             # MCP server implementations\n└── .sisyphus/plans/         # Migration and feature plans\n```"
   },
   "prompt_blocks": {
     "_comment": "DRY prompt_append building blocks. Composed into agent/category prompt_append strings by sync_rules.py.",
@@ -27,16 +29,17 @@
     "constitution": "⚠️ CONSTITUTION: Follow AGENTS.md invariants (English-only, snake_case JSON, no false positives, no default tenant, no destructive git).",
     "screenshot-rule": "SCREENSHOT RULE: ALWAYS save screenshots to '.sisyphus/evidence/' directory with descriptive names (e.g., .sisyphus/evidence/page-desktop.png). NEVER save to root folder.",
     "ui-bug-reporting": "🐛 UI BUG REPORTING (MANDATORY): When using Playwright/browser, if you discover ANY layout bug (broken layout, missing table columns, overlapping elements, invisible UI, horizontal scroll, misaligned components) — you MUST report it to the main agent even if it is NOT part of your current task. Include: screenshot, page URL, description of the issue. Never silently ignore UI bugs.",
-    "react-migration": "🎯 REACT MIGRATION MODE: You are implementing the React migration plan. Load skill 'react-frontend-rules' for Design System specs. After UI implementation, load 'playwright-layout-eval' skill and verify layout matches specifications.",
+    "react-frontend-mode": "🎯 REACT FRONTEND MODE: You are working on the React app in `frontend/` directory. Load skill 'react-frontend-rules' for Design System specs. After UI implementation, load 'playwright-layout-eval' skill and verify layout matches specifications. Reference Vue legacy code in `frontend-vue/` when needed.",
     "prometheus-output": "🎯 MANDATORY OUTPUT: TODO LIST with Flow Map + Impact Analysis. No prose paragraphs. Max 3 parallel delegations. Every plan needs: Pre-Planning Verification, Flow Map (§1.1), Impact Analysis (§3), phased TODO LIST, Success Criteria.",
     "zero-tolerance-linting": "🚫 ZERO TOLERANCE LINTING: MUST fix ALL TypeScript/ESLint errors and warnings in changed files + directly impacted files. Run lsp_diagnostics on affected scope (changed files + package). MUST NOT increase total error/warning count compared to baseline. If unrelated lint debt is large (>20 warnings), split: (1) commit main task with zero new errors, (2) create follow-up ticket for debt cleanup.\n\n**Bug Tracking (MANDATORY):**\nWhen observing/researching code (via explore, librarian, code reading), if you discover:\n- TypeScript/ESLint errors/warnings\n- Runtime bugs or potential bugs\n- Critical bugs (data corruption, security issues)\n- Code smell or anti-patterns\n\n→ IMMEDIATELY add to TODO list with priority:\n- CRITICAL bugs: priority=high, fix in current session\n- Errors/warnings: priority=high, fix before task completion\n- Non-critical bugs: priority=medium, track for follow-up\n\n**Test File Creation (MANDATORY):**\nIf you changed code files but NO test file exists:\n- Backend (.go): MUST create *_test.go with meaningful test cases\n- Frontend (.ts/.tsx): MUST create *.test.ts/.tsx or *.spec.ts/.tsx\n- Cover: happy path + edge cases + error scenarios\n- NO EXCEPTIONS: Every code change MUST have tests\n\n**Principle:** Quality > Speed. Taking longer to ensure zero bugs is EXPECTED and PREFERRED.",
     "git-commit-enforcement": "📝 GIT COMMIT (MANDATORY - MUST DELEGATE):\n\n**CRITICAL: Commit/push MUST be delegated to allow main agent to continue other work.**\n\n**Delegation Pattern (Orchestrators: Sisyphus/Prometheus):**\n```\ntask(\n  category=\"quick\",\n  load_skills=[\"git-master\"],\n  run_in_background=true,\n  description=\"Commit and push changes for task N\",\n  prompt=\"\nTASK: Commit all changes and push to remote\nEXPECTED OUTCOME: Clean working tree, commit pushed to origin\nREQUIRED TOOLS: git (add, commit, push, status, log)\nMUST DO:\n- git add -A (ALL changed files, no cherry-picking)\n- git commit with message: [format below]\n- git push (no confirmation needed)\n- Capture git status, last commit hash, push confirmation\nMUST NOT DO:\n- Cherry-pick files\n- Skip push\n- Use destructive git commands\nCONTEXT: [list changed files or summary]\n  \"\n)\n```\n\n**Commit Message Format:**\n- Prometheus plan task? Use: `type(scope): task N — description`\n  Example: `feat(frontend): task 12 — add OrderShipModal with platform forms`\n- Ad-hoc work? Use: `type(scope): description`\n  Example: `fix(backend): resolve token refresh calculation error`\n\n**Executor Agents (Atlas/Hephaestus/Sisyphus-Junior):**\nIf you are executor and orchestrator explicitly instructed commit:\n1. git add -A\n2. git commit -m \"[message]\"\n3. git push\n4. Capture evidence: git status + git log -1 --oneline + push output\n5. Report evidence to orchestrator\n\n**Verification Gate:**\n- Working tree clean (git status)\n- Commit hash + subject captured\n- Push confirmation captured\n- No evidence = task incomplete\n\n**Enforcement:**\n- Prometheus plan context but no `task N` in message → STOP, get task number\n- Changed files but not committed → STOP, commit required\n- Main agent waiting for commit to finish → WRONG, delegate it",
     "hephaestus-strict-debugging": "🔬 STRICT DEBUGGING PROTOCOL (HEPHAESTUS):\n\n**BEFORE ANY FIX ATTEMPT - MANDATORY RESEARCH:**\n\n1️⃣ **Identify Root Cause Layer**\n   - Read error message COMPLETELY\n   - Identify which layer: Handler? Service? Repository? SDK? External API?\n   - DO NOT guess - trace with evidence\n\n2️⃣ **Check Full Flow**\n   - Platform integration? → Platform API docs → Local SDK → Handler → Service → Repository → DB\n   - Backend bug? → Handler → Service → Repository → DB query\n   - Map ENTIRE data flow end-to-end\n   - Document each layer's input/output\n\n3️⃣ **Check ALL References**\n   - Local SDK: Read backend/{platform}-sdk/ files FIRST\n   - Platform API docs: @librarian to search official docs\n   - Existing patterns: @explore to find similar implementations\n   - Database schema: Check migrations and repository\n   - NO implementation without checking references\n\n4️⃣ **Execute Fix (Only After Steps 1-3)**\n   - Fix ONLY the root cause layer\n   - Follow existing patterns from reference check\n   - Test immediately after fix\n\n5️⃣ **Testing Data Confirmation (MANDATORY)**\n   - **ASK USER**: \"Which real data should I use for testing? (e.g., order_sn, product_id, tenant_id)\"\n   - Wait for user confirmation before testing\n   - NEVER use random/assumed test data\n   - Document which data was used for testing\n   - If user doesn't specify, list available options and ask them to choose\n\n6️⃣ **Testing Priority (MANDATORY ORDER)**\n   - **FIRST**: Test backend route directly (curl/HTTP request to API endpoint)\n   - Use CONFIRMED test data from step 5\n   - Verify response: status code, JSON structure, data correctness\n   - Check backend logs for errors\n   - **ONLY IF backend works** → Then use Playwright/browser testing\n   - NEVER use Playwright first - always verify backend route works standalone\n\n7️⃣ **If Fix Fails**\n   - Capture EXACT error message (full stack trace)\n   - Document what was tried and why it failed\n   - GO BACK TO STEP 1 - start over from root cause analysis\n   - NEVER try random fixes hoping something works\n\n**Failure Counter:**\n- Attempt 1: Fix with documented hypothesis\n- Attempt 2: STOP. Re-research flow completely. Delegate @explore + @librarian.\n- Attempt 3+: STOP TASK. Report to orchestrator with full failure log.\n\n**Anti-Patterns (FORBIDDEN):**\n- ❌ Guess fix without reading SDK/API docs\n- ❌ Fix without understanding full flow\n- ❌ Skip reference check\n- ❌ Test without user confirmation on which data to use\n- ❌ Use Playwright before verifying backend route works\n- ❌ Try multiple random fixes\n- ❌ Continue after 2 failures without re-research\n\n**Remember:** Slow + Correct > Fast + Broken. Quality > Speed.",
     "third-party-raw-errors": "🚨 THIRD-PARTY RAW ERROR MESSAGES (CRITICAL):\n\n**MANDATORY for ALL external API integrations (Shopee, Lazada, TikTok, etc.):**\n\n```\n❌ WRONG: Hardcoded generic error messages\nreturn nil, fmt.Errorf(\"failed to sync orders\")\nreturn { success: false, error: \"Product sync failed\" }\n\n✅ CORRECT: Return RAW error from third-party API\nreturn nil, fmt.Errorf(\"shopee API error: %s\", apiResponse.Error)\nreturn { success: false, error: apiResponse.message, error_code: apiResponse.error_code }\n```\n\n**Why This Is CRITICAL:**\n- Raw error messages are ESSENTIAL for root cause tracking\n- Third-party error codes reveal exact issue (rate limit, auth failure, validation error, etc.)\n- Hardcoded messages hide the real problem from platform APIs\n- Users/developers need to see EXACTLY what the platform returned\n- Debugging is impossible without original error context\n\n**Implementation Rules:**\n\n1. **NEVER hardcode error messages** when calling external APIs (Shopee, Lazada, TikTok, payment gateways, shipping providers, etc.)\n2. **ALWAYS preserve** the original error message from API response\n3. **Include error codes** if the platform provides them (error_code, code, status, sub_code)\n4. **Format**: Prefix with platform name for clarity: `\"[platform] API error: [raw_message]\"`\n5. **Log complete response**: Save both original API response + our error wrapper for debugging\n6. **Pass through to frontend**: Don't sanitize or translate — frontend shows raw error to user\n\n**Backend Examples (Go):**\n\n```go\n// ✅ CORRECT: Preserve Shopee API error\nif apiResp.Error != \"\" {\n    return nil, fmt.Errorf(\"shopee API error [code=%s]: %s\", \n        apiResp.Code, apiResp.Message)\n}\n\n// ✅ CORRECT: Structured error for frontend\ntype PlatformAPIError struct {\n    Platform  string     Code      string     Message   string     RequestID string }\n\n// ✅ CORRECT: Lazada SDK error passthrough\nif err := lazadaSDK.GetOrders(); err != nil {\n    return nil, fmt.Errorf(\"lazada API error: %w\", err)\n}\n```\n\n**Frontend Examples (TypeScript):**\n\n```typescript\n// ✅ CORRECT: Pass through backend error (already contains raw API error)\nif (!response.success) {\n    toast.error(response.error); // Shows: \"shopee API error [E1001]: Invalid access token\"\n}\n\n// ❌ WRONG: Replace with generic message\nif (!response.success) {\n    toast.error(\"Failed to sync orders\"); // Hides root cause!\n}\n```\n\n**Verification Checklist:**\n- [ ] Error responses include platform name (shopee/lazada/tiktok/etc.)\n- [ ] Original API error message preserved\n- [ ] Error codes included if available\n- [ ] NO generic messages like \"sync failed\" or \"request failed\" without context\n- [ ] Error logs show exact API response for debugging\n- [ ] Frontend displays raw error to user (not translated/sanitized)\n\n**Exception:** Only sanitize errors that contain sensitive data (tokens, passwords). For validation/business logic errors, ALWAYS pass through raw message.",
-    "hephaestus-no-auto-commit": "⛔ HEPHAESTUS COMMIT POLICY (EXCEPTION TO AUTO-COMMIT):\n\n**CRITICAL: Hephaestus does NOT auto-commit/push like other agents.**\n\n**Rules:**\n- Hephaestus fixes/debugs code but does NOT commit changes automatically\n- Commits ONLY happen when user EXPLICITLY instructs: \"commit this\" or \"push the changes\"\n- After fix completion, report changes and ASK: \"Changes complete. Should I commit and push?\"\n- Wait for explicit user confirmation before git operations\n- NEVER assume user wants changes committed\n\n**Why Different from Other Agents:**\n- Hephaestus often makes exploratory fixes and experiments\n- User may want to review/test changes before committing\n- Prevents accidental commits of debugging/experimental code\n- User maintains full control over what gets committed\n\n**Workflow:**\n1. Complete the fix/debugging work\n2. Verify with tests\n3. Report what was changed\n4. **ASK USER**: \"Should I commit and push these changes?\"\n5. ONLY if user says yes → then git add/commit/push\n\n**Example:**\n```\n[After fixing bug]\n✅ Fix complete. Changed files:\n- backend/services/order_service.go (fixed sync logic)\n- backend/handlers/order_handler.go (added error logging)\n\nTests pass. Backend route verified working.\n\nShould I commit and push these changes?\n```\n\n**DO NOT:**\n- Auto-commit after completing a fix\n- Assume user wants changes committed\n- Follow the standard auto-commit policy that applies to other agents"
+    "hephaestus-no-auto-commit": "⛔ HEPHAESTUS COMMIT POLICY (EXCEPTION TO AUTO-COMMIT):\n\n**CRITICAL: Hephaestus does NOT auto-commit/push like other agents.**\n\n**Rules:**\n- Hephaestus fixes/debugs code but does NOT commit changes automatically\n- Commits ONLY happen when user EXPLICITLY instructs: \"commit this\" or \"push the changes\"\n- After fix completion, report changes and ASK: \"Changes complete. Should I commit and push?\"\n- Wait for explicit user confirmation before git operations\n- NEVER assume user wants changes committed\n\n**Why Different from Other Agents:**\n- Hephaestus often makes exploratory fixes and experiments\n- User may want to review/test changes before committing\n- Prevents accidental commits of debugging/experimental code\n- User maintains full control over what gets committed\n\n**Workflow:**\n1. Complete the fix/debugging work\n2. Verify with tests\n3. Report what was changed\n4. **ASK USER**: \"Should I commit and push these changes?\"\n5. ONLY if user says yes → then git add/commit/push\n\n**Example:**\n```\n[After fixing bug]\n✅ Fix complete. Changed files:\n- backend/services/order_service.go (fixed sync logic)\n- backend/handlers/order_handler.go (added error logging)\n\nTests pass. Backend route verified working.\n\nShould I commit and push these changes?\n```\n\n**DO NOT:**\n- Auto-commit after completing a fix\n- Assume user wants changes committed\n- Follow the standard auto-commit policy that applies to other agents",
+    "post-task-evaluation": "🧪 POST-TASK EVALUATION (MANDATORY):\n\nAfter completing ANY task, evaluation/testing is ALLOWED and ENCOURAGED — no user permission needed.\n\n**Testing:**\n- Use `http://localhost/` for browser/Playwright testing (no port needed)\n- Save all screenshots to `.sisyphus/evidence/` with descriptive names\n- Test both happy path and edge cases when applicable\n\n**During Evaluation — Issues in YOUR changed files:**\n- Bugs, errors, or warnings caused by your changes → MUST fix immediately before completion\n- Additional improvements discovered in your changed files → MUST execute, do not defer\n\n**During Evaluation — Pre-existing/unrelated issues:**\n- NOT in your changed files → Log in TODO with priority, do NOT block completion\n- Exception: CRITICAL security or data-loss bugs → MUST fix regardless of file ownership\n\n**Zero Tolerance (your changes only):**\n- NO TypeScript/ESLint errors or warnings in files you changed\n- NO runtime errors caused by your changes"
   },
   "prompt_compose": {
-    "_comment": "Maps agents/categories to ordered lists of prompt_blocks. sync_rules.py joins blocks with '\\n\\n' separator and writes to shared.agents.X.prompt_append / shared.categories.X.prompt_append in opencode-profiles.json.",
+    "_comment": "Maps agents/categories to ordered lists of prompt_blocks. sync_rules.py joins blocks with '\\n\\n' separator and writes to shared.agents.X.prompt_append / shared.categories.X.prompt_append in opencode-profiles.json. Note: 'default' and 'multimodal-looker' are intentionally excluded — they are utility agents with no specific rules.",
     "agents": {
       "sisyphus": [
         "read-file-sisyphus",
@@ -44,17 +47,21 @@
         "understand-flow",
         "third-party-raw-errors",
         "zero-tolerance-linting",
+        "screenshot-rule",
+        "post-task-evaluation",
         "no-premature-done",
         "git-commit-enforcement"
       ],
       "prometheus": ["read-file-prometheus", "prometheus-output"],
       "atlas": [
         "read-file-executor",
-        "react-migration",
+        "react-frontend-mode",
         "code-quality-atlas",
         "understand-flow",
         "third-party-raw-errors",
         "zero-tolerance-linting",
+        "screenshot-rule",
+        "post-task-evaluation",
         "no-premature-done",
         "git-commit-enforcement"
       ],
@@ -66,6 +73,8 @@
         "hephaestus-strict-debugging",
         "hephaestus-no-auto-commit",
         "zero-tolerance-linting",
+        "screenshot-rule",
+        "post-task-evaluation",
         "no-premature-done"
       ],
       "sisyphus-junior": [
@@ -74,9 +83,16 @@
         "understand-flow",
         "third-party-raw-errors",
         "zero-tolerance-linting",
+        "screenshot-rule",
+        "post-task-evaluation",
         "no-premature-done",
         "git-commit-enforcement"
-      ]
+      ],
+      "oracle": ["constitution"],
+      "librarian": ["constitution"],
+      "explore": ["constitution"],
+      "metis": ["constitution"],
+      "momus": ["constitution"]
     },
     "categories": {
       "visual-engineering": [
@@ -86,42 +102,116 @@
         "ui-bug-reporting",
         "understand-flow",
         "zero-tolerance-linting",
+        "post-task-evaluation",
         "no-premature-done",
         "git-commit-enforcement"
       ],
       "implementation": [
         "constitution",
+        "screenshot-rule",
         "code-quality",
         "understand-flow",
         "third-party-raw-errors",
         "zero-tolerance-linting",
+        "post-task-evaluation",
         "no-premature-done",
         "git-commit-enforcement"
       ],
       "quick": [
         "constitution",
+        "screenshot-rule",
         "code-quality",
         "understand-flow",
         "third-party-raw-errors",
         "zero-tolerance-linting",
+        "post-task-evaluation",
         "no-premature-done",
         "git-commit-enforcement"
       ],
       "deep": [
         "constitution",
+        "screenshot-rule",
         "code-quality",
         "understand-flow",
         "third-party-raw-errors",
         "zero-tolerance-linting",
+        "post-task-evaluation",
         "no-premature-done",
         "git-commit-enforcement"
       ],
       "ultrabrain": [
         "constitution",
+        "screenshot-rule",
         "code-quality",
         "understand-flow",
         "third-party-raw-errors",
         "zero-tolerance-linting",
+        "post-task-evaluation",
+        "no-premature-done",
+        "git-commit-enforcement"
+      ],
+      "artistry": [
+        "constitution",
+        "screenshot-rule",
+        "code-quality",
+        "understand-flow",
+        "zero-tolerance-linting",
+        "post-task-evaluation",
+        "no-premature-done",
+        "git-commit-enforcement"
+      ],
+      "writing": [
+        "constitution",
+        "screenshot-rule",
+        "post-task-evaluation",
+        "no-premature-done",
+        "git-commit-enforcement"
+      ],
+      "review": [
+        "constitution",
+        "screenshot-rule",
+        "code-quality",
+        "understand-flow",
+        "zero-tolerance-linting",
+        "post-task-evaluation",
+        "no-premature-done"
+      ],
+      "testing": [
+        "constitution",
+        "screenshot-rule",
+        "code-quality",
+        "understand-flow",
+        "zero-tolerance-linting",
+        "post-task-evaluation",
+        "no-premature-done"
+      ],
+      "security": [
+        "constitution",
+        "screenshot-rule",
+        "code-quality",
+        "understand-flow",
+        "third-party-raw-errors",
+        "zero-tolerance-linting",
+        "post-task-evaluation",
+        "no-premature-done"
+      ],
+      "unspecified-low": [
+        "constitution",
+        "screenshot-rule",
+        "code-quality",
+        "understand-flow",
+        "post-task-evaluation",
+        "no-premature-done",
+        "git-commit-enforcement"
+      ],
+      "unspecified-high": [
+        "constitution",
+        "screenshot-rule",
+        "code-quality",
+        "understand-flow",
+        "third-party-raw-errors",
+        "zero-tolerance-linting",
+        "post-task-evaluation",
         "no-premature-done",
         "git-commit-enforcement"
       ]
@@ -221,6 +311,15 @@
       ".opencode/skills/ulp-loop/SKILL.md": {
         "concurrency": {},
         "failure-counter": {}
+      },
+      ".opencode/skills/react-frontend-rules/SKILL.md": {
+        "file-size-quality": {}
+      },
+      ".opencode/skills/playwright-layout-eval/SKILL.md": {
+        "screenshot-evidence": {}
+      },
+      ".opencode/skills/explore-rules/SKILL.md": {
+        "codebase-structure": {}
       },
       "backend/internal/handlers/AGENTS.md": {
         "file-size-quality": {}
