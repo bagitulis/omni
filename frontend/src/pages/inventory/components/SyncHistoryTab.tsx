@@ -40,32 +40,29 @@ function parseEntry(entry: SyncHistoryEntry): Omit<SyncHistoryRow, "key"> {
       ? "from"
       : rawDirection === "to" || rawDirection === "export"
         ? "to"
-        : entry.sync_type === "import"
-          ? "from"
-          : "to";
+        : "from"; // Default to "from" (import from sheets)
 
   const normalizedStatus = entry.status.toLowerCase();
   const status: SyncHistoryRow["status"] =
     normalizedStatus === "success"
       ? "success"
-      : normalizedStatus === "failed" || normalizedStatus === "error"
+      : normalizedStatus === "error" || normalizedStatus === "failed"
         ? "error"
         : "pending";
 
   const timestamp =
-    readString(entry, "timestamp") ||
-    entry.completed_at ||
-    entry.started_at ||
-    "";
+    readString(entry, "timestamp") || entry.synced_at || entry.created_at || "";
 
   const message =
     readString(entry, "message") ||
-    (entry.status === "failed" && entry.errors ? entry.errors : "-");
+    (entry.status === "ERROR" && entry.error_message
+      ? entry.error_message
+      : "-");
 
   const details =
     readString(entry, "details") ||
-    (entry.records_processed > 0
-      ? `Processed ${entry.records_processed} record(s)`
+    (entry.total_records > 0
+      ? `Total: ${entry.total_records}, New: ${entry.new_records}, Updated: ${entry.updated_records}, Failed: ${entry.failed_records}`
       : "-");
 
   return { direction, status, timestamp, message, details };

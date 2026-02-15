@@ -186,9 +186,9 @@ export function DashboardPage() {
         </Col>
       </Row>
 
-      {/* Recent Orders Section */}
+      {/* Ready to Ship Orders Section */}
       <Card
-        title="Recent Orders"
+        title="Ready to Ship"
         extra={
           <Button type="link" href="/order-manager">
             View All <RightOutlined />

@@ -112,12 +112,24 @@ func (r *AnalyticsRepository) GetOrderCountByPlatform(ctx context.Context, tenan
 	// Shopee orders
 	var shopeeCount int64
 	r.db.WithContext(ctx).Model(&models.ShopeeOrder{}).
-		Where("created_at BETWEEN ? AND ?", startDate, endDate).
+		Where("tenant_id = ? AND created_at BETWEEN ? AND ?", tenantID, startDate, endDate).
 		Count(&shopeeCount)
 	result["shopee"] = int(shopeeCount)
 
-	// Add Lazada and TikTok counts similarly
-	// For now, return shopee count
+	// Lazada orders
+	var lazadaCount int64
+	r.db.WithContext(ctx).Model(&models.LazadaOrder{}).
+		Where("tenant_id = ? AND created_at BETWEEN ? AND ?", tenantID, startDate, endDate).
+		Count(&lazadaCount)
+	result["lazada"] = int(lazadaCount)
+
+	// TikTok orders
+	var tiktokCount int64
+	r.db.WithContext(ctx).Model(&models.TiktokOrder{}).
+		Where("tenant_id = ? AND created_at BETWEEN ? AND ?", tenantID, startDate, endDate).
+		Count(&tiktokCount)
+	result["tiktok"] = int(tiktokCount)
+
 	return result, nil
 }
 
@@ -128,10 +140,26 @@ func (r *AnalyticsRepository) GetTotalSalesByPlatform(ctx context.Context, tenan
 	// Shopee sales
 	var shopeeTotal float64
 	r.db.WithContext(ctx).Model(&models.ShopeeOrder{}).
-		Where("created_at BETWEEN ? AND ?", startDate, endDate).
+		Where("tenant_id = ? AND created_at BETWEEN ? AND ?", tenantID, startDate, endDate).
 		Select("COALESCE(SUM(total_amount), 0)").
 		Scan(&shopeeTotal)
 	result["shopee"] = shopeeTotal
+
+	// Lazada sales
+	var lazadaTotal float64
+	r.db.WithContext(ctx).Model(&models.LazadaOrder{}).
+		Where("tenant_id = ? AND created_at BETWEEN ? AND ?", tenantID, startDate, endDate).
+		Select("COALESCE(SUM(total_amount), 0)").
+		Scan(&lazadaTotal)
+	result["lazada"] = lazadaTotal
+
+	// TikTok sales
+	var tiktokTotal float64
+	r.db.WithContext(ctx).Model(&models.TiktokOrder{}).
+		Where("tenant_id = ? AND created_at BETWEEN ? AND ?", tenantID, startDate, endDate).
+		Select("COALESCE(SUM(total_amount), 0)").
+		Scan(&tiktokTotal)
+	result["tiktok"] = tiktokTotal
 
 	return result, nil
 }

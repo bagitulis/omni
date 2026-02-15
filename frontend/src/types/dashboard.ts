@@ -49,10 +49,10 @@ export interface WalletData {
 
 export interface ShippingFeeData {
   total_orders: number;
-  discrepancy_count: number;
-  total_discrepancy_amount: number;
-  match_count: number;
-  pending_count: number;
+  orders_with_difference: number;
+  total_profit: number;
+  total_loss: number;
+  net_impact: number;
 }
 
 export interface SyncStatusData {

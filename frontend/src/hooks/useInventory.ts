@@ -108,8 +108,8 @@ export function useCheckPlatformStatus() {
 export function useUpdateStock() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ sku, stock }: { sku: string; stock: number }) =>
-      updateStock(sku, stock),
+    mutationFn: ({ sku, platforms }: { sku: string; platforms?: string[] }) =>
+      updateStock(sku, platforms),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
     },

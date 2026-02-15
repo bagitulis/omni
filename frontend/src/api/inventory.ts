@@ -1,4 +1,5 @@
 import apiClient from "./client";
+import type { ApiResponse } from "./client";
 import {
   InventoryRecord,
   InventoryListResult,
@@ -27,6 +28,13 @@ export interface GetInventoryParams {
   sort_dir?: "asc" | "desc";
 }
 
+/** Backend response for /inventory/list includes pagination fields at top level */
+interface InventoryListResponse extends ApiResponse<InventoryRecord[]> {
+  total?: number;
+  offset?: number;
+  limit?: number;
+}
+
 /**
  * Fetch inventory data
  * Backend route: GET /api/inventory/list
@@ -34,18 +42,17 @@ export interface GetInventoryParams {
 export async function getInventory(
   params?: GetInventoryParams,
 ): Promise<InventoryListResult> {
-  const response = await apiClient.get<InventoryRecord[]>("/inventory/list", {
+  const response = (await apiClient.get<InventoryRecord[]>("/inventory/list", {
     params,
-  });
+  })) as InventoryListResponse;
   if (!response.success) {
     throw new Error(response.error || "Failed to fetch inventory");
   }
-  const raw = response as unknown as Record<string, unknown>;
   return {
     records: response.data || [],
-    total: (raw.total as number) || 0,
-    offset: (raw.offset as number) || 0,
-    limit: (raw.limit as number) || 100,
+    total: response.total || 0,
+    offset: response.offset || 0,
+    limit: response.limit || 100,
   };
 }
 
@@ -64,14 +71,15 @@ export async function getInventoryBySku(sku: string): Promise<InventoryRecord> {
 /**
  * Update stock for a single item
  * Backend route: POST /api/inventory/update-stock
+ * Backend reads stock from inventory_records (not from request payload)
  */
 export async function updateStock(
   sku: string,
-  newStock: number,
+  platforms?: string[],
 ): Promise<void> {
   const response = await apiClient.post("/inventory/update-stock", {
     sku,
-    stock: newStock,
+    platforms,
   });
   if (!response.success) {
     throw new Error(response.error || "Failed to update stock");
@@ -81,12 +89,15 @@ export async function updateStock(
 /**
  * Batch update stock for multiple items
  * Backend route: POST /api/inventory/update-stock-batch
+ * Backend reads stock from inventory_records for each SKU
  */
 export async function updateStockBatch(
-  updates: Array<{ sku: string; stock: number }>,
+  skus: string[],
+  platforms?: string[],
 ): Promise<void> {
   const response = await apiClient.post("/inventory/update-stock-batch", {
-    updates,
+    skus,
+    platforms,
   });
   if (!response.success) {
     throw new Error(response.error || "Failed to batch update stock");
@@ -178,11 +189,11 @@ export async function syncToSheets(): Promise<void> {
 
 /**
  * Batch check platform status
- * Backend route: POST /api/inventory/batch-check
+ * Backend route: POST /api/inventory/batch-check-sku
  */
 export async function checkPlatformStatus(): Promise<BatchCheckResult[]> {
   const response = await apiClient.post<BatchCheckResult[]>(
-    "/inventory/batch-check",
+    "/inventory/batch-check-sku",
   );
   if (!response.success) {
     throw new Error(response.error || "Failed to check platform status");

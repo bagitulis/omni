@@ -17,15 +17,13 @@ export function PlatformHealthWidget() {
     useSyncStatus("shopee");
   const { data: tiktokStatus, isLoading: isTiktokLoading } =
     useSyncStatus("tiktok");
+  const { data: lazadaStatus, isLoading: isLazadaLoading } =
+    useSyncStatus("lazada");
 
   const platforms = [
     { name: "Shopee", data: shopeeStatus, loading: isShopeeLoading },
     { name: "TikTok", data: tiktokStatus, loading: isTiktokLoading },
-    {
-      name: "Lazada",
-      data: { status: "disconnected", last_sync: null },
-      loading: false,
-    },
+    { name: "Lazada", data: lazadaStatus, loading: isLazadaLoading },
   ];
 
   const getStatusIcon = (status: string) => {

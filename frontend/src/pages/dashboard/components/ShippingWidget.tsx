@@ -17,11 +17,9 @@ export function ShippingWidget() {
   const { token } = theme.useToken();
   const { data: shopeeData, isLoading: isShopeeLoading } =
     useShippingFeeData("shopee");
-  // TikTok shipping fee API might be different, but we'll try to use the same structure
-  // const { data: tiktokData } = useShippingFeeData("tiktok");
 
   const discrepancyRate = shopeeData?.total_orders
-    ? (shopeeData.discrepancy_count / shopeeData.total_orders) * 100
+    ? (shopeeData.orders_with_difference / shopeeData.total_orders) * 100
     : 0;
 
   return (
@@ -45,7 +43,7 @@ export function ShippingWidget() {
         <Col span={12}>
           <Statistic
             title="Discrepancies"
-            value={shopeeData?.discrepancy_count || 0}
+            value={shopeeData?.orders_with_difference || 0}
             valueStyle={{ color: token.colorError, fontSize: 18 }}
             prefix={<WarningOutlined />}
           />
@@ -80,8 +78,17 @@ export function ShippingWidget() {
               marginTop: 8,
             }}
           >
-            <Text type="secondary">Pending Check</Text>
-            <Text>{shopeeData?.pending_count || 0}</Text>
+            <Text type="secondary">Net Impact</Text>
+            <Text
+              style={{
+                color:
+                  (shopeeData?.net_impact || 0) >= 0
+                    ? token.colorSuccess
+                    : token.colorError,
+              }}
+            >
+              Rp {(shopeeData?.net_impact || 0).toLocaleString("id-ID")}
+            </Text>
           </div>
         </Col>
       </Row>

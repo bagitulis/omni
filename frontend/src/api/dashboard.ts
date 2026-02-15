@@ -172,10 +172,10 @@ export async function getShippingFeeData(
     // Return empty/safe default on error
     return {
       total_orders: 0,
-      discrepancy_count: 0,
-      total_discrepancy_amount: 0,
-      match_count: 0,
-      pending_count: 0,
+      orders_with_difference: 0,
+      total_profit: 0,
+      total_loss: 0,
+      net_impact: 0,
     };
   }
   return response.data as ShippingFeeData;

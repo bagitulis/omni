@@ -44,7 +44,7 @@ export function StockCell({ record, value }: Props) {
     setEditing(false);
 
     updateStock(
-      { sku: record.key_value, stock: localValue || 0 },
+      { sku: record.key_value },
       {
         onSuccess: () => {
           setFlash("success");

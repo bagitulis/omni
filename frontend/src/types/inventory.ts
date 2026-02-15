@@ -42,14 +42,19 @@ export interface InventoryStats {
 }
 
 export interface SyncHistoryEntry {
-  id: number;
+  id: string;
   tenant_id: string;
-  sync_type: "import" | "export";
-  status: "success" | "failed" | "partial";
-  started_at: string;
-  completed_at: string;
-  records_processed: number;
-  errors?: string;
+  status: "SUCCESS" | "ERROR" | "PARTIAL";
+  total_records: number;
+  new_records: number;
+  updated_records: number;
+  unchanged_records: number;
+  failed_records: number;
+  duration_ms: number;
+  error_message?: string;
+  headers_changed: boolean;
+  synced_at: string;
+  created_at: string;
 }
 
 export interface BatchCheckResult {

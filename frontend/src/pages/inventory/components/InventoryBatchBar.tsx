@@ -32,9 +32,7 @@ export function InventoryBatchBar({
     token: { colorBgElevated, boxShadowSecondary, borderRadius },
   } = theme.useToken();
 
-  const [stockModalOpen, setStockModalOpen] = useState(false);
   const [priceModalOpen, setPriceModalOpen] = useState(false);
-  const [stockValue, setStockValue] = useState<number | null>(null);
   const [priceValue, setPriceValue] = useState<number | null>(null);
   const [processing, setProcessing] = useState(false);
 
@@ -50,11 +48,8 @@ export function InventoryBatchBar({
     [selectedRows],
   );
 
-  const runBatchUpdate = async (
-    mode: "stock" | "price",
-    value: number,
-    onDone: () => void,
-  ) => {
+  /** Sync stock from inventory_records to marketplace platforms */
+  const handleSyncStock = async () => {
     if (selectedSkus.length === 0) {
       message.error("No valid SKU selected");
       return;
@@ -62,17 +57,43 @@ export function InventoryBatchBar({
 
     setProcessing(true);
 
-    const updates = selectedSkus.map((sku) => {
-      if (mode === "stock") {
-        return updateStockMutation.mutateAsync({ sku, stock: value });
-      }
-      return updatePriceMutation.mutateAsync({ sku, price: value });
-    });
+    const updates = selectedSkus.map((sku) =>
+      updateStockMutation.mutateAsync({ sku }),
+    );
 
     const results = await Promise.allSettled(updates);
-    const successCount = results.filter(
-      (result) => result.status === "fulfilled",
-    ).length;
+    const successCount = results.filter((r) => r.status === "fulfilled").length;
+    const failedCount = results.length - successCount;
+
+    if (failedCount > 0) {
+      message.warning(`${successCount} synced, ${failedCount} failed`);
+    } else {
+      message.success(`${successCount} items synced to platforms`);
+    }
+
+    setProcessing(false);
+    onBatchComplete();
+  };
+
+  const handlePriceUpdate = async () => {
+    if (priceValue == null) {
+      message.error("Please input a price value");
+      return;
+    }
+
+    if (selectedSkus.length === 0) {
+      message.error("No valid SKU selected");
+      return;
+    }
+
+    setProcessing(true);
+
+    const updates = selectedSkus.map((sku) =>
+      updatePriceMutation.mutateAsync({ sku, price: priceValue }),
+    );
+
+    const results = await Promise.allSettled(updates);
+    const successCount = results.filter((r) => r.status === "fulfilled").length;
     const failedCount = results.length - successCount;
 
     if (failedCount > 0) {
@@ -82,30 +103,9 @@ export function InventoryBatchBar({
     }
 
     setProcessing(false);
-    onDone();
+    setPriceModalOpen(false);
+    setPriceValue(null);
     onBatchComplete();
-  };
-
-  const handleStockUpdate = async () => {
-    if (stockValue == null) {
-      message.error("Please input a stock value");
-      return;
-    }
-    await runBatchUpdate("stock", stockValue, () => {
-      setStockModalOpen(false);
-      setStockValue(null);
-    });
-  };
-
-  const handlePriceUpdate = async () => {
-    if (priceValue == null) {
-      message.error("Please input a price value");
-      return;
-    }
-    await runBatchUpdate("price", priceValue, () => {
-      setPriceModalOpen(false);
-      setPriceValue(null);
-    });
   };
 
   const handleCheckPlatformStatus = async () => {
@@ -161,10 +161,17 @@ export function InventoryBatchBar({
 
           <Space wrap>
             <Button
-              onClick={() => setStockModalOpen(true)}
+              onClick={() => {
+                Modal.confirm({
+                  title: "Sync Stock to Platforms",
+                  content: `Sync inventory stock for ${selectedSkus.length} items to marketplace platforms. Stock values are read from your inventory records.`,
+                  okText: "Sync",
+                  onOk: handleSyncStock,
+                });
+              }}
               disabled={processing}
             >
-              Update Stock
+              Sync Stock
             </Button>
             <Button
               onClick={() => setPriceModalOpen(true)}
@@ -181,28 +188,6 @@ export function InventoryBatchBar({
           </Space>
         </Card>
       </div>
-
-      <Modal
-        title="Batch Update Stock"
-        open={stockModalOpen}
-        onCancel={() => setStockModalOpen(false)}
-        onOk={handleStockUpdate}
-        okText="Update"
-        confirmLoading={processing}
-      >
-        <Space direction="vertical" style={{ width: "100%" }}>
-          <Typography.Text type="secondary">
-            Apply stock value to {selectedSkus.length} selected items.
-          </Typography.Text>
-          <InputNumber
-            min={0}
-            value={stockValue}
-            onChange={setStockValue}
-            style={{ width: "100%" }}
-            placeholder="Enter stock value"
-          />
-        </Space>
-      </Modal>
 
       <Modal
         title="Batch Update Price"
