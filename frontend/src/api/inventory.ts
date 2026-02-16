@@ -6,7 +6,7 @@
  * continue to work without changes.
  */
 
-// Re-export all types
+// Types
 export type {
 	BatchCheckResult,
 	InventoryConfig,
@@ -16,16 +16,16 @@ export type {
 	SkuCheckResult,
 	SyncHistoryEntry,
 } from "@/types/inventory";
-// Re-export check operations
+// Check operations
 export { batchCheckSku, checkPlatformStatus } from "./inventoryCheck";
-// Re-export column operations
+// Column operations
 export {
 	getAvailableColumns,
 	getSelectedColumns,
 	saveSelectedColumns,
 } from "./inventoryColumns";
 export type { RawInventoryConfig } from "./inventoryConfig";
-// Re-export config operations
+// Config operations
 export {
 	getInventoryConfig,
 	normalizeInventoryConfig,
@@ -33,7 +33,7 @@ export {
 	updateInventoryConfig,
 } from "./inventoryConfig";
 export type { GetInventoryParams } from "./inventoryCore";
-// Re-export core operations
+// Core operations
 export {
 	getInventory,
 	getInventoryBySku,
@@ -41,15 +41,14 @@ export {
 	getSyncHistory,
 	updateInventoryRecord,
 } from "./inventoryCore";
-// Re-export price operations
+// Price operations
 export { updatePrice, updatePriceBatch } from "./inventoryPrice";
 export type {
 	BatchPriceUpdateResult,
 	PriceUpdateItem,
 	PriceUpdateResult,
 } from "./inventoryPriceTypes";
-
-// Re-export sync operations
+// Sync operations
 export {
 	syncInventory,
 	syncToSheets,
