@@ -4,12 +4,12 @@ description: ULW loop-mode rules - pipeline management, verification cadence, an
 
 # ULW Loop Mode Rules
 
+## Your Role in Loop Mode
+
 <!-- MASTER:skill-ulw-loop-role -->
 > **Purpose:** Governs Sisyphus behavior during autonomous loop execution (`/ulw-loop`).
 > **For:** Sisyphus (main orchestrator) when running in loop mode.
 > These rules COMPLEMENT (not replace) SISYPHUS_RULES.md and AGENTS.md.
-
-## Your Role in Loop Mode
 
 You are the **Main Controller** and **Quality Lead**. Your job is to:
 
@@ -51,11 +51,13 @@ You are the **Main Controller** and **Quality Lead**. Your job is to:
 <!-- MASTER:skill-ulw-loop-task-flow -->
 ### Task Flow
 
+Tasks come from **either** a Prometheus plan or direct user request:
+
 ```
-Prometheus Plan → TODO Queue → Delegate → Verify → Next
-                                    ↑                    |
-                                    └────────────────────┘
-                                    (if verification fails)
+Task Source (Plan or User) → TODO Queue → Delegate → Verify → Next
+                                              ↑                    |
+                                              └────────────────────┘
+                                              (if verification fails)
 ```
 
 ### Dynamic Planning
@@ -67,11 +69,94 @@ Prometheus Plan → TODO Queue → Delegate → Verify → Next
 
 ---
 
-## 2. Verification Protocol (Double Evaluation)
+## 2. Task Classification
+
+<!-- MASTER:skill-ulw-loop-task-classification -->
+Tasks in loop mode come from a **Prometheus plan** or **direct user request**. Classify each task to determine delegation target and verification type:
+
+| Task Type | Delegation Target | Verification Focus | Special Actions |
+| --------- | ----------------- | ------------------ | --------------- |
+| **Backend-only** (.go) | `category="implementation"` | Build + test + API curl | — |
+| **Frontend-only** (.ts/.tsx) | `category="visual-engineering"` | Build + lint + multi-viewport screenshots | Load `react-frontend-rules` |
+| **Full-stack** (backend + frontend) | Split into 2 delegations (backend first) | Both backend + frontend gates | Sequence: backend → frontend |
+| **Config/Rules** (.json, .md) | `category="quick"` or do directly | Sync check + JSON validation | Run `sync_rules.py --check` if rules-master |
+| **Schema change** (migrations) | `category="implementation"` | Migration + build + backup | MUST run `python build.py backup` AFTER |
+| **Bug fix** | `category="deep"` (default) | Root cause evidence + test | Verify executor traced flow, not trial-and-error |
+
+**Note on bug fixes:** Loop mode defaults to `deep` (not `implementation`) because bug fixes benefit from deeper root-cause analysis. For trivial/obvious bugs, the orchestrator may override to `category="quick"` or `category="implementation"`.
+
+**Classification drives delegation.** Wrong classification → wrong executor model → suboptimal result.
+<!-- /MASTER:skill-ulw-loop-task-classification -->
+
+---
+
+## 3. Delegation Strategy
+
+<!-- MASTER:skill-ulw-loop-delegation-strategy -->
+In loop mode, delegation is **batch-oriented**, not request-response.
+
+### Decision Matrix
+
+| Situation | Strategy |
+| --------- | -------- |
+| 3+ independent tasks (no dependencies) | Fire ALL in parallel — system queues excess |
+| Task B depends on Task A output | Sequence: delegate A → verify → delegate B |
+| Trivial task (typo, config tweak, <5 min) | Do directly — delegation overhead > benefit |
+| Frontend depends on backend API | Backend FIRST → verify API works → then frontend |
+| Same module, multiple changes | Batch into ONE delegation with clear scope |
+
+### Prompt Discipline (MANDATORY)
+
+Every delegation in loop mode MUST use the **6-section prompt structure**:
+
+```
+1. TASK: [atomic goal]
+2. EXPECTED OUTCOME: [concrete deliverable]
+3. REQUIRED TOOLS: [tool whitelist]
+4. MUST DO: [exhaustive requirements]
+5. MUST NOT DO: [forbidden actions]
+6. CONTEXT: [file paths, patterns, task/todo number]
+```
+
+**Include task/todo number** (from plan or user request) in every delegation prompt so executors can reference it.
+
+```
+❌ WRONG: "Fix the order handler" (vague, no context)
+✅ CORRECT: Full 6-section prompt with task/todo number, file paths, existing patterns
+```
+<!-- /MASTER:skill-ulw-loop-delegation-strategy -->
+
+---
+
+## 4. Todo Lifecycle
+
+<!-- MASTER:skill-ulw-loop-todo-lifecycle -->
+In loop mode, todos follow a source-driven lifecycle:
+
+```
+Task Source (Plan or User) → todowrite (all tasks) → in_progress (1 per slot) → completed/failed
+```
+
+### Rules
+
+| Rule | Behavior |
+| ---- | -------- |
+| **Initialize** | Convert ALL tasks (from plan or user request) to todos at loop start via `todowrite` |
+| **One active per slot** | Max 1 `in_progress` todo per delegation slot (3 max) |
+| **Immediate completion** | Mark `completed` the MOMENT verification passes — never batch |
+| **Failure handling** | Mark failed todo back to `pending` with retry note, increment failure counter |
+| **Dynamic updates** | If executor discovers new work → add todo BEFORE continuing |
+| **Scope changes** | If plan changes mid-loop → update todos BEFORE next delegation |
+| **Evidence linking** | Each completed todo MUST reference its evidence (build output, screenshot path) |
+
+**Never leave todos stale.** Stale todos = lost progress visibility.
+<!-- /MASTER:skill-ulw-loop-todo-lifecycle -->
+
+---
+
+## 5. Verification Protocol (Double Evaluation)
 
 <!-- MASTER:skill-ulw-loop-verification-protocol -->
-## Verification Protocol (Double Evaluation)
-
 Every delegated task MUST pass **two evaluations** before being marked DONE:
 
 ### Evaluation 1: Backend/Logic Verification
@@ -97,15 +182,51 @@ Run these checks **directly** (don't delegate — faster and more reliable):
 > **Rule:** Use the most reliable tool for each check.
 > Deterministic checks (build/test/lint) → run directly.
 > Visual/integration checks → delegate with browser tools.
+
+### Evidence Validation (MANDATORY after both evaluations)
+
+Before marking any task DONE, verify the executor provided real evidence — see **§6 Evidence Collection** for the full validation protocol. **Never accept "done" without evidence.**
 <!-- /MASTER:skill-ulw-loop-verification-protocol -->
 
 ---
 
-## 3. Definition of Done (MANDATORY GATES)
+## 6. Evidence Collection
+
+<!-- MASTER:skill-ulw-loop-evidence-collection -->
+As orchestrator, you MUST **demand and validate** evidence from executors. Accepting results without evidence is FORBIDDEN.
+
+### Required Evidence by Task Type
+
+| Task Type | Required Evidence from Executor | How Orchestrator Validates |
+| --------- | ------------------------------- | -------------------------- |
+| **Backend** | `go build` exit 0 + `go test` pass + `lsp_diagnostics` clean | Re-run `go build ./...` + `go test ./...` + `lsp_diagnostics` on changed files |
+| **Frontend** | `npm run build` exit 0 + `npm run lint` clean + screenshots | Re-run `npm run build` + `npm run lint` + `lsp_diagnostics` on changed files |
+| **Full-stack** | Both backend + frontend evidence | Re-run all backend checks (`go build` + `go test` + `lsp_diagnostics`) + all frontend checks (`npm run build` + `npm run lint` + `lsp_diagnostics`) |
+| **Schema** | Migration output + `python build.py backup` confirmation | Verify backup file timestamp |
+| **Bug fix** | Root cause trace + before/after evidence + test proving fix | Check executor documented flow trace (not trial-and-error) |
+
+### Validation Protocol
+
+```
+When executor reports "done":
+1. CHECK: Did executor provide evidence in required format?
+   → NO: Reject immediately — "Provide [missing evidence]"
+2. CHECK: Is evidence real (not phantom)?
+   → Re-run deterministic checks (build/test/lint/lsp) yourself
+3. CHECK: Did executor follow "Understand Flow"?
+   → Review their fix approach — if trial-and-error, REJECT
+4. CHECK: Changed 3+ files?
+   → Trigger Oracle ACC gate (see §8)
+```
+
+**Rubber-stamping executor results is the #1 loop-mode failure.** Always inspect.
+<!-- /MASTER:skill-ulw-loop-evidence-collection -->
+
+---
+
+## 7. Definition of Done (MANDATORY GATES)
 
 <!-- MASTER:skill-ulw-loop-definition-of-done -->
-## Definition of Done (MANDATORY GATES)
-
 A task is only **DONE** when ALL gates pass. **Never claim done without running the self-check.**
 
 ### Completion Self-Check (Before EVERY "done"):
@@ -146,11 +267,54 @@ ASK YOURSELF before marking ANY task complete:
 
 ---
 
-## 4. Session Continuity (CRITICAL in Loops)
+## 8. Oracle ACC Gate in Loops
+
+<!-- MASTER:skill-ulw-loop-oracle-gate -->
+Oracle consultation in loop mode must balance **quality vs cost**.
+
+### When to Invoke Oracle
+
+| Scenario | Oracle Required? | Rationale |
+| -------- | ---------------- | --------- |
+| Single task, 1-2 files changed | NO | Self-evaluation sufficient |
+| Single task, 3+ files changed | YES (per-task) | Significant change needs expert review |
+| Batch of small tasks (all <3 files) | YES (per-batch, after git commit) | Batch review is cost-effective |
+| Schema/migration change | YES (always) | High-risk change, regardless of file count |
+| Architecture/refactor task | YES (always) | Structural decisions need validation |
+
+### Oracle Consultation in Loop Context
+
+```
+task(
+  subagent_type="oracle",
+  load_skills=["oracle-rules"],
+  session_id="[previous session if re-submitting]",
+  prompt="
+**LOOP MODE EVALUATION — Task N**
+
+### Task Context: [plan task N or direct user request]
+### Changes Made: [files changed + summary]
+### Evidence: [build/test/lint results]
+### Executor Approach: [traced flow? or trial-and-error?]
+
+ACC or REJECT.
+  "
+)
+```
+
+### Fallback (Oracle unavailable)
+
+1. Retry with `session_id`
+2. If unavailable → use `category="deep"` with Oracle-style evaluation prompt
+3. If deep also fails → thorough self-review + document Oracle was unavailable
+4. **NEVER skip evaluation entirely** — at minimum, self-review with zero-suspicion gate
+<!-- /MASTER:skill-ulw-loop-oracle-gate -->
+
+---
+
+## 9. Session Continuity (CRITICAL in Loops)
 
 <!-- MASTER:skill-ulw-loop-session-continuity -->
-## Session Continuity (CRITICAL in Loops)
-
 Long-running loops MUST use `session_id` for delegation:
 
 - **Every** delegation returns a `session_id` — STORE IT
@@ -165,7 +329,7 @@ Long-running loops MUST use `session_id` for delegation:
 
 ---
 
-## 5. Failure Handling in Loops
+## 10. Failure Handling in Loops
 
 <!-- MASTER:failure-counter -->
 **Failure counter tracks SAME error/issue.** If a DIFFERENT error occurs, reset counter to 1.
@@ -182,11 +346,9 @@ Long-running loops MUST use `session_id` for delegation:
 
 ---
 
-## 6. Loop Iteration Checklist
+## 11. Loop Iteration Checklist
 
 <!-- MASTER:skill-ulw-loop-iteration-checklist -->
-## Loop Iteration Checklist
-
 At the START of each loop iteration:
 
 ```
@@ -195,24 +357,27 @@ At the START of each loop iteration:
 3. Check: any verification pending? → Run Evaluation 1 + 2
 4. Check: all tasks done? → Run final gates → exit if passed
 5. Check: stuck anywhere? → Apply stuck-recovery protocol
+6. Check: UI bugs discovered during verification? → CRITICAL → add to queue immediately, WARNING → log for later batch
 ```
 <!-- /MASTER:skill-ulw-loop-iteration-checklist -->
 
 ---
 
-## 7. Anti-Patterns in Loop Mode
+## 12. Anti-Patterns in Loop Mode
 
 <!-- MASTER:skill-ulw-loop-anti-patterns -->
-## Anti-Patterns in Loop Mode
-
-| Forbidden                                  | Do Instead                         |
-| ------------------------------------------ | ---------------------------------- |
-| Mark task done without verification        | Run both evaluations first         |
-| Claim "done" without self-check            | Ask the 4 self-check questions     |
-| Assume task is complete without re-reading | Re-read original task requirement  |
-| Wait idle for all 3 delegations            | Process completions as they arrive |
-| Skip git commit between batches            | Commit after each completed batch  |
-| Ignore UI bugs found during verification   | Report per EXECUTOR_RULES.md §12   |
-| Restart delegation from scratch on failure | Use session_id to continue         |
-| Let loop spin > 5 failures on same issue   | STOP and escalate to user          |
+| Forbidden                                  | Do Instead                                       |
+| ------------------------------------------ | ------------------------------------------------ |
+| Mark task done without verification        | Run both evaluations first                       |
+| Claim "done" without self-check            | Ask the 4 self-check questions                   |
+| Assume task is complete without re-reading | Re-read original task requirement                |
+| Wait idle for all 3 delegations            | Process completions as they arrive               |
+| Skip git commit between batches            | Commit after each completed batch                |
+| Ignore UI bugs found during verification   | CRITICAL → add to queue, WARNING → log for later |
+| Restart delegation from scratch on failure | Use session_id to continue                       |
+| Let loop spin > 5 failures on same issue   | STOP and escalate to user                        |
+| Accept executor results without evidence   | Demand evidence in required format (see §6)      |
+| Skip Oracle ACC for 3+ file changes       | Always invoke Oracle for significant changes     |
+| Delegate without 6-section prompt          | Use full prompt structure for every delegation   |
+| Rubber-stamp executor "done" reports       | Re-run deterministic checks yourself             |
 <!-- /MASTER:skill-ulw-loop-anti-patterns -->

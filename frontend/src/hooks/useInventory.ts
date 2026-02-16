@@ -92,10 +92,8 @@ export function useSaveInventoryFilterPreferences() {
   return useMutation({
     mutationFn: (preferences: InventoryFilterPreferences) =>
       saveInventoryFilterPreferences(preferences),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["inventory-filter-preferences"],
-      });
+    onSuccess: (_, preferences) => {
+      queryClient.setQueryData(["inventory-filter-preferences"], preferences);
     },
   });
 }

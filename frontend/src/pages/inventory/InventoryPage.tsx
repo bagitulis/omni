@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Key } from "react";
 import { Tabs, Layout, Grid, theme } from "antd";
 import { useMutation } from "@tanstack/react-query";
@@ -25,6 +25,7 @@ import { InventoryBatchBar } from "./components/InventoryBatchBar";
 import { InventoryLockPanel } from "./components/InventoryLockPanel";
 import { SyncHistoryTab } from "./components/SyncHistoryTab";
 import { WholesaleMpqModal } from "./components/modals/WholesaleMpqModal";
+import { useInventoryFilterPreferenceSync } from "./hooks/useInventoryFilterPreferenceSync";
 import type { InventoryRecord } from "@/types/inventory";
 import { InventoryPagination } from "./components/InventoryPagination";
 import { applyInventoryColumnFilters } from "./utils/inventoryColumnFilters";
@@ -71,7 +72,7 @@ export default function InventoryPage() {
   const { data: selectedColumns = [] } = useSelectedColumns();
   const { data: filterPreferences, isFetched: isFilterPreferencesFetched } =
     useInventoryFilterPreferences();
-  const saveFilterPreferencesMutation = useSaveInventoryFilterPreferences();
+  const { mutate: saveFilterPreferences } = useSaveInventoryFilterPreferences();
   const saveSelectedColumnsMutation = useMutation({
     mutationFn: saveSelectedColumns,
   });
@@ -114,6 +115,15 @@ export default function InventoryPage() {
     const visibleSet = new Set(resolvedVisibleColumns);
     return lockedColumns.filter((column) => visibleSet.has(column));
   }, [lockedColumns, resolvedVisibleColumns]);
+
+  useInventoryFilterPreferenceSync({
+    preferencesLoaded,
+    visibleColumns: resolvedVisibleColumns,
+    lockedColumns: resolvedLockedColumns,
+    columnFilters,
+    searchQuery: search,
+    saveFilterPreferences,
+  });
 
   const hasColumnFilters = Object.keys(columnFilters).length > 0;
   const total = hasColumnFilters ? filteredRecords.length : (data?.total ?? 0);
@@ -166,32 +176,6 @@ export default function InventoryPage() {
     resolvedVisibleColumns.length,
     selectedColumns,
     setVisibleColumns,
-  ]);
-
-  useEffect(() => {
-    if (!preferencesLoaded) {
-      return;
-    }
-
-    const syncTimer = window.setTimeout(() => {
-      saveFilterPreferencesMutation.mutate({
-        visible_columns: resolvedVisibleColumns,
-        locked_columns: resolvedLockedColumns,
-        column_filters: columnFilters,
-        search_query: search,
-      });
-    }, 300);
-
-    return () => {
-      window.clearTimeout(syncTimer);
-    };
-  }, [
-    columnFilters,
-    preferencesLoaded,
-    resolvedLockedColumns,
-    resolvedVisibleColumns,
-    saveFilterPreferencesMutation,
-    search,
   ]);
 
   const handleToggleColumn = (column: string, checked: boolean) => {
