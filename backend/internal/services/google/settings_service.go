@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"sort"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -152,7 +154,63 @@ func (s *SettingsService) UpdateDetailedSettings(ctx context.Context, input *Det
 
 	updates["updated_at"] = time.Now()
 
-	return s.db.WithContext(ctx).Model(settings).Updates(updates).Error
+	filteredUpdates, err := s.filterUpdatesByExistingColumns(ctx, settings, updates)
+	if err != nil {
+		return fmt.Errorf("inspect google_sheets_settings columns: %w", err)
+	}
+
+	if len(filteredUpdates) == 0 {
+		return nil
+	}
+
+	return s.db.WithContext(ctx).Model(settings).Updates(filteredUpdates).Error
+}
+
+func (s *SettingsService) filterUpdatesByExistingColumns(ctx context.Context, model interface{}, updates map[string]interface{}) (map[string]interface{}, error) {
+	columnTypes, err := s.db.WithContext(ctx).Migrator().ColumnTypes(model)
+	if err != nil {
+		return nil, err
+	}
+
+	existingColumns := make(map[string]struct{}, len(columnTypes))
+	for _, columnType := range columnTypes {
+		existingColumns[columnType.Name()] = struct{}{}
+	}
+
+	filteredUpdates := make(map[string]interface{}, len(updates))
+	for column, value := range updates {
+		if _, exists := existingColumns[column]; !exists {
+			continue
+		}
+		filteredUpdates[column] = value
+	}
+
+	if len(filteredUpdates) == 0 {
+		return filteredUpdates, nil
+	}
+
+	if _, hasUpdatedAt := filteredUpdates["updated_at"]; !hasUpdatedAt {
+		if _, exists := existingColumns["updated_at"]; exists {
+			filteredUpdates["updated_at"] = time.Now()
+		}
+	}
+
+	return orderedMap(filteredUpdates), nil
+}
+
+func orderedMap(input map[string]interface{}) map[string]interface{} {
+	keys := make([]string, 0, len(input))
+	for key := range input {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	ordered := make(map[string]interface{}, len(input))
+	for _, key := range keys {
+		ordered[key] = input[key]
+	}
+
+	return ordered
 }
 
 // LinksByType represents spreadsheet links mapped by type
@@ -163,7 +221,27 @@ type LinksByType struct {
 	Order     string
 }
 
+// extractSpreadsheetID extracts spreadsheet ID from URL or returns as-is
+// Matches implementation in handlers/google/sheets_handler.go
+func extractSpreadsheetID(input string) string {
+	// If already an ID (no slashes), return as-is
+	if !regexp.MustCompile(`/`).MatchString(input) {
+		return input
+	}
+
+	// Extract from Google Sheets URL
+	// Format: https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit...
+	re := regexp.MustCompile(`/spreadsheets/d/([a-zA-Z0-9-_]+)`)
+	matches := re.FindStringSubmatch(input)
+	if len(matches) > 1 {
+		return matches[1]
+	}
+
+	return input
+}
+
 // SaveSpreadsheetLinks saves spreadsheet links by updating individual columns
+// Extracts spreadsheet IDs from URLs before saving
 func (s *SettingsService) SaveSpreadsheetLinks(ctx context.Context, links interface{}) error {
 	settings, err := s.getOrCreateSettings(ctx)
 	if err != nil {
@@ -176,16 +254,16 @@ func (s *SettingsService) SaveSpreadsheetLinks(ctx context.Context, links interf
 	// Handle links as LinksByType struct
 	if linksByType, ok := links.(*LinksByType); ok {
 		if linksByType.Inventory != "" {
-			updates["inventory_spreadsheet_id"] = linksByType.Inventory
+			updates["inventory_spreadsheet_id"] = extractSpreadsheetID(linksByType.Inventory)
 		}
 		if linksByType.Wallet != "" {
-			updates["wallet_spreadsheet_id"] = linksByType.Wallet
+			updates["wallet_spreadsheet_id"] = extractSpreadsheetID(linksByType.Wallet)
 		}
 		if linksByType.Shipping != "" {
-			updates["shipping_spreadsheet_id"] = linksByType.Shipping
+			updates["shipping_spreadsheet_id"] = extractSpreadsheetID(linksByType.Shipping)
 		}
 		if linksByType.Order != "" {
-			updates["order_spreadsheet_id"] = linksByType.Order
+			updates["order_spreadsheet_id"] = extractSpreadsheetID(linksByType.Order)
 		}
 	}
 
@@ -208,6 +286,19 @@ type SpreadsheetLinksResponse struct {
 	Order     string `json:"order"`
 }
 
+// reconstructURL converts spreadsheet ID to full Google Sheets URL
+func reconstructURL(spreadsheetID string) string {
+	if spreadsheetID == "" {
+		return ""
+	}
+	// If it's already a URL, return as-is
+	if regexp.MustCompile(`^https?://`).MatchString(spreadsheetID) {
+		return spreadsheetID
+	}
+	// Reconstruct URL from ID
+	return fmt.Sprintf("https://docs.google.com/spreadsheets/d/%s/edit", spreadsheetID)
+}
+
 // GetSpreadsheetLinks retrieves saved spreadsheet links in frontend-expected format
 func (s *SettingsService) GetSpreadsheetLinks(ctx context.Context) (*SpreadsheetLinksResponse, error) {
 	settings, err := s.getOrCreateSettings(ctx)
@@ -215,11 +306,16 @@ func (s *SettingsService) GetSpreadsheetLinks(ctx context.Context) (*Spreadsheet
 		return &SpreadsheetLinksResponse{}, nil
 	}
 
-	// Return links from individual columns (this is what frontend expects)
+	// Reconstruct full URLs from saved IDs (frontend expects full URLs)
+	inventoryURL := reconstructURL(settings.InventorySpreadsheetID)
+	walletURL := reconstructURL(settings.WalletSpreadsheetID)
+	shippingURL := reconstructURL(settings.ShippingSpreadsheetID)
+	orderURL := reconstructURL(settings.OrderSpreadsheetID)
+
 	return &SpreadsheetLinksResponse{
-		Inventory: settings.InventorySpreadsheetID,
-		Wallet:    settings.WalletSpreadsheetID,
-		Shipping:  settings.ShippingSpreadsheetID,
-		Order:     settings.OrderSpreadsheetID,
+		Inventory: inventoryURL,
+		Wallet:    walletURL,
+		Shipping:  shippingURL,
+		Order:     orderURL,
 	}, nil
 }
