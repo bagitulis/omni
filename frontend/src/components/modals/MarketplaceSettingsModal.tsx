@@ -43,8 +43,15 @@ const defaultSettings: MarketplaceSettings = {
   tiktokRatio: 0.3,
 };
 
-function parseColumns(value: string | undefined): string[] {
-  if (!value) return [];
+function parseColumns(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string");
+  }
+
+  if (typeof value !== "string") {
+    return [];
+  }
+
   const trimmed = value.trim();
   if (!trimmed) return [];
   if (trimmed.startsWith("[")) {
@@ -66,12 +73,11 @@ function parseColumns(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
-function encodeColumns(
-  original: string | undefined,
-  columns: string[],
-): string {
+function encodeColumns(original: unknown, columns: string[]): string {
   const unique = Array.from(new Set(columns.filter(Boolean)));
-  if ((original || "").trim().startsWith("[")) return JSON.stringify(unique);
+  if (typeof original === "string" && original.trim().startsWith("[")) {
+    return JSON.stringify(unique);
+  }
   return unique.join(",");
 }
 
@@ -113,7 +119,13 @@ export function MarketplaceSettingsModal({
   }, [open, configLoading, inventoryConfig]);
 
   const selectableColumns = useMemo(
-    () => schemaColumns.map((column) => column.column_name),
+    () =>
+      schemaColumns
+        .map((column) => column.column_name)
+        .filter(
+          (column): column is string =>
+            typeof column === "string" && column.trim().length > 0,
+        ),
     [schemaColumns],
   );
 

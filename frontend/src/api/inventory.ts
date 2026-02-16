@@ -1,24 +1,110 @@
 import apiClient from "./client";
 import type { ApiResponse } from "./client";
-import {
-  InventoryRecord,
-  InventoryListResult,
-  InventoryConfig,
-  InventoryStats,
-  SyncHistoryEntry,
+import type {
   BatchCheckResult,
+  InventoryConfig,
+  InventoryListResult,
+  InventoryRecord,
+  InventoryStats,
   SkuCheckResult,
+  SyncHistoryEntry,
 } from "@/types/inventory";
+import type {
+  BatchPriceUpdateResult,
+  PriceUpdateItem,
+  PriceUpdateResult,
+} from "./inventoryPriceTypes";
 
 export type {
-  InventoryRecord,
-  InventoryListResult,
-  InventoryConfig,
-  InventoryStats,
-  SyncHistoryEntry,
   BatchCheckResult,
+  BatchPriceUpdateResult,
+  InventoryConfig,
+  InventoryListResult,
+  InventoryRecord,
+  InventoryStats,
+  PriceUpdateItem,
+  PriceUpdateResult,
   SkuCheckResult,
+  SyncHistoryEntry,
 };
+
+type RawInventoryConfig = Partial<InventoryConfig> & {
+  selected_columns?: string | string[] | null;
+  key_column?: string | null;
+  key_column_name?: string | null;
+};
+
+function normalizeSelectedColumns(
+  value: RawInventoryConfig["selected_columns"],
+): string {
+  if (Array.isArray(value)) {
+    return JSON.stringify(
+      value.filter((column): column is string => typeof column === "string"),
+    );
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return "";
+}
+
+function normalizeInventoryConfig(
+  config: RawInventoryConfig | null | undefined,
+): InventoryConfig | null {
+  if (!config) {
+    return null;
+  }
+
+  const keyColumn =
+    typeof config.key_column === "string"
+      ? config.key_column
+      : typeof config.key_column_name === "string"
+        ? config.key_column_name
+        : "";
+
+  return {
+    id: typeof config.id === "string" ? config.id : "",
+    tenant_id: typeof config.tenant_id === "string" ? config.tenant_id : "",
+    spreadsheet_id:
+      typeof config.spreadsheet_id === "string" ? config.spreadsheet_id : "",
+    sheet_name: typeof config.sheet_name === "string" ? config.sheet_name : "",
+    selected_columns: normalizeSelectedColumns(config.selected_columns),
+    all_columns:
+      typeof config.all_columns === "string" ? config.all_columns : "",
+    header_row: typeof config.header_row === "number" ? config.header_row : 1,
+    data_start_row:
+      typeof config.data_start_row === "number" ? config.data_start_row : 2,
+    key_column: keyColumn,
+    auto_sync: Boolean(config.auto_sync),
+    sync_interval_seconds:
+      typeof config.sync_interval_seconds === "number"
+        ? config.sync_interval_seconds
+        : 300,
+    last_sync_timestamp: config.last_sync_timestamp ?? null,
+    last_headers_hash:
+      typeof config.last_headers_hash === "string"
+        ? config.last_headers_hash
+        : "",
+    last_sync_status:
+      typeof config.last_sync_status === "string"
+        ? config.last_sync_status
+        : "",
+    low_stock_threshold:
+      typeof config.low_stock_threshold === "number"
+        ? config.low_stock_threshold
+        : undefined,
+    created_at: typeof config.created_at === "string" ? config.created_at : "",
+    updated_at: typeof config.updated_at === "string" ? config.updated_at : "",
+  };
+}
+
+function throwIfFailed<T>(response: ApiResponse<T>, message: string): void {
+  if (!response.success) {
+    throw new Error(response.error || message);
+  }
+}
 
 export interface GetInventoryParams {
   offset?: number;
@@ -65,10 +151,30 @@ export async function getInventory(
  */
 export async function getInventoryBySku(sku: string): Promise<InventoryRecord> {
   const response = await apiClient.get<InventoryRecord>(`/inventory/${sku}`);
-  if (!response.success) {
-    throw new Error(response.error || "Failed to fetch inventory item");
+  throwIfFailed(response, "Failed to fetch inventory item");
+  if (!response.data) {
+    throw new Error("Inventory item response is empty");
   }
-  return response.data!;
+  return response.data;
+}
+
+/**
+ * Update inventory record data by SKU key value
+ * Backend route: PUT /api/inventory/:keyValue
+ */
+export async function updateInventoryRecord(
+  sku: string,
+  data: Record<string, unknown>,
+): Promise<InventoryRecord> {
+  const response = await apiClient.put<InventoryRecord>(
+    `/inventory/${sku}`,
+    data,
+  );
+  throwIfFailed(response, "Failed to update inventory record");
+  if (!response.data) {
+    throw new Error("Updated inventory record response is empty");
+  }
+  return response.data;
 }
 
 /**
@@ -101,6 +207,7 @@ export async function updateStockBatch(
   const response = await apiClient.post("/inventory/update-stock-batch", {
     skus,
     platforms,
+    items: skus.map((sku) => ({ sku, platforms })),
   });
   if (!response.success) {
     throw new Error(response.error || "Failed to batch update stock");
@@ -112,11 +219,11 @@ export async function updateStockBatch(
  * Backend route: GET /api/inventory/config
  */
 export async function getInventoryConfig(): Promise<InventoryConfig | null> {
-  const response = await apiClient.get<InventoryConfig>("/inventory/config");
+  const response = await apiClient.get<RawInventoryConfig>("/inventory/config");
   if (!response.success) {
     throw new Error(response.error || "Failed to fetch inventory config");
   }
-  return response.data || null;
+  return normalizeInventoryConfig(response.data);
 }
 
 /**
@@ -142,10 +249,11 @@ export async function syncInventory(
  */
 export async function getInventoryStats(): Promise<InventoryStats> {
   const response = await apiClient.get<InventoryStats>("/inventory/stats");
-  if (!response.success) {
-    throw new Error(response.error || "Failed to fetch inventory stats");
+  throwIfFailed(response, "Failed to fetch inventory stats");
+  if (!response.data) {
+    throw new Error("Inventory stats response is empty");
   }
-  return response.data!;
+  return response.data;
 }
 
 /**
@@ -173,10 +281,11 @@ export async function updateInventoryConfig(
     "/inventory/config",
     config,
   );
-  if (!response.success) {
-    throw new Error(response.error || "Failed to update inventory config");
+  throwIfFailed(response, "Failed to update inventory config");
+  if (!response.data) {
+    throw new Error("Updated inventory config response is empty");
   }
-  return response.data!;
+  return response.data;
 }
 
 /**
@@ -194,14 +303,10 @@ export async function syncToSheets(): Promise<void> {
  * Batch check platform status
  * Backend route: POST /api/inventory/batch-check-sku
  */
-export async function checkPlatformStatus(): Promise<BatchCheckResult[]> {
-  const response = await apiClient.post<BatchCheckResult[]>(
-    "/inventory/batch-check-sku",
-  );
-  if (!response.success) {
-    throw new Error(response.error || "Failed to check platform status");
-  }
-  return response.data || [];
+export async function checkPlatformStatus(
+  skus: string[],
+): Promise<SkuCheckResult[]> {
+  return batchCheckSku(skus);
 }
 
 /**
@@ -210,13 +315,38 @@ export async function checkPlatformStatus(): Promise<BatchCheckResult[]> {
  */
 export async function getAvailableColumns(): Promise<string[]> {
   const response = await apiClient.client.get("/inventory/columns/available");
-  const data = response.data;
+  const data = response.data as {
+    success?: boolean;
+    error?: string;
+    columns?: Array<{ name?: string; key?: string; label?: string }>;
+    data?: Array<{ name?: string; key?: string; label?: string }>;
+  };
   if (!data.success) {
-    throw new Error("Failed to fetch available columns");
+    throw new Error(data.error || "Failed to fetch available columns");
   }
-  // Backend returns { columns: [{name, spreadsheet_column, type, position}] }
-  const columns = data.columns || [];
-  return columns.map((col: { name: string }) => col.name);
+
+  const columns = Array.isArray(data.columns)
+    ? data.columns
+    : Array.isArray(data.data)
+      ? data.data
+      : [];
+
+  const normalizedColumns = columns
+    .map((col) => {
+      if (typeof col.name === "string" && col.name.trim().length > 0) {
+        return col.name;
+      }
+      if (typeof col.label === "string" && col.label.trim().length > 0) {
+        return col.label;
+      }
+      if (typeof col.key === "string" && col.key.trim().length > 0) {
+        return col.key;
+      }
+      return "";
+    })
+    .filter((column): column is string => column.length > 0);
+
+  return Array.from(new Set(normalizedColumns));
 }
 
 /**
@@ -229,8 +359,17 @@ export async function getSelectedColumns(): Promise<string[]> {
   if (!data.success) {
     throw new Error("Failed to fetch selected columns");
   }
-  // Backend returns { selected_columns: [...] }
-  return data.selected_columns || [];
+
+  if (Array.isArray(data.selected_columns)) {
+    return data.selected_columns;
+  }
+
+  // Modular handler returns { data: [...] }
+  if (Array.isArray(data.data)) {
+    return data.data;
+  }
+
+  return [];
 }
 
 /**
@@ -239,46 +378,12 @@ export async function getSelectedColumns(): Promise<string[]> {
  */
 export async function saveSelectedColumns(columns: string[]): Promise<void> {
   const response = await apiClient.post("/inventory/columns/selected", {
+    selected_columns: columns,
     columns,
   });
   if (!response.success) {
     throw new Error(response.error || "Failed to save column selection");
   }
-}
-
-export interface PriceUpdateItem {
-  sku: string;
-  price: number;
-  platforms?: string[];
-}
-
-export interface PlatformPriceResult {
-  success: boolean;
-  item_id?: string;
-  model_id?: string;
-  sku_id?: string;
-  product_id?: string;
-  error?: string;
-}
-
-export interface PriceUpdateResult {
-  sku: string;
-  success: boolean;
-  platforms: {
-    shopee?: PlatformPriceResult;
-    lazada?: PlatformPriceResult;
-    tiktok?: PlatformPriceResult;
-  };
-  errors: string[];
-  skipped: string[];
-}
-
-export interface BatchPriceUpdateResult {
-  total: number;
-  successful: number;
-  failed: number;
-  skipped: number;
-  results: PriceUpdateResult[];
 }
 
 /**
@@ -298,10 +403,11 @@ export async function updatePrice(
       platforms,
     },
   );
-  if (!response.success) {
-    throw new Error(response.error || "Failed to update price");
+  throwIfFailed(response, "Failed to update price");
+  if (!response.data) {
+    throw new Error("Updated price response is empty");
   }
-  return response.data!;
+  return response.data;
 }
 
 /**
@@ -311,24 +417,52 @@ export async function updatePrice(
 export async function updatePriceBatch(
   items: PriceUpdateItem[],
 ): Promise<BatchPriceUpdateResult> {
-  const response = await apiClient.post<{
-    total: number;
-    success: number;
-    failed: number;
-    results: PriceUpdateResult[];
-  }>("/inventory/update-price-batch", {
+  const response = await apiClient.post<
+    | PriceUpdateResult[]
+    | {
+        total?: number;
+        success?: number;
+        successful?: number;
+        failed?: number;
+        skipped?: number;
+        results?: PriceUpdateResult[];
+        data?: PriceUpdateResult[];
+      }
+  >("/inventory/update-price-batch", {
     items,
   });
   if (!response.success) {
     throw new Error(response.error || "Failed to batch update price");
   }
-  // Normalize backend response: backend returns "success" (count), we expect "successful"
+
+  const payload = response.data;
+
+  // Legacy handler returns data as array directly
+  if (Array.isArray(payload)) {
+    const failed = payload.filter((result) => !result.success).length;
+    const successful = payload.length - failed;
+    return {
+      total: payload.length,
+      successful,
+      failed,
+      skipped: 0,
+      results: payload,
+    };
+  }
+
+  const results = payload?.results ?? payload?.data ?? [];
+  const successfulFromResults = results.filter(
+    (result) => result.success,
+  ).length;
+
   return {
-    total: response.data?.total ?? 0,
-    successful: response.data?.success ?? 0, // Map "success" to "successful"
-    failed: response.data?.failed ?? 0,
-    skipped: 0,
-    results: response.data?.results ?? [],
+    total: payload?.total ?? results.length,
+    successful:
+      payload?.successful ?? payload?.success ?? successfulFromResults,
+    failed:
+      payload?.failed ?? Math.max(0, results.length - successfulFromResults),
+    skipped: payload?.skipped ?? 0,
+    results,
   };
 }
 

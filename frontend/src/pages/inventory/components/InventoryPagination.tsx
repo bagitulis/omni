@@ -1,4 +1,4 @@
-import { Pagination, Typography } from "antd";
+import { Grid, Pagination, Typography } from "antd";
 
 interface Props {
   current: number;
@@ -15,6 +15,9 @@ export function InventoryPagination({
   onChange,
   onShowSizeChange,
 }: Props) {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   const start = total === 0 ? 0 : (current - 1) * pageSize + 1;
   const end = total === 0 ? 0 : Math.min(current * pageSize, total);
 
@@ -23,8 +26,9 @@ export function InventoryPagination({
       style={{
         marginTop: 16,
         display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
+        justifyContent: isMobile ? "flex-start" : "space-between",
+        alignItems: isMobile ? "stretch" : "center",
+        flexDirection: isMobile ? "column" : "row",
         gap: 12,
         flexWrap: "wrap",
       }}
@@ -41,6 +45,7 @@ export function InventoryPagination({
         onShowSizeChange={onShowSizeChange}
         showSizeChanger
         pageSizeOptions={[10, 25, 50, 100]}
+        size={isMobile ? "small" : "default"}
       />
     </div>
   );

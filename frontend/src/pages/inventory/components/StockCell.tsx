@@ -1,21 +1,22 @@
 import { useState, useEffect } from "react";
 import { InputNumber, message, theme } from "antd";
-import { useUpdateStock } from "@/hooks/useInventory";
-import { InventoryRecord } from "@/types/inventory";
+import { useUpdateInventoryRecord } from "@/hooks/useInventory";
+import type { InventoryRecord } from "@/types/inventory";
 
 interface Props {
   record: InventoryRecord;
   dataIndex: string;
   value: unknown;
+  locked?: boolean;
 }
 
-export function StockCell({ record, value }: Props) {
+export function StockCell({ record, dataIndex, value, locked = false }: Props) {
   const [editing, setEditing] = useState(false);
   const [localValue, setLocalValue] = useState<number | null>(null);
   const [flash, setFlash] = useState<"success" | "error" | null>(null);
   const { token } = theme.useToken();
 
-  const { mutate: updateStock } = useUpdateStock();
+  const { mutate: updateInventoryRecord } = useUpdateInventoryRecord();
 
   // Sync with prop value when not editing
   useEffect(() => {
@@ -23,6 +24,12 @@ export function StockCell({ record, value }: Props) {
       setLocalValue(Number(value) || 0);
     }
   }, [value, editing]);
+
+  useEffect(() => {
+    if (locked) {
+      setEditing(false);
+    }
+  }, [locked]);
 
   // Flash effect
   useEffect(() => {
@@ -43,17 +50,23 @@ export function StockCell({ record, value }: Props) {
 
     setEditing(false);
 
-    updateStock(
-      { sku: record.key_value },
+    updateInventoryRecord(
+      {
+        sku: record.key_value,
+        data: {
+          ...(record.data || {}),
+          [dataIndex]: localValue ?? 0,
+        },
+      },
       {
         onSuccess: () => {
           setFlash("success");
           message.success("Stock updated");
         },
-        onError: () => {
+        onError: (error: Error) => {
           setFlash("error");
           setLocalValue(Number(value) || 0); // Revert
-          message.error("Failed to update stock");
+          message.error(error.message || "Failed to update stock");
         },
       },
     );
@@ -74,7 +87,7 @@ export function StockCell({ record, value }: Props) {
     return "transparent";
   };
 
-  if (editing) {
+  if (editing && !locked) {
     return (
       <InputNumber
         value={localValue}
@@ -90,25 +103,29 @@ export function StockCell({ record, value }: Props) {
   }
 
   return (
-    <div
-      onClick={() => setEditing(true)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
+    <button
+      type="button"
+      onClick={() => {
+        if (!locked) {
           setEditing(true);
         }
       }}
+      disabled={locked}
       style={{
-        cursor: "pointer",
+        cursor: locked ? "not-allowed" : "pointer",
         padding: "4px 8px",
         borderRadius: token.borderRadius,
         backgroundColor: getBackgroundColor(),
         transition: "background-color 0.5s ease",
         minHeight: 22,
+        width: "100%",
+        border: "none",
+        textAlign: "left",
+        font: "inherit",
+        color: locked ? token.colorTextTertiary : token.colorText,
       }}
     >
       {localValue}
-    </div>
+    </button>
   );
 }

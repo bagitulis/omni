@@ -3,6 +3,7 @@ import {
   Badge,
   Button,
   Card,
+  Grid,
   InputNumber,
   Modal,
   Space,
@@ -12,8 +13,8 @@ import {
 } from "antd";
 import {
   useCheckPlatformStatus,
-  useUpdatePrice,
-  useUpdateStock,
+  useUpdatePriceBatch,
+  useUpdateStockBatch,
 } from "@/hooks/useInventory";
 import type { InventoryRecord } from "@/types/inventory";
 
@@ -28,6 +29,9 @@ export function InventoryBatchBar({
   onClearSelection,
   onBatchComplete,
 }: InventoryBatchBarProps) {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   const {
     token: { colorBgElevated, boxShadowSecondary, borderRadius },
   } = theme.useToken();
@@ -36,8 +40,8 @@ export function InventoryBatchBar({
   const [priceValue, setPriceValue] = useState<number | null>(null);
   const [processing, setProcessing] = useState(false);
 
-  const updateStockMutation = useUpdateStock();
-  const updatePriceMutation = useUpdatePrice();
+  const updateStockBatchMutation = useUpdateStockBatch();
+  const updatePriceBatchMutation = useUpdatePriceBatch();
   const checkPlatformStatusMutation = useCheckPlatformStatus();
 
   const selectedSkus = useMemo(
@@ -56,23 +60,15 @@ export function InventoryBatchBar({
     }
 
     setProcessing(true);
-
-    const updates = selectedSkus.map((sku) =>
-      updateStockMutation.mutateAsync({ sku }),
-    );
-
-    const results = await Promise.allSettled(updates);
-    const successCount = results.filter((r) => r.status === "fulfilled").length;
-    const failedCount = results.length - successCount;
-
-    if (failedCount > 0) {
-      message.warning(`${successCount} synced, ${failedCount} failed`);
-    } else {
-      message.success(`${successCount} items synced to platforms`);
+    try {
+      await updateStockBatchMutation.mutateAsync({ skus: selectedSkus });
+      message.success(`${selectedSkus.length} items synced to platforms`);
+      onBatchComplete();
+    } catch (error) {
+      message.error((error as Error).message || "Failed to sync stock");
+    } finally {
+      setProcessing(false);
     }
-
-    setProcessing(false);
-    onBatchComplete();
   };
 
   const handlePriceUpdate = async () => {
@@ -87,31 +83,34 @@ export function InventoryBatchBar({
     }
 
     setProcessing(true);
+    try {
+      const result = await updatePriceBatchMutation.mutateAsync(
+        selectedSkus.map((sku) => ({ sku, price: priceValue })),
+      );
 
-    const updates = selectedSkus.map((sku) =>
-      updatePriceMutation.mutateAsync({ sku, price: priceValue }),
-    );
+      if (result.failed > 0) {
+        message.warning(
+          `${result.successful} updated, ${result.failed} failed`,
+        );
+      } else {
+        message.success(`${result.successful} items updated`);
+      }
 
-    const results = await Promise.allSettled(updates);
-    const successCount = results.filter((r) => r.status === "fulfilled").length;
-    const failedCount = results.length - successCount;
-
-    if (failedCount > 0) {
-      message.warning(`${successCount} updated, ${failedCount} failed`);
-    } else {
-      message.success(`${successCount} items updated`);
+      setPriceModalOpen(false);
+      setPriceValue(null);
+      onBatchComplete();
+    } catch (error) {
+      message.error((error as Error).message || "Failed to update prices");
+    } finally {
+      setProcessing(false);
     }
-
-    setProcessing(false);
-    setPriceModalOpen(false);
-    setPriceValue(null);
-    onBatchComplete();
   };
 
   const handleCheckPlatformStatus = async () => {
     setProcessing(true);
     try {
-      const result = await checkPlatformStatusMutation.mutateAsync();
+      const result =
+        await checkPlatformStatusMutation.mutateAsync(selectedSkus);
       message.success(`Platform check completed for ${result.length} records`);
       onBatchComplete();
     } catch (error) {
@@ -132,9 +131,9 @@ export function InventoryBatchBar({
       <div
         style={{
           position: "fixed",
-          left: 24,
-          right: 24,
-          bottom: 16,
+          left: isMobile ? 8 : 24,
+          right: isMobile ? 8 : 24,
+          bottom: isMobile ? 8 : 16,
           zIndex: 900,
         }}
       >
@@ -147,7 +146,8 @@ export function InventoryBatchBar({
           }}
           bodyStyle={{
             display: "flex",
-            alignItems: "center",
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: isMobile ? "stretch" : "center",
             justifyContent: "space-between",
             gap: 12,
             padding: 12,
@@ -159,7 +159,7 @@ export function InventoryBatchBar({
             </Typography.Text>
           </Badge>
 
-          <Space wrap>
+          <Space wrap size={8} style={{ width: isMobile ? "100%" : "auto" }}>
             <Button
               onClick={() => {
                 Modal.confirm({
@@ -169,20 +169,30 @@ export function InventoryBatchBar({
                   onOk: handleSyncStock,
                 });
               }}
+              style={isMobile ? { flex: 1, minWidth: 120 } : undefined}
               disabled={processing}
             >
               Sync Stock
             </Button>
             <Button
               onClick={() => setPriceModalOpen(true)}
+              style={isMobile ? { flex: 1, minWidth: 120 } : undefined}
               disabled={processing}
             >
               Update Price
             </Button>
-            <Button onClick={handleCheckPlatformStatus} loading={processing}>
+            <Button
+              onClick={handleCheckPlatformStatus}
+              loading={processing}
+              style={isMobile ? { flex: 1, minWidth: 120 } : undefined}
+            >
               Check Platform Status
             </Button>
-            <Button onClick={onClearSelection} disabled={processing}>
+            <Button
+              onClick={onClearSelection}
+              style={isMobile ? { flex: 1, minWidth: 120 } : undefined}
+              disabled={processing}
+            >
               Clear Selection
             </Button>
           </Space>

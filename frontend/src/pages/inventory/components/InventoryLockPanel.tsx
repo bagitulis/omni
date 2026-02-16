@@ -1,52 +1,65 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   Button,
   Checkbox,
   Collapse,
   Empty,
   Flex,
+  Grid,
   Space,
   Tag,
   Typography,
   theme,
 } from "antd";
 import { LockOutlined, UnlockOutlined } from "@ant-design/icons";
-import { useAvailableColumns } from "@/hooks/useInventory";
 
 const { Panel } = Collapse;
 
-export function InventoryLockPanel() {
+interface InventoryLockPanelProps {
+  availableColumns: string[];
+  visibleColumns: string[];
+  lockedColumns: string[];
+  onChangeLockedColumns: (columns: string[]) => void;
+}
+
+export function InventoryLockPanel({
+  availableColumns,
+  visibleColumns,
+  lockedColumns,
+  onChangeLockedColumns,
+}: InventoryLockPanelProps) {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   const {
     token: { colorTextSecondary, colorBgContainerDisabled },
   } = theme.useToken();
-  const { data: availableColumns = [], isLoading } = useAvailableColumns();
-  const [lockedColumns, setLockedColumns] = useState<string[]>([]);
+  const lockableColumns = useMemo(
+    () => (visibleColumns.length > 0 ? visibleColumns : availableColumns),
+    [availableColumns, visibleColumns],
+  );
 
   const sortedColumns = useMemo(
-    () => [...availableColumns].sort((a, b) => a.localeCompare(b)),
-    [availableColumns],
+    () => [...lockableColumns].sort((a, b) => a.localeCompare(b)),
+    [lockableColumns],
   );
 
   const lockedCount = lockedColumns.length;
 
   const toggleColumnLock = (column: string, checked: boolean) => {
-    setLockedColumns((previous) => {
-      if (checked) {
-        if (previous.includes(column)) {
-          return previous;
-        }
-        return [...previous, column];
-      }
-      return previous.filter((item) => item !== column);
-    });
+    onChangeLockedColumns(
+      checked
+        ? [...lockedColumns, column]
+        : lockedColumns.filter((item) => item !== column),
+    );
   };
 
   const handleLockAll = () => {
-    setLockedColumns(sortedColumns);
+    onChangeLockedColumns(sortedColumns);
   };
 
   const handleUnlockAll = () => {
-    setLockedColumns([]);
+    onChangeLockedColumns([]);
   };
 
   return (
@@ -70,13 +83,15 @@ export function InventoryLockPanel() {
             Select columns that should not be editable.
           </Typography.Text>
 
-          {sortedColumns.length === 0 && !isLoading ? (
+          {sortedColumns.length === 0 ? (
             <Empty description="No columns available for configuration" />
           ) : (
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+                gridTemplateColumns: isMobile
+                  ? "1fr"
+                  : "repeat(auto-fill, minmax(180px, 1fr))",
                 gap: 8,
               }}
             >
@@ -105,7 +120,7 @@ export function InventoryLockPanel() {
             </div>
           )}
 
-          <Space>
+          <Space wrap>
             <Button
               icon={<LockOutlined />}
               disabled={

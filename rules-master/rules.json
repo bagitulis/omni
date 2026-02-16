@@ -123,7 +123,9 @@
     "dod-matrix-by-task-type": "📋 DEFINITION OF DONE (DoD) MATRIX BY TASK TYPE:\n\n**Each task type has SPECIFIC verification requirements. Generic 'tests pass' is NOT sufficient.**\n\n### Backend Code Changes (.go files)\n\n| Gate | Command | Required Evidence |\n| ---- | ------- | ----------------- |\n| Build | `go build ./...` | Exit code 0, no errors |\n| Test | `go test ./...` | All tests pass |\n| Lint | `lsp_diagnostics` | Zero errors in changed files |\n| API Test | `curl` or HTTP client | Response matches expected JSON (snake_case) |\n\n**Evidence Bundle:**\n```\n✅ BACKEND DOD COMPLETE:\n- Build: [output]\n- Lint: [lsp_diagnostics result]\n- Test: [X passed, Y skipped]\n- API: [curl command + response]\n```\n\n### Frontend Code Changes (.ts/.tsx files)\n\n| Gate | Command | Required Evidence |\n| ---- | ------- | ----------------- |\n| Build | `npm run build` | Exit code 0, no TypeScript errors |\n| Lint | `npm run lint` + `lsp_diagnostics` | Zero errors/warnings |\n| Visual | Browser screenshot | Layout matches Design System |\n| Multi-Viewport | 4 viewport tests | 1440x900, 768x1024, 375x667, 320x568 — no broken layout |\n| Console | DevTools or Playwright pageerror | No console.error or JS exceptions |\n\n**Evidence Bundle:**\n```\n✅ FRONTEND DOD COMPLETE:\n- Build: [output]\n- Lint: [clean]\n- Screenshots: .sisyphus/evidence/[page]-{desktop,tablet,mobile,mobile-min}.png\n- Console: No JS errors (verified via DevTools/Playwright)\n```\n\n### Config/Rules Changes (.json, .md rules)\n\n| Gate | Command | Required Evidence |\n| ---- | ------- | ----------------- |\n| Sync | `python rules-master/sync_rules.py` | All targets synced |\n| Check | `python rules-master/sync_rules.py --check` | No drift, no warnings |\n| Validation | JSON parse test | Valid JSON, no syntax errors |\n\n### Database Schema Changes (migrations)\n\n| Gate | Command | Required Evidence |\n| ---- | ------- | ----------------- |\n| Migration | Verify migration runs | No SQL errors |\n| Backup | `python build.py backup` | Backup created AFTER schema applied |\n| Rollback Test | Verify rollback works | (if applicable) |\n\n**Rule:** Task is NOT complete until ALL gates for its type pass with captured evidence.",
     "dummy-vs-real-testing": "🧪 DUMMY VS REAL TESTING POLICY:\n\n**DEFAULT: Use DUMMY/STAGING data.** Real data only with explicit user approval.\n\n### When to Use Dummy Data (DEFAULT)\n\n- UI layout verification (data shape matters, not content)\n- API response format testing\n- Error handling verification\n- Integration flow testing\n- ALL screenshot evidence\n\n**Dummy Data Requirements:**\n- Use clearly fake names: `John Doe`, `Test User`, `ACME Corp`\n- Use fake order IDs: `TEST-ORDER-001`, `DUMMY-12345`\n- Use placeholder emails: `test@example.com`\n- Use fake phone numbers: `+1-555-0100` (reserved test range)\n- Mark clearly: `[TEST DATA]` prefix where visible\n\n### When Real Data is Allowed\n\n**ONLY with explicit user approval:**\n- User says: 'use real data' or 'test with production data'\n- User provides specific IDs: 'test with order_sn: ABC123'\n- Debugging specific customer issue (user provides context)\n\n**Real Data Handling:**\n- MUST redact PII in screenshots (blur names, addresses, phones)\n- MUST NOT commit real customer data to git\n- MUST NOT include real tokens/credentials in evidence\n- If uncertain, ASK: 'Should I use real data for this test?'\n\n### Evidence Redaction Checklist\n\nBefore saving ANY screenshot or log:\n- [ ] Customer names redacted\n- [ ] Email addresses redacted\n- [ ] Phone numbers redacted\n- [ ] Physical addresses redacted\n- [ ] Order amounts OK (not PII)\n- [ ] Order IDs OK (not PII)\n- [ ] No tokens/credentials visible\n\n**Anti-Patterns:**\n```\n❌ Screenshot with real customer name/address visible\n❌ Using production credentials for testing\n❌ Logging real API tokens in evidence\n❌ Assuming 'it's just for testing' excuses PII exposure\n```",
     "frontend-browser-testing-hardening": "🖥️ FRONTEND BROWSER TESTING HARDENING:\n\n**Browser testing must be COMPREHENSIVE, not just page load.** AI often misses bugs because testing is superficial.\n\n### Minimum Test Requirements (MANDATORY)\n\n1. **Multi-Viewport Testing** (all 4 required)\n   - Desktop: 1440x900\n   - Tablet: 768x1024\n   - Mobile: 375x667\n   - Mobile Min: 320x568\n\n2. **Data State Testing** (at least 2 states)\n   - Empty state: No data, show placeholder/empty message\n   - Loaded state: With sample data\n   - (Bonus) Error state: API error handling\n   - (Bonus) Loading state: Spinner/skeleton\n\n3. **Console Error Check** (MANDATORY)\n   - Use Playwright `page.on('pageerror')` to capture JS exceptions\n   - Or check DevTools Console panel manually\n   - Zero `console.error` or uncaught exceptions allowed\n   - Warnings should be reviewed but don't block\n\n4. **Network Error Check** (first-party only)\n   - Failed API calls to YOUR backend (4xx, 5xx) — FAIL\n   - CORS errors on first-party requests — FAIL\n   - Third-party failures (analytics, ads, CDN) — log but don't block\n   - Missing first-party resources (404) — FAIL\n\n5. **Interactive Element Check**\n   - Buttons clickable\n   - Forms submittable\n   - Modals open/close\n   - Dropdowns expand\n\n### What Browser Testing Often MISSES\n\n| Common Miss | How to Catch |\n| ----------- | ------------ |\n| Off-screen elements | Scroll and screenshot full page |\n| Responsive breakpoint bugs | Test EXACT breakpoints, not just 'mobile' |\n| Empty state bugs | Test with zero data |\n| Long content overflow | Test with very long text |\n| Timezone issues | Check date/time display |\n| Locale issues | Check number/currency format |\n\n### Evidence Requirements\n\n```\n✅ BROWSER TESTING COMPLETE:\n\nViewports Tested:\n- [x] 1440x900 (desktop) — .sisyphus/evidence/page-desktop.png\n- [x] 768x1024 (tablet) — .sisyphus/evidence/page-tablet.png\n- [x] 375x667 (mobile) — .sisyphus/evidence/page-mobile.png\n- [x] 320x568 (mobile-min) — .sisyphus/evidence/page-mobile-min.png\n\nData States Tested:\n- [x] Empty state\n- [x] Loaded state\n\nConsole: Zero JS errors\nNetwork: Zero failed first-party requests (third-party failures logged)\n```\n\n**Rule:** 'Looks good in browser' without this checklist = NOT verified.",
-    "per-agent-success-criteria": "👤 PER-AGENT SUCCESS CRITERIA:\n\n**Each agent type has SPECIFIC output expectations. Know what 'done' means for your role.**\n\n### Prometheus (Planner)\n\n**Success Criteria:**\n- [ ] TODO LIST with phased tasks (not prose paragraphs)\n- [ ] Flow Map showing affected layers\n- [ ] Impact Analysis (what files change)\n- [ ] Success Criteria per task\n- [ ] Momus ACC obtained\n\n**Output Format:** Structured plan, not essay\n\n### Sisyphus (Orchestrator)\n\n**Success Criteria:**\n- [ ] All delegated tasks completed and verified\n- [ ] Evidence collected for each task\n- [ ] Oracle ACC for significant work (3+ files or feature)\n- [ ] Git commit with all changes pushed\n- [ ] No outstanding TODOs\n\n**Output Format:** Summary with evidence links\n\n### Atlas (Frontend Executor)\n\n**Success Criteria:**\n- [ ] UI matches Design System specs\n- [ ] Multi-viewport screenshots (4 viewports)\n- [ ] Zero TypeScript/ESLint errors in changed files\n- [ ] Build passes (`npm run build`)\n- [ ] Report to orchestrator (orchestrator obtains Oracle ACC if 3+ files)\n\n**Output Format:** Evidence bundle with screenshots\n\n### Hephaestus (Testing/Debugging Executor)\n\n**Success Criteria:**\n- [ ] Root cause identified with evidence (not guessed)\n- [ ] Fix applied to correct layer (traced flow first)\n- [ ] Backend route tested directly (curl/HTTP)\n- [ ] User confirmation for test data used\n- [ ] MUST NOT auto-commit/auto-push (requires explicit user confirmation before any git operation)\n\n**Output Format:** Debug trace + fix evidence\n\n### Sisyphus-Junior (General Executor)\n\n**Success Criteria:**\n- [ ] Task completed as specified\n- [ ] Build/lint/test pass\n- [ ] Evidence captured\n- [ ] Report to orchestrator (orchestrator obtains Oracle ACC if 3+ files)\n- [ ] Git commit if orchestrator instructed\n\n**Output Format:** Completion report with evidence\n\n### Oracle (Advisor)\n\n**Success Criteria:**\n- [ ] Clear ACC or REJECT verdict\n- [ ] Specific issues listed if REJECT\n- [ ] Actionable recommendations\n- [ ] Effort estimate provided\n\n**Output Format:** Structured evaluation\n\n### Librarian (Researcher)\n\n**Success Criteria:**\n- [ ] Local SDK checked FIRST\n- [ ] Relevant code/docs found\n- [ ] Sources cited (file paths or URLs)\n- [ ] Actionable findings (not vague summaries)\n\n**Output Format:** Research findings with citations\n\n### Explore (Codebase Search)\n\n**Success Criteria:**\n- [ ] Search patterns appropriate for request\n- [ ] Matches found and summarized\n- [ ] Context provided (not raw grep output)\n- [ ] Next steps suggested if applicable\n\n**Output Format:** Search results with context\n\n**Rule:** If your output doesn't match your role's criteria, you're NOT done.",
+    "per-agent-success-criteria": "👤 PER-AGENT SUCCESS CRITERIA:\n\n**Each agent type has SPECIFIC output expectations. Know what 'done' means for your role.**\n\n### Prometheus (Planner)\n\n**Success Criteria:**\n- [ ] TODO LIST with phased tasks (not prose paragraphs)\n- [ ] Flow Map showing affected layers\n- [ ] Impact Analysis (what files change)\n- [ ] Success Criteria per task\n- [ ] Momus ACC obtained\n\n**Output Format:** Structured plan, not essay\n\n### Sisyphus (Orchestrator)\n\n**Success Criteria:**\n- [ ] All delegated tasks completed and verified\n- [ ] Evidence collected for each task\n- [ ] Oracle ACC for significant work (3+ files or feature)\n- [ ] Git commit with all changes pushed\n- [ ] No outstanding TODOs\n- [ ] Zero-suspicion gate passed (no unverified concerns remain)\n\n**Output Format:** Summary with evidence links\n\n### Atlas (Frontend Executor)\n\n**Success Criteria:**\n- [ ] UI matches Design System specs\n- [ ] Multi-viewport screenshots (4 viewports)\n- [ ] Zero TypeScript/ESLint errors in changed files\n- [ ] Build passes (`npm run build`)\n- [ ] Report to orchestrator (orchestrator obtains Oracle ACC if 3+ files)\n\n**Output Format:** Evidence bundle with screenshots\n\n### Hephaestus (Testing/Debugging Executor)\n\n**Success Criteria:**\n- [ ] Root cause identified with evidence (not guessed)\n- [ ] Fix applied to correct layer (traced flow first)\n- [ ] Backend route tested directly (curl/HTTP)\n- [ ] User confirmation for test data used\n- [ ] MUST NOT auto-commit/auto-push (requires explicit user confirmation before any git operation)\n\n**Output Format:** Debug trace + fix evidence\n\n### Sisyphus-Junior (General Executor)\n\n**Success Criteria:**\n- [ ] Task completed as specified\n- [ ] Build/lint/test pass\n- [ ] Evidence captured\n- [ ] Report to orchestrator (orchestrator obtains Oracle ACC if 3+ files)\n- [ ] Git commit if orchestrator instructed\n\n**Output Format:** Completion report with evidence\n\n### Oracle (Advisor)\n\n**Success Criteria:**\n- [ ] Clear ACC or REJECT verdict (HIGH confidence only — no medium/low)\n- [ ] Zero caveats or hedging language in ACC\n- [ ] Specific issues listed if REJECT\n- [ ] Actionable recommendations\n- [ ] Effort estimate provided\n\n**Output Format:** Structured evaluation\n\n### Librarian (Researcher)\n\n**Success Criteria:**\n- [ ] Local SDK checked FIRST\n- [ ] Relevant code/docs found\n- [ ] Sources cited (file paths or URLs)\n- [ ] Actionable findings (not vague summaries)\n\n**Output Format:** Research findings with citations\n\n### Explore (Codebase Search)\n\n**Success Criteria:**\n- [ ] Search patterns appropriate for request\n- [ ] Matches found and summarized\n- [ ] Context provided (not raw grep output)\n- [ ] Next steps suggested if applicable\n\n**Output Format:** Search results with context\n\n**Rule:** If your output doesn't match your role's criteria, you're NOT done.",
+    "zero-suspicion-gate": "🔒 ZERO-SUSPICION COMPLETION GATE (MANDATORY — ALL Agents):\n\n**No task is DONE and no ACC is valid if ANY unverified suspicion, caveat, or hedging language remains.**\n\nThis is a UNIVERSAL rule. It applies to every agent (Sisyphus, Oracle, Atlas, Hephaestus, Sisyphus-Junior, Prometheus, Explore, Librarian, Metis, Momus) and every category.\n\n### Banned Language in DONE/ACC Verdicts\n\nThe following words/phrases are FORBIDDEN in any completion claim or ACC verdict:\n\n| Banned Phrase | Why | Required Replacement |\n| ------------- | --- | -------------------- |\n| \"might\" / \"may\" (as uncertainty) | Unverified suspicion | PROVE it does or doesn't — with evidence |\n| \"possible\" / \"possibly\" | Speculative risk | VERIFY and state definitively |\n| \"potential\" / \"potentially\" | Hedging | TEST the scenario, report result |\n| \"could\" (as uncertainty) | Unverified | CONFIRM or DENY with evidence |\n| \"residual risk\" | Unresolved concern | CLOSE the risk — prove it's not a risk or FIX it |\n| \"minor concern\" | Dismissed suspicion | INVESTIGATE and resolve, or prove it's not an issue |\n| \"should be fine\" | Assumed correctness | VERIFY it IS fine — show evidence |\n| \"probably\" / \"likely\" | Probabilistic | CONFIRM with certainty — test it |\n| \"edge case not tested\" | Known gap | TEST the edge case or document why it's unreachable |\n| \"low risk\" | Accepted risk without proof | PROVE it's zero risk or FIX it |\n| \"medium confidence\" | Insufficient certainty | Investigate until HIGH confidence or REJECT |\n\n### The Zero-Suspicion Protocol\n\nWhen you discover a concern during work or review:\n\n```\nSTEP 1: LOG the suspicion explicitly\n   \"SUSPICION: [description of concern]\"\n\nSTEP 2: INVESTIGATE with evidence\n   - Write a test that targets the concern\n   - Read the code path that would trigger it\n   - Check existing tests that cover it\n   - Run the scenario if possible\n\nSTEP 3: CLOSE with verdict + evidence\n   ✅ CLEARED: [suspicion] — FALSE because [evidence]\n   ❌ CONFIRMED: [suspicion] — TRUE, fixing now → [fix description]\n   🔍 UNREACHABLE: [suspicion] — Cannot occur because [proof]\n\nSTEP 4: NEVER leave a suspicion open\n   - If you cannot close it → REJECT / NOT DONE\n   - If closing requires more time → explicitly state: \"BLOCKED on [suspicion] — need [action]\"\n   - NEVER say \"done\" with open suspicions\n```\n\n### For Oracle (Evaluator Role)\n\nOracle MUST apply zero-suspicion when issuing ACC:\n- Every concern raised during review MUST be closed with evidence\n- If Oracle cannot close a concern → REJECT (not conditional ACC)\n- Oracle's ACC means: \"I have verified everything, found zero unresolved concerns\"\n- \"ACC with notes\" or \"ACC with minor concerns\" = INVALID, use REJECT instead\n\n### For Executors (Implementation Role)\n\nBefore claiming DONE:\n- [ ] Every TODO item addressed\n- [ ] Every suspicion that arose during work → investigated and closed\n- [ ] Zero hedging language in completion report\n- [ ] Evidence provided for every claim\n\n### For Orchestrators (Sisyphus)\n\nBefore accepting work as complete:\n- [ ] Executor's completion report contains zero hedging language\n- [ ] Oracle ACC (if required) contains zero caveats\n- [ ] All suspicions from any agent during the task → have CLEARED/CONFIRMED/UNREACHABLE verdicts\n- [ ] User will see ZERO \"might/possible/potential\" language in final report\n\n### Anti-Patterns (BLOCKING violations)\n\n```\n❌ \"ACC — looks good, though there might be an edge case with X\"\n   → REJECT: Must test edge case X first\n\n❌ \"DONE — all tests pass. Note: possible issue with empty array handling\"\n   → NOT DONE: Must verify empty array handling\n\n❌ \"Task complete. Minor concern about performance under load\"\n   → NOT DONE: Must benchmark or prove performance is acceptable\n\n❌ Oracle: \"ACC with medium confidence\"\n   → INVALID: Must investigate until high confidence or REJECT\n\n❌ \"Should work fine in production\"\n   → Must PROVE it works — show test results\n```\n\n**Rule:** If you have a doubt, it's not done. Investigate, prove, or fix. No exceptions.",
+    "oracle-strict-acceptance": "🔮 ORACLE STRICT ACCEPTANCE POLICY (MANDATORY — Oracle Only):\n\n**Oracle's ACC verdict carries weight — it must be BULLETPROOF.**\n\n### ACC Requirements (ALL must be true)\n\n1. **HIGH Confidence Only** — No \"medium confidence\" ACC. If confidence is not HIGH, issue REJECT and explain what needs investigation.\n2. **Zero Caveats** — ACC with caveats is INVALID. If you have a caveat, it's a REJECT with action items.\n3. **Zero Hedging Language** — See zero-suspicion-gate banned phrases. None allowed in ACC.\n4. **Every Concern Closed** — Every suspicion raised during review must have a CLEARED/CONFIRMED/UNREACHABLE verdict with evidence.\n5. **Evidence-Based Only** — ACC must reference specific evidence (test output, code paths verified, build results). \"Looks good\" is not evidence.\n\n### ACC Output Format (MANDATORY)\n\n```markdown\n## ACC — HIGH CONFIDENCE\n\n### Verified Items\n- [x] [item 1] — [evidence: test output / code path / build result]\n- [x] [item 2] — [evidence]\n- [x] [item N] — [evidence]\n\n### Suspicions Investigated & Closed\n- ✅ CLEARED: [suspicion 1] — FALSE because [specific evidence]\n- ✅ CLEARED: [suspicion 2] — FALSE because [specific evidence]\n- 🔍 UNREACHABLE: [suspicion 3] — Cannot occur because [proof]\n(If none: \"No suspicions arose during review.\")\n\n### Verdict\nACC — All items verified with evidence. Zero open concerns.\n```\n\n### REJECT Output Format (MANDATORY)\n\n```markdown\n## REJECT — [reason]\n\n### Issues Found\n1. [Issue] — [evidence] — [required fix]\n2. [Issue] — [evidence] — [required fix]\n\n### Open Suspicions (MUST be resolved before ACC)\n- ⚠️ [suspicion] — needs [specific investigation/test]\n\n### Required Actions Before Re-submission\n1. [action 1]\n2. [action 2]\n```\n\n### What Triggers REJECT (not ACC)\n\n| Trigger | Why |\n| ------- | --- |\n| Any untested edge case mentioned | Untested = unknown = cannot ACC |\n| File size concern without measurement | Measure it, then decide |\n| Performance concern without benchmark | Benchmark it, then decide |\n| \"Probably handles X correctly\" | VERIFY it handles X correctly |\n| Confidence below HIGH | Not enough investigation done |\n| Any phrase from banned language list | Zero-suspicion gate violation |\n\n### Anti-Patterns (Oracle-specific)\n\n```\n❌ \"ACC — overall good work, minor note about [X]\"\n   → If [X] matters, it's a REJECT. If it truly doesn't matter, don't mention it.\n\n❌ \"ACC with medium confidence — recommend monitoring [Y]\"\n   → REJECT: Investigate [Y] until confident, then ACC or REJECT.\n\n❌ \"ACC — tests pass but didn't verify [Z] scenario\"\n   → REJECT: Verify [Z] first, then re-evaluate.\n\n❌ \"ACC — code looks clean\" (no evidence cited)\n   → REJECT-worthy ACC: Must cite specific evidence per item.\n```\n\n**Rule:** Oracle ACC = absolute certainty with evidence. Anything less = REJECT.",
     "oracle-acc-gate": "🔮 ORACLE ACC GATE (MANDATORY — Orchestrator Only):\n\n**ORCHESTRATOR RULE:** After completing a significant task, you MUST consult Oracle for evaluation and iterate until ACC.\n\n**When This Applies (Orchestrator decides):**\n- Feature implementation (new functionality)\n- Bug fixes affecting multiple files\n- Refactoring or architecture changes\n- Any task with 3+ changed files\n- Rules/config system changes\n\n**When This Does NOT Apply:**\n- Trivial single-file fixes (typo, formatting)\n- Documentation-only changes\n- User explicitly says 'skip Oracle'\n- Quick category tasks (orchestrator may skip)\n\n**Flow:**\n```\nImplementation → Build → Testing → Oracle Evaluation\n                                        ↓\n                              ACC? ─────┼───── REJECT?\n                                ↓       │         ↓\n                             DONE    Fix issues, re-test\n                                        ↓\n                              Re-consult Oracle (session_id)\n                                        ↓\n                              Loop until ACC\n```\n\n**Oracle Consultation Format:**\n```\ntask(\n  subagent_type=\"oracle\",\n  session_id=\"[previous session if continuing]\",\n  prompt=\"\n## EVALUATION REQUEST\n\n### Changes Made:\n[list of files changed and what was done]\n\n### Evidence:\n- Build: [pass/fail + output]\n- Tests: [pass/fail + output]\n- Lint: [clean/issues]\n\n### Verification Done:\n[what you tested and how]\n\nPlease evaluate. ACC or REJECT with issues to fix.\n  \"\n)\n```\n\n**On REJECT:**\n1. Read Oracle's issues carefully\n2. Fix ALL issues mentioned\n3. Re-run build + tests\n4. Re-consult Oracle with session_id (preserve context)\n5. Repeat until ACC\n\n**Fallback (if Oracle unavailable):**\n- Timeout/rate-limit: Use `category=\"deep\"` with detailed analysis prompt\n- Deep also fails: Document issues found, proceed with caution, note in commit\n- See AGENTS.md § Advisory Agent Fallback Matrix\n\n**Anti-Patterns:**\n```\n❌ Declaring 'done' without Oracle ACC on significant tasks\n❌ Ignoring Oracle REJECT and proceeding anyway\n❌ Starting fresh Oracle session instead of using session_id\n❌ Executor agents calling Oracle (orchestrator's job)\n```\n\n**Rule:** Significant task without Oracle ACC = NOT complete."
   },
   "prompt_compose": {
@@ -149,6 +151,7 @@
         "per-agent-success-criteria",
         "post-task-evaluation",
         "oracle-acc-gate",
+        "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement"
       ],
@@ -159,6 +162,7 @@
         "evidence-based-claims",
         "prometheus-output",
         "prometheus-bug-tracking",
+        "zero-suspicion-gate",
         "momus-plan-acc-gate"
       ],
       "atlas": [
@@ -182,6 +186,7 @@
         "per-agent-success-criteria",
         "post-task-evaluation",
         "executor-hybrid-evaluation",
+        "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement"
       ],
@@ -206,6 +211,7 @@
         "per-agent-success-criteria",
         "post-task-evaluation",
         "executor-hybrid-evaluation",
+        "zero-suspicion-gate",
         "no-premature-done"
       ],
       "sisyphus-junior": [
@@ -227,6 +233,7 @@
         "per-agent-success-criteria",
         "post-task-evaluation",
         "executor-hybrid-evaluation",
+        "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement"
       ],
@@ -235,31 +242,37 @@
         "clarify-or-assume-gate",
         "secrets-pii-safety",
         "evidence-based-claims",
-        "per-agent-success-criteria"
+        "per-agent-success-criteria",
+        "zero-suspicion-gate",
+        "oracle-strict-acceptance"
       ],
       "librarian": [
         "constitution",
         "clarify-or-assume-gate",
         "secrets-pii-safety",
-        "evidence-based-claims"
+        "evidence-based-claims",
+        "zero-suspicion-gate"
       ],
       "explore": [
         "constitution",
         "clarify-or-assume-gate",
         "secrets-pii-safety",
-        "evidence-based-claims"
+        "evidence-based-claims",
+        "zero-suspicion-gate"
       ],
       "metis": [
         "constitution",
         "clarify-or-assume-gate",
         "secrets-pii-safety",
-        "evidence-based-claims"
+        "evidence-based-claims",
+        "zero-suspicion-gate"
       ],
       "momus": [
         "constitution",
         "clarify-or-assume-gate",
         "secrets-pii-safety",
-        "evidence-based-claims"
+        "evidence-based-claims",
+        "zero-suspicion-gate"
       ]
     },
     "categories": {
@@ -281,6 +294,7 @@
         "frontend-browser-testing-hardening",
         "per-agent-success-criteria",
         "post-task-evaluation",
+        "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement"
       ],
@@ -302,6 +316,7 @@
         "dummy-vs-real-testing",
         "per-agent-success-criteria",
         "post-task-evaluation",
+        "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement"
       ],
@@ -317,6 +332,7 @@
         "secrets-pii-safety",
         "evidence-based-claims",
         "post-task-evaluation",
+        "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement"
       ],
@@ -335,6 +351,7 @@
         "secrets-pii-safety",
         "evidence-based-claims",
         "post-task-evaluation",
+        "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement"
       ],
@@ -352,6 +369,7 @@
         "secrets-pii-safety",
         "evidence-based-claims",
         "post-task-evaluation",
+        "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement"
       ],
@@ -366,6 +384,7 @@
         "secrets-pii-safety",
         "evidence-based-claims",
         "post-task-evaluation",
+        "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement"
       ],
@@ -375,6 +394,7 @@
         "screenshot-rule",
         "secrets-pii-safety",
         "post-task-evaluation",
+        "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement"
       ],
@@ -389,6 +409,7 @@
         "secrets-pii-safety",
         "evidence-based-claims",
         "post-task-evaluation",
+        "zero-suspicion-gate",
         "no-premature-done"
       ],
       "testing": [
@@ -404,6 +425,7 @@
         "dummy-vs-real-testing",
         "per-agent-success-criteria",
         "post-task-evaluation",
+        "zero-suspicion-gate",
         "no-premature-done"
       ],
       "security": [
@@ -419,6 +441,7 @@
         "secrets-pii-safety",
         "evidence-based-claims",
         "post-task-evaluation",
+        "zero-suspicion-gate",
         "no-premature-done"
       ],
       "unspecified-low": [
@@ -430,6 +453,7 @@
         "secrets-pii-safety",
         "evidence-based-claims",
         "post-task-evaluation",
+        "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement"
       ],
@@ -447,6 +471,7 @@
         "secrets-pii-safety",
         "evidence-based-claims",
         "post-task-evaluation",
+        "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement"
       ]

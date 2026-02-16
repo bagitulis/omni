@@ -1,19 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  getInventory,
-  getSelectedColumns,
+  batchCheckSku,
   getAvailableColumns,
+  getInventory,
   getInventoryConfig,
   getInventoryStats,
+  getSelectedColumns,
   getSyncHistory,
-  updateInventoryConfig,
   syncInventory,
   syncToSheets,
-  checkPlatformStatus,
-  updateStock,
+  updateInventoryConfig,
+  updateInventoryRecord,
   updatePrice,
-  GetInventoryParams,
+  updatePriceBatch,
+  updateStock,
+  updateStockBatch,
 } from "@/api/inventory";
+import {
+  getInventoryFilterPreferences,
+  saveInventoryFilterPreferences,
+} from "@/api/inventoryFilterPreferences";
+import type { GetInventoryParams, PriceUpdateItem } from "@/api/inventory";
+import type { InventoryFilterPreferences } from "@/api/inventoryFilterPreferences";
 
 export function useInventory(params?: GetInventoryParams) {
   return useQuery({
@@ -61,12 +69,33 @@ export function useAvailableColumns() {
   });
 }
 
+export function useInventoryFilterPreferences() {
+  return useQuery({
+    queryKey: ["inventory-filter-preferences"],
+    queryFn: getInventoryFilterPreferences,
+    staleTime: 30 * 1000,
+  });
+}
+
 export function useUpdateInventoryConfig() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: updateInventoryConfig,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory-config"] });
+    },
+  });
+}
+
+export function useSaveInventoryFilterPreferences() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (preferences: InventoryFilterPreferences) =>
+      saveInventoryFilterPreferences(preferences),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["inventory-filter-preferences"],
+      });
     },
   });
 }
@@ -101,7 +130,23 @@ export function useSyncToSheets() {
 
 export function useCheckPlatformStatus() {
   return useMutation({
-    mutationFn: checkPlatformStatus,
+    mutationFn: (skus: string[]) => batchCheckSku(skus),
+  });
+}
+
+export function useUpdateInventoryRecord() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      sku,
+      data,
+    }: {
+      sku: string;
+      data: Record<string, unknown>;
+    }) => updateInventoryRecord(sku, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
   });
 }
 
@@ -116,11 +161,37 @@ export function useUpdateStock() {
   });
 }
 
+export function useUpdateStockBatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      skus,
+      platforms,
+    }: {
+      skus: string[];
+      platforms?: string[];
+    }) => updateStockBatch(skus, platforms),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
+  });
+}
+
 export function useUpdatePrice() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ sku, price }: { sku: string; price: number }) =>
       updatePrice(sku, price),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
+  });
+}
+
+export function useUpdatePriceBatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (items: PriceUpdateItem[]) => updatePriceBatch(items),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
     },

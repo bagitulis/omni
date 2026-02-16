@@ -1,9 +1,8 @@
 import { useMemo } from "react";
 import type { Key } from "react";
-import { Spin, Empty, Alert, Button, Space, Tag } from "antd";
+import { Spin, Empty, Alert, Button, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { VirtualTable } from "@/components/common/VirtualTable";
-import { useSelectedColumns } from "@/hooks/useInventory";
 import type { InventoryRecord } from "@/types/inventory";
 import { StockCell } from "./StockCell";
 import { PriceCell } from "./PriceCell";
@@ -13,6 +12,8 @@ interface Props {
   loading: boolean;
   error: Error | null;
   onRetry: () => void;
+  visibleColumns: string[];
+  lockedColumns: string[];
   selectedRowKeys: Key[];
   onSelectionChange: (keys: Key[], rows: InventoryRecord[]) => void;
 }
@@ -22,12 +23,63 @@ export function InventoryMainTab({
   loading,
   error,
   onRetry,
+  visibleColumns,
+  lockedColumns,
   selectedRowKeys,
   onSelectionChange,
 }: Props) {
-  const { data: selectedCols = [] } = useSelectedColumns();
+  const lockedColumnsSet = useMemo(
+    () => new Set(lockedColumns),
+    [lockedColumns],
+  );
 
   const dynamicColumns: ColumnsType<InventoryRecord> = useMemo(() => {
+    const getRecordDataValue = (
+      record: InventoryRecord,
+      candidates: string[],
+    ): unknown => {
+      const rowData = record.data || {};
+      for (const candidate of candidates) {
+        if (candidate in rowData) {
+          return rowData[candidate];
+        }
+      }
+
+      const entry = Object.entries(rowData).find(
+        ([columnName]) =>
+          candidates.includes(columnName) ||
+          candidates.includes(columnName.toLowerCase()) ||
+          candidates.includes(columnName.toUpperCase()),
+      );
+
+      return entry?.[1];
+    };
+
+    const renderMarketplaceCell = (
+      record: InventoryRecord,
+      platformName: "shopee" | "tiktok" | "lazada",
+    ) => {
+      const value = getRecordDataValue(record, [
+        platformName,
+        platformName.toUpperCase(),
+        platformName.charAt(0).toUpperCase() + platformName.slice(1),
+      ]);
+
+      if (
+        value === null ||
+        value === undefined ||
+        String(value).trim() === ""
+      ) {
+        return <span style={{ color: "#999", fontSize: 11 }}>-</span>;
+      }
+
+      return (
+        <Tag color="blue" style={{ fontSize: 11 }}>
+          {String(value)}
+        </Tag>
+      );
+    };
+
     const cols: ColumnsType<InventoryRecord> = [
       {
         title: "Key",
@@ -37,30 +89,22 @@ export function InventoryMainTab({
         fixed: "left" as const,
       },
       {
-        title: "Platforms",
-        key: "platforms",
-        width: 140,
-        render: (_, record) => {
-          const platforms = record.platform_status || [];
-          if (platforms.length === 0) {
-            return (
-              <span style={{ color: "#999", fontSize: 11 }}>Not Listed</span>
-            );
-          }
-          return (
-            <Space size={4} wrap>
-              {platforms.map((ps) => (
-                <Tag
-                  key={ps.platform}
-                  color={ps.status === "active" ? "green" : "red"}
-                  style={{ fontSize: 10, margin: 0, padding: "0 4px" }}
-                >
-                  {ps.platform.charAt(0).toUpperCase() + ps.platform.slice(1)}
-                </Tag>
-              ))}
-            </Space>
-          );
-        },
+        title: "Shopee",
+        key: "shopee_status",
+        width: 130,
+        render: (_, record) => renderMarketplaceCell(record, "shopee"),
+      },
+      {
+        title: "TikTok",
+        key: "tiktok_status",
+        width: 130,
+        render: (_, record) => renderMarketplaceCell(record, "tiktok"),
+      },
+      {
+        title: "Lazada",
+        key: "lazada_status",
+        width: 130,
+        render: (_, record) => renderMarketplaceCell(record, "lazada"),
       },
       {
         title: "Sync Status",
@@ -84,10 +128,18 @@ export function InventoryMainTab({
       },
     ];
 
-    for (const colName of selectedCols) {
+    for (const colName of visibleColumns) {
       const lowerName = colName.toLowerCase();
+      if (
+        lowerName === "shopee" ||
+        lowerName === "tiktok" ||
+        lowerName === "lazada"
+      ) {
+        continue;
+      }
       const isStock = lowerName === "stock" || lowerName === "stok";
       const isPrice = lowerName === "price" || lowerName === "harga";
+      const isLocked = lockedColumnsSet.has(colName);
 
       cols.push({
         title: colName,
@@ -99,12 +151,22 @@ export function InventoryMainTab({
 
           if (isStock) {
             return (
-              <StockCell record={record} dataIndex={colName} value={val} />
+              <StockCell
+                record={record}
+                dataIndex={colName}
+                value={val}
+                locked={isLocked}
+              />
             );
           }
           if (isPrice) {
             return (
-              <PriceCell record={record} dataIndex={colName} value={val} />
+              <PriceCell
+                record={record}
+                dataIndex={colName}
+                value={val}
+                locked={isLocked}
+              />
             );
           }
 
@@ -122,7 +184,7 @@ export function InventoryMainTab({
     });
 
     return cols;
-  }, [selectedCols]);
+  }, [visibleColumns, lockedColumnsSet]);
 
   if (error) {
     return (

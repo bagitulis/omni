@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Card, Statistic, Row, Col, Skeleton, theme } from "antd";
+import { Card, Statistic, Row, Col, Skeleton, Grid, theme } from "antd";
 import {
   DatabaseOutlined,
   TableOutlined,
@@ -9,7 +9,7 @@ import {
   WarningOutlined,
   CloseCircleOutlined,
 } from "@ant-design/icons";
-import { InventoryStats as InventoryStatsType } from "@/types/inventory";
+import type { InventoryStats as InventoryStatsType } from "@/types/inventory";
 
 interface Props {
   stats?: InventoryStatsType;
@@ -18,6 +18,9 @@ interface Props {
 }
 
 export function InventoryStats({ stats, loading, syncStatus }: Props) {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   const {
     token: {
       colorSuccess,
@@ -55,7 +58,7 @@ export function InventoryStats({ stats, loading, syncStatus }: Props) {
     if (!dateStr) return "Never synced";
     try {
       const date = new Date(dateStr);
-      if (isNaN(date.getTime())) return "Never synced";
+      if (Number.isNaN(date.getTime())) return "Never synced";
 
       const now = new Date();
       const diffMs = now.getTime() - date.getTime();
@@ -74,9 +77,9 @@ export function InventoryStats({ stats, loading, syncStatus }: Props) {
   };
 
   return (
-    <Row gutter={16} style={{ marginBottom: 16 }}>
-      <Col span={6}>
-        <Card bordered={false} size="small">
+    <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+      <Col xs={24} sm={12} xl={6}>
+        <Card bordered={false} size="small" style={{ height: "100%" }}>
           {renderCardContent(
             <Statistic
               title="Total Items"
@@ -86,8 +89,8 @@ export function InventoryStats({ stats, loading, syncStatus }: Props) {
           )}
         </Card>
       </Col>
-      <Col span={6}>
-        <Card bordered={false} size="small">
+      <Col xs={24} sm={12} xl={6}>
+        <Card bordered={false} size="small" style={{ height: "100%" }}>
           {renderCardContent(
             <Statistic
               title="Columns"
@@ -97,26 +100,29 @@ export function InventoryStats({ stats, loading, syncStatus }: Props) {
           )}
         </Card>
       </Col>
-      <Col span={6}>
-        <Card bordered={false} size="small">
+      <Col xs={24} sm={12} xl={6}>
+        <Card bordered={false} size="small" style={{ height: "100%" }}>
           {renderCardContent(
             <Statistic
               title="Last Sync"
               value={formatLastSync(stats?.last_sync)}
               prefix={<ClockCircleOutlined />}
-              valueStyle={{ fontSize: 16 }}
+              valueStyle={{ fontSize: isMobile ? 14 : 16 }}
             />,
           )}
         </Card>
       </Col>
-      <Col span={6}>
-        <Card bordered={false} size="small">
+      <Col xs={24} sm={12} xl={6}>
+        <Card bordered={false} size="small" style={{ height: "100%" }}>
           {renderCardContent(
             <Statistic
               title="Status"
               value={syncStatus || "Unknown"}
               prefix={getStatusIcon()}
-              valueStyle={{ fontSize: 16, textTransform: "capitalize" }}
+              valueStyle={{
+                fontSize: isMobile ? 14 : 16,
+                textTransform: "capitalize",
+              }}
             />,
           )}
         </Card>

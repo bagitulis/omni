@@ -4,11 +4,12 @@ import {
   Button,
   Popover,
   Checkbox,
-  Space,
+  Grid,
   Typography,
   Tooltip,
   theme,
   Dropdown,
+  Space,
 } from "antd";
 import {
   SearchOutlined,
@@ -19,11 +20,14 @@ import {
   ShopOutlined,
   SyncOutlined,
   DownOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
 } from "@ant-design/icons";
-import { useSelectedColumns, useAvailableColumns } from "@/hooks/useInventory";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { saveSelectedColumns } from "@/api/inventory";
 import { MarketplaceSettingsModal } from "@/components/modals/MarketplaceSettingsModal";
+import {
+  buildInventoryColumnControlOrder,
+  type InventoryColumnMoveDirection,
+} from "../utils/inventoryColumnOrder";
 
 interface InventoryHeaderProps {
   searchText: string;
@@ -34,6 +38,13 @@ interface InventoryHeaderProps {
   syncingFromSheets: boolean;
   onSyncToSheets: () => void;
   syncingToSheets: boolean;
+  availableColumns: string[];
+  visibleColumns: string[];
+  onToggleColumn: (column: string, checked: boolean) => void;
+  onMoveColumn: (
+    column: string,
+    direction: InventoryColumnMoveDirection,
+  ) => void;
   onOpenBulkPricing?: () => void;
 }
 
@@ -46,52 +57,79 @@ export function InventoryHeader({
   syncingFromSheets,
   onSyncToSheets,
   syncingToSheets,
+  availableColumns,
+  visibleColumns,
+  onToggleColumn,
+  onMoveColumn,
   onOpenBulkPricing,
 }: InventoryHeaderProps) {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const { token } = theme.useToken();
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
-  const queryClient = useQueryClient();
-  const { data: selectedCols = [] } = useSelectedColumns();
-  const { data: availableCols = [] } = useAvailableColumns();
-  const schemaColumns = availableCols.map((column) => ({
+  const schemaColumns = availableColumns.map((column) => ({
     column_name: column,
   }));
 
-  const saveColumnsMutation = useMutation({
-    mutationFn: saveSelectedColumns,
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["inventory-columns-selected"],
-      });
-    },
-  });
-
   const handleColumnToggle = (col: string, checked: boolean) => {
-    const newCols = checked
-      ? [...selectedCols, col]
-      : selectedCols.filter((c) => c !== col);
-    saveColumnsMutation.mutate(newCols);
+    onToggleColumn(col, checked);
   };
+
+  const orderedColumns = buildInventoryColumnControlOrder(
+    availableColumns,
+    visibleColumns,
+  );
+  const visibleSet = new Set(visibleColumns);
+  const selectedColumns = orderedColumns.filter((column) =>
+    visibleSet.has(column),
+  );
+  const hiddenColumns = orderedColumns.filter(
+    (column) => !visibleSet.has(column),
+  );
 
   return (
     <div
       style={{
         marginBottom: 16,
         display: "flex",
+        flexDirection: isMobile ? "column" : "row",
         justifyContent: "space-between",
-        alignItems: "center",
+        alignItems: isMobile ? "stretch" : "center",
+        gap: 12,
       }}
     >
-      <Typography.Title level={2} style={{ margin: 0 }}>
+      <Typography.Title
+        level={isMobile ? 4 : 2}
+        style={{
+          margin: 0,
+          whiteSpace: isMobile ? "normal" : "nowrap",
+          lineHeight: 1.2,
+        }}
+      >
         Inventory
       </Typography.Title>
-      <Space>
+
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: isMobile ? "stretch" : "center",
+          gap: 8,
+          justifyContent: isMobile ? "flex-start" : "flex-end",
+          width: "100%",
+        }}
+      >
         <Input
           placeholder="Search"
           prefix={<SearchOutlined />}
           value={searchText}
           onChange={(e) => onSearch(e.target.value)}
-          style={{ width: 200 }}
+          style={{
+            width: isMobile ? "100%" : 220,
+            minWidth: isMobile ? "100%" : 180,
+            flex: isMobile ? "1 1 100%" : undefined,
+          }}
+          size="middle"
           allowClear
         />
         <Tooltip title="Refresh from database">
@@ -99,6 +137,12 @@ export function InventoryHeader({
             icon={<ReloadOutlined />}
             onClick={onRefresh}
             loading={loading}
+            size="middle"
+            style={
+              isMobile
+                ? { flex: "1 1 calc(33% - 6px)", minWidth: 96 }
+                : undefined
+            }
           />
         </Tooltip>
 
@@ -131,22 +175,36 @@ export function InventoryHeader({
           <Button
             icon={<SyncOutlined />}
             loading={syncingFromSheets || syncingToSheets}
+            size="middle"
+            style={isMobile ? { width: "100%" } : undefined}
           >
-            Sync <DownOutlined />
+            {isMobile ? (
+              <DownOutlined />
+            ) : (
+              <>
+                Sync <DownOutlined />
+              </>
+            )}
           </Button>
         </Dropdown>
 
         <Button
           icon={<ShopOutlined />}
           onClick={() => setSettingsModalOpen(true)}
+          size="middle"
+          style={
+            isMobile
+              ? { flex: "1 1 calc(50% - 8px)", minWidth: 140 }
+              : undefined
+          }
         >
-          Marketplace Settings
+          {isMobile ? "Marketplace" : "Marketplace Settings"}
         </Button>
 
         <Popover
           trigger="click"
           placement="bottomRight"
-          title="Columns"
+          title="Columns & Order"
           content={
             <div
               style={{
@@ -154,18 +212,81 @@ export function InventoryHeader({
                 flexDirection: "column",
                 maxHeight: 300,
                 overflowY: "auto",
+                minWidth: 280,
+                gap: 10,
               }}
             >
-              {availableCols.length > 0 ? (
-                availableCols.map((col) => (
-                  <Checkbox
-                    key={col}
-                    checked={selectedCols.includes(col)}
-                    onChange={(e) => handleColumnToggle(col, e.target.checked)}
-                  >
-                    {col}
-                  </Checkbox>
-                ))
+              {orderedColumns.length > 0 ? (
+                <>
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                    Selected columns (drag order equivalent)
+                  </Typography.Text>
+                  {selectedColumns.map((col, index) => {
+                    const isFirst = index === 0;
+                    const isLast = index === selectedColumns.length - 1;
+
+                    return (
+                      <div
+                        key={col}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <Checkbox
+                          checked
+                          onChange={(event) =>
+                            handleColumnToggle(col, event.target.checked)
+                          }
+                        >
+                          {col}
+                        </Checkbox>
+                        <Space size={4}>
+                          <Tooltip title="Move up">
+                            <Button
+                              size="small"
+                              icon={<ArrowUpOutlined />}
+                              onClick={() => onMoveColumn(col, "up")}
+                              disabled={isFirst}
+                            />
+                          </Tooltip>
+                          <Tooltip title="Move down">
+                            <Button
+                              size="small"
+                              icon={<ArrowDownOutlined />}
+                              onClick={() => onMoveColumn(col, "down")}
+                              disabled={isLast}
+                            />
+                          </Tooltip>
+                        </Space>
+                      </div>
+                    );
+                  })}
+
+                  {hiddenColumns.length > 0 ? (
+                    <>
+                      <Typography.Text
+                        type="secondary"
+                        style={{ fontSize: 12 }}
+                      >
+                        Hidden columns
+                      </Typography.Text>
+                      {hiddenColumns.map((col) => (
+                        <Checkbox
+                          key={col}
+                          checked={false}
+                          onChange={(event) =>
+                            handleColumnToggle(col, event.target.checked)
+                          }
+                        >
+                          {col}
+                        </Checkbox>
+                      ))}
+                    </>
+                  ) : null}
+                </>
               ) : (
                 <div style={{ padding: 8, color: token.colorTextSecondary }}>
                   No columns available
@@ -174,9 +295,19 @@ export function InventoryHeader({
             </div>
           }
         >
-          <Button icon={<SettingOutlined />}>Cols</Button>
+          <Button
+            icon={<SettingOutlined />}
+            size="middle"
+            style={
+              isMobile
+                ? { flex: "1 1 calc(50% - 8px)", minWidth: 100 }
+                : undefined
+            }
+          >
+            Cols
+          </Button>
         </Popover>
-      </Space>
+      </div>
 
       <MarketplaceSettingsModal
         open={settingsModalOpen}
