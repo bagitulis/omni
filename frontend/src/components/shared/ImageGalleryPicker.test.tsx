@@ -1,25 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ImageGalleryPicker } from "./ImageGalleryPicker";
-import apiClient from "@/api/client";
-import "@testing-library/jest-dom";
-
-// Mock matchMedia for Ant Design
-Object.defineProperty(window, "matchMedia", {
-  writable: true,
-  value: vi.fn().mockImplementation((query) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(), // deprecated
-    removeListener: vi.fn(), // deprecated
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
-
-// Mock API Client
+// Mock API Client FIRST before any imports
 vi.mock("@/api/client", () => ({
   default: {
     get: vi.fn(),
@@ -29,7 +8,7 @@ vi.mock("@/api/client", () => ({
 
 // Mock Upload component since rc-upload is hard to test in JSDOM
 vi.mock("antd", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("antd")>();
+  const actual = (await importOriginal()) as typeof import("antd");
   return {
     ...actual,
     Upload: ({
@@ -44,9 +23,7 @@ vi.mock("antd", async (importOriginal) => {
           type="button"
           onClick={() =>
             customRequest({
-              file: new File(["(⌐□_□)"], "chucknorris.png", {
-                type: "image/png",
-              }),
+              file: new File(["test"], "test.png", { type: "image/png" }),
               onSuccess: vi.fn(),
               onError: vi.fn(),
             })
@@ -58,6 +35,27 @@ vi.mock("antd", async (importOriginal) => {
       </div>
     ),
   };
+});
+
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { ImageGalleryPicker } from "./ImageGalleryPicker";
+import apiClient from "@/api/client";
+import "@testing-library/jest-dom";
+
+// Mock matchMedia for Ant Design
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: vi.fn().mockImplementation((query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
 });
 
 describe("ImageGalleryPicker", () => {
@@ -97,10 +95,15 @@ describe("ImageGalleryPicker", () => {
     );
   });
 
-  it("renders correctly when visible", async () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it("renders correctly when open", async () => {
     render(
       <ImageGalleryPicker
-        visible={true}
+        open={true}
         onClose={mockOnClose}
         onConfirm={mockOnConfirm}
       />,
@@ -130,7 +133,7 @@ describe("ImageGalleryPicker", () => {
     vi.useFakeTimers();
     render(
       <ImageGalleryPicker
-        visible={true}
+        open={true}
         onClose={mockOnClose}
         onConfirm={mockOnConfirm}
       />,
@@ -154,14 +157,12 @@ describe("ImageGalleryPicker", () => {
         }),
       );
     });
-
-    vi.useRealTimers();
   });
 
   it("handles selection and deselection", async () => {
     render(
       <ImageGalleryPicker
-        visible={true}
+        open={true}
         onClose={mockOnClose}
         onConfirm={mockOnConfirm}
       />,
@@ -186,13 +187,13 @@ describe("ImageGalleryPicker", () => {
     expect(screen.getByText("0 images selected")).toBeInTheDocument();
   });
 
-  it("respects maxImages limit", async () => {
+  it("respects maxSelect limit", async () => {
     render(
       <ImageGalleryPicker
-        visible={true}
+        open={true}
         onClose={mockOnClose}
         onConfirm={mockOnConfirm}
-        maxImages={2}
+        maxSelect={2}
       />,
     );
 
@@ -226,7 +227,7 @@ describe("ImageGalleryPicker", () => {
 
     render(
       <ImageGalleryPicker
-        visible={true}
+        open={true}
         onClose={mockOnClose}
         onConfirm={mockOnConfirm}
       />,
@@ -252,7 +253,7 @@ describe("ImageGalleryPicker", () => {
   it("confirms selection", async () => {
     render(
       <ImageGalleryPicker
-        visible={true}
+        open={true}
         onClose={mockOnClose}
         onConfirm={mockOnConfirm}
       />,
@@ -277,7 +278,7 @@ describe("ImageGalleryPicker", () => {
   it("keyboard navigation works", async () => {
     render(
       <ImageGalleryPicker
-        visible={true}
+        open={true}
         onClose={mockOnClose}
         onConfirm={mockOnConfirm}
       />,

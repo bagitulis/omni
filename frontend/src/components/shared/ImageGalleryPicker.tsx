@@ -29,12 +29,11 @@ import {
 const { Text } = Typography;
 
 interface ImageGalleryPickerProps {
-  visible: boolean;
+  open: boolean;
   onClose: () => void;
-  onConfirm: (selectedImages: GalleryImage[]) => void;
-  multiple?: boolean;
-  maxImages?: number;
-  initialSelection?: GalleryImage[]; // Pass full objects if available, logic handles ID matching
+  onConfirm: (images: GalleryImage[]) => void;
+  maxSelect?: number;
+  initialSelected?: GalleryImage[];
 }
 
 interface GalleryResponse {
@@ -43,19 +42,18 @@ interface GalleryResponse {
 }
 
 export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
-  visible,
+  open,
   onClose,
   onConfirm,
-  multiple = true,
-  maxImages = 8,
-  initialSelection = [],
+  maxSelect = 8,
+  initialSelected = [],
 }) => {
   const { token } = theme.useToken();
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedImages, setSelectedImages] =
-    useState<GalleryImage[]>(initialSelection);
+    useState<GalleryImage[]>(initialSelected);
   const [meta, setMeta] = useState<GalleryPaginationMeta>({
     page: 1,
     pages: 1,
@@ -79,31 +77,16 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
       });
 
       if (response.success && response.data) {
-        // The API structure might be nested or direct depending on the standard wrapper
-        // Based on shared.ts types, apiClient returns ApiResponse<T>
-        // But sometimes the data property IS the list + meta is separate or inside.
-        // Let's assume standard { data: [...], meta: {...} } shape inside response.data
-        // OR based on Vue logic:
-        // const { data, meta } = response.data
-        // We'll proceed with this assumption, fitting the GalleryResponse interface
-        const result = response.data as unknown as GalleryResponse; // Type assertion if needed based on generic wrapper
-
-        // Use 'data' field if it exists, otherwise fallback (defensive coding)
-        // The shared types define GalleryResponse implicit structure?
-        // Actually shared.ts defines types but not the specific API response shape for THIS endpoint.
-        // We will assume `response.data` contains `data` (list) and `meta`.
-
-        // Safe check for the shape
-        const list = (result.data || []) as GalleryImage[];
-        const metadata = result.meta || {
-          page: 1,
-          pages: 1,
-          total: 0,
-          page_size: 20,
-        };
-
-        setImages(list);
-        setMeta(metadata);
+        const galleryData = response.data;
+        setImages(galleryData.data || []);
+        setMeta(
+          galleryData.meta || {
+            page: 1,
+            pages: 1,
+            total: 0,
+            page_size: 20,
+          },
+        );
       }
     } catch (error) {
       message.error("Failed to load images");
@@ -115,23 +98,21 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
 
   // Initial load and reset when modal opens
   useEffect(() => {
-    if (visible) {
+    if (open) {
       document.body.style.overflow = "hidden";
-      setSelectedImages(initialSelection);
-      // Only fetch if we have no images or specifically want to reset
-      // We pass the current searchQuery state, but we don't want this effect to run when searchQuery changes
-      // because that's handled by the input change handler
+      setSelectedImages(initialSelected);
       fetchImages(1, searchQuery);
     } else {
       document.body.style.overflow = "";
     }
     return () => {
       document.body.style.overflow = "";
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
     };
-    // We intentionally exclude fetchImages and searchQuery to prevent re-fetching on every keystroke
-    // or when the function identity changes. This effect is strictly for "on modal open" logic.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, initialSelection]);
+  }, [open, initialSelected]);
 
   // Debounced search handler
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -186,15 +167,11 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
     if (isSelected) {
       setSelectedImages((prev) => prev.filter((i) => i.id !== img.id));
     } else {
-      if (!multiple) {
-        setSelectedImages([img]);
-      } else {
-        if (selectedImages.length >= maxImages) {
-          message.warning(`Maximum ${maxImages} images allowed`);
-          return;
-        }
-        setSelectedImages((prev) => [...prev, img]);
+      if (selectedImages.length >= maxSelect) {
+        message.warning(`Maximum ${maxSelect} images allowed`);
+        return;
       }
+      setSelectedImages((prev) => [...prev, img]);
     }
   };
 
@@ -208,7 +185,7 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
 
   return (
     <Modal
-      open={visible}
+      open={open}
       onCancel={onClose}
       title="Image Gallery"
       width="90%"
@@ -420,8 +397,8 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
             {selectedImages.length}{" "}
             {selectedImages.length === 1 ? "image" : "images"} selected
           </Text>
-          {maxImages < Infinity && (
-            <Text type="secondary">(Max {maxImages})</Text>
+          {maxSelect < Infinity && (
+            <Text type="secondary">(Max {maxSelect})</Text>
           )}
         </div>
 
