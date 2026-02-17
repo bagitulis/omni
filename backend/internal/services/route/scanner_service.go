@@ -39,8 +39,11 @@ func (s *ScannerService) ScanRoutes() ScanResult {
 		Routes: make([]ScannedRoute, 0),
 	}
 
-	// Walk through internal directory
-	internalPath := filepath.Join(s.basePath, "internal")
+	internalPath := s.resolveBackendInternalPath()
+	if internalPath == "" {
+		result.Errors = append(result.Errors, "could not locate backend internal directory from base path")
+		return result
+	}
 
 	err := filepath.Walk(internalPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -64,6 +67,50 @@ func (s *ScannerService) ScanRoutes() ScanResult {
 	}
 
 	return result
+}
+
+func (s *ScannerService) resolveBackendInternalPath() string {
+	candidates := []string{
+		filepath.Join(s.basePath, "internal"),
+		filepath.Join(s.basePath, "backend", "internal"),
+		filepath.Join(".", "internal"),
+		filepath.Join(".", "backend", "internal"),
+	}
+
+	for _, candidate := range candidates {
+		if s.isDirectory(candidate) {
+			return candidate
+		}
+	}
+
+	return ""
+}
+
+func (s *ScannerService) resolveFrontendAPIPath() string {
+	candidates := []string{
+		filepath.Join(s.basePath, "frontend", "src", "api"),
+		filepath.Join(s.basePath, "..", "frontend", "src", "api"),
+		filepath.Join(s.basePath, "..", "..", "frontend", "src", "api"),
+		filepath.Join(".", "frontend", "src", "api"),
+		filepath.Join("..", "frontend", "src", "api"),
+	}
+
+	for _, candidate := range candidates {
+		if s.isDirectory(candidate) {
+			return candidate
+		}
+	}
+
+	return ""
+}
+
+func (s *ScannerService) isDirectory(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+
+	return info.IsDir()
 }
 
 // scanFile scans a single Go file for route definitions
@@ -112,7 +159,10 @@ func (s *ScannerService) scanFile(filePath string) []ScannedRoute {
 func (s *ScannerService) ScanForMiddleware() map[string][]string {
 	result := make(map[string][]string)
 
-	internalPath := filepath.Join(s.basePath, "internal")
+	internalPath := s.resolveBackendInternalPath()
+	if internalPath == "" {
+		return result
+	}
 
 	_ = filepath.Walk(internalPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() || !strings.HasSuffix(path, ".go") {

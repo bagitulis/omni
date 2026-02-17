@@ -33,6 +33,7 @@ func RegisterInventorySimpleRoutes(router *gin.RouterGroup, handler *handlers.In
 	inventory.Use(middleware.Tenant())
 	{
 		inventory.GET("/config", handler.GetConfig)
+		inventory.PUT("/config", handler.UpdateConfig)
 		inventory.GET("/stats", handler.GetStats)
 		inventory.GET("/list", handler.GetList)
 

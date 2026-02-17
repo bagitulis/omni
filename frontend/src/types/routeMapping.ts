@@ -7,6 +7,8 @@ export interface RouteSummary {
 
 export interface FrontendOnlySummary {
   endpoint: string;
+  method?: string;
+  category?: string;
   components: string[];
   status?: string;
 }
@@ -43,9 +45,9 @@ export interface RouteData {
   category_labels: Record<string, RouteCategoryLabel>;
   category_stats: Record<string, number>;
   components: Record<string, ComponentDetail>;
-  disconnected_routes: Record<string, unknown>;
-  backend_only_routes: Record<string, unknown>;
-  unused_routes: Record<string, unknown>;
+  disconnected_routes: Record<string, FrontendOnlySummary>;
+  backend_only_routes: Record<string, RouteSummary>;
+  unused_routes: Record<string, RouteSummary>;
   button_to_endpoints: Record<string, Record<string, string[]>>;
   statistics?: Record<string, unknown>;
   timestamp: string;

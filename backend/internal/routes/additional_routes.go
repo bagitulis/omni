@@ -170,6 +170,8 @@ func RegisterRouteMappingRoutes(router *gin.RouterGroup, handler *handlers.Route
 		routeMap.GET("", handler.GetAllRoutes)
 		routeMap.GET("/tag/:tag", handler.GetRoutesByTag)
 		routeMap.GET("/analyze", handler.AnalyzeRoutes)
+		routeMap.GET("/mapping", handler.GetRouteCoverage)
+		routeMap.GET("/mapping/stats", handler.GetRouteCoverageStatistics)
 		routeMap.GET("/scan", handler.ScanRoutes)
 		routeMap.GET("/middleware", handler.ScanMiddleware)
 	}

@@ -53,6 +53,7 @@ func main() {
 	router := gin.Default()
 	router.Use(middleware.CORS())
 	router.Use(middleware.Logger())
+	extHandlers.RouteHandler.SetEngine(router)
 
 	// Public
 	router.GET("/api/health", handlers.HealthCheck)

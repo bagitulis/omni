@@ -596,13 +596,12 @@ export async function batchUpdateInventoryWholesale(
 
 /**
  * Batch delete wholesale tiers for multiple SKUs
- * Backend route: POST /api/inventory/wholesale/batch-delete
- * TODO: Backend endpoint verification pending
+ * Backend route: POST /api/wholesale/shopee/batch-delete-skus
  */
 export async function batchDeleteInventoryWholesale(
   skus: string[],
 ): Promise<void> {
-  const response = await apiClient.post("/inventory/wholesale/batch-delete", {
+  const response = await apiClient.post("/wholesale/shopee/batch-delete-skus", {
     skus,
   });
   if (!response.success) {

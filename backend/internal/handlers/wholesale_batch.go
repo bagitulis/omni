@@ -214,7 +214,7 @@ func (h *WholesaleExtendedHandler) BatchSetMpq(c *gin.Context) {
 		"skipped":      result.Skipped,
 		"results":      result.Results,
 		"mpq":          reqBody.MPQ,
-		"message":      result.Success,
+		"success":      result.Success,
 	}))
 }
 

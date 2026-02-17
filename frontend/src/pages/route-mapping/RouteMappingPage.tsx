@@ -72,7 +72,10 @@ export function RouteMappingPage() {
     <Table
       dataSource={dataSource}
       columns={columns}
-      rowKey="endpoint"
+      rowKey={(record) => {
+        const row = record as { endpoint?: string; method?: string };
+        return `${row.method || "UNKNOWN"}:${row.endpoint || ""}`;
+      }}
       pagination={{ pageSize: 20 }}
       size="middle"
     />

@@ -2,18 +2,21 @@ package handlers
 
 import (
 	"net/http"
+	"sort"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/services/route"
 )
 
-// RouteHandler handles route mapping endpoints
+// RouteHandler handles route mapping endpoints.
 type RouteHandler struct {
 	mappingService *route.MappingService
 	scannerService *route.ScannerService
+	engine         *gin.Engine
 }
 
-// NewRouteHandler creates a new route handler
+// NewRouteHandler creates a new route handler.
 func NewRouteHandler(basePath string) *RouteHandler {
 	return &RouteHandler{
 		mappingService: route.NewMappingService(),
@@ -21,13 +24,14 @@ func NewRouteHandler(basePath string) *RouteHandler {
 	}
 }
 
-// GetAllRoutes returns all registered routes
-// @Summary Get all route mappings
-// @Tags Routes
-// @Success 200 {object} map[string]interface{}
-// @Router /api/routes [get]
+// SetEngine attaches gin engine for runtime route extraction.
+func (h *RouteHandler) SetEngine(engine *gin.Engine) {
+	h.engine = engine
+}
+
+// GetAllRoutes returns all runtime backend routes.
 func (h *RouteHandler) GetAllRoutes(c *gin.Context) {
-	routes := h.mappingService.GetAllMappings()
+	routes := h.extractBackendRoutes()
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -36,59 +40,102 @@ func (h *RouteHandler) GetAllRoutes(c *gin.Context) {
 	})
 }
 
-// GetRoutesByTag returns routes filtered by tag
-// @Summary Get routes by tag
-// @Tags Routes
-// @Param tag path string true "Tag name"
-// @Success 200 {object} map[string]interface{}
-// @Router /api/routes/tag/{tag} [get]
+// GetRoutesByTag returns routes filtered by tag.
 func (h *RouteHandler) GetRoutesByTag(c *gin.Context) {
-	tag := c.Param("tag")
-	routes := h.mappingService.GetMappingsByTag(tag)
+	tag := strings.TrimSpace(c.Param("tag"))
+	routes := h.extractBackendRoutes()
+	filtered := make([]route.RouteMapping, 0)
+
+	for _, routeItem := range routes {
+		for _, routeTag := range routeItem.Tags {
+			if strings.EqualFold(routeTag, tag) {
+				filtered = append(filtered, routeItem)
+				break
+			}
+		}
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    routes,
+		"data":    filtered,
 		"tag":     tag,
-		"total":   len(routes),
+		"total":   len(filtered),
 	})
 }
 
-// AnalyzeRoutes performs route analysis
-// @Summary Analyze route mappings
-// @Tags Routes
-// @Success 200 {object} map[string]interface{}
-// @Router /api/routes/analyze [get]
+// AnalyzeRoutes returns summarized route analysis.
 func (h *RouteHandler) AnalyzeRoutes(c *gin.Context) {
-	analysis := h.mappingService.Analyze()
+	backendRoutes := h.extractBackendRoutes()
+	legacyAnalysisService := route.NewMappingService()
+	for _, routeItem := range backendRoutes {
+		routeItem.Middlewares = []string{"Auth"}
+		legacyAnalysisService.RegisterRoute(routeItem)
+	}
+	analysis := legacyAnalysisService.Analyze()
+	if analysis.Conflicts == nil {
+		analysis.Conflicts = []route.RouteConflict{}
+	}
+	if analysis.UnprotectedRoutes == nil {
+		analysis.UnprotectedRoutes = []string{}
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    analysis,
+		"data": gin.H{
+			"total_routes":       analysis.TotalRoutes,
+			"by_method":          analysis.ByMethod,
+			"by_tag":             analysis.ByTag,
+			"conflicts":          analysis.Conflicts,
+			"unprotected_routes": analysis.UnprotectedRoutes,
+		},
 	})
 }
 
-// ScanRoutes scans codebase for routes
-// @Summary Scan codebase for route definitions
-// @Tags Routes
-// @Success 200 {object} map[string]interface{}
-// @Router /api/routes/scan [get]
+// GetRouteCoverage returns FE↔BE mapping coverage payload.
+func (h *RouteHandler) GetRouteCoverage(c *gin.Context) {
+	backendRoutes := h.extractBackendRoutes()
+	report := h.scannerService.BuildCoverageReport(backendRoutes)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    report,
+	})
+}
+
+// GetRouteCoverageStatistics returns compact route-mapping statistics.
+func (h *RouteHandler) GetRouteCoverageStatistics(c *gin.Context) {
+	backendRoutes := h.extractBackendRoutes()
+	report := h.scannerService.BuildCoverageReport(backendRoutes)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"statistics":          report.Statistics,
+			"connection_rate":     report.ConnectionRate,
+			"total_routes":        report.TotalRoutes,
+			"total_called_routes": report.TotalCalledRoutes,
+			"total_disconnected":  report.TotalDisconnectedRoutes,
+			"total_backend_only":  len(report.Categories.BackendOnly),
+			"total_unused":        report.TotalUnusedRoutes,
+			"total_components":    report.TotalComponents,
+			"last_calculated_at":  report.Timestamp,
+		},
+	})
+}
+
+// ScanRoutes scans codebase for route definitions.
 func (h *RouteHandler) ScanRoutes(c *gin.Context) {
 	result := h.scannerService.ScanRoutes()
 
 	c.JSON(http.StatusOK, gin.H{
-		"success":      true,
-		"data":         result.Routes,
-		"filesScanned": result.Files,
-		"errors":       result.Errors,
+		"success":       true,
+		"data":          result.Routes,
+		"files_scanned": result.Files,
+		"errors":        result.Errors,
 	})
 }
 
-// ScanMiddleware scans for middleware usage
-// @Summary Scan codebase for middleware usage
-// @Tags Routes
-// @Success 200 {object} map[string]interface{}
-// @Router /api/routes/middleware [get]
+// ScanMiddleware scans for middleware usage.
 func (h *RouteHandler) ScanMiddleware(c *gin.Context) {
 	result := h.scannerService.ScanForMiddleware()
 
@@ -98,17 +145,96 @@ func (h *RouteHandler) ScanMiddleware(c *gin.Context) {
 	})
 }
 
-// RegisterRoute registers a route mapping (used internally)
+// RegisterRoute registers a route mapping (used internally).
 func (h *RouteHandler) RegisterRoute(mapping route.RouteMapping) {
 	h.mappingService.RegisterRoute(mapping)
 }
 
-// FormatAsTable returns routes as markdown table
-// @Summary Get routes as markdown table
-// @Tags Routes
-// @Success 200 {string} string
-// @Router /api/routes/table [get]
+// FormatAsTable returns backend routes as markdown table.
 func (h *RouteHandler) FormatAsTable(c *gin.Context) {
-	table := h.mappingService.FormatAsTable()
-	c.String(http.StatusOK, table)
+	routes := h.extractBackendRoutes()
+
+	var builder strings.Builder
+	builder.WriteString("| Method | Path | Handler | Tags |\n")
+	builder.WriteString("|--------|------|---------|------|\n")
+
+	for _, routeItem := range routes {
+		tags := strings.Join(routeItem.Tags, ", ")
+		builder.WriteString("| " + routeItem.Method + " | " + routeItem.Path + " | " + routeItem.Handler + " | " + tags + " |\n")
+	}
+
+	c.String(http.StatusOK, builder.String())
+}
+
+func (h *RouteHandler) extractBackendRoutes() []route.RouteMapping {
+	if h.engine == nil {
+		fallback := h.scannerService.ScanRoutes()
+		routes := make([]route.RouteMapping, 0, len(fallback.Routes))
+		for _, scanned := range fallback.Routes {
+			endpoint := route.NormalizeRoutePath(scanned.Path, true)
+			if endpoint == "" {
+				continue
+			}
+			routes = append(routes, route.RouteMapping{
+				Method:  strings.ToUpper(scanned.Method),
+				Path:    endpoint,
+				Handler: scanned.Handler,
+				Tags:    []string{deriveTagFromPath(endpoint)},
+			})
+		}
+		sortRouteMappings(routes)
+		return routes
+	}
+
+	ginRoutes := h.engine.Routes()
+	routes := make([]route.RouteMapping, 0, len(ginRoutes))
+	seen := make(map[string]struct{}, len(ginRoutes))
+
+	for _, ginRoute := range ginRoutes {
+		endpoint := route.NormalizeRoutePath(ginRoute.Path, false)
+		if endpoint == "" {
+			continue
+		}
+
+		method := strings.ToUpper(ginRoute.Method)
+		key := method + " " + endpoint
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+
+		routes = append(routes, route.RouteMapping{
+			Method:  method,
+			Path:    endpoint,
+			Handler: ginRoute.Handler,
+			Tags:    []string{deriveTagFromPath(endpoint)},
+		})
+	}
+
+	sortRouteMappings(routes)
+	return routes
+}
+
+func sortRouteMappings(routes []route.RouteMapping) {
+	sort.Slice(routes, func(i, j int) bool {
+		if routes[i].Path == routes[j].Path {
+			return routes[i].Method < routes[j].Method
+		}
+		return routes[i].Path < routes[j].Path
+	})
+}
+
+func deriveTagFromPath(path string) string {
+	trimmed := strings.TrimPrefix(path, "/")
+	trimmed = strings.TrimPrefix(trimmed, "api/")
+	if trimmed == "" {
+		return "general"
+	}
+
+	parts := strings.Split(trimmed, "/")
+	if len(parts) == 0 || strings.TrimSpace(parts[0]) == "" {
+		return "general"
+	}
+
+	return parts[0]
 }

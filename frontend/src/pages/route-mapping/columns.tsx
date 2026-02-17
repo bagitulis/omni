@@ -60,6 +60,13 @@ export const columnsFrontendOnly = [
     ),
   },
   {
+    title: "Method",
+    dataIndex: "method",
+    key: "method",
+    width: 100,
+    render: (method?: string) => <Tag color="gold">{method || "-"}</Tag>,
+  },
+  {
     title: "Used In Components",
     dataIndex: "components",
     key: "components",
@@ -75,10 +82,11 @@ export const columnsFrontendOnly = [
   },
   {
     title: "Status",
+    dataIndex: "status",
     key: "status",
-    render: () => (
+    render: (status?: string) => (
       <Tag color="error" icon={<DisconnectOutlined />}>
-        Disconnected
+        {status === "method_mismatch" ? "Method Mismatch" : "Missing Backend"}
       </Tag>
     ),
   },
