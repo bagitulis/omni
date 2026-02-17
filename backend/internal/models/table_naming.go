@@ -46,6 +46,7 @@ var tableNameMapping = map[string]string{
 	"InventorySyncHistory":       "inventory_sync_history",
 	"InventorySkuPlatformStatus": "inventory_sku_platform_status",
 	"SheetSnapshot":              "sheet_snapshots",
+	"MarketplaceSyncHistory":     "marketplace_sync_history",
 
 	// Settings
 	"GoogleSheetsSettings": "google_sheets_settings",

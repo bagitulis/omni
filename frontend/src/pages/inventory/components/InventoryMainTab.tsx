@@ -34,6 +34,40 @@ export function InventoryMainTab({
   );
 
   const dynamicColumns: ColumnsType<InventoryRecord> = useMemo(() => {
+    const estimateColumnWidth = (columnName: string): number => {
+      const normalized = columnName.trim().toLowerCase();
+
+      if (normalized === "nama barang") {
+        return 360;
+      }
+
+      if (normalized === "nama variasi") {
+        return 260;
+      }
+
+      if (normalized === "harga" || normalized === "price") {
+        return 130;
+      }
+
+      if (normalized === "total") {
+        return 90;
+      }
+
+      if (normalized === "stock" || normalized === "stok") {
+        return 110;
+      }
+
+      const sampleRecords = records.slice(0, 120);
+      const longestValueLength = sampleRecords.reduce((max, record) => {
+        const value = record.data?.[columnName];
+        const currentLength = value == null ? 0 : String(value).trim().length;
+        return Math.max(max, currentLength);
+      }, columnName.length);
+
+      const estimated = longestValueLength * 8 + 40;
+      return Math.min(280, Math.max(120, estimated));
+    };
+
     const getRecordDataValue = (
       record: InventoryRecord,
       candidates: string[],
@@ -74,7 +108,17 @@ export function InventoryMainTab({
       }
 
       return (
-        <Tag color="blue" style={{ fontSize: 11 }}>
+        <Tag
+          color="blue"
+          style={{
+            fontSize: 11,
+            margin: 0,
+            minWidth: 30,
+            display: "inline-flex",
+            justifyContent: "center",
+            textAlign: "center",
+          }}
+        >
           {String(value)}
         </Tag>
       );
@@ -85,31 +129,35 @@ export function InventoryMainTab({
         title: "Key",
         dataIndex: "key_value",
         key: "key_value",
-        width: 150,
+        width: 180,
         fixed: "left" as const,
       },
       {
         title: "Shopee",
         key: "shopee_status",
-        width: 130,
+        width: 96,
+        align: "center",
         render: (_, record) => renderMarketplaceCell(record, "shopee"),
       },
       {
         title: "TikTok",
         key: "tiktok_status",
-        width: 130,
+        width: 96,
+        align: "center",
         render: (_, record) => renderMarketplaceCell(record, "tiktok"),
       },
       {
         title: "Lazada",
         key: "lazada_status",
-        width: 130,
+        width: 96,
+        align: "center",
         render: (_, record) => renderMarketplaceCell(record, "lazada"),
       },
       {
         title: "Sync Status",
         key: "sync_status",
-        width: 100,
+        width: 120,
+        align: "center",
         render: (_, record) => {
           const statusMap: Record<string, { color: string; label: string }> = {
             synced: { color: "green", label: "Synced" },
@@ -120,7 +168,7 @@ export function InventoryMainTab({
             statusMap[record.sync_status || "not_synced"] ||
             statusMap.not_synced;
           return (
-            <Tag color={status.color} style={{ fontSize: 11 }}>
+            <Tag color={status.color} style={{ fontSize: 11, margin: 0 }}>
               {status.label}
             </Tag>
           );
@@ -129,23 +177,31 @@ export function InventoryMainTab({
     ];
 
     for (const colName of visibleColumns) {
-      const lowerName = colName.toLowerCase();
+      const normalizedColumnName = colName.trim().toLowerCase();
       if (
-        lowerName === "shopee" ||
-        lowerName === "tiktok" ||
-        lowerName === "lazada"
+        normalizedColumnName === "shopee" ||
+        normalizedColumnName === "tiktok" ||
+        normalizedColumnName === "lazada"
       ) {
         continue;
       }
-      const isStock = lowerName === "stock" || lowerName === "stok";
-      const isPrice = lowerName === "price" || lowerName === "harga";
+      const isStock =
+        normalizedColumnName === "stock" || normalizedColumnName === "stok";
+      const isPrice =
+        normalizedColumnName === "price" || normalizedColumnName === "harga";
+      const isLongTextColumn =
+        normalizedColumnName.includes("nama barang") ||
+        normalizedColumnName.includes("nama variasi") ||
+        normalizedColumnName.includes("name") ||
+        normalizedColumnName.includes("product");
       const isLocked = lockedColumnsSet.has(colName);
+      const dynamicWidth = estimateColumnWidth(colName);
 
       cols.push({
         title: colName,
         key: colName,
-        width: 150,
-        ellipsis: true,
+        width: dynamicWidth,
+        ellipsis: !isLongTextColumn,
         render: (_, record) => {
           const val = record.data?.[colName];
 
@@ -170,7 +226,27 @@ export function InventoryMainTab({
             );
           }
 
-          return val != null ? String(val) : "-";
+          if (val == null || String(val).trim() === "") {
+            return "-";
+          }
+
+          const text = String(val);
+          if (!isLongTextColumn) {
+            return text;
+          }
+
+          return (
+            <span
+              style={{
+                display: "block",
+                whiteSpace: "normal",
+                wordBreak: "break-word",
+                lineHeight: 1.45,
+              }}
+            >
+              {text}
+            </span>
+          );
         },
       });
     }
@@ -184,7 +260,7 @@ export function InventoryMainTab({
     });
 
     return cols;
-  }, [visibleColumns, lockedColumnsSet]);
+  }, [records, visibleColumns, lockedColumnsSet]);
 
   if (error) {
     return (
@@ -222,11 +298,13 @@ export function InventoryMainTab({
       dataSource={records}
       rowKey="id"
       rowSelection={{
+        columnWidth: 56,
+        fixed: true,
         selectedRowKeys,
         onChange: onSelectionChange,
       }}
       pagination={false}
-      scroll={{ x: 1000 }}
+      scroll={{ x: "max-content" }}
       size="small"
       bordered
       enableVirtual={records.length > 50}

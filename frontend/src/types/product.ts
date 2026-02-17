@@ -3,6 +3,8 @@
  * API types use snake_case to match backend JSON response
  */
 
+import type { Platform } from "./shared";
+
 export interface MasterProduct {
   id: number;
   tenant_id: string;
@@ -33,7 +35,7 @@ export interface MasterProductPlatformLink {
   id: number;
   master_product_id: number;
   master_sku_id?: number;
-  platform: "shopee" | "tiktok" | "lazada";
+  platform: Platform;
   platform_product_id?: string;
   platform_sku_id?: string;
   platform_item_id?: number;

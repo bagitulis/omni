@@ -67,6 +67,14 @@ describe("InventoryMainTab", () => {
     expect(columns).toContain("Lazada");
     expect(columns).not.toContain("Platforms");
     expect(columns.filter((title) => title === "Shopee")).toHaveLength(1);
+
+    const rowSelection = latestProps.rowSelection as {
+      columnWidth?: number;
+      fixed?: boolean;
+    };
+    expect(rowSelection.columnWidth).toBe(56);
+    expect(rowSelection.fixed).toBe(true);
+    expect(latestProps.scroll).toEqual({ x: "max-content" });
   });
 
   it("keeps dynamic column order and binds values by column key", () => {
@@ -125,5 +133,56 @@ describe("InventoryMainTab", () => {
     expect(getNodeText(masukCell)).toContain("12");
     expect(getNodeText(namaVariasiCell)).toContain("Floral Fantasy");
     expect(getNodeText(totalCell)).toContain("0");
+  });
+
+  it("keeps long text columns readable without ellipsis", () => {
+    capturedProps.length = 0;
+    const longName =
+      "Baygon Semprot Aerosol Obat Anti Nyamuk Kecoa Serangga 200 ML";
+
+    render(
+      <InventoryMainTab
+        records={[
+          createRecord({
+            data: {
+              "Nama Barang": longName,
+              "Nama Variasi": "Flower Garden 200ml",
+            },
+          }),
+        ]}
+        loading={false}
+        error={null}
+        onRetry={vi.fn()}
+        visibleColumns={["Nama Barang", "Nama Variasi"]}
+        lockedColumns={[]}
+        selectedRowKeys={[]}
+        onSelectionChange={vi.fn()}
+      />,
+    );
+
+    const latestProps = capturedProps[capturedProps.length - 1];
+    const columns = latestProps.columns as Array<{
+      title?: ReactNode;
+      ellipsis?: boolean;
+      width?: number;
+      render?: (value: unknown, row: InventoryRecord) => ReactNode;
+    }>;
+
+    const nameColumn = columns.find((column) => column.title === "Nama Barang");
+    const variationColumn = columns.find(
+      (column) => column.title === "Nama Variasi",
+    );
+
+    expect(nameColumn?.ellipsis).toBe(false);
+    expect(variationColumn?.ellipsis).toBe(false);
+    expect((nameColumn?.width ?? 0) >= 320).toBe(true);
+
+    const renderedName = nameColumn?.render?.(
+      longName,
+      createRecord({
+        data: { "Nama Barang": longName },
+      }),
+    );
+    expect(getNodeText(renderedName)).toContain(longName);
   });
 });
