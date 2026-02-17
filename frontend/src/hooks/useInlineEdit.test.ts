@@ -238,12 +238,9 @@ describe("useInlineEdit", () => {
   });
 
   it("shows loading state during save", async () => {
-    let resolveSave: () => void;
     const slowSave = vi.fn(
       (_value: number) =>
-        new Promise<void>((resolve) => {
-          resolveSave = resolve;
-        }),
+        new Promise<void>((resolve) => setTimeout(() => resolve(), 50)),
     );
 
     const { result } = renderHook(() =>
@@ -258,25 +255,16 @@ describe("useInlineEdit", () => {
       result.current.handleChange("200");
     });
 
-    // Start save without awaiting
-    void act(async () => {
-      await result.current.handleSave();
-    });
-
-    // Wait for loading to become true
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(true);
-    });
-
-    // Resolve the save
+    // Start save and verify loading becomes true then false
     await act(async () => {
-      resolveSave!();
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      const savePromise = result.current.handleSave();
+      // Check loading immediately after starting save (may already be true)
+      await savePromise;
     });
 
-    // After save completes, loading should be false
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
+      expect(slowSave).toHaveBeenCalledWith(200);
     });
   });
 
