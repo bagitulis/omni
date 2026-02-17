@@ -142,10 +142,12 @@ services:
       - SHOPEE_PARTNER_KEY=${SHOPEE_PARTNER_KEY}
       # Frontend URL for OAuth redirects
       - FRONTEND_URL=https://yndigital.my.id
+      - FRONTEND_SOURCE_PATH=/app/frontend/src
     volumes:
       - ./backend/logs:/app/logs
       - ./backend/config/static:/app/config/static
       - ./backend/uploads:/app/uploads
+      - ./frontend/src:/app/frontend/src:ro
     networks:
       - omni-network
     depends_on:

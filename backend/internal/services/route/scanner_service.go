@@ -87,9 +87,14 @@ func (s *ScannerService) resolveBackendInternalPath() string {
 }
 
 func (s *ScannerService) resolveFrontendSourcePath() string {
+	configuredPath := strings.TrimSpace(os.Getenv("FRONTEND_SOURCE_PATH"))
+	if configuredPath != "" && s.isDirectory(configuredPath) {
+		return configuredPath
+	}
+
 	candidates := []string{
-		filepath.Join(s.basePath, "frontend", "src"),
 		filepath.Join(s.basePath, "..", "frontend", "src"),
+		filepath.Join(s.basePath, "frontend", "src"),
 		filepath.Join(s.basePath, "..", "..", "frontend", "src"),
 		filepath.Join(".", "frontend", "src"),
 		filepath.Join("..", "frontend", "src"),
