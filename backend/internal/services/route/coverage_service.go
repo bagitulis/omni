@@ -69,7 +69,7 @@ func (s *ScannerService) BuildCoverageReport(backendRoutes []RouteMapping) Cover
 		}
 
 		componentName := sourceToComponentName(call.Source)
-		componentPath := filepath.ToSlash(filepath.Join("src", "api", call.Source))
+		componentPath := filepath.ToSlash(filepath.Join("src", call.Source))
 
 		if _, exists := componentsAgg[componentName]; !exists {
 			componentsAgg[componentName] = &componentAggregate{

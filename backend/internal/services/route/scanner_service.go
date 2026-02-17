@@ -86,13 +86,13 @@ func (s *ScannerService) resolveBackendInternalPath() string {
 	return ""
 }
 
-func (s *ScannerService) resolveFrontendAPIPath() string {
+func (s *ScannerService) resolveFrontendSourcePath() string {
 	candidates := []string{
-		filepath.Join(s.basePath, "frontend", "src", "api"),
-		filepath.Join(s.basePath, "..", "frontend", "src", "api"),
-		filepath.Join(s.basePath, "..", "..", "frontend", "src", "api"),
-		filepath.Join(".", "frontend", "src", "api"),
-		filepath.Join("..", "frontend", "src", "api"),
+		filepath.Join(s.basePath, "frontend", "src"),
+		filepath.Join(s.basePath, "..", "frontend", "src"),
+		filepath.Join(s.basePath, "..", "..", "frontend", "src"),
+		filepath.Join(".", "frontend", "src"),
+		filepath.Join("..", "frontend", "src"),
 	}
 
 	for _, candidate := range candidates {

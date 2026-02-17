@@ -8,7 +8,10 @@ import (
 	"strings"
 )
 
-var frontendAPICallPattern = regexp.MustCompile("(?i)\\b(?:api|apiClient)\\.(get|post|put|patch|delete)\\s*(?:<[^>]*>)?\\s*\\(\\s*[\"'`]([^\"'`]+)[\"'`]")
+var frontendAPICallPattern = regexp.MustCompile("(?i)\\b(?:api|apiClient)(?:\\.client)?\\.(get|post|put|patch|delete)\\s*(?:<[^>]*>)?\\s*\\(\\s*[\"'`]([^\"'`]+)[\"'`]")
+var frontendFetchPattern = regexp.MustCompile("(?is)\\bfetch\\s*\\(\\s*[\"'`]([^\"'`]+)[\"'`]\\s*,\\s*\\{[^}]*\\bmethod\\s*:\\s*[\"'`](get|post|put|patch|delete)[\"'`]")
+var frontendConstPattern = regexp.MustCompile("(?m)\\bconst\\s+([A-Z][A-Z0-9_]*)\\s*=\\s*(?:\"([^\"]+)\"|'([^']+)'|`([^`]+)`)")
+var frontendPathLiteralPattern = regexp.MustCompile("(?:\"(/api/[^\"]+|/[^\"]*?/[^\"]+)\"|'(/api/[^']+|/[^']*?/[^']+)'|`(/api/[^`]+|/[^`]*?/[^`]+)`)")
 var dynamicSegmentPattern = regexp.MustCompile(`\$\{[^}]+\}`)
 var backendParamPattern = regexp.MustCompile(`:[^/]+`)
 
@@ -29,19 +32,23 @@ type FrontendScanResult struct {
 // ScanFrontendRoutes scans frontend API adapter files for route calls.
 func (s *ScannerService) ScanFrontendRoutes() FrontendScanResult {
 	result := FrontendScanResult{Routes: make([]FrontendRouteCall, 0)}
-	apiPath := s.resolveFrontendAPIPath()
-	if apiPath == "" {
-		result.Errors = append(result.Errors, "could not locate frontend src/api directory from base path")
+	sourcePath := s.resolveFrontendSourcePath()
+	if sourcePath == "" {
+		result.Errors = append(result.Errors, "could not locate frontend src directory from base path")
 		return result
 	}
 
-	err := filepath.Walk(apiPath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			result.Errors = append(result.Errors, "Error accessing "+path+": "+err.Error())
 			return nil
 		}
 
-		if info.IsDir() || !strings.HasSuffix(path, ".ts") || strings.HasSuffix(path, ".test.ts") {
+		if info.IsDir() {
+			return nil
+		}
+
+		if !isFrontendCodeFile(path) {
 			return nil
 		}
 
@@ -57,7 +64,7 @@ func (s *ScannerService) ScanFrontendRoutes() FrontendScanResult {
 			return nil
 		}
 
-		relPath, _ := filepath.Rel(apiPath, path)
+		relPath, _ := filepath.Rel(sourcePath, path)
 		routes := parseFrontendRoutes(string(content), relPath)
 		result.Routes = append(result.Routes, routes...)
 		return nil
@@ -72,8 +79,11 @@ func (s *ScannerService) ScanFrontendRoutes() FrontendScanResult {
 }
 
 func parseFrontendRoutes(content, source string) []FrontendRouteCall {
+	constMap := parseFrontendStringConstants(content)
+
 	matches := frontendAPICallPattern.FindAllStringSubmatch(content, -1)
-	routes := make([]FrontendRouteCall, 0, len(matches))
+	fetchMatches := frontendFetchPattern.FindAllStringSubmatch(content, -1)
+	routes := make([]FrontendRouteCall, 0, len(matches)+len(fetchMatches))
 
 	for _, match := range matches {
 		if len(match) < 3 {
@@ -81,7 +91,7 @@ func parseFrontendRoutes(content, source string) []FrontendRouteCall {
 		}
 
 		method := strings.ToUpper(strings.TrimSpace(match[1]))
-		endpoint := NormalizeRoutePath(match[2], true)
+		endpoint := normalizeFrontendEndpoint(match[2], constMap)
 		if endpoint == "" {
 			continue
 		}
@@ -93,7 +103,157 @@ func parseFrontendRoutes(content, source string) []FrontendRouteCall {
 		})
 	}
 
+	for _, match := range fetchMatches {
+		if len(match) < 3 {
+			continue
+		}
+
+		resolvedURL := resolveTemplateConstants(match[1], constMap)
+		method := strings.ToUpper(strings.TrimSpace(match[2]))
+		endpoint := normalizeFetchURL(resolvedURL)
+		if endpoint == "" || method == "" {
+			continue
+		}
+
+		routes = append(routes, FrontendRouteCall{
+			Method:   method,
+			Endpoint: endpoint,
+			Source:   source,
+		})
+	}
+
+	routes = append(routes, parsePathLiteralRoutes(content, source, constMap)...)
+
 	return routes
+}
+
+func isFrontendCodeFile(path string) bool {
+	lower := strings.ToLower(path)
+	if strings.HasSuffix(lower, ".test.ts") || strings.HasSuffix(lower, ".test.tsx") {
+		return false
+	}
+
+	if strings.HasSuffix(lower, ".spec.ts") || strings.HasSuffix(lower, ".spec.tsx") {
+		return false
+	}
+
+	return strings.HasSuffix(lower, ".ts") || strings.HasSuffix(lower, ".tsx")
+}
+
+func parseFrontendStringConstants(content string) map[string]string {
+	constMap := make(map[string]string)
+	matches := frontendConstPattern.FindAllStringSubmatch(content, -1)
+	for _, match := range matches {
+		if len(match) < 5 {
+			continue
+		}
+
+		name := strings.TrimSpace(match[1])
+		value := firstNonEmpty(match[2], match[3], match[4])
+		value = strings.TrimSpace(value)
+		if name == "" || value == "" {
+			continue
+		}
+
+		constMap[name] = value
+	}
+
+	return constMap
+}
+
+func normalizeFrontendEndpoint(raw string, constMap map[string]string) string {
+	resolved := resolveTemplateConstants(raw, constMap)
+	return NormalizeRoutePath(resolved, true)
+}
+
+func resolveTemplateConstants(raw string, constMap map[string]string) string {
+	resolved := strings.TrimSpace(raw)
+	for name, value := range constMap {
+		token := "${" + name + "}"
+		if strings.Contains(resolved, token) {
+			resolved = strings.ReplaceAll(resolved, token, value)
+		}
+	}
+
+	return resolved
+}
+
+func normalizeFetchURL(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+
+	if strings.HasPrefix(trimmed, "${") {
+		if closeIdx := strings.Index(trimmed, "}"); closeIdx >= 0 && closeIdx+1 < len(trimmed) {
+			suffix := trimmed[closeIdx+1:]
+			if strings.HasPrefix(suffix, "/") {
+				return NormalizeRoutePath(suffix, true)
+			}
+		}
+	}
+
+	if idx := strings.Index(trimmed, "/api/"); idx >= 0 {
+		return NormalizeRoutePath(trimmed[idx:], false)
+	}
+
+	if trimmed == "/api" {
+		return "/api"
+	}
+
+	if strings.HasPrefix(trimmed, "/") {
+		return NormalizeRoutePath(trimmed, true)
+	}
+
+	return ""
+}
+
+func parsePathLiteralRoutes(content, source string, constMap map[string]string) []FrontendRouteCall {
+	if !strings.Contains(source, "operationMappers") {
+		return nil
+	}
+
+	literals := frontendPathLiteralPattern.FindAllStringSubmatch(content, -1)
+	routes := make([]FrontendRouteCall, 0, len(literals))
+	seen := make(map[string]struct{})
+
+	for _, match := range literals {
+		if len(match) < 4 {
+			continue
+		}
+
+		pathLiteral := firstNonEmpty(match[1], match[2], match[3])
+		pathValue := resolveTemplateConstants(pathLiteral, constMap)
+		endpoint := NormalizeRoutePath(pathValue, true)
+		if endpoint == "" {
+			continue
+		}
+
+		key := "POST " + endpoint
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+
+		routes = append(routes, FrontendRouteCall{
+			Method:   "POST",
+			Endpoint: endpoint,
+			Source:   source,
+		})
+	}
+
+	return routes
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed != "" {
+			return trimmed
+		}
+	}
+
+	return ""
 }
 
 func NormalizeRoutePath(path string, ensureAPIPrefix bool) string {
