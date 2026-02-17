@@ -20,86 +20,155 @@ Object.defineProperty(window, "matchMedia", {
 });
 
 describe("PlatformIndicator", () => {
-  const mockData: PlatformIndicatorData = {
+  const baseData: PlatformIndicatorData = {
     platform: "shopee",
     linked: true,
     has_update: false,
-    sync_state: "success",
+    sync_state: "idle",
     last_synced_at: "2023-01-01T00:00:00Z",
   };
 
-  it("renders correctly for linked platform (SUCCESS state)", () => {
-    render(<PlatformIndicator data={mockData} />);
-    const indicator = screen.getByTestId("platform-indicator-shopee");
+  const renderIndicator = (overrides: Partial<PlatformIndicatorData> = {}) => {
+    const data: PlatformIndicatorData = {
+      ...baseData,
+      ...overrides,
+    };
 
-    expect(indicator).toBeInTheDocument();
+    render(<PlatformIndicator data={data} />);
+    return screen.getByTestId(`platform-indicator-${data.platform}`);
+  };
+
+  const getTooltipTrigger = (indicator: HTMLElement): HTMLElement => {
+    return indicator.parentElement ?? indicator;
+  };
+
+  it("renders emoji map for each platform", () => {
+    const { rerender } = render(<PlatformIndicator data={baseData} />);
+
+    expect(screen.getByTestId("platform-indicator-shopee")).toHaveTextContent(
+      "🟠",
+    );
+
+    rerender(<PlatformIndicator data={{ ...baseData, platform: "tiktok" }} />);
+    expect(screen.getByTestId("platform-indicator-tiktok")).toHaveTextContent(
+      "⬛",
+    );
+
+    rerender(<PlatformIndicator data={{ ...baseData, platform: "lazada" }} />);
+    expect(screen.getByTestId("platform-indicator-lazada")).toHaveTextContent(
+      "🔵",
+    );
   });
 
-  it("renders NOT_LINKED state correctly (opacity 0.2 + grayscale)", () => {
-    const notLinkedData: PlatformIndicatorData = {
-      ...mockData,
+  it("renders NOT_LINKED state, keeps tooltip visible, and enforces non-interactive behavior", async () => {
+    const handleClick = vi.fn();
+    const data: PlatformIndicatorData = {
+      ...baseData,
       linked: false,
-      sync_state: "idle",
     };
-    render(<PlatformIndicator data={notLinkedData} />);
+
+    render(<PlatformIndicator data={data} onClick={handleClick} />);
     const indicator = screen.getByTestId("platform-indicator-shopee");
 
+    expect(indicator).toHaveAttribute("data-state", "not_linked");
     expect(indicator).toHaveStyle({
       opacity: "0.2",
       filter: "grayscale(100%)",
+      cursor: "default",
     });
-  });
+    expect(indicator).toHaveAttribute("tabindex", "-1");
 
-  it("renders ERROR state correctly (red border + animation)", () => {
-    const errorData: PlatformIndicatorData = {
-      ...mockData,
-      sync_state: "error",
-      error_message: "Sync failed",
-    };
-    render(<PlatformIndicator data={errorData} />);
-    const indicator = screen.getByTestId("platform-indicator-shopee");
+    fireEvent.mouseEnter(getTooltipTrigger(indicator));
+    expect(await screen.findByText("Shopee: Not linked")).toBeInTheDocument();
 
-    // Check animation style presence
-    expect(indicator).toHaveStyle({
-      animation: "shake 0.4s ease-in-out",
-    });
-  });
-
-  it("renders SYNCING state correctly (blue border)", () => {
-    const syncingData: PlatformIndicatorData = {
-      ...mockData,
-      sync_state: "syncing",
-    };
-    render(<PlatformIndicator data={syncingData} />);
-    const indicator = screen.getByTestId("platform-indicator-shopee");
-
-    expect(indicator).toBeInTheDocument();
-  });
-
-  it("renders HAS_UPDATE state correctly (amber border)", () => {
-    const updateData: PlatformIndicatorData = {
-      ...mockData,
-      has_update: true,
-      sync_state: "success",
-    };
-    render(<PlatformIndicator data={updateData} />);
-    const indicator = screen.getByTestId("platform-indicator-shopee");
-    expect(indicator).toBeInTheDocument();
-  });
-
-  it("handles onClick event", () => {
-    const handleClick = vi.fn();
-    render(<PlatformIndicator data={mockData} onClick={handleClick} />);
-
-    const indicator = screen.getByTestId("platform-indicator-shopee");
     fireEvent.click(indicator);
+    expect(handleClick).not.toHaveBeenCalled();
+  });
 
-    expect(handleClick).toHaveBeenCalledTimes(1);
+  it("renders LINKED idle state with exact green border and check badge", () => {
+    const indicator = renderIndicator();
+
+    expect(indicator).toHaveAttribute("data-state", "linked");
+    expect(indicator).toHaveStyle({ opacity: "1" });
+    expect(indicator).toHaveStyle({ borderRadius: "3px" });
+    expect(getComputedStyle(indicator).borderColor).toBe("rgb(82, 196, 26)");
+    expect(indicator).toHaveTextContent("✓");
+  });
+
+  it("shows LINKED tooltip content on hover", async () => {
+    const indicator = renderIndicator({ last_synced_at: undefined });
+
+    fireEvent.mouseEnter(getTooltipTrigger(indicator));
+    expect(await screen.findByText("Shopee: Linked")).toBeInTheDocument();
+  });
+
+  it("renders HAS_UPDATE state with exact amber border and warning badge", () => {
+    const indicator = renderIndicator({ has_update: true });
+
+    expect(indicator).toHaveAttribute("data-state", "has_update");
+    expect(getComputedStyle(indicator).borderColor).toBe("rgb(250, 173, 20)");
+    expect(indicator).toHaveTextContent("!");
+  });
+
+  it("renders SYNCING state with exact blue border and spinner overlay", () => {
+    const indicator = renderIndicator({
+      sync_state: "syncing",
+      has_update: true,
+    });
+
+    expect(indicator).toHaveAttribute("data-state", "syncing");
+    expect(getComputedStyle(indicator).borderColor).toBe("rgb(24, 144, 255)");
+    expect(indicator.querySelector(".platform-spinner")).toBeInTheDocument();
+  });
+
+  it("renders SUCCESS state with exact green border and popIn animation", () => {
+    const indicator = renderIndicator({ sync_state: "success" });
+
+    expect(indicator).toHaveAttribute("data-state", "success");
+    expect(getComputedStyle(indicator).borderColor).toBe("rgb(82, 196, 26)");
+    expect(indicator).toHaveStyle({ animation: "popIn 0.3s ease" });
+  });
+
+  it("renders ERROR state with exact red border and shake animation", () => {
+    const indicator = renderIndicator({
+      sync_state: "error",
+      error_message: "Sync failed from API",
+    });
+
+    expect(indicator).toHaveAttribute("data-state", "error");
+    expect(getComputedStyle(indicator).borderColor).toBe("rgb(255, 77, 79)");
+    expect(indicator).toHaveStyle({ animation: "shake 0.5s ease" });
+  });
+
+  it("uses sync state precedence over linked state", () => {
+    const indicator = renderIndicator({ linked: false, sync_state: "syncing" });
+
+    expect(indicator).toHaveAttribute("data-state", "syncing");
+    expect(getComputedStyle(indicator).borderColor).toBe("rgb(24, 144, 255)");
+  });
+
+  it("triggers onClick only when linked", () => {
+    const handleClick = vi.fn();
+    const { rerender } = render(
+      <PlatformIndicator data={baseData} onClick={handleClick} />,
+    );
+
+    fireEvent.click(screen.getByTestId("platform-indicator-shopee"));
     expect(handleClick).toHaveBeenCalledWith("shopee");
+    expect(handleClick).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <PlatformIndicator
+        data={{ ...baseData, linked: false }}
+        onClick={handleClick}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("platform-indicator-shopee"));
+    expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
   it("renders small size correctly", () => {
-    render(<PlatformIndicator data={mockData} size="small" />);
+    render(<PlatformIndicator data={baseData} size="small" />);
     const indicator = screen.getByTestId("platform-indicator-shopee");
 
     expect(indicator).toHaveStyle({

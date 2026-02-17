@@ -50,6 +50,15 @@ describe("InlineEditCell", () => {
     expect(input).toHaveValue("100");
   });
 
+  it("does not enter edit mode from focus only", () => {
+    render(<InlineEditCell value={100} mode="stock" onSave={mockOnSave} />);
+
+    const displayCell = screen.getByRole("button", { name: "Edit stock" });
+    fireEvent.focus(displayCell);
+
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
   it("saves on Enter key", async () => {
     render(<InlineEditCell value={100} mode="stock" onSave={mockOnSave} />);
 
@@ -65,6 +74,13 @@ describe("InlineEditCell", () => {
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith(150);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("inline-edit-cell-display")).toHaveAttribute(
+        "data-flash-state",
+        "success",
+      );
     });
   });
 
@@ -86,7 +102,7 @@ describe("InlineEditCell", () => {
     expect(mockOnSave).not.toHaveBeenCalled();
   });
 
-  it("shows error message on invalid input", async () => {
+  it("shows validation error and error flash on invalid input", async () => {
     render(
       <InlineEditCell value={100} mode="stock" onSave={mockOnSave} min={0} />,
     );
@@ -101,6 +117,10 @@ describe("InlineEditCell", () => {
     expect(
       await screen.findByText("Value must be at least 0"),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("inline-edit-cell-edit")).toHaveAttribute(
+      "data-flash-state",
+      "error",
+    );
     expect(mockOnSave).not.toHaveBeenCalled();
   });
 
@@ -116,6 +136,38 @@ describe("InlineEditCell", () => {
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith(120);
     });
+  });
+
+  it("cancels from cancel action without triggering blur save", async () => {
+    render(<InlineEditCell value={100} mode="stock" onSave={mockOnSave} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit stock" }));
+    const input = screen.getByRole("textbox");
+
+    fireEvent.change(input, { target: { value: "130" } });
+    fireEvent.click(screen.getByLabelText("Cancel edit"));
+
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.getByText("100")).toBeInTheDocument();
+    expect(mockOnSave).not.toHaveBeenCalled();
+  });
+
+  it("shows error flash and stays in edit mode when save fails", async () => {
+    mockOnSave = vi.fn().mockRejectedValue(new Error("Network error"));
+
+    render(<InlineEditCell value={100} mode="stock" onSave={mockOnSave} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit stock" }));
+    const input = screen.getByRole("textbox");
+    fireEvent.change(input, { target: { value: "110" } });
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+
+    expect(await screen.findByText("Network error")).toBeInTheDocument();
+    expect(screen.getByTestId("inline-edit-cell-edit")).toHaveAttribute(
+      "data-flash-state",
+      "error",
+    );
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
   });
 
   it("handles disabled state", () => {

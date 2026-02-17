@@ -1,81 +1,167 @@
 import React from "react";
-import { Button, Space, Tooltip, Divider } from "antd";
-import { CloseOutlined } from "@ant-design/icons";
-import { BatchActionItem, BatchActionType } from "@/types/shared";
+import { Button, Divider, Space, Tooltip, Typography, theme } from "antd";
+import {
+  CloseOutlined,
+  CopyOutlined,
+  DeleteOutlined,
+  DollarOutlined,
+  FieldNumberOutlined,
+  ShopOutlined,
+  SyncOutlined,
+} from "@ant-design/icons";
+import type { BatchActionType } from "@/types/shared";
 
 export interface UnifiedBatchBarProps {
   selectedCount: number;
-  actions: BatchActionItem[];
   onAction: (actionKey: BatchActionType) => void;
-  onClear: () => void;
-  className?: string;
-  style?: React.CSSProperties;
+  onClearSelection: () => void;
+  disabledActions?: Partial<Record<BatchActionType, string>>;
 }
+
+interface UnifiedBatchAction {
+  key: BatchActionType;
+  label: string;
+  icon: React.ReactNode;
+  danger?: boolean;
+  tooltip: string;
+}
+
+const UNIFIED_BATCH_ACTIONS: UnifiedBatchAction[] = [
+  {
+    key: "sync_stock",
+    label: "Sync Stock",
+    icon: <SyncOutlined />,
+    tooltip: "Sync stock to selected marketplaces",
+  },
+  {
+    key: "update_price",
+    label: "Update Price",
+    icon: <DollarOutlined />,
+    tooltip: "Update price on all linked marketplaces",
+  },
+  {
+    key: "wholesale",
+    label: "Wholesale",
+    icon: <ShopOutlined />,
+    tooltip: "Set wholesale tiers (Shopee only)",
+  },
+  {
+    key: "mpq",
+    label: "MPQ",
+    icon: <FieldNumberOutlined />,
+    tooltip: "Set minimum purchase quantity (Shopee + TikTok)",
+  },
+  {
+    key: "clone",
+    label: "Clone",
+    icon: <CopyOutlined />,
+    tooltip: "Clone products to other platforms",
+  },
+  {
+    key: "delete_wholesale",
+    label: "Del Wholesale",
+    icon: <DeleteOutlined />,
+    danger: true,
+    tooltip: "Delete wholesale configs (Shopee only)",
+  },
+  {
+    key: "delete_products",
+    label: "Delete",
+    icon: <DeleteOutlined />,
+    danger: true,
+    tooltip: "Delete selected products",
+  },
+];
 
 export const UnifiedBatchBar: React.FC<UnifiedBatchBarProps> = ({
   selectedCount,
-  actions,
   onAction,
-  onClear,
-  className,
-  style,
+  onClearSelection,
+  disabledActions = {},
 }) => {
+  const { token } = theme.useToken();
+
   if (selectedCount <= 0) {
     return null;
   }
 
   return (
     <div
-      className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-white shadow-lg rounded-lg border border-gray-200 px-6 py-3 flex items-center justify-between gap-6 transition-all duration-300 ease-in-out ${className || ""}`}
       style={{
-        minWidth: "400px",
-        maxWidth: "90vw",
-        ...style,
+        position: "fixed",
+        bottom: 24,
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 1000,
+        backgroundColor: token.colorBgElevated,
+        borderRadius: 3,
+        boxShadow: token.boxShadowSecondary,
+        border: `1px solid ${token.colorBorderSecondary}`,
+        padding: "12px 16px",
+        maxWidth: "calc(100vw - 48px)",
+        overflowX: "auto",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
       }}
       role="toolbar"
-      aria-label="Batch Actions"
+      aria-label="Batch actions"
     >
-      <div className="flex items-center gap-4">
-        <Space>
-          <div className="bg-blue-50 text-blue-600 font-semibold px-3 py-1 rounded-full text-sm">
-            {selectedCount} Selected
-          </div>
-          <Button
-            type="text"
-            size="small"
-            icon={<CloseOutlined />}
-            onClick={onClear}
-            className="text-gray-500 hover:text-gray-700"
-            aria-label="Clear selection"
-          >
-            Clear
-          </Button>
-        </Space>
-      </div>
+      <Typography.Text
+        strong
+        style={{ color: token.colorPrimary, whiteSpace: "nowrap" }}
+      >
+        {selectedCount} selected
+      </Typography.Text>
 
-      <Divider type="vertical" className="h-6" />
+      <Divider type="vertical" style={{ height: 24, margin: 0 }} />
 
-      <Space size="small" wrap className="justify-end">
-        {actions.map((action) => (
-          <Tooltip
-            key={action.key}
-            title={action.disabled ? "Not available" : action.label}
-          >
+      <Space size={8} wrap>
+        {UNIFIED_BATCH_ACTIONS.map((action) => {
+          const isDisabled = Object.prototype.hasOwnProperty.call(
+            disabledActions,
+            action.key,
+          );
+          const disabledReason = disabledActions[action.key];
+
+          const actionButton = (
             <Button
-              type={action.danger ? "primary" : "default"}
-              danger={action.danger}
+              size="small"
               icon={action.icon}
-              disabled={action.disabled}
+              danger={action.danger}
+              disabled={isDisabled}
               onClick={() => onAction(action.key)}
-              className={
-                action.danger ? "" : "hover:border-blue-500 hover:text-blue-500"
-              }
+              aria-label={action.label}
             >
               {action.label}
             </Button>
-          </Tooltip>
-        ))}
+          );
+
+          return (
+            <Tooltip
+              key={action.key}
+              title={
+                isDisabled
+                  ? (disabledReason ?? "This action is unavailable")
+                  : action.tooltip
+              }
+            >
+              <span>{actionButton}</span>
+            </Tooltip>
+          );
+        })}
       </Space>
+
+      <Button
+        type="text"
+        size="small"
+        icon={<CloseOutlined />}
+        onClick={onClearSelection}
+        aria-label="Clear selection"
+        style={{ marginLeft: "auto" }}
+      >
+        Clear
+      </Button>
     </div>
   );
 };
