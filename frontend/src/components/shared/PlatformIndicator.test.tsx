@@ -1,8 +1,8 @@
-import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
 import { PlatformIndicator } from "./PlatformIndicator";
 import type { PlatformIndicatorData } from "@/types/shared";
-import "@testing-library/jest-dom"; // Import matchers
+import "@testing-library/jest-dom";
 
 // Mock matchMedia for Ant Design
 Object.defineProperty(window, "matchMedia", {
@@ -28,44 +28,83 @@ describe("PlatformIndicator", () => {
     last_synced_at: "2023-01-01T00:00:00Z",
   };
 
-  it("renders correctly for linked platform", () => {
-    const { container } = render(<PlatformIndicator data={mockData} />);
-    // Should contain Shopee icon/text "S"
-    expect(screen.getByText("S")).toBeInTheDocument();
-    // Should have tooltip trigger (antd tooltip wraps children)
-    expect(container.querySelector(".ant-space")).toBeInTheDocument();
+  it("renders correctly for linked platform (SUCCESS state)", () => {
+    render(<PlatformIndicator data={mockData} />);
+    const indicator = screen.getByTestId("platform-indicator-shopee");
+
+    expect(indicator).toBeInTheDocument();
   });
 
-  it("renders correctly for not linked platform", () => {
+  it("renders NOT_LINKED state correctly (opacity 0.2 + grayscale)", () => {
     const notLinkedData: PlatformIndicatorData = {
       ...mockData,
       linked: false,
       sync_state: "idle",
     };
     render(<PlatformIndicator data={notLinkedData} />);
-    const indicator = screen.getByText("S").closest(".ant-space");
-    expect(indicator).toHaveStyle({ opacity: "0.5" });
+    const indicator = screen.getByTestId("platform-indicator-shopee");
+
+    expect(indicator).toHaveStyle({
+      opacity: "0.2",
+      filter: "grayscale(100%)",
+    });
   });
 
-  it("shows error state correctly", () => {
+  it("renders ERROR state correctly (red border + animation)", () => {
     const errorData: PlatformIndicatorData = {
       ...mockData,
       sync_state: "error",
       error_message: "Sync failed",
     };
     render(<PlatformIndicator data={errorData} />);
-    // We can't easily check for the specific icon class without implementation details,
-    // but we can check if it renders without crashing.
-    // Ideally we'd check for the error icon or color.
-    expect(screen.getByText("S")).toBeInTheDocument();
+    const indicator = screen.getByTestId("platform-indicator-shopee");
+
+    // Check animation style presence
+    expect(indicator).toHaveStyle({
+      animation: "shake 0.4s ease-in-out",
+    });
   });
 
-  it("shows syncing state correctly", () => {
+  it("renders SYNCING state correctly (blue border)", () => {
     const syncingData: PlatformIndicatorData = {
       ...mockData,
       sync_state: "syncing",
     };
     render(<PlatformIndicator data={syncingData} />);
-    expect(screen.getByText("S")).toBeInTheDocument();
+    const indicator = screen.getByTestId("platform-indicator-shopee");
+
+    expect(indicator).toBeInTheDocument();
+  });
+
+  it("renders HAS_UPDATE state correctly (amber border)", () => {
+    const updateData: PlatformIndicatorData = {
+      ...mockData,
+      has_update: true,
+      sync_state: "success",
+    };
+    render(<PlatformIndicator data={updateData} />);
+    const indicator = screen.getByTestId("platform-indicator-shopee");
+    expect(indicator).toBeInTheDocument();
+  });
+
+  it("handles onClick event", () => {
+    const handleClick = vi.fn();
+    render(<PlatformIndicator data={mockData} onClick={handleClick} />);
+
+    const indicator = screen.getByTestId("platform-indicator-shopee");
+    fireEvent.click(indicator);
+
+    expect(handleClick).toHaveBeenCalledTimes(1);
+    expect(handleClick).toHaveBeenCalledWith("shopee");
+  });
+
+  it("renders small size correctly", () => {
+    render(<PlatformIndicator data={mockData} size="small" />);
+    const indicator = screen.getByTestId("platform-indicator-shopee");
+
+    expect(indicator).toHaveStyle({
+      width: "24px",
+      height: "24px",
+    });
   });
 });

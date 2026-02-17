@@ -1,18 +1,19 @@
-import { Tooltip, Space, theme } from "antd";
-
+import React from "react";
+import { Tooltip, theme } from "antd";
 import {
   CheckCircleFilled,
   CloseCircleFilled,
   ExclamationCircleFilled,
   LoadingOutlined,
   DisconnectOutlined,
-  LinkOutlined,
 } from "@ant-design/icons";
 import type { PlatformIndicatorData, Platform } from "@/types/shared";
 
-interface PlatformIndicatorProps {
+export interface PlatformIndicatorProps {
   data: PlatformIndicatorData;
-  showLabel?: boolean;
+  size?: "small" | "default";
+  onClick?: (platform: Platform) => void;
+  showLabel?: boolean; // Kept for backward compatibility
 }
 
 const PLATFORM_CONFIG: Record<
@@ -26,96 +27,133 @@ const PLATFORM_CONFIG: Record<
 
 export function PlatformIndicator({
   data,
-  showLabel = false,
+  size = "default",
+  onClick,
 }: PlatformIndicatorProps) {
   const { token } = theme.useToken();
   const config = PLATFORM_CONFIG[data.platform];
 
-  // Determine visual state
-  let statusColor = token.colorTextDisabled; // Default/Not Linked
-  let statusIcon = <DisconnectOutlined />;
-  let tooltipText = `${config.label}: Not Linked`;
+  const sizePx = size === "small" ? 24 : 32;
+  const fontSize = size === "small" ? 10 : 12;
+  const badgeSize = size === "small" ? 10 : 12;
 
-  if (data.linked) {
-    switch (data.sync_state) {
-      case "success":
-        statusColor = config.color; // Brand color when healthy
-        statusIcon = <CheckCircleFilled />;
-        tooltipText = `${config.label}: Synced`;
-        break;
-      case "syncing":
-        statusColor = token.colorPrimary;
-        statusIcon = <LoadingOutlined />;
-        tooltipText = `${config.label}: Syncing...`;
-        break;
-      case "error":
-        statusColor = token.colorError;
-        statusIcon = <CloseCircleFilled />;
-        tooltipText = `${config.label}: Error - ${data.error_message || "Unknown error"}`;
-        break;
-      default:
-        statusColor = config.color;
-        statusIcon = <LinkOutlined />;
-        tooltipText = `${config.label}: Linked`;
+  // Visual State Logic
+  const containerStyle: React.CSSProperties = {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: sizePx,
+    height: sizePx,
+    borderRadius: "6px", // <= 3-6px
+    border: `1px solid ${token.colorBorder}`, // default border
+    backgroundColor: token.colorBgContainer,
+    transition: "all 0.2s ease-in-out",
+    cursor: onClick ? "pointer" : "default",
+    overflow: "visible",
+  };
+
+  let badgeIcon: React.ReactNode = null;
+  const badgeStyle: React.CSSProperties = {
+    position: "absolute",
+    bottom: -4,
+    right: -4,
+    backgroundColor: token.colorBgContainer,
+    borderRadius: "50%",
+    width: badgeSize + 2,
+    height: badgeSize + 2,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: badgeSize,
+    lineHeight: 1,
+    zIndex: 1,
+  };
+
+  let tooltipText = config.label;
+  const platformIconStyle: React.CSSProperties = {
+    color: config.color,
+    fontSize: fontSize + 4,
+    fontWeight: 700,
+  };
+
+  // 1. NOT_LINKED: opacity 0.2 + grayscale(100%)
+  if (!data.linked) {
+    containerStyle.opacity = 0.2;
+    containerStyle.filter = "grayscale(100%)";
+    tooltipText = `${config.label}: Not Linked`;
+    badgeIcon = (
+      <DisconnectOutlined
+        style={{ fontSize: badgeSize, color: token.colorTextDisabled }}
+      />
+    );
+  } else {
+    // Linked base state
+    containerStyle.backgroundColor = token.colorBgContainer;
+
+    if (data.sync_state === "error") {
+      // 6. ERROR: red border + shake animation + error tooltip
+      containerStyle.borderColor = token.colorError;
+      containerStyle.animation = "shake 0.4s ease-in-out";
+      tooltipText = `Error: ${data.error_message || "Sync failed"}`;
+      badgeIcon = <CloseCircleFilled style={{ color: token.colorError }} />;
+    } else if (data.sync_state === "syncing") {
+      // 4. SYNCING: blue border + spinner overlay
+      containerStyle.borderColor = token.colorPrimary;
+      tooltipText = "Syncing...";
+      badgeIcon = <LoadingOutlined style={{ color: token.colorPrimary }} />;
+    } else if (data.has_update) {
+      // 3. HAS_UPDATE: amber border + exclamation badge
+      containerStyle.borderColor = token.colorWarning;
+      tooltipText = "Update Available";
+      badgeIcon = (
+        <ExclamationCircleFilled style={{ color: token.colorWarning }} />
+      );
+    } else if (data.sync_state === "success") {
+      // 5. SUCCESS: green border + popIn animation
+      containerStyle.borderColor = token.colorSuccess;
+      containerStyle.animation =
+        "popIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)";
+      tooltipText = "Synced";
+      badgeIcon = <CheckCircleFilled style={{ color: token.colorSuccess }} />;
+    } else {
+      // 2. LINKED idle: green border (implied by success usually, but if just linked without success/error...)
+      // Fallback for "idle" but linked
+      containerStyle.borderColor = token.colorSuccess;
+      badgeIcon = <CheckCircleFilled style={{ color: token.colorSuccess }} />;
     }
-  }
-
-  // Handle specific "pending" link status if needed, though derivePlatformStatus maps it to syncing
-  if (data.has_update && data.sync_state !== "syncing") {
-    statusIcon = <ExclamationCircleFilled />;
-    statusColor = token.colorWarning;
-    tooltipText = `${config.label}: Update Available`;
   }
 
   return (
     <Tooltip title={tooltipText}>
-      <Space
-        align="center"
-        size={4}
-        style={{
-          cursor: "help",
-          opacity: data.linked ? 1 : 0.5,
-          transition: "all 0.2s",
+      {/* Interactive elements must be focusable and have semantics */}
+      <div
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : -1}
+        style={containerStyle}
+        onClick={() => onClick?.(data.platform)}
+        onKeyDown={(e) => {
+          if (onClick && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            onClick(data.platform);
+          }
         }}
+        data-testid={`platform-indicator-${data.platform}`}
       >
-        {/* Platform Icon/Badge */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 24,
-            height: 24,
-            borderRadius: "50%",
-            backgroundColor: data.linked
-              ? config.color
-              : token.colorFillSecondary,
-            color: data.linked ? "#fff" : token.colorTextDisabled,
-            fontSize: 12,
-            fontWeight: 600,
-            border: `1px solid ${data.linked ? "transparent" : token.colorBorder}`,
-          }}
-        >
-          {config.icon}
-        </div>
-
-        {/* Status Indicator (Small overlay or side icon) */}
-        <div style={{ color: statusColor, fontSize: 14, lineHeight: 1 }}>
-          {statusIcon}
-        </div>
-
-        {/* Optional Label */}
-        {showLabel && (
-          <span
-            style={{
-              color: data.linked ? token.colorText : token.colorTextDisabled,
-              fontSize: token.fontSizeSM,
-            }}
-          >
-            {config.label}
-          </span>
-        )}
-      </Space>
+        <span style={platformIconStyle}>{config.icon}</span>
+        {badgeIcon && <div style={badgeStyle}>{badgeIcon}</div>}
+      </div>
+      <style>{`
+        @keyframes popIn {
+          0% { transform: scale(0.8); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+          20%, 40%, 60%, 80% { transform: translateX(2px); }
+        }
+      `}</style>
     </Tooltip>
   );
 }
