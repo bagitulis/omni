@@ -24,9 +24,12 @@ import {
   GalleryImage,
   GalleryPaginationMeta,
   getImageUrl,
-} from "@/types/shared";
+} from "../../types/shared";
 
 const { Text } = Typography;
+
+// Stable empty array to prevent infinite render loop
+const EMPTY_SELECTED: GalleryImage[] = [];
 
 interface ImageGalleryPickerProps {
   open: boolean;
@@ -46,14 +49,15 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
   onClose,
   onConfirm,
   maxSelect = 8,
-  initialSelected = [],
+  initialSelected,
 }) => {
   const { token } = theme.useToken();
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedImages, setSelectedImages] =
-    useState<GalleryImage[]>(initialSelected);
+  const [selectedImages, setSelectedImages] = useState<GalleryImage[]>(
+    initialSelected ?? EMPTY_SELECTED,
+  );
   const [meta, setMeta] = useState<GalleryPaginationMeta>({
     page: 1,
     pages: 1,
@@ -100,7 +104,8 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
-      setSelectedImages(initialSelected);
+      const selected = initialSelected ?? EMPTY_SELECTED;
+      setSelectedImages(selected);
       fetchImages(1, searchQuery);
     } else {
       document.body.style.overflow = "";
@@ -191,7 +196,7 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
       width="90%"
       style={{ maxWidth: 900, top: 20 }}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
       maskClosable={false} // Prevent accidental close during selection
       classNames={{
         body: "gallery-modal-body",
@@ -307,7 +312,7 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
                   style={{
                     position: "relative",
                     aspectRatio: "1",
-                    borderRadius: token.borderRadius,
+                    borderRadius: 3,
                     overflow: "hidden",
                     cursor: "pointer",
                     border: selected
@@ -318,7 +323,7 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
                   }}
                 >
                   <img
-                    src={getImageUrl(img.local_path, "medium")}
+                    src={getImageUrl(img.local_path, "thumb")}
                     alt={img.filename}
                     loading="lazy"
                     style={{
@@ -394,12 +399,8 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
           style={{ display: "flex", gap: token.margin, alignItems: "center" }}
         >
           <Text strong>
-            {selectedImages.length}{" "}
-            {selectedImages.length === 1 ? "image" : "images"} selected
+            {selectedImages.length} / {maxSelect} selected
           </Text>
-          {maxSelect < Infinity && (
-            <Text type="secondary">(Max {maxSelect})</Text>
-          )}
         </div>
 
         <div
