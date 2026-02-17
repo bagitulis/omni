@@ -1,135 +1,134 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import "@testing-library/jest-dom";
 import { ColumnManager } from "./ColumnManager";
 import type { ColumnConfig } from "@/types/shared";
-import { vi, describe, it, expect } from "vitest";
 
-// Mock Ant Design Icon components
-vi.mock("@ant-design/icons", () => ({
-  SettingOutlined: () => <span data-testid="icon-setting" />,
-  HolderOutlined: () => <span data-testid="icon-holder" />,
-  LockOutlined: () => <span data-testid="icon-lock" />,
-  ReloadOutlined: () => <span data-testid="icon-reload" />,
-}));
-
-// Match media mock for Ant Design
-window.matchMedia =
-  window.matchMedia ||
-  function () {
-    return {
-      matches: false,
-      addListener: function () {},
-      removeListener: function () {},
-    };
-  };
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: vi.fn().mockImplementation((query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
 
 describe("ColumnManager", () => {
-  const mockColumns: ColumnConfig[] = [
-    {
-      key: "id",
-      title: "ID",
-      visible: true,
-      locked: true,
-      order: 0,
-      width: 50,
-    },
+  const columns: ColumnConfig[] = [
+    { key: "sku", title: "SKU", visible: true, order: 2 },
     {
       key: "name",
       title: "Product Name",
       visible: true,
-      locked: false,
-      order: 1,
-      width: 200,
+      locked: true,
+      order: 0,
     },
-    {
-      key: "sku",
-      title: "SKU",
-      visible: false,
-      locked: false,
-      order: 2,
-      width: 100,
-    },
+    { key: "stock", title: "Stock", visible: false, order: 1 },
   ];
 
-  const mockOnChange = vi.fn();
-  const mockOnReset = vi.fn();
+  const onChange = vi.fn<(columns: ColumnConfig[]) => void>();
+  const onReset = vi.fn();
 
-  const setup = () => {
-    return render(
-      <ColumnManager
-        columns={mockColumns}
-        onChange={mockOnChange}
-        onReset={mockOnReset}
-      />,
+  const setup = () =>
+    render(
+      <ColumnManager columns={columns} onChange={onChange} onReset={onReset} />,
     );
+
+  const openPopover = async () => {
+    fireEvent.click(screen.getByTestId("column-manager-trigger"));
+    await screen.findByTestId("column-manager-content");
   };
 
-  it("renders trigger button", () => {
-    setup();
-    expect(screen.getByTestId("column-manager-trigger")).toBeTruthy();
+  beforeEach(() => {
+    onChange.mockReset();
+    onReset.mockReset();
   });
 
-  it("opens popover on click", async () => {
+  it("opens popover from settings button and sorts rows by order", async () => {
     setup();
-    const button = screen.getByTestId("column-manager-trigger");
-    fireEvent.click(button);
+    await openPopover();
 
-    // Wait for popover content
-    expect(await screen.findByText("Column Settings")).toBeTruthy();
-    expect(screen.getByText("ID")).toBeTruthy();
-    expect(screen.getByText("Product Name")).toBeTruthy();
-    expect(screen.getByText("SKU")).toBeTruthy();
+    const orderedRows = screen
+      .getAllByTestId(/column-row-/)
+      .map((row) => row.getAttribute("data-testid"));
+
+    expect(orderedRows).toEqual([
+      "column-row-name",
+      "column-row-stock",
+      "column-row-sku",
+    ]);
   });
 
-  it("handles visibility toggle for unlocked columns", async () => {
+  it("toggles visibility for unlocked columns", async () => {
     setup();
-    fireEvent.click(screen.getByTestId("column-manager-trigger"));
+    await openPopover();
 
-    const nameLabel = await screen.findByText("Product Name");
-    fireEvent.click(nameLabel);
+    fireEvent.click(screen.getByTestId("column-checkbox-stock"));
 
-    expect(mockOnChange).toHaveBeenCalled();
-    const calledArgs = mockOnChange.mock.calls[0][0] as ColumnConfig[];
-    const nameCol = calledArgs.find((c) => c.key === "name");
-    expect(nameCol?.visible).toBe(false); // Was true, toggled to false
+    expect(onChange).toHaveBeenCalledTimes(1);
+    const nextColumns = onChange.mock.calls[0][0];
+    const stockColumn = nextColumns.find((column) => column.key === "stock");
+
+    expect(stockColumn?.visible).toBe(true);
   });
 
-  it("renders locked columns with lock icon", async () => {
+  it("enforces lock constraints: non-draggable, disabled checkbox, locked marker", async () => {
     setup();
-    fireEvent.click(screen.getByTestId("column-manager-trigger"));
+    await openPopover();
 
-    // The ID column is locked, so it should have a lock icon
-    // We mocked LockOutlined to render <span data-testid="icon-lock" />
-    // It should be visible near the "ID" text
+    const lockedRow = screen.getByTestId("column-row-name");
+    const lockedCheckbox = screen.getByRole("checkbox", {
+      name: /Product Name/i,
+    });
 
-    expect(screen.getAllByTestId("icon-lock").length).toBeGreaterThan(0);
-    expect(screen.getByText("ID")).toBeTruthy();
+    expect(lockedRow).toHaveAttribute("draggable", "false");
+    expect(lockedCheckbox).toBeDisabled();
+    expect(screen.getByTestId("column-locked-marker-name")).toBeInTheDocument();
 
-    // We trust the implementation handles the disabled state correctly
-    // as verified by code review (explicit disabled={true} and onChange no-op)
+    fireEvent.click(lockedCheckbox);
+    expect(onChange).not.toHaveBeenCalled();
   });
 
-  it("calls onReset when reset button clicked", async () => {
+  it("reorders non-locked rows with native drag events", async () => {
     setup();
-    fireEvent.click(screen.getByTestId("column-manager-trigger"));
+    await openPopover();
 
-    const resetButton = await screen.findByText("Reset Defaults");
-    fireEvent.click(resetButton);
+    const skuRow = screen.getByTestId("column-row-sku");
+    const stockRow = screen.getByTestId("column-row-stock");
+    const dataTransfer = {
+      effectAllowed: "all",
+      dropEffect: "move",
+      setData: vi.fn(),
+      getData: vi.fn(),
+      clearData: vi.fn(),
+    } as unknown as DataTransfer;
 
-    expect(mockOnReset).toHaveBeenCalled();
+    fireEvent.dragStart(skuRow, { dataTransfer });
+    fireEvent.dragOver(stockRow, { dataTransfer });
+    fireEvent.dragEnd(skuRow, { dataTransfer });
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    const reordered = onChange.mock.calls[0][0];
+
+    expect(reordered.map((column) => column.key)).toEqual([
+      "name",
+      "sku",
+      "stock",
+    ]);
+    expect(reordered.map((column) => column.order)).toEqual([0, 1, 2]);
   });
 
-  it("renders drag handles and attributes correctly", async () => {
+  it("invokes reset callback from reset button", async () => {
     setup();
-    fireEvent.click(screen.getByTestId("column-manager-trigger"));
+    await openPopover();
 
-    // Wait for items to be visible
-    const nameItem = await screen.findByTestId("column-item-name");
-    const idItem = screen.getByTestId("column-item-id");
+    fireEvent.click(screen.getByTestId("column-reset-button"));
 
-    // Locked item should not be draggable
-    expect(idItem.getAttribute("draggable")).toBe("false");
-
-    // Unlocked item should be draggable
-    expect(nameItem.getAttribute("draggable")).toBe("true");
+    expect(onReset).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,19 +1,10 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import { Button, Checkbox, Popover, Tooltip, Typography, theme } from "antd";
 import {
-  Button,
-  Popover,
-  List,
-  Checkbox,
-  Tooltip,
-  Typography,
-  Space,
-  theme,
-} from "antd";
-import {
-  SettingOutlined,
   HolderOutlined,
   LockOutlined,
-  ReloadOutlined,
+  SettingOutlined,
+  UndoOutlined,
 } from "@ant-design/icons";
 import type { ColumnConfig } from "@/types/shared";
 
@@ -29,84 +20,85 @@ export const ColumnManager: React.FC<ColumnManagerProps> = ({
   onReset,
 }) => {
   const { token } = theme.useToken();
-  const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
-  const [dragOverItemIndex, setDragOverItemIndex] = useState<number | null>(
-    null,
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  const sortedColumns = useMemo(
+    () => [...columns].sort((a, b) => a.order - b.order),
+    [columns],
   );
 
-  // Filter and sort columns by order to display them correctly
-  const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
-
-  const handleToggle = (key: string) => {
-    // Check if column is locked before doing anything
-    const column = columns.find((c) => c.key === key);
-    if (column?.locked) return;
-
-    const newColumns = columns.map((col) => {
-      if (col.key === key) {
-        return { ...col, visible: !col.visible };
+  const toggleColumnVisibility = (columnKey: string) => {
+    const nextColumns = columns.map((column) => {
+      if (column.key !== columnKey || column.locked) {
+        return column;
       }
-      return col;
+
+      return {
+        ...column,
+        visible: !column.visible,
+      };
     });
-    onChange(newColumns);
+
+    onChange(nextColumns);
   };
 
-  const onDragStart = (e: React.DragEvent, index: number) => {
-    // Prevent dragging locked columns
-    if (sortedColumns[index].locked) {
-      e.preventDefault();
+  const reorderColumns = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) {
       return;
     }
-    setDraggedItemIndex(index);
-    // Required for Firefox
-    e.dataTransfer.effectAllowed = "move";
-    // Set a transparent drag image or similar if desired, but default is usually fine
+
+    const fromColumn = sortedColumns[fromIndex];
+    const toColumn = sortedColumns[toIndex];
+
+    if (!fromColumn || !toColumn || fromColumn.locked || toColumn.locked) {
+      return;
+    }
+
+    const nextColumns = [...sortedColumns];
+    const [movedColumn] = nextColumns.splice(fromIndex, 1);
+    nextColumns.splice(toIndex, 0, movedColumn);
+
+    onChange(
+      nextColumns.map((column, index) => ({
+        ...column,
+        order: index,
+      })),
+    );
   };
 
-  const onDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault(); // Necessary to allow dropping
-    if (draggedItemIndex === null) return;
-    if (sortedColumns[index].locked) return; // Cannot drop onto/swap with locked column
+  const handleDragStart = (
+    event: React.DragEvent<HTMLElement>,
+    index: number,
+  ) => {
+    if (sortedColumns[index]?.locked) {
+      event.preventDefault();
+      return;
+    }
 
-    setDragOverItemIndex(index);
+    event.dataTransfer.effectAllowed = "move";
+    setDragIndex(index);
   };
 
-  const onDragEnd = () => {
-    setDraggedItemIndex(null);
-    setDragOverItemIndex(null);
+  const handleDragOver = (
+    event: React.DragEvent<HTMLElement>,
+    index: number,
+  ) => {
+    event.preventDefault();
+
+    if (dragIndex === null) {
+      return;
+    }
+
+    reorderColumns(dragIndex, index);
+    setDragIndex(index);
   };
 
-  const onDrop = (e: React.DragEvent, dropIndex: number) => {
-    e.preventDefault();
-    if (draggedItemIndex === null) return;
-    if (draggedItemIndex === dropIndex) return;
-
-    // Perform the reorder
-    const newOrderedColumns = [...sortedColumns];
-    const [draggedItem] = newOrderedColumns.splice(draggedItemIndex, 1);
-    newOrderedColumns.splice(dropIndex, 0, draggedItem);
-
-    // Update the 'order' property for all columns based on new index
-    const updatedColumns = newOrderedColumns.map((col, index) => ({
-      ...col,
-      order: index,
-    }));
-
-    // We need to pass back the full list including any that might have been filtered out
-    // But here we are working with all columns (just sorted).
-    // So we just need to ensure we map back to the original full set if 'sortedColumns' wasn't all.
-    // In this component, we assume 'columns' prop contains all columns.
-
-    // Re-merge with original unsorted list isn't needed if we reconstruct 'columns' from 'updatedColumns'
-    // essentially we are replacing the whole state.
-    onChange(updatedColumns);
-
-    setDraggedItemIndex(null);
-    setDragOverItemIndex(null);
+  const handleDragEnd = () => {
+    setDragIndex(null);
   };
 
   const content = (
-    <div style={{ width: 300 }}>
+    <div style={{ width: 240 }} data-testid="column-manager-content">
       <div
         style={{
           display: "flex",
@@ -117,127 +109,94 @@ export const ColumnManager: React.FC<ColumnManagerProps> = ({
           paddingBottom: token.paddingXS,
         }}
       >
-        <Typography.Text strong>Column Settings</Typography.Text>
-        <Button
-          type="text"
-          size="small"
-          icon={<ReloadOutlined />}
-          onClick={onReset}
-          style={{ fontSize: token.fontSizeSM }}
-        >
-          Reset Defaults
-        </Button>
+        <Typography.Text strong style={{ fontSize: token.fontSize }}>
+          Columns
+        </Typography.Text>
+        <Tooltip title="Reset to default columns">
+          <Button
+            type="text"
+            size="small"
+            icon={<UndoOutlined />}
+            onClick={onReset}
+            aria-label="Reset columns"
+            data-testid="column-reset-button"
+          />
+        </Tooltip>
       </div>
 
-      <List
-        size="small"
-        dataSource={sortedColumns}
-        renderItem={(item, index) => {
-          const isLocked = !!item.locked;
-          const isDragging = draggedItemIndex === index;
-          const isDragOver = dragOverItemIndex === index;
+      <ul
+        style={{
+          maxHeight: 300,
+          overflowY: "auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+          listStyle: "none",
+          margin: 0,
+          padding: 0,
+        }}
+      >
+        {sortedColumns.map((column, index) => {
+          const isLocked = Boolean(column.locked);
+          const isDragging = dragIndex === index;
 
           return (
-            <List.Item
-              style={{
-                padding: "8px 0",
-                backgroundColor: isDragOver
-                  ? token.colorBgLayout
-                  : "transparent",
-                opacity: isDragging ? 0.5 : 1,
-                cursor: isLocked ? "default" : "move",
-                borderBottom: isDragOver
-                  ? `2px solid ${token.colorPrimary}`
-                  : "none",
-                transition: "all 0.2s",
-              }}
+            <li
+              key={column.key}
               draggable={!isLocked}
-              onDragStart={(e) => onDragStart(e, index)}
-              onDragOver={(e) => onDragOver(e, index)}
-              onDragEnd={onDragEnd}
-              onDrop={(e) => onDrop(e, index)}
-              // Add data-testid for testing
-              data-testid={`column-item-${item.key}`}
+              onDragStart={(event) => handleDragStart(event, index)}
+              onDragOver={(event) => handleDragOver(event, index)}
+              onDragEnd={handleDragEnd}
+              data-testid={`column-row-${column.key}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 4px",
+                borderRadius: 3,
+                background: isDragging ? token.colorFillAlter : "transparent",
+                opacity: isDragging ? 0.6 : 1,
+                cursor: isLocked ? "default" : "grab",
+              }}
             >
-              <div
+              <span
                 style={{
-                  display: "flex",
+                  display: "inline-flex",
                   alignItems: "center",
-                  width: "100%",
+                  color: isLocked
+                    ? token.colorTextQuaternary
+                    : token.colorTextSecondary,
+                  width: 14,
                 }}
+                data-testid={`drag-handle-${column.key}`}
+                aria-hidden="true"
               >
-                {/* Drag Handle */}
-                <span
-                  style={{
-                    marginRight: token.marginXS,
-                    color: isLocked
-                      ? token.colorTextQuaternary
-                      : token.colorTextSecondary,
-                    cursor: isLocked ? "not-allowed" : "grab",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                  data-testid={`drag-handle-${item.key}`}
-                >
-                  <HolderOutlined />
-                </span>
+                {!isLocked ? <HolderOutlined /> : null}
+              </span>
 
-                {/* Checkbox */}
-                <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
+              <Checkbox
+                checked={column.visible}
+                disabled={isLocked}
+                onChange={() => toggleColumnVisibility(column.key)}
+                data-testid={`column-checkbox-${column.key}`}
+              >
+                <span style={{ fontSize: token.fontSize }}>
+                  {column.title}
                   {isLocked ? (
-                    <Tooltip title="This column cannot be hidden">
-                      {/* Wrapper for disabled element tooltip */}
-                      <span
-                        style={{
-                          display: "inline-block",
-                          pointerEvents: "none",
-                        }}
-                      >
-                        <Checkbox
-                          checked={item.visible}
-                          disabled={true}
-                          data-testid={`checkbox-${item.key}`}
-                          // Explicitly prevent change even if disabled prop fails in test env
-                          onChange={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                        >
-                          <Space size={4}>
-                            <Typography.Text
-                              style={{
-                                color: isLocked
-                                  ? token.colorTextSecondary
-                                  : token.colorText,
-                              }}
-                            >
-                              {item.title}
-                            </Typography.Text>
-                            <LockOutlined
-                              style={{
-                                fontSize: 10,
-                                color: token.colorTextTertiary,
-                              }}
-                            />
-                          </Space>
-                        </Checkbox>
-                      </span>
-                    </Tooltip>
-                  ) : (
-                    <Checkbox
-                      checked={item.visible}
-                      onChange={() => handleToggle(item.key)}
-                      data-testid={`checkbox-${item.key}`}
+                    <span
+                      data-testid={`column-locked-marker-${column.key}`}
+                      style={{ marginLeft: 6, color: token.colorTextTertiary }}
                     >
-                      <Typography.Text>{item.title}</Typography.Text>
-                    </Checkbox>
-                  )}
-                </div>
-              </div>
-            </List.Item>
+                      <LockOutlined style={{ fontSize: 11, marginRight: 4 }} />
+                      (locked)
+                    </span>
+                  ) : null}
+                </span>
+              </Checkbox>
+            </li>
           );
-        }}
-      />
+        })}
+      </ul>
     </div>
   );
 
@@ -247,12 +206,16 @@ export const ColumnManager: React.FC<ColumnManagerProps> = ({
       trigger="click"
       placement="bottomRight"
       arrow={false}
-      // Destroy on close to reset any drag state if closed mid-drag
       destroyOnHidden={true}
     >
-      <Button icon={<SettingOutlined />} data-testid="column-manager-trigger">
-        Columns
-      </Button>
+      <Tooltip title="Column settings">
+        <Button
+          type="text"
+          icon={<SettingOutlined />}
+          aria-label="Column settings"
+          data-testid="column-manager-trigger"
+        />
+      </Tooltip>
     </Popover>
   );
 };
