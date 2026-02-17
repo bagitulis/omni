@@ -365,6 +365,7 @@ export default function InventoryPage() {
         <WholesaleMpqModal
           open={showBulkPricingModal}
           onClose={() => setShowBulkPricingModal(false)}
+          selectedRecords={selectedRecords}
         />
       </Content>
     </Layout>

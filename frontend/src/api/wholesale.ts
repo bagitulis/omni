@@ -1,4 +1,4 @@
-import apiClient from "./client";
+import apiClient, { type ApiResponse } from "./client";
 
 export interface WholesaleTier {
   min_count: number;
@@ -29,6 +29,7 @@ export interface WholesaleTierCalculated {
 export interface BatchUpdateItem {
   sku: string;
   item_id?: number;
+  price?: number;
 }
 export interface SkuLookupResult {
   item_id: number;
@@ -84,8 +85,127 @@ const DEFAULT_SETTINGS: WholesaleSettings = {
   max_order_1: 1,
   max_order_tier_3: 3,
 };
+
+interface LegacyWholesaleSettings {
+  min_qty_1?: number;
+  min_qty_2?: number;
+  min_qty_3?: number;
+}
+
+interface SettingsEnvelope {
+  settings?: unknown;
+}
+
+interface TiktokMpqProduct {
+  product_id: string;
+  sku_id?: string;
+  mpq: number;
+}
+
 const getMessage = (error: unknown, fallback: string): string =>
   error instanceof Error && error.message ? error.message : fallback;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function toPositiveInt(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return null;
+  }
+
+  const parsed = Math.trunc(value);
+  return parsed > 0 ? parsed : null;
+}
+
+function normalizeWholesaleSettings(
+  payload: unknown,
+): WholesaleSettings | null {
+  if (!isRecord(payload)) {
+    return null;
+  }
+
+  const adminFee = payload.admin_fee;
+  const minOrder1 = payload.min_order_1;
+  const maxOrder1 = payload.max_order_1;
+  const maxOrderTier3 = payload.max_order_tier_3;
+
+  if (
+    typeof adminFee === "number" &&
+    typeof minOrder1 === "number" &&
+    typeof maxOrder1 === "number" &&
+    typeof maxOrderTier3 === "number"
+  ) {
+    return {
+      admin_fee: adminFee,
+      min_order_1: minOrder1,
+      max_order_1: maxOrder1,
+      max_order_tier_3: maxOrderTier3,
+    };
+  }
+
+  const legacy = payload as LegacyWholesaleSettings;
+  const minQty1 = toPositiveInt(legacy.min_qty_1);
+  const minQty2 = toPositiveInt(legacy.min_qty_2);
+  const minQty3 = toPositiveInt(legacy.min_qty_3);
+
+  if (minQty1 === null || minQty2 === null || minQty3 === null) {
+    return null;
+  }
+
+  const maxOrder1Value = Math.max(minQty1, minQty2 - 1);
+  const maxOrderTier3Value = Math.max(maxOrder1Value + 2, minQty3);
+
+  return {
+    admin_fee: DEFAULT_SETTINGS.admin_fee,
+    min_order_1: minQty1,
+    max_order_1: maxOrder1Value,
+    max_order_tier_3: maxOrderTier3Value,
+  };
+}
+
+function extractSettingsPayload(
+  response: ApiResponse<WholesaleSettings>,
+): unknown {
+  if (response.data !== undefined) {
+    return response.data;
+  }
+
+  if (isRecord(response)) {
+    return (response as SettingsEnvelope).settings;
+  }
+
+  return null;
+}
+
+function buildTiktokMpqProducts(
+  items: BatchUpdateItem[],
+  mpq: number,
+): TiktokMpqProduct[] {
+  const products: TiktokMpqProduct[] = [];
+
+  for (const item of items) {
+    const sku = item.sku.trim();
+    const productId = item.item_id ? String(item.item_id) : sku;
+
+    if (!productId) {
+      continue;
+    }
+
+    const product: TiktokMpqProduct = {
+      product_id: productId,
+      mpq,
+    };
+
+    if (sku) {
+      product.sku_id = sku;
+    }
+
+    products.push(product);
+  }
+
+  return products;
+}
 
 export async function deleteShopeeWholesale(
   itemId: number,
@@ -199,7 +319,12 @@ export async function getSettings(): Promise<WholesaleSettings | null> {
     const response = await apiClient.get<WholesaleSettings>(
       "/wholesale/settings",
     );
-    return response.success ? (response.data ?? null) : null;
+
+    if (!response.success) {
+      return null;
+    }
+
+    return normalizeWholesaleSettings(extractSettingsPayload(response));
   } catch {
     return null;
   }
@@ -334,9 +459,15 @@ export async function batchTiktokMpq(
   items: BatchUpdateItem[],
   mpq: number,
 ): Promise<TiktokBatchMpqResult> {
+  const products = buildTiktokMpqProducts(items, mpq);
+
+  if (products.length === 0) {
+    throw new Error("No valid products to update for TikTok MPQ");
+  }
+
   const response = await apiClient.post<unknown>(
     "/wholesale/tiktok/batch-mpq",
-    { items, mpq },
+    { products, items, mpq },
   );
   if (!response.success)
     throw new Error(response.error || "Batch TikTok MPQ failed");

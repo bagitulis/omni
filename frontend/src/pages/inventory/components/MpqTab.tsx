@@ -1,102 +1,337 @@
-import { useState, useMemo } from "react";
-import type { Key } from "react";
-import { Table, Button, Switch, Space, Empty } from "antd";
-import { useInventory } from "@/hooks/useInventory";
-import type { InventoryRecord } from "@/types/inventory";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, Button, Empty, Radio, Table, Typography, message } from "antd";
 import {
-  useInventoryMpqSettings,
-  useUpdateInventoryMpqSettings,
-} from "@/hooks/useWholesale";
-import { WholesaleMpqModal } from "@/components/modals/WholesaleMpqModal";
+  batchShopeeMpq,
+  batchTiktokMpq,
+  calculateTiersLocal,
+  getSettings,
+  type WholesaleSettings,
+} from "@/api/wholesale";
+import type { BulkPricingItem } from "../utils/bulkPricingItems";
 
-export function MpqTab() {
-  const { data: inventory, isLoading: isInventoryLoading } = useInventory();
-  const records = inventory?.records || [];
-  const { data: mpqSettings, isLoading: isMpqLoading } =
-    useInventoryMpqSettings();
-  const { mutate: updateMpq } = useUpdateInventoryMpqSettings();
+interface MpqTabProps {
+  items: BulkPricingItem[];
+}
 
-  const [selectedSkus, setSelectedSkus] = useState<string[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+type TierKey = "normal" | "tier1" | "tier2" | "tier3";
 
-  const mpqMap = useMemo(() => {
-    const map = new Map();
-    if (mpqSettings) {
-      mpqSettings.forEach((setting) => {
-        map.set(setting.sku, setting);
-      });
+interface PreviewRow {
+  key: string;
+  platform: string;
+  sku: string;
+  base_price: number;
+  updated_price: number;
+  mpq: number;
+}
+
+const DEFAULT_SETTINGS: WholesaleSettings = {
+  admin_fee: 1500,
+  min_order_1: 2,
+  max_order_1: 3,
+  max_order_tier_3: 1000,
+};
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("id-ID").format(value);
+}
+
+function readCount(payload: unknown, field: string): number {
+  if (typeof payload !== "object" || payload === null) {
+    return 0;
+  }
+
+  const raw = (payload as Record<string, unknown>)[field];
+  return typeof raw === "number" && Number.isFinite(raw) ? raw : 0;
+}
+
+function getAdjustedPrice(
+  price: number,
+  settings: WholesaleSettings,
+  selectedTier: TierKey,
+): number {
+  if (selectedTier === "normal") {
+    return price;
+  }
+
+  const tiers = calculateTiersLocal(price, settings);
+  const tierIndex =
+    selectedTier === "tier1" ? 0 : selectedTier === "tier2" ? 1 : 2;
+  return tiers[tierIndex]?.unit_price ?? price;
+}
+
+export function MpqTab({ items }: MpqTabProps) {
+  const [settings, setSettings] = useState<WholesaleSettings>(DEFAULT_SETTINGS);
+  const [loadingSettings, setLoadingSettings] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<TierKey>("tier1");
+  const [resultMessage, setResultMessage] = useState<string | null>(null);
+  const [resultType, setResultType] = useState<
+    "success" | "warning" | "error" | null
+  >(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSettings() {
+      setLoadingSettings(true);
+      try {
+        const loaded = await getSettings();
+        if (!cancelled && loaded) {
+          setSettings(loaded);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const rawMessage =
+            error instanceof Error
+              ? error.message
+              : "Failed to load wholesale settings";
+          message.error(rawMessage);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingSettings(false);
+        }
+      }
     }
-    return map;
-  }, [mpqSettings]);
 
-  const handleToggle = (sku: string, checked: boolean, currentQty: number) => {
-    updateMpq([{ sku, min_purchase_qty: currentQty, enabled: checked }]);
+    void loadSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const shopeeItems = useMemo(() => {
+    const unique = new Map<string, number>();
+    for (const item of items) {
+      if (item.platform !== "shopee") {
+        continue;
+      }
+      if (!unique.has(item.sku)) {
+        unique.set(item.sku, item.price);
+      }
+    }
+    return Array.from(unique.entries()).map(([sku, price]) => ({ sku, price }));
+  }, [items]);
+
+  const tiktokItems = useMemo(() => {
+    const unique = new Map<string, number>();
+    for (const item of items) {
+      if (item.platform !== "tiktok") {
+        continue;
+      }
+      if (!unique.has(item.sku)) {
+        unique.set(item.sku, item.price);
+      }
+    }
+    return Array.from(unique.entries()).map(([sku, price]) => ({ sku, price }));
+  }, [items]);
+
+  const selectedMinQty = useMemo(() => {
+    if (selectedTier === "normal") {
+      return 1;
+    }
+
+    if (selectedTier === "tier1") {
+      return settings.min_order_1;
+    }
+
+    if (selectedTier === "tier2") {
+      return settings.max_order_1 + 1;
+    }
+
+    return settings.max_order_1 + 3;
+  }, [selectedTier, settings.max_order_1, settings.min_order_1]);
+
+  const previewRows = useMemo<PreviewRow[]>(() => {
+    const shopeeRows = shopeeItems.slice(0, 3).map((item) => ({
+      key: `shopee:${item.sku}`,
+      platform: "Shopee",
+      sku: item.sku,
+      base_price: item.price,
+      updated_price: getAdjustedPrice(item.price, settings, selectedTier),
+      mpq: selectedMinQty,
+    }));
+
+    const tiktokRows = tiktokItems.slice(0, 3).map((item) => ({
+      key: `tiktok:${item.sku}`,
+      platform: "TikTok",
+      sku: item.sku,
+      base_price: item.price,
+      updated_price: getAdjustedPrice(item.price, settings, selectedTier),
+      mpq: selectedMinQty,
+    }));
+
+    return [...shopeeRows, ...tiktokRows];
+  }, [selectedMinQty, selectedTier, settings, shopeeItems, tiktokItems]);
+
+  const handleMpqUpdate = async () => {
+    if (shopeeItems.length + tiktokItems.length === 0) {
+      message.warning(
+        "No Shopee or TikTok items available in current selection",
+      );
+      return;
+    }
+
+    setProcessing(true);
+    setResultMessage(null);
+    setResultType(null);
+
+    let totalFailed = 0;
+    const summaries: string[] = [];
+
+    try {
+      if (shopeeItems.length > 0) {
+        const shopeePayload = shopeeItems.map((item) => ({
+          sku: item.sku,
+          price: getAdjustedPrice(item.price, settings, selectedTier),
+        }));
+
+        const shopeeResult = await batchShopeeMpq(
+          shopeePayload,
+          selectedMinQty,
+        );
+        const processed = readCount(shopeeResult.data, "processed");
+        const failed = readCount(shopeeResult.data, "failed");
+        totalFailed += failed;
+        summaries.push(`Shopee ${processed} processed, ${failed} failed`);
+      }
+
+      if (tiktokItems.length > 0) {
+        const tiktokPayload = tiktokItems.map((item) => ({
+          sku: item.sku,
+          price: getAdjustedPrice(item.price, settings, selectedTier),
+        }));
+
+        const tiktokResult = await batchTiktokMpq(
+          tiktokPayload,
+          selectedMinQty,
+        );
+        const processed = readCount(tiktokResult.data, "processed");
+        const failed = readCount(tiktokResult.data, "failed");
+        totalFailed += failed;
+        summaries.push(`TikTok ${processed} processed, ${failed} failed`);
+      }
+
+      const summary = `MPQ update (min_qty=${selectedMinQty}): ${summaries.join(" | ")}`;
+      setResultMessage(summary);
+
+      if (totalFailed > 0) {
+        setResultType("warning");
+        message.warning(summary);
+      } else {
+        setResultType("success");
+        message.success(summary);
+      }
+    } catch (error) {
+      const rawMessage =
+        error instanceof Error ? error.message : "Failed to update MPQ";
+      setResultType("error");
+      setResultMessage(rawMessage);
+      message.error(rawMessage);
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const columns = [
     {
+      title: "Platform",
+      dataIndex: "platform",
+      key: "platform",
+    },
+    {
       title: "SKU",
-      dataIndex: "key_value",
+      dataIndex: "sku",
       key: "sku",
     },
     {
-      title: "Min Purchase Qty",
-      key: "mpq",
-      render: (_: unknown, record: InventoryRecord) => {
-        const setting = mpqMap.get(record.key_value);
-        return setting ? setting.min_purchase_qty : "-";
-      },
+      title: "Base Price",
+      dataIndex: "base_price",
+      key: "base_price",
+      render: (value: number) => formatCurrency(value),
     },
     {
-      title: "Status",
-      key: "status",
-      render: (_: unknown, record: InventoryRecord) => {
-        const setting = mpqMap.get(record.key_value);
-        const enabled = setting?.enabled || false;
-        const qty = setting?.min_purchase_qty || 1;
-        return (
-          <Switch
-            checked={enabled}
-            onChange={(checked) => handleToggle(record.key_value, checked, qty)}
-          />
-        );
-      },
+      title: "Updated Price",
+      dataIndex: "updated_price",
+      key: "updated_price",
+      render: (value: number) => formatCurrency(value),
+    },
+    {
+      title: "MPQ",
+      dataIndex: "mpq",
+      key: "mpq",
     },
   ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <Space>
-        <Button
-          type="primary"
-          disabled={selectedSkus.length === 0}
-          onClick={() => setIsModalOpen(true)}
-        >
-          Batch Update MPQ
-        </Button>
-      </Space>
-
-      <Table
-        dataSource={records}
-        columns={columns}
-        rowKey="key_value"
-        loading={isInventoryLoading || isMpqLoading}
-        rowSelection={{
-          selectedRowKeys: selectedSkus,
-          onChange: (keys: Key[]) => setSelectedSkus(keys.map(String)),
-        }}
-        pagination={{ pageSize: 20 }}
-        locale={{
-          emptyText: (
-            <Empty description="No inventory items available for MPQ configuration" />
-          ),
-        }}
+      <Alert
+        type="info"
+        showIcon
+        message={`Shopee ${shopeeItems.length} SKU, TikTok ${tiktokItems.length} SKU`}
+        description="MPQ update sends calculated price + selected minimum quantity to each platform."
       />
 
-      <WholesaleMpqModal
-        open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        selectedSkus={selectedSkus}
+      <div>
+        <Typography.Text strong>Select tier target</Typography.Text>
+        <Radio.Group
+          style={{ display: "block", marginTop: 8 }}
+          value={selectedTier}
+          onChange={(event) => setSelectedTier(event.target.value as TierKey)}
+          optionType="button"
+          buttonStyle="solid"
+          options={[
+            { label: "Normal (1)", value: "normal" },
+            {
+              label: `Tier 1 (${settings.min_order_1})`,
+              value: "tier1",
+            },
+            {
+              label: `Tier 2 (${settings.max_order_1 + 1})`,
+              value: "tier2",
+            },
+            {
+              label: `Tier 3 (${settings.max_order_1 + 3})`,
+              value: "tier3",
+            },
+          ]}
+        />
+      </div>
+
+      {resultMessage && resultType ? (
+        <Alert
+          type={resultType}
+          showIcon
+          message={resultMessage}
+          closable
+          onClose={() => {
+            setResultMessage(null);
+            setResultType(null);
+          }}
+        />
+      ) : null}
+
+      <Button
+        type="primary"
+        loading={processing}
+        onClick={handleMpqUpdate}
+        disabled={shopeeItems.length + tiktokItems.length === 0}
+      >
+        Update MPQ
+      </Button>
+
+      <Table
+        dataSource={previewRows}
+        columns={columns}
+        rowKey="key"
+        loading={loadingSettings}
+        pagination={false}
+        locale={{
+          emptyText: (
+            <Empty description="No Shopee/TikTok items with valid price in current selection" />
+          ),
+        }}
       />
     </div>
   );
