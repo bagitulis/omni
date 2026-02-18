@@ -1,5 +1,6 @@
 import React from "react";
-import { Tooltip } from "antd";
+import { theme, Tooltip } from "antd";
+import type { GlobalToken } from "antd/es/theme/interface";
 import type { PlatformIndicatorData, Platform } from "@/types/shared";
 
 export interface PlatformIndicatorProps {
@@ -22,16 +23,17 @@ type VisualState =
   | "success"
   | "error";
 
-const STATE_BORDER_COLORS: Record<
-  Exclude<VisualState, "not_linked">,
-  string
-> = {
-  linked: "#52c41a",
-  has_update: "#faad14",
-  syncing: "#1890ff",
-  success: "#52c41a",
-  error: "#ff4d4f",
-};
+function getStateBorderColors(
+  token: GlobalToken,
+): Record<Exclude<VisualState, "not_linked">, string> {
+  return {
+    linked: token.colorSuccess,
+    has_update: token.colorWarning,
+    syncing: token.colorPrimary,
+    success: token.colorSuccess,
+    error: token.colorError,
+  };
+}
 
 function getVisualState(data: PlatformIndicatorData): VisualState {
   if (data.sync_state === "syncing") {
@@ -52,26 +54,30 @@ function getVisualState(data: PlatformIndicatorData): VisualState {
   return "linked";
 }
 
-function getStateStyles(state: VisualState): React.CSSProperties {
+function getStateStyles(
+  state: VisualState,
+  token: GlobalToken,
+): React.CSSProperties {
+  const colors = getStateBorderColors(token);
   switch (state) {
     case "syncing":
       return {
         opacity: 1,
         filter: "none",
-        border: `2px solid ${STATE_BORDER_COLORS.syncing}`,
+        border: `2px solid ${colors.syncing}`,
       };
     case "success":
       return {
         opacity: 1,
         filter: "none",
-        border: `2px solid ${STATE_BORDER_COLORS.success}`,
+        border: `2px solid ${colors.success}`,
         animation: "popIn 0.3s ease",
       };
     case "error":
       return {
         opacity: 1,
         filter: "none",
-        border: `2px solid ${STATE_BORDER_COLORS.error}`,
+        border: `2px solid ${colors.error}`,
         animation: "shake 0.5s ease",
       };
     case "not_linked":
@@ -84,19 +90,16 @@ function getStateStyles(state: VisualState): React.CSSProperties {
       return {
         opacity: 1,
         filter: "none",
-        border: `2px solid ${STATE_BORDER_COLORS.has_update}`,
+        border: `2px solid ${colors.has_update}`,
       };
     case "linked":
       return {
         opacity: 1,
         filter: "none",
-        border: `2px solid ${STATE_BORDER_COLORS.linked}`,
+        border: `2px solid ${colors.linked}`,
       };
     default:
-      return {
-        opacity: 1,
-        border: "2px solid transparent",
-      };
+      return { opacity: 1, border: "2px solid transparent" };
   }
 }
 
@@ -128,27 +131,26 @@ function getTooltipTitle(
   return `${label}: Linked${syncedAtText}`;
 }
 
-function getBadge(state: VisualState): React.ReactNode {
+function getBadge(state: VisualState, token: GlobalToken): React.ReactNode {
+  const badgeBase: React.CSSProperties = {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: "50%",
+    border: `1px solid ${token.colorBgContainer}`,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 6,
+    color: token.colorBgContainer,
+    fontWeight: 700,
+  };
+
   if (state === "linked") {
     return (
-      <span
-        style={{
-          position: "absolute",
-          bottom: -2,
-          right: -2,
-          width: 10,
-          height: 10,
-          borderRadius: "50%",
-          backgroundColor: "#52c41a",
-          border: "1px solid #ffffff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 6,
-          color: "#ffffff",
-          fontWeight: 700,
-        }}
-      >
+      <span style={{ ...badgeBase, backgroundColor: token.colorSuccess }}>
         ✓
       </span>
     );
@@ -156,24 +158,7 @@ function getBadge(state: VisualState): React.ReactNode {
 
   if (state === "has_update") {
     return (
-      <span
-        style={{
-          position: "absolute",
-          bottom: -2,
-          right: -2,
-          width: 10,
-          height: 10,
-          borderRadius: "50%",
-          backgroundColor: "#faad14",
-          border: "1px solid #ffffff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 6,
-          color: "#ffffff",
-          fontWeight: 700,
-        }}
-      >
+      <span style={{ ...badgeBase, backgroundColor: token.colorWarning }}>
         !
       </span>
     );
@@ -187,6 +172,7 @@ export function PlatformIndicator({
   size = "default",
   onClick,
 }: PlatformIndicatorProps) {
+  const { token } = theme.useToken();
   const { emoji, label } = PLATFORM_ICONS[data.platform];
   const dimensions = size === "small" ? 24 : 32;
   const visualState = getVisualState(data);
@@ -206,11 +192,11 @@ export function PlatformIndicator({
     lineHeight: 1,
     padding: 0,
     background: "transparent",
-    ...getStateStyles(visualState),
+    ...getStateStyles(visualState, token),
   };
 
   const tooltipText = getTooltipTitle(visualState, data, label);
-  const badge = getBadge(visualState);
+  const badge = getBadge(visualState, token);
 
   const handleClick = () => {
     if (isInteractive) {
