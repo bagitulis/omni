@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Divider, Space, Tooltip, Typography, theme } from "antd";
+import { Button, Divider, Grid, Space, Tooltip, Typography, theme } from "antd";
 import {
   CloseOutlined,
   CopyOutlined,
@@ -80,6 +80,8 @@ export const UnifiedBatchBar: React.FC<UnifiedBatchBarProps> = ({
   disabledActions = {},
 }) => {
   const { token } = theme.useToken();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
 
   if (selectedCount <= 0) {
     return null;
@@ -89,20 +91,32 @@ export const UnifiedBatchBar: React.FC<UnifiedBatchBarProps> = ({
     <div
       style={{
         position: "fixed",
-        bottom: 24,
-        left: "50%",
-        transform: "translateX(-50%)",
+        bottom: isMobile ? 0 : 24,
+        left: isMobile ? 0 : "50%",
+        transform: isMobile ? "none" : "translateX(-50%)",
+        width: isMobile ? "100%" : "auto",
         zIndex: 1000,
         backgroundColor: token.colorBgElevated,
-        borderRadius: 3,
-        boxShadow: token.boxShadowSecondary,
-        border: `1px solid ${token.colorBorderSecondary}`,
+        borderRadius: isMobile ? 0 : 3,
+        borderTop: `1px solid ${token.colorBorderSecondary}`,
+        borderBottom: isMobile
+          ? "none"
+          : `1px solid ${token.colorBorderSecondary}`,
+        borderLeft: isMobile
+          ? "none"
+          : `1px solid ${token.colorBorderSecondary}`,
+        borderRight: isMobile
+          ? "none"
+          : `1px solid ${token.colorBorderSecondary}`,
         padding: "12px 16px",
-        maxWidth: "calc(100vw - 48px)",
+        maxWidth: isMobile ? "100%" : "calc(100vw - 48px)",
         overflowX: "auto",
         display: "flex",
         alignItems: "center",
         gap: 12,
+        boxShadow: isMobile
+          ? "0 -2px 8px rgba(0,0,0,0.15)"
+          : token.boxShadowSecondary,
       }}
       role="toolbar"
       aria-label="Batch actions"
