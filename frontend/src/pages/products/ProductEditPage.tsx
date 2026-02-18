@@ -9,6 +9,7 @@ import {
   Alert,
   Flex,
   Typography,
+  Grid,
 } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 
@@ -30,6 +31,7 @@ export default function ProductEditPage() {
   const [error, setError] = useState<string | null>(null);
   const [product, setProduct] = useState<ProductData | null>(null);
   const [rawProduct, setRawProduct] = useState<MasterProduct | null>(null);
+  const screens = Grid.useBreakpoint();
   const [saveVariantsLoading, setSaveVariantsLoading] = useState(false);
   const [saveImagesLoading, setSaveImagesLoading] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
@@ -133,7 +135,7 @@ export default function ProductEditPage() {
           message="Failed to load product"
           description={error || "Product not found"}
           action={
-            <Link to="/master-products">
+            <Link to="/products">
               <Button>Back to Products</Button>
             </Link>
           }
@@ -209,10 +211,20 @@ export default function ProductEditPage() {
   return (
     <div style={{ padding: 24, maxWidth: 1024, margin: "0 auto" }}>
       <Flex align="center" gap={16} style={{ marginBottom: 24 }}>
-        <Link to="/master-products">
+        <Link to="/products">
           <Button type="text" icon={<ArrowLeftOutlined />} />
         </Link>
-        <Title level={4} style={{ margin: 0 }}>
+        <Title
+          level={screens.md ? 4 : 5}
+          style={{
+            margin: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
           Edit Product: {product.title}
         </Title>
       </Flex>

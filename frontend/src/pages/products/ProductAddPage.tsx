@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Steps, message, Card, Typography, theme, Flex } from "antd";
+import { Steps, message, Card, Typography, theme, Flex, Grid } from "antd";
 import type { UploadFile } from "antd/es/upload/interface";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeftOutlined } from "@ant-design/icons";
@@ -48,6 +48,7 @@ const INITIAL_VALUES: ProductFormValues = {
 export default function ProductAddPage() {
   const navigate = useNavigate();
   const { token } = theme.useToken();
+  const screens = Grid.useBreakpoint();
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<ProductFormValues>(INITIAL_VALUES);
   const [submitting, setSubmitting] = useState(false);
@@ -133,7 +134,7 @@ export default function ProductAddPage() {
     <div style={{ padding: 24, maxWidth: 1024, margin: "0 auto" }}>
       <Flex align="center" gap={16} style={{ marginBottom: 24 }}>
         <Link
-          to="/master-products"
+          to="/products"
           style={{
             color: token.colorTextSecondary,
             fontSize: 18,
@@ -142,7 +143,7 @@ export default function ProductAddPage() {
         >
           <ArrowLeftOutlined />
         </Link>
-        <Typography.Title level={2} style={{ margin: 0 }}>
+        <Typography.Title level={screens.md ? 2 : 4} style={{ margin: 0 }}>
           Add New Product
         </Typography.Title>
       </Flex>
