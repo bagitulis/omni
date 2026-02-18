@@ -1,37 +1,45 @@
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  Button,
   Checkbox,
-  Form,
   InputNumber,
   Modal,
   Radio,
   Space,
   Table,
-  Typography,
+  Tag,
+  theme,
 } from "antd";
-import { useEffect, useMemo, useState } from "react";
 import type { FC } from "react";
-import type {
-  Platform,
-  StockSyncMode,
-  UnifiedProductRow,
-} from "@/types/shared";
+import type { Platform, UnifiedProductRow } from "@/types/shared";
 
-interface StockSyncPayloadItem {
-  seller_sku: string;
-  stock: number;
-  platforms: string[];
-}
-
-export interface StockSyncModalProps {
+interface StockSyncModalProps {
   open: boolean;
   onClose: () => void;
-  onSync: (items: StockSyncPayloadItem[]) => void;
+  onSync: (
+    items: Array<{
+      seller_sku: string;
+      stock: number;
+      platforms: Platform[];
+    }>,
+  ) => Promise<void>;
   selectedProducts: UnifiedProductRow[];
 }
 
-const SUPPORTED_PLATFORMS: Platform[] = ["shopee", "lazada", "tiktok"];
+type SyncMode = "uniform" | "per_platform";
+
+interface PerPlatformConfig {
+  [sku: string]: {
+    stock: number;
+    platforms: Record<Platform, boolean>;
+  };
+}
+
+const PLATFORM_OPTIONS: Array<{ key: Platform; label: string }> = [
+  { key: "shopee", label: "🟠 Shopee" },
+  { key: "tiktok", label: "⬛ TikTok" },
+  { key: "lazada", label: "🔵 Lazada" },
+];
 
 export const StockSyncModal: FC<StockSyncModalProps> = ({
   open,
@@ -39,257 +47,323 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
   onSync,
   selectedProducts,
 }) => {
-  const [mode, setMode] = useState<StockSyncMode>("uniform");
-  const [uniformStock, setUniformStock] = useState<number | null>(null);
-  const [uniformPlatforms, setUniformPlatforms] = useState<Platform[]>([]);
+  const { token } = theme.useToken();
+  const [mode, setMode] = useState<SyncMode>("uniform");
+  const [uniformStock, setUniformStock] = useState<number>(0);
+  const [uniformPlatforms, setUniformPlatforms] = useState<
+    Record<Platform, boolean>
+  >({
+    shopee: true,
+    tiktok: true,
+    lazada: true,
+  });
+  const [perPlatformConfig, setPerPlatformConfig] = useState<PerPlatformConfig>(
+    {},
+  );
+  const [loading, setLoading] = useState(false);
 
-  // Keyed by seller_sku
-  const [perPlatformData, setPerPlatformData] = useState<
-    Record<string, { stock: number | null; platforms: Platform[] }>
-  >({});
+  const linkedPlatformsBySku = useMemo(() => {
+    const linkedMap: Record<string, Record<Platform, boolean>> = {};
 
-  // Reset state when modal opens
+    for (const product of selectedProducts) {
+      const linkedPlatforms: Record<Platform, boolean> = {
+        shopee: product.platform_summary.shopee !== "not_linked",
+        tiktok: product.platform_summary.tiktok !== "not_linked",
+        lazada: product.platform_summary.lazada !== "not_linked",
+      };
+
+      for (const sku of product.skus) {
+        linkedMap[sku.seller_sku] = linkedPlatforms;
+      }
+    }
+
+    return linkedMap;
+  }, [selectedProducts]);
+
   useEffect(() => {
-    if (open) {
-      setMode("uniform");
-      setUniformStock(null);
-
-      // Default uniform platforms: all linked platforms across selected products
-      const linkedPlatforms = new Set<Platform>();
-      selectedProducts.forEach((p) => {
-        Object.entries(p.platform_summary).forEach(([platform, status]) => {
-          if (status === "linked") {
-            linkedPlatforms.add(platform as Platform);
-          }
-        });
-      });
-      setUniformPlatforms(Array.from(linkedPlatforms));
-
-      // Initialize per-platform data
-      const initialData: Record<
-        string,
-        { stock: number | null; platforms: Platform[] }
-      > = {};
-
-      selectedProducts.forEach((p) => {
-        p.skus.forEach((sku) => {
-          const skuLinkedPlatforms = sku.platform_links
-            .filter((link) => link.sync_status !== "error")
-            .map((link) => link.platform);
-
-          initialData[sku.seller_sku] = {
-            stock: sku.stock,
-            platforms: skuLinkedPlatforms,
-          };
-        });
-      });
-      setPerPlatformData(initialData);
-    }
-  }, [open, selectedProducts]);
-
-  const handleSync = () => {
-    const payload: StockSyncPayloadItem[] = [];
-
-    if (mode === "uniform") {
-      if (uniformStock === null || uniformPlatforms.length === 0) return;
-
-      selectedProducts.forEach((p) => {
-        p.skus.forEach((sku) => {
-          const skuPlatforms = sku.platform_links.map((l) => l.platform);
-          const validPlatforms = uniformPlatforms.filter((up) =>
-            skuPlatforms.includes(up),
-          );
-
-          if (validPlatforms.length > 0) {
-            payload.push({
-              seller_sku: sku.seller_sku,
-              stock: uniformStock,
-              platforms: validPlatforms,
-            });
-          }
-        });
-      });
-    } else {
-      Object.entries(perPlatformData).forEach(([sku, data]) => {
-        if (data.stock !== null && data.platforms.length > 0) {
-          payload.push({
-            seller_sku: sku,
-            stock: data.stock,
-            platforms: data.platforms,
-          });
-        }
-      });
+    if (!open) {
+      return;
     }
 
-    onSync(payload);
-    onClose();
-  };
+    const config: PerPlatformConfig = {};
+    for (const product of selectedProducts) {
+      for (const sku of product.skus) {
+        const linkedPlatforms = linkedPlatformsBySku[sku.seller_sku] ?? {
+          shopee: false,
+          tiktok: false,
+          lazada: false,
+        };
 
-  const isValid = useMemo(() => {
+        config[sku.seller_sku] = {
+          stock: sku.stock,
+          platforms: { ...linkedPlatforms },
+        };
+      }
+    }
+
+    setPerPlatformConfig(config);
+  }, [linkedPlatformsBySku, open, selectedProducts]);
+
+  const syncItems = useMemo(() => {
     if (mode === "uniform") {
-      return (
-        uniformStock !== null &&
-        uniformStock >= 0 &&
-        uniformPlatforms.length > 0
+      const platforms = (
+        Object.entries(uniformPlatforms) as [Platform, boolean][]
+      )
+        .filter(([, enabled]) => enabled)
+        .map(([platform]) => platform);
+
+      return selectedProducts.flatMap((product) =>
+        product.skus.map((sku) => ({
+          seller_sku: sku.seller_sku,
+          stock: uniformStock,
+          platforms: platforms.filter(
+            (platform) => linkedPlatformsBySku[sku.seller_sku]?.[platform],
+          ),
+        })),
       );
     }
-    return Object.values(perPlatformData).some(
-      (d) => d.stock !== null && d.stock >= 0 && d.platforms.length > 0,
-    );
-  }, [mode, uniformStock, uniformPlatforms, perPlatformData]);
 
-  const columns = [
+    return Object.entries(perPlatformConfig).map(([sku, config]) => ({
+      seller_sku: sku,
+      stock: config.stock,
+      platforms: (Object.entries(config.platforms) as [Platform, boolean][])
+        .filter(
+          ([platform, enabled]) =>
+            enabled && linkedPlatformsBySku[sku]?.[platform],
+        )
+        .map(([platform]) => platform),
+    }));
+  }, [
+    linkedPlatformsBySku,
+    mode,
+    perPlatformConfig,
+    selectedProducts,
+    uniformPlatforms,
+    uniformStock,
+  ]);
+
+  const validItems = useMemo(
+    () =>
+      syncItems.filter((item) => item.platforms.length > 0 && item.stock >= 0),
+    [syncItems],
+  );
+
+  const handleSync = async () => {
+    if (validItems.length === 0) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await onSync(validItems);
+      onClose();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const perPlatformColumns = [
     {
-      title: "Product / SKU",
+      title: "SKU",
       dataIndex: "sku",
       key: "sku",
-      render: (_: unknown, record: { seller_sku: string; title: string }) => (
-        <Space direction="vertical" size={0}>
-          <Typography.Text strong>{record.seller_sku}</Typography.Text>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {record.title.substring(0, 30)}...
-          </Typography.Text>
-        </Space>
-      ),
+      width: 150,
     },
     {
       title: "Stock",
+      dataIndex: "stock",
       key: "stock",
-      width: 120,
-      render: (_: unknown, record: { seller_sku: string }) => (
+      width: 100,
+      render: (_: unknown, record: { sku: string; stock: number }) => (
         <InputNumber
+          size="small"
           min={0}
-          value={perPlatformData[record.seller_sku]?.stock}
-          onChange={(val) => {
-            setPerPlatformData((prev) => ({
-              ...prev,
-              [record.seller_sku]: {
-                ...prev[record.seller_sku],
-                stock: val,
-              },
-            }));
-          }}
+          value={perPlatformConfig[record.sku]?.stock ?? 0}
+          onChange={(value) =>
+            setPerPlatformConfig((prev) => {
+              const existing = prev[record.sku];
+              if (!existing) {
+                return prev;
+              }
+
+              return {
+                ...prev,
+                [record.sku]: {
+                  ...existing,
+                  stock: value ?? 0,
+                },
+              };
+            })
+          }
+          style={{ width: 80 }}
         />
       ),
     },
-    {
-      title: "Platforms",
-      key: "platforms",
-      render: (
-        _: unknown,
-        record: { seller_sku: string; available_platforms: Platform[] },
-      ) => (
-        <Checkbox.Group
-          options={record.available_platforms.map((p) => ({
-            label: p.toUpperCase(),
-            value: p,
-          }))}
-          value={perPlatformData[record.seller_sku]?.platforms}
-          onChange={(checkedValues) => {
-            setPerPlatformData((prev) => ({
-              ...prev,
-              [record.seller_sku]: {
-                ...prev[record.seller_sku],
-                platforms: checkedValues as Platform[],
-              },
-            }));
-          }}
+    ...PLATFORM_OPTIONS.map((platformOption) => ({
+      title: platformOption.label,
+      key: platformOption.key,
+      width: 100,
+      render: (_: unknown, record: { sku: string }) => (
+        <Checkbox
+          disabled={!linkedPlatformsBySku[record.sku]?.[platformOption.key]}
+          checked={
+            linkedPlatformsBySku[record.sku]?.[platformOption.key]
+              ? (perPlatformConfig[record.sku]?.platforms[platformOption.key] ??
+                false)
+              : false
+          }
+          onChange={(event) =>
+            setPerPlatformConfig((prev) => {
+              const existing = prev[record.sku];
+              if (!existing) {
+                return prev;
+              }
+
+              if (!linkedPlatformsBySku[record.sku]?.[platformOption.key]) {
+                return {
+                  ...prev,
+                  [record.sku]: {
+                    ...existing,
+                    platforms: {
+                      ...existing.platforms,
+                      [platformOption.key]: false,
+                    },
+                  },
+                };
+              }
+
+              return {
+                ...prev,
+                [record.sku]: {
+                  ...existing,
+                  platforms: {
+                    ...existing.platforms,
+                    [platformOption.key]: event.target.checked,
+                  },
+                },
+              };
+            })
+          }
         />
       ),
-    },
+    })),
   ];
 
-  const flatData = useMemo(() => {
-    return selectedProducts.flatMap((p) =>
-      p.skus.map((s) => ({
-        key: s.seller_sku,
-        seller_sku: s.seller_sku,
-        title: p.title,
-        stock: s.stock,
-        available_platforms: s.platform_links.map((l) => l.platform),
-      })),
-    );
-  }, [selectedProducts]);
+  const perPlatformData = Object.entries(perPlatformConfig).map(
+    ([sku, config]) => ({
+      key: sku,
+      sku,
+      stock: config.stock,
+    }),
+  );
 
   return (
     <Modal
-      title={`Sync Stock (${selectedProducts.length} products selected)`}
+      title="Sync Stock to Marketplaces"
       open={open}
       onCancel={onClose}
-      width={700}
-      footer={[
-        <Button key="cancel" onClick={onClose}>
-          Cancel
-        </Button>,
-        <Button
-          key="submit"
-          type="primary"
-          onClick={handleSync}
-          disabled={!isValid}
-        >
-          Sync Stock
-        </Button>,
-      ]}
+      onOk={handleSync}
+      confirmLoading={loading}
+      width={mode === "per_platform" ? 700 : 480}
+      okText={`Sync ${validItems.length} SKUs`}
+      okButtonProps={{
+        disabled: validItems.length === 0,
+      }}
     >
-      <Space direction="vertical" size="large" style={{ width: "100%" }}>
-        <Radio.Group
-          value={mode}
-          onChange={(e) => setMode(e.target.value)}
-          optionType="button"
-          buttonStyle="solid"
-        >
-          <Radio.Button value="uniform">Uniform Sync</Radio.Button>
-          <Radio.Button value="per_platform">Per-SKU Sync</Radio.Button>
-        </Radio.Group>
+      <Radio.Group
+        value={mode}
+        onChange={(event) => setMode(event.target.value as SyncMode)}
+        style={{ marginBottom: 16 }}
+      >
+        <Radio.Button value="uniform">Uniform (same stock all)</Radio.Button>
+        <Radio.Button value="per_platform">
+          Per Platform (different stock)
+        </Radio.Button>
+      </Radio.Group>
 
-        {mode === "uniform" ? (
-          <Form layout="vertical">
-            <Alert
-              message="This will apply the same stock quantity to all selected SKUs on the selected platforms."
-              type="info"
-              showIcon
-              style={{ marginBottom: 16 }}
-            />
-
-            <Form.Item label="New Stock Quantity" required>
-              <InputNumber
-                min={0}
-                style={{ width: "100%" }}
-                value={uniformStock}
-                onChange={setUniformStock}
-                placeholder="Enter stock quantity"
-              />
-            </Form.Item>
-
-            <Form.Item label="Target Platforms" required>
-              <Checkbox.Group
-                options={SUPPORTED_PLATFORMS.map((p) => ({
-                  label: p.toUpperCase(),
-                  value: p,
-                }))}
-                value={uniformPlatforms}
-                onChange={(vals) => setUniformPlatforms(vals as Platform[])}
-              />
-            </Form.Item>
-
-            <div style={{ marginTop: 8 }}>
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                Note: Only platforms actually linked to a SKU will be updated.
-                Selecting a platform here does not link it if it's not already
-                linked.
-              </Typography.Text>
-            </div>
-          </Form>
-        ) : (
-          <Table
-            dataSource={flatData}
-            columns={columns}
-            pagination={{ pageSize: 5 }}
-            size="small"
-            scroll={{ y: 300 }}
+      {mode === "uniform" ? (
+        <div>
+          <Alert
+            message="All selected SKUs will be synced with the same stock value to checked platforms."
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
           />
-        )}
-      </Space>
+
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: "block", marginBottom: 4, fontWeight: 500 }}>
+              Stock Quantity
+            </div>
+            <InputNumber
+              min={0}
+              value={uniformStock}
+              onChange={(value) => setUniformStock(value ?? 0)}
+              style={{ width: 200 }}
+            />
+          </div>
+
+          <div>
+            <div style={{ display: "block", marginBottom: 4, fontWeight: 500 }}>
+              Target Platforms
+            </div>
+            <Space>
+              {PLATFORM_OPTIONS.map((platformOption) => (
+                <Checkbox
+                  key={platformOption.key}
+                  checked={uniformPlatforms[platformOption.key]}
+                  onChange={(event) =>
+                    setUniformPlatforms((previous) => ({
+                      ...previous,
+                      [platformOption.key]: event.target.checked,
+                    }))
+                  }
+                >
+                  {platformOption.label}
+                </Checkbox>
+              ))}
+            </Space>
+          </div>
+
+          <div style={{ marginTop: 16, color: token.colorTextSecondary }}>
+            <Tag>
+              {selectedProducts.reduce(
+                (sum, product) => sum + product.skus.length,
+                0,
+              )}{" "}
+              SKUs
+            </Tag>
+            ×{" "}
+            <Tag>
+              {Object.values(uniformPlatforms).filter(Boolean).length} platforms
+            </Tag>
+            =
+            <Tag color="processing">
+              {selectedProducts.reduce(
+                (sum, product) => sum + product.skus.length,
+                0,
+              ) * Object.values(uniformPlatforms).filter(Boolean).length}{" "}
+              sync operations
+            </Tag>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <Alert
+            message="Set stock and target platforms individually per SKU."
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+          <Table
+            columns={perPlatformColumns}
+            dataSource={perPlatformData}
+            size="small"
+            pagination={false}
+            scroll={{ y: 300 }}
+            bordered
+          />
+        </div>
+      )}
     </Modal>
   );
 };
