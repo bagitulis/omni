@@ -241,8 +241,25 @@ func (m *manager) CleanupOrphans(ctx context.Context, tenantID string) (int, err
 	}
 
 	var orphans []models.Image
+	masterProductImageSubquery := m.db.WithContext(ctx).Model(&models.MasterProductImage{}).Select("image_id")
+	shopeeProductImageSubquery := m.db.WithContext(ctx).Model(&models.ShopeeProductImage{}).Select("image_id")
+	tiktokProductImageSubquery := m.db.WithContext(ctx).Model(&models.TiktokProductImage{}).Select("image_id")
+	lazadaProductImageSubquery := m.db.WithContext(ctx).Model(&models.LazadaProductImage{}).Select("image_id")
+
 	if err := m.db.WithContext(ctx).
-		Where("tenant_id = ? AND ref_count <= 0", tenantID).
+		Where("tenant_id = ?", tenantID).
+		Where(
+			`ref_count <= 0 OR (
+				id NOT IN (?) AND
+				id NOT IN (?) AND
+				id NOT IN (?) AND
+				id NOT IN (?)
+			)`,
+			masterProductImageSubquery,
+			shopeeProductImageSubquery,
+			tiktokProductImageSubquery,
+			lazadaProductImageSubquery,
+		).
 		Find(&orphans).Error; err != nil {
 		return 0, fmt.Errorf("failed to find orphan images: %w", err)
 	}

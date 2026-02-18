@@ -35,8 +35,9 @@ type Service struct {
 // NewService creates a new Master Product service
 func NewService(db *gorm.DB) *Service {
 	return &Service{
-		repo: repositories.NewMasterProductRepository(db),
-		db:   db,
+		repo:         repositories.NewMasterProductRepository(db),
+		db:           db,
+		imageManager: newDefaultImageManager(db),
 	}
 }
 
