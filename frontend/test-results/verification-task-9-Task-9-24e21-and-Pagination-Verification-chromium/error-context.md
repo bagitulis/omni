@@ -1,0 +1,140 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e4]:
+  - link "Skip to main content" [ref=e5] [cursor=pointer]:
+    - /url: "#main-content"
+  - complementary [ref=e6]:
+    - generic [ref=e7]:
+      - generic [ref=e8]: OMNI
+      - menu [ref=e9]:
+        - menuitem "dashboard Dashboard" [ref=e10] [cursor=pointer]:
+          - img "dashboard" [ref=e11]:
+            - img [ref=e12]
+          - generic [ref=e14]: Dashboard
+        - menuitem "shopping Orders" [ref=e15] [cursor=pointer]:
+          - img "shopping" [ref=e16]:
+            - img [ref=e17]
+          - generic [ref=e19]: Orders
+        - menuitem "skin Products" [expanded] [ref=e20] [cursor=pointer]:
+          - img "skin" [ref=e21]:
+            - img [ref=e22]
+          - generic [ref=e24]: Products
+        - menu [ref=e25]:
+          - menuitem "All Products" [ref=e26] [cursor=pointer]:
+            - generic [ref=e27]: All Products
+          - menuitem "Add Product" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: Add Product
+          - menuitem "Sync History" [ref=e30] [cursor=pointer]:
+            - generic [ref=e31]: Sync History
+        - menuitem "inbox Inventory" [ref=e32] [cursor=pointer]:
+          - img "inbox" [ref=e33]:
+            - img [ref=e34]
+          - generic [ref=e36]: Inventory
+        - menuitem "node-index Route Mapping" [ref=e37] [cursor=pointer]:
+          - img "node-index" [ref=e38]:
+            - img [ref=e39]
+          - generic [ref=e41]: Route Mapping
+        - menuitem "bar-chart Analytics" [ref=e42] [cursor=pointer]:
+          - img "bar-chart" [ref=e43]:
+            - img [ref=e44]
+          - generic [ref=e46]: Analytics
+        - menuitem "code Script Monitor" [ref=e47] [cursor=pointer]:
+          - img "code" [ref=e48]:
+            - img [ref=e49]
+          - generic [ref=e51]: Script Monitor
+        - menuitem "setting Settings" [ref=e52] [cursor=pointer]:
+          - img "setting" [ref=e53]:
+            - img [ref=e54]
+          - generic [ref=e56]: Settings
+  - generic [ref=e57]:
+    - banner [ref=e58]:
+      - button "Collapse sidebar" [ref=e60] [cursor=pointer]:
+        - img "menu-fold" [ref=e62]:
+          - img [ref=e63]
+      - generic [ref=e65]:
+        - button "Switch to dark mode" [ref=e66] [cursor=pointer]:
+          - img "moon" [ref=e68]:
+            - img [ref=e69]
+        - button "key" [ref=e72] [cursor=pointer]:
+          - img "key" [ref=e74]:
+            - img [ref=e75]
+        - generic [ref=e77] [cursor=pointer]:
+          - img "user" [ref=e80]:
+            - img [ref=e81]
+          - generic [ref=e84]: tester
+    - main [ref=e85]:
+      - generic [ref=e87]:
+        - generic [ref=e89]:
+          - heading "Products" [level=2] [ref=e91]
+          - generic [ref=e93]:
+            - button "plus Add Product" [ref=e95] [cursor=pointer]:
+              - img "plus" [ref=e97]:
+                - img [ref=e98]
+              - generic [ref=e101]: Add Product
+            - button "upload Import" [ref=e103] [cursor=pointer]:
+              - img "upload" [ref=e105]:
+                - img [ref=e106]
+              - generic [ref=e108]: Import
+            - button "cloud-download Sync History (0)" [ref=e110] [cursor=pointer]:
+              - img "cloud-download" [ref=e112]:
+                - img [ref=e113]
+              - generic [ref=e116]: Sync History (0)
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - generic [ref=e121]:
+              - img "search" [ref=e123]:
+                - img [ref=e124]
+              - textbox "Search products..." [ref=e126]
+            - generic [ref=e128] [cursor=pointer]:
+              - generic [ref=e130]:
+                - combobox [ref=e132]
+                - generic "All Platforms" [ref=e133]
+              - img [ref=e134]:
+                - img [ref=e135]
+            - generic [ref=e137] [cursor=pointer]:
+              - generic [ref=e139]:
+                - combobox [ref=e141]
+                - generic "All Categories" [ref=e142]
+              - generic:
+                - img:
+                  - img
+          - separator [ref=e143]
+          - generic [ref=e144]:
+            - generic [ref=e146]:
+              - button "bars List" [ref=e148] [cursor=pointer]:
+                - img "bars" [ref=e150]:
+                  - img [ref=e151]
+                - generic [ref=e153]: List
+              - button "appstore Grid" [ref=e155] [cursor=pointer]:
+                - img "appstore" [ref=e157]:
+                  - img [ref=e158]
+                - generic [ref=e160]: Grid
+            - button "Column settings" [ref=e162] [cursor=pointer]:
+              - img "setting" [ref=e164]:
+                - img [ref=e165]
+          - table [ref=e173]:
+            - rowgroup [ref=e183]:
+              - row "Select all Image Name Price Stock Platforms Category Actions" [ref=e184]:
+                - columnheader "Select all" [ref=e185]:
+                  - generic [ref=e187]:
+                    - generic:
+                      - checkbox "Select all" [disabled]
+                - columnheader "Image" [ref=e188]
+                - columnheader "Name" [ref=e189]
+                - columnheader "Price" [ref=e190]
+                - columnheader "Stock" [ref=e191]
+                - columnheader "Platforms" [ref=e192]
+                - columnheader "Category" [ref=e193]
+                - columnheader "Actions" [ref=e194]
+            - rowgroup [ref=e195]:
+              - generic:
+                - generic:
+                  - generic:
+                    - checkbox [disabled]
+              - row "No data No data" [ref=e196]:
+                - cell "No data No data" [ref=e197]:
+                  - generic [ref=e199]:
+                    - img "No data" [ref=e201]
+                    - generic [ref=e207]: No data
+```

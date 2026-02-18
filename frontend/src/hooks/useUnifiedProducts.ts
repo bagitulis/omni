@@ -105,7 +105,7 @@ function mapSyncStatus(
 
 /**
  * Aggregate platform link status across all SKUs
- * Priority: linked > pending > error > not_linked
+ * Priority (worst-state-wins): error > pending > linked > not_linked
  */
 function aggregatePlatformStatus(
   skus: Array<{
@@ -147,7 +147,7 @@ function aggregatePlatformStatus(
         linkStatus = "error";
       }
 
-      // Priority: linked > pending > error > not_linked
+      // Priority (worst-state-wins): error > pending > linked > not_linked
       statusMap[platform] = getHigherPriorityStatus(currentStatus, linkStatus);
     });
   });
@@ -156,17 +156,18 @@ function aggregatePlatformStatus(
 }
 
 /**
- * Determine higher priority status
- * Priority: linked > pending > error > not_linked
+ * Determine higher priority status using worst-state-wins logic
+ * Priority: error > pending > linked > not_linked
+ * "error" has lowest index (highest concern) and always wins.
  */
 function getHigherPriorityStatus(
   current: PlatformLinkStatus,
   incoming: PlatformLinkStatus,
 ): PlatformLinkStatus {
   const priority: PlatformLinkStatus[] = [
-    "linked",
-    "pending",
     "error",
+    "pending",
+    "linked",
     "not_linked",
   ];
   const currentIndex = priority.indexOf(current);
