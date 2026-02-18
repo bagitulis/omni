@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   Tabs,
@@ -34,33 +34,33 @@ export default function ProductEditPage() {
   const [saveImagesLoading, setSaveImagesLoading] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
 
-  useEffect(() => {
+  const fetchProduct = useCallback(async () => {
     if (!id) return;
 
-    async function fetchProduct() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getProductById(id!);
-        setRawProduct(data);
-        setProduct({
-          id: data.id,
-          title: data.title,
-          description: data.description,
-          images: data.images || [],
-          status: data.status,
-          skus: [],
-          platforms: [],
-        });
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Failed to load product");
-      } finally {
-        setLoading(false);
-      }
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getProductById(id);
+      setRawProduct(data);
+      setProduct({
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        images: data.images || [],
+        status: data.status,
+        skus: [],
+        platforms: [],
+      });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load product");
+    } finally {
+      setLoading(false);
     }
-
-    fetchProduct();
   }, [id]);
+
+  useEffect(() => {
+    fetchProduct();
+  }, [fetchProduct]);
 
   const handleSaveVariants = async (variants: ProductSku[]) => {
     if (!id) return;
@@ -190,7 +190,7 @@ export default function ProductEditPage() {
       key: "4",
       label: "SKU Mapping",
       children: rawProduct ? (
-        <SkuMappingPanel masterProduct={rawProduct} />
+        <SkuMappingPanel masterProduct={rawProduct} onUpdate={fetchProduct} />
       ) : null,
     },
     {
