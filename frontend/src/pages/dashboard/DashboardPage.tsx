@@ -10,6 +10,7 @@ import {
   Flex,
   Menu,
   theme,
+  Grid,
 } from "antd";
 import {
   ShoppingOutlined,
@@ -38,6 +39,11 @@ export function DashboardPage() {
   const { data, isLoading } = useDashboard();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
+  const screens = Grid.useBreakpoint();
+  // If screens.md is undefined (initial render), assume desktop to avoid flash, or mobile?
+  // Standard AntD behavior is empty object initially.
+  // But usually we just check !screens.md.
+  const isMobile = !screens.md;
 
   const getPlatformColor = (platform: string) => {
     switch (platform) {
@@ -98,8 +104,13 @@ export function DashboardPage() {
 
   const renderOverview = () => (
     <Flex vertical gap={24}>
-      <Flex justify="space-between" align="center">
-        <Title level={2} style={{ margin: 0 }}>
+      <Flex
+        justify={isMobile ? "start" : "space-between"}
+        align={isMobile ? "start" : "center"}
+        vertical={isMobile}
+        gap={isMobile ? 4 : 0}
+      >
+        <Title level={isMobile ? 3 : 2} style={{ margin: 0 }}>
           Dashboard
         </Title>
         <Text type="secondary" style={{ fontSize: 14 }}>
@@ -267,28 +278,30 @@ export function DashboardPage() {
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         {/* Left Sidebar */}
-        <div
-          style={{
-            width: 200,
-            background: token.colorBgContainer,
-            borderRight: `1px solid ${token.colorBorder}`,
-          }}
-        >
-          <Menu
-            mode="inline"
-            selectedKeys={[activeTab]}
-            items={menuItems}
-            onClick={handleMenuClick}
-            style={{ borderRight: 0, height: "100%" }}
-          />
-        </div>
+        {!isMobile && (
+          <div
+            style={{
+              width: 200,
+              background: token.colorBgContainer,
+              borderRight: `1px solid ${token.colorBorder}`,
+            }}
+          >
+            <Menu
+              mode="inline"
+              selectedKeys={[activeTab]}
+              items={menuItems}
+              onClick={handleMenuClick}
+              style={{ borderRight: 0, height: "100%" }}
+            />
+          </div>
+        )}
 
         {/* Right Content Area */}
         <div
           style={{
             flex: 1,
             overflowY: "auto",
-            padding: 24,
+            padding: isMobile ? 16 : 24,
             background: token.colorBgLayout,
           }}
         >

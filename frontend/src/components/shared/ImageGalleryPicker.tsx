@@ -66,7 +66,7 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
   });
 
   // Debounce timer ref
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch images from API
   const fetchImages = useCallback(async (page: number, search: string) => {
@@ -117,7 +117,7 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialSelected]);
+  }, [open, initialSelected, fetchImages]);
 
   // Debounced search handler
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -298,18 +298,14 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
             {images.map((img) => {
               const selected = isSelected(img);
               return (
-                <div
+                <button
                   key={img.id}
-                  role="button"
-                  tabIndex={0}
+                  type="button"
                   onClick={() => toggleSelection(img)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      toggleSelection(img);
-                    }
-                  }}
                   style={{
+                    background: "none",
+                    padding: 0,
+                    width: "100%",
                     position: "relative",
                     aspectRatio: "1",
                     borderRadius: 3,
@@ -377,7 +373,7 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
                   >
                     {img.filename}
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
