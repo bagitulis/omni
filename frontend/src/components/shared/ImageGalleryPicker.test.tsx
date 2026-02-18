@@ -180,9 +180,7 @@ describe("ImageGalleryPicker", () => {
       expect(screen.getByAltText("image-1.jpg")).toBeTruthy();
     });
 
-    const image1 = screen
-      .getByAltText("image-1.jpg")
-      .closest("div[role='button']");
+    const image1 = screen.getByAltText("image-1.jpg").closest("button");
 
     // Select - assert via counter text (robust behavioral check)
     fireEvent.click(image1!);

@@ -82,6 +82,12 @@ export const GalleryGrid: FC<GalleryGridProps> = ({
             key={img.id}
             type="button"
             onClick={() => onToggle(img)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onToggle(img);
+              }
+            }}
             style={{
               background: "none",
               padding: 0,

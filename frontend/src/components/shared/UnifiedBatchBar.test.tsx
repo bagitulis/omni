@@ -3,6 +3,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { UnifiedBatchBar } from "./UnifiedBatchBar";
 import "@testing-library/jest-dom";
 
+// Ant Design components use matchMedia internally — mock it for jsdom
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
 describe("UnifiedBatchBar", () => {
   const mockOnAction = vi.fn();
   const mockOnClearSelection = vi.fn();
