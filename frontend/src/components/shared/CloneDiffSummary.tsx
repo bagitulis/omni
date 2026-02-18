@@ -17,8 +17,7 @@ interface DiffSummarySectionProps {
   differences: CloneDifference[];
 }
 
-// Difference highlight color (from Vue — yellow background)
-const DIFF_HIGHLIGHT = "#fef3c7"; // Amber-50
+// Difference highlight color uses Ant Design warning token (resolved via theme.useToken())
 
 export const DiffSummarySection: FC<DiffSummarySectionProps> = ({
   differences,
@@ -33,7 +32,7 @@ export const DiffSummarySection: FC<DiffSummarySectionProps> = ({
           size="small"
           title={
             <Space>
-              <WarningOutlined style={{ color: "#faad14" }} />
+              <WarningOutlined style={{ color: token.colorWarning }} />
               <span>
                 {differences.length} difference
                 {differences.length > 1 ? "s" : ""} detected
@@ -66,7 +65,7 @@ export const DiffSummarySection: FC<DiffSummarySectionProps> = ({
               />
               <span
                 style={{
-                  backgroundColor: DIFF_HIGHLIGHT,
+                  backgroundColor: token.colorWarningBg,
                   padding: "2px 4px",
                   borderRadius: 3,
                   fontSize: 12,
@@ -76,7 +75,7 @@ export const DiffSummarySection: FC<DiffSummarySectionProps> = ({
               </span>
               <span
                 style={{
-                  color: "#d48806",
+                  color: token.colorWarningActive,
                   fontSize: 11,
                   marginLeft: "auto",
                 }}

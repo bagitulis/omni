@@ -6,7 +6,7 @@ import { updateStock } from "@/api/inventorySync";
 import { createMarketplaceSyncHistoryEntry } from "@/api/marketplaceSyncHistory";
 import { updatePriceBatch } from "@/api/pricing";
 import { deleteProduct, getProductById } from "@/api/products";
-import { batchUpdateBySkus, batchWholesaleWithReset } from "@/api/wholesale";
+import { batchWholesaleWithReset } from "@/api/wholesale";
 import type { RowActionKey } from "@/pages/products/utils/productColumns";
 import { getErrorMessage } from "@/pages/products/utils/unifiedProductUtils";
 import type {
@@ -40,10 +40,10 @@ export function useUnifiedProductsActions({
     setSkuMappingOpen,
     wholesaleMpqOpen,
     setWholesaleMpqOpen,
+    wholesaleMpqDefaultTab,
+    setWholesaleMpqDefaultTab,
     batchPriceOpen,
     setBatchPriceOpen,
-    wholesaleOpen,
-    setWholesaleOpen,
     clonePreviewOpen,
     setClonePreviewOpen,
     batchPriceValue,
@@ -258,11 +258,13 @@ export function useUnifiedProductsActions({
       }
 
       if (actionKey === "wholesale") {
-        setWholesaleOpen(true);
+        setWholesaleMpqDefaultTab("wholesale");
+        setWholesaleMpqOpen(true);
         return;
       }
 
       if (actionKey === "mpq") {
+        setWholesaleMpqDefaultTab("mpq");
         setWholesaleMpqOpen(true);
         return;
       }
@@ -319,24 +321,9 @@ export function useUnifiedProductsActions({
       setBatchPriceOpen,
       setStockSyncOpen,
       setWholesaleMpqOpen,
-      setWholesaleOpen,
+      setWholesaleMpqDefaultTab,
     ],
   );
-
-  const handleWholesaleApply = useCallback(async () => {
-    try {
-      const result = await batchUpdateBySkus(selectedSkuPriceItems);
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-
-      message.success(result.message);
-      setWholesaleOpen(false);
-      await refreshProducts();
-    } catch (error) {
-      message.error(getErrorMessage(error));
-    }
-  }, [refreshProducts, selectedSkuPriceItems, setWholesaleOpen]);
 
   return {
     stockSyncOpen,
@@ -349,10 +336,9 @@ export function useUnifiedProductsActions({
     setSkuMappingOpen,
     wholesaleMpqOpen,
     setWholesaleMpqOpen,
+    wholesaleMpqDefaultTab,
     batchPriceOpen,
     setBatchPriceOpen,
-    wholesaleOpen,
-    setWholesaleOpen,
     clonePreviewOpen,
     setClonePreviewOpen,
     batchPriceValue,
@@ -371,6 +357,5 @@ export function useUnifiedProductsActions({
     handleStockSync,
     handleRowAction,
     handleBatchAction,
-    handleWholesaleApply,
   };
 }

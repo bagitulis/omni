@@ -12,8 +12,10 @@ export function useUnifiedProductsModals() {
   const [batchCloneOpen, setBatchCloneOpen] = useState(false);
   const [skuMappingOpen, setSkuMappingOpen] = useState(false);
   const [wholesaleMpqOpen, setWholesaleMpqOpen] = useState(false);
+  const [wholesaleMpqDefaultTab, setWholesaleMpqDefaultTab] = useState<
+    "wholesale" | "mpq"
+  >("wholesale");
   const [batchPriceOpen, setBatchPriceOpen] = useState(false);
-  const [wholesaleOpen, setWholesaleOpen] = useState(false);
   const [clonePreviewOpen, setClonePreviewOpen] = useState(false);
   const [batchPriceValue, setBatchPriceValue] = useState(0);
   const [selectedProduct, setSelectedProduct] =
@@ -33,10 +35,10 @@ export function useUnifiedProductsModals() {
     setSkuMappingOpen,
     wholesaleMpqOpen,
     setWholesaleMpqOpen,
+    wholesaleMpqDefaultTab,
+    setWholesaleMpqDefaultTab,
     batchPriceOpen,
     setBatchPriceOpen,
-    wholesaleOpen,
-    setWholesaleOpen,
     clonePreviewOpen,
     setClonePreviewOpen,
     batchPriceValue,

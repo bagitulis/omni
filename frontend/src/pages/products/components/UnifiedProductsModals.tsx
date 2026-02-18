@@ -9,7 +9,7 @@ import {
 } from "antd";
 import { CloneBatchModal } from "@/components/clone/CloneBatchModal";
 import { CloneProductModal } from "@/components/clone/CloneProductModal";
-import { WholesaleMpqModal } from "@/components/modals/WholesaleMpqModal";
+import { WholesaleMpqModal } from "@/components/shared/WholesaleMpqModal";
 import { ClonePreviewDiff } from "@/components/shared/ClonePreviewDiff";
 import { SkuMappingPanel } from "@/components/shared/SkuMappingPanel";
 import { StockSyncModal } from "@/components/shared/StockSyncModal";
@@ -21,12 +21,11 @@ interface UnifiedProductsModalsProps {
   selectedLegacyProducts: Product[];
   selectedProduct: UnifiedProductRow | null;
   selectedSkus: string[];
-  selectedSkuPriceItemsCount: number;
+  wholesaleMpqDefaultTab: "wholesale" | "mpq";
   batchPriceValue: number;
   stockSyncOpen: boolean;
   wholesaleMpqOpen: boolean;
   batchPriceOpen: boolean;
-  wholesaleOpen: boolean;
   clonePreviewOpen: boolean;
   cloneModalOpen: boolean;
   batchCloneOpen: boolean;
@@ -36,7 +35,6 @@ interface UnifiedProductsModalsProps {
   onStockSyncClose: () => void;
   onWholesaleMpqClose: () => void;
   onBatchPriceClose: () => void;
-  onWholesaleClose: () => void;
   onClonePreviewClose: () => void;
   onClonePreviewContinue: () => void;
   onCloneModalClose: () => void;
@@ -44,7 +42,6 @@ interface UnifiedProductsModalsProps {
   onSkuMappingClose: () => void;
   onBatchPriceValueChange: (value: number) => void;
   onBatchPriceUpdate: () => Promise<void>;
-  onWholesaleApply: () => Promise<void>;
   onStockSync: (
     items: Array<{
       seller_sku: string;
@@ -60,12 +57,11 @@ export function UnifiedProductsModals({
   selectedLegacyProducts,
   selectedProduct,
   selectedSkus,
-  selectedSkuPriceItemsCount,
+  wholesaleMpqDefaultTab,
   batchPriceValue,
   stockSyncOpen,
   wholesaleMpqOpen,
   batchPriceOpen,
-  wholesaleOpen,
   clonePreviewOpen,
   cloneModalOpen,
   batchCloneOpen,
@@ -75,7 +71,6 @@ export function UnifiedProductsModals({
   onStockSyncClose,
   onWholesaleMpqClose,
   onBatchPriceClose,
-  onWholesaleClose,
   onClonePreviewClose,
   onClonePreviewContinue,
   onCloneModalClose,
@@ -83,7 +78,6 @@ export function UnifiedProductsModals({
   onSkuMappingClose,
   onBatchPriceValueChange,
   onBatchPriceUpdate,
-  onWholesaleApply,
   onStockSync,
   onSkuMappingUpdate,
 }: UnifiedProductsModalsProps) {
@@ -99,7 +93,8 @@ export function UnifiedProductsModals({
       <WholesaleMpqModal
         open={wholesaleMpqOpen}
         onClose={onWholesaleMpqClose}
-        selectedSkus={selectedSkus}
+        selectedRecords={selectedRecords}
+        defaultTab={wholesaleMpqDefaultTab}
       />
 
       <Modal
@@ -120,20 +115,6 @@ export function UnifiedProductsModals({
             onChange={(value) => onBatchPriceValueChange(value || 0)}
           />
         </Space>
-      </Modal>
-
-      <Modal
-        title={`Apply Wholesale Tiers (${selectedSkuPriceItemsCount} SKUs)`}
-        open={wholesaleOpen}
-        onCancel={onWholesaleClose}
-        onOk={() => {
-          void onWholesaleApply();
-        }}
-      >
-        <Typography.Paragraph>
-          This applies wholesale tiers using current SKU prices and existing
-          wholesale settings.
-        </Typography.Paragraph>
       </Modal>
 
       <Modal

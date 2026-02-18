@@ -139,10 +139,9 @@ export default function UnifiedProductsPage() {
     setSkuMappingOpen,
     wholesaleMpqOpen,
     setWholesaleMpqOpen,
+    wholesaleMpqDefaultTab,
     batchPriceOpen,
     setBatchPriceOpen,
-    wholesaleOpen,
-    setWholesaleOpen,
     clonePreviewOpen,
     setClonePreviewOpen,
     batchPriceValue,
@@ -153,7 +152,6 @@ export default function UnifiedProductsPage() {
     setSkuMappingProduct,
     skuMappingLoading,
     selectedSkus,
-    selectedSkuPriceItems,
     handleDeleteProduct,
     handleInlinePriceSave,
     handleInlineStockSave,
@@ -161,7 +159,6 @@ export default function UnifiedProductsPage() {
     handleStockSync,
     handleRowAction,
     handleBatchAction,
-    handleWholesaleApply,
   } = useUnifiedProductsActions({
     navigate,
     selectedRecords,
@@ -332,12 +329,11 @@ export default function UnifiedProductsPage() {
         selectedLegacyProducts={selectedLegacyProducts}
         selectedProduct={selectedProduct}
         selectedSkus={selectedSkus}
-        selectedSkuPriceItemsCount={selectedSkuPriceItems.length}
+        wholesaleMpqDefaultTab={wholesaleMpqDefaultTab}
         batchPriceValue={batchPriceValue}
         stockSyncOpen={stockSyncOpen}
         wholesaleMpqOpen={wholesaleMpqOpen}
         batchPriceOpen={batchPriceOpen}
-        wholesaleOpen={wholesaleOpen}
         clonePreviewOpen={clonePreviewOpen}
         cloneModalOpen={cloneModalOpen}
         batchCloneOpen={batchCloneOpen}
@@ -347,7 +343,6 @@ export default function UnifiedProductsPage() {
         onStockSyncClose={() => setStockSyncOpen(false)}
         onWholesaleMpqClose={() => setWholesaleMpqOpen(false)}
         onBatchPriceClose={() => setBatchPriceOpen(false)}
-        onWholesaleClose={() => setWholesaleOpen(false)}
         onClonePreviewClose={() => setClonePreviewOpen(false)}
         onClonePreviewContinue={() => {
           setClonePreviewOpen(false);
@@ -364,7 +359,6 @@ export default function UnifiedProductsPage() {
         }}
         onBatchPriceValueChange={setBatchPriceValue}
         onBatchPriceUpdate={handleBatchPriceUpdate}
-        onWholesaleApply={handleWholesaleApply}
         onStockSync={handleStockSync}
         onSkuMappingUpdate={() => {
           void refreshProducts();

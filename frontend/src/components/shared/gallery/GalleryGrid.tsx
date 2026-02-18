@@ -98,7 +98,7 @@ export const GalleryGrid: FC<GalleryGridProps> = ({
               overflow: "hidden",
               cursor: "pointer",
               border: selected
-                ? "3px solid #ff6b2c" // Shopee orange per spec
+                ? "3px solid #ff6b2c" // Shopee brand color per design spec — exception to hardcoded color rule
                 : `1px solid ${token.colorBorder}`,
               transition: "all 0.2s",
               boxShadow: selected ? token.boxShadow : "none",
@@ -125,9 +125,9 @@ export const GalleryGrid: FC<GalleryGridProps> = ({
                   right: 4,
                   width: 24,
                   height: 24,
-                  backgroundColor: "#ff6b2c",
+                  backgroundColor: "#ff6b2c", // Shopee brand color per design spec — exception to hardcoded color rule
                   color: "#fff",
-                  borderRadius: "50%",
+                  borderRadius: "50%", // Intentional circle — 50% is correct for circular badge
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",

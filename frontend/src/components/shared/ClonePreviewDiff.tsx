@@ -25,7 +25,7 @@ interface ClonePreviewDiffProps {
   warnings: string[];
 }
 
-// Platform-specific styling (from Vue ClonePreviewPanel.vue)
+// Platform brand colors per spec — exception to hardcoded color rule
 const PLATFORM_STYLES: Record<Platform, { gradient: string; label: string }> = {
   shopee: {
     gradient: "linear-gradient(135deg, #ff6b2c 0%, #ff5511 100%)",
@@ -40,9 +40,6 @@ const PLATFORM_STYLES: Record<Platform, { gradient: string; label: string }> = {
     label: "Lazada",
   },
 };
-
-// Difference highlight color (from Vue — yellow background)
-const DIFF_HIGHLIGHT = "#fef3c7"; // Amber-50
 
 const formatPrice = (val: number): string =>
   `Rp ${Math.round(val).toLocaleString("id-ID")}`;
@@ -106,7 +103,7 @@ export const ClonePreviewDiff: FC<ClonePreviewDiffProps> = ({
               <span
                 style={{
                   backgroundColor: isDifferent("title")
-                    ? DIFF_HIGHLIGHT
+                    ? token.colorWarningBg
                     : "transparent",
                   padding: isDifferent("title") ? "2px 4px" : 0,
                   borderRadius: 3,
@@ -119,7 +116,7 @@ export const ClonePreviewDiff: FC<ClonePreviewDiffProps> = ({
               <span
                 style={{
                   backgroundColor: isDifferent("price")
-                    ? DIFF_HIGHLIGHT
+                    ? token.colorWarningBg
                     : "transparent",
                   padding: isDifferent("price") ? "2px 4px" : 0,
                   borderRadius: 3,
@@ -132,7 +129,7 @@ export const ClonePreviewDiff: FC<ClonePreviewDiffProps> = ({
               <span
                 style={{
                   backgroundColor: isDifferent("stock")
-                    ? DIFF_HIGHLIGHT
+                    ? token.colorWarningBg
                     : "transparent",
                   padding: isDifferent("stock") ? "2px 4px" : 0,
                   borderRadius: 3,
@@ -202,7 +199,7 @@ export const ClonePreviewDiff: FC<ClonePreviewDiffProps> = ({
                   Title
                   {isDifferent("title") && (
                     <WarningOutlined
-                      style={{ color: "#faad14", fontSize: 12 }}
+                      style={{ color: token.colorWarning, fontSize: 12 }}
                     />
                   )}
                 </Space>
@@ -211,7 +208,7 @@ export const ClonePreviewDiff: FC<ClonePreviewDiffProps> = ({
               <span
                 style={{
                   backgroundColor: isDifferent("title")
-                    ? DIFF_HIGHLIGHT
+                    ? token.colorWarningBg
                     : "transparent",
                   padding: isDifferent("title") ? "2px 4px" : 0,
                   borderRadius: 3,
@@ -222,7 +219,7 @@ export const ClonePreviewDiff: FC<ClonePreviewDiffProps> = ({
                   <div
                     style={{
                       fontSize: 11,
-                      color: "#d48806",
+                      color: token.colorWarningActive,
                       marginTop: 2,
                     }}
                   >
@@ -237,7 +234,7 @@ export const ClonePreviewDiff: FC<ClonePreviewDiffProps> = ({
                   Price
                   {isDifferent("price") && (
                     <WarningOutlined
-                      style={{ color: "#faad14", fontSize: 12 }}
+                      style={{ color: token.colorWarning, fontSize: 12 }}
                     />
                   )}
                 </Space>
@@ -246,7 +243,7 @@ export const ClonePreviewDiff: FC<ClonePreviewDiffProps> = ({
               <span
                 style={{
                   backgroundColor: isDifferent("price")
-                    ? DIFF_HIGHLIGHT
+                    ? token.colorWarningBg
                     : "transparent",
                   padding: isDifferent("price") ? "2px 4px" : 0,
                   borderRadius: 3,
@@ -259,7 +256,7 @@ export const ClonePreviewDiff: FC<ClonePreviewDiffProps> = ({
               <span
                 style={{
                   backgroundColor: isDifferent("stock")
-                    ? DIFF_HIGHLIGHT
+                    ? token.colorWarningBg
                     : "transparent",
                   padding: isDifferent("stock") ? "2px 4px" : 0,
                   borderRadius: 3,
