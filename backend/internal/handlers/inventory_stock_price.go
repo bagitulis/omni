@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"os"
 
@@ -13,6 +14,7 @@ import (
 // UpdateStockRequest represents stock update request
 type UpdateStockRequest struct {
 	SKU       string   `json:"sku" binding:"required"`
+	Stock     *int     `json:"stock,omitempty"`
 	Platform  string   `json:"platform"`
 	Platforms []string `json:"platforms"` // Array of platforms to update
 }
@@ -39,18 +41,6 @@ func (h *InventoryHandler) UpdateStock(c *gin.Context) {
 	}
 
 	// Get stock from inventory_records
-	var record models.InventoryRecord
-	err = db.WithContext(c.Request.Context()).
-		Where("tenant_id = ? AND key_value = ?", tenantID, req.SKU).
-		First(&record).Error
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "SKU not found in inventory"})
-		return
-	}
-
-	// Get stock value from inventory data
-	stockValue := inventoryService.GetQuantity(record)
-
 	// Determine platforms to update
 	platforms := req.Platforms
 	if len(platforms) == 0 && req.Platform != "" {
@@ -66,8 +56,18 @@ func (h *InventoryHandler) UpdateStock(c *gin.Context) {
 
 	// Use orchestrator to update marketplace platforms
 	orchestrator := inventoryService.NewStockUpdateOrchestrator(db, tenantID, credService)
-	result, err := orchestrator.UpdateStock(c.Request.Context(), req.SKU, stockValue, platforms)
+	result, stockValue, err := orchestrator.UpdateStockFromInventory(c.Request.Context(), req.SKU, req.Stock, platforms)
 	if err != nil {
+		if errors.Is(err, inventoryService.ErrInventoryStockSKUNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "SKU not found in inventory"})
+			return
+		}
+
+		if err.Error() == "stock must be non-negative" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+			return
+		}
+
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
@@ -76,10 +76,18 @@ func (h *InventoryHandler) UpdateStock(c *gin.Context) {
 }
 
 // UpdateStockBatchRequest represents batch stock update request
+type UpdateStockBatchItem struct {
+	SKU       string   `json:"sku" binding:"required"`
+	Stock     *int     `json:"stock,omitempty"`
+	Platform  string   `json:"platform,omitempty"`
+	Platforms []string `json:"platforms,omitempty"`
+}
+
 type UpdateStockBatchRequest struct {
-	SKUs      []string `json:"skus" binding:"required"`
-	Platform  string   `json:"platform"`
-	Platforms []string `json:"platforms"`
+	SKUs      []string               `json:"skus"`
+	Platform  string                 `json:"platform"`
+	Platforms []string               `json:"platforms"`
+	Items     []UpdateStockBatchItem `json:"items"`
 }
 
 // UpdateStockBatch handles POST /api/inventory/update-stock-batch
@@ -97,16 +105,15 @@ func (h *InventoryHandler) UpdateStockBatch(c *gin.Context) {
 		return
 	}
 
+	if len(req.Items) == 0 && len(req.SKUs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "items or skus is required"})
+		return
+	}
+
 	db, err := h.getDB(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
-	}
-
-	// Determine platforms to update
-	platforms := req.Platforms
-	if len(platforms) == 0 && req.Platform != "" {
-		platforms = []string{req.Platform}
 	}
 
 	// Initialize credential service
@@ -117,27 +124,30 @@ func (h *InventoryHandler) UpdateStockBatch(c *gin.Context) {
 	credService := services.NewCredentialService(dbPath)
 
 	orchestrator := inventoryService.NewStockUpdateOrchestrator(db, tenantID, credService)
-	results := make([]interface{}, 0, len(req.SKUs))
+	items := req.Items
+	if len(items) == 0 {
+		items = make([]UpdateStockBatchItem, 0, len(req.SKUs))
 
-	for _, sku := range req.SKUs {
-		// Get stock from inventory_records
-		var record models.InventoryRecord
-		err := db.WithContext(c.Request.Context()).
-			Where("tenant_id = ? AND key_value = ?", tenantID, sku).
-			First(&record).Error
-		if err != nil {
-			results = append(results, gin.H{"sku": sku, "success": false, "error": "SKU not found"})
-			continue
+		for _, sku := range req.SKUs {
+			items = append(items, UpdateStockBatchItem{
+				SKU:       sku,
+				Platform:  req.Platform,
+				Platforms: req.Platforms,
+			})
 		}
-
-		stockValue := inventoryService.GetQuantity(record)
-		result, err := orchestrator.UpdateStock(c.Request.Context(), sku, stockValue, platforms)
-		if err != nil {
-			results = append(results, gin.H{"sku": sku, "success": false, "error": err.Error()})
-			continue
-		}
-		results = append(results, result)
 	}
+
+	syncItems := make([]inventoryService.StockBatchInventoryItem, 0, len(items))
+	for _, item := range items {
+		syncItems = append(syncItems, inventoryService.StockBatchInventoryItem{
+			SKU:       item.SKU,
+			Stock:     item.Stock,
+			Platform:  item.Platform,
+			Platforms: item.Platforms,
+		})
+	}
+
+	results := orchestrator.UpdateStockBatchFromInventory(c.Request.Context(), syncItems, req.Platforms, req.Platform)
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": results})
 }

@@ -1,39 +1,124 @@
 import apiClient from "./client";
 
+export interface StockBatchSyncItem {
+  sku: string;
+  stock?: number;
+  platforms?: string[];
+}
+
+interface PlatformStockSyncResult {
+  success?: boolean;
+  error?: string;
+}
+
+interface StockSyncResult {
+  success?: boolean;
+  error?: string;
+  errors?: string[];
+  platforms?: Record<string, PlatformStockSyncResult>;
+}
+
+function collectStockSyncErrors(result: StockSyncResult | undefined): string[] {
+  if (!result) {
+    return [];
+  }
+
+  const errors: string[] = [];
+  if (result.error) {
+    errors.push(result.error);
+  }
+  if (Array.isArray(result.errors)) {
+    errors.push(...result.errors.filter(Boolean));
+  }
+
+  for (const platformResult of Object.values(result.platforms ?? {})) {
+    if (platformResult?.error) {
+      errors.push(platformResult.error);
+    }
+  }
+
+  return errors;
+}
+
+function firstStockSyncError(
+  result: StockSyncResult | undefined,
+): string | undefined {
+  return collectStockSyncErrors(result)[0];
+}
+
 /**
  * Update stock for a single item
  * Backend route: POST /api/inventory/update-stock
- * Backend reads stock from inventory_records (not from request payload)
  */
 export async function updateStock(
   sku: string,
   platforms?: string[],
+  stock?: number,
 ): Promise<void> {
   const response = await apiClient.post("/inventory/update-stock", {
     sku,
     platforms,
+    ...(stock !== undefined ? { stock } : {}),
   });
   if (!response.success) {
     throw new Error(response.error || "Failed to update stock");
+  }
+
+  const syncResult = response.data as StockSyncResult | undefined;
+  if (syncResult?.success === false) {
+    throw new Error(firstStockSyncError(syncResult) || "Stock sync failed");
   }
 }
 
 /**
  * Batch update stock for multiple items
  * Backend route: POST /api/inventory/update-stock-batch
- * Backend reads stock from inventory_records for each SKU
  */
 export async function updateStockBatch(
-  skus: string[],
+  itemsOrSkus: StockBatchSyncItem[] | string[],
   platforms?: string[],
 ): Promise<void> {
+  const useLegacySkuList = itemsOrSkus.every(
+    (item) => typeof item === "string",
+  );
+
+  const items: StockBatchSyncItem[] = useLegacySkuList
+    ? (itemsOrSkus as string[]).map((sku) => ({ sku, platforms }))
+    : (itemsOrSkus as StockBatchSyncItem[]).map((item) => ({
+        sku: item.sku,
+        ...(item.stock !== undefined ? { stock: item.stock } : {}),
+        ...(item.platforms ? { platforms: item.platforms } : {}),
+      }));
+
   const response = await apiClient.post("/inventory/update-stock-batch", {
-    skus,
+    skus: items.map((item) => item.sku),
     platforms,
-    items: skus.map((sku) => ({ sku, platforms })),
+    items,
   });
   if (!response.success) {
     throw new Error(response.error || "Failed to batch update stock");
+  }
+
+  const payload = response.data as
+    | unknown[]
+    | { results?: unknown[]; data?: unknown[] }
+    | undefined;
+
+  const rawResults = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.results)
+      ? payload.results
+      : Array.isArray(payload?.data)
+        ? payload.data
+        : [];
+
+  const parsedResults = rawResults as StockSyncResult[];
+  const failedResults = parsedResults.filter(
+    (result) => result.success === false,
+  );
+  if (failedResults.length > 0) {
+    const firstError = firstStockSyncError(failedResults[0]);
+    throw new Error(firstError || "Stock sync failed");
   }
 }
 

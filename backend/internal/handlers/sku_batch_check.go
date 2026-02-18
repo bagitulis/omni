@@ -3,6 +3,7 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -102,6 +103,7 @@ func (h *SkuBatchCheckHandler) BatchCheckSku(c *gin.Context) {
 	results := make([]SkuCheckResult, 0, len(req.Skus))
 
 	for _, sku := range req.Skus {
+		sku = strings.TrimSpace(sku)
 		if sku == "" {
 			continue
 		}
@@ -151,7 +153,7 @@ func (h *SkuBatchCheckHandler) checkLazadaSku(db *gorm.DB, sku string) bool {
 func (h *SkuBatchCheckHandler) checkShopeeSku(db *gorm.DB, sku string) bool {
 	var count int64
 	err := db.Table("shopee_skus").
-		Where("seller_sku = ?", sku).
+		Where("seller_sku = ? OR CAST(model_id AS TEXT) = ?", sku, sku).
 		Count(&count).Error
 	if err != nil {
 		log.Printf("[WARN] Error checking Shopee SKU %s: %v", sku, err)

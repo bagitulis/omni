@@ -128,6 +128,19 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
     [syncItems],
   );
 
+  const totalSelectedSkus = useMemo(
+    () =>
+      selectedProducts.reduce((sum, product) => sum + product.skus.length, 0),
+    [selectedProducts],
+  );
+
+  const operationCount = useMemo(
+    () => validItems.reduce((sum, item) => sum + item.platforms.length, 0),
+    [validItems],
+  );
+
+  const skippedSkuCount = Math.max(0, totalSelectedSkus - validItems.length);
+
   const handleSync = async () => {
     if (validItems.length === 0) {
       return;
@@ -228,25 +241,17 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
           </div>
 
           <div style={{ marginTop: 16, color: token.colorTextSecondary }}>
-            <Tag>
-              {selectedProducts.reduce(
-                (sum, product) => sum + product.skus.length,
-                0,
-              )}{" "}
-              SKUs
-            </Tag>
-            ×{" "}
-            <Tag>
-              {Object.values(uniformPlatforms).filter(Boolean).length} platforms
-            </Tag>
-            =
-            <Tag color="processing">
-              {selectedProducts.reduce(
-                (sum, product) => sum + product.skus.length,
-                0,
-              ) * Object.values(uniformPlatforms).filter(Boolean).length}{" "}
-              sync operations
-            </Tag>
+            {skippedSkuCount > 0 ? (
+              <Alert
+                message={`${skippedSkuCount} SKU(s) skipped because they are not linked to selected platforms.`}
+                type="warning"
+                showIcon
+                style={{ marginBottom: 12 }}
+              />
+            ) : null}
+            <Tag>{totalSelectedSkus} selected SKUs</Tag>
+            <Tag>{validItems.length} ready SKUs</Tag>
+            <Tag color="processing">{operationCount} sync operations</Tag>
           </div>
         </div>
       ) : (

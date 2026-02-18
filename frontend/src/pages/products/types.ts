@@ -1,7 +1,9 @@
 export interface ProductSku {
   key: string;
+  id?: number;
   seller_sku: string;
   variant_name: string;
+  variant_data?: Record<string, unknown>;
   stock: number;
   price: number;
 }

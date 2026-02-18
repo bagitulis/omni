@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Upload, Button, Flex, message } from "antd";
 import { PlusOutlined, SaveOutlined, PictureOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
@@ -11,16 +11,24 @@ const MAX_IMAGES = 8;
 interface ProductImagesTabProps {
   initialValues: UploadFile[];
   onSave: (files: UploadFile[]) => void;
+  onRefresh?: () => void | Promise<void>;
   loading: boolean;
+  refreshLoading?: boolean;
 }
 
 export const ProductImagesTab = ({
   initialValues,
   onSave,
+  onRefresh,
   loading,
+  refreshLoading = false,
 }: ProductImagesTabProps) => {
   const [fileList, setFileList] = useState<UploadFile[]>(initialValues);
   const [galleryOpen, setGalleryOpen] = useState(false);
+
+  useEffect(() => {
+    setFileList(initialValues);
+  }, [initialValues]);
 
   const handleGalleryConfirm = (images: GalleryImage[]) => {
     const existingUrls = new Set(fileList.map((f) => f.url).filter(Boolean));
@@ -65,13 +73,22 @@ export const ProductImagesTab = ({
         )}
       </Upload>
       <Flex justify="space-between" align="center" style={{ marginTop: 16 }}>
-        <Button
-          icon={<PictureOutlined />}
-          onClick={() => setGalleryOpen(true)}
-          disabled={fileList.length >= MAX_IMAGES}
-        >
-          Browse Gallery
-        </Button>
+        <Flex gap={8}>
+          <Button
+            icon={<PictureOutlined />}
+            onClick={() => setGalleryOpen(true)}
+            disabled={fileList.length >= MAX_IMAGES}
+          >
+            Browse Gallery
+          </Button>
+          <Button
+            onClick={onRefresh}
+            loading={refreshLoading}
+            disabled={!onRefresh}
+          >
+            Refresh From Sync
+          </Button>
+        </Flex>
         <Button
           type="primary"
           icon={<SaveOutlined />}

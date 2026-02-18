@@ -101,6 +101,10 @@ func RegisterMasterProductSyncRoutes(router *gin.RouterGroup, basePath string) {
 		// POST /api/master-products/images/backfill
 		masterProducts.POST("/images/backfill", syncHandler.BackfillImages)
 
+		// Refresh a single master product images from linked platform cache
+		// POST /api/master-products/:id/images/refresh
+		masterProducts.POST("/:id/images/refresh", syncHandler.RefreshProductImages)
+
 		// Sync to platform
 		// POST /api/master-products/:id/sync
 		masterProducts.POST("/:id/sync", syncHandler.Sync)

@@ -72,6 +72,18 @@ func (h *Handler) Update(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, response.Error("Maximum 8 images allowed"))
 			return
 		}
+		if errors.Is(err, masterProductService.ErrTooManySKUs) {
+			c.JSON(http.StatusBadRequest, response.Error("Maximum 50 SKUs allowed"))
+			return
+		}
+		if errors.Is(err, masterProductService.ErrSellerSkuRequired) {
+			c.JSON(http.StatusBadRequest, response.Error("Seller SKU is required for each SKU"))
+			return
+		}
+		if errors.Is(err, masterProductService.ErrSkuNotFound) {
+			c.JSON(http.StatusNotFound, response.Error("SKU not found"))
+			return
+		}
 		if errors.Is(err, masterProductService.ErrTenantIDRequired) {
 			c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
 			return

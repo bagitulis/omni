@@ -2,8 +2,7 @@ import { Modal, message } from "antd";
 import { useCallback, useMemo } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import apiClient from "@/api/client";
-import { updateStock } from "@/api/inventorySync";
-import { createMarketplaceSyncHistoryEntry } from "@/api/marketplaceSyncHistory";
+import { updateStock, updateStockBatch } from "@/api/inventorySync";
 import { updatePriceBatch } from "@/api/pricing";
 import { deleteProduct, getProductById } from "@/api/products";
 import { batchWholesaleWithReset } from "@/api/wholesale";
@@ -121,7 +120,7 @@ export function useUnifiedProductsActions({
         );
       }
 
-      await updateStock(sellerSku);
+      await updateStock(sellerSku, undefined, stock);
       await refreshProducts();
     },
     [refreshProducts],
@@ -167,16 +166,12 @@ export function useUnifiedProductsActions({
       }>,
     ) => {
       try {
-        await Promise.all(
-          items.map(async (item) => {
-            await updateStock(item.seller_sku, item.platforms);
-            await createMarketplaceSyncHistoryEntry({
-              platform: item.platforms[0] || "shopee",
-              operation: "stock_update",
-              status: "success",
-              sku: item.seller_sku,
-            });
-          }),
+        await updateStockBatch(
+          items.map((item) => ({
+            sku: item.seller_sku,
+            stock: item.stock,
+            platforms: item.platforms,
+          })),
         );
 
         message.success(`Synced stock for ${items.length} SKU updates`);

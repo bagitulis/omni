@@ -99,6 +99,22 @@ func TestInventoryHandler_UpdateStockBatch(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
+
+	t.Run("items payload is accepted by contract", func(t *testing.T) {
+		handler := NewInventoryHandler(nil)
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		body := bytes.NewBufferString(`{"items":[{"sku":"SKU001","stock":9,"platforms":["shopee"]}]}`)
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory/update-stock-batch", body)
+		c.Request.Header.Set("Content-Type", "application/json")
+		c.Set("tenantID", "test-tenant")
+
+		handler.UpdateStockBatch(c)
+
+		// Contract binding succeeds; nil DB causes internal error in test setup
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
 }
 
 func TestInventoryHandler_UpdatePrice(t *testing.T) {

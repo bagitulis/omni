@@ -5,6 +5,7 @@ import {
   getInventoryConfig,
   getSelectedColumns,
   saveSelectedColumns,
+  updateStock,
   updateInventoryRecord,
   updatePriceBatch,
   updateStockBatch,
@@ -205,6 +206,122 @@ describe("inventory api contract adapters", () => {
         { sku: "SKU-2", platforms: ["shopee"] },
       ],
     });
+  });
+
+  it("sends per-item stock payload for stock sync modal flow", async () => {
+    mockPost.mockResolvedValue({ success: true });
+
+    await updateStockBatch([
+      { sku: "SKU-1", stock: 7, platforms: ["shopee", "tiktok"] },
+      { sku: "SKU-2", stock: 5, platforms: ["lazada"] },
+    ]);
+
+    expect(mockPost).toHaveBeenCalledWith("/inventory/update-stock-batch", {
+      skus: ["SKU-1", "SKU-2"],
+      platforms: undefined,
+      items: [
+        { sku: "SKU-1", stock: 7, platforms: ["shopee", "tiktok"] },
+        { sku: "SKU-2", stock: 5, platforms: ["lazada"] },
+      ],
+    });
+  });
+
+  it("includes stock in single update payload when provided", async () => {
+    mockPost.mockResolvedValue({ success: true });
+
+    await updateStock("SKU-1", ["shopee"], 12);
+
+    expect(mockPost).toHaveBeenCalledWith("/inventory/update-stock", {
+      sku: "SKU-1",
+      platforms: ["shopee"],
+      stock: 12,
+    });
+  });
+
+  it("throws raw backend error when stock batch endpoint returns success false", async () => {
+    mockPost.mockResolvedValue({
+      success: false,
+      error: "shopee API error [code=E1001]: Invalid access token",
+    });
+
+    await expect(updateStockBatch(["SKU-1"], ["shopee"])).rejects.toThrow(
+      "shopee API error [code=E1001]: Invalid access token",
+    );
+  });
+
+  it("throws when single stock sync result reports platform failure", async () => {
+    mockPost.mockResolvedValue({
+      success: true,
+      data: {
+        success: false,
+        platforms: {
+          shopee: {
+            success: false,
+            error: "shopee API error [code=E1001]: Invalid access token",
+          },
+        },
+      },
+    });
+
+    await expect(updateStock("SKU-1", ["shopee"], 12)).rejects.toThrow(
+      "shopee API error [code=E1001]: Invalid access token",
+    );
+  });
+
+  it("throws when batch stock sync has failed sku results", async () => {
+    mockPost.mockResolvedValue({
+      success: true,
+      data: [
+        {
+          sku: "SKU-1",
+          success: true,
+          platforms: {
+            shopee: { success: true },
+          },
+        },
+        {
+          sku: "SKU-2",
+          success: false,
+          platforms: {
+            shopee: {
+              success: false,
+              error: "shopee API error [code=E2002]: Model not found",
+            },
+          },
+        },
+      ],
+    });
+
+    await expect(
+      updateStockBatch([
+        { sku: "SKU-1", stock: 7, platforms: ["shopee"] },
+        { sku: "SKU-2", stock: 5, platforms: ["shopee"] },
+      ]),
+    ).rejects.toThrow("shopee API error [code=E2002]: Model not found");
+  });
+
+  it("throws when batch stock sync fails from structured data payload", async () => {
+    mockPost.mockResolvedValue({
+      success: true,
+      data: {
+        data: [
+          {
+            sku: "SKU-3",
+            success: false,
+            platforms: {
+              lazada: {
+                success: false,
+                error: "lazada API error [code=1000]: Invalid seller sku",
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    await expect(
+      updateStockBatch([{ sku: "SKU-3", stock: 2, platforms: ["lazada"] }]),
+    ).rejects.toThrow("lazada API error [code=1000]: Invalid seller sku");
   });
 
   it("checks platform status using selected skus", async () => {

@@ -107,7 +107,7 @@ export default function ProductImportPage() {
 
       // Auto-redirect after 2 seconds
       setTimeout(() => {
-        navigate("/master-products");
+        navigate("/products");
       }, 2000);
     } catch (error) {
       console.error("Import failed:", error);
@@ -235,7 +235,7 @@ export default function ProductImportPage() {
         <Button
           type="text"
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate("/master-products")}
+          onClick={() => navigate("/products")}
           className="back-button"
         >
           Back to Products

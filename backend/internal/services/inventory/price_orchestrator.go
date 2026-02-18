@@ -106,30 +106,46 @@ func (o *PriceUpdateOrchestrator) UpdatePrice(ctx context.Context, sku string, p
 					Error:   "SKU not found in TikTok",
 				}
 			}
+		default:
+			result.Platforms[platform] = &PlatformPriceResult{
+				Success: false,
+				Error:   fmt.Sprintf("unsupported platform: %s", platform),
+			}
 		}
 	}
 
-	// Determine overall success
-	successCount := 0
-	for _, p := range result.Platforms {
-		if p.Success {
-			successCount++
-		} else if p.Error != "" && !isNotFoundError(p.Error) {
-			result.Errors = append(result.Errors, p.Error)
-		}
-	}
-
-	// Success if at least one platform updated OR no platforms found (skip)
-	result.Success = successCount > 0 || len(result.Errors) == 0
+	result.Success, result.Errors = summarizePriceResults(result.Platforms)
 
 	return result, nil
 }
 
-// isNotFoundError checks if error is a "not found" error
-func isNotFoundError(errMsg string) bool {
+// isPriceNotFoundError checks if error is a "not found" error
+func isPriceNotFoundError(errMsg string) bool {
 	return errMsg == "SKU not found in Shopee" ||
 		errMsg == "SKU not found in Lazada" ||
 		errMsg == "SKU not found in TikTok"
+}
+
+func summarizePriceResults(platformResults map[string]*PlatformPriceResult) (bool, []string) {
+	errors := make([]string, 0)
+	successCount := 0
+
+	for _, platformResult := range platformResults {
+		if platformResult == nil {
+			continue
+		}
+
+		if platformResult.Success {
+			successCount++
+			continue
+		}
+
+		if platformResult.Error != "" && !isPriceNotFoundError(platformResult.Error) {
+			errors = append(errors, platformResult.Error)
+		}
+	}
+
+	return successCount > 0, errors
 }
 
 // updateShopeePrice updates price on Shopee platform
@@ -179,7 +195,7 @@ func (o *PriceUpdateOrchestrator) updateShopeePrice(_ context.Context, ids *Shop
 	}
 
 	if resp.Error != "" {
-		result.Error = fmt.Sprintf("%s: %s", resp.Error, resp.Message)
+		result.Error = rawShopeeAPIError(resp.Error, resp.Message)
 		return result
 	}
 
@@ -227,7 +243,7 @@ func (o *PriceUpdateOrchestrator) updateLazadaPrice(_ context.Context, ids *Laza
 	}
 
 	if resp.Code != "0" {
-		result.Error = fmt.Sprintf("code=%s: %s", resp.Code, resp.Message)
+		result.Error = rawLazadaAPIError(resp.Code, resp.Message)
 		return result
 	}
 
@@ -280,7 +296,7 @@ func (o *PriceUpdateOrchestrator) updateTiktokPrice(_ context.Context, ids *Tikt
 	}
 
 	if resp.Code != 0 {
-		result.Error = fmt.Sprintf("code=%d: %s", resp.Code, resp.Message)
+		result.Error = rawTiktokAPIError(resp.Code, resp.Message)
 		return result
 	}
 

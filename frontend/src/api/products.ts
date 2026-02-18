@@ -86,16 +86,49 @@ export async function deleteProduct(id: string | number): Promise<void> {
 export async function syncProduct(
   id: string | number,
   platform?: string,
-): Promise<{ skus_synced: number; platform: string }> {
+): Promise<{ skus_synced: number; target_platform: string }> {
   const response = await apiClient.post<{
     skus_synced: number;
-    platform: string;
+    target_platform?: string;
+    platform?: string;
   }>(`${BASE_PATH}/${id}/sync`, {
     target_platform: platform,
   });
   if (!response.success || !response.data) {
-    throw new Error("Failed to sync product");
+    throw new Error(response.error || "Failed to sync product");
   }
+
+  return {
+    skus_synced: response.data.skus_synced,
+    target_platform:
+      response.data.target_platform || response.data.platform || "",
+  };
+}
+
+export async function refreshProductImages(
+  id: string | number,
+  force = true,
+): Promise<{
+  master_product_id: number;
+  previous_image_count: number;
+  image_count: number;
+  updated: boolean;
+  forced: boolean;
+  images: string[];
+}> {
+  const response = await apiClient.post<{
+    master_product_id: number;
+    previous_image_count: number;
+    image_count: number;
+    updated: boolean;
+    forced: boolean;
+    images: string[];
+  }>(`${BASE_PATH}/${id}/images/refresh`, { force });
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Failed to refresh product images");
+  }
+
   return response.data;
 }
 

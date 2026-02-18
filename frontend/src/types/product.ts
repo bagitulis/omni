@@ -71,6 +71,8 @@ export interface UpdateMasterProductInput {
 export interface UpdateSkuInput {
   id?: number;
   seller_sku?: string;
+  variant_name?: string;
+  variant_data?: Record<string, unknown>;
   price?: number;
   stock?: number;
 }

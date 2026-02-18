@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Table, Input, InputNumber, Button, Flex } from "antd";
 import { DeleteOutlined, PlusOutlined, SaveOutlined } from "@ant-design/icons";
 import type { ProductSku } from "../types";
@@ -16,28 +16,65 @@ export const ProductVariantsTab = ({
 }: ProductVariantsTabProps) => {
   const [dataSource, setDataSource] = useState<ProductSku[]>(initialValues);
 
+  useEffect(() => {
+    setDataSource(initialValues);
+  }, [initialValues]);
+
+  const updateSkuField = <K extends keyof ProductSku>(
+    key: string,
+    field: K,
+    value: ProductSku[K],
+  ) => {
+    setDataSource((prev) =>
+      prev.map((item) =>
+        item.key === key ? { ...item, [field]: value } : item,
+      ),
+    );
+  };
+
   const columns = [
     {
       title: "Variant Name",
       dataIndex: "variant_name",
-      render: (text: string) => <Input defaultValue={text} />,
+      render: (_: string, record: ProductSku) => (
+        <Input
+          value={record.variant_name}
+          onChange={(event) =>
+            updateSkuField(record.key, "variant_name", event.target.value)
+          }
+        />
+      ),
     },
     {
       title: "Seller SKU",
       dataIndex: "seller_sku",
-      render: (text: string) => <Input defaultValue={text} />,
+      render: (_: string, record: ProductSku) => (
+        <Input
+          value={record.seller_sku}
+          onChange={(event) =>
+            updateSkuField(record.key, "seller_sku", event.target.value)
+          }
+        />
+      ),
     },
     {
       title: "Stock",
       dataIndex: "stock",
-      render: (val: number) => <InputNumber defaultValue={val} />,
+      render: (_: number, record: ProductSku) => (
+        <InputNumber
+          value={record.stock}
+          onChange={(value) =>
+            updateSkuField(record.key, "stock", Number(value) || 0)
+          }
+        />
+      ),
     },
     {
       title: "Price",
       dataIndex: "price",
-      render: (val: number) => (
+      render: (_: number, record: ProductSku) => (
         <InputNumber
-          defaultValue={val}
+          value={record.price}
           formatter={(value) =>
             `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
           }
@@ -45,6 +82,9 @@ export const ProductVariantsTab = ({
             const v = value?.replace(/\D/g, "");
             return v ? parseInt(v, 10) : 0;
           }}
+          onChange={(value) =>
+            updateSkuField(record.key, "price", Number(value) || 0)
+          }
           style={{ width: "100%" }}
         />
       ),
@@ -57,7 +97,9 @@ export const ProductVariantsTab = ({
           danger
           icon={<DeleteOutlined />}
           onClick={() =>
-            setDataSource(dataSource.filter((item) => item.key !== record.key))
+            setDataSource((prev) =>
+              prev.filter((item) => item.key !== record.key),
+            )
           }
         />
       ),
@@ -71,10 +113,10 @@ export const ProductVariantsTab = ({
           type="dashed"
           icon={<PlusOutlined />}
           onClick={() =>
-            setDataSource([
-              ...dataSource,
+            setDataSource((prev) => [
+              ...prev,
               {
-                key: `${Date.now()}`,
+                key: `new-${Date.now()}`,
                 variant_name: "",
                 seller_sku: "",
                 stock: 0,

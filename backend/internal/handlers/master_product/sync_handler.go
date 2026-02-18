@@ -2,6 +2,7 @@
 package master_product
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -13,17 +14,38 @@ import (
 	"github.com/omni/backend/internal/middleware"
 	masterProductService "github.com/omni/backend/internal/services/master_product"
 	"github.com/rs/zerolog/log"
+	"gorm.io/gorm"
 )
+
+type syncService interface {
+	SyncToPlatform(ctx context.Context, tenantID string, masterProductID uint, targetPlatform string) (*masterProductService.SyncResult, error)
+	GetSyncStatus(ctx context.Context, tenantID string, masterProductID uint) (map[string]interface{}, error)
+}
+
+type masterProductImageService interface {
+	BackfillImages(ctx context.Context, tenantID string, limit int, force bool) (*masterProductService.BackfillImagesResult, error)
+	RefreshProductImages(ctx context.Context, tenantID string, productID uint, force bool) (*masterProductService.RefreshProductImagesResult, error)
+}
 
 // SyncHandler handles sync-related HTTP requests
 type SyncHandler struct {
-	basePath string
+	basePath                string
+	getTenantDB             func(tenantID string, basePath string) (*gorm.DB, error)
+	newSyncService          func(db *gorm.DB, basePath string) syncService
+	newMasterProductService func(db *gorm.DB) masterProductImageService
 }
 
 // NewSyncHandler creates a new sync handler
 func NewSyncHandler(basePath string) *SyncHandler {
 	return &SyncHandler{
-		basePath: basePath,
+		basePath:    basePath,
+		getTenantDB: config.GetTenantDB,
+		newSyncService: func(db *gorm.DB, basePath string) syncService {
+			return masterProductService.NewSyncService(db, basePath)
+		},
+		newMasterProductService: func(db *gorm.DB) masterProductImageService {
+			return masterProductService.NewService(db)
+		},
 	}
 }
 
@@ -39,6 +61,11 @@ type BackfillImagesRequest struct {
 	Force bool `json:"force"`
 }
 
+// RefreshImagesRequest represents per-product image refresh request body.
+type RefreshImagesRequest struct {
+	Force bool `json:"force"`
+}
+
 // Sync handles POST /api/master-products/:id/sync
 func (h *SyncHandler) Sync(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
@@ -47,12 +74,12 @@ func (h *SyncHandler) Sync(c *gin.Context) {
 		return
 	}
 
-	db, err := config.GetTenantDB(tenantID, h.basePath)
+	db, err := h.getTenantDB(tenantID, h.basePath)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
 		return
 	}
-	syncService := masterProductService.NewSyncService(db, h.basePath)
+	syncService := h.newSyncService(db, h.basePath)
 
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -124,12 +151,12 @@ func (h *SyncHandler) GetSyncStatus(c *gin.Context) {
 		return
 	}
 
-	db, err := config.GetTenantDB(tenantID, h.basePath)
+	db, err := h.getTenantDB(tenantID, h.basePath)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
 		return
 	}
-	syncService := masterProductService.NewSyncService(db, h.basePath)
+	syncService := h.newSyncService(db, h.basePath)
 
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -166,12 +193,12 @@ func (h *SyncHandler) BackfillImages(c *gin.Context) {
 		return
 	}
 
-	db, err := config.GetTenantDB(tenantID, h.basePath)
+	db, err := h.getTenantDB(tenantID, h.basePath)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
 		return
 	}
-	service := masterProductService.NewService(db)
+	service := h.newMasterProductService(db)
 
 	var req BackfillImagesRequest
 	if err := c.ShouldBindJSON(&req); err != nil && !errors.Is(err, io.EOF) {
@@ -214,6 +241,59 @@ func (h *SyncHandler) BackfillImages(c *gin.Context) {
 		Int("skipped", result.Skipped).
 		Int("errors", result.Errors).
 		Msg("Master product image backfill completed")
+
+	c.JSON(http.StatusOK, response.Success(result))
+}
+
+// RefreshProductImages handles POST /api/master-products/:id/images/refresh
+func (h *SyncHandler) RefreshProductImages(c *gin.Context) {
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+		return
+	}
+
+	db, err := h.getTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+	service := h.newMasterProductService(db)
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Error("Invalid product ID"))
+		return
+	}
+
+	var req RefreshImagesRequest
+	if err := c.ShouldBindJSON(&req); err != nil && !errors.Is(err, io.EOF) {
+		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
+		return
+	}
+
+	result, err := service.RefreshProductImages(c.Request.Context(), tenantID, uint(id), req.Force)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("tenant_id", tenantID).
+			Uint64("product_id", id).
+			Bool("force", req.Force).
+			Msg("Failed to refresh product images")
+
+		if errors.Is(err, masterProductService.ErrProductNotFound) {
+			c.JSON(http.StatusNotFound, response.Error("Product not found"))
+			return
+		}
+		if errors.Is(err, masterProductService.ErrTenantIDRequired) {
+			c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
+		return
+	}
 
 	c.JSON(http.StatusOK, response.Success(result))
 }

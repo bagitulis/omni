@@ -118,6 +118,7 @@ describe("StockSyncModal", () => {
     expect(screen.getByText(/Shopee/)).toBeInTheDocument();
     expect(screen.getByText(/TikTok/)).toBeInTheDocument();
     expect(screen.getByText(/Lazada/)).toBeInTheDocument();
+    expect(screen.getByText("1 sync operations")).toBeInTheDocument();
   });
 
   it("renders Sync button as disabled with '0 SKUs' text when selectedProducts is empty", () => {
@@ -187,5 +188,42 @@ describe("StockSyncModal", () => {
     ).toBeInTheDocument();
     // SKU row from sample product
     expect(screen.getByText("SKU-001")).toBeInTheDocument();
+  });
+
+  it("shows skipped SKU warning when no linked platforms are selected", () => {
+    const unlinkedProduct: UnifiedProductRow = {
+      ...sampleProduct,
+      id: 2,
+      primary_sku: "SKU-UNLINKED",
+      skus: [
+        {
+          ...sampleProduct.skus[0],
+          id: 2,
+          seller_sku: "SKU-UNLINKED",
+        },
+      ],
+      platform_summary: {
+        shopee: "not_linked",
+        tiktok: "not_linked",
+        lazada: "not_linked",
+      },
+    };
+
+    render(
+      <StockSyncModal
+        open={true}
+        onClose={mockOnClose}
+        onSync={mockOnSync}
+        selectedProducts={[unlinkedProduct]}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "1 SKU(s) skipped because they are not linked to selected platforms.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("0 sync operations")).toBeInTheDocument();
+    expect(screen.getByText("Sync 0 SKUs").closest("button")).toBeDisabled();
   });
 });

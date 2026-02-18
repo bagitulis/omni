@@ -117,7 +117,7 @@ describe("PlatformIndicator", () => {
     });
 
     expect(indicator).toHaveAttribute("data-state", "syncing");
-    expect(getComputedStyle(indicator).borderColor).toBe("rgb(24, 144, 255)");
+    expect(getComputedStyle(indicator).borderColor).toBe("rgb(22, 119, 255)");
     expect(indicator.querySelector(".platform-spinner")).toBeInTheDocument();
   });
 
@@ -144,7 +144,7 @@ describe("PlatformIndicator", () => {
     const indicator = renderIndicator({ linked: false, sync_state: "syncing" });
 
     expect(indicator).toHaveAttribute("data-state", "syncing");
-    expect(getComputedStyle(indicator).borderColor).toBe("rgb(24, 144, 255)");
+    expect(getComputedStyle(indicator).borderColor).toBe("rgb(22, 119, 255)");
   });
 
   it("triggers onClick only when linked", () => {

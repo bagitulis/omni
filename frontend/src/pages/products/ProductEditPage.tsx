@@ -14,7 +14,12 @@ import {
 import { ArrowLeftOutlined } from "@ant-design/icons";
 
 import { ProductBasicForm } from "../../components/forms/ProductBasicForm";
-import { getProductById, updateProduct, syncProduct } from "../../api/products";
+import {
+  getProductById,
+  refreshProductImages,
+  syncProduct,
+  updateProduct,
+} from "../../api/products";
 import type { UploadFile } from "antd/es/upload/interface";
 import { ProductVariantsTab } from "./components/ProductVariantsTab";
 import { ProductImagesTab } from "./components/ProductImagesTab";
@@ -22,6 +27,7 @@ import { ProductSyncTab } from "./components/ProductSyncTab";
 import { SkuMappingPanel } from "../../components/shared/SkuMappingPanel";
 import type { MasterProduct } from "../../types/product";
 import type { ProductData, ProductSku } from "./types";
+import { mapMasterProductToProductData } from "./utils/productEditMapper";
 
 const { Title, Text } = Typography;
 
@@ -34,6 +40,7 @@ export default function ProductEditPage() {
   const screens = Grid.useBreakpoint();
   const [saveVariantsLoading, setSaveVariantsLoading] = useState(false);
   const [saveImagesLoading, setSaveImagesLoading] = useState(false);
+  const [refreshImagesLoading, setRefreshImagesLoading] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
 
   const fetchProduct = useCallback(async () => {
@@ -44,15 +51,7 @@ export default function ProductEditPage() {
       setError(null);
       const data = await getProductById(id);
       setRawProduct(data);
-      setProduct({
-        id: data.id,
-        title: data.title,
-        description: data.description,
-        images: data.images || [],
-        status: data.status,
-        skus: [],
-        platforms: [],
-      });
+      setProduct(mapMasterProductToProductData(data));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load product");
     } finally {
@@ -69,16 +68,22 @@ export default function ProductEditPage() {
 
     setSaveVariantsLoading(true);
     try {
-      // Prepare update data - include variants if backend supports it
-      const updateData = {
-        title: product?.title,
-        description: product?.description,
-        images: product?.images,
-      };
-      // Spread variants data for future backend compatibility
-      Object.assign(updateData, variants.length > 0 ? { variants } : {});
+      const normalized = variants.map((variant) => ({
+        id: variant.id,
+        seller_sku: variant.seller_sku.trim(),
+        variant_name: variant.variant_name,
+        variant_data: variant.variant_data,
+        price: Number(variant.price) || 0,
+        stock: Number(variant.stock) || 0,
+      }));
 
-      await updateProduct(id, updateData);
+      if (normalized.some((variant) => !variant.seller_sku)) {
+        message.error("Seller SKU is required for each variant");
+        return;
+      }
+
+      await updateProduct(id, { skus: normalized });
+      await fetchProduct();
       message.success("Variants saved successfully!");
     } catch (err) {
       message.error((err as Error).message || "Failed to save variants");
@@ -96,6 +101,7 @@ export default function ProductEditPage() {
         .map((file) => file.url || file.response?.url)
         .filter(Boolean);
       await updateProduct(id, { images: imageUrls });
+      await fetchProduct();
       message.success("Images saved successfully!");
     } catch (err) {
       message.error((err as Error).message || "Failed to save images");
@@ -104,12 +110,52 @@ export default function ProductEditPage() {
     }
   };
 
+  const handleRefreshImages = async () => {
+    if (!id) return;
+
+    setRefreshImagesLoading(true);
+    try {
+      const result = await refreshProductImages(id, true);
+      await fetchProduct();
+
+      if (result.updated) {
+        message.success(`Images refreshed (${result.image_count} image(s))`);
+      } else {
+        message.info("Images are already up to date");
+      }
+    } catch (err) {
+      message.error((err as Error).message || "Failed to refresh images");
+    } finally {
+      setRefreshImagesLoading(false);
+    }
+  };
+
+  const handleSaveBasicInfo = async (values: {
+    item_name: string;
+    description: string;
+    brand?: string;
+  }) => {
+    if (!id) return;
+
+    try {
+      await updateProduct(id, {
+        title: values.item_name,
+        description: values.description,
+      });
+      await fetchProduct();
+      message.success("Basic info saved");
+    } catch (err) {
+      message.error((err as Error).message || "Failed to save basic info");
+    }
+  };
+
   const handleSyncProduct = async (platform: string) => {
     if (!id) return;
 
     setSyncLoading(true);
     try {
-      await syncProduct(id);
+      await syncProduct(id, platform);
+      await fetchProduct();
       message.success(`Product synced to ${platform} successfully!`);
     } catch (err) {
       message.error((err as Error).message || "Failed to sync product");
@@ -161,7 +207,7 @@ export default function ProductEditPage() {
             item_name: product.title,
             description: product.description,
           }}
-          onFinish={() => message.success("Saved")}
+          onFinish={handleSaveBasicInfo}
           submitLabel="Save Basic Info"
         />
       ),
@@ -185,6 +231,8 @@ export default function ProductEditPage() {
           initialValues={imageFiles}
           onSave={handleSaveImages}
           loading={saveImagesLoading}
+          onRefresh={handleRefreshImages}
+          refreshLoading={refreshImagesLoading}
         />
       ),
     },

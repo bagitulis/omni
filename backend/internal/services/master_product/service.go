@@ -70,10 +70,11 @@ type CreateSkuInput struct {
 
 // UpdateInput represents input for updating a master product
 type UpdateInput struct {
-	Title       *string  `json:"title,omitempty"`
-	Description *string  `json:"description,omitempty"`
-	Images      []string `json:"images,omitempty"`
-	Status      *string  `json:"status,omitempty"`
+	Title       *string          `json:"title,omitempty"`
+	Description *string          `json:"description,omitempty"`
+	Images      []string         `json:"images,omitempty"`
+	Status      *string          `json:"status,omitempty"`
+	SKUs        []UpdateSkuInput `json:"skus,omitempty"`
 }
 
 // ListFilter represents filters for listing products
@@ -268,6 +269,12 @@ func (s *Service) Update(ctx context.Context, tenantID string, id uint, input Up
 
 	if input.Status != nil {
 		product.Status = *input.Status
+	}
+
+	if input.SKUs != nil {
+		if err := s.replaceProductSKUs(ctx, tenantID, id, input.SKUs); err != nil {
+			return nil, err
+		}
 	}
 
 	product.UpdatedAt = time.Now()
