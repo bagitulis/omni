@@ -250,7 +250,8 @@ func (r *MasterProductRepository) SearchByTitle(ctx context.Context, tenantID, s
 }
 
 // FindLinked returns paginated products that are linked on marketplace platforms.
-// Linked products are determined by platform links with sync_status in [synced, outdated].
+// Linked products are determined by platform links with sync_status in [synced, outdated, pending, error].
+// A product is "linked" if a platform link record exists — regardless of whether the sync succeeded.
 func (r *MasterProductRepository) FindLinked(
 	ctx context.Context,
 	tenantID string,
@@ -272,7 +273,7 @@ func (r *MasterProductRepository) FindLinked(
 		query = query.Where("LOWER(title) LIKE LOWER(?)", "%"+search+"%")
 	}
 
-	linkedStatuses := []string{models.SyncStatusSynced, models.SyncStatusOutdated}
+	linkedStatuses := []string{models.SyncStatusSynced, models.SyncStatusOutdated, models.SyncStatusPending, models.SyncStatusError}
 	linkedSubQuery := r.db.WithContext(ctx).
 		Model(&models.MasterProductPlatformLink{}).
 		Select("1").

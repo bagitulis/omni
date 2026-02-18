@@ -194,7 +194,6 @@ export function useUnifiedProducts(
         search: search || undefined,
         status: status !== "all" ? status : undefined,
         platform: platform !== "all" ? platform : undefined,
-        linked_only: true,
       });
 
       const products = transformToUnifiedRows(response.data || []);

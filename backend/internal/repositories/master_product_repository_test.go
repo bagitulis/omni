@@ -569,7 +569,7 @@ func TestMasterProductRepository(t *testing.T) {
 		}
 		assert.Contains(t, activeLinkedIDs, linkedShopee.ID)
 		assert.Contains(t, activeLinkedIDs, linkedOutdated.ID)
-		assert.NotContains(t, activeLinkedIDs, pendingOnly.ID)
+		assert.Contains(t, activeLinkedIDs, pendingOnly.ID) // pending IS linked after Task 7 fix
 		assert.NotContains(t, activeLinkedIDs, draftLinked.ID)
 
 		shopeeLinked, _, err := repo.FindLinked(
@@ -589,5 +589,138 @@ func TestMasterProductRepository(t *testing.T) {
 		}
 		assert.Contains(t, shopeeLinkedIDs, linkedShopee.ID)
 		assert.NotContains(t, shopeeLinkedIDs, linkedOutdated.ID)
+	})
+}
+
+// TestMasterProductRepository_FindLinked is the dedicated test matrix for FindLinked()
+// covering all four sync statuses, unlinked exclusion, and platform scoping.
+func TestMasterProductRepository_FindLinked(t *testing.T) {
+	db := testutils.SetupTestPostgresWithModels(t,
+		&models.MasterProduct{},
+		&models.MasterProductSku{},
+		&models.MasterProductPlatformLink{},
+	)
+	repo := NewMasterProductRepository(db)
+	ctx := context.Background()
+
+	tenantID := "tenant-find-linked"
+
+	// createProduct creates an active master product for the test tenant.
+	createProduct := func(t *testing.T, title string) *models.MasterProduct {
+		t.Helper()
+		product := &models.MasterProduct{
+			TenantID:    tenantID,
+			Title:       title,
+			Description: "Test Description",
+			Status:      models.MasterProductStatusActive,
+		}
+		err := repo.Create(ctx, product)
+		require.NoError(t, err)
+		return product
+	}
+
+	// createSku creates a SKU for the given product.
+	createSku := func(t *testing.T, product *models.MasterProduct, sellerSku string) *models.MasterProductSku {
+		t.Helper()
+		sku := &models.MasterProductSku{
+			TenantID:        tenantID,
+			MasterProductID: product.ID,
+			SellerSku:       sellerSku,
+			VariantName:     "Default",
+			Price:           10000,
+			Stock:           10,
+		}
+		err := repo.CreateSku(ctx, sku)
+		require.NoError(t, err)
+		return sku
+	}
+
+	// createLink creates a MasterProductPlatformLink with the given sync status.
+	createLink := func(t *testing.T, productID uint, skuID *uint, platform, syncStatus string) {
+		t.Helper()
+		link := &models.MasterProductPlatformLink{
+			MasterProductID: productID,
+			MasterSkuID:     skuID,
+			Platform:        platform,
+			PlatformItemID:  platform + "-" + syncStatus + "-item",
+			SyncStatus:      syncStatus,
+		}
+		err := repo.CreatePlatformLink(ctx, link)
+		require.NoError(t, err)
+	}
+
+	// collectIDs extracts product IDs from a result slice for assertion.
+	collectIDs := func(products []models.MasterProduct) []uint {
+		ids := make([]uint, 0, len(products))
+		for _, p := range products {
+			ids = append(ids, p.ID)
+		}
+		return ids
+	}
+
+	t.Run("includes synced linked products", func(t *testing.T) {
+		p := createProduct(t, "FL-Synced Product")
+		sku := createSku(t, p, "FL-SYNCED-SKU-001")
+		createLink(t, p.ID, &sku.ID, "shopee", models.SyncStatusSynced)
+
+		results, _, err := repo.FindLinked(ctx, tenantID, 1, 100, "", "", "")
+		require.NoError(t, err)
+		assert.Contains(t, collectIDs(results), p.ID)
+	})
+
+	t.Run("includes outdated linked products", func(t *testing.T) {
+		p := createProduct(t, "FL-Outdated Product")
+		sku := createSku(t, p, "FL-OUTDATED-SKU-001")
+		createLink(t, p.ID, &sku.ID, "shopee", models.SyncStatusOutdated)
+
+		results, _, err := repo.FindLinked(ctx, tenantID, 1, 100, "", "", "")
+		require.NoError(t, err)
+		assert.Contains(t, collectIDs(results), p.ID)
+	})
+
+	t.Run("includes pending linked products", func(t *testing.T) {
+		p := createProduct(t, "FL-Pending Product")
+		sku := createSku(t, p, "FL-PENDING-SKU-001")
+		createLink(t, p.ID, &sku.ID, "shopee", models.SyncStatusPending)
+
+		results, _, err := repo.FindLinked(ctx, tenantID, 1, 100, "", "", "")
+		require.NoError(t, err)
+		assert.Contains(t, collectIDs(results), p.ID)
+	})
+
+	t.Run("includes error linked products", func(t *testing.T) {
+		p := createProduct(t, "FL-Error Product")
+		sku := createSku(t, p, "FL-ERROR-SKU-001")
+		createLink(t, p.ID, &sku.ID, "shopee", models.SyncStatusError)
+
+		results, _, err := repo.FindLinked(ctx, tenantID, 1, 100, "", "", "")
+		require.NoError(t, err)
+		assert.Contains(t, collectIDs(results), p.ID)
+	})
+
+	t.Run("excludes unlinked products", func(t *testing.T) {
+		// Create a product with NO platform link — it must not appear in FindLinked results.
+		p := createProduct(t, "FL-Unlinked Product")
+
+		results, _, err := repo.FindLinked(ctx, tenantID, 1, 100, "", "", "")
+		require.NoError(t, err)
+		assert.NotContains(t, collectIDs(results), p.ID)
+	})
+
+	t.Run("platform scoping works", func(t *testing.T) {
+		shopeeProduct := createProduct(t, "FL-Shopee Scoped Product")
+		shopeeSku := createSku(t, shopeeProduct, "FL-SCOPE-SHOPEE-SKU")
+		createLink(t, shopeeProduct.ID, &shopeeSku.ID, "shopee", models.SyncStatusSynced)
+
+		tiktokProduct := createProduct(t, "FL-TikTok Scoped Product")
+		tiktokSku := createSku(t, tiktokProduct, "FL-SCOPE-TIKTOK-SKU")
+		createLink(t, tiktokProduct.ID, &tiktokSku.ID, "tiktok", models.SyncStatusSynced)
+
+		results, _, err := repo.FindLinked(ctx, tenantID, 1, 100, "", "", "shopee")
+		require.NoError(t, err)
+
+		ids := collectIDs(results)
+		assert.Contains(t, ids, shopeeProduct.ID)
+		assert.NotContains(t, ids, tiktokProduct.ID)
 	})
 }

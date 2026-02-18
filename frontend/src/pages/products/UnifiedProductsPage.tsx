@@ -60,13 +60,8 @@ export default function UnifiedProductsPage() {
     readFiltersFromUrl(searchParams),
   );
 
-  const activeFilters = useMemo(
-    () => ({ ...filters, status: "active" as const }),
-    [filters],
-  );
-
   const { data, isLoading, refetch } = useUnifiedProducts(
-    activeFilters,
+    filters,
     page,
     pageSize,
   );
@@ -100,11 +95,9 @@ export default function UnifiedProductsPage() {
 
   const handleFilterChange = useCallback(
     (nextFilters: ProductFilterValues) => {
-      setFilters({ ...nextFilters, status: "active" });
+      setFilters(nextFilters);
       setPage(1);
-      setSearchParams(
-        buildFilterSearchParams({ ...nextFilters, status: "active" }),
-      );
+      setSearchParams(buildFilterSearchParams(nextFilters));
     },
     [setSearchParams],
   );
@@ -218,7 +211,7 @@ export default function UnifiedProductsPage() {
             values={filters}
             onChange={handleFilterChange}
             showCategory={true}
-            showStatus={false}
+            showStatus={true}
           />
           <Divider style={{ margin: "8px 0" }} />
 

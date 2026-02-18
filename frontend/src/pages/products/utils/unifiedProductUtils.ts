@@ -10,7 +10,7 @@ import {
 export const DEFAULT_FILTERS: ProductFilterValues = {
   search: "",
   platform: "all",
-  status: "active",
+  status: "all",
   category: "all",
 };
 
