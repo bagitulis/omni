@@ -12,6 +12,13 @@ import {
 } from "antd";
 import type { FC } from "react";
 import type { Platform, UnifiedProductRow } from "@/types/shared";
+import {
+  type PerPlatformConfig,
+  type PerPlatformRow,
+  PLATFORM_OPTIONS,
+  getDefaultPerPlatformConfig,
+  getPerPlatformColumns,
+} from "./stockSyncColumns";
 
 interface StockSyncModalProps {
   open: boolean;
@@ -27,19 +34,6 @@ interface StockSyncModalProps {
 }
 
 type SyncMode = "uniform" | "per_platform";
-
-interface PerPlatformConfig {
-  [sku: string]: {
-    stock: number;
-    platforms: Record<Platform, boolean>;
-  };
-}
-
-const PLATFORM_OPTIONS: Array<{ key: Platform; label: string }> = [
-  { key: "shopee", label: "🟠 Shopee" },
-  { key: "tiktok", label: "⬛ TikTok" },
-  { key: "lazada", label: "🔵 Lazada" },
-];
 
 export const StockSyncModal: FC<StockSyncModalProps> = ({
   open,
@@ -85,23 +79,9 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
       return;
     }
 
-    const config: PerPlatformConfig = {};
-    for (const product of selectedProducts) {
-      for (const sku of product.skus) {
-        const linkedPlatforms = linkedPlatformsBySku[sku.seller_sku] ?? {
-          shopee: false,
-          tiktok: false,
-          lazada: false,
-        };
-
-        config[sku.seller_sku] = {
-          stock: sku.stock,
-          platforms: { ...linkedPlatforms },
-        };
-      }
-    }
-
-    setPerPlatformConfig(config);
+    setPerPlatformConfig(
+      getDefaultPerPlatformConfig(selectedProducts, linkedPlatformsBySku),
+    );
   }, [linkedPlatformsBySku, open, selectedProducts]);
 
   const syncItems = useMemo(() => {
@@ -162,100 +142,23 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
     }
   };
 
-  const perPlatformColumns = [
-    {
-      title: "SKU",
-      dataIndex: "sku",
-      key: "sku",
-      width: 150,
-    },
-    {
-      title: "Stock",
-      dataIndex: "stock",
-      key: "stock",
-      width: 100,
-      render: (_: unknown, record: { sku: string; stock: number }) => (
-        <InputNumber
-          size="small"
-          min={0}
-          value={perPlatformConfig[record.sku]?.stock ?? 0}
-          onChange={(value) =>
-            setPerPlatformConfig((prev) => {
-              const existing = prev[record.sku];
-              if (!existing) {
-                return prev;
-              }
-
-              return {
-                ...prev,
-                [record.sku]: {
-                  ...existing,
-                  stock: value ?? 0,
-                },
-              };
-            })
-          }
-          style={{ width: 80 }}
-        />
+  const perPlatformColumns = useMemo(
+    () =>
+      getPerPlatformColumns(
+        linkedPlatformsBySku,
+        perPlatformConfig,
+        setPerPlatformConfig,
       ),
-    },
-    ...PLATFORM_OPTIONS.map((platformOption) => ({
-      title: platformOption.label,
-      key: platformOption.key,
-      width: 100,
-      render: (_: unknown, record: { sku: string }) => (
-        <Checkbox
-          disabled={!linkedPlatformsBySku[record.sku]?.[platformOption.key]}
-          checked={
-            linkedPlatformsBySku[record.sku]?.[platformOption.key]
-              ? (perPlatformConfig[record.sku]?.platforms[platformOption.key] ??
-                false)
-              : false
-          }
-          onChange={(event) =>
-            setPerPlatformConfig((prev) => {
-              const existing = prev[record.sku];
-              if (!existing) {
-                return prev;
-              }
-
-              if (!linkedPlatformsBySku[record.sku]?.[platformOption.key]) {
-                return {
-                  ...prev,
-                  [record.sku]: {
-                    ...existing,
-                    platforms: {
-                      ...existing.platforms,
-                      [platformOption.key]: false,
-                    },
-                  },
-                };
-              }
-
-              return {
-                ...prev,
-                [record.sku]: {
-                  ...existing,
-                  platforms: {
-                    ...existing.platforms,
-                    [platformOption.key]: event.target.checked,
-                  },
-                },
-              };
-            })
-          }
-        />
-      ),
-    })),
-  ];
-
-  const perPlatformData = Object.entries(perPlatformConfig).map(
-    ([sku, config]) => ({
-      key: sku,
-      sku,
-      stock: config.stock,
-    }),
+    [linkedPlatformsBySku, perPlatformConfig],
   );
+
+  const perPlatformData: PerPlatformRow[] = Object.entries(
+    perPlatformConfig,
+  ).map(([sku, config]) => ({
+    key: sku,
+    sku,
+    stock: config.stock,
+  }));
 
   return (
     <Modal

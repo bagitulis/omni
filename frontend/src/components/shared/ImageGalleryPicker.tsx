@@ -1,32 +1,18 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
-  Modal,
-  Button,
-  Input,
-  Pagination,
-  Upload,
-  message,
-  Spin,
-  Empty,
-  Typography,
-  theme,
-} from "antd";
-import {
-  SearchOutlined,
-  UploadOutlined,
-  FileImageOutlined,
-  CheckOutlined,
-  CloseCircleOutlined,
-} from "@ant-design/icons";
+  type ChangeEvent,
+  type FC,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { Modal, message, theme } from "antd";
 import type { UploadRequestOption } from "rc-upload/lib/interface";
 import apiClient from "@/api/client";
-import {
-  GalleryImage,
-  GalleryPaginationMeta,
-  getImageUrl,
-} from "../../types/shared";
-
-const { Text } = Typography;
+import type { GalleryImage, GalleryPaginationMeta } from "../../types/shared";
+import { GalleryFooter } from "./gallery/GalleryFooter";
+import { GalleryGrid } from "./gallery/GalleryGrid";
+import { GalleryToolbar } from "./gallery/GalleryToolbar";
 
 // Stable empty array to prevent infinite render loop
 const EMPTY_SELECTED: GalleryImage[] = [];
@@ -44,7 +30,7 @@ interface GalleryResponse {
   meta: GalleryPaginationMeta;
 }
 
-export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
+export const ImageGalleryPicker: FC<ImageGalleryPickerProps> = ({
   open,
   onClose,
   onConfirm,
@@ -101,6 +87,7 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
   }, []);
 
   // Initial load and reset when modal opens
+  // biome-ignore lint/correctness/useExhaustiveDependencies: prevent infinite loop on search change
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
@@ -116,11 +103,11 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
         clearTimeout(searchTimeoutRef.current);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- searchQuery is intentionally excluded; it is passed directly to fetchImages in the debounce handler to avoid re-triggering on every keystroke
   }, [open, initialSelected, fetchImages]);
 
   // Debounced search handler
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
 
@@ -180,9 +167,6 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
     }
   };
 
-  const isSelected = (img: GalleryImage) =>
-    selectedImages.some((i) => i.id === img.id);
-
   const handleConfirm = () => {
     onConfirm(selectedImages);
     onClose();
@@ -211,40 +195,12 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
         },
       }}
     >
-      {/* Toolbar */}
-      <div
-        style={{
-          padding: token.padding,
-          borderBottom: `1px solid ${token.colorBorderSecondary}`,
-          display: "flex",
-          gap: token.marginSM,
-          alignItems: "center",
-          backgroundColor: token.colorBgLayout,
-        }}
-      >
-        <Input
-          placeholder="Search images..."
-          prefix={
-            <SearchOutlined style={{ color: token.colorTextDescription }} />
-          }
-          value={searchQuery}
-          onChange={handleSearchChange}
-          style={{ flex: 1, maxWidth: 300 }}
-          allowClear
-        />
-        <div style={{ flex: 1 }} />
-        <Upload
-          customRequest={handleUpload}
-          showUploadList={false}
-          accept="image/*"
-        >
-          <Button type="primary" icon={<UploadOutlined />}>
-            Upload
-          </Button>
-        </Upload>
-      </div>
+      <GalleryToolbar
+        searchQuery={searchQuery}
+        onSearchChange={handleSearchChange}
+        onUpload={handleUpload}
+      />
 
-      {/* Content */}
       <div
         style={{
           flex: 1,
@@ -253,184 +209,24 @@ export const ImageGalleryPicker: React.FC<ImageGalleryPickerProps> = ({
           backgroundColor: token.colorBgContainer,
         }}
       >
-        {loading ? (
-          <div
-            style={{
-              height: "100%",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              flexDirection: "column",
-              gap: token.margin,
-            }}
-          >
-            <Spin size="large" />
-            <Text type="secondary">Loading images...</Text>
-          </div>
-        ) : images.length === 0 ? (
-          <div
-            style={{
-              height: "100%",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <Empty
-              image={
-                <FileImageOutlined
-                  style={{ fontSize: 48, color: token.colorTextQuaternary }}
-                />
-              }
-              description={
-                searchQuery ? "No matching images found" : "Gallery is empty"
-              }
-            />
-          </div>
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-              gap: token.margin,
-            }}
-          >
-            {images.map((img) => {
-              const selected = isSelected(img);
-              return (
-                <button
-                  key={img.id}
-                  type="button"
-                  onClick={() => toggleSelection(img)}
-                  style={{
-                    background: "none",
-                    padding: 0,
-                    width: "100%",
-                    position: "relative",
-                    aspectRatio: "1",
-                    borderRadius: 3,
-                    overflow: "hidden",
-                    cursor: "pointer",
-                    border: selected
-                      ? "3px solid #ff6b2c" // Shopee orange per spec
-                      : `1px solid ${token.colorBorder}`,
-                    transition: "all 0.2s",
-                    boxShadow: selected ? token.boxShadow : "none",
-                  }}
-                >
-                  <img
-                    src={getImageUrl(img.local_path, "thumb")}
-                    alt={img.filename}
-                    loading="lazy"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover", // NOT contain per constraints
-                      display: "block",
-                    }}
-                  />
-
-                  {/* Selection Indicator Overlay */}
-                  {selected && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 4,
-                        right: 4,
-                        width: 24,
-                        height: 24,
-                        backgroundColor: "#ff6b2c",
-                        color: "#fff",
-                        borderRadius: "50%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                      }}
-                    >
-                      <CheckOutlined
-                        style={{ fontSize: 14, fontWeight: "bold" }}
-                      />
-                    </div>
-                  )}
-
-                  {/* Filename Overlay on Hover/Always */}
-                  <div
-                    style={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      backgroundColor: "rgba(0,0,0,0.6)",
-                      color: "#fff",
-                      padding: "4px 8px",
-                      fontSize: "10px",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                    title={img.filename}
-                  >
-                    {img.filename}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <GalleryGrid
+          loading={loading}
+          images={images}
+          searchQuery={searchQuery}
+          selectedImages={selectedImages}
+          onToggle={toggleSelection}
+        />
       </div>
 
-      {/* Footer */}
-      <div
-        style={{
-          padding: `${token.paddingSM}px ${token.padding}px`,
-          borderTop: `1px solid ${token.colorBorderSecondary}`,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          backgroundColor: token.colorBgLayout,
-        }}
-      >
-        <div
-          style={{ display: "flex", gap: token.margin, alignItems: "center" }}
-        >
-          <Text strong>
-            {selectedImages.length} / {maxSelect} selected
-          </Text>
-        </div>
-
-        <div
-          style={{ display: "flex", gap: token.margin, alignItems: "center" }}
-        >
-          <Pagination
-            simple
-            current={meta.page}
-            total={meta.total}
-            pageSize={meta.page_size}
-            onChange={handlePageChange}
-            size="small"
-          />
-          <div
-            style={{
-              width: 1,
-              height: 24,
-              backgroundColor: token.colorBorder,
-              margin: `0 ${token.marginXS}px`,
-            }}
-          />
-          <Button onClick={onClose} icon={<CloseCircleOutlined />}>
-            Cancel
-          </Button>
-          <Button
-            type="primary"
-            onClick={handleConfirm}
-            icon={<CheckOutlined />}
-            disabled={selectedImages.length === 0}
-          >
-            Confirm
-          </Button>
-        </div>
-      </div>
+      <GalleryFooter
+        selectedCount={selectedImages.length}
+        maxSelect={maxSelect}
+        meta={meta}
+        onPageChange={handlePageChange}
+        onClose={onClose}
+        onConfirm={handleConfirm}
+        confirmDisabled={selectedImages.length === 0}
+      />
     </Modal>
   );
 };

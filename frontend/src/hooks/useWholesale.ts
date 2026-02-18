@@ -10,12 +10,12 @@ import {
   batchDeleteInventoryWholesale,
   updateInventoryMpqSettings,
   batchUpdateInventoryMpq,
-  InventoryWholesaleTier,
-  InventoryWholesaleSettings,
-  InventoryWholesaleBatchUpdateItem,
-  InventoryMpqSettings,
-  InventoryMpqBatchItem,
-} from "@/api/wholesale";
+  type InventoryWholesaleTier,
+  type InventoryWholesaleSettings,
+  type InventoryWholesaleBatchUpdateItem,
+  type InventoryMpqSettings,
+  type InventoryMpqBatchItem,
+} from "@/api/inventoryWholesale";
 
 /**
  * Fetch wholesale tiers for a specific SKU

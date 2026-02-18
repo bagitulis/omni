@@ -1,337 +1,268 @@
+import { Modal, message } from "antd";
 import { useState } from "react";
-import { message, Modal } from "antd";
+import type { BulkPrintLabelsOptions, CancelOrderParams } from "@/api/orders";
 import { useOrderActions } from "@/hooks/useOrders";
 import type { OrderListResponse } from "@/types/order";
-import type { BulkPrintLabelsOptions, CancelOrderParams } from "@/api/orders";
-import { bulkPrintLabels } from "@/api/orders";
-import { downloadOrderLabel } from "../utils/labelDownload";
+import type { BulkResult, ProgressState } from "./bulkActionTypes";
 import {
-  buildBulkPrintOptions,
-  shouldPromptTikTokPackingSlip,
+	askIncludeProductsOption,
+	mergeUniqueOrderSns,
+	runBulkPrint,
+} from "./bulkPrintHelpers";
+import {
+	buildBulkPrintOptions,
+	shouldPromptTikTokPackingSlip,
 } from "./printOptions";
-import type {
-  BulkActionFailure,
-  BulkResult,
-  ProgressState,
-} from "./bulkActionTypes";
 
 interface UseOrderBulkActionsProps {
-  selectedRowKeys: React.Key[];
-  setSelectedRowKeys: (keys: React.Key[]) => void;
-  data?: OrderListResponse;
-  refetch: () => void;
-  platform: string;
-}
-
-function askIncludeProductsOption(): Promise<boolean> {
-  return new Promise((resolve) => {
-    Modal.confirm({
-      title: "Print option",
-      content:
-        "Include product list (packing slip) for TikTok labels? Choose 'With List' or 'Label Only'.",
-      okText: "With List",
-      cancelText: "Label Only",
-      onOk: () => resolve(true),
-      onCancel: () => resolve(false),
-      centered: true,
-    });
-  });
+	selectedRowKeys: React.Key[];
+	setSelectedRowKeys: (keys: React.Key[]) => void;
+	data?: OrderListResponse;
+	refetch: () => void;
+	platform: string;
 }
 
 export function useOrderBulkActions({
-  selectedRowKeys,
-  setSelectedRowKeys,
-  data,
-  refetch,
-  platform,
+	selectedRowKeys,
+	setSelectedRowKeys,
+	data,
+	refetch,
+	platform,
 }: UseOrderBulkActionsProps) {
-  const { shipOrders, cancelOrder, isShipping, isCancelling } =
-    useOrderActions();
+	const { shipOrders, cancelOrder, isShipping, isCancelling } =
+		useOrderActions();
 
-  const [shipProgress, setShipProgress] = useState<ProgressState>({
-    current: 0,
-    total: 0,
-    status: "idle",
-  });
+	const [shipProgress, setShipProgress] = useState<ProgressState>({
+		current: 0,
+		total: 0,
+		status: "idle",
+	});
 
-  const [printProgress, setPrintProgress] = useState<ProgressState>({
-    current: 0,
-    total: 0,
-    status: "idle",
-  });
+	const [printProgress, setPrintProgress] = useState<ProgressState>({
+		current: 0,
+		total: 0,
+		status: "idle",
+	});
 
-  const [cancelProgress, setCancelProgress] = useState<ProgressState>({
-    current: 0,
-    total: 0,
-    status: "idle",
-  });
+	const [cancelProgress, setCancelProgress] = useState<ProgressState>({
+		current: 0,
+		total: 0,
+		status: "idle",
+	});
 
-  const [shipResult, setShipResult] = useState<BulkResult>({
-    succeeded: [],
-    failed: [],
-  });
+	const [shipResult, setShipResult] = useState<BulkResult>({
+		succeeded: [],
+		failed: [],
+	});
 
-  const [printResult, setPrintResult] = useState<BulkResult>({
-    succeeded: [],
-    failed: [],
-  });
+	const [printResult, setPrintResult] = useState<BulkResult>({
+		succeeded: [],
+		failed: [],
+	});
 
-  const [cancelResult, setCancelResult] = useState<BulkResult>({
-    succeeded: [],
-    failed: [],
-  });
+	const [cancelResult, setCancelResult] = useState<BulkResult>({
+		succeeded: [],
+		failed: [],
+	});
 
-  const [lastPrintOptions, setLastPrintOptions] =
-    useState<BulkPrintLabelsOptions>();
+	const [lastPrintOptions, setLastPrintOptions] =
+		useState<BulkPrintLabelsOptions>();
 
-  const mergeUniqueOrderSns = (items: string[]) => Array.from(new Set(items));
+	const handleBulkShip = async () => {
+		if (selectedRowKeys.length === 0) return;
 
-  const runBulkPrint = async (
-    orderSns: string[],
-    options: BulkPrintLabelsOptions | undefined,
-    previousSucceeded: string[] = [],
-  ) => {
-    setPrintProgress({
-      current: 0,
-      total: orderSns.length,
-      status: "processing",
-    });
+		const orderSns = selectedRowKeys as string[];
+		setShipProgress({
+			current: 0,
+			total: orderSns.length,
+			status: "processing",
+		});
+		setShipResult({ succeeded: [], failed: [] });
 
-    try {
-      const response = await bulkPrintLabels(orderSns, options);
+		const succeeded: string[] = [];
+		const failed: Array<{ order_sn: string; error: string }> = [];
 
-      const succeeded = mergeUniqueOrderSns([
-        ...previousSucceeded,
-        ...response.labels.map((label) => label.order_sn),
-      ]);
-      const failed: BulkActionFailure[] = response.failed.map((f) => ({
-        order_sn: f.order_sn,
-        error: f.error,
-      }));
+		try {
+			const shipPlatform = platform !== "all" ? platform : undefined;
 
-      if (response.labels.length > 0) {
-        response.labels.forEach((label) => {
-          try {
-            downloadOrderLabel(label.file_data, label.order_sn);
-          } catch (error) {
-            failed.push({
-              order_sn: label.order_sn,
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "Failed to trigger browser download",
-            });
-          }
-        });
-      }
+			// Process orders one by one for progress tracking
+			for (let i = 0; i < orderSns.length; i++) {
+				const orderSn = orderSns[i];
+				try {
+					await shipOrders([orderSn], shipPlatform);
+					succeeded.push(orderSn);
+				} catch (error) {
+					failed.push({
+						order_sn: orderSn,
+						error: error instanceof Error ? error.message : "Unknown error",
+					});
+				}
+				setShipProgress({
+					current: i + 1,
+					total: orderSns.length,
+					status: "processing",
+				});
+			}
 
-      setPrintProgress({
-        current: orderSns.length,
-        total: orderSns.length,
-        status: "done",
-      });
-      setPrintResult({ succeeded, failed });
+			setShipProgress({
+				current: orderSns.length,
+				total: orderSns.length,
+				status: "done",
+			});
+			setShipResult({ succeeded, failed });
 
-      if (failed.length === 0) {
-        message.success(
-          `All ${succeeded.length} labels downloaded successfully`,
-        );
-      } else {
-        message.warning(
-          `${succeeded.length} labels downloaded, ${failed.length} failed. Open Print Details for raw errors.`,
-        );
-      }
-    } catch (error) {
-      setPrintProgress({ current: 0, total: 0, status: "idle" });
-      message.error(
-        error instanceof Error ? error.message : "Failed to print labels",
-      );
-    }
-  };
+			// Show summary
+			if (failed.length === 0) {
+				message.success(`All ${succeeded.length} orders shipped successfully`);
+			} else {
+				message.warning(`${succeeded.length} shipped, ${failed.length} failed`);
+			}
 
-  const handleBulkShip = async () => {
-    if (selectedRowKeys.length === 0) return;
+			setSelectedRowKeys([]);
+			refetch();
+		} catch {
+			setShipProgress({ current: 0, total: 0, status: "idle" });
+			message.error("Failed to process bulk ship");
+		}
+	};
 
-    const orderSns = selectedRowKeys as string[];
-    setShipProgress({
-      current: 0,
-      total: orderSns.length,
-      status: "processing",
-    });
-    setShipResult({ succeeded: [], failed: [] });
+	const handleBulkPrint = async () => {
+		if (selectedRowKeys.length === 0) return;
 
-    const succeeded: string[] = [];
-    const failed: Array<{ order_sn: string; error: string }> = [];
+		const orderSns = selectedRowKeys as string[];
+		let includeProducts: boolean | undefined;
+		if (shouldPromptTikTokPackingSlip(platform, data, orderSns)) {
+			includeProducts = await askIncludeProductsOption();
+		}
 
-    try {
-      const shipPlatform = platform !== "all" ? platform : undefined;
+		setPrintResult({ succeeded: [], failed: [] });
+		const printOptions = buildBulkPrintOptions(platform, includeProducts);
+		setLastPrintOptions(printOptions);
+		await runBulkPrint(
+			orderSns,
+			printOptions,
+			[],
+			setPrintProgress,
+			setPrintResult,
+		);
+	};
 
-      // Process orders one by one for progress tracking
-      for (let i = 0; i < orderSns.length; i++) {
-        const orderSn = orderSns[i];
-        try {
-          await shipOrders([orderSn], shipPlatform);
-          succeeded.push(orderSn);
-        } catch (error) {
-          failed.push({
-            order_sn: orderSn,
-            error: error instanceof Error ? error.message : "Unknown error",
-          });
-        }
-        setShipProgress({
-          current: i + 1,
-          total: orderSns.length,
-          status: "processing",
-        });
-      }
+	const handleRetryFailedPrint = async () => {
+		if (printResult.failed.length === 0) {
+			message.info("No failed labels to retry");
+			return;
+		}
 
-      setShipProgress({
-        current: orderSns.length,
-        total: orderSns.length,
-        status: "done",
-      });
-      setShipResult({ succeeded, failed });
+		const retryOrderSns = mergeUniqueOrderSns(
+			printResult.failed.map((item) => item.order_sn),
+		);
 
-      // Show summary
-      if (failed.length === 0) {
-        message.success(`All ${succeeded.length} orders shipped successfully`);
-      } else {
-        message.warning(`${succeeded.length} shipped, ${failed.length} failed`);
-      }
+		await runBulkPrint(
+			retryOrderSns,
+			lastPrintOptions,
+			printResult.succeeded,
+			setPrintProgress,
+			setPrintResult,
+		);
+	};
 
-      setSelectedRowKeys([]);
-      refetch();
-    } catch {
-      setShipProgress({ current: 0, total: 0, status: "idle" });
-      message.error("Failed to process bulk ship");
-    }
-  };
+	const handleBulkCancel = async () => {
+		if (selectedRowKeys.length === 0) return;
 
-  const handleBulkPrint = async () => {
-    if (selectedRowKeys.length === 0) return;
+		Modal.confirm({
+			title: "Bulk Cancel Orders",
+			content: `Are you sure you want to cancel ${selectedRowKeys.length} orders? This cannot be undone.`,
+			okText: "Yes, Cancel All",
+			okType: "danger",
+			cancelText: "No",
+			onOk: async () => {
+				const orderSns = selectedRowKeys as string[];
+				setCancelProgress({
+					current: 0,
+					total: orderSns.length,
+					status: "processing",
+				});
+				setCancelResult({ succeeded: [], failed: [] });
 
-    const orderSns = selectedRowKeys as string[];
-    let includeProducts: boolean | undefined;
-    if (shouldPromptTikTokPackingSlip(platform, data, orderSns)) {
-      includeProducts = await askIncludeProductsOption();
-    }
+				const succeeded: string[] = [];
+				const failed: Array<{ order_sn: string; error: string }> = [];
 
-    setPrintResult({ succeeded: [], failed: [] });
-    const printOptions = buildBulkPrintOptions(platform, includeProducts);
-    setLastPrintOptions(printOptions);
-    await runBulkPrint(orderSns, printOptions);
-  };
+				try {
+					for (let i = 0; i < orderSns.length; i++) {
+						const orderSn = orderSns[i];
+						const order = data?.orders.find(
+							(o) => (o.order_sn || o.order_no) === orderSn,
+						);
+						if (!order) {
+							failed.push({ order_sn: orderSn, error: "Order not found" });
+							continue;
+						}
 
-  const handleRetryFailedPrint = async () => {
-    if (printResult.failed.length === 0) {
-      message.info("No failed labels to retry");
-      return;
-    }
+						try {
+							const params: CancelOrderParams = {
+								order_no: orderSn,
+								platform: (order.platform || "shopee").toLowerCase(),
+								cancel_reason: "out_of_stock",
+								reason_detail: "Bulk cancellation via OMS",
+							};
 
-    const retryOrderSns = mergeUniqueOrderSns(
-      printResult.failed.map((item) => item.order_sn),
-    );
+							await cancelOrder(params);
+							succeeded.push(orderSn);
+						} catch (e) {
+							failed.push({
+								order_sn: orderSn,
+								error: e instanceof Error ? e.message : "Unknown error",
+							});
+						}
 
-    await runBulkPrint(retryOrderSns, lastPrintOptions, printResult.succeeded);
-  };
+						setCancelProgress({
+							current: i + 1,
+							total: orderSns.length,
+							status: "processing",
+						});
+					}
 
-  const handleBulkCancel = async () => {
-    if (selectedRowKeys.length === 0) return;
+					setCancelProgress({
+						current: orderSns.length,
+						total: orderSns.length,
+						status: "done",
+					});
+					setCancelResult({ succeeded, failed });
 
-    Modal.confirm({
-      title: "Bulk Cancel Orders",
-      content: `Are you sure you want to cancel ${selectedRowKeys.length} orders? This cannot be undone.`,
-      okText: "Yes, Cancel All",
-      okType: "danger",
-      cancelText: "No",
-      onOk: async () => {
-        const orderSns = selectedRowKeys as string[];
-        setCancelProgress({
-          current: 0,
-          total: orderSns.length,
-          status: "processing",
-        });
-        setCancelResult({ succeeded: [], failed: [] });
+					// Show summary
+					if (failed.length === 0) {
+						message.success(
+							`All ${succeeded.length} orders cancelled successfully`,
+						);
+					} else {
+						message.warning(
+							`${succeeded.length} cancelled, ${failed.length} failed`,
+						);
+					}
 
-        const succeeded: string[] = [];
-        const failed: Array<{ order_sn: string; error: string }> = [];
+					setSelectedRowKeys([]);
+					refetch();
+				} catch {
+					setCancelProgress({ current: 0, total: 0, status: "idle" });
+					message.error("Failed to process bulk cancellation");
+				}
+			},
+		});
+	};
 
-        try {
-          for (let i = 0; i < orderSns.length; i++) {
-            const orderSn = orderSns[i];
-            const order = data?.orders.find(
-              (o) => (o.order_sn || o.order_no) === orderSn,
-            );
-            if (!order) {
-              failed.push({ order_sn: orderSn, error: "Order not found" });
-              continue;
-            }
-
-            try {
-              const params: CancelOrderParams = {
-                order_no: orderSn,
-                platform: (order.platform || "shopee").toLowerCase(),
-                cancel_reason: "out_of_stock",
-                reason_detail: "Bulk cancellation via OMS",
-              };
-
-              await cancelOrder(params);
-              succeeded.push(orderSn);
-            } catch (e) {
-              failed.push({
-                order_sn: orderSn,
-                error: e instanceof Error ? e.message : "Unknown error",
-              });
-            }
-
-            setCancelProgress({
-              current: i + 1,
-              total: orderSns.length,
-              status: "processing",
-            });
-          }
-
-          setCancelProgress({
-            current: orderSns.length,
-            total: orderSns.length,
-            status: "done",
-          });
-          setCancelResult({ succeeded, failed });
-
-          // Show summary
-          if (failed.length === 0) {
-            message.success(
-              `All ${succeeded.length} orders cancelled successfully`,
-            );
-          } else {
-            message.warning(
-              `${succeeded.length} cancelled, ${failed.length} failed`,
-            );
-          }
-
-          setSelectedRowKeys([]);
-          refetch();
-        } catch {
-          setCancelProgress({ current: 0, total: 0, status: "idle" });
-          message.error("Failed to process bulk cancellation");
-        }
-      },
-    });
-  };
-
-  return {
-    handleBulkShip,
-    handleBulkPrint,
-    handleRetryFailedPrint,
-    handleBulkCancel,
-    isShipping,
-    isPrinting: printProgress.status === "processing",
-    isCancelling,
-    shipProgress,
-    printProgress,
-    cancelProgress,
-    shipResult,
-    printResult,
-    cancelResult,
-  };
+	return {
+		handleBulkShip,
+		handleBulkPrint,
+		handleRetryFailedPrint,
+		handleBulkCancel,
+		isShipping,
+		isPrinting: printProgress.status === "processing",
+		isCancelling,
+		shipProgress,
+		printProgress,
+		cancelProgress,
+		shipResult,
+		printResult,
+		cancelResult,
+	};
 }

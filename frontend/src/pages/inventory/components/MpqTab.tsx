@@ -1,62 +1,23 @@
+import { Alert, Button, Empty, message, Radio, Table, Typography } from "antd";
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Empty, Radio, Table, Typography, message } from "antd";
 import {
   batchShopeeMpq,
   batchTiktokMpq,
-  calculateTiersLocal,
   getSettings,
   type WholesaleSettings,
 } from "@/api/wholesale";
 import type { BulkPricingItem } from "../utils/bulkPricingItems";
+import {
+  DEFAULT_SETTINGS,
+  formatCurrency,
+  getAdjustedPrice,
+  type PreviewRow,
+  readCount,
+  type TierKey,
+} from "../utils/mpqTabHelpers";
 
 interface MpqTabProps {
   items: BulkPricingItem[];
-}
-
-type TierKey = "normal" | "tier1" | "tier2" | "tier3";
-
-interface PreviewRow {
-  key: string;
-  platform: string;
-  sku: string;
-  base_price: number;
-  updated_price: number;
-  mpq: number;
-}
-
-const DEFAULT_SETTINGS: WholesaleSettings = {
-  admin_fee: 1500,
-  min_order_1: 2,
-  max_order_1: 3,
-  max_order_tier_3: 1000,
-};
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("id-ID").format(value);
-}
-
-function readCount(payload: unknown, field: string): number {
-  if (typeof payload !== "object" || payload === null) {
-    return 0;
-  }
-
-  const raw = (payload as Record<string, unknown>)[field];
-  return typeof raw === "number" && Number.isFinite(raw) ? raw : 0;
-}
-
-function getAdjustedPrice(
-  price: number,
-  settings: WholesaleSettings,
-  selectedTier: TierKey,
-): number {
-  if (selectedTier === "normal") {
-    return price;
-  }
-
-  const tiers = calculateTiersLocal(price, settings);
-  const tierIndex =
-    selectedTier === "tier1" ? 0 : selectedTier === "tier2" ? 1 : 2;
-  return tiers[tierIndex]?.unit_price ?? price;
 }
 
 export function MpqTab({ items }: MpqTabProps) {
