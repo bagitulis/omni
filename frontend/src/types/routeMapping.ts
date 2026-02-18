@@ -62,7 +62,8 @@ export type ViewMode =
   | "component"
   | "disconnected"
   | "backend"
-  | "unused";
+  | "unused"
+  | "graph";
 
 export interface BackendRoute {
   method: string;

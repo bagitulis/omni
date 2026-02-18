@@ -23,6 +23,7 @@ import {
 } from "./columns";
 import { ComponentsList } from "./components/ComponentsList";
 import { RouteStats } from "./components/RouteStats";
+import { GraphView } from "./components/GraphView";
 
 const { Title, Text } = Typography;
 
@@ -179,6 +180,11 @@ export function RouteMappingPage() {
                     key: "unused",
                     label: `Unused (${categoryStats.unused})`,
                     children: renderTable(filteredLists.unused, columnsUnused),
+                  },
+                  {
+                    key: "graph",
+                    label: "Graph View",
+                    children: <GraphView data={data} />,
                   },
                 ]}
               />
