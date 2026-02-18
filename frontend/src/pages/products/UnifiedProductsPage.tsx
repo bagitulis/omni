@@ -199,7 +199,7 @@ export default function UnifiedProductsPage() {
   return (
     <div style={{ padding: 24 }}>
       <Space direction="vertical" size={16} style={{ width: "100%" }}>
-        <Space style={{ width: "100%", justifyContent: "space-between" }}>
+        <Space style={{ width: "100%", justifyContent: "space-between" }} wrap>
           <Typography.Title level={2} style={{ margin: 0 }}>
             Products
           </Typography.Title>
@@ -282,7 +282,7 @@ export default function UnifiedProductsPage() {
                   setSelectedRecords(rows);
                 },
               }}
-              scroll={isMobile ? { x: 800 } : undefined}
+              scroll={{ x: "max-content" }}
               pagination={{
                 current: page,
                 pageSize,

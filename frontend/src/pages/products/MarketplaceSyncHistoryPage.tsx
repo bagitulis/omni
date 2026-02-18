@@ -91,6 +91,7 @@ export default function MarketplaceSyncHistoryPage() {
         <Space
           style={{ justifyContent: "space-between", width: "100%" }}
           align="center"
+          wrap
         >
           <Space align="center">
             <Button
@@ -233,7 +234,7 @@ export default function MarketplaceSyncHistoryPage() {
               columns={columns}
               dataSource={entries}
               loading={isLoading}
-              scroll={{ x: 1100 }}
+              scroll={{ x: "max-content" }}
               expandable={{
                 rowExpandable: isSyncHistoryRowExpandable,
                 expandedRowRender: renderSyncHistoryExpandedRow,
