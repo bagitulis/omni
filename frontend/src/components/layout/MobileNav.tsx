@@ -19,8 +19,8 @@ export default function MobileNav() {
   const navItems = [
     { key: "/", icon: <DashboardOutlined />, label: "Home" },
     { key: "/order-manager", icon: <ShoppingOutlined />, label: "Orders" },
-    { key: "/master-products", icon: <SkinOutlined />, label: "Products" },
-    { key: "/inventory", icon: <InboxOutlined />, label: "Stock" },
+    { key: "/products", icon: <SkinOutlined />, label: "Products" },
+    { key: "/inventory", icon: <InboxOutlined />, label: "Inventory" },
     { key: "/analytics", icon: <BarChartOutlined />, label: "Data" },
     {
       key: "/script-monitor?tab=current",
@@ -49,9 +49,12 @@ export default function MobileNav() {
     >
       {navItems.map((item) => {
         const isScriptMonitor = item.key.startsWith("/script-monitor");
+        const isProducts = item.key === "/products";
         const isActive = isScriptMonitor
           ? location.pathname === "/script-monitor"
-          : location.pathname === item.key;
+          : isProducts
+            ? location.pathname.startsWith("/products")
+            : location.pathname === item.key;
         return (
           <button
             type="button"

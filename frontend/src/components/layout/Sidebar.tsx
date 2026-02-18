@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Layout, Menu, theme } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -8,7 +8,6 @@ import {
   InboxOutlined,
   BarChartOutlined,
   SettingOutlined,
-  AppstoreOutlined,
   NodeIndexOutlined,
   CodeOutlined,
 } from "@ant-design/icons";
@@ -37,11 +36,15 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
     () => [
       { key: "/", icon: <DashboardOutlined />, label: "Dashboard" },
       { key: "/order-manager", icon: <ShoppingOutlined />, label: "Orders" },
-      { key: "/master-products", icon: <SkinOutlined />, label: "Products" },
       {
-        key: "/product-manager",
-        icon: <AppstoreOutlined />,
-        label: "Product Manager",
+        key: "/products",
+        icon: <SkinOutlined />,
+        label: "Products",
+        children: [
+          { key: "/products", label: "All Products" },
+          { key: "/products/add", label: "Add Product" },
+          { key: "/products/sync-history", label: "Sync History" },
+        ],
       },
       { key: "/inventory", icon: <InboxOutlined />, label: "Inventory" },
       {
@@ -70,13 +73,30 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
   );
 
   const selectedKey = useMemo(() => {
-    if (location.pathname !== "/script-monitor") {
-      return location.pathname;
+    // Products sub-routes
+    if (location.pathname.startsWith("/products")) {
+      if (location.pathname === "/products/sync-history")
+        return "/products/sync-history";
+      if (location.pathname === "/products/add") return "/products/add";
+      // All other /products paths (including /products/:id/edit) → highlight "All Products"
+      return "/products";
     }
-    return location.search
-      ? `${location.pathname}${location.search}`
-      : "/script-monitor";
+    // Script monitor special handling (existing)
+    if (location.pathname === "/script-monitor") {
+      return location.search
+        ? `${location.pathname}${location.search}`
+        : "/script-monitor";
+    }
+    return location.pathname;
   }, [location.pathname, location.search]);
+
+  const [openKeys, setOpenKeys] = useState<string[]>(() => {
+    const keys: string[] = [];
+    if (location.pathname.startsWith("/products")) keys.push("/products");
+    if (location.pathname.startsWith("/script-monitor"))
+      keys.push("/script-monitor");
+    return keys;
+  });
 
   return (
     <Sider
@@ -120,6 +140,8 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
       <Menu
         mode="inline"
         selectedKeys={[selectedKey]}
+        openKeys={openKeys}
+        onOpenChange={(keys) => setOpenKeys(keys as string[])}
         onClick={({ key }) => navigate(key)}
         items={menuItems}
         style={{ borderRight: 0 }}
