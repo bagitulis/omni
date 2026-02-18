@@ -14,8 +14,9 @@ interface Props {
   onRetry: () => void;
   visibleColumns: string[];
   lockedColumns: string[];
-  selectedRowKeys: Key[];
-  onSelectionChange: (keys: Key[], rows: InventoryRecord[]) => void;
+  readOnly?: boolean;
+  selectedRowKeys?: Key[];
+  onSelectionChange?: (keys: Key[], rows: InventoryRecord[]) => void;
 }
 
 export function InventoryMainTab({
@@ -25,7 +26,8 @@ export function InventoryMainTab({
   onRetry,
   visibleColumns,
   lockedColumns,
-  selectedRowKeys,
+  readOnly = false,
+  selectedRowKeys = [],
   onSelectionChange,
 }: Props) {
   const lockedColumnsSet = useMemo(
@@ -206,6 +208,9 @@ export function InventoryMainTab({
           const val = record.data?.[colName];
 
           if (isStock) {
+            if (readOnly) {
+              return String(Number(val) || 0);
+            }
             return (
               <StockCell
                 record={record}
@@ -216,6 +221,14 @@ export function InventoryMainTab({
             );
           }
           if (isPrice) {
+            if (readOnly) {
+              return new Intl.NumberFormat("id-ID", {
+                style: "currency",
+                currency: "IDR",
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              }).format(Number(val) || 0);
+            }
             return (
               <PriceCell
                 record={record}
@@ -260,7 +273,7 @@ export function InventoryMainTab({
     });
 
     return cols;
-  }, [records, visibleColumns, lockedColumnsSet]);
+  }, [records, visibleColumns, lockedColumnsSet, readOnly]);
 
   if (error) {
     return (
@@ -292,17 +305,22 @@ export function InventoryMainTab({
     return <Empty description="No inventory items found" />;
   }
 
+  const rowSelection =
+    readOnly || !onSelectionChange
+      ? undefined
+      : {
+          columnWidth: 56,
+          fixed: true as const,
+          selectedRowKeys,
+          onChange: onSelectionChange,
+        };
+
   return (
     <VirtualTable<InventoryRecord>
       columns={dynamicColumns}
       dataSource={records}
       rowKey="id"
-      rowSelection={{
-        columnWidth: 56,
-        fixed: true,
-        selectedRowKeys,
-        onChange: onSelectionChange,
-      }}
+      rowSelection={rowSelection}
       pagination={false}
       scroll={{ x: "max-content" }}
       size="small"
