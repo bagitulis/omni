@@ -1,9 +1,9 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import type { ButtonProps, InputProps, SelectProps } from "antd";
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
-import { ProductFilters } from "./ProductFilters";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProductFilterValues } from "@/types/shared";
-import type { InputProps, SelectProps, ButtonProps } from "antd";
+import { ProductFilters } from "./ProductFilters";
 
 // Mock Ant Design components to ensure robust testing without JSDOM/Antd issues
 vi.mock("antd", async () => {
@@ -27,12 +27,10 @@ vi.mock("antd", async () => {
     Select: (props: SelectProps) => (
       <div data-testid="mock-select-wrapper">
         {/* Simulate click if needed */}
-        <div
+        <button
+          type="button"
           data-testid="mock-select-display"
           onClick={() => {}}
-          onKeyUp={() => {}}
-          role="button"
-          tabIndex={0}
         >
           {/* Render options as clickable elements for testing */}
           {props.options?.map((opt) => (
@@ -49,7 +47,7 @@ vi.mock("antd", async () => {
             </div>
           ))}
           <span data-testid="selected-value">{props.value}</span>
-        </div>
+        </button>
       </div>
     ),
     Button: (props: ButtonProps) => (

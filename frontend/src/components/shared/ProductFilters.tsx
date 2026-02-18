@@ -1,10 +1,11 @@
-import React, { useCallback, useRef, useState, useEffect } from "react";
-import { Input, Select, Button, theme } from "antd";
 import {
-  SearchOutlined,
-  FilterOutlined,
   ClearOutlined,
+  FilterOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
+import { Button, Input, Select, theme } from "antd";
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ProductFilterValues } from "@/types/shared";
 
 interface ProductFiltersProps {
