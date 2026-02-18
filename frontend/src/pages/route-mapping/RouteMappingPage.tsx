@@ -3,6 +3,7 @@ import {
   Alert,
   Button,
   Card,
+  Grid,
   Input,
   Spin,
   Table,
@@ -26,9 +27,11 @@ import { RouteStats } from "./components/RouteStats";
 import { GraphView } from "./components/GraphView";
 
 const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
 export function RouteMappingPage() {
   const { token } = theme.useToken();
+  const screens = useBreakpoint();
   const {
     data,
     isLoading,
@@ -85,8 +88,8 @@ export function RouteMappingPage() {
   return (
     <div style={{ padding: 24 }}>
       <Flex vertical gap={24}>
-        <Flex justify="space-between" align="center">
-          <div>
+        <Flex justify="space-between" align="flex-start" wrap="wrap" gap={12}>
+          <div style={{ minWidth: 0 }}>
             <Title level={2} style={{ margin: 0 }}>
               Route Mapping
             </Title>
@@ -94,13 +97,13 @@ export function RouteMappingPage() {
               Visualize and analyze API route connections
             </Text>
           </div>
-          <Flex gap={8}>
+          <Flex gap={8} style={{ flexShrink: 0 }}>
             <Input
               placeholder="Search routes or components..."
               prefix={<SearchOutlined />}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ width: 300 }}
+              style={{ width: screens.md ? 300 : "100%" }}
               allowClear
             />
             <Tooltip title="Refresh Data">
