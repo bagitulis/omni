@@ -18,6 +18,8 @@ import type { UploadFile } from "antd/es/upload/interface";
 import { ProductVariantsTab } from "./components/ProductVariantsTab";
 import { ProductImagesTab } from "./components/ProductImagesTab";
 import { ProductSyncTab } from "./components/ProductSyncTab";
+import { SkuMappingPanel } from "../../components/shared/SkuMappingPanel";
+import type { MasterProduct } from "../../types/product";
 import type { ProductData, ProductSku } from "./types";
 
 const { Title, Text } = Typography;
@@ -27,6 +29,7 @@ export default function ProductEditPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [product, setProduct] = useState<ProductData | null>(null);
+  const [rawProduct, setRawProduct] = useState<MasterProduct | null>(null);
   const [saveVariantsLoading, setSaveVariantsLoading] = useState(false);
   const [saveImagesLoading, setSaveImagesLoading] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
@@ -39,6 +42,7 @@ export default function ProductEditPage() {
         setLoading(true);
         setError(null);
         const data = await getProductById(id!);
+        setRawProduct(data);
         setProduct({
           id: data.id,
           title: data.title,
@@ -184,6 +188,13 @@ export default function ProductEditPage() {
     },
     {
       key: "4",
+      label: "SKU Mapping",
+      children: rawProduct ? (
+        <SkuMappingPanel masterProduct={rawProduct} />
+      ) : null,
+    },
+    {
+      key: "5",
       label: "Platform Sync",
       children: (
         <ProductSyncTab
