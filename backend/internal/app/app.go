@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"log"
 	"os"
 	"time"
@@ -115,10 +116,11 @@ func (a *App) initCore() error {
 		log.Printf("Warning: System database migration failed: %v", err)
 	}
 
-	// // Run tenant database migrations for all known tenants
-	// if err := a.migrateTenantDatabases(); err != nil {
-	// 	log.Printf("Warning: Tenant database migration failed: %v", err)
-	// }
+	// Run tenant database migrations for all known tenants
+	tenantSvc := services.NewTenantService(a.Config.DatabasePath)
+	if err := tenantSvc.MigrateAllTenants(context.Background()); err != nil {
+		log.Printf("Warning: Tenant database migration failed: %v", err)
+	}
 
 	// Initialize encryption
 	encKey := os.Getenv("ENCRYPTION_KEY")
