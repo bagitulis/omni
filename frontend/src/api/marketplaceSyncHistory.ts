@@ -1,9 +1,9 @@
-import apiClient from "./client";
 import type {
   MarketplaceSyncHistoryEntry,
-  MarketplaceSyncHistoryListResult,
   MarketplaceSyncHistoryFilter,
+  MarketplaceSyncHistoryListResult,
 } from "@/types/shared";
+import apiClient from "./client";
 
 const BASE_PATH = "/marketplace-sync-history";
 

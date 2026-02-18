@@ -275,7 +275,7 @@ export function SkuMappingPanel({
 				onOk={handleLinkSubmit}
 				onCancel={() => setLinkModal((prev) => ({ ...prev, visible: false }))}
 				confirmLoading={loading}
-				destroyOnClose
+				destroyOnHidden
 			>
 				<Form form={form} layout="vertical">
 					<Form.Item
