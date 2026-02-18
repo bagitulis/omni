@@ -1,6 +1,12 @@
 import React, { Suspense, useEffect } from "react";
 import { ConfigProvider, App as AntApp } from "antd";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useParams,
+} from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/api/queryClient";
 import apiClient from "@/api/client";
@@ -21,11 +27,11 @@ const DashboardPage = React.lazy(
   () => import("./pages/dashboard/DashboardPage"),
 );
 const OrdersPage = React.lazy(() => import("./pages/orders/OrdersPage"));
-const ProductListPage = React.lazy(
-  () => import("./pages/products/ProductListPage"),
+const UnifiedProductsPage = React.lazy(
+  () => import("./pages/products/UnifiedProductsPage"),
 );
-const ProductManagerPage = React.lazy(
-  () => import("./pages/product-manager/ProductManagerPage"),
+const MarketplaceSyncHistoryPage = React.lazy(
+  () => import("./pages/products/MarketplaceSyncHistoryPage"),
 );
 const ProductAddPage = React.lazy(
   () => import("./pages/products/ProductAddPage"),
@@ -36,8 +42,8 @@ const ProductEditPage = React.lazy(
 const ProductImportPage = React.lazy(
   () => import("./pages/products/ProductImportPage"),
 );
-const InventoryPage = React.lazy(
-  () => import("./pages/inventory/InventoryPage"),
+const SimplifiedInventoryPage = React.lazy(
+  () => import("./pages/inventory/SimplifiedInventoryPage"),
 );
 const AnalyticsHubPage = React.lazy(
   () => import("./pages/analytics/AnalyticsHubPage"),
@@ -73,6 +79,12 @@ const ScriptMonitorPage = React.lazy(
 const RouteMappingPage = React.lazy(
   () => import("./pages/route-mapping/RouteMappingPage"),
 );
+
+// Redirect component for /master-products/:id -> /products/:id/edit
+function MasterProductRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/products/${id}/edit`} replace />;
+}
 
 function AppContent() {
   const { isDark } = useTheme();
@@ -121,36 +133,49 @@ function AppContent() {
                     path="/orders"
                     element={<Navigate to="/order-manager" replace />}
                   />
+                  <Route path="/products" element={<UnifiedProductsPage />} />
+                  <Route path="/products/add" element={<ProductAddPage />} />
                   <Route
-                    path="/master-products"
-                    element={<ProductListPage />}
-                  />
-                  <Route
-                    path="/products"
-                    element={<Navigate to="/master-products" replace />}
-                  />
-                  <Route
-                    path="/master-products/add"
-                    element={<ProductAddPage />}
-                  />
-                  <Route
-                    path="/master-products/import"
+                    path="/products/import"
                     element={<ProductImportPage />}
                   />
                   <Route
-                    path="/master-products/:id"
+                    path="/products/sync-history"
+                    element={<MarketplaceSyncHistoryPage />}
+                  />
+                  <Route
+                    path="/products/:id/edit"
                     element={<ProductEditPage />}
                   />
                   <Route
+                    path="/master-products"
+                    element={<Navigate to="/products" replace />}
+                  />
+                  <Route
+                    path="/master-products/add"
+                    element={<Navigate to="/products/add" replace />}
+                  />
+                  <Route
+                    path="/master-products/import"
+                    element={<Navigate to="/products/import" replace />}
+                  />
+                  <Route
+                    path="/master-products/:id"
+                    element={<MasterProductRedirect />}
+                  />
+                  <Route
                     path="/product-manager"
-                    element={<ProductManagerPage />}
+                    element={<Navigate to="/products" replace />}
                   />
                   <Route
                     path="/product-manager/:platform"
-                    element={<ProductManagerPage />}
+                    element={<Navigate to="/products" replace />}
                   />
                   <Route path="/route-mapping" element={<RouteMappingPage />} />
-                  <Route path="/inventory" element={<InventoryPage />} />
+                  <Route
+                    path="/inventory"
+                    element={<SimplifiedInventoryPage />}
+                  />
                   <Route path="/analytics" element={<AnalyticsHubPage />} />
                   <Route
                     path="/analytics/shopee"
