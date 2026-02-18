@@ -17,7 +17,11 @@ import {
   ApiOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
-import { apiClient } from "@/api/client";
+import {
+  autoMapSkus,
+  linkSkuToPlatform,
+  unlinkSkuFromPlatform,
+} from "@/api/products";
 import type { MasterProduct, MasterProductSku } from "@/types/product";
 import type { Platform } from "@/types/shared";
 
@@ -51,23 +55,27 @@ export function SkuMappingPanel({
   const handleAutoMap = async () => {
     setLoading(true);
     try {
-      const res = await apiClient.post("/products/auto-map", {
-        master_product_id: masterProduct.id,
-      });
+      // Collect all seller_skus from the product
+      const skus =
+        masterProduct.skus?.map((s) => s.seller_sku).filter(Boolean) || [];
+
+      if (skus.length === 0) {
+        message.warning("No SKUs to map");
+        return;
+      }
+
+      const res = await autoMapSkus(skus);
       if (res.success) {
-        message.success("Auto-mapping completed");
+        message.success(
+          `Auto-mapping completed: ${res.mapped_count} mapped, ${res.skipped_count} skipped`,
+        );
         onUpdate?.();
       } else {
-        message.error(res.error || "Auto-mapping failed");
+        message.error("Auto-mapping failed");
       }
     } catch (error: unknown) {
-      const err = error as {
-        response?: { data?: { error?: string } };
-        message?: string;
-      };
-      message.error(
-        err.response?.data?.error || err.message || "Auto-mapping failed",
-      );
+      const err = error as { message?: string };
+      message.error(err.message || "Auto-mapping failed");
     } finally {
       setLoading(false);
     }
@@ -94,24 +102,18 @@ export function SkuMappingPanel({
         platform_sku_id: values.platform_sku_id,
       };
 
-      const res = await apiClient.post("/products/link-sku", payload);
-
-      if (res.success) {
-        message.success(`Linked to ${linkModal.platform}`);
-        setLinkModal((prev) => ({ ...prev, visible: false }));
-        onUpdate?.();
-      } else {
-        message.error(res.error || "Link failed");
-      }
+      await linkSkuToPlatform(payload);
+      message.success(`Linked to ${linkModal.platform}`);
+      setLinkModal((prev) => ({ ...prev, visible: false }));
+      onUpdate?.();
     } catch (error: unknown) {
       // Form validation error or API error
       const err = error as {
         errorFields?: unknown[];
-        response?: { data?: { error?: string } };
         message?: string;
       };
       if (err.errorFields) return;
-      message.error(err.response?.data?.error || err.message || "Link failed");
+      message.error(err.message || "Link failed");
     } finally {
       setLoading(false);
     }
@@ -125,22 +127,12 @@ export function SkuMappingPanel({
         platform,
       };
 
-      const res = await apiClient.post("/products/unlink-sku", payload);
-
-      if (res.success) {
-        message.success(`Unlinked from ${platform}`);
-        onUpdate?.();
-      } else {
-        message.error(res.error || "Unlink failed");
-      }
+      await unlinkSkuFromPlatform(payload);
+      message.success(`Unlinked from ${platform}`);
+      onUpdate?.();
     } catch (error: unknown) {
-      const err = error as {
-        response?: { data?: { error?: string } };
-        message?: string;
-      };
-      message.error(
-        err.response?.data?.error || err.message || "Unlink failed",
-      );
+      const err = error as { message?: string };
+      message.error(err.message || "Unlink failed");
     } finally {
       setLoading(false);
     }
@@ -267,7 +259,7 @@ export function SkuMappingPanel({
         </Button>
       }
       className="shadow-sm"
-      bodyStyle={{ padding: 0 }}
+      styles={{ body: { padding: 0 } }}
     >
       <Table
         dataSource={masterProduct.skus || []}

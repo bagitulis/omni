@@ -10,7 +10,11 @@ import {
 } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SkuMappingPanel } from "./SkuMappingPanel";
-import { apiClient } from "@/api/client";
+import {
+  autoMapSkus,
+  linkSkuToPlatform,
+  unlinkSkuFromPlatform,
+} from "@/api/products";
 import { message } from "antd";
 import type { MasterProduct } from "@/types/product";
 
@@ -29,11 +33,11 @@ Object.defineProperty(window, "matchMedia", {
   })),
 });
 
-// Mock API client
-vi.mock("@/api/client", () => ({
-  apiClient: {
-    post: vi.fn(),
-  },
+// Mock API functions
+vi.mock("@/api/products", () => ({
+  autoMapSkus: vi.fn(),
+  linkSkuToPlatform: vi.fn(),
+  unlinkSkuFromPlatform: vi.fn(),
 }));
 
 // Mock Antd message
@@ -43,6 +47,7 @@ vi.mock("antd", async (importOriginal) => {
     ...actual,
     message: {
       success: vi.fn(),
+      warning: vi.fn(),
       error: vi.fn(),
     },
   };
@@ -130,6 +135,7 @@ describe("SkuMappingPanel", () => {
 
     // SKU-001 is linked to Shopee
     const row1 = screen.getByText("SKU-001").closest("tr");
+    // Should show the platform product ID tag
     expect(within(row1!).getByText("SHOPEE-123")).toBeTruthy();
 
     // SKU-002 is not linked
@@ -139,8 +145,11 @@ describe("SkuMappingPanel", () => {
   });
 
   it("calls auto-map API when button clicked", async () => {
-    (apiClient.post as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+    (autoMapSkus as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       success: true,
+      mapped_count: 2,
+      skipped_count: 0,
+      mappings: [],
     });
 
     render(
@@ -153,20 +162,21 @@ describe("SkuMappingPanel", () => {
     const autoMapBtn = screen.getByRole("button", { name: /auto map/i });
     fireEvent.click(autoMapBtn);
 
-    expect(apiClient.post).toHaveBeenCalledWith("/products/auto-map", {
-      master_product_id: 1,
-    });
+    // Should call with list of SKUs
+    expect(autoMapSkus).toHaveBeenCalledWith(["SKU-001", "SKU-002"]);
 
     await waitFor(() => {
-      expect(message.success).toHaveBeenCalledWith("Auto-mapping completed");
+      expect(message.success).toHaveBeenCalledWith(
+        expect.stringContaining("Auto-mapping completed"),
+      );
       expect(mockOnUpdate).toHaveBeenCalled();
     });
   });
 
   it("opens modal and submits link request", async () => {
-    (apiClient.post as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-      success: true,
-    });
+    (
+      linkSkuToPlatform as unknown as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(undefined);
 
     render(
       <SkuMappingPanel
@@ -175,9 +185,15 @@ describe("SkuMappingPanel", () => {
       />,
     );
 
+    // Find "Link" button for SKU-002 (unlinked) for Shopee column
+    // The columns are: SKU, Variant, Shopee, TikTok, Lazada
+    // We need to be careful to click the right Link button
     const row2 = screen.getByText("SKU-002").closest("tr");
+    // All Link buttons in this row
     const linkBtns = within(row2!).getAllByText("Link");
-    fireEvent.click(linkBtns[0]); // Shopee column
+    // Assume Shopee is the first platform column (index 0 of link buttons if all are unlinked)
+    // But better to verify columns. The test setup has columns in order.
+    fireEvent.click(linkBtns[0]);
 
     // Modal should open
     expect(screen.getByText("Link to shopee")).toBeTruthy();
@@ -191,10 +207,13 @@ describe("SkuMappingPanel", () => {
     });
 
     // Submit
-    fireEvent.click(screen.getByText("OK"));
+    // Find OK button in modal
+    const modal = screen.getByRole("dialog");
+    const okBtn = within(modal).getByText("OK");
+    fireEvent.click(okBtn);
 
     await waitFor(() => {
-      expect(apiClient.post).toHaveBeenCalledWith("/products/link-sku", {
+      expect(linkSkuToPlatform).toHaveBeenCalledWith({
         master_sku_id: 102,
         platform: "shopee",
         platform_product_id: "NEW-PROD-ID",
@@ -206,9 +225,9 @@ describe("SkuMappingPanel", () => {
   });
 
   it("handles unlink flow", async () => {
-    (apiClient.post as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-      success: true,
-    });
+    (
+      unlinkSkuFromPlatform as unknown as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(undefined);
 
     render(
       <SkuMappingPanel
@@ -217,22 +236,32 @@ describe("SkuMappingPanel", () => {
       />,
     );
 
-    // Find delete button for SKU-001 Shopee
+    // Find delete/disconnect button for SKU-001 Shopee
+    // It's an icon button, so we look for role button inside the Popconfirm trigger
     const row1 = screen.getByText("SKU-001").closest("tr");
-    const unlinkBtn = within(row1!).getByRole("button", {
-      name: /disconnect/i,
-    });
+    // The disconnect button has a specific icon, but we can find by role within the cell
+    // Or just look for the Popconfirm behavior
+    // We can query by role="button" that contains the disconnect icon
+    // But simplified: we used DisconnectOutlined.
+    // Let's find the cell first.
+    // row1 contains "SHOPEE-123" tag and the disconnect button
+    const cell = within(row1!).getByText("SHOPEE-123").parentElement
+      ?.parentElement;
+    if (!cell) throw new Error("Cell not found");
 
+    // Find the button inside the cell (it's the only button there)
+    const unlinkBtn = within(cell).getByRole("button");
     fireEvent.click(unlinkBtn);
 
     // Popconfirm should appear
-    expect(screen.getByText("Unlink from shopee?")).toBeTruthy();
+    expect(await screen.findByText("Unlink from shopee?")).toBeTruthy();
 
     // Confirm
-    fireEvent.click(screen.getByText("Yes"));
+    const confirmBtn = screen.getByText("Yes");
+    fireEvent.click(confirmBtn);
 
     await waitFor(() => {
-      expect(apiClient.post).toHaveBeenCalledWith("/products/unlink-sku", {
+      expect(unlinkSkuFromPlatform).toHaveBeenCalledWith({
         master_sku_id: 101,
         platform: "shopee",
       });
@@ -241,11 +270,10 @@ describe("SkuMappingPanel", () => {
     });
   });
 
-  it("shows error message when API fails", async () => {
-    (apiClient.post as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-      success: false,
-      error: "Backend error message",
-    });
+  it("shows error message when auto-map API fails", async () => {
+    (autoMapSkus as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("Backend error message"),
+    );
 
     render(
       <SkuMappingPanel
