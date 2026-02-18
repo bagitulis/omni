@@ -78,23 +78,56 @@ test("Task 9: Product Visibility and Pagination Verification", async ({
   await statusSelect.click();
 
   // Wait for dropdown to appear and select Active
-  const activeOption = page
-    .locator(".ant-select-item-option-content")
-    .filter({ hasText: "Active" })
-    .first();
+  const activeOption = page.locator(".ant-select-item-option-content").filter({ hasText: "Active" }).first();
   await activeOption.waitFor({ state: "visible" });
+
+  const activeResponsePromise = page.waitForResponse((resp) => resp.url().includes("status=active"));
   await activeOption.click();
+  await activeResponsePromise;
 
-  // Wait for URL update instead of response, in case response is cached or fast
-  // Also log the current URL to debug
-  await page.waitForTimeout(2000);
-  console.log("Current URL after click:", page.url());
+  await page.waitForTimeout(1000); // Wait for render
+  const activeRows = await page.locator(".ant-table-row").count();
+  console.log(`Rows visible for ACTIVE: ${activeRows}`);
+  await page.screenshot({
+    path: path.join(evidenceDir, "task-9-status-active.png"),
+  });
 
-  // Try waiting for response with shorter timeout, if fails proceed to check URL
-  try {
-    await page.waitForResponse((resp) => resp.url().includes("status=active"), {
-      timeout: 5000,
-    });
+  // 5. Status: Draft
+  console.log("Verifying Status: Draft");
+  await statusSelect.click();
+  
+  const draftOption = page.locator(".ant-select-item-option-content").filter({ hasText: "Draft" }).first();
+  await draftOption.waitFor({ state: "visible" });
+
+  const draftResponsePromise = page.waitForResponse((resp) => resp.url().includes("status=draft"));
+  await draftOption.click();
+  await draftResponsePromise;
+
+  await page.waitForTimeout(1000);
+  const draftRows = await page.locator(".ant-table-row").count();
+  console.log(`Rows visible for DRAFT: ${draftRows}`);
+  await page.screenshot({
+    path: path.join(evidenceDir, "task-9-status-draft.png"),
+  });
+
+  // 6. Status: Archived
+  console.log("Verifying Status: Archived");
+  await statusSelect.click();
+
+  const archivedOption = page.locator(".ant-select-item-option-content").filter({ hasText: "Archived" }).first();
+  await archivedOption.waitFor({ state: "visible" });
+
+  const archivedResponsePromise = page.waitForResponse((resp) => resp.url().includes("status=archived"));
+  await archivedOption.click();
+  await archivedResponsePromise;
+
+  await page.waitForTimeout(1000);
+  const archivedRows = await page.locator(".ant-table-row").count();
+  console.log(`Rows visible for ARCHIVED: ${archivedRows}`);
+  await page.screenshot({
+    path: path.join(evidenceDir, "task-9-status-archived.png"),
+  });
+});
   } catch (e) {
     console.log("Response wait timed out, checking rows anyway...");
   }

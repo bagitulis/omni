@@ -1,0 +1,410 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e4]:
+  - link "Skip to main content" [ref=e5] [cursor=pointer]:
+    - /url: "#main-content"
+  - complementary [ref=e6]:
+    - generic [ref=e7]:
+      - generic [ref=e8]: OMNI
+      - menu [ref=e9]:
+        - menuitem "dashboard Dashboard" [ref=e10] [cursor=pointer]:
+          - img "dashboard" [ref=e11]:
+            - img [ref=e12]
+          - generic [ref=e14]: Dashboard
+        - menuitem "shopping Orders" [ref=e15] [cursor=pointer]:
+          - img "shopping" [ref=e16]:
+            - img [ref=e17]
+          - generic [ref=e19]: Orders
+        - menuitem "skin Products" [expanded] [ref=e20] [cursor=pointer]:
+          - img "skin" [ref=e21]:
+            - img [ref=e22]
+          - generic [ref=e24]: Products
+        - menu [ref=e25]:
+          - menuitem "All Products" [ref=e26] [cursor=pointer]:
+            - generic [ref=e27]: All Products
+          - menuitem "Add Product" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: Add Product
+          - menuitem "Sync History" [ref=e30] [cursor=pointer]:
+            - generic [ref=e31]: Sync History
+        - menuitem "inbox Inventory" [ref=e32] [cursor=pointer]:
+          - img "inbox" [ref=e33]:
+            - img [ref=e34]
+          - generic [ref=e36]: Inventory
+        - menuitem "node-index Route Mapping" [ref=e37] [cursor=pointer]:
+          - img "node-index" [ref=e38]:
+            - img [ref=e39]
+          - generic [ref=e41]: Route Mapping
+        - menuitem "bar-chart Analytics" [ref=e42] [cursor=pointer]:
+          - img "bar-chart" [ref=e43]:
+            - img [ref=e44]
+          - generic [ref=e46]: Analytics
+        - menuitem "code Script Monitor" [ref=e47] [cursor=pointer]:
+          - img "code" [ref=e48]:
+            - img [ref=e49]
+          - generic [ref=e51]: Script Monitor
+        - menuitem "setting Settings" [ref=e52] [cursor=pointer]:
+          - img "setting" [ref=e53]:
+            - img [ref=e54]
+          - generic [ref=e56]: Settings
+  - generic [ref=e57]:
+    - banner [ref=e58]:
+      - button "Collapse sidebar" [ref=e60] [cursor=pointer]:
+        - img "menu-fold" [ref=e62]:
+          - img [ref=e63]
+      - generic [ref=e65]:
+        - button "Switch to dark mode" [ref=e66] [cursor=pointer]:
+          - img "moon" [ref=e68]:
+            - img [ref=e69]
+        - button "key" [ref=e72] [cursor=pointer]:
+          - img "key" [ref=e74]:
+            - img [ref=e75]
+        - generic [ref=e77] [cursor=pointer]:
+          - img "user" [ref=e80]:
+            - img [ref=e81]
+          - generic [ref=e84]: tester
+    - main [ref=e85]:
+      - generic [ref=e87]:
+        - generic [ref=e89]:
+          - heading "Products" [level=2] [ref=e91]
+          - generic [ref=e93]:
+            - button "plus Add Product" [ref=e95] [cursor=pointer]:
+              - img "plus" [ref=e97]:
+                - img [ref=e98]
+              - generic [ref=e101]: Add Product
+            - button "upload Import" [ref=e103] [cursor=pointer]:
+              - img "upload" [ref=e105]:
+                - img [ref=e106]
+              - generic [ref=e108]: Import
+            - button "cloud-download Sync History (0)" [ref=e110] [cursor=pointer]:
+              - img "cloud-download" [ref=e112]:
+                - img [ref=e113]
+              - generic [ref=e116]: Sync History (0)
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - generic [ref=e121]:
+              - img "search" [ref=e123]:
+                - img [ref=e124]
+              - textbox "Search products..." [ref=e126]
+            - generic [ref=e128] [cursor=pointer]:
+              - generic [ref=e130]:
+                - combobox [ref=e132]
+                - generic "All Platforms" [ref=e133]
+              - img [ref=e134]:
+                - img [ref=e135]
+            - generic [ref=e137] [cursor=pointer]:
+              - generic: Draft
+              - generic [ref=e139]:
+                - combobox [active] [ref=e141]
+                - generic "Draft" [ref=e142]
+              - generic:
+                - img:
+                  - img
+            - generic [ref=e143] [cursor=pointer]:
+              - generic [ref=e145]:
+                - combobox [ref=e147]
+                - generic "All Categories" [ref=e148]
+              - generic:
+                - img:
+                  - img
+            - button "clear Clear filters" [ref=e149] [cursor=pointer]:
+              - img "clear" [ref=e151]:
+                - img [ref=e152]
+              - generic [ref=e154]: Clear filters
+          - separator [ref=e155]
+          - generic [ref=e156]:
+            - generic [ref=e158]:
+              - button "bars List" [ref=e160] [cursor=pointer]:
+                - img "bars" [ref=e162]:
+                  - img [ref=e163]
+                - generic [ref=e165]: List
+              - button "appstore Grid" [ref=e167] [cursor=pointer]:
+                - img "appstore" [ref=e169]:
+                  - img [ref=e170]
+                - generic [ref=e172]: Grid
+            - button "Column settings" [ref=e174] [cursor=pointer]:
+              - img "setting" [ref=e176]:
+                - img [ref=e177]
+          - generic [ref=e181]:
+            - table [ref=e185]:
+              - rowgroup [ref=e195]:
+                - row "Select all Image Name Price Stock Platforms Category Actions" [ref=e196]:
+                  - columnheader "Select all" [ref=e197]:
+                    - checkbox "Select all" [ref=e201] [cursor=pointer]
+                  - columnheader "Image" [ref=e203]
+                  - columnheader "Name" [ref=e204]
+                  - columnheader "Price" [ref=e205]
+                  - columnheader "Stock" [ref=e206]
+                  - columnheader "Platforms" [ref=e207]
+                  - columnheader "Category" [ref=e208]
+                  - columnheader "Actions" [ref=e209]
+              - rowgroup [ref=e210]:
+                - generic:
+                  - generic:
+                    - generic:
+                      - checkbox
+                - 'row "picture Product Draft 1 SKU: SKU-Product-Draft-1 Edit price Edit stock Shopee platform indicator TikTok platform indicator Lazada platform indicator General Actions down" [ref=e211]':
+                  - cell [ref=e212]:
+                    - checkbox [ref=e215] [cursor=pointer]
+                  - cell "picture" [ref=e217]:
+                    - img "picture" [ref=e219]:
+                      - img [ref=e220]
+                  - 'cell "Product Draft 1 SKU: SKU-Product-Draft-1" [ref=e222]':
+                    - generic [ref=e223]:
+                      - strong [ref=e226]: Product Draft 1
+                      - generic [ref=e228]: "SKU: SKU-Product-Draft-1"
+                  - cell "Edit price" [ref=e229]:
+                    - button "Edit price" [ref=e231] [cursor=pointer]:
+                      - generic [ref=e232]: Rp100
+                      - img "edit" [ref=e233]:
+                        - img [ref=e234]
+                  - cell "Edit stock" [ref=e236]:
+                    - button "Edit stock" [ref=e238] [cursor=pointer]:
+                      - generic [ref=e239]: "10"
+                      - img "edit" [ref=e240]:
+                        - img [ref=e241]
+                  - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e243]:
+                    - generic [ref=e244]:
+                      - button "Shopee platform indicator" [disabled] [ref=e248]: 🟠
+                      - button "TikTok platform indicator" [disabled] [ref=e252]: ⬛
+                      - button "Lazada platform indicator" [disabled] [ref=e256]: 🔵
+                  - cell "General" [ref=e257]
+                  - cell "Actions down" [ref=e258]:
+                    - button "Actions down" [ref=e259] [cursor=pointer]:
+                      - generic [ref=e260]: Actions
+                      - img "down" [ref=e261]:
+                        - img [ref=e262]
+                - 'row "LUX BOTANICAL BODY WASH SOFT ROSE BOTOL 100ML SKU: MP-192 - - Shopee platform indicator TikTok platform indicator Lazada platform indicator General Actions down" [ref=e264]':
+                  - cell [ref=e265]:
+                    - checkbox [ref=e268] [cursor=pointer]
+                  - cell [ref=e270]:
+                    - img [ref=e272]
+                  - 'cell "LUX BOTANICAL BODY WASH SOFT ROSE BOTOL 100ML SKU: MP-192" [ref=e273]':
+                    - generic [ref=e274]:
+                      - strong [ref=e277]: LUX BOTANICAL BODY WASH SOFT ROSE BOTOL 100ML
+                      - generic [ref=e279]: "SKU: MP-192"
+                  - cell "-" [ref=e280]
+                  - cell "-" [ref=e281]
+                  - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e282]:
+                    - generic [ref=e283]:
+                      - button "Shopee platform indicator" [disabled] [ref=e287]: 🟠
+                      - button "TikTok platform indicator" [disabled] [ref=e291]: ⬛
+                      - button "Lazada platform indicator" [disabled] [ref=e295]: 🔵
+                  - cell "General" [ref=e296]
+                  - cell "Actions down" [ref=e297]:
+                    - button "Actions down" [ref=e298] [cursor=pointer]:
+                      - generic [ref=e299]: Actions
+                      - img "down" [ref=e300]:
+                        - img [ref=e301]
+                - 'row "Maxlife Makanan Basah Kucing Kitten & Adult Kemasan Pouch 85 Gr SKU: MP-191 - - Shopee platform indicator TikTok platform indicator Lazada platform indicator General Actions down" [ref=e303]':
+                  - cell [ref=e304]:
+                    - checkbox [ref=e307] [cursor=pointer]
+                  - cell [ref=e309]:
+                    - img [ref=e311]
+                  - 'cell "Maxlife Makanan Basah Kucing Kitten & Adult Kemasan Pouch 85 Gr SKU: MP-191" [ref=e312]':
+                    - generic [ref=e313]:
+                      - strong [ref=e316]: Maxlife Makanan Basah Kucing Kitten & Adult Kemasan Pouch 85 Gr
+                      - generic [ref=e318]: "SKU: MP-191"
+                  - cell "-" [ref=e319]
+                  - cell "-" [ref=e320]
+                  - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e321]:
+                    - generic [ref=e322]:
+                      - button "Shopee platform indicator" [disabled] [ref=e326]: 🟠
+                      - button "TikTok platform indicator" [disabled] [ref=e330]: ⬛
+                      - button "Lazada platform indicator" [disabled] [ref=e334]: 🔵
+                  - cell "General" [ref=e335]
+                  - cell "Actions down" [ref=e336]:
+                    - button "Actions down" [ref=e337] [cursor=pointer]:
+                      - generic [ref=e338]: Actions
+                      - img "down" [ref=e339]:
+                        - img [ref=e340]
+                - 'row "Close Up Pasta Gigi Green Menthol Fresh 160G SKU: MP-190 - - Shopee platform indicator TikTok platform indicator Lazada platform indicator General Actions down" [ref=e342]':
+                  - cell [ref=e343]:
+                    - checkbox [ref=e346] [cursor=pointer]
+                  - cell [ref=e348]:
+                    - img [ref=e350]
+                  - 'cell "Close Up Pasta Gigi Green Menthol Fresh 160G SKU: MP-190" [ref=e351]':
+                    - generic [ref=e352]:
+                      - strong [ref=e355]: Close Up Pasta Gigi Green Menthol Fresh 160G
+                      - generic [ref=e357]: "SKU: MP-190"
+                  - cell "-" [ref=e358]
+                  - cell "-" [ref=e359]
+                  - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e360]:
+                    - generic [ref=e361]:
+                      - button "Shopee platform indicator" [disabled] [ref=e365]: 🟠
+                      - button "TikTok platform indicator" [disabled] [ref=e369]: ⬛
+                      - button "Lazada platform indicator" [disabled] [ref=e373]: 🔵
+                  - cell "General" [ref=e374]
+                  - cell "Actions down" [ref=e375]:
+                    - button "Actions down" [ref=e376] [cursor=pointer]:
+                      - generic [ref=e377]: Actions
+                      - img "down" [ref=e378]:
+                        - img [ref=e379]
+                - 'row "Royco Bumbu Pelezat Rasa Ayam 1kg SKU: MP-189 - - Shopee platform indicator TikTok platform indicator Lazada platform indicator General Actions down" [ref=e381]':
+                  - cell [ref=e382]:
+                    - checkbox [ref=e385] [cursor=pointer]
+                  - cell [ref=e387]:
+                    - img [ref=e389]
+                  - 'cell "Royco Bumbu Pelezat Rasa Ayam 1kg SKU: MP-189" [ref=e390]':
+                    - generic [ref=e391]:
+                      - strong [ref=e394]: Royco Bumbu Pelezat Rasa Ayam 1kg
+                      - generic [ref=e396]: "SKU: MP-189"
+                  - cell "-" [ref=e397]
+                  - cell "-" [ref=e398]
+                  - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e399]:
+                    - generic [ref=e400]:
+                      - button "Shopee platform indicator" [disabled] [ref=e404]: 🟠
+                      - button "TikTok platform indicator" [disabled] [ref=e408]: ⬛
+                      - button "Lazada platform indicator" [disabled] [ref=e412]: 🔵
+                  - cell "General" [ref=e413]
+                  - cell "Actions down" [ref=e414]:
+                    - button "Actions down" [ref=e415] [cursor=pointer]:
+                      - generic [ref=e416]: Actions
+                      - img "down" [ref=e417]:
+                        - img [ref=e418]
+                - 'row "Ponds Bright Beauty Power Serum SKU: MP-188 - - Shopee platform indicator TikTok platform indicator Lazada platform indicator General Actions down" [ref=e420]':
+                  - cell [ref=e421]:
+                    - checkbox [ref=e424] [cursor=pointer]
+                  - cell [ref=e426]:
+                    - img [ref=e428]
+                  - 'cell "Ponds Bright Beauty Power Serum SKU: MP-188" [ref=e429]':
+                    - generic [ref=e430]:
+                      - strong [ref=e433]: Ponds Bright Beauty Power Serum
+                      - generic [ref=e435]: "SKU: MP-188"
+                  - cell "-" [ref=e436]
+                  - cell "-" [ref=e437]
+                  - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e438]:
+                    - generic [ref=e439]:
+                      - button "Shopee platform indicator" [disabled] [ref=e443]: 🟠
+                      - button "TikTok platform indicator" [disabled] [ref=e447]: ⬛
+                      - button "Lazada platform indicator" [disabled] [ref=e451]: 🔵
+                  - cell "General" [ref=e452]
+                  - cell "Actions down" [ref=e453]:
+                    - button "Actions down" [ref=e454] [cursor=pointer]:
+                      - generic [ref=e455]: Actions
+                      - img "down" [ref=e456]:
+                        - img [ref=e457]
+                - 'row "[GRATIS] Wadah Bumbu SKU: MP-187 - - Shopee platform indicator TikTok platform indicator Lazada platform indicator General Actions down" [ref=e459]':
+                  - cell [ref=e460]:
+                    - checkbox [ref=e463] [cursor=pointer]
+                  - cell [ref=e465]:
+                    - img [ref=e467]
+                  - 'cell "[GRATIS] Wadah Bumbu SKU: MP-187" [ref=e468]':
+                    - generic [ref=e469]:
+                      - strong [ref=e472]: "[GRATIS] Wadah Bumbu"
+                      - generic [ref=e474]: "SKU: MP-187"
+                  - cell "-" [ref=e475]
+                  - cell "-" [ref=e476]
+                  - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e477]:
+                    - generic [ref=e478]:
+                      - button "Shopee platform indicator" [disabled] [ref=e482]: 🟠
+                      - button "TikTok platform indicator" [disabled] [ref=e486]: ⬛
+                      - button "Lazada platform indicator" [disabled] [ref=e490]: 🔵
+                  - cell "General" [ref=e491]
+                  - cell "Actions down" [ref=e492]:
+                    - button "Actions down" [ref=e493] [cursor=pointer]:
+                      - generic [ref=e494]: Actions
+                      - img "down" [ref=e495]:
+                        - img [ref=e496]
+                - 'row "Vixal Pembersih Porselen Botol 470ml SKU: MP-186 - - Shopee platform indicator TikTok platform indicator Lazada platform indicator General Actions down" [ref=e498]':
+                  - cell [ref=e499]:
+                    - checkbox [ref=e502] [cursor=pointer]
+                  - cell [ref=e504]:
+                    - img [ref=e506]
+                  - 'cell "Vixal Pembersih Porselen Botol 470ml SKU: MP-186" [ref=e507]':
+                    - generic [ref=e508]:
+                      - strong [ref=e511]: Vixal Pembersih Porselen Botol 470ml
+                      - generic [ref=e513]: "SKU: MP-186"
+                  - cell "-" [ref=e514]
+                  - cell "-" [ref=e515]
+                  - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e516]:
+                    - generic [ref=e517]:
+                      - button "Shopee platform indicator" [disabled] [ref=e521]: 🟠
+                      - button "TikTok platform indicator" [disabled] [ref=e525]: ⬛
+                      - button "Lazada platform indicator" [disabled] [ref=e529]: 🔵
+                  - cell "General" [ref=e530]
+                  - cell "Actions down" [ref=e531]:
+                    - button "Actions down" [ref=e532] [cursor=pointer]:
+                      - generic [ref=e533]: Actions
+                      - img "down" [ref=e534]:
+                        - img [ref=e535]
+                - 'row "Desaku Bumbu Rempah Pilihan Cabe 250gr SKU: MP-185 - - Shopee platform indicator TikTok platform indicator Lazada platform indicator General Actions down" [ref=e537]':
+                  - cell [ref=e538]:
+                    - checkbox [ref=e541] [cursor=pointer]
+                  - cell [ref=e543]:
+                    - img [ref=e545]
+                  - 'cell "Desaku Bumbu Rempah Pilihan Cabe 250gr SKU: MP-185" [ref=e546]':
+                    - generic [ref=e547]:
+                      - strong [ref=e550]: Desaku Bumbu Rempah Pilihan Cabe 250gr
+                      - generic [ref=e552]: "SKU: MP-185"
+                  - cell "-" [ref=e553]
+                  - cell "-" [ref=e554]
+                  - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e555]:
+                    - generic [ref=e556]:
+                      - button "Shopee platform indicator" [disabled] [ref=e560]: 🟠
+                      - button "TikTok platform indicator" [disabled] [ref=e564]: ⬛
+                      - button "Lazada platform indicator" [disabled] [ref=e568]: 🔵
+                  - cell "General" [ref=e569]
+                  - cell "Actions down" [ref=e570]:
+                    - button "Actions down" [ref=e571] [cursor=pointer]:
+                      - generic [ref=e572]: Actions
+                      - img "down" [ref=e573]:
+                        - img [ref=e574]
+                - 'row "Royco Bumbu Pelezat Penyedap Rasa Renceng 8gr SKU: MP-184 - - Shopee platform indicator TikTok platform indicator Lazada platform indicator General Actions down" [ref=e576]':
+                  - cell [ref=e577]:
+                    - checkbox [ref=e580] [cursor=pointer]
+                  - cell [ref=e582]:
+                    - img [ref=e584]
+                  - 'cell "Royco Bumbu Pelezat Penyedap Rasa Renceng 8gr SKU: MP-184" [ref=e585]':
+                    - generic [ref=e586]:
+                      - strong [ref=e589]: Royco Bumbu Pelezat Penyedap Rasa Renceng 8gr
+                      - generic [ref=e591]: "SKU: MP-184"
+                  - cell "-" [ref=e592]
+                  - cell "-" [ref=e593]
+                  - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e594]:
+                    - generic [ref=e595]:
+                      - button "Shopee platform indicator" [disabled] [ref=e599]: 🟠
+                      - button "TikTok platform indicator" [disabled] [ref=e603]: ⬛
+                      - button "Lazada platform indicator" [disabled] [ref=e607]: 🔵
+                  - cell "General" [ref=e608]
+                  - cell "Actions down" [ref=e609]:
+                    - button "Actions down" [ref=e610] [cursor=pointer]:
+                      - generic [ref=e611]: Actions
+                      - img "down" [ref=e612]:
+                        - img [ref=e613]
+            - list [ref=e615]:
+              - listitem [ref=e616]: Total 95 products
+              - listitem "Previous Page" [ref=e617]:
+                - button "left" [disabled] [ref=e618]:
+                  - img "left" [ref=e619]:
+                    - img [ref=e620]
+              - listitem "1" [ref=e622] [cursor=pointer]:
+                - generic [ref=e623]: "1"
+              - listitem "2" [ref=e624] [cursor=pointer]:
+                - generic [ref=e625]: "2"
+              - listitem "3" [ref=e626] [cursor=pointer]:
+                - generic [ref=e627]: "3"
+              - listitem "4" [ref=e628] [cursor=pointer]:
+                - generic [ref=e629]: "4"
+              - listitem "5" [ref=e630] [cursor=pointer]:
+                - generic [ref=e631]: "5"
+              - listitem "Next 5 Pages" [ref=e632] [cursor=pointer]:
+                - generic [ref=e634]:
+                  - img "double-right" [ref=e635]:
+                    - img [ref=e636]
+                  - generic [ref=e638]: •••
+              - listitem "10" [ref=e639] [cursor=pointer]:
+                - generic [ref=e640]: "10"
+              - listitem "Next Page" [ref=e641] [cursor=pointer]:
+                - button "right" [ref=e642]:
+                  - img "right" [ref=e643]:
+                    - img [ref=e644]
+              - listitem [ref=e646]:
+                - generic "Page Size" [ref=e647] [cursor=pointer]:
+                  - generic [ref=e649]:
+                    - combobox "Page Size" [ref=e651]
+                    - generic "10 / page" [ref=e652]
+                  - generic:
+                    - img:
+                      - img
+```
