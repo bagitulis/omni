@@ -9,6 +9,7 @@ import {
   Card,
   Col,
   DatePicker,
+  Grid,
   Input,
   Row,
   Select,
@@ -37,6 +38,7 @@ import {
 export default function MarketplaceSyncHistoryPage() {
   const navigate = useNavigate();
   const { token } = theme.useToken();
+  const screens = Grid.useBreakpoint();
   const columns = useMemo(() => createMarketplaceSyncHistoryColumns(), []);
 
   const [page, setPage] = useState(1);
@@ -88,26 +90,46 @@ export default function MarketplaceSyncHistoryPage() {
   return (
     <div style={{ padding: 24 }}>
       <Space direction="vertical" size={16} style={{ width: "100%" }}>
-        <Space
-          style={{ justifyContent: "space-between", width: "100%" }}
-          align="center"
-          wrap
-        >
-          <Space align="center">
-            <Button
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate("/products")}
-            >
-              Back to Products
+        {/* Header — mobile: title on its own row; desktop: title inline with back + refresh */}
+        {screens.md ? (
+          <Space
+            style={{ justifyContent: "space-between", width: "100%" }}
+            align="center"
+            wrap
+          >
+            <Space align="center">
+              <Button
+                icon={<ArrowLeftOutlined />}
+                onClick={() => navigate("/products")}
+              >
+                Back to Products
+              </Button>
+              <Typography.Title level={3} style={{ margin: 0 }}>
+                Marketplace Sync History
+              </Typography.Title>
+            </Space>
+            <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
+              Refresh
             </Button>
-            <Typography.Title level={2} style={{ margin: 0 }}>
+          </Space>
+        ) : (
+          <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <Space style={{ justifyContent: "space-between", width: "100%" }}>
+              <Button
+                icon={<ArrowLeftOutlined />}
+                onClick={() => navigate("/products")}
+              >
+                Back to Products
+              </Button>
+              <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
+                Refresh
+              </Button>
+            </Space>
+            <Typography.Title level={4} style={{ margin: 0 }}>
               Marketplace Sync History
             </Typography.Title>
           </Space>
-          <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
-            Refresh
-          </Button>
-        </Space>
+        )}
 
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={8} md={8} lg={6}>
