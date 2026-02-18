@@ -109,6 +109,7 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		&models.InventorySettings{},
 		&models.InventoryRecord{},
 		&models.InventorySyncHistory{},
+		&models.MarketplaceSyncHistory{},
 		&models.SheetSnapshot{},
 		&models.InventorySkuPlatformStatus{},
 

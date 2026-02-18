@@ -17,7 +17,6 @@ import (
 	"github.com/omni/backend/internal/handlers/shopee"
 	"github.com/omni/backend/internal/handlers/tiktok"
 	"github.com/omni/backend/internal/middleware"
-	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/routes"
 	googleService "github.com/omni/backend/internal/services/google"
 )
@@ -157,9 +156,7 @@ func main() {
 	routes.RegisterImageRoutes(api, imageHandler)
 
 	// Marketplace Sync History routes
-	syncHistoryRepo := repositories.NewMarketplaceSyncHistoryRepo(application.SystemDB)
-	syncHistoryHandler := handlers.NewMarketplaceSyncHistoryHandler(syncHistoryRepo)
-	routes.RegisterMarketplaceSyncHistoryRoutes(api, syncHistoryHandler)
+	routes.RegisterMarketplaceSyncHistoryRoutes(api, cfg.DatabasePath)
 
 	// ====== Google Routes ======
 	// Use the already initialized googleAuthService

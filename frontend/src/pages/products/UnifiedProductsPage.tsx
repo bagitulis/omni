@@ -60,8 +60,13 @@ export default function UnifiedProductsPage() {
     readFiltersFromUrl(searchParams),
   );
 
+  const activeFilters = useMemo(
+    () => ({ ...filters, status: "active" as const }),
+    [filters],
+  );
+
   const { data, isLoading, refetch } = useUnifiedProducts(
-    filters,
+    activeFilters,
     page,
     pageSize,
   );
@@ -75,25 +80,8 @@ export default function UnifiedProductsPage() {
   );
 
   const allProducts = useMemo(() => data?.products ?? [], [data?.products]);
-  const products = useMemo(() => {
-    if (filters.category === "all") return allProducts;
-    const query = filters.category.toLowerCase();
-    return allProducts.filter((product) => {
-      const title = product.title.toLowerCase();
-      const description = product.description.toLowerCase();
-      const primarySku = product.primary_sku.toLowerCase();
-      return (
-        title.includes(query) ||
-        description.includes(query) ||
-        primarySku.includes(query)
-      );
-    });
-  }, [allProducts, filters.category]);
-
-  const total =
-    filters.category === "all"
-      ? (data?.total ?? allProducts.length)
-      : products.length;
+  const products = allProducts;
+  const total = data?.total ?? 0;
   const legacyProducts = useMemo(
     () => products.map(toLegacyProduct),
     [products],
@@ -112,9 +100,11 @@ export default function UnifiedProductsPage() {
 
   const handleFilterChange = useCallback(
     (nextFilters: ProductFilterValues) => {
-      setFilters(nextFilters);
+      setFilters({ ...nextFilters, status: "active" });
       setPage(1);
-      setSearchParams(buildFilterSearchParams(nextFilters));
+      setSearchParams(
+        buildFilterSearchParams({ ...nextFilters, status: "active" }),
+      );
     },
     [setSearchParams],
   );
@@ -228,6 +218,7 @@ export default function UnifiedProductsPage() {
             values={filters}
             onChange={handleFilterChange}
             showCategory={true}
+            showStatus={false}
           />
           <Divider style={{ margin: "8px 0" }} />
 

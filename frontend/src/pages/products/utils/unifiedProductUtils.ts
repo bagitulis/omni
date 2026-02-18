@@ -10,7 +10,7 @@ import {
 export const DEFAULT_FILTERS: ProductFilterValues = {
   search: "",
   platform: "all",
-  status: "all",
+  status: "active",
   category: "all",
 };
 
@@ -28,12 +28,11 @@ export const DEFAULT_PRODUCT_PAGE_COLUMNS: ColumnConfig[] = [
   { key: "stock", title: "Stock", visible: true, order: 3, width: 120 },
   { key: "platforms", title: "Platforms", visible: true, order: 4, width: 180 },
   { key: "category", title: "Category", visible: true, order: 5, width: 140 },
-  { key: "status", title: "Status", visible: true, order: 6, width: 120 },
   {
     key: "actions",
     title: "Actions",
     visible: true,
-    order: 7,
+    order: 6,
     width: 120,
     locked: true,
   },
@@ -89,7 +88,7 @@ export function toLegacyProduct(row: UnifiedProductRow): Product {
     title: row.title,
     description: row.description,
     images: row.images,
-    status: row.status === "archived" ? "inactive" : row.status,
+    status: row.status,
     created_at: row.created_at,
     updated_at: row.updated_at,
     skus: row.skus.map((sku) => ({

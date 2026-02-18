@@ -85,15 +85,15 @@ describe("getMonitorData", () => {
     vi.clearAllMocks();
   });
 
-  it("returns monitor data when success", async () => {
+  it("returns monitor data mapped from camelCase backend response", async () => {
     mockClientGet.mockResolvedValue({
       success: true,
       data: {
-        current_job: null,
-        pending_queue: [],
-        recent_history: [],
-        total_pending: 0,
-        total_completed: 0,
+        currentJob: null,
+        pendingQueue: [],
+        recentHistory: [],
+        totalPending: 0,
+        totalCompleted: 0,
       },
     });
 
@@ -101,6 +101,8 @@ describe("getMonitorData", () => {
 
     expect(result.total_pending).toBe(0);
     expect(result.pending_queue).toEqual([]);
+    expect(result.recent_history).toEqual([]);
+    expect(result.current_job).toBeNull();
   });
 
   it("throws when monitor fetch fails", async () => {

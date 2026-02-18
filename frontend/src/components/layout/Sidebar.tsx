@@ -57,15 +57,6 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         key: "/script-monitor",
         icon: <CodeOutlined />,
         label: "Script Monitor",
-        children: [
-          { key: "/script-monitor?tab=current", label: "Current Job" },
-          { key: "/script-monitor?tab=queue", label: "Queue" },
-          { key: "/script-monitor?tab=history", label: "History" },
-          {
-            key: "/script-monitor?tab=auto-functions",
-            label: "Auto-Functions",
-          },
-        ],
       },
       { key: "/settings", icon: <SettingOutlined />, label: "Settings" },
     ],
@@ -81,20 +72,16 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
       // All other /products paths (including /products/:id/edit) → highlight "All Products"
       return "/products";
     }
-    // Script monitor special handling (existing)
-    if (location.pathname === "/script-monitor") {
-      return location.search
-        ? `${location.pathname}${location.search}`
-        : "/script-monitor";
+    // Script monitor: always highlight the single menu item regardless of ?tab=
+    if (location.pathname.startsWith("/script-monitor")) {
+      return "/script-monitor";
     }
     return location.pathname;
-  }, [location.pathname, location.search]);
+  }, [location.pathname]);
 
   const [openKeys, setOpenKeys] = useState<string[]>(() => {
     const keys: string[] = [];
     if (location.pathname.startsWith("/products")) keys.push("/products");
-    if (location.pathname.startsWith("/script-monitor"))
-      keys.push("/script-monitor");
     return keys;
   });
 

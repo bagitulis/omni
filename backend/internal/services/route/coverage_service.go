@@ -8,7 +8,17 @@ import (
 )
 
 // BuildCoverageReport builds FE↔BE route coverage from backend routes and scanned frontend API calls.
+// Results are cached after the first call using sync.Once — source files do not change at runtime.
 func (s *ScannerService) BuildCoverageReport(backendRoutes []RouteMapping) CoverageReport {
+	s.coverageOnce.Do(func() {
+		report := s.buildCoverageReportInternal(backendRoutes)
+		s.coverageCache = &report
+	})
+	return *s.coverageCache
+}
+
+// buildCoverageReportInternal performs the actual computation. Called exactly once.
+func (s *ScannerService) buildCoverageReportInternal(backendRoutes []RouteMapping) CoverageReport {
 	frontendScan := s.ScanFrontendRoutes()
 
 	backendIndex := make(map[string]RouteMapping)

@@ -12,6 +12,11 @@ type AutoMapRequest struct {
 	SellerSku string `json:"seller_sku" binding:"required"`
 }
 
+// AutoMapBatchRequest represents batch auto-map request body
+type AutoMapBatchRequest struct {
+	Skus []string `json:"skus" binding:"required"`
+}
+
 // ManualLinkRequest represents the manual link request body
 type ManualLinkRequest struct {
 	MasterSkuID    uint   `json:"master_sku_id" binding:"required"`

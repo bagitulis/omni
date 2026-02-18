@@ -80,6 +80,7 @@ describe("useUnifiedProducts", () => {
       search: "shoes",
       status: "active",
       platform: "shopee",
+      linked_only: true,
     });
   });
 
@@ -104,10 +105,11 @@ describe("useUnifiedProducts", () => {
       search: undefined,
       status: undefined,
       platform: undefined,
+      linked_only: true,
     });
   });
 
-  it("queryFn transforms MasterProduct inactive status to archived", async () => {
+  it("queryFn keeps MasterProduct archived status", async () => {
     useUnifiedProducts(defaultFilters, 1, 20);
 
     const queryOptions = useQueryMock.mock.calls[0]?.[0] as {
@@ -123,10 +125,10 @@ describe("useUnifiedProducts", () => {
         {
           id: 1,
           tenant_id: "t1",
-          title: "Inactive Product",
+          title: "Archived Product",
           description: "",
           images: [],
-          status: "inactive",
+          status: "archived",
           created_at: "2025-01-01T00:00:00Z",
           updated_at: "2025-01-01T00:00:00Z",
           skus: [],
@@ -251,5 +253,74 @@ describe("useUnifiedProducts", () => {
     expect(summary.shopee).toBe("linked");
     expect(summary.tiktok).toBe("error");
     expect(summary.lazada).toBe("not_linked");
+  });
+
+  it("queryFn treats outdated as linked and error as error", async () => {
+    useUnifiedProducts(defaultFilters, 1, 20);
+
+    const queryOptions = useQueryMock.mock.calls[0]?.[0] as {
+      queryFn: () => Promise<{
+        products: Array<{
+          platform_summary: { shopee: string; tiktok: string; lazada: string };
+          skus: Array<{
+            platform_links: Array<{ sync_status: string }>;
+          }>;
+        }>;
+      }>;
+    };
+
+    getProductsMock.mockResolvedValue({
+      success: true,
+      data: [
+        {
+          id: 4,
+          tenant_id: "t1",
+          title: "Product C",
+          description: "",
+          images: [],
+          status: "active",
+          created_at: "2025-01-01T00:00:00Z",
+          updated_at: "2025-01-01T00:00:00Z",
+          skus: [
+            {
+              id: 11,
+              tenant_id: "t1",
+              master_product_id: 4,
+              seller_sku: "SKU-C",
+              variant_name: "Default",
+              variant_data: {},
+              price: 5000,
+              stock: 10,
+              created_at: "2025-01-01T00:00:00Z",
+              updated_at: "2025-01-01T00:00:00Z",
+              platform_links: [
+                {
+                  id: 3,
+                  master_product_id: 4,
+                  platform: "shopee",
+                  sync_status: "outdated",
+                },
+                {
+                  id: 4,
+                  master_product_id: 4,
+                  platform: "tiktok",
+                  sync_status: "error",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      meta: { total: 1, page: 1, page_size: 20 },
+    });
+
+    const result = await queryOptions.queryFn();
+    const summary = result.products[0].platform_summary;
+    const links = result.products[0].skus[0].platform_links;
+
+    expect(summary.shopee).toBe("linked");
+    expect(summary.tiktok).toBe("error");
+    expect(links[0].sync_status).toBe("outdated");
+    expect(links[1].sync_status).toBe("error");
   });
 });

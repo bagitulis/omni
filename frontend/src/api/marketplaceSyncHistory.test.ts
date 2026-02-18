@@ -130,8 +130,8 @@ describe("marketplaceSyncHistory api", () => {
       platform: "shopee" as const,
       operation: "stock_update" as const,
       status: "success" as const,
-      request_data: { stock: 10 },
-      response_data: { updated: true },
+      request_data: '{"stock":10}',
+      response_data: '{"updated":true}',
     };
 
     mockPost.mockResolvedValue({

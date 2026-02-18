@@ -51,6 +51,7 @@ export function derivePlatformStatus(
 
   // Check if any SKU has platform link for this platform
   let platformProductId: string | undefined;
+  let platformItemId: string | undefined;
   let platformSkuId: string | undefined;
   let lastSyncedAt: string | undefined;
   let errorMessage: string | undefined;
@@ -60,7 +61,9 @@ export function derivePlatformStatus(
     const link = sku.platform_links?.find((l) => l.platform === platform);
     if (link) {
       // Use first found link's metadata
-      if (!platformProductId) platformProductId = link.platform_product_id;
+      if (!platformProductId)
+        platformProductId = link.platform_product_id || link.platform_item_id;
+      if (!platformItemId) platformItemId = link.platform_item_id;
       if (!platformSkuId) platformSkuId = link.platform_sku_id;
       if (!lastSyncedAt) lastSyncedAt = link.last_synced_at;
       if (!errorMessage && link.error_message)
@@ -79,7 +82,8 @@ export function derivePlatformStatus(
     const link = sku.platform_links?.find((l) => l.platform === platform);
     return (
       link?.sync_status === "outdated" ||
-      (link?.sync_status === "pending" && link.platform_product_id)
+      (link?.sync_status === "pending" &&
+        (link.platform_product_id || link.platform_item_id))
     );
   });
 
@@ -89,6 +93,7 @@ export function derivePlatformStatus(
     has_update: hasUpdate,
     sync_state: syncState,
     platform_product_id: platformProductId,
+    platform_item_id: platformItemId,
     platform_sku_id: platformSkuId,
     last_synced_at: lastSyncedAt,
     error_message: errorMessage,

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { refreshProductImages, syncProduct } from "./products";
+import { autoMapSkus, refreshProductImages, syncProduct } from "./products";
 
 const { mockPost } = vi.hoisted(() => ({
   mockPost: vi.fn(),
@@ -64,5 +64,37 @@ describe("products api", () => {
     );
     expect(result.image_count).toBe(2);
     expect(result.images).toHaveLength(2);
+  });
+
+  it("autoMapSkus posts to auto-link with skus payload", async () => {
+    mockPost.mockResolvedValue({
+      success: true,
+      data: {
+        mapped_count: 1,
+        skipped_count: 1,
+        mappings: [
+          {
+            master_sku_id: 101,
+            seller_sku: "SKU-001",
+            platform: "shopee",
+            platform_item_id: "123456",
+            platform_sku_id: "98765",
+            sync_status: "synced",
+          },
+        ],
+        errors: ["no platform match found for SKU SKU-002"],
+      },
+    });
+
+    const result = await autoMapSkus(["SKU-001", "SKU-002"]);
+
+    expect(mockPost).toHaveBeenCalledWith(
+      "/master-products/mapping/auto-link",
+      {
+        skus: ["SKU-001", "SKU-002"],
+      },
+    );
+    expect(result.mapped_count).toBe(1);
+    expect(result.skipped_count).toBe(1);
   });
 });

@@ -8,13 +8,27 @@ interface AutoFunctionsPayload {
 
 /**
  * Get monitor data (current job, queue, history)
+ * Backend returns camelCase keys nested under `data`, so we map to snake_case MonitorData.
  */
 export async function getMonitorData(): Promise<MonitorData> {
-  const response = await apiClient.get<MonitorData>("/jobs/monitor");
+  const response = await apiClient.get<{
+    currentJob: MonitorData["current_job"];
+    pendingQueue: MonitorData["pending_queue"];
+    recentHistory: MonitorData["recent_history"];
+    totalPending: number;
+    totalCompleted: number;
+  }>("/jobs/monitor");
   if (!response.success) {
     throw new Error(response.error || "Failed to fetch monitor data");
   }
-  return response.data as MonitorData;
+  const d = response.data!;
+  return {
+    current_job: d.currentJob ?? null,
+    pending_queue: d.pendingQueue ?? [],
+    recent_history: d.recentHistory ?? [],
+    total_pending: d.totalPending ?? 0,
+    total_completed: d.totalCompleted ?? 0,
+  };
 }
 
 /**

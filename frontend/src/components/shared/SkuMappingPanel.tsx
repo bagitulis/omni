@@ -37,7 +37,7 @@ interface LinkModalState {
   masterSkuId: number;
   platform: Platform;
   initialValues?: {
-    platform_product_id?: string;
+    platform_item_id?: string;
     platform_sku_id?: string;
   };
 }
@@ -68,13 +68,13 @@ export function SkuMappingPanel({
       }
 
       const res = await autoMapSkus(skus);
-      if (res.success) {
+      if (res.mapped_count > 0) {
         message.success(
           `Auto-mapping completed: ${res.mapped_count} mapped, ${res.skipped_count} skipped`,
         );
         onUpdate?.();
       } else {
-        message.error("Auto-mapping failed");
+        message.warning("No platform matches were linked from auto-map");
       }
     } catch (error: unknown) {
       const err = error as { message?: string };
@@ -101,7 +101,7 @@ export function SkuMappingPanel({
       const payload = {
         master_sku_id: linkModal.masterSkuId,
         platform: linkModal.platform,
-        platform_product_id: values.platform_product_id,
+        platform_item_id: values.platform_item_id,
         platform_sku_id: values.platform_sku_id,
       };
 
@@ -145,15 +145,41 @@ export function SkuMappingPanel({
     return sku.platform_links?.find((link) => link.platform === platform);
   };
 
+  const getSyncStatusBadge = (syncStatus: string) => {
+    switch (syncStatus) {
+      case "synced":
+        return { color: "success" as const, label: "Synced" };
+      case "outdated":
+        return { color: "warning" as const, label: "Outdated" };
+      case "pending":
+      case "not_synced":
+        return { color: "processing" as const, label: "Pending" };
+      case "error":
+      case "failed":
+        return { color: "error" as const, label: "Error" };
+      default:
+        return { color: "default" as const, label: "Unknown" };
+    }
+  };
+
   const renderPlatformCell = (sku: MasterProductSku, platform: Platform) => {
     const link = getPlatformLink(sku, platform);
 
     if (link && link.sync_status !== "not_synced") {
+      const badge = getSyncStatusBadge(link.sync_status);
+      const platformProductID =
+        link.platform_product_id || link.platform_item_id || "Linked";
+
       return (
         <div className="flex items-center gap-2">
-          <Tag color="success" className="mr-0">
-            {link.platform_product_id}
-            {link.platform_sku_id && ` / ${link.platform_sku_id}`}
+          <Tag color={badge.color} className="mr-0">
+            {platformProductID}
+            {link.platform_sku_id && link.platform_sku_id !== platformProductID
+              ? ` / ${link.platform_sku_id}`
+              : null}
+          </Tag>
+          <Tag color={badge.color} className="mr-0">
+            {badge.label}
           </Tag>
           <Popconfirm
             title={`Unlink from ${platform}?`}
@@ -279,7 +305,7 @@ export function SkuMappingPanel({
       >
         <Form form={form} layout="vertical">
           <Form.Item
-            name="platform_product_id"
+            name="platform_item_id"
             label="Platform Product ID"
             rules={[
               { required: true, message: "Please enter Platform Product ID" },

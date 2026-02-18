@@ -79,10 +79,12 @@ type UpdateInput struct {
 
 // ListFilter represents filters for listing products
 type ListFilter struct {
-	Status string `json:"status,omitempty"`
-	Search string `json:"search,omitempty"`
-	Page   int    `json:"page"`
-	Limit  int    `json:"limit"`
+	Status     string `json:"status,omitempty"`
+	Search     string `json:"search,omitempty"`
+	Platform   string `json:"platform,omitempty"`
+	LinkedOnly bool   `json:"linked_only,omitempty"`
+	Page       int    `json:"page"`
+	Limit      int    `json:"limit"`
 }
 
 // ListResult represents paginated list result
@@ -202,8 +204,17 @@ func (s *Service) List(ctx context.Context, tenantID string, filter ListFilter) 
 	var total int64
 	var err error
 
-	// Apply filters
-	if filter.Search != "" {
+	if filter.LinkedOnly || filter.Platform != "" {
+		products, total, err = s.repo.FindLinked(
+			ctx,
+			tenantID,
+			filter.Page,
+			filter.Limit,
+			filter.Status,
+			filter.Search,
+			filter.Platform,
+		)
+	} else if filter.Search != "" {
 		products, total, err = s.repo.SearchByTitle(ctx, tenantID, filter.Search, filter.Page, filter.Limit)
 	} else if filter.Status != "" {
 		products, total, err = s.repo.FindByStatus(ctx, tenantID, filter.Status, filter.Page, filter.Limit)

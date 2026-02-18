@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/dto/response"
@@ -13,7 +14,9 @@ import (
 
 // RouteMappingHandler handles route mapping analysis endpoints
 type RouteMappingHandler struct {
-	engine *gin.Engine
+	engine     *gin.Engine
+	routesOnce sync.Once
+	routeCache []RouteInfo
 }
 
 // NewRouteMappingHandler creates a new route mapping handler
@@ -264,23 +267,29 @@ func (h *RouteMappingHandler) AnalyzeRoutes(c *gin.Context) {
 	c.JSON(http.StatusOK, response.Success(analysis))
 }
 
-// extractRoutes extracts route information from gin engine
+// extractRoutes extracts route information from gin engine.
+// Uses sync.Once to cache the result — routes are registered at startup and never change.
 func (h *RouteMappingHandler) extractRoutes() []RouteInfo {
-	if h.engine == nil {
-		return []RouteInfo{}
-	}
+	h.routesOnce.Do(func() {
+		if h.engine == nil {
+			h.routeCache = []RouteInfo{}
+			return
+		}
 
-	ginRoutes := h.engine.Routes()
-	routes := make([]RouteInfo, 0, len(ginRoutes))
+		ginRoutes := h.engine.Routes()
+		routes := make([]RouteInfo, 0, len(ginRoutes))
 
-	for _, r := range ginRoutes {
-		handlerName := runtime.FuncForPC(reflect.ValueOf(r.Handler).Pointer()).Name()
-		routes = append(routes, RouteInfo{
-			Method:  r.Method,
-			Path:    r.Path,
-			Handler: handlerName,
-		})
-	}
+		for _, r := range ginRoutes {
+			handlerName := runtime.FuncForPC(reflect.ValueOf(r.Handler).Pointer()).Name()
+			routes = append(routes, RouteInfo{
+				Method:  r.Method,
+				Path:    r.Path,
+				Handler: handlerName,
+			})
+		}
 
-	return routes
+		h.routeCache = routes
+	})
+
+	return h.routeCache
 }

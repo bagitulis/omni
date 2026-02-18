@@ -249,6 +249,58 @@ func (r *MasterProductRepository) SearchByTitle(ctx context.Context, tenantID, s
 	return products, total, err
 }
 
+// FindLinked returns paginated products that are linked on marketplace platforms.
+// Linked products are determined by platform links with sync_status in [synced, outdated].
+func (r *MasterProductRepository) FindLinked(
+	ctx context.Context,
+	tenantID string,
+	page, pageSize int,
+	status, search, platform string,
+) ([]models.MasterProduct, int64, error) {
+	var products []models.MasterProduct
+	var total int64
+
+	query := r.db.WithContext(ctx).
+		Model(&models.MasterProduct{}).
+		Where("tenant_id = ?", tenantID)
+
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	if search != "" {
+		query = query.Where("LOWER(title) LIKE LOWER(?)", "%"+search+"%")
+	}
+
+	linkedStatuses := []string{models.SyncStatusSynced, models.SyncStatusOutdated}
+	linkedSubQuery := r.db.WithContext(ctx).
+		Model(&models.MasterProductPlatformLink{}).
+		Select("1").
+		Where("master_product_platform_links.master_product_id = master_products.id").
+		Where("master_product_platform_links.sync_status IN ?", linkedStatuses)
+
+	if platform != "" {
+		linkedSubQuery = linkedSubQuery.Where("master_product_platform_links.platform = ?", platform)
+	}
+
+	query = query.Where("EXISTS (?)", linkedSubQuery)
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * pageSize
+	err := query.
+		Preload("SKUs").
+		Preload("SKUs.PlatformLinks").
+		Order("created_at DESC").
+		Offset(offset).
+		Limit(pageSize).
+		Find(&products).Error
+
+	return products, total, err
+}
+
 // FindPlatformLinksByItemID finds platform links by platform item ID
 // Used to check if a platform product is already imported
 func (r *MasterProductRepository) FindPlatformLinksByItemID(ctx context.Context, tenantID, platform, platformItemID string) ([]models.MasterProductPlatformLink, error) {

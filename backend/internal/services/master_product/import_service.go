@@ -168,7 +168,7 @@ func (s *ImportService) ImportFromShopee(ctx context.Context, tenantID string, s
 		Title:       truncateString(product.ItemName, models.MasterProductMaxTitleLength),
 		Description: truncateString(product.Description, models.MasterProductMaxDescriptionLength),
 		Images:      images,
-		Status:      models.MasterProductStatusDraft,
+		Status:      models.MasterProductStatusActive,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}

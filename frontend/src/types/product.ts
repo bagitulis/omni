@@ -11,7 +11,7 @@ export interface MasterProduct {
   title: string;
   description: string;
   images: string[];
-  status: "active" | "inactive" | "draft";
+  status: "active" | "archived" | "draft";
   created_at: string;
   updated_at: string;
   skus?: MasterProductSku[];
@@ -38,8 +38,14 @@ export interface MasterProductPlatformLink {
   platform: Platform;
   platform_product_id?: string;
   platform_sku_id?: string;
-  platform_item_id?: number;
-  sync_status: "synced" | "pending" | "failed" | "not_synced";
+  platform_item_id?: string;
+  sync_status:
+    | "synced"
+    | "pending"
+    | "error"
+    | "outdated"
+    | "failed"
+    | "not_synced";
   last_synced_at?: string;
   error_message?: string;
 }
@@ -48,7 +54,7 @@ export interface CreateMasterProductInput {
   title: string;
   description: string;
   images?: string[];
-  status?: "active" | "inactive" | "draft";
+  status?: "active" | "archived" | "draft";
   skus?: CreateSkuInput[];
 }
 
@@ -64,7 +70,7 @@ export interface UpdateMasterProductInput {
   title?: string;
   description?: string;
   images?: string[];
-  status?: "active" | "inactive" | "draft";
+  status?: "active" | "archived" | "draft";
   skus?: UpdateSkuInput[];
 }
 
@@ -115,6 +121,7 @@ export interface ProductListFilter {
   status?: string;
   search?: string;
   platform?: string;
+  linked_only?: boolean;
 }
 
 /** Matches backend InventoryListItem - dynamic JSONB data from Google Sheets */
@@ -160,14 +167,15 @@ export interface ImportResponse {
 }
 
 export interface AutoMapResult {
-  success: boolean;
   mapped_count: number;
   skipped_count: number;
   mappings: {
-    master_sku: string;
+    master_sku_id: number;
+    seller_sku: string;
     platform: string;
-    platform_product_id: string;
-    platform_sku_id: string;
+    platform_item_id: string;
+    platform_sku_id?: string;
+    sync_status: string;
   }[];
   errors?: string[];
 }
@@ -185,8 +193,8 @@ export interface MappingStatus {
 export interface LinkSkuData {
   master_sku_id: number;
   platform: string;
-  platform_product_id: string;
-  platform_sku_id: string;
+  platform_item_id: string;
+  platform_sku_id?: string;
 }
 
 export interface UnlinkSkuData {

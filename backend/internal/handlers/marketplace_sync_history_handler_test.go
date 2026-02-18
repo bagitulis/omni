@@ -18,8 +18,8 @@ import (
 func setupSyncHistoryRouter() (*gin.Engine, *MarketplaceSyncHistoryHandler) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	// Handler with nil repo — validation fires before repo is touched
-	handler := NewMarketplaceSyncHistoryHandler(nil)
+	// Handler resolves tenant DB from base path; tests validate request handling.
+	handler := NewMarketplaceSyncHistoryHandler("")
 	return r, handler
 }
 

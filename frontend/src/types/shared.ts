@@ -15,6 +15,7 @@ export interface PlatformIndicatorData {
   has_update: boolean;
   sync_state: PlatformSyncState;
   platform_product_id?: string;
+  platform_item_id?: string;
   platform_sku_id?: string;
   last_synced_at?: string;
   error_message?: string;
@@ -100,6 +101,7 @@ export interface UnifiedProductRow {
     platform_links: Array<{
       platform: Platform;
       platform_product_id?: string;
+      platform_item_id?: string;
       platform_sku_id?: string;
       sync_status: "pending" | "synced" | "error" | "outdated";
       last_synced_at?: string;
@@ -170,8 +172,8 @@ export interface MarketplaceSyncHistoryEntry {
   platform: Platform;
   operation: SyncOperation;
   status: SyncResultStatus;
-  request_data?: Record<string, unknown>;
-  response_data?: Record<string, unknown>;
+  request_data?: string;
+  response_data?: string;
   error_message?: string;
   created_at: string;
 }

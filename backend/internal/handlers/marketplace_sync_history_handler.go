@@ -7,28 +7,48 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/config"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 )
 
 // MarketplaceSyncHistoryHandler handles marketplace sync history endpoints
 type MarketplaceSyncHistoryHandler struct {
-	repo *repositories.MarketplaceSyncHistoryRepo
+	basePath string
 }
 
 // NewMarketplaceSyncHistoryHandler creates a new marketplace sync history handler
-func NewMarketplaceSyncHistoryHandler(repo *repositories.MarketplaceSyncHistoryRepo) *MarketplaceSyncHistoryHandler {
-	return &MarketplaceSyncHistoryHandler{repo: repo}
+func NewMarketplaceSyncHistoryHandler(basePath string) *MarketplaceSyncHistoryHandler {
+	return &MarketplaceSyncHistoryHandler{basePath: basePath}
+}
+
+func (h *MarketplaceSyncHistoryHandler) newTenantRepo(c *gin.Context) (string, *repositories.MarketplaceSyncHistoryRepo, error) {
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		return "", nil, fmt.Errorf("missing tenant_id")
+	}
+
+	tenantDB, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		return "", nil, fmt.Errorf("database connection failed: %w", err)
+	}
+
+	return tenantID, repositories.NewMarketplaceSyncHistoryRepo(tenantDB), nil
 }
 
 // List handles GET /api/marketplace-sync-history
 // Query params: page, page_size, platform, operation, status, sku_search, date_from, date_to
 func (h *MarketplaceSyncHistoryHandler) List(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{
+	tenantID, repo, err := h.newTenantRepo(c)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if strings.Contains(err.Error(), "missing tenant_id") {
+			status = http.StatusUnauthorized
+		}
+		c.JSON(status, gin.H{
 			"success": false,
-			"error":   "Missing tenant_id",
+			"error":   err.Error(),
 		})
 		return
 	}
@@ -54,7 +74,7 @@ func (h *MarketplaceSyncHistoryHandler) List(c *gin.Context) {
 		PageSize:  pageSize,
 	}
 
-	result, err := h.repo.List(c.Request.Context(), filter)
+	result, err := repo.List(c.Request.Context(), filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -82,11 +102,11 @@ type createSyncHistoryRequest struct {
 
 // Create handles POST /api/marketplace-sync-history
 func (h *MarketplaceSyncHistoryHandler) Create(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant_id",
+			"error":   "missing tenant_id",
 		})
 		return
 	}
@@ -123,6 +143,16 @@ func (h *MarketplaceSyncHistoryHandler) Create(c *gin.Context) {
 		return
 	}
 
+	tenantDB, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   fmt.Sprintf("database connection failed: %v", err),
+		})
+		return
+	}
+	repo := repositories.NewMarketplaceSyncHistoryRepo(tenantDB)
+
 	entry := &models.MarketplaceSyncHistory{
 		TenantID:     tenantID,
 		SKU:          req.SKU,
@@ -134,7 +164,7 @@ func (h *MarketplaceSyncHistoryHandler) Create(c *gin.Context) {
 		ErrorMessage: req.ErrorMessage,
 	}
 
-	if err := h.repo.Create(c.Request.Context(), entry); err != nil {
+	if err := repo.Create(c.Request.Context(), entry); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 // ScannedRoute represents a route found during scanning
@@ -23,9 +24,13 @@ type ScanResult struct {
 	Errors []string       `json:"errors,omitempty"`
 }
 
-// ScannerService provides route scanning functionality
+// ScannerService provides route scanning functionality.
+// coverageOnce ensures BuildCoverageReport is only computed once per process lifetime —
+// source files don't change at runtime in Docker, so repeated scanning is wasteful.
 type ScannerService struct {
-	basePath string
+	basePath      string
+	coverageOnce  sync.Once
+	coverageCache *CoverageReport
 }
 
 // NewScannerService creates a new scanner service

@@ -7,7 +7,9 @@ import (
 )
 
 // RegisterMarketplaceSyncHistoryRoutes registers marketplace sync history routes
-func RegisterMarketplaceSyncHistoryRoutes(router *gin.RouterGroup, handler *handlers.MarketplaceSyncHistoryHandler) {
+func RegisterMarketplaceSyncHistoryRoutes(router *gin.RouterGroup, basePath string) {
+	handler := handlers.NewMarketplaceSyncHistoryHandler(basePath)
+
 	syncHistory := router.Group("/marketplace-sync-history")
 	syncHistory.Use(middleware.Auth())
 	syncHistory.Use(middleware.Tenant())

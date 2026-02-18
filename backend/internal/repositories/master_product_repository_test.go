@@ -498,4 +498,96 @@ func TestMasterProductRepository(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("FindLinked", func(t *testing.T) {
+		linkedShopee := createTestProduct(t, "Linked Shopee Active Product")
+		linkedShopeeSKU := createTestSku(t, linkedShopee, "LINK-SHOPEE-SKU")
+		err := repo.CreatePlatformLink(ctx, &models.MasterProductPlatformLink{
+			MasterProductID: linkedShopee.ID,
+			MasterSkuID:     &linkedShopeeSKU.ID,
+			Platform:        "shopee",
+			PlatformItemID:  "SHOPEE-ITEM-1",
+			SyncStatus:      models.SyncStatusSynced,
+		})
+		require.NoError(t, err)
+
+		linkedOutdated := createTestProduct(t, "Linked TikTok Outdated Product")
+		linkedOutdatedSKU := createTestSku(t, linkedOutdated, "LINK-TIKTOK-SKU")
+		err = repo.CreatePlatformLink(ctx, &models.MasterProductPlatformLink{
+			MasterProductID: linkedOutdated.ID,
+			MasterSkuID:     &linkedOutdatedSKU.ID,
+			Platform:        "tiktok",
+			PlatformItemID:  "TIKTOK-ITEM-1",
+			SyncStatus:      models.SyncStatusOutdated,
+		})
+		require.NoError(t, err)
+
+		pendingOnly := createTestProduct(t, "Pending Link Product")
+		pendingOnlySKU := createTestSku(t, pendingOnly, "PENDING-SKU")
+		err = repo.CreatePlatformLink(ctx, &models.MasterProductPlatformLink{
+			MasterProductID: pendingOnly.ID,
+			MasterSkuID:     &pendingOnlySKU.ID,
+			Platform:        "shopee",
+			PlatformItemID:  "SHOPEE-ITEM-PENDING",
+			SyncStatus:      models.SyncStatusPending,
+		})
+		require.NoError(t, err)
+
+		draftLinked := &models.MasterProduct{
+			TenantID: tenantID,
+			Title:    "Draft Linked Product",
+			Status:   models.MasterProductStatusDraft,
+		}
+		err = repo.Create(ctx, draftLinked)
+		require.NoError(t, err)
+		draftLinkedSKU := createTestSku(t, draftLinked, "DRAFT-LINKED-SKU")
+		err = repo.CreatePlatformLink(ctx, &models.MasterProductPlatformLink{
+			MasterProductID: draftLinked.ID,
+			MasterSkuID:     &draftLinkedSKU.ID,
+			Platform:        "lazada",
+			PlatformItemID:  "LAZADA-ITEM-1",
+			SyncStatus:      models.SyncStatusSynced,
+		})
+		require.NoError(t, err)
+
+		activeLinked, total, err := repo.FindLinked(
+			ctx,
+			tenantID,
+			1,
+			100,
+			models.MasterProductStatusActive,
+			"",
+			"",
+		)
+		assert.NoError(t, err)
+		assert.GreaterOrEqual(t, total, int64(2))
+
+		activeLinkedIDs := make([]uint, 0, len(activeLinked))
+		for _, product := range activeLinked {
+			assert.Equal(t, models.MasterProductStatusActive, product.Status)
+			activeLinkedIDs = append(activeLinkedIDs, product.ID)
+		}
+		assert.Contains(t, activeLinkedIDs, linkedShopee.ID)
+		assert.Contains(t, activeLinkedIDs, linkedOutdated.ID)
+		assert.NotContains(t, activeLinkedIDs, pendingOnly.ID)
+		assert.NotContains(t, activeLinkedIDs, draftLinked.ID)
+
+		shopeeLinked, _, err := repo.FindLinked(
+			ctx,
+			tenantID,
+			1,
+			100,
+			models.MasterProductStatusActive,
+			"",
+			"shopee",
+		)
+		assert.NoError(t, err)
+
+		shopeeLinkedIDs := make([]uint, 0, len(shopeeLinked))
+		for _, product := range shopeeLinked {
+			shopeeLinkedIDs = append(shopeeLinkedIDs, product.ID)
+		}
+		assert.Contains(t, shopeeLinkedIDs, linkedShopee.ID)
+		assert.NotContains(t, shopeeLinkedIDs, linkedOutdated.ID)
+	})
 }

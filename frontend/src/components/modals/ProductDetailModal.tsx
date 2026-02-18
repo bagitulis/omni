@@ -57,7 +57,7 @@ export function ProductDetailModal({
               color={
                 product.status === "active"
                   ? "success"
-                  : product.status === "inactive"
+                  : product.status === "archived"
                     ? "error"
                     : "default"
               }

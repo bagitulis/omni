@@ -51,7 +51,7 @@ describe("productEditMapper", () => {
     });
   });
 
-  it("marks platform as synced when SKU presence IDs exist", () => {
+  it("prioritizes failed status when link has presence but sync failed", () => {
     const product: MasterProduct = {
       ...baseProduct,
       skus: [
@@ -74,7 +74,7 @@ describe("productEditMapper", () => {
               platform: "shopee",
               platform_product_id: "",
               platform_sku_id: "30011",
-              platform_item_id: 10022,
+              platform_item_id: "10022",
               sync_status: "failed",
               last_synced_at: "2026-02-18T10:00:00Z",
             },
@@ -87,8 +87,47 @@ describe("productEditMapper", () => {
     const shopee = rows.find((row) => row.platform === "shopee");
     const lazada = rows.find((row) => row.platform === "lazada");
 
-    expect(shopee?.status).toBe("synced");
+    expect(shopee?.status).toBe("failed");
     expect(shopee?.last_sync).toBe("2026-02-18T10:00:00Z");
     expect(lazada?.status).toBe("not_synced");
+  });
+
+  it("maps outdated sync status as pending", () => {
+    const product: MasterProduct = {
+      ...baseProduct,
+      skus: [
+        {
+          id: 9,
+          tenant_id: "tenant-1",
+          master_product_id: 99,
+          seller_sku: "SKU-9",
+          variant_name: "Green",
+          variant_data: {},
+          price: 18000,
+          stock: 6,
+          created_at: "2026-02-18T00:00:00Z",
+          updated_at: "2026-02-18T00:00:00Z",
+          platform_links: [
+            {
+              id: 2,
+              master_product_id: 99,
+              master_sku_id: 9,
+              platform: "lazada",
+              platform_product_id: "LP-001",
+              platform_item_id: "LI-001",
+              platform_sku_id: "LS-001",
+              sync_status: "outdated",
+              last_synced_at: "2026-02-18T11:00:00Z",
+            },
+          ],
+        },
+      ],
+    };
+
+    const rows = buildPlatformRows(product);
+    const lazada = rows.find((row) => row.platform === "lazada");
+
+    expect(lazada?.status).toBe("pending");
+    expect(lazada?.last_sync).toBe("2026-02-18T11:00:00Z");
   });
 });

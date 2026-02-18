@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   ReactFlow,
   useNodesState,
@@ -70,33 +76,36 @@ const ComponentNode = ({ data }: NodeProps<GraphNode>) => {
   );
 };
 
-const RouteNode = ({ data }: NodeProps<GraphNode>) => {
-  return (
-    <div
-      style={{ height: "100%", display: "flex", alignItems: "center", gap: 4 }}
+const RouteNode = ({ data }: NodeProps<GraphNode>) => (
+  <div
+    style={{ height: "100%", display: "flex", alignItems: "center", gap: 4 }}
+  >
+    <Handle
+      type="target"
+      position={Position.Left}
+      style={{ background: data.color }}
+    />
+    <Tag
+      color={data.details}
+      style={{ margin: 0, fontSize: 10, padding: "0 4px", lineHeight: "16px" }}
     >
-      <Handle
-        type="target"
-        position={Position.Left}
-        style={{ background: data.color }}
-      />
-      <Tag
-        color={data.details}
-        style={{
-          margin: 0,
-          fontSize: 10,
-          padding: "0 4px",
-          lineHeight: "16px",
-        }}
-      >
-        {data.method}
-      </Tag>
-      <Text style={{ fontSize: 11, color: data.color }} ellipsis>
-        {data.label}
-      </Text>
-    </div>
-  );
-};
+      {data.method}
+    </Tag>
+    <Text style={{ fontSize: 11, color: data.color }} ellipsis>
+      {data.label}
+    </Text>
+  </div>
+);
+
+// --- Filter config ---
+
+type FilterKey = keyof Omit<FilterOptions, "searchTerm">;
+const FILTER_OPTS: { key: FilterKey; label: string }[] = [
+  { key: "showConnected", label: "Connected" },
+  { key: "showFrontendOnly", label: "Frontend Only" },
+  { key: "showBackendOnly", label: "Backend Only" },
+  { key: "showUnused", label: "Unused" },
+];
 
 // --- Main Component ---
 
@@ -111,6 +120,7 @@ const GraphContent = ({ data }: GraphViewProps) => {
 
   const [nodes, setNodes, onNodesChange] = useNodesState<GraphNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<FilterOptions>({
     showConnected: true,
@@ -120,44 +130,91 @@ const GraphContent = ({ data }: GraphViewProps) => {
     searchTerm: "",
   });
 
+  // Defer searchTerm so the Input stays responsive while the graph layout catches up.
+  // Checkbox changes are instant (cheap to re-render); only the search scan is deferred.
+  const deferredSearchTerm = useDeferredValue(filters.searchTerm);
+  const deferredFilters = useMemo(
+    () => ({ ...filters, searchTerm: deferredSearchTerm }),
+    [filters, deferredSearchTerm],
+  );
+
   const nodeTypes = useMemo(
-    () => ({
-      component: ComponentNode,
-      route: RouteNode,
-    }),
+    () => ({ component: ComponentNode, route: RouteNode }),
     [],
   );
 
-  // Update Graph when data or filters change
+  // Rebuild graph when data or deferred filters change.
+  // deferredFilters ensures checkbox changes are instant; search redraws are batched.
   useEffect(() => {
     if (!data) return;
-
-    // Transform
     const { nodes: rawNodes, edges: rawEdges } = transformDataToGraph(
       data,
-      filters,
+      deferredFilters,
       token,
     );
-
-    // Layout
-    const layoutNodes = runForceLayout(rawNodes, rawEdges);
-
-    setNodes(layoutNodes);
+    setNodes(runForceLayout(rawNodes, rawEdges));
     setEdges(rawEdges);
-
-    // Fit view after small delay to allow render; clean up on re-run
-    const timerId = setTimeout(
-      () => fitView({ padding: 0.2, duration: 800 }),
-      50,
-    );
-    return () => clearTimeout(timerId);
-  }, [data, filters, token, setNodes, setEdges, fitView]);
+    setSelectedNodeId(null);
+    const t = setTimeout(() => fitView({ padding: 0.2, duration: 800 }), 50);
+    return () => clearTimeout(t);
+  }, [data, deferredFilters, token, setNodes, setEdges, fitView]);
 
   const handleReset = useCallback(() => {
     fitView({ padding: 0.2, duration: 800 });
+    setSelectedNodeId(null);
   }, [fitView]);
 
+  // --- Highlight neighbors on node click ---
+  const { displayNodes, displayEdges } = useMemo(() => {
+    if (!selectedNodeId) return { displayNodes: nodes, displayEdges: edges };
+
+    // Collect all edges + nodes connected to the selected node
+    const connectedNodeIds = new Set<string>([selectedNodeId]);
+    const connectedEdgeIds = new Set<string>();
+    edges.forEach((e) => {
+      if (e.source === selectedNodeId || e.target === selectedNodeId) {
+        connectedEdgeIds.add(e.id);
+        connectedNodeIds.add(e.source);
+        connectedNodeIds.add(e.target);
+      }
+    });
+
+    return {
+      displayNodes: nodes.map((n) => ({
+        ...n,
+        style: {
+          ...n.style,
+          opacity: connectedNodeIds.has(n.id) ? 1 : 0.12,
+          transition: "opacity 0.2s, box-shadow 0.2s",
+          ...(n.id === selectedNodeId
+            ? {
+                boxShadow: `0 0 0 2px ${token.colorPrimary}`,
+                borderColor: token.colorPrimary,
+              }
+            : {}),
+        },
+      })),
+      displayEdges: edges.map((e) => {
+        const lit = connectedEdgeIds.has(e.id);
+        return {
+          ...e,
+          animated: lit,
+          style: {
+            ...e.style,
+            opacity: lit ? 1 : 0.05,
+            stroke: lit ? token.colorPrimary : e.style?.stroke,
+            strokeWidth: lit ? 2 : 1,
+          },
+        };
+      }),
+    };
+  }, [nodes, edges, selectedNodeId, token]);
+
   const showWarning = nodes.length > 300;
+
+  const hintText = selectedNodeId
+    ? `Connections for "${selectedNodeId}" · Click node again or canvas to deselect`
+    : "Click a node to highlight its connections";
 
   return (
     <div
@@ -171,7 +228,7 @@ const GraphContent = ({ data }: GraphViewProps) => {
     >
       {/* Toolbar */}
       <Card size="small" styles={{ body: { padding: "12px 16px" } }}>
-        <Flex gap={16} wrap="wrap" align="center" justify="space-between">
+        <Flex gap={12} wrap="wrap" align="center" justify="space-between">
           <Space wrap>
             <Input
               placeholder="Filter components..."
@@ -183,52 +240,18 @@ const GraphContent = ({ data }: GraphViewProps) => {
               style={{ width: 200 }}
               allowClear
             />
-            <Checkbox
-              checked={filters.showConnected}
-              onChange={(e) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  showConnected: e.target.checked,
-                }))
-              }
-            >
-              Connected
-            </Checkbox>
-            <Checkbox
-              checked={filters.showFrontendOnly}
-              onChange={(e) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  showFrontendOnly: e.target.checked,
-                }))
-              }
-            >
-              Frontend Only
-            </Checkbox>
-            <Checkbox
-              checked={filters.showBackendOnly}
-              onChange={(e) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  showBackendOnly: e.target.checked,
-                }))
-              }
-            >
-              Backend Only
-            </Checkbox>
-            <Checkbox
-              checked={filters.showUnused}
-              onChange={(e) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  showUnused: e.target.checked,
-                }))
-              }
-            >
-              Unused
-            </Checkbox>
+            {FILTER_OPTS.map(({ key, label }) => (
+              <Checkbox
+                key={key}
+                checked={filters[key]}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, [key]: e.target.checked }))
+                }
+              >
+                {label}
+              </Checkbox>
+            ))}
           </Space>
-
           <Space>
             <Text type="secondary" style={{ fontSize: 12 }}>
               {nodes.filter((n) => n.type === "component").length} comp,{" "}
@@ -239,6 +262,12 @@ const GraphContent = ({ data }: GraphViewProps) => {
             </Button>
           </Space>
         </Flex>
+        <Text
+          type="secondary"
+          style={{ fontSize: 11, display: "block", marginTop: 6 }}
+        >
+          {hintText}
+        </Text>
       </Card>
 
       {/* Warning */}
@@ -261,10 +290,14 @@ const GraphContent = ({ data }: GraphViewProps) => {
         }}
       >
         <ReactFlow
-          nodes={nodes}
-          edges={edges}
+          nodes={displayNodes}
+          edges={displayEdges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onNodeClick={(_, node) =>
+            setSelectedNodeId((prev) => (prev === node.id ? null : node.id))
+          }
+          onPaneClick={() => setSelectedNodeId(null)}
           nodeTypes={nodeTypes}
           fitView
           minZoom={0.1}

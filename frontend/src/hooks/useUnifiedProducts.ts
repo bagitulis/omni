@@ -24,7 +24,7 @@ function transformToUnifiedRows(
     // Aggregate platform link status across all SKUs
     const platformSummary = aggregatePlatformStatus(skus);
 
-    // Map status: inactive → archived, keep active|draft as-is
+    // Keep backend status contract as-is: active | archived | draft
     const status = mapProductStatus(product.status);
 
     return {
@@ -41,7 +41,9 @@ function transformToUnifiedRows(
         stock: sku.stock,
         platform_links: (sku.platform_links || []).map((link) => ({
           platform: link.platform,
-          platform_product_id: link.platform_product_id,
+          platform_product_id:
+            link.platform_item_id || link.platform_product_id,
+          platform_item_id: link.platform_item_id,
           platform_sku_id: link.platform_sku_id,
           sync_status: mapSyncStatus(link.sync_status),
           last_synced_at: link.last_synced_at,
@@ -60,29 +62,38 @@ function transformToUnifiedRows(
 
 /**
  * Map backend product status to output type
- * Backend: active | inactive | draft
+ * Backend: active | archived | draft
  * Output: active | archived | draft
  */
 function mapProductStatus(
-  status: "active" | "inactive" | "draft",
+  status: "active" | "archived" | "draft",
 ): "active" | "archived" | "draft" {
-  if (status === "inactive") return "archived";
   return status;
 }
 
 /**
  * Map backend sync_status to output sync_status
- * Backend: synced | pending | failed | not_synced
+ * Backend: synced | pending | error | outdated
+ * Legacy values still accepted: failed | not_synced
  * Output: pending | synced | error | outdated
  */
 function mapSyncStatus(
-  backendStatus: "synced" | "pending" | "failed" | "not_synced",
+  backendStatus:
+    | "synced"
+    | "pending"
+    | "error"
+    | "outdated"
+    | "failed"
+    | "not_synced",
 ): "pending" | "synced" | "error" | "outdated" {
   switch (backendStatus) {
     case "synced":
       return "synced";
     case "pending":
       return "pending";
+    case "outdated":
+      return "outdated";
+    case "error":
     case "failed":
       return "error";
     case "not_synced":
@@ -122,14 +133,17 @@ function aggregatePlatformStatus(
 
       // Map sync_status to PlatformLinkStatus
       let linkStatus: PlatformLinkStatus = "not_linked";
-      if (link.sync_status === "synced") {
+      if (link.sync_status === "synced" || link.sync_status === "outdated") {
         linkStatus = "linked";
       } else if (
         link.sync_status === "pending" ||
         link.sync_status === "not_synced"
       ) {
         linkStatus = "pending";
-      } else if (link.sync_status === "failed") {
+      } else if (
+        link.sync_status === "failed" ||
+        link.sync_status === "error"
+      ) {
         linkStatus = "error";
       }
 
@@ -180,6 +194,7 @@ export function useUnifiedProducts(
         search: search || undefined,
         status: status !== "all" ? status : undefined,
         platform: platform !== "all" ? platform : undefined,
+        linked_only: true,
       });
 
       const products = transformToUnifiedRows(response.data || []);

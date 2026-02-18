@@ -73,6 +73,10 @@ func RegisterMasterProductImportRoutes(router *gin.RouterGroup, basePath string)
 			// POST /api/master-products/mapping/auto
 			mappingGroup.POST("/auto", importHandler.AutoMap)
 
+			// Auto-map and link SKUs in batch
+			// POST /api/master-products/mapping/auto-link
+			mappingGroup.POST("/auto-link", importHandler.AutoMapBatch)
+
 			// Manual link
 			// POST /api/master-products/mapping/link
 			mappingGroup.POST("/link", importHandler.ManualLink)

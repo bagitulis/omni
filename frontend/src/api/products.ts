@@ -28,6 +28,7 @@ export async function getProducts(
     cleanParams.status = params.status;
   if (params.platform && params.platform !== "all")
     cleanParams.platform = params.platform;
+  if (params.linked_only === true) cleanParams.linked_only = true;
 
   // Cast to any to handle the response shape correctly
   // Backend returns { success, data: [...], meta: {...} } which IS ProductListResponse

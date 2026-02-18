@@ -47,12 +47,19 @@ func (h *Handler) List(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	status := c.Query("status")
 	search := c.Query("search")
+	platform := c.Query("platform")
+	linkedOnly, err := strconv.ParseBool(c.DefaultQuery("linked_only", "false"))
+	if err != nil {
+		linkedOnly = false
+	}
 
 	filter := masterProductService.ListFilter{
-		Page:   page,
-		Limit:  limit,
-		Status: status,
-		Search: search,
+		Page:       page,
+		Limit:      limit,
+		Status:     status,
+		Search:     search,
+		Platform:   platform,
+		LinkedOnly: linkedOnly,
 	}
 
 	result, err := service.List(c.Request.Context(), tenantID, filter)

@@ -18,6 +18,9 @@ export function useRouteMapping() {
 
   const { data, isLoading, error, refetch, isFetching } = useQuery<RouteData>({
     queryKey: ["route-mapping"],
+    // Route mapping data is derived from static source files that don't change at runtime.
+    // 5-minute staleTime avoids unnecessary refetches on focus/remount.
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const [mapping, stats] = await Promise.all([
         getRouteMappingDetailed(),

@@ -12,6 +12,7 @@ interface ProductFiltersProps {
   values: ProductFilterValues;
   onChange: (values: ProductFilterValues) => void;
   showCategory?: boolean; // Products page has category, Inventory doesn't
+  showStatus?: boolean;
 }
 
 const PLATFORM_OPTIONS = [
@@ -32,6 +33,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
   values,
   onChange,
   showCategory = true,
+  showStatus = true,
 }) => {
   const { token } = theme.useToken();
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
@@ -65,15 +67,15 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
     onChange({
       search: "",
       platform: "all",
-      status: "all",
+      status: showStatus ? "all" : values.status,
       category: "all",
     });
-  }, [onChange]);
+  }, [onChange, showStatus, values.status]);
 
   const hasActiveFilters =
     (values.search && values.search !== "") ||
     values.platform !== "all" ||
-    values.status !== "all" ||
+    (showStatus && values.status !== "all") ||
     (showCategory && values.category !== "all");
 
   return (
@@ -109,13 +111,15 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
       />
 
       {/* Status filter */}
-      <Select
-        value={values.status || "all"}
-        onChange={(v) => handleFilterChange("status", v)}
-        options={STATUS_OPTIONS}
-        style={{ width: 140 }}
-        data-testid="status-select"
-      />
+      {showStatus && (
+        <Select
+          value={values.status || "all"}
+          onChange={(v) => handleFilterChange("status", v)}
+          options={STATUS_OPTIONS}
+          style={{ width: 140 }}
+          data-testid="status-select"
+        />
+      )}
 
       {/* Category filter (optional) */}
       {showCategory && (

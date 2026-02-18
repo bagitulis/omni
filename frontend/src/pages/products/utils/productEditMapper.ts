@@ -76,11 +76,15 @@ function applyLinkMetrics(
     metrics.has_presence = true;
   }
 
-  if (link.sync_status === "pending" || link.sync_status === "not_synced") {
+  if (
+    link.sync_status === "pending" ||
+    link.sync_status === "not_synced" ||
+    link.sync_status === "outdated"
+  ) {
     metrics.has_pending = true;
   }
 
-  if (link.sync_status === "failed") {
+  if (link.sync_status === "failed" || link.sync_status === "error") {
     metrics.has_failed = true;
   }
 
@@ -94,12 +98,12 @@ export function buildPlatformRows(product: MasterProduct): ProductPlatform[] {
     const info = metrics[platform];
     let status = "not_synced";
 
-    if (info.has_presence) {
-      status = "synced";
+    if (info.has_failed) {
+      status = "failed";
     } else if (info.has_pending) {
       status = "pending";
-    } else if (info.has_failed) {
-      status = "failed";
+    } else if (info.has_presence) {
+      status = "synced";
     }
 
     return {
