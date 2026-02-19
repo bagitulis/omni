@@ -33,22 +33,36 @@ class FrontendBuilder:
         """
         self.config = config
         self.frontend_dir = config.frontend_dir
+        self.package_json = self.frontend_dir / "package.json"
         self.package_lock = self.frontend_dir / "package-lock.json"
         self.node_modules = self.frontend_dir / "node_modules"
         self.hash_file = self.frontend_dir / ".build_cache" / "package-lock.hash"
     
-    def _get_package_lock_hash(self) -> str:
+    def _get_file_hash(self, path: Path) -> str:
         """
-        Get hash of package-lock.json.
+        Get SHA256 hash of a file.
         
         Returns:
-            SHA256 hash of package-lock.json
+            SHA256 hash string, or empty string if file doesn't exist
         """
-        if not self.package_lock.exists():
+        if not path.exists():
             return ""
-        
-        with open(self.package_lock, "rb") as f:
+        with open(path, "rb") as f:
             return hashlib.sha256(f.read()).hexdigest()
+    
+    def _get_combined_hash(self) -> str:
+        """
+        Get combined hash of package.json + package-lock.json.
+
+        Hashing both files catches the case where a developer adds a package
+        to package.json but forgets to run npm install (so package-lock.json
+        is still unchanged). Either file changing triggers a reinstall.
+
+        Returns:
+            SHA256 of the concatenated hashes
+        """
+        combined = self._get_file_hash(self.package_json) + self._get_file_hash(self.package_lock)
+        return hashlib.sha256(combined.encode()).hexdigest()
     
     def _get_cached_hash(self) -> str:
         """
@@ -78,6 +92,11 @@ class FrontendBuilder:
     def check_needs_rebuild(self) -> bool:
         """
         Check if dependencies need reinstallation.
+
+        Compares combined hash of package.json + package-lock.json against
+        the last saved hash. This detects both:
+        - package-lock.json changes (normal npm install flow)
+        - package.json-only changes (dev forgot to run npm install)
         
         Returns:
             True if reinstall needed, False if cache is valid
@@ -90,11 +109,11 @@ class FrontendBuilder:
             log_info("node_modules not found - install required")
             return True
         
-        current_hash = self._get_package_lock_hash()
+        current_hash = self._get_combined_hash()
         cached_hash = self._get_cached_hash()
         
         if current_hash != cached_hash:
-            log_info("package-lock.json changed - reinstall required")
+            log_info("package.json / package-lock.json changed - reinstall required")
             return True
         
         log_success("Dependencies unchanged - using cache")
@@ -128,7 +147,7 @@ class FrontendBuilder:
                 if result.returncode == 0:
                     log_success(f"Dependencies installed (attempt {attempt})")
                     # Save hash for caching
-                    self._save_hash(self._get_package_lock_hash())
+                    self._save_hash(self._get_combined_hash())
                     return True
                 
                 # Install failed

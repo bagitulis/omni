@@ -201,8 +201,8 @@
           "temperature": 0.1
         },
         "testing": {
-          "model": "github-copilot/gemini-3-pro-preview",
-          "variant": "high",
+          "model": "github-copilot/claude-sonnet-4.6",
+          "variant": "thinking",
           "temperature": 0.1
         },
         "security": {
@@ -242,7 +242,7 @@
           "temperature": 0.1
         },
         "sisyphus-junior": {
-          "model": "google/claude-sonnet-4-5-thinking",
+          "model": "google/claude-sonnet-4-6-thinking",
           "variant": "max",
           "temperature": 0.1
         },
@@ -275,7 +275,7 @@
           "temperature": 0.1
         },
         "default": {
-          "model": "google/claude-sonnet-4-5-thinking",
+          "model": "google/claude-sonnet-4-6-thinking",
           "variant": "max",
           "temperature": 0.1
         }
@@ -287,12 +287,12 @@
           "temperature": 0.1
         },
         "implementation": {
-          "model": "google/claude-sonnet-4-5-thinking",
+          "model": "google/claude-sonnet-4-6-thinking",
           "variant": "max",
           "temperature": 0.1
         },
         "quick": {
-          "model": "google/claude-sonnet-4-5-thinking",
+          "model": "google/claude-sonnet-4-6-thinking",
           "variant": "max",
           "temperature": 0.1
         },
@@ -321,8 +321,8 @@
           "temperature": 0.1
         },
         "testing": {
-          "model": "google/gemini-3-pro",
-          "variant": "high",
+          "model": "google/claude-sonnet-4-6-thinking",
+          "variant": "max",
           "temperature": 0.1
         },
         "security": {
