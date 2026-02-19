@@ -94,8 +94,13 @@ func (s *StagingImportService) upsertMasterSku(
 			masterSku.TenantID, masterSku.MasterProductID, masterSku.SellerSku).
 		First(&existing).Error
 	if err == nil {
-		existing.VariantName = masterSku.VariantName
-		existing.VariantData = masterSku.VariantData
+		incomingVariantName := strings.TrimSpace(masterSku.VariantName)
+		if incomingVariantName != "" {
+			existing.VariantName = incomingVariantName
+		}
+		if len(masterSku.VariantData) > 0 {
+			existing.VariantData = masterSku.VariantData
+		}
 		existing.Price = masterSku.Price
 		existing.Stock = masterSku.Stock
 

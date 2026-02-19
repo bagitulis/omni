@@ -109,55 +109,91 @@ func (a *ImageAggregator) getImagesFromPlatformProduct(ctx context.Context, plat
 func (a *ImageAggregator) getShopeeProductImages(ctx context.Context, itemID string) []string {
 	var product struct {
 		LocalImages models.JSONArray `gorm:"column:local_images"`
+		Image       string           `gorm:"column:image"`
 	}
 
 	err := a.db.WithContext(ctx).
 		Table(models.GetTableName("ShopeeProduct")).
-		Select("local_images").
+		Select("local_images", "image").
 		Where("item_id = ?", itemID).
 		First(&product).Error
 
-	if err != nil || product.LocalImages == nil {
+	if err != nil {
 		return nil
 	}
 
-	return jsonArrayToStrings(product.LocalImages)
+	if product.LocalImages != nil {
+		images := jsonArrayToStrings(product.LocalImages)
+		if len(images) > 0 {
+			return images
+		}
+	}
+
+	if product.Image != "" {
+		return []string{product.Image}
+	}
+
+	return nil
 }
 
 func (a *ImageAggregator) getTiktokProductImages(ctx context.Context, productID string) []string {
 	var product struct {
 		LocalImages models.JSONArray `gorm:"column:local_images"`
+		Image       string           `gorm:"column:image"`
 	}
 
 	err := a.db.WithContext(ctx).
 		Table(models.GetTableName("TiktokProduct")).
-		Select("local_images").
+		Select("local_images", "image").
 		Where("product_id = ?", productID).
 		First(&product).Error
 
-	if err != nil || product.LocalImages == nil {
+	if err != nil {
 		return nil
 	}
 
-	return jsonArrayToStrings(product.LocalImages)
+	if product.LocalImages != nil {
+		images := jsonArrayToStrings(product.LocalImages)
+		if len(images) > 0 {
+			return images
+		}
+	}
+
+	if product.Image != "" {
+		return []string{product.Image}
+	}
+
+	return nil
 }
 
 func (a *ImageAggregator) getLazadaProductImages(ctx context.Context, itemID string) []string {
 	var product struct {
 		LocalImages models.JSONArray `gorm:"column:local_images"`
+		Image       string           `gorm:"column:image"`
 	}
 
 	err := a.db.WithContext(ctx).
 		Table(models.GetTableName("LazadaProduct")).
-		Select("local_images").
+		Select("local_images", "image").
 		Where("item_id = ?", itemID).
 		First(&product).Error
 
-	if err != nil || product.LocalImages == nil {
+	if err != nil {
 		return nil
 	}
 
-	return jsonArrayToStrings(product.LocalImages)
+	if product.LocalImages != nil {
+		images := jsonArrayToStrings(product.LocalImages)
+		if len(images) > 0 {
+			return images
+		}
+	}
+
+	if product.Image != "" {
+		return []string{product.Image}
+	}
+
+	return nil
 }
 
 // Helper functions

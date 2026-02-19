@@ -118,3 +118,47 @@ func TestRefreshProductImages_ForceTrueAggregatesPlatformImages(t *testing.T) {
 	assert.True(t, result.Forced)
 	assert.Equal(t, []string{"/uploads/new-a.webp", "/uploads/new-b.webp"}, result.Images)
 }
+
+func TestRefreshProductImages_UsesRemoteImageWhenLocalImagesEmpty(t *testing.T) {
+	db := setupMasterProductServiceTestDB(t)
+	service := NewService(db)
+	ctx := context.Background()
+	now := time.Now()
+
+	product := &models.MasterProduct{
+		TenantID:  "tenant-a",
+		Title:     "Image Product",
+		Status:    models.MasterProductStatusDraft,
+		Images:    models.JSONArray{},
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	require.NoError(t, db.WithContext(ctx).Create(product).Error)
+
+	require.NoError(t, db.WithContext(ctx).Create(&models.MasterProductPlatformLink{
+		MasterProductID: product.ID,
+		Platform:        models.PlatformShopee,
+		PlatformItemID:  "99999",
+		CreatedAt:       now,
+		UpdatedAt:       now,
+	}).Error)
+
+	require.NoError(t, db.WithContext(ctx).Create(&models.ShopeeProduct{
+		TenantID:    "tenant-a",
+		ItemID:      99999,
+		Name:        "Shopee Source",
+		Status:      "NORMAL",
+		Image:       "https://example.com/remote-image.webp",
+		LocalImages: models.JSONArray{},
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}).Error)
+
+	result, err := service.RefreshProductImages(ctx, "tenant-a", product.ID, true)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.Equal(t, 1, result.ImageCount)
+	assert.True(t, result.Updated)
+	assert.Equal(t, []string{"https://example.com/remote-image.webp"}, result.Images)
+}
