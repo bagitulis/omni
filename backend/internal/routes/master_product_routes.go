@@ -49,6 +49,7 @@ func RegisterMasterProductRoutes(router *gin.RouterGroup, basePath string) {
 // Path: /api/master-products/import, /api/master-products/mapping
 func RegisterMasterProductImportRoutes(router *gin.RouterGroup, basePath string) {
 	importHandler := masterProductHandler.NewImportHandler(basePath)
+	stagingImportHandler := masterProductHandler.NewStagingImportHandler(basePath)
 
 	masterProducts := router.Group("/master-products")
 	masterProducts.Use(middleware.Auth())
@@ -64,6 +65,14 @@ func RegisterMasterProductImportRoutes(router *gin.RouterGroup, basePath string)
 			// Execute import
 			// POST /api/master-products/import
 			importGroup.POST("", importHandler.Import)
+
+			// Import from staging DB (no live API calls)
+			// POST /api/master-products/import/from-staging/shopee
+			importGroup.POST("/from-staging/shopee", stagingImportHandler.ImportFromShopee)
+			// POST /api/master-products/import/from-staging/tiktok
+			importGroup.POST("/from-staging/tiktok", stagingImportHandler.ImportFromTiktok)
+			// POST /api/master-products/import/from-staging/lazada
+			importGroup.POST("/from-staging/lazada", stagingImportHandler.ImportFromLazada)
 		}
 
 		// Mapping routes

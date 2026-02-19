@@ -236,3 +236,28 @@ export async function batchUpdateSkus(
 
   return response.data;
 }
+
+export interface ImportFromStagingResult {
+  products_created: number;
+  products_matched: number;
+  products_skipped: number;
+  skus_created: number;
+  skus_skipped: number;
+  links_created: number;
+  errors: string[];
+}
+
+export async function importFromStaging(
+  platform: "shopee" | "tiktok" | "lazada",
+): Promise<ImportFromStagingResult> {
+  const response = await apiClient.post<ImportFromStagingResult>(
+    `${BASE_PATH}/import/from-staging/${platform}`,
+    {},
+  );
+  if (!response.success || !response.data) {
+    throw new Error(
+      response.error || `Failed to import from ${platform} staging`,
+    );
+  }
+  return response.data;
+}

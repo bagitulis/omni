@@ -220,9 +220,45 @@ services:
       start_period: 10s
 
   # ============================================
-  # NOTE: Vue legacy frontend disabled - build broken
-  # To enable: fix vite.config.ts in frontend-vue to include Vue plugin
+  # Frontend Vue Service (Vue 3 - port 5173)
   # ============================================
+  frontend-vue:
+    build:
+      context: ./frontend-vue
+      dockerfile: Dockerfile
+    container_name: omni-frontend-vue
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    networks:
+      - omni-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - ./backend/uploads:/app/uploads:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost/",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # ============================================
   # Redis Cache
@@ -297,6 +333,8 @@ services:
       backend:
         condition: service_healthy
       frontend:
+        condition: service_started
+      frontend-vue:
         condition: service_started
     healthcheck:
       test:

@@ -16,7 +16,14 @@ import {
   Typography,
 } from "antd";
 import type { Key } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ColumnManager } from "@/components/shared/ColumnManager";
 import { ProductFilters } from "@/components/shared/ProductFilters";
@@ -40,6 +47,12 @@ import type {
   ProductFilterValues,
   UnifiedProductRow,
 } from "@/types/shared";
+
+const PlatformSyncPanel = lazy(() =>
+  import("@/components/shared/PlatformSyncPanel").then((m) => ({
+    default: m.PlatformSyncPanel,
+  })),
+);
 
 const MOBILE_ESSENTIAL_COLUMN_KEYS = ["image", "name", "price", "actions"];
 
@@ -205,6 +218,12 @@ export default function UnifiedProductsPage() {
             </Button>
           </Space>
         </Space>
+
+        <Suspense
+          fallback={<div style={{ padding: 8 }}>Loading sync panel...</div>}
+        >
+          <PlatformSyncPanel />
+        </Suspense>
 
         <Card>
           <ProductFilters

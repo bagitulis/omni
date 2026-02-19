@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -103,6 +104,23 @@ func (r *MasterProductRepository) FindBySku(ctx context.Context, tenantID, selle
 		return nil, err
 	}
 	return &sku, nil
+}
+
+// FindByExactTitle finds a master product by exact normalized title within a tenant.
+// normalizedTitle must already be lowercased and trimmed by the caller.
+// Returns (nil, nil) if no matching product is found.
+func (r *MasterProductRepository) FindByExactTitle(ctx context.Context, tenantID, normalizedTitle string) (*models.MasterProduct, error) {
+	var product models.MasterProduct
+	result := r.db.WithContext(ctx).
+		Where("tenant_id = ? AND LOWER(TRIM(title)) = ?", tenantID, normalizedTitle).
+		First(&product)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, result.Error
+	}
+	return &product, nil
 }
 
 // CreateSku inserts a new SKU
