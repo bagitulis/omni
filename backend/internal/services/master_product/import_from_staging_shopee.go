@@ -79,7 +79,7 @@ func (s *StagingImportService) processShoepeeSku(
 		sellerSku = fmt.Sprintf("shopee_%d", p.ItemID)
 	}
 
-	masterSku := models.MasterProductSku{
+	masterSku := &models.MasterProductSku{
 		TenantID:        tenantID,
 		MasterProductID: masterProduct.ID,
 		SellerSku:       sellerSku,
@@ -88,12 +88,15 @@ func (s *StagingImportService) processShoepeeSku(
 		Stock:           sku.Quantity,
 	}
 
-	if err := s.repo.CreateSku(ctx, &masterSku); err != nil {
+	upsertedSku, created, err := s.upsertMasterSku(ctx, masterSku)
+	if err != nil {
 		result.Errors = append(result.Errors,
-			fmt.Errorf("shopee product %d sku: %w", p.ItemID, err).Error())
+			fmt.Errorf("shopee product %d upsert sku: %w", p.ItemID, err).Error())
 		return
 	}
-	result.SkusCreated++
+	if created {
+		result.SkusCreated++
+	}
 
 	platformSkuID := ""
 	if sku.ModelID != nil {
@@ -103,7 +106,7 @@ func (s *StagingImportService) processShoepeeSku(
 	platformItemID := strconv.FormatInt(p.ItemID, 10)
 	link := &models.MasterProductPlatformLink{
 		MasterProductID:   masterProduct.ID,
-		MasterSkuID:       &masterSku.ID,
+		MasterSkuID:       &upsertedSku.ID,
 		Platform:          "shopee",
 		PlatformProductID: platformItemID,
 		PlatformItemID:    platformItemID,
@@ -130,7 +133,7 @@ func (s *StagingImportService) processShopeeDefaultSku(
 ) {
 	sellerSku := fmt.Sprintf("shopee_%d", p.ItemID)
 
-	masterSku := models.MasterProductSku{
+	masterSku := &models.MasterProductSku{
 		TenantID:        tenantID,
 		MasterProductID: masterProduct.ID,
 		SellerSku:       sellerSku,
@@ -139,17 +142,20 @@ func (s *StagingImportService) processShopeeDefaultSku(
 		Stock:           p.Quantity,
 	}
 
-	if err := s.repo.CreateSku(ctx, &masterSku); err != nil {
+	upsertedSku, created, err := s.upsertMasterSku(ctx, masterSku)
+	if err != nil {
 		result.Errors = append(result.Errors,
-			fmt.Errorf("shopee product %d sku: %w", p.ItemID, err).Error())
+			fmt.Errorf("shopee product %d upsert sku: %w", p.ItemID, err).Error())
 		return
 	}
-	result.SkusCreated++
+	if created {
+		result.SkusCreated++
+	}
 
 	platformItemID := strconv.FormatInt(p.ItemID, 10)
 	link := &models.MasterProductPlatformLink{
 		MasterProductID:   masterProduct.ID,
-		MasterSkuID:       &masterSku.ID,
+		MasterSkuID:       &upsertedSku.ID,
 		Platform:          "shopee",
 		PlatformProductID: platformItemID,
 		PlatformItemID:    platformItemID,

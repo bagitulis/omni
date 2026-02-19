@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -198,11 +199,76 @@ func (r *MasterProductRepository) DeletePlatformLink(ctx context.Context, id uin
 
 // UpsertPlatformLink creates or updates a platform link
 func (r *MasterProductRepository) UpsertPlatformLink(ctx context.Context, link *models.MasterProductPlatformLink) error {
-	return r.db.WithContext(ctx).
+	if link == nil {
+		return errors.New("platform link is nil")
+	}
+	now := time.Now()
+
+	var existingBySku models.MasterProductPlatformLink
+	err := r.db.WithContext(ctx).
 		Where("master_product_id = ? AND platform = ? AND COALESCE(master_sku_id, 0) = COALESCE(?, 0)",
 			link.MasterProductID, link.Platform, link.MasterSkuID).
-		Assign(*link).
-		FirstOrCreate(link).Error
+		First(&existingBySku).Error
+	if err == nil {
+		existingBySku.MasterProductID = link.MasterProductID
+		existingBySku.MasterSkuID = link.MasterSkuID
+		existingBySku.Platform = link.Platform
+		existingBySku.PlatformProductID = link.PlatformProductID
+		existingBySku.PlatformItemID = link.PlatformItemID
+		existingBySku.PlatformSkuID = link.PlatformSkuID
+		existingBySku.SyncStatus = link.SyncStatus
+		existingBySku.LastSyncedAt = link.LastSyncedAt
+		existingBySku.UpdatedAt = now
+
+		return r.db.WithContext(ctx).Save(&existingBySku).Error
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+
+	platformProductID := strings.TrimSpace(link.PlatformProductID)
+	if platformProductID == "" {
+		platformProductID = strings.TrimSpace(link.PlatformItemID)
+		if platformProductID != "" {
+			link.PlatformProductID = platformProductID
+		}
+	}
+
+	if platformProductID != "" {
+		link.PlatformProductID = platformProductID
+		if link.CreatedAt.IsZero() {
+			link.CreatedAt = now
+		}
+		link.UpdatedAt = now
+
+		var existing models.MasterProductPlatformLink
+		err := r.db.WithContext(ctx).
+			Where("platform = ? AND platform_product_id = ?", link.Platform, platformProductID).
+			First(&existing).Error
+		if err == nil {
+			existing.MasterProductID = link.MasterProductID
+			existing.MasterSkuID = link.MasterSkuID
+			existing.PlatformItemID = link.PlatformItemID
+			existing.PlatformSkuID = link.PlatformSkuID
+			existing.SyncStatus = link.SyncStatus
+			existing.LastSyncedAt = link.LastSyncedAt
+			existing.UpdatedAt = now
+
+			return r.db.WithContext(ctx).Save(&existing).Error
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		return r.db.WithContext(ctx).Create(link).Error
+	}
+
+	if link.CreatedAt.IsZero() {
+		link.CreatedAt = now
+	}
+	link.UpdatedAt = now
+
+	return r.db.WithContext(ctx).Create(link).Error
 }
 
 // ================== Query Helpers ==================

@@ -1,17 +1,36 @@
-import { useState, useCallback } from "react";
-import { Button, Card, Typography, Space, Alert, Spin, Tag } from "antd";
+import { useCallback, useMemo, useState } from "react";
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  Row,
+  Space,
+  Spin,
+  Tag,
+  Typography,
+  theme,
+} from "antd";
+import { syncProductsToDb } from "@/api/lazadaDb";
 import {
   importFromStaging,
   type ImportFromStagingResult,
 } from "@/api/products";
 import { fetchProductListFromApi } from "@/api/shopeeDb";
 import { searchProducts } from "@/api/tiktokDb";
-import { syncProductsToDb } from "@/api/lazadaDb";
+import { PLATFORM_META, type Platform } from "./platformSyncPanelHelpers";
+import { PlatformSyncMetrics } from "./PlatformSyncMetrics";
 
-type Platform = "shopee" | "tiktok" | "lazada";
 type LoadingKey = `${Platform}-sync` | `${Platform}-import`;
 
-export function PlatformSyncPanel() {
+interface PlatformSyncPanelProps {
+  onImportCompleted?: () => Promise<void> | void;
+}
+
+export function PlatformSyncPanel({
+  onImportCompleted,
+}: PlatformSyncPanelProps) {
+  const { token } = theme.useToken();
   const [loading, setLoading] = useState<Partial<Record<LoadingKey, boolean>>>(
     {},
   );
@@ -22,6 +41,31 @@ export function PlatformSyncPanel() {
     Partial<Record<Platform, string>>
   >({});
   const [errors, setErrors] = useState<Partial<Record<LoadingKey, string>>>({});
+
+  const totals = useMemo(() => {
+    return Object.values(results).reduce(
+      (acc, result) => {
+        if (!result) {
+          return acc;
+        }
+
+        return {
+          productsCreated: acc.productsCreated + result.products_created,
+          productsMatched: acc.productsMatched + result.products_matched,
+          skusCreated: acc.skusCreated + result.skus_created,
+          linksCreated: acc.linksCreated + result.links_created,
+          errors: acc.errors + result.errors.length,
+        };
+      },
+      {
+        productsCreated: 0,
+        productsMatched: 0,
+        skusCreated: 0,
+        linksCreated: 0,
+        errors: 0,
+      },
+    );
+  }, [results]);
 
   const handleSyncToDb = useCallback(async (platform: Platform) => {
     const key: LoadingKey = `${platform}-sync`;
@@ -37,10 +81,11 @@ export function PlatformSyncPanel() {
       } else if (platform === "tiktok") {
         const result = await searchProducts();
         message = `Synced ${result.length} products`;
-      } else if (platform === "lazada") {
+      } else {
         const result = await syncProductsToDb();
         message = result.message ?? `Synced ${result.processed ?? 0} products`;
       }
+
       setSyncMessages((prev) => ({ ...prev, [platform]: message }));
     } catch (err) {
       setErrors((prev) => ({
@@ -52,163 +97,192 @@ export function PlatformSyncPanel() {
     }
   }, []);
 
-  const handleImportToMaster = useCallback(async (platform: Platform) => {
-    const key: LoadingKey = `${platform}-import`;
-    setLoading((prev) => ({ ...prev, [key]: true }));
-    setErrors((prev) => ({ ...prev, [key]: undefined }));
-    setResults((prev) => ({ ...prev, [platform]: undefined }));
+  const handleImportToMaster = useCallback(
+    async (platform: Platform) => {
+      const key: LoadingKey = `${platform}-import`;
+      setLoading((prev) => ({ ...prev, [key]: true }));
+      setErrors((prev) => ({ ...prev, [key]: undefined }));
+      setResults((prev) => ({ ...prev, [platform]: undefined }));
 
-    try {
-      const result = await importFromStaging(platform);
-      setResults((prev) => ({ ...prev, [platform]: result }));
-    } catch (err) {
-      setErrors((prev) => ({
-        ...prev,
-        [key]: err instanceof Error ? err.message : String(err),
-      }));
-    } finally {
-      setLoading((prev) => ({ ...prev, [key]: false }));
-    }
-  }, []);
-
-  const renderResult = (platform: Platform) => {
-    const result = results[platform];
-    if (!result) return null;
-
-    return (
-      <div style={{ marginTop: 8 }}>
-        <Typography.Text type="success" style={{ fontSize: "12px" }}>
-          ✓ Created: {result.products_created} products, {result.skus_created}{" "}
-          SKUs, {result.links_created} links
-        </Typography.Text>
-        <br />
-        <Typography.Text type="secondary" style={{ fontSize: "12px" }}>
-          Matched: {result.products_matched} | Skipped:{" "}
-          {result.products_skipped} SKUs skipped
-        </Typography.Text>
-        {result.errors.length > 0 && (
-          <div style={{ marginTop: 4 }}>
-            <Typography.Text type="danger" style={{ fontSize: "12px" }}>
-              Errors: {result.errors.length}
-            </Typography.Text>
-            <div
-              style={{ maxHeight: "100px", overflowY: "auto", marginTop: 4 }}
-            >
-              {result.errors.map((err, idx) => (
-                <Alert
-                  key={`${idx}-${err.substring(0, 10)}`}
-                  message={err}
-                  type="error"
-                  style={{ marginBottom: 2, padding: "4px 8px" }}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const platforms: { key: Platform; label: string; color: string }[] = [
-    { key: "shopee", label: "Shopee", color: "#ee4d2d" },
-    { key: "tiktok", label: "TikTok", color: "#000000" },
-    { key: "lazada", label: "Lazada", color: "#0f146d" },
-  ];
+      try {
+        const result = await importFromStaging(platform);
+        setResults((prev) => ({ ...prev, [platform]: result }));
+        if (onImportCompleted) {
+          await onImportCompleted();
+        }
+      } catch (err) {
+        setErrors((prev) => ({
+          ...prev,
+          [key]: err instanceof Error ? err.message : String(err),
+        }));
+      } finally {
+        setLoading((prev) => ({ ...prev, [key]: false }));
+      }
+    },
+    [onImportCompleted],
+  );
 
   return (
-    <Card
-      title="Platform Synchronization"
-      size="small"
-      style={{ borderRadius: "3px" }}
+    <div
+      style={{
+        border: `1px solid ${token.colorBorderSecondary}`,
+        borderRadius: token.borderRadius,
+        padding: 12,
+        background: token.colorBgContainer,
+      }}
+      data-testid="platform-sync-panel"
     >
-      <Space direction="vertical" style={{ width: "100%" }} size="middle">
-        {platforms.map((p) => (
-          <div
-            key={p.key}
-            style={{
-              padding: "8px",
-              border: "1px solid #f0f0f0",
-              borderRadius: "3px",
-            }}
-          >
-            <Space align="center" style={{ marginBottom: 8 }}>
-              <Tag color={p.color} style={{ borderRadius: "3px" }}>
-                {p.label}
-              </Tag>
-              <Button
-                size="small"
-                onClick={() => handleSyncToDb(p.key)}
-                loading={loading[`${p.key}-sync`]}
-                style={{ borderRadius: "3px", fontSize: "12px" }}
-              >
-                Sync to DB
-              </Button>
-              <Button
-                size="small"
-                type="primary"
-                onClick={() => handleImportToMaster(p.key)}
-                loading={loading[`${p.key}-import`]}
-                style={{ borderRadius: "3px", fontSize: "12px" }}
-              >
-                Import to Master
-              </Button>
-            </Space>
+      <Space direction="vertical" size={10} style={{ width: "100%" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 10,
+            flexWrap: "wrap",
+          }}
+        >
+          <Space direction="vertical" size={2}>
+            <Typography.Text strong style={{ fontSize: 14 }}>
+              Platform Synchronization
+            </Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              Sync platform data to staging, then import to master catalog.
+            </Typography.Text>
+          </Space>
 
-            {loading[`${p.key}-sync`] || loading[`${p.key}-import`] ? (
-              <div style={{ marginTop: 8 }}>
-                <Spin size="small" />
-              </div>
-            ) : null}
+          <Space wrap size={[6, 6]}>
+            <Tag color="success" bordered={false}>
+              Created: {totals.productsCreated}
+            </Tag>
+            <Tag color="processing" bordered={false}>
+              Matched: {totals.productsMatched}
+            </Tag>
+            <Tag color="blue" bordered={false}>
+              SKUs: {totals.skusCreated}
+            </Tag>
+            <Tag color="purple" bordered={false}>
+              Links: {totals.linksCreated}
+            </Tag>
+            <Tag
+              color={totals.errors > 0 ? "error" : "default"}
+              bordered={false}
+            >
+              Errors: {totals.errors}
+            </Tag>
+          </Space>
+        </div>
 
-            {syncMessages[p.key] && (
-              <div style={{ marginTop: 8 }}>
-                <Alert
-                  message={syncMessages[p.key]}
-                  type="success"
-                  showIcon
-                  style={{
-                    borderRadius: "3px",
-                    fontSize: "12px",
-                    padding: "4px 8px",
-                  }}
-                />
-              </div>
-            )}
+        <Row gutter={[12, 12]}>
+          {PLATFORM_META.map((platform) => {
+            const syncLoading = Boolean(loading[`${platform.key}-sync`]);
+            const importLoading = Boolean(loading[`${platform.key}-import`]);
+            const isBusy = syncLoading || importLoading;
+            const hasError =
+              Boolean(errors[`${platform.key}-sync`]) ||
+              Boolean(errors[`${platform.key}-import`]);
 
-            {errors[`${p.key}-sync`] && (
-              <div style={{ marginTop: 8 }}>
-                <Alert
-                  message={errors[`${p.key}-sync`]}
-                  type="error"
-                  showIcon
-                  style={{
-                    borderRadius: "3px",
-                    fontSize: "12px",
-                    padding: "4px 8px",
-                  }}
-                />
-              </div>
-            )}
+            return (
+              <Col xs={24} md={12} xl={8} key={platform.key}>
+                <Card
+                  size="small"
+                  style={{ borderRadius: token.borderRadiusSM, height: "100%" }}
+                  data-testid={`platform-sync-card-${platform.key}`}
+                >
+                  <Space
+                    direction="vertical"
+                    size={10}
+                    style={{ width: "100%" }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <Space align="center" size={8}>
+                        <Tag color={platform.color} bordered={false}>
+                          {platform.label}
+                        </Tag>
+                        <Typography.Text
+                          type="secondary"
+                          style={{ fontSize: 12 }}
+                        >
+                          Staging to Master
+                        </Typography.Text>
+                      </Space>
 
-            {errors[`${p.key}-import`] && (
-              <div style={{ marginTop: 8 }}>
-                <Alert
-                  message={errors[`${p.key}-import`]}
-                  type="error"
-                  showIcon
-                  style={{
-                    borderRadius: "3px",
-                    fontSize: "12px",
-                    padding: "4px 8px",
-                  }}
-                />
-              </div>
-            )}
+                      {isBusy ? <Spin size="small" /> : null}
+                    </div>
 
-            {renderResult(p.key)}
-          </div>
-        ))}
+                    <Space.Compact block>
+                      <Button
+                        size="small"
+                        onClick={() => handleSyncToDb(platform.key)}
+                        loading={syncLoading}
+                        disabled={importLoading}
+                        data-testid={`platform-sync-db-${platform.key}`}
+                      >
+                        Sync to DB
+                      </Button>
+                      <Button
+                        size="small"
+                        type="primary"
+                        onClick={() => handleImportToMaster(platform.key)}
+                        loading={importLoading}
+                        disabled={syncLoading}
+                        data-testid={`platform-import-master-${platform.key}`}
+                      >
+                        Import
+                      </Button>
+                    </Space.Compact>
+
+                    {syncMessages[platform.key] ? (
+                      <Alert
+                        message={syncMessages[platform.key]}
+                        type="success"
+                        showIcon
+                      />
+                    ) : null}
+
+                    {errors[`${platform.key}-sync`] ? (
+                      <Alert
+                        message={errors[`${platform.key}-sync`]}
+                        type="error"
+                        showIcon
+                      />
+                    ) : null}
+
+                    {errors[`${platform.key}-import`] ? (
+                      <Alert
+                        message={errors[`${platform.key}-import`]}
+                        type="error"
+                        showIcon
+                      />
+                    ) : null}
+
+                    {!isBusy && !hasError && !syncMessages[platform.key] ? (
+                      <Typography.Text
+                        type="secondary"
+                        style={{ fontSize: 12 }}
+                      >
+                        Run sync first when staging data is stale, then import.
+                      </Typography.Text>
+                    ) : null}
+
+                    <PlatformSyncMetrics
+                      platform={platform.key}
+                      result={results[platform.key]}
+                    />
+                  </Space>
+                </Card>
+              </Col>
+            );
+          })}
+        </Row>
       </Space>
-    </Card>
+    </div>
   );
 }

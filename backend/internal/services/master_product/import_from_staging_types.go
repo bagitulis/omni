@@ -3,6 +3,7 @@ package master_product
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -70,4 +71,48 @@ func (s *StagingImportService) findOrCreateMasterProduct(
 // normalizeTitle returns a lowercase, trimmed version of s for deduplication lookups.
 func normalizeTitle(s string) string {
 	return strings.TrimSpace(strings.ToLower(s))
+}
+
+// upsertMasterSku creates a new SKU or updates an existing one by
+// (tenant_id, master_product_id, seller_sku).
+func (s *StagingImportService) upsertMasterSku(
+	ctx context.Context,
+	masterSku *models.MasterProductSku,
+) (*models.MasterProductSku, bool, error) {
+	if masterSku == nil {
+		return nil, false, fmt.Errorf("master sku is nil")
+	}
+
+	masterSku.SellerSku = strings.TrimSpace(masterSku.SellerSku)
+	if masterSku.SellerSku == "" {
+		return nil, false, fmt.Errorf("seller_sku is required")
+	}
+
+	var existing models.MasterProductSku
+	err := s.db.WithContext(ctx).
+		Where("tenant_id = ? AND master_product_id = ? AND seller_sku = ?",
+			masterSku.TenantID, masterSku.MasterProductID, masterSku.SellerSku).
+		First(&existing).Error
+	if err == nil {
+		existing.VariantName = masterSku.VariantName
+		existing.VariantData = masterSku.VariantData
+		existing.Price = masterSku.Price
+		existing.Stock = masterSku.Stock
+
+		if saveErr := s.repo.UpdateSku(ctx, &existing); saveErr != nil {
+			return nil, false, fmt.Errorf("update existing master sku: %w", saveErr)
+		}
+
+		return &existing, false, nil
+	}
+
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, false, fmt.Errorf("find existing master sku: %w", err)
+	}
+
+	if createErr := s.repo.CreateSku(ctx, masterSku); createErr != nil {
+		return nil, false, fmt.Errorf("create master sku: %w", createErr)
+	}
+
+	return masterSku, true, nil
 }

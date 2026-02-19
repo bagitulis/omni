@@ -32,6 +32,7 @@ import { useColumnManager } from "@/hooks/useColumnManager";
 import { useMarketplaceSyncHistory } from "@/hooks/useMarketplaceSyncHistory";
 import { useUnifiedProducts } from "@/hooks/useUnifiedProducts";
 import { ProductGridView } from "@/pages/products/components/ProductGridView";
+import { ProductVariantExpandedRow } from "@/pages/products/components/ProductVariantExpandedRow";
 import { UnifiedProductsModals } from "@/pages/products/components/UnifiedProductsModals";
 import { useUnifiedProductsActions } from "@/pages/products/hooks/useUnifiedProductsActions";
 import { buildProductColumns } from "@/pages/products/utils/productColumns";
@@ -219,13 +220,15 @@ export default function UnifiedProductsPage() {
           </Space>
         </Space>
 
-        <Suspense
-          fallback={<div style={{ padding: 8 }}>Loading sync panel...</div>}
-        >
-          <PlatformSyncPanel />
-        </Suspense>
-
         <Card>
+          <Suspense
+            fallback={<div style={{ padding: 8 }}>Loading sync panel...</div>}
+          >
+            <PlatformSyncPanel onImportCompleted={refreshProducts} />
+          </Suspense>
+
+          <Divider style={{ margin: "12px 0" }} />
+
           <ProductFilters
             values={filters}
             onChange={handleFilterChange}
@@ -275,6 +278,17 @@ export default function UnifiedProductsPage() {
               loading={isLoading}
               columns={activeColumns}
               dataSource={products}
+              expandable={{
+                rowExpandable: (record) => record.skus.length > 1,
+                expandIconColumnIndex: 1,
+                expandedRowRender: (record) => (
+                  <ProductVariantExpandedRow
+                    product={record}
+                    onInlinePriceSave={handleInlinePriceSave}
+                    onInlineStockSave={handleInlineStockSave}
+                  />
+                ),
+              }}
               rowSelection={{
                 selectedRowKeys,
                 onChange: (keys, rows) => {

@@ -62,15 +62,18 @@ func (s *StagingImportService) ImportFromLazadaStaging(ctx context.Context, tena
 				VariantName:     "",
 			}
 
-			if err := s.repo.CreateSku(ctx, defaultSku); err != nil {
+			upsertedSku, created, err := s.upsertMasterSku(ctx, defaultSku)
+			if err != nil {
 				result.Errors = append(result.Errors, fmt.Errorf("lazada product %s default sku: %w", p.ItemID, err).Error())
 				continue
 			}
-			result.SkusCreated++
+			if created {
+				result.SkusCreated++
+			}
 
 			link := &models.MasterProductPlatformLink{
 				MasterProductID:   masterProduct.ID,
-				MasterSkuID:       &defaultSku.ID,
+				MasterSkuID:       &upsertedSku.ID,
 				Platform:          "lazada",
 				PlatformProductID: p.ItemID,
 				PlatformItemID:    p.ItemID,
@@ -110,17 +113,19 @@ func (s *StagingImportService) ImportFromLazadaStaging(ctx context.Context, tena
 			}
 
 			// iv. Persist SKU; on error append and continue.
-			if err := s.repo.CreateSku(ctx, masterSku); err != nil {
+			upsertedSku, created, err := s.upsertMasterSku(ctx, masterSku)
+			if err != nil {
 				result.Errors = append(result.Errors, fmt.Errorf("lazada product %s sku: %w", p.ItemID, err).Error())
 				continue
 			}
-			// v.
-			result.SkusCreated++
+			if created {
+				result.SkusCreated++
+			}
 
 			// vi. Upsert platform link.
 			link := &models.MasterProductPlatformLink{
 				MasterProductID:   masterProduct.ID,
-				MasterSkuID:       &masterSku.ID,
+				MasterSkuID:       &upsertedSku.ID,
 				Platform:          "lazada",
 				PlatformProductID: p.ItemID,
 				PlatformItemID:    p.ItemID,

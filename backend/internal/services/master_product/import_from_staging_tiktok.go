@@ -78,7 +78,7 @@ func (s *StagingImportService) processTiktokSku(
 		sellerSku = fmt.Sprintf("tiktok_%s", p.ProductID)
 	}
 
-	masterSku := models.MasterProductSku{
+	masterSku := &models.MasterProductSku{
 		TenantID:        tenantID,
 		MasterProductID: masterProduct.ID,
 		SellerSku:       sellerSku,
@@ -87,16 +87,19 @@ func (s *StagingImportService) processTiktokSku(
 		Stock:           sku.Quantity,
 	}
 
-	if err := s.repo.CreateSku(ctx, &masterSku); err != nil {
+	upsertedSku, created, err := s.upsertMasterSku(ctx, masterSku)
+	if err != nil {
 		result.Errors = append(result.Errors,
-			fmt.Errorf("tiktok product %s sku: %w", p.ProductID, err).Error())
+			fmt.Errorf("tiktok product %s upsert sku: %w", p.ProductID, err).Error())
 		return
 	}
-	result.SkusCreated++
+	if created {
+		result.SkusCreated++
+	}
 
 	link := &models.MasterProductPlatformLink{
 		MasterProductID:   masterProduct.ID,
-		MasterSkuID:       &masterSku.ID,
+		MasterSkuID:       &upsertedSku.ID,
 		Platform:          "tiktok",
 		PlatformProductID: p.ProductID,
 		PlatformItemID:    p.ProductID,
@@ -123,7 +126,7 @@ func (s *StagingImportService) processTiktokDefaultSku(
 ) {
 	sellerSku := fmt.Sprintf("tiktok_%s", p.ProductID)
 
-	masterSku := models.MasterProductSku{
+	masterSku := &models.MasterProductSku{
 		TenantID:        tenantID,
 		MasterProductID: masterProduct.ID,
 		SellerSku:       sellerSku,
@@ -132,16 +135,19 @@ func (s *StagingImportService) processTiktokDefaultSku(
 		Stock:           p.Quantity,
 	}
 
-	if err := s.repo.CreateSku(ctx, &masterSku); err != nil {
+	upsertedSku, created, err := s.upsertMasterSku(ctx, masterSku)
+	if err != nil {
 		result.Errors = append(result.Errors,
-			fmt.Errorf("tiktok product %s sku: %w", p.ProductID, err).Error())
+			fmt.Errorf("tiktok product %s upsert sku: %w", p.ProductID, err).Error())
 		return
 	}
-	result.SkusCreated++
+	if created {
+		result.SkusCreated++
+	}
 
 	link := &models.MasterProductPlatformLink{
 		MasterProductID:   masterProduct.ID,
-		MasterSkuID:       &masterSku.ID,
+		MasterSkuID:       &upsertedSku.ID,
 		Platform:          "tiktok",
 		PlatformProductID: p.ProductID,
 		PlatformItemID:    p.ProductID,
