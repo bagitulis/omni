@@ -125,7 +125,7 @@ func (h *SyncHandler) SyncOrders(c *gin.Context) {
 		return
 	}
 
-	syncService := tiktokService.NewSyncService(client, db)
+	syncService := tiktokService.NewSyncServiceWithTenant(client, db, tenantID)
 	count, err := syncService.SyncOrders(c.Request.Context(), "")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Sync failed: "+err.Error()))
@@ -165,7 +165,7 @@ func (h *SyncHandler) SyncProducts(c *gin.Context) {
 		return
 	}
 
-	syncService := tiktokService.NewSyncService(client, db)
+	syncService := tiktokService.NewSyncServiceWithTenant(client, db, tenantID)
 	count, err := syncService.SyncProducts(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Sync failed: "+err.Error()))

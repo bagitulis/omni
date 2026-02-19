@@ -103,6 +103,10 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 		Int("total_count", resp.Data.TotalCount).
 		Msg("Fetched products from TikTok API")
 
+	if err := s.clearTiktokProductCache(ctx); err != nil {
+		return 0, err
+	}
+
 	count := 0
 	for _, prod := range resp.Data.Products {
 		// v202502 API returns product ID in "id" field

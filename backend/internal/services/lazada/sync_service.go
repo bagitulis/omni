@@ -98,6 +98,10 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 		return 0, err
 	}
 
+	if err := s.clearLazadaProductCache(ctx); err != nil {
+		return 0, err
+	}
+
 	log.Printf("[Lazada Sync] SyncProducts: Got %d products from API", len(resp.Data.Products))
 
 	count := 0
@@ -176,6 +180,7 @@ func (s *SyncService) SyncProductsWithDetails(ctx context.Context, offset, limit
 	savedSkuCount := 0
 	pageOffset := 0
 	pageLimit := 50 // Lazada max per page is 50
+	cacheCleared := false
 
 	for {
 		log.Printf("[Lazada Sync] Fetching page offset=%d, limit=%d", pageOffset, pageLimit)
@@ -190,6 +195,13 @@ func (s *SyncService) SyncProductsWithDetails(ctx context.Context, offset, limit
 		products := resp.Data.Products
 
 		log.Printf("[Lazada Sync] Got %d products, total=%d", len(products), totalProducts)
+
+		if !cacheCleared {
+			if err := s.clearLazadaProductCache(ctx); err != nil {
+				return nil, 0, err
+			}
+			cacheCleared = true
+		}
 
 		if len(products) == 0 {
 			break

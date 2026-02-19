@@ -55,6 +55,10 @@ func (s *StagingImportService) ImportFromLazadaStaging(ctx context.Context, tena
 			result.ProductsMatched++
 		}
 
+		if err := s.normalizeLazadaMasterProductTitle(ctx, masterProduct, p.Name); err != nil {
+			result.Errors = append(result.Errors, fmt.Errorf("lazada product %s normalize title: %w", p.ItemID, err).Error())
+		}
+
 		// 2e. No SKUs — create one default SKU with an empty variant name.
 		if len(skus) == 0 {
 			sellerSku := fmt.Sprintf("lazada_%s", p.ItemID)
@@ -123,6 +127,10 @@ func (s *StagingImportService) ImportFromLazadaStaging(ctx context.Context, tena
 				result.Errors = append(result.Errors, fmt.Errorf("lazada product %s sku: %w", p.ItemID, err).Error())
 				continue
 			}
+
+			if err := s.normalizeLegacyLazadaSkuVariant(ctx, upsertedSku, variantName); err != nil {
+				result.Errors = append(result.Errors, fmt.Errorf("lazada product %s normalize sku variant: %w", p.ItemID, err).Error())
+			}
 			if created {
 				result.SkusCreated++
 			}
@@ -161,6 +169,14 @@ func (s *StagingImportService) resolveLazadaMasterProduct(
 	itemID string,
 	skus []models.LazadaSku,
 ) (*models.MasterProduct, bool, error) {
+	matchedByItemID, err := s.findMasterProductByLazadaItemID(ctx, tenantID, itemID)
+	if err != nil {
+		return nil, false, err
+	}
+	if matchedByItemID != nil {
+		return matchedByItemID, false, nil
+	}
+
 	trimmedName := strings.TrimSpace(productName)
 	if trimmedName != "" {
 		return s.findOrCreateMasterProduct(ctx, tenantID, trimmedName)
@@ -176,6 +192,35 @@ func (s *StagingImportService) resolveLazadaMasterProduct(
 
 	fallbackTitle := fmt.Sprintf("Lazada Item %s", strings.TrimSpace(itemID))
 	return s.findOrCreateMasterProduct(ctx, tenantID, fallbackTitle)
+}
+
+func (s *StagingImportService) findMasterProductByLazadaItemID(
+	ctx context.Context,
+	tenantID string,
+	itemID string,
+) (*models.MasterProduct, error) {
+	trimmedItemID := strings.TrimSpace(itemID)
+	if trimmedItemID == "" {
+		return nil, nil
+	}
+
+	links, err := s.repo.FindPlatformLinksByItemID(ctx, tenantID, "lazada", trimmedItemID)
+	if err != nil {
+		return nil, fmt.Errorf("find lazada platform links by item_id %s: %w", trimmedItemID, err)
+	}
+	if len(links) == 0 {
+		return nil, nil
+	}
+
+	product, err := s.repo.FindByTenantAndID(ctx, tenantID, links[0].MasterProductID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("find master product %d for lazada item_id %s: %w", links[0].MasterProductID, trimmedItemID, err)
+	}
+
+	return product, nil
 }
 
 func (s *StagingImportService) findMasterProductByLazadaSellerSkus(
@@ -224,4 +269,53 @@ func resolveLazadaVariantName(sku models.LazadaSku, sellerSku string) string {
 	}
 
 	return ""
+}
+
+func (s *StagingImportService) normalizeLazadaMasterProductTitle(
+	ctx context.Context,
+	masterProduct *models.MasterProduct,
+	productName string,
+) error {
+	if masterProduct == nil {
+		return nil
+	}
+
+	trimmedName := strings.TrimSpace(productName)
+	if trimmedName == "" {
+		return nil
+	}
+
+	if strings.TrimSpace(masterProduct.Title) != "" {
+		return nil
+	}
+
+	masterProduct.Title = trimmedName
+	return s.repo.Update(ctx, masterProduct)
+}
+
+func (s *StagingImportService) normalizeLegacyLazadaSkuVariant(
+	ctx context.Context,
+	sku *models.MasterProductSku,
+	incomingVariantName string,
+) error {
+	if sku == nil {
+		return nil
+	}
+
+	if strings.TrimSpace(incomingVariantName) != "" {
+		return nil
+	}
+
+	trimmedSellerSku := strings.TrimSpace(sku.SellerSku)
+	trimmedVariantName := strings.TrimSpace(sku.VariantName)
+	if trimmedSellerSku == "" || trimmedVariantName == "" {
+		return nil
+	}
+
+	if !strings.EqualFold(trimmedVariantName, trimmedSellerSku) {
+		return nil
+	}
+
+	sku.VariantName = ""
+	return s.repo.UpdateSku(ctx, sku)
 }

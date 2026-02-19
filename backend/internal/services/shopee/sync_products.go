@@ -67,7 +67,14 @@ func (s *ProductSyncService) SyncProducts(ctx context.Context) (int, error) {
 	}
 
 	if len(allItemIDs) == 0 {
+		if err := s.clearShopeeProductCache(ctx); err != nil {
+			return 0, err
+		}
 		return 0, nil
+	}
+
+	if err := s.clearShopeeProductCache(ctx); err != nil {
+		return 0, err
 	}
 
 	// Get product details in batches of 50 (API limit)
@@ -289,7 +296,14 @@ func (s *ProductSyncService) SyncProductsWithDetails(ctx context.Context, itemSt
 		log.Debug().
 			Str("service", "shopee_sync").
 			Msg("No products found from Shopee API")
+		if err := s.clearShopeeProductCache(ctx); err != nil {
+			return nil, 0, err
+		}
 		return []map[string]interface{}{}, 0, nil
+	}
+
+	if err := s.clearShopeeProductCache(ctx); err != nil {
+		return nil, 0, err
 	}
 
 	// Get product details in batches

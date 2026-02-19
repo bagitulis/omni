@@ -8,6 +8,7 @@ import (
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
 	"github.com/glebarez/sqlite"
@@ -339,4 +340,71 @@ func TestSyncService_TenantIsolation(t *testing.T) {
 	assert.Equal(t, "Tenant B Product", prodB.Name)
 	assert.Equal(t, "DRAFT", prodB.Status)
 	assert.Equal(t, "tenant_B", prodB.TenantID)
+}
+
+func TestSyncService_ClearTiktokProductCache(t *testing.T) {
+	db := setupTikTokTestDB(t)
+	ctx := context.Background()
+
+	service := NewSyncServiceWithTenant(nil, db, "tenant1")
+
+	require.NoError(t, db.WithContext(ctx).Create(&models.TiktokProduct{
+		TenantID:  "tenant1",
+		ProductID: "prod-1",
+		Name:      "Tenant 1 Product",
+		Status:    "LIVE",
+	}).Error)
+	require.NoError(t, db.WithContext(ctx).Create(&models.TiktokSku{
+		TenantID:  "tenant1",
+		ProductID: 1,
+		SkuID:     "sku-1",
+		SellerSku: "TENANT1-SKU",
+		Price:     10000,
+		Quantity:  5,
+	}).Error)
+
+	require.NoError(t, db.WithContext(ctx).Create(&models.TiktokProduct{
+		TenantID:  "tenant2",
+		ProductID: "prod-2",
+		Name:      "Tenant 2 Product",
+		Status:    "LIVE",
+	}).Error)
+	require.NoError(t, db.WithContext(ctx).Create(&models.TiktokSku{
+		TenantID:  "tenant2",
+		ProductID: 2,
+		SkuID:     "sku-2",
+		SellerSku: "TENANT2-SKU",
+		Price:     20000,
+		Quantity:  7,
+	}).Error)
+
+	require.NoError(t, service.clearTiktokProductCache(ctx))
+
+	var tenant1Products int64
+	require.NoError(t, db.WithContext(ctx).
+		Model(&models.TiktokProduct{}).
+		Where("tenant_id = ?", "tenant1").
+		Count(&tenant1Products).Error)
+	assert.Equal(t, int64(0), tenant1Products)
+
+	var tenant1Skus int64
+	require.NoError(t, db.WithContext(ctx).
+		Model(&models.TiktokSku{}).
+		Where("tenant_id = ?", "tenant1").
+		Count(&tenant1Skus).Error)
+	assert.Equal(t, int64(0), tenant1Skus)
+
+	var tenant2Products int64
+	require.NoError(t, db.WithContext(ctx).
+		Model(&models.TiktokProduct{}).
+		Where("tenant_id = ?", "tenant2").
+		Count(&tenant2Products).Error)
+	assert.Equal(t, int64(1), tenant2Products)
+
+	var tenant2Skus int64
+	require.NoError(t, db.WithContext(ctx).
+		Model(&models.TiktokSku{}).
+		Where("tenant_id = ?", "tenant2").
+		Count(&tenant2Skus).Error)
+	assert.Equal(t, int64(1), tenant2Skus)
 }

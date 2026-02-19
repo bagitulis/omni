@@ -8,6 +8,7 @@ import (
 	"github.com/omni/backend/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
 	"github.com/glebarez/sqlite"
@@ -389,4 +390,71 @@ func TestLazadaSyncService_EmptyDatabase(t *testing.T) {
 	assert.Equal(t, int64(0), orderCount)
 	assert.Equal(t, int64(0), productCount)
 	assert.NotNil(t, service)
+}
+
+func TestLazadaSyncService_ClearLazadaProductCache(t *testing.T) {
+	db := setupLazadaTestDB(t)
+	ctx := context.Background()
+
+	service := NewSyncServiceWithTenant(nil, db, "tenant1")
+
+	require.NoError(t, db.WithContext(ctx).Create(&models.LazadaProduct{
+		TenantID: "tenant1",
+		ItemID:   "item-1",
+		Name:     "Tenant 1 Product",
+		Status:   "Active",
+	}).Error)
+	require.NoError(t, db.WithContext(ctx).Create(&models.LazadaSku{
+		TenantID:  "tenant1",
+		ItemID:    "item-1",
+		SkuID:     "sku-1",
+		SellerSku: "SELLER-1",
+		Price:     10000,
+		Quantity:  5,
+	}).Error)
+
+	require.NoError(t, db.WithContext(ctx).Create(&models.LazadaProduct{
+		TenantID: "tenant2",
+		ItemID:   "item-2",
+		Name:     "Tenant 2 Product",
+		Status:   "Active",
+	}).Error)
+	require.NoError(t, db.WithContext(ctx).Create(&models.LazadaSku{
+		TenantID:  "tenant2",
+		ItemID:    "item-2",
+		SkuID:     "sku-2",
+		SellerSku: "SELLER-2",
+		Price:     20000,
+		Quantity:  7,
+	}).Error)
+
+	require.NoError(t, service.clearLazadaProductCache(ctx))
+
+	var tenant1Products int64
+	require.NoError(t, db.WithContext(ctx).
+		Model(&models.LazadaProduct{}).
+		Where("tenant_id = ?", "tenant1").
+		Count(&tenant1Products).Error)
+	assert.Equal(t, int64(0), tenant1Products)
+
+	var tenant1Skus int64
+	require.NoError(t, db.WithContext(ctx).
+		Model(&models.LazadaSku{}).
+		Where("tenant_id = ?", "tenant1").
+		Count(&tenant1Skus).Error)
+	assert.Equal(t, int64(0), tenant1Skus)
+
+	var tenant2Products int64
+	require.NoError(t, db.WithContext(ctx).
+		Model(&models.LazadaProduct{}).
+		Where("tenant_id = ?", "tenant2").
+		Count(&tenant2Products).Error)
+	assert.Equal(t, int64(1), tenant2Products)
+
+	var tenant2Skus int64
+	require.NoError(t, db.WithContext(ctx).
+		Model(&models.LazadaSku{}).
+		Where("tenant_id = ?", "tenant2").
+		Count(&tenant2Skus).Error)
+	assert.Equal(t, int64(1), tenant2Skus)
 }
