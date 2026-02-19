@@ -1,8 +1,19 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import "@testing-library/jest-dom";
-import { StockSyncModal } from "./StockSyncModal";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { getInventoryBySku } from "@/api/inventoryCore";
 import type { UnifiedProductRow } from "@/types/shared";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { StockSyncModal } from "./StockSyncModal";
+
+vi.mock("@/api/inventoryCore", () => ({
+  getInventoryBySku: vi.fn(),
+}));
 
 // Ant Design Modal / Table use matchMedia internally — mock it for jsdom
 Object.defineProperty(window, "matchMedia", {
@@ -27,6 +38,14 @@ Object.defineProperty(window, "matchMedia", {
     unobserve: vi.fn(),
     disconnect: vi.fn(),
   }));
+
+// Ant Design Modal/Table use getComputedStyle for scrollbar calculations.
+Object.defineProperty(window, "getComputedStyle", {
+  writable: true,
+  value: vi.fn().mockImplementation(() => ({
+    getPropertyValue: vi.fn().mockReturnValue(""),
+  })),
+});
 
 const sampleProduct: UnifiedProductRow = {
   id: 1,
@@ -64,11 +83,27 @@ const sampleProduct: UnifiedProductRow = {
 describe("StockSyncModal", () => {
   const mockOnClose = vi.fn();
   const mockOnSync = vi.fn();
+  const mockGetInventoryBySku = vi.mocked(getInventoryBySku);
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockOnSync.mockResolvedValue(undefined);
+    mockGetInventoryBySku.mockResolvedValue({
+      id: "inv-1",
+      key_value: "SKU-001",
+      key_column_name: "SKU",
+      data: { Total: 10 },
+      created_at: "2025-01-01T00:00:00Z",
+      updated_at: "2025-01-01T00:00:00Z",
+    });
   });
+
+  const flushAsyncUpdates = async () => {
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  };
 
   it("does not render modal content when open=false", () => {
     render(
@@ -84,7 +119,7 @@ describe("StockSyncModal", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("renders modal title and dialog when open=true", () => {
+  it("renders modal title and dialog when open=true", async () => {
     render(
       <StockSyncModal
         open={true}
@@ -93,11 +128,14 @@ describe("StockSyncModal", () => {
         selectedProducts={[sampleProduct]}
       />,
     );
+
+    await flushAsyncUpdates();
+
     expect(screen.getByText("Sync Stock to Marketplaces")).toBeInTheDocument();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
-  it("shows stock quantity input and platform checkboxes in uniform mode", () => {
+  it("shows stock quantity input and platform checkboxes in uniform mode", async () => {
     render(
       <StockSyncModal
         open={true}
@@ -106,6 +144,9 @@ describe("StockSyncModal", () => {
         selectedProducts={[sampleProduct]}
       />,
     );
+
+    await flushAsyncUpdates();
+
     expect(screen.getByText("Stock Quantity")).toBeInTheDocument();
     expect(screen.getByText("Target Platforms")).toBeInTheDocument();
     // Uniform mode alert message
@@ -121,7 +162,7 @@ describe("StockSyncModal", () => {
     expect(screen.getByText("1 sync operations")).toBeInTheDocument();
   });
 
-  it("renders Sync button as disabled with '0 SKUs' text when selectedProducts is empty", () => {
+  it("renders Sync button as disabled with '0 SKUs' text when selectedProducts is empty", async () => {
     render(
       <StockSyncModal
         open={true}
@@ -130,13 +171,16 @@ describe("StockSyncModal", () => {
         selectedProducts={[]}
       />,
     );
+
+    await flushAsyncUpdates();
+
     const syncBtn = screen.getByText("Sync 0 SKUs");
     expect(syncBtn).toBeInTheDocument();
     // okButtonProps disabled=true when validItems is 0
     expect(syncBtn.closest("button")).toBeDisabled();
   });
 
-  it("calls onClose when Cancel button is clicked", () => {
+  it("calls onClose when Cancel button is clicked", async () => {
     render(
       <StockSyncModal
         open={true}
@@ -145,6 +189,9 @@ describe("StockSyncModal", () => {
         selectedProducts={[sampleProduct]}
       />,
     );
+
+    await flushAsyncUpdates();
+
     fireEvent.click(screen.getByText("Cancel"));
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
@@ -158,8 +205,14 @@ describe("StockSyncModal", () => {
         selectedProducts={[sampleProduct]}
       />,
     );
+
+    await flushAsyncUpdates();
+
     // sampleProduct: shopee linked → validItems=1, uniformStock defaults to 0
-    fireEvent.click(screen.getByText("Sync 1 SKUs"));
+    await act(async () => {
+      fireEvent.click(screen.getByText("Sync 1 SKUs"));
+    });
+
     await waitFor(() => {
       expect(mockOnSync).toHaveBeenCalledTimes(1);
     });
@@ -172,7 +225,7 @@ describe("StockSyncModal", () => {
     ]);
   });
 
-  it("switches to per-platform mode and shows per-SKU table", () => {
+  it("switches to per-platform mode and shows per-SKU table", async () => {
     render(
       <StockSyncModal
         open={true}
@@ -181,6 +234,9 @@ describe("StockSyncModal", () => {
         selectedProducts={[sampleProduct]}
       />,
     );
+
+    await flushAsyncUpdates();
+
     // Click per-platform radio button label
     fireEvent.click(screen.getByText("Per Platform (different stock)"));
     expect(
@@ -188,9 +244,10 @@ describe("StockSyncModal", () => {
     ).toBeInTheDocument();
     // SKU row from sample product
     expect(screen.getByText("SKU-001")).toBeInTheDocument();
+    expect(screen.getByText("Apply Recommendation")).toBeInTheDocument();
   });
 
-  it("shows skipped SKU warning when no linked platforms are selected", () => {
+  it("shows skipped SKU warning when no linked platforms are selected", async () => {
     const unlinkedProduct: UnifiedProductRow = {
       ...sampleProduct,
       id: 2,
@@ -217,6 +274,8 @@ describe("StockSyncModal", () => {
         selectedProducts={[unlinkedProduct]}
       />,
     );
+
+    await flushAsyncUpdates();
 
     expect(
       screen.getByText(

@@ -15,15 +15,17 @@ import {
   useInventoryConfig,
   useUpdateInventoryConfig,
 } from "@/hooks/useInventory";
+import {
+  calculateMarketplaceAllocation,
+  defaultMarketplaceAllocationSettings,
+  deriveMarketplaceAllocationSettings,
+  encodeColumns,
+  parseColumns,
+  saveMarketplaceAllocationSettings,
+  type MarketplaceAllocationSettings,
+} from "@/pages/inventory/utils/marketplaceAllocation";
 
 const { Text, Title } = Typography;
-
-interface MarketplaceSettings {
-  totalColumn: string;
-  autoColumn: string;
-  shopeeRatio: number;
-  tiktokRatio: number;
-}
 
 interface SchemaColumn {
   column_name: string;
@@ -34,51 +36,6 @@ interface MarketplaceSettingsModalProps {
   open: boolean;
   onClose: () => void;
   schemaColumns: SchemaColumn[];
-}
-
-const defaultSettings: MarketplaceSettings = {
-  totalColumn: "",
-  autoColumn: "",
-  shopeeRatio: 0.6,
-  tiktokRatio: 0.3,
-};
-
-function parseColumns(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === "string");
-  }
-
-  if (typeof value !== "string") {
-    return [];
-  }
-
-  const trimmed = value.trim();
-  if (!trimmed) return [];
-  if (trimmed.startsWith("[")) {
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (Array.isArray(parsed)) {
-        return parsed.filter(
-          (item): item is string => typeof item === "string",
-        );
-      }
-    } catch {
-      return [];
-    }
-  }
-
-  return trimmed
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function encodeColumns(original: unknown, columns: string[]): string {
-  const unique = Array.from(new Set(columns.filter(Boolean)));
-  if (typeof original === "string" && original.trim().startsWith("[")) {
-    return JSON.stringify(unique);
-  }
-  return unique.join(",");
 }
 
 export function MarketplaceSettingsModal({
@@ -98,24 +55,16 @@ export function MarketplaceSettingsModal({
   const { data: inventoryConfig, isLoading: configLoading } =
     useInventoryConfig();
   const updateConfigMutation = useUpdateInventoryConfig();
-  const [settings, setSettings] =
-    useState<MarketplaceSettings>(defaultSettings);
+  const [settings, setSettings] = useState<MarketplaceAllocationSettings>(
+    defaultMarketplaceAllocationSettings,
+  );
 
   useEffect(() => {
     if (!open || configLoading) {
       return;
     }
 
-    const selectedColumns = parseColumns(inventoryConfig?.selected_columns);
-    const inferredAutoColumn =
-      selectedColumns.find((column) => column.toLowerCase().includes("auto")) ||
-      "";
-
-    setSettings((previous) => ({
-      ...previous,
-      totalColumn: inventoryConfig?.key_column || "",
-      autoColumn: inferredAutoColumn,
-    }));
+    setSettings(deriveMarketplaceAllocationSettings(inventoryConfig));
   }, [open, configLoading, inventoryConfig]);
 
   const selectableColumns = useMemo(
@@ -130,18 +79,17 @@ export function MarketplaceSettingsModal({
   );
 
   const total = 20;
-  const previewShopee = Math.min(
-    Math.ceil(settings.shopeeRatio * total),
-    total,
+  const preview = useMemo(
+    () => calculateMarketplaceAllocation(total, false, settings),
+    [settings],
   );
-  const remainingAfterShopee = Math.max(0, total - previewShopee);
-  const previewTiktok = Math.min(
-    Math.ceil(settings.tiktokRatio * total),
-    remainingAfterShopee,
-  );
-  const previewLazada = Math.max(0, total - previewShopee - previewTiktok);
 
   const handleSave = () => {
+    if (!settings.totalColumn) {
+      message.error("Total column is required");
+      return;
+    }
+
     const existingColumns = parseColumns(inventoryConfig?.selected_columns);
     const mergedColumns = encodeColumns(inventoryConfig?.selected_columns, [
       ...existingColumns,
@@ -156,6 +104,7 @@ export function MarketplaceSettingsModal({
       },
       {
         onSuccess: () => {
+          saveMarketplaceAllocationSettings(settings);
           message.success("Settings saved");
           onClose();
         },
@@ -169,7 +118,7 @@ export function MarketplaceSettingsModal({
   };
 
   const handleReset = () => {
-    setSettings(defaultSettings);
+    setSettings(defaultMarketplaceAllocationSettings);
   };
   const selectOptions = selectableColumns.map((column) => ({
     label: column,
@@ -284,10 +233,10 @@ export function MarketplaceSettingsModal({
                 fontWeight: 500,
               }}
             >
-              <span style={{ color: colorInfo }}>Shopee: {previewShopee}</span>
-              <span style={{ color: colorText }}>TikTok: {previewTiktok}</span>
+              <span style={{ color: colorInfo }}>Shopee: {preview.shopee}</span>
+              <span style={{ color: colorText }}>TikTok: {preview.tiktok}</span>
               <span style={{ color: colorSuccess }}>
-                Lazada: {previewLazada}
+                Lazada: {preview.lazada}
               </span>
               <span style={{ color: colorTextSecondary }}>Total: {total}</span>
             </div>

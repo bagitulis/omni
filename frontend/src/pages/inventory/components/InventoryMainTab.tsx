@@ -4,6 +4,15 @@ import { Spin, Empty, Alert, Button, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { VirtualTable } from "@/components/common/VirtualTable";
 import type { InventoryRecord } from "@/types/inventory";
+import {
+  resolveMarketplaceAllocationForRecord,
+  type MarketplaceAllocationSettings,
+} from "../utils/marketplaceAllocation";
+import {
+  estimateInventoryColumnWidth,
+  renderMarketplaceCell,
+  resolveSyncStatus,
+} from "./inventoryMainTabHelpers";
 import { StockCell } from "./StockCell";
 import { PriceCell } from "./PriceCell";
 
@@ -14,6 +23,7 @@ interface Props {
   onRetry: () => void;
   visibleColumns: string[];
   lockedColumns: string[];
+  marketplaceSettings: MarketplaceAllocationSettings;
   readOnly?: boolean;
   selectedRowKeys?: Key[];
   onSelectionChange?: (keys: Key[], rows: InventoryRecord[]) => void;
@@ -26,6 +36,7 @@ export function InventoryMainTab({
   onRetry,
   visibleColumns,
   lockedColumns,
+  marketplaceSettings,
   readOnly = false,
   selectedRowKeys = [],
   onSelectionChange,
@@ -36,96 +47,6 @@ export function InventoryMainTab({
   );
 
   const dynamicColumns: ColumnsType<InventoryRecord> = useMemo(() => {
-    const estimateColumnWidth = (columnName: string): number => {
-      const normalized = columnName.trim().toLowerCase();
-
-      if (normalized === "nama barang") {
-        return 360;
-      }
-
-      if (normalized === "nama variasi") {
-        return 260;
-      }
-
-      if (normalized === "harga" || normalized === "price") {
-        return 130;
-      }
-
-      if (normalized === "total") {
-        return 90;
-      }
-
-      if (normalized === "stock" || normalized === "stok") {
-        return 110;
-      }
-
-      const sampleRecords = records.slice(0, 120);
-      const longestValueLength = sampleRecords.reduce((max, record) => {
-        const value = record.data?.[columnName];
-        const currentLength = value == null ? 0 : String(value).trim().length;
-        return Math.max(max, currentLength);
-      }, columnName.length);
-
-      const estimated = longestValueLength * 8 + 40;
-      return Math.min(280, Math.max(120, estimated));
-    };
-
-    const getRecordDataValue = (
-      record: InventoryRecord,
-      candidates: string[],
-    ): unknown => {
-      const rowData = record.data || {};
-      for (const candidate of candidates) {
-        if (candidate in rowData) {
-          return rowData[candidate];
-        }
-      }
-
-      const entry = Object.entries(rowData).find(
-        ([columnName]) =>
-          candidates.includes(columnName) ||
-          candidates.includes(columnName.toLowerCase()) ||
-          candidates.includes(columnName.toUpperCase()),
-      );
-
-      return entry?.[1];
-    };
-
-    const renderMarketplaceCell = (
-      record: InventoryRecord,
-      platformName: "shopee" | "tiktok" | "lazada",
-    ) => {
-      const value = getRecordDataValue(record, [
-        platformName,
-        platformName.toUpperCase(),
-        platformName.charAt(0).toUpperCase() + platformName.slice(1),
-      ]);
-
-      if (
-        value === null ||
-        value === undefined ||
-        String(value).trim() === ""
-      ) {
-        return <span style={{ color: "#999", fontSize: 11 }}>-</span>;
-      }
-
-      return (
-        <Tag
-          color="blue"
-          style={{
-            fontSize: 11,
-            margin: 0,
-            minWidth: 30,
-            display: "inline-flex",
-            justifyContent: "center",
-            textAlign: "center",
-          }}
-        >
-          {String(value)}
-        </Tag>
-      );
-    };
-
     const cols: ColumnsType<InventoryRecord> = [
       {
         title: "Key",
@@ -139,21 +60,24 @@ export function InventoryMainTab({
         key: "shopee_status",
         width: 96,
         align: "center",
-        render: (_, record) => renderMarketplaceCell(record, "shopee"),
+        render: (_, record) =>
+          renderMarketplaceCell(record, "shopee", marketplaceSettings),
       },
       {
         title: "TikTok",
         key: "tiktok_status",
         width: 96,
         align: "center",
-        render: (_, record) => renderMarketplaceCell(record, "tiktok"),
+        render: (_, record) =>
+          renderMarketplaceCell(record, "tiktok", marketplaceSettings),
       },
       {
         title: "Lazada",
         key: "lazada_status",
         width: 96,
         align: "center",
-        render: (_, record) => renderMarketplaceCell(record, "lazada"),
+        render: (_, record) =>
+          renderMarketplaceCell(record, "lazada", marketplaceSettings),
       },
       {
         title: "Sync Status",
@@ -161,14 +85,7 @@ export function InventoryMainTab({
         width: 120,
         align: "center",
         render: (_, record) => {
-          const statusMap: Record<string, { color: string; label: string }> = {
-            synced: { color: "green", label: "Synced" },
-            not_synced: { color: "default", label: "Not Synced" },
-            error: { color: "red", label: "Error" },
-          };
-          const status =
-            statusMap[record.sync_status || "not_synced"] ||
-            statusMap.not_synced;
+          const status = resolveSyncStatus(record.sync_status);
           return (
             <Tag color={status.color} style={{ fontSize: 11, margin: 0 }}>
               {status.label}
@@ -197,7 +114,7 @@ export function InventoryMainTab({
         normalizedColumnName.includes("name") ||
         normalizedColumnName.includes("product");
       const isLocked = lockedColumnsSet.has(colName);
-      const dynamicWidth = estimateColumnWidth(colName);
+      const dynamicWidth = estimateInventoryColumnWidth(colName, records);
 
       cols.push({
         title: colName,
@@ -206,6 +123,10 @@ export function InventoryMainTab({
         ellipsis: !isLongTextColumn,
         render: (_, record) => {
           const val = record.data?.[colName];
+          const allocation = resolveMarketplaceAllocationForRecord(
+            record.data || {},
+            marketplaceSettings,
+          );
 
           if (isStock) {
             if (readOnly) {
@@ -237,6 +158,13 @@ export function InventoryMainTab({
                 locked={isLocked}
               />
             );
+          }
+
+          if (
+            normalizedColumnName === "total" &&
+            (val === null || val === undefined || String(val).trim() === "")
+          ) {
+            return String(allocation.total);
           }
 
           if (val == null || String(val).trim() === "") {
@@ -273,7 +201,13 @@ export function InventoryMainTab({
     });
 
     return cols;
-  }, [records, visibleColumns, lockedColumnsSet, readOnly]);
+  }, [
+    lockedColumnsSet,
+    marketplaceSettings,
+    readOnly,
+    records,
+    visibleColumns,
+  ]);
 
   if (error) {
     return (

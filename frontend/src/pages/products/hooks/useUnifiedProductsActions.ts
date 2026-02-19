@@ -1,11 +1,9 @@
-import { Modal, message } from "antd";
+import { message } from "antd";
 import { useCallback, useMemo } from "react";
 import type { NavigateFunction } from "react-router-dom";
-import apiClient from "@/api/client";
-import { updateStock, updateStockBatch } from "@/api/inventorySync";
+import { updateStockBatch } from "@/api/inventorySync";
 import { updatePriceBatch } from "@/api/pricing";
 import { deleteProduct, getProductById } from "@/api/products";
-import { batchWholesaleWithReset } from "@/api/wholesale";
 import type { RowActionKey } from "@/pages/products/utils/productColumns";
 import { getErrorMessage } from "@/pages/products/utils/unifiedProductUtils";
 import type {
@@ -13,6 +11,11 @@ import type {
   Platform,
   UnifiedProductRow,
 } from "@/types/shared";
+import {
+  confirmDeleteSelectedProducts,
+  confirmDeleteSingleProduct,
+  confirmResetWholesaleTiers,
+} from "./useUnifiedProductsActionDialogs";
 import { useUnifiedProductsModals } from "./useUnifiedProductsModals";
 
 interface UseUnifiedProductsActionsParams {
@@ -31,6 +34,8 @@ export function useUnifiedProductsActions({
   const {
     stockSyncOpen,
     setStockSyncOpen,
+    priceSyncOpen,
+    setPriceSyncOpen,
     cloneModalOpen,
     setCloneModalOpen,
     batchCloneOpen,
@@ -41,12 +46,12 @@ export function useUnifiedProductsActions({
     setWholesaleMpqOpen,
     wholesaleMpqDefaultTab,
     setWholesaleMpqDefaultTab,
-    batchPriceOpen,
-    setBatchPriceOpen,
     clonePreviewOpen,
     setClonePreviewOpen,
-    batchPriceValue,
-    setBatchPriceValue,
+    stockSyncProducts,
+    setStockSyncProducts,
+    priceSyncProducts,
+    setPriceSyncProducts,
     selectedProduct,
     setSelectedProduct,
     skuMappingProduct,
@@ -73,11 +78,6 @@ export function useUnifiedProductsActions({
     return Array.from(skuMap.values());
   }, [selectedRecords]);
 
-  const selectedSkus = useMemo(
-    () => selectedSkuPriceItems.map((item) => item.sku),
-    [selectedSkuPriceItems],
-  );
-
   const handleDeleteProduct = useCallback(
     async (productId: number | string) => {
       try {
@@ -91,71 +91,33 @@ export function useUnifiedProductsActions({
     [refreshProducts],
   );
 
-  const handleInlinePriceSave = useCallback(
-    async (skuId: number, price: number) => {
-      const response = await apiClient.put(`/master-products/skus/${skuId}`, {
-        price,
-      });
-
-      if (!response.success) {
-        throw new Error(
-          response.error || response.message || "Failed to update SKU price",
+  const handlePriceSync = useCallback(
+    async (
+      items: Array<{
+        seller_sku: string;
+        price: number;
+        platforms: Platform[];
+      }>,
+    ) => {
+      try {
+        const result = await updatePriceBatch(
+          items.map((item) => ({
+            sku: item.seller_sku,
+            price: item.price,
+            platforms: item.platforms,
+          })),
         );
-      }
 
-      await refreshProducts();
+        message.success(
+          `Updated ${result.success} of ${result.total} SKU prices`,
+        );
+        await refreshProducts();
+      } catch (error) {
+        message.error(getErrorMessage(error));
+      }
     },
     [refreshProducts],
   );
-
-  const handleInlineStockSave = useCallback(
-    async (skuId: number, sellerSku: string, stock: number) => {
-      const response = await apiClient.put(`/master-products/skus/${skuId}`, {
-        stock,
-      });
-
-      if (!response.success) {
-        throw new Error(
-          response.error || response.message || "Failed to update SKU stock",
-        );
-      }
-
-      await updateStock(sellerSku, undefined, stock);
-      await refreshProducts();
-    },
-    [refreshProducts],
-  );
-
-  const handleBatchPriceUpdate = useCallback(async () => {
-    if (batchPriceValue <= 0 || selectedSkus.length === 0) {
-      message.warning("Price must be greater than zero");
-      return;
-    }
-
-    try {
-      const result = await updatePriceBatch(
-        selectedSkus.map((sku) => ({
-          sku,
-          price: batchPriceValue,
-        })),
-      );
-
-      message.success(
-        `Updated ${result.success} of ${result.total} SKU prices`,
-      );
-      setBatchPriceOpen(false);
-      clearSelection();
-      await refreshProducts();
-    } catch (error) {
-      message.error(getErrorMessage(error));
-    }
-  }, [
-    batchPriceValue,
-    clearSelection,
-    refreshProducts,
-    selectedSkus,
-    setBatchPriceOpen,
-  ]);
 
   const handleStockSync = useCallback(
     async (
@@ -207,32 +169,38 @@ export function useUnifiedProductsActions({
         navigate(`/master-products/${record.id}`);
         return;
       }
-
       if (actionKey === "clone") {
         setSelectedProduct(record);
         setClonePreviewOpen(true);
         return;
       }
-
+      if (actionKey === "update_price") {
+        setPriceSyncProducts([record]);
+        setPriceSyncOpen(true);
+        return;
+      }
+      if (actionKey === "update_stock") {
+        setStockSyncProducts([record]);
+        setStockSyncOpen(true);
+        return;
+      }
       if (actionKey === "sku_mapping") {
         void handleOpenSkuMapping(record);
         return;
       }
 
-      Modal.confirm({
-        title: `Delete ${record.title}?`,
-        content: "This action cannot be undone.",
-        okText: "Delete",
-        okButtonProps: { danger: true },
-        onOk: () => handleDeleteProduct(record.id),
-      });
+      confirmDeleteSingleProduct(record, handleDeleteProduct);
     },
     [
       handleDeleteProduct,
       handleOpenSkuMapping,
       navigate,
+      setPriceSyncOpen,
+      setPriceSyncProducts,
       setClonePreviewOpen,
       setSelectedProduct,
+      setStockSyncOpen,
+      setStockSyncProducts,
     ],
   );
 
@@ -241,71 +209,39 @@ export function useUnifiedProductsActions({
       if (selectedRecords.length === 0) {
         return;
       }
-
       if (actionKey === "update_price") {
-        setBatchPriceOpen(true);
+        setPriceSyncProducts(selectedRecords);
+        setPriceSyncOpen(true);
         return;
       }
-
       if (actionKey === "sync_stock") {
+        setStockSyncProducts(selectedRecords);
         setStockSyncOpen(true);
         return;
       }
-
       if (actionKey === "wholesale") {
         setWholesaleMpqDefaultTab("wholesale");
         setWholesaleMpqOpen(true);
         return;
       }
-
       if (actionKey === "mpq") {
         setWholesaleMpqDefaultTab("mpq");
         setWholesaleMpqOpen(true);
         return;
       }
-
       if (actionKey === "clone") {
         setBatchCloneOpen(true);
         return;
       }
-
       if (actionKey === "delete_wholesale") {
-        Modal.confirm({
-          title: "Reset wholesale tiers for selected SKUs?",
-          okText: "Reset",
-          okButtonProps: { danger: true },
-          onOk: async () => {
-            try {
-              await batchWholesaleWithReset(selectedSkuPriceItems);
-              message.success(
-                `Reset wholesale tiers for ${selectedSkuPriceItems.length} SKUs`,
-              );
-              await refreshProducts();
-            } catch (error) {
-              message.error(getErrorMessage(error));
-            }
-          },
-        });
+        confirmResetWholesaleTiers(selectedSkuPriceItems, refreshProducts);
         return;
       }
-
-      Modal.confirm({
-        title: `Delete ${selectedRecords.length} selected products?`,
-        okText: "Delete",
-        okButtonProps: { danger: true },
-        onOk: async () => {
-          try {
-            await Promise.all(
-              selectedRecords.map((record) => deleteProduct(record.id)),
-            );
-            message.success(`Deleted ${selectedRecords.length} products`);
-            clearSelection();
-            await refreshProducts();
-          } catch (error) {
-            message.error(getErrorMessage(error));
-          }
-        },
-      });
+      confirmDeleteSelectedProducts(
+        selectedRecords,
+        clearSelection,
+        refreshProducts,
+      );
     },
     [
       clearSelection,
@@ -313,8 +249,10 @@ export function useUnifiedProductsActions({
       selectedRecords,
       selectedSkuPriceItems,
       setBatchCloneOpen,
-      setBatchPriceOpen,
+      setPriceSyncOpen,
+      setPriceSyncProducts,
       setStockSyncOpen,
+      setStockSyncProducts,
       setWholesaleMpqOpen,
       setWholesaleMpqDefaultTab,
     ],
@@ -323,6 +261,8 @@ export function useUnifiedProductsActions({
   return {
     stockSyncOpen,
     setStockSyncOpen,
+    priceSyncOpen,
+    setPriceSyncOpen,
     cloneModalOpen,
     setCloneModalOpen,
     batchCloneOpen,
@@ -332,23 +272,20 @@ export function useUnifiedProductsActions({
     wholesaleMpqOpen,
     setWholesaleMpqOpen,
     wholesaleMpqDefaultTab,
-    batchPriceOpen,
-    setBatchPriceOpen,
     clonePreviewOpen,
     setClonePreviewOpen,
-    batchPriceValue,
-    setBatchPriceValue,
+    stockSyncProducts,
+    setStockSyncProducts,
+    priceSyncProducts,
+    setPriceSyncProducts,
     selectedProduct,
     setSelectedProduct,
     skuMappingProduct,
     setSkuMappingProduct,
     skuMappingLoading,
-    selectedSkus,
     selectedSkuPriceItems,
     handleDeleteProduct,
-    handleInlinePriceSave,
-    handleInlineStockSave,
-    handleBatchPriceUpdate,
+    handlePriceSync,
     handleStockSync,
     handleRowAction,
     handleBatchAction,

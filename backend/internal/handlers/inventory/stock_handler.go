@@ -102,15 +102,21 @@ func (h *StockHandler) UpdateStockBatch(c *gin.Context) {
 		return
 	}
 
+	normalizedItems := inventoryService.NormalizeStockUpdateItems(req.Items)
+	if len(normalizedItems) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "items is required"})
+		return
+	}
+
 	svc := inventoryService.NewStockService(h.db, tenantID)
-	result, err := svc.UpdateStockBatch(c.Request.Context(), req.Items)
+	result, err := svc.UpdateStockBatch(c.Request.Context(), normalizedItems)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	// Record marketplace sync history for batch operation (fire-and-forget)
-	recordStockBatchSyncHistory(c.Request.Context(), h.db, tenantID, req.Items, result)
+	recordStockBatchSyncHistory(c.Request.Context(), h.db, tenantID, normalizedItems, result)
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
 }

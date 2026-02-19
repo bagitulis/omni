@@ -78,7 +78,7 @@ func (s *StagingImportService) ImportFromLazadaStaging(ctx context.Context, tena
 				PlatformProductID: p.ItemID,
 				PlatformItemID:    p.ItemID,
 				PlatformSkuID:     "",
-				SyncStatus:        "synced",
+				SyncStatus:        models.SyncStatusSynced,
 			}
 			if err := s.repo.UpsertPlatformLink(ctx, link); err != nil {
 				result.Errors = append(result.Errors, fmt.Errorf("lazada product %s default sku link: %w", p.ItemID, err).Error())
@@ -130,7 +130,7 @@ func (s *StagingImportService) ImportFromLazadaStaging(ctx context.Context, tena
 				PlatformProductID: p.ItemID,
 				PlatformItemID:    p.ItemID,
 				PlatformSkuID:     sku.SkuID,
-				SyncStatus:        "synced",
+				SyncStatus:        models.SyncStatusSynced,
 			}
 			// vii. On error append and continue.
 			if err := s.repo.UpsertPlatformLink(ctx, link); err != nil {

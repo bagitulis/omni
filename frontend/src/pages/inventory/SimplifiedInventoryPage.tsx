@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import {
   useAvailableColumns,
   useInventory,
+  useInventoryConfig,
   useInventoryFilterPreferences,
   useSaveInventoryFilterPreferences,
   useSelectedColumns,
@@ -23,6 +24,7 @@ import { InventoryMainTab } from "./components/InventoryMainTab";
 import { InventoryLockPanel } from "./components/InventoryLockPanel";
 import { InventoryPagination } from "./components/InventoryPagination";
 import { SyncHistoryTab } from "./components/SyncHistoryTab";
+import { deriveMarketplaceAllocationSettings } from "./utils/marketplaceAllocation";
 import type { ColumnConfig } from "@/types/shared";
 
 const { Content } = Layout;
@@ -57,6 +59,7 @@ export default function SimplifiedInventoryPage() {
   const [activeTab, setActiveTab] = useState("inventory");
 
   const { data: availableColumns = [] } = useAvailableColumns();
+  const { data: inventoryConfig } = useInventoryConfig();
   const { data: selectedColumns = [] } = useSelectedColumns();
   const { data: filterPreferences, isFetched: isFilterPreferencesFetched } =
     useInventoryFilterPreferences();
@@ -78,6 +81,17 @@ export default function SimplifiedInventoryPage() {
   const filteredRecords = useMemo(
     () => applyInventoryColumnFilters(records, columnFilters),
     [columnFilters, records],
+  );
+  const schemaColumns = useMemo(
+    () =>
+      availableColumns.map((columnName) => ({
+        column_name: columnName,
+      })),
+    [availableColumns],
+  );
+  const marketplaceSettings = useMemo(
+    () => deriveMarketplaceAllocationSettings(inventoryConfig),
+    [inventoryConfig],
   );
 
   const syncFromSheetsMutation = useSyncFromSheets();
@@ -187,6 +201,7 @@ export default function SimplifiedInventoryPage() {
           onRetry={() => refetch()}
           visibleColumns={resolvedVisibleColumns}
           lockedColumns={resolvedLockedColumns}
+          marketplaceSettings={marketplaceSettings}
           readOnly
         />
       ),
@@ -226,6 +241,7 @@ export default function SimplifiedInventoryPage() {
           onSyncToSheets={handleSyncToSheets}
           syncingToSheets={syncToSheetsMutation.isPending}
           columnConfigs={columnConfigs}
+          schemaColumns={schemaColumns}
           onColumnChange={handleColumnChange}
           onColumnReset={handleColumnReset}
         />

@@ -1,12 +1,15 @@
-import { Input, Button, Dropdown, Tooltip, Typography, Grid } from "antd";
+import { useState } from "react";
+import { Button, Dropdown, Grid, Input, Tooltip, Typography } from "antd";
 import {
-  SearchOutlined,
-  ReloadOutlined,
   CloudDownloadOutlined,
   CloudUploadOutlined,
-  SyncOutlined,
   DownOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  ShopOutlined,
+  SyncOutlined,
 } from "@ant-design/icons";
+import { MarketplaceSettingsModal } from "@/components/modals/MarketplaceSettingsModal";
 import { ColumnManager } from "@/components/shared/ColumnManager";
 import type { ColumnConfig } from "@/types/shared";
 
@@ -20,6 +23,7 @@ interface SimplifiedInventoryHeaderProps {
   onSyncToSheets: () => void;
   syncingToSheets: boolean;
   columnConfigs: ColumnConfig[];
+  schemaColumns: Array<{ column_name: string; column_type?: string }>;
   onColumnChange: (columns: ColumnConfig[]) => void;
   onColumnReset: () => void;
 }
@@ -34,11 +38,13 @@ export function SimplifiedInventoryHeader({
   onSyncToSheets,
   syncingToSheets,
   columnConfigs,
+  schemaColumns,
   onColumnChange,
   onColumnReset,
 }: SimplifiedInventoryHeaderProps) {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
   return (
     <div
@@ -130,12 +136,27 @@ export function SimplifiedInventoryHeader({
           </Button>
         </Dropdown>
 
+        <Button
+          icon={<ShopOutlined />}
+          onClick={() => setSettingsModalOpen(true)}
+          size="middle"
+          style={isMobile ? { width: "100%" } : undefined}
+        >
+          {isMobile ? "Marketplace" : "Marketplace Allocation"}
+        </Button>
+
         <ColumnManager
           columns={columnConfigs}
           onChange={onColumnChange}
           onReset={onColumnReset}
         />
       </div>
+
+      <MarketplaceSettingsModal
+        open={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+        schemaColumns={schemaColumns}
+      />
     </div>
   );
 }

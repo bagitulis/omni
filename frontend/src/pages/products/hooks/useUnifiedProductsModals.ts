@@ -8,6 +8,7 @@ import type { UnifiedProductRow } from "@/types/shared";
  */
 export function useUnifiedProductsModals() {
   const [stockSyncOpen, setStockSyncOpen] = useState(false);
+  const [priceSyncOpen, setPriceSyncOpen] = useState(false);
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
   const [batchCloneOpen, setBatchCloneOpen] = useState(false);
   const [skuMappingOpen, setSkuMappingOpen] = useState(false);
@@ -15,9 +16,13 @@ export function useUnifiedProductsModals() {
   const [wholesaleMpqDefaultTab, setWholesaleMpqDefaultTab] = useState<
     "wholesale" | "mpq"
   >("wholesale");
-  const [batchPriceOpen, setBatchPriceOpen] = useState(false);
   const [clonePreviewOpen, setClonePreviewOpen] = useState(false);
-  const [batchPriceValue, setBatchPriceValue] = useState(0);
+  const [stockSyncProducts, setStockSyncProducts] = useState<
+    UnifiedProductRow[]
+  >([]);
+  const [priceSyncProducts, setPriceSyncProducts] = useState<
+    UnifiedProductRow[]
+  >([]);
   const [selectedProduct, setSelectedProduct] =
     useState<UnifiedProductRow | null>(null);
   const [skuMappingProduct, setSkuMappingProduct] =
@@ -27,6 +32,8 @@ export function useUnifiedProductsModals() {
   return {
     stockSyncOpen,
     setStockSyncOpen,
+    priceSyncOpen,
+    setPriceSyncOpen,
     cloneModalOpen,
     setCloneModalOpen,
     batchCloneOpen,
@@ -37,12 +44,12 @@ export function useUnifiedProductsModals() {
     setWholesaleMpqOpen,
     wholesaleMpqDefaultTab,
     setWholesaleMpqDefaultTab,
-    batchPriceOpen,
-    setBatchPriceOpen,
     clonePreviewOpen,
     setClonePreviewOpen,
-    batchPriceValue,
-    setBatchPriceValue,
+    stockSyncProducts,
+    setStockSyncProducts,
+    priceSyncProducts,
+    setPriceSyncProducts,
     selectedProduct,
     setSelectedProduct,
     skuMappingProduct,

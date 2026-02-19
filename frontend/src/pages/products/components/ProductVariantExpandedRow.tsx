@@ -1,22 +1,13 @@
 import { Col, Divider, Row, Space, Typography } from "antd";
-import { InlineEditCell } from "@/components/shared/InlineEditCell";
 import { formatIdr } from "@/pages/products/utils/productColumns";
 import type { UnifiedProductRow } from "@/types/shared";
 
 interface ProductVariantExpandedRowProps {
   product: UnifiedProductRow;
-  onInlinePriceSave: (skuId: number, price: number) => Promise<void>;
-  onInlineStockSave: (
-    skuId: number,
-    sellerSku: string,
-    stock: number,
-  ) => Promise<void>;
 }
 
 export function ProductVariantExpandedRow({
   product,
-  onInlinePriceSave,
-  onInlineStockSave,
 }: ProductVariantExpandedRowProps) {
   if (product.skus.length <= 1) {
     return null;
@@ -30,7 +21,7 @@ export function ProductVariantExpandedRow({
         </Col>
         <Col>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            Variant details and inline stock/price updates
+            Variant details. Use modal actions to update stock and price.
           </Typography.Text>
         </Col>
       </Row>
@@ -63,29 +54,13 @@ export function ProductVariantExpandedRow({
             </Col>
 
             <Col xs={12} md={7}>
-              <div className="inline-edit-cell" data-field="stock">
-                <InlineEditCell
-                  value={sku.stock}
-                  mode="stock"
-                  onSave={(value) =>
-                    onInlineStockSave(sku.id, sku.seller_sku, value)
-                  }
-                />
-              </div>
+              <Typography.Text>
+                {sku.stock.toLocaleString("id-ID")}
+              </Typography.Text>
             </Col>
 
             <Col xs={12} md={7}>
-              <div className="inline-edit-cell" data-field="price">
-                <InlineEditCell
-                  value={sku.price}
-                  mode="price"
-                  prefix="Rp"
-                  onSave={(value) => onInlinePriceSave(sku.id, value)}
-                />
-              </div>
-              <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                {formatIdr(sku.price)}
-              </Typography.Text>
+              <Typography.Text>{formatIdr(sku.price)}</Typography.Text>
             </Col>
           </Row>
         </div>

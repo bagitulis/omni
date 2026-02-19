@@ -2,10 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/api/products";
 import type { MasterProduct } from "@/types/product";
 import type {
-  UnifiedProductRow,
-  ProductFilterValues,
-  PlatformLinkStatus,
   Platform,
+  PlatformLinkStatus,
+  ProductFilterValues,
+  UnifiedProductRow,
 } from "@/types/shared";
 
 /**
@@ -42,7 +42,7 @@ function transformToUnifiedRows(
         platform_links: (sku.platform_links || []).map((link) => ({
           platform: link.platform,
           platform_product_id:
-            link.platform_item_id || link.platform_product_id,
+            link.platform_product_id || link.platform_item_id,
           platform_item_id: link.platform_item_id,
           platform_sku_id: link.platform_sku_id,
           sync_status: mapSyncStatus(link.sync_status),
@@ -84,10 +84,21 @@ function mapSyncStatus(
     | "error"
     | "outdated"
     | "failed"
-    | "not_synced",
+    | "not_synced"
+    | "success"
+    | "linked"
+    | string
+    | null
+    | undefined,
 ): "pending" | "synced" | "error" | "outdated" {
-  switch (backendStatus) {
+  const normalizedStatus = String(backendStatus ?? "")
+    .trim()
+    .toLowerCase();
+
+  switch (normalizedStatus) {
     case "synced":
+    case "success":
+    case "linked":
       return "synced";
     case "pending":
       return "pending";
@@ -99,8 +110,25 @@ function mapSyncStatus(
     case "not_synced":
       return "pending"; // Treat not_synced as pending
     default:
+      if (normalizedStatus.length > 0) {
+        return "pending";
+      }
       return "pending";
   }
+}
+
+function toPlatformLinkStatus(
+  syncStatus: "pending" | "synced" | "error" | "outdated",
+): PlatformLinkStatus {
+  if (syncStatus === "synced" || syncStatus === "outdated") {
+    return "linked";
+  }
+
+  if (syncStatus === "pending") {
+    return "pending";
+  }
+
+  return "error";
 }
 
 /**
@@ -132,20 +160,7 @@ function aggregatePlatformStatus(
       const currentStatus = statusMap[platform];
 
       // Map sync_status to PlatformLinkStatus
-      let linkStatus: PlatformLinkStatus = "not_linked";
-      if (link.sync_status === "synced" || link.sync_status === "outdated") {
-        linkStatus = "linked";
-      } else if (
-        link.sync_status === "pending" ||
-        link.sync_status === "not_synced"
-      ) {
-        linkStatus = "pending";
-      } else if (
-        link.sync_status === "failed" ||
-        link.sync_status === "error"
-      ) {
-        linkStatus = "error";
-      }
+      const linkStatus = toPlatformLinkStatus(mapSyncStatus(link.sync_status));
 
       // Priority (worst-state-wins): error > pending > linked > not_linked
       statusMap[platform] = getHigherPriorityStatus(currentStatus, linkStatus);
@@ -195,6 +210,7 @@ export function useUnifiedProducts(
         search: search || undefined,
         status: status !== "all" ? status : undefined,
         platform: platform !== "all" ? platform : undefined,
+        linked_only: true,
       });
 
       const products = transformToUnifiedRows(response.data || []);

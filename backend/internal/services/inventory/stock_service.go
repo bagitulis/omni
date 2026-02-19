@@ -21,9 +21,45 @@ func NewStockService(db *gorm.DB, tenantID string) *StockService {
 
 // StockUpdateItem represents a single stock update request
 type StockUpdateItem struct {
-	SKU      string `json:"sku"`
-	Quantity int    `json:"quantity"`
-	Platform string `json:"platform"`
+	SKU       string   `json:"sku"`
+	Quantity  int      `json:"quantity"`
+	Stock     *int     `json:"stock,omitempty"`
+	Platform  string   `json:"platform"`
+	Platforms []string `json:"platforms,omitempty"`
+}
+
+// NormalizeStockUpdateItems expands mixed payload formats into service-ready items.
+// Supported input formats:
+// - {sku, quantity, platform}
+// - {sku, stock, platforms:[...]}
+func NormalizeStockUpdateItems(items []StockUpdateItem) []StockUpdateItem {
+	normalized := make([]StockUpdateItem, 0, len(items))
+
+	for _, item := range items {
+		quantity := item.Quantity
+		if item.Stock != nil {
+			quantity = *item.Stock
+		}
+
+		if len(item.Platforms) > 0 {
+			for _, platform := range item.Platforms {
+				normalized = append(normalized, StockUpdateItem{
+					SKU:      item.SKU,
+					Quantity: quantity,
+					Platform: platform,
+				})
+			}
+			continue
+		}
+
+		normalized = append(normalized, StockUpdateItem{
+			SKU:      item.SKU,
+			Quantity: quantity,
+			Platform: item.Platform,
+		})
+	}
+
+	return normalized
 }
 
 // StockUpdateResult represents the result of a stock update

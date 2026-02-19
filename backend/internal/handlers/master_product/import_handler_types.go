@@ -7,6 +7,26 @@ type ImportRequest struct {
 	ItemID   string `json:"item_id" binding:"required"`
 }
 
+// FileImportRequest represents file-based import payload
+type FileImportRequest struct {
+	Rows []FileImportRowRequest `json:"rows" binding:"required,min=1"`
+}
+
+// FileImportRowRequest represents one row from preview/import UI
+type FileImportRowRequest struct {
+	RowNumber   int      `json:"row_number"`
+	ItemName    string   `json:"item_name"`
+	ItemSku     string   `json:"item_sku"`
+	VariantName string   `json:"variant_name,omitempty"`
+	Price       float64  `json:"price"`
+	Stock       int      `json:"stock"`
+	BatchKey    string   `json:"batch_key,omitempty"`
+	Description string   `json:"description,omitempty"`
+	ImageUrls   []string `json:"image_urls,omitempty"`
+	Valid       bool     `json:"valid"`
+	Errors      []string `json:"errors,omitempty"`
+}
+
 // AutoMapRequest represents the auto-map request body
 type AutoMapRequest struct {
 	SellerSku string `json:"seller_sku" binding:"required"`

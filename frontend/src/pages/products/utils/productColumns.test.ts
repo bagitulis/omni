@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   buildVariantSummary,
   collectVariantNames,
+  getDisplayTitle,
   getPriceDisplayText,
+  getSkuCountLabel,
   getTotalStock,
 } from "./productColumns";
 
@@ -72,5 +74,16 @@ describe("productColumns helpers", () => {
         makeSku({ id: 2, stock: 110 }),
       ]),
     ).toBe(584);
+  });
+
+  it("formats sku count label", () => {
+    expect(getSkuCountLabel(1)).toBe("1 SKU");
+    expect(getSkuCountLabel(130)).toBe("130 SKU");
+  });
+
+  it("uses fallback sku when title is empty", () => {
+    expect(getDisplayTitle("", "FBFSK5993")).toBe("FBFSK5993");
+    expect(getDisplayTitle("  ", "FBFSK5993")).toBe("FBFSK5993");
+    expect(getDisplayTitle("Kiwi Product", "FBFSK5993")).toBe("Kiwi Product");
   });
 });

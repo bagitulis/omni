@@ -1,24 +1,27 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  Alert,
-  Checkbox,
-  InputNumber,
-  Modal,
-  Radio,
-  Space,
-  Table,
-  Tag,
-  theme,
-} from "antd";
-import type { FC } from "react";
+import { useEffect, useMemo, useState, type FC } from "react";
+import { Modal, Radio, theme } from "antd";
 import type { Platform, UnifiedProductRow } from "@/types/shared";
 import {
   type PerPlatformConfig,
   type PerPlatformRow,
-  PLATFORM_OPTIONS,
   getDefaultPerPlatformConfig,
   getPerPlatformColumns,
 } from "./stockSyncColumns";
+import {
+  applyRecommendationsToConfig,
+  buildLinkedPlatformsBySku,
+  buildStockSyncItems,
+  type StockSyncMode,
+  toPerPlatformRows,
+} from "./stockSyncModalUtils";
+import {
+  buildStockRecommendations,
+  type StockRecommendationMap,
+} from "./stockSyncRecommendations";
+import {
+  PerPlatformStockSection,
+  UniformStockSection,
+} from "./stockSyncModalSections";
 
 interface StockSyncModalProps {
   open: boolean;
@@ -33,8 +36,6 @@ interface StockSyncModalProps {
   selectedProducts: UnifiedProductRow[];
 }
 
-type SyncMode = "uniform" | "per_platform";
-
 export const StockSyncModal: FC<StockSyncModalProps> = ({
   open,
   onClose,
@@ -42,7 +43,7 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
   selectedProducts,
 }) => {
   const { token } = theme.useToken();
-  const [mode, setMode] = useState<SyncMode>("uniform");
+  const [mode, setMode] = useState<StockSyncMode>("uniform");
   const [uniformStock, setUniformStock] = useState<number>(0);
   const [uniformPlatforms, setUniformPlatforms] = useState<
     Record<Platform, boolean>
@@ -55,24 +56,14 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
     {},
   );
   const [loading, setLoading] = useState(false);
+  const [recommendations, setRecommendations] =
+    useState<StockRecommendationMap>({});
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
 
-  const linkedPlatformsBySku = useMemo(() => {
-    const linkedMap: Record<string, Record<Platform, boolean>> = {};
-
-    for (const product of selectedProducts) {
-      const linkedPlatforms: Record<Platform, boolean> = {
-        shopee: product.platform_summary.shopee !== "not_linked",
-        tiktok: product.platform_summary.tiktok !== "not_linked",
-        lazada: product.platform_summary.lazada !== "not_linked",
-      };
-
-      for (const sku of product.skus) {
-        linkedMap[sku.seller_sku] = linkedPlatforms;
-      }
-    }
-
-    return linkedMap;
-  }, [selectedProducts]);
+  const linkedPlatformsBySku = useMemo(
+    () => buildLinkedPlatformsBySku(selectedProducts),
+    [selectedProducts],
+  );
 
   useEffect(() => {
     if (!open) {
@@ -84,43 +75,55 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
     );
   }, [linkedPlatformsBySku, open, selectedProducts]);
 
-  const syncItems = useMemo(() => {
-    if (mode === "uniform") {
-      const platforms = (
-        Object.entries(uniformPlatforms) as [Platform, boolean][]
-      )
-        .filter(([, enabled]) => enabled)
-        .map(([platform]) => platform);
-
-      return selectedProducts.flatMap((product) =>
-        product.skus.map((sku) => ({
-          seller_sku: sku.seller_sku,
-          stock: uniformStock,
-          platforms: platforms.filter(
-            (platform) => linkedPlatformsBySku[sku.seller_sku]?.[platform],
-          ),
-        })),
-      );
+  useEffect(() => {
+    if (!open) {
+      setRecommendations({});
+      return;
     }
 
-    return Object.entries(perPlatformConfig).map(([sku, config]) => ({
-      seller_sku: sku,
-      stock: config.stock,
-      platforms: (Object.entries(config.platforms) as [Platform, boolean][])
-        .filter(
-          ([platform, enabled]) =>
-            enabled && linkedPlatformsBySku[sku]?.[platform],
-        )
-        .map(([platform]) => platform),
-    }));
-  }, [
-    linkedPlatformsBySku,
-    mode,
-    perPlatformConfig,
-    selectedProducts,
-    uniformPlatforms,
-    uniformStock,
-  ]);
+    let isMounted = true;
+    setRecommendationsLoading(true);
+
+    void buildStockRecommendations(selectedProducts)
+      .then((nextRecommendations) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setRecommendations(nextRecommendations);
+      })
+      .finally(() => {
+        if (!isMounted) {
+          return;
+        }
+
+        setRecommendationsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [open, selectedProducts]);
+
+  const syncItems = useMemo(
+    () =>
+      buildStockSyncItems(
+        mode,
+        selectedProducts,
+        linkedPlatformsBySku,
+        uniformPlatforms,
+        uniformStock,
+        perPlatformConfig,
+      ),
+    [
+      linkedPlatformsBySku,
+      mode,
+      perPlatformConfig,
+      selectedProducts,
+      uniformPlatforms,
+      uniformStock,
+    ],
+  );
 
   const validItems = useMemo(
     () =>
@@ -139,7 +142,12 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
     [validItems],
   );
 
-  const skippedSkuCount = Math.max(0, totalSelectedSkus - validItems.length);
+  const validSkuCount = useMemo(
+    () => new Set(validItems.map((item) => item.seller_sku)).size,
+    [validItems],
+  );
+
+  const skippedSkuCount = Math.max(0, totalSelectedSkus - validSkuCount);
 
   const handleSync = async () => {
     if (validItems.length === 0) {
@@ -155,23 +163,31 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
     }
   };
 
+  const applyInventoryRecommendations = () => {
+    setPerPlatformConfig((previous) =>
+      applyRecommendationsToConfig(
+        previous,
+        recommendations,
+        linkedPlatformsBySku,
+      ),
+    );
+  };
+
   const perPlatformColumns = useMemo(
     () =>
       getPerPlatformColumns(
         linkedPlatformsBySku,
         perPlatformConfig,
         setPerPlatformConfig,
+        recommendations,
       ),
-    [linkedPlatformsBySku, perPlatformConfig],
+    [linkedPlatformsBySku, perPlatformConfig, recommendations],
   );
 
-  const perPlatformData: PerPlatformRow[] = Object.entries(
-    perPlatformConfig,
-  ).map(([sku, config]) => ({
-    key: sku,
-    sku,
-    stock: config.stock,
-  }));
+  const perPlatformData: PerPlatformRow[] = useMemo(
+    () => toPerPlatformRows(perPlatformConfig),
+    [perPlatformConfig],
+  );
 
   return (
     <Modal
@@ -188,7 +204,7 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
     >
       <Radio.Group
         value={mode}
-        onChange={(event) => setMode(event.target.value as SyncMode)}
+        onChange={(event) => setMode(event.target.value as StockSyncMode)}
         style={{ marginBottom: 16 }}
       >
         <Radio.Button value="uniform">Uniform (same stock all)</Radio.Button>
@@ -198,79 +214,29 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
       </Radio.Group>
 
       {mode === "uniform" ? (
-        <div>
-          <Alert
-            message="All selected SKUs will be synced with the same stock value to checked platforms."
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-          />
-
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ display: "block", marginBottom: 4, fontWeight: 500 }}>
-              Stock Quantity
-            </div>
-            <InputNumber
-              min={0}
-              value={uniformStock}
-              onChange={(value) => setUniformStock(value ?? 0)}
-              style={{ width: 200 }}
-            />
-          </div>
-
-          <div>
-            <div style={{ display: "block", marginBottom: 4, fontWeight: 500 }}>
-              Target Platforms
-            </div>
-            <Space>
-              {PLATFORM_OPTIONS.map((platformOption) => (
-                <Checkbox
-                  key={platformOption.key}
-                  checked={uniformPlatforms[platformOption.key]}
-                  onChange={(event) =>
-                    setUniformPlatforms((previous) => ({
-                      ...previous,
-                      [platformOption.key]: event.target.checked,
-                    }))
-                  }
-                >
-                  {platformOption.label}
-                </Checkbox>
-              ))}
-            </Space>
-          </div>
-
-          <div style={{ marginTop: 16, color: token.colorTextSecondary }}>
-            {skippedSkuCount > 0 ? (
-              <Alert
-                message={`${skippedSkuCount} SKU(s) skipped because they are not linked to selected platforms.`}
-                type="warning"
-                showIcon
-                style={{ marginBottom: 12 }}
-              />
-            ) : null}
-            <Tag>{totalSelectedSkus} selected SKUs</Tag>
-            <Tag>{validItems.length} ready SKUs</Tag>
-            <Tag color="processing">{operationCount} sync operations</Tag>
-          </div>
-        </div>
+        <UniformStockSection
+          uniformStock={uniformStock}
+          onUniformStockChange={setUniformStock}
+          uniformPlatforms={uniformPlatforms}
+          onUniformPlatformChange={(platform, checked) => {
+            setUniformPlatforms((previous) => ({
+              ...previous,
+              [platform]: checked,
+            }));
+          }}
+          skippedSkuCount={skippedSkuCount}
+          totalSelectedSkus={totalSelectedSkus}
+          validSkuCount={validItems.length}
+          operationCount={operationCount}
+          secondaryTextColor={token.colorTextSecondary}
+        />
       ) : (
-        <div>
-          <Alert
-            message="Set stock and target platforms individually per SKU."
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-          />
-          <Table
-            columns={perPlatformColumns}
-            dataSource={perPlatformData}
-            size="small"
-            pagination={false}
-            scroll={{ y: 300 }}
-            bordered
-          />
-        </div>
+        <PerPlatformStockSection
+          recommendationsLoading={recommendationsLoading}
+          onApplyRecommendations={applyInventoryRecommendations}
+          perPlatformColumns={perPlatformColumns}
+          perPlatformData={perPlatformData}
+        />
       )}
     </Modal>
   );

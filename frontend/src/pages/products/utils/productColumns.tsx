@@ -3,12 +3,12 @@ import {
   DeleteOutlined,
   DownOutlined,
   EditOutlined,
+  FormOutlined,
   PictureOutlined,
   ShopOutlined,
 } from "@ant-design/icons";
 import type { MenuProps, TableColumnsType } from "antd";
-import { Avatar, Badge, Button, Dropdown, Space, Typography } from "antd";
-import { InlineEditCell } from "@/components/shared/InlineEditCell";
+import { Badge, Button, Dropdown, Space, Typography } from "antd";
 import { PlatformStatusCell } from "@/pages/products/components/PlatformStatusCell";
 import type { UnifiedProductRow } from "@/types/shared";
 import { toImageSrc } from "./unifiedProductUtils";
@@ -64,21 +64,32 @@ export function getTotalStock(skus: UnifiedProductRow["skus"]): number {
   return skus.reduce((sum, sku) => sum + sku.stock, 0);
 }
 
-export type RowActionKey = "edit" | "clone" | "sku_mapping" | "delete";
+export function getSkuCountLabel(count: number): string {
+  return `${count} SKU`;
+}
+
+export function getDisplayTitle(title: string, fallbackSku: string): string {
+  const trimmed = title.trim();
+  if (trimmed) {
+    return trimmed;
+  }
+
+  return fallbackSku.trim() || "Unnamed Product";
+}
+
+export type RowActionKey =
+  | "edit"
+  | "clone"
+  | "sku_mapping"
+  | "update_price"
+  | "update_stock"
+  | "delete";
 
 interface BuildProductColumnsOptions {
-  onInlinePriceSave: (skuId: number, price: number) => Promise<void>;
-  onInlineStockSave: (
-    skuId: number,
-    sellerSku: string,
-    stock: number,
-  ) => Promise<void>;
   onRowAction: (action: RowActionKey, record: UnifiedProductRow) => void;
 }
 
 export function buildProductColumns({
-  onInlinePriceSave,
-  onInlineStockSave,
   onRowAction,
 }: BuildProductColumnsOptions): Record<
   string,
@@ -90,14 +101,39 @@ export function buildProductColumns({
       dataIndex: "images",
       key: "image",
       width: 80,
-      render: (_, record) => (
-        <Avatar
-          shape="square"
-          size={48}
-          src={toImageSrc(record.images)}
-          icon={<PictureOutlined />}
-        />
-      ),
+      render: (_, record) => {
+        const imageSrc = toImageSrc(record.images);
+
+        return (
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 4,
+              border: "1px solid #e5e7eb",
+              background: "#f8fafc",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+            }}
+          >
+            {imageSrc ? (
+              <img
+                src={imageSrc}
+                alt={record.title || record.primary_sku}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                }}
+              />
+            ) : (
+              <PictureOutlined style={{ color: "#94a3b8", fontSize: 18 }} />
+            )}
+          </div>
+        );
+      },
     },
     name: {
       title: "Name",
@@ -105,14 +141,19 @@ export function buildProductColumns({
       width: 300,
       render: (_, record) => {
         const variantSummary = buildVariantSummary(record.skus);
+        const displayTitle = getDisplayTitle(record.title, record.primary_sku);
+
         return (
-          <Space direction="vertical" size={0}>
-            <Typography.Text strong>{record.title}</Typography.Text>
+          <Space direction="vertical" size={2} style={{ maxWidth: 300 }}>
+            <Typography.Text strong>{displayTitle}</Typography.Text>
             <Typography.Text type="secondary">
               SKU: {record.primary_sku}
             </Typography.Text>
             {variantSummary ? (
-              <Typography.Text type="secondary">
+              <Typography.Text
+                type="secondary"
+                ellipsis={{ tooltip: `Variant: ${variantSummary}` }}
+              >
                 Variant: {variantSummary}
               </Typography.Text>
             ) : null}
@@ -125,32 +166,23 @@ export function buildProductColumns({
       key: "price",
       width: 140,
       render: (_, record) => {
-        if (record.skus.length === 0) {
-          return <Typography.Text type="secondary">-</Typography.Text>;
-        }
-
-        if (record.skus.length === 1) {
-          const sku = record.skus[0];
-          return (
-            <div className="inline-edit-cell" data-field="price">
-              <InlineEditCell
-                value={sku.price}
-                mode="price"
-                prefix="Rp"
-                onSave={(value) => onInlinePriceSave(sku.id, value)}
-              />
-            </div>
-          );
-        }
-
         return (
-          <Space direction="vertical" size={0}>
+          <Space direction="vertical" size={2}>
             <Typography.Text>
               {getPriceDisplayText(record.skus)}
             </Typography.Text>
             <Typography.Text type="secondary">
-              {record.skus.length} variants
+              {getSkuCountLabel(record.skus.length)}
             </Typography.Text>
+            <Button
+              size="small"
+              type="link"
+              icon={<FormOutlined />}
+              onClick={() => onRowAction("update_price", record)}
+              style={{ padding: 0 }}
+            >
+              Edit in modal
+            </Button>
           </Space>
         );
       },
@@ -160,33 +192,23 @@ export function buildProductColumns({
       key: "stock",
       width: 120,
       render: (_, record) => {
-        if (record.skus.length === 0) {
-          return <Typography.Text type="secondary">-</Typography.Text>;
-        }
-
-        if (record.skus.length === 1) {
-          const sku = record.skus[0];
-          return (
-            <div className="inline-edit-cell" data-field="stock">
-              <InlineEditCell
-                value={sku.stock}
-                mode="stock"
-                onSave={(value) =>
-                  onInlineStockSave(sku.id, sku.seller_sku, value)
-                }
-              />
-            </div>
-          );
-        }
-
         return (
-          <Space direction="vertical" size={0}>
+          <Space direction="vertical" size={2}>
             <Typography.Text>
               {idrNumberFormatter.format(getTotalStock(record.skus))}
             </Typography.Text>
             <Typography.Text type="secondary">
-              {record.skus.length} variants
+              {getSkuCountLabel(record.skus.length)}
             </Typography.Text>
+            <Button
+              size="small"
+              type="link"
+              icon={<FormOutlined />}
+              onClick={() => onRowAction("update_stock", record)}
+              style={{ padding: 0 }}
+            >
+              Edit in modal
+            </Button>
           </Space>
         );
       },
@@ -236,6 +258,16 @@ export function buildProductColumns({
             key: "sku_mapping",
             icon: <ShopOutlined />,
             label: "SKU Mapping",
+          },
+          {
+            key: "update_stock",
+            icon: <FormOutlined />,
+            label: "Update Stock",
+          },
+          {
+            key: "update_price",
+            icon: <FormOutlined />,
+            label: "Update Price",
           },
           { type: "divider" },
           {

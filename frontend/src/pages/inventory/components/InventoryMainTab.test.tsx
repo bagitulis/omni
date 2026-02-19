@@ -3,8 +3,16 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { InventoryMainTab } from "./InventoryMainTab";
 import type { InventoryRecord } from "@/types/inventory";
+import type { MarketplaceAllocationSettings } from "../utils/marketplaceAllocation";
 
 const capturedProps: Array<Record<string, unknown>> = [];
+
+const marketplaceSettings: MarketplaceAllocationSettings = {
+  totalColumn: "Stock",
+  autoColumn: "AUTO",
+  shopeeRatio: 0.6,
+  tiktokRatio: 0.3,
+};
 
 vi.mock("@/components/common/VirtualTable", () => ({
   VirtualTable: (props: Record<string, unknown>) => {
@@ -52,6 +60,7 @@ describe("InventoryMainTab", () => {
         onRetry={vi.fn()}
         visibleColumns={["SKU", "SHOPEE", "Stock"]}
         lockedColumns={[]}
+        marketplaceSettings={marketplaceSettings}
         selectedRowKeys={[]}
         onSelectionChange={vi.fn()}
       />,
@@ -95,6 +104,7 @@ describe("InventoryMainTab", () => {
         onRetry={vi.fn()}
         visibleColumns={["Masuk", "Nama Variasi", "TOTAL"]}
         lockedColumns={[]}
+        marketplaceSettings={marketplaceSettings}
         selectedRowKeys={[]}
         onSelectionChange={vi.fn()}
       />,
@@ -155,6 +165,7 @@ describe("InventoryMainTab", () => {
         onRetry={vi.fn()}
         visibleColumns={["Nama Barang", "Nama Variasi"]}
         lockedColumns={[]}
+        marketplaceSettings={marketplaceSettings}
         selectedRowKeys={[]}
         onSelectionChange={vi.fn()}
       />,

@@ -1,14 +1,7 @@
-import {
-  Drawer,
-  Empty,
-  InputNumber,
-  Modal,
-  Space,
-  Spin,
-  Typography,
-} from "antd";
+import { Drawer, Empty, Modal, Spin } from "antd";
 import { CloneBatchModal } from "@/components/clone/CloneBatchModal";
 import { CloneProductModal } from "@/components/clone/CloneProductModal";
+import { PriceSyncModal } from "@/components/shared/PriceSyncModal";
 import { WholesaleMpqModal } from "@/components/shared/WholesaleMpqModal";
 import { ClonePreviewDiff } from "@/components/shared/ClonePreviewDiff";
 import { SkuMappingPanel } from "@/components/shared/SkuMappingPanel";
@@ -18,14 +11,14 @@ import type { Platform, UnifiedProductRow } from "@/types/shared";
 
 interface UnifiedProductsModalsProps {
   selectedRecords: UnifiedProductRow[];
+  stockSyncProducts: UnifiedProductRow[];
+  priceSyncProducts: UnifiedProductRow[];
   selectedLegacyProducts: Product[];
   selectedProduct: UnifiedProductRow | null;
-  selectedSkus: string[];
   wholesaleMpqDefaultTab: "wholesale" | "mpq";
-  batchPriceValue: number;
   stockSyncOpen: boolean;
+  priceSyncOpen: boolean;
   wholesaleMpqOpen: boolean;
-  batchPriceOpen: boolean;
   clonePreviewOpen: boolean;
   cloneModalOpen: boolean;
   batchCloneOpen: boolean;
@@ -33,15 +26,20 @@ interface UnifiedProductsModalsProps {
   skuMappingLoading: boolean;
   skuMappingProduct: MasterProduct | null;
   onStockSyncClose: () => void;
+  onPriceSyncClose: () => void;
   onWholesaleMpqClose: () => void;
-  onBatchPriceClose: () => void;
   onClonePreviewClose: () => void;
   onClonePreviewContinue: () => void;
   onCloneModalClose: () => void;
   onBatchCloneClose: () => void;
   onSkuMappingClose: () => void;
-  onBatchPriceValueChange: (value: number) => void;
-  onBatchPriceUpdate: () => Promise<void>;
+  onPriceSync: (
+    items: Array<{
+      seller_sku: string;
+      price: number;
+      platforms: Platform[];
+    }>,
+  ) => Promise<void>;
   onStockSync: (
     items: Array<{
       seller_sku: string;
@@ -54,14 +52,14 @@ interface UnifiedProductsModalsProps {
 
 export function UnifiedProductsModals({
   selectedRecords,
+  stockSyncProducts,
+  priceSyncProducts,
   selectedLegacyProducts,
   selectedProduct,
-  selectedSkus,
   wholesaleMpqDefaultTab,
-  batchPriceValue,
   stockSyncOpen,
+  priceSyncOpen,
   wholesaleMpqOpen,
-  batchPriceOpen,
   clonePreviewOpen,
   cloneModalOpen,
   batchCloneOpen,
@@ -69,15 +67,14 @@ export function UnifiedProductsModals({
   skuMappingLoading,
   skuMappingProduct,
   onStockSyncClose,
+  onPriceSyncClose,
   onWholesaleMpqClose,
-  onBatchPriceClose,
   onClonePreviewClose,
   onClonePreviewContinue,
   onCloneModalClose,
   onBatchCloneClose,
   onSkuMappingClose,
-  onBatchPriceValueChange,
-  onBatchPriceUpdate,
+  onPriceSync,
   onStockSync,
   onSkuMappingUpdate,
 }: UnifiedProductsModalsProps) {
@@ -87,7 +84,14 @@ export function UnifiedProductsModals({
         open={stockSyncOpen}
         onClose={onStockSyncClose}
         onSync={onStockSync}
-        selectedProducts={selectedRecords}
+        selectedProducts={stockSyncProducts}
+      />
+
+      <PriceSyncModal
+        open={priceSyncOpen}
+        onClose={onPriceSyncClose}
+        onSync={onPriceSync}
+        selectedProducts={priceSyncProducts}
       />
 
       <WholesaleMpqModal
@@ -96,26 +100,6 @@ export function UnifiedProductsModals({
         selectedRecords={selectedRecords}
         defaultTab={wholesaleMpqDefaultTab}
       />
-
-      <Modal
-        title={`Batch Price Update (${selectedSkus.length} SKUs)`}
-        open={batchPriceOpen}
-        onCancel={onBatchPriceClose}
-        onOk={() => {
-          void onBatchPriceUpdate();
-        }}
-        okText="Update Price"
-      >
-        <Space direction="vertical" style={{ width: "100%" }}>
-          <Typography.Text>Set new price for selected SKUs.</Typography.Text>
-          <InputNumber
-            style={{ width: "100%" }}
-            min={1}
-            value={batchPriceValue}
-            onChange={(value) => onBatchPriceValueChange(value || 0)}
-          />
-        </Space>
-      </Modal>
 
       <Modal
         title="Clone Preview"

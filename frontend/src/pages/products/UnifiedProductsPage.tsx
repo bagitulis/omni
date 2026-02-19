@@ -1,20 +1,4 @@
-import {
-  AppstoreOutlined,
-  BarsOutlined,
-  CloudDownloadOutlined,
-  PlusOutlined,
-  UploadOutlined,
-} from "@ant-design/icons";
-import {
-  Button,
-  Card,
-  Divider,
-  Grid,
-  Space,
-  Table,
-  type TableColumnsType,
-  Typography,
-} from "antd";
+import { Card, Divider, Grid, Space, type TableColumnsType } from "antd";
 import type { Key } from "react";
 import {
   lazy,
@@ -25,15 +9,14 @@ import {
   useState,
 } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ColumnManager } from "@/components/shared/ColumnManager";
-import { ProductFilters } from "@/components/shared/ProductFilters";
 import { UnifiedBatchBar } from "@/components/shared/UnifiedBatchBar";
 import { useColumnManager } from "@/hooks/useColumnManager";
 import { useMarketplaceSyncHistory } from "@/hooks/useMarketplaceSyncHistory";
 import { useUnifiedProducts } from "@/hooks/useUnifiedProducts";
-import { ProductGridView } from "@/pages/products/components/ProductGridView";
-import { ProductVariantExpandedRow } from "@/pages/products/components/ProductVariantExpandedRow";
+import { UnifiedProductsHeaderActions } from "@/pages/products/components/UnifiedProductsHeaderActions";
+import { UnifiedProductsListOrGrid } from "@/pages/products/components/UnifiedProductsListOrGrid";
 import { UnifiedProductsModals } from "@/pages/products/components/UnifiedProductsModals";
+import { UnifiedProductsControls } from "@/pages/products/components/UnifiedProductsControls";
 import { useUnifiedProductsActions } from "@/pages/products/hooks/useUnifiedProductsActions";
 import { buildProductColumns } from "@/pages/products/utils/productColumns";
 import {
@@ -128,6 +111,8 @@ export default function UnifiedProductsPage() {
   const {
     stockSyncOpen,
     setStockSyncOpen,
+    priceSyncOpen,
+    setPriceSyncOpen,
     cloneModalOpen,
     setCloneModalOpen,
     batchCloneOpen,
@@ -137,22 +122,17 @@ export default function UnifiedProductsPage() {
     wholesaleMpqOpen,
     setWholesaleMpqOpen,
     wholesaleMpqDefaultTab,
-    batchPriceOpen,
-    setBatchPriceOpen,
     clonePreviewOpen,
     setClonePreviewOpen,
-    batchPriceValue,
-    setBatchPriceValue,
+    stockSyncProducts,
+    priceSyncProducts,
     selectedProduct,
     setSelectedProduct,
     skuMappingProduct,
     setSkuMappingProduct,
     skuMappingLoading,
-    selectedSkus,
     handleDeleteProduct,
-    handleInlinePriceSave,
-    handleInlineStockSave,
-    handleBatchPriceUpdate,
+    handlePriceSync,
     handleStockSync,
     handleRowAction,
     handleBatchAction,
@@ -166,11 +146,9 @@ export default function UnifiedProductsPage() {
   const tableColumnMap = useMemo(
     () =>
       buildProductColumns({
-        onInlinePriceSave: handleInlinePriceSave,
-        onInlineStockSave: handleInlineStockSave,
         onRowAction: handleRowAction,
       }),
-    [handleInlinePriceSave, handleInlineStockSave, handleRowAction],
+    [handleRowAction],
   );
 
   const activeColumns = useMemo(() => {
@@ -193,32 +171,10 @@ export default function UnifiedProductsPage() {
   return (
     <div style={{ padding: 24 }}>
       <Space direction="vertical" size={16} style={{ width: "100%" }}>
-        <Space style={{ width: "100%", justifyContent: "space-between" }} wrap>
-          <Typography.Title level={2} style={{ margin: 0 }}>
-            Products
-          </Typography.Title>
-          <Space wrap>
-            <Button
-              icon={<PlusOutlined />}
-              type="primary"
-              onClick={() => navigate("/master-products/add")}
-            >
-              Add Product
-            </Button>
-            <Button
-              icon={<UploadOutlined />}
-              onClick={() => navigate("/master-products/import")}
-            >
-              Import
-            </Button>
-            <Button
-              icon={<CloudDownloadOutlined />}
-              onClick={() => navigate("/products/sync-history")}
-            >
-              Sync History ({syncHistoryData?.total ?? 0})
-            </Button>
-          </Space>
-        </Space>
+        <UnifiedProductsHeaderActions
+          navigate={navigate}
+          syncHistoryTotal={syncHistoryData?.total ?? 0}
+        />
 
         <Card>
           <Suspense
@@ -229,103 +185,37 @@ export default function UnifiedProductsPage() {
 
           <Divider style={{ margin: "12px 0" }} />
 
-          <ProductFilters
-            values={filters}
-            onChange={handleFilterChange}
-            showCategory={true}
-            showStatus={true}
+          <UnifiedProductsControls
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            isMobile={isMobile}
+            columns={columns}
+            onColumnsChange={updateOrder}
+            onResetColumns={reset}
           />
-          <Divider style={{ margin: "8px 0" }} />
 
-          <Space
-            style={{
-              width: "100%",
-              justifyContent: "space-between",
-              marginBottom: 12,
+          <UnifiedProductsListOrGrid
+            viewMode={viewMode}
+            isLoading={isLoading}
+            activeColumns={activeColumns}
+            products={products}
+            legacyProducts={legacyProducts}
+            selectedRowKeys={selectedRowKeys}
+            onSelectionChange={(keys, rows) => {
+              setSelectedRowKeys(keys);
+              setSelectedRecords(rows);
             }}
-          >
-            <Space className="view-toggle">
-              <Button
-                data-view="list"
-                type={viewMode === "list" ? "primary" : "default"}
-                icon={<BarsOutlined />}
-                onClick={() => setViewMode("list")}
-              >
-                List
-              </Button>
-              <Button
-                data-view="grid"
-                type={viewMode === "grid" ? "primary" : "default"}
-                icon={<AppstoreOutlined />}
-                onClick={() => setViewMode("grid")}
-              >
-                Grid
-              </Button>
-            </Space>
-
-            {!isMobile ? (
-              <ColumnManager
-                columns={columns}
-                onChange={updateOrder}
-                onReset={reset}
-              />
-            ) : null}
-          </Space>
-
-          {viewMode === "list" ? (
-            <Table<UnifiedProductRow>
-              rowKey="id"
-              loading={isLoading}
-              columns={activeColumns}
-              dataSource={products}
-              expandable={{
-                rowExpandable: (record) => record.skus.length > 1,
-                expandIconColumnIndex: 1,
-                expandedRowRender: (record) => (
-                  <ProductVariantExpandedRow
-                    product={record}
-                    onInlinePriceSave={handleInlinePriceSave}
-                    onInlineStockSave={handleInlineStockSave}
-                  />
-                ),
-              }}
-              rowSelection={{
-                selectedRowKeys,
-                onChange: (keys, rows) => {
-                  setSelectedRowKeys(keys);
-                  setSelectedRecords(rows);
-                },
-              }}
-              scroll={{ x: "max-content" }}
-              pagination={{
-                current: page,
-                pageSize,
-                total,
-                showSizeChanger: true,
-                showTotal: (count) => `Total ${count} products`,
-                onChange: (nextPage, nextPageSize) => {
-                  setPage(nextPage);
-                  setPageSize(nextPageSize);
-                },
-              }}
-            />
-          ) : (
-            <div className="product-grid-view">
-              <ProductGridView
-                products={legacyProducts}
-                page={page}
-                pageSize={pageSize}
-                total={total}
-                onPageChange={(nextPage, nextPageSize) => {
-                  setPage(nextPage);
-                  setPageSize(nextPageSize);
-                }}
-                onDelete={(id) => {
-                  void handleDeleteProduct(id);
-                }}
-              />
-            </div>
-          )}
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={(nextPage, nextPageSize) => {
+              setPage(nextPage);
+              setPageSize(nextPageSize);
+            }}
+            onDeleteProduct={handleDeleteProduct}
+          />
         </Card>
       </Space>
 
@@ -343,14 +233,14 @@ export default function UnifiedProductsPage() {
 
       <UnifiedProductsModals
         selectedRecords={selectedRecords}
+        stockSyncProducts={stockSyncProducts}
+        priceSyncProducts={priceSyncProducts}
         selectedLegacyProducts={selectedLegacyProducts}
         selectedProduct={selectedProduct}
-        selectedSkus={selectedSkus}
         wholesaleMpqDefaultTab={wholesaleMpqDefaultTab}
-        batchPriceValue={batchPriceValue}
         stockSyncOpen={stockSyncOpen}
+        priceSyncOpen={priceSyncOpen}
         wholesaleMpqOpen={wholesaleMpqOpen}
-        batchPriceOpen={batchPriceOpen}
         clonePreviewOpen={clonePreviewOpen}
         cloneModalOpen={cloneModalOpen}
         batchCloneOpen={batchCloneOpen}
@@ -358,8 +248,8 @@ export default function UnifiedProductsPage() {
         skuMappingLoading={skuMappingLoading}
         skuMappingProduct={skuMappingProduct}
         onStockSyncClose={() => setStockSyncOpen(false)}
+        onPriceSyncClose={() => setPriceSyncOpen(false)}
         onWholesaleMpqClose={() => setWholesaleMpqOpen(false)}
-        onBatchPriceClose={() => setBatchPriceOpen(false)}
         onClonePreviewClose={() => setClonePreviewOpen(false)}
         onClonePreviewContinue={() => {
           setClonePreviewOpen(false);
@@ -374,8 +264,7 @@ export default function UnifiedProductsPage() {
           setSkuMappingOpen(false);
           setSkuMappingProduct(null);
         }}
-        onBatchPriceValueChange={setBatchPriceValue}
-        onBatchPriceUpdate={handleBatchPriceUpdate}
+        onPriceSync={handlePriceSync}
         onStockSync={handleStockSync}
         onSkuMappingUpdate={() => {
           void refreshProducts();

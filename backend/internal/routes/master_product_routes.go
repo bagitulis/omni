@@ -61,6 +61,12 @@ func RegisterMasterProductImportRoutes(router *gin.RouterGroup, basePath string)
 			// Preview import
 			// GET /api/master-products/import/preview?platform=shopee&item_id=123
 			importGroup.GET("/preview", importHandler.Preview)
+			// POST /api/master-products/import/preview (multipart file upload)
+			importGroup.POST("/preview", importHandler.Preview)
+
+			// Download import template
+			// GET /api/master-products/import/template?format=xlsx
+			importGroup.GET("/template", importHandler.DownloadTemplate)
 
 			// Execute import
 			// POST /api/master-products/import
