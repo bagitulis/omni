@@ -246,3 +246,17 @@ func firstImageFromJSONArray(images models.JSONArray) string {
 	}
 	return ""
 }
+
+// findExistingImageByURL checks if an image URL was already downloaded during product sync.
+// Returns the medium-size path if found, empty string otherwise.
+func (r *GormOrderRepository) findExistingImageByURL(ctx context.Context, db *gorm.DB, imageURL string) string {
+	var img models.Image
+	err := db.WithContext(ctx).
+		Where("tenant_id = ? AND original_url = ?", r.tenantID, imageURL).
+		First(&img).Error
+	if err != nil || img.LocalPath == "" {
+		return ""
+	}
+	// Return the medium-size path with /uploads/ prefix
+	return "/uploads/" + img.LocalPath + "/medium.webp"
+}

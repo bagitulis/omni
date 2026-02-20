@@ -11,6 +11,14 @@ import { GroupedOrder } from "./OrderTable.types";
 
 const { Text } = Typography;
 
+function normalizeProductImage(src: string | undefined): string | undefined {
+  if (!src) return undefined;
+  if (src.startsWith("http://") || src.startsWith("https://")) return src;
+  const normalized = src.replace(/\/thumb\.webp$/, "/medium.webp");
+  if (normalized.startsWith("/uploads/")) return normalized;
+  return `/uploads${normalized.startsWith("/") ? "" : "/"}${normalized}`;
+}
+
 export function CopyButton({ text }: { text: string }) {
   const { token } = theme.useToken();
   const [copied, setCopied] = useState(false);
@@ -96,7 +104,7 @@ export function ProductCellWithBuyer({ order }: { order: GroupedOrder }) {
             <Avatar
               shape="square"
               size={52}
-              src={item.product_image}
+              src={normalizeProductImage(item.product_image)}
               icon={<ShoppingOutlined />}
               style={{
                 flexShrink: 0,

@@ -187,7 +187,7 @@ func (s *SyncService) syncProductImages(
 }
 
 // downloadAndSaveProductImages downloads product images using unified ImageManager.
-// Returns slice of local paths (thumb size for display). Errors are logged but do not break sync.
+// Returns slice of local paths (medium size for display). Errors are logged but do not break sync.
 func (s *SyncService) downloadAndSaveProductImages(ctx context.Context, productID string, imageURLs []string) []string {
 	zlog := zerolog.Ctx(ctx)
 	localPaths := make([]string, 0, len(imageURLs))
@@ -204,7 +204,7 @@ func (s *SyncService) downloadAndSaveProductImages(ctx context.Context, productI
 		}
 
 		paths := s.imgMgr.GetPaths(img)
-		localPaths = append(localPaths, paths.Thumb)
+		localPaths = append(localPaths, paths.Medium)
 	}
 
 	return localPaths

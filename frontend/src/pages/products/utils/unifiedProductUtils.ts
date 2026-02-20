@@ -71,11 +71,13 @@ export function toImageSrc(images: string[]): string | undefined {
   }
 
   // Local paths need /uploads/ prefix for static file serving
+  // Also normalize legacy thumb paths → medium quality
   if (firstImage.startsWith("/")) {
-    if (firstImage.startsWith("/uploads/")) {
-      return firstImage;
+    const normalized = firstImage.replace(/\/thumb\.webp$/, "/medium.webp");
+    if (normalized.startsWith("/uploads/")) {
+      return normalized;
     }
-    return `/uploads${firstImage}`;
+    return `/uploads${normalized}`;
   }
 
   return getImageUrl(firstImage, "medium");

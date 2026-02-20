@@ -148,7 +148,7 @@ func (s *SyncService) buildProductRows(apiProduct lazadaPkg.Product) []map[strin
 }
 
 // downloadAndSaveProductImages downloads product images using unified ImageManager.
-// Returns slice of local paths (thumb size for display). Errors are logged but don't break sync.
+// Returns slice of local paths (medium size for display). Errors are logged but don't break sync.
 func (s *SyncService) downloadAndSaveProductImages(ctx context.Context, itemID string, imageURLs []string) []string {
 	localPaths := make([]string, 0, len(imageURLs))
 	zlog := zerolog.Ctx(ctx)
@@ -170,7 +170,7 @@ func (s *SyncService) downloadAndSaveProductImages(ctx context.Context, itemID s
 		}
 
 		paths := s.imgMgr.GetPaths(img)
-		localPaths = append(localPaths, paths.Thumb)
+		localPaths = append(localPaths, paths.Medium)
 	}
 
 	return localPaths

@@ -164,6 +164,12 @@ func (r *GormOrderRepository) cacheTiktokProductImage(
 		return cached
 	}
 
+	// Check if image was already downloaded during product sync (dedup)
+	if existing := r.findExistingImageByURL(ctx, db, item.ProductImage); existing != "" {
+		urlCache[item.ProductImage] = existing
+		return existing
+	}
+
 	allowedHosts := []string{"ibyteimg.com", "tiktokcdn.com"}
 	localPath, err := cacheService.CacheRemoteImage(
 		ctx,

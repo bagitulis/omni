@@ -105,7 +105,7 @@ export const GalleryGrid: FC<GalleryGridProps> = ({
             }}
           >
             <img
-              src={getImageUrl(img.local_path, "thumb")}
+              src={getImageUrl(img.local_path, "medium")}
               alt={img.filename}
               loading="lazy"
               style={{

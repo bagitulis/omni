@@ -152,6 +152,12 @@ func (r *GormOrderRepository) cacheShopeeProductImage(
 		return cached
 	}
 
+	// Check if image was already downloaded during product sync (dedup)
+	if existing := r.findExistingImageByURL(ctx, db, item.ProductImage); existing != "" {
+		urlCache[item.ProductImage] = existing
+		return existing
+	}
+
 	allowedHosts := []string{"shopee.co.id", "susercontent.com"}
 	localPath, err := cacheService.CacheRemoteImage(
 		ctx,
