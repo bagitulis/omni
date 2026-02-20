@@ -19,7 +19,7 @@ func (s *SyncService) fetchAllProducts(ctx context.Context) ([]tiktokPkg.Product
 	totalCount := 0
 
 	for {
-		resp, err := s.client.SearchProductsV202502("", 100, nextPageToken)
+		resp, err := s.client.SearchProductsV202502("ACTIVATE", 100, nextPageToken)
 		if err != nil {
 			return nil, 0, err
 		}
