@@ -1,15 +1,9 @@
 import { type Node, type Edge } from "@xyflow/react";
-import {
-  forceSimulation,
-  forceLink,
-  forceManyBody,
-  forceCollide,
-  forceX,
-  forceY,
-  type SimulationNodeDatum,
-} from "d3-force";
 import type { RouteData } from "@/types/routeMapping";
 import type { GlobalToken } from "antd";
+
+// Re-export layout function so existing consumers don't break
+export { runForceLayout } from "./graphLayout";
 
 // --- Types ---
 
@@ -41,22 +35,13 @@ export interface FilterOptions {
   searchTerm: string;
 }
 
-// --- D3 Types ---
-interface SimNode extends SimulationNodeDatum {
-  id: string;
-  type: "component" | "route";
-  x?: number;
-  y?: number;
-}
-
 // --- Constants ---
 const COMPONENT_WIDTH = 180;
 const ROUTE_WIDTH = 160;
 
-/** Converts any CSS color string to rgba with the given alpha (0–1).
- *  Handles hex (#rrggbb, #rgb) and rgb/rgba(...) formats safely.
- *  Falls back to the original color if parsing fails.
- */
+// --- Color Helpers ---
+
+/** Converts any CSS color string to rgba with the given alpha (0–1). */
 const withAlpha = (color: string, alpha: number): string => {
   const hex6 = /^#([0-9a-f]{6})$/i.exec(color);
   if (hex6) {
@@ -78,46 +63,36 @@ const withAlpha = (color: string, alpha: number): string => {
   if (rgbMatch) {
     return `rgba(${rgbMatch[1]},${rgbMatch[2]},${rgbMatch[3]},${alpha})`;
   }
-  // Fallback: return the original color unchanged
   return color;
 };
 
-// --- Helpers ---
+const getRouteKey = (method: string | undefined, endpoint: string) =>
+  `${method || "GET"} ${endpoint}`;
 
-const getRouteKey = (method: string | undefined, endpoint: string) => {
-  return `${method || "GET"} ${endpoint}`;
+const METHOD_COLOR_MAP: Record<string, keyof GlobalToken> = {
+  GET: "colorInfo",
+  POST: "colorSuccess",
+  DELETE: "colorError",
+  PUT: "colorWarning",
 };
 
 const getMethodColor = (method: string = "GET", token: GlobalToken) => {
-  switch (method.toUpperCase()) {
-    case "GET":
-      return token.colorInfo; // Blue
-    case "POST":
-      return token.colorSuccess; // Green
-    case "DELETE":
-      return token.colorError; // Red
-    case "PUT":
-      return token.colorWarning; // Orange
-    case "PATCH":
-      return "#722ed1"; // Purple (preset)
-    default:
-      return token.colorTextSecondary;
-  }
+  const upper = method.toUpperCase();
+  if (upper === "PATCH") return "#722ed1";
+  const key = METHOD_COLOR_MAP[upper];
+  return key ? (token[key] as string) : (token.colorTextSecondary as string);
+};
+
+const STATUS_COLOR_MAP: Record<string, keyof GlobalToken> = {
+  connected: "colorSuccess",
+  frontend_only: "colorWarning",
+  backend_only: "colorTextQuaternary",
+  unused: "colorTextQuaternary",
 };
 
 const getStatusColor = (status: string, token: GlobalToken) => {
-  switch (status) {
-    case "connected":
-      return token.colorSuccess;
-    case "frontend_only":
-      return token.colorWarning;
-    case "backend_only":
-      return token.colorTextQuaternary;
-    case "unused":
-      return token.colorTextQuaternary;
-    default:
-      return token.colorBorder;
-  }
+  const key = STATUS_COLOR_MAP[status];
+  return key ? (token[key] as string) : (token.colorBorder as string);
 };
 
 // --- Main Transformation Logic ---
@@ -136,55 +111,50 @@ export const transformDataToGraph = (
     "connected" | "frontend_only" | "backend_only" | "unused"
   >();
 
-  data.categories.connected.forEach((r) => {
-    routeStatusMap.set(getRouteKey(r.method, r.endpoint), "connected");
-  });
-  data.categories.frontend_only.forEach((r) => {
-    routeStatusMap.set(getRouteKey(r.method, r.endpoint), "frontend_only");
-  });
-  data.categories.backend_only.forEach((r) => {
-    routeStatusMap.set(getRouteKey(r.method, r.endpoint), "backend_only");
-  });
-  data.categories.unused.forEach((r) => {
-    routeStatusMap.set(getRouteKey(r.method, r.endpoint), "unused");
-  });
+  const statusEntries: [
+    keyof RouteData["categories"],
+    "connected" | "frontend_only" | "backend_only" | "unused",
+  ][] = [
+    ["connected", "connected"],
+    ["frontend_only", "frontend_only"],
+    ["backend_only", "backend_only"],
+    ["unused", "unused"],
+  ];
+
+  for (const [cat, status] of statusEntries) {
+    data.categories[cat].forEach((r) => {
+      routeStatusMap.set(getRouteKey(r.method, r.endpoint), status);
+    });
+  }
 
   // 2. Filter & Collect Component Nodes
   const relevantRoutes = new Set<string>();
 
   Object.entries(data.components).forEach(([name, detail]) => {
-    // Search filter
     if (
       filters.searchTerm &&
       !name.toLowerCase().includes(filters.searchTerm.toLowerCase())
-    ) {
+    )
       return;
-    }
 
     const routesCalled = detail.routes_called || [];
+    if (routesCalled.length === 0) return;
 
-    // Check if component has ANY relevant routes based on filters
     const hasRelevantRoute = routesCalled.some((routeStr) => {
       const status = routeStatusMap.get(routeStr) || "unknown";
       if (status === "connected" && filters.showConnected) return true;
       if (status === "frontend_only" && filters.showFrontendOnly) return true;
       if (status === "backend_only" && filters.showBackendOnly) return true;
       if (status === "unused" && filters.showUnused) return true;
-      if (status === "unknown") return false;
       return false;
     });
-
-    if (routesCalled.length === 0) return;
 
     if (hasRelevantRoute || filters.searchTerm) {
       nodes.push({
         id: name,
         type: "component",
         position: { x: 0, y: 0 },
-        data: {
-          label: name,
-          details: detail.path || "",
-        },
+        data: { label: name, details: detail.path || "" },
         style: {
           width: COMPONENT_WIDTH,
           background: token.colorFillSecondary,
@@ -215,14 +185,14 @@ export const transformDataToGraph = (
 
   // 3. Add Backend/Unused Routes
   if (filters.showBackendOnly) {
-    data.categories.backend_only.forEach((r) => {
-      relevantRoutes.add(getRouteKey(r.method, r.endpoint));
-    });
+    data.categories.backend_only.forEach((r) =>
+      relevantRoutes.add(getRouteKey(r.method, r.endpoint)),
+    );
   }
   if (filters.showUnused) {
-    data.categories.unused.forEach((r) => {
-      relevantRoutes.add(getRouteKey(r.method, r.endpoint));
-    });
+    data.categories.unused.forEach((r) =>
+      relevantRoutes.add(getRouteKey(r.method, r.endpoint)),
+    );
   }
 
   // 4. Create Route Nodes
@@ -234,22 +204,14 @@ export const transformDataToGraph = (
     const color = getStatusColor(status, token);
     const methodColor = getMethodColor(method, token);
 
-    const bgAlpha = withAlpha(color, 0.1);
-
     nodes.push({
       id: routeStr,
       type: "route",
       position: { x: 0, y: 0 },
-      data: {
-        label: endpoint,
-        method: method,
-        status: status,
-        color: color,
-        details: methodColor,
-      },
+      data: { label: endpoint, method, status, color, details: methodColor },
       style: {
         width: ROUTE_WIDTH,
-        background: bgAlpha,
+        background: withAlpha(color, 0.1),
         borderColor: color,
         borderStyle: "solid",
         borderWidth: 1,
@@ -260,50 +222,4 @@ export const transformDataToGraph = (
   });
 
   return { nodes, edges };
-};
-
-export const runForceLayout = (nodes: GraphNode[], edges: Edge[]) => {
-  const simNodes: SimNode[] = nodes.map((n) => ({
-    id: n.id,
-    type: n.type as "component" | "route",
-    x: n.position.x,
-    y: n.position.y,
-  }));
-
-  const simLinks = edges.map((e) => ({
-    source: e.source,
-    target: e.target,
-  }));
-
-  const simulation = forceSimulation(simNodes)
-    .force(
-      "link",
-      forceLink(simLinks)
-        .id((d) => (d as SimNode).id)
-        .distance(200),
-    )
-    .force("charge", forceManyBody().strength(-300))
-    .force(
-      "collide",
-      forceCollide().radius((d) =>
-        (d as SimNode).type === "component" ? 100 : 50,
-      ),
-    )
-    .force(
-      "x",
-      forceX()
-        .x((d) => ((d as SimNode).type === "component" ? -300 : 300))
-        .strength(0.5),
-    )
-    .force("y", forceY().strength(0.1));
-
-  simulation.tick(300);
-
-  return nodes.map((node, i) => {
-    const simNode = simNodes[i];
-    return {
-      ...node,
-      position: { x: simNode.x || 0, y: simNode.y || 0 },
-    };
-  });
 };

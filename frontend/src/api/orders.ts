@@ -16,32 +16,29 @@ import {
   type RawOrder,
 } from "./orderTransforms";
 
-/**
- * Order tab types matching Vue frontend
- */
-export type OrderTab =
-  | "unpaid"
-  | "unprocess"
-  | "processed"
-  | "shipped"
-  | "completed"
-  | "cancelled"
-  | "locked"
-  | "today";
+// Re-export types so existing consumers don't break
+export type {
+  OrderTab,
+  GetOrdersParams,
+  BulkPrintLabelsResponse,
+  BulkPrintLabelsOptions,
+  CancelOrderParams,
+  ShipOrderParams,
+  LazadaDocumentResponse,
+} from "./orderTypes";
 
-export interface GetOrdersParams {
-  page?: number;
-  pageSize?: number;
-  status?: string;
-  platform?: string;
-  search?: string;
-  startDate?: string;
-  endDate?: string;
-}
+import type {
+  GetOrdersParams,
+  BulkPrintLabelsOptions,
+  BulkPrintLabelsResponse,
+  CancelOrderParams,
+  ShipOrderParams,
+  LazadaDocumentResponse,
+  OrderTab,
+} from "./orderTypes";
 
-/**
- * Fetch orders by tab/status
- */
+// --- Fetch Operations ---
+
 export async function getOrders(
   params: GetOrdersParams = {},
 ): Promise<OrderListResponse> {
@@ -49,7 +46,6 @@ export async function getOrders(
   const normalizedStatus = normalizeOrderTabKey(status);
   const endpoint = getOrderEndpointFromTab(normalizedStatus);
 
-  // Use axios AxiosResponse type for direct client calls
   interface AxiosResponse<T> {
     data: T;
   }
@@ -58,19 +54,17 @@ export async function getOrders(
     BackendOrderResponse & { success: boolean; error?: string }
   >;
 
-  // Special handling for locked and today tabs which require POST
   if (normalizedStatus === "locked" || normalizedStatus === "today") {
     axiosResponse = await apiClient.client.post<
       BackendOrderResponse & { success: boolean }
     >(endpoint, {
-      days: 7, // Default to 7 days like Vue
+      days: 7,
       page: params.page,
       pageSize: params.pageSize,
       platform: params.platform,
       search: params.search,
     });
   } else {
-    // Standard GET for other tabs
     axiosResponse = await apiClient.client.get<
       BackendOrderResponse & { success: boolean }
     >(endpoint, {
@@ -86,21 +80,16 @@ export async function getOrders(
   }
 
   const backendData = axiosResponse.data;
-
   if (!backendData.success) {
     throw new Error(backendData.error || "Failed to fetch orders");
   }
 
-  // Transform backend response to frontend format
   const orders = (backendData.data || backendData.items || []).map((order) =>
     transformOrder(order as RawOrder),
   );
 
-  // Calculate platform counts from orders if not provided by backend
-  let platformCounts = backendData.platform_counts;
-  if (!platformCounts) {
-    platformCounts = computeUniquePlatformCounts(orders);
-  }
+  const platformCounts =
+    backendData.platform_counts ?? computeUniquePlatformCounts(orders);
 
   return {
     orders,
@@ -111,23 +100,25 @@ export async function getOrders(
   };
 }
 
-/**
- * Fetch orders by specific tab
- */
 export async function getOrdersByTab(tab: OrderTab): Promise<Order[]> {
   const endpoint = getOrderEndpointFromTab(tab);
   const response = await apiClient.get<Order[]>(endpoint);
-
   if (!response.success) {
     throw new Error(response.error || "Failed to fetch orders");
   }
-
   return response.data || [];
 }
 
-/**
- * Sync orders for today (POST to /orders/today)
- */
+export async function getOrderById(orderSn: string): Promise<OrderDetail> {
+  const response = await apiClient.get<OrderDetail>(`/orders/${orderSn}`);
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Failed to fetch order details");
+  }
+  return response.data;
+}
+
+// --- Sync Operations ---
+
 export async function syncOrdersToday(): Promise<Order[]> {
   const response = await apiClient.post<Order[]>("/orders/today");
   if (!response.success) {
@@ -136,9 +127,6 @@ export async function syncOrdersToday(): Promise<Order[]> {
   return response.data || [];
 }
 
-/**
- * Lock orders for today (POST to /orders/locked-today)
- */
 export async function lockOrdersToday(): Promise<Order[]> {
   const response = await apiClient.post<Order[]>("/orders/locked-today");
   if (!response.success) {
@@ -147,9 +135,6 @@ export async function lockOrdersToday(): Promise<Order[]> {
   return response.data || [];
 }
 
-/**
- * Sync all orders from all platforms
- */
 export async function syncAllOrders(): Promise<void> {
   const response = await apiClient.post("/orders/sync-all");
   if (!response.success) {
@@ -159,23 +144,17 @@ export async function syncAllOrders(): Promise<void> {
 
 export { isSyncableOrderTab } from "./orderTabMapping";
 
-/**
- * Sync orders by category (unpaid/unprocess/processed)
- */
 export async function syncOrdersByCategory(
   tabKey: string,
   platform?: string,
 ): Promise<void> {
   const category = getSyncCategoryFromTab(tabKey);
-  if (!category) {
-    return;
-  }
+  if (!category) return;
 
   const normalizedPlatform = (platform || "").toLowerCase();
-  const isSpecificPlatform =
-    normalizedPlatform === "shopee" ||
-    normalizedPlatform === "lazada" ||
-    normalizedPlatform === "tiktok";
+  const isSpecificPlatform = ["shopee", "lazada", "tiktok"].includes(
+    normalizedPlatform,
+  );
   const platformQuery = isSpecificPlatform
     ? `?platforms=${encodeURIComponent(normalizedPlatform)}`
     : "";
@@ -193,11 +172,8 @@ export async function syncOrdersByCategory(
   }
 }
 
-/**
- * Bulk ship orders
- * @param orderSns - Array of order serial numbers
- * @param platform - Platform name: "shopee" | "tiktok" | "lazada" (defaults to "shopee" on backend)
- */
+// --- Bulk Actions ---
+
 export async function bulkShipOrders(
   orderSns: string[],
   platform?: string,
@@ -211,34 +187,6 @@ export async function bulkShipOrders(
   }
 }
 
-/**
- * Bulk print labels response
- */
-export interface BulkPrintLabelsResponse {
-  labels: Array<{
-    order_sn: string;
-    file_data: string; // Base64 encoded PDF or URL document
-    status: string;
-  }>;
-  failed: Array<{
-    order_sn: string;
-    error: string;
-  }>;
-  count: number;
-}
-
-export interface BulkPrintLabelsOptions {
-  platform?: string;
-  include_products?: boolean;
-  tiktok_document_type?:
-    | "SHIPPING_LABEL"
-    | "PACKING_SLIP"
-    | "SHIPPING_LABEL_AND_PACKING_SLIP";
-}
-
-/**
- * Bulk print labels - calls real backend API
- */
 export async function bulkPrintLabels(
   orderSns: string[],
   options?: BulkPrintLabelsOptions,
@@ -252,44 +200,14 @@ export async function bulkPrintLabels(
       tiktok_document_type: options?.tiktok_document_type,
     },
   );
-  if (!response.success) {
+  if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to print labels");
   }
-  if (!response.data) {
-    throw new Error("Failed to print labels");
-  }
   return response.data;
 }
 
-/**
- * Fetch detailed order information by order_sn
- */
-export async function getOrderById(orderSn: string): Promise<OrderDetail> {
-  const response = await apiClient.get<OrderDetail>(`/orders/${orderSn}`);
+// --- Single Order Actions ---
 
-  if (!response.success) {
-    throw new Error(response.error || "Failed to fetch order details");
-  }
-  if (!response.data) {
-    throw new Error("Failed to fetch order details");
-  }
-  return response.data;
-}
-
-/**
- * Cancel order parameters
- */
-export interface CancelOrderParams {
-  order_no: string;
-  platform: string;
-  cancel_reason: string;
-  reason_detail?: string;
-  order_item_id?: string; // For Lazada
-}
-
-/**
- * Cancel an order
- */
 export async function cancelOrder(params: CancelOrderParams): Promise<void> {
   const response = await apiClient.post("/orders/cancel", params);
   if (!response.success) {
@@ -297,24 +215,6 @@ export async function cancelOrder(params: CancelOrderParams): Promise<void> {
   }
 }
 
-/**
- * Ship order parameters
- */
-export interface ShipOrderParams {
-  order_no: string;
-  platform: string;
-  shipping_provider: string;
-  tracking_number?: string;
-  address_id?: number;
-  pickup_time_id?: string;
-  branch_id?: number;
-  package_id?: string;
-  order_item_ids?: string[]; // For Lazada
-}
-
-/**
- * Ship a single order
- */
 export async function shipOrder(params: ShipOrderParams): Promise<void> {
   const response = await apiClient.post("/orders/ship", params);
   if (!response.success) {
@@ -322,35 +222,16 @@ export async function shipOrder(params: ShipOrderParams): Promise<void> {
   }
 }
 
-export interface LazadaDocumentResponse {
-  document?: {
-    file?: string;
-    url?: string;
-    mime_type?: string;
-  };
-}
-
-/**
- * Get Lazada document (shipping label or invoice)
- * @param orderItemIds - Array of Lazada order item IDs
- * @param docType - "shippingLabel" | "invoice"
- */
 export async function getLazadaDocument(
   orderItemIds: string[],
   docType: string,
 ): Promise<LazadaDocumentResponse> {
   const response = await apiClient.post<LazadaDocumentResponse>(
     "/lazada/orders/document",
-    {
-      order_item_ids: orderItemIds,
-      doc_type: docType,
-    },
+    { order_item_ids: orderItemIds, doc_type: docType },
   );
-  if (!response.success) {
+  if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to get Lazada document");
-  }
-  if (!response.data) {
-    throw new Error("Failed to get Lazada document");
   }
   return response.data;
 }

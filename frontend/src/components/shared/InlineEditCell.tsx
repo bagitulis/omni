@@ -5,30 +5,26 @@ import React, {
   useCallback,
   useState,
 } from "react";
-import { Input, Typography, theme } from "antd";
+import { Input, theme } from "antd";
 import type { InputRef } from "antd";
 import {
   LoadingOutlined,
-  EditOutlined,
   CheckOutlined,
   CloseOutlined,
 } from "@ant-design/icons";
 import { useInlineEdit } from "@/hooks/useInlineEdit";
 import type { InlineEditCellProps } from "@/types/shared";
-
-const { Text } = Typography;
+import { InlineEditDisplay } from "./InlineEditDisplay";
 
 export const InlineEditCell: React.FC<InlineEditCellProps> = ({
   value: initialValue,
-  mode,
+  mode: _mode,
   onSave,
   disabled = false,
   min = 0,
   prefix,
 }) => {
-  const [flashState, setFlashState] = useState<"idle" | "success" | "error">(
-    "idle",
-  );
+  const [flashState, setFlashState] = useState<"idle" | "success" | "error">("idle");
   const saveInvokedRef = useRef(false);
   const saveSucceededRef = useRef(false);
   const skipBlurSaveRef = useRef(false);
@@ -37,7 +33,6 @@ export const InlineEditCell: React.FC<InlineEditCellProps> = ({
     async (newValue: number) => {
       saveInvokedRef.current = true;
       saveSucceededRef.current = true;
-
       try {
         await onSave(newValue);
       } catch (saveError) {
@@ -58,51 +53,29 @@ export const InlineEditCell: React.FC<InlineEditCellProps> = ({
     handleChange,
     handleSave,
     handleCancel,
-  } = useInlineEdit({
-    initialValue,
-    onSave: wrappedOnSave,
-    min,
-  });
+  } = useInlineEdit({ initialValue, onSave: wrappedOnSave, min });
 
   const inputRef = useRef<InputRef>(null);
   const { token } = theme.useToken();
 
-  // Focus input when entering edit mode
   useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-    }
+    if (isEditing && inputRef.current) inputRef.current.focus();
   }, [isEditing]);
 
   useEffect(() => {
-    if (flashState === "idle") {
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setFlashState("idle");
-    }, 1000);
-
-    return () => {
-      clearTimeout(timer);
-    };
+    if (flashState === "idle") return;
+    const timer = setTimeout(() => setFlashState("idle"), 1000);
+    return () => clearTimeout(timer);
   }, [flashState]);
 
   const triggerSave = useCallback(async () => {
-    if (isLoading) {
-      return;
-    }
-
+    if (isLoading) return;
     saveInvokedRef.current = false;
     saveSucceededRef.current = false;
     await handleSave();
-
-    if (saveInvokedRef.current && saveSucceededRef.current) {
-      setFlashState("success");
-      return;
-    }
-
-    setFlashState("error");
+    setFlashState(
+      saveInvokedRef.current && saveSucceededRef.current ? "success" : "error",
+    );
   }, [handleSave, isLoading]);
 
   const handleCancelAction = useCallback(() => {
@@ -125,88 +98,29 @@ export const InlineEditCell: React.FC<InlineEditCellProps> = ({
       skipBlurSaveRef.current = false;
       return;
     }
-
     void triggerSave();
   };
 
   const flashBackground = useMemo(() => {
-    if (flashState === "success") {
-      return token.colorSuccessBg;
-    }
-
-    if (flashState === "error") {
-      return token.colorErrorBg;
-    }
-
+    if (flashState === "success") return token.colorSuccessBg;
+    if (flashState === "error") return token.colorErrorBg;
     return "transparent";
   }, [flashState, token.colorErrorBg, token.colorSuccessBg]);
 
-  // Render Display Mode
+  // Display mode
   if (!isEditing && !isLoading) {
     return (
-      <button
-        type="button"
-        className={`inline-edit-cell-display mode-${mode}`}
-        onClick={!disabled ? handleEdit : undefined}
-        onKeyDown={(e) => {
-          if (!disabled && (e.key === "Enter" || e.key === " ")) {
-            e.preventDefault();
-            handleEdit();
-          }
-        }}
+      <InlineEditDisplay
+        value={value}
+        prefix={prefix}
         disabled={disabled}
-        data-testid="inline-edit-cell-display"
-        data-flash-state={flashState}
-        style={{
-          cursor: disabled ? "not-allowed" : "pointer",
-          padding: "4px 8px",
-          minHeight: "32px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          border: `1px solid transparent`,
-          borderRadius: token.borderRadius,
-          transition: "all 0.2s",
-          width: "100%",
-          backgroundColor: flashBackground,
-          textAlign: "left",
-        }}
-        onMouseEnter={(e) => {
-          if (!disabled) {
-            e.currentTarget.style.borderColor = token.colorBorder;
-            if (flashState === "idle") {
-              e.currentTarget.style.backgroundColor = token.colorBgTextHover;
-            }
-          }
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = "transparent";
-          e.currentTarget.style.backgroundColor = flashBackground;
-        }}
-        aria-label={`Edit ${mode}`}
-      >
-        <Text>
-          {prefix && (
-            <span style={{ color: token.colorTextSecondary, marginRight: 4 }}>
-              {prefix}
-            </span>
-          )}
-          {value.toLocaleString()}
-        </Text>
-        {!disabled && (
-          <EditOutlined
-            style={{
-              fontSize: 12,
-              color: token.colorTextQuaternary,
-              opacity: 0.5,
-            }}
-          />
-        )}
-      </button>
+        flashState={flashState}
+        onEdit={handleEdit}
+      />
     );
   }
 
-  // Render Edit Mode
+  // Edit mode
   return (
     <div
       className="inline-edit-cell-edit"
@@ -235,38 +149,28 @@ export const InlineEditCell: React.FC<InlineEditCellProps> = ({
             <div style={{ display: "flex", gap: 4 }}>
               <CheckOutlined
                 aria-label="Save value"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void triggerSave();
-                }}
+                onClick={(e) => { e.stopPropagation(); void triggerSave(); }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.stopPropagation();
                     void triggerSave();
                   }
                 }}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                }}
+                onMouseDown={(e) => e.preventDefault()}
                 tabIndex={0}
                 role="button"
                 style={{ cursor: "pointer", color: token.colorSuccess }}
               />
               <CloseOutlined
                 aria-label="Cancel edit"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCancelAction();
-                }}
+                onClick={(e) => { e.stopPropagation(); handleCancelAction(); }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.stopPropagation();
                     handleCancelAction();
                   }
                 }}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                }}
+                onMouseDown={(e) => e.preventDefault()}
                 tabIndex={0}
                 role="button"
                 style={{ cursor: "pointer", color: token.colorTextSecondary }}

@@ -1,5 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from "axios";
-import { message } from "antd";
+import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import { API_BASE_URL, API_TIMEOUT } from "@/lib/constants";
 import { useAuthStore } from "@/stores/authStore";
 import { logger } from "@/lib/logger";
@@ -10,6 +9,7 @@ import {
   isDirectOrderExport,
   isDirectSheetsOperation,
 } from "./operationMappers";
+import { handleResponseError } from "./clientErrorHandler";
 
 /**
  * API Response Type - matches backend response format
@@ -58,27 +58,18 @@ class ApiClient {
     this.setupInterceptors();
   }
 
-  /**
-   * Get CSRF token from cookies
-   */
   private getCSRFToken(): string | null {
     const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
     return match ? decodeURIComponent(match[1]) : null;
   }
 
-  /**
-   * Setup request and response interceptors
-   */
   private setupInterceptors(): void {
-    // Request interceptor - add auth token
     this.client.interceptors.request.use(
       async (config) => {
-        // Dev-mode logging
         if (import.meta.env.DEV) {
           logger.debug(`[API] ${config.method?.toUpperCase()} ${config.url}`);
         }
 
-        // Skip auth for login/refresh/dev-login endpoints to avoid loops
         if (
           config.url?.includes("/auth/login") ||
           config.url?.includes("/auth/refresh") ||
@@ -87,20 +78,16 @@ class ApiClient {
           return config;
         }
 
-        // Get valid access token (handles auto-refresh)
         const token = await useAuthStore.getState().getValidToken();
-
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
-        // Add tenant ID from store
         const tenantId = useAuthStore.getState().tenantId;
         if (tenantId) {
           config.headers["x-tenant-id"] = tenantId;
         }
 
-        // Add CSRF token for mutating requests (POST, PUT, PATCH, DELETE)
         if (
           config.method &&
           ["post", "put", "patch", "delete"].includes(
@@ -121,97 +108,18 @@ class ApiClient {
       },
     );
 
-    // Response interceptor - handle errors
     this.client.interceptors.response.use(
       (response) => {
-        // Dev-mode logging
         if (import.meta.env.DEV) {
           logger.debug(`[API] ✓ ${response.status} ${response.config.url}`);
         }
         return response;
       },
-      (error: AxiosError) => this.handleResponseError(error),
+      (error) => handleResponseError(error),
     );
   }
 
-  /**
-   * Handle response errors
-   */
-  private handleResponseError(error: AxiosError): Promise<never> {
-    if (error.code === "ECONNABORTED") {
-      const timeoutMsg =
-        "Request timeout - server is taking too long to respond";
-      logger.error("[API]", { error: timeoutMsg });
-      return Promise.reject(new Error(timeoutMsg));
-    }
-
-    if (!error.response) {
-      const host = window.location.hostname;
-      const isLocalhost = host === "localhost" || host === "127.0.0.1";
-      const backendUrl = isLocalhost
-        ? window.location.origin.replace(/:\d+$/, "") + ":3000"
-        : window.location.origin;
-      const networkMsg = `Network error - cannot connect to ${backendUrl}`;
-      logger.error("[API]", { error: networkMsg });
-      return Promise.reject(new Error(networkMsg));
-    }
-
-    // Handle 401 Unauthorized - JWT expired or invalid
-    if (error.response?.status === 401) {
-      const currentPath = window.location.pathname;
-      // Don't redirect if already on login page or auth endpoints
-      if (currentPath !== "/login" && !error.config?.url?.includes("/auth/")) {
-        logger.info(
-          "[API] JWT token expired or invalid - redirecting to login",
-        );
-        this.handleAuthExpired();
-        return Promise.reject(
-          new Error("Session expired - please login again"),
-        );
-      }
-    }
-
-    // Handle 403 Forbidden - permission denied
-    if (error.response?.status === 403) {
-      const errorMsg = "Permission denied";
-      message.error(errorMsg);
-      logger.error(`[API] 403 Forbidden:`, { error: errorMsg });
-      return Promise.reject(new Error(errorMsg));
-    }
-
-    // Handle 500 Server Error
-    if (error.response?.status === 500) {
-      const backendError =
-        (error.response?.data as { error?: string })?.error || "Server error";
-      const errorMsg = `Server error - ${backendError}`;
-      message.error("Server error - please try again");
-      logger.error(`[API] 500 Server Error:`, { error: errorMsg });
-      return Promise.reject(new Error(errorMsg));
-    }
-
-    // Generic error handling
-    const errorMsg =
-      (error.response?.data as { error?: string })?.error ||
-      error.message ||
-      "Unknown error";
-    logger.error(`[API] Error [${error.response?.status}]:`, {
-      error: errorMsg,
-    });
-    return Promise.reject(error);
-  }
-
-  /**
-   * Handle expired/invalid JWT token
-   */
-  private handleAuthExpired(): void {
-    useAuthStore.getState().clearAuth();
-    const currentPath = window.location.pathname;
-    const returnUrl =
-      currentPath !== "/"
-        ? `?returnUrl=${encodeURIComponent(currentPath)}`
-        : "";
-    window.location.href = `/login${returnUrl}`;
-  }
+  // --- HTTP Methods ---
 
   async get<T = unknown>(
     url: string,
@@ -275,7 +183,7 @@ class ApiClient {
     return this.get("/health", { timeout: API_TIMEOUT.HEALTH });
   }
 
-  // --- NEW OPERATION METHODS ---
+  // --- Domain Operations ---
 
   async executeOperation(
     operation: string,
@@ -283,19 +191,12 @@ class ApiClient {
   ): Promise<ExecutionResponse> {
     try {
       const mapping = getPlatformOperationMapping(operation, params);
-
-      if (mapping) {
-        const response = await this.client.post<ExecutionResponse>(
-          mapping.endpoint,
-          params,
-          { timeout: API_TIMEOUT.LONG },
-        );
-        return response.data;
-      }
+      const endpoint = mapping ? mapping.endpoint : "/execute";
+      const body = mapping ? params : { operation, params };
 
       const response = await this.client.post<ExecutionResponse>(
-        "/execute",
-        { operation, params },
+        endpoint,
+        body,
         { timeout: API_TIMEOUT.LONG },
       );
       return response.data;

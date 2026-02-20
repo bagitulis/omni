@@ -1,31 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Tabs, Layout, Grid, theme } from "antd";
-import { useMutation } from "@tanstack/react-query";
 import {
-  useAvailableColumns,
   useInventory,
   useInventoryConfig,
-  useInventoryFilterPreferences,
-  useSaveInventoryFilterPreferences,
-  useSelectedColumns,
   useSyncFromSheets,
   useSyncToSheets,
 } from "@/hooks/useInventory";
-import { saveSelectedColumns } from "@/api/inventory";
 import { useInventoryFilterStore } from "@/stores/inventoryFilterStore";
-import { useInventoryFilterPreferenceSync } from "./hooks/useInventoryFilterPreferenceSync";
 import { applyInventoryColumnFilters } from "./utils/inventoryColumnFilters";
-import {
-  toColumnConfigs,
-  fromColumnConfigs,
-} from "./utils/inventoryColumnConfigs";
 import { SimplifiedInventoryHeader } from "./components/SimplifiedInventoryHeader";
 import { InventoryMainTab } from "./components/InventoryMainTab";
 import { InventoryLockPanel } from "./components/InventoryLockPanel";
 import { InventoryPagination } from "./components/InventoryPagination";
 import { SyncHistoryTab } from "./components/SyncHistoryTab";
 import { deriveMarketplaceAllocationSettings } from "./utils/marketplaceAllocation";
-import type { ColumnConfig } from "@/types/shared";
+import { useInventoryColumns } from "./hooks/useInventoryColumns";
 
 const { Content } = Layout;
 
@@ -43,31 +32,24 @@ export default function SimplifiedInventoryPage() {
     syncStatus,
     page,
     pageSize,
-    visibleColumns,
-    lockedColumns,
-    columnFilters,
-    preferencesLoaded,
     setSearch,
     setPage,
     setPageSize,
-    setVisibleColumns,
-    setLockedColumns,
-    hydratePreferences,
-    markPreferencesLoaded,
   } = useInventoryFilterStore();
 
   const [activeTab, setActiveTab] = useState("inventory");
 
-  const { data: availableColumns = [] } = useAvailableColumns();
-  const { data: inventoryConfig } = useInventoryConfig();
-  const { data: selectedColumns = [] } = useSelectedColumns();
-  const { data: filterPreferences, isFetched: isFilterPreferencesFetched } =
-    useInventoryFilterPreferences();
-  const { mutate: saveFilterPreferences } = useSaveInventoryFilterPreferences();
-  const saveSelectedColumnsMutation = useMutation({
-    mutationFn: saveSelectedColumns,
-  });
+  const {
+    availableColumns,
+    resolvedVisibleColumns,
+    resolvedLockedColumns,
+    columnConfigs,
+    handleColumnChange,
+    handleColumnReset,
+    columnFilters,
+  } = useInventoryColumns();
 
+  const { data: inventoryConfig } = useInventoryConfig();
   const { data, isLoading, error, refetch } = useInventory({
     search: search || undefined,
     offset: (page - 1) * pageSize,
@@ -83,10 +65,7 @@ export default function SimplifiedInventoryPage() {
     [columnFilters, records],
   );
   const schemaColumns = useMemo(
-    () =>
-      availableColumns.map((columnName) => ({
-        column_name: columnName,
-      })),
+    () => availableColumns.map((c) => ({ column_name: c })),
     [availableColumns],
   );
   const marketplaceSettings = useMemo(
@@ -97,97 +76,8 @@ export default function SimplifiedInventoryPage() {
   const syncFromSheetsMutation = useSyncFromSheets();
   const syncToSheetsMutation = useSyncToSheets();
 
-  const resolvedVisibleColumns = useMemo(() => {
-    if (visibleColumns.length > 0) return visibleColumns;
-    if (selectedColumns.length > 0) return selectedColumns;
-    return availableColumns;
-  }, [availableColumns, selectedColumns, visibleColumns]);
-
-  const resolvedLockedColumns = useMemo(() => {
-    if (resolvedVisibleColumns.length === 0) return lockedColumns;
-    const visibleSet = new Set(resolvedVisibleColumns);
-    return lockedColumns.filter((col) => visibleSet.has(col));
-  }, [lockedColumns, resolvedVisibleColumns]);
-
-  useInventoryFilterPreferenceSync({
-    preferencesLoaded,
-    visibleColumns: resolvedVisibleColumns,
-    lockedColumns: resolvedLockedColumns,
-    columnFilters,
-    searchQuery: search,
-    saveFilterPreferences,
-  });
-
   const hasColumnFilters = Object.keys(columnFilters).length > 0;
   const total = hasColumnFilters ? filteredRecords.length : (data?.total ?? 0);
-
-  // --- Preference hydration (same as InventoryPage) ---
-  useEffect(() => {
-    if (preferencesLoaded || !isFilterPreferencesFetched) return;
-    if (filterPreferences) {
-      hydratePreferences(filterPreferences);
-    } else if (selectedColumns.length > 0) {
-      setVisibleColumns(selectedColumns);
-    }
-    markPreferencesLoaded();
-  }, [
-    filterPreferences,
-    hydratePreferences,
-    isFilterPreferencesFetched,
-    markPreferencesLoaded,
-    preferencesLoaded,
-    selectedColumns,
-    setVisibleColumns,
-  ]);
-
-  useEffect(() => {
-    if (!preferencesLoaded) return;
-    if (resolvedVisibleColumns.length === 0 && selectedColumns.length > 0) {
-      setVisibleColumns(selectedColumns);
-    }
-  }, [
-    preferencesLoaded,
-    resolvedVisibleColumns.length,
-    selectedColumns,
-    setVisibleColumns,
-  ]);
-
-  // --- ColumnManager integration ---
-  const columnConfigs = useMemo(
-    () =>
-      toColumnConfigs(
-        availableColumns,
-        resolvedVisibleColumns,
-        resolvedLockedColumns,
-      ),
-    [availableColumns, resolvedVisibleColumns, resolvedLockedColumns],
-  );
-
-  const handleColumnChange = useCallback(
-    (nextConfigs: ColumnConfig[]) => {
-      const { visibleColumns: nextVisible, lockedColumns: nextLocked } =
-        fromColumnConfigs(nextConfigs);
-      setVisibleColumns(nextVisible);
-      setLockedColumns(nextLocked);
-      saveSelectedColumnsMutation.mutate(nextVisible);
-    },
-    [setVisibleColumns, setLockedColumns, saveSelectedColumnsMutation],
-  );
-
-  const handleColumnReset = useCallback(() => {
-    setVisibleColumns(availableColumns);
-    setLockedColumns([]);
-    saveSelectedColumnsMutation.mutate(availableColumns);
-  }, [
-    availableColumns,
-    setVisibleColumns,
-    setLockedColumns,
-    saveSelectedColumnsMutation,
-  ]);
-
-  // --- Sync handlers ---
-  const handleSyncFromSheets = () => syncFromSheetsMutation.mutate({});
-  const handleSyncToSheets = () => syncToSheetsMutation.mutate();
 
   const tabsItems = [
     {
@@ -214,14 +104,7 @@ export default function SimplifiedInventoryPage() {
   ];
 
   return (
-    <Layout
-      style={{
-        height: "100%",
-        background: "transparent",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
+    <Layout style={{ height: "100%", background: "transparent", display: "flex", flexDirection: "column" }}>
       <Content
         style={{
           padding: isMobile ? 12 : 24,
@@ -236,9 +119,9 @@ export default function SimplifiedInventoryPage() {
           onSearch={setSearch}
           onRefresh={() => refetch()}
           loading={isLoading}
-          onSyncFromSheets={handleSyncFromSheets}
+          onSyncFromSheets={() => syncFromSheetsMutation.mutate({})}
           syncingFromSheets={syncFromSheetsMutation.isPending}
-          onSyncToSheets={handleSyncToSheets}
+          onSyncToSheets={() => syncToSheetsMutation.mutate()}
           syncingToSheets={syncToSheetsMutation.isPending}
           columnConfigs={columnConfigs}
           schemaColumns={schemaColumns}
@@ -250,7 +133,7 @@ export default function SimplifiedInventoryPage() {
           availableColumns={availableColumns}
           visibleColumns={resolvedVisibleColumns}
           lockedColumns={resolvedLockedColumns}
-          onChangeLockedColumns={setLockedColumns}
+          onChangeLockedColumns={useInventoryFilterStore.getState().setLockedColumns}
         />
 
         <div
