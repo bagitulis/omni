@@ -25,40 +25,42 @@ export function ShippingWidget() {
   return (
     <Card
       title={
-        <Space>
-          <CarOutlined />
-          <span>Shipping Performance</span>
+        <Space style={{ fontSize: 14 }}>
+          <CarOutlined style={{ color: token.colorPrimary }} />
+          <Text strong style={{ fontSize: 14 }}>Shipping Performance</Text>
         </Space>
       }
       loading={isShopeeLoading}
+      style={{ borderRadius: 3, border: "1px solid #f0f0f0" }}
+      bodyStyle={{ padding: "16px 24px" }}
     >
-      <Row gutter={[16, 16]}>
+      <Row gutter={[16, 24]}>
         <Col span={12}>
           <Statistic
-            title="Total Orders"
+            title={<Text type="secondary" style={{ fontSize: 12 }}>Total Orders</Text>}
             value={shopeeData?.total_orders || 0}
-            valueStyle={{ fontSize: 18 }}
+            valueStyle={{ fontSize: 20, fontWeight: 600 }}
           />
         </Col>
         <Col span={12}>
           <Statistic
-            title="Discrepancies"
+            title={<Text type="secondary" style={{ fontSize: 12 }}>Discrepancies</Text>}
             value={shopeeData?.orders_with_difference || 0}
-            valueStyle={{ color: token.colorError, fontSize: 18 }}
-            prefix={<WarningOutlined />}
+            valueStyle={{ color: token.colorError, fontSize: 20, fontWeight: 600 }}
+            prefix={<WarningOutlined style={{ fontSize: 14 }} />}
           />
         </Col>
         <Col span={24}>
-          <div style={{ marginTop: 8 }}>
+          <div style={{ background: token.colorFillAlter, padding: "12px 16px", borderRadius: 3 }}>
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
-                marginBottom: 4,
+                marginBottom: 6,
               }}
             >
-              <Text type="secondary">Match Rate</Text>
-              <Text strong>{(100 - discrepancyRate).toFixed(1)}%</Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>Match Rate</Text>
+              <Text strong style={{ fontSize: 12 }}>{(100 - discrepancyRate).toFixed(1)}%</Text>
             </div>
             <Progress
               percent={100 - discrepancyRate}
@@ -66,6 +68,7 @@ export function ShippingWidget() {
               trailColor={token.colorErrorBg}
               showInfo={false}
               size="small"
+              style={{ margin: 0 }}
             />
           </div>
         </Col>
@@ -75,12 +78,15 @@ export function ShippingWidget() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginTop: 8,
+              paddingTop: 8,
+              borderTop: `1px solid ${token.colorBorderSecondary}`,
             }}
           >
-            <Text type="secondary">Net Impact</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>Net Impact</Text>
             <Text
+              strong
               style={{
+                fontSize: 14,
                 color:
                   (shopeeData?.net_impact || 0) >= 0
                     ? token.colorSuccess

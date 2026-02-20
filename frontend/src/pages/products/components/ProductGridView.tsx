@@ -3,6 +3,7 @@ import {
   Card,
   Col,
   Empty,
+  Image,
   Pagination,
   Row,
   Space,
@@ -39,11 +40,19 @@ export function ProductGridView({
             <Card
               hoverable
               cover={
-                <img
-                  alt={product.item_name}
-                  src={product.image_url}
-                  style={{ height: 200, objectFit: "cover" }}
-                />
+                <div style={{ height: 200, overflow: "hidden" }}>
+                  <Image
+                    alt={product.item_name}
+                    src={product.image_url}
+                    fallback="https://placehold.co/400x400?text=No+Image"
+                    height={200}
+                    width="100%"
+                    style={{ objectFit: "cover" }}
+                    preview={{
+                      mask: <div style={{ fontSize: 12 }}>Preview</div>,
+                    }}
+                  />
+                </div>
               }
               actions={[
                 <Button type="text" icon={<EditOutlined />} key="edit" />,

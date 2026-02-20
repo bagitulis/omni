@@ -41,6 +41,8 @@ export function UnifiedProductsListOrGrid({
         loading={isLoading}
         columns={activeColumns}
         dataSource={products}
+        size="small"
+        bordered
         expandable={{
           rowExpandable: (record) => record.skus.length > 1,
           expandIconColumnIndex: 1,

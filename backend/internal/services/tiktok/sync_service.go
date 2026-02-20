@@ -3,6 +3,7 @@ package tiktok
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/omni/backend/internal/models"
@@ -124,50 +125,113 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 			// Get saved product to get its ID
 			savedProd, _ := s.prodRepo.FindByProductID(ctx, prod.ID)
 			if savedProd != nil {
-				// Fetch product detail to get images
+				// === Save SKUs from search response ===
+				for _, sku := range prod.Skus {
+					// Parse price from SKU
+					skuPrice := 0.0
+					if sku.Price.SalePrice != "" {
+						fmt.Sscanf(sku.Price.SalePrice, "%f", &skuPrice)
+					} else if sku.Price.OriginalPrice != "" {
+						fmt.Sscanf(sku.Price.OriginalPrice, "%f", &skuPrice)
+					}
+
+					// Sum inventory across warehouses
+					totalQty := 0
+					for _, inv := range sku.Inventory {
+						totalQty += inv.Quantity
+					}
+
+					dbSku := &models.TiktokSku{
+						TenantID:  s.tenantID,
+						ProductID: savedProd.ID,
+						SkuID:     sku.ID,
+						SellerSku: sku.SellerSku,
+						Price:     skuPrice,
+						Quantity:  totalQty,
+					}
+
+					if err := s.prodRepo.UpsertSku(ctx, dbSku); err != nil {
+						log.Warn().
+							Str("service", "tiktok_sync").
+							Str("sku_id", sku.ID).
+							Err(err).
+							Msg("Failed to upsert TikTok SKU")
+					}
+				}
+
+				// Update product price/quantity from first SKU
+				if len(prod.Skus) > 0 {
+					firstPrice := 0.0
+					totalStock := 0
+					if prod.Skus[0].Price.SalePrice != "" {
+						fmt.Sscanf(prod.Skus[0].Price.SalePrice, "%f", &firstPrice)
+					} else if prod.Skus[0].Price.OriginalPrice != "" {
+						fmt.Sscanf(prod.Skus[0].Price.OriginalPrice, "%f", &firstPrice)
+					}
+					for _, sku := range prod.Skus {
+						for _, inv := range sku.Inventory {
+							totalStock += inv.Quantity
+						}
+					}
+					s.db.Model(&models.TiktokProduct{}).
+						Where("id = ?", savedProd.ID).
+						Updates(map[string]interface{}{
+							"price":    firstPrice,
+							"quantity": totalStock,
+						})
+				}
+
+				// Fetch product detail to get images (separate from product save)
 				detailResp, err := s.client.GetProductDetail(prod.ID)
 				if err != nil {
 					log.Warn().
 						Str("service", "tiktok_sync").
 						Str("product_id", prod.ID).
 						Err(err).
-						Msg("Failed to get product detail for images")
-					continue
-				}
-
-				// Extract image URLs from MainImages - prefer WebP if available
-				var imageURLs []string
-				for _, img := range detailResp.Data.MainImages {
-					if len(img.URLs) > 0 {
-						// Find WebP URL first (TikTok often provides multiple formats)
-						webpURL := ""
-						fallbackURL := ""
-						for _, u := range img.URLs {
-							if u == "" {
-								continue
+						Msg("Failed to get product detail for images, product saved without images")
+					// Don't skip - product is already saved, just continue without images
+				} else {
+					// Extract image URLs from MainImages - prefer WebP if available
+					var imageURLs []string
+					for _, img := range detailResp.Data.MainImages {
+						if len(img.URLs) > 0 {
+							// Find WebP URL first (TikTok often provides multiple formats)
+							webpURL := ""
+							fallbackURL := ""
+							for _, u := range img.URLs {
+								if u == "" {
+									continue
+								}
+								if strings.HasSuffix(strings.ToLower(u), ".webp") || strings.Contains(u, "webp") {
+									webpURL = u
+									break
+								}
+								if fallbackURL == "" {
+									fallbackURL = u
+								}
 							}
-							if strings.HasSuffix(strings.ToLower(u), ".webp") || strings.Contains(u, "webp") {
-								webpURL = u
-								break
+							// Prefer WebP, fallback to first available
+							if webpURL != "" {
+								imageURLs = append(imageURLs, webpURL)
+							} else if fallbackURL != "" {
+								imageURLs = append(imageURLs, fallbackURL)
 							}
-							if fallbackURL == "" {
-								fallbackURL = u
-							}
-						}
-						// Prefer WebP, fallback to first available
-						if webpURL != "" {
-							imageURLs = append(imageURLs, webpURL)
-						} else if fallbackURL != "" {
-							imageURLs = append(imageURLs, fallbackURL)
 						}
 					}
-				}
 
-				// Download and save product images locally
-				if len(imageURLs) > 0 {
-					localPaths := s.downloadAndSaveProductImages(ctx, prod.ID, imageURLs)
-					if len(localPaths) > 0 {
-						s.updateProductLocalImages(ctx, savedProd.ID, localPaths)
+					// Save primary image URL to TiktokProduct.Image field
+					if len(imageURLs) > 0 {
+						s.db.Model(&models.TiktokProduct{}).
+							Where("id = ?", savedProd.ID).
+							Update("image", imageURLs[0])
+					}
+
+					// Download and save product images locally
+					if len(imageURLs) > 0 {
+						localPaths := s.downloadAndSaveProductImages(ctx, prod.ID, imageURLs)
+						if len(localPaths) > 0 {
+							s.updateProductLocalImages(ctx, savedProd.ID, localPaths)
+						}
 					}
 				}
 			}

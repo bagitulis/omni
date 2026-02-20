@@ -47,6 +47,13 @@ export default function UnifiedProductsPage() {
   const isMobile = !screens.md;
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+
+  // Auto-switch to grid view on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setViewMode("grid");
+    }
+  }, [isMobile]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
@@ -169,7 +176,7 @@ export default function UnifiedProductsPage() {
   }, [isMobile, tableColumnMap, visibleColumns]);
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: isMobile ? 12 : 24 }}>
       <Space direction="vertical" size={16} style={{ width: "100%" }}>
         <UnifiedProductsHeaderActions
           navigate={navigate}

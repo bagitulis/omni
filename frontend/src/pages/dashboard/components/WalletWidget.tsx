@@ -27,52 +27,53 @@ export function WalletWidget() {
   return (
     <Card
       title={
-        <Space>
-          <WalletOutlined />
-          <span>Wallet Balance</span>
+        <Space style={{ fontSize: 14 }}>
+          <WalletOutlined style={{ color: token.colorPrimary }} />
+          <Text strong style={{ fontSize: 14 }}>Wallet Balance</Text>
         </Space>
       }
       extra={
-        <Button icon={<ExportOutlined />} type="text">
+        <Button icon={<ExportOutlined />} type="text" size="small" style={{ fontSize: 12 }}>
           Export
         </Button>
       }
-      bodyStyle={{ padding: 24 }}
+      bodyStyle={{ padding: "16px 24px" }}
+      style={{ borderRadius: 3, border: "1px solid #f0f0f0" }}
     >
       <Row gutter={[24, 24]}>
         <Col span={24}>
           <Statistic
-            title="Total Balance"
+            title={<Text type="secondary" style={{ fontSize: 12 }}>Total Balance</Text>}
             value={totalBalance}
-            prefix="Rp"
+            prefix={<span style={{ fontWeight: 500 }}>Rp</span>}
             precision={0}
-            valueStyle={{ color: token.colorInfo, fontWeight: 600 }}
+            valueStyle={{ color: token.colorPrimary, fontWeight: 700, fontSize: 24 }}
             loading={isShopeeLoading || isTiktokLoading}
           />
         </Col>
         <Col span={12}>
           <Statistic
-            title="Shopee"
+            title={<Text type="secondary" style={{ fontSize: 12 }}>Shopee</Text>}
             value={shopeeData?.total_balance}
             prefix="Rp"
             precision={0}
-            valueStyle={{ fontSize: 16 }}
+            valueStyle={{ fontSize: 16, fontWeight: 500 }}
             loading={isShopeeLoading}
           />
         </Col>
         <Col span={12}>
           <Statistic
-            title="TikTok"
+            title={<Text type="secondary" style={{ fontSize: 12 }}>TikTok</Text>}
             value={tiktokData?.total_balance}
             prefix="Rp"
             precision={0}
-            valueStyle={{ fontSize: 16 }}
+            valueStyle={{ fontSize: 16, fontWeight: 500 }}
             loading={isTiktokLoading}
           />
         </Col>
       </Row>
-      <div style={{ marginTop: 16 }}>
-        <Text type="secondary" style={{ fontSize: 12 }}>
+      <div style={{ marginTop: 24, borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12 }}>
+        <Text type="secondary" style={{ fontSize: 10 }}>
           * Balances are estimated based on last sync
         </Text>
       </div>

@@ -78,7 +78,8 @@ function OrderTable({
       dataSource={groupedOrders}
       loading={loading}
       rowKey="key"
-      size="middle"
+      size="small"
+      bordered
       pagination={{
         current: pagination.current,
         pageSize: pagination.pageSize,

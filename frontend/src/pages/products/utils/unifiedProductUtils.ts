@@ -68,10 +68,17 @@ export function toImageSrc(images: string[]): string | undefined {
 
   if (
     firstImage.startsWith("http://") ||
-    firstImage.startsWith("https://") ||
-    firstImage.startsWith("/")
+    firstImage.startsWith("https://")
   ) {
     return firstImage;
+  }
+
+  // Local paths need /uploads/ prefix for static file serving
+  if (firstImage.startsWith("/")) {
+    if (firstImage.startsWith("/uploads/")) {
+      return firstImage;
+    }
+    return `/uploads${firstImage}`;
   }
 
   return getImageUrl(firstImage, "thumb");

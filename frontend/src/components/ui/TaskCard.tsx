@@ -32,12 +32,18 @@ export function TaskCard({
       loading={loading}
       hoverable={!!onClick}
       onClick={onClick}
-      style={{ height: "100%" }}
+      style={{
+        height: "100%",
+        borderRadius: 3,
+        border: "1px solid #f0f0f0",
+        transition: "transform 0.2s, box-shadow 0.2s",
+      }}
+      bodyStyle={{ padding: "16px 20px" }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <Statistic
           title={
-            <Text type="secondary" style={{ fontWeight: 500 }}>
+            <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>
               {title}
             </Text>
           }
@@ -48,7 +54,7 @@ export function TaskCard({
           suffix={suffix}
         />
         {subtitle && (
-          <Text type="secondary" style={{ fontSize: 12 }}>
+          <Text type="secondary" style={{ fontSize: 10, marginTop: -4 }}>
             {subtitle}
           </Text>
         )}

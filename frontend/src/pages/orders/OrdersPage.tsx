@@ -1,4 +1,4 @@
-import { Flex, Card, Tabs } from "antd";
+import { Flex, Card, Tabs, Grid } from "antd";
 import { OrderTable } from "@/components/tables/OrderTable";
 import { OrderHeader } from "@/components/orders/OrderHeader";
 import { OrdersBulkActionsBar } from "./components/OrdersBulkActionsBar";
@@ -9,9 +9,11 @@ import { useOrdersLogic } from "./hooks/useOrdersLogic";
 
 export default function OrdersPage() {
   const { state, setters, handlers } = useOrdersLogic();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: isMobile ? 12 : 24 }}>
       <Flex vertical gap={16}>
         {/* Order Header with Platform Stats */}
         <OrderHeader

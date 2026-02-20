@@ -87,21 +87,44 @@ func (s *ProductSyncService) SyncProducts(ctx context.Context) (int, error) {
 		}
 		batchIDs := allItemIDs[i:end]
 
-		detailResp, err := s.client.GetProductDetail(batchIDs)
+		// Use GetProductDetailWithImages to get correct image structure
+		// Shopee API v2 returns images as {"image":{"image_url_list":[...]}} not {"images":[...]}
+		detailResp, err := s.client.GetProductDetailWithImages(batchIDs)
 		if err != nil {
 			continue // Skip failed batch, continue with next
 		}
 
 		// Save products and their SKUs to database
 		for _, prod := range detailResp.Response.ItemList {
+			// Extract price from PriceInfo
+			price := float64(0)
+			if len(prod.PriceInfo) > 0 {
+				price = prod.PriceInfo[0].CurrentPrice
+				if price == 0 {
+					price = prod.PriceInfo[0].OriginalPrice
+				}
+			}
+
+			// Extract stock from StockInfoV2
+			stock := prod.StockInfoV2.SummaryInfo.TotalAvailableStock
+
+			// Extract image URLs from the Image struct (correct API mapping)
+			imageURLs := prod.Image.ImageURLList
+
+			// Set first image as primary
+			primaryImage := ""
+			if len(imageURLs) > 0 {
+				primaryImage = imageURLs[0]
+			}
+
 			dbProd := &models.ShopeeProduct{
 				TenantID:    s.tenantID,
 				ItemID:      prod.ItemID,
 				Name:        prod.ItemName,
 				Description: prod.Description,
-				Status:      prod.ItemStatus,
-				Price:       prod.CurrentPrice,
-				Quantity:    prod.Stock,
+				Image:       primaryImage,
+				Price:       price,
+				Quantity:    stock,
 			}
 
 			if err := s.prodRepo.Upsert(ctx, dbProd); err == nil {
@@ -114,8 +137,8 @@ func (s *ProductSyncService) SyncProducts(ctx context.Context) (int, error) {
 					s.syncProductSKUs(ctx, savedProd, prod.ItemID)
 
 					// Download and save product images locally
-					if len(prod.Images) > 0 {
-						localPaths := s.downloadAndSaveProductImages(ctx, prod.ItemID, prod.Images)
+					if len(imageURLs) > 0 {
+						localPaths := s.downloadAndSaveProductImages(ctx, prod.ItemID, imageURLs)
 						if len(localPaths) > 0 {
 							s.updateProductLocalImages(ctx, savedProd.ID, localPaths)
 						}

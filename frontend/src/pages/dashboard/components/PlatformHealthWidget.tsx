@@ -29,15 +29,15 @@ export function PlatformHealthWidget() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "connected":
-        return <CheckCircleFilled style={{ color: token.colorSuccess }} />;
+        return <CheckCircleFilled style={{ color: token.colorSuccess, fontSize: 18 }} />;
       case "disconnected":
-        return <CloseCircleFilled style={{ color: token.colorError }} />;
+        return <CloseCircleFilled style={{ color: token.colorError, fontSize: 18 }} />;
       case "syncing":
-        return <SyncOutlined spin style={{ color: token.colorPrimary }} />;
+        return <SyncOutlined spin style={{ color: token.colorPrimary, fontSize: 18 }} />;
       case "error":
-        return <CloseCircleFilled style={{ color: token.colorError }} />;
+        return <CloseCircleFilled style={{ color: token.colorError, fontSize: 18 }} />;
       default:
-        return <ApiOutlined />;
+        return <ApiOutlined style={{ fontSize: 18 }} />;
     }
   };
 
@@ -57,25 +57,31 @@ export function PlatformHealthWidget() {
   return (
     <Card
       title={
-        <Space>
-          <ApiOutlined />
-          <span>Platform Health</span>
+        <Space style={{ fontSize: 14 }}>
+          <ApiOutlined style={{ color: token.colorPrimary }} />
+          <Text strong style={{ fontSize: 14 }}>Platform Health</Text>
         </Space>
       }
       bodyStyle={{ padding: 0 }}
+      style={{ borderRadius: 3, border: "1px solid #f0f0f0" }}
     >
       <List
         dataSource={platforms}
         renderItem={(item) => (
-          <List.Item style={{ padding: "12px 24px" }}>
+          <List.Item style={{ padding: "16px 24px" }}>
             <List.Item.Meta
-              avatar={getStatusIcon(item.data?.status || "disconnected")}
+              avatar={
+                <div style={{ display: "flex", alignItems: "center", height: "100%", paddingRight: 8 }}>
+                  {getStatusIcon(item.data?.status || "disconnected")}
+                </div>
+              }
               title={
-                <Space>
-                  <Text strong>{item.name}</Text>
+                <Space style={{ marginBottom: 4 }}>
+                  <Text strong style={{ fontSize: 14 }}>{item.name}</Text>
                   <Tag
                     color={getStatusColor(item.data?.status || "disconnected")}
                     bordered={false}
+                    style={{ fontSize: 10, lineHeight: "16px" }}
                   >
                     {(item.data?.status || "disconnected").toUpperCase()}
                   </Tag>
@@ -84,13 +90,13 @@ export function PlatformHealthWidget() {
               description={
                 item.data?.last_sync ? (
                   <Space size={4}>
-                    <ClockCircleOutlined style={{ fontSize: 10 }} />
-                    <Text type="secondary" style={{ fontSize: 11 }}>
+                    <ClockCircleOutlined style={{ fontSize: 12 }} />
+                    <Text type="secondary" style={{ fontSize: 12 }}>
                       Synced: {new Date(item.data.last_sync).toLocaleString()}
                     </Text>
                   </Space>
                 ) : (
-                  <Text type="secondary" style={{ fontSize: 11 }}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
                     Not connected
                   </Text>
                 )

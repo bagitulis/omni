@@ -42,22 +42,22 @@ describe("PlatformIndicator", () => {
     return indicator.parentElement ?? indicator;
   };
 
-  it("renders emoji map for each platform", () => {
+  it("renders platform icon image for each platform", () => {
     const { rerender } = render(<PlatformIndicator data={baseData} />);
 
-    expect(screen.getByTestId("platform-indicator-shopee")).toHaveTextContent(
-      "🟠",
-    );
+    const shopeeImg = screen.getByTestId("platform-indicator-shopee").querySelector("img");
+    expect(shopeeImg).toBeInTheDocument();
+    expect(shopeeImg).toHaveAttribute("alt", "Shopee");
 
     rerender(<PlatformIndicator data={{ ...baseData, platform: "tiktok" }} />);
-    expect(screen.getByTestId("platform-indicator-tiktok")).toHaveTextContent(
-      "⬛",
-    );
+    const tiktokImg = screen.getByTestId("platform-indicator-tiktok").querySelector("img");
+    expect(tiktokImg).toBeInTheDocument();
+    expect(tiktokImg).toHaveAttribute("alt", "TikTok");
 
     rerender(<PlatformIndicator data={{ ...baseData, platform: "lazada" }} />);
-    expect(screen.getByTestId("platform-indicator-lazada")).toHaveTextContent(
-      "🔵",
-    );
+    const lazadaImg = screen.getByTestId("platform-indicator-lazada").querySelector("img");
+    expect(lazadaImg).toBeInTheDocument();
+    expect(lazadaImg).toHaveAttribute("alt", "Lazada");
   });
 
   it("renders NOT_LINKED state, keeps tooltip visible, and enforces non-interactive behavior", async () => {
@@ -72,10 +72,11 @@ describe("PlatformIndicator", () => {
 
     expect(indicator).toHaveAttribute("data-state", "not_linked");
     expect(indicator).toHaveStyle({
-      opacity: "0.2",
-      filter: "grayscale(100%)",
+      opacity: "0.45",
+      filter: "grayscale(60%)",
       cursor: "default",
     });
+    expect(getComputedStyle(indicator).borderColor).toBe("rgb(255, 77, 79)");
     expect(indicator).toHaveAttribute("tabindex", "-1");
 
     fireEvent.mouseEnter(getTooltipTrigger(indicator));

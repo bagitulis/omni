@@ -25,12 +25,46 @@ func (s *StagingImportService) ImportFromTiktokStaging(
 	}
 
 	for _, p := range products {
-		// 2a. Find or create a master product by product name.
-		masterProduct, created, err := s.findOrCreateMasterProduct(ctx, tenantID, p.Name)
+		// 2a. Tier 1: Check if already linked by platform product ID.
+		masterProduct, err := s.findMasterProductByPlatformItemID(ctx, tenantID, "tiktok", p.ProductID)
 		if err != nil {
 			result.Errors = append(result.Errors,
-				fmt.Errorf("tiktok product %s: find/create master product: %w", p.ProductID, err).Error())
+				fmt.Errorf("tiktok product %s: find by platform item_id: %w", p.ProductID, err).Error())
 			continue
+		}
+
+		created := false
+		if masterProduct == nil {
+			// 2b. Tier 2: Try matching by normalized product name.
+			masterProduct, created, err = s.findOrCreateMasterProduct(ctx, tenantID, p.Name)
+			if err != nil {
+				result.Errors = append(result.Errors,
+					fmt.Errorf("tiktok product %s: find/create master product: %w", p.ProductID, err).Error())
+				continue
+			}
+		}
+
+		// 2c. Tier 3: If still creating a new product, check by seller SKU first.
+		if created {
+			var tiktokSkus []models.TiktokSku
+			if skuErr := s.db.WithContext(ctx).
+				Where("tenant_id = ? AND product_id = ?", tenantID, p.ID).
+				Find(&tiktokSkus).Error; skuErr == nil && len(tiktokSkus) > 0 {
+
+				sellerSkuList := make([]string, 0, len(tiktokSkus))
+				for _, sk := range tiktokSkus {
+					if sk.SellerSku != "" {
+						sellerSkuList = append(sellerSkuList, sk.SellerSku)
+					}
+				}
+
+				if matchedBySku, skuErr := s.findMasterProductBySellerSkus(ctx, tenantID, sellerSkuList); skuErr == nil && matchedBySku != nil {
+					_ = s.repo.Delete(ctx, masterProduct.ID)
+					masterProduct = matchedBySku
+					created = false
+					result.ProductsCreated--
+				}
+			}
 		}
 
 		if created {
@@ -52,12 +86,18 @@ func (s *StagingImportService) ImportFromTiktokStaging(
 		if len(skus) == 0 {
 			// 2c. No SKUs found — create a single default SKU.
 			s.processTiktokDefaultSku(ctx, tenantID, p, masterProduct, &result)
-			continue
+		} else {
+			// 2d. Process each SKU.
+			for _, sku := range skus {
+				s.processTiktokSku(ctx, tenantID, p, sku, masterProduct, &result)
+			}
 		}
 
-		// 2d. Process each SKU.
-		for _, sku := range skus {
-			s.processTiktokSku(ctx, tenantID, p, sku, masterProduct, &result)
+		// 2e. Aggregate images from platform products into master product
+		aggregator := NewImageAggregator(s.db)
+		if err := aggregator.AggregateImagesForProduct(ctx, masterProduct.ID); err != nil {
+			result.Errors = append(result.Errors,
+				fmt.Errorf("tiktok product %s: aggregate images: %w", p.ProductID, err).Error())
 		}
 	}
 

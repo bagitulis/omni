@@ -43,29 +43,32 @@ export function QuickActions() {
   return (
     <Card
       title={
-        <Space>
-          <ThunderboltOutlined />
-          <span>Quick Actions</span>
+        <Space style={{ fontSize: 14 }}>
+          <ThunderboltOutlined style={{ color: "#d97706" }} />
+          <span style={{ fontWeight: 600 }}>Quick Actions</span>
         </Space>
       }
+      style={{ borderRadius: 3, border: "1px solid #f0f0f0" }}
+      bodyStyle={{ padding: "16px 24px" }}
     >
-      <Row gutter={[12, 12]}>
+      <Row gutter={[16, 16]}>
         <Col span={12}>
           <Button
             type="primary"
             block
             icon={<SyncOutlined />}
             onClick={() => logger.debug("Sync All")}
+            style={{ borderRadius: 3, height: 40, fontSize: 12, fontWeight: 500 }}
           >
             Sync All
           </Button>
         </Col>
         <Col span={12}>
           <Dropdown menu={{ items }} trigger={["click"]}>
-            <Button block icon={<ExportOutlined />}>
+            <Button block icon={<ExportOutlined />} style={{ borderRadius: 3, height: 40, fontSize: 12 }}>
               <Space>
-                Export Orders
-                <DownOutlined />
+                Export
+                <DownOutlined style={{ fontSize: 10 }} />
               </Space>
             </Button>
           </Dropdown>
@@ -75,12 +78,13 @@ export function QuickActions() {
             block
             icon={<DollarOutlined />}
             onClick={() => handleUpdatePrice()}
+            style={{ borderRadius: 3, height: 40, fontSize: 12 }}
           >
             Update Prices
           </Button>
         </Col>
         <Col span={12}>
-          <Button block icon={<ShoppingOutlined />}>
+          <Button block icon={<ShoppingOutlined />} style={{ borderRadius: 3, height: 40, fontSize: 12 }}>
             Manage Stock
           </Button>
         </Col>

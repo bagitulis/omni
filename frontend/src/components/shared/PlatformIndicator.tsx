@@ -3,16 +3,21 @@ import { theme, Tooltip } from "antd";
 import type { GlobalToken } from "antd/es/theme/interface";
 import type { PlatformIndicatorData, Platform } from "@/types/shared";
 
+// Import platform icons directly
+import shopeeIcon from "@/assets/icons/shopee.svg";
+import tiktokIcon from "@/assets/icons/tiktok.webp";
+import lazadaIcon from "@/assets/icons/lazada.webp";
+
 export interface PlatformIndicatorProps {
   data: PlatformIndicatorData;
   size?: "small" | "default";
   onClick?: (platform: Platform) => void;
 }
 
-const PLATFORM_ICONS: Record<Platform, { emoji: string; label: string }> = {
-  shopee: { emoji: "🟠", label: "Shopee" },
-  tiktok: { emoji: "⬛", label: "TikTok" },
-  lazada: { emoji: "🔵", label: "Lazada" },
+const PLATFORM_ICONS: Record<Platform, { icon: string; label: string }> = {
+  shopee: { icon: shopeeIcon, label: "Shopee" },
+  tiktok: { icon: tiktokIcon, label: "TikTok" },
+  lazada: { icon: lazadaIcon, label: "Lazada" },
 };
 
 type VisualState =
@@ -25,13 +30,14 @@ type VisualState =
 
 function getStateBorderColors(
   token: GlobalToken,
-): Record<Exclude<VisualState, "not_linked">, string> {
+): Record<VisualState, string> {
   return {
     linked: token.colorSuccess,
     has_update: token.colorWarning,
     syncing: token.colorPrimary,
     success: token.colorSuccess,
     error: token.colorError,
+    not_linked: token.colorError,
   };
 }
 
@@ -82,9 +88,9 @@ function getStateStyles(
       };
     case "not_linked":
       return {
-        opacity: 0.2,
-        filter: "grayscale(100%)",
-        border: "2px solid transparent",
+        opacity: 0.45,
+        filter: "grayscale(60%)",
+        border: `2px solid ${colors.not_linked}`,
       };
     case "has_update":
       return {
@@ -173,8 +179,9 @@ export function PlatformIndicator({
   onClick,
 }: PlatformIndicatorProps) {
   const { token } = theme.useToken();
-  const { emoji, label } = PLATFORM_ICONS[data.platform];
+  const { icon, label } = PLATFORM_ICONS[data.platform];
   const dimensions = size === "small" ? 24 : 32;
+  const iconSize = size === "small" ? 16 : 20;
   const visualState = getVisualState(data);
   const isInteractive = data.linked && Boolean(onClick);
 
@@ -217,7 +224,13 @@ export function PlatformIndicator({
           data-state={visualState}
           aria-label={`${label} platform indicator`}
         >
-          {emoji}
+          <img
+            src={icon}
+            alt={label}
+            width={iconSize}
+            height={iconSize}
+            style={{ objectFit: "contain", pointerEvents: "none" }}
+          />
           {visualState === "syncing" && (
             <span
               style={{

@@ -164,6 +164,38 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 					}
 				}
 			}
+
+			// Save SKUs to database (matching SyncProductsWithDetails logic)
+			for _, sku := range prod.Skus {
+				skuID := sku.SkuID.String()
+				skuName := sku.SellerSku
+				if skuName == "" {
+					skuName = sku.ShopSku
+				}
+
+				variantName := sku.Variation
+				if variantName == "" && sku.Pilihan != "" {
+					variantName = sku.Pilihan
+				}
+
+				dbSku := &models.LazadaSku{
+					TenantID:     s.tenantID,
+					ItemID:       itemID,
+					SkuID:        skuID,
+					ShopSku:      sku.ShopSku,
+					SellerSku:    sku.SellerSku,
+					Name:         skuName,
+					VariantName:  variantName,
+					Price:        sku.Price,
+					SpecialPrice: sku.SpecialPrice,
+					Quantity:     sku.Quantity,
+					Available:    sku.Available,
+				}
+
+				if err := s.prodRepo.UpsertSku(ctx, dbSku); err != nil {
+					log.Printf("[Lazada Sync] Failed to upsert SKU %s: %v", skuID, err)
+				}
+			}
 		}
 	}
 

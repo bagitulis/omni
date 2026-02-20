@@ -167,23 +167,9 @@ export function buildProductColumns({
       width: 140,
       render: (_, record) => {
         return (
-          <Space direction="vertical" size={2}>
-            <Typography.Text>
-              {getPriceDisplayText(record.skus)}
-            </Typography.Text>
-            <Typography.Text type="secondary">
-              {getSkuCountLabel(record.skus.length)}
-            </Typography.Text>
-            <Button
-              size="small"
-              type="link"
-              icon={<FormOutlined />}
-              onClick={() => onRowAction("update_price", record)}
-              style={{ padding: 0 }}
-            >
-              Edit in modal
-            </Button>
-          </Space>
+          <Typography.Text>
+            {getPriceDisplayText(record.skus)}
+          </Typography.Text>
         );
       },
     },
@@ -193,23 +179,9 @@ export function buildProductColumns({
       width: 120,
       render: (_, record) => {
         return (
-          <Space direction="vertical" size={2}>
-            <Typography.Text>
-              {idrNumberFormatter.format(getTotalStock(record.skus))}
-            </Typography.Text>
-            <Typography.Text type="secondary">
-              {getSkuCountLabel(record.skus.length)}
-            </Typography.Text>
-            <Button
-              size="small"
-              type="link"
-              icon={<FormOutlined />}
-              onClick={() => onRowAction("update_stock", record)}
-              style={{ padding: 0 }}
-            >
-              Edit in modal
-            </Button>
-          </Space>
+          <Typography.Text>
+            {idrNumberFormatter.format(getTotalStock(record.skus))}
+          </Typography.Text>
         );
       },
     },

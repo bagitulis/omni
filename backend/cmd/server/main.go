@@ -55,6 +55,9 @@ func main() {
 	router.Use(middleware.Logger())
 	extHandlers.RouteHandler.SetEngine(router)
 
+	// Serve uploaded images (product thumbnails, etc.)
+	router.Static("/uploads", "uploads")
+
 	// Public
 	router.GET("/api/health", handlers.HealthCheck)
 	// /api/status with real token data (uses TokenHandler for actual token status)

@@ -113,7 +113,7 @@ func (r *MasterProductRepository) FindBySku(ctx context.Context, tenantID, selle
 func (r *MasterProductRepository) FindByExactTitle(ctx context.Context, tenantID, normalizedTitle string) (*models.MasterProduct, error) {
 	var product models.MasterProduct
 	result := r.db.WithContext(ctx).
-		Where("tenant_id = ? AND LOWER(TRIM(title)) = ?", tenantID, normalizedTitle).
+		Where("tenant_id = ? AND regexp_replace(LOWER(TRIM(title)), '\\s+', ' ', 'g') = ?", tenantID, normalizedTitle).
 		First(&product)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/omni/backend/internal/models"
@@ -68,9 +69,84 @@ func (s *StagingImportService) findOrCreateMasterProduct(
 	return product, true, nil
 }
 
-// normalizeTitle returns a lowercase, trimmed version of s for deduplication lookups.
+// whitespaceRe collapses runs of whitespace into a single space.
+var whitespaceRe = regexp.MustCompile(`\s+`)
+
+// normalizeTitle returns a lowercase, trimmed, whitespace-collapsed version of s
+// for deduplication lookups. This prevents duplicates like "240 gr" vs "240gr"
+// from being treated as different products.
 func normalizeTitle(s string) string {
-	return strings.TrimSpace(strings.ToLower(s))
+	s = strings.TrimSpace(strings.ToLower(s))
+	return whitespaceRe.ReplaceAllString(s, " ")
+}
+
+// findMasterProductByPlatformItemID looks up an existing MasterProduct via
+// platform link (platform + platform_item_id). Returns nil if not found.
+func (s *StagingImportService) findMasterProductByPlatformItemID(
+	ctx context.Context,
+	tenantID string,
+	platform string,
+	platformItemID string,
+) (*models.MasterProduct, error) {
+	trimmedID := strings.TrimSpace(platformItemID)
+	if trimmedID == "" {
+		return nil, nil
+	}
+
+	links, err := s.repo.FindPlatformLinksByItemID(ctx, tenantID, platform, trimmedID)
+	if err != nil {
+		return nil, fmt.Errorf("find %s platform links by item_id %s: %w", platform, trimmedID, err)
+	}
+	if len(links) == 0 {
+		return nil, nil
+	}
+
+	product, err := s.repo.FindByTenantAndID(ctx, tenantID, links[0].MasterProductID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("find master product %d for %s item_id %s: %w",
+			links[0].MasterProductID, platform, trimmedID, err)
+	}
+
+	return product, nil
+}
+
+// findMasterProductBySellerSkus searches for an existing MasterProduct that
+// already owns one of the given seller SKUs. Returns nil if none found.
+func (s *StagingImportService) findMasterProductBySellerSkus(
+	ctx context.Context,
+	tenantID string,
+	sellerSkus []string,
+) (*models.MasterProduct, error) {
+	for _, raw := range sellerSkus {
+		sku := strings.TrimSpace(raw)
+		if sku == "" {
+			continue
+		}
+
+		existingSku, err := s.repo.FindBySku(ctx, tenantID, sku)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
+			}
+			return nil, fmt.Errorf("find master sku by seller_sku %s: %w", sku, err)
+		}
+
+		product, err := s.repo.FindByTenantAndID(ctx, tenantID, existingSku.MasterProductID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
+			}
+			return nil, fmt.Errorf("find master product %d for seller_sku %s: %w",
+				existingSku.MasterProductID, sku, err)
+		}
+
+		return product, nil
+	}
+
+	return nil, nil
 }
 
 // upsertMasterSku creates a new SKU or updates an existing one by

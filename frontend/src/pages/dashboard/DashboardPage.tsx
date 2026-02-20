@@ -40,19 +40,16 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const screens = Grid.useBreakpoint();
-  // If screens.md is undefined (initial render), assume desktop to avoid flash, or mobile?
-  // Standard AntD behavior is empty object initially.
-  // But usually we just check !screens.md.
   const isMobile = !screens.md;
 
   const getPlatformColor = (platform: string) => {
     switch (platform) {
       case "shopee":
-        return "orange";
+        return "#ee4d2d";
       case "lazada":
-        return "blue";
+        return "#0f136d";
       case "tiktok":
-        return "black";
+        return "#000000";
       default:
         return "default";
     }
@@ -69,6 +66,7 @@ export function DashboardPage() {
             color: token.colorPrimary,
             fontWeight: 500,
             cursor: "pointer",
+            fontSize: 12,
           }}
         >
           {text}
@@ -82,7 +80,7 @@ export function DashboardPage() {
       render: (platform: string) => (
         <Tag
           color={getPlatformColor(platform)}
-          style={{ textTransform: "capitalize" }}
+          style={{ textTransform: "capitalize", fontSize: 10, borderRadius: 2 }}
         >
           {platform}
         </Tag>
@@ -92,13 +90,21 @@ export function DashboardPage() {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status: string) => <Tag bordered={false}>{status}</Tag>,
+      render: (status: string) => (
+        <Tag color="processing" bordered={false} style={{ fontSize: 10, borderRadius: 2 }}>
+          {status}
+        </Tag>
+      ),
     },
     {
       title: "Amount",
       dataIndex: "total_amount",
       key: "total_amount",
-      render: (amount: number) => `Rp ${(amount || 0).toLocaleString("id-ID")}`,
+      render: (amount: number) => (
+        <Text strong style={{ fontSize: 12 }}>
+          Rp {(amount || 0).toLocaleString("id-ID")}
+        </Text>
+      ),
     },
   ];
 
@@ -110,12 +116,14 @@ export function DashboardPage() {
         vertical={isMobile}
         gap={isMobile ? 4 : 0}
       >
-        <Title level={isMobile ? 3 : 2} style={{ margin: 0 }}>
-          Dashboard
-        </Title>
-        <Text type="secondary" style={{ fontSize: 14 }}>
-          Overview of your operations
-        </Text>
+        <div>
+          <Title level={isMobile ? 3 : 2} style={{ margin: 0, fontSize: isMobile ? 20 : 24, fontWeight: 600 }}>
+            Dashboard
+          </Title>
+          <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: "block" }}>
+            Overview of your operations
+          </Text>
+        </div>
       </Flex>
 
       {/* Operational Task Counters */}
@@ -199,12 +207,14 @@ export function DashboardPage() {
 
       {/* Ready to Ship Orders Section */}
       <Card
-        title="Ready to Ship"
+        title={<Text strong style={{ fontSize: 14 }}>Ready to Ship</Text>}
         extra={
-          <Button type="link" href="/order-manager">
-            View All <RightOutlined />
+          <Button type="link" onClick={() => navigate("/order-manager")} style={{ fontSize: 12 }}>
+            View All <RightOutlined style={{ fontSize: 10 }} />
           </Button>
         }
+        style={{ borderRadius: 3, border: "1px solid #f0f0f0" }}
+        bodyStyle={{ padding: 0 }}
       >
         <Table
           dataSource={data?.recent_orders}
@@ -212,8 +222,19 @@ export function DashboardPage() {
           rowKey="order_sn"
           pagination={false}
           loading={isLoading}
-          size="small"
+          size="middle"
+          rowClassName={() => 'dashboard-table-row'}
         />
+        <style>{`
+          .dashboard-table-row td {
+            font-size: 12px;
+          }
+          .ant-table-thead > tr > th {
+            font-size: 12px;
+            font-weight: 500;
+            background: #f8fafc;
+          }
+        `}</style>
       </Card>
     </Flex>
   );
@@ -243,18 +264,20 @@ export function DashboardPage() {
   };
 
   const menuItems = [
-    { key: "overview", icon: <DashboardOutlined />, label: "Overview" },
+    { key: "overview", icon: <DashboardOutlined style={{ fontSize: 14 }}/>, label: "Overview", style: { fontSize: 13, fontWeight: 500 } },
     {
       key: "product-management",
-      icon: <ShoppingOutlined />,
+      icon: <ShoppingOutlined style={{ fontSize: 14 }}/>,
       label: "Product Management",
+      style: { fontSize: 13, fontWeight: 500 }
     },
     {
       key: "order-management",
-      icon: <FileTextOutlined />,
+      icon: <FileTextOutlined style={{ fontSize: 14 }}/>,
       label: "Order Management",
+      style: { fontSize: 13, fontWeight: 500 }
     },
-    { key: "settings", icon: <SettingOutlined />, label: "Settings" },
+    { key: "settings", icon: <SettingOutlined style={{ fontSize: 14 }}/>, label: "Settings", style: { fontSize: 13, fontWeight: 500 } },
   ];
 
   return (
@@ -263,6 +286,7 @@ export function DashboardPage() {
         height: "calc(100vh - 96px)",
         display: "flex",
         flexDirection: "column",
+        fontFamily: `system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
       }}
     >
       {/* Top Action Bar */}
@@ -281,9 +305,10 @@ export function DashboardPage() {
         {!isMobile && (
           <div
             style={{
-              width: 200,
+              width: 220,
               background: token.colorBgContainer,
               borderRight: `1px solid ${token.colorBorder}`,
+              paddingTop: 8,
             }}
           >
             <Menu
@@ -291,7 +316,7 @@ export function DashboardPage() {
               selectedKeys={[activeTab]}
               items={menuItems}
               onClick={handleMenuClick}
-              style={{ borderRight: 0, height: "100%" }}
+              style={{ borderRight: 0, height: "100%", background: "transparent" }}
             />
           </div>
         )}
@@ -302,10 +327,13 @@ export function DashboardPage() {
             flex: 1,
             overflowY: "auto",
             padding: isMobile ? 16 : 24,
-            background: token.colorBgLayout,
+            background: "#f8fafc", // A more modern, light slate background 
           }}
         >
-          {renderContent()}
+          {/* Main content max width for ultra-wide screens to maintain readibility optionally */}
+          <div style={{ maxWidth: 1440, margin: "0 auto" }}>
+            {renderContent()}
+          </div>
         </div>
       </div>
 

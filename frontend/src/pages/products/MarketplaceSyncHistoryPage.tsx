@@ -88,7 +88,7 @@ export default function MarketplaceSyncHistoryPage() {
   }, [entries]);
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: screens.md ? 24 : 12 }}>
       <Space direction="vertical" size={16} style={{ width: "100%" }}>
         {/* Header — mobile: title on its own row; desktop: title inline with back + refresh */}
         {screens.md ? (
@@ -256,6 +256,8 @@ export default function MarketplaceSyncHistoryPage() {
               columns={columns}
               dataSource={entries}
               loading={isLoading}
+              size="small"
+              bordered
               scroll={{ x: "max-content" }}
               expandable={{
                 rowExpandable: isSyncHistoryRowExpandable,

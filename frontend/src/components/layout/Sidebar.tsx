@@ -28,7 +28,6 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
       colorPrimary,
       colorTextLightSolid,
       colorBorder,
-      colorFillSecondary,
     },
   } = theme.useToken();
 
@@ -92,8 +91,8 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
       collapsed={collapsed}
       breakpoint="md"
       onBreakpoint={onCollapse}
-      width={220}
-      collapsedWidth={80}
+      width={220} // Standard width
+      collapsedWidth={80} // Standard collapsed width
       style={{
         background: colorBgContainer,
         height: "100vh",
@@ -102,24 +101,30 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         left: 0,
         borderRight: `1px solid ${colorBorder}`,
         zIndex: 100,
-        overflow: "auto",
+        overflowY: "auto",
+        overflowX: "hidden",
+        boxShadow: "2px 0 8px rgba(0, 0, 0, 0.05)", // Subtle depth
       }}
       // Class used for media query targeting in style tag below
       className="main-sidebar"
     >
       <div
         style={{
-          height: 48,
+          height: 48, // Standard header height
           margin: 16,
-          background: colorFillSecondary,
-          borderRadius: 3,
+          background: collapsed ? colorPrimary : "rgba(3, 105, 161, 0.1)", // Light brand bg
+          borderRadius: 3, // Sharp corners
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: colorPrimary,
-          fontWeight: "bold",
+          color: collapsed ? "#fff" : colorPrimary,
+          fontWeight: 800,
+          fontSize: collapsed ? 20 : 24, // Impactful brand text
+          letterSpacing: collapsed ? 0 : -0.5,
           overflow: "hidden",
           whiteSpace: "nowrap",
+          transition: "all 0.3s cubic-bezier(0.2, 0, 0, 1)",
+          boxShadow: collapsed ? "0 2px 4px rgba(0,0,0,0.1)" : "none",
         }}
       >
         {collapsed ? "O" : "OMNI"}

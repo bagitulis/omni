@@ -5,6 +5,7 @@ import (
 
 	"github.com/omni/backend/internal/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // TiktokProductRepository handles TikTok product data access
@@ -72,4 +73,25 @@ func (r *TiktokProductRepository) Search(ctx context.Context, query string, page
 		Find(&products).Error
 
 	return products, total, err
+}
+
+// UpsertSku creates or updates a TikTok SKU
+func (r *TiktokProductRepository) UpsertSku(ctx context.Context, sku *models.TiktokSku) error {
+	updates := map[string]interface{}{
+		"seller_sku":   gorm.Expr("COALESCE(NULLIF(EXCLUDED.seller_sku, ''), tiktok_skus.seller_sku)"),
+		"variant_name": gorm.Expr("COALESCE(NULLIF(EXCLUDED.variant_name, ''), tiktok_skus.variant_name)"),
+		"variant_data": gorm.Expr("COALESCE(EXCLUDED.variant_data, tiktok_skus.variant_data)"),
+		"price":        gorm.Expr("EXCLUDED.price"),
+		"quantity":     gorm.Expr("EXCLUDED.quantity"),
+		"updated_at":   gorm.Expr("CURRENT_TIMESTAMP"),
+		"product_id":   gorm.Expr("EXCLUDED.product_id"),
+		"tenant_id":    gorm.Expr("COALESCE(NULLIF(EXCLUDED.tenant_id, ''), tiktok_skus.tenant_id)"),
+	}
+
+	return r.db.WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "sku_id"}},
+			DoUpdates: clause.Assignments(updates),
+		}).
+		Create(sku).Error
 }
