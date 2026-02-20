@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/image"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -35,18 +35,18 @@ func main() {
 	// Initialize system DB (needed for initial connection setup usually)
 	_, err := config.GetSystemDB(cfg.DatabasePath)
 	if err != nil {
-		log.Fatalf("Failed to connect to system database: %v", err)
+		log.Fatal().Err(err).Msg("Failed to connect to system database")
 	}
 
 	// Tenants to migrate - using the same list as seed command
 	tenants := []string{"yumna_bertigamart", "tika_nusseyba"}
 
 	for _, tenantID := range tenants {
-		log.Printf("Starting migration for tenant: %s", tenantID)
+		log.Info().Str("tenant_id", tenantID).Msg("Starting migration for tenant")
 		if err := migrateTenantImages(tenantID, cfg.DatabasePath); err != nil {
-			log.Printf("❌ Failed to migrate tenant %s: %v", tenantID, err)
+			log.Error().Err(err).Str("tenant_id", tenantID).Msg("Failed to migrate tenant")
 		} else {
-			log.Printf("✅ Successfully migrated tenant %s", tenantID)
+			log.Info().Str("tenant_id", tenantID).Msg("Successfully migrated tenant")
 		}
 	}
 }
@@ -78,16 +78,16 @@ func migrateTenantImages(tenantID, basePath string) error {
 
 	err = query.FindInBatches(&products, 100, func(tx *gorm.DB, batch int) error {
 
-		log.Printf("Processing batch %d...", batch)
+		log.Info().Int("batch", batch).Msg("Processing batch")
 
 		for _, product := range products {
-			log.Printf("Processing Product ID %d...", product.ID)
+			log.Info().Uint("product_id", product.ID).Msg("Processing product")
 
 			// product.Images is models.JSONArray ([]interface{})
 			for i, imgRaw := range product.Images {
 				imgURL, ok := imgRaw.(string)
 				if !ok {
-					log.Printf("  ⚠️ Skipping non-string image at index %d for product %d", i, product.ID)
+					log.Warn().Int("index", i).Uint("product_id", product.ID).Msg("Skipping non-string image")
 					continue
 				}
 
@@ -96,23 +96,23 @@ func migrateTenantImages(tenantID, basePath string) error {
 				}
 
 				// Download Image
-				log.Printf("  Downloading: %s", imgURL)
+				log.Info().Str("url", imgURL).Msg("Downloading image")
 				imgData, err := downloadImage(imgURL)
 				if err != nil {
-					log.Printf("  ❌ Failed to download %s: %v", imgURL, err)
+					log.Error().Err(err).Str("url", imgURL).Msg("Failed to download image")
 					continue
 				}
 
 				// Dedup/Create Image
 				imgRecord, isNew, err := dedupService.FindOrCreate(ctx, imgData, imgURL, tenantID, "products")
 				if err != nil {
-					log.Printf("  ❌ DedupService error for %s: %v", imgURL, err)
+					log.Error().Err(err).Str("url", imgURL).Msg("DedupService error")
 					continue
 				}
 				if isNew {
-					log.Printf("  ✨ Created new image record: %d", imgRecord.ID)
+					log.Info().Uint("image_id", imgRecord.ID).Msg("Created new image record")
 				} else {
-					log.Printf("  🔗 Found existing image record: %d", imgRecord.ID)
+					log.Info().Uint("image_id", imgRecord.ID).Msg("Found existing image record")
 				}
 
 				// Link to MasterProduct (Create Join Table Entry)
@@ -120,7 +120,7 @@ func migrateTenantImages(tenantID, basePath string) error {
 				var existingLink models.MasterProductImage
 				checkLink := db.Where("product_id = ? AND image_id = ?", product.ID, imgRecord.ID).First(&existingLink)
 				if checkLink.Error == nil {
-					log.Printf("  ⚠️ Link already exists for Product %d - Image %d", product.ID, imgRecord.ID)
+					log.Warn().Uint("product_id", product.ID).Uint("image_id", imgRecord.ID).Msg("Link already exists")
 					continue
 				}
 
@@ -135,9 +135,9 @@ func migrateTenantImages(tenantID, basePath string) error {
 				}
 
 				if err := db.Create(&link).Error; err != nil {
-					log.Printf("  ❌ Failed to link image %d to product %d: %v", imgRecord.ID, product.ID, err)
+					log.Error().Err(err).Uint("image_id", imgRecord.ID).Uint("product_id", product.ID).Msg("Failed to link image to product")
 				} else {
-					log.Printf("  ✅ Linked image %d to product %d", imgRecord.ID, product.ID)
+					log.Info().Uint("image_id", imgRecord.ID).Uint("product_id", product.ID).Msg("Linked image to product")
 				}
 			}
 		}
