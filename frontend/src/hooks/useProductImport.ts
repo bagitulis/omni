@@ -93,10 +93,6 @@ export function useAutoMapSkus() {
       } else {
         message.warning("No matching platform products found for auto-mapping");
       }
-
-      if (result.errors && result.errors.length > 0) {
-        console.warn("Auto-map errors:", result.errors);
-      }
     },
     onError: (error: Error) => {
       message.error(error.message || "Auto-mapping failed");

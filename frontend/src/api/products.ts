@@ -261,3 +261,14 @@ export async function importFromStaging(
   }
   return response.data;
 }
+
+// Download import template file
+export function downloadImportTemplate(format: "xlsx" | "csv" = "xlsx"): void {
+  const url = `/api${BASE_PATH}/import/template?format=${format}`;
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `products_import_template.${format}`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}

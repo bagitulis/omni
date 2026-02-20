@@ -12,7 +12,11 @@ import {
   Modal,
   theme,
 } from "antd";
-import { ArrowLeftOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import {
+  ArrowLeftOutlined,
+  CheckCircleOutlined,
+  DownloadOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import type { ImportPreviewData } from "@/types/product";
 import { ImportUploader } from "@/components/forms/ImportUploader";
@@ -22,6 +26,7 @@ import {
   useImportProducts,
   useAutoMapSkus,
 } from "@/hooks/useProductImport";
+import { downloadImportTemplate } from "@/api/products";
 import "./ProductImportPage.css";
 
 export default function ProductImportPage() {
@@ -41,9 +46,8 @@ export default function ProductImportPage() {
       const data = await previewMutation.mutateAsync(file);
       setPreviewData(data);
       setCurrentStep(1);
-    } catch (error) {
-      console.error("Preview failed:", error);
-      // Error message already shown by mutation
+    } catch {
+      // Error message already shown by mutation's onError handler
     }
   };
 
@@ -61,9 +65,8 @@ export default function ProductImportPage() {
 
     try {
       await autoMapMutation.mutateAsync(skus);
-    } catch (error) {
-      console.error("Auto-map failed:", error);
-      // Error message already shown by mutation
+    } catch {
+      // Error message already shown by mutation's onError handler
     }
   };
 
@@ -109,9 +112,8 @@ export default function ProductImportPage() {
       setTimeout(() => {
         navigate("/products");
       }, 2000);
-    } catch (error) {
-      console.error("Import failed:", error);
-      // Error message already shown by mutation
+    } catch {
+      // Error message already shown by mutation's onError handler
     }
   };
 
@@ -125,6 +127,14 @@ export default function ProductImportPage() {
       case 0:
         return (
           <div className="step-content">
+            <div style={{ marginBottom: 16, textAlign: "right" }}>
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={() => downloadImportTemplate("xlsx")}
+              >
+                Download Template
+              </Button>
+            </div>
             <Alert
               message="Prepare your CSV or Excel file"
               description="Your file must contain columns: item_name, item_sku, price, stock"
