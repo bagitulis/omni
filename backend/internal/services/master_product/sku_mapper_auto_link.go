@@ -86,7 +86,7 @@ func (m *SkuMapper) AutoMapAndLinkBySkus(ctx context.Context, sellerSkus []strin
 			if !match.Found || match.PlatformItemID == "" {
 				continue
 			}
-			if hasPlatformLink(existingLinks, masterSku.ID, match.Platform) {
+			if hasPlatformLink(existingLinks, match.Platform, match.PlatformItemID) {
 				continue
 			}
 
@@ -136,12 +136,13 @@ func (m *SkuMapper) AutoMapAndLinkBySkus(ctx context.Context, sellerSkus []strin
 	return result, nil
 }
 
-func hasPlatformLink(links []models.MasterProductPlatformLink, masterSkuID uint, platform string) bool {
+// hasPlatformLink returns true if a link already exists for the given platform and
+// platform item ID. This prevents unique constraint violations when multiple SKUs
+// of the same product are processed in a batch.
+func hasPlatformLink(links []models.MasterProductPlatformLink, platform string, platformItemID string) bool {
 	for _, link := range links {
-		if link.MasterSkuID == nil {
-			continue
-		}
-		if *link.MasterSkuID == masterSkuID && link.Platform == platform {
+		if link.Platform == platform &&
+			(link.PlatformItemID == platformItemID || link.PlatformProductID == platformItemID) {
 			return true
 		}
 	}

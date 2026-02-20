@@ -70,8 +70,17 @@ func (m *SkuMapper) findTiktokSku(ctx context.Context, sellerSku string) AutoMap
 	}
 
 	sku := skus[0]
+	// TiktokSku.ProductID is an internal DB FK (uint), not the actual TikTok platform ID.
+	// We must look up the TiktokProduct to get the real platform product_id string.
+	var product models.TiktokProduct
+	if err := m.db.WithContext(ctx).
+		Where("tenant_id = ? AND id = ?", m.tenantID, sku.ProductID).
+		First(&product).Error; err != nil {
+		result.Message = fmt.Sprintf("tiktok product not found for sku (internal id: %d)", sku.ProductID)
+		return result
+	}
 	result.Found = true
-	result.PlatformItemID = fmt.Sprintf("%d", sku.ProductID)
+	result.PlatformItemID = product.ProductID
 	result.PlatformSkuID = sku.SkuID
 	result.Message = "SKU found in TikTok"
 

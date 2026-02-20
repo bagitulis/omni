@@ -25,6 +25,7 @@ func setupAutoMapLinkTestDB(t *testing.T) *gorm.DB {
 		&models.MasterProductSku{},
 		&models.MasterProductPlatformLink{},
 		&models.ShopeeSku{},
+		&models.TiktokProduct{},
 		&models.TiktokSku{},
 		&models.LazadaSku{},
 	)
@@ -110,6 +111,12 @@ func TestAutoMapAndLink_CrossPlatform(t *testing.T) {
 	require.NoError(t, db.Create(&models.ShopeeSku{
 		TenantID: "tenant-cross", ProductID: 1, ItemID: 900, ModelID: &modelID,
 		SellerSku: "CROSS-001", CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}).Error)
+
+	require.NoError(t, db.Create(&models.TiktokProduct{
+		ID: 800, TenantID: "tenant-cross", ProductID: "1729991138619656479",
+		Name: "Cross Platform Product", Status: "ACTIVATE",
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}).Error)
 
 	require.NoError(t, db.Create(&models.TiktokSku{

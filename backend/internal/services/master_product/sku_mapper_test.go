@@ -25,6 +25,7 @@ func setupSkuMapperTestDB(t *testing.T) *gorm.DB {
 		&models.MasterProductSku{},
 		&models.MasterProductPlatformLink{},
 		&models.ShopeeSku{},
+		&models.TiktokProduct{},
 		&models.TiktokSku{},
 		&models.LazadaSku{},
 	)
@@ -70,6 +71,16 @@ func seedSkuMappingData(t *testing.T, db *gorm.DB, tenantID string) {
 		Quantity:    10,
 		CreatedAt:   now,
 		UpdatedAt:   now,
+	}).Error)
+
+	require.NoError(t, db.Create(&models.TiktokProduct{
+		ID:        20001,
+		TenantID:  tenantID,
+		ProductID: "1729991138619650001",
+		Name:      "Case Insensitive Product",
+		Status:    "ACTIVATE",
+		CreatedAt: now,
+		UpdatedAt: now,
 	}).Error)
 
 	require.NoError(t, db.Create(&models.TiktokSku{
