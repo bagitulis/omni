@@ -1,11 +1,8 @@
 import { useModalsStore } from "@/stores/modalsStore";
 import {
-  PriceModal,
   ExportOrdersModal,
-  WalletModal,
   TokenModal,
   ChangePasswordModal,
-  DashboardShippingModal,
 } from "@/components/modals";
 
 export function DashboardModals() {
@@ -13,18 +10,9 @@ export function DashboardModals() {
 
   return (
     <>
-      <PriceModal
-        open={isModalOpen("price")}
-        onCancel={() => closeModal("price")}
-        selectedProducts={[]}
-      />
       <ExportOrdersModal
         open={isModalOpen("exportOrders")}
         onClose={() => closeModal("exportOrders")}
-      />
-      <WalletModal
-        open={isModalOpen("wallet")}
-        onClose={() => closeModal("wallet")}
       />
       <TokenModal
         open={isModalOpen("token")}
@@ -33,10 +21,6 @@ export function DashboardModals() {
       <ChangePasswordModal
         open={isModalOpen("changePassword")}
         onClose={() => closeModal("changePassword")}
-      />
-      <DashboardShippingModal
-        open={isModalOpen("shipping")}
-        onClose={() => closeModal("shipping")}
       />
     </>
   );

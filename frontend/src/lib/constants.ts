@@ -23,6 +23,7 @@ export const API_TIMEOUT = {
   SHORT: 15000,
   DEFAULT: 30000,
   LONG: 60000,
+  EXTRA_LONG: 180_000,
 };
 
 // localStorage keys - must match Vue frontend for compatibility

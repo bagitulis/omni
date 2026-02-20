@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -12,6 +13,10 @@ import (
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
+
+func normalizeSkuForLookup(sku string) string {
+	return strings.ToLower(strings.TrimSpace(sku))
+}
 
 // SKU Mapper errors
 var (
@@ -163,18 +168,20 @@ func (m *SkuMapper) GetMappingStatus(ctx context.Context, masterProductID uint) 
 
 // AutoMapBySku attempts to automatically find and link platform SKUs by seller_sku
 func (m *SkuMapper) AutoMapBySku(ctx context.Context, sellerSku string) ([]AutoMapResult, error) {
+	normalizedSku := normalizeSkuForLookup(sellerSku)
+
 	results := []AutoMapResult{}
 
 	// Find Shopee SKU
-	shopeeResult := m.findShopeeSku(ctx, sellerSku)
+	shopeeResult := m.findShopeeSku(ctx, normalizedSku)
 	results = append(results, shopeeResult)
 
 	// Find TikTok SKU
-	tiktokResult := m.findTiktokSku(ctx, sellerSku)
+	tiktokResult := m.findTiktokSku(ctx, normalizedSku)
 	results = append(results, tiktokResult)
 
 	// Find Lazada SKU
-	lazadaResult := m.findLazadaSku(ctx, sellerSku)
+	lazadaResult := m.findLazadaSku(ctx, normalizedSku)
 	results = append(results, lazadaResult)
 
 	return results, nil

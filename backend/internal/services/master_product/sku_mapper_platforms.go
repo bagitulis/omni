@@ -11,6 +11,8 @@ import (
 // ================== Platform-specific SKU lookup ==================
 
 func (m *SkuMapper) findShopeeSku(ctx context.Context, sellerSku string) AutoMapResult {
+	normalizedSku := normalizeSkuForLookup(sellerSku)
+
 	result := AutoMapResult{
 		Platform: models.PlatformShopee,
 		Found:    false,
@@ -18,7 +20,7 @@ func (m *SkuMapper) findShopeeSku(ctx context.Context, sellerSku string) AutoMap
 
 	var skus []models.ShopeeSku
 	err := m.db.WithContext(ctx).
-		Where("tenant_id = ? AND seller_sku = ?", m.tenantID, sellerSku).
+		Where("tenant_id = ? AND LOWER(seller_sku) = LOWER(?)", m.tenantID, normalizedSku).
 		Find(&skus).Error
 
 	if err != nil || len(skus) == 0 {
@@ -44,6 +46,8 @@ func (m *SkuMapper) findShopeeSku(ctx context.Context, sellerSku string) AutoMap
 }
 
 func (m *SkuMapper) findTiktokSku(ctx context.Context, sellerSku string) AutoMapResult {
+	normalizedSku := normalizeSkuForLookup(sellerSku)
+
 	result := AutoMapResult{
 		Platform: models.PlatformTiktok,
 		Found:    false,
@@ -51,7 +55,7 @@ func (m *SkuMapper) findTiktokSku(ctx context.Context, sellerSku string) AutoMap
 
 	var skus []models.TiktokSku
 	err := m.db.WithContext(ctx).
-		Where("tenant_id = ? AND seller_sku = ?", m.tenantID, sellerSku).
+		Where("tenant_id = ? AND LOWER(seller_sku) = LOWER(?)", m.tenantID, normalizedSku).
 		Find(&skus).Error
 
 	if err != nil || len(skus) == 0 {
@@ -75,6 +79,8 @@ func (m *SkuMapper) findTiktokSku(ctx context.Context, sellerSku string) AutoMap
 }
 
 func (m *SkuMapper) findLazadaSku(ctx context.Context, sellerSku string) AutoMapResult {
+	normalizedSku := normalizeSkuForLookup(sellerSku)
+
 	result := AutoMapResult{
 		Platform: models.PlatformLazada,
 		Found:    false,
@@ -82,7 +88,7 @@ func (m *SkuMapper) findLazadaSku(ctx context.Context, sellerSku string) AutoMap
 
 	var skus []models.LazadaSku
 	err := m.db.WithContext(ctx).
-		Where("tenant_id = ? AND seller_sku = ?", m.tenantID, sellerSku).
+		Where("tenant_id = ? AND (LOWER(seller_sku) = LOWER(?) OR LOWER(shop_sku) = LOWER(?))", m.tenantID, normalizedSku, normalizedSku).
 		Find(&skus).Error
 
 	if err != nil || len(skus) == 0 {

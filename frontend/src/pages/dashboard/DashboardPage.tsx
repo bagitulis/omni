@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Row,
   Col,
@@ -8,7 +7,6 @@ import {
   Tag,
   Button,
   Flex,
-  Menu,
   theme,
   Grid,
 } from "antd";
@@ -18,9 +16,6 @@ import {
   CarOutlined,
   CheckCircleOutlined,
   RightOutlined,
-  DashboardOutlined,
-  FileTextOutlined,
-  SettingOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { TaskCard } from "@/components/ui/TaskCard";
@@ -28,7 +23,6 @@ import { useDashboard } from "@/hooks/useDashboard";
 import { WalletWidget } from "./components/WalletWidget";
 import { ShippingWidget } from "./components/ShippingWidget";
 import { PlatformHealthWidget } from "./components/PlatformHealthWidget";
-import { QuickActions } from "./components/QuickActions";
 import { DashboardModals } from "./components/DashboardModals";
 import { DashboardActionBar } from "./components/DashboardActionBar";
 
@@ -38,7 +32,6 @@ export function DashboardPage() {
   const { token } = theme.useToken();
   const { data, isLoading } = useDashboard();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("overview");
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
 
@@ -111,10 +104,10 @@ export function DashboardPage() {
   const renderOverview = () => (
     <Flex vertical gap={24}>
       <Flex
-        justify={isMobile ? "start" : "space-between"}
+        justify="space-between"
         align={isMobile ? "start" : "center"}
         vertical={isMobile}
-        gap={isMobile ? 4 : 0}
+        gap={isMobile ? 16 : 0}
       >
         <div>
           <Title level={isMobile ? 3 : 2} style={{ margin: 0, fontSize: isMobile ? 20 : 24, fontWeight: 600 }}>
@@ -124,6 +117,7 @@ export function DashboardPage() {
             Overview of your operations
           </Text>
         </div>
+        <DashboardActionBar />
       </Flex>
 
       {/* Operational Task Counters */}
@@ -188,11 +182,8 @@ export function DashboardPage() {
 
       {/* Widgets Row */}
       <Row gutter={[16, 16]}>
-        <Col xs={24} md={16}>
+        <Col xs={24}>
           <WalletWidget />
-        </Col>
-        <Col xs={24} md={8}>
-          <QuickActions />
         </Col>
       </Row>
 
@@ -239,100 +230,27 @@ export function DashboardPage() {
     </Flex>
   );
 
-  const handleMenuClick = ({ key }: { key: string }) => {
-    // Navigation map for features that have dedicated pages
-    const navigationMap: Record<string, string> = {
-      "product-management": "/product-manager",
-      "order-management": "/order-manager",
-      settings: "/settings",
-    };
-
-    if (navigationMap[key]) {
-      navigate(navigationMap[key]);
-    } else {
-      setActiveTab(key);
-    }
-  };
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case "overview":
-        return renderOverview();
-      default:
-        return null;
-    }
-  };
-
-  const menuItems = [
-    { key: "overview", icon: <DashboardOutlined style={{ fontSize: 14 }}/>, label: "Overview", style: { fontSize: 13, fontWeight: 500 } },
-    {
-      key: "product-management",
-      icon: <ShoppingOutlined style={{ fontSize: 14 }}/>,
-      label: "Product Management",
-      style: { fontSize: 13, fontWeight: 500 }
-    },
-    {
-      key: "order-management",
-      icon: <FileTextOutlined style={{ fontSize: 14 }}/>,
-      label: "Order Management",
-      style: { fontSize: 13, fontWeight: 500 }
-    },
-    { key: "settings", icon: <SettingOutlined style={{ fontSize: 14 }}/>, label: "Settings", style: { fontSize: 13, fontWeight: 500 } },
-  ];
-
   return (
     <div
       style={{
-        height: "calc(100vh - 96px)",
+        height: "100%",
         display: "flex",
         flexDirection: "column",
         fontFamily: `system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
       }}
     >
-      {/* Top Action Bar */}
-      <div
-        style={{
-          padding: "12px 24px",
-          background: token.colorBgContainer,
-          borderBottom: `1px solid ${token.colorBorder}`,
-        }}
-      >
-        <DashboardActionBar />
-      </div>
-
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {/* Left Sidebar */}
-        {!isMobile && (
-          <div
-            style={{
-              width: 220,
-              background: token.colorBgContainer,
-              borderRight: `1px solid ${token.colorBorder}`,
-              paddingTop: 8,
-            }}
-          >
-            <Menu
-              mode="inline"
-              selectedKeys={[activeTab]}
-              items={menuItems}
-              onClick={handleMenuClick}
-              style={{ borderRight: 0, height: "100%", background: "transparent" }}
-            />
-          </div>
-        )}
-
-        {/* Right Content Area */}
+        {/* Main Content Area */}
         <div
           style={{
             flex: 1,
             overflowY: "auto",
             padding: isMobile ? 16 : 24,
-            background: "#f8fafc", // A more modern, light slate background 
+            background: "#f8fafc",
           }}
         >
-          {/* Main content max width for ultra-wide screens to maintain readibility optionally */}
           <div style={{ maxWidth: 1440, margin: "0 auto" }}>
-            {renderContent()}
+            {renderOverview()}
           </div>
         </div>
       </div>

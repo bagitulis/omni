@@ -109,8 +109,9 @@
           "temperature": 0.1
         },
         "prometheus": {
-          "model": "github-copilot/claude-opus-4.6",
-          "variant": "thinking"
+          "model": "github-copilot/claude-sonnet-4.6",
+          "variant": "high",
+          "temperature": 0.1
         },
         "atlas": {
           "model": "github-copilot/claude-sonnet-4.6",

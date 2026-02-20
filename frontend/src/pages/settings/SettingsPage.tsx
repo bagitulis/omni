@@ -5,14 +5,12 @@ import {
   ApiOutlined,
   CloudOutlined,
   UserOutlined,
-  DeploymentUnitOutlined,
   FileExcelOutlined,
 } from "@ant-design/icons";
 import GeneralTab from "./tabs/GeneralTab";
 import PlatformsTab from "./tabs/PlatformsTab";
 import WebhooksTab from "./tabs/WebhooksTab";
 import AccountTab from "./tabs/AccountTab";
-import RouteManagementTab from "./tabs/RouteManagementTab";
 import GoogleSheetsTab from "./tabs/GoogleSheetsTab";
 
 const { Title, Text } = Typography;
@@ -57,16 +55,6 @@ export default function SettingsPage() {
         </span>
       ),
       children: <WebhooksTab />,
-    },
-    {
-      key: "routes",
-      label: (
-        <span>
-          <DeploymentUnitOutlined />
-          Routes
-        </span>
-      ),
-      children: <RouteManagementTab />,
     },
     {
       key: "google-sheets",

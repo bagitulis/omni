@@ -1,4 +1,4 @@
-import { Card, Divider, Grid, Space, type TableColumnsType } from "antd";
+import { Card, Grid, Space, type TableColumnsType } from "antd";
 import type { Key } from "react";
 import {
   lazy,
@@ -47,13 +47,6 @@ export default function UnifiedProductsPage() {
   const isMobile = !screens.md;
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
-
-  // Auto-switch to grid view on mobile
-  useEffect(() => {
-    if (isMobile) {
-      setViewMode("grid");
-    }
-  }, [isMobile]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
@@ -183,15 +176,15 @@ export default function UnifiedProductsPage() {
           syncHistoryTotal={syncHistoryData?.total ?? 0}
         />
 
-        <Card>
+        <Card styles={{ body: { padding: isMobile ? 16 : 24 } }}>
           <Suspense
             fallback={<div style={{ padding: 8 }}>Loading sync panel...</div>}
           >
             <PlatformSyncPanel onImportCompleted={refreshProducts} />
           </Suspense>
+        </Card>
 
-          <Divider style={{ margin: "12px 0" }} />
-
+        <Card styles={{ body: { padding: isMobile ? 16 : 24 } }}>
           <UnifiedProductsControls
             filters={filters}
             onFilterChange={handleFilterChange}

@@ -40,17 +40,22 @@ func (m *SkuMapper) AutoMapAndLinkBySkus(ctx context.Context, sellerSkus []strin
 
 	for _, rawSku := range sellerSkus {
 		sellerSku := strings.TrimSpace(rawSku)
+		normalizedSku := normalizeSkuForLookup(rawSku)
 		if sellerSku == "" {
 			result.SkippedCount++
 			result.Errors = append(result.Errors, "seller_sku is empty")
 			continue
 		}
-		if _, ok := seen[sellerSku]; ok {
+		if _, ok := seen[normalizedSku]; ok {
 			continue
 		}
-		seen[sellerSku] = struct{}{}
+		seen[normalizedSku] = struct{}{}
 
-		masterSku, err := m.repo.FindBySku(ctx, m.tenantID, sellerSku)
+		var masterSku models.MasterProductSku
+		err := m.db.WithContext(ctx).
+			Preload("PlatformLinks").
+			Where("tenant_id = ? AND LOWER(seller_sku) = LOWER(?)", m.tenantID, normalizedSku).
+			First(&masterSku).Error
 		if err != nil {
 			result.SkippedCount++
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -60,7 +65,7 @@ func (m *SkuMapper) AutoMapAndLinkBySkus(ctx context.Context, sellerSkus []strin
 			return nil, fmt.Errorf("failed to load master SKU %s: %w", sellerSku, err)
 		}
 
-		platformMatches, err := m.AutoMapBySku(ctx, sellerSku)
+		platformMatches, err := m.AutoMapBySku(ctx, normalizedSku)
 		if err != nil {
 			return nil, fmt.Errorf("failed to auto-map SKU %s: %w", sellerSku, err)
 		}

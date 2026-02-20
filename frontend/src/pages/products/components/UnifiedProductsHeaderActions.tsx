@@ -3,7 +3,7 @@ import {
   PlusOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { Button, Space, Typography } from "antd";
+import { Button, Typography } from "antd";
 import type { FC } from "react";
 import type { NavigateFunction } from "react-router-dom";
 
@@ -16,11 +16,20 @@ export const UnifiedProductsHeaderActions: FC<
   UnifiedProductsHeaderActionsProps
 > = ({ navigate, syncHistoryTotal }) => {
   return (
-    <Space style={{ width: "100%", justifyContent: "space-between" }} wrap>
-      <Typography.Title level={2} style={{ margin: 0 }}>
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 16,
+        alignItems: "center",
+        justifyContent: "space-between",
+        width: "100%",
+      }}
+    >
+      <Typography.Title level={4} style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>
         Products
       </Typography.Title>
-      <Space wrap>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         <Button
           icon={<PlusOutlined />}
           type="primary"
@@ -40,7 +49,7 @@ export const UnifiedProductsHeaderActions: FC<
         >
           Sync History ({syncHistoryTotal})
         </Button>
-      </Space>
-    </Space>
+      </div>
+    </div>
   );
 };

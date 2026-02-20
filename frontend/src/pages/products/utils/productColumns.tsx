@@ -100,15 +100,15 @@ export function buildProductColumns({
       title: "Image",
       dataIndex: "images",
       key: "image",
-      width: 80,
+      width: 160,
       render: (_, record) => {
         const imageSrc = toImageSrc(record.images);
 
         return (
           <div
             style={{
-              width: 64,
-              height: 64,
+              width: 120,
+              height: 120,
               borderRadius: 4,
               border: "1px solid #e5e7eb",
               background: "#f8fafc",
@@ -167,9 +167,7 @@ export function buildProductColumns({
       width: 140,
       render: (_, record) => {
         return (
-          <Typography.Text>
-            {getPriceDisplayText(record.skus)}
-          </Typography.Text>
+          <Typography.Text>{getPriceDisplayText(record.skus)}</Typography.Text>
         );
       },
     },

@@ -1,3 +1,4 @@
+import { API_TIMEOUT } from "@/lib/constants";
 import apiClient from "./client";
 import type { ApiResponse } from "./client";
 
@@ -73,18 +74,6 @@ async function getList(
 ): Promise<ShopeeDbProduct[]> {
   const response = await apiClient.get<ShopeeDbProduct[]>(path, { params });
   return ensureSuccess(response, fallback_error) ?? [];
-}
-
-async function postOperation(
-  path: string,
-  fallback_error: string,
-  payload: Record<string, unknown> = {},
-): Promise<ShopeeBatchOperationResult> {
-  const response = await apiClient.post<ShopeeBatchOperationResult>(
-    path,
-    payload,
-  );
-  return ensureSuccess(response, fallback_error) ?? {};
 }
 
 export async function getProductList(
@@ -208,26 +197,13 @@ export async function getSyncLogs(
   return ensureSuccess(response, "Failed to fetch sync logs") ?? [];
 }
 
-export async function batchFetchProductBase(): Promise<ShopeeBatchOperationResult> {
-  return postOperation(
-    "/shopee/db/products/base/batch-fetch",
-    "Failed to batch fetch product base",
+export async function syncShopeeProducts(): Promise<ShopeeBatchOperationResult> {
+  const response = await apiClient.post<ShopeeBatchOperationResult>(
+    "/shopee/sync/products",
+    undefined,
+    { timeout: API_TIMEOUT.EXTRA_LONG },
   );
-}
-
-export async function fetchProductListFromApi(): Promise<ShopeeBatchOperationResult> {
-  return postOperation(
-    "/shopee/db/products/list/fetch-from-api",
-    "Failed to fetch product list from API",
-    { item_status: "NORMAL", page_size: 100 },
-  );
-}
-
-export async function batchFetchProductModels(): Promise<ShopeeBatchOperationResult> {
-  return postOperation(
-    "/shopee/db/products/model/batch-fetch",
-    "Failed to batch fetch product models",
-  );
+  return ensureSuccess(response, "Failed to sync Shopee products") ?? {};
 }
 
 export function formatProductForDisplay(

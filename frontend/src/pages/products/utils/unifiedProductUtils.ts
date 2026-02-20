@@ -15,7 +15,7 @@ export const DEFAULT_FILTERS: ProductFilterValues = {
 };
 
 export const DEFAULT_PRODUCT_PAGE_COLUMNS: ColumnConfig[] = [
-  { key: "image", title: "Image", visible: true, order: 0, width: 80 },
+  { key: "image", title: "Image", visible: true, order: 0, width: 160 },
   {
     key: "name",
     title: "Name",
@@ -66,10 +66,7 @@ export function toImageSrc(images: string[]): string | undefined {
     return undefined;
   }
 
-  if (
-    firstImage.startsWith("http://") ||
-    firstImage.startsWith("https://")
-  ) {
+  if (firstImage.startsWith("http://") || firstImage.startsWith("https://")) {
     return firstImage;
   }
 
@@ -81,7 +78,7 @@ export function toImageSrc(images: string[]): string | undefined {
     return `/uploads${firstImage}`;
   }
 
-  return getImageUrl(firstImage, "thumb");
+  return getImageUrl(firstImage, "medium");
 }
 
 export function toLegacyProduct(row: UnifiedProductRow): Product {

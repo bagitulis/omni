@@ -61,7 +61,7 @@ export function useOrdersLogic() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isShipModalOpen, setIsShipModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   // Query client for cache invalidation
   const queryClient = useQueryClient();

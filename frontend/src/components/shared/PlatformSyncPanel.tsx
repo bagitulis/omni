@@ -124,34 +124,29 @@ export function PlatformSyncPanel({
 
   return (
     <div
-      style={{
-        border: `1px solid ${token.colorBorderSecondary}`,
-        borderRadius: token.borderRadius,
-        padding: 12,
-        background: token.colorBgContainer,
-      }}
+      style={{ width: "100%" }}
       data-testid="platform-sync-panel"
     >
-      <Space direction="vertical" size={10} style={{ width: "100%" }}>
+      <Space direction="vertical" size={16} style={{ width: "100%" }}>
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: 10,
+            alignItems: "center",
+            gap: 16,
             flexWrap: "wrap",
           }}
         >
-          <Space direction="vertical" size={2}>
-            <Typography.Text strong style={{ fontSize: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <Typography.Text style={{ fontSize: 16, fontWeight: 600 }}>
               Platform Synchronization
             </Typography.Text>
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               Sync platform data to staging, then import to master catalog.
             </Typography.Text>
-          </Space>
+          </div>
 
-          <Space wrap size={[6, 6]}>
+          <Space wrap size={[8, 8]}>
             <Tag color="success" bordered={false}>
               Created: {totals.productsCreated}
             </Tag>
@@ -173,7 +168,7 @@ export function PlatformSyncPanel({
           </Space>
         </div>
 
-        <Row gutter={[12, 12]}>
+        <Row gutter={[16, 16]}>
           {PLATFORM_META.map((platform) => {
             const syncLoading = Boolean(loading[`${platform.key}-sync`]);
             const importLoading = Boolean(loading[`${platform.key}-import`]);
@@ -186,12 +181,12 @@ export function PlatformSyncPanel({
               <Col xs={24} md={12} xl={8} key={platform.key}>
                 <Card
                   size="small"
-                  style={{ borderRadius: token.borderRadiusSM, height: "100%" }}
+                  style={{ borderRadius: token.borderRadius, height: "100%" }}
                   data-testid={`platform-sync-card-${platform.key}`}
                 >
                   <Space
                     direction="vertical"
-                    size={10}
+                    size={12}
                     style={{ width: "100%" }}
                   >
                     <div
@@ -203,7 +198,7 @@ export function PlatformSyncPanel({
                       }}
                     >
                       <Space align="center" size={8}>
-                        <Tag color={platform.color} bordered={false}>
+                        <Tag color={platform.color} bordered={false} style={{ margin: 0 }}>
                           {platform.label}
                         </Tag>
                         <Typography.Text
@@ -219,7 +214,6 @@ export function PlatformSyncPanel({
 
                     <Space.Compact block>
                       <Button
-                        size="small"
                         onClick={() => handleSyncToDb(platform.key)}
                         loading={syncLoading}
                         disabled={importLoading}
@@ -228,7 +222,6 @@ export function PlatformSyncPanel({
                         Sync to DB
                       </Button>
                       <Button
-                        size="small"
                         type="primary"
                         onClick={() => handleImportToMaster(platform.key)}
                         loading={importLoading}

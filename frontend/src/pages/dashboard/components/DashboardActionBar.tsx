@@ -1,10 +1,7 @@
 import { Flex, Button, Badge, Space, Tooltip } from "antd";
 import {
   KeyOutlined,
-  DollarOutlined,
   ExportOutlined,
-  WalletOutlined,
-  CarOutlined,
 } from "@ant-design/icons";
 import { useModalsStore } from "@/stores/modalsStore";
 import { useConnectionStatus } from "@/hooks/useConnectionStatus";
@@ -29,8 +26,9 @@ export function DashboardActionBar() {
   };
 
   return (
-    <Flex justify="space-between" align="center" style={{ width: "100%" }}>
-      <Space size="middle">
+    <Flex align="center" gap={16} wrap="wrap" justify="flex-end">
+      <div>{getStatusBadge()}</div>
+      <Space size="small" wrap>
         <Tooltip title="Manage API Tokens">
           <Button
             icon={<KeyOutlined />}
@@ -38,15 +36,6 @@ export function DashboardActionBar() {
             data-testid="token-modal-trigger"
           >
             Token
-          </Button>
-        </Tooltip>
-        <Tooltip title="Update Product Prices">
-          <Button
-            icon={<DollarOutlined />}
-            onClick={() => openModal("price")}
-            data-testid="price-modal-trigger"
-          >
-            Price
           </Button>
         </Tooltip>
         <Tooltip title="Export Order Data">
@@ -58,26 +47,7 @@ export function DashboardActionBar() {
             Export
           </Button>
         </Tooltip>
-        <Tooltip title="Wallet & Balance">
-          <Button
-            icon={<WalletOutlined />}
-            onClick={() => openModal("wallet")}
-            data-testid="wallet-modal-trigger"
-          >
-            Wallet
-          </Button>
-        </Tooltip>
-        <Tooltip title="Shipping Configuration">
-          <Button
-            icon={<CarOutlined />}
-            onClick={() => openModal("shipping")}
-            data-testid="shipping-modal-trigger"
-          >
-            Shipping
-          </Button>
-        </Tooltip>
       </Space>
-      <div>{getStatusBadge()}</div>
     </Flex>
   );
 }

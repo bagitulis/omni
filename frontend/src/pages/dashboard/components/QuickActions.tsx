@@ -3,7 +3,6 @@ import {
   ThunderboltOutlined,
   ExportOutlined,
   SyncOutlined,
-  DollarOutlined,
   ShoppingOutlined,
   DownOutlined,
 } from "@ant-design/icons";
@@ -16,10 +15,6 @@ export function QuickActions() {
 
   const handleExportOrders = (platform: string) => {
     openModal("exportOrders", { platform });
-  };
-
-  const handleUpdatePrice = () => {
-    openModal("price");
   };
 
   const items = [
@@ -73,17 +68,7 @@ export function QuickActions() {
             </Button>
           </Dropdown>
         </Col>
-        <Col span={12}>
-          <Button
-            block
-            icon={<DollarOutlined />}
-            onClick={() => handleUpdatePrice()}
-            style={{ borderRadius: 3, height: 40, fontSize: 12 }}
-          >
-            Update Prices
-          </Button>
-        </Col>
-        <Col span={12}>
+        <Col span={24}>
           <Button block icon={<ShoppingOutlined />} style={{ borderRadius: 3, height: 40, fontSize: 12 }}>
             Manage Stock
           </Button>
