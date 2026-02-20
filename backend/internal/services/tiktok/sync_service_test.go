@@ -50,7 +50,7 @@ func setupTikTokTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
 
-	err = db.AutoMigrate(&models.TiktokOrder{}, &models.TiktokProduct{}, &models.TiktokSku{})
+	err = db.AutoMigrate(&models.TiktokOrder{}, &models.TiktokProduct{}, &models.TiktokSku{}, &models.TiktokProductImage{})
 	if err != nil {
 		t.Fatalf("Failed to migrate test database: %v", err)
 	}

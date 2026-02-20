@@ -19,7 +19,7 @@ func setupShopeeSyncCleanupTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("failed to create test database: %v", err)
 	}
 
-	err = db.AutoMigrate(&models.ShopeeProduct{}, &models.ShopeeSku{})
+	err = db.AutoMigrate(&models.ShopeeProduct{}, &models.ShopeeSku{}, &models.ShopeeProductImage{})
 	if err != nil {
 		t.Fatalf("failed to migrate test database: %v", err)
 	}

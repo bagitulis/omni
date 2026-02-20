@@ -43,7 +43,7 @@ func setupLazadaTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
 
-	err = db.AutoMigrate(&models.LazadaOrder{}, &models.LazadaProduct{}, &models.LazadaSku{})
+	err = db.AutoMigrate(&models.LazadaOrder{}, &models.LazadaProduct{}, &models.LazadaSku{}, &models.LazadaProductImage{})
 	if err != nil {
 		t.Fatalf("Failed to migrate test database: %v", err)
 	}

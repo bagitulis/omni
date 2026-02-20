@@ -14,14 +14,33 @@ func (s *SyncService) clearTiktokProductCache(ctx context.Context) error {
 	}
 
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("tenant_id = ?", s.tenantID).Delete(&models.TiktokSku{}).Error; err != nil {
-			return fmt.Errorf("clear tiktok skus: %w", err)
-		}
-
-		if err := tx.Where("tenant_id = ?", s.tenantID).Delete(&models.TiktokProduct{}).Error; err != nil {
-			return fmt.Errorf("clear tiktok products: %w", err)
-		}
-
-		return nil
+		return s.clearTiktokProductCacheWithDB(ctx, tx)
 	})
+}
+
+func (s *SyncService) clearTiktokProductCacheWithDB(ctx context.Context, db *gorm.DB) error {
+	if s.tenantID == "" {
+		return fmt.Errorf("tenant_id is required")
+	}
+
+	productIDs := db.WithContext(ctx).
+		Model(&models.TiktokProduct{}).
+		Select("id").
+		Where("tenant_id = ?", s.tenantID)
+
+	if err := db.WithContext(ctx).
+		Where("tiktok_product_id IN (?)", productIDs).
+		Delete(&models.TiktokProductImage{}).Error; err != nil {
+		return fmt.Errorf("clear tiktok product images: %w", err)
+	}
+
+	if err := db.WithContext(ctx).Where("tenant_id = ?", s.tenantID).Delete(&models.TiktokSku{}).Error; err != nil {
+		return fmt.Errorf("clear tiktok skus: %w", err)
+	}
+
+	if err := db.WithContext(ctx).Where("tenant_id = ?", s.tenantID).Delete(&models.TiktokProduct{}).Error; err != nil {
+		return fmt.Errorf("clear tiktok products: %w", err)
+	}
+
+	return nil
 }
