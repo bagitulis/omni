@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/omni/backend/internal/models"
+	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 )
 
@@ -193,6 +194,14 @@ func (s *ImportService) ImportFromRows(ctx context.Context, tenantID string, row
 		}
 
 		result.ProductsCreated++
+
+		// Download and link images if URLs provided
+		if s.imgMgr != nil && len(group.imageURLs) > 0 {
+			zlog := zerolog.Ctx(ctx)
+			if err := s.imgMgr.ProcessAndLinkImages(ctx, tenantID, masterProduct.ID, group.imageURLs); err != nil {
+				zlog.Warn().Err(err).Uint("product_id", masterProduct.ID).Msg("Failed to download images during import, continuing")
+			}
+		}
 	}
 
 	result.Imported = result.ProductsCreated

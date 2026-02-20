@@ -29,6 +29,7 @@ type ImportService struct {
 	db       *gorm.DB
 	repo     *repositories.MasterProductRepository
 	basePath string
+	imgMgr   *ImageManager // optional: downloads and links images during import
 }
 
 // NewImportService creates a new import service
@@ -37,6 +38,7 @@ func NewImportService(db *gorm.DB, basePath string) *ImportService {
 		db:       db,
 		repo:     repositories.NewMasterProductRepository(db),
 		basePath: basePath,
+		imgMgr:   newDefaultImageManager(db),
 	}
 }
 
