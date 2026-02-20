@@ -1,6 +1,7 @@
 package shopee
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -113,7 +114,7 @@ func (h *SyncHandler) SyncOrders(c *gin.Context) {
 
 	// Sync orders
 	syncService := shopeeService.NewSyncServiceWithTenant(client, db, tenantID)
-	count, err := syncService.SyncOrders(c.Request.Context(), days)
+	count, err := syncService.SyncOrders(context.Background(), days)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Sync failed: "+err.Error()))
 		return
@@ -173,7 +174,7 @@ func (h *SyncHandler) SyncProducts(c *gin.Context) {
 	client.SetShopCredentials(tenantCreds.ShopIDInt, tenantCreds.AccessToken)
 
 	syncService := shopeeService.NewSyncServiceWithTenant(client, db, tenantID)
-	count, err := syncService.SyncProducts(c.Request.Context())
+	count, err := syncService.SyncProducts(context.Background())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Sync failed: "+err.Error()))
 		return

@@ -46,7 +46,7 @@ func (h *ProductSearchHandler) SearchProducts(c *gin.Context) {
 	}
 
 	svc := tiktokSvc.NewSyncServiceWithTenant(client, db, tenantID)
-	totalProducts, err := svc.SyncProducts(c.Request.Context())
+	totalProducts, err := svc.SyncProducts(context.Background())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return

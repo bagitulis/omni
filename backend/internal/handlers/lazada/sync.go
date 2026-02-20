@@ -1,6 +1,7 @@
 package lazada
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -81,7 +82,7 @@ func (h *SyncHandler) SyncOrders(c *gin.Context) {
 	}
 
 	syncService := lazadaService.NewSyncServiceWithTenant(client, db, tenantID)
-	count, err := syncService.SyncOrders(c.Request.Context(), "")
+	count, err := syncService.SyncOrders(context.Background(), "")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Sync failed: "+err.Error()))
 		return
@@ -122,7 +123,7 @@ func (h *SyncHandler) SyncProducts(c *gin.Context) {
 	}
 
 	syncService := lazadaService.NewSyncServiceWithTenant(client, db, tenantID)
-	count, err := syncService.SyncProducts(c.Request.Context())
+	count, err := syncService.SyncProducts(context.Background())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Sync failed: "+err.Error()))
 		return
