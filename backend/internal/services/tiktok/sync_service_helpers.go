@@ -73,9 +73,18 @@ func (s *SyncService) syncProductsWithDB(
 			continue
 		}
 
-		s.syncProductSkus(ctx, prodRepo, savedProd.ID, prod)
+		detailResp, err := s.client.GetProductDetail(prod.ID)
+		if err != nil {
+			zlog.Warn().Str("product_id", prod.ID).Err(err).Msg("Failed to get product detail, syncing product without variant/image enrichment")
+			detailResp = nil
+		} else if detailResp.Code != 0 {
+			zlog.Warn().Str("product_id", prod.ID).Int("code", detailResp.Code).Str("message", detailResp.Message).Msg("TikTok API error on product detail, syncing product without variant/image enrichment")
+			detailResp = nil
+		}
+
+		s.syncProductSkus(ctx, prodRepo, savedProd.ID, prod, detailResp)
 		s.updateProductSummary(ctx, tx, savedProd.ID, prod)
-		s.syncProductImages(ctx, tx, savedProd.ID, prod.ID)
+		s.syncProductImages(ctx, tx, savedProd.ID, prod.ID, detailResp)
 
 		*count = *count + 1
 	}
@@ -88,8 +97,16 @@ func (s *SyncService) syncProductSkus(
 	prodRepo *repositories.TiktokProductRepository,
 	productID uint,
 	prod tiktokPkg.ProductSearchItem,
+	detailResp *tiktokPkg.ProductDetailResponse,
 ) {
 	zlog := zerolog.Ctx(ctx)
+	variantBySkuID := make(map[string][]tiktokPkg.ProductSalesAttr)
+
+	if detailResp != nil {
+		for _, detailSku := range detailResp.Data.Skus {
+			variantBySkuID[detailSku.ID] = detailSku.SalesAttributes
+		}
+	}
 
 	for _, sku := range prod.Skus {
 		dbSku := &models.TiktokSku{
@@ -99,6 +116,11 @@ func (s *SyncService) syncProductSkus(
 			SellerSku: sku.SellerSku,
 			Price:     parsePrice(sku.Price.SalePrice, sku.Price.OriginalPrice),
 			Quantity:  sumInventory(sku.Inventory),
+		}
+
+		if attrs, ok := variantBySkuID[sku.ID]; ok {
+			dbSku.VariantName = buildVariantName(attrs)
+			dbSku.VariantData = buildVariantData(attrs)
 		}
 
 		if err := prodRepo.UpsertSku(ctx, dbSku); err != nil {
@@ -132,12 +154,16 @@ func (s *SyncService) updateProductSummary(ctx context.Context, tx *gorm.DB, pro
 	}
 }
 
-func (s *SyncService) syncProductImages(ctx context.Context, tx *gorm.DB, productID uint, remoteProductID string) {
+func (s *SyncService) syncProductImages(
+	ctx context.Context,
+	tx *gorm.DB,
+	productID uint,
+	remoteProductID string,
+	detailResp *tiktokPkg.ProductDetailResponse,
+) {
 	zlog := zerolog.Ctx(ctx)
 
-	detailResp, err := s.client.GetProductDetail(remoteProductID)
-	if err != nil {
-		zlog.Warn().Str("product_id", remoteProductID).Err(err).Msg("Failed to get product detail for images, product saved without images")
+	if detailResp == nil {
 		return
 	}
 
@@ -146,7 +172,7 @@ func (s *SyncService) syncProductImages(ctx context.Context, tx *gorm.DB, produc
 		return
 	}
 
-	err = tx.WithContext(ctx).
+	err := tx.WithContext(ctx).
 		Model(&models.TiktokProduct{}).
 		Where("id = ?", productID).
 		Update("image", imageURLs[0]).Error
@@ -266,4 +292,38 @@ func extractPreferredImageURLs(images []tiktokPkg.ProductImage) []string {
 	}
 
 	return imageURLs
+}
+
+func buildVariantName(attrs []tiktokPkg.ProductSalesAttr) string {
+	if len(attrs) == 0 {
+		return ""
+	}
+
+	parts := make([]string, 0, len(attrs))
+	for _, attr := range attrs {
+		if attr.Name != "" && attr.ValueName != "" {
+			parts = append(parts, attr.Name+":"+attr.ValueName)
+		}
+	}
+
+	return strings.Join(parts, " | ")
+}
+
+func buildVariantData(attrs []tiktokPkg.ProductSalesAttr) models.JSONMap {
+	if len(attrs) == 0 {
+		return nil
+	}
+
+	result := make(models.JSONMap)
+	for _, attr := range attrs {
+		if attr.Name != "" && attr.ValueName != "" {
+			result[attr.Name] = attr.ValueName
+		}
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+
+	return result
 }

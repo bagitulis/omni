@@ -224,7 +224,9 @@ export default function ProductImportPage() {
         return (
           <div className="step-content success-content">
             <Card className="success-card">
-              <div className="success-icon">✓</div>
+              <div className="success-icon">
+                <CheckCircleOutlined />
+              </div>
               <h2>Import Complete!</h2>
               <p>Your products have been successfully imported.</p>
               <p style={{ fontSize: "12px", color: token.colorTextSecondary }}>
