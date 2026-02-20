@@ -1,3 +1,5 @@
+import { API_TIMEOUT } from "@/lib/constants";
+
 import apiClient from "./client";
 
 export interface LazadaSyncResult {
@@ -11,18 +13,22 @@ export interface LazadaSyncResult {
 }
 
 export async function syncProductsToDb(): Promise<LazadaSyncResult> {
-  const response = await apiClient.get<LazadaSyncResult>("/lazada/products");
+  const response = await apiClient.post<LazadaSyncResult>(
+    "/lazada/sync/products",
+    undefined,
+    { timeout: API_TIMEOUT.EXTRA_LONG },
+  );
 
   if (!response.success) {
     throw new Error(response.error || "Failed to sync Lazada products");
   }
 
-  const payload = response as unknown as LazadaSyncResult;
+  const syncResult: LazadaSyncResult = response.data ?? {};
   return {
-    ...payload,
+    ...syncResult,
     processed:
-      typeof payload.detail_saved === "number"
-        ? payload.detail_saved
-        : payload.processed,
+      typeof syncResult.detail_saved === "number"
+        ? syncResult.detail_saved
+        : syncResult.processed,
   };
 }

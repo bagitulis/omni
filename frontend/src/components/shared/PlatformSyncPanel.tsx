@@ -16,7 +16,7 @@ import {
   importFromStaging,
   type ImportFromStagingResult,
 } from "@/api/products";
-import { fetchProductListFromApi } from "@/api/shopeeDb";
+import { syncShopeeProducts } from "@/api/shopeeDb";
 import { searchProducts } from "@/api/tiktokDb";
 import { PLATFORM_META, type Platform } from "./platformSyncPanelHelpers";
 import { PlatformSyncMetrics } from "./PlatformSyncMetrics";
@@ -76,7 +76,7 @@ export function PlatformSyncPanel({
     try {
       let message = "";
       if (platform === "shopee") {
-        const result = await fetchProductListFromApi();
+        const result = await syncShopeeProducts();
         message = result.message ?? `Synced ${result.processed ?? 0} products`;
       } else if (platform === "tiktok") {
         const result = await searchProducts();
@@ -123,10 +123,7 @@ export function PlatformSyncPanel({
   );
 
   return (
-    <div
-      style={{ width: "100%" }}
-      data-testid="platform-sync-panel"
-    >
+    <div style={{ width: "100%" }} data-testid="platform-sync-panel">
       <Space direction="vertical" size={16} style={{ width: "100%" }}>
         <div
           style={{
@@ -198,7 +195,11 @@ export function PlatformSyncPanel({
                       }}
                     >
                       <Space align="center" size={8}>
-                        <Tag color={platform.color} bordered={false} style={{ margin: 0 }}>
+                        <Tag
+                          color={platform.color}
+                          bordered={false}
+                          style={{ margin: 0 }}
+                        >
                           {platform.label}
                         </Tag>
                         <Typography.Text

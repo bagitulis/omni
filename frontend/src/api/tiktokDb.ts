@@ -1,3 +1,5 @@
+import { API_TIMEOUT } from "@/lib/constants";
+
 import apiClient from "./client";
 
 export interface TiktokDbProduct {
@@ -15,14 +17,6 @@ export interface TiktokDbStatistics {
   total_products?: number;
   active_products?: number;
   inactive_products?: number;
-  [key: string]: unknown;
-}
-
-export interface TiktokRefreshResult {
-  status?: string;
-  message?: string;
-  processed?: number;
-  failed?: number;
   [key: string]: unknown;
 }
 
@@ -48,6 +42,7 @@ export async function searchProducts(
   const response = await apiClient.post<TiktokDbProduct[]>(
     "/tiktok/products/search",
     payload,
+    { timeout: API_TIMEOUT.EXTRA_LONG },
   );
 
   if (!response.success) {
@@ -92,25 +87,6 @@ export async function getProductDetail(
   }
 
   return response.data ?? null;
-}
-
-export async function refreshProductData(
-  status: string = "ALL",
-): Promise<TiktokRefreshResult> {
-  const response = await apiClient.post<TiktokRefreshResult>(
-    "/tiktok/products/refresh-all",
-    {
-      status,
-      page_size: 100,
-      fetch_details: true,
-    },
-  );
-
-  if (!response.success) {
-    throw new Error(response.error || "Failed to refresh product data");
-  }
-
-  return response.data ?? {};
 }
 
 export async function getProductListFromDB(): Promise<TiktokDbProduct[]> {

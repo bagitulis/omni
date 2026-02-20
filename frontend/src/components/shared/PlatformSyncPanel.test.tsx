@@ -9,7 +9,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { importFromStaging } from "@/api/products";
 import { syncProductsToDb } from "@/api/lazadaDb";
-import { fetchProductListFromApi } from "@/api/shopeeDb";
+import { syncShopeeProducts } from "@/api/shopeeDb";
 import { searchProducts } from "@/api/tiktokDb";
 import { PlatformSyncPanel } from "./PlatformSyncPanel";
 
@@ -38,7 +38,7 @@ vi.mock("@/api/products", () => ({
 }));
 
 vi.mock("@/api/shopeeDb", () => ({
-  fetchProductListFromApi: vi.fn(),
+  syncShopeeProducts: vi.fn(),
 }));
 
 vi.mock("@/api/tiktokDb", () => ({
@@ -53,7 +53,7 @@ describe("PlatformSyncPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    vi.mocked(fetchProductListFromApi).mockResolvedValue({
+    vi.mocked(syncShopeeProducts).mockResolvedValue({
       message: "Synced 20 products",
       processed: 20,
     });
