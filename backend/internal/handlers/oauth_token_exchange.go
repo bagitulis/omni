@@ -228,10 +228,21 @@ func (h *OAuthHandler) saveTiktokTokens(ctx context.Context, tenantID string, to
 
 	// Handle refresh token expiry
 	refreshExpiresInSeconds := tokenResp.Data.RefreshTokenExpireIn
+	nowSec := time.Now().Unix()
+	if refreshExpiresInSeconds > nowSec {
+		// It's a Unix timestamp (e.g. TikTok sentinel 4875922303 = year 2124) — convert to relative seconds
+		refreshExpiresInSeconds = refreshExpiresInSeconds - nowSec
+		log.Printf("[TikTok OAuth] refresh_token_expire_in was Unix timestamp, converted to relative: %d seconds (%d days)", refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
+	}
+	// Cap at 365 days max — guards against bogus far-future sentinel values
+	const maxTiktokRefreshSeconds = int64(365 * 24 * 60 * 60)
 	if refreshExpiresInSeconds <= 0 {
 		// Default to 90 days if not provided
 		refreshExpiresInSeconds = 90 * 24 * 60 * 60
 		log.Printf("[TikTok OAuth] refresh_token_expire_in not provided, using default: %d seconds (90 days)", refreshExpiresInSeconds)
+	} else if refreshExpiresInSeconds > maxTiktokRefreshSeconds {
+		log.Printf("[TikTok OAuth] refresh_token_expire_in %d seconds (%d days) exceeds 365 days cap, capping", refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
+		refreshExpiresInSeconds = maxTiktokRefreshSeconds
 	} else {
 		log.Printf("[TikTok OAuth] refresh_token_expire_in: %d seconds (%d days)", refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
 	}

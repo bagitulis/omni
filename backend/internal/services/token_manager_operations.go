@@ -221,6 +221,19 @@ func (m *TokenManager) executeTiktokTokenRefresh(ctx context.Context, tenantID, 
 		log.Info().Int64("refresh_expires_in", refreshExpiresIn).Msg("[TIKTOK REFRESH] refresh_token_expire_in not provided, using default")
 	}
 
+	// Cap at 365 days max — TikTok sometimes returns bogus far-future Unix timestamps
+	// (e.g. 4875922303 = year 2124, a sentinel "never expires" value that must be capped)
+	const maxTiktokRefreshSeconds = int64(365 * 24 * 60 * 60)
+	if refreshExpiresIn > maxTiktokRefreshSeconds {
+		log.Warn().
+			Int64("raw_value", refreshTokenExpireValue).
+			Int64("computed_seconds", refreshExpiresIn).
+			Int64("computed_days", refreshExpiresIn/86400).
+			Int64("capped_days", maxTiktokRefreshSeconds/86400).
+			Msg("[TIKTOK REFRESH] refresh_token_expire_in exceeds 365 days, capping (TikTok sentinel value)")
+		refreshExpiresIn = maxTiktokRefreshSeconds
+	}
+
 	log.Info().
 		Int64("expires_in", expiresIn).
 		Int64("refresh_expires_in", refreshExpiresIn).
