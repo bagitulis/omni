@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { DatePicker, Tabs, Typography, Alert, Button } from "antd";
 import {
   LineChartOutlined,
   VideoCameraOutlined,
   UploadOutlined,
-  FileSearchOutlined,
 } from "@ant-design/icons";
 import type { RangePickerProps } from "antd/es/date-picker";
 import dayjs from "dayjs";
@@ -15,13 +15,16 @@ import { UploadTab } from "./components/tiktok-ads/UploadTab";
 import { TikTokAdsData, TIKTOK_BLACK } from "./components/tiktok-ads/types";
 import { useTiktokAdsDashboard, useTiktokAdsData } from "@/hooks/useAds";
 import { TikTokAdsSummary } from "./components/tiktok-ads/useTiktokAdsSummary";
-import { AdsReportViewer } from "@/components/analytics/ads/AdsReportViewer";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
 export const TiktokAdsAnalyticsPage = () => {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "dashboard";
+  const setActiveTab = (tab: string) => {
+    setSearchParams({ tab }, { replace: true });
+  };
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(
     null,
   );
@@ -73,7 +76,7 @@ export const TiktokAdsAnalyticsPage = () => {
       clicks: 0,
       ctr: 0,
       cpc: 0,
-      roi: p.roas,
+      roi: p.roi,
       conversions: p.orders,
       video_plays: 0,
       engagement_rate: 0,
@@ -156,15 +159,6 @@ export const TiktokAdsAnalyticsPage = () => {
       children: (
         <UploadTab uploadProps={uploadProps} uploadedData={uploadedData} />
       ),
-    },
-    {
-      key: "insights",
-      label: (
-        <span>
-          <FileSearchOutlined /> AI Insights
-        </span>
-      ),
-      children: <AdsReportViewer platform="tiktok" />,
     },
   ];
 

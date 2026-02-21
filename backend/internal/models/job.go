@@ -27,7 +27,7 @@ type Job struct {
 	ProgressMessage string     `gorm:"column:progress_message" json:"progress_message,omitempty"`
 	TotalItems      int        `gorm:"column:total_items;default:0" json:"total_items"`
 	ProcessedItems  int        `gorm:"column:processed_items;default:0" json:"processed_items"`
-	ResultData      string     `gorm:"column:result_data;type:jsonb" json:"result_data,omitempty"`
+	ResultData      string     `gorm:"column:result_data;type:text" json:"result_data,omitempty"`
 	StartedAt       *time.Time `gorm:"column:started_at" json:"started_at,omitempty"`
 	CompletedAt     *time.Time `gorm:"column:completed_at" json:"completed_at,omitempty"`
 	CreatedAt       time.Time  `gorm:"column:created_at" json:"created_at"`

@@ -56,11 +56,11 @@ const DashboardTab = ({
   const performanceData = [
     {
       name: "CTR (%)",
-      data: safeAdsData.slice(0, 6).map((d) => Number(d.ctr.toFixed(2))),
+      data: safeAdsData.slice(0, 6).map((d) => Number((Number(d.ctr) || 0).toFixed(2))),
     },
     {
       name: "ROI (%)",
-      data: safeAdsData.slice(0, 6).map((d) => Number(d.roi.toFixed(2))),
+      data: safeAdsData.slice(0, 6).map((d) => Number((Number(d.roi) || 0).toFixed(2))),
     },
   ];
 

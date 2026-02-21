@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
   Platform,
@@ -26,16 +27,68 @@ export function useAnalyticsParams(_platform: Platform) {
   const defaultYear =
     now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
 
-  const [activeTab, setActiveTab] = useState<"price" | "shipping">("price");
-  const [selectedMonth, setSelectedMonth] = useState<number>(defaultMonth);
-  const [selectedYear, setSelectedYear] = useState<number>(defaultYear);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Read from URL search params, fallback to defaults
+  const tabParam = searchParams.get("tab");
+  const activeTab: "price" | "shipping" =
+    tabParam === "shipping" ? "shipping" : "price";
+
+  const monthParam = searchParams.get("month");
+  const selectedMonth =
+    monthParam !== null && !isNaN(Number(monthParam))
+      ? Math.max(0, Math.min(11, Number(monthParam)))
+      : defaultMonth;
+
+  const yearParam = searchParams.get("year");
+  const selectedYear =
+    yearParam !== null && !isNaN(Number(yearParam))
+      ? Number(yearParam)
+      : defaultYear;
+
+  // Helper to update search params while preserving other params
+  const updateSearchParams = useCallback(
+    (updates: Record<string, string>) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          for (const [key, value] of Object.entries(updates)) {
+            next.set(key, value);
+          }
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const setActiveTab = useCallback(
+    (tab: "price" | "shipping") => {
+      updateSearchParams({ tab });
+    },
+    [updateSearchParams],
+  );
+
+  const setSelectedMonth = useCallback(
+    (month: number) => {
+      updateSearchParams({ month: String(month) });
+    },
+    [updateSearchParams],
+  );
+
+  const setSelectedYear = useCallback(
+    (year: number) => {
+      updateSearchParams({ year: String(year) });
+    },
+    [updateSearchParams],
+  );
 
   // API uses 1-indexed month
   const apiMonth = selectedMonth + 1;
 
   // Can only sync if not current month
-  // Note: Simple check, assumes user won't select future months
   const isCurrentMonth =
     selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
   const canSync = !isCurrentMonth;
@@ -149,6 +202,12 @@ export function useAnalyticsSync(platform: Platform) {
           queryKey: ["analytics", platform, "shipping-fee"],
         });
       }
+
+      // Clear progress bar after a brief delay so user can see the completion
+      const timer = setTimeout(() => {
+        setJobProgress(null);
+      }, 1500);
+      return () => clearTimeout(timer);
     }
   }, [jobStatusQuery.data, platform, queryClient]);
 

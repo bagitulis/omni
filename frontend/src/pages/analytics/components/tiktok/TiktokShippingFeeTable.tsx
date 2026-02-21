@@ -144,7 +144,7 @@ export function TiktokShippingFeeTable({ orders, loading }: Props) {
         rowKey="order_id"
         loading={loading}
         pagination={{
-          pageSize: 10,
+          defaultPageSize: 10,
           showSizeChanger: true,
           showTotal: (total) => `Total ${total} items`,
           position: ["bottomRight"],

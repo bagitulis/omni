@@ -154,7 +154,7 @@ export function ReconciliationTable({ platform, data, loading }: Props) {
       bordered
       size="small"
       pagination={{
-        pageSize: 10,
+        defaultPageSize: 10,
         showSizeChanger: true,
         showTotal: (total) => `Total ${total} items`,
       }}

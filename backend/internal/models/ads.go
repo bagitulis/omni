@@ -43,8 +43,8 @@ type ShopeeAdsProductData struct {
 	Placement               string    `gorm:"column:placement;type:varchar(255)" json:"placement"`
 	StartDate               time.Time `gorm:"column:start_date;type:timestamptz" json:"start_date"`
 	EndDate                 string    `gorm:"column:end_date;type:varchar(100)" json:"end_date"`
-	Impressions             int       `gorm:"column:impressions" json:"impressions"`
-	Clicks                  int       `gorm:"column:clicks" json:"clicks"`
+	Impressions             int       `gorm:"column:impressions;type:integer" json:"impressions"`
+	Clicks                  int       `gorm:"column:clicks;type:integer" json:"clicks"`
 	CTR                     float64   `gorm:"column:ctr" json:"ctr"`
 	Conversions             int       `gorm:"column:conversions" json:"conversions"`
 	DirectConversions       int       `gorm:"column:direct_conversions" json:"direct_conversions"`
@@ -111,21 +111,21 @@ type TiktokAdsCreativeData struct {
 	PostingTime       time.Time `gorm:"column:posting_time;type:timestamptz" json:"posting_time"`
 	Status            string    `gorm:"column:status;type:varchar(100)" json:"status"`
 	AuthorizationType string    `gorm:"column:authorization_type;type:varchar(255)" json:"authorization_type"`
-	Cost              float64   `gorm:"column:cost" json:"cost"`
-	OrdersSKU         int       `gorm:"column:orders_sku" json:"orders_sku"`
-	CostPerOrder      float64   `gorm:"column:cost_per_order" json:"cost_per_order"`
-	GrossRevenue      float64   `gorm:"column:gross_revenue" json:"gross_revenue"`
-	ROI               float64   `gorm:"column:roi" json:"roi"`
-	Impressions       int       `gorm:"column:impressions" json:"impressions"`
-	Clicks            int       `gorm:"column:clicks" json:"clicks"`
-	CTR               float64   `gorm:"column:ctr" json:"ctr"`
-	ConversionRate    float64   `gorm:"column:conversion_rate" json:"conversion_rate"`
-	WatchRate2s       float64   `gorm:"column:watch_rate_2s" json:"watch_rate_2s"`
-	WatchRate6s       float64   `gorm:"column:watch_rate_6s" json:"watch_rate_6s"`
-	WatchRate25Pct    float64   `gorm:"column:watch_rate_25pct" json:"watch_rate_25pct"`
-	WatchRate50Pct    float64   `gorm:"column:watch_rate_50pct" json:"watch_rate_50pct"`
-	WatchRate75Pct    float64   `gorm:"column:watch_rate_75pct" json:"watch_rate_75pct"`
-	WatchRate100Pct   float64   `gorm:"column:watch_rate_100pct" json:"watch_rate_100pct"`
+	Cost              float64   `gorm:"column:cost;type:double precision" json:"cost"`
+	OrdersSKU         int       `gorm:"column:orders_sku;type:integer" json:"orders_sku"`
+	CostPerOrder      float64   `gorm:"column:cost_per_order;type:double precision" json:"cost_per_order"`
+	GrossRevenue      float64   `gorm:"column:gross_revenue;type:double precision" json:"gross_revenue"`
+	ROI               float64   `gorm:"column:roi;type:double precision" json:"roi"`
+	Impressions       int       `gorm:"column:impressions;type:integer" json:"impressions"`
+	Clicks            int       `gorm:"column:clicks;type:integer" json:"clicks"`
+	CTR               float64   `gorm:"column:ctr;type:double precision" json:"ctr"`
+	ConversionRate    float64   `gorm:"column:conversion_rate;type:double precision" json:"conversion_rate"`
+	WatchRate2s       float64   `gorm:"column:watch_rate_2s;type:double precision" json:"watch_rate_2s"`
+	WatchRate6s       float64   `gorm:"column:watch_rate_6s;type:double precision" json:"watch_rate_6s"`
+	WatchRate25Pct    float64   `gorm:"column:watch_rate_25pct;type:double precision" json:"watch_rate_25pct"`
+	WatchRate50Pct    float64   `gorm:"column:watch_rate_50pct;type:double precision" json:"watch_rate_50pct"`
+	WatchRate75Pct    float64   `gorm:"column:watch_rate_75pct;type:double precision" json:"watch_rate_75pct"`
+	WatchRate100Pct   float64   `gorm:"column:watch_rate_100pct;type:double precision" json:"watch_rate_100pct"`
 	Currency          string    `gorm:"column:currency;type:varchar(20)" json:"currency"`
 	CreatedAt         time.Time `gorm:"column:created_at;type:timestamptz" json:"created_at"`
 	UpdatedAt         time.Time `gorm:"column:updated_at;type:timestamptz" json:"updated_at"`

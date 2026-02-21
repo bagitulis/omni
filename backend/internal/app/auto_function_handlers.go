@@ -227,15 +227,37 @@ func syncFromSheetsHandler(ctx context.Context, tenantID string, cfg *models.Aut
 		return "", fmt.Errorf("failed to get tenant DB: %w", err)
 	}
 
-	// Get inventory settings
+	// Get spreadsheet config: try inventory_settings first, then google_sheets_settings (same as manual sync)
 	invService := inventory.NewInventoryService(db, tenantID)
 	settings, err := invService.GetSettings(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to get inventory settings: %w", err)
 	}
 
-	if settings == nil || settings.SpreadsheetID == "" || settings.SheetName == "" {
-		return "Inventory settings not configured. Please configure Google Sheets integration first.", nil
+	spreadsheetID := ""
+	sheetName := ""
+
+	// Source 1: inventory_settings
+	if settings != nil {
+		spreadsheetID = settings.SpreadsheetID
+		sheetName = settings.SheetName
+	}
+
+	// Source 2: google_sheets_settings (fallback, same as manual sync handler)
+	if spreadsheetID == "" || sheetName == "" {
+		var gsSettings models.GoogleSheetsSettings
+		if err := db.First(&gsSettings).Error; err == nil {
+			if spreadsheetID == "" && gsSettings.InventorySpreadsheetID != "" {
+				spreadsheetID = gsSettings.InventorySpreadsheetID
+			}
+			if sheetName == "" && gsSettings.InventorySheetName != "" {
+				sheetName = gsSettings.InventorySheetName
+			}
+		}
+	}
+
+	if spreadsheetID == "" || sheetName == "" {
+		return "", fmt.Errorf("inventory spreadsheet not configured: spreadsheet_id=%q, sheet_name=%q. Please configure in Settings > Google Sheets", spreadsheetID, sheetName)
 	}
 
 	// Load Google service account credentials
@@ -254,7 +276,7 @@ func syncFromSheetsHandler(ctx context.Context, tenantID string, cfg *models.Aut
 	syncService := inventory.NewSyncService(db, tenantID, sheetsService)
 
 	// Perform sync
-	result, err := syncService.SyncFromSheets(ctx, settings.SpreadsheetID, settings.SheetName)
+	result, err := syncService.SyncFromSheets(ctx, spreadsheetID, sheetName)
 	if err != nil {
 		return "", fmt.Errorf("sync from sheets failed: %w", err)
 	}

@@ -1,0 +1,50 @@
+2026/02/21 09:58:38   Γ£à Migrated: *models.ShopeeEscrowOrder
+2026/02/21 09:58:39   Γ£à Migrated: *models.ShopeeEscrowItem
+2026/02/21 09:58:39   Γ£à Migrated: *models.TiktokEscrowSync
+2026/02/21 09:58:39   Γ£à Migrated: *models.TiktokEscrowOrder
+2026/02/21 09:58:39   Γ£à Migrated: *models.TiktokEscrowItem
+2026/02/21 09:58:39 [ERROR] ERROR: constraint "uni_shopee_orders_order_sn" of relation "shopee_orders" does not exist (SQLSTATE 42704) [0.534ms] [rows:0] ALTER TABLE "shopee_orders" DROP CONSTRAINT "uni_shopee_orders_order_sn"
+2026/02/21 09:58:39   ΓÜá∩╕Å  Warning migrating *models.ShopeeOrder: ERROR: constraint "uni_shopee_orders_order_sn" of relation "shopee_orders" does not exist (SQLSTATE 42704)
+2026/02/21 09:58:39   Γ£à Migrated: *models.ShopeeOrderItem
+2026/02/21 09:58:39   Γ£à Migrated: *models.ShopeeProduct
+2026/02/21 09:58:39   Γ£à Migrated: *models.ShopeeSku
+2026/02/21 09:58:39 [ERROR] ERROR: constraint "uni_lazada_orders_order_sn" of relation "lazada_orders" does not exist (SQLSTATE 42704) [0.635ms] [rows:0] ALTER TABLE "lazada_orders" DROP CONSTRAINT "uni_lazada_orders_order_sn"
+2026/02/21 09:58:39   ΓÜá∩╕Å  Warning migrating *models.LazadaOrder: ERROR: constraint "uni_lazada_orders_order_sn" of relation "lazada_orders" does not exist (SQLSTATE 42704)
+2026/02/21 09:58:39   Γ£à Migrated: *models.LazadaOrderItem
+2026/02/21 09:58:39   Γ£à Migrated: *models.LazadaProduct
+2026/02/21 09:58:39 [ERROR] ERROR: constraint "uni_lazada_skus_sku_id" of relation "lazada_skus" does not exist (SQLSTATE 42704) [2.521ms] [rows:0] ALTER TABLE "lazada_skus" DROP CONSTRAINT "uni_lazada_skus_sku_id"
+2026/02/21 09:58:39   ΓÜá∩╕Å  Warning migrating *models.LazadaSku: ERROR: constraint "uni_lazada_skus_sku_id" of relation "lazada_skus" does not exist (SQLSTATE 42704)
+2026/02/21 09:58:39 [ERROR] ERROR: constraint "uni_tiktok_orders_order_sn" of relation "tiktok_orders" does not exist (SQLSTATE 42704) [0.514ms] [rows:0] ALTER TABLE "tiktok_orders" DROP CONSTRAINT "uni_tiktok_orders_order_sn"
+2026/02/21 09:58:39   ΓÜá∩╕Å  Warning migrating *models.TiktokOrder: ERROR: constraint "uni_tiktok_orders_order_sn" of relation "tiktok_orders" does not exist (SQLSTATE 42704)
+2026/02/21 09:58:39   Γ£à Migrated: *models.TiktokOrderItem
+2026/02/21 09:58:39   Γ£à Migrated: *models.TiktokProduct
+2026/02/21 09:58:39 [ERROR] ERROR: constraint "uni_tiktok_skus_sku_id" of relation "tiktok_skus" does not exist (SQLSTATE 42704) [8.572ms] [rows:0] ALTER TABLE "tiktok_skus" DROP CONSTRAINT "uni_tiktok_skus_sku_id"
+2026/02/21 09:58:39   ΓÜá∩╕Å  Warning migrating *models.TiktokSku: ERROR: constraint "uni_tiktok_skus_sku_id" of relation "tiktok_skus" does not exist (SQLSTATE 42704)
+2026/02/21 09:58:39 [ERROR] ERROR: constraint "uni_inventory_settings_tenant_id" of relation "inventory_settings" does not exist (SQLSTATE 42704) [0.442ms] [rows:0] ALTER TABLE "inventory_settings" DROP CONSTRAINT "uni_inventory_settings_tenant_id"
+2026/02/21 09:58:39   ΓÜá∩╕Å  Warning migrating *models.InventorySettings: ERROR: constraint "uni_inventory_settings_tenant_id" of relation "inventory_settings" does not exist (SQLSTATE 42704)
+2026/02/21 09:58:39   Γ£à Migrated: *models.InventoryRecord
+2026/02/21 09:58:40   Γ£à Migrated: *models.InventorySyncHistory
+2026/02/21 09:58:40   Γ£à Migrated: *models.MarketplaceSyncHistory
+2026/02/21 09:58:40   Γ£à Migrated: *models.SheetSnapshot
+2026/02/21 09:58:40   Γ£à Migrated: *models.InventorySkuPlatformStatus
+2026/02/21 09:58:40   Γ£à Migrated: *models.GoogleSheetsSettings
+2026/02/21 09:58:40   Γ£à Migrated: *models.FilterPreference
+2026/02/21 09:58:40   Γ£à Migrated: *models.Spreadsheet
+2026/02/21 09:58:40   Γ£à Migrated: *models.RouteConfig
+2026/02/21 09:58:40 [ERROR] ERROR: constraint "uni_wholesale_settings_tenant_id" of relation "wholesale_settings" does not exist (SQLSTATE 42704) [0.720ms] [rows:0] ALTER TABLE "wholesale_settings" DROP CONSTRAINT "uni_wholesale_settings_tenant_id"
+2026/02/21 09:58:40   ΓÜá∩╕Å  Warning migrating *models.WholesaleSettings: ERROR: constraint "uni_wholesale_settings_tenant_id" of relation "wholesale_settings" does not exist (SQLSTATE 42704)
+2026/02/21 09:58:40   Γ£à Migrated: *models.Product
+2026/02/21 09:58:40   Γ£à Migrated: *models.ProductSKU
+2026/02/21 09:58:40   Γ£à Migrated: *models.Image
+2026/02/21 09:58:41   Γ£à Migrated: *models.MasterProductImage
+2026/02/21 09:58:41   Γ£à Migrated: *models.ShopeeProductImage
+2026/02/21 09:58:41   Γ£à Migrated: *models.TiktokProductImage
+2026/02/21 09:58:41   Γ£à Migrated: *models.LazadaProductImage
+2026/02/21 09:58:41   Γ£à Migrated: *models.OrderTodayItem
+2026/02/21 09:58:41   Γ£à Migrated: *models.LockedOrder
+2026/02/21 09:58:41   Γ£à Migrated: *models.ShopeeAdsUploadBatch
+2026/02/21 09:58:41 [ERROR] ERROR: cannot alter type of a column used by a view or rule (SQLSTATE 0A000) [1.848ms] [rows:0] ALTER TABLE "shopee_ads_product_data" ALTER COLUMN "conversions" TYPE bigint USING "conversions"::bigint
+2026/02/21 09:58:41   ΓÜá∩╕Å  Warning migrating *models.ShopeeAdsProductData: ERROR: cannot alter type of a column used by a view or rule (SQLSTATE 0A000)
+2026/02/21 09:58:41   Γ£à Migrated: *models.TiktokAdsUploadBatch
+2026/02/21 09:59:45 [SLOW SQL] [64175.552ms] [rows:0] ALTER TABLE "tiktok_ads_creative_data" ALTER COLUMN "watch_rate_2s" TYPE double precision USING "watch_rate_2s"::double precision
+2026/02/21 10:00:51 [SLOW SQL] [65193.373ms] [rows:0] ALTER TABLE "tiktok_ads_creative_data" ALTER COLUMN "watch_rate_6s" TYPE double precision USING "watch_rate_6s"::double precision

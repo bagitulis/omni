@@ -40,9 +40,9 @@ func (AutoFunctionHistory) TableName() string {
 // RouteExecutionConfig represents route-specific execution config
 type RouteExecutionConfig struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
-	TenantID  string    `gorm:"column:tenant_id;index;not null" json:"-"`
+	TenantID  string    `gorm:"column:tenant_id;index" json:"-"`
 	RouteKey  string    `gorm:"column:route_key;not null;uniqueIndex" json:"route_key"`
-	RoutePath string    `gorm:"column:route_path;not null" json:"route_path"`
+	RoutePath string    `gorm:"column:route_path" json:"route_path"`
 	IsEnabled bool      `gorm:"column:is_enabled;default:true" json:"is_enabled"`
 	Mode      string    `gorm:"column:mode;default:normal" json:"mode"` // normal, priority, disabled
 	Priority  int       `gorm:"column:priority;default:0" json:"priority"`

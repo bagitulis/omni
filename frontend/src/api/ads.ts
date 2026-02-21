@@ -10,11 +10,10 @@ import type {
 // --- Shopee Ads Analytics ---
 
 export async function getShopeeAdsDashboard() {
-  const response = await apiClient.get<{
-    success: boolean;
-    data: ShopeeAdsDashboardData;
-  }>("/analytics/shopee-ads/dashboard");
-  return response.data;
+  const response = await apiClient.get<ShopeeAdsDashboardData>(
+    "/analytics/shopee-ads/dashboard",
+  );
+  return response;
 }
 
 export interface ShopeeAdsDataParams {
@@ -28,21 +27,23 @@ export interface ShopeeAdsDataParams {
 
 export async function getShopeeAdsData(params?: ShopeeAdsDataParams) {
   const response = await apiClient.get<{
-    success: boolean;
-    data: ShopeeAdsProductData[];
+    items: ShopeeAdsProductData[];
     pagination: AdsPagination;
   }>("/analytics/shopee-ads/data", { params });
-  return response.data;
+  return {
+    success: response.success,
+    data: response.data?.items ?? (response.data as unknown as ShopeeAdsProductData[]) ?? [],
+    pagination: response.data?.pagination ?? { total: 0, limit: 50, offset: 0 },
+  };
 }
 
 // --- TikTok Ads Analytics ---
 
 export async function getTiktokAdsDashboard() {
-  const response = await apiClient.get<{
-    success: boolean;
-    data: TiktokAdsDashboardData;
-  }>("/analytics/tiktok-ads/dashboard");
-  return response.data;
+  const response = await apiClient.get<TiktokAdsDashboardData>(
+    "/analytics/tiktok-ads/dashboard",
+  );
+  return response;
 }
 
 export interface TiktokAdsDataParams {
@@ -56,11 +57,14 @@ export interface TiktokAdsDataParams {
 
 export async function getTiktokAdsData(params?: TiktokAdsDataParams) {
   const response = await apiClient.get<{
-    success: boolean;
-    data: TiktokAdsCreativeData[];
+    items: TiktokAdsCreativeData[];
     pagination: AdsPagination;
   }>("/analytics/tiktok-ads/data", { params });
-  return response.data;
+  return {
+    success: response.success,
+    data: response.data?.items ?? (response.data as unknown as TiktokAdsCreativeData[]) ?? [],
+    pagination: response.data?.pagination ?? { total: 0, limit: 50, offset: 0 },
+  };
 }
 
 // --- Ads Reports ---
@@ -75,17 +79,11 @@ export interface ReportInfo {
 }
 
 export async function getShopeeAdsReports() {
-  const response = await apiClient.get<{
-    success: boolean;
-    data: ReportInfo[];
-  }>("/reports/shopee/ads");
-  return response.data;
+  const response = await apiClient.get<ReportInfo[]>("/reports/shopee/ads");
+  return response;
 }
 
 export async function getTiktokAdsReports() {
-  const response = await apiClient.get<{
-    success: boolean;
-    data: ReportInfo[];
-  }>("/reports/tiktok/ads");
-  return response.data;
+  const response = await apiClient.get<ReportInfo[]>("/reports/tiktok/ads");
+  return response;
 }
