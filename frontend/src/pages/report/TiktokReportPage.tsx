@@ -10,13 +10,13 @@ import type {
   TiktokShippingFeeResult,
   AnalyticsSettings,
 } from "@/types/analytics";
-import { AnalyticsControls } from "./components/tiktok/AnalyticsControls";
-import { AnalyticsContent } from "./components/tiktok/AnalyticsContent";
-import { TiktokAnalyticsSettingsModal } from "./components/tiktok/TiktokAnalyticsSettingsModal";
+import { AnalyticsControls } from "../analytics/components/tiktok/AnalyticsControls";
+import { AnalyticsContent } from "../analytics/components/tiktok/AnalyticsContent";
+import { TiktokAnalyticsSettingsModal } from "../analytics/components/tiktok/TiktokAnalyticsSettingsModal";
 
 const { Title, Text } = Typography;
 
-export const TiktokAnalyticsPage = () => {
+export const TiktokReportPage = () => {
   const { token } = theme.useToken();
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -124,7 +124,7 @@ export const TiktokAnalyticsPage = () => {
       >
         <div>
           <Title level={2} style={{ margin: 0 }}>
-            <span style={{ color: token.colorText }}>TikTok</span> Analytics
+            <span style={{ color: token.colorText }}>TikTok</span> Report
           </Title>
           <Text type="secondary">Price & Shipping Fee Analysis</Text>
         </div>
@@ -196,4 +196,4 @@ export const TiktokAnalyticsPage = () => {
   );
 };
 
-export default TiktokAnalyticsPage;
+export default TiktokReportPage;

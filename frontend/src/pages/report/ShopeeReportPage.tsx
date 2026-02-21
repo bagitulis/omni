@@ -16,11 +16,11 @@ import type {
   ShopeeShippingFeeResult,
   AnalyticsSettings,
 } from "@/types/analytics";
-import { AnalyticsPageHeader } from "./components/common/AnalyticsPageHeader";
-import { AnalyticsToolbar } from "./components/common/AnalyticsToolbar";
-import { AnalyticsContentState } from "./components/common/AnalyticsContentState";
+import { AnalyticsPageHeader } from "../analytics/components/common/AnalyticsPageHeader";
+import { AnalyticsToolbar } from "../analytics/components/common/AnalyticsToolbar";
+import { AnalyticsContentState } from "../analytics/components/common/AnalyticsContentState";
 
-export const ShopeeAnalyticsPage = () => {
+export const ShopeeReportPage = () => {
   const { token } = theme.useToken();
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -127,7 +127,7 @@ export const ShopeeAnalyticsPage = () => {
       <AnalyticsPageHeader
         title={
           <span>
-            <span style={{ color: token.colorPrimary }}>Shopee</span> Analytics
+            <span style={{ color: token.colorPrimary }}>Shopee</span> Report
           </span>
         }
         subtitle="Price & Shipping Fee Analysis"
@@ -227,4 +227,4 @@ export const ShopeeAnalyticsPage = () => {
   );
 };
 
-export default ShopeeAnalyticsPage;
+export default ShopeeReportPage;

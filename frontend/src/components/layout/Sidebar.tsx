@@ -10,6 +10,7 @@ import {
   SettingOutlined,
   NodeIndexOutlined,
   CodeOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 
 const { Sider } = Layout;
@@ -52,13 +53,20 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         label: "Route Mapping",
       },
       {
+        key: "/report",
+        icon: <FileTextOutlined />,
+        label: "Report",
+        children: [
+          { key: "/report/shopee", label: "Shopee Report" },
+          { key: "/report/tiktok", label: "TikTok Report" },
+        ],
+      },
+      {
         key: "/analytics",
         icon: <BarChartOutlined />,
         label: "Analytics",
         children: [
           { key: "/analytics", label: "Overview" },
-          { key: "/analytics/shopee", label: "Shopee Report" },
-          { key: "/analytics/tiktok", label: "TikTok Report" },
           { key: "/analytics/shopee-ads", label: "Shopee Ads" },
           { key: "/analytics/tiktok-ads", label: "TikTok Ads" },
           { key: "/analytics/ml", label: "ML Dashboard" },
@@ -85,6 +93,10 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
       // All other /products paths (including /products/:id/edit) → highlight "All Products"
       return "/products";
     }
+    // Report sub-routes
+    if (location.pathname.startsWith("/report")) {
+      return location.pathname;
+    }
     // Analytics sub-routes: exact match to children keys
     if (location.pathname.startsWith("/analytics")) {
       return location.pathname;
@@ -99,7 +111,11 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
   const [openKeys, setOpenKeys] = useState<string[]>(() => {
     const keys: string[] = [];
     if (location.pathname.startsWith("/products")) keys.push("/products");
-    if (location.pathname.startsWith("/analytics")) keys.push("/analytics");
+    if (location.pathname.startsWith("/report")) {
+      keys.push("/report");
+    } else if (location.pathname.startsWith("/analytics")) {
+      keys.push("/analytics");
+    }
     return keys;
   });
 

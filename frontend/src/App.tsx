@@ -48,11 +48,11 @@ const SimplifiedInventoryPage = React.lazy(
 const AnalyticsHubPage = React.lazy(
   () => import("./pages/analytics/AnalyticsHubPage"),
 );
-const ShopeeAnalyticsPage = React.lazy(
-  () => import("./pages/analytics/ShopeeAnalyticsPage"),
+const ShopeeReportPage = React.lazy(
+  () => import("./pages/report/ShopeeReportPage"),
 );
-const TiktokAnalyticsPage = React.lazy(
-  () => import("./pages/analytics/TiktokAnalyticsPage"),
+const TiktokReportPage = React.lazy(
+  () => import("./pages/report/TiktokReportPage"),
 );
 const ShopeeAdsAnalyticsPage = React.lazy(
   () => import("./pages/analytics/ShopeeAdsAnalyticsPage"),
@@ -178,12 +178,21 @@ function AppContent() {
                   />
                   <Route path="/analytics" element={<AnalyticsHubPage />} />
                   <Route
+                    path="/report/shopee"
+                    element={<ShopeeReportPage />}
+                  />
+                  <Route
+                    path="/report/tiktok"
+                    element={<TiktokReportPage />}
+                  />
+                  {/* Redirects from old analytics URLs */}
+                  <Route
                     path="/analytics/shopee"
-                    element={<ShopeeAnalyticsPage />}
+                    element={<Navigate to="/report/shopee" replace />}
                   />
                   <Route
                     path="/analytics/tiktok"
-                    element={<TiktokAnalyticsPage />}
+                    element={<Navigate to="/report/tiktok" replace />}
                   />
                   <Route
                     path="/analytics/shopee-ads"
