@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Typography, DatePicker, Tabs, Alert, Button } from "antd";
 import {
   LineChartOutlined,
   ShoppingOutlined,
   UploadOutlined,
-  FileSearchOutlined,
 } from "@ant-design/icons";
 import type { RangePickerProps } from "antd/es/date-picker";
 import dayjs from "dayjs";
@@ -18,13 +18,16 @@ import {
 import { useShopeeAdsDashboard, useShopeeAdsData } from "@/hooks/useAds";
 import { AdsData } from "./components/shopee-ads/types";
 import { Summary } from "./components/shopee-ads/useSummary";
-import { AdsReportViewer } from "@/components/analytics/ads/AdsReportViewer";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
 export const ShopeeAdsAnalyticsPage = () => {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "dashboard";
+  const setActiveTab = (tab: string) => {
+    setSearchParams({ tab }, { replace: true });
+  };
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(
     null,
   );
@@ -157,15 +160,6 @@ export const ShopeeAdsAnalyticsPage = () => {
       children: (
         <UploadTab uploadProps={uploadProps} uploadedData={uploadedData} />
       ),
-    },
-    {
-      key: "insights",
-      label: (
-        <span>
-          <FileSearchOutlined /> AI Insights
-        </span>
-      ),
-      children: <AdsReportViewer platform="shopee" />,
     },
   ];
 

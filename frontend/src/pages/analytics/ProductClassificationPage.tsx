@@ -12,9 +12,9 @@ import {
   theme,
 } from "antd";
 import { ReloadOutlined, BarChartOutlined } from "@ant-design/icons";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
-  useUnifiedAnalytics,
   useClassifiedProducts,
 } from "../../hooks/useAnalyticsIntelligence";
 import type { ClassifiedProduct } from "../../api/analyticsIntelligence";
@@ -24,13 +24,12 @@ const { useToken } = theme;
 
 export const ProductClassificationPage = () => {
   const { token } = useToken();
-  const [activeTab, setActiveTab] = useState<string>("scale_up");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "scale_up";
+  const setActiveTab = (tab: string) => {
+    setSearchParams({ tab }, { replace: true });
+  };
 
-  const {
-    data: analyticsData,
-    isLoading: loadingSummary,
-    refetch: refetchSummary,
-  } = useUnifiedAnalytics();
   const {
     data: classifiedData,
     isLoading: loadingProducts,
@@ -38,16 +37,19 @@ export const ProductClassificationPage = () => {
   } = useClassifiedProducts();
 
   const handleRefresh = () => {
-    refetchSummary();
     refetchProducts();
   };
 
-  const actionCounts = analyticsData?.action_counts || {
-    scale_up: 0,
-    maintain: 0,
-    reduce: 0,
-    stop: 0,
-  };
+  // Compute action counts from the actual classified products data
+  const actionCounts = useMemo(() => {
+    if (!classifiedData) return { scale_up: 0, maintain: 0, reduce: 0, stop: 0 };
+    return {
+      scale_up: classifiedData.scale_up?.length ?? 0,
+      maintain: classifiedData.maintain?.length ?? 0,
+      reduce: classifiedData.reduce?.length ?? 0,
+      stop: classifiedData.stop?.length ?? 0,
+    };
+  }, [classifiedData]);
 
   const activeProducts = useMemo(() => {
     if (!classifiedData) return [];
@@ -128,7 +130,7 @@ export const ProductClassificationPage = () => {
           <Button
             icon={<ReloadOutlined />}
             onClick={handleRefresh}
-            loading={loadingSummary || loadingProducts}
+            loading={loadingProducts}
           >
             Refresh
           </Button>

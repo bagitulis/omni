@@ -57,14 +57,13 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         label: "Analytics",
         children: [
           { key: "/analytics", label: "Overview" },
-          { key: "/analytics/shopee", label: "Shopee" },
-          { key: "/analytics/tiktok", label: "TikTok" },
+          { key: "/analytics/shopee", label: "Shopee Report" },
+          { key: "/analytics/tiktok", label: "TikTok Report" },
           { key: "/analytics/shopee-ads", label: "Shopee Ads" },
           { key: "/analytics/tiktok-ads", label: "TikTok Ads" },
           { key: "/analytics/ml", label: "ML Dashboard" },
           { key: "/analytics/budget-simulator", label: "Budget Simulator" },
           { key: "/analytics/product-classification", label: "Classification" },
-          { key: "/analytics/ai-reports", label: "AI Reports" },
         ],
       },
       {
