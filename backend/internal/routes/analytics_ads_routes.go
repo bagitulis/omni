@@ -27,6 +27,9 @@ func RegisterTiktokAnalyticsRoutes(router *gin.RouterGroup, handler *handlers.Ti
 		// Analysis endpoints
 		tiktok.GET("/reconciliation", handler.GetReconciliation)
 		tiktok.GET("/shipping-fee", handler.GetShippingFeeAnalysis)
+
+		// Utility: re-populate escrow items from raw_order_data already in DB
+		tiktok.POST("/repopulate-items", handler.RepopulateItems)
 	}
 }
 
@@ -49,6 +52,9 @@ func RegisterShopeeAnalyticsRoutes(router *gin.RouterGroup, handler *handlers.Sh
 		// Analysis endpoints
 		shopee.GET("/reconciliation", handler.GetReconciliation)
 		shopee.GET("/shipping-fee", handler.GetShippingFeeAnalysis)
+
+		// Utility: re-populate escrow items from raw_order_income already in DB
+		shopee.POST("/repopulate-items", handler.RepopulateItems)
 	}
 }
 

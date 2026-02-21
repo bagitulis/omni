@@ -4,6 +4,7 @@ package analytics
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -62,10 +63,10 @@ func (s *ShopeeEscrowSyncService) saveEscrowOrder(
 		return 0, err
 	}
 
-	// Delete existing items
+	// Delete existing items using Exec to avoid GORM struct-based filter issues
 	s.base.DB.WithContext(ctx).Table(s.base.Table(tables.ItemTable)).
-		Where("escrow_order_id = ?", escrowOrder.ID).
-		Delete(&models.ShopeeEscrowItem{})
+		Where("tenant_id = ? AND escrow_order_id = ?", s.tenantID, escrowOrder.ID).
+		Delete(nil)
 
 	// Save items
 	for _, item := range income.Items {
@@ -113,5 +114,7 @@ func (s *ShopeeEscrowSyncService) saveEscrowItem(
 		CreatedAt:                 time.Now(),
 		UpdatedAt:                 time.Now(),
 	}
-	s.base.DB.WithContext(ctx).Table(s.base.Table(tables.ItemTable)).Create(&escrowItem)
+	if err := s.base.DB.WithContext(ctx).Table(s.base.Table(tables.ItemTable)).Create(&escrowItem).Error; err != nil {
+		log.Printf("[ShopeeEscrowSync] ERROR saving item for order %s (itemID=%d): %v", orderSN, item.ItemID, err)
+	}
 }

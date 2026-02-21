@@ -208,8 +208,8 @@ func (s *TiktokEscrowSyncService) processOrders(
 		totalItems += itemsCount
 		processedOrders++
 
-		// Rate limiting
-		time.Sleep(500 * time.Millisecond)
+		// Rate limiting (reduced from 500ms to avoid timeout on large months)
+		time.Sleep(150 * time.Millisecond)
 	}
 	return totalItems, processedOrders, failedOrders
 }

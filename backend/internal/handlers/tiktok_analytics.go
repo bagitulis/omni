@@ -234,3 +234,34 @@ func (h *TiktokAnalyticsHandler) GetShippingFeeAnalysis(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
 }
+
+// RepopulateItems handles POST /api/analytics/tiktok/repopulate-items
+// Parses raw_order_data already stored in tiktok_escrow_orders and populates tiktok_escrow_items.
+// Use this when escrow_items is empty but orders were already synced.
+func (h *TiktokAnalyticsHandler) RepopulateItems(c *gin.Context) {
+	svc, err := h.getService(c)
+	if svc == nil {
+		return
+	}
+
+	now := time.Now()
+	month, _ := strconv.Atoi(c.DefaultQuery("month", strconv.Itoa(int(now.Month()))))
+	year, _ := strconv.Atoi(c.DefaultQuery("year", strconv.Itoa(now.Year())))
+
+	orders, items, err := svc.RepopulateItems(c.Request.Context(), month, year)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"processed_orders": orders,
+			"total_items":      items,
+			"month":            month,
+			"year":             year,
+		},
+	})
+}
+

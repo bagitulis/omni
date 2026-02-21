@@ -275,3 +275,10 @@ func (s *ShopeeAnalyticsService) GetShippingFeeAnalysis(ctx context.Context, mon
 		Orders: resultOrders,
 	}, nil
 }
+
+// RepopulateItems repopulates shopee_escrow_items from raw_order_income stored in shopee_escrow_orders
+func (s *ShopeeAnalyticsService) RepopulateItems(ctx context.Context, month, year int) (int, int, error) {
+	syncSvc := NewShopeeEscrowSyncService(s.db, s.tenantID, "")
+	return syncSvc.RepopulateEscrowItems(ctx, month, year)
+}
+

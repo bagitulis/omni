@@ -220,6 +220,14 @@ func (s *TiktokAnalyticsService) GetReconciliation(ctx context.Context, month, y
 	return reconService.GetReconciliation(ctx, month, year, settings)
 }
 
+// RepopulateItems re-populates tiktok_escrow_items from raw_order_data already in DB.
+// Use this when escrow_items is empty but orders were already synced.
+func (s *TiktokAnalyticsService) RepopulateItems(ctx context.Context, month, year int) (int, int, error) {
+	dbPath := fmt.Sprintf("tenant_%s", s.tenantID)
+	syncSvc := NewTiktokEscrowSyncService(s.db, s.tenantID, dbPath)
+	return syncSvc.RepopulateEscrowItems(ctx, month, year)
+}
+
 // GetShippingFeeAnalysis analyzes TikTok shipping fee differences
 func (s *TiktokAnalyticsService) GetShippingFeeAnalysis(ctx context.Context, month, year int) (*dto.TiktokShippingFeeResultDTO, error) {
 	var orders []models.TiktokEscrowOrder

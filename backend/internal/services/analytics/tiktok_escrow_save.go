@@ -72,10 +72,10 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 		return 0, err
 	}
 
-	// Delete existing items
+	// Delete existing items (use nil to avoid GORM struct-based ID filter)
 	s.base.DB.WithContext(ctx).Table(s.base.Table(tables.ItemTable)).
-		Where("escrow_order_id = ?", escrowOrder.ID).
-		Delete(&models.TiktokEscrowItem{})
+		Where("tenant_id = ? AND escrow_order_id = ?", s.tenantID, escrowOrder.ID).
+		Delete(nil)
 
 	// Save items - prefer SkuTransactions, fallback to LineItems
 	itemCount := s.saveEscrowItems(ctx, escrowOrder.ID, order, tx)
@@ -156,7 +156,9 @@ func (s *TiktokEscrowSyncService) saveSkuTransactions(
 			CreatedAt:                   time.Now(),
 			UpdatedAt:                   time.Now(),
 		}
-		s.base.DB.WithContext(ctx).Table(s.base.Table(tables.ItemTable)).Create(&escrowItem)
+		if err := s.base.DB.WithContext(ctx).Table(s.base.Table(tables.ItemTable)).Create(&escrowItem).Error; err != nil {
+			log.Printf("[TiktokEscrowSync] ERROR saving sku_tx item for order %s (sku=%s): %v", orderID, skuTx.SkuID, err)
+		}
 	}
 	return len(skuTxs)
 }
@@ -193,7 +195,9 @@ func (s *TiktokEscrowSyncService) saveLineItems(
 			CreatedAt:        time.Now(),
 			UpdatedAt:        time.Now(),
 		}
-		s.base.DB.WithContext(ctx).Table(s.base.Table(tables.ItemTable)).Create(&escrowItem)
+		if err := s.base.DB.WithContext(ctx).Table(s.base.Table(tables.ItemTable)).Create(&escrowItem).Error; err != nil {
+			log.Printf("[TiktokEscrowSync] ERROR saving line_item for order %s (sku=%s): %v", orderID, item.SellerSku, err)
+		}
 	}
 	return len(lineItems)
 }
