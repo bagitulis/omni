@@ -80,12 +80,19 @@ export const AdsPerformanceTable: React.FC<AdsPerformanceTableProps> = ({
     },
     {
       title: "ROAS",
-      dataIndex: "roas",
       key: "roas",
       align: "center",
       width: 100,
-      render: (val) => <Tag color={getRoasColor(val)}>{val.toFixed(2)}x</Tag>,
-      sorter: (a, b) => a.roas - b.roas,
+      render: (_, record) => {
+        const r = record as unknown as Record<string, number>;
+        const val = r.roas ?? r.roi ?? 0;
+        return <Tag color={getRoasColor(val)}>{val.toFixed(2)}x</Tag>;
+      },
+      sorter: (a, b) => {
+        const ar = a as unknown as Record<string, number>;
+        const br = b as unknown as Record<string, number>;
+        return (ar.roas ?? ar.roi ?? 0) - (br.roas ?? br.roi ?? 0);
+      },
       defaultSortOrder: "descend",
     },
   ];

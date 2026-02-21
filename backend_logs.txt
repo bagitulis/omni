@@ -1,0 +1,163 @@
+2026/02/21 09:46:34 Γ£à JWT_SECRET loaded successfully
+2026/02/21 09:46:34 Database driver set to: postgres
+2026/02/21 09:46:34 Database driver: PostgreSQL (host: postgres, db: omni_main)
+2026/02/21 09:46:34 PostgreSQL connection established (schema: system, pool: 25/10)
+2026/02/21 09:46:34 Connected to system database (driver: postgres)
+2026/02/21 09:46:34 GlobalConfigService initialized with existing system DB connection
+2026/02/21 09:46:34 ≡ƒöä Running system database migrations...
+2026/02/21 09:46:35   Γ£à Migrated: *models.User
+2026/02/21 09:46:35   Γ£à Migrated: *models.AuditLog
+2026/02/21 09:46:35   Γ£à Migrated: *models.GlobalConfig
+2026/02/21 09:46:35   Γ£à Migrated: *models.MLReport
+2026/02/21 09:46:35   Γ£à Migrated: *models.MLJob
+2026/02/21 09:46:35 Γ£à System database migrations completed
+{"level":"info","service":"tenant","tenant_id":"tika_nusseyba","time":"2026-02-21T09:46:35+07:00","message":"Migrating tenant"}
+2026/02/21 09:46:35 PostgreSQL connection established (schema: tenant_tika_nusseyba, pool: 25/10)
+2026/02/21 09:46:35 Connected to tenant database: tika_nusseyba (driver: postgres)
+2026/02/21 09:46:35 ≡ƒöä Running tenant database migrations for: tika_nusseyba
+2026/02/21 09:46:36 [ERROR] ERROR: constraint "uni_oauth_states_state" of relation "oauth_states" does not exist (SQLSTATE 42704) [309.903ms] [rows:0] ALTER TABLE "oauth_states" DROP CONSTRAINT "uni_oauth_states_state"
+2026/02/21 09:46:36   ΓÜá∩╕Å  Warning migrating *models.OAuthState: ERROR: constraint "uni_oauth_states_state" of relation "oauth_states" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:37 [SLOW SQL] [362.978ms] [rows:-1] SELECT constraint_name FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'omni_main' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'oauth_logs' AND constraint_type = 'UNIQUE'
+2026/02/21 09:46:37   Γ£à Migrated: *models.OAuthLog
+2026/02/21 09:46:37   Γ£à Migrated: *models.PlatformConfig
+2026/02/21 09:46:37   Γ£à Migrated: *models.WebhookLog
+2026/02/21 09:46:37   Γ£à Migrated: *models.WebhookOrderEvent
+2026/02/21 09:46:37   Γ£à Migrated: *models.WebhookProductEvent
+2026/02/21 09:46:37   Γ£à Migrated: *models.WebhookReturnEvent
+2026/02/21 09:46:37   Γ£à Migrated: *models.WebhookMarketingEvent
+2026/02/21 09:46:37   Γ£à Migrated: *models.WebhookShopeeEvent
+2026/02/21 09:46:37   Γ£à Migrated: *models.WebhookWebchatEvent
+2026/02/21 09:46:37   Γ£à Migrated: *models.WebhookFBSEvent
+2026/02/21 09:46:37   Γ£à Migrated: *models.AnalyticsSettings
+2026/02/21 09:46:37   Γ£à Migrated: *models.ShopeeEscrowSync
+2026/02/21 09:46:37   Γ£à Migrated: *models.ShopeeEscrowOrder
+2026/02/21 09:46:38   Γ£à Migrated: *models.ShopeeEscrowItem
+2026/02/21 09:46:38   Γ£à Migrated: *models.TiktokEscrowSync
+2026/02/21 09:46:38   Γ£à Migrated: *models.TiktokEscrowOrder
+2026/02/21 09:46:38   Γ£à Migrated: *models.TiktokEscrowItem
+2026/02/21 09:46:38 [ERROR] ERROR: constraint "uni_shopee_orders_order_sn" of relation "shopee_orders" does not exist (SQLSTATE 42704) [0.960ms] [rows:0] ALTER TABLE "shopee_orders" DROP CONSTRAINT "uni_shopee_orders_order_sn"
+2026/02/21 09:46:38   ΓÜá∩╕Å  Warning migrating *models.ShopeeOrder: ERROR: constraint "uni_shopee_orders_order_sn" of relation "shopee_orders" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:38   Γ£à Migrated: *models.ShopeeOrderItem
+2026/02/21 09:46:38   Γ£à Migrated: *models.ShopeeProduct
+2026/02/21 09:46:38   Γ£à Migrated: *models.ShopeeSku
+2026/02/21 09:46:38 [ERROR] ERROR: constraint "uni_lazada_orders_order_sn" of relation "lazada_orders" does not exist (SQLSTATE 42704) [0.897ms] [rows:0] ALTER TABLE "lazada_orders" DROP CONSTRAINT "uni_lazada_orders_order_sn"
+2026/02/21 09:46:38   ΓÜá∩╕Å  Warning migrating *models.LazadaOrder: ERROR: constraint "uni_lazada_orders_order_sn" of relation "lazada_orders" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:38   Γ£à Migrated: *models.LazadaOrderItem
+2026/02/21 09:46:38   Γ£à Migrated: *models.LazadaProduct
+2026/02/21 09:46:38 [ERROR] ERROR: constraint "uni_lazada_skus_sku_id" of relation "lazada_skus" does not exist (SQLSTATE 42704) [1.489ms] [rows:0] ALTER TABLE "lazada_skus" DROP CONSTRAINT "uni_lazada_skus_sku_id"
+2026/02/21 09:46:38   ΓÜá∩╕Å  Warning migrating *models.LazadaSku: ERROR: constraint "uni_lazada_skus_sku_id" of relation "lazada_skus" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:39 [ERROR] ERROR: constraint "uni_tiktok_orders_order_sn" of relation "tiktok_orders" does not exist (SQLSTATE 42704) [0.595ms] [rows:0] ALTER TABLE "tiktok_orders" DROP CONSTRAINT "uni_tiktok_orders_order_sn"
+2026/02/21 09:46:39   ΓÜá∩╕Å  Warning migrating *models.TiktokOrder: ERROR: constraint "uni_tiktok_orders_order_sn" of relation "tiktok_orders" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:39   Γ£à Migrated: *models.TiktokOrderItem
+2026/02/21 09:46:39   Γ£à Migrated: *models.TiktokProduct
+2026/02/21 09:46:39 [ERROR] ERROR: constraint "uni_tiktok_skus_sku_id" of relation "tiktok_skus" does not exist (SQLSTATE 42704) [0.413ms] [rows:0] ALTER TABLE "tiktok_skus" DROP CONSTRAINT "uni_tiktok_skus_sku_id"
+2026/02/21 09:46:39   ΓÜá∩╕Å  Warning migrating *models.TiktokSku: ERROR: constraint "uni_tiktok_skus_sku_id" of relation "tiktok_skus" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:39 [ERROR] ERROR: constraint "uni_inventory_settings_tenant_id" of relation "inventory_settings" does not exist (SQLSTATE 42704) [0.501ms] [rows:0] ALTER TABLE "inventory_settings" DROP CONSTRAINT "uni_inventory_settings_tenant_id"
+2026/02/21 09:46:39   ΓÜá∩╕Å  Warning migrating *models.InventorySettings: ERROR: constraint "uni_inventory_settings_tenant_id" of relation "inventory_settings" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:39   Γ£à Migrated: *models.InventoryRecord
+2026/02/21 09:46:39   Γ£à Migrated: *models.InventorySyncHistory
+2026/02/21 09:46:39   Γ£à Migrated: *models.MarketplaceSyncHistory
+2026/02/21 09:46:39   Γ£à Migrated: *models.SheetSnapshot
+2026/02/21 09:46:39   Γ£à Migrated: *models.InventorySkuPlatformStatus
+2026/02/21 09:46:39   Γ£à Migrated: *models.GoogleSheetsSettings
+2026/02/21 09:46:39   Γ£à Migrated: *models.FilterPreference
+2026/02/21 09:46:39   Γ£à Migrated: *models.Spreadsheet
+2026/02/21 09:46:39   Γ£à Migrated: *models.RouteConfig
+2026/02/21 09:46:39 [ERROR] ERROR: constraint "uni_wholesale_settings_tenant_id" of relation "wholesale_settings" does not exist (SQLSTATE 42704) [0.410ms] [rows:0] ALTER TABLE "wholesale_settings" DROP CONSTRAINT "uni_wholesale_settings_tenant_id"
+2026/02/21 09:46:39   ΓÜá∩╕Å  Warning migrating *models.WholesaleSettings: ERROR: constraint "uni_wholesale_settings_tenant_id" of relation "wholesale_settings" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:39   Γ£à Migrated: *models.Product
+2026/02/21 09:46:39   Γ£à Migrated: *models.ProductSKU
+2026/02/21 09:46:39   Γ£à Migrated: *models.Image
+2026/02/21 09:46:39   Γ£à Migrated: *models.MasterProductImage
+2026/02/21 09:46:39   Γ£à Migrated: *models.ShopeeProductImage
+2026/02/21 09:46:39   Γ£à Migrated: *models.TiktokProductImage
+2026/02/21 09:46:40   Γ£à Migrated: *models.LazadaProductImage
+2026/02/21 09:46:40   Γ£à Migrated: *models.OrderTodayItem
+2026/02/21 09:46:40   Γ£à Migrated: *models.LockedOrder
+2026/02/21 09:46:40   Γ£à Migrated: *models.ShopeeAdsUploadBatch
+2026/02/21 09:46:40 [ERROR] ERROR: cannot alter type of a column used by a view or rule (SQLSTATE 0A000) [15.432ms] [rows:0] ALTER TABLE "shopee_ads_product_data" ALTER COLUMN "conversions" TYPE bigint USING "conversions"::bigint
+2026/02/21 09:46:40   ΓÜá∩╕Å  Warning migrating *models.ShopeeAdsProductData: ERROR: cannot alter type of a column used by a view or rule (SQLSTATE 0A000)
+2026/02/21 09:46:40   Γ£à Migrated: *models.TiktokAdsUploadBatch
+2026/02/21 09:46:41 [SLOW SQL] [209.851ms] [rows:0] ALTER TABLE "tiktok_ads_creative_data" ALTER COLUMN "watch_rate_75pct" TYPE decimal USING "watch_rate_75pct"::decimal
+2026/02/21 09:46:41   Γ£à Migrated: *models.TiktokAdsCreativeData
+2026/02/21 09:46:42   Γ£à Migrated: *models.TiktokAdsProductSummary
+2026/02/21 09:46:42   Γ£à Migrated: *models.TiktokAdsMLPrediction
+2026/02/21 09:46:42   Γ£à Migrated: *models.MLReport
+2026/02/21 09:46:42   Γ£à Migrated: *models.MLJob
+2026/02/21 09:46:42   Γ£à Migrated: *models.Job
+2026/02/21 09:46:42   Γ£à Migrated: *models.JobHistory
+2026/02/21 09:46:42 [ERROR] ERROR: constraint "uni_auto_functions_config_name" of relation "auto_functions_config" does not exist (SQLSTATE 42704) [2.178ms] [rows:0] ALTER TABLE "auto_functions_config" DROP CONSTRAINT "uni_auto_functions_config_name"
+2026/02/21 09:46:42   ΓÜá∩╕Å  Warning migrating *models.AutoFunctionConfig: ERROR: constraint "uni_auto_functions_config_name" of relation "auto_functions_config" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:42   Γ£à Migrated: *models.AutoFunctionHistory
+2026/02/21 09:46:42 [ERROR] ERROR: constraint "uni_route_execution_config_route_key" of relation "route_execution_config" does not exist (SQLSTATE 42704) [1.575ms] [rows:0] ALTER TABLE "route_execution_config" DROP CONSTRAINT "uni_route_execution_config_route_key"
+2026/02/21 09:46:42   ΓÜá∩╕Å  Warning migrating *models.RouteExecutionConfig: ERROR: constraint "uni_route_execution_config_route_key" of relation "route_execution_config" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:42 Γ£à Tenant database migrations completed for: tika_nusseyba
+{"level":"info","service":"tenant","tenant_id":"yumna_bertigamart","time":"2026-02-21T09:46:42+07:00","message":"Migrating tenant"}
+2026/02/21 09:46:42 PostgreSQL connection established (schema: tenant_yumna_bertigamart, pool: 25/10)
+2026/02/21 09:46:42 Connected to tenant database: yumna_bertigamart (driver: postgres)
+2026/02/21 09:46:42 ≡ƒöä Running tenant database migrations for: yumna_bertigamart
+2026/02/21 09:46:42 [ERROR] ERROR: constraint "uni_oauth_states_state" of relation "oauth_states" does not exist (SQLSTATE 42704) [0.536ms] [rows:0] ALTER TABLE "oauth_states" DROP CONSTRAINT "uni_oauth_states_state"
+2026/02/21 09:46:42   ΓÜá∩╕Å  Warning migrating *models.OAuthState: ERROR: constraint "uni_oauth_states_state" of relation "oauth_states" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:42   Γ£à Migrated: *models.OAuthLog
+2026/02/21 09:46:42   Γ£à Migrated: *models.PlatformConfig
+2026/02/21 09:46:42   Γ£à Migrated: *models.WebhookLog
+2026/02/21 09:46:43   Γ£à Migrated: *models.WebhookOrderEvent
+2026/02/21 09:46:43   Γ£à Migrated: *models.WebhookProductEvent
+2026/02/21 09:46:43   Γ£à Migrated: *models.WebhookReturnEvent
+2026/02/21 09:46:43   Γ£à Migrated: *models.WebhookMarketingEvent
+2026/02/21 09:46:43   Γ£à Migrated: *models.WebhookShopeeEvent
+2026/02/21 09:46:43   Γ£à Migrated: *models.WebhookWebchatEvent
+2026/02/21 09:46:43   Γ£à Migrated: *models.WebhookFBSEvent
+2026/02/21 09:46:43   Γ£à Migrated: *models.AnalyticsSettings
+2026/02/21 09:46:43   Γ£à Migrated: *models.ShopeeEscrowSync
+2026/02/21 09:46:43   Γ£à Migrated: *models.ShopeeEscrowOrder
+2026/02/21 09:46:43   Γ£à Migrated: *models.ShopeeEscrowItem
+2026/02/21 09:46:43   Γ£à Migrated: *models.TiktokEscrowSync
+2026/02/21 09:46:43   Γ£à Migrated: *models.TiktokEscrowOrder
+2026/02/21 09:46:43   Γ£à Migrated: *models.TiktokEscrowItem
+2026/02/21 09:46:43 [ERROR] ERROR: constraint "uni_shopee_orders_order_sn" of relation "shopee_orders" does not exist (SQLSTATE 42704) [0.312ms] [rows:0] ALTER TABLE "shopee_orders" DROP CONSTRAINT "uni_shopee_orders_order_sn"
+2026/02/21 09:46:43   ΓÜá∩╕Å  Warning migrating *models.ShopeeOrder: ERROR: constraint "uni_shopee_orders_order_sn" of relation "shopee_orders" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:43   Γ£à Migrated: *models.ShopeeOrderItem
+2026/02/21 09:46:43   Γ£à Migrated: *models.ShopeeProduct
+2026/02/21 09:46:43   Γ£à Migrated: *models.ShopeeSku
+2026/02/21 09:46:43 [ERROR] ERROR: constraint "uni_lazada_orders_order_sn" of relation "lazada_orders" does not exist (SQLSTATE 42704) [0.333ms] [rows:0] ALTER TABLE "lazada_orders" DROP CONSTRAINT "uni_lazada_orders_order_sn"
+2026/02/21 09:46:43   ΓÜá∩╕Å  Warning migrating *models.LazadaOrder: ERROR: constraint "uni_lazada_orders_order_sn" of relation "lazada_orders" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:43   Γ£à Migrated: *models.LazadaOrderItem
+2026/02/21 09:46:43   Γ£à Migrated: *models.LazadaProduct
+2026/02/21 09:46:43 [ERROR] ERROR: constraint "uni_lazada_skus_sku_id" of relation "lazada_skus" does not exist (SQLSTATE 42704) [0.600ms] [rows:0] ALTER TABLE "lazada_skus" DROP CONSTRAINT "uni_lazada_skus_sku_id"
+2026/02/21 09:46:43   ΓÜá∩╕Å  Warning migrating *models.LazadaSku: ERROR: constraint "uni_lazada_skus_sku_id" of relation "lazada_skus" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:43 [ERROR] ERROR: constraint "uni_tiktok_orders_order_sn" of relation "tiktok_orders" does not exist (SQLSTATE 42704) [3.508ms] [rows:0] ALTER TABLE "tiktok_orders" DROP CONSTRAINT "uni_tiktok_orders_order_sn"
+2026/02/21 09:46:43   ΓÜá∩╕Å  Warning migrating *models.TiktokOrder: ERROR: constraint "uni_tiktok_orders_order_sn" of relation "tiktok_orders" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:43   Γ£à Migrated: *models.TiktokOrderItem
+2026/02/21 09:46:43   Γ£à Migrated: *models.TiktokProduct
+2026/02/21 09:46:43 [ERROR] ERROR: constraint "uni_tiktok_skus_sku_id" of relation "tiktok_skus" does not exist (SQLSTATE 42704) [0.946ms] [rows:0] ALTER TABLE "tiktok_skus" DROP CONSTRAINT "uni_tiktok_skus_sku_id"
+2026/02/21 09:46:43   ΓÜá∩╕Å  Warning migrating *models.TiktokSku: ERROR: constraint "uni_tiktok_skus_sku_id" of relation "tiktok_skus" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:43 [ERROR] ERROR: constraint "uni_inventory_settings_tenant_id" of relation "inventory_settings" does not exist (SQLSTATE 42704) [1.224ms] [rows:0] ALTER TABLE "inventory_settings" DROP CONSTRAINT "uni_inventory_settings_tenant_id"
+2026/02/21 09:46:43   ΓÜá∩╕Å  Warning migrating *models.InventorySettings: ERROR: constraint "uni_inventory_settings_tenant_id" of relation "inventory_settings" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:44   Γ£à Migrated: *models.InventoryRecord
+2026/02/21 09:46:44   Γ£à Migrated: *models.InventorySyncHistory
+2026/02/21 09:46:44   Γ£à Migrated: *models.MarketplaceSyncHistory
+2026/02/21 09:46:44   Γ£à Migrated: *models.SheetSnapshot
+2026/02/21 09:46:44   Γ£à Migrated: *models.InventorySkuPlatformStatus
+2026/02/21 09:46:44   Γ£à Migrated: *models.GoogleSheetsSettings
+2026/02/21 09:46:44   Γ£à Migrated: *models.FilterPreference
+2026/02/21 09:46:44   Γ£à Migrated: *models.Spreadsheet
+2026/02/21 09:46:44   Γ£à Migrated: *models.RouteConfig
+2026/02/21 09:46:44 [ERROR] ERROR: constraint "uni_wholesale_settings_tenant_id" of relation "wholesale_settings" does not exist (SQLSTATE 42704) [0.486ms] [rows:0] ALTER TABLE "wholesale_settings" DROP CONSTRAINT "uni_wholesale_settings_tenant_id"
+2026/02/21 09:46:44   ΓÜá∩╕Å  Warning migrating *models.WholesaleSettings: ERROR: constraint "uni_wholesale_settings_tenant_id" of relation "wholesale_settings" does not exist (SQLSTATE 42704)
+2026/02/21 09:46:44   Γ£à Migrated: *models.Product
+2026/02/21 09:46:44   Γ£à Migrated: *models.ProductSKU
+2026/02/21 09:46:44   Γ£à Migrated: *models.Image
+2026/02/21 09:46:45   Γ£à Migrated: *models.MasterProductImage
+2026/02/21 09:46:45   Γ£à Migrated: *models.ShopeeProductImage
+2026/02/21 09:46:45   Γ£à Migrated: *models.TiktokProductImage
+2026/02/21 09:46:45   Γ£à Migrated: *models.LazadaProductImage
+2026/02/21 09:46:45   Γ£à Migrated: *models.OrderTodayItem
+2026/02/21 09:46:45   Γ£à Migrated: *models.LockedOrder
+2026/02/21 09:46:45   Γ£à Migrated: *models.ShopeeAdsUploadBatch
+2026/02/21 09:46:45 [ERROR] ERROR: cannot alter type of a column used by a view or rule (SQLSTATE 0A000) [2.644ms] [rows:0] ALTER TABLE "shopee_ads_product_data" ALTER COLUMN "conversions" TYPE bigint USING "conversions"::bigint
+2026/02/21 09:46:45   ΓÜá∩╕Å  Warning migrating *models.ShopeeAdsProductData: ERROR: cannot alter type of a column used by a view or rule (SQLSTATE 0A000)
+2026/02/21 09:46:45   Γ£à Migrated: *models.TiktokAdsUploadBatch
+2026/02/21 09:47:38 [SLOW SQL] [52811.373ms] [rows:0] ALTER TABLE "tiktok_ads_creative_data" ALTER COLUMN "watch_rate_2s" TYPE decimal USING "watch_rate_2s"::decimal
+2026/02/21 09:48:34 [SLOW SQL] [55611.669ms] [rows:0] ALTER TABLE "tiktok_ads_creative_data" ALTER COLUMN "watch_rate_6s" TYPE decimal USING "watch_rate_6s"::decimal
+2026/02/21 09:49:27 [SLOW SQL] [53493.444ms] [rows:0] ALTER TABLE "tiktok_ads_creative_data" ALTER COLUMN "watch_rate_25pct" TYPE decimal USING "watch_rate_25pct"::decimal

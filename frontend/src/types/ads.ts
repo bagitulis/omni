@@ -70,7 +70,8 @@ export interface TiktokAdsDashboardTopProduct {
   cost: number;
   revenue: number;
   orders: number;
-  roas: number; // Note: Handler calls it 'roas' in struct but 'avg_roi' in response JSON, let's follow JSON
+  roi: number; // Backend sends "roi" in JSON response
+  roas?: number; // Alias for table compatibility (mapped from roi in component)
 }
 
 export interface TiktokAdsCreativeTypeStat {
@@ -78,7 +79,7 @@ export interface TiktokAdsCreativeTypeStat {
   cost: number;
   revenue: number;
   orders: number;
-  roas: number;
+  roi: number; // Backend sends "roi" in JSON response
   cost_per_order: number;
 }
 

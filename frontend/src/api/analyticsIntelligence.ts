@@ -188,9 +188,9 @@ export async function getReports(
         params: { page, limit },
       },
     );
-    if (!response.success || !response.data)
+    if (!response.success)
       throw new Error(response.error || "Failed to fetch reports");
-    return response.data;
+    return response.data ?? { reports: [], total: 0 };
   } catch (error: unknown) {
     // Handle 404 gracefully (e.g., if backend feature is not enabled or reachable)
     if (error && typeof error === "object" && "response" in error) {

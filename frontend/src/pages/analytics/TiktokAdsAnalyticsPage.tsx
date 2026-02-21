@@ -73,7 +73,7 @@ export const TiktokAdsAnalyticsPage = () => {
       clicks: 0,
       ctr: 0,
       cpc: 0,
-      roi: p.roas,
+      roi: p.roi,
       conversions: p.orders,
       video_plays: 0,
       engagement_rate: 0,

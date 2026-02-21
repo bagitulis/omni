@@ -113,7 +113,7 @@ export const ProductScoreTable = ({ products, loading, onRowClick }: Props) => {
       rowKey="id"
       loading={loading}
       pagination={{
-        pageSize: 10,
+        defaultPageSize: 10,
         showSizeChanger: true,
         showTotal: (total) => (
           <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
