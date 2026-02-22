@@ -32,6 +32,9 @@ func RegisterInventorySimpleRoutes(router *gin.RouterGroup, handler *handlers.In
 	inventory.Use(middleware.Auth())
 	inventory.Use(middleware.Tenant())
 	{
+		// Compatibility alias for clients expecting GET /api/inventory
+		inventory.GET("", handler.GetList)
+
 		inventory.GET("/config", handler.GetConfig)
 		inventory.PUT("/config", handler.UpdateConfig)
 		inventory.GET("/stats", handler.GetStats)

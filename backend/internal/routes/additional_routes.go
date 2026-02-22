@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/handlers"
 	lazadaHandler "github.com/omni/backend/internal/handlers/lazada"
@@ -109,6 +111,30 @@ func RegisterOrderManagerRoutes(router *gin.RouterGroup, handler *handlers.Order
 	orders.Use(middleware.Auth())
 	orders.Use(middleware.Tenant())
 	{
+		// Compatibility alias for clients expecting GET /api/orders
+		orders.GET("", handler.GetUnprocessOrders)
+		orders.GET("/shopee", func(c *gin.Context) {
+			redirectPath := "/api/shopee/orders"
+			if rawQuery := c.Request.URL.RawQuery; rawQuery != "" {
+				redirectPath += "?" + rawQuery
+			}
+			c.Redirect(http.StatusTemporaryRedirect, redirectPath)
+		})
+		orders.GET("/tiktok", func(c *gin.Context) {
+			redirectPath := "/api/tiktok/orders"
+			if rawQuery := c.Request.URL.RawQuery; rawQuery != "" {
+				redirectPath += "?" + rawQuery
+			}
+			c.Redirect(http.StatusTemporaryRedirect, redirectPath)
+		})
+		orders.GET("/lazada", func(c *gin.Context) {
+			redirectPath := "/api/lazada/orders"
+			if rawQuery := c.Request.URL.RawQuery; rawQuery != "" {
+				redirectPath += "?" + rawQuery
+			}
+			c.Redirect(http.StatusTemporaryRedirect, redirectPath)
+		})
+
 		// Category-specific GET endpoints (frontend expects these)
 		orders.GET("/unpaid", handler.GetUnpaidOrders)
 		orders.GET("/unprocess", handler.GetUnprocessOrders)
@@ -145,6 +171,14 @@ func RegisterLockedOrderRoutes(router *gin.RouterGroup, handler *handlers.Locked
 
 // RegisterProductMasterRoutes registers product master routes
 func RegisterProductMasterRoutes(router *gin.RouterGroup, handler *handlers.ProductMasterHandler) {
+	productsRoot := router.Group("/products")
+	productsRoot.Use(middleware.Auth())
+	productsRoot.Use(middleware.Tenant())
+	{
+		// Compatibility alias for clients expecting GET /api/products
+		productsRoot.GET("", handler.GetMasterProductList)
+	}
+
 	products := router.Group("/products/master")
 	products.Use(middleware.Auth())
 	products.Use(middleware.Tenant())
