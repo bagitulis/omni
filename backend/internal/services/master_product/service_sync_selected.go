@@ -36,10 +36,12 @@ func (s *Service) SyncSelectedProducts(ctx context.Context, tenantID string, pro
 	// Load platform links for selected products
 	var links []models.MasterProductPlatformLink
 	if err := s.db.WithContext(ctx).
-		Where("master_product_id IN ? AND platform_product_id != ''", productIDs).
+		Where("master_product_id IN ? AND (platform_product_id != '' OR platform_item_id != '')", productIDs).
 		Find(&links).Error; err != nil {
 		return nil, fmt.Errorf("failed to load platform links: %w", err)
 	}
+
+	log.Info().Int("product_count", len(productIDs)).Int("link_count", len(links)).Msg("SyncSelectedProducts: loaded platform links")
 
 	if len(links) == 0 {
 		return &SyncSelectedResult{Details: []string{"No platform links found for selected products"}}, nil
@@ -48,6 +50,12 @@ func (s *Service) SyncSelectedProducts(ctx context.Context, tenantID string, pro
 	// Group links by platform
 	platformLinks := make(map[string][]models.MasterProductPlatformLink)
 	for _, link := range links {
+		log.Debug().
+			Str("platform", link.Platform).
+			Str("product_id", link.PlatformProductID).
+			Str("item_id", link.PlatformItemID).
+			Uint("master_product_id", link.MasterProductID).
+			Msg("SyncSelectedProducts: link")
 		platformLinks[link.Platform] = append(platformLinks[link.Platform], link)
 	}
 

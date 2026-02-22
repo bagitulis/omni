@@ -48,7 +48,15 @@ func (s *ProductSyncService) SyncProductsByIDs(ctx context.Context, itemIDs []in
 	if len(itemIDs) == 0 {
 		return 0, nil
 	}
-	return s.syncProductsByItemIDs(ctx, itemIDs)
+
+	count := 0
+	txProdRepo := repositories.NewShopeeProductRepository(s.db)
+	txSkuRepo := repositories.NewShopeeSkuRepository(s.db)
+	err := s.syncItemDetailBatches(ctx, s.db, txProdRepo, txSkuRepo, itemIDs, &count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func (s *ProductSyncService) fetchAllItemIDs(ctx context.Context) ([]int64, error) {
