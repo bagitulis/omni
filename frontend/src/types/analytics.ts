@@ -136,8 +136,9 @@ export interface ShopeeShippingFeeResult {
 
 export interface TiktokSkuGroup {
   sku: string;
-  seller_sku: string;
-  product_name: string;
+  model_sku: string;
+  item_name: string;
+  model_name: string;
   inventory_price: number | null;
   expected_income: number | null;
   total_transactions: number;

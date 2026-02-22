@@ -169,8 +169,8 @@ export function exportTiktokReconciliationCSV(
   const headers = [
     "Status",
     "SKU",
-    "Seller SKU",
-    "Product Name",
+    "Model SKU",
+    "Item Name",
     "Inventory Price",
     "Expected Income",
     "Transactions",
@@ -181,8 +181,8 @@ export function exportTiktokReconciliationCSV(
   const rows = data.sku_groups.map((group) => [
     getStatusLabel(group.status),
     group.sku,
-    group.seller_sku,
-    group.product_name,
+    group.model_sku,
+    group.item_name,
     group.inventory_price !== null ? String(group.inventory_price) : "",
     group.expected_income !== null ? String(group.expected_income) : "",
     String(group.total_transactions),

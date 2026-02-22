@@ -39,7 +39,7 @@ func (h *OrderSyncHandler) SyncByCategory(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant ID",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -95,9 +95,10 @@ func (h *OrderSyncHandler) SyncByCategory(c *gin.Context) {
 	if !service.IsInitialized() {
 		orderSyncLogger.WithTenantID(tenantID).Warn("Order sync service not initialized - OAuth configuration required")
 		c.JSON(http.StatusOK, gin.H{
-			"success":  true,
+			"success":  false,
+			"code":     "SERVICE_NOT_INITIALIZED",
+			"error":    "Platform OAuth configuration required - please complete OAuth setup in Settings",
 			"data":     map[string]interface{}{},
-			"message":  "Platform OAuth configuration required - please complete OAuth setup in Settings",
 			"category": category,
 			"days":     days,
 		})
@@ -129,6 +130,26 @@ func (h *OrderSyncHandler) SyncByCategory(c *gin.Context) {
 		}).Info("Platform sync result")
 	}
 
+	hasPlatformFailure := false
+	for _, result := range results {
+		if !result.Success {
+			hasPlatformFailure = true
+			break
+		}
+	}
+
+	if hasPlatformFailure {
+		c.JSON(http.StatusOK, gin.H{
+			"success":  false,
+			"code":     "PARTIAL_SYNC_FAILURE",
+			"error":    "One or more platforms failed to sync",
+			"data":     results,
+			"category": category,
+			"days":     days,
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success":  true,
 		"data":     results,
@@ -143,7 +164,7 @@ func (h *OrderSyncHandler) SyncPlatformOrders(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant ID",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -172,10 +193,11 @@ func (h *OrderSyncHandler) SyncPlatformOrders(c *gin.Context) {
 	// If service not initialized, return response indicating platform needs OAuth config
 	if !service.IsInitialized() {
 		c.JSON(http.StatusOK, gin.H{
-			"success": true,
+			"success": false,
+			"code":    "SERVICE_NOT_INITIALIZED",
+			"error":   "Platform not configured - complete OAuth setup first",
 			"data":    []interface{}{},
 			"count":   0,
-			"message": "Platform not configured - complete OAuth setup first",
 		})
 		return
 	}
@@ -207,7 +229,7 @@ func (h *OrderSyncHandler) GetOrdersByCategory(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant ID",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -256,7 +278,7 @@ func (h *OrderSyncHandler) GetOrderDetails(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant ID",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

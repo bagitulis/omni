@@ -94,8 +94,8 @@ function TiktokPriceResultsTable({ skuGroups, loading }: Props) {
       render: (sku: string, record) => (
         <Tooltip
           title={
-            record.seller_sku !== sku
-              ? `Seller SKU: ${record.seller_sku}`
+            record.model_sku !== sku
+              ? `Model SKU: ${record.model_sku}`
               : null
           }
         >
@@ -114,7 +114,7 @@ function TiktokPriceResultsTable({ skuGroups, loading }: Props) {
     },
     {
       title: "Item Name",
-      dataIndex: "product_name",
+      dataIndex: "item_name",
       key: "item_name",
       width: 300,
       render: (name: string) => (
@@ -128,7 +128,7 @@ function TiktokPriceResultsTable({ skuGroups, loading }: Props) {
           {name}
         </Text>
       ),
-      sorter: (a, b) => a.product_name.localeCompare(b.product_name),
+      sorter: (a, b) => (a.item_name || "").localeCompare(b.item_name || ""),
     },
     {
       title: "Marketplace Price",

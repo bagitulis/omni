@@ -60,13 +60,14 @@ func (c *Client) MigrateImage(imageURL string) (string, error) {
 	var resp ImageMigrateResponse
 	err := c.doRequest("POST", "/image/migrate", params, &resp)
 	if err != nil {
-		// Log but don't fail - return original URL as fallback
-		return imageURL, nil
+		return imageURL, fmt.Errorf("lazada API error [/image/migrate]: %w", err)
 	}
 
 	if resp.Code != "0" && resp.Code != "" {
-		// Return original URL as fallback
-		return imageURL, nil
+		if resp.Message != "" {
+			return imageURL, fmt.Errorf("lazada API error [/image/migrate] [code=%s]: %s", resp.Code, resp.Message)
+		}
+		return imageURL, fmt.Errorf("lazada API error [/image/migrate] [code=%s]", resp.Code)
 	}
 
 	// Try to extract the CDN URL

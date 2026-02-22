@@ -58,8 +58,8 @@ func (h *TiktokAnalyticsHandler) GetSettings(c *gin.Context) {
 
 // SaveSettings handles POST /api/analytics/tiktok/settings
 func (h *TiktokAnalyticsHandler) SaveSettings(c *gin.Context) {
-	svc, _ := h.getService(c)
-	if svc == nil {
+	svc, err := h.getService(c)
+	if err != nil || svc == nil {
 		return
 	}
 
@@ -149,7 +149,11 @@ func (h *TiktokAnalyticsHandler) SyncEscrow(c *gin.Context) {
 		Year:        req.Year,
 		ForceResync: req.ForceResync,
 	}
-	jobDataJSON, _ := json.Marshal(jobData)
+	jobDataJSON, err := json.Marshal(jobData)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to serialize job data: " + err.Error()})
+		return
+	}
 
 	// Create queue manager and add job
 	qm := jobs.NewQueueManager(tenantDB, tenantID)
@@ -178,8 +182,8 @@ func (h *TiktokAnalyticsHandler) SyncEscrow(c *gin.Context) {
 
 // DeleteSyncData handles DELETE /api/analytics/tiktok/sync
 func (h *TiktokAnalyticsHandler) DeleteSyncData(c *gin.Context) {
-	svc, _ := h.getService(c)
-	if svc == nil {
+	svc, err := h.getService(c)
+	if err != nil || svc == nil {
 		return
 	}
 
@@ -264,4 +268,3 @@ func (h *TiktokAnalyticsHandler) RepopulateItems(c *gin.Context) {
 		},
 	})
 }
-

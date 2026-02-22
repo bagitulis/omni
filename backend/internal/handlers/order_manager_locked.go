@@ -31,7 +31,7 @@ func (h *OrderManagerHandler) GetLockedTodayOrders(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant ID",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -76,7 +76,17 @@ func (h *OrderManagerHandler) GetLockedTodayOrders(c *gin.Context) {
 	if err != nil {
 		orderManagerLogger.WithTenantID(tenantID).Warn("Failed to sync unprocess: " + err.Error())
 	}
-	unprocessOrders, _ := syncService.GetOrdersByCategory(c.Request.Context(), sync.OrderStatusCategory("unprocess"), nil)
+	unprocessOrders, unprocessErr := syncService.GetOrdersByCategory(c.Request.Context(), sync.OrderStatusCategory("unprocess"), nil)
+	if unprocessErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to get unprocess orders: " + unprocessErr.Error(),
+			"code":    "ORDER_FETCH_FAILED",
+			"items":   []interface{}{},
+			"count":   0,
+		})
+		return
+	}
 
 	// Sync and get processed orders (only before 2pm)
 	var processedOrders []sync.Order
@@ -85,7 +95,28 @@ func (h *OrderManagerHandler) GetLockedTodayOrders(c *gin.Context) {
 		if err != nil {
 			orderManagerLogger.WithTenantID(tenantID).Warn("Failed to sync processed: " + err.Error())
 		}
-		processedOrders, _ = syncService.GetOrdersByCategory(c.Request.Context(), sync.OrderStatusCategory("processed"), nil)
+		processedOrders, err = syncService.GetOrdersByCategory(c.Request.Context(), sync.OrderStatusCategory("processed"), nil)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error":   "Failed to get processed orders: " + err.Error(),
+				"code":    "ORDER_FETCH_FAILED",
+				"items":   []interface{}{},
+				"count":   0,
+			})
+			return
+		}
+	}
+
+	if len(unprocessOrders) == 0 && len(processedOrders) == 0 && err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{
+			"success": false,
+			"error":   "Failed to sync locked orders: " + err.Error(),
+			"code":    "SYNC_FAILED",
+			"items":   []interface{}{},
+			"count":   0,
+		})
+		return
 	}
 
 	// Aggregate locked orders by SKU + ProductName + Variation
@@ -106,15 +137,33 @@ func (h *OrderManagerHandler) GetLockedTodayOrders(c *gin.Context) {
 	savedCount, err := lockedService.SaveLockedOrders(c.Request.Context(), tenantID, savedItems)
 	if err != nil {
 		orderManagerLogger.WithTenantID(tenantID).Error("Failed to save locked orders: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to save locked orders: " + err.Error(),
+			"code":    "DATABASE_ERROR",
+			"items":   []interface{}{},
+			"count":   0,
+		})
+		return
 	}
 
-	totalQty, _ := lockedService.GetTotalQty(c.Request.Context(), tenantID)
+	totalQty, err := lockedService.GetTotalQty(c.Request.Context(), tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to get total locked quantity: " + err.Error(),
+			"code":    "DATABASE_ERROR",
+			"items":   []interface{}{},
+			"count":   0,
+		})
+		return
+	}
 
 	mode := "unprocess-only"
-	message := "Setelah jam 14:00 - hanya menghitung unprocess orders"
+	message := "After 14:00 Jakarta time - counting unprocess orders only"
 	if includeProcessed {
 		mode = "unprocess+processed"
-		message = "Sebelum jam 14:00 - menghitung unprocess + processed orders"
+		message = "Before 14:00 Jakarta time - counting unprocess and processed orders"
 	}
 
 	orderManagerLogger.WithTenantID(tenantID).WithFields(map[string]interface{}{
@@ -147,7 +196,7 @@ func (h *OrderManagerHandler) GetSavedLockedOrders(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant ID",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -181,7 +230,17 @@ func (h *OrderManagerHandler) GetSavedLockedOrders(c *gin.Context) {
 		return
 	}
 
-	totalQty, _ := lockedService.GetTotalQty(c.Request.Context(), tenantID)
+	totalQty, err := lockedService.GetTotalQty(c.Request.Context(), tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to get total locked quantity: " + err.Error(),
+			"code":    "DATABASE_ERROR",
+			"items":   []interface{}{},
+			"count":   0,
+		})
+		return
+	}
 
 	orderManagerLogger.WithTenantID(tenantID).WithFields(map[string]interface{}{
 		"count":     len(lockedOrders),

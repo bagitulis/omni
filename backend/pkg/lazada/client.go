@@ -144,6 +144,8 @@ func (c *Client) RawRequest(ctx context.Context, method, apiPath string, params 
 
 	var resp *http.Response
 	var err error
+	var lastErr error
+	lastStatusCode := 0
 	maxRetries := 3
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
@@ -178,11 +180,13 @@ func (c *Client) RawRequest(ctx context.Context, method, apiPath string, params 
 
 		resp, err = c.httpClient.Do(req)
 		if err != nil {
+			lastErr = err
 			if attempt < maxRetries {
 				continue
 			}
 			return err
 		}
+		lastStatusCode = resp.StatusCode
 
 		// Check for rate limit (429) or server errors (5xx)
 		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
@@ -197,13 +201,19 @@ func (c *Client) RawRequest(ctx context.Context, method, apiPath string, params 
 	}
 
 	if resp == nil {
-		return fmt.Errorf("request failed after %d retries", maxRetries)
+		if lastErr != nil {
+			return fmt.Errorf("lazada API request failed after %d retries: %w", maxRetries, lastErr)
+		}
+		return fmt.Errorf("lazada API request failed after %d retries [http_status=%d]", maxRetries, lastStatusCode)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
+	}
+	if resp.StatusCode >= http.StatusBadRequest {
+		return fmt.Errorf("lazada API error [http_status=%d]: %s", resp.StatusCode, string(respBody))
 	}
 	if result == nil {
 		return nil

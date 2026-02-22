@@ -66,6 +66,7 @@ func (s *TiktokReconciliationService) fetchEscrowItems(ctx context.Context, mont
 	itemsTable := s.table("tiktok_escrow_items")
 	ordersTable := s.table("tiktok_escrow_orders")
 	err := s.getDB(ctx).Table(itemsTable).
+		Select(itemsTable+".*").
 		Joins(fmt.Sprintf("JOIN %s ON %s.id = %s.escrow_order_id", ordersTable, ordersTable, itemsTable)).
 		Where(fmt.Sprintf("%s.tenant_id = ?", itemsTable), s.tenantID).
 		Where(fmt.Sprintf("%s.month = ? AND %s.year = ?", ordersTable, ordersTable), month, year).

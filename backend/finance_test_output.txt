@@ -1,0 +1,84 @@
+=== RUN   TestFinanceStatementCompare
+    finance_compare_test.go:162: === TikTok Finance Statement API vs DB ===
+    finance_compare_test.go:163: Period: 11/2025  Tenant: yumna_bertigamart
+    finance_compare_test.go:174: Encryption service ready Γ£à
+    finance_compare_test.go:202: AppKey: 6h2cj0a07atkt
+    finance_compare_test.go:223: Token loaded (len=186), Cipher loaded (len=36)
+    finance_compare_test.go:237: DB: 405 orders
+    finance_compare_test.go:242: Statements: 2025-11-01 ΓåÆ 2025-12-01
+    finance_compare_test.go:266:   batch 30 ΓåÆ total 30 statements
+    finance_compare_test.go:273: Total statements: 30
+    finance_compare_test.go:276: Fetching transactions via Statement API v202501...
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [1/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [2/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [3/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [4/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [5/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [6/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [7/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [8/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [9/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [10/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [11/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [12/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [13/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [14/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [15/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [16/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [17/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [18/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [19/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [20/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [21/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [22/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [23/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [24/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [25/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [26/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [27/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [28/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [29/30] stmt 
+    finance_compare_test.go:296: [WARN] stmt  code=36009009: Invalid path. The specified path does not match any available endpoint. For more details: https://m.tiktok.shop/s/AIu6dbFhs2XW
+    finance_compare_test.go:314: [30/30] stmt 
+    finance_compare_test.go:317: API: settlement for 0 orders
+    finance_compare_test.go:360: CSV saved: tiktok_compare_11_2025.csv
+    finance_compare_test.go:361: ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    finance_compare_test.go:362: DB orders:   405
+    finance_compare_test.go:363: API orders:  0
+    finance_compare_test.go:364: Γ£à MATCH:     0
+    finance_compare_test.go:365: Γ¥î MISMATCH:  0
+    finance_compare_test.go:366: DB only:     405  (belum settled atau refund)
+    finance_compare_test.go:367: API only:    0  (settled tapi tidak ada di DB sync)
+    finance_compare_test.go:372: Γ£à Statement API CONSISTENT ΓÇö data akurat!
+--- PASS: TestFinanceStatementCompare (15.55s)
+PASS
+ok  	github.com/omni/backend/internal/services/analytics	15.720s

@@ -58,8 +58,8 @@ func (h *ShopeeAnalyticsHandler) GetSettings(c *gin.Context) {
 
 // SaveSettings handles POST /api/analytics/shopee/settings
 func (h *ShopeeAnalyticsHandler) SaveSettings(c *gin.Context) {
-	svc, _ := h.getService(c)
-	if svc == nil {
+	svc, err := h.getService(c)
+	if err != nil || svc == nil {
 		return
 	}
 
@@ -149,7 +149,11 @@ func (h *ShopeeAnalyticsHandler) SyncEscrow(c *gin.Context) {
 		Year:        req.Year,
 		ForceResync: req.ForceResync,
 	}
-	jobDataJSON, _ := json.Marshal(jobData)
+	jobDataJSON, err := json.Marshal(jobData)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to serialize job data: " + err.Error()})
+		return
+	}
 
 	// Create queue manager and add job
 	qm := jobs.NewQueueManager(tenantDB, tenantID)
@@ -178,8 +182,8 @@ func (h *ShopeeAnalyticsHandler) SyncEscrow(c *gin.Context) {
 
 // DeleteSyncData handles DELETE /api/analytics/shopee/sync
 func (h *ShopeeAnalyticsHandler) DeleteSyncData(c *gin.Context) {
-	svc, _ := h.getService(c)
-	if svc == nil {
+	svc, err := h.getService(c)
+	if err != nil || svc == nil {
 		return
 	}
 

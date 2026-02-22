@@ -28,14 +28,14 @@ func TestOrderSyncHandler_SyncByCategory(t *testing.T) {
 			checkSuccess:   ptrBool(false),
 		},
 		{
-			name:     "valid_category_without_service_returns_200_with_warning",
+			name:     "valid_category_without_platforms_returns_partial_failure",
 			category: "unpaid",
 			setupContext: func(c *gin.Context) {
 				c.Set("tenantID", "test-tenant")
 			},
-			// Handler gracefully handles no platform clients
+			// Handler now marks success=false when any platform sync fails
 			expectedStatus: http.StatusOK,
-			checkSuccess:   ptrBool(true),
+			checkSuccess:   ptrBool(false),
 		},
 	}
 

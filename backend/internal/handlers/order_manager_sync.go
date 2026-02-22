@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/services/sync"
@@ -17,7 +19,7 @@ func (h *OrderManagerHandler) SyncAll(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant ID",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -46,6 +48,7 @@ func (h *OrderManagerHandler) SyncAll(c *gin.Context) {
 	// Sync all categories
 	results := make(map[string]interface{})
 	categories := []string{"unpaid", "unprocess", "processed"}
+	hasFailure := false
 
 	for _, cat := range categories {
 		catResults, err := service.SyncByCategory(
@@ -55,16 +58,50 @@ func (h *OrderManagerHandler) SyncAll(c *gin.Context) {
 			nil,
 		)
 		if err != nil {
+			hasFailure = true
 			results[cat] = map[string]interface{}{
 				"success": false,
 				"error":   err.Error(),
 			}
 		} else {
+			categorySuccess := true
+			categoryErrors := make([]string, 0)
+			for platform, result := range catResults {
+				if !result.Success {
+					categorySuccess = false
+					errMsg := result.Error
+					if errMsg == "" {
+						errMsg = "unknown platform sync error"
+					}
+					categoryErrors = append(categoryErrors, fmt.Sprintf("%s: %s", platform, errMsg))
+				}
+			}
+
+			if !categorySuccess {
+				hasFailure = true
+				results[cat] = map[string]interface{}{
+					"success": false,
+					"error":   strings.Join(categoryErrors, "; "),
+					"data":    catResults,
+				}
+				continue
+			}
+
 			results[cat] = map[string]interface{}{
 				"success": true,
 				"data":    catResults,
 			}
 		}
+	}
+
+	if hasFailure {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"code":    "PARTIAL_SYNC_FAILURE",
+			"error":   "One or more categories failed to sync",
+			"data":    results,
+		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{

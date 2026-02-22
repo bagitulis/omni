@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"context"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,8 +10,16 @@ import (
 	"gorm.io/gorm"
 )
 
+func skipIfTestcontainersUnsupported(t *testing.T) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping testcontainers test on Windows: rootless Docker unsupported")
+	}
+}
+
 // TestSetupTeardown verifies the postgres container lifecycle works correctly
 func TestSetupTeardown(t *testing.T) {
+	skipIfTestcontainersUnsupported(t)
 	if testing.Short() {
 		t.Skip("Skipping testcontainers test in short mode")
 	}
@@ -28,6 +37,7 @@ func TestSetupTeardown(t *testing.T) {
 
 // TestGormConnection verifies that GORM works with the testcontainer
 func TestGormConnection(t *testing.T) {
+	skipIfTestcontainersUnsupported(t)
 	if testing.Short() {
 		t.Skip("Skipping testcontainers test in short mode")
 	}
@@ -78,6 +88,7 @@ func TestGormConnection(t *testing.T) {
 
 // TestMultipleDatabases verifies multiple concurrent containers work independently
 func TestMultipleDatabases(t *testing.T) {
+	skipIfTestcontainersUnsupported(t)
 	if testing.Short() {
 		t.Skip("Skipping testcontainers test in short mode")
 	}
@@ -103,6 +114,7 @@ func TestMultipleDatabases(t *testing.T) {
 
 // TestContextPropagation verifies GORM context operations work
 func TestContextPropagation(t *testing.T) {
+	skipIfTestcontainersUnsupported(t)
 	if testing.Short() {
 		t.Skip("Skipping testcontainers test in short mode")
 	}

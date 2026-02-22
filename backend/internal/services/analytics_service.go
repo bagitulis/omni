@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -109,8 +110,15 @@ func (s *AnalyticsService) GetRevenueAnalytics(ctx context.Context, tenantID str
 
 // GetEscrowSyncStatus gets escrow sync status
 func (s *AnalyticsService) GetEscrowSyncStatus(ctx context.Context, tenantID string, month, year int) (*EscrowSyncStatus, error) {
-	shopeeSync, _ := s.repo.GetShopeeEscrowSync(ctx, tenantID, month, year)
-	tiktokSync, _ := s.repo.GetTiktokEscrowSync(ctx, tenantID, month, year)
+	shopeeSync, err := s.repo.GetShopeeEscrowSync(ctx, tenantID, month, year)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Shopee escrow sync status: %w", err)
+	}
+
+	tiktokSync, err := s.repo.GetTiktokEscrowSync(ctx, tenantID, month, year)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get TikTok escrow sync status: %w", err)
+	}
 
 	return &EscrowSyncStatus{
 		Month:      month,

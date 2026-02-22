@@ -28,13 +28,13 @@ func TestOrderManagerHandler_SyncAll(t *testing.T) {
 			checkError:     true,
 		},
 		{
-			name: "valid_tenant_id_returns_success_with_empty_sync",
+			name: "valid_tenant_id_returns_partial_failure_when_platform_sync_fails",
 			setupContext: func(c *gin.Context) {
 				c.Set("tenantID", "test-tenant")
 			},
-			// SyncAll gracefully handles missing credentials and returns success with 0 orders
+			// SyncAll now marks top-level success=false when any category/platform sync fails
 			expectedStatus: http.StatusOK,
-			checkError:     false,
+			checkError:     true,
 		},
 	}
 

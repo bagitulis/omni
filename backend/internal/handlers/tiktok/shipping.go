@@ -173,19 +173,31 @@ func (h *ShippingHandler) BatchDownloadShippingDocuments(c *gin.Context) {
 			results = append(results, result)
 			continue
 		}
+		if httpResp.StatusCode != http.StatusOK {
+			httpResp.Body.Close()
+			result.Status = "FAILED"
+			result.Error = fmt.Sprintf("Failed to download: HTTP %d", httpResp.StatusCode)
+			results = append(results, result)
+			continue
+		}
 
 		pdfData, err := io.ReadAll(httpResp.Body)
 		httpResp.Body.Close()
 		if err != nil {
 			result.Status = "FAILED"
-			result.Error = "Failed to read document"
+			result.Error = "Failed to read document: " + err.Error()
 			results = append(results, result)
 			continue
 		}
 
 		// Save to uploads folder
 		uploadsDir := "/app/uploads/labels"
-		os.MkdirAll(uploadsDir, 0755)
+		if err := os.MkdirAll(uploadsDir, 0755); err != nil {
+			result.Status = "FAILED"
+			result.Error = "Failed to create uploads directory: " + err.Error()
+			results = append(results, result)
+			continue
+		}
 
 		timestamp := time.Now().Format("20060102_150405")
 		filename := fmt.Sprintf("tiktok_label_%s_%s.pdf", orderID, timestamp)
@@ -193,7 +205,7 @@ func (h *ShippingHandler) BatchDownloadShippingDocuments(c *gin.Context) {
 
 		if err := os.WriteFile(filePath, pdfData, 0644); err != nil {
 			result.Status = "FAILED"
-			result.Error = "Failed to save file"
+			result.Error = "Failed to save file: " + err.Error()
 			results = append(results, result)
 			continue
 		}

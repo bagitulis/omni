@@ -96,6 +96,8 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 
 	var resp *http.Response
 	var err error
+	var lastErr error
+	lastStatusCode := 0
 	maxRetries := 3
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
@@ -116,11 +118,13 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 		resp, err = c.httpClient.Do(req)
 		if err != nil {
 			log.Error().Err(err).Msg("[Shopee API] HTTP request failed")
+			lastErr = err
 			if attempt < maxRetries {
 				continue
 			}
 			return err
 		}
+		lastStatusCode = resp.StatusCode
 
 		// Check for rate limit (429) or server errors (5xx)
 		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
@@ -136,7 +140,10 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 	}
 
 	if resp == nil {
-		return fmt.Errorf("request failed after %d retries", maxRetries)
+		if lastErr != nil {
+			return fmt.Errorf("shopee API request failed after %d retries: %w", maxRetries, lastErr)
+		}
+		return fmt.Errorf("shopee API request failed after %d retries [http_status=%d]", maxRetries, lastStatusCode)
 	}
 	defer resp.Body.Close()
 
@@ -144,6 +151,10 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 	if err != nil {
 		log.Error().Err(err).Msg("[Shopee API] Failed to read response body")
 		return err
+	}
+
+	if resp.StatusCode >= http.StatusBadRequest {
+		return fmt.Errorf("shopee API error [http_status=%d]: %s", resp.StatusCode, truncateString(string(body), 1000))
 	}
 
 	// 🔍 LOG RESPONSE - always log for logistics and shipping APIs

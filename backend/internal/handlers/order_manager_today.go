@@ -19,7 +19,7 @@ func (h *OrderManagerHandler) SyncOrdersToday(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant ID",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -54,7 +54,40 @@ func (h *OrderManagerHandler) SyncOrdersToday(c *gin.Context) {
 	// IMPORTANT: SyncByCategory returns SyncResult which contains Orders WITH tracking info
 	syncResults, err := service.SyncByCategory(c.Request.Context(), sync.OrderStatusCategory("processed"), 7, nil)
 	if err != nil {
-		orderManagerLogger.WithTenantID(tenantID).Warn("Failed to sync processed: " + err.Error())
+		orderManagerLogger.WithTenantID(tenantID).Error("Failed to sync processed: " + err.Error())
+		c.JSON(http.StatusBadGateway, gin.H{
+			"success": false,
+			"error":   "Failed to sync processed orders: " + err.Error(),
+			"code":    "SYNC_FAILED",
+			"items":   []interface{}{},
+			"data":    []interface{}{},
+			"count":   0,
+		})
+		return
+	}
+
+	successfulPlatforms := 0
+	platformErrors := make(map[string]string)
+	for platform, result := range syncResults {
+		if result.Success {
+			successfulPlatforms++
+			continue
+		}
+		if result.Error != "" {
+			platformErrors[string(platform)] = result.Error
+		}
+	}
+	if len(syncResults) > 0 && successfulPlatforms == 0 {
+		c.JSON(http.StatusBadGateway, gin.H{
+			"success":         false,
+			"error":           "All platform sync operations failed",
+			"code":            "ALL_PLATFORMS_SYNC_FAILED",
+			"platform_errors": platformErrors,
+			"items":           []interface{}{},
+			"data":            []interface{}{},
+			"count":           0,
+		})
+		return
 	}
 
 	// Collect all orders from sync results (these have tracking info)
@@ -125,17 +158,46 @@ func (h *OrderManagerHandler) SyncOrdersToday(c *gin.Context) {
 	savedCount, err := orderTodayService.SaveOrderTodayItems(c.Request.Context(), tenantID, orderTodayItems)
 	if err != nil {
 		orderManagerLogger.WithTenantID(tenantID).Error("Failed to save order today items: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to save order today items: " + err.Error(),
+			"code":    "DATABASE_ERROR",
+			"items":   []interface{}{},
+			"data":    []interface{}{},
+			"count":   0,
+		})
+		return
 	}
 
-	// Get the saved items from database - these have proper JSON tags (camelCase)
+	// Get the saved items from database
 	savedItems, err := orderTodayService.GetOrderTodayItems(c.Request.Context(), tenantID)
 	if err != nil {
 		orderManagerLogger.WithTenantID(tenantID).Error("Failed to retrieve saved items: " + err.Error())
-		savedItems = []orders.OrderTodayItem{}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to retrieve saved order today items: " + err.Error(),
+			"code":    "DATABASE_ERROR",
+			"items":   []interface{}{},
+			"data":    []interface{}{},
+			"count":   0,
+		})
+		return
 	}
 
 	// Get platform counts
-	platformCounts, _ := orderTodayService.GetPlatformCounts(c.Request.Context(), tenantID)
+	platformCounts, err := orderTodayService.GetPlatformCounts(c.Request.Context(), tenantID)
+	if err != nil {
+		orderManagerLogger.WithTenantID(tenantID).Error("Failed to get platform counts: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to get platform counts: " + err.Error(),
+			"code":    "DATABASE_ERROR",
+			"items":   []interface{}{},
+			"data":    []interface{}{},
+			"count":   0,
+		})
+		return
+	}
 
 	orderManagerLogger.WithTenantID(tenantID).WithFields(map[string]interface{}{
 		"total_items":     len(orderTodayItems),
@@ -165,7 +227,7 @@ func (h *OrderManagerHandler) GetOrdersToday(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant ID",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -197,7 +259,19 @@ func (h *OrderManagerHandler) GetOrdersToday(c *gin.Context) {
 	}
 
 	// Get platform counts
-	platformCounts, _ := orderTodayService.GetPlatformCounts(c.Request.Context(), tenantID)
+	platformCounts, err := orderTodayService.GetPlatformCounts(c.Request.Context(), tenantID)
+	if err != nil {
+		orderManagerLogger.WithTenantID(tenantID).Error("Failed to get platform counts: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to get platform counts: " + err.Error(),
+			"code":    "DATABASE_ERROR",
+			"items":   []interface{}{},
+			"data":    []interface{}{},
+			"count":   0,
+		})
+		return
+	}
 
 	orderManagerLogger.WithTenantID(tenantID).WithFields(map[string]interface{}{
 		"count": len(items),
