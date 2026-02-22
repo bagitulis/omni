@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Button,
   Form,
   Input,
   InputNumber,
   Modal,
+  Select,
   Space,
   Switch,
   TimePicker,
@@ -12,6 +13,10 @@ import {
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import type { AutoFunctionConfig } from "@/types/scriptMonitor";
+import {
+  getAvailableAutoFunctions,
+  type AvailableAutoFunction,
+} from "@/api/scriptMonitor";
 
 type EditorMode = "create" | "edit";
 
@@ -27,6 +32,7 @@ interface Props {
   open: boolean;
   mode: EditorMode;
   initialData?: AutoFunctionConfig;
+  existingNames: string[];
   onClose: () => void;
   onCreate: (config: AutoFunctionConfig, onSuccess: () => void) => void;
   onUpdate: (
@@ -57,12 +63,32 @@ export function ConfigEditorModal({
   open,
   mode,
   initialData,
+  existingNames,
   onClose,
   onCreate,
   onUpdate,
 }: Props) {
   const [form] = Form.useForm<FormValues>();
   const isEditMode = mode === "edit";
+  const [availableFunctions, setAvailableFunctions] = useState<
+    AvailableAutoFunction[]
+  >([]);
+
+  useEffect(() => {
+    if (open && !isEditMode) {
+      getAvailableAutoFunctions()
+        .then(setAvailableFunctions)
+        .catch(() => setAvailableFunctions([]));
+    }
+  }, [open, isEditMode]);
+
+  // Filter out already-configured functions
+  const selectOptions = availableFunctions
+    .filter((fn) => !existingNames.includes(fn.name))
+    .map((fn) => ({
+      value: fn.name,
+      label: `${fn.name} — ${fn.description}`,
+    }));
 
   useEffect(() => {
     if (!open) {
@@ -155,16 +181,23 @@ export function ConfigEditorModal({
           rules={
             isEditMode
               ? []
-              : [
-                  { required: true, message: "Function name is required" },
-                  {
-                    min: 2,
-                    message: "Function name must be at least 2 characters",
-                  },
-                ]
+              : [{ required: true, message: "Please select a function" }]
           }
         >
-          <Input placeholder="example_function" disabled={isEditMode} />
+          {isEditMode ? (
+            <Input disabled />
+          ) : (
+            <Select
+              placeholder="Select a function"
+              options={selectOptions}
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+            />
+          )}
         </Form.Item>
 
         <Form.Item label="Enabled" name="enabled" valuePropName="checked">

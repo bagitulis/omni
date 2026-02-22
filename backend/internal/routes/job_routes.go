@@ -47,6 +47,9 @@ func RegisterAutoFunctionRoutes(router *gin.RouterGroup, handler *handlers.AutoF
 		// List all configs
 		autoFunc.GET("", handler.List)
 
+		// List available auto-functions for dropdown (must be before :name)
+		autoFunc.GET("/available", handler.ListAvailable)
+
 		// Get history (must be before :name to avoid conflict)
 		autoFunc.GET("/history", handler.GetHistory)
 

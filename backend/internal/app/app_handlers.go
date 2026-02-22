@@ -163,6 +163,11 @@ func registerDefaultAutoFunctionHandlers(executor *autofunction.Executor) {
 
 	// sync_products - syncs products from all platforms (Shopee, TikTok, Lazada)
 	executor.RegisterHandler("sync_products", syncProductsHandler)
+
+	// Per-platform sync handlers
+	executor.RegisterHandler("sync_shopee", singlePlatformSyncHandler("shopee"))
+	executor.RegisterHandler("sync_tiktok", singlePlatformSyncHandler("tiktok"))
+	executor.RegisterHandler("sync_lazada", singlePlatformSyncHandler("lazada"))
 }
 
 // startBackgroundJobExecutor initializes and starts the multi-tenant job executor

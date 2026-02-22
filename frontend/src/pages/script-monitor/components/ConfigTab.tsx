@@ -184,6 +184,7 @@ export function ConfigTab({
         open={editorOpen}
         mode={editorMode}
         initialData={editingConfig || undefined}
+        existingNames={configs.map((c) => c.name)}
         onClose={closeEditor}
         onCreate={onCreate}
         onUpdate={onUpdate}

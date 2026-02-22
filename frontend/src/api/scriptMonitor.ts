@@ -48,6 +48,28 @@ export async function getAutoFunctions(): Promise<AutoFunctionConfig[]> {
   return data?.configs || [];
 }
 
+export interface AvailableAutoFunction {
+  name: string;
+  description: string;
+}
+
+/**
+ * Get available auto-functions for dropdown
+ */
+export async function getAvailableAutoFunctions(): Promise<
+  AvailableAutoFunction[]
+> {
+  const response = await apiClient.get<AvailableAutoFunction[]>(
+    "/jobs/auto-functions/available",
+  );
+  if (!response.success) {
+    throw new Error(
+      response.error || "Failed to fetch available auto-functions",
+    );
+  }
+  return response.data ?? [];
+}
+
 /**
  * Cancel a running job
  */

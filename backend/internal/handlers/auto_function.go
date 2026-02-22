@@ -210,5 +210,31 @@ func (h *AutoFunctionHandler) Delete(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"deleted": true}})
 }
 
+// AvailableAutoFunction describes a registered auto-function for the dropdown.
+type AvailableAutoFunction struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+// availableAutoFunctions is the registry of all known auto-functions.
+var availableAutoFunctions = []AvailableAutoFunction{
+	{Name: "locked_today", Description: "Lock orders at end of day"},
+	{Name: "auto_update_token", Description: "Refresh platform OAuth tokens"},
+	{Name: "sync_from_sheets", Description: "Sync inventory from Google Sheets"},
+	{Name: "sync_products", Description: "Sync products from all platforms"},
+	{Name: "sync_shopee", Description: "Sync products from Shopee only"},
+	{Name: "sync_tiktok", Description: "Sync products from TikTok only"},
+	{Name: "sync_lazada", Description: "Sync products from Lazada only"},
+}
+
+// ListAvailable handles GET /api/jobs/auto-functions/available
+// Returns all registered auto-function names with descriptions for the dropdown.
+func (h *AutoFunctionHandler) ListAvailable(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    availableAutoFunctions,
+	})
+}
+
 // NOTE: Enable, Disable, CancelScheduledByName, Run, GetHistory handlers
 // are defined in auto_function_actions.go
