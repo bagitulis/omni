@@ -258,6 +258,100 @@ func (r *MasterProductRepository) FindLinked(
 	return products, total, err
 }
 
+// FindUnmapped returns paginated products whose SKUs are NOT in the inventory (GAP-16).
+// "Unmapped" means: none of the product's SKUs exist in inventory_records.key_value.
+// inventory_records comes from Google Sheets sync and represents the authoritative product catalog.
+func (r *MasterProductRepository) FindUnmapped(
+	ctx context.Context,
+	tenantID string,
+	page, pageSize int,
+	search string,
+) ([]models.MasterProduct, int64, error) {
+	var products []models.MasterProduct
+	var total int64
+
+	query := r.db.WithContext(ctx).
+		Model(&models.MasterProduct{}).
+		Where("tenant_id = ?", tenantID)
+
+	if search != "" {
+		query = query.Where("LOWER(title) LIKE LOWER(?)", "%"+search+"%")
+	}
+
+	// NOT EXISTS: none of this product's SKUs appear in inventory_records
+	// Subquery: find a SKU for this product that IS in inventory
+	inventoryTableName := models.GetTableName("InventoryRecord")
+	skuTableName := models.GetTableName("MasterProductSku")
+	unmappedSubQuery := r.db.WithContext(ctx).
+		Table(skuTableName+" AS mps").
+		Select("1").
+		Where("mps.master_product_id = master_products.id").
+		Where("EXISTS (SELECT 1 FROM "+inventoryTableName+" AS ir WHERE LOWER(ir.key_value) = LOWER(mps.seller_sku) AND ir.tenant_id = ?)", tenantID)
+
+	query = query.Where("NOT EXISTS (?)", unmappedSubQuery)
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * pageSize
+	err := query.
+		Preload("SKUs").
+		Preload("SKUs.PlatformLinks").
+		Order("created_at DESC").
+		Offset(offset).
+		Limit(pageSize).
+		Find(&products).Error
+
+	return products, total, err
+}
+
+// FindMapped returns paginated products whose SKUs ARE in the inventory (GAP-16).
+// "Mapped" means: at least one of the product's SKUs exists in inventory_records.key_value.
+func (r *MasterProductRepository) FindMapped(
+	ctx context.Context,
+	tenantID string,
+	page, pageSize int,
+	search string,
+) ([]models.MasterProduct, int64, error) {
+	var products []models.MasterProduct
+	var total int64
+
+	query := r.db.WithContext(ctx).
+		Model(&models.MasterProduct{}).
+		Where("tenant_id = ?", tenantID)
+
+	if search != "" {
+		query = query.Where("LOWER(title) LIKE LOWER(?)", "%"+search+"%")
+	}
+
+	// EXISTS: at least one of this product's SKUs appears in inventory_records
+	inventoryTableName := models.GetTableName("InventoryRecord")
+	skuTableName := models.GetTableName("MasterProductSku")
+	mappedSubQuery := r.db.WithContext(ctx).
+		Table(skuTableName+" AS mps").
+		Select("1").
+		Where("mps.master_product_id = master_products.id").
+		Where("EXISTS (SELECT 1 FROM "+inventoryTableName+" AS ir WHERE LOWER(ir.key_value) = LOWER(mps.seller_sku) AND ir.tenant_id = ?)", tenantID)
+
+	query = query.Where("EXISTS (?)", mappedSubQuery)
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * pageSize
+	err := query.
+		Preload("SKUs").
+		Preload("SKUs.PlatformLinks").
+		Order("created_at DESC").
+		Offset(offset).
+		Limit(pageSize).
+		Find(&products).Error
+
+	return products, total, err
+}
+
 // FindForImageBackfill returns master products for image backfill.
 func (r *MasterProductRepository) FindForImageBackfill(ctx context.Context, tenantID string, limit int, force bool) ([]models.MasterProduct, error) {
 	var products []models.MasterProduct

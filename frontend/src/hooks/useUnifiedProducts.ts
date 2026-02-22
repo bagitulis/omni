@@ -199,7 +199,7 @@ export function useUnifiedProducts(
   page: number,
   pageSize: number,
 ) {
-  const { search, platform, status } = filters;
+  const { search, platform, status, mapping } = filters;
 
   return useQuery({
     queryKey: ["unified-products", filters, page, pageSize],
@@ -210,7 +210,8 @@ export function useUnifiedProducts(
         search: search || undefined,
         status: status !== "all" ? status : undefined,
         platform: platform !== "all" ? platform : undefined,
-        linked_only: true,
+        linked_only: mapping === "mapped" ? true : false,
+        unmapped_only: mapping === "unmapped" ? true : false,
       });
 
       const products = transformToUnifiedRows(response.data || []);

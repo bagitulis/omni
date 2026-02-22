@@ -52,14 +52,19 @@ func (h *Handler) List(c *gin.Context) {
 	if err != nil {
 		linkedOnly = false
 	}
+	unmappedOnly, err := strconv.ParseBool(c.DefaultQuery("unmapped_only", "false"))
+	if err != nil {
+		unmappedOnly = false
+	}
 
 	filter := masterProductService.ListFilter{
-		Page:       page,
-		Limit:      limit,
-		Status:     status,
-		Search:     search,
-		Platform:   platform,
-		LinkedOnly: linkedOnly,
+		Page:         page,
+		Limit:        limit,
+		Status:       status,
+		Search:       search,
+		Platform:     platform,
+		LinkedOnly:   linkedOnly,
+		UnmappedOnly: unmappedOnly,
 	}
 
 	result, err := service.List(c.Request.Context(), tenantID, filter)

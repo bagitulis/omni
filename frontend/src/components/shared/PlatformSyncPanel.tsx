@@ -54,7 +54,7 @@ export function PlatformSyncPanel({
           productsMatched: acc.productsMatched + result.products_matched,
           skusCreated: acc.skusCreated + result.skus_created,
           linksCreated: acc.linksCreated + result.links_created,
-          errors: acc.errors + result.errors.length,
+          errors: acc.errors + (result.errors?.length ?? 0),
         };
       },
       {
@@ -66,36 +66,6 @@ export function PlatformSyncPanel({
       },
     );
   }, [results]);
-
-  const handleSyncToDb = useCallback(async (platform: Platform) => {
-    const key: LoadingKey = `${platform}-sync`;
-    setLoading((prev) => ({ ...prev, [key]: true }));
-    setErrors((prev) => ({ ...prev, [key]: undefined }));
-    setSyncMessages((prev) => ({ ...prev, [platform]: undefined }));
-
-    try {
-      let message = "";
-      if (platform === "shopee") {
-        const result = await syncShopeeProducts();
-        message = result.message ?? `Synced ${result.processed ?? 0} products`;
-      } else if (platform === "tiktok") {
-        const result = await searchProducts();
-        message = `Synced ${result.length} products`;
-      } else {
-        const result = await syncProductsToDb();
-        message = result.message ?? `Synced ${result.processed ?? 0} products`;
-      }
-
-      setSyncMessages((prev) => ({ ...prev, [platform]: message }));
-    } catch (err) {
-      setErrors((prev) => ({
-        ...prev,
-        [key]: err instanceof Error ? err.message : String(err),
-      }));
-    } finally {
-      setLoading((prev) => ({ ...prev, [key]: false }));
-    }
-  }, []);
 
   const handleImportToMaster = useCallback(
     async (platform: Platform) => {
@@ -121,6 +91,39 @@ export function PlatformSyncPanel({
     },
     [onImportCompleted],
   );
+
+  const handleSyncToDb = useCallback(async (platform: Platform) => {
+    const key: LoadingKey = `${platform}-sync`;
+    setLoading((prev) => ({ ...prev, [key]: true }));
+    setErrors((prev) => ({ ...prev, [key]: undefined }));
+    setSyncMessages((prev) => ({ ...prev, [platform]: undefined }));
+
+    try {
+      let message = "";
+      if (platform === "shopee") {
+        const result = await syncShopeeProducts();
+        message = result.message ?? `Synced ${result.processed ?? 0} products`;
+      } else if (platform === "tiktok") {
+        const result = await searchProducts();
+        message = `Synced ${result.length} products`;
+      } else {
+        const result = await syncProductsToDb();
+        message = result.message ?? `Synced ${result.processed ?? 0} products`;
+      }
+
+      setSyncMessages((prev) => ({ ...prev, [platform]: message }));
+
+      // Auto-import from staging to master after sync completes
+      await handleImportToMaster(platform);
+    } catch (err) {
+      setErrors((prev) => ({
+        ...prev,
+        [key]: err instanceof Error ? err.message : String(err),
+      }));
+    } finally {
+      setLoading((prev) => ({ ...prev, [key]: false }));
+    }
+  }, [handleImportToMaster]);
 
   return (
     <div style={{ width: "100%" }} data-testid="platform-sync-panel">

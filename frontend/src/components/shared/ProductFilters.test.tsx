@@ -83,6 +83,7 @@ describe("ProductFilters", () => {
     platform: "all",
     status: "all",
     category: "all",
+    mapping: "all",
   };
 
   const mockOnChange = vi.fn();
@@ -208,6 +209,7 @@ describe("ProductFilters", () => {
       platform: "lazada",
       status: "active",
       category: "electronics",
+      mapping: "all",
     };
 
     render(<ProductFilters values={activeValues} onChange={mockOnChange} />);
@@ -220,6 +222,7 @@ describe("ProductFilters", () => {
       platform: "all",
       status: "all",
       category: "all",
+      mapping: "all",
     });
   });
 });

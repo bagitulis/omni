@@ -101,10 +101,25 @@ func (r *MasterProductRepository) UpsertPlatformLink(ctx context.Context, link *
 		}
 		link.UpdatedAt = now
 
+		// BUG-11 fix: include platform_sku_id in lookup so multi-variant products
+		// each get their own link instead of overwriting each other.
+		// Old: WHERE platform = ? AND platform_product_id = ?
+		// → All variants of the same product share platform_product_id, so only last variant survived.
+		platformSkuID := strings.TrimSpace(link.PlatformSkuID)
 		var existing models.MasterProductPlatformLink
-		err := r.db.WithContext(ctx).
-			Where("platform = ? AND platform_product_id = ?", link.Platform, platformProductID).
-			First(&existing).Error
+		if platformSkuID != "" {
+			// Multi-variant: match by (platform, product_id, sku_id) → unique per variant
+			err = r.db.WithContext(ctx).
+				Where("platform = ? AND platform_product_id = ? AND platform_sku_id = ?",
+					link.Platform, platformProductID, platformSkuID).
+				First(&existing).Error
+		} else {
+			// Single-variant / no SKU ID: match by (platform, product_id) as before
+			err = r.db.WithContext(ctx).
+				Where("platform = ? AND platform_product_id = ? AND (platform_sku_id IS NULL OR platform_sku_id = '')",
+					link.Platform, platformProductID).
+				First(&existing).Error
+		}
 		if err == nil {
 			existing.MasterProductID = link.MasterProductID
 			existing.MasterSkuID = link.MasterSkuID

@@ -248,23 +248,21 @@ var defaultAutoFunctions = []struct {
 	{Name: "locked_today", IntervalMinutes: 1440, StartTime: "22:00", EndTime: "23:59"},     // Daily at 22:00-23:59 WIB
 	{Name: "sync_from_sheets", IntervalMinutes: 30, StartTime: "08:00", EndTime: "22:00"},   // Every 30 min during business hours
 	{Name: "auto_update_token", IntervalMinutes: 180, StartTime: "00:00", EndTime: "23:59"}, // Every 3 hours
+	{Name: "sync_products", IntervalMinutes: 120, StartTime: "08:00", EndTime: "22:00"},     // Every 2 hours during business hours
 }
 
-// ensureDefaultAutoFunctions ensures default auto functions exist for a tenant
-// This seeds the auto_functions_config table with default entries if empty
+// ensureDefaultAutoFunctions ensures default auto functions exist for a tenant.
+// Uses per-name check so new defaults are seeded even when other configs exist.
 func (s *MultiTenantScheduler) ensureDefaultAutoFunctions(tenantDB *gorm.DB, tenantID string) {
-	var count int64
-	tenantDB.Model(&models.AutoFunctionConfig{}).Count(&count)
-
-	// Only seed if table is empty
-	if count > 0 {
-		return
-	}
-
-	log.Printf("🌱 [%s] Seeding default auto functions...", tenantID)
 	now := time.Now()
 
 	for _, def := range defaultAutoFunctions {
+		var count int64
+		tenantDB.Model(&models.AutoFunctionConfig{}).Where("name = ?", def.Name).Count(&count)
+		if count > 0 {
+			continue
+		}
+
 		startTime := def.StartTime
 		endTime := def.EndTime
 		nextExec := now.Add(time.Duration(def.IntervalMinutes) * time.Minute)

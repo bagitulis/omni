@@ -122,6 +122,7 @@ export interface ProductListFilter {
   search?: string;
   platform?: string;
   linked_only?: boolean;
+  unmapped_only?: boolean; // GAP-16
 }
 
 /** Matches backend InventoryListItem - dynamic JSONB data from Google Sheets */

@@ -24,6 +24,12 @@ type StagingImportResult struct {
 	Errors          []string `json:"errors"`
 }
 
+// NewStagingImportResult creates a result with initialized (non-nil) errors slice.
+// This prevents JSON null serialization which crashes the frontend.
+func NewStagingImportResult() StagingImportResult {
+	return StagingImportResult{Errors: []string{}}
+}
+
 // StagingImportService processes staging rows and maps them to master products.
 type StagingImportService struct {
 	db   *gorm.DB
@@ -60,6 +66,7 @@ func (s *StagingImportService) findOrCreateMasterProduct(
 	product := &models.MasterProduct{
 		TenantID: tenantID,
 		Title:    strings.TrimSpace(originalTitle),
+		Status:   models.MasterProductStatusActive,
 	}
 
 	if err := s.repo.Create(ctx, product); err != nil {

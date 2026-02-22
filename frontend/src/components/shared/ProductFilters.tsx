@@ -69,6 +69,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
       platform: "all",
       status: showStatus ? "all" : values.status,
       category: "all",
+      mapping: "all",
     });
   }, [onChange, showStatus, values.status]);
 

@@ -3,7 +3,10 @@ package master_product
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -79,12 +82,13 @@ type UpdateInput struct {
 
 // ListFilter represents filters for listing products
 type ListFilter struct {
-	Status     string `json:"status,omitempty"`
-	Search     string `json:"search,omitempty"`
-	Platform   string `json:"platform,omitempty"`
-	LinkedOnly bool   `json:"linked_only,omitempty"`
-	Page       int    `json:"page"`
-	Limit      int    `json:"limit"`
+	Status       string `json:"status,omitempty"`
+	Search       string `json:"search,omitempty"`
+	Platform     string `json:"platform,omitempty"`
+	LinkedOnly   bool   `json:"linked_only,omitempty"`
+	UnmappedOnly bool   `json:"unmapped_only,omitempty"` // GAP-16: products with 0 platform links
+	Page         int    `json:"page"`
+	Limit        int    `json:"limit"`
 }
 
 // ListResult represents paginated list result
@@ -204,7 +208,14 @@ func (s *Service) List(ctx context.Context, tenantID string, filter ListFilter) 
 	var total int64
 	var err error
 
-	if filter.LinkedOnly || filter.Platform != "" {
+	if filter.UnmappedOnly {
+		// GAP-16: Find products whose SKUs are NOT in inventory_records
+		products, total, err = s.repo.FindUnmapped(ctx, tenantID, filter.Page, filter.Limit, filter.Search)
+	} else if filter.LinkedOnly && filter.Platform == "" {
+		// GAP-16: "Mapped" tab — find products whose SKUs ARE in inventory_records
+		products, total, err = s.repo.FindMapped(ctx, tenantID, filter.Page, filter.Limit, filter.Search)
+	} else if filter.Platform != "" {
+		// Platform-specific filter — uses platform links
 		products, total, err = s.repo.FindLinked(
 			ctx,
 			tenantID,
@@ -226,12 +237,155 @@ func (s *Service) List(ctx context.Context, tenantID string, filter ListFilter) 
 		return nil, err
 	}
 
+	// Opsi A: Enrich with per-platform real prices from staging tables
+	s.enrichWithPlatformPrices(ctx, tenantID, products)
+	// Enrich with inventory reference price/stock from Google Sheets
+	s.enrichWithInventoryPrices(ctx, tenantID, products)
+
 	return &ListResult{
 		Data:  products,
 		Total: total,
 		Page:  filter.Page,
 		Limit: filter.Limit,
 	}, nil
+}
+
+// enrichWithInventoryPrices backfills price/stock from inventory_records (Google Sheets)
+// and sets InventoryPrice/InventoryStock virtual fields for reference display.
+func (s *Service) enrichWithInventoryPrices(ctx context.Context, tenantID string, products []models.MasterProduct) {
+	allSKUs := collectSKUs(products)
+	if len(allSKUs) == 0 {
+		return
+	}
+
+	// Batch query inventory_records
+	inventoryTable := models.GetTableName("InventoryRecord")
+	var inventoryRows []struct {
+		KeyValue string `gorm:"column:key_value"`
+		Data     string `gorm:"column:data"`
+	}
+	if err := s.db.WithContext(ctx).
+		Table(inventoryTable).
+		Select("key_value, data").
+		Where("tenant_id = ? AND LOWER(key_value) IN (?)", tenantID, allSKUs).
+		Find(&inventoryRows).Error; err != nil {
+		log.Warn().Err(err).Msg("Failed to query inventory for price enrichment")
+		return
+	}
+
+	// Build lookup map: lowercase SKU → inventory data
+	invMap := make(map[string]map[string]interface{}, len(inventoryRows))
+	for _, row := range inventoryRows {
+		var data map[string]interface{}
+		if err := json.Unmarshal([]byte(row.Data), &data); err != nil {
+			continue
+		}
+		invMap[strings.ToLower(row.KeyValue)] = data
+	}
+
+	for i := range products {
+		for j := range products[i].SKUs {
+			sku := &products[i].SKUs[j]
+			invData, ok := invMap[strings.ToLower(sku.SellerSku)]
+			if !ok {
+				continue
+			}
+
+			// Set inventory reference price (virtual field)
+			if hargaStr, ok := invData["HARGA"].(string); ok {
+				if harga, err := strconv.ParseFloat(strings.TrimSpace(hargaStr), 64); err == nil && harga > 0 {
+					sku.InventoryPrice = harga
+					// Backfill master price if 0
+					if sku.Price == 0 {
+						sku.Price = harga
+					}
+				}
+			}
+
+			// Set inventory reference stock (virtual field)
+			if stokStr, ok := invData["Sisa Stok"].(string); ok {
+				if stok, err := strconv.Atoi(strings.TrimSpace(stokStr)); err == nil && stok > 0 {
+					sku.InventoryStock = stok
+					// Backfill master stock if 0
+					if sku.Stock == 0 {
+						sku.Stock = stok
+					}
+				}
+			}
+		}
+	}
+}
+
+// enrichWithPlatformPrices populates PlatformPrices virtual field from staging tables.
+// Queries shopee_skus, lazada_skus, tiktok_skus for real marketplace prices.
+func (s *Service) enrichWithPlatformPrices(ctx context.Context, tenantID string, products []models.MasterProduct) {
+	allSKUs := collectSKUs(products)
+	if len(allSKUs) == 0 {
+		return
+	}
+
+	type stagingRow struct {
+		SellerSku string  `gorm:"column:seller_sku"`
+		Price     float64 `gorm:"column:price"`
+		Quantity  int     `gorm:"column:quantity"`
+	}
+
+	// platformMap: lowercase_sku → platform → {price, stock}
+	platformMap := make(map[string][]models.PlatformPrice)
+
+	// Query each platform staging table
+	platforms := []struct {
+		name  string
+		table string
+	}{
+		{"shopee", models.GetTableName("ShopeeSku")},
+		{"lazada", models.GetTableName("LazadaSku")},
+		{"tiktok", models.GetTableName("TiktokSku")},
+	}
+
+	for _, p := range platforms {
+		var rows []stagingRow
+		if err := s.db.WithContext(ctx).
+			Table(p.table).
+			Select("seller_sku, price, quantity").
+			Where("tenant_id = ? AND LOWER(seller_sku) IN (?)", tenantID, allSKUs).
+			Find(&rows).Error; err != nil {
+			log.Warn().Err(err).Str("platform", p.name).Msg("Failed to query platform staging prices")
+			continue
+		}
+
+		for _, row := range rows {
+			key := strings.ToLower(row.SellerSku)
+			platformMap[key] = append(platformMap[key], models.PlatformPrice{
+				Platform: p.name,
+				Price:    row.Price,
+				Stock:    row.Quantity,
+			})
+		}
+	}
+
+	// Attach platform prices to each SKU
+	for i := range products {
+		for j := range products[i].SKUs {
+			sku := &products[i].SKUs[j]
+			if prices, ok := platformMap[strings.ToLower(sku.SellerSku)]; ok {
+				sku.PlatformPrices = prices
+			}
+		}
+	}
+}
+
+// collectSKUs gathers all lowercase seller_skus from products.
+func collectSKUs(products []models.MasterProduct) []string {
+	var skus []string
+	for _, p := range products {
+		for _, sku := range p.SKUs {
+			if sku.SellerSku != "" {
+				skus = append(skus, strings.ToLower(sku.SellerSku))
+			}
+		}
+	}
+	return skus
 }
 
 // Update updates a master product

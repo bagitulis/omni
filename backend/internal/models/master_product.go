@@ -25,6 +25,14 @@ func (MasterProduct) TableName() string {
 
 // MasterProductSku represents a SKU/variant of a master product
 // Max 50 SKUs per product (Shopee limit), max 2 variant tiers
+// PlatformPrice holds real marketplace price/stock from platform staging tables.
+// Used in API response only (not stored in master DB).
+type PlatformPrice struct {
+	Platform string  `json:"platform"`       // "shopee", "tiktok", "lazada"
+	Price    float64 `json:"platform_price"`
+	Stock    int     `json:"platform_stock"`
+}
+
 type MasterProductSku struct {
 	ID              uint      `gorm:"primaryKey" json:"id"`
 	TenantID        string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
@@ -39,6 +47,11 @@ type MasterProductSku struct {
 
 	// Relations
 	PlatformLinks []MasterProductPlatformLink `gorm:"foreignKey:MasterSkuID;references:ID" json:"platform_links,omitempty"`
+
+	// Virtual fields — enriched at API response time, not stored in DB
+	PlatformPrices []PlatformPrice `gorm:"-" json:"platform_prices,omitempty"`
+	InventoryPrice float64         `gorm:"-" json:"inventory_price,omitempty"`
+	InventoryStock int             `gorm:"-" json:"inventory_stock,omitempty"`
 }
 
 // TableName specifies the PostgreSQL table name

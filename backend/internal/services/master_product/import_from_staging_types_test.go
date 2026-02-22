@@ -73,7 +73,7 @@ func TestStagingImportService_ImportFromShopeeStaging_Idempotent(t *testing.T) {
 
 	linkTable := models.MasterProductPlatformLink{}.TableName()
 	err := db.Exec(fmt.Sprintf(
-		"CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_links_unique ON %s (platform, platform_product_id) WHERE (platform_product_id IS NOT NULL)",
+		"CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_links_unique ON %s (platform, platform_product_id, COALESCE(platform_sku_id, '')) WHERE (platform_product_id IS NOT NULL)",
 		linkTable,
 	)).Error
 	require.NoError(t, err)

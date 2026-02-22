@@ -208,91 +208,23 @@ func (s *SyncService) syncToShopee(ctx context.Context, tenantID string, product
 }
 
 // syncToTikTok syncs to TikTok platform
+// NOTE: Not yet implemented — returns explicit error instead of false success.
 func (s *SyncService) syncToTikTok(ctx context.Context, tenantID string, product *models.MasterProduct, result *SyncResult) error {
-	log.Debug().
+	log.Warn().
 		Str("tenant_id", tenantID).
 		Uint("product_id", product.ID).
-		Msg("Syncing to TikTok")
-
-	// Check for existing TikTok link
-	var existingLink *models.MasterProductPlatformLink
-	for _, sku := range product.SKUs {
-		for _, link := range sku.PlatformLinks {
-			if link.Platform == models.PlatformTiktok {
-				existingLink = &link
-				break
-			}
-		}
-		if existingLink != nil {
-			break
-		}
-	}
-
-	// TODO: Implement actual TikTok API call using pkg/tiktok
-	// The actual implementation would:
-	// 1. Get TikTok credentials from platform_configs
-	// 2. Use pkg/tiktok/client.go to create/update product
-	// 3. Upload images to TikTok CDN
-	// 4. Create product with SKU variants
-	// 5. Store ProductId in the link record
-
-	if existingLink != nil {
-		existingLink.SyncStatus = models.SyncStatusSynced
-		existingLink.LastSyncedAt = timePtr(time.Now())
-		if err := s.db.WithContext(ctx).Save(existingLink).Error; err != nil {
-			return fmt.Errorf("failed to update link status: %w", err)
-		}
-		result.PlatformItemID = existingLink.PlatformItemID
-	} else {
-		log.Warn().Msg("TikTok product creation not yet implemented - requires API integration")
-	}
-
-	result.SkusSynced = len(product.SKUs)
-	return nil
+		Msg("TikTok reverse sync not yet implemented")
+	return fmt.Errorf("TikTok reverse sync is not yet implemented — price/stock push to TikTok coming soon")
 }
 
 // syncToLazada syncs to Lazada platform
+// NOTE: Not yet implemented — returns explicit error instead of false success.
 func (s *SyncService) syncToLazada(ctx context.Context, tenantID string, product *models.MasterProduct, result *SyncResult) error {
-	log.Debug().
+	log.Warn().
 		Str("tenant_id", tenantID).
 		Uint("product_id", product.ID).
-		Msg("Syncing to Lazada")
-
-	// Check for existing Lazada link
-	var existingLink *models.MasterProductPlatformLink
-	for _, sku := range product.SKUs {
-		for _, link := range sku.PlatformLinks {
-			if link.Platform == models.PlatformLazada {
-				existingLink = &link
-				break
-			}
-		}
-		if existingLink != nil {
-			break
-		}
-	}
-
-	// TODO: Implement actual Lazada API call using existing lazada.API
-	// The actual implementation would:
-	// 1. Get Lazada credentials from platform_configs
-	// 2. Use pkg/lazada/api.go CreateProduct or UpdateProduct
-	// 3. Upload images to Lazada CDN
-	// 4. Create/update product with SKU variants
-	// 5. Store ItemId/SkuId in the link record
-
-	if existingLink != nil {
-		existingLink.SyncStatus = models.SyncStatusSynced
-		existingLink.LastSyncedAt = timePtr(time.Now())
-		if err := s.db.WithContext(ctx).Save(existingLink).Error; err != nil {
-			return fmt.Errorf("failed to update link status: %w", err)
-		}
-		result.PlatformItemID = existingLink.PlatformItemID
-	} else {
-		log.Warn().Msg("Lazada product creation not yet implemented - requires API integration")
-	}
-
-	result.SkusSynced = len(product.SKUs)
-	return nil
+		Msg("Lazada reverse sync not yet implemented")
+	return fmt.Errorf("Lazada reverse sync is not yet implemented — price/stock push to Lazada coming soon")
 }
 
 // GetSyncStatus returns sync status for all platforms

@@ -12,6 +12,18 @@ import { Badge, Button, Dropdown, Space, Typography } from "antd";
 import { PlatformStatusCell } from "@/pages/products/components/PlatformStatusCell";
 import type { UnifiedProductRow } from "@/types/shared";
 import { toImageSrc } from "./unifiedProductUtils";
+import shopeeIcon from "@/assets/icons/shopee.svg";
+import tiktokIcon from "@/assets/icons/tiktok.webp";
+import lazadaIcon from "@/assets/icons/lazada.webp";
+
+function PlatformColumnTitle({ icon, label }: { icon: string; label: string }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+      <img src={icon} alt={label} width={14} height={14} style={{ objectFit: "contain" }} />
+      {label}
+    </span>
+  );
+}
 
 const idrNumberFormatter = new Intl.NumberFormat("id-ID", {
   maximumFractionDigits: 0,
@@ -62,6 +74,26 @@ export function getPriceDisplayText(skus: UnifiedProductRow["skus"]): string {
 
 export function getTotalStock(skus: UnifiedProductRow["skus"]): number {
   return skus.reduce((sum, sku) => sum + sku.stock, 0);
+}
+
+/** Get the first SKU's platform price for a given platform. Returns 0 if not linked. */
+export function getPlatformPrice(
+  skus: UnifiedProductRow["skus"],
+  platform: string,
+): number {
+  for (const sku of skus) {
+    const pp = sku.platform_prices?.find((p) => p.platform === platform);
+    if (pp && pp.platform_price > 0) return pp.platform_price;
+  }
+  return 0;
+}
+
+/** Get the first SKU's inventory reference price. Returns 0 if not in inventory. */
+export function getInventoryPrice(skus: UnifiedProductRow["skus"]): number {
+  for (const sku of skus) {
+    if (sku.inventory_price && sku.inventory_price > 0) return sku.inventory_price;
+  }
+  return 0;
 }
 
 export function getSkuCountLabel(count: number): string {
@@ -161,20 +193,62 @@ export function buildProductColumns({
         );
       },
     },
-    price: {
-      title: "Price",
-      key: "price",
-      width: 140,
+    rec_price: {
+      title: "Rec. Price",
+      key: "rec_price",
+      width: 110,
       render: (_, record) => {
+        const invPrice = getInventoryPrice(record.skus);
         return (
-          <Typography.Text>{getPriceDisplayText(record.skus)}</Typography.Text>
+          <Typography.Text type={invPrice > 0 ? undefined : "secondary"}>
+            {invPrice > 0 ? formatIdr(invPrice) : "—"}
+          </Typography.Text>
+        );
+      },
+    },
+    shopee_price: {
+      title: <PlatformColumnTitle icon={shopeeIcon} label="Shopee" />,
+      key: "shopee_price",
+      width: 110,
+      render: (_, record) => {
+        const p = getPlatformPrice(record.skus, "shopee");
+        return (
+          <Typography.Text type={p > 0 ? undefined : "secondary"}>
+            {p > 0 ? formatIdr(p) : "—"}
+          </Typography.Text>
+        );
+      },
+    },
+    tiktok_price: {
+      title: <PlatformColumnTitle icon={tiktokIcon} label="TikTok" />,
+      key: "tiktok_price",
+      width: 110,
+      render: (_, record) => {
+        const p = getPlatformPrice(record.skus, "tiktok");
+        return (
+          <Typography.Text type={p > 0 ? undefined : "secondary"}>
+            {p > 0 ? formatIdr(p) : "—"}
+          </Typography.Text>
+        );
+      },
+    },
+    lazada_price: {
+      title: <PlatformColumnTitle icon={lazadaIcon} label="Lazada" />,
+      key: "lazada_price",
+      width: 110,
+      render: (_, record) => {
+        const p = getPlatformPrice(record.skus, "lazada");
+        return (
+          <Typography.Text type={p > 0 ? undefined : "secondary"}>
+            {p > 0 ? formatIdr(p) : "—"}
+          </Typography.Text>
         );
       },
     },
     stock: {
       title: "Stock",
       key: "stock",
-      width: 120,
+      width: 100,
       render: (_, record) => {
         return (
           <Typography.Text>

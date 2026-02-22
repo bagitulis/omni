@@ -1,9 +1,48 @@
-import { Col, Row, Space, Typography } from "antd";
+import { Col, Row, Space, Tag, Typography } from "antd";
 import { formatIdr } from "@/pages/products/utils/productColumns";
-import type { UnifiedProductRow } from "@/types/shared";
+import type { Platform, UnifiedProductRow } from "@/types/shared";
+import shopeeIcon from "@/assets/icons/shopee.svg";
+import tiktokIcon from "@/assets/icons/tiktok.webp";
+import lazadaIcon from "@/assets/icons/lazada.webp";
+
+const PLATFORM_COLORS: Record<Platform, string> = {
+  shopee: "#ee4d2d",
+  tiktok: "#000000",
+  lazada: "#0f1689",
+};
+
+const PLATFORM_ICONS: Record<Platform, string> = {
+  shopee: shopeeIcon,
+  tiktok: tiktokIcon,
+  lazada: lazadaIcon,
+};
 
 interface ProductVariantExpandedRowProps {
   product: UnifiedProductRow;
+}
+
+function PlatformPriceTag({ platform, price }: { platform: Platform; price: number }) {
+  return (
+    <Tag
+      style={{
+        fontSize: 10,
+        margin: 0,
+        lineHeight: "18px",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 3,
+      }}
+    >
+      <img
+        src={PLATFORM_ICONS[platform]}
+        alt={platform}
+        width={12}
+        height={12}
+        style={{ objectFit: "contain" }}
+      />
+      {price > 0 ? formatIdr(price) : "—"}
+    </Tag>
+  );
 }
 
 export function ProductVariantExpandedRow({
@@ -57,56 +96,109 @@ export function ProductVariantExpandedRow({
             borderTopRightRadius: "3px",
           }}
         >
-          <Col xs={24} md={10} style={{ color: "#475569" }}>
+          <Col xs={24} md={6} style={{ color: "#475569" }}>
             Variant Details
           </Col>
-          <Col xs={12} md={7} style={{ color: "#475569" }}>
+          <Col xs={4} md={3} style={{ color: "#475569" }}>
             Stock
           </Col>
-          <Col xs={12} md={7} style={{ color: "#475569" }}>
-            Price
+          <Col xs={4} md={3} style={{ color: "#475569" }}>
+            Rec. Price
+          </Col>
+          <Col xs={12} md={8} style={{ color: "#475569" }}>
+            Platform Prices
+          </Col>
+          <Col xs={12} md={4} style={{ color: "#475569" }}>
+            Linked
           </Col>
         </Row>
 
         {/* Rows */}
-        {product.skus.map((sku, index) => (
-          <Row
-            key={sku.id}
-            align="middle"
-            style={{
-              padding: "12px",
-              borderBottom:
-                index < product.skus.length - 1 ? "1px solid #f1f5f9" : "none",
-              fontSize: 12,
-            }}
-          >
-            <Col xs={24} md={10}>
-              <Space direction="vertical" size={2}>
+        {product.skus.map((sku, index) => {
+          const linkedPlatforms = (sku.platform_links || [])
+            .filter((l) => l.sync_status === "synced" || l.sync_status === "outdated")
+            .map((l) => l.platform);
+          const uniquePlatforms = [...new Set(linkedPlatforms)];
+
+          return (
+            <Row
+              key={sku.id}
+              align="middle"
+              style={{
+                padding: "12px",
+                borderBottom:
+                  index < product.skus.length - 1 ? "1px solid #f1f5f9" : "none",
+                fontSize: 12,
+              }}
+            >
+              <Col xs={24} md={6}>
+                <Space direction="vertical" size={2}>
+                  <Typography.Text
+                    strong
+                    style={{ color: "#0369a1", fontSize: 12 }}
+                  >
+                    {sku.variant_name.trim() || "Default Variant"}
+                  </Typography.Text>
+                  <Typography.Text type="secondary" style={{ fontSize: 10 }}>
+                    SKU: {sku.seller_sku}
+                  </Typography.Text>
+                </Space>
+              </Col>
+
+              <Col xs={4} md={3}>
+                <Typography.Text style={{ fontSize: 12 }}>
+                  {sku.stock.toLocaleString("id-ID")}
+                </Typography.Text>
+              </Col>
+
+              <Col xs={4} md={3}>
                 <Typography.Text
-                  strong
-                  style={{ color: "#0369a1", fontSize: 12 }}
+                  style={{ fontSize: 12 }}
+                  type={sku.inventory_price && sku.inventory_price > 0 ? undefined : "secondary"}
                 >
-                  {sku.variant_name.trim() || "Default Variant"}
+                  {sku.inventory_price && sku.inventory_price > 0
+                    ? formatIdr(sku.inventory_price)
+                    : "—"}
                 </Typography.Text>
-                <Typography.Text type="secondary" style={{ fontSize: 10 }}>
-                  SKU: {sku.seller_sku}
-                </Typography.Text>
-              </Space>
-            </Col>
+              </Col>
 
-            <Col xs={12} md={7}>
-              <Typography.Text style={{ fontSize: 12 }}>
-                {sku.stock.toLocaleString("id-ID")}
-              </Typography.Text>
-            </Col>
+              <Col xs={12} md={8}>
+                <Space size={4} wrap>
+                  {(["shopee", "tiktok", "lazada"] as Platform[]).map((p) => {
+                    const pp = sku.platform_prices?.find((x) => x.platform === p);
+                    return (
+                      <PlatformPriceTag
+                        key={p}
+                        platform={p}
+                        price={pp?.platform_price ?? 0}
+                      />
+                    );
+                  })}
+                </Space>
+              </Col>
 
-            <Col xs={12} md={7}>
-              <Typography.Text style={{ fontSize: 12 }}>
-                {formatIdr(sku.price)}
-              </Typography.Text>
-            </Col>
-          </Row>
-        ))}
+              <Col xs={12} md={4}>
+                {uniquePlatforms.length > 0 ? (
+                  <Space size={4} wrap>
+                    {uniquePlatforms.map((p) => (
+                      <Tag
+                        key={p}
+                        color={PLATFORM_COLORS[p]}
+                        style={{ fontSize: 10, margin: 0, lineHeight: "18px" }}
+                      >
+                        {p.charAt(0).toUpperCase() + p.slice(1)}
+                      </Tag>
+                    ))}
+                  </Space>
+                ) : (
+                  <Typography.Text type="secondary" style={{ fontSize: 10 }}>
+                    Not linked
+                  </Typography.Text>
+                )}
+              </Col>
+            </Row>
+          );
+        })}
       </div>
     </div>
   );

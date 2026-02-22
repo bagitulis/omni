@@ -12,6 +12,7 @@ export const DEFAULT_FILTERS: ProductFilterValues = {
   platform: "all",
   status: "all",
   category: "all",
+  mapping: "all",
 };
 
 export const DEFAULT_PRODUCT_PAGE_COLUMNS: ColumnConfig[] = [
@@ -21,18 +22,20 @@ export const DEFAULT_PRODUCT_PAGE_COLUMNS: ColumnConfig[] = [
     title: "Name",
     visible: true,
     order: 1,
-    width: 300,
+    width: 280,
     locked: true,
   },
-  { key: "price", title: "Price", visible: true, order: 2, width: 140 },
-  { key: "stock", title: "Stock", visible: true, order: 3, width: 120 },
-  { key: "platforms", title: "Platforms", visible: true, order: 4, width: 180 },
-  { key: "category", title: "Category", visible: true, order: 5, width: 140 },
+  { key: "rec_price", title: "Rec. Price", visible: true, order: 2, width: 110 },
+  { key: "shopee_price", title: "Shopee", visible: true, order: 3, width: 110 },
+  { key: "tiktok_price", title: "TikTok", visible: true, order: 4, width: 110 },
+  { key: "lazada_price", title: "Lazada", visible: true, order: 5, width: 110 },
+  { key: "stock", title: "Stock", visible: true, order: 6, width: 100 },
+  { key: "platforms", title: "Platforms", visible: true, order: 7, width: 180 },
   {
     key: "actions",
     title: "Actions",
     visible: true,
-    order: 6,
+    order: 8,
     width: 120,
     locked: true,
   },
@@ -57,6 +60,9 @@ export function readFiltersFromUrl(
         ? status
         : (DEFAULT_FILTERS.status as "active" | "draft" | "archived" | "all"),
     category: searchParams.get("category") || DEFAULT_FILTERS.category,
+    mapping:
+      (searchParams.get("mapping") as "all" | "mapped" | "unmapped") ||
+      DEFAULT_FILTERS.mapping,
   };
 }
 
@@ -143,7 +149,8 @@ export function areFiltersEqual(
     a.search === b.search &&
     a.platform === b.platform &&
     a.status === b.status &&
-    a.category === b.category
+    a.category === b.category &&
+    a.mapping === b.mapping
   );
 }
 
@@ -155,6 +162,7 @@ export function buildFilterSearchParams(
   if (filters.platform !== "all") params.set("platform", filters.platform);
   if (filters.status !== "all") params.set("status", filters.status);
   if (filters.category !== "all") params.set("category", filters.category);
+  if (filters.mapping !== "all") params.set("mapping", filters.mapping);
   return params;
 }
 

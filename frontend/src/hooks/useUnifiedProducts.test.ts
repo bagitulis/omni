@@ -20,6 +20,7 @@ const defaultFilters: ProductFilterValues = {
   platform: "all",
   status: "all",
   category: "all",
+  mapping: "all",
 };
 
 describe("useUnifiedProducts", () => {
@@ -58,6 +59,7 @@ describe("useUnifiedProducts", () => {
       platform: "shopee",
       status: "active",
       category: "all",
+      mapping: "all",
     };
 
     useUnifiedProducts(filters, 2, 50);
@@ -80,7 +82,8 @@ describe("useUnifiedProducts", () => {
       search: "shoes",
       status: "active",
       platform: "shopee",
-      linked_only: true,
+      linked_only: false,
+      unmapped_only: false,
     });
   });
 
@@ -105,7 +108,8 @@ describe("useUnifiedProducts", () => {
       search: undefined,
       status: undefined,
       platform: undefined,
-      linked_only: true,
+      linked_only: false,
+      unmapped_only: false,
     });
   });
 

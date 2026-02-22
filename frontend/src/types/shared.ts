@@ -75,6 +75,7 @@ export interface ProductFilterValues {
   platform: Platform | "all";
   status: "active" | "archived" | "draft" | "all";
   category: string | "all";
+  mapping: "all" | "mapped" | "unmapped"; // GAP-16: filter by platform link status
 }
 
 // === Stock Sync Types ===
@@ -83,6 +84,13 @@ export type StockSyncMode = "uniform" | "per_platform";
 export interface StockSyncItem {
   sku: string;
   platforms?: Platform[]; // Only for per_platform mode
+}
+
+// === Platform Price (real marketplace price from staging tables) ===
+export interface PlatformPrice {
+  platform: Platform;
+  platform_price: number;
+  platform_stock: number;
 }
 
 // === Unified Product Row (for main table) ===
@@ -107,6 +115,11 @@ export interface UnifiedProductRow {
       last_synced_at?: string;
       error_message?: string;
     }>;
+    // Opsi A: Per-platform real prices from staging tables
+    platform_prices?: PlatformPrice[];
+    // Inventory reference price/stock from Google Sheets
+    inventory_price?: number;
+    inventory_stock?: number;
   }>;
   // Computed fields for table display
   primary_sku: string; // First SKU's seller_sku

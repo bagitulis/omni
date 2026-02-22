@@ -15,7 +15,7 @@ func (s *StagingImportService) ImportFromShopeeStaging(
 	ctx context.Context,
 	tenantID string,
 ) (*StagingImportResult, error) {
-	var result StagingImportResult
+	result := NewStagingImportResult()
 
 	// 1. Fetch all ShopeeProducts for this tenant.
 	var products []models.ShopeeProduct
@@ -67,7 +67,6 @@ func (s *StagingImportService) ImportFromShopeeStaging(
 					_ = s.repo.Delete(ctx, masterProduct.ID)
 					masterProduct = matchedBySku
 					created = false
-					result.ProductsCreated--
 				}
 			}
 		}

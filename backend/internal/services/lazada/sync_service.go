@@ -90,13 +90,28 @@ func (s *SyncService) SyncOrders(ctx context.Context, status string) (int, error
 func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 	zlog := zerolog.Ctx(ctx)
 
-	resp, err := s.client.GetProductsWithContext(ctx, 0, 50)
-	if err != nil {
-		return 0, err
+	// Fetch ALL products with pagination (API returns max 50 per page)
+	const pageSize = 50
+	var products []lazadaPkg.Product
+
+	for offset := 0; ; offset += pageSize {
+		resp, err := s.client.GetProductsWithContext(ctx, offset, pageSize)
+		if err != nil {
+			return 0, fmt.Errorf("lazada fetch products offset=%d: %w", offset, err)
+		}
+		products = append(products, resp.Data.Products...)
+		zlog.Info().
+			Int("fetched", len(resp.Data.Products)).
+			Int("total_so_far", len(products)).
+			Int("total_api", resp.Data.TotalProducts).
+			Msg("Lazada sync fetched page")
+
+		if len(resp.Data.Products) < pageSize || len(products) >= resp.Data.TotalProducts {
+			break
+		}
 	}
 
-	products := resp.Data.Products
-	zlog.Info().Int("count", len(products)).Msg("Lazada sync fetched products")
+	zlog.Info().Int("count", len(products)).Msg("Lazada sync fetched all products")
 
 	if len(products) == 0 {
 		zlog.Warn().Msg("Lazada API returned 0 products - skipping sync to avoid data loss")
@@ -104,7 +119,7 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 	}
 
 	count := 0
-	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := s.clearLazadaProductCacheWithDB(ctx, tx); err != nil {
 			return err
 		}

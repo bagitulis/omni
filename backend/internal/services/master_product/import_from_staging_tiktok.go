@@ -14,7 +14,7 @@ func (s *StagingImportService) ImportFromTiktokStaging(
 	ctx context.Context,
 	tenantID string,
 ) (*StagingImportResult, error) {
-	var result StagingImportResult
+	result := NewStagingImportResult()
 
 	// 1. Fetch all TiktokProducts for this tenant.
 	var products []models.TiktokProduct
@@ -62,7 +62,6 @@ func (s *StagingImportService) ImportFromTiktokStaging(
 					_ = s.repo.Delete(ctx, masterProduct.ID)
 					masterProduct = matchedBySku
 					created = false
-					result.ProductsCreated--
 				}
 			}
 		}

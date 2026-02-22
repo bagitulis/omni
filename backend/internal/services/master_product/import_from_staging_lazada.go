@@ -19,7 +19,7 @@ func (s *StagingImportService) ImportFromLazadaStaging(ctx context.Context, tena
 		return nil, ErrTenantIDRequired
 	}
 
-	result := &StagingImportResult{}
+	result := NewStagingImportResult()
 	imageAggregator := NewImageAggregator(s.db)
 
 	// 1. Fetch all Lazada products for the tenant.
@@ -159,7 +159,7 @@ func (s *StagingImportService) ImportFromLazadaStaging(ctx context.Context, tena
 		}
 	}
 
-	return result, nil
+	return &result, nil
 }
 
 func (s *StagingImportService) resolveLazadaMasterProduct(
@@ -179,7 +179,20 @@ func (s *StagingImportService) resolveLazadaMasterProduct(
 
 	trimmedName := strings.TrimSpace(productName)
 	if trimmedName != "" {
-		return s.findOrCreateMasterProduct(ctx, tenantID, trimmedName)
+		mp, created, err := s.findOrCreateMasterProduct(ctx, tenantID, trimmedName)
+		if err != nil {
+			return nil, false, err
+		}
+		// BUG-13 fix: Tier 3 — if newly created, check if seller SKUs already exist
+		// in another master product (same pattern as Shopee/TikTok).
+		if created && len(skus) > 0 {
+			if matched, skuErr := s.findMasterProductByLazadaSellerSkus(ctx, tenantID, skus); skuErr == nil && matched != nil {
+				// Delete the just-created orphan and use the SKU-matched product
+				_ = s.repo.Delete(ctx, mp.ID)
+				return matched, false, nil
+			}
+		}
+		return mp, created, nil
 	}
 
 	matchedBySku, err := s.findMasterProductByLazadaSellerSkus(ctx, tenantID, skus)

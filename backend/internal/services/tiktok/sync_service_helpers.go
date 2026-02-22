@@ -109,13 +109,26 @@ func (s *SyncService) syncProductSkus(
 	}
 
 	for _, sku := range prod.Skus {
+		parsedPrice := parsePrice(sku.Price.SalePrice, sku.Price.OriginalPrice)
+		parsedQty := sumInventory(sku.Inventory)
+
+		// Debug: log raw TikTok price values to diagnose price=0 bug
+		zlog.Debug().
+			Str("sku_id", sku.ID).
+			Str("seller_sku", sku.SellerSku).
+			Str("raw_sale_price", sku.Price.SalePrice).
+			Str("raw_original_price", sku.Price.OriginalPrice).
+			Float64("parsed_price", parsedPrice).
+			Int("parsed_qty", parsedQty).
+			Msg("TikTok SKU price debug")
+
 		dbSku := &models.TiktokSku{
 			TenantID:  s.tenantID,
 			ProductID: productID,
 			SkuID:     sku.ID,
 			SellerSku: sku.SellerSku,
-			Price:     parsePrice(sku.Price.SalePrice, sku.Price.OriginalPrice),
-			Quantity:  sumInventory(sku.Inventory),
+			Price:     parsedPrice,
+			Quantity:  parsedQty,
 		}
 
 		if attrs, ok := variantBySkuID[sku.ID]; ok {
