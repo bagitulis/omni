@@ -109,7 +109,7 @@ func (s *SyncService) syncProductSkus(
 	}
 
 	for _, sku := range prod.Skus {
-		parsedPrice := parsePrice(sku.Price.SalePrice, sku.Price.OriginalPrice)
+		parsedPrice := parsePrice(sku.Price.SalePrice, sku.Price.OriginalPrice, sku.Price.TaxExclusivePrice)
 		parsedQty := sumInventory(sku.Inventory)
 
 		// Debug: log raw TikTok price values to diagnose price=0 bug
@@ -153,7 +153,7 @@ func (s *SyncService) updateProductSummary(ctx context.Context, tx *gorm.DB, pro
 	}
 
 	firstSku := prod.Skus[0]
-	firstPrice := parsePrice(firstSku.Price.SalePrice, firstSku.Price.OriginalPrice)
+	firstPrice := parsePrice(firstSku.Price.SalePrice, firstSku.Price.OriginalPrice, firstSku.Price.TaxExclusivePrice)
 
 	err := tx.WithContext(ctx).
 		Model(&models.TiktokProduct{}).
@@ -243,15 +243,24 @@ func (s *SyncService) updateProductLocalImages(ctx context.Context, tx *gorm.DB,
 	}
 }
 
-func parsePrice(salePrice string, originalPrice string) float64 {
+func parsePrice(salePrice, originalPrice, taxExclusivePrice string) float64 {
 	price := 0.0
 	if salePrice != "" {
 		_, _ = fmt.Sscanf(salePrice, "%f", &price)
-		return price
+		if price > 0 {
+			return price
+		}
 	}
 
 	if originalPrice != "" {
 		_, _ = fmt.Sscanf(originalPrice, "%f", &price)
+		if price > 0 {
+			return price
+		}
+	}
+
+	if taxExclusivePrice != "" {
+		_, _ = fmt.Sscanf(taxExclusivePrice, "%f", &price)
 	}
 
 	return price
