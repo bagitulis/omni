@@ -6,12 +6,16 @@ import { OrderStatusTabs } from "./components/OrderStatusTabs";
 import { OrderActionBar } from "./components/OrderActionBar";
 import { OrderPageModals } from "./components/OrderPageModals";
 import { LockedOrdersPanel } from "./components/LockedOrdersPanel";
+import { TodayOrdersTable } from "./components/TodayOrdersTable";
 import { useOrdersLogic } from "./hooks/useOrdersLogic";
 
 export default function OrdersPage() {
   const { state, setters, handlers } = useOrdersLogic();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
+
+  const isSpecialTab =
+    state.activeTab === "locked" || state.activeTab === "today";
 
   return (
     <div style={{ padding: isMobile ? 12 : 24 }}>
@@ -45,61 +49,68 @@ export default function OrdersPage() {
           platform={state.platform}
         />
 
-        {/* Filters */}
-        <OrderActionBar
-          onSearch={handlers.handleSearch}
-          onPlatformChange={handlers.handlePlatformChange}
-          onDateChange={handlers.handleDateChange}
-          onRefresh={handlers.handleRefresh}
-          onExport={handlers.handleExport}
-          loading={state.isLoading || state.isSyncing}
-          autoRefresh={state.autoRefresh}
-          onAutoRefreshChange={setters.setAutoRefresh}
-        />
+        {/* Filters & Bulk Actions — only for normal order tabs */}
+        {!isSpecialTab && (
+          <>
+            <OrderActionBar
+              onSearch={handlers.handleSearch}
+              onPlatformChange={handlers.handlePlatformChange}
+              onDateChange={handlers.handleDateChange}
+              onRefresh={handlers.handleRefresh}
+              onExport={handlers.handleExport}
+              loading={state.isLoading || state.isSyncing}
+              autoRefresh={state.autoRefresh}
+              onAutoRefreshChange={setters.setAutoRefresh}
+            />
 
-        <OrdersBulkActionsBar
-          selectedCount={state.selectedRowKeys.length}
-          onBulkShip={() => void handlers.handleBulkShip()}
-          onBulkPrint={() => void handlers.handleBulkPrint()}
-          onRetryFailedPrint={() => void handlers.handleRetryFailedPrint()}
-          onBulkCancel={() => void handlers.handleBulkCancel()}
-          onClearSelection={() => setters.setSelectedRowKeys([])}
-          isShipping={state.isShipping}
-          isPrinting={state.isPrinting}
-          isCancelling={state.isCancelling}
-          shipProgress={state.shipProgress}
-          printProgress={state.printProgress}
-          cancelProgress={state.cancelProgress}
-          shipResult={state.shipResult}
-          printResult={state.printResult}
-          cancelResult={state.cancelResult}
-        />
+            <OrdersBulkActionsBar
+              selectedCount={state.selectedRowKeys.length}
+              onBulkShip={() => void handlers.handleBulkShip()}
+              onBulkPrint={() => void handlers.handleBulkPrint()}
+              onRetryFailedPrint={() => void handlers.handleRetryFailedPrint()}
+              onBulkCancel={() => void handlers.handleBulkCancel()}
+              onClearSelection={() => setters.setSelectedRowKeys([])}
+              isShipping={state.isShipping}
+              isPrinting={state.isPrinting}
+              isCancelling={state.isCancelling}
+              shipProgress={state.shipProgress}
+              printProgress={state.printProgress}
+              cancelProgress={state.cancelProgress}
+              shipResult={state.shipResult}
+              printResult={state.printResult}
+              cancelResult={state.cancelResult}
+            />
+          </>
+        )}
 
-        {/* Data Table */}
-        <Card style={{ borderRadius: 4 }}>
-          <OrderTable
-            orders={state.data?.orders || []}
-            loading={state.isLoading || state.isSyncing}
-            pagination={{
-              current: state.page,
-              pageSize: state.pageSize,
-              total: state.data?.total || 0,
-              onChange: (p, ps) => {
-                setters.setPage(p);
-                setters.setPageSize(ps);
-              },
-            }}
-            selectedRowKeys={state.selectedRowKeys}
-            onSelectionChange={handlers.handleSelectionChange}
-            onShip={handlers.handleSingleShip}
-            onPrint={handlers.handleSinglePrint}
-            onCancel={handlers.handleSingleCancel}
-            onViewDetail={handlers.handleViewDetails}
-          />
-        </Card>
+        {/* Tab-specific content */}
+        {state.activeTab === "locked" && <LockedOrdersPanel />}
 
-        {/* Locked Orders */}
-        <LockedOrdersPanel />
+        {state.activeTab === "today" && <TodayOrdersTable />}
+
+        {!isSpecialTab && (
+          <Card style={{ borderRadius: 4 }}>
+            <OrderTable
+              orders={state.data?.orders || []}
+              loading={state.isLoading || state.isSyncing}
+              pagination={{
+                current: state.page,
+                pageSize: state.pageSize,
+                total: state.data?.total || 0,
+                onChange: (p, ps) => {
+                  setters.setPage(p);
+                  setters.setPageSize(ps);
+                },
+              }}
+              selectedRowKeys={state.selectedRowKeys}
+              onSelectionChange={handlers.handleSelectionChange}
+              onShip={handlers.handleSingleShip}
+              onPrint={handlers.handleSinglePrint}
+              onCancel={handlers.handleSingleCancel}
+              onViewDetail={handlers.handleViewDetails}
+            />
+          </Card>
+        )}
 
         {/* Modals */}
         <OrderPageModals
@@ -128,4 +139,3 @@ export default function OrdersPage() {
     </div>
   );
 }
-

@@ -153,22 +153,113 @@ func (c *Client) GetProductsWithContext(ctx context.Context, offset, limit int) 
 }
 
 // GetProductItem fetches a single product by item ID from Lazada API.
-// Uses /product/item/get — the dedicated single-product lookup endpoint.
-// This returns the product regardless of status (live, inactive, sold out).
+// Strategy: try /product/item/get first, fallback to /products/get if that fails.
+// /product/item/get is the dedicated single-product endpoint but sometimes returns
+// E506 for certain products. /products/get is proven reliable in full-sync flows.
 func (c *Client) GetProductItem(ctx context.Context, itemID int64) (*Product, error) {
+	itemIDStr := strconv.FormatInt(itemID, 10)
+
+	// Attempt 1: /product/item/get (dedicated single-product endpoint)
+	product, err := c.tryGetProductItem(ctx, itemIDStr)
+	if err == nil {
+		return product, nil
+	}
+
+	// Attempt 2: /products/get with item_id filter (proven working endpoint)
+	product, fallbackErr := c.tryGetProductViaList(ctx, itemIDStr)
+	if fallbackErr == nil {
+		return product, nil
+	}
+
+	return nil, fmt.Errorf(
+		"lazada GetProductItem failed: primary (%v), fallback (%v)",
+		err, fallbackErr,
+	)
+}
+
+// tryGetProductItem uses /product/item/get with retry.
+func (c *Client) tryGetProductItem(ctx context.Context, itemID string) (*Product, error) {
+	params := map[string]string{"item_id": itemID}
+
+	const maxRetries = 2
+	baseDelay := 1 * time.Second
+	var lastErr error
+
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if attempt > 0 {
+			delay := baseDelay * time.Duration(1<<uint(attempt-1))
+			if delay > 5*time.Second {
+				delay = 5 * time.Second
+			}
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(delay):
+			}
+		}
+
+		var raw json.RawMessage
+		if err := c.RawGet(ctx, "/product/item/get", params, &raw); err != nil {
+			lastErr = err
+			continue
+		}
+
+		product, err := c.parseProductResponse(raw)
+		if err != nil {
+			if shouldRetryProductGet(err.Error(), "") && attempt < maxRetries {
+				lastErr = err
+				continue
+			}
+			return nil, err
+		}
+		return product, nil
+	}
+
+	if lastErr != nil {
+		return nil, lastErr
+	}
+	return nil, fmt.Errorf("lazada /product/item/get failed for item_id=%s", itemID)
+}
+
+// tryGetProductViaList uses /products/get (the list endpoint) to find a product.
+// This endpoint is proven reliable in the full-sync flow.
+func (c *Client) tryGetProductViaList(ctx context.Context, itemID string) (*Product, error) {
+	// Use /products/get with a small result window — Lazada will return
+	// all products but we filter by item_id client-side.
+	// We request a larger batch since the API doesn't support filtering by single item_id.
 	params := map[string]string{
-		"item_id": strconv.FormatInt(itemID, 10),
+		"filter": "all",
+		"offset": "0",
+		"limit":  "50",
 	}
 
 	var raw json.RawMessage
-	if err := c.RawGet(ctx, "/product/item/get", params, &raw); err != nil {
-		return nil, err
+	if err := c.RawGet(ctx, "/products/get", params, &raw); err != nil {
+		return nil, fmt.Errorf("lazada /products/get fallback error: %w", err)
 	}
 
-	// /product/item/get returns a different response structure than /products/get:
-	// {"code":"0","data":{"item_id":123,"attributes":{...},"skus":[...],...}}
-	// We parse it into the same ProductListResponse shape if possible,
-	// otherwise handle the single-product response directly.
+	var result ProductListResponse
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, fmt.Errorf("lazada /products/get parse error: %w", err)
+	}
+	if result.Code != "0" && result.Code != "" {
+		return nil, fmt.Errorf("lazada /products/get error: %s - %s", result.Code, result.Message)
+	}
+
+	// Find product by item_id in list
+	for i := range result.Data.Products {
+		if string(result.Data.Products[i].ItemID) == itemID {
+			return &result.Data.Products[i], nil
+		}
+	}
+
+	return nil, fmt.Errorf("lazada: product item_id=%s not found in /products/get response (%d products)",
+		itemID, len(result.Data.Products))
+}
+
+// parseProductResponse handles both single and list response formats from Lazada.
+func (c *Client) parseProductResponse(raw json.RawMessage) (*Product, error) {
+	// Try list format: {"code":"0","data":{"products":[...]}}
 	var listResult ProductListResponse
 	if err := json.Unmarshal(raw, &listResult); err == nil {
 		if listResult.Code == "0" || listResult.Code == "" {
@@ -176,21 +267,25 @@ func (c *Client) GetProductItem(ctx context.Context, itemID int64) (*Product, er
 				return &listResult.Data.Products[0], nil
 			}
 		}
+		if listResult.Code != "0" && listResult.Code != "" {
+			return nil, fmt.Errorf("%s - %s", listResult.Code, listResult.Message)
+		}
 	}
 
-	// Try single-product response structure: {"code":"0","data":{...product...}}
+	// Try single format: {"code":"0","data":{...product fields...}}
 	var singleResult struct {
 		Code    string  `json:"code"`
 		Message string  `json:"message,omitempty"`
 		Data    Product `json:"data"`
 	}
 	if err := json.Unmarshal(raw, &singleResult); err != nil {
-		return nil, fmt.Errorf("lazada GetProductItem parse error: %w (raw: %.200s)", err, string(raw))
+		return nil, fmt.Errorf("parse error: %w (raw: %.200s)", err, string(raw))
 	}
 	if singleResult.Code != "0" && singleResult.Code != "" {
-		return nil, fmt.Errorf("lazada GetProductItem error: %s - %s", singleResult.Code, singleResult.Message)
+		return nil, fmt.Errorf("%s - %s", singleResult.Code, singleResult.Message)
 	}
 
 	return &singleResult.Data, nil
 }
+
 
