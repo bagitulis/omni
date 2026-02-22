@@ -153,27 +153,43 @@ func (c *Client) GetProductsWithContext(ctx context.Context, offset, limit int) 
 }
 
 // GetProductItem fetches a single product by item ID from Lazada API.
-// Uses /products/get with item_id filter.
+// Lazada /products/get doesn't filter by item_id, so we paginate through
+// all products with filter=all and find the matching one.
 func (c *Client) GetProductItem(ctx context.Context, itemID int64) (*Product, error) {
-	params := map[string]string{
-		"filter":  "live",
-		"item_id": strconv.FormatInt(itemID, 10),
+	targetID := strconv.FormatInt(itemID, 10)
+
+	const pageSize = 50
+	for offset := 0; ; offset += pageSize {
+		params := map[string]string{
+			"filter": "all",
+			"offset": strconv.Itoa(offset),
+			"limit":  strconv.Itoa(pageSize),
+		}
+
+		var raw json.RawMessage
+		if err := c.RawGet(ctx, "/products/get", params, &raw); err != nil {
+			return nil, err
+		}
+
+		var result ProductListResponse
+		if err := json.Unmarshal(raw, &result); err != nil {
+			return nil, err
+		}
+		if result.Code != "0" && result.Code != "" {
+			return nil, fmt.Errorf("lazada GetProductItem error: %s - %s", result.Code, result.Message)
+		}
+
+		for i := range result.Data.Products {
+			if result.Data.Products[i].ItemID.String() == targetID {
+				return &result.Data.Products[i], nil
+			}
+		}
+
+		// No more products to scan
+		if len(result.Data.Products) < pageSize {
+			break
+		}
 	}
 
-	var raw json.RawMessage
-	if err := c.RawGet(ctx, "/products/get", params, &raw); err != nil {
-		return nil, err
-	}
-
-	var result ProductListResponse
-	if err := json.Unmarshal(raw, &result); err != nil {
-		return nil, err
-	}
-	if result.Code != "0" && result.Code != "" {
-		return nil, fmt.Errorf("lazada GetProductItem error: %s - %s", result.Code, result.Message)
-	}
-	if len(result.Data.Products) == 0 {
-		return nil, fmt.Errorf("lazada product not found: %d", itemID)
-	}
-	return &result.Data.Products[0], nil
+	return nil, fmt.Errorf("lazada product not found: %d", itemID)
 }
