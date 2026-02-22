@@ -14,6 +14,7 @@ import (
 	"github.com/omni/backend/internal/services/google"
 	"github.com/omni/backend/internal/services/inventory"
 	lazadaService "github.com/omni/backend/internal/services/lazada"
+	masterProductService "github.com/omni/backend/internal/services/master_product"
 	"github.com/omni/backend/internal/services/orders"
 	shopeeService "github.com/omni/backend/internal/services/shopee"
 	"github.com/omni/backend/internal/services/sync"
@@ -354,6 +355,9 @@ func syncProductsHandler(ctx context.Context, tenantID string, cfg *models.AutoF
 	resultMsg := fmt.Sprintf("Product sync completed: %s", fmt.Sprintf("%v", results))
 	log.Printf("[AutoFunction] %s for tenant: %s", resultMsg, tenantID)
 
+	// Auto-link: refresh platform links for all master SKUs after sync
+	autoLinkAllSkus(ctx, db, tenantID)
+
 	// Return error only if ALL platforms failed
 	if shopeeErr != nil && tiktokErr != nil && lazadaErr != nil {
 		return resultMsg, fmt.Errorf("all platform syncs failed")
@@ -419,4 +423,29 @@ func syncPlatformProducts(ctx context.Context, platform, tenantID string, db, sy
 	default:
 		return 0, fmt.Errorf("unknown platform: %s", platform)
 	}
+}
+
+// autoLinkAllSkus refreshes platform links for all master SKUs in a tenant.
+// Called after product sync to ensure newly synced products get linked.
+func autoLinkAllSkus(ctx context.Context, db *gorm.DB, tenantID string) {
+	var sellerSkus []string
+	err := db.WithContext(ctx).
+		Model(&models.MasterProductSku{}).
+		Where("tenant_id = ?", tenantID).
+		Pluck("seller_sku", &sellerSkus).Error
+	if err != nil {
+		log.Printf("[AutoFunction] Failed to load master SKUs for auto-link: %v", err)
+		return
+	}
+	if len(sellerSkus) == 0 {
+		return
+	}
+
+	mapper := masterProductService.NewSkuMapper(db, tenantID)
+	result, err := mapper.AutoMapAndLinkBySkus(ctx, sellerSkus)
+	if err != nil {
+		log.Printf("[AutoFunction] Auto-link failed for %s: %v", tenantID, err)
+		return
+	}
+	log.Printf("[AutoFunction] Auto-link for %s: %d mapped, %d skipped", tenantID, result.MappedCount, result.SkippedCount)
 }

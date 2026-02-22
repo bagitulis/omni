@@ -12,18 +12,8 @@ import { Badge, Button, Dropdown, Space, Typography } from "antd";
 import { PlatformStatusCell } from "@/pages/products/components/PlatformStatusCell";
 import type { UnifiedProductRow } from "@/types/shared";
 import { toImageSrc } from "./unifiedProductUtils";
-import shopeeIcon from "@/assets/icons/shopee.svg";
-import tiktokIcon from "@/assets/icons/tiktok.webp";
-import lazadaIcon from "@/assets/icons/lazada.webp";
 
-function PlatformColumnTitle({ icon, label }: { icon: string; label: string }) {
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-      <img src={icon} alt={label} width={14} height={14} style={{ objectFit: "contain" }} />
-      {label}
-    </span>
-  );
-}
+
 
 const idrNumberFormatter = new Intl.NumberFormat("id-ID", {
   maximumFractionDigits: 0,
@@ -193,58 +183,25 @@ export function buildProductColumns({
         );
       },
     },
-    rec_price: {
-      title: "Rec. Price",
-      key: "rec_price",
+    price: {
+      title: "Price",
+      key: "price",
       width: 110,
       render: (_, record) => {
         const invPrice = getInventoryPrice(record.skus);
+        if (invPrice > 0) {
+          return <Typography.Text>{formatIdr(invPrice)}</Typography.Text>;
+        }
+        // Fallback to master price
+        const masterPrice = record.primary_price;
         return (
-          <Typography.Text type={invPrice > 0 ? undefined : "secondary"}>
-            {invPrice > 0 ? formatIdr(invPrice) : "—"}
+          <Typography.Text type={masterPrice > 0 ? undefined : "secondary"}>
+            {masterPrice > 0 ? formatIdr(masterPrice) : "—"}
           </Typography.Text>
         );
       },
     },
-    shopee_price: {
-      title: <PlatformColumnTitle icon={shopeeIcon} label="Shopee" />,
-      key: "shopee_price",
-      width: 110,
-      render: (_, record) => {
-        const p = getPlatformPrice(record.skus, "shopee");
-        return (
-          <Typography.Text type={p > 0 ? undefined : "secondary"}>
-            {p > 0 ? formatIdr(p) : "—"}
-          </Typography.Text>
-        );
-      },
-    },
-    tiktok_price: {
-      title: <PlatformColumnTitle icon={tiktokIcon} label="TikTok" />,
-      key: "tiktok_price",
-      width: 110,
-      render: (_, record) => {
-        const p = getPlatformPrice(record.skus, "tiktok");
-        return (
-          <Typography.Text type={p > 0 ? undefined : "secondary"}>
-            {p > 0 ? formatIdr(p) : "—"}
-          </Typography.Text>
-        );
-      },
-    },
-    lazada_price: {
-      title: <PlatformColumnTitle icon={lazadaIcon} label="Lazada" />,
-      key: "lazada_price",
-      width: 110,
-      render: (_, record) => {
-        const p = getPlatformPrice(record.skus, "lazada");
-        return (
-          <Typography.Text type={p > 0 ? undefined : "secondary"}>
-            {p > 0 ? formatIdr(p) : "—"}
-          </Typography.Text>
-        );
-      },
-    },
+
     stock: {
       title: "Stock",
       key: "stock",

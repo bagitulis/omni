@@ -38,7 +38,7 @@ const PlatformSyncPanel = lazy(() =>
   })),
 );
 
-const MOBILE_ESSENTIAL_COLUMN_KEYS = ["image", "name", "rec_price", "actions"];
+const MOBILE_ESSENTIAL_COLUMN_KEYS = ["image", "name", "price", "actions"];
 
 export default function UnifiedProductsPage() {
   const navigate = useNavigate();
