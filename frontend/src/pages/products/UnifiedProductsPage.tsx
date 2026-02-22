@@ -1,4 +1,4 @@
-import { Badge, Card, Grid, Space, Tabs, type TableColumnsType } from "antd";
+import { Card, Grid, Space, Tabs, type TableColumnsType } from "antd";
 import type { Key } from "react";
 import {
   lazy,
@@ -26,6 +26,7 @@ import {
   readFiltersFromUrl,
   toLegacyProduct,
 } from "@/pages/products/utils/unifiedProductUtils";
+import { buildProductTabItems } from "@/pages/products/utils/productTabItems";
 import type {
   BatchActionType,
   ProductFilterValues,
@@ -193,37 +194,7 @@ export default function UnifiedProductsPage() {
                 mapping: key as "all" | "mapped" | "unmapped",
               })
             }
-            items={[
-              {
-                key: "all",
-                label: (
-                  <span>
-                    All Products{" "}
-                    <Badge
-                      count={total}
-                      showZero
-                      style={{ backgroundColor: "#94a3b8", marginLeft: 4 }}
-                    />
-                  </span>
-                ),
-              },
-              {
-                key: "mapped",
-                label: "Mapped",
-              },
-              {
-                key: "unmapped",
-                label: (
-                  <span>
-                    Unmapped{" "}
-                    <Badge
-                      count={filters.mapping === "unmapped" ? total : "?"}
-                      style={{ backgroundColor: "#ef4444", marginLeft: 4 }}
-                    />
-                  </span>
-                ),
-              },
-            ]}
+            items={buildProductTabItems(total, filters.mapping)}
             style={{ marginBottom: 16 }}
           />
 
