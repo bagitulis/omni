@@ -21,7 +21,17 @@ interface ProductVariantExpandedRowProps {
   product: UnifiedProductRow;
 }
 
-function PlatformPriceTag({ platform, price }: { platform: Platform; price: number }) {
+/** Shows platform price + stock in a compact tag. */
+function PlatformDetailTag({
+  platform,
+  price,
+  stock,
+}: {
+  platform: Platform;
+  price: number;
+  stock: number;
+}) {
+  const hasData = price > 0 || stock > 0;
   return (
     <Tag
       style={{
@@ -31,6 +41,7 @@ function PlatformPriceTag({ platform, price }: { platform: Platform; price: numb
         display: "inline-flex",
         alignItems: "center",
         gap: 3,
+        opacity: hasData ? 1 : 0.5,
       }}
     >
       <img
@@ -41,6 +52,8 @@ function PlatformPriceTag({ platform, price }: { platform: Platform; price: numb
         style={{ objectFit: "contain" }}
       />
       {price > 0 ? formatIdr(price) : "—"}
+      <span style={{ color: "#94a3b8", margin: "0 1px" }}>·</span>
+      <span style={{ color: "#64748b" }}>{stock > 0 ? stock.toLocaleString("id-ID") : "—"}</span>
     </Tag>
   );
 }
@@ -72,8 +85,8 @@ export function ProductVariantExpandedRow({
         <Typography.Text strong style={{ color: "#0f172a", fontSize: 13 }}>
           {product.skus.length} Variations
         </Typography.Text>
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          Variant details. Use modal actions to update stock and price.
+        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+          Platform columns: price · stock
         </Typography.Text>
       </div>
 
@@ -103,10 +116,10 @@ export function ProductVariantExpandedRow({
             Stock
           </Col>
           <Col xs={4} md={3} style={{ color: "#475569" }}>
-            Rec. Price
+            Price
           </Col>
           <Col xs={12} md={8} style={{ color: "#475569" }}>
-            Platform Prices
+            Platform (Price · Stock)
           </Col>
           <Col xs={12} md={4} style={{ color: "#475569" }}>
             Linked
@@ -119,6 +132,12 @@ export function ProductVariantExpandedRow({
             .filter((l) => l.sync_status === "synced" || l.sync_status === "outdated")
             .map((l) => l.platform);
           const uniquePlatforms = [...new Set(linkedPlatforms)];
+
+          // Determine display price: inventory first, then master
+          const displayPrice =
+            sku.inventory_price && sku.inventory_price > 0
+              ? sku.inventory_price
+              : sku.price;
 
           return (
             <Row
@@ -154,11 +173,9 @@ export function ProductVariantExpandedRow({
               <Col xs={4} md={3}>
                 <Typography.Text
                   style={{ fontSize: 12 }}
-                  type={sku.inventory_price && sku.inventory_price > 0 ? undefined : "secondary"}
+                  type={displayPrice > 0 ? undefined : "secondary"}
                 >
-                  {sku.inventory_price && sku.inventory_price > 0
-                    ? formatIdr(sku.inventory_price)
-                    : "—"}
+                  {displayPrice > 0 ? formatIdr(displayPrice) : "—"}
                 </Typography.Text>
               </Col>
 
@@ -167,10 +184,11 @@ export function ProductVariantExpandedRow({
                   {(["shopee", "tiktok", "lazada"] as Platform[]).map((p) => {
                     const pp = sku.platform_prices?.find((x) => x.platform === p);
                     return (
-                      <PlatformPriceTag
+                      <PlatformDetailTag
                         key={p}
                         platform={p}
                         price={pp?.platform_price ?? 0}
+                        stock={pp?.platform_stock ?? 0}
                       />
                     );
                   })}
