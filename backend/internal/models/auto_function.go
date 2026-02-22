@@ -45,7 +45,7 @@ type RouteExecutionConfig struct {
 	RoutePath string    `gorm:"column:route_path" json:"route_path"`
 	IsEnabled bool      `gorm:"column:is_enabled;default:true" json:"is_enabled"`
 	Mode      string    `gorm:"column:mode;default:normal" json:"mode"` // normal, priority, disabled
-	Priority  int       `gorm:"column:priority;default:0" json:"priority"`
+	Priority  string    `gorm:"column:priority;default:normal" json:"priority"`
 	RateLimit int       `gorm:"column:rate_limit" json:"rate_limit"` // Requests per minute
 	Timeout   int       `gorm:"column:timeout" json:"timeout"`       // Seconds
 	Category  string    `gorm:"column:category" json:"category"`     // Route category for grouping

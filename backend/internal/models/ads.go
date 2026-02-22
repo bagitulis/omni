@@ -30,7 +30,7 @@ func (ShopeeAdsUploadBatch) TableName() string { return GetTableName("ShopeeAdsU
 
 // ShopeeAdsProductData represents Shopee ads product-level data
 type ShopeeAdsProductData struct {
-	ID                      int       `gorm:"column:id;primaryKey" json:"id"`
+	ID                      int       `gorm:"column:id;primaryKey;type:integer" json:"id"`
 	TenantID                string    `gorm:"column:tenant_id;type:varchar(255);index;not null" json:"tenant_id"`
 	UploadBatchID           string    `gorm:"column:upload_batch_id;type:varchar(255);index" json:"upload_batch_id"`
 	PeriodStart             time.Time `gorm:"column:period_start;type:timestamptz" json:"period_start"`
@@ -45,22 +45,22 @@ type ShopeeAdsProductData struct {
 	EndDate                 string    `gorm:"column:end_date;type:varchar(100)" json:"end_date"`
 	Impressions             int       `gorm:"column:impressions;type:integer" json:"impressions"`
 	Clicks                  int       `gorm:"column:clicks;type:integer" json:"clicks"`
-	CTR                     float64   `gorm:"column:ctr" json:"ctr"`
-	Conversions             int       `gorm:"column:conversions" json:"conversions"`
-	DirectConversions       int       `gorm:"column:direct_conversions" json:"direct_conversions"`
-	ConversionRate          float64   `gorm:"column:conversion_rate" json:"conversion_rate"`
-	DirectConversionRate    float64   `gorm:"column:direct_conversion_rate" json:"direct_conversion_rate"`
-	CostPerConversion       float64   `gorm:"column:cost_per_conversion" json:"cost_per_conversion"`
-	CostPerDirectConversion float64   `gorm:"column:cost_per_direct_conversion" json:"cost_per_direct_conversion"`
-	UnitsSold               int       `gorm:"column:units_sold" json:"units_sold"`
-	DirectUnitsSold         int       `gorm:"column:direct_units_sold" json:"direct_units_sold"`
-	Revenue                 float64   `gorm:"column:revenue" json:"revenue"`
-	DirectRevenue           float64   `gorm:"column:direct_revenue" json:"direct_revenue"`
-	Cost                    float64   `gorm:"column:cost" json:"cost"`
-	ROAS                    float64   `gorm:"column:roas" json:"roas"`
-	DirectROAS              float64   `gorm:"column:direct_roas" json:"direct_roas"`
-	ACOS                    float64   `gorm:"column:acos" json:"acos"`
-	DirectACOS              float64   `gorm:"column:direct_acos" json:"direct_acos"`
+	CTR                     float64   `gorm:"column:ctr;type:numeric" json:"ctr"`
+	Conversions             int       `gorm:"column:conversions;type:integer" json:"conversions"`
+	DirectConversions       int       `gorm:"column:direct_conversions;type:integer" json:"direct_conversions"`
+	ConversionRate          float64   `gorm:"column:conversion_rate;type:double precision" json:"conversion_rate"`
+	DirectConversionRate    float64   `gorm:"column:direct_conversion_rate;type:double precision" json:"direct_conversion_rate"`
+	CostPerConversion       float64   `gorm:"column:cost_per_conversion;type:double precision" json:"cost_per_conversion"`
+	CostPerDirectConversion float64   `gorm:"column:cost_per_direct_conversion;type:double precision" json:"cost_per_direct_conversion"`
+	UnitsSold               int       `gorm:"column:units_sold;type:integer" json:"units_sold"`
+	DirectUnitsSold         int       `gorm:"column:direct_units_sold;type:integer" json:"direct_units_sold"`
+	Revenue                 float64   `gorm:"column:revenue;type:double precision" json:"revenue"`
+	DirectRevenue           float64   `gorm:"column:direct_revenue;type:double precision" json:"direct_revenue"`
+	Cost                    float64   `gorm:"column:cost;type:double precision" json:"cost"`
+	ROAS                    float64   `gorm:"column:roas;type:double precision" json:"roas"`
+	DirectROAS              float64   `gorm:"column:direct_roas;type:double precision" json:"direct_roas"`
+	ACOS                    float64   `gorm:"column:acos;type:double precision" json:"acos"`
+	DirectACOS              float64   `gorm:"column:direct_acos;type:double precision" json:"direct_acos"`
 	CreatedAt               time.Time `gorm:"column:created_at;type:timestamptz" json:"created_at"`
 	UpdatedAt               time.Time `gorm:"column:updated_at;type:timestamptz" json:"updated_at"`
 }
