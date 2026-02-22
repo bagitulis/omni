@@ -153,43 +153,44 @@ func (c *Client) GetProductsWithContext(ctx context.Context, offset, limit int) 
 }
 
 // GetProductItem fetches a single product by item ID from Lazada API.
-// Lazada /products/get doesn't filter by item_id, so we paginate through
-// all products with filter=all and find the matching one.
+// Uses /product/item/get — the dedicated single-product lookup endpoint.
+// This returns the product regardless of status (live, inactive, sold out).
 func (c *Client) GetProductItem(ctx context.Context, itemID int64) (*Product, error) {
-	targetID := strconv.FormatInt(itemID, 10)
+	params := map[string]string{
+		"item_id": strconv.FormatInt(itemID, 10),
+	}
 
-	const pageSize = 50
-	for offset := 0; ; offset += pageSize {
-		params := map[string]string{
-			"filter": "all",
-			"offset": strconv.Itoa(offset),
-			"limit":  strconv.Itoa(pageSize),
-		}
+	var raw json.RawMessage
+	if err := c.RawGet(ctx, "/product/item/get", params, &raw); err != nil {
+		return nil, err
+	}
 
-		var raw json.RawMessage
-		if err := c.RawGet(ctx, "/products/get", params, &raw); err != nil {
-			return nil, err
-		}
-
-		var result ProductListResponse
-		if err := json.Unmarshal(raw, &result); err != nil {
-			return nil, err
-		}
-		if result.Code != "0" && result.Code != "" {
-			return nil, fmt.Errorf("lazada GetProductItem error: %s - %s", result.Code, result.Message)
-		}
-
-		for i := range result.Data.Products {
-			if result.Data.Products[i].ItemID.String() == targetID {
-				return &result.Data.Products[i], nil
+	// /product/item/get returns a different response structure than /products/get:
+	// {"code":"0","data":{"item_id":123,"attributes":{...},"skus":[...],...}}
+	// We parse it into the same ProductListResponse shape if possible,
+	// otherwise handle the single-product response directly.
+	var listResult ProductListResponse
+	if err := json.Unmarshal(raw, &listResult); err == nil {
+		if listResult.Code == "0" || listResult.Code == "" {
+			if len(listResult.Data.Products) > 0 {
+				return &listResult.Data.Products[0], nil
 			}
-		}
-
-		// No more products to scan
-		if len(result.Data.Products) < pageSize {
-			break
 		}
 	}
 
-	return nil, fmt.Errorf("lazada product not found: %d", itemID)
+	// Try single-product response structure: {"code":"0","data":{...product...}}
+	var singleResult struct {
+		Code    string  `json:"code"`
+		Message string  `json:"message,omitempty"`
+		Data    Product `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &singleResult); err != nil {
+		return nil, fmt.Errorf("lazada GetProductItem parse error: %w (raw: %.200s)", err, string(raw))
+	}
+	if singleResult.Code != "0" && singleResult.Code != "" {
+		return nil, fmt.Errorf("lazada GetProductItem error: %s - %s", singleResult.Code, singleResult.Message)
+	}
+
+	return &singleResult.Data, nil
 }
+
