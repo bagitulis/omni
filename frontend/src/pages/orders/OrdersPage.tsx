@@ -5,6 +5,7 @@ import { OrdersBulkActionsBar } from "./components/OrdersBulkActionsBar";
 import { OrderStatusTabs } from "./components/OrderStatusTabs";
 import { OrderActionBar } from "./components/OrderActionBar";
 import { OrderPageModals } from "./components/OrderPageModals";
+import { LockedOrdersPanel } from "./components/LockedOrdersPanel";
 import { useOrdersLogic } from "./hooks/useOrdersLogic";
 
 export default function OrdersPage() {
@@ -97,6 +98,9 @@ export default function OrdersPage() {
           />
         </Card>
 
+        {/* Locked Orders */}
+        <LockedOrdersPanel />
+
         {/* Modals */}
         <OrderPageModals
           isDetailModalOpen={state.isDetailModalOpen}
@@ -124,3 +128,4 @@ export default function OrdersPage() {
     </div>
   );
 }
+
