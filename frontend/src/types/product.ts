@@ -3,7 +3,7 @@
  * API types use snake_case to match backend JSON response
  */
 
-import type { Platform } from "./shared";
+import type { Platform, PlatformPrice } from "./shared";
 
 export interface MasterProduct {
   id: number;
@@ -29,6 +29,10 @@ export interface MasterProductSku {
   created_at: string;
   updated_at: string;
   platform_links?: MasterProductPlatformLink[];
+  // Enriched by backend: per-platform real prices from staging tables
+  platform_prices?: PlatformPrice[];
+  inventory_price?: number;
+  inventory_stock?: number;
 }
 
 export interface MasterProductPlatformLink {

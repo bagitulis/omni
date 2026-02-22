@@ -39,6 +39,9 @@ function transformToUnifiedRows(
         variant_name: sku.variant_name,
         price: sku.price,
         stock: sku.stock,
+        platform_prices: sku.platform_prices,
+        inventory_price: sku.inventory_price,
+        inventory_stock: sku.inventory_stock,
         platform_links: (sku.platform_links || []).map((link) => ({
           platform: link.platform,
           platform_product_id:
