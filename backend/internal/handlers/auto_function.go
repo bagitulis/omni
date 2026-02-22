@@ -225,6 +225,7 @@ var availableAutoFunctions = []AvailableAutoFunction{
 	{Name: "sync_shopee", Description: "Sync products from Shopee only"},
 	{Name: "sync_tiktok", Description: "Sync products from TikTok only"},
 	{Name: "sync_lazada", Description: "Sync products from Lazada only"},
+	{Name: "sync_products_inventory", Description: "Sync products matching inventory SKUs only"},
 }
 
 // ListAvailable handles GET /api/jobs/auto-functions/available

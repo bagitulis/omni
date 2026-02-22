@@ -168,6 +168,9 @@ func registerDefaultAutoFunctionHandlers(executor *autofunction.Executor) {
 	executor.RegisterHandler("sync_shopee", singlePlatformSyncHandler("shopee"))
 	executor.RegisterHandler("sync_tiktok", singlePlatformSyncHandler("tiktok"))
 	executor.RegisterHandler("sync_lazada", singlePlatformSyncHandler("lazada"))
+
+	// sync_products_inventory - syncs only products whose SKUs exist in inventory
+	executor.RegisterHandler("sync_products_inventory", syncProductsInventoryHandler)
 }
 
 // startBackgroundJobExecutor initializes and starts the multi-tenant job executor
