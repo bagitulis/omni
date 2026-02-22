@@ -256,3 +256,40 @@ func TestGetDataDir(t *testing.T) {
 		t.Errorf("GetDataDir() = %v, want '/custom/path'", got)
 	}
 }
+
+func TestHasStandaloneUniqueTag(t *testing.T) {
+	tests := []struct {
+		name     string
+		tag      string
+		expected bool
+	}{
+		{
+			name:     "unique index only",
+			tag:      "column:state;uniqueIndex;not null",
+			expected: false,
+		},
+		{
+			name:     "explicit unique tag",
+			tag:      "column:username;unique;not null",
+			expected: true,
+		},
+		{
+			name:     "named unique constraint",
+			tag:      "column:email;unique:idx_users_email",
+			expected: true,
+		},
+		{
+			name:     "empty tag",
+			tag:      "",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := hasStandaloneUniqueTag(tt.tag); got != tt.expected {
+				t.Errorf("hasStandaloneUniqueTag(%q) = %v, want %v", tt.tag, got, tt.expected)
+			}
+		})
+	}
+}
