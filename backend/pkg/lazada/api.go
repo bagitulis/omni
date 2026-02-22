@@ -228,6 +228,32 @@ func (c *Client) GetProductsWithContext(ctx context.Context, offset, limit int) 
 	return nil, lastErr
 }
 
+// GetProductItem fetches a single product by item ID from Lazada API.
+// Uses /products/get with item_id filter.
+func (c *Client) GetProductItem(ctx context.Context, itemID int64) (*Product, error) {
+	params := map[string]string{
+		"filter":  "live",
+		"item_id": strconv.FormatInt(itemID, 10),
+	}
+
+	var raw json.RawMessage
+	if err := c.RawGet(ctx, "/products/get", params, &raw); err != nil {
+		return nil, err
+	}
+
+	var result ProductListResponse
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, err
+	}
+	if result.Code != "0" && result.Code != "" {
+		return nil, fmt.Errorf("lazada GetProductItem error: %s - %s", result.Code, result.Message)
+	}
+	if len(result.Data.Products) == 0 {
+		return nil, fmt.Errorf("lazada product not found: %d", itemID)
+	}
+	return &result.Data.Products[0], nil
+}
+
 // ===== Stock/Quantity Update API =====
 
 // UpdatePriceQuantityRequest represents Lazada price/quantity update request

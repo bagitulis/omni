@@ -2,6 +2,7 @@ import React from "react";
 import { Button, Divider, Grid, Space, Tooltip, Typography, theme } from "antd";
 import {
   CloseOutlined,
+  CloudSyncOutlined,
   CopyOutlined,
   DeleteOutlined,
   DollarOutlined,
@@ -32,6 +33,12 @@ const UNIFIED_BATCH_ACTIONS: UnifiedBatchAction[] = [
     label: "Sync Stock",
     icon: <SyncOutlined />,
     tooltip: "Sync stock to selected marketplaces",
+  },
+  {
+    key: "sync_marketplace",
+    label: "Sync Marketplace",
+    icon: <CloudSyncOutlined />,
+    tooltip: "Refresh price/stock from Shopee, TikTok, Lazada",
   },
   {
     key: "update_price",

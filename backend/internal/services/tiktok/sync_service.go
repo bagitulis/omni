@@ -115,3 +115,57 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 
 	return count, nil
 }
+
+// SyncProductsByIDs syncs specific TikTok products by product IDs.
+// Skips cache clear — fetches detail and upserts each product directly.
+func (s *SyncService) SyncProductsByIDs(ctx context.Context, productIDs []string) (int, error) {
+	if len(productIDs) == 0 {
+		return 0, nil
+	}
+	zlog := zerolog.Ctx(ctx)
+
+	count := 0
+	for _, pid := range productIDs {
+		detailResp, err := s.client.GetProductDetail(pid)
+		if err != nil {
+			zlog.Warn().Err(err).Str("product_id", pid).Msg("TikTok product detail fetch failed")
+			continue
+		}
+
+		// Upsert product
+		dbProd := &models.TiktokProduct{
+			TenantID:    s.tenantID,
+			ProductID:   detailResp.Data.ID,
+			Name:        detailResp.Data.Title,
+			Description: detailResp.Data.Description,
+			Status:      detailResp.Data.Status,
+		}
+		if err := s.prodRepo.Upsert(ctx, dbProd); err != nil {
+			zlog.Warn().Err(err).Str("product_id", pid).Msg("TikTok product upsert failed")
+			continue
+		}
+
+		savedProd, err := s.prodRepo.FindByProductID(ctx, pid)
+		if err != nil || savedProd == nil {
+			continue
+		}
+
+		// Upsert SKUs from detail
+		for _, sku := range detailResp.Data.Skus {
+			dbSku := &models.TiktokSku{
+				TenantID:  s.tenantID,
+				ProductID: savedProd.ID,
+				SkuID:     sku.ID,
+				SellerSku: sku.SellerSku,
+				Price:     parsePrice(sku.Price.SalePrice, sku.Price.OriginalPrice, sku.Price.TaxExclusivePrice),
+			}
+			if len(sku.Inventory) > 0 {
+				dbSku.Quantity = sku.Inventory[0].Quantity
+			}
+			_ = s.prodRepo.UpsertSku(ctx, dbSku)
+		}
+
+		count++
+	}
+	return count, nil
+}

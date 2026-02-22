@@ -42,6 +42,15 @@ func (s *ProductSyncService) SyncProducts(ctx context.Context) (int, error) {
 	return s.syncProductsByItemIDs(ctx, allItemIDs)
 }
 
+// SyncProductsByIDs syncs specific Shopee products by item IDs.
+// Skips cache clear — only fetches and upserts the given items.
+func (s *ProductSyncService) SyncProductsByIDs(ctx context.Context, itemIDs []int64) (int, error) {
+	if len(itemIDs) == 0 {
+		return 0, nil
+	}
+	return s.syncProductsByItemIDs(ctx, itemIDs)
+}
+
 func (s *ProductSyncService) fetchAllItemIDs(ctx context.Context) ([]int64, error) {
 	allItemIDs := make([]int64, 0)
 	offset := 0

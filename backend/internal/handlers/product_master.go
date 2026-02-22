@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	masterProductService "github.com/omni/backend/internal/services/master_product"
 	"github.com/omni/backend/internal/services/products"
 	"gorm.io/gorm"
 )
@@ -12,11 +13,17 @@ import (
 // ProductMasterHandler handles product master endpoints
 type ProductMasterHandler struct {
 	fallbackDB *gorm.DB
+	systemDB   *gorm.DB
 }
 
 // NewProductMasterHandler creates a new product master handler
 func NewProductMasterHandler(db *gorm.DB) *ProductMasterHandler {
 	return &ProductMasterHandler{fallbackDB: db}
+}
+
+// SetSystemDB sets the system database for platform credential lookups
+func (h *ProductMasterHandler) SetSystemDB(db *gorm.DB) {
+	h.systemDB = db
 }
 
 // getDB returns the appropriate database for the current request
@@ -176,4 +183,42 @@ func (h *ProductMasterHandler) GetProductByID(c *gin.Context) {
 		"success": true,
 		"product": product,
 	})
+}
+
+// SyncSelected handles POST /api/products/master/sync-selected
+// Syncs selected products from marketplace APIs to refresh price/stock.
+func (h *ProductMasterHandler) SyncSelected(c *gin.Context) {
+	tenantID := c.GetString("tenantID")
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant ID"})
+		return
+	}
+
+	var req struct {
+		ProductIDs []uint `json:"product_ids" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "product_ids required"})
+		return
+	}
+
+	db, err := h.getDB(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	systemDB := h.systemDB
+	if systemDB == nil {
+		systemDB = h.fallbackDB
+	}
+
+	svc := masterProductService.NewService(db)
+	result, err := svc.SyncSelectedProducts(c.Request.Context(), tenantID, req.ProductIDs, systemDB)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
 }

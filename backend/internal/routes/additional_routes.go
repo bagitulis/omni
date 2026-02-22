@@ -185,6 +185,7 @@ func RegisterProductMasterRoutes(router *gin.RouterGroup, handler *handlers.Prod
 	{
 		products.GET("", handler.GetMasterProductList)
 		products.GET("/stats", handler.GetMasterProductStats)
+		products.POST("/sync-selected", handler.SyncSelected)
 	}
 
 	// Platform-specific product detail

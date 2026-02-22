@@ -36,6 +36,28 @@ export async function syncPlatformProducts(
   return data;
 }
 
+export interface SyncSelectedResult {
+  synced: number;
+  failed: number;
+  details: string[];
+}
+
+/**
+ * Sync selected products from marketplace APIs to refresh price/stock
+ */
+export async function syncSelectedProducts(
+  productIds: number[],
+): Promise<SyncSelectedResult> {
+  const response = await apiClient.post<SyncSelectedResult>(
+    "/products/master/sync-selected",
+    { product_ids: productIds },
+  );
+  if (!response.success) {
+    throw new Error(response.error || "Failed to sync selected products");
+  }
+  return response.data!;
+}
+
 export interface FilterPreferences {
   search: string;
   column_visibility: Record<string, boolean>;

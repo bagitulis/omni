@@ -140,3 +140,28 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 
 	return count, nil
 }
+
+// SyncProductsByIDs syncs specific Lazada products by item IDs.
+// Skips cache clear — only fetches detail and upserts the given items.
+func (s *SyncService) SyncProductsByIDs(ctx context.Context, itemIDs []int64) (int, error) {
+	if len(itemIDs) == 0 {
+		return 0, nil
+	}
+	zlog := zerolog.Ctx(ctx)
+
+	count := 0
+	txProdRepo := repositories.NewLazadaProductRepository(s.db)
+	for _, itemID := range itemIDs {
+		product, err := s.client.GetProductItem(ctx, itemID)
+		if err != nil {
+			zlog.Warn().Err(err).Int64("item_id", itemID).Msg("Lazada product fetch failed")
+			continue
+		}
+		if err := s.persistProductWithSkus(ctx, s.db, txProdRepo, *product); err != nil {
+			zlog.Warn().Err(err).Int64("item_id", itemID).Msg("Lazada product upsert failed")
+			continue
+		}
+		count++
+	}
+	return count, nil
+}

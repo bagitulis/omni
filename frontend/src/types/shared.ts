@@ -37,6 +37,7 @@ export interface InlineEditCellProps {
 export type BatchActionType =
   | "update_price"
   | "sync_stock"
+  | "sync_marketplace"
   | "wholesale"
   | "mpq"
   | "clone"
