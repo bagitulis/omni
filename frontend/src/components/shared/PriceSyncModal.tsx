@@ -19,6 +19,7 @@ import {
   type PricePerPlatformConfig,
   type PricePerPlatformRow,
 } from "./priceSyncColumns";
+import { PlatformComparisonPanel } from "./PlatformComparisonPanel";
 
 interface PriceSyncModalProps {
   open: boolean;
@@ -182,6 +183,8 @@ export const PriceSyncModal: FC<PriceSyncModalProps> = ({
       okText={`Sync ${validItems.length} SKUs`}
       okButtonProps={{ disabled: validItems.length === 0 }}
     >
+      <PlatformComparisonPanel products={selectedProducts} mode="price" />
+
       <Radio.Group
         value={mode}
         onChange={(event) => setMode(event.target.value as SyncMode)}

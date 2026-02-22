@@ -22,6 +22,7 @@ import {
   PerPlatformStockSection,
   UniformStockSection,
 } from "./stockSyncModalSections";
+import { PlatformComparisonPanel } from "./PlatformComparisonPanel";
 
 interface StockSyncModalProps {
   open: boolean;
@@ -202,6 +203,8 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
         disabled: validItems.length === 0,
       }}
     >
+      <PlatformComparisonPanel products={selectedProducts} mode="stock" />
+
       <Radio.Group
         value={mode}
         onChange={(event) => setMode(event.target.value as StockSyncMode)}
