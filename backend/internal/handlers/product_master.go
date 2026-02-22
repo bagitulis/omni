@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -220,5 +221,6 @@ func (h *ProductMasterHandler) SyncSelected(c *gin.Context) {
 		return
 	}
 
+	log.Printf("[SyncSelected] Result: synced=%d, failed=%d, details=%v", result.Synced, result.Failed, result.Details)
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
 }

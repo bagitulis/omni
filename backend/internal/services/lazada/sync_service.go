@@ -3,6 +3,7 @@ package lazada
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -145,23 +146,35 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 // Skips cache clear — only fetches detail and upserts the given items.
 func (s *SyncService) SyncProductsByIDs(ctx context.Context, itemIDs []int64) (int, error) {
 	if len(itemIDs) == 0 {
+		log.Printf("[Lazada SyncProductsByIDs] No item IDs provided")
 		return 0, nil
 	}
+	log.Printf("[Lazada SyncProductsByIDs] Syncing %d items: %v", len(itemIDs), itemIDs)
 	zlog := zerolog.Ctx(ctx)
 
 	count := 0
 	txProdRepo := repositories.NewLazadaProductRepository(s.db)
 	for _, itemID := range itemIDs {
+		log.Printf("[Lazada SyncProductsByIDs] Fetching product item_id=%d", itemID)
 		product, err := s.client.GetProductItem(ctx, itemID)
 		if err != nil {
+			log.Printf("[Lazada SyncProductsByIDs] ERROR fetching item_id=%d: %v", itemID, err)
 			zlog.Warn().Err(err).Int64("item_id", itemID).Msg("Lazada product fetch failed")
 			continue
 		}
+		log.Printf("[Lazada SyncProductsByIDs] Fetched: name=%s, skus=%d", product.Name, len(product.Skus))
+		for i, sku := range product.Skus {
+			log.Printf("[Lazada SyncProductsByIDs]   SKU[%d]: seller=%s, qty=%d, avail=%d, price=%.2f",
+				i, sku.SellerSku, sku.Quantity, sku.Available, sku.Price)
+		}
 		if err := s.persistProductWithSkus(ctx, s.db, txProdRepo, *product); err != nil {
+			log.Printf("[Lazada SyncProductsByIDs] ERROR upsert item_id=%d: %v", itemID, err)
 			zlog.Warn().Err(err).Int64("item_id", itemID).Msg("Lazada product upsert failed")
 			continue
 		}
+		log.Printf("[Lazada SyncProductsByIDs] ✅ Persisted item_id=%d", itemID)
 		count++
 	}
+	log.Printf("[Lazada SyncProductsByIDs] Done: %d/%d synced", count, len(itemIDs))
 	return count, nil
 }
