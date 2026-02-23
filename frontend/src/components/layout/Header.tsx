@@ -1,12 +1,14 @@
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useEffect, useState } from "react";
 import {
   Layout,
   Button,
   Avatar,
   Dropdown,
+  Select,
   Space,
   theme,
   Typography,
+  message,
 } from "antd";
 import {
   MenuFoldOutlined,
@@ -16,11 +18,13 @@ import {
   SettingOutlined,
   SunOutlined,
   MoonOutlined,
+  SwapOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { TokenStatusDropdown } from "./TokenStatusDropdown";
 import { useTheme } from "@/contexts/ThemeContext.hooks";
+import apiClient from "@/api/client";
 
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;
@@ -30,13 +34,72 @@ interface HeaderProps {
   onCollapse: () => void;
 }
 
+interface TenantOption {
+  id: string;
+  shop_name: string;
+}
+
 function Header({ collapsed, onCollapse }: HeaderProps) {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user, logout, tenantId, setAuth } = useAuthStore();
   const {
     token: { colorBgContainer, colorBorderSecondary },
   } = theme.useToken();
   const { isDark, toggle } = useTheme();
+
+  // Tenant switcher state (developer only)
+  const [tenants, setTenants] = useState<TenantOption[]>([]);
+  const [switching, setSwitching] = useState(false);
+  const isDeveloper = user?.role === "developer";
+
+  useEffect(() => {
+    if (!isDeveloper) return;
+    apiClient
+      .get<{ tenants: TenantOption[] }>("/auth/tenants")
+      .then((res) => {
+        if (res.success && res.data) {
+          const list =
+            (res.data as unknown as { tenants: TenantOption[] }).tenants || [];
+          setTenants(list);
+        }
+      })
+      .catch(() => {
+        /* ignore */
+      });
+  }, [isDeveloper]);
+
+  const handleSwitchTenant = useCallback(
+    async (newTenantId: string) => {
+      if (!newTenantId || newTenantId === tenantId) return;
+      setSwitching(true);
+      try {
+        const res = await apiClient.post<{
+          token: string;
+          tenant_id: string;
+        }>("/auth/switch-tenant", { tenant_id: newTenantId });
+        if (res.success && res.data) {
+          const data = res.data as unknown as {
+            token: string;
+            tenant_id: string;
+          };
+          if (data.token && user) {
+            setAuth({
+              access_token: data.token,
+              user,
+              tenant_id: data.tenant_id,
+            });
+          }
+          message.success(`Switched to ${newTenantId}`);
+          window.location.reload();
+        }
+      } catch {
+        message.error("Failed to switch tenant");
+      } finally {
+        setSwitching(false);
+      }
+    },
+    [tenantId, user, setAuth],
+  );
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -108,6 +171,23 @@ function Header({ collapsed, onCollapse }: HeaderProps) {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {/* Tenant Switcher (Developer Only) */}
+        {isDeveloper && tenants.length > 0 && (
+          <Select
+            value={tenantId || undefined}
+            onChange={handleSwitchTenant}
+            loading={switching}
+            size="small"
+            style={{ minWidth: 160 }}
+            suffixIcon={<SwapOutlined />}
+            options={tenants.map((t) => ({
+              value: t.id,
+              label: t.shop_name || t.id,
+            }))}
+            className="tenant-switcher"
+          />
+        )}
+
         <Button
           type="text"
           icon={isDark ? <SunOutlined /> : <MoonOutlined />}
@@ -148,6 +228,9 @@ function Header({ collapsed, onCollapse }: HeaderProps) {
             display: block !important;
           }
           .username-label {
+            display: none !important;
+          }
+          .tenant-switcher {
             display: none !important;
           }
         }
