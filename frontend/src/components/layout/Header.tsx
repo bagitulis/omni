@@ -57,10 +57,10 @@ function Header({ collapsed, onCollapse }: HeaderProps) {
     apiClient
       .get<{ tenants: TenantOption[] }>("/auth/tenants")
       .then((res) => {
-        if (res.success && res.data) {
-          const list =
-            (res.data as unknown as { tenants: TenantOption[] }).tenants || [];
-          setTenants(list);
+        if (res.success) {
+          // Backend returns { success, tenants } at top level (not under data)
+          const raw = res as unknown as { tenants: TenantOption[] };
+          setTenants(raw.tenants || []);
         }
       })
       .catch(() => {
@@ -77,16 +77,17 @@ function Header({ collapsed, onCollapse }: HeaderProps) {
           token: string;
           tenant_id: string;
         }>("/auth/switch-tenant", { tenant_id: newTenantId });
-        if (res.success && res.data) {
-          const data = res.data as unknown as {
+        if (res.success) {
+          // Backend returns { success, token, tenant_id } at top level
+          const raw = res as unknown as {
             token: string;
             tenant_id: string;
           };
-          if (data.token && user) {
+          if (raw.token && user) {
             setAuth({
-              access_token: data.token,
+              access_token: raw.token,
               user,
-              tenant_id: data.tenant_id,
+              tenant_id: raw.tenant_id,
             });
           }
           message.success(`Switched to ${newTenantId}`);

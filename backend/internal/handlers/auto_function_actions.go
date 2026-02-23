@@ -117,8 +117,14 @@ func (h *AutoFunctionHandler) Run(c *gin.Context) {
 		return
 	}
 
+	db, err := h.getDB(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to get tenant DB: " + err.Error()})
+		return
+	}
+
 	name := c.Param("name")
-	if err := h.executor.ExecuteByName(tenantID, name); err != nil {
+	if err := h.executor.ExecuteByNameWithDB(db, tenantID, name); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}

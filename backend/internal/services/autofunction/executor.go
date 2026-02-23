@@ -66,8 +66,14 @@ func (e *Executor) ExecuteManual(tenantID string, configID uint) error {
 
 // ExecuteByName manually executes an auto function by name
 func (e *Executor) ExecuteByName(tenantID string, name string) error {
+	return e.ExecuteByNameWithDB(e.db, tenantID, name)
+}
+
+// ExecuteByNameWithDB manually executes an auto function by name using the provided DB
+// This is used when the caller has a tenant-scoped DB (e.g., from HTTP handler context)
+func (e *Executor) ExecuteByNameWithDB(db *gorm.DB, tenantID string, name string) error {
 	var cfg models.AutoFunctionConfig
-	if err := e.db.Where("name = ?", name).First(&cfg).Error; err != nil {
+	if err := db.Where("name = ?", name).First(&cfg).Error; err != nil {
 		return err
 	}
 	go e.executeConfig(tenantID, &cfg)
