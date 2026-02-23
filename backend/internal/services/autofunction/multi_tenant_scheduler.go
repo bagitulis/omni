@@ -245,10 +245,10 @@ var defaultAutoFunctions = []struct {
 	StartTime       string
 	EndTime         string
 }{
-	{Name: "locked_today", IntervalMinutes: 1440, StartTime: "22:00", EndTime: "23:59"},     // Daily at 22:00-23:59 WIB
-	{Name: "sync_from_sheets", IntervalMinutes: 30, StartTime: "08:00", EndTime: "22:00"},   // Every 30 min during business hours
-	{Name: "auto_update_token", IntervalMinutes: 180, StartTime: "00:00", EndTime: "23:59"}, // Every 3 hours
-	{Name: "sync_products", IntervalMinutes: 120, StartTime: "08:00", EndTime: "22:00"},     // Every 2 hours during business hours
+	{Name: "locked_today", IntervalMinutes: 1440, StartTime: "22:00", EndTime: "23:59"},           // Daily at 22:00-23:59 WIB
+	{Name: "sync_from_sheets", IntervalMinutes: 30, StartTime: "08:00", EndTime: "22:00"},         // Every 30 min during business hours
+	{Name: "auto_update_token", IntervalMinutes: 180, StartTime: "00:00", EndTime: "23:59"},       // Every 3 hours
+	{Name: "sync_products_inventory", IntervalMinutes: 120, StartTime: "08:00", EndTime: "22:00"}, // Every 2 hours during business hours
 }
 
 // ensureDefaultAutoFunctions ensures default auto functions exist for a tenant.

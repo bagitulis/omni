@@ -161,14 +161,6 @@ func registerDefaultAutoFunctionHandlers(executor *autofunction.Executor) {
 	// sync_from_sheets - syncs inventory from Google Sheets
 	executor.RegisterHandler("sync_from_sheets", syncFromSheetsHandler)
 
-	// sync_products - syncs products from all platforms (Shopee, TikTok, Lazada)
-	executor.RegisterHandler("sync_products", syncProductsHandler)
-
-	// Per-platform sync handlers
-	executor.RegisterHandler("sync_shopee", singlePlatformSyncHandler("shopee"))
-	executor.RegisterHandler("sync_tiktok", singlePlatformSyncHandler("tiktok"))
-	executor.RegisterHandler("sync_lazada", singlePlatformSyncHandler("lazada"))
-
 	// sync_products_inventory - syncs only products whose SKUs exist in inventory
 	executor.RegisterHandler("sync_products_inventory", syncProductsInventoryHandler)
 }

@@ -39,6 +39,7 @@ export function ScriptMonitorPage() {
     clearHistory,
     enableAutoFunction,
     disableAutoFunction,
+    runAutoFunction,
     createAutoFunction,
     updateAutoFunction,
     deleteAutoFunction,
@@ -131,6 +132,7 @@ export function ScriptMonitorPage() {
           loading={isLoadingAutoFunctions}
           onEnable={enableAutoFunction}
           onDisable={disableAutoFunction}
+          onRun={runAutoFunction}
           onDelete={deleteAutoFunction}
           onCancelScheduled={cancelScheduled}
           onCreate={(config, onSuccess) =>

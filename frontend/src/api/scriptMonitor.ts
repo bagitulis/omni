@@ -156,6 +156,16 @@ export async function disableAutoFunction(name: string): Promise<void> {
 }
 
 /**
+ * Run auto-function manually (immediate execution)
+ */
+export async function runAutoFunction(name: string): Promise<void> {
+  const response = await apiClient.post(`/jobs/auto-functions/${name}/run`);
+  if (!response.success) {
+    throw new Error(response.error || "Failed to run auto-function");
+  }
+}
+
+/**
  * Cancel scheduled execution
  */
 export async function cancelScheduled(id: number): Promise<void> {

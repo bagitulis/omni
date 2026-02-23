@@ -11,6 +11,7 @@ import {
   deleteAutoFunction,
   enableAutoFunction,
   disableAutoFunction,
+  runAutoFunction,
   cancelScheduled,
 } from "@/api/scriptMonitor";
 import { AutoFunctionConfig } from "@/types/scriptMonitor";
@@ -120,6 +121,16 @@ export function useScriptMonitor() {
     onError: (e: Error) => message.error(e.message),
   });
 
+  const runAutoFunctionMutation = useMutation({
+    mutationFn: runAutoFunction,
+    onSuccess: () => {
+      message.success("Auto-function execution started");
+      queryClient.invalidateQueries({ queryKey: ["script-monitor"] });
+      queryClient.invalidateQueries({ queryKey: ["auto-functions"] });
+    },
+    onError: (e: Error) => message.error(e.message),
+  });
+
   return {
     monitorData: monitorQuery.data,
     isLoadingMonitor: monitorQuery.isLoading,
@@ -131,6 +142,7 @@ export function useScriptMonitor() {
     clearHistory: clearHistoryMutation.mutate,
     enableAutoFunction: enableAutoFunctionMutation.mutate,
     disableAutoFunction: disableAutoFunctionMutation.mutate,
+    runAutoFunction: runAutoFunctionMutation.mutate,
     updateAutoFunction: updateAutoFunctionMutation.mutate,
     createAutoFunction: createAutoFunctionMutation.mutate,
     deleteAutoFunction: deleteAutoFunctionMutation.mutate,

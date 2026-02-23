@@ -25,6 +25,7 @@ interface Props {
   loading?: boolean;
   onEnable: (name: string) => void;
   onDisable: (name: string) => void;
+  onRun: (name: string) => void;
   onDelete: (name: string) => void;
   onCancelScheduled: (id: number) => void;
   onCreate: (config: AutoFunctionConfig, onSuccess: () => void) => void;
@@ -39,6 +40,7 @@ export function ConfigTab({
   loading,
   onEnable,
   onDisable,
+  onRun,
   onDelete,
   onCancelScheduled,
   onCreate,
@@ -178,7 +180,7 @@ export function ConfigTab({
         />
       </Card>
 
-      <ManualTriggerSection configs={configs} onTrigger={onEnable} />
+      <ManualTriggerSection configs={configs} onTrigger={onRun} />
 
       <ConfigEditorModal
         open={editorOpen}

@@ -50,6 +50,7 @@ func RegisterInventorySimpleRoutes(router *gin.RouterGroup, handler *handlers.In
 		sync := inventory.Group("/sync")
 		sync.POST("/from-sheets", handler.SyncFromSheets)
 		sync.POST("/to-sheets", handler.SyncToSheets)
+		sync.GET("/history", handler.GetSyncHistory)
 
 		// Sheet operations
 		inventory.POST("/sync-status", handler.GetSyncStatus)

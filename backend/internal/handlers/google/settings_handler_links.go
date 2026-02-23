@@ -218,6 +218,15 @@ func (h *SettingsHandler) ValidateLink(c *gin.Context) {
 		}
 	}
 
+	// Persist worksheet metadata to DB so Sheet Metadata card can display it
+	if req.Type != "" {
+		db, dbErr := h.getTenantDB(c)
+		if dbErr == nil {
+			settingsService := google.NewSettingsService(db, tenantID)
+			_ = settingsService.SaveWorksheetMetadata(c.Request.Context(), req.Type, info.Sheets)
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{

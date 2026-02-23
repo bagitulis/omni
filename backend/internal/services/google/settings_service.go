@@ -39,17 +39,28 @@ type DetailedSettingsInput struct {
 	InventorySelectedColumns []string
 }
 
+// SheetMetaEntry represents a single sheet's metadata
+type SheetMetaEntry struct {
+	Name        string `json:"name"`
+	SheetID     int    `json:"sheet_id"`
+	Index       int    `json:"index"`
+	ColumnCount int    `json:"column_count"`
+	RowCount    int    `json:"row_count"`
+}
+
 // DetailedSettingsOutput represents output for detailed settings
 type DetailedSettingsOutput struct {
-	WalletSpreadsheetID      string   `json:"wallet_spreadsheet_id"`
-	ShippingSpreadsheetID    string   `json:"shipping_spreadsheet_id"`
-	InventorySpreadsheetID   string   `json:"inventory_spreadsheet_id"`
-	OrderSpreadsheetID       string   `json:"order_spreadsheet_id"`
-	InventorySheetName       string   `json:"inventory_sheet_name"`
-	WalletSheetName          string   `json:"wallet_sheet_name"`
-	ShippingSheetName        string   `json:"shipping_sheet_name"`
-	OrderSheetName           string   `json:"order_sheet_name"`
-	InventorySelectedColumns []string `json:"inventory_selected_columns"`
+	WalletSpreadsheetID      string                      `json:"wallet_spreadsheet_id"`
+	ShippingSpreadsheetID    string                      `json:"shipping_spreadsheet_id"`
+	InventorySpreadsheetID   string                      `json:"inventory_spreadsheet_id"`
+	OrderSpreadsheetID       string                      `json:"order_spreadsheet_id"`
+	InventorySheetName       string                      `json:"inventory_sheet_name"`
+	WalletSheetName          string                      `json:"wallet_sheet_name"`
+	ShippingSheetName        string                      `json:"shipping_sheet_name"`
+	OrderSheetName           string                      `json:"order_sheet_name"`
+	InventorySelectedColumns []string                    `json:"inventory_selected_columns"`
+	SheetsMetadata           map[string][]SheetMetaEntry `json:"sheets_metadata,omitempty"`
+	LastUpdated              *time.Time                  `json:"last_updated,omitempty"`
 }
 
 // SpreadsheetLinkInput represents a spreadsheet link
@@ -100,7 +111,28 @@ func (s *SettingsService) GetDetailedSettings(ctx context.Context) (*DetailedSet
 		json.Unmarshal([]byte(settings.InventorySelectedColumns), &selectedColumns)
 	}
 
-	return &DetailedSettingsOutput{
+	// Parse available worksheets from stored JSON columns
+	sheetsMetadata := make(map[string][]SheetMetaEntry)
+	parseWorksheets := func(key, raw string) {
+		if raw == "" {
+			return
+		}
+		var entries []SheetMetaEntry
+		if err := json.Unmarshal([]byte(raw), &entries); err == nil && len(entries) > 0 {
+			sheetsMetadata[key] = entries
+		}
+	}
+	parseWorksheets("inventory", settings.InventoryAvailableWorksheets)
+	parseWorksheets("wallet", settings.WalletAvailableWorksheets)
+	parseWorksheets("shipping", settings.ShippingAvailableWorksheets)
+	parseWorksheets("order", settings.OrderAvailableWorksheets)
+
+	var lastUpdated *time.Time
+	if !settings.UpdatedAt.IsZero() {
+		lastUpdated = &settings.UpdatedAt
+	}
+
+	output := &DetailedSettingsOutput{
 		WalletSpreadsheetID:      settings.WalletSpreadsheetID,
 		ShippingSpreadsheetID:    settings.ShippingSpreadsheetID,
 		InventorySpreadsheetID:   settings.InventorySpreadsheetID,
@@ -110,7 +142,14 @@ func (s *SettingsService) GetDetailedSettings(ctx context.Context) (*DetailedSet
 		ShippingSheetName:        settings.ShippingSheetName,
 		OrderSheetName:           settings.OrderSheetName,
 		InventorySelectedColumns: selectedColumns,
-	}, nil
+		LastUpdated:              lastUpdated,
+	}
+
+	if len(sheetsMetadata) > 0 {
+		output.SheetsMetadata = sheetsMetadata
+	}
+
+	return output, nil
 }
 
 // UpdateDetailedSettings updates detailed settings
@@ -211,6 +250,61 @@ func orderedMap(input map[string]interface{}) map[string]interface{} {
 	}
 
 	return ordered
+}
+
+// SaveWorksheetMetadata persists discovered worksheet metadata for a given type
+// so the Sheet Metadata card can display it without re-validating.
+func (s *SettingsService) SaveWorksheetMetadata(ctx context.Context, linkType string, sheets []SheetInfo) error {
+	settings, err := s.getOrCreateSettings(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Convert SheetInfo to SheetMetaEntry for storage
+	entries := make([]SheetMetaEntry, len(sheets))
+	for i, sheet := range sheets {
+		entries[i] = SheetMetaEntry{
+			Name:        sheet.Title,
+			SheetID:     int(sheet.ID),
+			Index:       sheet.Index,
+			ColumnCount: sheet.Cols,
+			RowCount:    sheet.Rows,
+		}
+	}
+
+	metaJSON, err := json.Marshal(entries)
+	if err != nil {
+		return fmt.Errorf("marshal worksheet metadata: %w", err)
+	}
+
+	// Map type to column name
+	columnMap := map[string]string{
+		"inventory": "inventory_available_worksheets",
+		"wallet":    "wallet_available_worksheets",
+		"shipping":  "shipping_available_worksheets",
+		"order":     "order_available_worksheets",
+	}
+
+	column, ok := columnMap[linkType]
+	if !ok {
+		return fmt.Errorf("unknown link type: %s", linkType)
+	}
+
+	updates := map[string]interface{}{
+		column:       string(metaJSON),
+		"updated_at": time.Now(),
+	}
+
+	filteredUpdates, err := s.filterUpdatesByExistingColumns(ctx, settings, updates)
+	if err != nil {
+		return err
+	}
+
+	if len(filteredUpdates) == 0 {
+		return nil
+	}
+
+	return s.db.WithContext(ctx).Model(settings).Updates(filteredUpdates).Error
 }
 
 // LinksByType represents spreadsheet links mapped by type

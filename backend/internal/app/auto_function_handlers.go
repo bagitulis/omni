@@ -236,11 +236,15 @@ func syncFromSheetsHandler(ctx context.Context, tenantID string, cfg *models.Aut
 
 	spreadsheetID := ""
 	sheetName := ""
+	configSource := "none"
 
 	// Source 1: inventory_settings
 	if settings != nil {
 		spreadsheetID = settings.SpreadsheetID
 		sheetName = settings.SheetName
+		if spreadsheetID != "" || sheetName != "" {
+			configSource = "inventory_settings"
+		}
 	}
 
 	// Source 2: google_sheets_settings (fallback, same as manual sync handler)
@@ -249,12 +253,16 @@ func syncFromSheetsHandler(ctx context.Context, tenantID string, cfg *models.Aut
 		if err := db.First(&gsSettings).Error; err == nil {
 			if spreadsheetID == "" && gsSettings.InventorySpreadsheetID != "" {
 				spreadsheetID = gsSettings.InventorySpreadsheetID
+				configSource = "google_sheets_settings"
 			}
 			if sheetName == "" && gsSettings.InventorySheetName != "" {
 				sheetName = gsSettings.InventorySheetName
 			}
 		}
 	}
+
+	log.Printf("[AutoFunction] sync_from_sheets config for %s: source=%s, spreadsheet_id=%q, sheet_name=%q",
+		tenantID, configSource, spreadsheetID, sheetName)
 
 	if spreadsheetID == "" || sheetName == "" {
 		return "", fmt.Errorf("inventory spreadsheet not configured: spreadsheet_id=%q, sheet_name=%q. Please configure in Settings > Google Sheets", spreadsheetID, sheetName)
@@ -293,4 +301,3 @@ func syncFromSheetsHandler(ctx context.Context, tenantID string, cfg *models.Aut
 
 	return resultMsg, nil
 }
-

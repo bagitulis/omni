@@ -266,3 +266,29 @@ func (h *InventoryHandler) GetList(c *gin.Context) {
 		"limit":   limit,
 	})
 }
+
+// GetSyncHistory handles GET /api/inventory/sync/history
+func (h *InventoryHandler) GetSyncHistory(c *gin.Context) {
+	tenantID := c.GetString("tenant_id")
+	if tenantID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		return
+	}
+
+	db, err := h.getDB(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	svc := inventory.NewInventoryService(db, tenantID)
+	history, err := svc.GetSyncHistory(c.Request.Context(), limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": history})
+}

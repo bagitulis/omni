@@ -83,39 +83,6 @@ func syncProductsHandler(ctx context.Context, tenantID string, cfg *models.AutoF
 	return resultMsg, nil
 }
 
-// singlePlatformSyncHandler creates an auto-function handler for a single platform.
-func singlePlatformSyncHandler(platform string) func(context.Context, string, *models.AutoFunctionConfig) (string, error) {
-	return func(ctx context.Context, tenantID string, cfg *models.AutoFunctionConfig) (string, error) {
-		log.Printf("[AutoFunction] Running 'Sync %s' for tenant: %s", platform, tenantID)
-
-		basePath := os.Getenv("DATA_PATH")
-		if basePath == "" {
-			basePath = "./data"
-		}
-
-		db, err := config.GetTenantDBWithContext(tenantID, basePath)
-		if err != nil {
-			return "", fmt.Errorf("failed to get tenant DB: %w", err)
-		}
-
-		systemDB, err := config.GetSystemDB(basePath)
-		if err != nil {
-			return "", fmt.Errorf("failed to get system DB: %w", err)
-		}
-
-		count, syncErr := syncPlatformProducts(ctx, platform, tenantID, db, systemDB, basePath)
-		if syncErr != nil {
-			return fmt.Sprintf("%s sync failed: %v", platform, syncErr), syncErr
-		}
-
-		autoFixPlatformLinks(ctx, db, tenantID)
-
-		resultMsg := fmt.Sprintf("%s: %d products synced", platform, count)
-		log.Printf("[AutoFunction] %s for tenant: %s", resultMsg, tenantID)
-		return resultMsg, nil
-	}
-}
-
 // syncPlatformProducts syncs products for a single platform using existing sync services.
 func syncPlatformProducts(ctx context.Context, platform, tenantID string, db, systemDB *gorm.DB, basePath string) (int, error) {
 	credRepo := repositories.NewPlatformCredentialsRepository(db)

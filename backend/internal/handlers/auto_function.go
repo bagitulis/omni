@@ -221,10 +221,6 @@ var availableAutoFunctions = []AvailableAutoFunction{
 	{Name: "locked_today", Description: "Lock orders at end of day"},
 	{Name: "auto_update_token", Description: "Refresh platform OAuth tokens"},
 	{Name: "sync_from_sheets", Description: "Sync inventory from Google Sheets"},
-	{Name: "sync_products", Description: "Sync products from all platforms"},
-	{Name: "sync_shopee", Description: "Sync products from Shopee only"},
-	{Name: "sync_tiktok", Description: "Sync products from TikTok only"},
-	{Name: "sync_lazada", Description: "Sync products from Lazada only"},
 	{Name: "sync_products_inventory", Description: "Sync products matching inventory SKUs only"},
 }
 
