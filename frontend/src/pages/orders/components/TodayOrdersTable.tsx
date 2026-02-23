@@ -23,6 +23,12 @@ interface TodayOrdersData {
  * TodayOrdersTable — displays today's shipped orders in a flat table.
  * Different from the generic OrderTable which groups by order_no.
  */
+const platformColors: Record<string, string> = {
+  shopee: "orange",
+  lazada: "blue",
+  tiktok: "cyan",
+};
+
 export function TodayOrdersTable() {
   const [items, setItems] = useState<TodayOrderItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +39,10 @@ export function TodayOrdersTable() {
       try {
         const response =
           await apiClient.get<TodayOrdersData>("/orders/today");
-        setItems(response.data?.items ?? []);
+        // Backend returns items at top level (not inside data wrapper)
+        const raw = response as unknown as Record<string, unknown>;
+        const data = (response.data?.items ?? (raw.items as TodayOrderItem[]) ?? []);
+        setItems(data);
       } catch {
         setItems([]);
       } finally {
@@ -105,11 +114,25 @@ export function TodayOrdersTable() {
         </Tag>
       ),
     },
+    {
+      title: "Platform",
+      dataIndex: "platform",
+      key: "platform",
+      width: 100,
+      render: (v: string) => (
+        <Tag
+          color={platformColors[v?.toLowerCase()] ?? "default"}
+          style={{ borderRadius: 3 }}
+        >
+          {v || "-"}
+        </Tag>
+      ),
+    },
   ];
 
   if (loading) {
     return (
-      <Card style={{ borderRadius: 4 }}>
+      <Card style={{ borderRadius: 3 }}>
         <Flex justify="center" align="center" style={{ padding: 48 }}>
           <Spin />
         </Flex>
@@ -119,7 +142,7 @@ export function TodayOrdersTable() {
 
   if (items.length === 0) {
     return (
-      <Card style={{ borderRadius: 4 }}>
+      <Card style={{ borderRadius: 3 }}>
         <Empty description="No orders today" />
       </Card>
     );
@@ -127,7 +150,7 @@ export function TodayOrdersTable() {
 
   return (
     <Card
-      style={{ borderRadius: 4 }}
+      style={{ borderRadius: 3 }}
       title={`Today's Orders (${items.length})`}
     >
       <Table<TodayOrderItem>

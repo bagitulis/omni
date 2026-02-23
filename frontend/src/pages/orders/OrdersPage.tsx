@@ -5,6 +5,8 @@ import { OrdersBulkActionsBar } from "./components/OrdersBulkActionsBar";
 import { OrderStatusTabs } from "./components/OrderStatusTabs";
 import { OrderActionBar } from "./components/OrderActionBar";
 import { OrderPageModals } from "./components/OrderPageModals";
+import { LockedOrdersPanel } from "./components/LockedOrdersPanel";
+import { TodayOrdersTable } from "./components/TodayOrdersTable";
 import { useOrdersLogic } from "./hooks/useOrdersLogic";
 
 export default function OrdersPage() {
@@ -92,64 +94,66 @@ export default function OrdersPage() {
           cancelResult={state.cancelResult}
         />
 
-        {/* Unified Order Table — works for ALL tabs including locked/today */}
-        <Card
-          style={{
-            borderRadius: 3,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-            overflow: "hidden",
-          }}
-          styles={{
-            header: {
-              background: token.colorBgLayout,
-              borderBottom: `1px solid ${token.colorBorderSecondary}`,
-              padding: "12px 16px",
-              minHeight: "auto",
-            },
-            body: { padding: 0 },
-          }}
-          title={
-            <span style={{ fontSize: 14, fontWeight: 600 }}>
-              {state.activeTab === "locked"
-                ? "🔒 Locked Orders (Pending Shipment)"
-                : state.activeTab === "today"
-                  ? "📋 Today's Orders"
-                  : `Orders — ${state.activeTab.charAt(0).toUpperCase() + state.activeTab.slice(1)}`}
-              {(state.data?.total ?? 0) > 0 && (
-                <span
-                  style={{
-                    marginLeft: 8,
-                    fontSize: 12,
-                    fontWeight: 400,
-                    color: token.colorTextSecondary,
-                  }}
-                >
-                  ({state.data?.total} items)
-                </span>
-              )}
-            </span>
-          }
-        >
-          <OrderTable
-            orders={state.data?.orders || []}
-            loading={state.isLoading || state.isSyncing}
-            pagination={{
-              current: state.page,
-              pageSize: state.pageSize,
-              total: state.data?.total || 0,
-              onChange: (p, ps) => {
-                setters.setPage(p);
-                setters.setPageSize(ps);
-              },
+        {/* Order Content — specialized components for locked/today, generic for others */}
+        {state.activeTab === "locked" ? (
+          <LockedOrdersPanel />
+        ) : state.activeTab === "today" ? (
+          <TodayOrdersTable />
+        ) : (
+          <Card
+            style={{
+              borderRadius: 3,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+              overflow: "hidden",
             }}
-            selectedRowKeys={state.selectedRowKeys}
-            onSelectionChange={handlers.handleSelectionChange}
-            onShip={handlers.handleSingleShip}
-            onPrint={handlers.handleSinglePrint}
-            onCancel={handlers.handleSingleCancel}
-            onViewDetail={handlers.handleViewDetails}
-          />
-        </Card>
+            styles={{
+              header: {
+                background: token.colorBgLayout,
+                borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                padding: "12px 16px",
+                minHeight: "auto",
+              },
+              body: { padding: 0 },
+            }}
+            title={
+              <span style={{ fontSize: 14, fontWeight: 600 }}>
+                {`Orders — ${state.activeTab.charAt(0).toUpperCase() + state.activeTab.slice(1)}`}
+                {(state.data?.total ?? 0) > 0 && (
+                  <span
+                    style={{
+                      marginLeft: 8,
+                      fontSize: 12,
+                      fontWeight: 400,
+                      color: token.colorTextSecondary,
+                    }}
+                  >
+                    ({state.data?.total} items)
+                  </span>
+                )}
+              </span>
+            }
+          >
+            <OrderTable
+              orders={state.data?.orders || []}
+              loading={state.isLoading || state.isSyncing}
+              pagination={{
+                current: state.page,
+                pageSize: state.pageSize,
+                total: state.data?.total || 0,
+                onChange: (p, ps) => {
+                  setters.setPage(p);
+                  setters.setPageSize(ps);
+                },
+              }}
+              selectedRowKeys={state.selectedRowKeys}
+              onSelectionChange={handlers.handleSelectionChange}
+              onShip={handlers.handleSingleShip}
+              onPrint={handlers.handleSinglePrint}
+              onCancel={handlers.handleSingleCancel}
+              onViewDetail={handlers.handleViewDetails}
+            />
+          </Card>
+        )}
 
         {/* Modals */}
         <OrderPageModals

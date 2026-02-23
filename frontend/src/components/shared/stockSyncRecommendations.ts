@@ -70,13 +70,9 @@ export async function buildLockedStockMap(): Promise<LockedStockMap> {
   }
 }
 
-function fallbackRecommendation(
-  stock: number,
-  lockedQty: number,
-): StockRecommendation {
+function fallbackRecommendation(stock: number): StockRecommendation {
   const settings = loadMarketplaceAllocationSettings();
-  const sellable = toSafeStock(stock - lockedQty);
-  const allocation = calculateMarketplaceAllocation(sellable, false, settings);
+  const allocation = calculateMarketplaceAllocation(stock, false, settings);
 
   return {
     shopee: toSafeStock(allocation.shopee),
@@ -84,63 +80,57 @@ function fallbackRecommendation(
     lazada: toSafeStock(allocation.lazada),
     total: toSafeStock(allocation.total),
     source: "fallback",
-    inventoryTotal: stock,
-    lockedQty,
   };
 }
 
 /**
  * Build stock recommendations for selected products.
- * Deducts locked order quantities from inventory totals before
- * calculating marketplace allocation to prevent overselling.
  *
- * @param lockedMap - Pre-fetched locked stock map (optional, will fetch if not provided)
+ * The inventory records now contain Locked and Sellable columns
+ * (updated by the backend when locked orders are synced).
+ * The Marketplace Allocation Settings totalColumn can target "Sellable"
+ * to automatically account for locked orders.
+ *
+ * The resolveMarketplaceAllocationForRecord function reads the inventory
+ * data directly (either the configured total column or direct platform values).
  */
 export async function buildStockRecommendations(
   selectedProducts: UnifiedProductRow[],
-  lockedMap?: LockedStockMap,
 ): Promise<StockRecommendationMap> {
   const stockBySku = collectBaseStockBySku(selectedProducts);
   const settings = loadMarketplaceAllocationSettings();
 
-  // Fetch locked orders if not provided
-  const locked = lockedMap ?? (await buildLockedStockMap());
-
   const entries = await Promise.all(
     Object.entries(stockBySku).map(async ([sku, fallbackStock]) => {
-      const lockedQty = locked[sku] || 0;
-
       try {
         const record = await getInventoryBySku(sku);
-        const rawAllocation = resolveMarketplaceAllocationForRecord(
-          record.data || {},
+        const rowData = record.data || {};
+        const allocation = resolveMarketplaceAllocationForRecord(
+          rowData,
           settings,
         );
 
-        // Deduct locked qty from each platform's allocation proportionally
-        const rawTotal = rawAllocation.total || fallbackStock;
-        const sellableRatio = rawTotal > 0
-          ? Math.max(0, rawTotal - lockedQty) / rawTotal
-          : 0;
+        // Read locked/sellable info from inventory data (set by backend)
+        const lockedQty = Number(rowData["Locked"]) || 0;
+        const inventoryTotal = Number(rowData["Total"]) || allocation.total;
 
         return [
           sku,
           {
-            shopee: toSafeStock(rawAllocation.shopee * sellableRatio),
-            tiktok: toSafeStock(rawAllocation.tiktok * sellableRatio),
-            lazada: toSafeStock(rawAllocation.lazada * sellableRatio),
-            total: toSafeStock(rawAllocation.total - lockedQty),
+            shopee: toSafeStock(allocation.shopee),
+            tiktok: toSafeStock(allocation.tiktok),
+            lazada: toSafeStock(allocation.lazada),
+            total: toSafeStock(allocation.total),
             source: "inventory" as const,
-            inventoryTotal: rawTotal,
+            inventoryTotal,
             lockedQty,
           },
         ] as const;
       } catch {
-        return [sku, fallbackRecommendation(fallbackStock, lockedQty)] as const;
+        return [sku, fallbackRecommendation(fallbackStock)] as const;
       }
     }),
   );
 
   return Object.fromEntries(entries);
 }
-

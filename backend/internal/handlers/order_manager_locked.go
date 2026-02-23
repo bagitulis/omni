@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/orders"
 	"github.com/omni/backend/internal/services/sync"
 )
@@ -157,6 +160,84 @@ func (h *OrderManagerHandler) GetLockedTodayOrders(c *gin.Context) {
 			"count":   0,
 		})
 		return
+	}
+
+	// Update inventory_records with Locked and Sellable columns
+	// Build SKU→qty map from locked items
+	lockedBySku := make(map[string]int, len(lockedItems))
+	for _, item := range lockedItems {
+		if item.SKU != "" {
+			lockedBySku[item.SKU] += item.Qty
+		}
+	}
+
+	// Get inventory settings to find the Total column name
+	var invSettings models.InventorySettings
+	totalColumnName := "Total" // default
+	if err := db.WithContext(c.Request.Context()).
+		Where("tenant_id = ?", tenantID).
+		First(&invSettings).Error; err == nil && invSettings.KeyColumn != "" {
+		totalColumnName = invSettings.KeyColumn
+	}
+
+	// Fetch all inventory records for this tenant
+	var inventoryRecords []models.InventoryRecord
+	if err := db.WithContext(c.Request.Context()).
+		Where("tenant_id = ?", tenantID).
+		Find(&inventoryRecords).Error; err != nil {
+		orderManagerLogger.WithTenantID(tenantID).Warn("Failed to fetch inventory records for lock update: " + err.Error())
+	} else {
+		updatedCount := 0
+		for _, record := range inventoryRecords {
+			// Parse JSONB data
+			var dataMap map[string]interface{}
+			if err := json.Unmarshal([]byte(record.Data), &dataMap); err != nil {
+				continue
+			}
+
+			// Get Total value from the configured column
+			totalVal := 0.0
+			if val, ok := dataMap[totalColumnName]; ok {
+				switch v := val.(type) {
+				case float64:
+					totalVal = v
+				case string:
+					if parsed, e := strconv.ParseFloat(v, 64); e == nil {
+						totalVal = parsed
+					}
+				}
+			}
+
+			// Set Locked and Sellable
+			lockedQty := lockedBySku[record.KeyValue]
+			sellable := int(totalVal) - lockedQty
+			if sellable < 0 {
+				sellable = 0
+			}
+
+			dataMap["Locked"] = lockedQty
+			dataMap["Sellable"] = sellable
+
+			// Save back
+			updated, err := json.Marshal(dataMap)
+			if err != nil {
+				continue
+			}
+
+			if err := db.WithContext(c.Request.Context()).
+				Model(&record).
+				Update("data", string(updated)).Error; err != nil {
+				orderManagerLogger.WithTenantID(tenantID).Warn("Failed to update inventory record " + record.KeyValue + ": " + err.Error())
+				continue
+			}
+			updatedCount++
+		}
+
+		orderManagerLogger.WithTenantID(tenantID).WithFields(map[string]interface{}{
+			"updated_records": updatedCount,
+			"total_records":   len(inventoryRecords),
+			"locked_skus":     len(lockedBySku),
+		}).Info("Updated inventory records with Locked/Sellable columns")
 	}
 
 	mode := "unprocess-only"

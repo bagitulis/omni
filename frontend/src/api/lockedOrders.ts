@@ -32,7 +32,10 @@ export async function syncLockedToday(
     throw new Error(response.error || "Failed to sync locked orders");
   }
 
-  return response.data?.items ?? [];
+  // Backend returns items at top level (not inside data wrapper)
+  const raw = response as unknown as Record<string, unknown>;
+  const items = (response.data?.items ?? raw.items ?? []) as LockedOrderItem[];
+  return items;
 }
 
 /**
@@ -47,5 +50,8 @@ export async function getLockedOrders(): Promise<LockedOrderItem[]> {
     throw new Error(response.error || "Failed to fetch locked orders");
   }
 
-  return response.data?.items ?? [];
+  // Backend returns items at top level (not inside data wrapper)
+  const raw = response as unknown as Record<string, unknown>;
+  const items = (response.data?.items ?? raw.items ?? []) as LockedOrderItem[];
+  return items;
 }
