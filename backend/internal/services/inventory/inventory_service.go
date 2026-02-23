@@ -46,7 +46,7 @@ func (s *InventoryService) GetRecords(ctx context.Context, filter ListFilter) (*
 
 	if filter.Search != "" {
 		search := "%" + filter.Search + "%"
-		query = query.Where("key_value LIKE ?", search)
+		query = query.Where("key_value ILIKE ? OR data::text ILIKE ?", search, search)
 	}
 
 	query = buildSyncStatusFilter(query, filter)

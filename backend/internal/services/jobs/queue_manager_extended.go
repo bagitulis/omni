@@ -83,7 +83,7 @@ func (m *QueueManager) GetHistoryPaginated(filter PaginatedFilter) (*PaginatedHi
 		jobQuery = jobQuery.Where("job_type = ?", filter.JobType)
 	}
 	if filter.Search != "" {
-		jobQuery = jobQuery.Where("job_id LIKE ? OR job_type LIKE ?", "%"+filter.Search+"%", "%"+filter.Search+"%")
+		jobQuery = jobQuery.Where("job_id ILIKE ? OR job_type ILIKE ?", "%"+filter.Search+"%", "%"+filter.Search+"%")
 	}
 
 	jobQuery.Find(&jobHistoryItems)
@@ -99,7 +99,7 @@ func (m *QueueManager) GetHistoryPaginated(filter PaginatedFilter) (*PaginatedHi
 		autoQuery = autoQuery.Where("function_name = ?", filter.JobType)
 	}
 	if filter.Search != "" {
-		autoQuery = autoQuery.Where("function_name LIKE ?", "%"+filter.Search+"%")
+		autoQuery = autoQuery.Where("function_name ILIKE ?", "%"+filter.Search+"%")
 	}
 
 	autoQuery.Find(&autoFuncHistoryItems)

@@ -109,10 +109,10 @@ func (s *ProductMasterService) GetProducts(
 		query = query.Where("status = ?", params.Status)
 	}
 	if params.SKU != "" {
-		query = query.Where("sku LIKE ?", "%"+params.SKU+"%")
+		query = query.Where("sku ILIKE ?", "%"+params.SKU+"%")
 	}
 	if params.Name != "" {
-		query = query.Where("name LIKE ?", "%"+params.Name+"%")
+		query = query.Where("name ILIKE ?", "%"+params.Name+"%")
 	}
 
 	// Get total count

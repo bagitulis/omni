@@ -22,7 +22,7 @@ import type { SyncHistoryEntry } from "@/types/inventory";
 interface SyncHistoryRow {
   key: string;
   direction: "from" | "to";
-  status: "success" | "error" | "pending";
+  status: "success" | "error" | "pending" | "partial";
   timestamp: string;
   message: string;
   details: string;
@@ -44,11 +44,13 @@ function parseEntry(entry: SyncHistoryEntry): Omit<SyncHistoryRow, "key"> {
 
   const normalizedStatus = entry.status.toLowerCase();
   const status: SyncHistoryRow["status"] =
-    normalizedStatus === "success"
+    normalizedStatus === "success" || normalizedStatus === "completed"
       ? "success"
       : normalizedStatus === "error" || normalizedStatus === "failed"
         ? "error"
-        : "pending";
+        : normalizedStatus === "partial"
+          ? "partial"
+          : "pending";
 
   const timestamp =
     readString(entry, "timestamp") || entry.synced_at || entry.created_at || "";
@@ -96,6 +98,7 @@ export function SyncHistoryTab() {
   const statusColor: Record<SyncHistoryRow["status"], string> = {
     success: colorSuccess,
     error: colorError,
+    partial: colorWarning,
     pending: colorWarning,
   };
 
