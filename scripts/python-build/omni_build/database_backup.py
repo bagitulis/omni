@@ -9,7 +9,7 @@ import subprocess
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from omni_build.config import Config
 from omni_build.logger import log_error, log_info, log_success, log_warning
@@ -63,7 +63,7 @@ class DatabaseBackup:
             log_error(f"Failed to start PostgreSQL: {e}")
             return False
     
-    def get_all_tables(self) -> List[Dict]:
+    def get_all_tables(self) -> List[Dict[str, Any]]:
         """Get all tables with row counts from tenant and system schemas."""
         query = """
         SELECT schemaname, relname 
@@ -118,7 +118,7 @@ class DatabaseBackup:
             pass
         return 0
     
-    def load_previous_manifest(self) -> Optional[Dict]:
+    def load_previous_manifest(self) -> Optional[Dict[str, Any]]:
         """Load previous backup manifest if exists."""
         if not self.manifest_file.exists():
             return None
@@ -131,10 +131,10 @@ class DatabaseBackup:
     
     def detect_changes(
         self, 
-        tables: List[Dict], 
-        prev_manifest: Optional[Dict], 
+        tables: List[Dict[str, Any]], 
+        prev_manifest: Optional[Dict[str, Any]], 
         force: bool = False
-    ) -> Tuple[List[Dict], List[Dict], List[Dict]]:
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
         """Detect which tables need to be exported."""
         to_export, unchanged, deleted = [], [], []
         
@@ -168,22 +168,99 @@ class DatabaseBackup:
         
         return to_export, unchanged, deleted
     
-    def save_manifest(self, tables: List[Dict]) -> bool:
+    def _get_previous_checksum(self, prev_manifest: Optional[Dict[str, Any]], schema: str, table: str) -> str:
+        """Get checksum from previous manifest if available."""
+        if not prev_manifest:
+            return ""
+
+        schema_data = prev_manifest.get('schemas', {}).get(schema, {})
+        for prev_table in schema_data.get('tables', []):
+            if prev_table.get('name') == table:
+                checksum = prev_table.get('checksum', '')
+                return checksum if isinstance(checksum, str) else ""
+
+        return ""
+
+    def _get_previous_rows(self, prev_manifest: Optional[Dict[str, Any]], schema: str, table: str) -> int:
+        """Get row count from previous manifest if available."""
+        if not prev_manifest:
+            return -1
+
+        schema_data = prev_manifest.get('schemas', {}).get(schema, {})
+        for prev_table in schema_data.get('tables', []):
+            if prev_table.get('name') == table:
+                rows = prev_table.get('rows', -1)
+                return rows if isinstance(rows, int) and rows >= 0 else -1
+
+        return -1
+
+    def _is_sha256_checksum(self, checksum: str) -> bool:
+        """Validate checksum format as sha256 hex string."""
+        if len(checksum) != 64:
+            return False
+        return all(c in "0123456789abcdef" for c in checksum.lower())
+
+    def save_manifest(
+        self,
+        tables: List[Dict[str, Any]],
+        prev_manifest: Optional[Dict[str, Any]] = None,
+        generated_checksums: Optional[Dict[str, str]] = None,
+        generated_rows: Optional[Dict[str, int]] = None,
+    ) -> bool:
         """Save backup manifest."""
-        schemas: Dict[str, Dict] = {}
+        schemas: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
+        generated_checksums = generated_checksums or {}
+        generated_rows = generated_rows or {}
+        missing_checksums: List[str] = []
+        missing_rows: List[str] = []
         
         for table in tables:
             schema = table['schema']
             if schema not in schemas:
                 schemas[schema] = {'tables': []}
+
+            table_name = table['table']
+            table_key = f"{schema}.{table_name}"
+
+            row_count = generated_rows.get(table_key, -1)
+            if row_count < 0:
+                row_count = self._get_previous_rows(prev_manifest, schema, table_name)
+            if row_count < 0:
+                source_rows = table.get('rows', 0)
+                row_count = source_rows if isinstance(source_rows, int) and source_rows >= 0 else 0
+                if row_count > 0:
+                    missing_rows.append(table_key)
+
+            checksum = generated_checksums.get(f"{schema}.{table_name}", "")
+            if not checksum:
+                checksum = self._get_previous_checksum(prev_manifest, schema, table_name)
+
+            if not checksum:
+                if row_count > 0:
+                    missing_checksums.append(f"{schema}.{table_name}")
+                checksum = "zero-rows"
+
             schemas[schema]['tables'].append({
-                'name': table['table'],
-                'rows': table['rows'],
-                'checksum': table['checksum']
+                'name': table_name,
+                'rows': row_count,
+                'checksum': checksum,
             })
+
+        if missing_rows:
+            log_warning(
+                "Manifest rows fallback to analyzed counts for table(s): "
+                + ", ".join(missing_rows[:5])
+            )
+
+        if missing_checksums:
+            log_error(
+                "Cannot save manifest: missing checksum for non-empty table(s): "
+                + ", ".join(missing_checksums[:5])
+            )
+            return False
         
         manifest = {
-            'version': 2,
+            'version': 3,
             'exported_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'schemas': schemas
         }
@@ -263,9 +340,41 @@ class DatabaseBackup:
         
         log_info("[5/6] Cleaning deleted tables...")
         ops.remove_deleted_tables(deleted)
+
+        manifest_checksums: Dict[str, str] = dict(ops.table_checksums)
+        manifest_rows: Dict[str, int] = dict(ops.table_row_counts)
+        artifact_ops = DatabaseBackupOps(self.backup_dir)
+        for table in tables:
+            key = f"{table['schema']}.{table['table']}"
+            if key not in manifest_rows:
+                previous_rows = self._get_previous_rows(prev_manifest, table['schema'], table['table'])
+                if previous_rows >= 0:
+                    manifest_rows[key] = previous_rows
+                else:
+                    artifact_rows = artifact_ops.calculate_artifact_row_count(table['schema'], table['table'])
+                    if artifact_rows >= 0:
+                        manifest_rows[key] = artifact_rows
+
+            if key in manifest_checksums:
+                continue
+
+            previous_checksum = self._get_previous_checksum(prev_manifest, table['schema'], table['table'])
+            if previous_checksum and self._is_sha256_checksum(previous_checksum):
+                manifest_checksums[key] = previous_checksum
+                continue
+
+            artifact_checksum = artifact_ops.calculate_artifact_checksum(table['schema'], table['table'])
+            if artifact_checksum:
+                manifest_checksums[key] = artifact_checksum
         
         log_info("[6/6] Saving manifest...")
-        self.save_manifest(tables)
+        if not self.save_manifest(
+            tables,
+            prev_manifest=prev_manifest,
+            generated_checksums=manifest_checksums,
+            generated_rows=manifest_rows,
+        ):
+            return False, "Failed to save manifest with verified checksums"
         
         print()
         log_success("=" * 50)
@@ -275,7 +384,7 @@ class DatabaseBackup:
         total_rows = sum(t['rows'] for t in tables)
         return len(ops.errors) == 0, f"Backup complete: {len(tables)} tables, {total_rows:,} rows"
     
-    def get_backup_info(self) -> Optional[Dict]:
+    def get_backup_info(self) -> Optional[Dict[str, Any]]:
         """Get current backup manifest info."""
         return self.load_previous_manifest()
     

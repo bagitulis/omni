@@ -279,10 +279,26 @@ class BuildOrchestrator:
         
         if restore_db:
             print(f"\n{'='*60}\nSTEP 3: DATABASE RESTORE\n{'='*60}\n")
-            if self.database_restorer.wait_for_postgres(timeout=120):
-                success, msg = self.database_restorer.restore(force=True)
-                if not success:
-                    warnings.append(f"DB restore: {msg}")
+            if not self.database_restorer.wait_for_postgres(timeout=120):
+                return BuildResult(
+                    success=False,
+                    mode=mode,
+                    spec=spec,
+                    duration_seconds=time.time() - start_time,
+                    errors=["DB restore failed: PostgreSQL not ready after 120s"],
+                    warnings=warnings,
+                )
+
+            success, msg = self.database_restorer.restore(force=True)
+            if not success:
+                return BuildResult(
+                    success=False,
+                    mode=mode,
+                    spec=spec,
+                    duration_seconds=time.time() - start_time,
+                    errors=[f"DB restore failed: {msg}"],
+                    warnings=warnings,
+                )
         
         if self._helpers.verify_all_services_truly_healthy():
             log_success("All services verified healthy")

@@ -4,6 +4,7 @@ Database Backup Operations module for Omni Build System.
 SRP: This module handles table and schema export operations for backup.
 """
 import gzip
+import hashlib
 import json
 import subprocess
 import time
@@ -25,6 +26,90 @@ class DatabaseBackupOps:
         self.schema_dir = backup_dir / "_schema"
         self.errors: List[str] = []
         self.warnings: List[str] = []
+        self.table_checksums: Dict[str, str] = {}
+        self.table_row_counts: Dict[str, int] = {}
+
+    def _update_hash_from_file(self, file_path: Path, hasher: "hashlib._Hash") -> None:
+        """Update hasher from file bytes in chunks."""
+        with open(file_path, 'rb') as f:
+            while True:
+                chunk = f.read(1024 * 1024)
+                if not chunk:
+                    break
+                hasher.update(chunk)
+
+    def _calculate_table_checksum(self, schema: str, table: str, schema_dir: Path) -> str:
+        """Calculate deterministic checksum for backup artifact(s)."""
+        hasher = hashlib.sha256()
+        table_file = schema_dir / f"{table}.sql.gz"
+        chunk_files = sorted(schema_dir.glob(f"{table}.chunk*.sql.gz"))
+
+        if table_file.exists():
+            hasher.update(f"single:{schema}.{table}".encode('utf-8'))
+            self._update_hash_from_file(table_file, hasher)
+            return hasher.hexdigest()
+
+        if chunk_files:
+            hasher.update(f"chunked:{schema}.{table}".encode('utf-8'))
+            for chunk_file in chunk_files:
+                hasher.update(chunk_file.name.encode('utf-8'))
+                self._update_hash_from_file(chunk_file, hasher)
+            return hasher.hexdigest()
+
+        return ""
+
+    def calculate_artifact_checksum(self, schema: str, table: str) -> str:
+        """Calculate checksum for existing backup artifact(s)."""
+        schema_dir = self.backup_dir / schema
+        return self._calculate_table_checksum(schema, table, schema_dir)
+
+    def _count_rows_in_single_dump(self, table_file: Path) -> int:
+        """Count rows stored in a pg_dump data-only .sql.gz file."""
+        copy_rows = 0
+        insert_rows = 0
+        in_copy = False
+
+        with gzip.open(table_file, 'rt', encoding='utf-8', errors='replace') as f:
+            for line in f:
+                if line.startswith('COPY '):
+                    in_copy = True
+                    continue
+
+                if in_copy:
+                    if line.strip() == "\\.":
+                        in_copy = False
+                    else:
+                        copy_rows += 1
+                    continue
+
+                if line.startswith('INSERT INTO '):
+                    insert_rows += 1
+
+        return copy_rows + insert_rows
+
+    def _count_rows_in_chunk_dump(self, chunk_files: List[Path]) -> int:
+        """Count rows stored in chunked .sql.gz files."""
+        total_rows = 0
+        for chunk_file in chunk_files:
+            with gzip.open(chunk_file, 'rt', encoding='utf-8', errors='replace') as f:
+                for line in f:
+                    if line.strip():
+                        total_rows += 1
+        return total_rows
+
+    def calculate_artifact_row_count(self, schema: str, table: str) -> int:
+        """Calculate row count from existing backup artifact(s)."""
+        schema_dir = self.backup_dir / schema
+        table_file = schema_dir / f"{table}.sql.gz"
+        chunk_files = sorted(schema_dir.glob(f"{table}.chunk*.sql.gz"))
+
+        if table_file.exists():
+            return self._count_rows_in_single_dump(table_file)
+
+        if chunk_files:
+            return self._count_rows_in_chunk_dump(chunk_files)
+
+        return -1
     
     def ensure_postgres_healthy(self) -> bool:
         """Quick check if PostgreSQL is responsive."""
@@ -110,9 +195,29 @@ class DatabaseBackupOps:
                 return False
         
         if rows >= self.LARGE_TABLE_THRESHOLD:
-            return self._export_table_chunked(schema, table, rows, schema_dir)
+            success = self._export_table_chunked(schema, table, rows, schema_dir)
         else:
-            return self._export_table_single(schema, table, schema_dir)
+            success = self._export_table_single(schema, table, schema_dir)
+
+        if not success:
+            self.table_checksums.pop(f"{schema}.{table}", None)
+            return False
+
+        checksum = self._calculate_table_checksum(schema, table, schema_dir)
+        if not checksum:
+            self.warnings.append(f"Checksum skipped: backup artifact missing for {schema}.{table}")
+            self.table_checksums.pop(f"{schema}.{table}", None)
+            return False
+
+        row_count = self.calculate_artifact_row_count(schema, table)
+        if row_count < 0:
+            self.warnings.append(f"Row count skipped: backup artifact missing for {schema}.{table}")
+            self.table_checksums.pop(f"{schema}.{table}", None)
+            return False
+
+        self.table_checksums[f"{schema}.{table}"] = checksum
+        self.table_row_counts[f"{schema}.{table}"] = row_count
+        return True
     
     def _export_table_single(self, schema: str, table: str, dest_dir: Path) -> bool:
         """Export small table as single gzipped SQL file."""
@@ -218,7 +323,7 @@ class DatabaseBackupOps:
         print(f"  [OK] {schema}.{table}: {success_count} chunks exported")
         return success_count > 0
     
-    def remove_deleted_tables(self, deleted: List[Dict]) -> None:
+    def remove_deleted_tables(self, deleted: List[Dict[str, str]]) -> None:
         """Remove backup files for deleted tables."""
         for item in deleted:
             table_file = self.backup_dir / item['schema'] / f"{item['table']}.sql.gz"
