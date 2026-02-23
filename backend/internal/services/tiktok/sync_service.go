@@ -2,6 +2,7 @@ package tiktok
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
@@ -129,7 +130,8 @@ func (s *SyncService) SyncProductsByIDs(ctx context.Context, productIDs []string
 		detailResp, err := s.client.GetProductDetail(pid)
 		if err != nil {
 			zlog.Warn().Err(err).Str("product_id", pid).Msg("TikTok product detail fetch failed")
-			continue
+			// Return API/auth errors so they appear in sync response
+			return count, fmt.Errorf("product %s: %w", pid, err)
 		}
 
 		// Upsert product

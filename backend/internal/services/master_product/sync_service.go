@@ -139,6 +139,7 @@ func (s *SyncService) syncToShopee(ctx context.Context, tenantID string, product
 
 	syncedCount := 0
 	var lastItemID string
+	var lastErr error
 
 	// Process each SKU with Shopee link
 	for i := range product.SKUs {
@@ -170,8 +171,9 @@ func (s *SyncService) syncToShopee(ctx context.Context, tenantID string, product
 				},
 			}
 			if _, err := client.UpdatePrice(priceReq); err != nil {
-				log.Warn().Err(err).Int64("item_id", itemID).Msg("Failed to update price")
+				log.Error().Err(err).Int64("item_id", itemID).Msg("Failed to update price")
 				link.SyncStatus = models.SyncStatusError
+				lastErr = err
 			} else {
 				// Update stock
 				stockReq := shopee.UpdateStockRequest{
@@ -181,8 +183,9 @@ func (s *SyncService) syncToShopee(ctx context.Context, tenantID string, product
 					},
 				}
 				if _, err := client.UpdateStock(stockReq); err != nil {
-					log.Warn().Err(err).Int64("item_id", itemID).Msg("Failed to update stock")
+					log.Error().Err(err).Int64("item_id", itemID).Msg("Failed to update stock")
 					link.SyncStatus = models.SyncStatusError
+					lastErr = err
 				} else {
 					link.SyncStatus = models.SyncStatusSynced
 					syncedCount++
@@ -201,7 +204,10 @@ func (s *SyncService) syncToShopee(ctx context.Context, tenantID string, product
 	result.PlatformItemID = lastItemID
 
 	if syncedCount == 0 && len(product.SKUs) > 0 {
-		log.Warn().Msg("No SKUs synced - products may not be linked to Shopee yet")
+		if lastErr != nil {
+			return fmt.Errorf("no SKUs synced to Shopee: %w", lastErr)
+		}
+		return fmt.Errorf("no SKUs synced to Shopee - check platform links and credentials")
 	}
 
 	return nil

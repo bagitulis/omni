@@ -8,6 +8,7 @@ import (
 	"github.com/omni/backend/internal/repositories"
 	shopeePkg "github.com/omni/backend/pkg/shopee"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -46,6 +47,8 @@ func (s *ProductSyncService) syncItemDetailBatches(
 	zlog := zerolog.Ctx(ctx)
 	batchSize := 50 // API limit.
 
+	log.Info().Ints64("item_ids", allItemIDs).Int("total_items", len(allItemIDs)).Msg("[Shopee SyncProductsByIDs] Starting sync")
+
 	for i := 0; i < len(allItemIDs); i += batchSize {
 		end := i + batchSize
 		if end > len(allItemIDs) {
@@ -53,17 +56,30 @@ func (s *ProductSyncService) syncItemDetailBatches(
 		}
 		batchIDs := allItemIDs[i:end]
 
+		log.Info().Ints64("batch_ids", batchIDs).Int("batch_size", len(batchIDs)).Msg("[Shopee SyncProductsByIDs] Fetching product details")
+
 		detailResp, err := s.client.GetProductDetailWithImages(batchIDs)
 		if err != nil {
+			log.Error().Err(err).Ints64("batch_ids", batchIDs).Msg("[Shopee SyncProductsByIDs] API call FAILED")
 			zlog.Warn().Err(err).Int("batch_size", len(batchIDs)).Msg("Shopee product detail batch failed")
-			continue
+			// Return error immediately for auth/API failures so
+			// the caller can report the actual error to the user
+			return err
+		}
+
+		log.Info().Int("item_count", len(detailResp.Response.ItemList)).Msg("[Shopee SyncProductsByIDs] API response received")
+		if len(detailResp.Response.ItemList) == 0 {
+			log.Warn().Str("api_error", detailResp.Error).Str("api_message", detailResp.Message).Msg("[Shopee SyncProductsByIDs] Empty item_list in response")
 		}
 
 		for _, prod := range detailResp.Response.ItemList {
+			log.Info().Int64("item_id", prod.ItemID).Str("name", prod.ItemName).Int("stock", prod.StockInfoV2.SummaryInfo.TotalAvailableStock).Msg("[Shopee SyncProductsByIDs] Processing product")
 			if err := s.upsertProductWithDependencies(ctx, tx, prodRepo, skuRepo, prod); err != nil {
+				log.Error().Err(err).Int64("item_id", prod.ItemID).Msg("[Shopee SyncProductsByIDs] Upsert FAILED")
 				zlog.Warn().Err(err).Int64("item_id", prod.ItemID).Msg("Failed to persist Shopee product")
 				continue
 			}
+			log.Info().Int64("item_id", prod.ItemID).Msg("[Shopee SyncProductsByIDs] ✅ Persisted")
 			*count = *count + 1
 		}
 	}

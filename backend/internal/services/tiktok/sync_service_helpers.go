@@ -75,7 +75,7 @@ func (s *SyncService) syncProductsWithDB(
 
 		detailResp, err := s.client.GetProductDetail(prod.ID)
 		if err != nil {
-			zlog.Warn().Str("product_id", prod.ID).Err(err).Msg("Failed to get product detail, syncing product without variant/image enrichment")
+			zlog.Error().Str("product_id", prod.ID).Err(err).Msg("Failed to get product detail, syncing product without variant/image enrichment")
 			detailResp = nil
 		} else if detailResp.Code != 0 {
 			zlog.Warn().Str("product_id", prod.ID).Int("code", detailResp.Code).Str("message", detailResp.Message).Msg("TikTok API error on product detail, syncing product without variant/image enrichment")

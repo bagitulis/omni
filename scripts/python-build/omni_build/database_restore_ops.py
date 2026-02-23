@@ -133,7 +133,8 @@ class DatabaseRestoreOps:
                     log_warning(f"  Skip: {table_name} (file not found)")
                     continue
                 success, rows = self._restore_single_table(
-                    schema_name, table_name, sql_file, skip_truncate=True
+                    schema_name, table_name, sql_file, skip_truncate=True,
+                    expected_rows=expected_rows
                 )
             
             if success:
@@ -164,7 +165,8 @@ class DatabaseRestoreOps:
         table: str, 
         sql_file: Path, 
         skip_truncate: bool = False,
-        max_retries: int = 3
+        max_retries: int = 3,
+        expected_rows: int = 0
     ) -> Tuple[bool, int]:
         """Restore single table from .sql.gz file with retry logic."""
         last_error = ""
@@ -182,6 +184,26 @@ class DatabaseRestoreOps:
                     sql_bytes = f.read()
                 sql_content = sql_bytes.decode('utf-8')
                 
+                # Strip pg_dump's \restrict / \unrestrict meta-commands.
+                # pg_dump --data-only generates these to disable/enable triggers
+                # during restore, but psql doesn't recognize them as valid
+                # commands, causing subsequent COPY statements to silently fail.
+                cleaned_lines = []
+                for line in sql_content.split('\n'):
+                    if line.startswith('\\restrict') or line.startswith('\\unrestrict'):
+                        continue
+                    cleaned_lines.append(line)
+                sql_content = '\n'.join(cleaned_lines)
+                
+                # Disable triggers (FK constraints) before restore to allow
+                # insertion regardless of table ordering
+                disable_cmd = [
+                    "docker", "exec", "omni-postgres", "psql", "-U", "omni",
+                    "-d", "omni_main", "-c",
+                    f"ALTER TABLE {schema}.{table} DISABLE TRIGGER ALL;"
+                ]
+                subprocess.run(disable_cmd, capture_output=True, timeout=30)
+                
                 result = subprocess.run(
                     ["docker", "exec", "-i", "omni-postgres", "psql", "-U", "omni", "-d", "omni_main"],
                     input=sql_content,
@@ -192,6 +214,14 @@ class DatabaseRestoreOps:
                     errors='replace',
                 )
                 
+                # Re-enable triggers after restore
+                enable_cmd = [
+                    "docker", "exec", "omni-postgres", "psql", "-U", "omni",
+                    "-d", "omni_main", "-c",
+                    f"ALTER TABLE {schema}.{table} ENABLE TRIGGER ALL;"
+                ]
+                subprocess.run(enable_cmd, capture_output=True, timeout=30)
+                
                 if result.returncode == 0:
                     count_result = subprocess.run(
                         ["docker", "exec", "omni-postgres", "psql", "-U", "omni", 
@@ -199,6 +229,15 @@ class DatabaseRestoreOps:
                         capture_output=True, text=True, timeout=30,
                     )
                     rows = int(count_result.stdout.strip()) if count_result.returncode == 0 else 0
+                    
+                    # Detect false positive: 0 rows restored but expected > 0
+                    if rows == 0 and expected_rows > 0:
+                        last_error = f"0 rows restored (expected {expected_rows:,})"
+                        print(f"  [WARN] {schema}.{table}: {last_error}")
+                        if attempt < max_retries:
+                            time.sleep(2)
+                        continue  # retry
+                    
                     print(f"  [OK] {schema}.{table}: {rows:,} rows")
                     return True, rows
                 else:

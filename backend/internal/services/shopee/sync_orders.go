@@ -2,6 +2,7 @@ package shopee
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -72,7 +73,7 @@ func (s *OrderSyncService) SyncOrders(ctx context.Context, daysBack int) (int, e
 
 		detailResp, err := s.client.GetOrderDetail(batchSNs)
 		if err != nil {
-			continue
+			return 0, fmt.Errorf("get order detail batch: %w", err)
 		}
 
 		// Save to database

@@ -3,7 +3,6 @@ package lazada
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -145,36 +144,34 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 // SyncProductsByIDs syncs specific Lazada products by item IDs.
 // Skips cache clear — only fetches detail and upserts the given items.
 func (s *SyncService) SyncProductsByIDs(ctx context.Context, itemIDs []int64) (int, error) {
+	zlog := zerolog.Ctx(ctx)
 	if len(itemIDs) == 0 {
-		log.Printf("[Lazada SyncProductsByIDs] No item IDs provided")
+		zlog.Info().Msg("[Lazada SyncProductsByIDs] No item IDs provided")
 		return 0, nil
 	}
-	log.Printf("[Lazada SyncProductsByIDs] Syncing %d items: %v", len(itemIDs), itemIDs)
-	zlog := zerolog.Ctx(ctx)
+	zlog.Info().Int("count", len(itemIDs)).Msg("[Lazada SyncProductsByIDs] Starting sync")
 
 	count := 0
 	txProdRepo := repositories.NewLazadaProductRepository(s.db)
 	for _, itemID := range itemIDs {
-		log.Printf("[Lazada SyncProductsByIDs] Fetching product item_id=%d", itemID)
+		zlog.Info().Int64("item_id", itemID).Msg("[Lazada SyncProductsByIDs] Fetching product")
 		product, err := s.client.GetProductItem(ctx, itemID)
 		if err != nil {
-			log.Printf("[Lazada SyncProductsByIDs] ERROR fetching item_id=%d: %v", itemID, err)
-			zlog.Warn().Err(err).Int64("item_id", itemID).Msg("Lazada product fetch failed")
-			continue
+			zlog.Error().Err(err).Int64("item_id", itemID).Msg("[Lazada SyncProductsByIDs] API call FAILED")
+			// Return API/auth errors so they appear in sync response
+			return count, fmt.Errorf("item %d: %w", itemID, err)
 		}
-		log.Printf("[Lazada SyncProductsByIDs] Fetched: name=%s, skus=%d", product.Name, len(product.Skus))
+		zlog.Info().Str("name", product.Name).Int("skus", len(product.Skus)).Msg("[Lazada SyncProductsByIDs] Fetched")
 		for i, sku := range product.Skus {
-			log.Printf("[Lazada SyncProductsByIDs]   SKU[%d]: seller=%s, qty=%d, avail=%d, price=%.2f",
-				i, sku.SellerSku, sku.Quantity, sku.Available, sku.Price)
+			zlog.Debug().Int("index", i).Str("seller_sku", sku.SellerSku).Int("qty", sku.Quantity).Int("avail", sku.Available).Float64("price", sku.Price).Msg("[Lazada SyncProductsByIDs] SKU")
 		}
 		if err := s.persistProductWithSkus(ctx, s.db, txProdRepo, *product); err != nil {
-			log.Printf("[Lazada SyncProductsByIDs] ERROR upsert item_id=%d: %v", itemID, err)
-			zlog.Warn().Err(err).Int64("item_id", itemID).Msg("Lazada product upsert failed")
+			zlog.Error().Err(err).Int64("item_id", itemID).Msg("[Lazada SyncProductsByIDs] Upsert FAILED")
 			continue
 		}
-		log.Printf("[Lazada SyncProductsByIDs] ✅ Persisted item_id=%d", itemID)
+		zlog.Info().Int64("item_id", itemID).Msg("[Lazada SyncProductsByIDs] ✅ Persisted")
 		count++
 	}
-	log.Printf("[Lazada SyncProductsByIDs] Done: %d/%d synced", count, len(itemIDs))
+	zlog.Info().Int("synced", count).Int("total", len(itemIDs)).Msg("[Lazada SyncProductsByIDs] Done")
 	return count, nil
 }

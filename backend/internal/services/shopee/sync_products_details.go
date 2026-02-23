@@ -51,8 +51,8 @@ func (s *ProductSyncService) SyncProductsWithDetails(ctx context.Context, itemSt
 			batchIDs := allItemIDs[i:end]
 			detailResp, err := s.client.GetProductDetail(batchIDs)
 			if err != nil {
-				zlog.Warn().Err(err).Msg("GetProductDetail batch error")
-				continue
+				zlog.Error().Err(err).Msg("GetProductDetail batch error")
+				return err
 			}
 
 			for _, prod := range detailResp.Response.ItemList {
