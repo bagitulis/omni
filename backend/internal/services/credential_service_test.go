@@ -91,3 +91,40 @@ func TestCredentialService_Structure(t *testing.T) {
 
 	assert.Equal(t, "/test/path", svc.dbPath)
 }
+
+func TestCredentialService_SetTokenManager(t *testing.T) {
+	svc := NewCredentialService("/test/path")
+	assert.Nil(t, svc.tokenManager)
+
+	tm := NewTokenManager(nil, nil, "/test/path")
+	svc.SetTokenManager(tm)
+	assert.Equal(t, tm, svc.tokenManager)
+}
+
+func TestRegisterGlobalTokenManager(t *testing.T) {
+	// Save and restore original value
+	original := globalTokenManager
+	defer func() { globalTokenManager = original }()
+
+	globalTokenManager = nil
+	svc := NewCredentialService("/test/path")
+	assert.Nil(t, svc.tokenManager)
+
+	tm := NewTokenManager(nil, nil, "/test/path")
+	RegisterGlobalTokenManager(tm)
+
+	// New instances should pick up the global token manager
+	svc2 := NewCredentialService("/test/path")
+	assert.Equal(t, tm, svc2.tokenManager)
+}
+
+func TestPlatformCredentials_TokenExpiry(t *testing.T) {
+	creds := &PlatformCredentials{
+		TokenExpiry: 1704067200000, // 2024-01-01T00:00:00Z in ms
+	}
+	assert.Equal(t, int64(1704067200000), creds.TokenExpiry)
+
+	// Zero value means no expiry set
+	emptyCreds := &PlatformCredentials{}
+	assert.Equal(t, int64(0), emptyCreds.TokenExpiry)
+}

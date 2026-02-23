@@ -207,6 +207,10 @@ func (a *App) initServices() {
 	// TokenManager uses tenant-scoped database for PlatformConfig
 	a.TokenManager = services.NewTokenManager(a.GlobalConfigRepo, a.Encryption, a.BasePath)
 
+	// Register TokenManager globally so all CredentialService instances
+	// (created ad-hoc across handlers/services) auto-refresh expired tokens
+	services.RegisterGlobalTokenManager(a.TokenManager)
+
 	// Register token refresh adapter for platform coordination service
 	// This enables auto-refresh of expired tokens before API calls
 	tokenRefreshAdapter := services.NewTokenRefreshAdapter(a.TokenManager)

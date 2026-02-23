@@ -3,10 +3,12 @@ package services
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -15,7 +17,18 @@ import (
 // - Global credentials (partnerId, partnerKey, appKey, appSecret) from system schema
 // - Tenant-specific config (shopId, accessToken, refreshToken) from tenant.db
 type CredentialService struct {
-	dbPath string
+	dbPath       string
+	tokenManager *TokenManager // Optional: enables auto-refresh on expired tokens
+}
+
+// globalTokenManager is set once at app startup so all CredentialService instances
+// can auto-refresh expired tokens without needing explicit wiring.
+var globalTokenManager *TokenManager
+
+// RegisterGlobalTokenManager registers a TokenManager for automatic token refresh.
+// Called once during app initialization.
+func RegisterGlobalTokenManager(tm *TokenManager) {
+	globalTokenManager = tm
 }
 
 // PlatformCredentials holds credentials for a platform
@@ -31,11 +44,20 @@ type PlatformCredentials struct {
 	ShopCipher   string // For TikTok
 	Region       string // For Lazada
 	IsProduction bool
+	TokenExpiry  int64 // milliseconds since epoch
 }
 
 // NewCredentialService creates a new credential service
 func NewCredentialService(dbPath string) *CredentialService {
-	return &CredentialService{dbPath: dbPath}
+	return &CredentialService{
+		dbPath:       dbPath,
+		tokenManager: globalTokenManager,
+	}
+}
+
+// SetTokenManager enables automatic token refresh when credentials are expired
+func (s *CredentialService) SetTokenManager(tm *TokenManager) {
+	s.tokenManager = tm
 }
 
 // GetPlatformCredentials retrieves credentials for a platform
@@ -69,6 +91,19 @@ func (s *CredentialService) GetPlatformCredentials(tenantID, platform string) (*
 	if err := s.loadTenantCredentials(ctx, tenantDB, platform, creds); err != nil {
 		// Not an error if no tenant config yet (new tenant)
 		// Just return with global credentials
+	}
+
+	// Check token expiry and auto-refresh if needed
+	if s.tokenManager != nil && creds.AccessToken != "" && creds.TokenExpiry > 0 {
+		bufferMs := int64(5 * 60 * 1000) // 5 minutes
+		if time.Now().UnixMilli()+bufferMs >= creds.TokenExpiry {
+			log.Info().Str("platform", platform).Str("tenant", tenantID).
+				Msg("[CredentialService] Token expired or expiring soon, auto-refreshing")
+			if err := s.refreshAndReload(ctx, tenantDB, tenantID, platform, creds); err != nil {
+				log.Warn().Err(err).Str("platform", platform).
+					Msg("[CredentialService] Auto-refresh failed, returning stale credentials")
+			}
+		}
 	}
 
 	return creds, nil
@@ -117,7 +152,35 @@ func (s *CredentialService) loadTenantCredentials(ctx context.Context, db *gorm.
 	creds.RefreshToken = tokenInfo.RefreshToken
 	creds.ShopCipher = tokenInfo.ShopCipherOfSeller
 	creds.Region = tokenInfo.Region
+	creds.TokenExpiry = tokenInfo.TokenExpiry
 
+	return nil
+}
+
+// refreshAndReload refreshes the token for a platform and reloads credentials
+func (s *CredentialService) refreshAndReload(ctx context.Context, tenantDB *gorm.DB, tenantID, platform string, creds *PlatformCredentials) error {
+	var err error
+	switch platform {
+	case models.PlatformShopee:
+		_, err = s.tokenManager.RefreshShopeeToken(ctx, tenantID)
+	case models.PlatformLazada:
+		_, err = s.tokenManager.RefreshLazadaToken(ctx, tenantID)
+	case models.PlatformTiktok:
+		_, err = s.tokenManager.RefreshTiktokToken(ctx, tenantID)
+	default:
+		return fmt.Errorf("unsupported platform for token refresh: %s", platform)
+	}
+	if err != nil {
+		return fmt.Errorf("refresh %s token: %w", platform, err)
+	}
+
+	// Reload tenant credentials so creds has the fresh token
+	if err := s.loadTenantCredentials(ctx, tenantDB, platform, creds); err != nil {
+		return fmt.Errorf("reload credentials after refresh: %w", err)
+	}
+
+	log.Info().Str("platform", platform).Str("tenant", tenantID).
+		Msg("[CredentialService] Token refreshed successfully")
 	return nil
 }
 
