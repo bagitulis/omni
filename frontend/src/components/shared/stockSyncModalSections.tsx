@@ -110,8 +110,8 @@ export function PerPlatformStockSection({
       <Alert
         message={
           recommendationsLoading
-            ? "Loading inventory recommendations..."
-            : "Inventory recommendation is available as hint and can be applied to all rows."
+            ? "Loading inventory recommendations & locked orders..."
+            : "Inventory recommendation available (locked orders auto-deducted). Apply to all rows."
         }
         type="warning"
         showIcon

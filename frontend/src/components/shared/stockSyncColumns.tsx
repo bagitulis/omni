@@ -88,76 +88,122 @@ export const getPerPlatformColumns = (
       },
     },
     ...PLATFORM_OPTIONS.map(
-      (platformOption): ColumnType<PerPlatformRow> => ({
-        title: platformOption.label,
-        key: platformOption.key,
-        width: 170,
-        render: (_: unknown, record: PerPlatformRow) => {
-          const linked =
-            linkedPlatformsBySku[record.sku]?.[platformOption.key] ?? false;
-          const platformConfig =
-            perPlatformConfig[record.sku]?.platforms[platformOption.key];
+      (platformOption): ColumnType<PerPlatformRow> => {
+        // Compute check-all state for this platform column
+        const allSkus = Object.keys(perPlatformConfig);
+        const linkedSkus = allSkus.filter(
+          (sku) => linkedPlatformsBySku[sku]?.[platformOption.key],
+        );
+        const checkedSkus = linkedSkus.filter(
+          (sku) =>
+            perPlatformConfig[sku]?.platforms[platformOption.key]?.enabled,
+        );
+        const allChecked =
+          linkedSkus.length > 0 && checkedSkus.length === linkedSkus.length;
+        const someChecked =
+          checkedSkus.length > 0 && checkedSkus.length < linkedSkus.length;
 
-          return (
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        return {
+          title: (
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <Checkbox
-                disabled={!linked}
-                checked={linked ? (platformConfig?.enabled ?? false) : false}
-                onChange={(event) =>
+                checked={allChecked}
+                indeterminate={someChecked}
+                disabled={linkedSkus.length === 0}
+                onChange={(event) => {
+                  const nextEnabled = event.target.checked;
                   setPerPlatformConfig((previous) => {
-                    const existing = previous[record.sku];
-                    if (!existing) return previous;
-
-                    const current = existing.platforms[platformOption.key];
-
-                    return {
-                      ...previous,
-                      [record.sku]: {
+                    const next = { ...previous };
+                    for (const sku of linkedSkus) {
+                      const existing = next[sku];
+                      if (!existing) continue;
+                      next[sku] = {
                         ...existing,
                         platforms: {
                           ...existing.platforms,
                           [platformOption.key]: {
-                            enabled: linked ? event.target.checked : false,
-                            stock: current.stock,
+                            ...existing.platforms[platformOption.key],
+                            enabled: nextEnabled,
                           },
                         },
-                      },
-                    };
-                  })
-                }
+                      };
+                    }
+                    return next;
+                  });
+                }}
               />
-              <InputNumber
-                size="small"
-                min={0}
-                value={platformConfig?.stock ?? 0}
-                disabled={!linked || !(platformConfig?.enabled ?? false)}
-                onChange={(value) =>
-                  setPerPlatformConfig((previous) => {
-                    const existing = previous[record.sku];
-                    if (!existing) return previous;
-
-                    const current = existing.platforms[platformOption.key];
-                    return {
-                      ...previous,
-                      [record.sku]: {
-                        ...existing,
-                        platforms: {
-                          ...existing.platforms,
-                          [platformOption.key]: {
-                            ...current,
-                            stock: value ?? 0,
-                          },
-                        },
-                      },
-                    };
-                  })
-                }
-                style={{ width: 92 }}
-              />
+              <span>{platformOption.label}</span>
             </div>
-          );
-        },
-      }),
+          ),
+          key: platformOption.key,
+          width: 170,
+          render: (_: unknown, record: PerPlatformRow) => {
+            const linked =
+              linkedPlatformsBySku[record.sku]?.[platformOption.key] ?? false;
+            const platformConfig =
+              perPlatformConfig[record.sku]?.platforms[platformOption.key];
+
+            return (
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <Checkbox
+                  disabled={!linked}
+                  checked={linked ? (platformConfig?.enabled ?? false) : false}
+                  onChange={(event) =>
+                    setPerPlatformConfig((previous) => {
+                      const existing = previous[record.sku];
+                      if (!existing) return previous;
+
+                      const current = existing.platforms[platformOption.key];
+
+                      return {
+                        ...previous,
+                        [record.sku]: {
+                          ...existing,
+                          platforms: {
+                            ...existing.platforms,
+                            [platformOption.key]: {
+                              enabled: linked ? event.target.checked : false,
+                              stock: current.stock,
+                            },
+                          },
+                        },
+                      };
+                    })
+                  }
+                />
+                <InputNumber
+                  size="small"
+                  min={0}
+                  value={platformConfig?.stock ?? 0}
+                  disabled={!linked || !(platformConfig?.enabled ?? false)}
+                  onChange={(value) =>
+                    setPerPlatformConfig((previous) => {
+                      const existing = previous[record.sku];
+                      if (!existing) return previous;
+
+                      const current = existing.platforms[platformOption.key];
+                      return {
+                        ...previous,
+                        [record.sku]: {
+                          ...existing,
+                          platforms: {
+                            ...existing.platforms,
+                            [platformOption.key]: {
+                              ...current,
+                              stock: value ?? 0,
+                            },
+                          },
+                        },
+                      };
+                    })
+                  }
+                  style={{ width: 92 }}
+                />
+              </div>
+            );
+          },
+        };
+      },
     ),
   ];
 };

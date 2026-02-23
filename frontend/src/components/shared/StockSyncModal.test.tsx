@@ -15,6 +15,10 @@ vi.mock("@/api/inventoryCore", () => ({
   getInventoryBySku: vi.fn(),
 }));
 
+vi.mock("@/api/lockedOrders", () => ({
+  getLockedOrders: vi.fn().mockResolvedValue([]),
+}));
+
 // Ant Design Modal / Table use matchMedia internally — mock it for jsdom
 Object.defineProperty(window, "matchMedia", {
   writable: true,
@@ -99,10 +103,13 @@ describe("StockSyncModal", () => {
   });
 
   const flushAsyncUpdates = async () => {
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    // The modal chains: buildLockedStockMap() → buildStockRecommendations()
+    // Each is an async call that triggers setState, so we need many microtask ticks
+    for (let i = 0; i < 10; i++) {
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    }
   };
 
   it("does not render modal content when open=false", () => {
@@ -238,13 +245,18 @@ describe("StockSyncModal", () => {
     await flushAsyncUpdates();
 
     // Click per-platform radio button label
-    fireEvent.click(screen.getByText("Per Platform (different stock)"));
+    await act(async () => {
+      fireEvent.click(screen.getByText("Per Platform (different stock)"));
+    });
+
+    // Per-platform info alert should appear immediately
     expect(
       screen.getByText("Set stock and target platforms individually per SKU."),
     ).toBeInTheDocument();
-    // SKU row from sample product
-    expect(screen.getByText("SKU-001")).toBeInTheDocument();
-    expect(screen.getByText("Apply Recommendation")).toBeInTheDocument();
+
+    // SKU row and Apply Recommendation appear after async data loads
+    expect(await screen.findByText("SKU-001")).toBeInTheDocument();
+    expect(await screen.findByText("Apply Recommendation")).toBeInTheDocument();
   });
 
   it("shows skipped SKU warning when no linked platforms are selected", async () => {

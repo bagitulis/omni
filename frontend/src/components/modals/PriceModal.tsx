@@ -134,6 +134,21 @@ export function PriceModal({ open, onCancel, selectedProducts }: Props) {
           />
         </Form.Item>
         <Form.Item label="Apply to Platforms (Optional)">
+          <div style={{ marginBottom: 6 }}>
+            <Checkbox
+              checked={platforms.length === PLATFORM_OPTIONS.length}
+              indeterminate={platforms.length > 0 && platforms.length < PLATFORM_OPTIONS.length}
+              onChange={(e) =>
+                setPlatforms(
+                  e.target.checked
+                    ? PLATFORM_OPTIONS.map((p) => p.value)
+                    : [],
+                )
+              }
+            >
+              Select All
+            </Checkbox>
+          </div>
           <Checkbox.Group
             options={[...PLATFORM_OPTIONS]}
             value={platforms}

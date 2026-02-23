@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FC } from "react";
-import { Modal, Radio, theme } from "antd";
+import { Modal, Radio, Alert, Tag, theme } from "antd";
 import type { Platform, UnifiedProductRow } from "@/types/shared";
 import {
   type PerPlatformConfig,
@@ -17,6 +17,7 @@ import {
 import {
   buildStockRecommendations,
   type StockRecommendationMap,
+  type LockedStockMap,
 } from "./stockSyncRecommendations";
 import {
   PerPlatformStockSection,
@@ -60,6 +61,7 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
   const [recommendations, setRecommendations] =
     useState<StockRecommendationMap>({});
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+  const [lockedStockMap, setLockedStockMap] = useState<LockedStockMap>({});
 
   const linkedPlatformsBySku = useMemo(
     () => buildLinkedPlatformsBySku(selectedProducts),
@@ -79,25 +81,30 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
   useEffect(() => {
     if (!open) {
       setRecommendations({});
+      setLockedStockMap({});
       return;
     }
 
     let isMounted = true;
     setRecommendationsLoading(true);
 
+    // Single async call — buildStockRecommendations fetches locked data internally
     void buildStockRecommendations(selectedProducts)
       .then((nextRecommendations) => {
-        if (!isMounted) {
-          return;
-        }
-
+        if (!isMounted) return;
         setRecommendations(nextRecommendations);
+
+        // Extract locked stock map from recommendation results
+        const locked: Record<string, number> = {};
+        for (const [sku, rec] of Object.entries(nextRecommendations)) {
+          if (rec.lockedQty && rec.lockedQty > 0) {
+            locked[sku] = rec.lockedQty;
+          }
+        }
+        setLockedStockMap(locked);
       })
       .finally(() => {
-        if (!isMounted) {
-          return;
-        }
-
+        if (!isMounted) return;
         setRecommendationsLoading(false);
       });
 
@@ -105,6 +112,16 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
       isMounted = false;
     };
   }, [open, selectedProducts]);
+
+  // Compute locked SKU stats for display
+  const lockedSkuCount = useMemo(
+    () => Object.keys(lockedStockMap).length,
+    [lockedStockMap],
+  );
+  const totalLockedQty = useMemo(
+    () => Object.values(lockedStockMap).reduce((sum, qty) => sum + qty, 0),
+    [lockedStockMap],
+  );
 
   const syncItems = useMemo(
     () =>
@@ -204,6 +221,28 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
       }}
     >
       <PlatformComparisonPanel products={selectedProducts} mode="stock" />
+
+      {lockedSkuCount > 0 && (
+        <Alert
+          message={
+            <span>
+              🔒 <strong>Lock Stock Active</strong> —{" "}
+              <Tag color="error" style={{ borderRadius: 3 }}>
+                {lockedSkuCount} SKUs
+              </Tag>
+              <Tag color="warning" style={{ borderRadius: 3 }}>
+                {totalLockedQty} pcs locked
+              </Tag>
+              <span style={{ color: token.colorTextSecondary, fontSize: 12 }}>
+                Recommendations auto-adjusted (deducted from inventory)
+              </span>
+            </span>
+          }
+          type="warning"
+          showIcon
+          style={{ marginBottom: 12 }}
+        />
+      )}
 
       <Radio.Group
         value={mode}
