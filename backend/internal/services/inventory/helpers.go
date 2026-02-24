@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"strings"
 )
 
 // parseHeaders converts interface row to string headers
@@ -17,10 +18,11 @@ func parseHeaders(row []interface{}) []string {
 	return headers
 }
 
-// findColumnIndex finds the index of a column in headers
+// findColumnIndex finds the index of a column in headers (case-insensitive)
 func findColumnIndex(headers []string, column string) int {
+	target := strings.ToLower(strings.TrimSpace(column))
 	for i, h := range headers {
-		if h == column {
+		if strings.ToLower(strings.TrimSpace(h)) == target {
 			return i
 		}
 	}

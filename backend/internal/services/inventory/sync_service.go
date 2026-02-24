@@ -104,11 +104,21 @@ func (s *SyncService) SyncFromSheets(ctx context.Context, spreadsheetID, sheetNa
 		keyColumn = settings.KeyColumn
 	}
 
-	result := s.processRows(ctx, data[dataStartRow:], headers, keyColumn)
+	// Clean up stale records from previous key_column_name (prevents duplicates)
+	if err := s.cleanupStaleKeyColumnRecords(ctx, keyColumn); err != nil {
+		return &SheetSyncResult{Status: "ERROR", Message: "Failed to clean up stale records: " + err.Error()}, nil
+	}
+
+	result, seenKeyValues := s.processRows(ctx, data[dataStartRow:], headers, keyColumn)
 	result.Duration = int(time.Since(startTime).Milliseconds())
 	result.HeadersChanged = headersChanged
 	result.Headers = headers
 	result.SyncedAt = time.Now()
+
+	// Clean up orphaned records (rows deleted from sheet but still in DB)
+	if result.Status != "ERROR" {
+		_ = s.cleanupOrphanedRecords(ctx, keyColumn, seenKeyValues)
+	}
 
 	// Update settings with new hash and columns
 	if settings != nil {
@@ -144,14 +154,16 @@ func (s *SyncService) SyncFromSheets(ctx context.Context, spreadsheetID, sheetNa
 	return result, nil
 }
 
-func (s *SyncService) processRows(ctx context.Context, rows [][]interface{}, headers []string, keyColumn string) *SheetSyncResult {
+func (s *SyncService) processRows(ctx context.Context, rows [][]interface{}, headers []string, keyColumn string) (*SheetSyncResult, []string) {
 	result := &SheetSyncResult{Status: "SUCCESS"}
 	keyIdx := findColumnIndex(headers, keyColumn)
 	if keyIdx < 0 {
 		result.Status = "ERROR"
 		result.Message = fmt.Sprintf("Key column '%s' not found", keyColumn)
-		return result
+		return result, nil
 	}
+
+	var seenKeyValues []string
 
 	for _, row := range rows {
 		if len(row) <= keyIdx || row[keyIdx] == nil {
@@ -164,6 +176,8 @@ func (s *SyncService) processRows(ctx context.Context, rows [][]interface{}, hea
 			result.FailedRecords++
 			continue
 		}
+
+		seenKeyValues = append(seenKeyValues, keyValue)
 
 		// Build record data as JSON (match PostgreSQL JSONB format)
 		recordData := make(map[string]interface{})
@@ -212,7 +226,7 @@ func (s *SyncService) processRows(ctx context.Context, rows [][]interface{}, hea
 		result.Status = "ERROR"
 	}
 
-	return result
+	return result, seenKeyValues
 }
 
 func (s *SyncService) upsertRecord(ctx context.Context, record *models.InventoryRecord) (string, error) {
@@ -247,4 +261,24 @@ func (s *SyncService) upsertRecord(ctx context.Context, record *models.Inventory
 		return "", err
 	}
 	return "updated", nil
+}
+
+// cleanupStaleKeyColumnRecords deletes records using a different key_column_name.
+// This prevents duplicates when the user changes the key_column setting.
+func (s *SyncService) cleanupStaleKeyColumnRecords(ctx context.Context, currentKeyColumn string) error {
+	return s.db.WithContext(ctx).
+		Where("tenant_id = ? AND key_column_name != ?", s.tenantID, currentKeyColumn).
+		Delete(&models.InventoryRecord{}).Error
+}
+
+// cleanupOrphanedRecords deletes records whose key_value is no longer in the sheet.
+// This handles rows that were deleted from the spreadsheet.
+func (s *SyncService) cleanupOrphanedRecords(ctx context.Context, keyColumn string, seenKeyValues []string) error {
+	if len(seenKeyValues) == 0 {
+		return nil
+	}
+	return s.db.WithContext(ctx).
+		Where("tenant_id = ? AND key_column_name = ? AND key_value NOT IN ?",
+			s.tenantID, keyColumn, seenKeyValues).
+		Delete(&models.InventoryRecord{}).Error
 }
