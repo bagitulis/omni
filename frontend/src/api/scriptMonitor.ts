@@ -168,9 +168,9 @@ export async function runAutoFunction(name: string): Promise<void> {
 /**
  * Cancel scheduled execution
  */
-export async function cancelScheduled(id: number): Promise<void> {
+export async function cancelScheduled(name: string): Promise<void> {
   const response = await apiClient.post(
-    `/jobs/auto-functions/${id}/cancel-scheduled`,
+    `/jobs/auto-functions/${name}/cancel-scheduled`,
   );
   if (!response.success) {
     throw new Error(response.error || "Failed to cancel scheduled execution");

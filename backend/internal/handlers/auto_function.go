@@ -104,6 +104,11 @@ func (h *AutoFunctionHandler) Create(c *gin.Context) {
 		return
 	}
 
+	if req.Name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "name is required"})
+		return
+	}
+
 	if req.IntervalMinutes < 1 {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "interval_minutes must be at least 1"})
 		return

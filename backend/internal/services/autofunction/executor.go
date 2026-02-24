@@ -46,12 +46,17 @@ func (e *Executor) GetHandler(functionName string) FunctionHandler {
 
 // Execute executes an auto function by config ID
 func (e *Executor) Execute(tenantID string, configID uint) {
+	e.ExecuteWithDB(e.db, tenantID, configID)
+}
+
+// ExecuteWithDB executes an auto function by config ID using the provided DB
+func (e *Executor) ExecuteWithDB(db *gorm.DB, tenantID string, configID uint) {
 	var cfg models.AutoFunctionConfig
-	if err := e.db.Where("id = ?", configID).First(&cfg).Error; err != nil {
+	if err := db.Where("id = ?", configID).First(&cfg).Error; err != nil {
 		log.Printf("Auto function config not found: %d", configID)
 		return
 	}
-	e.executeConfig(tenantID, &cfg)
+	e.executeConfig(db, tenantID, &cfg)
 }
 
 // ExecuteManual manually executes an auto function
@@ -60,7 +65,7 @@ func (e *Executor) ExecuteManual(tenantID string, configID uint) error {
 	if err := e.db.Where("id = ?", configID).First(&cfg).Error; err != nil {
 		return err
 	}
-	go e.executeConfig(tenantID, &cfg)
+	go e.executeConfig(e.db, tenantID, &cfg)
 	return nil
 }
 
@@ -76,12 +81,12 @@ func (e *Executor) ExecuteByNameWithDB(db *gorm.DB, tenantID string, name string
 	if err := db.Where("name = ?", name).First(&cfg).Error; err != nil {
 		return err
 	}
-	go e.executeConfig(tenantID, &cfg)
+	go e.executeConfig(db, tenantID, &cfg)
 	return nil
 }
 
 // executeConfig executes a single config
-func (e *Executor) executeConfig(tenantID string, cfg *models.AutoFunctionConfig) {
+func (e *Executor) executeConfig(db *gorm.DB, tenantID string, cfg *models.AutoFunctionConfig) {
 	startTime := time.Now()
 
 	e.mu.RLock()
@@ -89,7 +94,7 @@ func (e *Executor) executeConfig(tenantID string, cfg *models.AutoFunctionConfig
 	e.mu.RUnlock()
 
 	if !ok {
-		e.recordHistory(cfg.Name, "failed", "no handler for function: "+cfg.Name, startTime)
+		e.recordHistory(db, cfg.Name, "failed", "no handler for function: "+cfg.Name, startTime)
 		return
 	}
 
@@ -102,7 +107,7 @@ func (e *Executor) executeConfig(tenantID string, cfg *models.AutoFunctionConfig
 	// Update last run time and schedule next
 	now := time.Now()
 	nextExecution := now.Add(time.Duration(cfg.IntervalMinutes) * time.Minute)
-	e.db.Model(cfg).Updates(map[string]interface{}{
+	db.Model(cfg).Updates(map[string]interface{}{
 		"last_executed":            now,
 		"next_scheduled_execution": nextExecution,
 	})
@@ -116,11 +121,11 @@ func (e *Executor) executeConfig(tenantID string, cfg *models.AutoFunctionConfig
 		log.Printf("Auto function %s failed: %v", cfg.Name, err)
 	}
 
-	e.recordHistory(cfg.Name, status, errMsg, startTime)
+	e.recordHistory(db, cfg.Name, status, errMsg, startTime)
 }
 
 // recordHistory records execution in history
-func (e *Executor) recordHistory(functionName, status, errMsg string, startTime time.Time) {
+func (e *Executor) recordHistory(db *gorm.DB, functionName, status, errMsg string, startTime time.Time) {
 	history := &models.AutoFunctionHistory{
 		FunctionName: functionName,
 		Status:       status,
@@ -129,7 +134,7 @@ func (e *Executor) recordHistory(functionName, status, errMsg string, startTime 
 		ExecutedAt:   startTime,
 	}
 
-	if err := e.db.Create(history).Error; err != nil {
+	if err := db.Create(history).Error; err != nil {
 		log.Printf("Failed to record auto function history: %v", err)
 	}
 }

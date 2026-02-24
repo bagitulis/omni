@@ -27,7 +27,7 @@ interface Props {
   onDisable: (name: string) => void;
   onRun: (name: string) => void;
   onDelete: (name: string) => void;
-  onCancelScheduled: (id: number) => void;
+  onCancelScheduled: (name: string) => void;
   onCreate: (config: AutoFunctionConfig, onSuccess: () => void) => void;
   onUpdate: (
     payload: { name: string; config: Partial<AutoFunctionConfig> },
@@ -135,7 +135,7 @@ export function ConfigTab({
           {record.next_scheduled_execution && (
             <Popconfirm
               title="Cancel scheduled run?"
-              onConfirm={() => onCancelScheduled(record.id)}
+              onConfirm={() => onCancelScheduled(record.name)}
             >
               <Button size="small" icon={<ClockCircleOutlined />} danger>
                 Skip Next

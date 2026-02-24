@@ -29,6 +29,7 @@ export function formatStatus(status: string): {
 } {
   switch (status) {
     case "completed":
+    case "success":
       return { color: "success", label: "COMPLETED" };
     case "failed":
       return { color: "error", label: "FAILED" };

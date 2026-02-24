@@ -61,7 +61,7 @@ func (RouteExecutionConfig) TableName() string {
 // AutoFunctionRequest represents auto function creation/update request
 // JSON tags use snake_case as per AGENTS.md standard
 type AutoFunctionRequest struct {
-	Name            string  `json:"name" binding:"required"`
+	Name            string  `json:"name"`
 	Enabled         bool    `json:"enabled"`
 	IntervalMinutes int     `json:"interval_minutes" binding:"required,min=1"`
 	StartTime       *string `json:"start_time,omitempty"`
