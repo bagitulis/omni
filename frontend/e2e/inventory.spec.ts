@@ -39,25 +39,21 @@ test.describe("Inventory", () => {
         ].join(", "),
       )
       .first();
-
     // If not visible directly, look in table header area
     const isVisible = await columnSettingsBtn
       .isVisible({ timeout: 5000 })
       .catch(() => false);
-
     if (!isVisible) {
+      // Fall back to any button in table header area — MUST exist
       const headerBtn = page
         .locator(".ant-table-header button, .ant-table-title button")
         .first();
-      const headerVisible = await headerBtn
-        .isVisible({ timeout: 3000 })
-        .catch(() => false);
-      test.skip(!headerVisible, "Column toggle button not found in current UI");
+      // Assert the header button exists; fail if neither column btn nor header btn found
+      await expect(headerBtn).toBeVisible({ timeout: 5000 });
       await headerBtn.click();
     } else {
       await columnSettingsBtn.click();
     }
-
     // Assert popover/dropdown appears
     await expect(
       page
@@ -67,23 +63,18 @@ test.describe("Inventory", () => {
   });
 
   test("search/filter changes table state", async ({ page }) => {
-    // Find search input or filter
+    // Find search input or filter — MUST exist on inventory page
     const filterInput = page
       .locator(
         'input[placeholder*="search" i], input[placeholder*="filter" i], .ant-input-search, .ant-select',
       )
       .first();
-
-    const isVisible = await filterInput
-      .isVisible({ timeout: 5000 })
-      .catch(() => false);
-    test.skip(!isVisible, "No search/filter input found in current UI");
-
+    // Assert search/filter exists on the page
+    await expect(filterInput).toBeVisible({ timeout: 10000 });
     // Type a value or select option
     const tagName = await filterInput.evaluate((el) =>
       el.tagName.toLowerCase(),
     );
-
     if (tagName === "input") {
       await filterInput.fill("test-search-query");
     } else {
@@ -96,11 +87,8 @@ test.describe("Inventory", () => {
         await option.click();
       }
     }
-
     // Wait 800ms for debounce
     await page.waitForTimeout(800);
-
-    // Assert: table re-renders (no error, loader gone)
     await expect(page.locator(".ant-spin")).toHaveCount(0, { timeout: 5000 });
   });
 
@@ -112,40 +100,30 @@ test.describe("Inventory", () => {
       )
       .first();
 
-    let editTriggered = false;
-
     const editVisible = await editButton
       .isVisible({ timeout: 5000 })
       .catch(() => false);
 
     if (editVisible) {
       await editButton.click();
-      editTriggered = true;
     } else {
-      // If no edit button found, try clicking the first cell directly
+      // If no edit button found, try clicking the first cell directly — MUST be editable
       const firstCell = page.locator(".ant-table-row .ant-table-cell").first();
-      const cellVisible = await firstCell
-        .isVisible({ timeout: 3000 })
-        .catch(() => false);
-      test.skip(!cellVisible, "No edit button or editable cell found");
+      // Assert the cell exists; fail if table has no rows
+      await expect(firstCell).toBeVisible({ timeout: 5000 });
       await firstCell.dblclick();
-      editTriggered = true;
     }
 
-    if (editTriggered) {
-      // Assert: input appears in row
-      await expect(
-        page.locator(".ant-table-cell input, .ant-input").first(),
-      ).toBeVisible({ timeout: 3000 });
+    // Assert: input appears in row
+    await expect(
+      page.locator(".ant-table-cell input, .ant-input").first(),
+    ).toBeVisible({ timeout: 3000 });
 
-      // Press Escape to cancel — MUST NOT save
-      await page.keyboard.press("Escape");
-
-      // Assert: input disappears
-      await expect(page.locator(".ant-table-cell input").first()).toBeHidden({
-        timeout: 3000,
-      });
-    }
+    // Press Escape to cancel — MUST NOT save
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".ant-table-cell input").first()).toBeHidden({
+      timeout: 3000,
+    });
   });
 
   test("sync status indicators visible", async ({ page }) => {

@@ -24,22 +24,16 @@ test.describe("Orders", () => {
   });
 
   test("platform filter updates UI", async ({ page }) => {
-    // Find a platform selector
+    // Find a platform selector — MUST exist on this page
     const platformSelector = page.locator(
       '.ant-select, .ant-tabs-tab, [class*="platform"]',
     );
-    const selectorCount = await platformSelector.count();
 
-    if (selectorCount === 0) {
-      test.skip(true, "No platform selector found on page");
-      return;
-    }
-
+    // Assert at least one platform selector is present
+    await expect(platformSelector.first()).toBeVisible({ timeout: 10000 });
     // Click the first platform selector
     await platformSelector.first().click();
     await page.waitForTimeout(500);
-
-    // Assert: dropdown opened OR tab became active
     await expect(
       page
         .locator(".ant-select-dropdown, .ant-tabs-tab-active, .ant-select-open")
@@ -48,23 +42,17 @@ test.describe("Orders", () => {
   });
 
   test("status filter applies", async ({ page }) => {
-    // Find status filter control
+    // Find status filter control — MUST exist on this page
     const statusFilter = page.locator(
       '.ant-select, [class*="status"], .ant-tabs-tab',
     );
+
+    // Assert at least one filter control is present
+    await expect(statusFilter.first()).toBeVisible({ timeout: 10000 });
     const filterCount = await statusFilter.count();
-
-    if (filterCount === 0) {
-      test.skip(true, "No status filter found on page");
-      return;
-    }
-
-    // Try the second element (first is often already-active/default)
     const targetIndex = filterCount > 1 ? 1 : 0;
     await statusFilter.nth(targetIndex).click();
     await page.waitForTimeout(500);
-
-    // Assert: filter/dropdown is visible or a selection chip appears
     const filterResult = page.locator(
       ".ant-select-dropdown, .ant-tabs-tab-active, .ant-select-open, .ant-tag, .ant-select-selection-item",
     );
@@ -72,25 +60,18 @@ test.describe("Orders", () => {
   });
 
   test("order row click shows detail", async ({ page }) => {
-    // Check for table rows
-    const rowCount = await page.locator(".ant-table-row").count();
-    if (rowCount === 0) {
-      test.skip(true, "No order rows found in table");
-      return;
-    }
-
+    // Assert table rows exist — MUST have orders in table
+    const tableRow = page.locator(".ant-table-row");
+    await expect(tableRow.first()).toBeVisible({ timeout: 10000 });
     // Click first table row
     const firstRow = page
       .locator('.ant-table-row, [class*="order-row"]')
       .first();
     await firstRow.click();
-
-    // Wait for modal or drawer to appear
     await page.waitForSelector(
       '.ant-modal, .ant-drawer, [class*="detail"], [class*="order-detail"]',
       { timeout: 5000 },
     );
-
     // Assert detail panel visible
     const detailPanel = page.locator(
       '.ant-modal, .ant-drawer, [class*="detail"], [class*="order-detail"]',

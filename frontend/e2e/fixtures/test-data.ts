@@ -4,8 +4,8 @@
  */
 
 export const TEST_CREDENTIALS = {
-  username: process.env.TEST_USERNAME || "admin",
-  password: process.env.TEST_PASSWORD || "password",
+  username: process.env.TEST_USERNAME || "",
+  password: process.env.TEST_PASSWORD || "",
 } as const;
 
 export const TEST_BASE_URL = process.env.BASE_URL || "http://localhost:5174";

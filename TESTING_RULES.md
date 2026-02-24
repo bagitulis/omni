@@ -82,12 +82,11 @@ Test results: **44 files pass, 3 files fail** (pre-existing failures, not caused
 | Phase | Backend (statements) | Frontend (statements) | Timeline |
 | ----- | -------------------- | --------------------- | -------- |
 | **Baseline** | ~15–20% | 27% | 2026-02-24 |
-| **Phase 1** | 30% | 37% | +3 months |
-| **Phase 2** | 50% | 55% | +6 months |
-| **Phase 3** | 70%+ | 70%+ | Long-term |
-
+| **Phase 1** | 27% (baseline +10pp) | 37% (baseline +10pp) | +3 months |
+| **Phase 2** | 42% (Phase 1 +15pp) | 52% (Phase 1 +15pp) | +6 months |
+| **Phase 3** | 100% (long-term) | 100% (long-term) | Long-term |
 > **Rule**: Do NOT set phase targets ABOVE the measured baseline — targets must be achievable.
-> Phase 1 = baseline + ~10pp. Phase 2 = Phase 1 + ~18pp. Phase 3 = long-term goal.
+> Phase 1 = baseline + ~10pp. Phase 2 = Phase 1 + ~15pp. Phase 3 = 100% long-term goal.
 
 ---
 

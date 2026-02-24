@@ -19,7 +19,7 @@ test.describe("Authentication", () => {
 
     await page.fill(
       'input[name="username"], input[placeholder*="username" i], input[type="text"]',
-      process.env.TEST_USERNAME || "admin",
+      process.env.TEST_USERNAME || "",
     );
     await page.fill(
       'input[name="password"], input[placeholder*="password" i], input[type="password"]',

@@ -11,8 +11,8 @@ export async function loginAs(
   username?: string,
   password?: string,
 ): Promise<void> {
-  const user = username || process.env.TEST_USERNAME || "admin";
-  const pass = password || process.env.TEST_PASSWORD || "password";
+  const user = username || process.env.TEST_USERNAME || "";
+  const pass = password || process.env.TEST_PASSWORD || "";
 
   await page.goto(`${BASE_URL}/login`);
   await page.waitForLoadState("networkidle");
