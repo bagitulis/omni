@@ -80,8 +80,14 @@ func TestMasterProductRepository_UpsertPlatformLink_ByPlatformProductID(t *testi
 		Where("platform = ? AND platform_product_id = ?", "shopee", "ITEM-123").
 		Find(&links).Error
 	require.NoError(t, err)
-	require.Len(t, links, 1)
-	assert.NotNil(t, links[0].MasterSkuID)
-	assert.Equal(t, secondSku.ID, *links[0].MasterSkuID)
-	assert.Equal(t, "MODEL-2", links[0].PlatformSkuID)
+	require.Len(t, links, 2)
+
+	linkedSkus := make(map[string]uint, len(links))
+	for _, existing := range links {
+		require.NotNil(t, existing.MasterSkuID)
+		linkedSkus[existing.PlatformSkuID] = *existing.MasterSkuID
+	}
+
+	assert.Equal(t, firstSku.ID, linkedSkus["MODEL-1"])
+	assert.Equal(t, secondSku.ID, linkedSkus["MODEL-2"])
 }

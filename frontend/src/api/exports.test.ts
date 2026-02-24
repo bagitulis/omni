@@ -32,8 +32,8 @@ const mockLink = {
 describe("exportOrders", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    global.URL.createObjectURL = vi.fn().mockReturnValue("blob:url");
-    global.URL.revokeObjectURL = vi.fn();
+    globalThis.URL.createObjectURL = vi.fn().mockReturnValue("blob:url");
+    globalThis.URL.revokeObjectURL = vi.fn();
     vi.spyOn(document, "createElement").mockReturnValue(
       mockLink as unknown as HTMLElement,
     );

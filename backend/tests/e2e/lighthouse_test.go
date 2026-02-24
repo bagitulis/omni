@@ -120,7 +120,7 @@ func measureEndpoint(name, url, token string) PageScore {
 func TestLighthouse_AllEndpoints(t *testing.T) {
 	token, err := getAuthToken()
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -201,7 +201,7 @@ func TestLighthouse_HealthEndpoint_Performance(t *testing.T) {
 	score := measureEndpoint("Health", apiBase+"/health", "")
 
 	if !score.Success {
-		t.Skipf("Health endpoint not available: %v", score.Error)
+		skipOrFailf(t, "Health endpoint not available: %v", score.Error)
 		return
 	}
 
@@ -226,7 +226,7 @@ func TestLighthouse_LoginEndpoint_Performance(t *testing.T) {
 	duration := time.Since(start)
 
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -242,7 +242,7 @@ func TestLighthouse_LoginEndpoint_Performance(t *testing.T) {
 func TestLighthouse_ConcurrentRequests(t *testing.T) {
 	token, err := getAuthToken()
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -297,7 +297,7 @@ func TestLighthouse_ConcurrentRequests(t *testing.T) {
 func TestLighthouse_ResponseSize(t *testing.T) {
 	token, err := getAuthToken()
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -334,7 +334,7 @@ func TestLighthouse_ResponseSize(t *testing.T) {
 func TestAPI_AllEndpointsAvailable(t *testing.T) {
 	token, err := getAuthToken()
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -385,7 +385,7 @@ func TestAPI_AllEndpointsAvailable(t *testing.T) {
 func TestLighthouse_GenerateReport(t *testing.T) {
 	token, err := getAuthToken()
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 

@@ -29,7 +29,7 @@ describe("useOrderSync", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(ordersApi.syncOrdersByCategory).mockResolvedValue([]);
+    vi.mocked(ordersApi.syncOrdersByCategory).mockResolvedValue(undefined);
     vi.mocked(ordersApi.syncOrdersToday).mockResolvedValue([]);
     vi.mocked(ordersApi.lockOrdersToday).mockResolvedValue([]);
   });
@@ -56,7 +56,7 @@ describe("useOrderSync", () => {
 
   it("calls syncOrdersToday for 'today' tab", async () => {
     vi.mocked(ordersApi.isSyncableOrderTab).mockImplementation(
-      (tab) => tab !== "today" && tab !== "locked",
+      (tab: string) => tab !== "today" && tab !== "locked",
     );
 
     renderHook(() => useOrderSync("today", "all", refetch, false));
@@ -68,7 +68,7 @@ describe("useOrderSync", () => {
 
   it("calls lockOrdersToday for 'locked' tab", async () => {
     vi.mocked(ordersApi.isSyncableOrderTab).mockImplementation(
-      (tab) => tab !== "today" && tab !== "locked",
+      (tab: string) => tab !== "today" && tab !== "locked",
     );
 
     renderHook(() => useOrderSync("locked", "all", refetch, false));
@@ -110,15 +110,18 @@ describe("useOrderSync", () => {
     });
   });
 
-  it("exposes syncActiveTab function", () => {
+  it("exposes syncActiveTab function", async () => {
     const { result } = renderHook(() =>
       useOrderSync("unprocess", "shopee", refetch, false),
     );
+    await waitFor(() => {
+      expect(result.current.isSyncing).toBe(false);
+    });
     expect(typeof result.current.syncActiveTab).toBe("function");
   });
 
   it("syncActiveTab calls syncOrdersByCategory when called manually", async () => {
-    vi.mocked(ordersApi.syncOrdersByCategory).mockResolvedValue([]);
+    vi.mocked(ordersApi.syncOrdersByCategory).mockResolvedValue(undefined);
 
     const { result } = renderHook(() =>
       useOrderSync("unprocess", "shopee", refetch, false),
@@ -128,7 +131,7 @@ describe("useOrderSync", () => {
     await waitFor(() => expect(result.current.isSyncing).toBe(false));
 
     vi.clearAllMocks();
-    vi.mocked(ordersApi.syncOrdersByCategory).mockResolvedValue([]);
+    vi.mocked(ordersApi.syncOrdersByCategory).mockResolvedValue(undefined);
 
     await act(async () => {
       await result.current.syncActiveTab("processed");
@@ -142,27 +145,24 @@ describe("useOrderSync", () => {
 
   it("sets up auto-refresh interval when autoRefresh=true and tab is syncable", async () => {
     vi.useFakeTimers();
-    vi.mocked(ordersApi.syncOrdersByCategory).mockResolvedValue([]);
+    vi.mocked(ordersApi.syncOrdersByCategory).mockResolvedValue(undefined);
 
     const { unmount } = renderHook(() =>
       useOrderSync("unprocess", "shopee", refetch, true),
     );
 
-    // Advance past initial sync
     await act(async () => {
-      await vi.runAllTimersAsync();
+      await Promise.resolve();
     });
-
-    vi.clearAllMocks();
-    vi.mocked(ordersApi.syncOrdersByCategory).mockResolvedValue([]);
+    expect(ordersApi.syncOrdersByCategory).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       vi.advanceTimersByTime(30_000);
-      await vi.runAllMicrotasks();
+      await Promise.resolve();
     });
 
     // autoRefresh interval should have fired
-    expect(ordersApi.syncOrdersByCategory).toHaveBeenCalled();
+    expect(ordersApi.syncOrdersByCategory).toHaveBeenCalledTimes(2);
 
     unmount();
   });
@@ -177,19 +177,18 @@ describe("useOrderSync", () => {
     );
 
     await act(async () => {
-      await vi.runAllTimersAsync();
+      await Promise.resolve();
     });
-
-    vi.clearAllMocks();
-    vi.mocked(ordersApi.lockOrdersToday).mockResolvedValue([]);
+    expect(ordersApi.lockOrdersToday).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       vi.advanceTimersByTime(60_000);
-      await vi.runAllMicrotasks();
+      await Promise.resolve();
     });
 
     // interval should NOT fire for non-syncable tab
     expect(ordersApi.syncOrdersByCategory).not.toHaveBeenCalled();
+    expect(ordersApi.lockOrdersToday).toHaveBeenCalledTimes(1);
 
     unmount();
   });

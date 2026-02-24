@@ -244,10 +244,11 @@ describe("toLegacyProduct", () => {
       ],
     });
     const product = toLegacyProduct(row);
-    const shopeeLink = product.skus[0].platform_links.find(
+    const firstSku = product.skus?.[0];
+    const shopeeLink = firstSku?.platform_links?.find(
       (l) => l.platform === "shopee",
     );
-    const lazadaLink = product.skus[0].platform_links.find(
+    const lazadaLink = firstSku?.platform_links?.find(
       (l) => l.platform === "lazada",
     );
     expect(shopeeLink?.sync_status).toBe("failed");
@@ -273,7 +274,7 @@ describe("toLegacyProduct", () => {
       ],
     });
     const product = toLegacyProduct(row);
-    expect(product.skus[0].platform_links[0].sync_status).toBe("synced");
+    expect(product.skus?.[0]?.platform_links?.[0]?.sync_status).toBe("synced");
   });
 });
 

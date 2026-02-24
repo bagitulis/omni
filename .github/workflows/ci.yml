@@ -37,8 +37,18 @@ jobs:
       - name: Build
         run: go build ./...
 
-      - name: Test
-        run: go test -v -race ./...
+      - name: Vet
+        run: go vet ./...
+
+      - name: Security Middleware Coverage Gate
+        run: |
+          go test -v -race -coverprofile=coverage-middleware.out ./internal/middleware
+          go tool cover -func=coverage-middleware.out
+          COVERAGE=$(go tool cover -func=coverage-middleware.out | awk '/^total:/ {gsub("%", "", $3); print $3}')
+          awk -v cov="$COVERAGE" 'BEGIN { if (cov+0 < 45) { printf("Security middleware coverage %.2f%% is below 45%% threshold\n", cov); exit 1 } }'
+
+      - name: Test (Non-runtime packages)
+        run: go test -v -race ./cmd/... ./internal/... ./pkg/... ./lazada-sdk ./shopee-sdk ./scripts/...
 
   test-frontend:
     name: Frontend Tests
@@ -72,8 +82,8 @@ jobs:
       - name: Test
         run: npm test
 
-  lighthouse:
-    name: Lighthouse Audit
+  runtime-strict:
+    name: Runtime Strict (Security, Integration, E2E, Lighthouse)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [test-backend, test-frontend]
@@ -98,25 +108,54 @@ jobs:
 
       - name: Wait for services
         run: |
+          backend_ready=0
+          frontend_ready=0
           echo "Waiting for backend health..."
           for i in $(seq 1 60); do
             if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
               echo "Backend healthy after ${i}s"
+              backend_ready=1
               break
             fi
             sleep 2
           done
-          echo "Waiting for frontend..."
+          if [ "$backend_ready" -ne 1 ]; then
+            echo "Backend failed readiness check"
+            docker compose -f docker-compose.tunnel.yml logs backend
+            exit 1
+          fi
+
+          echo "Waiting for frontend /login..."
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:5174/ > /dev/null 2>&1; then
+            if curl -sf http://localhost:5174/login > /dev/null 2>&1; then
               echo "Frontend healthy after ${i}s"
+              frontend_ready=1
               break
             fi
             sleep 2
           done
+          if [ "$frontend_ready" -ne 1 ]; then
+            echo "Frontend failed readiness check"
+            docker compose -f docker-compose.tunnel.yml logs frontend
+            exit 1
+          fi
+
+      - name: Run strict runtime backend suites
+        working-directory: backend
+        env:
+          TEST_STRICT: "1"
+          TEST_BASE_URL: "http://localhost:3000"
+          TEST_USERNAME: "tester"
+          TEST_PASSWORD: "tester@123"
+        run: |
+          go test -v ./tests/integration/...
+          go test -v ./tests/security/...
+          go test -v ./tests/e2e
 
       - name: Run Lighthouse tests
         working-directory: backend
+        env:
+          LIGHTHOUSE_STRICT: "1"
         run: go test -v ./tests/e2e/lighthouse/
 
       - name: Upload Lighthouse results

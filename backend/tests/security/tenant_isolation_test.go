@@ -87,7 +87,7 @@ func getAuthToken(t *testing.T) string {
 
 	_, body, err := makeRequest("POST", "/api/auth/login", loginReq, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return ""
 	}
 
@@ -120,7 +120,7 @@ func switchTenant(t *testing.T, currentToken, targetTenant string) string {
 	json.Unmarshal(body, &result)
 
 	if result.Token == "" {
-		t.Skipf("Could not switch to tenant %s: %s", targetTenant, result.Error)
+		skipOrFailf(t, "Could not switch to tenant %s: %s", targetTenant, result.Error)
 	}
 
 	return result.Token
@@ -134,7 +134,7 @@ func TestCrossTenant_RejectRequestsWithoutTenantContext(t *testing.T) {
 	// Make request without any authentication (no tenant context)
 	resp, body, err := makeRequest("GET", "/api/orders", nil, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -276,7 +276,7 @@ func TestCrossTenant_PreventTenantIDManipulationInBody(t *testing.T) {
 	// This should either be ignored or rejected, not processed
 	resp, _, err := makeRequest("POST", "/api/orders/sync", injectionBody, headers)
 	if err != nil {
-		t.Skipf("Request failed: %v", err)
+		skipOrFailf(t, "Request failed: %v", err)
 		return
 	}
 
@@ -301,7 +301,7 @@ func TestErrorResponse_NoStackTrace(t *testing.T) {
 	// Request with invalid ID to trigger error
 	resp, body, err := makeRequest("GET", "/api/orders/invalid-id-12345-test", nil, headers)
 	if err != nil {
-		t.Skipf("Request failed: %v", err)
+		skipOrFailf(t, "Request failed: %v", err)
 		return
 	}
 
@@ -342,7 +342,7 @@ func TestErrorResponse_NoOtherTenantInfo(t *testing.T) {
 	// Request non-existent resource
 	_, body, err := makeRequest("GET", "/api/orders/non-existent-order-xyz", nil, headers)
 	if err != nil {
-		t.Skipf("Request failed: %v", err)
+		skipOrFailf(t, "Request failed: %v", err)
 		return
 	}
 
@@ -369,7 +369,7 @@ func TestErrorResponse_NoOtherTenantInfo(t *testing.T) {
 func TestSecurityHeaders_Present(t *testing.T) {
 	resp, _, err := makeRequest("GET", "/api/health", nil, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -390,7 +390,7 @@ func TestSecurityHeaders_Present(t *testing.T) {
 func TestSecurityHeaders_NoServerVersion(t *testing.T) {
 	resp, _, err := makeRequest("GET", "/api/health", nil, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -481,7 +481,7 @@ func TestToken_ExpiredTokenRejected(t *testing.T) {
 	headers := map[string]string{"Authorization": "Bearer " + expiredToken}
 	resp, _, err := makeRequest("GET", "/api/auth/me", nil, headers)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -503,7 +503,7 @@ func TestNoDefaultTenant_MissingTenantIDErrors(t *testing.T) {
 
 	resp, body, err := makeRequest("GET", "/api/orders", nil, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -530,7 +530,7 @@ func TestCORS_RejectUnknownOrigins(t *testing.T) {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -554,7 +554,7 @@ func TestCORS_PreflightRequest(t *testing.T) {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 	defer resp.Body.Close()

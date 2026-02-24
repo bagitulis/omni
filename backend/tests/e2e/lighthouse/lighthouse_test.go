@@ -22,10 +22,36 @@ var (
 func TestMain(m *testing.M) {
 	flag.Parse()
 	if skip, reason := shouldSkipLighthouse(); skip {
+		if isStrictLighthouseMode() {
+			fmt.Printf("Lighthouse strict mode failed preconditions: %s\n", reason)
+			os.Exit(1)
+		}
 		fmt.Printf("Skipping Lighthouse tests: %s\n", reason)
 		os.Exit(0)
 	}
 	os.Exit(m.Run())
+}
+
+func isStrictLighthouseMode() bool {
+	return os.Getenv("LIGHTHOUSE_STRICT") == "1"
+}
+
+func skipOrFail(t *testing.T, message string) {
+	t.Helper()
+	if isStrictLighthouseMode() {
+		t.Fatal(message)
+		return
+	}
+	t.Skip(message)
+}
+
+func skipOrFailf(t *testing.T, format string, args ...interface{}) {
+	t.Helper()
+	if isStrictLighthouseMode() {
+		t.Fatalf(format, args...)
+		return
+	}
+	t.Skipf(format, args...)
 }
 
 func shouldSkipLighthouse() (bool, string) {
@@ -70,7 +96,7 @@ func urlReachable(url string) bool {
 // TestLighthouseFull runs the full Lighthouse test suite
 func TestLighthouseFull(t *testing.T) {
 	if testing.Short() {
-		t.Skip("Skipping full Lighthouse test in short mode")
+		skipOrFail(t, "Skipping full Lighthouse test in short mode")
 	}
 
 	config := lighthouse.DefaultConfig()
@@ -144,7 +170,7 @@ func TestLighthouseCategory(t *testing.T) {
 	for _, category := range categories {
 		t.Run(category, func(t *testing.T) {
 			if testing.Short() {
-				t.Skip("Skipping category test in short mode")
+				skipOrFail(t, "Skipping category test in short mode")
 			}
 
 			config := lighthouse.DefaultConfig()
@@ -152,7 +178,7 @@ func TestLighthouseCategory(t *testing.T) {
 			routes := lighthouse.GetRoutesByCategory(category)
 
 			if len(routes) == 0 {
-				t.Skipf("No routes found for category: %s", category)
+				skipOrFailf(t, "No routes found for category: %s", category)
 			}
 
 			t.Logf("Testing category '%s' with %d routes", category, len(routes))

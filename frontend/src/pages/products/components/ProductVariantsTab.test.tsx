@@ -104,11 +104,10 @@ describe("ProductVariantsTab", () => {
         loading={false}
       />,
     );
-    const deletesBefore = screen.getAllByRole("button", { name: "" }).length;
+    const textInputsBefore = screen.getAllByRole("textbox").length;
     fireEvent.click(screen.getByRole("button", { name: /add variant/i }));
-    // A new delete button appears for the new row
-    const deletesAfter = screen.getAllByRole("button", { name: "" }).length;
-    expect(deletesAfter).toBeGreaterThan(deletesBefore);
+    const textInputsAfter = screen.getAllByRole("textbox").length;
+    expect(textInputsAfter).toBeGreaterThan(textInputsBefore);
   });
 
   it("calls onSave when Save Variants clicked", () => {

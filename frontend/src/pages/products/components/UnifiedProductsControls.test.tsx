@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProductFilterValues, ColumnConfig } from "@/types/shared";
 import { UnifiedProductsControls } from "./UnifiedProductsControls";
 
@@ -40,11 +41,14 @@ vi.mock("@/components/shared/ColumnManager", () => ({
 
 const defaultFilters: ProductFilterValues = {
   search: "",
+  platform: "all",
+  status: "all",
+  category: "all",
   mapping: "all",
 };
 
 const mockColumns: ColumnConfig[] = [
-  { key: "name", label: "Name", visible: true, order: 0 },
+  { key: "name", title: "Name", visible: true, order: 0 },
 ];
 
 describe("UnifiedProductsControls", () => {

@@ -52,8 +52,8 @@ describe("downloadCSV", () => {
     createObjectURLMock = vi.fn().mockReturnValue("blob:mock-url");
     revokeObjectURLMock = vi.fn();
     clickMock = vi.fn();
-    global.URL.createObjectURL = createObjectURLMock;
-    global.URL.revokeObjectURL = revokeObjectURLMock;
+    globalThis.URL.createObjectURL = createObjectURLMock;
+    globalThis.URL.revokeObjectURL = revokeObjectURLMock;
     setupDomMocks(clickMock);
   });
 
@@ -106,8 +106,8 @@ describe("exportPriceToCSV", () => {
   beforeEach(() => {
     createObjectURLMock = vi.fn().mockReturnValue("blob:mock-url");
     clickMock = vi.fn();
-    global.URL.createObjectURL = createObjectURLMock;
-    global.URL.revokeObjectURL = vi.fn();
+    globalThis.URL.createObjectURL = createObjectURLMock;
+    globalThis.URL.revokeObjectURL = vi.fn();
     setupDomMocks(clickMock);
   });
 
@@ -213,8 +213,8 @@ describe("exportShippingToCSV", () => {
   beforeEach(() => {
     createObjectURLMock = vi.fn().mockReturnValue("blob:mock-url");
     clickMock = vi.fn();
-    global.URL.createObjectURL = createObjectURLMock;
-    global.URL.revokeObjectURL = vi.fn();
+    globalThis.URL.createObjectURL = createObjectURLMock;
+    globalThis.URL.revokeObjectURL = vi.fn();
     setupDomMocks(clickMock);
   });
 

@@ -10,7 +10,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
-    setupFiles: [],
+    setupFiles: ["./src/test/setup.ts"],
     css: true,
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     exclude: [
@@ -23,7 +23,16 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json"],
       reportsDirectory: "./coverage",
-      exclude: ["node_modules/**", "dist/**", "e2e/**", "**/*.d.ts", "src/main.tsx", "*.config.{ts,js,mjs}", "test-build.mjs", "verify_*.{ts,js}"],
+      exclude: [
+        "node_modules/**",
+        "dist/**",
+        "e2e/**",
+        "**/*.d.ts",
+        "src/main.tsx",
+        "*.config.{ts,js,mjs}",
+        "test-build.mjs",
+        "verify_*.{ts,js}",
+      ],
       reportOnFailure: true,
     },
   },

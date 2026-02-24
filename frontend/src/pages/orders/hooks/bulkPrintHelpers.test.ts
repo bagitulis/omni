@@ -51,11 +51,15 @@ describe("mergeUniqueOrderSns", () => {
 describe("askIncludeProductsOption", () => {
   it("resolves true when user clicks ok", async () => {
     const modalConfirmMock = vi.mocked(Modal.confirm);
-    modalConfirmMock.mockImplementationOnce((options) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (options as any).onOk?.();
-      return {} as ReturnType<typeof Modal.confirm>;
-    });
+    modalConfirmMock.mockImplementationOnce(
+      (options: {
+        onOk?: () => void | Promise<void>;
+        onCancel?: () => void;
+      }) => {
+        options.onOk?.();
+        return {} as ReturnType<typeof Modal.confirm>;
+      },
+    );
 
     const result = await askIncludeProductsOption();
     expect(result).toBe(true);
@@ -63,11 +67,15 @@ describe("askIncludeProductsOption", () => {
 
   it("resolves false when user clicks cancel", async () => {
     const modalConfirmMock = vi.mocked(Modal.confirm);
-    modalConfirmMock.mockImplementationOnce((options) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (options as any).onCancel?.();
-      return {} as ReturnType<typeof Modal.confirm>;
-    });
+    modalConfirmMock.mockImplementationOnce(
+      (options: {
+        onOk?: () => void | Promise<void>;
+        onCancel?: () => void;
+      }) => {
+        options.onCancel?.();
+        return {} as ReturnType<typeof Modal.confirm>;
+      },
+    );
 
     const result = await askIncludeProductsOption();
     expect(result).toBe(false);
@@ -84,8 +92,9 @@ describe("runBulkPrint", () => {
 
   it("calls bulkPrintLabels and sets progress to done on success", async () => {
     vi.mocked(ordersApi.bulkPrintLabels).mockResolvedValue({
-      labels: [{ order_sn: "ORD-001", file_data: "base64data" }],
+      labels: [{ order_sn: "ORD-001", file_data: "base64data", status: "ok" }],
       failed: [],
+      count: 1,
     } as Awaited<ReturnType<typeof ordersApi.bulkPrintLabels>>);
 
     await runBulkPrint(
@@ -108,8 +117,9 @@ describe("runBulkPrint", () => {
 
   it("merges previousSucceeded with newly succeeded", async () => {
     vi.mocked(ordersApi.bulkPrintLabels).mockResolvedValue({
-      labels: [{ order_sn: "ORD-002", file_data: "data2" }],
+      labels: [{ order_sn: "ORD-002", file_data: "data2", status: "ok" }],
       failed: [],
+      count: 1,
     } as Awaited<ReturnType<typeof ordersApi.bulkPrintLabels>>);
 
     await runBulkPrint(
@@ -129,8 +139,9 @@ describe("runBulkPrint", () => {
 
   it("shows warning when some labels fail", async () => {
     vi.mocked(ordersApi.bulkPrintLabels).mockResolvedValue({
-      labels: [{ order_sn: "ORD-001", file_data: "data1" }],
+      labels: [{ order_sn: "ORD-001", file_data: "data1", status: "ok" }],
       failed: [{ order_sn: "ORD-002", error: "Not found" }],
+      count: 2,
     } as Awaited<ReturnType<typeof ordersApi.bulkPrintLabels>>);
 
     await runBulkPrint(
@@ -159,8 +170,9 @@ describe("runBulkPrint", () => {
 
   it("handles download error by adding to failed list", async () => {
     vi.mocked(ordersApi.bulkPrintLabels).mockResolvedValue({
-      labels: [{ order_sn: "ORD-001", file_data: "data" }],
+      labels: [{ order_sn: "ORD-001", file_data: "data", status: "ok" }],
       failed: [],
+      count: 1,
     } as Awaited<ReturnType<typeof ordersApi.bulkPrintLabels>>);
 
     vi.mocked(downloadOrderLabel).mockImplementation(() => {
@@ -184,6 +196,7 @@ describe("runBulkPrint", () => {
     vi.mocked(ordersApi.bulkPrintLabels).mockResolvedValue({
       labels: [],
       failed: [],
+      count: 0,
     } as Awaited<ReturnType<typeof ordersApi.bulkPrintLabels>>);
 
     await runBulkPrint(

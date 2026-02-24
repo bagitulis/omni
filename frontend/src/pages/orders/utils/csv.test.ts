@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import type { MockInstance } from "vitest";
 import type { Order } from "@/types/order";
 import { generateOrdersCSV, downloadCSV } from "./csv";
 
@@ -35,8 +36,8 @@ describe("generateOrdersCSV", () => {
   });
 
   it("returns empty string when orders is null/undefined", () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect(generateOrdersCSV(null as any)).toBe("");
+    expect(generateOrdersCSV(null)).toBe("");
+    expect(generateOrdersCSV(undefined)).toBe("");
   });
 
   it("generates CSV with correct headers", () => {
@@ -107,15 +108,31 @@ describe("generateOrdersCSV", () => {
 });
 
 describe("downloadCSV", () => {
-  let appendChildSpy: ReturnType<typeof vi.spyOn>;
-  let removeChildSpy: ReturnType<typeof vi.spyOn>;
-  let createElementSpy: ReturnType<typeof vi.spyOn>;
-  let createObjectURLSpy: ReturnType<typeof vi.spyOn>;
-  let revokeObjectURLSpy: ReturnType<typeof vi.spyOn>;
+  let appendChildSpy: MockInstance;
+  let removeChildSpy: MockInstance;
+  let createElementSpy: MockInstance;
+  let createObjectURLSpy: MockInstance;
+  let revokeObjectURLSpy: MockInstance;
   let clickMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     clickMock = vi.fn();
+
+    if (!Object.prototype.hasOwnProperty.call(URL, "createObjectURL")) {
+      Object.defineProperty(URL, "createObjectURL", {
+        configurable: true,
+        writable: true,
+        value: () => "",
+      });
+    }
+    if (!Object.prototype.hasOwnProperty.call(URL, "revokeObjectURL")) {
+      Object.defineProperty(URL, "revokeObjectURL", {
+        configurable: true,
+        writable: true,
+        value: () => undefined,
+      });
+    }
+
     const fakeLink = {
       setAttribute: vi.fn(),
       click: clickMock,

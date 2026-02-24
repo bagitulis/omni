@@ -116,7 +116,7 @@ describe("ProductGridView", () => {
         onDelete={vi.fn()}
       />,
     );
-    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Stock:\s*—/)).toBeInTheDocument();
   });
 
   it("calls onDelete when delete button clicked", async () => {

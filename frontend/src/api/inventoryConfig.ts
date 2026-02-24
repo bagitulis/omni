@@ -2,15 +2,16 @@ import type { InventoryConfig } from "@/types/inventory";
 import apiClient from "./client";
 import { throwIfFailed } from "./inventoryCore";
 
-export type RawInventoryConfig = Partial<InventoryConfig> & {
+export type RawInventoryConfig = Omit<
+  Partial<InventoryConfig>,
+  "selected_columns" | "key_column"
+> & {
   selected_columns?: string | string[] | null;
   key_column?: string | null;
   key_column_name?: string | null;
 };
 
-export function normalizeSelectedColumns(
-  value: RawInventoryConfig["selected_columns"],
-): string {
+export function normalizeSelectedColumns(value: unknown): string {
   if (Array.isArray(value)) {
     return JSON.stringify(
       value.filter((column): column is string => typeof column === "string"),

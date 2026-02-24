@@ -1,6 +1,6 @@
 import { Order } from "@/types/order";
 
-export function generateOrdersCSV(orders: Order[]): string {
+export function generateOrdersCSV(orders: Order[] | null | undefined): string {
   if (!orders || orders.length === 0) {
     return ""; // Empty CSV headers
   }

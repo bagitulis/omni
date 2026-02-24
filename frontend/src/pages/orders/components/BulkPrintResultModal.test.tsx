@@ -135,7 +135,7 @@ describe("BulkPrintResultModal", () => {
         isRetrying={false}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /close/i }));
+    fireEvent.click(screen.getByText("Close"));
     expect(onClose).toHaveBeenCalled();
   });
 

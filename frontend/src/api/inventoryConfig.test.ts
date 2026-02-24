@@ -32,13 +32,11 @@ describe("inventoryConfig", () => {
 
   describe("normalizeSelectedColumns", () => {
     it("serializes array of strings to JSON string", () => {
-      // @ts-expect-error testing string[] input for coverage
       const result = normalizeSelectedColumns(["sku", "price", "stock"]);
       expect(result).toBe('["sku","price","stock"]');
     });
 
     it("filters non-string values from array", () => {
-      // @ts-expect-error testing mixed array
       const result = normalizeSelectedColumns(["sku", 42, null, "price"]);
       expect(result).toBe('["sku","price"]');
     });
@@ -49,7 +47,6 @@ describe("inventoryConfig", () => {
     });
 
     it("returns empty string for null", () => {
-      // @ts-expect-error testing null input for coverage
       const result = normalizeSelectedColumns(null);
       expect(result).toBe("");
     });
@@ -60,7 +57,6 @@ describe("inventoryConfig", () => {
     });
 
     it("handles empty array", () => {
-      // @ts-expect-error testing empty array input for coverage
       const result = normalizeSelectedColumns([]);
       expect(result).toBe("[]");
     });
@@ -81,7 +77,6 @@ describe("inventoryConfig", () => {
         tenant_id: "tenant-1",
         spreadsheet_id: "sheet-id",
         sheet_name: "Sheet1",
-        // @ts-expect-error testing string[] for selected_columns in raw config
         selected_columns: ["sku", "price"],
         all_columns: "all",
         header_row: 1,

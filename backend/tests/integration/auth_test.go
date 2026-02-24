@@ -91,7 +91,7 @@ func makeRequest(method, endpoint string, body interface{}, headers map[string]s
 func TestHealthEndpoint(t *testing.T) {
 	resp, body, err := makeRequest("GET", "/api/health", nil, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -117,7 +117,7 @@ func TestLogin_Success(t *testing.T) {
 
 	resp, body, err := makeRequest("POST", "/api/auth/login", loginReq, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -157,7 +157,7 @@ func TestLogin_InvalidCredentials(t *testing.T) {
 
 	resp, body, err := makeRequest("POST", "/api/auth/login", loginReq, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -185,7 +185,7 @@ func TestLogin_MissingFields(t *testing.T) {
 		"username": "test",
 	}, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -211,7 +211,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 
 	resp, body, err := makeRequest("POST", "/api/auth/login", loginReq, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -236,7 +236,7 @@ func TestGetTenants_Authenticated(t *testing.T) {
 
 	_, loginBody, err := makeRequest("POST", "/api/auth/login", loginReq, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -296,7 +296,7 @@ func TestSwitchTenant_DeveloperOnly(t *testing.T) {
 
 	_, loginBody, err := makeRequest("POST", "/api/auth/login", loginReq, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -372,7 +372,7 @@ func TestVerifyToken_Valid(t *testing.T) {
 
 	_, loginBody, err := makeRequest("POST", "/api/auth/login", loginReq, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -413,7 +413,7 @@ func TestVerifyToken_Invalid(t *testing.T) {
 
 	resp, body, err := makeRequest("GET", "/api/auth/verify", nil, headers)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -432,7 +432,7 @@ func TestVerifyToken_Invalid(t *testing.T) {
 func TestVerifyToken_NoToken(t *testing.T) {
 	resp, _, err := makeRequest("GET", "/api/auth/verify", nil, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -451,7 +451,7 @@ func TestLogin_InvalidJSON(t *testing.T) {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -469,7 +469,7 @@ func TestLogin_ContentTypeJSON(t *testing.T) {
 
 	resp, _, err := makeRequest("POST", "/api/auth/login", loginReq, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -491,7 +491,7 @@ func TestResponseFormat_SnakeCase(t *testing.T) {
 
 	_, body, err := makeRequest("POST", "/api/auth/login", loginReq, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -524,7 +524,7 @@ func TestResponseFormat_SuccessField(t *testing.T) {
 
 	_, body, err := makeRequest("POST", "/api/auth/login", loginReq, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 

@@ -20,7 +20,7 @@ func TestDataLeak_PasswordNotExposed(t *testing.T) {
 
 	_, body, err := makeRequest("POST", "/api/auth/login", loginReq, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -68,7 +68,7 @@ func TestDataLeak_SensitiveFieldsNotExposed(t *testing.T) {
 
 	_, body, err := makeRequest("POST", "/api/auth/login", loginReq, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -111,7 +111,7 @@ func TestDataLeak_InternalIDsNotExposed(t *testing.T) {
 	// Check user info endpoint
 	_, body, err := makeRequest("GET", "/api/auth/me", nil, headers)
 	if err != nil {
-		t.Skipf("Request failed: %v", err)
+		skipOrFailf(t, "Request failed: %v", err)
 		return
 	}
 
@@ -148,7 +148,7 @@ func TestDataLeak_TokenStructure(t *testing.T) {
 
 	_, body, err := makeRequest("POST", "/api/auth/login", loginReq, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -183,7 +183,7 @@ func TestDataLeak_ErrorMessagesNotVerbose(t *testing.T) {
 
 	_, body, err := makeRequest("POST", "/api/auth/login", loginReq, nil)
 	if err != nil {
-		t.Skipf("Backend not available: %v", err)
+		skipOrFailf(t, "Backend not available: %v", err)
 		return
 	}
 
@@ -434,7 +434,7 @@ func TestDataLeak_CrossTenantDataNotLeaked(t *testing.T) {
 	// Get data from tenant A
 	_, body, err := makeRequest("GET", "/api/orders", nil, headers)
 	if err != nil {
-		t.Skipf("Request failed: %v", err)
+		skipOrFailf(t, "Request failed: %v", err)
 		return
 	}
 

@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { buildProductTabItems } from "./productTabItems";
 
 Object.defineProperty(window, "matchMedia", {
@@ -35,8 +35,7 @@ describe("buildProductTabItems", () => {
     expect(allItem).toBeDefined();
     render(<>{allItem!.label}</>);
     expect(screen.getByText(/All Products/)).toBeInTheDocument();
-    // Badge renders the count
-    expect(screen.getByText("42")).toBeInTheDocument();
+    expect(screen.getByTitle("42")).toBeInTheDocument();
   });
 
   it("renders Mapped label as plain string", () => {

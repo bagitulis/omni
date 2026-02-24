@@ -133,16 +133,17 @@ describe("useOrderSingleActions", () => {
       const { result } = renderHook(() => useOrderSingleActions(props));
 
       vi.mocked(ordersApi.bulkPrintLabels).mockResolvedValue({
-        labels: [{ order_sn: "ORD-001", file_data: "base64data" }],
+        labels: [
+          { order_sn: "ORD-001", file_data: "base64data", status: "ok" },
+        ],
         failed: [],
+        count: 1,
       });
 
       await act(async () => {
         await result.current.handleShipConfirm({
           platform: "shopee",
-          data: {} as Parameters<
-            typeof result.current.handleShipConfirm
-          >[0]["data"],
+          data: { order_sn: "ORD-001" },
         });
       });
 
@@ -159,16 +160,15 @@ describe("useOrderSingleActions", () => {
       const { result } = renderHook(() => useOrderSingleActions(props));
 
       vi.mocked(ordersApi.bulkPrintLabels).mockResolvedValue({
-        labels: [{ order_sn: "ORD-TT", file_data: "base64data" }],
+        labels: [{ order_sn: "ORD-TT", file_data: "base64data", status: "ok" }],
         failed: [],
+        count: 1,
       });
 
       await act(async () => {
         await result.current.handleShipConfirm({
           platform: "tiktok",
-          data: {} as Parameters<
-            typeof result.current.handleShipConfirm
-          >[0]["data"],
+          data: { handover_method: "PICKUP" },
         });
       });
 
@@ -189,9 +189,7 @@ describe("useOrderSingleActions", () => {
       await act(async () => {
         await result.current.handleShipConfirm({
           platform: "shopee",
-          data: {} as Parameters<
-            typeof result.current.handleShipConfirm
-          >[0]["data"],
+          data: { order_sn: "ORD-001" },
         });
       });
 
@@ -210,9 +208,7 @@ describe("useOrderSingleActions", () => {
       await act(async () => {
         await result.current.handleShipConfirm({
           platform: "lazada",
-          data: {} as Parameters<
-            typeof result.current.handleShipConfirm
-          >[0]["data"],
+          data: { order_item_ids: ["ITEM-1"], shipping_provider: "LEX" },
         });
       });
 
@@ -236,9 +232,7 @@ describe("useOrderSingleActions", () => {
         act(async () => {
           await result.current.handleShipConfirm({
             platform: "shopee",
-            data: {} as Parameters<
-              typeof result.current.handleShipConfirm
-            >[0]["data"],
+            data: { order_sn: "ORD-001" },
           });
         }),
       ).rejects.toThrow("Network error");
@@ -254,9 +248,7 @@ describe("useOrderSingleActions", () => {
       await act(async () => {
         await result.current.handleShipConfirm({
           platform: "lazada",
-          data: {} as Parameters<
-            typeof result.current.handleShipConfirm
-          >[0]["data"],
+          data: { order_item_ids: ["ITEM-1"], shipping_provider: "LEX" },
         });
       });
 
@@ -341,8 +333,9 @@ describe("useOrderSingleActions", () => {
   describe("handleSinglePrint", () => {
     it("prints label for shopee order", async () => {
       vi.mocked(ordersApi.bulkPrintLabels).mockResolvedValue({
-        labels: [{ order_sn: "ORD-001", file_data: "pdfdata" }],
+        labels: [{ order_sn: "ORD-001", file_data: "pdfdata", status: "ok" }],
         failed: [],
+        count: 1,
       });
 
       const props = makeHookProps();
@@ -368,6 +361,7 @@ describe("useOrderSingleActions", () => {
       vi.mocked(ordersApi.bulkPrintLabels).mockResolvedValue({
         labels: [],
         failed: [{ order_sn: "ORD-001", error: "Platform error: unavailable" }],
+        count: 0,
       });
 
       const props = makeHookProps();

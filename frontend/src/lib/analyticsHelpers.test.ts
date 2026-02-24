@@ -28,8 +28,8 @@ import type {
 
 // Mock browser APIs not available in jsdom
 beforeAll(() => {
-  global.URL.createObjectURL = vi.fn(() => "blob:mock-url");
-  global.URL.revokeObjectURL = vi.fn();
+  globalThis.URL.createObjectURL = vi.fn(() => "blob:mock-url");
+  globalThis.URL.revokeObjectURL = vi.fn();
 });
 
 // ============================================================================
@@ -49,8 +49,8 @@ function captureCSVExport(exportFn: () => void): {
   let capturedCSV = "";
   let capturedFilename = "";
 
-  const OriginalBlob = global.Blob;
-  global.Blob = class FakeBlob extends OriginalBlob {
+  const OriginalBlob = globalThis.Blob;
+  globalThis.Blob = class FakeBlob extends OriginalBlob {
     constructor(parts?: BlobPart[], options?: BlobPropertyBag) {
       super(parts, options);
       if (parts && parts.length > 0) {
@@ -82,7 +82,7 @@ function captureCSVExport(exportFn: () => void): {
   exportFn();
 
   // Restore
-  global.Blob = OriginalBlob;
+  globalThis.Blob = OriginalBlob;
   vi.restoreAllMocks();
 
   return { csvContent: capturedCSV, filename: capturedFilename };
