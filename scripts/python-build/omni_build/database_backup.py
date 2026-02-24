@@ -323,13 +323,15 @@ class DatabaseBackup:
         for table in tables:
             key = f"{table['schema']}.{table['table']}"
             if key not in manifest_rows:
-                previous_rows = self._get_previous_rows(prev_manifest, table['schema'], table['table'])
-                if previous_rows >= 0:
-                    manifest_rows[key] = previous_rows
+                # Always use artifact row count as ground truth — previous
+                # manifest rows can be stale if data changed between backups.
+                artifact_rows = artifact_ops.calculate_artifact_row_count(table['schema'], table['table'])
+                if artifact_rows >= 0:
+                    manifest_rows[key] = artifact_rows
                 else:
-                    artifact_rows = artifact_ops.calculate_artifact_row_count(table['schema'], table['table'])
-                    if artifact_rows >= 0:
-                        manifest_rows[key] = artifact_rows
+                    previous_rows = self._get_previous_rows(prev_manifest, table['schema'], table['table'])
+                    if previous_rows >= 0:
+                        manifest_rows[key] = previous_rows
 
             if key in manifest_checksums:
                 continue

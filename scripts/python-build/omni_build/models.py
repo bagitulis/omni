@@ -7,7 +7,7 @@ No business logic, no I/O operations.
 from enum import Enum
 from typing import Callable, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class BuildMode(str, Enum):
@@ -44,8 +44,7 @@ class ErrorPattern(BaseModel):
     fix_function: Optional[str] = Field(default=None, description="Fix function name to call")
     is_code_error: bool = Field(default=False, description="Cannot auto-fix (requires manual intervention)")
     
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class BuildResult(BaseModel):
@@ -60,8 +59,7 @@ class BuildResult(BaseModel):
     containers_deployed: int = Field(default=0, description="Number of containers successfully deployed")
     health_checks_passed: int = Field(default=0, description="Number of health checks passed")
     
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class ContainerStatus(BaseModel):

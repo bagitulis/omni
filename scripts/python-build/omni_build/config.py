@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from omni_build.models import DockerComposeConfig, FrontendBuildConfig, SpecLevel, SystemRequirements
 
@@ -64,8 +64,7 @@ class Config(BaseModel):
     go_env: str = Field(default="production")
     timezone: str = Field(default="Asia/Jakarta")
     
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     
     @classmethod
     def from_env(cls, project_root: Optional[Path] = None) -> "Config":
