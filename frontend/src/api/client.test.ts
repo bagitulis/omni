@@ -10,7 +10,6 @@ const {
   mockPut,
   mockPatch,
   mockDelete,
-  mockGetValidToken,
   mockGetState,
   mockLoggerDebug,
   mockLoggerError,

@@ -1,8 +1,12 @@
 package monitoring_test
+
+import (
 	"sync"
 	"testing"
+
 	"github.com/omni/backend/internal/services/monitoring"
 )
+
 func TestNewMetricsService(t *testing.T) {
 	svc := monitoring.NewMetricsService()
 	if svc == nil {
@@ -23,6 +27,7 @@ func TestNewMetricsService(t *testing.T) {
 		t.Errorf("goroutines should be > 0, got %d", m.Goroutines)
 	}
 }
+
 func TestRecordRequest_Basic(t *testing.T) {
 	svc := monitoring.NewMetricsService()
 	svc.RecordRequest("/api/orders", 50, false)
@@ -42,6 +47,7 @@ func TestRecordRequest_Basic(t *testing.T) {
 		t.Errorf("expected AvgLatencyMs=50, got %d", ep.AvgLatencyMs)
 	}
 }
+
 func TestRecordRequest_WithError(t *testing.T) {
 	svc := monitoring.NewMetricsService()
 	svc.RecordRequest("/api/fail", 100, true)
@@ -57,6 +63,7 @@ func TestRecordRequest_WithError(t *testing.T) {
 		t.Errorf("expected ErrorCount=1, got %d", ep.ErrorCount)
 	}
 }
+
 func TestRecordRequest_MultipleRecords_AverageLatency(t *testing.T) {
 	svc := monitoring.NewMetricsService()
 	// Record 3 requests: latencies 10, 20, 30 -> avg 20
@@ -72,6 +79,7 @@ func TestRecordRequest_MultipleRecords_AverageLatency(t *testing.T) {
 		t.Errorf("expected AvgLatencyMs=20, got %d", ep.AvgLatencyMs)
 	}
 }
+
 func TestRecordRequest_MultipleEndpoints(t *testing.T) {
 	svc := monitoring.NewMetricsService()
 	svc.RecordRequest("/api/a", 10, false)
@@ -88,6 +96,7 @@ func TestRecordRequest_MultipleEndpoints(t *testing.T) {
 		t.Errorf("expected /api/b ErrorCount=1, got %d", m.Endpoints["/api/b"].ErrorCount)
 	}
 }
+
 func TestGetMetrics_EmptyService(t *testing.T) {
 	svc := monitoring.NewMetricsService()
 	m := svc.GetMetrics()
@@ -98,6 +107,7 @@ func TestGetMetrics_EmptyService(t *testing.T) {
 		t.Error("expected non-zero Sys memory value")
 	}
 }
+
 func TestReset_ClearsAllMetrics(t *testing.T) {
 	svc := monitoring.NewMetricsService()
 	svc.RecordRequest("/api/orders", 50, false)
@@ -109,6 +119,7 @@ func TestReset_ClearsAllMetrics(t *testing.T) {
 		t.Errorf("expected 0 endpoints after Reset, got %d", len(m.Endpoints))
 	}
 }
+
 func TestRecordRequest_Concurrent(t *testing.T) {
 	svc := monitoring.NewMetricsService()
 	endpoint := "/api/concurrent"
@@ -131,6 +142,7 @@ func TestRecordRequest_Concurrent(t *testing.T) {
 		t.Errorf("expected RequestCount=%d, got %d", n, ep.RequestCount)
 	}
 }
+
 func TestRecordRequest_MaxLatenciesRingBuffer(t *testing.T) {
 	svc := monitoring.NewMetricsService()
 	// maxLatencies=1000; push 1001 records - oldest (1) should be evicted
