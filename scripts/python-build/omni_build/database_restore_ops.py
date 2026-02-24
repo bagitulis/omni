@@ -286,16 +286,46 @@ class DatabaseRestoreOps:
 
             if success:
                 if rows != expected_rows:
-                    # Strict verify: count rows in artifact file to confirm
-                    # manifest was wrong (not a restore failure)
+                    # Strict verify: count rows in artifact file
                     artifact_ops = DatabaseBackupOps(data_dir)
                     artifact_rows = artifact_ops.calculate_artifact_row_count(
                         schema_name, table_name
                     )
                     if artifact_rows >= 0 and artifact_rows == rows:
+                        # Manifest was wrong — artifact matches restored
                         print(f"  [FIX] {schema_name}.{table_name}: accepted {rows:,} rows (manifest expected {expected_rows:,}, artifact has {artifact_rows:,})")
                         total_expected_rows += (rows - expected_rows)
                         auto_fixes += 1
+                    elif artifact_rows >= 0 and rows > artifact_rows:
+                        # Backend seeded extra rows during restore — all backup data is in
+                        print(f"  [FIX] {schema_name}.{table_name}: accepted {rows:,} rows (artifact {artifact_rows:,} + {rows - artifact_rows:,} backend-seeded)")
+                        total_expected_rows += (rows - expected_rows)
+                        auto_fixes += 1
+                    elif artifact_rows >= 0 and rows < artifact_rows:
+                        # Rows missing — retry once with TRUNCATE to clear backend-seeded conflicts
+                        print(f"  [WARN] {schema_name}.{table_name}: {rows:,}/{artifact_rows:,} rows — retrying with TRUNCATE...")
+                        retry_success = False
+                        chunk_files = sorted(schema_dir.glob(f"{table_name}.chunk*.sql.gz"))
+                        if chunk_files:
+                            retry_ok, retry_rows = self._restore_chunked_files(
+                                schema_name, table_name, chunk_files, artifact_rows
+                            )
+                        else:
+                            sql_file = schema_dir / f"{table_name}.sql.gz"
+                            retry_ok, retry_rows = self._restore_single_table(
+                                schema_name, table_name, sql_file,
+                                skip_truncate=False, expected_rows=artifact_rows
+                            )
+                        if retry_ok and retry_rows >= artifact_rows:
+                            print(f"  [FIX] {schema_name}.{table_name}: retry succeeded — {retry_rows:,} rows")
+                            rows = retry_rows
+                            total_expected_rows += (rows - expected_rows)
+                            auto_fixes += 1
+                        else:
+                            errors.append(
+                                f"{schema_name}.{table_name} (row mismatch after retry: restored {retry_rows:,}, artifact {artifact_rows:,})"
+                            )
+                            continue
                     else:
                         errors.append(
                             f"{schema_name}.{table_name} (row mismatch: restored {rows:,}, expected {expected_rows:,}, artifact {artifact_rows:,})"

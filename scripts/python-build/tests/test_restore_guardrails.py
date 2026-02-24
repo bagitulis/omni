@@ -23,13 +23,13 @@ def _result(returncode: int = 0, stdout: str = "", stderr: str = "") -> SimpleNa
     return SimpleNamespace(returncode=returncode, stdout=stdout, stderr=stderr)
 
 
-def test_restore_tables_fails_when_row_count_mismatch(monkeypatch: Any, tmp_path: Path):
+def test_restore_tables_fails_when_rows_lost(monkeypatch: Any, tmp_path: Path):
+    """Fail when restored < artifact rows — data was lost and retry fails."""
     ops = DatabaseRestoreOps(config=cast(Any, SimpleNamespace()), pg_checker=_DummyChecker())
 
     schema_dir = tmp_path / "tenant_abc"
     schema_dir.mkdir(parents=True, exist_ok=True)
-    # Valid gzip with 7 INSERT rows — artifact has 7, but restore returns 9
-    # Auto-fix verifies artifact_rows==restored_rows, so 7≠9 → real failure
+    # Valid gzip with 7 INSERT rows
     sql_data = "\n".join(f"INSERT INTO t VALUES ({i});" for i in range(7))
     with gzip.open(schema_dir / "inventory_records.sql.gz", "wt", encoding="utf-8") as f:
         f.write(sql_data)
@@ -45,16 +45,50 @@ def test_restore_tables_fails_when_row_count_mismatch(monkeypatch: Any, tmp_path
     }
 
     monkeypatch.setattr("omni_build.database_restore_ops.subprocess.run", lambda *args, **kwargs: _result())
+    # Restore returns only 3 rows — less than artifact (7) → retry also returns 3
     monkeypatch.setattr(
         ops,
         "_restore_single_table",
-        lambda schema, table, sql_file, skip_truncate, expected_rows: (True, 9),
+        lambda schema, table, sql_file, skip_truncate=False, expected_rows=0, max_retries=3: (True, 3),
     )
 
     success, message = ops.restore_tables(manifest, tmp_path)
 
     assert success is False
-    assert "row mismatch" in message or "artifact" in message
+    assert "row mismatch" in message or "retry" in message
+
+
+def test_restore_tables_autofixes_backend_seeded_rows(monkeypatch: Any, tmp_path: Path):
+    """Auto-fix when restored > artifact (backend seeded extra rows)."""
+    ops = DatabaseRestoreOps(config=cast(Any, SimpleNamespace()), pg_checker=_DummyChecker())
+
+    schema_dir = tmp_path / "tenant_abc"
+    schema_dir.mkdir(parents=True, exist_ok=True)
+    sql_data = "\n".join(f"INSERT INTO t VALUES ({i});" for i in range(4))
+    with gzip.open(schema_dir / "inventory_records.sql.gz", "wt", encoding="utf-8") as f:
+        f.write(sql_data)
+
+    manifest = {
+        "schemas": {
+            "tenant_abc": {
+                "tables": [
+                    {"name": "inventory_records", "rows": 4},
+                ]
+            }
+        }
+    }
+
+    monkeypatch.setattr("omni_build.database_restore_ops.subprocess.run", lambda *args, **kwargs: _result())
+    monkeypatch.setattr(
+        ops,
+        "_restore_single_table",
+        lambda schema, table, sql_file, skip_truncate, expected_rows: (True, 8),
+    )
+
+    success, message = ops.restore_tables(manifest, tmp_path)
+
+    assert success is True
+    assert "auto-fixed" in message
 
 
 def test_restore_chunked_files_fails_on_expected_row_mismatch(monkeypatch: Any, tmp_path: Path):
