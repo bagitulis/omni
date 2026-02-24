@@ -1,5 +1,12 @@
-import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from "vitest";
-import * as analyticsHelpers from "./analyticsHelpers";
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeAll,
+
+  afterEach,
+} from "vitest";
 import {
   MONTHS,
   getAvailableYears,
@@ -18,6 +25,80 @@ import type {
   TiktokReconciliationResult,
   TiktokShippingFeeResult,
 } from "@/types/analytics";
+
+// Mock browser APIs not available in jsdom
+beforeAll(() => {
+  global.URL.createObjectURL = vi.fn(() => "blob:mock-url");
+  global.URL.revokeObjectURL = vi.fn();
+});
+
+// ============================================================================
+// Helper: capture CSV content from Blob when downloadCSV is called
+// ============================================================================
+
+/**
+ * Intercepts the Blob constructor so we can read the CSV string written by downloadCSV.
+ * Also intercepts link.setAttribute to capture the filename from the `download` attribute.
+ *
+ * Returns { csvContent, filename } after calling the provided exportFn.
+ */
+function captureCSVExport(exportFn: () => void): {
+  csvContent: string;
+  filename: string;
+} {
+  let capturedCSV = "";
+  let capturedFilename = "";
+
+  const OriginalBlob = global.Blob;
+  global.Blob = class FakeBlob extends OriginalBlob {
+    constructor(parts?: BlobPart[], options?: BlobPropertyBag) {
+      super(parts, options);
+      if (parts && parts.length > 0) {
+        capturedCSV = String(parts[0]);
+      }
+    }
+  } as typeof Blob;
+
+  // Spy on document.createElement to intercept <a> link and capture filename
+  const originalCreateElement = document.createElement.bind(document);
+  vi.spyOn(document, "createElement").mockImplementation(
+    (tagName: string) => {
+      const el = originalCreateElement(tagName);
+      if (tagName.toLowerCase() === "a") {
+        const origSetAttr = el.setAttribute.bind(el);
+        vi.spyOn(el, "setAttribute").mockImplementation(
+          (name: string, value: string) => {
+            if (name === "download") {
+              capturedFilename = value;
+            }
+            origSetAttr(name, value);
+          },
+        );
+      }
+      return el;
+    },
+  );
+
+  exportFn();
+
+  // Restore
+  global.Blob = OriginalBlob;
+  vi.restoreAllMocks();
+
+  return { csvContent: capturedCSV, filename: capturedFilename };
+}
+
+/**
+ * Parse CSV string into rows of string arrays (handles simple unquoted CSV).
+ */
+function parseCSV(csv: string): string[][] {
+  return csv
+    .split("\n")
+    .filter((line) => line.length > 0)
+    .map((line) =>
+      line.split(",").map((cell) => cell.replace(/^"|"$/g, "").trim()),
+    );
+}
 
 // ============================================================================
 // MONTHS constant
@@ -116,7 +197,10 @@ describe("formatCurrency", () => {
 
   it("does not include decimal places (maximumFractionDigits: 0)", () => {
     const result = formatCurrency(100000.99);
-    expect(result).not.toContain(".");
+    // IDR locale may use '.' as thousands separator, so we can't simply check for '.'.
+    // Instead verify that 100000.99 formats the same as 100001 (rounds to whole number).
+    const resultRounded = formatCurrency(100001);
+    expect(result).toBe(resultRounded);
   });
 
   it("formats large amounts correctly", () => {
@@ -185,18 +269,13 @@ describe("getStatusLabel", () => {
 });
 
 // ============================================================================
-// CSV Export functions (downloadCSV mocked)
+// CSV Export functions
+// All export functions call downloadCSV internally (same-module call, cannot be
+// spied on via vi.spyOn). Instead we intercept Blob constructor to capture CSV
+// content and document.createElement to capture the filename.
 // ============================================================================
 
 describe("exportShopeeReconciliationCSV", () => {
-  let downloadSpy: MockInstance;
-
-  beforeEach(() => {
-    downloadSpy = vi
-      .spyOn(analyticsHelpers, "downloadCSV")
-      .mockImplementation(() => {});
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -212,8 +291,9 @@ describe("exportShopeeReconciliationCSV", () => {
       },
       sku_groups: [],
     };
-    exportShopeeReconciliationCSV(data);
-    const [, filename] = downloadSpy.mock.calls[0] as [string[][], string];
+    const { filename } = captureCSVExport(() =>
+      exportShopeeReconciliationCSV(data),
+    );
     expect(filename).toMatch(/^shopee-reconciliation-\d{4}-\d{2}-\d{2}\.csv$/);
   });
 
@@ -228,8 +308,10 @@ describe("exportShopeeReconciliationCSV", () => {
       },
       sku_groups: [],
     };
-    exportShopeeReconciliationCSV(data);
-    const [rows] = downloadSpy.mock.calls[0] as [string[][]];
+    const { csvContent } = captureCSVExport(() =>
+      exportShopeeReconciliationCSV(data),
+    );
+    const rows = parseCSV(csvContent);
     expect(rows[0]).toContain("Status");
     expect(rows[0]).toContain("SKU");
     expect(rows[0]).toContain("Transactions");
@@ -262,22 +344,16 @@ describe("exportShopeeReconciliationCSV", () => {
         },
       ],
     };
-    exportShopeeReconciliationCSV(data);
-    const [rows] = downloadSpy.mock.calls[0] as [string[][]];
+    const { csvContent } = captureCSVExport(() =>
+      exportShopeeReconciliationCSV(data),
+    );
+    const rows = parseCSV(csvContent);
     expect(rows).toHaveLength(2); // header + 1 row
     expect(rows[1][0]).toBe("OK"); // getStatusLabel("OK") = "OK"
   });
 });
 
 describe("exportShopeeShippingCSV", () => {
-  let downloadSpy: MockInstance;
-
-  beforeEach(() => {
-    downloadSpy = vi
-      .spyOn(analyticsHelpers, "downloadCSV")
-      .mockImplementation(() => {});
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -293,8 +369,7 @@ describe("exportShopeeShippingCSV", () => {
       },
       orders: [],
     };
-    exportShopeeShippingCSV(data);
-    const [, filename] = downloadSpy.mock.calls[0] as [string[][], string];
+    const { filename } = captureCSVExport(() => exportShopeeShippingCSV(data));
     expect(filename).toMatch(/^shopee-shipping-fee-\d{4}-\d{2}-\d{2}\.csv$/);
   });
 
@@ -309,8 +384,10 @@ describe("exportShopeeShippingCSV", () => {
       },
       orders: [],
     };
-    exportShopeeShippingCSV(data);
-    const [rows] = downloadSpy.mock.calls[0] as [string[][]];
+    const { csvContent } = captureCSVExport(() =>
+      exportShopeeShippingCSV(data),
+    );
+    const rows = parseCSV(csvContent);
     expect(rows[0]).toContain("Order SN");
     expect(rows[0]).toContain("Buyer Paid");
     expect(rows[0]).toContain("Actual Fee");
@@ -338,22 +415,16 @@ describe("exportShopeeShippingCSV", () => {
         },
       ],
     };
-    exportShopeeShippingCSV(data);
-    const [rows] = downloadSpy.mock.calls[0] as [string[][]];
+    const { csvContent } = captureCSVExport(() =>
+      exportShopeeShippingCSV(data),
+    );
+    const rows = parseCSV(csvContent);
     expect(rows).toHaveLength(2);
     expect(rows[1][1]).toBe("SN-001");
   });
 });
 
 describe("exportTiktokReconciliationCSV", () => {
-  let downloadSpy: MockInstance;
-
-  beforeEach(() => {
-    downloadSpy = vi
-      .spyOn(analyticsHelpers, "downloadCSV")
-      .mockImplementation(() => {});
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -369,8 +440,9 @@ describe("exportTiktokReconciliationCSV", () => {
       },
       sku_groups: [],
     };
-    exportTiktokReconciliationCSV(data);
-    const [, filename] = downloadSpy.mock.calls[0] as [string[][], string];
+    const { filename } = captureCSVExport(() =>
+      exportTiktokReconciliationCSV(data),
+    );
     expect(filename).toMatch(/^tiktok-reconciliation-\d{4}-\d{2}-\d{2}\.csv$/);
   });
 
@@ -385,22 +457,16 @@ describe("exportTiktokReconciliationCSV", () => {
       },
       sku_groups: [],
     };
-    exportTiktokReconciliationCSV(data);
-    const [rows] = downloadSpy.mock.calls[0] as [string[][]];
+    const { csvContent } = captureCSVExport(() =>
+      exportTiktokReconciliationCSV(data),
+    );
+    const rows = parseCSV(csvContent);
     expect(rows[0]).toContain("Status");
     expect(rows[0]).toContain("Transactions");
   });
 });
 
 describe("exportTiktokShippingCSV", () => {
-  let downloadSpy: MockInstance;
-
-  beforeEach(() => {
-    downloadSpy = vi
-      .spyOn(analyticsHelpers, "downloadCSV")
-      .mockImplementation(() => {});
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -416,8 +482,7 @@ describe("exportTiktokShippingCSV", () => {
       },
       orders: [],
     };
-    exportTiktokShippingCSV(data);
-    const [, filename] = downloadSpy.mock.calls[0] as [string[][], string];
+    const { filename } = captureCSVExport(() => exportTiktokShippingCSV(data));
     expect(filename).toMatch(/^tiktok-shipping-fee-\d{4}-\d{2}-\d{2}\.csv$/);
   });
 
@@ -432,8 +497,10 @@ describe("exportTiktokShippingCSV", () => {
       },
       orders: [],
     };
-    exportTiktokShippingCSV(data);
-    const [rows] = downloadSpy.mock.calls[0] as [string[][]];
+    const { csvContent } = captureCSVExport(() =>
+      exportTiktokShippingCSV(data),
+    );
+    const rows = parseCSV(csvContent);
     expect(rows[0]).toContain("Order ID");
     expect(rows[0]).toContain("Currency");
   });
@@ -460,8 +527,10 @@ describe("exportTiktokShippingCSV", () => {
         },
       ],
     };
-    exportTiktokShippingCSV(data);
-    const [rows] = downloadSpy.mock.calls[0] as [string[][]];
+    const { csvContent } = captureCSVExport(() =>
+      exportTiktokShippingCSV(data),
+    );
+    const rows = parseCSV(csvContent);
     expect(rows).toHaveLength(2);
     expect(rows[1][1]).toBe("TT-001");
     expect(rows[1][7]).toBe("IDR");

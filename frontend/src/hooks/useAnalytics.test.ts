@@ -20,7 +20,7 @@ vi.mock("react", async (importOriginal) => {
 });
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: (...args: unknown[]) => useQueryMock(...args),
+  useQuery: (...args: unknown[]) => useQueryMock(...(args as Parameters<typeof useQueryMock>)),
   useMutation: (options: unknown) => useMutationMock(options),
   useQueryClient: () => ({
     invalidateQueries: invalidateQueriesMock,
@@ -65,7 +65,7 @@ describe("useAnalyticsQueries", () => {
 
   it("calls useQuery with correct queryKey for sync-status", () => {
     useAnalyticsQueries("shopee", 3, 2025);
-    const firstCall = useQueryMock.mock.calls[0][0] as { queryKey: unknown[] };
+    const firstCall = (useQueryMock.mock.calls as unknown[][])[0]![0] as { queryKey: unknown[] };
     expect(firstCall.queryKey).toEqual([
       "analytics",
       "shopee",
@@ -77,7 +77,7 @@ describe("useAnalyticsQueries", () => {
 
   it("calls useQuery with correct queryKey for settings", () => {
     useAnalyticsQueries("shopee", 3, 2025);
-    const secondCall = useQueryMock.mock.calls[1][0] as {
+    const secondCall = (useQueryMock.mock.calls as unknown[][])[1]![0] as {
       queryKey: unknown[];
       queryFn: () => unknown;
     };
@@ -88,7 +88,7 @@ describe("useAnalyticsQueries", () => {
 
   it("calls useQuery with correct queryFn for sync-status", () => {
     useAnalyticsQueries("tiktok", 5, 2024);
-    const firstCall = useQueryMock.mock.calls[0][0] as {
+    const firstCall = (useQueryMock.mock.calls as unknown[][])[0]![0] as {
       queryFn: () => unknown;
     };
     firstCall.queryFn();

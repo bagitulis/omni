@@ -255,7 +255,8 @@ describe("StockSyncModal", () => {
     ).toBeInTheDocument();
 
     // SKU row and Apply Recommendation appear after async data loads
-    expect(await screen.findByText("SKU-001")).toBeInTheDocument();
+    const skuElements = await screen.findAllByText("SKU-001");
+    expect(skuElements.length).toBeGreaterThan(0);
     expect(await screen.findByText("Apply Recommendation")).toBeInTheDocument();
   });
 

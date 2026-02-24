@@ -13,7 +13,7 @@ const useMutationMock = vi.fn((options: unknown) => options);
 const invalidateQueriesMock = vi.fn();
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: (...args: unknown[]) => useQueryMock(...args),
+  useQuery: (...args: unknown[]) => useQueryMock(...(args as Parameters<typeof useQueryMock>)),
   useMutation: (options: unknown) => useMutationMock(options),
   useQueryClient: () => ({
     invalidateQueries: invalidateQueriesMock,
@@ -62,14 +62,14 @@ describe("useOrders", () => {
     const params = { status: "unprocess" };
     useOrders(params);
     expect(useQueryMock).toHaveBeenCalledOnce();
-    const options = useQueryMock.mock.calls[0][0] as { queryKey: unknown[] };
+    const options = (useQueryMock.mock.calls as unknown[][])[0]![0] as { queryKey: unknown[] };
     expect(options.queryKey).toEqual(["orders", params]);
   });
 
   it("calls useQuery with a queryFn that invokes getOrders with params", () => {
     const params = { status: "unprocess", page: 1 };
     useOrders(params);
-    const options = useQueryMock.mock.calls[0][0] as {
+    const options = (useQueryMock.mock.calls as unknown[][])[0]![0] as {
       queryFn: () => unknown;
     };
     options.queryFn();
@@ -79,7 +79,7 @@ describe("useOrders", () => {
   it("uses provided refetchInterval when autoRefresh is true", () => {
     const params = { status: "unprocess" };
     useOrders(params, { autoRefresh: true, refetchInterval: 10000 });
-    const options = useQueryMock.mock.calls[0][0] as {
+    const options = (useQueryMock.mock.calls as unknown[][])[0]![0] as {
       refetchInterval: unknown;
     };
     expect(options.refetchInterval).toBe(10000);
@@ -88,7 +88,7 @@ describe("useOrders", () => {
   it("sets refetchInterval to false when autoRefresh is false", () => {
     const params = { status: "unprocess" };
     useOrders(params, { autoRefresh: false });
-    const options = useQueryMock.mock.calls[0][0] as {
+    const options = (useQueryMock.mock.calls as unknown[][])[0]![0] as {
       refetchInterval: unknown;
     };
     expect(options.refetchInterval).toBe(false);

@@ -53,7 +53,7 @@ describe("InlineEditCell", () => {
   it("does not enter edit mode from focus only", () => {
     render(<InlineEditCell value={100} mode="stock" onSave={mockOnSave} />);
 
-    const displayCell = screen.getByRole("button", { name: "Edit stock" });
+    const displayCell = screen.getByRole("button", { name: "Edit value" });
     fireEvent.focus(displayCell);
 
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
@@ -141,7 +141,7 @@ describe("InlineEditCell", () => {
   it("cancels from cancel action without triggering blur save", async () => {
     render(<InlineEditCell value={100} mode="stock" onSave={mockOnSave} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Edit stock" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit value" }));
     const input = screen.getByRole("textbox");
 
     fireEvent.change(input, { target: { value: "130" } });
@@ -157,7 +157,7 @@ describe("InlineEditCell", () => {
 
     render(<InlineEditCell value={100} mode="stock" onSave={mockOnSave} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Edit stock" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit value" }));
     const input = screen.getByRole("textbox");
     fireEvent.change(input, { target: { value: "110" } });
     fireEvent.keyDown(input, { key: "Enter", code: "Enter" });

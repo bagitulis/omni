@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { STORAGE_KEYS, API_BASE_URL } from "@/lib/constants";
 import { User } from "@/types/auth";
 
-interface AuthState {
+export interface AuthState {
   user: User | null;
   token: string | null; // Alias for accessToken for compatibility
   accessToken: string | null;
