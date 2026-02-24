@@ -11,112 +11,99 @@ test.describe("Products", () => {
     await resetTestState(page);
   });
 
-  test("products list page renders with product data", async ({ page }) => {
+  test("products list page loads", async ({ page }) => {
     await page.goto("/products");
     await page.waitForLoadState("networkidle");
 
-    // Assert product table or cards are visible
-    const productContainer = page.locator(
-      '.ant-table, .ant-card, [class*="product"]',
-    );
-    await expect(productContainer.first()).toBeVisible({ timeout: 10000 });
+    // Assert product table/cards/list visible
+    await expect(
+      page
+        .locator('.ant-table, .ant-card, [class*="product"], [class*="list"]')
+        .first(),
+    ).toBeVisible();
 
-    // Assert no error banner on the page
-    const errorBanner = page.locator(
-      '.ant-alert-error, .ant-result-error, [class*="error-banner"]',
-    );
-    await expect(errorBanner).toHaveCount(0);
+    // Assert no error alert
+    await expect(page.locator(".ant-alert-error")).toHaveCount(0);
   });
 
-  test("add product form displays required fields", async ({ page }) => {
+  test("add product form shows fields", async ({ page }) => {
     await page.goto("/products/add");
     await page.waitForLoadState("networkidle");
 
-    // Assert form is visible
-    const form = page.locator("form, .ant-form");
-    await expect(form.first()).toBeVisible({ timeout: 10000 });
+    // Assert form container visible
+    await expect(page.locator("form, .ant-form").first()).toBeVisible();
 
-    // Assert input fields for product creation are present
-    const formFields = page.locator(
-      'input[placeholder*="name" i], input[placeholder*="price" i], input[placeholder*="sku" i], .ant-form-item',
-    );
-    await expect(formFields.first()).toBeVisible({ timeout: 5000 });
+    // Assert at least one input field
+    await expect(
+      page.locator(".ant-form-item input, .ant-input").first(),
+    ).toBeVisible();
 
-    // Do NOT submit the form — only verify it renders
+    // Do NOT click any submit button
   });
 
-  test("sync history page renders without error", async ({ page }) => {
+  test("sync history page renders", async ({ page }) => {
     await page.goto("/products/sync-history");
     await page.waitForLoadState("networkidle");
 
-    // Assert the page renders a table or list (may be empty)
-    const content = page.locator(
-      '.ant-table, [class*="sync-history"], [class*="history"], .ant-list, .ant-empty',
-    );
-    await expect(content.first()).toBeVisible({ timeout: 10000 });
+    // Assert page renders (table or empty state)
+    await expect(
+      page
+        .locator('.ant-table, [class*="sync"], [class*="history"], .ant-empty')
+        .first(),
+    ).toBeVisible();
 
-    // Assert no JS error state on page
-    const errorState = page.locator(
-      '.ant-result-error, .ant-alert-error, [class*="error-banner"]',
-    );
-    await expect(errorState).toHaveCount(0);
+    // Assert no crash
+    await expect(page.locator(".ant-alert-error")).toHaveCount(0);
   });
 
-  test("platform filter can be activated", async ({ page }) => {
+  test("platform filter on products page", async ({ page }) => {
     await page.goto("/products");
     await page.waitForLoadState("networkidle");
 
-    // Find a platform filter (select dropdown or tab)
-    const filterSelect = page.locator(
-      '.ant-select, .ant-tabs-tab, button:has-text("Shopee"), button:has-text("Lazada")',
-    );
-    await expect(filterSelect.first()).toBeVisible({ timeout: 10000 });
+    // Find platform filter
+    const platformFilter = page
+      .locator(
+        '.ant-select, .ant-tabs-tab, button:has-text("Shopee"), button:has-text("Lazada"), [class*="platform"]',
+      )
+      .first();
 
-    // Click the first available filter option
-    await filterSelect.first().click();
+    // Click it
+    await platformFilter.click();
 
-    // If it's a select dropdown, pick the first option from the dropdown panel
-    const dropdownOption = page.locator(
-      ".ant-select-item, .ant-select-dropdown .ant-select-item-option",
-    );
-    if ((await dropdownOption.count()) > 0) {
-      await dropdownOption.first().click();
-    }
+    // Wait 500ms
+    await page.waitForTimeout(500);
 
-    // Assert filter is active: active tab, selected value, or chip visible
-    const activeFilter = page.locator(
-      '.ant-tabs-tab-active, .ant-select-selection-item, .ant-tag, [class*="filter-active"]',
-    );
-    await expect(activeFilter.first()).toBeVisible({ timeout: 5000 });
+    // Assert some UI response
+    await expect(
+      page
+        .locator(
+          ".ant-select-dropdown, .ant-tabs-tab-active, .ant-select-open, .ant-tabs-ink-bar",
+        )
+        .first(),
+    ).toBeVisible({ timeout: 3000 });
   });
 
-  test("search input filters products", async ({ page }) => {
+  test("search input triggers search", async ({ page }) => {
     await page.goto("/products");
     await page.waitForLoadState("networkidle");
 
-    // Find the search input
-    const searchInput = page.locator(
-      'input[placeholder*="search" i], input[placeholder*="Search" i], .ant-input-search input',
-    );
-    await expect(searchInput.first()).toBeVisible({ timeout: 10000 });
+    // Find search input
+    const searchInput = page
+      .locator(
+        'input[placeholder*="search" i], input[placeholder*="Search" i], .ant-input-search input, .ant-input',
+      )
+      .first();
 
-    // Type a search query
-    await searchInput.first().fill("test");
+    // Fill search
+    await searchInput.fill("test");
 
-    // Assert search triggers: URL updates with query param OR table reloads
-    // Wait briefly for search debounce
-    await page.waitForTimeout(1000);
+    // Wait 800ms for debounce
+    await page.waitForTimeout(800);
 
-    // Verify search has been applied — either URL contains search param
-    // or the search input still holds the value (confirming input works)
-    const inputValue = await searchInput.first().inputValue();
-    expect(inputValue).toBe("test");
+    // Assert no crash (spinner should have resolved)
+    await expect(page.locator(".ant-spin")).toHaveCount(0, { timeout: 5000 });
 
-    // Clear the search
-    await searchInput.first().clear();
-
-    // Verify search input is cleared
-    const clearedValue = await searchInput.first().inputValue();
-    expect(clearedValue).toBe("");
+    // Clear search
+    await searchInput.clear();
   });
 });

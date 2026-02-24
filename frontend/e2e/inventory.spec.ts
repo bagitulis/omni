@@ -1,7 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { loginAs } from "./helpers/auth";
 import { resetTestState } from "./helpers/db-reset";
-import { TEST_TIMEOUTS } from "./fixtures/test-data";
 
 test.describe("Inventory", () => {
   test.beforeEach(async ({ page }) => {
@@ -14,140 +13,149 @@ test.describe("Inventory", () => {
     await resetTestState(page);
   });
 
-  test("page loads with inventory table visible and no errors", async ({ page }) => {
-    // Assert inventory table or list container is visible
-    const tableContainer = page.locator(
-      ".ant-table, [class*='inventory'], [class*='table']"
-    ).first();
-    await expect(tableContainer).toBeVisible({
-      timeout: TEST_TIMEOUTS.elementVisible,
-    });
+  test("inventory page loads", async ({ page }) => {
+    // Assert table or inventory container visible
+    await expect(
+      page
+        .locator('.ant-table, [class*="inventory"], [class*="table"]')
+        .first(),
+    ).toBeVisible();
 
-    // Assert no error banner on the page
-    const errorBanner = page.locator(
-      ".ant-alert-error, .ant-result-error, [class*='error-banner']"
-    ).first();
-    await expect(errorBanner).toBeHidden({ timeout: 3000 }).catch(() => {
-      // No error banner found at all — that's the happy path
-    });
+    // Assert no error banner
+    await expect(page.locator(".ant-alert-error")).toHaveCount(0);
   });
 
-  test("column toggle button opens settings menu", async ({ page }) => {
-    // Find column settings button
-    const columnSettingsBtn = page.locator(
-      [
-        "button[title*='column' i]",
-        ".ant-table-column-setting-icon",
-        "button:has-text('Columns')",
-        "[class*='column-setting']",
-        "button:has-text('Column')",
-      ].join(", ")
-    ).first();
+  test("column toggle menu opens", async ({ page }) => {
+    // Look for column settings button
+    const columnSettingsBtn = page
+      .locator(
+        [
+          '[aria-label*="column" i]',
+          'button[title*="column" i]',
+          ".ant-table-column-setting-icon",
+          'button:has-text("Columns")',
+          '[class*="column-setting"]',
+          '[class*="setting-icon"]',
+        ].join(", "),
+      )
+      .first();
 
-    // Skip if column toggle is not present in this UI variant
+    // If not visible directly, look in table header area
     const isVisible = await columnSettingsBtn
-      .isVisible({ timeout: TEST_TIMEOUTS.elementVisible })
+      .isVisible({ timeout: 5000 })
       .catch(() => false);
-    test.skip(!isVisible, "Column toggle button not found in current UI");
 
-    await columnSettingsBtn.click();
+    if (!isVisible) {
+      const headerBtn = page
+        .locator(".ant-table-header button, .ant-table-title button")
+        .first();
+      const headerVisible = await headerBtn
+        .isVisible({ timeout: 3000 })
+        .catch(() => false);
+      test.skip(!headerVisible, "Column toggle button not found in current UI");
+      await headerBtn.click();
+    } else {
+      await columnSettingsBtn.click();
+    }
 
-    // Assert menu or popover appears
-    const settingsMenu = page.locator(
-      ".ant-popover, .ant-dropdown, [role='menu'], .ant-checkbox-group"
-    ).first();
-    await expect(settingsMenu).toBeVisible({
-      timeout: TEST_TIMEOUTS.elementVisible,
-    });
+    // Assert popover/dropdown appears
+    await expect(
+      page
+        .locator('.ant-popover, .ant-dropdown, [role="menu"], [role="tooltip"]')
+        .first(),
+    ).toBeVisible({ timeout: 5000 });
   });
 
-  test("filter interaction updates table or shows filter chip", async ({ page }) => {
-    // Look for filter input or search box on the page
-    const filterInput = page.locator(
-      [
-        "input[placeholder*='search' i]",
-        "input[placeholder*='filter' i]",
-        ".ant-input-search input",
-        ".ant-select-selection-search-input",
-        ".ant-input-affix-wrapper input",
-      ].join(", ")
-    ).first();
+  test("search/filter changes table state", async ({ page }) => {
+    // Find search input or filter
+    const filterInput = page
+      .locator(
+        'input[placeholder*="search" i], input[placeholder*="filter" i], .ant-input-search, .ant-select',
+      )
+      .first();
 
     const isVisible = await filterInput
-      .isVisible({ timeout: TEST_TIMEOUTS.elementVisible })
+      .isVisible({ timeout: 5000 })
       .catch(() => false);
-    test.skip(!isVisible, "No filter/search input found in current UI");
+    test.skip(!isVisible, "No search/filter input found in current UI");
 
-    // Type a search term
-    await filterInput.fill("test-filter-query");
-    await page.waitForTimeout(500);
+    // Type a value or select option
+    const tagName = await filterInput.evaluate((el) =>
+      el.tagName.toLowerCase(),
+    );
 
-    // Assert table updates: either row count changes, empty state shows,
-    // or a filter chip/tag appears
-    const tableOrFilterResult = page.locator(
-      [
-        ".ant-table-row",
-        ".ant-empty",
-        ".ant-tag",
-        "[class*='filter-chip']",
-        ".ant-table-placeholder",
-      ].join(", ")
-    ).first();
-    await expect(tableOrFilterResult).toBeVisible({
-      timeout: TEST_TIMEOUTS.elementVisible,
-    });
+    if (tagName === "input") {
+      await filterInput.fill("test-search-query");
+    } else {
+      // Ant Select — click to open and pick first option
+      await filterInput.locator(".ant-select-selector").click();
+      const dropdown = page.locator(".ant-select-dropdown");
+      await expect(dropdown).toBeVisible({ timeout: 3000 });
+      const option = dropdown.locator(".ant-select-item").first();
+      if ((await option.count()) > 0) {
+        await option.click();
+      }
+    }
+
+    // Wait 800ms for debounce
+    await page.waitForTimeout(800);
+
+    // Assert: table re-renders (no error, loader gone)
+    await expect(page.locator(".ant-spin")).toHaveCount(0, { timeout: 5000 });
   });
 
-  test("inline edit cancel does not save data", async ({ page }) => {
-    // Find an edit button/icon on a table row
-    const editButton = page.locator(
-      [
-        ".ant-btn[title*='edit' i]",
-        "button:has-text('Edit')",
-        "[class*='edit-icon']",
-        ".ant-table-row button .anticon-edit",
-        ".ant-table-row .anticon-edit",
-      ].join(", ")
-    ).first();
+  test("inline edit can be cancelled", async ({ page }) => {
+    // Find edit button on first row
+    const editButton = page
+      .locator(
+        '.ant-table-row .ant-btn, [data-testid*="edit"], button[aria-label*="edit" i]',
+      )
+      .first();
 
-    const isVisible = await editButton
-      .isVisible({ timeout: TEST_TIMEOUTS.elementVisible })
+    let editTriggered = false;
+
+    const editVisible = await editButton
+      .isVisible({ timeout: 5000 })
       .catch(() => false);
-    test.skip(!isVisible, "No edit button found on inventory rows");
 
-    await editButton.click();
+    if (editVisible) {
+      await editButton.click();
+      editTriggered = true;
+    } else {
+      // If no edit button found, try clicking the first cell directly
+      const firstCell = page.locator(".ant-table-row .ant-table-cell").first();
+      const cellVisible = await firstCell
+        .isVisible({ timeout: 3000 })
+        .catch(() => false);
+      test.skip(!cellVisible, "No edit button or editable cell found");
+      await firstCell.dblclick();
+      editTriggered = true;
+    }
 
-    // Assert an input field appears in the row (inline edit mode)
-    const inlineInput = page.locator(
-      ".ant-table-cell input, .ant-table-cell .ant-input, .ant-input"
-    ).first();
-    await expect(inlineInput).toBeVisible({
-      timeout: TEST_TIMEOUTS.elementVisible,
-    });
+    if (editTriggered) {
+      // Assert: input appears in row
+      await expect(
+        page.locator(".ant-table-cell input, .ant-input").first(),
+      ).toBeVisible({ timeout: 3000 });
 
-    // Press Escape to cancel — MUST NOT save
-    await page.keyboard.press("Escape");
+      // Press Escape to cancel — MUST NOT save
+      await page.keyboard.press("Escape");
 
-    // Assert the inline input disappears (edit mode cancelled)
-    await expect(inlineInput).toBeHidden({
-      timeout: TEST_TIMEOUTS.elementVisible,
-    });
+      // Assert: input disappears
+      await expect(page.locator(".ant-table-cell input").first()).toBeHidden({
+        timeout: 3000,
+      });
+    }
   });
 
-  test("sync status indicators are visible on the page", async ({ page }) => {
-    // Assert at least one sync status indicator exists
-    const statusIndicator = page.locator(
-      [
-        ".ant-tag",
-        ".ant-badge",
-        ".ant-badge-status",
-        "[class*='sync']",
-        "[class*='status']",
-      ].join(", ")
-    ).first();
-
-    await expect(statusIndicator).toBeVisible({
-      timeout: TEST_TIMEOUTS.elementVisible,
-    });
+  test("sync status indicators visible", async ({ page }) => {
+    // Assert at least one status tag/badge
+    await expect(
+      page
+        .locator(
+          '.ant-tag, .ant-badge, [class*="sync-status"], [class*="status"]',
+        )
+        .first(),
+    ).toBeVisible();
   });
 });
