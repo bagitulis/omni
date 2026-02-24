@@ -78,12 +78,16 @@ func (p *LazadaWebhookProcessor) Process(ctx context.Context, tenantID, body, si
 // processOrderEvent processes Lazada order events
 func (p *LazadaWebhookProcessor) processOrderEvent(ctx context.Context, tenantID string, payload LazadaWebhookPayload) error {
 	data := payload.Data
-	orderID, _ := data["order_id"].(float64)
-	if orderID == 0 {
+	orderSN := ""
+	if orderID, ok := data["order_id"].(float64); ok && orderID != 0 {
+		orderSN = fmt.Sprintf("%.0f", orderID)
+	}
+	if orderSN == "" {
 		orderIDStr, _ := data["order_id"].(string)
 		if orderIDStr == "" {
 			return fmt.Errorf("missing order_id in payload")
 		}
+		orderSN = orderIDStr
 	}
 
 	status, _ := data["status"].(string)
@@ -91,7 +95,7 @@ func (p *LazadaWebhookProcessor) processOrderEvent(ctx context.Context, tenantID
 	event := &models.WebhookOrderEvent{
 		TenantID:  tenantID,
 		Platform:  models.PlatformLazada,
-		OrderSN:   fmt.Sprintf("%.0f", orderID),
+		OrderSN:   orderSN,
 		EventType: payload.MessageType,
 		NewStatus: status,
 		ShopID:    payload.SellerID,
