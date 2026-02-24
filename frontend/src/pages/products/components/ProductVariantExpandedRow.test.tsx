@@ -60,10 +60,10 @@ describe("ProductVariantExpandedRow", () => {
   it("renders variant rows for multi-SKU product", () => {
     render(<ProductVariantExpandedRow product={makeProduct(2)} />);
 
-    expect(screen.getByText("2 SKU")).toBeInTheDocument();
+    expect(screen.getByText("2 Variations")).toBeInTheDocument();
     expect(screen.getByText("Variant 1")).toBeInTheDocument();
     expect(screen.getByText("Variant 2")).toBeInTheDocument();
-    expect(screen.getByText("SKU-1")).toBeInTheDocument();
-    expect(screen.getByText("SKU-2")).toBeInTheDocument();
+    expect(screen.getByText("SKU: SKU-1")).toBeInTheDocument();
+    expect(screen.getByText("SKU: SKU-2")).toBeInTheDocument();
   });
 });

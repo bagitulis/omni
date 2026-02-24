@@ -157,6 +157,12 @@ func maybeDecrypt(enc *utils.EncryptionService, value string, encrypted bool) st
 // ─── Test ─────────────────────────────────────────────────────────────────────
 
 func TestFinanceStatementCompare(t *testing.T) {
+	// This test requires a live PostgreSQL connection and real TikTok API credentials.
+	// It is intended for manual debugging only. Set FINANCE_COMPARE_TEST=1 to run.
+	// JIRA: N/A — manual integration test, not suitable for CI
+	if os.Getenv("FINANCE_COMPARE_TEST") != "1" {
+		t.Skip("Skipping manual integration test: set FINANCE_COMPARE_TEST=1 to run")
+	}
 	month, year, tenant := *fMonth, *fYear, *fTenant
 
 	t.Logf("=== TikTok Finance Statement API vs DB ===")
