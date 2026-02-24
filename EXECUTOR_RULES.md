@@ -101,15 +101,12 @@ go build ./...
 go test ./...
 ```
 
-### Frontend (React/Vue)
+### Frontend (React)
 
 ```bash
-# For React frontend (primary app)
+# For React frontend
 npm run build    # in frontend/
 npm run lint     # in frontend/
-
-# For Vue frontend (legacy app)
-npm run build    # in frontend-vue/
 ```
 
 > See `react-frontend-rules` skill for React-specific patterns.

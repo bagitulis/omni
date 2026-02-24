@@ -47,10 +47,9 @@ frontend/
 
 ### Root Cause
 
-- Vue legacy (`frontend-vue/`) uses `Modals/` (uppercase M) — **legitimate, don't change**
 - React (`frontend/`) uses `modals/` (lowercase m) — **correct per convention**
 - Windows `core.ignorecase=true` means git doesn't track directory casing changes
-- When files are written, Windows may resolve to uppercase from Vue's pattern
+- When files are written, Windows may resolve to uppercase unexpectedly
 
 ### Rules
 

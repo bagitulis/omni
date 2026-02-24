@@ -22,7 +22,6 @@ Test failures have exactly 2 valid resolutions:
 | `test.Skip()` / `t.Skip()` without JIRA/ticket comment AND written justification | Silently hides failures                                                 |
 | Changing a test assertion so it passes (without justification)                   | If test is wrong, revise WITH documented justification                  |
 | Tests hitting external Shopee/Lazada/TikTok APIs directly                        | Must mock via `page.route()` — external APIs are flaky and rate-limited |
-| Adding new tests for `frontend-vue/` (legacy)                                    | Legacy app is frozen — no new test investment                           |
 | Rewriting existing solid backend unit tests                                      | If backend unit tests are passing, do NOT touch them                    |
 
 ---
@@ -103,7 +102,6 @@ The following patterns are BANNED in ALL test files (backend and frontend):
 | `as any` or `@ts-ignore` in test files                           | Type safety is required in tests too                   |
 | Hardcoded credentials (username/password) in test files          | Security risk — use env vars instead                   |
 | Tests that depend on state from previous tests                   | Must be isolated — each test must set up its own state |
-| Test files touching `frontend-vue/` (legacy)                     | Legacy app is frozen — no new tests                    |
 
 ---
 

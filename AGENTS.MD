@@ -36,8 +36,7 @@
 ```
 AGENTS.md (ROOT)              ← YOU ARE HERE - Critical invariants
     ├── backend/AGENTS.md     ← Go/Backend context when working in backend/
-    ├── frontend/AGENTS.md    ← React Frontend context (primary app)
-    ├── frontend-vue/AGENTS.md← Vue Frontend context (legacy app)
+    ├── frontend/AGENTS.md    ← React Frontend context
     ├── mcp-servers/AGENTS.md ← MCP context when working in mcp-servers/
     │
     ├── SISYPHUS_RULES.md     ← Orchestrator-specific rules
@@ -245,12 +244,9 @@ go test ./...
 ### Frontend Testing
 
 ```bash
-# React frontend (primary app)
+# React frontend
 npm run build    # in frontend/
 npm run lint     # in frontend/
-
-# Vue frontend (legacy app)
-npm run build    # in frontend-vue/
 ```
 
 ### Docker Build & Deploy (build.py)
