@@ -80,13 +80,11 @@ describe("authStore — setAuth", () => {
   });
 
   it("prefers access_token over token when both provided", () => {
-    useAuthStore
-      .getState()
-      .setAuth({
-        token: "old-token",
-        access_token: "new-token",
-        user: mockUser,
-      });
+    useAuthStore.getState().setAuth({
+      token: "old-token",
+      access_token: "new-token",
+      user: mockUser,
+    });
     expect(useAuthStore.getState().token).toBe("new-token");
   });
 
@@ -182,11 +180,16 @@ describe("authStore — clearAuth", () => {
 });
 
 describe("authStore — refreshAccessToken", () => {
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
     localStorage.clear();
     resetStore();
+    consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
   });
 
   afterEach(() => {
@@ -238,6 +241,10 @@ describe("authStore — refreshAccessToken", () => {
     useAuthStore.getState().setAuth({ token: "tok", user: mockUser });
     const result = await useAuthStore.getState().refreshAccessToken();
     expect(result).toBe(false);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "Token refresh failed:",
+      expect.any(Error),
+    );
   });
 
   it("returns false when response is ok but success is false", async () => {
@@ -315,11 +322,16 @@ describe("authStore — getValidToken", () => {
 });
 
 describe("authStore — logout", () => {
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
     localStorage.clear();
     resetStore();
+    consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
   });
 
   afterEach(() => {
@@ -353,6 +365,10 @@ describe("authStore — logout", () => {
     await useAuthStore.getState().logout();
 
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "Logout request failed:",
+      expect.any(Error),
+    );
   });
 });
 

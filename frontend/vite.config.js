@@ -41,8 +41,8 @@ export default defineConfig({
     },
     build: {
         target: "es2020",
-        // Optimize chunk size
-        chunkSizeWarningLimit: 600,
+        // Keep warning signal aligned with current vendor bundle strategy
+        chunkSizeWarningLimit: 1400,
         rollupOptions: {
             output: {
                 // Manual chunks for better caching

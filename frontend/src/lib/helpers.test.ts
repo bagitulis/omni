@@ -104,9 +104,20 @@ describe("formatDate", () => {
   });
 
   it("returns original string on invalid date", () => {
-    // New Date with invalid string won't throw but formats weird
-    const result = formatDate("not-a-date");
-    expect(typeof result).toBe("string");
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    try {
+      const result = formatDate("not-a-date");
+      expect(result).toBe("not-a-date");
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Error formatting date:",
+        expect.any(RangeError),
+      );
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 });
 
@@ -237,11 +248,18 @@ describe("mergeObjects", () => {
     expect(result).toEqual({ a: 1, b: 2 });
   });
   it("source values overwrite target values", () => {
-    const result = mergeObjects<Record<string, unknown>>({ a: 1, b: 2 }, { b: 99 });
+    const result = mergeObjects<Record<string, unknown>>(
+      { a: 1, b: 2 },
+      { b: 99 },
+    );
     expect(result).toEqual({ a: 1, b: 99 });
   });
   it("handles multiple sources", () => {
-    const result = mergeObjects<Record<string, unknown>>({ a: 1 }, { b: 2 }, { c: 3 });
+    const result = mergeObjects<Record<string, unknown>>(
+      { a: 1 },
+      { b: 2 },
+      { c: 3 },
+    );
     expect(result).toEqual({ a: 1, b: 2, c: 3 });
   });
   it("does not mutate the target", () => {
