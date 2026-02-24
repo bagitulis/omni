@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/omni/backend/internal/config"
@@ -240,7 +242,7 @@ func syncFromSheetsHandler(ctx context.Context, tenantID string, cfg *models.Aut
 
 	// Source 1: inventory_settings
 	if settings != nil {
-		spreadsheetID = settings.SpreadsheetID
+		spreadsheetID = extractSpreadsheetID(settings.SpreadsheetID)
 		sheetName = settings.SheetName
 		if spreadsheetID != "" || sheetName != "" {
 			configSource = "inventory_settings"
@@ -252,7 +254,7 @@ func syncFromSheetsHandler(ctx context.Context, tenantID string, cfg *models.Aut
 		var gsSettings models.GoogleSheetsSettings
 		if err := db.First(&gsSettings).Error; err == nil {
 			if spreadsheetID == "" && gsSettings.InventorySpreadsheetID != "" {
-				spreadsheetID = gsSettings.InventorySpreadsheetID
+				spreadsheetID = extractSpreadsheetID(gsSettings.InventorySpreadsheetID)
 				configSource = "google_sheets_settings"
 			}
 			if sheetName == "" && gsSettings.InventorySheetName != "" {
@@ -300,4 +302,21 @@ func syncFromSheetsHandler(ctx context.Context, tenantID string, cfg *models.Aut
 	log.Printf("[AutoFunction] %s for tenant: %s", resultMsg, tenantID)
 
 	return resultMsg, nil
+}
+
+// extractSpreadsheetID extracts spreadsheet ID from a full Google Sheets URL.
+// If the input is already a plain ID, it returns as-is.
+func extractSpreadsheetID(urlOrID string) string {
+	if urlOrID == "" {
+		return ""
+	}
+	if !strings.Contains(urlOrID, "docs.google.com") {
+		return urlOrID
+	}
+	re := regexp.MustCompile(`/d/([a-zA-Z0-9_-]+)`)
+	matches := re.FindStringSubmatch(urlOrID)
+	if len(matches) >= 2 {
+		return matches[1]
+	}
+	return urlOrID
 }
