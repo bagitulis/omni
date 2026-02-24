@@ -1,9 +1,9 @@
 package autofunction_test
 
 import (
+	"context"
 	"testing"
 	"time"
-
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/autofunction"
 )
@@ -21,7 +21,7 @@ func TestExecutor_RegisterAndGetHandler(t *testing.T) {
 	e := autofunction.NewExecutor(nil)
 
 	called := false
-	handler := autofunction.FunctionHandler(func(_ interface{}, _ string, _ *models.AutoFunctionConfig) (string, error) {
+	handler := autofunction.FunctionHandler(func(_ context.Context, _ string, _ *models.AutoFunctionConfig) (string, error) {
 		called = true
 		return "ok", nil
 	})
@@ -32,7 +32,7 @@ func TestExecutor_RegisterAndGetHandler(t *testing.T) {
 		t.Fatal("expected non-nil handler after RegisterHandler")
 	}
 	// Verify it is the same handler by calling it
-	_, _ = got(nil, "t1", nil)
+	_, _ = got(context.Background(), "t1", nil)
 	if !called {
 		t.Error("expected handler to be called")
 	}
@@ -59,11 +59,11 @@ func TestExecutor_RegisterHandler_Overwrite(t *testing.T) {
 	e := autofunction.NewExecutor(nil)
 
 	callCount := 0
-	first := autofunction.FunctionHandler(func(_ interface{}, _ string, _ *models.AutoFunctionConfig) (string, error) {
+	first := autofunction.FunctionHandler(func(_ context.Context, _ string, _ *models.AutoFunctionConfig) (string, error) {
 		callCount += 10
 		return "", nil
 	})
-	second := autofunction.FunctionHandler(func(_ interface{}, _ string, _ *models.AutoFunctionConfig) (string, error) {
+	second := autofunction.FunctionHandler(func(_ context.Context, _ string, _ *models.AutoFunctionConfig) (string, error) {
 		callCount += 1
 		return "", nil
 	})
@@ -75,7 +75,7 @@ func TestExecutor_RegisterHandler_Overwrite(t *testing.T) {
 	if h == nil {
 		t.Fatal("expected non-nil handler")
 	}
-	_, _ = h(nil, "t", nil)
+	_, _ = h(context.Background(), "t", nil)
 	if callCount != 1 {
 		t.Errorf("expected second handler to be active (callCount=1), got %d", callCount)
 	}
