@@ -1,53 +1,49 @@
 // Package lighthouse provides Lighthouse performance testing for the OMNI frontend
 package lighthouse
 
-// GetAllRoutes returns all routes to test - matching frontend/src/router/routes.ts
+// GetAllRoutes returns all routes to test - matching frontend/src/App.tsx static routes
+// Parameterized routes are excluded (require data seeding) - see TESTING_RULES.md Skipped Routes section
 func GetAllRoutes() []Route {
 	return []Route{
 		// Core
 		{Name: "Dashboard", Path: "/"},
-		{Name: "Inventory", Path: "/inventory"},
-		{Name: "Route Mapping", Path: "/route-mapping"},
-
-		// Product Manager
-		{Name: "Product Manager - Shopee", Path: "/product-manager/shopee"},
-		{Name: "Product Manager - Lazada", Path: "/product-manager/lazada"},
-		{Name: "Product Manager - Tiktok", Path: "/product-manager/tiktok"},
-
-		// Order Manager
 		{Name: "Order Manager", Path: "/order-manager"},
+		{Name: "Route Mapping", Path: "/route-mapping"},
+		{Name: "Inventory", Path: "/inventory"},
+		{Name: "Settings", Path: "/settings"},
 
-		// Script Monitor
-		{Name: "Script Monitor - Current", Path: "/script-monitor/current"},
-		{Name: "Script Monitor - Queue", Path: "/script-monitor/queue"},
-		{Name: "Script Monitor - History", Path: "/script-monitor/history"},
-		{Name: "Script Monitor - Auto Functions", Path: "/script-monitor/auto-functions"},
-
-		// Report
-		{Name: "Report - Shopee", Path: "/report/shopee"},
-		{Name: "Report - Tiktok", Path: "/report/tiktok"},
+		// Products
+		{Name: "Products", Path: "/products"},
+		{Name: "Add Product", Path: "/products/add"},
+		{Name: "Product Sync History", Path: "/products/sync-history"},
+		// SKIP: parameterized route - requires valid product ID: /products/:id/edit
+		// SKIP: requires file upload fixture: /products/import
+		// SKIP: parameterized route - requires valid platform slug: /order-manager/:platform
 
 		// Analytics
-		{Name: "Analytics - Hub", Path: "/analytics/hub"},
-		{Name: "Analytics - Simulator", Path: "/analytics/simulator"},
-		{Name: "Analytics - Classification", Path: "/analytics/classification"},
-		{Name: "Analytics - ML Dashboard", Path: "/analytics/ml"},
-		{Name: "Analytics - Tiktok Ads", Path: "/analytics/tiktok-ads"},
-		{Name: "Analytics - Shopee Ads", Path: "/analytics/shopee-ads"},
-		{Name: "Analytics - AI Reports", Path: "/analytics/ai-reports"},
+		{Name: "Analytics Hub", Path: "/analytics"},
+		{Name: "Shopee Ads Analytics", Path: "/analytics/shopee-ads"},
+		{Name: "TikTok Ads Analytics", Path: "/analytics/tiktok-ads"},
+		{Name: "ML Dashboard", Path: "/analytics/ml"},
+		{Name: "Budget Simulator", Path: "/analytics/budget-simulator"},
+		{Name: "Product Classification", Path: "/analytics/product-classification"},
+		{Name: "AI Reports", Path: "/analytics/ai-reports"},
 
-		// Settings
-		{Name: "Settings - Google Sheets", Path: "/settings/google-sheets"},
-		{Name: "Settings - Webhook", Path: "/settings/webhook"},
+		// Reports
+		{Name: "Shopee Report", Path: "/report/shopee"},
+		{Name: "TikTok Report", Path: "/report/tiktok"},
+
+		// Script Monitor
+		{Name: "Script Monitor", Path: "/script-monitor"},
 	}
 }
 
-// GetQuickTestRoutes returns a subset of routes for quick testing
+// GetQuickTestRoutes returns a subset of routes for quick testing (3 routes)
 func GetQuickTestRoutes() []Route {
 	return []Route{
 		{Name: "Dashboard", Path: "/"},
 		{Name: "Order Manager", Path: "/order-manager"},
-		{Name: "Analytics - Hub", Path: "/analytics/hub"},
+		{Name: "Analytics Hub", Path: "/analytics"},
 	}
 }
 
@@ -57,13 +53,12 @@ func GetRoutesByCategory(category string) []Route {
 	var filtered []Route
 
 	categoryPrefixes := map[string][]string{
-		"core":      {"/", "/inventory", "/route-mapping"},
-		"product":   {"/product-manager"},
+		"core":      {"/", "/inventory", "/route-mapping", "/settings"},
+		"product":   {"/products"},
 		"order":     {"/order-manager"},
 		"script":    {"/script-monitor"},
 		"report":    {"/report"},
 		"analytics": {"/analytics"},
-		"settings":  {"/settings"},
 	}
 
 	prefixes, ok := categoryPrefixes[category]
