@@ -42,7 +42,8 @@ AGENTS.md (ROOT)              ← YOU ARE HERE - Critical invariants
     │
     ├── SISYPHUS_RULES.md     ← Orchestrator-specific rules
     ├── EXECUTOR_RULES.md     ← Executor-specific rules
-    └── PROMETHEUS_RULES.md   ← Planner-specific rules
+    ├── PROMETHEUS_RULES.md   ← Planner-specific rules
+    └── TESTING_RULES.md      ← Testing Constitution (zero-tolerance policy, coverage, CI rules)
 
 Skills (auto-loaded via oh-my-opencode.json):
     ├── react-frontend-rules  ← React 19 + Ant Design specs
@@ -52,6 +53,8 @@ Skills (auto-loaded via oh-my-opencode.json):
 ```
 
 **Precedence:** Root invariants > Directory context > Agent-role rules > Skills
+
+> **All agents MUST follow `TESTING_RULES.md`.** Test failures are bugs, not test problems.
 
 ---
 
