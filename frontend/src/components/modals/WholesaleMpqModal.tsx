@@ -59,7 +59,7 @@ export function WholesaleMpqModal({
       title={`Batch Update MPQ (${selectedSkus.length} items)`}
       open={open}
       onCancel={onClose}
-      destroyOnClose
+      destroyOnHidden
       width={500}
       footer={[
         <Button key="cancel" onClick={onClose}>

@@ -154,7 +154,7 @@ export function ConfigEditorModal({
       open={open}
       title={isEditMode ? "Edit Auto-Function" : "Add Auto-Function"}
       onCancel={onClose}
-      destroyOnClose
+      destroyOnHidden
       footer={
         <Space>
           <Button onClick={onClose}>Cancel</Button>

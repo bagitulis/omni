@@ -43,5 +43,12 @@ export const ProductSyncTab = ({
       ),
     },
   ];
-  return <Table dataSource={platforms} columns={columns} pagination={false} />;
+  return (
+    <Table
+      dataSource={platforms}
+      columns={columns}
+      pagination={false}
+      rowKey="platform"
+    />
+  );
 };

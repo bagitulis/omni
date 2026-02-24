@@ -71,7 +71,7 @@ export function WholesaleUpdateModal({
       title={`Batch Update Wholesale (${selectedSkus.length} items)`}
       open={open}
       onCancel={onClose}
-      destroyOnClose
+      destroyOnHidden
       width={600}
       footer={[
         <Button key="cancel" onClick={onClose}>

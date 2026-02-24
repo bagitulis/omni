@@ -125,7 +125,7 @@ export function RouteConfigModal({
           </Button>
         </Space>
       }
-      destroyOnClose
+      destroyOnHidden
     >
       <Form
         form={form}

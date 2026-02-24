@@ -34,7 +34,7 @@ export function WholesaleBatchDeleteModal({
       title="Delete Wholesale Tiers"
       open={open}
       onCancel={onClose}
-      destroyOnClose
+      destroyOnHidden
       width={500}
       footer={[
         <Button key="cancel" onClick={onClose}>

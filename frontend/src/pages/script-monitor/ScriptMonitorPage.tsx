@@ -163,7 +163,7 @@ export function ScriptMonitorPage() {
           setSearchParams(next);
         }}
         items={items}
-        destroyInactiveTabPane
+        destroyOnHidden
       />
     </div>
   );
