@@ -233,22 +233,19 @@ describe("deepClone", () => {
 
 describe("mergeObjects", () => {
   it("merges source into target", () => {
-    const result = mergeObjects({ a: 1 }, { b: 2 });
+    const result = mergeObjects<Record<string, unknown>>({ a: 1 }, { b: 2 });
     expect(result).toEqual({ a: 1, b: 2 });
   });
-
   it("source values overwrite target values", () => {
-    const result = mergeObjects({ a: 1, b: 2 }, { b: 99 });
+    const result = mergeObjects<Record<string, unknown>>({ a: 1, b: 2 }, { b: 99 });
     expect(result).toEqual({ a: 1, b: 99 });
   });
-
   it("handles multiple sources", () => {
-    const result = mergeObjects({ a: 1 }, { b: 2 }, { c: 3 });
+    const result = mergeObjects<Record<string, unknown>>({ a: 1 }, { b: 2 }, { c: 3 });
     expect(result).toEqual({ a: 1, b: 2, c: 3 });
   });
-
   it("does not mutate the target", () => {
-    const target = { a: 1 };
+    const target: Record<string, unknown> = { a: 1 };
     mergeObjects(target, { b: 2 });
     expect(target).toEqual({ a: 1 });
   });

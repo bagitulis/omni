@@ -127,14 +127,16 @@ describe("validateLink", () => {
     mockPost.mockResolvedValue({ success: true, data: mockResult });
 
     const result = await validateLink({
-      url: "https://sheets.google.com/test",
+      spreadsheet_url: "https://sheets.google.com/test",
       type: "inventory",
     });
 
     expect(result).toEqual(mockResult);
     expect(mockPost).toHaveBeenCalledWith(
       "/google/settings/validate-link",
-      expect.objectContaining({ url: "https://sheets.google.com/test" }),
+      expect.objectContaining({
+        spreadsheet_url: "https://sheets.google.com/test",
+      }),
     );
   });
 
@@ -142,7 +144,7 @@ describe("validateLink", () => {
     mockPost.mockResolvedValue({ success: false, error: "Invalid link" });
 
     await expect(
-      validateLink({ url: "bad-url", type: "inventory" }),
+      validateLink({ spreadsheet_url: "bad-url", type: "inventory" }),
     ).rejects.toThrow("Invalid link");
   });
 });
@@ -156,7 +158,12 @@ describe("saveLinks", () => {
     mockPost.mockResolvedValue({ success: true });
 
     await expect(
-      saveLinks({ inventory_url: "https://example.com" }),
+      saveLinks({
+        inventory_url: "https://example.com",
+        wallet_url: null,
+        shipping_url: null,
+        order_url: null,
+      }),
     ).resolves.toBeUndefined();
     expect(mockPost).toHaveBeenCalledWith(
       "/google/settings/save-links",
@@ -168,7 +175,12 @@ describe("saveLinks", () => {
     mockPost.mockResolvedValue({ success: false, error: "Save failed" });
 
     await expect(
-      saveLinks({ inventory_url: "https://example.com" }),
+      saveLinks({
+        inventory_url: "https://example.com",
+        wallet_url: null,
+        shipping_url: null,
+        order_url: null,
+      }),
     ).rejects.toThrow("Save failed");
   });
 });
@@ -181,7 +193,9 @@ describe("updateSettings", () => {
   it("resolves without error on success", async () => {
     mockPost.mockResolvedValue({ success: true });
 
-    await expect(updateSettings({ auto_sync: true })).resolves.toBeUndefined();
+    await expect(
+      updateSettings({ inventory_spreadsheet_id: "abc123" }),
+    ).resolves.toBeUndefined();
     expect(mockPost).toHaveBeenCalledWith(
       "/google/settings/update-detailed",
       expect.any(Object),
@@ -191,8 +205,8 @@ describe("updateSettings", () => {
   it("throws on failure", async () => {
     mockPost.mockResolvedValue({ success: false, error: "Update failed" });
 
-    await expect(updateSettings({ auto_sync: false })).rejects.toThrow(
-      "Update failed",
-    );
+    await expect(
+      updateSettings({ inventory_spreadsheet_id: "" }),
+    ).rejects.toThrow("Update failed");
   });
 });

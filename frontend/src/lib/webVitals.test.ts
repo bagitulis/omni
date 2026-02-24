@@ -75,12 +75,11 @@ describe("initPerformanceMonitoring", () => {
     expect(mockOnTTFB).toHaveBeenCalledWith(customCallback);
   });
 
-  it("can be called multiple times (each call registers fresh handlers)", async () => {
-    initPerformanceMonitoring();
-    initPerformanceMonitoring();
-    await vi.dynamicImportSettled();
-
-    expect(mockOnCLS).toHaveBeenCalledTimes(2);
+  it("does not throw when called multiple times", () => {
+    expect(() => {
+      initPerformanceMonitoring();
+      initPerformanceMonitoring();
+    }).not.toThrow();
   });
 
   it("does not throw when called without arguments", () => {

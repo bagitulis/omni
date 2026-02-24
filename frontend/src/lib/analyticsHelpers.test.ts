@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from "vitest";
 import * as analyticsHelpers from "./analyticsHelpers";
 import {
   MONTHS,
@@ -189,7 +189,7 @@ describe("getStatusLabel", () => {
 // ============================================================================
 
 describe("exportShopeeReconciliationCSV", () => {
-  let downloadSpy: ReturnType<typeof vi.spyInstance>;
+  let downloadSpy: MockInstance;
 
   beforeEach(() => {
     downloadSpy = vi
@@ -270,7 +270,7 @@ describe("exportShopeeReconciliationCSV", () => {
 });
 
 describe("exportShopeeShippingCSV", () => {
-  let downloadSpy: ReturnType<typeof vi.spyInstance>;
+  let downloadSpy: MockInstance;
 
   beforeEach(() => {
     downloadSpy = vi
@@ -346,7 +346,7 @@ describe("exportShopeeShippingCSV", () => {
 });
 
 describe("exportTiktokReconciliationCSV", () => {
-  let downloadSpy: ReturnType<typeof vi.spyInstance>;
+  let downloadSpy: MockInstance;
 
   beforeEach(() => {
     downloadSpy = vi
@@ -393,7 +393,7 @@ describe("exportTiktokReconciliationCSV", () => {
 });
 
 describe("exportTiktokShippingCSV", () => {
-  let downloadSpy: ReturnType<typeof vi.spyInstance>;
+  let downloadSpy: MockInstance;
 
   beforeEach(() => {
     downloadSpy = vi

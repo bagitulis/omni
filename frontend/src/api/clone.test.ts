@@ -54,15 +54,24 @@ describe("clone API", () => {
     it("returns batch result on success", async () => {
       const data = { total: 2, success: 2, failed: 0, results: [] };
       mockPost.mockResolvedValue({ success: true, data });
-      const req = { items: [] };
+      const req = {
+        source_platform: "shopee",
+        target_platform: "lazada",
+        source_item_ids: [],
+      };
       const result = await batchClone(req);
       expect(mockPost).toHaveBeenCalledWith("/products/clone/batch", req);
       expect(result).toEqual(data);
     });
-
     it("throws on failure", async () => {
       mockPost.mockResolvedValue({ success: false, error: "Batch failed" });
-      await expect(batchClone({ items: [] })).rejects.toThrow("Batch failed");
+      await expect(
+        batchClone({
+          source_platform: "shopee",
+          target_platform: "lazada",
+          source_item_ids: [],
+        }),
+      ).rejects.toThrow("Batch failed");
     });
   });
 

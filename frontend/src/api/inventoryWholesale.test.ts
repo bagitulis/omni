@@ -63,10 +63,10 @@ describe("updateInventoryWholesaleTiers", () => {
     mockPut.mockResolvedValue({ success: true });
 
     await expect(
-      updateInventoryWholesaleTiers("SKU-001", [{ min_qty: 1, price: 10000 }]),
+      updateInventoryWholesaleTiers("SKU-001", [{ sku: "SKU-001", min_qty: 1, price: 10000 }]),
     ).resolves.toBeUndefined();
     expect(mockPut).toHaveBeenCalledWith("/inventory/wholesale/SKU-001", {
-      tiers: [{ min_qty: 1, price: 10000 }],
+      tiers: [{ sku: "SKU-001", min_qty: 1, price: 10000 }],
     });
   });
 
@@ -263,10 +263,10 @@ describe("updateInventoryMpqSettings", () => {
     mockPut.mockResolvedValue({ success: true });
 
     await expect(
-      updateInventoryMpqSettings([{ sku: "SKU-001", min_purchase_qty: 5 }]),
+      updateInventoryMpqSettings([{ sku: "SKU-001", min_purchase_qty: 5, enabled: true }]),
     ).resolves.toBeUndefined();
     expect(mockPut).toHaveBeenCalledWith("/inventory/mpq/settings", {
-      settings: [{ sku: "SKU-001", min_purchase_qty: 5 }],
+      settings: [{ sku: "SKU-001", min_purchase_qty: 5, enabled: true }],
     });
   });
 
