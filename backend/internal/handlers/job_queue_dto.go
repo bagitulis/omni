@@ -50,6 +50,7 @@ func mergeHistories(jobHistory []models.JobHistory, autoFuncHistory []models.Aut
 
 	// Add auto function history (convert to unified format)
 	for _, h := range autoFuncHistory {
+		completedAt := h.ExecutedAt.Add(time.Duration(h.DurationMs) * time.Millisecond)
 		combined = append(combined, UnifiedHistoryItem{
 			ID:           int(h.ID),
 			JobID:        fmt.Sprintf("auto_%d", h.ID),
@@ -58,7 +59,7 @@ func mergeHistories(jobHistory []models.JobHistory, autoFuncHistory []models.Aut
 			ErrorMessage: h.ErrorMessage,
 			DurationMs:   h.DurationMs,
 			StartedAt:    &h.ExecutedAt,
-			CompletedAt:  nil,
+			CompletedAt:  &completedAt,
 			CreatedAt:    h.ExecutedAt,
 		})
 	}

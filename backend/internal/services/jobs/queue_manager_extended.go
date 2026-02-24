@@ -124,6 +124,7 @@ func (m *QueueManager) GetHistoryPaginated(filter PaginatedFilter) (*PaginatedHi
 
 	// Convert auto_functions_history to response format
 	for _, h := range autoFuncHistoryItems {
+		completedAt := h.ExecutedAt.Add(time.Duration(h.DurationMs) * time.Millisecond)
 		allItems = append(allItems, HistoryItemResponse{
 			ID:           int(h.ID),
 			JobID:        fmt.Sprintf("auto_%d", h.ID),
@@ -132,7 +133,7 @@ func (m *QueueManager) GetHistoryPaginated(filter PaginatedFilter) (*PaginatedHi
 			ErrorMessage: h.ErrorMessage,
 			DurationMs:   h.DurationMs,
 			StartedAt:    &h.ExecutedAt,
-			CompletedAt:  nil,
+			CompletedAt:  &completedAt,
 			CreatedAt:    h.ExecutedAt,
 		})
 	}
@@ -214,10 +215,11 @@ func (m *QueueManager) GetDistinctJobTypes() []string {
 	return result
 }
 
-// ClearJobHistory clears all job history
+// ClearJobHistory clears all job history including auto_functions_history
 func (m *QueueManager) ClearJobHistory() int64 {
 	result := m.db.Delete(&models.JobHistory{}, "1=1")
-	return result.RowsAffected
+	autoResult := m.db.Delete(&models.AutoFunctionHistory{}, "1=1")
+	return result.RowsAffected + autoResult.RowsAffected
 }
 
 // CancelJobByStringID cancels a job by string ID
