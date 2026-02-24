@@ -1,0 +1,18 @@
+VERIFICATION: page.route mock count in marketplace.spec.ts
+==========================================================
+Command: grep -c "page.route" frontend/e2e/marketplace.spec.ts
+Result: 6
+
+Requirement: >= 3
+Status: PASS ✅
+
+Breakdown of page.route calls:
+- Test 1 (settings page renders): 1x catch-all **/api/**
+- Test 2 (connected status): 3x (**/api/shopee/**, **/api/lazada/**, **/api/tiktok/**)
+- Test 3 (sync button): 1x catch-all **/api/**
+- Test 4 (401 error): 1x **/api/shopee/**
+- Test 5 (route mapping): 0x (no mocking needed)
+Total: 6 page.route calls
+
+All marketplace APIs (shopee, lazada, tiktok) are intercepted via page.route().
+No real marketplace API calls are made.

@@ -19,5 +19,10 @@ export default defineConfig({
       "playwright-report/**",
       "test-results/**",
     ],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json"],
+      reportsDirectory: "./coverage",
+    },
   },
 });

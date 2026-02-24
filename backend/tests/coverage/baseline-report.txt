@@ -1,0 +1,74 @@
+	github.com/omni/backend/cmd/migrate-images		coverage: 0.0% of statements
+	github.com/omni/backend/cmd/server		coverage: 0.0% of statements
+	github.com/omni/backend/internal/app		coverage: 0.0% of statements
+ok  	github.com/omni/backend/internal/config	(cached)	coverage: 10.8% of statements
+	github.com/omni/backend/internal/dto		coverage: 0.0% of statements
+?   	github.com/omni/backend/internal/dto/request	[no test files]
+	github.com/omni/backend/internal/dto/response		coverage: 0.0% of statements
+	github.com/omni/backend/internal/errors		coverage: 0.0% of statements
+ok  	github.com/omni/backend/internal/handlers	(cached)	coverage: 36.0% of statements
+ok  	github.com/omni/backend/internal/handlers/analytics	(cached)	coverage: 12.3% of statements
+ok  	github.com/omni/backend/internal/handlers/google	(cached)	coverage: 9.3% of statements
+ok  	github.com/omni/backend/internal/handlers/inventory	(cached)	coverage: 20.5% of statements
+ok  	github.com/omni/backend/internal/handlers/lazada	(cached)	coverage: 20.5% of statements
+ok  	github.com/omni/backend/internal/handlers/master_product	(cached)	coverage: 11.8% of statements
+ok  	github.com/omni/backend/internal/handlers/ml	(cached)	coverage: 21.3% of statements
+ok  	github.com/omni/backend/internal/handlers/shopee	(cached)	coverage: 7.0% of statements
+ok  	github.com/omni/backend/internal/handlers/tiktok	(cached)	coverage: 13.3% of statements
+ok  	github.com/omni/backend/internal/middleware	(cached)	coverage: 29.0% of statements
+	github.com/omni/backend/internal/mocks		coverage: 0.0% of statements
+ok  	github.com/omni/backend/internal/models	(cached)	coverage: 63.3% of statements
+coverage: 82.1% of statements
+	github.com/omni/backend/internal/router		coverage: 0.0% of statements
+ok  	github.com/omni/backend/internal/routes	(cached)	coverage: 3.5% of statements
+ok  	github.com/omni/backend/internal/services	(cached)	coverage: 22.0% of statements
+ok  	github.com/omni/backend/internal/services/ads	(cached)	coverage: 26.9% of statements
+coverage: 1.0% of statements
+ok  	github.com/omni/backend/internal/services/analytics/intelligence	(cached)	coverage: 37.9% of statements
+	github.com/omni/backend/internal/services/autofunction		coverage: 0.0% of statements
+ok  	github.com/omni/backend/internal/services/cache	(cached)	coverage: 85.5% of statements
+ok  	github.com/omni/backend/internal/services/google	(cached)	coverage: 19.4% of statements
+ok  	github.com/omni/backend/internal/services/image	(cached)	coverage: 29.4% of statements
+ok  	github.com/omni/backend/internal/services/inventory	(cached)	coverage: 3.0% of statements
+	github.com/omni/backend/internal/services/jobs		coverage: 0.0% of statements
+ok  	github.com/omni/backend/internal/services/label	(cached)	coverage: 13.3% of statements
+ok  	github.com/omni/backend/internal/services/lazada	(cached)	coverage: 12.7% of statements
+ok  	github.com/omni/backend/internal/services/master_product	(cached)	coverage: 23.7% of statements
+	github.com/omni/backend/internal/services/ml		coverage: 0.0% of statements
+	github.com/omni/backend/internal/services/monitoring		coverage: 0.0% of statements
+	github.com/omni/backend/internal/services/oauth		coverage: 0.0% of statements
+	github.com/omni/backend/internal/services/operations		coverage: 0.0% of statements
+	github.com/omni/backend/internal/services/orders		coverage: 0.0% of statements
+	github.com/omni/backend/internal/services/platform		coverage: 0.0% of statements
+	github.com/omni/backend/internal/services/price		coverage: 0.0% of statements
+	github.com/omni/backend/internal/services/products		coverage: 0.0% of statements
+	github.com/omni/backend/internal/services/quota		coverage: 0.0% of statements
+ok  	github.com/omni/backend/internal/services/route	(cached)	coverage: 52.3% of statements
+	github.com/omni/backend/internal/services/security		coverage: 0.0% of statements
+	github.com/omni/backend/internal/services/sheets		coverage: 0.0% of statements
+	github.com/omni/backend/internal/services/shop		coverage: 0.0% of statements
+ok  	github.com/omni/backend/internal/services/shopee	(cached)	coverage: 28.5% of statements
+	github.com/omni/backend/internal/services/sku		coverage: 0.0% of statements
+	github.com/omni/backend/internal/services/spreadsheet		coverage: 0.0% of statements
+	github.com/omni/backend/internal/services/stock		coverage: 0.0% of statements
+ok  	github.com/omni/backend/internal/services/sync	(cached)	coverage: 4.1% of statements
+ok  	github.com/omni/backend/internal/services/tiktok	(cached)	coverage: 19.5% of statements
+	github.com/omni/backend/internal/services/webhooks		coverage: 0.0% of statements
+	github.com/omni/backend/internal/services/wholesale		coverage: 0.0% of statements
+ok  	github.com/omni/backend/internal/testutils	(cached)	coverage: 0.0% of statements
+ok  	github.com/omni/backend/internal/utils	(cached)	coverage: 90.3% of statements
+ok  	github.com/omni/backend/internal/utils/http	(cached)	coverage: 90.9% of statements
+ok  	github.com/omni/backend/internal/utils/logger	(cached)	coverage: 75.0% of statements
+	github.com/omni/backend/lazada-sdk		coverage: 0.0% of statements
+	github.com/omni/backend/pkg/lazada		coverage: 0.0% of statements
+	github.com/omni/backend/pkg/sheets		coverage: 0.0% of statements
+	github.com/omni/backend/pkg/shopee		coverage: 0.0% of statements
+	github.com/omni/backend/pkg/tiktok		coverage: 0.0% of statements
+	github.com/omni/backend/scripts		coverage: 0.0% of statements
+	github.com/omni/backend/scripts/dedupe_product_images		coverage: 0.0% of statements
+	github.com/omni/backend/shopee-sdk		coverage: 0.0% of statements
+ok  	github.com/omni/backend/tests/e2e	(cached)	coverage: [no statements]
+ok  	github.com/omni/backend/tests/integration	(cached)	coverage: [no statements]
+ok  	github.com/omni/backend/tests/parity	(cached)	coverage: 22.2% of statements
+ok  	github.com/omni/backend/tests/security	(cached)	coverage: [no statements]
+ok  	github.com/omni/backend/tests/unit	(cached)	coverage: [no statements]

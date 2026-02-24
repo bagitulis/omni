@@ -3,14 +3,6 @@ package lighthouse
 
 import "os"
 
-// getEnvOrDefault returns the value of the environment variable named by the key,
-// or defaultVal if the variable is not set or empty.
-func getEnvOrDefault(key, defaultVal string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return defaultVal
-}
 
 // Config holds configuration for Lighthouse testing
 type Config struct {
@@ -29,8 +21,8 @@ func DefaultConfig() *Config {
 	return &Config{
 		BaseURL:        "http://localhost:3000",
 		FrontendURL:    "http://localhost:5174",
-		Username:       getEnvOrDefault("LIGHTHOUSE_USERNAME", "admin"),
-		Password:       getEnvOrDefault("LIGHTHOUSE_PASSWORD", "password"),
+		Username:       os.Getenv("LIGHTHOUSE_USERNAME"),
+		Password:       os.Getenv("LIGHTHOUSE_PASSWORD"),
 		ResultsDir:     "test-results",
 		ScreenshotsDir: "test-results/lighthouse-screenshots",
 		ChromePath:     "", // Use system default
