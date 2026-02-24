@@ -156,9 +156,9 @@ func TestRecordRequest_MaxLatenciesRingBuffer(t *testing.T) {
 	if ep.RequestCount != 1001 {
 		t.Errorf("expected RequestCount=1001, got %d", ep.RequestCount)
 	}
-	// Avg should reflect the last 1000 values (2..1001): avg = (2+1001)/2 = 503
-	if ep.AvgLatencyMs != 503 {
-		t.Errorf("expected AvgLatencyMs=503 (ring buffer avg), got %d", ep.AvgLatencyMs)
+	// Avg should reflect the last 1000 values (2..1001): sum=501500, avg=501500/1000=501 (integer division)
+	if ep.AvgLatencyMs != 501 {
+		t.Errorf("expected AvgLatencyMs=501 (ring buffer avg), got %d", ep.AvgLatencyMs)
 	}
 }
 

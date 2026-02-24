@@ -198,13 +198,12 @@ func TestGetAlerts_FilterByTenant(t *testing.T) {
 // TestGetAlerts_FilterBySince verifies time-based filtering.
 func TestGetAlerts_FilterBySince(t *testing.T) {
 	svc := security.NewNotificationService()
-
-	// Record an alert; get a reference time AFTER recording
+	// Record an old alert, sleep to ensure its CreatedAt is strictly before cutoff
 	svc.RecordAlert(security.SecurityAlert{Type: "old_evt", Severity: "low", Message: "old"})
+	time.Sleep(20 * time.Millisecond) // ensure old_evt.CreatedAt is strictly before cutoff
 	cutoff := time.Now()
-	time.Sleep(10 * time.Millisecond) // ensure CreatedAt > cutoff for next alert
+	time.Sleep(20 * time.Millisecond) // ensure new_evt.CreatedAt is strictly after cutoff
 	svc.RecordAlert(security.SecurityAlert{Type: "new_evt", Severity: "low", Message: "new"})
-
 	filter := security.AlertFilter{Since: cutoff, Limit: 10}
 	alerts := svc.GetAlerts(filter)
 	if len(alerts) != 1 {
