@@ -1,8 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const useQueryMock = vi.fn();
+const useStateMock = vi.fn((initial: unknown) => [initial, vi.fn()]);
+const useEffectMock = vi.fn();
+const useQueryMock = vi.fn(() => ({
+  data: undefined,
+  isLoading: false,
+  isFetching: false,
+}));
 const useMutationMock = vi.fn((options: unknown) => options);
 const invalidateQueriesMock = vi.fn();
+
+vi.mock("react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react")>();
+  return {
+    ...actual,
+    useState: (initial: unknown) => useStateMock(initial),
+    useEffect: (fn: () => void, deps: unknown[]) => useEffectMock(fn, deps),
+  };
+});
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (...args: unknown[]) => useQueryMock(...args),
@@ -36,6 +51,11 @@ import * as analyticsApi from "@/api/analytics";
 describe("useAnalyticsQueries", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useQueryMock.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isFetching: false,
+    });
   });
 
   it("calls useQuery four times for sync-status, settings, reconciliation, and shipping-fee", () => {
@@ -79,6 +99,12 @@ describe("useAnalyticsQueries", () => {
 describe("useAnalyticsSync", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useStateMock.mockImplementation((initial: unknown) => [initial, vi.fn()]);
+    useQueryMock.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isFetching: false,
+    });
   });
 
   it("calls useMutation for sync with correct mutationFn", () => {

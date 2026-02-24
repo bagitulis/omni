@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const useQueryMock = vi.fn();
+const defaultQueryResult = {
+  data: undefined,
+  isLoading: false,
+  isFetching: false,
+  isError: false,
+  error: null,
+};
+
+const useQueryMock = vi.fn(() => ({ ...defaultQueryResult }));
 const useMutationMock = vi.fn((options: unknown) => options);
 const invalidateQueriesMock = vi.fn();
 
@@ -47,6 +55,7 @@ import { message } from "antd";
 describe("useOrders", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useQueryMock.mockReturnValue({ ...defaultQueryResult });
   });
 
   it("calls useQuery with correct queryKey", () => {
