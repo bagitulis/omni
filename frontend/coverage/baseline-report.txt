@@ -1,40 +1,497 @@
 === FRONTEND COVERAGE BASELINE REPORT ===
 Generated: 2026-02-24
-Command: npx vitest run --coverage --reporter=dot
-Tool: @vitest/coverage-v8 ^2.1.9
+Tool: vitest + @vitest/coverage-v8
 
-=== OVERALL SUMMARY ===
-Statements: 27.0%  (11258/41655)
-Functions:  36.8%  (299/812)
-Branches:   70.2%  (1526/2173)
+OVERALL SUMMARY
+---------------
+  Statements : 27.0%  (11258/41655)
+  Functions  : 36.8%  (299/812)
+  Branches   : 70.2%  (1526/2173)
+  Total files: 473
 
-=== TEST RESULTS ===
-Test Files: 3 failed (pre-existing) | 44 passed (47 total)
-Tests:      5 failed (pre-existing) | 254 passed (259 total)
+DISTRIBUTION
+  0%      : 309 files
+  1-49%   : 23 files
+  50-79%  : 21 files
+  80-100% : 120 files
 
-=== PRE-EXISTING FAILURES (NOT caused by testing-overhaul plan) ===
-1. src/components/shared/InlineEditCell.test.tsx - 3 tests fail
-   Reason: Test looks for aria-label="Edit stock" but button has aria-label="Edit value"
-2. src/components/shared/StockSyncModal.test.tsx - 1 test fails
-   Reason: "Found multiple elements with text: SKU-001"
-3. src/pages/products/components/ProductVariantExpandedRow.test.tsx - 1 test fails
-   Reason: Expected "2 SKU" text not found in component output
+--- UNCOVERED FILES (0%) ---
+  eslint.config.js
+  playwright.config.ts
+  test-build.mjs
+  verify_data.js
+  vite.config.js
+  vite.config.ts
+  vitest.config.ts
+  verify_pages.js
+  src/App.tsx
+  src/api/ads.ts
+  src/api/analytics.ts
+  src/api/analyticsIntelligence.ts
+  src/api/audit.ts
+  src/api/auth.ts
+  src/api/clone.ts
+  src/api/dashboard.ts
+  src/api/exports.ts
+  src/api/googleSheets.ts
+  src/api/inventoryWholesale.ts
+  src/api/lazadaDb.ts
+  src/api/lockedOrders.ts
+  src/api/mlAnalytics.ts
+  src/api/pricing.ts
+  src/api/productManager.ts
+  src/api/queryClient.ts
+  src/api/routeConfig.ts
+  src/api/settings.ts
+  src/api/sheetRegistry.ts
+  src/api/shipping.ts
+  src/api/shopeeDb.ts
+  src/api/tiktokDb.ts
+  src/api/tokens.ts
+  src/api/userManagement.ts
+  src/components/ErrorBoundary.tsx
+  src/components/analytics/AdsUploadModal.tsx
+  src/components/analytics/AnalyticsSettingsModal.tsx
+  src/components/analytics/ads/AdsPerformanceTable.tsx
+  src/components/analytics/ads/AdsReportViewer.tsx
+  src/components/analytics/ads/AdsRow.tsx
+  src/components/analytics/ads/AdsTrendChart.tsx
+  src/components/analytics/ads/AdsVirtualTable.tsx
+  src/components/analytics/common/AnalyticsSummaryCards.tsx
+  src/components/analytics/common/ReconciliationTable.tsx
+  src/components/analytics/common/SettingsModal.tsx
+  src/components/analytics/common/ShippingFeeTable.tsx
+  src/components/analytics/common/SyncProgressBar.tsx
+  src/components/analytics/common/index.ts
+  src/components/analytics/hub/ActionSummary.tsx
+  src/components/analytics/hub/KPISection.tsx
+  src/components/analytics/hub/PlatformComparison.tsx
+  src/components/analytics/hub/QuickActions.tsx
+  src/components/analytics/ml/HealthCard.tsx
+  src/components/analytics/ml/ProductDetailModal.tsx
+  src/components/analytics/ml/ProductScoreTable.tsx
+  src/components/analytics/ml/ReportModal.tsx
+  src/components/analytics/ml/index.ts
+  src/components/analytics/ml/types.ts
+  src/components/auth/PermissionGate.tsx
+  src/components/auth/ProtectedRoute.tsx
+  src/components/clone/BatchConfiguration.tsx
+  src/components/clone/BatchProductSelector.tsx
+  src/components/clone/CloneBatchModal.tsx
+  src/components/clone/CloneConfigurationStep.tsx
+  src/components/clone/ClonePreview.tsx
+  src/components/clone/CloneProductModal.tsx
+  src/components/clone/CloneProgress.tsx
+  src/components/clone/CloneResultStep.tsx
+  src/components/clone/CloneSourceStep.tsx
+  src/components/clone/CloneTargetStep.tsx
+  src/components/clone/cloneHelpers.ts
+  src/components/common/PageLoading.tsx
+  src/components/common/VirtualTable.tsx
+  src/components/forms/ImportUploader.tsx
+  src/components/forms/OrderFilters.tsx
+  src/components/forms/ProductBasicForm.tsx
+  src/components/forms/ProductCategoryForm.tsx
+  src/components/forms/ProductFilters.tsx
+  src/components/forms/ProductMediaForm.tsx
+  src/components/forms/ProductPricingForm.tsx
+  src/components/forms/SkuMappingTable.tsx
+  src/components/layout/AppLayout.tsx
+  src/components/layout/Header.tsx
+  src/components/layout/Sidebar.tsx
+  src/components/layout/TokenStatusDropdown.tsx
+  src/components/layout/TokenStatusDropdown.types.ts
+  src/components/layout/TokenStatusDropdown.utils.tsx
+  src/components/layout/index.ts
+  src/components/modals/AddProductModal.tsx
+  src/components/modals/ChangePasswordModal.tsx
+  src/components/modals/ConfigEditorModal.tsx
+  src/components/modals/DashboardShippingModal.tsx
+  src/components/modals/ExportOrdersModal.tsx
+  src/components/modals/InventoryColumnsModal.tsx
+  src/components/modals/MarketplaceSettingsModal.tsx
+  src/components/modals/OrderCancelModal.tsx
+  src/components/modals/OrderDetailModal.tsx
+  src/components/modals/OrderShipModal.tsx
+  src/components/modals/PriceModal.tsx
+  src/components/modals/PricePreviewTable.tsx
+  src/components/modals/ProductBatchModal.tsx
+  src/components/modals/ProductDetailModal.tsx
+  src/components/modals/RouteConfigModal.tsx
+  src/components/modals/RouteManagementModal.tsx
+  src/components/modals/ShippingFileList.tsx
+  src/components/modals/ShippingModal.tsx
+  src/components/modals/ShippingOptionSelect.tsx
+  src/components/modals/ShippingProcessing.tsx
+  src/components/modals/ShippingResult.tsx
+  src/components/modals/SkuMappingModal.tsx
+  src/components/modals/StockUpdateModal.tsx
+  src/components/modals/TokenModal.tsx
+  src/components/modals/WalletModal.tsx
+  src/components/modals/WholesaleBatchDeleteModal.tsx
+  src/components/modals/WholesaleMpqModal.tsx
+  src/components/modals/WholesaleUpdateModal.tsx
+  src/components/modals/index.ts
+  src/components/modals/inventoryColumnGroups.ts
+  src/components/modals/ship/LazadaShipForm.tsx
+  src/components/modals/ship/ShopeeShipForm.tsx
+  src/components/modals/ship/shopeeShipHelpers.ts
+  src/components/orders/OrderHeader.tsx
+  src/components/shared/CloneDiffSummary.tsx
+  src/components/shared/PriceSyncModal.tsx
+  src/components/shared/priceSyncColumns.tsx
+  src/components/shared/types.ts
+  src/components/tables/ImportPreviewTable.tsx
+  src/components/tables/OrderTable.utils.ts
+  src/components/tables/OrderTableColumns.tsx
+  src/components/tables/OrderTableComponents.tsx
+  src/components/tables/ProductTable.tsx
+  src/components/ui/PlatformBadge.tsx
+  src/components/ui/StatusPipeline.tsx
+  src/components/ui/TaskCard.tsx
+  src/contexts/ThemeContext.constants.ts
+  src/contexts/ThemeContext.context.ts
+  src/contexts/ThemeContext.hooks.ts
+  src/contexts/ThemeContext.tsx
+  src/hooks/useAds.ts
+  src/hooks/useAdsReports.ts
+  src/hooks/useAnalytics.ts
+  src/hooks/useAnalyticsHub.ts
+  src/hooks/useAnalyticsIntelligence.ts
+  src/hooks/useBatchSkuUpdate.ts
+  src/hooks/useClone.ts
+  src/hooks/useConnectionStatus.ts
+  src/hooks/useDashboard.ts
+  src/hooks/useDashboardWidgets.ts
+  src/hooks/useExports.ts
+  src/hooks/useGoogleSheets.ts
+  src/hooks/useLockStock.ts
+  src/hooks/useMLAnalytics.ts
+  src/hooks/useMarketplaceAllocation.ts
+  src/hooks/useNotification.ts
+  src/hooks/useOrders.ts
+  src/hooks/usePermission.ts
+  src/hooks/usePricing.ts
+  src/hooks/useProductImport.ts
+  src/hooks/useProductManager.ts
+  src/hooks/useProducts.ts
+  src/hooks/useRouteConfig.ts
+  src/hooks/useRouteMapping.ts
+  src/hooks/useScriptMonitor.ts
+  src/hooks/useShipping.ts
+  src/hooks/useTokens.ts
+  src/hooks/useVirtualScroll.ts
+  src/hooks/useWallet.ts
+  src/hooks/useWholesale.ts
+  src/lib/analyticsHelpers.ts
+  src/lib/cacheService.ts
+  src/lib/helpers.ts
+  src/lib/permissionService.ts
+  src/lib/platformIcons.ts
+  src/lib/productManagerConfig.ts
+  src/lib/rateLimiter.ts
+  src/lib/sanitizer.ts
+  src/lib/tiktokCsvExport.ts
+  src/lib/webVitals.ts
+  src/pages/index.ts
+  src/pages/analytics/AIReportGalleryPage.tsx
+  src/pages/analytics/AnalyticsHubPage.tsx
+  src/pages/analytics/BudgetSimulatorPage.tsx
+  src/pages/analytics/MLDashboardPage.tsx
+  src/pages/analytics/ProductClassificationPage.tsx
+  src/pages/analytics/ShopeeAdsAnalyticsPage.tsx
+  src/pages/analytics/TiktokAdsAnalyticsPage.tsx
+  src/pages/analytics/components/MLRecommendations.tsx
+  src/pages/analytics/components/budget/SimulationParameters.tsx
+  src/pages/analytics/components/budget/SimulationResults.tsx
+  src/pages/analytics/components/common/AnalyticsContentState.tsx
+  src/pages/analytics/components/common/AnalyticsPageHeader.tsx
+  src/pages/analytics/components/common/AnalyticsToolbar.tsx
+  src/pages/analytics/components/common/index.ts
+  src/pages/analytics/components/shopee-ads/DashboardTab.tsx
+  src/pages/analytics/components/shopee-ads/DataTab.tsx
+  src/pages/analytics/components/shopee-ads/EmptyState.tsx
+  src/pages/analytics/components/shopee-ads/UploadTab.tsx
+  src/pages/analytics/components/shopee-ads/columns.tsx
+  src/pages/analytics/components/shopee-ads/index.ts
+  src/pages/analytics/components/shopee-ads/types.ts
+  src/pages/analytics/components/shopee-ads/useSummary.ts
+  src/pages/analytics/components/shopee-ads/useUpload.ts
+  src/pages/analytics/components/shopee-ads/utils.ts
+  src/pages/analytics/components/tiktok/AnalyticsContent.tsx
+  src/pages/analytics/components/tiktok/AnalyticsControls.tsx
+  src/pages/analytics/components/tiktok/TiktokAnalyticsSettingsModal.tsx
+  src/pages/analytics/components/tiktok/TiktokPriceResultsTable.tsx
+  src/pages/analytics/components/tiktok/TiktokPriceSummaryCards.tsx
+  src/pages/analytics/components/tiktok/TiktokShippingFeeSummary.tsx
+  src/pages/analytics/components/tiktok/TiktokShippingFeeTable.tsx
+  src/pages/analytics/components/tiktok-ads/DashboardTab.tsx
+  src/pages/analytics/components/tiktok-ads/DataTab.tsx
+  src/pages/analytics/components/tiktok-ads/EmptyState.tsx
+  src/pages/analytics/components/tiktok-ads/UploadTab.tsx
+  src/pages/analytics/components/tiktok-ads/columns.tsx
+  src/pages/analytics/components/tiktok-ads/types.ts
+  src/pages/analytics/components/tiktok-ads/useTiktokAdsSummary.ts
+  src/pages/analytics/components/tiktok-ads/useTiktokAdsUpload.ts
+  src/pages/analytics/components/tiktok-ads/utils.ts
+  src/pages/auth/LoginPage.tsx
+  src/pages/dashboard/DashboardPage.tsx
+  src/pages/dashboard/components/DashboardActionBar.tsx
+  src/pages/dashboard/components/DashboardModals.tsx
+  src/pages/dashboard/components/PlatformHealthWidget.tsx
+  src/pages/dashboard/components/QuickActions.tsx
+  src/pages/dashboard/components/ShippingWidget.tsx
+  src/pages/dashboard/components/WalletWidget.tsx
+  src/pages/inventory/SimplifiedInventoryPage.tsx
+  src/pages/inventory/components/ColumnSettingsPopover.tsx
+  src/pages/inventory/components/DeleteTab.tsx
+  src/pages/inventory/components/InventoryHeader.tsx
+  src/pages/inventory/components/InventoryLockPanel.tsx
+  src/pages/inventory/components/InventoryPagination.tsx
+  src/pages/inventory/components/InventoryQuickView.tsx
+  src/pages/inventory/components/InventoryStats.tsx
+  src/pages/inventory/components/InventoryToolbar.tsx
+  src/pages/inventory/components/MpqTab.tsx
+  src/pages/inventory/components/SimplifiedInventoryHeader.tsx
+  src/pages/inventory/components/SyncHistoryTab.tsx
+  src/pages/inventory/components/WholesaleTab.tsx
+  src/pages/inventory/hooks/useInventoryColumns.ts
+  src/pages/inventory/utils/inventoryColumnConfigs.ts
+  src/pages/inventory/utils/mpqTabHelpers.ts
+  src/pages/orders/OrdersPage.tsx
+  src/pages/orders/components/BulkPrintResultModal.tsx
+  src/pages/orders/components/LockedOrdersPanel.tsx
+  src/pages/orders/components/OrderActionBar.tsx
+  src/pages/orders/components/OrderPageModals.tsx
+  src/pages/orders/components/OrdersBulkActionsBar.tsx
+  src/pages/orders/components/TodayOrdersTable.tsx
+  src/pages/orders/hooks/bulkPrintHelpers.ts
+  src/pages/orders/hooks/useOrderBulkActions.ts
+  src/pages/orders/hooks/useOrderSingleActions.ts
+  src/pages/orders/hooks/useOrderSync.ts
+  src/pages/products/MarketplaceSyncHistoryPage.tsx
+  src/pages/products/ProductAddPage.tsx
+  src/pages/products/ProductEditPage.tsx
+  src/pages/products/ProductImportPage.tsx
+  src/pages/products/UnifiedProductsPage.tsx
+  src/pages/products/components/ProductGridView.tsx
+  src/pages/products/components/ProductImagesTab.tsx
+  src/pages/products/components/ProductSyncTab.tsx
+  src/pages/products/components/ProductVariantsTab.tsx
+  src/pages/products/components/UnifiedProductsControls.tsx
+  src/pages/products/components/UnifiedProductsHeaderActions.tsx
+  src/pages/products/components/UnifiedProductsListOrGrid.tsx
+  src/pages/products/components/UnifiedProductsModals.tsx
+  src/pages/products/hooks/useUnifiedProductsActionDialogs.ts
+  src/pages/products/hooks/useUnifiedProductsActions.ts
+  src/pages/products/hooks/useUnifiedProductsModals.ts
+  src/pages/products/utils/marketplaceSyncHistoryPageUtils.tsx
+  src/pages/products/utils/productTabItems.tsx
+  src/pages/report/ShopeeReportPage.tsx
+  src/pages/report/TiktokReportPage.tsx
+  src/pages/route-mapping/RouteMappingPage.tsx
+  src/pages/route-mapping/columns.tsx
+  src/pages/route-mapping/components/ComponentsList.tsx
+  src/pages/route-mapping/components/GraphNodes.tsx
+  src/pages/route-mapping/components/GraphView.tsx
+  src/pages/route-mapping/components/GraphViewHelpers.ts
+  src/pages/route-mapping/components/RouteStats.tsx
+  src/pages/route-mapping/components/graphLayout.ts
+  src/pages/settings/SettingsPage.tsx
+  src/pages/settings/components/IntegrationUrls.tsx
+  src/pages/settings/components/OAuthLogsViewer.tsx
+  src/pages/settings/components/PlatformCard.tsx
+  src/pages/settings/components/RouteConfigModal.tsx
+  src/pages/settings/components/RouteFlowControls.tsx
+  src/pages/settings/components/RouteManagementCacheSettings.tsx
+  src/pages/settings/components/RouteManagementTableColumns.tsx
+  src/pages/settings/components/WebhookLogsViewer.tsx
+  src/pages/settings/components/route-monitoring/RouteErrorStats.tsx
+  src/pages/settings/components/route-monitoring/RouteExcludedRoutesManager.tsx
+  src/pages/settings/components/route-monitoring/RouteHealthStatus.tsx
+  src/pages/settings/components/route-monitoring/RouteMonitoringTab.tsx
+  src/pages/settings/components/route-monitoring/RoutePerformanceTable.tsx
+  src/pages/settings/components/route-monitoring/RouteQueueSection.tsx
+  src/pages/settings/components/route-monitoring/RouteSlowRoutesSection.tsx
+  src/pages/settings/components/route-monitoring/RouteStatesSection.tsx
+  src/pages/settings/tabs/AccountTab.tsx
+  src/pages/settings/tabs/GeneralTab.tsx
+  src/pages/settings/tabs/PlatformsTab.tsx
+  src/pages/settings/tabs/RouteManagementTab.tsx
+  src/pages/settings/tabs/StatCard.tsx
+  src/pages/settings/tabs/WebhooksTab.tsx
+  src/pages/settings/utils/settingsUtils.ts
+  src/stores/appStore.ts
+  src/stores/modalsStore.ts
+  src/styles/colors.ts
+  src/types/index.ts
 
-=== PACKAGES WITH HIGH COVERAGE (>=50%) ===
-- src/styles/theme.ts                        : 100%
-- src/types/shared.ts                        : 100%
-- src/stores/inventoryFilterStore.ts         : 72.5%
-- src/pages/settings/tabs/PlatformsSheetsTab : 68.1%
-- src/styles/                                : 84.2%
-- src/stores/                                : 43.8% (mixed)
+--- LOW COVERAGE (1-49%) ---
+    1.8%  src/pages/inventory/components/PriceCell.tsx
+    1.9%  src/pages/inventory/components/StockCell.tsx
+    2.9%  src/pages/script-monitor/components/QueueTab.tsx
+    5.3%  src/api/clientErrorHandler.ts
+    5.4%  src/pages/orders/utils/csv.ts
+    8.8%  src/api/operationMappers.ts
+    9.1%  src/pages/script-monitor/utils/historyFormatters.ts
+   11.0%  src/stores/authStore.ts
+   11.6%  src/api/wholesale.ts
+   17.9%  src/api/client.ts
+   17.9%  src/hooks/useInventory.ts
+   20.3%  src/pages/products/utils/productColumns.tsx
+   20.7%  src/api/products.ts
+   23.1%  src/pages/products/components/PlatformStatusCell.tsx
+   24.7%  src/pages/products/utils/unifiedProductUtils.ts
+   26.2%  src/api/scriptMonitor.ts
+   29.7%  src/api/inventoryCore.ts
+   30.5%  src/pages/settings/tabs/SheetMetadataCard.tsx
+   33.3%  src/lib/logger.ts
+   42.9%  src/api/orders.ts
+   44.6%  src/pages/inventory/utils/marketplaceAllocation.ts
+   45.5%  src/pages/inventory/components/inventoryMainTabHelpers.tsx
+   48.2%  src/pages/script-monitor/utils/jobUtils.ts
 
-=== PACKAGES WITH LOW COVERAGE (0-10%) ===
-- src/api/*                    : 0% (all API modules untested)
-- src/hooks/*                  : 0% (all hooks untested)
-- src/pages/orders/*           : 0% (order pages untested)
-- src/pages/analytics/*        : 0% (analytics pages untested)
-- src/components/modals/*      : 0% (modals untested)
-- src/App.tsx                  : 0%
+--- MEDIUM COVERAGE (50-79%) ---
+   53.6%  src/pages/script-monitor/components/ManualTriggerSection.tsx
+   54.2%  src/pages/script-monitor/components/ConfigEditorModal.tsx
+   59.0%  src/pages/script-monitor/components/ConfigTab.tsx
+   62.0%  src/components/shared/stockSyncRecommendations.ts
+   62.5%  src/api/inventoryPrice.ts
+   66.1%  src/components/shared/stockSyncColumns.tsx
+   66.4%  src/components/shared/WholesaleMpqModal.tsx
+   66.7%  src/components/shared/PlatformSyncMetrics.tsx
+   67.8%  src/components/shared/stockSyncModalUtils.ts
+   68.1%  src/pages/settings/tabs/GoogleSheetsTab.tsx
+   70.4%  src/api/inventoryConfig.ts
+   71.2%  src/pages/inventory/components/InventoryMainTab.tsx
+   71.4%  src/pages/inventory/utils/inventoryColumnFilters.ts
+   72.5%  src/stores/inventoryFilterStore.ts
+   72.7%  src/api/inventorySync.ts
+   74.3%  src/pages/orders/hooks/useOrdersLogic.ts
+   75.0%  src/pages/script-monitor/components/HistoryTab.tsx
+   76.5%  src/api/inventoryColumns.ts
+   76.9%  src/pages/inventory/utils/bulkPricingItems.ts
+   79.5%  src/components/shared/InlineEditDisplay.tsx
+   79.8%  src/components/shared/ImageGalleryPicker.tsx
 
-=== RAW DATA SOURCE ===
-Full per-file coverage: frontend/coverage/coverage-final.json
+--- HIGH COVERAGE (80-100%) ---
+   81.8%  src/pages/script-monitor/ScriptMonitorPage.tsx
+   83.5%  src/api/inventoryFilterPreferences.ts
+   83.7%  src/components/shared/StockSyncModal.tsx
+   85.0%  src/pages/script-monitor/components/CurrentJobTab.tsx
+   85.7%  src/api/inventoryCheck.ts
+   86.7%  src/pages/settings/tabs/GoogleSheetsLinkRow.tsx
+   86.8%  src/api/wholesaleHelpers.ts
+   86.9%  src/pages/orders/components/OrderStatusTabs.tsx
+   87.8%  src/components/modals/ship/TikTokShipForm.tsx
+   88.2%  src/api/routeMapping.ts
+   88.2%  src/pages/inventory/utils/inventoryColumnOrder.ts
+   90.3%  src/components/shared/InlineEditCell.tsx
+   91.0%  src/components/shared/InlineEditCell.test.tsx
+   92.0%  src/lib/constants.ts
+   92.6%  src/components/shared/ColumnManager.test.tsx
+   93.1%  src/api/orderTransforms.ts
+   93.6%  src/pages/products/components/ProductVariantExpandedRow.tsx
+   93.7%  src/components/shared/PlatformSyncPanel.tsx
+   93.8%  src/components/shared/PlatformIndicator.test.tsx
+   93.8%  src/pages/products/utils/productEditMapper.ts
+   93.9%  src/components/shared/WholesaleMpqModal.test.tsx
+   94.3%  src/components/tables/OrderTable.tsx
+   94.5%  src/hooks/useUnifiedProducts.ts
+   94.8%  src/components/shared/ColumnManager.tsx
+   94.9%  src/components/shared/SkuMappingPanel.tsx
+   95.1%  src/components/shared/stockSyncModalSections.tsx
+   95.2%  src/components/shared/SkuLinkModal.tsx
+   95.5%  src/components/shared/PlatformComparisonPanel.tsx
+   95.9%  src/components/shared/ImageGalleryPicker.test.tsx
+   96.6%  src/components/shared/PlatformSyncPanel.test.tsx
+   97.2%  src/components/shared/UnifiedBatchBar.tsx
+   98.0%  src/api/orderTabMapping.ts
+   98.2%  src/components/shared/ClonePreviewDiff.tsx
+   98.3%  src/components/shared/StockSyncModal.test.tsx
+   98.8%  src/hooks/usePlatformStatus.ts
+   99.1%  src/hooks/useColumnManager.test.ts
+   99.5%  src/components/shared/PlatformIndicator.tsx
+  100.0%  src/__tests__/setup.test.ts
+  100.0%  src/api/inventory.test.ts
+  100.0%  src/api/inventory.ts
+  100.0%  src/api/inventoryFilterPreferences.test.ts
+  100.0%  src/api/inventoryPriceTypes.ts
+  100.0%  src/api/marketplaceSyncHistory.test.ts
+  100.0%  src/api/marketplaceSyncHistory.ts
+  100.0%  src/api/orderTabMapping.test.ts
+  100.0%  src/api/orderTypes.ts
+  100.0%  src/api/orders.test.ts
+  100.0%  src/api/products.test.ts
+  100.0%  src/api/routeMapping.test.ts
+  100.0%  src/api/scriptMonitor.test.ts
+  100.0%  src/api/wholesale.test.ts
+  100.0%  src/api/wholesaleTypes.ts
+  100.0%  src/components/clone/types.ts
+  100.0%  src/components/layout/MobileNav.tsx
+  100.0%  src/components/layout/__tests__/MobileNav.test.tsx
+  100.0%  src/components/modals/ship/TikTokShipForm.test.tsx
+  100.0%  src/components/shared/ClonePreviewDiff.test.tsx
+  100.0%  src/components/shared/ProductFilters.test.tsx
+  100.0%  src/components/shared/ProductFilters.tsx
+  100.0%  src/components/shared/SkuMappingPanel.test.tsx
+  100.0%  src/components/shared/UnifiedBatchBar.test.tsx
+  100.0%  src/components/shared/platformSyncPanelHelpers.tsx
+  100.0%  src/components/shared/gallery/GalleryFooter.tsx
+  100.0%  src/components/shared/gallery/GalleryGrid.tsx
+  100.0%  src/components/shared/gallery/GalleryToolbar.tsx
+  100.0%  src/components/tables/OrderTable.test.tsx
+  100.0%  src/components/tables/OrderTable.types.ts
+  100.0%  src/hooks/useColumnManager.ts
+  100.0%  src/hooks/useInlineEdit.test.ts
+  100.0%  src/hooks/useInlineEdit.ts
+  100.0%  src/hooks/useInventory.test.ts
+  100.0%  src/hooks/useMarketplaceSyncHistory.test.ts
+  100.0%  src/hooks/useMarketplaceSyncHistory.ts
+  100.0%  src/hooks/usePlatformStatus.test.ts
+  100.0%  src/hooks/useUnifiedProducts.test.ts
+  100.0%  src/lib/platformColors.ts
+  100.0%  src/pages/inventory/components/InventoryMainTab.test.tsx
+  100.0%  src/pages/inventory/hooks/useInventoryFilterPreferenceSync.test.ts
+  100.0%  src/pages/inventory/hooks/useInventoryFilterPreferenceSync.ts
+  100.0%  src/pages/inventory/utils/bulkPricingItems.test.ts
+  100.0%  src/pages/inventory/utils/inventoryColumnFilters.test.ts
+  100.0%  src/pages/inventory/utils/inventoryColumnOrder.test.ts
+  100.0%  src/pages/inventory/utils/inventoryFilterPreferenceSync.test.ts
+  100.0%  src/pages/inventory/utils/inventoryFilterPreferenceSync.ts
+  100.0%  src/pages/orders/components/OrderStatusTabs.constants.ts
+  100.0%  src/pages/orders/components/OrderStatusTabs.test.tsx
+  100.0%  src/pages/orders/hooks/bulkActionTypes.ts
+  100.0%  src/pages/orders/hooks/printOptions.test.ts
+  100.0%  src/pages/orders/hooks/printOptions.ts
+  100.0%  src/pages/orders/hooks/useOrdersLogic.test.ts
+  100.0%  src/pages/orders/utils/labelDownload.test.ts
+  100.0%  src/pages/orders/utils/labelDownload.ts
+  100.0%  src/pages/products/types.ts
+  100.0%  src/pages/products/components/ProductVariantExpandedRow.test.tsx
+  100.0%  src/pages/products/utils/productColumns.test.ts
+  100.0%  src/pages/products/utils/productEditMapper.test.ts
+  100.0%  src/pages/script-monitor/ScriptMonitorPage.test.tsx
+  100.0%  src/pages/settings/tabs/GoogleSheetsTab.test.tsx
+  100.0%  src/stores/inventoryFilterStore.test.ts
+  100.0%  src/styles/theme.test.ts
+  100.0%  src/styles/theme.ts
+  100.0%  src/types/ads.ts
+  100.0%  src/types/analytics.ts
+  100.0%  src/types/api.ts
+  100.0%  src/types/auth.ts
+  100.0%  src/types/clone.ts
+  100.0%  src/types/dashboard.ts
+  100.0%  src/types/googleSheets.ts
+  100.0%  src/types/inventory.ts
+  100.0%  src/types/order.ts
+  100.0%  src/types/product.ts
+  100.0%  src/types/product_manager.ts
+  100.0%  src/types/routeConfig.ts
+  100.0%  src/types/routeControl.ts
+  100.0%  src/types/routeExecutionConfig.ts
+  100.0%  src/types/routeMapping.ts
+  100.0%  src/types/scriptMonitor.ts
+  100.0%  src/types/shared.ts
+  100.0%  src/types/sheetRegistry.ts
+  100.0%  src/types/wholesale.ts
