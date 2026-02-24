@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Key } from "react";
-import { Spin, Empty, Alert, Button, Tag } from "antd";
+import { Spin, Empty, Alert, Button } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { VirtualTable } from "@/components/common/VirtualTable";
 import type { InventoryRecord } from "@/types/inventory";
@@ -11,7 +11,6 @@ import {
 import {
   estimateInventoryColumnWidth,
   renderMarketplaceCell,
-  resolveSyncStatus,
 } from "./inventoryMainTabHelpers";
 import { StockCell } from "./StockCell";
 import { PriceCell } from "./PriceCell";
@@ -78,20 +77,6 @@ export function InventoryMainTab({
         align: "center",
         render: (_, record) =>
           renderMarketplaceCell(record, "lazada", marketplaceSettings),
-      },
-      {
-        title: "Sync Status",
-        key: "sync_status",
-        width: 120,
-        align: "center",
-        render: (_, record) => {
-          const status = resolveSyncStatus(record.sync_status);
-          return (
-            <Tag color={status.color} style={{ fontSize: 11, margin: 0 }}>
-              {status.label}
-            </Tag>
-          );
-        },
       },
     ];
 
@@ -192,13 +177,7 @@ export function InventoryMainTab({
       });
     }
 
-    cols.push({
-      title: "Updated",
-      dataIndex: "updated_at",
-      key: "updated_at",
-      width: 160,
-      render: (v: string) => (v ? new Date(v).toLocaleString() : "-"),
-    });
+
 
     return cols;
   }, [

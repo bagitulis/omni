@@ -208,7 +208,7 @@ def test_save_manifest_keeps_previous_checksum_for_unchanged_tables(tmp_path: Pa
         item["name"]: item["checksum"]
         for item in manifest_content["schemas"]["tenant_abc"]["tables"]
     }
-    assert manifest_content["version"] == 3
+    assert manifest_content["version"] == 4
     assert saved_tables["inventory_records"] == "c" * 64
     assert saved_tables["inventory_sync_history"] == "b" * 64
 
@@ -236,3 +236,116 @@ def test_save_manifest_uses_generated_row_counts(tmp_path: Path):
     saved_table = manifest_content["schemas"]["tenant_abc"]["tables"][0]
     assert saved_table["rows"] == 4
     assert saved_table["checksum"] == "d" * 64
+
+
+def test_detect_changes_exports_when_change_vector_increases(tmp_path: Path):
+    config = cast(Any, SimpleNamespace(project_root=tmp_path))
+    backup = DatabaseBackup(config)
+
+    tables = [
+        {
+            "schema": "tenant_abc",
+            "table": "inventory_records",
+            "rows": 10,
+            "change_vector": "10:6:0:0",
+        }
+    ]
+    previous_manifest = {
+        "schemas": {
+            "tenant_abc": {
+                "tables": [
+                    {
+                        "name": "inventory_records",
+                        "rows": 10,
+                        "checksum": "a" * 64,
+                        "change_vector": "10:5:0:0",
+                    }
+                ]
+            }
+        }
+    }
+
+    to_export, unchanged, _ = backup.detect_changes(tables, previous_manifest, force=False)
+
+    assert len(to_export) == 1
+    assert unchanged == []
+    assert "change_vector" in to_export[0]["reason"]
+
+
+def test_detect_changes_legacy_manifest_skips_when_checksum_equal(
+    monkeypatch: Any, tmp_path: Path
+):
+    config = cast(Any, SimpleNamespace(project_root=tmp_path))
+    backup = DatabaseBackup(config)
+
+    monkeypatch.setattr(
+        "omni_build.database_backup_ops.DatabaseBackupOps.calculate_live_table_checksum",
+        lambda self, schema, table, rows: "b" * 64,
+    )
+
+    tables = [
+        {
+            "schema": "tenant_abc",
+            "table": "inventory_records",
+            "rows": 10,
+            "change_vector": "10:6:0:0",
+        }
+    ]
+    previous_manifest = {
+        "schemas": {
+            "tenant_abc": {
+                "tables": [
+                    {
+                        "name": "inventory_records",
+                        "rows": 10,
+                        "checksum": "b" * 64,
+                    }
+                ]
+            }
+        }
+    }
+
+    to_export, unchanged, _ = backup.detect_changes(tables, previous_manifest, force=False)
+
+    assert to_export == []
+    assert len(unchanged) == 1
+
+
+def test_detect_changes_legacy_manifest_exports_when_checksum_diff(
+    monkeypatch: Any, tmp_path: Path
+):
+    config = cast(Any, SimpleNamespace(project_root=tmp_path))
+    backup = DatabaseBackup(config)
+
+    monkeypatch.setattr(
+        "omni_build.database_backup_ops.DatabaseBackupOps.calculate_live_table_checksum",
+        lambda self, schema, table, rows: "c" * 64,
+    )
+
+    tables = [
+        {
+            "schema": "tenant_abc",
+            "table": "inventory_records",
+            "rows": 10,
+            "change_vector": "10:6:0:0",
+        }
+    ]
+    previous_manifest = {
+        "schemas": {
+            "tenant_abc": {
+                "tables": [
+                    {
+                        "name": "inventory_records",
+                        "rows": 10,
+                        "checksum": "b" * 64,
+                    }
+                ]
+            }
+        }
+    }
+
+    to_export, unchanged, _ = backup.detect_changes(tables, previous_manifest, force=False)
+
+    assert len(to_export) == 1
+    assert unchanged == []
+    assert to_export[0]["reason"] == "checksum_changed"

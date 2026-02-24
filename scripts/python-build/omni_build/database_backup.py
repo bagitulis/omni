@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from omni_build.backup_change_detector import BackupChangeDetector
 from omni_build.config import Config
 from omni_build.logger import log_error, log_info, log_success, log_warning
 
@@ -66,7 +67,11 @@ class DatabaseBackup:
     def get_all_tables(self) -> List[Dict[str, Any]]:
         """Get all tables with row counts from tenant and system schemas."""
         query = """
-        SELECT schemaname, relname 
+        SELECT schemaname, relname,
+               COALESCE(n_tup_ins, 0)::bigint,
+               COALESCE(n_tup_upd, 0)::bigint,
+               COALESCE(n_tup_del, 0)::bigint,
+               COALESCE(n_tup_hot_upd, 0)::bigint
         FROM pg_stat_user_tables 
         WHERE schemaname LIKE 'tenant_%' OR schemaname = 'system'
         ORDER BY schemaname, relname;
@@ -87,16 +92,20 @@ class DatabaseBackup:
                 if not line.strip():
                     continue
                 parts = line.split('|')
-                if len(parts) >= 2:
+                if len(parts) >= 6:
                     schema = parts[0].strip()
                     table = parts[1].strip()
                     if schema and table:
+                        n_tup_ins = int(parts[2].strip() or 0)
+                        n_tup_upd = int(parts[3].strip() or 0)
+                        n_tup_del = int(parts[4].strip() or 0)
+                        n_tup_hot_upd = int(parts[5].strip() or 0)
                         rows = self._get_row_count(schema, table)
                         tables.append({
                             'schema': schema,
                             'table': table,
                             'rows': rows,
-                            'checksum': f"{rows}-{table}"
+                            'change_vector': f"{n_tup_ins}:{n_tup_upd}:{n_tup_del}:{n_tup_hot_upd}",
                         })
             
             return tables
@@ -136,37 +145,8 @@ class DatabaseBackup:
         force: bool = False
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
         """Detect which tables need to be exported."""
-        to_export, unchanged, deleted = [], [], []
-        
-        for table in tables:
-            needs_export = True
-            reason = "new"
-            
-            if not force and prev_manifest:
-                prev_schema = prev_manifest.get('schemas', {}).get(table['schema'])
-                if prev_schema:
-                    prev_tables = prev_schema.get('tables', [])
-                    prev_table = next((t for t in prev_tables if t['name'] == table['table']), None)
-                    if prev_table:
-                        if prev_table.get('rows') == table['rows']:
-                            needs_export = False
-                            unchanged.append(table)
-                        else:
-                            reason = f"rows: {prev_table.get('rows')} -> {table['rows']}"
-            
-            if needs_export:
-                table['reason'] = reason
-                to_export.append(table)
-        
-        if prev_manifest:
-            for schema_name, schema_data in prev_manifest.get('schemas', {}).items():
-                for prev_table in schema_data.get('tables', []):
-                    exists = any(t['schema'] == schema_name and t['table'] == prev_table['name'] 
-                               for t in tables)
-                    if not exists:
-                        deleted.append({'schema': schema_name, 'table': prev_table['name']})
-        
-        return to_export, unchanged, deleted
+        detector = BackupChangeDetector(self.backup_dir)
+        return detector.detect_changes(tables, prev_manifest, force)
     
     def _get_previous_checksum(self, prev_manifest: Optional[Dict[str, Any]], schema: str, table: str) -> str:
         """Get checksum from previous manifest if available."""
@@ -244,6 +224,7 @@ class DatabaseBackup:
                 'name': table_name,
                 'rows': row_count,
                 'checksum': checksum,
+                'change_vector': table.get('change_vector', ''),
             })
 
         if missing_rows:
@@ -260,7 +241,7 @@ class DatabaseBackup:
             return False
         
         manifest = {
-            'version': 3,
+            'version': 4,
             'exported_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'schemas': schemas
         }
@@ -288,12 +269,7 @@ class DatabaseBackup:
             return False, "PostgreSQL is not available"
         log_success("PostgreSQL ready")
         
-        log_info("[2/6] Analyzing database...")
-        subprocess.run(
-            ["docker", "exec", "omni-postgres", "psql", "-U", "omni", 
-             "-d", "omni_main", "-c", "ANALYZE;"],
-            capture_output=True, timeout=120
-        )
+        log_info("[2/6] Collecting table metadata...")
         
         tables = self.get_all_tables()
         if not tables:

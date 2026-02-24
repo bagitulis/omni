@@ -97,6 +97,104 @@ class DatabaseBackupOps:
                         total_rows += 1
         return total_rows
 
+    def _get_primary_key_column(self, schema: str, table: str) -> str:
+        """Resolve primary key column for deterministic chunk ordering."""
+        pk_query = f"""
+        SELECT a.attname FROM pg_index i
+        JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+        WHERE i.indrelid = '{schema}.{table}'::regclass AND i.indisprimary LIMIT 1;
+        """
+
+        try:
+            pk_result = subprocess.run(
+                [
+                    "docker",
+                    "exec",
+                    "omni-postgres",
+                    "psql",
+                    "-U",
+                    "omni",
+                    "-d",
+                    "omni_main",
+                    "-t",
+                    "-A",
+                    "-c",
+                    pk_query,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if pk_result.returncode == 0 and pk_result.stdout.strip():
+                return pk_result.stdout.strip()
+        except Exception:
+            pass
+
+        return "1"
+
+    def _calculate_live_single_checksum(self, schema: str, table: str) -> str:
+        """Calculate checksum from live PostgreSQL dump stream (single-file strategy)."""
+        cmd = (
+            f"pg_dump -U omni -d omni_main --table={schema}.{table} "
+            "--data-only --no-owner --no-acl 2>/dev/null | gzip -n"
+        )
+        result = subprocess.run(
+            ["docker", "exec", "omni-postgres", "sh", "-c", cmd],
+            capture_output=True,
+            timeout=300,
+        )
+
+        if result.returncode != 0 or not result.stdout:
+            return ""
+
+        hasher = hashlib.sha256()
+        hasher.update(f"single:{schema}.{table}".encode("utf-8"))
+        hasher.update(result.stdout)
+        return hasher.hexdigest()
+
+    def _calculate_live_chunked_checksum(self, schema: str, table: str, total_rows: int) -> str:
+        """Calculate checksum from live PostgreSQL stream (chunked strategy)."""
+        if total_rows <= 0:
+            return ""
+
+        order_by = self._get_primary_key_column(schema, table)
+        hasher = hashlib.sha256()
+        hasher.update(f"chunked:{schema}.{table}".encode("utf-8"))
+
+        offset = 0
+        chunk_num = 0
+        while offset < total_rows:
+            chunk_name = f"{table}.chunk{chunk_num:03d}.sql.gz"
+            copy_cmd = (
+                f'psql -U omni -d omni_main -c "COPY (SELECT * FROM {schema}.{table} '
+                f'ORDER BY {order_by} LIMIT {self.CHUNK_SIZE} OFFSET {offset}) TO STDOUT" '
+                '2>/dev/null | gzip -n'
+            )
+            result = subprocess.run(
+                ["docker", "exec", "omni-postgres", "sh", "-c", copy_cmd],
+                capture_output=True,
+                timeout=600,
+            )
+
+            if result.returncode != 0 or not result.stdout:
+                return ""
+
+            hasher.update(chunk_name.encode("utf-8"))
+            hasher.update(result.stdout)
+            offset += self.CHUNK_SIZE
+            chunk_num += 1
+
+        return hasher.hexdigest()
+
+    def calculate_live_table_checksum(self, schema: str, table: str, rows: int) -> str:
+        """Calculate checksum directly from live PostgreSQL data without writing backup files."""
+        try:
+            if rows >= self.LARGE_TABLE_THRESHOLD:
+                return self._calculate_live_chunked_checksum(schema, table, rows)
+            return self._calculate_live_single_checksum(schema, table)
+        except Exception:
+            return ""
+
     def calculate_artifact_row_count(self, schema: str, table: str) -> int:
         """Calculate row count from existing backup artifact(s)."""
         schema_dir = self.backup_dir / schema
@@ -261,20 +359,7 @@ class DatabaseBackupOps:
         for old_chunk in dest_dir.glob(f"{table}.chunk*.sql.gz"):
             old_chunk.unlink()
         
-        pk_query = f"""
-        SELECT a.attname FROM pg_index i 
-        JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) 
-        WHERE i.indrelid = '{schema}.{table}'::regclass AND i.indisprimary LIMIT 1;
-        """
-        try:
-            pk_result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "psql", "-U", "omni",
-                 "-d", "omni_main", "-t", "-A", "-c", pk_query],
-                capture_output=True, text=True, timeout=30
-            )
-            order_by = pk_result.stdout.strip() if pk_result.returncode == 0 and pk_result.stdout.strip() else "1"
-        except Exception:
-            order_by = "1"
+        order_by = self._get_primary_key_column(schema, table)
         
         offset = 0
         chunk_num = 0
