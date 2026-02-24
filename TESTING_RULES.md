@@ -46,20 +46,20 @@ When a test fails, follow this protocol in order:
 Measured via `go test -cover ./...` in `backend/`.
 Full report: `backend/tests/coverage/baseline-report.txt`
 
-| Package | Coverage |
-| ------- | -------- |
-| `internal/utils/http` | 90.9% |
-| `internal/utils` | 90.3% |
-| `internal/utils/logger` | 75.0% |
-| `internal/services/cache` | 85.5% |
-| `internal/models` | 63.3% |
-| `internal/services/route` | 52.3% |
-| `internal/services/analytics/intelligence` | 37.9% |
-| `internal/handlers` | 36.0% |
-| `internal/middleware` | 29.0% |
-| `internal/services/ads` | 26.9% |
-| Most `services/*` packages | 0.0% |
-| Most `pkg/*` packages | 0.0% |
+| Package                                    | Coverage |
+| ------------------------------------------ | -------- |
+| `internal/utils/http`                      | 90.9%    |
+| `internal/utils`                           | 90.3%    |
+| `internal/utils/logger`                    | 75.0%    |
+| `internal/services/cache`                  | 85.5%    |
+| `internal/models`                          | 63.3%    |
+| `internal/services/route`                  | 52.3%    |
+| `internal/services/analytics/intelligence` | 37.9%    |
+| `internal/handlers`                        | 36.0%    |
+| `internal/middleware`                      | 29.0%    |
+| `internal/services/ads`                    | 26.9%    |
+| Most `services/*` packages                 | 0.0%     |
+| Most `pkg/*` packages                      | 0.0%     |
 
 **Overall backend average: ~15–20%** (many packages have 0% coverage)
 
@@ -69,22 +69,23 @@ Measured via `npx vitest run --coverage` in `frontend/`.
 Full report: `frontend/coverage/baseline-report.txt`
 Raw per-file data: `frontend/coverage/coverage-final.json`
 
-| Metric | Coverage |
-| ------ | -------- |
+| Metric     | Coverage                |
+| ---------- | ----------------------- |
 | Statements | 27.0% (11,258 / 41,655) |
-| Functions | 36.8% (299 / 812) |
-| Branches | 70.2% (1,526 / 2,173) |
+| Functions  | 36.8% (299 / 812)       |
+| Branches   | 70.2% (1,526 / 2,173)   |
 
 Test results: **44 files pass, 3 files fail** (pre-existing failures, not caused by this plan).
 
 ### Coverage Targets by Phase
 
-| Phase | Backend (statements) | Frontend (statements) | Timeline |
-| ----- | -------------------- | --------------------- | -------- |
-| **Baseline** | ~15–20% | 27% | 2026-02-24 |
-| **Phase 1** | 27% (baseline +10pp) | 37% (baseline +10pp) | +3 months |
-| **Phase 2** | 42% (Phase 1 +15pp) | 52% (Phase 1 +15pp) | +6 months |
-| **Phase 3** | 100% (long-term) | 100% (long-term) | Long-term |
+| Phase        | Backend (statements) | Frontend (statements) | Timeline   |
+| ------------ | -------------------- | --------------------- | ---------- |
+| **Baseline** | ~15–20%              | 27%                   | 2026-02-24 |
+| **Phase 1**  | 27% (baseline +10pp) | 37% (baseline +10pp)  | +3 months  |
+| **Phase 2**  | 42% (Phase 1 +15pp)  | 52% (Phase 1 +15pp)   | +6 months  |
+| **Phase 3**  | 100% (long-term)     | 100% (long-term)      | Long-term  |
+
 > **Rule**: Do NOT set phase targets ABOVE the measured baseline — targets must be achievable.
 > Phase 1 = baseline + ~10pp. Phase 2 = Phase 1 + ~15pp. Phase 3 = 100% long-term goal.
 
@@ -121,9 +122,9 @@ Lighthouse performance budgets are IMMUTABLE — they can never be lowered to ma
 
 | Category       | Minimum Score |
 | -------------- | ------------- |
-| Performance    | 80            |
+| Performance    | 90            |
 | Accessibility  | 90            |
-| Best Practices | 80            |
+| Best Practices | 90            |
 | SEO            | 60            |
 
 Thresholds are defined in `backend/tests/e2e/lighthouse/config.go` — treat as read-only after initial setup.
@@ -193,4 +194,13 @@ These issues were identified during the testing overhaul planning phase and must
 
 ---
 
+## 10. Bugs Found During Coverage Work
+
+> Discovered while writing tests to increase coverage. Auto-logged by agents.
+> **Status values**: `AUTO-FIXED` | `NEEDS-CONFIRMATION` | `DEFERRED`
+
+| Date | File / Package | Bug Type | Description | Severity | Status |
+| ---- | -------------- | -------- | ----------- | -------- | ------ |
+
+---
 _This document is part of the OMNI project testing infrastructure. All agents MUST follow these rules without exception._
