@@ -23,6 +23,8 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json"],
       reportsDirectory: "./coverage",
+      exclude: ["node_modules/**", "dist/**", "e2e/**", "**/*.d.ts", "src/main.tsx"],
+      reportOnFailure: true,
     },
   },
 });

@@ -39,16 +39,55 @@ When a test fails, follow this protocol in order:
 
 ---
 
-## 3. Coverage Targets
+## 3. Coverage Baseline (Measured 2026-02-24)
 
-> ⏳ **PLACEHOLDER** — Will be filled by Task 12 (Coverage Baseline Measurement)
-> Do NOT set targets here manually until baseline is measured.
+### Backend Coverage (Go)
 
-- Backend: TBD (measured via `go test -cover ./...`)
-- Frontend: TBD (measured via `npx vitest run --coverage`)
-- Phase 1 target: baseline + 10% (minimum 70%)
-- Phase 2 target: Phase 1 + 15% (minimum 85%)
-- Phase 3 target: 100% (long-term goal)
+Measured via `go test -cover ./...` in `backend/`.
+Full report: `backend/tests/coverage/baseline-report.txt`
+
+| Package | Coverage |
+| ------- | -------- |
+| `internal/utils/http` | 90.9% |
+| `internal/utils` | 90.3% |
+| `internal/utils/logger` | 75.0% |
+| `internal/services/cache` | 85.5% |
+| `internal/models` | 63.3% |
+| `internal/services/route` | 52.3% |
+| `internal/services/analytics/intelligence` | 37.9% |
+| `internal/handlers` | 36.0% |
+| `internal/middleware` | 29.0% |
+| `internal/services/ads` | 26.9% |
+| Most `services/*` packages | 0.0% |
+| Most `pkg/*` packages | 0.0% |
+
+**Overall backend average: ~15–20%** (many packages have 0% coverage)
+
+### Frontend Coverage (React/TypeScript)
+
+Measured via `npx vitest run --coverage` in `frontend/`.
+Full report: `frontend/coverage/baseline-report.txt`
+Raw per-file data: `frontend/coverage/coverage-final.json`
+
+| Metric | Coverage |
+| ------ | -------- |
+| Statements | 27.0% (11,258 / 41,655) |
+| Functions | 36.8% (299 / 812) |
+| Branches | 70.2% (1,526 / 2,173) |
+
+Test results: **44 files pass, 3 files fail** (pre-existing failures, not caused by this plan).
+
+### Coverage Targets by Phase
+
+| Phase | Backend (statements) | Frontend (statements) | Timeline |
+| ----- | -------------------- | --------------------- | -------- |
+| **Baseline** | ~15–20% | 27% | 2026-02-24 |
+| **Phase 1** | 30% | 37% | +3 months |
+| **Phase 2** | 50% | 55% | +6 months |
+| **Phase 3** | 70%+ | 70%+ | Long-term |
+
+> **Rule**: Do NOT set phase targets ABOVE the measured baseline — targets must be achievable.
+> Phase 1 = baseline + ~10pp. Phase 2 = Phase 1 + ~18pp. Phase 3 = long-term goal.
 
 ---
 

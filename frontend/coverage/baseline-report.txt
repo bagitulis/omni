@@ -1,0 +1,40 @@
+=== FRONTEND COVERAGE BASELINE REPORT ===
+Generated: 2026-02-24
+Command: npx vitest run --coverage --reporter=dot
+Tool: @vitest/coverage-v8 ^2.1.9
+
+=== OVERALL SUMMARY ===
+Statements: 27.0%  (11258/41655)
+Functions:  36.8%  (299/812)
+Branches:   70.2%  (1526/2173)
+
+=== TEST RESULTS ===
+Test Files: 3 failed (pre-existing) | 44 passed (47 total)
+Tests:      5 failed (pre-existing) | 254 passed (259 total)
+
+=== PRE-EXISTING FAILURES (NOT caused by testing-overhaul plan) ===
+1. src/components/shared/InlineEditCell.test.tsx - 3 tests fail
+   Reason: Test looks for aria-label="Edit stock" but button has aria-label="Edit value"
+2. src/components/shared/StockSyncModal.test.tsx - 1 test fails
+   Reason: "Found multiple elements with text: SKU-001"
+3. src/pages/products/components/ProductVariantExpandedRow.test.tsx - 1 test fails
+   Reason: Expected "2 SKU" text not found in component output
+
+=== PACKAGES WITH HIGH COVERAGE (>=50%) ===
+- src/styles/theme.ts                        : 100%
+- src/types/shared.ts                        : 100%
+- src/stores/inventoryFilterStore.ts         : 72.5%
+- src/pages/settings/tabs/PlatformsSheetsTab : 68.1%
+- src/styles/                                : 84.2%
+- src/stores/                                : 43.8% (mixed)
+
+=== PACKAGES WITH LOW COVERAGE (0-10%) ===
+- src/api/*                    : 0% (all API modules untested)
+- src/hooks/*                  : 0% (all hooks untested)
+- src/pages/orders/*           : 0% (order pages untested)
+- src/pages/analytics/*        : 0% (analytics pages untested)
+- src/components/modals/*      : 0% (modals untested)
+- src/App.tsx                  : 0%
+
+=== RAW DATA SOURCE ===
+Full per-file coverage: frontend/coverage/coverage-final.json
