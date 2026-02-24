@@ -1,6 +1,7 @@
 import type { InventoryConfig } from "@/types/inventory";
 
 export interface MarketplaceAllocationSettings {
+  keyColumn: string;
   totalColumn: string;
   autoColumn: string;
   shopeeRatio: number;
@@ -18,6 +19,7 @@ const STORAGE_KEY = "inventory_marketplace_allocation_settings_v1";
 
 export const defaultMarketplaceAllocationSettings: MarketplaceAllocationSettings =
   {
+    keyColumn: "",
     totalColumn: "",
     autoColumn: "",
     shopeeRatio: 0.6,
@@ -86,6 +88,7 @@ export function loadMarketplaceAllocationSettings(): MarketplaceAllocationSettin
   try {
     const parsed = JSON.parse(raw) as Partial<MarketplaceAllocationSettings>;
     return {
+      keyColumn: parsed.keyColumn || "",
       totalColumn: parsed.totalColumn || "",
       autoColumn: parsed.autoColumn || "",
       shopeeRatio:
@@ -120,7 +123,8 @@ export function deriveMarketplaceAllocationSettings(
   const inferredAuto = inferAutoColumnFromSelection(selectedColumns);
 
   return {
-    totalColumn: config?.key_column || saved.totalColumn,
+    keyColumn: config?.key_column || saved.keyColumn,
+    totalColumn: saved.totalColumn,
     autoColumn: saved.autoColumn || inferredAuto,
     shopeeRatio: saved.shopeeRatio,
     tiktokRatio: saved.tiktokRatio,

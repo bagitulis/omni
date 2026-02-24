@@ -85,21 +85,21 @@ export function MarketplaceSettingsModal({
   );
 
   const handleSave = () => {
-    if (!settings.totalColumn) {
-      message.error("Total column is required");
+    if (!settings.keyColumn) {
+      message.error("Key column is required");
       return;
     }
 
     const existingColumns = parseColumns(inventoryConfig?.selected_columns);
     const mergedColumns = encodeColumns(inventoryConfig?.selected_columns, [
       ...existingColumns,
-      settings.totalColumn,
-      settings.autoColumn,
+      ...(settings.totalColumn ? [settings.totalColumn] : []),
+      ...(settings.autoColumn ? [settings.autoColumn] : []),
     ]);
 
     updateConfigMutation.mutate(
       {
-        key_column: settings.totalColumn,
+        key_column: settings.keyColumn,
         selected_columns: mergedColumns,
       },
       {
@@ -147,9 +147,27 @@ export function MarketplaceSettingsModal({
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         <div>
+          <Title level={5}>Key Column</Title>
+          <Text type="secondary">
+            The column used as the unique identifier (row key) in the inventory
+            table. This is typically the SKU column.
+          </Text>
+          <Select
+            style={{ width: "100%", marginTop: 8 }}
+            value={settings.keyColumn || undefined}
+            onChange={(value) =>
+              setSettings({ ...settings, keyColumn: value })
+            }
+            placeholder="Select key column (e.g. SKU)"
+            options={selectOptions}
+            loading={configLoading}
+          />
+        </div>
+
+        <div>
           <Title level={5}>Column Mapping</Title>
           <Text type="secondary">
-            Select which columns to use for Total and Auto values.
+            Select which columns to use for Total stock and Auto mode values.
           </Text>
           <Row gutter={16} style={{ marginTop: 12 }}>
             <Col span={12}>
@@ -163,6 +181,7 @@ export function MarketplaceSettingsModal({
                 placeholder="Select column"
                 options={selectOptions}
                 loading={configLoading}
+                allowClear
               />
             </Col>
             <Col span={12}>
@@ -176,6 +195,7 @@ export function MarketplaceSettingsModal({
                 placeholder="Select column"
                 options={selectOptions}
                 loading={configLoading}
+                allowClear
               />
             </Col>
           </Row>

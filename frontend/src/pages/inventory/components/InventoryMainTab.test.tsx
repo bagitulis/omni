@@ -8,6 +8,7 @@ import type { MarketplaceAllocationSettings } from "../utils/marketplaceAllocati
 const capturedProps: Array<Record<string, unknown>> = [];
 
 const marketplaceSettings: MarketplaceAllocationSettings = {
+  keyColumn: "SKU",
   totalColumn: "Stock",
   autoColumn: "AUTO",
   shopeeRatio: 0.6,
