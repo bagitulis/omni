@@ -204,6 +204,19 @@ func main() {
 	s.POST("/sync/products", sSync.SyncProducts)
 	s.GET("/db/products", sDBProd.GetDBProducts)
 	s.GET("/db/products/master", sDBProd.GetMasterProducts)
+	s.GET("/db/products/list", sDBProd.GetProductList)
+	s.GET("/db/products/base", sDBProd.GetProductBase)
+	s.GET("/db/products/model", sDBProd.GetProductModel)
+	s.GET("/db/products/base/:itemId", sDBProd.GetProductBaseByID)
+	s.GET("/db/products/models/:itemId", sDBProd.GetProductModelsByID)
+	s.GET("/db/products/variations/:itemId", sDBProd.GetProductVariationsByID)
+	s.GET("/db/products/full/:itemId", sDBProd.GetProductFull)
+	s.GET("/db/products/search", sDBProd.SearchProducts)
+	s.GET("/db/products/status/:status", sDBProd.GetProductsByStatus)
+	s.GET("/db/stats", sDBProd.GetDBStats)
+	s.GET("/db/sync/unprocessed", sDBProd.GetUnprocessedItems)
+	s.GET("/db/sync/no-models", sDBProd.GetItemsWithoutModels)
+	s.GET("/db/sync/logs", sDBProd.GetSyncLogs)
 
 	// Lazada
 	l := protected.Group("/lazada")
@@ -237,6 +250,12 @@ func main() {
 	t.POST("/sync/products", tSync.SyncProducts)
 	t.GET("/db/products", tDBProd.GetDBProducts)
 	t.GET("/db/products/master", tDBProd.GetMasterProducts)
+	t.GET("/db/products/list", tDBProd.GetProductList)
+	t.GET("/db/products/status/:status", tDBProd.GetProductsByStatus)
+	t.GET("/db/products/:productId", tDBProd.GetProductByID)
+	t.DELETE("/db/products/:productId", tDBProd.DeleteProduct)
+	t.GET("/db/search", tDBProd.SearchProducts)
+	t.GET("/db/statistics", tDBProd.GetStatistics)
 
 	// ====== Shipping Routes ======
 	// Shopee Shipping routes (arrange pickup, get label, tracking)

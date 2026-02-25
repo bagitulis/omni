@@ -51,6 +51,7 @@ func RegisterWebhookExtendedRoutes(
 	{
 		protected.POST("/test", handler.TestWebhook)
 		protected.GET("/config", handler.GetWebhookConfig)
+		protected.POST("/config", handler.SaveWebhookConfig)
 	}
 }
 

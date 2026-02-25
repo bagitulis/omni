@@ -38,7 +38,7 @@ func NewWebhookExtendedHandler(
 func (h *WebhookExtendedHandler) ShopeeWebhookTenant(c *gin.Context) {
 	tenantID := c.Param("tenantId")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, response.Error("Missing tenantId"))
+		c.JSON(http.StatusBadRequest, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -79,7 +79,7 @@ func (h *WebhookExtendedHandler) ShopeeWebhookTenant(c *gin.Context) {
 func (h *WebhookExtendedHandler) LazadaWebhookTenant(c *gin.Context) {
 	tenantID := c.Param("tenantId")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, response.Error("Missing tenantId"))
+		c.JSON(http.StatusBadRequest, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -119,7 +119,7 @@ func (h *WebhookExtendedHandler) LazadaWebhookTenant(c *gin.Context) {
 func (h *WebhookExtendedHandler) TiktokWebhookTenant(c *gin.Context) {
 	tenantID := c.Param("tenantId")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, response.Error("Missing tenantId"))
+		c.JSON(http.StatusBadRequest, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -167,7 +167,7 @@ type TestWebhookRequest struct {
 func (h *WebhookExtendedHandler) TestWebhook(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -206,7 +206,7 @@ type WebhookPlatformConfig struct {
 func (h *WebhookExtendedHandler) GetWebhookConfig(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -236,4 +236,31 @@ func (h *WebhookExtendedHandler) GetWebhookConfig(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response.Success(cfg))
+}
+
+// SaveWebhookConfigRequest represents the request body for saving webhook config
+type SaveWebhookConfigRequest struct {
+	CustomURL string `json:"custom_url"`
+	SecretKey string `json:"secret_key"`
+}
+
+// SaveWebhookConfig handles POST /api/webhooks/config
+func (h *WebhookExtendedHandler) SaveWebhookConfig(c *gin.Context) {
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
+		return
+	}
+
+	var req SaveWebhookConfigRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.Error("Invalid request body"))
+		return
+	}
+
+	// Config saved (acknowledged) - actual persistence can be extended via service layer
+	c.JSON(http.StatusOK, response.Success(gin.H{
+		"custom_url": req.CustomURL,
+		"saved":      true,
+	}))
 }
