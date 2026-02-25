@@ -3,7 +3,6 @@ import { message } from "antd";
 import {
   isSyncableOrderTab,
   syncOrdersByCategory,
-  lockOrdersToday,
   syncOrdersToday,
 } from "@/api/orders";
 
@@ -23,9 +22,10 @@ export function useOrderSync(
           await syncOrdersByCategory(tabKey, platform);
         } else if (tabKey === "today") {
           await syncOrdersToday();
-        } else if (tabKey === "locked") {
-          await lockOrdersToday();
         }
+        // Note: "locked" tab does NOT need explicit sync here because
+        // getOrders("locked") already does POST which syncs + returns data.
+        // Adding lockOrdersToday() here would cause duplicate POST calls.
       } catch (error) {
         message.error(
           error instanceof Error ? error.message : "Failed to sync orders",

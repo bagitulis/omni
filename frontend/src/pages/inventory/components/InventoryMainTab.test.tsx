@@ -10,6 +10,7 @@ const capturedProps: Array<Record<string, unknown>> = [];
 const marketplaceSettings: MarketplaceAllocationSettings = {
   keyColumn: "SKU",
   totalColumn: "Stock",
+  rawTotalColumn: "Stock",
   autoColumn: "AUTO",
   shopeeRatio: 0.6,
   tiktokRatio: 0.3,

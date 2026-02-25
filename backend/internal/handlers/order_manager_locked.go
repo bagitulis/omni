@@ -171,22 +171,51 @@ func (h *OrderManagerHandler) GetLockedTodayOrders(c *gin.Context) {
 		}
 	}
 
-	// Get inventory settings to find the Total column name
-	var invSettings models.InventorySettings
-	totalColumnName := "Total" // default
-	if err := db.WithContext(c.Request.Context()).
-		Where("tenant_id = ?", tenantID).
-		First(&invSettings).Error; err == nil && invSettings.KeyColumn != "" {
-		totalColumnName = invSettings.KeyColumn
-	}
-
-	// Fetch all inventory records for this tenant
+	// Fetch all inventory records for this tenant and update Locked/Sellable
 	var inventoryRecords []models.InventoryRecord
 	if err := db.WithContext(c.Request.Context()).
 		Where("tenant_id = ?", tenantID).
 		Find(&inventoryRecords).Error; err != nil {
 		orderManagerLogger.WithTenantID(tenantID).Warn("Failed to fetch inventory records for lock update: " + err.Error())
 	} else {
+		// Read RawTotalColumn from DB settings (configured via Marketplace Allocation Settings UI).
+		// This is the raw stock column (e.g., "TOTAL") used to compute Sellable = rawTotal - Locked.
+		// Falls back to JSONB key auto-detect if not configured yet.
+		totalColumnName := ""
+		var invSettings models.InventorySettings
+		if err := db.WithContext(c.Request.Context()).
+			Where("tenant_id = ?", tenantID).
+			First(&invSettings).Error; err == nil && invSettings.RawTotalColumn != "" {
+			totalColumnName = invSettings.RawTotalColumn
+		}
+
+		// Fallback: auto-detect from JSONB keys if user hasn't configured via UI
+		if totalColumnName == "" {
+			totalColumnName = "Total" // ultimate fallback
+			totalColumnCandidates := []string{"TOTAL", "Total", "total", "Stock", "stock", "STOCK", "Quantity", "quantity", "QTY", "qty", "Stok", "stok"}
+			if len(inventoryRecords) > 0 {
+				var sampleData map[string]interface{}
+				if err := json.Unmarshal([]byte(inventoryRecords[0].Data), &sampleData); err == nil {
+					for _, candidate := range totalColumnCandidates {
+						if _, ok := sampleData[candidate]; ok {
+							totalColumnName = candidate
+							break
+						}
+					}
+				}
+			}
+		}
+
+		orderManagerLogger.WithTenantID(tenantID).WithFields(map[string]interface{}{
+			"total_column": totalColumnName,
+			"source": func() string {
+				if invSettings.RawTotalColumn != "" {
+					return "db_settings"
+				}
+				return "auto_detect"
+			}(),
+		}).Info("Total column for Sellable calculation")
+
 		updatedCount := 0
 		for _, record := range inventoryRecords {
 			// Parse JSONB data
@@ -195,7 +224,7 @@ func (h *OrderManagerHandler) GetLockedTodayOrders(c *gin.Context) {
 				continue
 			}
 
-			// Get Total value from the configured column
+			// Get Total value from the detected column
 			totalVal := 0.0
 			if val, ok := dataMap[totalColumnName]; ok {
 				switch v := val.(type) {

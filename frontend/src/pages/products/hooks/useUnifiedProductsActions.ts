@@ -1,5 +1,5 @@
 import { message } from "antd";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import { updateStockBatch } from "@/api/inventorySync";
 import { updatePriceBatch } from "@/api/pricing";
@@ -60,6 +60,8 @@ export function useUnifiedProductsActions({
     skuMappingLoading,
     setSkuMappingLoading,
   } = useUnifiedProductsModals();
+
+  const [batchLoading, setBatchLoading] = useState<Partial<Record<BatchActionType, boolean>>>({});
 
   const selectedSkuPriceItems = useMemo(() => {
     const skuMap = new Map<string, { sku: string; price: number }>();
@@ -222,6 +224,7 @@ export function useUnifiedProductsActions({
       }
       if (actionKey === "sync_marketplace") {
         const productIds = selectedRecords.map((r) => r.id);
+        setBatchLoading((prev) => ({ ...prev, sync_marketplace: true }));
         try {
           const result = await syncSelectedProducts(productIds);
           message.success(
@@ -234,6 +237,8 @@ export function useUnifiedProductsActions({
           clearSelection();
         } catch (error) {
           message.error(getErrorMessage(error));
+        } finally {
+          setBatchLoading((prev) => ({ ...prev, sync_marketplace: false }));
         }
         return;
       }
@@ -301,6 +306,7 @@ export function useUnifiedProductsActions({
     skuMappingProduct,
     setSkuMappingProduct,
     skuMappingLoading,
+    batchLoading,
     selectedSkuPriceItems,
     handleDeleteProduct,
     handlePriceSync,

@@ -100,6 +100,8 @@ export function MarketplaceSettingsModal({
     updateConfigMutation.mutate(
       {
         key_column: settings.keyColumn,
+        total_column: settings.totalColumn,
+        raw_total_column: settings.rawTotalColumn,
         selected_columns: mergedColumns,
       },
       {
@@ -167,11 +169,35 @@ export function MarketplaceSettingsModal({
         <div>
           <Title level={5}>Column Mapping</Title>
           <Text type="secondary">
-            Select which columns to use for Total stock and Auto mode values.
+            Configure which columns from your inventory sheet map to stock and
+            allocation values.
           </Text>
           <Row gutter={16} style={{ marginTop: 12 }}>
             <Col span={12}>
-              <Text strong>Total Column</Text>
+              <Text strong>Stock Total Column</Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Raw stock total from sheet (e.g. "TOTAL"). Used to compute
+                Sellable.
+              </Text>
+              <Select
+                style={{ width: "100%", marginTop: 6 }}
+                value={settings.rawTotalColumn || undefined}
+                onChange={(value) =>
+                  setSettings({ ...settings, rawTotalColumn: value })
+                }
+                placeholder="Select column"
+                options={selectOptions}
+                loading={configLoading}
+                allowClear
+              />
+            </Col>
+            <Col span={12}>
+              <Text strong>Allocation Column</Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Column used for ratio distribution (e.g. "Sellable").
+              </Text>
               <Select
                 style={{ width: "100%", marginTop: 6 }}
                 value={settings.totalColumn || undefined}
@@ -184,6 +210,8 @@ export function MarketplaceSettingsModal({
                 allowClear
               />
             </Col>
+          </Row>
+          <Row gutter={16} style={{ marginTop: 12 }}>
             <Col span={12}>
               <Text strong>Auto Column (Boolean)</Text>
               <Select

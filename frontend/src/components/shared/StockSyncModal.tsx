@@ -88,7 +88,8 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
     let isMounted = true;
     setRecommendationsLoading(true);
 
-    // Single async call — buildStockRecommendations fetches locked data internally
+    // buildStockRecommendations internally triggers syncLockedToday POST first,
+    // then reads fresh inventory data with up-to-date Sellable values.
     void buildStockRecommendations(selectedProducts)
       .then((nextRecommendations) => {
         if (!isMounted) return;

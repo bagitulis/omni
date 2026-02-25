@@ -3,6 +3,7 @@ import type { InventoryConfig } from "@/types/inventory";
 export interface MarketplaceAllocationSettings {
   keyColumn: string;
   totalColumn: string;
+  rawTotalColumn: string;
   autoColumn: string;
   shopeeRatio: number;
   tiktokRatio: number;
@@ -21,6 +22,7 @@ export const defaultMarketplaceAllocationSettings: MarketplaceAllocationSettings
   {
     keyColumn: "",
     totalColumn: "",
+    rawTotalColumn: "",
     autoColumn: "",
     shopeeRatio: 0.6,
     tiktokRatio: 0.3,
@@ -90,6 +92,7 @@ export function loadMarketplaceAllocationSettings(): MarketplaceAllocationSettin
     return {
       keyColumn: parsed.keyColumn || "",
       totalColumn: parsed.totalColumn || "",
+      rawTotalColumn: parsed.rawTotalColumn || "",
       autoColumn: parsed.autoColumn || "",
       shopeeRatio:
         typeof parsed.shopeeRatio === "number"
@@ -124,7 +127,8 @@ export function deriveMarketplaceAllocationSettings(
 
   return {
     keyColumn: config?.key_column || saved.keyColumn,
-    totalColumn: saved.totalColumn,
+    totalColumn: config?.total_column || saved.totalColumn,
+    rawTotalColumn: config?.raw_total_column || saved.rawTotalColumn,
     autoColumn: saved.autoColumn || inferredAuto,
     shopeeRatio: saved.shopeeRatio,
     tiktokRatio: saved.tiktokRatio,
@@ -205,29 +209,41 @@ export function resolveMarketplaceAllocationForRecord(
   rowData: Record<string, unknown>,
   settings: MarketplaceAllocationSettings,
 ): MarketplaceAllocationPreview {
-  const directShopee = getRecordValueByColumn(rowData, "shopee");
-  const directTiktok = getRecordValueByColumn(rowData, "tiktok");
-  const directLazada = getRecordValueByColumn(rowData, "lazada");
+  // When totalColumn is configured (user has set up Marketplace Allocation Settings),
+  // ALWAYS use the allocation formula. Skip direct platform column values (SHOPEE/TIKTOK/LAZADA)
+  // from the sheet, since the user explicitly wants ratio-based allocation from Sellable/Total.
+  if (!settings.totalColumn) {
+    // No allocation settings configured — fall back to direct platform columns if they exist
+    const directShopee = getRecordValueByColumn(rowData, "shopee");
+    const directTiktok = getRecordValueByColumn(rowData, "tiktok");
+    const directLazada = getRecordValueByColumn(rowData, "lazada");
 
-  const hasDirectValues =
-    directShopee !== undefined ||
-    directTiktok !== undefined ||
-    directLazada !== undefined;
-  if (hasDirectValues) {
-    const shopee = toSafeNumber(directShopee);
-    const tiktok = toSafeNumber(directTiktok);
-    const lazada = toSafeNumber(directLazada);
-    return {
-      shopee,
-      tiktok,
-      lazada,
-      total: shopee + tiktok + lazada,
-    };
+    const hasDirectValues =
+      directShopee !== undefined ||
+      directTiktok !== undefined ||
+      directLazada !== undefined;
+    if (hasDirectValues) {
+      const shopee = toSafeNumber(directShopee);
+      const tiktok = toSafeNumber(directTiktok);
+      const lazada = toSafeNumber(directLazada);
+      return {
+        shopee,
+        tiktok,
+        lazada,
+        total: shopee + tiktok + lazada,
+      };
+    }
   }
 
-  const totalValue = toSafeNumber(
-    getRecordValueByColumn(rowData, settings.totalColumn),
-  );
+  // Use allocation formula based on Sellable (= Total - Locked) or totalColumn.
+  // Sellable is set by the locked-today backend handler.
+  const sellableValue = getRecordValueByColumn(rowData, "Sellable");
+  const totalValue =
+    sellableValue !== undefined && sellableValue !== null
+      ? toSafeNumber(sellableValue)
+      : toSafeNumber(
+          getRecordValueByColumn(rowData, settings.totalColumn),
+        );
   const autoMode = toBooleanLike(
     getRecordValueByColumn(rowData, settings.autoColumn),
   );

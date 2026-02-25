@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
@@ -52,52 +52,84 @@ function makeItem(overrides: Partial<LockedOrderItem> = {}): LockedOrderItem {
   };
 }
 
+/**
+ * Helper: render the panel and wait for the auto-fetch useEffect to complete.
+ * Returns the mock items that were returned from the auto-fetch.
+ */
+async function renderAndWaitForAutoFetch(
+  autoFetchItems: LockedOrderItem[] = [],
+) {
+  getLockedOrdersMock.mockResolvedValueOnce(autoFetchItems);
+  render(<LockedOrdersPanel />);
+
+  // Wait for auto-fetch to fully settle (loading → loaded)
+  await waitFor(() => {
+    expect(getLockedOrdersMock).toHaveBeenCalledTimes(1);
+    // Ensure the loading state has settled (button is no longer disabled)
+    const loadBtn = screen.getByRole("button", { name: /^load$/i });
+    expect(loadBtn).not.toBeDisabled();
+  });
+}
+
 // ── Tests ──────────────────────────────────────────────────────────────────────
 describe("LockedOrdersPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getLockedOrdersMock.mockResolvedValue([]);
   });
 
-  it("renders initial state with empty placeholder and action buttons", () => {
+  it("auto-fetches locked orders on mount", async () => {
+    const items = [
+      makeItem({ sku: "SKU-AUTO", product_name: "Auto Product", qty: 2 }),
+    ];
+    getLockedOrdersMock.mockResolvedValueOnce(items);
+
     render(<LockedOrdersPanel />);
-    expect(
-      screen.getByText("Click Load or Sync to view locked orders"),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /load/i })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /sync & refresh/i }),
-    ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(getLockedOrdersMock).toHaveBeenCalled();
+      expect(screen.getByText("SKU-AUTO")).toBeInTheDocument();
+    });
   });
 
-  it("renders panel title", () => {
+  it("renders panel title", async () => {
     render(<LockedOrdersPanel />);
     expect(
       screen.getByText("Locked Orders (Pending Shipment)"),
     ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(getLockedOrdersMock).toHaveBeenCalled();
+    });
   });
 
   it("fetches and displays locked orders on Load click", async () => {
     const items = [
       makeItem({ sku: "SKU-A", product_name: "Product A", qty: 5 }),
     ];
-    getLockedOrdersMock.mockResolvedValue(items);
 
-    render(<LockedOrdersPanel />);
-    fireEvent.click(screen.getByRole("button", { name: /load/i }));
+    // Auto-fetch returns empty, then manual Load returns items
+    await renderAndWaitForAutoFetch([]);
+
+    getLockedOrdersMock.mockResolvedValueOnce(items);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^load$/i }));
+    });
 
     await waitFor(() => {
-      expect(getLockedOrdersMock).toHaveBeenCalled();
+      expect(getLockedOrdersMock).toHaveBeenCalledTimes(2);
       expect(screen.getByText("SKU-A")).toBeInTheDocument();
     });
   });
 
   it("shows error message when getLockedOrders fails", async () => {
+    // Override the default mock to reject
+    getLockedOrdersMock.mockReset();
     getLockedOrdersMock.mockRejectedValue(new Error("Network error"));
 
     render(<LockedOrdersPanel />);
-    fireEvent.click(screen.getByRole("button", { name: /load/i }));
 
     await waitFor(() => {
+      expect(getLockedOrdersMock).toHaveBeenCalled();
       expect(message.error).toHaveBeenCalledWith(
         "Failed to fetch locked orders",
       );
@@ -110,8 +142,12 @@ describe("LockedOrdersPanel", () => {
     ];
     syncLockedTodayMock.mockResolvedValue(items);
 
-    render(<LockedOrdersPanel />);
-    fireEvent.click(screen.getByRole("button", { name: /sync & refresh/i }));
+    // Wait for auto-fetch to settle before clicking sync
+    await renderAndWaitForAutoFetch([]);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /sync & refresh/i }));
+    });
 
     await waitFor(() => {
       expect(syncLockedTodayMock).toHaveBeenCalledWith(7);
@@ -123,8 +159,12 @@ describe("LockedOrdersPanel", () => {
   it("shows error message when syncLockedToday fails", async () => {
     syncLockedTodayMock.mockRejectedValue(new Error("Sync error"));
 
-    render(<LockedOrdersPanel />);
-    fireEvent.click(screen.getByRole("button", { name: /sync & refresh/i }));
+    // Wait for auto-fetch to settle before clicking sync
+    await renderAndWaitForAutoFetch([]);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /sync & refresh/i }));
+    });
 
     await waitFor(() => {
       expect(message.error).toHaveBeenCalledWith(
@@ -138,10 +178,9 @@ describe("LockedOrdersPanel", () => {
       makeItem({ sku: "SKU-A", qty: 3 }),
       makeItem({ sku: "SKU-B", qty: 4 }),
     ];
-    getLockedOrdersMock.mockResolvedValue(items);
+    getLockedOrdersMock.mockResolvedValueOnce(items);
 
     render(<LockedOrdersPanel />);
-    fireEvent.click(screen.getByRole("button", { name: /load/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/2 SKUs · 7 pcs locked/)).toBeInTheDocument();
@@ -152,10 +191,9 @@ describe("LockedOrdersPanel", () => {
     const items = [
       makeItem({ sku: "SKU-C", variation_name: "Blue XL", qty: 1 }),
     ];
-    getLockedOrdersMock.mockResolvedValue(items);
+    getLockedOrdersMock.mockResolvedValueOnce(items);
 
     render(<LockedOrdersPanel />);
-    fireEvent.click(screen.getByRole("button", { name: /load/i }));
 
     await waitFor(() => {
       expect(screen.getByText("Blue XL")).toBeInTheDocument();

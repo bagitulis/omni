@@ -13,6 +13,8 @@ type InventorySettings struct {
 	HeaderRow         int        `gorm:"column:header_row;default:1" json:"header_row"`
 	DataStartRow      int        `gorm:"column:data_start_row;default:2" json:"data_start_row"`
 	KeyColumn         string     `gorm:"column:key_column;size:255" json:"key_column"`
+	TotalColumn       string     `gorm:"column:total_column;size:255" json:"total_column"`
+	RawTotalColumn    string     `gorm:"column:raw_total_column;size:255" json:"raw_total_column"`
 	AutoSync          bool       `gorm:"column:auto_sync;default:false" json:"auto_sync"`
 	SyncIntervalSec   int        `gorm:"column:sync_interval_seconds;default:300" json:"sync_interval_seconds"`
 	LastSyncTimestamp *time.Time `gorm:"column:last_sync_timestamp" json:"last_sync_timestamp"`

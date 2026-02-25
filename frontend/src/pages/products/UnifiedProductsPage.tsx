@@ -137,6 +137,7 @@ export default function UnifiedProductsPage() {
     handleStockSync,
     handleRowAction,
     handleBatchAction,
+    batchLoading,
   } = useUnifiedProductsActions({
     navigate,
     selectedRecords,
@@ -240,6 +241,7 @@ export default function UnifiedProductsPage() {
               void handleBatchAction(action);
             }}
             onClearSelection={clearSelection}
+            loadingActions={batchLoading}
           />
         </div>
       ) : null}

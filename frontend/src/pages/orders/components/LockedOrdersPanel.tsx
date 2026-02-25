@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Button,
   Card,
   Empty,
   Flex,
   Space,
+  Spin,
   Table,
   Tag,
   Typography,
@@ -28,7 +29,7 @@ export function LockedOrdersPanel() {
   const [syncing, setSyncing] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  const handleFetch = async () => {
+  const handleFetch = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getLockedOrders();
@@ -39,7 +40,12 @@ export function LockedOrdersPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Auto-fetch locked orders on mount
+  useEffect(() => {
+    void handleFetch();
+  }, [handleFetch]);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -134,7 +140,11 @@ export function LockedOrdersPanel() {
       }
       style={{ borderRadius: 3 }}
     >
-      {!loaded ? (
+      {loading && !loaded ? (
+        <Flex justify="center" align="center" style={{ padding: 48 }}>
+          <Spin />
+        </Flex>
+      ) : !loaded ? (
         <Empty
           description="Click Load or Sync to view locked orders"
           image={Empty.PRESENTED_IMAGE_SIMPLE}

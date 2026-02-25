@@ -36,6 +36,8 @@ export interface InventoryConfig {
   header_row: number;
   data_start_row: number;
   key_column: string;
+  total_column?: string;
+  raw_total_column?: string;
   auto_sync: boolean;
   sync_interval_seconds: number;
   last_sync_timestamp: string | null;

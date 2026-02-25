@@ -24,6 +24,8 @@ type updateInventoryConfigRequest struct {
 	HeaderRow           *int            `json:"header_row"`
 	DataStartRow        *int            `json:"data_start_row"`
 	KeyColumn           *string         `json:"key_column"`
+	TotalColumn         *string         `json:"total_column"`
+	RawTotalColumn      *string         `json:"raw_total_column"`
 	AutoSync            *bool           `json:"auto_sync"`
 	SyncIntervalSeconds *int            `json:"sync_interval_seconds"`
 }
@@ -113,6 +115,8 @@ func (h *InventoryHandler) UpdateConfig(c *gin.Context) {
 			HeaderRow:           settings.HeaderRow,
 			DataStartRow:        settings.DataStartRow,
 			KeyColumn:           settings.KeyColumn,
+			TotalColumn:         settings.TotalColumn,
+			RawTotalColumn:      settings.RawTotalColumn,
 			AutoSync:            settings.AutoSync,
 			SyncIntervalSeconds: settings.SyncIntervalSec,
 			LastSyncTimestamp:   lastSync,
@@ -142,6 +146,12 @@ func applyInventoryConfigUpdates(
 	}
 	if req.KeyColumn != nil {
 		settings.KeyColumn = *req.KeyColumn
+	}
+	if req.TotalColumn != nil {
+		settings.TotalColumn = *req.TotalColumn
+	}
+	if req.RawTotalColumn != nil {
+		settings.RawTotalColumn = *req.RawTotalColumn
 	}
 	if req.AutoSync != nil {
 		settings.AutoSync = *req.AutoSync
@@ -201,6 +211,8 @@ func upsertInventorySettings(ctx context.Context, db *gorm.DB, settings *models.
 				"header_row":            settings.HeaderRow,
 				"data_start_row":        settings.DataStartRow,
 				"key_column":            settings.KeyColumn,
+				"total_column":          settings.TotalColumn,
+				"raw_total_column":      settings.RawTotalColumn,
 				"auto_sync":             settings.AutoSync,
 				"sync_interval_seconds": settings.SyncIntervalSec,
 				"updated_at":            settings.UpdatedAt,

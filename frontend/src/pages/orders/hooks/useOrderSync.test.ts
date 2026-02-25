@@ -66,7 +66,7 @@ describe("useOrderSync", () => {
     });
   });
 
-  it("calls lockOrdersToday for 'locked' tab", async () => {
+  it("does not call lockOrdersToday for 'locked' tab (getOrders handles POST sync)", async () => {
     vi.mocked(ordersApi.isSyncableOrderTab).mockImplementation(
       (tab: string) => tab !== "today" && tab !== "locked",
     );
@@ -74,8 +74,11 @@ describe("useOrderSync", () => {
     renderHook(() => useOrderSync("locked", "all", refetch, false));
 
     await waitFor(() => {
-      expect(ordersApi.lockOrdersToday).toHaveBeenCalled();
+      expect(refetch).toHaveBeenCalled();
     });
+
+    // lockOrdersToday should NOT be called — getOrders("locked") handles POST sync
+    expect(ordersApi.lockOrdersToday).not.toHaveBeenCalled();
   });
 
   it("shows error message when sync fails", async () => {
@@ -170,7 +173,6 @@ describe("useOrderSync", () => {
   it("does not set up interval for non-syncable tab even if autoRefresh=true", async () => {
     vi.useFakeTimers();
     vi.mocked(ordersApi.isSyncableOrderTab).mockReturnValue(false);
-    vi.mocked(ordersApi.lockOrdersToday).mockResolvedValue([]);
 
     const { unmount } = renderHook(() =>
       useOrderSync("locked", "all", refetch, true),
@@ -179,7 +181,8 @@ describe("useOrderSync", () => {
     await act(async () => {
       await Promise.resolve();
     });
-    expect(ordersApi.lockOrdersToday).toHaveBeenCalledTimes(1);
+    // locked tab does not call lockOrdersToday (getOrders handles POST sync)
+    expect(ordersApi.lockOrdersToday).not.toHaveBeenCalled();
 
     await act(async () => {
       vi.advanceTimersByTime(60_000);
@@ -188,7 +191,6 @@ describe("useOrderSync", () => {
 
     // interval should NOT fire for non-syncable tab
     expect(ordersApi.syncOrdersByCategory).not.toHaveBeenCalled();
-    expect(ordersApi.lockOrdersToday).toHaveBeenCalledTimes(1);
 
     unmount();
   });

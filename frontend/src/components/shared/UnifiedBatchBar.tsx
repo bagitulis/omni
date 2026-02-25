@@ -17,6 +17,7 @@ export interface UnifiedBatchBarProps {
   onAction: (actionKey: BatchActionType) => void;
   onClearSelection: () => void;
   disabledActions?: Partial<Record<BatchActionType, string>>;
+  loadingActions?: Partial<Record<BatchActionType, boolean>>;
 }
 
 interface UnifiedBatchAction {
@@ -85,6 +86,7 @@ export const UnifiedBatchBar: React.FC<UnifiedBatchBarProps> = ({
   onAction,
   onClearSelection,
   disabledActions = {},
+  loadingActions = {},
 }) => {
   const { token } = theme.useToken();
   const screens = Grid.useBreakpoint();
@@ -144,13 +146,15 @@ export const UnifiedBatchBar: React.FC<UnifiedBatchBarProps> = ({
             action.key,
           );
           const disabledReason = disabledActions[action.key];
+          const isLoading = !!loadingActions[action.key];
 
           const actionButton = (
             <Button
               size="small"
               icon={action.icon}
               danger={action.danger}
-              disabled={isDisabled}
+              disabled={isDisabled || isLoading}
+              loading={isLoading}
               onClick={() => onAction(action.key)}
               aria-label={action.label}
             >

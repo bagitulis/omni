@@ -44,6 +44,8 @@ type InventoryConfig struct {
 	HeaderRow           int      `json:"header_row"`
 	DataStartRow        int      `json:"data_start_row"`
 	KeyColumn           string   `json:"key_column"`
+	TotalColumn         string   `json:"total_column"`
+	RawTotalColumn      string   `json:"raw_total_column"`
 	AutoSync            bool     `json:"auto_sync"`
 	SyncIntervalSeconds int      `json:"sync_interval_seconds"`
 	LastSyncTimestamp   *string  `json:"last_sync_timestamp"`

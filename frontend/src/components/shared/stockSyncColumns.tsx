@@ -39,15 +39,15 @@ export const getDefaultPerPlatformConfig = (
         platforms: {
           shopee: {
             enabled: linkedPlatformsBySku[sku.seller_sku]?.shopee ?? false,
-            stock: sku.stock,
+            stock: 0,
           },
           tiktok: {
             enabled: linkedPlatformsBySku[sku.seller_sku]?.tiktok ?? false,
-            stock: sku.stock,
+            stock: 0,
           },
           lazada: {
             enabled: linkedPlatformsBySku[sku.seller_sku]?.lazada ?? false,
-            stock: sku.stock,
+            stock: 0,
           },
         },
       };

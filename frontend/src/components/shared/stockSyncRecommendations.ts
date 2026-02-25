@@ -1,6 +1,6 @@
 import { logger } from "@/lib/logger";
 import { getInventoryBySku } from "@/api/inventoryCore";
-import { getLockedOrders, type LockedOrderItem } from "@/api/lockedOrders";
+import { getLockedOrders, syncLockedToday, type LockedOrderItem } from "@/api/lockedOrders";
 import {
   calculateMarketplaceAllocation,
   loadMarketplaceAllocationSettings,
@@ -101,6 +101,14 @@ export async function buildStockRecommendations(
   const stockBySku = collectBaseStockBySku(selectedProducts);
   const settings = loadMarketplaceAllocationSettings();
 
+  // Trigger locked-today sync FIRST so the backend computes fresh Locked/Sellable
+  // in the inventory JSONB data before we read it.
+  try {
+    await syncLockedToday(7);
+  } catch {
+    logger.warn("Failed to trigger locked-today sync, using existing data");
+  }
+
   const entries = await Promise.all(
     Object.entries(stockBySku).map(async ([sku, fallbackStock]) => {
       try {
@@ -113,7 +121,7 @@ export async function buildStockRecommendations(
 
         // Read locked/sellable info from inventory data (set by backend)
         const lockedQty = Number(rowData["Locked"]) || 0;
-        const inventoryTotal = Number(rowData["Total"]) || allocation.total;
+        const inventoryTotal = Number(rowData["TOTAL"] ?? rowData["Total"]) || allocation.total;
 
         return [
           sku,
