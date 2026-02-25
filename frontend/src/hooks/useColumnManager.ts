@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import type { ColumnConfig } from "@/types/shared";
+import { logger } from "@/lib/logger";
 
 /**
  * Hook for managing column visibility, ordering, and persistence
@@ -28,10 +29,7 @@ export function useColumnManager(
         return mergeColumns(defaultColumns, parsed);
       }
     } catch (error) {
-      console.error(
-        `Failed to load column preferences from ${storageKey}:`,
-        error,
-      );
+      logger.error(`Failed to load column preferences from ${storageKey}`, { error });
     }
     return defaultColumns;
   });
@@ -41,10 +39,7 @@ export function useColumnManager(
     try {
       localStorage.setItem(storageKey, JSON.stringify(columns));
     } catch (error) {
-      console.error(
-        `Failed to save column preferences to ${storageKey}:`,
-        error,
-      );
+      logger.error(`Failed to save column preferences to ${storageKey}`, { error });
     }
   }, [columns, storageKey]);
 

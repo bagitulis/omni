@@ -71,10 +71,10 @@ func (h *TiktokAdsHandler) GetData(c *gin.Context) {
 		Where("tenant_id = ?", tenantID)
 
 	// Apply filters
-	if productId := c.Query("productId"); productId != "" {
+	if productId := c.Query("product_id"); productId != "" {
 		query = query.Where("product_id = ?", productId)
 	}
-	if creativeType := c.Query("creativeType"); creativeType != "" {
+	if creativeType := c.Query("creative_type"); creativeType != "" {
 		query = query.Where("creative_type = ?", creativeType)
 	}
 

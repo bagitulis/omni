@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getUserAuditLogs, getTenantAuditLogs, cleanupOldLogs } from "./audit";
+import { getUserAuditLogs, getTenantAuditLogs } from "./audit";
 
 const { mockGet, mockPost } = vi.hoisted(() => ({
   mockGet: vi.fn(),
@@ -68,22 +68,4 @@ describe("audit API", () => {
     });
   });
 
-  describe("cleanupOldLogs", () => {
-    it("resolves on success with default days", async () => {
-      mockPost.mockResolvedValue({ success: true });
-      await expect(cleanupOldLogs()).resolves.toBeUndefined();
-      expect(mockPost).toHaveBeenCalledWith("/audit/cleanup", { days_old: 90 });
-    });
-
-    it("resolves with custom days", async () => {
-      mockPost.mockResolvedValue({ success: true });
-      await cleanupOldLogs(30);
-      expect(mockPost).toHaveBeenCalledWith("/audit/cleanup", { days_old: 30 });
-    });
-
-    it("throws on failure", async () => {
-      mockPost.mockResolvedValue({ success: false, error: "Cleanup failed" });
-      await expect(cleanupOldLogs()).rejects.toThrow("Cleanup failed");
-    });
-  });
 });

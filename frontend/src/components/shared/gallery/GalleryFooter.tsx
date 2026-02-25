@@ -1,7 +1,7 @@
 import type { FC } from "react";
 import { Button, Pagination, Typography, theme } from "antd";
 import { CheckOutlined, CloseCircleOutlined } from "@ant-design/icons";
-import type { GalleryPaginationMeta } from "../../../types/shared";
+import type { GalleryPaginationMeta } from "@/types/shared";
 
 const { Text } = Typography;
 

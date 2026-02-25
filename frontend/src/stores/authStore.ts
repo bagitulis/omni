@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { STORAGE_KEYS, API_BASE_URL } from "@/lib/constants";
 import { User } from "@/types/auth";
+import { logger } from "@/lib/logger";
 
 export interface AuthState {
   user: User | null;
@@ -119,11 +120,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (response.status === 401) {
           const data = await response.json().catch(() => ({}));
           if (data.code === "TOKEN_REUSE") {
-            console.error("Security alert: Token reuse detected");
+            logger.error("Security alert: token reuse detected");
           }
         }
       } catch (error) {
-        console.error("Token refresh failed:", error);
+        logger.error("Token refresh failed", { error });
       }
 
       // Clear auth on failure
@@ -203,7 +204,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         },
       });
     } catch (error) {
-      console.error("Logout request failed:", error);
+      logger.error("Logout request failed", { error });
     } finally {
       clearAuth();
     }

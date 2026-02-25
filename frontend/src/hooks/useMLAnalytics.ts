@@ -2,8 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getPortfolioHealth,
   getMLProducts,
-  getMLAlerts,
-  getScoreDistribution,
   type MLProductsParams,
 } from "@/api/mlAnalytics";
 
@@ -23,18 +21,3 @@ export function useMLProducts(params: MLProductsParams = {}) {
   });
 }
 
-export function useMLAlerts() {
-  return useQuery({
-    queryKey: ["ml", "alerts"],
-    queryFn: () => getMLAlerts(),
-    staleTime: 60 * 1000,
-  });
-}
-
-export function useScoreDistribution() {
-  return useQuery({
-    queryKey: ["ml", "distribution"],
-    queryFn: () => getScoreDistribution(),
-    staleTime: 60 * 1000,
-  });
-}

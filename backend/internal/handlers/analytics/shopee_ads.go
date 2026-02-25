@@ -64,10 +64,10 @@ func (h *AdsHandler) GetData(c *gin.Context) {
 		Where("tenant_id = ?", tenantID)
 
 	// Apply filters
-	if productId := c.Query("productId"); productId != "" {
+	if productId := c.Query("product_id"); productId != "" {
 		query = query.Where("product_id = ?", productId)
 	}
-	if biddingMode := c.Query("biddingMode"); biddingMode != "" {
+	if biddingMode := c.Query("bidding_mode"); biddingMode != "" {
 		query = query.Where("bidding_mode = ?", biddingMode)
 	}
 

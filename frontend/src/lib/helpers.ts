@@ -1,4 +1,5 @@
 // Utility helper functions for the application
+import { logger } from "@/lib/logger";
 
 /**
  * Format currency to Indonesian Rupiah.
@@ -40,7 +41,7 @@ export function formatDate(date: string | Date): string {
       minute: "2-digit",
     }).format(parsedDate);
   } catch (error) {
-    console.error("Error formatting date:", error);
+    logger.error("Error formatting date", { error });
     return String(date);
   }
 }

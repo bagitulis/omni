@@ -31,3 +31,9 @@ type RegisterRequest struct {
 type SwitchTenantRequest struct {
 	TenantID string `json:"tenant_id" binding:"required"`
 }
+
+// UpdateProfileRequest represents update profile request body
+type UpdateProfileRequest struct {
+	Username string `json:"username,omitempty"`
+	Email    string `json:"email,omitempty"`
+}

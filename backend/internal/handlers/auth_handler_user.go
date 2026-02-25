@@ -98,3 +98,50 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		"user":    user.ToResponse(),
 	})
 }
+
+// UpdateProfile handles user profile update
+func (h *AuthHandler) UpdateProfile(c *gin.Context) {
+	var req UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Invalid request body",
+		})
+		return
+	}
+
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "User not authenticated",
+		})
+		return
+	}
+
+	if h.userManagementService == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "User management service not configured",
+		})
+		return
+	}
+
+	user, err := h.userManagementService.UpdateUser(c.Request.Context(), userID, &services.UpdateUserRequest{
+		Username: req.Username,
+		Email:    req.Email,
+	}, userID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Profile updated successfully",
+		"data":    user.ToResponse(),
+	})
+}

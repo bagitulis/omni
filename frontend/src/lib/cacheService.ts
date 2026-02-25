@@ -4,6 +4,7 @@
  * Similar to Vue frontend's cacheService.ts
  */
 
+import { logger } from "@/lib/logger";
 interface CacheEntry<T = unknown> {
   data: T;
   timestamp: number;
@@ -158,7 +159,7 @@ class CacheService {
       localStorage.setItem(`api_cache_${key}`, JSON.stringify(entry));
     } catch (error) {
       // localStorage full or disabled, continue with memory cache only
-      console.warn("localStorage unavailable:", error);
+      logger.warn("localStorage unavailable", { error });
     }
   }
 

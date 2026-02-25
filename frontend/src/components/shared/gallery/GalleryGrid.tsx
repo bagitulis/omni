@@ -1,7 +1,7 @@
 import type { FC } from "react";
 import { Empty, Spin, Typography, theme } from "antd";
 import { CheckOutlined, FileImageOutlined } from "@ant-design/icons";
-import { type GalleryImage, getImageUrl } from "../../../types/shared";
+import { type GalleryImage, getImageUrl } from "@/types/shared";
 
 const { Text } = Typography;
 

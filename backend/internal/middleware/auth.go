@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"log"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"os"
 	"strings"
@@ -19,22 +19,24 @@ func init() {
 	if secret == "" {
 		if env == "production" {
 			// SECURITY: Never allow empty JWT_SECRET in production
-			log.Fatal("❌ FATAL: JWT_SECRET is required in production - server cannot start")
+			log.Fatal().Msg("❌ FATAL: JWT_SECRET is required in production - server cannot start")
+			os.Exit(1)
 		}
 		// Development only - use a long enough key for testing
-		log.Println("⚠️ WARNING: JWT_SECRET not set, using development key (NOT FOR PRODUCTION)")
+		log.Warn().Msg("JWT_SECRET not set, using development key (NOT FOR PRODUCTION)")
 		secret = "dev-secret-key-minimum-32-chars-for-security"
 	} else {
 		// SECURITY: Don't log any part of the secret
-		log.Println("✅ JWT_SECRET loaded successfully")
+		log.Info().Msg("JWT_SECRET loaded successfully")
 	}
 
 	// Validate minimum key length
 	if len(secret) < 32 {
 		if env == "production" {
-			log.Fatal("❌ FATAL: JWT_SECRET must be at least 32 characters")
+			log.Fatal().Msg("❌ FATAL: JWT_SECRET must be at least 32 characters")
+			os.Exit(1)
 		}
-		log.Println("⚠️ WARNING: JWT_SECRET should be at least 32 characters")
+		log.Warn().Msg("JWT_SECRET should be at least 32 characters")
 	}
 
 	jwtService = utils.NewJWTService(secret)
@@ -69,7 +71,7 @@ func Auth() gin.HandlerFunc {
 		claims, err := jwtService.ValidateToken(token)
 		if err != nil {
 			// SECURITY: Never log tokens or their parts
-			log.Printf("❌ JWT validation failed for request to %s: %v", c.Request.URL.Path, err)
+			log.Warn().Err(err).Str("path", c.Request.URL.Path).Msg("JWT validation failed")
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
 				"error":   "Unauthorized", // Generic message - don't expose internal details

@@ -38,12 +38,3 @@ export async function getTenantAuditLogs(
   }
   return response.data?.logs ?? [];
 }
-
-export async function cleanupOldLogs(daysOld: number = 90): Promise<void> {
-  const response = await apiClient.post("/audit/cleanup", {
-    days_old: daysOld,
-  });
-  if (!response.success) {
-    throw new Error(response.error || "Failed to cleanup old audit logs");
-  }
-}

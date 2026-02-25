@@ -13,7 +13,7 @@ import {
   DollarOutlined,
   InfoCircleOutlined,
 } from "@ant-design/icons";
-import type { SimulationResult } from "../../../../api/analyticsIntelligence";
+import type { SimulationResult } from "@/api/analyticsIntelligence";
 
 const { Title, Text } = Typography;
 

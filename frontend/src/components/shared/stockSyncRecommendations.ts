@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { getInventoryBySku } from "@/api/inventoryCore";
 import { getLockedOrders, type LockedOrderItem } from "@/api/lockedOrders";
 import {
@@ -65,7 +66,7 @@ export async function buildLockedStockMap(): Promise<LockedStockMap> {
   } catch {
     // Graceful degradation: if locked orders API fails,
     // recommendations will use full inventory stock
-    console.warn("[stockSyncRecommendations] Failed to fetch locked orders, using full stock");
+    logger.warn("Failed to fetch locked orders, using full stock");
     return {};
   }
 }

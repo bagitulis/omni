@@ -7,7 +7,7 @@ import {
   Typography,
   GlobalToken,
 } from "antd";
-import type { ProductFromAds } from "../../../../api/analyticsIntelligence";
+import type { ProductFromAds } from "@/api/analyticsIntelligence";
 
 const { Text } = Typography;
 
