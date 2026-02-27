@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/services/orders"
 	"gorm.io/gorm"
 )
 
@@ -119,6 +120,12 @@ func (s *SyncService) SyncFromSheets(ctx context.Context, spreadsheetID, sheetNa
 	if result.Status != "ERROR" {
 		_ = s.cleanupOrphanedRecords(ctx, keyColumn, seenKeyValues)
 	}
+
+	// Recalculate Locked/Sellable after sync so computed columns aren't lost.
+	// SyncFromSheets replaces JSONB data with fresh sheet data, which erases
+	// previously-injected Locked/Sellable. This re-applies them using the
+	// existing locked_orders table (no marketplace API call needed).
+	_, _ = orders.RecalculateLockedSellable(ctx, s.db, s.tenantID)
 
 	// Update settings with new hash and columns
 	if settings != nil {

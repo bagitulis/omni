@@ -1,22 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Button,
-  Card,
-  Col,
-  Modal,
-  Row,
-  Select,
-  Slider,
-  Typography,
-  message,
-  theme,
-} from "antd";
+import { Button, Col, Modal, Row, Select, Typography, message } from "antd";
 import {
   useInventoryConfig,
   useUpdateInventoryConfig,
 } from "@/hooks/useInventory";
 import {
-  calculateMarketplaceAllocation,
   defaultMarketplaceAllocationSettings,
   deriveMarketplaceAllocationSettings,
   encodeColumns,
@@ -24,6 +12,7 @@ import {
   saveMarketplaceAllocationSettings,
   type MarketplaceAllocationSettings,
 } from "@/pages/inventory/utils/marketplaceAllocation";
+import { AllocationRatioSection } from "./AllocationRatioSection";
 
 const { Text, Title } = Typography;
 
@@ -43,15 +32,6 @@ export function MarketplaceSettingsModal({
   onClose,
   schemaColumns,
 }: MarketplaceSettingsModalProps) {
-  const {
-    token: {
-      colorInfo,
-      colorText,
-      colorTextSecondary,
-      colorBgLayout,
-      colorSuccess,
-    },
-  } = theme.useToken();
   const { data: inventoryConfig, isLoading: configLoading } =
     useInventoryConfig();
   const updateConfigMutation = useUpdateInventoryConfig();
@@ -76,12 +56,6 @@ export function MarketplaceSettingsModal({
             typeof column === "string" && column.trim().length > 0,
         ),
     [schemaColumns],
-  );
-
-  const total = 20;
-  const preview = useMemo(
-    () => calculateMarketplaceAllocation(total, false, settings),
-    [settings],
   );
 
   const handleSave = () => {
@@ -229,86 +203,15 @@ export function MarketplaceSettingsModal({
           </Row>
         </div>
 
-        <div>
-          <Title level={5}>Allocation Ratios</Title>
-          <Text type="secondary">
-            Ratios are used for preview and can be fine-tuned later when backend
-            fields are available.
-          </Text>
-
-          <div style={{ marginTop: 16 }}>
-            <Text>
-              Shopee Ratio: {(settings.shopeeRatio * 100).toFixed(0)}%
-            </Text>
-            <Slider
-              min={0}
-              max={1}
-              step={0.05}
-              value={settings.shopeeRatio}
-              onChange={(value) =>
-                setSettings({ ...settings, shopeeRatio: value })
-              }
-            />
-          </div>
-
-          <div style={{ marginTop: 16 }}>
-            <Text>
-              TikTok Ratio: {(settings.tiktokRatio * 100).toFixed(0)}%
-            </Text>
-            <Slider
-              min={0}
-              max={1}
-              step={0.05}
-              value={settings.tiktokRatio}
-              onChange={(value) =>
-                setSettings({ ...settings, tiktokRatio: value })
-              }
-            />
-          </div>
-
-          <Card
-            size="small"
-            style={{
-              marginTop: 16,
-              background: colorBgLayout,
-              borderRadius: 3,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontWeight: 500,
-              }}
-            >
-              <span style={{ color: colorInfo }}>Shopee: {preview.shopee}</span>
-              <span style={{ color: colorText }}>TikTok: {preview.tiktok}</span>
-              <span style={{ color: colorSuccess }}>
-                Lazada: {preview.lazada}
-              </span>
-              <span style={{ color: colorTextSecondary }}>Total: {total}</span>
-            </div>
-          </Card>
-        </div>
-
-        <div>
-          <Title level={5}>Formula Reference</Title>
-          <ul>
-            <li>
-              <strong>Shopee:</strong> MIN(CEILING(ratio * Total), Total)
-            </li>
-            <li>
-              <strong>TikTok:</strong> MIN(CEILING(ratio * Total), Total -
-              Shopee)
-            </li>
-            <li>
-              <strong>Lazada:</strong> Total - Shopee - TikTok
-            </li>
-            <li>
-              <strong>Auto = TRUE:</strong> All platforms = Total
-            </li>
-          </ul>
-        </div>
+        <AllocationRatioSection
+          settings={settings}
+          onChangeShopeeRatio={(value) =>
+            setSettings({ ...settings, shopeeRatio: value })
+          }
+          onChangeTiktokRatio={(value) =>
+            setSettings({ ...settings, tiktokRatio: value })
+          }
+        />
       </div>
     </Modal>
   );

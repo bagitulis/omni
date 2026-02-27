@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Tabs, Layout, Grid, theme } from "antd";
 import {
   useInventory,
@@ -7,6 +7,8 @@ import {
   useSyncToSheets,
 } from "@/hooks/useInventory";
 import { useInventoryFilterStore } from "@/stores/inventoryFilterStore";
+import { syncLockedToday } from "@/api/lockedOrders";
+import { logger } from "@/lib/logger";
 import { applyInventoryColumnFilters } from "./utils/inventoryColumnFilters";
 import { SimplifiedInventoryHeader } from "./components/SimplifiedInventoryHeader";
 import { InventoryMainTab } from "./components/InventoryMainTab";
@@ -75,6 +77,24 @@ export default function SimplifiedInventoryPage() {
 
   const syncFromSheetsMutation = useSyncFromSheets();
   const syncToSheetsMutation = useSyncToSheets();
+
+  // Background: trigger locked-today sync on page mount so Locked/Sellable
+  // columns are fresh. This is the same call used in the Orders locked panel
+  // and StockSync modal, but here it runs silently on page load.
+  const lockedSyncTriggered = useRef(false);
+  useEffect(() => {
+    if (lockedSyncTriggered.current) return;
+    lockedSyncTriggered.current = true;
+
+    syncLockedToday(7)
+      .then(() => {
+        // Refetch inventory so the UI shows updated Locked/Sellable values
+        refetch();
+      })
+      .catch(() => {
+        logger.warn("Background locked-today sync failed on inventory mount");
+      });
+  }, [refetch]);
 
   const hasColumnFilters = Object.keys(columnFilters).length > 0;
   const total = hasColumnFilters ? filteredRecords.length : (data?.total ?? 0);

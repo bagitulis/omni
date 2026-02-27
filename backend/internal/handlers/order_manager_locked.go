@@ -1,25 +1,13 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/orders"
 	"github.com/omni/backend/internal/services/sync"
 )
-
-// AggregatedLockedItem represents an aggregated locked order item
-type AggregatedLockedItem struct {
-	SKU           string   `json:"sku"`
-	ProductName   string   `json:"product_name"`
-	VariationName string   `json:"variation_name,omitempty"`
-	Qty           int      `json:"qty"`
-	Platforms     []string `json:"platforms"`
-}
 
 // GetLockedTodayOrders syncs orders and aggregates locked orders for today - POST endpoint
 // Time-based logic:
@@ -111,17 +99,6 @@ func (h *OrderManagerHandler) GetLockedTodayOrders(c *gin.Context) {
 		}
 	}
 
-	if len(unprocessOrders) == 0 && len(processedOrders) == 0 && err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{
-			"success": false,
-			"error":   "Failed to sync locked orders: " + err.Error(),
-			"code":    "SYNC_FAILED",
-			"items":   []interface{}{},
-			"count":   0,
-		})
-		return
-	}
-
 	// Aggregate locked orders by SKU + ProductName + Variation
 	lockedItems := aggregateLockedOrders(unprocessOrders, processedOrders)
 
@@ -162,110 +139,17 @@ func (h *OrderManagerHandler) GetLockedTodayOrders(c *gin.Context) {
 		return
 	}
 
-	// Update inventory_records with Locked and Sellable columns
-	// Build SKU→qty map from locked items
-	lockedBySku := make(map[string]int, len(lockedItems))
-	for _, item := range lockedItems {
-		if item.SKU != "" {
-			lockedBySku[item.SKU] += item.Qty
-		}
-	}
-
-	// Fetch all inventory records for this tenant and update Locked/Sellable
-	var inventoryRecords []models.InventoryRecord
-	if err := db.WithContext(c.Request.Context()).
-		Where("tenant_id = ?", tenantID).
-		Find(&inventoryRecords).Error; err != nil {
-		orderManagerLogger.WithTenantID(tenantID).Warn("Failed to fetch inventory records for lock update: " + err.Error())
-	} else {
-		// Read RawTotalColumn from DB settings (configured via Marketplace Allocation Settings UI).
-		// This is the raw stock column (e.g., "TOTAL") used to compute Sellable = rawTotal - Locked.
-		// Falls back to JSONB key auto-detect if not configured yet.
-		totalColumnName := ""
-		var invSettings models.InventorySettings
-		if err := db.WithContext(c.Request.Context()).
-			Where("tenant_id = ?", tenantID).
-			First(&invSettings).Error; err == nil && invSettings.RawTotalColumn != "" {
-			totalColumnName = invSettings.RawTotalColumn
-		}
-
-		// Fallback: auto-detect from JSONB keys if user hasn't configured via UI
-		if totalColumnName == "" {
-			totalColumnName = "Total" // ultimate fallback
-			totalColumnCandidates := []string{"TOTAL", "Total", "total", "Stock", "stock", "STOCK", "Quantity", "quantity", "QTY", "qty", "Stok", "stok"}
-			if len(inventoryRecords) > 0 {
-				var sampleData map[string]interface{}
-				if err := json.Unmarshal([]byte(inventoryRecords[0].Data), &sampleData); err == nil {
-					for _, candidate := range totalColumnCandidates {
-						if _, ok := sampleData[candidate]; ok {
-							totalColumnName = candidate
-							break
-						}
-					}
-				}
-			}
-		}
-
+	// Recalculate Locked/Sellable in inventory_records using locked_orders table.
+	// This reads the just-saved locked orders and updates Sellable = rawTotal - Locked.
+	recalcResult, recalcErr := orders.RecalculateLockedSellable(c.Request.Context(), db, tenantID)
+	if recalcErr != nil {
+		orderManagerLogger.WithTenantID(tenantID).Warn("Failed to recalculate Locked/Sellable: " + recalcErr.Error())
+	} else if recalcResult != nil {
 		orderManagerLogger.WithTenantID(tenantID).WithFields(map[string]interface{}{
-			"total_column": totalColumnName,
-			"source": func() string {
-				if invSettings.RawTotalColumn != "" {
-					return "db_settings"
-				}
-				return "auto_detect"
-			}(),
-		}).Info("Total column for Sellable calculation")
-
-		updatedCount := 0
-		for _, record := range inventoryRecords {
-			// Parse JSONB data
-			var dataMap map[string]interface{}
-			if err := json.Unmarshal([]byte(record.Data), &dataMap); err != nil {
-				continue
-			}
-
-			// Get Total value from the detected column
-			totalVal := 0.0
-			if val, ok := dataMap[totalColumnName]; ok {
-				switch v := val.(type) {
-				case float64:
-					totalVal = v
-				case string:
-					if parsed, e := strconv.ParseFloat(v, 64); e == nil {
-						totalVal = parsed
-					}
-				}
-			}
-
-			// Set Locked and Sellable
-			lockedQty := lockedBySku[record.KeyValue]
-			sellable := int(totalVal) - lockedQty
-			if sellable < 0 {
-				sellable = 0
-			}
-
-			dataMap["Locked"] = lockedQty
-			dataMap["Sellable"] = sellable
-
-			// Save back
-			updated, err := json.Marshal(dataMap)
-			if err != nil {
-				continue
-			}
-
-			if err := db.WithContext(c.Request.Context()).
-				Model(&record).
-				Update("data", string(updated)).Error; err != nil {
-				orderManagerLogger.WithTenantID(tenantID).Warn("Failed to update inventory record " + record.KeyValue + ": " + err.Error())
-				continue
-			}
-			updatedCount++
-		}
-
-		orderManagerLogger.WithTenantID(tenantID).WithFields(map[string]interface{}{
-			"updated_records": updatedCount,
-			"total_records":   len(inventoryRecords),
-			"locked_skus":     len(lockedBySku),
+			"updated_records": recalcResult.UpdatedRecords,
+			"total_records":   recalcResult.TotalRecords,
+			"locked_skus":     recalcResult.LockedSKUs,
+			"total_column":    recalcResult.TotalColumn,
 		}).Info("Updated inventory records with Locked/Sellable columns")
 	}
 
@@ -365,72 +249,4 @@ func (h *OrderManagerHandler) GetSavedLockedOrders(c *gin.Context) {
 		"tenant_id": tenantID,
 		"days":      7,
 	})
-}
-
-// aggregateLockedOrders aggregates orders by SKU + ProductName + Variation
-// Groups items and sums quantities, tracking which platforms they came from
-// NOTE: Orders are flattened (each row = one item), so we read from order fields directly
-func aggregateLockedOrders(unprocessOrders, processedOrders []sync.Order) []AggregatedLockedItem {
-	// Map to aggregate by key (SKU|ProductName|Variation)
-	aggregated := make(map[string]*AggregatedLockedItem)
-	platformSets := make(map[string]map[string]bool)
-
-	// Process all orders (each order is a flattened item row)
-	allOrders := append(unprocessOrders, processedOrders...)
-
-	for _, order := range allOrders {
-		// In flattened format, item data is directly on the order object
-		sku := order.SKU
-		productName := order.ProductName
-		variationName := order.VariationName
-		qty := order.Quantity // This is the "qty" field in flattened format
-		platform := order.Platform
-
-		if sku == "" && productName == "" {
-			continue // Skip empty items
-		}
-
-		// Ensure minimum qty of 1 if item exists
-		if qty <= 0 {
-			qty = 1
-		}
-
-		key := sku + "|" + productName + "|" + variationName
-
-		if _, exists := aggregated[key]; !exists {
-			aggregated[key] = &AggregatedLockedItem{
-				SKU:           sku,
-				ProductName:   productName,
-				VariationName: variationName,
-				Qty:           0,
-				Platforms:     []string{},
-			}
-			platformSets[key] = make(map[string]bool)
-		}
-
-		aggregated[key].Qty += qty
-		platformSets[key][platform] = true
-	}
-
-	// Convert map to slice and add platforms
-	result := make([]AggregatedLockedItem, 0, len(aggregated))
-	for key, item := range aggregated {
-		platforms := make([]string, 0, len(platformSets[key]))
-		for p := range platformSets[key] {
-			platforms = append(platforms, p)
-		}
-		item.Platforms = platforms
-		result = append(result, *item)
-	}
-
-	// Sort by qty descending
-	for i := 0; i < len(result)-1; i++ {
-		for j := i + 1; j < len(result); j++ {
-			if result[j].Qty > result[i].Qty {
-				result[i], result[j] = result[j], result[i]
-			}
-		}
-	}
-
-	return result
 }

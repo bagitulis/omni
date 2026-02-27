@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
   Button,
   Card,
   Empty,
   Flex,
-  Space,
   Spin,
   Table,
   Tag,
@@ -25,27 +24,43 @@ import {
  */
 export function LockedOrdersPanel() {
   const [items, setItems] = useState<LockedOrderItem[]>([]);
-  const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  const handleFetch = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getLockedOrders();
-      setItems(data);
-      setLoaded(true);
-    } catch {
-      message.error("Failed to fetch locked orders");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Auto-fetch locked orders on mount
+  // Auto-sync locked orders on mount (triggers backend POST to recalculate Locked/Sellable).
+  // The manual "Sync & Refresh" button is for explicit re-sync if needed.
   useEffect(() => {
-    void handleFetch();
-  }, [handleFetch]);
+    let cancelled = false;
+    setSyncing(true);
+    syncLockedToday(7)
+      .then((data) => {
+        if (!cancelled) {
+          setItems(data);
+          setLoaded(true);
+        }
+      })
+      .catch(() => {
+        // Fallback: try reading cached data if sync fails
+        if (!cancelled) {
+          getLockedOrders()
+            .then((data) => {
+              if (!cancelled) {
+                setItems(data);
+                setLoaded(true);
+              }
+            })
+            .catch(() => {
+              // Silently fail — panel will show empty state
+            });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setSyncing(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -117,30 +132,19 @@ export function LockedOrdersPanel() {
         </Flex>
       }
       extra={
-        <Space>
-          <Button
-            size="small"
-            onClick={handleFetch}
-            loading={loading}
-            disabled={syncing}
-          >
-            Load
-          </Button>
-          <Button
-            size="small"
-            type="primary"
-            icon={<SyncOutlined spin={syncing} />}
-            onClick={handleSync}
-            loading={syncing}
-            disabled={loading}
-          >
-            Sync & Refresh
-          </Button>
-        </Space>
+        <Button
+          size="small"
+          type="primary"
+          icon={<SyncOutlined spin={syncing} />}
+          onClick={handleSync}
+          loading={syncing}
+        >
+          Sync & Refresh
+        </Button>
       }
       style={{ borderRadius: 3 }}
     >
-      {loading && !loaded ? (
+      {syncing && !loaded ? (
         <Flex justify="center" align="center" style={{ padding: 48 }}>
           <Spin />
         </Flex>
