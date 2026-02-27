@@ -200,34 +200,6 @@ func (h *InventoryHandler) extractColumnsFromRecordsWithContext(ctx context.Cont
 	return columns
 }
 
-// extractColumnsFromRecords extracts column names from existing inventory_records JSONB data
-func (h *InventoryHandler) extractColumnsFromRecords(db *gorm.DB, tenantID string) []string {
-	var record models.InventoryRecord
-	if err := db.Where("tenant_id = ?", tenantID).First(&record).Error; err != nil {
-		return []string{}
-	}
-
-	if record.Data == "" {
-		return []string{}
-	}
-
-	var data map[string]interface{}
-	if err := json.Unmarshal([]byte(record.Data), &data); err != nil {
-		return []string{}
-	}
-
-	// Extract keys and sort them for consistent order
-	columns := make([]string, 0, len(data))
-	for key := range data {
-		columns = append(columns, key)
-	}
-
-	// Sort alphabetically for consistent order
-	sortColumnsAlphabetically(columns)
-
-	return columns
-}
-
 // sortColumnsAlphabetically sorts columns, keeping important columns first
 func sortColumnsAlphabetically(columns []string) {
 	// Priority columns that should appear first

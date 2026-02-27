@@ -29,7 +29,7 @@ func NewWholesaleExtendedHandler(basePath string, db *gorm.DB) *WholesaleExtende
 }
 
 // getDB returns the appropriate database for the current request
-func (h *WholesaleExtendedHandler) getDB(c *gin.Context, tenantID string) (*gorm.DB, error) {
+func (h *WholesaleExtendedHandler) getDB(_ *gin.Context, tenantID string) (*gorm.DB, error) {
 	if h.fallbackDB != nil {
 		return h.fallbackDB, nil
 	}

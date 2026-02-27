@@ -29,7 +29,7 @@ func NewWholesaleBatchHandler(basePath string, db *gorm.DB) *WholesaleBatchHandl
 }
 
 // getDB returns the appropriate database for the current request
-func (h *WholesaleBatchHandler) getDB(c *gin.Context, tenantID string) (*gorm.DB, error) {
+func (h *WholesaleBatchHandler) getDB(_ *gin.Context, tenantID string) (*gorm.DB, error) {
 	if h.fallbackDB != nil {
 		return h.fallbackDB, nil
 	}
