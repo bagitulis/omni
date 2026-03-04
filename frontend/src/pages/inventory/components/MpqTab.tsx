@@ -9,19 +9,14 @@ import {
   Typography,
 } from "antd";
 import { useEffect, useMemo, useState } from "react";
-import {
-  batchShopeeMpq,
-  batchTiktokMpq,
-  getSettings,
-  type WholesaleSettings,
-} from "@/api/wholesale";
+import { getSettings, type WholesaleSettings } from "@/api/wholesale";
 import type { BulkPricingItem } from "../utils/bulkPricingItems";
 import {
   DEFAULT_SETTINGS,
-  formatCurrency,
+  executeMpqUpdate,
   getAdjustedPrice,
+  MPQ_PREVIEW_COLUMNS,
   type PreviewRow,
-  readCount,
   type TierKey,
 } from "../utils/mpqTabHelpers";
 
@@ -70,10 +65,7 @@ export function MpqTab({ items }: MpqTabProps) {
   const shopeeItems = useMemo(() => {
     const unique = new Map<string, number>();
     for (const item of items) {
-      if (item.platform !== "shopee") {
-        continue;
-      }
-      if (!unique.has(item.sku)) {
+      if (item.platform === "shopee" && !unique.has(item.sku)) {
         unique.set(item.sku, item.price);
       }
     }
@@ -83,10 +75,7 @@ export function MpqTab({ items }: MpqTabProps) {
   const tiktokItems = useMemo(() => {
     const unique = new Map<string, number>();
     for (const item of items) {
-      if (item.platform !== "tiktok") {
-        continue;
-      }
-      if (!unique.has(item.sku)) {
+      if (item.platform === "tiktok" && !unique.has(item.sku)) {
         unique.set(item.sku, item.price);
       }
     }
@@ -94,18 +83,9 @@ export function MpqTab({ items }: MpqTabProps) {
   }, [items]);
 
   const selectedMinQty = useMemo(() => {
-    if (selectedTier === "normal") {
-      return 1;
-    }
-
-    if (selectedTier === "tier1") {
-      return settings.min_order_1;
-    }
-
-    if (selectedTier === "tier2") {
-      return settings.max_order_1 + 1;
-    }
-
+    if (selectedTier === "normal") return 1;
+    if (selectedTier === "tier1") return settings.min_order_1;
+    if (selectedTier === "tier2") return settings.max_order_1 + 1;
     return settings.max_order_1 + 3;
   }, [selectedTier, settings.max_order_1, settings.min_order_1]);
 
@@ -132,68 +112,22 @@ export function MpqTab({ items }: MpqTabProps) {
   }, [selectedMinQty, selectedTier, settings, shopeeItems, tiktokItems]);
 
   const handleMpqUpdate = async () => {
-    const shopeeActive = enableShopee && shopeeItems.length > 0;
-    const tiktokActive = enableTiktok && tiktokItems.length > 0;
-
-    if (!shopeeActive && !tiktokActive) {
-      return;
-    }
-
     setProcessing(true);
     setResultMessage(null);
     setResultType(null);
 
-    let totalFailed = 0;
-    const summaries: string[] = [];
-
     try {
-      if (shopeeActive) {
-        const shopeePayload = shopeeItems.map((item) => ({
-          sku: item.sku,
-          price: getAdjustedPrice(item.price, settings, selectedTier),
-        }));
-
-        const shopeeResult = await batchShopeeMpq(
-          shopeePayload,
-          selectedMinQty,
-        );
-        const processed = readCount(shopeeResult.data, "processed");
-        const failed = readCount(shopeeResult.data, "failed");
-        totalFailed += failed;
-        summaries.push(`Shopee ${processed} processed, ${failed} failed`);
-      }
-
-      // TikTok MPQ
-      if (tiktokActive) {
-        const tiktokPayload = tiktokItems.map((item) => ({
-          sku: item.sku,
-          price: getAdjustedPrice(item.price, settings, selectedTier),
-        }));
-
-        try {
-          const tiktokResult = await batchTiktokMpq(
-            tiktokPayload,
-            selectedMinQty,
-          );
-          const processed = readCount(tiktokResult.data, "processed");
-          const failed = readCount(tiktokResult.data, "failed");
-          totalFailed += failed;
-          summaries.push(`TikTok ${processed} processed, ${failed} failed`);
-        } catch (err) {
-          const errMsg = err instanceof Error ? err.message : "TikTok MPQ failed";
-          summaries.push(`TikTok error: ${errMsg}`);
-          totalFailed++;
-        }
-      }
-
-      const summary = `MPQ update (min_qty=${selectedMinQty}): ${summaries.join(" | ")}`;
-      setResultMessage(summary);
-
-      if (totalFailed > 0) {
-        setResultType("warning");
-      } else {
-        setResultType("success");
-      }
+      const result = await executeMpqUpdate(
+        shopeeItems,
+        tiktokItems,
+        enableShopee,
+        enableTiktok,
+        settings,
+        selectedTier,
+        selectedMinQty,
+      );
+      setResultMessage(result.message);
+      setResultType(result.type);
     } catch (error) {
       const rawMessage =
         error instanceof Error ? error.message : "Failed to update MPQ";
@@ -204,35 +138,9 @@ export function MpqTab({ items }: MpqTabProps) {
     }
   };
 
-  const columns = [
-    {
-      title: "Platform",
-      dataIndex: "platform",
-      key: "platform",
-    },
-    {
-      title: "SKU",
-      dataIndex: "sku",
-      key: "sku",
-    },
-    {
-      title: "Base Price",
-      dataIndex: "base_price",
-      key: "base_price",
-      render: (value: number) => formatCurrency(value),
-    },
-    {
-      title: "Updated Price",
-      dataIndex: "updated_price",
-      key: "updated_price",
-      render: (value: number) => formatCurrency(value),
-    },
-    {
-      title: "MPQ",
-      dataIndex: "mpq",
-      key: "mpq",
-    },
-  ];
+  const isDisabled =
+    (!enableShopee || shopeeItems.length === 0) &&
+    (!enableTiktok || tiktokItems.length === 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -273,18 +181,9 @@ export function MpqTab({ items }: MpqTabProps) {
           buttonStyle="solid"
           options={[
             { label: "Normal (1)", value: "normal" },
-            {
-              label: `Tier 1 (${settings.min_order_1})`,
-              value: "tier1",
-            },
-            {
-              label: `Tier 2 (${settings.max_order_1 + 1})`,
-              value: "tier2",
-            },
-            {
-              label: `Tier 3 (${settings.max_order_1 + 3})`,
-              value: "tier3",
-            },
+            { label: `Tier 1 (${settings.min_order_1})`, value: "tier1" },
+            { label: `Tier 2 (${settings.max_order_1 + 1})`, value: "tier2" },
+            { label: `Tier 3 (${settings.max_order_1 + 3})`, value: "tier3" },
           ]}
         />
       </div>
@@ -307,26 +206,16 @@ export function MpqTab({ items }: MpqTabProps) {
         description={`Set minimum purchase quantity to ${selectedMinQty} for ${enableShopee ? shopeeItems.length : 0} Shopee + ${enableTiktok ? tiktokItems.length : 0} TikTok items.`}
         onConfirm={handleMpqUpdate}
         okText="Yes, Update"
-        disabled={
-          (!enableShopee || shopeeItems.length === 0) &&
-          (!enableTiktok || tiktokItems.length === 0)
-        }
+        disabled={isDisabled}
       >
-        <Button
-          type="primary"
-          loading={processing}
-          disabled={
-            (!enableShopee || shopeeItems.length === 0) &&
-            (!enableTiktok || tiktokItems.length === 0)
-          }
-        >
+        <Button type="primary" loading={processing} disabled={isDisabled}>
           Update MPQ
         </Button>
       </Popconfirm>
 
       <Table
         dataSource={previewRows}
-        columns={columns}
+        columns={MPQ_PREVIEW_COLUMNS}
         rowKey="key"
         loading={loadingSettings}
         pagination={false}

@@ -4,7 +4,6 @@ import type { NavigateFunction } from "react-router-dom";
 import { updateStockBatch } from "@/api/inventorySync";
 import { updatePriceBatch } from "@/api/pricing";
 import { deleteProduct, getProductById } from "@/api/products";
-import { syncSelectedProducts } from "@/api/productManager";
 import type { RowActionKey } from "@/pages/products/utils/productColumns";
 import { getErrorMessage } from "@/pages/products/utils/unifiedProductUtils";
 import type {
@@ -17,6 +16,7 @@ import {
   confirmDeleteSingleProduct,
 } from "./useUnifiedProductsActionDialogs";
 import { useUnifiedProductsModals } from "./useUnifiedProductsModals";
+import { executeSyncMarketplace } from "./useSyncMarketplace";
 
 interface UseUnifiedProductsActionsParams {
   navigate: NavigateFunction;
@@ -207,17 +207,13 @@ export function useUnifiedProductsActions({
         const productIds = selectedRecords.map((r) => r.id);
         setBatchLoading((prev) => ({ ...prev, sync_marketplace: true }));
         try {
-          const result = await syncSelectedProducts(productIds);
-          message.success(
-            `Synced ${result.synced} products from marketplaces`,
+          await executeSyncMarketplace(
+            productIds,
+            refreshProducts,
+            clearSelection,
           );
-          if (result.failed > 0) {
-            message.warning(`${result.failed} products failed to sync`);
-          }
-          await refreshProducts();
-          clearSelection();
         } catch (error) {
-          message.error(getErrorMessage(error));
+          message.error(`Sync Marketplace failed: ${getErrorMessage(error)}`);
         } finally {
           setBatchLoading((prev) => ({ ...prev, sync_marketplace: false }));
         }
