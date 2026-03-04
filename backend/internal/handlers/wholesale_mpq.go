@@ -108,6 +108,11 @@ func (h *WholesaleExtendedHandler) BatchSetTiktokMpq(c *gin.Context) {
 
 	// Get TikTok client from platform coordination service
 	coordService := platform.GetPlatformCoordinationService(tenantID)
+	if err := coordService.InitializePlatforms(c.Request.Context()); err != nil {
+		log.Error().Str("tenant_id", tenantID).Err(err).Msg("Failed to initialize platform clients")
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to initialize platform clients"))
+		return
+	}
 	tiktokClient := coordService.GetTiktokClient()
 	if tiktokClient == nil || !tiktokClient.IsInitialized() {
 		c.JSON(http.StatusServiceUnavailable, response.Error("TikTok API not configured for this tenant"))
