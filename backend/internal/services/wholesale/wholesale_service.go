@@ -112,10 +112,14 @@ func (s *WholesaleService) applyToSingleProduct(ctx context.Context, api Platfor
 		return models.WholesaleApplyResult{SKU: sku, Success: false, Error: fmt.Sprintf("item not found: %v", err)}
 	}
 
-	// Calculate tiers using admin fee formula
-	// Need base price for calculation — get from database or use API
-	// For now we'll use the same approach but with the new formula
-	tiers := s.CalculateTiersFromSettings(0, settings) // Price=0 means tiers will be based on admin fee only
+	// Lookup actual price from database (ShopeeSku table)
+	basePrice, err := s.lookupSkuPrice(ctx, sku)
+	if err != nil || basePrice <= 0 {
+		return models.WholesaleApplyResult{SKU: sku, Success: false, Error: fmt.Sprintf("price not found for SKU %s: %v", sku, err)}
+	}
+
+	// Calculate tiers using admin fee formula with real price
+	tiers := s.CalculateTiersFromSettings(basePrice, settings)
 	apiTiers := make([]models.WholesaleTier, len(tiers))
 	for i, t := range tiers {
 		apiTiers[i] = models.WholesaleTier{
@@ -131,6 +135,21 @@ func (s *WholesaleService) applyToSingleProduct(ctx context.Context, api Platfor
 	}
 
 	return models.WholesaleApplyResult{SKU: sku, Success: true}
+}
+
+// lookupSkuPrice finds the price of a SKU from the shopee_skus table
+func (s *WholesaleService) lookupSkuPrice(ctx context.Context, sku string) (float64, error) {
+	if s.db == nil {
+		return 0, fmt.Errorf("database not configured")
+	}
+	var skuRecord models.ShopeeSku
+	err := s.db.WithContext(ctx).
+		Where("tenant_id = ? AND seller_sku = ?", s.tenantID, sku).
+		First(&skuRecord).Error
+	if err != nil {
+		return 0, err
+	}
+	return skuRecord.Price, nil
 }
 
 // calculateAdminFeePrice calculates tier price using admin fee redistribution formula

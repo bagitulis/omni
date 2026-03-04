@@ -4,9 +4,11 @@ import "time"
 
 // WholesaleSettings represents wholesale configuration for a tenant
 // Schema matches Node.js backend (admin_fee-based pricing)
+// NOTE: Go uses its own table "wholesale_settings" (snake_case) via TableName()
+// Prisma uses separate "WholesaleSettings" table. Column names follow GORM snake_case default.
 type WholesaleSettings struct {
 	ID            string    `gorm:"primaryKey;size:50" json:"id"`
-	TenantID      string    `gorm:"index;not null" json:"tenant_id"`
+	TenantID      string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
 	Platform      string    `gorm:"default:shopee" json:"platform"`
 	AdminFee      int       `json:"admin_fee"`
 	MinOrder1     int       `json:"min_order_1"`

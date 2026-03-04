@@ -1,18 +1,14 @@
 package handlers
 
+import "github.com/omni/backend/internal/models"
+
 // =============================================================================
 // Wholesale DTOs (Data Transfer Objects)
 // All types use Shopee API format: min_count, max_count, unit_price
 // =============================================================================
 
-// WholesaleTier represents a wholesale tier (matches Shopee API format)
-type WholesaleTier struct {
-	MinCount  int     `json:"min_count"`
-	MaxCount  int     `json:"max_count"`
-	UnitPrice float64 `json:"unit_price"`
-}
-
-// WholesaleInfo represents wholesale info for an item
+// WholesaleTier is an alias for models.WholesaleTier (DRY — single definition)
+type WholesaleTier = models.WholesaleTier
 type WholesaleInfo struct {
 	ItemID       int64           `json:"item_id"`
 	HasWholesale bool            `json:"has_wholesale"`

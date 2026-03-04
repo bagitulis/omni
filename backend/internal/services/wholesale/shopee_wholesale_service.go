@@ -10,12 +10,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// WholesaleTier represents a single wholesale tier for API
-type WholesaleTier struct {
-	MinCount  int     `json:"min_count"`
-	MaxCount  int     `json:"max_count"`
-	UnitPrice float64 `json:"unit_price"`
-}
+// WholesaleTier is an alias for models.WholesaleTier to avoid cross-package duplication (DRY)
+type WholesaleTier = models.WholesaleTier
 
 // ShopeeWholesaleService handles Shopee wholesale operations
 type ShopeeWholesaleService struct {
