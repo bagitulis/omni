@@ -38,10 +38,8 @@ export type BatchActionType =
   | "update_price"
   | "sync_stock"
   | "sync_marketplace"
-  | "wholesale"
-  | "mpq"
+  | "bulk_pricing"
   | "clone"
-  | "delete_wholesale"
   | "delete_products";
 
 export interface BatchActionItem {

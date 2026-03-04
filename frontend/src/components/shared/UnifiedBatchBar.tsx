@@ -6,7 +6,6 @@ import {
   CopyOutlined,
   DeleteOutlined,
   DollarOutlined,
-  FieldNumberOutlined,
   ShopOutlined,
   SyncOutlined,
 } from "@ant-design/icons";
@@ -48,29 +47,16 @@ const UNIFIED_BATCH_ACTIONS: UnifiedBatchAction[] = [
     tooltip: "Update price on all linked marketplaces",
   },
   {
-    key: "wholesale",
-    label: "Wholesale",
+    key: "bulk_pricing",
+    label: "Bulk Pricing",
     icon: <ShopOutlined />,
-    tooltip: "Set wholesale tiers (Shopee only)",
-  },
-  {
-    key: "mpq",
-    label: "MPQ",
-    icon: <FieldNumberOutlined />,
-    tooltip: "Set minimum purchase quantity (Shopee + TikTok)",
+    tooltip: "Wholesale, MPQ, Reset, and Settings",
   },
   {
     key: "clone",
     label: "Clone",
     icon: <CopyOutlined />,
     tooltip: "Clone products to other platforms",
-  },
-  {
-    key: "delete_wholesale",
-    label: "Del Wholesale",
-    icon: <DeleteOutlined />,
-    danger: true,
-    tooltip: "Delete wholesale configs (Shopee only)",
   },
   {
     key: "delete_products",

@@ -1,0 +1,146 @@
+﻿{
+    "tab":  "Analytics",
+    "timestamp":  "2026-01-09T13:16:15.006Z",
+    "summary":  {
+                    "totalTests":  9,
+                    "passed":  1,
+                    "failed":  8,
+                    "totalDuration":  12881,
+                    "successRate":  "11.11%"
+                },
+    "tests":  [
+                  {
+                      "name":  "Analytics Dashboard",
+                      "status":  "FAIL",
+                      "duration":  2,
+                      "error":  "read ECONNRESET"
+                  },
+                  {
+                      "name":  "Order Analytics",
+                      "status":  "FAIL",
+                      "duration":  9,
+                      "error":  "Request failed with status code 404"
+                  },
+                  {
+                      "name":  "Revenue Analytics",
+                      "status":  "FAIL",
+                      "duration":  5,
+                      "error":  "Request failed with status code 404"
+                  },
+                  {
+                      "name":  "Product Analytics",
+                      "status":  "FAIL",
+                      "duration":  17,
+                      "error":  "Request failed with status code 404"
+                  },
+                  {
+                      "name":  "Inventory Analytics",
+                      "status":  "FAIL",
+                      "duration":  6,
+                      "error":  "Request failed with status code 404"
+                  },
+                  {
+                      "name":  "Platform Metrics",
+                      "status":  "FAIL",
+                      "duration":  4,
+                      "error":  "Request failed with status code 404"
+                  },
+                  {
+                      "name":  "Performance Metrics",
+                      "status":  "FAIL",
+                      "duration":  6,
+                      "error":  "Request failed with status code 404"
+                  },
+                  {
+                      "name":  "Reports List",
+                      "status":  "FAIL",
+                      "duration":  5,
+                      "error":  "Request failed with status code 404"
+                  },
+                  {
+                      "name":  "Lighthouse: Analytics Dashboard",
+                      "status":  "PASS",
+                      "duration":  12827,
+                      "data":  {
+                                   "url":  "http://localhost:80/analytics",
+                                   "scores":  {
+                                                  "performance":  98,
+                                                  "accessibility":  100,
+                                                  "bestPractices":  96,
+                                                  "seo":  100
+                                              },
+                                   "metrics":  {
+                                                   "firstContentfulPaint":  1757,
+                                                   "largestContentfulPaint":  2158,
+                                                   "speedIndex":  1757,
+                                                   "timeToInteractive":  2158,
+                                                   "totalBlockingTime":  2,
+                                                   "cumulativeLayoutShift":  0
+                                               },
+                                   "issues":  {
+                                                  "performance":  [
+                                                                      {
+                                                                          "id":  "network-dependency-tree-insight",
+                                                                          "title":  "Network dependency tree",
+                                                                          "description":  "[Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+                                                                          "score":  0,
+                                                                          "impact":  "low"
+                                                                      },
+                                                                      {
+                                                                          "id":  "bf-cache",
+                                                                          "title":  "Page prevented back/forward cache restoration",
+                                                                          "description":  "Many navigations are performed by going back to a previous page, or forwards again. The back/forward cache (bfcache) can speed up these return navigations. [Learn more about the bfcache](https://developer.chrome.com/docs/lighthouse/performance/bf-cache/)",
+                                                                          "score":  0,
+                                                                          "displayValue":  "2 failure reasons",
+                                                                          "impact":  "low"
+                                                                      }
+                                                                  ],
+                                                  "accessibility":  [
+
+                                                                    ],
+                                                  "bestPractices":  [
+                                                                        {
+                                                                            "id":  "errors-in-console",
+                                                                            "title":  "Browser errors were logged to the console",
+                                                                            "description":  "Errors logged to the console indicate unresolved problems. They can come from network request failures and other browser concerns. [Learn more about this errors in console diagnostic audit](https://developer.chrome.com/docs/lighthouse/best-practices/errors-in-console/)",
+                                                                            "score":  0,
+                                                                            "impact":  "low"
+                                                                        }
+                                                                    ],
+                                                  "seo":  [
+
+                                                          ]
+                                              },
+                                   "recommendations":  [
+                                                           {
+                                                               "category":  "Performance",
+                                                               "score":  98,
+                                                               "message":  "Score: 98/100 - Needs optimization",
+                                                               "topIssues":  [
+                                                                                 {
+                                                                                     "title":  "Network dependency tree",
+                                                                                     "impact":  "low"
+                                                                                 },
+                                                                                 {
+                                                                                     "title":  "Page prevented back/forward cache restoration",
+                                                                                     "impact":  "low"
+                                                                                 }
+                                                                             ]
+                                                           },
+                                                           {
+                                                               "category":  "Best Practices",
+                                                               "score":  96,
+                                                               "message":  "Score: 96/100 - Follow web standards",
+                                                               "topIssues":  [
+                                                                                 {
+                                                                                     "title":  "Browser errors were logged to the console",
+                                                                                     "impact":  "low"
+                                                                                 }
+                                                                             ]
+                                                           }
+                                                       ],
+                                   "totalDuration":  12827
+                               }
+                  }
+              ]
+}

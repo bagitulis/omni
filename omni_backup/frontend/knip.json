@@ -1,0 +1,25 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/main.ts", "vite.config.ts"],
+  "project": ["src/**/*.{ts,vue}"],
+  "ignore": [
+    "dist/**",
+    "node_modules/**",
+    "*.config.{ts,js}",
+    "analyze-bundle.mjs",
+    "analyze-bundle.js",
+    "public/**"
+  ],
+  "ignoreDependencies": [
+    "@tailwindcss/forms",
+    "@tailwindcss/typography",
+    "@tailwindcss/postcss",
+    "autoprefixer",
+    "postcss",
+    "terser",
+    "rollup-plugin-visualizer",
+    "vite-plugin-compression",
+    "sharp",
+    "tsx"
+  ]
+}

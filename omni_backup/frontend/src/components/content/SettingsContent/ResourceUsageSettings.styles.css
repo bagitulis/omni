@@ -1,0 +1,140 @@
+.resources-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.resources-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.resources-header h2 {
+  margin: 0;
+  color: #333;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95em;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-refresh {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-refresh:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-message {
+  padding: 16px;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  color: #7f1d1d;
+  font-size: 0.95em;
+}
+
+.resources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 24px;
+}
+
+.resource-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.resource-card h3 {
+  margin: 0 0 20px 0;
+  color: #333;
+  font-size: 1.1em;
+}
+
+.resource-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.resource-item:last-child {
+  margin-bottom: 0;
+}
+
+.resource-item label {
+  color: #666;
+  font-weight: 500;
+  font-size: 0.9em;
+}
+
+.progress-bar {
+  height: 24px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 6px;
+}
+
+.progress-fill {
+  background: linear-gradient(90deg, #3b82f6, #1e40af);
+}
+
+.progress-fill.warning {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.progress-fill.danger {
+  background: linear-gradient(90deg, #ef4444, #b91c1c);
+}
+
+.resource-value {
+  color: #333;
+  font-weight: 500;
+  font-size: 0.9em;
+}
+
+.loading-message {
+  padding: 48px 24px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 1.1em;
+}
+
+.resources-footer {
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  text-align: right;
+  color: #666;
+}
+
+.resources-footer small {
+  font-size: 0.85em;
+}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Empty, Table, message } from "antd";
+import { Alert, Button, Empty, Popconfirm, Table } from "antd";
 import {
   batchWholesaleWithReset,
   calculateTiersLocal,
@@ -60,14 +60,8 @@ export function WholesaleTab({ items }: WholesaleTabProps) {
         if (!cancelled && loaded) {
           setSettings(loaded);
         }
-      } catch (error) {
-        if (!cancelled) {
-          const rawMessage =
-            error instanceof Error
-              ? error.message
-              : "Failed to load wholesale settings";
-          message.error(rawMessage);
-        }
+      } catch {
+        // Settings load error is non-critical, use defaults
       } finally {
         if (!cancelled) {
           setLoadingSettings(false);
@@ -95,6 +89,11 @@ export function WholesaleTab({ items }: WholesaleTabProps) {
 
     return Array.from(unique.entries()).map(([sku, price]) => ({ sku, price }));
   }, [items]);
+
+  const tiktokCount = useMemo(
+    () => items.filter((i) => i.platform === "tiktok").length,
+    [items],
+  );
 
   const previewRows = useMemo<PreviewRow[]>(() => {
     return shopeeItems.slice(0, 5).map((item) => {
@@ -145,7 +144,6 @@ export function WholesaleTab({ items }: WholesaleTabProps) {
 
   const handleWholesaleUpdate = async () => {
     if (shopeeItems.length === 0) {
-      message.warning("No Shopee items available in current selection");
       return;
     }
 
@@ -162,17 +160,14 @@ export function WholesaleTab({ items }: WholesaleTabProps) {
       setResultMessage(summary);
       if (failed > 0) {
         setResultType("warning");
-        message.warning(summary);
       } else {
         setResultType("success");
-        message.success(summary);
       }
     } catch (error) {
       const rawMessage =
         error instanceof Error ? error.message : "Failed to update wholesale";
       setResultType("error");
       setResultMessage(rawMessage);
-      message.error(rawMessage);
     } finally {
       setProcessing(false);
     }
@@ -187,6 +182,15 @@ export function WholesaleTab({ items }: WholesaleTabProps) {
         description="This action resets MPQ to 1, then applies wholesale tiers using current settings."
       />
 
+      {tiktokCount > 0 ? (
+        <Alert
+          type="warning"
+          showIcon
+          message={`${tiktokCount} TikTok items skipped`}
+          description="Wholesale tiers are only available for Shopee. TikTok items will not be affected."
+        />
+      ) : null}
+
       {resultMessage && resultType ? (
         <Alert
           type={resultType}
@@ -200,14 +204,21 @@ export function WholesaleTab({ items }: WholesaleTabProps) {
         />
       ) : null}
 
-      <Button
-        type="primary"
-        onClick={handleWholesaleUpdate}
-        loading={processing}
+      <Popconfirm
+        title="Update wholesale tiers?"
+        description={`Apply wholesale tiers for ${shopeeItems.length} Shopee items? This will reset MPQ to 1.`}
+        onConfirm={handleWholesaleUpdate}
+        okText="Yes, Update"
         disabled={shopeeItems.length === 0}
       >
-        Update Wholesale
-      </Button>
+        <Button
+          type="primary"
+          loading={processing}
+          disabled={shopeeItems.length === 0}
+        >
+          Update Wholesale
+        </Button>
+      </Popconfirm>
 
       <Table
         dataSource={previewRows}
@@ -215,6 +226,7 @@ export function WholesaleTab({ items }: WholesaleTabProps) {
         rowKey="key"
         loading={loadingSettings}
         pagination={false}
+        title={() => `Preview (${Math.min(5, shopeeItems.length)} of ${shopeeItems.length})`}
         locale={{
           emptyText: (
             <Empty description="No Shopee items with valid price in current selection" />

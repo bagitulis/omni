@@ -1,6 +1,8 @@
 import { Alert, Button, Modal, Tabs, Typography } from "antd";
 import { useMemo } from "react";
 import { MpqTab } from "@/pages/inventory/components/MpqTab";
+import { ResetPricingTab } from "@/pages/inventory/components/ResetPricingTab";
+import { SettingsTab } from "@/pages/inventory/components/SettingsTab";
 import { WholesaleTab } from "@/pages/inventory/components/WholesaleTab";
 import { extractBulkPricingItems } from "@/pages/inventory/utils/bulkPricingItems";
 import type { InventoryRecord } from "@/types/inventory";
@@ -10,7 +12,7 @@ interface WholesaleMpqModalProps {
 	open: boolean;
 	onClose: () => void;
 	selectedRecords: InventoryRecord[] | UnifiedProductRow[];
-	defaultTab?: "wholesale" | "mpq";
+	defaultTab?: "wholesale" | "mpq" | "reset" | "settings";
 }
 
 /**
@@ -99,6 +101,16 @@ export function WholesaleMpqModal({
 			key: "mpq",
 			label: "MPQ",
 			children: <MpqTab items={selectedItems} />,
+		},
+		{
+			key: "reset",
+			label: "Reset",
+			children: <ResetPricingTab items={selectedItems} />,
+		},
+		{
+			key: "settings",
+			label: "Settings",
+			children: <SettingsTab />,
 		},
 	];
 

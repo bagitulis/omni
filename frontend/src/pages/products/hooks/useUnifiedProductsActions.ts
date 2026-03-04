@@ -1,5 +1,5 @@
 import { message } from "antd";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import { updateStockBatch } from "@/api/inventorySync";
 import { updatePriceBatch } from "@/api/pricing";
@@ -15,7 +15,6 @@ import type {
 import {
   confirmDeleteSelectedProducts,
   confirmDeleteSingleProduct,
-  confirmResetWholesaleTiers,
 } from "./useUnifiedProductsActionDialogs";
 import { useUnifiedProductsModals } from "./useUnifiedProductsModals";
 
@@ -62,24 +61,6 @@ export function useUnifiedProductsActions({
   } = useUnifiedProductsModals();
 
   const [batchLoading, setBatchLoading] = useState<Partial<Record<BatchActionType, boolean>>>({});
-
-  const selectedSkuPriceItems = useMemo(() => {
-    const skuMap = new Map<string, { sku: string; price: number }>();
-    for (const record of selectedRecords) {
-      for (const sku of record.skus) {
-        if (!sku.seller_sku || skuMap.has(sku.seller_sku)) {
-          continue;
-        }
-
-        skuMap.set(sku.seller_sku, {
-          sku: sku.seller_sku,
-          price: sku.price > 0 ? sku.price : record.primary_price,
-        });
-      }
-    }
-
-    return Array.from(skuMap.values());
-  }, [selectedRecords]);
 
   const handleDeleteProduct = useCallback(
     async (productId: number | string) => {
@@ -242,22 +223,13 @@ export function useUnifiedProductsActions({
         }
         return;
       }
-      if (actionKey === "wholesale") {
+      if (actionKey === "bulk_pricing") {
         setWholesaleMpqDefaultTab("wholesale");
-        setWholesaleMpqOpen(true);
-        return;
-      }
-      if (actionKey === "mpq") {
-        setWholesaleMpqDefaultTab("mpq");
         setWholesaleMpqOpen(true);
         return;
       }
       if (actionKey === "clone") {
         setBatchCloneOpen(true);
-        return;
-      }
-      if (actionKey === "delete_wholesale") {
-        confirmResetWholesaleTiers(selectedSkuPriceItems, refreshProducts);
         return;
       }
       confirmDeleteSelectedProducts(
@@ -270,7 +242,6 @@ export function useUnifiedProductsActions({
       clearSelection,
       refreshProducts,
       selectedRecords,
-      selectedSkuPriceItems,
       setBatchCloneOpen,
       setPriceSyncOpen,
       setPriceSyncProducts,
@@ -307,7 +278,6 @@ export function useUnifiedProductsActions({
     setSkuMappingProduct,
     skuMappingLoading,
     batchLoading,
-    selectedSkuPriceItems,
     handleDeleteProduct,
     handlePriceSync,
     handleStockSync,

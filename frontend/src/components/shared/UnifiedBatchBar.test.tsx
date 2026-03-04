@@ -53,7 +53,7 @@ describe("UnifiedBatchBar", () => {
     expect(screen.getByText("5 selected")).toBeInTheDocument();
   });
 
-  it("should display all seven batch actions", () => {
+  it("should display all batch actions", () => {
     render(
       <UnifiedBatchBar
         selectedCount={1}
@@ -69,14 +69,10 @@ describe("UnifiedBatchBar", () => {
       screen.getByRole("button", { name: /Update Price/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /^Wholesale$/i }),
+      screen.getByRole("button", { name: /Bulk Pricing/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /MPQ/i })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /^Clone$/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Del Wholesale/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /^Delete$/i }),
@@ -94,20 +90,16 @@ describe("UnifiedBatchBar", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Sync Stock/i }));
     fireEvent.click(screen.getByRole("button", { name: /Update Price/i }));
-    fireEvent.click(screen.getByRole("button", { name: /^Wholesale$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /MPQ/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Bulk Pricing/i }));
     fireEvent.click(screen.getByRole("button", { name: /^Clone$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Del Wholesale/i }));
     fireEvent.click(screen.getByRole("button", { name: /^Delete$/i }));
 
     expect(mockOnAction).toHaveBeenCalledWith("sync_stock");
     expect(mockOnAction).toHaveBeenCalledWith("update_price");
-    expect(mockOnAction).toHaveBeenCalledWith("wholesale");
-    expect(mockOnAction).toHaveBeenCalledWith("mpq");
+    expect(mockOnAction).toHaveBeenCalledWith("bulk_pricing");
     expect(mockOnAction).toHaveBeenCalledWith("clone");
-    expect(mockOnAction).toHaveBeenCalledWith("delete_wholesale");
     expect(mockOnAction).toHaveBeenCalledWith("delete_products");
-    expect(mockOnAction).toHaveBeenCalledTimes(7);
+    expect(mockOnAction).toHaveBeenCalledTimes(5);
   });
 
   it("should disable actions from disabledActions map and show tooltip reason", async () => {
@@ -116,22 +108,22 @@ describe("UnifiedBatchBar", () => {
         selectedCount={2}
         onAction={mockOnAction}
         onClearSelection={mockOnClearSelection}
-        disabledActions={{ wholesale: "Wholesale is Shopee only" }}
+        disabledActions={{ bulk_pricing: "No items selected with valid price" }}
       />,
     );
 
-    const wholesaleButton = screen.getByRole("button", {
-      name: /^Wholesale$/i,
+    const bulkPricingButton = screen.getByRole("button", {
+      name: /Bulk Pricing/i,
     });
-    expect(wholesaleButton).toBeDisabled();
+    expect(bulkPricingButton).toBeDisabled();
 
-    fireEvent.mouseEnter(wholesaleButton.parentElement as HTMLElement);
+    fireEvent.mouseEnter(bulkPricingButton.parentElement as HTMLElement);
     expect(
-      await screen.findByText("Wholesale is Shopee only"),
+      await screen.findByText("No items selected with valid price"),
     ).toBeInTheDocument();
 
-    fireEvent.click(wholesaleButton);
-    expect(mockOnAction).not.toHaveBeenCalledWith("wholesale");
+    fireEvent.click(bulkPricingButton);
+    expect(mockOnAction).not.toHaveBeenCalledWith("bulk_pricing");
   });
 
   it("should call onClearSelection when clear button is clicked", () => {
@@ -146,7 +138,7 @@ describe("UnifiedBatchBar", () => {
     expect(mockOnClearSelection).toHaveBeenCalledTimes(1);
   });
 
-  it("should render danger style on delete actions", () => {
+  it("should render danger style on delete action", () => {
     render(
       <UnifiedBatchBar
         selectedCount={1}
@@ -155,12 +147,7 @@ describe("UnifiedBatchBar", () => {
       />,
     );
 
-    const deleteWholesaleButton = screen.getByRole("button", {
-      name: /^Del Wholesale$/i,
-    });
     const deleteButton = screen.getByRole("button", { name: /^Delete$/i });
-
-    expect(deleteWholesaleButton).toHaveClass("ant-btn-dangerous");
     expect(deleteButton).toHaveClass("ant-btn-dangerous");
   });
 });

@@ -3,7 +3,7 @@ import {
   Button,
   Checkbox,
   Empty,
-  message,
+  Popconfirm,
   Radio,
   Table,
   Typography,
@@ -51,14 +51,8 @@ export function MpqTab({ items }: MpqTabProps) {
         if (!cancelled && loaded) {
           setSettings(loaded);
         }
-      } catch (error) {
-        if (!cancelled) {
-          const rawMessage =
-            error instanceof Error
-              ? error.message
-              : "Failed to load wholesale settings";
-          message.error(rawMessage);
-        }
+      } catch {
+        // Settings load error is non-critical, use defaults
       } finally {
         if (!cancelled) {
           setLoadingSettings(false);
@@ -142,9 +136,6 @@ export function MpqTab({ items }: MpqTabProps) {
     const tiktokActive = enableTiktok && tiktokItems.length > 0;
 
     if (!shopeeActive && !tiktokActive) {
-      message.warning(
-        "No platform selected or no items available for selected platforms",
-      );
       return;
     }
 
@@ -200,17 +191,14 @@ export function MpqTab({ items }: MpqTabProps) {
 
       if (totalFailed > 0) {
         setResultType("warning");
-        message.warning(summary);
       } else {
         setResultType("success");
-        message.success(summary);
       }
     } catch (error) {
       const rawMessage =
         error instanceof Error ? error.message : "Failed to update MPQ";
       setResultType("error");
       setResultMessage(rawMessage);
-      message.error(rawMessage);
     } finally {
       setProcessing(false);
     }
@@ -314,17 +302,27 @@ export function MpqTab({ items }: MpqTabProps) {
         />
       ) : null}
 
-      <Button
-        type="primary"
-        loading={processing}
-        onClick={handleMpqUpdate}
+      <Popconfirm
+        title="Update MPQ for selected items?"
+        description={`Set minimum purchase quantity to ${selectedMinQty} for ${enableShopee ? shopeeItems.length : 0} Shopee + ${enableTiktok ? tiktokItems.length : 0} TikTok items.`}
+        onConfirm={handleMpqUpdate}
+        okText="Yes, Update"
         disabled={
           (!enableShopee || shopeeItems.length === 0) &&
           (!enableTiktok || tiktokItems.length === 0)
         }
       >
-        Update MPQ
-      </Button>
+        <Button
+          type="primary"
+          loading={processing}
+          disabled={
+            (!enableShopee || shopeeItems.length === 0) &&
+            (!enableTiktok || tiktokItems.length === 0)
+          }
+        >
+          Update MPQ
+        </Button>
+      </Popconfirm>
 
       <Table
         dataSource={previewRows}
@@ -332,6 +330,12 @@ export function MpqTab({ items }: MpqTabProps) {
         rowKey="key"
         loading={loadingSettings}
         pagination={false}
+        title={() => {
+          const shopeeCount = enableShopee ? shopeeItems.length : 0;
+          const tiktokCount = enableTiktok ? tiktokItems.length : 0;
+          const total = shopeeCount + tiktokCount;
+          return `Preview (${previewRows.length} of ${total})`;
+        }}
         locale={{
           emptyText: (
             <Empty description="No Shopee/TikTok items with valid price in current selection" />

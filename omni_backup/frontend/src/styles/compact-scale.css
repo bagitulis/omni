@@ -1,0 +1,17 @@
+/* Global compact scaling to reduce overall UI size without browser zoom */
+:root {
+  font-size: 14px;
+  --ui-scale-factor: 0.9;
+}
+
+body {
+  font-size: calc(1rem * var(--ui-scale-factor));
+  line-height: 1.35;
+}
+
+button,
+input,
+select,
+textarea {
+  font-size: inherit;
+}
