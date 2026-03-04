@@ -3,18 +3,18 @@ package models
 import "time"
 
 // WholesaleSettings represents wholesale configuration for a tenant
+// Schema matches Node.js backend (admin_fee-based pricing)
 type WholesaleSettings struct {
-	ID        string    `gorm:"primaryKey;size:50" json:"id"`
-	TenantID  string    `gorm:"index;not null" json:"tenant_id"`
-	MinQty1   int       `json:"min_qty_1"`
-	Discount1 float64   `json:"discount_1"` // Percentage discount for tier 1
-	MinQty2   int       `json:"min_qty_2"`
-	Discount2 float64   `json:"discount_2"` // Percentage discount for tier 2
-	MinQty3   int       `json:"min_qty_3"`
-	Discount3 float64   `json:"discount_3"` // Percentage discount for tier 3
-	IsActive  bool      `gorm:"default:true" json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID            string    `gorm:"primaryKey;size:50" json:"id"`
+	TenantID      string    `gorm:"index;not null" json:"tenant_id"`
+	Platform      string    `gorm:"default:shopee" json:"platform"`
+	AdminFee      int       `json:"admin_fee"`
+	MinOrder1     int       `json:"min_order_1"`
+	MaxOrder1     int       `json:"max_order_1"`
+	MaxOrderTier3 int       `json:"max_order_tier_3"`
+	IsActive      bool      `gorm:"default:true" json:"is_active"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // TableName returns the table name
@@ -22,24 +22,23 @@ func (WholesaleSettings) TableName() string {
 	return "wholesale_settings"
 }
 
-// WholesaleTier represents a single wholesale tier
+// WholesaleTier represents a single wholesale tier (for Shopee API format)
 type WholesaleTier struct {
-	MinQty   int     `json:"min_qty"`
-	MaxQty   int     `json:"max_qty,omitempty"` // 0 means unlimited
-	Discount float64 `json:"discount"`          // Percentage
-	Price    float64 `json:"price"`             // Calculated price
+	MinCount  int     `json:"min_count"`
+	MaxCount  int     `json:"max_count"`
+	UnitPrice float64 `json:"unit_price"`
 }
 
 // WholesaleCalculateRequest represents wholesale calculation request
 type WholesaleCalculateRequest struct {
-	OriginalPrice float64  `json:"original_price" binding:"required"`
-	SKUs          []string `json:"skus,omitempty"` // Optional: specific SKUs
+	BasePrice float64 `json:"base_price" binding:"required"`
 }
 
 // WholesaleCalculateResponse represents calculation result
 type WholesaleCalculateResponse struct {
-	OriginalPrice float64         `json:"original_price"`
-	Tiers         []WholesaleTier `json:"tiers"`
+	BasePrice float64         `json:"base_price"`
+	AdminFee  int             `json:"admin_fee"`
+	Tiers     []WholesaleTier `json:"tiers"`
 }
 
 // WholesaleApplyRequest represents request to apply wholesale to products

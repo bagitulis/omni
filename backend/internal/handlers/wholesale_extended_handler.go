@@ -11,6 +11,7 @@ import (
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/wholesale"
 	"github.com/omni/backend/pkg/shopee"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -79,6 +80,7 @@ func (h *WholesaleExtendedHandler) DeleteWholesale(c *gin.Context) {
 }
 
 // UpdateWholesale handles PUT /api/wholesale/shopee/:itemId
+// REAL implementation: calls Shopee API to update wholesale tiers
 func (h *WholesaleExtendedHandler) UpdateWholesale(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
@@ -98,14 +100,47 @@ func (h *WholesaleExtendedHandler) UpdateWholesale(c *gin.Context) {
 		return
 	}
 
+	db, err := h.getDB(c, tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+
+	shopeeClient, err := config.GetShopeeClient(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Shopee API configuration failed"))
+		return
+	}
+
+	shopeeAPI := shopee.NewProductAPI(shopeeClient)
+	service := wholesale.NewShopeeWholesaleService(db, tenantID, shopeeAPI)
+
+	// Convert DTO tiers to service tiers
+	tiers := make([]wholesale.WholesaleTier, len(req.Tiers))
+	for i, t := range req.Tiers {
+		tiers[i] = wholesale.WholesaleTier{
+			MinCount:  t.MinCount,
+			MaxCount:  t.MaxCount,
+			UnitPrice: t.UnitPrice,
+		}
+	}
+
+	err = service.UpdateWholesaleTiers(c.Request.Context(), itemID, tiers)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
+		return
+	}
+
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"itemId":  itemID,
+		"item_id": itemID,
 		"tiers":   req.Tiers,
 		"updated": true,
+		"message": "Wholesale tiers updated successfully",
 	}))
 }
 
-// GetWholesaleInfo handles GET /api/wholesale/shopee/:itemId/info
+// GetWholesaleInfo handles GET /api/wholesale/shopee/:itemId
+// REAL implementation: gets wholesale info from Shopee API
 func (h *WholesaleExtendedHandler) GetWholesaleInfo(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
@@ -119,17 +154,42 @@ func (h *WholesaleExtendedHandler) GetWholesaleInfo(c *gin.Context) {
 		return
 	}
 
-	info := WholesaleInfo{
-		ItemID:  itemID,
-		HasTier: false,
-		Tiers:   []WholesaleTier{},
-		MPQ:     1,
+	db, err := h.getDB(c, tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
 	}
 
-	c.JSON(http.StatusOK, response.Success(info))
+	shopeeClient, err := config.GetShopeeClient(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Shopee API configuration failed"))
+		return
+	}
+
+	shopeeAPI := shopee.NewProductAPI(shopeeClient)
+	service := wholesale.NewShopeeWholesaleService(db, tenantID, shopeeAPI)
+
+	tiers, err := service.GetWholesaleTiers(c.Request.Context(), itemID)
+	if err != nil {
+		log.Warn().Err(err).Int64("item_id", itemID).Msg("Failed to get wholesale tiers")
+		// Return empty tiers instead of error (item might not have wholesale)
+		c.JSON(http.StatusOK, response.Success(gin.H{
+			"item_id":       itemID,
+			"has_wholesale": false,
+			"tiers":         []wholesale.WholesaleTier{},
+		}))
+		return
+	}
+
+	c.JSON(http.StatusOK, response.Success(gin.H{
+		"item_id":       itemID,
+		"has_wholesale": len(tiers) > 0,
+		"tiers":         tiers,
+	}))
 }
 
 // LookupItemId handles GET /api/wholesale/shopee/lookup/:sku
+// Response uses snake_case to match frontend expectations
 func (h *WholesaleExtendedHandler) LookupItemId(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
@@ -156,14 +216,16 @@ func (h *WholesaleExtendedHandler) LookupItemId(c *gin.Context) {
 		return
 	}
 
+	// Use snake_case keys matching frontend SkuLookupResult type
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"sku":    sku,
-		"itemId": product.ItemID,
-		"name":   product.Name,
+		"sku":     sku,
+		"item_id": product.ItemID,
+		"name":    product.Name,
 	}))
 }
 
 // SetTiktokWholesale handles POST /api/wholesale/tiktok/:productId
+// TODO: Implement real TikTok API call (requires TikTok API client)
 func (h *WholesaleExtendedHandler) SetTiktokWholesale(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
@@ -183,9 +245,10 @@ func (h *WholesaleExtendedHandler) SetTiktokWholesale(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, response.Success(gin.H{
-		"productId": productID,
-		"tiers":     req.Tiers,
-		"success":   true,
-	}))
+	log.Warn().
+		Str("tenant_id", tenantID).
+		Str("product_id", productID).
+		Msg("TikTok wholesale not implemented - requires TikTok API client integration")
+
+	c.JSON(http.StatusNotImplemented, response.Error("TikTok wholesale not yet implemented"))
 }

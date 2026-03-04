@@ -237,8 +237,8 @@ func (s *ShopeeMpqService) BatchSetMpqBySkus(
 	// Process each unique item
 	for itemID, data := range itemMap {
 		mpqResult := s.SetMpqMode(ctx, itemID, mpq, data.price, data.modelID)
-		mpqResult.Message = fmt.Sprintf("%s (SKUs: %v) - %s",
-			mpqResult.Message, data.skus, mpqResult.Message)
+		mpqResult.Message = fmt.Sprintf("(SKUs: %v) - %s",
+			data.skus, mpqResult.Message)
 
 		result.Results = append(result.Results, *mpqResult)
 

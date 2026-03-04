@@ -8,14 +8,12 @@ import (
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
-	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/wholesale"
 	"github.com/omni/backend/pkg/shopee"
-	"github.com/rs/zerolog/log"
 )
 
 // =============================================================================
-// Batch Operations for Wholesale Handler
+// Shopee Batch Wholesale Operations (Delete, Add, Preview, Import)
 // =============================================================================
 
 // BatchDeleteByItemIds handles POST /api/wholesale/shopee/batch-delete
@@ -31,18 +29,33 @@ func (h *WholesaleExtendedHandler) BatchDeleteByItemIds(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
 		return
 	}
+	if len(req.ItemIDs) == 0 {
+		c.JSON(http.StatusBadRequest, response.Error("item_ids array is required"))
+		return
+	}
 
-	results := make([]map[string]interface{}, 0, len(req.ItemIDs))
+	service, err := h.getShopeeWholesaleService(c, tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
+		return
+	}
+
+	results := make([]wholesale.SingleWholesaleResult, 0, len(req.ItemIDs))
+	processed, failed := 0, 0
+
 	for _, itemID := range req.ItemIDs {
-		results = append(results, map[string]interface{}{
-			"item_id": itemID,
-			"success": true,
-		})
+		if err := service.DeleteWholesaleTiers(c.Request.Context(), itemID); err != nil {
+			failed++
+			results = append(results, wholesale.SingleWholesaleResult{ItemID: itemID, Success: false, Error: err.Error()})
+		} else {
+			processed++
+			results = append(results, wholesale.SingleWholesaleResult{ItemID: itemID, Success: true, Message: "Wholesale deleted"})
+		}
 	}
 
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"total":   len(req.ItemIDs),
-		"results": results,
+		"total": len(req.ItemIDs), "processed": processed, "failed": failed,
+		"success": failed == 0, "results": results,
 	}))
 }
 
@@ -59,19 +72,36 @@ func (h *WholesaleExtendedHandler) BatchAdd(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
 		return
 	}
+	if len(req.Items) == 0 {
+		c.JSON(http.StatusBadRequest, response.Error("items array is required"))
+		return
+	}
 
-	results := make([]map[string]interface{}, 0, len(req.Items))
+	service, err := h.getShopeeWholesaleService(c, tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
+		return
+	}
+
+	results := make([]wholesale.SingleWholesaleResult, 0, len(req.Items))
+	processed, failed := 0, 0
+
 	for _, item := range req.Items {
-		results = append(results, map[string]interface{}{
-			"item_id": item.ItemID,
-			"sku":     item.SKU,
-			"success": true,
-		})
+		tiers := convertDTOTiersToService(item.Tiers)
+		if err := service.UpdateWholesaleTiers(c.Request.Context(), item.ItemID, tiers); err != nil {
+			failed++
+			results = append(results, wholesale.SingleWholesaleResult{ItemID: item.ItemID, Success: false, Error: err.Error()})
+		} else {
+			processed++
+			results = append(results, wholesale.SingleWholesaleResult{
+				ItemID: item.ItemID, Success: true, Message: fmt.Sprintf("Added %d tier(s)", len(item.Tiers)),
+			})
+		}
 	}
 
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"total":   len(req.Items),
-		"results": results,
+		"total": len(req.Items), "processed": processed, "failed": failed,
+		"success": failed == 0, "results": results,
 	}))
 }
 
@@ -95,19 +125,24 @@ func (h *WholesaleExtendedHandler) Preview(c *gin.Context) {
 		return
 	}
 
-	var settings models.WholesaleSettings
-	db.Where("tenant_id = ?", tenantID).First(&settings)
-
-	previews := make([]map[string]interface{}, 0, len(req.SKUs))
-	for _, sku := range req.SKUs {
-		previews = append(previews, map[string]interface{}{
-			"sku":            sku,
-			"original_price": 100000,
-			"tiers":          GenerateTiers(100000, req.DiscountRates),
-		})
+	service := wholesale.NewWholesaleService(db, tenantID)
+	settings, err := service.GetSettings(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get settings"))
+		return
 	}
 
-	c.JSON(http.StatusOK, response.Success(gin.H{"previews": previews}))
+	var results []gin.H
+	for _, sku := range req.SKUs {
+		basePrice := float64(100000)
+		if req.BasePrice > 0 {
+			basePrice = req.BasePrice
+		}
+		tiers := service.CalculateTiersFromSettings(basePrice, settings)
+		results = append(results, gin.H{"sku": sku, "base_price": basePrice, "tiers": tiers})
+	}
+
+	c.JSON(http.StatusOK, response.Success(gin.H{"results": results, "settings_used": settings}))
 }
 
 // ImportWholesale handles POST /api/wholesale/shopee/import
@@ -123,126 +158,69 @@ func (h *WholesaleExtendedHandler) ImportWholesale(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
 		return
 	}
-
-	results := make([]map[string]interface{}, 0, len(req.Data))
-	for _, item := range req.Data {
-		results = append(results, map[string]interface{}{
-			"sku":     item.SKU,
-			"success": true,
-		})
-	}
-
-	c.JSON(http.StatusOK, response.Success(gin.H{
-		"total":   len(req.Data),
-		"success": len(req.Data),
-		"results": results,
-	}))
-}
-
-// BatchSetMpq handles POST /api/wholesale/shopee/batch-mpq
-// Body: { items: [{ sku, price }], mpq: number }
-func (h *WholesaleExtendedHandler) BatchSetMpq(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c)
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+	if len(req.Data) == 0 {
+		c.JSON(http.StatusBadRequest, response.Error("data array is required"))
 		return
 	}
 
-	// Parse request body
-	var reqBody struct {
-		Items []struct {
-			SKU   string  `json:"sku" binding:"required"`
-			Price float64 `json:"price" binding:"required"`
-		} `json:"items" binding:"required"`
-		MPQ int `json:"mpq" binding:"required,min=1"`
-	}
-
-	if err := c.ShouldBindJSON(&reqBody); err != nil {
-		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
-		return
-	}
-
-	if len(reqBody.Items) == 0 {
-		c.JSON(http.StatusBadRequest, response.Error("items array is required: [{ sku, price }]"))
-		return
-	}
-
-	// Get database
-	db, err := h.getDB(c, tenantID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
-		return
-	}
-
-	// Get Shopee API client
-	shopeeClient, err := config.GetShopeeClient(tenantID, h.basePath)
-	if err != nil {
-		log.Error().
-			Str("handler", "wholesale_batch").
-			Str("tenant_id", tenantID).
-			Err(err).
-			Msg("Failed to get Shopee client")
-		c.JSON(http.StatusInternalServerError, response.Error(fmt.Sprintf("Shopee API configuration failed: %v", err)))
-		return
-	}
-
-	// Create MPQ service
-	shopeeAPI := shopee.NewProductAPI(shopeeClient)
-	mpqService := wholesale.NewShopeeMpqService(db, tenantID, shopeeAPI)
-
-	// Build SKU → Price map
-	skuPriceMap := make(map[string]float64)
-	for _, item := range reqBody.Items {
-		if item.SKU != "" && item.Price > 0 {
-			skuPriceMap[item.SKU] = item.Price
-		}
-	}
-
-	// Execute batch MPQ operation
-	result, err := mpqService.BatchSetMpqBySkus(c.Request.Context(), skuPriceMap, reqBody.MPQ)
+	service, err := h.getShopeeWholesaleService(c, tenantID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
-	// Return response with snake_case
+	results := make([]wholesale.SingleWholesaleResult, 0, len(req.Data))
+	processed, failed := 0, 0
+
+	for _, item := range req.Data {
+		itemID, lookupErr := service.LookupItemIDBySKU(c.Request.Context(), item.SKU)
+		if lookupErr != nil {
+			failed++
+			results = append(results, wholesale.SingleWholesaleResult{SKU: item.SKU, Success: false, Error: "SKU not found: " + item.SKU})
+			continue
+		}
+
+		tiers := convertDTOTiersToService(item.Tiers)
+		if err := service.UpdateWholesaleTiers(c.Request.Context(), itemID, tiers); err != nil {
+			failed++
+			results = append(results, wholesale.SingleWholesaleResult{ItemID: itemID, SKU: item.SKU, Success: false, Error: err.Error()})
+		} else {
+			processed++
+			results = append(results, wholesale.SingleWholesaleResult{
+				ItemID: itemID, SKU: item.SKU, Success: true, Message: fmt.Sprintf("Imported %d tier(s)", len(item.Tiers)),
+			})
+		}
+	}
+
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"total_skus":   result.TotalSKUs,
-		"unique_items": result.UniqueItems,
-		"processed":    result.Processed,
-		"failed":       result.Failed,
-		"skipped":      result.Skipped,
-		"results":      result.Results,
-		"mpq":          reqBody.MPQ,
-		"success":      result.Success,
+		"total": len(req.Data), "processed": processed, "failed": failed,
+		"success": failed == 0, "results": results,
 	}))
 }
 
-// BatchSetTiktokMpq handles POST /api/wholesale/tiktok/batch-mpq
-func (h *WholesaleExtendedHandler) BatchSetTiktokMpq(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c)
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
-		return
-	}
+// =============================================================================
+// Helpers (DRY)
+// =============================================================================
 
-	var req TiktokBatchMpqRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
-		return
+// getShopeeWholesaleService creates a ShopeeWholesaleService from context
+func (h *WholesaleExtendedHandler) getShopeeWholesaleService(c *gin.Context, tenantID string) (*wholesale.ShopeeWholesaleService, error) {
+	db, err := h.getDB(c, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("database connection failed")
 	}
-
-	results := make([]map[string]interface{}, 0, len(req.Products))
-	for _, product := range req.Products {
-		results = append(results, map[string]interface{}{
-			"product_id": product.ProductID,
-			"mpq":        product.MPQ,
-			"success":    true,
-		})
+	shopeeClient, err := config.GetShopeeClient(tenantID, h.basePath)
+	if err != nil {
+		return nil, fmt.Errorf("shopee API configuration failed")
 	}
+	shopeeAPI := shopee.NewProductAPI(shopeeClient)
+	return wholesale.NewShopeeWholesaleService(db, tenantID, shopeeAPI), nil
+}
 
-	c.JSON(http.StatusOK, response.Success(gin.H{
-		"total":   len(req.Products),
-		"results": results,
-	}))
+// convertDTOTiersToService converts handler DTOs to service tiers
+func convertDTOTiersToService(dtoTiers []WholesaleTier) []wholesale.WholesaleTier {
+	tiers := make([]wholesale.WholesaleTier, len(dtoTiers))
+	for i, t := range dtoTiers {
+		tiers[i] = wholesale.WholesaleTier{MinCount: t.MinCount, MaxCount: t.MaxCount, UnitPrice: t.UnitPrice}
+	}
+	return tiers
 }

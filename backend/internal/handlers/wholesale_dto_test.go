@@ -4,26 +4,25 @@ import (
 	"testing"
 )
 
-// TestWholesaleDTOStructures tests all wholesale DTO structures
+// TestWholesaleDTOPackage tests all wholesale DTO structures with new field names
 func TestWholesaleDTOPackage(t *testing.T) {
-	// Test WholesaleTier
+	// Test WholesaleTier with Shopee API field names
 	tier := WholesaleTier{
-		MinQty: 5,
-		MaxQty: 10,
-		Price:  90000,
+		MinCount:  5,
+		MaxCount:  10,
+		UnitPrice: 90000,
 	}
-	if tier.MinQty != 5 {
-		t.Errorf("Expected min_qty 5, got %d", tier.MinQty)
+	if tier.MinCount != 5 {
+		t.Errorf("Expected min_count 5, got %d", tier.MinCount)
 	}
-	if tier.Price != 90000 {
-		t.Errorf("Expected price 90000, got %f", tier.Price)
+	if tier.UnitPrice != 90000 {
+		t.Errorf("Expected unit_price 90000, got %f", tier.UnitPrice)
 	}
 
 	// Test WholesaleInfo
 	info := WholesaleInfo{
-		ItemID:  1001,
-		HasTier: true,
-		MPQ:     5,
+		ItemID:       1001,
+		HasWholesale: true,
 	}
 	if info.ItemID != 1001 {
 		t.Errorf("Expected item_id 1001, got %d", info.ItemID)
@@ -43,14 +42,5 @@ func TestWholesaleDTOPackage(t *testing.T) {
 	}
 	if len(delReq.ItemIDs) != 2 {
 		t.Errorf("Expected 2 item IDs, got %d", len(delReq.ItemIDs))
-	}
-
-	// Test GenerateTiers function
-	tiers := GenerateTiers(100000, []int{5, 10, 15})
-	if len(tiers) != 3 {
-		t.Errorf("Expected 3 tiers, got %d", len(tiers))
-	}
-	if tiers[0].Price != 95000 {
-		t.Errorf("Expected first tier price 95000, got %f", tiers[0].Price)
 	}
 }

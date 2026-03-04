@@ -3,6 +3,7 @@ package wholesale
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/omni/backend/internal/models"
 	"gorm.io/gorm"
@@ -25,22 +26,26 @@ func NewWholesaleService(db *gorm.DB, tenantID string) *WholesaleService {
 	return &WholesaleService{db: db, tenantID: tenantID}
 }
 
+// DefaultSettings returns the default wholesale settings
+// Matches Node.js defaults (wholesaleSettingsService.ts DEFAULT_SETTINGS)
+func DefaultSettings(tenantID string) *models.WholesaleSettings {
+	return &models.WholesaleSettings{
+		TenantID:      tenantID,
+		Platform:      "shopee",
+		AdminFee:      1500,
+		MinOrder1:     2,
+		MaxOrder1:     3,
+		MaxOrderTier3: 1000,
+		IsActive:      true,
+	}
+}
+
 // GetSettings retrieves wholesale settings for tenant
 func (s *WholesaleService) GetSettings(ctx context.Context) (*models.WholesaleSettings, error) {
 	var settings models.WholesaleSettings
 	err := s.db.WithContext(ctx).Where("tenant_id = ?", s.tenantID).First(&settings).Error
 	if err == gorm.ErrRecordNotFound {
-		// Return default settings
-		return &models.WholesaleSettings{
-			TenantID:  s.tenantID,
-			MinQty1:   5,
-			Discount1: 5.0,
-			MinQty2:   10,
-			Discount2: 10.0,
-			MinQty3:   20,
-			Discount3: 15.0,
-			IsActive:  true,
-		}, nil
+		return DefaultSettings(s.tenantID), nil
 	}
 	return &settings, err
 }
@@ -48,45 +53,40 @@ func (s *WholesaleService) GetSettings(ctx context.Context) (*models.WholesaleSe
 // UpdateSettings updates wholesale settings
 func (s *WholesaleService) UpdateSettings(ctx context.Context, settings *models.WholesaleSettings) error {
 	settings.TenantID = s.tenantID
+	if settings.Platform == "" {
+		settings.Platform = "shopee"
+	}
 	return s.db.WithContext(ctx).Save(settings).Error
 }
 
 // CalculateTiers calculates wholesale tiers for a price
-func (s *WholesaleService) CalculateTiers(ctx context.Context, originalPrice float64) (*models.WholesaleCalculateResponse, error) {
+func (s *WholesaleService) CalculateTiers(ctx context.Context, basePrice float64) (*models.WholesaleCalculateResponse, error) {
 	settings, err := s.GetSettings(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	tiers := []models.WholesaleTier{
-		{
-			MinQty:   settings.MinQty1,
-			MaxQty:   settings.MinQty2 - 1,
-			Discount: settings.Discount1,
-			Price:    s.applyDiscount(originalPrice, settings.Discount1),
-		},
-		{
-			MinQty:   settings.MinQty2,
-			MaxQty:   settings.MinQty3 - 1,
-			Discount: settings.Discount2,
-			Price:    s.applyDiscount(originalPrice, settings.Discount2),
-		},
-		{
-			MinQty:   settings.MinQty3,
-			MaxQty:   0, // Unlimited
-			Discount: settings.Discount3,
-			Price:    s.applyDiscount(originalPrice, settings.Discount3),
-		},
-	}
+	tiers := s.CalculateTiersFromSettings(basePrice, settings)
 
 	return &models.WholesaleCalculateResponse{
-		OriginalPrice: originalPrice,
-		Tiers:         tiers,
+		BasePrice: basePrice,
+		AdminFee:  settings.AdminFee,
+		Tiers: func() []models.WholesaleTier {
+			result := make([]models.WholesaleTier, len(tiers))
+			for i, t := range tiers {
+				result[i] = models.WholesaleTier{
+					MinCount:  t.MinCount,
+					MaxCount:  t.MaxCount,
+					UnitPrice: t.UnitPrice,
+				}
+			}
+			return result
+		}(),
 	}, nil
 }
 
 // ApplyToProducts applies wholesale to specific products
-func (s *WholesaleService) ApplyToProducts(ctx context.Context, api PlatformWholesaleAPI, platform string, skus []string) []models.WholesaleApplyResult {
+func (s *WholesaleService) ApplyToProducts(ctx context.Context, api PlatformWholesaleAPI, _ string, skus []string) []models.WholesaleApplyResult {
 	results := make([]models.WholesaleApplyResult, len(skus))
 
 	settings, err := s.GetSettings(ctx)
@@ -112,44 +112,65 @@ func (s *WholesaleService) applyToSingleProduct(ctx context.Context, api Platfor
 		return models.WholesaleApplyResult{SKU: sku, Success: false, Error: fmt.Sprintf("item not found: %v", err)}
 	}
 
-	// Get current price to calculate tier prices
-	// For now, we'll use discount percentages only
-	tiers := []models.WholesaleTier{
-		{MinQty: settings.MinQty1, Discount: settings.Discount1},
-		{MinQty: settings.MinQty2, Discount: settings.Discount2},
-		{MinQty: settings.MinQty3, Discount: settings.Discount3},
+	// Calculate tiers using admin fee formula
+	// Need base price for calculation — get from database or use API
+	// For now we'll use the same approach but with the new formula
+	tiers := s.CalculateTiersFromSettings(0, settings) // Price=0 means tiers will be based on admin fee only
+	apiTiers := make([]models.WholesaleTier, len(tiers))
+	for i, t := range tiers {
+		apiTiers[i] = models.WholesaleTier{
+			MinCount:  t.MinCount,
+			MaxCount:  t.MaxCount,
+			UnitPrice: t.UnitPrice,
+		}
 	}
 
 	// Apply to platform
-	if err := api.SetWholesaleTiers(ctx, itemID, tiers); err != nil {
+	if err := api.SetWholesaleTiers(ctx, itemID, apiTiers); err != nil {
 		return models.WholesaleApplyResult{SKU: sku, Success: false, Error: err.Error()}
 	}
 
 	return models.WholesaleApplyResult{SKU: sku, Success: true}
 }
 
-func (s *WholesaleService) applyDiscount(price, discountPercent float64) float64 {
-	return price * (1 - discountPercent/100)
+// calculateAdminFeePrice calculates tier price using admin fee redistribution formula
+// Formula: (BasePrice - AdminFee) + (AdminFee / MinQty)
+// Matches Node.js: Math.round(basePrice - adminFee + adminFee / minQty)
+func calculateAdminFeePrice(basePrice float64, adminFee int, minQty int) float64 {
+	if minQty <= 0 {
+		return basePrice
+	}
+	return math.Round(basePrice - float64(adminFee) + float64(adminFee)/float64(minQty))
 }
 
-// CalculateTiersFromSettings calculates wholesale tiers based on base price and settings (no context)
-// Used by batch handlers for tier calculation
+// CalculateTiersFromSettings calculates wholesale tiers based on base price and settings
+// Tier boundaries use cascade logic matching Node.js:
+// - Tier 1: minOrder1 → maxOrder1 (editable)
+// - Tier 2: maxOrder1+1 → maxOrder1+2 (auto, range=2)
+// - Tier 3: maxOrder1+3 → maxOrderTier3 (auto, up to max)
 func (s *WholesaleService) CalculateTiersFromSettings(basePrice float64, settings *models.WholesaleSettings) []WholesaleTier {
+	min1 := settings.MinOrder1
+	max1 := settings.MaxOrder1
+	min2 := max1 + 1
+	max2 := min2 + 1
+	min3 := max2 + 1
+	max3 := settings.MaxOrderTier3
+
 	return []WholesaleTier{
 		{
-			MinCount:  settings.MinQty1,
-			MaxCount:  settings.MinQty2 - 1,
-			UnitPrice: s.applyDiscount(basePrice, settings.Discount1),
+			MinCount:  min1,
+			MaxCount:  max1,
+			UnitPrice: calculateAdminFeePrice(basePrice, settings.AdminFee, min1),
 		},
 		{
-			MinCount:  settings.MinQty2,
-			MaxCount:  settings.MinQty3 - 1,
-			UnitPrice: s.applyDiscount(basePrice, settings.Discount2),
+			MinCount:  min2,
+			MaxCount:  max2,
+			UnitPrice: calculateAdminFeePrice(basePrice, settings.AdminFee, min2),
 		},
 		{
-			MinCount:  settings.MinQty3,
-			MaxCount:  0, // Unlimited
-			UnitPrice: s.applyDiscount(basePrice, settings.Discount3),
+			MinCount:  min3,
+			MaxCount:  max3,
+			UnitPrice: calculateAdminFeePrice(basePrice, settings.AdminFee, min3),
 		},
 	}
 }

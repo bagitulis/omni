@@ -284,21 +284,24 @@ func (h *WholesaleBatchHandler) Preview(c *gin.Context) {
 	}
 
 	service := wholesale.NewWholesaleService(db, tenantID)
-
-	// Get settings from database (req.Settings is always nil now)
 	settings, err := service.GetSettings(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to get settings"))
 		return
 	}
 
-	// Calculate tiers using settings
+	// Calculate tiers using admin fee formula
 	var results []gin.H
 	for _, sku := range req.SKUs {
-		tiers := GenerateTiers(100000, req.DiscountRates) // Using default price for preview
+		basePrice := float64(100000)
+		if req.BasePrice > 0 {
+			basePrice = req.BasePrice
+		}
+		tiers := service.CalculateTiersFromSettings(basePrice, settings)
 		results = append(results, gin.H{
-			"sku":   sku,
-			"tiers": tiers,
+			"sku":        sku,
+			"base_price": basePrice,
+			"tiers":      tiers,
 		})
 	}
 

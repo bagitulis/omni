@@ -2,21 +2,21 @@ package handlers
 
 // =============================================================================
 // Wholesale DTOs (Data Transfer Objects)
+// All types use Shopee API format: min_count, max_count, unit_price
 // =============================================================================
 
-// WholesaleTier represents a wholesale tier
+// WholesaleTier represents a wholesale tier (matches Shopee API format)
 type WholesaleTier struct {
-	MinQty int     `json:"min_qty"`
-	MaxQty int     `json:"max_qty"`
-	Price  float64 `json:"price"`
+	MinCount  int     `json:"min_count"`
+	MaxCount  int     `json:"max_count"`
+	UnitPrice float64 `json:"unit_price"`
 }
 
 // WholesaleInfo represents wholesale info for an item
 type WholesaleInfo struct {
-	ItemID  int64           `json:"item_id"`
-	HasTier bool            `json:"has_tier"`
-	Tiers   []WholesaleTier `json:"tiers"`
-	MPQ     int             `json:"mpq"`
+	ItemID       int64           `json:"item_id"`
+	HasWholesale bool            `json:"has_wholesale"`
+	Tiers        []WholesaleTier `json:"tiers"`
 }
 
 // =============================================================================
@@ -48,7 +48,8 @@ type BatchAddItem struct {
 // PreviewRequest represents preview wholesale request
 type PreviewRequest struct {
 	SKUs          []string `json:"skus" binding:"required"`
-	DiscountRates []int    `json:"discount_rates" binding:"required"`
+	BasePrice     float64  `json:"base_price"`
+	DiscountRates []int    `json:"discount_rates"`
 }
 
 // ImportWholesaleRequest represents import wholesale request
@@ -98,26 +99,4 @@ type TiktokMpqItem struct {
 // TiktokWholesaleRequest represents TikTok wholesale request
 type TiktokWholesaleRequest struct {
 	Tiers []WholesaleTier `json:"tiers" binding:"required"`
-}
-
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-// GenerateTiers generates wholesale tiers based on discount rates
-func GenerateTiers(basePrice float64, discountRates []int) []WholesaleTier {
-	tiers := make([]WholesaleTier, 0, len(discountRates))
-	for i, rate := range discountRates {
-		minQty := (i + 1) * 5
-		maxQty := (i + 2) * 5
-		if i == len(discountRates)-1 {
-			maxQty = 999
-		}
-		tiers = append(tiers, WholesaleTier{
-			MinQty: minQty,
-			MaxQty: maxQty,
-			Price:  basePrice * float64(100-rate) / 100,
-		})
-	}
-	return tiers
 }

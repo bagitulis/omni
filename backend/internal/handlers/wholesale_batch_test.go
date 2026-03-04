@@ -41,15 +41,15 @@ func TestBatchAdd(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Set("tenantId", "test-tenant")
 
-	// Create test request
+	// Create test request with new field names
 	reqBody := BatchAddRequest{
 		Items: []BatchAddItem{
 			{
 				ItemID: 1001,
 				SKU:    "SKU001",
 				Tiers: []WholesaleTier{
-					{MinQty: 5, MaxQty: 10, Price: 90000},
-					{MinQty: 11, MaxQty: 20, Price: 85000},
+					{MinCount: 5, MaxCount: 10, UnitPrice: 90000},
+					{MinCount: 11, MaxCount: 20, UnitPrice: 85000},
 				},
 			},
 		},
@@ -77,8 +77,8 @@ func TestPreview(t *testing.T) {
 
 	// Create test request
 	reqBody := PreviewRequest{
-		SKUs:          []string{"SKU001", "SKU002"},
-		DiscountRates: []int{5, 10, 15},
+		SKUs:      []string{"SKU001", "SKU002"},
+		BasePrice: 100000,
 	}
 
 	body, _ := json.Marshal(reqBody)
@@ -89,7 +89,7 @@ func TestPreview(t *testing.T) {
 	err := c.ShouldBindJSON(&req)
 	assert.NoError(t, err, "Should bind JSON successfully")
 	assert.Equal(t, 2, len(req.SKUs), "Should have two SKUs")
-	assert.Equal(t, 3, len(req.DiscountRates), "Should have three discount rates")
+	assert.Equal(t, float64(100000), req.BasePrice, "BasePrice should be 100000")
 }
 
 // TestImportWholesale tests the ImportWholesale handler
@@ -100,13 +100,13 @@ func TestImportWholesale(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Set("tenantId", "test-tenant")
 
-	// Create test request
+	// Create test request with new field names
 	reqBody := ImportWholesaleRequest{
 		Data: []ImportWholesaleItem{
 			{
 				SKU: "SKU001",
 				Tiers: []WholesaleTier{
-					{MinQty: 5, MaxQty: 10, Price: 90000},
+					{MinCount: 5, MaxCount: 10, UnitPrice: 90000},
 				},
 			},
 		},
@@ -177,24 +177,23 @@ func TestBatchSetTiktokMpq(t *testing.T) {
 
 // TestWholesaleDTOStructures tests all wholesale DTO structures
 func TestWholesaleDTOStructures(t *testing.T) {
-	// Test WholesaleTier
+	// Test WholesaleTier with new field names
 	tier := WholesaleTier{
-		MinQty: 5,
-		MaxQty: 10,
-		Price:  90000,
+		MinCount:  5,
+		MaxCount:  10,
+		UnitPrice: 90000,
 	}
-	assert.Equal(t, 5, tier.MinQty, "MinQty should be 5")
-	assert.Equal(t, 90000.0, tier.Price, "Price should be 90000")
+	assert.Equal(t, 5, tier.MinCount, "MinCount should be 5")
+	assert.Equal(t, 90000.0, tier.UnitPrice, "UnitPrice should be 90000")
 
 	// Test WholesaleInfo
 	info := WholesaleInfo{
-		ItemID:  1001,
-		HasTier: true,
-		Tiers:   []WholesaleTier{tier},
-		MPQ:     5,
+		ItemID:       1001,
+		HasWholesale: true,
+		Tiers:        []WholesaleTier{tier},
 	}
 	assert.Equal(t, int64(1001), info.ItemID, "ItemID should be 1001")
-	assert.True(t, info.HasTier, "HasTier should be true")
+	assert.True(t, info.HasWholesale, "HasWholesale should be true")
 
 	// Test UpdateWholesaleRequest
 	updateReq := UpdateWholesaleRequest{
@@ -207,11 +206,6 @@ func TestWholesaleDTOStructures(t *testing.T) {
 		ItemIDs: []int64{1001, 1002},
 	}
 	assert.Equal(t, 2, len(delReq.ItemIDs), "Should have two item IDs")
-
-	// Test GenerateTiers function
-	tiers := GenerateTiers(100000, []int{5, 10, 15})
-	assert.Equal(t, 3, len(tiers), "Should generate 3 tiers")
-	assert.Equal(t, 95000.0, tiers[0].Price, "First tier price should be discounted 5%")
 }
 
 // TestWholesaleBatchMissingTenant tests error handling
