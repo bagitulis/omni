@@ -160,9 +160,10 @@ func TestBatchSetTiktokMpq(t *testing.T) {
 	// Create test request
 	reqBody := TiktokBatchMpqRequest{
 		Products: []TiktokMpqItem{
-			{ProductID: "prod001", MPQ: 10},
-			{ProductID: "prod002", MPQ: 5},
+			{ProductID: "prod001", SKU: "SKU-001", Price: 5000, MPQ: 10},
+			{ProductID: "prod002", SKU: "SKU-002", Price: 6000, MPQ: 5},
 		},
+		MPQ: 3,
 	}
 
 	body, _ := json.Marshal(reqBody)
@@ -173,6 +174,7 @@ func TestBatchSetTiktokMpq(t *testing.T) {
 	err := c.ShouldBindJSON(&req)
 	assert.NoError(t, err, "Should bind JSON successfully")
 	assert.Equal(t, 2, len(req.Products), "Should have two products")
+	assert.Equal(t, 3, req.MPQ, "Should have MPQ at root level")
 }
 
 // TestWholesaleDTOStructures tests all wholesale DTO structures
