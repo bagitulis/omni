@@ -213,3 +213,8 @@ func (c *TiktokAPIClient) request(method, path string, queryParams map[string]st
 
 	return result, nil
 }
+
+// Request is the public wrapper for request, allowing use as wholesale.TiktokProductAPI
+func (c *TiktokAPIClient) Request(method, path string, queryParams map[string]string, body interface{}) (map[string]interface{}, error) {
+	return c.request(method, path, queryParams, body)
+}

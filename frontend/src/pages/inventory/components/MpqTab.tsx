@@ -11,6 +11,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import {
   batchShopeeMpq,
+  batchTiktokMpq,
   getSettings,
   type WholesaleSettings,
 } from "@/api/wholesale";
@@ -34,7 +35,7 @@ export function MpqTab({ items }: MpqTabProps) {
   const [processing, setProcessing] = useState(false);
   const [selectedTier, setSelectedTier] = useState<TierKey>("tier1");
   const [enableShopee, setEnableShopee] = useState(true);
-  const [enableTiktok, setEnableTiktok] = useState(false); // TikTok MPQ not yet supported
+  const [enableTiktok, setEnableTiktok] = useState(true);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [resultType, setResultType] = useState<
     "success" | "warning" | "error" | null
@@ -171,7 +172,28 @@ export function MpqTab({ items }: MpqTabProps) {
         summaries.push(`Shopee ${processed} processed, ${failed} failed`);
       }
 
-      // TikTok MPQ: will be enabled when backend TikTok API integration is ready
+      // TikTok MPQ
+      if (tiktokActive) {
+        const tiktokPayload = tiktokItems.map((item) => ({
+          sku: item.sku,
+          price: getAdjustedPrice(item.price, settings, selectedTier),
+        }));
+
+        try {
+          const tiktokResult = await batchTiktokMpq(
+            tiktokPayload,
+            selectedMinQty,
+          );
+          const processed = readCount(tiktokResult.data, "processed");
+          const failed = readCount(tiktokResult.data, "failed");
+          totalFailed += failed;
+          summaries.push(`TikTok ${processed} processed, ${failed} failed`);
+        } catch (err) {
+          const errMsg = err instanceof Error ? err.message : "TikTok MPQ failed";
+          summaries.push(`TikTok error: ${errMsg}`);
+          totalFailed++;
+        }
+      }
 
       const summary = `MPQ update (min_qty=${selectedMinQty}): ${summaries.join(" | ")}`;
       setResultMessage(summary);
@@ -246,9 +268,9 @@ export function MpqTab({ items }: MpqTabProps) {
           <Checkbox
             checked={enableTiktok}
             onChange={(e) => setEnableTiktok(e.target.checked)}
-            disabled
+            disabled={tiktokItems.length === 0}
           >
-            TikTok ({tiktokItems.length} SKU) — Coming soon
+            TikTok ({tiktokItems.length} SKU)
           </Checkbox>
         </div>
       </div>

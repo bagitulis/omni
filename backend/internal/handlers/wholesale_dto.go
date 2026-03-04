@@ -81,15 +81,23 @@ type BatchWholesaleResetRequest struct {
 // =============================================================================
 
 // TiktokBatchMpqRequest represents TikTok batch MPQ request
+// Frontend sends: { products, items: [{sku, price}], mpq }
 type TiktokBatchMpqRequest struct {
-	Products []TiktokMpqItem `json:"products" binding:"required"`
+	Products []TiktokMpqItem `json:"products"`
+	Items    []struct {
+		SKU   string  `json:"sku"`
+		Price float64 `json:"price"`
+	} `json:"items"`
+	MPQ int `json:"mpq" binding:"required,min=1"`
 }
 
-// TiktokMpqItem represents a TikTok MPQ item
+// TiktokMpqItem represents a TikTok MPQ product item
 type TiktokMpqItem struct {
-	ProductID string `json:"product_id"`
-	SKUID     string `json:"sku_id,omitempty"`
-	MPQ       int    `json:"mpq"`
+	ProductID string  `json:"product_id"`
+	SKU       string  `json:"sku,omitempty"`
+	SKUID     string  `json:"sku_id,omitempty"`
+	Price     float64 `json:"price,omitempty"`
+	MPQ       int     `json:"mpq"`
 }
 
 // TiktokWholesaleRequest represents TikTok wholesale request

@@ -8,6 +8,7 @@ import (
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
+	"github.com/omni/backend/internal/services/platform"
 	"github.com/omni/backend/internal/services/wholesale"
 	"github.com/omni/backend/pkg/shopee"
 	"github.com/rs/zerolog/log"
@@ -86,7 +87,6 @@ func (h *WholesaleExtendedHandler) BatchSetMpq(c *gin.Context) {
 }
 
 // BatchSetTiktokMpq handles POST /api/wholesale/tiktok/batch-mpq
-// TODO: Implement real TikTok API call (requires TikTok API client integration)
 func (h *WholesaleExtendedHandler) BatchSetTiktokMpq(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
@@ -100,10 +100,49 @@ func (h *WholesaleExtendedHandler) BatchSetTiktokMpq(c *gin.Context) {
 		return
 	}
 
-	log.Warn().
-		Str("tenant_id", tenantID).
-		Int("product_count", len(req.Products)).
-		Msg("TikTok batch MPQ not implemented - requires TikTok API client integration")
+	db, err := h.getDB(c, tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
 
-	c.JSON(http.StatusNotImplemented, response.Error("TikTok batch MPQ not yet implemented - requires TikTok API client"))
+	// Get TikTok client from platform coordination service
+	coordService := platform.GetPlatformCoordinationService(tenantID)
+	tiktokClient := coordService.GetTiktokClient()
+	if tiktokClient == nil || !tiktokClient.IsInitialized() {
+		c.JSON(http.StatusServiceUnavailable, response.Error("TikTok API not configured for this tenant"))
+		return
+	}
+
+	mpqService := wholesale.NewTiktokMpqService(db, tenantID, tiktokClient)
+
+	// Build SKU→price map from both items and products
+	skuPriceMap := make(map[string]float64)
+	for _, item := range req.Items {
+		if item.SKU != "" {
+			skuPriceMap[item.SKU] = item.Price
+		}
+	}
+	for _, p := range req.Products {
+		if p.SKU != "" && p.Price > 0 {
+			skuPriceMap[p.SKU] = p.Price
+		}
+	}
+
+	result, err := mpqService.BatchUpdateMpq(c.Request.Context(), skuPriceMap, req.MPQ)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, response.Success(gin.H{
+		"total_skus":      result.TotalSKUs,
+		"unique_products": result.UniqueProducts,
+		"processed":       result.Processed,
+		"failed":          result.Failed,
+		"skipped":         result.Skipped,
+		"results":         result.Results,
+		"mpq":             req.MPQ,
+		"success":         result.Success,
+	}))
 }

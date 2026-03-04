@@ -219,6 +219,30 @@ func (c *Client) doRequestWithBody(method, apiPath string, params map[string]str
 	return json.Unmarshal(respBody, result)
 }
 
+// DoGet executes a GET request
+func (c *Client) DoGet(apiPath string, params map[string]string, result interface{}) error {
+	if params == nil {
+		params = make(map[string]string)
+	}
+	return c.doRequest("GET", apiPath, params, result)
+}
+
+// DoPost executes a POST request with JSON body
+func (c *Client) DoPost(apiPath string, params map[string]string, body interface{}, result interface{}) error {
+	if params == nil {
+		params = make(map[string]string)
+	}
+	return c.doRequestWithBody("POST", apiPath, params, body, result)
+}
+
+// DoPut executes a PUT request with JSON body
+func (c *Client) DoPut(apiPath string, params map[string]string, body interface{}, result interface{}) error {
+	if params == nil {
+		params = make(map[string]string)
+	}
+	return c.doRequestWithBody("PUT", apiPath, params, body, result)
+}
+
 // ShippingDocumentResponse represents the TikTok shipping document API response
 type ShippingDocumentResponse struct {
 	Code    int    `json:"code"`
