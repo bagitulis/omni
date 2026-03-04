@@ -36,6 +36,13 @@ type MpqResult struct {
 	Error   string `json:"error,omitempty"`
 }
 
+// ModelPriceInfo holds price info for a single model/variant within an item
+type ModelPriceInfo struct {
+	SKU     string
+	ModelID *int64
+	Price   float64
+}
+
 // SetMpq sets minimum purchase quantity for an item
 func (s *ShopeeMpqService) SetMpq(ctx context.Context, itemID int64, mpq int) error {
 	if s.shopeeAPI == nil {
@@ -67,48 +74,52 @@ func (s *ShopeeMpqService) SetMpq(ctx context.Context, itemID int64, mpq int) er
 	return nil
 }
 
-// UpdatePrice updates price for an item/model
-func (s *ShopeeMpqService) UpdatePrice(ctx context.Context, itemID int64, modelID *int64, price float64) error {
+// updateAllModelPrices updates prices for multiple models of an item
+func (s *ShopeeMpqService) updateAllModelPrices(ctx context.Context, itemID int64, modelPrices []ModelPriceInfo) error {
 	if s.shopeeAPI == nil {
 		return fmt.Errorf("Shopee API client not configured")
 	}
 
-	log.Info().
-		Str("tenant_id", s.tenantID).
-		Int64("item_id", itemID).
-		Float64("price", price).
-		Msg("Updating price")
-
-	err := s.shopeeAPI.UpdatePrice(ctx, itemID, modelID, price)
-	if err != nil {
-		log.Error().
-			Err(err).
+	for _, m := range modelPrices {
+		log.Info().
 			Str("tenant_id", s.tenantID).
 			Int64("item_id", itemID).
-			Msg("Failed to update price")
-		return err
+			Str("sku", m.SKU).
+			Float64("price", m.Price).
+			Msg("Updating model price")
+
+		if err := s.shopeeAPI.UpdatePrice(ctx, itemID, m.ModelID, m.Price); err != nil {
+			return fmt.Errorf("failed to update price for SKU %s: %w", m.SKU, err)
+		}
+
+		log.Info().
+			Str("tenant_id", s.tenantID).
+			Int64("item_id", itemID).
+			Str("sku", m.SKU).
+			Float64("price", m.Price).
+			Msg("Price updated successfully")
+	}
+
+	return nil
+}
+
+// SetMpqMode performs complete MPQ mode setup for an item with ALL its models:
+// 1. Delete wholesale tiers
+// 2. Update price for EACH model/variant
+// 3. Set MPQ
+func (s *ShopeeMpqService) SetMpqMode(ctx context.Context, itemID int64, mpq int, allModels []ModelPriceInfo) *MpqResult {
+	skuNames := make([]string, len(allModels))
+	for i, m := range allModels {
+		skuNames[i] = m.SKU
 	}
 
 	log.Info().
 		Str("tenant_id", s.tenantID).
 		Int64("item_id", itemID).
-		Float64("price", price).
-		Msg("Price updated successfully")
-
-	return nil
-}
-
-// SetMpqMode performs complete MPQ mode setup:
-// 1. Delete wholesale tiers
-// 2. Update price (if provided)
-// 3. Set MPQ
-func (s *ShopeeMpqService) SetMpqMode(ctx context.Context, itemID int64, mpq int, price float64, modelID *int64) *MpqResult {
-	log.Info().
-		Str("tenant_id", s.tenantID).
-		Int64("item_id", itemID).
 		Int("mpq", mpq).
-		Float64("price", price).
-		Msg("Setting MPQ mode (delete wholesale + update price + set MPQ)")
+		Int("model_count", len(allModels)).
+		Strs("skus", skuNames).
+		Msg("Setting MPQ mode (delete wholesale + update prices + set MPQ)")
 
 	// Step 1: Delete wholesale tiers (wholesale and MPQ cannot coexist)
 	if err := s.wholesaleSvc.DeleteWholesaleTiers(ctx, itemID); err != nil {
@@ -117,23 +128,17 @@ func (s *ShopeeMpqService) SetMpqMode(ctx context.Context, itemID int64, mpq int
 			Str("tenant_id", s.tenantID).
 			Int64("item_id", itemID).
 			Msg("Warning: Failed to delete wholesale tiers (may not exist)")
-		// Don't fail - wholesale may not exist
 	}
 
-	// Step 2: Update price (if provided and > 0)
-	if price > 0 {
-		if err := s.UpdatePrice(ctx, itemID, modelID, price); err != nil {
+	// Step 2: Update price for ALL models of this item
+	if len(allModels) > 0 {
+		if err := s.updateAllModelPrices(ctx, itemID, allModels); err != nil {
 			return &MpqResult{
 				ItemID:  itemID,
 				Success: false,
-				Error:   fmt.Sprintf("Failed to update price: %v", err),
+				Error:   fmt.Sprintf("Failed to update prices: %v", err),
 			}
 		}
-		log.Info().
-			Str("tenant_id", s.tenantID).
-			Int64("item_id", itemID).
-			Float64("price", price).
-			Msg("Price updated successfully")
 	}
 
 	// Step 3: Set MPQ
@@ -148,7 +153,7 @@ func (s *ShopeeMpqService) SetMpqMode(ctx context.Context, itemID int64, mpq int
 	return &MpqResult{
 		ItemID:  itemID,
 		Success: true,
-		Message: fmt.Sprintf("MPQ mode set: MPQ=%d, Price=%.2f", mpq, price),
+		Message: fmt.Sprintf("MPQ=%d set for %d models", mpq, len(allModels)),
 	}
 }
 
@@ -164,7 +169,7 @@ type BatchSetMpqBySkusResult struct {
 }
 
 // BatchSetMpqBySkus sets MPQ for multiple SKUs
-// Flow: Delete wholesale → Update price → Set MPQ for each item
+// Flow: Group SKUs by item_id → Delete wholesale → Update ALL model prices → Set MPQ
 func (s *ShopeeMpqService) BatchSetMpqBySkus(
 	ctx context.Context,
 	skuPriceMap map[string]float64,
@@ -182,12 +187,8 @@ func (s *ShopeeMpqService) BatchSetMpqBySkus(
 		Int("mpq", mpq).
 		Msg("Batch set MPQ by SKUs")
 
-	// Map SKUs to item_ids with prices
-	itemMap := make(map[int64]struct {
-		skus    []string
-		price   float64
-		modelID *int64
-	})
+	// Map SKUs to item_ids — store ALL models per item (not just first)
+	itemMap := make(map[int64][]ModelPriceInfo)
 
 	for sku, price := range skuPriceMap {
 		var skuModel models.ShopeeSku
@@ -206,40 +207,23 @@ func (s *ShopeeMpqService) BatchSetMpqBySkus(
 		if err != nil {
 			result.Failed++
 			result.Skipped = append(result.Skipped, sku)
-			log.Error().
-				Err(err).
-				Str("tenant_id", s.tenantID).
-				Str("sku", sku).
-				Msg("Database error, skipping")
 			continue
 		}
 
 		if skuModel.ItemID != 0 {
-			if existing, exists := itemMap[skuModel.ItemID]; exists {
-				existing.skus = append(existing.skus, sku)
-				itemMap[skuModel.ItemID] = existing
-			} else {
-				itemMap[skuModel.ItemID] = struct {
-					skus    []string
-					price   float64
-					modelID *int64
-				}{
-					skus:    []string{sku},
-					price:   price,
-					modelID: skuModel.ModelID,
-				}
-			}
+			itemMap[skuModel.ItemID] = append(itemMap[skuModel.ItemID], ModelPriceInfo{
+				SKU:     sku,
+				ModelID: skuModel.ModelID,
+				Price:   price,
+			})
 		}
 	}
 
 	result.UniqueItems = len(itemMap)
 
-	// Process each unique item
-	for itemID, data := range itemMap {
-		mpqResult := s.SetMpqMode(ctx, itemID, mpq, data.price, data.modelID)
-		mpqResult.Message = fmt.Sprintf("(SKUs: %v) - %s",
-			data.skus, mpqResult.Message)
-
+	// Process each unique item with ALL its models
+	for itemID, allModels := range itemMap {
+		mpqResult := s.SetMpqMode(ctx, itemID, mpq, allModels)
 		result.Results = append(result.Results, *mpqResult)
 
 		if mpqResult.Success {

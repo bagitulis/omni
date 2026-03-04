@@ -173,20 +173,12 @@ func TestShopeeMpqService_SetMpq_NilAPI(t *testing.T) {
 	}
 }
 
-func TestShopeeMpqService_UpdatePrice_NilAPI(t *testing.T) {
-	svc := wholesale.NewShopeeMpqService(nil, "tenant-1", nil)
-	err := svc.UpdatePrice(context.Background(), 12345, nil, 99.99)
-	if err == nil {
-		t.Fatal("expected error when shopeeAPI is nil")
-	}
-	if !strings.Contains(err.Error(), "not configured") {
-		t.Errorf("expected 'not configured' error, got: %v", err)
-	}
-}
-
 func TestShopeeMpqService_SetMpqMode_NilAPI_WithPrice(t *testing.T) {
 	svc := wholesale.NewShopeeMpqService(nil, "tenant-1", nil)
-	result := svc.SetMpqMode(context.Background(), 12345, 5, 100.0, nil)
+	models := []wholesale.ModelPriceInfo{
+		{SKU: "SKU-A", Price: 100.0, ModelID: nil},
+	}
+	result := svc.SetMpqMode(context.Background(), 12345, 5, models)
 	if result == nil {
 		t.Fatal("expected non-nil MpqResult")
 	}
@@ -203,7 +195,7 @@ func TestShopeeMpqService_SetMpqMode_NilAPI_WithPrice(t *testing.T) {
 
 func TestShopeeMpqService_SetMpqMode_NilAPI_ZeroPrice(t *testing.T) {
 	svc := wholesale.NewShopeeMpqService(nil, "tenant-1", nil)
-	result := svc.SetMpqMode(context.Background(), 12345, 5, 0, nil)
+	result := svc.SetMpqMode(context.Background(), 12345, 5, nil)
 	if result == nil {
 		t.Fatal("expected non-nil MpqResult")
 	}

@@ -1,4 +1,13 @@
-import { Alert, Button, Empty, message, Radio, Table, Typography } from "antd";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Empty,
+  message,
+  Radio,
+  Table,
+  Typography,
+} from "antd";
 import { useEffect, useMemo, useState } from "react";
 import {
   batchShopeeMpq,
@@ -25,6 +34,8 @@ export function MpqTab({ items }: MpqTabProps) {
   const [loadingSettings, setLoadingSettings] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [selectedTier, setSelectedTier] = useState<TierKey>("tier1");
+  const [enableShopee, setEnableShopee] = useState(true);
+  const [enableTiktok, setEnableTiktok] = useState(true);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [resultType, setResultType] = useState<
     "success" | "warning" | "error" | null
@@ -127,9 +138,12 @@ export function MpqTab({ items }: MpqTabProps) {
   }, [selectedMinQty, selectedTier, settings, shopeeItems, tiktokItems]);
 
   const handleMpqUpdate = async () => {
-    if (shopeeItems.length + tiktokItems.length === 0) {
+    const shopeeActive = enableShopee && shopeeItems.length > 0;
+    const tiktokActive = enableTiktok && tiktokItems.length > 0;
+
+    if (!shopeeActive && !tiktokActive) {
       message.warning(
-        "No Shopee or TikTok items available in current selection",
+        "No platform selected or no items available for selected platforms",
       );
       return;
     }
@@ -142,7 +156,7 @@ export function MpqTab({ items }: MpqTabProps) {
     const summaries: string[] = [];
 
     try {
-      if (shopeeItems.length > 0) {
+      if (shopeeActive) {
         const shopeePayload = shopeeItems.map((item) => ({
           sku: item.sku,
           price: getAdjustedPrice(item.price, settings, selectedTier),
@@ -158,7 +172,7 @@ export function MpqTab({ items }: MpqTabProps) {
         summaries.push(`Shopee ${processed} processed, ${failed} failed`);
       }
 
-      if (tiktokItems.length > 0) {
+      if (tiktokActive) {
         const tiktokPayload = tiktokItems.map((item) => ({
           sku: item.sku,
           price: getAdjustedPrice(item.price, settings, selectedTier),
@@ -240,6 +254,26 @@ export function MpqTab({ items }: MpqTabProps) {
       />
 
       <div>
+        <Typography.Text strong>Platforms</Typography.Text>
+        <div style={{ marginTop: 8, display: "flex", gap: 16 }}>
+          <Checkbox
+            checked={enableShopee}
+            onChange={(e) => setEnableShopee(e.target.checked)}
+            disabled={shopeeItems.length === 0}
+          >
+            Shopee ({shopeeItems.length} SKU)
+          </Checkbox>
+          <Checkbox
+            checked={enableTiktok}
+            onChange={(e) => setEnableTiktok(e.target.checked)}
+            disabled={tiktokItems.length === 0}
+          >
+            TikTok ({tiktokItems.length} SKU)
+          </Checkbox>
+        </div>
+      </div>
+
+      <div>
         <Typography.Text strong>Select tier target</Typography.Text>
         <Radio.Group
           style={{ display: "block", marginTop: 8 }}
@@ -282,7 +316,10 @@ export function MpqTab({ items }: MpqTabProps) {
         type="primary"
         loading={processing}
         onClick={handleMpqUpdate}
-        disabled={shopeeItems.length + tiktokItems.length === 0}
+        disabled={
+          (!enableShopee || shopeeItems.length === 0) &&
+          (!enableTiktok || tiktokItems.length === 0)
+        }
       >
         Update MPQ
       </Button>
