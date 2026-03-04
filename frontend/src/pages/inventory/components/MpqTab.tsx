@@ -164,14 +164,19 @@ export function MpqTab({ items }: MpqTabProps) {
           price: getAdjustedPrice(item.price, settings, selectedTier),
         }));
 
-        const tiktokResult = await batchTiktokMpq(
-          tiktokPayload,
-          selectedMinQty,
-        );
-        const processed = readCount(tiktokResult.data, "processed");
-        const failed = readCount(tiktokResult.data, "failed");
-        totalFailed += failed;
-        summaries.push(`TikTok ${processed} processed, ${failed} failed`);
+        try {
+          const tiktokResult = await batchTiktokMpq(
+            tiktokPayload,
+            selectedMinQty,
+          );
+          const processed = readCount(tiktokResult.data, "processed");
+          const failed = readCount(tiktokResult.data, "failed");
+          totalFailed += failed;
+          summaries.push(`TikTok ${processed} processed, ${failed} failed`);
+        } catch {
+          // TikTok MPQ not yet implemented (501) — skip gracefully
+          summaries.push(`TikTok skipped (not yet implemented)`);
+        }
       }
 
       const summary = `MPQ update (min_qty=${selectedMinQty}): ${summaries.join(" | ")}`;
