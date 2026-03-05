@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { message } from "antd";
 import {
   getDbProducts,
   syncPlatformProducts,
@@ -32,6 +33,9 @@ export function useSyncPlatformProducts(platform: ProductManagerPlatform) {
       queryClient.invalidateQueries({
         queryKey: ["product_manager", platform],
       });
+    },
+    onError: (error: Error) => {
+      message.error(error.message || `Failed to sync ${platform} products`);
     },
   });
 }

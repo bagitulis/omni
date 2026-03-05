@@ -6,6 +6,7 @@ import {
   ExclamationCircleOutlined,
   InfoCircleOutlined,
   CheckOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import {
   useNotificationStore,
@@ -50,6 +51,7 @@ export function NotificationDropdown() {
   const notifications = useNotificationStore((s) => s.notifications);
   const markAsRead = useNotificationStore((s) => s.markAsRead);
   const markAllAsRead = useNotificationStore((s) => s.markAllAsRead);
+  const clearAll = useNotificationStore((s) => s.clearAll);
   const closeDropdown = useNotificationStore((s) => s.closeDropdown);
 
   const visible = useMemo(() => {
@@ -218,6 +220,29 @@ export function NotificationDropdown() {
           })
         )}
       </div>
+
+      {/* Footer */}
+      {notifications.length > 0 && (
+        <div
+          style={{
+            padding: "8px 16px",
+            borderTop: `1px solid ${token.colorBorderSecondary}`,
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <Button
+            type="text"
+            size="small"
+            icon={<DeleteOutlined />}
+            danger
+            onClick={clearAll}
+            style={{ fontSize: 12 }}
+          >
+            Clear all
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

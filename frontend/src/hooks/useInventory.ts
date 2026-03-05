@@ -85,6 +85,9 @@ export function useUpdateInventoryConfig() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory-config"] });
     },
+    onError: (error: Error) => {
+      message.error(error.message || "Failed to update config");
+    },
   });
 }
 
@@ -95,6 +98,9 @@ export function useSaveInventoryFilterPreferences() {
       saveInventoryFilterPreferences(preferences),
     onSuccess: (_, preferences) => {
       queryClient.setQueryData(["inventory-filter-preferences"], preferences);
+    },
+    onError: (error: Error) => {
+      message.error(error.message || "Failed to save filter preferences");
     },
   });
 }
@@ -138,6 +144,9 @@ export function useSyncToSheets() {
 export function useCheckPlatformStatus() {
   return useMutation({
     mutationFn: (skus: string[]) => batchCheckSku(skus),
+    onError: (error: Error) => {
+      message.error(error.message || "Failed to check platform status");
+    },
   });
 }
 
@@ -154,6 +163,9 @@ export function useUpdateInventoryRecord() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
     },
+    onError: (error: Error) => {
+      message.error(error.message || "Failed to update inventory record");
+    },
   });
 }
 
@@ -164,6 +176,9 @@ export function useUpdateStock() {
       updateStock(sku, platforms),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
+    onError: (error: Error) => {
+      message.error(error.message || "Failed to update stock");
     },
   });
 }
@@ -181,6 +196,9 @@ export function useUpdateStockBatch() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
     },
+    onError: (error: Error) => {
+      message.error(error.message || "Failed to update stock batch");
+    },
   });
 }
 
@@ -192,6 +210,9 @@ export function useUpdatePrice() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
     },
+    onError: (error: Error) => {
+      message.error(error.message || "Failed to update price");
+    },
   });
 }
 
@@ -201,6 +222,9 @@ export function useUpdatePriceBatch() {
     mutationFn: (items: PriceUpdateItem[]) => updatePriceBatch(items),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
+    onError: (error: Error) => {
+      message.error(error.message || "Failed to update price batch");
     },
   });
 }
