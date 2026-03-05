@@ -185,6 +185,16 @@ func (s *ProductSyncService) syncProductSKUs(
 
 		quantity := m.StockInfoV2.SummaryInfo.TotalAvailableStock
 		modelID := m.ModelID
+
+		log.Info().
+			Int64("item_id", itemID).
+			Int64("model_id", modelID).
+			Str("model_sku", m.ModelSKU).
+			Str("variant_name", variantName).
+			Int("stock", quantity).
+			Float64("price", price).
+			Msg("[Shopee SyncProductsByIDs] Model/SKU stock")
+
 		sku := &models.ShopeeSku{
 			TenantID:    s.tenantID,
 			ProductID:   product.ID,

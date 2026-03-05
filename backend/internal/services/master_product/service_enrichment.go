@@ -10,8 +10,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// enrichWithInventoryPrices backfills price/stock from inventory_records (Google Sheets)
+// enrichWithInventoryPrices backfills price from inventory_records (Google Sheets)
 // and sets InventoryPrice/InventoryStock virtual fields for reference display.
+// NOTE: Stock is NOT backfilled to avoid overwriting marketplace sync results.
 func (s *Service) enrichWithInventoryPrices(ctx context.Context, tenantID string, products []models.MasterProduct) {
 	allSKUs := collectSKUs(products)
 	if len(allSKUs) == 0 {
@@ -43,10 +44,9 @@ func (s *Service) enrichWithInventoryPrices(ctx context.Context, tenantID string
 		invMap[strings.ToLower(row.KeyValue)] = data
 	}
 
-	// Track SKUs that need DB backfill
+	// Track SKUs that need price-only DB backfill
 	type backfillEntry struct {
 		ID    uint
-		Stock int
 		Price float64
 	}
 	var backfills []backfillEntry
@@ -73,30 +73,26 @@ func (s *Service) enrichWithInventoryPrices(ctx context.Context, tenantID string
 				}
 			}
 
-			// Set inventory reference stock (virtual field)
+			// Set inventory reference stock (virtual field only — no DB write)
 			if stokStr, ok := invData["Sisa Stok"].(string); ok {
 				if stok, err := strconv.Atoi(strings.TrimSpace(stokStr)); err == nil && stok > 0 {
 					sku.InventoryStock = stok
-					// Backfill master stock if 0
-					if sku.Stock == 0 {
-						sku.Stock = stok
-						needsUpdate = true
-					}
 				}
 			}
 
 			if needsUpdate {
-				backfills = append(backfills, backfillEntry{ID: sku.ID, Stock: sku.Stock, Price: sku.Price})
+				backfills = append(backfills, backfillEntry{ID: sku.ID, Price: sku.Price})
 			}
 		}
 	}
 
-	// Persist backfilled stock/price to DB
+	// Persist backfilled price to DB (stock is NOT backfilled to avoid
+	// overwriting legitimate zero-stock from marketplace sync)
 	for _, bf := range backfills {
 		s.db.WithContext(ctx).
 			Model(&models.MasterProductSku{}).
 			Where("id = ?", bf.ID).
-			Updates(map[string]interface{}{"stock": bf.Stock, "price": bf.Price})
+			Updates(map[string]interface{}{"price": bf.Price})
 	}
 }
 

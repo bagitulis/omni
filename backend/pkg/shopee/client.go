@@ -157,9 +157,10 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 		return fmt.Errorf("shopee API error [http_status=%d]: %s", resp.StatusCode, truncateString(string(body), 1000))
 	}
 
-	// 🔍 LOG RESPONSE - always log for logistics and shipping APIs
+	// 🔍 LOG RESPONSE - always log for logistics, shipping, and product detail APIs
 	if strings.Contains(path, "logistics") || strings.Contains(path, "shipping") ||
-		strings.Contains(path, "get_item_extra_info") || strings.Contains(path, "get_item_base_info") {
+		strings.Contains(path, "get_item_extra_info") || strings.Contains(path, "get_item_base_info") ||
+		strings.Contains(path, "get_model_list") {
 		log.Info().
 			Str("path", path).
 			Int("status_code", resp.StatusCode).

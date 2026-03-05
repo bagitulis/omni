@@ -184,8 +184,15 @@ func (s *StagingImportService) upsertMasterSku(
 		if len(masterSku.VariantData) > 0 {
 			existing.VariantData = masterSku.VariantData
 		}
-		existing.Price = masterSku.Price
-		existing.Stock = masterSku.Stock
+		// NOTE: Do NOT overwrite Stock/Price on existing master SKUs.
+		// Each platform import runs sequentially (shopee→tiktok→lazada),
+		// so the last platform's stock would silently win. Master stock
+		// is independently managed; per-platform values are shown via
+		// enrichWithPlatformPrices() reading from staging tables.
+		// Only backfill price if master has zero (initial state).
+		if existing.Price == 0 && masterSku.Price > 0 {
+			existing.Price = masterSku.Price
+		}
 
 		if saveErr := s.repo.UpdateSku(ctx, &existing); saveErr != nil {
 			return nil, false, fmt.Errorf("update existing master sku: %w", saveErr)

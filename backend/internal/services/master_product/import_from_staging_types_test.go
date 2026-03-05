@@ -50,8 +50,10 @@ func TestStagingImportService_UpsertMasterSku(t *testing.T) {
 	assert.False(t, created)
 	assert.Equal(t, createdSku.ID, updatedSku.ID)
 	assert.Equal(t, "Coklat", updatedSku.VariantName)
-	assert.Equal(t, float64(12000), updatedSku.Price)
-	assert.Equal(t, 22, updatedSku.Stock)
+	// Price is NOT overwritten when existing price > 0
+	assert.Equal(t, float64(10000), updatedSku.Price)
+	// Stock is NOT overwritten on staging import (per-platform values stay in staging tables)
+	assert.Equal(t, 10, updatedSku.Stock)
 
 	var skuCount int64
 	require.NoError(t, db.WithContext(ctx).
