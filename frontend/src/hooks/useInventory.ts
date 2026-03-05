@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { message } from "antd";
 import {
   batchCheckSku,
   getAvailableColumns,
@@ -109,9 +110,13 @@ export function useSyncFromSheets() {
       sheetName?: string;
     }) => syncInventory(spreadsheetId, sheetName),
     onSuccess: () => {
+      message.success("Inventory synced from Google Sheets");
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["inventory-stats"] });
       queryClient.invalidateQueries({ queryKey: ["inventory-sync-history"] });
+    },
+    onError: (error: Error) => {
+      message.error(error.message || "Failed to sync from sheets");
     },
   });
 }
@@ -121,7 +126,11 @@ export function useSyncToSheets() {
   return useMutation({
     mutationFn: syncToSheets,
     onSuccess: () => {
+      message.success("Inventory exported to Google Sheets");
       queryClient.invalidateQueries({ queryKey: ["inventory-sync-history"] });
+    },
+    onError: (error: Error) => {
+      message.error(error.message || "Failed to export to sheets");
     },
   });
 }
