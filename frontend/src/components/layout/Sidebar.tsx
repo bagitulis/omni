@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Layout, Menu, theme } from "antd";
+import { useTheme } from "@/contexts/ThemeContext.hooks";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   DashboardOutlined,
@@ -23,6 +24,7 @@ interface SidebarProps {
 function Sidebar({ collapsed, onCollapse }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDark } = useTheme();
   const {
     token: {
       colorBgContainer,
@@ -147,12 +149,12 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         style={{
           height: 48, // Standard header height
           margin: 16,
-          background: collapsed ? colorPrimary : "rgba(3, 105, 161, 0.1)", // Light brand bg
+          background: collapsed ? colorPrimary : (isDark ? "rgba(14, 165, 233, 0.15)" : "rgba(3, 105, 161, 0.1)"),
           borderRadius: 3, // Sharp corners
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: collapsed ? "#fff" : colorPrimary,
+          color: collapsed ? colorTextLightSolid : colorPrimary,
           fontWeight: 800,
           fontSize: collapsed ? 20 : 24, // Impactful brand text
           letterSpacing: collapsed ? 0 : -0.5,
@@ -172,7 +174,6 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         onClick={({ key }) => navigate(key)}
         items={menuItems}
         style={{ borderRight: 0 }}
-        theme="light"
       />
       <style>{`
         .ant-menu-item {

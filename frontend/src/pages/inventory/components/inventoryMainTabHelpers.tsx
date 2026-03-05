@@ -54,7 +54,7 @@ export function renderMarketplaceCell(
   const value = allocation[platformName];
 
   if (value === null || value === undefined || String(value).trim() === "") {
-    return <span style={{ color: "#999", fontSize: 11 }}>-</span>;
+    return <span style={{ color: "var(--color-text-secondary)", fontSize: 11 }}>-</span>;
   }
 
   return (

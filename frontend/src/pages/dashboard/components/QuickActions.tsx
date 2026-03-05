@@ -9,9 +9,11 @@ import {
 
 import { useModalsStore } from "@/stores/modalsStore";
 import { logger } from "@/lib/logger";
+import { theme } from "antd";
 
 export function QuickActions() {
   const { openModal } = useModalsStore();
+  const { token } = theme.useToken();
 
   const handleExportOrders = (platform: string) => {
     openModal("exportOrders", { platform });
@@ -39,11 +41,11 @@ export function QuickActions() {
     <Card
       title={
         <Space style={{ fontSize: 14 }}>
-          <ThunderboltOutlined style={{ color: "#d97706" }} />
+          <ThunderboltOutlined style={{ color: token.colorWarning }} />
           <span style={{ fontWeight: 600 }}>Quick Actions</span>
         </Space>
       }
-      style={{ borderRadius: 3, border: "1px solid #f0f0f0" }}
+      style={{ borderRadius: 3, border: `1px solid ${token.colorBorderSecondary}` }}
       bodyStyle={{ padding: "16px 24px" }}
     >
       <Row gutter={[16, 16]}>

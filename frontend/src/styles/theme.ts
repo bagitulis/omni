@@ -1,4 +1,4 @@
-import { ThemeConfig } from "antd";
+import { ThemeConfig, theme } from "antd";
 
 export const antdTheme: ThemeConfig = {
   token: {
@@ -121,11 +121,15 @@ export const antdTheme: ThemeConfig = {
   },
 };
 
-// Dark mode overrides
+// Dark mode overrides — uses Ant Design's darkAlgorithm for automatic
+// derivative color generation across ALL components, with manual fine-tuning.
 export const antdDarkTheme: ThemeConfig = {
-  ...antdTheme,
+  algorithm: theme.darkAlgorithm,
   token: {
+    // Inherit non-color tokens (sizing, spacing, motion, typography)
     ...antdTheme.token,
+    // Override with our dark palette
+    colorPrimary: "#0ea5e9", // sky-500 — brighter for dark bg contrast
     colorBgContainer: "#0F172A",
     colorBgLayout: "#0B1220",
     colorBgSpotlight: "#1E293B",
@@ -135,14 +139,48 @@ export const antdDarkTheme: ThemeConfig = {
     colorText: "#E2E8F0",
     colorTextSecondary: "#94A3B8",
     colorTextTertiary: "#64748B",
+    colorTextQuaternary: "#475569",
+    // Darker shadows for dark mode
+    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.3)",
+    boxShadowSecondary: "0 4px 6px rgba(0, 0, 0, 0.3)",
   },
   components: {
-    ...antdTheme.components,
+    Button: {
+      ...antdTheme.components?.Button,
+    },
+    Input: {
+      ...antdTheme.components?.Input,
+    },
+    Select: {
+      ...antdTheme.components?.Select,
+    },
     Table: {
       ...antdTheme.components?.Table,
       headerBg: "#1E293B",
+      headerColor: "#E2E8F0",
       rowHoverBg: "#1E293B",
       borderColor: "#334155",
+    },
+    Card: {
+      ...antdTheme.components?.Card,
+    },
+    Menu: {
+      ...antdTheme.components?.Menu,
+      subMenuItemBg: "#111C33",
+    },
+    Modal: {
+      ...antdTheme.components?.Modal,
+    },
+    Drawer: {
+      ...antdTheme.components?.Drawer,
+    },
+    Tag: {
+      ...antdTheme.components?.Tag,
+      defaultBg: "#1E293B",
+      defaultColor: "#E2E8F0",
+    },
+    Badge: {
+      ...antdTheme.components?.Badge,
     },
     Tooltip: {
       ...antdTheme.components?.Tooltip,

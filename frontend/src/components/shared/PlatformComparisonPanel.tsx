@@ -1,4 +1,4 @@
-import { Space, Tag, Typography } from "antd";
+import { Space, Tag, Typography, theme } from "antd";
 import type { Platform, UnifiedProductRow } from "@/types/shared";
 import shopeeIcon from "@/assets/icons/shopee.svg";
 import tiktokIcon from "@/assets/icons/tiktok.webp";
@@ -6,7 +6,7 @@ import lazadaIcon from "@/assets/icons/lazada.webp";
 
 const PLATFORM_META: Record<Platform, { icon: string; color: string; label: string }> = {
   shopee: { icon: shopeeIcon, color: "#ee4d2d", label: "Shopee" },
-  tiktok: { icon: tiktokIcon, color: "#000000", label: "TikTok" },
+  tiktok: { icon: tiktokIcon, color: "#69727d", label: "TikTok" },
   lazada: { icon: lazadaIcon, color: "#0f1689", label: "Lazada" },
 };
 
@@ -19,6 +19,7 @@ interface PlatformComparisonPanelProps {
 
 /** Shows current marketplace price+stock for each SKU before editing. */
 export function PlatformComparisonPanel({ products, mode }: PlatformComparisonPanelProps) {
+  const { token } = theme.useToken();
   if (products.length === 0) return null;
 
   // Aggregate all SKU platform data
@@ -41,14 +42,14 @@ export function PlatformComparisonPanel({ products, mode }: PlatformComparisonPa
     <div
       style={{
         padding: "10px 12px",
-        backgroundColor: "#f8fafc",
+        backgroundColor: token.colorBgLayout,
         borderRadius: 3,
-        border: "1px solid #e2e8f0",
+        border: `1px solid ${token.colorBorderSecondary}`,
         marginBottom: 16,
         fontSize: 12,
       }}
     >
-      <Typography.Text strong style={{ fontSize: 12, color: "#475569", display: "block", marginBottom: 8 }}>
+      <Typography.Text strong style={{ fontSize: 12, color: token.colorTextSecondary, display: "block", marginBottom: 8 }}>
         Current Marketplace {mode === "price" ? "Prices" : "Stock"}
       </Typography.Text>
 

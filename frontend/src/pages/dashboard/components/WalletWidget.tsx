@@ -38,7 +38,7 @@ export function WalletWidget() {
         </Button>
       }
       bodyStyle={{ padding: "16px 24px" }}
-      style={{ borderRadius: 3, border: "1px solid #f0f0f0" }}
+      style={{ borderRadius: 3, border: `1px solid ${token.colorBorderSecondary}` }}
     >
       <Row gutter={[24, 24]}>
         <Col span={24}>

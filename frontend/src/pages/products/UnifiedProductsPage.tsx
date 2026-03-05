@@ -1,4 +1,4 @@
-import { Card, Grid, Space, Tabs, type TableColumnsType } from "antd";
+import { Card, Grid, Space, Tabs, theme, type TableColumnsType } from "antd";
 import type { Key } from "react";
 import {
   lazy,
@@ -145,12 +145,15 @@ export default function UnifiedProductsPage() {
     refreshProducts,
   });
 
+  const { token } = theme.useToken();
+
   const tableColumnMap = useMemo(
     () =>
       buildProductColumns({
         onRowAction: handleRowAction,
+        token,
       }),
-    [handleRowAction],
+    [handleRowAction, token],
   );
 
   const activeColumns = useMemo(() => {

@@ -77,7 +77,7 @@ export const getPerPlatformColumns = (
       render: (_: unknown, record: PerPlatformRow) => {
         const hint = recommendations[record.sku];
         if (!hint) {
-          return <span style={{ color: "#999", fontSize: 12 }}>No hint</span>;
+          return <span style={{ color: "var(--color-text-secondary)", fontSize: 12 }}>No hint</span>;
         }
 
         return (

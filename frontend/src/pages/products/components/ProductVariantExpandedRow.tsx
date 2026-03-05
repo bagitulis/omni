@@ -1,14 +1,15 @@
-import { Col, Row, Space, Tag, Typography } from "antd";
+import { Col, Row, Space, Tag, Typography, theme } from "antd";
 import { formatIdr } from "@/pages/products/utils/productColumns";
 import type { Platform, UnifiedProductRow } from "@/types/shared";
+import { useTheme } from "@/contexts/ThemeContext.hooks";
 import shopeeIcon from "@/assets/icons/shopee.svg";
 import tiktokIcon from "@/assets/icons/tiktok.webp";
 import lazadaIcon from "@/assets/icons/lazada.webp";
 
-const PLATFORM_COLORS: Record<Platform, string> = {
-  shopee: "#ee4d2d",
-  tiktok: "#000000",
-  lazada: "#0f1689",
+const PLATFORM_COLORS: Record<Platform, { light: string; dark: string }> = {
+  shopee: { light: "#ee4d2d", dark: "#ee4d2d" },
+  tiktok: { light: "#000000", dark: "#e2e8f0" },
+  lazada: { light: "#0f1689", dark: "#818cf8" },
 };
 
 const PLATFORM_ICONS: Record<Platform, string> = {
@@ -31,6 +32,7 @@ function PlatformDetailTag({
   price: number;
   stock: number;
 }) {
+  const { token } = theme.useToken();
   const hasData = price > 0 || stock > 0;
   return (
     <Tag
@@ -52,8 +54,8 @@ function PlatformDetailTag({
         style={{ objectFit: "contain" }}
       />
       {price > 0 ? formatIdr(price) : "—"}
-      <span style={{ color: "#94a3b8", margin: "0 1px" }}>·</span>
-      <span style={{ color: "#64748b" }}>{stock > 0 ? stock.toLocaleString("id-ID") : "—"}</span>
+      <span style={{ color: token.colorTextTertiary, margin: "0 1px" }}>·</span>
+      <span style={{ color: token.colorTextSecondary }}>{stock > 0 ? stock.toLocaleString("id-ID") : "—"}</span>
     </Tag>
   );
 }
@@ -61,6 +63,9 @@ function PlatformDetailTag({
 export function ProductVariantExpandedRow({
   product,
 }: ProductVariantExpandedRowProps) {
+  const { token } = theme.useToken();
+  const { isDark } = useTheme();
+
   if (product.skus.length <= 1) {
     return null;
   }
@@ -69,9 +74,9 @@ export function ProductVariantExpandedRow({
     <div
       style={{
         padding: "16px",
-        backgroundColor: "#f8fafc",
+        backgroundColor: token.colorBgLayout,
         borderRadius: "3px",
-        border: "1px solid #e2e8f0",
+        border: `1px solid ${token.colorBorderSecondary}`,
       }}
     >
       <div
@@ -82,7 +87,7 @@ export function ProductVariantExpandedRow({
           marginBottom: "12px",
         }}
       >
-        <Typography.Text strong style={{ color: "#0f172a", fontSize: 13 }}>
+        <Typography.Text strong style={{ fontSize: 13 }}>
           {product.skus.length} Variations
         </Typography.Text>
         <Typography.Text type="secondary" style={{ fontSize: 11 }}>
@@ -92,36 +97,37 @@ export function ProductVariantExpandedRow({
 
       <div
         style={{
-          border: "1px solid #e2e8f0",
+          border: `1px solid ${token.colorBorderSecondary}`,
           borderRadius: "3px",
-          backgroundColor: "#ffffff",
+          backgroundColor: token.colorBgContainer,
         }}
       >
         {/* Header */}
         <Row
           style={{
             padding: "8px 12px",
-            backgroundColor: "#f1f5f9",
-            borderBottom: "1px solid #e2e8f0",
+            backgroundColor: token.colorBgSpotlight,
+            borderBottom: `1px solid ${token.colorBorderSecondary}`,
             fontWeight: 500,
             fontSize: 12,
             borderTopLeftRadius: "3px",
             borderTopRightRadius: "3px",
+            color: token.colorTextSecondary,
           }}
         >
-          <Col xs={24} md={6} style={{ color: "#475569" }}>
+          <Col xs={24} md={6}>
             Variant Details
           </Col>
-          <Col xs={4} md={3} style={{ color: "#475569" }}>
+          <Col xs={4} md={3}>
             Stock
           </Col>
-          <Col xs={4} md={3} style={{ color: "#475569" }}>
+          <Col xs={4} md={3}>
             Price
           </Col>
-          <Col xs={12} md={8} style={{ color: "#475569" }}>
+          <Col xs={12} md={8}>
             Platform (Price · Stock)
           </Col>
-          <Col xs={12} md={4} style={{ color: "#475569" }}>
+          <Col xs={12} md={4}>
             Linked
           </Col>
         </Row>
@@ -146,7 +152,7 @@ export function ProductVariantExpandedRow({
               style={{
                 padding: "12px",
                 borderBottom:
-                  index < product.skus.length - 1 ? "1px solid #f1f5f9" : "none",
+                  index < product.skus.length - 1 ? `1px solid ${token.colorBorderSecondary}` : "none",
                 fontSize: 12,
               }}
             >
@@ -154,7 +160,7 @@ export function ProductVariantExpandedRow({
                 <Space direction="vertical" size={2}>
                   <Typography.Text
                     strong
-                    style={{ color: "#0369a1", fontSize: 12 }}
+                    style={{ color: token.colorPrimary, fontSize: 12 }}
                   >
                     {sku.variant_name.trim() || "Default Variant"}
                   </Typography.Text>
@@ -201,7 +207,7 @@ export function ProductVariantExpandedRow({
                     {uniquePlatforms.map((p) => (
                       <Tag
                         key={p}
-                        color={PLATFORM_COLORS[p]}
+                        color={isDark ? PLATFORM_COLORS[p].dark : PLATFORM_COLORS[p].light}
                         style={{ fontSize: 10, margin: 0, lineHeight: "18px" }}
                       >
                         {p.charAt(0).toUpperCase() + p.slice(1)}

@@ -42,7 +42,7 @@ export function DashboardPage() {
       case "lazada":
         return "#0f136d";
       case "tiktok":
-        return "#000000";
+        return "#69727d";
       default:
         return "default";
     }
@@ -204,7 +204,7 @@ export function DashboardPage() {
             View All <RightOutlined style={{ fontSize: 10 }} />
           </Button>
         }
-        style={{ borderRadius: 3, border: "1px solid #f0f0f0" }}
+        style={{ borderRadius: 3, border: `1px solid ${token.colorBorderSecondary}` }}
         bodyStyle={{ padding: 0 }}
       >
         <Table
@@ -219,11 +219,6 @@ export function DashboardPage() {
         <style>{`
           .dashboard-table-row td {
             font-size: 12px;
-          }
-          .ant-table-thead > tr > th {
-            font-size: 12px;
-            font-weight: 500;
-            background: #f8fafc;
           }
         `}</style>
       </Card>
@@ -246,7 +241,7 @@ export function DashboardPage() {
             flex: 1,
             overflowY: "auto",
             padding: isMobile ? 16 : 24,
-            background: "#f8fafc",
+            background: token.colorBgLayout,
           }}
         >
           <div style={{ maxWidth: 1440, margin: "0 auto" }}>

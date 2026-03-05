@@ -1,4 +1,4 @@
-import { Card, Statistic, Typography } from "antd";
+import { Card, Statistic, Typography, theme } from "antd";
 import React, { ReactNode } from "react";
 
 const { Text } = Typography;
@@ -26,6 +26,7 @@ export function TaskCard({
   valueStyle,
   onClick,
 }: TaskCardProps) {
+  const { token } = theme.useToken();
   return (
     <Card
       size="small"
@@ -35,7 +36,7 @@ export function TaskCard({
       style={{
         height: "100%",
         borderRadius: 3,
-        border: "1px solid #f0f0f0",
+        border: `1px solid ${token.colorBorderSecondary}`,
         transition: "transform 0.2s, box-shadow 0.2s",
       }}
       bodyStyle={{ padding: "16px 20px" }}

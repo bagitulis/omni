@@ -9,6 +9,7 @@ import {
 } from "@ant-design/icons";
 import type { MenuProps, TableColumnsType } from "antd";
 import { Badge, Button, Dropdown, Space, Typography } from "antd";
+import type { GlobalToken } from "antd";
 import { PlatformStatusCell } from "@/pages/products/components/PlatformStatusCell";
 import type { UnifiedProductRow } from "@/types/shared";
 import { toImageSrc } from "./unifiedProductUtils";
@@ -109,10 +110,12 @@ export type RowActionKey =
 
 interface BuildProductColumnsOptions {
   onRowAction: (action: RowActionKey, record: UnifiedProductRow) => void;
+  token: GlobalToken;
 }
 
 export function buildProductColumns({
   onRowAction,
+  token,
 }: BuildProductColumnsOptions): Record<
   string,
   TableColumnsType<UnifiedProductRow>[number]
@@ -132,8 +135,8 @@ export function buildProductColumns({
               width: 120,
               height: 120,
               borderRadius: 4,
-              border: "1px solid #e5e7eb",
-              background: "#f8fafc",
+              border: `1px solid ${token.colorBorderSecondary}`,
+              background: token.colorBgLayout,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -151,7 +154,7 @@ export function buildProductColumns({
                 }}
               />
             ) : (
-              <PictureOutlined style={{ color: "#94a3b8", fontSize: 18 }} />
+              <PictureOutlined style={{ color: token.colorTextTertiary, fontSize: 18 }} />
             )}
           </div>
         );

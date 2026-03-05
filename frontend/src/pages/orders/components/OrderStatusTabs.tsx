@@ -41,7 +41,7 @@ export function OrderStatusTabs({
       styles={{ body: { padding: "8px 12px" } }}
       style={{
         borderRadius: 3,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+        boxShadow: token.boxShadow,
       }}
     >
       <Flex

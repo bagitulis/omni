@@ -31,7 +31,7 @@ export function ShippingWidget() {
         </Space>
       }
       loading={isShopeeLoading}
-      style={{ borderRadius: 3, border: "1px solid #f0f0f0" }}
+      style={{ borderRadius: 3, border: `1px solid ${token.colorBorderSecondary}` }}
       bodyStyle={{ padding: "16px 24px" }}
     >
       <Row gutter={[16, 24]}>

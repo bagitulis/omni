@@ -39,7 +39,7 @@ export default function OrdersPage() {
           styles={{ body: { padding: "0 16px" } }}
           style={{
             borderRadius: 3,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+            boxShadow: token.boxShadow,
           }}
         >
           <Tabs
@@ -103,7 +103,7 @@ export default function OrdersPage() {
           <Card
             style={{
               borderRadius: 3,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+              boxShadow: token.boxShadow,
               overflow: "hidden",
             }}
             styles={{

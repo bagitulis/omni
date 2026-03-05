@@ -11,7 +11,8 @@ export function buildProductTabItems(total: number, activeMapping: string) {
           <Badge
             count={total}
             showZero
-            style={{ backgroundColor: "#94a3b8", marginLeft: 4 }}
+            color="default"
+            style={{ marginLeft: 4 }}
           />
         </span>
       ),
@@ -27,7 +28,8 @@ export function buildProductTabItems(total: number, activeMapping: string) {
           Unmapped{" "}
           <Badge
             count={activeMapping === "unmapped" ? total : "?"}
-            style={{ backgroundColor: "#ef4444", marginLeft: 4 }}
+            color="red"
+            style={{ marginLeft: 4 }}
           />
         </span>
       ),

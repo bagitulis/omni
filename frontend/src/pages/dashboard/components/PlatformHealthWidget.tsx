@@ -63,7 +63,7 @@ export function PlatformHealthWidget() {
         </Space>
       }
       bodyStyle={{ padding: 0 }}
-      style={{ borderRadius: 3, border: "1px solid #f0f0f0" }}
+      style={{ borderRadius: 3, border: `1px solid ${token.colorBorderSecondary}` }}
     >
       <List
         dataSource={platforms}

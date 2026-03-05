@@ -10,6 +10,14 @@ import {
   buildProductColumns,
   type RowActionKey,
 } from "./productColumns";
+import type { GlobalToken } from "antd";
+
+const MOCK_TOKEN = {
+  colorBgLayout: "#f8fafc",
+  colorBgContainer: "#ffffff",
+  colorBorderSecondary: "#f1f5f9",
+  colorTextTertiary: "#94a3b8",
+} as GlobalToken;
 
 // Mock PlatformStatusCell so it doesn't need hooks
 vi.mock("@/pages/products/components/PlatformStatusCell", () => ({
@@ -180,7 +188,7 @@ describe("getInventoryPrice", () => {
 
 describe("buildProductColumns renderers", () => {
   const onRowAction = vi.fn();
-  const cols = buildProductColumns({ onRowAction });
+  const cols = buildProductColumns({ onRowAction, token: MOCK_TOKEN });
 
   describe("image column", () => {
     it("renders placeholder icon when images is empty", () => {
@@ -381,7 +389,7 @@ describe("buildProductColumns renderers", () => {
     it("calls onRowAction with edit key when Edit clicked", async () => {
       const user = userEvent.setup();
       const mockAction = vi.fn();
-      const localCols = buildProductColumns({ onRowAction: mockAction });
+      const localCols = buildProductColumns({ onRowAction: mockAction, token: MOCK_TOKEN });
       const record = makeRow();
       const renderFn = localCols.actions.render as (
         _: unknown,

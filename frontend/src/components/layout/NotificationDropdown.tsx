@@ -18,16 +18,19 @@ const { Text } = Typography;
 
 type TabKey = "all" | "unread";
 
-/** Color & icon map for notification types */
-const TYPE_CONFIG: Record<
+/** Color & icon map for notification types — uses Ant token names for dark-mode compat */
+function useTypeConfig(): Record<
   NotificationType,
   { color: string; icon: React.ReactNode }
-> = {
-  success: { color: "#52c41a", icon: <CheckCircleOutlined /> },
-  error: { color: "#ff4d4f", icon: <CloseCircleOutlined /> },
-  warning: { color: "#faad14", icon: <ExclamationCircleOutlined /> },
-  info: { color: "#1677ff", icon: <InfoCircleOutlined /> },
-};
+> {
+  const { token } = theme.useToken();
+  return {
+    success: { color: token.colorSuccess, icon: <CheckCircleOutlined /> },
+    error: { color: token.colorError, icon: <CloseCircleOutlined /> },
+    warning: { color: token.colorWarning, icon: <ExclamationCircleOutlined /> },
+    info: { color: token.colorPrimary, icon: <InfoCircleOutlined /> },
+  };
+}
 
 function formatRelativeTime(timestamp: number): string {
   const diff = Date.now() - timestamp;
@@ -46,6 +49,7 @@ function formatRelativeTime(timestamp: number): string {
  */
 export function NotificationDropdown() {
   const { token } = theme.useToken();
+  const typeConfig = useTypeConfig();
   const [tab, setTab] = useState<TabKey>("all");
 
   const notifications = useNotificationStore((s) => s.notifications);
@@ -132,7 +136,7 @@ export function NotificationDropdown() {
           />
         ) : (
           visible.map((item) => {
-            const cfg = TYPE_CONFIG[item.type];
+            const cfg = typeConfig[item.type];
             return (
               <div
                 key={item.id}
