@@ -23,6 +23,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { TokenStatusDropdown } from "./TokenStatusDropdown";
+import { NotificationBell } from "./NotificationBell";
 import { useTheme } from "@/contexts/ThemeContext.hooks";
 import apiClient from "@/api/client";
 
@@ -199,6 +200,9 @@ function Header({ collapsed, onCollapse }: HeaderProps) {
 
         {/* Token Status Dropdown */}
         <TokenStatusDropdown />
+
+        {/* Notification Bell */}
+        <NotificationBell />
 
         {/* User Menu */}
         <Dropdown menu={{ items: userMenu }} placement="bottomRight">

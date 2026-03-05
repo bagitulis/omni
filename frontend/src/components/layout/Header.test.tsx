@@ -1,4 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// Must run before antd modules are evaluated
+vi.hoisted(() => {
+  window.matchMedia =
+    window.matchMedia ||
+    function matchMediaPolyfill(query: string) {
+      return {
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      };
+    };
+});
+
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import Header from "@/components/layout/Header";
 import { BrowserRouter, useNavigate } from "react-router-dom";
@@ -36,6 +55,11 @@ vi.mock("react-router-dom", async () => {
 // Mock TokenStatusDropdown since it's used inside Header
 vi.mock("@/components/layout/TokenStatusDropdown", () => ({
   TokenStatusDropdown: () => <div data-testid="token-status-dropdown" />,
+}));
+
+// Mock NotificationBell since it uses Popover/zustand
+vi.mock("@/components/layout/NotificationBell", () => ({
+  NotificationBell: () => <div data-testid="notification-bell" />,
 }));
 
 describe("Header", () => {
