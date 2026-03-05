@@ -2,6 +2,7 @@ import { AxiosError } from "axios";
 import { message } from "antd";
 import { useAuthStore } from "@/stores/authStore";
 import { logger } from "@/lib/logger";
+import { sanitizeForUser } from "@/lib/notificationSecurity";
 
 /**
  * Handle expired/invalid JWT token — clear auth and redirect to login.
@@ -36,8 +37,8 @@ export function handleResponseError(error: AxiosError): Promise<never> {
     const backendUrl = isLocalhost
       ? window.location.origin.replace(/:\d+$/, "") + ":3000"
       : window.location.origin;
-    const networkMsg = `Network error - cannot connect to ${backendUrl}`;
-    logger.error("[API]", { error: networkMsg });
+    logger.error("[API] Network error", { backendUrl });
+    const networkMsg = "Network error — cannot connect to server. Please check your connection.";
     return Promise.reject(new Error(networkMsg));
   }
 
@@ -68,14 +69,14 @@ export function handleResponseError(error: AxiosError): Promise<never> {
 
   // 500 Server Error
   if (status === 500) {
-    const errorMsg = `Server error - ${backendMsg || "Server error"}`;
-    message.error("Server error - please try again");
-    logger.error(`[API] 500 Server Error:`, { error: errorMsg });
-    return Promise.reject(new Error(errorMsg));
+    logger.error(`[API] 500 Server Error:`, { error: backendMsg });
+    message.error("Server error — please try again");
+    return Promise.reject(new Error("Server error — please try again"));
   }
 
-  // Generic error
-  const errorMsg = backendMsg || error.message || "Unknown error";
-  logger.error(`[API] Error [${status}]:`, { error: errorMsg });
-  return Promise.reject(error);
+  // Generic error — sanitize before surfacing to the user
+  const rawMsg = backendMsg || error.message || "Unknown error";
+  logger.error(`[API] Error [${status}]:`, { error: rawMsg });
+  const safeError = new Error(sanitizeForUser(rawMsg));
+  return Promise.reject(safeError);
 }

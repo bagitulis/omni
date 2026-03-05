@@ -111,18 +111,18 @@ describe("handleResponseError - network error", () => {
   it("rejects with network error when no response and host is localhost", async () => {
     const error = makeAxiosError({});
     await expect(handleResponseError(error)).rejects.toThrow(
-      "Network error - cannot connect to http://localhost:3000",
+      "Network error — cannot connect to server. Please check your connection.",
     );
     expect(mockLoggerError).toHaveBeenCalled();
   });
-  it("uses origin directly for non-localhost host", async () => {
+  it("uses generic message for non-localhost host", async () => {
     Object.assign(window.location, {
       hostname: "myapp.com",
       origin: "https://myapp.com",
     });
     const error = makeAxiosError({});
     await expect(handleResponseError(error)).rejects.toThrow(
-      "Network error - cannot connect to https://myapp.com",
+      "Network error — cannot connect to server. Please check your connection.",
     );
   });
 });
@@ -196,17 +196,17 @@ describe("handleResponseError - 500", () => {
       response: { status: 500, data: { error: "Internal DB failure" } },
     });
     await expect(handleResponseError(error)).rejects.toThrow(
-      "Server error - Internal DB failure",
+      "Server error — please try again",
     );
     expect(mockMessageError).toHaveBeenCalledWith(
-      "Server error - please try again",
+      "Server error — please try again",
     );
   });
 
-  it("uses fallback 'Server error' when backendMsg is absent", async () => {
+  it("uses same fallback when backendMsg is absent", async () => {
     const error = makeAxiosError({ response: { status: 500, data: {} } });
     await expect(handleResponseError(error)).rejects.toThrow(
-      "Server error - Server error",
+      "Server error — please try again",
     );
   });
 });
@@ -217,13 +217,13 @@ describe("handleResponseError - generic errors", () => {
     window.location.hostname = "localhost";
   });
 
-  it("rejects with original error for unhandled status codes", async () => {
+  it("rejects with sanitized error for unhandled status codes", async () => {
     const error = makeAxiosError({
       response: { status: 422, data: { error: "Validation failed" } },
     });
     const promise = handleResponseError(error);
-    // Should reject with the original AxiosError (not a new Error)
-    await expect(promise).rejects.toMatchObject({ isAxiosError: true });
+    // Now rejects with a new Error (sanitized), not the raw AxiosError
+    await expect(promise).rejects.toThrow("Validation failed");
     expect(mockLoggerError).toHaveBeenCalled();
   });
 
