@@ -45,12 +45,29 @@ func (r *TiktokProductRepository) FindByProductID(ctx context.Context, productID
 	return &product, nil
 }
 
-// Upsert creates or updates product
+// Upsert creates or updates product.
+// Uses explicit map-based updates so zero-value fields (e.g. Quantity=0) are written.
 func (r *TiktokProductRepository) Upsert(ctx context.Context, product *models.TiktokProduct) error {
-	return r.db.WithContext(ctx).
-		Where("product_id = ?", product.ProductID).
-		Assign(*product).
-		FirstOrCreate(product).Error
+	var existing models.TiktokProduct
+	err := r.db.WithContext(ctx).Where("product_id = ?", product.ProductID).First(&existing).Error
+
+	if err == gorm.ErrRecordNotFound {
+		return r.db.WithContext(ctx).Create(product).Error
+	}
+	if err != nil {
+		return err
+	}
+
+	// Map-based update ensures zero values (Quantity=0, Price=0) are written
+	return r.db.WithContext(ctx).Model(&existing).Updates(map[string]interface{}{
+		"tenant_id":   product.TenantID,
+		"name":        product.Name,
+		"description": product.Description,
+		"status":      product.Status,
+		"price":       product.Price,
+		"quantity":    product.Quantity,
+		"image":       product.Image,
+	}).Error
 }
 
 // Search searches products by query

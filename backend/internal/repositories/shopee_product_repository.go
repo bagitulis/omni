@@ -54,12 +54,28 @@ func (r *ShopeeProductRepository) Update(ctx context.Context, product *models.Sh
 	return r.db.WithContext(ctx).Save(product).Error
 }
 
-// Upsert creates or updates product by ItemID
+// Upsert creates or updates product by ItemID.
+// Uses explicit map-based updates so zero-value fields (e.g. Quantity=0) are written.
 func (r *ShopeeProductRepository) Upsert(ctx context.Context, product *models.ShopeeProduct) error {
-	return r.db.WithContext(ctx).
-		Where("item_id = ?", product.ItemID).
-		Assign(*product).
-		FirstOrCreate(product).Error
+	var existing models.ShopeeProduct
+	err := r.db.WithContext(ctx).Where("item_id = ?", product.ItemID).First(&existing).Error
+
+	if err == gorm.ErrRecordNotFound {
+		return r.db.WithContext(ctx).Create(product).Error
+	}
+	if err != nil {
+		return err
+	}
+
+	// Map-based update ensures zero values (Quantity=0, Price=0) are written
+	return r.db.WithContext(ctx).Model(&existing).Updates(map[string]interface{}{
+		"tenant_id":   product.TenantID,
+		"name":        product.Name,
+		"description": product.Description,
+		"image":       product.Image,
+		"price":       product.Price,
+		"quantity":    product.Quantity,
+	}).Error
 }
 
 // FindBySKU finds product by SKU from ShopeeSku table

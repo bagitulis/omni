@@ -44,20 +44,36 @@ func (r *ShopeeSkuRepository) Update(ctx context.Context, sku *models.ShopeeSku)
 	return r.db.WithContext(ctx).Save(sku).Error
 }
 
-// Upsert creates or updates SKU by ModelID (or ItemID for non-variant products)
+// Upsert creates or updates SKU by ModelID (or ItemID for non-variant products).
+// Uses explicit map-based updates so zero-value fields (e.g. Quantity=0) are written.
 func (r *ShopeeSkuRepository) Upsert(ctx context.Context, sku *models.ShopeeSku) error {
+	var existing models.ShopeeSku
+	var err error
+
 	if sku.ModelID != nil && *sku.ModelID > 0 {
-		// Product with variants - use ModelID as key
-		return r.db.WithContext(ctx).
-			Where("model_id = ?", sku.ModelID).
-			Assign(*sku).
-			FirstOrCreate(sku).Error
+		err = r.db.WithContext(ctx).Where("model_id = ?", sku.ModelID).First(&existing).Error
+	} else {
+		err = r.db.WithContext(ctx).Where("item_id = ? AND model_id IS NULL", sku.ItemID).First(&existing).Error
 	}
-	// Non-variant product - use ItemID as key
-	return r.db.WithContext(ctx).
-		Where("item_id = ? AND model_id IS NULL", sku.ItemID).
-		Assign(*sku).
-		FirstOrCreate(sku).Error
+
+	if err == gorm.ErrRecordNotFound {
+		return r.db.WithContext(ctx).Create(sku).Error
+	}
+	if err != nil {
+		return err
+	}
+
+	// Map-based update ensures zero values (Quantity=0, Price=0) are written
+	return r.db.WithContext(ctx).Model(&existing).Updates(map[string]interface{}{
+		"tenant_id":    sku.TenantID,
+		"product_id":   sku.ProductID,
+		"item_id":      sku.ItemID,
+		"model_id":     sku.ModelID,
+		"seller_sku":   sku.SellerSku,
+		"variant_name": sku.VariantName,
+		"price":        sku.Price,
+		"quantity":     sku.Quantity,
+	}).Error
 }
 
 // DeleteByItemID removes all SKUs for an item
