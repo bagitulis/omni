@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 const { mockMessageError, mockQueryClientConstructor, capturedHolder } =
   vi.hoisted(() => {
@@ -70,24 +70,13 @@ describe("queryClient defaultOptions.queries", () => {
   });
 });
 
-describe("queryClient defaultOptions.mutations.onError", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("calls message.error with the error message", () => {
-    const mutations = capturedHolder.options.defaultOptions as {
-      mutations?: { onError?: (error: Error) => void };
+describe("queryClient defaultOptions.mutations", () => {
+  it("has NO global onError (prevents double notifications)", () => {
+    const opts = capturedHolder.options.defaultOptions as {
+      mutations?: { onError?: unknown };
     };
-    mutations.mutations?.onError?.(new Error("Something went wrong"));
-    expect(mockMessageError).toHaveBeenCalledWith("Something went wrong");
-  });
-
-  it("falls back to 'Operation failed' when error has no message", () => {
-    const mutations = capturedHolder.options.defaultOptions as {
-      mutations?: { onError?: (error: Error) => void };
-    };
-    mutations.mutations?.onError?.(new Error(""));
-    expect(mockMessageError).toHaveBeenCalledWith("Operation failed");
+    // Each mutation hook defines its own onError with contextual messages.
+    // A global handler here would cause every error to appear twice.
+    expect(opts.mutations?.onError).toBeUndefined();
   });
 });
