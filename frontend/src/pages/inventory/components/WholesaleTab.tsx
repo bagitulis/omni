@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Empty, Popconfirm, Table } from "antd";
+import { Alert, Button, Empty, Popconfirm, Table, message } from "antd";
 import {
   batchWholesaleWithReset,
   calculateTiersLocal,
@@ -61,7 +61,10 @@ export function WholesaleTab({ items }: WholesaleTabProps) {
           setSettings(loaded);
         }
       } catch {
-        // Settings load error is non-critical, use defaults
+        // Settings load error — use defaults and inform user
+        if (!cancelled) {
+          message.warning("Could not load wholesale settings — using defaults");
+        }
       } finally {
         if (!cancelled) {
           setLoadingSettings(false);

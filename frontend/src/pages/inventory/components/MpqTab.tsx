@@ -7,6 +7,7 @@ import {
   Radio,
   Table,
   Typography,
+  message,
 } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { getSettings, type WholesaleSettings } from "@/api/wholesale";
@@ -47,7 +48,10 @@ export function MpqTab({ items }: MpqTabProps) {
           setSettings(loaded);
         }
       } catch {
-        // Settings load error is non-critical, use defaults
+        // Settings load error — use defaults and inform user
+        if (!cancelled) {
+          message.warning("Could not load MPQ settings — using defaults");
+        }
       } finally {
         if (!cancelled) {
           setLoadingSettings(false);

@@ -193,6 +193,7 @@ export function useOrderSingleActions({
 
     try {
       await cancelOrder(params);
+      message.success(`Order ${orderSn} cancelled successfully`);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to cancel order";
