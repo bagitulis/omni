@@ -10,9 +10,9 @@ import {
   Tooltip,
   Flex,
   Badge,
-  message,
   theme,
 } from "antd";
+import { message } from "@/components/AntStaticHolder";
 import { KeyOutlined, ReloadOutlined } from "@ant-design/icons";
 import apiClient from "@/api/client";
 import { PLATFORM_CONFIG } from "./TokenStatusDropdown.types";

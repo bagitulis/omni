@@ -1,8 +1,9 @@
 // LEGACY: Used by InventoryMainTab in non-readOnly mode. Shared InlineEditCell preferred for new pages.
 import { useState, useEffect } from "react";
-import { InputNumber, message, theme } from "antd";
+import { InputNumber, theme } from "antd";
 import { useUpdateInventoryRecord } from "@/hooks/useInventory";
 import type { InventoryRecord } from "@/types/inventory";
+import { message } from "@/components/AntStaticHolder";
 
 interface Props {
   record: InventoryRecord;

@@ -1,4 +1,4 @@
-import { message, Modal } from "antd";
+import { Modal } from "antd";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useOrderActions } from "@/hooks/useOrders";
@@ -19,6 +19,7 @@ import {
   arrangeTikTokShipment,
 } from "@/hooks/useOrders";
 import { downloadOrderLabel } from "../utils/labelDownload";
+import { message } from "@/components/AntStaticHolder";
 
 function askIncludeProductsOption(): Promise<boolean> {
   return new Promise((resolve) => {

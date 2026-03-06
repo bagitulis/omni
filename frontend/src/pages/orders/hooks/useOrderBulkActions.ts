@@ -1,4 +1,5 @@
-import { Modal, message } from "antd";
+import { Modal } from "antd";
+import { message } from "@/components/AntStaticHolder";
 import { useState } from "react";
 import type { BulkPrintLabelsOptions, CancelOrderParams } from "@/api/orders";
 import { useOrderActions } from "@/hooks/useOrders";

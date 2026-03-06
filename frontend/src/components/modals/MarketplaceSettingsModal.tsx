@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Col, Modal, Row, Select, Typography, message } from "antd";
+import { Button, Col, Modal, Row, Select, Typography } from "antd";
 import {
   useInventoryConfig,
   useUpdateInventoryConfig,
@@ -13,6 +13,7 @@ import {
   type MarketplaceAllocationSettings,
 } from "@/pages/inventory/utils/marketplaceAllocation";
 import { AllocationRatioSection } from "./AllocationRatioSection";
+import { message } from "@/components/AntStaticHolder";
 
 const { Text, Title } = Typography;
 

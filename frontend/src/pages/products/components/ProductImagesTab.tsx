@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Upload, Button, Flex, message } from "antd";
+import { Upload, Button, Flex } from "antd";
 import { PlusOutlined, SaveOutlined, PictureOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import { ImageGalleryPicker } from "@/components/shared/ImageGalleryPicker";
 import type { GalleryImage } from "@/types/shared";
 import { getImageUrl } from "@/types/shared";
+import { message } from "@/components/AntStaticHolder";
 
 const MAX_IMAGES = 8;
 

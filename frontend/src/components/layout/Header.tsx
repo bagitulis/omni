@@ -8,7 +8,6 @@ import {
   Space,
   theme,
   Typography,
-  message,
 } from "antd";
 import {
   MenuFoldOutlined,
@@ -26,6 +25,7 @@ import { TokenStatusDropdown } from "./TokenStatusDropdown";
 import { NotificationBell } from "./NotificationBell";
 import { useTheme } from "@/contexts/ThemeContext.hooks";
 import apiClient from "@/api/client";
+import { message } from "@/components/AntStaticHolder";
 
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;

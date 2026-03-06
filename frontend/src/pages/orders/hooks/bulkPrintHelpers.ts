@@ -1,4 +1,5 @@
-import { Modal, message } from "antd";
+import { Modal } from "antd";
+import { message } from "@/components/AntStaticHolder";
 import { type BulkPrintLabelsOptions, bulkPrintLabels } from "@/api/orders";
 import { downloadOrderLabel } from "../utils/labelDownload";
 import type {

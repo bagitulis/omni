@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { message } from "antd";
+import { message } from "@/components/AntStaticHolder";
 import {
   isSyncableOrderTab,
   syncOrdersByCategory,

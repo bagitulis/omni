@@ -11,7 +11,6 @@ import {
   Statistic,
   Table,
   Tabs,
-  message,
   theme,
 } from "antd";
 import type { MenuProps } from "antd";
@@ -27,6 +26,7 @@ import {
   createRouteColumns,
 } from "../components/RouteManagementTableColumns";
 import { RouteMonitoringTab } from "../components/route-monitoring/RouteMonitoringTab";
+import { message } from "@/components/AntStaticHolder";
 
 const { useToken } = theme;
 

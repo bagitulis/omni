@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Modal, message, theme } from "antd";
+import { Modal, theme } from "antd";
 import type { UploadRequestOption } from "rc-upload/lib/interface";
 import apiClient from "@/api/client";
 import type { GalleryImage, GalleryPaginationMeta } from "../../types/shared";
@@ -14,6 +14,7 @@ import { GalleryFooter } from "./gallery/GalleryFooter";
 import { GalleryGrid } from "./gallery/GalleryGrid";
 import { GalleryToolbar } from "./gallery/GalleryToolbar";
 import { logger } from "@/lib/logger";
+import { message } from "@/components/AntStaticHolder";
 
 // Stable empty array to prevent infinite render loop
 const EMPTY_SELECTED: GalleryImage[] = [];

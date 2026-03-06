@@ -8,7 +8,7 @@ import {
 } from "@/api/orders";
 import type { GetOrdersParams } from "@/api/orders";
 import apiClient from "@/api/client";
-import { message } from "antd";
+import { message } from "@/components/AntStaticHolder";
 
 interface UseOrdersOptions {
   autoRefresh?: boolean;

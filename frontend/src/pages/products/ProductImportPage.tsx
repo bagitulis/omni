@@ -8,7 +8,6 @@ import {
   Statistic,
   Row,
   Col,
-  message,
   Modal,
   theme,
 } from "antd";
@@ -28,6 +27,7 @@ import {
 } from "@/hooks/useProductImport";
 import { downloadImportTemplate } from "@/api/products";
 import "./ProductImportPage.css";
+import { message } from "@/components/AntStaticHolder";
 
 export default function ProductImportPage() {
   const { token } = theme.useToken();

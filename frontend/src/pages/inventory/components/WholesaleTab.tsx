@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Empty, Popconfirm, Table, message } from "antd";
+import { Alert, Button, Empty, Popconfirm, Table } from "antd";
 import {
   batchWholesaleWithReset,
   calculateTiersLocal,
@@ -7,6 +7,7 @@ import {
   type WholesaleSettings,
 } from "@/api/wholesale";
 import type { BulkPricingItem } from "../utils/bulkPricingItems";
+import { message } from "@/components/AntStaticHolder";
 
 interface WholesaleTabProps {
   items: BulkPricingItem[];

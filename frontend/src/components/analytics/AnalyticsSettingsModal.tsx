@@ -1,7 +1,8 @@
-import { Modal, Form, InputNumber, Button, message, Tabs, Select } from "antd";
+import { Modal, Form, InputNumber, Button, Tabs, Select } from "antd";
 import { useState, useEffect, useCallback } from "react";
 import api from "../../api/client";
 import { logger } from "@/lib/logger";
+import { message } from "@/components/AntStaticHolder";
 
 interface Props {
   open: boolean;

@@ -14,6 +14,7 @@ import { antdTheme, antdDarkTheme } from "./styles/theme";
 import { AppLayout } from "./components/layout";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { AntStaticHolder } from "./components/AntStaticHolder";
 import { useAuthStore } from "@/stores/authStore";
 import { logger } from "@/lib/logger";
 import LoginPage from "./pages/auth/LoginPage";
@@ -107,6 +108,7 @@ function AppContent() {
   return (
     <ConfigProvider theme={isDark ? antdDarkTheme : antdTheme}>
       <AntApp>
+        <AntStaticHolder />
         <ErrorBoundary>
           <BrowserRouter>
             <Suspense fallback={<PageLoading />}>

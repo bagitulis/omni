@@ -7,7 +7,6 @@ import {
   Avatar,
   Typography,
   Divider,
-  message,
   theme,
   Spin,
 } from "antd";
@@ -15,6 +14,7 @@ import { UserOutlined, LockOutlined, LoadingOutlined } from "@ant-design/icons";
 import apiClient from "@/api/client";
 import { updateProfile, changePassword } from "@/api/settings";
 import { STORAGE_KEYS } from "@/lib/constants";
+import { message } from "@/components/AntStaticHolder";
 
 const { Text, Title } = Typography;
 const { useToken } = theme;

@@ -2,7 +2,6 @@ import {
 	Button,
 	Card,
 	Form,
-	message,
 	Space,
 	Spin,
 	Switch,
@@ -27,6 +26,7 @@ import {
 	type LinkType,
 } from "./GoogleSheetsLinkRow";
 import { SheetMetadataCard } from "./SheetMetadataCard";
+import { message } from "@/components/AntStaticHolder";
 
 const { Text, Title } = Typography;
 

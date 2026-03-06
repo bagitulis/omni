@@ -15,7 +15,7 @@ vi.mock("@/stores/authStore", () => ({
   },
 }));
 
-vi.mock("antd", () => ({
+vi.mock("@/components/AntStaticHolder", () => ({
   message: { error: mockMessageError },
 }));
 

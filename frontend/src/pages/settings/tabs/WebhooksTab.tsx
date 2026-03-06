@@ -7,13 +7,13 @@ import {
   Space,
   Tabs,
   Typography,
-  message,
 } from "antd";
 import { SendOutlined } from "@ant-design/icons";
 import { saveWebhookConfig } from "@/api/settings";
 import IntegrationUrls from "../components/IntegrationUrls";
 import WebhookLogsViewer from "../components/WebhookLogsViewer";
 import OAuthLogsViewer from "../components/OAuthLogsViewer";
+import { message } from "@/components/AntStaticHolder";
 
 const { Text, Title } = Typography;
 

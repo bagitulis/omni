@@ -8,8 +8,8 @@ import {
   Table,
   Tag,
   Typography,
-  message,
 } from "antd";
+import { message } from "@/components/AntStaticHolder";
 import { LockOutlined, SyncOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import {

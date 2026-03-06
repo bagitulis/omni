@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Steps, message, Card, Typography, theme, Flex, Grid } from "antd";
+import { Steps, Card, Typography, theme, Flex, Grid } from "antd";
 import type { UploadFile } from "antd/es/upload/interface";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeftOutlined } from "@ant-design/icons";
@@ -20,6 +20,7 @@ import {
   PricingFormValues,
 } from "../../components/forms/ProductPricingForm";
 import { createProduct } from "@/api/products";
+import { message } from "@/components/AntStaticHolder";
 
 // Combined type for the full product form
 type ProductFormValues = BasicFormValues &

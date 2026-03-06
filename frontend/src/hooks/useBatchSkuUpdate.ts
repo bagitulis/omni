@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { message } from "antd";
+import { message } from "@/components/AntStaticHolder";
 import { batchUpdateSkus } from "@/api/products";
 import type { BatchSkuUpdateItem } from "@/types/product";
 

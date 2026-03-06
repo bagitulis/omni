@@ -6,13 +6,13 @@ import {
   Button,
   Typography,
   Divider,
-  message,
   theme,
   Spin,
 } from "antd";
 import { useEffect, useState, useMemo } from "react";
 import { saveGeneralSettings } from "@/api/settings";
 import apiClient from "@/api/client";
+import { message } from "@/components/AntStaticHolder";
 
 const { Text } = Typography;
 const { useToken } = theme;

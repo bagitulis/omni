@@ -9,7 +9,6 @@ import {
   Spin,
   Tag,
   theme,
-  message,
   Alert,
 } from "antd";
 import {
@@ -28,6 +27,7 @@ import {
 } from "../../hooks/useAnalyticsIntelligence";
 import type { MLReport } from "../../api/analyticsIntelligence";
 import { ReportModal } from "@/components/analytics/ml";
+import { message } from "@/components/AntStaticHolder";
 
 const { Title, Text } = Typography;
 const { useToken } = theme;

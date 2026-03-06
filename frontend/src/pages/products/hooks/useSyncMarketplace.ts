@@ -1,4 +1,4 @@
-import { message } from "antd";
+import { message } from "@/components/AntStaticHolder";
 import { importFromStaging } from "@/api/products";
 import { syncSelectedProducts } from "@/api/productManager";
 import { getErrorMessage } from "@/pages/products/utils/unifiedProductUtils";

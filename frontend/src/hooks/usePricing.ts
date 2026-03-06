@@ -4,7 +4,7 @@ import {
   PriceUpdateItem,
   BatchPriceUpdateResult,
 } from "@/api/pricing";
-import { message } from "antd";
+import { message } from "@/components/AntStaticHolder";
 
 export function usePriceUpdate() {
   const queryClient = useQueryClient();

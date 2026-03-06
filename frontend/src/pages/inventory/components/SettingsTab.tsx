@@ -6,8 +6,8 @@ import {
 	InputNumber,
 	Spin,
 	Typography,
-	message,
 } from "antd";
+import { message } from "@/components/AntStaticHolder";
 import {
 	getSettings,
 	updateSettings,

@@ -9,7 +9,6 @@ import {
   Spin,
   Tag,
   Typography,
-  message,
   theme,
 } from "antd";
 import { useEffect, useMemo, useState } from "react";
@@ -17,6 +16,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { saveSelectedColumns } from "@/api/inventory";
 import { useAvailableColumns, useSelectedColumns } from "@/hooks/useInventory";
 import { buildGroups } from "./inventoryColumnGroups";
+import { message } from "@/components/AntStaticHolder";
 
 const { Text } = Typography;
 

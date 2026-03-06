@@ -1,4 +1,4 @@
-import { message } from "antd";
+import { message } from "@/components/AntStaticHolder";
 import {
   useNotificationStore,
   type NotificationCategory,

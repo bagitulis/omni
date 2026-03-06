@@ -1,5 +1,6 @@
 import { CopyOutlined } from "@ant-design/icons";
-import { Button, Card, Space, Typography, message } from "antd";
+import { Button, Card, Space, Typography } from "antd";
+import { message } from "@/components/AntStaticHolder";
 
 const { Text } = Typography;
 

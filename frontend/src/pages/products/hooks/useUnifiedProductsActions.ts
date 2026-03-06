@@ -1,4 +1,4 @@
-import { message } from "antd";
+import { message } from "@/components/AntStaticHolder";
 import { useCallback, useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import { updateStockBatch } from "@/api/inventorySync";

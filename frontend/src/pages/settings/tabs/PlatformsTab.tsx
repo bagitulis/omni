@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Row, Col, Typography, message, Spin, theme } from "antd";
+import { Row, Col, Typography, Spin, theme } from "antd";
 import {
   ShopOutlined,
   VideoCameraOutlined,
@@ -8,6 +8,7 @@ import {
 } from "@ant-design/icons";
 import apiClient from "@/api/client";
 import { PlatformCard, type PlatformStatus } from "../components/PlatformCard";
+import { message } from "@/components/AntStaticHolder";
 
 const { Text, Title } = Typography;
 

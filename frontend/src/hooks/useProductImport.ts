@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { message } from "antd";
+import { message } from "@/components/AntStaticHolder";
 import {
   getImportPreview,
   autoMapSkus,

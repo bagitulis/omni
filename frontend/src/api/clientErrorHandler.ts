@@ -1,5 +1,5 @@
 import { AxiosError } from "axios";
-import { message } from "antd";
+import { message } from "@/components/AntStaticHolder";
 import { useAuthStore } from "@/stores/authStore";
 import { logger } from "@/lib/logger";
 import { sanitizeForUser } from "@/lib/notificationSecurity";

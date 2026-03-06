@@ -1,6 +1,7 @@
-import { Modal, Form, Input, Button, message } from "antd";
+import { Modal, Form, Input, Button } from "antd";
 import { useState } from "react";
 import { changePassword } from "@/api/auth";
+import { message } from "@/components/AntStaticHolder";
 
 interface ChangePasswordModalProps {
   open: boolean;

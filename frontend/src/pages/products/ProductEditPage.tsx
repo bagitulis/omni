@@ -3,7 +3,6 @@ import { useParams, Link } from "react-router-dom";
 import {
   Tabs,
   Button,
-  message,
   Spin,
   Card,
   Alert,
@@ -28,6 +27,7 @@ import { SkuMappingPanel } from "../../components/shared/SkuMappingPanel";
 import type { MasterProduct } from "../../types/product";
 import type { ProductData, ProductSku } from "./types";
 import { mapMasterProductToProductData } from "./utils/productEditMapper";
+import { message } from "@/components/AntStaticHolder";
 
 const { Title, Text } = Typography;
 

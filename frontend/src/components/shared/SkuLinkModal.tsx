@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Button, Form, Input, Modal, message } from "antd";
+import { Button, Form, Input, Modal } from "antd";
 import { LinkOutlined } from "@ant-design/icons";
 import { linkSkuToPlatform } from "@/api/products";
 import type { Platform } from "@/types/shared";
 import { PLATFORM_BRAND_COLORS } from "@/lib/platformColors";
+import { message } from "@/components/AntStaticHolder";
 
 interface LinkModalState {
   visible: boolean;

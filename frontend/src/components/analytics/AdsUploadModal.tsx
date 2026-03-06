@@ -1,9 +1,10 @@
-import { Modal, Form, Select, Upload, Button, message, Typography } from "antd";
+import { Modal, Form, Select, Upload, Button, Typography } from "antd";
 import { InboxOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import type { UploadFile } from "antd/es/upload/interface";
 import api from "../../api/client";
 import { logger } from "@/lib/logger";
+import { message } from "@/components/AntStaticHolder";
 
 const { Text } = Typography;
 const { Dragger } = Upload;

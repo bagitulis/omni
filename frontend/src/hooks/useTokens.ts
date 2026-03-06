@@ -5,7 +5,7 @@ import {
   refreshToken,
   refreshAllTokens,
 } from "@/api/tokens";
-import { message } from "antd";
+import { message } from "@/components/AntStaticHolder";
 import { logger } from "@/lib/logger";
 
 /**
