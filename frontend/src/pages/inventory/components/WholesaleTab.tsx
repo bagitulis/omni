@@ -61,7 +61,7 @@ export function WholesaleTab({ items }: WholesaleTabProps) {
         if (!cancelled && loaded) {
           setSettings(loaded);
         }
-      } catch {
+      } catch (err) { console.warn("Operation failed:", err);
         // Settings load error — use defaults and inform user
         if (!cancelled) {
           message.warning("Could not load wholesale settings — using defaults");

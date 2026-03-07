@@ -67,7 +67,7 @@ export function TokenStatusDropdown() {
         });
         setTokenStatus(transformed);
       }
-    } catch {
+    } catch (err) { console.warn("Operation failed:", err);
       // Error silently handled - loading state resets in finally block
     } finally {
       setLoading(false);
@@ -84,7 +84,7 @@ export function TokenStatusDropdown() {
         content: "Tokens refreshed successfully",
         key: "refresh",
       });
-    } catch {
+    } catch (err) { console.warn("Operation failed:", err);
       message.error({ content: "Failed to refresh tokens", key: "refresh" });
     } finally {
       setLoading(false);

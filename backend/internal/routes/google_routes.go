@@ -57,18 +57,8 @@ func RegisterGoogleRoutes(router *gin.RouterGroup, handlers *GoogleHandlers) {
 func RegisterGoogleAuthRoutes(router *gin.RouterGroup, handler *googleHandler.AuthHandler) {
 	auth := router.Group("/auth")
 	{
-		// Public routes
+		// Service account status (real implementation)
 		auth.GET("/status", handler.GetAuthStatus)
-		auth.GET("/callback", handler.HandleCallback)
-
-		// Protected routes
-		protected := auth.Group("")
-		protected.Use(middleware.Auth())
-		protected.Use(middleware.Tenant())
-		{
-			protected.GET("/url", handler.GetAuthURL)
-			protected.POST("/disconnect", handler.Disconnect)
-		}
 	}
 }
 

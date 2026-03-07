@@ -55,7 +55,7 @@ export const useUpload = () => {
           message.success(
             `${file.name} processed - ${data.length} products loaded`,
           );
-        } catch {
+        } catch (err) { console.warn("Operation failed:", err);
           message.error("Failed to parse CSV file");
         }
       };

@@ -6,7 +6,7 @@ export function validateUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
     return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
+  } catch (err) { console.warn("Operation failed:", err);
     return false;
   }
 }

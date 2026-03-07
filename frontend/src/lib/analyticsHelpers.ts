@@ -43,7 +43,7 @@ export function formatAnalyticsDate(dateStr: string | null): string {
   try {
     const date = new Date(dateStr);
     return date.toLocaleDateString("en-US");
-  } catch {
+  } catch (err) { console.warn("Operation failed:", err);
     return "—";
   }
 }

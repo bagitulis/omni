@@ -79,11 +79,15 @@ export interface ReportInfo {
 }
 
 export async function getShopeeAdsReports() {
-  const response = await apiClient.get<ReportInfo[]>("/reports/shopee/ads");
+  const response = await apiClient.get<ReportInfo[]>(
+    "/analytics/ml/reports/shopee/list",
+  );
   return response;
 }
 
 export async function getTiktokAdsReports() {
-  const response = await apiClient.get<ReportInfo[]>("/reports/tiktok/ads");
+  const response = await apiClient.get<ReportInfo[]>(
+    "/analytics/ml/reports/tiktok/list",
+  );
   return response;
 }

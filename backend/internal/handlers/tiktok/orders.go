@@ -128,8 +128,12 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 		return
 	}
 
+	if resp.Code != 0 {
+		c.JSON(http.StatusBadRequest, response.Error(fmt.Sprintf("TikTok shipping error (code %d): %s", resp.Code, resp.Message)))
+		return
+	}
+
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"success":    resp.Code == 0,
 		"package_id": resp.Data.PackageID,
 	}))
 }
@@ -171,8 +175,13 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 		return
 	}
 
+	if resp.Code != 0 {
+		c.JSON(http.StatusBadRequest, response.Error(fmt.Sprintf("TikTok cancel error (code %d): %s", resp.Code, resp.Message)))
+		return
+	}
+
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"success": resp.Code == 0,
+		"cancelled": true,
 	}))
 }
 

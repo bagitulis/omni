@@ -120,9 +120,13 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 		return
 	}
 
+	if rtsResp.Code != "0" {
+		c.JSON(http.StatusBadRequest, response.Error("Ready to ship failed: code "+rtsResp.Code))
+		return
+	}
+
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"success": rtsResp.Code == "0",
-		"data":    rtsResp.Data,
+		"data": rtsResp.Data,
 	}))
 }
 
@@ -159,8 +163,13 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 		return
 	}
 
+	if resp.Code != "0" {
+		c.JSON(http.StatusBadRequest, response.Error("Cancel failed: code "+resp.Code))
+		return
+	}
+
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"success": resp.Code == "0",
+		"cancelled": true,
 	}))
 }
 

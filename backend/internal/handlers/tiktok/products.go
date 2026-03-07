@@ -101,8 +101,12 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
+	if resp.Code != 0 {
+		c.JSON(http.StatusBadRequest, response.Error(fmt.Sprintf("TikTok API error (code %d): %s", resp.Code, resp.Message)))
+		return
+	}
+
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"success":   resp.Code == 0,
 		"productId": resp.Data.ProductID,
 	}))
 }
@@ -136,8 +140,12 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		return
 	}
 
+	if resp.Code != 0 {
+		c.JSON(http.StatusBadRequest, response.Error(fmt.Sprintf("TikTok API error (code %d): %s", resp.Code, resp.Message)))
+		return
+	}
+
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"success":   resp.Code == 0,
 		"productId": productID,
 	}))
 }
@@ -164,8 +172,13 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 		return
 	}
 
+	if resp.Code != 0 {
+		c.JSON(http.StatusBadRequest, response.Error(fmt.Sprintf("TikTok API error (code %d): %s", resp.Code, resp.Message)))
+		return
+	}
+
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"success": resp.Code == 0,
+		"deleted": true,
 	}))
 }
 

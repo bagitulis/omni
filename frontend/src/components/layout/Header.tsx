@@ -94,7 +94,7 @@ function Header({ collapsed, onCollapse }: HeaderProps) {
           message.success(`Switched to ${newTenantId}`);
           window.location.reload();
         }
-      } catch {
+      } catch (err) { console.warn("Operation failed:", err);
         message.error("Failed to switch tenant");
       } finally {
         setSwitching(false);

@@ -183,7 +183,6 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, response.Success(gin.H{
-		"success": resp.Code == "0",
 		"item_id": resp.Data.ItemID,
 		"skus":    resp.Data.SkuList,
 	}))
@@ -223,8 +222,13 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		return
 	}
 
+	if resp.Code != "0" {
+		c.JSON(http.StatusBadRequest, response.Error("Lazada update failed (code: "+resp.Code+")"))
+		return
+	}
+
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"success": resp.Code == "0",
+		"updated": true,
 	}))
 }
 
@@ -250,8 +254,13 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 		return
 	}
 
+	if resp.Code != "0" {
+		c.JSON(http.StatusBadRequest, response.Error("Lazada delete failed (code: "+resp.Code+")"))
+		return
+	}
+
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"success": resp.Code == "0",
+		"deleted": true,
 	}))
 }
 

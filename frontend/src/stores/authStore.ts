@@ -184,7 +184,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           }
           return true;
         }
-      } catch {
+      } catch (err) { console.warn("Operation failed:", err);
         sessionStorage.removeItem(STORAGE_KEYS.AUTH_USER);
       }
     }

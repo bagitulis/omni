@@ -48,7 +48,7 @@ export default function PlatformsTab() {
 
         setPlatforms(platformList);
       }
-    } catch {
+    } catch (err) { console.warn("Operation failed:", err);
       message.error("Failed to load platform status");
     } finally {
       setLoading(false);
@@ -72,7 +72,7 @@ export default function PlatformsTab() {
       await apiClient.get(`/platform-auth/${platform.platform}/disconnect`);
       message.success(`Disconnected from ${platformName}`);
       fetchPlatformStatus();
-    } catch {
+    } catch (err) { console.warn("Operation failed:", err);
       message.error(`Failed to disconnect from ${platformName}`);
     }
   };

@@ -34,7 +34,7 @@ function normalizeStringArray(value: unknown): string[] {
     try {
       const parsed = JSON.parse(value) as unknown;
       return normalizeStringArray(parsed);
-    } catch {
+    } catch (err) { console.warn("Operation failed:", err);
       return [];
     }
   }

@@ -66,7 +66,7 @@ export const ExportOrdersModal: React.FC<ExportOrdersModalProps> = ({
           onClose();
         },
       });
-    } catch {
+    } catch (err) { console.warn("Operation failed:", err);
       // Form validation error, do nothing
     }
   };

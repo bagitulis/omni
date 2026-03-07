@@ -56,7 +56,7 @@ export default function GeneralTab() {
           setLoading(false);
           return;
         }
-      } catch {
+      } catch (err) { console.warn("Operation failed:", err);
         // API failed, try localStorage
       }
 
@@ -69,7 +69,7 @@ export default function GeneralTab() {
           setLoading(false);
           return;
         }
-      } catch {
+      } catch (err) { console.warn("Operation failed:", err);
         // localStorage parse failed, use defaults
       }
 
@@ -85,14 +85,14 @@ export default function GeneralTab() {
     try {
       await saveGeneralSettings(values);
       message.success("Settings saved successfully");
-    } catch {
+    } catch (err) { console.warn("Operation failed:", err);
       message.warning("Settings saved locally (server unavailable)");
     }
 
     // Always save to localStorage as backup
     try {
       localStorage.setItem("omni_general_settings", JSON.stringify(values));
-    } catch {
+    } catch (err) { console.warn("Operation failed:", err);
       message.error("Failed to save settings locally");
     }
   };

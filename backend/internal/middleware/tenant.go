@@ -46,7 +46,7 @@ func Tenant() gin.HandlerFunc {
 		if tenantID == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
-			"error":   "Missing tenant_id - authentication required",
+				"error":   "Missing tenantId",
 			})
 			c.Abort()
 			return

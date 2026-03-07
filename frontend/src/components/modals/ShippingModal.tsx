@@ -74,7 +74,7 @@ export function ShippingModal({
       await onConfirm(order.order_sn, values);
       setSubmitting(false);
       onClose();
-    } catch {
+    } catch (err) { console.warn("Operation failed:", err);
       setSubmitting(false);
     }
   };

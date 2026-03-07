@@ -105,7 +105,7 @@ export async function getShopeeWholesale(
       `/wholesale/shopee/${itemId}`,
     );
     return response.success ? (response.data ?? null) : null;
-  } catch {
+  } catch (err) { console.warn("Operation failed:", err);
     return null;
   }
 }
@@ -118,7 +118,7 @@ export async function lookupItemBySku(
       `/wholesale/shopee/lookup/${encodeURIComponent(sku)}`,
     );
     return response.success ? (response.data ?? null) : null;
-  } catch {
+  } catch (err) { console.warn("Operation failed:", err);
     return null;
   }
 }
@@ -182,7 +182,7 @@ export async function getSettings(): Promise<WholesaleSettings | null> {
     );
     if (!response.success) return null;
     return normalizeWholesaleSettings(extractSettingsPayload(response));
-  } catch {
+  } catch (err) { console.warn("Operation failed:", err);
     return null;
   }
 }
@@ -213,7 +213,7 @@ export async function previewTiers(
       { base_price: basePrice, settings: customSettings },
     );
     return response.success ? (response.data ?? null) : null;
-  } catch {
+  } catch (err) { console.warn("Operation failed:", err);
     return null;
   }
 }

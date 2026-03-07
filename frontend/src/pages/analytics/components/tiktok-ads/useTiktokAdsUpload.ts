@@ -62,7 +62,7 @@ export const useTiktokAdsUpload = () => {
           message.success(
             `${file.name} processed - ${data.length} creatives loaded`,
           );
-        } catch {
+        } catch (err) { console.warn("Operation failed:", err);
           message.error("Failed to parse CSV file");
         }
       };

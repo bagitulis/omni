@@ -69,7 +69,7 @@ export function LockedOrdersPanel() {
       setItems(data);
       setLoaded(true);
       message.success(`Synced ${data.length} locked orders`);
-    } catch {
+    } catch (err) { console.warn("Operation failed:", err);
       message.error("Failed to sync locked orders");
     } finally {
       setSyncing(false);

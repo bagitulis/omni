@@ -48,7 +48,7 @@ export function parseColumns(value: unknown): string[] {
           (item): item is string => typeof item === "string",
         );
       }
-    } catch {
+    } catch (err) { console.warn("Operation failed:", err);
       return [];
     }
   }
@@ -103,7 +103,7 @@ export function loadMarketplaceAllocationSettings(): MarketplaceAllocationSettin
           ? parsed.tiktokRatio
           : defaultMarketplaceAllocationSettings.tiktokRatio,
     };
-  } catch {
+  } catch (err) { console.warn("Operation failed:", err);
     return defaultMarketplaceAllocationSettings;
   }
 }

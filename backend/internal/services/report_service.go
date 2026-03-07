@@ -72,16 +72,9 @@ type DateRange struct {
 
 // GetShopeeAdsReport gets Shopee ads report
 func (s *ReportService) GetShopeeAdsReport(ctx context.Context, tenantID, startDate, endDate string) (*AdsReportData, error) {
-	// TODO: Implement actual data retrieval from database
-	// For now, return mock structure
+	// Not yet implemented - return empty data with date range
 	return &AdsReportData{
-		Summary: AdsReportSummary{
-			TotalSpend:       0,
-			TotalImpressions: 0,
-			TotalClicks:      0,
-			TotalConversions: 0,
-			TotalRevenue:     0,
-		},
+		Summary:   AdsReportSummary{},
 		Daily:     []DailyAdsReport{},
 		Campaigns: []CampaignReport{},
 		DateRange: DateRange{
@@ -107,15 +100,9 @@ func (s *ReportService) GetShopeeAdsReportByDate(ctx context.Context, tenantID, 
 
 // GetTiktokAdsReport gets TikTok ads report
 func (s *ReportService) GetTiktokAdsReport(ctx context.Context, tenantID, startDate, endDate string) (*AdsReportData, error) {
-	// TODO: Implement actual TikTok ads data retrieval
+	// Not yet implemented - return empty data with date range
 	return &AdsReportData{
-		Summary: AdsReportSummary{
-			TotalSpend:       0,
-			TotalImpressions: 0,
-			TotalClicks:      0,
-			TotalConversions: 0,
-			TotalRevenue:     0,
-		},
+		Summary:   AdsReportSummary{},
 		Daily:     []DailyAdsReport{},
 		Campaigns: []CampaignReport{},
 		DateRange: DateRange{

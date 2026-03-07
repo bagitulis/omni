@@ -75,8 +75,9 @@ export function TiktokAnalyticsSettingsModal({
     try {
       const values = await form.validateFields();
       onSave(values);
-    } catch {
-      // Validation failed
+    } catch (err) {
+      // Validation failed - form will show field-level errors
+      console.warn("Form validation failed:", err);
     }
   };
 

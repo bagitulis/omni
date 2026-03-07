@@ -51,7 +51,7 @@ export const TokenModal: React.FC<TokenModalProps> = ({ open, onClose }) => {
         hour: "2-digit",
         minute: "2-digit",
       });
-    } catch {
+    } catch (err) { console.warn("Operation failed:", err);
       return dateString;
     }
   };

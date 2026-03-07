@@ -230,16 +230,14 @@ func (h *Handler) SyncShopeeEscrow(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement actual escrow sync logic
-	// For now, return a placeholder response indicating the feature is in development
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Shopee escrow sync started",
+	// Escrow sync is not yet implemented
+	c.JSON(http.StatusNotImplemented, gin.H{
+		"success": false,
+		"error":   "Shopee escrow sync is not yet implemented",
 		"data": gin.H{
-			"month":        req.Month,
-			"year":         req.Year,
-			"force_resync": req.ForceResync,
-			"status":       "pending",
+			"month":  req.Month,
+			"year":   req.Year,
+			"status": "not_implemented",
 		},
 	})
 }
@@ -268,16 +266,14 @@ func (h *Handler) SyncTiktokEscrow(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement actual escrow sync logic
-	// For now, return a placeholder response indicating the feature is in development
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "TikTok escrow sync started",
+	// Escrow sync is not yet implemented
+	c.JSON(http.StatusNotImplemented, gin.H{
+		"success": false,
+		"error":   "TikTok escrow sync is not yet implemented",
 		"data": gin.H{
-			"month":        req.Month,
-			"year":         req.Year,
-			"force_resync": req.ForceResync,
-			"status":       "pending",
+			"month":  req.Month,
+			"year":   req.Year,
+			"status": "not_implemented",
 		},
 	})
 }

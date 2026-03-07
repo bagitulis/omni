@@ -76,7 +76,11 @@ export async function syncEscrow(
   if (!response.data.success) {
     throw new Error(response.data.error || "Failed to start sync");
   }
-  return response.data.data.job_id;
+  const jobId = response.data.data?.job_id;
+  if (!jobId) {
+    throw new Error("Sync started but no job ID was returned");
+  }
+  return jobId;
 }
 
 export async function deleteSyncData(

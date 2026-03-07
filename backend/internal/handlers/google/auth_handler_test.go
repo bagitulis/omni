@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	googleService "github.com/omni/backend/internal/services/google"
+
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
@@ -14,62 +16,41 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
-func TestAuthHandler_GetAuthURL(t *testing.T) {
-	t.Run("missing tenant ID returns 401", func(t *testing.T) {
-		handler := NewAuthHandler(nil)
+func TestAuthHandler_GetAuthStatus(t *testing.T) {
+	t.Run("returns unauthenticated when no credentials", func(t *testing.T) {
+		authService := googleService.NewAuthService(nil)
+		handler := NewAuthHandler(authService)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
-		c.Request = httptest.NewRequest(http.MethodGet, "/api/google/auth/url", nil)
+		c.Request = httptest.NewRequest(http.MethodGet, "/api/google/auth/status", nil)
 
-		handler.GetAuthURL(c)
+		handler.GetAuthStatus(c)
 
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, http.StatusOK, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "tenantId")
+		assert.Equal(t, true, resp["success"])
+		data := resp["data"].(map[string]interface{})
+		assert.Equal(t, false, data["authenticated"])
 	})
 
-	t.Run("valid tenant ID with nil service panics or errors", func(t *testing.T) {
-		// When authService is nil, calling methods on it will panic
-		// This tests that the handler is correctly instantiated
-		handler := NewAuthHandler(nil)
-		assert.NotNil(t, handler)
-	})
-}
-
-func TestAuthHandler_HandleCallback(t *testing.T) {
-	t.Run("missing code returns 400", func(t *testing.T) {
-		handler := NewAuthHandler(nil)
+	t.Run("returns authenticated when credentials provided", func(t *testing.T) {
+		authService := googleService.NewAuthService([]byte(`{"type":"service_account"}`))
+		handler := NewAuthHandler(authService)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
-		c.Request = httptest.NewRequest(http.MethodGet, "/api/google/auth/callback", nil)
+		c.Request = httptest.NewRequest(http.MethodGet, "/api/google/auth/status", nil)
 
-		handler.HandleCallback(c)
+		handler.GetAuthStatus(c)
 
-		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Equal(t, http.StatusOK, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "authorization code")
-	})
-
-	t.Run("error param returns 400", func(t *testing.T) {
-		handler := NewAuthHandler(nil)
-
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
-		c.Request = httptest.NewRequest(http.MethodGet, "/api/google/auth/callback?error=access_denied", nil)
-
-		handler.HandleCallback(c)
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-		var resp map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "OAuth error")
+		assert.Equal(t, true, resp["success"])
+		data := resp["data"].(map[string]interface{})
+		assert.Equal(t, true, data["authenticated"])
 	})
 }
 

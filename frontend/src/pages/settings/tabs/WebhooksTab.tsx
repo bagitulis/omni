@@ -35,7 +35,7 @@ export default function WebhooksTab() {
         secret_key: values.secret_key,
       });
       message.success("Webhook configuration saved");
-    } catch {
+    } catch (err) { console.warn("Operation failed:", err);
       message.error("Failed to save webhook configuration");
     } finally {
       setSaving(false);

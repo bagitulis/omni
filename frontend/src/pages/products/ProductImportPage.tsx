@@ -46,7 +46,7 @@ export default function ProductImportPage() {
       const data = await previewMutation.mutateAsync(file);
       setPreviewData(data);
       setCurrentStep(1);
-    } catch {
+    } catch (err) { console.warn("Operation failed:", err);
       // Error message already shown by mutation's onError handler
     }
   };
@@ -65,7 +65,7 @@ export default function ProductImportPage() {
 
     try {
       await autoMapMutation.mutateAsync(skus);
-    } catch {
+    } catch (err) { console.warn("Operation failed:", err);
       // Error message already shown by mutation's onError handler
     }
   };
@@ -112,7 +112,7 @@ export default function ProductImportPage() {
       setTimeout(() => {
         navigate("/products");
       }, 2000);
-    } catch {
+    } catch (err) { console.warn("Operation failed:", err);
       // Error message already shown by mutation's onError handler
     }
   };

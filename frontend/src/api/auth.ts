@@ -57,7 +57,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
   try {
     const response = await api.get<User>("/auth/me");
     return response.data || null;
-  } catch {
+  } catch (err) { console.warn("Operation failed:", err);
     return null;
   }
 };

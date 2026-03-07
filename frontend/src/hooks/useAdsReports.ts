@@ -26,7 +26,7 @@ export function useAdsReports(platform: "shopee" | "tiktok") {
     // OR we can assume the backend returns a full URL if we implemented it that way.
     // Based on Vue code: `${baseUrl}/reports/${platform}/${filename}`
     // We can use the same logic.
-    return `/api/reports/${platform}/${filename}`;
+    return `/api/analytics/ml/reports/${platform}/${filename}`;
   };
 
   return {
