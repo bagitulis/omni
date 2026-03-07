@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/oauth"
@@ -48,7 +46,7 @@ func (h *OAuthHandler) InitiateAuth(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantID - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -209,7 +207,7 @@ func (h *OAuthHandler) GetOAuthLogs(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantID - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -237,163 +235,5 @@ func (h *OAuthHandler) GetOAuthLogs(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    logs,
-	})
-}
-
-// GetTokenStatus returns token status for all platforms
-// GET /api/oauth/status
-func (h *OAuthHandler) GetTokenStatus(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"error":   "Missing tenantID - authentication required",
-		})
-		return
-	}
-
-	// Get tenant database connection
-	db, err := config.GetTenantDB(tenantID, h.basePath)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Database connection failed",
-		})
-		return
-	}
-
-	// Use TenantPlatformConfigRepository which uses key-value pattern
-	repo := repositories.NewTenantPlatformConfigRepository(db)
-
-	nowMs := time.Now().UnixMilli()
-	result := make(map[string]gin.H)
-	platforms := []string{models.PlatformShopee, models.PlatformLazada, models.PlatformTiktok}
-
-	// Get config for each platform using key-value pattern
-	for _, platform := range platforms {
-		configMap, err := repo.GetAllConfigByPlatform(c.Request.Context(), platform)
-		if err != nil {
-			result[platform] = gin.H{
-				"isExpired":             true,
-				"expiresAt":             nil,
-				"refreshTokenExpiresAt": nil,
-				"status":                "not_configured",
-				"valid":                 false,
-			}
-			continue
-		}
-
-		// Check if connected (has access token)
-		accessToken := configMap["accessToken"]
-		connected := accessToken != ""
-
-		if !connected {
-			result[platform] = gin.H{
-				"isExpired":             true,
-				"expiresAt":             nil,
-				"refreshTokenExpiresAt": nil,
-				"status":                "not_configured",
-				"valid":                 false,
-			}
-			continue
-		}
-
-		// Parse token expiry timestamp (stored in milliseconds)
-		var tokenExpiryMs int64
-		if expStr, ok := configMap["tokenExpiry"]; ok && expStr != "" {
-			fmt.Sscanf(expStr, "%d", &tokenExpiryMs)
-		}
-
-		// Parse refresh token expiry timestamp (stored in milliseconds)
-		var refreshTokenExpiryMs int64
-		if expStr, ok := configMap["refreshTokenExpiry"]; ok && expStr != "" {
-			fmt.Sscanf(expStr, "%d", &refreshTokenExpiryMs)
-		}
-
-		// Calculate expiry status
-		isExpired := tokenExpiryMs > 0 && tokenExpiryMs < nowMs
-		expiresSoon := tokenExpiryMs > 0 && tokenExpiryMs < nowMs+(24*60*60*1000)
-
-		status := "valid"
-		if isExpired {
-			status = "expired"
-		} else if expiresSoon {
-			status = "expiring"
-		}
-
-		// Convert timestamps to RFC3339 format for frontend
-		var expiresAtStr, refreshTokenExpiresAtStr string
-		if tokenExpiryMs > 0 {
-			expiresAtStr = time.UnixMilli(tokenExpiryMs).Format(time.RFC3339)
-		}
-		if refreshTokenExpiryMs > 0 {
-			refreshTokenExpiresAtStr = time.UnixMilli(refreshTokenExpiryMs).Format(time.RFC3339)
-		}
-
-		// Get shop info
-		shopID := configMap["shopId"]
-		shopName := configMap["shopName"]
-
-		result[platform] = gin.H{
-			"isExpired":             isExpired,
-			"expiresAt":             expiresAtStr,
-			"refreshTokenExpiresAt": refreshTokenExpiresAtStr,
-			"status":                status,
-			"valid":                 !isExpired,
-			"shopId":                shopID,
-			"shopName":              shopName,
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    result,
-	})
-}
-
-// RefreshAllTokens refreshes tokens for all platforms
-// POST /api/oauth/refresh-all
-func (h *OAuthHandler) RefreshAllTokens(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"error":   "Missing tenantID - authentication required",
-		})
-		return
-	}
-
-	configs, err := h.platformRepo.FindByTenant(c.Request.Context(), tenantID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
-		return
-	}
-
-	results := make(map[string]gin.H)
-	for _, config := range configs {
-		// TODO: Implement actual token refresh for each platform
-		// For now, return status based on current expiry
-		now := time.Now().Unix()
-		isExpired := config.ExpiresAt < now
-
-		if isExpired {
-			results[config.Platform] = gin.H{
-				"success": false,
-				"error":   "Token expired - manual re-authorization required",
-			}
-		} else {
-			results[config.Platform] = gin.H{
-				"success": true,
-				"message": "Token is still valid",
-			}
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    results,
 	})
 }
