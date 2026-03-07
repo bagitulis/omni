@@ -198,7 +198,7 @@ func TestCreateUser_MissingTenantID(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
-	assert.Contains(t, resp["error"], "tenantID")
+	assert.Contains(t, resp["error"], "tenantId")
 }
 
 // TestUpdateUser_Success tests successful user update

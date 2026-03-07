@@ -11,6 +11,15 @@ import (
 	"github.com/omni/backend/internal/models"
 )
 
+// allowedShopeeAdsOrderColumns defines valid orderBy columns to prevent SQL injection
+var allowedShopeeAdsOrderColumns = map[string]bool{
+	"id": true, "product_id": true, "product_name": true, "bidding_mode": true,
+	"cost": true, "revenue": true, "direct_revenue": true, "conversions": true,
+	"roas": true, "direct_roas": true, "impressions": true, "clicks": true,
+	"ctr": true, "conversion_rate": true, "period_start": true, "period_end": true,
+	"period_label": true,
+}
+
 // AdsHandler handles Shopee Ads analytics requests
 type AdsHandler struct {
 	basePath string
@@ -53,9 +62,11 @@ func (h *AdsHandler) GetData(c *gin.Context) {
 		}
 	}
 	if ob := c.Query("orderBy"); ob != "" {
-		orderBy = ob
+		if allowedShopeeAdsOrderColumns[ob] {
+			orderBy = ob
+		}
 	}
-	if od := c.Query("orderDir"); od != "" {
+	if od := c.Query("orderDir"); od == "asc" || od == "desc" {
 		orderDir = od
 	}
 
@@ -171,18 +182,9 @@ func (h *AdsHandler) Upload(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement full upload logic with MV refresh
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Upload functionality - implementation in progress",
-		"data": gin.H{
-			"batch_id":      "",
-			"file_name":     "",
-			"total_rows":    0,
-			"inserted_rows": 0,
-			"skipped_rows":  0,
-			"updated_rows":  0,
-			"errors":        []string{},
-		},
+	// TODO: Implement full upload logic with CSV parsing and MV refresh
+	c.JSON(http.StatusNotImplemented, gin.H{
+		"success": false,
+		"error":   "Shopee ads upload is not yet implemented",
 	})
 }

@@ -159,7 +159,7 @@ func TestHandler_SyncShopeeEscrow(t *testing.T) {
 		assert.Contains(t, resp["error"], "Invalid year")
 	})
 
-	t.Run("valid request returns 200", func(t *testing.T) {
+	t.Run("valid request returns 501 not implemented", func(t *testing.T) {
 		handler := NewHandler("")
 
 		w := httptest.NewRecorder()
@@ -170,13 +170,10 @@ func TestHandler_SyncShopeeEscrow(t *testing.T) {
 
 		handler.SyncShopeeEscrow(c)
 
-		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, http.StatusNotImplemented, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.Equal(t, true, resp["success"])
-		data := resp["data"].(map[string]interface{})
-		assert.Equal(t, float64(6), data["month"])
-		assert.Equal(t, float64(2024), data["year"])
+		assert.Equal(t, false, resp["success"])
 	})
 }
 
@@ -194,7 +191,7 @@ func TestHandler_SyncTiktokEscrow(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 	})
 
-	t.Run("valid request returns 200", func(t *testing.T) {
+	t.Run("valid request returns 501 not implemented", func(t *testing.T) {
 		handler := NewHandler("")
 
 		w := httptest.NewRecorder()
@@ -205,10 +202,10 @@ func TestHandler_SyncTiktokEscrow(t *testing.T) {
 
 		handler.SyncTiktokEscrow(c)
 
-		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, http.StatusNotImplemented, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.Equal(t, true, resp["success"])
+		assert.Equal(t, false, resp["success"])
 	})
 }
 

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -239,12 +240,21 @@ func (s *MultiTenantAuthService) tryLoginInSystem(ctx context.Context, req *Mult
 	// Reset failed attempts on successful login
 	userRepo.ResetFailedAttempts(ctx, user.ID)
 
-	// For developer accounts, use first available tenant as default
+	// For developer accounts, deterministically select first tenant (sorted by ID)
 	// They can switch tenant later via /api/auth/switch-tenant
 	defaultTenantID := ""
 	tenants, _ := s.tenantService.GetAvailableTenants(ctx)
 	if len(tenants) > 0 {
+		sort.Slice(tenants, func(i, j int) bool {
+			return tenants[i].ID < tenants[j].ID
+		})
 		defaultTenantID = tenants[0].ID
+		log.Warn().
+			Str("service", "multi_tenant_auth").
+			Str("username", req.Username).
+			Str("auto_selected_tenant", defaultTenantID).
+			Int("available_tenants", len(tenants)).
+			Msg("Developer login: auto-selected tenant (use /api/auth/switch-tenant to change)")
 	}
 
 	// Generate access token

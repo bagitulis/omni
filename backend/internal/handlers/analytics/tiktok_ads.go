@@ -11,6 +11,14 @@ import (
 	"github.com/omni/backend/internal/models"
 )
 
+// allowedTiktokAdsOrderColumns defines valid orderBy columns to prevent SQL injection
+var allowedTiktokAdsOrderColumns = map[string]bool{
+	"id": true, "campaign_id": true, "campaign_name": true, "product_id": true,
+	"creative_type": true, "video_title": true, "cost": true, "orders_sku": true,
+	"gross_revenue": true, "roi": true, "impressions": true, "clicks": true,
+	"ctr": true, "conversion_rate": true, "period_start": true, "period_end": true,
+}
+
 // TiktokAdsHandler handles TikTok Ads analytics requests
 type TiktokAdsHandler struct {
 	basePath string
@@ -59,10 +67,12 @@ func (h *TiktokAdsHandler) GetData(c *gin.Context) {
 		case "roi":
 			orderBy = "roi"
 		default:
-			orderBy = ob
+			if allowedTiktokAdsOrderColumns[ob] {
+				orderBy = ob
+			}
 		}
 	}
-	if od := c.Query("orderDir"); od != "" {
+	if od := c.Query("orderDir"); od == "asc" || od == "desc" {
 		orderDir = od
 	}
 
@@ -181,18 +191,9 @@ func (h *TiktokAdsHandler) Upload(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement full upload logic with MV refresh
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Upload functionality - implementation in progress",
-		"data": gin.H{
-			"batch_id":      "",
-			"file_name":     "",
-			"total_rows":    0,
-			"inserted_rows": 0,
-			"skipped_rows":  0,
-			"updated_rows":  0,
-			"errors":        []string{},
-		},
+	// TODO: Implement full upload logic with CSV parsing and MV refresh
+	c.JSON(http.StatusNotImplemented, gin.H{
+		"success": false,
+		"error":   "TikTok ads upload is not yet implemented",
 	})
 }

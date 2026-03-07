@@ -13,6 +13,7 @@ import {
 } from "antd";
 import { Order } from "@/types/order";
 import { useState, useEffect } from "react";
+import { message } from "@/components/AntStaticHolder";
 
 const { Text } = Typography;
 
@@ -75,6 +76,7 @@ export function ShippingModal({
       setSubmitting(false);
       onClose();
     } catch (err) { console.warn("Operation failed:", err);
+      message.error("Failed to generate shipping label. Please try again.");
       setSubmitting(false);
     }
   };

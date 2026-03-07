@@ -86,7 +86,7 @@ func TestTiktokAdsHandler_Upload(t *testing.T) {
 		assert.Equal(t, false, resp["success"])
 	})
 
-	t.Run("valid tenant returns 200 (stub endpoint)", func(t *testing.T) {
+	t.Run("valid tenant returns 501 (not implemented)", func(t *testing.T) {
 		handler := NewTiktokAdsHandler("")
 
 		w := httptest.NewRecorder()
@@ -96,8 +96,8 @@ func TestTiktokAdsHandler_Upload(t *testing.T) {
 
 		handler.Upload(c)
 
-		// Upload is a stub - returns 200 immediately after auth check
-		assert.Equal(t, http.StatusOK, w.Code)
+		// Upload is not yet implemented - returns 501
+		assert.Equal(t, http.StatusNotImplemented, w.Code)
 	})
 }
 

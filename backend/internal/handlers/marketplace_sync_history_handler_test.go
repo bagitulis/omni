@@ -38,7 +38,7 @@ func TestSyncHistoryCreate_MissingTenant(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
-	assert.Contains(t, resp["error"], "tenant_id")
+	assert.Contains(t, resp["error"], "tenantId")
 }
 
 func TestSyncHistoryCreate_MissingRequiredFields(t *testing.T) {
@@ -148,7 +148,7 @@ func TestSyncHistoryList_MissingTenant(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
-	assert.Contains(t, resp["error"], "tenant_id")
+	assert.Contains(t, resp["error"], "tenantId")
 }
 
 func TestSyncHistoryCreate_AllValidPlatforms(t *testing.T) {

@@ -28,7 +28,7 @@ func TestOAuthHandler_InitiateAuth_MissingTenant(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.False(t, resp["success"].(bool))
-	assert.Contains(t, resp["error"], "tenantID")
+	assert.Contains(t, resp["error"], "tenantId")
 }
 
 // TestOAuthHandler_InitiateAuth_InvalidPlatform tests InitiateAuth with invalid platform

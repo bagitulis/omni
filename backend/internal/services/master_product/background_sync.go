@@ -85,10 +85,9 @@ func (s *BackgroundSyncService) runSyncCycle() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	log.Debug().Msg("Running background sync cycle")
-
-	// TODO: Implement actual sync logic
-	// For now just log that cycle ran
+	// TODO: Implement actual sync logic — this is currently a no-op stub.
+	// When implementing, add: fetch stale products → sync from marketplace APIs → update DB
+	log.Warn().Msg("Background sync cycle triggered but sync logic is not yet implemented (no-op)")
 	_ = ctx
 }
 

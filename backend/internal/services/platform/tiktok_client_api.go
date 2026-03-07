@@ -198,12 +198,12 @@ func (c *TiktokAPIClient) GetProductList(ctx context.Context, offset, limit int)
 
 	data, ok := result["data"].(map[string]interface{})
 	if !ok {
-		return []map[string]interface{}{}, nil
+		return nil, fmt.Errorf("tiktok GetProductList: unexpected response shape (missing 'data' object)")
 	}
 
 	products, ok := data["products"].([]interface{})
 	if !ok {
-		return []map[string]interface{}{}, nil
+		return []map[string]interface{}{}, nil // No products key = empty result (valid)
 	}
 
 	productMaps := make([]map[string]interface{}, 0, len(products))

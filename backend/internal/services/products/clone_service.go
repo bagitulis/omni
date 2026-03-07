@@ -9,6 +9,7 @@ import (
 
 	"github.com/omni/backend/internal/services"
 	"github.com/omni/backend/internal/services/inventory"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -69,9 +70,18 @@ func (s *CloneService) Clone(ctx context.Context, req CloneRequest) (*CloneResul
 		invData, err := s.applyInventoryData(ctx, req.SKU, productData, req.UseInventory)
 		if err != nil {
 			// Log warning but don't fail - use platform data as fallback
-			fmt.Printf("[Clone] Warning: Failed to get inventory data for SKU %s: %v\n", req.SKU, err)
+			log.Warn().
+				Err(err).
+				Str("service", "clone").
+				Str("sku", req.SKU).
+				Msg("Failed to get inventory data, using platform data as fallback")
 		} else if invData != nil && invData.Found {
-			fmt.Printf("[Clone] Applied inventory data for SKU %s: price=%.2f, stock=%d\n", req.SKU, invData.Price, invData.Stock)
+			log.Info().
+				Str("service", "clone").
+				Str("sku", req.SKU).
+				Float64("price", invData.Price).
+				Int("stock", invData.Stock).
+				Msg("Applied inventory data for clone")
 		}
 	}
 
