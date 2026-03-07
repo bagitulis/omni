@@ -63,7 +63,7 @@ func TestShippingFilesHandler_GetShippingFiles_MissingTenant(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.False(t, resp["success"].(bool))
-	assert.Equal(t, "tenant ID required", resp["error"])
+	assert.Equal(t, "Missing tenantId", resp["error"])
 }
 
 // TestShippingFilesHandler_GetShippingFiles_WithFiles tests GetShippingFiles returns files when they exist
@@ -159,7 +159,7 @@ func TestShippingFilesHandler_ProcessShippingFile_MissingTenant(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.False(t, resp["success"].(bool))
-	assert.Equal(t, "tenant ID required", resp["error"])
+	assert.Equal(t, "Missing tenantId", resp["error"])
 }
 
 // TestShippingFilesHandler_ProcessShippingFile_EmptyBody tests ProcessShippingFile returns 400 with empty body

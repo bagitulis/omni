@@ -34,7 +34,7 @@ func (h *SettingsHandler) SaveLinks(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -106,7 +106,7 @@ func (h *SettingsHandler) GetSavedLinks(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -144,7 +144,7 @@ func (h *SettingsHandler) ValidateLink(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}

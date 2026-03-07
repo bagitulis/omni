@@ -41,7 +41,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantID - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}

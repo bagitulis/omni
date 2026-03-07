@@ -26,7 +26,7 @@ func (h *ImportHandler) newSkuMapper(tenantID string) (*masterProductService.Sku
 func (h *ImportHandler) GetMappingStatus(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
@@ -68,7 +68,7 @@ func (h *ImportHandler) GetMappingStatus(c *gin.Context) {
 func (h *ImportHandler) AutoMap(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
@@ -104,7 +104,7 @@ func (h *ImportHandler) AutoMap(c *gin.Context) {
 func (h *ImportHandler) ManualLink(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
@@ -155,7 +155,7 @@ func (h *ImportHandler) ManualLink(c *gin.Context) {
 func (h *ImportHandler) Unlink(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 

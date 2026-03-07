@@ -25,7 +25,7 @@ func (h *RouteExecutionConfigHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 // List handles GET /api/route-execution-config
 func (h *RouteExecutionConfigHandler) List(c *gin.Context) {
 	if c.GetString("tenantID") == "" {
-		respondUnauthorized(c, "tenant ID required")
+		respondUnauthorized(c, "Missing tenantId")
 		return
 	}
 	db, err := h.getDB(c)
@@ -45,7 +45,7 @@ func (h *RouteExecutionConfigHandler) List(c *gin.Context) {
 // Get handles GET /api/route-execution-config/:routeKey
 func (h *RouteExecutionConfigHandler) Get(c *gin.Context) {
 	if c.GetString("tenantID") == "" {
-		respondUnauthorized(c, "tenant ID required")
+		respondUnauthorized(c, "Missing tenantId")
 		return
 	}
 	db, err := h.getDB(c)
@@ -74,7 +74,7 @@ func (h *RouteExecutionConfigHandler) Get(c *gin.Context) {
 // GetMode handles GET /api/route-execution-config/:routeKey/mode
 func (h *RouteExecutionConfigHandler) GetMode(c *gin.Context) {
 	if c.GetString("tenantID") == "" {
-		respondUnauthorized(c, "tenant ID required")
+		respondUnauthorized(c, "Missing tenantId")
 		return
 	}
 	db, err := h.getDB(c)
@@ -110,7 +110,7 @@ func (h *RouteExecutionConfigHandler) GetMode(c *gin.Context) {
 // Create handles POST /api/route-execution-config
 func (h *RouteExecutionConfigHandler) Create(c *gin.Context) {
 	if c.GetString("tenantID") == "" {
-		respondUnauthorized(c, "tenant ID required")
+		respondUnauthorized(c, "Missing tenantId")
 		return
 	}
 	db, err := h.getDB(c)
@@ -151,7 +151,7 @@ func (h *RouteExecutionConfigHandler) Create(c *gin.Context) {
 // Update handles PUT /api/route-execution-config/:routeKey
 func (h *RouteExecutionConfigHandler) Update(c *gin.Context) {
 	if c.GetString("tenantID") == "" {
-		respondUnauthorized(c, "tenant ID required")
+		respondUnauthorized(c, "Missing tenantId")
 		return
 	}
 	db, err := h.getDB(c)
@@ -215,7 +215,7 @@ func (h *RouteExecutionConfigHandler) Update(c *gin.Context) {
 // Toggle handles POST /api/route-execution-config/:routeKey/toggle
 func (h *RouteExecutionConfigHandler) Toggle(c *gin.Context) {
 	if c.GetString("tenantID") == "" {
-		respondUnauthorized(c, "tenant ID required")
+		respondUnauthorized(c, "Missing tenantId")
 		return
 	}
 	db, err := h.getDB(c)
@@ -254,7 +254,7 @@ func (h *RouteExecutionConfigHandler) Toggle(c *gin.Context) {
 // Delete handles DELETE /api/route-execution-config/:routeKey
 func (h *RouteExecutionConfigHandler) Delete(c *gin.Context) {
 	if c.GetString("tenantID") == "" {
-		respondUnauthorized(c, "tenant ID required")
+		respondUnauthorized(c, "Missing tenantId")
 		return
 	}
 	db, err := h.getDB(c)

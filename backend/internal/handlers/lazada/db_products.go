@@ -45,7 +45,7 @@ type FlattenedSkuRow struct {
 func (h *DBProductHandler) GetDBProducts(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 

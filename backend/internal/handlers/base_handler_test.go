@@ -178,7 +178,7 @@ func TestBaseHandler_GetTenantID_Missing(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
-	assert.Equal(t, "Missing tenantID", resp["error"])
+	assert.Equal(t, "Missing tenantId", resp["error"])
 }
 
 // TestBaseHandler_SuccessResponseRaw tests raw response formatting

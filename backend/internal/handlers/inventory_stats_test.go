@@ -27,7 +27,7 @@ func TestInventoryHandler_GetStats(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "tenant ID required")
+		assert.Contains(t, resp["error"], "Missing tenantId")
 	})
 
 	t.Run("valid tenant ID with no DB returns error", func(t *testing.T) {
@@ -62,7 +62,7 @@ func TestInventoryHandler_GetPlatformStatus(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "tenant ID required")
+		assert.Contains(t, resp["error"], "Missing tenantId")
 	})
 
 	t.Run("valid tenant ID returns empty results", func(t *testing.T) {

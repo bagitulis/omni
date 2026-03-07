@@ -49,7 +49,7 @@ func (h *OrderManagerHandler) getOrdersFromDatabase(c *gin.Context, category str
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant ID",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -143,7 +143,7 @@ func (h *OrderManagerHandler) GetOrderByOrderSn(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   "Missing tenant_id",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -229,110 +229,4 @@ func (h *OrderManagerHandler) GetOrderByOrderSn(c *gin.Context) {
 		"success": false,
 		"error":   "Order not found",
 	})
-}
-
-// Helper functions to convert platform orders to frontend format
-func (h *OrderManagerHandler) convertShopeeOrderToDetail(order *models.ShopeeOrder, items []models.ShopeeOrderItem) map[string]interface{} {
-	orderItems := make([]map[string]interface{}, len(items))
-	for i, item := range items {
-		orderItems[i] = map[string]interface{}{
-			"item_id":   item.ItemID,
-			"item_name": item.ItemName,
-			"item_sku":  item.ItemSku,
-			"quantity":  item.Quantity,
-			"price":     item.Price,
-			"total":     float64(*item.Quantity) * *item.Price,
-		}
-	}
-
-	return map[string]interface{}{
-		"id":               order.ID,
-		"order_sn":         order.OrderSN,
-		"order_no":         order.OrderSN,
-		"order_status":     order.OrderStatus,
-		"status":           order.OrderStatus,
-		"platform":         "shopee",
-		"category":         "", // Category not stored in order model
-		"buyer_username":   order.BuyerUsername,
-		"total_amount":     order.TotalAmount,
-		"currency":         order.Currency,
-		"payment_method":   order.PaymentMethod,
-		"shipping_carrier": order.ShippingCarrier,
-		"tracking_number":  order.TrackingNumber,
-		"ship_by_date":     order.ShipByDate,
-		"buyer_message":    order.BuyerMessage,
-		"created_at":       order.CreatedAt,
-		"updated_at":       order.UpdatedAt,
-		"items":            orderItems,
-	}
-}
-
-func (h *OrderManagerHandler) convertLazadaOrderToDetail(order *models.LazadaOrder, items []models.LazadaOrderItem) map[string]interface{} {
-	orderItems := make([]map[string]interface{}, len(items))
-	for i, item := range items {
-		orderItems[i] = map[string]interface{}{
-			"item_id":   item.ItemID,
-			"item_name": item.ProductName,
-			"item_sku":  item.SellerSku,
-			"quantity":  item.Quantity,
-			"price":     item.Price,
-			"total":     float64(*item.Quantity) * *item.Price,
-		}
-	}
-
-	return map[string]interface{}{
-		"id":               order.ID,
-		"order_sn":         order.OrderSN,
-		"order_no":         order.OrderSN,
-		"order_status":     order.OrderStatus,
-		"status":           order.OrderStatus,
-		"platform":         "lazada",
-		"category":         "",
-		"buyer_username":   order.BuyerUsername,
-		"total_amount":     order.TotalAmount,
-		"currency":         order.Currency,
-		"payment_method":   order.PaymentMethod,
-		"shipping_carrier": order.ShippingCarrier,
-		"tracking_number":  order.TrackingNumber,
-		"ship_by_date":     order.ShipByDate,
-		"buyer_message":    order.BuyerMessage,
-		"created_at":       order.CreatedAt,
-		"updated_at":       order.UpdatedAt,
-		"items":            orderItems,
-	}
-}
-
-func (h *OrderManagerHandler) convertTiktokOrderToDetail(order *models.TiktokOrder, items []models.TiktokOrderItem) map[string]interface{} {
-	orderItems := make([]map[string]interface{}, len(items))
-	for i, item := range items {
-		orderItems[i] = map[string]interface{}{
-			"item_id":   item.ProductID,
-			"item_name": item.ProductName,
-			"item_sku":  item.SellerSku,
-			"quantity":  item.Quantity,
-			"price":     item.Price,
-			"total":     float64(*item.Quantity) * *item.Price,
-		}
-	}
-
-	return map[string]interface{}{
-		"id":               order.ID,
-		"order_sn":         order.OrderSN,
-		"order_no":         order.OrderSN,
-		"order_status":     order.OrderStatus,
-		"status":           order.OrderStatus,
-		"platform":         "tiktok",
-		"category":         "",
-		"buyer_username":   order.BuyerUsername,
-		"total_amount":     order.TotalAmount,
-		"currency":         order.Currency,
-		"payment_method":   order.PaymentMethod,
-		"shipping_carrier": order.ShippingCarrier,
-		"tracking_number":  order.TrackingNumber,
-		"ship_by_date":     order.ShipByDate,
-		"buyer_message":    order.BuyerMessage,
-		"created_at":       order.CreatedAt,
-		"updated_at":       order.UpdatedAt,
-		"items":            orderItems,
-	}
 }

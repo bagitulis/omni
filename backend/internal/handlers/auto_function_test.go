@@ -33,7 +33,7 @@ func TestAutoFunctionList_MissingTenant(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
-	assert.Contains(t, resp["error"], "tenant ID required")
+	assert.Contains(t, resp["error"], "Missing tenantId")
 }
 
 // TestAutoFunctionGetByName_MissingTenant tests getting auto function by name without tenant

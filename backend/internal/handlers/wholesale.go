@@ -30,7 +30,7 @@ func (h *WholesaleHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 func (h *WholesaleHandler) GetSettings(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("tenant ID required"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
@@ -57,7 +57,7 @@ func (h *WholesaleHandler) GetSettings(c *gin.Context) {
 func (h *WholesaleHandler) UpdateSettings(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("tenant ID required"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
@@ -99,7 +99,7 @@ func (h *WholesaleHandler) UpdateSettings(c *gin.Context) {
 func (h *WholesaleHandler) Calculate(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("tenant ID required"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
@@ -129,7 +129,7 @@ func (h *WholesaleHandler) Calculate(c *gin.Context) {
 func (h *WholesaleHandler) Apply(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("tenant ID required"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 

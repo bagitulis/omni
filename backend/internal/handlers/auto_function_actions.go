@@ -23,7 +23,7 @@ import (
 func (h *AutoFunctionHandler) Enable(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -51,7 +51,7 @@ func (h *AutoFunctionHandler) Enable(c *gin.Context) {
 func (h *AutoFunctionHandler) Disable(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -79,7 +79,7 @@ func (h *AutoFunctionHandler) Disable(c *gin.Context) {
 func (h *AutoFunctionHandler) CancelScheduledByName(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -117,7 +117,7 @@ func (h *AutoFunctionHandler) CancelScheduledByName(c *gin.Context) {
 func (h *AutoFunctionHandler) Run(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -162,7 +162,7 @@ func (h *AutoFunctionHandler) Run(c *gin.Context) {
 func (h *AutoFunctionHandler) GetHistory(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 

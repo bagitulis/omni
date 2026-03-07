@@ -102,7 +102,7 @@ func extractSpreadsheetIDFromURL(urlOrID string) string {
 func (h *InventoryHandler) GetConfig(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -193,7 +193,7 @@ func (h *InventoryHandler) GetConfig(c *gin.Context) {
 func (h *InventoryHandler) GetList(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -273,7 +273,7 @@ func (h *InventoryHandler) GetList(c *gin.Context) {
 func (h *InventoryHandler) GetSyncHistory(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 

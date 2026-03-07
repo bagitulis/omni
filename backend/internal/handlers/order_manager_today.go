@@ -19,7 +19,7 @@ func (h *OrderManagerHandler) SyncOrdersToday(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant_id",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -227,7 +227,7 @@ func (h *OrderManagerHandler) GetOrdersToday(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant_id",
+			"error":   "Missing tenantId",
 		})
 		return
 	}

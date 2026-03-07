@@ -109,7 +109,7 @@ func (h *ImportHandler) importFromRows(c *gin.Context, tenantID string, req File
 func (h *ImportHandler) DownloadTemplate(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 

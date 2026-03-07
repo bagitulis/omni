@@ -26,7 +26,7 @@ func (h *SheetsHandler) ListSpreadsheets(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -54,7 +54,7 @@ func (h *SheetsHandler) GetSpreadsheetData(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -117,7 +117,7 @@ func (h *SheetsHandler) GetWorksheets(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -154,7 +154,7 @@ func (h *SheetsHandler) GetColumnHeaders(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -203,7 +203,7 @@ func (h *SheetsHandler) CreateSpreadsheet(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}

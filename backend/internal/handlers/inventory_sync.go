@@ -66,7 +66,7 @@ func (h *InventoryHandler) SyncFromSheets(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"status":  "FAILED",
-			"message": "tenant ID required",
+			"message": "Missing tenantId",
 		})
 		return
 	}
@@ -167,7 +167,7 @@ func (h *InventoryHandler) SyncToSheets(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"status":  "FAILED",
-			"message": "tenant ID required",
+			"message": "Missing tenantId",
 		})
 		return
 	}

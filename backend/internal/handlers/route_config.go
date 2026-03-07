@@ -27,7 +27,7 @@ func (h *RouteConfigHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 func (h *RouteConfigHandler) List(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -51,7 +51,7 @@ func (h *RouteConfigHandler) List(c *gin.Context) {
 func (h *RouteConfigHandler) Get(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -81,7 +81,7 @@ func (h *RouteConfigHandler) Get(c *gin.Context) {
 func (h *RouteConfigHandler) Update(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -117,7 +117,7 @@ func (h *RouteConfigHandler) Update(c *gin.Context) {
 func (h *RouteConfigHandler) Reset(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -148,7 +148,7 @@ func (h *RouteConfigHandler) Reset(c *gin.Context) {
 func (h *RouteConfigHandler) ListAll(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 

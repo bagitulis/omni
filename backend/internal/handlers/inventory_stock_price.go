@@ -24,7 +24,7 @@ type UpdateStockRequest struct {
 func (h *InventoryHandler) UpdateStock(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -95,7 +95,7 @@ type UpdateStockBatchRequest struct {
 func (h *InventoryHandler) UpdateStockBatch(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -164,7 +164,7 @@ type UpdatePriceRequest struct {
 func (h *InventoryHandler) UpdatePrice(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -232,7 +232,7 @@ type UpdatePriceBatchRequest struct {
 func (h *InventoryHandler) UpdatePriceBatch(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 

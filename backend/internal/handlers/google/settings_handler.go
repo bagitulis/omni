@@ -46,7 +46,7 @@ func (h *SettingsHandler) GetDetailedSettings(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -83,7 +83,7 @@ func (h *SettingsHandler) UpdateDetailedSettings(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -138,7 +138,7 @@ func (h *SettingsHandler) TestConnection(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}

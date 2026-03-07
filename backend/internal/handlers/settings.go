@@ -33,7 +33,7 @@ func (h *SettingsHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 func (h *SettingsHandler) GetInventorySettings(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -60,7 +60,7 @@ func (h *SettingsHandler) GetInventorySettings(c *gin.Context) {
 func (h *SettingsHandler) UpdateInventorySettings(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -100,7 +100,7 @@ func (h *SettingsHandler) UpdateInventorySettings(c *gin.Context) {
 func (h *SettingsHandler) GetGoogleSheetsSettings(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -129,7 +129,7 @@ func (h *SettingsHandler) GetGoogleSheetsSettings(c *gin.Context) {
 func (h *SettingsHandler) UpdateGoogleSheetsSettings(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -170,7 +170,7 @@ func (h *SettingsHandler) UpdateGoogleSheetsSettings(c *gin.Context) {
 func (h *SettingsHandler) GetGeneralSettings(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -206,7 +206,7 @@ func (h *SettingsHandler) GetGeneralSettings(c *gin.Context) {
 func (h *SettingsHandler) UpdateGeneralSettings(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 

@@ -29,7 +29,7 @@ func (h *BaseHandler) GetDB(c *gin.Context) (*gorm.DB, error) {
 func (h *BaseHandler) GetTenantID(c *gin.Context) (string, bool) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		h.ErrorResponse(c, http.StatusUnauthorized, "Missing tenantID")
+		h.ErrorResponse(c, http.StatusUnauthorized, "Missing tenantId")
 		return "", false
 	}
 	return tenantID, true

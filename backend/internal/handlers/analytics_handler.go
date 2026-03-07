@@ -42,7 +42,7 @@ func (h *AnalyticsHandler) getService(c *gin.Context) (*services.AnalyticsServic
 func (h *AnalyticsHandler) GetDashboardSummary(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		respondBadRequest(c, "Missing tenant_id")
+		respondBadRequest(c, "Missing tenantId")
 		return
 	}
 
@@ -74,7 +74,7 @@ func (h *AnalyticsHandler) GetDashboardSummary(c *gin.Context) {
 func (h *AnalyticsHandler) GetOrderAnalytics(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		respondBadRequest(c, "Missing tenant_id")
+		respondBadRequest(c, "Missing tenantId")
 		return
 	}
 
@@ -105,7 +105,7 @@ func (h *AnalyticsHandler) GetOrderAnalytics(c *gin.Context) {
 func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		respondBadRequest(c, "Missing tenant_id")
+		respondBadRequest(c, "Missing tenantId")
 		return
 	}
 
@@ -136,7 +136,7 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 func (h *AnalyticsHandler) GetAnalyticsSettings(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		respondBadRequest(c, "Missing tenant_id")
+		respondBadRequest(c, "Missing tenantId")
 		return
 	}
 
@@ -170,7 +170,7 @@ func (h *AnalyticsHandler) GetAnalyticsSettings(c *gin.Context) {
 func (h *AnalyticsHandler) UpdateAnalyticsSettings(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		respondBadRequest(c, "Missing tenant_id")
+		respondBadRequest(c, "Missing tenantId")
 		return
 	}
 
@@ -215,7 +215,7 @@ func (h *AnalyticsHandler) UpdateAnalyticsSettings(c *gin.Context) {
 func (h *AnalyticsHandler) GetEscrowSyncStatus(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		respondBadRequest(c, "Missing tenant_id")
+		respondBadRequest(c, "Missing tenantId")
 		return
 	}
 

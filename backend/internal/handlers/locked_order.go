@@ -40,7 +40,7 @@ func (h *LockedOrderHandler) SaveLockedOrders(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant ID",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -87,7 +87,7 @@ func (h *LockedOrderHandler) GetLockedOrders(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant ID",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -128,7 +128,7 @@ func (h *LockedOrderHandler) ClearLockedOrders(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant ID",
+			"error":   "Missing tenantId",
 		})
 		return
 	}

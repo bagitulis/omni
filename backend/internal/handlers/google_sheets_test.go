@@ -32,7 +32,7 @@ func TestGoogleSheetsGetSpreadsheetInfo_MissingTenant(t *testing.T) {
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
-	assert.Contains(t, resp["error"], "tenant ID required")
+	assert.Contains(t, resp["error"], "Missing tenantId")
 }
 
 // TestGoogleSheetsGetSpreadsheetInfo_MissingSpreadsheetID tests getting spreadsheet without ID

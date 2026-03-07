@@ -24,7 +24,7 @@ func NewReportHandler(basePath string) *ReportHandler {
 func (h *ReportHandler) Generate(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -75,7 +75,7 @@ func (h *ReportHandler) Generate(c *gin.Context) {
 func (h *ReportHandler) List(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -125,7 +125,7 @@ func (h *ReportHandler) List(c *gin.Context) {
 func (h *ReportHandler) GetLatest(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -177,7 +177,7 @@ func (h *ReportHandler) GetLatest(c *gin.Context) {
 func (h *ReportHandler) GetByFilename(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 

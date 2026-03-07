@@ -35,7 +35,7 @@ func TestSkuBatchCheckHandler_BatchCheckSku_MissingTenant(t *testing.T) {
 	var resp map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.False(t, resp["success"].(bool))
-	assert.Contains(t, resp["error"], "tenant ID required")
+	assert.Contains(t, resp["error"], "Missing tenantId")
 }
 
 // TestSkuBatchCheckHandler_BatchCheckSku_InvalidBody tests BatchCheckSku with invalid body
@@ -104,7 +104,7 @@ func TestSkuBatchCheckHandler_BatchSavePlatformStatus_MissingTenant(t *testing.T
 	var resp map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.False(t, resp["success"].(bool))
-	assert.Contains(t, resp["error"], "tenant ID required")
+	assert.Contains(t, resp["error"], "Missing tenantId")
 }
 
 // TestSkuBatchCheckHandler_BatchSavePlatformStatus_InvalidBody tests BatchSavePlatformStatus with invalid body
@@ -171,7 +171,7 @@ func TestSkuBatchCheckHandler_GetPlatformStatus_MissingTenant(t *testing.T) {
 	var resp map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.False(t, resp["success"].(bool))
-	assert.Contains(t, resp["error"], "tenant ID required")
+	assert.Contains(t, resp["error"], "Missing tenantId")
 }
 
 // TestSkuCheckResult_Structure tests SkuCheckResult structure

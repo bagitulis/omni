@@ -43,7 +43,7 @@ func (h *ImageHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 func (h *ImageHandler) Upload(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id - authentication required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -137,7 +137,7 @@ func (h *ImageHandler) Upload(c *gin.Context) {
 func (h *ImageHandler) Gallery(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id - authentication required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -201,7 +201,7 @@ func (h *ImageHandler) Gallery(c *gin.Context) {
 func (h *ImageHandler) GetByID(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id - authentication required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -237,7 +237,7 @@ func (h *ImageHandler) GetByID(c *gin.Context) {
 func (h *ImageHandler) Delete(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id - authentication required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 

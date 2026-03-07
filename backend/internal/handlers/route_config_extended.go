@@ -11,7 +11,7 @@ import (
 func (h *RouteConfigHandler) GetCategories(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -38,7 +38,7 @@ func (h *RouteConfigHandler) GetCategories(c *gin.Context) {
 func (h *RouteConfigHandler) GetByCategory(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -70,7 +70,7 @@ func (h *RouteConfigHandler) GetByCategory(c *gin.Context) {
 func (h *RouteConfigHandler) Create(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -109,7 +109,7 @@ func (h *RouteConfigHandler) Create(c *gin.Context) {
 func (h *RouteConfigHandler) Delete(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -138,7 +138,7 @@ func (h *RouteConfigHandler) Delete(c *gin.Context) {
 func (h *RouteConfigHandler) BulkUpdate(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -177,7 +177,7 @@ func (h *RouteConfigHandler) BulkUpdate(c *gin.Context) {
 func (h *RouteConfigHandler) ApplyPreset(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 

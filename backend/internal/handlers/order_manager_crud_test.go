@@ -107,7 +107,7 @@ func TestOrderManagerHandler_GetOrderByOrderSn_MissingTenant(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.False(t, resp["success"].(bool))
-	assert.Contains(t, resp["error"], "Missing tenant_id")
+	assert.Contains(t, resp["error"], "Missing tenantId")
 }
 
 // TestOrderManagerHandler_GetOrderByOrderSn_MissingOrderSn tests GetOrderByOrderSn with empty orderSn

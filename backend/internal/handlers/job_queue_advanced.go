@@ -13,7 +13,7 @@ import (
 func (h *JobQueueHandler) GetQueue(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -44,7 +44,7 @@ func (h *JobQueueHandler) GetQueue(c *gin.Context) {
 func (h *JobQueueHandler) GetMonitor(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -81,7 +81,7 @@ func (h *JobQueueHandler) GetMonitor(c *gin.Context) {
 func (h *JobQueueHandler) GetHistoryPaginated(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -131,7 +131,7 @@ func (h *JobQueueHandler) GetHistoryPaginated(c *gin.Context) {
 func (h *JobQueueHandler) GetHistoryJobTypes(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -156,7 +156,7 @@ func (h *JobQueueHandler) GetHistoryJobTypes(c *gin.Context) {
 func (h *JobQueueHandler) ClearHistory(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -180,7 +180,7 @@ func (h *JobQueueHandler) ClearHistory(c *gin.Context) {
 func (h *JobQueueHandler) CancelJobByJobId(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -204,7 +204,7 @@ func (h *JobQueueHandler) CancelJobByJobId(c *gin.Context) {
 func (h *JobQueueHandler) ForceCancelJob(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -228,7 +228,7 @@ func (h *JobQueueHandler) ForceCancelJob(c *gin.Context) {
 func (h *JobQueueHandler) CheckTimeout(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 

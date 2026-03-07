@@ -32,7 +32,7 @@ func (h *AutoFunctionHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 func (h *AutoFunctionHandler) List(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -62,7 +62,7 @@ func (h *AutoFunctionHandler) List(c *gin.Context) {
 func (h *AutoFunctionHandler) GetByName(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -88,7 +88,7 @@ func (h *AutoFunctionHandler) GetByName(c *gin.Context) {
 func (h *AutoFunctionHandler) Create(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -134,7 +134,7 @@ func (h *AutoFunctionHandler) Create(c *gin.Context) {
 func (h *AutoFunctionHandler) Update(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -182,7 +182,7 @@ func (h *AutoFunctionHandler) Update(c *gin.Context) {
 func (h *AutoFunctionHandler) Delete(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 

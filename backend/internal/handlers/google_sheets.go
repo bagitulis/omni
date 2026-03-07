@@ -21,7 +21,7 @@ func NewGoogleSheetsHandler(authService *google.AuthService) *GoogleSheetsHandle
 func (h *GoogleSheetsHandler) GetSpreadsheetInfo(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -45,7 +45,7 @@ func (h *GoogleSheetsHandler) GetSpreadsheetInfo(c *gin.Context) {
 func (h *GoogleSheetsHandler) ReadData(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -72,7 +72,7 @@ func (h *GoogleSheetsHandler) ReadData(c *gin.Context) {
 func (h *GoogleSheetsHandler) WriteData(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -99,7 +99,7 @@ func (h *GoogleSheetsHandler) WriteData(c *gin.Context) {
 func (h *GoogleSheetsHandler) DetectColumns(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -127,7 +127,7 @@ func (h *GoogleSheetsHandler) DetectColumns(c *gin.Context) {
 func (h *GoogleSheetsHandler) ImportData(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 

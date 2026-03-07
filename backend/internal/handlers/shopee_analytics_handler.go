@@ -26,7 +26,7 @@ func NewShopeeAnalyticsHandler() *ShopeeAnalyticsHandler {
 func (h *ShopeeAnalyticsHandler) getService(c *gin.Context) (*analytics.ShopeeAnalyticsService, error) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return nil, nil
 	}
 
@@ -102,7 +102,7 @@ func (h *ShopeeAnalyticsHandler) GetSyncStatus(c *gin.Context) {
 func (h *ShopeeAnalyticsHandler) SyncEscrow(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 

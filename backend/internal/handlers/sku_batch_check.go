@@ -68,7 +68,7 @@ func (h *SkuBatchCheckHandler) BatchCheckSku(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "tenant ID required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}

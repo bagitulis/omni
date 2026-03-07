@@ -16,7 +16,7 @@ func (h *SkuBatchCheckHandler) BatchSavePlatformStatus(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "tenant ID required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -136,7 +136,7 @@ func (h *SkuBatchCheckHandler) GetPlatformStatus(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "tenant ID required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}

@@ -22,7 +22,7 @@ func NewSKUCheckHandler(db *gorm.DB) *SKUCheckHandler {
 func (h *SKUCheckHandler) CheckSingle(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -49,7 +49,7 @@ func (h *SKUCheckHandler) CheckSingle(c *gin.Context) {
 func (h *SKUCheckHandler) CheckBatch(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -86,7 +86,7 @@ func (h *SKUCheckHandler) CheckBatch(c *gin.Context) {
 func (h *SKUCheckHandler) GetCachedStatus(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 

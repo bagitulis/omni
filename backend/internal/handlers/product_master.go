@@ -48,7 +48,7 @@ func (h *ProductMasterHandler) GetMasterProductList(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant ID",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -103,7 +103,7 @@ func (h *ProductMasterHandler) GetMasterProductStats(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant ID",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -145,7 +145,7 @@ func (h *ProductMasterHandler) GetProductByID(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant ID",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -191,7 +191,7 @@ func (h *ProductMasterHandler) GetProductByID(c *gin.Context) {
 func (h *ProductMasterHandler) SyncSelected(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant ID"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 

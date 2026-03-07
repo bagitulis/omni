@@ -26,7 +26,7 @@ func NewTiktokAnalyticsHandler() *TiktokAnalyticsHandler {
 func (h *TiktokAnalyticsHandler) getService(c *gin.Context) (*analytics.TiktokAnalyticsService, error) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return nil, nil
 	}
 
@@ -102,7 +102,7 @@ func (h *TiktokAnalyticsHandler) GetSyncStatus(c *gin.Context) {
 func (h *TiktokAnalyticsHandler) SyncEscrow(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 

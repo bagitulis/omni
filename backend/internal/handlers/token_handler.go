@@ -23,7 +23,7 @@ func NewTokenHandler(tokenManager *services.TokenManager) *TokenHandler {
 func (h *TokenHandler) GetTokenStatus(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantID"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -55,7 +55,7 @@ func (h *TokenHandler) GetTokenStatus(c *gin.Context) {
 func (h *TokenHandler) GetAllTokenStatus(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantID"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -72,7 +72,7 @@ func (h *TokenHandler) GetAllTokenStatus(c *gin.Context) {
 func (h *TokenHandler) RefreshToken(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantID"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -103,7 +103,7 @@ func (h *TokenHandler) RefreshToken(c *gin.Context) {
 func (h *TokenHandler) GetPlatformTokenStatus(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantID"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -139,7 +139,7 @@ func (h *TokenHandler) GetPlatformTokenStatus(c *gin.Context) {
 func (h *TokenHandler) RefreshAllTokens(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantID"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 

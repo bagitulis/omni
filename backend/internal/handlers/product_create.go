@@ -28,7 +28,7 @@ func NewProductCreateHandler(db *gorm.DB) *ProductCreateHandler {
 func (h *ProductCreateHandler) CreateOnShopee(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -64,7 +64,7 @@ func (h *ProductCreateHandler) CreateOnShopee(c *gin.Context) {
 func (h *ProductCreateHandler) CreateOnLazada(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -99,7 +99,7 @@ func (h *ProductCreateHandler) CreateOnLazada(c *gin.Context) {
 func (h *ProductCreateHandler) CreateOnTiktok(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 

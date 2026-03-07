@@ -82,7 +82,7 @@ func TestGetAuditLogs_Success(t *testing.T) {
 		if tenantID == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
-				"error":   "Missing tenantID - authentication required",
+				"error":   "Missing tenantId",
 			})
 			return
 		}
@@ -131,7 +131,7 @@ func TestGetAuditLogs_MissingTenant(t *testing.T) {
 		if tenantID == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
-				"error":   "Missing tenantID - authentication required",
+				"error":   "Missing tenantId",
 			})
 			return
 		}
@@ -246,7 +246,7 @@ func TestGetAuditLogsByAction_Success(t *testing.T) {
 		if tenantID == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
-				"error":   "Missing tenantID - authentication required",
+				"error":   "Missing tenantId",
 			})
 			return
 		}
@@ -299,7 +299,7 @@ func TestGetAuditLogsByAction_MissingTenant(t *testing.T) {
 		if tenantID == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
-				"error":   "Missing tenantID - authentication required",
+				"error":   "Missing tenantId",
 			})
 			return
 		}
@@ -336,7 +336,7 @@ func TestGetAuditLogsByDateRange_Success(t *testing.T) {
 		if tenantID == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
-				"error":   "Missing tenantID - authentication required",
+				"error":   "Missing tenantId",
 			})
 			return
 		}

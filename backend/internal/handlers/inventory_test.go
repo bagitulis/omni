@@ -28,7 +28,7 @@ func TestInventoryHandler_GetConfig(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "Missing tenant_id")
+		assert.Contains(t, resp["error"], "Missing tenantId")
 	})
 
 	t.Run("valid request with no DB returns error", func(t *testing.T) {
@@ -63,7 +63,7 @@ func TestInventoryHandler_GetList(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "Missing tenant_id")
+		assert.Contains(t, resp["error"], "Missing tenantId")
 	})
 
 	t.Run("valid request with no DB returns error", func(t *testing.T) {
@@ -99,7 +99,7 @@ func TestInventoryHandler_GetRecordByKey(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "Missing tenant_id")
+		assert.Contains(t, resp["error"], "Missing tenantId")
 	})
 
 	t.Run("missing keyValue returns 400", func(t *testing.T) {
@@ -158,7 +158,7 @@ func TestInventoryHandler_UpdateRecordByKey(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "Missing tenant_id")
+		assert.Contains(t, resp["error"], "Missing tenantId")
 	})
 
 	t.Run("missing keyValue returns 400", func(t *testing.T) {
@@ -243,7 +243,7 @@ func TestInventoryHandler_CreateRecord(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "Missing tenant_id")
+		assert.Contains(t, resp["error"], "Missing tenantId")
 	})
 
 	t.Run("invalid JSON returns 400", func(t *testing.T) {
@@ -322,7 +322,7 @@ func TestInventoryHandler_DeleteRecordByKey(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "Missing tenant_id")
+		assert.Contains(t, resp["error"], "Missing tenantId")
 	})
 
 	t.Run("missing keyValue returns 400", func(t *testing.T) {

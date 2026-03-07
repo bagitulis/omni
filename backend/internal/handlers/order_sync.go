@@ -27,19 +27,12 @@ type SyncByCategoryBody struct {
 
 // SyncByCategory syncs orders by category from platform APIs
 // This is called by frontend BEFORE calling GET /orders/:category
-// @Summary Sync orders by category
-// @Tags Orders
-// @Param category path string true "Order category"
-// @Param days query int false "Days to sync" default(7)
-// @Param platforms query []string false "Platforms to sync"
-// @Success 200 {object} map[string]interface{}
-// @Router /api/orders/sync/{category} [post]
 func (h *OrderSyncHandler) SyncByCategory(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant_id",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -53,14 +46,12 @@ func (h *OrderSyncHandler) SyncByCategory(c *gin.Context) {
 		return
 	}
 
-	// Parse days from query or body
 	days := 7
 	if daysQuery := c.Query("days"); daysQuery != "" {
 		if parsed, err := strconv.Atoi(daysQuery); err == nil {
 			days = parsed
 		}
 	}
-	// Also try to parse from body
 	var body SyncByCategoryBody
 	if err := c.ShouldBindJSON(&body); err == nil && body.Days > 0 {
 		days = body.Days
@@ -91,7 +82,6 @@ func (h *OrderSyncHandler) SyncByCategory(c *gin.Context) {
 		return
 	}
 
-	// If service not initialized, return partial success indicating sync requires platform config
 	if !service.IsInitialized() {
 		orderSyncLogger.WithTenantID(tenantID).Warn("Order sync service not initialized - OAuth configuration required")
 		c.JSON(http.StatusOK, gin.H{
@@ -120,7 +110,6 @@ func (h *OrderSyncHandler) SyncByCategory(c *gin.Context) {
 		return
 	}
 
-	// Log sync results
 	for platform, result := range results {
 		orderSyncLogger.WithTenantID(tenantID).WithFields(map[string]interface{}{
 			"platform": platform,
@@ -164,7 +153,7 @@ func (h *OrderSyncHandler) SyncPlatformOrders(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant_id",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -190,7 +179,6 @@ func (h *OrderSyncHandler) SyncPlatformOrders(c *gin.Context) {
 		return
 	}
 
-	// If service not initialized, return response indicating platform needs OAuth config
 	if !service.IsInitialized() {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -207,106 +195,6 @@ func (h *OrderSyncHandler) SyncPlatformOrders(c *gin.Context) {
 		sync.PlatformType(platform),
 		sync.OrderStatusCategory(category),
 		days,
-	)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    orders,
-		"count":   len(orders),
-	})
-}
-
-// GetOrdersByCategory gets orders by category
-func (h *OrderSyncHandler) GetOrdersByCategory(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"error":   "Missing tenant_id",
-		})
-		return
-	}
-
-	category := c.Param("category")
-	platformStr := c.Query("platform")
-
-	service, err := sync.GetOrderSyncService(tenantID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
-		return
-	}
-
-	var platform *sync.PlatformType
-	if platformStr != "" {
-		p := sync.PlatformType(platformStr)
-		platform = &p
-	}
-
-	orders, err := service.GetOrdersByCategory(
-		c.Request.Context(),
-		sync.OrderStatusCategory(category),
-		platform,
-	)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    orders,
-		"count":   len(orders),
-	})
-}
-
-// GetOrderDetails gets detailed order information
-func (h *OrderSyncHandler) GetOrderDetails(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"error":   "Missing tenant_id",
-		})
-		return
-	}
-
-	platform := c.Param("platform")
-	orderIDs := c.QueryArray("orderIds")
-
-	if platform == "" || len(orderIDs) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "Missing platform or order IDs",
-		})
-		return
-	}
-
-	service, err := sync.GetOrderSyncService(tenantID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
-		return
-	}
-
-	orders, err := service.GetOrderDetails(
-		c.Request.Context(),
-		sync.PlatformType(platform),
-		orderIDs,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

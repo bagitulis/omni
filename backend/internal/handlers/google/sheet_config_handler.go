@@ -36,7 +36,7 @@ func (h *SheetConfigHandler) SaveConfig(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -78,7 +78,7 @@ func (h *SheetConfigHandler) ListConfigs(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -106,7 +106,7 @@ func (h *SheetConfigHandler) DeleteConfig(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}

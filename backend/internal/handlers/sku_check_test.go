@@ -33,7 +33,7 @@ func TestSKUCheckHandler_CheckSingle_MissingTenant(t *testing.T) {
 
 	var resp map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "tenant ID required")
+	assert.Contains(t, resp["error"], "Missing tenantId")
 }
 
 // TestSKUCheckHandler_CheckSingle_MissingSKU tests CheckSingle without SKU

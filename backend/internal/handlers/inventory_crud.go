@@ -22,7 +22,7 @@ import (
 func (h *InventoryHandler) GetRecordByKey(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -75,7 +75,7 @@ func (h *InventoryHandler) GetRecordByKey(c *gin.Context) {
 func (h *InventoryHandler) UpdateRecordByKey(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -136,7 +136,7 @@ func (h *InventoryHandler) UpdateRecordByKey(c *gin.Context) {
 func (h *InventoryHandler) CreateRecord(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -201,7 +201,7 @@ func (h *InventoryHandler) CreateRecord(c *gin.Context) {
 func (h *InventoryHandler) DeleteRecordByKey(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 

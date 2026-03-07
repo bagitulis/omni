@@ -35,7 +35,7 @@ func TestInventoryHandler_UpdateConfig(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "Missing tenant_id")
+		assert.Contains(t, resp["error"], "Missing tenantId")
 	})
 
 	t.Run("invalid selected columns type returns 400", func(t *testing.T) {

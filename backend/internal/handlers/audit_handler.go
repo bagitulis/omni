@@ -25,7 +25,7 @@ func (h *AuditHandler) GetAuditLogs(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-		"error":   "Missing tenant_id - authentication required",
+		"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -96,7 +96,7 @@ func (h *AuditHandler) GetAuditLogsByAction(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenant_id - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -136,7 +136,7 @@ func (h *AuditHandler) GetAuditLogsByDateRange(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-		"error":   "Missing tenant_id - authentication required",
+		"error":   "Missing tenantId",
 		})
 		return
 	}

@@ -30,7 +30,7 @@ type InventoryColumn struct {
 func (h *InventoryHandler) GetStats(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
 		return
 	}
 
@@ -113,7 +113,7 @@ func (h *InventoryHandler) GetPlatformStatus(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "tenant ID required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}

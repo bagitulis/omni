@@ -7,6 +7,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/omni/backend/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -278,19 +279,49 @@ func (s *GlobalConfigService) HasLazadaCredentials() bool {
 	return creds.AppKey != "" && creds.AppSecret != ""
 }
 
-// decrypt decrypts value using Fernet encryption (placeholder)
+// decrypt decrypts value using Fernet encryption
 func decrypt(encryptedValue string) (string, error) {
-	// For now, return as-is if it looks like base64
-	// TODO: Implement proper Fernet decryption
-	decoded, err := base64.StdEncoding.DecodeString(encryptedValue)
+	encKey := os.Getenv("ENCRYPTION_KEY")
+	if encKey == "" {
+		// No encryption key configured — try base64 decode as fallback
+		decoded, err := base64.StdEncoding.DecodeString(encryptedValue)
+		if err != nil {
+			return encryptedValue, nil
+		}
+		return string(decoded), nil
+	}
+
+	encService, err := utils.NewEncryptionService(encKey)
 	if err != nil {
+		log.Printf("Warning: failed to init encryption service: %v, returning raw value", err)
 		return encryptedValue, nil
 	}
-	return string(decoded), nil
+
+	decrypted, err := encService.Decrypt(encryptedValue)
+	if err != nil {
+		// May be legacy base64-only value — try base64 decode
+		decoded, b64Err := base64.StdEncoding.DecodeString(encryptedValue)
+		if b64Err != nil {
+			return encryptedValue, nil
+		}
+		return string(decoded), nil
+	}
+	return decrypted, nil
 }
 
-// encryptValue encrypts a value (placeholder)
+// encryptValue encrypts a value using Fernet encryption
 func encryptValue(value string) (string, error) {
-	// TODO: Implement proper Fernet encryption
-	return base64.StdEncoding.EncodeToString([]byte(value)), nil
+	encKey := os.Getenv("ENCRYPTION_KEY")
+	if encKey == "" {
+		// No encryption key configured — fall back to base64
+		log.Printf("Warning: ENCRYPTION_KEY not set, using base64 encoding (not secure)")
+		return base64.StdEncoding.EncodeToString([]byte(value)), nil
+	}
+
+	encService, err := utils.NewEncryptionService(encKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to init encryption service: %w", err)
+	}
+
+	return encService.Encrypt(value)
 }

@@ -28,7 +28,7 @@ func (h *SpreadsheetRegistryHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 func (h *SpreadsheetRegistryHandler) List(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -57,7 +57,7 @@ func (h *SpreadsheetRegistryHandler) List(c *gin.Context) {
 func (h *SpreadsheetRegistryHandler) Get(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -91,7 +91,7 @@ func (h *SpreadsheetRegistryHandler) Get(c *gin.Context) {
 func (h *SpreadsheetRegistryHandler) Register(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -121,7 +121,7 @@ func (h *SpreadsheetRegistryHandler) Register(c *gin.Context) {
 func (h *SpreadsheetRegistryHandler) Update(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -161,7 +161,7 @@ func (h *SpreadsheetRegistryHandler) Update(c *gin.Context) {
 func (h *SpreadsheetRegistryHandler) Delete(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 
@@ -190,7 +190,7 @@ func (h *SpreadsheetRegistryHandler) Delete(c *gin.Context) {
 func (h *SpreadsheetRegistryHandler) MarkSynced(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "tenant ID required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
 		return
 	}
 

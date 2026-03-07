@@ -70,7 +70,7 @@ type RefreshImagesRequest struct {
 func (h *SyncHandler) Sync(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
@@ -147,7 +147,7 @@ func (h *SyncHandler) Sync(c *gin.Context) {
 func (h *SyncHandler) GetSyncStatus(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
@@ -189,7 +189,7 @@ func (h *SyncHandler) GetSyncStatus(c *gin.Context) {
 func (h *SyncHandler) BackfillImages(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
@@ -224,7 +224,7 @@ func (h *SyncHandler) BackfillImages(c *gin.Context) {
 			Msg("Failed to backfill master product images")
 
 		if errors.Is(err, masterProductService.ErrTenantIDRequired) {
-			c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+			c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 			return
 		}
 
@@ -249,7 +249,7 @@ func (h *SyncHandler) BackfillImages(c *gin.Context) {
 func (h *SyncHandler) RefreshProductImages(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
@@ -287,7 +287,7 @@ func (h *SyncHandler) RefreshProductImages(c *gin.Context) {
 			return
 		}
 		if errors.Is(err, masterProductService.ErrTenantIDRequired) {
-			c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+			c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 			return
 		}
 

@@ -31,7 +31,7 @@ func (h *ShippingFeeHandler) ProcessShippingFee(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -98,7 +98,7 @@ func (h *ShippingFeeHandler) ExportShippingFee(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}
@@ -178,7 +178,7 @@ func (h *ShippingFeeHandler) ExportToSheets(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId - authentication required",
+			"error":   "Missing tenantId",
 		})
 		return
 	}

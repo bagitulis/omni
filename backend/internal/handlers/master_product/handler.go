@@ -31,7 +31,7 @@ func NewHandler(basePath string) *Handler {
 func (h *Handler) List(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
@@ -75,7 +75,7 @@ func (h *Handler) List(c *gin.Context) {
 			Msg("Failed to list master products")
 
 		if errors.Is(err, masterProductService.ErrTenantIDRequired) {
-			c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+			c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 			return
 		}
 
@@ -95,7 +95,7 @@ func (h *Handler) List(c *gin.Context) {
 func (h *Handler) GetByID(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
@@ -126,7 +126,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 			return
 		}
 		if errors.Is(err, masterProductService.ErrTenantIDRequired) {
-			c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+			c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 			return
 		}
 
@@ -142,7 +142,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 func (h *Handler) Create(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
@@ -193,7 +193,7 @@ func (h *Handler) Create(c *gin.Context) {
 			return
 		}
 		if errors.Is(err, masterProductService.ErrTenantIDRequired) {
-			c.JSON(http.StatusUnauthorized, response.Error("Missing tenant ID"))
+			c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 			return
 		}
 
