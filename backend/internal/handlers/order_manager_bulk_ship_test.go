@@ -212,8 +212,8 @@ func TestBulkShipOrders_LazadaPlatform(t *testing.T) {
 	assert.Contains(t, data, "failed")
 }
 
-// TestBulkShipOrders_DefaultPlatformIsShopee verifies that omitting platform defaults to shopee.
-func TestBulkShipOrders_DefaultPlatformIsShopee(t *testing.T) {
+// TestBulkShipOrders_MissingPlatformReturns400 verifies that omitting platform returns 400.
+func TestBulkShipOrders_MissingPlatformReturns400(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
@@ -225,18 +225,18 @@ func TestBulkShipOrders_DefaultPlatformIsShopee(t *testing.T) {
 	handler := NewOrderManagerHandler("./data")
 	r.POST("/api/orders/bulk-ship", handler.BulkShipOrders)
 
-	// No "platform" field — should default to shopee
+	// No "platform" field — should return 400 (platform is now required)
 	body := `{"order_sns":["ORDER-001"]}`
 	req, _ := http.NewRequest("POST", "/api/orders/bulk-ship", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	// Should reach shopee branch and return 200 (fails gracefully without real credentials)
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
-	assert.True(t, resp["success"].(bool))
+	assert.False(t, resp["success"].(bool))
+	assert.Contains(t, resp["error"], "platform is required")
 }

@@ -30,10 +30,15 @@ export async function getShopeeAdsData(params?: ShopeeAdsDataParams) {
     items: ShopeeAdsProductData[];
     pagination: AdsPagination;
   }>("/analytics/shopee-ads/data", { params });
+  // Backend returns data as array directly, not {items: [...]} — handle both shapes
+  const rawData = response.data;
+  const items = Array.isArray(rawData)
+    ? rawData
+    : (rawData as Record<string, unknown>)?.items ?? [];
   return {
     success: response.success,
-    data: response.data?.items ?? (response.data as unknown as ShopeeAdsProductData[]) ?? [],
-    pagination: response.data?.pagination ?? { total: 0, limit: 50, offset: 0 },
+    data: items as ShopeeAdsProductData[],
+    pagination: (rawData as Record<string, unknown>)?.pagination as AdsPagination ?? { total: 0, limit: 50, offset: 0 },
   };
 }
 
@@ -60,10 +65,15 @@ export async function getTiktokAdsData(params?: TiktokAdsDataParams) {
     items: TiktokAdsCreativeData[];
     pagination: AdsPagination;
   }>("/analytics/tiktok-ads/data", { params });
+  // Backend returns data as array directly, not {items: [...]} — handle both shapes
+  const rawData = response.data;
+  const items = Array.isArray(rawData)
+    ? rawData
+    : (rawData as Record<string, unknown>)?.items ?? [];
   return {
     success: response.success,
-    data: response.data?.items ?? (response.data as unknown as TiktokAdsCreativeData[]) ?? [],
-    pagination: response.data?.pagination ?? { total: 0, limit: 50, offset: 0 },
+    data: items as TiktokAdsCreativeData[],
+    pagination: (rawData as Record<string, unknown>)?.pagination as AdsPagination ?? { total: 0, limit: 50, offset: 0 },
   };
 }
 

@@ -11,16 +11,6 @@ import (
 
 var startTime = time.Now()
 
-// HealthResponse represents basic health check response
-type HealthResponse struct {
-	Status    string            `json:"status"`
-	Timestamp string            `json:"timestamp"`
-	Uptime    string            `json:"uptime"`
-	Version   string            `json:"version"`
-	GoVersion string            `json:"go_version"`
-	Services  map[string]string `json:"services"`
-}
-
 // DetailedHealthResponse represents detailed health check response
 type DetailedHealthResponse struct {
 	Status     string                     `json:"status"`

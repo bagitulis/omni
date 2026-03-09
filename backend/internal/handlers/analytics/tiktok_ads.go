@@ -90,14 +90,20 @@ func (h *TiktokAdsHandler) GetData(c *gin.Context) {
 
 	// Count total
 	var total int64
-	query.Count(&total)
+	if result := query.Count(&total); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to count records"))
+		return
+	}
 
 	// Get data with pagination
 	var creatives []models.TiktokAdsCreativeData
-	query.Order(orderBy + " " + orderDir).
+	if result := query.Order(orderBy + " " + orderDir).
 		Offset(offset).
 		Limit(limit).
-		Find(&creatives)
+		Find(&creatives); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to query records"))
+		return
+	}
 
 	// Transform to response format
 	data := make([]gin.H, 0, len(creatives))

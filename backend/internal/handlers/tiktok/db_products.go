@@ -58,7 +58,11 @@ func (h *DBProductHandler) GetDBProducts(c *gin.Context) {
 		limit = 1000
 	}
 
-	products, total := h.getMasterProducts(db, offset, limit, tenantID)
+	products, total, err := h.getMasterProducts(db, offset, limit, tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database query failed: "+err.Error()))
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success":  true,
@@ -87,7 +91,11 @@ func (h *DBProductHandler) GetMasterProducts(c *gin.Context) {
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "100000"))
 
-	products, total := h.getMasterProducts(db, offset, limit, tenantID)
+	products, total, err := h.getMasterProducts(db, offset, limit, tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database query failed: "+err.Error()))
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success":  true,
@@ -102,17 +110,23 @@ func (h *DBProductHandler) GetMasterProducts(c *gin.Context) {
 // getMasterProducts returns flattened product-SKU rows
 // NOTE: tenant_id filter removed - we use schema isolation (per-tenant schema)
 // so db connection is already scoped to tenant
-func (h *DBProductHandler) getMasterProducts(db *gorm.DB, offset, limit int, tenantID string) ([]MasterProductItem, int64) {
+func (h *DBProductHandler) getMasterProducts(db *gorm.DB, offset, limit int, tenantID string) ([]MasterProductItem, int64, error) {
 	var total int64
-	db.Model(&models.TiktokSku{}).Count(&total)
+	if result := db.Model(&models.TiktokSku{}).Count(&total); result.Error != nil {
+		return nil, 0, result.Error
+	}
 
-	// Query products (no tenant_id filter - schema isolation handles this)
-	var products []models.TiktokProduct
-	db.Find(&products)
-
-	// Query SKUs with pagination
+	// Query SKUs with pagination first to know which products we need
 	var skus []models.TiktokSku
-	db.Offset(offset).Limit(limit).Find(&skus)
+	if result := db.Offset(offset).Limit(limit).Find(&skus); result.Error != nil {
+		return nil, 0, result.Error
+	}
+
+	// Query products — limit to those referenced by SKUs for efficiency
+	var products []models.TiktokProduct
+	if result := db.Find(&products); result.Error != nil {
+		return nil, 0, result.Error
+	}
 
 	// Build product map by ID
 	productMap := make(map[uint]models.TiktokProduct)
@@ -141,7 +155,7 @@ func (h *DBProductHandler) getMasterProducts(db *gorm.DB, offset, limit int, ten
 		result = append(result, item)
 	}
 
-	return result, total
+	return result, total, nil
 }
 
 // GetProductList handles GET /api/tiktok/db/products/list (alias)
@@ -210,8 +224,14 @@ func (h *DBProductHandler) GetProductsByStatus(c *gin.Context) {
 	}
 	var products []models.TiktokProduct
 	var total int64
-	db.Model(&models.TiktokProduct{}).Where("status = ?", status).Count(&total)
-	db.Where("status = ?", status).Offset(offset).Limit(limit).Find(&products)
+	if result := db.Model(&models.TiktokProduct{}).Where("status = ?", status).Count(&total); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to count products"))
+		return
+	}
+	if result := db.Where("status = ?", status).Offset(offset).Limit(limit).Find(&products); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to query products"))
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "products": products, "total": total, "count": len(products)})
 }
 
@@ -255,9 +275,18 @@ func (h *DBProductHandler) GetStatistics(c *gin.Context) {
 	var totalProducts int64
 	var activeProducts int64
 	var inactiveProducts int64
-	db.Model(&models.TiktokProduct{}).Count(&totalProducts)
-	db.Model(&models.TiktokProduct{}).Where("status = ?", "ACTIVATE").Count(&activeProducts)
-	db.Model(&models.TiktokProduct{}).Where("status != ?", "ACTIVATE").Count(&inactiveProducts)
+	if result := db.Model(&models.TiktokProduct{}).Count(&totalProducts); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to query statistics"))
+		return
+	}
+	if result := db.Model(&models.TiktokProduct{}).Where("status = ?", "ACTIVATE").Count(&activeProducts); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to query statistics"))
+		return
+	}
+	if result := db.Model(&models.TiktokProduct{}).Where("status != ?", "ACTIVATE").Count(&inactiveProducts); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to query statistics"))
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{

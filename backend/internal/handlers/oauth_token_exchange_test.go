@@ -62,8 +62,9 @@ func TestTiktokTokenResponse_Structure(t *testing.T) {
 	assert.Equal(t, "Test Shop", resp.Data.SellerName)
 }
 
-// TestExchangeShopeeToken_NoOp tests that exchangeShopeeToken is a no-op placeholder
-func TestExchangeShopeeToken_NoOp(t *testing.T) {
+// TestExchangeShopeeToken_NoConfigRepo tests that exchangeShopeeToken fails properly
+// when credentials repository is not configured
+func TestExchangeShopeeToken_NoConfigRepo(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	handler := NewOAuthHandler(nil, nil, nil, "http://localhost:3000")
@@ -73,9 +74,10 @@ func TestExchangeShopeeToken_NoOp(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodGet, "/test", nil)
 
-	// exchangeShopeeToken is a placeholder - should return nil
-	err := handler.exchangeShopeeToken(c, "tenant-id", "code", "state")
-	assert.NoError(t, err)
+	// exchangeShopeeToken should fail without configRepo — no false-positive success
+	err := handler.exchangeShopeeToken(c, "tenant-id", "code", "12345")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get Shopee credentials")
 }
 
 // TestOAuthHandler_DoLazadaTokenRequest_InvalidURL tests invalid URL handling

@@ -59,7 +59,11 @@ func (h *DBProductHandler) GetDBProducts(c *gin.Context) {
 		limit = 10000
 	}
 
-	products, total := h.getFlattenedSkuRows(db, offset, limit)
+	products, total, err := h.getFlattenedSkuRows(db, offset, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database query failed: "+err.Error()))
+		return
+	}
 
 	log.Printf("[Shopee DB] GetDBProducts: found %d rows (total: %d)", len(products), total)
 
@@ -206,12 +210,16 @@ func (h *DBProductHandler) GetMasterProducts(c *gin.Context) {
 }
 
 // getFlattenedSkuRows returns flattened SKU rows for frontend display
-func (h *DBProductHandler) getFlattenedSkuRows(db *gorm.DB, offset, limit int) ([]FlattenedSkuRow, int64) {
+func (h *DBProductHandler) getFlattenedSkuRows(db *gorm.DB, offset, limit int) ([]FlattenedSkuRow, int64, error) {
 	var total int64
-	db.Model(&models.ShopeeSku{}).Count(&total)
+	if result := db.Model(&models.ShopeeSku{}).Count(&total); result.Error != nil {
+		return nil, 0, result.Error
+	}
 
 	var products []models.ShopeeProduct
-	db.Find(&products)
+	if result := db.Find(&products); result.Error != nil {
+		return nil, 0, result.Error
+	}
 
 	productMap := make(map[int64]models.ShopeeProduct)
 	for _, p := range products {
@@ -219,7 +227,9 @@ func (h *DBProductHandler) getFlattenedSkuRows(db *gorm.DB, offset, limit int) (
 	}
 
 	var skus []models.ShopeeSku
-	db.Order("updated_at DESC").Offset(offset).Limit(limit).Find(&skus)
+	if result := db.Order("updated_at DESC").Offset(offset).Limit(limit).Find(&skus); result.Error != nil {
+		return nil, 0, result.Error
+	}
 
 	result := make([]FlattenedSkuRow, 0, len(skus))
 	for _, sku := range skus {
@@ -243,5 +253,5 @@ func (h *DBProductHandler) getFlattenedSkuRows(db *gorm.DB, offset, limit int) (
 		result = append(result, row)
 	}
 
-	return result, total
+	return result, total, nil
 }

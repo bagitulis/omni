@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -43,7 +44,8 @@ func (h *OrderManagerHandler) BulkShipOrders(c *gin.Context) {
 
 	platform := req.Platform
 	if platform == "" {
-		platform = "shopee"
+		c.JSON(http.StatusBadRequest, response.Error("platform is required"))
+		return
 	}
 
 	var shipped []string
@@ -96,7 +98,7 @@ func (h *OrderManagerHandler) bulkShipShopee(tenantID string, orderSNs []string)
 		}
 
 		if err := h.updateOrderStatus(tenantID, orderSN, "SHIPPED", "shopee"); err != nil {
-			_ = err
+			log.Printf("[WARN] [BulkShip/Shopee] Local status update failed for %s: %v (marketplace action succeeded)", orderSN, err)
 		}
 
 		shipped = append(shipped, orderSN)
@@ -136,7 +138,7 @@ func (h *OrderManagerHandler) bulkShipTikTok(tenantID string, orderSNs []string)
 		}
 
 		if err := h.updateOrderStatus(tenantID, orderSN, "AWAITING_COLLECTION", "tiktok"); err != nil {
-			_ = err
+			log.Printf("[WARN] [BulkShip/TikTok] Local status update failed for %s: %v (marketplace action succeeded)", orderSN, err)
 		}
 		shipped = append(shipped, orderSN)
 	}
@@ -205,7 +207,7 @@ func (h *OrderManagerHandler) bulkShipLazada(tenantID string, orderSNs []string)
 		}
 
 		if err := h.updateOrderStatus(tenantID, orderSN, "ready_to_ship", "lazada"); err != nil {
-			_ = err
+			log.Printf("[WARN] [BulkShip/Lazada] Local status update failed for %s: %v (marketplace action succeeded)", orderSN, err)
 		}
 		shipped = append(shipped, orderSN)
 	}

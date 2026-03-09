@@ -1,6 +1,7 @@
 package shopee
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -66,8 +67,7 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 
 	// Update local database
 	if err := h.updateOrderStatus(tenantID, req.OrderSN, "SHIPPED"); err != nil {
-		// Log but don't fail - order is already shipped on Shopee
-		_ = err
+		log.Printf("[WARN] [Shopee/ShipOrder] Local status update failed for %s: %v", req.OrderSN, err)
 	}
 
 	c.JSON(http.StatusOK, response.Success(map[string]interface{}{
@@ -112,7 +112,7 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 
 	// Update local database
 	if err := h.updateOrderStatus(tenantID, req.OrderSN, "CANCELLED"); err != nil {
-		_ = err
+		log.Printf("[WARN] [Shopee/CancelOrder] Local status update failed for %s: %v", req.OrderSN, err)
 	}
 
 	c.JSON(http.StatusOK, response.Success(map[string]interface{}{

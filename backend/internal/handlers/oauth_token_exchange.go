@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -19,256 +18,125 @@ import (
 )
 
 // exchangeShopeeToken exchanges Shopee auth code for tokens
-func (h *OAuthHandler) exchangeShopeeToken(_ *gin.Context, _, _, _ string) error {
-	// Token exchange implementation will be done with HTTP client
-	// This is a placeholder - actual implementation requires HTTP calls
-	return nil
-}
-
-// exchangeLazadaToken exchanges Lazada auth code for tokens
-func (h *OAuthHandler) exchangeLazadaToken(c *gin.Context, tenantID, code string) error {
+func (h *OAuthHandler) exchangeShopeeToken(c *gin.Context, tenantID, code, shopIDStr string) error {
 	ctx := c.Request.Context()
 
-	// Get Lazada credentials
-	creds, err := h.configRepo.GetLazadaCredentials(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get Lazada credentials: %w", err)
+	// Validate callback params
+	if code == "" {
+		return fmt.Errorf("authorization code is required")
+	}
+	if shopIDStr == "" {
+		return fmt.Errorf("shop_id is required")
 	}
 
-	callbackURL := fmt.Sprintf("%s/api/platform-auth/callback/lazada", h.getBackendURL(c))
-	lazadaService := oauth.NewLazadaOAuthService(creds.AppKey, creds.AppSecret, callbackURL, false)
+	// Get Shopee credentials
+	if h.configRepo == nil {
+		return fmt.Errorf("failed to get Shopee credentials: config repository not configured")
+	}
+	creds, err := h.configRepo.GetShopeeCredentials(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get Shopee credentials: %w", err)
+	}
+
+	callbackURL := fmt.Sprintf("%s/api/platform-auth/callback/shopee", h.getBackendURL(c))
+	shopeeService := oauth.NewShopeeOAuthService(creds.PartnerID, creds.PartnerKey, callbackURL, false)
+
+	// Parse shop ID
+	shopID, err := shopeeService.ParseShopID(shopIDStr)
+	if err != nil {
+		return fmt.Errorf("invalid shop_id: %w", err)
+	}
 
 	// Build token request
-	tokenURL, params := lazadaService.BuildTokenRequest(code)
+	tokenURL := shopeeService.GetTokenURL()
+	reqBody := shopeeService.BuildTokenRequest(code, shopID)
 
 	// Make HTTP request and parse response
-	tokenResp, err := h.doLazadaTokenRequest(tokenURL, params)
+	tokenResp, err := h.doShopeeTokenRequest(tokenURL, reqBody)
 	if err != nil {
 		return err
 	}
 
 	// Save tokens to tenant database
-	return h.saveLazadaTokens(ctx, tenantID, tokenResp)
+	return h.saveShopeeTokens(ctx, tenantID, shopID, tokenResp)
 }
 
-// doLazadaTokenRequest performs the HTTP request to Lazada token endpoint
-func (h *OAuthHandler) doLazadaTokenRequest(tokenURL string, params map[string]string) (*LazadaTokenResponse, error) {
-	// Build form data
-	formData := url.Values{}
-	for k, v := range params {
-		formData.Set(k, v)
+// doShopeeTokenRequest performs the HTTP request to Shopee token endpoint
+func (h *OAuthHandler) doShopeeTokenRequest(tokenURL string, body map[string]interface{}) (*ShopeeTokenResponse, error) {
+	bodyJSON, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
-	log.Printf("[Lazada OAuth] Exchanging code for token at: %s", tokenURL)
+	log.Printf("[Shopee OAuth] Exchanging code for token at: %s", tokenURL)
 
-	// Make HTTP request
-	resp, err := http.Post(tokenURL, "application/x-www-form-urlencoded", strings.NewReader(formData.Encode()))
+	resp, err := http.Post(tokenURL, "application/json", strings.NewReader(string(bodyJSON)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to exchange token: %w", err)
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
-	log.Printf("[Lazada OAuth] Token response status: %d, body: %s", resp.StatusCode, string(body))
+	log.Printf("[Shopee OAuth] Token response status: %d, body_size: %d bytes", resp.StatusCode, len(respBody))
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("token exchange failed: status %d, body: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("token exchange failed: status %d", resp.StatusCode)
 	}
 
-	// Parse response
-	var tokenResp LazadaTokenResponse
-	if err := json.Unmarshal(body, &tokenResp); err != nil {
+	var tokenResp ShopeeTokenResponse
+	if err := json.Unmarshal(respBody, &tokenResp); err != nil {
 		return nil, fmt.Errorf("failed to parse token response: %w", err)
+	}
+
+	if tokenResp.Error != "" {
+		return nil, fmt.Errorf("shopee token error: %s - %s", tokenResp.Error, tokenResp.Message)
 	}
 
 	if tokenResp.AccessToken == "" {
-		return nil, fmt.Errorf("no access token in response: %s", string(body))
+		return nil, fmt.Errorf("no access token in response")
 	}
 
 	return &tokenResp, nil
 }
 
-// saveLazadaTokens saves Lazada tokens to the tenant database
-func (h *OAuthHandler) saveLazadaTokens(ctx context.Context, tenantID string, tokenResp *LazadaTokenResponse) error {
-	// Get tenant-specific database
+// saveShopeeTokens saves Shopee tokens to the tenant database
+func (h *OAuthHandler) saveShopeeTokens(ctx context.Context, tenantID string, shopID int64, tokenResp *ShopeeTokenResponse) error {
 	tenantDB, err := config.GetTenantDB(tenantID, h.basePath)
 	if err != nil {
 		return fmt.Errorf("failed to get tenant database: %w", err)
 	}
 
-	// Use TenantPlatformConfigRepository for key-value storage
 	tenantRepo := repositories.NewTenantPlatformConfigRepository(tenantDB)
 
-	// Lazada API returns expiry as relative seconds from NOW
-	// Example: expires_in: 604800 (7 days in seconds)
-	//          refresh_expires_in: 2592000 (30 days in seconds)
-	log.Printf("[Lazada OAuth] expires_in: %d seconds (%d days)", tokenResp.ExpiresIn, tokenResp.ExpiresIn/86400)
-	log.Printf("[Lazada OAuth] refresh_expires_in: %d seconds (%d days)", tokenResp.RefreshExpiresIn, tokenResp.RefreshExpiresIn/86400)
+	// Shopee expire_in is relative seconds (typically 14400 = 4 hours)
+	expiresIn := tokenResp.ExpireIn
+	if expiresIn <= 0 {
+		expiresIn = 14400 // Default 4 hours
+		log.Printf("[Shopee OAuth] expire_in not provided, using default: %d seconds", expiresIn)
+	}
+	// Shopee refresh token valid for 7 days per API documentation
+	refreshExpiresIn := int64(7 * 24 * 60 * 60)
 
-	// Update tokens using the correct key-value pattern
-	if err := tenantRepo.UpdateTokens(ctx, models.PlatformLazada, tokenResp.AccessToken, tokenResp.RefreshToken, tokenResp.ExpiresIn, tokenResp.RefreshExpiresIn); err != nil {
+	log.Printf("[Shopee OAuth] expire_in: %d seconds (%d hours)", expiresIn, expiresIn/3600)
+
+	if err := tenantRepo.UpdateTokens(ctx, models.PlatformShopee, tokenResp.AccessToken, tokenResp.RefreshToken, expiresIn, refreshExpiresIn); err != nil {
 		return fmt.Errorf("failed to save tokens: %w", err)
 	}
 
-	// Save country/region
-	if tokenResp.Country != "" {
-		if err := tenantRepo.SetConfig(ctx, models.PlatformLazada, "country", tokenResp.Country, false); err != nil {
-			log.Printf("[Lazada OAuth] Warning: failed to save country: %v", err)
-		}
+	// Save shop_id
+	if err := tenantRepo.SetConfig(ctx, models.PlatformShopee, "shopId", fmt.Sprintf("%d", shopID), false); err != nil {
+		log.Printf("[Shopee OAuth] Warning: failed to save shopId: %v", err)
 	}
 
 	// Save last_refresh timestamp
-	if err := tenantRepo.SetConfig(ctx, models.PlatformLazada, "last_refresh", time.Now().Format(time.RFC3339), false); err != nil {
-		log.Printf("[Lazada OAuth] Warning: failed to save last_refresh: %v", err)
+	if err := tenantRepo.SetConfig(ctx, models.PlatformShopee, "last_refresh", time.Now().Format(time.RFC3339), false); err != nil {
+		log.Printf("[Shopee OAuth] Warning: failed to save last_refresh: %v", err)
 	}
 
-	log.Printf("[Lazada OAuth] Successfully saved tokens for tenant %s", tenantID)
-	return nil
-}
-
-// exchangeTiktokToken exchanges TikTok auth code for tokens
-func (h *OAuthHandler) exchangeTiktokToken(c *gin.Context, tenantID, code string) error {
-	ctx := c.Request.Context()
-
-	// Get TikTok credentials
-	creds, err := h.configRepo.GetTiktokCredentials(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get TikTok credentials: %w", err)
-	}
-
-	tiktokService := oauth.NewTiktokOAuthService(creds.AppKey, creds.AppSecret, "", false)
-
-	// Build token request
-	tokenURL, params := tiktokService.BuildTokenRequest(code)
-
-	// Make HTTP request and parse response
-	tokenResp, err := h.doTiktokTokenRequest(tokenURL, params)
-	if err != nil {
-		return err
-	}
-
-	// Save tokens to tenant database
-	return h.saveTiktokTokens(ctx, tenantID, tokenResp)
-}
-
-// doTiktokTokenRequest performs the HTTP request to TikTok token endpoint
-func (h *OAuthHandler) doTiktokTokenRequest(tokenURL string, params map[string]string) (*TiktokTokenResponse, error) {
-	// Build query string
-	queryParams := url.Values{}
-	for k, v := range params {
-		queryParams.Set(k, v)
-	}
-
-	fullURL := tokenURL + "?" + queryParams.Encode()
-	log.Printf("[TikTok OAuth] Exchanging code for token at: %s", fullURL)
-
-	// Make HTTP GET request (TikTok uses GET for token)
-	resp, err := http.Get(fullURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to exchange token: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	log.Printf("[TikTok OAuth] Token response status: %d, body: %s", resp.StatusCode, string(body))
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("token exchange failed: status %d, body: %s", resp.StatusCode, string(body))
-	}
-
-	// Parse response
-	var tokenResp TiktokTokenResponse
-	if err := json.Unmarshal(body, &tokenResp); err != nil {
-		return nil, fmt.Errorf("failed to parse token response: %w", err)
-	}
-
-	if tokenResp.Code != 0 {
-		return nil, fmt.Errorf("TikTok API error: code=%d, message=%s", tokenResp.Code, tokenResp.Message)
-	}
-
-	if tokenResp.Data.AccessToken == "" {
-		return nil, fmt.Errorf("no access token in response: %s", string(body))
-	}
-
-	return &tokenResp, nil
-}
-
-// saveTiktokTokens saves TikTok tokens to the tenant database
-func (h *OAuthHandler) saveTiktokTokens(ctx context.Context, tenantID string, tokenResp *TiktokTokenResponse) error {
-	// Get tenant-specific database
-	tenantDB, err := config.GetTenantDB(tenantID, h.basePath)
-	if err != nil {
-		return fmt.Errorf("failed to get tenant database: %w", err)
-	}
-
-	// Use TenantPlatformConfigRepository for key-value storage
-	tenantRepo := repositories.NewTenantPlatformConfigRepository(tenantDB)
-
-	// TikTok API returns expiry as relative seconds from NOW (not Unix timestamps)
-	// Example: access_token_expire_in: 604800 (7 days in seconds)
-	//          refresh_token_expire_in: 15552000 (180 days in seconds)
-
-	// Handle access token expiry
-	expiresInSeconds := tokenResp.Data.AccessTokenExpireIn
-	if expiresInSeconds <= 0 {
-		// Default to 7 days if not provided
-		expiresInSeconds = 7 * 24 * 60 * 60
-		log.Printf("[TikTok OAuth] access_token_expire_in not provided, using default: %d seconds (7 days)", expiresInSeconds)
-	} else {
-		log.Printf("[TikTok OAuth] access_token_expire_in: %d seconds (%d days)", expiresInSeconds, expiresInSeconds/86400)
-	}
-
-	// Handle refresh token expiry
-	refreshExpiresInSeconds := tokenResp.Data.RefreshTokenExpireIn
-	nowSec := time.Now().Unix()
-	if refreshExpiresInSeconds > nowSec {
-		// It's a Unix timestamp (e.g. TikTok sentinel 4875922303 = year 2124) — convert to relative seconds
-		refreshExpiresInSeconds = refreshExpiresInSeconds - nowSec
-		log.Printf("[TikTok OAuth] refresh_token_expire_in was Unix timestamp, converted to relative: %d seconds (%d days)", refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
-	}
-	// Cap at 365 days max — guards against bogus far-future sentinel values
-	const maxTiktokRefreshSeconds = int64(365 * 24 * 60 * 60)
-	if refreshExpiresInSeconds <= 0 {
-		// Default to 90 days if not provided
-		refreshExpiresInSeconds = 90 * 24 * 60 * 60
-		log.Printf("[TikTok OAuth] refresh_token_expire_in not provided, using default: %d seconds (90 days)", refreshExpiresInSeconds)
-	} else if refreshExpiresInSeconds > maxTiktokRefreshSeconds {
-		log.Printf("[TikTok OAuth] refresh_token_expire_in %d seconds (%d days) exceeds 365 days cap, capping", refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
-		refreshExpiresInSeconds = maxTiktokRefreshSeconds
-	} else {
-		log.Printf("[TikTok OAuth] refresh_token_expire_in: %d seconds (%d days)", refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
-	}
-
-	// Update tokens with normalized expiry values
-	if err := tenantRepo.UpdateTokens(ctx, models.PlatformTiktok, tokenResp.Data.AccessToken, tokenResp.Data.RefreshToken, expiresInSeconds, refreshExpiresInSeconds); err != nil {
-		return fmt.Errorf("failed to save tokens: %w", err)
-	}
-
-	// Save openId and sellerName
-	if tokenResp.Data.OpenID != "" {
-		if err := tenantRepo.SetConfig(ctx, models.PlatformTiktok, "openId", tokenResp.Data.OpenID, false); err != nil {
-			log.Printf("[TikTok OAuth] Warning: failed to save openId: %v", err)
-		}
-	}
-	if tokenResp.Data.SellerName != "" {
-		if err := tenantRepo.SetConfig(ctx, models.PlatformTiktok, "sellerName", tokenResp.Data.SellerName, false); err != nil {
-			log.Printf("[TikTok OAuth] Warning: failed to save sellerName: %v", err)
-		}
-	}
-
-	// Save last_refresh timestamp
-	if err := tenantRepo.SetConfig(ctx, models.PlatformTiktok, "last_refresh", time.Now().Format(time.RFC3339), false); err != nil {
-		log.Printf("[TikTok OAuth] Warning: failed to save last_refresh: %v", err)
-	}
-
-	log.Printf("[TikTok OAuth] Successfully saved tokens for tenant %s", tenantID)
+	log.Printf("[Shopee OAuth] Successfully saved tokens for tenant %s, shop %d", tenantID, shopID)
 	return nil
 }

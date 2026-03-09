@@ -61,7 +61,11 @@ func (h *DBProductHandler) GetDBProducts(c *gin.Context) {
 		limit = 10000
 	}
 
-	products, total := h.getFlattenedSkuRows(db, offset, limit)
+	products, total, err := h.getFlattenedSkuRows(db, offset, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database query failed: "+err.Error()))
+		return
+	}
 
 	log.Printf("[Lazada DB] GetDBProducts: found %d rows (total: %d)", len(products), total)
 
@@ -84,10 +88,12 @@ func (h *DBProductHandler) GetMasterProducts(c *gin.Context) {
 // getFlattenedSkuRows returns flattened SKU rows for frontend display
 // Each row = 1 SKU with product info, matches frontend columnFields
 // If no SKUs exist, falls back to showing products directly
-func (h *DBProductHandler) getFlattenedSkuRows(db *gorm.DB, offset, limit int) ([]FlattenedSkuRow, int64) {
+func (h *DBProductHandler) getFlattenedSkuRows(db *gorm.DB, offset, limit int) ([]FlattenedSkuRow, int64, error) {
 	// First check if there are any SKUs
 	var skuCount int64
-	db.Model(&models.LazadaSku{}).Count(&skuCount)
+	if result := db.Model(&models.LazadaSku{}).Count(&skuCount); result.Error != nil {
+		return nil, 0, result.Error
+	}
 	log.Printf("[Lazada DB] SKU count: %d", skuCount)
 
 	// If no SKUs, fall back to products directly
@@ -98,7 +104,9 @@ func (h *DBProductHandler) getFlattenedSkuRows(db *gorm.DB, offset, limit int) (
 
 	// Query all products for lookup by ItemID
 	var products []models.LazadaProduct
-	db.Find(&products)
+	if result := db.Find(&products); result.Error != nil {
+		return nil, 0, result.Error
+	}
 
 	// Build product lookup map by ItemID (string)
 	productMap := make(map[string]models.LazadaProduct)
@@ -108,7 +116,9 @@ func (h *DBProductHandler) getFlattenedSkuRows(db *gorm.DB, offset, limit int) (
 
 	// Query SKUs with pagination
 	var skus []models.LazadaSku
-	db.Order("updated_at DESC").Offset(offset).Limit(limit).Find(&skus)
+	if result := db.Order("updated_at DESC").Offset(offset).Limit(limit).Find(&skus); result.Error != nil {
+		return nil, 0, result.Error
+	}
 
 	// Build flattened result
 	result := make([]FlattenedSkuRow, 0, len(skus))
@@ -138,16 +148,20 @@ func (h *DBProductHandler) getFlattenedSkuRows(db *gorm.DB, offset, limit int) (
 		result = append(result, row)
 	}
 
-	return result, skuCount
+	return result, skuCount, nil
 }
 
 // getProductsAsFlattenedRows returns products as flattened rows (fallback when no SKUs)
-func (h *DBProductHandler) getProductsAsFlattenedRows(db *gorm.DB, offset, limit int) ([]FlattenedSkuRow, int64) {
+func (h *DBProductHandler) getProductsAsFlattenedRows(db *gorm.DB, offset, limit int) ([]FlattenedSkuRow, int64, error) {
 	var total int64
-	db.Model(&models.LazadaProduct{}).Count(&total)
+	if result := db.Model(&models.LazadaProduct{}).Count(&total); result.Error != nil {
+		return nil, 0, result.Error
+	}
 
 	var products []models.LazadaProduct
-	db.Order("updated_at DESC").Offset(offset).Limit(limit).Find(&products)
+	if result := db.Order("updated_at DESC").Offset(offset).Limit(limit).Find(&products); result.Error != nil {
+		return nil, 0, result.Error
+	}
 
 	result := make([]FlattenedSkuRow, 0, len(products))
 	for _, p := range products {
@@ -164,5 +178,5 @@ func (h *DBProductHandler) getProductsAsFlattenedRows(db *gorm.DB, offset, limit
 		result = append(result, row)
 	}
 
-	return result, total
+	return result, total, nil
 }

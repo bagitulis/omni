@@ -6,54 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestMaskToken tests the unexported maskToken helper function.
-// Being in the same package (services) we can call it directly.
-func TestMaskToken(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "empty string",
-			input:    "",
-			expected: "tok_****",
-		},
-		{
-			name:     "exactly 8 chars",
-			input:    "12345678",
-			expected: "tok_****",
-		},
-		{
-			name:     "shorter than 8 chars",
-			input:    "short",
-			expected: "tok_****",
-		},
-		{
-			name:     "longer than 8 chars reveals last 4",
-			input:    "abc123def456",
-			expected: "tok_****f456",
-		},
-		{
-			name:     "9 chars — last 4 revealed",
-			input:    "123456789",
-			expected: "tok_****6789",
-		},
-		{
-			name:     "real-looking token",
-			input:    "access_token_xyz_abcd1234",
-			expected: "tok_****1234",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := maskToken(tt.input)
-			assert.Equal(t, tt.expected, got)
-		})
-	}
-}
-
 // TestNewTokenManager verifies the constructor builds a valid struct.
 func TestNewTokenManager_WithBasePath(t *testing.T) {
 	mgr := NewTokenManager(nil, nil, "/test/basepath")

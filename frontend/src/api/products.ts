@@ -31,9 +31,8 @@ export async function getProducts(
   if (params.linked_only === true) cleanParams.linked_only = true;
   if (params.unmapped_only === true) cleanParams.unmapped_only = true;
 
-  // Cast to any to handle the response shape correctly
   // Backend returns { success, data: [...], meta: {...} } which IS ProductListResponse
-  const response = await apiClient.get<unknown>(BASE_PATH, {
+  const response = await apiClient.get<ProductListResponse["data"]>(BASE_PATH, {
     params: cleanParams,
   });
 
@@ -41,7 +40,8 @@ export async function getProducts(
     throw new Error(response.error || "Failed to fetch products");
   }
 
-  return response as ProductListResponse;
+  // Return the full response which matches ProductListResponse shape
+  return response as unknown as ProductListResponse;
 }
 
 export async function getProductById(

@@ -54,19 +54,6 @@ func NewShippingServiceWithCreds(tenantID, dbPath string) *ShippingService {
 	}
 }
 
-// ShippingOption represents a shipping option
-type ShippingOption struct {
-	LogisticID        int64   `json:"logistic_id"`
-	LogisticName      string  `json:"logistic_name"`
-	Enabled           bool    `json:"enabled"`
-	ShippingFeeType   string  `json:"shipping_fee_type"`
-	EstimatedCost     float64 `json:"estimated_cost"`
-	EstimatedDays     int     `json:"estimated_days"`
-	IsFreeShipping    bool    `json:"is_free_shipping"`
-	HasCOD            bool    `json:"has_cod"`
-	TrackingAvailable bool    `json:"tracking_available"`
-}
-
 // ShipmentInfo represents shipment information
 type ShipmentInfo struct {
 	OrderSN          string `json:"order_sn"`

@@ -70,15 +70,11 @@ export function RouteManagementModal({
   }, [open, route, form]);
 
   const handleFinish = (values: Record<string, unknown>) => {
-    // Cast route to unknown first, then to Record<string, unknown> for safe spreading
-    const baseConfig = route
-      ? (route as unknown as Record<string, unknown>)
-      : {};
-    const merged = {
-      ...baseConfig,
-      ...values,
-    };
-    onSave(merged as unknown as RouteConfig);
+    const merged: RouteConfig = {
+      ...(route ?? ({} as Partial<RouteConfig>)),
+      ...(values as Partial<RouteConfig>),
+    } as RouteConfig;
+    onSave(merged);
     onClose();
   };
 
