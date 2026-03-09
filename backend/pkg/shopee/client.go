@@ -171,6 +171,22 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 	return json.Unmarshal(body, result)
 }
 
+// GetItemList fetches product items via Shopee API v2
+// API: GET /api/v2/product/get_item_list
+func (c *Client) GetItemList(offset, pageSize int, itemStatus string) (map[string]interface{}, error) {
+	params := map[string]string{
+		"offset":      strconv.Itoa(offset),
+		"page_size":   strconv.Itoa(pageSize),
+		"item_status": itemStatus,
+	}
+
+	var result map[string]interface{}
+	if err := c.doRequest("GET", "/api/v2/product/get_item_list", params, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 // GetShipmentInfo gets shipment info for an order (stub - implementing interface)
 func (c *Client) GetShipmentInfo(ctx context.Context, orderSN string) (map[string]interface{}, error) {
 	path := "/api/v2/logistics/get_shipment_info"

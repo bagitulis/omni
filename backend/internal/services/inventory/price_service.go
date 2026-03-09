@@ -86,7 +86,8 @@ func (s *PriceService) UpdatePrice(ctx context.Context, sku string, price float6
 		return nil, err
 	}
 
-	// TODO: If platform is specified, sync to that platform via API
+	// Note: Platform sync is handled by PriceUpdateOrchestrator (price_orchestrator.go),
+	// not at this service level. This method only updates the local inventory record.
 
 	return &PriceUpdateResult{
 		SKU:      sku,

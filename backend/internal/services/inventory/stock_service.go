@@ -131,7 +131,8 @@ func (s *StockService) UpdateStock(ctx context.Context, sku string, quantity int
 		return nil, err
 	}
 
-	// TODO: If platform is specified, sync to that platform via API
+	// Note: Platform sync is handled by StockUpdateOrchestrator (stock_orchestrator.go),
+	// not at this service level. This method only updates the local inventory record.
 
 	return &StockUpdateResult{
 		SKU:         sku,
