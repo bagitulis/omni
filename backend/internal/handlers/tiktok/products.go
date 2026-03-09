@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
@@ -91,7 +92,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 
 	client, err := h.getTiktokClient(tenantID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Failed to get TikTok client"))
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get TikTok client: "+err.Error()))
 		return
 	}
 
@@ -102,7 +103,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	}
 
 	if resp.Code != 0 {
-		c.JSON(http.StatusBadRequest, response.Error(fmt.Sprintf("TikTok API error (code %d): %s", resp.Code, resp.Message)))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("tiktok", strconv.Itoa(resp.Code), resp.Message))
 		return
 	}
 
@@ -130,7 +131,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 
 	client, err := h.getTiktokClient(tenantID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Failed to get TikTok client"))
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get TikTok client: "+err.Error()))
 		return
 	}
 
@@ -141,7 +142,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	}
 
 	if resp.Code != 0 {
-		c.JSON(http.StatusBadRequest, response.Error(fmt.Sprintf("TikTok API error (code %d): %s", resp.Code, resp.Message)))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("tiktok", strconv.Itoa(resp.Code), resp.Message))
 		return
 	}
 
@@ -162,7 +163,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 
 	client, err := h.getTiktokClient(tenantID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Failed to get TikTok client"))
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get TikTok client: "+err.Error()))
 		return
 	}
 
@@ -173,7 +174,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	}
 
 	if resp.Code != 0 {
-		c.JSON(http.StatusBadRequest, response.Error(fmt.Sprintf("TikTok API error (code %d): %s", resp.Code, resp.Message)))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("tiktok", strconv.Itoa(resp.Code), resp.Message))
 		return
 	}
 

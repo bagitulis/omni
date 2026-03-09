@@ -47,15 +47,14 @@ func HealthCheck(c *gin.Context) {
 	// Return status at root level to match frontend expectations
 	// Frontend checks: health.status === "healthy"
 	c.JSON(http.StatusOK, gin.H{
-		"success":   true,
-		"status":    "healthy",
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
-		"uptime":    uptime,
-		"version":   "1.0.0",
-		"goVersion": runtime.Version(),
+		"success":    true,
+		"status":     "healthy",
+		"timestamp":  time.Now().UTC().Format(time.RFC3339),
+		"uptime":     uptime,
+		"version":    "1.0.0",
+		"go_version": runtime.Version(),
 		"services": map[string]string{
 			"database": "connected",
-			"cache":    "connected",
 		},
 	})
 }
@@ -147,47 +146,4 @@ func checkDatabaseHealth(basePath string) ComponentHealth {
 		Message:    "Connected and responsive",
 		ResponseMs: time.Since(start).Milliseconds(),
 	}
-}
-
-// StatusCheck handles GET /api/status - mirrors Node.js backend
-// This is a public endpoint that returns connection status
-// If tenant context is provided, it also returns token status for all platforms
-func StatusCheck(c *gin.Context) {
-	now := time.Now()
-	// Format timestamp like Python: "2025-12-20 17:06:03.585025"
-	timestamp := now.Format("2006-01-02 15:04:05.000000")
-
-	// Check if tenant context is available (from header)
-	tenantID := c.GetString("tenantID")
-	if tenantID == "" {
-		tenantID = c.GetHeader("x-tenant-id")
-	}
-
-	// If no tenant, return basic status
-	if tenantID == "" {
-		c.JSON(http.StatusOK, gin.H{
-			"connection_status": "connected",
-			"data": map[string]string{
-				"message": "Backend is running. Provide x-tenant-id header for token status.",
-			},
-			"success":   true,
-			"timestamp": timestamp,
-		})
-		return
-	}
-
-	// Return with platform status placeholder
-	// In full implementation, this would fetch actual token status
-	data := map[string]string{
-		"shopee": "Shopee Token Status:\n  ✅ Backend connected",
-		"lazada": "Lazada Token Status:\n  ✅ Backend connected",
-		"tiktok": "TikTok Token Status:\n  ✅ Backend connected",
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"connection_status": "connected",
-		"data":              data,
-		"success":           true,
-		"timestamp":         timestamp,
-	})
 }

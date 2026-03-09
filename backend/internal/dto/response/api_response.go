@@ -51,3 +51,12 @@ func ErrorWithMessage(err, msg string) APIResponse {
 		Message: msg,
 	}
 }
+
+// ErrorWithDetail creates an error response with a summary error and raw detail
+func ErrorWithDetail(summary string, detail string) APIResponse {
+	return APIResponse{
+		Success: false,
+		Error:   summary,
+		Message: detail,
+	}
+}

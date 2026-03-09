@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/jobs"
 )
@@ -13,13 +14,13 @@ import (
 func (h *JobQueueHandler) GetQueue(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
@@ -44,13 +45,13 @@ func (h *JobQueueHandler) GetQueue(c *gin.Context) {
 func (h *JobQueueHandler) GetMonitor(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
@@ -68,11 +69,11 @@ func (h *JobQueueHandler) GetMonitor(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"currentJob":     status.CurrentJob,
-			"pendingQueue":   status.PendingQueue,
-			"totalPending":   status.TotalPending,
-			"totalCompleted": status.TotalCompleted,
-			"recentHistory":  combinedHistory,
+			"current_job":     status.CurrentJob,
+			"pending_queue":   status.PendingQueue,
+			"total_pending":   status.TotalPending,
+			"total_completed": status.TotalCompleted,
+			"recent_history":  combinedHistory,
 		},
 	})
 }
@@ -81,13 +82,13 @@ func (h *JobQueueHandler) GetMonitor(c *gin.Context) {
 func (h *JobQueueHandler) GetHistoryPaginated(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
@@ -117,7 +118,7 @@ func (h *JobQueueHandler) GetHistoryPaginated(c *gin.Context) {
 	qm := jobs.NewQueueManager(db, tenantID)
 	result, err := qm.GetHistoryPaginated(filter)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
@@ -131,13 +132,13 @@ func (h *JobQueueHandler) GetHistoryPaginated(c *gin.Context) {
 func (h *JobQueueHandler) GetHistoryJobTypes(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
@@ -147,7 +148,7 @@ func (h *JobQueueHandler) GetHistoryJobTypes(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"jobTypes": jobTypes,
+			"job_types": jobTypes,
 		},
 	})
 }
@@ -156,13 +157,13 @@ func (h *JobQueueHandler) GetHistoryJobTypes(c *gin.Context) {
 func (h *JobQueueHandler) ClearHistory(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
@@ -180,13 +181,13 @@ func (h *JobQueueHandler) ClearHistory(c *gin.Context) {
 func (h *JobQueueHandler) CancelJobByJobId(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
@@ -204,13 +205,13 @@ func (h *JobQueueHandler) CancelJobByJobId(c *gin.Context) {
 func (h *JobQueueHandler) ForceCancelJob(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
@@ -219,8 +220,8 @@ func (h *JobQueueHandler) ForceCancelJob(c *gin.Context) {
 	success := qm.CancelJobByStringID(jobID, true)
 
 	c.JSON(http.StatusOK, gin.H{
-		"success":        true,
-		"forceCancelled": success,
+		"success":         true,
+		"force_cancelled": success,
 	})
 }
 
@@ -228,13 +229,13 @@ func (h *JobQueueHandler) ForceCancelJob(c *gin.Context) {
 func (h *JobQueueHandler) CheckTimeout(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
@@ -249,9 +250,9 @@ func (h *JobQueueHandler) CheckTimeout(c *gin.Context) {
 	timedOutJobs := qm.CheckAndTimeoutStuckJobs(timeoutMinutes)
 
 	c.JSON(http.StatusOK, gin.H{
-		"success":        true,
-		"timedOutJobs":   timedOutJobs,
-		"count":          len(timedOutJobs),
-		"timeoutMinutes": timeoutMinutes,
+		"success":         true,
+		"timed_out_jobs":  timedOutJobs,
+		"count":           len(timedOutJobs),
+		"timeout_minutes": timeoutMinutes,
 	})
 }

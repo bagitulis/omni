@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/services/spreadsheet"
 	"gorm.io/gorm"
 )
@@ -28,13 +29,13 @@ func (h *SpreadsheetRegistryHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 func (h *SpreadsheetRegistryHandler) List(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
@@ -46,30 +47,30 @@ func (h *SpreadsheetRegistryHandler) List(c *gin.Context) {
 
 	spreadsheets, err := svc.List(filter)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "spreadsheets": spreadsheets})
+	c.JSON(http.StatusOK, response.Success(gin.H{"spreadsheets": spreadsheets}))
 }
 
 // Get handles GET /api/spreadsheets/:id
 func (h *SpreadsheetRegistryHandler) Get(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
+		c.JSON(http.StatusBadRequest, response.Error("invalid ID"))
 		return
 	}
 
@@ -77,69 +78,69 @@ func (h *SpreadsheetRegistryHandler) Get(c *gin.Context) {
 	sp, err := svc.Get(uint(id))
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "spreadsheet not found"})
+			c.JSON(http.StatusNotFound, response.Error("spreadsheet not found"))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "spreadsheet": sp})
+	c.JSON(http.StatusOK, response.Success(sp))
 }
 
 // Register handles POST /api/spreadsheets
 func (h *SpreadsheetRegistryHandler) Register(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
 	var req spreadsheet.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
 		return
 	}
 
 	svc := spreadsheet.NewRegistryService(db, tenantID)
 	sp, err := svc.Register(req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"success": true, "spreadsheet": sp})
+	c.JSON(http.StatusCreated, response.Success(sp))
 }
 
 // Update handles PUT /api/spreadsheets/:id
 func (h *SpreadsheetRegistryHandler) Update(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
+		c.JSON(http.StatusBadRequest, response.Error("invalid ID"))
 		return
 	}
 
 	var req spreadsheet.UpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
 		return
 	}
 
@@ -147,70 +148,70 @@ func (h *SpreadsheetRegistryHandler) Update(c *gin.Context) {
 	sp, err := svc.Update(uint(id), req)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "spreadsheet not found"})
+			c.JSON(http.StatusNotFound, response.Error("spreadsheet not found"))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "spreadsheet": sp})
+	c.JSON(http.StatusOK, response.Success(sp))
 }
 
 // Delete handles DELETE /api/spreadsheets/:id
 func (h *SpreadsheetRegistryHandler) Delete(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
+		c.JSON(http.StatusBadRequest, response.Error("invalid ID"))
 		return
 	}
 
 	svc := spreadsheet.NewRegistryService(db, tenantID)
 	if err := svc.Delete(uint(id)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "spreadsheet deleted"})
+	c.JSON(http.StatusOK, response.Success(gin.H{"message": "spreadsheet deleted"}))
 }
 
 // MarkSynced handles POST /api/spreadsheets/:id/synced
 func (h *SpreadsheetRegistryHandler) MarkSynced(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
+		c.JSON(http.StatusBadRequest, response.Error("invalid ID"))
 		return
 	}
 
 	svc := spreadsheet.NewRegistryService(db, tenantID)
 	if err := svc.UpdateLastSync(uint(id)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "sync time updated"})
+	c.JSON(http.StatusOK, response.Success(gin.H{"message": "sync time updated"}))
 }

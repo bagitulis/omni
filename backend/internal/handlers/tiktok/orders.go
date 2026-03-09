@@ -101,7 +101,7 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 
 	client, err := h.getTiktokClient(tenantID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Failed to get TikTok client"))
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get TikTok client: "+err.Error()))
 		return
 	}
 
@@ -129,7 +129,7 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 	}
 
 	if resp.Code != 0 {
-		c.JSON(http.StatusBadRequest, response.Error(fmt.Sprintf("TikTok shipping error (code %d): %s", resp.Code, resp.Message)))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("tiktok", strconv.Itoa(resp.Code), resp.Message))
 		return
 	}
 
@@ -160,7 +160,7 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 
 	client, err := h.getTiktokClient(tenantID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Failed to get TikTok client"))
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get TikTok client: "+err.Error()))
 		return
 	}
 
@@ -176,7 +176,7 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	}
 
 	if resp.Code != 0 {
-		c.JSON(http.StatusBadRequest, response.Error(fmt.Sprintf("TikTok cancel error (code %d): %s", resp.Code, resp.Message)))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("tiktok", strconv.Itoa(resp.Code), resp.Message))
 		return
 	}
 

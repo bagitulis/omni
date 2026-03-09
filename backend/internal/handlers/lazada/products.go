@@ -1,6 +1,7 @@
 package lazada
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -110,12 +111,11 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success":      true,
+	c.JSON(http.StatusOK, response.Success(gin.H{
 		"products":     products,
 		"total":        len(products),
 		"detail_saved": savedCount,
-	})
+	}))
 }
 
 // GetProductByID handles GET /api/lazada/products/:itemId
@@ -160,7 +160,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 
 	client, err := h.getLazadaClient(tenantID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Failed to get Lazada client"))
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get Lazada client: "+err.Error()))
 		return
 	}
 
@@ -206,7 +206,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 
 	client, err := h.getLazadaClient(tenantID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Failed to get Lazada client"))
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get Lazada client: "+err.Error()))
 		return
 	}
 
@@ -223,7 +223,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	}
 
 	if resp.Code != "0" {
-		c.JSON(http.StatusBadRequest, response.Error("Lazada update failed (code: "+resp.Code+")"))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("lazada", resp.Code, fmt.Sprintf("Update failed: %s", resp.Message)))
 		return
 	}
 
@@ -244,7 +244,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 
 	client, err := h.getLazadaClient(tenantID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Failed to get Lazada client"))
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get Lazada client: "+err.Error()))
 		return
 	}
 
@@ -255,7 +255,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	}
 
 	if resp.Code != "0" {
-		c.JSON(http.StatusBadRequest, response.Error("Lazada delete failed (code: "+resp.Code+")"))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("lazada", resp.Code, fmt.Sprintf("Delete failed: %s", resp.Message)))
 		return
 	}
 

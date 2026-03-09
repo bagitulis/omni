@@ -84,7 +84,12 @@ func (h *OAuthHandler) doShopeeTokenRequest(tokenURL string, body map[string]int
 	log.Printf("[Shopee OAuth] Token response status: %d, body_size: %d bytes", resp.StatusCode, len(respBody))
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("token exchange failed: status %d", resp.StatusCode)
+		// Include truncated response body for debugging
+		bodyPreview := string(respBody)
+		if len(bodyPreview) > 500 {
+			bodyPreview = bodyPreview[:500]
+		}
+		return nil, fmt.Errorf("token exchange failed: status %d, body: %s", resp.StatusCode, bodyPreview)
 	}
 
 	var tokenResp ShopeeTokenResponse

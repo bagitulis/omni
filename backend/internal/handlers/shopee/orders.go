@@ -51,7 +51,7 @@ func (h *OrderHandler) GetOrders(c *gin.Context) {
 	service := shopee.NewOrderService(db)
 	orders, total, err := service.GetOrders(c.Request.Context(), page, pageSize)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Failed to fetch orders"))
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to fetch orders: "+err.Error()))
 		return
 	}
 

@@ -81,15 +81,6 @@ func (c *Client) generateSignWithBody(path string, params map[string]string, bod
 	// Wrap with appSecret: appSecret + signString + appSecret
 	finalInput := c.appSecret + signString.String() + c.appSecret
 
-	// Debug: log signature input
-	fmt.Printf("[TikTok Sign Debug] path=%s, params=%s, body_len=%d\n", path, paramString.String(), len(bodyBytes))
-	fmt.Printf("[TikTok Sign Debug] finalInput (first 200 chars): %s...\n", func() string {
-		if len(finalInput) > 200 {
-			return finalInput[:200]
-		}
-		return finalInput
-	}())
-
 	// HMAC-SHA256
 	h := hmac.New(sha256.New, []byte(c.appSecret))
 	h.Write([]byte(finalInput))
@@ -109,15 +100,6 @@ func (c *Client) doRequest(method, apiPath string, params map[string]string, res
 	if c.shopCipher != "" {
 		params["shop_cipher"] = c.shopCipher
 	}
-
-	// Debug: log params before signing
-	fmt.Printf("[TikTok API Debug] %s %s - shop_cipher=%s, token_prefix=%s\n",
-		method, apiPath, c.shopCipher, func() string {
-			if len(c.accessToken) > 20 {
-				return c.accessToken[:20]
-			}
-			return c.accessToken
-		}())
 
 	// Generate signature (no body for GET requests)
 	params["sign"] = c.generateSign(apiPath, params)
@@ -211,10 +193,6 @@ func (c *Client) doRequestWithBody(method, apiPath string, params map[string]str
 	if err != nil {
 		return err
 	}
-
-	// Debug: log response for troubleshooting
-	fmt.Printf("[TikTok API Response] %s %s - status=%d, body_len=%d, body=%s\n",
-		method, apiPath, resp.StatusCode, len(respBody), string(respBody))
 
 	return json.Unmarshal(respBody, result)
 }

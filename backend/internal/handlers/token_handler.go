@@ -42,11 +42,11 @@ func (h *TokenHandler) GetTokenStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"platform":     status.Platform,
-			"shopID":       status.ShopID,
-			"isValid":      status.IsValid,
-			"needsRefresh": status.NeedsRefresh,
-			"expiresAt":    status.ExpiresAt,
+			"platform":      status.Platform,
+			"shop_id":       status.ShopID,
+			"is_valid":      status.IsValid,
+			"needs_refresh": status.NeedsRefresh,
+			"expires_at":    status.ExpiresAt,
 		},
 	})
 }
@@ -94,7 +94,7 @@ func (h *TokenHandler) RefreshToken(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    gin.H{"platform": newToken.Platform, "isValid": newToken.IsValid, "expiresAt": newToken.ExpiresAt},
+		"data":    gin.H{"platform": newToken.Platform, "is_valid": newToken.IsValid, "expires_at": newToken.ExpiresAt},
 		"message": "Token refreshed successfully",
 	})
 }
@@ -119,7 +119,7 @@ func (h *TokenHandler) GetPlatformTokenStatus(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success":   false,
 			"platform":  platform,
-			"data":      gin.H{"platform": platform, "isExpired": true},
+			"data":      gin.H{"platform": platform, "is_expired": true},
 			"error":     "Token not found or expired",
 			"timestamp": FormatISOTimestamp(time.Now()),
 		})
@@ -199,14 +199,14 @@ func (h *TokenHandler) buildAllPlatformStatuses(c *gin.Context, tenantID string)
 
 func (h *TokenHandler) buildPlatformStatusData(platform string, status *services.TokenInfo) gin.H {
 	if status == nil {
-		return gin.H{"platform": platform, "isExpired": true}
+		return gin.H{"platform": platform, "is_expired": true}
 	}
-	data := gin.H{"platform": platform, "isExpired": !status.IsValid || status.NeedsRefresh}
+	data := gin.H{"platform": platform, "is_expired": !status.IsValid || status.NeedsRefresh}
 	if !status.ExpiresAt.IsZero() {
-		data["expiresAt"] = FormatISOTimestamp(status.ExpiresAt)
+		data["expires_at"] = FormatISOTimestamp(status.ExpiresAt)
 	}
 	if !status.RefreshTokenExpires.IsZero() {
-		data["refreshTokenExpiresAt"] = FormatISOTimestamp(status.RefreshTokenExpires)
+		data["refresh_token_expires_at"] = FormatISOTimestamp(status.RefreshTokenExpires)
 	}
 	return data
 }
@@ -238,7 +238,7 @@ func (h *TokenHandler) refreshAllPlatforms(c *gin.Context, tenantID string, forc
 		if err != nil {
 			results[platform] = gin.H{"success": false, "error": err.Error()}
 		} else if newToken != nil {
-			results[platform] = gin.H{"success": true, "isValid": newToken.IsValid, "expiresAt": newToken.ExpiresAt}
+			results[platform] = gin.H{"success": true, "is_valid": newToken.IsValid, "expires_at": newToken.ExpiresAt}
 		} else {
 			results[platform] = gin.H{"success": false, "configured": false, "error": "Platform not configured"}
 		}
@@ -251,15 +251,15 @@ func (h *TokenHandler) buildStatusWithTokensData(c *gin.Context, tenantID string
 	for _, platform := range GetAllPlatforms() {
 		status, err := h.tokenManager.GetTokenStatus(c.Request.Context(), tenantID, platform)
 		if err != nil || status == nil {
-			data[platform] = gin.H{"platform": platform, "connected": false, "isExpired": true}
+			data[platform] = gin.H{"platform": platform, "connected": false, "is_expired": true}
 			continue
 		}
-		statusObj := gin.H{"platform": platform, "connected": status.IsValid, "isExpired": !status.IsValid || status.NeedsRefresh}
+		statusObj := gin.H{"platform": platform, "connected": status.IsValid, "is_expired": !status.IsValid || status.NeedsRefresh}
 		if !status.ExpiresAt.IsZero() {
-			statusObj["expiresAt"] = FormatISOTimestamp(status.ExpiresAt)
+			statusObj["expires_at"] = FormatISOTimestamp(status.ExpiresAt)
 		}
 		if !status.RefreshTokenExpires.IsZero() {
-			statusObj["refreshTokenExpiresAt"] = FormatISOTimestamp(status.RefreshTokenExpires)
+			statusObj["refresh_token_expires_at"] = FormatISOTimestamp(status.RefreshTokenExpires)
 		}
 		data[platform] = statusObj
 	}
