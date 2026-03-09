@@ -326,16 +326,3 @@ func TestShippingService_ArrangeShipment_WithTrackingNumber(t *testing.T) {
 	assert.NotNil(t, info)
 	mockClient.AssertExpectations(t)
 }
-
-func TestShippingService_CalculateShippingFee(t *testing.T) {
-	mockClient := new(MockShippingClient)
-	ctx := context.Background()
-
-	service := &ShippingService{pkgClient: mockClient, tenantID: "tenant1"}
-
-	// This method returns 0 as Shopee doesn't expose shipping fee calculation directly
-	fee, err := service.CalculateShippingFee(ctx, "ORDER123", 1)
-
-	assert.NoError(t, err)
-	assert.Equal(t, float64(0), fee)
-}

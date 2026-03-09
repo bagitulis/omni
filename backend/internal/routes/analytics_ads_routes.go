@@ -92,7 +92,7 @@ func RegisterShopeeAdsAnalyticsRoutes(router *gin.RouterGroup, basePath string) 
 		shopeeAds.GET("/dashboard", handler.GetDashboard)
 		shopeeAds.GET("/data", handler.GetData)
 		shopeeAds.GET("/uploads", handler.GetUploads)
-		shopeeAds.POST("/upload", handler.Upload)
+		// Upload handled by /api/ads/shopee/upload (AdsHandler.UploadShopeeAds)
 	}
 }
 
@@ -107,7 +107,7 @@ func RegisterTiktokAdsAnalyticsRoutes(router *gin.RouterGroup, basePath string) 
 		tiktokAds.GET("/dashboard", handler.GetDashboard)
 		tiktokAds.GET("/data", handler.GetData)
 		tiktokAds.GET("/uploads", handler.GetUploads)
-		tiktokAds.POST("/upload", handler.Upload)
+		// Upload handled by /api/ads/tiktok/upload (AdsHandler.UploadTiktokAds)
 	}
 }
 

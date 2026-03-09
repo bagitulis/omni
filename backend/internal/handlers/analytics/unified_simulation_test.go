@@ -235,18 +235,6 @@ func TestTiktokAdsHandler_GetUploads_MissingTenant(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
-func TestTiktokAdsHandler_Upload_MissingTenant(t *testing.T) {
-	handler := NewTiktokAdsHandler("")
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest(http.MethodPost, "/api/analytics/tiktok-ads/upload", nil)
-
-	handler.Upload(c)
-
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
 func TestNewTiktokAdsHandler(t *testing.T) {
 	handler := NewTiktokAdsHandler("/test")
 	assert.NotNil(t, handler)

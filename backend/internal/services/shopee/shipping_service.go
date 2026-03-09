@@ -258,10 +258,3 @@ func (s *ShippingService) GetShipmentInfo(ctx context.Context, orderSN string) (
 		ShippingStatus: trackingInfo.Status,
 	}, nil
 }
-
-// CalculateShippingFee calculates shipping fee (not directly available in Shopee API v2)
-func (s *ShippingService) CalculateShippingFee(ctx context.Context, orderSN string, logisticID int64) (float64, error) {
-	// Shopee doesn't expose shipping fee calculation directly
-	// This would need to be retrieved from order details
-	return 0, nil
-}

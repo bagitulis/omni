@@ -188,18 +188,3 @@ func (h *TiktokAdsHandler) GetUploads(c *gin.Context) {
 		"data":    data,
 	})
 }
-
-// Upload handles POST /api/analytics/tiktok-ads/upload
-func (h *TiktokAdsHandler) Upload(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c)
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
-		return
-	}
-
-	// TODO: Implement full upload logic with CSV parsing and MV refresh
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"success": false,
-		"error":   "TikTok ads upload is not yet implemented",
-	})
-}
