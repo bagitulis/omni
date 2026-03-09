@@ -209,7 +209,7 @@ export async function previewTiers(
 ): Promise<TierPreviewResult | null> {
   try {
     const response = await apiClient.post<TierPreviewResult>(
-      "/wholesale/preview",
+      "/wholesale/shopee/preview",
       { base_price: basePrice, settings: customSettings },
     );
     return response.success ? (response.data ?? null) : null;

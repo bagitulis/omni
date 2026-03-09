@@ -44,10 +44,10 @@ func (h *RouteConfigHandler) List(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "configs": configs})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": configs})
 }
 
-// Get handles GET /api/route-config/:path
+// Get handles GET /api/routes-config/:id
 func (h *RouteConfigHandler) Get(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
@@ -61,23 +61,23 @@ func (h *RouteConfigHandler) Get(c *gin.Context) {
 		return
 	}
 
-	routePath := c.Param("path")
-	if routePath == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "route path required"})
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "route id required"})
 		return
 	}
 
 	svc := route.NewConfigService(db, tenantID)
-	config, err := svc.Get(routePath)
+	config, err := svc.GetByID(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "config": config})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": config})
 }
 
-// Update handles PUT /api/route-config/:path
+// Update handles PATCH /api/routes-config/:id
 func (h *RouteConfigHandler) Update(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
@@ -91,26 +91,26 @@ func (h *RouteConfigHandler) Update(c *gin.Context) {
 		return
 	}
 
-	routePath := c.Param("path")
-	if routePath == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "route path required"})
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "route id required"})
 		return
 	}
 
-	var req route.RouteConfigRequest
+	var req route.RouteConfigUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	svc := route.NewConfigService(db, tenantID)
-	config, err := svc.Update(routePath, req)
+	config, err := svc.UpdateByID(id, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "config": config})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": config})
 }
 
 // Reset handles POST /api/routes-config/reset

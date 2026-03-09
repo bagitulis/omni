@@ -16,5 +16,3 @@ export * from "./ChangePasswordModal";
 export * from "./DashboardShippingModal";
 
 export * from "./ConfigEditorModal";
-export * from "./RouteConfigModal";
-export * from "./RouteManagementModal";

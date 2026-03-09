@@ -8,12 +8,18 @@ import {
 import type { RouteConfig } from "@/types/routeConfig";
 
 /**
- * Query hook for fetching route configurations
+ * Query hook for fetching route configurations.
+ * Transforms BE `is_enabled` into FE `enabled` alias for backward compatibility.
  */
 export function useRouteConfigs() {
   return useQuery({
     queryKey: ["route-configs"],
     queryFn: getRouteConfigs,
+    select: (data) =>
+      data.map((route) => ({
+        ...route,
+        enabled: route.is_enabled ?? route.enabled ?? true,
+      })),
   });
 }
 

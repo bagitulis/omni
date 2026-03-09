@@ -125,10 +125,10 @@ func (h *ShippingFilesHandler) ProcessShippingFile(c *gin.Context) {
 		return
 	}
 
-	// TODO: Add actual file processing logic here
-	// For now, just return success
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "File processed successfully",
+	// NOT_IMPLEMENTED: Actual file processing logic not yet built.
+	// When implementing: parse shipping file → extract tracking numbers → update order statuses
+	c.JSON(http.StatusNotImplemented, gin.H{
+		"success": false,
+		"error":   "Shipping file processing is not yet implemented",
 	})
 }

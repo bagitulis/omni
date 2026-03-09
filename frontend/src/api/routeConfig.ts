@@ -33,8 +33,8 @@ export async function bulkUpdateRouteConfigs(
   data: Partial<RouteConfig>,
 ): Promise<void> {
   const response = await apiClient.post("/routes-config/bulk-update", {
-    ids,
-    ...data,
+    route_ids: ids.map(String),
+    updates: data,
   });
   if (!response.success) {
     throw new Error(response.error || "Failed to bulk update route configs");

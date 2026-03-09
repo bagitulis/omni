@@ -59,6 +59,45 @@ func (s *ConfigService) Update(routePath string, req RouteConfigRequest) (*model
 	return &config, nil
 }
 
+// GetByID retrieves a route config by ID
+func (s *ConfigService) GetByID(id string) (*models.RouteExecutionConfig, error) {
+	var config models.RouteExecutionConfig
+	err := s.db.Where("tenant_id = ? AND id = ?", s.tenantID, id).First(&config).Error
+	if err != nil {
+		return nil, err
+	}
+	return &config, nil
+}
+
+// UpdateByID updates a route config by ID using partial update (pointer fields).
+// Only non-nil fields in the request are applied, so omitted fields keep their existing values.
+func (s *ConfigService) UpdateByID(id string, req RouteConfigUpdateRequest) (*models.RouteExecutionConfig, error) {
+	var config models.RouteExecutionConfig
+	err := s.db.Where("tenant_id = ? AND id = ?", s.tenantID, id).First(&config).Error
+	if err != nil {
+		return nil, err
+	}
+
+	if enabled := req.resolveEnabled(); enabled != nil {
+		config.IsEnabled = *enabled
+	}
+	if req.RateLimit != nil {
+		config.RateLimit = *req.RateLimit
+	}
+	if req.Timeout != nil {
+		config.Timeout = *req.Timeout
+	}
+	if req.Category != nil {
+		config.Category = *req.Category
+	}
+
+	if err := s.db.Save(&config).Error; err != nil {
+		return nil, err
+	}
+
+	return &config, nil
+}
+
 // Enable enables a route
 func (s *ConfigService) Enable(routePath string) error {
 	return s.db.Model(&models.RouteExecutionConfig{}).
@@ -96,13 +135,31 @@ func (s *ConfigService) getDefaultConfig(routePath string) *models.RouteExecutio
 	}
 }
 
-// RouteConfigRequest represents route config update request
+// RouteConfigRequest represents route config create request
 type RouteConfigRequest struct {
 	RoutePath string `json:"route_path"`
 	IsEnabled bool   `json:"is_enabled"`
 	RateLimit int    `json:"rate_limit"`
 	Timeout   int    `json:"timeout"`
 	Category  string `json:"category"`
+}
+
+// RouteConfigUpdateRequest represents a partial update request.
+// Pointer fields allow distinguishing "omitted" from "set to zero/false".
+type RouteConfigUpdateRequest struct {
+	IsEnabled *bool   `json:"is_enabled,omitempty"`
+	Enabled   *bool   `json:"enabled,omitempty"` // FE compat alias for is_enabled
+	RateLimit *int    `json:"rate_limit,omitempty"`
+	Timeout   *int    `json:"timeout,omitempty"`
+	Category  *string `json:"category,omitempty"`
+}
+
+// resolveEnabled returns the effective enabled value, preferring is_enabled over enabled alias.
+func (r *RouteConfigUpdateRequest) resolveEnabled() *bool {
+	if r.IsEnabled != nil {
+		return r.IsEnabled
+	}
+	return r.Enabled
 }
 
 // GetCategories returns distinct categories

@@ -115,8 +115,8 @@ func (h *TokenHandler) GetPlatformTokenStatus(c *gin.Context) {
 
 	status, err := h.tokenManager.GetTokenStatus(c.Request.Context(), tenantID, platform)
 	if err != nil {
-		// Return success:false when token status retrieval fails
-		c.JSON(http.StatusOK, gin.H{
+		// Return proper error status instead of HTTP 200 with success:false (#20)
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success":   false,
 			"platform":  platform,
 			"data":      gin.H{"platform": platform, "isExpired": true},
@@ -146,7 +146,18 @@ func (h *TokenHandler) RefreshAllTokens(c *gin.Context) {
 	force := c.Query("force") == "true"
 	results := h.refreshAllPlatforms(c, tenantID, force)
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": results, "message": "Token refresh completed"})
+	// Determine aggregate success based on per-platform results (#21)
+	allSuccess := true
+	for _, r := range results {
+		if m, ok := r.(gin.H); ok {
+			if s, ok := m["success"].(bool); ok && !s {
+				allSuccess = false
+				break
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": allSuccess, "data": results, "message": "Token refresh completed"})
 }
 
 // GetStatusWithTokens handles GET /api/status

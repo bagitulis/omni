@@ -4,10 +4,14 @@ import (
 	"time"
 )
 
-// RouteExecutionConfig represents execution mode config for routes
+// RouteExecutionConfig represents execution mode config for routes.
+// NOTE: This is the handler-level DTO used by route_execution_config.go.
+// The canonical model is models.RouteExecutionConfig (auto_function.go).
+// This DTO intentionally has a different field set to serve the handler API shape.
 type RouteExecutionConfig struct {
 	ID            int64     `json:"id" gorm:"primaryKey;autoIncrement"`
-	RouteKey      string    `json:"route_key" gorm:"column:route_key;uniqueIndex;not null"`
+	TenantID      string    `json:"-" gorm:"column:tenant_id;index"`
+	RouteKey      string    `json:"route_key" gorm:"column:route_key;not null"`
 	RouteName     string    `json:"route_name" gorm:"column:route_name;not null"`
 	Description   string    `json:"description,omitempty" gorm:"column:description"`
 	ExecutionMode string    `json:"execution_mode" gorm:"column:execution_mode;default:direct"` // queue or direct

@@ -1,3 +1,4 @@
+import axios from "axios";
 import api from "./client";
 import { useAuthStore } from "@/stores/authStore";
 import type { LoginResponse, User } from "@/types/auth";
@@ -57,8 +58,13 @@ export const getCurrentUser = async (): Promise<User | null> => {
   try {
     const response = await api.get<User>("/auth/me");
     return response.data || null;
-  } catch (err) { console.warn("Operation failed:", err);
-    return null;
+  } catch (err) {
+    // Rethrow auth errors so callers can distinguish "no user" from "server error"
+    if (axios.isAxiosError(err) && err.response?.status === 401) {
+      return null; // Not authenticated — expected case
+    }
+    console.error("[Auth] Failed to fetch current user:", err);
+    throw err; // Propagate unexpected errors
   }
 };
 

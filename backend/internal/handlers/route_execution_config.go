@@ -24,7 +24,8 @@ func (h *RouteExecutionConfigHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 
 // List handles GET /api/route-execution-config
 func (h *RouteExecutionConfigHandler) List(c *gin.Context) {
-	if c.GetString("tenantID") == "" {
+	tenantID := c.GetString("tenantID")
+	if tenantID == "" {
 		respondUnauthorized(c, "Missing tenantId")
 		return
 	}
@@ -35,7 +36,7 @@ func (h *RouteExecutionConfigHandler) List(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	var configs []RouteExecutionConfig
-	if err := db.WithContext(ctx).Order("category, route_name").Find(&configs).Error; err != nil {
+	if err := db.WithContext(ctx).Where("tenant_id = ?", tenantID).Order("category, route_name").Find(&configs).Error; err != nil {
 		respondWithConfigs(c, []RouteExecutionConfig{})
 		return
 	}
@@ -44,7 +45,8 @@ func (h *RouteExecutionConfigHandler) List(c *gin.Context) {
 
 // Get handles GET /api/route-execution-config/:routeKey
 func (h *RouteExecutionConfigHandler) Get(c *gin.Context) {
-	if c.GetString("tenantID") == "" {
+	tenantID := c.GetString("tenantID")
+	if tenantID == "" {
 		respondUnauthorized(c, "Missing tenantId")
 		return
 	}
@@ -60,7 +62,7 @@ func (h *RouteExecutionConfigHandler) Get(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	var config RouteExecutionConfig
-	if err := db.WithContext(ctx).Where("route_key = ?", routeKey).First(&config).Error; err != nil {
+	if err := db.WithContext(ctx).Where("tenant_id = ? AND route_key = ?", tenantID, routeKey).First(&config).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			respondNotFound(c, "config not found")
 			return
@@ -73,7 +75,8 @@ func (h *RouteExecutionConfigHandler) Get(c *gin.Context) {
 
 // GetMode handles GET /api/route-execution-config/:routeKey/mode
 func (h *RouteExecutionConfigHandler) GetMode(c *gin.Context) {
-	if c.GetString("tenantID") == "" {
+	tenantID := c.GetString("tenantID")
+	if tenantID == "" {
 		respondUnauthorized(c, "Missing tenantId")
 		return
 	}
@@ -90,13 +93,18 @@ func (h *RouteExecutionConfigHandler) GetMode(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	var config RouteExecutionConfig
-	if err := db.WithContext(ctx).Where("route_key = ?", routeKey).First(&config).Error; err != nil {
-		// Default to direct mode if not found
-		c.JSON(http.StatusOK, gin.H{
-			"success":        true,
-			"execution_mode": "direct",
-			"enabled":        true,
-		})
+	if err := db.WithContext(ctx).Where("tenant_id = ? AND route_key = ?", tenantID, routeKey).First(&config).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			// Default to direct mode if not found (intentional)
+			c.JSON(http.StatusOK, gin.H{
+				"success":        true,
+				"execution_mode": "direct",
+				"enabled":        true,
+			})
+			return
+		}
+		// Propagate actual DB errors instead of swallowing them (#17)
+		respondInternalError(c, err)
 		return
 	}
 
@@ -109,7 +117,8 @@ func (h *RouteExecutionConfigHandler) GetMode(c *gin.Context) {
 
 // Create handles POST /api/route-execution-config
 func (h *RouteExecutionConfigHandler) Create(c *gin.Context) {
-	if c.GetString("tenantID") == "" {
+	tenantID := c.GetString("tenantID")
+	if tenantID == "" {
 		respondUnauthorized(c, "Missing tenantId")
 		return
 	}
@@ -137,7 +146,7 @@ func (h *RouteExecutionConfigHandler) Create(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	config := RouteExecutionConfig{
-		RouteKey: req.RouteKey, RouteName: req.RouteName, Description: req.Description,
+		TenantID: tenantID, RouteKey: req.RouteKey, RouteName: req.RouteName, Description: req.Description,
 		ExecutionMode: req.ExecutionMode, Priority: priority, Enabled: enabled,
 		Icon: req.Icon, Category: req.Category,
 	}
@@ -150,7 +159,8 @@ func (h *RouteExecutionConfigHandler) Create(c *gin.Context) {
 
 // Update handles PUT /api/route-execution-config/:routeKey
 func (h *RouteExecutionConfigHandler) Update(c *gin.Context) {
-	if c.GetString("tenantID") == "" {
+	tenantID := c.GetString("tenantID")
+	if tenantID == "" {
 		respondUnauthorized(c, "Missing tenantId")
 		return
 	}
@@ -171,7 +181,7 @@ func (h *RouteExecutionConfigHandler) Update(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	var config RouteExecutionConfig
-	if err := db.WithContext(ctx).Where("route_key = ?", routeKey).First(&config).Error; err != nil {
+	if err := db.WithContext(ctx).Where("tenant_id = ? AND route_key = ?", tenantID, routeKey).First(&config).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			respondNotFound(c, "config not found")
 			return
@@ -179,7 +189,7 @@ func (h *RouteExecutionConfigHandler) Update(c *gin.Context) {
 		respondInternalError(c, err)
 		return
 	}
-	// Update fields
+	// Update fields — only non-zero values
 	if req.RouteName != "" {
 		config.RouteName = req.RouteName
 	}
@@ -214,7 +224,8 @@ func (h *RouteExecutionConfigHandler) Update(c *gin.Context) {
 
 // Toggle handles POST /api/route-execution-config/:routeKey/toggle
 func (h *RouteExecutionConfigHandler) Toggle(c *gin.Context) {
-	if c.GetString("tenantID") == "" {
+	tenantID := c.GetString("tenantID")
+	if tenantID == "" {
 		respondUnauthorized(c, "Missing tenantId")
 		return
 	}
@@ -230,7 +241,7 @@ func (h *RouteExecutionConfigHandler) Toggle(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	var config RouteExecutionConfig
-	if err := db.WithContext(ctx).Where("route_key = ?", routeKey).First(&config).Error; err != nil {
+	if err := db.WithContext(ctx).Where("tenant_id = ? AND route_key = ?", tenantID, routeKey).First(&config).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			respondNotFound(c, "config not found")
 			return
@@ -253,7 +264,8 @@ func (h *RouteExecutionConfigHandler) Toggle(c *gin.Context) {
 
 // Delete handles DELETE /api/route-execution-config/:routeKey
 func (h *RouteExecutionConfigHandler) Delete(c *gin.Context) {
-	if c.GetString("tenantID") == "" {
+	tenantID := c.GetString("tenantID")
+	if tenantID == "" {
 		respondUnauthorized(c, "Missing tenantId")
 		return
 	}
@@ -268,7 +280,7 @@ func (h *RouteExecutionConfigHandler) Delete(c *gin.Context) {
 		return
 	}
 	ctx := c.Request.Context()
-	result := db.WithContext(ctx).Where("route_key = ?", routeKey).Delete(&RouteExecutionConfig{})
+	result := db.WithContext(ctx).Where("tenant_id = ? AND route_key = ?", tenantID, routeKey).Delete(&RouteExecutionConfig{})
 	if result.Error != nil {
 		respondInternalError(c, result.Error)
 		return

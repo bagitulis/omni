@@ -99,6 +99,11 @@ func (h *OrderManagerHandler) bulkShipShopee(tenantID string, orderSNs []string)
 
 		if err := h.updateOrderStatus(tenantID, orderSN, "SHIPPED", "shopee"); err != nil {
 			log.Printf("[WARN] [BulkShip/Shopee] Local status update failed for %s: %v (marketplace action succeeded)", orderSN, err)
+			failed = append(failed, map[string]interface{}{
+				"order_sn": orderSN,
+				"error":    "Shipped on marketplace but local DB update failed: " + err.Error(),
+			})
+			continue
 		}
 
 		shipped = append(shipped, orderSN)
@@ -139,6 +144,11 @@ func (h *OrderManagerHandler) bulkShipTikTok(tenantID string, orderSNs []string)
 
 		if err := h.updateOrderStatus(tenantID, orderSN, "AWAITING_COLLECTION", "tiktok"); err != nil {
 			log.Printf("[WARN] [BulkShip/TikTok] Local status update failed for %s: %v (marketplace action succeeded)", orderSN, err)
+			failed = append(failed, map[string]interface{}{
+				"order_sn": orderSN,
+				"error":    "Shipped on marketplace but local DB update failed: " + err.Error(),
+			})
+			continue
 		}
 		shipped = append(shipped, orderSN)
 	}
@@ -208,10 +218,24 @@ func (h *OrderManagerHandler) bulkShipLazada(tenantID string, orderSNs []string)
 
 		if err := h.updateOrderStatus(tenantID, orderSN, "ready_to_ship", "lazada"); err != nil {
 			log.Printf("[WARN] [BulkShip/Lazada] Local status update failed for %s: %v (marketplace action succeeded)", orderSN, err)
+			failed = append(failed, map[string]interface{}{
+				"order_sn": orderSN,
+				"error":    "Shipped on marketplace but local DB update failed: " + err.Error(),
+			})
+			continue
 		}
 		shipped = append(shipped, orderSN)
 	}
 	return shipped, failed
+}
+
+// --- Platform Client Helpers (DRY: single credential service creation) ---
+
+// platformOrderTable maps platform names to their order table names.
+var platformOrderTable = map[string]string{
+	"shopee": "ShopeeOrder",
+	"tiktok": "TiktokOrder",
+	"lazada": "LazadaOrder",
 }
 
 func (h *OrderManagerHandler) getShopeeClient(tenantID string) (*shopeePkg.Client, error) {
@@ -220,7 +244,6 @@ func (h *OrderManagerHandler) getShopeeClient(tenantID string) (*shopeePkg.Clien
 	if err != nil {
 		return nil, err
 	}
-
 	client := shopeePkg.NewClient(creds.PartnerID, creds.PartnerKey, creds.IsProduction)
 	client.SetShopCredentials(creds.ShopID, creds.AccessToken)
 	return client, nil
@@ -252,31 +275,38 @@ func (h *OrderManagerHandler) getLazadaClient(tenantID string) (*lazadaPkg.Clien
 	return client, nil
 }
 
+// --- Order Status Helpers ---
+
 func (h *OrderManagerHandler) validateOrderStatus(tenantID, orderSN, platform string) error {
 	db, err := config.GetTenantDB(tenantID, h.basePath)
 	if err != nil {
 		return err
 	}
 
+	table, ok := platformOrderTable[platform]
+	if !ok {
+		return fmt.Errorf("unsupported platform: %s", platform)
+	}
+
 	var status string
-	switch platform {
-	case "shopee":
-		err = db.Table("ShopeeOrder").Select("order_status").Where("order_sn = ?", orderSN).Scan(&status).Error
-		if err == nil && status != "READY_TO_SHIP" {
-			return fmt.Errorf("order status is %s, expected READY_TO_SHIP", status)
-		}
-	case "tiktok":
-		err = db.Table("TiktokOrder").Select("order_status").Where("order_sn = ?", orderSN).Scan(&status).Error
-		if err == nil && status != "AWAITING_SHIPMENT" {
-			return fmt.Errorf("order status is %s, expected AWAITING_SHIPMENT", status)
-		}
-	case "lazada":
-		err = db.Table("LazadaOrder").Select("order_status").Where("order_sn = ?", orderSN).Scan(&status).Error
-		if err == nil && (status != "pending" && status != "packed") {
-			return fmt.Errorf("order status is %s, expected pending or packed", status)
+	if err := db.Table(table).Select("order_status").Where("order_sn = ?", orderSN).Scan(&status).Error; err != nil {
+		return err
+	}
+
+	// Platform-specific expected statuses
+	expectedStatuses := map[string][]string{
+		"shopee": {"READY_TO_SHIP"},
+		"tiktok": {"AWAITING_SHIPMENT"},
+		"lazada": {"pending", "packed"},
+	}
+
+	allowed := expectedStatuses[platform]
+	for _, s := range allowed {
+		if status == s {
+			return nil
 		}
 	}
-	return err
+	return fmt.Errorf("order status is %s, expected one of %v", status, allowed)
 }
 
 func (h *OrderManagerHandler) updateOrderStatus(tenantID, orderSN, status, platform string) error {
@@ -284,11 +314,11 @@ func (h *OrderManagerHandler) updateOrderStatus(tenantID, orderSN, status, platf
 	if err != nil {
 		return err
 	}
-	table := "ShopeeOrder"
-	if platform == "tiktok" {
-		table = "TiktokOrder"
-	} else if platform == "lazada" {
-		table = "LazadaOrder"
+
+	table, ok := platformOrderTable[platform]
+	if !ok {
+		return fmt.Errorf("unsupported platform: %s", platform)
 	}
-	return db.Exec(fmt.Sprintf("UPDATE %s SET order_status = ? WHERE order_sn = ?", table), status, orderSN).Error
+
+	return db.Table(table).Where("order_sn = ?", orderSN).Update("order_status", status).Error
 }

@@ -22,8 +22,8 @@ export function RouteQueueSection({ routes }: RouteQueueSectionProps) {
   const data_source: QueueRow[] = queue_routes.map((route) => ({
     key: route.id,
     route_path: route.route_path,
-    queue_max_size: route.queue_max_size,
-    queue_priority: route.queue_priority,
+    queue_max_size: route.queue_max_size ?? 0,
+    queue_priority: route.queue_priority ?? 0,
   }));
 
   const columns: TableProps<QueueRow>["columns"] = [

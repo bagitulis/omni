@@ -74,14 +74,6 @@ export {
   PresetType,
 } from "./routeControl";
 
-// Route execution config types
-export {
-  ExecutionMode,
-  ExecutionPriority,
-  RouteExecutionConfig,
-  RouteExecutionConfigInput,
-} from "./routeExecutionConfig";
-
 // Sheet registry types
 export {
   SpreadsheetData,

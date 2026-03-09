@@ -22,11 +22,11 @@ export function RoutePerformanceTable({ routes }: RoutePerformanceTableProps) {
   const data_source: PerformanceRow[] = routes.map((route) => ({
     key: route.id,
     route_path: route.route_path,
-    route_method: route.route_method,
+    route_method: route.route_method ?? "-",
     timeout: route.timeout,
-    cache_ttl: route.cache_ttl,
-    max_concurrent: route.max_concurrent,
-    rate_limit_max: route.rate_limit_max,
+    cache_ttl: route.cache_ttl ?? 0,
+    max_concurrent: route.max_concurrent ?? 0,
+    rate_limit_max: route.rate_limit_max ?? 0,
   }));
 
   const method_colors: Record<string, string> = {
