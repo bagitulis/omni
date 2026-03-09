@@ -1,7 +1,6 @@
 package shopee
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/omni/backend/internal/repositories"
 	shopeeService "github.com/omni/backend/internal/services/shopee"
 	shopeePkg "github.com/omni/backend/pkg/shopee"
+	"github.com/rs/zerolog/log"
 )
 
 // ProductHandler handles Shopee product HTTP requests
@@ -60,7 +60,11 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 	credRepo := repositories.NewPlatformCredentialsRepository(db)
 	tenantCreds, err := credRepo.GetShopeeCredentials(c.Request.Context())
 	if err != nil {
-		log.Printf("Failed to get Shopee credentials for tenant %s: %v", tenantID, err)
+		log.Error().
+			Str("handler", "shopee_products").
+			Str("tenant_id", tenantID).
+			Err(err).
+			Msg("Failed to get Shopee credentials")
 		c.JSON(http.StatusBadRequest, response.Error("Shopee not configured for this tenant"))
 		return
 	}
@@ -85,17 +89,20 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 	syncService := shopeeService.NewSyncServiceWithTenant(client, db, tenantID)
 	products, savedCount, err := syncService.SyncProductsWithDetails(c.Request.Context(), itemStatus, offset, limit)
 	if err != nil {
-		log.Printf("Sync products error: %v", err)
+		log.Error().
+			Str("handler", "shopee_products").
+			Str("tenant_id", tenantID).
+			Err(err).
+			Msg("Sync products error")
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to sync products: "+err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success":      true,
-		"data":         products,
+	c.JSON(http.StatusOK, response.Success(gin.H{
+		"products":     products,
 		"total":        len(products),
 		"detail_saved": savedCount,
-	})
+	}))
 }
 
 // GetProductByID handles GET /api/shopee/products/:itemId

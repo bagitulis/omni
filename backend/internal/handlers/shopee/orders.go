@@ -72,8 +72,12 @@ func (h *OrderHandler) GetOrders(c *gin.Context) {
 // GetOrderByID handles GET /api/shopee/orders/:orderSn
 func (h *OrderHandler) GetOrderByID(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
-	orderSN := c.Param("orderSn")
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		return
+	}
 
+	orderSN := c.Param("orderSn")
 	if orderSN == "" {
 		c.JSON(http.StatusBadRequest, response.Error("Order SN required"))
 		return

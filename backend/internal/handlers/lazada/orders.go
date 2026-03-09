@@ -209,7 +209,7 @@ func (h *OrderHandler) GetDocument(c *gin.Context) {
 		return
 	}
 	if docResp.Code != "0" && docResp.Code != "" {
-		c.JSON(http.StatusBadRequest, response.Error("Get document failed: code "+docResp.Code))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("lazada", docResp.Code, fmt.Sprintf("Get document failed: %s", docResp.Message)))
 		return
 	}
 
