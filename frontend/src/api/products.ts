@@ -1,4 +1,5 @@
 import apiClient from "./client";
+import { API_BASE_URL } from "@/lib/constants";
 import type {
   MasterProduct,
   ProductListResponse,
@@ -265,7 +266,7 @@ export async function importFromStaging(
 
 // Download import template file
 export function downloadImportTemplate(format: "xlsx" | "csv" = "xlsx"): void {
-  const url = `/api${BASE_PATH}/import/template?format=${format}`;
+  const url = `${API_BASE_URL}${BASE_PATH}/import/template?format=${format}`;
   const link = document.createElement("a");
   link.href = url;
   link.download = `products_import_template.${format}`;

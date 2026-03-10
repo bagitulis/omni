@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -89,8 +90,15 @@ func (h *ImageHandler) Upload(c *gin.Context) {
 
 	// If WebP conversion failed (still not WebP), try JPEG
 	if !image.IsWebP(finalData) {
-		finalData, _ = h.webpService.ConvertToJPEG(data)
-		ext = ".jpg"
+		jpegData, jpegErr := h.webpService.ConvertToJPEG(data)
+		if jpegErr != nil {
+			log.Printf("Warning: JPEG conversion failed for %s: %v", file.Filename, jpegErr)
+			// Use original data as-is
+			finalData = data
+		} else {
+			finalData = jpegData
+			ext = ".jpg"
+		}
 	}
 
 	// Generate filename
@@ -121,7 +129,9 @@ func (h *ImageHandler) Upload(c *gin.Context) {
 
 	if err := db.Create(img).Error; err != nil {
 		// Try to clean up the saved file
-		_ = h.storageService.DeleteImage(tenantID, localPath)
+		if delErr := h.storageService.DeleteImage(tenantID, localPath); delErr != nil {
+			log.Printf("Warning: failed to clean up image file after DB error: %v", delErr)
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to save image metadata"})
 		return
 	}
@@ -266,8 +276,7 @@ func (h *ImageHandler) Delete(c *gin.Context) {
 
 	// Delete file from storage
 	if err := h.storageService.DeleteImage(tenantID, img.LocalPath); err != nil {
-		// Log but don't fail - file might already be deleted
-		// log.Printf("Warning: Failed to delete image file: %v", err)
+		log.Printf("Warning: failed to delete image file %s: %v", img.LocalPath, err)
 	}
 
 	// Delete database record

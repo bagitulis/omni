@@ -153,7 +153,6 @@ func (s *ScannerService) buildCoverageReportInternal(backendRoutes []RouteMappin
 		components[name] = CoverageComponentDetail{
 			Path:         detail.Path,
 			RoutesCalled: sortedMapKeys(detail.RoutesCalled),
-			Buttons:      []string{},
 		}
 	}
 
@@ -243,7 +242,6 @@ func (s *ScannerService) buildCoverageReportInternal(backendRoutes []RouteMappin
 		DisconnectedRoutes:      disconnectedMap,
 		BackendOnlyRoutes:       backendOnlyMap,
 		UnusedRoutes:            unusedMap,
-		ButtonToEndpoints:       map[string]map[string][]string{},
 		Statistics:              statistics,
 		Timestamp:               time.Now().UTC().Format(time.RFC3339),
 	}

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { STORAGE_KEYS, API_BASE_URL } from "@/lib/constants";
 import { User } from "@/types/auth";
 import { logger } from "@/lib/logger";
+import apiClient from "@/api/client";
 
 export interface AuthState {
   user: User | null;
@@ -49,11 +50,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       sessionStorage.setItem(STORAGE_KEYS.TENANT_ID, tenant_id);
     }
 
-    // Clear legacy localStorage if it exists
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("authUser");
-    localStorage.removeItem("tenantId");
-
     set({
       token: finalToken,
       accessToken: finalToken,
@@ -67,13 +63,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clearAuth: () => {
     sessionStorage.removeItem(STORAGE_KEYS.AUTH_USER);
     sessionStorage.removeItem(STORAGE_KEYS.TENANT_ID);
-
-    // Also clear any legacy localStorage items just in case
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("authUser");
-    localStorage.removeItem("tenantId");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userName");
 
     set({
       user: null,
@@ -184,7 +173,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           }
           return true;
         }
-      } catch (err) { console.warn("Operation failed:", err);
+      } catch (err) {
+        logger.warn("Failed to parse stored auth user", { error: err });
         sessionStorage.removeItem(STORAGE_KEYS.AUTH_USER);
       }
     }
@@ -195,9 +185,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async (): Promise<void> => {
     const { accessToken, tenantId, clearAuth } = get();
     try {
-      await fetch(`${API_BASE_URL}/auth/logout`, {
-        method: "POST",
-        credentials: "include",
+      // Use apiClient for consistent auth header and error handling
+      await apiClient.post("/auth/logout", undefined, {
         headers: {
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
           ...(tenantId ? { "x-tenant-id": tenantId } : {}),

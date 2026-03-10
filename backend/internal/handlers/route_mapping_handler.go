@@ -113,18 +113,7 @@ func (h *RouteMappingHandler) GetServices(c *gin.Context) {
 		return
 	}
 
-	// In production, use reflection or static analysis
-	services := []ServiceInfo{
-		{Name: "AuthService", Package: "services/auth", Methods: []string{"Login", "Register", "Verify"}},
-		{Name: "OAuthService", Package: "services/oauth", Methods: []string{"GetAuthURL", "ExchangeToken"}},
-		{Name: "WebhookProcessor", Package: "services/webhooks", Methods: []string{"Process", "Validate"}},
-		{Name: "InventoryService", Package: "services/inventory", Methods: []string{"List", "Update", "Sync"}},
-	}
-
-	c.JSON(http.StatusOK, response.Success(gin.H{
-		"total":    len(services),
-		"services": services,
-	}))
+	c.JSON(http.StatusNotImplemented, response.Error("Service introspection not yet implemented"))
 }
 
 // GetMiddleware handles GET /api/route-mapping/middleware
@@ -135,19 +124,7 @@ func (h *RouteMappingHandler) GetMiddleware(c *gin.Context) {
 		return
 	}
 
-	middlewares := []MiddlewareInfo{
-		{Name: "CORS", Description: "Cross-Origin Resource Sharing", Order: 1},
-		{Name: "Logger", Description: "Request/Response logging", Order: 2},
-		{Name: "Recovery", Description: "Panic recovery", Order: 3},
-		{Name: "Auth", Description: "JWT authentication", AppliesTo: []string{"/api/*"}, Order: 4},
-		{Name: "Tenant", Description: "Tenant context injection", AppliesTo: []string{"/api/*"}, Order: 5},
-		{Name: "RateLimit", Description: "Rate limiting", AppliesTo: []string{"/api/*"}, Order: 6},
-	}
-
-	c.JSON(http.StatusOK, response.Success(gin.H{
-		"total":       len(middlewares),
-		"middlewares": middlewares,
-	}))
+	c.JSON(http.StatusNotImplemented, response.Error("Middleware introspection not yet implemented"))
 }
 
 // GetUnused handles GET /api/route-mapping/unused
@@ -158,13 +135,7 @@ func (h *RouteMappingHandler) GetUnused(c *gin.Context) {
 		return
 	}
 
-	// In production, analyze logs to find unused routes
-	unused := []UnusedRouteInfo{}
-
-	c.JSON(http.StatusOK, response.Success(gin.H{
-		"total":  len(unused),
-		"routes": unused,
-	}))
+	c.JSON(http.StatusNotImplemented, response.Error("Unused route detection requires access-log analysis and is not yet implemented"))
 }
 
 // GetDuplicates handles GET /api/route-mapping/duplicates
@@ -215,7 +186,10 @@ func (h *RouteMappingHandler) AnalyzeRoutes(c *gin.Context) {
 	}
 
 	var req AnalyzeRequest
-	c.ShouldBindJSON(&req)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.Error("Invalid request body"))
+		return
+	}
 
 	routes := h.extractRoutes()
 
@@ -258,9 +232,12 @@ func (h *RouteMappingHandler) AnalyzeRoutes(c *gin.Context) {
 	}
 
 	if req.IncludeStats {
+		avgRoutesPerHandler := 0.0
+		if len(analysis.ByMethod) > 0 {
+			avgRoutesPerHandler = float64(len(routes)) / float64(len(analysis.ByMethod))
+		}
 		analysis.Stats = map[string]interface{}{
-			"avgRoutesPerHandler": float64(len(routes)) / float64(len(analysis.ByMethod)),
-			"coveragePercent":     95.0,
+			"avgRoutesPerHandler": avgRoutesPerHandler,
 		}
 	}
 

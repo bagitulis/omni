@@ -29,7 +29,6 @@ type CoverageCategories struct {
 type CoverageComponentDetail struct {
 	Path         string   `json:"path,omitempty"`
 	RoutesCalled []string `json:"routes_called,omitempty"`
-	Buttons      []string `json:"buttons,omitempty"`
 }
 
 // CoverageCategoryLabel provides UI label text per category.
@@ -56,7 +55,6 @@ type CoverageReport struct {
 	DisconnectedRoutes      map[string]CoverageFrontendOnlySummary `json:"disconnected_routes"`
 	BackendOnlyRoutes       map[string]CoverageRouteSummary        `json:"backend_only_routes"`
 	UnusedRoutes            map[string]CoverageRouteSummary        `json:"unused_routes"`
-	ButtonToEndpoints       map[string]map[string][]string         `json:"button_to_endpoints"`
 	Statistics              map[string]interface{}                 `json:"statistics"`
 	Timestamp               string                                 `json:"timestamp"`
 }

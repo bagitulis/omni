@@ -155,7 +155,13 @@ func (h *InventoryHandler) ExportToSheet(c *gin.Context) {
 	}
 
 	// Clear and write
-	_ = sheetsService.ClearRange(c.Request.Context(), spreadsheet.SpreadsheetID, targetSheet+"!A:Z")
+	if err := sheetsService.ClearRange(c.Request.Context(), spreadsheet.SpreadsheetID, targetSheet+"!A:Z"); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to clear sheet before writing: " + err.Error(),
+		})
+		return
+	}
 
 	if err := sheetsService.WriteRange(c.Request.Context(), spreadsheet.SpreadsheetID, targetSheet+"!A1", values); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

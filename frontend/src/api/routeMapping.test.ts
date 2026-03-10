@@ -46,13 +46,11 @@ const baseRouteMapping = {
     orders: {
       path: "src/api/orders.ts",
       routes_called: ["GET /api/orders"],
-      buttons: [],
     },
   },
   disconnected_routes: {},
   backend_only_routes: {},
   unused_routes: {},
-  button_to_endpoints: {},
   statistics: {},
   timestamp: "2026-02-17T00:00:00Z",
 };

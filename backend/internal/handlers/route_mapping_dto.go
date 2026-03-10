@@ -23,30 +23,6 @@ type HandlerInfo struct {
 	Routes  int    `json:"routes"`
 }
 
-// ServiceInfo represents service information
-type ServiceInfo struct {
-	Name     string   `json:"name"`
-	Package  string   `json:"package"`
-	Methods  []string `json:"methods,omitempty"`
-	Handlers []string `json:"handlers,omitempty"`
-}
-
-// MiddlewareInfo represents middleware information
-type MiddlewareInfo struct {
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	AppliesTo   []string `json:"applies_to,omitempty"`
-	Order       int      `json:"order"`
-}
-
-// UnusedRouteInfo represents unused route info
-type UnusedRouteInfo struct {
-	Path    string `json:"path"`
-	Method  string `json:"method"`
-	Handler string `json:"handler"`
-	Reason  string `json:"reason"`
-}
-
 // DuplicateRouteInfo represents duplicate route info
 type DuplicateRouteInfo struct {
 	Path     string   `json:"path"`

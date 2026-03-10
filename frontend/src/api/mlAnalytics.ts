@@ -110,7 +110,7 @@ export async function getPortfolioHealth(
     { params: { platform } },
   );
   if (!response.data) {
-    throw new Error("No data received from server");
+    throw new Error(response.error || "No data received from server");
   }
   return response.data;
 }
@@ -123,7 +123,7 @@ export async function getMLProducts(
   });
   const data = response.data;
   if (!data.success) {
-    throw new Error("No data received from server");
+    throw new Error(data.error || "No data received from server");
   }
   return {
     products: data.data || [],
@@ -138,7 +138,7 @@ export async function getMLAlerts(): Promise<{
   const response = await apiClient.client.get(`/analytics/ml/alerts`);
   const data = response.data;
   if (!data.success) {
-    throw new Error("No data received from server");
+    throw new Error(data.error || "No data received from server");
   }
   return {
     alerts: data.data || [],
@@ -151,7 +151,7 @@ export async function getScoreDistribution(): Promise<ScoreDistribution[]> {
     `/analytics/ml/distribution`,
   );
   if (!response.data) {
-    throw new Error("No data received from server");
+    throw new Error(response.error || "No data received from server");
   }
   return response.data || [];
 }

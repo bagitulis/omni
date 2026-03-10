@@ -152,8 +152,7 @@ func (s *GlobalConfigService) GetConfig(platform, key string) (string, error) {
 	if config.IsEncrypted {
 		decrypted, err := decrypt(config.ConfigValue)
 		if err != nil {
-			log.Printf("Warning: failed to decrypt config %s.%s: %v", platform, key, err)
-			return config.ConfigValue, nil
+			return "", fmt.Errorf("failed to decrypt config %s.%s: %w", platform, key, err)
 		}
 		return decrypted, nil
 	}
@@ -279,22 +278,23 @@ func (s *GlobalConfigService) HasLazadaCredentials() bool {
 	return creds.AppKey != "" && creds.AppSecret != ""
 }
 
-// decrypt decrypts value using Fernet encryption
+// decrypt decrypts value using Fernet encryption.
+// Returns an error if decryption fails — callers must handle this explicitly.
 func decrypt(encryptedValue string) (string, error) {
 	encKey := os.Getenv("ENCRYPTION_KEY")
 	if encKey == "" {
-		// No encryption key configured — try base64 decode as fallback
+		// No encryption key configured — try base64 decode as legacy fallback
 		decoded, err := base64.StdEncoding.DecodeString(encryptedValue)
 		if err != nil {
-			return encryptedValue, nil
+			return "", fmt.Errorf("ENCRYPTION_KEY not set and value is not valid base64: %w", err)
 		}
+		log.Printf("Warning: ENCRYPTION_KEY not set, decoded base64 value (legacy fallback)")
 		return string(decoded), nil
 	}
 
 	encService, err := utils.NewEncryptionService(encKey)
 	if err != nil {
-		log.Printf("Warning: failed to init encryption service: %v, returning raw value", err)
-		return encryptedValue, nil
+		return "", fmt.Errorf("failed to init encryption service: %w", err)
 	}
 
 	decrypted, err := encService.Decrypt(encryptedValue)
@@ -302,20 +302,20 @@ func decrypt(encryptedValue string) (string, error) {
 		// May be legacy base64-only value — try base64 decode
 		decoded, b64Err := base64.StdEncoding.DecodeString(encryptedValue)
 		if b64Err != nil {
-			return encryptedValue, nil
+			return "", fmt.Errorf("decrypt failed: %w (also not valid base64: %v)", err, b64Err)
 		}
+		log.Printf("Warning: Fernet decrypt failed, fell back to base64 decode (legacy value)")
 		return string(decoded), nil
 	}
 	return decrypted, nil
 }
 
-// encryptValue encrypts a value using Fernet encryption
+// encryptValue encrypts a value using Fernet encryption.
+// Requires ENCRYPTION_KEY to be set — refuses to silently fall back to base64.
 func encryptValue(value string) (string, error) {
 	encKey := os.Getenv("ENCRYPTION_KEY")
 	if encKey == "" {
-		// No encryption key configured — fall back to base64
-		log.Printf("Warning: ENCRYPTION_KEY not set, using base64 encoding (not secure)")
-		return base64.StdEncoding.EncodeToString([]byte(value)), nil
+		return "", fmt.Errorf("ENCRYPTION_KEY environment variable is not set; cannot encrypt sensitive value")
 	}
 
 	encService, err := utils.NewEncryptionService(encKey)

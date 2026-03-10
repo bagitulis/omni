@@ -1,13 +1,13 @@
 package analytics
 
 import (
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto"
+	"github.com/omni/backend/internal/middleware"
 	analyticsService "github.com/omni/backend/internal/services/analytics"
 	"github.com/omni/backend/internal/services/cache"
 	zlog "github.com/rs/zerolog/log"
@@ -25,30 +25,20 @@ func NewMLHandler(appCache cache.CacheManager) *MLHandler {
 	}
 }
 
-// getService creates ML analytics service from context
-func (h *MLHandler) getService(c *gin.Context) (*analyticsService.MLAnalyticsService, error) {
-	// Try multiple context key variations
-	tenantID := c.GetString("tenant_id")
+// getService creates ML analytics service from context.
+// Uses middleware.GetTenantID for standardized tenant ID retrieval.
+func (h *MLHandler) getService(c *gin.Context) (*analyticsService.MLAnalyticsService, string, error) {
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		tenantID = c.GetString("tenantID")
-	}
-	if tenantID == "" {
-		tenantID = c.GetString("tenantId")
-	}
-
-	log.Printf("[MLHandler] tenant_id from context: %s", tenantID)
-
-	if tenantID == "" {
-		log.Printf("[MLHandler] ERROR: No tenant_id in context")
-		return nil, config.ErrMissingTenantID
+		return nil, "", config.ErrMissingTenantID
 	}
 
 	tenantDB, err := config.GetTenantDBByID(tenantID)
 	if err != nil {
-		log.Printf("[MLHandler] ERROR: Failed to get tenant DB: %v", err)
-		return nil, err
+		zlog.Error().Err(err).Str("tenant_id", tenantID).Msg("Failed to get tenant DB for ML analytics")
+		return nil, tenantID, err
 	}
-	return analyticsService.NewMLAnalyticsService(tenantDB, tenantID), nil
+	return analyticsService.NewMLAnalyticsService(tenantDB, tenantID), tenantID, nil
 }
 
 // GetPortfolioHealth returns portfolio health summary
@@ -56,14 +46,8 @@ func (h *MLHandler) getService(c *gin.Context) (*analyticsService.MLAnalyticsSer
 func (h *MLHandler) GetPortfolioHealth(c *gin.Context) {
 	platform := c.DefaultQuery("platform", "tiktok")
 
-	// Get tenant ID
-	tenantID := c.GetString("tenant_id")
-	if tenantID == "" {
-		tenantID = c.GetString("tenantID")
-	}
-	if tenantID == "" {
-		tenantID = c.GetString("tenantId")
-	}
+	// Use standardized tenant ID retrieval
+	tenantID := middleware.GetTenantID(c)
 
 	cacheKey := "analytics:ml:portfolio-health:" + platform
 
@@ -86,13 +70,17 @@ func (h *MLHandler) GetPortfolioHealth(c *gin.Context) {
 			Msg("ML portfolio health cache miss")
 	}
 
-	svc, err := h.getService(c)
+	svc, svcTenantID, err := h.getService(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to get database connection",
-		})
+		if err == config.ErrMissingTenantID {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant ID"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to connect to tenant database"})
+		}
 		return
+	}
+	if tenantID == "" {
+		tenantID = svcTenantID
 	}
 
 	health, err := svc.GetPortfolioHealth(c.Request.Context(), platform)
@@ -141,12 +129,13 @@ func (h *MLHandler) GetProducts(c *gin.Context) {
 		params.SortDir = "desc"
 	}
 
-	svc, err := h.getService(c)
+	svc, _, err := h.getService(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to get database connection",
-		})
+		if err == config.ErrMissingTenantID {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant ID"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to connect to tenant database"})
+		}
 		return
 	}
 
@@ -193,12 +182,13 @@ func (h *MLHandler) GetProductDetail(c *gin.Context) {
 		return
 	}
 
-	svc, err := h.getService(c)
+	svc, _, err := h.getService(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to get database connection",
-		})
+		if err == config.ErrMissingTenantID {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant ID"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to connect to tenant database"})
+		}
 		return
 	}
 

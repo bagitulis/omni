@@ -69,6 +69,10 @@ func (h *WebhookExtendedHandler) ShopeeWebhookTenant(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid webhook signature"})
 				return
 			}
+			// Non-signature errors: intentionally return 200 OK.
+			// E-commerce platforms retry delivery on non-2xx responses,
+			// so returning an error would cause retry storms. The error
+			// is already logged above for alerting/investigation.
 		}
 	}
 
@@ -109,6 +113,7 @@ func (h *WebhookExtendedHandler) LazadaWebhookTenant(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid webhook signature"})
 				return
 			}
+			// Non-signature errors: intentionally return 200 OK to prevent retry storms.
 		}
 	}
 
@@ -150,6 +155,7 @@ func (h *WebhookExtendedHandler) TiktokWebhookTenant(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid webhook signature"})
 				return
 			}
+			// Non-signature errors: intentionally return 200 OK to prevent retry storms.
 		}
 	}
 

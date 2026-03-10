@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto"
 	"github.com/omni/backend/internal/models"
 )
@@ -11,12 +12,13 @@ import (
 // GetAlerts returns active alerts
 // GET /api/analytics/ml/alerts
 func (h *MLHandler) GetAlerts(c *gin.Context) {
-	svc, err := h.getService(c)
+	svc, _, err := h.getService(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to get database connection",
-		})
+		if err == config.ErrMissingTenantID {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant ID"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to connect to tenant database"})
+		}
 		return
 	}
 
@@ -78,12 +80,13 @@ func (h *MLHandler) SimulateBudget(c *gin.Context) {
 		return
 	}
 
-	svc, err := h.getService(c)
+	svc, _, err := h.getService(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to get database connection",
-		})
+		if err == config.ErrMissingTenantID {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant ID"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to connect to tenant database"})
+		}
 		return
 	}
 
@@ -105,12 +108,13 @@ func (h *MLHandler) SimulateBudget(c *gin.Context) {
 // GetScoreDistribution returns score distribution for charts
 // GET /api/analytics/ml/distribution
 func (h *MLHandler) GetScoreDistribution(c *gin.Context) {
-	svc, err := h.getService(c)
+	svc, _, err := h.getService(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to get database connection",
-		})
+		if err == config.ErrMissingTenantID {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant ID"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to connect to tenant database"})
+		}
 		return
 	}
 

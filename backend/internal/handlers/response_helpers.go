@@ -27,29 +27,27 @@ func respondInternalError(c *gin.Context, err error) {
 }
 
 // respondSuccess sends success response with data
-// NOTE: Uses both "data" and "items" for frontend compatibility
 func respondSuccess(c *gin.Context, data interface{}, count int) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    data,
-		"items":   data,
 		"count":   count,
 	})
 }
 
 // respondWithConfig sends success response with single config
 func respondWithConfig(c *gin.Context, config interface{}) {
-	c.JSON(http.StatusOK, gin.H{"success": true, "config": config})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": config})
 }
 
 // respondWithConfigs sends success response with multiple configs
 func respondWithConfigs(c *gin.Context, configs interface{}) {
-	c.JSON(http.StatusOK, gin.H{"success": true, "configs": configs})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": configs})
 }
 
-// respondCreated sends created response with config
-func respondCreated(c *gin.Context, config interface{}) {
-	c.JSON(http.StatusCreated, gin.H{"success": true, "config": config})
+// respondCreated sends created response with data
+func respondCreated(c *gin.Context, data interface{}) {
+	c.JSON(http.StatusCreated, gin.H{"success": true, "data": data})
 }
 
 // respondDeleted sends success response for deletion

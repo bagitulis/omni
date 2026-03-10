@@ -48,7 +48,6 @@ export interface RouteData {
   disconnected_routes: Record<string, FrontendOnlySummary>;
   backend_only_routes: Record<string, RouteSummary>;
   unused_routes: Record<string, RouteSummary>;
-  button_to_endpoints: Record<string, Record<string, string[]>>;
   statistics?: Record<string, unknown>;
   timestamp: string;
 }
@@ -77,7 +76,10 @@ export interface BackendRoute {
 export interface BackendAnalysis {
   total_routes: number;
   by_method: Record<string, number>;
-  by_tag: Record<string, number>;
+  by_platform: Record<string, number>;
+  by_category: Record<string, number>;
+  public_routes?: number;
+  authenticated_routes?: number;
   conflicts?: Array<{ route1: string; route2: string; reason: string }>;
   unprotected_routes?: string[];
 }

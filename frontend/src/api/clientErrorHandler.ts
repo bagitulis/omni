@@ -61,17 +61,18 @@ export function handleResponseError(error: AxiosError): Promise<never> {
 
   // 403 Forbidden
   if (status === 403) {
-    const errorMsg = "Permission denied";
-    message.error(errorMsg);
+    const errorMsg = backendMsg || "Permission denied";
+    message.error("Permission denied");
     logger.error(`[API] 403 Forbidden:`, { error: errorMsg });
     return Promise.reject(new Error(errorMsg));
   }
 
   // 500 Server Error
   if (status === 500) {
+    const errorMsg = backendMsg || "Server error — please try again";
     logger.error(`[API] 500 Server Error:`, { error: backendMsg });
     message.error("Server error — please try again");
-    return Promise.reject(new Error("Server error — please try again"));
+    return Promise.reject(new Error(errorMsg));
   }
 
   // Generic error — sanitize before surfacing to the user

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"os"
 
@@ -182,10 +183,13 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 	// Revoke the refresh session if token exists
 	if refreshToken != "" {
-		_ = h.authService.Logout(c.Request.Context(), refreshToken)
+		if err := h.authService.Logout(c.Request.Context(), refreshToken); err != nil {
+			// Log the failure for security auditing — token may still be valid
+			log.Printf("Warning: failed to revoke refresh token during logout: %v", err)
+		}
 	}
 
-	// Clear the refresh token cookie
+	// Always clear the cookie regardless of revocation result
 	clearRefreshTokenCookie(c)
 
 	c.JSON(http.StatusOK, response.Success(gin.H{
