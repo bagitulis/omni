@@ -11,6 +11,7 @@ import {
 } from "antd";
 import { Order } from "@/types/order";
 import { useState, useEffect } from "react";
+import { message } from "@/components/AntStaticHolder";
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -64,7 +65,10 @@ export function OrderCancelModal({
       await onConfirm(order.order_sn, values);
       setSubmitting(false);
       onClose();
-    } catch (err) { console.warn("Operation failed:", err);
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to cancel order";
+      message.error(errorMsg);
       setSubmitting(false);
     }
   };

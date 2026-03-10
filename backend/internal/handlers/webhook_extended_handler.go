@@ -59,7 +59,7 @@ func (h *WebhookExtendedHandler) ShopeeWebhookTenant(c *gin.Context) {
 
 	if h.shopeeProcessor != nil {
 		if err := h.shopeeProcessor.Process(c.Request.Context(), tenantID, requestURL, string(body), signature); err != nil {
-			log.Warn().
+			log.Error().
 				Str("handler", "webhook").
 				Str("platform", "shopee").
 				Err(err).
@@ -99,7 +99,7 @@ func (h *WebhookExtendedHandler) LazadaWebhookTenant(c *gin.Context) {
 
 	if h.lazadaProcessor != nil {
 		if err := h.lazadaProcessor.Process(c.Request.Context(), tenantID, string(body), signature); err != nil {
-			log.Warn().
+			log.Error().
 				Str("handler", "webhook").
 				Str("platform", "lazada").
 				Err(err).
@@ -140,7 +140,7 @@ func (h *WebhookExtendedHandler) TiktokWebhookTenant(c *gin.Context) {
 
 	if h.tiktokProcessor != nil {
 		if err := h.tiktokProcessor.Process(c.Request.Context(), tenantID, string(body), timestamp, signature); err != nil {
-			log.Warn().
+			log.Error().
 				Str("handler", "webhook").
 				Str("platform", "tiktok").
 				Err(err).
@@ -179,10 +179,10 @@ func (h *WebhookExtendedHandler) TestWebhook(c *gin.Context) {
 
 	// Simulate webhook processing
 	result := gin.H{
-		"platform":  req.Platform,
-		"eventType": req.EventType,
-		"processed": true,
-		"message":   "Test webhook processed successfully",
+		"platform":   req.Platform,
+		"event_type": req.EventType,
+		"processed":  true,
+		"message":    "Test webhook processed successfully",
 	}
 
 	c.JSON(http.StatusOK, response.Success(result))
@@ -258,9 +258,6 @@ func (h *WebhookExtendedHandler) SaveWebhookConfig(c *gin.Context) {
 		return
 	}
 
-	// Config saved (acknowledged) - actual persistence can be extended via service layer
-	c.JSON(http.StatusOK, response.Success(gin.H{
-		"custom_url": req.CustomURL,
-		"saved":      true,
-	}))
+	// Webhook config persistence not yet implemented
+	c.JSON(http.StatusNotImplemented, response.Error("Webhook config persistence not yet implemented"))
 }

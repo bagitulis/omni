@@ -1,4 +1,4 @@
-import { Tag, theme } from "antd";
+import { Tag } from "antd";
 
 interface PlatformBadgeProps {
   platform: string;
@@ -11,7 +11,6 @@ const PLATFORM_CONFIG: Record<string, { color: string; label: string }> = {
 };
 
 export function PlatformBadge({ platform }: PlatformBadgeProps) {
-  const { token } = theme.useToken();
   const normalizedPlatform = platform.toLowerCase();
   const config = PLATFORM_CONFIG[normalizedPlatform] || {
     color: "default",
@@ -23,7 +22,6 @@ export function PlatformBadge({ platform }: PlatformBadgeProps) {
       color={config.color}
       style={{
         marginRight: 0,
-        color: token.colorBgContainer,
         fontWeight: 500,
         border: "none",
         fontSize: "10px",

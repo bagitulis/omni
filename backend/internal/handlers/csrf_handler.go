@@ -42,8 +42,8 @@ func (h *CSRFHandler) GetCSRFToken(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"token":     token,
-			"expiresIn": 86400, // 24 hours in seconds
+			"token":      token,
+			"expires_in": 86400, // 24 hours in seconds
 		},
 	})
 }

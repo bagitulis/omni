@@ -141,7 +141,7 @@ func (h *ProductExtendedHandler) GetAttributes(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"categoryId": categoryID,
-		"attributes": attributes,
+		"category_id": categoryID,
+		"attributes":  attributes,
 	}))
 }

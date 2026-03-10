@@ -125,9 +125,7 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, response.Success(gin.H{
-		"data": rtsResp.Data,
-	}))
+	c.JSON(http.StatusOK, response.Success(rtsResp.Data))
 }
 
 // CancelOrderRequest represents cancel order request

@@ -2,14 +2,12 @@ package tiktok
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
-	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/cache"
 	tiktokService "github.com/omni/backend/internal/services/tiktok"
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
@@ -34,43 +32,7 @@ func NewSyncHandlerWithCache(basePath string, cacheService cache.CacheManager) *
 
 // getTiktokClient creates TikTok API client with tenant-specific credentials
 func (h *SyncHandler) getTiktokClient(tenantID string) (*tiktokPkg.Client, error) {
-	ctx := context.Background()
-	db, err := config.GetTenantDB(tenantID, h.basePath)
-	if err != nil {
-		return nil, err
-	}
-
-	// Use PlatformCredentialsRepository for key-value based config (current schema)
-	credRepo := repositories.NewPlatformCredentialsRepository(db)
-	tenantCreds, err := credRepo.GetTiktokCredentials(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if tenantCreds.AccessToken == "" || tenantCreds.ShopCipher == "" {
-		return nil, fmt.Errorf("missing TikTok credentials: accessToken or shopCipher not configured")
-	}
-
-	// Use tenant credentials for appKey/appSecret if available, otherwise fall back to global
-	appKey := tenantCreds.AppKey
-	appSecret := tenantCreds.AppSecret
-
-	if appKey == "" || appSecret == "" {
-		systemDB, err := config.GetSystemDB(h.basePath)
-		if err != nil {
-			return nil, err
-		}
-		globalRepo := repositories.NewGlobalConfigRepository(systemDB)
-		globalCreds, err := globalRepo.GetTiktokCredentials(ctx)
-		if err != nil {
-			return nil, err
-		}
-		appKey = globalCreds.AppKey
-		appSecret = globalCreds.AppSecret
-	}
-
-	client := tiktokPkg.NewClient(appKey, appSecret)
-	client.SetCredentials(tenantCreds.AccessToken, tenantCreds.ShopCipher)
-	return client, nil
+	return NewTiktokClient(tenantID, h.basePath)
 }
 
 // invalidateAnalyticsCache invalidates analytics cache after sync
@@ -128,7 +90,7 @@ func (h *SyncHandler) SyncOrders(c *gin.Context) {
 	syncService := tiktokService.NewSyncServiceWithTenant(client, db, tenantID)
 	count, err := syncService.SyncOrders(context.Background(), "")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Sync failed: "+err.Error()))
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 
@@ -168,7 +130,7 @@ func (h *SyncHandler) SyncProducts(c *gin.Context) {
 	syncService := tiktokService.NewSyncServiceWithTenant(client, db, tenantID)
 	count, err := syncService.SyncProducts(context.Background())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Sync failed: "+err.Error()))
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
 

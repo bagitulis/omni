@@ -53,14 +53,14 @@ func (h *WholesaleExtendedHandler) DeleteWholesale(c *gin.Context) {
 
 	db, err := h.getDB(c, tenantID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed: "+err.Error()))
 		return
 	}
 
 	// Get Shopee API client
 	shopeeClient, err := config.GetShopeeClient(tenantID, h.basePath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Shopee API configuration failed"))
+		c.JSON(http.StatusInternalServerError, response.Error("Shopee API configuration failed: "+err.Error()))
 		return
 	}
 
@@ -102,13 +102,13 @@ func (h *WholesaleExtendedHandler) UpdateWholesale(c *gin.Context) {
 
 	db, err := h.getDB(c, tenantID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed: "+err.Error()))
 		return
 	}
 
 	shopeeClient, err := config.GetShopeeClient(tenantID, h.basePath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Shopee API configuration failed"))
+		c.JSON(http.StatusInternalServerError, response.Error("Shopee API configuration failed: "+err.Error()))
 		return
 	}
 
@@ -156,13 +156,13 @@ func (h *WholesaleExtendedHandler) GetWholesaleInfo(c *gin.Context) {
 
 	db, err := h.getDB(c, tenantID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed: "+err.Error()))
 		return
 	}
 
 	shopeeClient, err := config.GetShopeeClient(tenantID, h.basePath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Shopee API configuration failed"))
+		c.JSON(http.StatusInternalServerError, response.Error("Shopee API configuration failed: "+err.Error()))
 		return
 	}
 
@@ -171,14 +171,7 @@ func (h *WholesaleExtendedHandler) GetWholesaleInfo(c *gin.Context) {
 
 	tiers, err := service.GetWholesaleTiers(c.Request.Context(), itemID)
 	if err != nil {
-		log.Warn().Err(err).Int64("item_id", itemID).Msg("Failed to get wholesale tiers")
-		// Return empty tiers with fetch_error for frontend distinction
-		c.JSON(http.StatusOK, response.Success(gin.H{
-			"item_id":       itemID,
-			"has_wholesale": false,
-			"tiers":         []wholesale.WholesaleTier{},
-			"fetch_error":   err.Error(),
-		}))
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get wholesale tiers: "+err.Error()))
 		return
 	}
 
@@ -206,7 +199,7 @@ func (h *WholesaleExtendedHandler) LookupItemId(c *gin.Context) {
 
 	db, err := config.GetTenantDB(tenantID, h.basePath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed: "+err.Error()))
 		return
 	}
 

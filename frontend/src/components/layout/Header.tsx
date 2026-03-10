@@ -58,10 +58,9 @@ function Header({ collapsed, onCollapse }: HeaderProps) {
     apiClient
       .get<{ tenants: TenantOption[] }>("/auth/tenants")
       .then((res) => {
-        if (res.success) {
-          // Backend returns { success, tenants } at top level (not under data)
-          const raw = res as unknown as { tenants: TenantOption[] };
-          setTenants(raw.tenants || []);
+        if (res.success && res.data) {
+          const data = res.data as { tenants: TenantOption[] };
+          setTenants(data.tenants || []);
         }
       })
       .catch(() => {
@@ -78,24 +77,25 @@ function Header({ collapsed, onCollapse }: HeaderProps) {
           token: string;
           tenant_id: string;
         }>("/auth/switch-tenant", { tenant_id: newTenantId });
-        if (res.success) {
-          // Backend returns { success, token, tenant_id } at top level
-          const raw = res as unknown as {
+        if (res.success && res.data) {
+          const data = res.data as {
             token: string;
             tenant_id: string;
           };
-          if (raw.token && user) {
+          if (data.token && user) {
             setAuth({
-              access_token: raw.token,
+              access_token: data.token,
               user,
-              tenant_id: raw.tenant_id,
+              tenant_id: data.tenant_id,
             });
           }
           message.success(`Switched to ${newTenantId}`);
           window.location.reload();
         }
-      } catch (err) { console.warn("Operation failed:", err);
-        message.error("Failed to switch tenant");
+      } catch (err: unknown) {
+        const errorMsg =
+          err instanceof Error ? err.message : "Failed to switch tenant";
+        message.error(errorMsg);
       } finally {
         setSwitching(false);
       }

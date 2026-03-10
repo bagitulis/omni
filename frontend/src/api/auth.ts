@@ -20,34 +20,28 @@ export interface DevLoginResponse extends LoginResponse {
 
 /**
  * Authentication API Service
- * Note: Auth endpoints return flat responses (not wrapped in 'data' field)
+ * Auth endpoints now use standard {success, data} wrapper format.
  */
 export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
-  // Auth endpoints return flat response: {success, token, access_token, user, tenant_id, expires_in}
-  // We use api.client directly to access full response if needed, but api.post handles wrapper
-  // But wait, api.post returns ApiResponse<T>.
-  // The backend for login returns flat JSON with success: true.
-  const response = await api.client.post("/auth/login", payload, {
+  const response = await api.post<LoginResponse>("/auth/login", payload, {
     withCredentials: true,
   });
-  const result = response.data;
-  if (!result.success) {
-    throw new Error(result.error || "Login failed");
+  if (!response.success) {
+    throw new Error(response.error || "Login failed");
   }
-  return result as LoginResponse;
+  return response.data as LoginResponse;
 };
 
 export const devLogin = async (
   payload: DevLoginPayload,
 ): Promise<DevLoginResponse> => {
-  const response = await api.client.post("/auth/dev-login", payload, {
+  const response = await api.post<DevLoginResponse>("/auth/dev-login", payload, {
     withCredentials: true,
   });
-  const result = response.data;
-  if (!result.success) {
-    throw new Error(result.error || "Dev login failed");
+  if (!response.success) {
+    throw new Error(response.error || "Dev login failed");
   }
-  return result as DevLoginResponse;
+  return response.data as DevLoginResponse;
 };
 
 export const logout = async (): Promise<void> => {

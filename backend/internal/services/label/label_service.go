@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"unicode"
 
 	"github.com/omni/backend/internal/config"
 	lazadaHandler "github.com/omni/backend/internal/handlers/lazada"
@@ -54,7 +53,7 @@ func (s *LabelService) GetLabelWithOptions(ctx context.Context, tenantID, orderS
 				OrderSN:      orderSN,
 				Platform:     "unknown",
 				Status:       "FAILED",
-				ErrorMessage: fmt.Sprintf("failed to detect platform: %s", err.Error()),
+				ErrorMessage: fmt.Sprintf("failed to detect platform: %v", err),
 			}
 		}
 		platform = detected
@@ -105,30 +104,9 @@ func (s *LabelService) detectPlatform(ctx context.Context, tenantID, orderSN str
 		}
 	}
 
-	if isLikelyTikTokOrderID(orderSN) {
-		log.Warn().Str("order_sn", orderSN).Msg("Platform not found in DB, defaulting to TikTok by order ID format")
-		return "tiktok", nil
-	}
-
 	return "", fmt.Errorf("order %s not found in any platform", orderSN)
 }
 
-func isLikelyTikTokOrderID(orderSN string) bool {
-	trimmed := strings.TrimSpace(orderSN)
-	if len(trimmed) < 16 {
-		return false
-	}
-
-	for _, ch := range trimmed {
-		if !unicode.IsDigit(ch) {
-			return false
-		}
-	}
-
-	return true
-}
-
-// existsInTable checks if an order_sn exists in the given platform order table
 func (s *LabelService) existsInTable(ctx context.Context, db *gorm.DB, model interface{}, orderSN string) bool {
 	var count int64
 	db.WithContext(ctx).Model(model).Where("order_sn = ?", orderSN).Count(&count)
@@ -180,7 +158,7 @@ func (s *LabelService) getTikTokLabel(ctx context.Context, tenantID, orderSN str
 				OrderSN:      orderSN,
 				Platform:     "tiktok",
 				Status:       "FAILED",
-				ErrorMessage: fmt.Sprintf("failed to get TikTok label: %s", err.Error()),
+				ErrorMessage: fmt.Sprintf("primary: %v; fallback: %v", err, err2),
 			}
 		}
 		docURL = docURL2
@@ -204,7 +182,7 @@ func (s *LabelService) getLazadaLabel(ctx context.Context, tenantID, orderSN str
 			OrderSN:      orderSN,
 			Platform:     "lazada",
 			Status:       "FAILED",
-			ErrorMessage: fmt.Sprintf("failed to get tenant DB: %s", err.Error()),
+			ErrorMessage: fmt.Sprintf("failed to get tenant DB: %v", err),
 		}
 	}
 
@@ -232,7 +210,7 @@ func (s *LabelService) getLazadaLabel(ctx context.Context, tenantID, orderSN str
 			OrderSN:      orderSN,
 			Platform:     "lazada",
 			Status:       "FAILED",
-			ErrorMessage: fmt.Sprintf("failed to get Lazada client: %s", err.Error()),
+			ErrorMessage: fmt.Sprintf("failed to get Lazada client: %v", err),
 		}
 	}
 
@@ -246,7 +224,7 @@ func (s *LabelService) getLazadaLabel(ctx context.Context, tenantID, orderSN str
 			OrderSN:      orderSN,
 			Platform:     "lazada",
 			Status:       "FAILED",
-			ErrorMessage: fmt.Sprintf("failed to get Lazada document: %s", err.Error()),
+			ErrorMessage: fmt.Sprintf("failed to get Lazada document: %v", err),
 		}
 	}
 	if docResp.Code != "0" && docResp.Code != "" {
@@ -254,7 +232,7 @@ func (s *LabelService) getLazadaLabel(ctx context.Context, tenantID, orderSN str
 			OrderSN:      orderSN,
 			Platform:     "lazada",
 			Status:       "FAILED",
-			ErrorMessage: fmt.Sprintf("Lazada API error: code %s", docResp.Code),
+			ErrorMessage: fmt.Sprintf("Lazada API error: code %s, message: %s", docResp.Code, docResp.Message),
 		}
 	}
 

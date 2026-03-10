@@ -12,7 +12,7 @@ import { useTiktokAdsUpload } from "./components/tiktok-ads/useTiktokAdsUpload";
 import { DashboardTab } from "./components/tiktok-ads/DashboardTab";
 import { DataTab } from "./components/tiktok-ads/DataTab";
 import { UploadTab } from "./components/tiktok-ads/UploadTab";
-import { TikTokAdsData, TIKTOK_BLACK } from "./components/tiktok-ads/types";
+import { TikTokAdsData } from "./components/tiktok-ads/types";
 import { useTiktokAdsDashboard, useTiktokAdsData } from "@/hooks/useAds";
 import { TikTokAdsSummary } from "./components/tiktok-ads/useTiktokAdsSummary";
 
@@ -182,7 +182,7 @@ export const TiktokAdsAnalyticsPage = () => {
         }}
       >
         <div>
-          <Title level={3} style={{ margin: 0, color: TIKTOK_BLACK }}>
+          <Title level={3} style={{ margin: 0 }}>
             TikTok Ads Analytics
           </Title>
           <Text type="secondary">

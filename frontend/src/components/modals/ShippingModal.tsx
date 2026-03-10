@@ -75,8 +75,10 @@ export function ShippingModal({
       await onConfirm(order.order_sn, values);
       setSubmitting(false);
       onClose();
-    } catch (err) { console.warn("Operation failed:", err);
-      message.error("Failed to generate shipping label. Please try again.");
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to generate shipping label";
+      message.error(errorMsg);
       setSubmitting(false);
     }
   };

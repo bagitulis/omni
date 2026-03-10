@@ -108,8 +108,8 @@ func TestShippingFilesHandler_GetShippingFiles_WithFiles(t *testing.T) {
 	assert.Len(t, files, 3)
 }
 
-// TestShippingFilesHandler_ProcessShippingFile_Success tests ProcessShippingFile returns 200 with valid filename
-func TestShippingFilesHandler_ProcessShippingFile_Success(t *testing.T) {
+// TestShippingFilesHandler_ProcessShippingFile_NotImplemented tests ProcessShippingFile returns 501
+func TestShippingFilesHandler_ProcessShippingFile_NotImplemented(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
@@ -128,13 +128,12 @@ func TestShippingFilesHandler_ProcessShippingFile_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusNotImplemented, w.Code)
 
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
-	assert.True(t, resp["success"].(bool))
-	assert.Equal(t, "File processed successfully", resp["message"])
+	assert.False(t, resp["success"].(bool))
 }
 
 // TestShippingFilesHandler_ProcessShippingFile_MissingTenant tests ProcessShippingFile returns 400 when tenantID is empty

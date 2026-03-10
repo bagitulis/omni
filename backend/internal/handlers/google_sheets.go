@@ -150,5 +150,5 @@ func (h *GoogleSheetsHandler) ImportData(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, response.Success(gin.H{"data": data, "count": len(data)}))
+	c.JSON(http.StatusOK, response.Success(gin.H{"rows": data, "count": len(data)}))
 }

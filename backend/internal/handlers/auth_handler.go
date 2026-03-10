@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/services"
 	"github.com/omni/backend/internal/utils"
 )
@@ -104,15 +105,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// Response format matches Node.js but uses snake_case per AGENTS.MD
 	// Access token is returned in body, refresh token is in HttpOnly cookie
-	c.JSON(http.StatusOK, gin.H{
-		"success":      true,
+	c.JSON(http.StatusOK, response.Success(gin.H{
 		"message":      "Login successful",
 		"user":         result.User,
 		"token":        result.AccessToken,
 		"access_token": result.AccessToken,
 		"tenant_id":    result.TenantID,
 		"expires_in":   int(utils.AccessTokenTTL.Seconds()),
-	})
+	}))
 }
 
 // RefreshToken handles token refresh
@@ -169,11 +169,10 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		setRefreshTokenCookie(c, newRefreshToken, getRefreshTokenMaxAge())
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success":      true,
+	c.JSON(http.StatusOK, response.Success(gin.H{
 		"access_token": accessToken,
 		"expires_in":   int(utils.AccessTokenTTL.Seconds()),
-	})
+	}))
 }
 
 // Logout handles user logout
@@ -189,8 +188,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	// Clear the refresh token cookie
 	clearRefreshTokenCookie(c)
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
+	c.JSON(http.StatusOK, response.Success(gin.H{
 		"message": "Logged out successfully",
-	})
+	}))
 }

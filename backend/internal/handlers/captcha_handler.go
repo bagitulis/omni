@@ -81,8 +81,8 @@ func (h *CaptchaHandler) GetSiteKey(c *gin.Context) {
 	enabled := h.captchaService.IsEnabled()
 
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"enabled": enabled,
-		"siteKey": siteKey,
+		"success":  true,
+		"enabled":  enabled,
+		"site_key": siteKey,
 	})
 }

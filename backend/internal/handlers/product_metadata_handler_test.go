@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,406 +10,59 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestProductMetadataHandler_GetShopeeCategories(t *testing.T) {
+// TestProductMetadataHandler_AllEndpointsReturn501 verifies that all product metadata
+// endpoints return 501 Not Implemented since they previously returned hardcoded dummy data.
+func TestProductMetadataHandler_AllEndpointsReturn501(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	t.Run("missing_tenant_id", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
+	handler := NewProductMetadataHandler("")
 
-		r.GET("/api/products/create/shopee/categories", handler.GetShopeeCategories)
+	tests := []struct {
+		name    string
+		method  string
+		path    string
+		handler gin.HandlerFunc
+	}{
+		{"GetShopeeCategories", "GET", "/shopee/categories", handler.GetShopeeCategories},
+		{"GetShopeeAttributes", "GET", "/shopee/attributes/123", handler.GetShopeeAttributes},
+		{"GetShopeeBrands", "GET", "/shopee/brands/123", handler.GetShopeeBrands},
+		{"GetShopeeLogistics", "GET", "/shopee/logistics", handler.GetShopeeLogistics},
+		{"GetLazadaCategories", "GET", "/lazada/categories", handler.GetLazadaCategories},
+		{"GetLazadaAttributes", "GET", "/lazada/attributes/123", handler.GetLazadaAttributes},
+		{"GetLazadaBrands", "GET", "/lazada/brands/123", handler.GetLazadaBrands},
+		{"GetTiktokCategories", "GET", "/tiktok/categories", handler.GetTiktokCategories},
+		{"GetTiktokAttributes", "GET", "/tiktok/attributes/123", handler.GetTiktokAttributes},
+		{"GetTiktokBrands", "GET", "/tiktok/brands", handler.GetTiktokBrands},
+		{"GetTiktokWarehouses", "GET", "/tiktok/warehouses", handler.GetTiktokWarehouses},
+		{"UploadImage", "POST", "/upload-image", handler.UploadImage},
+		{"ValidateProduct", "POST", "/validate", handler.ValidateProduct},
+		{"GetTemplates", "GET", "/templates", handler.GetTemplates},
+	}
 
-		req, _ := http.NewRequest("GET", "/api/products/create/shopee/categories", nil)
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := gin.New()
+			// Set tenantID so we don't stop at the auth check
+			r.Use(func(c *gin.Context) {
+				c.Set("tenantID", "test-tenant")
+				c.Next()
+			})
+			if tt.method == "GET" {
+				r.GET(tt.path, tt.handler)
+			} else {
+				r.POST(tt.path, tt.handler)
+			}
 
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
-	})
+			req, _ := http.NewRequest(tt.method, tt.path, nil)
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
 
-	t.Run("valid_tenant_returns_categories", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
+			assert.Equal(t, http.StatusNotImplemented, w.Code, "Expected 501 for %s", tt.name)
 
-		r.Use(func(c *gin.Context) {
-			c.Set("tenantID", "test-tenant")
-			c.Next()
+			var resp map[string]interface{}
+			err := json.Unmarshal(w.Body.Bytes(), &resp)
+			assert.NoError(t, err)
+			assert.Equal(t, false, resp["success"])
 		})
-		r.GET("/api/products/create/shopee/categories", handler.GetShopeeCategories)
-
-		req, _ := http.NewRequest("GET", "/api/products/create/shopee/categories", nil)
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var resp map[string]interface{}
-		err := json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.NoError(t, err)
-		assert.True(t, resp["success"].(bool))
-		data := resp["data"].(map[string]interface{})
-		assert.NotNil(t, data["categories"])
-	})
-}
-
-func TestProductMetadataHandler_GetShopeeAttributes(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	t.Run("missing_tenant_id", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.GET("/api/products/create/shopee/attributes/:catId", handler.GetShopeeAttributes)
-
-		req, _ := http.NewRequest("GET", "/api/products/create/shopee/attributes/123", nil)
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
-	})
-
-	t.Run("valid_tenant_returns_attributes", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.Use(func(c *gin.Context) {
-			c.Set("tenantID", "test-tenant")
-			c.Next()
-		})
-		r.GET("/api/products/create/shopee/attributes/:catId", handler.GetShopeeAttributes)
-
-		req, _ := http.NewRequest("GET", "/api/products/create/shopee/attributes/123", nil)
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var resp map[string]interface{}
-		err := json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.NoError(t, err)
-		assert.True(t, resp["success"].(bool))
-	})
-}
-
-func TestProductMetadataHandler_GetShopeeBrands(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	t.Run("missing_tenant_id", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.GET("/api/products/create/shopee/brands/:catId", handler.GetShopeeBrands)
-
-		req, _ := http.NewRequest("GET", "/api/products/create/shopee/brands/123", nil)
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
-	})
-
-	t.Run("valid_tenant_returns_brands", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.Use(func(c *gin.Context) {
-			c.Set("tenantID", "test-tenant")
-			c.Next()
-		})
-		r.GET("/api/products/create/shopee/brands/:catId", handler.GetShopeeBrands)
-
-		req, _ := http.NewRequest("GET", "/api/products/create/shopee/brands/123", nil)
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var resp map[string]interface{}
-		err := json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.NoError(t, err)
-		assert.True(t, resp["success"].(bool))
-	})
-}
-
-func TestProductMetadataHandler_GetShopeeLogistics(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	t.Run("missing_tenant_id", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.GET("/api/products/create/shopee/logistics", handler.GetShopeeLogistics)
-
-		req, _ := http.NewRequest("GET", "/api/products/create/shopee/logistics", nil)
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
-	})
-
-	t.Run("valid_tenant_returns_logistics", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.Use(func(c *gin.Context) {
-			c.Set("tenantID", "test-tenant")
-			c.Next()
-		})
-		r.GET("/api/products/create/shopee/logistics", handler.GetShopeeLogistics)
-
-		req, _ := http.NewRequest("GET", "/api/products/create/shopee/logistics", nil)
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-	})
-}
-
-func TestProductMetadataHandler_GetLazadaCategories(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	t.Run("valid_tenant_returns_categories", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.Use(func(c *gin.Context) {
-			c.Set("tenantID", "test-tenant")
-			c.Next()
-		})
-		r.GET("/api/products/create/lazada/categories", handler.GetLazadaCategories)
-
-		req, _ := http.NewRequest("GET", "/api/products/create/lazada/categories", nil)
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var resp map[string]interface{}
-		err := json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.NoError(t, err)
-		assert.True(t, resp["success"].(bool))
-	})
-}
-
-func TestProductMetadataHandler_GetTiktokCategories(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	t.Run("valid_tenant_returns_categories", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.Use(func(c *gin.Context) {
-			c.Set("tenantID", "test-tenant")
-			c.Next()
-		})
-		r.GET("/api/products/create/tiktok/categories", handler.GetTiktokCategories)
-
-		req, _ := http.NewRequest("GET", "/api/products/create/tiktok/categories", nil)
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-	})
-}
-
-func TestProductMetadataHandler_UploadImage(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	t.Run("missing_tenant_id", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.POST("/api/products/create/upload-image", handler.UploadImage)
-
-		body, _ := json.Marshal(map[string]interface{}{
-			"platform":  "shopee",
-			"image_url": "https://example.com/image.jpg",
-		})
-		req, _ := http.NewRequest("POST", "/api/products/create/upload-image", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
-	})
-
-	t.Run("valid_request_returns_success", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.Use(func(c *gin.Context) {
-			c.Set("tenantID", "test-tenant")
-			c.Next()
-		})
-		r.POST("/api/products/create/upload-image", handler.UploadImage)
-
-		body, _ := json.Marshal(map[string]interface{}{
-			"platform":  "shopee",
-			"image_url": "https://example.com/image.jpg",
-		})
-		req, _ := http.NewRequest("POST", "/api/products/create/upload-image", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var resp map[string]interface{}
-		err := json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.NoError(t, err)
-		assert.True(t, resp["success"].(bool))
-	})
-
-	t.Run("missing_platform_returns_error", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.Use(func(c *gin.Context) {
-			c.Set("tenantID", "test-tenant")
-			c.Next()
-		})
-		r.POST("/api/products/create/upload-image", handler.UploadImage)
-
-		body, _ := json.Marshal(map[string]interface{}{
-			"image_url": "https://example.com/image.jpg",
-		})
-		req, _ := http.NewRequest("POST", "/api/products/create/upload-image", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-	})
-}
-
-func TestProductMetadataHandler_ValidateProduct(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	t.Run("missing_tenant_id", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.POST("/api/products/create/validate", handler.ValidateProduct)
-
-		body, _ := json.Marshal(map[string]interface{}{
-			"platform": "shopee",
-			"product":  map[string]interface{}{"title": "Test"},
-		})
-		req, _ := http.NewRequest("POST", "/api/products/create/validate", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
-	})
-
-	t.Run("valid_product", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.Use(func(c *gin.Context) {
-			c.Set("tenantID", "test-tenant")
-			c.Next()
-		})
-		r.POST("/api/products/create/validate", handler.ValidateProduct)
-
-		body, _ := json.Marshal(map[string]interface{}{
-			"platform": "shopee",
-			"product":  map[string]interface{}{"title": "Test Product"},
-		})
-		req, _ := http.NewRequest("POST", "/api/products/create/validate", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var resp map[string]interface{}
-		err := json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.NoError(t, err)
-		assert.True(t, resp["success"].(bool))
-	})
-
-	t.Run("missing_title_returns_validation_errors", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.Use(func(c *gin.Context) {
-			c.Set("tenantID", "test-tenant")
-			c.Next()
-		})
-		r.POST("/api/products/create/validate", handler.ValidateProduct)
-
-		body, _ := json.Marshal(map[string]interface{}{
-			"platform": "shopee",
-			"product":  map[string]interface{}{"price": 10000},
-		})
-		req, _ := http.NewRequest("POST", "/api/products/create/validate", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var resp map[string]interface{}
-		err := json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.NoError(t, err)
-
-		data := resp["data"].(map[string]interface{})
-		assert.False(t, data["valid"].(bool))
-	})
-}
-
-func TestProductMetadataHandler_GetTemplates(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	t.Run("missing_tenant_id", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.GET("/api/products/create/templates", handler.GetTemplates)
-
-		req, _ := http.NewRequest("GET", "/api/products/create/templates", nil)
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
-	})
-
-	t.Run("returns_all_templates", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.Use(func(c *gin.Context) {
-			c.Set("tenantID", "test-tenant")
-			c.Next()
-		})
-		r.GET("/api/products/create/templates", handler.GetTemplates)
-
-		req, _ := http.NewRequest("GET", "/api/products/create/templates", nil)
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var resp map[string]interface{}
-		err := json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.NoError(t, err)
-		assert.True(t, resp["success"].(bool))
-	})
-
-	t.Run("filters_by_platform", func(t *testing.T) {
-		r := gin.New()
-		handler := NewProductMetadataHandler("")
-
-		r.Use(func(c *gin.Context) {
-			c.Set("tenantID", "test-tenant")
-			c.Next()
-		})
-		r.GET("/api/products/create/templates", handler.GetTemplates)
-
-		req, _ := http.NewRequest("GET", "/api/products/create/templates?platform=shopee", nil)
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-	})
+	}
 }

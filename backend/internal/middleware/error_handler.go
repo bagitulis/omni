@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -30,10 +31,16 @@ func ErrorHandler() gin.HandlerFunc {
 					log.Printf("Panic recovered: %v", r)
 				}
 
+				errMsg := "An unexpected error occurred"
+				var details interface{}
+				if os.Getenv("GO_ENV") != "production" {
+					details = fmt.Sprintf("%v", r)
+				}
 				c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{
 					Success: false,
-					Error:   "An unexpected error occurred",
+					Error:   errMsg,
 					Type:    errors.TypeInternal,
+					Details: details,
 				})
 			}
 		}()
@@ -67,11 +74,19 @@ func handleError(c *gin.Context, err error) {
 		return
 	}
 
-	// Generic error handling
+	// Log the raw error (was previously silently lost)
+	log.Printf("Unhandled error: %v", err)
+
+	errMsg := "An unexpected error occurred"
+	var details interface{}
+	if os.Getenv("GO_ENV") != "production" {
+		details = err.Error()
+	}
 	c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{
 		Success: false,
-		Error:   "An unexpected error occurred",
+		Error:   errMsg,
 		Type:    errors.TypeInternal,
+		Details: details,
 	})
 }
 

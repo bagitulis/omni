@@ -2,14 +2,12 @@ package tiktok
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
-	"github.com/omni/backend/internal/repositories"
 	tiktokSvc "github.com/omni/backend/internal/services/tiktok"
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
 )
@@ -60,43 +58,5 @@ func (h *ProductSearchHandler) SearchProducts(c *gin.Context) {
 
 // getTiktokClient creates TikTok API client for tenant
 func (h *ProductSearchHandler) getTiktokClient(tenantID string) (*tiktokPkg.Client, error) {
-	ctx := context.Background()
-	db, err := config.GetTenantDB(tenantID, h.basePath)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get platform credentials from tenant's key-value storage
-	// NOTE: PostgreSQL uses schema isolation, NOT tenant_id column
-	credRepo := repositories.NewPlatformCredentialsRepository(db)
-	tenantCreds, err := credRepo.GetTiktokCredentials(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if tenantCreds.AccessToken == "" || tenantCreds.ShopCipher == "" {
-		return nil, fmt.Errorf("missing TikTok credentials: accessToken or shopCipher not configured")
-	}
-
-	// Use tenant credentials for appKey/appSecret if available, otherwise fall back to global
-	appKey := tenantCreds.AppKey
-	appSecret := tenantCreds.AppSecret
-
-	if appKey == "" || appSecret == "" {
-		// Fall back to global credentials
-		systemDB, err := config.GetSystemDB(h.basePath)
-		if err != nil {
-			return nil, err
-		}
-		globalRepo := repositories.NewGlobalConfigRepository(systemDB)
-		globalCreds, err := globalRepo.GetTiktokCredentials(ctx)
-		if err != nil {
-			return nil, err
-		}
-		appKey = globalCreds.AppKey
-		appSecret = globalCreds.AppSecret
-	}
-
-	client := tiktokPkg.NewClient(appKey, appSecret)
-	client.SetCredentials(tenantCreds.AccessToken, tenantCreds.ShopCipher)
-	return client, nil
+	return NewTiktokClient(tenantID, h.basePath)
 }

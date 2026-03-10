@@ -70,7 +70,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, response.Success(map[string]interface{}{
 		"message": "Product created successfully",
-		"itemId":  result.Response.ItemID,
+		"item_id": result.Response.ItemID,
 		"name":    req.Name,
 	}))
 }
@@ -125,7 +125,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response.Success(map[string]interface{}{
 		"message": "Product updated successfully",
-		"itemId":  result.Response.ItemID,
+		"item_id": result.Response.ItemID,
 	}))
 }
 
@@ -165,7 +165,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response.Success(map[string]interface{}{
 		"message": "Product deleted successfully",
-		"itemId":  result.Response.ItemID,
+		"item_id": result.Response.ItemID,
 	}))
 }
 

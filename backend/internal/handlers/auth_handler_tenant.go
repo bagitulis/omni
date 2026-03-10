@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/services"
 )
 
@@ -27,10 +28,9 @@ func (h *AuthHandler) GetTenants(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
+	c.JSON(http.StatusOK, response.Success(gin.H{
 		"tenants": result,
-	})
+	}))
 }
 
 // SwitchTenant switches to a different tenant (developer only)
@@ -66,12 +66,11 @@ func (h *AuthHandler) SwitchTenant(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success":   true,
+	c.JSON(http.StatusOK, response.Success(gin.H{
 		"message":   "Switched to tenant '" + req.TenantID + "'",
 		"token":     newToken,
 		"tenant_id": req.TenantID,
-	})
+	}))
 }
 
 // VerifyToken verifies token validity

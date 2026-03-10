@@ -84,8 +84,10 @@ export function TokenStatusDropdown() {
         content: "Tokens refreshed successfully",
         key: "refresh",
       });
-    } catch (err) { console.warn("Operation failed:", err);
-      message.error({ content: "Failed to refresh tokens", key: "refresh" });
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to refresh tokens";
+      message.error({ content: errorMsg, key: "refresh" });
     } finally {
       setLoading(false);
     }

@@ -71,9 +71,9 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response.Success(map[string]interface{}{
-		"message":        "Order shipped successfully",
-		"orderSn":        result.Response.OrderSN,
-		"trackingNumber": req.TrackingNumber,
+		"message":         "Order shipped successfully",
+		"order_sn":        result.Response.OrderSN,
+		"tracking_number": req.TrackingNumber,
 	}))
 }
 
@@ -116,8 +116,8 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response.Success(map[string]interface{}{
-		"message": "Order cancelled successfully",
-		"orderSn": result.Response.OrderSN,
+		"message":  "Order cancelled successfully",
+		"order_sn": result.Response.OrderSN,
 	}))
 }
 

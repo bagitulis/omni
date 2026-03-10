@@ -33,7 +33,7 @@ func TestGetCSRFToken_Success(t *testing.T) {
 	data, ok := resp["data"].(map[string]interface{})
 	assert.True(t, ok)
 	assert.NotEmpty(t, data["token"])
-	assert.Equal(t, float64(86400), data["expiresIn"])
+	assert.Equal(t, float64(86400), data["expires_in"])
 }
 
 // TestGetCSRFToken_SetsCookie tests that CSRF token is set in cookie
@@ -132,7 +132,7 @@ func TestGetCSRFToken_ResponseFormat(t *testing.T) {
 
 	data := resp["data"].(map[string]interface{})
 	assert.Contains(t, data, "token")
-	assert.Contains(t, data, "expiresIn")
+	assert.Contains(t, data, "expires_in")
 }
 
 // TestCSRFHandler_NewCSRFHandler tests handler creation

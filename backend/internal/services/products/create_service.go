@@ -72,7 +72,7 @@ func (s *CreateService) CreateOnShopee(ctx context.Context, api PlatformAPI, req
 	for _, imgURL := range req.Images {
 		imgID, err := api.UploadImage(ctx, imgURL)
 		if err != nil {
-			return &CreateProductResult{Success: false, Error: fmt.Sprintf("image upload failed: %v", err)}, nil
+			return &CreateProductResult{Success: false, Error: err.Error()}, nil
 		}
 		imageIDs = append(imageIDs, imgID)
 	}
@@ -109,7 +109,7 @@ func (s *CreateService) CreateOnLazada(ctx context.Context, api PlatformAPI, req
 	for _, imgURL := range req.Images {
 		uploaded, err := api.UploadImage(ctx, imgURL)
 		if err != nil {
-			return &CreateProductResult{Success: false, Error: fmt.Sprintf("image upload failed: %v", err)}, nil
+			return &CreateProductResult{Success: false, Error: err.Error()}, nil
 		}
 		imageURLs = append(imageURLs, uploaded)
 	}
@@ -144,7 +144,7 @@ func (s *CreateService) CreateOnTiktok(ctx context.Context, api PlatformAPI, req
 	for _, imgURL := range req.Images {
 		imgID, err := api.UploadImage(ctx, imgURL)
 		if err != nil {
-			return &CreateProductResult{Success: false, Error: fmt.Sprintf("image upload failed: %v", err)}, nil
+			return &CreateProductResult{Success: false, Error: err.Error()}, nil
 		}
 		imageIDs = append(imageIDs, imgID)
 	}
@@ -239,7 +239,7 @@ func (s *CreateService) parseShopeeResponse(resp map[string]interface{}) *Create
 	if errMsg, ok := resp["error"].(string); ok {
 		return &CreateProductResult{Success: false, Error: errMsg}
 	}
-	return &CreateProductResult{Success: false, Error: "unknown response format"}
+	return &CreateProductResult{Success: false, Error: fmt.Sprintf("unknown Shopee response format: %v", resp)}
 }
 
 func (s *CreateService) parseLazadaResponse(resp map[string]interface{}) *CreateProductResult {
@@ -248,7 +248,7 @@ func (s *CreateService) parseLazadaResponse(resp map[string]interface{}) *Create
 			return &CreateProductResult{Success: true, ItemID: int64(itemID)}
 		}
 	}
-	return &CreateProductResult{Success: false, Error: "failed to parse response"}
+	return &CreateProductResult{Success: false, Error: fmt.Sprintf("failed to parse Lazada response: %v", resp)}
 }
 
 func (s *CreateService) parseTiktokResponse(resp map[string]interface{}) *CreateProductResult {
@@ -257,7 +257,7 @@ func (s *CreateService) parseTiktokResponse(resp map[string]interface{}) *Create
 			return &CreateProductResult{Success: true, Message: productID}
 		}
 	}
-	return &CreateProductResult{Success: false, Error: "failed to parse response"}
+	return &CreateProductResult{Success: false, Error: fmt.Sprintf("failed to parse TikTok response: %v", resp)}
 }
 
 func truncateString(s string, maxLen int) string {

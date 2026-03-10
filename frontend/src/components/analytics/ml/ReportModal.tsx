@@ -11,6 +11,12 @@ import { logger } from "@/lib/logger";
 const { Text } = Typography;
 const { useToken } = theme;
 
+const PLATFORM_TAG_COLORS: Record<string, string> = {
+  shopee: "orange",
+  lazada: "blue",
+  tiktok: "default",
+};
+
 interface ReportModalProps {
   report: MLReport | null;
   open: boolean;
@@ -95,7 +101,7 @@ export const ReportModal = ({
             alignItems: "center",
           }}
         >
-          <Tag color={report.platform === "shopee" ? "orange" : "black"}>
+          <Tag color={PLATFORM_TAG_COLORS[report.platform] || "default"}>
             {report.platform.toUpperCase()}
           </Tag>
           <Text type="secondary" style={{ fontSize: 12 }}>

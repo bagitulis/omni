@@ -1,15 +1,11 @@
 package tiktok
 
 import (
-	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
-	"github.com/omni/backend/internal/repositories"
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
 )
 
@@ -139,41 +135,7 @@ func (h *ImageHandler) GetUploadTasks(c *gin.Context) {
 	c.JSON(http.StatusNotImplemented, response.Error("TikTok image upload tasks not yet implemented"))
 }
 
-// getTiktokClientInternal creates TikTok API client for tenant
+// getTiktokClient creates TikTok API client for tenant
 func (h *ImageHandler) getTiktokClient(tenantID string) (*tiktokPkg.Client, error) {
-	ctx := context.Background()
-	db, err := config.GetTenantDB(tenantID, h.basePath)
-	if err != nil {
-		return nil, err
-	}
-
-	credRepo := repositories.NewPlatformCredentialsRepository(db)
-	tenantCreds, err := credRepo.GetTiktokCredentials(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if tenantCreds.AccessToken == "" {
-		return nil, fmt.Errorf("missing TikTok credentials: accessToken not configured")
-	}
-
-	appKey := tenantCreds.AppKey
-	appSecret := tenantCreds.AppSecret
-
-	if appKey == "" || appSecret == "" {
-		systemDB, err := config.GetSystemDB(h.basePath)
-		if err != nil {
-			return nil, err
-		}
-		globalRepo := repositories.NewGlobalConfigRepository(systemDB)
-		globalCreds, err := globalRepo.GetTiktokCredentials(ctx)
-		if err != nil {
-			return nil, err
-		}
-		appKey = globalCreds.AppKey
-		appSecret = globalCreds.AppSecret
-	}
-
-	client := tiktokPkg.NewClient(appKey, appSecret)
-	client.SetCredentials(tenantCreds.AccessToken, tenantCreds.ShopCipher)
-	return client, nil
+	return NewTiktokClient(tenantID, h.basePath)
 }
