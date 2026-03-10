@@ -160,11 +160,11 @@ func (s *CloneService) createTiktokProduct(_ context.Context, data *ProductData)
 	// Step 7: Call TikTok API
 	result, err := client.CreateProduct(req)
 	if err != nil {
-		return "", fmt.Errorf("tiktok API error: %w", err)
+		return "", fmt.Errorf("TikTok CreateProduct: %w", err)
 	}
 
 	if result.Code != 0 {
-		return "", fmt.Errorf("tiktok error: code=%d - %s", result.Code, result.Message)
+		return "", fmt.Errorf("TikTok CreateProduct rejected (code=%d): %s", result.Code, result.Message)
 	}
 
 	if result.Data.ProductID != "" {

@@ -22,21 +22,22 @@ export default function WebhooksTab() {
   const [saving, setSaving] = useState(false);
 
   const handleSaveConfig = async () => {
-    const values = form.getFieldsValue();
-    if (!values.custom_url) {
-      message.warning("Please enter a webhook URL");
-      return;
-    }
-
     setSaving(true);
     try {
+      const values = await form.validateFields();
       await saveWebhookConfig({
         custom_url: values.custom_url,
         secret_key: values.secret_key,
       });
       message.success("Webhook configuration saved");
     } catch (err) { console.warn("Operation failed:", err);
-      message.error("Failed to save webhook configuration");
+      const fieldErrors = (err as { errorFields?: { errors: string[] }[] })?.errorFields;
+      if (fieldErrors) {
+        // Form validation error — fields are already highlighted
+        return;
+      }
+      const msg = err instanceof Error ? err.message : "Failed to save webhook configuration";
+      message.error(msg);
     } finally {
       setSaving(false);
     }
@@ -55,6 +56,10 @@ export default function WebhooksTab() {
               <Form.Item
                 label="Webhook URL"
                 name="custom_url"
+                rules={[
+                  { required: true, message: "Please enter a webhook URL" },
+                  { type: "url", message: "Please enter a valid URL (e.g. https://...)" },
+                ]}
                 style={{ marginBottom: 12 }}
               >
                 <Input placeholder="https://your-server.com/webhook" />

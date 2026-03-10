@@ -49,7 +49,8 @@ export default function PlatformsTab() {
         setPlatforms(platformList);
       }
     } catch (err) { console.warn("Operation failed:", err);
-      message.error("Failed to load platform status");
+      const msg = err instanceof Error ? err.message : "Failed to load platform status";
+      message.error(msg);
     } finally {
       setLoading(false);
     }

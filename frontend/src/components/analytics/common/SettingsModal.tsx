@@ -72,9 +72,11 @@ export function SettingsModal({
       const values = await form.validateFields();
       onSave(values);
     } catch (err) { console.warn("Operation failed:", err);
+      const fieldErrors = (err as { errorFields?: { errors: string[] }[] })?.errorFields;
+      const firstError = fieldErrors?.[0]?.errors?.[0] || "Please correct the highlighted fields before saving.";
       modalApi.error({
         title: "Invalid settings",
-        content: "Please correct the highlighted fields before saving.",
+        content: firstError,
       });
     }
   };

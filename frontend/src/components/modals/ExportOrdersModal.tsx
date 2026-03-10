@@ -67,7 +67,7 @@ export const ExportOrdersModal: React.FC<ExportOrdersModalProps> = ({
         },
       });
     } catch (err) { console.warn("Operation failed:", err);
-      // Form validation error, do nothing
+      // Ant Design validateFields() already highlights invalid fields in the form
     }
   };
 

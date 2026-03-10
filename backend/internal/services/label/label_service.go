@@ -154,11 +154,12 @@ func (s *LabelService) getTikTokLabel(ctx context.Context, tenantID, orderSN str
 		// Fallback: try with packageID directly
 		docURL2, err2 := svc.GetShippingLabel(ctx, tenantID, orderSN, documentType)
 		if err2 != nil {
+			log.Error().Err(err).Str("fallback_err", err2.Error()).Str("order_sn", orderSN).Msg("TikTok label: both primary and fallback failed")
 			return &LabelResult{
 				OrderSN:      orderSN,
 				Platform:     "tiktok",
 				Status:       "FAILED",
-				ErrorMessage: fmt.Sprintf("primary: %v; fallback: %v", err, err2),
+				ErrorMessage: fmt.Sprintf("TikTok label failed: %v", err2),
 			}
 		}
 		docURL = docURL2
