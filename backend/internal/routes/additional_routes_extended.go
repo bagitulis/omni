@@ -57,9 +57,9 @@ func RegisterWebhookExtendedRoutes(
 
 // RegisterTiktokProductExtendedRoutes registers TikTok product extended routes
 func RegisterTiktokProductExtendedRoutes(router *gin.RouterGroup, basePath string) {
-	createHandler := tiktokHandler.NewProductCreateHandler(basePath)
-	imageHandler := tiktokHandler.NewProductImageHandler(basePath)
-	complianceHandler := tiktokHandler.NewProductComplianceHandler(basePath)
+	createHandler := tiktokHandler.NewCreateHandler(basePath)
+	imageHandler := tiktokHandler.NewImageHandler(basePath)
+	complianceHandler := tiktokHandler.NewComplianceHandler(basePath)
 	searchHandler := tiktokHandler.NewProductSearchHandler(basePath)
 
 	products := router.Group("/tiktok/products")

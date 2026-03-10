@@ -1,295 +1,271 @@
 package tiktok
 
 import (
+	"context"
+	"fmt"
 	"net/http"
-	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/repositories"
+	tiktokPkg "github.com/omni/backend/pkg/tiktok"
 )
 
-// ProductCreateHandler handles TikTok product creation endpoints
-type ProductCreateHandler struct {
+// CreateHandler handles TikTok product creation endpoints
+type CreateHandler struct {
 	basePath string
 }
 
-// NewProductCreateHandler creates a new product create handler
-func NewProductCreateHandler(basePath string) *ProductCreateHandler {
-	return &ProductCreateHandler{basePath: basePath}
+// NewCreateHandler creates a new create handler
+func NewCreateHandler(basePath string) *CreateHandler {
+	return &CreateHandler{basePath: basePath}
+}
+
+// SaveDraftRequest represents draft save request
+type SaveDraftRequest struct {
+	Title       string                       `json:"title" binding:"required"`
+	Description string                       `json:"description"`
+	CategoryID  string                       `json:"category_id"`
+	MainImages  []tiktokPkg.ImageInfo        `json:"main_images"`
+	Skus        []tiktokPkg.CreateProductSku `json:"skus"`
+	Weight      string                       `json:"weight"`
+	WeightUnit  string                       `json:"weight_unit"`
 }
 
 // SaveDraft handles POST /api/tiktok/products/draft
-func (h *ProductCreateHandler) SaveDraft(c *gin.Context) {
+// Creates product as draft via real TikTok API.
+func (h *CreateHandler) SaveDraft(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
-	var draft ProductDraft
-	if err := c.ShouldBindJSON(&draft); err != nil {
+	var req SaveDraftRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
 		return
 	}
 
-	if draft.ID == "" {
-		draft.ID = generateID()
+	client, err := h.getTiktokClient(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get TikTok client: "+err.Error()))
+		return
 	}
-	draft.TenantID = tenantID
-	draft.Status = "draft"
+
+	weightUnit := req.WeightUnit
+	if weightUnit == "" {
+		weightUnit = "KILOGRAM"
+	}
+
+	createReq := tiktokPkg.CreateProductRequest{
+		Title:       req.Title,
+		Description: req.Description,
+		CategoryID:  req.CategoryID,
+		MainImages:  req.MainImages,
+		Skus:        req.Skus,
+		PackageWeight: tiktokPkg.PackageWeight{
+			Value: req.Weight,
+			Unit:  weightUnit,
+		},
+		SaveMode: "AS_DRAFT",
+	}
+
+	resp, err := client.CreateProduct(createReq)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to create draft: "+err.Error()))
+		return
+	}
+
+	if resp.Code != 0 {
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("tiktok",
+			fmt.Sprintf("%d", resp.Code), resp.Message))
+		return
+	}
 
 	c.JSON(http.StatusOK, response.Success(gin.H{
-		"draftId": draft.ID,
-		"message": "Draft saved successfully",
+		"product_id": resp.Data.ProductID,
+		"skus":       resp.Data.Skus,
+		"message":    "Draft saved successfully",
 	}))
 }
 
-// PublishDraft handles POST /api/tiktok/products/publish/:draftId
-func (h *ProductCreateHandler) PublishDraft(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c)
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
-		return
-	}
-
-	draftID := c.Param("draftId")
-	if draftID == "" {
-		c.JSON(http.StatusBadRequest, response.Error("Missing draftId"))
-		return
-	}
-
-	c.JSON(http.StatusOK, response.Success(gin.H{
-		"draftId":   draftID,
-		"productId": "published_" + draftID,
-		"message":   "Draft published successfully",
-	}))
+// PublishDraftRequest represents draft publish request
+type PublishDraftRequest struct {
+	Title       string                       `json:"title" binding:"required"`
+	Description string                       `json:"description"`
+	CategoryID  string                       `json:"category_id"`
+	MainImages  []tiktokPkg.ImageInfo        `json:"main_images"`
+	Skus        []tiktokPkg.CreateProductSku `json:"skus"`
+	Weight      string                       `json:"weight"`
+	WeightUnit  string                       `json:"weight_unit"`
 }
 
-// GetProductsFromDB handles GET /api/tiktok/products/db
-func (h *ProductCreateHandler) GetProductsFromDB(c *gin.Context) {
+// PublishDraft handles POST /api/tiktok/products/draft/publish
+// Creates product as LISTING (published) via real TikTok API.
+func (h *CreateHandler) PublishDraft(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
-	page, pageSize := parsePagination(c)
+	var req PublishDraftRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
+		return
+	}
 
-	db, err := config.GetTenantDB(tenantID, h.basePath)
+	client, err := h.getTiktokClient(tenantID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get TikTok client: "+err.Error()))
 		return
 	}
 
-	repo := repositories.NewTiktokProductRepository(db)
-	products, total, err := repo.FindAll(c.Request.Context(), page, pageSize)
+	weightUnit := req.WeightUnit
+	if weightUnit == "" {
+		weightUnit = "KILOGRAM"
+	}
+
+	createReq := tiktokPkg.CreateProductRequest{
+		Title:       req.Title,
+		Description: req.Description,
+		CategoryID:  req.CategoryID,
+		MainImages:  req.MainImages,
+		Skus:        req.Skus,
+		PackageWeight: tiktokPkg.PackageWeight{
+			Value: req.Weight,
+			Unit:  weightUnit,
+		},
+		SaveMode: "LISTING",
+	}
+
+	resp, err := client.CreateProduct(createReq)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Failed to fetch products"))
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to publish product: "+err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, response.SuccessWithMeta(products, &response.Meta{
-		Total:      int(total),
-		Page:       page,
-		PageSize:   pageSize,
-		TotalPages: (int(total) + pageSize - 1) / pageSize,
-	}))
-}
-
-// GetProductFromDB handles GET /api/tiktok/products/db/:productId
-func (h *ProductCreateHandler) GetProductFromDB(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c)
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+	if resp.Code != 0 {
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("tiktok",
+			fmt.Sprintf("%d", resp.Code), resp.Message))
 		return
 	}
 
-	productID := c.Param("productId")
-	if productID == "" {
-		c.JSON(http.StatusBadRequest, response.Error("Missing productId"))
-		return
-	}
-
-	db, err := config.GetTenantDB(tenantID, h.basePath)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
-		return
-	}
-
-	repo := repositories.NewTiktokProductRepository(db)
-	product, err := repo.FindByProductID(c.Request.Context(), productID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, response.Error("Product not found"))
-		return
-	}
-
-	c.JSON(http.StatusOK, response.Success(product))
-}
-
-// SearchProducts handles GET /api/tiktok/products/search
-func (h *ProductCreateHandler) SearchProducts(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c)
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
-		return
-	}
-
-	query := c.Query("q")
-	page, pageSize := parsePagination(c)
-
-	db, err := config.GetTenantDB(tenantID, h.basePath)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
-		return
-	}
-
-	repo := repositories.NewTiktokProductRepository(db)
-	products, total, err := repo.Search(c.Request.Context(), query, page, pageSize)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Failed to search products"))
-		return
-	}
-
-	c.JSON(http.StatusOK, response.SuccessWithMeta(products, &response.Meta{
-		Total:      int(total),
-		Page:       page,
-		PageSize:   pageSize,
-		TotalPages: (int(total) + pageSize - 1) / pageSize,
+	c.JSON(http.StatusCreated, response.Success(gin.H{
+		"product_id": resp.Data.ProductID,
+		"skus":       resp.Data.Skus,
+		"message":    "Product published successfully",
 	}))
 }
 
 // GetCategories handles GET /api/tiktok/products/categories
-func (h *ProductCreateHandler) GetCategories(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c)
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
-		return
-	}
-
-	parentID := c.Query("parentId")
-	categories := getMockCategories(parentID)
-
-	c.JSON(http.StatusOK, response.Success(gin.H{"categories": categories}))
+// Returns 501 — TikTok Category API SDK not yet implemented.
+func (h *CreateHandler) GetCategories(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, response.Error("TikTok Categories API not yet implemented"))
 }
 
-// GetAttributes handles GET /api/tiktok/products/categories/:categoryId/attributes
-func (h *ProductCreateHandler) GetAttributes(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c)
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
-		return
-	}
-
-	categoryID := c.Param("categoryId")
-	if categoryID == "" {
-		c.JSON(http.StatusBadRequest, response.Error("Missing categoryId"))
-		return
-	}
-
-	attributes := getMockAttributes()
-	c.JSON(http.StatusOK, response.Success(gin.H{"attributes": attributes}))
-}
-
-// GetRules handles GET /api/tiktok/products/categories/:categoryId/rules
-func (h *ProductCreateHandler) GetRules(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c)
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
-		return
-	}
-
-	categoryID := c.Param("categoryId")
-	if categoryID == "" {
-		c.JSON(http.StatusBadRequest, response.Error("Missing categoryId"))
-		return
-	}
-
-	rules := CategoryRule{
-		MaxImages:      9,
-		MaxSKUs:        50,
-		MaxDescription: 10000,
-		RequiredFields: []string{"title", "description", "price", "stock", "images"},
-	}
-
-	c.JSON(http.StatusOK, response.Success(gin.H{"rules": rules}))
+// GetAttributes handles GET /api/tiktok/products/attributes
+// Returns 501 — TikTok Attributes API SDK not yet implemented.
+func (h *CreateHandler) GetAttributes(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, response.Error("TikTok Attributes API not yet implemented"))
 }
 
 // GetBrands handles GET /api/tiktok/products/brands
-func (h *ProductCreateHandler) GetBrands(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c)
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
-		return
-	}
-
-	brands := []Brand{
-		{ID: "1", Name: "Brand A"},
-		{ID: "2", Name: "Brand B"},
-		{ID: "3", Name: "No Brand"},
-	}
-
-	c.JSON(http.StatusOK, response.Success(gin.H{"brands": brands}))
-}
-
-// GetDeliveryOptions handles GET /api/tiktok/products/delivery-options
-func (h *ProductCreateHandler) GetDeliveryOptions(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c)
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
-		return
-	}
-
-	options := []DeliveryOption{
-		{ID: "standard", Name: "Standard Shipping", Type: "standard", MaxWeight: 30, IsAvailable: true},
-		{ID: "express", Name: "Express Shipping", Type: "express", MaxWeight: 10, IsAvailable: true},
-	}
-
-	c.JSON(http.StatusOK, response.Success(gin.H{"options": options}))
+// Returns 501 — TikTok Brand API SDK not yet implemented.
+func (h *CreateHandler) GetBrands(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, response.Error("TikTok Brands API not yet implemented"))
 }
 
 // GetWarehouses handles GET /api/tiktok/products/warehouses
-func (h *ProductCreateHandler) GetWarehouses(c *gin.Context) {
+// Connects to real TikTok GetWarehouses SDK (F17).
+func (h *CreateHandler) GetWarehouses(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
-	warehouses := []Warehouse{
-		{ID: "wh1", Name: "Main Warehouse", Address: "Jakarta", IsDefault: true, Status: "active"},
+	client, err := h.getTiktokClient(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get TikTok client: "+err.Error()))
+		return
 	}
 
-	c.JSON(http.StatusOK, response.Success(gin.H{"warehouses": warehouses}))
+	warehouseResp, err := client.GetWarehouses()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("tiktok", "", err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, response.Success(gin.H{
+		"warehouses": warehouseResp.Data.Warehouses,
+	}))
 }
 
-// Helper functions
-
-func generateID() string {
-	return strconv.FormatInt(time.Now().UnixNano(), 36)
+// GetProductsFromDB handles GET /api/tiktok/products/db
+func (h *CreateHandler) GetProductsFromDB(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, response.Error("TikTok product DB listing not yet implemented"))
 }
 
-func getMockCategories(parentID string) []Category {
-	if parentID != "" {
-		return []Category{
-			{ID: parentID + "_1", Name: "Subcategory 1", ParentID: parentID, Level: 2, IsLeaf: true},
-			{ID: parentID + "_2", Name: "Subcategory 2", ParentID: parentID, Level: 2, IsLeaf: true},
+// GetProductFromDB handles GET /api/tiktok/products/db/:productId
+func (h *CreateHandler) GetProductFromDB(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, response.Error("TikTok product DB detail not yet implemented"))
+}
+
+// SearchProducts handles GET /api/tiktok/products/search (DB search)
+func (h *CreateHandler) SearchProducts(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, response.Error("TikTok product search not yet implemented"))
+}
+
+// GetRules handles GET /api/tiktok/products/categories/:categoryId/rules
+func (h *CreateHandler) GetRules(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, response.Error("TikTok Category Rules API not yet implemented"))
+}
+
+// GetDeliveryOptions handles GET /api/tiktok/products/delivery-options
+// Returns 501 — TikTok Delivery Options SDK not yet implemented.
+func (h *CreateHandler) GetDeliveryOptions(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, response.Error("TikTok Delivery Options API not yet implemented"))
+}
+
+// getTiktokClient creates TikTok API client for tenant
+func (h *CreateHandler) getTiktokClient(tenantID string) (*tiktokPkg.Client, error) {
+	ctx := context.Background()
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	credRepo := repositories.NewPlatformCredentialsRepository(db)
+	tenantCreds, err := credRepo.GetTiktokCredentials(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if tenantCreds.AccessToken == "" || tenantCreds.ShopCipher == "" {
+		return nil, fmt.Errorf("missing TikTok credentials: accessToken or shopCipher not configured")
+	}
+
+	appKey := tenantCreds.AppKey
+	appSecret := tenantCreds.AppSecret
+
+	if appKey == "" || appSecret == "" {
+		systemDB, err := config.GetSystemDB(h.basePath)
+		if err != nil {
+			return nil, err
 		}
+		globalRepo := repositories.NewGlobalConfigRepository(systemDB)
+		globalCreds, err := globalRepo.GetTiktokCredentials(ctx)
+		if err != nil {
+			return nil, err
+		}
+		appKey = globalCreds.AppKey
+		appSecret = globalCreds.AppSecret
 	}
-	return []Category{
-		{ID: "1", Name: "Electronics", Level: 1, IsLeaf: false},
-		{ID: "2", Name: "Fashion", Level: 1, IsLeaf: false},
-		{ID: "3", Name: "Home & Garden", Level: 1, IsLeaf: false},
-	}
-}
 
-func getMockAttributes() []Attribute {
-	return []Attribute{
-		{ID: "brand", Name: "Brand", Type: "string", Required: true, InputType: "dropdown"},
-		{ID: "color", Name: "Color", Type: "string", Required: false, Options: []string{"Red", "Blue", "Green"}, InputType: "dropdown"},
-		{ID: "size", Name: "Size", Type: "string", Required: false, Options: []string{"S", "M", "L", "XL"}, InputType: "dropdown"},
-	}
+	client := tiktokPkg.NewClient(appKey, appSecret)
+	client.SetCredentials(tenantCreds.AccessToken, tenantCreds.ShopCipher)
+	return client, nil
 }

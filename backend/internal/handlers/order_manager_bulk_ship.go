@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,20 +9,32 @@ import (
 	"github.com/omni/backend/internal/dto/request"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
-	"github.com/omni/backend/internal/services"
-	lazadaPkg "github.com/omni/backend/pkg/lazada"
 	shopeePkg "github.com/omni/backend/pkg/shopee"
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
+	"github.com/rs/zerolog/log"
 )
 
+// ===== Bulk Ship Result Types =====
+
+// BulkShipItemResult represents the result for a single order in bulk ship.
+type BulkShipItemResult struct {
+	OrderSN       string `json:"order_sn"`
+	Status        string `json:"status"`                   // "shipped", "failed", "shipped_but_local_failed"
+	Error         string `json:"error,omitempty"`          // Error message if failed
+	Message       string `json:"message,omitempty"`        // Success message
+	MarketplaceOK bool   `json:"marketplace_ok,omitempty"` // True if marketplace action succeeded
+}
+
+// BulkShipSummary provides a summary of the bulk ship operation.
+type BulkShipSummary struct {
+	Total   int `json:"total"`
+	Shipped int `json:"shipped"`
+	Failed  int `json:"failed"`
+}
+
+// ===== Main Handler =====
+
 // BulkShipOrders handles POST /api/orders/bulk-ship
-// @Summary Bulk ship multiple orders
-// @Tags Orders
-// @Accept json
-// @Produce json
-// @Param request body request.BulkShipRequest true "Bulk ship request"
-// @Success 200 {object} map[string]interface{}
-// @Router /api/orders/bulk-ship [post]
 func (h *OrderManagerHandler) BulkShipOrders(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
@@ -48,277 +59,224 @@ func (h *OrderManagerHandler) BulkShipOrders(c *gin.Context) {
 		return
 	}
 
-	var shipped []string
-	var failed []map[string]interface{}
+	var results []BulkShipItemResult
 
 	switch platform {
 	case "shopee":
-		shipped, failed = h.bulkShipShopee(tenantID, req.OrderSNs)
+		results = h.bulkShipShopee(tenantID, req.OrderSNs)
 	case "tiktok":
-		shipped, failed = h.bulkShipTikTok(tenantID, req.OrderSNs)
+		results = h.bulkShipTikTok(tenantID, req.OrderSNs)
 	case "lazada":
-		shipped, failed = h.bulkShipLazada(tenantID, req.OrderSNs)
+		results = h.bulkShipLazada(tenantID, req.OrderSNs)
 	default:
 		c.JSON(http.StatusBadRequest, response.Error("Unsupported platform: "+platform))
 		return
 	}
 
-	c.JSON(http.StatusOK, response.Success(map[string]interface{}{
-		"shipped": shipped,
-		"failed":  failed,
-	}))
+	// Build summary
+	summary := buildBulkSummary(results)
+
+	data := map[string]interface{}{
+		"summary": summary,
+		"results": results,
+	}
+
+	// Determine HTTP status code
+	switch {
+	case summary.Failed == 0:
+		c.JSON(http.StatusOK, response.Success(data))
+	case summary.Shipped == 0:
+		c.JSON(http.StatusUnprocessableEntity, response.Success(data))
+	default:
+		c.JSON(207, response.Success(data)) // 207 Multi-Status
+	}
 }
 
-func (h *OrderManagerHandler) bulkShipShopee(tenantID string, orderSNs []string) ([]string, []map[string]interface{}) {
-	shipped := []string{}
-	failed := []map[string]interface{}{}
+// ===== Platform Bulk Shippers =====
+
+func (h *OrderManagerHandler) bulkShipShopee(tenantID string, orderSNs []string) []BulkShipItemResult {
+	results := make([]BulkShipItemResult, 0, len(orderSNs))
 
 	client, err := h.getShopeeClient(tenantID)
 	if err != nil {
-		return nil, []map[string]interface{}{{"error": "Failed to get Shopee client: " + err.Error()}}
+		return allFailed(orderSNs, "Failed to get Shopee client: "+err.Error())
 	}
 
 	for _, orderSN := range orderSNs {
+		result := BulkShipItemResult{OrderSN: orderSN}
+
 		if err := h.validateOrderStatus(tenantID, orderSN, "shopee"); err != nil {
-			failed = append(failed, map[string]interface{}{"order_sn": orderSN, "error": err.Error()})
+			result.Status = "failed"
+			result.Error = err.Error()
+			results = append(results, result)
 			continue
 		}
 
-		shipReq := shopeePkg.ShipOrderRequest{
-			OrderSN: orderSN,
-		}
-
-		_, err := client.ShipOrder(shipReq)
-		if err != nil {
-			failed = append(failed, map[string]interface{}{
-				"order_sn": orderSN,
-				"error":    err.Error(),
-			})
+		shipReq := shopeePkg.ShipOrderRequest{OrderSN: orderSN}
+		if _, err := client.ShipOrder(shipReq); err != nil {
+			result.Status = "failed"
+			result.Error = err.Error()
+			results = append(results, result)
 			continue
 		}
 
 		if err := h.updateOrderStatus(tenantID, orderSN, "SHIPPED", "shopee"); err != nil {
-			log.Printf("[WARN] [BulkShip/Shopee] Local status update failed for %s: %v (marketplace action succeeded)", orderSN, err)
-			failed = append(failed, map[string]interface{}{
-				"order_sn": orderSN,
-				"error":    "Shipped on marketplace but local DB update failed: " + err.Error(),
-			})
+			log.Warn().Str("order_sn", orderSN).Err(err).Msg("[BulkShip/Shopee] Marketplace succeeded but local DB update failed")
+			result.Status = "shipped_but_local_failed"
+			result.MarketplaceOK = true
+			result.Error = "Marketplace succeeded but local DB update failed: " + err.Error()
+			results = append(results, result)
 			continue
 		}
 
-		shipped = append(shipped, orderSN)
+		result.Status = "shipped"
+		result.Message = "OK"
+		results = append(results, result)
 	}
 
-	return shipped, failed
+	return results
 }
 
-func (h *OrderManagerHandler) bulkShipTikTok(tenantID string, orderSNs []string) ([]string, []map[string]interface{}) {
-	shipped := []string{}
-	failed := []map[string]interface{}{}
+func (h *OrderManagerHandler) bulkShipTikTok(tenantID string, orderSNs []string) []BulkShipItemResult {
+	results := make([]BulkShipItemResult, 0, len(orderSNs))
 
 	client, err := h.getTikTokClient(tenantID)
 	if err != nil {
-		return nil, []map[string]interface{}{{"error": "Failed to get TikTok client: " + err.Error()}}
+		return allFailed(orderSNs, "Failed to get TikTok client: "+err.Error())
 	}
 
 	for _, orderSN := range orderSNs {
+		result := BulkShipItemResult{OrderSN: orderSN}
+
 		if err := h.validateOrderStatus(tenantID, orderSN, "tiktok"); err != nil {
-			failed = append(failed, map[string]interface{}{"order_sn": orderSN, "error": err.Error()})
+			result.Status = "failed"
+			result.Error = err.Error()
+			results = append(results, result)
 			continue
 		}
 
 		pkgID, _, err := client.ResolveOrderToPackageID(orderSN)
 		if err != nil {
-			failed = append(failed, map[string]interface{}{"order_sn": orderSN, "error": "Failed to resolve package: " + err.Error()})
+			result.Status = "failed"
+			result.Error = "Failed to resolve package: " + err.Error()
+			results = append(results, result)
 			continue
 		}
 
-		shipReq := &tiktokPkg.ShipPackageRequest{
-			HandoverMethod: "PICKUP",
-		}
-		_, err = client.ArrangeShipment(pkgID, shipReq)
-		if err != nil {
-			failed = append(failed, map[string]interface{}{"order_sn": orderSN, "error": err.Error()})
+		shipReq := &tiktokPkg.ShipPackageRequest{HandoverMethod: "PICKUP"}
+		if _, err = client.ArrangeShipment(pkgID, shipReq); err != nil {
+			result.Status = "failed"
+			result.Error = err.Error()
+			results = append(results, result)
 			continue
 		}
 
 		if err := h.updateOrderStatus(tenantID, orderSN, "AWAITING_COLLECTION", "tiktok"); err != nil {
-			log.Printf("[WARN] [BulkShip/TikTok] Local status update failed for %s: %v (marketplace action succeeded)", orderSN, err)
-			failed = append(failed, map[string]interface{}{
-				"order_sn": orderSN,
-				"error":    "Shipped on marketplace but local DB update failed: " + err.Error(),
-			})
+			log.Warn().Str("order_sn", orderSN).Err(err).Msg("[BulkShip/TikTok] Marketplace succeeded but local DB update failed")
+			result.Status = "shipped_but_local_failed"
+			result.MarketplaceOK = true
+			result.Error = "Marketplace succeeded but local DB update failed: " + err.Error()
+			results = append(results, result)
 			continue
 		}
-		shipped = append(shipped, orderSN)
+
+		result.Status = "shipped"
+		result.Message = "OK"
+		results = append(results, result)
 	}
-	return shipped, failed
+	return results
 }
 
-func (h *OrderManagerHandler) bulkShipLazada(tenantID string, orderSNs []string) ([]string, []map[string]interface{}) {
-	shipped := []string{}
-	failed := []map[string]interface{}{}
+func (h *OrderManagerHandler) bulkShipLazada(tenantID string, orderSNs []string) []BulkShipItemResult {
+	results := make([]BulkShipItemResult, 0, len(orderSNs))
 
 	client, err := h.getLazadaClient(tenantID)
 	if err != nil {
-		return nil, []map[string]interface{}{{"error": "Failed to get Lazada client: " + err.Error()}}
+		return allFailed(orderSNs, "Failed to get Lazada client: "+err.Error())
 	}
 
 	db, err := config.GetTenantDB(tenantID, h.basePath)
 	if err != nil {
-		return nil, []map[string]interface{}{{"error": "DB error: " + err.Error()}}
+		return allFailed(orderSNs, "DB error: "+err.Error())
 	}
 
 	for _, orderSN := range orderSNs {
+		result := BulkShipItemResult{OrderSN: orderSN}
+
 		if err := h.validateOrderStatus(tenantID, orderSN, "lazada"); err != nil {
-			failed = append(failed, map[string]interface{}{"order_sn": orderSN, "error": err.Error()})
+			result.Status = "failed"
+			result.Error = err.Error()
+			results = append(results, result)
 			continue
 		}
 
-		var items []struct {
-			ItemID string `gorm:"column:item_id"`
-		}
-		if err := db.Table("LazadaOrderItem").Select("item_id").Where("order_sn = ?", orderSN).Scan(&items).Error; err != nil {
-			failed = append(failed, map[string]interface{}{"order_sn": orderSN, "error": "Failed to get items: " + err.Error()})
+		// Fetch order items
+		itemIDs, err := fetchLazadaItemIDsFromDB(db, orderSN)
+		if err != nil {
+			result.Status = "failed"
+			result.Error = "Failed to get items: " + err.Error()
+			results = append(results, result)
 			continue
 		}
 
-		var order struct {
-			ShippingCarrier string `gorm:"column:shipping_carrier"`
-			OrderStatus     string `gorm:"column:order_status"`
-		}
-		if err := db.Table("LazadaOrder").Select("shipping_carrier, order_status").Where("order_sn = ?", orderSN).First(&order).Error; err != nil {
-			failed = append(failed, map[string]interface{}{"order_sn": orderSN, "error": "Failed to get order info: " + err.Error()})
+		// Fetch order info for shipping carrier and status
+		orderInfo, err := fetchLazadaOrderInfoFromDB(db, orderSN)
+		if err != nil {
+			result.Status = "failed"
+			result.Error = "Failed to get order info: " + err.Error()
+			results = append(results, result)
 			continue
 		}
 
-		itemIDs := make([]string, len(items))
-		for i, item := range items {
-			itemIDs[i] = item.ItemID
-		}
-
-		provider := order.ShippingCarrier
+		provider := orderInfo.ShippingCarrier
 		if provider == "" {
-			provider = "dropship"
+			provider = "JNE" // Default carrier for Indonesia
 		}
 
-		if order.OrderStatus == "pending" {
-			_, err := client.SetStatusToPackedByMarketplace(itemIDs, provider, "dropship")
+		// Pack first if order is pending
+		if orderInfo.OrderStatus == "pending" {
+			packResp, err := client.SetStatusToPackedByMarketplace(itemIDs, provider, "dropship")
 			if err != nil {
-				failed = append(failed, map[string]interface{}{"order_sn": orderSN, "error": "Pack failed: " + err.Error()})
+				result.Status = "failed"
+				result.Error = "Pack failed: " + err.Error()
+				results = append(results, result)
+				continue
+			}
+			if packResp.Code != "0" && packResp.Code != "" {
+				result.Status = "failed"
+				result.Error = fmt.Sprintf("Pack failed (code %s): %s", packResp.Code, packResp.Message)
+				results = append(results, result)
 				continue
 			}
 		}
 
-		_, err = client.SetStatusToReadyToShip(itemIDs, provider, "", "dropship")
+		// Set ready to ship
+		rtsResp, err := client.SetStatusToReadyToShip(itemIDs, provider, "", "dropship")
 		if err != nil {
-			failed = append(failed, map[string]interface{}{"order_sn": orderSN, "error": "RTS failed: " + err.Error()})
+			result.Status = "failed"
+			result.Error = "RTS failed: " + err.Error()
+			results = append(results, result)
+			continue
+		}
+		if rtsResp.Code != "0" && rtsResp.Code != "" {
+			result.Status = "failed"
+			result.Error = fmt.Sprintf("RTS failed (code %s): %s", rtsResp.Code, rtsResp.Message)
+			results = append(results, result)
 			continue
 		}
 
 		if err := h.updateOrderStatus(tenantID, orderSN, "ready_to_ship", "lazada"); err != nil {
-			log.Printf("[WARN] [BulkShip/Lazada] Local status update failed for %s: %v (marketplace action succeeded)", orderSN, err)
-			failed = append(failed, map[string]interface{}{
-				"order_sn": orderSN,
-				"error":    "Shipped on marketplace but local DB update failed: " + err.Error(),
-			})
+			log.Warn().Str("order_sn", orderSN).Err(err).Msg("[BulkShip/Lazada] Marketplace succeeded but local DB update failed")
+			result.Status = "shipped_but_local_failed"
+			result.MarketplaceOK = true
+			result.Error = "Marketplace succeeded but local DB update failed: " + err.Error()
+			results = append(results, result)
 			continue
 		}
-		shipped = append(shipped, orderSN)
+
+		result.Status = "shipped"
+		result.Message = "OK"
+		results = append(results, result)
 	}
-	return shipped, failed
-}
-
-// --- Platform Client Helpers (DRY: single credential service creation) ---
-
-// platformOrderTable maps platform names to their order table names.
-var platformOrderTable = map[string]string{
-	"shopee": "ShopeeOrder",
-	"tiktok": "TiktokOrder",
-	"lazada": "LazadaOrder",
-}
-
-func (h *OrderManagerHandler) getShopeeClient(tenantID string) (*shopeePkg.Client, error) {
-	credService := services.NewCredentialService(h.basePath)
-	creds, err := credService.GetPlatformCredentials(tenantID, "shopee")
-	if err != nil {
-		return nil, err
-	}
-	client := shopeePkg.NewClient(creds.PartnerID, creds.PartnerKey, creds.IsProduction)
-	client.SetShopCredentials(creds.ShopID, creds.AccessToken)
-	return client, nil
-}
-
-func (h *OrderManagerHandler) getTikTokClient(tenantID string) (*tiktokPkg.Client, error) {
-	credService := services.NewCredentialService(h.basePath)
-	creds, err := credService.GetPlatformCredentials(tenantID, "tiktok")
-	if err != nil {
-		return nil, err
-	}
-	client := tiktokPkg.NewClient(creds.AppKey, creds.AppSecret)
-	client.SetCredentials(creds.AccessToken, creds.ShopCipher)
-	return client, nil
-}
-
-func (h *OrderManagerHandler) getLazadaClient(tenantID string) (*lazadaPkg.Client, error) {
-	credService := services.NewCredentialService(h.basePath)
-	creds, err := credService.GetPlatformCredentials(tenantID, "lazada")
-	if err != nil {
-		return nil, err
-	}
-	region := creds.Region
-	if region == "" {
-		region = "id"
-	}
-	client := lazadaPkg.NewClient(creds.AppKey, creds.AppSecret, region)
-	client.SetAccessToken(creds.AccessToken)
-	return client, nil
-}
-
-// --- Order Status Helpers ---
-
-func (h *OrderManagerHandler) validateOrderStatus(tenantID, orderSN, platform string) error {
-	db, err := config.GetTenantDB(tenantID, h.basePath)
-	if err != nil {
-		return err
-	}
-
-	table, ok := platformOrderTable[platform]
-	if !ok {
-		return fmt.Errorf("unsupported platform: %s", platform)
-	}
-
-	var status string
-	if err := db.Table(table).Select("order_status").Where("order_sn = ?", orderSN).Scan(&status).Error; err != nil {
-		return err
-	}
-
-	// Platform-specific expected statuses
-	expectedStatuses := map[string][]string{
-		"shopee": {"READY_TO_SHIP"},
-		"tiktok": {"AWAITING_SHIPMENT"},
-		"lazada": {"pending", "packed"},
-	}
-
-	allowed := expectedStatuses[platform]
-	for _, s := range allowed {
-		if status == s {
-			return nil
-		}
-	}
-	return fmt.Errorf("order status is %s, expected one of %v", status, allowed)
-}
-
-func (h *OrderManagerHandler) updateOrderStatus(tenantID, orderSN, status, platform string) error {
-	db, err := config.GetTenantDB(tenantID, h.basePath)
-	if err != nil {
-		return err
-	}
-
-	table, ok := platformOrderTable[platform]
-	if !ok {
-		return fmt.Errorf("unsupported platform: %s", platform)
-	}
-
-	return db.Table(table).Where("order_sn = ?", orderSN).Update("order_status", status).Error
+	return results
 }

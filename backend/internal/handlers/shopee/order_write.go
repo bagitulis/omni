@@ -61,7 +61,7 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 
 	result, err := client.ShipOrder(shipReq)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error("Failed to ship order: "+err.Error()))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("shopee", "", err.Error()))
 		return
 	}
 
@@ -106,7 +106,7 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 
 	result, err := client.CancelOrder(cancelReq)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error("Failed to cancel order: "+err.Error()))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("shopee", "", err.Error()))
 		return
 	}
 

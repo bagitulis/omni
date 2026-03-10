@@ -37,8 +37,13 @@ func (c *Client) SetStatusToPackedByMarketplace(orderItemIDs []string, shipmentP
 	}
 
 	var result SetStatusToPackedByMarketplaceResponse
-	err := c.doRequest("POST", "/order/pack", params, &result)
-	return &result, err
+	if err := c.doRequest("POST", "/order/pack", params, &result); err != nil {
+		return nil, err
+	}
+	if result.Code != "0" && result.Code != "" {
+		return &result, fmt.Errorf("lazada API error (code %s): %s", result.Code, result.Message)
+	}
+	return &result, nil
 }
 
 // SetStatusToReadyToShipResponse represents ready to ship response
@@ -69,8 +74,13 @@ func (c *Client) SetStatusToReadyToShip(orderItemIDs []string, shipmentProvider,
 	}
 
 	var result SetStatusToReadyToShipResponse
-	err := c.doRequest("POST", "/order/rts", params, &result)
-	return &result, err
+	if err := c.doRequest("POST", "/order/rts", params, &result); err != nil {
+		return nil, err
+	}
+	if result.Code != "0" && result.Code != "" {
+		return &result, fmt.Errorf("lazada API error (code %s): %s", result.Code, result.Message)
+	}
+	return &result, nil
 }
 
 // CancelOrder cancels order items
@@ -82,8 +92,13 @@ func (c *Client) CancelOrder(orderItemID, reasonDetail, reasonID string) (*BaseR
 	}
 
 	var result BaseResponse
-	err := c.doRequest("POST", "/order/cancel", params, &result)
-	return &result, err
+	if err := c.doRequest("POST", "/order/cancel", params, &result); err != nil {
+		return nil, err
+	}
+	if result.Code != "0" && result.Code != "" {
+		return &result, fmt.Errorf("lazada API error (code %s): %s", result.Code, result.Message)
+	}
+	return &result, nil
 }
 
 // GetDocumentRequest represents get document request
@@ -112,8 +127,13 @@ func (c *Client) GetDocument(req GetDocumentRequest) (*GetDocumentResponse, erro
 	}
 
 	var result GetDocumentResponse
-	err := c.doRequest("POST", "/order/document/get", params, &result)
-	return &result, err
+	if err := c.doRequest("POST", "/order/document/get", params, &result); err != nil {
+		return nil, err
+	}
+	if result.Code != "0" && result.Code != "" {
+		return &result, fmt.Errorf("lazada API error (code %s): %s", result.Code, result.Message)
+	}
+	return &result, nil
 }
 
 // ===== Helper Functions =====

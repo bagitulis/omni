@@ -1,7 +1,6 @@
 package lazada
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -182,6 +181,11 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
+	if resp.Code != "0" && resp.Code != "" {
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("lazada", resp.Code, resp.Message))
+		return
+	}
+
 	c.JSON(http.StatusCreated, response.Success(gin.H{
 		"item_id": resp.Data.ItemID,
 		"skus":    resp.Data.SkuList,
@@ -223,7 +227,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	}
 
 	if resp.Code != "0" {
-		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("lazada", resp.Code, fmt.Sprintf("Update failed: %s", resp.Message)))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("lazada", resp.Code, resp.Message))
 		return
 	}
 
@@ -255,7 +259,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	}
 
 	if resp.Code != "0" {
-		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("lazada", resp.Code, fmt.Sprintf("Delete failed: %s", resp.Message)))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("lazada", resp.Code, resp.Message))
 		return
 	}
 

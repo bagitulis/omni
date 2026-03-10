@@ -89,17 +89,8 @@ func (h *ProductExtendedHandler) GetProductFromDB(c *gin.Context) {
 	c.JSON(http.StatusOK, response.Success(product))
 }
 
-// Category represents a Lazada category
-type Category struct {
-	ID       int64      `json:"id"`
-	Name     string     `json:"name"`
-	ParentID int64      `json:"parent_id,omitempty"`
-	Level    int        `json:"level"`
-	IsLeaf   bool       `json:"is_leaf"`
-	Children []Category `json:"children,omitempty"`
-}
-
 // GetCategories handles GET /api/lazada/products/categories
+// Fetches real category tree from Lazada API.
 func (h *ProductExtendedHandler) GetCategories(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
@@ -107,35 +98,23 @@ func (h *ProductExtendedHandler) GetCategories(c *gin.Context) {
 		return
 	}
 
-	// In production, call Lazada API
-	categories := []Category{
-		{ID: 1, Name: "Electronics", Level: 1, IsLeaf: false},
-		{ID: 2, Name: "Fashion", Level: 1, IsLeaf: false},
-		{ID: 3, Name: "Home & Living", Level: 1, IsLeaf: false},
-		{ID: 4, Name: "Health & Beauty", Level: 1, IsLeaf: false},
+	client, err := GetLazadaClient(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get Lazada client: "+err.Error()))
+		return
+	}
+
+	categories, err := client.GetCategoryTree()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.ErrorWithPlatform("lazada", "", err.Error()))
+		return
 	}
 
 	c.JSON(http.StatusOK, response.Success(gin.H{"categories": categories}))
 }
 
-// Attribute represents a Lazada category attribute
-type Attribute struct {
-	Name          string   `json:"name"`
-	Label         string   `json:"label"`
-	InputType     string   `json:"input_type"`
-	IsMandatory   bool     `json:"is_mandatory"`
-	IsSaleProp    bool     `json:"is_sale_prop"`
-	Options       []Option `json:"options,omitempty"`
-	AttributeType string   `json:"attribute_type"`
-}
-
-// Option represents an attribute option
-type Option struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
-}
-
 // GetAttributes handles GET /api/lazada/products/attributes/:categoryId
+// Fetches real category attributes from Lazada API.
 func (h *ProductExtendedHandler) GetAttributes(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
@@ -149,40 +128,17 @@ func (h *ProductExtendedHandler) GetAttributes(c *gin.Context) {
 		return
 	}
 
-	// In production, call Lazada API
-	attributes := []Attribute{
-		{
-			Name:          "brand",
-			Label:         "Brand",
-			InputType:     "singleSelect",
-			IsMandatory:   true,
-			IsSaleProp:    false,
-			AttributeType: "normal",
-		},
-		{
-			Name:        "color_family",
-			Label:       "Color Family",
-			InputType:   "singleSelect",
-			IsMandatory: false,
-			IsSaleProp:  true,
-			Options: []Option{
-				{Name: "Black", Value: "Black"},
-				{Name: "White", Value: "White"},
-				{Name: "Red", Value: "Red"},
-			},
-			AttributeType: "sku",
-		},
-		{
-			Name:          "warranty_type",
-			Label:         "Warranty Type",
-			InputType:     "singleSelect",
-			IsMandatory:   true,
-			IsSaleProp:    false,
-			AttributeType: "normal",
-		},
+	client, err := GetLazadaClient(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get Lazada client: "+err.Error()))
+		return
 	}
 
-	_ = categoryID // Would be used to fetch category-specific attributes
+	attributes, err := client.GetCategoryAttributes(categoryID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.ErrorWithPlatform("lazada", "", err.Error()))
+		return
+	}
 
 	c.JSON(http.StatusOK, response.Success(gin.H{
 		"categoryId": categoryID,

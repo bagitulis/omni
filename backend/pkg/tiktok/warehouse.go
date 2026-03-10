@@ -1,6 +1,7 @@
 package tiktok
 
 import (
+	"fmt"
 	"log"
 )
 
@@ -54,7 +55,7 @@ func (c *Client) GetWarehouses() (*WarehouseResponse, error) {
 	}
 
 	if result.Code != 0 {
-		return &result, nil // Return result anyway for debugging
+		return &result, fmt.Errorf("tiktok warehouse API error (code %d): %s", result.Code, result.Message)
 	}
 
 	return &result, nil
@@ -69,7 +70,7 @@ func (c *Client) GetDefaultWarehouseID() (string, error) {
 
 	if resp.Code != 0 {
 		log.Printf("[TikTok Warehouse] API returned error code %d: %s", resp.Code, resp.Message)
-		return "", nil // No warehouse, let API handle it
+		return "", fmt.Errorf("tiktok warehouse API error (code %d): %s", resp.Code, resp.Message)
 	}
 
 	// Find default warehouse

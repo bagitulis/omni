@@ -1,6 +1,9 @@
 package lazada
 
-import "fmt"
+import (
+	"encoding/xml"
+	"fmt"
+)
 
 // ===== Product CRUD Operations =====
 
@@ -37,27 +40,34 @@ type CreateProductResponse struct {
 
 // CreateProduct creates a new product
 func (c *Client) CreateProduct(req CreateProductRequest) (*CreateProductResponse, error) {
-	// Build XML payload (Lazada uses XML for product creation)
 	params := map[string]string{
 		"payload": buildProductPayload(req),
 	}
 
 	var result CreateProductResponse
-	err := c.doRequest("POST", "/product/create", params, &result)
-	return &result, err
+	if err := c.doRequest("POST", "/product/create", params, &result); err != nil {
+		return nil, err
+	}
+	if result.Code != "0" && result.Code != "" {
+		return &result, fmt.Errorf("lazada API error (code %s): %s", result.Code, result.Message)
+	}
+	return &result, nil
 }
 
 // CreateProductWithPayload creates a product using raw XML payload
-// Per Lazada docs: POST /product/create with XML payload in query string
-// This gives full control over the XML structure
 func (c *Client) CreateProductWithPayload(xmlPayload string) (*CreateProductResponse, error) {
 	params := map[string]string{
 		"payload": xmlPayload,
 	}
 
 	var result CreateProductResponse
-	err := c.doRequest("POST", "/product/create", params, &result)
-	return &result, err
+	if err := c.doRequest("POST", "/product/create", params, &result); err != nil {
+		return nil, err
+	}
+	if result.Code != "0" && result.Code != "" {
+		return &result, fmt.Errorf("lazada API error (code %s): %s", result.Code, result.Message)
+	}
+	return &result, nil
 }
 
 // UpdateProductRequest represents product update request
@@ -84,8 +94,13 @@ func (c *Client) UpdateProduct(req UpdateProductRequest) (*BaseResponse, error) 
 	}
 
 	var result BaseResponse
-	err := c.doRequest("POST", "/product/update", params, &result)
-	return &result, err
+	if err := c.doRequest("POST", "/product/update", params, &result); err != nil {
+		return nil, err
+	}
+	if result.Code != "0" && result.Code != "" {
+		return &result, fmt.Errorf("lazada API error (code %s): %s", result.Code, result.Message)
+	}
+	return &result, nil
 }
 
 // DeleteProduct removes a product
@@ -95,17 +110,123 @@ func (c *Client) DeleteProduct(itemID string) (*BaseResponse, error) {
 	}
 
 	var result BaseResponse
-	err := c.doRequest("POST", "/product/remove", params, &result)
-	return &result, err
+	if err := c.doRequest("POST", "/product/remove", params, &result); err != nil {
+		return nil, err
+	}
+	if result.Code != "0" && result.Code != "" {
+		return &result, fmt.Errorf("lazada API error (code %s): %s", result.Code, result.Message)
+	}
+	return &result, nil
+}
+
+// ===== XML Payload Builders (encoding/xml — injection-safe) =====
+
+// lazadaProductXML is the top-level XML wrapper for Lazada product API.
+type lazadaProductXML struct {
+	XMLName xml.Name           `xml:"Request"`
+	Product lazadaProductInner `xml:"Product"`
+}
+
+type lazadaProductInner struct {
+	PrimaryCategory int64               `xml:"PrimaryCategory"`
+	Attributes      lazadaAttributesXML `xml:"Attributes"`
+	Skus            *lazadaSkusXML      `xml:"Skus,omitempty"`
+	Images          *lazadaImagesXML    `xml:"Images,omitempty"`
+}
+
+type lazadaAttributesXML struct {
+	Name        string `xml:"name"`
+	Description string `xml:"description"`
+	Brand       string `xml:"brand,omitempty"`
+}
+
+type lazadaSkusXML struct {
+	Sku []lazadaSkuXML `xml:"Sku"`
+}
+
+type lazadaSkuXML struct {
+	SellerSku    string  `xml:"SellerSku"`
+	Price        float64 `xml:"price"`
+	Quantity     int     `xml:"quantity"`
+	SpecialPrice float64 `xml:"special_price,omitempty"`
+}
+
+type lazadaImagesXML struct {
+	Image []lazadaImageXML `xml:"Image"`
+}
+
+type lazadaImageXML struct {
+	URL string `xml:"Url"`
+}
+
+// lazadaUpdateXML is the top-level XML wrapper for update API.
+type lazadaUpdateXML struct {
+	XMLName xml.Name          `xml:"Request"`
+	Product lazadaUpdateInner `xml:"Product"`
+}
+
+type lazadaUpdateInner struct {
+	ItemID     string              `xml:"ItemId"`
+	Attributes lazadaAttributesXML `xml:"Attributes"`
 }
 
 func buildProductPayload(req CreateProductRequest) string {
-	// Simplified XML builder - in production use encoding/xml
-	return fmt.Sprintf(`<Request><Product><PrimaryCategory>%d</PrimaryCategory><Attributes><name>%s</name><description>%s</description><brand>%s</brand></Attributes></Product></Request>`,
-		req.PrimaryCategory, req.Name, req.Description, req.Brand)
+	payload := lazadaProductXML{
+		Product: lazadaProductInner{
+			PrimaryCategory: req.PrimaryCategory,
+			Attributes: lazadaAttributesXML{
+				Name:        req.Name,
+				Description: req.Description,
+				Brand:       req.Brand,
+			},
+		},
+	}
+
+	// Add SKUs
+	if len(req.Skus) > 0 {
+		skus := &lazadaSkusXML{Sku: make([]lazadaSkuXML, len(req.Skus))}
+		for i, s := range req.Skus {
+			skus.Sku[i] = lazadaSkuXML{
+				SellerSku:    s.SellerSku,
+				Price:        s.Price,
+				Quantity:     s.Quantity,
+				SpecialPrice: s.SpecialPrice,
+			}
+		}
+		payload.Product.Skus = skus
+	}
+
+	// Add Images
+	if len(req.Images) > 0 {
+		imgs := &lazadaImagesXML{Image: make([]lazadaImageXML, len(req.Images))}
+		for i, url := range req.Images {
+			imgs.Image[i] = lazadaImageXML{URL: url}
+		}
+		payload.Product.Images = imgs
+	}
+
+	data, err := xml.Marshal(payload)
+	if err != nil {
+		// Fallback: should not happen with well-formed structs
+		return fmt.Sprintf(`<Request><Product><PrimaryCategory>%d</PrimaryCategory></Product></Request>`, req.PrimaryCategory)
+	}
+	return string(data)
 }
 
 func buildUpdatePayload(req UpdateProductRequest) string {
-	return fmt.Sprintf(`<Request><Product><ItemId>%s</ItemId><Attributes><name>%s</name><description>%s</description></Attributes></Product></Request>`,
-		req.ItemID, req.Name, req.Description)
+	payload := lazadaUpdateXML{
+		Product: lazadaUpdateInner{
+			ItemID: req.ItemID,
+			Attributes: lazadaAttributesXML{
+				Name:        req.Name,
+				Description: req.Description,
+			},
+		},
+	}
+
+	data, err := xml.Marshal(payload)
+	if err != nil {
+		return fmt.Sprintf(`<Request><Product><ItemId>%s</ItemId></Product></Request>`, req.ItemID)
+	}
+	return string(data)
 }

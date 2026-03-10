@@ -13,6 +13,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -231,30 +233,12 @@ func (c *Client) RawPost(ctx context.Context, apiPath string, params map[string]
 	return c.RawRequest(ctx, http.MethodPost, apiPath, params, result)
 }
 
-// doRequest executes HTTP request
+// doRequest executes HTTP request with structured logging.
 func (c *Client) doRequest(method, apiPath string, params map[string]string, result interface{}) error {
-	// Keep legacy signature/logging behavior, but send the request using the new context-aware raw call.
-	// Note: url/response logs are best-effort; for POST we log the endpoint only (params go in body).
-	baseURL := c.baseURLFor(apiPath)
-	fmt.Printf("[LAZADA DEBUG] Endpoint: %s%s\n", baseURL, apiPath)
-	if c.accessToken != "" {
-		fmt.Printf("[LAZADA DEBUG] access_token (first 20 chars): %s...\n", c.accessToken[:min(20, len(c.accessToken))])
-	}
+	log.Debug().
+		Str("method", method).
+		Str("api_path", apiPath).
+		Msg("[Lazada API] Request")
 
-	var raw json.RawMessage
-	if err := c.RawRequest(context.Background(), method, apiPath, params, &raw); err != nil {
-		return err
-	}
-	fmt.Printf("[LAZADA DEBUG] Response: %s\n", string(raw))
-	if result == nil {
-		return nil
-	}
-	return json.Unmarshal(raw, result)
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
+	return c.RawRequest(context.Background(), method, apiPath, params, result)
 }

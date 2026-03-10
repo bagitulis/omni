@@ -115,8 +115,7 @@ func TestBulkShipOrders_UnsupportedPlatform(t *testing.T) {
 	assert.Contains(t, resp["error"], "Unsupported platform: tokopedia")
 }
 
-// TestBulkShipOrders_ShopeePlatform verifies 200 with shipped/failed arrays for shopee.
-// Ship will fail gracefully (no real credentials) but handler returns 200.
+// TestBulkShipOrders_ShopeePlatform verifies 422 with summary/results for shopee (fails without DB).
 func TestBulkShipOrders_ShopeePlatform(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -135,7 +134,8 @@ func TestBulkShipOrders_ShopeePlatform(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	// All fail (no credentials) → 422
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
@@ -144,11 +144,11 @@ func TestBulkShipOrders_ShopeePlatform(t *testing.T) {
 
 	data, ok := resp["data"].(map[string]interface{})
 	assert.True(t, ok, "response data should be a map")
-	assert.Contains(t, data, "shipped")
-	assert.Contains(t, data, "failed")
+	assert.Contains(t, data, "summary")
+	assert.Contains(t, data, "results")
 }
 
-// TestBulkShipOrders_TikTokPlatform verifies 200 with shipped/failed arrays for tiktok.
+// TestBulkShipOrders_TikTokPlatform verifies 422 with summary/results for tiktok (fails without DB).
 func TestBulkShipOrders_TikTokPlatform(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -167,7 +167,7 @@ func TestBulkShipOrders_TikTokPlatform(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
@@ -176,11 +176,11 @@ func TestBulkShipOrders_TikTokPlatform(t *testing.T) {
 
 	data, ok := resp["data"].(map[string]interface{})
 	assert.True(t, ok, "response data should be a map")
-	assert.Contains(t, data, "shipped")
-	assert.Contains(t, data, "failed")
+	assert.Contains(t, data, "summary")
+	assert.Contains(t, data, "results")
 }
 
-// TestBulkShipOrders_LazadaPlatform verifies 200 with shipped/failed arrays for lazada.
+// TestBulkShipOrders_LazadaPlatform verifies 422 with summary/results for lazada (fails without DB).
 func TestBulkShipOrders_LazadaPlatform(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -199,7 +199,7 @@ func TestBulkShipOrders_LazadaPlatform(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
@@ -208,8 +208,8 @@ func TestBulkShipOrders_LazadaPlatform(t *testing.T) {
 
 	data, ok := resp["data"].(map[string]interface{})
 	assert.True(t, ok, "response data should be a map")
-	assert.Contains(t, data, "shipped")
-	assert.Contains(t, data, "failed")
+	assert.Contains(t, data, "summary")
+	assert.Contains(t, data, "results")
 }
 
 // TestBulkShipOrders_MissingPlatformReturns400 verifies that omitting platform returns 400.

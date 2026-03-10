@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
@@ -226,13 +227,20 @@ func (s *CloneService) successResult(result *CloneResult, targetItemID string) (
 
 func (s *CloneService) successResultWithSync(result *CloneResult, targetItemID, syncResult string) (*CloneResult, error) {
 	result.Progress = 100
-	result.Status = "completed"
 	result.TargetItemID = targetItemID
-	result.Message = "Product cloned successfully"
 	result.SyncTriggered = true
 	result.SyncResult = syncResult
 	now := time.Now()
 	result.CompletedAt = &now
+
+	if strings.Contains(syncResult, "failed") || strings.Contains(syncResult, "error") {
+		result.Status = "completed_with_warnings"
+		result.Message = "Product cloned but sync had issues"
+	} else {
+		result.Status = "completed"
+		result.Message = "Product cloned and synced successfully"
+	}
+
 	log.Printf("[Clone] Product cloned to %s, sync result: %s", result.TargetPlatform, syncResult)
 	return result, nil
 }

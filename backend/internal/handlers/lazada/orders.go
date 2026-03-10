@@ -1,7 +1,6 @@
 package lazada
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -110,7 +109,7 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 		return
 	}
 	if packResp.Code != "0" {
-		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("lazada", packResp.Code, fmt.Sprintf("Pack failed: %s", packResp.Message)))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("lazada", packResp.Code, packResp.Message))
 		return
 	}
 
@@ -122,7 +121,7 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 	}
 
 	if rtsResp.Code != "0" {
-		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("lazada", rtsResp.Code, fmt.Sprintf("Ready to ship failed: %s", rtsResp.Message)))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("lazada", rtsResp.Code, rtsResp.Message))
 		return
 	}
 
@@ -165,7 +164,7 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	}
 
 	if resp.Code != "0" {
-		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("lazada", resp.Code, fmt.Sprintf("Cancel failed: %s", resp.Message)))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("lazada", resp.Code, resp.Message))
 		return
 	}
 
@@ -209,7 +208,7 @@ func (h *OrderHandler) GetDocument(c *gin.Context) {
 		return
 	}
 	if docResp.Code != "0" && docResp.Code != "" {
-		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("lazada", docResp.Code, fmt.Sprintf("Get document failed: %s", docResp.Message)))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("lazada", docResp.Code, docResp.Message))
 		return
 	}
 

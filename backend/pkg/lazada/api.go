@@ -43,8 +43,9 @@ func (f FlexibleString) String() string {
 
 // OrderListResponse represents Lazada order list response
 type OrderListResponse struct {
-	Code string `json:"code"`
-	Data struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Data    struct {
 		Count  int `json:"count"`
 		Orders []struct {
 			OrderID          string  `json:"order_id"`
@@ -76,7 +77,7 @@ func (c *Client) GetOrders(status string, offset, limit int) (*OrderListResponse
 
 	// Check for API error in response
 	if result.Code != "0" && result.Code != "" {
-		return nil, fmt.Errorf("lazada API error: %s", result.Code)
+		return nil, fmt.Errorf("lazada API error (code %s): %s", result.Code, result.Message)
 	}
 
 	return &result, nil

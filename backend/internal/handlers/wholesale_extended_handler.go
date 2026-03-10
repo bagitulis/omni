@@ -172,11 +172,12 @@ func (h *WholesaleExtendedHandler) GetWholesaleInfo(c *gin.Context) {
 	tiers, err := service.GetWholesaleTiers(c.Request.Context(), itemID)
 	if err != nil {
 		log.Warn().Err(err).Int64("item_id", itemID).Msg("Failed to get wholesale tiers")
-		// Return empty tiers instead of error (item might not have wholesale)
+		// Return empty tiers with fetch_error for frontend distinction
 		c.JSON(http.StatusOK, response.Success(gin.H{
 			"item_id":       itemID,
 			"has_wholesale": false,
 			"tiers":         []wholesale.WholesaleTier{},
+			"fetch_error":   err.Error(),
 		}))
 		return
 	}

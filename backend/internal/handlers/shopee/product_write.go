@@ -52,7 +52,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	// Call Shopee API
 	result, err := client.CreateProduct(shopeeReq)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error("Failed to create product: "+err.Error()))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("shopee", "", err.Error()))
 		return
 	}
 
@@ -114,7 +114,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	// Call Shopee API
 	result, err := client.UpdateProduct(shopeeReq)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error("Failed to update product: "+err.Error()))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("shopee", "", err.Error()))
 		return
 	}
 
@@ -154,7 +154,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	// Call Shopee API
 	result, err := client.DeleteProduct(itemID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error("Failed to delete product: "+err.Error()))
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("shopee", "", err.Error()))
 		return
 	}
 

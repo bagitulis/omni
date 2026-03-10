@@ -1,41 +1,37 @@
 package tiktok
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
+	"github.com/omni/backend/internal/repositories"
+	tiktokPkg "github.com/omni/backend/pkg/tiktok"
 )
 
-// ProductImageHandler handles TikTok product image endpoints
-type ProductImageHandler struct {
+// ImageHandler handles TikTok product image endpoints
+type ImageHandler struct {
 	basePath string
 }
 
-// NewProductImageHandler creates a new product image handler
-func NewProductImageHandler(basePath string) *ProductImageHandler {
-	return &ProductImageHandler{basePath: basePath}
+// NewImageHandler creates a new image handler
+func NewImageHandler(basePath string) *ImageHandler {
+	return &ImageHandler{basePath: basePath}
 }
 
 // UploadImageRequest represents image upload request
 type UploadImageRequest struct {
-	ImageURL  string `json:"image_url,omitempty"`
-	ImageData string `json:"image_data,omitempty"`
-	UseCase   string `json:"use_case"`
+	URL     string `json:"url" binding:"required"`
+	UseCase string `json:"use_case"` // MAIN_IMAGE, ATTRIBUTE_IMAGE, etc.
 }
 
-// ImageUploadResult represents upload result
-type ImageUploadResult struct {
-	URI     string `json:"uri"`
-	URL     string `json:"url"`
-	Width   int    `json:"width"`
-	Height  int    `json:"height"`
-	Success bool   `json:"success"`
-}
-
-// UploadImage handles POST /api/tiktok/products/upload-image
-func (h *ProductImageHandler) UploadImage(c *gin.Context) {
+// UploadImage handles POST /api/tiktok/products/images/upload
+// Connects to real TikTok UploadImage SDK.
+func (h *ImageHandler) UploadImage(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
@@ -48,37 +44,136 @@ func (h *ProductImageHandler) UploadImage(c *gin.Context) {
 		return
 	}
 
-	// In production, upload to TikTok API
-	result := ImageUploadResult{
-		URI:     "tiktok://image/" + generateID(),
-		URL:     "https://p16-oec-sg.ibyteimg.com/tos-alisg-i-omjb3jn5vq/sample.png",
-		Width:   800,
-		Height:  800,
-		Success: true,
+	if req.UseCase == "" {
+		req.UseCase = "MAIN_IMAGE"
 	}
 
-	c.JSON(http.StatusOK, response.Success(result))
+	client, err := h.getTiktokClient(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get TikTok client: "+err.Error()))
+		return
+	}
+
+	result, err := client.UploadImage(req.URL, req.UseCase)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("tiktok", "", err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, response.Success(gin.H{
+		"uri":    result.Data.URI,
+		"url":    result.Data.URL,
+		"width":  result.Data.Width,
+		"height": result.Data.Height,
+	}))
 }
 
-// ImageUploadTask represents an image upload task
-type ImageUploadTask struct {
-	TaskID    string `json:"task_id"`
-	Status    string `json:"status"`
-	ImageURI  string `json:"image_uri,omitempty"`
-	Error     string `json:"error,omitempty"`
-	CreatedAt int64  `json:"created_at"`
+// BatchUploadRequest represents batch image upload request
+type BatchUploadRequest struct {
+	URLs    []string `json:"urls" binding:"required"`
+	UseCase string   `json:"use_case"`
 }
 
-// GetUploadTasks handles GET /api/tiktok/products/image-upload-tasks
-func (h *ProductImageHandler) GetUploadTasks(c *gin.Context) {
+// BatchUploadImages handles POST /api/tiktok/products/images/batch-upload
+// Uploads multiple images to TikTok CDN.
+func (h *ImageHandler) BatchUploadImages(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
 		return
 	}
 
-	// In production, fetch from database or TikTok API
-	tasks := []ImageUploadTask{}
+	var req BatchUploadRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.Error("Invalid request: "+err.Error()))
+		return
+	}
 
-	c.JSON(http.StatusOK, response.Success(gin.H{"tasks": tasks}))
+	if req.UseCase == "" {
+		req.UseCase = "MAIN_IMAGE"
+	}
+
+	client, err := h.getTiktokClient(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to get TikTok client: "+err.Error()))
+		return
+	}
+
+	type ImageResult struct {
+		OriginalURL string `json:"original_url"`
+		URI         string `json:"uri,omitempty"`
+		URL         string `json:"url,omitempty"`
+		Success     bool   `json:"success"`
+		Error       string `json:"error,omitempty"`
+	}
+
+	results := make([]ImageResult, 0, len(req.URLs))
+	for _, url := range req.URLs {
+		result, err := client.UploadImage(url, req.UseCase)
+		if err != nil {
+			results = append(results, ImageResult{
+				OriginalURL: url,
+				Success:     false,
+				Error:       err.Error(),
+			})
+			continue
+		}
+		results = append(results, ImageResult{
+			OriginalURL: url,
+			URI:         result.Data.URI,
+			URL:         result.Data.URL,
+			Success:     true,
+		})
+	}
+
+	c.JSON(http.StatusOK, response.Success(gin.H{
+		"results": results,
+		"total":   len(results),
+	}))
+}
+
+// getTiktokClient creates TikTok API client for tenant
+
+// GetUploadTasks handles GET /api/tiktok/products/image-upload-tasks
+func (h *ImageHandler) GetUploadTasks(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, response.Error("TikTok image upload tasks not yet implemented"))
+}
+
+// getTiktokClientInternal creates TikTok API client for tenant
+func (h *ImageHandler) getTiktokClient(tenantID string) (*tiktokPkg.Client, error) {
+	ctx := context.Background()
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	credRepo := repositories.NewPlatformCredentialsRepository(db)
+	tenantCreds, err := credRepo.GetTiktokCredentials(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if tenantCreds.AccessToken == "" {
+		return nil, fmt.Errorf("missing TikTok credentials: accessToken not configured")
+	}
+
+	appKey := tenantCreds.AppKey
+	appSecret := tenantCreds.AppSecret
+
+	if appKey == "" || appSecret == "" {
+		systemDB, err := config.GetSystemDB(h.basePath)
+		if err != nil {
+			return nil, err
+		}
+		globalRepo := repositories.NewGlobalConfigRepository(systemDB)
+		globalCreds, err := globalRepo.GetTiktokCredentials(ctx)
+		if err != nil {
+			return nil, err
+		}
+		appKey = globalCreds.AppKey
+		appSecret = globalCreds.AppSecret
+	}
+
+	client := tiktokPkg.NewClient(appKey, appSecret)
+	client.SetCredentials(tenantCreds.AccessToken, tenantCreds.ShopCipher)
+	return client, nil
 }
