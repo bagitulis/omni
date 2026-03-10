@@ -1,0 +1,744 @@
+# Comprehensive Audit Verification & Remediation Plan
+
+> **Date**: 2026-03-10  
+> **Scope**: 40 findings + 8 structural hotspots  
+> **Method**: Deep code analysis of every referenced file and line
+
+---
+
+## Part 1: Finding Verification
+
+### ✅ = Confirmed  |  ⚠️ = Partially True  |  ❌ = Not Confirmed / Already Fixed
+
+---
+
+### Finding 1 — Tenant camelCase in handler error messages
+**Status**: ✅ **CONFIRMED**
+
+Error messages in multiple handlers still say `"Missing tenantId"` (camelCase) instead of `"Missing tenant_id"` (snake_case). Observed in:
+
+- [wholesale_extended_handler.go:44](file:///d:/Project/omni/backend/internal/handlers/wholesale_extended_handler.go#L44), [L87](file:///d:/Project/omni/backend/internal/handlers/wholesale_extended_handler.go#L87), [L147](file:///d:/Project/omni/backend/internal/handlers/wholesale_extended_handler.go#L147), [L190](file:///d:/Project/omni/backend/internal/handlers/wholesale_extended_handler.go#L190), [L226](file:///d:/Project/omni/backend/internal/handlers/wholesale_extended_handler.go#L226)
+- [lazada/product_extended_handler.go:28](file:///d:/Project/omni/backend/internal/handlers/lazada/product_extended_handler.go#L28), all 4 handler methods
+- [platform_auth_handler.go:109](file:///d:/Project/omni/backend/internal/handlers/platform_auth_handler.go#L109), [L48](file:///d:/Project/omni/backend/internal/handlers/platform_auth_handler.go#L48), [L154](file:///d:/Project/omni/backend/internal/handlers/platform_auth_handler.go#L154)
+- [analytics/unified_handler.go:43](file:///d:/Project/omni/backend/internal/handlers/analytics/unified_handler.go#L43) and all handler methods
+
+**Also found**: `ads_handler.go:50` uses `"Missing tenantId"` AND misses the `success: false` envelope (raw `{"error": ...}`).
+
+**Severity**: Low — cosmetic, but violates canonical snake_case naming.
+
+---
+
+### Finding 2 — Middleware tenant alias drift
+**Status**: ✅ **CONFIRMED**
+
+[tenant.go:83-85](file:///d:/Project/omni/backend/internal/middleware/tenant.go#L83-L85) sets THREE keys:
+```go
+c.Set("tenant_id", tenantID)
+c.Set("tenantID", tenantID)
+c.Set("tenantId", tenantID)
+```
+
+[tenant.go:99](file:///d:/Project/omni/backend/internal/middleware/tenant.go#L99) [GetTenantID()](file:///d:/Project/omni/backend/internal/middleware/tenant.go#96-108) iterates all three keys. This means the contract drift is never broken — any handler can use any variant.
+
+**Additionally discovered**: Handlers use inconsistent retrieval:
+- `middleware.GetTenantID(c)` — correct canonical path
+- `c.GetString("tenantID")` — direct camelCase access (found in `ads_handler.go:48`, `price_handler.go:24`, `stock_handler.go:25`, `image_handler.go:45`, `inventory/price_handler.go:39`)
+
+**Severity**: Medium — this perpetuates inconsistency across the codebase.
+
+---
+
+### Finding 3 — Route webhook camelCase path param
+**Status**: ✅ **CONFIRMED**
+
+[additional_routes_extended.go:42-44](file:///d:/Project/omni/backend/internal/routes/additional_routes_extended.go#L42-L44):
+```go
+webhooks.POST("/:tenantId/shopee", handler.ShopeeWebhookTenant)
+webhooks.POST("/:tenantId/lazada", handler.LazadaWebhookTenant)
+webhooks.POST("/:tenantId/tiktok", handler.TiktokWebhookTenant)
+```
+
+Path param uses `:tenantId` (camelCase). This is a **URL contract** issue. However, changing it would be a **breaking change** for external webhook callers.
+
+**Severity**: Low — cosmetic, but represents contract inconsistency. Must be coordinated with external callers.
+
+---
+
+### Finding 4 — Refresh token body fallback
+**Status**: ✅ **CONFIRMED**
+
+[auth_handler.go:121-133](file:///d:/Project/omni/backend/internal/handlers/auth_handler.go#L121-L133): If the HttpOnly cookie is absent, the handler falls back to reading `refresh_token` from the request body. This widens the token attack surface.
+
+**Additionally discovered**: Line 188 uses `log.Printf` instead of zerolog for a security-sensitive logout failure.
+
+**Severity**: Medium — security. The body fallback should have a deprecation timeline.
+
+---
+
+### Finding 5 — WholesaleExtendedHandler opens tenant DB in handler
+**Status**: ✅ **CONFIRMED**
+
+[wholesale_extended_handler.go:200](file:///d:/Project/omni/backend/internal/handlers/wholesale_extended_handler.go#L200):
+```go
+db, err := config.GetTenantDB(tenantID, h.basePath)
+```
+The [LookupItemId](file:///d:/Project/omni/backend/internal/handlers/wholesale_extended_handler.go#185-220) handler at L200 calls `config.GetTenantDB()` directly (bypassing the [getDB()](file:///d:/Project/omni/backend/internal/handlers/ads_handler.go#22-26) helper on line 33) and then instantiates `repositories.NewShopeeProductRepository(db)` directly. This violates the "handler shouldn't open DB" principle.
+
+**Severity**: Medium — SRP violation. Should use the existing [getDB()](file:///d:/Project/omni/backend/internal/handlers/ads_handler.go#22-26) helper and push to service layer.
+
+---
+
+### Finding 6 — Lazada extended product handler DB work
+**Status**: ✅ **CONFIRMED**
+
+[lazada/product_extended_handler.go:41-47](file:///d:/Project/omni/backend/internal/handlers/lazada/product_extended_handler.go#L41-L47): Handler directly calls `config.GetTenantDB()` → `repositories.NewLazadaProductRepository(db)` → `repo.FindAll()`. All four handler methods do this.
+
+**Severity**: Medium — SRP violation. Should be pushed to a service layer.
+
+---
+
+### Finding 7 — Platform disconnect repository work in handler
+**Status**: ✅ **CONFIRMED**
+
+[platform_auth_handler.go:113-128](file:///d:/Project/omni/backend/internal/handlers/platform_auth_handler.go#L113-L128): [disconnectPlatform()](file:///d:/Project/omni/backend/internal/handlers/platform_auth_handler.go#105-136) directly opens tenant DB, creates `PlatformConfigRepository`, does lookup and delete. This is orchestration logic that should live in a service.
+
+**Severity**: Medium — SRP violation.
+
+---
+
+### Finding 8 — Unified analytics mixing concerns
+**Status**: ✅ **CONFIRMED**
+
+[analytics/unified_handler.go:69-155](file:///d:/Project/omni/backend/internal/handlers/analytics/unified_handler.go#L69-L155): [GetUnifiedSummary](file:///d:/Project/omni/backend/internal/handlers/analytics/unified_handler.go#38-157) handler mixes:
+1. Cache check/set (L51-67, L145-153)
+2. DB opens and MV refresh (L69-84)
+3. Two raw SQL queries (L94-108)
+4. Response shaping (L110-155)
+
+**Severity**: Medium — hard to test separate concerns.
+
+---
+
+### Finding 9 — Master product import handler tenant DB
+**Status**: ✅ **CONFIRMED**
+
+[import_handler.go:80](file:///d:/Project/omni/backend/internal/handlers/master_product/import_handler.go#L80) and [L127](file:///d:/Project/omni/backend/internal/handlers/master_product/import_handler.go#L127): Both [previewFromPlatform](file:///d:/Project/omni/backend/internal/handlers/master_product/import_handler.go#78-125) and [importFromPlatform](file:///d:/Project/omni/backend/internal/handlers/master_product/import_handler.go#126-177) call `config.GetTenantDB()` then create ImportService. Similarly, `import_handler_mapping.go:15-21` creates SkuMapper with direct DB.
+
+**Severity**: Low-Medium — handler does more orchestration than it should.
+
+---
+
+### Finding 10 — ImageHandler mixed concerns
+**Status**: ✅ **CONFIRMED**
+
+[image_handler.go](file:///d:/Project/omni/backend/internal/handlers/image_handler.go): The handler contains:
+- Direct `db.Model(&models.Image{}).Where(...)` query building (L175-181)
+- DB CRUD: `db.Create(img)`, `db.Delete(&img)` (L130, L283)
+- File deletion via `storageService.DeleteImage()` (L278)
+- WebP/JPEG conversion logic (L88-101)
+
+**Additionally discovered**: Uses `log.Printf` at L95, L133, L279 instead of zerolog.
+
+**Severity**: Medium — should extract to ImageService.
+
+---
+
+### Finding 11 — Inventory price handler records sync history from handler
+**Status**: ✅ **CONFIRMED**
+
+[inventory/price_handler.go:83](file:///d:/Project/omni/backend/internal/handlers/inventory/price_handler.go#L83): [recordPriceSyncHistory()](file:///d:/Project/omni/backend/internal/handlers/inventory/price_handler.go#170-210) is called from handler layer (line 83 and 155). The function at L171 creates `repositories.NewMarketplaceSyncHistoryRepo(db)` directly.
+
+**Severity**: Low-Medium — sync history logic should be in orchestrator/service.
+
+---
+
+### Finding 12 — AdsHandler raw error response
+**Status**: ✅ **CONFIRMED**
+
+[ads_handler.go:50](file:///d:/Project/omni/backend/internal/handlers/ads_handler.go#L50):
+```go
+c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+```
+Missing `"success": false` wrapper. Same pattern at L65.
+
+**Severity**: Medium — API contract inconsistency.
+
+---
+
+### Finding 13 — Root PriceHandler response drift
+**Status**: ✅ **CONFIRMED**
+
+[price_handler.go:26](file:///d:/Project/omni/backend/internal/handlers/price_handler.go#L26), [L41](file:///d:/Project/omni/backend/internal/handlers/price_handler.go#L41), [L78](file:///d:/Project/omni/backend/internal/handlers/price_handler.go#L78), [L100](file:///d:/Project/omni/backend/internal/handlers/price_handler.go#L100), [L125](file:///d:/Project/omni/backend/internal/handlers/price_handler.go#L125), [L154](file:///d:/Project/omni/backend/internal/handlers/price_handler.go#L154): Error responses use `gin.H{"error": ...}` without `"success": false` wrapper.
+
+**Severity**: Medium — API contract drift.
+
+---
+
+### Finding 14 — Root StockHandler raw error
+**Status**: ✅ **CONFIRMED**
+
+[stock_handler.go](file:///d:/Project/omni/backend/internal/handlers/stock_handler.go): All error paths (L27, L38, L57, L69, L86, L100, L111, L125, L129, L136, L148, L154) use `gin.H{"error": ...}` without envelope.
+
+**Severity**: Medium — API contract drift.
+
+---
+
+### Finding 15 — Batch price update always HTTP 200
+**Status**: ✅ **CONFIRMED**
+
+[inventory/price_handler.go:157-167](file:///d:/Project/omni/backend/internal/handlers/inventory/price_handler.go#L157-L167):
+```go
+response := gin.H{
+    "success": totalFailed == 0,
+    ...
+}
+c.JSON(http.StatusOK, response)
+```
+Even when `totalFailed > 0` and `"success": false`, the HTTP status is always 200. A monitoring system relying on HTTP status codes would see this as success.
+
+**Severity**: Medium — misleading for monitoring/alerting.
+
+---
+
+### Finding 16 — GetDetailedSettings swallows error
+**Status**: ✅ **CONFIRMED**
+
+[settings_service.go:102-106](file:///d:/Project/omni/backend/internal/services/google/settings_service.go#L102-L106):
+```go
+settings, err := s.getOrCreateSettings(ctx)
+if err != nil {
+    return &DetailedSettingsOutput{}, nil  // Swallows error!
+}
+```
+Returns empty data with `nil` error when DB fails.
+
+**Severity**: High — silently returns empty data, making it look like no settings exist.
+
+---
+
+### Finding 17 — GetSpreadsheetLinks swallows error
+**Status**: ✅ **CONFIRMED**
+
+[settings_service.go:398-401](file:///d:/Project/omni/backend/internal/services/google/settings_service.go#L398-L401):
+```go
+settings, err := s.getOrCreateSettings(ctx)
+if err != nil {
+    return &SpreadsheetLinksResponse{}, nil  // Swallows error!
+}
+```
+Same pattern as Finding 16.
+
+**Severity**: High — same bug.
+
+---
+
+### Finding 18 — Persist selected columns ignores json.Marshal failure
+**Status**: ✅ **CONFIRMED**
+
+[settings_service.go:190](file:///d:/Project/omni/backend/internal/services/google/settings_service.go#L190):
+```go
+selectedColumnsJSON, _ := json.Marshal(input.InventorySelectedColumns)
+```
+Error is silently discarded. If Marshal fails, empty JSON is persisted.
+
+**Severity**: Medium — data corruption risk, though `json.Marshal([]string{})` rarely fails.
+
+---
+
+### Finding 19 — Decrypt fallback to base64
+**Status**: ✅ **CONFIRMED**
+
+[global_config.go:283-310](file:///d:/Project/omni/backend/internal/config/global_config.go#L283-L310):
+- L286-292: If `ENCRYPTION_KEY` is empty, falls back to base64 decode
+- L302-308: If Fernet decrypt fails, falls back to base64 decode
+- Both paths emit `log.Printf` warnings  
+
+The code **does return errors** if base64 also fails. But when ENCRYPTION_KEY is empty, any base64 string passes as "decrypted", which is a security concern.
+
+**Severity**: High — in production this should fail if ENCRYPTION_KEY is absent. The fallback is a legacy migration aid.
+
+---
+
+### Finding 20 — Unified analytics ignores MV query errors
+**Status**: ✅ **CONFIRMED**
+
+[unified_handler.go:83](file:///d:/Project/omni/backend/internal/handlers/analytics/unified_handler.go#L83): `h.cacheService.RefreshAllMVs(ctx, db, tenantID)` — return value ignored.
+
+[L94-96, L106-108](file:///d:/Project/omni/backend/internal/handlers/analytics/unified_handler.go#L94-L108): Both `.First(&tiktokSummary)` and `.First(&shopeeSummary)` have their errors ignored. If the table doesn't exist or query fails, zero-value metrics are returned as normal data.
+
+[L192-194](file:///d:/Project/omni/backend/internal/handlers/analytics/unified_handler.go#L192-L194): Same for [GetUnifiedKPI](file:///d:/Project/omni/backend/internal/handlers/analytics/unified_handler.go#158-228).
+
+**Severity**: High — empty/incorrect analytics silently served.
+
+---
+
+### Finding 21 — Queue history pagination ignores DB errors
+**Status**: ✅ **CONFIRMED**
+
+[queue_manager_extended.go:89](file:///d:/Project/omni/backend/internal/services/jobs/queue_manager_extended.go#L89):
+```go
+jobQuery.Find(&jobHistoryItems)   // error ignored
+```
+[L105](file:///d:/Project/omni/backend/internal/services/jobs/queue_manager_extended.go#L105):
+```go
+autoQuery.Find(&autoFuncHistoryItems)  // error ignored
+```
+Both queries discard errors, returning whatever was populated.
+
+**Severity**: Medium — client gets a partial/empty list without error indication.
+
+---
+
+### Finding 22 — Queue history uses snake_case now
+**Status**: ⚠️ **PARTIALLY TRUE** (was fixed)
+
+[queue_manager_dto.go:12-22](file:///d:/Project/omni/backend/internal/services/jobs/queue_manager_dto.go#L12-L22): [HistoryItemResponse](file:///d:/Project/omni/backend/internal/services/jobs/queue_manager_dto.go#12-23) now uses snake_case JSON tags:
+```go
+JobID   string `json:"job_id"`
+JobType string `json:"job_type"`
+```
+The comment at line 73 says "camelCase for Node.js compatibility" but the actual struct uses snake_case now. So this finding **was already fixed** for the struct tags. The misleading comment remains.
+
+**Severity**: Low — comment is stale; struct is correct.
+
+---
+
+### Finding 23 — TikTok DB search ignores Find error
+**Status**: ✅ **CONFIRMED**
+
+[tiktok/db_products.go:253-260](file:///d:/Project/omni/backend/internal/handlers/tiktok/db_products.go#L253-L260): [SearchProducts](file:///d:/Project/omni/backend/internal/handlers/shopee/db_products.go#174-206) method:
+```go
+db.Where("name LIKE ?", "%"+query+"%").Limit(100).Find(&products)
+```
+The `.Find()` result error is not checked in any of the three branches (L254, L256, L258).
+
+**Severity**: Medium — silently returns empty/partial results.
+
+---
+
+### Finding 24 — Shopee DB products ignore query errors
+**Status**: ✅ **CONFIRMED**
+
+[shopee/db_products.go:119](file:///d:/Project/omni/backend/internal/handlers/shopee/db_products.go#L119): [GetProductModelsByID](file:///d:/Project/omni/backend/internal/handlers/shopee/db_products.go#100-137):
+```go
+db.Where("item_id = ?", itemID).Find(&skus)  // error ignored
+```
+
+[L189](file:///d:/Project/omni/backend/internal/handlers/shopee/db_products.go#L189): [SearchProducts](file:///d:/Project/omni/backend/internal/handlers/shopee/db_products.go#174-206):
+```go
+db.Where("seller_sku LIKE ?", "%"+sku+"%").Find(&skus)  // error ignored
+```
+
+**Severity**: Medium — same pattern as Finding 23.
+
+---
+
+### Finding 25 — TikTok clone silent read
+**Status**: ✅ **CONFIRMED**
+
+[clone_tiktok.go:44](file:///d:/Project/omni/backend/internal/services/products/clone_tiktok.go#L44):
+```go
+s.db.WithContext(ctx).First(&product, sku.ProductID)  // error ignored
+```
+[L49](file:///d:/Project/omni/backend/internal/services/products/clone_tiktok.go#L49):
+```go
+s.db.WithContext(ctx).Where("product_id = ?", sku.ProductID).Find(&allSkus)  // error ignored
+```
+If product read fails, the clone proceeds with empty product data.
+
+**Severity**: High — data integrity risk. Cloned product could be missing name, description, images.
+
+---
+
+### Finding 26 — Shopee clone silent read
+**Status**: ✅ **CONFIRMED**
+
+[clone_shopee.go:46](file:///d:/Project/omni/backend/internal/services/products/clone_shopee.go#L46):
+```go
+s.db.WithContext(ctx).First(&product, sku.ProductID)  // error ignored
+```
+[L52](file:///d:/Project/omni/backend/internal/services/products/clone_shopee.go#L52):
+```go
+s.db.WithContext(ctx).Where("product_id = ?", sku.ProductID).Find(&allSkus)  // error ignored
+```
+Same pattern as Finding 25.
+
+**Severity**: High — same bug.
+
+---
+
+### Finding 27 — Lazada clone silent read
+**Status**: ✅ **CONFIRMED**
+
+[clone_lazada.go:31](file:///d:/Project/omni/backend/internal/services/products/clone_lazada.go#L31):
+```go
+s.db.WithContext(ctx).First(&product, sku.ProductID)  // error ignored
+```
+[L36](file:///d:/Project/omni/backend/internal/services/products/clone_lazada.go#L36):
+```go
+s.db.WithContext(ctx).Where("product_id = ?", sku.ProductID).Find(&allSkus)  // error ignored
+```
+Same pattern.
+
+**Severity**: High — same bug.
+
+---
+
+### Finding 28 — CheckService no-op cache API
+**Status**: ✅ **CONFIRMED**
+
+[check_service.go:101-117](file:///d:/Project/omni/backend/internal/services/sku/check_service.go#L101-L117):
+```go
+func (s *CheckService) GetCachedStatus(sku string) *PlatformSKUStatus { return nil }
+func (s *CheckService) InvalidateCache(sku string) {}
+func (s *CheckService) ClearCache() {}
+```
+These are documented as "no-op - Kept for API compatibility" with clear comments.
+
+**Severity**: Low — dead surface area. Should be removed if no callers exist.
+
+---
+
+### Finding 29 — Runtime log.Printf instead of zerolog
+**Status**: ✅ **CONFIRMED**
+
+Search found **50+ instances** of `log.Printf` across:
+- `services/jobs/multi_tenant_executor.go` — 12 occurrences
+- `services/jobs/executor.go` — 3 occurrences  
+- `services/jobs/escrow_sync_handler.go` — 5 occurrences
+- `services/jobs/image_cleanup_handler.go` — 4 occurrences
+- `services/autofunction/multi_tenant_scheduler.go` — 12 occurrences
+- `services/autofunction/executor.go` — 3 occurrences
+- `services/inventory/price_orchestrator.go` — 3 occurrences
+- `services/inventory/stock_orchestrator.go` — 3 occurrences
+- `services/analytics/shopee_escrow_repopulate.go` — 4+ occurrences
+- `services/products/clone_inventory.go`, [clone_helpers.go](file:///d:/Project/omni/backend/internal/services/products/clone_helpers.go)
+- [handlers/image_handler.go](file:///d:/Project/omni/backend/internal/handlers/image_handler.go) (L95, L133, L279)
+- [config/global_config.go](file:///d:/Project/omni/backend/internal/config/global_config.go) (L72, L87, L114, L291, L307)
+- [handlers/auth_handler.go](file:///d:/Project/omni/backend/internal/handlers/auth_handler.go) (L188)
+
+**Note**: The specific files mentioned in the finding (`shopee_escrow_wallet.go`, `auto_function_actions.go`) returned NO results — they may have already been migrated or the file name is different.
+
+**Severity**: Medium — breaks structured logging, makes log aggregation harder.
+
+---
+
+### Finding 30 — Inventory sync Node-style response
+**Status**: ✅ **CONFIRMED**
+
+[inventory_sync.go:140-153](file:///d:/Project/omni/backend/internal/handlers/inventory_sync.go#L140-L153):
+```go
+c.JSON(http.StatusOK, gin.H{
+    "status":  status,
+    "message": result.Message,
+    ...
+})
+```
+Uses `"status"/"message"` keys instead of canonical `"success"/"data"` wrapper. Intentional for Node.js frontend compatibility (comment at L140).
+
+**Severity**: Low-Medium — intentional compat, but should be migrated.
+
+---
+
+### Finding 31 — Shopee ads contract drift
+**Status**: ✅ **CONFIRMED**
+
+[frontend/src/api/ads.ts:33-42](file:///d:/Project/omni/frontend/src/api/ads.ts#L33-L42):
+```typescript
+const rawData = response.data;
+const items = Array.isArray(rawData)
+  ? rawData
+  : (rawData as Record<string, unknown>)?.items ?? [];
+```
+Frontend must handle **both** raw array and `{items, pagination}` shapes.
+
+**Severity**: Medium — backend needs to stabilize on one shape.
+
+---
+
+### Finding 32 — TikTok ads same drift
+**Status**: ✅ **CONFIRMED**
+
+[frontend/src/api/ads.ts:68-77](file:///d:/Project/omni/frontend/src/api/ads.ts#L68-L77): Exact same dual-shape handling.
+
+**Severity**: Medium — same as Finding 31.
+
+---
+
+### Finding 33 — Inventory columns API drift
+**Status**: ✅ **CONFIRMED**
+
+[frontend/src/api/inventoryColumns.ts:20-25](file:///d:/Project/omni/frontend/src/api/inventoryColumns.ts#L20-L25):
+```typescript
+const columns = Array.isArray(data.data) ? data.data
+  : Array.isArray(data.columns) ? data.columns : [];
+```
+And [L74-76](file:///d:/Project/omni/frontend/src/api/inventoryColumns.ts#L74-L76):
+```typescript
+selected_columns: columns,
+columns: columns, // backward compatibility
+```
+Frontend sends **two keys** and handles **two response shapes**.
+
+**Severity**: Medium — should be stabilized.
+
+---
+
+### Finding 34 — TikTok ads `roas` alias for backend `roi`
+**Status**: ✅ **CONFIRMED**
+
+[frontend/src/types/ads.ts:73-74](file:///d:/Project/omni/frontend/src/types/ads.ts#L73-L74):
+```typescript
+roi: number; // Backend sends "roi" in JSON response
+roas?: number; // Alias for table compatibility (mapped from roi in component)
+```
+Frontend carries an explicit alias. The naming mismatch is documented but not resolved.
+
+**Severity**: Low — documented, but creates confusion.
+
+---
+
+### Finding 35 — Error handler replaces 403/500 messages
+**Status**: ⚠️ **PARTIALLY TRUE**
+
+[clientErrorHandler.ts:63-75](file:///d:/Project/omni/frontend/src/api/clientErrorHandler.ts#L63-L75):
+- **403**: Shows toast `"Permission denied"` (generic) but **propagates backend message** in the rejected Error: `const errorMsg = backendMsg || "Permission denied"` — so the actual error IS passed through.
+- **500**: Shows toast `"Server error — please try again"` (generic) but **propagates backend message** in Error: `const errorMsg = backendMsg || "Server error — please try again"`.
+
+The **toast** is generic, but the **Error object** carries the real message. So raw platform errors ARE available to catch blocks, just not shown to users via toast.
+
+**Severity**: Low — the toast simplification is intentional UX; backend message is still available programmatically.
+
+---
+
+### Finding 36 — API client `any` suppression
+**Status**: ✅ **CONFIRMED**
+
+[client.ts:211-214](file:///d:/Project/omni/frontend/src/api/client.ts#L211-L214):
+```typescript
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+params: Record<string, any> = {},
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> {
+```
+And [L235-236](file:///d:/Project/omni/frontend/src/api/client.ts#L235-L236):
+```typescript
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> {
+```
+
+Two methods ([executeSheetsOperation](file:///d:/Project/omni/frontend/src/api/client.ts#209-230), [exportOrders](file:///d:/Project/omni/frontend/src/api/client.ts#231-252)) use `any` with eslint suppressions.
+
+**Severity**: Low — type safety gap; should use proper interfaces.
+
+---
+
+### Finding 37 — Auth store camelCase tenant
+**Status**: ✅ **CONFIRMED**
+
+[authStore.ts:13](file:///d:/Project/omni/frontend/src/stores/authStore.ts#L13): `tenantId: string | null` — camelCase in store.
+[authStore.ts:9-10](file:///d:/Project/omni/frontend/src/stores/authStore.ts#L9-L10): Deprecated `token` alias.
+[authStore.ts:39](file:///d:/Project/omni/frontend/src/stores/authStore.ts#L39): Initial value from `sessionStorage.getItem(STORAGE_KEYS.TENANT_ID)`.
+
+The backend canonical key is `tenant_id`, but the store uses `tenantId` for JavaScript convention. The [setAuth](file:///d:/Project/omni/frontend/src/stores/authStore.ts#42-63) method accepts `tenant_id` from the API and maps to `tenantId` (L42, L58). This is **normal JS camelCase convention** and the mapping works correctly.
+
+The `token` alias (L9-10, L36-37, L55-56) is deprecated but still maintained.
+
+**Severity**: Low — the mapping works; it's just a naming convention difference between JS and API. The deprecated `token` alias should be removed eventually.
+
+---
+
+### Finding 38 — LoginPage hardcoded dev tenants
+**Status**: ✅ **CONFIRMED**
+
+[LoginPage.tsx:44-45](file:///d:/Project/omni/frontend/src/pages/auth/LoginPage.tsx#L44-L45):
+```typescript
+const [selectedDevTenant, setSelectedDevTenant] = useState("yumna_bertigamart");
+```
+
+[L113-121](file:///d:/Project/omni/frontend/src/pages/auth/LoginPage.tsx#L113-L121): Auto-login on localhost:
+```typescript
+if (isLocalhost && !isAuthenticated && !sessionStorage.getItem("autoLoginFailed")) {
+  handleDevLogin(true);
+}
+```
+
+[L201-202](file:///d:/Project/omni/frontend/src/pages/auth/LoginPage.tsx#L201-L202): Hardcoded tenant options:
+```tsx
+<Option value="yumna_bertigamart">Yumna - Bertigamart</Option>
+<Option value="tika_nusseyba">Tika - Nusseyba</Option>
+```
+
+**Severity**: Low — dev-only feature, properly gated by `isLocalhost`. Hardcoded tenants should be in config.
+
+---
+
+### Finding 39 — Vite config drift/orphan
+**Status**: ✅ **CONFIRMED**
+
+Found 3 Vite config files in `frontend/`:
+- [vite.config.ts](file:///d:/Project/omni/frontend/vite.config.ts) — source TypeScript config
+- [vite.config.js](file:///d:/Project/omni/frontend/vite.config.js) — compiled JavaScript (likely generated artifact)
+- [vite.config.d.ts](file:///d:/Project/omni/frontend/vite.config.d.ts) — TypeScript declaration (likely generated)
+
+The [.js](file:///d:/Project/omni/frontend/vite.config.js) and [.d.ts](file:///d:/Project/omni/frontend/vite.config.d.ts) files are likely build artifacts that shouldn't be tracked in source control.
+
+**Severity**: Low — workspace hygiene. Check .gitignore.
+
+---
+
+### Finding 40 — Root npm test is false positive shim
+**Status**: ✅ **CONFIRMED**
+
+[package.json:7](file:///d:/Project/omni/package.json#L7):
+```json
+"test": "echo \"Run tests from frontend/ (npm test) or backend/ (go test ./...)\" && exit 0"
+```
+Always exits 0. This will pass in any CI that runs `npm test` at root level.
+
+**Severity**: Medium — CI false positive risk. Should exit 1 or delegate properly.
+
+---
+
+## Part 2: Additional Bugs Discovered During Analysis
+
+### Bug A — [CheckAllConnections](file:///d:/Project/omni/backend/internal/handlers/platform_auth_handler.go#150-237) response uses camelCase `checkedAt`
+[platform_auth_handler.go:234](file:///d:/Project/omni/backend/internal/handlers/platform_auth_handler.go#L234):
+```go
+"checkedAt": now,
+```
+Should be `"checked_at"` per canonical snake_case.
+
+### Bug B — [image_handler.go](file:///d:/Project/omni/backend/internal/handlers/image_handler.go) uses `c.GetString("tenantID")` directly
+[image_handler.go:45, 148, 212, 248](file:///d:/Project/omni/backend/internal/handlers/image_handler.go): All four handler methods use `c.GetString("tenantID")` instead of `middleware.GetTenantID(c)`, bypassing the canonical accessor.
+
+### Bug C — [GetProductModelsByID](file:///d:/Project/omni/backend/internal/handlers/shopee/db_products.go#100-137) ignores Find error
+[shopee/db_products.go:119](file:///d:/Project/omni/backend/internal/handlers/shopee/db_products.go#L119): This is more serious than Finding 24 because it joins data from this unvalidated query.
+
+### Bug D — Batch price sync history hardcodes `"success"` status
+[inventory/price_handler.go:236](file:///d:/Project/omni/backend/internal/handlers/inventory/price_handler.go#L236):
+```go
+Status: "success", // Batch handler returns success if no global error
+```
+Even if all individual items failed, the batch history entry is `"success"`.
+
+### Bug E — `settings_service.go:111` ignores json.Unmarshal error
+```go
+json.Unmarshal([]byte(settings.InventorySelectedColumns), &selectedColumns)
+```
+Error discarded. If the stored JSON is corrupted, `selectedColumns` remains nil/empty.
+
+### Bug F — `log.Printf` at 50+ locations across backend
+Far more widespread than the 3 files mentioned in Finding 29. Full list: [clone_inventory.go](file:///d:/Project/omni/backend/internal/services/products/clone_inventory.go), [clone_helpers.go](file:///d:/Project/omni/backend/internal/services/products/clone_helpers.go), [image_cleanup_handler.go](file:///d:/Project/omni/backend/internal/services/jobs/image_cleanup_handler.go), [multi_tenant_executor.go](file:///d:/Project/omni/backend/internal/services/jobs/multi_tenant_executor.go), [executor.go](file:///d:/Project/omni/backend/internal/services/jobs/executor.go), [escrow_sync_handler.go](file:///d:/Project/omni/backend/internal/services/jobs/escrow_sync_handler.go), `autofunction/executor.go`, `autofunction/scheduler.go`, `autofunction/multi_tenant_scheduler.go`, [shopee_escrow_repopulate.go](file:///d:/Project/omni/backend/internal/services/analytics/shopee_escrow_repopulate.go), [price_orchestrator.go](file:///d:/Project/omni/backend/internal/services/inventory/price_orchestrator.go), [stock_orchestrator.go](file:///d:/Project/omni/backend/internal/services/inventory/stock_orchestrator.go), [image_handler.go](file:///d:/Project/omni/backend/internal/handlers/image_handler.go), [global_config.go](file:///d:/Project/omni/backend/internal/config/global_config.go), [auth_handler.go](file:///d:/Project/omni/backend/internal/handlers/auth_handler.go).
+
+### Bug G — `ptrString` function duplicated
+[inventory/price_handler.go](file:///d:/Project/omni/backend/internal/handlers/inventory/price_handler.go) and [inventory/stock_handler.go:125](file:///d:/Project/omni/backend/internal/handlers/inventory/stock_handler.go#L125) both define their own `ptrString` helper. Should be in a shared utility.
+
+---
+
+## Part 3: Structural Hotspot Verification
+
+| # | File | Lines | Claim | Verified |
+|---|------|-------|-------|----------|
+| 1 | [services/google/settings_service.go](file:///d:/Project/omni/backend/internal/services/google/settings_service.go) | 416 | Swallow-error bugs | ✅ Confirmed (Findings 16-18, Bug E) |
+| 2 | `repositories/master_product_repository.go` | 401 | Too large | Not verified (no bugs detected in referenced findings) |
+| 3 | `services/analytics/intelligence/simulator.go` | 372 | Heavy logic, hard to verify | Not verified (not referenced by findings) |
+| 4 | `services/shopee/shipping_label.go` | 362 | Dense integration branching | Not verified (not referenced by findings) |
+| 5 | `services/master_product/import_service_shopee.go` | 354 | Fat orchestration | Not verified (not referenced by findings) |
+| 6 | `services/inventory/inventory_service.go` | 352 | High-risk central path | Not verified (not referenced by findings) |
+| 7 | `services/tiktok/sync_service_helpers.go` | 351 | "helpers" = second service | Not verified (not referenced by findings) |
+| 8 | `services/sync/order_repository_tiktok.go` | 339 | Too many responsibilities | Not verified (not referenced by findings) |
+
+All hotspots over 300 lines are valid candidates for refactoring, but only Hotspot #1 has proven bugs.
+
+---
+
+## Part 4: Comprehensive Remediation Plan
+
+### Phase 1: Critical Security & Data Integrity (Priority: HIGH)
+
+| # | Finding(s) | Action | Risk | Effort |
+|---|-----------|--------|------|--------|
+| 1 | F19 | **Decrypt: fail-hard when ENCRYPTION_KEY missing**: Remove base64 fallback in `global_config.go:286-292`. Add startup check that ENCRYPTION_KEY is set in production. Keep fallback only behind `LEGACY_CRYPTO_FALLBACK=true` env var. | Data leak | M |
+| 2 | F16, F17, Bug E | **Settings service: propagate errors**: Change [GetDetailedSettings()](file:///d:/Project/omni/backend/internal/services/google/settings_service.go#101-154) and [GetSpreadsheetLinks()](file:///d:/Project/omni/backend/internal/services/google/settings_service.go#396-416) to return errors. Fix `json.Unmarshal` error at L111. | Silent data loss | S |
+| 3 | F25-27 | **Clone services: check read errors**: In all three `fetchXxxProductFromDB()`, check `First()` and `Find()` errors and return error if product/SKUs can't be read. | Incomplete clones | S |
+| 4 | F20 | **Analytics: check MV query errors**: In [unified_handler.go](file:///d:/Project/omni/backend/internal/handlers/analytics/unified_handler.go), capture `.First()` errors on L94/L106/L192 and return 500 with error message. Log MV refresh failures. | Phantom metrics | S |
+| 5 | F4 | **Deprecate body refresh token**: Add `Deprecation: true` header when body fallback is used. Log a security warning. Plan removal after frontend migration. | Token exposure | S |
+
+### Phase 2: API Contract Standardization (Priority: MEDIUM-HIGH)
+
+| # | Finding(s) | Action | Risk | Effort |
+|---|-----------|--------|------|--------|
+| 6 | F12-14 | **Wrap error responses**: Add `"success": false` to all error responses in [ads_handler.go](file:///d:/Project/omni/backend/internal/handlers/ads_handler.go), [price_handler.go](file:///d:/Project/omni/backend/internal/handlers/price_handler.go), [stock_handler.go](file:///d:/Project/omni/backend/internal/handlers/stock_handler.go). Use `response.Error()`. | Client parsing failure | M |
+| 7 | F1, Bug A | **Standardize error messages**: Replace all `"Missing tenantId"` with `"Missing tenant_id"`. Fix `"checkedAt"` → `"checked_at"`. | API inconsistency | S |
+| 8 | F15, Bug D | **Batch responses**: Use HTTP 207 Multi-Status or 200 with `success: false` + appropriate status. Fix hardcoded `"success"` in batch sync history. | Monitoring blind spot | S |
+| 9 | F30 | **Inventory sync response**: Wrap with canonical `{success, data}` envelope. Deprecate `status/message` shape. | Contract drift | S |
+| 10 | F31-33 | **Backend ads/columns endpoint stabilization**: Pick one response shape (`{items, pagination}`), remove array variant. Frontend can then drop dual-shape handling. | Frontend complexity | M |
+
+### Phase 3: Architecture Cleanup (Priority: MEDIUM)
+
+| # | Finding(s) | Action | Risk | Effort |
+|---|-----------|--------|------|--------|
+| 11 | F2, Bug B | **Tenant middleware consolidation**: Remove `"tenantId"` and `"tenantID"` aliases from middleware. Migration: grep all `c.GetString("tenantID")` and `c.GetString("tenantId")` → use `middleware.GetTenantID(c)`. | Handler breakage | L |
+| 12 | F5-7, F9 | **Push DB/repo work to service layer**: Handlers should only call service methods, not instantiate repos. Create services where missing. | Coupling | L |
+| 13 | F8 | **Split UnifiedHandler concerns**: Extract `UnifiedAnalyticsService` with methods for summary/KPI computation. Handler only does input validation + response. | Testability | M |
+| 14 | F10 | **Extract ImageService**: Move query building, CRUD, file ops from handler to service. | SRP violation | M |
+| 15 | F11 | **Move sync history to orchestrator**: [recordPriceSyncHistory()](file:///d:/Project/omni/backend/internal/handlers/inventory/price_handler.go#170-210) and [recordPriceBatchSyncHistory()](file:///d:/Project/omni/backend/internal/handlers/inventory/price_handler.go#211-248) should be called within the orchestrator, not from handler. | Layer violation | S |
+
+### Phase 4: Logging & Observability (Priority: MEDIUM)
+
+| # | Finding(s) | Action | Risk | Effort |
+|---|-----------|--------|------|--------|
+| 16 | F29, Bug F | **Migrate all log.Printf to zerolog**: 50+ locations across 15+ files. Use structured fields. | Log aggregation broken | L |
+| 17 | F21 | **Queue history: check DB errors**: Add error checks on `.Find()` calls at L89 and L105 in [queue_manager_extended.go](file:///d:/Project/omni/backend/internal/services/jobs/queue_manager_extended.go). | Silent failures | S |
+| 18 | F23-24, Bug C | **DB product handlers: check Find errors**: Add error checks on all `.Find()` calls in TikTok and Shopee db_products handlers. | Silent failures | S |
+| 19 | F18 | **Check json.Marshal errors**: In `settings_service.go:190`, check and return error. | Data corruption | S |
+
+### Phase 5: Frontend Cleanup (Priority: LOW-MEDIUM)
+
+| # | Finding(s) | Action | Risk | Effort |
+|---|-----------|--------|------|--------|
+| 20 | F34 | **Standardize backend TikTok ads field name**: Rename backend `roi` → `roas` to match Shopee. Update frontend types. | Breaking change | M |
+| 21 | F36 | **Type the `any` methods**: Replace `Promise<any>` with proper response types in [executeSheetsOperation()](file:///d:/Project/omni/frontend/src/api/client.ts#209-230) and [exportOrders()](file:///d:/Project/omni/frontend/src/api/client.ts#231-252). | Type safety | S |
+| 22 | F37 | **Remove deprecated token alias**: After confirming no code reads `authStore.token`, remove the field. Consolidate on `accessToken`. | Cleanup | S |
+| 23 | F38 | **Move dev tenants to config**: Extract hardcoded tenant list to env/config file. Consider fetching from backend. | Hardcoded data | S |
+| 24 | F35 | **Document toast behavior**: The current behavior (generic toast + detailed Error object) is actually reasonable UX. Add a JSDoc comment explaining the design decision. | N/A | S |
+
+### Phase 6: Workspace Hygiene (Priority: LOW)
+
+| # | Finding(s) | Action | Risk | Effort |
+|---|-----------|--------|------|--------|
+| 25 | F3 | **Webhook path param**: Document `:tenantId` as a frozen external contract. Do NOT change without external caller coordination. | Breaking change | S |
+| 26 | F22 | **Remove stale comment**: Update comment at `queue_manager_extended.go:73` that says "camelCase for Node.js" — the struct is already snake_case. | Misleading | S |
+| 27 | F28 | **Remove no-op cache API**: If [GetCachedStatus()](file:///d:/Project/omni/backend/internal/services/sku/check_service.go#101-106), [InvalidateCache()](file:///d:/Project/omni/backend/internal/services/sku/check_service.go#107-112), [ClearCache()](file:///d:/Project/omni/backend/internal/services/sku/check_service.go#113-118) have no callers, delete them. | Dead code | S |
+| 28 | F39 | **Clean Vite artifacts**: Add [vite.config.js](file:///d:/Project/omni/frontend/vite.config.js) and [vite.config.d.ts](file:///d:/Project/omni/frontend/vite.config.d.ts) to [.gitignore](file:///d:/Project/omni/.gitignore). Delete tracked copies. | Drift risk | S |
+| 29 | F40 | **Fix root test script**: Change to `exit 1` or delegate: `cd frontend && npm test && cd ../backend && go test ./...`. | CI integrity | S |
+| 30 | Bug G | **Deduplicate ptrString**: Move to shared `utils` package. | Code duplication | S |
+
+### Phase 7: Structural Hotspot Refactoring (Priority: LOW — needs analysis)
+
+| # | Hotspot | Lines | Recommended Action |
+|---|---------|-------|-------------------|
+| 1 | [settings_service.go](file:///d:/Project/omni/backend/internal/services/google/settings_service.go) | 416 | Split into `SettingsReader` + `SettingsWriter` + `WorksheetMetadataService` |
+| 2 | `master_product_repository.go` | 401 | Split by domain: `MasterProductQueryRepo` + `MasterProductMutationRepo` |
+| 3 | `simulator.go` | 372 | Split into `SimulatorEngine` + `SimulationConfig` + `SimulationOutput` |
+| 4-8 | Others | 339-362 | Analyze and split by SRP after higher-priority fixes |
+
+> [!IMPORTANT]
+> Phase 1 items should be done first as they affect data integrity and security. Phase 2 items are important for API consistency but can be done incrementally. Phases 3-7 are refactoring tasks that improve maintainability but won't cause runtime failures if deferred.
+
+---
+
+## Summary Statistics
+
+| Category | Count | Confirmed | Partially True | Not Confirmed |
+|----------|-------|-----------|---------------|---------------|
+| Findings | 40 | 37 | 2 (F22, F35) | 0 |
+| Extra Bugs | 7 | 7 | - | - |
+| Hotspots | 8 | 1 proven | 7 plausible | 0 |
+| **Remediation Items** | **30** | across **7 phases** | | |
+
+**Risk Distribution**:
+- 🔴 HIGH (5 items): F19, F16/17, F25-27, F20, F4
+- 🟡 MEDIUM (15 items): F2, F5-14, F15, F18, F21, F23-24, F29-33
+- 🟢 LOW (10 items): F1, F3, F22, F28, F34-40
