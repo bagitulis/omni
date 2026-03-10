@@ -306,7 +306,10 @@ func (c *Client) UploadImage(imageBytes []byte) (*UploadImageResponse, error) {
 	writer.Close()
 
 	// Build signed URL
-	reqURL := c.buildURL("/api/v2/media_space/upload_image", nil)
+	reqURL, urlErr := c.buildURL("/api/v2/media_space/upload_image", nil)
+	if urlErr != nil {
+		return nil, urlErr
+	}
 
 	// Create request with multipart body
 	req, err := http.NewRequest("POST", reqURL, body)
@@ -441,7 +444,10 @@ func (c *Client) GetWalletTransactions(req GetWalletTransactionRequest) (*Wallet
 		params["money_flow"] = req.MoneyFlow
 	}
 
-	reqURL := c.buildURL("/api/v2/payment/get_wallet_transaction_list", params)
+	reqURL, urlErr := c.buildURL("/api/v2/payment/get_wallet_transaction_list", params)
+	if urlErr != nil {
+		return nil, urlErr
+	}
 	httpReq, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		return nil, err

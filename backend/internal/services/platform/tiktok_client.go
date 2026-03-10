@@ -84,12 +84,14 @@ func (m *TiktokConfigManager) IsConfigured() bool {
 type TiktokAPIClient struct {
 	config      *TiktokConfigManager
 	initialized bool
+	httpClient  *http.Client
 }
 
 // NewTiktokAPIClient creates a TikTok API client
 func NewTiktokAPIClient(config *TiktokConfigManager) *TiktokAPIClient {
 	c := &TiktokAPIClient{
-		config: config,
+		config:     config,
+		httpClient: &http.Client{Timeout: 30 * time.Second},
 	}
 
 	if config.IsConfigured() {
@@ -163,7 +165,10 @@ func (c *TiktokAPIClient) request(method, path string, queryParams map[string]st
 	params["access_token"] = c.config.GetAccessToken()
 
 	// Build URL
-	u, _ := url.Parse(tiktokBaseURL + path)
+	u, err := url.Parse(tiktokBaseURL + path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse URL %s%s: %w", tiktokBaseURL, path, err)
+	}
 	q := u.Query()
 	for k, v := range params {
 		q.Set(k, v)
@@ -185,8 +190,7 @@ func (c *TiktokAPIClient) request(method, path string, queryParams map[string]st
 	req.Header.Set("x-tts-access-token", c.config.GetAccessToken())
 
 	// Execute request
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("http request failed: %w", err)
 	}

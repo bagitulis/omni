@@ -140,7 +140,7 @@ func TestBulkShipOrders_ShopeePlatform(t *testing.T) {
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
-	assert.True(t, resp["success"].(bool))
+	assert.False(t, resp["success"].(bool)) // 422 = all failed, should be false
 
 	data, ok := resp["data"].(map[string]interface{})
 	assert.True(t, ok, "response data should be a map")
@@ -172,7 +172,7 @@ func TestBulkShipOrders_TikTokPlatform(t *testing.T) {
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
-	assert.True(t, resp["success"].(bool))
+	assert.False(t, resp["success"].(bool)) // 422 = all failed, should be false
 
 	data, ok := resp["data"].(map[string]interface{})
 	assert.True(t, ok, "response data should be a map")
@@ -204,7 +204,7 @@ func TestBulkShipOrders_LazadaPlatform(t *testing.T) {
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
-	assert.True(t, resp["success"].(bool))
+	assert.False(t, resp["success"].(bool)) // 422 = all failed, should be false
 
 	data, ok := resp["data"].(map[string]interface{})
 	assert.True(t, ok, "response data should be a map")

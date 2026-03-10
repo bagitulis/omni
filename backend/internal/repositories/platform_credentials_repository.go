@@ -2,10 +2,12 @@ package repositories
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/utils"
@@ -32,7 +34,7 @@ func getEncryptionService() *utils.EncryptionService {
 	}
 	svc, err := utils.NewEncryptionService(key)
 	if err != nil {
-		log.Printf("[PlatformCredentials] Warning: failed to create encryption service: %v", err)
+		log.Warn().Err(err).Msg("[PlatformCredentials] Failed to create encryption service")
 		return nil
 	}
 	return svc
@@ -53,15 +55,15 @@ func (r *PlatformCredentialsRepository) GetConfigValue(ctx context.Context, plat
 
 	// Decrypt if encrypted
 	if config.IsEncrypted && config.ConfigValue != "" {
-		if encSvc := getEncryptionService(); encSvc != nil {
-			decrypted, err := encSvc.Decrypt(config.ConfigValue)
-			if err != nil {
-				log.Printf("[PlatformCredentials] Warning: failed to decrypt %s.%s: %v", platform, configKey, err)
-				// Return encrypted value as fallback (for debugging)
-				return config.ConfigValue, nil
-			}
-			return decrypted, nil
+		encSvc := getEncryptionService()
+		if encSvc == nil {
+			return "", fmt.Errorf("ENCRYPTION_KEY not configured — cannot decrypt %s.%s", platform, configKey)
 		}
+		decrypted, err := encSvc.Decrypt(config.ConfigValue)
+		if err != nil {
+			return "", fmt.Errorf("credential decryption failed for %s.%s: %w", platform, configKey, err)
+		}
+		return decrypted, nil
 	}
 
 	return config.ConfigValue, nil
@@ -86,14 +88,15 @@ func (r *PlatformCredentialsRepository) GetAllConfigForPlatform(ctx context.Cont
 		value := c.ConfigValue
 
 		// Decrypt if encrypted
-		if c.IsEncrypted && value != "" && encSvc != nil {
+		if c.IsEncrypted && value != "" {
+			if encSvc == nil {
+				return nil, fmt.Errorf("ENCRYPTION_KEY not configured — cannot decrypt %s.%s", platform, c.ConfigKey)
+			}
 			decrypted, err := encSvc.Decrypt(value)
 			if err != nil {
-				log.Printf("[PlatformCredentials] Warning: failed to decrypt %s.%s: %v", platform, c.ConfigKey, err)
-				// Keep encrypted value as fallback
-			} else {
-				value = decrypted
+				return nil, fmt.Errorf("credential decryption failed for %s.%s: %w", platform, c.ConfigKey, err)
 			}
+			value = decrypted
 		}
 
 		result[c.ConfigKey] = value

@@ -4,7 +4,8 @@ package products
 import (
 	"context"
 	"fmt"
-	"log"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
@@ -32,7 +33,7 @@ func (s *CloneService) triggerProductSync(ctx context.Context, platform string) 
 	// Get system DB for global config
 	systemDB, err := config.GetSystemDB(s.dbPath)
 	if err != nil {
-		log.Printf("[Clone] Failed to get system DB for sync: %v", err)
+		log.Error().Err(err).Str("tenant_id", s.tenantID).Msg("[Clone] Failed to get system DB for sync")
 		return fmt.Sprintf("sync failed - system DB error: %v", err)
 	}
 
@@ -69,7 +70,7 @@ func (s *CloneService) syncShopeeProducts(ctx context.Context, systemDB *gorm.DB
 		return fmt.Sprintf("sync failed: %v", err)
 	}
 
-	log.Printf("[Sync] Shopee products synced: %d", count)
+	log.Info().Str("tenant_id", s.tenantID).Int("count", count).Msg("[Sync] Shopee products synced")
 	return fmt.Sprintf("synced %d products from Shopee", count)
 }
 
@@ -96,7 +97,7 @@ func (s *CloneService) syncLazadaProducts(ctx context.Context, systemDB *gorm.DB
 		return fmt.Sprintf("sync failed: %v", err)
 	}
 
-	log.Printf("[Sync] Lazada products synced: %d", count)
+	log.Info().Str("tenant_id", s.tenantID).Int("count", count).Msg("[Sync] Lazada products synced")
 	return fmt.Sprintf("synced %d products from Lazada", count)
 }
 
@@ -117,7 +118,7 @@ func (s *CloneService) syncTiktokProducts(ctx context.Context, systemDB *gorm.DB
 		return fmt.Sprintf("sync failed: %v", err)
 	}
 
-	log.Printf("[Sync] TikTok products synced: %d", count)
+	log.Info().Str("tenant_id", s.tenantID).Int("count", count).Msg("[Sync] TikTok products synced")
 	return fmt.Sprintf("synced %d products from TikTok", count)
 }
 

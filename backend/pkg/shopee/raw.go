@@ -14,7 +14,10 @@ func (c *Client) RawRequest(ctx context.Context, method, path string, params map
 		method = http.MethodGet
 	}
 
-	reqURL := c.buildURL(path, params)
+	reqURL, err := c.buildURL(path, params)
+	if err != nil {
+		return err
+	}
 	var reader *bytes.Reader
 	if body != nil {
 		reader = bytes.NewReader(body)

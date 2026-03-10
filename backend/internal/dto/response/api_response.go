@@ -60,3 +60,23 @@ func ErrorWithDetail(summary string, detail string) APIResponse {
 		Message: detail,
 	}
 }
+
+// PartialSuccess creates a response for mixed success/failure results (HTTP 207).
+// Frontend should check individual results to determine per-item status.
+func PartialSuccess(data interface{}) APIResponse {
+	return APIResponse{
+		Success: false,
+		Data:    data,
+		Error:   "partial_success",
+		Message: "Some items succeeded and some failed",
+	}
+}
+
+// ErrorWithData creates an error response that includes data (e.g. per-item results).
+func ErrorWithData(msg string, data interface{}) APIResponse {
+	return APIResponse{
+		Success: false,
+		Error:   msg,
+		Data:    data,
+	}
+}

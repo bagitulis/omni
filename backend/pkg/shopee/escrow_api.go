@@ -59,7 +59,10 @@ func (c *Client) GetWalletBalance(ctx context.Context) (map[string]interface{}, 
 
 // doPostRequestWithBody executes HTTP POST request with body (no query params)
 func (c *Client) doPostRequestWithBody(path string, body []byte, result interface{}) error {
-	reqURL := c.buildURL(path, nil)
+	reqURL, urlErr := c.buildURL(path, nil)
+	if urlErr != nil {
+		return urlErr
+	}
 
 	req, err := http.NewRequest("POST", reqURL, bytes.NewReader(body))
 	if err != nil {

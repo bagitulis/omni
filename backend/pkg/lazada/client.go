@@ -115,10 +115,16 @@ func (c *Client) generateSign(params map[string]string, apiPath string) string {
 	return strings.ToUpper(hex.EncodeToString(h.Sum(nil)))
 }
 
+// lazadaBaseResponse captures Lazada business-level error fields returned in 200 OK responses.
+type lazadaBaseResponse struct {
+	Code    string `json:"code"`
+	Type    string `json:"type"`
+	Message string `json:"message"`
+}
+
 // RawRequest executes an arbitrary Lazada REST call with proper signing.
-// For GET calls, parameters are sent on the query string. For POST calls, the
-// parameters are sent as x-www-form-urlencoded body (matching the official SDK
-// behavior and avoiding URL-length issues when payload is large).
+// Rebuilds timestamp and signature per retry attempt.
+// Checks both HTTP-level and Lazada business-level errors.
 func (c *Client) RawRequest(ctx context.Context, method, apiPath string, params map[string]string, result interface{}) error {
 	if ctx == nil {
 		return fmt.Errorf("context is required")
@@ -127,22 +133,7 @@ func (c *Client) RawRequest(ctx context.Context, method, apiPath string, params 
 		params = map[string]string{}
 	}
 
-	// Build request params (mutates the local map).
-	timestamp := fmt.Sprintf("%d", time.Now().UnixMilli())
-	params["app_key"] = c.appKey
-	params["timestamp"] = timestamp
-	params["sign_method"] = "sha256"
-
-	// Auth endpoints and DataMoat endpoints do not use access_token.
-	if c.accessToken != "" && !strings.HasPrefix(apiPath, "/auth/") && !strings.HasPrefix(apiPath, "/datamoat/") {
-		params["access_token"] = c.accessToken
-	}
-
-	// Generate signature.
-	params["sign"] = c.generateSign(params, apiPath)
-
 	baseURL := c.baseURLFor(apiPath)
-	u, _ := url.Parse(baseURL + apiPath)
 
 	var resp *http.Response
 	var err error
@@ -152,9 +143,24 @@ func (c *Client) RawRequest(ctx context.Context, method, apiPath string, params 
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if attempt > 0 {
-			// Exponential backoff: 200ms, 400ms, 800ms
 			backoff := time.Duration(1<<uint(attempt)) * 100 * time.Millisecond
 			time.Sleep(backoff)
+		}
+
+		// Rebuild timestamp + signature each attempt so they are fresh
+		params["app_key"] = c.appKey
+		params["timestamp"] = fmt.Sprintf("%d", time.Now().UnixMilli())
+		params["sign_method"] = "sha256"
+
+		if c.accessToken != "" && !strings.HasPrefix(apiPath, "/auth/") && !strings.HasPrefix(apiPath, "/datamoat/") {
+			params["access_token"] = c.accessToken
+		}
+
+		params["sign"] = c.generateSign(params, apiPath)
+
+		u, parseErr := url.Parse(baseURL + apiPath)
+		if parseErr != nil {
+			return fmt.Errorf("failed to parse URL %s%s: %w", baseURL, apiPath, parseErr)
 		}
 
 		var body io.Reader
@@ -190,7 +196,6 @@ func (c *Client) RawRequest(ctx context.Context, method, apiPath string, params 
 		}
 		lastStatusCode = resp.StatusCode
 
-		// Check for rate limit (429) or server errors (5xx)
 		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
 			resp.Body.Close()
 			if attempt < maxRetries {
@@ -198,7 +203,6 @@ func (c *Client) RawRequest(ctx context.Context, method, apiPath string, params 
 			}
 		}
 
-		// Success or non-retriable error
 		break
 	}
 
@@ -217,6 +221,13 @@ func (c *Client) RawRequest(ctx context.Context, method, apiPath string, params 
 	if resp.StatusCode >= http.StatusBadRequest {
 		return fmt.Errorf("lazada API error [http_status=%d]: %s", resp.StatusCode, string(respBody))
 	}
+
+	// Check Lazada business-level error (returned with HTTP 200)
+	var baseResp lazadaBaseResponse
+	if jsonErr := json.Unmarshal(respBody, &baseResp); jsonErr == nil && baseResp.Code != "" && baseResp.Code != "0" {
+		return fmt.Errorf("lazada API error: code=%s, type=%s, message=%s", baseResp.Code, baseResp.Type, baseResp.Message)
+	}
+
 	if result == nil {
 		return nil
 	}

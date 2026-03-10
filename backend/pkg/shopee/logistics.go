@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
+
+	"github.com/rs/zerolog/log"
 )
 
 // ShipOrderRequest represents request to ship an order
@@ -179,7 +180,7 @@ func (c *Client) GetShippingParameter(orderSN string) (*GetShippingParameterResp
 
 	// Check for API error in response
 	if result.Error != "" {
-		log.Printf("[Shopee API] GetShippingParameter error: %s - %s", result.Error, result.Message)
+		log.Warn().Str("error", result.Error).Str("message", result.Message).Msg("[Shopee API] GetShippingParameter error")
 		return &result, fmt.Errorf("shopee API error: %s - %s", result.Error, result.Message)
 	}
 
@@ -418,49 +419,46 @@ func (c *Client) GetShippingDocumentDataInfo(orderSN string, packageNumber strin
 
 // doDownloadRequest handles shipping document download which can return JSON or binary PDF
 func (c *Client) doDownloadRequest(path string, body []byte) (*DownloadShippingDocumentResponse, error) {
-	reqURL := c.buildURL(path, nil)
+	reqURL, urlErr := c.buildURL(path, nil)
+	if urlErr != nil {
+		return nil, urlErr
+	}
 
-	log.Printf("[Shopee API] 📤 POST %s (download)", path)
-	log.Printf("[Shopee API] 📦 Request Body: %s", string(body))
+	log.Info().Str("path", path).Msg("[Shopee API] POST download request")
 
 	req, err := http.NewRequest("POST", reqURL, bytes.NewReader(body))
 	if err != nil {
-		log.Printf("[Shopee API] ❌ Failed to create request: %v", err)
+		log.Error().Err(err).Msg("[Shopee API] Failed to create request")
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		log.Printf("[Shopee API] ❌ HTTP request failed: %v", err)
+		log.Error().Err(err).Msg("[Shopee API] HTTP request failed")
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("[Shopee API] ❌ Failed to read response: %v", err)
+		log.Error().Err(err).Msg("[Shopee API] Failed to read response")
 		return nil, err
 	}
 
-	log.Printf("[Shopee API] 📥 Response Status: %s", resp.Status)
+	log.Info().Str("status", resp.Status).Msg("[Shopee API] Download response")
 	contentType := resp.Header.Get("Content-Type")
-	log.Printf("[Shopee API] 📥 Content-Type: %s", contentType)
 
 	var result DownloadShippingDocumentResponse
 
-	// Check if response is PDF (binary) or JSON
 	if strings.Contains(contentType, "application/pdf") || strings.Contains(contentType, "application/octet-stream") {
-		// Binary PDF response - store raw bytes
-		log.Printf("[Shopee API] 📥 Received binary PDF (%d bytes)", len(respBody))
+		log.Info().Int("size", len(respBody)).Msg("[Shopee API] Received binary PDF")
 		result.RawPDF = respBody
 		return &result, nil
 	}
 
-	// JSON response - parse it
-	log.Printf("[Shopee API] 📥 Response Body: %s", string(respBody))
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		log.Printf("[Shopee API] ❌ Failed to parse response: %v", err)
+		log.Error().Err(err).Msg("[Shopee API] Failed to parse response")
 		return nil, err
 	}
 
@@ -468,49 +466,44 @@ func (c *Client) doDownloadRequest(path string, body []byte) (*DownloadShippingD
 		return &result, fmt.Errorf("shopee API error: %s - %s", result.Error, result.Message)
 	}
 
-	log.Printf("[Shopee API] ✅ Request completed successfully")
 	return &result, nil
 }
 
 // doPostRequest executes POST request with body
 func (c *Client) doPostRequest(path string, params map[string]string, body []byte, result interface{}) error {
-	reqURL := c.buildURL(path, params)
+	reqURL, urlErr := c.buildURL(path, params)
+	if urlErr != nil {
+		return urlErr
+	}
 
-	// 🔍 LOG REQUEST
-	log.Printf("[Shopee API] 📤 POST %s", path)
-	log.Printf("[Shopee API] 📦 Request Body: %s", string(body))
+	log.Info().Str("path", path).Msg("[Shopee API] POST request")
 
 	req, err := http.NewRequest("POST", reqURL, bytes.NewReader(body))
 	if err != nil {
-		log.Printf("[Shopee API] ❌ Failed to create request: %v", err)
+		log.Error().Err(err).Msg("[Shopee API] Failed to create request")
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		log.Printf("[Shopee API] ❌ HTTP request failed: %v", err)
+		log.Error().Err(err).Msg("[Shopee API] HTTP request failed")
 		return err
 	}
 	defer resp.Body.Close()
 
-	// Read response body for logging
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("[Shopee API] ❌ Failed to read response: %v", err)
+		log.Error().Err(err).Msg("[Shopee API] Failed to read response")
 		return err
 	}
 
-	// 🔍 LOG RESPONSE
-	log.Printf("[Shopee API] 📥 Response Status: %s", resp.Status)
-	log.Printf("[Shopee API] 📥 Response Body: %s", string(respBody))
+	log.Info().Str("status", resp.Status).Str("path", path).Msg("[Shopee API] Response")
 
-	// Decode response
 	if err := json.Unmarshal(respBody, result); err != nil {
-		log.Printf("[Shopee API] ❌ Failed to parse response: %v", err)
+		log.Error().Err(err).Msg("[Shopee API] Failed to parse response")
 		return err
 	}
 
-	log.Printf("[Shopee API] ✅ Request completed successfully")
 	return nil
 }

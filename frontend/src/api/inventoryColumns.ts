@@ -52,7 +52,7 @@ export async function getSelectedColumns(): Promise<string[]> {
   const response = await apiClient.client.get("/inventory/columns/selected");
   const data = response.data;
   if (!data.success) {
-    throw new Error("Failed to fetch selected columns");
+    throw new Error(data.error || "Failed to fetch selected columns");
   }
 
   // Support both response shapes

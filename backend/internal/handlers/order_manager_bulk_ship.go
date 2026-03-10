@@ -86,9 +86,9 @@ func (h *OrderManagerHandler) BulkShipOrders(c *gin.Context) {
 	case summary.Failed == 0:
 		c.JSON(http.StatusOK, response.Success(data))
 	case summary.Shipped == 0:
-		c.JSON(http.StatusUnprocessableEntity, response.Success(data))
+		c.JSON(http.StatusUnprocessableEntity, response.ErrorWithData("All orders failed to ship", data))
 	default:
-		c.JSON(207, response.Success(data)) // 207 Multi-Status
+		c.JSON(207, response.PartialSuccess(data)) // 207 Multi-Status
 	}
 }
 

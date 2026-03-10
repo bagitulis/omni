@@ -3,6 +3,7 @@ import { Card, Tag, Space, Alert, Descriptions, Image, theme } from "antd";
 import { ArrowRightOutlined, WarningOutlined } from "@ant-design/icons";
 import type { Platform } from "@/types/shared";
 import { type CloneDifference, DiffSummarySection } from "./CloneDiffSummary";
+import { useTheme } from "@/contexts/ThemeContext.hooks";
 
 interface ClonePreviewDiffProps {
   source: {
@@ -26,20 +27,23 @@ interface ClonePreviewDiffProps {
 }
 
 // Platform brand colors per spec — exception to hardcoded color rule
-const PLATFORM_STYLES: Record<Platform, { gradient: string; label: string }> = {
+// TikTok gets a lighter variant in dark mode so the tag is visible
+const getPlatformStyles = (isDark: boolean): Record<Platform, { gradient: string; label: string }> => ({
   shopee: {
     gradient: "linear-gradient(135deg, #ff6b2c 0%, #ff5511 100%)",
     label: "Shopee",
   },
   tiktok: {
-    gradient: "linear-gradient(135deg, #000000 0%, #333333 100%)",
+    gradient: isDark
+      ? "linear-gradient(135deg, #475569 0%, #334155 100%)"
+      : "linear-gradient(135deg, #000000 0%, #333333 100%)",
     label: "TikTok",
   },
   lazada: {
     gradient: "linear-gradient(135deg, #0f146d 0%, #1a237e 100%)",
     label: "Lazada",
   },
-};
+});
 
 const formatPrice = (val: number): string =>
   `Rp ${Math.round(val).toLocaleString("id-ID")}`;
@@ -51,7 +55,8 @@ export const ClonePreviewDiff: FC<ClonePreviewDiffProps> = ({
   warnings,
 }) => {
   const { token } = theme.useToken();
-  const platformStyle = PLATFORM_STYLES[target.platform];
+  const { isDark } = useTheme();
+  const platformStyle = getPlatformStyles(isDark)[target.platform];
 
   // Check if a field has differences
   const isDifferent = (field: string): boolean =>

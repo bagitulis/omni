@@ -138,8 +138,8 @@ export const antdDarkTheme: ThemeConfig = {
     colorBorderSecondary: "#334155",
     colorText: "#E2E8F0",
     colorTextSecondary: "#94A3B8",
-    colorTextTertiary: "#64748B",
-    colorTextQuaternary: "#475569",
+    colorTextTertiary: "#94A3B8",
+    colorTextQuaternary: "#64748B",
     // Darker shadows for dark mode
     boxShadow: "0 1px 3px rgba(0, 0, 0, 0.3)",
     boxShadowSecondary: "0 4px 6px rgba(0, 0, 0, 0.3)",

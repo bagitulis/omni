@@ -74,12 +74,14 @@ func (m *LazadaConfigManager) IsConfigured() bool {
 type LazadaAPIClient struct {
 	config      *LazadaConfigManager
 	initialized bool
+	httpClient  *http.Client
 }
 
 // NewLazadaAPIClient creates a Lazada API client
 func NewLazadaAPIClient(config *LazadaConfigManager) *LazadaAPIClient {
 	c := &LazadaAPIClient{
-		config: config,
+		config:     config,
+		httpClient: &http.Client{Timeout: 30 * time.Second},
 	}
 
 	if config.IsConfigured() {
@@ -142,7 +144,7 @@ func (c *LazadaAPIClient) request(apiPath string, apiParams map[string]string) (
 	// System params
 	params := map[string]string{
 		"app_key":      c.config.AppKey,
-		"timestamp":    fmt.Sprintf("%d000", time.Now().Unix()),
+		"timestamp":    fmt.Sprintf("%d", time.Now().UnixMilli()),
 		"sign_method":  "sha256",
 		"access_token": c.config.GetAccessToken(),
 	}
@@ -155,18 +157,18 @@ func (c *LazadaAPIClient) request(apiPath string, apiParams map[string]string) (
 	// Generate signature
 	params["sign"] = c.generateSignature(apiPath, params)
 
-	// Build URL
 	baseURL := c.getBaseURL()
-	u, _ := url.Parse(baseURL + apiPath)
+	u, err := url.Parse(baseURL + apiPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse URL %s%s: %w", baseURL, apiPath, err)
+	}
 	q := u.Query()
 	for k, v := range params {
 		q.Set(k, v)
 	}
 	u.RawQuery = q.Encode()
 
-	// Execute request
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Get(u.String())
+	resp, err := c.httpClient.Get(u.String())
 	if err != nil {
 		return nil, fmt.Errorf("http request failed: %w", err)
 	}

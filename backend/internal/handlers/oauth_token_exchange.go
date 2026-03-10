@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
@@ -68,7 +69,7 @@ func (h *OAuthHandler) doShopeeTokenRequest(tokenURL string, body map[string]int
 		return nil, fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
-	log.Printf("[Shopee OAuth] Exchanging code for token at: %s", tokenURL)
+	log.Info().Str("url", tokenURL).Msg("[Shopee OAuth] Exchanging code for token")
 
 	resp, err := http.Post(tokenURL, "application/json", strings.NewReader(string(bodyJSON)))
 	if err != nil {
@@ -81,7 +82,7 @@ func (h *OAuthHandler) doShopeeTokenRequest(tokenURL string, body map[string]int
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
-	log.Printf("[Shopee OAuth] Token response status: %d, body_size: %d bytes", resp.StatusCode, len(respBody))
+	log.Info().Int("status", resp.StatusCode).Int("body_size", len(respBody)).Msg("[Shopee OAuth] Token response")
 
 	if resp.StatusCode != http.StatusOK {
 		// Include truncated response body for debugging
@@ -121,12 +122,12 @@ func (h *OAuthHandler) saveShopeeTokens(ctx context.Context, tenantID string, sh
 	expiresIn := tokenResp.ExpireIn
 	if expiresIn <= 0 {
 		expiresIn = 14400 // Default 4 hours
-		log.Printf("[Shopee OAuth] expire_in not provided, using default: %d seconds", expiresIn)
+		log.Info().Int64("expire_in", expiresIn).Msg("[Shopee OAuth] expire_in not provided, using default")
 	}
 	// Shopee refresh token valid for 7 days per API documentation
 	refreshExpiresIn := int64(7 * 24 * 60 * 60)
 
-	log.Printf("[Shopee OAuth] expire_in: %d seconds (%d hours)", expiresIn, expiresIn/3600)
+	log.Info().Int64("expire_in", expiresIn).Int64("hours", expiresIn/3600).Msg("[Shopee OAuth] Token expiry")
 
 	if err := tenantRepo.UpdateTokens(ctx, models.PlatformShopee, tokenResp.AccessToken, tokenResp.RefreshToken, expiresIn, refreshExpiresIn); err != nil {
 		return fmt.Errorf("failed to save tokens: %w", err)
@@ -134,14 +135,14 @@ func (h *OAuthHandler) saveShopeeTokens(ctx context.Context, tenantID string, sh
 
 	// Save shop_id
 	if err := tenantRepo.SetConfig(ctx, models.PlatformShopee, "shopId", fmt.Sprintf("%d", shopID), false); err != nil {
-		log.Printf("[Shopee OAuth] Warning: failed to save shopId: %v", err)
+		log.Warn().Err(err).Str("tenant_id", tenantID).Msg("[Shopee OAuth] Failed to save shopId")
 	}
 
 	// Save last_refresh timestamp
 	if err := tenantRepo.SetConfig(ctx, models.PlatformShopee, "last_refresh", time.Now().Format(time.RFC3339), false); err != nil {
-		log.Printf("[Shopee OAuth] Warning: failed to save last_refresh: %v", err)
+		log.Warn().Err(err).Str("tenant_id", tenantID).Msg("[Shopee OAuth] Failed to save last_refresh")
 	}
 
-	log.Printf("[Shopee OAuth] Successfully saved tokens for tenant %s, shop %d", tenantID, shopID)
+	log.Info().Str("tenant_id", tenantID).Int64("shop_id", shopID).Msg("[Shopee OAuth] Successfully saved tokens")
 	return nil
 }

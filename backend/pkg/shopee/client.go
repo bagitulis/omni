@@ -63,12 +63,16 @@ func (c *Client) generateSign(path string, timestamp int64) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// buildURL constructs the full API URL with required params
-func (c *Client) buildURL(path string, params map[string]string) string {
+// buildURL constructs the full API URL with required params.
+// Generates a fresh timestamp and signature per call.
+func (c *Client) buildURL(path string, params map[string]string) (string, error) {
 	timestamp := time.Now().Unix()
 	sign := c.generateSign(path, timestamp)
 
-	u, _ := url.Parse(c.baseURL + path)
+	u, err := url.Parse(c.baseURL + path)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse URL %s%s: %w", c.baseURL, path, err)
+	}
 	q := u.Query()
 	q.Set("partner_id", strconv.FormatInt(c.partnerID, 10))
 	q.Set("timestamp", strconv.FormatInt(timestamp, 10))
@@ -80,14 +84,18 @@ func (c *Client) buildURL(path string, params map[string]string) string {
 		q.Set(k, v)
 	}
 	u.RawQuery = q.Encode()
-	return u.String()
+	return u.String(), nil
 }
 
-// doRequest executes HTTP request and parses response with centralized retry logic
-func (c *Client) doRequest(method, path string, params map[string]string, result interface{}) error {
-	reqURL := c.buildURL(path, params)
+// shopeeBaseResponse captures Shopee business-level error fields returned in 200 OK responses.
+type shopeeBaseResponse struct {
+	Error   string `json:"error"`
+	Message string `json:"message"`
+}
 
-	// 🔍 LOG REQUEST
+// doRequest executes HTTP request and parses response with centralized retry logic.
+// Checks both HTTP-level and Shopee business-level errors.
+func (c *Client) doRequest(method, path string, params map[string]string, result interface{}) error {
 	log.Info().
 		Str("method", method).
 		Str("path", path).
@@ -102,10 +110,15 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if attempt > 0 {
-			// Exponential backoff: 200ms, 400ms, 800ms
 			backoff := time.Duration(1<<uint(attempt)) * 100 * time.Millisecond
-			log.Info().Int("attempt", attempt+1).Dur("backoff", backoff).Msg("[Shopee API] Retrying request due to rate limit/error")
+			log.Info().Int("attempt", attempt+1).Dur("backoff", backoff).Msg("[Shopee API] Retrying request")
 			time.Sleep(backoff)
+		}
+
+		// Rebuild URL each attempt so timestamp + signature are fresh
+		reqURL, urlErr := c.buildURL(path, params)
+		if urlErr != nil {
+			return urlErr
 		}
 
 		req, reqErr := http.NewRequest(method, reqURL, nil)
@@ -126,7 +139,7 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 		}
 		lastStatusCode = resp.StatusCode
 
-		// Check for rate limit (429) or server errors (5xx)
+		// Retry on rate limit (429) or server errors (5xx)
 		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
 			resp.Body.Close()
 			if attempt < maxRetries {
@@ -135,7 +148,6 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 			}
 		}
 
-		// If we get here, it's either success or a non-retriable error (4xx)
 		break
 	}
 
@@ -153,19 +165,31 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 		return err
 	}
 
+	// HTTP-level error
 	if resp.StatusCode >= http.StatusBadRequest {
-		return fmt.Errorf("shopee API error [http_status=%d]: %s", resp.StatusCode, truncateString(string(body), 1000))
+		return fmt.Errorf("shopee API error [http_status=%d]: %s", resp.StatusCode, truncateString(string(body), 2000))
 	}
 
-	// 🔍 LOG RESPONSE - always log for logistics, shipping, and product detail APIs
+	// Log response for key API paths
 	if strings.Contains(path, "logistics") || strings.Contains(path, "shipping") ||
 		strings.Contains(path, "get_item_extra_info") || strings.Contains(path, "get_item_base_info") ||
 		strings.Contains(path, "get_model_list") {
 		log.Info().
 			Str("path", path).
 			Int("status_code", resp.StatusCode).
-			Str("response", truncateString(string(body), 1000)).
+			Str("response", truncateString(string(body), 2000)).
 			Msg("[Shopee API] Response")
+	}
+
+	// Check Shopee business-level error (returned with HTTP 200)
+	var baseResp shopeeBaseResponse
+	if err := json.Unmarshal(body, &baseResp); err == nil && baseResp.Error != "" {
+		log.Warn().
+			Str("path", path).
+			Str("error", baseResp.Error).
+			Str("message", baseResp.Message).
+			Msg("[Shopee API] Business error in 200 response")
+		return fmt.Errorf("shopee API error: %s — %s", baseResp.Error, baseResp.Message)
 	}
 
 	return json.Unmarshal(body, result)
