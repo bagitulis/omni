@@ -19,15 +19,21 @@ vi.mock("antd", async () => {
   return {
     ...actual,
     Layout: {
-      Sider: ({ children }: any) => <div data-testid="sider">{children}</div>,
+      Sider: ({ children }: { children?: React.ReactNode }) => <div data-testid="sider">{children}</div>,
     },
-    Menu: ({ items, onClick }: any) => (
+    Menu: ({
+      items,
+      onClick,
+    }: {
+      items?: Array<{ key: string; label: React.ReactNode }>;
+      onClick?: (info: { key: string }) => void;
+    }) => (
       <div data-testid="menu">
-        {items.map((item: any) => (
+        {(items ?? []).map((item) => (
           <div
             key={item.key}
             data-testid={`menu-item-${item.key}`}
-            onClick={() => onClick({ key: item.key })}
+            onClick={() => onClick?.({ key: item.key })}
           >
             {item.label}
           </div>
@@ -43,8 +49,8 @@ describe("Sidebar", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    (useNavigate as any).mockReturnValue(mockNavigate);
-    (useLocation as any).mockReturnValue(mockLocation);
+    (vi.mocked(useNavigate) as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockNavigate);
+    (vi.mocked(useLocation) as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockLocation);
   });
 
   const renderSidebar = (props = {}) => {
@@ -87,7 +93,7 @@ describe("Sidebar", () => {
     // This logic is mainly inside useMemo for selectedKey
     // Since we mock Menu, we can't easily check 'selectedKeys' prop visually without inspecting the mock call
     // But we can verify no errors occur during render with different paths
-    (useLocation as any).mockReturnValue({ pathname: "/products/add" });
+    (vi.mocked(useLocation) as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ pathname: "/products/add" });
     renderSidebar();
     expect(screen.getByTestId("menu")).toBeInTheDocument();
   });

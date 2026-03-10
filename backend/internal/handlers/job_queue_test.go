@@ -34,7 +34,7 @@ func TestJobQueueAddJob_MissingTenant(t *testing.T) {
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
-	assert.Contains(t, resp["error"], "Missing tenantId")
+	assert.Contains(t, resp["error"], "Missing tenant_id")
 }
 
 // TestJobQueueListJobs_MissingTenant tests listing jobs without tenant
@@ -54,7 +54,7 @@ func TestJobQueueListJobs_MissingTenant(t *testing.T) {
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
-	assert.Contains(t, resp["error"], "Missing tenantId")
+	assert.Contains(t, resp["error"], "Missing tenant_id")
 }
 
 // TestJobQueueGetJob_MissingTenant tests getting a job without tenant

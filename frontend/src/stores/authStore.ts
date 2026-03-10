@@ -6,7 +6,8 @@ import apiClient from "@/api/client";
 
 export interface AuthState {
   user: User | null;
-  token: string | null; // Alias for accessToken for compatibility
+  /** @deprecated Use accessToken instead. Alias kept for backward compatibility. */
+  token: string | null;
   accessToken: string | null;
   isAuthenticated: boolean;
   tenantId: string | null;

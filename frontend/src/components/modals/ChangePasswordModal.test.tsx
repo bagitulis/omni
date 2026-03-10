@@ -18,9 +18,19 @@ vi.mock("antd", async () => {
       error: vi.fn(),
     },
     // We mock Modal to be in DOM
-    Modal: ({ children, open, title, onCancel }: any) =>
+    Modal: ({
+      children,
+      open,
+      title,
+      onCancel,
+    }: {
+      children?: React.ReactNode;
+      open?: boolean;
+      title?: React.ReactNode;
+      onCancel?: () => void;
+    }) =>
       open ? (
-        <div role="dialog" aria-label={title}>
+        <div role="dialog" aria-label={title as string}>
           <h1>{title}</h1>
           <button onClick={onCancel}>Close</button>
           {children}

@@ -7,12 +7,20 @@ vi.mock("antd", async () => {
   const actual = await vi.importActual<typeof import("antd")>("antd");
   return {
     ...actual,
-    Segmented: ({ options, onChange, value }: any) => (
+    Segmented: ({
+      options,
+      onChange,
+      value,
+    }: {
+      options?: Array<{ value: string; label?: string }>;
+      onChange?: (val: string) => void;
+      value?: string;
+    }) => (
       <div data-testid="segmented">
-        {options.map((opt: any) => (
+        {(options ?? []).map((opt) => (
           <button
             key={opt.value}
-            onClick={() => onChange(opt.value)}
+            onClick={() => onChange?.(opt.value)}
             data-active={value === opt.value}
           >
             {opt.value}

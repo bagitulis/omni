@@ -4,6 +4,7 @@ package inventory
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -206,11 +207,17 @@ func (s *InventoryService) SaveSettings(ctx context.Context, input SettingsInput
 	existing.SyncIntervalSec = input.SyncIntervalSec
 
 	if input.AllColumns != nil {
-		data, _ := json.Marshal(input.AllColumns)
+		data, err := json.Marshal(input.AllColumns)
+		if err != nil {
+			return fmt.Errorf("failed to marshal all_columns: %w", err)
+		}
 		existing.AllColumns = string(data)
 	}
 	if input.SelectedColumns != nil {
-		data, _ := json.Marshal(input.SelectedColumns)
+		data, err := json.Marshal(input.SelectedColumns)
+		if err != nil {
+			return fmt.Errorf("failed to marshal selected_columns: %w", err)
+		}
 		existing.SelectedColumns = string(data)
 	}
 

@@ -161,10 +161,8 @@ describe("useColumnManager", () => {
     expect(parsed[2].visible).toBe(false); // price hidden
   });
 
-  it("should handle localStorage errors gracefully (load)", () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+  it("should handle localStorage errors gracefully (load)", async () => {
+    const { logger } = await import("@/lib/logger");
     mockLocalStorage.setItem(storageKey, "invalid-json");
 
     const { result } = renderHook(() =>
@@ -172,18 +170,14 @@ describe("useColumnManager", () => {
     );
 
     expect(result.current.columns).toEqual(defaultColumns); // Falls back to defaults
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
+    expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining("Failed to load column preferences"),
-      expect.any(Error),
+      expect.objectContaining({ error: expect.any(Error) }),
     );
-
-    consoleErrorSpy.mockRestore();
   });
 
-  it("should handle localStorage errors gracefully (save)", () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+  it("should handle localStorage errors gracefully (save)", async () => {
+    const { logger } = await import("@/lib/logger");
 
     // Mock setItem to throw error
     const originalSetItem = mockLocalStorage.setItem;
@@ -199,14 +193,13 @@ describe("useColumnManager", () => {
       result.current.toggleVisibility("price");
     });
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
+    expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining("Failed to save column preferences"),
-      expect.any(Error),
+      expect.objectContaining({ error: expect.any(Error) }),
     );
 
     // Restore
     mockLocalStorage.setItem = originalSetItem;
-    consoleErrorSpy.mockRestore();
   });
 
   it("should merge new columns from defaults with stored preferences", () => {

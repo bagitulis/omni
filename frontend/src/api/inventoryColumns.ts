@@ -73,6 +73,7 @@ export async function getSelectedColumns(): Promise<string[]> {
 export async function saveSelectedColumns(columns: string[]): Promise<void> {
   const response = await apiClient.post("/inventory/columns/selected", {
     selected_columns: columns,
+    columns: columns, // backward compatibility
   });
   if (!response.success) {
     throw new Error(response.error || "Failed to save column selection");

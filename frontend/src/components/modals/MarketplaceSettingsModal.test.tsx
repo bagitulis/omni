@@ -17,7 +17,19 @@ vi.mock("antd", async () => {
   const actual = await vi.importActual<typeof import("antd")>("antd");
   return {
     ...actual,
-    Modal: ({ children, open, title, onCancel, footer }: any) =>
+    Modal: ({
+      children,
+      open,
+      title,
+      onCancel,
+      footer,
+    }: {
+      children?: React.ReactNode;
+      open?: boolean;
+      title?: React.ReactNode;
+      onCancel?: () => void;
+      footer?: React.ReactNode;
+    }) =>
       open ? (
         <div data-testid="modal" role="dialog">
           <div data-testid="modal-title">{title}</div>
@@ -39,13 +51,13 @@ describe("MarketplaceSettingsModal", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    (useInventoryConfig as any).mockReturnValue({
+    (vi.mocked(useInventoryConfig) as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       data: {
         selected_columns: [],
       },
       isLoading: false,
     });
-    (useUpdateInventoryConfig as any).mockReturnValue({
+    (vi.mocked(useUpdateInventoryConfig) as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       mutate: mockUpdateConfig,
       isPending: false,
     });

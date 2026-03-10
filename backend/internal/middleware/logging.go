@@ -1,13 +1,13 @@
 package middleware
 
 import (
-	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	zlog "github.com/rs/zerolog/log"
 )
 
-// Logger logs incoming requests
+// Logger logs incoming requests using structured zerolog
 func Logger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
@@ -21,12 +21,11 @@ func Logger() gin.HandlerFunc {
 		latency := time.Since(start)
 		status := c.Writer.Status()
 
-		log.Printf("[%s] %s %s - %d (%v)",
-			time.Now().Format("2006-01-02 15:04:05"),
-			method,
-			path,
-			status,
-			latency,
-		)
+		zlog.Info().
+			Str("method", method).
+			Str("path", path).
+			Int("status", status).
+			Dur("latency", latency).
+			Msg("Request")
 	}
 }

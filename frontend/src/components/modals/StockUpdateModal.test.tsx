@@ -7,7 +7,19 @@ vi.mock("antd", async () => {
   const actual = await vi.importActual<typeof import("antd")>("antd");
   return {
     ...actual,
-    Modal: ({ children, open, title, footer, onCancel }: any) =>
+    Modal: ({
+      children,
+      open,
+      title,
+      footer,
+      onCancel,
+    }: {
+      children?: React.ReactNode;
+      open?: boolean;
+      title?: React.ReactNode;
+      footer?: React.ReactNode;
+      onCancel?: () => void;
+    }) =>
       open ? (
         <div data-testid="modal" role="dialog">
           <div data-testid="modal-title">{title}</div>

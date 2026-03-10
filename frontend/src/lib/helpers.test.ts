@@ -103,21 +103,14 @@ describe("formatDate", () => {
     expect(typeof result).toBe("string");
   });
 
-  it("returns original string on invalid date", () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
-
-    try {
-      const result = formatDate("not-a-date");
-      expect(result).toBe("not-a-date");
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Error formatting date:",
-        expect.any(RangeError),
-      );
-    } finally {
-      consoleErrorSpy.mockRestore();
-    }
+  it("returns original string on invalid date", async () => {
+    const { logger } = await import("@/lib/logger");
+    const result = formatDate("not-a-date");
+    expect(result).toBe("not-a-date");
+    expect(logger.error).toHaveBeenCalledWith(
+      "Error formatting date",
+      expect.objectContaining({ error: expect.any(RangeError) }),
+    );
   });
 });
 

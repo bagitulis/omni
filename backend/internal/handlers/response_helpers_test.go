@@ -77,9 +77,7 @@ func TestRespondSuccess(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), `"success":true`)
 	assert.Contains(t, w.Body.String(), `"count":2`)
-	// Should contain both data and items for frontend compatibility
 	assert.Contains(t, w.Body.String(), `"data"`)
-	assert.Contains(t, w.Body.String(), `"items"`)
 }
 
 // TestRespondWithConfig tests respondWithConfig helper
@@ -94,7 +92,7 @@ func TestRespondWithConfig(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), `"success":true`)
-	assert.Contains(t, w.Body.String(), `"config"`)
+	assert.Contains(t, w.Body.String(), `"data"`)
 }
 
 // TestRespondWithConfigs tests respondWithConfigs helper
@@ -109,7 +107,7 @@ func TestRespondWithConfigs(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), `"success":true`)
-	assert.Contains(t, w.Body.String(), `"configs"`)
+	assert.Contains(t, w.Body.String(), `"data"`)
 }
 
 // TestRespondCreated tests respondCreated helper
@@ -124,7 +122,7 @@ func TestRespondCreated(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.Contains(t, w.Body.String(), `"success":true`)
-	assert.Contains(t, w.Body.String(), `"config"`)
+	assert.Contains(t, w.Body.String(), `"data"`)
 }
 
 // TestRespondDeleted tests respondDeleted helper

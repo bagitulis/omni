@@ -28,26 +28,26 @@ func (h *JobQueueHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 func (h *JobQueueHandler) AddJob(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	var req models.CreateJobRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	qm := jobs.NewQueueManager(db, tenantID)
 	job, err := qm.AddJob(req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -58,26 +58,26 @@ func (h *JobQueueHandler) AddJob(c *gin.Context) {
 func (h *JobQueueHandler) ListJobs(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	var filter models.JobFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	qm := jobs.NewQueueManager(db, tenantID)
 	jobsList, total, err := qm.ListJobs(filter)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -93,26 +93,26 @@ func (h *JobQueueHandler) ListJobs(c *gin.Context) {
 func (h *JobQueueHandler) GetJob(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	jobID := c.Param("id")
 	if jobID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid job ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid job ID"})
 		return
 	}
 
 	qm := jobs.NewQueueManager(db, tenantID)
 	job, err := qm.GetJob(jobID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "job not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "job not found"})
 		return
 	}
 
@@ -123,25 +123,25 @@ func (h *JobQueueHandler) GetJob(c *gin.Context) {
 func (h *JobQueueHandler) CancelJob(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	jobID := c.Param("id")
 	if jobID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid job ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid job ID"})
 		return
 	}
 
 	qm := jobs.NewQueueManager(db, tenantID)
 	if err := qm.CancelJob(jobID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -152,13 +152,13 @@ func (h *JobQueueHandler) CancelJob(c *gin.Context) {
 func (h *JobQueueHandler) GetHistory(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -176,20 +176,20 @@ func (h *JobQueueHandler) GetHistory(c *gin.Context) {
 func (h *JobQueueHandler) GetStats(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	qm := jobs.NewQueueManager(db, tenantID)
 	stats, err := qm.GetJobStats()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -200,13 +200,13 @@ func (h *JobQueueHandler) GetStats(c *gin.Context) {
 func (h *JobQueueHandler) EnqueueJob(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -216,7 +216,7 @@ func (h *JobQueueHandler) EnqueueJob(c *gin.Context) {
 		Priority string                 `json:"priority"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -227,7 +227,7 @@ func (h *JobQueueHandler) EnqueueJob(c *gin.Context) {
 	qm := jobs.NewQueueManager(db, tenantID)
 	jobID, err := qm.EnqueueJob(req.Type, req.Data, req.Priority)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -238,13 +238,13 @@ func (h *JobQueueHandler) EnqueueJob(c *gin.Context) {
 func (h *JobQueueHandler) GetStatus(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -263,13 +263,13 @@ func (h *JobQueueHandler) GetStatus(c *gin.Context) {
 func (h *JobQueueHandler) GetJobStatus(c *gin.Context) {
 	tenantID := c.GetString("tenantID")
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 

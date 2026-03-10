@@ -4,6 +4,7 @@ package stock
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services"
@@ -124,7 +125,7 @@ func (s *StockService) UpdateStock(ctx context.Context, req models.StockUpdateRe
 	if err != nil {
 		result.Success = false
 		result.Message = "SKU not found"
-		return result, nil
+		return result, fmt.Errorf("SKU %s not found: %w", req.SKU, err)
 	}
 
 	// Update quantity in JSONB data
@@ -141,13 +142,18 @@ func (s *StockService) UpdateStock(ctx context.Context, req models.StockUpdateRe
 		data["Stock"] = req.Quantity
 	}
 
-	jsonData, _ := json.Marshal(data)
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		result.Success = false
+		result.Message = "failed to marshal stock data"
+		return result, fmt.Errorf("failed to marshal stock data: %w", err)
+	}
 	record.Data = string(jsonData)
 
 	if err := s.db.WithContext(ctx).Save(&record).Error; err != nil {
 		result.Success = false
 		result.Message = err.Error()
-		return result, nil
+		return result, fmt.Errorf("failed to save stock: %w", err)
 	}
 
 	// Sync to platforms if specified

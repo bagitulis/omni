@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"mcp-servers/pkg/sheets"
 )
 
-const spreadsheetID = "1ZYonq5Lla0FriY-wfvqW5XEwVyfF6osB1yAtTVABFgA"
+var spreadsheetID = os.Getenv("AG_SPREADSHEET_ID")
 
 var (
 	sheetMain       = "AG"
@@ -26,6 +27,11 @@ type accountRow struct {
 }
 
 func main() {
+	if spreadsheetID == "" {
+		fmt.Println("Error: AG_SPREADSHEET_ID environment variable is required")
+		return
+	}
+
 	sheetsService, err := sheets.NewService(spreadsheetID)
 	if err != nil {
 		fmt.Printf("Failed to initialize sheets: %v\n", err)
@@ -38,16 +44,21 @@ func main() {
 		return
 	}
 
-	targetEmails := []string{
-		"yuoistarlk@gmail.com",
-		"ddanangttiossawardi@gmail.com",
-		"kadarielkarim@gmail.com",
-		"s43627991@gmail.com",
-		"zuzuzaza917@gmail.com",
-		"balerinatung3@gmail.com",
+	// Target emails from env (comma-separated) instead of hardcoded
+	targetEmailsStr := os.Getenv("AG_TARGET_EMAILS")
+	if targetEmailsStr == "" {
+		fmt.Println("Error: AG_TARGET_EMAILS environment variable is required (comma-separated)")
+		return
+	}
+	var targetEmails []string
+	for _, e := range strings.Split(targetEmailsStr, ",") {
+		e = strings.TrimSpace(e)
+		if e != "" {
+			targetEmails = append(targetEmails, e)
+		}
 	}
 
-	fmt.Println("=== Antigravity Account Status ===\n")
+	fmt.Println("=== Antigravity Account Status ===")
 
 	for _, email := range targetEmails {
 		var found *accountRow

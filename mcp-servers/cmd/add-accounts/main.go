@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"mcp-servers/pkg/sheets"
 )
 
-const spreadsheetID = "1ZYonq5Lla0FriY-wfvqW5XEwVyfF6osB1yAtTVABFgA"
+var spreadsheetID = os.Getenv("AG_SPREADSHEET_ID")
 
 var (
 	sheetMain       = "AG"
@@ -22,15 +23,38 @@ type account struct {
 }
 
 func main() {
+	if spreadsheetID == "" {
+		fmt.Println("Error: AG_SPREADSHEET_ID environment variable is required")
+		return
+	}
+
+	// Accounts must be provided via environment/config — not hardcoded in source
+	email := os.Getenv("AG_ACCOUNT_EMAIL")
+	password := os.Getenv("AG_ACCOUNT_PASSWORD")
+	codeRecovery := os.Getenv("AG_ACCOUNT_RECOVERY")
+	codesStr := os.Getenv("AG_ACCOUNT_CODES") // comma-separated
+
+	if email == "" || password == "" {
+		fmt.Println("Error: AG_ACCOUNT_EMAIL and AG_ACCOUNT_PASSWORD are required")
+		return
+	}
+
+	var codes []string
+	if codesStr != "" {
+		for _, c := range strings.Split(codesStr, ",") {
+			c = strings.TrimSpace(c)
+			if c != "" {
+				codes = append(codes, c)
+			}
+		}
+	}
+
 	accounts := []account{
 		{
-			Email:        "felixstarlk576@gmail.com",
-			Password:     "PASSword12",
-			CodeRecovery: "dbxz2cqmwqv3ntvnhrheq2sbvi6f4yf4",
-			Codes: []string{
-				"0805-0848", "0722-7662", "8513-6883", "5612-3979", "1796-7937",
-				"8629-7886", "0357-0474", "5903-8418", "5913-2061", "9220-3418",
-			},
+			Email:        email,
+			Password:     password,
+			CodeRecovery: codeRecovery,
+			Codes:        codes,
 		},
 	}
 
@@ -40,7 +64,7 @@ func main() {
 		return
 	}
 
-	fmt.Println("=== Adding Antigravity Accounts ===\n")
+	fmt.Println("=== Adding Antigravity Accounts ===")
 
 	for i, acc := range accounts {
 		fmt.Printf("[%d/%d] Adding: %s\n", i+1, len(accounts), acc.Email)

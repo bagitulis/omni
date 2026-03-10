@@ -49,7 +49,7 @@ func (h *OrderManagerHandler) getOrdersFromDatabase(c *gin.Context, category str
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -65,9 +65,6 @@ func (h *OrderManagerHandler) getOrdersFromDatabase(c *gin.Context, category str
 			"success": false,
 			"error":   "Order sync service not available: " + err.Error(),
 			"code":    "SERVICE_UNAVAILABLE",
-			"items":   []interface{}{},
-			"data":    []interface{}{},
-			"count":   0,
 		})
 		return
 	}
@@ -93,9 +90,6 @@ func (h *OrderManagerHandler) getOrdersFromDatabase(c *gin.Context, category str
 			"success": false,
 			"error":   "Failed to get orders: " + err.Error(),
 			"code":    "DATABASE_ERROR",
-			"items":   []interface{}{},
-			"data":    []interface{}{},
-			"count":   0,
 		})
 		return
 	}
@@ -107,7 +101,6 @@ func (h *OrderManagerHandler) getOrdersFromDatabase(c *gin.Context, category str
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"items":   orders,
 		"data":    orders,
 		"count":   len(orders),
 	})
@@ -143,7 +136,7 @@ func (h *OrderManagerHandler) GetOrderByOrderSn(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

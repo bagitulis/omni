@@ -57,3 +57,10 @@ nginx/logs/
 .vscode/mcp.json
 
 opencode.exe
+
+# Source maps at root level (build artifacts)
+/*.js.map
+
+# Backup and temp directories
+omni_backup/
+temp_repo/

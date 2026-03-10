@@ -75,32 +75,26 @@ func (s *CheckService) CheckSingle(ctx context.Context, sku string, apis map[str
 	return result
 }
 
-// CheckBatch checks multiple SKUs
+// CheckBatch checks multiple SKUs concurrently with bounded parallelism
 func (s *CheckService) CheckBatch(ctx context.Context, skus []string, apis map[string]PlatformSKUChecker) []PlatformSKUStatus {
 	results := make([]PlatformSKUStatus, len(skus))
 	var wg sync.WaitGroup
 
-	// Use semaphore to limit concurrency
+	// Use semaphore to limit concurrency to 5 concurrent SKU checks
 	sem := make(chan struct{}, 5)
 
 	for i, sku := range skus {
 		wg.Add(1)
-		go func(idx int, s string) {
+		go func(idx int, skuVal string) {
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			// Placeholder for parallel execution
-			_ = idx
-			_ = s
+			results[idx] = *s.CheckSingle(ctx, skuVal, apis)
 		}(i, sku)
 	}
 
-	// Simple sequential implementation
-	for i, sku := range skus {
-		results[i] = *s.CheckSingle(ctx, sku, apis)
-	}
-
+	wg.Wait()
 	return results
 }
 

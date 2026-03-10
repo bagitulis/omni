@@ -70,17 +70,17 @@ describe("Header", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    (useAuthStore as any).mockReturnValue({
+    (vi.mocked(useAuthStore) as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       user: mockUser,
       logout: mockLogout,
       tenantId: "test-tenant",
       setAuth: vi.fn(),
     });
-    (useTheme as any).mockReturnValue({
+    (vi.mocked(useTheme) as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       isDark: false,
       toggle: mockToggleTheme,
     });
-    (useNavigate as any).mockReturnValue(mockNavigate);
+    (vi.mocked(useNavigate) as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockNavigate);
   });
 
   const renderHeader = (props = {}) => {
@@ -123,16 +123,16 @@ describe("Header", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
 
     // 2. Test as Developer (should see switcher)
-    (useAuthStore as any).mockReturnValue({
+    (vi.mocked(useAuthStore) as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       user: { ...mockUser, role: "developer" },
       logout: mockLogout,
       tenantId: "test-tenant",
     });
 
-    (apiClient.get as any).mockResolvedValue({
+    vi.mocked(apiClient.get).mockResolvedValue({
       success: true,
       tenants: [{ id: "tenant1", shop_name: "Shop 1" }],
-    });
+    } as unknown as Awaited<ReturnType<typeof apiClient.get>>);
 
     renderHeader();
 

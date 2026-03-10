@@ -22,7 +22,7 @@ func TestMLHandler_GetPortfolioHealth(t *testing.T) {
 
 		handler.GetPortfolioHealth(c)
 
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])

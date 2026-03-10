@@ -8,7 +8,6 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { message } from "antd";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   autoMapSkus,
@@ -17,6 +16,9 @@ import {
 } from "@/api/products";
 import type { MasterProduct } from "@/types/product";
 import { SkuMappingPanel } from "./SkuMappingPanel";
+
+// Import the mocked message (from global setup or re-mock)
+import { message } from "@/components/AntStaticHolder";
 
 // Mock matchMedia
 Object.defineProperty(window, "matchMedia", {
@@ -39,19 +41,6 @@ vi.mock("@/api/products", () => ({
   linkSkuToPlatform: vi.fn(),
   unlinkSkuFromPlatform: vi.fn(),
 }));
-
-// Mock Antd message
-vi.mock("antd", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("antd")>();
-  return {
-    ...actual,
-    message: {
-      success: vi.fn(),
-      warning: vi.fn(),
-      error: vi.fn(),
-    },
-  };
-});
 
 describe("SkuMappingPanel", () => {
   const mockOnUpdate = vi.fn();

@@ -46,7 +46,7 @@ func Tenant() gin.HandlerFunc {
 		if tenantID == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
-				"error":   "Missing tenantId",
+				"error":   "Missing tenant_id",
 			})
 			c.Abort()
 			return
@@ -78,9 +78,11 @@ func Tenant() gin.HandlerFunc {
 			}
 		}
 
+		// tenant_id is the canonical key; others are deprecated aliases
+		// kept for backward compatibility with handlers using c.GetString("tenantID")
+		c.Set("tenant_id", tenantID)
 		c.Set("tenantID", tenantID)
-		c.Set("tenantId", tenantID)  // Also set camelCase for compatibility
-		c.Set("tenant_id", tenantID) // Also set snake_case for compatibility
+		c.Set("tenantId", tenantID)
 		c.Next()
 	}
 }
@@ -93,17 +95,13 @@ func TenantWithConfig(databasePath string) gin.HandlerFunc {
 
 // GetTenantID extracts tenant ID from context
 func GetTenantID(c *gin.Context) string {
-	tenantID, exists := c.Get("tenantID")
-	if !exists {
-		// Try camelCase version
-		tenantID, exists = c.Get("tenantId")
-		if !exists {
-			// Try snake_case version
-			tenantID, exists = c.Get("tenant_id")
-			if !exists {
-				return ""
+	// Check all legacy variants for backward compatibility
+	for _, key := range []string{"tenant_id", "tenantID", "tenantId"} {
+		if val, exists := c.Get(key); exists {
+			if s, ok := val.(string); ok && s != "" {
+				return s
 			}
 		}
 	}
-	return tenantID.(string)
+	return ""
 }

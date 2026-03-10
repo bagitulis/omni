@@ -9,7 +9,11 @@ vi.mock("antd", async () => {
   return {
     ...actual,
     DatePicker: {
-      RangePicker: ({ onChange }: any) => (
+      RangePicker: ({
+        onChange,
+      }: {
+        onChange?: (dates: unknown[]) => void;
+      }) => (
         <div data-testid="range-picker">
           <input
             type="text"
@@ -19,13 +23,21 @@ vi.mock("antd", async () => {
         </div>
       ),
     },
-    Select: ({ onChange, options, defaultValue }: any) => (
+    Select: ({
+      onChange,
+      options,
+      defaultValue,
+    }: {
+      onChange?: (value: string) => void;
+      options?: Array<{ value: string; label: string }>;
+      defaultValue?: string;
+    }) => (
       <select
         data-testid="platform-select"
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange?.(e.target.value)}
         defaultValue={defaultValue}
       >
-        {options.map((opt: any) => (
+        {(options ?? []).map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>

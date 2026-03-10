@@ -2,7 +2,7 @@ package app
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"os"
 	"time"
 
@@ -16,6 +16,7 @@ import (
 	"github.com/omni/backend/internal/services/platform"
 	"github.com/omni/backend/internal/services/webhooks"
 	"github.com/omni/backend/internal/utils"
+	zlog "github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -95,6 +96,8 @@ func New(cfg *config.Config) (*App, error) {
 
 // initCore initializes core dependencies
 func (a *App) initCore() error {
+	isProd := os.Getenv("GO_ENV") == "production"
+
 	// Initialize database driver based on config
 	if err := a.initDatabaseDriver(); err != nil {
 		return err
@@ -113,29 +116,42 @@ func (a *App) initCore() error {
 
 	// Run system database migrations
 	if err := config.MigrateSystemDatabase(systemDB); err != nil {
-		log.Printf("Warning: System database migration failed: %v", err)
+		if isProd {
+			return fmt.Errorf("system database migration failed: %w", err)
+		}
+		zlog.Warn().Err(err).Msg("System database migration failed")
 	}
 
 	// Run tenant database migrations for all known tenants
 	tenantSvc := services.NewTenantService(a.Config.DatabasePath)
 	if err := tenantSvc.MigrateAllTenants(context.Background()); err != nil {
-		log.Printf("Warning: Tenant database migration failed: %v", err)
+		if isProd {
+			return fmt.Errorf("tenant database migration failed: %w", err)
+		}
+		zlog.Warn().Err(err).Msg("Tenant database migration failed")
 	}
 
 	// Initialize encryption
 	encKey := os.Getenv("ENCRYPTION_KEY")
 	if encKey == "" {
-		log.Println("Warning: ENCRYPTION_KEY not set, using default")
+		if isProd {
+			return fmt.Errorf("ENCRYPTION_KEY must be set in production")
+		}
+		zlog.Warn().Msg("ENCRYPTION_KEY not set, using dev default")
 		encKey = "default-dev-key-32-bytes-long!!"
 	}
 	a.Encryption, err = utils.NewEncryptionService(encKey)
 	if err != nil {
-		log.Printf("Warning: Encryption init failed: %v", err)
+		return fmt.Errorf("encryption init failed: %w", err)
 	}
 
 	// Initialize JWT
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
+		if isProd {
+			return fmt.Errorf("JWT_SECRET must be set in production")
+		}
+		zlog.Warn().Msg("JWT_SECRET not set, using dev default")
 		jwtSecret = "default-jwt-secret-change-in-prod"
 	}
 	a.JWTService = utils.NewJWTService(jwtSecret)
@@ -143,7 +159,7 @@ func (a *App) initCore() error {
 	// Initialize Cache Service
 	// Default: 5 minute expiration, 10 minute cleanup interval
 	a.CacheService = cache.New(5*time.Minute, 10*time.Minute)
-	log.Println("Cache service initialized (in-memory, multi-tenant)")
+	zlog.Info().Msg("Cache service initialized (in-memory, multi-tenant)")
 
 	return nil
 }
@@ -161,7 +177,7 @@ func (a *App) initDatabaseDriver() error {
 
 	config.SetDatabaseDriver(config.DriverPostgres, pgConfig)
 	models.SetDatabaseDriver(models.DriverPostgres)
-	log.Printf("Database driver: PostgreSQL (host: %s, db: %s)", a.Config.PGHost, a.Config.PGDatabase)
+	zlog.Info().Str("host", a.Config.PGHost).Str("db", a.Config.PGDatabase).Msg("Database driver: PostgreSQL")
 
 	return nil
 }
@@ -237,6 +253,9 @@ func (a *App) initHandlers() {
 
 	frontendURL := os.Getenv("FRONTEND_URL")
 	if frontendURL == "" {
+		if os.Getenv("GO_ENV") == "production" {
+			zlog.Warn().Msg("FRONTEND_URL not set in production, defaulting to localhost")
+		}
 		frontendURL = "http://localhost:5173"
 	}
 	a.OAuthHandler = handlers.NewOAuthHandler(

@@ -7,15 +7,20 @@ vi.mock("antd", async () => {
   const actual = await vi.importActual<typeof import("antd")>("antd");
   return {
     ...actual,
-    Form: ({ children, onFinish, initialValues }: any) => (
+    Form: ({
+      children,
+      onFinish,
+      initialValues,
+    }: {
+      children?: React.ReactNode;
+      onFinish?: (values: Record<string, unknown>) => void;
+      initialValues?: Record<string, unknown>;
+    }) => (
       <form
         data-testid="form"
         onSubmit={(e) => {
           e.preventDefault();
-          // Simulate form submission with values
-          // Note: In real antd, onFinish is called with values after validation
-          // Here we just trigger it to verify the prop is wired
-          onFinish && onFinish(initialValues);
+          onFinish?.(initialValues ?? {});
         }}
       >
         {children}

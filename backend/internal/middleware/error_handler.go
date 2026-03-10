@@ -2,13 +2,13 @@ package middleware
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"runtime/debug"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/errors"
+	zlog "github.com/rs/zerolog/log"
 )
 
 // ErrorResponse is the standard error response format
@@ -26,9 +26,9 @@ func ErrorHandler() gin.HandlerFunc {
 			if r := recover(); r != nil {
 				// Log panic with stack trace in development
 				if os.Getenv("GO_ENV") != "production" {
-					log.Printf("Panic recovered: %v\n%s", r, debug.Stack())
+					zlog.Error().Interface("panic", r).Str("stack", string(debug.Stack())).Msg("Panic recovered")
 				} else {
-					log.Printf("Panic recovered: %v", r)
+					zlog.Error().Interface("panic", r).Msg("Panic recovered")
 				}
 
 				errMsg := "An unexpected error occurred"
@@ -67,7 +67,7 @@ func handleError(c *gin.Context, err error) {
 
 		// Don't expose internal error details in production
 		if appErr.InternalErr != nil && os.Getenv("GO_ENV") != "production" {
-			log.Printf("Internal error: %v", appErr.InternalErr)
+			zlog.Error().Err(appErr.InternalErr).Msg("Internal error")
 		}
 
 		c.AbortWithStatusJSON(appErr.Code, response)
@@ -75,7 +75,7 @@ func handleError(c *gin.Context, err error) {
 	}
 
 	// Log the raw error (was previously silently lost)
-	log.Printf("Unhandled error: %v", err)
+	zlog.Warn().Err(err).Msg("Unhandled error")
 
 	errMsg := "An unexpected error occurred"
 	var details interface{}

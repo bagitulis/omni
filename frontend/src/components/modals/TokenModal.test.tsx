@@ -19,7 +19,17 @@ vi.mock("antd", async () => {
   const actual = await vi.importActual<typeof import("antd")>("antd");
   return {
     ...actual,
-    Modal: ({ children, open, title, onClose }: any) =>
+    Modal: ({
+      children,
+      open,
+      title,
+      onClose,
+    }: {
+      children?: React.ReactNode;
+      open?: boolean;
+      title?: React.ReactNode;
+      onClose?: () => void;
+    }) =>
       open ? (
         <div data-testid="modal" role="dialog">
           <div data-testid="modal-title">{title}</div>
@@ -37,22 +47,26 @@ describe("TokenModal", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    (useRefreshToken as any).mockReturnValue({
+    vi.mocked(useRefreshToken).mockReturnValue({
       mutate: mockRefreshToken,
       isPending: false,
-    });
-    (useRefreshAllTokens as any).mockReturnValue({
+    } as unknown as ReturnType<typeof useRefreshToken>);
+    vi.mocked(useRefreshAllTokens).mockReturnValue({
       mutate: mockRefreshAll,
       isPending: false,
-    });
+    } as unknown as ReturnType<typeof useRefreshAllTokens>);
   });
 
-  const renderModal = (statusData: any, loading = false, error: Error | null = null) => {
-    (useAllTokenStatus as any).mockReturnValue({
+  const renderModal = (
+    statusData: Record<string, unknown> | null,
+    loading = false,
+    error: Error | null = null,
+  ) => {
+    vi.mocked(useAllTokenStatus).mockReturnValue({
       data: statusData,
       isLoading: loading,
       error: error,
-    });
+    } as unknown as ReturnType<typeof useAllTokenStatus>);
 
     render(<TokenModal open={true} onClose={mockOnClose} />);
   };

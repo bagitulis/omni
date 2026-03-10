@@ -221,7 +221,8 @@ export function useOrderSingleActions({
       const orderDetail = await getOrderById(orderSn);
       setSelectedOrder(orderDetail);
       setIsDetailModalOpen(true);
-    } catch (err) { console.warn("Operation failed:", err);
+    } catch (err) {
+      // Gracefully handle when full details can't be loaded
       message.warning("Could not load full order details");
     }
   };
