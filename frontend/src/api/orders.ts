@@ -172,19 +172,48 @@ export async function syncOrdersByCategory(
   }
 }
 
-// --- Bulk Actions ---
+export interface BulkShipItemResult {
+  order_sn: string;
+  status: "shipped" | "failed" | "shipped_but_local_failed";
+  error?: string;
+  message?: string;
+  marketplace_ok?: boolean;
+}
+
+export interface BulkShipResult {
+  partial: boolean;
+  summary: { total: number; shipped: number; failed: number };
+  results: BulkShipItemResult[];
+}
 
 export async function bulkShipOrders(
   orderSns: string[],
   platform?: string,
-): Promise<void> {
-  const response = await apiClient.post("/orders/bulk-ship", {
+): Promise<BulkShipResult> {
+  const response = await apiClient.post<{
+    summary: { total: number; shipped: number; failed: number };
+    results: BulkShipItemResult[];
+  }>("/orders/bulk-ship", {
     order_sns: orderSns,
     platform: platform || "",
   });
+
   if (!response.success) {
     throw new Error(response.error || "Failed to ship orders");
   }
+
+  const data = response.data;
+  const summary = data?.summary ?? {
+    total: orderSns.length,
+    shipped: 0,
+    failed: orderSns.length,
+  };
+
+  return {
+    partial: response.message === "partial_success",
+    summary,
+    results: data?.results ?? [],
+  };
 }
 
 export async function bulkPrintLabels(

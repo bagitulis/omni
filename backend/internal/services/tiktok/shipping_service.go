@@ -135,18 +135,22 @@ func (s *ShippingService) GetHandoverTimeSlots(ctx context.Context, tenantID, or
 	}
 
 	// First try treating input as package ID
-	resp, err := client.GetHandoverTimeSlots(orderOrPackageID)
-	if err == nil && resp != nil && len(resp.Data.TimeSlots) > 0 {
+	resp, firstErr := client.GetHandoverTimeSlots(orderOrPackageID)
+	if firstErr == nil && resp != nil && len(resp.Data.TimeSlots) > 0 {
 		return resp, nil
 	}
 
 	// If failed, try treating input as order ID
-	resp, err = client.GetHandoverTimeSlotsForOrder(orderOrPackageID, nil)
-	if err == nil {
+	resp, secondErr := client.GetHandoverTimeSlotsForOrder(orderOrPackageID, nil)
+	if secondErr == nil {
 		return resp, nil
 	}
 
-	return nil, fmt.Errorf("failed to get handover time slots: %w", err)
+	// Both attempts failed — include both errors for diagnosis
+	if firstErr != nil {
+		return nil, fmt.Errorf("handover time slots failed (as package: %v; as order: %w)", firstErr, secondErr)
+	}
+	return nil, fmt.Errorf("handover time slots failed: %w", secondErr)
 }
 
 // GetOrderDetail retrieves detailed order info including packages

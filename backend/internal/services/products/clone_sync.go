@@ -131,7 +131,7 @@ func (s *CloneService) getShopeeCredentials(ctx context.Context, systemDB *gorm.
 	credRepo := repositories.NewPlatformCredentialsRepository(s.db)
 	tenantCreds, err := credRepo.GetShopeeCredentials(ctx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("sync failed - no Shopee credentials: %v", err)
+		return nil, nil, fmt.Errorf("sync failed - Shopee tenant credentials: %w", err)
 	}
 	if tenantCreds.ShopIDInt == 0 || tenantCreds.AccessToken == "" {
 		return nil, nil, fmt.Errorf("sync skipped - Shopee not configured")
@@ -140,7 +140,7 @@ func (s *CloneService) getShopeeCredentials(ctx context.Context, systemDB *gorm.
 	configRepo := repositories.NewGlobalConfigRepository(systemDB)
 	globalCreds, err := configRepo.GetShopeeCredentials(ctx)
 	if err != nil || globalCreds.PartnerID == 0 {
-		return nil, nil, fmt.Errorf("sync failed - no Shopee global credentials")
+		return nil, nil, fmt.Errorf("sync failed - Shopee global credentials: %w", err)
 	}
 
 	return tenantCreds, globalCreds, nil
@@ -151,7 +151,7 @@ func (s *CloneService) getLazadaCredentials(ctx context.Context, systemDB *gorm.
 	credRepo := repositories.NewPlatformCredentialsRepository(s.db)
 	tenantCreds, err := credRepo.GetLazadaCredentials(ctx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("sync failed - no Lazada credentials: %v", err)
+		return nil, nil, fmt.Errorf("sync failed - Lazada tenant credentials: %w", err)
 	}
 	if tenantCreds.AccessToken == "" {
 		return nil, nil, fmt.Errorf("sync skipped - Lazada not configured")
@@ -160,7 +160,7 @@ func (s *CloneService) getLazadaCredentials(ctx context.Context, systemDB *gorm.
 	configRepo := repositories.NewGlobalConfigRepository(systemDB)
 	globalCreds, err := configRepo.GetLazadaCredentials(ctx)
 	if err != nil || globalCreds.AppKey == "" {
-		return nil, nil, fmt.Errorf("sync failed - no Lazada global credentials")
+		return nil, nil, fmt.Errorf("sync failed - Lazada global credentials: %w", err)
 	}
 
 	return tenantCreds, globalCreds, nil
@@ -171,7 +171,7 @@ func (s *CloneService) getTiktokCredentials(ctx context.Context, systemDB *gorm.
 	credRepo := repositories.NewPlatformCredentialsRepository(s.db)
 	tenantCreds, err := credRepo.GetTiktokCredentials(ctx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("sync failed - no TikTok credentials: %v", err)
+		return nil, nil, fmt.Errorf("sync failed - TikTok tenant credentials: %w", err)
 	}
 	if tenantCreds.ShopCipher == "" || tenantCreds.AccessToken == "" {
 		return nil, nil, fmt.Errorf("sync skipped - TikTok not configured")
@@ -180,7 +180,7 @@ func (s *CloneService) getTiktokCredentials(ctx context.Context, systemDB *gorm.
 	configRepo := repositories.NewGlobalConfigRepository(systemDB)
 	globalCreds, err := configRepo.GetTiktokCredentials(ctx)
 	if err != nil || globalCreds.AppKey == "" {
-		return nil, nil, fmt.Errorf("sync failed - no TikTok global credentials")
+		return nil, nil, fmt.Errorf("sync failed - TikTok global credentials: %w", err)
 	}
 
 	return tenantCreds, globalCreds, nil

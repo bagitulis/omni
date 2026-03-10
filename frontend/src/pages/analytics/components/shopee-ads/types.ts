@@ -14,4 +14,4 @@ export interface AdsData {
   period_label?: string;
 }
 
-export const SHOPEE_ORANGE = "currentColor";
+export const SHOPEE_ORANGE = "#ee4d2d";

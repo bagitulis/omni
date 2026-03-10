@@ -23,6 +23,13 @@
   --color-error-bg: #fef2f2;
   --color-error-bg-hover: #fee2e2;
   --color-warning: #d97706;
+  --color-bg-container: #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-bg-spotlight: #f1f5f9;
+  --color-border-secondary: #e2e8f0;
+  --color-text-strong: #0f172a;
+  --color-text-muted: #94a3b8;
+  --color-card-border: #e2e8f0;
 }
 
 body.dark-mode {

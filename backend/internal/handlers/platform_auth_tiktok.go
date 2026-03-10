@@ -131,9 +131,9 @@ func (h *PlatformAuthHandler) GetStatus(c *gin.Context) {
 			continue
 		}
 
-		// Check if connected (has access token)
+		// Check if connected (has access token AND token is not expired)
 		accessToken := configMap["accessToken"]
-		connected := accessToken != ""
+		hasToken := accessToken != ""
 
 		// Parse expiry timestamp
 		var expiresAt int64
@@ -161,6 +161,9 @@ func (h *PlatformAuthHandler) GetStatus(c *gin.Context) {
 
 		expiresSoon := expiresAtMs > 0 && expiresAtMs < now.Add(24*time.Hour).UnixMilli()
 		expired := expiresAtMs > 0 && expiresAtMs < now.UnixMilli()
+
+		// Connected means token exists AND is not expired
+		connected := hasToken && !expired
 
 		statuses[platform] = ConnectionStatus{
 			Platform:              platform,

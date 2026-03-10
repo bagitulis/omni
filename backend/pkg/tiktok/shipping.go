@@ -82,7 +82,7 @@ func (c *Client) GetOrderDetail(orderIDs []string) (*OrderDetailResponse, error)
 
 	var result OrderDetailResponse
 	if err := c.doRequest("GET", apiPath, params, &result); err != nil {
-		return nil, fmt.Errorf("API request failed: %w", err)
+		return nil, fmt.Errorf("GetOrderDetail failed: %w", err)
 	}
 
 	if result.Code != 0 {
@@ -120,7 +120,7 @@ func (c *Client) GetHandoverTimeSlots(packageID string) (*HandoverTimeSlotsRespo
 
 	var result HandoverTimeSlotsResponse
 	if err := c.doRequest("GET", apiPath, params, &result); err != nil {
-		return nil, fmt.Errorf("API request failed: %w", err)
+		return nil, fmt.Errorf("GetHandoverTimeSlots failed: %w", err)
 	}
 
 	if result.Code != 0 {
@@ -146,7 +146,7 @@ func (c *Client) GetHandoverTimeSlotsForOrder(orderID string, lineItemIDs []stri
 
 	var result HandoverTimeSlotsResponse
 	if err := c.doRequest("GET", apiPath, params, &result); err != nil {
-		return nil, fmt.Errorf("API request failed: %w", err)
+		return nil, fmt.Errorf("GetHandoverTimeSlotsForOrder failed: %w", err)
 	}
 
 	if result.Code != 0 {
@@ -185,7 +185,7 @@ func (c *Client) GetPackageDetail(packageID string) (*PackageDetailResponse, err
 
 	var result PackageDetailResponse
 	if err := c.doRequest("GET", apiPath, params, &result); err != nil {
-		return nil, fmt.Errorf("API request failed: %w", err)
+		return nil, fmt.Errorf("GetPackageDetail failed: %w", err)
 	}
 
 	if result.Code != 0 {

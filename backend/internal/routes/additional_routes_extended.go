@@ -160,34 +160,9 @@ func RegisterLazadaSyncRoutes(router *gin.RouterGroup, basePath string) {
 	}
 }
 
-// RegisterProductMetadataRoutes registers product metadata routes
-func RegisterProductMetadataRoutes(router *gin.RouterGroup, basePath string) {
-	handler := handlers.NewProductMetadataHandler(basePath)
-
-	create := router.Group("/products/create")
-	create.Use(middleware.Auth())
-	create.Use(middleware.Tenant())
-	{
-		// Shopee metadata
-		create.GET("/shopee/categories", handler.GetShopeeCategories)
-		create.GET("/shopee/attributes/:catId", handler.GetShopeeAttributes)
-		create.GET("/shopee/brands/:catId", handler.GetShopeeBrands)
-		create.GET("/shopee/logistics", handler.GetShopeeLogistics)
-
-		// Lazada metadata
-		create.GET("/lazada/categories", handler.GetLazadaCategories)
-		create.GET("/lazada/attributes/:catId", handler.GetLazadaAttributes)
-		create.GET("/lazada/brands/:catId", handler.GetLazadaBrands)
-
-		// TikTok metadata
-		create.GET("/tiktok/categories", handler.GetTiktokCategories)
-		create.GET("/tiktok/attributes/:catId", handler.GetTiktokAttributes)
-		create.GET("/tiktok/brands", handler.GetTiktokBrands)
-		create.GET("/tiktok/warehouses", handler.GetTiktokWarehouses)
-
-		// Common operations
-		create.POST("/upload-image", handler.UploadImage)
-		create.POST("/validate", handler.ValidateProduct)
-		create.GET("/templates", handler.GetTemplates)
-	}
-}
+// NOTE: RegisterProductMetadataRoutes removed — ProductMetadataHandler was deleted.
+// All 14 endpoints returned 501 with zero frontend callers.
+// Platform-specific endpoints already serve metadata:
+//   - Shopee: RegisterProductCreateRoutes → ProductCreateHandler.GetCategories
+//   - Lazada: RegisterLazadaProductExtendedRoutes → GetCategories, GetAttributes
+//   - TikTok: RegisterTiktokProductExtendedRoutes → categories, attributes, warehouses

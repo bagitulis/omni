@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/utils/logger"
 )
 
@@ -34,7 +35,7 @@ type ShippingFilesData struct {
 
 // GetShippingFiles handles GET /api/shipping/files
 func (h *ShippingFilesHandler) GetShippingFiles(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
 		return

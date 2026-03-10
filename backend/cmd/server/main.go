@@ -280,8 +280,11 @@ func main() {
 	// TikTok Product Extended routes (search, draft, db, categories, compliance, image)
 	routes.RegisterTiktokProductExtendedRoutes(api, cfg.DatabasePath)
 
-	// Product Metadata routes (Shopee/Lazada/TikTok categories, attributes, brands for product creation)
-	routes.RegisterProductMetadataRoutes(api, cfg.DatabasePath)
+	// NOTE: ProductMetadataHandler removed — all 14 endpoints were 501 skeletons with 0 frontend callers.
+	// Platform-specific endpoints already serve this functionality:
+	//   - Shopee: /api/products/categories/:platform (product_create.go Layer 1)
+	//   - Lazada: /api/lazada/products/categories, /attributes (product_extended_handler.go Layer 3)
+	//   - TikTok: /api/tiktok/products/categories, /attributes, /warehouses (product_create_handler.go Layer 3)
 
 	// Webhook Extended routes (tenant-specific webhooks, test, config)
 	routes.RegisterWebhookExtendedRoutes(api, application.ShopeeProcessor, application.LazadaProcessor, application.TiktokProcessor, cfg.DatabasePath)

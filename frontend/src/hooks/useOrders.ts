@@ -6,7 +6,7 @@ import {
   cancelOrder,
   shipOrder,
 } from "@/api/orders";
-import type { GetOrdersParams } from "@/api/orders";
+import type { GetOrdersParams, BulkShipResult } from "@/api/orders";
 import apiClient from "@/api/client";
 import { message } from "@/components/AntStaticHolder";
 
@@ -187,9 +187,20 @@ export function useOrderActions() {
       orderSns: string[];
       platform?: string;
     }) => bulkShipOrders(orderSns, platform),
-    onSuccess: () => {
-      message.success("Orders shipped successfully");
+    onSuccess: (result: BulkShipResult) => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+
+      if (result.partial) {
+        message.warning(
+          `${result.summary.shipped} shipped, ${result.summary.failed} failed`,
+        );
+      } else if (result.summary.failed === 0) {
+        message.success(
+          `${result.summary.shipped} orders shipped successfully`,
+        );
+      } else {
+        message.error(`All ${result.summary.failed} orders failed to ship`);
+      }
     },
     onError: (error: Error) => {
       message.error(`Failed to ship orders: ${error.message}`);

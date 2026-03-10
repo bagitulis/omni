@@ -32,7 +32,10 @@ func (h *SyncHandler) TriggerSync(c *gin.Context) {
 		SpreadsheetID string `json:"spreadsheet_id"`
 		SheetName     string `json:"sheet_name"`
 	}
-	_ = c.ShouldBindJSON(&req) // Optional body
+	if err := c.ShouldBindJSON(&req); err != nil {
+		// Body is optional — log for debugging but proceed with defaults
+		_ = err // intentionally ignored: empty body uses saved settings
+	}
 
 	svc := inventoryService.NewSyncService(h.db, tenantID, h.sheetsClient)
 	result, err := svc.SyncFromSheets(c.Request.Context(), req.SpreadsheetID, req.SheetName)

@@ -70,7 +70,7 @@ func (c *Client) RecommendCategory(title, description string, imageURIs []string
 	var resp RecommendCategoryResponse
 	err := c.doRequestWithBody("POST", apiPath, params, reqBody, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("API request failed: %w", err)
+		return nil, fmt.Errorf("RecommendCategory failed: %w", err)
 	}
 
 	if resp.Code != 0 {
@@ -139,7 +139,7 @@ func (c *Client) GetCategoryAttributes(categoryID string) ([]CategoryAttribute, 
 	var resp GetAttributesResponse
 	err := c.doRequest("GET", apiPath, params, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("API request failed: %w", err)
+		return nil, fmt.Errorf("GetCategoryAttributes failed: %w", err)
 	}
 
 	if resp.Code != 0 {
