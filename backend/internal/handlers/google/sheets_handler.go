@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/google"
 )
 
@@ -22,11 +23,11 @@ func NewSheetsHandler(authService *google.AuthService) *SheetsHandler {
 // ListSpreadsheets handles GET /api/google/sheets/list
 // Returns list of available spreadsheets
 func (h *SheetsHandler) ListSpreadsheets(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -50,11 +51,11 @@ func (h *SheetsHandler) ListSpreadsheets(c *gin.Context) {
 // GetSpreadsheetData handles GET /api/google/sheets/data
 // Fetches all inventory data from configured Google Sheet
 func (h *SheetsHandler) GetSpreadsheetData(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -113,11 +114,11 @@ func (h *SheetsHandler) GetSpreadsheetData(c *gin.Context) {
 // GetWorksheets handles GET /api/google/sheets/worksheets/:spreadsheetId
 // Returns list of worksheets in a spreadsheet
 func (h *SheetsHandler) GetWorksheets(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -150,11 +151,11 @@ func (h *SheetsHandler) GetWorksheets(c *gin.Context) {
 // GetColumnHeaders handles GET /api/google/sheets/columns/:spreadsheetId/:sheetName
 // Returns column headers from a specific sheet
 func (h *SheetsHandler) GetColumnHeaders(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -199,11 +200,11 @@ func (h *SheetsHandler) GetColumnHeaders(c *gin.Context) {
 // CreateSpreadsheet handles POST /api/google/sheets/create
 // Creates a new Google Spreadsheet
 func (h *SheetsHandler) CreateSpreadsheet(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

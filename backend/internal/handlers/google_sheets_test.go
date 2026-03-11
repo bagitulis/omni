@@ -32,7 +32,7 @@ func TestGoogleSheetsGetSpreadsheetInfo_MissingTenant(t *testing.T) {
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
-	assert.Contains(t, resp["error"], "Missing tenantId")
+	assert.Contains(t, resp["error"], "Missing tenant_id")
 }
 
 // TestGoogleSheetsGetSpreadsheetInfo_MissingSpreadsheetID tests getting spreadsheet without ID
@@ -41,7 +41,7 @@ func TestGoogleSheetsGetSpreadsheetInfo_MissingSpreadsheetID(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -90,7 +90,7 @@ func TestGoogleSheetsReadData_InvalidBody(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -138,7 +138,7 @@ func TestGoogleSheetsWriteData_InvalidBody(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -170,7 +170,7 @@ func TestGoogleSheetsWriteData_ValidBody(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -231,7 +231,7 @@ func TestGoogleSheetsDetectColumns_InvalidBody(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -279,7 +279,7 @@ func TestGoogleSheetsImportData_InvalidBody(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -311,7 +311,7 @@ func TestGoogleSheetsImportData_ValidBody(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 

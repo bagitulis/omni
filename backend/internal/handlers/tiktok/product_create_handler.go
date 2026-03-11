@@ -36,7 +36,7 @@ type SaveDraftRequest struct {
 func (h *CreateHandler) SaveDraft(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -105,7 +105,7 @@ type PublishDraftRequest struct {
 func (h *CreateHandler) PublishDraft(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -181,7 +181,7 @@ func (h *CreateHandler) GetBrands(c *gin.Context) {
 func (h *CreateHandler) GetWarehouses(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

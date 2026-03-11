@@ -35,7 +35,7 @@ type BatchDownloadResult struct {
 func (h *ShippingHandler) BatchDownloadShippingDocuments(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -87,7 +87,7 @@ func (h *ShippingHandler) BatchDownloadShippingDocuments(c *gin.Context) {
 func (h *ShippingHandler) DownloadShippingDocumentByOrder(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

@@ -16,7 +16,7 @@ func TestBatchDeleteByItemIds(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Set("tenantId", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	// Create test request
 	reqBody := BatchDeleteRequest{
@@ -39,7 +39,7 @@ func TestBatchAdd(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Set("tenantId", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	// Create test request with new field names
 	reqBody := BatchAddRequest{
@@ -73,7 +73,7 @@ func TestPreview(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Set("tenantId", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	// Create test request
 	reqBody := PreviewRequest{
@@ -98,7 +98,7 @@ func TestImportWholesale(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Set("tenantId", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	// Create test request with new field names
 	reqBody := ImportWholesaleRequest{
@@ -128,7 +128,7 @@ func TestBatchSetMpq(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Set("tenantId", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	// Create test request
 	reqBody := map[string]interface{}{
@@ -155,7 +155,7 @@ func TestBatchSetTiktokMpq(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Set("tenantId", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	// Create test request
 	reqBody := TiktokBatchMpqRequest{
@@ -218,6 +218,6 @@ func TestWholesaleBatchMissingTenant(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest("POST", "/api/wholesale/shopee/batch-delete", nil)
 
-	tenantID := c.GetString("tenantId")
+	tenantID := c.GetString("tenant_id")
 	assert.Equal(t, "", tenantID, "TenantId should be empty when not set")
 }

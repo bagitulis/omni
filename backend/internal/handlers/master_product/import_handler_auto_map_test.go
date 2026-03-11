@@ -35,7 +35,7 @@ func TestImportHandler_AutoMapBatch(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/master-products/import/automap/batch",
 			strings.NewReader(`{"platform_ids": ["123", "456"]}`))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.AutoMapBatch(c)
 
@@ -50,7 +50,7 @@ func TestImportHandler_AutoMapBatch(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/master-products/import/automap/batch",
 			strings.NewReader(`not-valid-json`))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.AutoMapBatch(c)
 

@@ -37,7 +37,7 @@ type ShippingFilesData struct {
 func (h *ShippingFilesHandler) GetShippingFiles(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -104,9 +104,9 @@ func (h *ShippingFilesHandler) GetShippingFiles(c *gin.Context) {
 
 // ProcessShippingFile handles POST /api/shipping/process-file
 func (h *ShippingFilesHandler) ProcessShippingFile(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 

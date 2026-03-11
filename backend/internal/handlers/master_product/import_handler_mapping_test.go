@@ -34,7 +34,7 @@ func TestImportHandler_GetMappingStatus(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/master-products/1/mapping", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "id", Value: "1"}}
 
 		handler.GetMappingStatus(c)
@@ -69,7 +69,7 @@ func TestImportHandler_AutoMap(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/master-products/mapping/auto",
 			strings.NewReader(`{"seller_sku": "SKU-001"}`))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.AutoMap(c)
 
@@ -103,7 +103,7 @@ func TestImportHandler_ManualLink(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/master-products/mapping/link",
 			strings.NewReader(`{"master_sku_id": 1, "platform": "shopee", "platform_item_id": "123"}`))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.ManualLink(c)
 
@@ -137,7 +137,7 @@ func TestImportHandler_Unlink(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/master-products/mapping/unlink",
 			strings.NewReader(`{"master_sku_id": 1, "platform": "shopee"}`))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.Unlink(c)
 

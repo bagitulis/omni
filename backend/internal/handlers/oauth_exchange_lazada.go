@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
@@ -52,7 +53,7 @@ func (h *OAuthHandler) doLazadaTokenRequest(tokenURL string, params map[string]s
 		formData.Set(k, v)
 	}
 
-	log.Printf("[Lazada OAuth] Exchanging code for token at: %s", tokenURL)
+	log.Info().Msgf("[Lazada OAuth] Exchanging code for token at: %s", tokenURL)
 
 	// Make HTTP request
 	resp, err := http.Post(tokenURL, "application/x-www-form-urlencoded", strings.NewReader(formData.Encode()))
@@ -66,7 +67,7 @@ func (h *OAuthHandler) doLazadaTokenRequest(tokenURL string, params map[string]s
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
-	log.Printf("[Lazada OAuth] Token response status: %d, body_size: %d bytes", resp.StatusCode, len(body))
+	log.Info().Msgf("[Lazada OAuth] Token response status: %d, body_size: %d bytes", resp.StatusCode, len(body))
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("token exchange failed: status %d, body: %s", resp.StatusCode, string(body))
@@ -99,8 +100,8 @@ func (h *OAuthHandler) saveLazadaTokens(ctx context.Context, tenantID string, to
 	// Lazada API returns expiry as relative seconds from NOW
 	// Example: expires_in: 604800 (7 days in seconds)
 	//          refresh_expires_in: 2592000 (30 days in seconds)
-	log.Printf("[Lazada OAuth] expires_in: %d seconds (%d days)", tokenResp.ExpiresIn, tokenResp.ExpiresIn/86400)
-	log.Printf("[Lazada OAuth] refresh_expires_in: %d seconds (%d days)", tokenResp.RefreshExpiresIn, tokenResp.RefreshExpiresIn/86400)
+	log.Info().Msgf("[Lazada OAuth] expires_in: %d seconds (%d days)", tokenResp.ExpiresIn, tokenResp.ExpiresIn/86400)
+	log.Info().Msgf("[Lazada OAuth] refresh_expires_in: %d seconds (%d days)", tokenResp.RefreshExpiresIn, tokenResp.RefreshExpiresIn/86400)
 
 	// Update tokens using the correct key-value pattern
 	if err := tenantRepo.UpdateTokens(ctx, models.PlatformLazada, tokenResp.AccessToken, tokenResp.RefreshToken, tokenResp.ExpiresIn, tokenResp.RefreshExpiresIn); err != nil {
@@ -110,15 +111,15 @@ func (h *OAuthHandler) saveLazadaTokens(ctx context.Context, tenantID string, to
 	// Save country/region
 	if tokenResp.Country != "" {
 		if err := tenantRepo.SetConfig(ctx, models.PlatformLazada, "country", tokenResp.Country, false); err != nil {
-			log.Printf("[Lazada OAuth] Warning: failed to save country: %v", err)
+			log.Info().Msgf("[Lazada OAuth] Warning: failed to save country: %v", err)
 		}
 	}
 
 	// Save last_refresh timestamp
 	if err := tenantRepo.SetConfig(ctx, models.PlatformLazada, "last_refresh", time.Now().Format(time.RFC3339), false); err != nil {
-		log.Printf("[Lazada OAuth] Warning: failed to save last_refresh: %v", err)
+		log.Info().Msgf("[Lazada OAuth] Warning: failed to save last_refresh: %v", err)
 	}
 
-	log.Printf("[Lazada OAuth] Successfully saved tokens for tenant %s", tenantID)
+	log.Info().Msgf("[Lazada OAuth] Successfully saved tokens for tenant %s", tenantID)
 	return nil
 }

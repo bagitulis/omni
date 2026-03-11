@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/google"
 	"gorm.io/gorm"
 )
@@ -32,11 +33,11 @@ type SheetConfig struct {
 // SaveConfig handles POST /api/google/sheet-config/save
 // Saves sheet configuration
 func (h *SheetConfigHandler) SaveConfig(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -74,11 +75,11 @@ func (h *SheetConfigHandler) SaveConfig(c *gin.Context) {
 // ListConfigs handles GET /api/google/sheet-config/list
 // Returns all sheet configurations for tenant
 func (h *SheetConfigHandler) ListConfigs(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -102,11 +103,11 @@ func (h *SheetConfigHandler) ListConfigs(c *gin.Context) {
 // DeleteConfig handles DELETE /api/google/sheet-config/:sheetId
 // Deletes a sheet configuration
 func (h *SheetConfigHandler) DeleteConfig(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

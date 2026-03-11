@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/orders"
 	"gorm.io/gorm"
 )
@@ -36,11 +37,11 @@ type SaveLockedOrdersRequest struct {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/locked-orders [post]
 func (h *LockedOrderHandler) SaveLockedOrders(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -83,11 +84,11 @@ func (h *LockedOrderHandler) SaveLockedOrders(c *gin.Context) {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/locked-orders [get]
 func (h *LockedOrderHandler) GetLockedOrders(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -124,11 +125,11 @@ func (h *LockedOrderHandler) GetLockedOrders(c *gin.Context) {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/locked-orders [delete]
 func (h *LockedOrderHandler) ClearLockedOrders(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

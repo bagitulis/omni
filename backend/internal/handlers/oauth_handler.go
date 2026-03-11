@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/oauth"
@@ -42,11 +43,11 @@ func NewOAuthHandler(
 
 // InitiateAuth initiates OAuth flow for a platform
 func (h *OAuthHandler) InitiateAuth(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -203,11 +204,11 @@ func (h *OAuthHandler) getBackendURL(c *gin.Context) string {
 
 // GetOAuthLogs gets OAuth logs for a tenant
 func (h *OAuthHandler) GetOAuthLogs(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

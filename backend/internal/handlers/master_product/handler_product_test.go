@@ -30,7 +30,7 @@ func TestHandler_Delete(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodDelete, "/api/master-products/1", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "id", Value: "1"}}
 
 		handler.Delete(c)
@@ -48,7 +48,7 @@ func TestHandler_UpdateWithBody(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodPut, "/api/master-products/1",
 			strings.NewReader(`{"name": "Updated Product"}`))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "id", Value: "1"}}
 
 		handler.Update(c)

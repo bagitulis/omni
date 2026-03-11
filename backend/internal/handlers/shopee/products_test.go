@@ -37,7 +37,7 @@ func TestProductHandler_GetProducts_WithTenantID_NoDB(t *testing.T) {
 	handler := NewProductHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.GET("/api/shopee/products", handler.GetProducts)
@@ -62,7 +62,7 @@ func TestProductHandler_GetProducts_WithQueryParams(t *testing.T) {
 	handler := NewProductHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.GET("/api/shopee/products", handler.GetProducts)
@@ -87,7 +87,7 @@ func TestProductHandler_GetProductByID_InvalidItemID(t *testing.T) {
 	handler := NewProductHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.GET("/api/shopee/products/:itemId", handler.GetProductByID)
@@ -111,7 +111,7 @@ func TestProductHandler_GetProductByID_ValidID_NoDB(t *testing.T) {
 	handler := NewProductHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.GET("/api/shopee/products/:itemId", handler.GetProductByID)

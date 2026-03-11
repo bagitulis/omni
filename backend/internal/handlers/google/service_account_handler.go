@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/google"
 )
 
@@ -71,11 +72,11 @@ func (h *ServiceAccountHandler) SwitchAccount(c *gin.Context) {
 // DetectSheet handles POST /api/google/service-accounts/detect-sheet
 // Detects sheet type from URL
 func (h *ServiceAccountHandler) DetectSheet(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

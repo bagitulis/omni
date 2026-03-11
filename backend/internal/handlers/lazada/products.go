@@ -29,7 +29,7 @@ func NewProductHandler(basePath string) *ProductHandler {
 func (h *ProductHandler) GetProducts(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -121,7 +121,7 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 func (h *ProductHandler) GetProductByID(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -147,7 +147,7 @@ func (h *ProductHandler) GetProductByID(c *gin.Context) {
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -196,7 +196,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -240,7 +240,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

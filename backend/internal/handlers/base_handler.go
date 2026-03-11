@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"gorm.io/gorm"
 )
 
@@ -27,9 +28,9 @@ func (h *BaseHandler) GetDB(c *gin.Context) (*gorm.DB, error) {
 // GetTenantID extracts and validates the tenant ID from context
 // Returns the tenant ID and true if valid, or sends error response and returns false
 func (h *BaseHandler) GetTenantID(c *gin.Context) (string, bool) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		h.ErrorResponse(c, http.StatusUnauthorized, "Missing tenantId")
+		h.ErrorResponse(c, http.StatusUnauthorized, "Missing tenant_id")
 		return "", false
 	}
 	return tenantID, true

@@ -42,7 +42,7 @@ type MasterProductItem struct {
 func (h *DBProductHandler) GetDBProducts(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -78,7 +78,7 @@ func (h *DBProductHandler) GetDBProducts(c *gin.Context) {
 func (h *DBProductHandler) GetMasterProducts(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -167,7 +167,7 @@ func (h *DBProductHandler) GetProductList(c *gin.Context) {
 func (h *DBProductHandler) GetProductByID(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 	productID := c.Param("productId")
@@ -188,7 +188,7 @@ func (h *DBProductHandler) GetProductByID(c *gin.Context) {
 func (h *DBProductHandler) DeleteProduct(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 	productID := c.Param("productId")
@@ -208,7 +208,7 @@ func (h *DBProductHandler) DeleteProduct(c *gin.Context) {
 func (h *DBProductHandler) GetProductsByStatus(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 	status := c.Param("status")
@@ -239,7 +239,7 @@ func (h *DBProductHandler) GetProductsByStatus(c *gin.Context) {
 func (h *DBProductHandler) SearchProducts(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 	query := c.Query("q")
@@ -250,12 +250,17 @@ func (h *DBProductHandler) SearchProducts(c *gin.Context) {
 		return
 	}
 	var products []models.TiktokProduct
+	var dbErr error
 	if query != "" && field == "name" {
-		db.Where("name LIKE ?", "%"+query+"%").Limit(100).Find(&products)
+		dbErr = db.Where("name LIKE ?", "%"+query+"%").Limit(100).Find(&products).Error
 	} else if query != "" {
-		db.Where("product_id = ?", query).Limit(1).Find(&products)
+		dbErr = db.Where("product_id = ?", query).Limit(1).Find(&products).Error
 	} else {
-		db.Limit(100).Find(&products)
+		dbErr = db.Limit(100).Find(&products).Error
+	}
+	if dbErr != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to search products"))
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": products, "count": len(products)})
 }
@@ -264,7 +269,7 @@ func (h *DBProductHandler) SearchProducts(c *gin.Context) {
 func (h *DBProductHandler) GetStatistics(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 	db, err := config.GetTenantDB(tenantID, h.basePath)

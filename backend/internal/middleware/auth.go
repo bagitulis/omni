@@ -80,9 +80,9 @@ func Auth() gin.HandlerFunc {
 			return
 		}
 
-		// Set user context from JWT claims
+		// Set user context from JWT claims — use canonical snake_case keys
 		c.Set("userID", claims.UserID)
-		c.Set("tenantID", claims.TenantID)
+		c.Set("tenant_id", claims.TenantID)
 		c.Set("role", claims.Role)
 		c.Next()
 	}

@@ -37,7 +37,7 @@ func TestDBProductHandler_GetDBProducts_WithTenantID(t *testing.T) {
 	handler := NewDBProductHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.GET("/api/shopee/db/products", handler.GetDBProducts)
@@ -62,7 +62,7 @@ func TestDBProductHandler_GetDBProducts_WithPagination(t *testing.T) {
 	handler := NewDBProductHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.GET("/api/shopee/db/products", handler.GetDBProducts)
@@ -107,7 +107,7 @@ func TestDBProductHandler_GetMasterProducts_WithTenantID(t *testing.T) {
 	handler := NewDBProductHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.GET("/api/shopee/db/products/master", handler.GetMasterProducts)

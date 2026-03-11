@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"gorm.io/gorm"
 )
@@ -42,9 +43,9 @@ func isValidPlatform(platform string) bool {
 // Get handles GET /api/filter-preferences
 // Query params: platform (required), tab/page (optional, default "product")
 func (h *FilterPreferenceHandler) Get(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -163,9 +164,9 @@ type SaveFilterPreferenceRequest struct {
 
 // Save handles POST /api/filter-preferences
 func (h *FilterPreferenceHandler) Save(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -263,9 +264,9 @@ func (h *FilterPreferenceHandler) Save(c *gin.Context) {
 // Delete handles DELETE /api/filter-preferences
 // Query params: platform (required), tab/page (optional)
 func (h *FilterPreferenceHandler) Delete(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 

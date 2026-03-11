@@ -35,7 +35,7 @@ func TestHandler_BatchUpdateSkus(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodPut, "/api/master-products/skus/batch",
 			strings.NewReader(`not-json`))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.BatchUpdateSkus(c)
 
@@ -56,7 +56,7 @@ func TestHandler_UpdateSkuWithTenant(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodPut, "/api/master-products/skus/1",
 			strings.NewReader(`{"price": 10000, "stock": 5}`))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "id", Value: "1"}}
 
 		handler.UpdateSku(c)

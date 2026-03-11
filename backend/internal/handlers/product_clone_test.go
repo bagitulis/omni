@@ -42,7 +42,7 @@ func TestProductCloneHandler_Clone(t *testing.T) {
 				"source_item_id":  "123",
 			},
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedError:  true,
@@ -55,7 +55,7 @@ func TestProductCloneHandler_Clone(t *testing.T) {
 				"source_item_id":  "123",
 			},
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedError:  true,
@@ -68,7 +68,7 @@ func TestProductCloneHandler_Clone(t *testing.T) {
 				"source_item_id":  "123",
 			},
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedError:  true,
@@ -129,7 +129,7 @@ func TestProductCloneHandler_GetStatus(t *testing.T) {
 			name:    "empty_clone_id",
 			cloneID: "empty",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedError:  true,
@@ -138,7 +138,7 @@ func TestProductCloneHandler_GetStatus(t *testing.T) {
 			name:    "valid_request_db_not_available",
 			cloneID: "clone-123",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedError:  true,
@@ -198,7 +198,7 @@ func TestProductCloneHandler_BatchClone(t *testing.T) {
 				"source_item_ids": []string{},
 			},
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedError:  true,
@@ -211,7 +211,7 @@ func TestProductCloneHandler_BatchClone(t *testing.T) {
 				"source_item_ids": []string{"123"},
 			},
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedError:  true,
@@ -261,7 +261,7 @@ func TestProductCloneHandler_GetProductData(t *testing.T) {
 			name:  "missing_platform",
 			query: "?sku=SKU001",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -269,7 +269,7 @@ func TestProductCloneHandler_GetProductData(t *testing.T) {
 			name:  "missing_sku",
 			query: "?platform=shopee",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -277,7 +277,7 @@ func TestProductCloneHandler_GetProductData(t *testing.T) {
 			name:  "invalid_platform",
 			query: "?platform=invalid&sku=SKU001",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -324,7 +324,7 @@ func TestProductCloneHandler_GetAvailableTargets(t *testing.T) {
 			name:  "missing_sku",
 			query: "",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -332,7 +332,7 @@ func TestProductCloneHandler_GetAvailableTargets(t *testing.T) {
 			name:  "valid_request_db_not_available",
 			query: "?sku=SKU001",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 		},
@@ -379,7 +379,7 @@ func TestProductCloneHandler_Preview(t *testing.T) {
 			name:  "missing_params",
 			query: "?source_platform=shopee",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -387,7 +387,7 @@ func TestProductCloneHandler_Preview(t *testing.T) {
 			name:  "same_platform",
 			query: "?source_platform=shopee&target_platform=shopee&source_item_id=123",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -395,7 +395,7 @@ func TestProductCloneHandler_Preview(t *testing.T) {
 			name:  "invalid_platform",
 			query: "?source_platform=invalid&target_platform=lazada&source_item_id=123",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},

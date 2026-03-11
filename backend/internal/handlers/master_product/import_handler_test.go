@@ -35,7 +35,7 @@ func TestImportHandler_Preview(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/master-products/import/preview?item_id=123", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.Preview(c)
 
@@ -52,7 +52,7 @@ func TestImportHandler_Preview(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/master-products/import/preview?platform=lazada&item_id=123", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.Preview(c)
 

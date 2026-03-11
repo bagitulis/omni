@@ -67,7 +67,7 @@ func TestOrderManagerHandler_GetUnpaidOrders_EmptyTenant(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "nonexistent-tenant")
+		c.Set("tenant_id", "nonexistent-tenant")
 		c.Next()
 	})
 
@@ -107,7 +107,7 @@ func TestOrderManagerHandler_GetOrderByOrderSn_MissingTenant(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.False(t, resp["success"].(bool))
-	assert.Contains(t, resp["error"], "Missing tenantId")
+	assert.Contains(t, resp["error"], "Missing tenant_id")
 }
 
 // TestOrderManagerHandler_GetOrderByOrderSn_MissingOrderSn tests GetOrderByOrderSn with empty orderSn
@@ -116,7 +116,7 @@ func TestOrderManagerHandler_GetOrderByOrderSn_MissingOrderSn(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services"
 )
 
@@ -19,7 +20,7 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	}
 
 	userID := c.GetString("userID")
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
@@ -46,7 +47,7 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 // GetCurrentUser returns current authenticated user info
 func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 	userID := c.GetString("userID")
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	role := c.GetString("role")
 
 	c.JSON(http.StatusOK, gin.H{

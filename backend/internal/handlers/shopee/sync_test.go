@@ -34,7 +34,7 @@ func TestSyncHandler_SyncOrders_WithTenantID_NoDatabase(t *testing.T) {
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	handler := NewSyncHandler("/tmp/nonexistent-path-sync")
@@ -58,7 +58,7 @@ func TestSyncHandler_SyncOrders_DaysQueryParam_Valid(t *testing.T) {
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	handler := NewSyncHandler("/tmp/nonexistent-path-sync")
@@ -83,7 +83,7 @@ func TestSyncHandler_SyncOrders_DaysQueryParam_OutOfRange(t *testing.T) {
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	handler := NewSyncHandler("/tmp/nonexistent-path-sync")
@@ -122,7 +122,7 @@ func TestSyncHandler_SyncProducts_WithTenantID_NoDatabase(t *testing.T) {
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	handler := NewSyncHandler("/tmp/nonexistent-path-sync")

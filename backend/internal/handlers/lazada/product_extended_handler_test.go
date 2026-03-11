@@ -39,7 +39,7 @@ func TestProductExtendedHandler_GetProductsFromDB_WithTenantID(t *testing.T) {
 	r := gin.New()
 	h := NewProductExtendedHandler("/test/path")
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.GET("/api/lazada/products/db", h.GetProductsFromDB)
@@ -78,7 +78,7 @@ func TestProductExtendedHandler_GetProductFromDB_WithTenantID(t *testing.T) {
 	r := gin.New()
 	h := NewProductExtendedHandler("/test/path")
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.GET("/api/lazada/products/db/:itemId", h.GetProductFromDB)
@@ -117,7 +117,7 @@ func TestProductExtendedHandler_GetCategories_WithTenantID_FailsWithoutDB(t *tes
 	r := gin.New()
 	h := NewProductExtendedHandler("/test/path")
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.GET("/api/lazada/products/categories", h.GetCategories)
@@ -156,7 +156,7 @@ func TestProductExtendedHandler_GetAttributes_InvalidCategoryID(t *testing.T) {
 	r := gin.New()
 	h := NewProductExtendedHandler("/test/path")
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.GET("/api/lazada/products/attributes/:categoryId", h.GetAttributes)
@@ -176,7 +176,7 @@ func TestProductExtendedHandler_GetAttributes_WithTenantID_FailsWithoutDB(t *tes
 	r := gin.New()
 	h := NewProductExtendedHandler("/test/path")
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.GET("/api/lazada/products/attributes/:categoryId", h.GetAttributes)

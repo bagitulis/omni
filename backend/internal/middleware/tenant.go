@@ -32,17 +32,16 @@ func initTenants(databasePath string) {
 // Following AGENTS.MD: NO DEFAULT TENANT - must throw error if missing
 func Tenant() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// First check if tenantID was already set by Auth middleware (from JWT)
-		// If set from JWT, it's already validated - no need for file-based validation
-		tenantID := c.GetString("tenantID")
+		// Check if tenant_id was already set by Auth middleware (from JWT)
+		tenantID := c.GetString("tenant_id")
 		fromJWT := tenantID != ""
 
-		// If not in context, check header (for backwards compatibility)
+		// If not set by Auth, check header (legacy flow)
 		if tenantID == "" {
 			tenantID = c.GetHeader("x-tenant-id")
 		}
 
-		// AGENTS.MD: JANGAN gunakan default tenant!
+		// AGENTS.MD: NO DEFAULT TENANT — must throw error if missing
 		if tenantID == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
@@ -78,11 +77,8 @@ func Tenant() gin.HandlerFunc {
 			}
 		}
 
-		// tenant_id is the canonical key; others are deprecated aliases
-		// kept for backward compatibility with handlers using c.GetString("tenantID")
+		// tenant_id is the ONLY canonical context key
 		c.Set("tenant_id", tenantID)
-		c.Set("tenantID", tenantID)
-		c.Set("tenantId", tenantID)
 		c.Next()
 	}
 }
@@ -93,15 +89,8 @@ func TenantWithConfig(databasePath string) gin.HandlerFunc {
 	return Tenant()
 }
 
-// GetTenantID extracts tenant ID from context
+// GetTenantID extracts tenant ID from context using the canonical "tenant_id" key.
+// All middleware (Auth, Tenant) MUST set this key.
 func GetTenantID(c *gin.Context) string {
-	// Check all legacy variants for backward compatibility
-	for _, key := range []string{"tenant_id", "tenantID", "tenantId"} {
-		if val, exists := c.Get(key); exists {
-			if s, ok := val.(string); ok && s != "" {
-				return s
-			}
-		}
-	}
-	return ""
+	return c.GetString("tenant_id")
 }

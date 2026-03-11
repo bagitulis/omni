@@ -33,7 +33,7 @@ func TestFilterPreferenceGet_MissingTenant(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
-	assert.Contains(t, resp["error"], "Missing tenantId")
+	assert.Contains(t, resp["error"], "Missing tenant_id")
 }
 
 // TestFilterPreferenceGet_InvalidPlatform tests getting with invalid platform
@@ -42,7 +42,7 @@ func TestFilterPreferenceGet_InvalidPlatform(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -80,7 +80,7 @@ func TestFilterPreferenceGet_ValidPlatforms(t *testing.T) {
 			r := gin.New()
 
 			r.Use(func(c *gin.Context) {
-				c.Set("tenantID", "tenant-123")
+				c.Set("tenant_id", "tenant-123")
 				c.Next()
 			})
 
@@ -137,7 +137,7 @@ func TestFilterPreferenceSave_InvalidBody(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -165,7 +165,7 @@ func TestFilterPreferenceSave_InvalidPlatform(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -205,7 +205,7 @@ func TestFilterPreferenceSave_DefaultTab(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -251,7 +251,7 @@ func TestFilterPreferenceSave_LegacyFiltersSupport(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -310,7 +310,7 @@ func TestFilterPreferenceDelete_InvalidPlatform(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -338,7 +338,7 @@ func TestFilterPreferenceGet_PaginationLimit(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -382,7 +382,7 @@ func TestFilterPreferenceGet_LegacyTabParameter(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 

@@ -1,7 +1,7 @@
 package autofunction
 
 import (
-	"log"
+	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
 
@@ -75,7 +75,7 @@ func (s *Scheduler) Start() error {
 
 	go s.runCheckLoop()
 
-	log.Printf("Scheduler started with %d functions", len(configs))
+	log.Info().Msgf("Scheduler started with %d functions", len(configs))
 	return nil
 }
 
@@ -138,7 +138,7 @@ func (s *Scheduler) Stop() {
 		s.checkTicker.Stop()
 	}
 	s.running = false
-	log.Println("Scheduler stopped")
+	log.Info().Msg("Scheduler stopped")
 }
 
 // AddOrUpdate adds or updates a scheduled function

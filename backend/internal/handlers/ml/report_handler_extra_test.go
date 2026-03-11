@@ -33,7 +33,7 @@ func TestReportHandler_GetLatest(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/ml/reports//latest", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "platform", Value: ""}}
 
 		handler.GetLatest(c)
@@ -50,7 +50,7 @@ func TestReportHandler_GetLatest(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/ml/reports/shopee/latest", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "platform", Value: "shopee"}}
 
 		handler.GetLatest(c)
@@ -88,7 +88,7 @@ func TestReportHandler_GetByFilename(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/ml/reports//report.html", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{
 			{Key: "platform", Value: ""},
 			{Key: "filename", Value: "report.html"},
@@ -108,7 +108,7 @@ func TestReportHandler_GetByFilename(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/ml/reports/shopee/", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{
 			{Key: "platform", Value: "shopee"},
 			{Key: "filename", Value: ""},
@@ -128,7 +128,7 @@ func TestReportHandler_GetByFilename(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/ml/reports/shopee/report.html", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{
 			{Key: "platform", Value: "shopee"},
 			{Key: "filename", Value: "report.html"},

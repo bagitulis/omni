@@ -33,7 +33,7 @@ func TestSKUCheckHandler_CheckSingle_MissingTenant(t *testing.T) {
 
 	var resp map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "Missing tenantId")
+	assert.Contains(t, resp["error"], "Missing tenant_id")
 }
 
 // TestSKUCheckHandler_CheckSingle_MissingSKU tests CheckSingle without SKU
@@ -46,7 +46,7 @@ func TestSKUCheckHandler_CheckSingle_MissingSKU(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/sku/check/", nil)
 	c.Params = gin.Params{{Key: "sku", Value: ""}}
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	handler.CheckSingle(c)
 
@@ -67,7 +67,7 @@ func TestSKUCheckHandler_CheckSingle_NoAPIs(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/sku/check/SKU001", nil)
 	c.Params = gin.Params{{Key: "sku", Value: "SKU001"}}
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 	// No platform APIs set
 
 	handler.CheckSingle(c)
@@ -108,7 +108,7 @@ func TestSKUCheckHandler_CheckBatch_InvalidBody(t *testing.T) {
 	body := bytes.NewBufferString(`{}`) // Missing required skus
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/sku/batch-check", body)
 	c.Request.Header.Set("Content-Type", "application/json")
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	handler.CheckBatch(c)
 
@@ -132,7 +132,7 @@ func TestSKUCheckHandler_CheckBatch_TooManySKUs(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/sku/batch-check", bytes.NewBuffer(reqBody))
 	c.Request.Header.Set("Content-Type", "application/json")
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	handler.CheckBatch(c)
 
@@ -170,7 +170,7 @@ func TestSKUCheckHandler_GetCachedStatus_MissingSKU(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/sku/status/", nil)
 	c.Params = gin.Params{{Key: "sku", Value: ""}}
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	handler.GetCachedStatus(c)
 

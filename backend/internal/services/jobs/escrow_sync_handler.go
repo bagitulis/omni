@@ -5,8 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
-
+	"github.com/rs/zerolog/log"
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/analytics"
@@ -50,7 +49,7 @@ func (h *EscrowSyncHandler) handleEscrowSync(ctx context.Context, payload, platf
 	// Extract job ID from context for progress updates
 	jobID, _ := ctx.Value(models.ContextKeyJobID).(string)
 
-	log.Printf("[EscrowSyncHandler] Starting %s escrow sync for tenant %s, month=%d, year=%d, job_id=%s",
+	log.Info().Msgf("[EscrowSyncHandler] Starting %s escrow sync for tenant %s, month=%d, year=%d, job_id=%s",
 		platform, tenantID, jobData.Month, jobData.Year, jobID)
 
 	// Get tenant database connection
@@ -68,7 +67,7 @@ func (h *EscrowSyncHandler) handleEscrowSync(ctx context.Context, payload, platf
 	progressCallback := func(percent, processed, total int, message string) {
 		if qm != nil && jobID != "" {
 			if err := qm.UpdateProgress(jobID, percent, processed, total, message); err != nil {
-				log.Printf("[EscrowSyncHandler] Failed to update progress: %v", err)
+				log.Info().Msgf("[EscrowSyncHandler] Failed to update progress: %v", err)
 			}
 		}
 	}
@@ -88,13 +87,13 @@ func (h *EscrowSyncHandler) handleEscrowSync(ctx context.Context, payload, platf
 	}
 
 	if err != nil {
-		log.Printf("[EscrowSyncHandler] %s escrow sync failed: %v", platform, err)
+		log.Info().Msgf("[EscrowSyncHandler] %s escrow sync failed: %v", platform, err)
 		return "", err
 	}
 
 	// Store result
 	resultJSON, _ := json.Marshal(result)
-	log.Printf("[EscrowSyncHandler] %s escrow sync completed: %s", platform, string(resultJSON))
+	log.Info().Msgf("[EscrowSyncHandler] %s escrow sync completed: %s", platform, string(resultJSON))
 
 	return string(resultJSON), nil
 }

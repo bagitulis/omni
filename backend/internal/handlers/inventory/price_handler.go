@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services"
@@ -36,9 +37,9 @@ func NewPriceHandler(db *gorm.DB) *PriceHandler {
 // UpdatePrice handles POST /api/inventory/update-price
 // Gets price from inventory_records and syncs to marketplace platforms
 func (h *PriceHandler) UpdatePrice(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -87,9 +88,9 @@ func (h *PriceHandler) UpdatePrice(c *gin.Context) {
 
 // UpdatePriceBatch handles POST /api/inventory/update-price-batch
 func (h *PriceHandler) UpdatePriceBatch(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 

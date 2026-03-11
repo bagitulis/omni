@@ -80,7 +80,7 @@ func TestReportHandler_GetShopeeAdsReportByDate_MissingDate(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/reports/shopee/ads/", nil)
 	c.Params = gin.Params{{Key: "date", Value: ""}}
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	handler.GetShopeeAdsReportByDate(c)
 

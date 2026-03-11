@@ -152,7 +152,7 @@ func TestSimulationHandler_Simulate_InvalidJSON(t *testing.T) {
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/analytics/simulation/calculate",
 		strings.NewReader(`invalid`))
 	c.Request.Header.Set("Content-Type", "application/json")
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	handler.Simulate(c)
 

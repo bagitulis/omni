@@ -118,7 +118,7 @@ func TestTenant_ValidTenantFromHeader(t *testing.T) {
 	router.Use(Tenant())
 	router.GET("/test", func(c *gin.Context) {
 		tenantID := GetTenantID(c)
-		c.JSON(http.StatusOK, gin.H{"tenantID": tenantID})
+		c.JSON(http.StatusOK, gin.H{"tenant_id": tenantID})
 	})
 
 	req := httptest.NewRequest("GET", "/test", nil)
@@ -134,15 +134,15 @@ func TestTenant_ValidTenantFromHeader(t *testing.T) {
 
 func TestTenant_ValidTenantFromContext(t *testing.T) {
 	router := gin.New()
-	// Simulate Auth middleware setting tenantID
+	// Simulate Auth middleware setting tenant_id (canonical key)
 	router.Use(func(c *gin.Context) {
-		c.Set("tenantID", "yumna_bertigamart")
+		c.Set("tenant_id", "yumna_bertigamart")
 		c.Next()
 	})
 	router.Use(Tenant())
 	router.GET("/test", func(c *gin.Context) {
 		tenantID := GetTenantID(c)
-		c.JSON(http.StatusOK, gin.H{"tenantID": tenantID})
+		c.JSON(http.StatusOK, gin.H{"tenant_id": tenantID})
 	})
 
 	req := httptest.NewRequest("GET", "/test", nil)
@@ -204,14 +204,14 @@ func TestGetTenantID(t *testing.T) {
 	}
 
 	// Test with tenantID set (snake_case)
-	c.Set("tenantID", "tenant123")
+	c.Set("tenant_id", "tenant123")
 	if got := GetTenantID(c); got != "tenant123" {
 		t.Errorf("GetTenantID() = %v, want 'tenant123'", got)
 	}
 
 	// Test with tenantId set (camelCase fallback)
 	c2, _ := gin.CreateTestContext(httptest.NewRecorder())
-	c2.Set("tenantId", "tenant456")
+	c2.Set("tenant_id", "tenant456")
 	if got := GetTenantID(c2); got != "tenant456" {
 		t.Errorf("GetTenantID() camelCase = %v, want 'tenant456'", got)
 	}

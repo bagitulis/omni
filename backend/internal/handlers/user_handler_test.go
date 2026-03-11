@@ -93,7 +93,7 @@ func TestCreateUser_Success(t *testing.T) {
 
 	// Middleware to set context
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Set("userID", "admin-user")
 		c.Next()
 	})
@@ -108,11 +108,11 @@ func TestCreateUser_Success(t *testing.T) {
 			return
 		}
 
-		tenantID := c.GetString("tenantID")
+		tenantID := c.GetString("tenant_id")
 		if tenantID == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
-				"error":   "Missing tenantId",
+				"error":   "Missing tenant_id",
 			})
 			return
 		}
@@ -176,11 +176,11 @@ func TestCreateUser_MissingTenantID(t *testing.T) {
 			return
 		}
 
-		tenantID := c.GetString("tenantID")
+		tenantID := c.GetString("tenant_id")
 		if tenantID == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
-				"error":   "Missing tenantId",
+				"error":   "Missing tenant_id",
 			})
 			return
 		}
@@ -198,7 +198,7 @@ func TestCreateUser_MissingTenantID(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
-	assert.Contains(t, resp["error"], "tenantId")
+	assert.Contains(t, resp["error"], "tenant_id")
 }
 
 // TestUpdateUser_Success tests successful user update
@@ -287,7 +287,7 @@ func TestDeleteUser_Success(t *testing.T) {
 	mockUserSvc.On("DeleteUser", mock.Anything, "user-123", "admin-user", "tenant-456").Return(nil)
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-456")
+		c.Set("tenant_id", "tenant-456")
 		c.Set("userID", "admin-user")
 		c.Next()
 	})
@@ -302,7 +302,7 @@ func TestDeleteUser_Success(t *testing.T) {
 			return
 		}
 
-		tenantID := c.GetString("tenantID")
+		tenantID := c.GetString("tenant_id")
 		deletedBy := c.GetString("userID")
 
 		if err := mockUserSvc.DeleteUser(c.Request.Context(), userID, deletedBy, tenantID); err != nil {
@@ -505,7 +505,7 @@ func TestUnlockUser_Success(t *testing.T) {
 	mockUserSvc.On("UnlockUser", mock.Anything, "locked-user", "admin-user", "tenant-123").Return(nil)
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Set("userID", "admin-user")
 		c.Next()
 	})
@@ -520,7 +520,7 @@ func TestUnlockUser_Success(t *testing.T) {
 			return
 		}
 
-		tenantID := c.GetString("tenantID")
+		tenantID := c.GetString("tenant_id")
 		unlockedBy := c.GetString("userID")
 
 		if err := mockUserSvc.UnlockUser(c.Request.Context(), userID, unlockedBy, tenantID); err != nil {
@@ -557,7 +557,7 @@ func TestCreateUser_InvalidRequest(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Set("userID", "admin-user")
 		c.Next()
 	})
@@ -598,7 +598,7 @@ func TestCreateUser_DuplicateUsername(t *testing.T) {
 		Return(nil, errors.New("username already exists"))
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Set("userID", "admin-user")
 		c.Next()
 	})
@@ -613,7 +613,7 @@ func TestCreateUser_DuplicateUsername(t *testing.T) {
 			return
 		}
 
-		tenantID := c.GetString("tenantID")
+		tenantID := c.GetString("tenant_id")
 		createdBy := c.GetString("userID")
 
 		_, err := mockUserSvc.CreateUser(c.Request.Context(), &services.CreateUserRequest{

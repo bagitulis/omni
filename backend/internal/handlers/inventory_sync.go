@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/google"
 	inventoryService "github.com/omni/backend/internal/services/inventory"
@@ -62,11 +63,11 @@ func (h *InventoryHandler) getInventorySpreadsheetConfig(c *gin.Context, tenantI
 // Syncs inventory data FROM Google Sheets TO database
 func (h *InventoryHandler) SyncFromSheets(c *gin.Context) {
 	startTime := time.Now()
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"status":  "FAILED",
-			"message": "Missing tenantId",
+			"message": "Missing tenant_id",
 		})
 		return
 	}
@@ -163,11 +164,11 @@ type SyncToSheetsRequest struct {
 // SyncToSheets handles POST /api/inventory/sync/to-sheets
 // Syncs inventory data FROM database TO Google Sheets
 func (h *InventoryHandler) SyncToSheets(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"status":  "FAILED",
-			"message": "Missing tenantId",
+			"message": "Missing tenant_id",
 		})
 		return
 	}

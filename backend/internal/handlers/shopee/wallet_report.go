@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/google"
 	shopeeService "github.com/omni/backend/internal/services/shopee"
 )
@@ -26,11 +27,11 @@ func NewWalletReportHandler(getAPIClient func(tenantID string) shopeeService.API
 // GetWalletReport handles POST /api/shopee/wallet/report
 // Generates wallet report for specified month/year
 func (h *WalletReportHandler) GetWalletReport(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -94,11 +95,11 @@ func (h *WalletReportHandler) GetWalletReport(c *gin.Context) {
 // ExportWallet handles POST /api/shopee/wallet/export
 // Exports wallet transactions to various formats
 func (h *WalletReportHandler) ExportWallet(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -168,11 +169,11 @@ func (h *WalletReportHandler) ExportWallet(c *gin.Context) {
 // ExportToSheets handles POST /api/shopee/wallet/export-to-sheets
 // Exports wallet transactions to Google Sheets
 func (h *WalletReportHandler) ExportToSheets(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

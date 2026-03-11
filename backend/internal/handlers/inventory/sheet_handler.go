@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	inventoryService "github.com/omni/backend/internal/services/inventory"
 	"gorm.io/gorm"
 )
@@ -21,9 +22,9 @@ func NewSheetHandler(db *gorm.DB, sheetsClient inventoryService.SheetWriterClien
 
 // ExportToSheet handles POST /api/inventory/export-to-sheet
 func (h *SheetHandler) ExportToSheet(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -57,9 +58,9 @@ func (h *SheetHandler) ExportToSheet(c *gin.Context) {
 
 // ImportFromSheet handles POST /api/inventory/import-from-sheet
 func (h *SheetHandler) ImportFromSheet(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -95,9 +96,9 @@ func (h *SheetHandler) ImportFromSheet(c *gin.Context) {
 
 // SyncFromSheet handles POST /api/inventory/sync-from-sheet
 func (h *SheetHandler) SyncFromSheet(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -131,9 +132,9 @@ func (h *SheetHandler) SyncFromSheet(c *gin.Context) {
 
 // Export handles GET /api/inventory/export (CSV/Excel export)
 func (h *SheetHandler) Export(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -152,9 +153,9 @@ func (h *SheetHandler) Export(c *gin.Context) {
 
 // PartialSync handles POST /api/inventory/sync/partial
 func (h *SheetHandler) PartialSync(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 

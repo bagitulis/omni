@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/security"
 )
 
@@ -20,7 +21,7 @@ func NewSecurityHandler(ns *security.NotificationService) *SecurityHandler {
 
 // GetAlerts handles GET /api/security/alerts
 func (h *SecurityHandler) GetAlerts(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 
 	filter := security.AlertFilter{
 		TenantID: tenantID,
@@ -46,7 +47,7 @@ func (h *SecurityHandler) GetAlerts(c *gin.Context) {
 
 // ReportIssue handles POST /api/security/report
 func (h *SecurityHandler) ReportIssue(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 
 	var req struct {
 		Type        string                 `json:"type" binding:"required"`

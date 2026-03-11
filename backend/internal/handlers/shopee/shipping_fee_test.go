@@ -47,7 +47,7 @@ func TestShippingFeeHandler_ProcessShippingFee_InvalidJSON(t *testing.T) {
 	}, nil)
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/shopee/shipping/process-fee", handler.ProcessShippingFee)
@@ -76,7 +76,7 @@ func TestShippingFeeHandler_ProcessShippingFee_EmptyList(t *testing.T) {
 	}, nil)
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/shopee/shipping/process-fee", handler.ProcessShippingFee)
@@ -130,7 +130,7 @@ func TestShippingFeeHandler_ExportShippingFee_MissingRequiredFields(t *testing.T
 	}, nil)
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/shopee/shipping/export-fee", handler.ExportShippingFee)
@@ -186,7 +186,7 @@ func TestShippingFeeHandler_ExportToSheets_NoGoogleAuth(t *testing.T) {
 	}, nil)
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/shopee/shipping/export-to-sheets", handler.ExportToSheets)
@@ -215,7 +215,7 @@ func TestShippingFeeHandler_ExportToSheets_MissingRequiredFields(t *testing.T) {
 	}, nil)
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/shopee/shipping/export-to-sheets", handler.ExportToSheets)

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/products"
 	"gorm.io/gorm"
 )
@@ -26,9 +27,9 @@ func NewProductCreateHandler(db *gorm.DB) *ProductCreateHandler {
 
 // CreateOnShopee handles POST /api/products/create/shopee
 func (h *ProductCreateHandler) CreateOnShopee(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 
@@ -62,9 +63,9 @@ func (h *ProductCreateHandler) CreateOnShopee(c *gin.Context) {
 
 // CreateOnLazada handles POST /api/products/create/lazada
 func (h *ProductCreateHandler) CreateOnLazada(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 
@@ -97,9 +98,9 @@ func (h *ProductCreateHandler) CreateOnLazada(c *gin.Context) {
 
 // CreateOnTiktok handles POST /api/products/create/tiktok
 func (h *ProductCreateHandler) CreateOnTiktok(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 

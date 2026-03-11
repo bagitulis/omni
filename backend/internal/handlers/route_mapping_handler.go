@@ -28,7 +28,7 @@ func NewRouteMappingHandler(engine *gin.Engine) *RouteMappingHandler {
 func (h *RouteMappingHandler) GetRoutes(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -43,7 +43,7 @@ func (h *RouteMappingHandler) GetRoutes(c *gin.Context) {
 func (h *RouteMappingHandler) GetRoutesByPlatform(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -74,7 +74,7 @@ func (h *RouteMappingHandler) GetRoutesByPlatform(c *gin.Context) {
 func (h *RouteMappingHandler) GetHandlers(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -109,7 +109,7 @@ func (h *RouteMappingHandler) GetHandlers(c *gin.Context) {
 func (h *RouteMappingHandler) GetServices(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -120,7 +120,7 @@ func (h *RouteMappingHandler) GetServices(c *gin.Context) {
 func (h *RouteMappingHandler) GetMiddleware(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -131,7 +131,7 @@ func (h *RouteMappingHandler) GetMiddleware(c *gin.Context) {
 func (h *RouteMappingHandler) GetUnused(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -142,7 +142,7 @@ func (h *RouteMappingHandler) GetUnused(c *gin.Context) {
 func (h *RouteMappingHandler) GetDuplicates(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -181,7 +181,7 @@ func (h *RouteMappingHandler) GetDuplicates(c *gin.Context) {
 func (h *RouteMappingHandler) AnalyzeRoutes(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

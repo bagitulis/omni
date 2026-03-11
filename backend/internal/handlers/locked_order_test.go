@@ -44,7 +44,7 @@ func TestLockedOrderSave_InvalidBody(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -123,7 +123,7 @@ func TestLockedOrderSave_EmptyItems(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -165,7 +165,7 @@ func TestLockedOrderGet_ResponseFormat(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -200,7 +200,7 @@ func TestLockedOrderClear_SuccessResponse(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 

@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/stock"
 	"gorm.io/gorm"
@@ -22,9 +23,9 @@ func NewStockHandler(db *gorm.DB) *StockHandler {
 
 // List handles GET /api/stock
 func (h *StockHandler) List(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -35,7 +36,7 @@ func (h *StockHandler) List(c *gin.Context) {
 	svc := stock.NewStockService(h.db, tenantID)
 	stocks, total, err := svc.GetAllStock(c.Request.Context(), lowStockOnly, limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -52,27 +53,27 @@ func (h *StockHandler) List(c *gin.Context) {
 
 // GetBySKU handles GET /api/stock/:sku
 func (h *StockHandler) GetBySKU(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	sku := c.Param("sku")
 	if sku == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "SKU required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "SKU required"})
 		return
 	}
 
 	svc := stock.NewStockService(h.db, tenantID)
 	stockInfo, err := svc.GetStock(c.Request.Context(), sku)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	if stockInfo == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "SKU not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "SKU not found"})
 		return
 	}
 
@@ -81,15 +82,15 @@ func (h *StockHandler) GetBySKU(c *gin.Context) {
 
 // Update handles PUT /api/stock/:sku
 func (h *StockHandler) Update(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	sku := c.Param("sku")
 	if sku == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "SKU required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "SKU required"})
 		return
 	}
 
@@ -98,7 +99,7 @@ func (h *StockHandler) Update(c *gin.Context) {
 		Platforms []string `json:"platforms"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -109,7 +110,7 @@ func (h *StockHandler) Update(c *gin.Context) {
 		Platforms: req.Platforms,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -118,22 +119,22 @@ func (h *StockHandler) Update(c *gin.Context) {
 
 // BulkUpdate handles POST /api/stock/bulk
 func (h *StockHandler) BulkUpdate(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	var req models.BulkStockUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	svc := stock.NewStockService(h.db, tenantID)
 	result, err := svc.BulkUpdateStock(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -142,16 +143,16 @@ func (h *StockHandler) BulkUpdate(c *gin.Context) {
 
 // GetAlerts handles GET /api/stock/alerts
 func (h *StockHandler) GetAlerts(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	svc := stock.NewStockService(h.db, tenantID)
 	alerts, err := svc.GetLowStockAlerts(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 

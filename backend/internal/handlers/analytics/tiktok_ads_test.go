@@ -32,7 +32,7 @@ func TestTiktokAdsHandler_GetData(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/analytics/tiktok/ads", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.GetData(c)
 
@@ -62,7 +62,7 @@ func TestTiktokAdsHandler_GetUploads(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/analytics/tiktok/ads/uploads", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.GetUploads(c)
 

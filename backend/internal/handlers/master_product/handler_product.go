@@ -19,7 +19,7 @@ import (
 func (h *Handler) Update(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -85,7 +85,7 @@ func (h *Handler) Update(c *gin.Context) {
 			return
 		}
 		if errors.Is(err, masterProductService.ErrTenantIDRequired) {
-			c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+			c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 			return
 		}
 
@@ -106,7 +106,7 @@ func (h *Handler) Update(c *gin.Context) {
 func (h *Handler) Delete(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -137,7 +137,7 @@ func (h *Handler) Delete(c *gin.Context) {
 			return
 		}
 		if errors.Is(err, masterProductService.ErrTenantIDRequired) {
-			c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+			c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 			return
 		}
 

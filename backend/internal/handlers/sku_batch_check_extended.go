@@ -1,9 +1,11 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 	"time"
+
+	"github.com/omni/backend/internal/middleware"
+	"github.com/rs/zerolog/log"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -12,11 +14,11 @@ import (
 // BatchSavePlatformStatus handles POST /api/inventory/batch-save-platform-status
 // Save SKU platform check results to database for caching
 func (h *SkuBatchCheckHandler) BatchSavePlatformStatus(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -40,7 +42,7 @@ func (h *SkuBatchCheckHandler) BatchSavePlatformStatus(c *gin.Context) {
 
 	db, err := h.getDB(c)
 	if err != nil {
-		log.Printf("[ERROR] Failed to get tenant database: %v", err)
+		log.Info().Msgf("[ERROR] Failed to get tenant database: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   "Database connection error",
@@ -50,7 +52,7 @@ func (h *SkuBatchCheckHandler) BatchSavePlatformStatus(c *gin.Context) {
 
 	// Ensure table exists
 	if err := h.ensureTableExists(db); err != nil {
-		log.Printf("[ERROR] Failed to ensure table exists: %v", err)
+		log.Info().Msgf("[ERROR] Failed to ensure table exists: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   "Failed to create table",
@@ -72,7 +74,7 @@ func (h *SkuBatchCheckHandler) BatchSavePlatformStatus(c *gin.Context) {
 	deleteResult := tx.Where("tenant_id = ?", tenantID).Delete(&SkuPlatformCheckResult{})
 	if deleteResult.Error != nil {
 		tx.Rollback()
-		log.Printf("[ERROR] Failed to delete old records: %v", deleteResult.Error)
+		log.Info().Msgf("[ERROR] Failed to delete old records: %v", deleteResult.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   "Failed to delete old records",
@@ -99,7 +101,7 @@ func (h *SkuBatchCheckHandler) BatchSavePlatformStatus(c *gin.Context) {
 
 	if err := tx.CreateInBatches(records, 100).Error; err != nil {
 		tx.Rollback()
-		log.Printf("[ERROR] Failed to insert new records: %v", err)
+		log.Info().Msgf("[ERROR] Failed to insert new records: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   "Failed to save platform status",
@@ -108,7 +110,7 @@ func (h *SkuBatchCheckHandler) BatchSavePlatformStatus(c *gin.Context) {
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		log.Printf("[ERROR] Failed to commit transaction: %v", err)
+		log.Info().Msgf("[ERROR] Failed to commit transaction: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   "Failed to commit changes",
@@ -116,7 +118,7 @@ func (h *SkuBatchCheckHandler) BatchSavePlatformStatus(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[INFO] Batch save platform status - tenant: %s, deleted: %d, saved: %d",
+	log.Info().Msgf("[INFO] Batch save platform status - tenant: %s, deleted: %d, saved: %d",
 		tenantID, deletedCount, len(records))
 
 	c.JSON(http.StatusOK, gin.H{
@@ -132,18 +134,18 @@ func (h *SkuBatchCheckHandler) BatchSavePlatformStatus(c *gin.Context) {
 // GetPlatformStatus handles GET /api/inventory/platform-status
 // Load cached SKU platform check results from database
 func (h *SkuBatchCheckHandler) GetPlatformStatus(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
 
 	db, err := h.getDB(c)
 	if err != nil {
-		log.Printf("[ERROR] Failed to get tenant database: %v", err)
+		log.Info().Msgf("[ERROR] Failed to get tenant database: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   "Database connection error",
@@ -167,7 +169,7 @@ func (h *SkuBatchCheckHandler) GetPlatformStatus(c *gin.Context) {
 	if err := db.Where("tenant_id = ?", tenantID).
 		Order("checked_at DESC").
 		Find(&records).Error; err != nil {
-		log.Printf("[ERROR] Failed to load platform status: %v", err)
+		log.Info().Msgf("[ERROR] Failed to load platform status: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   "Failed to load platform status",

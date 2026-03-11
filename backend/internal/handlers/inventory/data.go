@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	inventoryService "github.com/omni/backend/internal/services/inventory"
 	"gorm.io/gorm"
 )
@@ -21,9 +22,9 @@ func NewDataHandler(db *gorm.DB) *DataHandler {
 
 // List handles GET /api/inventory/data
 func (h *DataHandler) List(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 
@@ -52,9 +53,9 @@ func (h *DataHandler) List(c *gin.Context) {
 
 // GetBySKU handles GET /api/inventory/data/:sku
 func (h *DataHandler) GetBySKU(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 
@@ -81,9 +82,9 @@ func (h *DataHandler) GetBySKU(c *gin.Context) {
 
 // Update handles PUT /api/inventory/data/:sku
 func (h *DataHandler) Update(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 
@@ -115,9 +116,9 @@ func (h *DataHandler) Update(c *gin.Context) {
 
 // Delete handles DELETE /api/inventory/data/:sku
 func (h *DataHandler) Delete(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 
@@ -138,9 +139,9 @@ func (h *DataHandler) Delete(c *gin.Context) {
 
 // GetCategories handles GET /api/inventory/categories
 func (h *DataHandler) GetCategories(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 

@@ -6,15 +6,16 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"gorm.io/gorm"
 )
 
 // GetSelectedColumns handles GET /api/inventory/columns/selected
 func (h *InventoryHandler) GetSelectedColumns(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -62,9 +63,9 @@ func (h *InventoryHandler) GetSelectedColumns(c *gin.Context) {
 
 // UpdateSelectedColumns handles POST /api/inventory/columns/selected
 func (h *InventoryHandler) UpdateSelectedColumns(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -122,9 +123,9 @@ type AvailableColumn struct {
 
 // GetAvailableColumns handles GET /api/inventory/columns/available
 func (h *InventoryHandler) GetAvailableColumns(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 

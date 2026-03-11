@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/jobs"
 	"gorm.io/gorm"
@@ -26,7 +27,7 @@ func (h *JobQueueHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 
 // AddJob handles POST /api/jobs
 func (h *JobQueueHandler) AddJob(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
@@ -56,7 +57,7 @@ func (h *JobQueueHandler) AddJob(c *gin.Context) {
 
 // ListJobs handles GET /api/jobs
 func (h *JobQueueHandler) ListJobs(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
@@ -91,7 +92,7 @@ func (h *JobQueueHandler) ListJobs(c *gin.Context) {
 
 // GetJob handles GET /api/jobs/:id
 func (h *JobQueueHandler) GetJob(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
@@ -121,7 +122,7 @@ func (h *JobQueueHandler) GetJob(c *gin.Context) {
 
 // CancelJob handles DELETE /api/jobs/:id
 func (h *JobQueueHandler) CancelJob(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
@@ -150,7 +151,7 @@ func (h *JobQueueHandler) CancelJob(c *gin.Context) {
 
 // GetHistory handles GET /api/jobs/history
 func (h *JobQueueHandler) GetHistory(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
@@ -174,7 +175,7 @@ func (h *JobQueueHandler) GetHistory(c *gin.Context) {
 
 // GetStats handles GET /api/jobs/stats
 func (h *JobQueueHandler) GetStats(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
@@ -198,7 +199,7 @@ func (h *JobQueueHandler) GetStats(c *gin.Context) {
 
 // EnqueueJob handles POST /api/jobs/enqueue
 func (h *JobQueueHandler) EnqueueJob(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
@@ -236,7 +237,7 @@ func (h *JobQueueHandler) EnqueueJob(c *gin.Context) {
 
 // GetStatus handles GET /api/jobs/status
 func (h *JobQueueHandler) GetStatus(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
@@ -261,7 +262,7 @@ func (h *JobQueueHandler) GetStatus(c *gin.Context) {
 
 // GetJobStatus handles GET /api/jobs/status/:jobId
 func (h *JobQueueHandler) GetJobStatus(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return

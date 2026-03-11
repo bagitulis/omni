@@ -28,7 +28,7 @@ func TestOrderSyncHandler_SyncByCategory_MissingCategory(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request, _ = http.NewRequest("POST", "/api/orders/sync/", nil)
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	h := NewOrderSyncHandler()
 	h.SyncByCategory(c)
@@ -88,7 +88,7 @@ func TestOrderSyncHandler_GetOrderDetails_MissingParams(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request, _ = http.NewRequest("GET", "/api/orders/details/shopee", nil)
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	h := NewOrderSyncHandler()
 	h.GetOrderDetails(c)

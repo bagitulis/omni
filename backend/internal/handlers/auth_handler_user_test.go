@@ -56,7 +56,7 @@ func TestGetCurrentUser_Success_Direct(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request, _ = http.NewRequest("GET", "/api/auth/me", nil)
 	c.Set("userID", "test-user-id")
-	c.Set("tenantID", "test-tenant-id")
+	c.Set("tenant_id", "test-tenant-id")
 	c.Set("role", "admin")
 
 	h := &AuthHandler{}

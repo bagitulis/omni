@@ -25,7 +25,7 @@ func TestSyncHandler_TriggerSync(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.Contains(t, resp["error"], "tenantId")
+		assert.Contains(t, resp["error"], "tenant_id")
 	})
 }
 
@@ -44,7 +44,7 @@ func TestSyncHandler_GetSyncHistory(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.Contains(t, resp["error"], "tenantId")
+		assert.Contains(t, resp["error"], "tenant_id")
 	})
 }
 

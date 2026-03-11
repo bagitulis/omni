@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services"
 )
 
@@ -20,9 +21,9 @@ func NewReportHandler(reportService *services.ReportService) *ReportHandler {
 
 // GetShopeeAdsReport handles GET /api/reports/shopee/ads
 func (h *ReportHandler) GetShopeeAdsReport(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -46,9 +47,9 @@ func (h *ReportHandler) GetShopeeAdsReport(c *gin.Context) {
 
 // GetLatestShopeeAdsReport handles GET /api/reports/shopee/ads/latest
 func (h *ReportHandler) GetLatestShopeeAdsReport(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -63,9 +64,9 @@ func (h *ReportHandler) GetLatestShopeeAdsReport(c *gin.Context) {
 
 // GetShopeeAdsReportByDate handles GET /api/reports/shopee/ads/:date
 func (h *ReportHandler) GetShopeeAdsReportByDate(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -86,9 +87,9 @@ func (h *ReportHandler) GetShopeeAdsReportByDate(c *gin.Context) {
 
 // GetTiktokAdsReport handles GET /api/reports/tiktok/ads
 func (h *ReportHandler) GetTiktokAdsReport(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -112,9 +113,9 @@ func (h *ReportHandler) GetTiktokAdsReport(c *gin.Context) {
 
 // GetLatestTiktokAdsReport handles GET /api/reports/tiktok/ads/latest
 func (h *ReportHandler) GetLatestTiktokAdsReport(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 

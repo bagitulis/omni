@@ -78,7 +78,7 @@ func TestJobQueueGetJob_MissingJobID(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -167,7 +167,7 @@ func TestJobQueueEnqueueJob_InvalidBody(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -199,7 +199,7 @@ func TestJobQueueEnqueueJob_DefaultPriority(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -293,7 +293,7 @@ func TestJobQueueGetQueue_CustomLimit(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -358,7 +358,7 @@ func TestJobQueueGetHistoryPaginated_CustomPagination(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -476,7 +476,7 @@ func TestJobQueueCheckTimeout_CustomTimeout(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 

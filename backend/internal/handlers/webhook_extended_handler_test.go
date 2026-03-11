@@ -200,7 +200,7 @@ func TestWebhookExtendedHandler_TestWebhook(t *testing.T) {
 				"data":       map[string]interface{}{"order_sn": "123"},
 			},
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusOK,
 		},
@@ -210,7 +210,7 @@ func TestWebhookExtendedHandler_TestWebhook(t *testing.T) {
 				"data": map[string]interface{}{},
 			},
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -262,7 +262,7 @@ func TestWebhookExtendedHandler_GetWebhookConfig(t *testing.T) {
 		{
 			name: "valid_tenant_returns_config",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusOK,
 		},

@@ -22,7 +22,7 @@ func TestSecurityHandler_ReportIssue_MissingBody(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -43,7 +43,7 @@ func TestSecurityHandler_ReportIssue_MissingRequiredFields(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -66,7 +66,7 @@ func TestSecurityHandler_ReportIssue_InvalidJSON(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 

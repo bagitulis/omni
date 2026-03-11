@@ -1,11 +1,13 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	masterProductService "github.com/omni/backend/internal/services/master_product"
 	"github.com/omni/backend/internal/services/products"
 	"gorm.io/gorm"
@@ -44,11 +46,11 @@ func (h *ProductMasterHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/products/master [get]
 func (h *ProductMasterHandler) GetMasterProductList(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -99,11 +101,11 @@ func (h *ProductMasterHandler) GetMasterProductList(c *gin.Context) {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/products/master/stats [get]
 func (h *ProductMasterHandler) GetMasterProductStats(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -141,11 +143,11 @@ func (h *ProductMasterHandler) GetMasterProductStats(c *gin.Context) {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/products/{platform}/{itemId} [get]
 func (h *ProductMasterHandler) GetProductByID(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -189,9 +191,9 @@ func (h *ProductMasterHandler) GetProductByID(c *gin.Context) {
 // SyncSelected handles POST /api/products/master/sync-selected
 // Syncs selected products from marketplace APIs to refresh price/stock.
 func (h *ProductMasterHandler) SyncSelected(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -221,6 +223,6 @@ func (h *ProductMasterHandler) SyncSelected(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[SyncSelected] Result: synced=%d, failed=%d, details=%v", result.Synced, result.Failed, result.Details)
+	log.Info().Msgf("[SyncSelected] Result: synced=%d, failed=%d, details=%v", result.Synced, result.Failed, result.Details)
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
 }

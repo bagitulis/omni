@@ -35,7 +35,7 @@ func TestInventoryHandler_UpdateConfig(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "Missing tenantId")
+		assert.Contains(t, resp["error"], "Missing tenant_id")
 	})
 
 	t.Run("invalid selected columns type returns 400", func(t *testing.T) {
@@ -115,7 +115,7 @@ func TestInventoryHandler_UpdateConfig_DoesNotInsertDuplicateEmptyPrimaryKey(t *
 	c.Request = httptest.NewRequest(http.MethodPut, "/api/inventory/config", bytes.NewReader(bodyBytes))
 	c.Request.Header.Set("Content-Type", "application/json")
 	c.Set("tenant_id", "test-tenant")
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	handler.UpdateConfig(c)
 

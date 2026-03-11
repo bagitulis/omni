@@ -33,7 +33,7 @@ func TestAutoFunctionList_MissingTenant(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
-	assert.Contains(t, resp["error"], "Missing tenantId")
+	assert.Contains(t, resp["error"], "Missing tenant_id")
 }
 
 // TestAutoFunctionGetByName_MissingTenant tests getting auto function by name without tenant
@@ -74,7 +74,7 @@ func TestAutoFunctionCreate_InvalidBody(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -98,7 +98,7 @@ func TestAutoFunctionCreate_InvalidInterval(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -156,7 +156,7 @@ func TestAutoFunctionUpdate_InvalidTimeWindow(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -283,7 +283,7 @@ func TestAutoFunctionRun_MissingExecutor(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -325,7 +325,7 @@ func TestAutoFunctionGetHistory_MissingExecutor(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -352,7 +352,7 @@ func TestAutoFunctionGetHistory_WithLimit(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 

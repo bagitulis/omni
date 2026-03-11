@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
+	"github.com/omni/backend/internal/middleware"
 	"gorm.io/gorm"
 )
 
@@ -16,7 +17,7 @@ type DBGetter func(tenantID string) (*gorm.DB, error)
 // This should be called in each handler method to get the correct DB
 // AGENTS.MD: TIDAK ADA DEFAULT TENANT - harus error jika kosong
 func GetTenantDB(c *gin.Context) (*gorm.DB, error) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	// HARD GUARD: Reject empty tenant ID immediately
 	if tenantID == "" {
 		return nil, config.ErrMissingTenantID
@@ -39,7 +40,7 @@ func GetTenantDB(c *gin.Context) (*gorm.DB, error) {
 // This is the preferred method to use in handlers
 // AGENTS.MD: TIDAK ADA DEFAULT TENANT - harus error jika kosong
 func GetTenantDBFromContext(c *gin.Context, fallbackDB *gorm.DB) (*gorm.DB, error) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	// HARD GUARD: Reject empty tenant ID immediately
 	if tenantID == "" {
 		return nil, config.ErrMissingTenantID

@@ -40,7 +40,7 @@ func TestProductCreateHandler_SaveDraft_InvalidJSON(t *testing.T) {
 	r := gin.New()
 	handler := NewCreateHandler("/test/path")
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/tiktok/products/draft", handler.SaveDraft)
@@ -59,7 +59,7 @@ func TestProductCreateHandler_SaveDraft_FailsWithoutDB(t *testing.T) {
 	r := gin.New()
 	handler := NewCreateHandler("/test/path")
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/tiktok/products/draft", handler.SaveDraft)

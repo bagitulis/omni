@@ -3,7 +3,7 @@ package jobs
 
 import (
 	"context"
-	"log"
+	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
 
@@ -42,7 +42,7 @@ func (e *MultiTenantExecutor) RegisterHandler(jobType string, handler JobHandler
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.handlers[jobType] = handler
-	log.Printf("[MultiTenantExecutor] Registered handler for job type: %s", jobType)
+	log.Info().Msgf("[MultiTenantExecutor] Registered handler for job type: %s", jobType)
 }
 
 // Start starts the executor
@@ -58,7 +58,7 @@ func (e *MultiTenantExecutor) Start() {
 	e.wg.Add(1)
 	go e.pollLoop()
 
-	log.Printf("[MultiTenantExecutor] Started with poll interval %v, job timeout %v", e.pollInterval, e.jobTimeout)
+	log.Info().Msgf("[MultiTenantExecutor] Started with poll interval %v, job timeout %v", e.pollInterval, e.jobTimeout)
 }
 
 // Stop stops the executor gracefully
@@ -73,7 +73,7 @@ func (e *MultiTenantExecutor) Stop() {
 
 	close(e.stopCh)
 	e.wg.Wait()
-	log.Println("[MultiTenantExecutor] Stopped")
+	log.Info().Msg("[MultiTenantExecutor] Stopped")
 }
 
 // pollLoop continuously polls for pending jobs across all tenants
@@ -97,7 +97,7 @@ func (e *MultiTenantExecutor) pollLoop() {
 func (e *MultiTenantExecutor) processAllTenants() {
 	tenants, err := e.getTenantList()
 	if err != nil {
-		log.Printf("[MultiTenantExecutor] Error getting tenant list: %v", err)
+		log.Info().Msgf("[MultiTenantExecutor] Error getting tenant list: %v", err)
 		return
 	}
 
@@ -138,7 +138,7 @@ func (e *MultiTenantExecutor) getTenantList() ([]string, error) {
 func (e *MultiTenantExecutor) processTenantJobs(tenantID string) {
 	tenantDB, err := config.GetTenantDBByID(tenantID)
 	if err != nil {
-		log.Printf("[MultiTenantExecutor] Error getting tenant DB for %s: %v", tenantID, err)
+		log.Info().Msgf("[MultiTenantExecutor] Error getting tenant DB for %s: %v", tenantID, err)
 		return
 	}
 
@@ -149,7 +149,7 @@ func (e *MultiTenantExecutor) processTenantJobs(tenantID string) {
 	}
 
 	job := jobs[0]
-	log.Printf("[MultiTenantExecutor] Processing job %s (type: %s) for tenant %s", job.ID, job.Type, tenantID)
+	log.Info().Msgf("[MultiTenantExecutor] Processing job %s (type: %s) for tenant %s", job.ID, job.Type, tenantID)
 	e.executeJob(tenantDB, tenantID, &job)
 }
 
@@ -160,7 +160,7 @@ func (e *MultiTenantExecutor) executeJob(tenantDB *gorm.DB, tenantID string, job
 	e.mu.RUnlock()
 
 	if !ok {
-		log.Printf("[MultiTenantExecutor] No handler for job type: %s", job.Type)
+		log.Info().Msgf("[MultiTenantExecutor] No handler for job type: %s", job.Type)
 		qm := NewQueueManager(tenantDB, tenantID)
 		qm.UpdateStatus(job.ID, models.JobStatusFailed, "no handler for job type: "+job.Type)
 		return
@@ -170,7 +170,7 @@ func (e *MultiTenantExecutor) executeJob(tenantDB *gorm.DB, tenantID string, job
 
 	// Mark as running
 	if err := qm.UpdateStatus(job.ID, models.JobStatusRunning, ""); err != nil {
-		log.Printf("[MultiTenantExecutor] Failed to update job status: %v", err)
+		log.Info().Msgf("[MultiTenantExecutor] Failed to update job status: %v", err)
 		return
 	}
 
@@ -191,14 +191,14 @@ func (e *MultiTenantExecutor) executeJob(tenantDB *gorm.DB, tenantID string, job
 
 	select {
 	case <-ctx.Done():
-		log.Printf("[MultiTenantExecutor] Job %s timed out after %v", job.ID, e.jobTimeout)
+		log.Info().Msgf("[MultiTenantExecutor] Job %s timed out after %v", job.ID, e.jobTimeout)
 		qm.FailJob(job.ID, "job timed out after "+e.jobTimeout.String())
 	case res := <-resultCh:
 		if res.err != nil {
-			log.Printf("[MultiTenantExecutor] Job %s failed: %v", job.ID, res.err)
+			log.Info().Msgf("[MultiTenantExecutor] Job %s failed: %v", job.ID, res.err)
 			qm.FailJob(job.ID, res.err.Error())
 		} else {
-			log.Printf("[MultiTenantExecutor] Job %s completed successfully", job.ID)
+			log.Info().Msgf("[MultiTenantExecutor] Job %s completed successfully", job.ID)
 			qm.CompleteJobWithResult(job.ID, res.result)
 		}
 	}

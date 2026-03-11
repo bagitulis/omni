@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"os"
 	"time"
 
@@ -104,7 +104,7 @@ func openPostgresDatabase(config *PostgresConfig) (*gorm.DB, error) {
 	sqlDB.SetConnMaxLifetime(connMaxLife)
 	sqlDB.SetConnMaxIdleTime(connMaxIdle)
 
-	log.Printf("PostgreSQL connection established (schema: %s, pool: %d/%d)",
+	log.Info().Msgf("PostgreSQL connection established (schema: %s, pool: %d/%d)",
 		config.Schema, maxOpen, maxIdle)
 
 	return db, nil

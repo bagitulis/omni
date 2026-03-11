@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Run tests from frontend/ (npm test) or backend/ (go test ./...)\" && exit 0"
+    "test": "echo \"Run tests from frontend/ (npm test) or backend/ (go test ./...)\" && exit 1"
   },
   "repository": {
     "type": "git",

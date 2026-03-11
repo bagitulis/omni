@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services"
 )
@@ -37,11 +38,11 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -128,7 +129,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	deletedBy := c.GetString("userID")
 
 	if err := h.userService.DeleteUser(c.Request.Context(), userID, deletedBy, tenantID); err != nil {
@@ -212,7 +213,7 @@ func (h *UserHandler) UnlockUser(c *gin.Context) {
 		return
 	}
 
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	unlockedBy := c.GetString("userID")
 
 	if err := h.userService.UnlockUser(c.Request.Context(), userID, unlockedBy, tenantID); err != nil {

@@ -31,7 +31,7 @@ func TestWholesaleExtendedHandler_BatchWholesaleReset_InvalidJSON(t *testing.T) 
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -53,7 +53,7 @@ func TestWholesaleExtendedHandler_BatchWholesaleReset_EmptyItems(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -75,7 +75,7 @@ func TestWholesaleExtendedHandler_BatchWholesaleReset_DBError(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 

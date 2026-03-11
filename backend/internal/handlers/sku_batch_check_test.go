@@ -35,7 +35,7 @@ func TestSkuBatchCheckHandler_BatchCheckSku_MissingTenant(t *testing.T) {
 	var resp map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.False(t, resp["success"].(bool))
-	assert.Contains(t, resp["error"], "Missing tenantId")
+	assert.Contains(t, resp["error"], "Missing tenant_id")
 }
 
 // TestSkuBatchCheckHandler_BatchCheckSku_InvalidBody tests BatchCheckSku with invalid body
@@ -49,7 +49,7 @@ func TestSkuBatchCheckHandler_BatchCheckSku_InvalidBody(t *testing.T) {
 	body := bytes.NewBufferString(`{}`) // Missing required skus
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory/batch-check-sku", body)
 	c.Request.Header.Set("Content-Type", "application/json")
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	handler.BatchCheckSku(c)
 
@@ -72,7 +72,7 @@ func TestSkuBatchCheckHandler_BatchCheckSku_EmptySkus(t *testing.T) {
 	body := bytes.NewBufferString(`{"skus":[]}`)
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory/batch-check-sku", body)
 	c.Request.Header.Set("Content-Type", "application/json")
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	handler.BatchCheckSku(c)
 
@@ -104,7 +104,7 @@ func TestSkuBatchCheckHandler_BatchSavePlatformStatus_MissingTenant(t *testing.T
 	var resp map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.False(t, resp["success"].(bool))
-	assert.Contains(t, resp["error"], "Missing tenantId")
+	assert.Contains(t, resp["error"], "Missing tenant_id")
 }
 
 // TestSkuBatchCheckHandler_BatchSavePlatformStatus_InvalidBody tests BatchSavePlatformStatus with invalid body
@@ -118,7 +118,7 @@ func TestSkuBatchCheckHandler_BatchSavePlatformStatus_InvalidBody(t *testing.T) 
 	body := bytes.NewBufferString(`{}`) // Missing required results
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory/batch-save-platform-status", body)
 	c.Request.Header.Set("Content-Type", "application/json")
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	handler.BatchSavePlatformStatus(c)
 
@@ -141,7 +141,7 @@ func TestSkuBatchCheckHandler_BatchSavePlatformStatus_EmptyResults(t *testing.T)
 	body := bytes.NewBufferString(`{"results":[]}`)
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory/batch-save-platform-status", body)
 	c.Request.Header.Set("Content-Type", "application/json")
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	handler.BatchSavePlatformStatus(c)
 
@@ -171,7 +171,7 @@ func TestSkuBatchCheckHandler_GetPlatformStatus_MissingTenant(t *testing.T) {
 	var resp map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.False(t, resp["success"].(bool))
-	assert.Contains(t, resp["error"], "Missing tenantId")
+	assert.Contains(t, resp["error"], "Missing tenant_id")
 }
 
 // TestSkuCheckResult_Structure tests SkuCheckResult structure

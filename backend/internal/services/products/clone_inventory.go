@@ -4,7 +4,7 @@ package products
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"github.com/rs/zerolog/log"
 	"strconv"
 
 	"github.com/omni/backend/internal/models"
@@ -40,7 +40,7 @@ func (f *InventoryFetcher) GetInventoryBySKU(ctx context.Context, sku string) (*
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			log.Printf("[InventoryFetcher] SKU %s not found in inventory_records", sku)
+			log.Info().Msgf("[InventoryFetcher] SKU %s not found in inventory_records", sku)
 			return &InventoryData{Found: false, SKU: sku}, nil
 		}
 		return nil, err
@@ -51,7 +51,7 @@ func (f *InventoryFetcher) GetInventoryBySKU(ctx context.Context, sku string) (*
 	price := f.getPrice(data)
 	stock := f.getStock(data)
 
-	log.Printf("[InventoryFetcher] Found inventory for SKU %s: price=%.2f, stock=%d", sku, price, stock)
+	log.Info().Msgf("[InventoryFetcher] Found inventory for SKU %s: price=%.2f, stock=%d", sku, price, stock)
 
 	return &InventoryData{
 		Found:   true,
@@ -102,7 +102,7 @@ func (f *InventoryFetcher) GetInventoryBySellerSKU(ctx context.Context, sellerSk
 func (f *InventoryFetcher) parseData(dataStr string) map[string]interface{} {
 	data := make(map[string]interface{})
 	if err := json.Unmarshal([]byte(dataStr), &data); err != nil {
-		log.Printf("[InventoryFetcher] Failed to parse JSONB data: %v", err)
+		log.Info().Msgf("[InventoryFetcher] Failed to parse JSONB data: %v", err)
 	}
 	return data
 }

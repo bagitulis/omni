@@ -39,7 +39,7 @@ func TestReportHandler_Generate(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/ml/reports/generate", nil)
 		c.Request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.Generate(c)
 
@@ -57,7 +57,7 @@ func TestReportHandler_Generate(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/ml/reports/generate", strings.NewReader("platform=invalid"))
 		c.Request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		c.Request.PostForm = map[string][]string{"platform": {"invalid"}}
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.Generate(c)
 
@@ -91,7 +91,7 @@ func TestReportHandler_List(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/ml/reports//list", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "platform", Value: ""}}
 
 		handler.List(c)

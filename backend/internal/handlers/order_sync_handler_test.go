@@ -31,7 +31,7 @@ func TestOrderSyncHandler_SyncByCategory(t *testing.T) {
 			name:     "valid_category_without_platforms_returns_partial_failure",
 			category: "unpaid",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			// Handler now marks success=false when any platform sync fails
 			expectedStatus: http.StatusOK,
@@ -92,7 +92,7 @@ func TestOrderSyncHandler_SyncPlatformOrders(t *testing.T) {
 			platform: "shopee",
 			category: "unpaid",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			// Handler returns error when Shopee client is not initialized
 			expectedStatus: http.StatusInternalServerError,
@@ -153,7 +153,7 @@ func TestOrderSyncHandler_GetOrdersByCategory(t *testing.T) {
 			name:     "valid_tenant_id_returns_success",
 			category: "unpaid",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			// Handler returns success with empty data when no service
 			expectedStatus: http.StatusOK,
@@ -214,7 +214,7 @@ func TestOrderSyncHandler_GetOrderDetails(t *testing.T) {
 			platform: "shopee",
 			orderIDs: "",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusBadRequest,
 			checkSuccess:   ptrBool(false),

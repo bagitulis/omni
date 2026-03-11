@@ -30,7 +30,7 @@ func TestOrderManagerHandler_SyncAll(t *testing.T) {
 		{
 			name: "valid_tenant_id_returns_partial_failure_when_platform_sync_fails",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			// SyncAll now marks top-level success=false when any category/platform sync fails
 			expectedStatus: http.StatusOK,

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/orders"
 	"github.com/omni/backend/internal/services/sync"
 )
@@ -15,11 +16,11 @@ import (
 // @Success 200 {object} map[string]interface{}
 // @Router /api/orders/today [post]
 func (h *OrderManagerHandler) SyncOrdersToday(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -223,11 +224,11 @@ func (h *OrderManagerHandler) SyncOrdersToday(c *gin.Context) {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/orders/today [get]
 func (h *OrderManagerHandler) GetOrdersToday(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

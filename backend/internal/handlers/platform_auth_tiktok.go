@@ -27,7 +27,7 @@ type TiktokShop struct {
 func (h *PlatformAuthHandler) GetTiktokShops(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -44,7 +44,7 @@ func (h *PlatformAuthHandler) GetTiktokShops(c *gin.Context) {
 func (h *PlatformAuthHandler) GetActiveTiktokShop(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -102,7 +102,7 @@ func (h *PlatformAuthHandler) fetchTiktokShops(ctx context.Context, tenantID str
 func (h *PlatformAuthHandler) GetStatus(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -185,7 +185,7 @@ func (h *PlatformAuthHandler) GetStatus(c *gin.Context) {
 func (h *PlatformAuthHandler) GetLogs(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

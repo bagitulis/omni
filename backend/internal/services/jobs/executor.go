@@ -3,7 +3,7 @@ package jobs
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
 
@@ -60,7 +60,7 @@ func (e *Executor) Start() {
 		go e.worker(i)
 	}
 
-	log.Printf("Job executor started with %d workers", e.workerCount)
+	log.Info().Msgf("Job executor started with %d workers", e.workerCount)
 }
 
 // Stop stops the executor gracefully
@@ -75,7 +75,7 @@ func (e *Executor) Stop() {
 
 	close(e.stopCh)
 	e.wg.Wait()
-	log.Println("Job executor stopped")
+	log.Info().Msg("Job executor stopped")
 }
 
 // worker processes jobs from the queue
@@ -119,7 +119,7 @@ func (e *Executor) executeJob(job *models.Job) {
 
 	// Mark as running
 	if err := e.queueManager.UpdateStatus(job.ID, models.JobStatusRunning, ""); err != nil {
-		log.Printf("Failed to update job status: %v", err)
+		log.Info().Msgf("Failed to update job status: %v", err)
 		return
 	}
 
@@ -156,7 +156,7 @@ type executeResult struct {
 func (e *Executor) handleJobError(job *models.Job, errMsg string) {
 	e.queueManager.UpdateStatus(job.ID, models.JobStatusFailed, errMsg)
 	e.recordHistory(job, models.JobStatusFailed, "", errMsg)
-	log.Printf("Job %s failed: %s", job.ID, errMsg)
+	log.Info().Msgf("Job %s failed: %s", job.ID, errMsg)
 }
 
 // recordHistory records job execution in history

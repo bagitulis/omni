@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/dto/response"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/wholesale"
 	"gorm.io/gorm"
@@ -28,9 +29,9 @@ func (h *WholesaleHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 // GetSettings handles GET /api/wholesale/settings
 // Returns settings in admin_fee-based format matching frontend expectations
 func (h *WholesaleHandler) GetSettings(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -55,9 +56,9 @@ func (h *WholesaleHandler) GetSettings(c *gin.Context) {
 // UpdateSettings handles PUT /api/wholesale/settings
 // Accepts: { admin_fee, min_order_1, max_order_1, max_order_tier_3 }
 func (h *WholesaleHandler) UpdateSettings(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -97,9 +98,9 @@ func (h *WholesaleHandler) UpdateSettings(c *gin.Context) {
 // Calculate handles POST /api/wholesale/calculate
 // Accepts: { base_price: number }
 func (h *WholesaleHandler) Calculate(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -127,9 +128,9 @@ func (h *WholesaleHandler) Calculate(c *gin.Context) {
 
 // Apply handles POST /api/wholesale/apply
 func (h *WholesaleHandler) Apply(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

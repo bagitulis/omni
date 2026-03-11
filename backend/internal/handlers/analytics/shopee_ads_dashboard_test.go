@@ -32,7 +32,7 @@ func TestAdsHandler_GetDashboard(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/analytics/shopee/ads/dashboard", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.GetDashboard(c)
 

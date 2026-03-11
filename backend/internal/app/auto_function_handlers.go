@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"os"
 	"regexp"
 	"strings"
@@ -26,7 +26,7 @@ import (
 // - 00:00-14:00 (before 2pm Jakarta): unprocess + processed orders
 // - 14:00-24:00 (after 2pm Jakarta): unprocess orders only
 func lockedTodayHandler(ctx context.Context, tenantID string, cfg *models.AutoFunctionConfig) (string, error) {
-	log.Printf("[AutoFunction] Running 'Locked Today' for tenant: %s", tenantID)
+	log.Info().Msgf("[AutoFunction] Running 'Locked Today' for tenant: %s", tenantID)
 
 	basePath := os.Getenv("DATA_PATH")
 	if basePath == "" {
@@ -42,7 +42,7 @@ func lockedTodayHandler(ctx context.Context, tenantID string, cfg *models.AutoFu
 	// Get order sync service
 	syncService, err := sync.GetOrderSyncService(tenantID)
 	if err != nil {
-		log.Printf("[AutoFunction] Order sync service not available for tenant %s: %v", tenantID, err)
+		log.Info().Msgf("[AutoFunction] Order sync service not available for tenant %s: %v", tenantID, err)
 		return "Order sync service not available: " + err.Error(), nil
 	}
 
@@ -51,13 +51,13 @@ func lockedTodayHandler(ctx context.Context, tenantID string, cfg *models.AutoFu
 	jakartaHour := (now.Hour() + 7) % 24
 	includeProcessed := jakartaHour < 14 // Before 2pm include processed
 
-	log.Printf("[AutoFunction] Locked Today - tenant: %s, jakarta_hour: %d, include_processed: %v",
+	log.Info().Msgf("[AutoFunction] Locked Today - tenant: %s, jakarta_hour: %d, include_processed: %v",
 		tenantID, jakartaHour, includeProcessed)
 
 	// Sync and get unprocess orders
 	_, err = syncService.SyncByCategory(ctx, sync.OrderStatusCategory("unprocess"), 7, nil)
 	if err != nil {
-		log.Printf("[AutoFunction] Failed to sync unprocess orders: %v", err)
+		log.Info().Msgf("[AutoFunction] Failed to sync unprocess orders: %v", err)
 	}
 	unprocessOrders, _ := syncService.GetOrdersByCategory(ctx, sync.OrderStatusCategory("unprocess"), nil)
 
@@ -66,7 +66,7 @@ func lockedTodayHandler(ctx context.Context, tenantID string, cfg *models.AutoFu
 	if includeProcessed {
 		_, err = syncService.SyncByCategory(ctx, sync.OrderStatusCategory("processed"), 7, nil)
 		if err != nil {
-			log.Printf("[AutoFunction] Failed to sync processed orders: %v", err)
+			log.Info().Msgf("[AutoFunction] Failed to sync processed orders: %v", err)
 		}
 		processedOrders, _ = syncService.GetOrdersByCategory(ctx, sync.OrderStatusCategory("processed"), nil)
 	}
@@ -99,7 +99,7 @@ func lockedTodayHandler(ctx context.Context, tenantID string, cfg *models.AutoFu
 	}
 
 	result := fmt.Sprintf("Locked Today completed: %d SKUs, %d total qty (mode: %s)", savedCount, totalQty, mode)
-	log.Printf("[AutoFunction] %s for tenant: %s", result, tenantID)
+	log.Info().Msgf("[AutoFunction] %s for tenant: %s", result, tenantID)
 
 	return result, nil
 }
@@ -149,7 +149,7 @@ func aggregateLockedOrdersForAutoFunc(unprocessOrders, processedOrders []sync.Or
 // autoUpdateTokenHandler handles the "Auto Update Token" auto function
 // This refreshes OAuth tokens for all platforms before they expire
 func autoUpdateTokenHandler(ctx context.Context, tenantID string, cfg *models.AutoFunctionConfig) (string, error) {
-	log.Printf("[AutoFunction] Running 'Auto Update Token' for tenant: %s", tenantID)
+	log.Info().Msgf("[AutoFunction] Running 'Auto Update Token' for tenant: %s", tenantID)
 
 	basePath := os.Getenv("DATA_PATH")
 	if basePath == "" {
@@ -188,10 +188,10 @@ func autoUpdateTokenHandler(ctx context.Context, tenantID string, cfg *models.Au
 	for platform, success := range results {
 		if success {
 			successCount++
-			log.Printf("[AutoFunction] %s token refreshed for tenant: %s", platform, tenantID)
+			log.Info().Msgf("[AutoFunction] %s token refreshed for tenant: %s", platform, tenantID)
 		} else {
 			failCount++
-			log.Printf("[AutoFunction] %s token refresh failed for tenant: %s", platform, tenantID)
+			log.Info().Msgf("[AutoFunction] %s token refresh failed for tenant: %s", platform, tenantID)
 		}
 	}
 
@@ -208,7 +208,7 @@ func autoUpdateTokenHandler(ctx context.Context, tenantID string, cfg *models.Au
 	}
 
 	result := fmt.Sprintf("Token refresh completed: %d succeeded, %d failed", successCount, failCount)
-	log.Printf("[AutoFunction] %s for tenant: %s", result, tenantID)
+	log.Info().Msgf("[AutoFunction] %s for tenant: %s", result, tenantID)
 
 	return result, nil
 }
@@ -216,7 +216,7 @@ func autoUpdateTokenHandler(ctx context.Context, tenantID string, cfg *models.Au
 // syncFromSheetsHandler handles the "Sync From Sheets" auto function
 // This syncs inventory data from Google Sheets
 func syncFromSheetsHandler(ctx context.Context, tenantID string, cfg *models.AutoFunctionConfig) (string, error) {
-	log.Printf("[AutoFunction] Running 'Sync From Sheets' for tenant: %s", tenantID)
+	log.Info().Msgf("[AutoFunction] Running 'Sync From Sheets' for tenant: %s", tenantID)
 
 	basePath := os.Getenv("DATA_PATH")
 	if basePath == "" {
@@ -263,7 +263,7 @@ func syncFromSheetsHandler(ctx context.Context, tenantID string, cfg *models.Aut
 		}
 	}
 
-	log.Printf("[AutoFunction] sync_from_sheets config for %s: source=%s, spreadsheet_id=%q, sheet_name=%q",
+	log.Info().Msgf("[AutoFunction] sync_from_sheets config for %s: source=%s, spreadsheet_id=%q, sheet_name=%q",
 		tenantID, configSource, spreadsheetID, sheetName)
 
 	if spreadsheetID == "" || sheetName == "" {
@@ -299,7 +299,7 @@ func syncFromSheetsHandler(ctx context.Context, tenantID string, cfg *models.Aut
 		result.TotalRecords, result.NewRecords, result.UpdatedRecords,
 		result.UnchangedRecords, result.FailedRecords, result.Duration)
 
-	log.Printf("[AutoFunction] %s for tenant: %s", resultMsg, tenantID)
+	log.Info().Msgf("[AutoFunction] %s for tenant: %s", resultMsg, tenantID)
 
 	return resultMsg, nil
 }

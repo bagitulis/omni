@@ -30,7 +30,7 @@ func TestOrderManagerHandler_SyncOrdersToday(t *testing.T) {
 		{
 			name: "valid_tenant_id_without_db_returns_error",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 			checkError:     true,
@@ -85,7 +85,7 @@ func TestOrderManagerHandler_GetOrdersToday(t *testing.T) {
 		{
 			name: "valid_tenant_id_without_db_returns_error",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 			checkError:     true,

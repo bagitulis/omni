@@ -1,9 +1,10 @@
 package lazada
 
 import (
-	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
@@ -45,7 +46,7 @@ type FlattenedSkuRow struct {
 func (h *DBProductHandler) GetDBProducts(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -67,7 +68,7 @@ func (h *DBProductHandler) GetDBProducts(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[Lazada DB] GetDBProducts: found %d rows (total: %d)", len(products), total)
+	log.Info().Msgf("[Lazada DB] GetDBProducts: found %d rows (total: %d)", len(products), total)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success":  true,
@@ -94,11 +95,11 @@ func (h *DBProductHandler) getFlattenedSkuRows(db *gorm.DB, offset, limit int) (
 	if result := db.Model(&models.LazadaSku{}).Count(&skuCount); result.Error != nil {
 		return nil, 0, result.Error
 	}
-	log.Printf("[Lazada DB] SKU count: %d", skuCount)
+	log.Info().Msgf("[Lazada DB] SKU count: %d", skuCount)
 
 	// If no SKUs, fall back to products directly
 	if skuCount == 0 {
-		log.Printf("[Lazada DB] No SKUs found, falling back to products")
+		log.Info().Msgf("[Lazada DB] No SKUs found, falling back to products")
 		return h.getProductsAsFlattenedRows(db, offset, limit)
 	}
 

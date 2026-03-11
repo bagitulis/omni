@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	shopeeService "github.com/omni/backend/internal/services/shopee"
 	shopeePkg "github.com/omni/backend/pkg/shopee"
 )
@@ -21,11 +22,11 @@ func NewEscrowHandler(getAPIClient func(tenantID string) shopeeService.APIClient
 // GetEscrowDetail handles POST /api/shopee/wallet/escrow-detail
 // Gets single escrow detail for an order
 func (h *EscrowHandler) GetEscrowDetail(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -93,11 +94,11 @@ func (h *EscrowHandler) GetEscrowDetail(c *gin.Context) {
 // GetEscrowDetailBatch handles POST /api/shopee/wallet/escrow-detail-batch
 // Gets escrow details for multiple orders
 func (h *EscrowHandler) GetEscrowDetailBatch(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

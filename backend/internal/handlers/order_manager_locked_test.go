@@ -30,7 +30,7 @@ func TestOrderManagerHandler_GetLockedTodayOrders(t *testing.T) {
 		{
 			name: "valid_tenant_id_returns_service_unavailable",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			// Without DB context, the handler tries to get DB and fails
 			expectedStatus: http.StatusInternalServerError,
@@ -86,7 +86,7 @@ func TestOrderManagerHandler_GetSavedLockedOrders(t *testing.T) {
 		{
 			name: "valid_tenant_id_without_db_returns_error",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 			checkError:     true,

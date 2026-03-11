@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/products"
 	"gorm.io/gorm"
 )
@@ -31,9 +32,9 @@ func (h *ProductCloneHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 
 // Clone handles POST /api/products/clone
 func (h *ProductCloneHandler) Clone(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 
@@ -75,9 +76,9 @@ func (h *ProductCloneHandler) Clone(c *gin.Context) {
 
 // GetStatus handles GET /api/products/clone/status/:id
 func (h *ProductCloneHandler) GetStatus(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 
@@ -111,9 +112,9 @@ func (h *ProductCloneHandler) GetStatus(c *gin.Context) {
 
 // BatchClone handles POST /api/products/clone/batch
 func (h *ProductCloneHandler) BatchClone(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 
@@ -164,9 +165,9 @@ func (h *ProductCloneHandler) BatchClone(c *gin.Context) {
 
 // GetProductData handles GET /api/clone/product-data
 func (h *ProductCloneHandler) GetProductData(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -204,9 +205,9 @@ func (h *ProductCloneHandler) GetProductData(c *gin.Context) {
 
 // GetAvailableTargets handles GET /api/clone/available-targets
 func (h *ProductCloneHandler) GetAvailableTargets(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -242,9 +243,9 @@ func (h *ProductCloneHandler) GetAvailableTargets(c *gin.Context) {
 // Preview handles GET /api/clone/preview
 // Returns preview of clone operation including conflict detection and adjustments
 func (h *ProductCloneHandler) Preview(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 

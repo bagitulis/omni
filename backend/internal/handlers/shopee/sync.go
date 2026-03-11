@@ -64,7 +64,7 @@ func (h *SyncHandler) invalidateAnalyticsCache(tenantID, operation string) {
 func (h *SyncHandler) SyncOrders(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -134,7 +134,7 @@ func (h *SyncHandler) SyncOrders(c *gin.Context) {
 func (h *SyncHandler) SyncProducts(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

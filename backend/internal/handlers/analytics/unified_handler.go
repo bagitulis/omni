@@ -40,7 +40,7 @@ func NewUnifiedHandler(basePath string, appCache cache.CacheManager) *UnifiedHan
 func (h *UnifiedHandler) GetUnifiedSummary(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -80,7 +80,9 @@ func (h *UnifiedHandler) GetUnifiedSummary(c *gin.Context) {
 
 	if mvCount == 0 {
 		// Auto-refresh MVs if not populated
-		h.cacheService.RefreshAllMVs(ctx, db, tenantID)
+		if refreshResults := h.cacheService.RefreshAllMVs(ctx, db, tenantID); refreshResults == nil {
+			log.Warn().Str("tenant_id", tenantID).Msg("MV refresh returned nil results")
+		}
 	}
 
 	// Get TikTok summary from MV
@@ -91,9 +93,12 @@ func (h *UnifiedHandler) GetUnifiedSummary(c *gin.Context) {
 		OverallRoas  float64 `gorm:"column:overall_roas"`
 	}
 
-	db.WithContext(ctx).Table("mv_tiktok_ads_summary").
+	if err := db.WithContext(ctx).Table("mv_tiktok_ads_summary").
 		Where("tenant_id = ?", tenantID).
-		First(&tiktokSummary)
+		First(&tiktokSummary).Error; err != nil {
+		log.Warn().Err(err).Str("tenant_id", tenantID).Msg("Failed to query TikTok ads summary MV")
+		// Continue with zero values — MV may not exist yet
+	}
 
 	// Get Shopee summary from MV
 	var shopeeSummary struct {
@@ -103,9 +108,12 @@ func (h *UnifiedHandler) GetUnifiedSummary(c *gin.Context) {
 		OverallRoas  float64 `gorm:"column:overall_roas"`
 	}
 
-	db.WithContext(ctx).Table("mv_shopee_ads_summary").
+	if err := db.WithContext(ctx).Table("mv_shopee_ads_summary").
 		Where("tenant_id = ?", tenantID).
-		First(&shopeeSummary)
+		First(&shopeeSummary).Error; err != nil {
+		log.Warn().Err(err).Str("tenant_id", tenantID).Msg("Failed to query Shopee ads summary MV")
+		// Continue with zero values — MV may not exist yet
+	}
 
 	// Calculate combined metrics
 	totalCost := tiktokSummary.TotalCost + shopeeSummary.TotalCost
@@ -160,7 +168,7 @@ func (h *UnifiedHandler) GetUnifiedSummary(c *gin.Context) {
 func (h *UnifiedHandler) GetUnifiedKPI(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -180,7 +188,9 @@ func (h *UnifiedHandler) GetUnifiedKPI(c *gin.Context) {
 
 	if mvCount == 0 {
 		// Auto-refresh MVs if not populated
-		h.cacheService.RefreshAllMVs(ctx, db, tenantID)
+		if refreshResults := h.cacheService.RefreshAllMVs(ctx, db, tenantID); refreshResults == nil {
+			log.Warn().Str("tenant_id", tenantID).Msg("KPI MV refresh returned nil results")
+		}
 	}
 
 	// Get basic portfolio metrics
@@ -189,9 +199,11 @@ func (h *UnifiedHandler) GetUnifiedKPI(c *gin.Context) {
 		OverallRoas   float64 `gorm:"column:overall_roas"`
 	}
 
-	db.WithContext(ctx).Table("mv_ml_portfolio_summary").
+	if err := db.WithContext(ctx).Table("mv_ml_portfolio_summary").
 		Where("tenant_id = ?", tenantID).
-		First(&portfolioHealth)
+		First(&portfolioHealth).Error; err != nil {
+		log.Warn().Err(err).Str("tenant_id", tenantID).Msg("Failed to query portfolio summary MV")
+	}
 
 	// Calculate action counts from product data based on ROAS thresholds
 	var actionCounts struct {
@@ -230,7 +242,7 @@ func (h *UnifiedHandler) GetUnifiedKPI(c *gin.Context) {
 func (h *UnifiedHandler) RefreshCache(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -255,7 +267,7 @@ func (h *UnifiedHandler) RefreshCache(c *gin.Context) {
 func (h *UnifiedHandler) GetCacheStatus(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

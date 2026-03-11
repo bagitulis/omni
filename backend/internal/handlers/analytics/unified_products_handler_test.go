@@ -32,7 +32,7 @@ func TestUnifiedHandler_GetClassifiedProducts(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/analytics/unified/products/classified", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.GetClassifiedProducts(c)
 
@@ -62,7 +62,7 @@ func TestUnifiedHandler_GetTopProducts(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/analytics/unified/products/top", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.GetTopProducts(c)
 

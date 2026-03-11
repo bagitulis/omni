@@ -30,7 +30,7 @@ func TestPlatformAuthHandler_GetTiktokShops(t *testing.T) {
 		{
 			name: "valid_tenant_id_without_db_returns_error",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 			checkError:     true,
@@ -85,7 +85,7 @@ func TestPlatformAuthHandler_GetActiveTiktokShop(t *testing.T) {
 		{
 			name: "valid_tenant_id_without_db_returns_error",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 			checkError:     true,
@@ -140,7 +140,7 @@ func TestPlatformAuthHandler_GetStatus(t *testing.T) {
 		{
 			name: "valid_tenant_id_without_db_returns_error",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 			checkError:     true,
@@ -195,7 +195,7 @@ func TestPlatformAuthHandler_GetLogs(t *testing.T) {
 		{
 			name: "valid_tenant_id_without_db_returns_error",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 			checkError:     true,

@@ -25,7 +25,7 @@ type UpdateSkuInput struct {
 func (h *Handler) UpdateSku(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -71,7 +71,7 @@ func (h *Handler) UpdateSku(c *gin.Context) {
 			return
 		}
 		if errors.Is(err, masterProductService.ErrTenantIDRequired) {
-			c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+			c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 			return
 		}
 
@@ -99,7 +99,7 @@ type BatchUpdateSkusInput struct {
 func (h *Handler) BatchUpdateSkus(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

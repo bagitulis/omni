@@ -335,14 +335,14 @@ func TestGetCurrentUser_Success(t *testing.T) {
 	// Middleware to set user context
 	r.Use(func(c *gin.Context) {
 		c.Set("userID", "user-123")
-		c.Set("tenantID", "tenant-456")
+		c.Set("tenant_id", "tenant-456")
 		c.Set("role", "owner")
 		c.Next()
 	})
 
 	r.GET("/api/auth/me", func(c *gin.Context) {
 		userID := c.GetString("userID")
-		tenantID := c.GetString("tenantID")
+		tenantID := c.GetString("tenant_id")
 		role := c.GetString("role")
 
 		c.JSON(http.StatusOK, gin.H{
@@ -384,7 +384,7 @@ func TestChangePassword_Success(t *testing.T) {
 	// Middleware to set user context
 	r.Use(func(c *gin.Context) {
 		c.Set("userID", "user-123")
-		c.Set("tenantID", "tenant-456")
+		c.Set("tenant_id", "tenant-456")
 		c.Next()
 	})
 
@@ -399,7 +399,7 @@ func TestChangePassword_Success(t *testing.T) {
 		}
 
 		userID := c.GetString("userID")
-		tenantID := c.GetString("tenantID")
+		tenantID := c.GetString("tenant_id")
 		if userID == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,

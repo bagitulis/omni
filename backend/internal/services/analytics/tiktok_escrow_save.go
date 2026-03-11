@@ -4,7 +4,7 @@ package analytics
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"github.com/rs/zerolog/log"
 	"time"
 
 	"github.com/google/uuid"
@@ -97,7 +97,7 @@ func (s *TiktokEscrowSyncService) saveEscrowItems(
 	}
 
 	if len(order.LineItems) > 0 {
-		log.Printf("[TiktokEscrowSync] Using order line_items for order %s", order.ID)
+		log.Info().Msgf("[TiktokEscrowSync] Using order line_items for order %s", order.ID)
 		return s.saveLineItems(ctx, escrowOrderID, order.ID, order.LineItems, tables)
 	}
 
@@ -157,7 +157,7 @@ func (s *TiktokEscrowSyncService) saveSkuTransactions(
 			UpdatedAt:                   time.Now(),
 		}
 		if err := s.base.DB.WithContext(ctx).Table(s.base.Table(tables.ItemTable)).Create(&escrowItem).Error; err != nil {
-			log.Printf("[TiktokEscrowSync] ERROR saving sku_tx item for order %s (sku=%s): %v", orderID, skuTx.SkuID, err)
+			log.Info().Msgf("[TiktokEscrowSync] ERROR saving sku_tx item for order %s (sku=%s): %v", orderID, skuTx.SkuID, err)
 		}
 	}
 	return len(skuTxs)
@@ -196,7 +196,7 @@ func (s *TiktokEscrowSyncService) saveLineItems(
 			UpdatedAt:        time.Now(),
 		}
 		if err := s.base.DB.WithContext(ctx).Table(s.base.Table(tables.ItemTable)).Create(&escrowItem).Error; err != nil {
-			log.Printf("[TiktokEscrowSync] ERROR saving line_item for order %s (sku=%s): %v", orderID, item.SellerSku, err)
+			log.Info().Msgf("[TiktokEscrowSync] ERROR saving line_item for order %s (sku=%s): %v", orderID, item.SellerSku, err)
 		}
 	}
 	return len(lineItems)

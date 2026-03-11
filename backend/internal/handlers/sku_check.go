@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/sku"
 	"gorm.io/gorm"
 )
@@ -20,9 +21,9 @@ func NewSKUCheckHandler(db *gorm.DB) *SKUCheckHandler {
 
 // CheckSingle handles GET /api/sku/check/:sku
 func (h *SKUCheckHandler) CheckSingle(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 
@@ -47,9 +48,9 @@ func (h *SKUCheckHandler) CheckSingle(c *gin.Context) {
 
 // CheckBatch handles POST /api/sku/batch-check
 func (h *SKUCheckHandler) CheckBatch(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 
@@ -84,9 +85,9 @@ func (h *SKUCheckHandler) CheckBatch(c *gin.Context) {
 
 // GetCachedStatus handles GET /api/sku/status/:sku
 func (h *SKUCheckHandler) GetCachedStatus(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 

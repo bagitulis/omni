@@ -57,7 +57,7 @@ func TestSyncHandler_SyncOrders_WithTenantID_NoDB(t *testing.T) {
 	r := gin.New()
 	h := NewSyncHandler("/test/path")
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/lazada/sync/orders", h.SyncOrders)
@@ -96,7 +96,7 @@ func TestSyncHandler_SyncProducts_WithTenantID_NoDB(t *testing.T) {
 	r := gin.New()
 	h := NewSyncHandler("/test/path")
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/lazada/sync/products", h.SyncProducts)

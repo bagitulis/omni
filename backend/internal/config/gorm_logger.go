@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"time"
 
 	"gorm.io/gorm"
@@ -37,21 +37,21 @@ func (l *SilentRecordNotFoundLogger) LogMode(level logger.LogLevel) logger.Inter
 // Info implements logger.Interface
 func (l *SilentRecordNotFoundLogger) Info(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Info {
-		log.Printf(msg, data...)
+		log.Info().Msgf(msg, data...)
 	}
 }
 
 // Warn implements logger.Interface
 func (l *SilentRecordNotFoundLogger) Warn(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Warn {
-		log.Printf("[WARN] "+msg, data...)
+		log.Info().Msgf("[WARN] "+msg, data...)
 	}
 }
 
 // Error implements logger.Interface
 func (l *SilentRecordNotFoundLogger) Error(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Error {
-		log.Printf("[ERROR] "+msg, data...)
+		log.Info().Msgf("[ERROR] "+msg, data...)
 	}
 }
 
@@ -73,20 +73,20 @@ func (l *SilentRecordNotFoundLogger) Trace(ctx context.Context, begin time.Time,
 	// Only log errors (excluding record not found)
 	if err != nil {
 		if l.LogLevel >= logger.Error {
-			log.Printf("[ERROR] %s [%.3fms] [rows:%d] %s", err.Error(), float64(elapsed.Nanoseconds())/1e6, rows, sql)
+			log.Info().Msgf("[ERROR] %s [%.3fms] [rows:%d] %s", err.Error(), float64(elapsed.Nanoseconds())/1e6, rows, sql)
 		}
 		return
 	}
 
 	// Log slow queries (> 200ms) as warnings
 	if elapsed > 200*time.Millisecond && l.LogLevel >= logger.Warn {
-		log.Printf("[SLOW SQL] [%.3fms] [rows:%d] %s", float64(elapsed.Nanoseconds())/1e6, rows, sql)
+		log.Info().Msgf("[SLOW SQL] [%.3fms] [rows:%d] %s", float64(elapsed.Nanoseconds())/1e6, rows, sql)
 		return
 	}
 
 	// Log all queries in Info mode (development)
 	if l.LogLevel >= logger.Info {
-		log.Printf("[SQL] [%.3fms] [rows:%d] %s", float64(elapsed.Nanoseconds())/1e6, rows, sql)
+		log.Info().Msgf("[SQL] [%.3fms] [rows:%d] %s", float64(elapsed.Nanoseconds())/1e6, rows, sql)
 	}
 }
 

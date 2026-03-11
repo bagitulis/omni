@@ -34,7 +34,7 @@ func TestWalletHandler_GetBalance_WithTenantID_NoDatabase(t *testing.T) {
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	handler := NewWalletHandler(nil, "/tmp/nonexistent-wallet-path")
@@ -77,7 +77,7 @@ func TestWalletHandler_GetTransactions_InvalidStartDate(t *testing.T) {
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	handler := NewWalletHandler(nil, "/tmp/test-wallet")
@@ -100,7 +100,7 @@ func TestWalletHandler_GetTransactions_InvalidEndDate(t *testing.T) {
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	handler := NewWalletHandler(nil, "/tmp/test-wallet")
@@ -123,7 +123,7 @@ func TestWalletHandler_GetTransactions_ValidDateFormat_NoDatabase(t *testing.T) 
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	handler := NewWalletHandler(nil, "/tmp/nonexistent-wallet-path")
@@ -166,7 +166,7 @@ func TestWalletHandler_GetNetIncome_InvalidStartDate(t *testing.T) {
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	handler := NewWalletHandler(nil, "/tmp/test-wallet")
@@ -189,7 +189,7 @@ func TestWalletHandler_GetNetIncome_InvalidEndDate(t *testing.T) {
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	handler := NewWalletHandler(nil, "/tmp/test-wallet")
@@ -212,7 +212,7 @@ func TestWalletHandler_GetNetIncome_ValidDates_NoDatabase(t *testing.T) {
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	handler := NewWalletHandler(nil, "/tmp/nonexistent-wallet-path")

@@ -24,7 +24,7 @@ func TestShippingFilesHandler_GetShippingFiles_EmptyWhenDirNotExist(t *testing.T
 
 	// Set up route with middleware that sets tenantID
 	r.GET("/api/shipping/files", func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		handler.GetShippingFiles(c)
 	})
 
@@ -63,7 +63,7 @@ func TestShippingFilesHandler_GetShippingFiles_MissingTenant(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.False(t, resp["success"].(bool))
-	assert.Equal(t, "Missing tenantId", resp["error"])
+	assert.Equal(t, "Missing tenant_id", resp["error"])
 }
 
 // TestShippingFilesHandler_GetShippingFiles_WithFiles tests GetShippingFiles returns files when they exist
@@ -88,7 +88,7 @@ func TestShippingFilesHandler_GetShippingFiles_WithFiles(t *testing.T) {
 	handler := NewShippingFilesHandler(tempDir)
 
 	r.GET("/api/shipping/files", func(c *gin.Context) {
-		c.Set("tenantID", tenantID)
+		c.Set("tenant_id", tenantID)
 		handler.GetShippingFiles(c)
 	})
 
@@ -116,7 +116,7 @@ func TestShippingFilesHandler_ProcessShippingFile_NotImplemented(t *testing.T) {
 	handler := NewShippingFilesHandler("")
 
 	r.POST("/api/shipping/process-file", func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		handler.ProcessShippingFile(c)
 	})
 
@@ -158,7 +158,7 @@ func TestShippingFilesHandler_ProcessShippingFile_MissingTenant(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.False(t, resp["success"].(bool))
-	assert.Equal(t, "Missing tenantId", resp["error"])
+	assert.Equal(t, "Missing tenant_id", resp["error"])
 }
 
 // TestShippingFilesHandler_ProcessShippingFile_EmptyBody tests ProcessShippingFile returns 400 with empty body
@@ -169,7 +169,7 @@ func TestShippingFilesHandler_ProcessShippingFile_EmptyBody(t *testing.T) {
 	handler := NewShippingFilesHandler("")
 
 	r.POST("/api/shipping/process-file", func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		handler.ProcessShippingFile(c)
 	})
 
@@ -194,7 +194,7 @@ func TestShippingFilesHandler_ProcessShippingFile_InvalidJSON(t *testing.T) {
 	handler := NewShippingFilesHandler("")
 
 	r.POST("/api/shipping/process-file", func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		handler.ProcessShippingFile(c)
 	})
 

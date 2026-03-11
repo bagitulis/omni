@@ -40,7 +40,7 @@ func TestProductHandler_CreateProduct_InvalidJSON(t *testing.T) {
 	handler := NewProductHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/shopee/products", handler.CreateProduct)
@@ -66,7 +66,7 @@ func TestProductHandler_CreateProduct_ValidRequestNoCreds(t *testing.T) {
 	handler := NewProductHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/shopee/products", handler.CreateProduct)
@@ -115,7 +115,7 @@ func TestProductHandler_UpdateProduct_InvalidItemID(t *testing.T) {
 	handler := NewProductHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.PUT("/api/shopee/products/:itemId", handler.UpdateProduct)
@@ -141,7 +141,7 @@ func TestProductHandler_UpdateProduct_InvalidJSON(t *testing.T) {
 	handler := NewProductHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.PUT("/api/shopee/products/:itemId", handler.UpdateProduct)
@@ -187,7 +187,7 @@ func TestProductHandler_DeleteProduct_InvalidItemID(t *testing.T) {
 	handler := NewProductHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.DELETE("/api/shopee/products/:itemId", handler.DeleteProduct)

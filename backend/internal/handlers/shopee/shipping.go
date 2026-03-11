@@ -28,7 +28,7 @@ func NewShippingHandler(getAPIClient func(tenantID string) shopeeService.APIClie
 func (h *ShippingHandler) GetOptions(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -54,7 +54,7 @@ func (h *ShippingHandler) GetOptions(c *gin.Context) {
 func (h *ShippingHandler) ArrangeShipment(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -80,7 +80,7 @@ func (h *ShippingHandler) ArrangeShipment(c *gin.Context) {
 func (h *ShippingHandler) GetTracking(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -106,7 +106,7 @@ func (h *ShippingHandler) GetTracking(c *gin.Context) {
 func (h *ShippingHandler) GetShipment(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -133,7 +133,7 @@ func (h *ShippingHandler) GetShipment(c *gin.Context) {
 func (h *ShippingHandler) DownloadShippingLabel(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -198,7 +198,7 @@ func (h *ShippingHandler) DownloadShippingLabel(c *gin.Context) {
 func (h *ShippingHandler) GetShippingLabel(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

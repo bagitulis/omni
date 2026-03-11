@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/analytics"
 	"github.com/omni/backend/internal/services/jobs"
@@ -24,9 +25,9 @@ func NewTiktokAnalyticsHandler() *TiktokAnalyticsHandler {
 
 // getService creates analytics service with tenant context
 func (h *TiktokAnalyticsHandler) getService(c *gin.Context) (*analytics.TiktokAnalyticsService, error) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return nil, nil
 	}
 
@@ -100,9 +101,9 @@ func (h *TiktokAnalyticsHandler) GetSyncStatus(c *gin.Context) {
 // SyncEscrow handles POST /api/analytics/tiktok/sync
 // Returns immediately with job_id for async background execution
 func (h *TiktokAnalyticsHandler) SyncEscrow(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 

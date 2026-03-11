@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/autofunction"
 	"gorm.io/gorm"
@@ -30,9 +31,9 @@ func (h *AutoFunctionHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 // List handles GET /api/jobs/auto-functions
 // Returns all auto-function configs for the tenant
 func (h *AutoFunctionHandler) List(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -60,9 +61,9 @@ func (h *AutoFunctionHandler) List(c *gin.Context) {
 
 // GetByName handles GET /api/jobs/auto-functions/:name
 func (h *AutoFunctionHandler) GetByName(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -86,9 +87,9 @@ func (h *AutoFunctionHandler) GetByName(c *gin.Context) {
 // Create handles POST /api/jobs/auto-functions
 // Uses CreateOrUpdate to handle both creation and updates (upsert behavior)
 func (h *AutoFunctionHandler) Create(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -132,9 +133,9 @@ func (h *AutoFunctionHandler) Create(c *gin.Context) {
 
 // Update handles PUT /api/jobs/auto-functions/:name
 func (h *AutoFunctionHandler) Update(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -180,9 +181,9 @@ func (h *AutoFunctionHandler) Update(c *gin.Context) {
 
 // Delete handles DELETE /api/jobs/auto-functions/:name
 func (h *AutoFunctionHandler) Delete(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 

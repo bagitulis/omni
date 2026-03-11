@@ -25,7 +25,7 @@ func TestDataHandler_List(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.Contains(t, resp["error"], "tenantId")
+		assert.Contains(t, resp["error"], "tenant_id")
 	})
 }
 
@@ -45,7 +45,7 @@ func TestDataHandler_GetBySKU(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.Contains(t, resp["error"], "tenantId")
+		assert.Contains(t, resp["error"], "tenant_id")
 	})
 
 	t.Run("missing SKU returns 400", func(t *testing.T) {
@@ -54,7 +54,7 @@ func TestDataHandler_GetBySKU(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/inventory/data/", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "sku", Value: ""}}
 
 		handler.GetBySKU(c)

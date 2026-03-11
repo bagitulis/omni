@@ -41,7 +41,7 @@ func TestWalletReportHandler_GetWalletReport_MissingRequiredFields(t *testing.T)
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	mockClient := new(MockShopeeAPIClient)
@@ -70,7 +70,7 @@ func TestWalletReportHandler_GetWalletReport_InvalidMonth(t *testing.T) {
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	mockClient := new(MockShopeeAPIClient)
@@ -123,7 +123,7 @@ func TestWalletReportHandler_ExportWallet_MissingRequiredFields(t *testing.T) {
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	mockClient := new(MockShopeeAPIClient)
@@ -176,7 +176,7 @@ func TestWalletReportHandler_ExportToSheets_MissingRequiredFields(t *testing.T) 
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	mockClient := new(MockShopeeAPIClient)
@@ -205,7 +205,7 @@ func TestWalletReportHandler_ExportToSheets_NilGoogleAuth(t *testing.T) {
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	// nil google auth — handler returns 503 ServiceUnavailable

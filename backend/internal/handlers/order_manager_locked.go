@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/orders"
 	"github.com/omni/backend/internal/services/sync"
 )
@@ -18,11 +19,11 @@ import (
 // @Success 200 {object} map[string]interface{}
 // @Router /api/orders/locked-today [post]
 func (h *OrderManagerHandler) GetLockedTodayOrders(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -186,11 +187,11 @@ func (h *OrderManagerHandler) GetLockedTodayOrders(c *gin.Context) {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/orders/locked-today [get]
 func (h *OrderManagerHandler) GetSavedLockedOrders(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

@@ -52,7 +52,7 @@ func TestRouteExecutionConfigHandler_Get_MissingRouteKey(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -104,7 +104,7 @@ func TestRouteExecutionConfigHandler_Create_InvalidJSON(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -127,7 +127,7 @@ func TestRouteExecutionConfigHandler_Create_InvalidExecutionMode(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -165,7 +165,7 @@ func TestRouteExecutionConfigHandler_Update_InvalidJSON(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -218,7 +218,7 @@ func TestRouteExecutionConfigHandler_Delete_DBError(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 

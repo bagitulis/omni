@@ -21,10 +21,10 @@ func TestBatchSavePlatformStatus(t *testing.T) {
 	// Setup
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	// Create test request - just verify tenant is set
-	tenantID := c.GetString("tenantID")
+	tenantID := c.GetString("tenant_id")
 	assert.Equal(t, "test-tenant", tenantID, "TenantID should be set")
 }
 
@@ -35,11 +35,11 @@ func TestGetPlatformStatus(t *testing.T) {
 	// Setup
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 	c.Request = httptest.NewRequest("GET", "/api/inventory/platform-status", nil)
 
 	// Verify tenantID is accessible
-	tenantID := c.GetString("tenantID")
+	tenantID := c.GetString("tenant_id")
 	assert.Equal(t, "test-tenant", tenantID, "TenantID should be set")
 }
 
@@ -51,7 +51,7 @@ func TestBatchSavePlatformStatusMissingTenant(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest("POST", "/api/inventory/batch-save-platform-status", nil)
 
-	tenantID := c.GetString("tenantID")
+	tenantID := c.GetString("tenant_id")
 	assert.Equal(t, "", tenantID, "TenantID should be empty when not set")
 }
 

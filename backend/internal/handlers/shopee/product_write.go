@@ -1,9 +1,10 @@
 package shopee
 
 import (
-	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
@@ -19,7 +20,7 @@ import (
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -65,7 +66,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		Status:   "NORMAL",
 	}
 	if err := h.saveProduct(tenantID, &product); err != nil {
-		log.Printf("[WARN] [Shopee/CreateProduct] Local DB save failed for item %d: %v", result.Response.ItemID, err)
+		log.Info().Msgf("[WARN] [Shopee/CreateProduct] Local DB save failed for item %d: %v", result.Response.ItemID, err)
 	}
 
 	c.JSON(http.StatusCreated, response.Success(map[string]interface{}{
@@ -79,7 +80,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -120,7 +121,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 
 	// Update local database
 	if err := h.updateLocalProduct(tenantID, itemID, req.Name); err != nil {
-		log.Printf("[WARN] [Shopee/UpdateProduct] Local DB update failed for item %d: %v", itemID, err)
+		log.Info().Msgf("[WARN] [Shopee/UpdateProduct] Local DB update failed for item %d: %v", itemID, err)
 	}
 
 	c.JSON(http.StatusOK, response.Success(map[string]interface{}{
@@ -133,7 +134,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -160,7 +161,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 
 	// Delete from local database
 	if err := h.deleteLocalProduct(tenantID, itemID); err != nil {
-		log.Printf("[WARN] [Shopee/DeleteProduct] Local DB delete failed for item %d: %v", itemID, err)
+		log.Info().Msgf("[WARN] [Shopee/DeleteProduct] Local DB delete failed for item %d: %v", itemID, err)
 	}
 
 	c.JSON(http.StatusOK, response.Success(map[string]interface{}{

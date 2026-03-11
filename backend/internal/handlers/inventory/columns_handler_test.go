@@ -29,7 +29,7 @@ func TestColumnsHandler_GetAvailableColumns(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "tenantId")
+		assert.Contains(t, resp["error"], "tenant_id")
 	})
 }
 
@@ -47,7 +47,7 @@ func TestColumnsHandler_GetSelectedColumns(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "tenantId")
+		assert.Contains(t, resp["error"], "tenant_id")
 	})
 }
 
@@ -66,7 +66,7 @@ func TestColumnsHandler_SaveSelectedColumns(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "tenantId")
+		assert.Contains(t, resp["error"], "tenant_id")
 	})
 
 	t.Run("invalid JSON returns 400", func(t *testing.T) {
@@ -76,7 +76,7 @@ func TestColumnsHandler_SaveSelectedColumns(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory/columns/selected", strings.NewReader(`invalid`))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.SaveSelectedColumns(c)
 

@@ -3,11 +3,11 @@ package config
 import (
 	"encoding/base64"
 	"fmt"
-	"log"
 	"os"
 	"sync"
 
 	"github.com/omni/backend/internal/utils"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -69,7 +69,7 @@ func InitGlobalConfigService(systemDB *gorm.DB) *GlobalConfigService {
 			db:       systemDB, // Use provided DB instead of creating new connection
 			basePath: basePath,
 		}
-		log.Printf("GlobalConfigService initialized with existing system DB connection")
+		log.Info().Msg("GlobalConfigService initialized with existing system DB connection")
 	})
 	return globalConfigInstance
 }
@@ -84,7 +84,7 @@ func GetGlobalConfigService() *GlobalConfigService {
 		globalConfigInstance = &GlobalConfigService{
 			basePath: basePath,
 		}
-		log.Printf("Warning: GlobalConfigService created without DB - will create connection on first use")
+		log.Warn().Msg("GlobalConfigService created without DB - will create connection on first use")
 	})
 	return globalConfigInstance
 }
@@ -111,7 +111,7 @@ func (s *GlobalConfigService) getDB() (*gorm.DB, error) {
 		return s.db, nil
 	}
 
-	log.Printf("Warning: GlobalConfigService.db is nil, attempting to get system DB...")
+	log.Warn().Msg("GlobalConfigService.db is nil, attempting to get system DB")
 
 	// Get existing system DB from global pool
 	db, err := GetSystemDB(s.basePath)
@@ -279,16 +279,22 @@ func (s *GlobalConfigService) HasLazadaCredentials() bool {
 }
 
 // decrypt decrypts value using Fernet encryption.
-// Returns an error if decryption fails — callers must handle this explicitly.
+// Requires ENCRYPTION_KEY to be set. Legacy base64 fallback is only available
+// when LEGACY_CRYPTO_FALLBACK=true is explicitly set in environment.
 func decrypt(encryptedValue string) (string, error) {
 	encKey := os.Getenv("ENCRYPTION_KEY")
+	legacyFallback := os.Getenv("LEGACY_CRYPTO_FALLBACK") == "true"
+
 	if encKey == "" {
-		// No encryption key configured — try base64 decode as legacy fallback
+		if !legacyFallback {
+			return "", fmt.Errorf("ENCRYPTION_KEY not set; set LEGACY_CRYPTO_FALLBACK=true to allow base64 fallback")
+		}
+		// Legacy fallback: base64 decode only when explicitly enabled
 		decoded, err := base64.StdEncoding.DecodeString(encryptedValue)
 		if err != nil {
 			return "", fmt.Errorf("ENCRYPTION_KEY not set and value is not valid base64: %w", err)
 		}
-		log.Printf("Warning: ENCRYPTION_KEY not set, decoded base64 value (legacy fallback)")
+		log.Warn().Msg("ENCRYPTION_KEY not set, decoded base64 value (legacy fallback)")
 		return string(decoded), nil
 	}
 
@@ -299,12 +305,15 @@ func decrypt(encryptedValue string) (string, error) {
 
 	decrypted, err := encService.Decrypt(encryptedValue)
 	if err != nil {
-		// May be legacy base64-only value — try base64 decode
+		if !legacyFallback {
+			return "", fmt.Errorf("decrypt failed: %w", err)
+		}
+		// Legacy fallback: try base64 decode for pre-Fernet values
 		decoded, b64Err := base64.StdEncoding.DecodeString(encryptedValue)
 		if b64Err != nil {
 			return "", fmt.Errorf("decrypt failed: %w (also not valid base64: %v)", err, b64Err)
 		}
-		log.Printf("Warning: Fernet decrypt failed, fell back to base64 decode (legacy value)")
+		log.Warn().Msg("Fernet decrypt failed, fell back to base64 decode (legacy value)")
 		return string(decoded), nil
 	}
 	return decrypted, nil

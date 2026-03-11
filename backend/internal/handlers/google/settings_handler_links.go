@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/google"
 )
 
@@ -30,11 +31,11 @@ type SaveLinksRequest struct {
 // SaveLinks handles POST /api/google/settings/save-links
 // Saves spreadsheet links for different purposes
 func (h *SettingsHandler) SaveLinks(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -102,11 +103,11 @@ func buildLinksFromRequest(req SaveLinksRequest) *google.LinksByType {
 // GetSavedLinks handles GET /api/google/settings/saved-links
 // Returns saved spreadsheet links
 func (h *SettingsHandler) GetSavedLinks(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -140,11 +141,11 @@ func (h *SettingsHandler) GetSavedLinks(c *gin.Context) {
 // Validates spreadsheet link and detects sheets
 // Compatible with Node.js backend format: expects {spreadsheetUrl, type}
 func (h *SettingsHandler) ValidateLink(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

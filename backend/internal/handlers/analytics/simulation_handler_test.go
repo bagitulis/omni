@@ -35,7 +35,7 @@ func TestSimulationHandler_Simulate(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/analytics/simulation/calculate", strings.NewReader(`not-json`))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.Simulate(c)
 
@@ -54,7 +54,7 @@ func TestSimulationHandler_Simulate(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/analytics/simulation/calculate",
 			strings.NewReader(`{"product_id": "prod-1"}`))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.Simulate(c)
 
@@ -69,7 +69,7 @@ func TestSimulationHandler_Simulate(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/analytics/simulation/calculate",
 			strings.NewReader(`{"product_id": "prod-1", "target_roas": 3.0, "budget_per_day": 100.0}`))
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.Simulate(c)
 
@@ -99,7 +99,7 @@ func TestSimulationHandler_GetProductsFromAds(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/analytics/simulation/products", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.GetProductsFromAds(c)
 

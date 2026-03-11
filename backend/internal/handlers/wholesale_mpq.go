@@ -23,7 +23,7 @@ import (
 func (h *WholesaleExtendedHandler) BatchSetMpq(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -90,7 +90,7 @@ func (h *WholesaleExtendedHandler) BatchSetMpq(c *gin.Context) {
 func (h *WholesaleExtendedHandler) BatchSetTiktokMpq(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

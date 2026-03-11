@@ -6,9 +6,10 @@ import (
 	"strconv"
 	"time"
 
-	"log"
+	"github.com/rs/zerolog/log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/autofunction"
 	"github.com/omni/backend/internal/services/jobs"
@@ -21,9 +22,9 @@ import (
 
 // Enable handles POST /api/jobs/auto-functions/:name/enable
 func (h *AutoFunctionHandler) Enable(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -49,9 +50,9 @@ func (h *AutoFunctionHandler) Enable(c *gin.Context) {
 
 // Disable handles POST /api/jobs/auto-functions/:name/disable
 func (h *AutoFunctionHandler) Disable(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -77,9 +78,9 @@ func (h *AutoFunctionHandler) Disable(c *gin.Context) {
 
 // CancelScheduledByName handles POST /api/jobs/auto-functions/:name/cancel-scheduled
 func (h *AutoFunctionHandler) CancelScheduledByName(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -115,9 +116,9 @@ func (h *AutoFunctionHandler) CancelScheduledByName(c *gin.Context) {
 // Enqueues into the job queue for visibility in Current Job / Queue tabs,
 // then executes the auto function in the background with full lifecycle tracking.
 func (h *AutoFunctionHandler) Run(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -160,9 +161,9 @@ func (h *AutoFunctionHandler) Run(c *gin.Context) {
 
 // GetHistory handles GET /api/jobs/auto-functions/history
 func (h *AutoFunctionHandler) GetHistory(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -195,14 +196,14 @@ func (h *AutoFunctionHandler) executeWithTracking(db *gorm.DB, tenantID, name, j
 
 	// Mark job as running
 	if err := qm.UpdateStatus(jobID, models.JobStatusRunning, ""); err != nil {
-		log.Printf("[AutoFunction] Failed to update job status to running: %v", err)
+		log.Info().Msgf("[AutoFunction] Failed to update job status to running: %v", err)
 	}
 
 	// Get handler
 	handler := h.executor.GetHandler(name)
 	if handler == nil {
 		errMsg := "no handler registered: " + name
-		log.Printf("[AutoFunction] %s", errMsg)
+		log.Info().Msgf("[AutoFunction] %s", errMsg)
 		_ = qm.FailJob(jobID, errMsg)
 		return
 	}
@@ -211,7 +212,7 @@ func (h *AutoFunctionHandler) executeWithTracking(db *gorm.DB, tenantID, name, j
 	var cfg models.AutoFunctionConfig
 	if err := db.Where("name = ?", name).First(&cfg).Error; err != nil {
 		errMsg := "config not found: " + err.Error()
-		log.Printf("[AutoFunction] %s", errMsg)
+		log.Info().Msgf("[AutoFunction] %s", errMsg)
 		_ = qm.FailJob(jobID, errMsg)
 		return
 	}
@@ -220,7 +221,7 @@ func (h *AutoFunctionHandler) executeWithTracking(db *gorm.DB, tenantID, name, j
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
-	log.Printf("[AutoFunction] Running '%s' for tenant: %s (job: %s)", name, tenantID, jobID)
+	log.Info().Msgf("[AutoFunction] Running '%s' for tenant: %s (job: %s)", name, tenantID, jobID)
 	result, err := handler(ctx, tenantID, &cfg)
 
 	// Update config timing (next scheduled execution)
@@ -238,9 +239,9 @@ func (h *AutoFunctionHandler) executeWithTracking(db *gorm.DB, tenantID, name, j
 	if err != nil {
 		status = "failed"
 		errMsg = err.Error()
-		log.Printf("[AutoFunction] %s failed: %v", name, err)
+		log.Info().Msgf("[AutoFunction] %s failed: %v", name, err)
 	} else {
-		log.Printf("[AutoFunction] %s completed: %s", name, result)
+		log.Info().Msgf("[AutoFunction] %s completed: %s", name, result)
 	}
 
 	history := &models.AutoFunctionHistory{
@@ -251,7 +252,7 @@ func (h *AutoFunctionHandler) executeWithTracking(db *gorm.DB, tenantID, name, j
 		ExecutedAt:   startTime,
 	}
 	if histErr := db.Create(history).Error; histErr != nil {
-		log.Printf("[AutoFunction] Failed to record history: %v", histErr)
+		log.Info().Msgf("[AutoFunction] Failed to record history: %v", histErr)
 	}
 
 	// Complete or fail the job queue entry

@@ -15,7 +15,7 @@ import (
 func (h *DBProductHandler) GetDBStats(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 	db, err := config.GetTenantDB(tenantID, h.basePath)
@@ -41,7 +41,7 @@ func (h *DBProductHandler) GetDBStats(c *gin.Context) {
 func (h *DBProductHandler) GetUnprocessedItems(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 	db, err := config.GetTenantDB(tenantID, h.basePath)
@@ -58,7 +58,7 @@ func (h *DBProductHandler) GetUnprocessedItems(c *gin.Context) {
 func (h *DBProductHandler) GetItemsWithoutModels(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 	db, err := config.GetTenantDB(tenantID, h.basePath)
@@ -75,7 +75,7 @@ func (h *DBProductHandler) GetItemsWithoutModels(c *gin.Context) {
 func (h *DBProductHandler) GetSyncLogs(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": []gin.H{}, "count": 0})
@@ -85,7 +85,7 @@ func (h *DBProductHandler) GetSyncLogs(c *gin.Context) {
 func (h *DBProductHandler) GetProductsByStatus(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 	status := c.Param("status")

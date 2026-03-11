@@ -32,7 +32,7 @@ func TestStagingImportHandler_ImportFromShopee(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/master-products/import/staging/shopee", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.ImportFromShopee(c)
 
@@ -62,7 +62,7 @@ func TestStagingImportHandler_ImportFromTiktok(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/master-products/import/staging/tiktok", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.ImportFromTiktok(c)
 
@@ -92,7 +92,7 @@ func TestStagingImportHandler_ImportFromLazada(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/master-products/import/staging/lazada", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.ImportFromLazada(c)
 

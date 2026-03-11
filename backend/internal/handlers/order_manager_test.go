@@ -30,7 +30,7 @@ func TestOrderManagerHandler_GetUnpaidOrders(t *testing.T) {
 		{
 			name: "valid_tenant_id_returns_empty_data",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusOK,
 			expectedError:  false,
@@ -85,7 +85,7 @@ func TestOrderManagerHandler_GetUnprocessOrders(t *testing.T) {
 		{
 			name: "valid_tenant_id_returns_empty_data",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusOK,
 			expectedError:  false,
@@ -140,7 +140,7 @@ func TestOrderManagerHandler_GetProcessedOrders(t *testing.T) {
 		{
 			name: "valid_tenant_id_returns_empty_data",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusOK,
 			expectedError:  false,

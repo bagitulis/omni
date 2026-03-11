@@ -47,7 +47,7 @@ func TestEscrowHandler_GetEscrowDetail_InvalidJSON(t *testing.T) {
 	})
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/shopee/wallet/escrow-detail", handler.GetEscrowDetail)
@@ -76,7 +76,7 @@ func TestEscrowHandler_GetEscrowDetail_MissingOrderSN(t *testing.T) {
 	})
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/shopee/wallet/escrow-detail", handler.GetEscrowDetail)
@@ -130,7 +130,7 @@ func TestEscrowHandler_GetEscrowDetailBatch_EmptyList(t *testing.T) {
 	})
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/shopee/wallet/escrow-detail-batch", handler.GetEscrowDetailBatch)
@@ -159,7 +159,7 @@ func TestEscrowHandler_GetEscrowDetailBatch_ExceedsMaxSize(t *testing.T) {
 	})
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/shopee/wallet/escrow-detail-batch", handler.GetEscrowDetailBatch)
@@ -193,7 +193,7 @@ func TestEscrowHandler_GetEscrowDetailBatch_InvalidJSON(t *testing.T) {
 	})
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/shopee/wallet/escrow-detail-batch", handler.GetEscrowDetailBatch)

@@ -32,7 +32,7 @@ func TestProductMasterHandler_GetMasterProductList(t *testing.T) {
 		{
 			name: "valid_tenant_id_db_not_available",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			query:          "",
 			expectedStatus: http.StatusInternalServerError,
@@ -41,7 +41,7 @@ func TestProductMasterHandler_GetMasterProductList(t *testing.T) {
 		{
 			name: "valid_tenant_id_with_filters",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			query:          "?platform=shopee&status=active&limit=50&offset=0",
 			expectedStatus: http.StatusInternalServerError,
@@ -97,7 +97,7 @@ func TestProductMasterHandler_GetMasterProductStats(t *testing.T) {
 		{
 			name: "valid_tenant_id_db_not_available",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedError:  true,
@@ -158,7 +158,7 @@ func TestProductMasterHandler_GetProductByID(t *testing.T) {
 			platform: "shopee",
 			itemID:   "123",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedError:  true,

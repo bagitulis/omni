@@ -1,14 +1,15 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/dto/response"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services"
 	"github.com/omni/backend/internal/utils"
+	"github.com/rs/zerolog/log"
 )
 
 // Cookie constants for refresh token
@@ -121,7 +122,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	// First try to get refresh token from HttpOnly cookie (secure method)
 	refreshToken, err := c.Cookie(RefreshTokenCookieName)
 	if err != nil || refreshToken == "" {
-		// Fallback: try to get from request body (backward compatibility)
+		// Fallback: try to get from request body (DEPRECATED — will be removed)
 		var req RefreshTokenRequest
 		if err := c.ShouldBindJSON(&req); err != nil || req.RefreshToken == "" {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -131,10 +132,14 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 			return
 		}
 		refreshToken = req.RefreshToken
+		// Signal deprecation to callers
+		c.Header("Deprecation", "true")
+		c.Header("Sunset", "2026-06-01")
+		log.Warn().Msg("Refresh token received via request body (deprecated) — migrate to HttpOnly cookie")
 	}
 
 	// Get tenantID from context if available (set by middleware)
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 
 	// Use multi-tenant refresh with rotation (tries tenant DB first, then system DB)
 	accessToken, newRefreshToken, err := h.multiTenantAuth.RefreshTokenForTenant(
@@ -185,7 +190,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	if refreshToken != "" {
 		if err := h.authService.Logout(c.Request.Context(), refreshToken); err != nil {
 			// Log the failure for security auditing — token may still be valid
-			log.Printf("Warning: failed to revoke refresh token during logout: %v", err)
+			log.Warn().Err(err).Msg("Failed to revoke refresh token during logout")
 		}
 	}
 

@@ -2,15 +2,16 @@ package handlers
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/image"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -42,9 +43,9 @@ func (h *ImageHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 // Upload handles POST /api/images/upload
 // Accepts multipart form with "image" field
 func (h *ImageHandler) Upload(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -92,7 +93,7 @@ func (h *ImageHandler) Upload(c *gin.Context) {
 	if !image.IsWebP(finalData) {
 		jpegData, jpegErr := h.webpService.ConvertToJPEG(data)
 		if jpegErr != nil {
-			log.Printf("Warning: JPEG conversion failed for %s: %v", file.Filename, jpegErr)
+			log.Info().Msgf("Warning: JPEG conversion failed for %s: %v", file.Filename, jpegErr)
 			// Use original data as-is
 			finalData = data
 		} else {
@@ -130,7 +131,7 @@ func (h *ImageHandler) Upload(c *gin.Context) {
 	if err := db.Create(img).Error; err != nil {
 		// Try to clean up the saved file
 		if delErr := h.storageService.DeleteImage(tenantID, localPath); delErr != nil {
-			log.Printf("Warning: failed to clean up image file after DB error: %v", delErr)
+			log.Info().Msgf("Warning: failed to clean up image file after DB error: %v", delErr)
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to save image metadata"})
 		return
@@ -145,9 +146,9 @@ func (h *ImageHandler) Upload(c *gin.Context) {
 // Gallery handles GET /api/images/gallery
 // Query params: category, search, page, limit
 func (h *ImageHandler) Gallery(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -209,9 +210,9 @@ func (h *ImageHandler) Gallery(c *gin.Context) {
 
 // GetByID handles GET /api/images/:id
 func (h *ImageHandler) GetByID(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -245,9 +246,9 @@ func (h *ImageHandler) GetByID(c *gin.Context) {
 
 // Delete handles DELETE /api/images/:id
 func (h *ImageHandler) Delete(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -276,7 +277,7 @@ func (h *ImageHandler) Delete(c *gin.Context) {
 
 	// Delete file from storage
 	if err := h.storageService.DeleteImage(tenantID, img.LocalPath); err != nil {
-		log.Printf("Warning: failed to delete image file %s: %v", img.LocalPath, err)
+		log.Info().Msgf("Warning: failed to delete image file %s: %v", img.LocalPath, err)
 	}
 
 	// Delete database record

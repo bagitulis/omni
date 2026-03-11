@@ -4,7 +4,7 @@ package analytics
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"github.com/rs/zerolog/log"
 	"time"
 
 	"github.com/google/uuid"
@@ -115,6 +115,6 @@ func (s *ShopeeEscrowSyncService) saveEscrowItem(
 		UpdatedAt:                 time.Now(),
 	}
 	if err := s.base.DB.WithContext(ctx).Table(s.base.Table(tables.ItemTable)).Create(&escrowItem).Error; err != nil {
-		log.Printf("[ShopeeEscrowSync] ERROR saving item for order %s (itemID=%d): %v", orderSN, item.ItemID, err)
+		log.Info().Msgf("[ShopeeEscrowSync] ERROR saving item for order %s (itemID=%d): %v", orderSN, item.ItemID, err)
 	}
 }

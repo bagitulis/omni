@@ -167,7 +167,7 @@ func TestSettingsHandler_SaveLinks_InvalidJSON(t *testing.T) {
 	r := gin.New()
 	handler := NewSettingsHandler(nil, nil)
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/google/settings/save-links", handler.SaveLinks)
@@ -226,7 +226,7 @@ func TestSettingsHandler_ValidateLink_InvalidJSON(t *testing.T) {
 	r := gin.New()
 	handler := NewSettingsHandler(nil, nil)
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/google/settings/validate-link", handler.ValidateLink)
@@ -247,7 +247,7 @@ func TestSettingsHandler_ValidateLink_MissingURL(t *testing.T) {
 	r := gin.New()
 	handler := NewSettingsHandler(nil, nil)
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/google/settings/validate-link", handler.ValidateLink)
@@ -269,7 +269,7 @@ func TestSettingsHandler_ValidateLink_InvalidType(t *testing.T) {
 	r := gin.New()
 	handler := NewSettingsHandler(nil, nil)
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/google/settings/validate-link", handler.ValidateLink)
@@ -296,7 +296,7 @@ func TestSettingsHandler_ValidateLink_NilAuthPanicsWithValidURL(t *testing.T) {
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/google/settings/validate-link", handler.ValidateLink)

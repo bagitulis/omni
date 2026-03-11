@@ -102,13 +102,15 @@ func (s *SettingsService) getOrCreateSettings(ctx context.Context) (*models.Goog
 func (s *SettingsService) GetDetailedSettings(ctx context.Context) (*DetailedSettingsOutput, error) {
 	settings, err := s.getOrCreateSettings(ctx)
 	if err != nil {
-		return &DetailedSettingsOutput{}, nil
+		return nil, fmt.Errorf("get settings: %w", err)
 	}
 
 	// Parse inventory selected columns from JSON
 	var selectedColumns []string
 	if settings.InventorySelectedColumns != "" {
-		json.Unmarshal([]byte(settings.InventorySelectedColumns), &selectedColumns)
+		if err := json.Unmarshal([]byte(settings.InventorySelectedColumns), &selectedColumns); err != nil {
+			return nil, fmt.Errorf("parse inventory_selected_columns: %w", err)
+		}
 	}
 
 	// Parse available worksheets from stored JSON columns
@@ -187,7 +189,10 @@ func (s *SettingsService) UpdateDetailedSettings(ctx context.Context, input *Det
 		updates["order_sheet_name"] = input.OrderSheetName
 	}
 	if input.InventorySelectedColumns != nil {
-		selectedColumnsJSON, _ := json.Marshal(input.InventorySelectedColumns)
+		selectedColumnsJSON, err := json.Marshal(input.InventorySelectedColumns)
+		if err != nil {
+			return fmt.Errorf("marshal inventory_selected_columns: %w", err)
+		}
 		updates["inventory_selected_columns"] = string(selectedColumnsJSON)
 	}
 
@@ -397,7 +402,7 @@ func reconstructURL(spreadsheetID string) string {
 func (s *SettingsService) GetSpreadsheetLinks(ctx context.Context) (*SpreadsheetLinksResponse, error) {
 	settings, err := s.getOrCreateSettings(ctx)
 	if err != nil {
-		return &SpreadsheetLinksResponse{}, nil
+		return nil, fmt.Errorf("get settings: %w", err)
 	}
 
 	// Reconstruct full URLs from saved IDs (frontend expects full URLs)

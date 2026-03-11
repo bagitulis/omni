@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	inventoryService "github.com/omni/backend/internal/services/inventory"
 	"gorm.io/gorm"
 )
@@ -20,9 +21,9 @@ func NewConfigHandler(db *gorm.DB) *ConfigHandler {
 
 // GetSettings handles GET /api/inventory/config
 func (h *ConfigHandler) GetSettings(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 
@@ -38,9 +39,9 @@ func (h *ConfigHandler) GetSettings(c *gin.Context) {
 
 // UpdateSettings handles PUT /api/inventory/config
 func (h *ConfigHandler) UpdateSettings(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 

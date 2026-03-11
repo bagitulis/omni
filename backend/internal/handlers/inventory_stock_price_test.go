@@ -40,7 +40,7 @@ func TestInventoryHandler_UpdateStock(t *testing.T) {
 		body := bytes.NewBufferString(`{}`)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory/update-stock", body)
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.UpdateStock(c)
 
@@ -55,7 +55,7 @@ func TestInventoryHandler_UpdateStock(t *testing.T) {
 		body := bytes.NewBufferString(`{"sku":"SKU001"}`)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory/update-stock", body)
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.UpdateStock(c)
 
@@ -93,7 +93,7 @@ func TestInventoryHandler_UpdateStockBatch(t *testing.T) {
 		body := bytes.NewBufferString(`{}`)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory/update-stock-batch", body)
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.UpdateStockBatch(c)
 
@@ -108,7 +108,7 @@ func TestInventoryHandler_UpdateStockBatch(t *testing.T) {
 		body := bytes.NewBufferString(`{"items":[{"sku":"SKU001","stock":9,"platforms":["shopee"]}]}`)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory/update-stock-batch", body)
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.UpdateStockBatch(c)
 
@@ -143,7 +143,7 @@ func TestInventoryHandler_UpdatePrice(t *testing.T) {
 		body := bytes.NewBufferString(`{}`)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory/update-price", body)
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.UpdatePrice(c)
 
@@ -177,7 +177,7 @@ func TestInventoryHandler_UpdatePriceBatch(t *testing.T) {
 		body := bytes.NewBufferString(`{}`)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory/update-price-batch", body)
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.UpdatePriceBatch(c)
 

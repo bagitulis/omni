@@ -4,7 +4,7 @@ package inventory
 import (
 	"context"
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"strconv"
 
 	"github.com/omni/backend/internal/services"
@@ -200,7 +200,7 @@ func (o *PriceUpdateOrchestrator) updateShopeePrice(_ context.Context, ids *Shop
 	}
 
 	result.Success = true
-	log.Printf("[PriceOrchestrator] ✅ Shopee price updated: item_id=%s, model_id=%s, price=%.2f",
+	log.Info().Msgf("[PriceOrchestrator] ✅ Shopee price updated: item_id=%s, model_id=%s, price=%.2f",
 		ids.ItemID, ids.ModelID, price)
 	return result
 }
@@ -248,7 +248,7 @@ func (o *PriceUpdateOrchestrator) updateLazadaPrice(_ context.Context, ids *Laza
 	}
 
 	result.Success = true
-	log.Printf("[PriceOrchestrator] ✅ Lazada price updated: item_id=%s, sku_id=%s, price=%.2f",
+	log.Info().Msgf("[PriceOrchestrator] ✅ Lazada price updated: item_id=%s, sku_id=%s, price=%.2f",
 		ids.ItemID, ids.SkuID, price)
 	return result
 }
@@ -301,7 +301,7 @@ func (o *PriceUpdateOrchestrator) updateTiktokPrice(_ context.Context, ids *Tikt
 	}
 
 	result.Success = true
-	log.Printf("[PriceOrchestrator] ✅ TikTok price updated: product_id=%s, sku_id=%s, price=%.2f",
+	log.Info().Msgf("[PriceOrchestrator] ✅ TikTok price updated: product_id=%s, sku_id=%s, price=%.2f",
 		ids.ProductID, ids.SkuID, price)
 	return result
 }

@@ -80,7 +80,7 @@ func TestSyncHandler_Sync(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/master-products/invalid/sync", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "id", Value: "invalid"}}
 
 		handler.Sync(c)
@@ -131,7 +131,7 @@ func TestSyncHandler_RefreshProductImages(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/master-products/invalid/images/refresh", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "id", Value: "invalid"}}
 
 		handler.RefreshProductImages(c)
@@ -167,7 +167,7 @@ func TestSyncHandler_RefreshProductImages(t *testing.T) {
 			bytes.NewBufferString(`{"force":true}`),
 		)
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "id", Value: "1"}}
 
 		handler.RefreshProductImages(c)
@@ -204,7 +204,7 @@ func TestSyncHandler_RefreshProductImages(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/master-products/2/images/refresh", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "id", Value: "2"}}
 
 		handler.RefreshProductImages(c)
@@ -228,7 +228,7 @@ func TestSyncHandler_RefreshProductImages(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/master-products/99/images/refresh", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Params = gin.Params{{Key: "id", Value: "99"}}
 
 		handler.RefreshProductImages(c)

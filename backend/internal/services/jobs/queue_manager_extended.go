@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/omni/backend/internal/models"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -86,7 +87,9 @@ func (m *QueueManager) GetHistoryPaginated(filter PaginatedFilter) (*PaginatedHi
 		jobQuery = jobQuery.Where("job_id ILIKE ? OR job_type ILIKE ?", "%"+filter.Search+"%", "%"+filter.Search+"%")
 	}
 
-	jobQuery.Find(&jobHistoryItems)
+	if err := jobQuery.Find(&jobHistoryItems).Error; err != nil {
+		log.Error().Err(err).Msg("Failed to query job_history")
+	}
 
 	// Get auto_functions_history items
 	var autoFuncHistoryItems []models.AutoFunctionHistory
@@ -102,9 +105,11 @@ func (m *QueueManager) GetHistoryPaginated(filter PaginatedFilter) (*PaginatedHi
 		autoQuery = autoQuery.Where("function_name ILIKE ?", "%"+filter.Search+"%")
 	}
 
-	autoQuery.Find(&autoFuncHistoryItems)
+	if err := autoQuery.Find(&autoFuncHistoryItems).Error; err != nil {
+		log.Error().Err(err).Msg("Failed to query auto_functions_history")
+	}
 
-	// Merge and convert to camelCase response format
+	// Merge and convert to snake_case response format
 	allItems := make([]HistoryItemResponse, 0, len(jobHistoryItems)+len(autoFuncHistoryItems))
 
 	// Convert job_history to response format

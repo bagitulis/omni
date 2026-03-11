@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 )
@@ -14,11 +15,11 @@ import (
 // GetTokenStatus returns token status for all platforms
 // GET /api/oauth/status
 func (h *OAuthHandler) GetTokenStatus(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -117,11 +118,11 @@ func formatTimestampMs(ms int64) string {
 // RefreshAllTokens refreshes tokens for all platforms
 // POST /api/oauth/refresh-all
 func (h *OAuthHandler) RefreshAllTokens(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

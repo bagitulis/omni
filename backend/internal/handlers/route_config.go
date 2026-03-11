@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/route"
 	"gorm.io/gorm"
 )
@@ -25,9 +26,9 @@ func (h *RouteConfigHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 
 // List handles GET /api/route-config
 func (h *RouteConfigHandler) List(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -49,9 +50,9 @@ func (h *RouteConfigHandler) List(c *gin.Context) {
 
 // Get handles GET /api/routes-config/:id
 func (h *RouteConfigHandler) Get(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -79,9 +80,9 @@ func (h *RouteConfigHandler) Get(c *gin.Context) {
 
 // Update handles PATCH /api/routes-config/:id
 func (h *RouteConfigHandler) Update(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -115,9 +116,9 @@ func (h *RouteConfigHandler) Update(c *gin.Context) {
 
 // Reset handles POST /api/routes-config/reset
 func (h *RouteConfigHandler) Reset(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -146,9 +147,9 @@ func (h *RouteConfigHandler) Reset(c *gin.Context) {
 
 // ListAll handles GET /api/routes-config/all
 func (h *RouteConfigHandler) ListAll(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 

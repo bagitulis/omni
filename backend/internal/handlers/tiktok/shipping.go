@@ -35,7 +35,7 @@ type arrangeShipmentRequest struct {
 func (h *ShippingHandler) ArrangeShipment(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -90,7 +90,7 @@ type ShippingDocumentResponse struct {
 func (h *ShippingHandler) GetShippingDocument(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -117,7 +117,7 @@ func (h *ShippingHandler) GetShippingDocument(c *gin.Context) {
 func (h *ShippingHandler) GetShippingDocumentByOrder(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -159,7 +159,7 @@ type HandoverTimeSlotsResponse struct {
 func (h *ShippingHandler) GetHandoverTimeSlots(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -184,7 +184,7 @@ func (h *ShippingHandler) GetHandoverTimeSlots(c *gin.Context) {
 func (h *ShippingHandler) GetOrderDetail(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

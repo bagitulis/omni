@@ -2,16 +2,16 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/omni/backend/internal/models"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
 // MigrateSystemDatabase runs migrations for system database
 func MigrateSystemDatabase(db *gorm.DB) error {
-	log.Println("🔄 Running system database migrations...")
+	log.Info().Msg("Running system database migrations...")
 
 	// Create system schema for PostgreSQL
 	if GetDatabaseDriver() == DriverPostgres {
@@ -37,16 +37,16 @@ func MigrateSystemDatabase(db *gorm.DB) error {
 		if err := db.AutoMigrate(model); err != nil {
 			return fmt.Errorf("failed to migrate %T: %w", model, err)
 		}
-		log.Printf("  ✅ Migrated: %T", model)
+		log.Info().Msgf("  ✅ Migrated: %T", model)
 	}
 
-	log.Println("✅ System database migrations completed")
+	log.Info().Msg("System database migrations completed")
 	return nil
 }
 
 // MigrateTenantDatabase runs migrations for a tenant database
 func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
-	log.Printf("🔄 Running tenant database migrations for: %s", tenantID)
+	log.Info().Msgf("🔄 Running tenant database migrations for: %s", tenantID)
 
 	// Create tenant schema for PostgreSQL
 	if GetDatabaseDriver() == DriverPostgres {
@@ -160,18 +160,18 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 
 	for _, model := range tenantModels {
 		if err := dropLegacyUniqueConstraints(db, model); err != nil {
-			log.Printf("  ⚠️  Warning normalizing unique constraints for %T: %v", model, err)
+			log.Info().Msgf("  ⚠️  Warning normalizing unique constraints for %T: %v", model, err)
 		}
 
 		if err := db.AutoMigrate(model); err != nil {
-			log.Printf("  ⚠️  Warning migrating %T: %v", model, err)
+			log.Info().Msgf("  ⚠️  Warning migrating %T: %v", model, err)
 			// Continue with other models
 			continue
 		}
-		log.Printf("  ✅ Migrated: %T", model)
+		log.Info().Msgf("  ✅ Migrated: %T", model)
 	}
 
-	log.Printf("✅ Tenant database migrations completed for: %s", tenantID)
+	log.Info().Msgf("✅ Tenant database migrations completed for: %s", tenantID)
 	return nil
 }
 
@@ -277,12 +277,12 @@ func RunAllMigrations(basePath string, tenantIDs []string) error {
 	for _, tenantID := range tenantIDs {
 		tenantDB, err := GetTenantDB(tenantID, basePath)
 		if err != nil {
-			log.Printf("⚠️  Warning: failed to get tenant DB %s: %v", tenantID, err)
+			log.Info().Msgf("⚠️  Warning: failed to get tenant DB %s: %v", tenantID, err)
 			continue
 		}
 
 		if err := MigrateTenantDatabase(tenantDB, tenantID); err != nil {
-			log.Printf("⚠️  Warning: failed to migrate tenant DB %s: %v", tenantID, err)
+			log.Info().Msgf("⚠️  Warning: failed to migrate tenant DB %s: %v", tenantID, err)
 			continue
 		}
 	}

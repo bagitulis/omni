@@ -26,7 +26,7 @@ func TestSheetsHandler_ListSpreadsheets(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "tenantId")
+		assert.Contains(t, resp["error"], "tenant_id")
 	})
 }
 

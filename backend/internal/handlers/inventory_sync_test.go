@@ -30,7 +30,7 @@ func TestInventoryHandler_SyncFromSheets(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, "FAILED", resp["status"])
-		assert.Contains(t, resp["message"], "Missing tenantId")
+		assert.Contains(t, resp["message"], "Missing tenant_id")
 	})
 
 	t.Run("valid tenant ID with no DB returns error", func(t *testing.T) {
@@ -41,7 +41,7 @@ func TestInventoryHandler_SyncFromSheets(t *testing.T) {
 		body := bytes.NewBufferString(`{}`)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory/sync/from-sheets", body)
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.SyncFromSheets(c)
 
@@ -69,7 +69,7 @@ func TestInventoryHandler_SyncToSheets(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, "FAILED", resp["status"])
-		assert.Contains(t, resp["message"], "Missing tenantId")
+		assert.Contains(t, resp["message"], "Missing tenant_id")
 	})
 
 	t.Run("valid tenant ID with no spreadsheet config returns 400", func(t *testing.T) {
@@ -82,7 +82,7 @@ func TestInventoryHandler_SyncToSheets(t *testing.T) {
 		body := bytes.NewBufferString(`{"spreadsheet_id":"test-id","sheet_name":"Sheet1"}`)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/inventory/sync/to-sheets", body)
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.SyncToSheets(c)
 

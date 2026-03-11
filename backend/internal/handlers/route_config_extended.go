@@ -4,14 +4,15 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/route"
 )
 
 // GetCategories handles GET /api/routes-config/categories
 func (h *RouteConfigHandler) GetCategories(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -36,9 +37,9 @@ func (h *RouteConfigHandler) GetCategories(c *gin.Context) {
 
 // GetByCategory handles GET /api/routes-config/by-category/:category
 func (h *RouteConfigHandler) GetByCategory(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -68,9 +69,9 @@ func (h *RouteConfigHandler) GetByCategory(c *gin.Context) {
 
 // Create handles POST /api/routes-config
 func (h *RouteConfigHandler) Create(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -107,9 +108,9 @@ func (h *RouteConfigHandler) Create(c *gin.Context) {
 
 // Delete handles DELETE /api/routes-config/:id
 func (h *RouteConfigHandler) Delete(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -136,9 +137,9 @@ func (h *RouteConfigHandler) Delete(c *gin.Context) {
 
 // BulkUpdate handles POST /api/routes-config/bulk-update
 func (h *RouteConfigHandler) BulkUpdate(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -175,9 +176,9 @@ func (h *RouteConfigHandler) BulkUpdate(c *gin.Context) {
 
 // ApplyPreset handles POST /api/routes-config/apply-preset/:preset
 func (h *RouteConfigHandler) ApplyPreset(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 

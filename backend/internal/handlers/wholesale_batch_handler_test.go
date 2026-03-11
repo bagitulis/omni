@@ -37,7 +37,7 @@ func TestWholesaleBatchHandler_BatchUpdateBySkus_InvalidJSON(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -59,7 +59,7 @@ func TestWholesaleBatchHandler_BatchUpdateBySkus_EmptyItems(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -96,7 +96,7 @@ func TestWholesaleBatchHandler_BatchDeleteByItemIds_InvalidJSON(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -133,7 +133,7 @@ func TestWholesaleBatchHandler_BatchDeleteBySkus_InvalidJSON(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -155,7 +155,7 @@ func TestWholesaleBatchHandler_BatchDeleteBySkus_EmptySkus(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 
@@ -192,7 +192,7 @@ func TestWholesaleBatchHandler_Preview_InvalidJSON(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 

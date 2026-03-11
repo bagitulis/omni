@@ -32,7 +32,7 @@ func TestStockHandler_List_MissingTenant(t *testing.T) {
 
 	var resp map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "tenantId")
+	assert.Contains(t, resp["error"], "tenant_id")
 }
 
 // TestStockHandler_GetBySKU_MissingTenant tests GetBySKU without tenant
@@ -62,7 +62,7 @@ func TestStockHandler_GetBySKU_MissingSKU(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/stock/", nil)
 	c.Params = gin.Params{{Key: "sku", Value: ""}}
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	handler.GetBySKU(c)
 
@@ -104,7 +104,7 @@ func TestStockHandler_Update_MissingSKU(t *testing.T) {
 	c.Request = httptest.NewRequest(http.MethodPut, "/api/stock/", body)
 	c.Request.Header.Set("Content-Type", "application/json")
 	c.Params = gin.Params{{Key: "sku", Value: ""}}
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	handler.Update(c)
 
@@ -123,7 +123,7 @@ func TestStockHandler_Update_InvalidBody(t *testing.T) {
 	c.Request = httptest.NewRequest(http.MethodPut, "/api/stock/SKU001", body)
 	c.Request.Header.Set("Content-Type", "application/json")
 	c.Params = gin.Params{{Key: "sku", Value: "SKU001"}}
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	handler.Update(c)
 
@@ -159,7 +159,7 @@ func TestStockHandler_BulkUpdate_InvalidJSON(t *testing.T) {
 	body := bytes.NewBufferString(`{invalid json}`)
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/stock/bulk", body)
 	c.Request.Header.Set("Content-Type", "application/json")
-	c.Set("tenantID", "test-tenant")
+	c.Set("tenant_id", "test-tenant")
 
 	handler.BulkUpdate(c)
 

@@ -32,7 +32,7 @@ func TestUnifiedHandler_GetUnifiedSummary(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/analytics/unified/summary", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.GetUnifiedSummary(c)
 
@@ -62,7 +62,7 @@ func TestUnifiedHandler_GetUnifiedKPI(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/analytics/unified/kpi", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.GetUnifiedKPI(c)
 

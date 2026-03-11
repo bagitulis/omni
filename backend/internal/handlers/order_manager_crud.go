@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/sync"
 )
@@ -45,7 +46,7 @@ func (h *OrderManagerHandler) GetProcessedOrders(c *gin.Context) {
 // IMPORTANT: Does NOT sync from platform APIs - frontend should call /sync/:category first
 // This separation allows proper control of when to sync vs when to just fetch
 func (h *OrderManagerHandler) getOrdersFromDatabase(c *gin.Context, category string) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
@@ -132,7 +133,7 @@ func parseOrderPlatformFilter(platform string) (*sync.PlatformType, error) {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/orders/:orderSn [get]
 func (h *OrderManagerHandler) GetOrderByOrderSn(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,

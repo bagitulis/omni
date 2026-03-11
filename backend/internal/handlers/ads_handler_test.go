@@ -74,7 +74,7 @@ func TestValidateTenantID_Success(t *testing.T) {
 
 	// Set tenant ID in middleware
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -121,7 +121,7 @@ func TestValidateTenantID_Missing(t *testing.T) {
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
-	assert.Contains(t, resp["error"], "tenantId")
+	assert.Contains(t, resp["error"], "tenant_id")
 }
 
 // TestGetShopeeAds_MissingTenant tests Shopee ads endpoint without tenant
@@ -143,7 +143,7 @@ func TestGetShopeeAds_MissingTenant(t *testing.T) {
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
-	assert.Contains(t, resp["error"], "tenantId")
+	assert.Contains(t, resp["error"], "tenant_id")
 }
 
 // TestGetShopeeAdsSummary_MissingTenant tests Shopee summary endpoint without tenant

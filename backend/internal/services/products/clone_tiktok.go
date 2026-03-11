@@ -41,12 +41,16 @@ func (s *CloneService) fetchTiktokProductFromDB(ctx context.Context, itemID stri
 
 	var product models.TiktokProduct
 	if sku.ProductID > 0 {
-		s.db.WithContext(ctx).First(&product, sku.ProductID)
+		if err := s.db.WithContext(ctx).First(&product, sku.ProductID).Error; err != nil {
+			return nil, fmt.Errorf("tiktok product record not found (id=%d): %w", sku.ProductID, err)
+		}
 	}
 
 	var allSkus []models.TiktokSku
 	if sku.ProductID > 0 {
-		s.db.WithContext(ctx).Where("product_id = ?", sku.ProductID).Find(&allSkus)
+		if err := s.db.WithContext(ctx).Where("product_id = ?", sku.ProductID).Find(&allSkus).Error; err != nil {
+			return nil, fmt.Errorf("failed to fetch tiktok SKUs for product %d: %w", sku.ProductID, err)
+		}
 	}
 
 	images := parseImagesFromDB(product.Image)

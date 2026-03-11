@@ -26,7 +26,7 @@ func NewMarketplaceSyncHistoryHandler(basePath string) *MarketplaceSyncHistoryHa
 func (h *MarketplaceSyncHistoryHandler) newTenantRepo(c *gin.Context) (string, *repositories.MarketplaceSyncHistoryRepo, error) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		return "", nil, fmt.Errorf("Missing tenantId")
+		return "", nil, fmt.Errorf("Missing tenant_id")
 	}
 
 	tenantDB, err := config.GetTenantDB(tenantID, h.basePath)
@@ -43,7 +43,7 @@ func (h *MarketplaceSyncHistoryHandler) List(c *gin.Context) {
 	tenantID, repo, err := h.newTenantRepo(c)
 	if err != nil {
 		status := http.StatusInternalServerError
-		if strings.Contains(err.Error(), "Missing tenantId") {
+		if strings.Contains(err.Error(), "Missing tenant_id") {
 			status = http.StatusUnauthorized
 		}
 		c.JSON(status, gin.H{
@@ -106,7 +106,7 @@ func (h *MarketplaceSyncHistoryHandler) Create(c *gin.Context) {
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

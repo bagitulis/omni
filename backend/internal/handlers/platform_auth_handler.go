@@ -45,7 +45,7 @@ type OAuthURLInfo struct {
 func (h *PlatformAuthHandler) GetOAuthURLs(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -106,7 +106,7 @@ func (h *PlatformAuthHandler) DisconnectLazada(c *gin.Context) {
 func (h *PlatformAuthHandler) disconnectPlatform(c *gin.Context, platform string) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -151,7 +151,7 @@ type ConnectionStatus struct {
 func (h *PlatformAuthHandler) CheckAllConnections(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -231,6 +231,6 @@ func (h *PlatformAuthHandler) CheckAllConnections(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response.Success(gin.H{
 		"connections": statuses,
-		"checkedAt":   now,
+		"checked_at":  now,
 	}))
 }

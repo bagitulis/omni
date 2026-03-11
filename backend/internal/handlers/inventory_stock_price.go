@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services"
 	inventoryService "github.com/omni/backend/internal/services/inventory"
@@ -22,9 +23,9 @@ type UpdateStockRequest struct {
 // UpdateStock handles POST /api/inventory/update-stock
 // Gets stock from inventory_records and syncs to marketplace platforms
 func (h *InventoryHandler) UpdateStock(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -93,9 +94,9 @@ type UpdateStockBatchRequest struct {
 // UpdateStockBatch handles POST /api/inventory/update-stock-batch
 // Gets stock from inventory_records for each SKU and syncs to marketplaces
 func (h *InventoryHandler) UpdateStockBatch(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -162,9 +163,9 @@ type UpdatePriceRequest struct {
 // UpdatePrice handles POST /api/inventory/update-price
 // Gets price from inventory_records and syncs to marketplace platforms
 func (h *InventoryHandler) UpdatePrice(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -230,9 +231,9 @@ type UpdatePriceBatchRequest struct {
 // UpdatePriceBatch handles POST /api/inventory/update-price-batch
 // Gets price from request (not from inventory_records) and syncs to marketplaces
 func (h *InventoryHandler) UpdatePriceBatch(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 

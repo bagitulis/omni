@@ -41,7 +41,7 @@ func (h *WholesaleExtendedHandler) getDB(_ *gin.Context, tenantID string) (*gorm
 func (h *WholesaleExtendedHandler) DeleteWholesale(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -84,7 +84,7 @@ func (h *WholesaleExtendedHandler) DeleteWholesale(c *gin.Context) {
 func (h *WholesaleExtendedHandler) UpdateWholesale(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -144,7 +144,7 @@ func (h *WholesaleExtendedHandler) UpdateWholesale(c *gin.Context) {
 func (h *WholesaleExtendedHandler) GetWholesaleInfo(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -187,7 +187,7 @@ func (h *WholesaleExtendedHandler) GetWholesaleInfo(c *gin.Context) {
 func (h *WholesaleExtendedHandler) LookupItemId(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -223,7 +223,7 @@ func (h *WholesaleExtendedHandler) LookupItemId(c *gin.Context) {
 func (h *WholesaleExtendedHandler) SetTiktokWholesale(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"os"
 	"strconv"
 
@@ -23,7 +23,7 @@ import (
 // Unlike sync_products (full sync), this filters by inventory and uses SyncProductsByIDs
 // to avoid fetching all products from each platform, saving API calls and time.
 func syncProductsInventoryHandler(ctx context.Context, tenantID string, cfg *models.AutoFunctionConfig) (string, error) {
-	log.Printf("[AutoFunction] Running 'Sync Products (Inventory Only)' for tenant: %s", tenantID)
+	log.Info().Msgf("[AutoFunction] Running 'Sync Products (Inventory Only)' for tenant: %s", tenantID)
 
 	basePath := os.Getenv("DATA_PATH")
 	if basePath == "" {
@@ -43,7 +43,7 @@ func syncProductsInventoryHandler(ctx context.Context, tenantID string, cfg *mod
 	// 1. Validate inventory key_column_name is SKU-based
 	keyColName := getInventoryKeyColumnName(ctx, db, tenantID)
 	if keyColName != "" && keyColName != "SKU" && keyColName != "Kode SKU" && keyColName != "sku" {
-		log.Printf("[AutoFunction] WARNING: inventory key_column_name=%q (expected 'SKU'). SKU matching may not work correctly for tenant: %s", keyColName, tenantID)
+		log.Info().Msgf("[AutoFunction] WARNING: inventory key_column_name=%q (expected 'SKU'). SKU matching may not work correctly for tenant: %s", keyColName, tenantID)
 	}
 
 	// 2. Get all unique SKUs from inventory
@@ -51,14 +51,14 @@ func syncProductsInventoryHandler(ctx context.Context, tenantID string, cfg *mod
 	if len(inventorySkus) == 0 {
 		return "No inventory SKUs found — nothing to sync", nil
 	}
-	log.Printf("[AutoFunction] Found %d inventory SKUs (key_column=%q) for tenant: %s", len(inventorySkus), keyColName, tenantID)
+	log.Info().Msgf("[AutoFunction] Found %d inventory SKUs (key_column=%q) for tenant: %s", len(inventorySkus), keyColName, tenantID)
 
 	// 3. Check if platform SKU tables have data (require at least one full sync first)
 	shopeeSkuCount, tiktokSkuCount, lazadaSkuCount := getPlatformSkuCounts(ctx, db, tenantID)
 	if shopeeSkuCount == 0 && tiktokSkuCount == 0 && lazadaSkuCount == 0 {
 		return "No platform SKU data found — run a full product sync from the Products page first", nil
 	}
-	log.Printf("[AutoFunction] Platform SKU counts: shopee=%d, tiktok=%d, lazada=%d", shopeeSkuCount, tiktokSkuCount, lazadaSkuCount)
+	log.Info().Msgf("[AutoFunction] Platform SKU counts: shopee=%d, tiktok=%d, lazada=%d", shopeeSkuCount, tiktokSkuCount, lazadaSkuCount)
 
 	credRepo := repositories.NewPlatformCredentialsRepository(db)
 	globalConfigRepo := repositories.NewGlobalConfigRepository(systemDB)
@@ -90,7 +90,7 @@ func syncProductsInventoryHandler(ctx context.Context, tenantID string, cfg *mod
 	autoFixPlatformLinks(ctx, db, tenantID)
 
 	resultMsg := fmt.Sprintf("Inventory sync completed: %v", results)
-	log.Printf("[AutoFunction] %s for tenant: %s", resultMsg, tenantID)
+	log.Info().Msgf("[AutoFunction] %s for tenant: %s", resultMsg, tenantID)
 	return resultMsg, nil
 }
 
@@ -113,7 +113,7 @@ func getInventorySkus(ctx context.Context, db *gorm.DB, tenantID string) []strin
 		Where("tenant_id = ? AND key_value != ''", tenantID).
 		Distinct("key_value").
 		Pluck("key_value", &skus).Error; err != nil {
-		log.Printf("[AutoFunction] Failed to load inventory SKUs: %v", err)
+		log.Info().Msgf("[AutoFunction] Failed to load inventory SKUs: %v", err)
 		return nil
 	}
 	return skus
@@ -146,7 +146,7 @@ func syncShopeeByInventory(
 	if len(itemIDs) == 0 {
 		return "Shopee: 0 items matched inventory"
 	}
-	log.Printf("[AutoFunction] Shopee: %d items matched inventory SKUs", len(itemIDs))
+	log.Info().Msgf("[AutoFunction] Shopee: %d items matched inventory SKUs", len(itemIDs))
 
 	tenantCreds, err := credRepo.GetShopeeCredentials(ctx)
 	if err != nil {
@@ -199,7 +199,7 @@ func syncTiktokByInventory(
 	if len(productIDs) == 0 {
 		return "TikTok: 0 products resolved"
 	}
-	log.Printf("[AutoFunction] TikTok: %d products matched inventory SKUs (from %d DB IDs)", len(productIDs), len(productDBIDs))
+	log.Info().Msgf("[AutoFunction] TikTok: %d products matched inventory SKUs (from %d DB IDs)", len(productIDs), len(productDBIDs))
 
 	tenantCreds, err := credRepo.GetTiktokCredentials(ctx)
 	if err != nil {
@@ -253,7 +253,7 @@ func syncLazadaByInventory(
 	for _, s := range itemIDStrs {
 		id, err := strconv.ParseInt(s, 10, 64)
 		if err != nil || id <= 0 {
-			log.Printf("[AutoFunction] Lazada: skipping invalid item_id=%q (err=%v)", s, err)
+			log.Info().Msgf("[AutoFunction] Lazada: skipping invalid item_id=%q (err=%v)", s, err)
 			skipped++
 			continue
 		}
@@ -262,7 +262,7 @@ func syncLazadaByInventory(
 	if len(itemIDs) == 0 {
 		return fmt.Sprintf("Lazada: 0 valid item IDs (all %d skipped)", skipped)
 	}
-	log.Printf("[AutoFunction] Lazada: %d items matched inventory SKUs (skipped=%d)", len(itemIDs), skipped)
+	log.Info().Msgf("[AutoFunction] Lazada: %d items matched inventory SKUs (skipped=%d)", len(itemIDs), skipped)
 
 	tenantCreds, err := credRepo.GetLazadaCredentials(ctx)
 	if err != nil {

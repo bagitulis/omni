@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"os"
 	"time"
 
@@ -43,7 +43,7 @@ func (h *ImageCleanupHandler) HandleImageCleanup(ctx context.Context, payload st
 		return "", fmt.Errorf("missing tenant_id in job data")
 	}
 
-	log.Printf("[ImageCleanupHandler] Starting cleanup for tenant %s", tenantID)
+	log.Info().Msgf("[ImageCleanupHandler] Starting cleanup for tenant %s", tenantID)
 
 	tenantDB, err := config.GetTenantDBByID(tenantID)
 	if err != nil {
@@ -74,13 +74,13 @@ func (h *ImageCleanupHandler) HandleImageCleanup(ctx context.Context, payload st
 
 	for _, img := range images {
 		if err := storageService.DeleteImage(tenantID, img.LocalPath); err != nil {
-			log.Printf("[ImageCleanupHandler] Failed to delete file for image %d: %v", img.ID, err)
+			log.Info().Msgf("[ImageCleanupHandler] Failed to delete file for image %d: %v", img.ID, err)
 			failed++
 			continue
 		}
 
 		if err := tenantDB.WithContext(ctx).Unscoped().Delete(&img).Error; err != nil {
-			log.Printf("[ImageCleanupHandler] Failed to delete image record %d: %v", img.ID, err)
+			log.Info().Msgf("[ImageCleanupHandler] Failed to delete image record %d: %v", img.ID, err)
 			failed++
 			continue
 		}
@@ -89,6 +89,6 @@ func (h *ImageCleanupHandler) HandleImageCleanup(ctx context.Context, payload st
 	}
 
 	summary := fmt.Sprintf("cleanup completed: total=%d deleted=%d failed=%d", total, deleted, failed)
-	log.Printf("[ImageCleanupHandler] %s", summary)
+	log.Info().Msgf("[ImageCleanupHandler] %s", summary)
 	return summary, nil
 }

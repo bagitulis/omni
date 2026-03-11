@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	inventoryService "github.com/omni/backend/internal/services/inventory"
 	"gorm.io/gorm"
 )
@@ -22,9 +23,9 @@ func NewSyncHandler(db *gorm.DB, sheetsClient inventoryService.SheetsClient) *Sy
 
 // TriggerSync handles POST /api/inventory/sync
 func (h *SyncHandler) TriggerSync(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 
@@ -49,9 +50,9 @@ func (h *SyncHandler) TriggerSync(c *gin.Context) {
 
 // GetSyncHistory handles GET /api/inventory/sync/history
 func (h *SyncHandler) GetSyncHistory(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
 		return
 	}
 

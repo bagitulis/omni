@@ -1,10 +1,12 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/omni/backend/internal/middleware"
+	"github.com/rs/zerolog/log"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -64,11 +66,11 @@ func (h *SkuBatchCheckHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 // BatchCheckSku handles POST /api/inventory/batch-check-sku
 // Check multiple SKUs across all platforms (Lazada, Shopee, TikTok)
 func (h *SkuBatchCheckHandler) BatchCheckSku(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -92,7 +94,7 @@ func (h *SkuBatchCheckHandler) BatchCheckSku(c *gin.Context) {
 
 	db, err := h.getDB(c)
 	if err != nil {
-		log.Printf("[ERROR] Failed to get tenant database: %v", err)
+		log.Info().Msgf("[ERROR] Failed to get tenant database: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   "Database connection error",
@@ -122,7 +124,7 @@ func (h *SkuBatchCheckHandler) BatchCheckSku(c *gin.Context) {
 		results = append(results, result)
 	}
 
-	log.Printf("[INFO] Batch SKU check completed - tenant: %s, total: %d, checked: %d",
+	log.Info().Msgf("[INFO] Batch SKU check completed - tenant: %s, total: %d, checked: %d",
 		tenantID, len(req.Skus), len(results))
 
 	c.JSON(http.StatusOK, gin.H{
@@ -142,7 +144,7 @@ func (h *SkuBatchCheckHandler) checkLazadaSku(db *gorm.DB, sku string) bool {
 		Where("sku_id = ? OR seller_sku = ?", sku, sku).
 		Count(&count).Error
 	if err != nil {
-		log.Printf("[WARN] Error checking Lazada SKU %s: %v", sku, err)
+		log.Info().Msgf("[WARN] Error checking Lazada SKU %s: %v", sku, err)
 		return false
 	}
 	return count > 0
@@ -156,7 +158,7 @@ func (h *SkuBatchCheckHandler) checkShopeeSku(db *gorm.DB, sku string) bool {
 		Where("seller_sku = ? OR CAST(model_id AS TEXT) = ?", sku, sku).
 		Count(&count).Error
 	if err != nil {
-		log.Printf("[WARN] Error checking Shopee SKU %s: %v", sku, err)
+		log.Info().Msgf("[WARN] Error checking Shopee SKU %s: %v", sku, err)
 		return false
 	}
 	return count > 0
@@ -169,7 +171,7 @@ func (h *SkuBatchCheckHandler) checkTiktokSku(db *gorm.DB, sku string) bool {
 		Where("sku_id = ? OR seller_sku = ?", sku, sku).
 		Count(&count).Error
 	if err != nil {
-		log.Printf("[WARN] Error checking TikTok SKU %s: %v", sku, err)
+		log.Info().Msgf("[WARN] Error checking TikTok SKU %s: %v", sku, err)
 		return false
 	}
 	return count > 0

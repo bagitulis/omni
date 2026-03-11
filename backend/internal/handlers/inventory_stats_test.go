@@ -27,7 +27,7 @@ func TestInventoryHandler_GetStats(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "Missing tenantId")
+		assert.Contains(t, resp["error"], "Missing tenant_id")
 	})
 
 	t.Run("valid tenant ID with no DB returns error", func(t *testing.T) {
@@ -36,7 +36,7 @@ func TestInventoryHandler_GetStats(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/inventory/stats", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.GetStats(c)
 
@@ -62,7 +62,7 @@ func TestInventoryHandler_GetPlatformStatus(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, false, resp["success"])
-		assert.Contains(t, resp["error"], "Missing tenantId")
+		assert.Contains(t, resp["error"], "Missing tenant_id")
 	})
 
 	t.Run("valid tenant ID returns empty results", func(t *testing.T) {
@@ -71,7 +71,7 @@ func TestInventoryHandler_GetPlatformStatus(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/inventory/platform-status", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.GetPlatformStatus(c)
 

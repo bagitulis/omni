@@ -1,9 +1,10 @@
 package shopee
 
 import (
-	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
@@ -43,7 +44,7 @@ type FlattenedSkuRow struct {
 func (h *DBProductHandler) GetDBProducts(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -65,7 +66,7 @@ func (h *DBProductHandler) GetDBProducts(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[Shopee DB] GetDBProducts: found %d rows (total: %d)", len(products), total)
+	log.Info().Msgf("[Shopee DB] GetDBProducts: found %d rows (total: %d)", len(products), total)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success":  true,
@@ -101,7 +102,7 @@ func (h *DBProductHandler) GetProductBaseByID(c *gin.Context) {
 func (h *DBProductHandler) GetProductModelsByID(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 	itemIDStr := c.Param("itemId")
@@ -116,7 +117,10 @@ func (h *DBProductHandler) GetProductModelsByID(c *gin.Context) {
 		return
 	}
 	var skus []models.ShopeeSku
-	db.Where("item_id = ?", itemID).Find(&skus)
+	if err := db.Where("item_id = ?", itemID).Find(&skus).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to query product models"))
+		return
+	}
 	result := make([]FlattenedSkuRow, 0, len(skus))
 	for _, sku := range skus {
 		row := FlattenedSkuRow{
@@ -149,7 +153,7 @@ func (h *DBProductHandler) GetProductFull(c *gin.Context) {
 func (h *DBProductHandler) GetProductByID(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 	itemIDStr := c.Param("itemId")
@@ -175,7 +179,7 @@ func (h *DBProductHandler) GetProductByID(c *gin.Context) {
 func (h *DBProductHandler) SearchProducts(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 	sku := c.Query("sku")
@@ -185,10 +189,15 @@ func (h *DBProductHandler) SearchProducts(c *gin.Context) {
 		return
 	}
 	var skus []models.ShopeeSku
+	var dbErr error
 	if sku != "" {
-		db.Where("seller_sku LIKE ?", "%"+sku+"%").Find(&skus)
+		dbErr = db.Where("seller_sku LIKE ?", "%"+sku+"%").Find(&skus).Error
 	} else {
-		db.Limit(100).Find(&skus)
+		dbErr = db.Limit(100).Find(&skus).Error
+	}
+	if dbErr != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to search products"))
+		return
 	}
 	result := make([]FlattenedSkuRow, 0, len(skus))
 	for _, s := range skus {

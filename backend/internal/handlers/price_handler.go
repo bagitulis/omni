@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/price"
 	"gorm.io/gorm"
 )
@@ -21,9 +22,9 @@ func NewPriceHandler(db *gorm.DB) *PriceHandler {
 
 // List handles GET /api/price
 func (h *PriceHandler) List(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -38,7 +39,7 @@ func (h *PriceHandler) List(c *gin.Context) {
 	svc := price.NewPriceService(h.db, tenantID)
 	prices, total, err := svc.GetAllPrices(c.Request.Context(), limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -55,9 +56,9 @@ func (h *PriceHandler) List(c *gin.Context) {
 
 // GetBySKU handles GET /api/price/:sku
 func (h *PriceHandler) GetBySKU(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -75,12 +76,12 @@ func (h *PriceHandler) GetBySKU(c *gin.Context) {
 	svc := price.NewPriceService(h.db, tenantID)
 	priceInfo, err := svc.GetPrice(c.Request.Context(), sku)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	if priceInfo == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "SKU not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "SKU not found"})
 		return
 	}
 
@@ -89,15 +90,15 @@ func (h *PriceHandler) GetBySKU(c *gin.Context) {
 
 // Update handles PUT /api/price/:sku
 func (h *PriceHandler) Update(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	sku := c.Param("sku")
 	if sku == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "SKU required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "SKU required"})
 		return
 	}
 
@@ -106,7 +107,7 @@ func (h *PriceHandler) Update(c *gin.Context) {
 		Platforms []string `json:"platforms"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -122,7 +123,7 @@ func (h *PriceHandler) Update(c *gin.Context) {
 		Platforms: req.Platforms,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -131,15 +132,15 @@ func (h *PriceHandler) Update(c *gin.Context) {
 
 // BulkUpdate handles POST /api/price/bulk
 func (h *PriceHandler) BulkUpdate(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	var req price.BulkPriceUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -151,7 +152,7 @@ func (h *PriceHandler) BulkUpdate(c *gin.Context) {
 	svc := price.NewPriceService(h.db, tenantID)
 	result, err := svc.BulkUpdatePrice(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 

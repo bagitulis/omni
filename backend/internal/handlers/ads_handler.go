@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/ads"
 	"gorm.io/gorm"
 )
@@ -45,9 +46,9 @@ func parseDateRange(c *gin.Context) (time.Time, time.Time) {
 
 // validateTenantID validates tenant ID from context
 func validateTenantID(c *gin.Context) (string, bool) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return "", false
 	}
 	return tenantID, true
@@ -62,7 +63,7 @@ func (h *AdsHandler) newShopeeService(c *gin.Context) (*ads.ShopeeAdsService, st
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return nil, "", err
 	}
 
@@ -78,7 +79,7 @@ func (h *AdsHandler) newTiktokService(c *gin.Context) (*ads.TiktokAdsService, st
 
 	db, err := h.getDB(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return nil, "", err
 	}
 

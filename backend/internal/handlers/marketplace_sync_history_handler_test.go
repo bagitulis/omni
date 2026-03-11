@@ -38,13 +38,13 @@ func TestSyncHistoryCreate_MissingTenant(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
-	assert.Contains(t, resp["error"], "tenantId")
+	assert.Contains(t, resp["error"], "tenant_id")
 }
 
 func TestSyncHistoryCreate_MissingRequiredFields(t *testing.T) {
 	r, handler := setupSyncHistoryRouter()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-test")
+		c.Set("tenant_id", "tenant-test")
 		c.Next()
 	})
 	r.POST("/api/marketplace-sync-history", handler.Create)
@@ -66,7 +66,7 @@ func TestSyncHistoryCreate_MissingRequiredFields(t *testing.T) {
 func TestSyncHistoryCreate_InvalidPlatform(t *testing.T) {
 	r, handler := setupSyncHistoryRouter()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-test")
+		c.Set("tenant_id", "tenant-test")
 		c.Next()
 	})
 	r.POST("/api/marketplace-sync-history", handler.Create)
@@ -90,7 +90,7 @@ func TestSyncHistoryCreate_InvalidPlatform(t *testing.T) {
 func TestSyncHistoryCreate_InvalidOperation(t *testing.T) {
 	r, handler := setupSyncHistoryRouter()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-test")
+		c.Set("tenant_id", "tenant-test")
 		c.Next()
 	})
 	r.POST("/api/marketplace-sync-history", handler.Create)
@@ -114,7 +114,7 @@ func TestSyncHistoryCreate_InvalidOperation(t *testing.T) {
 func TestSyncHistoryCreate_InvalidStatus(t *testing.T) {
 	r, handler := setupSyncHistoryRouter()
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-test")
+		c.Set("tenant_id", "tenant-test")
 		c.Next()
 	})
 	r.POST("/api/marketplace-sync-history", handler.Create)
@@ -148,7 +148,7 @@ func TestSyncHistoryList_MissingTenant(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
-	assert.Contains(t, resp["error"], "tenantId")
+	assert.Contains(t, resp["error"], "tenant_id")
 }
 
 func TestSyncHistoryCreate_AllValidPlatforms(t *testing.T) {
@@ -157,7 +157,7 @@ func TestSyncHistoryCreate_AllValidPlatforms(t *testing.T) {
 			r, handler := setupSyncHistoryRouter()
 			r.Use(gin.Recovery()) // Recover from nil repo panic
 			r.Use(func(c *gin.Context) {
-				c.Set("tenantID", "tenant-test")
+				c.Set("tenant_id", "tenant-test")
 				c.Next()
 			})
 			r.POST("/api/marketplace-sync-history", handler.Create)
@@ -180,7 +180,7 @@ func TestSyncHistoryCreate_AllValidOperations(t *testing.T) {
 			r, handler := setupSyncHistoryRouter()
 			r.Use(gin.Recovery())
 			r.Use(func(c *gin.Context) {
-				c.Set("tenantID", "tenant-test")
+				c.Set("tenant_id", "tenant-test")
 				c.Next()
 			})
 			r.POST("/api/marketplace-sync-history", handler.Create)
@@ -202,7 +202,7 @@ func TestSyncHistoryCreate_AllValidStatuses(t *testing.T) {
 			r, handler := setupSyncHistoryRouter()
 			r.Use(gin.Recovery())
 			r.Use(func(c *gin.Context) {
-				c.Set("tenantID", "tenant-test")
+				c.Set("tenant_id", "tenant-test")
 				c.Next()
 			})
 			r.POST("/api/marketplace-sync-history", handler.Create)

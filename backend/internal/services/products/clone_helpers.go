@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"strings"
 	"time"
 
@@ -241,7 +241,7 @@ func (s *CloneService) successResultWithSync(result *CloneResult, targetItemID, 
 		result.Message = "Product cloned and synced successfully"
 	}
 
-	log.Printf("[Clone] Product cloned to %s, sync result: %s", result.TargetPlatform, syncResult)
+	log.Info().Msgf("[Clone] Product cloned to %s, sync result: %s", result.TargetPlatform, syncResult)
 	return result, nil
 }
 

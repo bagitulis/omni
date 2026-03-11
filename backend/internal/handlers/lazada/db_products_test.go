@@ -73,7 +73,7 @@ func TestDBProductHandler_GetDBProducts_WithTenantID(t *testing.T) {
 	h := NewDBProductHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.GET("/api/lazada/db/products", h.GetDBProducts)
@@ -113,7 +113,7 @@ func TestDBProductHandler_GetDBProducts_PaginationDefaults(t *testing.T) {
 	h := NewDBProductHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.GET("/api/lazada/db/products", h.GetDBProducts)
@@ -133,7 +133,7 @@ func TestDBProductHandler_GetDBProducts_LimitCap(t *testing.T) {
 	h := NewDBProductHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.GET("/api/lazada/db/products", h.GetDBProducts)

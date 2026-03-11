@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/sync"
 	"github.com/omni/backend/internal/utils/logger"
 )
@@ -28,11 +29,11 @@ type SyncByCategoryBody struct {
 // SyncByCategory syncs orders by category from platform APIs
 // This is called by frontend BEFORE calling GET /orders/:category
 func (h *OrderSyncHandler) SyncByCategory(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -149,11 +150,11 @@ func (h *OrderSyncHandler) SyncByCategory(c *gin.Context) {
 
 // SyncPlatformOrders syncs orders for a specific platform
 func (h *OrderSyncHandler) SyncPlatformOrders(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

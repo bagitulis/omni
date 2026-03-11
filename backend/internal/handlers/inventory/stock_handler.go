@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services"
@@ -37,9 +38,9 @@ func NewStockHandler(db *gorm.DB) *StockHandler {
 // UpdateStock handles POST /api/inventory/update-stock
 // Gets stock from inventory_records and syncs to marketplace platforms
 func (h *StockHandler) UpdateStock(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -88,9 +89,9 @@ func (h *StockHandler) UpdateStock(c *gin.Context) {
 
 // UpdateStockBatch handles POST /api/inventory/update-stock-batch
 func (h *StockHandler) UpdateStockBatch(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -207,9 +208,9 @@ func recordStockBatchSyncHistory(ctx context.Context, db *gorm.DB, tenantID stri
 
 // LookupPlatformIds handles POST /api/inventory/lookup-platform-ids
 func (h *StockHandler) LookupPlatformIds(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 

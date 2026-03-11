@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/dto/response"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/google"
 )
 
@@ -20,9 +21,9 @@ func NewGoogleSheetsHandler(authService *google.AuthService) *GoogleSheetsHandle
 
 // GetSpreadsheetInfo handles GET /api/google-sheets/spreadsheets/:id
 func (h *GoogleSheetsHandler) GetSpreadsheetInfo(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -44,9 +45,9 @@ func (h *GoogleSheetsHandler) GetSpreadsheetInfo(c *gin.Context) {
 
 // ReadData handles POST /api/google-sheets/read
 func (h *GoogleSheetsHandler) ReadData(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -71,9 +72,9 @@ func (h *GoogleSheetsHandler) ReadData(c *gin.Context) {
 
 // WriteData handles POST /api/google-sheets/write
 func (h *GoogleSheetsHandler) WriteData(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -98,9 +99,9 @@ func (h *GoogleSheetsHandler) WriteData(c *gin.Context) {
 
 // DetectColumns handles POST /api/google-sheets/detect-columns
 func (h *GoogleSheetsHandler) DetectColumns(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -126,9 +127,9 @@ func (h *GoogleSheetsHandler) DetectColumns(c *gin.Context) {
 
 // ImportData handles POST /api/google-sheets/import
 func (h *GoogleSheetsHandler) ImportData(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

@@ -34,7 +34,7 @@ func TestMLHandler_GetPortfolioHealth(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/analytics/ml/portfolio-health?platform=tiktok", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.GetPortfolioHealth(c)
 

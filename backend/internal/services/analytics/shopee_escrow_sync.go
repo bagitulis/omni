@@ -4,7 +4,7 @@ package analytics
 import (
 	"context"
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,7 +35,7 @@ func (s *ShopeeEscrowSyncService) SyncMonth(
 	month, year int,
 	forceResync bool,
 ) (*dto.SyncResultDTO, error) {
-	log.Printf("[ShopeeEscrowSync] Starting sync for %d-%02d, tenant: %s", year, month, s.tenantID)
+	log.Info().Msgf("[ShopeeEscrowSync] Starting sync for %d-%02d, tenant: %s", year, month, s.tenantID)
 
 	// Check if current month (cannot sync)
 	now := time.Now()
@@ -61,14 +61,14 @@ func (s *ShopeeEscrowSyncService) SyncMonth(
 	// Get Shopee client
 	client, err := s.getShopeeClient()
 	if err != nil {
-		log.Printf("[ShopeeEscrowSync] ERROR getting shopee client: %v", err)
+		log.Info().Msgf("[ShopeeEscrowSync] ERROR getting shopee client: %v", err)
 		return nil, fmt.Errorf("get shopee client: %w", err)
 	}
 
 	// Get wallet transactions for the month
 	walletTx, err := s.getWalletTransactions(ctx, client, month, year)
 	if err != nil {
-		log.Printf("[ShopeeEscrowSync] ERROR getting wallet transactions: %v", err)
+		log.Info().Msgf("[ShopeeEscrowSync] ERROR getting wallet transactions: %v", err)
 		return nil, fmt.Errorf("get wallet transactions: %w", err)
 	}
 
@@ -79,7 +79,7 @@ func (s *ShopeeEscrowSyncService) SyncMonth(
 		}, nil
 	}
 
-	log.Printf("[ShopeeEscrowSync] Found %d wallet transactions", len(walletTx))
+	log.Info().Msgf("[ShopeeEscrowSync] Found %d wallet transactions", len(walletTx))
 
 	// Delete existing data if force resync
 	if forceResync {
@@ -152,7 +152,7 @@ func (s *ShopeeEscrowSyncService) extractUniqueOrderSNs(walletTx []WalletTx) []s
 		orderSNs = append(orderSNs, orderSN)
 	}
 
-	log.Printf("[ShopeeEscrowSync] Unique orders with order_sn: %d", len(orderSNs))
+	log.Info().Msgf("[ShopeeEscrowSync] Unique orders with order_sn: %d", len(orderSNs))
 	return orderSNs
 }
 
@@ -172,11 +172,11 @@ func (s *ShopeeEscrowSyncService) processOrderBatches(
 		}
 		batch := orderSNs[i:end]
 
-		log.Printf("[ShopeeEscrowSync] Processing batch %d: %d orders", (i/batchSize)+1, len(batch))
+		log.Info().Msgf("[ShopeeEscrowSync] Processing batch %d: %d orders", (i/batchSize)+1, len(batch))
 
 		itemsCount, err := s.processBatch(ctx, client, batch, month, year)
 		if err != nil {
-			log.Printf("[ShopeeEscrowSync] Batch error: %v", err)
+			log.Info().Msgf("[ShopeeEscrowSync] Batch error: %v", err)
 			continue
 		}
 		totalItems += itemsCount
@@ -208,7 +208,7 @@ func (s *ShopeeEscrowSyncService) processBatch(
 	for _, order := range escrowResp.GetOrderList() {
 		itemsCount, err := s.saveEscrowOrder(ctx, order, month, year)
 		if err != nil {
-			log.Printf("[ShopeeEscrowSync] Error saving order %s: %v", order.OrderSN, err)
+			log.Info().Msgf("[ShopeeEscrowSync] Error saving order %s: %v", order.OrderSN, err)
 			continue
 		}
 		totalItems += itemsCount

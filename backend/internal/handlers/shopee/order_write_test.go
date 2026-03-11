@@ -40,7 +40,7 @@ func TestOrderHandler_ShipOrder_InvalidJSON(t *testing.T) {
 	handler := NewOrderHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/shopee/orders/ship", handler.ShipOrder)
@@ -66,7 +66,7 @@ func TestOrderHandler_ShipOrder_ValidRequestNoDB(t *testing.T) {
 	handler := NewOrderHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/shopee/orders/ship", handler.ShipOrder)
@@ -115,7 +115,7 @@ func TestOrderHandler_CancelOrder_InvalidJSON(t *testing.T) {
 	handler := NewOrderHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/shopee/orders/cancel", handler.CancelOrder)
@@ -141,7 +141,7 @@ func TestOrderHandler_CancelOrder_ValidRequestNoDB(t *testing.T) {
 	handler := NewOrderHandler("/test/path")
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/api/shopee/orders/cancel", handler.CancelOrder)

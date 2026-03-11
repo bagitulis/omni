@@ -27,7 +27,7 @@ func TestPriceHandler_List(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.Contains(t, resp["error"], "tenantId")
+		assert.Contains(t, resp["error"], "tenant_id")
 	})
 
 	t.Run("valid tenant ID with no DB returns error", func(t *testing.T) {
@@ -36,7 +36,7 @@ func TestPriceHandler_List(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/price", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.List(c)
 
@@ -69,7 +69,7 @@ func TestPriceHandler_GetBySKU(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/price/", nil)
 		c.Params = gin.Params{{Key: "sku", Value: ""}}
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.GetBySKU(c)
 
@@ -83,7 +83,7 @@ func TestPriceHandler_GetBySKU(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/price/SKU001", nil)
 		c.Params = gin.Params{{Key: "sku", Value: "SKU001"}}
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.GetBySKU(c)
 
@@ -120,7 +120,7 @@ func TestPriceHandler_Update(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodPut, "/api/price/", body)
 		c.Request.Header.Set("Content-Type", "application/json")
 		c.Params = gin.Params{{Key: "sku", Value: ""}}
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.Update(c)
 
@@ -136,7 +136,7 @@ func TestPriceHandler_Update(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodPut, "/api/price/SKU001", body)
 		c.Request.Header.Set("Content-Type", "application/json")
 		c.Params = gin.Params{{Key: "sku", Value: "SKU001"}}
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.Update(c)
 
@@ -152,7 +152,7 @@ func TestPriceHandler_Update(t *testing.T) {
 		c.Request = httptest.NewRequest(http.MethodPut, "/api/price/SKU001", body)
 		c.Request.Header.Set("Content-Type", "application/json")
 		c.Params = gin.Params{{Key: "sku", Value: "SKU001"}}
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.Update(c)
 
@@ -187,7 +187,7 @@ func TestPriceHandler_BulkUpdate(t *testing.T) {
 		body := bytes.NewBufferString(`{invalid json}`)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/price/bulk", body)
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.BulkUpdate(c)
 
@@ -202,7 +202,7 @@ func TestPriceHandler_BulkUpdate(t *testing.T) {
 		body := bytes.NewBufferString(`{"updates":[{"sku":"SKU001","price":100}]}`)
 		c.Request = httptest.NewRequest(http.MethodPost, "/api/price/bulk", body)
 		c.Request.Header.Set("Content-Type", "application/json")
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.BulkUpdate(c)
 

@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/google"
 	shopeeService "github.com/omni/backend/internal/services/shopee"
 	shopeePkg "github.com/omni/backend/pkg/shopee"
@@ -27,11 +28,11 @@ func NewShippingFeeHandler(getAPIClient func(tenantID string) shopeeService.APIC
 // ProcessShippingFee handles POST /api/shopee/shipping/process-fee
 // Processes shipping fees for orders
 func (h *ShippingFeeHandler) ProcessShippingFee(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -94,11 +95,11 @@ func (h *ShippingFeeHandler) ProcessShippingFee(c *gin.Context) {
 // ExportShippingFee handles POST /api/shopee/shipping/export-fee
 // Exports shipping fee data
 func (h *ShippingFeeHandler) ExportShippingFee(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -174,11 +175,11 @@ func (h *ShippingFeeHandler) ExportShippingFee(c *gin.Context) {
 // ExportToSheets handles POST /api/shopee/shipping/export-to-sheets
 // Exports shipping fees to Google Sheets
 func (h *ShippingFeeHandler) ExportToSheets(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

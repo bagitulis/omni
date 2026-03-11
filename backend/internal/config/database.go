@@ -3,10 +3,11 @@ package config
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"gorm.io/gorm"
 )
@@ -48,7 +49,7 @@ func SetDatabaseDriver(driver DBDriver, pgConfig *PostgresConfig) {
 	defer mu.Unlock()
 	globalDriver = driver
 	globalPGConfig = pgConfig
-	log.Printf("Database driver set to: %s", driver)
+	log.Info().Msgf("Database driver set to: %s", driver)
 }
 
 // GetDatabaseDriver returns the current database driver
@@ -84,7 +85,7 @@ func getOrCreateTenantConnection(tenantID string) (*gorm.DB, error) {
 	}
 
 	tenantDBs[tenantID] = db
-	log.Printf("Connected to tenant database: %s (driver: %s)", tenantID, globalDriver)
+	log.Info().Msgf("Connected to tenant database: %s (driver: %s)", tenantID, globalDriver)
 	return db, nil
 }
 
@@ -164,7 +165,7 @@ func GetSystemDB(basePath string) (*gorm.DB, error) {
 	}
 
 	systemDB = db
-	log.Printf("Connected to system database (driver: %s)", globalDriver)
+	log.Info().Msgf("Connected to system database (driver: %s)", globalDriver)
 	return db, nil
 }
 
@@ -177,7 +178,7 @@ func CloseAllDBs() {
 		if sqlDB, err := db.DB(); err == nil {
 			sqlDB.Close()
 		}
-		log.Printf("Closed tenant database: %s", tenantID)
+		log.Info().Msgf("Closed tenant database: %s", tenantID)
 	}
 	tenantDBs = make(map[string]*gorm.DB)
 
@@ -185,7 +186,7 @@ func CloseAllDBs() {
 		if sqlDB, err := systemDB.DB(); err == nil {
 			sqlDB.Close()
 		}
-		log.Println("Closed system database")
+		log.Info().Msg("Closed system database")
 		systemDB = nil
 	}
 }
@@ -200,7 +201,7 @@ func ResetTenantConnection(tenantID string) {
 			sqlDB.Close()
 		}
 		delete(tenantDBs, tenantID)
-		log.Printf("Reset tenant connection: %s", tenantID)
+		log.Info().Msgf("Reset tenant connection: %s", tenantID)
 	}
 }
 
@@ -283,9 +284,9 @@ func SetMigrationMode(enabled bool) {
 	defer mu.Unlock()
 	migrationMode = enabled
 	if enabled {
-		log.Println("⚠️ Migration mode ENABLED")
+		log.Warn().Msg("Migration mode ENABLED")
 	} else {
-		log.Println("✅ Migration mode DISABLED")
+		log.Info().Msg("Migration mode DISABLED")
 	}
 }
 

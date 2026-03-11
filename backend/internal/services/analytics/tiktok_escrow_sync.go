@@ -4,7 +4,7 @@ package analytics
 import (
 	"context"
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,7 +35,7 @@ func (s *TiktokEscrowSyncService) SyncMonth(
 	month, year int,
 	forceResync bool,
 ) (*dto.SyncResultDTO, error) {
-	log.Printf("[TiktokEscrowSync] Starting sync for %d-%02d, tenant: %s", year, month, s.tenantID)
+	log.Info().Msgf("[TiktokEscrowSync] Starting sync for %d-%02d, tenant: %s", year, month, s.tenantID)
 
 	// Check if current month (cannot sync)
 	now := time.Now()
@@ -77,7 +77,7 @@ func (s *TiktokEscrowSyncService) SyncMonth(
 		}, nil
 	}
 
-	log.Printf("[TiktokEscrowSync] Found %d completed orders", len(orders))
+	log.Info().Msgf("[TiktokEscrowSync] Found %d completed orders", len(orders))
 
 	// Delete existing data if force resync
 	if forceResync {
@@ -162,7 +162,7 @@ func (s *TiktokEscrowSyncService) fetchOrdersByMonth(
 
 		allOrders = append(allOrders, resp.Data.Orders...)
 		pageCount++
-		log.Printf("[TiktokEscrowSync] Fetched page %d: %d orders", pageCount, len(resp.Data.Orders))
+		log.Info().Msgf("[TiktokEscrowSync] Fetched page %d: %d orders", pageCount, len(resp.Data.Orders))
 
 		pageToken = resp.Data.NextPageToken
 		if pageToken == "" {
@@ -187,20 +187,20 @@ func (s *TiktokEscrowSyncService) processOrders(
 		orderID := order.ID
 		transaction, err := s.fetchOrderTransaction(ctx, client, orderID)
 		if err != nil {
-			log.Printf("[TiktokEscrowSync] Error fetching transaction for order %s: %v", orderID, err)
+			log.Info().Msgf("[TiktokEscrowSync] Error fetching transaction for order %s: %v", orderID, err)
 			failedOrders++
 			continue
 		}
 
 		if transaction == nil || transaction.Data.OrderID == "" {
-			log.Printf("[TiktokEscrowSync] No transaction data for order %s", orderID)
+			log.Info().Msgf("[TiktokEscrowSync] No transaction data for order %s", orderID)
 			failedOrders++
 			continue
 		}
 
 		itemsCount, err := s.saveEscrowOrder(ctx, order, transaction, month, year)
 		if err != nil {
-			log.Printf("[TiktokEscrowSync] Error saving order %s: %v", orderID, err)
+			log.Info().Msgf("[TiktokEscrowSync] Error saving order %s: %v", orderID, err)
 			failedOrders++
 			continue
 		}

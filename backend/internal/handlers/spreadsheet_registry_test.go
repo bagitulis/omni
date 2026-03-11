@@ -34,7 +34,7 @@ func TestSpreadsheetRegistryHandler_List(t *testing.T) {
 			name:  "valid_tenant_db_not_available",
 			query: "",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedError:  true,
@@ -43,7 +43,7 @@ func TestSpreadsheetRegistryHandler_List(t *testing.T) {
 			name:  "with_purpose_filter",
 			query: "?purpose=inventory",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedError:  true,
@@ -52,7 +52,7 @@ func TestSpreadsheetRegistryHandler_List(t *testing.T) {
 			name:  "with_active_filter",
 			query: "?active=true",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedError:  true,
@@ -100,7 +100,7 @@ func TestSpreadsheetRegistryHandler_Get(t *testing.T) {
 			name: "valid_id_db_not_available",
 			id:   "1",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 		},
@@ -154,7 +154,7 @@ func TestSpreadsheetRegistryHandler_Register(t *testing.T) {
 				"spreadsheet_id": "abc123",
 			},
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 		},
@@ -210,7 +210,7 @@ func TestSpreadsheetRegistryHandler_Update(t *testing.T) {
 				"name": "Updated Spreadsheet",
 			},
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 		},
@@ -260,7 +260,7 @@ func TestSpreadsheetRegistryHandler_Delete(t *testing.T) {
 			name: "valid_id_db_not_available",
 			id:   "1",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 		},
@@ -308,7 +308,7 @@ func TestSpreadsheetRegistryHandler_MarkSynced(t *testing.T) {
 			name: "valid_id_db_not_available",
 			id:   "1",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 		},

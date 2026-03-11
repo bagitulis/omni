@@ -1,8 +1,9 @@
 package shopee
 
 import (
-	"log"
 	"net/http"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
@@ -17,7 +18,7 @@ import (
 func (h *OrderHandler) ShipOrder(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -67,7 +68,7 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 
 	// Update local database
 	if err := h.updateOrderStatus(tenantID, req.OrderSN, "SHIPPED"); err != nil {
-		log.Printf("[WARN] [Shopee/ShipOrder] Local status update failed for %s: %v", req.OrderSN, err)
+		log.Info().Msgf("[WARN] [Shopee/ShipOrder] Local status update failed for %s: %v", req.OrderSN, err)
 	}
 
 	c.JSON(http.StatusOK, response.Success(map[string]interface{}{
@@ -81,7 +82,7 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -112,7 +113,7 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 
 	// Update local database
 	if err := h.updateOrderStatus(tenantID, req.OrderSN, "CANCELLED"); err != nil {
-		log.Printf("[WARN] [Shopee/CancelOrder] Local status update failed for %s: %v", req.OrderSN, err)
+		log.Info().Msgf("[WARN] [Shopee/CancelOrder] Local status update failed for %s: %v", req.OrderSN, err)
 	}
 
 	c.JSON(http.StatusOK, response.Success(map[string]interface{}{

@@ -32,7 +32,7 @@ func TestImportHandler_DownloadTemplate(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/master-products/import/template?format=xlsx", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.DownloadTemplate(c)
 
@@ -45,7 +45,7 @@ func TestImportHandler_DownloadTemplate(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/master-products/import/template?format=csv", nil)
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 
 		handler.DownloadTemplate(c)
 

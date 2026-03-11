@@ -25,7 +25,7 @@ func NewOrderHandler(basePath string) *OrderHandler {
 func (h *OrderHandler) GetOrders(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -73,7 +73,7 @@ func (h *OrderHandler) GetOrders(c *gin.Context) {
 func (h *OrderHandler) GetOrderByID(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

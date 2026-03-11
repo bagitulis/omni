@@ -20,7 +20,7 @@ import (
 func (h *WholesaleExtendedHandler) BatchDeleteByItemIds(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -63,7 +63,7 @@ func (h *WholesaleExtendedHandler) BatchDeleteByItemIds(c *gin.Context) {
 func (h *WholesaleExtendedHandler) BatchAdd(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -109,7 +109,7 @@ func (h *WholesaleExtendedHandler) BatchAdd(c *gin.Context) {
 func (h *WholesaleExtendedHandler) Preview(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -149,7 +149,7 @@ func (h *WholesaleExtendedHandler) Preview(c *gin.Context) {
 func (h *WholesaleExtendedHandler) ImportWholesale(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

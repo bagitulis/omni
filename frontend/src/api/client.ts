@@ -208,10 +208,8 @@ class ApiClient {
 
   async executeSheetsOperation(
     operation: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    params: Record<string, any> = {},
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ): Promise<any> {
+    params: Record<string, unknown> = {},
+  ): Promise<ApiResponse<unknown>> {
     try {
       const endpoint = mapSheetsOperation(operation);
       const body = isDirectSheetsOperation(operation)
@@ -221,7 +219,7 @@ class ApiClient {
       const response = await this.client.post<unknown>(endpoint, body, {
         timeout: API_TIMEOUT.LONG,
       });
-      return response.data;
+      return response.data as ApiResponse<unknown>;
     } catch (error) {
       logger.error(`[API] Sheets operation ${operation} failed:`, { error });
       throw error;
@@ -232,8 +230,7 @@ class ApiClient {
     platform: string,
     orderType: string,
     days: number = 7,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ): Promise<any> {
+  ): Promise<ApiResponse<unknown>> {
     try {
       const endpoint = mapOrderExport(platform, orderType);
       const body = isDirectOrderExport(platform, orderType)
@@ -243,7 +240,7 @@ class ApiClient {
       const response = await this.client.post<unknown>(endpoint, body, {
         timeout: API_TIMEOUT.LONG,
       });
-      return response.data;
+      return response.data as ApiResponse<unknown>;
     } catch (error) {
       logger.error(`[API] Export orders ${platform} failed:`, { error });
       throw error;

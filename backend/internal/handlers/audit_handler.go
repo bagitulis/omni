@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services"
 )
 
@@ -21,11 +22,11 @@ func NewAuditHandler(auditService *services.AuditService) *AuditHandler {
 
 // GetAuditLogs gets audit logs for the tenant
 func (h *AuditHandler) GetAuditLogs(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-		"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -92,11 +93,11 @@ func (h *AuditHandler) GetAuditLogsByUser(c *gin.Context) {
 
 // GetAuditLogsByAction gets audit logs by action type
 func (h *AuditHandler) GetAuditLogsByAction(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -132,11 +133,11 @@ func (h *AuditHandler) GetAuditLogsByAction(c *gin.Context) {
 
 // GetAuditLogsByDateRange gets audit logs within date range
 func (h *AuditHandler) GetAuditLogsByDateRange(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-		"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
@@ -51,7 +52,7 @@ func (h *OAuthHandler) doTiktokTokenRequest(tokenURL string, params map[string]s
 	}
 
 	fullURL := tokenURL + "?" + queryParams.Encode()
-	log.Printf("[TikTok OAuth] Exchanging code for token at: %s", fullURL)
+	log.Info().Msgf("[TikTok OAuth] Exchanging code for token at: %s", fullURL)
 
 	// Make HTTP GET request (TikTok uses GET for token)
 	resp, err := http.Get(fullURL)
@@ -65,7 +66,7 @@ func (h *OAuthHandler) doTiktokTokenRequest(tokenURL string, params map[string]s
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
-	log.Printf("[TikTok OAuth] Token response status: %d, body_size: %d bytes", resp.StatusCode, len(body))
+	log.Info().Msgf("[TikTok OAuth] Token response status: %d, body_size: %d bytes", resp.StatusCode, len(body))
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("token exchange failed: status %d, body: %s", resp.StatusCode, string(body))
@@ -108,9 +109,9 @@ func (h *OAuthHandler) saveTiktokTokens(ctx context.Context, tenantID string, to
 	if expiresInSeconds <= 0 {
 		// Default to 7 days if not provided
 		expiresInSeconds = 7 * 24 * 60 * 60
-		log.Printf("[TikTok OAuth] access_token_expire_in not provided, using default: %d seconds (7 days)", expiresInSeconds)
+		log.Info().Msgf("[TikTok OAuth] access_token_expire_in not provided, using default: %d seconds (7 days)", expiresInSeconds)
 	} else {
-		log.Printf("[TikTok OAuth] access_token_expire_in: %d seconds (%d days)", expiresInSeconds, expiresInSeconds/86400)
+		log.Info().Msgf("[TikTok OAuth] access_token_expire_in: %d seconds (%d days)", expiresInSeconds, expiresInSeconds/86400)
 	}
 
 	// Handle refresh token expiry
@@ -119,19 +120,19 @@ func (h *OAuthHandler) saveTiktokTokens(ctx context.Context, tenantID string, to
 	if refreshExpiresInSeconds > nowSec {
 		// It's a Unix timestamp (e.g. TikTok sentinel 4875922303 = year 2124) — convert to relative seconds
 		refreshExpiresInSeconds = refreshExpiresInSeconds - nowSec
-		log.Printf("[TikTok OAuth] refresh_token_expire_in was Unix timestamp, converted to relative: %d seconds (%d days)", refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
+		log.Info().Msgf("[TikTok OAuth] refresh_token_expire_in was Unix timestamp, converted to relative: %d seconds (%d days)", refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
 	}
 	// Cap at 365 days max — guards against bogus far-future sentinel values
 	const maxTiktokRefreshSeconds = int64(365 * 24 * 60 * 60)
 	if refreshExpiresInSeconds <= 0 {
 		// Default to 90 days if not provided
 		refreshExpiresInSeconds = 90 * 24 * 60 * 60
-		log.Printf("[TikTok OAuth] refresh_token_expire_in not provided, using default: %d seconds (90 days)", refreshExpiresInSeconds)
+		log.Info().Msgf("[TikTok OAuth] refresh_token_expire_in not provided, using default: %d seconds (90 days)", refreshExpiresInSeconds)
 	} else if refreshExpiresInSeconds > maxTiktokRefreshSeconds {
-		log.Printf("[TikTok OAuth] refresh_token_expire_in %d seconds (%d days) exceeds 365 days cap, capping", refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
+		log.Info().Msgf("[TikTok OAuth] refresh_token_expire_in %d seconds (%d days) exceeds 365 days cap, capping", refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
 		refreshExpiresInSeconds = maxTiktokRefreshSeconds
 	} else {
-		log.Printf("[TikTok OAuth] refresh_token_expire_in: %d seconds (%d days)", refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
+		log.Info().Msgf("[TikTok OAuth] refresh_token_expire_in: %d seconds (%d days)", refreshExpiresInSeconds, refreshExpiresInSeconds/86400)
 	}
 
 	// Update tokens with normalized expiry values
@@ -142,20 +143,20 @@ func (h *OAuthHandler) saveTiktokTokens(ctx context.Context, tenantID string, to
 	// Save openId and sellerName
 	if tokenResp.Data.OpenID != "" {
 		if err := tenantRepo.SetConfig(ctx, models.PlatformTiktok, "openId", tokenResp.Data.OpenID, false); err != nil {
-			log.Printf("[TikTok OAuth] Warning: failed to save openId: %v", err)
+			log.Info().Msgf("[TikTok OAuth] Warning: failed to save openId: %v", err)
 		}
 	}
 	if tokenResp.Data.SellerName != "" {
 		if err := tenantRepo.SetConfig(ctx, models.PlatformTiktok, "sellerName", tokenResp.Data.SellerName, false); err != nil {
-			log.Printf("[TikTok OAuth] Warning: failed to save sellerName: %v", err)
+			log.Info().Msgf("[TikTok OAuth] Warning: failed to save sellerName: %v", err)
 		}
 	}
 
 	// Save last_refresh timestamp
 	if err := tenantRepo.SetConfig(ctx, models.PlatformTiktok, "last_refresh", time.Now().Format(time.RFC3339), false); err != nil {
-		log.Printf("[TikTok OAuth] Warning: failed to save last_refresh: %v", err)
+		log.Info().Msgf("[TikTok OAuth] Warning: failed to save last_refresh: %v", err)
 	}
 
-	log.Printf("[TikTok OAuth] Successfully saved tokens for tenant %s", tenantID)
+	log.Info().Msgf("[TikTok OAuth] Successfully saved tokens for tenant %s", tenantID)
 	return nil
 }

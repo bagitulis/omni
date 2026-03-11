@@ -51,7 +51,7 @@ type BatchUpdateItem struct {
 func (h *WholesaleBatchHandler) BatchUpdateBySkus(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -139,7 +139,7 @@ func (h *WholesaleBatchHandler) BatchUpdateBySkus(c *gin.Context) {
 func (h *WholesaleBatchHandler) BatchDeleteByItemIds(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -208,7 +208,7 @@ func (h *WholesaleBatchHandler) BatchDeleteByItemIds(c *gin.Context) {
 func (h *WholesaleBatchHandler) BatchDeleteBySkus(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

@@ -2,7 +2,7 @@ package autofunction
 
 import (
 	"context"
-	"log"
+	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
 
@@ -39,14 +39,14 @@ func (s *MultiTenantScheduler) Start() {
 	s.mu.Lock()
 	if s.running {
 		s.mu.Unlock()
-		log.Println("⚠️ Multi-tenant auto-function scheduler already running")
+		log.Info().Msg("⚠️ Multi-tenant auto-function scheduler already running")
 		return
 	}
 	s.running = true
 	s.stopCh = make(chan struct{})
 	s.mu.Unlock()
 
-	log.Println("🚀 Multi-tenant auto-function scheduler started (check every 60s)")
+	log.Info().Msg("🚀 Multi-tenant auto-function scheduler started (check every 60s)")
 	go s.runLoop()
 }
 
@@ -61,7 +61,7 @@ func (s *MultiTenantScheduler) Stop() {
 
 	close(s.stopCh)
 	s.running = false
-	log.Println("🛑 Multi-tenant auto-function scheduler stopped")
+	log.Info().Msg("🛑 Multi-tenant auto-function scheduler stopped")
 }
 
 // IsRunning returns whether scheduler is running
@@ -93,7 +93,7 @@ func (s *MultiTenantScheduler) runLoop() {
 func (s *MultiTenantScheduler) checkAllTenants() {
 	tenantIDs, err := s.getRealTenantIDs()
 	if err != nil {
-		log.Printf("❌ Failed to get tenant IDs: %v", err)
+		log.Info().Msgf("❌ Failed to get tenant IDs: %v", err)
 		return
 	}
 
@@ -131,7 +131,7 @@ func (s *MultiTenantScheduler) checkTenantAutoFunctions(tenantID string) {
 	// Get tenant-specific DB connection
 	tenantDB, err := config.GetTenantDBWithContext(tenantID, s.basePath)
 	if err != nil {
-		log.Printf("❌ Failed to get DB for tenant %s: %v", tenantID, err)
+		log.Info().Msgf("❌ Failed to get DB for tenant %s: %v", tenantID, err)
 		return
 	}
 
@@ -142,14 +142,14 @@ func (s *MultiTenantScheduler) checkTenantAutoFunctions(tenantID string) {
 	var configs []models.AutoFunctionConfig
 	err = tenantDB.Where("enabled = ?", true).Find(&configs).Error
 	if err != nil {
-		log.Printf("❌ Failed to get auto functions for tenant %s: %v", tenantID, err)
+		log.Info().Msgf("❌ Failed to get auto functions for tenant %s: %v", tenantID, err)
 		return
 	}
 
 	now := time.Now()
 	for _, cfg := range configs {
 		if s.shouldExecute(&cfg, now) {
-			log.Printf("⏰ [%s] %s trigger condition met, executing...", tenantID, cfg.Name)
+			log.Info().Msgf("⏰ [%s] %s trigger condition met, executing...", tenantID, cfg.Name)
 			s.executeAutoFunction(tenantID, tenantDB, &cfg, now)
 		}
 	}
@@ -186,7 +186,7 @@ func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *go
 	// Get handler
 	handler := s.executor.GetHandler(cfg.Name)
 	if handler == nil {
-		log.Printf("❌ [%s] No handler registered for function: %s", tenantID, cfg.Name)
+		log.Info().Msgf("❌ [%s] No handler registered for function: %s", tenantID, cfg.Name)
 		s.recordHistory(tenantDB, cfg.Name, "failed", "no handler registered: "+cfg.Name, startTime)
 		return
 	}
@@ -206,7 +206,7 @@ func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *go
 		"next_scheduled_execution": nextExecution,
 	}
 	if err := tenantDB.Model(cfg).Updates(updates).Error; err != nil {
-		log.Printf("❌ [%s] Failed to update config: %v", tenantID, err)
+		log.Info().Msgf("❌ [%s] Failed to update config: %v", tenantID, err)
 	}
 
 	// Record history
@@ -215,9 +215,9 @@ func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *go
 	if err != nil {
 		status = "failed"
 		errMsg = err.Error()
-		log.Printf("❌ [%s] Auto function %s failed: %v", tenantID, cfg.Name, err)
+		log.Info().Msgf("❌ [%s] Auto function %s failed: %v", tenantID, cfg.Name, err)
 	} else {
-		log.Printf("✅ [%s] Auto function %s completed: %s", tenantID, cfg.Name, result)
+		log.Info().Msgf("✅ [%s] Auto function %s completed: %s", tenantID, cfg.Name, result)
 	}
 
 	s.recordHistory(tenantDB, cfg.Name, status, errMsg, startTime)
@@ -234,7 +234,7 @@ func (s *MultiTenantScheduler) recordHistory(tenantDB *gorm.DB, functionName, st
 	}
 
 	if err := tenantDB.Create(history).Error; err != nil {
-		log.Printf("❌ Failed to record auto function history: %v", err)
+		log.Info().Msgf("❌ Failed to record auto function history: %v", err)
 	}
 }
 
@@ -279,9 +279,9 @@ func (s *MultiTenantScheduler) ensureDefaultAutoFunctions(tenantDB *gorm.DB, ten
 		}
 
 		if err := tenantDB.Create(cfg).Error; err != nil {
-			log.Printf("❌ [%s] Failed to seed %s: %v", tenantID, def.Name, err)
+			log.Info().Msgf("❌ [%s] Failed to seed %s: %v", tenantID, def.Name, err)
 		} else {
-			log.Printf("✅ [%s] Seeded auto function: %s (interval: %dm)", tenantID, def.Name, def.IntervalMinutes)
+			log.Info().Msgf("✅ [%s] Seeded auto function: %s (interval: %dm)", tenantID, def.Name, def.IntervalMinutes)
 		}
 	}
 }

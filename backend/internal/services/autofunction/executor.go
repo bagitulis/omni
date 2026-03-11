@@ -2,7 +2,7 @@ package autofunction
 
 import (
 	"context"
-	"log"
+	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
 
@@ -53,7 +53,7 @@ func (e *Executor) Execute(tenantID string, configID uint) {
 func (e *Executor) ExecuteWithDB(db *gorm.DB, tenantID string, configID uint) {
 	var cfg models.AutoFunctionConfig
 	if err := db.Where("id = ?", configID).First(&cfg).Error; err != nil {
-		log.Printf("Auto function config not found: %d", configID)
+		log.Info().Msgf("Auto function config not found: %d", configID)
 		return
 	}
 	e.executeConfig(db, tenantID, &cfg)
@@ -118,7 +118,7 @@ func (e *Executor) executeConfig(db *gorm.DB, tenantID string, cfg *models.AutoF
 	if err != nil {
 		status = "failed"
 		errMsg = err.Error()
-		log.Printf("Auto function %s failed: %v", cfg.Name, err)
+		log.Info().Msgf("Auto function %s failed: %v", cfg.Name, err)
 	}
 
 	e.recordHistory(db, cfg.Name, status, errMsg, startTime)
@@ -135,7 +135,7 @@ func (e *Executor) recordHistory(db *gorm.DB, functionName, status, errMsg strin
 	}
 
 	if err := db.Create(history).Error; err != nil {
-		log.Printf("Failed to record auto function history: %v", err)
+		log.Info().Msgf("Failed to record auto function history: %v", err)
 	}
 }
 

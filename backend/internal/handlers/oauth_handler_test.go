@@ -28,7 +28,7 @@ func TestOAuthHandler_InitiateAuth_MissingTenant(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.False(t, resp["success"].(bool))
-	assert.Contains(t, resp["error"], "tenantId")
+	assert.Contains(t, resp["error"], "tenant_id")
 }
 
 // TestOAuthHandler_InitiateAuth_InvalidPlatform tests InitiateAuth with invalid platform
@@ -37,7 +37,7 @@ func TestOAuthHandler_InitiateAuth_InvalidPlatform(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 

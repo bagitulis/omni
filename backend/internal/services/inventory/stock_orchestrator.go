@@ -3,7 +3,7 @@ package inventory
 import (
 	"context"
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"strconv"
 
 	"github.com/omni/backend/internal/models"
@@ -198,7 +198,7 @@ func (o *StockUpdateOrchestrator) updateShopeeStock(_ context.Context, ids *Shop
 	}
 
 	result.Success = true
-	log.Printf("[StockOrchestrator] ✅ Shopee stock updated: item_id=%s, model_id=%s, stock=%d",
+	log.Info().Msgf("[StockOrchestrator] ✅ Shopee stock updated: item_id=%s, model_id=%s, stock=%d",
 		ids.ItemID, ids.ModelID, stock)
 	return result
 }
@@ -244,7 +244,7 @@ func (o *StockUpdateOrchestrator) updateLazadaStock(_ context.Context, ids *Laza
 	}
 
 	result.Success = true
-	log.Printf("[StockOrchestrator] ✅ Lazada stock updated: item_id=%s, sku_id=%s, stock=%d",
+	log.Info().Msgf("[StockOrchestrator] ✅ Lazada stock updated: item_id=%s, sku_id=%s, stock=%d",
 		ids.ItemID, ids.SkuID, stock)
 	return result
 }
@@ -296,7 +296,7 @@ func (o *StockUpdateOrchestrator) updateTiktokStock(_ context.Context, ids *Tikt
 	}
 
 	result.Success = true
-	log.Printf("[StockOrchestrator] ✅ TikTok stock updated: product_id=%s, sku_id=%s, stock=%d",
+	log.Info().Msgf("[StockOrchestrator] ✅ TikTok stock updated: product_id=%s, sku_id=%s, stock=%d",
 		ids.ProductID, ids.SkuID, stock)
 	return result
 }

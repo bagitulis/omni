@@ -73,16 +73,16 @@ func TestGetAuditLogs_Success(t *testing.T) {
 
 	// Use middleware to set tenant
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
 	r.GET("/api/audit", func(c *gin.Context) {
-		tenantID := c.GetString("tenantID")
+		tenantID := c.GetString("tenant_id")
 		if tenantID == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
-				"error":   "Missing tenantId",
+				"error":   "Missing tenant_id",
 			})
 			return
 		}
@@ -127,11 +127,11 @@ func TestGetAuditLogs_MissingTenant(t *testing.T) {
 	r := gin.New()
 
 	r.GET("/api/audit", func(c *gin.Context) {
-		tenantID := c.GetString("tenantID")
+		tenantID := c.GetString("tenant_id")
 		if tenantID == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
-				"error":   "Missing tenantId",
+				"error":   "Missing tenant_id",
 			})
 			return
 		}
@@ -237,16 +237,16 @@ func TestGetAuditLogsByAction_Success(t *testing.T) {
 	mockService.On("GetByAction", mock.Anything, "tenant-123", "login", 50).Return(logs, nil)
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
 	r.GET("/api/audit/action/:action", func(c *gin.Context) {
-		tenantID := c.GetString("tenantID")
+		tenantID := c.GetString("tenant_id")
 		if tenantID == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
-				"error":   "Missing tenantId",
+				"error":   "Missing tenant_id",
 			})
 			return
 		}
@@ -295,11 +295,11 @@ func TestGetAuditLogsByAction_MissingTenant(t *testing.T) {
 	r := gin.New()
 
 	r.GET("/api/audit/action/:action", func(c *gin.Context) {
-		tenantID := c.GetString("tenantID")
+		tenantID := c.GetString("tenant_id")
 		if tenantID == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
-				"error":   "Missing tenantId",
+				"error":   "Missing tenant_id",
 			})
 			return
 		}
@@ -327,16 +327,16 @@ func TestGetAuditLogsByDateRange_Success(t *testing.T) {
 	}, nil)
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
 	r.GET("/api/audit/date-range", func(c *gin.Context) {
-		tenantID := c.GetString("tenantID")
+		tenantID := c.GetString("tenant_id")
 		if tenantID == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
-				"error":   "Missing tenantId",
+				"error":   "Missing tenant_id",
 			})
 			return
 		}
@@ -409,7 +409,7 @@ func TestGetAuditLogsByDateRange_MissingDates(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 
@@ -444,7 +444,7 @@ func TestGetAuditLogsByDateRange_InvalidDateFormat(t *testing.T) {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "tenant-123")
+		c.Set("tenant_id", "tenant-123")
 		c.Next()
 	})
 

@@ -40,7 +40,7 @@ func TestImageHandler_UploadImage_InvalidJSON(t *testing.T) {
 	r := gin.New()
 	handler := NewImageHandler("/test/path")
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/upload-image", handler.UploadImage)
@@ -59,7 +59,7 @@ func TestImageHandler_UploadImage_FailsWithoutDB(t *testing.T) {
 	r := gin.New()
 	handler := NewImageHandler("/test/path")
 	r.Use(func(c *gin.Context) {
-		c.Set("tenantID", "test-tenant")
+		c.Set("tenant_id", "test-tenant")
 		c.Next()
 	})
 	r.POST("/upload-image", handler.UploadImage)

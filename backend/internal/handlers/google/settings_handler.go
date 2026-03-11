@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/handlers"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/google"
 	"gorm.io/gorm"
 )
@@ -42,11 +43,11 @@ type DetailedSettings struct {
 // GetDetailedSettings handles GET /api/google/settings/detailed
 // Returns current detailed Google Sheets settings
 func (h *SettingsHandler) GetDetailedSettings(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -79,11 +80,11 @@ func (h *SettingsHandler) GetDetailedSettings(c *gin.Context) {
 // UpdateDetailedSettings handles POST /api/google/settings/update-detailed
 // Updates detailed Google Sheets settings
 func (h *SettingsHandler) UpdateDetailedSettings(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -134,11 +135,11 @@ func (h *SettingsHandler) UpdateDetailedSettings(c *gin.Context) {
 // TestConnection handles GET /api/google/settings/test
 // Tests Google Sheets connection
 func (h *SettingsHandler) TestConnection(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

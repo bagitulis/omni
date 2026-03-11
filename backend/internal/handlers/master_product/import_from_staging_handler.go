@@ -29,7 +29,7 @@ func NewStagingImportHandler(basePath string) *StagingImportHandler {
 func (h *StagingImportHandler) ImportFromShopee(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -64,7 +64,7 @@ func (h *StagingImportHandler) ImportFromShopee(c *gin.Context) {
 func (h *StagingImportHandler) ImportFromTiktok(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -99,7 +99,7 @@ func (h *StagingImportHandler) ImportFromTiktok(c *gin.Context) {
 func (h *StagingImportHandler) ImportFromLazada(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"time"
 
 	"github.com/google/uuid"
@@ -40,7 +40,7 @@ func (s *TiktokEscrowSyncService) RepopulateEscrowItems(ctx context.Context, mon
 	ordersTable := s.base.Table(tables.OrderTable)
 	itemsTable := s.base.Table(tables.ItemTable)
 
-	log.Printf("[TiktokRepopulate] Starting re-populate for %d-%02d, tenant: %s", year, month, s.tenantID)
+	log.Info().Msgf("[TiktokRepopulate] Starting re-populate for %d-%02d, tenant: %s", year, month, s.tenantID)
 
 	// Fetch all escrow orders for this month that have raw_order_data
 	var orders []models.TiktokEscrowOrder
@@ -51,7 +51,7 @@ func (s *TiktokEscrowSyncService) RepopulateEscrowItems(ctx context.Context, mon
 		return 0, 0, fmt.Errorf("failed to fetch orders: %w", err)
 	}
 
-	log.Printf("[TiktokRepopulate] Found %d orders to process", len(orders))
+	log.Info().Msgf("[TiktokRepopulate] Found %d orders to process", len(orders))
 
 	processedOrders := 0
 	totalItems := 0
@@ -64,12 +64,12 @@ func (s *TiktokEscrowSyncService) RepopulateEscrowItems(ctx context.Context, mon
 		// Parse raw_order_data JSON
 		var rawOrder tiktokRawOrderData
 		if err := json.Unmarshal([]byte(*order.RawOrderData), &rawOrder); err != nil {
-			log.Printf("[TiktokRepopulate] Failed to parse raw_order_data for order %s: %v", order.OrderID, err)
+			log.Info().Msgf("[TiktokRepopulate] Failed to parse raw_order_data for order %s: %v", order.OrderID, err)
 			continue
 		}
 
 		if len(rawOrder.LineItems) == 0 {
-			log.Printf("[TiktokRepopulate] No line_items in raw_order_data for order %s", order.OrderID)
+			log.Info().Msgf("[TiktokRepopulate] No line_items in raw_order_data for order %s", order.OrderID)
 			continue
 		}
 
@@ -108,7 +108,7 @@ func (s *TiktokEscrowSyncService) RepopulateEscrowItems(ctx context.Context, mon
 			}
 
 			if err := s.base.DB.WithContext(ctx).Table(itemsTable).Create(&escrowItem).Error; err != nil {
-				log.Printf("[TiktokRepopulate] Failed to insert item for order %s (sku=%s): %v", order.OrderID, item.SellerSku, err)
+				log.Info().Msgf("[TiktokRepopulate] Failed to insert item for order %s (sku=%s): %v", order.OrderID, item.SellerSku, err)
 				continue
 			}
 			totalItems++
@@ -117,6 +117,6 @@ func (s *TiktokEscrowSyncService) RepopulateEscrowItems(ctx context.Context, mon
 		processedOrders++
 	}
 
-	log.Printf("[TiktokRepopulate] Done. Processed %d orders, inserted %d items", processedOrders, totalItems)
+	log.Info().Msgf("[TiktokRepopulate] Done. Processed %d orders, inserted %d items", processedOrders, totalItems)
 	return processedOrders, totalItems, nil
 }

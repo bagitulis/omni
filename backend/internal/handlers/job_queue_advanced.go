@@ -6,15 +6,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/dto/response"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/jobs"
 )
 
 // GetQueue handles GET /api/jobs/queue
 func (h *JobQueueHandler) GetQueue(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -43,9 +44,9 @@ func (h *JobQueueHandler) GetQueue(c *gin.Context) {
 
 // GetMonitor handles GET /api/jobs/monitor
 func (h *JobQueueHandler) GetMonitor(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -80,9 +81,9 @@ func (h *JobQueueHandler) GetMonitor(c *gin.Context) {
 
 // GetHistoryPaginated handles GET /api/jobs/history-paginated
 func (h *JobQueueHandler) GetHistoryPaginated(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -130,9 +131,9 @@ func (h *JobQueueHandler) GetHistoryPaginated(c *gin.Context) {
 
 // GetHistoryJobTypes handles GET /api/jobs/history-job-types
 func (h *JobQueueHandler) GetHistoryJobTypes(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -155,9 +156,9 @@ func (h *JobQueueHandler) GetHistoryJobTypes(c *gin.Context) {
 
 // ClearHistory handles DELETE /api/jobs/history
 func (h *JobQueueHandler) ClearHistory(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -179,9 +180,9 @@ func (h *JobQueueHandler) ClearHistory(c *gin.Context) {
 
 // CancelJobByJobId handles POST /api/jobs/cancel/:jobId
 func (h *JobQueueHandler) CancelJobByJobId(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -203,9 +204,9 @@ func (h *JobQueueHandler) CancelJobByJobId(c *gin.Context) {
 
 // ForceCancelJob handles POST /api/jobs/force-cancel/:jobId
 func (h *JobQueueHandler) ForceCancelJob(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -227,9 +228,9 @@ func (h *JobQueueHandler) ForceCancelJob(c *gin.Context) {
 
 // CheckTimeout handles GET /api/jobs/check-timeout
 func (h *JobQueueHandler) CheckTimeout(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

@@ -42,7 +42,7 @@ func TestProductCreateHandler_CreateOnShopee(t *testing.T) {
 				"category_id": 123,
 			},
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 				// No shopeeAPI set
 			},
 			expectedStatus: http.StatusInternalServerError,
@@ -112,7 +112,7 @@ func TestProductCreateHandler_CreateOnLazada(t *testing.T) {
 				"category_id": 123,
 			},
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 				// No lazadaAPI set
 			},
 			expectedStatus: http.StatusInternalServerError,
@@ -182,7 +182,7 @@ func TestProductCreateHandler_CreateOnTiktok(t *testing.T) {
 				"category_id": 123,
 			},
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 				// No tiktokAPI set
 			},
 			expectedStatus: http.StatusInternalServerError,
@@ -237,7 +237,7 @@ func TestProductCreateHandler_GetCategories(t *testing.T) {
 			platform: "tiktok",
 			query:    "",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedError:  true,
@@ -247,7 +247,7 @@ func TestProductCreateHandler_GetCategories(t *testing.T) {
 			platform: "shopee",
 			query:    "",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 				// No shopeeAPI set
 			},
 			expectedStatus: http.StatusInternalServerError,
@@ -258,7 +258,7 @@ func TestProductCreateHandler_GetCategories(t *testing.T) {
 			platform: "lazada",
 			query:    "?parent_id=123",
 			setupContext: func(c *gin.Context) {
-				c.Set("tenantID", "test-tenant")
+				c.Set("tenant_id", "test-tenant")
 				// No lazadaAPI set
 			},
 			expectedStatus: http.StatusInternalServerError,

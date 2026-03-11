@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/google"
 )
@@ -13,11 +14,11 @@ import (
 // GetSyncStatus handles POST /api/inventory/sync-status
 // Returns sync status for a registered sheet
 func (h *InventoryHandler) GetSyncStatus(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -76,11 +77,11 @@ func (h *InventoryHandler) GetSyncStatus(c *gin.Context) {
 
 // ExportToSheet handles POST /api/inventory/export-to-sheet
 func (h *InventoryHandler) ExportToSheet(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -188,11 +189,11 @@ func (h *InventoryHandler) ExportToSheet(c *gin.Context) {
 
 // ImportFromSheet handles POST /api/inventory/import-from-sheet
 func (h *InventoryHandler) ImportFromSheet(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Missing tenantId",
+			"error":   "Missing tenant_id",
 		})
 		return
 	}

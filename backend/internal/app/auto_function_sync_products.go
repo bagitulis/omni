@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"os"
 
 	"github.com/omni/backend/internal/config"
@@ -23,7 +23,7 @@ import (
 // Syncs products from all 3 platforms (Shopee, TikTok, Lazada) to staging tables.
 // Each platform sync is independent — failures are logged but don't block others.
 func syncProductsHandler(ctx context.Context, tenantID string, cfg *models.AutoFunctionConfig) (string, error) {
-	log.Printf("[AutoFunction] Running 'Sync Products' for tenant: %s", tenantID)
+	log.Info().Msgf("[AutoFunction] Running 'Sync Products' for tenant: %s", tenantID)
 
 	basePath := os.Getenv("DATA_PATH")
 	if basePath == "" {
@@ -45,7 +45,7 @@ func syncProductsHandler(ctx context.Context, tenantID string, cfg *models.AutoF
 	// Shopee product sync
 	shopeeCount, shopeeErr := syncPlatformProducts(ctx, "shopee", tenantID, db, systemDB, basePath)
 	if shopeeErr != nil {
-		log.Printf("[AutoFunction] Shopee sync failed for %s: %v", tenantID, shopeeErr)
+		log.Info().Msgf("[AutoFunction] Shopee sync failed for %s: %v", tenantID, shopeeErr)
 		results = append(results, fmt.Sprintf("Shopee: error (%v)", shopeeErr))
 	} else {
 		results = append(results, fmt.Sprintf("Shopee: %d products", shopeeCount))
@@ -54,7 +54,7 @@ func syncProductsHandler(ctx context.Context, tenantID string, cfg *models.AutoF
 	// TikTok product sync
 	tiktokCount, tiktokErr := syncPlatformProducts(ctx, "tiktok", tenantID, db, systemDB, basePath)
 	if tiktokErr != nil {
-		log.Printf("[AutoFunction] TikTok sync failed for %s: %v", tenantID, tiktokErr)
+		log.Info().Msgf("[AutoFunction] TikTok sync failed for %s: %v", tenantID, tiktokErr)
 		results = append(results, fmt.Sprintf("TikTok: error (%v)", tiktokErr))
 	} else {
 		results = append(results, fmt.Sprintf("TikTok: %d products", tiktokCount))
@@ -63,14 +63,14 @@ func syncProductsHandler(ctx context.Context, tenantID string, cfg *models.AutoF
 	// Lazada product sync
 	lazadaCount, lazadaErr := syncPlatformProducts(ctx, "lazada", tenantID, db, systemDB, basePath)
 	if lazadaErr != nil {
-		log.Printf("[AutoFunction] Lazada sync failed for %s: %v", tenantID, lazadaErr)
+		log.Info().Msgf("[AutoFunction] Lazada sync failed for %s: %v", tenantID, lazadaErr)
 		results = append(results, fmt.Sprintf("Lazada: error (%v)", lazadaErr))
 	} else {
 		results = append(results, fmt.Sprintf("Lazada: %d products", lazadaCount))
 	}
 
 	resultMsg := fmt.Sprintf("Product sync completed: %s", fmt.Sprintf("%v", results))
-	log.Printf("[AutoFunction] %s for tenant: %s", resultMsg, tenantID)
+	log.Info().Msgf("[AutoFunction] %s for tenant: %s", resultMsg, tenantID)
 
 	// Auto-fix: bidirectional platform link scan (master↔staging) for all platforms
 	autoFixPlatformLinks(ctx, db, tenantID)
@@ -157,10 +157,10 @@ func autoFixPlatformLinks(ctx context.Context, db *gorm.DB, tenantID string) {
 
 	result, err := mapper.AutoMapAndLinkBySkus(ctx, allSkus)
 	if err != nil {
-		log.Printf("[AutoFunction] Auto-fix link failed for %s: %v", tenantID, err)
+		log.Info().Msgf("[AutoFunction] Auto-fix link failed for %s: %v", tenantID, err)
 		return
 	}
-	log.Printf("[AutoFunction] Auto-fix links for %s: %d mapped, %d skipped, %d total SKUs scanned",
+	log.Info().Msgf("[AutoFunction] Auto-fix links for %s: %d mapped, %d skipped, %d total SKUs scanned",
 		tenantID, result.MappedCount, result.SkippedCount, len(allSkus))
 }
 
@@ -175,7 +175,7 @@ func collectAllSellerSkus(ctx context.Context, db *gorm.DB, tenantID string) []s
 		Model(&models.MasterProductSku{}).
 		Where("tenant_id = ? AND seller_sku != ''", tenantID).
 		Pluck("seller_sku", &masterSkus).Error; err != nil {
-		log.Printf("[AutoFunction] Failed to load master SKUs: %v", err)
+		log.Info().Msgf("[AutoFunction] Failed to load master SKUs: %v", err)
 	}
 	for _, sku := range masterSkus {
 		seen[sku] = struct{}{}
@@ -187,7 +187,7 @@ func collectAllSellerSkus(ctx context.Context, db *gorm.DB, tenantID string) []s
 		Table("shopee_skus").
 		Where("tenant_id = ? AND seller_sku != ''", tenantID).
 		Pluck("seller_sku", &shopeeSkus).Error; err != nil {
-		log.Printf("[AutoFunction] Failed to load Shopee SKUs: %v", err)
+		log.Info().Msgf("[AutoFunction] Failed to load Shopee SKUs: %v", err)
 	}
 	for _, sku := range shopeeSkus {
 		seen[sku] = struct{}{}
@@ -199,7 +199,7 @@ func collectAllSellerSkus(ctx context.Context, db *gorm.DB, tenantID string) []s
 		Table("tiktok_skus").
 		Where("tenant_id = ? AND seller_sku != ''", tenantID).
 		Pluck("seller_sku", &tiktokSkus).Error; err != nil {
-		log.Printf("[AutoFunction] Failed to load TikTok SKUs: %v", err)
+		log.Info().Msgf("[AutoFunction] Failed to load TikTok SKUs: %v", err)
 	}
 	for _, sku := range tiktokSkus {
 		seen[sku] = struct{}{}
@@ -211,7 +211,7 @@ func collectAllSellerSkus(ctx context.Context, db *gorm.DB, tenantID string) []s
 		Table("lazada_skus").
 		Where("tenant_id = ? AND shop_sku != ''", tenantID).
 		Pluck("shop_sku", &lazadaSkus).Error; err != nil {
-		log.Printf("[AutoFunction] Failed to load Lazada SKUs: %v", err)
+		log.Info().Msgf("[AutoFunction] Failed to load Lazada SKUs: %v", err)
 	}
 	for _, sku := range lazadaSkus {
 		seen[sku] = struct{}{}

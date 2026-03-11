@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,14 +21,14 @@ func (s *ShopeeEscrowSyncService) RepopulateEscrowItems(ctx context.Context, mon
 	ordersTable := s.base.Table(tables.OrderTable)
 	itemsTable := s.base.Table(tables.ItemTable)
 
-	log.Printf("[ShopeeRepopulate] Starting re-populate for %d-%02d, tenant: %s", year, month, s.tenantID)
+	log.Info().Msgf("[ShopeeRepopulate] Starting re-populate for %d-%02d, tenant: %s", year, month, s.tenantID)
 
 	// Check current items count
 	var currentCount int64
 	s.base.DB.WithContext(ctx).Table(itemsTable).
 		Where("tenant_id = ?", s.tenantID).
 		Count(&currentCount)
-	log.Printf("[ShopeeRepopulate] Current items count: %d", currentCount)
+	log.Info().Msgf("[ShopeeRepopulate] Current items count: %d", currentCount)
 
 	// Fetch all escrow orders for this month that have raw_order_income
 	var orders []models.ShopeeEscrowOrder
@@ -39,7 +39,7 @@ func (s *ShopeeEscrowSyncService) RepopulateEscrowItems(ctx context.Context, mon
 		return 0, 0, fmt.Errorf("failed to fetch orders: %w", err)
 	}
 
-	log.Printf("[ShopeeRepopulate] Found %d orders to process", len(orders))
+	log.Info().Msgf("[ShopeeRepopulate] Found %d orders to process", len(orders))
 
 	processedOrders := 0
 	totalItems := 0
@@ -52,7 +52,7 @@ func (s *ShopeeEscrowSyncService) RepopulateEscrowItems(ctx context.Context, mon
 		// Parse raw_order_income JSON
 		var income shopeePkg.EscrowOrderData
 		if err := json.Unmarshal([]byte(*order.RawOrderIncome), &income); err != nil {
-			log.Printf("[ShopeeRepopulate] Failed to parse raw_order_income for order %s: %v", order.OrderSN, err)
+			log.Info().Msgf("[ShopeeRepopulate] Failed to parse raw_order_income for order %s: %v", order.OrderSN, err)
 			continue
 		}
 
@@ -99,7 +99,7 @@ func (s *ShopeeEscrowSyncService) RepopulateEscrowItems(ctx context.Context, mon
 			}
 
 			if err := s.base.DB.WithContext(ctx).Table(itemsTable).Create(&escrowItem).Error; err != nil {
-				log.Printf("[ShopeeRepopulate] Failed to insert item for order %s: %v", order.OrderSN, err)
+				log.Info().Msgf("[ShopeeRepopulate] Failed to insert item for order %s: %v", order.OrderSN, err)
 				continue
 			}
 			totalItems++
@@ -108,6 +108,6 @@ func (s *ShopeeEscrowSyncService) RepopulateEscrowItems(ctx context.Context, mon
 		processedOrders++
 	}
 
-	log.Printf("[ShopeeRepopulate] Done. Processed %d orders, inserted %d items", processedOrders, totalItems)
+	log.Info().Msgf("[ShopeeRepopulate] Done. Processed %d orders, inserted %d items", processedOrders, totalItems)
 	return processedOrders, totalItems, nil
 }

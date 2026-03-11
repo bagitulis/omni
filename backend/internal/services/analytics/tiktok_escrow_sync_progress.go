@@ -4,7 +4,7 @@ package analytics
 import (
 	"context"
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,7 +19,7 @@ func (s *TiktokEscrowSyncService) SyncMonthWithProgress(
 	forceResync bool,
 	onProgress ProgressCallback,
 ) (*SyncResultWithProgress, error) {
-	log.Printf("[TiktokEscrowSync] Starting sync with progress for %d-%02d, tenant: %s", year, month, s.tenantID)
+	log.Info().Msgf("[TiktokEscrowSync] Starting sync with progress for %d-%02d, tenant: %s", year, month, s.tenantID)
 
 	if onProgress != nil {
 		onProgress(0, 0, 0, "Initializing sync...")
@@ -65,7 +65,7 @@ func (s *TiktokEscrowSyncService) SyncMonthWithProgress(
 		return &SyncResultWithProgress{TotalOrders: 0, Message: "No completed orders found"}, nil
 	}
 
-	log.Printf("[TiktokEscrowSync] Found %d completed orders", len(orders))
+	log.Info().Msgf("[TiktokEscrowSync] Found %d completed orders", len(orders))
 
 	// Delete existing if resync
 	if forceResync {
@@ -179,7 +179,7 @@ func (s *TiktokEscrowSyncService) processOrdersWithProgress(
 		// Check cancellation
 		select {
 		case <-ctx.Done():
-			log.Printf("[TiktokEscrowSync] Cancelled at order %d/%d", i+1, totalOrders)
+			log.Info().Msgf("[TiktokEscrowSync] Cancelled at order %d/%d", i+1, totalOrders)
 			return totalItems, processedOrders, failedOrders, true
 		default:
 		}
@@ -193,7 +193,7 @@ func (s *TiktokEscrowSyncService) processOrdersWithProgress(
 		// Process single order
 		items, err := s.processSingleOrder(ctx, client, order, month, year)
 		if err != nil {
-			log.Printf("[TiktokEscrowSync] Error processing order %s: %v", order.ID, err)
+			log.Info().Msgf("[TiktokEscrowSync] Error processing order %s: %v", order.ID, err)
 			failedOrders++
 			continue
 		}

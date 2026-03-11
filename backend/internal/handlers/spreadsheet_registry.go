@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/dto/response"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/spreadsheet"
 	"gorm.io/gorm"
 )
@@ -27,9 +28,9 @@ func (h *SpreadsheetRegistryHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 
 // List handles GET /api/spreadsheets
 func (h *SpreadsheetRegistryHandler) List(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -56,9 +57,9 @@ func (h *SpreadsheetRegistryHandler) List(c *gin.Context) {
 
 // Get handles GET /api/spreadsheets/:id
 func (h *SpreadsheetRegistryHandler) Get(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -90,9 +91,9 @@ func (h *SpreadsheetRegistryHandler) Get(c *gin.Context) {
 
 // Register handles POST /api/spreadsheets
 func (h *SpreadsheetRegistryHandler) Register(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -120,9 +121,9 @@ func (h *SpreadsheetRegistryHandler) Register(c *gin.Context) {
 
 // Update handles PUT /api/spreadsheets/:id
 func (h *SpreadsheetRegistryHandler) Update(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -160,9 +161,9 @@ func (h *SpreadsheetRegistryHandler) Update(c *gin.Context) {
 
 // Delete handles DELETE /api/spreadsheets/:id
 func (h *SpreadsheetRegistryHandler) Delete(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 
@@ -189,9 +190,9 @@ func (h *SpreadsheetRegistryHandler) Delete(c *gin.Context) {
 
 // MarkSynced handles POST /api/spreadsheets/:id/synced
 func (h *SpreadsheetRegistryHandler) MarkSynced(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, response.Error("Missing tenantId"))
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
 

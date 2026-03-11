@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/rs/xid"
 	"gorm.io/gorm"
@@ -31,9 +32,9 @@ func (h *SettingsHandler) getDB(c *gin.Context) (*gorm.DB, error) {
 
 // GetInventorySettings handles GET /api/settings/inventory
 func (h *SettingsHandler) GetInventorySettings(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -58,9 +59,9 @@ func (h *SettingsHandler) GetInventorySettings(c *gin.Context) {
 
 // UpdateInventorySettings handles PUT /api/settings/inventory
 func (h *SettingsHandler) UpdateInventorySettings(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -98,9 +99,9 @@ func (h *SettingsHandler) UpdateInventorySettings(c *gin.Context) {
 
 // GetGoogleSheetsSettings handles GET /api/settings/google-sheets
 func (h *SettingsHandler) GetGoogleSheetsSettings(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -127,9 +128,9 @@ func (h *SettingsHandler) GetGoogleSheetsSettings(c *gin.Context) {
 
 // UpdateGoogleSheetsSettings handles PUT /api/settings/google-sheets
 func (h *SettingsHandler) UpdateGoogleSheetsSettings(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -168,9 +169,9 @@ func (h *SettingsHandler) UpdateGoogleSheetsSettings(c *gin.Context) {
 
 // GetGeneralSettings handles GET /api/settings/general
 func (h *SettingsHandler) GetGeneralSettings(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -204,9 +205,9 @@ func (h *SettingsHandler) GetGeneralSettings(c *gin.Context) {
 
 // UpdateGeneralSettings handles POST /api/settings/general
 func (h *SettingsHandler) UpdateGeneralSettings(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 

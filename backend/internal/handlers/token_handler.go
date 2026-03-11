@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services"
 )
@@ -21,9 +22,9 @@ func NewTokenHandler(tokenManager *services.TokenManager) *TokenHandler {
 
 // GetTokenStatus gets token status for a platform
 func (h *TokenHandler) GetTokenStatus(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -53,9 +54,9 @@ func (h *TokenHandler) GetTokenStatus(c *gin.Context) {
 
 // GetAllTokenStatus gets token status for all platforms
 func (h *TokenHandler) GetAllTokenStatus(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -70,9 +71,9 @@ func (h *TokenHandler) GetAllTokenStatus(c *gin.Context) {
 
 // RefreshToken refreshes token for a platform
 func (h *TokenHandler) RefreshToken(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -101,9 +102,9 @@ func (h *TokenHandler) RefreshToken(c *gin.Context) {
 
 // GetPlatformTokenStatus gets token status for a specific platform (alias route)
 func (h *TokenHandler) GetPlatformTokenStatus(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -137,9 +138,9 @@ func (h *TokenHandler) GetPlatformTokenStatus(c *gin.Context) {
 
 // RefreshAllTokens refreshes tokens for all platforms
 func (h *TokenHandler) RefreshAllTokens(c *gin.Context) {
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenantId"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -163,7 +164,7 @@ func (h *TokenHandler) RefreshAllTokens(c *gin.Context) {
 // GetStatusWithTokens handles GET /api/status
 func (h *TokenHandler) GetStatusWithTokens(c *gin.Context) {
 	timestamp := time.Now().Format("2006-01-02 15:04:05.000Z")
-	tenantID := c.GetString("tenantID")
+	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		tenantID = c.GetHeader("x-tenant-id")
 	}
