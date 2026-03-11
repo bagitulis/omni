@@ -41,27 +41,11 @@ func (r *MasterProductRepository) FindByID(ctx context.Context, id uint) (*model
 
 // FindAll returns paginated master products for a tenant
 func (r *MasterProductRepository) FindAll(ctx context.Context, tenantID string, page, pageSize int) ([]models.MasterProduct, int64, error) {
-	var products []models.MasterProduct
-	var total int64
-
-	if err := r.db.WithContext(ctx).
+	query := r.db.WithContext(ctx).
 		Model(&models.MasterProduct{}).
-		Where("tenant_id = ?", tenantID).
-		Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
+		Where("tenant_id = ?", tenantID)
 
-	offset := (page - 1) * pageSize
-	err := r.db.WithContext(ctx).
-		Where("tenant_id = ?", tenantID).
-		Preload("SKUs").
-		Preload("SKUs.PlatformLinks").
-		Order("created_at DESC").
-		Offset(offset).
-		Limit(pageSize).
-		Find(&products).Error
-
-	return products, total, err
+	return r.paginatedQuery(ctx, query, page, pageSize)
 }
 
 // Update modifies an existing master product
@@ -160,52 +144,20 @@ func (r *MasterProductRepository) CountByTenant(ctx context.Context, tenantID st
 
 // FindByStatus returns products by status for a tenant
 func (r *MasterProductRepository) FindByStatus(ctx context.Context, tenantID, status string, page, pageSize int) ([]models.MasterProduct, int64, error) {
-	var products []models.MasterProduct
-	var total int64
-
 	query := r.db.WithContext(ctx).
 		Model(&models.MasterProduct{}).
 		Where("tenant_id = ? AND status = ?", tenantID, status)
 
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	offset := (page - 1) * pageSize
-	err := query.
-		Preload("SKUs").
-		Preload("SKUs.PlatformLinks").
-		Order("created_at DESC").
-		Offset(offset).
-		Limit(pageSize).
-		Find(&products).Error
-
-	return products, total, err
+	return r.paginatedQuery(ctx, query, page, pageSize)
 }
 
 // SearchByTitle searches products by title (case-insensitive)
 func (r *MasterProductRepository) SearchByTitle(ctx context.Context, tenantID, search string, page, pageSize int) ([]models.MasterProduct, int64, error) {
-	var products []models.MasterProduct
-	var total int64
-
 	query := r.db.WithContext(ctx).
 		Model(&models.MasterProduct{}).
 		Where("tenant_id = ? AND LOWER(title) LIKE LOWER(?)", tenantID, "%"+search+"%")
 
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	offset := (page - 1) * pageSize
-	err := query.
-		Preload("SKUs").
-		Preload("SKUs.PlatformLinks").
-		Order("created_at DESC").
-		Offset(offset).
-		Limit(pageSize).
-		Find(&products).Error
-
-	return products, total, err
+	return r.paginatedQuery(ctx, query, page, pageSize)
 }
 
 // FindLinked returns paginated products that are linked on marketplace platforms.
@@ -215,9 +167,6 @@ func (r *MasterProductRepository) FindLinked(
 	page, pageSize int,
 	status, search, platform string,
 ) ([]models.MasterProduct, int64, error) {
-	var products []models.MasterProduct
-	var total int64
-
 	query := r.db.WithContext(ctx).
 		Model(&models.MasterProduct{}).
 		Where("tenant_id = ?", tenantID)
@@ -242,34 +191,16 @@ func (r *MasterProductRepository) FindLinked(
 
 	query = query.Where("EXISTS (?)", linkedSubQuery)
 
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	offset := (page - 1) * pageSize
-	err := query.
-		Preload("SKUs").
-		Preload("SKUs.PlatformLinks").
-		Order("created_at DESC").
-		Offset(offset).
-		Limit(pageSize).
-		Find(&products).Error
-
-	return products, total, err
+	return r.paginatedQuery(ctx, query, page, pageSize)
 }
 
 // FindUnmapped returns paginated products whose SKUs are NOT in the inventory (GAP-16).
-// "Unmapped" means: none of the product's SKUs exist in inventory_records.key_value.
-// inventory_records comes from Google Sheets sync and represents the authoritative product catalog.
 func (r *MasterProductRepository) FindUnmapped(
 	ctx context.Context,
 	tenantID string,
 	page, pageSize int,
 	search string,
 ) ([]models.MasterProduct, int64, error) {
-	var products []models.MasterProduct
-	var total int64
-
 	query := r.db.WithContext(ctx).
 		Model(&models.MasterProduct{}).
 		Where("tenant_id = ?", tenantID)
@@ -278,45 +209,18 @@ func (r *MasterProductRepository) FindUnmapped(
 		query = query.Where("LOWER(title) LIKE LOWER(?)", "%"+search+"%")
 	}
 
-	// NOT EXISTS: none of this product's SKUs appear in inventory_records
-	// Subquery: find a SKU for this product that IS in inventory
-	inventoryTableName := models.GetTableName("InventoryRecord")
-	skuTableName := models.GetTableName("MasterProductSku")
-	unmappedSubQuery := r.db.WithContext(ctx).
-		Table(skuTableName+" AS mps").
-		Select("1").
-		Where("mps.master_product_id = master_products.id").
-		Where("EXISTS (SELECT 1 FROM "+inventoryTableName+" AS ir WHERE LOWER(ir.key_value) = LOWER(mps.seller_sku) AND ir.tenant_id = ?)", tenantID)
+	query = query.Where("NOT EXISTS (?)", r.inventoryExistsSubQuery(ctx, tenantID))
 
-	query = query.Where("NOT EXISTS (?)", unmappedSubQuery)
-
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	offset := (page - 1) * pageSize
-	err := query.
-		Preload("SKUs").
-		Preload("SKUs.PlatformLinks").
-		Order("created_at DESC").
-		Offset(offset).
-		Limit(pageSize).
-		Find(&products).Error
-
-	return products, total, err
+	return r.paginatedQuery(ctx, query, page, pageSize)
 }
 
 // FindMapped returns paginated products whose SKUs ARE in the inventory (GAP-16).
-// "Mapped" means: at least one of the product's SKUs exists in inventory_records.key_value.
 func (r *MasterProductRepository) FindMapped(
 	ctx context.Context,
 	tenantID string,
 	page, pageSize int,
 	search string,
 ) ([]models.MasterProduct, int64, error) {
-	var products []models.MasterProduct
-	var total int64
-
 	query := r.db.WithContext(ctx).
 		Model(&models.MasterProduct{}).
 		Where("tenant_id = ?", tenantID)
@@ -325,31 +229,9 @@ func (r *MasterProductRepository) FindMapped(
 		query = query.Where("LOWER(title) LIKE LOWER(?)", "%"+search+"%")
 	}
 
-	// EXISTS: at least one of this product's SKUs appears in inventory_records
-	inventoryTableName := models.GetTableName("InventoryRecord")
-	skuTableName := models.GetTableName("MasterProductSku")
-	mappedSubQuery := r.db.WithContext(ctx).
-		Table(skuTableName+" AS mps").
-		Select("1").
-		Where("mps.master_product_id = master_products.id").
-		Where("EXISTS (SELECT 1 FROM "+inventoryTableName+" AS ir WHERE LOWER(ir.key_value) = LOWER(mps.seller_sku) AND ir.tenant_id = ?)", tenantID)
+	query = query.Where("EXISTS (?)", r.inventoryExistsSubQuery(ctx, tenantID))
 
-	query = query.Where("EXISTS (?)", mappedSubQuery)
-
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	offset := (page - 1) * pageSize
-	err := query.
-		Preload("SKUs").
-		Preload("SKUs.PlatformLinks").
-		Order("created_at DESC").
-		Offset(offset).
-		Limit(pageSize).
-		Find(&products).Error
-
-	return products, total, err
+	return r.paginatedQuery(ctx, query, page, pageSize)
 }
 
 // FindForImageBackfill returns master products for image backfill.

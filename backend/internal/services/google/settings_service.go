@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"regexp"
-	"sort"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -26,50 +24,7 @@ func NewSettingsService(db *gorm.DB, tenantID string) *SettingsService {
 	return &SettingsService{db: db, tenantID: tenantID}
 }
 
-// DetailedSettingsInput represents input for updating detailed settings
-type DetailedSettingsInput struct {
-	WalletSpreadsheetID      string
-	ShippingSpreadsheetID    string
-	InventorySpreadsheetID   string
-	OrderSpreadsheetID       string
-	InventorySheetName       string
-	WalletSheetName          string
-	ShippingSheetName        string
-	OrderSheetName           string
-	InventorySelectedColumns []string
-}
 
-// SheetMetaEntry represents a single sheet's metadata
-type SheetMetaEntry struct {
-	Name        string `json:"name"`
-	SheetID     int    `json:"sheet_id"`
-	Index       int    `json:"index"`
-	ColumnCount int    `json:"column_count"`
-	RowCount    int    `json:"row_count"`
-}
-
-// DetailedSettingsOutput represents output for detailed settings
-type DetailedSettingsOutput struct {
-	WalletSpreadsheetID      string                      `json:"wallet_spreadsheet_id"`
-	ShippingSpreadsheetID    string                      `json:"shipping_spreadsheet_id"`
-	InventorySpreadsheetID   string                      `json:"inventory_spreadsheet_id"`
-	OrderSpreadsheetID       string                      `json:"order_spreadsheet_id"`
-	InventorySheetName       string                      `json:"inventory_sheet_name"`
-	WalletSheetName          string                      `json:"wallet_sheet_name"`
-	ShippingSheetName        string                      `json:"shipping_sheet_name"`
-	OrderSheetName           string                      `json:"order_sheet_name"`
-	InventorySelectedColumns []string                    `json:"inventory_selected_columns"`
-	SheetsMetadata           map[string][]SheetMetaEntry `json:"sheets_metadata,omitempty"`
-	LastUpdated              *time.Time                  `json:"last_updated,omitempty"`
-}
-
-// SpreadsheetLinkInput represents a spreadsheet link
-type SpreadsheetLinkInput struct {
-	Type          string `json:"type"`
-	SpreadsheetID string `json:"spreadsheet_id"`
-	URL           string `json:"url"`
-	Title         string `json:"title"`
-}
 
 // getOrCreateSettings gets existing settings or creates default one
 func (s *SettingsService) getOrCreateSettings(ctx context.Context) (*models.GoogleSheetsSettings, error) {
@@ -242,20 +197,7 @@ func (s *SettingsService) filterUpdatesByExistingColumns(ctx context.Context, mo
 	return orderedMap(filteredUpdates), nil
 }
 
-func orderedMap(input map[string]interface{}) map[string]interface{} {
-	keys := make([]string, 0, len(input))
-	for key := range input {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
 
-	ordered := make(map[string]interface{}, len(input))
-	for _, key := range keys {
-		ordered[key] = input[key]
-	}
-
-	return ordered
-}
 
 // SaveWorksheetMetadata persists discovered worksheet metadata for a given type
 // so the Sheet Metadata card can display it without re-validating.
@@ -312,32 +254,7 @@ func (s *SettingsService) SaveWorksheetMetadata(ctx context.Context, linkType st
 	return s.db.WithContext(ctx).Model(settings).Updates(filteredUpdates).Error
 }
 
-// LinksByType represents spreadsheet links mapped by type
-type LinksByType struct {
-	Inventory string
-	Wallet    string
-	Shipping  string
-	Order     string
-}
 
-// extractSpreadsheetID extracts spreadsheet ID from URL or returns as-is
-// Matches implementation in handlers/google/sheets_handler.go
-func extractSpreadsheetID(input string) string {
-	// If already an ID (no slashes), return as-is
-	if !regexp.MustCompile(`/`).MatchString(input) {
-		return input
-	}
-
-	// Extract from Google Sheets URL
-	// Format: https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit...
-	re := regexp.MustCompile(`/spreadsheets/d/([a-zA-Z0-9-_]+)`)
-	matches := re.FindStringSubmatch(input)
-	if len(matches) > 1 {
-		return matches[1]
-	}
-
-	return input
-}
 
 // SaveSpreadsheetLinks saves spreadsheet links by updating individual columns
 // Extracts spreadsheet IDs from URLs before saving
@@ -377,26 +294,7 @@ func (s *SettingsService) SaveSpreadsheetLinks(ctx context.Context, links interf
 	return s.db.WithContext(ctx).Model(settings).Updates(updates).Error
 }
 
-// SpreadsheetLinksResponse is the response format expected by frontend
-type SpreadsheetLinksResponse struct {
-	Inventory string `json:"inventory"`
-	Wallet    string `json:"wallet"`
-	Shipping  string `json:"shipping"`
-	Order     string `json:"order"`
-}
 
-// reconstructURL converts spreadsheet ID to full Google Sheets URL
-func reconstructURL(spreadsheetID string) string {
-	if spreadsheetID == "" {
-		return ""
-	}
-	// If it's already a URL, return as-is
-	if regexp.MustCompile(`^https?://`).MatchString(spreadsheetID) {
-		return spreadsheetID
-	}
-	// Reconstruct URL from ID
-	return fmt.Sprintf("https://docs.google.com/spreadsheets/d/%s/edit", spreadsheetID)
-}
 
 // GetSpreadsheetLinks retrieves saved spreadsheet links in frontend-expected format
 func (s *SettingsService) GetSpreadsheetLinks(ctx context.Context) (*SpreadsheetLinksResponse, error) {
