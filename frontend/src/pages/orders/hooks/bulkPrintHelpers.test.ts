@@ -28,7 +28,8 @@ import {
 } from "./bulkPrintHelpers";
 import * as ordersApi from "@/api/orders";
 import { downloadOrderLabel } from "../utils/labelDownload";
-import { message, Modal } from "antd";
+import { Modal } from "antd";
+import { message } from "@/components/AntStaticApi";
 
 describe("mergeUniqueOrderSns", () => {
   it("returns unique order sns", () => {

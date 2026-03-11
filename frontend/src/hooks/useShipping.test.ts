@@ -43,7 +43,7 @@ import {
   useProcessShippingFile,
   useExportShippingToSheets,
 } from "./useShipping";
-import { message } from "antd";
+import { message } from "@/components/AntStaticApi";
 
 const mockMessage = vi.mocked(message);
 

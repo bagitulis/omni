@@ -22,7 +22,7 @@ vi.mock("@/api/orders", () => ({
 
 import { useOrderSync } from "./useOrderSync";
 import * as ordersApi from "@/api/orders";
-import { message } from "antd";
+import { message } from "@/components/AntStaticApi";
 
 describe("useOrderSync", () => {
   const refetch = vi.fn();

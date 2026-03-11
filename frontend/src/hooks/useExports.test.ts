@@ -18,7 +18,7 @@ vi.mock("@/api/exports", () => ({
 }));
 
 import { useExportOrders } from "./useExports";
-import { message } from "antd";
+import { message } from "@/components/AntStaticApi";
 import { exportOrders } from "@/api/exports";
 
 describe("useExportOrders", () => {

@@ -2,7 +2,7 @@ import { Modal } from "antd";
 import { deleteProduct } from "@/api/products";
 import { getErrorMessage } from "@/pages/products/utils/unifiedProductUtils";
 import type { UnifiedProductRow } from "@/types/shared";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 export function confirmDeleteSingleProduct(
   record: UnifiedProductRow,

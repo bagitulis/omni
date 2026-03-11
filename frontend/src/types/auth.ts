@@ -11,7 +11,6 @@ export interface User {
 }
 
 export interface LoginResponse {
-  success: boolean;
   token: string;
   access_token: string;
   tenant_id: string;

@@ -16,7 +16,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { saveSelectedColumns } from "@/api/inventory";
 import { useAvailableColumns, useSelectedColumns } from "@/hooks/useInventory";
 import { buildGroups } from "./inventoryColumnGroups";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 const { Text } = Typography;
 

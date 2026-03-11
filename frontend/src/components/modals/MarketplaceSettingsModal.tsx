@@ -13,7 +13,7 @@ import {
   type MarketplaceAllocationSettings,
 } from "@/pages/inventory/utils/marketplaceAllocation";
 import { AllocationRatioSection } from "./AllocationRatioSection";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 const { Text, Title } = Typography;
 

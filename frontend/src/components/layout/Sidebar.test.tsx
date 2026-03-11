@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import Sidebar from "@/components/layout/Sidebar";
 import { MemoryRouter, useNavigate, useLocation } from "react-router-dom";
+import { useTheme } from "@/contexts/ThemeContext.hooks";
 
 // Mock React Router hooks
 vi.mock("react-router-dom", async () => {
@@ -13,13 +14,19 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+vi.mock("@/contexts/ThemeContext.hooks", () => ({
+  useTheme: vi.fn(),
+}));
+
 // Mock antd Layout and Menu
 vi.mock("antd", async () => {
   const actual = await vi.importActual<typeof import("antd")>("antd");
   return {
     ...actual,
     Layout: {
-      Sider: ({ children }: { children?: React.ReactNode }) => <div data-testid="sider">{children}</div>,
+      Sider: ({ children }: { children?: React.ReactNode }) => (
+        <div data-testid="sider">{children}</div>
+      ),
     },
     Menu: ({
       items,
@@ -49,8 +56,17 @@ describe("Sidebar", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    (vi.mocked(useNavigate) as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockNavigate);
-    (vi.mocked(useLocation) as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockLocation);
+    (
+      vi.mocked(useNavigate) as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue(mockNavigate);
+    (
+      vi.mocked(useLocation) as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue(mockLocation);
+    (
+      vi.mocked(useTheme) as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue({
+      isDark: false,
+    });
   });
 
   const renderSidebar = (props = {}) => {
@@ -93,7 +109,9 @@ describe("Sidebar", () => {
     // This logic is mainly inside useMemo for selectedKey
     // Since we mock Menu, we can't easily check 'selectedKeys' prop visually without inspecting the mock call
     // But we can verify no errors occur during render with different paths
-    (vi.mocked(useLocation) as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ pathname: "/products/add" });
+    (
+      vi.mocked(useLocation) as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue({ pathname: "/products/add" });
     renderSidebar();
     expect(screen.getByTestId("menu")).toBeInTheDocument();
   });

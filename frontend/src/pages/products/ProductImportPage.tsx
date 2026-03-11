@@ -27,7 +27,7 @@ import {
 } from "@/hooks/useProductImport";
 import { downloadImportTemplate } from "@/api/products";
 import "./ProductImportPage.css";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 export default function ProductImportPage() {
   const { token } = theme.useToken();

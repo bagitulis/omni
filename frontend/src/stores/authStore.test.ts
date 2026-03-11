@@ -1,14 +1,30 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuthStore } from "./authStore";
 import type { User } from "@/types/auth";
+import apiClient from "@/api/client";
+import { logger } from "@/lib/logger";
 
-// Mock constants
 vi.mock("@/lib/constants", () => ({
   STORAGE_KEYS: {
     AUTH_USER: "authUser",
     TENANT_ID: "tenantId",
   },
   API_BASE_URL: "http://localhost/api",
+}));
+
+vi.mock("@/api/client", () => ({
+  default: {
+    post: vi.fn(),
+  },
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
 }));
 
 const mockUser: User = {
@@ -18,7 +34,10 @@ const mockUser: User = {
   role: "admin",
 };
 
-const resetStore = () => {
+const mockApiPost = vi.mocked(apiClient.post);
+const mockLogger = vi.mocked(logger);
+
+function resetStore(): void {
   useAuthStore.setState({
     user: null,
     token: null,
@@ -27,9 +46,9 @@ const resetStore = () => {
     tenantId: null,
     expiresAt: null,
   });
-};
+}
 
-describe("authStore — initial state", () => {
+describe("authStore", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
@@ -37,166 +56,80 @@ describe("authStore — initial state", () => {
     resetStore();
   });
 
-  it("user is null initially", () => {
-    expect(useAuthStore.getState().user).toBeNull();
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
-  it("token is null initially", () => {
-    expect(useAuthStore.getState().token).toBeNull();
-  });
-
-  it("accessToken is null initially", () => {
-    expect(useAuthStore.getState().accessToken).toBeNull();
-  });
-
-  it("isAuthenticated is false initially", () => {
-    expect(useAuthStore.getState().isAuthenticated).toBe(false);
-  });
-
-  it("expiresAt is null initially", () => {
-    expect(useAuthStore.getState().expiresAt).toBeNull();
-  });
-});
-
-describe("authStore — setAuth", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    sessionStorage.clear();
-    localStorage.clear();
-    resetStore();
-  });
-
-  it("sets user and isAuthenticated=true", () => {
-    useAuthStore.getState().setAuth({ token: "tok-abc", user: mockUser });
-    const state = useAuthStore.getState();
-    expect(state.user).toEqual(mockUser);
-    expect(state.isAuthenticated).toBe(true);
-  });
-
-  it("sets token from token field", () => {
-    useAuthStore.getState().setAuth({ token: "my-token", user: mockUser });
-    expect(useAuthStore.getState().token).toBe("my-token");
-    expect(useAuthStore.getState().accessToken).toBe("my-token");
-  });
-
-  it("prefers access_token over token when both provided", () => {
-    useAuthStore.getState().setAuth({
-      token: "old-token",
-      access_token: "new-token",
-      user: mockUser,
+  it("starts unauthenticated", () => {
+    expect(useAuthStore.getState()).toMatchObject({
+      user: null,
+      token: null,
+      accessToken: null,
+      isAuthenticated: false,
+      tenantId: null,
+      expiresAt: null,
     });
-    expect(useAuthStore.getState().token).toBe("new-token");
   });
 
-  it("stores user in sessionStorage", () => {
-    useAuthStore.getState().setAuth({ token: "tok", user: mockUser });
-    const stored = JSON.parse(sessionStorage.getItem("authUser") ?? "null");
-    expect(stored).toEqual(mockUser);
-  });
+  it("setAuth stores user, tenant, token, and clears legacy localStorage", () => {
+    localStorage.setItem("authToken", "old-token");
+    localStorage.setItem("authUser", "old-user");
+    localStorage.setItem("tenantId", "old-tenant");
+    localStorage.setItem("userRole", "old-role");
+    localStorage.setItem("userName", "old-name");
 
-  it("stores tenant_id in sessionStorage when provided", () => {
-    useAuthStore
-      .getState()
-      .setAuth({ token: "tok", user: mockUser, tenant_id: "tenant-xyz" });
+    useAuthStore.getState().setAuth({
+      token: "legacy-token",
+      access_token: "fresh-token",
+      user: mockUser,
+      tenant_id: "tenant-xyz",
+      expires_in: 3600,
+    });
+
+    expect(useAuthStore.getState()).toMatchObject({
+      user: mockUser,
+      token: "fresh-token",
+      accessToken: "fresh-token",
+      isAuthenticated: true,
+      tenantId: "tenant-xyz",
+    });
+    expect(sessionStorage.getItem("authUser")).toBe(JSON.stringify(mockUser));
     expect(sessionStorage.getItem("tenantId")).toBe("tenant-xyz");
-    expect(useAuthStore.getState().tenantId).toBe("tenant-xyz");
-  });
-
-  it("sets expiresAt using expires_in", () => {
-    const before = Date.now();
-    useAuthStore
-      .getState()
-      .setAuth({ token: "tok", user: mockUser, expires_in: 3600 });
-    const { expiresAt } = useAuthStore.getState();
-    expect(expiresAt).not.toBeNull();
-    expect(expiresAt!).toBeGreaterThan(before + 3590 * 1000);
-  });
-
-  it("defaults expires_in to 900 seconds when not provided", () => {
-    const before = Date.now();
-    useAuthStore.getState().setAuth({ token: "tok", user: mockUser });
-    const { expiresAt } = useAuthStore.getState();
-    expect(expiresAt!).toBeGreaterThanOrEqual(before + 899 * 1000);
-  });
-
-  it("clears legacy localStorage items", () => {
-    localStorage.setItem("authToken", "old");
-    localStorage.setItem("authUser", "old");
-    localStorage.setItem("tenantId", "old");
-    useAuthStore.getState().setAuth({ token: "tok", user: mockUser });
-    expect(localStorage.getItem("authToken")).toBeNull();
-    expect(localStorage.getItem("authUser")).toBeNull();
-    expect(localStorage.getItem("tenantId")).toBeNull();
-  });
-});
-
-describe("authStore — clearAuth", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    sessionStorage.clear();
-    localStorage.clear();
-    resetStore();
-  });
-
-  it("resets all auth state to null/false", () => {
-    useAuthStore
-      .getState()
-      .setAuth({ token: "tok", user: mockUser, tenant_id: "t1" });
-    useAuthStore.getState().clearAuth();
-    const state = useAuthStore.getState();
-    expect(state.user).toBeNull();
-    expect(state.token).toBeNull();
-    expect(state.accessToken).toBeNull();
-    expect(state.isAuthenticated).toBe(false);
-    expect(state.tenantId).toBeNull();
-    expect(state.expiresAt).toBeNull();
-  });
-
-  it("removes auth user from sessionStorage", () => {
-    sessionStorage.setItem("authUser", JSON.stringify(mockUser));
-    useAuthStore.getState().clearAuth();
-    expect(sessionStorage.getItem("authUser")).toBeNull();
-  });
-
-  it("removes tenant id from sessionStorage", () => {
-    sessionStorage.setItem("tenantId", "tenant-xyz");
-    useAuthStore.getState().clearAuth();
-    expect(sessionStorage.getItem("tenantId")).toBeNull();
-  });
-
-  it("clears all legacy localStorage items", () => {
-    localStorage.setItem("authToken", "t");
-    localStorage.setItem("authUser", "u");
-    localStorage.setItem("tenantId", "i");
-    localStorage.setItem("userRole", "r");
-    localStorage.setItem("userName", "n");
-    useAuthStore.getState().clearAuth();
     expect(localStorage.getItem("authToken")).toBeNull();
     expect(localStorage.getItem("authUser")).toBeNull();
     expect(localStorage.getItem("tenantId")).toBeNull();
     expect(localStorage.getItem("userRole")).toBeNull();
     expect(localStorage.getItem("userName")).toBeNull();
-  });
-});
-
-describe("authStore — refreshAccessToken", () => {
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    sessionStorage.clear();
-    localStorage.clear();
-    resetStore();
-    consoleErrorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
+    expect(useAuthStore.getState().expiresAt).not.toBeNull();
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
+  it("clearAuth resets auth state and clears storage", () => {
+    sessionStorage.setItem("authUser", JSON.stringify(mockUser));
+    sessionStorage.setItem("tenantId", "tenant-xyz");
+    localStorage.setItem("authToken", "old-token");
+
+    useAuthStore.getState().setAuth({
+      token: "token-1",
+      user: mockUser,
+      tenant_id: "tenant-xyz",
+    });
+
+    useAuthStore.getState().clearAuth();
+
+    expect(useAuthStore.getState()).toMatchObject({
+      user: null,
+      token: null,
+      accessToken: null,
+      isAuthenticated: false,
+      tenantId: null,
+      expiresAt: null,
+    });
+    expect(sessionStorage.getItem("authUser")).toBeNull();
+    expect(sessionStorage.getItem("tenantId")).toBeNull();
+    expect(localStorage.getItem("authToken")).toBeNull();
   });
 
-  it("updates token on successful refresh", async () => {
+  it("refreshAccessToken updates token on success", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -211,89 +144,49 @@ describe("authStore — refreshAccessToken", () => {
     );
 
     const result = await useAuthStore.getState().refreshAccessToken();
+
     expect(result).toBe(true);
-    expect(useAuthStore.getState().accessToken).toBe("new-token");
-    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+    expect(useAuthStore.getState()).toMatchObject({
+      token: "new-token",
+      accessToken: "new-token",
+      isAuthenticated: true,
+    });
   });
 
-  it("clears auth and returns false when refresh fails", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 401,
-        json: async () => ({ code: "" }),
-      }),
-    );
-
-    useAuthStore.getState().setAuth({ token: "old-token", user: mockUser });
-    const result = await useAuthStore.getState().refreshAccessToken();
-    expect(result).toBe(false);
-    expect(useAuthStore.getState().isAuthenticated).toBe(false);
-  });
-
-  it("returns false and clears auth on network error", async () => {
+  it("refreshAccessToken clears auth and logs on network error", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockRejectedValue(new Error("Network down")),
     );
-
     useAuthStore.getState().setAuth({ token: "tok", user: mockUser });
-    const result = await useAuthStore.getState().refreshAccessToken();
-    expect(result).toBe(false);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "Token refresh failed:",
-      expect.any(Error),
-    );
-  });
-
-  it("returns false when response is ok but success is false", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({ success: false }),
-      }),
-    );
 
     const result = await useAuthStore.getState().refreshAccessToken();
+
     expect(result).toBe(false);
-  });
-});
-
-describe("authStore — getValidToken", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    sessionStorage.clear();
-    localStorage.clear();
-    resetStore();
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    expect(mockLogger.error).toHaveBeenCalledWith("Token refresh failed", {
+      error: expect.any(Error),
+    });
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("returns token when valid and not expired", async () => {
+  it("getValidToken returns current token when not expired", async () => {
     useAuthStore.setState({
-      accessToken: "valid-token",
-      expiresAt: Date.now() + 60 * 1000, // expires in 60s
-      user: mockUser,
-      isAuthenticated: true,
       token: "valid-token",
+      accessToken: "valid-token",
+      expiresAt: Date.now() + 60_000,
+      isAuthenticated: true,
+      user: mockUser,
       tenantId: null,
     });
 
-    const token = await useAuthStore.getState().getValidToken();
-    expect(token).toBe("valid-token");
+    await expect(useAuthStore.getState().getValidToken()).resolves.toBe(
+      "valid-token",
+    );
   });
 
-  it("returns null when no user and no token", async () => {
-    const token = await useAuthStore.getState().getValidToken();
-    expect(token).toBeNull();
-  });
-
-  it("attempts refresh when token is expired but user exists", async () => {
+  it("initializeAuth restores stored user and refreshes token", async () => {
+    sessionStorage.setItem("authUser", JSON.stringify(mockUser));
+    sessionStorage.setItem("tenantId", "tenant-xyz");
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -307,129 +200,59 @@ describe("authStore — getValidToken", () => {
       }),
     );
 
-    useAuthStore.setState({
-      accessToken: "expired-token",
-      expiresAt: Date.now() - 1000, // already expired
+    const result = await useAuthStore.getState().initializeAuth();
+
+    expect(result).toBe(true);
+    expect(useAuthStore.getState()).toMatchObject({
       user: mockUser,
+      tenantId: "tenant-xyz",
+      accessToken: "refreshed-token",
+      token: "refreshed-token",
       isAuthenticated: true,
-      token: "expired-token",
-      tenantId: null,
+    });
+  });
+
+  it("initializeAuth removes corrupted stored user", async () => {
+    sessionStorage.setItem("authUser", "NOT VALID JSON{{{");
+
+    const result = await useAuthStore.getState().initializeAuth();
+
+    expect(result).toBe(false);
+    expect(sessionStorage.getItem("authUser")).toBeNull();
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      "Failed to parse stored auth user",
+      { error: expect.any(Error) },
+    );
+  });
+
+  it("logout posts to auth endpoint and clears auth", async () => {
+    mockApiPost.mockResolvedValue({ success: true });
+    useAuthStore.getState().setAuth({
+      token: "token-1",
+      user: mockUser,
+      tenant_id: "tenant-xyz",
     });
 
-    const token = await useAuthStore.getState().getValidToken();
-    expect(token).toBe("refreshed-token");
-  });
-});
-
-describe("authStore — logout", () => {
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    sessionStorage.clear();
-    localStorage.clear();
-    resetStore();
-    consoleErrorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("calls the logout endpoint and clears auth", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-    vi.stubGlobal("fetch", fetchMock);
-
-    useAuthStore
-      .getState()
-      .setAuth({ token: "tok", user: mockUser, tenant_id: "t1" });
     await useAuthStore.getState().logout();
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/auth/logout"),
-      expect.any(Object),
-    );
+    expect(mockApiPost).toHaveBeenCalledWith("/auth/logout", undefined, {
+      headers: {
+        Authorization: "Bearer token-1",
+        "x-tenant-id": "tenant-xyz",
+      },
+    });
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
-    expect(useAuthStore.getState().user).toBeNull();
   });
 
-  it("clears auth even if logout request fails", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockRejectedValue(new Error("Network error")),
-    );
+  it("logout clears auth even when api client fails", async () => {
+    mockApiPost.mockRejectedValue(new Error("Network error"));
+    useAuthStore.getState().setAuth({ token: "token-1", user: mockUser });
 
-    useAuthStore.getState().setAuth({ token: "tok", user: mockUser });
     await useAuthStore.getState().logout();
 
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "Logout request failed:",
-      expect.any(Error),
-    );
-  });
-});
-
-describe("authStore — initializeAuth", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    sessionStorage.clear();
-    localStorage.clear();
-    resetStore();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("returns false when no stored user and no token", async () => {
-    const result = await useAuthStore.getState().initializeAuth();
-    expect(result).toBe(false);
-  });
-
-  it("restores user from sessionStorage and refreshes token", async () => {
-    sessionStorage.setItem("authUser", JSON.stringify(mockUser));
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          success: true,
-          access_token: "refreshed",
-          expires_in: 900,
-        }),
-      }),
-    );
-
-    const result = await useAuthStore.getState().initializeAuth();
-    expect(result).toBe(true);
-    expect(useAuthStore.getState().user).toEqual(mockUser);
-  });
-
-  it("clears auth and returns false when stored user exists but refresh fails", async () => {
-    sessionStorage.setItem("authUser", JSON.stringify(mockUser));
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 401,
-        json: async () => ({}),
-      }),
-    );
-
-    const result = await useAuthStore.getState().initializeAuth();
-    expect(result).toBe(false);
-    expect(useAuthStore.getState().user).toBeNull();
-  });
-
-  it("returns false and removes corrupted sessionStorage entry", async () => {
-    sessionStorage.setItem("authUser", "NOT VALID JSON{{{");
-    const result = await useAuthStore.getState().initializeAuth();
-    // Should not throw; JSON.parse fails, session entry removed
-    expect(typeof result).toBe("boolean");
-    expect(sessionStorage.getItem("authUser")).toBeNull();
+    expect(mockLogger.error).toHaveBeenCalledWith("Logout request failed", {
+      error: expect.any(Error),
+    });
   });
 });

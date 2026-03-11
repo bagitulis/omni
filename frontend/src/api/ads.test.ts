@@ -123,7 +123,7 @@ describe("ads API", () => {
       const mockData = { success: true, data: [{ filename: "report.csv" }] };
       mockGet.mockResolvedValueOnce(mockData);
       const result = await getShopeeAdsReports();
-      expect(mockGet).toHaveBeenCalledWith("/reports/shopee/ads");
+      expect(mockGet).toHaveBeenCalledWith("/analytics/ml/reports/shopee/list");
       expect(result).toEqual(mockData);
     });
   });
@@ -136,7 +136,7 @@ describe("ads API", () => {
       };
       mockGet.mockResolvedValueOnce(mockData);
       const result = await getTiktokAdsReports();
-      expect(mockGet).toHaveBeenCalledWith("/reports/tiktok/ads");
+      expect(mockGet).toHaveBeenCalledWith("/analytics/ml/reports/tiktok/list");
       expect(result).toEqual(mockData);
     });
   });

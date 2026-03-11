@@ -2,7 +2,7 @@ import { useState } from "react";
 import { UploadProps } from "antd";
 import dayjs from "dayjs";
 import { TikTokAdsData } from "./types";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 export const useTiktokAdsUpload = () => {
   const [uploadedData, setUploadedData] = useState<TikTokAdsData[]>([]);

@@ -13,7 +13,7 @@ import { saveWebhookConfig } from "@/api/settings";
 import IntegrationUrls from "../components/IntegrationUrls";
 import WebhookLogsViewer from "../components/WebhookLogsViewer";
 import OAuthLogsViewer from "../components/OAuthLogsViewer";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 const { Text, Title } = Typography;
 

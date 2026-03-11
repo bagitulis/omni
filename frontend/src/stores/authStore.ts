@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { STORAGE_KEYS, API_BASE_URL } from "@/lib/constants";
-import { User } from "@/types/auth";
+import type { User } from "@/types/auth";
 import { logger } from "@/lib/logger";
 import apiClient from "@/api/client";
 
@@ -31,6 +31,14 @@ export interface AuthState {
 // Track ongoing refresh to prevent concurrent refreshes
 let refreshPromise: Promise<boolean> | null = null;
 
+function clearLegacyStorage(): void {
+  localStorage.removeItem("authToken");
+  localStorage.removeItem("authUser");
+  localStorage.removeItem("tenantId");
+  localStorage.removeItem("userRole");
+  localStorage.removeItem("userName");
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
@@ -43,6 +51,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const finalToken = access_token || token || null;
     const expiresInMs = (expires_in || 900) * 1000;
     const expiresAt = Date.now() + expiresInMs;
+
+    clearLegacyStorage();
 
     // Update SessionStorage (User info only, NO TOKEN)
     sessionStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
@@ -62,6 +72,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   clearAuth: () => {
+    clearLegacyStorage();
     sessionStorage.removeItem(STORAGE_KEYS.AUTH_USER);
     sessionStorage.removeItem(STORAGE_KEYS.TENANT_ID);
 

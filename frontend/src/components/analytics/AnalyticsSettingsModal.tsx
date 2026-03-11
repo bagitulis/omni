@@ -2,7 +2,7 @@ import { Modal, Form, InputNumber, Button, Tabs, Select } from "antd";
 import { useState, useEffect, useCallback } from "react";
 import api from "../../api/client";
 import { logger } from "@/lib/logger";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 interface Props {
   open: boolean;

@@ -38,7 +38,7 @@ import {
   useRefreshAllTokens,
 } from "./useTokens";
 import * as tokensApi from "@/api/tokens";
-import { message } from "antd";
+import { message } from "@/components/AntStaticApi";
 import { logger } from "@/lib/logger";
 
 const mockMessage = vi.mocked(message);

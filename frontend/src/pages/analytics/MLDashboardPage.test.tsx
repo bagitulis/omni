@@ -76,10 +76,10 @@ vi.mock("@/components/analytics/ml", () => ({
   }) => (
     <div data-testid="product-score-table">
       {products.map((item) => {
-        const p = item as { product_id: string; product_name: string };
+        const p = item as { id: string; name: string };
         return (
-          <div key={p.product_id} onClick={() => onRowClick(p)}>
-            {p.product_name}
+          <div key={p.id} onClick={() => onRowClick(p)}>
+            {p.name}
           </div>
         );
       })}
@@ -91,12 +91,12 @@ vi.mock("@/components/analytics/ml", () => ({
     onClose,
   }: {
     open: boolean;
-    product: { name: string } | null;
+    product: { product_name?: string; name?: string } | null;
     onClose: () => void;
   }) =>
     open ? (
       <div data-testid="product-detail-modal">
-        {product?.name}
+        {product?.product_name ?? product?.name}
         <button onClick={onClose}>Close</button>
       </div>
     ) : null,
@@ -145,7 +145,7 @@ describe("MLDashboardPage", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("product-detail-modal")).toBeInTheDocument();
-      expect(screen.getByText("Test Product 1")).toBeInTheDocument();
+      expect(screen.getAllByText("Test Product 1")).toHaveLength(2);
     });
   });
 

@@ -1,4 +1,4 @@
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 import {
   useNotificationStore,
   type NotificationCategory,

@@ -32,7 +32,10 @@ vi.mock("@/stores/authStore", () => ({
 
 describe("auth API", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockClientPost.mockReset();
+    mockGet.mockReset();
+    mockPost.mockReset();
+    mockLogout.mockReset();
     mockLogout.mockResolvedValue(undefined);
   });
 
@@ -41,27 +44,30 @@ describe("auth API", () => {
     it("returns login response on success", async () => {
       const mockData = {
         success: true,
-        token: "tok",
-        access_token: "acc",
-        user: { id: "u1" },
-        tenant_id: "t1",
-        expires_in: 3600,
+        data: {
+          token: "tok",
+          access_token: "acc",
+          user: { id: "u1" },
+          tenant_id: "t1",
+          expires_in: 3600,
+        },
       };
-      mockClientPost.mockResolvedValue({ data: mockData });
+      mockPost.mockResolvedValueOnce(mockData);
 
       const result = await login({ username: "admin", password: "secret" });
 
-      expect(mockClientPost).toHaveBeenCalledWith(
+      expect(mockPost).toHaveBeenCalledWith(
         "/auth/login",
         { username: "admin", password: "secret" },
         { withCredentials: true },
       );
-      expect(result).toEqual(mockData);
+      expect(result).toEqual(mockData.data);
     });
 
     it("throws when success is false", async () => {
-      mockClientPost.mockResolvedValue({
-        data: { success: false, error: "Invalid credentials" },
+      mockPost.mockResolvedValueOnce({
+        success: false,
+        error: "Invalid credentials",
       });
 
       await expect(
@@ -70,9 +76,20 @@ describe("auth API", () => {
     });
 
     it("throws default message when error field is missing", async () => {
-      mockClientPost.mockResolvedValue({ data: { success: false } });
+      mockPost.mockResolvedValueOnce({ success: false });
 
       await expect(login({})).rejects.toThrow("Login failed");
+    });
+
+    it("throws when wrapped login payload is missing token fields", async () => {
+      mockPost.mockResolvedValueOnce({
+        success: true,
+        data: { user: { id: "u1" }, tenant_id: "t1", expires_in: 3600 },
+      });
+
+      await expect(
+        login({ username: "admin", password: "secret" }),
+      ).rejects.toThrow("Login failed");
     });
   });
 
@@ -83,10 +100,12 @@ describe("auth API", () => {
         success: true,
         dev_mode: true,
         token: "devtok",
+        access_token: "devtok",
         user: { id: "dev-user" },
         tenant_id: "dev-tenant",
+        expires_in: 28800,
       };
-      mockClientPost.mockResolvedValue({ data: mockData });
+      mockClientPost.mockResolvedValueOnce({ data: mockData });
 
       const result = await devLogin({ tenant_id: "dev-tenant" });
 
@@ -99,8 +118,11 @@ describe("auth API", () => {
     });
 
     it("throws on failure", async () => {
-      mockClientPost.mockResolvedValue({
-        data: { success: false, error: "Dev login disabled" },
+      mockClientPost.mockResolvedValueOnce({
+        data: {
+          success: false,
+          error: "Dev login disabled",
+        },
       });
 
       await expect(devLogin({ tenant_id: "t1" })).rejects.toThrow(
@@ -109,9 +131,24 @@ describe("auth API", () => {
     });
 
     it("throws default message when error field is missing", async () => {
-      mockClientPost.mockResolvedValue({ data: { success: false } });
+      mockClientPost.mockResolvedValueOnce({ data: { success: false } });
 
       await expect(devLogin({ tenant_id: "t1" })).rejects.toThrow(
+        "Dev login failed",
+      );
+    });
+
+    it("throws when dev login payload is missing token fields", async () => {
+      mockClientPost.mockResolvedValueOnce({
+        data: {
+          success: true,
+          dev_mode: true,
+          user: { id: "dev-user" },
+          tenant_id: "dev-tenant",
+        },
+      });
+
+      await expect(devLogin({ tenant_id: "dev-tenant" })).rejects.toThrow(
         "Dev login failed",
       );
     });
@@ -142,18 +179,29 @@ describe("auth API", () => {
       expect(result).toBeNull();
     });
 
-    it("returns null when request throws", async () => {
-      mockGet.mockRejectedValue(new Error("Network error"));
+    it("returns null for 401 auth errors", async () => {
+      mockGet.mockRejectedValueOnce(
+        Object.assign(new Error("Unauthorized"), {
+          isAxiosError: true,
+          response: { status: 401 },
+        }),
+      );
 
       const result = await getCurrentUser();
       expect(result).toBeNull();
+    });
+
+    it("rethrows unexpected request errors", async () => {
+      mockGet.mockRejectedValueOnce(new Error("Network error"));
+
+      await expect(getCurrentUser()).rejects.toThrow("Network error");
     });
   });
 
   // --- changePassword ---
   describe("changePassword", () => {
     it("resolves without error on success", async () => {
-      mockPost.mockResolvedValue({ success: true });
+      mockPost.mockResolvedValueOnce({ success: true });
 
       await expect(
         changePassword("oldpass", "newpass"),
@@ -165,7 +213,7 @@ describe("auth API", () => {
     });
 
     it("throws when success is false", async () => {
-      mockPost.mockResolvedValue({
+      mockPost.mockResolvedValueOnce({
         success: false,
         error: "Incorrect password",
       });
@@ -176,7 +224,7 @@ describe("auth API", () => {
     });
 
     it("throws default message when error field is missing", async () => {
-      mockPost.mockResolvedValue({ success: false });
+      mockPost.mockResolvedValueOnce({ success: false });
 
       await expect(changePassword("wrong", "newpass")).rejects.toThrow(
         "Failed to change password",

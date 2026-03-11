@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 import {
   getRouteConfigs,
   patchRouteConfig,

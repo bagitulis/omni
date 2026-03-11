@@ -127,8 +127,8 @@ describe("bulkUpdateRouteConfigs", () => {
     await bulkUpdateRouteConfigs([1, 2, 3], { enabled: true });
 
     expect(mockPost).toHaveBeenCalledWith("/routes-config/bulk-update", {
-      ids: [1, 2, 3],
-      enabled: true,
+      route_ids: ["1", "2", "3"],
+      updates: { enabled: true },
     });
   });
 

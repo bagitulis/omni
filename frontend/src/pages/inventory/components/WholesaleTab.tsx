@@ -7,7 +7,7 @@ import {
   type WholesaleSettings,
 } from "@/api/wholesale";
 import type { BulkPricingItem } from "../utils/bulkPricingItems";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 interface WholesaleTabProps {
   items: BulkPricingItem[];

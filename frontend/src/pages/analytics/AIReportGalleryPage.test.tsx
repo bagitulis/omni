@@ -56,7 +56,13 @@ vi.mock("@/hooks/useAnalyticsIntelligence", () => ({
 }));
 
 vi.mock("@/components/analytics/ml", () => ({
-  ReportModal: ({ open, report }: { open: boolean; report: { file_name: string } }) =>
+  ReportModal: ({
+    open,
+    report,
+  }: {
+    open: boolean;
+    report: { file_name: string };
+  }) =>
     open ? <div data-testid="report-modal">{report?.file_name}</div> : null,
 }));
 
@@ -76,10 +82,7 @@ describe("AIReportGalleryPage", () => {
 
   it("renders reports list", () => {
     render(<AIReportGalleryPage />);
-    // Since default is 'all', we expect reports from both platforms mocked above
-    // But implementation details might vary on how they merge.
-    // Let's check for at least one report card.
-    expect(screen.getByText("Jan 2023")).toBeInTheDocument();
+    expect(screen.getAllByText("Jan 2023").length).toBeGreaterThan(0);
   });
 
   it("handles generate report", () => {

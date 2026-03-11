@@ -18,7 +18,7 @@ import type { MasterProduct } from "@/types/product";
 import { SkuMappingPanel } from "./SkuMappingPanel";
 
 // Import the mocked message (from global setup or re-mock)
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 // Mock matchMedia
 Object.defineProperty(window, "matchMedia", {

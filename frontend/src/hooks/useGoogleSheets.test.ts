@@ -34,7 +34,7 @@ import {
   useSaveLinks,
   useUpdateSettings,
 } from "./useGoogleSheets";
-import { message } from "antd";
+import { message } from "@/components/AntStaticApi";
 import {
   getSavedLinks,
   getDetailedSettings,

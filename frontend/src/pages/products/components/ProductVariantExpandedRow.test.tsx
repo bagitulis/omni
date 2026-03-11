@@ -4,6 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 import type { UnifiedProductRow } from "@/types/shared";
 import { ProductVariantExpandedRow } from "./ProductVariantExpandedRow";
 
+vi.mock("@/contexts/ThemeContext.hooks", () => ({
+  useTheme: () => ({ isDark: false }),
+}));
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({

@@ -21,6 +21,8 @@ const mockLocalStorage = (() => {
   };
 })();
 
+const defaultSetItem = mockLocalStorage.setItem;
+
 Object.defineProperty(window, "localStorage", {
   value: mockLocalStorage,
   writable: true,
@@ -38,6 +40,7 @@ describe("useColumnManager", () => {
 
   beforeEach(() => {
     mockLocalStorage.clear();
+    mockLocalStorage.setItem = defaultSetItem;
   });
 
   afterEach(() => {
@@ -157,12 +160,19 @@ describe("useColumnManager", () => {
     const stored = mockLocalStorage.getItem(storageKey);
     expect(stored).toBeTruthy();
 
-    const parsed = JSON.parse(stored!) as ColumnConfig[];
+    if (!stored) {
+      throw new Error("Expected stored columns to be persisted");
+    }
+
+    const parsed = JSON.parse(stored) as ColumnConfig[];
     expect(parsed[2].visible).toBe(false); // price hidden
   });
 
   it("should handle localStorage errors gracefully (load)", async () => {
     const { logger } = await import("@/lib/logger");
+    const loggerErrorSpy = vi
+      .spyOn(logger, "error")
+      .mockImplementation(() => {});
     mockLocalStorage.setItem(storageKey, "invalid-json");
 
     const { result } = renderHook(() =>
@@ -170,7 +180,7 @@ describe("useColumnManager", () => {
     );
 
     expect(result.current.columns).toEqual(defaultColumns); // Falls back to defaults
-    expect(logger.error).toHaveBeenCalledWith(
+    expect(loggerErrorSpy).toHaveBeenCalledWith(
       expect.stringContaining("Failed to load column preferences"),
       expect.objectContaining({ error: expect.any(Error) }),
     );
@@ -178,6 +188,9 @@ describe("useColumnManager", () => {
 
   it("should handle localStorage errors gracefully (save)", async () => {
     const { logger } = await import("@/lib/logger");
+    const loggerErrorSpy = vi
+      .spyOn(logger, "error")
+      .mockImplementation(() => {});
 
     // Mock setItem to throw error
     const originalSetItem = mockLocalStorage.setItem;
@@ -193,7 +206,7 @@ describe("useColumnManager", () => {
       result.current.toggleVisibility("price");
     });
 
-    expect(logger.error).toHaveBeenCalledWith(
+    expect(loggerErrorSpy).toHaveBeenCalledWith(
       expect.stringContaining("Failed to save column preferences"),
       expect.objectContaining({ error: expect.any(Error) }),
     );

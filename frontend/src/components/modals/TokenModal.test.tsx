@@ -16,27 +16,90 @@ vi.mock("@/hooks/useTokens", () => ({
 
 // Mock antd
 vi.mock("antd", async () => {
-  const actual = await vi.importActual<typeof import("antd")>("antd");
   return {
-    ...actual,
     Modal: ({
       children,
       open,
       title,
-      onClose,
+      onCancel,
+      footer,
     }: {
       children?: React.ReactNode;
       open?: boolean;
       title?: React.ReactNode;
-      onClose?: () => void;
+      onCancel?: () => void;
+      footer?: React.ReactNode;
     }) =>
       open ? (
         <div data-testid="modal" role="dialog">
           <div data-testid="modal-title">{title}</div>
-          <button onClick={onClose}>Close</button>
+          <button onClick={onCancel}>Close</button>
           {children}
+          <div data-testid="modal-footer">{footer}</div>
         </div>
       ) : null,
+    Button: ({
+      children,
+      onClick,
+      disabled,
+    }: {
+      children?: React.ReactNode;
+      onClick?: () => void;
+      disabled?: boolean;
+    }) => (
+      <button onClick={onClick} disabled={disabled}>
+        {children}
+      </button>
+    ),
+    Table: ({
+      dataSource,
+      columns,
+    }: {
+      dataSource?: Array<Record<string, unknown>>;
+      columns?: Array<Record<string, unknown>>;
+    }) => (
+      <div data-testid="token-table">
+        {(dataSource ?? []).map((row) => (
+          <div key={String(row.platform)}>
+            {columns?.map((column, index) => {
+              const render = column.render as
+                | ((
+                    value: unknown,
+                    record: Record<string, unknown>,
+                  ) => React.ReactNode)
+                | undefined;
+              const dataIndex = column.dataIndex as string | undefined;
+              const value = dataIndex ? row[dataIndex] : undefined;
+              return (
+                <div key={`${String(row.platform)}-${index}`}>
+                  {render ? render(value, row) : (value as React.ReactNode)}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    ),
+    Tag: ({ children }: { children?: React.ReactNode }) => (
+      <span>{children}</span>
+    ),
+    Space: ({ children }: { children?: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
+    Alert: ({
+      message,
+      description,
+    }: {
+      message?: React.ReactNode;
+      description?: React.ReactNode;
+    }) => (
+      <div>
+        <div>{message}</div>
+        <div>{description}</div>
+      </div>
+    ),
+    Spin: () => <div>Loading Spinner</div>,
+    theme: { useToken: () => ({ token: { colorTextSecondary: "#999" } }) },
   };
 });
 

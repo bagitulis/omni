@@ -26,7 +26,7 @@ import {
   createRouteColumns,
 } from "../components/RouteManagementTableColumns";
 import { RouteMonitoringTab } from "../components/route-monitoring/RouteMonitoringTab";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 const { useToken } = theme;
 

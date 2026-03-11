@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { InputNumber, theme } from "antd";
 import { useUpdateInventoryRecord } from "@/hooks/useInventory";
 import type { InventoryRecord } from "@/types/inventory";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 interface Props {
   record: InventoryRecord;

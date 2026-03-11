@@ -8,7 +8,7 @@ import {
 } from "@ant-design/icons";
 import apiClient from "@/api/client";
 import { PlatformCard, type PlatformStatus } from "../components/PlatformCard";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 const { Text, Title } = Typography;
 

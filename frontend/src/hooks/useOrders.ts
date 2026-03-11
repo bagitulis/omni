@@ -8,7 +8,7 @@ import {
 } from "@/api/orders";
 import type { GetOrdersParams, BulkShipResult } from "@/api/orders";
 import apiClient from "@/api/client";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 interface UseOrdersOptions {
   autoRefresh?: boolean;

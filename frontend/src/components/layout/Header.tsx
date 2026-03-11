@@ -25,7 +25,7 @@ import { TokenStatusDropdown } from "./TokenStatusDropdown";
 import { NotificationBell } from "./NotificationBell";
 import { useTheme } from "@/contexts/ThemeContext.hooks";
 import apiClient from "@/api/client";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;

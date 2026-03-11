@@ -2,20 +2,20 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Must run before antd modules are evaluated
 vi.hoisted(() => {
-  window.matchMedia =
-    window.matchMedia ||
-    function matchMediaPolyfill(query: string) {
-      return {
-        matches: false,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        dispatchEvent: () => false,
-      };
+  window.matchMedia = function matchMediaPolyfill(query: string) {
+    const mediaQueryList = {
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
     };
+
+    return mediaQueryList;
+  };
 });
 
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -70,17 +70,23 @@ describe("Header", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    (vi.mocked(useAuthStore) as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+    (
+      vi.mocked(useAuthStore) as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue({
       user: mockUser,
       logout: mockLogout,
       tenantId: "test-tenant",
       setAuth: vi.fn(),
     });
-    (vi.mocked(useTheme) as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+    (
+      vi.mocked(useTheme) as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue({
       isDark: false,
       toggle: mockToggleTheme,
     });
-    (vi.mocked(useNavigate) as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockNavigate);
+    (
+      vi.mocked(useNavigate) as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue(mockNavigate);
   });
 
   const renderHeader = (props = {}) => {
@@ -123,7 +129,9 @@ describe("Header", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
 
     // 2. Test as Developer (should see switcher)
-    (vi.mocked(useAuthStore) as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+    (
+      vi.mocked(useAuthStore) as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue({
       user: { ...mockUser, role: "developer" },
       logout: mockLogout,
       tenantId: "test-tenant",
@@ -131,7 +139,7 @@ describe("Header", () => {
 
     vi.mocked(apiClient.get).mockResolvedValue({
       success: true,
-      tenants: [{ id: "tenant1", shop_name: "Shop 1" }],
+      data: { tenants: [{ id: "tenant1", shop_name: "Shop 1" }] },
     } as unknown as Awaited<ReturnType<typeof apiClient.get>>);
 
     renderHeader();

@@ -40,7 +40,7 @@ vi.mock("../utils/labelDownload", () => ({
 }));
 
 import { useOrderSingleActions } from "./useOrderSingleActions";
-import { message } from "antd";
+import { message } from "@/components/AntStaticApi";
 import * as ordersApi from "@/api/orders";
 import * as useOrdersHook from "@/hooks/useOrders";
 import { downloadOrderLabel } from "../utils/labelDownload";

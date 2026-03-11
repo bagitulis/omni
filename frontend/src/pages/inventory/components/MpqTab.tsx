@@ -8,7 +8,7 @@ import {
   Table,
   Typography,
 } from "antd";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 import { useEffect, useMemo, useState } from "react";
 import { getSettings, type WholesaleSettings } from "@/api/wholesale";
 import type { BulkPricingItem } from "../utils/bulkPricingItems";

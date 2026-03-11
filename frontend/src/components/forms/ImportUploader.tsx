@@ -1,7 +1,7 @@
 import { Upload, theme } from "antd";
 import { InboxOutlined } from "@ant-design/icons";
 import "./ImportUploader.css";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 interface ImportUploaderProps {
   onFileSelect: (file: File) => void;

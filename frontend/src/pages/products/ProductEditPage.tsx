@@ -27,7 +27,7 @@ import { SkuMappingPanel } from "../../components/shared/SkuMappingPanel";
 import type { MasterProduct } from "../../types/product";
 import type { ProductData, ProductSku } from "./types";
 import { mapMasterProductToProductData } from "./utils/productEditMapper";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 const { Title, Text } = Typography;
 

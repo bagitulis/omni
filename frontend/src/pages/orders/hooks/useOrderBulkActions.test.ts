@@ -36,7 +36,8 @@ vi.mock("./printOptions", () => ({
 }));
 
 import { useOrderBulkActions } from "./useOrderBulkActions";
-import { message, Modal } from "antd";
+import { Modal } from "antd";
+import { message } from "@/components/AntStaticApi";
 import * as bulkPrintHelpers from "./bulkPrintHelpers";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

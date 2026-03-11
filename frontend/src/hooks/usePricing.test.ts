@@ -26,7 +26,7 @@ vi.mock("antd", () => ({
 
 import { usePriceUpdate } from "./usePricing";
 import * as pricingApi from "@/api/pricing";
-import { message } from "antd";
+import { message } from "@/components/AntStaticApi";
 
 describe("usePriceUpdate", () => {
   beforeEach(() => {

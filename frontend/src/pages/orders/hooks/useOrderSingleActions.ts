@@ -19,7 +19,7 @@ import {
   arrangeTikTokShipment,
 } from "@/hooks/useOrders";
 import { downloadOrderLabel } from "../utils/labelDownload";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 function askIncludeProductsOption(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -221,7 +221,7 @@ export function useOrderSingleActions({
       const orderDetail = await getOrderById(orderSn);
       setSelectedOrder(orderDetail);
       setIsDetailModalOpen(true);
-    } catch (err) {
+    } catch {
       // Gracefully handle when full details can't be loaded
       message.warning("Could not load full order details");
     }

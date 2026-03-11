@@ -42,7 +42,7 @@ vi.mock("@/stores/authStore", () => ({
 }));
 
 import { useScriptMonitor } from "./useScriptMonitor";
-import { message } from "antd";
+import { message } from "@/components/AntStaticApi";
 import {
   getMonitorData,
   getAutoFunctions,

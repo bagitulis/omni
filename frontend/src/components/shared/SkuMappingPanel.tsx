@@ -11,7 +11,7 @@ import {
   Tag,
   theme,
 } from "antd";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 import type { ColumnsType } from "antd/es/table";
 import { useState } from "react";
 import { autoMapSkus, unlinkSkuFromPlatform } from "@/api/products";

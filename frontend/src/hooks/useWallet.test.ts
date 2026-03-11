@@ -37,7 +37,7 @@ import {
   useExportWalletToSheets,
 } from "./useWallet";
 import * as dashboardApi from "@/api/dashboard";
-import { message } from "antd";
+import { message } from "@/components/AntStaticApi";
 
 const mockMessage = vi.mocked(message);
 

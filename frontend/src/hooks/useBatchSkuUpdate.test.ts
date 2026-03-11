@@ -23,7 +23,7 @@ vi.mock("@/api/products", () => ({
 }));
 
 import { useBatchSkuUpdate } from "./useBatchSkuUpdate";
-import { message } from "antd";
+import { message } from "@/components/AntStaticApi";
 import { batchUpdateSkus } from "@/api/products";
 
 describe("useBatchSkuUpdate", () => {

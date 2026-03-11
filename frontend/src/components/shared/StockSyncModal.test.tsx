@@ -17,6 +17,7 @@ vi.mock("@/api/inventoryCore", () => ({
 
 vi.mock("@/api/lockedOrders", () => ({
   getLockedOrders: vi.fn().mockResolvedValue([]),
+  syncLockedToday: vi.fn().mockResolvedValue([]),
 }));
 
 // Ant Design Modal / Table use matchMedia internally — mock it for jsdom

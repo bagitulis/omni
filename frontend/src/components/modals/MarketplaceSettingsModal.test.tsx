@@ -12,11 +12,21 @@ vi.mock("@/hooks/useInventory", () => ({
   useUpdateInventoryConfig: vi.fn(),
 }));
 
+vi.mock("@/components/modals/AllocationRatioSection", () => ({
+  AllocationRatioSection: () => (
+    <div>
+      <div>Shopee:</div>
+      <div>TikTok:</div>
+      <div>Lazada:</div>
+      <div>Total:</div>
+      <div>Allocation Ratios</div>
+    </div>
+  ),
+}));
+
 // Mock antd
 vi.mock("antd", async () => {
-  const actual = await vi.importActual<typeof import("antd")>("antd");
   return {
-    ...actual,
     Modal: ({
       children,
       open,
@@ -38,6 +48,30 @@ vi.mock("antd", async () => {
           <div data-testid="modal-footer">{footer}</div>
         </div>
       ) : null,
+    Button: ({
+      children,
+      onClick,
+    }: {
+      children?: React.ReactNode;
+      onClick?: () => void;
+    }) => <button onClick={onClick}>{children}</button>,
+    Select: ({ placeholder }: { placeholder?: string }) => (
+      <div>{placeholder}</div>
+    ),
+    Row: ({ children }: { children?: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
+    Col: ({ children }: { children?: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
+    Typography: {
+      Title: ({ children }: { children?: React.ReactNode }) => (
+        <div>{children}</div>
+      ),
+      Text: ({ children }: { children?: React.ReactNode }) => (
+        <div>{children}</div>
+      ),
+    },
   };
 });
 
@@ -51,13 +85,17 @@ describe("MarketplaceSettingsModal", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    (vi.mocked(useInventoryConfig) as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+    (
+      vi.mocked(useInventoryConfig) as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue({
       data: {
         selected_columns: [],
       },
       isLoading: false,
     });
-    (vi.mocked(useUpdateInventoryConfig) as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+    (
+      vi.mocked(useUpdateInventoryConfig) as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue({
       mutate: mockUpdateConfig,
       isPending: false,
     });

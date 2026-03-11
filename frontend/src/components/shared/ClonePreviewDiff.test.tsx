@@ -4,6 +4,10 @@ import "@testing-library/jest-dom";
 import { ClonePreviewDiff } from "./ClonePreviewDiff";
 import type { CloneDifference } from "./CloneDiffSummary";
 
+vi.mock("@/contexts/ThemeContext.hooks", () => ({
+  useTheme: () => ({ isDark: false }),
+}));
+
 // Mock DiffSummarySection to isolate ClonePreviewDiff rendering
 vi.mock("./CloneDiffSummary", () => ({
   DiffSummarySection: ({ differences }: { differences: CloneDifference[] }) => (

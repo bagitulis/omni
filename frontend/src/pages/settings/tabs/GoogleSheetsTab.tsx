@@ -26,7 +26,7 @@ import {
 	type LinkType,
 } from "./GoogleSheetsLinkRow";
 import { SheetMetadataCard } from "./SheetMetadataCard";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 const { Text, Title } = Typography;
 

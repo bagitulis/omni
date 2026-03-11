@@ -90,8 +90,6 @@ describe("LoginPage", () => {
     render(<LoginPage />);
     expect(screen.getByText("Dev Mode (Localhost)")).toBeInTheDocument();
     expect(screen.getByText("Quick Dev Login")).toBeInTheDocument();
-
-
   });
 
   it("handles standard login", async () => {
@@ -138,6 +136,43 @@ describe("LoginPage", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Invalid credentials")).toBeInTheDocument();
+    });
+  });
+
+  it("auto logs in on localhost with flat dev-login payload", async () => {
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: { hostname: "localhost" },
+    });
+    mockDevLogin.mockResolvedValueOnce({
+      success: true,
+      dev_mode: true,
+      token: "dev-token",
+      access_token: "dev-token",
+      user: {
+        id: "dev-user",
+        username: "tester",
+        email: "tester@dev.local",
+        role: "developer",
+      },
+      tenant_id: "yumna_bertigamart",
+      expires_in: 28800,
+    });
+
+    render(<LoginPage />);
+
+    await waitFor(() => {
+      expect(mockDevLogin).toHaveBeenCalledWith({
+        tenant_id: "yumna_bertigamart",
+      });
+      expect(mockSetAuth).toHaveBeenCalledWith(
+        expect.objectContaining({
+          token: "dev-token",
+          access_token: "dev-token",
+          tenant_id: "yumna_bertigamart",
+        }),
+      );
+      expect(mockNavigate).toHaveBeenCalledWith("/");
     });
   });
 });

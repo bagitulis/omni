@@ -13,7 +13,8 @@ const useMutationMock = vi.fn((options: unknown) => options);
 const invalidateQueriesMock = vi.fn();
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: (...args: unknown[]) => useQueryMock(...(args as Parameters<typeof useQueryMock>)),
+  useQuery: (...args: unknown[]) =>
+    useQueryMock(...(args as Parameters<typeof useQueryMock>)),
   useMutation: (options: unknown) => useMutationMock(options),
   useQueryClient: () => ({
     invalidateQueries: invalidateQueriesMock,
@@ -40,17 +41,9 @@ vi.mock("@/api/client", () => ({
   },
 }));
 
-vi.mock("antd", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-  },
-}));
-
 import { useOrders, useOrderActions } from "./useOrders";
 import * as ordersApi from "@/api/orders";
-import { message } from "antd";
+import { message } from "@/components/AntStaticApi";
 
 describe("useOrders", () => {
   beforeEach(() => {
@@ -62,7 +55,9 @@ describe("useOrders", () => {
     const params = { status: "unprocess" };
     useOrders(params);
     expect(useQueryMock).toHaveBeenCalledOnce();
-    const options = (useQueryMock.mock.calls as unknown[][])[0]![0] as { queryKey: unknown[] };
+    const options = (useQueryMock.mock.calls as unknown[][])[0]![0] as {
+      queryKey: unknown[];
+    };
     expect(options.queryKey).toEqual(["orders", params]);
   });
 
@@ -118,10 +113,18 @@ describe("useOrderActions", () => {
   it("shows success message and invalidates queries on ship success", () => {
     useOrderActions();
     const shipOptions = useMutationMock.mock.calls[0][0] as {
-      onSuccess: () => void;
+      onSuccess: (result: {
+        partial: boolean;
+        summary: { shipped: number; failed: number };
+      }) => void;
     };
-    shipOptions.onSuccess();
-    expect(message.success).toHaveBeenCalledWith("Orders shipped successfully");
+    shipOptions.onSuccess({
+      partial: false,
+      summary: { shipped: 2, failed: 0 },
+    });
+    expect(message.success).toHaveBeenCalledWith(
+      "2 orders shipped successfully",
+    );
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: ["orders"],
     });

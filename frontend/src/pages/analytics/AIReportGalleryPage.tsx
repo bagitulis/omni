@@ -27,7 +27,7 @@ import {
 } from "../../hooks/useAnalyticsIntelligence";
 import type { MLReport } from "../../api/analyticsIntelligence";
 import { ReportModal } from "@/components/analytics/ml";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 const { Title, Text } = Typography;
 const { useToken } = theme;

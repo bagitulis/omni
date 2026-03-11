@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 import { useQueryClient } from "@tanstack/react-query";
 import { useOrders } from "@/hooks/useOrders";
 import { useOrderSync } from "./useOrderSync";

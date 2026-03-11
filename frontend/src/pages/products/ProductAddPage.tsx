@@ -20,7 +20,7 @@ import {
   PricingFormValues,
 } from "../../components/forms/ProductPricingForm";
 import { createProduct } from "@/api/products";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 // Combined type for the full product form
 type ProductFormValues = BasicFormValues &

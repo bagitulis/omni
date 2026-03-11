@@ -105,9 +105,12 @@ describe("formatDate", () => {
 
   it("returns original string on invalid date", async () => {
     const { logger } = await import("@/lib/logger");
+    const loggerErrorSpy = vi
+      .spyOn(logger, "error")
+      .mockImplementation(() => {});
     const result = formatDate("not-a-date");
     expect(result).toBe("not-a-date");
-    expect(logger.error).toHaveBeenCalledWith(
+    expect(loggerErrorSpy).toHaveBeenCalledWith(
       "Error formatting date",
       expect.objectContaining({ error: expect.any(RangeError) }),
     );

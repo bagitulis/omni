@@ -12,7 +12,7 @@ import {
   Badge,
   theme,
 } from "antd";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 import { KeyOutlined, ReloadOutlined } from "@ant-design/icons";
 import apiClient from "@/api/client";
 import { PLATFORM_CONFIG } from "./TokenStatusDropdown.types";

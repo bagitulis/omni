@@ -30,7 +30,7 @@ import {
   useUpdateRouteConfig,
   useBulkUpdateRouteConfigs,
 } from "./useRouteConfig";
-import { message } from "antd";
+import { message } from "@/components/AntStaticApi";
 import {
   getRouteConfigs,
   patchRouteConfig,

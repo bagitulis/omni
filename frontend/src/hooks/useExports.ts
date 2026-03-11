@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { exportOrders, ExportOrdersParams } from "@/api/exports";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 /**
  * Hook to export orders

@@ -4,7 +4,7 @@ import { LinkOutlined } from "@ant-design/icons";
 import { linkSkuToPlatform } from "@/api/products";
 import type { Platform } from "@/types/shared";
 import { PLATFORM_BRAND_COLORS } from "@/lib/platformColors";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 interface LinkModalState {
   visible: boolean;

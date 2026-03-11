@@ -81,7 +81,7 @@ describe("useAdsReports", () => {
   it("returns getReportFileUrl that builds correct path", () => {
     const result = useAdsReports("shopee");
     const url = result.getReportFileUrl("report-2024.html");
-    expect(url).toBe("/api/reports/shopee/report-2024.html");
+    expect(url).toBe("/api/analytics/ml/reports/shopee/report-2024.html");
   });
 
   it("returns empty reports array when data is undefined", () => {

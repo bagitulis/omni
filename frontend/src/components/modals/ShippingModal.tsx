@@ -13,7 +13,7 @@ import {
 } from "antd";
 import { Order } from "@/types/order";
 import { useState, useEffect } from "react";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 const { Text } = Typography;
 

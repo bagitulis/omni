@@ -12,7 +12,7 @@ import {
 import { useEffect, useState, useMemo } from "react";
 import { saveGeneralSettings } from "@/api/settings";
 import apiClient from "@/api/client";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 const { Text } = Typography;
 const { useToken } = theme;

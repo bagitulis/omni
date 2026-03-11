@@ -7,7 +7,7 @@ import {
 	Spin,
 	Typography,
 } from "antd";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 import {
 	getSettings,
 	updateSettings,

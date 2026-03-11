@@ -30,7 +30,7 @@ import {
   useMappingStatus,
 } from "./useProductImport";
 import * as productsApi from "@/api/products";
-import { message } from "antd";
+import { message } from "@/components/AntStaticApi";
 
 const mockMessage = vi.mocked(message);
 

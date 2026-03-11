@@ -1,5 +1,5 @@
-import { AxiosError } from "axios";
-import { message } from "@/components/AntStaticHolder";
+import type { AxiosError } from "axios";
+import { message } from "@/components/AntStaticApi";
 import { useAuthStore } from "@/stores/authStore";
 import { logger } from "@/lib/logger";
 import { sanitizeForUser } from "@/lib/notificationSecurity";
@@ -11,9 +11,7 @@ export function handleAuthExpired(): void {
   useAuthStore.getState().clearAuth();
   const currentPath = window.location.pathname;
   const returnUrl =
-    currentPath !== "/"
-      ? `?returnUrl=${encodeURIComponent(currentPath)}`
-      : "";
+    currentPath !== "/" ? `?returnUrl=${encodeURIComponent(currentPath)}` : "";
   window.location.href = `/login${returnUrl}`;
 }
 
@@ -24,8 +22,7 @@ export function handleAuthExpired(): void {
 export function handleResponseError(error: AxiosError): Promise<never> {
   // Timeout
   if (error.code === "ECONNABORTED") {
-    const timeoutMsg =
-      "Request timeout - server is taking too long to respond";
+    const timeoutMsg = "Request timeout - server is taking too long to respond";
     logger.error("[API]", { error: timeoutMsg });
     return Promise.reject(new Error(timeoutMsg));
   }
@@ -35,10 +32,11 @@ export function handleResponseError(error: AxiosError): Promise<never> {
     const host = window.location.hostname;
     const isLocalhost = host === "localhost" || host === "127.0.0.1";
     const backendUrl = isLocalhost
-      ? window.location.origin.replace(/:\d+$/, "") + ":3000"
+      ? `${window.location.origin.replace(/:\d+$/, "")}:3000`
       : window.location.origin;
     logger.error("[API] Network error", { backendUrl });
-    const networkMsg = "Network error — cannot connect to server. Please check your connection.";
+    const networkMsg =
+      "Network error — cannot connect to server. Please check your connection.";
     return Promise.reject(new Error(networkMsg));
   }
 
@@ -49,13 +47,9 @@ export function handleResponseError(error: AxiosError): Promise<never> {
   if (status === 401) {
     const currentPath = window.location.pathname;
     if (currentPath !== "/login" && !error.config?.url?.includes("/auth/")) {
-      logger.info(
-        "[API] JWT token expired or invalid - redirecting to login",
-      );
+      logger.info("[API] JWT token expired or invalid - redirecting to login");
       handleAuthExpired();
-      return Promise.reject(
-        new Error("Session expired - please login again"),
-      );
+      return Promise.reject(new Error("Session expired - please login again"));
     }
   }
 
@@ -69,7 +63,7 @@ export function handleResponseError(error: AxiosError): Promise<never> {
 
   // 500 Server Error
   if (status === 500) {
-    const errorMsg = backendMsg || "Server error — please try again";
+    const errorMsg = "Server error — please try again";
     logger.error(`[API] 500 Server Error:`, { error: backendMsg });
     message.error("Server error — please try again");
     return Promise.reject(new Error(errorMsg));

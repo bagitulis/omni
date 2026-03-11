@@ -5,7 +5,7 @@ import type { UploadFile } from "antd/es/upload/interface";
 import { ImageGalleryPicker } from "@/components/shared/ImageGalleryPicker";
 import type { GalleryImage } from "@/types/shared";
 import { getImageUrl } from "@/types/shared";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 const MAX_IMAGES = 8;
 

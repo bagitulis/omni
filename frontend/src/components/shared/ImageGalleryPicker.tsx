@@ -14,7 +14,7 @@ import { GalleryFooter } from "./gallery/GalleryFooter";
 import { GalleryGrid } from "./gallery/GalleryGrid";
 import { GalleryToolbar } from "./gallery/GalleryToolbar";
 import { logger } from "@/lib/logger";
-import { message } from "@/components/AntStaticHolder";
+import { message } from "@/components/AntStaticApi";
 
 // Stable empty array to prevent infinite render loop
 const EMPTY_SELECTED: GalleryImage[] = [];

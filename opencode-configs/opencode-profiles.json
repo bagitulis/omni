@@ -220,7 +220,7 @@
     },
     "mix-antigravity": {
       "_description": "Google Antigravity primary + OpenAI secondary. All agents available. Plugin delivery.",
-      "default_model": "google/gemini-3-pro",
+      "default_model": "google/gemini-3.1-pro",
       "variant": "high",
       "agents": {
         "sisyphus": {
@@ -252,7 +252,7 @@
           "temperature": 0.1
         },
         "librarian": {
-          "model": "google/gemini-3-pro",
+          "model": "google/gemini-3.1-pro",
           "variant": "high",
           "temperature": 0.1
         },
@@ -282,7 +282,7 @@
       },
       "categories": {
         "visual-engineering": {
-          "model": "google/gemini-3-pro",
+          "model": "google/gemini-3.1-pro",
           "variant": "high",
           "temperature": 0.1
         },
@@ -307,7 +307,7 @@
           "temperature": 0.1
         },
         "artistry": {
-          "model": "google/gemini-3-pro",
+          "model": "google/gemini-3.1-pro",
           "variant": "high",
           "temperature": 0.1
         },
@@ -316,7 +316,7 @@
           "temperature": 0.1
         },
         "review": {
-          "model": "google/gemini-3-pro",
+          "model": "google/gemini-3.1-pro",
           "variant": "high",
           "temperature": 0.1
         },
