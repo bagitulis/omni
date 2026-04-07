@@ -96,9 +96,12 @@ func (s *StagingImportService) ImportFromShopeeStaging(
 			for _, sku := range skus {
 				s.processShoepeeSku(ctx, tenantID, p, sku, masterProduct, &result)
 			}
+
+			// 2e. Clean up stale shopee_* fallback SKUs that now have real replacements.
+			s.cleanupStaleFallbackSkus(ctx, masterProduct.ID, p.ItemID)
 		}
 
-		// 2e. Aggregate images from platform products into master product
+		// 2f. Aggregate images from platform products into master product
 		aggregator := NewImageAggregator(s.db)
 		if err := aggregator.AggregateImagesForProduct(ctx, masterProduct.ID); err != nil {
 			result.Errors = append(result.Errors,
@@ -215,4 +218,48 @@ func (s *StagingImportService) processShopeeDefaultSku(
 		return
 	}
 	result.LinksCreated++
+}
+
+// cleanupStaleFallbackSkus removes shopee_* fallback SKUs from master_product_skus
+// when real SKUs now exist for the same master product. This prevents duplicates
+// when a previously missing item_sku is later captured by the sync pipeline.
+func (s *StagingImportService) cleanupStaleFallbackSkus(
+	ctx context.Context,
+	masterProductID uint,
+	itemID int64,
+) {
+	fallbackSku := fmt.Sprintf("shopee_%d", itemID)
+
+	var stale models.MasterProductSku
+	err := s.db.WithContext(ctx).
+		Where("master_product_id = ? AND seller_sku = ?", masterProductID, fallbackSku).
+		First(&stale).Error
+	if err != nil {
+		return // No stale fallback exists — nothing to clean
+	}
+
+	// Check if real (non-fallback) SKUs exist for this product
+	var realCount int64
+	s.db.WithContext(ctx).Model(&models.MasterProductSku{}).
+		Where("master_product_id = ? AND seller_sku != ? AND seller_sku NOT LIKE 'shopee_%'",
+			masterProductID, fallbackSku).
+		Count(&realCount)
+
+	if realCount == 0 {
+		return // No real SKUs yet — keep the fallback
+	}
+
+	// Delete platform links for the stale fallback SKU first (FK constraint)
+	s.db.WithContext(ctx).
+		Where("master_sku_id = ?", stale.ID).
+		Delete(&models.MasterProductPlatformLink{})
+
+	// Delete the stale fallback SKU
+	s.db.WithContext(ctx).Delete(&stale)
+
+	log.Info().
+		Uint("master_product_id", masterProductID).
+		Int64("item_id", itemID).
+		Str("removed_sku", fallbackSku).
+		Msg("Cleaned up stale shopee_ fallback SKU")
 }
