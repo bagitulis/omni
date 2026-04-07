@@ -81,7 +81,7 @@ func (r *ShopeeProductRepository) Upsert(ctx context.Context, product *models.Sh
 // FindBySKU finds product by SKU from ShopeeSku table
 func (r *ShopeeProductRepository) FindBySKU(ctx context.Context, sku string) (*models.ShopeeProduct, error) {
 	var skuRecord models.ShopeeSku
-	if err := r.db.WithContext(ctx).Where("model_sku = ?", sku).First(&skuRecord).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("seller_sku = ?", sku).First(&skuRecord).Error; err != nil {
 		return nil, err
 	}
 	return r.FindByItemID(ctx, skuRecord.ItemID)

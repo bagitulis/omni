@@ -28,10 +28,12 @@ type ProductDetailResponse struct {
 	} `json:"response"`
 }
 
-// ProductDetail represents a Shopee product
+// ProductDetail represents a Shopee product from get_item_base_info
 type ProductDetail struct {
 	ItemID        int64    `json:"item_id"`
 	ItemName      string   `json:"item_name"`
+	ItemSKU       string   `json:"item_sku"`
+	HasModel      bool     `json:"has_model"`
 	Description   string   `json:"description"`
 	CategoryID    int64    `json:"category_id"`
 	OriginalPrice float64  `json:"original_price"`
@@ -139,6 +141,8 @@ type ProductDetailWithImagesResponse struct {
 type ProductDetailWithImages struct {
 	ItemID      int64  `json:"item_id"`
 	ItemName    string `json:"item_name"`
+	ItemSKU     string `json:"item_sku"`
+	HasModel    bool   `json:"has_model"`
 	Description string `json:"description"`
 	CategoryID  int64  `json:"category_id"`
 	Image       struct {

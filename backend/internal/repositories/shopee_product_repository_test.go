@@ -208,10 +208,32 @@ func TestShopeeProductRepository(t *testing.T) {
 		})
 	})
 
-	// NOTE: FindBySKU test is skipped because the repository uses "model_sku" column
-	// which doesn't exist in the ShopeeSku model (it has "seller_sku" instead).
-	// This is a pre-existing bug in the repository code.
 	t.Run("FindBySKU", func(t *testing.T) {
-		t.Skip("Skipped: repository uses model_sku column but model has seller_sku - pre-existing bug")
+		// Create a product and SKU
+		product := createTestProduct(t, 6001, "FindBySKU Product")
+
+		skuRepo := NewShopeeSkuRepository(db)
+		testSku := &models.ShopeeSku{
+			TenantID:  "test-tenant",
+			ProductID: product.ID,
+			ItemID:    product.ItemID,
+			SellerSku: "TEST-SKU-001",
+			Price:     10000,
+			Quantity:  5,
+		}
+		err := skuRepo.Create(ctx, testSku)
+		require.NoError(t, err)
+
+		t.Run("finds product by seller_sku", func(t *testing.T) {
+			found, err := repo.FindBySKU(ctx, "TEST-SKU-001")
+			assert.NoError(t, err)
+			require.NotNil(t, found)
+			assert.Equal(t, product.ItemID, found.ItemID)
+		})
+
+		t.Run("returns error for non-existent SKU", func(t *testing.T) {
+			_, err := repo.FindBySKU(ctx, "NON-EXISTENT")
+			assert.Error(t, err)
+		})
 	})
 }

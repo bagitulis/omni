@@ -78,7 +78,7 @@ func (s *ProductSyncService) SyncProductsWithDetails(ctx context.Context, itemSt
 				savedCount++
 				savedProd, err := txProdRepo.FindByItemID(ctx, prod.ItemID)
 				if err == nil {
-					if err := s.syncProductSKUs(ctx, txSkuRepo, savedProd, prod.ItemID); err != nil {
+					if err := s.syncProductSKUs(ctx, txSkuRepo, savedProd, prod.ItemID, prod.ItemSKU); err != nil {
 						zlog.Warn().Err(err).Int64("item_id", prod.ItemID).Msg("Failed to sync product skus")
 					}
 

@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/omni/backend/internal/models"
+	"github.com/rs/zerolog/log"
 )
 
 // ImportFromShopeeStaging imports Shopee staging products into master products.
@@ -119,6 +120,7 @@ func (s *StagingImportService) processShoepeeSku(
 ) {
 	sellerSku := sku.SellerSku
 	if sellerSku == "" {
+		log.Warn().Int64("item_id", p.ItemID).Msg("Shopee SKU empty after sync - using shopee_ fallback")
 		sellerSku = fmt.Sprintf("shopee_%d", p.ItemID)
 	}
 
@@ -174,6 +176,7 @@ func (s *StagingImportService) processShopeeDefaultSku(
 	masterProduct *models.MasterProduct,
 	result *StagingImportResult,
 ) {
+	log.Warn().Int64("item_id", p.ItemID).Msg("No shopee_skus found - using shopee_ default fallback")
 	sellerSku := fmt.Sprintf("shopee_%d", p.ItemID)
 
 	masterSku := &models.MasterProductSku{

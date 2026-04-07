@@ -128,7 +128,7 @@ func (s *ProductSyncService) upsertProductWithDependencies(
 		return err
 	}
 
-	if err := s.syncProductSKUs(ctx, skuRepo, savedProd, prod.ItemID); err != nil {
+	if err := s.syncProductSKUs(ctx, skuRepo, savedProd, prod.ItemID, prod.ItemSKU); err != nil {
 		return err
 	}
 
@@ -145,11 +145,13 @@ func (s *ProductSyncService) upsertProductWithDependencies(
 }
 
 // syncProductSKUs fetches and saves SKUs (models) for a product.
+// itemSKU is the parent-level SKU from get_item_base_info, used when no models exist.
 func (s *ProductSyncService) syncProductSKUs(
 	ctx context.Context,
 	skuRepo *repositories.ShopeeSkuRepository,
 	product *models.ShopeeProduct,
 	itemID int64,
+	itemSKU string,
 ) error {
 	modelResp, err := s.client.GetModelList(itemID)
 	if err != nil {
@@ -164,7 +166,7 @@ func (s *ProductSyncService) syncProductSKUs(
 			TenantID:    s.tenantID,
 			ProductID:   product.ID,
 			ItemID:      itemID,
-			SellerSku:   "",
+			SellerSku:   itemSKU,
 			Price:       product.Price,
 			Quantity:    product.Quantity,
 			VariantName: "",
@@ -195,12 +197,17 @@ func (s *ProductSyncService) syncProductSKUs(
 			Float64("price", price).
 			Msg("[Shopee SyncProductsByIDs] Model/SKU stock")
 
+		sellerSku := m.ModelSKU
+		if sellerSku == "" {
+			sellerSku = itemSKU // Fallback: use parent item_sku
+		}
+
 		sku := &models.ShopeeSku{
 			TenantID:    s.tenantID,
 			ProductID:   product.ID,
 			ItemID:      itemID,
 			ModelID:     &modelID,
-			SellerSku:   m.ModelSKU,
+			SellerSku:   sellerSku,
 			Price:       price,
 			Quantity:    quantity,
 			VariantName: variantName,
