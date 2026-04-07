@@ -72,6 +72,7 @@ func (r *ShopeeProductRepository) Upsert(ctx context.Context, product *models.Sh
 		"tenant_id":   product.TenantID,
 		"name":        product.Name,
 		"description": product.Description,
+		"status":      product.Status,
 		"image":       product.Image,
 		"price":       product.Price,
 		"quantity":    product.Quantity,
