@@ -276,32 +276,51 @@ func (o *PriceUpdateOrchestrator) updateTiktokPrice(_ context.Context, ids *Tikt
 	client := tiktokPkg.NewClient(creds.AppKey, creds.AppSecret)
 	client.SetCredentials(creds.AccessToken, creds.ShopCipher)
 
-	// TikTok price for IDR is in whole currency units (not cents)
+	// TikTok v202309 price: IDR is whole units
 	priceStr := fmt.Sprintf("%.0f", price)
 
-	req := tiktokPkg.UpdateProductRequest{
+	log.Info().
+		Str("product_id", ids.ProductID).
+		Str("sku_id", ids.SkuID).
+		Str("price_amount", priceStr).
+		Msg("[PriceOrchestrator] Sending TikTok specialized price update")
+
+	req := tiktokPkg.UpdateProductPriceRequest{
 		ProductID: ids.ProductID,
-		Skus: []tiktokPkg.UpdateProductSku{
+		Skus: []tiktokPkg.UpdateProductPriceSku{
 			{
-				ID:            ids.SkuID,
-				OriginalPrice: priceStr,
+				ID: ids.SkuID,
+				Price: &tiktokPkg.SkuPrice{
+					Amount:   priceStr,
+					Currency: "IDR",
+				},
 			},
 		},
 	}
 
-	resp, err := client.UpdateProduct(req)
+	resp, err := client.UpdateProductPrice(req)
 	if err != nil {
-		result.Error = err.Error()
+		log.Error().Err(err).
+			Str("product_id", ids.ProductID).
+			Msg("[PriceOrchestrator] TikTok specialized Price Update API call failed")
+		result.Error = fmt.Sprintf("API Request Failed: %v", err)
 		return result
 	}
 
 	if resp.Code != 0 {
-		result.Error = rawTiktokAPIError(resp.Code, resp.Message)
+		log.Error().
+			Int("code", resp.Code).
+			Str("message", resp.Message).
+			Str("request_id", resp.RequestID).
+			Str("product_id", ids.ProductID).
+			Msg("[PriceOrchestrator] TikTok Price Update API returned business error")
+		
+		result.Error = fmt.Sprintf("code=%d: %s (RequestID: %s)", resp.Code, resp.Message, resp.RequestID)
 		return result
 	}
 
 	result.Success = true
-	log.Info().Msgf("[PriceOrchestrator] ✅ TikTok price updated: product_id=%s, sku_id=%s, price=%.2f",
+	log.Info().Msgf("[PriceOrchestrator] ✅ TikTok price updated successfully: product_id=%s, sku_id=%s, price=%.0f",
 		ids.ProductID, ids.SkuID, price)
 	return result
 }

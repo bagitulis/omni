@@ -121,16 +121,52 @@ type UpdateProductRequest struct {
 type UpdateProductSku struct {
 	ID            string      `json:"id"`
 	SellerSku     string      `json:"seller_sku,omitempty"`
-	OriginalPrice string      `json:"original_price,omitempty"`
+	Price         *SkuPrice   `json:"price,omitempty"`
+	OriginalPrice string      `json:"original_price,omitempty"` // Deprecated — use Price instead
 	StockInfos    []StockInfo `json:"stock_infos,omitempty"`
 }
 
-// UpdateProduct updates an existing product
+// UpdateProduct updates an existing product (Requires Description/Title)
 func (c *Client) UpdateProduct(req UpdateProductRequest) (*BaseResponse, error) {
 	params := map[string]string{}
 
 	var result BaseResponse
 	err := c.doRequestWithBody("PUT", "/product/202309/products/"+req.ProductID, params, req, &result)
+	return &result, err
+}
+
+// UpdateProductPriceRequest represents the request to update product prices (v202309)
+// API: POST /product/202309/products/{product_id}/prices/update
+type UpdateProductPriceRequest struct {
+	ProductID string                  `json:"-"`
+	Skus      []UpdateProductPriceSku `json:"skus"`
+}
+
+// UpdateProductPriceSku represents a single SKU's price to update
+type UpdateProductPriceSku struct {
+	ID    string    `json:"id"`
+	Price *SkuPrice `json:"price"`
+}
+
+// UpdateProductPriceResponse represents the response from price update
+type UpdateProductPriceResponse struct {
+	BaseResponse
+	Data struct {
+		Skus []struct {
+			ID      string `json:"id"`
+			Success bool   `json:"success"`
+		} `json:"skus"`
+	} `json:"data"`
+}
+
+// UpdateProductPrice updates the prices for specified SKUs of a product
+// TikTok v202309 API: POST /product/202309/products/{product_id}/prices/update
+func (c *Client) UpdateProductPrice(req UpdateProductPriceRequest) (*UpdateProductPriceResponse, error) {
+	params := map[string]string{}
+	endpoint := fmt.Sprintf("/product/202309/products/%s/prices/update", req.ProductID)
+
+	var result UpdateProductPriceResponse
+	err := c.doRequestWithBody("POST", endpoint, params, req, &result)
 	return &result, err
 }
 
