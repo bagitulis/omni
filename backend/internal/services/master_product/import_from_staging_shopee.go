@@ -123,8 +123,15 @@ func (s *StagingImportService) processShoepeeSku(
 ) {
 	sellerSku := sku.SellerSku
 	if sellerSku == "" {
-		log.Warn().Int64("item_id", p.ItemID).Msg("Shopee SKU empty after sync - using shopee_ fallback")
-		sellerSku = fmt.Sprintf("shopee_%d", p.ItemID)
+		if sku.ModelID != nil {
+			sellerSku = fmt.Sprintf("shopee_%d_%d", p.ItemID, *sku.ModelID)
+			log.Warn().Int64("item_id", p.ItemID).Int64("model_id", *sku.ModelID).
+				Msg("Shopee variant SKU empty - using shopee_{item_id}_{model_id} fallback")
+		} else {
+			sellerSku = fmt.Sprintf("shopee_%d", p.ItemID)
+			log.Warn().Int64("item_id", p.ItemID).
+				Msg("Shopee SKU empty - using shopee_{item_id} fallback")
+		}
 	}
 
 	masterSku := &models.MasterProductSku{

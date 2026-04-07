@@ -113,6 +113,7 @@ export function PerPlatformStockSection({
             ? "Loading inventory recommendations & locked orders..."
             : "Inventory recommendation available (locked orders auto-deducted). Apply to all rows."
         }
+        description="Stock is distributed using ratios from Inventory Settings. Unchecked platforms are excluded and their share is redistributed."
         type="warning"
         showIcon
         style={{ marginBottom: 12 }}

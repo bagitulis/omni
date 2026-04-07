@@ -185,22 +185,48 @@ export function calculateMarketplaceAllocation(
   total: number,
   autoMode: boolean,
   settings: MarketplaceAllocationSettings,
+  activePlatforms?: Record<string, boolean>,
 ): MarketplaceAllocationPreview {
   if (total <= 0) {
     return { shopee: 0, tiktok: 0, lazada: 0, total: 0 };
   }
 
+  // Determine which platforms are active (default: all active)
+  const shopeeActive = activePlatforms?.shopee ?? true;
+  const tiktokActive = activePlatforms?.tiktok ?? true;
+  const lazadaActive = activePlatforms?.lazada ?? true;
+
   if (autoMode) {
-    return { shopee: total, tiktok: total, lazada: total, total };
+    return {
+      shopee: shopeeActive ? total : 0,
+      tiktok: tiktokActive ? total : 0,
+      lazada: lazadaActive ? total : 0,
+      total,
+    };
   }
 
-  const shopee = Math.min(Math.ceil(settings.shopeeRatio * total), total);
+  // Get base ratios, zero out inactive platforms
+  const lazadaBaseRatio = Math.max(0, 1 - settings.shopeeRatio - settings.tiktokRatio);
+  const shopeeRatio = shopeeActive ? settings.shopeeRatio : 0;
+  const tiktokRatio = tiktokActive ? settings.tiktokRatio : 0;
+  const lazadaRatio = lazadaActive ? lazadaBaseRatio : 0;
+
+  const totalRatio = shopeeRatio + tiktokRatio + lazadaRatio;
+  if (totalRatio <= 0) {
+    return { shopee: 0, tiktok: 0, lazada: 0, total: 0 };
+  }
+
+  // Normalize ratios proportionally among active platforms
+  const normShopee = shopeeRatio / totalRatio;
+  const normTiktok = tiktokRatio / totalRatio;
+
+  const shopee = Math.min(Math.ceil(normShopee * total), total);
   const remainingAfterShopee = Math.max(0, total - shopee);
   const tiktok = Math.min(
-    Math.ceil(settings.tiktokRatio * total),
+    Math.ceil(normTiktok * total),
     remainingAfterShopee,
   );
-  const lazada = Math.max(0, total - shopee - tiktok);
+  const lazada = lazadaActive ? Math.max(0, total - shopee - tiktok) : 0;
 
   return { shopee, tiktok, lazada, total };
 }
@@ -208,6 +234,7 @@ export function calculateMarketplaceAllocation(
 export function resolveMarketplaceAllocationForRecord(
   rowData: Record<string, unknown>,
   settings: MarketplaceAllocationSettings,
+  activePlatforms?: Record<string, boolean>,
 ): MarketplaceAllocationPreview {
   // When totalColumn is configured (user has set up Marketplace Allocation Settings),
   // ALWAYS use the allocation formula. Skip direct platform column values (SHOPEE/TIKTOK/LAZADA)
@@ -248,5 +275,5 @@ export function resolveMarketplaceAllocationForRecord(
     getRecordValueByColumn(rowData, settings.autoColumn),
   );
 
-  return calculateMarketplaceAllocation(totalValue, autoMode, settings);
+  return calculateMarketplaceAllocation(totalValue, autoMode, settings, activePlatforms);
 }

@@ -6,7 +6,7 @@ import {
   loadMarketplaceAllocationSettings,
   resolveMarketplaceAllocationForRecord,
 } from "@/pages/inventory/utils/marketplaceAllocation";
-import type { UnifiedProductRow } from "@/types/shared";
+import type { Platform, UnifiedProductRow } from "@/types/shared";
 
 export interface StockRecommendation {
   shopee: number;
@@ -71,9 +71,12 @@ export async function buildLockedStockMap(): Promise<LockedStockMap> {
   }
 }
 
-function fallbackRecommendation(stock: number): StockRecommendation {
+function fallbackRecommendation(
+  stock: number,
+  activePlatforms?: Record<string, boolean>,
+): StockRecommendation {
   const settings = loadMarketplaceAllocationSettings();
-  const allocation = calculateMarketplaceAllocation(stock, false, settings);
+  const allocation = calculateMarketplaceAllocation(stock, false, settings, activePlatforms);
 
   return {
     shopee: toSafeStock(allocation.shopee),
@@ -97,6 +100,7 @@ function fallbackRecommendation(stock: number): StockRecommendation {
  */
 export async function buildStockRecommendations(
   selectedProducts: UnifiedProductRow[],
+  linkedPlatformsBySku?: Record<string, Record<Platform, boolean>>,
 ): Promise<StockRecommendationMap> {
   const stockBySku = collectBaseStockBySku(selectedProducts);
   const settings = loadMarketplaceAllocationSettings();
@@ -114,9 +118,11 @@ export async function buildStockRecommendations(
       try {
         const record = await getInventoryBySku(sku);
         const rowData = record.data || {};
+        const activePlatforms = linkedPlatformsBySku?.[sku];
         const allocation = resolveMarketplaceAllocationForRecord(
           rowData,
           settings,
+          activePlatforms,
         );
 
         // Read locked/sellable info from inventory data (set by backend)
@@ -136,7 +142,8 @@ export async function buildStockRecommendations(
           },
         ] as const;
       } catch (err) { console.warn("Operation failed:", err);
-        return [sku, fallbackRecommendation(fallbackStock)] as const;
+        const activePlatforms = linkedPlatformsBySku?.[sku];
+        return [sku, fallbackRecommendation(fallbackStock, activePlatforms)] as const;
       }
     }),
   );

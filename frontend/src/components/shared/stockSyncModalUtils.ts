@@ -1,4 +1,8 @@
 import type { Platform, UnifiedProductRow } from "@/types/shared";
+import {
+  calculateMarketplaceAllocation,
+  loadMarketplaceAllocationSettings,
+} from "@/pages/inventory/utils/marketplaceAllocation";
 import type { PerPlatformConfig, PerPlatformRow } from "./stockSyncColumns";
 import type { StockRecommendationMap } from "./stockSyncRecommendations";
 
@@ -80,27 +84,43 @@ export function applyRecommendationsToConfig(
   recommendations: StockRecommendationMap,
   linkedPlatformsBySku: Record<string, Record<Platform, boolean>>,
 ): PerPlatformConfig {
+  const settings = loadMarketplaceAllocationSettings();
   const next: PerPlatformConfig = { ...previous };
 
-  for (const [sku] of Object.entries(previous)) {
+  for (const [sku, existingConfig] of Object.entries(previous)) {
     const recommendation = recommendations[sku];
     if (!recommendation) {
       continue;
     }
 
+    // Use the CURRENT enabled state from existing config (user may have toggled checkboxes)
+    const currentEnabled: Record<string, boolean> = {
+      shopee: existingConfig.platforms.shopee.enabled,
+      tiktok: existingConfig.platforms.tiktok.enabled,
+      lazada: existingConfig.platforms.lazada.enabled,
+    };
+
+    // Recalculate allocation based on currently enabled platforms
+    const allocation = calculateMarketplaceAllocation(
+      recommendation.total,
+      false,
+      settings,
+      currentEnabled,
+    );
+
     next[sku] = {
       platforms: {
         shopee: {
           enabled: linkedPlatformsBySku[sku]?.shopee ?? false,
-          stock: recommendation.shopee,
+          stock: allocation.shopee,
         },
         tiktok: {
           enabled: linkedPlatformsBySku[sku]?.tiktok ?? false,
-          stock: recommendation.tiktok,
+          stock: allocation.tiktok,
         },
         lazada: {
           enabled: linkedPlatformsBySku[sku]?.lazada ?? false,
-          stock: recommendation.lazada,
+          stock: allocation.lazada,
         },
       },
     };

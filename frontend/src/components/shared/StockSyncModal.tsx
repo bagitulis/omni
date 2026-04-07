@@ -90,7 +90,7 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
 
     // buildStockRecommendations internally triggers syncLockedToday POST first,
     // then reads fresh inventory data with up-to-date Sellable values.
-    void buildStockRecommendations(selectedProducts)
+    void buildStockRecommendations(selectedProducts, linkedPlatformsBySku)
       .then((nextRecommendations) => {
         if (!isMounted) return;
         setRecommendations(nextRecommendations);
@@ -112,7 +112,7 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [open, selectedProducts]);
+  }, [open, selectedProducts, linkedPlatformsBySku]);
 
   // Compute locked SKU stats for display
   const lockedSkuCount = useMemo(

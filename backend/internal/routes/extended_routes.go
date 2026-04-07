@@ -86,8 +86,6 @@ func RegisterInventoryRoutes(router *gin.RouterGroup, db *gorm.DB, sheetsClient 
 	configHandler := inventoryHandler.NewConfigHandler(db)
 	syncHandler := inventoryHandler.NewSyncHandler(db, nil) // Pass nil for SheetsClient, or use type assertion if needed
 	columnsHandler := inventoryHandler.NewColumnsHandler(db)
-	stockHandler := inventoryHandler.NewStockHandler(db)
-	priceHandler := inventoryHandler.NewPriceHandler(db)
 	sheetHandler := inventoryHandler.NewSheetHandler(db, sheetsClient)
 
 	inv := router.Group("/inventory")
@@ -115,14 +113,8 @@ func RegisterInventoryRoutes(router *gin.RouterGroup, db *gorm.DB, sheetsClient 
 		inv.GET("/columns/selected", columnsHandler.GetSelectedColumns)
 		inv.POST("/columns/selected", columnsHandler.SaveSelectedColumns)
 
-		// Stock updates
-		inv.POST("/update-stock", stockHandler.UpdateStock)
-		inv.POST("/update-stock-batch", stockHandler.UpdateStockBatch)
-		inv.POST("/lookup-platform-ids", stockHandler.LookupPlatformIds)
-
-		// Price updates
-		inv.POST("/update-price", priceHandler.UpdatePrice)
-		inv.POST("/update-price-batch", priceHandler.UpdatePriceBatch)
+		// Note: Stock/Price update routes are registered via RegisterInventorySimpleRoutes
+		// in handlers/inventory_stock_price.go (the active handlers with orchestrator support).
 
 		// Sheet export/import
 		inv.GET("/export", sheetHandler.Export)

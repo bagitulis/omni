@@ -102,10 +102,14 @@ func (s *StagingImportService) ImportFromLazadaStaging(ctx context.Context, tena
 
 		// 2d. Process each SKU.
 		for _, sku := range skus {
-			// ii. Seller SKU: prefer SellerSku, fallback to "lazada_{ItemID}".
+			// ii. Seller SKU: prefer SellerSku, fallback to "lazada_{ItemID}_{SkuID}".
 			sellerSku := sku.SellerSku
 			if sellerSku == "" {
-				sellerSku = fmt.Sprintf("lazada_%s", p.ItemID)
+				if sku.SkuID != "" {
+					sellerSku = fmt.Sprintf("lazada_%s_%s", p.ItemID, sku.SkuID)
+				} else {
+					sellerSku = fmt.Sprintf("lazada_%s", p.ItemID)
+				}
 			}
 
 			// i. Variant name: prefer VariantName. Use Name only when it's not identical to seller_sku.

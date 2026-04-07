@@ -114,7 +114,11 @@ func (s *StagingImportService) processTiktokSku(
 ) {
 	sellerSku := sku.SellerSku
 	if sellerSku == "" {
-		sellerSku = fmt.Sprintf("tiktok_%s", p.ProductID)
+		if sku.SkuID != "" {
+			sellerSku = fmt.Sprintf("tiktok_%s_%s", p.ProductID, sku.SkuID)
+		} else {
+			sellerSku = fmt.Sprintf("tiktok_%s", p.ProductID)
+		}
 	}
 
 	masterSku := &models.MasterProductSku{

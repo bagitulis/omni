@@ -4,10 +4,36 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/omni/backend/internal/models"
 	"gorm.io/gorm"
 )
+
+// parseFallbackSku extracts platform IDs from fallback SKU patterns.
+// Patterns: {platform}_{productID}, {platform}_{productID}_{variantID}
+// Returns: platform name, product-level ID, variant-level ID, ok.
+func parseFallbackSku(sku string) (platform, productID, variantID string, ok bool) {
+	for _, p := range []string{"shopee", "tiktok", "lazada"} {
+		prefix := p + "_"
+		if !strings.HasPrefix(sku, prefix) {
+			continue
+		}
+		rest := strings.TrimPrefix(sku, prefix)
+		if rest == "" {
+			return "", "", "", false
+		}
+		// Split on first underscore to separate productID from variantID.
+		// Shopee: shopee_{int64}_{int64} — both numeric, split on last _
+		// TikTok/Lazada: IDs may be long numeric strings, split on last _
+		if idx := strings.LastIndex(rest, "_"); idx > 0 && idx < len(rest)-1 {
+			return p, rest[:idx], rest[idx+1:], true
+		}
+		// No variant ID — non-variant product
+		return p, rest, "", true
+	}
+	return "", "", "", false
+}
 
 // PlatformProductIds represents product IDs for all platforms
 type PlatformProductIds struct {
@@ -79,6 +105,10 @@ func (f *ProductIdFetcher) fetchShopeeIds(ctx context.Context, sku string) *Shop
 	}
 
 	if err != nil {
+		// Fallback: parse shopee_{item_id} or shopee_{item_id}_{model_id} from SKU string
+		if platform, productID, variantID, ok := parseFallbackSku(sku); ok && platform == "shopee" {
+			return &ShopeeProductIds{ItemID: productID, ModelID: variantID}
+		}
 		return nil
 	}
 
@@ -104,6 +134,10 @@ func (f *ProductIdFetcher) fetchLazadaIds(ctx context.Context, sku string) *Laza
 		First(&lazadaSku).Error
 
 	if err != nil {
+		// Fallback: parse lazada_{item_id} or lazada_{item_id}_{sku_id} from SKU string
+		if platform, productID, variantID, ok := parseFallbackSku(sku); ok && platform == "lazada" {
+			return &LazadaProductIds{ItemID: productID, SkuID: variantID}
+		}
 		return nil
 	}
 
@@ -126,6 +160,10 @@ func (f *ProductIdFetcher) fetchTiktokIds(ctx context.Context, sku string) *Tikt
 		First(&tiktokSku).Error
 
 	if err != nil {
+		// Fallback: parse tiktok_{product_id} or tiktok_{product_id}_{sku_id} from SKU string
+		if platform, productID, variantID, ok := parseFallbackSku(sku); ok && platform == "tiktok" {
+			return &TiktokProductIds{ProductID: productID, SkuID: variantID}
+		}
 		return nil
 	}
 
