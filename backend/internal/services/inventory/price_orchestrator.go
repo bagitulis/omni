@@ -276,8 +276,8 @@ func (o *PriceUpdateOrchestrator) updateTiktokPrice(_ context.Context, ids *Tikt
 	client := tiktokPkg.NewClient(creds.AppKey, creds.AppSecret)
 	client.SetCredentials(creds.AccessToken, creds.ShopCipher)
 
-	// TikTok price is in cents, convert
-	priceStr := fmt.Sprintf("%.0f", price*100)
+	// TikTok price for IDR is in whole currency units (not cents)
+	priceStr := fmt.Sprintf("%.0f", price)
 
 	req := tiktokPkg.UpdateProductRequest{
 		ProductID: ids.ProductID,
