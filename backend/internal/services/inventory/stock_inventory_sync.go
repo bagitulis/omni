@@ -73,9 +73,25 @@ func (o *StockUpdateOrchestrator) UpdateStockBatchFromInventory(
 		itemPlatforms := resolveStockPlatforms(item.Platforms, item.Platform, requestPlatforms, requestPlatform)
 		result, _, err := o.UpdateStockFromInventory(ctx, item.SKU, item.Stock, itemPlatforms)
 		if err != nil {
+			// Fallback: if no inventory record but stock value is provided,
+			// sync directly to platform (e.g. empty-SKU / gift products).
+			if errors.Is(err, ErrInventoryStockSKUNotFound) && item.Stock != nil {
+				directResult, directErr := o.UpdateStock(ctx, item.SKU, *item.Stock, itemPlatforms)
+				if directErr != nil {
+					results = append(results, map[string]interface{}{
+						"sku":     item.SKU,
+						"success": false,
+						"error":   directErr.Error(),
+					})
+					continue
+				}
+				results = append(results, directResult)
+				continue
+			}
+
 			errMessage := err.Error()
 			if errors.Is(err, ErrInventoryStockSKUNotFound) {
-				errMessage = "SKU not found"
+				errMessage = "SKU not found in inventory"
 			}
 
 			results = append(results, map[string]interface{}{

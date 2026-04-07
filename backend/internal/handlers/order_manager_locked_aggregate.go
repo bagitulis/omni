@@ -1,6 +1,10 @@
 package handlers
 
-import "github.com/omni/backend/internal/services/sync"
+import (
+	"strings"
+
+	"github.com/omni/backend/internal/services/sync"
+)
 
 // AggregatedLockedItem represents an aggregated locked order item
 type AggregatedLockedItem struct {
@@ -32,6 +36,12 @@ func aggregateLockedOrders(unprocessOrders, processedOrders []sync.Order) []Aggr
 
 		if sku == "" && productName == "" {
 			continue // Skip empty items
+		}
+
+		// Skip fallback SKU products (gifts/freebies with no real seller_sku).
+		// These have no inventory records and would cause 404 / "SKU not found" errors.
+		if isFallbackSku(sku) {
+			continue
 		}
 
 		// Ensure minimum qty of 1 if item exists
@@ -77,4 +87,17 @@ func aggregateLockedOrders(unprocessOrders, processedOrders []sync.Order) []Aggr
 	}
 
 	return result
+}
+
+// isFallbackSku returns true if the SKU is a platform-generated fallback
+// (e.g. "shopee_12345", "tiktok_123_456"). These products have no real
+// seller_sku and no inventory record, so they must be excluded from
+// stock-tracking flows like locked orders.
+func isFallbackSku(sku string) bool {
+	for _, prefix := range []string{"shopee_", "tiktok_", "lazada_"} {
+		if strings.HasPrefix(sku, prefix) {
+			return true
+		}
+	}
+	return false
 }
