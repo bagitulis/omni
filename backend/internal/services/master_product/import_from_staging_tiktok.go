@@ -92,7 +92,10 @@ func (s *StagingImportService) ImportFromTiktokStaging(
 			}
 		}
 
-		// 2e. Aggregate images from platform products into master product
+		// 2e. Clean up stale tiktok_* fallback SKUs that now have real replacements.
+		s.cleanupStaleFallbackSkus(ctx, masterProduct.ID, fmt.Sprintf("tiktok_%s", p.ProductID))
+
+		// 2f. Aggregate images from platform products into master product
 		aggregator := NewImageAggregator(s.db)
 		if err := aggregator.AggregateImagesForProduct(ctx, masterProduct.ID); err != nil {
 			result.Errors = append(result.Errors,

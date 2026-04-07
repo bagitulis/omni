@@ -98,7 +98,7 @@ func (s *StagingImportService) ImportFromShopeeStaging(
 			}
 
 			// 2e. Clean up stale shopee_* fallback SKUs that now have real replacements.
-			s.cleanupStaleFallbackSkus(ctx, masterProduct.ID, p.ItemID)
+			s.cleanupStaleFallbackSkus(ctx, masterProduct.ID, fmt.Sprintf("shopee_%d", p.ItemID))
 		}
 
 		// 2f. Aggregate images from platform products into master product
@@ -227,46 +227,47 @@ func (s *StagingImportService) processShopeeDefaultSku(
 	result.LinksCreated++
 }
 
-// cleanupStaleFallbackSkus removes shopee_* fallback SKUs from master_product_skus
-// when real SKUs now exist for the same master product. This prevents duplicates
-// when a previously missing item_sku is later captured by the sync pipeline.
+// cleanupStaleFallbackSkus removes {prefix}* fallback SKUs from master_product_skus
+// when real SKUs now exist for the same master product. Matches both old format
+// ({prefix}{id}) and new format ({prefix}{id}_{variantId}).
 func (s *StagingImportService) cleanupStaleFallbackSkus(
 	ctx context.Context,
 	masterProductID uint,
-	itemID int64,
+	fallbackPrefix string,
 ) {
-	fallbackSku := fmt.Sprintf("shopee_%d", itemID)
-
-	var stale models.MasterProductSku
+	// Find ALL stale fallback SKUs matching pattern (both exact and with _variantID suffix)
+	var staleSkus []models.MasterProductSku
 	err := s.db.WithContext(ctx).
-		Where("master_product_id = ? AND seller_sku = ?", masterProductID, fallbackSku).
-		First(&stale).Error
-	if err != nil {
-		return // No stale fallback exists — nothing to clean
+		Where("master_product_id = ? AND (seller_sku = ? OR seller_sku LIKE ?)",
+			masterProductID, fallbackPrefix, fallbackPrefix+"_%").
+		Find(&staleSkus).Error
+	if err != nil || len(staleSkus) == 0 {
+		return // No stale fallbacks — nothing to clean
 	}
 
 	// Check if real (non-fallback) SKUs exist for this product
+	// Real SKUs don't start with shopee_, tiktok_, or lazada_
 	var realCount int64
 	s.db.WithContext(ctx).Model(&models.MasterProductSku{}).
-		Where("master_product_id = ? AND seller_sku != ? AND seller_sku NOT LIKE 'shopee_%'",
-			masterProductID, fallbackSku).
+		Where("master_product_id = ? AND seller_sku NOT LIKE 'shopee_%' AND seller_sku NOT LIKE 'tiktok_%' AND seller_sku NOT LIKE 'lazada_%'",
+			masterProductID).
 		Count(&realCount)
 
 	if realCount == 0 {
-		return // No real SKUs yet — keep the fallback
+		return // No real SKUs yet — keep the fallbacks
 	}
 
-	// Delete platform links for the stale fallback SKU first (FK constraint)
-	s.db.WithContext(ctx).
-		Where("master_sku_id = ?", stale.ID).
-		Delete(&models.MasterProductPlatformLink{})
-
-	// Delete the stale fallback SKU
-	s.db.WithContext(ctx).Delete(&stale)
+	// Delete platform links and SKU records for each stale fallback
+	for _, stale := range staleSkus {
+		s.db.WithContext(ctx).
+			Where("master_sku_id = ?", stale.ID).
+			Delete(&models.MasterProductPlatformLink{})
+		s.db.WithContext(ctx).Delete(&stale)
+	}
 
 	log.Info().
 		Uint("master_product_id", masterProductID).
-		Int64("item_id", itemID).
-		Str("removed_sku", fallbackSku).
-		Msg("Cleaned up stale shopee_ fallback SKU")
+		Str("prefix", fallbackPrefix).
+		Int("cleaned_count", len(staleSkus)).
+		Msg("Cleaned up stale fallback SKU(s)")
 }

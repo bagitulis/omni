@@ -158,6 +158,9 @@ func (s *StagingImportService) ImportFromLazadaStaging(ctx context.Context, tena
 			result.LinksCreated++
 		}
 
+		// Clean up stale lazada_* fallback SKUs that now have real replacements.
+		s.cleanupStaleFallbackSkus(ctx, masterProduct.ID, fmt.Sprintf("lazada_%s", p.ItemID))
+
 		if err := imageAggregator.AggregateImagesForProduct(ctx, masterProduct.ID); err != nil {
 			result.Errors = append(result.Errors, fmt.Errorf("lazada product %s aggregate images: %w", p.ItemID, err).Error())
 		}
