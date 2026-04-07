@@ -196,6 +196,12 @@ func (o *PriceUpdateOrchestrator) updateShopeePrice(_ context.Context, ids *Shop
 
 	if resp.Error != "" {
 		result.Error = rawShopeeAPIError(resp.Error, resp.Message)
+		log.Error().
+			Str("tenant_id", o.tenantID).
+			Str("item_id", ids.ItemID).
+			Str("error", resp.Error).
+			Str("message", resp.Message).
+			Msg("[PriceOrchestrator] ❌ Shopee price update failed")
 		return result
 	}
 
@@ -244,6 +250,12 @@ func (o *PriceUpdateOrchestrator) updateLazadaPrice(_ context.Context, ids *Laza
 
 	if resp.Code != "0" {
 		result.Error = rawLazadaAPIError(resp.Code, resp.Message)
+		log.Error().
+			Str("tenant_id", o.tenantID).
+			Str("item_id", ids.ItemID).
+			Str("code", resp.Code).
+			Str("message", resp.Message).
+			Msg("[PriceOrchestrator] ❌ Lazada price update failed")
 		return result
 	}
 

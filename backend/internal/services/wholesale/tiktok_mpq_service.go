@@ -3,6 +3,7 @@ package wholesale
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/rs/zerolog/log"
@@ -64,7 +65,19 @@ type TiktokBatchMpqResult struct {
 	Results        []TiktokMpqResult `json:"results"`
 }
 
-// lookupProductBySku finds TikTok product by seller_sku
+func parseFallbackSku(sku string) (string, string) {
+	// Format: tiktok_{productID}_{skuID}
+	if !strings.HasPrefix(sku, "tiktok_") {
+		return "", ""
+	}
+	parts := strings.Split(sku, "_")
+	if len(parts) < 3 {
+		return "", ""
+	}
+	return parts[1], parts[2]
+}
+
+// lookupProductBySku finds TikTok product by seller_sku or fallback pattern
 func (s *TiktokMpqService) lookupProductBySku(ctx context.Context, sku string) (*tiktokProductLookup, error) {
 	if s.db == nil {
 		return nil, fmt.Errorf("database not configured")
@@ -79,6 +92,25 @@ func (s *TiktokMpqService) lookupProductBySku(ctx context.Context, sku string) (
 		err = s.db.WithContext(ctx).
 			Where("sku_id = ?", sku).
 			First(&skuRecord).Error
+	}
+
+	// Handle fallback SKU if not found in platform mapping
+	if err == gorm.ErrRecordNotFound {
+		prodID, skuID := parseFallbackSku(sku)
+		if prodID != "" && skuID != "" {
+			// Try to find product name from DB even if SKU record is missing
+			var product models.TiktokProduct
+			var productName string
+			if errP := s.db.WithContext(ctx).Where("product_id = ?", prodID).First(&product).Error; errP == nil {
+				productName = product.Name
+			}
+			return &tiktokProductLookup{
+				ProductID:   prodID,
+				SkuID:       skuID,
+				SellerSku:   sku,
+				ProductName: productName, // Might be empty, will be resolved via API later
+			}, nil
+		}
 	}
 
 	if err != nil {
@@ -103,9 +135,6 @@ func (s *TiktokMpqService) lookupProductBySku(ctx context.Context, sku string) (
 }
 
 // updateMpq sets MPQ and updates price for a TikTok product
-// Step 1: GET product details
-// Step 2: PUT with minimum_order_quantity
-// Step 3: POST prices/update
 func (s *TiktokMpqService) updateMpq(productID string, mpq int, skuID string, newPrice float64) *TiktokMpqResult {
 	if s.tiktokAPI == nil {
 		return &TiktokMpqResult{ProductID: productID, Success: false, Error: "TikTok API client not configured"}
@@ -122,6 +151,7 @@ func (s *TiktokMpqService) updateMpq(productID string, mpq int, skuID string, ne
 	productPath := fmt.Sprintf("/product/%s/products/%s", s.apiVersion, productID)
 	productData, err := s.tiktokAPI.Request("GET", productPath, nil, nil)
 	if err != nil {
+		log.Error().Err(err).Str("product_id", productID).Msg("TikTok GET product failed")
 		return &TiktokMpqResult{ProductID: productID, Success: false, Error: fmt.Sprintf("get product failed: %v", err)}
 	}
 
@@ -131,14 +161,21 @@ func (s *TiktokMpqService) updateMpq(productID string, mpq int, skuID string, ne
 		return &TiktokMpqResult{ProductID: productID, Success: false, Error: "invalid product data format"}
 	}
 
+	// Resolve product title from API if not already known
+	productTitle := ""
+	if t, ok := data["title"].(string); ok {
+		productTitle = t
+	}
+
 	// Step 2: Build update payload with MPQ and PUT
 	updatePayload := buildTiktokMpqPayload(data, mpq)
 	_, err = s.tiktokAPI.Request("PUT", productPath, nil, updatePayload)
 	if err != nil {
+		log.Error().Err(err).Str("product_id", productID).Msg("TikTok PUT MPQ update failed")
 		return &TiktokMpqResult{ProductID: productID, Success: false, Error: fmt.Sprintf("update MPQ failed: %v", err)}
 	}
 
-	log.Info().Str("product_id", productID).Int("mpq", mpq).Msg("TikTok MPQ updated")
+	log.Info().Str("product_id", productID).Int("mpq", mpq).Msg("TikTok MPQ updated successfully")
 
 	// Step 3: Update price if provided
 	if newPrice > 0 && skuID != "" {
@@ -146,15 +183,20 @@ func (s *TiktokMpqService) updateMpq(productID string, mpq int, skuID string, ne
 			return &TiktokMpqResult{
 				ProductID: productID,
 				Success:   true,
-				Message:   fmt.Sprintf("MPQ=%d set, but price update failed", mpq),
+				Message:   fmt.Sprintf("%s - MPQ=%d set, but price update failed", productTitle, mpq),
 			}
 		}
+	}
+
+	dispName := productTitle
+	if dispName == "" {
+		dispName = productID
 	}
 
 	return &TiktokMpqResult{
 		ProductID: productID,
 		Success:   true,
-		Message:   fmt.Sprintf("MPQ=%d, price=%.0f", mpq, newPrice),
+		Message:   fmt.Sprintf("%s - MPQ=%d, price=%.0f", dispName, mpq, newPrice),
 	}
 }
 

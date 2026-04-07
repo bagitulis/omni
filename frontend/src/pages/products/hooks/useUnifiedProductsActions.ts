@@ -1,4 +1,4 @@
-import { message } from "@/components/AntStaticApi";
+import { message } from "antd";
 import { useCallback, useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import { updateStockBatch } from "@/api/inventorySync";
@@ -92,9 +92,19 @@ export function useUnifiedProductsActions({
           })),
         );
 
-        message.success(
-          `Updated ${result.success} of ${result.total} SKU prices`,
-        );
+        if (items.length === 1) {
+          const sku = items[0].seller_sku;
+          const success = result.success > 0;
+          if (success) {
+            message.success(`Successfully updated price for ${sku}`);
+          } else {
+            message.error(`Failed to update price for ${sku}`);
+          }
+        } else {
+          message.success(
+            `Price sync complete: ${result.success} succeeded, ${result.failed} failed of ${result.total} items.`,
+          );
+        }
         await refreshProducts();
       } catch (error) {
         message.error(getErrorMessage(error));

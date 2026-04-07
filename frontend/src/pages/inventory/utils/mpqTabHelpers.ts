@@ -99,6 +99,7 @@ export async function executeMpqUpdate(
     return { message: "No platform selected or no items available", type: "warning" };
   }
 
+  let totalProcessed = 0;
   let totalFailed = 0;
   const summaries: string[] = [];
 
@@ -112,8 +113,9 @@ export async function executeMpqUpdate(
     const shopeeResult = await batchShopeeMpq(shopeePayload, selectedMinQty);
     const processed = readCount(shopeeResult.data, "processed");
     const failed = readCount(shopeeResult.data, "failed");
+    totalProcessed += processed;
     totalFailed += failed;
-    summaries.push(`Shopee ${processed} processed, ${failed} failed`);
+    summaries.push(`Shopee: ${processed} OK, ${failed} Failed`);
   }
 
   // TikTok MPQ
@@ -127,16 +129,17 @@ export async function executeMpqUpdate(
       const tiktokResult = await batchTiktokMpq(tiktokPayload, selectedMinQty);
       const processed = readCount(tiktokResult.data, "processed");
       const failed = readCount(tiktokResult.data, "failed");
+      totalProcessed += processed;
       totalFailed += failed;
-      summaries.push(`TikTok ${processed} processed, ${failed} failed`);
+      summaries.push(`TikTok: ${processed} OK, ${failed} Failed`);
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : "TikTok MPQ failed";
-      summaries.push(`TikTok error: ${errMsg}`);
+      summaries.push(`TikTok Error: ${errMsg}`);
       totalFailed++;
     }
   }
 
-  const summary = `MPQ update (min_qty=${selectedMinQty}): ${summaries.join(" | ")}`;
+  const summary = `Wholesale Sync (Min Qty: ${selectedMinQty}): ${totalProcessed} Succeeded, ${totalFailed} Failed. (${summaries.join(" | ")})`;
 
   if (totalFailed > 0) {
     return { message: summary, type: "warning" };

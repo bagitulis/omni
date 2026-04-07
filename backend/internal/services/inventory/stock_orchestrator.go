@@ -194,6 +194,12 @@ func (o *StockUpdateOrchestrator) updateShopeeStock(_ context.Context, ids *Shop
 
 	if resp.Error != "" {
 		result.Error = rawShopeeAPIError(resp.Error, resp.Message)
+		log.Error().
+			Str("tenant_id", o.tenantID).
+			Str("item_id", ids.ItemID).
+			Str("error", resp.Error).
+			Str("message", resp.Message).
+			Msg("[StockOrchestrator] ❌ Shopee stock update failed")
 		return result
 	}
 
@@ -240,6 +246,12 @@ func (o *StockUpdateOrchestrator) updateLazadaStock(_ context.Context, ids *Laza
 
 	if resp.Code != "0" {
 		result.Error = rawLazadaAPIError(resp.Code, resp.Message)
+		log.Error().
+			Str("tenant_id", o.tenantID).
+			Str("item_id", ids.ItemID).
+			Str("code", resp.Code).
+			Str("message", resp.Message).
+			Msg("[StockOrchestrator] ❌ Lazada stock update failed")
 		return result
 	}
 
@@ -292,6 +304,12 @@ func (o *StockUpdateOrchestrator) updateTiktokStock(_ context.Context, ids *Tikt
 
 	if resp.Code != 0 {
 		result.Error = rawTiktokAPIError(resp.Code, resp.Message)
+		log.Error().
+			Str("tenant_id", o.tenantID).
+			Str("product_id", ids.ProductID).
+			Int("code", resp.Code).
+			Str("message", resp.Message).
+			Msg("[StockOrchestrator] ❌ TikTok stock update failed")
 		return result
 	}
 

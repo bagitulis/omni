@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/omni/backend/internal/config"
+	"github.com/rs/zerolog/log"
 )
 
 // TiktokConfigManager handles TikTok-specific configuration
@@ -148,6 +149,9 @@ func (c *TiktokAPIClient) request(method, path string, queryParams map[string]st
 	}
 	params["app_key"] = c.config.AppKey
 	params["timestamp"] = fmt.Sprintf("%d", time.Now().Unix())
+	if c.config.ShopCipher != "" {
+		params["shop_cipher"] = c.config.ShopCipher
+	}
 
 	// Serialize body if provided
 	var bodyBytes []byte
@@ -212,6 +216,12 @@ func (c *TiktokAPIClient) request(method, path string, queryParams map[string]st
 		if m, ok := result["message"].(string); ok {
 			msg = m
 		}
+		log.Error().
+			Float64("code", code).
+			Str("message", msg).
+			Str("path", path).
+			Interface("raw_result", result).
+			Msg("[TiktokAPI] TikTok API Raw Error")
 		return nil, fmt.Errorf("tiktok API error: code=%.0f, message=%s", code, msg)
 	}
 

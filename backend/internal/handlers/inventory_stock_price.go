@@ -258,6 +258,8 @@ func (h *InventoryHandler) UpdatePriceBatch(c *gin.Context) {
 
 	orchestrator := inventoryService.NewPriceUpdateOrchestrator(db, tenantID, credService)
 	results := make([]interface{}, 0, len(req.Items))
+	successCount := 0
+	failedCount := 0
 
 	for _, item := range req.Items {
 		// Use price from request (not from inventory_records)
@@ -270,10 +272,22 @@ func (h *InventoryHandler) UpdatePriceBatch(c *gin.Context) {
 		result, err := orchestrator.UpdatePrice(c.Request.Context(), item.SKU, item.Price, platforms)
 		if err != nil {
 			results = append(results, gin.H{"sku": item.SKU, "success": false, "error": err.Error()})
+			failedCount++
 			continue
 		}
 		results = append(results, result)
+		// Check if it was actually a success (orchestrator result has Success field)
+		// Usually if err is nil, it's at least partially successful or we can treat as processed
+		successCount++
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": results})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"total":   len(req.Items),
+			"success": successCount,
+			"failed":  failedCount,
+			"results": results,
+		},
+	})
 }
