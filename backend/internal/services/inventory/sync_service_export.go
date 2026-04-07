@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/omni/backend/internal/models"
+	"github.com/rs/zerolog/log"
 )
 
 // SyncToSheets syncs inventory data FROM database TO Google Sheets
@@ -120,7 +121,20 @@ func (s *SyncService) SyncToSheets(ctx context.Context, spreadsheetID, sheetName
 	if settings != nil {
 		settings.LastSyncTimestamp = &result.SyncedAt
 		settings.LastSyncStatus = result.Status
-		_ = invSvc.UpdateSettings(ctx, settings)
+		if updateErr := invSvc.UpdateSettings(ctx, settings); updateErr != nil {
+			log.Warn().Err(updateErr).Str("tenant_id", s.tenantID).Msg("Failed to update inventory settings after export")
+		}
+	}
+
+	// Record sync history
+	history := &models.InventorySyncHistory{
+		Status:         result.Status,
+		TotalRecords:   result.TotalRecords,
+		UpdatedRecords: result.UpdatedRecords,
+		Duration:       result.Duration,
+	}
+	if historyErr := invSvc.RecordSyncHistory(ctx, history); historyErr != nil {
+		log.Warn().Err(historyErr).Str("tenant_id", s.tenantID).Msg("Failed to record export sync history")
 	}
 
 	return result, nil

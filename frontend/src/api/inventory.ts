@@ -49,6 +49,7 @@ export type {
 	PriceUpdateResult,
 } from "./inventoryPriceTypes";
 // Sync operations
+export type { SyncResult } from "./inventorySync";
 export {
 	syncInventory,
 	syncToSheets,

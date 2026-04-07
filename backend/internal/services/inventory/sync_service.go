@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/orders"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -118,14 +119,18 @@ func (s *SyncService) SyncFromSheets(ctx context.Context, spreadsheetID, sheetNa
 
 	// Clean up orphaned records (rows deleted from sheet but still in DB)
 	if result.Status != "ERROR" {
-		_ = s.cleanupOrphanedRecords(ctx, keyColumn, seenKeyValues)
+		if cleanupErr := s.cleanupOrphanedRecords(ctx, keyColumn, seenKeyValues); cleanupErr != nil {
+			log.Warn().Err(cleanupErr).Str("tenant_id", s.tenantID).Msg("Failed to cleanup orphaned inventory records")
+		}
 	}
 
 	// Recalculate Locked/Sellable after sync so computed columns aren't lost.
 	// SyncFromSheets replaces JSONB data with fresh sheet data, which erases
 	// previously-injected Locked/Sellable. This re-applies them using the
 	// existing locked_orders table (no marketplace API call needed).
-	_, _ = orders.RecalculateLockedSellable(ctx, s.db, s.tenantID)
+	if _, recalcErr := orders.RecalculateLockedSellable(ctx, s.db, s.tenantID); recalcErr != nil {
+		log.Warn().Err(recalcErr).Str("tenant_id", s.tenantID).Msg("Failed to recalculate Locked/Sellable after sync")
+	}
 
 	// Update settings with new hash and columns
 	if settings != nil {
@@ -142,7 +147,9 @@ func (s *SyncService) SyncFromSheets(ctx context.Context, spreadsheetID, sheetNa
 			settings.SelectedColumns = string(allColumnsJSON)
 		}
 
-		_ = invSvc.UpdateSettings(ctx, settings)
+		if updateErr := invSvc.UpdateSettings(ctx, settings); updateErr != nil {
+			log.Warn().Err(updateErr).Str("tenant_id", s.tenantID).Msg("Failed to update inventory settings after sync")
+		}
 	}
 
 	// Record sync history
@@ -156,7 +163,9 @@ func (s *SyncService) SyncFromSheets(ctx context.Context, spreadsheetID, sheetNa
 		Duration:         result.Duration,
 		HeadersChanged:   result.HeadersChanged,
 	}
-	_ = invSvc.RecordSyncHistory(ctx, history)
+	if historyErr := invSvc.RecordSyncHistory(ctx, history); historyErr != nil {
+		log.Warn().Err(historyErr).Str("tenant_id", s.tenantID).Msg("Failed to record inventory sync history")
+	}
 
 	return result, nil
 }
@@ -174,12 +183,14 @@ func (s *SyncService) processRows(ctx context.Context, rows [][]interface{}, hea
 
 	for _, row := range rows {
 		if len(row) <= keyIdx || row[keyIdx] == nil {
+			result.TotalRecords++
 			result.FailedRecords++
 			continue
 		}
 
 		keyValue := fmt.Sprintf("%v", row[keyIdx])
 		if keyValue == "" {
+			result.TotalRecords++
 			result.FailedRecords++
 			continue
 		}
@@ -212,6 +223,7 @@ func (s *SyncService) processRows(ctx context.Context, rows [][]interface{}, hea
 
 		status, err := s.upsertRecord(ctx, record)
 		if err != nil {
+			result.TotalRecords++
 			result.FailedRecords++
 			continue
 		}

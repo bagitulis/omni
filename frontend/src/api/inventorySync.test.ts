@@ -188,11 +188,11 @@ describe("inventorySync", () => {
 
   describe("syncInventory", () => {
     it("syncs from sheets successfully", async () => {
-      mockPost.mockResolvedValue({ success: true });
+      mockPost.mockResolvedValue({ success: true, data: { status: "success", total_records: 5 } });
 
-      await expect(
-        syncInventory("sheet-id", "Sheet1"),
-      ).resolves.toBeUndefined();
+      const result = await syncInventory("sheet-id", "Sheet1");
+      expect(result.status).toBe("success");
+      expect(result.total_records).toBe(5);
 
       expect(mockPost).toHaveBeenCalledWith("/inventory/sync/from-sheets", {
         spreadsheet_id: "sheet-id",
@@ -201,9 +201,10 @@ describe("inventorySync", () => {
     });
 
     it("works without optional parameters", async () => {
-      mockPost.mockResolvedValue({ success: true });
+      mockPost.mockResolvedValue({ success: true, data: { status: "success" } });
 
-      await syncInventory();
+      const result = await syncInventory();
+      expect(result.status).toBe("success");
 
       expect(mockPost).toHaveBeenCalledWith("/inventory/sync/from-sheets", {
         spreadsheet_id: undefined,
@@ -229,9 +230,11 @@ describe("inventorySync", () => {
 
   describe("syncToSheets", () => {
     it("exports to sheets successfully", async () => {
-      mockPost.mockResolvedValue({ success: true });
+      mockPost.mockResolvedValue({ success: true, data: { status: "success", total_records: 10 } });
 
-      await expect(syncToSheets()).resolves.toBeUndefined();
+      const result = await syncToSheets();
+      expect(result.status).toBe("success");
+      expect(result.total_records).toBe(10);
       expect(mockPost).toHaveBeenCalledWith("/inventory/sync/to-sheets");
     });
 

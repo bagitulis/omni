@@ -6,6 +6,20 @@ export interface StockBatchSyncItem {
   platforms?: string[];
 }
 
+export interface SyncResult {
+  status: string;
+  message?: string;
+  total_records: number;
+  synced_records: number;
+  new_records: number;
+  updated_records: number;
+  unchanged_records: number;
+  failed_records: number;
+  headers_changed?: boolean;
+  duration?: number;
+  timestamp?: string;
+}
+
 interface PlatformStockSyncResult {
   success?: boolean;
   error?: string;
@@ -129,7 +143,7 @@ export async function updateStockBatch(
 export async function syncInventory(
   spreadsheetId?: string,
   sheetName?: string,
-): Promise<void> {
+): Promise<SyncResult> {
   const response = await apiClient.post("/inventory/sync/from-sheets", {
     spreadsheet_id: spreadsheetId,
     sheet_name: sheetName,
@@ -137,15 +151,17 @@ export async function syncInventory(
   if (!response.success) {
     throw new Error(response.error || "Failed to sync inventory");
   }
+  return (response.data ?? {}) as SyncResult;
 }
 
 /**
  * Trigger inventory export to Google Sheets
  * Backend route: POST /api/inventory/sync/to-sheets
  */
-export async function syncToSheets(): Promise<void> {
+export async function syncToSheets(): Promise<SyncResult> {
   const response = await apiClient.post("/inventory/sync/to-sheets");
   if (!response.success) {
     throw new Error(response.error || "Failed to export to sheets");
   }
+  return (response.data ?? {}) as SyncResult;
 }

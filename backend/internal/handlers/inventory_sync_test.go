@@ -29,8 +29,8 @@ func TestInventoryHandler_SyncFromSheets(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.Equal(t, "FAILED", resp["status"])
-		assert.Contains(t, resp["message"], "Missing tenant_id")
+		assert.Equal(t, false, resp["success"])
+		assert.Contains(t, resp["error"], "Missing tenant_id")
 	})
 
 	t.Run("valid tenant ID with no DB returns error", func(t *testing.T) {
@@ -68,8 +68,8 @@ func TestInventoryHandler_SyncToSheets(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.Equal(t, "FAILED", resp["status"])
-		assert.Contains(t, resp["message"], "Missing tenant_id")
+		assert.Equal(t, false, resp["success"])
+		assert.Contains(t, resp["error"], "Missing tenant_id")
 	})
 
 	t.Run("valid tenant ID with no spreadsheet config returns 400", func(t *testing.T) {

@@ -115,8 +115,19 @@ export function useSyncFromSheets() {
       spreadsheetId?: string;
       sheetName?: string;
     }) => syncInventory(spreadsheetId, sheetName),
-    onSuccess: () => {
-      message.success("Inventory synced from Google Sheets");
+    onSuccess: (result) => {
+      if (result?.status === "partial") {
+        message.warning(
+          `Synced ${result.synced_records ?? 0} records (${result.failed_records ?? 0} failed)`,
+        );
+      } else {
+        const count = result?.synced_records;
+        message.success(
+          count
+            ? `Inventory synced: ${count} records from Google Sheets`
+            : "Inventory synced from Google Sheets",
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["inventory-stats"] });
       queryClient.invalidateQueries({ queryKey: ["inventory-sync-history"] });
@@ -131,8 +142,13 @@ export function useSyncToSheets() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: syncToSheets,
-    onSuccess: () => {
-      message.success("Inventory exported to Google Sheets");
+    onSuccess: (result) => {
+      const count = result?.total_records;
+      message.success(
+        count
+          ? `Exported ${count} records to Google Sheets`
+          : "Inventory exported to Google Sheets",
+      );
       queryClient.invalidateQueries({ queryKey: ["inventory-sync-history"] });
     },
     onError: (error: Error) => {

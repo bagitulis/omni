@@ -66,8 +66,8 @@ func (h *InventoryHandler) SyncFromSheets(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"status":  "FAILED",
-			"message": "Missing tenant_id",
+			"success": false,
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -75,8 +75,8 @@ func (h *InventoryHandler) SyncFromSheets(c *gin.Context) {
 	db, err := h.getDB(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "FAILED",
-			"message": err.Error(),
+			"success": false,
+			"error":   err.Error(),
 		})
 		return
 	}
@@ -90,16 +90,16 @@ func (h *InventoryHandler) SyncFromSheets(c *gin.Context) {
 	spreadsheetID, sheetName, err := h.getInventorySpreadsheetConfig(c, tenantID, req.SpreadsheetID, req.SheetName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "FAILED",
-			"message": err.Error(),
+			"success": false,
+			"error":   err.Error(),
 		})
 		return
 	}
 
 	if spreadsheetID == "" || sheetName == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "FAILED",
-			"message": "Spreadsheet not configured. Please set spreadsheet link and sheet name in Settings > Google Sheets first.",
+			"success": false,
+			"error":   "Spreadsheet not configured. Please set spreadsheet link and sheet name in Settings > Google Sheets first.",
 		})
 		return
 	}
@@ -107,8 +107,8 @@ func (h *InventoryHandler) SyncFromSheets(c *gin.Context) {
 	// Check if Google Auth is configured
 	if h.googleAuth == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status":  "FAILED",
-			"message": "Google Sheets integration not configured. Service account credentials required.",
+			"success": false,
+			"error":   "Google Sheets integration not configured. Service account credentials required.",
 		})
 		return
 	}
@@ -123,8 +123,8 @@ func (h *InventoryHandler) SyncFromSheets(c *gin.Context) {
 	result, err := syncService.SyncFromSheets(c.Request.Context(), spreadsheetID, sheetName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "FAILED",
-			"message": err.Error(),
+			"success": false,
+			"error":   err.Error(),
 		})
 		return
 	}
@@ -138,19 +138,21 @@ func (h *InventoryHandler) SyncFromSheets(c *gin.Context) {
 	// Convert status to lowercase for frontend compatibility
 	status := strings.ToLower(result.Status)
 
-	// Return response matching Node.js format (frontend expects lowercase "success")
 	c.JSON(http.StatusOK, gin.H{
-		"status":            status,
-		"message":           result.Message,
-		"total_records":     result.TotalRecords,
-		"synced_records":    result.NewRecords + result.UpdatedRecords,
-		"new_records":       result.NewRecords,
-		"updated_records":   result.UpdatedRecords,
-		"unchanged_records": result.UnchangedRecords,
-		"failed_records":    result.FailedRecords,
-		"headers_changed":   result.HeadersChanged,
-		"duration":          result.Duration,
-		"timestamp":         result.SyncedAt.Format(time.RFC3339),
+		"success": true,
+		"data": gin.H{
+			"status":            status,
+			"message":           result.Message,
+			"total_records":     result.TotalRecords,
+			"synced_records":    result.NewRecords + result.UpdatedRecords,
+			"new_records":       result.NewRecords,
+			"updated_records":   result.UpdatedRecords,
+			"unchanged_records": result.UnchangedRecords,
+			"failed_records":    result.FailedRecords,
+			"headers_changed":   result.HeadersChanged,
+			"duration":          result.Duration,
+			"timestamp":         result.SyncedAt.Format(time.RFC3339),
+		},
 	})
 }
 
@@ -167,8 +169,8 @@ func (h *InventoryHandler) SyncToSheets(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"status":  "FAILED",
-			"message": "Missing tenant_id",
+			"success": false,
+			"error":   "Missing tenant_id",
 		})
 		return
 	}
@@ -182,16 +184,16 @@ func (h *InventoryHandler) SyncToSheets(c *gin.Context) {
 	spreadsheetID, sheetName, err := h.getInventorySpreadsheetConfig(c, tenantID, req.SpreadsheetID, req.SheetName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "FAILED",
-			"message": err.Error(),
+			"success": false,
+			"error":   err.Error(),
 		})
 		return
 	}
 
 	if spreadsheetID == "" || sheetName == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "FAILED",
-			"message": "Spreadsheet not configured. Please set spreadsheet link and sheet name in Settings > Google Sheets first.",
+			"success": false,
+			"error":   "Spreadsheet not configured. Please set spreadsheet link and sheet name in Settings > Google Sheets first.",
 		})
 		return
 	}
@@ -199,8 +201,8 @@ func (h *InventoryHandler) SyncToSheets(c *gin.Context) {
 	// Check if Google Auth is configured
 	if h.googleAuth == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status":  "FAILED",
-			"message": "Google Sheets integration not configured. Service account credentials required.",
+			"success": false,
+			"error":   "Google Sheets integration not configured. Service account credentials required.",
 		})
 		return
 	}
@@ -208,8 +210,8 @@ func (h *InventoryHandler) SyncToSheets(c *gin.Context) {
 	db, err := h.getDB(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "FAILED",
-			"message": err.Error(),
+			"success": false,
+			"error":   err.Error(),
 		})
 		return
 	}
@@ -224,21 +226,24 @@ func (h *InventoryHandler) SyncToSheets(c *gin.Context) {
 	result, err := syncService.SyncToSheets(c.Request.Context(), spreadsheetID, sheetName, req.LockedColumns)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "FAILED",
-			"message": err.Error(),
+			"success": false,
+			"error":   err.Error(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status":            strings.ToLower(result.Status),
-		"message":           result.Message,
-		"total_records":     result.TotalRecords,
-		"synced_records":    result.UpdatedRecords,
-		"updated_records":   result.UpdatedRecords,
-		"unchanged_records": result.UnchangedRecords,
-		"new_records":       result.NewRecords,
-		"duration":          result.Duration,
-		"timestamp":         result.SyncedAt.Format(time.RFC3339),
+		"success": true,
+		"data": gin.H{
+			"status":            strings.ToLower(result.Status),
+			"message":           result.Message,
+			"total_records":     result.TotalRecords,
+			"synced_records":    result.UpdatedRecords,
+			"updated_records":   result.UpdatedRecords,
+			"unchanged_records": result.UnchangedRecords,
+			"new_records":       result.NewRecords,
+			"duration":          result.Duration,
+			"timestamp":         result.SyncedAt.Format(time.RFC3339),
+		},
 	})
 }
