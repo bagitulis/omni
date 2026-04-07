@@ -227,47 +227,71 @@ func (s *StagingImportService) processShopeeDefaultSku(
 	result.LinksCreated++
 }
 
-// cleanupStaleFallbackSkus removes {prefix}* fallback SKUs from master_product_skus
-// when real SKUs now exist for the same master product. Matches both old format
-// ({prefix}{id}) and new format ({prefix}{id}_{variantId}).
+// cleanupStaleFallbackSkus handles two cleanup scenarios:
+//  1. Real SKUs exist → delete ALL fallback SKUs (original behavior).
+//  2. More specific variant-format fallbacks exist (e.g. shopee_123_456)
+//     → delete the old non-variant fallback (shopee_123) that causes collision.
 func (s *StagingImportService) cleanupStaleFallbackSkus(
 	ctx context.Context,
 	masterProductID uint,
 	fallbackPrefix string,
 ) {
-	// Find ALL stale fallback SKUs matching pattern (both exact and with _variantID suffix)
-	var staleSkus []models.MasterProductSku
-	err := s.db.WithContext(ctx).
-		Where("master_product_id = ? AND (seller_sku = ? OR seller_sku LIKE ?)",
-			masterProductID, fallbackPrefix, fallbackPrefix+"_%").
-		Find(&staleSkus).Error
-	if err != nil || len(staleSkus) == 0 {
-		return // No stale fallbacks — nothing to clean
-	}
-
-	// Check if real (non-fallback) SKUs exist for this product
-	// Real SKUs don't start with shopee_, tiktok_, or lazada_
+	// Scenario 1: Real (non-fallback) SKUs exist → delete all fallbacks
 	var realCount int64
 	s.db.WithContext(ctx).Model(&models.MasterProductSku{}).
 		Where("master_product_id = ? AND seller_sku NOT LIKE 'shopee_%' AND seller_sku NOT LIKE 'tiktok_%' AND seller_sku NOT LIKE 'lazada_%'",
 			masterProductID).
 		Count(&realCount)
 
-	if realCount == 0 {
-		return // No real SKUs yet — keep the fallbacks
+	if realCount > 0 {
+		var allFallbacks []models.MasterProductSku
+		s.db.WithContext(ctx).
+			Where("master_product_id = ? AND (seller_sku = ? OR seller_sku LIKE ?)",
+				masterProductID, fallbackPrefix, fallbackPrefix+"_%").
+			Find(&allFallbacks)
+		s.deleteFallbackSkus(ctx, masterProductID, allFallbacks, "real SKUs exist")
+		return
 	}
 
-	// Delete platform links and SKU records for each stale fallback
-	for _, stale := range staleSkus {
+	// Scenario 2: Old exact-match collision fallback superseded by variant-specific ones.
+	// e.g. shopee_12345 → shopee_12345_67890, shopee_12345_67891
+	var variantCount int64
+	s.db.WithContext(ctx).Model(&models.MasterProductSku{}).
+		Where("master_product_id = ? AND seller_sku LIKE ?",
+			masterProductID, fallbackPrefix+"_%").
+		Count(&variantCount)
+
+	if variantCount > 0 {
+		// New variant-format fallbacks exist → delete the old exact-match collision fallback
+		var oldExact models.MasterProductSku
+		err := s.db.WithContext(ctx).
+			Where("master_product_id = ? AND seller_sku = ?", masterProductID, fallbackPrefix).
+			First(&oldExact).Error
+		if err == nil {
+			s.deleteFallbackSkus(ctx, masterProductID, []models.MasterProductSku{oldExact}, "superseded by variant-specific fallbacks")
+		}
+	}
+}
+
+// deleteFallbackSkus removes SKU records and their platform links.
+func (s *StagingImportService) deleteFallbackSkus(
+	ctx context.Context,
+	masterProductID uint,
+	skus []models.MasterProductSku,
+	reason string,
+) {
+	if len(skus) == 0 {
+		return
+	}
+	for _, stale := range skus {
 		s.db.WithContext(ctx).
 			Where("master_sku_id = ?", stale.ID).
 			Delete(&models.MasterProductPlatformLink{})
 		s.db.WithContext(ctx).Delete(&stale)
 	}
-
 	log.Info().
 		Uint("master_product_id", masterProductID).
-		Str("prefix", fallbackPrefix).
-		Int("cleaned_count", len(staleSkus)).
+		Int("cleaned_count", len(skus)).
+		Str("reason", reason).
 		Msg("Cleaned up stale fallback SKU(s)")
 }
