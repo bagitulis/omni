@@ -135,6 +135,8 @@ func (s *TiktokMpqService) lookupProductBySku(ctx context.Context, sku string) (
 }
 
 // updateMpq sets MPQ and updates price for a TikTok product
+// Uses POST partial_edit endpoint which only requires fields being changed,
+// avoiding V2 category requirements of the full PUT edit endpoint.
 func (s *TiktokMpqService) updateMpq(productID string, mpq int, skuID string, newPrice float64) *TiktokMpqResult {
 	if s.tiktokAPI == nil {
 		return &TiktokMpqResult{ProductID: productID, Success: false, Error: "TikTok API client not configured"}
@@ -147,37 +149,34 @@ func (s *TiktokMpqService) updateMpq(productID string, mpq int, skuID string, ne
 		Float64("price", newPrice).
 		Msg("Updating TikTok MPQ")
 
-	// Step 1: Get current product data
+	// Step 1: GET product to resolve title (for display only)
+	productTitle := productID // fallback to ID
 	productPath := fmt.Sprintf("/product/%s/products/%s", s.apiVersion, productID)
 	productData, err := s.tiktokAPI.Request("GET", productPath, nil, nil)
 	if err != nil {
-		log.Error().Err(err).Str("product_id", productID).Msg("TikTok GET product failed")
-		return &TiktokMpqResult{ProductID: productID, Success: false, Error: fmt.Sprintf("get product failed: %v", err)}
+		log.Warn().Err(err).Str("product_id", productID).Msg("TikTok GET product failed (non-fatal, continuing with ID)")
+	} else if data, ok := productData["data"].(map[string]interface{}); ok {
+		if t, ok := data["title"].(string); ok && t != "" {
+			productTitle = t
+		}
 	}
 
-	// Extract data from response
-	data, ok := productData["data"].(map[string]interface{})
-	if !ok {
-		return &TiktokMpqResult{ProductID: productID, Success: false, Error: "invalid product data format"}
+	// Step 2: Use partial_edit to set MPQ — only sends the field being changed
+	// This avoids the V2 category requirement that the full PUT edit enforces
+	partialEditPath := fmt.Sprintf("/product/%s/products/%s/partial_edit", s.apiVersion, productID)
+	partialPayload := map[string]interface{}{
+		"minimum_order_quantity": mpq,
 	}
 
-	// Resolve product title from API if not already known
-	productTitle := ""
-	if t, ok := data["title"].(string); ok {
-		productTitle = t
-	}
-
-	// Step 2: Build update payload with MPQ and PUT
-	updatePayload := buildTiktokMpqPayload(data, mpq)
-	_, err = s.tiktokAPI.Request("PUT", productPath, nil, updatePayload)
+	_, err = s.tiktokAPI.Request("POST", partialEditPath, nil, partialPayload)
 	if err != nil {
-		log.Error().Err(err).Str("product_id", productID).Msg("TikTok PUT MPQ update failed")
+		log.Error().Err(err).Str("product_id", productID).Int("mpq", mpq).Msg("TikTok partial_edit MPQ update failed")
 		return &TiktokMpqResult{ProductID: productID, Success: false, Error: fmt.Sprintf("update MPQ failed: %v", err)}
 	}
 
-	log.Info().Str("product_id", productID).Int("mpq", mpq).Msg("TikTok MPQ updated successfully")
+	log.Info().Str("product_id", productID).Int("mpq", mpq).Msg("TikTok MPQ updated successfully via partial_edit")
 
-	// Step 3: Update price if provided
+	// Step 3: Update price if provided (uses dedicated price endpoint)
 	if newPrice > 0 && skuID != "" {
 		if !s.updatePrice(productID, skuID, newPrice) {
 			return &TiktokMpqResult{
@@ -188,15 +187,10 @@ func (s *TiktokMpqService) updateMpq(productID string, mpq int, skuID string, ne
 		}
 	}
 
-	dispName := productTitle
-	if dispName == "" {
-		dispName = productID
-	}
-
 	return &TiktokMpqResult{
 		ProductID: productID,
 		Success:   true,
-		Message:   fmt.Sprintf("%s - MPQ=%d, price=%.0f", dispName, mpq, newPrice),
+		Message:   fmt.Sprintf("%s - MPQ=%d, price=%.0f", productTitle, mpq, newPrice),
 	}
 }
 
@@ -232,38 +226,7 @@ func (s *TiktokMpqService) updatePrice(productID, skuID string, price float64) b
 	return true
 }
 
-// buildTiktokMpqPayload builds minimal update payload
-func buildTiktokMpqPayload(productData map[string]interface{}, mpq int) map[string]interface{} {
-	payload := map[string]interface{}{
-		"minimum_order_quantity": mpq,
-		"is_cod_allowed":         true,
-	}
 
-	for _, field := range []string{
-		"title", "description", "main_images", "skus",
-		"package_weight", "video", "product_attributes",
-	} {
-		if v, ok := productData[field]; ok && v != nil {
-			payload[field] = v
-		}
-	}
-
-	if brand, ok := productData["brand"].(map[string]interface{}); ok {
-		if id, ok := brand["id"]; ok {
-			payload["brand_id"] = id
-		}
-	}
-
-	if chains, ok := productData["category_chains"].([]interface{}); ok && len(chains) > 0 {
-		if last, ok := chains[len(chains)-1].(map[string]interface{}); ok {
-			if id, ok := last["id"]; ok {
-				payload["category_id"] = id
-			}
-		}
-	}
-
-	return payload
-}
 
 // BatchUpdateMpq batch updates MPQ for multiple TikTok SKUs
 func (s *TiktokMpqService) BatchUpdateMpq(
