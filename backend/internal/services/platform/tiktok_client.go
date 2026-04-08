@@ -179,9 +179,9 @@ func (c *TiktokAPIClient) request(method, path string, queryParams map[string]st
 	}
 	u.RawQuery = q.Encode()
 
-	// Create request
+	// Create request - send body for ANY method (POST, PUT, PATCH) if body exists
 	var req *http.Request
-	if method == "POST" && len(bodyBytes) > 0 {
+	if len(bodyBytes) > 0 {
 		req, err = http.NewRequest(method, u.String(), bytes.NewReader(bodyBytes))
 	} else {
 		req, err = http.NewRequest(method, u.String(), nil)
