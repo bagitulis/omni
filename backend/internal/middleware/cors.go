@@ -11,10 +11,12 @@ import (
 func CORS() gin.HandlerFunc {
 	// Build allowed origins from environment + defaults
 	allowedOrigins := make(map[string]bool)
+	isProd := os.Getenv("GO_ENV") == "production"
 
 	// Default origins (always allowed)
 	defaults := []string{
 		"http://localhost:5173",
+		"http://localhost:5174",
 		"http://localhost:3000",
 		"http://localhost:80",
 		"http://localhost",
@@ -42,7 +44,16 @@ func CORS() gin.HandlerFunc {
 		origin := c.GetHeader("Origin")
 
 		// Check if origin is allowed
-		if allowedOrigins[origin] || origin == "" {
+		isAllowed := allowedOrigins[origin] || origin == ""
+
+		// In non-production: allow any localhost/127.0.0.1 origin (any port)
+		// This prevents breakage when Vite picks a different dev port
+		if !isAllowed && !isProd && origin != "" {
+			isAllowed = strings.HasPrefix(origin, "http://localhost") ||
+				strings.HasPrefix(origin, "http://127.0.0.1")
+		}
+
+		if isAllowed {
 			c.Header("Access-Control-Allow-Origin", origin)
 		}
 

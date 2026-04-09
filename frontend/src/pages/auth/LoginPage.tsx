@@ -91,13 +91,20 @@ const LoginPage: React.FC = () => {
         navigate(returnUrl);
       } catch (err: unknown) {
         if (auto) {
+          const errMsg =
+            err instanceof Error ? err.message : "Unknown error";
           logger.warn(
             "Auto-login failed:",
-            err instanceof Error
-              ? { message: err.message }
-              : { error: "Unknown error" },
+            { message: errMsg },
           );
-          sessionStorage.setItem("autoLoginFailed", "true");
+          // Only block future auto-login for genuine auth errors (not network/CORS)
+          const isAuthError =
+            errMsg.includes("Invalid") ||
+            errMsg.includes("tenant") ||
+            errMsg.includes("Dev login failed");
+          if (isAuthError) {
+            sessionStorage.setItem("autoLoginFailed", "true");
+          }
           setIsAutoLogin(false);
         } else {
           setError(err instanceof Error ? err.message : "Dev login failed");
@@ -118,7 +125,8 @@ const LoginPage: React.FC = () => {
     ) {
       handleDevLogin(true);
     }
-  }, [isLocalhost, isAuthenticated, handleDevLogin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLocalhost, isAuthenticated]);
 
   if (isAutoLogin) {
     return (

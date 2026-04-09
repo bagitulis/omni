@@ -32,11 +32,14 @@ export interface AuthState {
 let refreshPromise: Promise<boolean> | null = null;
 
 function clearLegacyStorage(): void {
+  // Remove old keys from both storages (migration cleanup)
   localStorage.removeItem("authToken");
-  localStorage.removeItem("authUser");
-  localStorage.removeItem("tenantId");
   localStorage.removeItem("userRole");
   localStorage.removeItem("userName");
+  // Clean up sessionStorage from old implementation
+  sessionStorage.removeItem("authUser");
+  sessionStorage.removeItem("tenantId");
+  sessionStorage.removeItem("autoLoginFailed");
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -44,7 +47,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   token: null,
   accessToken: null,
   isAuthenticated: false,
-  tenantId: sessionStorage.getItem(STORAGE_KEYS.TENANT_ID),
+  tenantId: localStorage.getItem(STORAGE_KEYS.TENANT_ID),
   expiresAt: null,
 
   setAuth: ({ token, access_token, user, tenant_id, expires_in }) => {
@@ -54,11 +57,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     clearLegacyStorage();
 
-    // Update SessionStorage (User info only, NO TOKEN)
-    sessionStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
+    // Persist user metadata in localStorage (survives tab close)
+    // Access token stays in-memory only (security best practice)
+    localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
 
     if (tenant_id) {
-      sessionStorage.setItem(STORAGE_KEYS.TENANT_ID, tenant_id);
+      localStorage.setItem(STORAGE_KEYS.TENANT_ID, tenant_id);
     }
 
     set({
@@ -73,8 +77,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   clearAuth: () => {
     clearLegacyStorage();
-    sessionStorage.removeItem(STORAGE_KEYS.AUTH_USER);
-    sessionStorage.removeItem(STORAGE_KEYS.TENANT_ID);
+    localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+    localStorage.removeItem(STORAGE_KEYS.TENANT_ID);
 
     set({
       user: null,
@@ -106,11 +110,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         if (response.ok) {
           const data = await response.json();
-          if (data.success && data.access_token) {
+          // Backend wraps response as {success, data: {access_token, expires_in}}
+          // Handle both wrapped and flat formats for robustness
+          const payload = data.data || data;
+          const accessToken = payload.access_token;
+          const expiresIn = payload.expires_in;
+          if (data.success && accessToken) {
             set(() => ({
-              accessToken: data.access_token,
-              token: data.access_token,
-              expiresAt: Date.now() + (data.expires_in || 900) * 1000,
+              accessToken,
+              token: accessToken,
+              expiresAt: Date.now() + (expiresIn || 900) * 1000,
               isAuthenticated: true,
             }));
             return true;
@@ -152,7 +161,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     // If we have user info (session), try to refresh
-    if (user || sessionStorage.getItem(STORAGE_KEYS.AUTH_USER)) {
+    if (user || localStorage.getItem(STORAGE_KEYS.AUTH_USER)) {
       const refreshed = await refreshAccessToken();
       if (refreshed) {
         return get().accessToken;
@@ -166,8 +175,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { accessToken, refreshAccessToken, clearAuth } = get();
 
     // Check for stored user in sessionStorage
-    const storedUser = sessionStorage.getItem(STORAGE_KEYS.AUTH_USER);
-    const storedTenantId = sessionStorage.getItem(STORAGE_KEYS.TENANT_ID);
+    const storedUser = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
+    const storedTenantId = localStorage.getItem(STORAGE_KEYS.TENANT_ID);
 
     if (storedUser) {
       try {
@@ -187,7 +196,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
       } catch (err) {
         logger.warn("Failed to parse stored auth user", { error: err });
-        sessionStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+        localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
       }
     }
 

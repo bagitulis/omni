@@ -3,15 +3,9 @@
  */
 
 export function getBackendUrl(): string {
-  if (import.meta.env.DEV) {
-    const currentUrl = window.location.origin;
-    // Only add port 3000 for true localhost development
-    const isLocalhost =
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1";
-    return isLocalhost ? `${currentUrl.replace(/:\d+$/, "")}:3000/api` : "/api";
-  }
-  // Production: Use relative URL (nginx proxy)
+  // Always use relative /api path:
+  // - Dev: Vite proxy forwards /api → localhost:3000 (avoids CORS)
+  // - Production: Nginx proxy forwards /api → backend:3000
   return import.meta.env.VITE_API_URL || "/api";
 }
 

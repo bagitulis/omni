@@ -29,12 +29,10 @@ export function handleResponseError(error: AxiosError): Promise<never> {
 
   // Network error (no response at all)
   if (!error.response) {
-    const host = window.location.hostname;
-    const isLocalhost = host === "localhost" || host === "127.0.0.1";
-    const backendUrl = isLocalhost
-      ? `${window.location.origin.replace(/:\d+$/, "")}:3000`
-      : window.location.origin;
-    logger.error("[API] Network error", { backendUrl });
+    logger.error("[API] Network error", {
+      url: error.config?.url,
+      origin: window.location.origin,
+    });
     const networkMsg =
       "Network error — cannot connect to server. Please check your connection.";
     return Promise.reject(new Error(networkMsg));
