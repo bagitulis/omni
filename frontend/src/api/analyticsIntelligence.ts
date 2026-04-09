@@ -1,5 +1,4 @@
 import api from "./client";
-import { logger } from "@/lib/logger";
 
 export interface AnalyticsKPI {
   total_products: number;

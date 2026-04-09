@@ -1,14 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   getUnifiedAnalytics,
   getClassifiedProducts,
   getProductsFromAds,
   runSimulation,
-  generateReport,
-  getReports,
-  getReportHTML,
   type SimulationRequest,
-  type GenerateReportRequest,
 } from "../api/analyticsIntelligence";
 
 // --- Unified Analytics ---

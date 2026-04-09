@@ -15,9 +15,6 @@ vi.mock("../api/analyticsIntelligence", () => ({
   getClassifiedProducts: vi.fn(),
   getProductsFromAds: vi.fn(),
   runSimulation: vi.fn(),
-  generateReport: vi.fn(),
-  getReports: vi.fn(),
-  getReportHTML: vi.fn(),
 }));
 
 import {
@@ -25,9 +22,6 @@ import {
   useClassifiedProducts,
   useProductsFromAds,
   useBudgetSimulation,
-  useGenerateReport,
-  useReports,
-  useReportHTML,
 } from "./useAnalyticsIntelligence";
 import * as intelligenceApi from "../api/analyticsIntelligence";
 
@@ -112,83 +106,4 @@ describe("useBudgetSimulation", () => {
   });
 });
 
-describe("useGenerateReport", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
-  it("calls useMutation", () => {
-    useGenerateReport();
-    expect(useMutationMock).toHaveBeenCalledOnce();
-  });
-
-  it("mutationFn calls generateReport with request", () => {
-    useGenerateReport();
-    const opts = useMutationMock.mock.calls[0][0] as {
-      mutationFn: (req: unknown) => unknown;
-    };
-    const req = { platform: "shopee" as const };
-    opts.mutationFn(req);
-    expect(intelligenceApi.generateReport).toHaveBeenCalledWith(req);
-  });
-
-  it("onSuccess invalidates reports query for platform", () => {
-    useGenerateReport();
-    const opts = useMutationMock.mock.calls[0][0] as {
-      onSuccess: (data: unknown, variables: { platform: string }) => void;
-    };
-    opts.onSuccess(undefined, { platform: "shopee" });
-    expect(invalidateQueriesMock).toHaveBeenCalledWith({
-      queryKey: ["analytics", "reports", "shopee"],
-    });
-  });
-});
-
-describe("useReports", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    useQueryMock.mockReturnValue({ data: undefined });
-  });
-
-  it("calls useQuery with correct queryKey", () => {
-    useReports("shopee", 1, 20);
-    const opts = useQueryMock.mock.calls[0][0] as { queryKey: unknown[] };
-    expect(opts.queryKey).toEqual(["analytics", "reports", "shopee", 1, 20]);
-  });
-
-  it("queryFn calls getReports with platform, page, limit", () => {
-    useReports("tiktok", 2, 10);
-    const opts = useQueryMock.mock.calls[0][0] as { queryFn: () => unknown };
-    opts.queryFn();
-    expect(intelligenceApi.getReports).toHaveBeenCalledWith("tiktok", 2, 10);
-  });
-});
-
-describe("useReportHTML", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    useQueryMock.mockReturnValue({ data: undefined });
-  });
-
-  it("is disabled when filename is null", () => {
-    useReportHTML("shopee", null);
-    const opts = useQueryMock.mock.calls[0][0] as { enabled: boolean };
-    expect(opts.enabled).toBe(false);
-  });
-
-  it("is enabled when filename is provided", () => {
-    useReportHTML("shopee", "report.html");
-    const opts = useQueryMock.mock.calls[0][0] as { enabled: boolean };
-    expect(opts.enabled).toBe(true);
-  });
-
-  it("queryFn calls getReportHTML with platform and filename", () => {
-    useReportHTML("tiktok", "test.html");
-    const opts = useQueryMock.mock.calls[0][0] as { queryFn: () => unknown };
-    opts.queryFn();
-    expect(intelligenceApi.getReportHTML).toHaveBeenCalledWith(
-      "tiktok",
-      "test.html",
-    );
-  });
-});
