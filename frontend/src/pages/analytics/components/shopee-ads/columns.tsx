@@ -6,11 +6,12 @@ export const columns: TableColumnsType<AdsData> = [
     title: "Product",
     dataIndex: "product_name",
     key: "product_name",
-    width: 200,
+    width: 350,
+    fixed: "left",
     ellipsis: true,
     render: (name: string, record: AdsData) => (
       <div>
-        <div>{name}</div>
+        <div style={{ fontWeight: 500 }}>{name}</div>
         <div style={{ fontSize: 11, opacity: 0.7 }}>{record.product_id}</div>
       </div>
     ),

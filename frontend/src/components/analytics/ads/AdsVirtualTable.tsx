@@ -1,7 +1,7 @@
+import { useState, type FC } from "react";
 import { Table } from "antd";
 import { columns as shopeeColumns } from "@/pages/analytics/components/shopee-ads/columns";
 import { columns as tiktokColumns } from "@/pages/analytics/components/tiktok-ads/columns";
-import type { FC } from "react";
 import type { ShopeeAdsProductData, TiktokAdsCreativeData } from "@/types/ads";
 import type { AdsData } from "@/pages/analytics/components/shopee-ads/types";
 import type { TikTokAdsData } from "@/pages/analytics/components/tiktok-ads/types";
@@ -22,6 +22,8 @@ export const AdsVirtualTable: FC<AdsVirtualTableProps> = ({
   loading,
   platform,
 }) => {
+  const [pageSize, setPageSize] = useState(50);
+
   if (platform === "shopee") {
     return (
       <Table
@@ -30,8 +32,12 @@ export const AdsVirtualTable: FC<AdsVirtualTableProps> = ({
         rowKey={(record) => record.product_id}
         size="small"
         loading={loading}
-        pagination={{ pageSize: 50, showSizeChanger: true }}
-        scroll={{ y: 600, x: 1000 }}
+        pagination={{
+          pageSize,
+          showSizeChanger: true,
+          onShowSizeChange: (_, size) => setPageSize(size),
+        }}
+        scroll={{ y: 600, x: 1200 }}
       />
     );
   }
@@ -43,8 +49,12 @@ export const AdsVirtualTable: FC<AdsVirtualTableProps> = ({
       rowKey={(record) => record.creative_id}
       size="small"
       loading={loading}
-      pagination={{ pageSize: 50, showSizeChanger: true }}
-      scroll={{ y: 600, x: 1000 }}
+      pagination={{
+        pageSize,
+        showSizeChanger: true,
+        onShowSizeChange: (_, size) => setPageSize(size),
+      }}
+      scroll={{ y: 600, x: 1100 }}
     />
   );
 };

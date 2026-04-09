@@ -7,10 +7,13 @@ export const columns: TableColumnsType<TikTokAdsData> = [
     dataIndex: "campaign_name",
     key: "campaign_name",
     width: 220,
+    fixed: "left",
     ellipsis: true,
     render: (_: string, record: TikTokAdsData) => (
       <div>
-        <div>{record.campaign_name || record.creative_name}</div>
+        <div style={{ fontWeight: 500 }}>
+          {record.campaign_name || record.creative_name}
+        </div>
         <div style={{ fontSize: 11, opacity: 0.7 }}>{record.creative_id}</div>
       </div>
     ),
