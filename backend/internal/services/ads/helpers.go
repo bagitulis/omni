@@ -85,10 +85,22 @@ func getIntVal(row []string, idx map[string]int, field string) int {
 // getFloatVal gets float value from row by field name
 func getFloatVal(row []string, idx map[string]int, field string) float64 {
 	s := getStrVal(row, idx, field)
-	s = strings.ReplaceAll(s, ",", ".")
-	s = strings.ReplaceAll(s, "%", "")
+	if s == "" || s == "-" {
+		return 0
+	}
 	s = strings.ReplaceAll(s, "Rp", "")
+	s = strings.ReplaceAll(s, "%", "")
 	s = strings.TrimSpace(s)
+
+	// Robust handling of Indonesian number format (1.234,56) vs English (1,234.56)
+	// If it contains a comma, we assume Indonesian format
+	if strings.Contains(s, ",") {
+		// Remove thousand separator dots
+		s = strings.ReplaceAll(s, ".", "")
+		// Replace decimal comma with dot
+		s = strings.ReplaceAll(s, ",", ".")
+	}
+
 	v, _ := strconv.ParseFloat(s, 64)
 	return v
 }

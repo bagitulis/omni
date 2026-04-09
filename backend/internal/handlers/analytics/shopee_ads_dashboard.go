@@ -151,7 +151,7 @@ func getTopShopeeProducts(
 		TotalCost   float64 `gorm:"column:total_cost"`
 		TotalRev    float64 `gorm:"column:total_revenue"`
 		Conversions int64   `gorm:"column:total_conversions"`
-		AvgRoas     float64 `gorm:"column:avg_roas"`
+		AvgRoas     float64 `gorm:"column:roas"`
 	}
 
 	// Try MV first

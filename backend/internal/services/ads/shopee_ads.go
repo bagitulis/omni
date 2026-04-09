@@ -97,8 +97,10 @@ var shopeeColumnMap = map[string]string{
 	"Penjualan Langsung (GMV Langsung)": "directRevenue",
 
 	// Performance metrics
+	"Efektivitas Iklan":    "roas",
 	"Efektifitas Iklan":    "roas",
 	"Efektivitas Langsung": "directRoas",
+	"Efektifitas Langsung": "directRoas",
 	"Persentase Biaya Iklan terhadap Penjualan dari Iklan (ACOS)":                   "acos",
 	"Persentase Biaya Iklan terhadap Penjualan dari Iklan Langsung (ACOS Langsung)": "directAcos",
 }

@@ -50,7 +50,7 @@ BEGIN
             COALESCE(SUM(clicks), 0) as total_clicks,
             COUNT(*) as record_count,
             COUNT(DISTINCT period_label) as period_count,
-            CASE WHEN SUM(cost) > 0 THEN SUM(gross_revenue) / SUM(cost) ELSE 0 END as roas,
+            CASE WHEN SUM(cost) > 0 THEN SUM(gross_revenue)::float / SUM(cost) ELSE 0 END as roas,
             CASE WHEN SUM(impressions) > 0 THEN (SUM(clicks)::float / SUM(impressions)) * 100 ELSE 0 END as ctr,
             CASE WHEN SUM(clicks) > 0 THEN (SUM(orders_sku)::float / SUM(clicks)) * 100 ELSE 0 END as conversion_rate,
             MIN(period_start) as first_period,
@@ -85,7 +85,7 @@ BEGIN
             COALESCE(SUM(total_impressions), 0) as total_impressions,
             COALESCE(SUM(total_clicks), 0) as total_clicks,
             SUM(total_revenue) - SUM(total_cost) as total_profit,
-            CASE WHEN SUM(total_cost) > 0 THEN SUM(total_revenue) / SUM(total_cost) ELSE 0 END as overall_roas,
+            CASE WHEN SUM(total_cost) > 0 THEN SUM(total_revenue)::float / SUM(total_cost) ELSE 0 END as overall_roas,
             CASE WHEN SUM(total_impressions) > 0 THEN (SUM(total_clicks)::float / SUM(total_impressions)) * 100 ELSE 0 END as avg_ctr,
             AVG(roas) as avg_product_roas
         FROM %I.mv_ml_product_analysis
@@ -113,7 +113,7 @@ BEGIN
             COUNT(*) as total_records,
             COUNT(DISTINCT product_id) as total_products,
             COUNT(DISTINCT campaign_id) as total_campaigns,
-            CASE WHEN SUM(cost) > 0 THEN SUM(gross_revenue) / SUM(cost) ELSE 0 END as overall_roas,
+            CASE WHEN SUM(cost) > 0 THEN SUM(gross_revenue)::float / SUM(cost) ELSE 0 END as overall_roas,
             CASE WHEN SUM(impressions) > 0 THEN (SUM(clicks)::float / SUM(impressions)) * 100 ELSE 0 END as avg_ctr,
             CASE WHEN SUM(orders_sku) > 0 THEN SUM(cost) / SUM(orders_sku) ELSE 0 END as avg_cpo
         FROM %I.tiktok_ads_creative_data
@@ -142,7 +142,7 @@ BEGIN
             COALESCE(SUM(impressions), 0) as total_impressions,
             COALESCE(SUM(clicks), 0) as total_clicks,
             COUNT(DISTINCT product_id) as active_products,
-            CASE WHEN SUM(cost) > 0 THEN SUM(gross_revenue) / SUM(cost) ELSE 0 END as roas
+            CASE WHEN SUM(cost) > 0 THEN SUM(gross_revenue)::float / SUM(cost) ELSE 0 END as roas
         FROM %I.tiktok_ads_creative_data
         GROUP BY tenant_id, period_label
         ORDER BY period_label DESC
@@ -169,8 +169,8 @@ BEGIN
             COALESCE(SUM(clicks), 0) as total_clicks,
             COUNT(*) as total_records,
             COUNT(DISTINCT product_id) as total_products,
-            CASE WHEN SUM(cost) > 0 THEN SUM(revenue) / SUM(cost) ELSE 0 END as overall_roas,
-            CASE WHEN SUM(cost) > 0 THEN SUM(direct_revenue) / SUM(cost) ELSE 0 END as direct_roas,
+            CASE WHEN SUM(cost) > 0 THEN SUM(revenue)::float / SUM(cost) ELSE 0 END as overall_roas,
+            CASE WHEN SUM(cost) > 0 THEN SUM(direct_revenue)::float / SUM(cost) ELSE 0 END as direct_roas,
             CASE WHEN SUM(impressions) > 0 THEN (SUM(clicks)::float / SUM(impressions)) * 100 ELSE 0 END as avg_ctr
         FROM %I.shopee_ads_product_data
         GROUP BY tenant_id
@@ -198,8 +198,8 @@ BEGIN
             COALESCE(SUM(impressions), 0) as total_impressions,
             COALESCE(SUM(clicks), 0) as total_clicks,
             COUNT(DISTINCT period_label) as period_count,
-            CASE WHEN SUM(cost) > 0 THEN SUM(revenue) / SUM(cost) ELSE 0 END as roas,
-            CASE WHEN SUM(cost) > 0 THEN SUM(direct_revenue) / SUM(cost) ELSE 0 END as direct_roas
+            CASE WHEN SUM(cost) > 0 THEN SUM(revenue)::float / SUM(cost) ELSE 0 END as roas,
+            CASE WHEN SUM(cost) > 0 THEN SUM(direct_revenue)::float / SUM(cost) ELSE 0 END as direct_roas
         FROM %I.shopee_ads_product_data
         GROUP BY tenant_id, product_id
     ', schema_name, schema_name);
