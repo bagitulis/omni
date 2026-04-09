@@ -107,6 +107,14 @@ func (r *RefreshSessionRepository) RevokeSessionChain(ctx context.Context, userI
 	return r.RevokeAllForUser(ctx, userID)
 }
 
+// UpdateTenantID updates the tenant_id of a refresh session (for tenant switching)
+func (r *RefreshSessionRepository) UpdateTenantID(ctx context.Context, userID, newTenantID string) error {
+	return r.db.WithContext(ctx).Model(&models.RefreshSession{}).
+		Where("user_id = ? AND revoked_at IS NULL AND expires_at > ? AND replaced_by_hash IS NULL",
+			userID, time.Now()).
+		Update("tenant_id", newTenantID).Error
+}
+
 // UpdateLastUsed updates the last_used_at timestamp
 func (r *RefreshSessionRepository) UpdateLastUsed(ctx context.Context, tokenHash string) error {
 	return r.db.WithContext(ctx).Model(&models.RefreshSession{}).

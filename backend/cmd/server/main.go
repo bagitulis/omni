@@ -148,8 +148,7 @@ func main() {
 	// Unified Analytics & Cache Management routes
 	routes.RegisterUnifiedAnalyticsRoutes(api, cfg.DatabasePath, application.CacheService)
 
-	// ML Report routes
-	routes.RegisterMLReportRoutes(api, cfg.DatabasePath)
+
 
 	// Ads Report routes (Shopee/TikTok ads reporting)
 	routes.RegisterReportRoutes(api, application.SystemDB)

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/omni/backend/internal/repositories"
+	"github.com/rs/zerolog/log"
 )
 
 // LoginStatusResponse represents login status
@@ -57,6 +58,7 @@ func (s *MultiTenantAuthService) GetLoginStatus(ctx context.Context, username st
 }
 
 // SwitchTenant generates new token for different tenant (developer only)
+// Also updates all active refresh sessions to the new tenant so token refresh persists the switch.
 func (s *MultiTenantAuthService) SwitchTenant(ctx context.Context, userID, currentRole, newTenantID string) (string, error) {
 	// Only developer can switch tenants
 	if currentRole != "developer" {
@@ -66,6 +68,19 @@ func (s *MultiTenantAuthService) SwitchTenant(ctx context.Context, userID, curre
 	// Verify tenant exists
 	if !s.tenantService.TenantExists(ctx, newTenantID) {
 		return "", &AuthError{Code: "TENANT_NOT_FOUND", Message: "Tenant not found"}
+	}
+
+	// Update all active refresh sessions in system DB to the new tenant
+	// This ensures token refresh after page reload uses the correct tenant
+	systemDB, err := s.tenantService.GetSystemDB()
+	if err == nil {
+		refreshRepo := repositories.NewRefreshSessionRepository(systemDB)
+		if updateErr := refreshRepo.UpdateTenantID(ctx, userID, newTenantID); updateErr != nil {
+			log.Warn().Err(updateErr).
+				Str("user_id", userID).
+				Str("new_tenant", newTenantID).
+				Msg("Failed to update refresh session tenant_id (non-fatal)")
+		}
 	}
 
 	// Generate new token for the target tenant

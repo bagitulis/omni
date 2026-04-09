@@ -6,4 +6,4 @@ export { default as TiktokAdsAnalyticsPage } from "./analytics/TiktokAdsAnalytic
 export { default as MLDashboardPage } from "./analytics/MLDashboardPage";
 export { default as BudgetSimulatorPage } from "./analytics/BudgetSimulatorPage";
 export { default as ProductClassificationPage } from "./analytics/ProductClassificationPage";
-export { default as AIReportGalleryPage } from "./analytics/AIReportGalleryPage";
+

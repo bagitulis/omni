@@ -45,40 +45,4 @@ export function useBudgetSimulation() {
   });
 }
 
-// --- AI Reports ---
 
-export function useGenerateReport() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (request: GenerateReportRequest) => generateReport(request),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ["analytics", "reports", variables.platform],
-      });
-    },
-  });
-}
-
-export function useReports(
-  platform: "shopee" | "tiktok",
-  page: number = 1,
-  limit: number = 20,
-) {
-  return useQuery({
-    queryKey: ["analytics", "reports", platform, page, limit],
-    queryFn: () => getReports(platform, page, limit),
-    staleTime: 60 * 1000, // 1 minute
-  });
-}
-
-export function useReportHTML(
-  platform: "shopee" | "tiktok",
-  filename: string | null,
-) {
-  return useQuery({
-    queryKey: ["analytics", "report-html", platform, filename],
-    queryFn: () => getReportHTML(platform, filename!),
-    enabled: !!filename,
-    staleTime: Infinity, // HTML content is static once generated
-  });
-}

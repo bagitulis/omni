@@ -29,8 +29,6 @@ func MigrateSystemDatabase(db *gorm.DB) error {
 		&models.User{},
 		&models.AuditLog{},
 		&models.GlobalConfig{},
-		&models.MLReport{},
-		&models.MLJob{},
 	}
 
 	for _, model := range systemModels {
@@ -146,9 +144,7 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		&models.TiktokAdsProductSummary{},
 		&models.TiktokAdsMLPrediction{},
 
-		// ML Reports
-		&models.MLReport{},
-		&models.MLJob{},
+
 
 		// Jobs
 		&models.Job{},

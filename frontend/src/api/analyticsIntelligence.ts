@@ -84,42 +84,7 @@ export interface SimulationResult {
   }[];
 }
 
-export interface MLReport {
-  id: number;
-  tenant_id: string;
-  platform: "shopee" | "tiktok";
-  report_type: "full" | "executive" | "quick";
-  period_start: string;
-  period_end: string;
-  period_label: string;
-  file_path: string;
-  file_name: string;
-  file_size: number;
-  status: "pending" | "completed" | "failed";
-  error_msg?: string;
-  created_at: string;
-  updated_at: string;
-}
 
-export interface MLJob {
-  id: number;
-  tenant_id: string;
-  job_type: string;
-  platform: "shopee" | "tiktok";
-  status: "pending" | "running" | "completed" | "failed";
-  progress: number;
-  result_id?: number;
-  error_msg?: string;
-  created_at: string;
-}
-
-export interface GenerateReportRequest {
-  platform: "shopee" | "tiktok";
-  report_type?: "full" | "executive" | "quick";
-  period_label?: string;
-}
-
-// --- Unified Analytics ---
 
 export async function getUnifiedAnalytics(): Promise<UnifiedAnalyticsResponse> {
   const response = await api.get<UnifiedAnalyticsResponse>(
@@ -162,58 +127,4 @@ export async function runSimulation(
   return response.data;
 }
 
-// --- AI Reports ---
 
-export async function generateReport(
-  request: GenerateReportRequest,
-): Promise<MLJob> {
-  const response = await api.post<MLJob>(
-    "/analytics/ml/reports/generate",
-    request,
-  );
-  if (!response.success || !response.data)
-    throw new Error(response.error || "Failed to generate report");
-  return response.data;
-}
-
-export async function getReports(
-  platform: "shopee" | "tiktok",
-  page: number = 1,
-  limit: number = 20,
-): Promise<{ reports: MLReport[]; total: number }> {
-  try {
-    const response = await api.get<{ reports: MLReport[]; total: number }>(
-      `/analytics/ml/reports/${platform}/list`,
-      {
-        params: { page, limit },
-      },
-    );
-    if (!response.success)
-      throw new Error(response.error || "Failed to fetch reports");
-    return response.data ?? { reports: [], total: 0 };
-  } catch (error: unknown) {
-    // Handle 404 gracefully (e.g., if backend feature is not enabled or reachable)
-    if (error && typeof error === "object" && "response" in error) {
-      const axiosError = error as { response?: { status?: number } };
-      if (axiosError.response?.status === 404) {
-        logger.warn(
-          "ML Reports endpoint not found (404), returning empty list",
-        );
-        return { reports: [], total: 0 };
-      }
-    }
-    throw error;
-  }
-}
-
-export async function getReportHTML(
-  platform: "shopee" | "tiktok",
-  filename: string,
-): Promise<string> {
-  const response = await api.get<{ html: string }>(
-    `/analytics/ml/reports/${platform}/${filename}`,
-  );
-  if (!response.success || !response.data)
-    throw new Error(response.error || "Failed to fetch report HTML");
-  return response.data.html;
-}

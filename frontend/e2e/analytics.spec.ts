@@ -73,34 +73,7 @@ test.describe("Analytics & Reporting", () => {
     await expect(page.locator("body")).not.toContainText("404");
   });
 
-  test("AI reports page loads", async ({ page }) => {
-    // Mock API to avoid triggering real AI processing
-    await page.route("**/api/**", async (route) => {
-      if (route.request().method() === "GET") {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({ success: true, data: [] }),
-        });
-      } else {
-        await route.continue();
-      }
-    });
 
-    await page.goto("/analytics/ai-reports");
-    await page.waitForLoadState("networkidle");
-
-    await expect(
-      page
-        .locator(
-          'main, [class*="report"], [class*="ai"], .ant-card, .ant-layout-content',
-        )
-        .first(),
-    ).toBeVisible({ timeout: 10000 });
-
-    await expect(page.locator(".ant-alert-error")).toHaveCount(0);
-    await expect(page.locator("body")).not.toContainText("404");
-  });
 
   test("script monitor page loads", async ({ page }) => {
     await page.goto("/script-monitor");

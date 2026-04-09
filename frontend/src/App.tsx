@@ -70,9 +70,7 @@ const BudgetSimulatorPage = React.lazy(
 const ProductClassificationPage = React.lazy(
   () => import("./pages/analytics/ProductClassificationPage"),
 );
-const AIReportGalleryPage = React.lazy(
-  () => import("./pages/analytics/AIReportGalleryPage"),
-);
+
 const SettingsPage = React.lazy(() => import("./pages/settings/SettingsPage"));
 const ScriptMonitorPage = React.lazy(
   () => import("./pages/script-monitor/ScriptMonitorPage"),
@@ -215,7 +213,7 @@ function AppContent() {
                   />
                   <Route
                     path="/analytics/ai-reports"
-                    element={<AIReportGalleryPage />}
+                    element={<Navigate to="/analytics" replace />}
                   />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route

@@ -82,17 +82,7 @@ export const QuickActions = () => {
       path: "/analytics/product-classification",
       bgColor: token.colorFillSecondary,
     },
-    {
-      title: "AI Reports",
-      description: "Generate and browse AI-powered analytics reports",
-      icon: (
-        <FileSearchOutlined
-          style={{ fontSize: 24, color: token.colorWarning }}
-        />
-      ),
-      path: "/analytics/ai-reports",
-      bgColor: token.colorFillSecondary,
-    },
+
   ];
 
   return (
