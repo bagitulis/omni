@@ -175,6 +175,9 @@ func (s *TiktokEscrowSyncService) processOrders(
 	orders []tiktokPkg.TiktokOrder,
 	month, year int,
 ) (totalItems, processedOrders, failedOrders int) {
+	// Enrich orders with full payment details (shipping fees)
+	s.enrichOrdersWithDetails(ctx, client, orders)
+
 	for _, order := range orders {
 		orderID := order.ID
 		transaction, err := s.fetchOrderTransaction(ctx, client, orderID)
@@ -247,4 +250,82 @@ func (s *TiktokEscrowSyncService) deleteMonthData(ctx context.Context, month, ye
 	return s.base.DeleteMonthDataGeneric(
 		ctx, tables.OrderTable, tables.ItemTable, tables.SyncTable, month, year,
 	)
+}
+
+// enrichOrdersWithDetails batch-fetches full order details from GetOrderDetail API
+// to enrich orders with complete payment_info (shipping fees, total amounts, etc.)
+// which are NOT provided by the SearchOrders API.
+func (s *TiktokEscrowSyncService) enrichOrdersWithDetails(
+	ctx context.Context,
+	client *tiktokPkg.Client,
+	orders []tiktokPkg.TiktokOrder,
+) {
+	const batchSize = 20
+	for i := 0; i < len(orders); i += batchSize {
+		end := i + batchSize
+		if end > len(orders) {
+			end = len(orders)
+		}
+
+		ids := make([]string, 0, end-i)
+		for _, o := range orders[i:end] {
+			ids = append(ids, o.ID)
+		}
+
+		detail, err := client.GetOrderDetail(ids)
+		if err != nil {
+			log.Warn().Err(err).Int("batch", i/batchSize).
+				Msg("[TiktokEscrowSync] Failed to get order details batch, skipping enrichment")
+			continue
+		}
+
+		// Build order_id -> detail map
+		detailMap := make(map[string]*tiktokPkg.OrderDetailData, len(detail.Data.Orders))
+		for j := range detail.Data.Orders {
+			detailMap[detail.Data.Orders[j].ID] = &detail.Data.Orders[j]
+		}
+
+		// Enrich orders with payment info and line items
+		for j := i; j < end; j++ {
+			d, ok := detailMap[orders[j].ID]
+			if !ok {
+				continue
+			}
+			if d.PaymentInfo != nil {
+				if orders[j].PaymentInfo.ShippingFee == "" {
+					orders[j].PaymentInfo.ShippingFee = d.PaymentInfo.ShippingFee
+				}
+				if orders[j].PaymentInfo.TotalAmount == "" {
+					orders[j].PaymentInfo.TotalAmount = d.PaymentInfo.TotalAmount
+				}
+				if orders[j].PaymentInfo.SubTotal == "" {
+					orders[j].PaymentInfo.SubTotal = d.PaymentInfo.SubTotal
+				}
+				if orders[j].PaymentInfo.Currency == "" {
+					orders[j].PaymentInfo.Currency = d.PaymentInfo.Currency
+				}
+			}
+			// Enrich line items if originally empty
+			if len(orders[j].LineItems) == 0 && len(d.LineItems) > 0 {
+				for _, li := range d.LineItems {
+					orders[j].LineItems = append(orders[j].LineItems, tiktokPkg.TiktokOrderItem{
+						ID:               li.ID,
+						SkuID:            li.SkuID,
+						SkuName:          li.SkuName,
+						ProductID:        li.ProductID,
+						ProductName:      li.ProductName,
+						SellerSku:        li.SellerSku,
+						Quantity:         li.Quantity,
+						OriginalPrice:    li.OriginalPrice,
+						SalePrice:        li.SalePrice,
+					})
+				}
+			}
+		}
+
+		time.Sleep(200 * time.Millisecond) // rate limiting
+	}
+
+	log.Info().Int("total_orders", len(orders)).
+		Msg("[TiktokEscrowSync] Order detail enrichment completed")
 }

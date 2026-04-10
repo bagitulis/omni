@@ -48,12 +48,12 @@ export function TiktokShippingFeeTable({ orders, loading }: Props) {
     },
     {
       title: "Buyer Paid",
-      dataIndex: "buyer_paid",
-      key: "buyer_paid",
+      dataIndex: "customer_paid",
+      key: "customer_paid",
       width: 130,
       align: "right",
       render: (val: number) => <Text>{formatCurrency(val)}</Text>,
-      sorter: (a, b) => a.buyer_paid - b.buyer_paid,
+      sorter: (a, b) => a.customer_paid - b.customer_paid,
     },
     {
       title: "Actual Fee",
@@ -97,9 +97,9 @@ export function TiktokShippingFeeTable({ orders, loading }: Props) {
       key: "order_status",
       width: 140,
       render: (status: string) => <Tag>{status}</Tag>,
-      filters: Array.from(new Set(orders.map((o) => o.order_status))).map(
-        (s) => ({ text: s, value: s || "" }),
-      ),
+      filters: Array.from(
+        new Set((orders || []).map((o) => o.order_status || "Unknown")),
+      ).map((s) => ({ text: s, value: s })),
       onFilter: (value, record) => record.order_status === value,
     },
   ];

@@ -96,6 +96,11 @@ func (s *TiktokEscrowSyncService) smartRetrySync(
 	log.Info().Msgf("[TiktokEscrowSync] Retrying %d/%d failed orders", len(ordersToRetry), len(retryIDs))
 
 	if onProgress != nil {
+		onProgress(18, 0, len(ordersToRetry), "Enriching order details (shipping fees)...")
+	}
+	s.enrichOrdersWithDetails(ctx, client, ordersToRetry)
+
+	if onProgress != nil {
 		onProgress(20, 0, len(ordersToRetry), fmt.Sprintf("Processing %d retry orders...", len(ordersToRetry)))
 	}
 	totalItems, processed, failed, cancelled := s.processOrdersWithProgress(ctx, client, ordersToRetry, month, year, onProgress)
@@ -168,6 +173,11 @@ func (s *TiktokEscrowSyncService) fullSync(
 			return nil, err
 		}
 	}
+
+	if onProgress != nil {
+		onProgress(18, 0, len(orders), "Enriching order details (shipping fees)...")
+	}
+	s.enrichOrdersWithDetails(ctx, client, orders)
 
 	if onProgress != nil {
 		onProgress(20, 0, len(orders), fmt.Sprintf("Processing %d orders...", len(orders)))

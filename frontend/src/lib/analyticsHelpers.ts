@@ -210,7 +210,7 @@ export function exportTiktokShippingCSV(data: TiktokShippingFeeResult): void {
   const rows = data.orders.map((order) => [
     order.order_date || "",
     order.order_id,
-    String(order.buyer_paid),
+    String(order.customer_paid),
     String(order.actual_fee),
     String(order.platform_discount),
     String(order.difference),

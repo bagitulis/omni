@@ -518,7 +518,7 @@ describe("exportTiktokShippingCSV", () => {
         {
           order_id: "TT-001",
           order_date: "2024-03-10",
-          buyer_paid: 200000,
+          customer_paid: 200000,
           actual_fee: 8000,
           platform_discount: 1000,
           difference: 7000,

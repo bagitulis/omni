@@ -46,6 +46,7 @@ type SkuGroupDTO struct {
 	ModelSku            string    `json:"model_sku"`
 	ItemName            string    `json:"item_name"`
 	ModelName           string    `json:"model_name"`
+	VariantName         string    `json:"variant_name"`
 	InventoryPrice      *float64  `json:"inventory_price"`
 	ExpectedIncome      *float64  `json:"expected_income"`
 	TotalTransactions   int       `json:"total_transactions"`
@@ -107,12 +108,14 @@ type ShopeeShippingOrderDTO struct {
 
 // TiktokShippingOrderDTO for TikTok shipping fee analysis
 type TiktokShippingOrderDTO struct {
-	OrderID         string  `json:"order_id"`
-	OrderDate       *string `json:"order_date"`
-	CustomerPaid    float64 `json:"customer_paid"`
-	ActualCost      float64 `json:"actual_cost"`
-	PlatformSubsidy float64 `json:"platform_subsidy"`
-	Difference      float64 `json:"difference"`
+	OrderID          string  `json:"order_id"`
+	OrderDate        *string `json:"order_date"`
+	CustomerPaid     float64 `json:"customer_paid"`
+	ActualFee        float64 `json:"actual_fee"`
+	PlatformDiscount float64 `json:"platform_discount"`
+	Difference       float64 `json:"difference"`
+	OrderStatus      string  `json:"order_status"`
+	Currency         string  `json:"currency"`
 }
 
 // ShopeeShippingFeeResultDTO for Shopee shipping analysis

@@ -27,3 +27,11 @@ func Float64Ptr(f float64) *float64 {
 func BoolPtr(b bool) *bool {
 	return &b
 }
+
+// StringValue returns the value of a string pointer or empty string if nil
+func StringValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}

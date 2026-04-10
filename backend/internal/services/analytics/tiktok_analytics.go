@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/omni/backend/internal/dto"
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -255,12 +256,14 @@ func (s *TiktokAnalyticsService) GetShippingFeeAnalysis(ctx context.Context, mon
 		}
 
 		resultOrders = append(resultOrders, dto.TiktokShippingOrderDTO{
-			OrderID:         order.OrderID,
-			OrderDate:       orderDate,
-			CustomerPaid:    order.ShippingFeeCustomerPaid,
-			ActualCost:      order.ShippingFeeActual,
-			PlatformSubsidy: order.ShippingFeePlatformDiscount,
-			Difference:      difference,
+			OrderID:          order.OrderID,
+			OrderDate:        orderDate,
+			CustomerPaid:     order.ShippingFeeCustomerPaid,
+			ActualFee:        order.ShippingFeeActual,
+			PlatformDiscount: order.ShippingFeePlatformDiscount,
+			Difference:       difference,
+			OrderStatus:      utils.StringValue(order.OrderStatus),
+			Currency:         order.Currency,
 		})
 
 		if difference > 0 {

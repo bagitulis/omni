@@ -34,6 +34,7 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 	totalAmount := ParseFloat(order.PaymentInfo.TotalAmount)
 	subTotal := ParseFloat(order.PaymentInfo.SubTotal)
 	totalSettlementAmount := ParseFloat(tx.Data.SettlementAmount)
+	shippingFeeActual := ParseFloat(tx.Data.ShippingCostAmount)
 
 	orderDate := time.Unix(order.CreateTime, 0)
 	orderStatus := order.Status
@@ -53,11 +54,12 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 			INSERT INTO %s (
 				id, tenant_id, order_id, month, year, order_status, order_date,
 				product_revenue, buyer_total_amount, total_settlement_amount,
-				platform_commission, shipping_fee_customer_paid, shipping_fee_platform_discount,
+				platform_commission, shipping_fee_customer_paid, shipping_fee_actual,
+				shipping_fee_platform_discount,
 				seller_shipping_discount, currency,
 				raw_order_data, raw_transaction_data,
 				synced_at, created_at, updated_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT (tenant_id, order_id) DO UPDATE SET
 				month = EXCLUDED.month,
 				year = EXCLUDED.year,
@@ -68,6 +70,7 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 				total_settlement_amount = EXCLUDED.total_settlement_amount,
 				platform_commission = EXCLUDED.platform_commission,
 				shipping_fee_customer_paid = EXCLUDED.shipping_fee_customer_paid,
+				shipping_fee_actual = EXCLUDED.shipping_fee_actual,
 				shipping_fee_platform_discount = EXCLUDED.shipping_fee_platform_discount,
 				seller_shipping_discount = EXCLUDED.seller_shipping_discount,
 				currency = EXCLUDED.currency,
@@ -79,7 +82,8 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 		`, orderTable),
 			newID, s.tenantID, order.ID, month, year, orderStatus, orderDate,
 			subTotal, totalAmount, totalSettlementAmount,
-			platformDiscount, shippingFee, shippingPlatformDisc,
+			platformDiscount, shippingFee, shippingFeeActual,
+			shippingPlatformDisc,
 			sellerDiscount, tx.Data.Currency,
 			string(rawOrderData), string(rawTxData),
 			now, now, now,
@@ -126,7 +130,7 @@ func (s *TiktokEscrowSyncService) saveEscrowItemsTx(
 	itemTable string,
 ) error {
 	if len(tx.Data.SkuTransactions) > 0 {
-		return s.saveSkuTransactionsTx(ctx, dbTx, escrowOrderID, order.ID, tx.Data.SkuTransactions, itemTable)
+		return s.saveSkuTransactionsTx(ctx, dbTx, escrowOrderID, order.ID, tx.Data.SkuTransactions, order.LineItems, itemTable)
 	}
 
 	if len(order.LineItems) > 0 {
@@ -137,14 +141,23 @@ func (s *TiktokEscrowSyncService) saveEscrowItemsTx(
 	return nil
 }
 
-// saveSkuTransactionsTx saves SKU transactions within a DB transaction
+// saveSkuTransactionsTx saves SKU transactions within a DB transaction.
+// lineItems from order.LineItems are used to resolve the correct seller_sku,
+// since the Finance API's sku_name is the variant name, NOT the seller SKU.
 func (s *TiktokEscrowSyncService) saveSkuTransactionsTx(
 	ctx context.Context,
 	dbTx *gorm.DB,
 	escrowOrderID, orderID string,
 	skuTxs []tiktokPkg.SkuTransaction,
+	lineItems []tiktokPkg.TiktokOrderItem,
 	itemTable string,
 ) error {
+	// Build sku_id -> line_item map to resolve correct seller_sku
+	lineItemMap := make(map[string]tiktokPkg.TiktokOrderItem, len(lineItems))
+	for _, li := range lineItems {
+		lineItemMap[li.SkuID] = li
+	}
+
 	for _, skuTx := range skuTxs {
 		rawSkuData, _ := json.Marshal(skuTx)
 		qty, _ := strconv.Atoi(skuTx.Quantity)
@@ -164,13 +177,23 @@ func (s *TiktokEscrowSyncService) saveSkuTransactionsTx(
 			salePrice = ParseFloat(skuTx.SkuSubtotalAfterDisc)
 		}
 
+		// Resolve seller_sku: use order line_items (has correct seller_sku),
+		// NOT sku_name from Finance API (which is the variation name like "Hitam")
+		sellerSku := skuTx.SkuName // fallback to sku_name if line_item not found
+		var productID string
+		if li, ok := lineItemMap[skuTx.SkuID]; ok && li.SellerSku != "" {
+			sellerSku = li.SellerSku
+			productID = li.ProductID
+		}
+
 		escrowItem := models.TiktokEscrowItem{
 			ID:                          uuid.New().String(),
 			TenantID:                    s.tenantID,
 			EscrowOrderID:               escrowOrderID,
 			OrderID:                     orderID,
+			ProductID:                   StringPtr(productID),
 			SkuID:                       StringPtr(skuTx.SkuID),
-			SellerSku:                   StringPtr(skuTx.SkuName), // sku_name = seller_sku (Node.js)
+			SellerSku:                   StringPtr(sellerSku),
 			ProductName:                 StringPtr(skuTx.ProductName),
 			Quantity:                    qty,
 			OriginalPrice:               ParseFloat(skuTx.SkuSubtotalBeforeDisc),

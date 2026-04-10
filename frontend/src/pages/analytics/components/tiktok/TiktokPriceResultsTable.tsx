@@ -113,6 +113,19 @@ function TiktokPriceResultsTable({ skuGroups, loading }: Props) {
       sorter: (a, b) => a.sku.localeCompare(b.sku),
     },
     {
+      title: "Variation",
+      dataIndex: "variant_name",
+      key: "variant_name",
+      width: 120,
+      render: (name: string) => (
+        <Text type="secondary" style={{ fontSize: "0.85rem" }}>
+          {name || "-"}
+        </Text>
+      ),
+      sorter: (a, b) =>
+        (a.variant_name || "").localeCompare(b.variant_name || ""),
+    },
+    {
       title: "Item Name",
       dataIndex: "item_name",
       key: "item_name",

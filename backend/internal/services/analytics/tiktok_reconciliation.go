@@ -34,6 +34,31 @@ func (s *TiktokReconciliationService) getDB(ctx context.Context) *gorm.DB {
 	return s.db.WithContext(ctx)
 }
 
+// tiktokSkuLookup holds resolved SKU data from the tiktok_skus table
+type tiktokSkuLookup struct {
+	SellerSku   string
+	VariantName string
+}
+
+// loadSkuLookupMap pre-fetches all tiktok_skus for this tenant, keyed by sku_id.
+// This is used to resolve the actual seller_sku when the escrow item has
+// variant names stored in seller_sku (legacy bug from Finance API sku_name mapping).
+func (s *TiktokReconciliationService) loadSkuLookupMap(ctx context.Context) map[string]tiktokSkuLookup {
+	var skus []models.TiktokSku
+	s.getDB(ctx).Table(s.table("tiktok_skus")).
+		Where("tenant_id = ?", s.tenantID).
+		Find(&skus)
+
+	result := make(map[string]tiktokSkuLookup, len(skus))
+	for _, sk := range skus {
+		result[sk.SkuID] = tiktokSkuLookup{
+			SellerSku:   sk.SellerSku,
+			VariantName: sk.VariantName,
+		}
+	}
+	return result
+}
+
 // GetReconciliation analyzes price reconciliation for TikTok
 func (s *TiktokReconciliationService) GetReconciliation(ctx context.Context, month, year int, settings *dto.AnalyticsSettingsDTO) (*dto.ReconciliationResultDTO, error) {
 	items, orderMap, orderItemCount, err := s.fetchEscrowItems(ctx, month, year)
@@ -41,7 +66,10 @@ func (s *TiktokReconciliationService) GetReconciliation(ctx context.Context, mon
 		return nil, err
 	}
 
-	skuMap, skuInfoMap := s.groupItemsBySKU(items, orderMap, orderItemCount)
+	// Pre-load SKU lookup map for resolving correct seller_sku
+	skuLookup := s.loadSkuLookupMap(ctx)
+
+	skuMap, skuInfoMap := s.groupItemsBySKU(items, orderMap, orderItemCount, skuLookup)
 	skuGroups := s.buildSkuGroups(ctx, skuMap, skuInfoMap, settings)
 	s.sortSkuGroups(skuGroups)
 
@@ -99,21 +127,51 @@ func (s *TiktokReconciliationService) fetchEscrowItems(ctx context.Context, mont
 	return items, orderMap, orderItemCount, nil
 }
 
-// groupItemsBySKU groups items by SKU
-func (s *TiktokReconciliationService) groupItemsBySKU(items []models.TiktokEscrowItem, orderMap map[string]*models.TiktokEscrowOrder, orderItemCount map[string]int) (map[string]*SkuData, map[string]*SkuInfo) {
+// resolveSkuAndVariant resolves the actual seller_sku and variant name for an escrow item.
+// For old data where seller_sku contains a variant name (e.g. "Hitam"),
+// it looks up the correct seller_sku from the tiktok_skus table using sku_id.
+func resolveSkuAndVariant(item models.TiktokEscrowItem, skuLookup map[string]tiktokSkuLookup) (sku, variantName string) {
+	rawSku := GetStringValue(item.SellerSku)
+	skuID := GetStringValue(item.SkuID)
+	variantName = ""
+
+	// Try to resolve from tiktok_skus table using sku_id
+	if skuID != "" {
+		if lookup, ok := skuLookup[skuID]; ok && lookup.SellerSku != "" {
+			// If stored seller_sku differs from the real one, it's likely a variant name
+			if rawSku != "" && rawSku != lookup.SellerSku {
+				variantName = rawSku // The "wrong" value is actually the variant name
+			}
+			if variantName == "" {
+				variantName = lookup.VariantName
+			}
+			return lookup.SellerSku, variantName
+		}
+	}
+
+	// Fallback: use whatever is stored
+	sku = rawSku
+	if sku == "" {
+		sku = skuID
+	}
+	if sku == "" {
+		sku = "UNKNOWN"
+	}
+	return sku, variantName
+}
+
+// groupItemsBySKU groups items by SKU, resolving actual seller_sku from tiktok_skus
+func (s *TiktokReconciliationService) groupItemsBySKU(
+	items []models.TiktokEscrowItem,
+	orderMap map[string]*models.TiktokEscrowOrder,
+	orderItemCount map[string]int,
+	skuLookup map[string]tiktokSkuLookup,
+) (map[string]*SkuData, map[string]*SkuInfo) {
 	skuMap := make(map[string]*SkuData)
 	skuInfoMap := make(map[string]*SkuInfo)
 
 	for _, item := range items {
-		// Use SellerSku first (actual SKU code for inventory matching)
-		// Fallback to SkuID if SellerSku is empty
-		sku := GetStringValue(item.SellerSku)
-		if sku == "" {
-			sku = GetStringValue(item.SkuID)
-		}
-		if sku == "" {
-			sku = "UNKNOWN"
-		}
+		sku, variantName := resolveSkuAndVariant(item, skuLookup)
 
 		quantity := item.Quantity
 		if quantity == 0 {
@@ -150,8 +208,8 @@ func (s *TiktokReconciliationService) groupItemsBySKU(items []models.TiktokEscro
 		if _, exists := skuInfoMap[sku]; !exists {
 			skuInfoMap[sku] = &SkuInfo{
 				ItemName:  GetStringValue(item.ProductName),
-				ModelSku:  GetStringValue(item.SellerSku), // Use SellerSku as ModelSku for display
-				ModelName: "",                             // TikTok doesn't have variant name in escrow items
+				ModelSku:  sku,
+				ModelName: variantName,
 			}
 		}
 	}
@@ -203,6 +261,7 @@ func (s *TiktokReconciliationService) buildSkuGroups(ctx context.Context, skuMap
 			ModelSku:            info.ModelSku,
 			ItemName:            info.ItemName,
 			ModelName:           info.ModelName,
+			VariantName:         info.ModelName, // Variation display name
 			InventoryPrice:      inventoryPrice,
 			ExpectedIncome:      expectedIncome,
 			TotalTransactions:   data.Count,
@@ -229,3 +288,4 @@ func (s *TiktokReconciliationService) sortSkuGroups(skuGroups []dto.SkuGroupDTO)
 		return skuGroups[i].TotalTransactions > skuGroups[j].TotalTransactions
 	})
 }
+

@@ -140,6 +140,7 @@ export interface TiktokSkuGroup {
   model_sku: string;
   item_name: string;
   model_name: string;
+  variant_name: string;
   inventory_price: number | null;
   expected_income: number | null;
   total_transactions: number;
@@ -158,7 +159,7 @@ export interface TiktokReconciliationResult {
 export interface TiktokShippingFeeOrder {
   order_id: string;
   order_date: string | null;
-  buyer_paid: number;
+  customer_paid: number;
   actual_fee: number;
   platform_discount: number;
   difference: number;

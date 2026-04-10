@@ -12,7 +12,8 @@ type OrderTransactionResponse struct {
 	Data    struct {
 		OrderID               string                 `json:"order_id"`
 		Currency              string                 `json:"currency"`
-		SettlementAmount      string                 `json:"settlement_amount"` // Total settlement amount for the order
+		SettlementAmount      string                 `json:"settlement_amount"`   // Total settlement amount for the order
+		ShippingCostAmount    string                 `json:"shipping_cost_amount"` // Total shipping cost (Actual Fee)
 		SkuTransactions       []SkuTransaction       `json:"sku_transactions"`
 		OrderLevelCharges     []OrderLevelCharge     `json:"order_level_charges"`
 		StatementTransactions []StatementTransaction `json:"statement_transactions,omitempty"` // v202309
