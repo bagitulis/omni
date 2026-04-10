@@ -55,9 +55,10 @@ func (s *ShopeeAnalyticsService) GetSyncStatus(ctx context.Context, month, year 
 
 	syncedAt := sync.SyncedAt.Format(time.RFC3339)
 	return &dto.SyncStatusDTO{
-		Synced:      true,
-		TotalOrders: sync.TotalOrders,
-		SyncedAt:    &syncedAt,
+		Synced:       true,
+		TotalOrders:  sync.TotalOrders,
+		FailedOrders: sync.FailedOrders,
+		SyncedAt:     &syncedAt,
 	}, nil
 }
 

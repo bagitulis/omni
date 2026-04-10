@@ -22,6 +22,7 @@ interface AnalyticsToolbarProps {
   isSynced: boolean;
   syncData?: {
     total_orders: number;
+    failed_orders: number;
     synced_at: string | null;
   };
 
@@ -85,9 +86,15 @@ export const AnalyticsToolbar = ({
             style={{ width: 100 }}
           />
           {isSynced && syncData ? (
-            <Tag color="success">
-              Synced ({syncData.total_orders} orders) •{" "}
-              {formatAnalyticsDate(syncData.synced_at)}
+            <Tag
+              color={
+                syncData.failed_orders > 0 ? "warning" : "success"
+              }
+            >
+              {syncData.failed_orders > 0
+                ? `Synced (${syncData.total_orders} orders, ${syncData.failed_orders} failed)`
+                : `Synced (${syncData.total_orders} orders)`}{" "}
+              • {formatAnalyticsDate(syncData.synced_at)}
             </Tag>
           ) : (
             <Tag color="warning">Not synced</Tag>

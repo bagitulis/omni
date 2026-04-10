@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/omni/backend/internal/models"
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
 	"github.com/rs/zerolog/log"
 )
@@ -31,20 +29,115 @@ func (s *TiktokEscrowSyncService) SyncMonthWithProgress(
 		return nil, err
 	}
 
-	// Check if already synced
 	tables := TiktokEscrowTables()
+
+	// Check if already synced (smart retry if failures exist)
 	if !forceResync {
-		if result := s.checkExistingSync(ctx, tables, month, year); result != nil {
-			return result, nil
+		existing, retryIDs := s.checkExistingSyncForRetry(ctx, tables, month, year)
+		if existing != nil && retryIDs == nil {
+			return existing, nil // Fully synced, no failures
+		}
+		if retryIDs != nil {
+			return s.smartRetrySync(ctx, tables, month, year, retryIDs, onProgress)
 		}
 	}
 
-	// Check cancellation
+	// Full sync (first time or force resync)
+	return s.fullSync(ctx, tables, month, year, forceResync, onProgress)
+}
+
+// smartRetrySync retries only the failed orders from a previous sync
+func (s *TiktokEscrowSyncService) smartRetrySync(
+	ctx context.Context,
+	tables EscrowSyncTables,
+	month, year int,
+	retryIDs []string,
+	onProgress ProgressCallback,
+) (*SyncResultWithProgress, error) {
+	log.Info().Int("retry_count", len(retryIDs)).
+		Msg("[TiktokEscrowSync] Smart retry mode — retrying failed orders only")
+
+	if onProgress != nil {
+		onProgress(5, 0, 0, fmt.Sprintf("Retrying %d failed orders...", len(retryIDs)))
+	}
+
 	if cancelled := s.checkCancellation(ctx); cancelled != nil {
 		return cancelled, ctx.Err()
 	}
 
-	// Get client with progress
+	client, err := s.getTiktokClient()
+	if err != nil {
+		return nil, fmt.Errorf("get tiktok client: %w", err)
+	}
+
+	// Fetch all orders to get latest data for the failed ones
+	if onProgress != nil {
+		onProgress(10, 0, 0, "Fetching order data for retry...")
+	}
+	allOrders, err := s.fetchOrdersByMonth(ctx, client, month, year)
+	if err != nil {
+		return nil, fmt.Errorf("fetch orders for retry: %w", err)
+	}
+
+	// Filter to only failed order IDs
+	ordersToRetry := filterOrdersByIDs(allOrders, retryIDs)
+
+	if len(ordersToRetry) == 0 {
+		log.Info().Msg("[TiktokEscrowSync] No retry orders found in API — clearing failures")
+		if err := s.updateSyncRecordClearFailures(ctx, tables, month, year); err != nil {
+			return nil, err
+		}
+		return &SyncResultWithProgress{
+			TotalOrders: len(allOrders),
+			Message:     "Previously failed orders no longer exist in API. Sync record updated.",
+		}, nil
+	}
+
+	log.Info().Msgf("[TiktokEscrowSync] Retrying %d/%d failed orders", len(ordersToRetry), len(retryIDs))
+
+	if onProgress != nil {
+		onProgress(20, 0, len(ordersToRetry), fmt.Sprintf("Processing %d retry orders...", len(ordersToRetry)))
+	}
+	totalItems, processed, failed, cancelled := s.processOrdersWithProgress(ctx, client, ordersToRetry, month, year, onProgress)
+
+	if cancelled {
+		return &SyncResultWithProgress{
+			TotalOrders: len(ordersToRetry), ProcessedOrders: processed,
+			FailedOrders: failed, TotalItems: totalItems, Cancelled: true,
+			Message: fmt.Sprintf("Retry cancelled after processing %d/%d orders", processed, len(ordersToRetry)),
+		}, ctx.Err()
+	}
+
+	// Collect still-failing order IDs
+	failedIDs := s.collectFailedOrderIDs(ordersToRetry, nil, processed)
+
+	if onProgress != nil {
+		onProgress(95, processed, len(ordersToRetry), "Updating sync record...")
+	}
+	if err := s.mergeSyncRecord(ctx, tables, month, year, processed, failedIDs); err != nil {
+		return nil, err
+	}
+
+	if onProgress != nil {
+		onProgress(100, processed, len(ordersToRetry), "Retry completed")
+	}
+
+	return &SyncResultWithProgress{
+		TotalOrders: len(ordersToRetry), ProcessedOrders: processed,
+		FailedOrders: failed, TotalItems: totalItems,
+		Message: fmt.Sprintf("Retried %d orders: %d succeeded, %d still failing", len(ordersToRetry), processed, failed),
+	}, nil
+}
+
+// fullSync performs a complete sync (first time or force resync)
+func (s *TiktokEscrowSyncService) fullSync(
+	ctx context.Context, tables EscrowSyncTables,
+	month, year int, forceResync bool, onProgress ProgressCallback,
+) (*SyncResultWithProgress, error) {
+	if cancelled := s.checkCancellation(ctx); cancelled != nil {
+		return cancelled, ctx.Err()
+	}
+
 	if onProgress != nil {
 		onProgress(5, 0, 0, "Getting TikTok credentials...")
 	}
@@ -53,7 +146,6 @@ func (s *TiktokEscrowSyncService) SyncMonthWithProgress(
 		return nil, fmt.Errorf("get tiktok client: %w", err)
 	}
 
-	// Fetch orders with progress
 	if onProgress != nil {
 		onProgress(10, 0, 0, "Fetching completed orders...")
 	}
@@ -68,7 +160,6 @@ func (s *TiktokEscrowSyncService) SyncMonthWithProgress(
 
 	log.Info().Msgf("[TiktokEscrowSync] Found %d completed orders", len(orders))
 
-	// Delete existing if resync
 	if forceResync {
 		if onProgress != nil {
 			onProgress(15, 0, 0, "Deleting existing data...")
@@ -78,7 +169,6 @@ func (s *TiktokEscrowSyncService) SyncMonthWithProgress(
 		}
 	}
 
-	// Process orders
 	if onProgress != nil {
 		onProgress(20, 0, len(orders), fmt.Sprintf("Processing %d orders...", len(orders)))
 	}
@@ -86,20 +176,18 @@ func (s *TiktokEscrowSyncService) SyncMonthWithProgress(
 
 	if cancelled {
 		return &SyncResultWithProgress{
-			TotalOrders:     len(orders),
-			ProcessedOrders: processed,
-			FailedOrders:    failed,
-			TotalItems:      totalItems,
-			Cancelled:       true,
-			Message:         fmt.Sprintf("Cancelled after processing %d/%d orders", processed, len(orders)),
+			TotalOrders: len(orders), ProcessedOrders: processed,
+			FailedOrders: failed, TotalItems: totalItems, Cancelled: true,
+			Message: fmt.Sprintf("Cancelled after processing %d/%d orders", processed, len(orders)),
 		}, ctx.Err()
 	}
 
-	// Create sync record
+	failedIDs := s.collectFailedOrderIDsFromAll(ctx, client, orders, month, year)
+
 	if onProgress != nil {
 		onProgress(95, processed, len(orders), "Creating sync record...")
 	}
-	if err := s.createSyncRecord(ctx, tables, month, year, processed); err != nil {
+	if err := s.saveSyncRecord(ctx, tables, month, year, processed, failed, failedIDs); err != nil {
 		return nil, err
 	}
 
@@ -108,11 +196,9 @@ func (s *TiktokEscrowSyncService) SyncMonthWithProgress(
 	}
 
 	return &SyncResultWithProgress{
-		TotalOrders:     len(orders),
-		ProcessedOrders: processed,
-		FailedOrders:    failed,
-		TotalItems:      totalItems,
-		Message:         fmt.Sprintf("Synced %d/%d orders (%d failed), %d items", processed, len(orders), failed, totalItems),
+		TotalOrders: len(orders), ProcessedOrders: processed,
+		FailedOrders: failed, TotalItems: totalItems,
+		Message: fmt.Sprintf("Synced %d/%d orders (%d failed), %d items", processed, len(orders), failed, totalItems),
 	}, nil
 }
 
@@ -125,101 +211,40 @@ func (s *TiktokEscrowSyncService) validateMonth(month, year int) error {
 	return nil
 }
 
-// checkExistingSync returns result if already synced
-func (s *TiktokEscrowSyncService) checkExistingSync(ctx context.Context, tables EscrowSyncTables, month, year int) *SyncResultWithProgress {
-	var existing models.TiktokEscrowSync
-	err := s.base.DB.WithContext(ctx).Table(s.base.Table(tables.SyncTable)).
-		Where("tenant_id = ? AND month = ? AND year = ?", s.tenantID, month, year).
-		First(&existing).Error
-	if err == nil {
-		return &SyncResultWithProgress{
-			TotalOrders:     existing.TotalOrders,
-			ProcessedOrders: existing.TotalOrders,
-			Message:         "Already synced. Use forceResync to update.",
-		}
-	}
-	return nil
-}
-
-// checkCancellation returns result if context is cancelled
-func (s *TiktokEscrowSyncService) checkCancellation(ctx context.Context) *SyncResultWithProgress {
-	select {
-	case <-ctx.Done():
-		return &SyncResultWithProgress{Cancelled: true, Message: "Cancelled before starting"}
-	default:
-		return nil
-	}
-}
-
-// createSyncRecord creates or updates sync record in database (idempotent)
-func (s *TiktokEscrowSyncService) createSyncRecord(ctx context.Context, tables EscrowSyncTables, month, year, totalOrders int) error {
-	syncTable := s.base.Table(tables.SyncTable)
-	now := time.Now()
-
-	// Use delete-then-create to avoid constraint issues (sync records are low-concurrency)
-	s.base.DB.WithContext(ctx).Table(syncTable).
-		Where("tenant_id = ? AND month = ? AND year = ?", s.tenantID, month, year).
-		Delete(nil)
-
-	syncRecord := map[string]interface{}{
-		"id":           uuid.New().String(),
-		"tenant_id":    s.tenantID,
-		"month":        month,
-		"year":         year,
-		"total_orders": totalOrders,
-		"synced_at":    now,
-		"created_at":   now,
-		"updated_at":   now,
-	}
-	return s.base.DB.WithContext(ctx).Table(syncTable).Create(syncRecord).Error
-}
-
 // processOrdersWithProgress processes orders with progress callback
 func (s *TiktokEscrowSyncService) processOrdersWithProgress(
-	ctx context.Context,
-	client *tiktokPkg.Client,
-	orders []tiktokPkg.TiktokOrder,
-	month, year int,
-	onProgress ProgressCallback,
+	ctx context.Context, client *tiktokPkg.Client,
+	orders []tiktokPkg.TiktokOrder, month, year int, onProgress ProgressCallback,
 ) (totalItems, processedOrders, failedOrders int, cancelled bool) {
 	totalOrders := len(orders)
-
 	for i, order := range orders {
-		// Check cancellation
 		select {
 		case <-ctx.Done():
-			log.Info().Msgf("[TiktokEscrowSync] Cancelled at order %d/%d", i+1, totalOrders)
 			return totalItems, processedOrders, failedOrders, true
 		default:
 		}
 
-		// Update progress every 5 orders
 		if onProgress != nil && i%5 == 0 {
 			percent := 20 + (75 * (i + 1) / totalOrders)
 			onProgress(percent, processedOrders, totalOrders, fmt.Sprintf("Processing order %d/%d...", i+1, totalOrders))
 		}
 
-		// Process single order
 		items, err := s.processSingleOrder(ctx, client, order, month, year)
 		if err != nil {
-			log.Info().Msgf("[TiktokEscrowSync] Error processing order %s: %v", order.ID, err)
 			failedOrders++
 			continue
 		}
-
 		totalItems += items
 		processedOrders++
-		time.Sleep(150 * time.Millisecond) // Rate limiting (reduced from 500ms)
+		time.Sleep(150 * time.Millisecond)
 	}
 	return totalItems, processedOrders, failedOrders, false
 }
 
 // processSingleOrder processes one order and returns item count
 func (s *TiktokEscrowSyncService) processSingleOrder(
-	ctx context.Context,
-	client *tiktokPkg.Client,
-	order tiktokPkg.TiktokOrder,
-	month, year int,
+	ctx context.Context, client *tiktokPkg.Client,
+	order tiktokPkg.TiktokOrder, month, year int,
 ) (int, error) {
 	transaction, err := s.fetchOrderTransaction(ctx, client, order.ID)
 	if err != nil {
@@ -228,7 +253,6 @@ func (s *TiktokEscrowSyncService) processSingleOrder(
 		return 0, err
 	}
 	if transaction == nil || transaction.Data.OrderID == "" {
-		// Log the raw response for debugging
 		rawResp, _ := json.Marshal(transaction)
 		log.Warn().Str("order_id", order.ID).Str("tenant_id", s.tenantID).
 			Str("raw_response", string(rawResp)).
@@ -236,4 +260,19 @@ func (s *TiktokEscrowSyncService) processSingleOrder(
 		return 0, fmt.Errorf("no transaction data for order %s", order.ID)
 	}
 	return s.saveEscrowOrder(ctx, order, transaction, month, year)
+}
+
+// filterOrdersByIDs filters orders to only include those with matching IDs
+func filterOrdersByIDs(orders []tiktokPkg.TiktokOrder, ids []string) []tiktokPkg.TiktokOrder {
+	idSet := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		idSet[id] = true
+	}
+	var filtered []tiktokPkg.TiktokOrder
+	for _, order := range orders {
+		if idSet[order.ID] {
+			filtered = append(filtered, order)
+		}
+	}
+	return filtered
 }

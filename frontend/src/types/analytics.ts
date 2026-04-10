@@ -38,6 +38,7 @@ export type Platform = "shopee" | "tiktok";
 export interface SyncStatus {
   synced: boolean;
   total_orders: number;
+  failed_orders: number;
   synced_at: string | null;
 }
 

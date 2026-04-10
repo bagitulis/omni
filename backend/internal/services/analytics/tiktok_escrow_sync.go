@@ -7,9 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/omni/backend/internal/dto"
-	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services"
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
 	"github.com/rs/zerolog/log"
@@ -44,19 +42,19 @@ func (s *TiktokEscrowSyncService) SyncMonth(
 		return nil, fmt.Errorf("cannot sync current month, wait until month ends")
 	}
 
-	// Check if already synced
 	tables := TiktokEscrowTables()
+
+	// Smart retry: check for previous failures
 	if !forceResync {
-		var existing models.TiktokEscrowSync
-		err := s.base.DB.WithContext(ctx).Table(s.base.Table(tables.SyncTable)).
-			Where("tenant_id = ? AND month = ? AND year = ?", s.tenantID, month, year).
-			First(&existing).Error
-		if err == nil {
+		existing, retryIDs := s.checkExistingSyncForRetry(ctx, tables, month, year)
+		if existing != nil && retryIDs == nil {
 			return &dto.SyncResultDTO{
 				TotalOrders: existing.TotalOrders,
 				Message:     "Already synced. Use forceResync to update.",
 			}, nil
 		}
+		// If retryIDs != nil, fall through to normal sync logic
+		// which will handle them via atomic upsert (safe for re-processing)
 	}
 
 	// Get TikTok client
@@ -90,30 +88,18 @@ func (s *TiktokEscrowSyncService) SyncMonth(
 	// Process orders
 	totalItems, processedOrders, failedOrders := s.processOrders(ctx, client, orders, month, year)
 
-	// Create sync record (idempotent: delete old first)
-	syncTable := s.base.Table(tables.SyncTable)
-	now = time.Now()
-	s.base.DB.WithContext(ctx).Table(syncTable).
-		Where("tenant_id = ? AND month = ? AND year = ?", s.tenantID, month, year).
-		Delete(nil)
+	// Collect failed order IDs
+	failedIDs := s.collectFailedOrderIDsFromAll(ctx, client, orders, month, year)
 
-	syncRecord := map[string]interface{}{
-		"id":           uuid.New().String(),
-		"tenant_id":    s.tenantID,
-		"month":        month,
-		"year":         year,
-		"total_orders": processedOrders,
-		"synced_at":    now,
-		"created_at":   now,
-		"updated_at":   now,
-	}
-	if err := s.base.DB.WithContext(ctx).Table(syncTable).Create(syncRecord).Error; err != nil {
+	// Save sync record with failed tracking
+	if err := s.saveSyncRecord(ctx, tables, month, year, processedOrders, failedOrders, failedIDs); err != nil {
 		return nil, err
 	}
 
 	return &dto.SyncResultDTO{
-		TotalOrders: processedOrders,
-		TotalItems:  totalItems,
+		TotalOrders:  processedOrders,
+		TotalItems:   totalItems,
+		FailedOrders: failedOrders,
 		Message: fmt.Sprintf("Synced %d/%d orders (%d failed), %d items from TikTok API",
 			processedOrders, len(orders), failedOrders, totalItems),
 	}, nil

@@ -69,9 +69,15 @@ export const AnalyticsControls = ({
             style={{ width: 100 }}
           />
           {syncStatusData?.synced ? (
-            <Tag color="success">
-              Synced ({syncStatusData?.total_orders} orders) •{" "}
-              {formatAnalyticsDate(syncStatusData?.synced_at ?? null)}
+            <Tag
+              color={
+                syncStatusData.failed_orders > 0 ? "warning" : "success"
+              }
+            >
+              {syncStatusData.failed_orders > 0
+                ? `Synced (${syncStatusData.total_orders} orders, ${syncStatusData.failed_orders} failed)`
+                : `Synced (${syncStatusData.total_orders} orders)`}{" "}
+              • {formatAnalyticsDate(syncStatusData?.synced_at ?? null)}
             </Tag>
           ) : (
             <Tag color="warning">Not synced</Tag>

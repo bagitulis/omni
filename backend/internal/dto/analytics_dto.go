@@ -10,9 +10,10 @@ type AnalyticsSettingsDTO struct {
 
 // SyncStatusDTO represents sync status response
 type SyncStatusDTO struct {
-	Synced      bool    `json:"synced"`
-	TotalOrders int     `json:"total_orders"`
-	SyncedAt    *string `json:"synced_at"`
+	Synced       bool    `json:"synced"`
+	TotalOrders  int     `json:"total_orders"`
+	FailedOrders int     `json:"failed_orders"`
+	SyncedAt     *string `json:"synced_at"`
 }
 
 // SyncRequestDTO for sync API request

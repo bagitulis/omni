@@ -23,12 +23,14 @@ func (AnalyticsSettings) TableName() string {
 // ShopeeEscrowSync tracks Shopee escrow sync status
 // Matches Prisma schema: ShopeeEscrowSync
 type ShopeeEscrowSync struct {
-	ID          string    `gorm:"primaryKey" json:"id"`
-	TenantID    string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
-	Month       int       `gorm:"column:month;index" json:"month"`
-	Year        int       `gorm:"column:year;index" json:"year"`
-	TotalOrders int       `gorm:"column:total_orders;default:0" json:"total_orders"`
-	SyncedAt    time.Time `gorm:"column:synced_at" json:"synced_at"`
+	ID             string    `gorm:"primaryKey" json:"id"`
+	TenantID       string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
+	Month          int       `gorm:"column:month;index" json:"month"`
+	Year           int       `gorm:"column:year;index" json:"year"`
+	TotalOrders    int       `gorm:"column:total_orders;default:0" json:"total_orders"`
+	FailedOrders   int       `gorm:"column:failed_orders;default:0" json:"failed_orders"`
+	FailedOrderIDs *string   `gorm:"column:failed_order_ids;type:text" json:"failed_order_ids,omitempty"`
+	SyncedAt       time.Time `gorm:"column:synced_at" json:"synced_at"`
 }
 
 // TableName specifies the table name for GORM
@@ -39,14 +41,16 @@ func (ShopeeEscrowSync) TableName() string {
 // TiktokEscrowSync tracks TikTok escrow sync status
 // Matches Prisma schema: TiktokEscrowSync
 type TiktokEscrowSync struct {
-	ID          string    `gorm:"primaryKey" json:"id"`
-	TenantID    string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
-	Month       int       `gorm:"column:month;index" json:"month"`
-	Year        int       `gorm:"column:year;index" json:"year"`
-	TotalOrders int       `gorm:"column:total_orders;default:0" json:"total_orders"`
-	SyncedAt    time.Time `gorm:"column:synced_at" json:"synced_at"`
-	CreatedAt   time.Time `gorm:"column:created_at" json:"created_at"`
-	UpdatedAt   time.Time `gorm:"column:updated_at" json:"updated_at"`
+	ID             string    `gorm:"primaryKey" json:"id"`
+	TenantID       string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
+	Month          int       `gorm:"column:month;index" json:"month"`
+	Year           int       `gorm:"column:year;index" json:"year"`
+	TotalOrders    int       `gorm:"column:total_orders;default:0" json:"total_orders"`
+	FailedOrders   int       `gorm:"column:failed_orders;default:0" json:"failed_orders"`
+	FailedOrderIDs *string   `gorm:"column:failed_order_ids;type:text" json:"failed_order_ids,omitempty"`
+	SyncedAt       time.Time `gorm:"column:synced_at" json:"synced_at"`
+	CreatedAt      time.Time `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt      time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
 // TableName specifies the table name for GORM
