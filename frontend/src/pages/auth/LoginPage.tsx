@@ -97,17 +97,21 @@ const LoginPage: React.FC = () => {
             "Auto-login failed:",
             { message: errMsg },
           );
-          // Only block future auto-login for genuine auth errors (not network/CORS)
-          const isAuthError =
+          // Only block future auto-login for genuine auth rejection
+          // Network errors (502, timeout, CORS) should allow retry on next load
+          const isHardAuthError =
             errMsg.includes("Invalid") ||
             errMsg.includes("tenant") ||
+            errMsg.includes("Not found") ||
             errMsg.includes("Dev login failed");
-          if (isAuthError) {
+          if (isHardAuthError) {
             sessionStorage.setItem("autoLoginFailed", "true");
           }
           setIsAutoLogin(false);
         } else {
-          setError(err instanceof Error ? err.message : "Dev login failed");
+          // Manual click → show the actual error, not generic message
+          const msg = err instanceof Error ? err.message : "Dev login failed";
+          setError(msg);
         }
       } finally {
         setIsLoading(false);

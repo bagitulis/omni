@@ -10,6 +10,8 @@ export interface AuthState {
   token: string | null;
   accessToken: string | null;
   isAuthenticated: boolean;
+  /** True while initializeAuth is running (blocks ProtectedRoute redirect) */
+  isInitializing: boolean;
   tenantId: string | null;
   expiresAt: number | null;
 
@@ -47,6 +49,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   token: null,
   accessToken: null,
   isAuthenticated: false,
+  isInitializing: true,
   tenantId: localStorage.getItem(STORAGE_KEYS.TENANT_ID),
   expiresAt: null,
 
@@ -86,6 +89,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       accessToken: null,
       tenantId: null,
       isAuthenticated: false,
+      isInitializing: false,
       expiresAt: null,
     });
   },
@@ -174,32 +178,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initializeAuth: async (): Promise<boolean> => {
     const { accessToken, refreshAccessToken, clearAuth } = get();
 
-    // Check for stored user in sessionStorage
     const storedUser = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
     const storedTenantId = localStorage.getItem(STORAGE_KEYS.TENANT_ID);
 
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
-        // Restore user state immediately (optimistic)
-        set({ user, tenantId: storedTenantId || null });
+        // Restore user state immediately (optimistic — blocks login redirect)
+        set({ user, tenantId: storedTenantId || null, isAuthenticated: true });
 
-        // If no token, try to refresh
+        // If no in-memory token, try to refresh from HttpOnly cookie
         if (!accessToken) {
           const success = await refreshAccessToken();
           if (!success) {
-            // Refresh failed, clear everything
+            // Refresh failed — clear everything and let user re-login
             clearAuth();
             return false;
           }
-          return true;
         }
+        set({ isInitializing: false });
+        return true;
       } catch (err) {
         logger.warn("Failed to parse stored auth user", { error: err });
         localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
       }
     }
 
+    // No stored user or parse failed
+    set({ isInitializing: false });
     return !!get().accessToken;
   },
 

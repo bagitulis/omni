@@ -43,6 +43,7 @@ function resetStore(): void {
     token: null,
     accessToken: null,
     isAuthenticated: false,
+    isInitializing: true,
     tenantId: null,
     expiresAt: null,
   });
@@ -93,19 +94,17 @@ describe("authStore", () => {
       isAuthenticated: true,
       tenantId: "tenant-xyz",
     });
-    expect(sessionStorage.getItem("authUser")).toBe(JSON.stringify(mockUser));
-    expect(sessionStorage.getItem("tenantId")).toBe("tenant-xyz");
+    expect(localStorage.getItem("authUser")).toBe(JSON.stringify(mockUser));
+    expect(localStorage.getItem("tenantId")).toBe("tenant-xyz");
     expect(localStorage.getItem("authToken")).toBeNull();
-    expect(localStorage.getItem("authUser")).toBeNull();
-    expect(localStorage.getItem("tenantId")).toBeNull();
     expect(localStorage.getItem("userRole")).toBeNull();
     expect(localStorage.getItem("userName")).toBeNull();
     expect(useAuthStore.getState().expiresAt).not.toBeNull();
   });
 
   it("clearAuth resets auth state and clears storage", () => {
-    sessionStorage.setItem("authUser", JSON.stringify(mockUser));
-    sessionStorage.setItem("tenantId", "tenant-xyz");
+    localStorage.setItem("authUser", JSON.stringify(mockUser));
+    localStorage.setItem("tenantId", "tenant-xyz");
     localStorage.setItem("authToken", "old-token");
 
     useAuthStore.getState().setAuth({
@@ -124,8 +123,8 @@ describe("authStore", () => {
       tenantId: null,
       expiresAt: null,
     });
-    expect(sessionStorage.getItem("authUser")).toBeNull();
-    expect(sessionStorage.getItem("tenantId")).toBeNull();
+    expect(localStorage.getItem("authUser")).toBeNull();
+    expect(localStorage.getItem("tenantId")).toBeNull();
     expect(localStorage.getItem("authToken")).toBeNull();
   });
 
@@ -185,8 +184,8 @@ describe("authStore", () => {
   });
 
   it("initializeAuth restores stored user and refreshes token", async () => {
-    sessionStorage.setItem("authUser", JSON.stringify(mockUser));
-    sessionStorage.setItem("tenantId", "tenant-xyz");
+    localStorage.setItem("authUser", JSON.stringify(mockUser));
+    localStorage.setItem("tenantId", "tenant-xyz");
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -209,16 +208,17 @@ describe("authStore", () => {
       accessToken: "refreshed-token",
       token: "refreshed-token",
       isAuthenticated: true,
+      isInitializing: false,
     });
   });
 
   it("initializeAuth removes corrupted stored user", async () => {
-    sessionStorage.setItem("authUser", "NOT VALID JSON{{{");
+    localStorage.setItem("authUser", "NOT VALID JSON{{{");
 
     const result = await useAuthStore.getState().initializeAuth();
 
     expect(result).toBe(false);
-    expect(sessionStorage.getItem("authUser")).toBeNull();
+    expect(localStorage.getItem("authUser")).toBeNull();
     expect(mockLogger.warn).toHaveBeenCalledWith(
       "Failed to parse stored auth user",
       { error: expect.any(Error) },

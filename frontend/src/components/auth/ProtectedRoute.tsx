@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { Result, Button } from "antd";
+import { Result, Button, Spin } from "antd";
 import { useAuthStore } from "@/stores/authStore";
 import { hasPermission } from "@/lib/permissionService";
 
@@ -14,6 +14,7 @@ interface ProtectedRouteProps {
 
 /**
  * Route guard component.
+ * - While initializing → show loading spinner (prevents flicker)
  * - If not authenticated → redirect to /login?returnUrl=currentPath
  * - If authenticated but missing permission/role → show Access Denied
  * - Otherwise → render children or <Outlet />
@@ -24,8 +25,25 @@ export function ProtectedRoute({
   children,
 }: ProtectedRouteProps) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isInitializing = useAuthStore((state) => state.isInitializing);
   const user = useAuthStore((state) => state.user);
   const location = useLocation();
+
+  // Still restoring auth state → show loading (not redirect)
+  if (isInitializing) {
+    return (
+      <div
+        style={{
+          height: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   // Not authenticated → redirect to login with return URL
   if (!isAuthenticated) {

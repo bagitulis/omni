@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/dto/response"
@@ -36,9 +37,26 @@ func NewAuthHandler(authService *services.AuthService, multiTenantAuth *services
 	}
 }
 
-// setRefreshTokenCookie sets HttpOnly cookie for refresh token
+// isLocalhostRequest checks if the request originates from localhost.
+// Used to allow HTTP cookies for local Docker development.
+func isLocalhostRequest(c *gin.Context) bool {
+	origin := c.GetHeader("Origin")
+	referer := c.GetHeader("Referer")
+	return strings.Contains(origin, "localhost") ||
+		strings.Contains(origin, "127.0.0.1") ||
+		strings.Contains(referer, "localhost") ||
+		strings.Contains(referer, "127.0.0.1")
+}
+
+// setRefreshTokenCookie sets HttpOnly cookie for refresh token.
+// HYBRID MODE: When GO_ENV=production but request is from localhost (Docker dev),
+// Secure=false so the browser accepts the cookie over HTTP.
 func setRefreshTokenCookie(c *gin.Context, token string, maxAge int) {
-	secure := os.Getenv("GO_ENV") == "production"
+	isProd := os.Getenv("GO_ENV") == "production"
+	isLocal := isLocalhostRequest(c)
+
+	// Secure=true only for production HTTPS, not for localhost HTTP
+	secure := isProd && !isLocal
 	sameSite := http.SameSiteLaxMode
 	if secure {
 		sameSite = http.SameSiteStrictMode
@@ -51,7 +69,7 @@ func setRefreshTokenCookie(c *gin.Context, token string, maxAge int) {
 		maxAge,
 		RefreshTokenCookiePath,
 		"",     // domain - empty uses current domain
-		secure, // secure flag - HTTPS only in production
+		secure, // secure flag - HTTPS only in non-localhost production
 		true,   // httpOnly - CRITICAL for security!
 	)
 }

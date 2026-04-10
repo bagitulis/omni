@@ -27,6 +27,8 @@ var CSRFExemptPaths = []string{
 	"/api/n8n/",
 	"/api/auth/login",
 	"/api/auth/register",
+	"/api/auth/refresh",
+	"/api/auth/dev-login",
 	"/api/csrf-token",
 	"/api/status",
 }

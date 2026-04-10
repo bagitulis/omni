@@ -30,6 +30,7 @@ function makeState(user: AuthState["user"]): AuthState {
     token: null,
     accessToken: null,
     isAuthenticated: false,
+    isInitializing: false,
     tenantId: null,
     expiresAt: null,
     setAuth: vi.fn(),
