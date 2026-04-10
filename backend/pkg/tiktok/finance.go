@@ -21,27 +21,28 @@ type OrderTransactionResponse struct {
 
 // SkuTransaction represents SKU level transaction from TikTok Finance API v202501
 // Fields based on: /finance/202501/orders/{order_id}/statement_transactions
+// Note: Quantity is string per TikTok official SDK (not int)
 type SkuTransaction struct {
 	SkuID                 string `json:"sku_id"`
 	ProductName           string `json:"product_name"`
 	SkuName               string `json:"sku_name"`
-	Quantity              int    `json:"quantity"`
-	RevenueAmount         string `json:"revenue_amount"`    // Total revenue for this SKU (sale_price equivalent)
-	SettlementAmount      string `json:"settlement_amount"` // SKU-level settlement amount
-	SkuSubtotalBeforeDisc string `json:"sku_subtotal_before_discount"`
-	SkuPlatformDiscount   string `json:"sku_platform_discount"`
-	SkuSellerDiscount     string `json:"sku_seller_discount"`
-	SkuExtPlatformDisc    string `json:"sku_ext_platform_discount"`
-	SkuExtSellerDisc      string `json:"sku_ext_seller_discount"`
-	SkuSubtotalAfterDisc  string `json:"sku_subtotal_after_discount"`
-	RetailDeliveryFee     string `json:"sku_retail_delivery_fee"`
-	SkuEstimatedPkg       string `json:"sku_estimated_package_on_buyer"`
-	TransactionFee        string `json:"transaction_fee"`
-	ReferralFee           string `json:"referral_fee"`
-	AffiliateCommission   string `json:"affiliate_commission"`
-	AffiliatePartnerComm  string `json:"affiliate_partner_commission"`
-	SkuNetSales           string `json:"sku_net_sales"`
-	SkuNetPayout          string `json:"sku_net_payout"`
+	Quantity              string `json:"quantity"`
+	RevenueAmount         string      `json:"revenue_amount"`    // Total revenue for this SKU (sale_price equivalent)
+	SettlementAmount      string      `json:"settlement_amount"` // SKU-level settlement amount
+	SkuSubtotalBeforeDisc string      `json:"sku_subtotal_before_discount"`
+	SkuPlatformDiscount   string      `json:"sku_platform_discount"`
+	SkuSellerDiscount     string      `json:"sku_seller_discount"`
+	SkuExtPlatformDisc    string      `json:"sku_ext_platform_discount"`
+	SkuExtSellerDisc      string      `json:"sku_ext_seller_discount"`
+	SkuSubtotalAfterDisc  string      `json:"sku_subtotal_after_discount"`
+	RetailDeliveryFee     string      `json:"sku_retail_delivery_fee"`
+	SkuEstimatedPkg       string      `json:"sku_estimated_package_on_buyer"`
+	TransactionFee        string      `json:"transaction_fee"`
+	ReferralFee           string      `json:"referral_fee"`
+	AffiliateCommission   string      `json:"affiliate_commission"`
+	AffiliatePartnerComm  string      `json:"affiliate_partner_commission"`
+	SkuNetSales           string      `json:"sku_net_sales"`
+	SkuNetPayout          string      `json:"sku_net_payout"`
 }
 
 // OrderLevelCharge represents order level charges

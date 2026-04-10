@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -146,7 +147,7 @@ func (s *TiktokEscrowSyncService) saveSkuTransactionsTx(
 ) error {
 	for _, skuTx := range skuTxs {
 		rawSkuData, _ := json.Marshal(skuTx)
-		qty := skuTx.Quantity
+		qty, _ := strconv.Atoi(skuTx.Quantity)
 		if qty == 0 {
 			qty = 1 // Default to 1 (matches Node.js logic)
 		}
