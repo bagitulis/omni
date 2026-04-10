@@ -3,13 +3,14 @@ package analytics
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/rs/zerolog/log"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/omni/backend/internal/models"
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
+	"github.com/rs/zerolog/log"
 )
 
 // SyncMonthWithProgress syncs escrow data with progress callback for background jobs
@@ -150,19 +151,27 @@ func (s *TiktokEscrowSyncService) checkCancellation(ctx context.Context) *SyncRe
 	}
 }
 
-// createSyncRecord creates sync record in database
+// createSyncRecord creates or updates sync record in database (idempotent)
 func (s *TiktokEscrowSyncService) createSyncRecord(ctx context.Context, tables EscrowSyncTables, month, year, totalOrders int) error {
-	syncRecord := models.TiktokEscrowSync{
-		ID:          uuid.New().String(),
-		TenantID:    s.tenantID,
-		Month:       month,
-		Year:        year,
-		TotalOrders: totalOrders,
-		SyncedAt:    time.Now(),
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+	syncTable := s.base.Table(tables.SyncTable)
+	now := time.Now()
+
+	// Use delete-then-create to avoid constraint issues (sync records are low-concurrency)
+	s.base.DB.WithContext(ctx).Table(syncTable).
+		Where("tenant_id = ? AND month = ? AND year = ?", s.tenantID, month, year).
+		Delete(nil)
+
+	syncRecord := map[string]interface{}{
+		"id":           uuid.New().String(),
+		"tenant_id":    s.tenantID,
+		"month":        month,
+		"year":         year,
+		"total_orders": totalOrders,
+		"synced_at":    now,
+		"created_at":   now,
+		"updated_at":   now,
 	}
-	return s.base.DB.WithContext(ctx).Table(s.base.Table(tables.SyncTable)).Create(&syncRecord).Error
+	return s.base.DB.WithContext(ctx).Table(syncTable).Create(syncRecord).Error
 }
 
 // processOrdersWithProgress processes orders with progress callback
@@ -214,10 +223,17 @@ func (s *TiktokEscrowSyncService) processSingleOrder(
 ) (int, error) {
 	transaction, err := s.fetchOrderTransaction(ctx, client, order.ID)
 	if err != nil {
+		log.Warn().Str("order_id", order.ID).Str("tenant_id", s.tenantID).
+			Err(err).Msg("[TiktokEscrowSync] Failed to fetch transaction from API")
 		return 0, err
 	}
 	if transaction == nil || transaction.Data.OrderID == "" {
-		return 0, fmt.Errorf("no transaction data")
+		// Log the raw response for debugging
+		rawResp, _ := json.Marshal(transaction)
+		log.Warn().Str("order_id", order.ID).Str("tenant_id", s.tenantID).
+			Str("raw_response", string(rawResp)).
+			Msg("[TiktokEscrowSync] Empty transaction data from API")
+		return 0, fmt.Errorf("no transaction data for order %s", order.ID)
 	}
 	return s.saveEscrowOrder(ctx, order, transaction, month, year)
 }

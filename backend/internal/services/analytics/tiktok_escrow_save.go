@@ -4,15 +4,17 @@ package analytics
 import (
 	"context"
 	"encoding/json"
-	"github.com/rs/zerolog/log"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/omni/backend/internal/models"
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
+	"github.com/rs/zerolog/log"
+	"gorm.io/gorm"
 )
 
-// saveEscrowOrder saves order and item data to database using upsert pattern
+// saveEscrowOrder saves order and item data to database using atomic upsert
 func (s *TiktokEscrowSyncService) saveEscrowOrder(
 	ctx context.Context,
 	order tiktokPkg.TiktokOrder,
@@ -34,87 +36,114 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 
 	orderDate := time.Unix(order.CreateTime, 0)
 	orderStatus := order.Status
+	now := time.Now()
+	newID := uuid.New().String()
 
-	// Prepare base record with new UUID (will be ignored if record exists)
-	escrowOrder := models.TiktokEscrowOrder{
-		ID:        uuid.New().String(),
-		TenantID:  s.tenantID,
-		OrderID:   order.ID,
-		CreatedAt: time.Now(),
-	}
-
-	// Data to update/assign (excludes ID and CreatedAt to preserve existing)
-	updateData := models.TiktokEscrowOrder{
-		Month:                       month,
-		Year:                        year,
-		OrderStatus:                 &orderStatus,
-		OrderDate:                   &orderDate,
-		ProductRevenue:              subTotal,
-		BuyerTotalAmount:            totalAmount,
-		TotalSettlementAmount:       totalSettlementAmount,
-		PlatformCommission:          platformDiscount,
-		ShippingFeeCustomerPaid:     shippingFee,
-		ShippingFeePlatformDiscount: shippingPlatformDisc,
-		SellerShippingDiscount:      sellerDiscount,
-		Currency:                    tx.Data.Currency,
-		RawOrderData:                StringPtr(string(rawOrderData)),
-		RawTransactionData:          StringPtr(string(rawTxData)),
-		SyncedAt:                    time.Now(),
-		UpdatedAt:                   time.Now(),
-	}
-
-	// Upsert order
 	tables := TiktokEscrowTables()
-	if err := s.base.DB.WithContext(ctx).Table(s.base.Table(tables.OrderTable)).
-		Where("tenant_id = ? AND order_id = ?", s.tenantID, order.ID).
-		Assign(updateData).
-		FirstOrCreate(&escrowOrder).Error; err != nil {
+	orderTable := s.base.Table(tables.OrderTable)
+	itemTable := s.base.Table(tables.ItemTable)
+
+	var escrowOrderID string
+
+	// Use a DB transaction for atomicity (order upsert + item replace)
+	err := s.base.DB.WithContext(ctx).Transaction(func(dbTx *gorm.DB) error {
+		// Atomic upsert using raw SQL with ON CONFLICT + RETURNING id
+		row := dbTx.Raw(fmt.Sprintf(`
+			INSERT INTO %s (
+				id, tenant_id, order_id, month, year, order_status, order_date,
+				product_revenue, buyer_total_amount, total_settlement_amount,
+				platform_commission, shipping_fee_customer_paid, shipping_fee_platform_discount,
+				seller_shipping_discount, currency,
+				raw_order_data, raw_transaction_data,
+				synced_at, created_at, updated_at
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT (tenant_id, order_id) DO UPDATE SET
+				month = EXCLUDED.month,
+				year = EXCLUDED.year,
+				order_status = EXCLUDED.order_status,
+				order_date = EXCLUDED.order_date,
+				product_revenue = EXCLUDED.product_revenue,
+				buyer_total_amount = EXCLUDED.buyer_total_amount,
+				total_settlement_amount = EXCLUDED.total_settlement_amount,
+				platform_commission = EXCLUDED.platform_commission,
+				shipping_fee_customer_paid = EXCLUDED.shipping_fee_customer_paid,
+				shipping_fee_platform_discount = EXCLUDED.shipping_fee_platform_discount,
+				seller_shipping_discount = EXCLUDED.seller_shipping_discount,
+				currency = EXCLUDED.currency,
+				raw_order_data = EXCLUDED.raw_order_data,
+				raw_transaction_data = EXCLUDED.raw_transaction_data,
+				synced_at = EXCLUDED.synced_at,
+				updated_at = EXCLUDED.updated_at
+			RETURNING id
+		`, orderTable),
+			newID, s.tenantID, order.ID, month, year, orderStatus, orderDate,
+			subTotal, totalAmount, totalSettlementAmount,
+			platformDiscount, shippingFee, shippingPlatformDisc,
+			sellerDiscount, tx.Data.Currency,
+			string(rawOrderData), string(rawTxData),
+			now, now, now,
+		).Row()
+
+		if err := row.Scan(&escrowOrderID); err != nil {
+			return fmt.Errorf("upsert order %s: %w", order.ID, err)
+		}
+
+		// Delete existing items for this order
+		if err := dbTx.Exec(
+			fmt.Sprintf("DELETE FROM %s WHERE tenant_id = ? AND escrow_order_id = ?", itemTable),
+			s.tenantID, escrowOrderID,
+		).Error; err != nil {
+			return fmt.Errorf("delete items for order %s: %w", order.ID, err)
+		}
+
+		// Save items within the same transaction
+		return s.saveEscrowItemsTx(ctx, dbTx, escrowOrderID, order, tx, itemTable)
+	})
+
+	if err != nil {
 		return 0, err
 	}
 
-	// Delete existing items (use nil to avoid GORM struct-based ID filter)
-	s.base.DB.WithContext(ctx).Table(s.base.Table(tables.ItemTable)).
-		Where("tenant_id = ? AND escrow_order_id = ?", s.tenantID, escrowOrder.ID).
-		Delete(nil)
-
-	// Save items - prefer SkuTransactions, fallback to LineItems
-	itemCount := s.saveEscrowItems(ctx, escrowOrder.ID, order, tx)
-
-	return itemCount, nil
+	return countEscrowItems(order, tx), nil
 }
 
-// saveEscrowItems saves escrow items from SKU transactions or line items
-func (s *TiktokEscrowSyncService) saveEscrowItems(
+// countEscrowItems returns the expected item count
+func countEscrowItems(order tiktokPkg.TiktokOrder, tx *tiktokPkg.OrderTransactionResponse) int {
+	if len(tx.Data.SkuTransactions) > 0 {
+		return len(tx.Data.SkuTransactions)
+	}
+	return len(order.LineItems)
+}
+
+// saveEscrowItemsTx saves escrow items within an existing DB transaction
+func (s *TiktokEscrowSyncService) saveEscrowItemsTx(
 	ctx context.Context,
+	dbTx *gorm.DB,
 	escrowOrderID string,
 	order tiktokPkg.TiktokOrder,
 	tx *tiktokPkg.OrderTransactionResponse,
-) int {
-	tables := TiktokEscrowTables()
-
+	itemTable string,
+) error {
 	if len(tx.Data.SkuTransactions) > 0 {
-		return s.saveSkuTransactions(ctx, escrowOrderID, order.ID, tx.Data.SkuTransactions, tables)
+		return s.saveSkuTransactionsTx(ctx, dbTx, escrowOrderID, order.ID, tx.Data.SkuTransactions, itemTable)
 	}
 
 	if len(order.LineItems) > 0 {
-		log.Info().Msgf("[TiktokEscrowSync] Using order line_items for order %s", order.ID)
-		return s.saveLineItems(ctx, escrowOrderID, order.ID, order.LineItems, tables)
+		log.Info().Msgf("[TiktokEscrowSync] Using order line_items for order %s (no sku_transactions)", order.ID)
+		return s.saveLineItemsTx(ctx, dbTx, escrowOrderID, order.ID, order.LineItems, itemTable)
 	}
 
-	return 0
+	return nil
 }
 
-// saveSkuTransactions saves SKU transactions from Finance API v202501
-// Mapping based on Node.js tiktokTransactionTransformer.ts:
-// - seller_sku = sku_name
-// - sale_price = revenue_amount
-// - settlement_amount = settlement_amount (SKU level)
-func (s *TiktokEscrowSyncService) saveSkuTransactions(
+// saveSkuTransactionsTx saves SKU transactions within a DB transaction
+func (s *TiktokEscrowSyncService) saveSkuTransactionsTx(
 	ctx context.Context,
+	dbTx *gorm.DB,
 	escrowOrderID, orderID string,
 	skuTxs []tiktokPkg.SkuTransaction,
-	tables EscrowSyncTables,
-) int {
+	itemTable string,
+) error {
 	for _, skuTx := range skuTxs {
 		rawSkuData, _ := json.Marshal(skuTx)
 		qty := skuTx.Quantity
@@ -156,20 +185,22 @@ func (s *TiktokEscrowSyncService) saveSkuTransactions(
 			CreatedAt:                   time.Now(),
 			UpdatedAt:                   time.Now(),
 		}
-		if err := s.base.DB.WithContext(ctx).Table(s.base.Table(tables.ItemTable)).Create(&escrowItem).Error; err != nil {
-			log.Info().Msgf("[TiktokEscrowSync] ERROR saving sku_tx item for order %s (sku=%s): %v", orderID, skuTx.SkuID, err)
+		if err := dbTx.Table(itemTable).Create(&escrowItem).Error; err != nil {
+			log.Warn().Str("order_id", orderID).Str("sku_id", skuTx.SkuID).
+				Err(err).Msg("[TiktokEscrowSync] Failed to save sku_tx item")
 		}
 	}
-	return len(skuTxs)
+	return nil
 }
 
-// saveLineItems saves line items from Order API
-func (s *TiktokEscrowSyncService) saveLineItems(
+// saveLineItemsTx saves line items within a DB transaction
+func (s *TiktokEscrowSyncService) saveLineItemsTx(
 	ctx context.Context,
+	dbTx *gorm.DB,
 	escrowOrderID, orderID string,
 	lineItems []tiktokPkg.TiktokOrderItem,
-	tables EscrowSyncTables,
-) int {
+	itemTable string,
+) error {
 	for _, item := range lineItems {
 		rawItemData, _ := json.Marshal(item)
 		qty := item.Quantity
@@ -195,9 +226,10 @@ func (s *TiktokEscrowSyncService) saveLineItems(
 			CreatedAt:        time.Now(),
 			UpdatedAt:        time.Now(),
 		}
-		if err := s.base.DB.WithContext(ctx).Table(s.base.Table(tables.ItemTable)).Create(&escrowItem).Error; err != nil {
-			log.Info().Msgf("[TiktokEscrowSync] ERROR saving line_item for order %s (sku=%s): %v", orderID, item.SellerSku, err)
+		if err := dbTx.Table(itemTable).Create(&escrowItem).Error; err != nil {
+			log.Warn().Str("order_id", orderID).Str("seller_sku", item.SellerSku).
+				Err(err).Msg("[TiktokEscrowSync] Failed to save line_item")
 		}
 	}
-	return len(lineItems)
+	return nil
 }

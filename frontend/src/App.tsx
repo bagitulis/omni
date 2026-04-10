@@ -5,7 +5,6 @@ import {
   Routes,
   Route,
   Navigate,
-  useParams,
 } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/api/queryClient";
@@ -79,11 +78,6 @@ const RouteMappingPage = React.lazy(
   () => import("./pages/route-mapping/RouteMappingPage"),
 );
 
-// Redirect component for /master-products/:id -> /products/:id/edit
-function MasterProductRedirect() {
-  const { id } = useParams();
-  return <Navigate to={`/products/${id}/edit`} replace />;
-}
 
 function AppContent() {
   const { isDark } = useTheme();
@@ -120,18 +114,10 @@ function AppContent() {
                   }
                 >
                   <Route path="/" element={<DashboardPage />} />
-                  <Route
-                    path="/dashboard"
-                    element={<Navigate to="/" replace />}
-                  />
                   <Route path="/order-manager" element={<OrdersPage />} />
                   <Route
                     path="/order-manager/:platform"
                     element={<OrdersPage />}
-                  />
-                  <Route
-                    path="/orders"
-                    element={<Navigate to="/order-manager" replace />}
                   />
                   <Route path="/products" element={<UnifiedProductsPage />} />
                   <Route path="/products/add" element={<ProductAddPage />} />
@@ -147,30 +133,6 @@ function AppContent() {
                     path="/products/:id/edit"
                     element={<ProductEditPage />}
                   />
-                  <Route
-                    path="/master-products"
-                    element={<Navigate to="/products" replace />}
-                  />
-                  <Route
-                    path="/master-products/add"
-                    element={<Navigate to="/products/add" replace />}
-                  />
-                  <Route
-                    path="/master-products/import"
-                    element={<Navigate to="/products/import" replace />}
-                  />
-                  <Route
-                    path="/master-products/:id"
-                    element={<MasterProductRedirect />}
-                  />
-                  <Route
-                    path="/product-manager"
-                    element={<Navigate to="/products" replace />}
-                  />
-                  <Route
-                    path="/product-manager/:platform"
-                    element={<Navigate to="/products" replace />}
-                  />
                   <Route path="/route-mapping" element={<RouteMappingPage />} />
                   <Route
                     path="/inventory"
@@ -184,15 +146,6 @@ function AppContent() {
                   <Route
                     path="/report/tiktok"
                     element={<TiktokReportPage />}
-                  />
-                  {/* Redirects from old analytics URLs */}
-                  <Route
-                    path="/analytics/shopee"
-                    element={<Navigate to="/report/shopee" replace />}
-                  />
-                  <Route
-                    path="/analytics/tiktok"
-                    element={<Navigate to="/report/tiktok" replace />}
                   />
                   <Route
                     path="/analytics/shopee-ads"
@@ -210,10 +163,6 @@ function AppContent() {
                   <Route
                     path="/analytics/product-classification"
                     element={<ProductClassificationPage />}
-                  />
-                  <Route
-                    path="/analytics/ai-reports"
-                    element={<Navigate to="/analytics" replace />}
                   />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route

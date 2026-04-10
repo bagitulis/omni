@@ -3,8 +3,8 @@ package analytics
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/rs/zerolog/log"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +12,7 @@ import (
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services"
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -89,19 +90,24 @@ func (s *TiktokEscrowSyncService) SyncMonth(
 	// Process orders
 	totalItems, processedOrders, failedOrders := s.processOrders(ctx, client, orders, month, year)
 
-	// Create sync record
-	syncRecord := models.TiktokEscrowSync{
-		ID:          uuid.New().String(),
-		TenantID:    s.tenantID,
-		Month:       month,
-		Year:        year,
-		TotalOrders: processedOrders,
-		SyncedAt:    time.Now(),
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+	// Create sync record (idempotent: delete old first)
+	syncTable := s.base.Table(tables.SyncTable)
+	now = time.Now()
+	s.base.DB.WithContext(ctx).Table(syncTable).
+		Where("tenant_id = ? AND month = ? AND year = ?", s.tenantID, month, year).
+		Delete(nil)
+
+	syncRecord := map[string]interface{}{
+		"id":           uuid.New().String(),
+		"tenant_id":    s.tenantID,
+		"month":        month,
+		"year":         year,
+		"total_orders": processedOrders,
+		"synced_at":    now,
+		"created_at":   now,
+		"updated_at":   now,
 	}
-	if err := s.base.DB.WithContext(ctx).Table(s.base.Table(tables.SyncTable)).
-		Create(&syncRecord).Error; err != nil {
+	if err := s.base.DB.WithContext(ctx).Table(syncTable).Create(syncRecord).Error; err != nil {
 		return nil, err
 	}
 
@@ -187,20 +193,25 @@ func (s *TiktokEscrowSyncService) processOrders(
 		orderID := order.ID
 		transaction, err := s.fetchOrderTransaction(ctx, client, orderID)
 		if err != nil {
-			log.Info().Msgf("[TiktokEscrowSync] Error fetching transaction for order %s: %v", orderID, err)
+			log.Warn().Str("order_id", orderID).Str("tenant_id", s.tenantID).
+				Err(err).Msg("[TiktokEscrowSync] Error fetching transaction")
 			failedOrders++
 			continue
 		}
 
 		if transaction == nil || transaction.Data.OrderID == "" {
-			log.Info().Msgf("[TiktokEscrowSync] No transaction data for order %s", orderID)
+			rawResp, _ := json.Marshal(transaction)
+			log.Warn().Str("order_id", orderID).Str("tenant_id", s.tenantID).
+				Str("raw_response", string(rawResp)).
+				Msg("[TiktokEscrowSync] No transaction data")
 			failedOrders++
 			continue
 		}
 
 		itemsCount, err := s.saveEscrowOrder(ctx, order, transaction, month, year)
 		if err != nil {
-			log.Info().Msgf("[TiktokEscrowSync] Error saving order %s: %v", orderID, err)
+			log.Warn().Str("order_id", orderID).Str("tenant_id", s.tenantID).
+				Err(err).Msg("[TiktokEscrowSync] Error saving order")
 			failedOrders++
 			continue
 		}
@@ -223,14 +234,21 @@ func (s *TiktokEscrowSyncService) fetchOrderTransaction(
 	// Try v202501 API first
 	resp, err := client.GetOrderTransactions(orderID)
 	if err != nil {
+		log.Warn().Str("order_id", orderID).Str("api_version", "v202501").
+			Err(err).Msg("[TiktokEscrowSync] v202501 API failed, trying v202309")
 		// Fallback to v202309
 		resp, err = client.GetOrderTransactionsV202309(orderID)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("both API versions failed for order %s: %w", orderID, err)
 		}
 	}
 
 	if resp.Code != 0 {
+		// Log the raw API error response for debugging
+		rawResp, _ := json.Marshal(resp)
+		log.Warn().Str("order_id", orderID).Int("api_code", resp.Code).
+			Str("api_message", resp.Message).Str("raw_response", string(rawResp)).
+			Msg("[TiktokEscrowSync] TikTok API returned error")
 		return nil, fmt.Errorf("TikTok API error: %d - %s", resp.Code, resp.Message)
 	}
 

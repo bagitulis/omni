@@ -24,7 +24,7 @@ export const QuickActions = () => {
       icon: (
         <ShopOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
       ),
-      path: "/analytics/shopee",
+      path: "/report/shopee",
       bgColor: token.colorFillQuaternary,
     },
     {
@@ -42,7 +42,7 @@ export const QuickActions = () => {
       icon: (
         <VideoCameraOutlined style={{ fontSize: 24, color: token.colorText }} />
       ),
-      path: "/analytics/tiktok",
+      path: "/report/tiktok",
       bgColor: token.colorFillSecondary,
     },
     {

@@ -37,7 +37,7 @@ export const PlatformComparison = ({ summary }: Props) => {
               </div>
             }
             extra={
-              <Button type="link" onClick={() => navigate("/analytics/tiktok")}>
+              <Button type="link" onClick={() => navigate("/report/tiktok")}>
                 Details
               </Button>
             }
@@ -98,7 +98,7 @@ export const PlatformComparison = ({ summary }: Props) => {
               </div>
             }
             extra={
-              <Button type="link" onClick={() => navigate("/analytics/shopee")}>
+              <Button type="link" onClick={() => navigate("/report/shopee")}>
                 Details
               </Button>
             }
