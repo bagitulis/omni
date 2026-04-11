@@ -37,7 +37,7 @@ func (h *AdsHandler) GetDashboard(c *gin.Context) {
 		TotalImpressions int64   `gorm:"column:total_impressions"`
 		TotalClicks      int64   `gorm:"column:total_clicks"`
 		OverallRoas      float64 `gorm:"column:overall_roas"`
-		OverallCtr       float64 `gorm:"column:overall_ctr"`
+		AvgCtr           float64 `gorm:"column:avg_ctr"`
 	}
 
 	// Query from MV (should be < 5ms)
@@ -56,7 +56,7 @@ func (h *AdsHandler) GetDashboard(c *gin.Context) {
 		summary.TotalImpressions = mvSummary.TotalImpressions
 		summary.TotalClicks = mvSummary.TotalClicks
 		avgRoas = mvSummary.OverallRoas
-		avgCtr = mvSummary.OverallCtr
+		avgCtr = mvSummary.AvgCtr
 		if summary.TotalClicks > 0 {
 			avgConversionRate = float64(summary.TotalOrders) / float64(summary.TotalClicks) * 100
 		}
