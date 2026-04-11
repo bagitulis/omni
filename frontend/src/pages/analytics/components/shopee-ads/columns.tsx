@@ -8,10 +8,19 @@ export const columns: TableColumnsType<AdsData> = [
     key: "product_name",
     width: 350,
     fixed: "left",
-    ellipsis: true,
+    ellipsis: false,
     render: (name: string, record: AdsData) => (
-      <div>
-        <div style={{ fontWeight: 500 }}>{name}</div>
+      <div style={{ padding: "4px 0" }}>
+        <div
+          style={{
+            fontWeight: 500,
+            whiteSpace: "normal",
+            wordBreak: "break-word",
+            lineHeight: 1.4,
+          }}
+        >
+          {name}
+        </div>
         <div style={{ fontSize: 11, opacity: 0.7 }}>{record.product_id}</div>
       </div>
     ),

@@ -8,10 +8,17 @@ export const columns: TableColumnsType<TikTokAdsData> = [
     key: "campaign_name",
     width: 220,
     fixed: "left",
-    ellipsis: true,
+    ellipsis: false,
     render: (_: string, record: TikTokAdsData) => (
-      <div>
-        <div style={{ fontWeight: 500 }}>
+      <div style={{ padding: "4px 0" }}>
+        <div
+          style={{
+            fontWeight: 500,
+            whiteSpace: "normal",
+            wordBreak: "break-word",
+            lineHeight: 1.4,
+          }}
+        >
           {record.campaign_name || record.creative_name}
         </div>
         <div style={{ fontSize: 11, opacity: 0.7 }}>{record.creative_id}</div>
