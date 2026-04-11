@@ -45,7 +45,7 @@ func (s *TiktokAdsService) GetTrends(ctx context.Context, startDate, endDate tim
 	var results []Result
 	err := s.db.WithContext(ctx).
 		Model(&models.TiktokAdsCreativeData{}).
-		Select("period_label, period_start, SUM(cost) as total_cost, SUM(revenue) as total_rev, SUM(conversions) as total_conv").
+		Select("period_label, period_start, SUM(cost) as total_cost, SUM(gross_revenue) as total_rev, SUM(orders_sku) as total_conv").
 		Where("tenant_id = ? AND period_start >= ? AND period_end <= ?", s.tenantID, startStr, endStr).
 		Group("period_label, period_start").
 		Order("period_start ASC").

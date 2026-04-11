@@ -104,6 +104,7 @@ type TiktokAdsCreativeData struct {
 	CampaignID        string    `gorm:"column:campaign_id;type:varchar(255)" json:"campaign_id"`
 	CampaignName      string    `gorm:"column:campaign_name;type:text" json:"campaign_name"`
 	ProductID         string    `gorm:"column:product_id;type:varchar(255);index" json:"product_id"`
+	ProductName       string    `gorm:"column:product_name;type:text" json:"product_name"`
 	CreativeType      string    `gorm:"column:creative_type;type:varchar(255)" json:"creative_type"`
 	VideoTitle        string    `gorm:"column:video_title;type:text" json:"video_title"`
 	VideoID           string    `gorm:"column:video_id;type:varchar(255)" json:"video_id"`

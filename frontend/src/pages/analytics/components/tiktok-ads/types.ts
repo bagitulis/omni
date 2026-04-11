@@ -3,6 +3,7 @@ export interface TikTokAdsData {
   creative_name: string;
   campaign_name?: string;
   product_id?: string;
+  product_name?: string;
   creative_type?: string;
   cost: number;
   revenue: number;

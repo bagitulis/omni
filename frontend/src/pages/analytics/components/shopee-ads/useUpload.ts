@@ -1,68 +1,72 @@
 import { useState } from "react";
 import { UploadProps } from "antd";
-import dayjs from "dayjs";
-import { AdsData } from "./types";
+import { useQueryClient } from "@tanstack/react-query";
+import apiClient from "@/api/client";
 import { message } from "@/components/AntStaticApi";
 
+interface UploadResult {
+  totalRows: number;
+  period: {
+    start: string;
+    end: string;
+    label: string;
+  };
+}
+
 export const useUpload = () => {
-  const [uploadedData, setUploadedData] = useState<AdsData[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [lastResult, setLastResult] = useState<UploadResult | null>(null);
+  const queryClient = useQueryClient();
 
   const uploadProps: UploadProps = {
     name: "file",
     accept: ".csv",
     multiple: false,
-    showUploadList: false,
-    beforeUpload: (file) => {
-      message.loading("Processing CSV...", 1);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const text = e.target?.result as string;
-          const lines = text.split("\n").filter((l) => l.trim());
-          if (lines.length < 2) {
-            message.error("CSV file is empty or invalid");
-            return;
-          }
-          // Parse CSV (simple parser - assumes comma-separated)
-          const data: AdsData[] = [];
-          for (let i = 1; i < lines.length; i++) {
-            const values = lines[i].split(",");
-            if (values.length >= 5) {
-              data.push({
-                product_id: values[0]?.trim() || `PROD${i}`,
-                product_name: values[1]?.trim() || `Product ${i}`,
-                bidding_mode: values[8]?.trim() || "Manual",
-                cost: parseFloat(values[2]) || 0,
-                revenue: parseFloat(values[3]) || 0,
-                clicks: parseInt(values[4]) || 0,
-                impressions: parseInt(values[5]) || 0,
-                ctr: 0,
-                cpc: 0,
-                roas: 0,
-                conversions: parseInt(values[6]) || 0,
-                date: values[7]?.trim() || dayjs().format("YYYY-MM-DD"),
-                period_label: values[9]?.trim() || "Uploaded CSV",
-              });
-            }
-          }
-          // Calculate derived metrics
-          data.forEach((d) => {
-            d.ctr = d.impressions > 0 ? (d.clicks / d.impressions) * 100 : 0;
-            d.cpc = d.clicks > 0 ? d.cost / d.clicks : 0;
-            d.roas = d.cost > 0 ? d.revenue / d.cost : 0;
-          });
-          setUploadedData(data);
+    showUploadList: true,
+    customRequest: async ({ file, onSuccess, onError }) => {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append("file", file as Blob);
+
+      try {
+        const response = await apiClient.post<UploadResult>(
+          "/ads/shopee/upload",
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } },
+        );
+
+        if (response.success && response.data) {
+          setLastResult(response.data);
           message.success(
-            `${file.name} processed - ${data.length} products loaded`,
+            `Upload berhasil — ${response.data.totalRows} produk diproses (${response.data.period?.label || "unknown"})`,
           );
-        } catch (err) { console.warn("Operation failed:", err);
-          message.error("Failed to parse CSV file");
+          // Refresh data queries
+          queryClient.invalidateQueries({ queryKey: ["shopee-ads-data"] });
+          queryClient.invalidateQueries({
+            queryKey: ["shopee-ads-dashboard"],
+          });
+          onSuccess?.(response.data);
+        } else {
+          const errMsg =
+            (response as unknown as { error?: string }).error ||
+            "Upload failed";
+          message.error(errMsg);
+          onError?.(new Error(errMsg));
         }
-      };
-      reader.readAsText(file);
-      return false;
+      } catch (err) {
+        const errMsg =
+          err instanceof Error ? err.message : "Upload failed unexpectedly";
+        if (errMsg.includes("already uploaded")) {
+          message.warning(errMsg);
+        } else {
+          message.error(errMsg);
+        }
+        onError?.(err instanceof Error ? err : new Error(errMsg));
+      } finally {
+        setUploading(false);
+      }
     },
   };
 
-  return { uploadedData, setUploadedData, uploadProps };
+  return { uploading, lastResult, uploadProps };
 };

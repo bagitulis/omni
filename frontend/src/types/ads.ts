@@ -101,6 +101,7 @@ export interface TiktokAdsCreativeData {
   campaign_id: string;
   campaign_name: string;
   product_id: string;
+  product_name: string;
   creative_type: string;
   video_title: string;
   cost: number;

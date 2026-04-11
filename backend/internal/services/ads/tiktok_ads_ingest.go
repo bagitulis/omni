@@ -52,9 +52,45 @@ func (s *TiktokAdsService) ParseExcel(ctx context.Context, data []byte, filename
 	return &TiktokParseResult{Data: creatives, Period: *period}, nil
 }
 
-// SaveBatch saves a batch of TikTok ads data
+// SaveBatch saves a batch of TikTok ads data with duplicate protection
 func (s *TiktokAdsService) SaveBatch(ctx context.Context, filename string, result *TiktokParseResult) error {
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Check for duplicate period
+		var existingCount int64
+		if err := tx.Model(&models.TiktokAdsUploadBatch{}).
+			Where("tenant_id = ? AND period_label = ?", s.tenantID, result.Period.Label).
+			Count(&existingCount).Error; err != nil {
+			return fmt.Errorf("check duplicate: %w", err)
+		}
+		if existingCount > 0 {
+			return fmt.Errorf("period %s already uploaded — please delete existing data first before re-uploading", result.Period.Label)
+		}
+
+		// Collect product IDs for name enrichment
+		productIDs := make([]string, 0)
+		for _, d := range result.Data {
+			if d.ProductID != "" && d.ProductID != "-1" {
+				productIDs = append(productIDs, d.ProductID)
+			}
+		}
+
+		// Lookup product names from tiktok_products table
+		nameMap := lookupProductNames(tx, s.tenantID, productIDs)
+
+		// Enrich product names and mark special cases
+		skipped := 0
+		for i := range result.Data {
+			pid := result.Data[i].ProductID
+			if pid == "" || pid == "-1" {
+				result.Data[i].ProductName = "Non-Product Creative"
+				skipped++
+			} else if name, ok := nameMap[pid]; ok {
+				result.Data[i].ProductName = name
+			} else {
+				result.Data[i].ProductName = "Discontinued Product"
+			}
+		}
+
 		batch := models.TiktokAdsUploadBatch{
 			ID:          uuid.New().String(),
 			TenantID:    s.tenantID,
@@ -63,7 +99,10 @@ func (s *TiktokAdsService) SaveBatch(ctx context.Context, filename string, resul
 			PeriodEnd:   result.Period.End,
 			PeriodLabel: result.Period.Label,
 			TotalRows:   len(result.Data),
+			SkippedRows: skipped,
+			Status:      "processing",
 			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
 		}
 		if err := tx.Create(&batch).Error; err != nil {
 			return fmt.Errorf("create batch: %w", err)
@@ -73,15 +112,63 @@ func (s *TiktokAdsService) SaveBatch(ctx context.Context, filename string, resul
 			result.Data[i].UploadBatchID = batch.ID
 		}
 
+		inserted := 0
 		if len(result.Data) > 0 {
 			if err := tx.CreateInBatches(result.Data, 100).Error; err != nil {
+				tx.Model(&models.TiktokAdsUploadBatch{}).Where("id = ?", batch.ID).
+					Updates(map[string]interface{}{
+						"status":        "failed",
+						"error_message": err.Error(),
+						"updated_at":    time.Now(),
+					})
 				return fmt.Errorf("create data (batch size %d): %w", len(result.Data), err)
 			}
+			inserted = len(result.Data)
 		}
 
-		// Skip product summary for now - can be generated separately
-		return nil
+		// Update batch as success
+		return tx.Model(&models.TiktokAdsUploadBatch{}).Where("id = ?", batch.ID).
+			Updates(map[string]interface{}{
+				"inserted_rows": inserted,
+				"skipped_rows":  skipped,
+				"status":        "success",
+				"updated_at":    time.Now(),
+			}).Error
 	})
+}
+
+// lookupProductNames fetches product names from tiktok_products table
+func lookupProductNames(tx *gorm.DB, tenantID string, productIDs []string) map[string]string {
+	result := make(map[string]string)
+	if len(productIDs) == 0 {
+		return result
+	}
+
+	// Deduplicate
+	unique := make(map[string]bool)
+	deduped := make([]string, 0)
+	for _, id := range productIDs {
+		if !unique[id] {
+			unique[id] = true
+			deduped = append(deduped, id)
+		}
+	}
+
+	var products []struct {
+		ProductID string `gorm:"column:product_id"`
+		Name      string `gorm:"column:name"`
+	}
+	tx.Table("tiktok_products").
+		Select("product_id, name").
+		Where("tenant_id = ? AND product_id IN ?", tenantID, deduped).
+		Find(&products)
+
+	for _, p := range products {
+		if p.Name != "" {
+			result[p.ProductID] = p.Name
+		}
+	}
+	return result
 }
 
 // generateProductSummary generates product-level summary from creative data
@@ -101,7 +188,7 @@ func (s *TiktokAdsService) generateProductSummary(ctx context.Context, tx *gorm.
 			productMap[c.ProductID] = &models.TiktokAdsProductSummary{
 				TenantID:    s.tenantID,
 				ProductID:   c.ProductID,
-				ProductName: c.VideoTitle, // Use VideoTitle as product name fallback
+				ProductName: c.ProductName, // Use enriched product name
 				PeriodLabel: periodLabel,
 			}
 		}

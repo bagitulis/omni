@@ -78,6 +78,11 @@ func RegisterAdsRoutes(router *gin.RouterGroup, handler *handlers.AdsHandler) {
 		ads.GET("/tiktok/trends", handler.GetTiktokAdsTrends)
 		ads.GET("/tiktok/performance", handler.GetTiktokProductPerformance)
 		ads.GET("/tiktok/predictions", handler.GetTiktokPredictions)
+
+		// TikTok Product Name Mapping
+		ads.POST("/tiktok/product-names", handler.ImportTiktokProductNames)
+		ads.GET("/tiktok/product-names", handler.GetTiktokProductNames)
+		ads.POST("/tiktok/product-names/backfill", handler.BackfillTiktokProductNames)
 	}
 }
 

@@ -3,6 +3,7 @@ package ads
 import (
 	"context"
 	"encoding/csv"
+	"fmt"
 	"strings"
 	"time"
 
@@ -71,9 +72,20 @@ func (s *ShopeeAdsService) ParseCSV(ctx context.Context, data []byte, filename s
 	return &ParseResult{Data: products, Period: *period}, nil
 }
 
-// SaveBatch saves a batch of ads data
+// SaveBatch saves a batch of ads data with duplicate period detection
 func (s *ShopeeAdsService) SaveBatch(ctx context.Context, filename string, result *ParseResult) error {
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Check for duplicate period
+		var existingCount int64
+		if err := tx.Model(&models.ShopeeAdsUploadBatch{}).
+			Where("tenant_id = ? AND period_label = ?", s.tenantID, result.Period.Label).
+			Count(&existingCount).Error; err != nil {
+			return fmt.Errorf("check duplicate: %w", err)
+		}
+		if existingCount > 0 {
+			return fmt.Errorf("period %s already uploaded — please delete existing data first before re-uploading", result.Period.Label)
+		}
+
 		batch := models.ShopeeAdsUploadBatch{
 			ID:          uuid.New().String(),
 			TenantID:    s.tenantID,
@@ -82,7 +94,9 @@ func (s *ShopeeAdsService) SaveBatch(ctx context.Context, filename string, resul
 			PeriodEnd:   result.Period.End,
 			PeriodLabel: result.Period.Label,
 			TotalRows:   len(result.Data),
+			Status:      "processing",
 			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
 		}
 		if err := tx.Create(&batch).Error; err != nil {
 			return err
@@ -92,9 +106,27 @@ func (s *ShopeeAdsService) SaveBatch(ctx context.Context, filename string, resul
 			result.Data[i].UploadBatchID = batch.ID
 		}
 
+		inserted := 0
 		if len(result.Data) > 0 {
-			return tx.CreateInBatches(result.Data, 100).Error
+			if err := tx.CreateInBatches(result.Data, 100).Error; err != nil {
+				// Update batch as failed
+				tx.Model(&models.ShopeeAdsUploadBatch{}).Where("id = ?", batch.ID).
+					Updates(map[string]interface{}{
+						"status":        "failed",
+						"error_message": err.Error(),
+						"updated_at":    time.Now(),
+					})
+				return fmt.Errorf("insert data: %w", err)
+			}
+			inserted = len(result.Data)
 		}
-		return nil
+
+		// Update batch as success
+		return tx.Model(&models.ShopeeAdsUploadBatch{}).Where("id = ?", batch.ID).
+			Updates(map[string]interface{}{
+				"inserted_rows": inserted,
+				"status":        "success",
+				"updated_at":    time.Now(),
+			}).Error
 	})
 }

@@ -14,9 +14,10 @@ import (
 // allowedTiktokAdsOrderColumns defines valid orderBy columns to prevent SQL injection
 var allowedTiktokAdsOrderColumns = map[string]bool{
 	"id": true, "campaign_id": true, "campaign_name": true, "product_id": true,
-	"creative_type": true, "video_title": true, "cost": true, "orders_sku": true,
-	"gross_revenue": true, "roi": true, "impressions": true, "clicks": true,
-	"ctr": true, "conversion_rate": true, "period_start": true, "period_end": true,
+	"product_name": true, "creative_type": true, "video_title": true, "cost": true,
+	"orders_sku": true, "gross_revenue": true, "roi": true, "impressions": true,
+	"clicks": true, "ctr": true, "conversion_rate": true, "period_start": true,
+	"period_end": true,
 }
 
 // TiktokAdsHandler handles TikTok Ads analytics requests
@@ -113,6 +114,7 @@ func (h *TiktokAdsHandler) GetData(c *gin.Context) {
 			"campaign_id":     cr.CampaignID,
 			"campaign_name":   cr.CampaignName,
 			"product_id":      cr.ProductID,
+			"product_name":    cr.ProductName,
 			"creative_type":   cr.CreativeType,
 			"video_title":     cr.VideoTitle,
 			"cost":            cr.Cost,

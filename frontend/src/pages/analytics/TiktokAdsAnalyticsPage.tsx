@@ -29,7 +29,7 @@ export const TiktokAdsAnalyticsPage = () => {
     null,
   );
 
-  const { uploadedData, uploadProps } = useTiktokAdsUpload();
+  const { uploading, lastResult, uploadProps } = useTiktokAdsUpload();
 
   const {
     data: apiDashboard,
@@ -44,8 +44,8 @@ export const TiktokAdsAnalyticsPage = () => {
     refetch: refetchData,
   } = useTiktokAdsData();
 
-  // Determine if we are using uploaded data or API data
-  const hasUpload = uploadedData.length > 0;
+  // Data always comes from API
+  const hasUpload = false;
 
   // Map API Dashboard to Summary
   const apiSummary: TikTokAdsSummary | undefined = useMemo(() => {
@@ -62,9 +62,7 @@ export const TiktokAdsAnalyticsPage = () => {
     };
   }, [apiDashboard]);
 
-  // Map API Top Products to AdsData for Dashboard Charts
   const dashboardAdsData: TikTokAdsData[] = useMemo(() => {
-    if (hasUpload) return uploadedData;
     if (!apiDashboard?.data?.top_products) return [];
 
     return apiDashboard.data.top_products.map((p) => ({
@@ -82,11 +80,9 @@ export const TiktokAdsAnalyticsPage = () => {
       engagement_rate: 0,
       date: "",
     }));
-  }, [hasUpload, uploadedData, apiDashboard]);
+  }, [apiDashboard]);
 
-  // Map API Data to AdsData for Data Table
   const tableAdsData: TikTokAdsData[] = useMemo(() => {
-    if (hasUpload) return uploadedData;
     if (!apiData?.data) return [];
 
     return apiData.data.map((p) => ({
@@ -94,6 +90,7 @@ export const TiktokAdsAnalyticsPage = () => {
       creative_name: p.video_title || p.campaign_name,
       campaign_name: p.campaign_name,
       product_id: p.product_id,
+      product_name: p.product_name,
       creative_type: p.creative_type,
       cost: p.cost,
       revenue: p.gross_revenue,
@@ -107,7 +104,7 @@ export const TiktokAdsAnalyticsPage = () => {
       engagement_rate: p.conversion_rate,
       date: p.period_end,
     }));
-  }, [hasUpload, uploadedData, apiData]);
+  }, [apiData]);
 
   const handleDateChange: RangePickerProps["onChange"] = (dates) => {
     setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null);
@@ -157,7 +154,11 @@ export const TiktokAdsAnalyticsPage = () => {
         </span>
       ),
       children: (
-        <UploadTab uploadProps={uploadProps} uploadedData={uploadedData} />
+        <UploadTab
+          uploadProps={uploadProps}
+          uploading={uploading}
+          lastResult={lastResult}
+        />
       ),
     },
   ];

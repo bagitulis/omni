@@ -32,7 +32,7 @@ export const ShopeeAdsAnalyticsPage = () => {
     null,
   );
 
-  const { uploadedData, uploadProps } = useUpload();
+  const { uploading, lastResult, uploadProps } = useUpload();
 
   const {
     data: apiDashboard,
@@ -47,8 +47,8 @@ export const ShopeeAdsAnalyticsPage = () => {
     refetch: refetchData,
   } = useShopeeAdsData();
 
-  // Determine if we are using uploaded data or API data
-  const hasUpload = uploadedData.length > 0;
+  // Data always comes from API
+  const hasUpload = false;
 
   // Map API Dashboard to Summary
   const apiSummary: Summary | undefined = useMemo(() => {
@@ -64,9 +64,7 @@ export const ShopeeAdsAnalyticsPage = () => {
     };
   }, [apiDashboard]);
 
-  // Map API Top Products to AdsData for Dashboard Charts
   const dashboardAdsData: AdsData[] = useMemo(() => {
-    if (hasUpload) return uploadedData;
     if (!apiDashboard?.data?.top_products) return [];
 
     return apiDashboard.data.top_products.map((p) => ({
@@ -74,19 +72,17 @@ export const ShopeeAdsAnalyticsPage = () => {
       product_name: p.product_name,
       cost: p.cost,
       revenue: p.revenue,
-      clicks: 0, // Not available in top_products
-      impressions: 0, // Not available in top_products
-      ctr: 0, // Not available in top_products
+      clicks: 0,
+      impressions: 0,
+      ctr: 0,
       cpc: 0,
       roas: p.roas,
       conversions: p.orders,
       date: "",
     }));
-  }, [hasUpload, uploadedData, apiDashboard]);
+  }, [apiDashboard]);
 
-  // Map API Data to AdsData for Data Table
   const tableAdsData: AdsData[] = useMemo(() => {
-    if (hasUpload) return uploadedData;
     if (!apiData?.data) return [];
 
     return apiData.data.map((p) => ({
@@ -104,7 +100,7 @@ export const ShopeeAdsAnalyticsPage = () => {
       date: p.period_end,
       period_label: p.period_label,
     }));
-  }, [hasUpload, uploadedData, apiData]);
+  }, [apiData]);
 
   const handleDateChange: RangePickerProps["onChange"] = (dates) => {
     setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null);
@@ -158,7 +154,11 @@ export const ShopeeAdsAnalyticsPage = () => {
         </span>
       ),
       children: (
-        <UploadTab uploadProps={uploadProps} uploadedData={uploadedData} />
+        <UploadTab
+          uploadProps={uploadProps}
+          uploading={uploading}
+          lastResult={lastResult}
+        />
       ),
     },
   ];

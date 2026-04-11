@@ -73,6 +73,20 @@ export const columns: TableColumnsType<AdsData> = [
     sorter: (a: AdsData, b: AdsData) => a.ctr - b.ctr,
   },
   {
+    title: "ACOS",
+    dataIndex: "acos",
+    key: "acos",
+    width: 90,
+    render: (v?: number) => {
+      if (v === undefined || v === null || v === 0) return "-";
+      const color = v < 15 ? "#52c41a" : v < 25 ? "#faad14" : "#ff4d4f";
+      return <span style={{ color, fontWeight: 500 }}>{v.toFixed(1)}%</span>;
+    },
+    sorter: (a: AdsData, b: AdsData) =>
+      ((a as unknown as { acos?: number }).acos || 0) -
+      ((b as unknown as { acos?: number }).acos || 0),
+  },
+  {
     title: "Period",
     dataIndex: "period_label",
     key: "period_label",

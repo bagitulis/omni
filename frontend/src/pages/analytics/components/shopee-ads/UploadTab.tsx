@@ -1,37 +1,56 @@
-import { Card, Col, Row, Upload, Typography, Table, theme } from "antd";
-import { InboxOutlined } from "@ant-design/icons";
-import type { UploadProps } from "antd";
-import { AdsData } from "./types";
-import { columns } from "./columns";
+import { Card, Col, Row, Upload, Typography, Alert, Spin, theme } from "antd";
+import {
+  InboxOutlined,
+  CheckCircleOutlined,
+  FileTextOutlined,
+} from "@ant-design/icons";
 
 const { Dragger } = Upload;
 const { Text } = Typography;
 const { useToken } = theme;
 
-interface UploadTabProps {
-  uploadProps: UploadProps;
-  uploadedData: AdsData[];
+interface UploadResult {
+  totalRows: number;
+  period: {
+    start: string;
+    end: string;
+    label: string;
+  };
 }
 
-export const UploadTab = ({ uploadProps, uploadedData }: UploadTabProps) => {
+interface UploadTabProps {
+  uploadProps: import("antd").UploadProps;
+  uploading: boolean;
+  lastResult: UploadResult | null;
+}
+
+export const UploadTab = ({
+  uploadProps,
+  uploading,
+  lastResult,
+}: UploadTabProps) => {
   const { token } = useToken();
-  const hasData = uploadedData.length > 0;
 
   return (
     <Row gutter={[16, 16]}>
-      <Col xs={24} lg={12}>
-        <Card title="Upload CSV" size="small">
-          <Dragger {...uploadProps} style={{ padding: 16 }}>
-            <p className="ant-upload-drag-icon">
-              <InboxOutlined
-                style={{ color: token.colorPrimary, fontSize: 48 }}
-              />
-            </p>
-            <p className="ant-upload-text">Click or drag CSV file to upload</p>
-            <p className="ant-upload-hint">
-              Upload Shopee Ads export file to analyze performance
-            </p>
-          </Dragger>
+      <Col xs={24} lg={14}>
+        <Card title="Upload Shopee Ads Data" size="small">
+          <Spin spinning={uploading} tip="Uploading & processing...">
+            <Dragger {...uploadProps} style={{ padding: 16 }}>
+              <p className="ant-upload-drag-icon">
+                <FileTextOutlined
+                  style={{ color: "#ee4d2d", fontSize: 48 }}
+                />
+              </p>
+              <p className="ant-upload-text">
+                Klik atau drag file CSV ke sini
+              </p>
+              <p className="ant-upload-hint">
+                Upload file export Shopee Ads — format:
+                &quot;Data-+Semua-Iklan-Produk-DD_MM_YYYY-DD_MM_YYYY.csv&quot;
+              </p>
+            </Dragger>
+          </Spin>
           <div
             style={{
               marginTop: 16,
@@ -40,21 +59,30 @@ export const UploadTab = ({ uploadProps, uploadedData }: UploadTabProps) => {
             }}
           >
             <Text type="secondary">
-              Expected CSV format: product_id, product_name, cost, revenue,
-              clicks, impressions, conversions, date
+              Sistem akan otomatis mendeteksi periode dari nama file dan mencegah
+              upload duplikat.
             </Text>
           </div>
         </Card>
       </Col>
-      <Col xs={24} lg={12}>
-        <Card title="Upload Preview" size="small">
-          {hasData ? (
-            <Table
-              columns={columns.slice(0, 4)}
-              dataSource={uploadedData.slice(0, 5)}
-              rowKey="product_id"
-              size="small"
-              pagination={false}
+      <Col xs={24} lg={10}>
+        <Card title="Upload Status" size="small">
+          {lastResult ? (
+            <Alert
+              type="success"
+              icon={<CheckCircleOutlined />}
+              showIcon
+              message={`Upload berhasil`}
+              description={
+                <div>
+                  <div>
+                    Periode: <strong>{lastResult.period?.label}</strong>
+                  </div>
+                  <div>
+                    Total produk: <strong>{lastResult.totalRows}</strong>
+                  </div>
+                </div>
+              }
             />
           ) : (
             <div
@@ -65,7 +93,7 @@ export const UploadTab = ({ uploadProps, uploadedData }: UploadTabProps) => {
               }}
             >
               <InboxOutlined style={{ fontSize: 32, marginBottom: 8 }} />
-              <p>No data uploaded yet</p>
+              <p>Belum ada upload terbaru</p>
             </div>
           )}
         </Card>

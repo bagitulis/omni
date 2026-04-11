@@ -1,75 +1,73 @@
 import { useState } from "react";
 import { UploadProps } from "antd";
-import dayjs from "dayjs";
-import { TikTokAdsData } from "./types";
+import { useQueryClient } from "@tanstack/react-query";
+import apiClient from "@/api/client";
 import { message } from "@/components/AntStaticApi";
 
+interface UploadResult {
+  totalRows: number;
+  period: {
+    start: string;
+    end: string;
+    label: string;
+  };
+}
+
 export const useTiktokAdsUpload = () => {
-  const [uploadedData, setUploadedData] = useState<TikTokAdsData[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [lastResult, setLastResult] = useState<UploadResult | null>(null);
+  const queryClient = useQueryClient();
 
   const uploadProps: UploadProps = {
     name: "file",
-    accept: ".csv",
+    accept: ".xlsx,.xls",
     multiple: false,
-    showUploadList: false,
-    beforeUpload: (file) => {
-      message.loading("Processing CSV...", 1);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const text = e.target?.result as string;
-          const lines = text.split("\n").filter((l) => l.trim());
-          if (lines.length < 2) {
-            message.error("CSV file is empty or invalid");
-            return;
-          }
-          // Parse CSV
-          const data: TikTokAdsData[] = [];
-          for (let i = 1; i < lines.length; i++) {
-            const values = lines[i].split(",");
-            if (values.length >= 5) {
-              const views = parseInt(values[4]) || 0;
-              const clicks = parseInt(values[5]) || 0;
-              const cost = parseFloat(values[2]) || 0;
-              const revenue = parseFloat(values[3]) || 0;
-              const videoPlays = Math.floor(views * 0.7);
+    showUploadList: true,
+    customRequest: async ({ file, onSuccess, onError }) => {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append("file", file as Blob);
 
-              data.push({
-                creative_id: values[0]?.trim() || `TT${i}`,
-                creative_name: values[1]?.trim() || `Creative ${i}`,
-                campaign_name:
-                  values[8]?.trim() || values[1]?.trim() || `Campaign ${i}`,
-                product_id: values[9]?.trim() || `P${i}`,
-                creative_type: values[10]?.trim() || "Video",
-                cost,
-                revenue,
-                views,
-                clicks,
-                ctr: views > 0 ? (clicks / views) * 100 : 0,
-                cpc: clicks > 0 ? cost / clicks : 0,
-                roi: cost > 0 ? ((revenue - cost) / cost) * 100 : 0,
-                conversions: parseInt(values[6]) || 0,
-                video_plays: videoPlays,
-                engagement_rate:
-                  views > 0
-                    ? ((clicks + (parseInt(values[6]) || 0)) / views) * 100
-                    : 0,
-                date: values[7]?.trim() || dayjs().format("YYYY-MM-DD"),
-              });
-            }
-          }
-          setUploadedData(data);
+      try {
+        const response = await apiClient.post<UploadResult>(
+          "/ads/tiktok/upload",
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } },
+        );
+
+        if (response.success && response.data) {
+          setLastResult(response.data);
           message.success(
-            `${file.name} processed - ${data.length} creatives loaded`,
+            `Upload berhasil — ${response.data.totalRows} baris diproses (${response.data.period?.label || "unknown"})`,
           );
-        } catch (err) { console.warn("Operation failed:", err);
-          message.error("Failed to parse CSV file");
+          // Refresh data queries
+          queryClient.invalidateQueries({ queryKey: ["tiktok-ads-data"] });
+          queryClient.invalidateQueries({
+            queryKey: ["tiktok-ads-dashboard"],
+          });
+          onSuccess?.(response.data);
+        } else {
+          const errMsg =
+            (response as unknown as { error?: string }).error ||
+            "Upload failed";
+          message.error(errMsg);
+          onError?.(new Error(errMsg));
         }
-      };
-      reader.readAsText(file);
-      return false;
+      } catch (err) {
+        const errMsg =
+          err instanceof Error ? err.message : "Upload failed unexpectedly";
+        // Check for duplicate period error
+        if (errMsg.includes("already uploaded")) {
+          message.warning(errMsg);
+        } else {
+          message.error(errMsg);
+        }
+        onError?.(err instanceof Error ? err : new Error(errMsg));
+      } finally {
+        setUploading(false);
+      }
     },
   };
 
-  return { uploadedData, setUploadedData, uploadProps };
+  return { uploading, lastResult, uploadProps };
 };

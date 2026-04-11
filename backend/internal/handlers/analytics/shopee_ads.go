@@ -113,6 +113,8 @@ func (h *AdsHandler) GetData(c *gin.Context) {
 			"conversions":     p.Conversions,
 			"roas":            p.ROAS,
 			"direct_roas":     p.DirectROAS,
+			"acos":            p.ACOS,
+			"direct_acos":     p.DirectACOS,
 			"impressions":     p.Impressions,
 			"clicks":          p.Clicks,
 			"ctr":             p.CTR,
