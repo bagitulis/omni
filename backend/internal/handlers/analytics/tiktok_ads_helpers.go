@@ -101,15 +101,17 @@ func (h *TiktokAdsHandler) getTopProductsDirect(
 	tenantID string,
 ) []gin.H {
 	var products []struct {
-		ProductID string  `gorm:"column:product_id"`
-		Cost      float64 `gorm:"column:cost"`
-		Revenue   float64 `gorm:"column:revenue"`
-		Orders    int     `gorm:"column:orders"`
+		ProductID   string  `gorm:"column:product_id"`
+		ProductName string  `gorm:"column:product_name"`
+		Cost        float64 `gorm:"column:cost"`
+		Revenue     float64 `gorm:"column:revenue"`
+		Orders      int     `gorm:"column:orders"`
 	}
 
 	db.WithContext(ctx).Model(&models.TiktokAdsCreativeData{}).
-		Where("tenant_id = ?", tenantID).
-		Select(`product_id, 
+		Where("tenant_id = ? AND product_id != '' AND product_id != '-1'", tenantID).
+		Select(`product_id,
+			MAX(COALESCE(NULLIF(product_name, ''), product_id)) as product_name,
 			COALESCE(SUM(cost), 0) as cost, 
 			COALESCE(SUM(gross_revenue), 0) as revenue, 
 			COALESCE(SUM(orders_sku), 0) as orders`).
@@ -125,11 +127,12 @@ func (h *TiktokAdsHandler) getTopProductsDirect(
 			roi = p.Revenue / p.Cost
 		}
 		result = append(result, gin.H{
-			"product_id": p.ProductID,
-			"cost":       p.Cost,
-			"revenue":    p.Revenue,
-			"orders":     p.Orders,
-			"roi":        roi,
+			"product_id":   p.ProductID,
+			"product_name": p.ProductName,
+			"cost":         p.Cost,
+			"revenue":      p.Revenue,
+			"orders":       p.Orders,
+			"roi":          roi,
 		})
 	}
 	return result

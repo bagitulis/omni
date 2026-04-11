@@ -167,3 +167,17 @@ type TiktokAdsMLPrediction struct {
 }
 
 func (TiktokAdsMLPrediction) TableName() string { return GetTableName("TiktokAdsMLPrediction") }
+
+// TiktokAdsProductName maps TikTok Ads product IDs to product names.
+// This is SEPARATE from tiktok_products (TikTok Shop sync) — ads product IDs are different.
+type TiktokAdsProductName struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	TenantID  string    `gorm:"column:tenant_id;type:varchar(255);index;not null" json:"tenant_id"`
+	ProductID string    `gorm:"column:product_id;type:varchar(255);uniqueIndex:idx_ads_product_name_unique" json:"product_id"`
+	Name      string    `gorm:"column:name;type:text" json:"name"`
+	Category  string    `gorm:"column:category;type:varchar(500)" json:"category"`
+	CreatedAt time.Time `gorm:"column:created_at;type:timestamptz" json:"created_at"`
+	UpdatedAt time.Time `gorm:"column:updated_at;type:timestamptz" json:"updated_at"`
+}
+
+func (TiktokAdsProductName) TableName() string { return GetTableName("TiktokAdsProductName") }

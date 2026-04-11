@@ -143,6 +143,7 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		&models.TiktokAdsCreativeData{},
 		&models.TiktokAdsProductSummary{},
 		&models.TiktokAdsMLPrediction{},
+		&models.TiktokAdsProductName{},
 
 
 

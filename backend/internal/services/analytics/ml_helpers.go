@@ -35,7 +35,7 @@ func (s *MLAnalyticsService) getProductAnalyses(
 		Model(&models.TiktokAdsCreativeData{}).
 		Select(`
 			product_id,
-			MAX(COALESCE(video_title, product_id)) as product_name,
+			MAX(COALESCE(NULLIF(product_name, ''), product_id)) as product_name,
 			MAX(creative_type) as creative_type,
 			SUM(cost) as total_cost,
 			SUM(gross_revenue) as total_revenue,
@@ -44,7 +44,7 @@ func (s *MLAnalyticsService) getProductAnalyses(
 			SUM(clicks) as clicks,
 			COUNT(DISTINCT period_label) as period_count
 		`).
-		Where("tenant_id = ?", s.tenantID).
+		Where("tenant_id = ? AND product_id != '' AND product_id != '-1'", s.tenantID).
 		Group("product_id").
 		Order("total_revenue DESC")
 

@@ -159,10 +159,10 @@ func (h *SimulationHandler) GetProductsFromAds(c *gin.Context) {
 	}
 
 	db.WithContext(ctx).Model(&models.TiktokAdsCreativeData{}).
-		Where("tenant_id = ?", tenantID).
+		Where("tenant_id = ? AND product_id != '' AND product_id != '-1'", tenantID).
 		Select(`
 			product_id,
-			MAX(video_title) as product_name,
+			MAX(product_name) as product_name,
 			COALESCE(SUM(cost), 0) as total_cost,
 			COALESCE(SUM(gross_revenue), 0) as total_revenue,
 			CASE WHEN SUM(cost) > 0 THEN SUM(gross_revenue) / SUM(cost) ELSE 0 END as avg_roas,

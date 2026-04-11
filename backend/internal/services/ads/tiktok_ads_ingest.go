@@ -137,7 +137,8 @@ func (s *TiktokAdsService) SaveBatch(ctx context.Context, filename string, resul
 	})
 }
 
-// lookupProductNames fetches product names from tiktok_products table
+// lookupProductNames fetches product names from tiktok_ads_product_names table
+// NOTE: This is separate from tiktok_products (TikTok Shop sync) — ads product IDs are different
 func lookupProductNames(tx *gorm.DB, tenantID string, productIDs []string) map[string]string {
 	result := make(map[string]string)
 	if len(productIDs) == 0 {
@@ -154,13 +155,8 @@ func lookupProductNames(tx *gorm.DB, tenantID string, productIDs []string) map[s
 		}
 	}
 
-	var products []struct {
-		ProductID string `gorm:"column:product_id"`
-		Name      string `gorm:"column:name"`
-	}
-	tx.Table("tiktok_products").
-		Select("product_id, name").
-		Where("tenant_id = ? AND product_id IN ?", tenantID, deduped).
+	var products []models.TiktokAdsProductName
+	tx.Where("tenant_id = ? AND product_id IN ?", tenantID, deduped).
 		Find(&products)
 
 	for _, p := range products {

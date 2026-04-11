@@ -53,6 +53,8 @@ export interface ShopeeAdsProductData {
   conversions: number;
   roas: number;
   direct_roas: number;
+  acos: number;
+  direct_acos: number;
   impressions: number;
   clicks: number;
   ctr: number;

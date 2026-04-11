@@ -9,6 +9,7 @@ export interface AdsData {
   ctr: number;
   cpc: number;
   roas: number;
+  acos?: number;
   conversions: number;
   date: string;
   period_label?: string;

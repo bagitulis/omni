@@ -96,6 +96,7 @@ export const ShopeeAdsAnalyticsPage = () => {
       ctr: p.ctr,
       cpc: p.clicks > 0 ? p.cost / p.clicks : 0,
       roas: p.roas,
+      acos: p.acos,
       conversions: p.conversions,
       date: p.period_end,
       period_label: p.period_label,
