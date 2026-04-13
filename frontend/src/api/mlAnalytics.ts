@@ -29,15 +29,21 @@ export interface MLProduct {
   product_id: string;
   product_name: string;
   sku: string;
+  platform: string;
+  creative_type?: string;
   unified_score: number;
   category: string;
   action: string;
+  action_label: string;
   recommendation: string;
   total_cost: number;
   total_revenue: number;
   total_profit: number;
+  total_orders?: number;
   roas: number;
   ctr: number;
+  clicks: number;
+  impressions: number;
   has_fatigue_warning: boolean;
   has_churn_risk: boolean;
   fatigue_status: string;
@@ -49,7 +55,6 @@ export interface MLProduct {
   volatility_score: number;
   momentum_score: number;
   // Action details
-  action_label: string;
   budget_change_pct: number;
   confidence_level: string;
   success_probability: number;

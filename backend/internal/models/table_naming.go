@@ -103,6 +103,10 @@ var tableNameMapping = map[string]string{
 	"MLReport": "ml_reports",
 	"MLJob":    "ml_jobs",
 
+	// ML Analytics Cache
+	"MLScoreCache":        "ml_score_cache",
+	"MLCalculationStatus": "ml_calculation_status",
+
 	// Global Config (system schema)
 	"GlobalConfig": "global_config",
 

@@ -16,15 +16,22 @@ type MLScoreCache struct {
 	ID                 uint      `gorm:"primaryKey" json:"id"`
 	TenantID           string    `gorm:"column:tenant_id;type:varchar(255);index;not null" json:"tenant_id"`
 	ProductID          string    `gorm:"column:product_id;type:varchar(255)" json:"product_id"`
+	OriginalProductID  string    `gorm:"column:original_product_id;type:varchar(255)" json:"original_product_id"`
+	Platform           string    `gorm:"column:platform;type:varchar(20)" json:"platform"`
 	ProductName        string    `gorm:"column:product_name;type:text" json:"product_name"`
+	SKU                string    `gorm:"column:sku;type:varchar(255)" json:"sku"`
 	UnifiedScore       float64   `gorm:"column:unified_score" json:"unified_score"`
 	Category           string    `gorm:"column:category;type:varchar(50)" json:"category"`
 	Action             string    `gorm:"column:action;type:varchar(50)" json:"action"`
 	ActionLabel        string    `gorm:"column:action_label;type:varchar(100)" json:"action_label"`
+	Recommendation     string    `gorm:"column:recommendation;type:text" json:"recommendation"`
 	TotalCost          float64   `gorm:"column:total_cost" json:"total_cost"`
 	TotalRevenue       float64   `gorm:"column:total_revenue" json:"total_revenue"`
 	TotalProfit        float64   `gorm:"column:total_profit" json:"total_profit"`
 	ROAS               float64   `gorm:"column:roas" json:"roas"`
+	CTR                float64   `gorm:"column:ctr" json:"ctr"`
+	Clicks             int       `gorm:"column:clicks" json:"clicks"`
+	Impressions        int       `gorm:"column:impressions" json:"impressions"`
 	HasFatigueWarning  bool      `gorm:"column:has_fatigue_warning" json:"has_fatigue_warning"`
 	HasChurnRisk       bool      `gorm:"column:has_churn_risk" json:"has_churn_risk"`
 	FatigueStatus      string    `gorm:"column:fatigue_status;type:varchar(50)" json:"fatigue_status"`
@@ -249,19 +256,27 @@ func (s *MLCacheService) runRecalculation(db *gorm.DB, tenantID string) {
 
 	// Insert new scores
 	now := time.Now()
+	nowStr := now.Format(time.RFC3339)
 	for _, p := range products {
 		cache := MLScoreCache{
 			TenantID:           tenantID,
 			ProductID:          p.ProductID,
+			OriginalProductID:  p.ProductID,
+			Platform:           p.Platform,
 			ProductName:        p.ProductName,
+			SKU:                p.SKU,
 			UnifiedScore:       p.UnifiedScore,
 			Category:           p.Category,
 			Action:             p.Action,
 			ActionLabel:        p.ActionLabel,
+			Recommendation:     p.Recommendation,
 			TotalCost:          p.TotalCost,
 			TotalRevenue:       p.TotalRevenue,
 			TotalProfit:        p.TotalProfit,
 			ROAS:               p.ROAS,
+			CTR:                p.CTR,
+			Clicks:             p.Clicks,
+			Impressions:        p.Impressions,
 			HasFatigueWarning:  p.HasFatigueWarning,
 			HasChurnRisk:       p.HasChurnRisk,
 			FatigueStatus:      p.FatigueStatus,
@@ -277,6 +292,8 @@ func (s *MLCacheService) runRecalculation(db *gorm.DB, tenantID string) {
 			TrendStrength:      p.TrendStrength,
 			CalculatedAt:       now,
 		}
+		// Set last_updated on the product for JSON response
+		p.LastUpdated = nowStr
 		db.Create(&cache)
 	}
 
@@ -294,3 +311,53 @@ func (s *MLCacheService) runRecalculation(db *gorm.DB, tenantID string) {
 		Int("product_count", len(products)).
 		Msg("ML recalculation completed")
 }
+
+// GetCachedProductByID retrieves a single cached product by product_id
+func (s *MLCacheService) GetCachedProductByID(
+	ctx context.Context, db *gorm.DB, tenantID, productID string,
+) (*MLScoreCache, error) {
+	var product MLScoreCache
+	err := db.WithContext(ctx).
+		Where("tenant_id = ? AND product_id = ?", tenantID, productID).
+		First(&product).Error
+	if err != nil {
+		return nil, err
+	}
+	return &product, nil
+}
+
+// GetCachedAlerts derives alerts from cached product scores
+func (s *MLCacheService) GetCachedAlerts(
+	ctx context.Context, db *gorm.DB, tenantID string,
+) []MLScoreCache {
+	var products []MLScoreCache
+	db.WithContext(ctx).
+		Where("tenant_id = ? AND (has_fatigue_warning = ? OR has_churn_risk = ?)", tenantID, true, true).
+		Order("churn_risk_score DESC").
+		Find(&products)
+	return products
+}
+
+// GetCachedDistribution derives score distribution from cached products
+func (s *MLCacheService) GetCachedDistribution(
+	ctx context.Context, db *gorm.DB, tenantID string,
+) map[string]int {
+	type CategoryCount struct {
+		Category string `gorm:"column:category"`
+		Count    int    `gorm:"column:count"`
+	}
+	var counts []CategoryCount
+	db.WithContext(ctx).
+		Model(&MLScoreCache{}).
+		Select("category, COUNT(*) as count").
+		Where("tenant_id = ?", tenantID).
+		Group("category").
+		Scan(&counts)
+
+	result := map[string]int{"STAR": 0, "GROWTH": 0, "STABLE": 0, "WATCH": 0, "PROBLEM": 0}
+	for _, c := range counts {
+		result[c.Category] = c.Count
+	}
+	return result
+}
+

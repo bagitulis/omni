@@ -5,6 +5,7 @@ export interface Product {
   score: number;
   recommendation: string;
   last_updated: string;
+  platform: string;
 }
 
 export interface PortfolioHealth {

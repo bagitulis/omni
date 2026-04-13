@@ -15,11 +15,11 @@ import {
   FallOutlined,
   ThunderboltOutlined,
   DollarOutlined,
-  WarningOutlined,
   SafetyCertificateOutlined,
 } from "@ant-design/icons";
 import type { MLProduct } from "@/api/mlAnalytics";
 import { getScoreColor } from "./types";
+import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
 const { useToken } = theme;
@@ -47,7 +47,7 @@ const ActionBadge = ({ action }: { action: string }) => {
     case "reduce":
     case "stop":
       color = "error";
-      icon = <WarningOutlined />;
+      icon = <FallOutlined />;
       break;
   }
 
@@ -59,6 +59,41 @@ const ActionBadge = ({ action }: { action: string }) => {
       </span>
     </Tag>
   );
+};
+
+// Platform Badge
+const PlatformBadge = ({ platform }: { platform: string }) => {
+  const colors: Record<string, string> = {
+    tiktok: "magenta",
+    shopee: "orange",
+    combined: "blue",
+  };
+  return (
+    <Tag color={colors[platform] || "default"} style={{ textTransform: "capitalize" }}>
+      {platform}
+    </Tag>
+  );
+};
+
+// Fatigue color mapping
+const fatigueColorMap: Record<string, string> = {
+  FRESH: "green",
+  AGING: "gold",
+  FATIGUED: "orange",
+  DEAD: "red",
+};
+
+// Safe CTR formatter
+const formatCTR = (ctr: number | undefined | null): string => {
+  if (ctr === undefined || ctr === null || isNaN(ctr)) return "N/A";
+  return `${(ctr * 100).toFixed(2)}%`;
+};
+
+// Safe date formatter
+const formatDate = (dateStr: string | undefined | null): string => {
+  if (!dateStr) return "Not analyzed yet";
+  const d = dayjs(dateStr);
+  return d.isValid() ? d.format("MMM DD, YYYY HH:mm") : "Not analyzed yet";
 };
 
 export const ProductDetailModal = ({
@@ -87,7 +122,7 @@ export const ProductDetailModal = ({
           <Text strong style={{ fontSize: 16 }}>
             {product.product_name || product.product_id}
           </Text>
-          <Tag>{product.sku}</Tag>
+          <PlatformBadge platform={product.platform || "tiktok"} />
         </div>
       }
       open={open}
@@ -146,9 +181,14 @@ export const ProductDetailModal = ({
         </div>
         <div style={{ textAlign: "right" }}>
           <ActionBadge action={product.action} />
-          <div style={{ marginTop: 8 }}>
-            <Text strong>{product.recommendation}</Text>
-          </div>
+          {product.recommendation && (
+            <div style={{ marginTop: 8, maxWidth: 280 }}>
+              <Text style={{ fontSize: 12 }}>
+                <ThunderboltOutlined style={{ marginRight: 4, color: token.colorPrimary }} />
+                {product.recommendation}
+              </Text>
+            </div>
+          )}
         </div>
       </div>
 
@@ -213,7 +253,7 @@ export const ProductDetailModal = ({
           </Title>
           <Descriptions bordered size="small" column={2}>
             <Descriptions.Item label="Category">
-              <Tag color="blue">{product.category}</Tag>
+              <Tag color="blue">{product.category || "—"}</Tag>
             </Descriptions.Item>
             <Descriptions.Item label="Trend">
               <Tag
@@ -232,32 +272,26 @@ export const ProductDetailModal = ({
                   ) : undefined
                 }
               >
-                {product.trend_direction}
+                {product.trend_direction || "STABLE"}
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="CTR">
-              {(product.ctr * 100).toFixed(2)}%
+              {formatCTR(product.ctr)}
             </Descriptions.Item>
             <Descriptions.Item label="Fatigue Status">
               <Tag
-                color={
-                  product.fatigue_status === "HIGH"
-                    ? "red"
-                    : product.fatigue_status === "MEDIUM"
-                      ? "orange"
-                      : "green"
-                }
+                color={fatigueColorMap[product.fatigue_status] || "default"}
               >
-                {product.fatigue_status}
+                {product.fatigue_status || "N/A"}
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="Churn Risk">
               <Progress
-                percent={product.churn_risk_score}
+                percent={Math.round(product.churn_risk_score || 0)}
                 status={
-                  product.churn_risk_score > 70
+                  (product.churn_risk_score || 0) > 70
                     ? "exception"
-                    : product.churn_risk_score > 40
+                    : (product.churn_risk_score || 0) > 40
                       ? "active"
                       : "success"
                 }
@@ -265,18 +299,20 @@ export const ProductDetailModal = ({
                 format={(percent) => `${percent}%`}
               />
             </Descriptions.Item>
-            <Descriptions.Item label="Has Fatigue Warning">
-              <Text type={product.has_fatigue_warning ? "danger" : "secondary"}>
-                {product.has_fatigue_warning ? "Yes" : "No"}
-              </Text>
+            <Descriptions.Item label="Confidence">
+              <Tag color={
+                product.confidence_level === "HIGH" ? "green"
+                  : product.confidence_level === "MEDIUM" ? "gold"
+                    : "default"
+              }>
+                {product.confidence_level || "N/A"}
+              </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="Has Churn Risk">
-              <Text type={product.has_churn_risk ? "danger" : "secondary"}>
-                {product.has_churn_risk ? "Yes" : "No"}
-              </Text>
+            <Descriptions.Item label="Platform">
+              <PlatformBadge platform={product.platform || "tiktok"} />
             </Descriptions.Item>
             <Descriptions.Item label="Last Updated">
-              {new Date(product.last_updated).toLocaleString()}
+              {formatDate(product.last_updated)}
             </Descriptions.Item>
           </Descriptions>
         </Col>

@@ -13,31 +13,53 @@ interface Props {
   onRowClick?: (product: Product) => void;
 }
 
+const platformColors: Record<string, string> = {
+  tiktok: "magenta",
+  shopee: "orange",
+  combined: "blue",
+};
+
 export const ProductScoreTable = ({ products, loading, onRowClick }: Props) => {
   const { token } = useToken();
 
   const columns: ColumnsType<Product> = [
     {
-      title: "SKU",
-      dataIndex: "sku",
-      key: "sku",
-      width: 100,
-      render: (text) => (
-        <span style={{ fontSize: 12, fontWeight: 500 }}>{text}</span>
+      title: "Platform",
+      dataIndex: "platform",
+      key: "platform",
+      width: 80,
+      render: (platform: string) => (
+        <Tag
+          color={platformColors[platform] || "default"}
+          style={{ fontSize: 11, textTransform: "capitalize" }}
+        >
+          {platform || "—"}
+        </Tag>
       ),
+      filters: [
+        { text: "TikTok", value: "tiktok" },
+        { text: "Shopee", value: "shopee" },
+      ],
+      onFilter: (value, record) => record.platform === value,
     },
     {
       title: "Product Name",
       dataIndex: "name",
       key: "name",
       width: 200,
-      render: (text) => <span style={{ fontSize: 12 }}>{text}</span>,
+      render: (text) => (
+        <span style={{ fontSize: 12, whiteSpace: "normal", wordBreak: "break-word" }}>
+          {text}
+        </span>
+      ),
     },
     {
       title: "Score",
       dataIndex: "score",
       key: "score",
       width: 120,
+      sorter: (a, b) => a.score - b.score,
+      defaultSortOrder: "descend",
       render: (score) => (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Progress
@@ -70,7 +92,7 @@ export const ProductScoreTable = ({ products, loading, onRowClick }: Props) => {
                 fontStyle: "italic",
               }}
             >
-              No recommendation available
+              Run analysis to generate recommendations
             </span>
           );
         }
@@ -90,7 +112,15 @@ export const ProductScoreTable = ({ products, loading, onRowClick }: Props) => {
       key: "last_updated",
       width: 100,
       render: (date) => {
-        if (!date) {
+        if (!date || date === "Invalid Date") {
+          return (
+            <span style={{ fontSize: 11, color: token.colorTextSecondary }}>
+              —
+            </span>
+          );
+        }
+        const parsed = dayjs(date);
+        if (!parsed.isValid()) {
           return (
             <span style={{ fontSize: 11, color: token.colorTextSecondary }}>
               —
@@ -99,7 +129,7 @@ export const ProductScoreTable = ({ products, loading, onRowClick }: Props) => {
         }
         return (
           <span style={{ fontSize: 11, color: token.colorTextSecondary }}>
-            {dayjs(date).format("MMM DD, YYYY HH:mm")}
+            {parsed.format("MMM DD, YYYY HH:mm")}
           </span>
         );
       },

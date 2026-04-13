@@ -44,8 +44,9 @@ const transformProduct = (p: MLProduct) => ({
   sku: p.sku || p.product_id,
   name: p.product_name,
   score: p.unified_score,
-  recommendation: p.recommendation,
+  recommendation: p.recommendation || p.action_label || "",
   last_updated: p.last_updated,
+  platform: p.platform || "tiktok",
 });
 
 export const MLDashboardPage = () => {
@@ -216,7 +217,7 @@ export const MLDashboardPage = () => {
           </div>
         </div>
         <Text type="secondary">
-          AI-Powered Product Intelligence &amp; Portfolio Analysis
+          AI-Powered Product Intelligence — TikTok &amp; Shopee Ads Analysis
         </Text>
         {recalcStatus?.completed_at && (
           <div style={{ marginTop: 4 }}>
@@ -324,7 +325,17 @@ export const MLDashboardPage = () => {
             </Col>
           </Row>
 
-          {/* Product Scoring Table */}
+          {/* Recommendations Summary — placed ABOVE table to avoid pagination overlap */}
+          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+            <Col xs={24} sm={24} md={12} lg={12}>
+              <ActionSummaryCard portfolioHealth={portfolioHealth} />
+            </Col>
+            <Col xs={24} sm={24} md={12} lg={12}>
+              <PortfolioHealthScoreCard portfolioHealth={portfolioHealth} />
+            </Col>
+          </Row>
+
+          {/* Product Scoring Table — at bottom so pagination dropdown has room */}
           <Card
             title={
               <span style={{ fontSize: 14, fontWeight: 600 }}>
@@ -351,16 +362,6 @@ export const MLDashboardPage = () => {
             open={!!selectedProduct}
             onClose={() => setSelectedProduct(null)}
           />
-
-          {/* Recommendations Summary */}
-          <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-            <Col xs={24} sm={24} md={12} lg={12}>
-              <ActionSummaryCard portfolioHealth={portfolioHealth} />
-            </Col>
-            <Col xs={24} sm={24} md={12} lg={12}>
-              <PortfolioHealthScoreCard portfolioHealth={portfolioHealth} />
-            </Col>
-          </Row>
         </>
       )}
     </div>

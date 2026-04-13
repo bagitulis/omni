@@ -7,6 +7,7 @@ import (
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto"
 	"github.com/omni/backend/internal/middleware"
+	"github.com/omni/backend/internal/models"
 	analyticsService "github.com/omni/backend/internal/services/analytics"
 	"github.com/omni/backend/internal/services/cache"
 )
@@ -81,7 +82,7 @@ func (h *MLHandler) GetPortfolioHealth(c *gin.Context) {
 	})
 }
 
-// GetProducts returns paginated product analyses
+// GetProducts returns paginated product analyses from cache
 // GET /api/analytics/ml/products
 func (h *MLHandler) GetProducts(c *gin.Context) {
 	var params dto.MLProductsQueryParams
@@ -99,27 +100,25 @@ func (h *MLHandler) GetProducts(c *gin.Context) {
 		params.SortDir = "desc"
 	}
 
-	svc, _, err := h.getService(c)
-	if err != nil {
-		if err == config.ErrMissingTenantID {
-			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant ID"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to connect to tenant database"})
-		}
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant ID"})
 		return
 	}
 
-	products, total, hasMore, nextCursor, err := svc.GetProducts(
-		c.Request.Context(),
-		params.Platform,
-		params.Limit,
-		params.Cursor,
-		params.SortBy,
-		params.SortDir,
-		params.Category,
-		params.Action,
-	)
+	tenantDB, err := config.GetTenantDBByID(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to connect to tenant database"})
+		return
+	}
 
+	h.cacheService.EnsureTables(tenantDB)
+
+	// Read from cache (fast) instead of real-time computation
+	cachedProducts, total, err := h.cacheService.GetCachedProducts(
+		c.Request.Context(), tenantDB, tenantID,
+		params.Limit, params.SortBy, params.SortDir,
+	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -128,19 +127,26 @@ func (h *MLHandler) GetProducts(c *gin.Context) {
 		return
 	}
 
+	// Convert cache rows to API response format
+	products := make([]models.MLProductAnalysis, 0, len(cachedProducts))
+	for _, cp := range cachedProducts {
+		products = append(products, cacheToProductAnalysis(cp))
+	}
+
+	hasMore := total > int64(params.Limit)
+
 	c.JSON(http.StatusOK, dto.MLProductsResponse{
 		Success: true,
 		Data:    products,
 		Meta: dto.MLPaginationMeta{
-			Total:      total,
-			Limit:      params.Limit,
-			HasMore:    hasMore,
-			NextCursor: nextCursor,
+			Total:   total,
+			Limit:   params.Limit,
+			HasMore: hasMore,
 		},
 	})
 }
 
-// GetProductDetail returns detailed analysis for a single product
+// GetProductDetail returns detailed analysis for a single product from cache
 // GET /api/analytics/ml/product/:id
 func (h *MLHandler) GetProductDetail(c *gin.Context) {
 	productID := c.Param("id")
@@ -152,26 +158,20 @@ func (h *MLHandler) GetProductDetail(c *gin.Context) {
 		return
 	}
 
-	svc, _, err := h.getService(c)
-	if err != nil {
-		if err == config.ErrMissingTenantID {
-			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant ID"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to connect to tenant database"})
-		}
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant ID"})
 		return
 	}
 
-	product, err := svc.GetProductDetail(c.Request.Context(), productID)
+	tenantDB, err := config.GetTenantDBByID(tenantID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to get product detail",
-		})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to connect to tenant database"})
 		return
 	}
 
-	if product == nil {
+	cached, err := h.cacheService.GetCachedProductByID(c.Request.Context(), tenantDB, tenantID, productID)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"success": false,
 			"error":   "Product not found",
@@ -179,10 +179,48 @@ func (h *MLHandler) GetProductDetail(c *gin.Context) {
 		return
 	}
 
+	product := cacheToProductAnalysis(*cached)
+
 	c.JSON(http.StatusOK, dto.MLProductDetailResponse{
 		Success: true,
-		Data:    *product,
+		Data:    product,
 	})
+}
+
+// cacheToProductAnalysis converts a cache row to MLProductAnalysis for API response
+func cacheToProductAnalysis(cp analyticsService.MLScoreCache) models.MLProductAnalysis {
+	return models.MLProductAnalysis{
+		ProductID:          cp.ProductID,
+		ProductName:        cp.ProductName,
+		SKU:                cp.SKU,
+		Platform:           cp.Platform,
+		TotalCost:          cp.TotalCost,
+		TotalRevenue:       cp.TotalRevenue,
+		TotalProfit:        cp.TotalProfit,
+		ROAS:               cp.ROAS,
+		CTR:                cp.CTR,
+		Clicks:             cp.Clicks,
+		Impressions:        cp.Impressions,
+		UnifiedScore:       cp.UnifiedScore,
+		ROASScore:          cp.ROASScore,
+		TrendScore:         cp.TrendScore,
+		VolatilityScore:    cp.VolatilityScore,
+		MomentumScore:      cp.MomentumScore,
+		Category:           cp.Category,
+		Action:             cp.Action,
+		ActionLabel:        cp.ActionLabel,
+		Recommendation:     cp.Recommendation,
+		BudgetChangePct:    cp.BudgetChangePct,
+		HasFatigueWarning:  cp.HasFatigueWarning,
+		HasChurnRisk:       cp.HasChurnRisk,
+		FatigueStatus:      cp.FatigueStatus,
+		ChurnRiskScore:     cp.ChurnRiskScore,
+		ConfidenceLevel:    cp.ConfidenceLevel,
+		SuccessProbability: cp.SuccessProbability,
+		TrendDirection:     cp.TrendDirection,
+		TrendStrength:      cp.TrendStrength,
+		LastUpdated:        cp.CalculatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	}
 }
 
 // Recalculate triggers a background ML recalculation

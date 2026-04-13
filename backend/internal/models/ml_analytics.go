@@ -8,7 +8,9 @@ type MLProductAnalysis struct {
 	TenantID     string `json:"-"` // Hidden from response
 	ProductID    string `json:"product_id"`
 	ProductName  string `json:"product_name"`
+	SKU          string `json:"sku"`
 	CreativeType string `json:"creative_type"`
+	Platform     string `json:"platform"` // "tiktok", "shopee", or "combined"
 
 	// Financial Metrics
 	TotalCost    float64 `json:"total_cost"`
@@ -18,6 +20,11 @@ type MLProductAnalysis struct {
 	ROAS         float64 `json:"roas"`
 	PeriodCount  int     `json:"period_count"`
 
+	// Engagement Metrics
+	CTR         float64 `json:"ctr"`
+	Clicks      int     `json:"clicks"`
+	Impressions int     `json:"impressions"`
+
 	// Unified Score (0-100)
 	UnifiedScore    float64 `json:"unified_score"`
 	ROASScore       float64 `json:"roas_score"`
@@ -26,9 +33,10 @@ type MLProductAnalysis struct {
 	MomentumScore   float64 `json:"momentum_score"`
 
 	// Category & Action
-	Category        string  `json:"category"`     // STAR, GROWTH, STABLE, WATCH, PROBLEM
-	Action          string  `json:"action"`       // SCALE_UP, MAINTAIN, REDUCE, STOP
-	ActionLabel     string  `json:"action_label"` // Human readable
+	Category        string  `json:"category"`       // STAR, GROWTH, STABLE, WATCH, PROBLEM
+	Action          string  `json:"action"`          // SCALE_UP, MAINTAIN, REDUCE, STOP
+	ActionLabel     string  `json:"action_label"`    // Human readable
+	Recommendation  string  `json:"recommendation"`  // AI-generated recommendation text
 	BudgetChangePct float64 `json:"budget_change_pct"`
 
 	// Alerts
@@ -44,6 +52,9 @@ type MLProductAnalysis struct {
 	// Trend Indicators
 	TrendDirection string  `json:"trend_direction"` // UP, DOWN, STABLE
 	TrendStrength  float64 `json:"trend_strength"`
+
+	// Timestamp
+	LastUpdated string `json:"last_updated"`
 }
 
 // PortfolioHealth represents overall portfolio health summary
