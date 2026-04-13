@@ -72,61 +72,91 @@ func (s *ShopeeAdsService) ParseCSV(ctx context.Context, data []byte, filename s
 	return &ParseResult{Data: products, Period: *period}, nil
 }
 
-// SaveBatch saves a batch of ads data with duplicate period detection
+// SaveBatch saves a batch of ads data with duplicate period detection.
+// The batch record is created OUTSIDE the data-insertion transaction so that
+// failure status persists even if the data insert is rolled back.
 func (s *ShopeeAdsService) SaveBatch(ctx context.Context, filename string, result *ParseResult) error {
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Check for duplicate period
-		var existingCount int64
-		if err := tx.Model(&models.ShopeeAdsUploadBatch{}).
-			Where("tenant_id = ? AND period_label = ?", s.tenantID, result.Period.Label).
-			Count(&existingCount).Error; err != nil {
-			return fmt.Errorf("check duplicate: %w", err)
-		}
-		if existingCount > 0 {
-			return fmt.Errorf("period %s already uploaded — please delete existing data first before re-uploading", result.Period.Label)
-		}
+	db := s.db.WithContext(ctx)
 
-		batch := models.ShopeeAdsUploadBatch{
-			ID:          uuid.New().String(),
-			TenantID:    s.tenantID,
-			FileName:    filename,
-			PeriodStart: result.Period.Start,
-			PeriodEnd:   result.Period.End,
-			PeriodLabel: result.Period.Label,
-			TotalRows:   len(result.Data),
-			Status:      "processing",
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-		}
-		if err := tx.Create(&batch).Error; err != nil {
-			return err
-		}
+	// Check for duplicate period (outside transaction — read-only)
+	var existingCount int64
+	if err := db.Model(&models.ShopeeAdsUploadBatch{}).
+		Where("tenant_id = ? AND period_label = ?", s.tenantID, result.Period.Label).
+		Count(&existingCount).Error; err != nil {
+		return fmt.Errorf("check duplicate: %w", err)
+	}
+	if existingCount > 0 {
+		return fmt.Errorf("period %s already uploaded — please delete existing data first before re-uploading", result.Period.Label)
+	}
 
-		for i := range result.Data {
-			result.Data[i].UploadBatchID = batch.ID
-		}
+	// Create batch record OUTSIDE transaction — survives rollback
+	batch := models.ShopeeAdsUploadBatch{
+		ID:          uuid.New().String(),
+		TenantID:    s.tenantID,
+		FileName:    filename,
+		PeriodStart: result.Period.Start,
+		PeriodEnd:   result.Period.End,
+		PeriodLabel: result.Period.Label,
+		TotalRows:   len(result.Data),
+		Status:      "processing",
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	if err := db.Create(&batch).Error; err != nil {
+		return fmt.Errorf("create batch: %w", err)
+	}
 
-		inserted := 0
-		if len(result.Data) > 0 {
-			if err := tx.CreateInBatches(result.Data, 100).Error; err != nil {
-				// Update batch as failed
-				tx.Model(&models.ShopeeAdsUploadBatch{}).Where("id = ?", batch.ID).
-					Updates(map[string]interface{}{
-						"status":        "failed",
-						"error_message": err.Error(),
-						"updated_at":    time.Now(),
-					})
-				return fmt.Errorf("insert data: %w", err)
-			}
-			inserted = len(result.Data)
-		}
+	for i := range result.Data {
+		result.Data[i].UploadBatchID = batch.ID
+	}
 
-		// Update batch as success
-		return tx.Model(&models.ShopeeAdsUploadBatch{}).Where("id = ?", batch.ID).
+	// Insert data inside transaction — rollback only affects data rows
+	insertErr := db.Transaction(func(tx *gorm.DB) error {
+		if len(result.Data) == 0 {
+			return nil
+		}
+		return tx.CreateInBatches(result.Data, 100).Error
+	})
+
+	if insertErr != nil {
+		// Mark batch as failed — persists because batch was created outside tx
+		db.Model(&models.ShopeeAdsUploadBatch{}).Where("id = ?", batch.ID).
 			Updates(map[string]interface{}{
-				"inserted_rows": inserted,
-				"status":        "success",
+				"status":        "failed",
+				"error_message": insertErr.Error(),
 				"updated_at":    time.Now(),
-			}).Error
+			})
+		return fmt.Errorf("insert data (batch %s): %w", batch.ID, insertErr)
+	}
+
+	// Mark batch as success
+	return db.Model(&models.ShopeeAdsUploadBatch{}).Where("id = ?", batch.ID).
+		Updates(map[string]interface{}{
+			"inserted_rows": len(result.Data),
+			"status":        "success",
+			"updated_at":    time.Now(),
+		}).Error
+}
+
+// DeleteBatch deletes a Shopee ads upload batch and its associated product data
+func (s *ShopeeAdsService) DeleteBatch(ctx context.Context, batchID string) error {
+	db := s.db.WithContext(ctx)
+
+	// Verify batch belongs to this tenant
+	var batch models.ShopeeAdsUploadBatch
+	if err := db.Where("id = ? AND tenant_id = ?", batchID, s.tenantID).First(&batch).Error; err != nil {
+		return fmt.Errorf("batch not found: %w", err)
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("upload_batch_id = ? AND tenant_id = ?", batchID, s.tenantID).
+			Delete(&models.ShopeeAdsProductData{}).Error; err != nil {
+			return fmt.Errorf("delete product data: %w", err)
+		}
+		if err := tx.Where("id = ? AND tenant_id = ?", batchID, s.tenantID).
+			Delete(&models.ShopeeAdsUploadBatch{}).Error; err != nil {
+			return fmt.Errorf("delete batch: %w", err)
+		}
+		return nil
 	})
 }

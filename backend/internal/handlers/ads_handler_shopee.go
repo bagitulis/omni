@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/services/analytics"
 )
 
 // UploadShopeeAds handles POST /api/ads/shopee/upload
@@ -41,12 +44,61 @@ func (h *AdsHandler) UploadShopeeAds(c *gin.Context) {
 		return
 	}
 
+	// Async refresh Materialized Views so dashboard updates
+	db, dbErr := h.getDB(c)
+	if dbErr == nil {
+		tenantID, _ := validateTenantID(c)
+		go func() {
+			cacheSvc := analytics.NewCacheService("")
+			shopeeMVs := []string{"mv_shopee_ads_summary", "mv_shopee_ads_product_analysis"}
+			for _, mv := range shopeeMVs {
+				status := cacheSvc.RefreshMV(context.Background(), db, tenantID, mv)
+				log.Printf("[MV-Refresh] %s: %s", mv, status.Status)
+			}
+		}()
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"success":   true,
-		"message":   "Upload successful",
-		"totalRows": len(result.Data),
-		"period":    result.Period,
+		"success": true,
+		"data": gin.H{
+			"totalRows": len(result.Data),
+			"period":    result.Period,
+		},
 	})
+}
+
+// DeleteShopeeAdsBatch handles DELETE /api/ads/shopee/upload/:batchId
+func (h *AdsHandler) DeleteShopeeAdsBatch(c *gin.Context) {
+	svc, _, err := h.newShopeeService(c)
+	if svc == nil || err != nil {
+		return
+	}
+
+	batchID := c.Param("batchId")
+	if batchID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Batch ID required"})
+		return
+	}
+
+	if err := svc.DeleteBatch(c.Request.Context(), batchID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	// Async refresh MVs after delete
+	db, dbErr := h.getDB(c)
+	if dbErr == nil {
+		tenantID, _ := validateTenantID(c)
+		go func() {
+			cacheSvc := analytics.NewCacheService("")
+			shopeeMVs := []string{"mv_shopee_ads_summary", "mv_shopee_ads_product_analysis"}
+			for _, mv := range shopeeMVs {
+				cacheSvc.RefreshMV(context.Background(), db, tenantID, mv)
+			}
+		}()
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Batch deleted successfully"})
 }
 
 // GetShopeeAds handles GET /api/ads/shopee
@@ -116,3 +168,4 @@ func (h *AdsHandler) GetShopeeProductPerformance(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": perf})
 }
+

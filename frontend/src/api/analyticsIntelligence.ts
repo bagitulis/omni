@@ -59,6 +59,8 @@ export interface ProductFromAds {
   product_name: string;
   avg_roas: number;
   source: "tiktok" | "shopee";
+  current_daily_spend: number;
+  ml_category?: string;
 }
 
 export interface SimulationRequest {
@@ -76,11 +78,13 @@ export interface SimulationResult {
   trend_prediction: "UP" | "DOWN" | "STAGNANT";
   optimal_budget: number;
   recommendation: string;
+  simulation_mode: "FUNNEL" | "YIELD";
+  ml_category: string;
+  current_daily_spend: number;
   alternatives: {
-    target_roas?: number;
-    required_budget?: number;
-    budget?: number;
-    expected_roas?: number;
+    target_roas: number;
+    required_budget: number;
+    expected_roas: number;
   }[];
 }
 

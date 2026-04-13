@@ -2,6 +2,7 @@ package analytics
 
 import (
 	"context"
+	"math"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -230,7 +231,7 @@ func (s *MLAnalyticsService) SimulateBudget(
 		}, nil
 	}
 
-	// Simple linear projection based on elasticity
+	// Aggregate totals from selected products
 	var totalCost, totalRevenue, totalProfit float64
 	for _, p := range selected {
 		totalCost += p.TotalCost
@@ -238,10 +239,14 @@ func (s *MLAnalyticsService) SimulateBudget(
 		totalProfit += p.TotalProfit
 	}
 
-	// Estimate elasticity (simplified: assume 0.8 elasticity)
-	elasticity := 0.8
+	// Power-law diminishing returns model
+	// Revenue scales sub-linearly as budget increases
 	budgetMultiplier := 1 + (budgetChangePct / 100)
-	revenueMultiplier := 1 + (budgetChangePct/100)*elasticity
+	if budgetMultiplier <= 0 {
+		budgetMultiplier = 0.01 // Protect against negative/zero
+	}
+	elasticity := 0.82 // Revenue elasticity to spend (< 1.0 = diminishing returns)
+	revenueMultiplier := math.Pow(budgetMultiplier, elasticity)
 
 	expectedRevenue := totalRevenue * revenueMultiplier
 	expectedCost := totalCost * budgetMultiplier

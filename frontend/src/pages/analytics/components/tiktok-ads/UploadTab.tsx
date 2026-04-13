@@ -1,9 +1,30 @@
-import { Card, Col, Row, Upload, Typography, Alert, Spin, theme } from "antd";
+import { useState } from "react";
+import {
+  Card,
+  Col,
+  Row,
+  Upload,
+  Typography,
+  Alert,
+  Spin,
+  Table,
+  Button,
+  Popconfirm,
+  theme,
+  Tag,
+} from "antd";
 import {
   InboxOutlined,
   CheckCircleOutlined,
   FileExcelOutlined,
+  DeleteOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import apiClient from "@/api/client";
+import { message } from "@/components/AntStaticApi";
+import type { ColumnsType } from "antd/es/table";
+import dayjs from "dayjs";
 
 const { Dragger } = Upload;
 const { Text } = Typography;
@@ -18,6 +39,18 @@ interface UploadResult {
   };
 }
 
+interface UploadBatch {
+  id: string;
+  file_name: string;
+  period_start: string;
+  period_end: string;
+  total_rows: number;
+  inserted_rows: number;
+  skipped_rows: number;
+  status: string;
+  created_at: string;
+}
+
 interface UploadTabProps {
   uploadProps: import("antd").UploadProps;
   uploading: boolean;
@@ -30,6 +63,115 @@ export const UploadTab = ({
   lastResult,
 }: UploadTabProps) => {
   const { token } = useToken();
+  const queryClient = useQueryClient();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Fetch upload history
+  const {
+    data: historyData,
+    isLoading: historyLoading,
+    refetch: refetchHistory,
+  } = useQuery({
+    queryKey: ["tiktok-ads-uploads"],
+    queryFn: async () => {
+      const resp = await apiClient.get<UploadBatch[]>(
+        "/analytics/tiktok-ads/uploads",
+      );
+      return resp.data ?? [];
+    },
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (batchId: string) => {
+      setDeletingId(batchId);
+      return apiClient.delete(`/ads/tiktok/upload/${batchId}`);
+    },
+    onSuccess: () => {
+      message.success("Batch deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["tiktok-ads-uploads"] });
+      queryClient.invalidateQueries({ queryKey: ["tiktok-ads-data"] });
+      queryClient.invalidateQueries({ queryKey: ["tiktok-ads-dashboard"] });
+    },
+    onError: (err: Error) => {
+      message.error(err.message || "Failed to delete batch");
+    },
+    onSettled: () => {
+      setDeletingId(null);
+    },
+  });
+
+  const columns: ColumnsType<UploadBatch> = [
+    {
+      title: "File",
+      dataIndex: "file_name",
+      key: "file_name",
+      ellipsis: true,
+      width: 220,
+    },
+    {
+      title: "Period",
+      key: "period",
+      width: 180,
+      render: (_, r) => {
+        const start = dayjs(r.period_start).format("DD MMM YYYY");
+        const end = dayjs(r.period_end).format("DD MMM YYYY");
+        return `${start} — ${end}`;
+      },
+    },
+    {
+      title: "Rows",
+      dataIndex: "total_rows",
+      key: "total_rows",
+      width: 70,
+      align: "right",
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      width: 90,
+      render: (status: string) => {
+        const color =
+          status === "success"
+            ? "green"
+            : status === "failed"
+              ? "red"
+              : "orange";
+        return <Tag color={color}>{status}</Tag>;
+      },
+    },
+    {
+      title: "Uploaded",
+      dataIndex: "created_at",
+      key: "created_at",
+      width: 140,
+      render: (v: string) => dayjs(v).format("DD MMM YYYY HH:mm"),
+    },
+    {
+      title: "",
+      key: "actions",
+      width: 50,
+      render: (_, record) => (
+        <Popconfirm
+          title="Delete this upload?"
+          description="All associated creative data will be removed."
+          onConfirm={() => deleteMutation.mutate(record.id)}
+          okText="Delete"
+          cancelText="Cancel"
+          okButtonProps={{ danger: true }}
+        >
+          <Button
+            type="text"
+            danger
+            size="small"
+            icon={<DeleteOutlined />}
+            loading={deletingId === record.id}
+          />
+        </Popconfirm>
+      ),
+    },
+  ];
 
   return (
     <Row gutter={[16, 16]}>
@@ -43,10 +185,10 @@ export const UploadTab = ({
                 />
               </p>
               <p className="ant-upload-text">
-                Klik atau drag file Excel (.xlsx) ke sini
+                Click or drag Excel file (.xlsx) here
               </p>
               <p className="ant-upload-hint">
-                Upload file export TikTok Ads — format: &quot;creative data for
+                Upload TikTok Ads export — format: &quot;creative data for
                 product campaigns YYYY-MM-DD ~ YYYY-MM-DD.xlsx&quot;
               </p>
             </Dragger>
@@ -59,8 +201,8 @@ export const UploadTab = ({
             }}
           >
             <Text type="secondary">
-              Sistem akan otomatis mendeteksi periode dari nama file dan mencegah
-              upload duplikat.
+              The system auto-detects the period from the filename and prevents
+              duplicate uploads.
             </Text>
           </div>
         </Card>
@@ -72,14 +214,14 @@ export const UploadTab = ({
               type="success"
               icon={<CheckCircleOutlined />}
               showIcon
-              message={`Upload berhasil`}
+              message="Upload successful"
               description={
                 <div>
                   <div>
-                    Periode: <strong>{lastResult.period?.label}</strong>
+                    Period: <strong>{lastResult.period?.label}</strong>
                   </div>
                   <div>
-                    Total baris: <strong>{lastResult.totalRows}</strong>
+                    Total rows: <strong>{lastResult.totalRows}</strong>
                   </div>
                 </div>
               }
@@ -93,9 +235,34 @@ export const UploadTab = ({
               }}
             >
               <InboxOutlined style={{ fontSize: 32, marginBottom: 8 }} />
-              <p>Belum ada upload terbaru</p>
+              <p>No recent upload</p>
             </div>
           )}
+        </Card>
+      </Col>
+      <Col xs={24}>
+        <Card
+          title="Upload History"
+          size="small"
+          extra={
+            <Button
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={() => refetchHistory()}
+            >
+              Refresh
+            </Button>
+          }
+        >
+          <Table
+            columns={columns}
+            dataSource={historyData ?? []}
+            rowKey="id"
+            size="small"
+            loading={historyLoading}
+            pagination={{ pageSize: 10, size: "small" }}
+            locale={{ emptyText: "No uploads yet" }}
+          />
         </Card>
       </Col>
     </Row>

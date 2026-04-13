@@ -52,88 +52,118 @@ func (s *TiktokAdsService) ParseExcel(ctx context.Context, data []byte, filename
 	return &TiktokParseResult{Data: creatives, Period: *period}, nil
 }
 
-// SaveBatch saves a batch of TikTok ads data with duplicate protection
+// SaveBatch saves a batch of TikTok ads data with duplicate protection.
+// The batch record is created OUTSIDE the data-insertion transaction so that
+// failure status persists even if the data insert is rolled back.
 func (s *TiktokAdsService) SaveBatch(ctx context.Context, filename string, result *TiktokParseResult) error {
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Check for duplicate period
-		var existingCount int64
-		if err := tx.Model(&models.TiktokAdsUploadBatch{}).
-			Where("tenant_id = ? AND period_label = ?", s.tenantID, result.Period.Label).
-			Count(&existingCount).Error; err != nil {
-			return fmt.Errorf("check duplicate: %w", err)
-		}
-		if existingCount > 0 {
-			return fmt.Errorf("period %s already uploaded — please delete existing data first before re-uploading", result.Period.Label)
-		}
+	db := s.db.WithContext(ctx)
 
-		// Collect product IDs for name enrichment
-		productIDs := make([]string, 0)
-		for _, d := range result.Data {
-			if d.ProductID != "" && d.ProductID != "-1" {
-				productIDs = append(productIDs, d.ProductID)
-			}
-		}
+	// Check for duplicate period (outside transaction — read-only)
+	var existingCount int64
+	if err := db.Model(&models.TiktokAdsUploadBatch{}).
+		Where("tenant_id = ? AND period_label = ?", s.tenantID, result.Period.Label).
+		Count(&existingCount).Error; err != nil {
+		return fmt.Errorf("check duplicate: %w", err)
+	}
+	if existingCount > 0 {
+		return fmt.Errorf("period %s already uploaded — please delete existing data first before re-uploading", result.Period.Label)
+	}
 
-		// Lookup product names from tiktok_products table
-		nameMap := lookupProductNames(tx, s.tenantID, productIDs)
-
-		// Enrich product names and mark special cases
-		skipped := 0
-		for i := range result.Data {
-			pid := result.Data[i].ProductID
-			if pid == "" || pid == "-1" {
-				result.Data[i].ProductName = "Non-Product Creative"
-				skipped++
-			} else if name, ok := nameMap[pid]; ok {
-				result.Data[i].ProductName = name
-			} else {
-				result.Data[i].ProductName = "Discontinued Product"
-			}
+	// Enrich product names
+	productIDs := make([]string, 0)
+	for _, d := range result.Data {
+		if d.ProductID != "" && d.ProductID != "-1" {
+			productIDs = append(productIDs, d.ProductID)
 		}
+	}
+	nameMap := lookupProductNames(db, s.tenantID, productIDs)
 
-		batch := models.TiktokAdsUploadBatch{
-			ID:          uuid.New().String(),
-			TenantID:    s.tenantID,
-			FileName:    filename,
-			PeriodStart: result.Period.Start,
-			PeriodEnd:   result.Period.End,
-			PeriodLabel: result.Period.Label,
-			TotalRows:   len(result.Data),
-			SkippedRows: skipped,
-			Status:      "processing",
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
+	skipped := 0
+	for i := range result.Data {
+		pid := result.Data[i].ProductID
+		if pid == "" || pid == "-1" {
+			result.Data[i].ProductName = "Non-Product Creative"
+			skipped++
+		} else if name, ok := nameMap[pid]; ok {
+			result.Data[i].ProductName = name
+		} else {
+			result.Data[i].ProductName = "Discontinued Product"
 		}
-		if err := tx.Create(&batch).Error; err != nil {
-			return fmt.Errorf("create batch: %w", err)
-		}
+	}
 
-		for i := range result.Data {
-			result.Data[i].UploadBatchID = batch.ID
-		}
+	// Create batch record OUTSIDE transaction — survives rollback
+	batch := models.TiktokAdsUploadBatch{
+		ID:          uuid.New().String(),
+		TenantID:    s.tenantID,
+		FileName:    filename,
+		PeriodStart: result.Period.Start,
+		PeriodEnd:   result.Period.End,
+		PeriodLabel: result.Period.Label,
+		TotalRows:   len(result.Data),
+		SkippedRows: skipped,
+		Status:      "processing",
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	if err := db.Create(&batch).Error; err != nil {
+		return fmt.Errorf("create batch: %w", err)
+	}
 
-		inserted := 0
-		if len(result.Data) > 0 {
-			if err := tx.CreateInBatches(result.Data, 100).Error; err != nil {
-				tx.Model(&models.TiktokAdsUploadBatch{}).Where("id = ?", batch.ID).
-					Updates(map[string]interface{}{
-						"status":        "failed",
-						"error_message": err.Error(),
-						"updated_at":    time.Now(),
-					})
-				return fmt.Errorf("create data (batch size %d): %w", len(result.Data), err)
-			}
-			inserted = len(result.Data)
-		}
+	for i := range result.Data {
+		result.Data[i].UploadBatchID = batch.ID
+	}
 
-		// Update batch as success
-		return tx.Model(&models.TiktokAdsUploadBatch{}).Where("id = ?", batch.ID).
+	// Insert data inside transaction — rollback only affects data rows
+	insertErr := db.Transaction(func(tx *gorm.DB) error {
+		if len(result.Data) == 0 {
+			return nil
+		}
+		return tx.CreateInBatches(result.Data, 100).Error
+	})
+
+	if insertErr != nil {
+		// Mark batch as failed — this persists because batch was created outside tx
+		db.Model(&models.TiktokAdsUploadBatch{}).Where("id = ?", batch.ID).
 			Updates(map[string]interface{}{
-				"inserted_rows": inserted,
-				"skipped_rows":  skipped,
-				"status":        "success",
+				"status":        "failed",
+				"error_message": insertErr.Error(),
 				"updated_at":    time.Now(),
-			}).Error
+			})
+		return fmt.Errorf("insert data (batch %s): %w", batch.ID, insertErr)
+	}
+
+	// Mark batch as success
+	return db.Model(&models.TiktokAdsUploadBatch{}).Where("id = ?", batch.ID).
+		Updates(map[string]interface{}{
+			"inserted_rows": len(result.Data),
+			"skipped_rows":  skipped,
+			"status":        "success",
+			"updated_at":    time.Now(),
+		}).Error
+}
+
+// DeleteBatch deletes a TikTok ads upload batch and its associated creative data
+func (s *TiktokAdsService) DeleteBatch(ctx context.Context, batchID string) error {
+	db := s.db.WithContext(ctx)
+
+	// Verify batch belongs to this tenant
+	var batch models.TiktokAdsUploadBatch
+	if err := db.Where("id = ? AND tenant_id = ?", batchID, s.tenantID).First(&batch).Error; err != nil {
+		return fmt.Errorf("batch not found: %w", err)
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		// Delete creative data first (foreign key safety)
+		if err := tx.Where("upload_batch_id = ? AND tenant_id = ?", batchID, s.tenantID).
+			Delete(&models.TiktokAdsCreativeData{}).Error; err != nil {
+			return fmt.Errorf("delete creative data: %w", err)
+		}
+		// Delete batch record
+		if err := tx.Where("id = ? AND tenant_id = ?", batchID, s.tenantID).
+			Delete(&models.TiktokAdsUploadBatch{}).Error; err != nil {
+			return fmt.Errorf("delete batch: %w", err)
+		}
+		return nil
 	})
 }
 
@@ -165,48 +195,4 @@ func lookupProductNames(tx *gorm.DB, tenantID string, productIDs []string) map[s
 		}
 	}
 	return result
-}
-
-// generateProductSummary generates product-level summary from creative data
-func (s *TiktokAdsService) generateProductSummary(ctx context.Context, tx *gorm.DB, periodLabel string) error {
-	var creatives []models.TiktokAdsCreativeData
-	if err := tx.Where("tenant_id = ? AND period_label = ?", s.tenantID, periodLabel).Find(&creatives).Error; err != nil {
-		return err
-	}
-
-	// Aggregate by product
-	productMap := make(map[string]*models.TiktokAdsProductSummary)
-	for _, c := range creatives {
-		if c.ProductID == "" {
-			continue
-		}
-		if _, ok := productMap[c.ProductID]; !ok {
-			productMap[c.ProductID] = &models.TiktokAdsProductSummary{
-				TenantID:    s.tenantID,
-				ProductID:   c.ProductID,
-				ProductName: c.ProductName, // Use enriched product name
-				PeriodLabel: periodLabel,
-			}
-		}
-		p := productMap[c.ProductID]
-		p.TotalCost += c.Cost
-		p.TotalRevenue += c.GrossRevenue
-		p.TotalConv += c.OrdersSKU
-		p.TotalCreatives++
-	}
-
-	// Calculate averages and save
-	for _, p := range productMap {
-		if p.TotalCost > 0 {
-			p.AvgROI = (p.TotalRevenue - p.TotalCost) / p.TotalCost * 100
-		}
-		if p.TotalConv > 0 {
-			p.AvgCPA = p.TotalCost / float64(p.TotalConv)
-		}
-		if err := tx.Create(p).Error; err != nil {
-			return err
-		}
-	}
-
-	return nil
 }

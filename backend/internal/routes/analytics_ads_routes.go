@@ -66,6 +66,7 @@ func RegisterAdsRoutes(router *gin.RouterGroup, handler *handlers.AdsHandler) {
 	{
 		// Shopee Ads
 		ads.POST("/shopee/upload", handler.UploadShopeeAds)
+		ads.DELETE("/shopee/upload/:batchId", handler.DeleteShopeeAdsBatch)
 		ads.GET("/shopee", handler.GetShopeeAds)
 		ads.GET("/shopee/summary", handler.GetShopeeAdsSummary)
 		ads.GET("/shopee/trends", handler.GetShopeeAdsTrends)
@@ -73,6 +74,7 @@ func RegisterAdsRoutes(router *gin.RouterGroup, handler *handlers.AdsHandler) {
 
 		// TikTok Ads
 		ads.POST("/tiktok/upload", handler.UploadTiktokAds)
+		ads.DELETE("/tiktok/upload/:batchId", handler.DeleteTiktokAdsBatch)
 		ads.GET("/tiktok", handler.GetTiktokAds)
 		ads.GET("/tiktok/summary", handler.GetTiktokAdsSummary)
 		ads.GET("/tiktok/trends", handler.GetTiktokAdsTrends)

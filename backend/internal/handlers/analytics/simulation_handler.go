@@ -2,6 +2,7 @@ package analytics
 
 import (
 	"context"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,21 +12,24 @@ import (
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
+	analyticsService "github.com/omni/backend/internal/services/analytics"
 	"github.com/omni/backend/internal/services/analytics/intelligence"
 	"gorm.io/gorm"
 )
 
 // SimulationHandler handles budget simulation requests
 type SimulationHandler struct {
-	basePath  string
-	simulator *intelligence.BudgetSimulator
+	basePath     string
+	simulator    *intelligence.BudgetSimulator
+	cacheService *analyticsService.MLCacheService
 }
 
 // NewSimulationHandler creates a new simulation handler
 func NewSimulationHandler(basePath string) *SimulationHandler {
 	return &SimulationHandler{
-		basePath:  basePath,
-		simulator: intelligence.NewBudgetSimulator(),
+		basePath:     basePath,
+		simulator:    intelligence.NewBudgetSimulator(),
+		cacheService: analyticsService.NewMLCacheService(),
 	}
 }
 
@@ -51,7 +55,6 @@ func (h *SimulationHandler) Simulate(c *gin.Context) {
 		return
 	}
 
-	// Default period
 	if req.PeriodDays == 0 {
 		req.PeriodDays = 7
 	}
@@ -64,8 +67,11 @@ func (h *SimulationHandler) Simulate(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	// Get product historical data from ads database
+	// Get product historical data from ads database (daily-normalized)
 	historicalData := h.getProductHistoricalData(ctx, db, tenantID, req.ProductID)
+
+	// Enrich with ML category from cache
+	h.enrichWithMLData(ctx, db, tenantID, req.ProductID, &historicalData)
 
 	// Run simulation
 	simReq := intelligence.SimulationRequest{
@@ -81,6 +87,101 @@ func (h *SimulationHandler) Simulate(c *gin.Context) {
 		"success": true,
 		"data":    result,
 	})
+}
+
+// enrichWithMLData looks up ML cache to inject category and fatigue info
+func (h *SimulationHandler) enrichWithMLData(
+	ctx context.Context, db *gorm.DB,
+	tenantID, productID string,
+	data *intelligence.ProductHistoricalData,
+) {
+	// ML cache stores IDs with platform prefix: "tiktok_123" or "shopee_123"
+	for _, prefix := range []string{"tiktok_", "shopee_"} {
+		prefixedID := prefix + productID
+		cached, err := h.cacheService.GetCachedProductByID(ctx, db, tenantID, prefixedID)
+		if err == nil && cached != nil {
+			data.MLCategory = cached.Category
+			data.FatigueStatus = cached.FatigueStatus
+			return
+		}
+	}
+	// Default if not found in cache
+	data.MLCategory = "STABLE"
+	data.FatigueStatus = "FRESH"
+}
+
+// periodAgg holds per-period aggregated data with actual date ranges
+type periodAgg struct {
+	PeriodLabel string    `gorm:"column:period_label"`
+	PeriodStart time.Time `gorm:"column:period_start"`
+	PeriodEnd   time.Time `gorm:"column:period_end"`
+	Spend       float64   `gorm:"column:spend"`
+	Revenue     float64   `gorm:"column:revenue"`
+	Clicks      int       `gorm:"column:clicks"`
+	Orders      int       `gorm:"column:orders"`
+	Impressions int       `gorm:"column:impressions"`
+}
+
+// buildHistorical converts period aggregations into ProductHistoricalData
+// with daily normalization based on actual period_start and period_end dates.
+func buildHistorical(productID string, periods []periodAgg) intelligence.ProductHistoricalData {
+	result := intelligence.ProductHistoricalData{
+		ProductID: productID,
+	}
+
+	if len(periods) == 0 {
+		return result
+	}
+
+	var totalSpend, totalRevenue float64
+	var totalClicks, totalOrders, totalImpressions int
+	var totalActualDays float64
+
+	for _, p := range periods {
+		result.SpendHistory = append(result.SpendHistory, p.Spend)
+		result.RevenueHistory = append(result.RevenueHistory, p.Revenue)
+		roas := 0.0
+		if p.Spend > 0 {
+			roas = p.Revenue / p.Spend
+		}
+		result.RoasHistory = append(result.RoasHistory, roas)
+
+		totalSpend += p.Spend
+		totalRevenue += p.Revenue
+		totalClicks += p.Clicks
+		totalOrders += p.Orders
+		totalImpressions += p.Impressions
+
+		// Calculate actual days for this period from timestamps
+		periodDays := p.PeriodEnd.Sub(p.PeriodStart).Hours() / 24.0
+		if periodDays <= 0 {
+			periodDays = 7 // Fallback if timestamps are invalid
+		}
+		totalActualDays += periodDays
+	}
+
+	// Fallback if totalActualDays is still 0
+	if totalActualDays <= 0 {
+		totalActualDays = float64(len(periods)) * 7
+	}
+
+	// Set actual day count (rounded)
+	result.DaysOfData = int(math.Round(totalActualDays))
+
+	// CurrentRoas: weighted average across ALL periods
+	if totalSpend > 0 {
+		result.CurrentRoas = totalRevenue / totalSpend
+	}
+
+	// CurrentSpend: truly DAILY average (total spend / actual calendar days)
+	result.CurrentSpend = totalSpend / totalActualDays
+
+	// Funnel metrics
+	result.TotalClicks = totalClicks
+	result.TotalOrders = totalOrders
+	result.TotalImpressions = totalImpressions
+
+	return result
 }
 
 // getProductHistoricalData retrieves historical data for a product
@@ -108,47 +209,6 @@ func (h *SimulationHandler) getProductHistoricalData(
 	return shopeeData
 }
 
-// periodAgg holds per-period aggregated spend and revenue
-type periodAgg struct {
-	PeriodLabel string  `gorm:"column:period_label"`
-	Spend       float64 `gorm:"column:spend"`
-	Revenue     float64 `gorm:"column:revenue"`
-}
-
-// buildHistorical converts period aggregations into ProductHistoricalData
-func buildHistorical(productID string, periods []periodAgg) intelligence.ProductHistoricalData {
-	result := intelligence.ProductHistoricalData{
-		ProductID:  productID,
-		DaysOfData: len(periods),
-	}
-
-	var totalSpend, totalRevenue float64
-	for _, p := range periods {
-		result.SpendHistory = append(result.SpendHistory, p.Spend)
-		result.RevenueHistory = append(result.RevenueHistory, p.Revenue)
-		roas := 0.0
-		if p.Spend > 0 {
-			roas = p.Revenue / p.Spend
-		}
-		result.RoasHistory = append(result.RoasHistory, roas)
-		totalSpend += p.Spend
-		totalRevenue += p.Revenue
-	}
-
-	// Use weighted average ROAS (total_revenue / total_spend) across ALL periods
-	// This matches the avg_roas displayed in the product selector dropdown
-	if totalSpend > 0 {
-		result.CurrentRoas = totalRevenue / totalSpend
-	}
-
-	// CurrentSpend = average spend per period (more realistic for daily budget comparison)
-	if n := len(periods); n > 0 {
-		result.CurrentSpend = totalSpend / float64(n)
-	}
-
-	return result
-}
-
 // getTiktokProductData gets TikTok product historical data per period
 func (h *SimulationHandler) getTiktokProductData(
 	ctx context.Context,
@@ -161,8 +221,13 @@ func (h *SimulationHandler) getTiktokProductData(
 		Where("tenant_id = ? AND product_id = ?", tenantID, productID).
 		Select(`
 			period_label,
+			MIN(period_start) as period_start,
+			MAX(period_end) as period_end,
 			COALESCE(SUM(cost), 0) as spend,
-			COALESCE(SUM(gross_revenue), 0) as revenue
+			COALESCE(SUM(gross_revenue), 0) as revenue,
+			COALESCE(SUM(clicks), 0) as clicks,
+			COALESCE(SUM(orders_sku), 0) as orders,
+			COALESCE(SUM(impressions), 0) as impressions
 		`).
 		Group("period_label").
 		Order("period_label ASC").
@@ -183,8 +248,13 @@ func (h *SimulationHandler) getShopeeProductData(
 		Where("tenant_id = ? AND product_id = ?", tenantID, productID).
 		Select(`
 			period_label,
+			MIN(period_start) as period_start,
+			MAX(period_end) as period_end,
 			COALESCE(SUM(cost), 0) as spend,
-			COALESCE(SUM(revenue), 0) as revenue
+			COALESCE(SUM(revenue), 0) as revenue,
+			COALESCE(SUM(clicks), 0) as clicks,
+			COALESCE(SUM(conversions), 0) as orders,
+			COALESCE(SUM(impressions), 0) as impressions
 		`).
 		Group("period_label").
 		Order("period_label ASC").
@@ -194,6 +264,7 @@ func (h *SimulationHandler) getShopeeProductData(
 }
 
 // GetProductsFromAds handles GET /api/analytics/products/from-ads
+// Uses ML score cache for instant response instead of raw table aggregation.
 func (h *SimulationHandler) GetProductsFromAds(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
@@ -209,80 +280,44 @@ func (h *SimulationHandler) GetProductsFromAds(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	// Get products from TikTok ads
-	var tiktokProducts []struct {
-		ProductID   string  `gorm:"column:product_id"`
-		ProductName string  `gorm:"column:product_name"`
-		TotalCost   float64 `gorm:"column:total_cost"`
-		TotalRev    float64 `gorm:"column:total_revenue"`
-		AvgRoas     float64 `gorm:"column:avg_roas"`
-		Source      string  `gorm:"column:source"`
-	}
-
-	db.WithContext(ctx).Model(&models.TiktokAdsCreativeData{}).
-		Where("tenant_id = ? AND product_id != '' AND product_id != '-1'", tenantID).
-		Select(`
-			product_id,
-			MAX(product_name) as product_name,
-			COALESCE(SUM(cost), 0) as total_cost,
-			COALESCE(SUM(gross_revenue), 0) as total_revenue,
-			CASE WHEN SUM(cost) > 0 THEN SUM(gross_revenue) / SUM(cost) ELSE 0 END as avg_roas,
-			'tiktok' as source
-		`).
-		Group("product_id").
-		Having("SUM(cost) > 0").
+	// Query ML score cache (fast: ~2K rows vs 500K+ raw rows)
+	var cached []analyticsService.MLScoreCache
+	db.WithContext(ctx).
+		Where("tenant_id = ? AND total_cost > 0", tenantID).
 		Order("total_revenue DESC").
 		Limit(100).
-		Find(&tiktokProducts)
+		Find(&cached)
 
-	// Get products from Shopee ads
-	var shopeeProducts []struct {
-		ProductID   string  `gorm:"column:product_id"`
-		ProductName string  `gorm:"column:product_name"`
-		TotalCost   float64 `gorm:"column:total_cost"`
-		TotalRev    float64 `gorm:"column:total_revenue"`
-		AvgRoas     float64 `gorm:"column:avg_roas"`
-		Source      string  `gorm:"column:source"`
-	}
+	products := make([]gin.H, 0, len(cached))
+	for _, p := range cached {
+		// Extract original product_id (strip platform prefix for simulator)
+		rawID := p.OriginalProductID
+		if rawID == "" {
+			rawID = p.ProductID
+		}
+		// Strip "tiktok_" or "shopee_" prefix for the simulation endpoint
+		simProductID := rawID
+		if len(rawID) > 7 && rawID[:7] == "tiktok_" {
+			simProductID = rawID[7:]
+		} else if len(rawID) > 7 && rawID[:7] == "shopee_" {
+			simProductID = rawID[7:]
+		}
 
-	db.WithContext(ctx).Model(&models.ShopeeAdsProductData{}).
-		Where("tenant_id = ?", tenantID).
-		Select(`
-			product_id,
-			MAX(product_name) as product_name,
-			COALESCE(SUM(cost), 0) as total_cost,
-			COALESCE(SUM(revenue), 0) as total_revenue,
-			CASE WHEN SUM(cost) > 0 THEN SUM(revenue) / SUM(cost) ELSE 0 END as avg_roas,
-			'shopee' as source
-		`).
-		Group("product_id").
-		Having("SUM(cost) > 0").
-		Order("total_revenue DESC").
-		Limit(100).
-		Find(&shopeeProducts)
+		// Compute daily spend from MV date range if available
+		var dailySpend float64
+		if p.TotalCost > 0 {
+			dailySpend = h.getDailySpendFromMV(ctx, db, tenantID, simProductID, p.Platform, p.TotalCost)
+		}
 
-	// Combine and format results
-	products := make([]gin.H, 0, len(tiktokProducts)+len(shopeeProducts))
-
-	for _, p := range tiktokProducts {
 		products = append(products, gin.H{
-			"product_id":    p.ProductID,
-			"product_name":  p.ProductName,
-			"total_cost":    p.TotalCost,
-			"total_revenue": p.TotalRev,
-			"avg_roas":      p.AvgRoas,
-			"source":        "tiktok",
-		})
-	}
-
-	for _, p := range shopeeProducts {
-		products = append(products, gin.H{
-			"product_id":    p.ProductID,
-			"product_name":  p.ProductName,
-			"total_cost":    p.TotalCost,
-			"total_revenue": p.TotalRev,
-			"avg_roas":      p.AvgRoas,
-			"source":        "shopee",
+			"product_id":          simProductID,
+			"product_name":        p.ProductName,
+			"total_cost":          p.TotalCost,
+			"total_revenue":       p.TotalRevenue,
+			"avg_roas":            p.ROAS,
+			"source":              p.Platform,
+			"current_daily_spend": dailySpend,
+			"ml_category":         p.Category,
 		})
 	}
 
@@ -291,6 +326,45 @@ func (h *SimulationHandler) GetProductsFromAds(c *gin.Context) {
 		"data":    products,
 		"count":   len(products),
 	})
+}
+
+// getDailySpendFromMV calculates daily spend using the materialized view date range.
+// Falls back to estimating from period count if MV is unavailable.
+func (h *SimulationHandler) getDailySpendFromMV(
+	ctx context.Context, db *gorm.DB,
+	tenantID, productID, platform string, totalCost float64,
+) float64 {
+	var result struct {
+		FirstPeriod time.Time `gorm:"column:first_period"`
+		LastPeriod  time.Time `gorm:"column:last_period"`
+	}
+
+	mvTable := "mv_ml_product_analysis"
+	err := db.WithContext(ctx).
+		Table(mvTable).
+		Where("tenant_id = ? AND product_id = ?", tenantID, productID).
+		Select("first_period, last_period").
+		Limit(1).
+		Scan(&result).Error
+
+	if err == nil && !result.FirstPeriod.IsZero() && !result.LastPeriod.IsZero() {
+		days := result.LastPeriod.Sub(result.FirstPeriod).Hours() / 24.0
+		if days > 0 {
+			return math.Round(totalCost / days)
+		}
+	}
+
+	// Fallback: estimate from total cost / 30 days
+	return math.Round(totalCost / 30.0)
+}
+
+// calcDailySpend computes daily average spend from total cost and date range
+func calcDailySpend(totalCost float64, minStart, maxEnd time.Time) float64 {
+	days := maxEnd.Sub(minStart).Hours() / 24.0
+	if days <= 0 {
+		return 0
+	}
+	return math.Round(totalCost / days)
 }
 
 // GetCalendarEvents handles GET /api/analytics/intelligence/calendar
@@ -314,5 +388,3 @@ func (h *SimulationHandler) GetCalendarEvents(c *gin.Context) {
 		},
 	})
 }
-
-// Helper functions - removed unused parseInt and now functions

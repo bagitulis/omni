@@ -38,7 +38,7 @@ export const useTiktokAdsUpload = () => {
         if (response.success && response.data) {
           setLastResult(response.data);
           message.success(
-            `Upload berhasil — ${response.data.totalRows} baris diproses (${response.data.period?.label || "unknown"})`,
+            `Upload successful — ${response.data.totalRows} rows processed (${response.data.period?.label || "unknown"})`,
           );
           // Refresh data queries
           queryClient.invalidateQueries({ queryKey: ["tiktok-ads-data"] });

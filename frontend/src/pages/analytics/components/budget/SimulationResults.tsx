@@ -6,12 +6,14 @@ import {
   Statistic,
   Divider,
   Alert,
+  Tag,
   GlobalToken,
 } from "antd";
 import {
   LineChartOutlined,
   DollarOutlined,
   InfoCircleOutlined,
+  ExperimentOutlined,
 } from "@ant-design/icons";
 import type { SimulationResult } from "@/api/analyticsIntelligence";
 
@@ -24,6 +26,14 @@ interface SimulationResultsProps {
   formatRoas: (value: number) => string;
   getFeasibilityColor: (feasibility: string) => string;
 }
+
+const mlCategoryColors: Record<string, string> = {
+  STAR: "green",
+  GROWTH: "blue",
+  STABLE: "cyan",
+  WATCH: "orange",
+  PROBLEM: "red",
+};
 
 export const SimulationResults = ({
   simulationResult,
@@ -59,7 +69,7 @@ export const SimulationResults = ({
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          {/* Feasibility Header */}
+          {/* Feasibility Header with ML Category */}
           <div
             style={{
               padding: 24,
@@ -82,13 +92,44 @@ export const SimulationResults = ({
             >
               {simulationResult.feasibility}
             </Title>
-            <Text type="secondary">
-              {simulationResult.confidence_percent}% Confidence Level
-            </Text>
+            <div
+              style={{
+                marginTop: 8,
+                display: "flex",
+                justifyContent: "center",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              <Text type="secondary">
+                {simulationResult.confidence_percent}% Confidence
+              </Text>
+              {simulationResult.ml_category && (
+                <Tag
+                  color={
+                    mlCategoryColors[simulationResult.ml_category] || "default"
+                  }
+                >
+                  {simulationResult.ml_category}
+                </Tag>
+              )}
+              <Tag
+                icon={<ExperimentOutlined />}
+                color={
+                  simulationResult.simulation_mode === "FUNNEL"
+                    ? "purple"
+                    : "default"
+                }
+              >
+                {simulationResult.simulation_mode === "FUNNEL"
+                  ? "Funnel Model"
+                  : "Yield Model"}
+              </Tag>
+            </div>
           </div>
 
-          <Row gutter={24}>
-            <Col span={12}>
+          <Row gutter={[16, 16]}>
+            <Col xs={12} sm={8}>
               <Card size="small">
                 <Statistic
                   title="Current ROAS"
@@ -98,7 +139,7 @@ export const SimulationResults = ({
                 />
               </Card>
             </Col>
-            <Col span={12}>
+            <Col xs={12} sm={8}>
               <Card size="small">
                 <Statistic
                   title="Projected ROAS"
@@ -117,6 +158,16 @@ export const SimulationResults = ({
                       <LineChartOutlined />
                     ) : undefined
                   }
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={8}>
+              <Card size="small">
+                <Statistic
+                  title="Current Daily Spend"
+                  value={simulationResult.current_daily_spend}
+                  precision={0}
+                  formatter={(value) => formatCurrency(Number(value))}
                 />
               </Card>
             </Col>
@@ -149,27 +200,17 @@ export const SimulationResults = ({
               <ul style={{ paddingLeft: 20 }}>
                 {(simulationResult?.alternatives ?? []).map((alt, idx) => (
                   <li
-                    key={`${idx}-${alt.target_roas}-${alt.budget}`}
+                    key={`alt-${idx}-${alt.target_roas}-${alt.required_budget}`}
                     style={{ marginBottom: 8 }}
                   >
                     <Text>
-                      {alt.target_roas && alt.required_budget ? (
-                        <>
-                          To reach ROAS{" "}
-                          <Text strong>{formatRoas(alt.target_roas)}</Text>, you
-                          need{" "}
-                          <Text strong>
-                            {formatCurrency(alt.required_budget)}/day
-                          </Text>
-                        </>
-                      ) : alt.budget && alt.expected_roas ? (
-                        <>
-                          Budget{" "}
-                          <Text strong>{formatCurrency(alt.budget)}/day</Text>{" "}
-                          yields{" "}
-                          <Text strong>{formatRoas(alt.expected_roas)}</Text>
-                        </>
-                      ) : null}
+                      To reach ROAS{" "}
+                      <Text strong>{formatRoas(alt.target_roas)}</Text>, budget{" "}
+                      <Text strong>
+                        {formatCurrency(alt.required_budget)}/day
+                      </Text>{" "}
+                      → expected ROAS{" "}
+                      <Text strong>{formatRoas(alt.expected_roas)}</Text>
                     </Text>
                   </li>
                 ))}

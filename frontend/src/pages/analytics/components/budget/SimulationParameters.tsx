@@ -80,6 +80,66 @@ export const SimulationParameters = ({
           />
         </div>
 
+        {selectedProduct && (
+          <div
+            style={{
+              background: token.colorBgLayout,
+              borderRadius: token.borderRadius,
+              padding: "12px 16px",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 16,
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <Text type="secondary" style={{ fontSize: 11, display: "block" }}>
+                Current Daily Spend
+              </Text>
+              <Text strong style={{ fontSize: 14 }}>
+                Rp{" "}
+                {(selectedProduct.current_daily_spend || 0).toLocaleString(
+                  "id-ID",
+                )}
+              </Text>
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 11, display: "block" }}>
+                Avg ROAS
+              </Text>
+              <Text strong style={{ fontSize: 14 }}>
+                {formatRoas(selectedProduct.avg_roas)}
+              </Text>
+            </div>
+            {selectedProduct.ml_category && (
+              <div>
+                <Text
+                  type="secondary"
+                  style={{ fontSize: 11, display: "block" }}
+                >
+                  ML Category
+                </Text>
+                <Text
+                  strong
+                  style={{
+                    fontSize: 13,
+                    color:
+                      selectedProduct.ml_category === "STAR"
+                        ? token.colorSuccess
+                        : selectedProduct.ml_category === "PROBLEM"
+                          ? token.colorError
+                          : selectedProduct.ml_category === "WATCH"
+                            ? token.colorWarning
+                            : token.colorPrimary,
+                  }}
+                >
+                  {selectedProduct.ml_category}
+                </Text>
+              </div>
+            )}
+          </div>
+        )}
+
         <div>
           <Text strong>Target ROAS</Text>
           <InputNumber
@@ -114,6 +174,12 @@ export const SimulationParameters = ({
             }
             addonBefore="Rp"
           />
+          {selectedProduct && selectedProduct.current_daily_spend > 0 && (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Your current avg daily spend: Rp{" "}
+              {selectedProduct.current_daily_spend.toLocaleString("id-ID")}
+            </Text>
+          )}
         </div>
 
         <div>
