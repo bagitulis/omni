@@ -117,7 +117,7 @@ func (h *MLHandler) GetProducts(c *gin.Context) {
 	// Read from cache (fast) instead of real-time computation
 	cachedProducts, total, err := h.cacheService.GetCachedProducts(
 		c.Request.Context(), tenantDB, tenantID,
-		params.Limit, params.SortBy, params.SortDir,
+		params.SortBy, params.SortDir,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -133,15 +133,13 @@ func (h *MLHandler) GetProducts(c *gin.Context) {
 		products = append(products, cacheToProductAnalysis(cp))
 	}
 
-	hasMore := total > int64(params.Limit)
-
 	c.JSON(http.StatusOK, dto.MLProductsResponse{
 		Success: true,
 		Data:    products,
 		Meta: dto.MLPaginationMeta{
 			Total:   total,
-			Limit:   params.Limit,
-			HasMore: hasMore,
+			Limit:   int(total),
+			HasMore: false,
 		},
 	})
 }

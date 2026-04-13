@@ -152,33 +152,30 @@ func (s *BudgetSimulator) projectRoasWithBudget(
 	var efficiencyFactor float64
 	switch satResult.Status {
 	case SaturationHighElasticity:
-		// High elasticity: near-linear response
 		efficiencyFactor = 0.95
 	case SaturationModerate:
-		// Moderate: some diminishing returns
 		efficiencyFactor = 0.85
 	case SaturationApproachingSaturation:
-		// Approaching: significant diminishing returns
 		efficiencyFactor = 0.70
 	case SaturationSaturated:
-		// Saturated: severe diminishing returns
 		efficiencyFactor = 0.50
 	case SaturationOverSaturated:
-		// Over-saturated: adding budget hurts
 		efficiencyFactor = 0.30
 	default:
 		efficiencyFactor = 0.80
 	}
 
-	// Calculate ROAS impact
 	if budgetChangeRatio > 1 {
 		// Increasing budget: diminishing returns
 		roasDecrease := (budgetChangeRatio - 1) * (1 - efficiencyFactor)
-		return currentRoas * (1 - roasDecrease)
+		return currentRoas * math.Max(0.3, 1-roasDecrease)
 	} else if budgetChangeRatio < 1 {
-		// Decreasing budget: might improve efficiency
-		roasIncrease := (1 - budgetChangeRatio) * efficiencyFactor * 0.5
-		return currentRoas * (1 + roasIncrease)
+		// Decreasing budget: may improve efficiency, but capped at 20% max improvement
+		// Rationale: reducing budget doesn't linearly increase ROAS — fewer impressions
+		// means worse placement and less data for optimization
+		rawIncrease := (1 - budgetChangeRatio) * efficiencyFactor * 0.3
+		cappedIncrease := math.Min(rawIncrease, 0.20) // Max 20% ROAS improvement
+		return currentRoas * (1 + cappedIncrease)
 	}
 
 	return currentRoas
@@ -189,14 +186,21 @@ func (s *BudgetSimulator) determineFeasibility(
 	targetRoas, projectedRoas float64,
 	probResult ProbabilityResult,
 ) FeasibilityStatus {
+	// If projected ROAS meets or exceeds target, it's achievable or at worst difficult
+	if projectedRoas >= targetRoas {
+		if probResult.SuccessProbability >= 50 {
+			return FeasibilityAchievable
+		}
+		return FeasibilityDifficult
+	}
+
 	roasGap := targetRoas - projectedRoas
 	roasGapPct := (roasGap / targetRoas) * 100
 
-	// Based on gap and probability
-	if roasGapPct <= 5 && probResult.SuccessProbability >= 60 {
+	if roasGapPct <= 5 && probResult.SuccessProbability >= 50 {
 		return FeasibilityAchievable
 	}
-	if roasGapPct <= 20 && probResult.SuccessProbability >= 40 {
+	if roasGapPct <= 20 && probResult.SuccessProbability >= 30 {
 		return FeasibilityDifficult
 	}
 	return FeasibilityNotAchievable
@@ -251,21 +255,35 @@ func (s *BudgetSimulator) calculateOptimalBudget(
 	data ProductHistoricalData,
 	satResult SaturationResult,
 ) float64 {
-	if data.CurrentRoas == 0 {
+	if data.CurrentRoas == 0 || data.CurrentSpend == 0 {
 		return data.CurrentSpend
 	}
 
-	// Simple calculation based on current performance
+	var optimalBudget float64
 	if data.CurrentRoas >= targetRoas {
-		// Already achieving target, find max budget that maintains it
-		headroomFactor := 1 + (satResult.Headroom / 100 * 0.5)
-		return data.CurrentSpend * headroomFactor
+		// Already achieving target — can increase budget with headroom
+		// Cap headroom factor to prevent unreasonable budgets
+		headroomFactor := 1 + math.Min(satResult.Headroom/100*0.5, 0.5)
+		optimalBudget = data.CurrentSpend * headroomFactor
+	} else {
+		// Need to reduce budget to improve ROAS
+		roasImprovement := targetRoas / data.CurrentRoas
+		budgetReduction := 1 / roasImprovement
+		optimalBudget = data.CurrentSpend * budgetReduction
 	}
 
-	// Need to reduce budget to improve ROAS
-	roasImprovement := targetRoas / data.CurrentRoas
-	budgetReduction := 1 / roasImprovement
-	return data.CurrentSpend * budgetReduction
+	// Cap optimal budget to reasonable range (never more than 5x current spend)
+	maxBudget := data.CurrentSpend * 5
+	if optimalBudget > maxBudget {
+		optimalBudget = maxBudget
+	}
+
+	// Minimum budget floor
+	if optimalBudget < 10000 {
+		optimalBudget = 10000
+	}
+
+	return optimalBudget
 }
 
 // generateRecommendation generates Indonesian recommendation text

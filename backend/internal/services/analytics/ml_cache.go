@@ -77,10 +77,11 @@ func (s *MLCacheService) EnsureTables(db *gorm.DB) {
 	_ = db.AutoMigrate(&MLScoreCache{}, &MLCalculationStatus{})
 }
 
-// GetCachedProducts retrieves cached ML product scores
+// GetCachedProducts retrieves all cached ML product scores
+// Returns ALL products (frontend handles pagination via Ant Design Table)
 func (s *MLCacheService) GetCachedProducts(
 	ctx context.Context, db *gorm.DB, tenantID string,
-	limit int, sortBy, sortDir string,
+	sortBy, sortDir string,
 ) ([]MLScoreCache, int64, error) {
 	var products []MLScoreCache
 	var total int64
@@ -102,10 +103,6 @@ func (s *MLCacheService) GetCachedProducts(
 		orderClause = sortBy + " " + dir
 	}
 	query = query.Order(orderClause)
-
-	if limit > 0 {
-		query = query.Limit(limit)
-	}
 
 	err := query.Find(&products).Error
 	return products, total, err

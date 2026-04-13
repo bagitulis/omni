@@ -122,6 +122,7 @@ func buildHistorical(productID string, periods []periodAgg) intelligence.Product
 		DaysOfData: len(periods),
 	}
 
+	var totalSpend, totalRevenue float64
 	for _, p := range periods {
 		result.SpendHistory = append(result.SpendHistory, p.Spend)
 		result.RevenueHistory = append(result.RevenueHistory, p.Revenue)
@@ -130,14 +131,19 @@ func buildHistorical(productID string, periods []periodAgg) intelligence.Product
 			roas = p.Revenue / p.Spend
 		}
 		result.RoasHistory = append(result.RoasHistory, roas)
+		totalSpend += p.Spend
+		totalRevenue += p.Revenue
 	}
 
+	// Use weighted average ROAS (total_revenue / total_spend) across ALL periods
+	// This matches the avg_roas displayed in the product selector dropdown
+	if totalSpend > 0 {
+		result.CurrentRoas = totalRevenue / totalSpend
+	}
+
+	// CurrentSpend = average spend per period (more realistic for daily budget comparison)
 	if n := len(periods); n > 0 {
-		last := periods[n-1]
-		result.CurrentSpend = last.Spend
-		if last.Spend > 0 {
-			result.CurrentRoas = last.Revenue / last.Spend
-		}
+		result.CurrentSpend = totalSpend / float64(n)
 	}
 
 	return result
