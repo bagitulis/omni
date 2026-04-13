@@ -60,9 +60,14 @@ export const SimulationParameters = ({
             style={{ width: "100%", marginTop: 8 }}
             placeholder="Select a product"
             loading={loadingProducts}
-            value={selectedProductId}
+            value={selectedProductId || undefined}
             onChange={setSelectedProductId}
             showSearch
+            notFoundContent={
+              loadingProducts
+                ? "Loading products..."
+                : "No products found. Upload ads data first."
+            }
             filterOption={(input, option) =>
               (option?.label as string)
                 .toLowerCase()
@@ -70,7 +75,7 @@ export const SimulationParameters = ({
             }
             options={products?.map((p: ProductFromAds) => ({
               value: p.product_id,
-              label: `${p.product_name} (${formatRoas(p.avg_roas)})`,
+              label: `[${(p.source || "ads").toUpperCase()}] ${p.product_name} (${formatRoas(p.avg_roas)})`,
             }))}
           />
         </div>
@@ -102,10 +107,10 @@ export const SimulationParameters = ({
             value={budgetPerDay}
             onChange={(v) => setBudgetPerDay(v || 100000)}
             formatter={(value) =>
-              `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+              `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
             }
             parser={(value) =>
-              Number(value!.replace(/Rp\s?|(,*)/g, "")) as number
+              Number(value!.replace(/,/g, "")) as number
             }
             addonBefore="Rp"
           />
