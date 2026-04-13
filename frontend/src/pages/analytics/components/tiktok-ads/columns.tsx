@@ -9,6 +9,10 @@ export const columns: TableColumnsType<TikTokAdsData> = [
     width: 260,
     fixed: "left",
     ellipsis: false,
+    sorter: (a: TikTokAdsData, b: TikTokAdsData) =>
+      (a.product_name || a.creative_name || "").localeCompare(
+        b.product_name || b.creative_name || "",
+      ),
     render: (_: string, record: TikTokAdsData) => {
       const productName =
         record.product_name || record.creative_name || "Unknown";

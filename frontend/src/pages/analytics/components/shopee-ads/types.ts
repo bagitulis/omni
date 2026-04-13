@@ -1,4 +1,5 @@
 export interface AdsData {
+  id?: number;
   product_id: string;
   product_name: string;
   bidding_mode?: string;

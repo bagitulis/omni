@@ -155,3 +155,33 @@ export async function getScoreDistribution(): Promise<ScoreDistribution[]> {
   }
   return response.data || [];
 }
+
+// Recalculate types
+export interface RecalculateStatus {
+  tenant_id: string;
+  status: "IDLE" | "PROCESSING" | "DONE" | "ERROR";
+  started_at?: string;
+  completed_at?: string;
+  error_message?: string;
+  product_count: number;
+}
+
+export async function triggerRecalculate(): Promise<{ status: string }> {
+  const response = await apiClient.client.post(`/analytics/ml/recalculate`);
+  const data = response.data;
+  if (!data.success) {
+    throw new Error(data.error || "Failed to trigger recalculation");
+  }
+  return { status: data.status };
+}
+
+export async function getRecalculateStatus(): Promise<RecalculateStatus> {
+  const response = await apiClient.client.get(
+    `/analytics/ml/recalculate/status`,
+  );
+  const data = response.data;
+  if (!data.success) {
+    throw new Error(data.error || "Failed to get recalculation status");
+  }
+  return data.data;
+}

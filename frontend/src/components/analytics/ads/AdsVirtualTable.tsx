@@ -29,7 +29,7 @@ export const AdsVirtualTable: FC<AdsVirtualTableProps> = ({
       <Table
         columns={shopeeColumns}
         dataSource={data as AdsData[]}
-        rowKey={(record) => record.product_id}
+        rowKey={(record) => String(record.id ?? record.product_id)}
         size="small"
         loading={loading}
         pagination={{
@@ -46,7 +46,7 @@ export const AdsVirtualTable: FC<AdsVirtualTableProps> = ({
     <Table
       columns={tiktokColumns}
       dataSource={data as TikTokAdsData[]}
-      rowKey={(record) => record.creative_id}
+      rowKey={(record) => String(record.id ?? record.creative_id)}
       size="small"
       loading={loading}
       pagination={{

@@ -41,7 +41,7 @@ BEGIN
         SELECT 
             tenant_id,
             product_id,
-            MAX(COALESCE(video_title, product_id)) as product_name,
+            MAX(COALESCE(NULLIF(product_name, ''), NULLIF(video_title, ''), product_id)) as product_name,
             MAX(creative_type) as creative_type,
             COALESCE(SUM(cost), 0) as total_cost,
             COALESCE(SUM(gross_revenue), 0) as total_revenue,

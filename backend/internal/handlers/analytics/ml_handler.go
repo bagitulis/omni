@@ -2,7 +2,6 @@ package analytics
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
@@ -10,18 +9,19 @@ import (
 	"github.com/omni/backend/internal/middleware"
 	analyticsService "github.com/omni/backend/internal/services/analytics"
 	"github.com/omni/backend/internal/services/cache"
-	zlog "github.com/rs/zerolog/log"
 )
 
 // MLHandler handles ML analytics endpoints
 type MLHandler struct {
-	appCache cache.CacheManager
+	appCache     cache.CacheManager
+	cacheService *analyticsService.MLCacheService
 }
 
 // NewMLHandler creates a new ML analytics handler
 func NewMLHandler(appCache cache.CacheManager) *MLHandler {
 	return &MLHandler{
-		appCache: appCache,
+		appCache:     appCache,
+		cacheService: analyticsService.NewMLCacheService(),
 	}
 }
 
@@ -35,80 +35,50 @@ func (h *MLHandler) getService(c *gin.Context) (*analyticsService.MLAnalyticsSer
 
 	tenantDB, err := config.GetTenantDBByID(tenantID)
 	if err != nil {
-		zlog.Error().Err(err).Str("tenant_id", tenantID).Msg("Failed to get tenant DB for ML analytics")
 		return nil, tenantID, err
 	}
 	return analyticsService.NewMLAnalyticsService(tenantDB, tenantID), tenantID, nil
 }
 
-// GetPortfolioHealth returns portfolio health summary
+// GetPortfolioHealth returns portfolio health summary from cache
 // GET /api/analytics/ml/portfolio-health
 func (h *MLHandler) GetPortfolioHealth(c *gin.Context) {
-	platform := c.DefaultQuery("platform", "tiktok")
-
-	// Use standardized tenant ID retrieval
 	tenantID := middleware.GetTenantID(c)
-
-	cacheKey := "analytics:ml:portfolio-health:" + platform
-
-	// Try cache first
-	if h.appCache != nil && tenantID != "" {
-		if cached, found := h.appCache.Get(tenantID, cacheKey); found {
-			zlog.Debug().
-				Str("tenant_id", tenantID).
-				Str("cache_key", cacheKey).
-				Bool("cache_hit", true).
-				Msg("ML portfolio health cache hit")
-
-			c.JSON(http.StatusOK, cached)
-			return
-		}
-		zlog.Debug().
-			Str("tenant_id", tenantID).
-			Str("cache_key", cacheKey).
-			Bool("cache_hit", false).
-			Msg("ML portfolio health cache miss")
-	}
-
-	svc, svcTenantID, err := h.getService(c)
-	if err != nil {
-		if err == config.ErrMissingTenantID {
-			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant ID"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to connect to tenant database"})
-		}
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant ID"})
 		return
 	}
-	if tenantID == "" {
-		tenantID = svcTenantID
+
+	tenantDB, err := config.GetTenantDBByID(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to connect to tenant database"})
+		return
 	}
 
-	health, err := svc.GetPortfolioHealth(c.Request.Context(), platform)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to get portfolio health",
+	// Ensure cache tables exist
+	h.cacheService.EnsureTables(tenantDB)
+
+	// Read from cache
+	health, hasCache := h.cacheService.GetCachedHealth(c.Request.Context(), tenantDB, tenantID)
+	if !hasCache {
+		// No cached data — frontend should show empty state with Analyze button
+		c.JSON(http.StatusOK, gin.H{
+			"success":   true,
+			"has_cache": false,
+			"data":      nil,
 		})
 		return
 	}
 
 	result := dto.PortfolioHealthResponse{
-		Success: true,
-		Data:    *health,
+		Data: *health,
 	}
 
-	// Cache the result (60 seconds)
-	if h.appCache != nil && tenantID != "" {
-		if err := h.appCache.Set(tenantID, cacheKey, result, 60*time.Second); err != nil {
-			zlog.Warn().
-				Err(err).
-				Str("tenant_id", tenantID).
-				Str("cache_key", cacheKey).
-				Msg("Failed to cache ML portfolio health")
-		}
-	}
-
-	c.JSON(http.StatusOK, result)
+	c.JSON(http.StatusOK, gin.H{
+		"success":   true,
+		"has_cache": true,
+		"data":      result.Data,
+	})
 }
 
 // GetProducts returns paginated product analyses
@@ -212,5 +182,57 @@ func (h *MLHandler) GetProductDetail(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.MLProductDetailResponse{
 		Success: true,
 		Data:    *product,
+	})
+}
+
+// Recalculate triggers a background ML recalculation
+// POST /api/analytics/ml/recalculate
+func (h *MLHandler) Recalculate(c *gin.Context) {
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant ID"})
+		return
+	}
+
+	tenantDB, err := config.GetTenantDBByID(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to connect to tenant database"})
+		return
+	}
+
+	h.cacheService.EnsureTables(tenantDB)
+
+	status, triggerErr := h.cacheService.TriggerRecalculate(tenantDB, tenantID)
+	if triggerErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": triggerErr.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"status":  status,
+	})
+}
+
+// RecalculateStatus returns the current recalculation status
+// GET /api/analytics/ml/recalculate/status
+func (h *MLHandler) RecalculateStatus(c *gin.Context) {
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant ID"})
+		return
+	}
+
+	tenantDB, err := config.GetTenantDBByID(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to connect to tenant database"})
+		return
+	}
+
+	status := h.cacheService.GetStatus(c.Request.Context(), tenantDB, tenantID)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    status,
 	})
 }

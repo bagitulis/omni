@@ -1,6 +1,7 @@
 package analytics
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/analytics/intelligence"
+	"gorm.io/gorm"
 )
 
 // SimulationHandler handles budget simulation requests
@@ -83,53 +85,106 @@ func (h *SimulationHandler) Simulate(c *gin.Context) {
 
 // getProductHistoricalData retrieves historical data for a product
 func (h *SimulationHandler) getProductHistoricalData(
-	ctx interface{},
-	db interface{},
+	ctx context.Context,
+	db *gorm.DB,
 	tenantID, productID string,
 ) intelligence.ProductHistoricalData {
-	// Type assertion for db
-	gormDB, ok := db.(interface {
-		WithContext(interface{}) interface{}
-	})
-	if !ok {
-		return intelligence.ProductHistoricalData{}
-	}
-
-	// Try to get from TikTok ads first
-	tiktokData := h.getTiktokProductData(gormDB, ctx, tenantID, productID)
+	// Try TikTok ads first
+	tiktokData := h.getTiktokProductData(ctx, db, tenantID, productID)
 	if len(tiktokData.RoasHistory) >= 3 {
 		return tiktokData
 	}
 
 	// Try Shopee ads
-	shopeeData := h.getShopeeProductData(gormDB, ctx, tenantID, productID)
+	shopeeData := h.getShopeeProductData(ctx, db, tenantID, productID)
+	if len(shopeeData.RoasHistory) >= 3 {
+		return shopeeData
+	}
+
+	// Return whichever has more data
+	if len(tiktokData.RoasHistory) > len(shopeeData.RoasHistory) {
+		return tiktokData
+	}
 	return shopeeData
 }
 
-// getTiktokProductData gets TikTok product historical data
-func (h *SimulationHandler) getTiktokProductData(
-	db interface{},
-	ctx interface{},
-	tenantID, productID string,
-) intelligence.ProductHistoricalData {
+// periodAgg holds per-period aggregated spend and revenue
+type periodAgg struct {
+	PeriodLabel string  `gorm:"column:period_label"`
+	Spend       float64 `gorm:"column:spend"`
+	Revenue     float64 `gorm:"column:revenue"`
+}
+
+// buildHistorical converts period aggregations into ProductHistoricalData
+func buildHistorical(productID string, periods []periodAgg) intelligence.ProductHistoricalData {
 	result := intelligence.ProductHistoricalData{
-		ProductID: productID,
+		ProductID:  productID,
+		DaysOfData: len(periods),
 	}
 
-	// This would query the database for historical data
-	// For now, return empty - will be implemented with actual DB queries
+	for _, p := range periods {
+		result.SpendHistory = append(result.SpendHistory, p.Spend)
+		result.RevenueHistory = append(result.RevenueHistory, p.Revenue)
+		roas := 0.0
+		if p.Spend > 0 {
+			roas = p.Revenue / p.Spend
+		}
+		result.RoasHistory = append(result.RoasHistory, roas)
+	}
+
+	if n := len(periods); n > 0 {
+		last := periods[n-1]
+		result.CurrentSpend = last.Spend
+		if last.Spend > 0 {
+			result.CurrentRoas = last.Revenue / last.Spend
+		}
+	}
+
 	return result
 }
 
-// getShopeeProductData gets Shopee product historical data
-func (h *SimulationHandler) getShopeeProductData(
-	db interface{},
-	ctx interface{},
+// getTiktokProductData gets TikTok product historical data per period
+func (h *SimulationHandler) getTiktokProductData(
+	ctx context.Context,
+	db *gorm.DB,
 	tenantID, productID string,
 ) intelligence.ProductHistoricalData {
-	return intelligence.ProductHistoricalData{
-		ProductID: productID,
-	}
+	var periods []periodAgg
+
+	db.WithContext(ctx).Model(&models.TiktokAdsCreativeData{}).
+		Where("tenant_id = ? AND product_id = ?", tenantID, productID).
+		Select(`
+			period_label,
+			COALESCE(SUM(cost), 0) as spend,
+			COALESCE(SUM(gross_revenue), 0) as revenue
+		`).
+		Group("period_label").
+		Order("period_label ASC").
+		Scan(&periods)
+
+	return buildHistorical(productID, periods)
+}
+
+// getShopeeProductData gets Shopee product historical data per period
+func (h *SimulationHandler) getShopeeProductData(
+	ctx context.Context,
+	db *gorm.DB,
+	tenantID, productID string,
+) intelligence.ProductHistoricalData {
+	var periods []periodAgg
+
+	db.WithContext(ctx).Model(&models.ShopeeAdsProductData{}).
+		Where("tenant_id = ? AND product_id = ?", tenantID, productID).
+		Select(`
+			period_label,
+			COALESCE(SUM(cost), 0) as spend,
+			COALESCE(SUM(revenue), 0) as revenue
+		`).
+		Group("period_label").
+		Order("period_label ASC").
+		Scan(&periods)
+
+	return buildHistorical(productID, periods)
 }
 
 // GetProductsFromAds handles GET /api/analytics/products/from-ads

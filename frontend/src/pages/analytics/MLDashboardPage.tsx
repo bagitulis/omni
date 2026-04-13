@@ -8,9 +8,15 @@ import {
   Empty,
   Spin,
   Alert,
+  message,
 } from "antd";
-import { ReloadOutlined } from "@ant-design/icons";
-import { useState } from "react";
+import {
+  ReloadOutlined,
+  ThunderboltOutlined,
+  CheckCircleOutlined,
+  LoadingOutlined,
+} from "@ant-design/icons";
+import { useState, useEffect, useCallback } from "react";
 import {
   HealthCard,
   ProductScoreTable,
@@ -19,6 +25,11 @@ import {
 } from "@/components/analytics/ml";
 import { usePortfolioHealth, useMLProducts } from "@/hooks/useMLAnalytics";
 import type { MLProduct } from "@/api/mlAnalytics";
+import {
+  triggerRecalculate,
+  getRecalculateStatus,
+  type RecalculateStatus,
+} from "@/api/mlAnalytics";
 import {
   ActionSummaryCard,
   PortfolioHealthScoreCard,
@@ -39,9 +50,13 @@ const transformProduct = (p: MLProduct) => ({
 
 export const MLDashboardPage = () => {
   const { token } = useToken();
+  const [recalcStatus, setRecalcStatus] = useState<RecalculateStatus | null>(
+    null,
+  );
+  const [recalculating, setRecalculating] = useState(false);
 
   const {
-    data: portfolioHealth,
+    data: portfolioResponse,
     isLoading: healthLoading,
     error: healthError,
     refetch: refetchHealth,
@@ -61,15 +76,83 @@ export const MLDashboardPage = () => {
   const loading = healthLoading || productsLoading;
   const pageError = healthError || productsError;
 
+  // Extract has_cache flag from raw response
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawResponse = portfolioResponse as any;
+  const hasCache = rawResponse?.has_cache !== false;
+  const portfolioHealth = rawResponse?.has_cache === false ? null : rawResponse;
+
   const handleRefresh = () => {
     refetchHealth();
     refetchProducts();
   };
 
-  const products = productsData?.products?.map(transformProduct) || [];
+  // Poll recalculation status
+  const pollStatus = useCallback(async () => {
+    try {
+      const status = await getRecalculateStatus();
+      setRecalcStatus(status);
+      if (status.status === "DONE") {
+        setRecalculating(false);
+        message.success(
+          `ML Analysis complete! ${status.product_count} products analyzed.`,
+        );
+        handleRefresh();
+      } else if (status.status === "ERROR") {
+        setRecalculating(false);
+        message.error(
+          `Recalculation failed: ${status.error_message || "Unknown error"}`,
+        );
+      }
+    } catch {
+      // Silently fail on polling errors
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Show empty state if no data
-  const hasData = portfolioHealth && portfolioHealth.total_products > 0;
+  useEffect(() => {
+    if (!recalculating) return;
+    const interval = setInterval(pollStatus, 3000);
+    return () => clearInterval(interval);
+  }, [recalculating, pollStatus]);
+
+  // Check initial status on mount
+  useEffect(() => {
+    getRecalculateStatus()
+      .then((status) => {
+        setRecalcStatus(status);
+        if (status.status === "PROCESSING") {
+          setRecalculating(true);
+        }
+      })
+      .catch(() => {
+        // Ignore errors on initial status check
+      });
+  }, []);
+
+  const handleRecalculate = async () => {
+    try {
+      setRecalculating(true);
+      const result = await triggerRecalculate();
+      if (result.status === "ALREADY_PROCESSING") {
+        message.info(
+          "Recalculation is already running. Please wait for it to complete.",
+        );
+      } else {
+        message.info(
+          "ML Analysis started in background. This may take a few moments...",
+        );
+      }
+    } catch (err) {
+      setRecalculating(false);
+      message.error(
+        `Failed to start recalculation: ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
+    }
+  };
+
+  const products = productsData?.products?.map(transformProduct) || [];
+  const hasData = hasCache && portfolioHealth && portfolioHealth.total_products > 0;
 
   const handleProductClick = (product: Product) => {
     const fullProduct = productsData?.products?.find(
@@ -79,6 +162,14 @@ export const MLDashboardPage = () => {
       setSelectedProduct(fullProduct);
     }
   };
+
+  const recalcButtonIcon = recalculating ? (
+    <LoadingOutlined />
+  ) : recalcStatus?.status === "DONE" ? (
+    <CheckCircleOutlined />
+  ) : (
+    <ThunderboltOutlined />
+  );
 
   return (
     <div style={{ padding: 24 }}>
@@ -90,26 +181,52 @@ export const MLDashboardPage = () => {
             justifyContent: "space-between",
             alignItems: "center",
             marginBottom: 8,
+            flexWrap: "wrap",
+            gap: 8,
           }}
         >
           <Title level={2} style={{ margin: 0 }}>
             ML Dashboard
           </Title>
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={handleRefresh}
-            loading={loading}
-            style={{
-              borderRadius: token.borderRadius,
-              height: 32,
-            }}
-          >
-            Refresh
-          </Button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button
+              type="primary"
+              icon={recalcButtonIcon}
+              onClick={handleRecalculate}
+              loading={recalculating}
+              disabled={recalculating}
+              style={{ borderRadius: token.borderRadius }}
+            >
+              {recalculating
+                ? "Analyzing..."
+                : recalcStatus?.status === "DONE"
+                  ? "Recalculate Analysis"
+                  : "Analyze Products"}
+            </Button>
+            {hasData && (
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={handleRefresh}
+                loading={loading}
+                style={{ borderRadius: token.borderRadius, height: 32 }}
+              >
+                Refresh
+              </Button>
+            )}
+          </div>
         </div>
         <Text type="secondary">
           AI-Powered Product Intelligence &amp; Portfolio Analysis
         </Text>
+        {recalcStatus?.completed_at && (
+          <div style={{ marginTop: 4 }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Last analyzed:{" "}
+              {new Date(recalcStatus.completed_at).toLocaleString()} (
+              {recalcStatus.product_count} products)
+            </Text>
+          </div>
+        )}
       </div>
 
       {pageError ? (
@@ -136,14 +253,42 @@ export const MLDashboardPage = () => {
       ) : !hasData ? (
         <Card style={{ borderRadius: token.borderRadius }}>
           <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={
               <span>
-                No ML analytics data available.
-                <br />
-                Upload TikTok Ads data to see product intelligence.
+                {recalculating ? (
+                  <>
+                    <LoadingOutlined style={{ marginRight: 8 }} />
+                    ML Analysis is running in the background...
+                    <br />
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      This may take a few moments. The page will auto-refresh
+                      when ready.
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    No ML analytics data available yet.
+                    <br />
+                    <Text type="secondary">
+                      Click &quot;Analyze Products&quot; to start AI-powered
+                      analysis.
+                    </Text>
+                  </>
+                )}
               </span>
             }
-          />
+          >
+            {!recalculating && (
+              <Button
+                type="primary"
+                icon={<ThunderboltOutlined />}
+                onClick={handleRecalculate}
+              >
+                Analyze Products Now
+              </Button>
+            )}
+          </Empty>
         </Card>
       ) : (
         <>

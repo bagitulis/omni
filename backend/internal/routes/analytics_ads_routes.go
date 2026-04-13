@@ -141,6 +141,10 @@ func RegisterMLAnalyticsRoutes(router *gin.RouterGroup, appCache cache.CacheMana
 
 		// Score distribution for charts
 		ml.GET("/distribution", handler.GetScoreDistribution)
+
+		// Recalculate ML scores (background job)
+		ml.POST("/recalculate", handler.Recalculate)
+		ml.GET("/recalculate/status", handler.RecalculateStatus)
 	}
 }
 

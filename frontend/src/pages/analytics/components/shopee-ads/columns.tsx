@@ -9,6 +9,8 @@ export const columns: TableColumnsType<AdsData> = [
     width: 350,
     fixed: "left",
     ellipsis: false,
+    sorter: (a: AdsData, b: AdsData) =>
+      (a.product_name || "").localeCompare(b.product_name || ""),
     render: (name: string, record: AdsData) => (
       <div style={{ padding: "4px 0" }}>
         <div

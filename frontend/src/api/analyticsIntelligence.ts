@@ -44,6 +44,7 @@ export interface ClassifiedProduct {
   action: "SCALE_UP" | "MAINTAIN" | "REDUCE" | "STOP";
   action_label: string;
   recommendation: string;
+  source_platform?: "tiktok" | "shopee";
 }
 
 export interface ClassifiedProductsResponse {

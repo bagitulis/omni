@@ -85,7 +85,8 @@ export const TiktokAdsAnalyticsPage = () => {
   const tableAdsData: TikTokAdsData[] = useMemo(() => {
     if (!apiData?.data) return [];
 
-    return apiData.data.map((p) => ({
+    return apiData.data.map((p, index) => ({
+      id: p.id ?? index,
       creative_id: p.campaign_id,
       creative_name: p.video_title || p.campaign_name,
       campaign_name: p.campaign_name,

@@ -85,7 +85,8 @@ export const ShopeeAdsAnalyticsPage = () => {
   const tableAdsData: AdsData[] = useMemo(() => {
     if (!apiData?.data) return [];
 
-    return apiData.data.map((p) => ({
+    return apiData.data.map((p, index) => ({
+      id: p.id ?? index,
       product_id: p.product_id,
       product_name: p.product_name,
       bidding_mode: p.bidding_mode,

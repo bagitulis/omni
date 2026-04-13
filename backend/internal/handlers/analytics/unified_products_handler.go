@@ -10,7 +10,7 @@ import (
 )
 
 // GetClassifiedProducts handles GET /api/analytics/products/classified
-// Returns products grouped by recommended action
+// Returns products grouped by recommended action from BOTH TikTok and Shopee.
 // Action is calculated based on ROAS thresholds:
 // - ROAS >= 5: SCALE_UP (high performers worth scaling)
 // - ROAS >= 2: MAINTAIN (profitable, keep as is)
@@ -31,8 +31,13 @@ func (h *UnifiedHandler) GetClassifiedProducts(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	// Get products from MV - only those with spend (total_cost > 0)
-	var products []struct {
+	scaleUp := make([]gin.H, 0)
+	maintain := make([]gin.H, 0)
+	reduce := make([]gin.H, 0)
+	stop := make([]gin.H, 0)
+
+	// --- TikTok products from MV ---
+	var tiktokProducts []struct {
 		ProductID    string  `gorm:"column:product_id"`
 		ProductName  string  `gorm:"column:product_name"`
 		TotalCost    float64 `gorm:"column:total_cost"`
@@ -45,27 +50,35 @@ func (h *UnifiedHandler) GetClassifiedProducts(c *gin.Context) {
 	db.WithContext(ctx).Table("mv_ml_product_analysis").
 		Where("tenant_id = ? AND total_cost > 0", tenantID).
 		Order("total_revenue DESC").
-		Find(&products)
+		Find(&tiktokProducts)
 
-	// Group by action based on ROAS thresholds
-	scaleUp := make([]gin.H, 0)
-	maintain := make([]gin.H, 0)
-	reduce := make([]gin.H, 0)
-	stop := make([]gin.H, 0)
-
-	for _, p := range products {
+	for _, p := range tiktokProducts {
 		item, action := h.classifyProduct(p.ProductID, p.ProductName, p.TotalCost,
 			p.TotalRevenue, p.Roas, p.TotalOrders, p.Ctr)
+		item["source_platform"] = "tiktok"
+		h.appendToGroup(&scaleUp, &maintain, &reduce, &stop, item, action)
+	}
 
-		switch action {
-		case "SCALE_UP":
-			scaleUp = append(scaleUp, item)
-		case "MAINTAIN":
-			maintain = append(maintain, item)
-		case "REDUCE":
-			reduce = append(reduce, item)
-		case "STOP":
-			stop = append(stop, item)
+	// --- Shopee products from MV ---
+	var shopeeProducts []struct {
+		ProductID    string  `gorm:"column:product_id"`
+		ProductName  string  `gorm:"column:product_name"`
+		TotalCost    float64 `gorm:"column:total_cost"`
+		TotalRevenue float64 `gorm:"column:total_revenue"`
+		Roas         float64 `gorm:"column:roas"`
+		TotalOrders  int64   `gorm:"column:total_conversions"`
+		Ctr          float64 `gorm:"column:ctr"`
+	}
+
+	if err := db.WithContext(ctx).Table("mv_shopee_ads_product_analysis").
+		Where("tenant_id = ? AND total_cost > 0", tenantID).
+		Order("total_revenue DESC").
+		Find(&shopeeProducts).Error; err == nil {
+		for _, p := range shopeeProducts {
+			item, action := h.classifyProduct(p.ProductID, p.ProductName, p.TotalCost,
+				p.TotalRevenue, p.Roas, p.TotalOrders, p.Ctr)
+			item["source_platform"] = "shopee"
+			h.appendToGroup(&scaleUp, &maintain, &reduce, &stop, item, action)
 		}
 	}
 
@@ -84,6 +97,23 @@ func (h *UnifiedHandler) GetClassifiedProducts(c *gin.Context) {
 			"stop":     len(stop),
 		},
 	})
+}
+
+// appendToGroup appends a classified product item to the appropriate action group.
+func (h *UnifiedHandler) appendToGroup(
+	scaleUp, maintain, reduce, stop *[]gin.H,
+	item gin.H, action string,
+) {
+	switch action {
+	case "SCALE_UP":
+		*scaleUp = append(*scaleUp, item)
+	case "MAINTAIN":
+		*maintain = append(*maintain, item)
+	case "REDUCE":
+		*reduce = append(*reduce, item)
+	case "STOP":
+		*stop = append(*stop, item)
+	}
 }
 
 // classifyProduct determines the action for a product based on ROAS
