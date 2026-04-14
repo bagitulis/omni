@@ -80,22 +80,18 @@ func (h *TiktokAdsHandler) GetDashboard(c *gin.Context) {
 	// Get top products from MV
 	topProducts := h.getTopProductsFromMV(ctx, db, tenantID)
 
-	// Get creative type stats
-	creativeTypeStats := h.getCreativeTypeStats(ctx, db, tenantID)
-
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"total_cost":               summary.TotalCost,
-			"total_revenue":            summary.TotalRevenue,
-			"total_orders":             summary.TotalOrders,
-			"avg_roi":                  avgRoi,
-			"total_impressions":        summary.TotalImpressions,
-			"total_clicks":             summary.TotalClicks,
-			"avg_ctr":                  avgCtr,
-			"avg_conversion_rate":      avgConversionRate,
-			"top_products":             topProducts,
-			"creative_type_comparison": creativeTypeStats,
+			"total_cost":          summary.TotalCost,
+			"total_revenue":      summary.TotalRevenue,
+			"total_orders":       summary.TotalOrders,
+			"avg_roi":            avgRoi,
+			"total_impressions":  summary.TotalImpressions,
+			"total_clicks":       summary.TotalClicks,
+			"avg_ctr":            avgCtr,
+			"avg_conversion_rate": avgConversionRate,
+			"top_products":       topProducts,
 		},
 	})
 }

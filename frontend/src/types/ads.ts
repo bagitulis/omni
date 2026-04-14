@@ -39,7 +39,7 @@ export interface ShopeeAdsDashboardData {
   avg_ctr: number;
   avg_conversion_rate: number;
   top_products: ShopeeAdsDashboardTopProduct[];
-  bidding_mode_stats: ShopeeAdsBiddingModeStat[];
+  bidding_mode_stats?: ShopeeAdsBiddingModeStat[];
 }
 
 export interface ShopeeAdsProductData {
@@ -95,7 +95,7 @@ export interface TiktokAdsDashboardData {
   avg_ctr: number;
   avg_conversion_rate: number;
   top_products: TiktokAdsDashboardTopProduct[];
-  creative_type_comparison: TiktokAdsCreativeTypeStat[];
+  creative_type_comparison?: TiktokAdsCreativeTypeStat[];
 }
 
 export interface TiktokAdsCreativeData {

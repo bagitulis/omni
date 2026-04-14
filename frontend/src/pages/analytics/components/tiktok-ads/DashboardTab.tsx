@@ -4,7 +4,7 @@ import {
   DollarOutlined,
   VideoCameraOutlined,
   PercentageOutlined,
-  PlayCircleOutlined,
+  ShoppingOutlined,
 } from "@ant-design/icons";
 import ReactApexChart from "react-apexcharts";
 import { TikTokAdsData, TIKTOK_ACCENT, TIKTOK_BLACK } from "./types";
@@ -116,9 +116,9 @@ const DashboardTab = ({
         <Col xs={12} sm={12} md={6}>
           <Card size="small">
             <Statistic
-              title="Video Plays"
-              value={summary.totalPlays}
-              prefix={<PlayCircleOutlined style={{ color: TIKTOK_BLACK }} />}
+              title="Total Orders"
+              value={summary.totalConversions}
+              prefix={<ShoppingOutlined style={{ color: TIKTOK_BLACK }} />}
               formatter={(v) => Number(v).toLocaleString()}
             />
           </Card>
@@ -158,7 +158,7 @@ const DashboardTab = ({
         </Col>
       </Row>
 
-      <Card title="Top Performing Creatives" size="small">
+      <Card title="Top Performing Products" size="small">
         <AdsPerformanceTable data={performanceTableData} />
       </Card>
     </div>
