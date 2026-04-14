@@ -101,6 +101,8 @@ export const BudgetSimulatorPage = () => {
         <Col xs={24} lg={16}>
           <SimulationResults
             simulationResult={simulationResult}
+            periodDays={periodDays}
+            targetRoas={targetRoas}
             token={token}
             formatCurrency={formatCurrency}
             formatRoas={formatRoas}

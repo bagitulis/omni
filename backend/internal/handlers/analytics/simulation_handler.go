@@ -123,7 +123,7 @@ type periodAgg struct {
 }
 
 // buildHistorical converts period aggregations into ProductHistoricalData
-// with daily normalization based on actual period_start and period_end dates.
+// with daily normalization based on actual date span (min start → max end).
 func buildHistorical(productID string, periods []periodAgg) intelligence.ProductHistoricalData {
 	result := intelligence.ProductHistoricalData{
 		ProductID: productID,
@@ -135,11 +135,14 @@ func buildHistorical(productID string, periods []periodAgg) intelligence.Product
 
 	var totalSpend, totalRevenue float64
 	var totalClicks, totalOrders, totalImpressions int
-	var totalActualDays float64
 
+	// Find global date span and collect per-period data
+	var minStart, maxEnd time.Time
 	for _, p := range periods {
-		result.SpendHistory = append(result.SpendHistory, p.Spend)
-		result.RevenueHistory = append(result.RevenueHistory, p.Revenue)
+		// Normalize to daily values for saturation model accuracy
+		periodDays := math.Max(1.0, p.PeriodEnd.Sub(p.PeriodStart).Hours()/24.0)
+		result.SpendHistory = append(result.SpendHistory, p.Spend/periodDays)
+		result.RevenueHistory = append(result.RevenueHistory, p.Revenue/periodDays)
 		roas := 0.0
 		if p.Spend > 0 {
 			roas = p.Revenue / p.Spend
@@ -152,18 +155,17 @@ func buildHistorical(productID string, periods []periodAgg) intelligence.Product
 		totalOrders += p.Orders
 		totalImpressions += p.Impressions
 
-		// Calculate actual days for this period from timestamps
-		periodDays := p.PeriodEnd.Sub(p.PeriodStart).Hours() / 24.0
-		if periodDays <= 0 {
-			periodDays = 7 // Fallback if timestamps are invalid
+		// Track global date range
+		if minStart.IsZero() || p.PeriodStart.Before(minStart) {
+			minStart = p.PeriodStart
 		}
-		totalActualDays += periodDays
+		if p.PeriodEnd.After(maxEnd) {
+			maxEnd = p.PeriodEnd
+		}
 	}
 
-	// Fallback if totalActualDays is still 0
-	if totalActualDays <= 0 {
-		totalActualDays = float64(len(periods)) * 7
-	}
+	// Use span-based calculation: total calendar days from first to last
+	totalActualDays := math.Max(1.0, maxEnd.Sub(minStart).Hours()/24.0)
 
 	// Set actual day count (rounded)
 	result.DaysOfData = int(math.Round(totalActualDays))
@@ -173,13 +175,24 @@ func buildHistorical(productID string, periods []periodAgg) intelligence.Product
 		result.CurrentRoas = totalRevenue / totalSpend
 	}
 
-	// CurrentSpend: truly DAILY average (total spend / actual calendar days)
+	// CurrentSpend: daily average over the entire span
 	result.CurrentSpend = totalSpend / totalActualDays
 
 	// Funnel metrics
 	result.TotalClicks = totalClicks
 	result.TotalOrders = totalOrders
 	result.TotalImpressions = totalImpressions
+
+	// Funnel averages for display
+	if totalImpressions > 0 && totalClicks > 0 {
+		result.AvgCTR = float64(totalClicks) / float64(totalImpressions) * 100
+	}
+	if totalClicks > 0 && totalOrders > 0 {
+		result.AvgCVR = float64(totalOrders) / float64(totalClicks) * 100
+	}
+	if totalClicks > 0 && totalSpend > 0 {
+		result.AvgCPC = totalSpend / float64(totalClicks)
+	}
 
 	return result
 }
@@ -265,6 +278,8 @@ func (h *SimulationHandler) getShopeeProductData(
 
 // GetProductsFromAds handles GET /api/analytics/products/from-ads
 // Uses ML score cache for instant response instead of raw table aggregation.
+// Daily spend is estimated from cache metadata — exact values are computed
+// during simulation in buildHistorical.
 func (h *SimulationHandler) GetProductsFromAds(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
@@ -303,10 +318,14 @@ func (h *SimulationHandler) GetProductsFromAds(c *gin.Context) {
 			simProductID = rawID[7:]
 		}
 
-		// Compute daily spend from MV date range if available
+		// Estimate daily spend from cache data (no slow source table queries).
+		// The ML cache covers ~6 months of data; use time since first data ingestion.
+		// The exact daily spend is recomputed during simulation via buildHistorical.
 		var dailySpend float64
 		if p.TotalCost > 0 {
-			dailySpend = h.getDailySpendFromMV(ctx, db, tenantID, simProductID, p.Platform, p.TotalCost)
+			// Use a conservative 180-day estimate (6 months of data)
+			// This is only for the product list display, not for simulation math.
+			dailySpend = math.Round(p.TotalCost / 180.0)
 		}
 
 		products = append(products, gin.H{
@@ -326,45 +345,6 @@ func (h *SimulationHandler) GetProductsFromAds(c *gin.Context) {
 		"data":    products,
 		"count":   len(products),
 	})
-}
-
-// getDailySpendFromMV calculates daily spend using the materialized view date range.
-// Falls back to estimating from period count if MV is unavailable.
-func (h *SimulationHandler) getDailySpendFromMV(
-	ctx context.Context, db *gorm.DB,
-	tenantID, productID, platform string, totalCost float64,
-) float64 {
-	var result struct {
-		FirstPeriod time.Time `gorm:"column:first_period"`
-		LastPeriod  time.Time `gorm:"column:last_period"`
-	}
-
-	mvTable := "mv_ml_product_analysis"
-	err := db.WithContext(ctx).
-		Table(mvTable).
-		Where("tenant_id = ? AND product_id = ?", tenantID, productID).
-		Select("first_period, last_period").
-		Limit(1).
-		Scan(&result).Error
-
-	if err == nil && !result.FirstPeriod.IsZero() && !result.LastPeriod.IsZero() {
-		days := result.LastPeriod.Sub(result.FirstPeriod).Hours() / 24.0
-		if days > 0 {
-			return math.Round(totalCost / days)
-		}
-	}
-
-	// Fallback: estimate from total cost / 30 days
-	return math.Round(totalCost / 30.0)
-}
-
-// calcDailySpend computes daily average spend from total cost and date range
-func calcDailySpend(totalCost float64, minStart, maxEnd time.Time) float64 {
-	days := maxEnd.Sub(minStart).Hours() / 24.0
-	if days <= 0 {
-		return 0
-	}
-	return math.Round(totalCost / days)
 }
 
 // GetCalendarEvents handles GET /api/analytics/intelligence/calendar

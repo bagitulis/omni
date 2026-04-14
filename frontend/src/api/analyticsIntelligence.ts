@@ -70,7 +70,27 @@ export interface SimulationRequest {
   period_days: number;
 }
 
+export interface FunnelBreakdown {
+  projected_clicks: number;
+  projected_orders: number;
+  projected_revenue: number;
+  projected_cpc: number;
+  projected_cpo: number;
+  projected_cvr: number;
+  projected_aov: number;
+  projected_impressions: number;
+  projected_ctr: number;
+}
+
+export interface CalendarEvent {
+  date: string;
+  type: string;
+  description: string;
+  multiplier: number;
+}
+
 export interface SimulationResult {
+  // Core metrics
   feasibility: "ACHIEVABLE" | "DIFFICULT" | "NOT_ACHIEVABLE";
   confidence_percent: number;
   current_roas: number;
@@ -86,6 +106,23 @@ export interface SimulationResult {
     required_budget: number;
     expected_roas: number;
   }[];
+
+  // Period projection
+  total_budget?: number;
+  total_projected_revenue?: number;
+  total_projected_orders?: number;
+
+  // Funnel breakdown per day
+  funnel?: FunnelBreakdown;
+
+  // Calendar context
+  calendar_multiplier?: number;
+  calendar_events?: CalendarEvent[];
+
+  // Scale-up analysis
+  max_safe_budget?: number;
+  scale_factor?: number;
+  optimal_label?: string;
 }
 
 

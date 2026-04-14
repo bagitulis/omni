@@ -59,7 +59,6 @@ export const MLDashboardPage = () => {
   const {
     data: portfolioResponse,
     isLoading: healthLoading,
-    error: healthError,
     refetch: refetchHealth,
   } = usePortfolioHealth("tiktok");
 
@@ -75,13 +74,12 @@ export const MLDashboardPage = () => {
   );
 
   const loading = healthLoading || productsLoading;
-  const pageError = healthError || productsError;
+  // Only treat productsError as a real error; portfolioResponse=null means empty cache, not error
+  const pageError = productsError;
 
-  // Extract has_cache flag from raw response
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawResponse = portfolioResponse as any;
-  const hasCache = rawResponse?.has_cache !== false;
-  const portfolioHealth = rawResponse?.has_cache === false ? null : rawResponse;
+  // portfolioResponse is null when no cache exists (no analysis run yet)
+  const portfolioHealth = portfolioResponse ?? null;
+  const hasCache = portfolioHealth !== null;
 
   const handleRefresh = () => {
     refetchHealth();
@@ -153,7 +151,7 @@ export const MLDashboardPage = () => {
   };
 
   const products = productsData?.products?.map(transformProduct) || [];
-  const hasData = hasCache && portfolioHealth && portfolioHealth.total_products > 0;
+  const hasData = (hasCache && portfolioHealth && portfolioHealth.total_products > 0) || products.length > 0;
 
   const handleProductClick = (product: Product) => {
     const fullProduct = productsData?.products?.find(
@@ -294,6 +292,8 @@ export const MLDashboardPage = () => {
       ) : (
         <>
           {/* Portfolio Health Cards */}
+          {portfolioHealth && (
+          <>
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={12} sm={12} md={6} lg={6}>
               <HealthCard
@@ -334,6 +334,8 @@ export const MLDashboardPage = () => {
               <PortfolioHealthScoreCard portfolioHealth={portfolioHealth} />
             </Col>
           </Row>
+          </>
+          )}
 
           {/* Product Scoring Table — at bottom so pagination dropdown has room */}
           <Card

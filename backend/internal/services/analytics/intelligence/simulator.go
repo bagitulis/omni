@@ -5,79 +5,6 @@ import (
 	"time"
 )
 
-// FeasibilityStatus represents budget feasibility
-type FeasibilityStatus string
-
-const (
-	FeasibilityAchievable    FeasibilityStatus = "ACHIEVABLE"
-	FeasibilityDifficult     FeasibilityStatus = "DIFFICULT"
-	FeasibilityNotAchievable FeasibilityStatus = "NOT_ACHIEVABLE"
-)
-
-// TrendPrediction represents trend prediction
-type TrendPrediction string
-
-const (
-	TrendPredictionUp       TrendPrediction = "UP"
-	TrendPredictionDown     TrendPrediction = "DOWN"
-	TrendPredictionStagnant TrendPrediction = "STAGNANT"
-)
-
-// SimulationMode indicates which math model was used
-type SimulationMode string
-
-const (
-	SimulationModeFunnel SimulationMode = "FUNNEL"
-	SimulationModeYield  SimulationMode = "YIELD"
-)
-
-// BudgetAlternative represents an alternative budget scenario
-type BudgetAlternative struct {
-	TargetRoas     float64 `json:"target_roas"`
-	RequiredBudget float64 `json:"required_budget"`
-	ExpectedRoas   float64 `json:"expected_roas"`
-}
-
-// SimulationRequest contains simulation input parameters
-type SimulationRequest struct {
-	ProductID    string  `json:"product_id"`
-	TargetRoas   float64 `json:"target_roas"`
-	BudgetPerDay float64 `json:"budget_per_day"`
-	PeriodDays   int     `json:"period_days"`
-}
-
-// SimulationResult contains simulation output
-type SimulationResult struct {
-	Feasibility       FeasibilityStatus   `json:"feasibility"`
-	ConfidencePercent float64             `json:"confidence_percent"`
-	CurrentRoas       float64             `json:"current_roas"`
-	ProjectedRoas     float64             `json:"projected_roas"`
-	TrendPrediction   TrendPrediction     `json:"trend_prediction"`
-	OptimalBudget     float64             `json:"optimal_budget"`
-	Recommendation    string              `json:"recommendation"`
-	Alternatives      []BudgetAlternative `json:"alternatives"`
-	SimulationMode    SimulationMode      `json:"simulation_mode"`
-	MLCategory        string              `json:"ml_category"`
-	CurrentDailySpend float64             `json:"current_daily_spend"`
-}
-
-// ProductHistoricalData contains historical data for a product
-type ProductHistoricalData struct {
-	ProductID        string
-	ProductName      string
-	SpendHistory     []float64
-	RevenueHistory   []float64
-	RoasHistory      []float64
-	CurrentRoas      float64
-	CurrentSpend     float64 // Daily average spend
-	DaysOfData       int
-	TotalClicks      int
-	TotalOrders      int
-	TotalImpressions int
-	MLCategory       string // from ML cache: STAR, GROWTH, STABLE, WATCH, PROBLEM
-	FatigueStatus    string // FRESH, AGING, FATIGUED, DEAD
-}
-
 // BudgetSimulator simulates budget scenarios
 type BudgetSimulator struct {
 	calendar    *IndonesianCalendar
@@ -110,10 +37,21 @@ func (s *BudgetSimulator) Simulate(req SimulationRequest, data ProductHistorical
 	probResult := s.probability.Analyze(data.RoasHistory, req.TargetRoas)
 
 	// Calculate projected ROAS with new budget (dual-mode)
-	projectedRoas, simMode := s.projectRoasWithBudget(
+	projectedRoas, simMode, funnel := s.projectRoasWithBudget(
 		data.CurrentRoas, data.CurrentSpend, req.BudgetPerDay,
 		satResult, data,
 	)
+
+	// Calendar context for the simulation period
+	calendarCtx := s.GetCalendarContext(time.Now(), req.PeriodDays)
+	avgMult := calendarCtx["average_multiplier"].(float64)
+	calendarEvents, _ := calendarCtx["upcoming_events"].([]map[string]interface{})
+	if calendarEvents == nil {
+		calendarEvents = []map[string]interface{}{}
+	}
+
+	// Apply calendar seasonal adjustment to projected ROAS
+	projectedRoas *= avgMult
 
 	// Determine feasibility
 	feasibility := s.determineFeasibility(req.TargetRoas, projectedRoas, probResult)
@@ -124,170 +62,63 @@ func (s *BudgetSimulator) Simulate(req SimulationRequest, data ProductHistorical
 	// Determine trend prediction
 	trend := s.determineTrendPrediction(projectedRoas, data.CurrentRoas, trendResult)
 
-	// Calculate optimal budget for target ROAS
-	optimalBudget := s.calculateOptimalBudget(req.TargetRoas, data, satResult)
+	// Calculate optimal budget + scale-up analysis
+	optimalBudget, maxSafeBudget, optimalLabel := s.calculateOptimalBudget(
+		req.TargetRoas, data, satResult,
+	)
+	scaleFactor := 0.0
+	if data.CurrentSpend > 0 {
+		scaleFactor = math.Round(maxSafeBudget/data.CurrentSpend*10) / 10
+	}
 
 	// Generate recommendation
 	recommendation := s.generateRecommendation(
 		req.TargetRoas, req.BudgetPerDay, projectedRoas,
-		optimalBudget, feasibility,
+		optimalBudget, maxSafeBudget, data.CurrentRoas, feasibility,
 	)
 
 	// Generate alternatives
 	alternatives := s.generateAlternatives(req.TargetRoas, req.BudgetPerDay, data, satResult)
 
+	// Period projections
+	periodDays := float64(req.PeriodDays)
+	totalBudget := req.BudgetPerDay * periodDays
+	dailyRevenue := req.BudgetPerDay * projectedRoas
+	totalRevenue := dailyRevenue * periodDays
+	dailyOrders := 0.0
+	if funnel != nil {
+		dailyOrders = funnel.ProjectedOrders
+	} else if data.CurrentSpend > 0 && data.TotalOrders > 0 {
+		baseDaily := float64(data.TotalOrders) / float64(data.DaysOfData)
+		scale := req.BudgetPerDay / data.CurrentSpend
+		dailyOrders = baseDaily * scale * 0.85 // conservative scaling
+	}
+	totalOrders := dailyOrders * periodDays
+
 	return SimulationResult{
-		Feasibility:       feasibility,
-		ConfidencePercent: confidence,
-		CurrentRoas:       math.Round(data.CurrentRoas*100) / 100,
-		ProjectedRoas:     math.Round(projectedRoas*100) / 100,
-		TrendPrediction:   trend,
-		OptimalBudget:     math.Round(optimalBudget),
-		Recommendation:    recommendation,
-		Alternatives:      alternatives,
-		SimulationMode:    simMode,
-		MLCategory:        data.MLCategory,
-		CurrentDailySpend: math.Round(data.CurrentSpend),
+		Feasibility:           feasibility,
+		ConfidencePercent:     confidence,
+		CurrentRoas:           math.Round(data.CurrentRoas*100) / 100,
+		ProjectedRoas:         math.Round(projectedRoas*100) / 100,
+		TrendPrediction:       trend,
+		OptimalBudget:         math.Round(optimalBudget),
+		Recommendation:        recommendation,
+		Alternatives:          alternatives,
+		SimulationMode:        simMode,
+		MLCategory:            data.MLCategory,
+		CurrentDailySpend:     math.Round(data.CurrentSpend),
+		TotalBudget:           math.Round(totalBudget),
+		TotalProjectedRevenue: math.Round(totalRevenue),
+		TotalProjectedOrders:  math.Round(totalOrders*10) / 10,
+		Funnel:                funnel,
+		CalendarMultiplier:    avgMult,
+		CalendarEvents:        calendarEvents,
+		MaxSafeBudget:         math.Round(maxSafeBudget),
+		ScaleFactor:           scaleFactor,
+		OptimalLabel:          optimalLabel,
 	}
 }
 
-// getElasticityForCategory returns the power-law elasticity exponent
-// based on ML product category and creative fatigue status.
-// More negative = steeper diminishing returns when scaling up.
-func getElasticityForCategory(category, fatigueStatus string) float64 {
-	base := -0.12 // Default: moderate diminishing returns
-	switch category {
-	case "STAR":
-		base = -0.06 // Strong performers scale well
-	case "GROWTH":
-		base = -0.10 // Growing products — reasonable headroom
-	case "STABLE":
-		base = -0.15 // Stable but limited upside
-	case "WATCH":
-		base = -0.22 // Already struggling
-	case "PROBLEM":
-		base = -0.35 // Scaling will worsen losses
-	}
-	// Fatigue penalty — fatigued creatives have steeper drop-off
-	switch fatigueStatus {
-	case "AGING":
-		base -= 0.03
-	case "FATIGUED":
-		base -= 0.08
-	case "DEAD":
-		base -= 0.15
-	}
-	return base
-}
-
-// getSaturationPenalty adjusts elasticity based on saturation analysis
-func getSaturationPenalty(satResult SaturationResult) float64 {
-	switch satResult.Status {
-	case SaturationHighElasticity:
-		return 1.0 // No penalty
-	case SaturationModerate:
-		return 1.1 // Slightly steeper
-	case SaturationApproachingSaturation:
-		return 1.3
-	case SaturationSaturated:
-		return 1.6
-	case SaturationOverSaturated:
-		return 2.0 // Very steep
-	default:
-		return 1.0
-	}
-}
-
-// projectRoasWithBudget projects ROAS using dual-mode power-law model.
-// Mode A (Funnel): uses CPC/CVR/CTR when click+order data is available.
-// Mode B (Yield): uses raw power-law on ROAS when funnel data is incomplete.
-func (s *BudgetSimulator) projectRoasWithBudget(
-	currentRoas, currentSpend, newBudget float64,
-	satResult SaturationResult, data ProductHistoricalData,
-) (float64, SimulationMode) {
-	if currentSpend <= 0 {
-		return currentRoas, SimulationModeYield
-	}
-
-	scale := newBudget / currentSpend
-	if scale <= 0 {
-		return currentRoas, SimulationModeYield
-	}
-
-	// Edge case: identical budget
-	if math.Abs(scale-1.0) < 0.001 {
-		return currentRoas, SimulationModeYield
-	}
-
-	// Determine elasticity from ML context
-	elasticity := getElasticityForCategory(data.MLCategory, data.FatigueStatus)
-	elasticity *= getSaturationPenalty(satResult)
-
-	// Dual-mode selection
-	if data.TotalClicks > 0 && data.TotalOrders > 0 && data.TotalImpressions > 0 {
-		roas := s.projectFunnel(currentRoas, currentSpend, scale, elasticity, data)
-		return roas, SimulationModeFunnel
-	}
-	roas := s.projectYield(currentRoas, scale, elasticity)
-	return roas, SimulationModeYield
-}
-
-// projectFunnel simulates the full advertising funnel:
-// Budget → Impressions → Clicks (CTR) → Orders (CVR) → Revenue (AOV)
-// Each stage degrades with a power-law penalty as budget scales up.
-func (s *BudgetSimulator) projectFunnel(
-	currentRoas, currentSpend, scale, elasticity float64,
-	data ProductHistoricalData,
-) float64 {
-	totalSpend := currentSpend * float64(data.DaysOfData)
-
-	baseCPC := totalSpend / float64(data.TotalClicks)
-	baseCVR := float64(data.TotalOrders) / float64(data.TotalClicks)
-	baseAOV := (totalSpend * currentRoas) / float64(data.TotalOrders)
-
-	if baseCPC <= 0 || baseCVR <= 0 || baseAOV <= 0 {
-		return s.projectYield(currentRoas, scale, elasticity)
-	}
-
-	// Apply scale penalties (power-law)
-	// CPC rises as budget increases (auction competition)
-	adjCPC := baseCPC * math.Pow(scale, 0.08)
-	// CVR drops as budget increases (audience dilution)
-	adjCVR := baseCVR * math.Pow(scale, elasticity*1.2)
-
-	// Guard: prevent CVR from going negative or absurdly high
-	if adjCVR <= 0 {
-		adjCVR = baseCVR * 0.01
-	}
-	if adjCVR > 1.0 {
-		adjCVR = baseCVR // cap at baseline
-	}
-
-	// Project daily metrics
-	newBudget := currentSpend * scale
-	dailyClicks := newBudget / adjCPC
-	dailyOrders := dailyClicks * adjCVR
-	dailyRevenue := dailyOrders * baseAOV
-
-	if newBudget > 0 {
-		return dailyRevenue / newBudget
-	}
-	return currentRoas
-}
-
-// projectYield uses a simple power-law model on ROAS directly.
-// Used as fallback when funnel data (clicks/orders) is incomplete.
-func (s *BudgetSimulator) projectYield(currentRoas, scale, elasticity float64) float64 {
-	if scale <= 0 {
-		return currentRoas
-	}
-	projected := currentRoas * math.Pow(scale, elasticity)
-	// Safety floor: never project below 5% of current ROAS
-	if projected < currentRoas*0.05 {
-		projected = currentRoas * 0.05
-	}
-	return projected
-}
 
 // determineFeasibility determines if target ROAS is achievable
 func (s *BudgetSimulator) determineFeasibility(
@@ -350,29 +181,30 @@ func (s *BudgetSimulator) determineTrendPrediction(
 	return TrendPredictionStagnant
 }
 
-// calculateOptimalBudget finds the daily budget that achieves target ROAS
-// using binary search over the power-law projection.
+// calculateOptimalBudget finds the daily budget for target ROAS.
+// For over-performing products (current > target): finds max safe scale-up budget.
+// For under-performing products: finds minimum budget to achieve target.
+// Returns: (optimalBudget, maxSafeBudget, label)
 func (s *BudgetSimulator) calculateOptimalBudget(
 	targetRoas float64,
 	data ProductHistoricalData,
 	satResult SaturationResult,
-) float64 {
+) (float64, float64, string) {
 	if data.CurrentRoas == 0 || data.CurrentSpend == 0 {
-		return data.CurrentSpend
+		return data.CurrentSpend, data.CurrentSpend, "Optimal Budget"
 	}
 
-	// If current ROAS is already below target and scaling down won't help enough
-	if data.CurrentRoas < targetRoas*0.3 {
-		return math.Max(10000, data.CurrentSpend*0.5)
-	}
+	isOverPerforming := data.CurrentRoas >= targetRoas
 
-	// Binary search for optimal budget
-	low := data.CurrentSpend * 0.05  // 5% of current
-	high := data.CurrentSpend * 10.0 // 10x of current
+	// Cap at 5x current spend for realism
+	scaleCap := 5.0
+	low := data.CurrentSpend * 0.05
+	high := data.CurrentSpend * scaleCap
 
+	// Binary search
 	for i := 0; i < 50; i++ {
 		mid := (low + high) / 2
-		projectedRoas, _ := s.projectRoasWithBudget(
+		projectedRoas, _, _ := s.projectRoasWithBudget(
 			data.CurrentRoas, data.CurrentSpend, mid,
 			satResult, data,
 		)
@@ -381,56 +213,79 @@ func (s *BudgetSimulator) calculateOptimalBudget(
 			break
 		}
 
-		// Higher budget → lower ROAS (diminishing returns)
 		if projectedRoas > targetRoas {
-			low = mid // Can increase budget more
+			low = mid
 		} else {
-			high = mid // Need to decrease budget
+			high = mid
 		}
 	}
 
 	optimal := (low + high) / 2
-
-	// Cap to reasonable range
 	if optimal < 10000 {
 		optimal = 10000
 	}
-	if optimal > data.CurrentSpend*10 {
-		optimal = data.CurrentSpend * 10
+
+	if isOverPerforming {
+		// Max safe budget = budget ceiling where ROAS still >= target
+		maxSafe := optimal
+		if maxSafe > data.CurrentSpend*scaleCap {
+			maxSafe = data.CurrentSpend * scaleCap
+		}
+		return maxSafe, maxSafe, "Max Safe Scale-Up Budget"
 	}
 
-	return optimal
+	// Under-performing: optimal is the budget needed to hit target
+	return optimal, optimal, "Optimal Budget"
 }
 
-// generateRecommendation generates Indonesian recommendation text
+// generateRecommendation generates contextual Indonesian recommendation.
+// 5 cases: strong over-performing, slight over-performing, achievable,
+// difficult, and not achievable.
 func (s *BudgetSimulator) generateRecommendation(
-	targetRoas, budgetPerDay, projectedRoas, optimalBudget float64,
-	feasibility FeasibilityStatus,
+	targetRoas, budgetPerDay, projectedRoas, optimalBudget, maxSafeBudget,
+	currentRoas float64, feasibility FeasibilityStatus,
 ) string {
-	optBudgetStr := formatRupiah(optimalBudget)
 	budgetStr := formatRupiah(budgetPerDay)
-	projRoasStr := formatFloat(projectedRoas)
-	targetRoasStr := formatFloat(targetRoas)
+	projStr := formatFloat(projectedRoas)
+	targetStr := formatFloat(targetRoas)
+	currentStr := formatFloat(currentRoas)
+	maxStr := formatRupiah(maxSafeBudget)
 
+	// Case 1: Strongly over-performing (current ROAS > 1.5x target)
+	if currentRoas > targetRoas*1.5 {
+		return "Produk STAR! ROAS saat ini (" + currentStr + "x) jauh di atas target (" +
+			targetStr + "x). Dengan budget " + budgetStr + "/hari, projected ROAS = " +
+			projStr + "x. Scale-up aman hingga " + maxStr + "/hari, ROAS tetap >= " +
+			targetStr + "x."
+	}
+
+	// Case 2: Slightly over-performing (current ROAS > target)
+	if currentRoas > targetRoas {
+		return "ROAS saat ini (" + currentStr + "x) sudah di atas target (" +
+			targetStr + "x). Budget bisa ditingkatkan hingga " + maxStr +
+			"/hari sebelum mendekati batas target. Projected ROAS: " + projStr + "x."
+	}
+
+	// Case 3-5: Under-performing
 	switch feasibility {
 	case FeasibilityAchievable:
-		if budgetPerDay > optimalBudget {
-			return "Untuk mencapai ROAS " + targetRoasStr + "x, budget optimal adalah " +
-				optBudgetStr + "/hari. Dengan " + budgetStr + "/hari, target tetap tercapai dengan " +
-				"projected ROAS " + projRoasStr + "x."
-		}
-		return "Target ROAS " + targetRoasStr + "x achievable dengan budget " + budgetStr +
-			"/hari. Projected ROAS: " + projRoasStr + "x."
+		return "Target ROAS " + targetStr + "x achievable dengan budget " + budgetStr +
+			"/hari. Projected ROAS: " + projStr + "x."
 
 	case FeasibilityDifficult:
-		return "Untuk mencapai ROAS " + targetRoasStr + "x, budget optimal adalah " +
-			optBudgetStr + "/hari. Dengan " + budgetStr + "/hari, ROAS akan turun ke " +
-			projRoasStr + "x karena diminishing returns. Alternatif: Naikkan target ke ROAS " +
-			projRoasStr + "x untuk budget " + budgetStr + "/hari."
+		gapPct := ((targetRoas - projectedRoas) / targetRoas) * 100
+		if gapPct < 20 {
+			return "Hampir mencapai target! Gap hanya " + formatFloat(gapPct) +
+				"%. Tingkatkan budget ke " + formatRupiah(optimalBudget) +
+				"/hari atau optimalkan creative untuk mencapai ROAS " + targetStr + "x."
+		}
+		return "Target ROAS " + targetStr + "x sulit dengan budget " + budgetStr +
+			"/hari (projected: " + projStr + "x). Pertimbangkan menaikkan budget" +
+			" atau menurunkan target."
 
 	default:
-		return "Target ROAS " + targetRoasStr + "x sulit dicapai dengan kondisi saat ini. " +
-			"Pertimbangkan untuk menurunkan target ke ROAS " + projRoasStr +
+		return "Target ROAS " + targetStr + "x tidak realistis dengan kondisi saat ini (" +
+			currentStr + "x). Turunkan target ke " + projStr +
 			"x atau optimalkan creative terlebih dahulu."
 	}
 }
@@ -444,7 +299,7 @@ func (s *BudgetSimulator) generateAlternatives(
 	alternatives := make([]BudgetAlternative, 0, 2)
 
 	// Alternative 1: Lower target ROAS for current budget
-	projectedRoas, _ := s.projectRoasWithBudget(
+	projectedRoas, _, _ := s.projectRoasWithBudget(
 		data.CurrentRoas, data.CurrentSpend, budgetPerDay,
 		satResult, data,
 	)
@@ -457,7 +312,7 @@ func (s *BudgetSimulator) generateAlternatives(
 	}
 
 	// Alternative 2: Budget needed for target ROAS
-	optimalBudget := s.calculateOptimalBudget(targetRoas, data, satResult)
+	optimalBudget, _, _ := s.calculateOptimalBudget(targetRoas, data, satResult)
 	if math.Abs(optimalBudget-budgetPerDay) > 10000 {
 		alternatives = append(alternatives, BudgetAlternative{
 			TargetRoas:     targetRoas,

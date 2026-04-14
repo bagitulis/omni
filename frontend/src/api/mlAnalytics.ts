@@ -109,13 +109,15 @@ export interface MLProductsParams {
 // API functions
 export async function getPortfolioHealth(
   platform: string = "tiktok",
-): Promise<PortfolioHealth> {
+): Promise<PortfolioHealth | null> {
   const response = await apiClient.get<PortfolioHealth>(
     `/analytics/ml/portfolio-health`,
     { params: { platform } },
   );
+  // has_cache=false is NOT an error — it means no analysis has been run yet
+  // Return null to trigger the empty state UI, not an error
   if (!response.data) {
-    throw new Error(response.error || "No data received from server");
+    return null;
   }
   return response.data;
 }

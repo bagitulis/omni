@@ -194,6 +194,12 @@ export const SimulationParameters = ({
               { value: 30, label: "30 days" },
             ]}
           />
+          {budgetPerDay > 0 && (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Total budget for {periodDays} days: Rp{" "}
+              {(budgetPerDay * periodDays).toLocaleString("id-ID")}
+            </Text>
+          )}
         </div>
 
         <Button

@@ -62,17 +62,27 @@ func (c *IndonesianCalendar) initHolidays() {
 	c.holidays["2026-01-17"] = "Isra Mi'raj 1447 H"
 	c.holidays["2026-03-19"] = "Idul Fitri 1447 H"
 	c.holidays["2026-03-20"] = "Idul Fitri 1447 H"
+	c.holidays["2026-05-01"] = "Hari Buruh Internasional"
+	c.holidays["2026-05-14"] = "Kenaikan Isa Al Masih"
+	c.holidays["2026-05-26"] = "Idul Adha 1447 H"
+	c.holidays["2026-06-01"] = "Hari Lahir Pancasila"
+	c.holidays["2026-06-16"] = "Tahun Baru Islam 1448 H"
+	c.holidays["2026-08-17"] = "Hari Kemerdekaan RI"
+	c.holidays["2026-08-25"] = "Maulid Nabi Muhammad SAW"
+	c.holidays["2026-12-25"] = "Hari Natal"
 }
 
-// Multipliers for each event type
+// Multipliers for each event type — data-backed conservative values.
+// Based on real tenant analysis (yumna_bertigamart, Aug 2025 - Jan 2026):
+// Payday effect ~1-5%, Twin Date effect ~3-5%, monthly variation is dominant.
 var eventMultipliers = map[EventType]float64{
-	EventTypeTwinDate:        1.50,
-	EventTypePaydayPrime:     1.30,
-	EventTypePostPayday:      1.15,
-	EventTypeNationalHoliday: 1.10,
-	EventTypeWeekend:         1.10,
-	EventTypeMidMonth:        0.95,
-	EventTypeDrySeason:       0.80,
+	EventTypeTwinDate:        1.05,
+	EventTypePaydayPrime:     1.05,
+	EventTypePostPayday:      1.03,
+	EventTypeNationalHoliday: 1.05,
+	EventTypeWeekend:         1.03,
+	EventTypeMidMonth:        0.98,
+	EventTypeDrySeason:       0.95,
 	EventTypeNormal:          1.00,
 }
 
