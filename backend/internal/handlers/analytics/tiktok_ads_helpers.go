@@ -80,11 +80,56 @@ func (h *TiktokAdsHandler) getTopProductsFromMV(
 		return h.getTopProductsDirect(ctx, db, tenantID)
 	}
 
+	result := h.enrichProductNames(ctx, db, tenantID, products)
+	return result
+}
+
+// enrichProductNames looks up real product names from the tiktok_ads_product_names
+// mapping table, falling back to the MV/raw product_name if no mapping exists.
+func (h *TiktokAdsHandler) enrichProductNames(
+	ctx context.Context,
+	db *gorm.DB,
+	tenantID string,
+	products []struct {
+		ProductID    string  `gorm:"column:product_id"`
+		ProductName  string  `gorm:"column:product_name"`
+		TotalCost    float64 `gorm:"column:total_cost"`
+		TotalRevenue float64 `gorm:"column:total_revenue"`
+		TotalOrders  int64   `gorm:"column:total_orders"`
+		Roas         float64 `gorm:"column:roas"`
+	},
+) []gin.H {
+	// Collect product IDs for batch lookup
+	productIDs := make([]string, 0, len(products))
+	for _, p := range products {
+		if p.ProductID != "" {
+			productIDs = append(productIDs, p.ProductID)
+		}
+	}
+
+	// Batch lookup from product name mapping table
+	nameMap := make(map[string]string)
+	if len(productIDs) > 0 {
+		var mappings []models.TiktokAdsProductName
+		db.WithContext(ctx).
+			Where("tenant_id = ? AND product_id IN ?", tenantID, productIDs).
+			Find(&mappings)
+		for _, m := range mappings {
+			if m.Name != "" {
+				nameMap[m.ProductID] = m.Name
+			}
+		}
+	}
+
 	var result []gin.H
 	for _, p := range products {
+		displayName := p.ProductName
+		if mapped, ok := nameMap[p.ProductID]; ok {
+			displayName = mapped
+		}
 		result = append(result, gin.H{
 			"product_id":   p.ProductID,
-			"product_name": p.ProductName,
+			"product_name": displayName,
 			"cost":         p.TotalCost,
 			"revenue":      p.TotalRevenue,
 			"orders":       p.TotalOrders,
@@ -120,15 +165,37 @@ func (h *TiktokAdsHandler) getTopProductsDirect(
 		Limit(10).
 		Find(&products)
 
+	// Batch lookup product names from mapping table
+	productIDs := make([]string, 0, len(products))
+	for _, p := range products {
+		productIDs = append(productIDs, p.ProductID)
+	}
+	nameMap := make(map[string]string)
+	if len(productIDs) > 0 {
+		var mappings []models.TiktokAdsProductName
+		db.WithContext(ctx).
+			Where("tenant_id = ? AND product_id IN ?", tenantID, productIDs).
+			Find(&mappings)
+		for _, m := range mappings {
+			if m.Name != "" {
+				nameMap[m.ProductID] = m.Name
+			}
+		}
+	}
+
 	var result []gin.H
 	for _, p := range products {
 		roi := float64(0)
 		if p.Cost > 0 {
 			roi = p.Revenue / p.Cost
 		}
+		displayName := p.ProductName
+		if mapped, ok := nameMap[p.ProductID]; ok {
+			displayName = mapped
+		}
 		result = append(result, gin.H{
 			"product_id":   p.ProductID,
-			"product_name": p.ProductName,
+			"product_name": displayName,
 			"cost":         p.Cost,
 			"revenue":      p.Revenue,
 			"orders":       p.Orders,
