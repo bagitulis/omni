@@ -167,8 +167,8 @@ func (s *ImportService) ImportFromShopee(ctx context.Context, tenantID string, s
 	now := time.Now()
 	productLink.LastSyncedAt = &now
 
-	if err := s.repo.CreatePlatformLink(ctx, productLink); err != nil {
-		log.Error().Err(err).Msg("Failed to create product platform link")
+	if err := s.repo.UpsertPlatformLink(ctx, productLink); err != nil {
+		log.Error().Err(err).Msg("Failed to upsert product platform link")
 	} else {
 		result.PlatformLinks++
 	}
@@ -239,8 +239,8 @@ func (s *ImportService) ImportFromShopee(ctx context.Context, tenantID string, s
 				UpdatedAt:       time.Now(),
 			}
 
-			if err := s.repo.CreatePlatformLink(ctx, skuLink); err != nil {
-				log.Error().Err(err).Msg("Failed to create SKU platform link")
+			if err := s.repo.UpsertPlatformLink(ctx, skuLink); err != nil {
+				log.Error().Err(err).Msg("Failed to upsert SKU platform link")
 			} else {
 				result.PlatformLinks++
 			}

@@ -21,6 +21,7 @@ import "./styles/global.css";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { useTheme } from "./contexts/ThemeContext.hooks";
 import { PageLoading } from "@/components/common/PageLoading";
+import { NotificationProvider } from "./contexts/NotificationContext";
 
 // Lazy-loaded pages for code splitting
 const DashboardPage = React.lazy(
@@ -100,81 +101,83 @@ function AppContent() {
   return (
     <ConfigProvider theme={isDark ? antdDarkTheme : antdTheme}>
       <AntApp>
-        <AntStaticHolder />
-        <ErrorBoundary>
-          <BrowserRouter>
-            <Suspense fallback={<PageLoading />}>
-              <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route path="/" element={<DashboardPage />} />
-                  <Route path="/order-manager" element={<OrdersPage />} />
+        <NotificationProvider>
+          <AntStaticHolder />
+          <ErrorBoundary>
+            <BrowserRouter>
+              <Suspense fallback={<PageLoading />}>
+                <Routes>
+                  <Route path="/login" element={<LoginPage />} />
                   <Route
-                    path="/order-manager/:platform"
-                    element={<OrdersPage />}
-                  />
-                  <Route path="/products" element={<UnifiedProductsPage />} />
-                  <Route path="/products/add" element={<ProductAddPage />} />
-                  <Route
-                    path="/products/import"
-                    element={<ProductImportPage />}
-                  />
-                  <Route
-                    path="/products/sync-history"
-                    element={<MarketplaceSyncHistoryPage />}
-                  />
-                  <Route
-                    path="/products/:id/edit"
-                    element={<ProductEditPage />}
-                  />
-                  <Route path="/route-mapping" element={<RouteMappingPage />} />
-                  <Route
-                    path="/inventory"
-                    element={<SimplifiedInventoryPage />}
-                  />
-                  <Route path="/analytics" element={<AnalyticsHubPage />} />
-                  <Route
-                    path="/report/shopee"
-                    element={<ShopeeReportPage />}
-                  />
-                  <Route
-                    path="/report/tiktok"
-                    element={<TiktokReportPage />}
-                  />
-                  <Route
-                    path="/analytics/shopee-ads"
-                    element={<ShopeeAdsAnalyticsPage />}
-                  />
-                  <Route
-                    path="/analytics/tiktok-ads"
-                    element={<TiktokAdsAnalyticsPage />}
-                  />
-                  <Route path="/analytics/ml" element={<MLDashboardPage />} />
-                  <Route
-                    path="/analytics/budget-simulator"
-                    element={<BudgetSimulatorPage />}
-                  />
-                  <Route
-                    path="/analytics/product-classification"
-                    element={<ProductClassificationPage />}
-                  />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route
-                    path="/script-monitor"
-                    element={<ScriptMonitorPage />}
-                  />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Route>
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </ErrorBoundary>
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route path="/" element={<DashboardPage />} />
+                    <Route path="/order-manager" element={<OrdersPage />} />
+                    <Route
+                      path="/order-manager/:platform"
+                      element={<OrdersPage />}
+                    />
+                    <Route path="/products" element={<UnifiedProductsPage />} />
+                    <Route path="/products/add" element={<ProductAddPage />} />
+                    <Route
+                      path="/products/import"
+                      element={<ProductImportPage />}
+                    />
+                    <Route
+                      path="/products/sync-history"
+                      element={<MarketplaceSyncHistoryPage />}
+                    />
+                    <Route
+                      path="/products/:id/edit"
+                      element={<ProductEditPage />}
+                    />
+                    <Route path="/route-mapping" element={<RouteMappingPage />} />
+                    <Route
+                      path="/inventory"
+                      element={<SimplifiedInventoryPage />}
+                    />
+                    <Route path="/analytics" element={<AnalyticsHubPage />} />
+                    <Route
+                      path="/report/shopee"
+                      element={<ShopeeReportPage />}
+                    />
+                    <Route
+                      path="/report/tiktok"
+                      element={<TiktokReportPage />}
+                    />
+                    <Route
+                      path="/analytics/shopee-ads"
+                      element={<ShopeeAdsAnalyticsPage />}
+                    />
+                    <Route
+                      path="/analytics/tiktok-ads"
+                      element={<TiktokAdsAnalyticsPage />}
+                    />
+                    <Route path="/analytics/ml" element={<MLDashboardPage />} />
+                    <Route
+                      path="/analytics/budget-simulator"
+                      element={<BudgetSimulatorPage />}
+                    />
+                    <Route
+                      path="/analytics/product-classification"
+                      element={<ProductClassificationPage />}
+                    />
+                    <Route path="/settings" element={<SettingsPage />} />
+                    <Route
+                      path="/script-monitor"
+                      element={<ScriptMonitorPage />}
+                    />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Route>
+                </Routes>
+              </Suspense>
+            </BrowserRouter>
+          </ErrorBoundary>
+        </NotificationProvider>
       </AntApp>
     </ConfigProvider>
   );

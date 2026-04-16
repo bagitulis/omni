@@ -2,7 +2,6 @@ package jobs
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
@@ -13,17 +12,22 @@ import (
 // JobHandler is a function that processes a job
 type JobHandler func(ctx context.Context, payload string) (string, error)
 
+// NotifyCallback is called when a job completes to push a notification.
+// Set externally to avoid circular import with services package.
+type NotifyCallback func(jobType string, success bool, detail string)
+
 // Executor executes jobs from the queue
 type Executor struct {
-	queueManager *QueueManager
-	handlers     map[string]JobHandler
-	workerCount  int
-	pollInterval time.Duration
-	timeout      time.Duration
-	stopCh       chan struct{}
-	wg           sync.WaitGroup
-	mu           sync.RWMutex
-	running      bool
+	queueManager  *QueueManager
+	handlers      map[string]JobHandler
+	workerCount   int
+	pollInterval  time.Duration
+	timeout       time.Duration
+	stopCh        chan struct{}
+	wg            sync.WaitGroup
+	mu            sync.RWMutex
+	running       bool
+	onJobComplete NotifyCallback
 }
 
 // NewExecutor creates a new job executor
@@ -95,15 +99,14 @@ func (e *Executor) worker(id int) {
 	}
 }
 
-// processNextJob processes the next available job
+// processNextJob atomically claims and processes the next available job
 func (e *Executor) processNextJob() {
-	jobs, err := e.queueManager.GetPendingJobs(1)
-	if err != nil || len(jobs) == 0 {
-		return
+	job, err := e.queueManager.ClaimNextJob()
+	if err != nil {
+		return // No jobs available or error
 	}
 
-	job := jobs[0]
-	e.executeJob(&job)
+	e.executeJob(job)
 }
 
 // executeJob executes a single job
@@ -159,16 +162,42 @@ func (e *Executor) handleJobError(job *models.Job, errMsg string) {
 	log.Info().Msgf("Job %s failed: %s", job.ID, errMsg)
 }
 
-// recordHistory records job execution in history
+// recordHistory records job execution in history and pushes a notification
 func (e *Executor) recordHistory(job *models.Job, status models.JobStatus, result, errMsg string) {
-	// This would be implemented via HistoryManager
-	data, _ := json.Marshal(map[string]interface{}{
-		"job_id": job.ID,
-		"status": status,
-		"result": result,
-		"error":  errMsg,
-	})
-	_ = data // Log or store as needed
+	now := time.Now()
+	var durationMs int
+	if job.StartedAt != nil {
+		durationMs = int(now.Sub(*job.StartedAt).Milliseconds())
+	}
+
+	history := &models.JobHistory{
+		JobID:        job.ID,
+		JobType:      job.Type,
+		Status:       status,
+		ErrorMessage: errMsg,
+		DurationMs:   durationMs,
+		StartedAt:    job.StartedAt,
+		CompletedAt:  &now,
+		CreatedAt:    now,
+	}
+
+	if err := e.queueManager.db.Create(history).Error; err != nil {
+		log.Error().Err(err).Str("job_id", job.ID).Msg("Failed to record job history")
+	}
+
+	// Push persistent notification via callback
+	if e.onJobComplete != nil {
+		detail := result
+		if errMsg != "" {
+			detail = errMsg
+		}
+		e.onJobComplete(job.Type, status == models.JobStatusCompleted, detail)
+	}
+}
+
+// SetNotifyCallback sets the notification callback
+func (e *Executor) SetNotifyCallback(cb NotifyCallback) {
+	e.onJobComplete = cb
 }
 
 // SetPollInterval sets the polling interval

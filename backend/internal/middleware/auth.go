@@ -45,23 +45,29 @@ func init() {
 // Auth validates JWT token from Authorization header
 func Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		token := ""
 		authHeader := c.GetHeader("Authorization")
 
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"success": false,
-				"error":   "Missing authorization header",
-			})
-			c.Abort()
-			return
+		if authHeader != "" {
+			// Extract Bearer token from header
+			token = strings.TrimPrefix(authHeader, "Bearer ")
+			if token == authHeader {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"success": false,
+					"error":   "Invalid authorization format",
+				})
+				c.Abort()
+				return
+			}
+		} else {
+			// Fallback: Check token query parameter (useful for SSE/EventSource)
+			token = c.Query("token")
 		}
 
-		// Extract Bearer token
-		token := strings.TrimPrefix(authHeader, "Bearer ")
-		if token == authHeader {
+		if token == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
-				"error":   "Invalid authorization format",
+				"error":   "Missing authorization token",
 			})
 			c.Abort()
 			return

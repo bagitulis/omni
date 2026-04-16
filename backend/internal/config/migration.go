@@ -153,6 +153,13 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		&models.AutoFunctionConfig{},
 		&models.AutoFunctionHistory{},
 		&models.RouteExecutionConfig{},
+
+		// Notifications (Facebook-style persistent)
+		&models.Notification{},
+		&models.NotificationSettings{},
+
+		// Analytics Cache
+		&models.AnalyticsCacheMetadata{},
 	}
 
 	for _, model := range tenantModels {

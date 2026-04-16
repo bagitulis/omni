@@ -42,17 +42,20 @@ func (s *InventoryService) UpdateSettings(ctx context.Context, settings *models.
 	return s.db.WithContext(ctx).Save(settings).Error
 }
 
-// SaveSettings creates or updates settings
+// SaveSettings creates or updates settings using atomic upsert.
+// Fixes race condition where concurrent requests could both SELECT "not found"
+// then both INSERT, causing duplicate key violation on inventory_settings_pkey.
 func (s *InventoryService) SaveSettings(ctx context.Context, input SettingsInput) error {
 	var existing models.InventorySettings
-	err := s.db.WithContext(ctx).
-		Where("tenant_id = ?", s.tenantID).
-		First(&existing).Error
 
-	if err == gorm.ErrRecordNotFound {
-		existing = models.InventorySettings{TenantID: s.tenantID}
-	} else if err != nil {
-		return err
+	// Atomic: find or create in one step
+	// Use fixed ID "settings" since it's per-tenant schema
+	result := s.db.WithContext(ctx).
+		Where("id = ?", "settings").
+		Attrs(models.InventorySettings{ID: "settings", TenantID: s.tenantID}).
+		FirstOrCreate(&existing)
+	if result.Error != nil {
+		return result.Error
 	}
 
 	existing.SpreadsheetID = input.SpreadsheetID

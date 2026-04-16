@@ -1,21 +1,16 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { Badge, Button, Popover } from "antd";
 import { BellOutlined } from "@ant-design/icons";
-import {
-  useNotificationStore,
-  selectUnreadCount,
-} from "@/stores/notificationStore";
 import { NotificationDropdown } from "./NotificationDropdown";
+import { useNotifications } from "@/contexts/NotificationContext";
 
 /**
  * Bell icon with unread badge.  Clicking opens a popover with
  * the NotificationDropdown panel.
  */
 export function NotificationBell() {
-  const unreadCount = useNotificationStore(selectUnreadCount);
-  const isOpen = useNotificationStore((s) => s.isDropdownOpen);
-  const toggleDropdown = useNotificationStore((s) => s.toggleDropdown);
-  const closeDropdown = useNotificationStore((s) => s.closeDropdown);
+  const { unreadCount } = useNotifications();
+  const [isOpen, setIsOpen] = useState(false);
 
   // Close on outside click
   const containerRef = useRef<HTMLDivElement>(null);
@@ -26,10 +21,10 @@ export function NotificationBell() {
         containerRef.current &&
         !containerRef.current.contains(e.target as Node)
       ) {
-        closeDropdown();
+        setIsOpen(false);
       }
     },
-    [isOpen, closeDropdown],
+    [isOpen],
   );
 
   useEffect(() => {
@@ -40,13 +35,10 @@ export function NotificationBell() {
   return (
     <div ref={containerRef}>
       <Popover
-        content={<NotificationDropdown />}
+        content={<NotificationDropdown onClose={() => setIsOpen(false)} />}
         trigger="click"
         open={isOpen}
-        onOpenChange={(open) => {
-          if (open) toggleDropdown();
-          else closeDropdown();
-        }}
+        onOpenChange={(open) => setIsOpen(open)}
         placement="bottomRight"
         arrow={false}
         overlayInnerStyle={{ padding: 0 }}

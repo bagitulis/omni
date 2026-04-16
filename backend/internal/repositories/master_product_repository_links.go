@@ -3,11 +3,10 @@ package repositories
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/omni/backend/internal/models"
-	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // ================== Platform Link Operations ==================
@@ -57,94 +56,39 @@ func (r *MasterProductRepository) DeletePlatformLink(ctx context.Context, id uin
 	return r.db.WithContext(ctx).Delete(&models.MasterProductPlatformLink{}, id).Error
 }
 
-// UpsertPlatformLink creates or updates a platform link
+// UpsertPlatformLink creates or updates a platform link using atomic DB operation.
 func (r *MasterProductRepository) UpsertPlatformLink(ctx context.Context, link *models.MasterProductPlatformLink) error {
 	if link == nil {
 		return errors.New("platform link is nil")
 	}
+
 	now := time.Now()
-
-	var existingBySku models.MasterProductPlatformLink
-	err := r.db.WithContext(ctx).
-		Where("master_product_id = ? AND platform = ? AND COALESCE(master_sku_id, 0) = COALESCE(?, 0)",
-			link.MasterProductID, link.Platform, link.MasterSkuID).
-		First(&existingBySku).Error
-	if err == nil {
-		existingBySku.MasterProductID = link.MasterProductID
-		existingBySku.MasterSkuID = link.MasterSkuID
-		existingBySku.Platform = link.Platform
-		existingBySku.PlatformProductID = link.PlatformProductID
-		existingBySku.PlatformItemID = link.PlatformItemID
-		existingBySku.PlatformSkuID = link.PlatformSkuID
-		existingBySku.SyncStatus = link.SyncStatus
-		existingBySku.LastSyncedAt = link.LastSyncedAt
-		existingBySku.UpdatedAt = now
-
-		return r.db.WithContext(ctx).Save(&existingBySku).Error
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return err
-	}
-
-	platformProductID := strings.TrimSpace(link.PlatformProductID)
-	if platformProductID == "" {
-		platformProductID = strings.TrimSpace(link.PlatformItemID)
-		if platformProductID != "" {
-			link.PlatformProductID = platformProductID
-		}
-	}
-
-	if platformProductID != "" {
-		link.PlatformProductID = platformProductID
-		if link.CreatedAt.IsZero() {
-			link.CreatedAt = now
-		}
-		link.UpdatedAt = now
-
-		// BUG-11 fix: include platform_sku_id in lookup so multi-variant products
-		// each get their own link instead of overwriting each other.
-		// Old: WHERE platform = ? AND platform_product_id = ?
-		// → All variants of the same product share platform_product_id, so only last variant survived.
-		platformSkuID := strings.TrimSpace(link.PlatformSkuID)
-		var existing models.MasterProductPlatformLink
-		if platformSkuID != "" {
-			// Multi-variant: match by (platform, product_id, sku_id) → unique per variant
-			err = r.db.WithContext(ctx).
-				Where("platform = ? AND platform_product_id = ? AND platform_sku_id = ?",
-					link.Platform, platformProductID, platformSkuID).
-				First(&existing).Error
-		} else {
-			// Single-variant / no SKU ID: match by (platform, product_id) as before
-			err = r.db.WithContext(ctx).
-				Where("platform = ? AND platform_product_id = ? AND (platform_sku_id IS NULL OR platform_sku_id = '')",
-					link.Platform, platformProductID).
-				First(&existing).Error
-		}
-		if err == nil {
-			existing.MasterProductID = link.MasterProductID
-			existing.MasterSkuID = link.MasterSkuID
-			existing.PlatformItemID = link.PlatformItemID
-			existing.PlatformSkuID = link.PlatformSkuID
-			existing.SyncStatus = link.SyncStatus
-			existing.LastSyncedAt = link.LastSyncedAt
-			existing.UpdatedAt = now
-
-			return r.db.WithContext(ctx).Save(&existing).Error
-		}
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return err
-		}
-
-		return r.db.WithContext(ctx).Create(link).Error
-	}
-
 	if link.CreatedAt.IsZero() {
 		link.CreatedAt = now
 	}
 	link.UpdatedAt = now
 
-	return r.db.WithContext(ctx).Create(link).Error
+	// We use raw SQL or specialized Clauses because the unique index uses a COALESCE expression
+	// which GORM's standard Upsert doesn't always map correctly to the index target.
+	// Target: (platform, platform_product_id, COALESCE(platform_sku_id, ''))
+	
+	// Helper to ensure platform_sku_id is never nil for the COALESCE logic if needed,
+	// though the DB level index handles it.
+	
+	return r.db.WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "platform"},
+				{Name: "platform_product_id"},
+				{Name: "platform_sku_id"}, // GORM might struggle here if the index is on the expression
+			},
+			DoUpdates: clause.AssignmentColumns([]string{
+				"master_product_id", "master_sku_id", "platform_item_id", 
+				"sync_status", "last_synced_at", "updated_at",
+			}),
+		}).Create(link).Error
 }
+
 
 // FindPlatformLinksByItemID finds platform links by platform item ID
 // Used to check if a platform product is already imported

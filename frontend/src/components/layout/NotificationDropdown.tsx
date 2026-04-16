@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Button, Empty, Segmented, Typography, theme } from "antd";
+import { Button, Empty, Segmented, Typography, theme, Tooltip } from "antd";
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -8,21 +8,19 @@ import {
   CheckOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
-import {
-  useNotificationStore,
-  type NotificationItem,
-  type NotificationType,
-} from "@/stores/notificationStore";
+import { useNotifications } from "@/contexts/NotificationContext";
+import { Notification } from "@/api/notifications";
 
 const { Text } = Typography;
 
 type TabKey = "all" | "unread";
 
-/** Color & icon map for notification types — uses Ant token names for dark-mode compat */
-function useTypeConfig(): Record<
-  NotificationType,
-  { color: string; icon: React.ReactNode }
-> {
+interface NotificationDropdownProps {
+  onClose?: () => void;
+}
+
+/** Color & icon map for notification types */
+function useTypeConfig() {
   const { token } = theme.useToken();
   return {
     success: { color: token.colorSuccess, icon: <CheckCircleOutlined /> },
@@ -32,8 +30,9 @@ function useTypeConfig(): Record<
   };
 }
 
-function formatRelativeTime(timestamp: number): string {
-  const diff = Date.now() - timestamp;
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const diff = Date.now() - date.getTime();
   const mins = Math.floor(diff / 60_000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
@@ -44,55 +43,60 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 /**
- * Notification dropdown panel shown inside the bell popover.
- * Supports All / Unread tabs, mark-all-read, and per-item read.
+ * Notification dropdown panel.
+ * Refactored to use real-time database-backed NotificationContext.
  */
-export function NotificationDropdown() {
+export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   const { token } = theme.useToken();
   const typeConfig = useTypeConfig();
   const [tab, setTab] = useState<TabKey>("all");
 
-  const notifications = useNotificationStore((s) => s.notifications);
-  const markAsRead = useNotificationStore((s) => s.markAsRead);
-  const markAllAsRead = useNotificationStore((s) => s.markAllAsRead);
-  const clearAll = useNotificationStore((s) => s.clearAll);
-  const closeDropdown = useNotificationStore((s) => s.closeDropdown);
+  const {
+    notifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    loading,
+  } = useNotifications();
 
   const visible = useMemo(() => {
     const list =
       tab === "unread" ? notifications.filter((n) => !n.read) : notifications;
-    return list.slice(0, 30);
+    return list;
   }, [tab, notifications]);
 
   const unreadExists = notifications.some((n) => !n.read);
 
-  const handleItemClick = (item: NotificationItem) => {
+  const handleItemClick = (item: Notification) => {
     if (!item.read) markAsRead(item.id);
-    if (item.actionUrl) {
-      closeDropdown();
-      window.location.href = item.actionUrl;
+    if (item.action_url) {
+      onClose?.();
+      window.location.href = item.action_url;
     }
   };
 
   return (
     <div
       style={{
-        maxHeight: 440,
+        maxHeight: 500,
         display: "flex",
         flexDirection: "column",
+        background: token.colorBgElevated,
+        borderRadius: token.borderRadiusLG,
+        boxShadow: token.boxShadowSecondary,
       }}
     >
       {/* Header */}
       <div
         style={{
-          padding: "12px 16px 8px",
+          padding: "12px 16px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           borderBottom: `1px solid ${token.colorBorderSecondary}`,
         }}
       >
-        <Text strong style={{ fontSize: 15 }}>
+        <Text strong style={{ fontSize: 16 }}>
           Notifications
         </Text>
         {unreadExists && (
@@ -109,7 +113,7 @@ export function NotificationDropdown() {
       </div>
 
       {/* Tabs */}
-      <div style={{ padding: "8px 16px 4px" }}>
+      <div style={{ padding: "8px 16px" }}>
         <Segmented
           block
           size="small"
@@ -123,64 +127,43 @@ export function NotificationDropdown() {
       </div>
 
       {/* List */}
-      <div style={{ overflowY: "auto", flex: 1, padding: "4px 0" }}>
+      <div style={{ overflowY: "auto", flex: 1, minHeight: 100, maxHeight: 400 }}>
         {visible.length === 0 ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={
-              tab === "unread"
-                ? "No unread notifications"
-                : "No notifications yet"
+              loading ? "Loading..." : tab === "unread" ? "No unread notifications" : "No notifications yet"
             }
-            style={{ margin: "24px 0" }}
+            style={{ margin: "32px 0" }}
           />
         ) : (
           visible.map((item) => {
-            const cfg = typeConfig[item.type];
+            const cfg = typeConfig[item.type as keyof typeof typeConfig] || typeConfig.info;
             return (
               <div
                 key={item.id}
-                onClick={() => handleItemClick(item)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleItemClick(item);
-                }}
                 style={{
-                  padding: "10px 16px",
+                  padding: "12px 16px",
                   cursor: "pointer",
                   display: "flex",
-                  gap: 10,
+                  gap: 12,
                   alignItems: "flex-start",
-                  background: item.read
-                    ? "transparent"
-                    : token.colorPrimaryBg,
+                  background: item.read ? "transparent" : token.colorPrimaryBg + "44", // Subtle tint for unread
                   borderBottom: `1px solid ${token.colorBorderSecondary}`,
-                  transition: "background 0.15s",
+                  transition: "all 0.2s",
+                  opacity: item.read ? 0.7 : 1, // "Meredup" if read
+                  position: 'relative',
                 }}
+                className="notification-item-hover"
+                onClick={() => handleItemClick(item)}
               >
-                {/* Unread dot */}
-                <div style={{ width: 8, paddingTop: 6, flexShrink: 0 }}>
-                  {!item.read && (
-                    <div
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        background: token.colorPrimary,
-                      }}
-                    />
-                  )}
-                </div>
-
                 {/* Type icon */}
                 <div
                   style={{
-                    fontSize: 18,
+                    fontSize: 20,
                     color: cfg.color,
                     flexShrink: 0,
-                    lineHeight: 1,
-                    paddingTop: 2,
+                    marginTop: 2,
                   }}
                 >
                   {cfg.icon}
@@ -188,37 +171,71 @@ export function NotificationDropdown() {
 
                 {/* Content */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <Text
-                    strong
-                    style={{
-                      fontSize: 13,
-                      display: "block",
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {item.title}
-                  </Text>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Text
+                      strong={!item.read}
+                      style={{
+                        fontSize: 14,
+                        display: "block",
+                        lineHeight: 1.4,
+                        color: token.colorText,
+                      }}
+                    >
+                      {item.title}
+                    </Text>
+                    
+                    {/* Delete button (only visible on hover via CSS or always for simplicity) */}
+                    <Tooltip title="Delete">
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteNotification(item.id);
+                        }}
+                        style={{ opacity: 0.5, marginLeft: 8 }}
+                      />
+                    </Tooltip>
+                  </div>
+                  
                   {item.message && (
                     <Text
                       type="secondary"
                       style={{
-                        fontSize: 12,
+                        fontSize: 13,
                         display: "block",
-                        lineHeight: 1.4,
-                        marginTop: 2,
+                        lineHeight: 1.5,
+                        marginTop: 4,
                       }}
-                      ellipsis={{ tooltip: item.message }}
                     >
                       {item.message}
                     </Text>
                   )}
+                  
                   <Text
                     type="secondary"
-                    style={{ fontSize: 11, marginTop: 4, display: "block" }}
+                    style={{ fontSize: 11, marginTop: 6, display: "block" }}
                   >
-                    {formatRelativeTime(item.timestamp)}
+                    {formatRelativeTime(item.created_at)}
                   </Text>
                 </div>
+
+                {/* Unread dot */}
+                {!item.read && (
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: token.colorPrimary,
+                      position: 'absolute',
+                      right: 8,
+                      top: '50%',
+                      marginTop: -4
+                    }}
+                  />
+                )}
               </div>
             );
           })
@@ -226,27 +243,18 @@ export function NotificationDropdown() {
       </div>
 
       {/* Footer */}
-      {notifications.length > 0 && (
-        <div
-          style={{
-            padding: "8px 16px",
-            borderTop: `1px solid ${token.colorBorderSecondary}`,
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
-          <Button
-            type="text"
-            size="small"
-            icon={<DeleteOutlined />}
-            danger
-            onClick={clearAll}
-            style={{ fontSize: 12 }}
-          >
-            Clear all
-          </Button>
-        </div>
-      )}
+      <div
+        style={{
+          padding: "10px 16px",
+          borderTop: `1px solid ${token.colorBorderSecondary}`,
+          textAlign: "center",
+          background: token.colorFillAlter,
+        }}
+      >
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          Showing recent 50 notifications
+        </Text>
+      </div>
     </div>
   );
 }

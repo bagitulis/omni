@@ -169,6 +169,10 @@ func main() {
 	// ====== Monitoring Routes ======
 	routes.RegisterMonitoringRoutes(api, extHandlers.MonitoringHandler)
 
+	// ====== Notification Routes (Facebook-style persistent) ======
+	notifHandler := handlers.NewNotificationHandler()
+	routes.RegisterNotificationRoutes(api, notifHandler)
+
 	// Platform-specific handlers (existing)
 	sOrder := shopee.NewOrderHandler(cfg.DatabasePath)
 	sProd := shopee.NewProductHandler(cfg.DatabasePath)

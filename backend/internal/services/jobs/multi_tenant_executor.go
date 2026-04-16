@@ -9,20 +9,22 @@ import (
 
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/services"
 	"gorm.io/gorm"
 )
 
 // MultiTenantExecutor executes jobs across all tenant schemas
 type MultiTenantExecutor struct {
-	systemDB     *gorm.DB
-	basePath     string
-	handlers     map[string]JobHandler
-	pollInterval time.Duration
-	jobTimeout   time.Duration
-	stopCh       chan struct{}
-	wg           sync.WaitGroup
-	mu           sync.RWMutex
-	running      bool
+	systemDB       *gorm.DB
+	basePath       string
+	handlers       map[string]JobHandler
+	pollInterval   time.Duration
+	jobTimeout     time.Duration
+	stopCh         chan struct{}
+	wg             sync.WaitGroup
+	mu             sync.RWMutex
+	running        bool
+	notifyCallback NotifyCallback
 }
 
 // NewMultiTenantExecutor creates a new multi-tenant job executor
@@ -32,7 +34,7 @@ func NewMultiTenantExecutor(systemDB *gorm.DB, basePath string) *MultiTenantExec
 		basePath:     basePath,
 		handlers:     make(map[string]JobHandler),
 		pollInterval: 5 * time.Second,
-		jobTimeout:   10 * time.Minute, // Long timeout for escrow sync
+		jobTimeout:   10 * time.Minute, // Long timeout for sync
 		stopCh:       make(chan struct{}),
 	}
 }
@@ -55,10 +57,14 @@ func (e *MultiTenantExecutor) Start() {
 	e.running = true
 	e.mu.Unlock()
 
-	e.wg.Add(1)
-	go e.pollLoop()
+	// Recover zombie jobs across all tenants on startup
+	go e.recoverAllZombieJobs()
 
-	log.Info().Msgf("[MultiTenantExecutor] Started with poll interval %v, job timeout %v", e.pollInterval, e.jobTimeout)
+	e.wg.Add(2)
+	go e.pollLoop()
+	go e.maintenanceLoop()
+
+	log.Info().Msgf("[MultiTenantExecutor] Started with poll interval %v, maintenance interval 24h", e.pollInterval)
 }
 
 // Stop stops the executor gracefully
@@ -117,7 +123,6 @@ func (e *MultiTenantExecutor) getTenantList() ([]string, error) {
 		TenantID string `gorm:"column:tenant_id"`
 	}
 
-	// Query system.tenants table - use tenant_id (string) NOT id (UUID)
 	err := e.systemDB.Table("system.tenants").
 		Select("tenant_id").
 		Where("is_active = ?", true).
@@ -135,6 +140,7 @@ func (e *MultiTenantExecutor) getTenantList() ([]string, error) {
 }
 
 // processTenantJobs processes pending jobs for a specific tenant
+// Refactored to be non-blocking (Tenant Parallelism)
 func (e *MultiTenantExecutor) processTenantJobs(tenantID string) {
 	tenantDB, err := config.GetTenantDBByID(tenantID)
 	if err != nil {
@@ -143,14 +149,21 @@ func (e *MultiTenantExecutor) processTenantJobs(tenantID string) {
 	}
 
 	qm := NewQueueManager(tenantDB, tenantID)
-	jobs, err := qm.GetPendingJobs(1) // Process one job at a time per tenant
-	if err != nil || len(jobs) == 0 {
-		return
+
+	// Use atomic ClaimNextJob to prevent race conditions
+	job, err := qm.ClaimNextJob()
+	if err != nil {
+		return // No jobs or error
 	}
 
-	job := jobs[0]
 	log.Info().Msgf("[MultiTenantExecutor] Processing job %s (type: %s) for tenant %s", job.ID, job.Type, tenantID)
-	e.executeJob(tenantDB, tenantID, &job)
+	
+	// Execute in background so we don't block the polling loop for other tenants
+	e.wg.Add(1)
+	go func() {
+		defer e.wg.Done()
+		e.executeJob(tenantDB, tenantID, job)
+	}()
 }
 
 // executeJob executes a single job
@@ -197,9 +210,11 @@ func (e *MultiTenantExecutor) executeJob(tenantDB *gorm.DB, tenantID string, job
 		if res.err != nil {
 			log.Info().Msgf("[MultiTenantExecutor] Job %s failed: %v", job.ID, res.err)
 			qm.FailJob(job.ID, res.err.Error())
+			e.pushNotificationToDB(tenantDB, tenantID, job, false, res.err.Error())
 		} else {
 			log.Info().Msgf("[MultiTenantExecutor] Job %s completed successfully", job.ID)
 			qm.CompleteJobWithResult(job.ID, res.result)
+			e.pushNotificationToDB(tenantDB, tenantID, job, true, res.result)
 		}
 	}
 }
@@ -212,4 +227,93 @@ func (e *MultiTenantExecutor) SetPollInterval(d time.Duration) {
 // SetJobTimeout sets the job execution timeout
 func (e *MultiTenantExecutor) SetJobTimeout(d time.Duration) {
 	e.jobTimeout = d
+}
+
+// SetNotifyCallback sets the notification callback for job completion
+func (e *MultiTenantExecutor) SetNotifyCallback(cb NotifyCallback) {
+	e.notifyCallback = cb
+}
+
+// pushNotificationToDB pushes a notification after job completion
+func (e *MultiTenantExecutor) pushNotificationToDB(db *gorm.DB, tenantID string, job *models.Job, success bool, detail string) {
+	// First push to database for persistence and SSE broadcasting
+	svc := services.NewNotificationService(db).WithTenant(tenantID)
+	err := svc.PushJobResult(job, success, detail)
+	if err != nil {
+		log.Error().Err(err).Msg("[MultiTenantExecutor] Failed to push notification to DB")
+	}
+
+	// Then trigger local callback if any
+	if e.notifyCallback != nil {
+		e.notifyCallback(job.Type, success, detail)
+	}
+}
+
+// recoverAllZombieJobs recovers zombie jobs across all tenants on startup
+func (e *MultiTenantExecutor) recoverAllZombieJobs() {
+	tenants, err := e.getTenantList()
+	if err != nil {
+		log.Error().Err(err).Msg("[MultiTenantExecutor] Failed to get tenant list for zombie recovery")
+		return
+	}
+
+	for _, tenantID := range tenants {
+		tenantDB, err := config.GetTenantDBByID(tenantID)
+		if err != nil {
+			continue
+		}
+		qm := NewQueueManager(tenantDB, tenantID)
+		recovered, err := qm.RecoverZombieJobs()
+		if err == nil && recovered > 0 {
+			log.Info().Msgf("[MultiTenantExecutor] Recovered %d zombie jobs for tenant %s", recovered, tenantID)
+		}
+	}
+}
+
+// maintenanceLoop runs daily maintenance tasks (e.g., notification cleanup)
+func (e *MultiTenantExecutor) maintenanceLoop() {
+	defer e.wg.Done()
+
+	// Run every 24 hours
+	ticker := time.NewTicker(24 * time.Hour)
+	defer ticker.Stop()
+
+	// Run once immediately on start
+	e.runMaintenance()
+
+	for {
+		select {
+		case <-e.stopCh:
+			return
+		case <-ticker.C:
+			e.runMaintenance()
+		}
+	}
+}
+
+// runMaintenance executes maintenance tasks for all tenants
+func (e *MultiTenantExecutor) runMaintenance() {
+	tenants, err := e.getTenantList()
+	if err != nil {
+		log.Error().Err(err).Msg("[MultiTenantExecutor] Maintenance: Failed to get tenant list")
+		return
+	}
+
+	log.Info().Msgf("[MultiTenantExecutor] Starting daily maintenance for %d tenants", len(tenants))
+
+	for _, tenantID := range tenants {
+		tenantDB, err := config.GetTenantDBByID(tenantID)
+		if err != nil {
+			continue
+		}
+
+		svc := services.NewNotificationService(tenantDB)
+		settings, err := svc.GetSettings()
+		if err == nil && settings.RetentionDays > 0 {
+			deleted := svc.CleanupOlderThan(settings.RetentionDays)
+			if deleted > 0 {
+				log.Info().Msgf("[MultiTenantExecutor] Maintenance: Cleaned up %d notifications for tenant %s", deleted, tenantID)
+			}
+		}
+	}
 }

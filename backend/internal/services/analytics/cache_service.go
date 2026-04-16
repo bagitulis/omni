@@ -56,7 +56,8 @@ func (c *CacheService) RefreshAllMVs(ctx context.Context, db *gorm.DB, tenantID 
 	return results
 }
 
-// RefreshMV refreshes a single materialized view
+// RefreshMV refreshes a single materialized view.
+// Uses a background context so user request cancellation doesn't abort the refresh.
 func (c *CacheService) RefreshMV(
 	ctx context.Context,
 	db *gorm.DB,
@@ -65,16 +66,24 @@ func (c *CacheService) RefreshMV(
 ) RefreshStatus {
 	startTime := time.Now()
 
-	// Execute REFRESH MATERIALIZED VIEW CONCURRENTLY
-	sql := "REFRESH MATERIALIZED VIEW CONCURRENTLY " + viewName
-	err := db.WithContext(ctx).Exec(sql).Error
+	// Use background context with timeout — user cancel must NOT kill MV refresh
+	bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
 
-	refreshTime := time.Since(startTime).Milliseconds()
+	// Check if MV has been populated (unpopulated MVs fail with CONCURRENTLY)
+	populated := c.isMVPopulated(bgCtx, db, viewName)
 
-	if err != nil {
-		// Try non-concurrent refresh if concurrent fails
-		sql = "REFRESH MATERIALIZED VIEW " + viewName
-		err = db.WithContext(ctx).Exec(sql).Error
+	var err error
+	if populated {
+		// Try concurrent refresh first (non-blocking)
+		sql := "REFRESH MATERIALIZED VIEW CONCURRENTLY " + viewName
+		err = db.WithContext(bgCtx).Exec(sql).Error
+	}
+
+	// Fallback: non-concurrent refresh (blocks reads but always works)
+	if !populated || err != nil {
+		sql := "REFRESH MATERIALIZED VIEW " + viewName
+		err = db.WithContext(bgCtx).Exec(sql).Error
 
 		if err != nil {
 			return RefreshStatus{
@@ -84,14 +93,16 @@ func (c *CacheService) RefreshMV(
 		}
 	}
 
+	refreshTime := time.Since(startTime).Milliseconds()
+
 	// Get row count
 	var rowCount int64
-	db.WithContext(ctx).Table(viewName).
+	db.WithContext(bgCtx).Table(viewName).
 		Where("tenant_id = ?", tenantID).
 		Count(&rowCount)
 
 	// Update metadata
-	c.updateMetadata(ctx, db, tenantID, viewName, refreshTime, rowCount)
+	c.updateMetadata(bgCtx, db, tenantID, viewName, refreshTime, rowCount)
 
 	return RefreshStatus{
 		ViewName:      viewName,
@@ -111,16 +122,16 @@ func (c *CacheService) updateMetadata(
 ) {
 	sql := `
 		INSERT INTO analytics_cache_metadata 
-		(tenant_id, view_name, last_refresh, refresh_time_ms, row_count, updated_at)
-		VALUES (?, ?, NOW(), ?, ?, NOW())
-		ON CONFLICT (tenant_id, view_name) 
+		(view_name, last_refresh, refresh_time_ms, row_count, updated_at)
+		VALUES (?, NOW(), ?, ?, NOW())
+		ON CONFLICT (view_name) 
 		DO UPDATE SET 
 			last_refresh = NOW(),
 			refresh_time_ms = EXCLUDED.refresh_time_ms,
 			row_count = EXCLUDED.row_count,
 			updated_at = NOW()
 	`
-	db.WithContext(ctx).Exec(sql, tenantID, viewName, refreshTimeMs, rowCount)
+	db.WithContext(ctx).Exec(sql, viewName, refreshTimeMs, rowCount)
 }
 
 // GetCacheStatus returns status of all cached views
@@ -149,7 +160,7 @@ func (c *CacheService) GetLastRefreshTime(
 
 	err := db.WithContext(ctx).
 		Table("analytics_cache_metadata").
-		Where("tenant_id = ? AND view_name = ?", tenantID, viewName).
+		Where("view_name = ?", viewName).
 		First(&metadata).Error
 
 	if err != nil {
@@ -197,4 +208,17 @@ func (c *CacheService) AutoRefreshIfStale(
 		LastRefreshed: refreshTime,
 		Status:        "CACHED",
 	}
+}
+
+// isMVPopulated checks if a materialized view has been populated at least once.
+// Unpopulated MVs cannot use REFRESH CONCURRENTLY.
+func (c *CacheService) isMVPopulated(ctx context.Context, db *gorm.DB, viewName string) bool {
+	var populated bool
+	err := db.WithContext(ctx).Raw(
+		"SELECT relispopulated FROM pg_class WHERE relname = ?", viewName,
+	).Scan(&populated).Error
+	if err != nil {
+		return false
+	}
+	return populated
 }

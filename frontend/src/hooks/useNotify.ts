@@ -1,15 +1,12 @@
 import { message } from "@/components/AntStaticApi";
-import {
-  useNotificationStore,
-  type NotificationCategory,
-} from "@/stores/notificationStore";
+import { notificationApi } from "@/api/notifications";
 import { sanitizeForUser } from "@/lib/notificationSecurity";
 
 /**
  * Options accepted by the `notify` tier functions.
  */
 interface NotifyOptions {
-  category?: NotificationCategory;
+  category?: string;
   actionUrl?: string;
 }
 
@@ -17,26 +14,12 @@ interface NotifyOptions {
  * Unified notification hook with two tiers:
  *
  *  - **toast**  — ephemeral Ant Design message (disappears after ~3s)
- *  - **notify** — toast *plus* saved to the Notification Center
+ *  - **notify** — toast *plus* saved to the persistent Database (via SSE)
  *
- * The `notify` tier automatically sanitises error details before
- * persisting them to the store (see `notificationSecurity.ts`).
- *
- * Usage:
- * ```ts
- * const { toast, notify } = useNotify();
- *
- * // Quick feedback (stock updated, settings saved)
- * toast.success("Stock updated");
- *
- * // Important result that should be reviewable later
- * notify.success("Sync Complete", "3 products synced", { category: "sync" });
- * notify.error("Bulk Ship Failed", "2 of 5 orders failed", { category: "order" });
- * ```
+ * Tier 2 (notify) now hits the backend API. Real-time feedback is handled
+ * by the SSE listener in NotificationContext to avoid duplicate toasts.
  */
 export function useNotify() {
-  const addNotification = useNotificationStore((s) => s.addNotification);
-
   return {
     /** Tier 1 — toast only (ephemeral, not saved) */
     toast: {
@@ -46,47 +29,43 @@ export function useNotify() {
       info: (content: string) => message.info(content),
     },
 
-    /** Tier 2 — toast + saved to Notification Center */
+    /** Tier 2 — saved to Persistent Notification Center (Database) */
     notify: {
       success: (title: string, detail?: string, opts?: NotifyOptions) => {
-        message.success(title);
-        addNotification({
+        notificationApi.create({
           type: "success",
           category: opts?.category ?? "system",
           title,
           message: detail ?? "",
-          actionUrl: opts?.actionUrl,
+          action_url: opts?.actionUrl,
         });
       },
       error: (title: string, detail?: string, opts?: NotifyOptions) => {
         const safeDetail = sanitizeForUser(detail ?? "");
-        message.error(title);
-        addNotification({
+        notificationApi.create({
           type: "error",
           category: opts?.category ?? "system",
           title,
           message: safeDetail,
-          actionUrl: opts?.actionUrl,
+          action_url: opts?.actionUrl,
         });
       },
       warning: (title: string, detail?: string, opts?: NotifyOptions) => {
-        message.warning(title);
-        addNotification({
+        notificationApi.create({
           type: "warning",
           category: opts?.category ?? "system",
           title,
           message: detail ?? "",
-          actionUrl: opts?.actionUrl,
+          action_url: opts?.actionUrl,
         });
       },
       info: (title: string, detail?: string, opts?: NotifyOptions) => {
-        message.info(title);
-        addNotification({
+        notificationApi.create({
           type: "info",
           category: opts?.category ?? "system",
           title,
           message: detail ?? "",
-          actionUrl: opts?.actionUrl,
+          action_url: opts?.actionUrl,
         });
       },
     },

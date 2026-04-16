@@ -66,6 +66,61 @@ func (m *QueueManager) GetPendingJobs(limit int) ([]models.Job, error) {
 	return jobs, err
 }
 
+// ClaimNextJob atomically claims the next pending job using SELECT FOR UPDATE SKIP LOCKED.
+// This prevents multiple workers from picking the same job.
+func (m *QueueManager) ClaimNextJob() (*models.Job, error) {
+	var job models.Job
+	now := time.Now()
+
+	err := m.db.Transaction(func(tx *gorm.DB) error {
+		// Atomic: select + lock + skip already locked rows
+		if err := tx.Raw(`
+			SELECT * FROM jobs
+			WHERE status = ?
+			ORDER BY
+				CASE priority WHEN 'high' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END,
+				created_at ASC
+			LIMIT 1
+			FOR UPDATE SKIP LOCKED
+		`, models.JobStatusPending).Scan(&job).Error; err != nil {
+			return err
+		}
+
+		if job.ID == "" {
+			return gorm.ErrRecordNotFound
+		}
+
+		// Atomically set to running
+		return tx.Model(&models.Job{}).Where("id = ?", job.ID).Updates(map[string]interface{}{
+			"status":     models.JobStatusRunning,
+			"started_at": &now,
+			"updated_at": now,
+		}).Error
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	job.Status = models.JobStatusRunning
+	job.StartedAt = &now
+	return &job, nil
+}
+
+// RecoverZombieJobs resets 'running' jobs back to 'failed' on startup.
+// These are jobs that were interrupted by a server crash.
+func (m *QueueManager) RecoverZombieJobs() (int64, error) {
+	result := m.db.Model(&models.Job{}).
+		Where("status = ?", models.JobStatusRunning).
+		Updates(map[string]interface{}{
+			"status":        models.JobStatusFailed,
+			"error_message": "recovered: server restarted while job was running",
+			"completed_at":  time.Now(),
+			"updated_at":    time.Now(),
+		})
+	return result.RowsAffected, result.Error
+}
+
 // UpdateStatus updates job status
 func (m *QueueManager) UpdateStatus(jobID string, status models.JobStatus, errMsg string) error {
 	updates := map[string]interface{}{
