@@ -111,11 +111,12 @@ func (c *CacheService) RefreshMV(
 	}
 }
 
-// updateMetadata updates cache metadata table
+// updateMetadata updates cache metadata table.
+// tenantID unused — tenant isolation is at the schema level, not row level.
 func (c *CacheService) updateMetadata(
 	ctx context.Context,
 	db *gorm.DB,
-	tenantID, viewName string,
+	_, viewName string,
 	refreshTimeMs int64,
 	rowCount int64,
 ) {
@@ -138,7 +139,7 @@ func (c *CacheService) updateMetadata(
 func (c *CacheService) GetCacheStatus(
 	ctx context.Context,
 	db *gorm.DB,
-	tenantID string,
+	_ string,
 ) []CacheMetadata {
 	var metadata []CacheMetadata
 
