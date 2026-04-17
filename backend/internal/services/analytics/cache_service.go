@@ -27,7 +27,6 @@ type RefreshStatus struct {
 
 // CacheMetadata contains cache metadata
 type CacheMetadata struct {
-	TenantID    string    `json:"tenant_id"`
 	ViewName    string    `json:"view_name"`
 	LastRefresh time.Time `json:"last_refresh"`
 	RefreshTime int64     `json:"refresh_time_ms"`
@@ -134,7 +133,8 @@ func (c *CacheService) updateMetadata(
 	db.WithContext(ctx).Exec(sql, viewName, refreshTimeMs, rowCount)
 }
 
-// GetCacheStatus returns status of all cached views
+// GetCacheStatus returns status of all cached views.
+// No tenant_id filter needed — table is per-tenant schema.
 func (c *CacheService) GetCacheStatus(
 	ctx context.Context,
 	db *gorm.DB,
@@ -144,7 +144,6 @@ func (c *CacheService) GetCacheStatus(
 
 	db.WithContext(ctx).
 		Table("analytics_cache_metadata").
-		Where("tenant_id = ?", tenantID).
 		Find(&metadata)
 
 	return metadata

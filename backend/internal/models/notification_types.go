@@ -39,23 +39,23 @@ func JobTypeToCategory(jobType string) string {
 
 // JobTypeToTitle provides a human-readable title for a job result
 func JobTypeToTitle(jobType string, success bool) string {
-	status := "Selesai"
+	status := "Completed"
 	if !success {
-		status = "Gagal"
+		status = "Failed"
 	}
 
 	switch jobType {
 	case "shopee_sync":
-		return "Sinkronisasi Shopee " + status
+		return "Shopee Sync " + status
 	case "tiktok_sync":
-		return "Sinkronisasi TikTok " + status
+		return "TikTok Sync " + status
 	case "lazada_sync":
-		return "Sinkronisasi Lazada " + status
+		return "Lazada Sync " + status
 	case "inventory_sync":
-		return "Sync Inventori " + status
+		return "Inventory Sync " + status
 	case "ads_upload":
-		return "Upload Iklan " + status
+		return "Ads Upload " + status
 	default:
-		return "Proses Latar Belakang " + status
+		return "Background Process " + status
 	}
 }

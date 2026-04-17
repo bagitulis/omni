@@ -226,8 +226,8 @@ func (m *SkuMapper) ManualLink(ctx context.Context, masterSkuID uint, platform, 
 		UpdatedAt:       now,
 	}
 
-	if err := m.repo.CreatePlatformLink(ctx, link); err != nil {
-		return fmt.Errorf("failed to create platform link: %w", err)
+	if err := m.repo.UpsertPlatformLink(ctx, link); err != nil {
+		return fmt.Errorf("failed to upsert platform link: %w", err)
 	}
 
 	// Aggregate images from platform product (non-blocking - log error and continue)

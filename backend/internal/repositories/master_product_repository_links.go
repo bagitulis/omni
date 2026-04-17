@@ -68,22 +68,13 @@ func (r *MasterProductRepository) UpsertPlatformLink(ctx context.Context, link *
 	}
 	link.UpdatedAt = now
 
-	// We use raw SQL or specialized Clauses because the unique index uses a COALESCE expression
-	// which GORM's standard Upsert doesn't always map correctly to the index target.
-	// Target: (platform, platform_product_id, COALESCE(platform_sku_id, ''))
-	
-	// Helper to ensure platform_sku_id is never nil for the COALESCE logic if needed,
-	// though the DB level index handles it.
-	
+	// The unique index uses COALESCE: (platform, platform_product_id, COALESCE(platform_sku_id, ''))
+	// GORM's clause.Column cannot express COALESCE, so we target the constraint by name.
 	return r.db.WithContext(ctx).
 		Clauses(clause.OnConflict{
-			Columns: []clause.Column{
-				{Name: "platform"},
-				{Name: "platform_product_id"},
-				{Name: "platform_sku_id"}, // GORM might struggle here if the index is on the expression
-			},
+			OnConstraint: "idx_platform_links_unique",
 			DoUpdates: clause.AssignmentColumns([]string{
-				"master_product_id", "master_sku_id", "platform_item_id", 
+				"master_product_id", "master_sku_id", "platform_item_id",
 				"sync_status", "last_synced_at", "updated_at",
 			}),
 		}).Create(link).Error

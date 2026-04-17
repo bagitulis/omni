@@ -23,6 +23,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const { tenantId, getValidToken } = useAuthStore();
   const { notification } = App.useApp();
   const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const MAX_RECONNECT_ATTEMPTS = 10;
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -102,6 +104,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const sseUrl = `${API_BASE_URL}/notifications/stream?token=${token}`;
     const es = new EventSource(sseUrl);
 
+    es.onopen = () => {
+      // Reset reconnect counter on successful connection
+      reconnectAttemptsRef.current = 0;
+    };
+
     es.addEventListener('notification', (event: MessageEvent) => {
       try {
         const newNotif: Notification = JSON.parse(event.data);
@@ -127,11 +134,18 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     });
 
-    es.onerror = (err) => {
-      console.error('SSE connection error', err);
+    es.onerror = () => {
       es.close();
-      // Reconnect after delay
-      setTimeout(setupSSE, 5000);
+      const attempts = reconnectAttemptsRef.current;
+      if (attempts >= MAX_RECONNECT_ATTEMPTS) {
+        console.warn('SSE: max reconnection attempts reached, falling back to polling');
+        return;
+      }
+      // Exponential backoff: 5s, 10s, 20s, 40s, ... max 60s
+      const delay = Math.min(5000 * Math.pow(2, attempts), 60000);
+      reconnectAttemptsRef.current = attempts + 1;
+      console.warn(`SSE: reconnecting in ${delay / 1000}s (attempt ${attempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
+      setTimeout(setupSSE, delay);
     };
 
     eventSourceRef.current = es;

@@ -105,8 +105,8 @@ func (m *SkuMapper) AutoMapAndLinkBySkus(ctx context.Context, sellerSkus []strin
 				UpdatedAt:         now,
 			}
 
-			if err := m.repo.CreatePlatformLink(ctx, link); err != nil {
-				result.Errors = append(result.Errors, fmt.Sprintf("failed to create link for SKU %s on %s: %v", sellerSku, match.Platform, err))
+			if err := m.repo.UpsertPlatformLink(ctx, link); err != nil {
+				result.Errors = append(result.Errors, fmt.Sprintf("failed to upsert link for SKU %s on %s: %v", sellerSku, match.Platform, err))
 				continue
 			}
 

@@ -175,6 +175,24 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		log.Info().Msgf("  ✅ Migrated: %T", model)
 	}
 
+	// Post-migration: Ensure expression-based unique index for platform links.
+	// GORM AutoMigrate cannot create this index (it uses COALESCE + partial WHERE).
+	// This is idempotent — IF NOT EXISTS prevents re-creation.
+	if GetDatabaseDriver() == DriverPostgres {
+		linkTable := (&models.MasterProductPlatformLink{}).TableName()
+		idxSQL := fmt.Sprintf(
+			`CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_links_unique
+			 ON %s (platform, platform_product_id, COALESCE(platform_sku_id, ''))
+			 WHERE (platform_product_id IS NOT NULL)`,
+			linkTable,
+		)
+		if err := db.Session(&gorm.Session{}).Exec(idxSQL).Error; err != nil {
+			log.Info().Msgf("  ⚠️  Warning creating platform links unique index: %v", err)
+		} else {
+			log.Info().Msg("  ✅ Ensured idx_platform_links_unique index")
+		}
+	}
+
 	log.Info().Msgf("✅ Tenant database migrations completed for: %s", tenantID)
 	return nil
 }

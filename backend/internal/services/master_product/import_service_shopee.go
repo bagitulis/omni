@@ -293,8 +293,8 @@ func (s *ImportService) ImportFromShopee(ctx context.Context, tenantID string, s
 				UpdatedAt:       time.Now(),
 			}
 
-			if err := s.repo.CreatePlatformLink(ctx, defaultSkuLink); err != nil {
-				log.Error().Err(err).Msg("Failed to create default SKU platform link")
+			if err := s.repo.UpsertPlatformLink(ctx, defaultSkuLink); err != nil {
+				log.Error().Err(err).Msg("Failed to upsert default SKU platform link")
 			} else {
 				result.PlatformLinks++
 			}

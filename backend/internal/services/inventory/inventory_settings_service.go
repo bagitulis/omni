@@ -8,6 +8,7 @@ import (
 
 	"github.com/omni/backend/internal/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // SettingsInput represents input for settings update
@@ -43,45 +44,52 @@ func (s *InventoryService) UpdateSettings(ctx context.Context, settings *models.
 }
 
 // SaveSettings creates or updates settings using atomic upsert.
-// Fixes race condition where concurrent requests could both SELECT "not found"
-// then both INSERT, causing duplicate key violation on inventory_settings_pkey.
+// Uses ON CONFLICT on the primary key 'id' for a single-SQL atomic operation.
+// This eliminates the race condition where concurrent SELECT-then-INSERT
+// could cause duplicate key violations on inventory_settings_pkey.
 func (s *InventoryService) SaveSettings(ctx context.Context, input SettingsInput) error {
-	var existing models.InventorySettings
-
-	// Atomic: find or create in one step
-	// Use fixed ID "settings" since it's per-tenant schema
-	result := s.db.WithContext(ctx).
-		Where("id = ?", "settings").
-		Attrs(models.InventorySettings{ID: "settings", TenantID: s.tenantID}).
-		FirstOrCreate(&existing)
-	if result.Error != nil {
-		return result.Error
-	}
-
-	existing.SpreadsheetID = input.SpreadsheetID
-	existing.SheetName = input.SheetName
-	existing.KeyColumn = input.KeyColumn
-	existing.HeaderRow = input.HeaderRow
-	existing.DataStartRow = input.DataStartRow
-	existing.AutoSync = input.AutoSync
-	existing.SyncIntervalSec = input.SyncIntervalSec
+	var allColumnsJSON, selectedColumnsJSON string
 
 	if input.AllColumns != nil {
 		data, err := json.Marshal(input.AllColumns)
 		if err != nil {
 			return fmt.Errorf("failed to marshal all_columns: %w", err)
 		}
-		existing.AllColumns = string(data)
+		allColumnsJSON = string(data)
 	}
 	if input.SelectedColumns != nil {
 		data, err := json.Marshal(input.SelectedColumns)
 		if err != nil {
 			return fmt.Errorf("failed to marshal selected_columns: %w", err)
 		}
-		existing.SelectedColumns = string(data)
+		selectedColumnsJSON = string(data)
 	}
 
-	return s.db.WithContext(ctx).Save(&existing).Error
+	settings := models.InventorySettings{
+		ID:              "settings",
+		TenantID:        s.tenantID,
+		SpreadsheetID:   input.SpreadsheetID,
+		SheetName:       input.SheetName,
+		KeyColumn:       input.KeyColumn,
+		HeaderRow:       input.HeaderRow,
+		DataStartRow:    input.DataStartRow,
+		AutoSync:        input.AutoSync,
+		SyncIntervalSec: input.SyncIntervalSec,
+		AllColumns:      allColumnsJSON,
+		SelectedColumns: selectedColumnsJSON,
+		UpdatedAt:       time.Now(),
+	}
+
+	return s.db.WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "id"}},
+			DoUpdates: clause.AssignmentColumns([]string{
+				"spreadsheet_id", "sheet_name", "key_column",
+				"header_row", "data_start_row", "auto_sync",
+				"sync_interval_seconds", "all_columns", "selected_columns",
+				"updated_at",
+			}),
+		}).Create(&settings).Error
 }
 
 // GetSyncHistory retrieves sync history
