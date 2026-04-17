@@ -5,6 +5,7 @@ import {
   calculateMarketplaceAllocation,
   loadMarketplaceAllocationSettings,
   resolveMarketplaceAllocationForRecord,
+  type MarketplaceAllocationPreview,
 } from "@/pages/inventory/utils/marketplaceAllocation";
 import type { Platform, UnifiedProductRow } from "@/types/shared";
 
@@ -141,12 +142,20 @@ export async function buildStockRecommendations(
           effectiveTotal = Math.min(allocation.total, sellableFromInventory);
         }
 
+        // If effectiveTotal differs from allocation.total (lock was manually deducted),
+        // recalculate per-platform distribution so the Inventory Hint column
+        // correctly previews what Apply will distribute.
+        const finalAllocation: MarketplaceAllocationPreview =
+          effectiveTotal !== allocation.total && allocation.total > 0
+            ? calculateMarketplaceAllocation(effectiveTotal, false, settings, activePlatforms)
+            : allocation;
+
         return [
           sku,
           {
-            shopee: toSafeStock(allocation.shopee),
-            tiktok: toSafeStock(allocation.tiktok),
-            lazada: toSafeStock(allocation.lazada),
+            shopee: toSafeStock(finalAllocation.shopee),
+            tiktok: toSafeStock(finalAllocation.tiktok),
+            lazada: toSafeStock(finalAllocation.lazada),
             total: toSafeStock(effectiveTotal),
             source: "inventory" as const,
             inventoryTotal,

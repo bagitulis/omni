@@ -82,7 +82,6 @@ export function buildStockSyncItems(
 export function applyRecommendationsToConfig(
   previous: PerPlatformConfig,
   recommendations: StockRecommendationMap,
-  linkedPlatformsBySku: Record<string, Record<Platform, boolean>>,
 ): PerPlatformConfig {
   const settings = loadMarketplaceAllocationSettings();
   const next: PerPlatformConfig = { ...previous };
@@ -121,15 +120,16 @@ export function applyRecommendationsToConfig(
     next[sku] = {
       platforms: {
         shopee: {
-          enabled: linkedPlatformsBySku[sku]?.shopee ?? false,
+          // Preserve user's checkbox state — don't override with linked status
+          enabled: existingConfig.platforms.shopee.enabled,
           stock: allocation.shopee,
         },
         tiktok: {
-          enabled: linkedPlatformsBySku[sku]?.tiktok ?? false,
+          enabled: existingConfig.platforms.tiktok.enabled,
           stock: allocation.tiktok,
         },
         lazada: {
-          enabled: linkedPlatformsBySku[sku]?.lazada ?? false,
+          enabled: existingConfig.platforms.lazada.enabled,
           stock: allocation.lazada,
         },
       },

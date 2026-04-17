@@ -187,7 +187,6 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
       applyRecommendationsToConfig(
         previous,
         recommendations,
-        linkedPlatformsBySku,
       ),
     );
   };
