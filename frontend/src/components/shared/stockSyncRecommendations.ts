@@ -129,13 +129,25 @@ export async function buildStockRecommendations(
         const lockedQty = Number(rowData["Locked"]) || 0;
         const inventoryTotal = Number(rowData["TOTAL"] ?? rowData["Total"]) || allocation.total;
 
+        // Ensure total is always lock-deducted (Sellable).
+        // If resolveMarketplaceAllocationForRecord used Sellable, allocation.total
+        // is already correct. If it fell back to raw TOTAL (e.g. sync failed,
+        // Sellable missing), we must manually deduct locked qty here.
+        let effectiveTotal = allocation.total;
+        if (lockedQty > 0 && inventoryTotal > 0) {
+          const sellableFromInventory = Math.max(0, inventoryTotal - lockedQty);
+          // Use the smaller of allocation.total and sellableFromInventory
+          // to guarantee lock is always respected
+          effectiveTotal = Math.min(allocation.total, sellableFromInventory);
+        }
+
         return [
           sku,
           {
             shopee: toSafeStock(allocation.shopee),
             tiktok: toSafeStock(allocation.tiktok),
             lazada: toSafeStock(allocation.lazada),
-            total: toSafeStock(allocation.total),
+            total: toSafeStock(effectiveTotal),
             source: "inventory" as const,
             inventoryTotal,
             lockedQty,

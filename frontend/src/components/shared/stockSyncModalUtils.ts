@@ -100,9 +100,19 @@ export function applyRecommendationsToConfig(
       lazada: existingConfig.platforms.lazada.enabled,
     };
 
+    // Ensure total used for distribution always respects locked stock.
+    // recommendation.total should already be lock-deducted, but as a safety
+    // guard we also verify against inventoryTotal - lockedQty when available.
+    const lockedQty = recommendation.lockedQty ?? 0;
+    let safeTotal = recommendation.total;
+    if (lockedQty > 0 && recommendation.inventoryTotal) {
+      const sellable = Math.max(0, recommendation.inventoryTotal - lockedQty);
+      safeTotal = Math.min(safeTotal, sellable);
+    }
+
     // Recalculate allocation based on currently enabled platforms
     const allocation = calculateMarketplaceAllocation(
-      recommendation.total,
+      safeTotal,
       false,
       settings,
       currentEnabled,
