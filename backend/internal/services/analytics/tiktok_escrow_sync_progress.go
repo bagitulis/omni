@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
@@ -216,13 +218,17 @@ func (s *TiktokEscrowSyncService) fullSync(
 	}
 
 	if onProgress != nil {
-		onProgress(100, processed, len(orders), "Sync completed")
+		// Show processed/processed (not processed/total) to avoid confusing "278/853" display.
+		// The total candidates include orders from other months (future settlements).
+		onProgress(100, processed, processed,
+			fmt.Sprintf("Sync selesai: %d order tersettlement bulan ini (dari %d kandidat)", processed, len(orders)))
 	}
 
 	return &SyncResultWithProgress{
 		TotalOrders: len(orders), ProcessedOrders: processed,
 		FailedOrders: failed, TotalItems: totalItems,
-		Message: fmt.Sprintf("Synced %d/%d orders (%d failed), %d items", processed, len(orders), failed, totalItems),
+		Message: fmt.Sprintf("%d orders settled this month (from %d candidates, %d failed), %d items saved",
+			processed, len(orders), failed, totalItems),
 	}, nil
 }
 
@@ -292,7 +298,8 @@ func (s *TiktokEscrowSyncService) fullSyncStatementFirst(
 	}
 
 	if onProgress != nil {
-		onProgress(100, processed, len(orders), "Statement sync completed")
+		onProgress(100, processed, processed,
+			fmt.Sprintf("Statement sync selesai: %d order tersettlement bulan ini", processed))
 	}
 
 	return &SyncResultWithProgress{
@@ -303,49 +310,79 @@ func (s *TiktokEscrowSyncService) fullSyncStatementFirst(
 	}
 }
 
-// processStatementOrdersWithProgress saves statement-sourced orders with progress tracking.
+// processStatementOrdersWithProgress saves statement-sourced orders with concurrent workers.
 func (s *TiktokEscrowSyncService) processStatementOrdersWithProgress(
 	ctx context.Context, client *tiktokPkg.Client,
 	orders []tiktokPkg.TiktokOrder, orderData map[string]*OrderStatementData,
 	month, year int, onProgress ProgressCallback,
 ) (totalItems, processed, failed int) {
 	totalOrders := len(orders)
+	var atomicItems, atomicProcessed, atomicFailed, atomicDone int64
 
-	for i, order := range orders {
+	// Progress ticker: report every 2 seconds
+	progressDone := make(chan struct{})
+	if onProgress != nil {
+		go func() {
+			ticker := time.NewTicker(2 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-progressDone:
+					return
+				case <-ticker.C:
+					done := int(atomic.LoadInt64(&atomicDone))
+					proc := int(atomic.LoadInt64(&atomicProcessed))
+					percent := 22 + (73 * done / max(totalOrders, 1))
+					onProgress(percent, proc, totalOrders,
+						fmt.Sprintf("Processing statement orders %d/%d (%d saved)...", done, totalOrders, proc))
+				}
+			}
+		}()
+	}
+
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 5)
+
+	for _, order := range orders {
+		sd := orderData[order.ID]
+		if sd == nil {
+			atomic.AddInt64(&atomicDone, 1)
+			continue
+		}
+
 		select {
 		case <-ctx.Done():
-			return totalItems, processed, failed
+			break
 		default:
 		}
 
-		if onProgress != nil && i%5 == 0 {
-			percent := 22 + (73 * (i + 1) / totalOrders)
-			onProgress(percent, processed, totalOrders,
-				fmt.Sprintf("Processing statement order %d/%d...", i+1, totalOrders))
-		}
+		wg.Add(1)
+		go func(o tiktokPkg.TiktokOrder, settlement *OrderStatementData) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
 
-		sd := orderData[order.ID]
-		if sd == nil {
-			continue
-		}
+			skuTx := s.fetchSkuTransactions(ctx, client, o.ID)
 
-		// Fetch SKU-level data for price analysis (best-effort)
-		skuTx := s.fetchSkuTransactions(ctx, client, order.ID)
-
-		items, err := s.saveOrderFromStatement(ctx, order, sd, skuTx, month, year)
-		if err != nil {
-			log.Warn().Str("order_id", order.ID).Err(err).
-				Msg("[TiktokEscrowSync] Failed to save statement order")
-			failed++
-			continue
-		}
-		if items > 0 {
-			totalItems += items
-			processed++
-		}
-
-		time.Sleep(150 * time.Millisecond)
+			items, err := s.saveOrderFromStatement(ctx, o, settlement, skuTx, month, year)
+			if err != nil {
+				log.Warn().Str("order_id", o.ID).Err(err).
+					Msg("[TiktokEscrowSync] Failed to save statement order")
+				atomic.AddInt64(&atomicFailed, 1)
+			} else if items > 0 {
+				atomic.AddInt64(&atomicItems, int64(items))
+				atomic.AddInt64(&atomicProcessed, 1)
+			}
+			atomic.AddInt64(&atomicDone, 1)
+		}(order, sd)
 	}
+
+	wg.Wait()
+	close(progressDone)
+
+	totalItems = int(atomicItems)
+	processed = int(atomicProcessed)
+	failed = int(atomicFailed)
 
 	log.Info().Int("processed", processed).Int("failed", failed).Int("items", totalItems).
 		Msg("[TiktokEscrowSync] Statement orders saved")
@@ -362,36 +399,73 @@ func (s *TiktokEscrowSyncService) validateMonth(month, year int) error {
 	return nil
 }
 
-// processOrdersWithProgress processes orders with progress callback
+// processOrdersWithProgress processes orders concurrently with progress reporting.
 func (s *TiktokEscrowSyncService) processOrdersWithProgress(
 	ctx context.Context, client *tiktokPkg.Client,
 	orders []tiktokPkg.TiktokOrder, month, year int, onProgress ProgressCallback,
 ) (totalItems, processedOrders, failedOrders int, cancelled bool) {
 	totalOrders := len(orders)
-	for i, order := range orders {
+	var atomicItems, atomicProcessed, atomicFailed, atomicDone int64
+
+	// Progress ticker: report every 2 seconds for smooth UI updates
+	progressDone := make(chan struct{})
+	if onProgress != nil {
+		go func() {
+			ticker := time.NewTicker(2 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-progressDone:
+					return
+				case <-ticker.C:
+					done := int(atomic.LoadInt64(&atomicDone))
+					proc := int(atomic.LoadInt64(&atomicProcessed))
+					percent := 20 + (75 * done / max(totalOrders, 1))
+					onProgress(percent, proc, totalOrders,
+						fmt.Sprintf("Processing orders %d/%d (%d settled this month)...", done, totalOrders, proc))
+				}
+			}
+		}()
+	}
+
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 5) // 5 concurrent workers (matches processOrdersConcurrent)
+
+	for _, order := range orders {
 		select {
 		case <-ctx.Done():
-			return totalItems, processedOrders, failedOrders, true
+			cancelled = true
+			break
 		default:
 		}
-
-		if onProgress != nil && i%5 == 0 {
-			percent := 20 + (75 * (i + 1) / totalOrders)
-			onProgress(percent, processedOrders, totalOrders, fmt.Sprintf("Processing order %d/%d...", i+1, totalOrders))
+		if cancelled {
+			break
 		}
 
-		items, err := s.processSingleOrder(ctx, client, order, month, year)
-		if err != nil {
-			failedOrders++
-			continue
-		}
-		if items > 0 {
-			totalItems += items
-			processedOrders++
-		}
-		time.Sleep(150 * time.Millisecond)
+		wg.Add(1)
+		go func(o tiktokPkg.TiktokOrder) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			items, err := s.processSingleOrder(ctx, client, o, month, year)
+			if err != nil {
+				atomic.AddInt64(&atomicFailed, 1)
+			} else if items > 0 {
+				atomic.AddInt64(&atomicItems, int64(items))
+				atomic.AddInt64(&atomicProcessed, 1)
+			}
+			atomic.AddInt64(&atomicDone, 1)
+		}(order)
 	}
-	return totalItems, processedOrders, failedOrders, false
+
+	wg.Wait()
+	close(progressDone)
+
+	totalItems = int(atomicItems)
+	processedOrders = int(atomicProcessed)
+	failedOrders = int(atomicFailed)
+	return totalItems, processedOrders, failedOrders, cancelled
 }
 
 // processSingleOrder processes one order and returns item count

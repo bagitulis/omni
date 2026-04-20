@@ -34,6 +34,18 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 	totalSettlementAmount := ParseFloat(tx.Data.SettlementAmount)
 	shippingFeeActual := ParseFloat(tx.Data.ShippingCostAmount)
 
+	// Fallback: derive product revenue from sku_transactions when PaymentInfo is empty.
+	// Indonesian/SEA TikTok sellers: /order/202309/orders does not return sub_total.
+	// sku_transactions[x].revenue_amount is the authoritative source for gross sales.
+	if subTotal == 0 && len(tx.Data.SkuTransactions) > 0 {
+		for _, sku := range tx.Data.SkuTransactions {
+			subTotal += ParseFloat(sku.RevenueAmount)
+		}
+	}
+	if totalAmount == 0 && subTotal > 0 {
+		totalAmount = subTotal + shippingFee
+	}
+
 	orderDate := time.Unix(order.CreateTime, 0)
 	orderStatus := order.Status
 	now := time.Now()
@@ -95,17 +107,31 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 			shippingFeeActual = aggShipActual
 		}
 
-		// Strategy 2: For SEA sellers (Indonesia, etc.), statement_time may point to
-		// the actual settlement date which can be in a DIFFERENT month than the order.
-		// If the order's CREATE TIME falls in the target month and we have
-		// statement_transactions data, use it regardless of statement_time month.
+		// Strategy 2 (Opsi A — settlement-date based):
+		// Only use create-time attribution when statement_transactions exist but have NO valid
+		// settlement date (zero/epoch timestamp). If TikTok reports a valid settlement date
+		// pointing to a DIFFERENT month, respect that — this order belongs to that other month.
 		if statementTime == nil && len(tx.Data.StatementTransactions) > 0 {
+			firstST := tx.Data.StatementTransactions[0]
+			stmtT := ParseTiktokTimestamp(firstST.StatementTime)
+
+			// If TikTok provides a valid settlement date for a DIFFERENT month → skip here.
+			// This order will be correctly captured when that other month is synced.
+			if stmtT.Year() >= 2024 && (int(stmtT.Month()) != month || stmtT.Year() != year) {
+				log.Debug().Str("order_id", order.ID).
+					Int("target_month", month).
+					Int("settlement_month", int(stmtT.Month())).
+					Int("settlement_year", stmtT.Year()).
+					Msg("[TiktokEscrowSync] Settlement in different month, skipping for current period")
+				return nil
+			}
+
+			// Settlement date is zero/invalid, or matches target month → use create-time attribution.
 			createT := ParseTiktokTimestamp(order.CreateTime)
 			if int(createT.Month()) == month && createT.Year() == year {
-				// Order was created in the target month — attribute it here
-				// Use the first statement_transaction's time as reference
-				firstST := tx.Data.StatementTransactions[0]
-				refT := ParseTiktokTimestamp(firstST.StatementTime)
+				// Order was created in the target month — attribute it here.
+				// Use the first statement_transaction's time as the statement reference.
+				refT := stmtT
 				statementTime = &refT
 				transactionID = firstST.StatementID
 
@@ -278,6 +304,18 @@ func (s *TiktokEscrowSyncService) saveOrderFromStatement(
 	shippingFee := ParseFloat(order.PaymentInfo.ShippingFee)
 	totalAmount := ParseFloat(order.PaymentInfo.TotalAmount)
 	subTotal := ParseFloat(order.PaymentInfo.SubTotal)
+
+	// Fallback: derive product revenue from sku_transactions when PaymentInfo is empty.
+	// Indonesian/SEA TikTok sellers: payment_info fields often empty from order API.
+	if subTotal == 0 && len(skuTxs) > 0 {
+		for _, sku := range skuTxs {
+			subTotal += ParseFloat(sku.RevenueAmount)
+		}
+	}
+	if totalAmount == 0 && subTotal > 0 {
+		totalAmount = subTotal + shippingFee
+	}
+
 	buyerName := order.RecipientAddress.Name
 
 	now := time.Now()

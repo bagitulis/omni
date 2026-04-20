@@ -68,6 +68,13 @@ func (s *TiktokEscrowSyncService) saveSkuTransactionsTx(
 			salePrice = ParseFloat(skuTx.SkuSubtotalAfterDisc)
 		}
 
+		// original_price: prefer SkuSubtotalBeforeDisc (harga sebelum diskon).
+		// Fallback ke revenue_amount ketika field ini kosong (Indonesian/SEA sellers).
+		originalPrice := ParseFloat(skuTx.SkuSubtotalBeforeDisc)
+		if originalPrice == 0 {
+			originalPrice = salePrice // revenue_amount sudah termasuk jumlah qty
+		}
+
 		// Resolve seller_sku from order line_items (Finance API sku_name = variation name)
 		sellerSku := skuTx.SkuName
 		var productID string
@@ -86,7 +93,7 @@ func (s *TiktokEscrowSyncService) saveSkuTransactionsTx(
 			SellerSku:                   StringPtr(sellerSku),
 			ProductName:                 StringPtr(skuTx.ProductName),
 			Quantity:                    qty,
-			OriginalPrice:               ParseFloat(skuTx.SkuSubtotalBeforeDisc),
+			OriginalPrice:               originalPrice,
 			SalePrice:                   salePrice,
 			PlatformDiscount:            ParseFloat(skuTx.SkuPlatformDiscount),
 			SellerDiscount:              ParseFloat(skuTx.SkuSellerDiscount),
