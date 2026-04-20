@@ -48,7 +48,7 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 
 	// Use a DB transaction for atomicity (order upsert + item replace)
 	err := s.base.DB.WithContext(ctx).Transaction(func(dbTx *gorm.DB) error {
-		// Aggregate ALL transactions that fall in the target month
+		// Strategy 1: Aggregate transactions whose statement_time falls in the target month
 		var statementTime *time.Time
 		var transactionID string
 		var aggSettlement, aggShipCustomer, aggShipActual, aggShipPlatformDisc float64
@@ -95,10 +95,56 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 			shippingFeeActual = aggShipActual
 		}
 
-		// If no statement transaction matches the target month, try fallback:
-		// Use order UpdateTime + top-level SettlementAmount from Finance API.
-		// This handles newer TikTok orders (2026+) where v202309 Finance API
-		// returns an empty statement_transactions array.
+		// Strategy 2: For SEA sellers (Indonesia, etc.), statement_time may point to
+		// the actual settlement date which can be in a DIFFERENT month than the order.
+		// If the order's CREATE TIME falls in the target month and we have
+		// statement_transactions data, use it regardless of statement_time month.
+		if statementTime == nil && len(tx.Data.StatementTransactions) > 0 {
+			createT := ParseTiktokTimestamp(order.CreateTime)
+			if int(createT.Month()) == month && createT.Year() == year {
+				// Order was created in the target month — attribute it here
+				// Use the first statement_transaction's time as reference
+				firstST := tx.Data.StatementTransactions[0]
+				refT := ParseTiktokTimestamp(firstST.StatementTime)
+				statementTime = &refT
+				transactionID = firstST.StatementID
+
+				// Aggregate ALL statement_transactions (not filtered by month)
+				for _, st := range tx.Data.StatementTransactions {
+					if st.SettlementAmount != "" && st.SettlementAmount != "0" {
+						aggSettlement += ParseFloat(st.SettlementAmount)
+					} else if st.Amount != "" && st.Amount != "0" {
+						aggSettlement += ParseFloat(st.Amount)
+					}
+					if st.CustomerPaidShippingFeeAmount != "" {
+						aggShipCustomer += ParseFloat(st.CustomerPaidShippingFeeAmount)
+					}
+					if st.PlatformShippingFeeDiscountAmount != "" {
+						aggShipPlatformDisc += ParseFloat(st.PlatformShippingFeeDiscountAmount)
+					}
+					if st.ActualShippingFeeAmount != "" {
+						shipVal := ParseFloat(st.ActualShippingFeeAmount)
+						if shipVal < 0 {
+							shipVal = -shipVal
+						}
+						aggShipActual += shipVal
+					}
+				}
+				totalSettlementAmount = aggSettlement
+				shippingFee = aggShipCustomer
+				shippingPlatformDisc = aggShipPlatformDisc
+				shippingFeeActual = aggShipActual
+
+				log.Debug().Str("order_id", order.ID).
+					Int("month", month).
+					Str("create_time", createT.String()).
+					Float64("settlement", totalSettlementAmount).
+					Int("stmt_tx_count", len(tx.Data.StatementTransactions)).
+					Msg("[TiktokEscrowSync] Using create-time attribution with statement data")
+			}
+		}
+
+		// Strategy 3: No statement_transactions at all — use UpdateTime + top-level SettlementAmount
 		if statementTime == nil {
 			updateT := ParseTiktokTimestamp(order.UpdateTime)
 			topLevelSettlement := tx.Data.SettlementAmount
@@ -110,7 +156,6 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 					Msg("[TiktokEscrowSync] Fallback: using UpdateTime + top-level SettlementAmount")
 				statementTime = &updateT
 				totalSettlementAmount = ParseFloat(topLevelSettlement)
-				// Use ShippingCostAmount for actual shipping if available
 				if tx.Data.ShippingCostAmount != "" {
 					shippingFeeActual = ParseFloat(tx.Data.ShippingCostAmount)
 				}

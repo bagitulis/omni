@@ -134,7 +134,8 @@ func (s *TiktokEscrowSyncService) smartRetrySync(
 	}, nil
 }
 
-// fullSync performs a complete sync (first time or force resync)
+// fullSync performs a complete sync (first time or force resync).
+// Uses statement-first approach (accurate), falls back to order-centric if unavailable.
 func (s *TiktokEscrowSyncService) fullSync(
 	ctx context.Context, tables EscrowSyncTables,
 	month, year int, forceResync bool, onProgress ProgressCallback,
@@ -151,8 +152,21 @@ func (s *TiktokEscrowSyncService) fullSync(
 		return nil, fmt.Errorf("get tiktok client: %w", err)
 	}
 
+	// === PHASE 1: Statement-First (like Shopee wallet-tx pattern) ===
 	if onProgress != nil {
-		onProgress(10, 0, 0, "Fetching completed orders...")
+		onProgress(8, 0, 0, "Fetching settlement statements...")
+	}
+	result := s.fullSyncStatementFirst(ctx, client, tables, month, year, forceResync, onProgress)
+	if result != nil {
+		return result, nil
+	}
+
+	// === PHASE 2: Order-Centric Fallback ===
+	log.Info().Int("month", month).Int("year", year).
+		Msg("[TiktokEscrowSync] Statement-first yielded no data, falling back to order-centric sync")
+
+	if onProgress != nil {
+		onProgress(10, 0, 0, "Fetching completed orders (fallback)...")
 	}
 	orders, err := s.fetchOrdersForSettlementWindow(ctx, client, month, year)
 	if err != nil {
@@ -163,7 +177,7 @@ func (s *TiktokEscrowSyncService) fullSync(
 		return &SyncResultWithProgress{TotalOrders: 0, Message: "No completed orders found"}, nil
 	}
 
-	log.Info().Msgf("[TiktokEscrowSync] Found %d completed orders", len(orders))
+	log.Info().Msgf("[TiktokEscrowSync] Found %d completed orders (fallback)", len(orders))
 
 	if forceResync {
 		if onProgress != nil {
@@ -211,6 +225,133 @@ func (s *TiktokEscrowSyncService) fullSync(
 		Message: fmt.Sprintf("Synced %d/%d orders (%d failed), %d items", processed, len(orders), failed, totalItems),
 	}, nil
 }
+
+// fullSyncStatementFirst attempts statement-based sync with progress tracking.
+// Returns nil if statements are unavailable (caller should fallback to order-centric).
+func (s *TiktokEscrowSyncService) fullSyncStatementFirst(
+	ctx context.Context, client *tiktokPkg.Client,
+	tables EscrowSyncTables, month, year int,
+	forceResync bool, onProgress ProgressCallback,
+) *SyncResultWithProgress {
+	// Step 1: List statement IDs for target month
+	stmtIDs, err := s.fetchStatementIDs(ctx, client, month, year)
+	if err != nil {
+		log.Warn().Err(err).Msg("[TiktokEscrowSync] Statement ID fetch failed, will fallback")
+		return nil
+	}
+	if len(stmtIDs) == 0 {
+		log.Info().Int("month", month).Int("year", year).
+			Msg("[TiktokEscrowSync] No statements found for month, will fallback")
+		return nil
+	}
+
+	// Step 2: Collect order settlements from all statements
+	if onProgress != nil {
+		onProgress(12, 0, 0, fmt.Sprintf("Processing %d statements...", len(stmtIDs)))
+	}
+	orderData := s.collectOrdersFromStatements(ctx, client, stmtIDs)
+	if len(orderData) == 0 {
+		log.Warn().Int("stmts", len(stmtIDs)).
+			Msg("[TiktokEscrowSync] Statements exist but no order data (tx API may be unsupported), will fallback")
+		return nil
+	}
+
+	log.Info().Int("orders", len(orderData)).
+		Msg("[TiktokEscrowSync] Statement-first: orders with settlement found")
+
+	// Step 3: Batch fetch full order details
+	if onProgress != nil {
+		onProgress(18, 0, len(orderData), fmt.Sprintf("Fetching details for %d orders...", len(orderData)))
+	}
+	orderIDs := orderDataKeys(orderData)
+	orders := s.buildOrdersFromIDs(ctx, client, orderIDs)
+
+	// Step 4: Delete existing data if force resync
+	if forceResync {
+		if onProgress != nil {
+			onProgress(20, 0, len(orders), "Deleting existing data...")
+		}
+		if err := s.deleteMonthData(ctx, month, year); err != nil {
+			log.Warn().Err(err).Msg("[TiktokEscrowSync] Failed to delete month data")
+		}
+	}
+
+	// Step 5: Save each order with progress tracking
+	if onProgress != nil {
+		onProgress(22, 0, len(orders), fmt.Sprintf("Saving %d statement orders...", len(orders)))
+	}
+	totalItems, processed, failed := s.processStatementOrdersWithProgress(
+		ctx, client, orders, orderData, month, year, onProgress,
+	)
+
+	if onProgress != nil {
+		onProgress(95, processed, len(orders), "Creating sync record...")
+	}
+	if err := s.saveSyncRecord(ctx, tables, month, year, processed, failed, nil); err != nil {
+		log.Warn().Err(err).Msg("[TiktokEscrowSync] Failed to save sync record")
+	}
+
+	if onProgress != nil {
+		onProgress(100, processed, len(orders), "Statement sync completed")
+	}
+
+	return &SyncResultWithProgress{
+		TotalOrders: len(orders), ProcessedOrders: processed,
+		FailedOrders: failed, TotalItems: totalItems,
+		Message: fmt.Sprintf("[Statement-First] Synced %d orders (%d failed), %d items for %d/%02d",
+			processed, failed, totalItems, year, month),
+	}
+}
+
+// processStatementOrdersWithProgress saves statement-sourced orders with progress tracking.
+func (s *TiktokEscrowSyncService) processStatementOrdersWithProgress(
+	ctx context.Context, client *tiktokPkg.Client,
+	orders []tiktokPkg.TiktokOrder, orderData map[string]*OrderStatementData,
+	month, year int, onProgress ProgressCallback,
+) (totalItems, processed, failed int) {
+	totalOrders := len(orders)
+
+	for i, order := range orders {
+		select {
+		case <-ctx.Done():
+			return totalItems, processed, failed
+		default:
+		}
+
+		if onProgress != nil && i%5 == 0 {
+			percent := 22 + (73 * (i + 1) / totalOrders)
+			onProgress(percent, processed, totalOrders,
+				fmt.Sprintf("Processing statement order %d/%d...", i+1, totalOrders))
+		}
+
+		sd := orderData[order.ID]
+		if sd == nil {
+			continue
+		}
+
+		// Fetch SKU-level data for price analysis (best-effort)
+		skuTx := s.fetchSkuTransactions(ctx, client, order.ID)
+
+		items, err := s.saveOrderFromStatement(ctx, order, sd, skuTx, month, year)
+		if err != nil {
+			log.Warn().Str("order_id", order.ID).Err(err).
+				Msg("[TiktokEscrowSync] Failed to save statement order")
+			failed++
+			continue
+		}
+		if items > 0 {
+			totalItems += items
+			processed++
+		}
+
+		time.Sleep(150 * time.Millisecond)
+	}
+
+	log.Info().Int("processed", processed).Int("failed", failed).Int("items", totalItems).
+		Msg("[TiktokEscrowSync] Statement orders saved")
+	return
+}
+
 
 // validateMonth checks if month can be synced
 func (s *TiktokEscrowSyncService) validateMonth(month, year int) error {

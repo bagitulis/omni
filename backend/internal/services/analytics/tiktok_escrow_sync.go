@@ -185,7 +185,7 @@ func (s *TiktokEscrowSyncService) processStatementOrders(
 ) (totalItems, processed, failed int) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	sem := make(chan struct{}, 10)
+	sem := make(chan struct{}, 5)
 
 	for _, order := range orders {
 		sd := orderData[order.ID]
@@ -318,7 +318,7 @@ func (s *TiktokEscrowSyncService) processOrdersConcurrent(
 	// 2. Parallel fetch transaction data and save if settled in target month
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	sem := make(chan struct{}, 10) // Concurrency limit
+	sem := make(chan struct{}, 5) // Concurrency limit (reduced from 10 to avoid TikTok rate limits)
 
 	for _, order := range orders {
 		wg.Add(1)

@@ -34,7 +34,7 @@ func NewMultiTenantExecutor(systemDB *gorm.DB, basePath string) *MultiTenantExec
 		basePath:     basePath,
 		handlers:     make(map[string]JobHandler),
 		pollInterval: 5 * time.Second,
-		jobTimeout:   10 * time.Minute, // Long timeout for sync
+		jobTimeout:   30 * time.Minute, // Long timeout for escrow sync (1000+ orders)
 		stopCh:       make(chan struct{}),
 	}
 }
