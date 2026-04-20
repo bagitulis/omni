@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"sync"
 	"github.com/omni/backend/internal/dto"
 	"github.com/omni/backend/internal/services"
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
@@ -63,8 +64,8 @@ func (s *TiktokEscrowSyncService) SyncMonth(
 		return nil, fmt.Errorf("get tiktok client: %w", err)
 	}
 
-	// Fetch completed orders for the month
-	orders, err := s.fetchOrdersByMonth(ctx, client, month, year)
+	// Fetch completed orders for the window (Target month + 30 days prior)
+	orders, err := s.fetchOrdersForSettlementWindow(ctx, client, month, year)
 	if err != nil {
 		return nil, fmt.Errorf("fetch orders: %w", err)
 	}
@@ -76,7 +77,7 @@ func (s *TiktokEscrowSyncService) SyncMonth(
 		}, nil
 	}
 
-	log.Info().Msgf("[TiktokEscrowSync] Found %d completed orders", len(orders))
+	log.Info().Msgf("[TiktokEscrowSync] Found %d candidate orders in sync window", len(orders))
 
 	// Delete existing data if force resync
 	if forceResync {
@@ -85,11 +86,11 @@ func (s *TiktokEscrowSyncService) SyncMonth(
 		}
 	}
 
-	// Process orders
-	totalItems, processedOrders, failedOrders := s.processOrders(ctx, client, orders, month, year)
+	// Process orders with high concurrency and settlement-based filtering
+	totalItems, processedOrders, failedOrders := s.processOrdersConcurrent(ctx, client, orders, month, year)
 
-	// Collect failed order IDs
-	failedIDs := s.collectFailedOrderIDsFromAll(ctx, client, orders, month, year)
+	// Collect failed order IDs (for legacy tracking, though concurrent processing has its own logging)
+	failedIDs := []string{} // Concurrent processing logs failures internally
 
 	// Save sync record with failed tracking
 	if err := s.saveSyncRecord(ctx, tables, month, year, processedOrders, failedOrders, failedIDs); err != nil {
@@ -122,16 +123,18 @@ func (s *TiktokEscrowSyncService) getTiktokClient() (*tiktokPkg.Client, error) {
 	return client, nil
 }
 
-// fetchOrdersByMonth fetches completed orders for a month
-func (s *TiktokEscrowSyncService) fetchOrdersByMonth(
+// fetchOrdersForSettlementWindow fetches completed orders for the target month PLUS 30 days prior.
+// This ensures we catch settlements occurring in the target month for orders created late in the previous month.
+func (s *TiktokEscrowSyncService) fetchOrdersForSettlementWindow(
 	ctx context.Context,
 	client *tiktokPkg.Client,
 	month, year int,
 ) ([]tiktokPkg.TiktokOrder, error) {
 	var allOrders []tiktokPkg.TiktokOrder
 
-	startDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
-	endDate := startDate.AddDate(0, 1, 0)
+	endDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, 0)
+	// Look back 60 days from end of target month (captures current month + previous month)
+	startDate := endDate.AddDate(0, 0, -60)
 
 	req := tiktokPkg.OrderSearchRequest{
 		OrderStatus:  "COMPLETED",
@@ -140,8 +143,6 @@ func (s *TiktokEscrowSyncService) fetchOrdersByMonth(
 	}
 
 	pageToken := ""
-	pageCount := 0
-
 	for {
 		resp, err := client.SearchOrders(req, 100, pageToken)
 		if err != nil {
@@ -153,92 +154,104 @@ func (s *TiktokEscrowSyncService) fetchOrdersByMonth(
 		}
 
 		allOrders = append(allOrders, resp.Data.Orders...)
-		pageCount++
-		log.Info().Msgf("[TiktokEscrowSync] Fetched page %d: %d orders", pageCount, len(resp.Data.Orders))
-
 		pageToken = resp.Data.NextPageToken
 		if pageToken == "" {
 			break
 		}
-
-		// Rate limiting
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 	}
 
 	return allOrders, nil
 }
 
-// processOrders processes all orders and returns counts
-func (s *TiktokEscrowSyncService) processOrders(
+// processOrdersConcurrent processes orders in parallel using a worker pool.
+// It filters orders so only those settled in the target month are saved.
+func (s *TiktokEscrowSyncService) processOrdersConcurrent(
 	ctx context.Context,
 	client *tiktokPkg.Client,
 	orders []tiktokPkg.TiktokOrder,
 	month, year int,
 ) (totalItems, processedOrders, failedOrders int) {
-	// Enrich orders with full payment details (shipping fees)
+	// 1. Batch enrich with full details (Buyer Name, Recipient Address, etc.)
 	s.enrichOrdersWithDetails(ctx, client, orders)
 
+	// 2. Parallel fetch transaction data and save if settled in target month
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	sem := make(chan struct{}, 10) // Concurrency limit
+
 	for _, order := range orders {
-		orderID := order.ID
-		transaction, err := s.fetchOrderTransaction(ctx, client, orderID)
-		if err != nil {
-			log.Warn().Str("order_id", orderID).Str("tenant_id", s.tenantID).
-				Err(err).Msg("[TiktokEscrowSync] Error fetching transaction")
-			failedOrders++
-			continue
-		}
+		wg.Add(1)
+		go func(o tiktokPkg.TiktokOrder) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
 
-		if transaction == nil || transaction.Data.OrderID == "" {
-			rawResp, _ := json.Marshal(transaction)
-			log.Warn().Str("order_id", orderID).Str("tenant_id", s.tenantID).
-				Str("raw_response", string(rawResp)).
-				Msg("[TiktokEscrowSync] No transaction data")
-			failedOrders++
-			continue
-		}
+			transaction, err := s.fetchOrderTransaction(ctx, client, o.ID)
+			if err != nil {
+				log.Warn().Str("order_id", o.ID).Err(err).Msg("[TiktokEscrowSync] Failed to fetch transaction")
+				mu.Lock()
+				failedOrders++
+				mu.Unlock()
+				return
+			}
 
-		itemsCount, err := s.saveEscrowOrder(ctx, order, transaction, month, year)
-		if err != nil {
-			log.Warn().Str("order_id", orderID).Str("tenant_id", s.tenantID).
-				Err(err).Msg("[TiktokEscrowSync] Error saving order")
-			failedOrders++
-			continue
-		}
+			// Save to DB (The save routine will check if SettlementTime matches month/year)
+			itemsCount, err := s.saveEscrowOrder(ctx, o, transaction, month, year)
+			if err != nil {
+				log.Warn().Str("order_id", o.ID).Err(err).Msg("[TiktokEscrowSync] Failed to save order")
+				mu.Lock()
+				failedOrders++
+				mu.Unlock()
+				return
+			}
 
-		totalItems += itemsCount
-		processedOrders++
-
-		// Rate limiting (reduced from 500ms to avoid timeout on large months)
-		time.Sleep(150 * time.Millisecond)
+			if itemsCount > 0 {
+				mu.Lock()
+				totalItems += itemsCount
+				processedOrders++
+				mu.Unlock()
+			}
+		}(order)
 	}
+
+	wg.Wait()
 	return totalItems, processedOrders, failedOrders
 }
 
-// fetchOrderTransaction fetches transaction details for an order
+// fetchOrderTransaction fetches transaction details for an order.
+// Uses v202309 first for statement_transactions (settlement timing),
+// then supplements with v202501 for sku_transactions (SKU-level detail).
 func (s *TiktokEscrowSyncService) fetchOrderTransaction(
 	ctx context.Context,
 	client *tiktokPkg.Client,
 	orderID string,
 ) (*tiktokPkg.OrderTransactionResponse, error) {
-	// Try v202501 API first
-	resp, err := client.GetOrderTransactions(orderID)
-	if err != nil {
-		log.Warn().Str("order_id", orderID).Str("api_version", "v202501").
-			Err(err).Msg("[TiktokEscrowSync] v202501 API failed, trying v202309")
-		// Fallback to v202309
-		resp, err = client.GetOrderTransactionsV202309(orderID)
+	// Try v202309 first — reliably returns statement_transactions with settlement timing
+	resp, err := client.GetOrderTransactionsV202309(orderID)
+	if err != nil || resp.Code != 0 {
+		log.Warn().Str("order_id", orderID).Str("api_version", "v202309").
+			Err(err).Msg("[TiktokEscrowSync] v202309 API failed, trying v202501")
+		resp, err = client.GetOrderTransactions(orderID)
 		if err != nil {
 			return nil, fmt.Errorf("both API versions failed for order %s: %w", orderID, err)
 		}
 	}
 
 	if resp.Code != 0 {
-		// Log the raw API error response for debugging
 		rawResp, _ := json.Marshal(resp)
 		log.Warn().Str("order_id", orderID).Int("api_code", resp.Code).
 			Str("api_message", resp.Message).Str("raw_response", string(rawResp)).
 			Msg("[TiktokEscrowSync] TikTok API returned error")
 		return nil, fmt.Errorf("TikTok API error: %d - %s", resp.Code, resp.Message)
+	}
+
+	// If v202309 has no sku_transactions, supplement with v202501 for SKU-level detail
+	if len(resp.Data.SkuTransactions) == 0 {
+		v2Resp, v2Err := client.GetOrderTransactions(orderID)
+		if v2Err == nil && v2Resp.Code == 0 && len(v2Resp.Data.SkuTransactions) > 0 {
+			resp.Data.SkuTransactions = v2Resp.Data.SkuTransactions
+		}
 	}
 
 	return resp, nil
@@ -304,6 +317,17 @@ func (s *TiktokEscrowSyncService) enrichOrdersWithDetails(
 				if orders[j].PaymentInfo.Currency == "" {
 					orders[j].PaymentInfo.Currency = d.PaymentInfo.Currency
 				}
+			}
+			// Enrich recipient address (for buyer name)
+			if d.RecipientAddress != nil && orders[j].RecipientAddress.Name == "" {
+				orders[j].RecipientAddress = *d.RecipientAddress
+			}
+			// Enrich order status and create time
+			if d.Status != "" && orders[j].Status == "" {
+				orders[j].Status = d.Status
+			}
+			if d.CreateTime > 0 && orders[j].CreateTime == 0 {
+				orders[j].CreateTime = d.CreateTime
 			}
 			// Enrich line items if originally empty
 			if len(orders[j].LineItems) == 0 && len(d.LineItems) > 0 {

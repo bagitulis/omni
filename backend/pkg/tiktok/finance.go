@@ -54,11 +54,15 @@ type OrderLevelCharge struct {
 
 // StatementTransaction represents statement transaction (v202309)
 type StatementTransaction struct {
-	StatementID     string `json:"statement_id"`
-	StatementTime   int64  `json:"statement_time"`
-	TransactionType string `json:"transaction_type"`
-	Amount          string `json:"amount"`
-	Currency        string `json:"currency"`
+	StatementID                     string `json:"statement_id"`
+	StatementTime                   int64  `json:"statement_time"`
+	TransactionType                 string `json:"transaction_type"`
+	Amount                          string `json:"amount"`
+	Currency                        string `json:"currency"`
+	SettlementAmount                string `json:"settlement_amount"`                     // Total settlement for this transaction
+	ActualShippingFeeAmount         string `json:"actual_shipping_fee_amount"`           // Actual shipping cost
+	CustomerPaidShippingFeeAmount   string `json:"customer_paid_shipping_fee_amount"`     // Buyer Paid
+	PlatformShippingFeeDiscountAmount string `json:"platform_shipping_fee_discount_amount"` // Platform Subsidy
 }
 
 // GetOrderTransactions fetches transaction details for an order (v202501 API)

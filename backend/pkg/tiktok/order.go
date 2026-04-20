@@ -44,7 +44,19 @@ type TiktokOrder struct {
 		ShippingFeeDiscount string `json:"shipping_fee_seller_discount"`
 		ShippingFeePlatform string `json:"shipping_fee_platform_discount"`
 	} `json:"payment_info"`
-	LineItems []TiktokOrderItem `json:"line_items"`
+	LineItems        []TiktokOrderItem `json:"line_items"`
+	RecipientAddress RecipientAddress  `json:"recipient_address,omitempty"`
+}
+
+// RecipientAddress represents the delivery address
+type RecipientAddress struct {
+	Name        string `json:"name"`
+	Phone       string `json:"phone_number"`
+	AddressLine string `json:"address_line1"`
+	City        string `json:"city"`
+	State       string `json:"state"`
+	PostalCode  string `json:"postal_code"`
+	Country     string `json:"region_code"`
 }
 
 // TiktokOrderItem represents an order item

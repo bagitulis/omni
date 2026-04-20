@@ -74,7 +74,7 @@ func (s *TiktokEscrowSyncService) smartRetrySync(
 	if onProgress != nil {
 		onProgress(10, 0, 0, "Fetching order data for retry...")
 	}
-	allOrders, err := s.fetchOrdersByMonth(ctx, client, month, year)
+	allOrders, err := s.fetchOrdersForSettlementWindow(ctx, client, month, year)
 	if err != nil {
 		return nil, fmt.Errorf("fetch orders for retry: %w", err)
 	}
@@ -154,7 +154,7 @@ func (s *TiktokEscrowSyncService) fullSync(
 	if onProgress != nil {
 		onProgress(10, 0, 0, "Fetching completed orders...")
 	}
-	orders, err := s.fetchOrdersByMonth(ctx, client, month, year)
+	orders, err := s.fetchOrdersForSettlementWindow(ctx, client, month, year)
 	if err != nil {
 		return nil, fmt.Errorf("fetch orders: %w", err)
 	}
@@ -244,8 +244,10 @@ func (s *TiktokEscrowSyncService) processOrdersWithProgress(
 			failedOrders++
 			continue
 		}
-		totalItems += items
-		processedOrders++
+		if items > 0 {
+			totalItems += items
+			processedOrders++
+		}
 		time.Sleep(150 * time.Millisecond)
 	}
 	return totalItems, processedOrders, failedOrders, false

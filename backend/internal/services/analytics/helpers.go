@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/omni/backend/internal/models"
 	"gorm.io/gorm"
@@ -98,4 +99,14 @@ func LookupInventory(db *gorm.DB, schema, tenantID, sku, priceColumn string) (fl
 	}
 
 	return price, name
+}
+
+// ParseTiktokTimestamp converts a TikTok Unix timestamp to time.Time.
+// TikTok API returns timestamps in either seconds (10-digit) or milliseconds
+// (13-digit). This function handles both formats automatically.
+func ParseTiktokTimestamp(ts int64) time.Time {
+	if ts > 9_999_999_999 { // > ~year 2286 in seconds = must be milliseconds
+		return time.Unix(ts/1000, 0)
+	}
+	return time.Unix(ts, 0)
 }

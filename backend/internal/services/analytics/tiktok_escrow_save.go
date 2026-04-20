@@ -46,25 +46,88 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 	itemTable := s.base.Table(tables.ItemTable)
 
 	var escrowOrderID string
+	var saved bool
 
 	// Use a DB transaction for atomicity (order upsert + item replace)
 	err := s.base.DB.WithContext(ctx).Transaction(func(dbTx *gorm.DB) error {
+		// Aggregate ALL transactions that fall in the target month
+		var statementTime *time.Time
+		var transactionID string
+		var aggSettlement, aggShipCustomer, aggShipActual, aggShipPlatformDisc float64
+		var matchCount int
+
+		for _, st := range tx.Data.StatementTransactions {
+			t := ParseTiktokTimestamp(st.StatementTime)
+			if int(t.Month()) == month && t.Year() == year {
+				matchCount++
+				if matchCount == 1 {
+					statementTime = &t
+					transactionID = st.StatementID
+				}
+
+				// Accumulate settlement amount
+				if st.SettlementAmount != "" && st.SettlementAmount != "0" {
+					aggSettlement += ParseFloat(st.SettlementAmount)
+				} else if st.Amount != "" && st.Amount != "0" {
+					aggSettlement += ParseFloat(st.Amount)
+				}
+
+				// Accumulate shipping fees
+				if st.CustomerPaidShippingFeeAmount != "" {
+					aggShipCustomer += ParseFloat(st.CustomerPaidShippingFeeAmount)
+				}
+				if st.PlatformShippingFeeDiscountAmount != "" {
+					aggShipPlatformDisc += ParseFloat(st.PlatformShippingFeeDiscountAmount)
+				}
+				if st.ActualShippingFeeAmount != "" {
+					shipVal := ParseFloat(st.ActualShippingFeeAmount)
+					if shipVal < 0 {
+						shipVal = -shipVal
+					}
+					aggShipActual += shipVal
+				}
+			}
+		}
+
+		// Apply aggregated values from statement_transactions
+		if matchCount > 0 {
+			totalSettlementAmount = aggSettlement
+			shippingFee = aggShipCustomer
+			shippingPlatformDisc = aggShipPlatformDisc
+			shippingFeeActual = aggShipActual
+		}
+
+		// If no statement transaction matches the target month, skip saving
+		if statementTime == nil {
+			log.Debug().Str("order_id", order.ID).Int("month", month).Msg("[TiktokEscrowSync] Skipping order - no settlement in target month")
+			return nil
+		}
+
+		buyerName := ""
+		if order.RecipientAddress.Name != "" {
+			buyerName = order.RecipientAddress.Name
+		}
+
 		// Atomic upsert using raw SQL with ON CONFLICT + RETURNING id
 		row := dbTx.Raw(fmt.Sprintf(`
 			INSERT INTO %s (
 				id, tenant_id, order_id, month, year, order_status, order_date,
+				buyer_name, transaction_id, statement_time,
 				product_revenue, buyer_total_amount, total_settlement_amount,
 				platform_commission, shipping_fee_customer_paid, shipping_fee_actual,
 				shipping_fee_platform_discount,
 				seller_shipping_discount, currency,
 				raw_order_data, raw_transaction_data,
 				synced_at, created_at, updated_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT (tenant_id, order_id) DO UPDATE SET
 				month = EXCLUDED.month,
 				year = EXCLUDED.year,
 				order_status = EXCLUDED.order_status,
 				order_date = EXCLUDED.order_date,
+				buyer_name = EXCLUDED.buyer_name,
+				transaction_id = EXCLUDED.transaction_id,
+				statement_time = EXCLUDED.statement_time,
 				product_revenue = EXCLUDED.product_revenue,
 				buyer_total_amount = EXCLUDED.buyer_total_amount,
 				total_settlement_amount = EXCLUDED.total_settlement_amount,
@@ -81,6 +144,7 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 			RETURNING id
 		`, orderTable),
 			newID, s.tenantID, order.ID, month, year, orderStatus, orderDate,
+			buyerName, transactionID, statementTime,
 			subTotal, totalAmount, totalSettlementAmount,
 			platformDiscount, shippingFee, shippingFeeActual,
 			shippingPlatformDisc,
@@ -92,6 +156,7 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 		if err := row.Scan(&escrowOrderID); err != nil {
 			return fmt.Errorf("upsert order %s: %w", order.ID, err)
 		}
+		saved = true
 
 		// Delete existing items for this order
 		if err := dbTx.Exec(
@@ -107,6 +172,9 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 
 	if err != nil {
 		return 0, err
+	}
+	if !saved {
+		return 0, nil
 	}
 
 	return countEscrowItems(order, tx), nil
