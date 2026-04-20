@@ -1,6 +1,8 @@
 // Package tiktok provides Finance API types and methods for TikTok Shop
 package tiktok
 
+import "fmt"
+
 // =============================================================================
 // Finance API - Get Transactions by Order
 // =============================================================================
@@ -83,3 +85,77 @@ func (c *Client) GetOrderTransactionsV202309(orderID string) (*OrderTransactionR
 	err := c.doRequest("GET", "/finance/202309/orders/"+orderID+"/statement_transactions", params, &result)
 	return &result, err
 }
+
+// =============================================================================
+// Finance API - Statement-Based (Statement-First Sync)
+// =============================================================================
+
+// StatementListResponse is the response from GET /finance/202309/statements
+type StatementListResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    struct {
+		Statements    []StatementItem `json:"statements"`
+		NextPageToken string          `json:"next_page_token"`
+	} `json:"data"`
+}
+
+// StatementItem represents one statement entry (a daily settlement summary)
+type StatementItem struct {
+	StatementID string `json:"statement_id"`
+}
+
+// StatementTxListResponse is the response from GET /finance/202501/statements/{id}/statement_transactions
+// Uses v202501 which is applicable for all regions including SEA (ID, TH, MY, VN, PH)
+type StatementTxListResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    struct {
+		Transactions  []StatementTxItem `json:"transactions"`
+		NextPageToken string            `json:"next_page_token"`
+	} `json:"data"`
+}
+
+// StatementTxItem represents one order-level transaction within a statement
+type StatementTxItem struct {
+	OrderID          string `json:"order_id"`
+	Type             string `json:"type"`             // "ORDER", "ADJUSTMENT", "RESERVE", etc.
+	SettlementAmount string `json:"settlement_amount"` // Net seller payout
+	RevenueAmount    string `json:"revenue_amount"`    // Gross sales amount
+}
+
+// GetStatements fetches statement IDs for a settlement time window.
+// Uses /finance/202309/statements which works for all regions.
+// TikTok generates one statement per day at 00:00 UTC.
+func (c *Client) GetStatements(startTime, endTime int64, pageToken string) (*StatementListResponse, error) {
+	params := map[string]string{
+		"sort_field":        "statement_time",
+		"sort_order":        "ASC",
+		"statement_time_ge": fmt.Sprintf("%d", startTime),
+		"statement_time_lt": fmt.Sprintf("%d", endTime),
+		"page_size":         "100",
+	}
+	if pageToken != "" {
+		params["page_token"] = pageToken
+	}
+	var result StatementListResponse
+	err := c.doRequest("GET", "/finance/202309/statements", params, &result)
+	return &result, err
+}
+
+// GetStatementTransactions fetches order transactions for a specific statement.
+// Uses /finance/202501 (all-region support including SEA/Indonesia).
+func (c *Client) GetStatementTransactions(statementID, pageToken string) (*StatementTxListResponse, error) {
+	params := map[string]string{
+		"sort_field": "order_create_time",
+		"sort_order": "ASC",
+		"page_size":  "100",
+	}
+	if pageToken != "" {
+		params["page_token"] = pageToken
+	}
+	var result StatementTxListResponse
+	err := c.doRequest("GET", "/finance/202501/statements/"+statementID+"/statement_transactions", params, &result)
+	return &result, err
+}
+
