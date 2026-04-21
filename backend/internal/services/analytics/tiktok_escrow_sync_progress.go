@@ -105,7 +105,7 @@ func (s *TiktokEscrowSyncService) smartRetrySync(
 	if onProgress != nil {
 		onProgress(20, 0, len(ordersToRetry), fmt.Sprintf("Processing %d retry orders...", len(ordersToRetry)))
 	}
-	totalItems, processed, failed, cancelled := s.processOrdersWithProgress(ctx, client, ordersToRetry, month, year, onProgress)
+	totalItems, processed, failed, cancelled, retryFailedIDs := s.processOrdersWithProgress(ctx, client, ordersToRetry, month, year, onProgress)
 
 	if cancelled {
 		return &SyncResultWithProgress{
@@ -115,13 +115,11 @@ func (s *TiktokEscrowSyncService) smartRetrySync(
 		}, ctx.Err()
 	}
 
-	// Collect still-failing order IDs
-	failedIDs := s.collectFailedOrderIDs(ordersToRetry, nil, processed)
-
+	// Use accurately tracked failed IDs (only real API errors, not skipped orders)
 	if onProgress != nil {
 		onProgress(95, processed, len(ordersToRetry), "Updating sync record...")
 	}
-	if err := s.mergeSyncRecord(ctx, tables, month, year, processed, failedIDs); err != nil {
+	if err := s.mergeSyncRecord(ctx, tables, month, year, processed, retryFailedIDs); err != nil {
 		return nil, err
 	}
 
@@ -198,7 +196,7 @@ func (s *TiktokEscrowSyncService) fullSync(
 	if onProgress != nil {
 		onProgress(20, 0, len(orders), fmt.Sprintf("Processing %d orders...", len(orders)))
 	}
-	totalItems, processed, failed, cancelled := s.processOrdersWithProgress(ctx, client, orders, month, year, onProgress)
+	totalItems, processed, failed, cancelled, failedIDs := s.processOrdersWithProgress(ctx, client, orders, month, year, onProgress)
 
 	if cancelled {
 		return &SyncResultWithProgress{
@@ -208,7 +206,7 @@ func (s *TiktokEscrowSyncService) fullSync(
 		}, ctx.Err()
 	}
 
-	failedIDs := s.collectFailedOrderIDsFromAll(ctx, client, orders, month, year)
+	// failedIDs contains only orders that had real API errors (not legitimately skipped orders)
 
 	if onProgress != nil {
 		onProgress(95, processed, len(orders), "Creating sync record...")
@@ -406,12 +404,17 @@ func (s *TiktokEscrowSyncService) validateMonth(month, year int) error {
 }
 
 // processOrdersWithProgress processes orders concurrently with progress reporting.
+// Returns failedOrderIDs containing only orders that errored (not legitimately skipped orders).
 func (s *TiktokEscrowSyncService) processOrdersWithProgress(
 	ctx context.Context, client *tiktokPkg.Client,
 	orders []tiktokPkg.TiktokOrder, month, year int, onProgress ProgressCallback,
-) (totalItems, processedOrders, failedOrders int, cancelled bool) {
+) (totalItems, processedOrders, failedOrders int, cancelled bool, failedOrderIDs []string) {
 	totalOrders := len(orders)
 	var atomicItems, atomicProcessed, atomicFailed, atomicDone int64
+
+	// Tracks order IDs that had real API/DB errors (excludes legitimately-skipped orders)
+	var failedIDsMu sync.Mutex
+	var failedIDsList []string
 
 	// Progress ticker: report every 2 seconds for smooth UI updates
 	progressDone := make(chan struct{})
@@ -457,6 +460,9 @@ func (s *TiktokEscrowSyncService) processOrdersWithProgress(
 			items, err := s.processSingleOrder(ctx, client, o, month, year)
 			if err != nil {
 				atomic.AddInt64(&atomicFailed, 1)
+				failedIDsMu.Lock()
+				failedIDsList = append(failedIDsList, o.ID)
+				failedIDsMu.Unlock()
 			} else if items > 0 {
 				atomic.AddInt64(&atomicItems, int64(items))
 				atomic.AddInt64(&atomicProcessed, 1)
@@ -471,7 +477,8 @@ func (s *TiktokEscrowSyncService) processOrdersWithProgress(
 	totalItems = int(atomicItems)
 	processedOrders = int(atomicProcessed)
 	failedOrders = int(atomicFailed)
-	return totalItems, processedOrders, failedOrders, cancelled
+	failedOrderIDs = failedIDsList
+	return totalItems, processedOrders, failedOrders, cancelled, failedOrderIDs
 }
 
 // processSingleOrder processes one order and returns item count
