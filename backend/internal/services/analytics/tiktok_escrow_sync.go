@@ -263,8 +263,10 @@ func (s *TiktokEscrowSyncService) getTiktokClient() (*tiktokPkg.Client, error) {
 	return client, nil
 }
 
-// fetchOrdersForSettlementWindow fetches completed orders for the target month PLUS 30 days prior.
-// This ensures we catch settlements occurring in the target month for orders created late in the previous month.
+// fetchOrdersForSettlementWindow fetches completed orders for the target month plus a lookback buffer.
+// Lookback = 21 days before month start: covers max TikTok settlement lag (T+14-21 days).
+// Orders created earlier than this cannot settle in the target month.
+// The Opsi A guard in saveEscrowOrder provides an additional safety check.
 func (s *TiktokEscrowSyncService) fetchOrdersForSettlementWindow(
 	ctx context.Context,
 	client *tiktokPkg.Client,
@@ -272,9 +274,10 @@ func (s *TiktokEscrowSyncService) fetchOrdersForSettlementWindow(
 ) ([]tiktokPkg.TiktokOrder, error) {
 	var allOrders []tiktokPkg.TiktokOrder
 
-	endDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, 0)
-	// Look back 60 days from end of target month (captures current month + previous month)
-	startDate := endDate.AddDate(0, 0, -60)
+	monthStart := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+	endDate := monthStart.AddDate(0, 1, 0)
+	// Look back 21 days from month start (covers max settlement lag T+21)
+	startDate := monthStart.AddDate(0, 0, -21)
 
 	req := tiktokPkg.OrderSearchRequest{
 		OrderStatus:  "COMPLETED",

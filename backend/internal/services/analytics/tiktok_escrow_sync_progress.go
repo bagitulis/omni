@@ -343,7 +343,12 @@ func (s *TiktokEscrowSyncService) processStatementOrdersWithProgress(
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, 5)
 
+	var ctxDone bool
 	for _, order := range orders {
+		if ctxDone {
+			break
+		}
+
 		sd := orderData[order.ID]
 		if sd == nil {
 			atomic.AddInt64(&atomicDone, 1)
@@ -352,7 +357,8 @@ func (s *TiktokEscrowSyncService) processStatementOrdersWithProgress(
 
 		select {
 		case <-ctx.Done():
-			break
+			ctxDone = true
+			continue
 		default:
 		}
 
