@@ -341,6 +341,129 @@
           "temperature": 0.1
         }
       }
+    },
+    "enowx": {
+      "_description": "enowX Labs direct proxy. All models via enowxlabs/ provider (localhost:1430). No plugin, no account sync.",
+      "default_model": "enowxlabs/claude-opus-4.6",
+      "agents": {
+        "sisyphus": {
+          "model": "enowxlabs/gpt-5.4",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "prometheus": {
+          "model": "enowxlabs/gemini-3.0-flash",
+          "temperature": 0.1
+        },
+        "atlas": {
+          "model": "enowxlabs/gpt-5.4",
+          "variant": "medium",
+          "temperature": 0.1
+        },
+        "hephaestus": {
+          "model": "enowxlabs/gpt-5.4",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "sisyphus-junior": {
+          "model": "enowxlabs/gpt-5.4",
+          "variant": "medium",
+          "temperature": 0.1
+        },
+        "oracle": {
+          "model": "enowxlabs/gpt-5.3-codex",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "librarian": {
+          "model": "enowxlabs/gemini-3.1-pro",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "explore": {
+          "model": "enowxlabs/gemini-3.0-flash",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "multimodal-looker": {
+          "model": "enowxlabs/gemini-3.0-flash",
+          "temperature": 0.1
+        },
+        "metis": {
+          "model": "enowxlabs/gpt-5.4",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "momus": {
+          "model": "enowxlabs/gpt-5.4",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "default": {
+          "model": "enowxlabs/claude-sonnet-4.5",
+          "variant": "medium",
+          "temperature": 0.1
+        }
+      },
+      "categories": {
+        "visual-engineering": {
+          "model": "enowxlabs/gemini-3.1-pro",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "implementation": {
+          "model": "enowxlabs/gpt-5.4",
+          "variant": "medium",
+          "temperature": 0.1
+        },
+        "quick": {
+          "model": "enowxlabs/claude-sonnet-4.5",
+          "variant": "medium",
+          "temperature": 0.1
+        },
+        "deep": {
+          "model": "enowxlabs/gpt-5.3-codex",
+          "variant": "medium",
+          "temperature": 0.1
+        },
+        "ultrabrain": {
+          "model": "enowxlabs/gpt-5.3-codex",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "artistry": {
+          "model": "enowxlabs/gemini-3.1-pro",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "writing": {
+          "model": "enowxlabs/gemini-3.0-flash",
+          "temperature": 0.1
+        },
+        "review": {
+          "model": "enowxlabs/gemini-3.1-pro",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "testing": {
+          "model": "enowxlabs/gpt-5.4",
+          "variant": "medium",
+          "temperature": 0.1
+        },
+        "security": {
+          "model": "enowxlabs/gpt-5.4",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "unspecified-low": {
+          "model": "enowxlabs/gemini-3.0-flash"
+        },
+        "unspecified-high": {
+          "model": "enowxlabs/gpt-5.4",
+          "variant": "high",
+          "temperature": 0.1
+        }
+      }
     }
   }
 }

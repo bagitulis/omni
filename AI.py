@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-AI.py - OpenCode Provider Switcher v5.0
+AI.py - OpenCode Provider Switcher v5.1
 Profile-based configuration system (CLI entry point)
 
-2 Profiles: Mix Copilot, Mix Antigravity
-Delivery: Plugin only (antigravity-* names via Auth Plugin)
+3 Profiles: Mix Copilot, Mix Antigravity, enowX
+Delivery:
+  - Mix Copilot / Mix Antigravity: Plugin (antigravity-* names via Auth Plugin)
+  - enowX: Direct (enowxlabs/ provider via local proxy, no plugin)
 Source: opencode-configs/opencode-profiles.json (shared + per-profile model assignments)
 Output: oh-my-opencode.json (valid schema, consumed by opencode)
 
@@ -46,13 +48,18 @@ LOCALAPPDATA_DIR = Path(_localappdata) / "opencode" if _localappdata else None
 MENU_OPTIONS = {
     "1": "mix-copilot",
     "2": "mix-antigravity",
+    "3": "enowx",
 }
 CLI_ARGS = {
     "mix-copilot": "1",
     "mix-antigravity": "2",
+    "enowx": "3",
     "sync": "s",
     "current": "c",
 }
+
+# Profiles that use direct delivery (no antigravity plugin, no account sync)
+_DIRECT_PROFILES = {"enowx"}
 
 # Backward-compat aliases (old proxy/plugin CLI args → new profile names)
 _DEPRECATED_CLI_ARGS = {
@@ -86,6 +93,8 @@ def detect_current_provider() -> str:
             return "Mix Copilot (Plugin)"
         if "google/" in default_model:
             return "Mix Antigravity (Plugin)"
+        if "enowxlabs/" in default_model:
+            return "enowX (Direct)"
 
         return f"[Unknown: {default_model}]"
     except Exception:
@@ -93,13 +102,25 @@ def detect_current_provider() -> str:
 
 
 def apply_profile(profile_name: str) -> bool:
-    """Apply a profile using plugin delivery.
+    """Apply a profile using the appropriate delivery method.
+
+    Plugin profiles (mix-copilot, mix-antigravity):
+      - Transform model names for antigravity plugin
+      - Copy opencode-plugin.json as provider config
+      - Copy antigravity.json and sync accounts
+
+    Direct profiles (enowx):
+      - No model name transform
+      - Copy opencode-enowx.json as provider config
+      - No antigravity.json, no account sync
 
     Args:
-        profile_name: 'mix-copilot' or 'mix-antigravity'
+        profile_name: 'mix-copilot', 'mix-antigravity', or 'enowx'
 
     Returns True on success.
     """
+    is_direct = profile_name in _DIRECT_PROFILES
+
     # Load and merge profile
     profiles_data = load_profiles(PROFILES_FILE)
     shared = profiles_data.get("shared", {})
@@ -112,34 +133,46 @@ def apply_profile(profile_name: str) -> bool:
     config = merge_profile(shared, profile)
     config = inject_lsp_config(config)
 
-    # Serialize and transform for plugin mode
+    # Serialize (transform only for plugin profiles)
     content = json.dumps(config, indent=2, ensure_ascii=False) + "\n"
-    content = transform_for_plugin(content)
+    if not is_direct:
+        content = transform_for_plugin(content)
 
     # Write oh-my-opencode.json
     TARGET_DIR.mkdir(parents=True, exist_ok=True)
     dst = TARGET_DIR / "oh-my-opencode.json"
     dst.write_text(content, encoding="utf-8")
 
-    print(f"   [OK] Generated oh-my-opencode.json ({profile_name}, plugin)")
+    delivery = "direct" if is_direct else "plugin"
+    print(f"   [OK] Generated oh-my-opencode.json ({profile_name}, {delivery})")
 
-    # Copy opencode.json (plugin provider config)
-    src_opencode = CONFIG_DIR / "opencode-plugin.json"
+    # Copy provider config (opencode.json)
+    if is_direct:
+        src_opencode = CONFIG_DIR / "opencode-enowx.json"
+        src_label = "opencode-enowx.json"
+    else:
+        src_opencode = CONFIG_DIR / "opencode-plugin.json"
+        src_label = "opencode-plugin.json"
+
     if src_opencode.exists():
         copy_file(src_opencode, TARGET_DIR / "opencode.json")
-        print("   [OK] Copied opencode-plugin.json -> opencode.json")
+        print(f"   [OK] Copied {src_label} -> opencode.json")
+    else:
+        print(f"   [WARN] {src_label} not found, skipping provider config")
 
-    # Copy antigravity.json
-    src_antigravity = CONFIG_DIR / "antigravity.json"
-    if src_antigravity.exists():
-        copy_file(src_antigravity, TARGET_DIR / "antigravity.json")
-        print("   [OK] Copied antigravity.json")
+    # Plugin-only: copy antigravity.json and sync accounts
+    if not is_direct:
+        src_antigravity = CONFIG_DIR / "antigravity.json"
+        if src_antigravity.exists():
+            copy_file(src_antigravity, TARGET_DIR / "antigravity.json")
+            print("   [OK] Copied antigravity.json")
 
-    # Smart sync accounts
-    smart_sync_accounts(CONFIG_DIR, TARGET_DIR, APPDATA_DIR, LOCALAPPDATA_DIR)
-
-    print(f"\n   [OK] Switched to {profile_name} (plugin)")
-    print("   [INFO] Using Antigravity Auth Plugin")
+        smart_sync_accounts(CONFIG_DIR, TARGET_DIR, APPDATA_DIR, LOCALAPPDATA_DIR)
+        print(f"\n   [OK] Switched to {profile_name} (plugin)")
+        print("   [INFO] Using Antigravity Auth Plugin")
+    else:
+        print(f"\n   [OK] Switched to {profile_name} (direct)")
+        print("   [INFO] Using enowX Labs proxy (localhost:1430)")
 
     return True
 
@@ -163,11 +196,12 @@ def show_menu():
     clear_screen()
     print()
     print("  +==================================================================+")
-    print("  |           AI.py - OpenCode Provider Switcher v5.0               |")
+    print("  |           AI.py - OpenCode Provider Switcher v5.1               |")
     print("  +==================================================================+")
     print("  |                                                                  |")
-    print("  |   [1] Mix Copilot      (Copilot + Google + OpenAI)              |")
-    print("  |   [2] Mix Antigravity  (Google + OpenAI, no Copilot)            |")
+    print("  |   [1] Mix Copilot      (Copilot + Google + OpenAI)  [Plugin]    |")
+    print("  |   [2] Mix Antigravity  (Google + OpenAI)            [Plugin]    |")
+    print("  |   [3] enowX            (enowX Labs proxy)           [Direct]    |")
     print("  |                                                                  |")
     print("  |   [S] Sync    - Sync accounts across locations                   |")
     print("  |   [C] Current - Show current provider                            |")
@@ -194,7 +228,7 @@ def main():
             choice = CLI_ARGS.get(arg, arg)
     else:
         show_menu()
-        choice = input("   Select [1, 2, S, C, Q]: ").strip().lower()
+        choice = input("   Select [1, 2, 3, S, C, Q]: ").strip().lower()
 
     while True:
         if choice == "q":
@@ -228,7 +262,7 @@ def main():
         # Show menu again for interactive mode only
         if not cli_mode:
             show_menu()
-            choice = input("   Select [1, 2, S, C, Q]: ").strip().lower()
+            choice = input("   Select [1, 2, 3, S, C, Q]: ").strip().lower()
         else:
             break
 
