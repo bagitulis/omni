@@ -35,7 +35,7 @@
       "fingerprint": {
         "deviceId": "d25bd272-3729-4af8-b420-b2024c495686",
         "sessionToken": "c6f5bd40c5d535ca092958110190d01f",
-        "userAgent": "antigravity/1.22.2 win32/arm64",
+        "userAgent": "antigravity/1.23.2 win32/arm64",
         "apiClient": "google-cloud-sdk vscode/1.96.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -129,7 +129,7 @@
       "fingerprint": {
         "deviceId": "f611ed93-be48-4800-9414-4e036e036f8b",
         "sessionToken": "a6f92907e0c9014b2e61bba23099f600",
-        "userAgent": "antigravity/1.22.2 linux/x64",
+        "userAgent": "antigravity/1.23.2 linux/x64",
         "apiClient": "google-cloud-sdk vscode/1.96.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -179,7 +179,7 @@
       "fingerprint": {
         "deviceId": "11a3def8-2863-49d4-966a-c9cb6b3cdd80",
         "sessionToken": "c1a91ecb8c035a59ec9c250fb36fcfbd",
-        "userAgent": "antigravity/1.22.2 darwin/x64",
+        "userAgent": "antigravity/1.23.2 darwin/x64",
         "apiClient": "google-cloud-sdk vscode/1.87.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -227,7 +227,7 @@
       "fingerprint": {
         "deviceId": "0060919d-ca64-4559-9966-72eb6dbdd39d",
         "sessionToken": "4490382b80582865d4f8ef291d14f4f2",
-        "userAgent": "antigravity/1.22.2 darwin/arm64",
+        "userAgent": "antigravity/1.23.2 darwin/arm64",
         "apiClient": "google-cloud-sdk vscode/1.86.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -306,7 +306,7 @@
       "fingerprint": {
         "deviceId": "9fded1af-53e4-4a11-8a88-8a904b916c5a",
         "sessionToken": "c07158317f5c39a553999c4259c7ae1b",
-        "userAgent": "antigravity/1.22.2 win32/arm64",
+        "userAgent": "antigravity/1.23.2 win32/arm64",
         "apiClient": "google-cloud-sdk vscode/1.96.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -351,7 +351,7 @@
       "fingerprint": {
         "deviceId": "d86130d8-606d-4e87-9e56-aa6f44831b9d",
         "sessionToken": "c4f312f9a31e9255baa1a796d918bb0f",
-        "userAgent": "antigravity/1.22.2 darwin/x64",
+        "userAgent": "antigravity/1.23.2 darwin/x64",
         "apiClient": "google-cloud-sdk vscode/1.96.0",
         "clientMetadata": {
           "ideType": "IDE_UNSPECIFIED",
@@ -395,7 +395,7 @@
       "fingerprint": {
         "deviceId": "2d0c891a-0dd5-42d2-8756-2d49e1eeb421",
         "sessionToken": "718b7194e658889b3d6e4cf1dde53824",
-        "userAgent": "antigravity/1.22.2 linux/arm64",
+        "userAgent": "antigravity/1.23.2 linux/arm64",
         "apiClient": "google-cloud-sdk vscode/1.96.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -422,7 +422,7 @@
       "fingerprint": {
         "deviceId": "3f6e302c-c46d-4922-8382-82aa31253e19",
         "sessionToken": "93c6b9b9dad8e5f778061da47ae06a0d",
-        "userAgent": "antigravity/1.22.2 win32/x64",
+        "userAgent": "antigravity/1.23.2 win32/x64",
         "apiClient": "google-cloud-sdk vscode_cloudshelleditor/0.1",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -483,7 +483,7 @@
       "fingerprint": {
         "deviceId": "9ab55b77-fbdd-48ea-9663-a4acd95cd198",
         "sessionToken": "5589c5e2326918219aeaa92ed336331c",
-        "userAgent": "antigravity/1.22.2 win32/x64",
+        "userAgent": "antigravity/1.23.2 win32/x64",
         "apiClient": "google-cloud-sdk vscode/1.87.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -528,7 +528,7 @@
       "fingerprint": {
         "deviceId": "17e7c55b-0fbf-472d-8040-48883bde2af3",
         "sessionToken": "bfe602263f4997f4481697f6360338e4",
-        "userAgent": "antigravity/1.22.2 linux/x64",
+        "userAgent": "antigravity/1.23.2 linux/x64",
         "apiClient": "google-cloud-sdk vscode/1.86.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -573,7 +573,7 @@
       "fingerprint": {
         "deviceId": "8d02eaab-b6d7-4365-96c8-f7d55ac31357",
         "sessionToken": "71fc9b0d3f9cbf1b8e1b5941de681684",
-        "userAgent": "antigravity/1.22.2 darwin/arm64",
+        "userAgent": "antigravity/1.23.2 darwin/arm64",
         "apiClient": "google-cloud-sdk vscode/1.96.0",
         "clientMetadata": {
           "ideType": "IDE_UNSPECIFIED",
@@ -599,7 +599,7 @@
       "fingerprint": {
         "deviceId": "7d2340ef-2250-472e-9904-0c238e35f157",
         "sessionToken": "3f9cfe4fca50a708b54c1c3d5afc0ed1",
-        "userAgent": "antigravity/1.22.2 darwin/x64",
+        "userAgent": "antigravity/1.23.2 darwin/x64",
         "apiClient": "google-cloud-sdk vscode/1.96.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -625,7 +625,7 @@
       "fingerprint": {
         "deviceId": "b4780568-bd79-4190-b590-04b89ca78409",
         "sessionToken": "1c7a75ad3f9f9c0da70e012324cc170e",
-        "userAgent": "antigravity/1.22.2 win32/arm64",
+        "userAgent": "antigravity/1.23.2 win32/arm64",
         "apiClient": "google-cloud-sdk vscode_cloudshelleditor/0.1",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -670,7 +670,7 @@
       "fingerprint": {
         "deviceId": "6e2a64b2-6612-4e79-8c63-f672822b9656",
         "sessionToken": "3eb4cec28ad0ff81ce128bf8ef2e98a4",
-        "userAgent": "antigravity/1.22.2 darwin/arm64",
+        "userAgent": "antigravity/1.23.2 darwin/arm64",
         "apiClient": "google-cloud-sdk vscode_cloudshelleditor/0.1",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -731,7 +731,7 @@
       "fingerprint": {
         "deviceId": "75a3d06a-bc72-4c07-8398-19beec531646",
         "sessionToken": "155408f3e0130d4553736b906cd0ed62",
-        "userAgent": "antigravity/1.22.2 darwin/arm64",
+        "userAgent": "antigravity/1.23.2 darwin/arm64",
         "apiClient": "google-cloud-sdk vscode/1.86.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -808,7 +808,7 @@
       "fingerprint": {
         "deviceId": "cc5ebc75-d5f4-44b6-a106-60f55dd4464f",
         "sessionToken": "aedb1501e0cf0df04d8299c2addcd109",
-        "userAgent": "antigravity/1.22.2 darwin/x64",
+        "userAgent": "antigravity/1.23.2 darwin/x64",
         "apiClient": "google-cloud-sdk vscode/1.87.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -850,7 +850,7 @@
       "fingerprint": {
         "deviceId": "dc860982-61b3-4351-b65e-33e43dcbb2d5",
         "sessionToken": "7f6d5dffe6bdd47857a955eb9a7bd1ec",
-        "userAgent": "antigravity/1.22.2 linux/x64",
+        "userAgent": "antigravity/1.23.2 linux/x64",
         "apiClient": "google-cloud-sdk vscode/1.87.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -892,7 +892,7 @@
       "fingerprint": {
         "deviceId": "0374fd24-bfff-4e31-8e84-f78dcfd721f7",
         "sessionToken": "8a6d3f22c1e942e01537cdfc37669003",
-        "userAgent": "antigravity/1.22.2 darwin/x64",
+        "userAgent": "antigravity/1.23.2 darwin/x64",
         "apiClient": "google-cloud-sdk vscode/1.87.0",
         "clientMetadata": {
           "ideType": "IDE_UNSPECIFIED",
@@ -930,7 +930,7 @@
       "fingerprint": {
         "deviceId": "8773fd7a-b02e-495a-8b75-ffa47e46a90f",
         "sessionToken": "196391919752fbe4f39ae4efada9930a",
-        "userAgent": "antigravity/1.22.2 darwin/arm64",
+        "userAgent": "antigravity/1.23.2 darwin/arm64",
         "apiClient": "google-cloud-sdk vscode/1.87.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -954,7 +954,7 @@
       "fingerprint": {
         "deviceId": "66c8a7af-bebf-48e6-b69c-9c16679feafa",
         "sessionToken": "c4b74c757e0cb7a3680279eeed43bf09",
-        "userAgent": "antigravity/1.22.2 win32/arm64",
+        "userAgent": "antigravity/1.23.2 win32/arm64",
         "apiClient": "google-cloud-sdk vscode/1.87.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -1044,7 +1044,7 @@
       "fingerprint": {
         "deviceId": "5291dcd2-deb6-4c80-865c-5ae61f17876b",
         "sessionToken": "ff2a94395086abb931b75bca463298d4",
-        "userAgent": "antigravity/1.22.2 win32/x64",
+        "userAgent": "antigravity/1.23.2 win32/x64",
         "apiClient": "google-cloud-sdk vscode/1.96.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -1100,7 +1100,7 @@
       "fingerprint": {
         "deviceId": "45fe0b86-1b1f-4c68-aaa5-f202bac96e92",
         "sessionToken": "f19fac953fd161657f01923abd4575fd",
-        "userAgent": "antigravity/1.22.2 win32/x64",
+        "userAgent": "antigravity/1.23.2 win32/x64",
         "apiClient": "google-cloud-sdk vscode/1.87.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -1156,7 +1156,7 @@
       "fingerprint": {
         "deviceId": "0d199002-7a48-4c58-8c14-44cebb872d0c",
         "sessionToken": "a76bd42d784fbf06448e1f5976b9cf01",
-        "userAgent": "antigravity/1.22.2 win32/arm64",
+        "userAgent": "antigravity/1.23.2 win32/arm64",
         "apiClient": "google-cloud-sdk vscode/1.86.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
@@ -1219,7 +1219,7 @@
       "fingerprint": {
         "deviceId": "7d8c4b18-4c59-43ec-87c7-9bcd9c500c0c",
         "sessionToken": "a2b69e36296868fbbe4ff7480753b91f",
-        "userAgent": "antigravity/1.22.2 darwin/arm64",
+        "userAgent": "antigravity/1.23.2 darwin/arm64",
         "apiClient": "google-cloud-sdk vscode/1.87.0",
         "clientMetadata": {
           "ideType": "ANTIGRAVITY",
