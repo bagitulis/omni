@@ -17,25 +17,18 @@ func (s *MLAnalyticsService) getProductAnalyses(
 	limit int,
 	cursor string,
 ) ([]models.MLProductAnalysis, error) {
-
-	// Aggregate data from both platforms into unified map
 	productMap := make(map[string]*unifiedProductAgg)
 
-	// 1. Aggregate TikTok ads data
 	if platform == "" || platform == "tiktok" {
 		s.aggregateTiktokProducts(ctx, productMap)
 	}
-
-	// 2. Aggregate Shopee ads data
 	if platform == "" || platform == "shopee" {
 		s.aggregateShopeeProducts(ctx, productMap)
 	}
 
-	// Get historical data for trend analysis (both platforms)
 	historical := s.getHistoricalByProduct(ctx)
 	shopeeHistorical := s.getShopeeHistoricalByProduct(ctx)
 
-	// Merge shopee historical into main historical map
 	for k, v := range shopeeHistorical {
 		if existing, ok := historical[k]; ok {
 			existing.ROIValues = append(existing.ROIValues, v.ROIValues...)
@@ -46,7 +39,6 @@ func (s *MLAnalyticsService) getProductAnalyses(
 		}
 	}
 
-	// Build product analyses
 	analyses := make([]models.MLProductAnalysis, 0, len(productMap))
 	cfg := ads.DefaultScoringConfig()
 
@@ -54,258 +46,61 @@ func (s *MLAnalyticsService) getProductAnalyses(
 		if r.ProductID == "" {
 			continue
 		}
-
-		analysis := models.MLProductAnalysis{
-			TenantID:    s.tenantID,
-			ProductID:   r.ProductID,
-			ProductName: r.ProductName,
-			SKU:         r.SKU,
-			Platform:    r.Platform,
-			TotalCost:   r.TotalCost,
-			TotalRevenue: r.TotalRevenue,
-			TotalProfit: r.TotalRevenue - r.TotalCost,
-			TotalOrders: r.TotalOrders,
-			Clicks:      r.Clicks,
-			Impressions: r.Impressions,
-			PeriodCount: r.PeriodCount,
-		}
-
-		// Calculate CTR
-		if r.Impressions > 0 {
-			analysis.CTR = float64(r.Clicks) / float64(r.Impressions)
-		}
-
-		// Calculate ROAS
-		if r.TotalCost > 0 {
-			analysis.ROAS = roundTo(r.TotalRevenue/r.TotalCost, 2)
-		}
-
-		// Calculate scores using existing scoring system
-		var score ads.ScoreResult
-		if hist, ok := historical[r.ProductID]; ok && len(hist.ROIValues) >= 2 {
-			score = ads.CalculateFullScore(cfg, analysis.ROAS, analysis.TotalProfit,
-				hist.ROIValues, hist.ProfitValues)
-		} else {
-			score = ads.SimpleScore(analysis.ROAS, analysis.TotalProfit)
-		}
-
-		// Map to unified score
-		analysis.UnifiedScore = score.CompositeScore
-		analysis.ROASScore = score.ROIScore
-		analysis.TrendScore = score.TrendScore
-		analysis.MomentumScore = score.MomentumScore
-		analysis.VolatilityScore = score.ConsistencyScore
-
-		// Map category
-		analysis.Category = mapToCategory(score.Category)
-		analysis.Action = score.Category
-		analysis.ActionLabel = score.Action
-		analysis.BudgetChangePct = getBudgetChangePct(score.Category)
-
-		// Generate AI recommendation text
-		analysis.Recommendation = generateRecommendation(analysis.Category, analysis.Action, analysis.ROAS, analysis.Platform)
-
-		// Determine fatigue and churn
-		analysis.FatigueStatus = determineFatigueStatus(r.Clicks, r.Impressions, r.PeriodCount)
-		analysis.HasFatigueWarning = analysis.FatigueStatus == "FATIGUED" || analysis.FatigueStatus == "DEAD"
-
-		analysis.ChurnRiskScore = calculateChurnRisk(analysis.MomentumScore, analysis.TrendScore, analysis.VolatilityScore)
-		analysis.HasChurnRisk = analysis.ChurnRiskScore > 60
-
-		// Confidence level
-		analysis.ConfidenceLevel = getConfidenceLevel(r.PeriodCount)
-		analysis.SuccessProbability = estimateSuccessProbability(analysis.UnifiedScore, analysis.ROAS)
-
-		// Trend direction
-		analysis.TrendDirection = getTrendDirection(analysis.MomentumScore)
-		analysis.TrendStrength = math.Abs(analysis.MomentumScore-50) / 50
-
-		analyses = append(analyses, analysis)
+		analyses = append(analyses, buildProductAnalysis(s.tenantID, r, historical, cfg))
 	}
 
 	return analyses, nil
 }
 
-// unifiedProductAgg holds aggregated data from both platforms
-type unifiedProductAgg struct {
-	ProductID   string
-	ProductName string
-	SKU         string
-	Platform    string // "tiktok", "shopee", or "combined"
-	TotalCost   float64
-	TotalRevenue float64
-	TotalOrders int
-	Impressions int
-	Clicks      int
-	PeriodCount int
-}
-
-// aggregateTiktokProducts aggregates TikTok ads data into the product map
-func (s *MLAnalyticsService) aggregateTiktokProducts(ctx context.Context, productMap map[string]*unifiedProductAgg) {
-	type AggResult struct {
-		ProductID   string  `gorm:"column:product_id"`
-		ProductName string  `gorm:"column:product_name"`
-		TotalCost   float64 `gorm:"column:total_cost"`
-		TotalRevenue float64 `gorm:"column:total_revenue"`
-		TotalOrders int     `gorm:"column:total_orders"`
-		Impressions int     `gorm:"column:impressions"`
-		Clicks      int     `gorm:"column:clicks"`
-		PeriodCount int     `gorm:"column:period_count"`
+// buildProductAnalysis creates a single MLProductAnalysis from aggregated data
+func buildProductAnalysis(
+	tenantID string,
+	r *unifiedProductAgg,
+	historical map[string]ads.HistoricalValues,
+	cfg ads.ScoringConfig,
+) models.MLProductAnalysis {
+	analysis := models.MLProductAnalysis{
+		TenantID: tenantID, ProductID: r.ProductID, ProductName: r.ProductName,
+		SKU: r.SKU, Platform: r.Platform, TotalCost: r.TotalCost,
+		TotalRevenue: r.TotalRevenue, TotalProfit: r.TotalRevenue - r.TotalCost,
+		TotalOrders: r.TotalOrders, Clicks: r.Clicks, Impressions: r.Impressions,
+		PeriodCount: r.PeriodCount,
 	}
 
-	var results []AggResult
-	s.db.WithContext(ctx).
-		Model(&models.TiktokAdsCreativeData{}).
-		Select(`
-			product_id,
-			MAX(COALESCE(NULLIF(product_name, ''), product_id)) as product_name,
-			SUM(cost) as total_cost,
-			SUM(gross_revenue) as total_revenue,
-			SUM(orders_sku) as total_orders,
-			SUM(impressions) as impressions,
-			SUM(clicks) as clicks,
-			COUNT(DISTINCT period_label) as period_count
-		`).
-		Where("tenant_id = ? AND product_id != '' AND product_id != '-1'", s.tenantID).
-		Group("product_id").
-		Scan(&results)
-
-	for _, r := range results {
-		key := fmt.Sprintf("tiktok_%s", r.ProductID)
-		productMap[key] = &unifiedProductAgg{
-			ProductID:    key,
-			ProductName:  r.ProductName,
-			SKU:          r.ProductID,
-			Platform:     "tiktok",
-			TotalCost:    r.TotalCost,
-			TotalRevenue: r.TotalRevenue,
-			TotalOrders:  r.TotalOrders,
-			Impressions:  r.Impressions,
-			Clicks:       r.Clicks,
-			PeriodCount:  r.PeriodCount,
-		}
+	if r.Impressions > 0 {
+		analysis.CTR = float64(r.Clicks) / float64(r.Impressions)
 	}
-}
-
-// aggregateShopeeProducts aggregates Shopee ads data into the product map
-func (s *MLAnalyticsService) aggregateShopeeProducts(ctx context.Context, productMap map[string]*unifiedProductAgg) {
-	type AggResult struct {
-		ProductID   string  `gorm:"column:product_id"`
-		ProductName string  `gorm:"column:product_name"`
-		TotalCost   float64 `gorm:"column:total_cost"`
-		TotalRevenue float64 `gorm:"column:total_revenue"`
-		TotalOrders int     `gorm:"column:total_orders"`
-		Impressions int     `gorm:"column:impressions"`
-		Clicks      int     `gorm:"column:clicks"`
-		PeriodCount int     `gorm:"column:period_count"`
+	if r.TotalCost > 0 {
+		analysis.ROAS = roundTo(r.TotalRevenue/r.TotalCost, 2)
 	}
 
-	var results []AggResult
-	s.db.WithContext(ctx).
-		Model(&models.ShopeeAdsProductData{}).
-		Select(`
-			product_id,
-			MAX(COALESCE(NULLIF(product_name, ''), product_id)) as product_name,
-			SUM(cost) as total_cost,
-			SUM(revenue) as total_revenue,
-			SUM(units_sold) as total_orders,
-			SUM(impressions) as impressions,
-			SUM(clicks) as clicks,
-			COUNT(DISTINCT period_label) as period_count
-		`).
-		Where("tenant_id = ? AND product_id != ''", s.tenantID).
-		Group("product_id").
-		Scan(&results)
-
-	for _, r := range results {
-		key := fmt.Sprintf("shopee_%s", r.ProductID)
-		productMap[key] = &unifiedProductAgg{
-			ProductID:    key,
-			ProductName:  r.ProductName,
-			SKU:          r.ProductID,
-			Platform:     "shopee",
-			TotalCost:    r.TotalCost,
-			TotalRevenue: r.TotalRevenue,
-			TotalOrders:  r.TotalOrders,
-			Impressions:  r.Impressions,
-			Clicks:       r.Clicks,
-			PeriodCount:  r.PeriodCount,
-		}
-	}
-}
-
-// getHistoricalByProduct retrieves historical ROI and profit per TikTok product (last 90 days)
-func (s *MLAnalyticsService) getHistoricalByProduct(ctx context.Context) map[string]ads.HistoricalValues {
-	type PeriodData struct {
-		ProductID   string  `gorm:"column:product_id"`
-		PeriodStart string  `gorm:"column:period_start"`
-		Cost        float64 `gorm:"column:cost"`
-		Revenue     float64 `gorm:"column:revenue"`
+	var score ads.ScoreResult
+	if hist, ok := historical[r.ProductID]; ok && len(hist.ROIValues) >= 2 {
+		score = ads.CalculateFullScore(cfg, analysis.ROAS, analysis.TotalProfit, hist.ROIValues, hist.ProfitValues)
+	} else {
+		score = ads.SimpleScore(analysis.ROAS, analysis.TotalProfit)
 	}
 
-	var periodData []PeriodData
-	s.db.WithContext(ctx).
-		Model(&models.TiktokAdsCreativeData{}).
-		Select("product_id, period_start, SUM(cost) as cost, SUM(gross_revenue) as revenue").
-		Where("tenant_id = ?", s.tenantID).
-		Where("period_start >= NOW() - INTERVAL '90 days'").
-		Group("product_id, period_start").
-		Order("period_start ASC").
-		Scan(&periodData)
+	analysis.UnifiedScore = score.CompositeScore
+	analysis.ROASScore = score.ROIScore
+	analysis.TrendScore = score.TrendScore
+	analysis.MomentumScore = score.MomentumScore
+	analysis.VolatilityScore = score.ConsistencyScore
+	analysis.Category = mapToCategory(score.Category)
+	analysis.Action = score.Category
+	analysis.ActionLabel = score.Action
+	analysis.BudgetChangePct = getBudgetChangePct(score.Category)
+	analysis.Recommendation = generateRecommendation(analysis.Category, analysis.Action, analysis.ROAS, analysis.Platform)
+	analysis.FatigueStatus = determineFatigueStatus(r.Clicks, r.Impressions, r.PeriodCount)
+	analysis.HasFatigueWarning = analysis.FatigueStatus == "FATIGUED" || analysis.FatigueStatus == "DEAD"
+	analysis.ChurnRiskScore = calculateChurnRisk(analysis.MomentumScore, analysis.TrendScore, analysis.VolatilityScore)
+	analysis.HasChurnRisk = analysis.ChurnRiskScore > 60
+	analysis.ConfidenceLevel = getConfidenceLevel(r.PeriodCount)
+	analysis.SuccessProbability = estimateSuccessProbability(analysis.UnifiedScore, analysis.ROAS)
+	analysis.TrendDirection = getTrendDirection(analysis.MomentumScore)
+	analysis.TrendStrength = math.Abs(analysis.MomentumScore-50) / 50
 
-	result := make(map[string]ads.HistoricalValues)
-	for _, pd := range periodData {
-		roi := 0.0
-		if pd.Cost > 0 {
-			roi = pd.Revenue / pd.Cost
-		}
-		profit := pd.Revenue - pd.Cost
-
-		key := fmt.Sprintf("tiktok_%s", pd.ProductID)
-		hist := result[key]
-		hist.ROIValues = append(hist.ROIValues, roi)
-		hist.ProfitValues = append(hist.ProfitValues, profit)
-		result[key] = hist
-	}
-
-	return result
-}
-
-// getShopeeHistoricalByProduct retrieves historical ROI and profit per Shopee product (last 90 days)
-func (s *MLAnalyticsService) getShopeeHistoricalByProduct(ctx context.Context) map[string]ads.HistoricalValues {
-	type PeriodData struct {
-		ProductID   string  `gorm:"column:product_id"`
-		PeriodStart string  `gorm:"column:period_start"`
-		Cost        float64 `gorm:"column:cost"`
-		Revenue     float64 `gorm:"column:revenue"`
-	}
-
-	var periodData []PeriodData
-	s.db.WithContext(ctx).
-		Model(&models.ShopeeAdsProductData{}).
-		Select("product_id, period_start, SUM(cost) as cost, SUM(revenue) as revenue").
-		Where("tenant_id = ?", s.tenantID).
-		Where("period_start >= NOW() - INTERVAL '90 days'").
-		Group("product_id, period_start").
-		Order("period_start ASC").
-		Scan(&periodData)
-
-	result := make(map[string]ads.HistoricalValues)
-	for _, pd := range periodData {
-		roi := 0.0
-		if pd.Cost > 0 {
-			roi = pd.Revenue / pd.Cost
-		}
-		profit := pd.Revenue - pd.Cost
-
-		key := fmt.Sprintf("shopee_%s", pd.ProductID)
-		hist := result[key]
-		hist.ROIValues = append(hist.ROIValues, roi)
-		hist.ProfitValues = append(hist.ProfitValues, profit)
-		result[key] = hist
-	}
-
-	return result
+	return analysis
 }
 
 // applyFilters filters products by category and action

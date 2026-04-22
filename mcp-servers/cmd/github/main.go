@@ -2,10 +2,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"mcp-servers/pkg/mcp"
@@ -23,53 +20,27 @@ var (
 	// statusAliases maps typos/variations to canonical status values
 	statusAliases = map[string]string{
 		// NO QUOTA variations
-		"NOQUOTA":  "NO QUOTA",
-		"NO_QUOTA": "NO QUOTA",
-		"NO-QUOTA": "NO QUOTA",
-		"NOQUATA":  "NO QUOTA",
-		"NO QUATA": "NO QUOTA",
-		"NOQOUTA":  "NO QUOTA",
-		"NO QOUTA": "NO QUOTA",
-		"HABIS":    "NO QUOTA",
-		"LIMIT":    "NO QUOTA",
-		"LIMITED":  "NO QUOTA",
-		"NOQUOTE":  "NO QUOTA",
-		"NO QUOTE": "NO QUOTA",
+		"NOQUOTA": "NO QUOTA", "NO_QUOTA": "NO QUOTA", "NO-QUOTA": "NO QUOTA",
+		"NOQUATA": "NO QUOTA", "NO QUATA": "NO QUOTA", "NOQOUTA": "NO QUOTA",
+		"NO QOUTA": "NO QUOTA", "HABIS": "NO QUOTA", "LIMIT": "NO QUOTA",
+		"LIMITED": "NO QUOTA", "NOQUOTE": "NO QUOTA", "NO QUOTE": "NO QUOTA",
 		// AVAILABLE variations
-		"AVAIL":     "AVAILABLE",
-		"TERSEDIA":  "AVAILABLE",
-		"READY":     "AVAILABLE",
-		"OK":        "AVAILABLE",
-		"AKTIF":     "AVAILABLE",
-		"ACTIVE":    "AVAILABLE",
-		"AVL":       "AVAILABLE",
-		"AVAIALBLE": "AVAILABLE",
-		"AVIALABLE": "AVAILABLE",
+		"AVAIL": "AVAILABLE", "TERSEDIA": "AVAILABLE", "READY": "AVAILABLE",
+		"OK": "AVAILABLE", "AKTIF": "AVAILABLE", "ACTIVE": "AVAILABLE",
+		"AVL": "AVAILABLE", "AVAIALBLE": "AVAILABLE", "AVIALABLE": "AVAILABLE",
 		"AVAILABEL": "AVAILABLE",
 		// CHECK variations
-		"CEK":      "CHECK",
-		"CHECKING": "CHECK",
-		"VERIFY":   "CHECK",
-		"CHEK":     "CHECK",
-		"CECK":     "CHECK",
+		"CEK": "CHECK", "CHECKING": "CHECK", "VERIFY": "CHECK",
+		"CHEK": "CHECK", "CECK": "CHECK",
 		// SUSPENDED variations
-		"SUSPEND":  "SUSPENDED",
-		"SUSPENED": "SUSPENDED",
-		"SUSPENDE": "SUSPENDED",
-		"BLOKIR":   "SUSPENDED",
-		"BLOCKED":  "SUSPENDED",
+		"SUSPEND": "SUSPENDED", "SUSPENED": "SUSPENDED", "SUSPENDE": "SUSPENDED",
+		"BLOKIR": "SUSPENDED", "BLOCKED": "SUSPENDED",
 		// BANNED variations
-		"BAN":   "BANNED",
-		"BANED": "BANNED",
-		"BAND":  "BANNED",
-		"BANN":  "BANNED",
+		"BAN": "BANNED", "BANED": "BANNED", "BAND": "BANNED", "BANN": "BANNED",
 		// KANTOR variations
-		"OFFICE": "KANTOR",
-		"KNTOR":  "KANTOR",
-		"KANTRO": "KANTOR",
+		"OFFICE": "KANTOR", "KNTOR": "KANTOR", "KANTRO": "KANTOR",
 		// YUMNA variations
-		"YUMNA'S": "YUMNA",
-		"YUMNAA":  "YUMNA",
+		"YUMNA'S": "YUMNA", "YUMNAA": "YUMNA",
 	}
 )
 
@@ -84,14 +55,14 @@ type account struct {
 }
 
 type accountView struct {
-	RowIndex          int    `json:"rowIndex"`
-	Email             string `json:"email"`
-	Username          string `json:"username"`
-	Status            string `json:"status"`
-	UserYumna         string `json:"userYumna"`
-	PasswordSet       bool   `json:"passwordSet"`
-	Has2FASecret      bool   `json:"has2faSecret"`
-	BackupCodesCount  int    `json:"backupCodesCount"`
+	RowIndex         int    `json:"rowIndex"`
+	Email            string `json:"email"`
+	Username         string `json:"username"`
+	Status           string `json:"status"`
+	UserYumna        string `json:"userYumna"`
+	PasswordSet      bool   `json:"passwordSet"`
+	Has2FASecret     bool   `json:"has2faSecret"`
+	BackupCodesCount int    `json:"backupCodesCount"`
 }
 
 type addAccountPayload struct {
@@ -113,99 +84,7 @@ func main() {
 	}
 
 	server := mcp.NewServer("mcp-github-accounts", "1.0.0")
-
-	server.RegisterTools([]mcp.Tool{
-		{
-			Name:        "get_menu",
-			Description: "TRIGGER: 'MCP GH' or 'GH Menu' - Shows available GitHub account management tools",
-			InputSchema: mcp.InputSchema{Type: "object", Properties: map[string]mcp.Property{}, Required: []string{}},
-		},
-		{
-			Name:        "get_accounts_by_status",
-			Description: "TRIGGER: 'MCP GH status [STATUS]' or 'GH status [STATUS]' - Get accounts filtered by status (no passwords/2FA secrets returned)",
-			InputSchema: mcp.InputSchema{
-				Type:       "object",
-				Properties: map[string]mcp.Property{"status": {Type: "string", Description: "Status filter"}},
-				Required:   []string{"status"},
-			},
-		},
-		{
-			Name:        "delete_backup_code",
-			Description: "TRIGGER: 'MCP GH [CODE]' or 'GH [CODE]' - Delete a specific backup code",
-			InputSchema: mcp.InputSchema{
-				Type:       "object",
-				Properties: map[string]mcp.Property{"code": {Type: "string", Description: "Backup code to delete"}},
-				Required:   []string{"code"},
-			},
-		},
-		{
-			Name:        "add_account",
-			Description: "TRIGGER: 'MCP GH add' or 'GH add' - Add new account. NOTE: Avoid pasting passwords/2FA/backup codes into chat. Prefer 'add_account_from_file' to keep secrets local. RECOGNITION RULES: 1) Code Recovery/2FA Secret = 16 characters, Base32, NO dash (e.g. BUCD6EOGDBBIOAKK). 2) Backup Codes = 11 characters with dash format xxxxx-xxxxx (e.g. 7c197-eb3b9). Always check character count and dash presence to distinguish them.",
-			InputSchema: mcp.InputSchema{
-				Type: "object",
-				Properties: map[string]mcp.Property{
-					"email":        {Type: "string", Description: "Email address"},
-					"password":     {Type: "string", Description: "Password (optional; prefer file-based flow)"},
-					"username":     {Type: "string", Description: "Username (optional)"},
-					"codeRecovery": {Type: "string", Description: "2FA/TOTP secret key - 16 chars, Base32, NO dash (optional; prefer file-based flow)"},
-					"codes":        {Type: "array", Description: "Backup codes - format xxxxx-xxxxx with dash (optional; prefer file-based flow)", Items: &mcp.Items{Type: "string"}},
-				},
-				Required: []string{"email"},
-			},
-		},
-		{
-			Name:        "add_account_from_file",
-			Description: "SAFE: Add new account from a local JSON file path, so secrets don't get pasted into chat. File format: {email, username?, password?, codeRecovery?, codes?: [..]}. You can place the file OUTSIDE the repo and optionally delete it after import.",
-			InputSchema: mcp.InputSchema{
-				Type: "object",
-				Properties: map[string]mcp.Property{
-					"path":        {Type: "string", Description: "Path to JSON file containing account payload"},
-					"deleteAfter": {Type: "boolean", Description: "If true, delete the JSON file after successful import"},
-				},
-				Required: []string{"path"},
-			},
-		},
-		{
-			Name:        "delete_account",
-			Description: "TRIGGER: 'MCP GH delete [EMAIL]' - Delete account and all backup codes",
-			InputSchema: mcp.InputSchema{
-				Type:       "object",
-				Properties: map[string]mcp.Property{"email": {Type: "string", Description: "Email to delete"}},
-				Required:   []string{"email"},
-			},
-		},
-		{
-			Name:        "get_summary",
-			Description: "TRIGGER: 'MCP GH summary' - Get summary of all accounts",
-			InputSchema: mcp.InputSchema{Type: "object", Properties: map[string]mcp.Property{}, Required: []string{}},
-		},
-		{
-			Name:        "get_all_accounts",
-			Description: "TRIGGER: 'MCP GH status all' - Get all accounts (no passwords/2FA secrets/backup codes returned)",
-			InputSchema: mcp.InputSchema{Type: "object", Properties: map[string]mcp.Property{}, Required: []string{}},
-		},
-		{
-			Name:        "generate_2fa",
-			Description: "Generate 2FA/TOTP 6-digit code from secret key. ALWAYS USE THIS TOOL when user types 'MCP 2fa', '2fa', 'totp', 'otp' followed by a secret code. Example: 'MCP 2fa WKX2OSMHXAWA2VRR' should call this with secret='WKX2OSMHXAWA2VRR'",
-			InputSchema: mcp.InputSchema{
-				Type:       "object",
-				Properties: map[string]mcp.Property{"secret": {Type: "string", Description: "2FA secret key (base32 encoded, e.g. WKX2OSMHXAWA2VRR)"}},
-				Required:   []string{"secret"},
-			},
-		},
-		{
-			Name:        "update_status",
-			Description: "TRIGGER: 'MCP GH update [EMAIL] [STATUS]' or 'GH update [EMAIL] [STATUS]' - Update account status. Valid statuses: AVAILABLE, CHECK, YUMNA, KANTOR, NO QUOTA, SUSPENDED, BANNED. Typos will be auto-corrected.",
-			InputSchema: mcp.InputSchema{
-				Type: "object",
-				Properties: map[string]mcp.Property{
-					"email":  {Type: "string", Description: "Email of the account to update"},
-					"status": {Type: "string", Description: "New status (AVAILABLE, CHECK, YUMNA, KANTOR, NO QUOTA, SUSPENDED, BANNED)"},
-				},
-				Required: []string{"email", "status"},
-			},
-		},
-	})
+	server.RegisterTools(buildToolDefinitions())
 
 	server.SetHandler(func(name string, args map[string]interface{}) (interface{}, error) {
 		switch name {
@@ -256,31 +135,7 @@ func getMenu() map[string]interface{} {
 	}
 }
 
-func getAllAccounts() ([]accountView, error) {
-	accounts, err := getAccounts()
-	if err != nil {
-		return nil, err
-	}
-	return toAccountViews(accounts)
-}
-
-func getAccountsByStatus(status string) ([]accountView, error) {
-	status = strings.ToUpper(status)
-	accounts, err := getAccounts()
-	if err != nil {
-		return nil, err
-	}
-
-	var filtered []account
-	for _, acc := range accounts {
-		if strings.ToUpper(acc.Status) == status {
-			filtered = append(filtered, acc)
-		}
-	}
-
-	return toAccountViews(filtered)
-}
-
+// getAccounts fetches all accounts from the main sheet
 func getAccounts() ([]account, error) {
 	values, err := sheetsService.GetValues(sheetMain + "!A:G")
 	if err != nil {
@@ -316,6 +171,7 @@ func getAccounts() ([]account, error) {
 	return accounts, nil
 }
 
+// toAccountViews converts accounts to safe views (no passwords/secrets)
 func toAccountViews(accounts []account) ([]accountView, error) {
 	result := make([]accountView, 0, len(accounts))
 	for _, acc := range accounts {
@@ -334,352 +190,19 @@ func toAccountViews(accounts []account) ([]accountView, error) {
 	return result, nil
 }
 
-func getBackupCodes(email string) ([]string, error) {
-	values, err := sheetsService.GetValues(sheetCodeBackup + "!A:Z")
-	if err != nil || len(values) == 0 {
-		return nil, err
-	}
-
-	colIndex := -1
-	for i, e := range values[0] {
-		if strings.EqualFold(e, email) {
-			colIndex = i
-			break
-		}
-	}
-	if colIndex == -1 {
-		return nil, nil
-	}
-
-	var codes []string
-	for i := 1; i < len(values); i++ {
-		if colIndex < len(values[i]) && strings.TrimSpace(values[i][colIndex]) != "" {
-			codes = append(codes, values[i][colIndex])
-		}
-	}
-	return codes, nil
-}
-
-func deleteBackupCode(code string) (map[string]interface{}, error) {
-	values, err := sheetsService.GetValues(sheetCodeBackup + "!A:Z")
-	if err != nil || len(values) == 0 {
-		return map[string]interface{}{"success": false, "message": "Code not found"}, nil
-	}
-
-	for row := 1; row < len(values); row++ {
-		for col := 0; col < len(values[row]); col++ {
-			if values[row][col] == code {
-				email := ""
-				if col < len(values[0]) {
-					email = values[0][col]
-				}
-				rangeStr := fmt.Sprintf("%s!%s%d", sheetCodeBackup, sheets.ColToLetter(col), row+1)
-				sheetsService.ClearCell(rangeStr)
-				return map[string]interface{}{
-					"success":     true,
-					"message":     fmt.Sprintf("Kode '%s' berhasil dihapus dari %s", code, email),
-					"email":       email,
-					"deletedCode": code,
-				}, nil
-			}
-		}
-	}
-	return map[string]interface{}{"success": false, "message": fmt.Sprintf("Kode '%s' tidak ditemukan", code)}, nil
-}
-
-func addAccount(args map[string]interface{}) (map[string]interface{}, error) {
-	email := strings.TrimSpace(args["email"].(string))
-	username := ""
-	password := ""
-	codeRecovery := ""
-	var codes []string
-
-	if u, ok := args["username"].(string); ok {
-		username = strings.TrimSpace(u)
-	}
-	if p, ok := args["password"].(string); ok {
-		password = p
-	}
-	if cr, ok := args["codeRecovery"].(string); ok {
-		codeRecovery = cr
-	}
-	if c, ok := args["codes"].([]interface{}); ok {
-		for _, code := range c {
-			if s, ok := code.(string); ok {
-				trimmed := strings.TrimSpace(s)
-				if trimmed != "" {
-					codes = append(codes, trimmed)
-				}
-			}
-		}
-	}
-
-	if email == "" {
-		return map[string]interface{}{"success": false, "message": "Email wajib diisi"}, nil
-	}
-
-	return addAccountData(addAccountPayload{
-		Email:        email,
-		Username:     username,
-		Password:     password,
-		CodeRecovery: codeRecovery,
-		Codes:        codes,
-	})
-}
-
-func addAccountFromFile(args map[string]interface{}) (map[string]interface{}, error) {
-	pathRaw := strings.TrimSpace(args["path"].(string))
-	deleteAfter := false
-	if v, ok := args["deleteAfter"].(bool); ok {
-		deleteAfter = v
-	}
-
-	if pathRaw == "" {
-		return map[string]interface{}{"success": false, "message": "Path wajib diisi"}, nil
-	}
-
-	path := filepath.Clean(pathRaw)
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return map[string]interface{}{"success": false, "message": fmt.Sprintf("Gagal membaca file: %v", err)}, nil
-	}
-
-	var payload addAccountPayload
-	if err := json.Unmarshal(data, &payload); err != nil {
-		return map[string]interface{}{"success": false, "message": fmt.Sprintf("Format JSON tidak valid: %v", err)}, nil
-	}
-	payload.Email = strings.TrimSpace(payload.Email)
-	payload.Username = strings.TrimSpace(payload.Username)
-
-	if payload.Email == "" {
-		return map[string]interface{}{"success": false, "message": "Field 'email' wajib diisi"}, nil
-	}
-
-	result, err := addAccountData(payload)
-	if err != nil {
-		return nil, err
-	}
-
-	if deleteAfter {
-		_ = os.Remove(path)
-		result["fileDeleted"] = true
-	}
-	result["source"] = "file"
-	result["path"] = path
-	return result, nil
-}
-
-func addAccountData(payload addAccountPayload) (map[string]interface{}, error) {
-	// Check if exists
-	accounts, _ := getAccounts()
-	for _, acc := range accounts {
-		if strings.EqualFold(acc.Email, payload.Email) {
-			return map[string]interface{}{"success": false, "message": fmt.Sprintf("Email %s sudah ada", payload.Email)}, nil
-		}
-	}
-
-	// Add account row
-	row := []interface{}{payload.Email, payload.Username, payload.Password, payload.CodeRecovery, "AVAILABLE", ""}
-	if err := sheetsService.AppendRow(sheetMain, row); err != nil {
-		return nil, err
-	}
-
-	// Add backup codes (optional)
-	if len(payload.Codes) > 0 {
-		_ = addBackupCodes(payload.Email, payload.Codes)
-	}
-
-	return map[string]interface{}{
-		"success":         true,
-		"message":         fmt.Sprintf("Akun %s berhasil ditambahkan", payload.Email),
-		"email":           payload.Email,
-		"codesAdded":      len(payload.Codes),
-		"passwordStored":  strings.TrimSpace(payload.Password) != "",
-		"has2faSecret":    strings.TrimSpace(payload.CodeRecovery) != "",
-	}, nil
-}
-
-func addBackupCodes(email string, codes []string) error {
-	values, _ := sheetsService.GetValues(sheetCodeBackup + "!A:Z")
-	var headerRow []string
-	if len(values) > 0 {
-		headerRow = values[0]
-	}
-
-	colIndex := -1
-	for i, e := range headerRow {
-		if strings.EqualFold(e, email) {
-			colIndex = i
-			break
-		}
-	}
-
-	colLetter := ""
-	if colIndex == -1 {
-		colIndex = len(headerRow)
-		colLetter = sheets.ColToLetter(colIndex)
-		sheetsService.UpdateValues(fmt.Sprintf("%s!%s1", sheetCodeBackup, colLetter), [][]interface{}{{email}})
-	} else {
-		colLetter = sheets.ColToLetter(colIndex)
-	}
-
-	codeValues := make([][]interface{}, len(codes))
-	for i, c := range codes {
-		codeValues[i] = []interface{}{c}
-	}
-	rangeStr := fmt.Sprintf("%s!%s2:%s%d", sheetCodeBackup, colLetter, colLetter, 1+len(codes))
-	return sheetsService.UpdateValues(rangeStr, codeValues)
-}
-
-func deleteAccount(email string) (map[string]interface{}, error) {
-	accounts, _ := getAccounts()
-	var found *account
-	for _, acc := range accounts {
-		if strings.EqualFold(acc.Email, email) {
-			found = &acc
-			break
-		}
-	}
-	if found == nil {
-		return map[string]interface{}{"success": false, "message": fmt.Sprintf("Akun %s tidak ditemukan", email)}, nil
-	}
-
-	// Delete backup codes column
-	deleteBackupColumn(email)
-
-	// Delete account row
-	sheetsService.DeleteRow(sheetMain, int64(found.RowIndex-1))
-
-	return map[string]interface{}{
-		"success": true,
-		"message": fmt.Sprintf("Akun %s beserta semua code backup berhasil dihapus", email),
-		"email":   email,
-	}, nil
-}
-
-func deleteBackupColumn(email string) {
-	values, _ := sheetsService.GetValues(sheetCodeBackup + "!A:Z")
-	if len(values) == 0 {
-		return
-	}
-	for i, e := range values[0] {
-		if strings.EqualFold(e, email) {
-			sheetsService.DeleteColumn(sheetCodeBackup, int64(i))
-			return
-		}
-	}
-}
-
-func getSummary() (map[string]interface{}, error) {
-	accounts, err := getAccounts()
-	if err != nil {
-		return nil, err
-	}
-
-	statusCount := make(map[string]int)
-	for _, acc := range accounts {
-		status := acc.Status
-		if status == "" {
-			status = "UNKNOWN"
-		}
-		statusCount[status]++
-	}
-
-	return map[string]interface{}{
-		"totalAccounts": len(accounts),
-		"byStatus":      statusCount,
-	}, nil
-}
-
 // normalizeStatus validates and normalizes status input
-// Returns normalized status and whether it's valid
 func normalizeStatus(input string) (string, bool) {
-	// Uppercase and trim
 	normalized := strings.ToUpper(strings.TrimSpace(input))
 
-	// Check if it's already a valid status
 	for _, valid := range statusValues {
 		if normalized == valid {
 			return valid, true
 		}
 	}
 
-	// Check aliases for typo correction
 	if corrected, ok := statusAliases[normalized]; ok {
 		return corrected, true
 	}
 
-	// Not recognized
 	return "", false
-}
-
-// updateStatus updates the status of an account by email
-func updateStatus(email, status string) (map[string]interface{}, error) {
-	// Normalize and validate status
-	normalizedStatus, valid := normalizeStatus(status)
-	if !valid {
-		return map[string]interface{}{
-			"success":       false,
-			"message":       fmt.Sprintf("Status '%s' tidak dikenali", status),
-			"validStatuses": statusValues,
-			"hint":          "Gunakan salah satu status yang valid di atas",
-		}, nil
-	}
-
-	// Find account
-	accounts, err := getAccounts()
-	if err != nil {
-		return nil, err
-	}
-
-	var found *account
-	for _, acc := range accounts {
-		if strings.EqualFold(acc.Email, email) {
-			found = &acc
-			break
-		}
-	}
-
-	if found == nil {
-		return map[string]interface{}{
-			"success": false,
-			"message": fmt.Sprintf("Akun dengan email '%s' tidak ditemukan", email),
-		}, nil
-	}
-
-	oldStatus := found.Status
-
-	// Check if status is the same
-	if strings.ToUpper(oldStatus) == normalizedStatus {
-		return map[string]interface{}{
-			"success": true,
-			"message": fmt.Sprintf("Status sudah '%s', tidak perlu diubah", normalizedStatus),
-			"email":   email,
-			"status":  normalizedStatus,
-		}, nil
-	}
-
-	// Update status in sheet (column E = index 4, so column letter is E)
-	rangeStr := fmt.Sprintf("%s!E%d", sheetMain, found.RowIndex)
-	err = sheetsService.UpdateValues(rangeStr, [][]interface{}{{normalizedStatus}})
-	if err != nil {
-		return nil, fmt.Errorf("gagal update status: %w", err)
-	}
-
-	// Build response
-	response := map[string]interface{}{
-		"success":   true,
-		"message":   fmt.Sprintf("Status akun %s berhasil diubah dari '%s' ke '%s'", email, oldStatus, normalizedStatus),
-		"email":     email,
-		"oldStatus": oldStatus,
-		"newStatus": normalizedStatus,
-	}
-
-	// Add note if typo was corrected
-	if strings.ToUpper(strings.TrimSpace(status)) != normalizedStatus {
-		response["correctedFrom"] = status
-		response["note"] = fmt.Sprintf("Input '%s' telah dinormalisasi menjadi '%s'", status, normalizedStatus)
-	}
-
-	return response, nil
 }

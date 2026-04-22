@@ -10,6 +10,11 @@ import {
 } from "@ant-design/icons";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { Notification } from "@/api/notifications";
+import {
+  formatRelativeTime,
+  parseNotificationMessage,
+  NotificationStats,
+} from "./NotificationHelpers";
 
 const { Text } = Typography;
 
@@ -28,106 +33,6 @@ function useTypeConfig() {
     warning: { color: token.colorWarning, icon: <ExclamationCircleOutlined /> },
     info: { color: token.colorPrimary, icon: <InfoCircleOutlined /> },
   };
-}
-
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const diff = Date.now() - date.getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
-/**
- * Parsed notification message.
- * If the raw message is JSON (e.g. from a background job result),
- * we extract a human-readable summary and optional numeric stats.
- */
-interface ParsedMessage {
-  summary: string;
-  stats?: { total?: number; processed?: number; failed?: number };
-}
-
-/**
- * Parses a notification message that may be a raw JSON string
- * from a background job handler (e.g. escrow sync result).
- *
- * Expected JSON shape (best effort, not enforced):
- * { message: string, total_orders?: number, processed_orders?: number, failed_orders?: number }
- */
-function parseNotificationMessage(raw: string): ParsedMessage {
-  if (!raw) return { summary: "" };
-
-  try {
-    const parsed = JSON.parse(raw);
-
-    // Must be a plain object to proceed
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-      return { summary: raw };
-    }
-
-    // Use the human-readable "message" field if present
-    const summary =
-      typeof parsed.message === "string" && parsed.message.trim()
-        ? parsed.message.trim()
-        : raw;
-
-    // Extract optional numeric stats
-    const stats: ParsedMessage["stats"] = {};
-    if (typeof parsed.total_orders === "number") stats.total = parsed.total_orders;
-    if (typeof parsed.processed_orders === "number") stats.processed = parsed.processed_orders;
-    if (typeof parsed.failed_orders === "number") stats.failed = parsed.failed_orders;
-
-    const hasStats = Object.keys(stats).length > 0;
-    return { summary, stats: hasStats ? stats : undefined };
-  } catch {
-    // Not valid JSON — display as plain text
-    return { summary: raw };
-  }
-}
-
-/** Renders numeric stats as small chips if available */
-function NotificationStats({
-  stats,
-  failed,
-}: {
-  stats: NonNullable<ParsedMessage["stats"]>;
-  failed: boolean;
-}) {
-  const { token } = theme.useToken();
-  const chipStyle = (isError?: boolean): React.CSSProperties => ({
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 3,
-    padding: "1px 6px",
-    borderRadius: 10,
-    fontSize: 11,
-    fontWeight: 600,
-    background: isError ? token.colorErrorBg : token.colorSuccessBg,
-    color: isError ? token.colorError : token.colorSuccess,
-    border: `1px solid ${isError ? token.colorErrorBorder : token.colorSuccessBorder}`,
-  });
-
-  return (
-    <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
-      {stats.total !== undefined && (
-        <span style={chipStyle()}>Total: {stats.total}</span>
-      )}
-      {stats.processed !== undefined && (
-        <span style={chipStyle()}>Done: {stats.processed}</span>
-      )}
-      {stats.failed !== undefined && stats.failed > 0 && (
-        <span style={chipStyle(true)}>Failed: {stats.failed}</span>
-      )}
-      {failed && stats.failed === 0 && (
-        <span style={chipStyle()}>0 Failed</span>
-      )}
-    </div>
-  );
 }
 
 /**
@@ -161,12 +66,10 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
       onClose?.();
       window.location.href = item.action_url;
     }
-    // No close if no action_url — user wants to read the notification in place
   };
 
   return (
     <>
-      {/* Inline hover style — no external CSS dependency */}
       <style>{`
         .notif-item:hover {
           background: ${token.colorFillTertiary} !important;
@@ -254,9 +157,7 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
                     display: "flex",
                     gap: 12,
                     alignItems: "flex-start",
-                    background: item.read
-                      ? "transparent"
-                      : token.colorPrimaryBg + "44",
+                    background: item.read ? "transparent" : token.colorPrimaryBg + "44",
                     borderBottom: `1px solid ${token.colorBorderSecondary}`,
                     transition: "background 0.15s ease",
                     opacity: item.read ? 0.75 : 1,
@@ -264,103 +165,43 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
                   }}
                   onClick={() => handleItemClick(item)}
                 >
-                  {/* Type icon */}
-                  <div
-                    style={{
-                      fontSize: 20,
-                      color: cfg.color,
-                      flexShrink: 0,
-                      marginTop: 2,
-                    }}
-                  >
+                  <div style={{ fontSize: 20, color: cfg.color, flexShrink: 0, marginTop: 2 }}>
                     {cfg.icon}
                   </div>
 
-                  {/* Content */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        gap: 4,
-                      }}
-                    >
-                      <Text
-                        strong={!item.read}
-                        style={{
-                          fontSize: 14,
-                          display: "block",
-                          lineHeight: 1.4,
-                          color: token.colorText,
-                        }}
-                      >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
+                      <Text strong={!item.read} style={{ fontSize: 14, display: "block", lineHeight: 1.4, color: token.colorText }}>
                         {item.title}
                       </Text>
-
-                      {/* Delete button — stopPropagation prevents triggering handleItemClick */}
                       <Tooltip title="Delete">
                         <Button
                           type="text"
                           size="small"
                           icon={<DeleteOutlined />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteNotification(item.id);
-                          }}
-                          style={{
-                            opacity: 0.45,
-                            flexShrink: 0,
-                            marginLeft: 4,
-                          }}
+                          onClick={(e) => { e.stopPropagation(); deleteNotification(item.id); }}
+                          style={{ opacity: 0.45, flexShrink: 0, marginLeft: 4 }}
                         />
                       </Tooltip>
                     </div>
 
-                    {/* Message — rendered as human-readable, not raw JSON */}
                     {parsed.summary && (
-                      <Text
-                        type="secondary"
-                        style={{
-                          fontSize: 12,
-                          display: "block",
-                          lineHeight: 1.5,
-                          marginTop: 3,
-                          wordBreak: "break-word",
-                        }}
-                      >
+                      <Text type="secondary" style={{ fontSize: 12, display: "block", lineHeight: 1.5, marginTop: 3, wordBreak: "break-word" }}>
                         {parsed.summary}
                       </Text>
                     )}
 
-                    {/* Stats chips for job results */}
                     {parsed.stats && (
-                      <NotificationStats
-                        stats={parsed.stats}
-                        failed={item.type === "error"}
-                      />
+                      <NotificationStats stats={parsed.stats} failed={item.type === "error"} />
                     )}
 
-                    <Text
-                      type="secondary"
-                      style={{ fontSize: 11, marginTop: 5, display: "block" }}
-                    >
+                    <Text type="secondary" style={{ fontSize: 11, marginTop: 5, display: "block" }}>
                       {formatRelativeTime(item.created_at)}
                     </Text>
                   </div>
 
-                  {/* Unread dot */}
                   {!item.read && (
-                    <div
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        background: token.colorPrimary,
-                        flexShrink: 0,
-                        marginTop: 6,
-                      }}
-                    />
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: token.colorPrimary, flexShrink: 0, marginTop: 6 }} />
                   )}
                 </div>
               );
@@ -369,14 +210,7 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "10px 16px",
-            borderTop: `1px solid ${token.colorBorderSecondary}`,
-            textAlign: "center",
-            background: token.colorFillAlter,
-          }}
-        >
+        <div style={{ padding: "10px 16px", borderTop: `1px solid ${token.colorBorderSecondary}`, textAlign: "center", background: token.colorFillAlter }}>
           <Text type="secondary" style={{ fontSize: 12 }}>
             Showing recent 50 notifications
           </Text>
