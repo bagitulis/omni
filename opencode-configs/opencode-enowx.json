@@ -1,8 +1,9 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "theme": "system",
-  "plugin": ["oh-my-china"],
-
+  "plugin": [
+    "oh-my-china"
+  ],
   "provider": {
     "enowxlabs": {
       "models": {
@@ -456,8 +457,8 @@
         },
         "kimi-k2.5": {
           "limit": {
-            "context": 250000,
-            "output": 65536
+            "context": 1000000,
+            "output": 64000
           },
           "modalities": {
             "input": [
@@ -570,7 +571,7 @@
       "name": "enowX Labs",
       "npm": "@ai-sdk/openai-compatible",
       "options": {
-        "apiKey": "enx-28b919f0ea60fcce507696ac6ef7758d145ed6607dd8c33f77c13b8c3d1f863d",
+        "apiKey": "enx-ee77ad316f6d91ec59ff411d32f4992a0f4b04739887e2cd517307ef7c5b8f2a",
         "baseURL": "http://localhost:1430/v1"
       }
     }

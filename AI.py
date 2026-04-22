@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AI.py - OpenCode Provider Switcher v5.1
+AI.py - OpenCode Provider Switcher v5.2
 Profile-based configuration system (CLI entry point)
 
 3 Profiles: Mix Copilot, Mix Antigravity, enowX
@@ -9,6 +9,10 @@ Delivery:
   - enowX: Direct (enowxlabs/ provider via local proxy, no plugin)
 Source: opencode-configs/opencode-profiles.json (shared + per-profile model assignments)
 Output: oh-my-opencode.json (valid schema, consumed by opencode)
+
+enowX has two operations (split for safety):
+  [E] enowX Setup  - logout → login → start (re-activate proxy, run manually)
+  [3] enowX        - apikey → inject into configs → copy → start opencode
 
 Helper modules (in opencode-configs/):
   ai_profiles.py - Profile loading, merging, LSP detection, plugin transform
@@ -54,12 +58,22 @@ CLI_ARGS = {
     "mix-copilot": "1",
     "mix-antigravity": "2",
     "enowx": "3",
+    "enowx-setup": "e",
     "sync": "s",
     "current": "c",
 }
 
 # Profiles that use direct delivery (no antigravity plugin, no account sync)
 _DIRECT_PROFILES = {"enowx"}
+
+# enowX Labs license key (same across all PCs; apikey differs per PC)
+_ENOWX_LICENSE_KEY = "ENOWX-BOVG9-DQTCC-5CW5Z-9L20N"
+
+# All opencode-enowx.json locations to update with dynamic apikey
+_ENOWX_CONFIG_LOCATIONS = [
+    Path("D:/Project/extensions/opencode-configs/opencode-enowx.json"),
+    Path("D:/Project/omni/opencode-configs/opencode-enowx.json"),
+]
 
 # Backward-compat aliases (old proxy/plugin CLI args → new profile names)
 _DEPRECATED_CLI_ARGS = {
@@ -99,6 +113,105 @@ def detect_current_provider() -> str:
         return f"[Unknown: {default_model}]"
     except Exception:
         return "[Error]"
+
+
+def _run_enowx_cmd(args: list[str], capture: bool = False) -> str | None:
+    """Run an enowxai CLI command. Returns stdout if capture=True, else None."""
+    try:
+        result = subprocess.run(
+            ["enowxai"] + args,
+            capture_output=capture,
+            text=True,
+            timeout=30,
+        )
+        if capture:
+            return result.stdout.strip()
+        return None
+    except FileNotFoundError:
+        print("   [ERROR] enowxai not found in PATH")
+        return None
+    except subprocess.TimeoutExpired:
+        print(f"   [ERROR] enowxai {' '.join(args)} timed out")
+        return None
+
+
+def enowx_setup() -> bool:
+    """Re-activate enowxai proxy: logout → login → start.
+
+    Run this manually when switching PCs or when the proxy needs a fresh start.
+    Safe to skip if enowxai is already running.
+    """
+    print("\n   --- enowX Setup (logout → login → start) ---")
+
+    # 1. Logout (clean state)
+    print("   [1/3] enowxai logout...")
+    _run_enowx_cmd(["logout"])
+
+    # 2. Login with license key
+    print("   [2/3] enowxai login...")
+    login_out = _run_enowx_cmd(["login", _ENOWX_LICENSE_KEY], capture=True)
+    if login_out:
+        print(f"   {login_out}")
+
+    # 3. Start the proxy
+    print("   [3/3] enowxai start...")
+    start_out = _run_enowx_cmd(["start"], capture=True)
+    if start_out:
+        print(f"   {start_out}")
+
+    print("   --- enowX Setup Complete ---\n")
+    return True
+
+
+def enowx_fetch_and_inject_apikey() -> bool:
+    """Fetch the dynamic apikey from enowxai and inject into all config locations.
+
+    The apikey differs per PC. This updates opencode-enowx.json at all known
+    project locations so the correct key is used regardless of which project
+    opencode is started from.
+
+    Returns True on success.
+    """
+    # 1. Fetch the apikey
+    print("   [enowX] Fetching apikey...")
+    apikey = _run_enowx_cmd(["apikey"], capture=True)
+    if not apikey:
+        print("   [ERROR] Failed to retrieve enowxai apikey")
+        print("   [HINT] Run [E] enowX Setup first if enowxai is not active")
+        return False
+
+    # Validate: apikey should start with "enx-"
+    if not apikey.startswith("enx-"):
+        print(f"   [ERROR] Unexpected apikey format: {apikey[:20]}...")
+        return False
+
+    print(f"   [OK] Got apikey: {apikey[:12]}...{apikey[-6:]}")
+
+    # 2. Inject apikey into all opencode-enowx.json locations
+    updated = 0
+    for config_path in _ENOWX_CONFIG_LOCATIONS:
+        if not config_path.exists():
+            print(f"   [SKIP] {config_path} (not found)")
+            continue
+
+        try:
+            data = json.loads(config_path.read_text(encoding="utf-8"))
+            data["provider"]["enowxlabs"]["options"]["apiKey"] = apikey
+            config_path.write_text(
+                json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            print(f"   [OK] Updated apiKey in {config_path.name} ({config_path.parent})")
+            updated += 1
+        except Exception as e:
+            print(f"   [ERROR] Failed to update {config_path}: {e}")
+
+    if updated == 0:
+        print("   [ERROR] No config files were updated")
+        return False
+
+    print(f"   [OK] apiKey injected into {updated} file(s)")
+    return True
 
 
 def apply_profile(profile_name: str) -> bool:
@@ -196,16 +309,17 @@ def show_menu():
     clear_screen()
     print()
     print("  +==================================================================+")
-    print("  |           AI.py - OpenCode Provider Switcher v5.1               |")
+    print("  |           AI.py - OpenCode Provider Switcher v5.2               |")
     print("  +==================================================================+")
     print("  |                                                                  |")
     print("  |   [1] Mix Copilot      (Copilot + Google + OpenAI)  [Plugin]    |")
     print("  |   [2] Mix Antigravity  (Google + OpenAI)            [Plugin]    |")
     print("  |   [3] enowX            (enowX Labs proxy)           [Direct]    |")
     print("  |                                                                  |")
-    print("  |   [S] Sync    - Sync accounts across locations                   |")
-    print("  |   [C] Current - Show current provider                            |")
-    print("  |   [Q] Quit                                                       |")
+    print("  |   [E] enowX Setup - logout/login/start (run once per PC)        |")
+    print("  |   [S] Sync        - Sync accounts across locations              |")
+    print("  |   [C] Current     - Show current provider                       |")
+    print("  |   [Q] Quit                                                      |")
     print("  |                                                                  |")
     print("  +==================================================================+")
     print()
@@ -228,11 +342,18 @@ def main():
             choice = CLI_ARGS.get(arg, arg)
     else:
         show_menu()
-        choice = input("   Select [1, 2, 3, S, C, Q]: ").strip().lower()
+        choice = input("   Select [1, 2, 3, E, S, C, Q]: ").strip().lower()
 
     while True:
         if choice == "q":
             break
+
+        elif choice == "e":
+            enowx_setup()
+            if cli_mode:
+                break
+            print()
+            input("   Press Enter to continue...")
 
         elif choice == "s":
             print("\n   Syncing accounts across all locations...")
@@ -252,6 +373,10 @@ def main():
 
         elif choice in MENU_OPTIONS:
             profile_name = MENU_OPTIONS[choice]
+            # enowX: fetch dynamic apikey and inject before applying profile
+            if profile_name == "enowx":
+                if not enowx_fetch_and_inject_apikey():
+                    break
             if apply_profile(profile_name):
                 start_opencode()
             break
@@ -262,7 +387,7 @@ def main():
         # Show menu again for interactive mode only
         if not cli_mode:
             show_menu()
-            choice = input("   Select [1, 2, 3, S, C, Q]: ").strip().lower()
+            choice = input("   Select [1, 2, 3, E, S, C, Q]: ").strip().lower()
         else:
             break
 
