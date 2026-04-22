@@ -203,10 +203,11 @@ export function useAnalyticsSync(platform: Platform) {
         });
       }
 
-      // Clear progress bar after a brief delay so user can see the completion
+      // Clear progress bar after delay: longer for errors so user can read the message
+      const delay = status === "completed" ? 1500 : 10000;
       const timer = setTimeout(() => {
         setJobProgress(null);
-      }, 1500);
+      }, delay);
       return () => clearTimeout(timer);
     }
   }, [jobStatusQuery.data, platform, queryClient]);

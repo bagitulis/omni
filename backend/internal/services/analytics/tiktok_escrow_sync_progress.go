@@ -143,21 +143,8 @@ func (s *TiktokEscrowSyncService) fullSync(
 		return nil, fmt.Errorf("get tiktok client: %w", err)
 	}
 
-	// Statement-First approach (accurate)
 	if onProgress != nil {
-		onProgress(8, 0, 0, "Fetching settlement statements...")
-	}
-	result := s.fullSyncStatementFirst(ctx, client, tables, month, year, forceResync, onProgress)
-	if result != nil {
-		return result, nil
-	}
-
-	// Order-Centric Fallback
-	log.Info().Int("month", month).Int("year", year).
-		Msg("[TiktokEscrowSync] Statement-first yielded no data, falling back to order-centric sync")
-
-	if onProgress != nil {
-		onProgress(10, 0, 0, "Fetching completed orders (fallback)...")
+		onProgress(10, 0, 0, "Fetching completed orders...")
 	}
 	orders, err := s.fetchOrdersForSettlementWindow(ctx, client, month, year)
 	if err != nil {

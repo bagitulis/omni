@@ -347,16 +347,17 @@
       "default_model": "enowxlabs/claude-opus-4.6",
       "agents": {
         "sisyphus": {
-          "model": "enowxlabs/gpt-5.4",
+          "model": "enowxlabs/claude-opus-4.6",
           "variant": "high",
           "temperature": 0.1
         },
         "prometheus": {
-          "model": "enowxlabs/gemini-3.0-flash",
+          "model": "enowxlabs/claude-opus-4.6",
+          "variant": "high",
           "temperature": 0.1
         },
         "atlas": {
-          "model": "enowxlabs/gpt-5.4",
+          "model": "enowxlabs/claude-sonnet-4.5-thinking",
           "variant": "medium",
           "temperature": 0.1
         },
@@ -412,12 +413,12 @@
           "temperature": 0.1
         },
         "implementation": {
-          "model": "enowxlabs/gpt-5.4",
+          "model": "enowxlabs/claude-opus-4.6",
           "variant": "medium",
           "temperature": 0.1
         },
         "quick": {
-          "model": "enowxlabs/claude-sonnet-4.5",
+          "model": "enowxlabs/claude-sonnet-4.5-thinking",
           "variant": "medium",
           "temperature": 0.1
         },
@@ -456,10 +457,10 @@
           "temperature": 0.1
         },
         "unspecified-low": {
-          "model": "enowxlabs/gemini-3.0-flash"
+          "model": "enowxlabs/claude-haiku-4.5-thinking"
         },
         "unspecified-high": {
-          "model": "enowxlabs/gpt-5.4",
+          "model": "enowxlabs/claude-opus-4.6",
           "variant": "high",
           "temperature": 0.1
         }

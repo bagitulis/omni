@@ -1248,9 +1248,9 @@
       ]
     }
   ],
-  "activeIndex": 21,
+  "activeIndex": 10,
   "activeIndexByFamily": {
-    "claude": 21,
-    "gemini": 23
+    "claude": 10,
+    "gemini": 9
   }
 }

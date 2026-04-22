@@ -110,7 +110,7 @@ func (s *TiktokEscrowSyncService) enrichOrdersWithDetails(
 	client *tiktokPkg.Client,
 	orders []tiktokPkg.TiktokOrder,
 ) {
-	const batchSize = 20
+	const batchSize = 50 // TikTok GetOrderDetail API supports max 50 IDs per call
 	for i := 0; i < len(orders); i += batchSize {
 		end := i + batchSize
 		if end > len(orders) {

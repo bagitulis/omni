@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"sync"
-
 	"github.com/omni/backend/internal/dto"
 	"github.com/omni/backend/internal/services"
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
@@ -30,7 +28,8 @@ func NewTiktokEscrowSyncService(db *gorm.DB, tenantID, dbPath string) *TiktokEsc
 	}
 }
 
-// SyncMonth syncs escrow data for a specific month from TikTok API
+// SyncMonth syncs escrow data for a specific month from TikTok API.
+// Uses order-centric approach: SearchOrders -> GetOrderDetail (batch) -> GetOrderTransactions (per-order).
 func (s *TiktokEscrowSyncService) SyncMonth(
 	ctx context.Context,
 	month, year int,
@@ -59,13 +58,6 @@ func (s *TiktokEscrowSyncService) SyncMonth(
 	if err != nil {
 		return nil, fmt.Errorf("get tiktok client: %w", err)
 	}
-
-	if result := s.trySyncStatementFirst(ctx, client, tables, month, year, forceResync); result != nil {
-		return result, nil
-	}
-
-	log.Info().Int("month", month).Int("year", year).
-		Msg("[TiktokEscrowSync] Statement-first yielded no data, falling back to order-centric sync")
 
 	orders, err := s.fetchOrdersForSettlementWindow(ctx, client, month, year)
 	if err != nil {
@@ -101,125 +93,6 @@ func (s *TiktokEscrowSyncService) SyncMonth(
 		Message: fmt.Sprintf("Synced %d/%d orders (%d failed), %d items from TikTok API",
 			processedOrders, len(orders), failedOrders, totalItems),
 	}, nil
-}
-
-// trySyncStatementFirst attempts the statement-based sync approach.
-func (s *TiktokEscrowSyncService) trySyncStatementFirst(
-	ctx context.Context,
-	client *tiktokPkg.Client,
-	tables EscrowSyncTables,
-	month, year int,
-	forceResync bool,
-) *dto.SyncResultDTO {
-	stmtIDs, err := s.fetchStatementIDs(ctx, client, month, year)
-	if err != nil {
-		log.Warn().Err(err).Msg("[TiktokEscrowSync] Statement ID fetch failed, will fallback")
-		return nil
-	}
-	if len(stmtIDs) == 0 {
-		log.Info().Int("month", month).Int("year", year).
-			Msg("[TiktokEscrowSync] No statements found for month, will fallback")
-		return nil
-	}
-
-	orderData := s.collectOrdersFromStatements(ctx, client, stmtIDs)
-	if len(orderData) == 0 {
-		log.Warn().Int("stmts", len(stmtIDs)).
-			Msg("[TiktokEscrowSync] Statements exist but no order data extracted (tx API may be unsupported), will fallback")
-		return nil
-	}
-
-	log.Info().Int("orders", len(orderData)).
-		Msg("[TiktokEscrowSync] Statement-first: orders with settlement found")
-
-	orderIDs := orderDataKeys(orderData)
-	orders := s.buildOrdersFromIDs(ctx, client, orderIDs)
-
-	if forceResync {
-		if err := s.deleteMonthData(ctx, month, year); err != nil {
-			log.Warn().Err(err).Msg("[TiktokEscrowSync] Failed to delete month data")
-		}
-	}
-
-	totalItems, processed, failed := s.processStatementOrders(ctx, client, orders, orderData, month, year)
-
-	if err := s.saveSyncRecord(ctx, tables, month, year, processed, failed, nil); err != nil {
-		log.Warn().Err(err).Msg("[TiktokEscrowSync] Failed to save sync record")
-	}
-
-	return &dto.SyncResultDTO{
-		TotalOrders:  processed,
-		TotalItems:   totalItems,
-		FailedOrders: failed,
-		Message: fmt.Sprintf("[Statement-First] Synced %d orders (%d failed), %d items for %d/%02d",
-			processed, failed, totalItems, year, month),
-	}
-}
-
-// processStatementOrders concurrently saves orders sourced from statement API.
-func (s *TiktokEscrowSyncService) processStatementOrders(
-	ctx context.Context,
-	client *tiktokPkg.Client,
-	orders []tiktokPkg.TiktokOrder,
-	orderData map[string]*OrderStatementData,
-	month, year int,
-) (totalItems, processed, failed int) {
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	sem := make(chan struct{}, 5)
-
-	for _, order := range orders {
-		sd := orderData[order.ID]
-		if sd == nil {
-			continue
-		}
-		wg.Add(1)
-		go func(o tiktokPkg.TiktokOrder, settlement *OrderStatementData) {
-			defer wg.Done()
-			sem <- struct{}{}
-			defer func() { <-sem }()
-
-			skuTx := s.fetchSkuTransactions(ctx, client, o.ID)
-
-			items, err := s.saveOrderFromStatement(ctx, o, settlement, skuTx, month, year)
-			if err != nil {
-				log.Warn().Str("order_id", o.ID).Err(err).
-					Msg("[TiktokEscrowSync] Failed to save statement order")
-				mu.Lock()
-				failed++
-				mu.Unlock()
-				return
-			}
-			if items > 0 {
-				mu.Lock()
-				totalItems += items
-				processed++
-				mu.Unlock()
-			}
-		}(order, sd)
-	}
-
-	wg.Wait()
-	log.Info().Int("processed", processed).Int("failed", failed).Int("items", totalItems).
-		Msg("[TiktokEscrowSync] Statement orders saved")
-	return
-}
-
-// fetchSkuTransactions fetches SKU-level transaction data for price analysis.
-func (s *TiktokEscrowSyncService) fetchSkuTransactions(
-	ctx context.Context,
-	client *tiktokPkg.Client,
-	orderID string,
-) []tiktokPkg.SkuTransaction {
-	resp, err := client.GetOrderTransactions(orderID)
-	if err == nil && resp.Code == 0 && len(resp.Data.SkuTransactions) > 0 {
-		return resp.Data.SkuTransactions
-	}
-	resp, err = client.GetOrderTransactionsV202309(orderID)
-	if err == nil && resp.Code == 0 {
-		return resp.Data.SkuTransactions
-	}
-	return nil
 }
 
 // getTiktokClient creates TikTok client with tenant credentials

@@ -203,6 +203,18 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 			buyerName = order.RecipientAddress.Name
 		}
 
+		// Resolve currency: top-level is often empty for SEA sellers,
+		// fallback to statement_transactions[].currency (e.g. "IDR")
+		currency := tx.Data.Currency
+		if currency == "" {
+			for _, st := range tx.Data.StatementTransactions {
+				if st.Currency != "" {
+					currency = st.Currency
+					break
+				}
+			}
+		}
+
 		// Atomic upsert using raw SQL with ON CONFLICT + RETURNING id
 		row := dbTx.Raw(fmt.Sprintf(`
 			INSERT INTO %s (
@@ -243,7 +255,7 @@ func (s *TiktokEscrowSyncService) saveEscrowOrder(
 			subTotal, totalAmount, totalSettlementAmount,
 			platformDiscount, shippingFee, shippingFeeActual,
 			shippingPlatformDisc,
-			sellerDiscount, tx.Data.Currency,
+			sellerDiscount, currency,
 			string(rawOrderData), string(rawTxData),
 			now, now, now,
 		).Row()
