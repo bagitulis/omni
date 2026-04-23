@@ -4,19 +4,28 @@
 
 ---
 
-## Architecture Overview (v5.1)
+## Architecture Overview (v5.3)
 
 ```
-AI.py (root, CLI entry point) imports from opencode-configs/:
-    ├── ai_profiles.py  ← Profile loading, merging, LSP detection, plugin transform
-    └── ai_sync.py      ← Account/config file sync across filesystem locations
+AI.py (root, thin CLI entry point — menu + dispatch only)
+    imports from opencode-configs/:
+    ├── ai_constants.py  ← Paths, mappings, enowX config
+    ├── ai_profiles.py   ← Profile loading, merging, LSP detection, plugin transform
+    ├── ai_apply.py      ← Profile application, provider detection, start opencode
+    ├── ai_enowx.py      ← enowX CLI operations (setup, apikey)
+    ├── ai_sync.py       ← Account/config file sync across filesystem locations
+    └── config_sync.py   ← Cross-project config sync (models + scripts, excludes rules)
 
 opencode-configs/
     ├── opencode-profiles.json  ← Single source of truth (shared + profiles)
     ├── opencode-plugin.json    ← Provider config for plugin profiles
     ├── opencode-enowx.json     ← Provider config for enowX (direct, no plugin)
-    ├── ai_profiles.py          ← Helper module (imported by AI.py)
-    ├── ai_sync.py              ← Helper module (imported by AI.py)
+    ├── ai_constants.py         ← Shared paths, mappings, enowX config
+    ├── ai_profiles.py          ← Profile loading, merging, LSP, plugin transform
+    ├── ai_apply.py             ← Profile application, provider detection
+    ├── ai_enowx.py             ← enowX CLI operations
+    ├── ai_sync.py              ← Account/config file sync
+    ├── config_sync.py          ← Cross-project config sync
     ├── test-accounts.js        ← Account tester (imports test-accounts-helpers.js)
     └── test-accounts-helpers.js← Shared helpers for test-accounts.js
 
@@ -27,7 +36,7 @@ AI.py reads profiles.json → merges shared + profile → generates:
 
 **Delivery methods**:
 - **Plugin** (mix-copilot, mix-antigravity): Via Auth Plugin, transformed names (google/antigravity-gemini-3-pro)
-- **Direct** (enowx): Via enowxlabs/ provider, local proxy (localhost:1430), no plugin/transform
+- **Direct** (enowx, enowx-mix): Via enowxlabs/ provider, local proxy (localhost:1430), no plugin/transform
 
 ---
 
@@ -43,9 +52,13 @@ AI.py reads profiles.json → merges shared + profile → generates:
 | `antigravity.json`               | Plugin settings                                  | AI.py sync             |
 | `test-accounts.js`               | Account tester script                            | AI (with approval)     |
 | `test-accounts-helpers.js`       | Shared helpers for test-accounts.js              | AI (with approval)     |
+| `ai_constants.py`                | Shared paths, mappings, enowX config             | AI (with approval)     |
 | `ai_profiles.py`                 | Profile loading, merging, LSP, plugin transform  | AI (with approval)     |
+| `ai_apply.py`                    | Profile application, provider detection           | AI (with approval)     |
+| `ai_enowx.py`                   | enowX CLI operations (setup, apikey)             | AI (with approval)     |
 | `ai_sync.py`                     | Account/config file sync utilities               | AI (with approval)     |
-| `../AI.py` (root)                | Provider switcher v5.1 (CLI entry point)         | AI (with approval)     |
+| `config_sync.py`                 | Cross-project config sync (models + scripts)     | AI (with approval)     |
+| `../AI.py` (root)                | Thin CLI entry point v5.3 (menu + dispatch)      | AI (with approval)     |
 
 ### Legacy Files (Deleted)
 
@@ -98,13 +111,14 @@ google/gemini-*  →  google/antigravity-gemini-*
 
 ---
 
-## AI.py Flow (v5.1)
+## AI.py Flow (v5.3)
 
 ```
 MENU (single-step selection):
   [1] Mix Copilot      (Copilot + Google + OpenAI)  [Plugin]
   [2] Mix Antigravity   (Google + OpenAI)            [Plugin]
   [3] enowX             (enowX Labs proxy)           [Direct]
+  [4] enowX Mix         (enowX Labs multi-model)     [Direct]
   [S] Sync accounts across locations
   [C] Show current provider
   [Q] Quit
@@ -121,7 +135,7 @@ PROCESS (Plugin profiles - options 1, 2):
   9. Sync accounts                          (ai_sync.smart_sync_accounts)
   10. Start opencode
 
-PROCESS (Direct profiles - option 3):
+PROCESS (Direct profiles - options 3, 4):
   1. Load opencode-profiles.json           (ai_profiles.load_profiles)
   2. Deep-merge shared + selected profile   (ai_profiles.merge_profile)
   3. Inject LSP servers (gopls, biome)      (ai_profiles.inject_lsp_config)
@@ -135,7 +149,9 @@ CLI ARGS:
   python AI.py mix-copilot        → option 1
   python AI.py mix-antigravity    → option 2
   python AI.py enowx              → option 3
+  python AI.py enowx-mix          → option 4
   python AI.py sync               → sync accounts only
+  python AI.py config-sync        → cross-project config sync
   python AI.py current            → show current provider
 ```
 
@@ -221,6 +237,35 @@ RESTORE (always):
 
 ---
 
+## Cross-Project Config Sync
+
+`config_sync.py` syncs model configs and AI.py between project locations (extensions ↔ omni).
+It excludes rules/AGENTS.md and the `shared` section of opencode-profiles.json.
+
+```bash
+# Interactive mode
+python opencode-configs/config_sync.py
+
+# Direct sync
+python opencode-configs/config_sync.py extensions->omni
+python opencode-configs/config_sync.py omni->extensions
+```
+
+**What it syncs:**
+- `AI.py` (root)
+- `opencode-configs/ai_profiles.py`
+- `opencode-configs/ai_sync.py`
+- `opencode-configs/opencode-enowx.json`
+- `opencode-configs/opencode-plugin.json`
+- `opencode-configs/opencode-profiles.json` (profiles section only, NOT shared rules)
+
+**What it does NOT sync:**
+- `AGENTS.md` (project-specific rules)
+- `shared` section in opencode-profiles.json (prompt_append, skills)
+- `antigravity-accounts.json` / `antigravity-accounts copy.json`
+
+---
+
 ## Troubleshooting
 
 | Symptom                        | Cause                                | Fix                                                             |
@@ -232,4 +277,4 @@ RESTORE (always):
 
 ---
 
-**Version:** 3.1 | **Updated:** 2026-04-21
+**Version:** 3.2 | **Updated:** 2026-04-23

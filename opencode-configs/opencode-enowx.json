@@ -119,7 +119,7 @@
           },
           "name": "claude-sonnet-4-thinking (enowX Labs)"
         },
-        "claude-sonnet-4.5": {
+        "claude-sonnet-4.6": {
           "limit": {
             "context": 200000,
             "output": 64000
@@ -133,9 +133,9 @@
               "text"
             ]
           },
-          "name": "claude-sonnet-4.5 (enowX Labs)"
+          "name": "claude-sonnet-4.6 (enowX Labs)"
         },
-        "claude-sonnet-4.5-thinking": {
+        "claude-sonnet-4.6-thinking": {
           "limit": {
             "context": 200000,
             "output": 64000
@@ -149,7 +149,7 @@
               "text"
             ]
           },
-          "name": "claude-sonnet-4.5-thinking (enowX Labs)"
+          "name": "claude-sonnet-4.6-thinking (enowX Labs)"
         },
         "deepseek-3.2": {
           "limit": {
@@ -571,7 +571,7 @@
       "name": "enowX Labs",
       "npm": "@ai-sdk/openai-compatible",
       "options": {
-        "apiKey": "enx-ee77ad316f6d91ec59ff411d32f4992a0f4b04739887e2cd517307ef7c5b8f2a",
+        "apiKey": "enx-30525cfdc4521e4f7def34f643b0d9ee4ee734a77f5e43c9ee74f44cf414f23b",
         "baseURL": "http://localhost:1430/v1"
       }
     }
