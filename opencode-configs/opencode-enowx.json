@@ -69,6 +69,7 @@
               "text"
             ]
           },
+          "reasoning": true,
           "name": "claude-haiku-4.5-thinking (enowX Labs)"
         },
         "claude-opus-4.6": {
@@ -85,6 +86,7 @@
               "text"
             ]
           },
+          "reasoning": true,
           "name": "claude-opus-4.6 (enowX Labs)"
         },
         "claude-sonnet-4": {
@@ -119,7 +121,7 @@
           },
           "name": "claude-sonnet-4-thinking (enowX Labs)"
         },
-        "claude-sonnet-4.5": {
+        "claude-sonnet-4.6": {
           "limit": {
             "context": 200000,
             "output": 64000
@@ -133,9 +135,9 @@
               "text"
             ]
           },
-          "name": "claude-sonnet-4.5 (enowX Labs)"
+          "name": "claude-sonnet-4.6 (enowX Labs)"
         },
-        "claude-sonnet-4.5-thinking": {
+        "claude-sonnet-4.6-thinking": {
           "limit": {
             "context": 200000,
             "output": 64000
@@ -149,7 +151,8 @@
               "text"
             ]
           },
-          "name": "claude-sonnet-4.5-thinking (enowX Labs)"
+          "reasoning": true,
+          "name": "claude-sonnet-4.6-thinking (enowX Labs)"
         },
         "deepseek-3.2": {
           "limit": {
@@ -181,6 +184,7 @@
               "text"
             ]
           },
+          "reasoning": true,
           "name": "deepseek-3.2-thinking (enowX Labs)"
         },
         "deepseek-v3-2-volc": {
@@ -325,6 +329,7 @@
               "text"
             ]
           },
+          "reasoning": true,
           "name": "glm-5-thinking (enowX Labs)"
         },
         "gpt-5.1": {

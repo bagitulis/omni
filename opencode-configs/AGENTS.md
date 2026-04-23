@@ -26,6 +26,7 @@ AI.py reads profiles.json → merges shared + profile → generates:
 ```
 
 **Delivery methods**:
+
 - **Plugin** (mix-copilot, mix-antigravity): Via Auth Plugin, transformed names (google/antigravity-gemini-3-pro)
 - **Direct** (enowx): Via enowxlabs/ provider, local proxy (localhost:1430), no plugin/transform
 
@@ -33,19 +34,19 @@ AI.py reads profiles.json → merges shared + profile → generates:
 
 ## File Ownership & Purpose
 
-| File                             | Purpose                                          | Who Updates            |
-| -------------------------------- | ------------------------------------------------ | ---------------------- |
-| `opencode-profiles.json`         | **PRIMARY** - Unified profiles (shared + models) | User / AI              |
-| `antigravity-accounts copy.json` | **MASTER BACKUP** - Complete accounts            | **USER ONLY (manual)** |
-| `antigravity-accounts.json`      | Working file for daily use                       | AI.py smart_sync       |
-| `opencode-plugin.json`           | Plugin mode provider config                      | User                   |
-| `opencode-enowx.json`           | Direct mode provider config (enowX Labs, 34 models) | User / AI           |
-| `antigravity.json`               | Plugin settings                                  | AI.py sync             |
-| `test-accounts.js`               | Account tester script                            | AI (with approval)     |
-| `test-accounts-helpers.js`       | Shared helpers for test-accounts.js              | AI (with approval)     |
-| `ai_profiles.py`                 | Profile loading, merging, LSP, plugin transform  | AI (with approval)     |
-| `ai_sync.py`                     | Account/config file sync utilities               | AI (with approval)     |
-| `../AI.py` (root)                | Provider switcher v5.1 (CLI entry point)         | AI (with approval)     |
+| File                             | Purpose                                             | Who Updates            |
+| -------------------------------- | --------------------------------------------------- | ---------------------- |
+| `opencode-profiles.json`         | **PRIMARY** - Unified profiles (shared + models)    | User / AI              |
+| `antigravity-accounts copy.json` | **MASTER BACKUP** - Complete accounts               | **USER ONLY (manual)** |
+| `antigravity-accounts.json`      | Working file for daily use                          | AI.py smart_sync       |
+| `opencode-plugin.json`           | Plugin mode provider config                         | User                   |
+| `opencode-enowx.json`            | Direct mode provider config (enowX Labs, 34 models) | User / AI              |
+| `antigravity.json`               | Plugin settings                                     | AI.py sync             |
+| `test-accounts.js`               | Account tester script                               | AI (with approval)     |
+| `test-accounts-helpers.js`       | Shared helpers for test-accounts.js                 | AI (with approval)     |
+| `ai_profiles.py`                 | Profile loading, merging, LSP, plugin transform     | AI (with approval)     |
+| `ai_sync.py`                     | Account/config file sync utilities                  | AI (with approval)     |
+| `../AI.py` (root)                | Provider switcher v5.1 (CLI entry point)            | AI (with approval)     |
 
 ### Legacy Files (Deleted)
 
@@ -148,7 +149,7 @@ CLI ARGS:
   "shared": {
     "$schema": "...",
     "google_auth": false,
-    "browser_automation_engine": { "provider": "agent-browser" },
+    "browser_automation_engine": { "provider": "playwright" },
     "agents": {
       "sisyphus": { "prompt_append": "...", "skills": ["..."] }
     },
@@ -223,12 +224,12 @@ RESTORE (always):
 
 ## Troubleshooting
 
-| Symptom                        | Cause                                | Fix                                                             |
-| ------------------------------ | ------------------------------------ | --------------------------------------------------------------- |
+| Symptom                        | Cause                                | Fix                                                                    |
+| ------------------------------ | ------------------------------------ | ---------------------------------------------------------------------- |
 | "Model not found" error        | Plugin auth failed or model mismatch | Plugin: check antigravity-\* prefixes. Direct: check enowxlabs/ prefix |
-| Accounts missing after test    | Restore failed                       | Manually copy from `copy.json`                                  |
-| Sync overwrites with 1 account | Race condition (legacy)              | Should not happen after fix - restore always from `copy.json`   |
-| Profile merge missing fields   | Shared or profile entry incomplete   | Check opencode-profiles.json has entry in both shared + profile |
+| Accounts missing after test    | Restore failed                       | Manually copy from `copy.json`                                         |
+| Sync overwrites with 1 account | Race condition (legacy)              | Should not happen after fix - restore always from `copy.json`          |
+| Profile merge missing fields   | Shared or profile entry incomplete   | Check opencode-profiles.json has entry in both shared + profile        |
 
 ---
 

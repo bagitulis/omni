@@ -347,7 +347,7 @@
       "default_model": "enowxlabs/claude-opus-4.6",
       "agents": {
         "sisyphus": {
-          "model": "enowxlabs/claude-opus-4.6",
+          "model": "enowxlabs/kimi-k2.5",
           "variant": "high",
           "temperature": 0.1
         },
@@ -357,7 +357,7 @@
           "temperature": 0.1
         },
         "atlas": {
-          "model": "enowxlabs/claude-opus-4.6",
+          "model": "enowxlabs/kimi-k2.5",
           "variant": "medium",
           "temperature": 0.1
         },
@@ -372,7 +372,7 @@
           "temperature": 0.1
         },
         "oracle": {
-          "model": "enowxlabs/gpt-5.3-codex",
+          "model": "enowxlabs/gpt-5.4",
           "variant": "high",
           "temperature": 0.1
         },
@@ -387,7 +387,7 @@
           "temperature": 0.1
         },
         "multimodal-looker": {
-          "model": "enowxlabs/gemini-3.0-flash",
+          "model": "enowxlabs/kimi-k2.5",
           "temperature": 0.1
         },
         "metis": {
@@ -428,7 +428,7 @@
           "temperature": 0.1
         },
         "ultrabrain": {
-          "model": "enowxlabs/gpt-5.3-codex",
+          "model": "enowxlabs/claude-opus-4.6",
           "variant": "high",
           "temperature": 0.1
         },
@@ -438,11 +438,11 @@
           "temperature": 0.1
         },
         "writing": {
-          "model": "enowxlabs/gemini-3.0-flash",
+          "model": "enowxlabs/kimi-k2.5",
           "temperature": 0.1
         },
         "review": {
-          "model": "enowxlabs/kimi-k2.5",
+          "model": "enowxlabs/gemini-3.1-pro",
           "variant": "high",
           "temperature": 0.1
         },
@@ -457,7 +457,131 @@
           "temperature": 0.1
         },
         "unspecified-low": {
-          "model": "enowxlabs/gemini-3.0-flash"
+          "model": "enowxlabs/kimi-k2.5"
+        },
+        "unspecified-high": {
+          "model": "enowxlabs/claude-opus-4.6",
+          "variant": "high",
+          "temperature": 0.1
+        }
+      }
+    },
+    "enowx-mix": {
+      "_description": "enowX Labs Mix profile. Multi-provider via enowxlabs/ proxy. Direct delivery, no plugin.",
+      "default_model": "enowxlabs/claude-opus-4.6",
+      "agents": {
+        "sisyphus": {
+          "model": "enowxlabs/kimi-k2.5",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "prometheus": {
+          "model": "enowxlabs/claude-opus-4.6",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "atlas": {
+          "model": "enowxlabs/kimi-k2.5",
+          "variant": "medium",
+          "temperature": 0.1
+        },
+        "hephaestus": {
+          "model": "enowxlabs/gpt-5.4",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "sisyphus-junior": {
+          "model": "enowxlabs/claude-sonnet-4.6-thinking",
+          "variant": "medium",
+          "temperature": 0.1
+        },
+        "oracle": {
+          "model": "enowxlabs/gpt-5.4",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "librarian": {
+          "model": "enowxlabs/claude-sonnet-4.6-thinking",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "explore": {
+          "model": "enowxlabs/claude-haiku-4.5",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "multimodal-looker": {
+          "model": "enowxlabs/claude-haiku-4.5",
+          "temperature": 0.1
+        },
+        "metis": {
+          "model": "enowxlabs/kimi-k2.5",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "momus": {
+          "model": "enowxlabs/gpt-5.4",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "default": {
+          "model": "enowxlabs/claude-sonnet-4.6",
+          "variant": "medium",
+          "temperature": 0.1
+        }
+      },
+      "categories": {
+        "visual-engineering": {
+          "model": "enowxlabs/gemini-3.1-pro",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "implementation": {
+          "model": "enowxlabs/claude-opus-4.6",
+          "variant": "medium",
+          "temperature": 0.1
+        },
+        "quick": {
+          "model": "enowxlabs/deepseek-3.2-thinking",
+          "variant": "medium",
+          "temperature": 0.1
+        },
+        "deep": {
+          "model": "enowxlabs/claude-opus-4.6",
+          "variant": "medium",
+          "temperature": 0.1
+        },
+        "ultrabrain": {
+          "model": "enowxlabs/claude-opus-4.6",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "artistry": {
+          "model": "enowxlabs/gemini-3.1-pro",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "writing": {
+          "model": "enowxlabs/kimi-k2.5",
+          "temperature": 0.1
+        },
+        "review": {
+          "model": "enowxlabs/gemini-3.1-pro",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "testing": {
+          "model": "enowxlabs/deepseek-3.2-thinking",
+          "variant": "medium",
+          "temperature": 0.1
+        },
+        "security": {
+          "model": "enowxlabs/deepseek-3.2-thinking",
+          "variant": "high",
+          "temperature": 0.1
+        },
+        "unspecified-low": {
+          "model": "enowxlabs/claude-haiku-4.5-thinking"
         },
         "unspecified-high": {
           "model": "enowxlabs/claude-opus-4.6",

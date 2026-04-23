@@ -1,395 +1,145 @@
 #!/usr/bin/env python3
 """
-AI.py - OpenCode Provider Switcher v5.2
-Profile-based configuration system (CLI entry point)
+AI.py - OpenCode Provider Switcher v5.3
+Thin CLI entry point — menu display and dispatch only.
 
-3 Profiles: Mix Copilot, Mix Antigravity, enowX
+4 Profiles: Mix Copilot, Mix Antigravity, enowX, enowX Mix
 Delivery:
   - Mix Copilot / Mix Antigravity: Plugin (antigravity-* names via Auth Plugin)
-  - enowX: Direct (enowxlabs/ provider via local proxy, no plugin)
-Source: opencode-configs/opencode-profiles.json (shared + per-profile model assignments)
-Output: oh-my-opencode.json (valid schema, consumed by opencode)
-
-enowX has two operations (split for safety):
-  [E] enowX Setup  - logout → login → start (re-activate proxy, run manually)
-  [3] enowX        - apikey → inject into configs → copy → start opencode
+  - enowX / enowX Mix: Direct (enowxlabs/ provider via local proxy, no plugin)
 
 Helper modules (in opencode-configs/):
-  ai_profiles.py - Profile loading, merging, LSP detection, plugin transform
-  ai_sync.py     - Account/config file synchronization across locations
+  ai_constants.py  - Paths, mappings, enowX config
+  ai_profiles.py   - Profile loading, merging, LSP detection, plugin transform
+  ai_apply.py      - Profile application, provider detection, start opencode
+  ai_enowx.py      - enowX CLI operations (setup, apikey)
+  ai_sync.py       - Account/config file sync across filesystem locations
+  config_sync.py   - Cross-project config sync (models + scripts, excludes rules)
 """
 
-import json
 import os
-import subprocess
 import sys
 from pathlib import Path
 
 # Add opencode-configs to import path for helper modules
 sys.path.insert(0, str(Path(__file__).parent / "opencode-configs"))
 
-from ai_profiles import (
-    inject_lsp_config,
-    load_profiles,
-    merge_profile,
-    transform_for_plugin,
+from ai_constants import (
+    CLI_ARGS,
+    DEPRECATED_CLI_ARGS,
+    DIRECT_PROFILES,
+    MENU_OPTIONS,
+    init as init_paths,
 )
-from ai_sync import copy_file, smart_sync_accounts
 
-# Paths
+# Initialize paths before importing modules that depend on them
 SCRIPT_DIR = Path(__file__).parent
-CONFIG_DIR = SCRIPT_DIR / "opencode-configs"
-PROFILES_FILE = CONFIG_DIR / "opencode-profiles.json"
-TARGET_DIR = Path.home() / ".config" / "opencode"
+init_paths(SCRIPT_DIR)
 
-# AppData paths: only set if env vars are valid (non-empty)
-_appdata = os.environ.get("APPDATA", "")
-_localappdata = os.environ.get("LOCALAPPDATA", "")
-APPDATA_DIR = Path(_appdata) / "opencode" if _appdata else None
-LOCALAPPDATA_DIR = Path(_localappdata) / "opencode" if _localappdata else None
-
-# Profile and CLI mappings
-MENU_OPTIONS = {
-    "1": "mix-copilot",
-    "2": "mix-antigravity",
-    "3": "enowx",
-}
-CLI_ARGS = {
-    "mix-copilot": "1",
-    "mix-antigravity": "2",
-    "enowx": "3",
-    "enowx-setup": "e",
-    "sync": "s",
-    "current": "c",
-}
-
-# Profiles that use direct delivery (no antigravity plugin, no account sync)
-_DIRECT_PROFILES = {"enowx"}
-
-# enowX Labs license key (same across all PCs; apikey differs per PC)
-_ENOWX_LICENSE_KEY = "ENOWX-BOVG9-DQTCC-5CW5Z-9L20N"
-
-# All opencode-enowx.json locations to update with dynamic apikey
-_ENOWX_CONFIG_LOCATIONS = [
-    Path("D:/Project/extensions/opencode-configs/opencode-enowx.json"),
-    Path("D:/Project/omni/opencode-configs/opencode-enowx.json"),
-]
-
-# Backward-compat aliases (old proxy/plugin CLI args → new profile names)
-_DEPRECATED_CLI_ARGS = {
-    "mix-copilot-proxy": "1",
-    "mix-copilot-plugin": "1",
-    "mix-antigravity-proxy": "2",
-    "mix-antigravity-plugin": "2",
-}
+from ai_apply import apply_profile, detect_current_provider, start_opencode
+from ai_enowx import fetch_and_inject_apikey, setup as enowx_setup
+from ai_sync import smart_sync_accounts
+from ai_constants import APPDATA_DIR, CONFIG_DIR, LOCALAPPDATA_DIR, TARGET_DIR
+from config_sync import run_interactive as config_sync_interactive
 
 
 def _is_cli_mode() -> bool:
-    """Return True if running with command-line arguments (non-interactive)."""
     return len(sys.argv) > 1
 
 
-def clear_screen():
+def _clear_screen():
     os.system("cls" if os.name == "nt" else "clear")
 
 
-def detect_current_provider() -> str:
-    """Detect current provider from oh-my-opencode.json."""
-    config_file = TARGET_DIR / "oh-my-opencode.json"
-    if not config_file.exists():
-        return "[None]"
-
-    try:
-        config = json.loads(config_file.read_text(encoding="utf-8"))
-        default_model = config.get("default_model", "")
-
-        if "github-copilot" in default_model:
-            return "Mix Copilot (Plugin)"
-        if "google/" in default_model:
-            return "Mix Antigravity (Plugin)"
-        if "enowxlabs/" in default_model:
-            return "enowX (Direct)"
-
-        return f"[Unknown: {default_model}]"
-    except Exception:
-        return "[Error]"
-
-
-def _run_enowx_cmd(args: list[str], capture: bool = False) -> str | None:
-    """Run an enowxai CLI command. Returns stdout if capture=True, else None."""
-    try:
-        result = subprocess.run(
-            ["enowxai"] + args,
-            capture_output=capture,
-            text=True,
-            timeout=30,
-        )
-        if capture:
-            return result.stdout.strip()
-        return None
-    except FileNotFoundError:
-        print("   [ERROR] enowxai not found in PATH")
-        return None
-    except subprocess.TimeoutExpired:
-        print(f"   [ERROR] enowxai {' '.join(args)} timed out")
-        return None
-
-
-def enowx_setup() -> bool:
-    """Re-activate enowxai proxy: logout → login → start.
-
-    Run this manually when switching PCs or when the proxy needs a fresh start.
-    Safe to skip if enowxai is already running.
-    """
-    print("\n   --- enowX Setup (logout → login → start) ---")
-
-    # 1. Logout (clean state)
-    print("   [1/3] enowxai logout...")
-    _run_enowx_cmd(["logout"])
-
-    # 2. Login with license key
-    print("   [2/3] enowxai login...")
-    login_out = _run_enowx_cmd(["login", _ENOWX_LICENSE_KEY], capture=True)
-    if login_out:
-        print(f"   {login_out}")
-
-    # 3. Start the proxy
-    print("   [3/3] enowxai start...")
-    start_out = _run_enowx_cmd(["start"], capture=True)
-    if start_out:
-        print(f"   {start_out}")
-
-    print("   --- enowX Setup Complete ---\n")
-    return True
-
-
-def enowx_fetch_and_inject_apikey() -> bool:
-    """Fetch the dynamic apikey from enowxai and inject into all config locations.
-
-    The apikey differs per PC. This updates opencode-enowx.json at all known
-    project locations so the correct key is used regardless of which project
-    opencode is started from.
-
-    Returns True on success.
-    """
-    # 1. Fetch the apikey
-    print("   [enowX] Fetching apikey...")
-    apikey = _run_enowx_cmd(["apikey"], capture=True)
-    if not apikey:
-        print("   [ERROR] Failed to retrieve enowxai apikey")
-        print("   [HINT] Run [E] enowX Setup first if enowxai is not active")
-        return False
-
-    # Validate: apikey should start with "enx-"
-    if not apikey.startswith("enx-"):
-        print(f"   [ERROR] Unexpected apikey format: {apikey[:20]}...")
-        return False
-
-    print(f"   [OK] Got apikey: {apikey[:12]}...{apikey[-6:]}")
-
-    # 2. Inject apikey into all opencode-enowx.json locations
-    updated = 0
-    for config_path in _ENOWX_CONFIG_LOCATIONS:
-        if not config_path.exists():
-            print(f"   [SKIP] {config_path} (not found)")
-            continue
-
-        try:
-            data = json.loads(config_path.read_text(encoding="utf-8"))
-            data["provider"]["enowxlabs"]["options"]["apiKey"] = apikey
-            config_path.write_text(
-                json.dumps(data, indent=2, ensure_ascii=False) + "\n",
-                encoding="utf-8",
-            )
-            print(f"   [OK] Updated apiKey in {config_path.name} ({config_path.parent})")
-            updated += 1
-        except Exception as e:
-            print(f"   [ERROR] Failed to update {config_path}: {e}")
-
-    if updated == 0:
-        print("   [ERROR] No config files were updated")
-        return False
-
-    print(f"   [OK] apiKey injected into {updated} file(s)")
-    return True
-
-
-def apply_profile(profile_name: str) -> bool:
-    """Apply a profile using the appropriate delivery method.
-
-    Plugin profiles (mix-copilot, mix-antigravity):
-      - Transform model names for antigravity plugin
-      - Copy opencode-plugin.json as provider config
-      - Copy antigravity.json and sync accounts
-
-    Direct profiles (enowx):
-      - No model name transform
-      - Copy opencode-enowx.json as provider config
-      - No antigravity.json, no account sync
-
-    Args:
-        profile_name: 'mix-copilot', 'mix-antigravity', or 'enowx'
-
-    Returns True on success.
-    """
-    is_direct = profile_name in _DIRECT_PROFILES
-
-    # Load and merge profile
-    profiles_data = load_profiles(PROFILES_FILE)
-    shared = profiles_data.get("shared", {})
-    profile = profiles_data.get("profiles", {}).get(profile_name)
-
-    if not profile:
-        print(f"\n   [ERROR] Profile not found: {profile_name}")
-        return False
-
-    config = merge_profile(shared, profile)
-    config = inject_lsp_config(config)
-
-    # Serialize (transform only for plugin profiles)
-    content = json.dumps(config, indent=2, ensure_ascii=False) + "\n"
-    if not is_direct:
-        content = transform_for_plugin(content)
-
-    # Write oh-my-opencode.json
-    TARGET_DIR.mkdir(parents=True, exist_ok=True)
-    dst = TARGET_DIR / "oh-my-opencode.json"
-    dst.write_text(content, encoding="utf-8")
-
-    delivery = "direct" if is_direct else "plugin"
-    print(f"   [OK] Generated oh-my-opencode.json ({profile_name}, {delivery})")
-
-    # Copy provider config (opencode.json)
-    if is_direct:
-        src_opencode = CONFIG_DIR / "opencode-enowx.json"
-        src_label = "opencode-enowx.json"
-    else:
-        src_opencode = CONFIG_DIR / "opencode-plugin.json"
-        src_label = "opencode-plugin.json"
-
-    if src_opencode.exists():
-        copy_file(src_opencode, TARGET_DIR / "opencode.json")
-        print(f"   [OK] Copied {src_label} -> opencode.json")
-    else:
-        print(f"   [WARN] {src_label} not found, skipping provider config")
-
-    # Plugin-only: copy antigravity.json and sync accounts
-    if not is_direct:
-        src_antigravity = CONFIG_DIR / "antigravity.json"
-        if src_antigravity.exists():
-            copy_file(src_antigravity, TARGET_DIR / "antigravity.json")
-            print("   [OK] Copied antigravity.json")
-
-        smart_sync_accounts(CONFIG_DIR, TARGET_DIR, APPDATA_DIR, LOCALAPPDATA_DIR)
-        print(f"\n   [OK] Switched to {profile_name} (plugin)")
-        print("   [INFO] Using Antigravity Auth Plugin")
-    else:
-        print(f"\n   [OK] Switched to {profile_name} (direct)")
-        print("   [INFO] Using enowX Labs proxy (localhost:1430)")
-
-    return True
-
-
-def start_opencode():
-    """Start OpenCode."""
-    print("\n   Starting OpenCode...")
-    print()
-    exe_path = SCRIPT_DIR / "opencode.exe"
-    try:
-        if exe_path.exists():
-            subprocess.run([str(exe_path)])
-        else:
-            print("   [ERROR] opencode.exe not found")
-    except Exception as e:
-        print(f"   [ERROR] Failed to start OpenCode: {e}")
-
-
-def show_menu():
-    """Display the main menu."""
-    clear_screen()
+def _show_menu():
+    _clear_screen()
     print()
     print("  +==================================================================+")
-    print("  |           AI.py - OpenCode Provider Switcher v5.2               |")
+    print("  |           AI.py - OpenCode Provider Switcher v5.3               |")
     print("  +==================================================================+")
     print("  |                                                                  |")
     print("  |   [1] Mix Copilot      (Copilot + Google + OpenAI)  [Plugin]    |")
     print("  |   [2] Mix Antigravity  (Google + OpenAI)            [Plugin]    |")
     print("  |   [3] enowX            (enowX Labs proxy)           [Direct]    |")
+    print("  |   [4] enowX Mix        (enowX Labs multi-model)     [Direct]    |")
     print("  |                                                                  |")
-    print("  |   [E] enowX Setup - logout/login/start (run once per PC)        |")
-    print("  |   [S] Sync        - Sync accounts across locations              |")
-    print("  |   [C] Current     - Show current provider                       |")
+    print("  |   [E] enowX Setup  - logout/login/start (run once per PC)       |")
+    print("  |   [S] Sync         - Sync accounts across locations             |")
+    print("  |   [X] Config Sync  - Sync models/scripts between projects       |")
+    print("  |   [C] Current      - Show current provider                      |")
     print("  |   [Q] Quit                                                      |")
     print("  |                                                                  |")
     print("  +==================================================================+")
     print()
-    current = detect_current_provider()
-    print(f"   Current Provider: {current}")
+    print(f"   Current Provider: {detect_current_provider()}")
     print()
 
 
+def _prompt():
+    return input("   Select [1, 2, 3, 4, E, S, X, C, Q]: ").strip().lower()
+
+
+def _handle_choice(choice: str, cli_mode: bool) -> bool:
+    """Handle a single menu choice. Returns True to exit, False to loop."""
+    if choice == "q":
+        return True
+
+    if choice == "e":
+        enowx_setup()
+        if not cli_mode:
+            input("\n   Press Enter to continue...")
+        return cli_mode
+
+    if choice == "s":
+        print("\n   Syncing accounts across all locations...")
+        smart_sync_accounts(CONFIG_DIR, TARGET_DIR, APPDATA_DIR, LOCALAPPDATA_DIR)
+        if not cli_mode:
+            input("\n   Press Enter to continue...")
+        return cli_mode
+
+    if choice == "x":
+        config_sync_interactive(caller_dir=SCRIPT_DIR)
+        if not cli_mode:
+            input("\n   Press Enter to continue...")
+        return cli_mode
+
+    if choice == "c":
+        print(f"\n   Current Provider: {detect_current_provider()}")
+        if not cli_mode:
+            input("\n   Press Enter to continue...")
+        return cli_mode
+
+    if choice in MENU_OPTIONS:
+        profile_name = MENU_OPTIONS[choice]
+        if profile_name in DIRECT_PROFILES:
+            if not fetch_and_inject_apikey():
+                return True
+        if apply_profile(profile_name):
+            start_opencode()
+        return True
+
+    print("\n   Invalid choice!")
+    return cli_mode
+
+
 def main():
-    """Main entry point with CLI and interactive support."""
     cli_mode = _is_cli_mode()
 
     if cli_mode:
         arg = sys.argv[1].lower()
-        if arg in _DEPRECATED_CLI_ARGS:
+        if arg in DEPRECATED_CLI_ARGS:
             new_arg = arg.replace("-proxy", "").replace("-plugin", "")
             print(f"   [DEPRECATED] '{arg}' is deprecated. Use '{new_arg}' instead.")
-            choice = _DEPRECATED_CLI_ARGS[arg]
+            choice = DEPRECATED_CLI_ARGS[arg]
         else:
             choice = CLI_ARGS.get(arg, arg)
+        _handle_choice(choice, cli_mode=True)
     else:
-        show_menu()
-        choice = input("   Select [1, 2, 3, E, S, C, Q]: ").strip().lower()
-
-    while True:
-        if choice == "q":
-            break
-
-        elif choice == "e":
-            enowx_setup()
-            if cli_mode:
+        while True:
+            _show_menu()
+            choice = _prompt()
+            if _handle_choice(choice, cli_mode=False):
                 break
-            print()
-            input("   Press Enter to continue...")
-
-        elif choice == "s":
-            print("\n   Syncing accounts across all locations...")
-            smart_sync_accounts(CONFIG_DIR, TARGET_DIR, APPDATA_DIR, LOCALAPPDATA_DIR)
-            if cli_mode:
-                break
-            print()
-            input("   Press Enter to continue...")
-
-        elif choice == "c":
-            current = detect_current_provider()
-            print(f"\n   Current Provider: {current}")
-            if cli_mode:
-                break
-            print()
-            input("   Press Enter to continue...")
-
-        elif choice in MENU_OPTIONS:
-            profile_name = MENU_OPTIONS[choice]
-            # enowX: fetch dynamic apikey and inject before applying profile
-            if profile_name == "enowx":
-                if not enowx_fetch_and_inject_apikey():
-                    break
-            if apply_profile(profile_name):
-                start_opencode()
-            break
-
-        else:
-            print("\n   Invalid choice!")
-
-        # Show menu again for interactive mode only
-        if not cli_mode:
-            show_menu()
-            choice = input("   Select [1, 2, 3, E, S, C, Q]: ").strip().lower()
-        else:
-            break
 
 
 if __name__ == "__main__":
