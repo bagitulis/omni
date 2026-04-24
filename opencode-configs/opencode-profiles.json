@@ -507,7 +507,7 @@
         },
         "atlas": {
           "model": "enowxlabs/claude-sonnet-4.6-thinking",
-          "variant": "medium",
+          "variant": "high",
           "temperature": 0.1
         },
         "hephaestus": {
@@ -531,7 +531,7 @@
           "temperature": 0.1
         },
         "explore": {
-          "model": "enowxlabs/claude-haiku-4.5",
+          "model": "enowxlabs/claude-haiku-4.5-thinking",
           "variant": "high",
           "temperature": 0.1
         },
@@ -567,8 +567,8 @@
           "temperature": 0.1
         },
         "quick": {
-          "model": "enowxlabs/claude-haiku-4.5",
-          "variant": "medium",
+          "model": "enowxlabs/claude-sonnet-4.6-thinking",
+          "variant": "high",
           "temperature": 0.1
         },
         "deep": {
@@ -606,7 +606,9 @@
           "temperature": 0.1
         },
         "unspecified-low": {
-          "model": "enowxlabs/claude-haiku-4.5-thinking"
+          "model": "enowxlabs/claude-sonnet-4.6-thinking",
+          "variant": "high",
+          "temperature": 0.1
         },
         "unspecified-high": {
           "model": "enowxlabs/claude-opus-4.6",
