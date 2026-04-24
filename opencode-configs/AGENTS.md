@@ -35,6 +35,7 @@ AI.py reads profiles.json → merges shared + profile → generates:
 ```
 
 **Delivery methods**:
+
 - **Plugin** (mix-copilot, mix-antigravity): Via Auth Plugin, transformed names (google/antigravity-gemini-3-pro)
 - **Direct** (enowx, enowx-mix): Via enowxlabs/ provider, local proxy (localhost:1430), no plugin/transform
 
@@ -52,13 +53,9 @@ AI.py reads profiles.json → merges shared + profile → generates:
 | `antigravity.json`               | Plugin settings                                  | AI.py sync             |
 | `test-accounts.js`               | Account tester script                            | AI (with approval)     |
 | `test-accounts-helpers.js`       | Shared helpers for test-accounts.js              | AI (with approval)     |
-| `ai_constants.py`                | Shared paths, mappings, enowX config             | AI (with approval)     |
 | `ai_profiles.py`                 | Profile loading, merging, LSP, plugin transform  | AI (with approval)     |
-| `ai_apply.py`                    | Profile application, provider detection           | AI (with approval)     |
-| `ai_enowx.py`                   | enowX CLI operations (setup, apikey)             | AI (with approval)     |
 | `ai_sync.py`                     | Account/config file sync utilities               | AI (with approval)     |
-| `config_sync.py`                 | Cross-project config sync (models + scripts)     | AI (with approval)     |
-| `../AI.py` (root)                | Thin CLI entry point v5.3 (menu + dispatch)      | AI (with approval)     |
+| `../AI.py` (root)                | Provider switcher v5.1 (CLI entry point)         | AI (with approval)     |
 
 ### Legacy Files (Deleted)
 
@@ -164,7 +161,7 @@ CLI ARGS:
   "shared": {
     "$schema": "...",
     "google_auth": false,
-    "browser_automation_engine": { "provider": "agent-browser" },
+    "browser_automation_engine": { "provider": "playwright" },
     "agents": {
       "sisyphus": { "prompt_append": "...", "skills": ["..."] }
     },
@@ -268,12 +265,12 @@ python opencode-configs/config_sync.py omni->extensions
 
 ## Troubleshooting
 
-| Symptom                        | Cause                                | Fix                                                             |
-| ------------------------------ | ------------------------------------ | --------------------------------------------------------------- |
+| Symptom                        | Cause                                | Fix                                                                    |
+| ------------------------------ | ------------------------------------ | ---------------------------------------------------------------------- |
 | "Model not found" error        | Plugin auth failed or model mismatch | Plugin: check antigravity-\* prefixes. Direct: check enowxlabs/ prefix |
-| Accounts missing after test    | Restore failed                       | Manually copy from `copy.json`                                  |
-| Sync overwrites with 1 account | Race condition (legacy)              | Should not happen after fix - restore always from `copy.json`   |
-| Profile merge missing fields   | Shared or profile entry incomplete   | Check opencode-profiles.json has entry in both shared + profile |
+| Accounts missing after test    | Restore failed                       | Manually copy from `copy.json`                                         |
+| Sync overwrites with 1 account | Race condition (legacy)              | Should not happen after fix - restore always from `copy.json`          |
+| Profile merge missing fields   | Shared or profile entry incomplete   | Check opencode-profiles.json has entry in both shared + profile        |
 
 ---
 
