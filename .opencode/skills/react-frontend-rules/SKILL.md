@@ -348,7 +348,6 @@ return response.data.data;
 
 <!-- MASTER:skill-react-references -->
 - Design System: Defined in this document (see Design System section above)
-- Vue Legacy Reference: `frontend-vue/src/` (for logic patterns only, NOT layout)
 - Ginee Style: Task-first dashboard, flat navigation, data-dense tables
 <!-- /MASTER:skill-react-references -->
 

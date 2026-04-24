@@ -27,14 +27,7 @@ omni/
 │   ├── shopee-sdk/          # Shopee SDK
 │   ├── lazada-sdk/          # Lazada SDK
 │   └── tiktok_sdk/          # TikTok SDK
-├── frontend-vue/            # Vue.js frontend (LEGACY)
-│   ├── src/
-│   │   ├── components/      # Vue components
-│   │   ├── views/           # Page views
-│   │   ├── api/             # API clients
-│   │   └── stores/          # Pinia stores
-│   └── public/
-├── frontend/                # React frontend (ACTIVE)
+├── frontend/                # React frontend
 │   ├── src/
 │   │   ├── api/             # Axios API clients
 │   │   ├── components/      # Reusable components
