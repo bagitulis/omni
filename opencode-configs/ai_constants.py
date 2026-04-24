@@ -74,4 +74,5 @@ ENOWX_LICENSE_KEY = "ENOWX-BOVG9-DQTCC-5CW5Z-9L20N"
 ENOWX_CONFIG_LOCATIONS = [
     Path("D:/Project/extensions/opencode-configs/opencode-enowx.json"),
     Path("D:/Project/omni/opencode-configs/opencode-enowx.json"),
+    Path("D:/Project/Auto/opencode-configs/opencode-enowx.json"),
 ]
