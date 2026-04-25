@@ -88,6 +88,15 @@ def main():
         
         print(f"Total email yang belum ada di enowxai: {len(missing_in_enowxai)}")
         print(f"Hasil disimpan ke: {output_file}")
+        
+        # Eksekusi enowxai accounts add untuk menambahkan akun yang belum ada
+        if missing_in_enowxai:
+            print("\n" + "="*60)
+            print("Menambahkan akun ke enowxai...")
+            print("="*60 + "\n")
+            subprocess.run(['enowxai', 'accounts', 'add', output_file])
+        else:
+            print("\nTidak ada akun baru yang perlu ditambahkan.")
                 
     except Exception as e:
         print(f"Error writing to file: {e}")

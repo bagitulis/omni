@@ -421,7 +421,7 @@
           "temperature": 0.1
         },
         "momus": {
-          "model": "enowxlabs/gpt-5.4",
+          "model": "enowxlabs/gemini-3.1-pro",
           "variant": "high",
           "temperature": 0.1
         },
@@ -433,8 +433,8 @@
       },
       "categories": {
         "visual-engineering": {
-          "model": "enowxlabs/gemini-3.1-pro",
-          "variant": "high",
+          "model": "enowxlabs/claude-opus-4.6",
+          "variant": "medium",
           "temperature": 0.1
         },
         "implementation": {
@@ -507,7 +507,7 @@
         },
         "atlas": {
           "model": "enowxlabs/claude-sonnet-4.6-thinking",
-          "variant": "high",
+          "variant": "medium",
           "temperature": 0.1
         },
         "hephaestus": {
@@ -545,7 +545,7 @@
           "temperature": 0.1
         },
         "momus": {
-          "model": "enowxlabs/gpt-5.4",
+          "model": "enowxlabs/gemini-3.1-pro",
           "variant": "high",
           "temperature": 0.1
         },
@@ -557,8 +557,8 @@
       },
       "categories": {
         "visual-engineering": {
-          "model": "enowxlabs/gemini-3.1-pro",
-          "variant": "high",
+          "model": "enowxlabs/claude-opus-4.6",
+          "variant": "medium",
           "temperature": 0.1
         },
         "implementation": {
