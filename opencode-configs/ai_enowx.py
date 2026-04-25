@@ -7,6 +7,7 @@ apikey fetching, and injecting apikey into config files.
 
 import json
 import subprocess
+import time
 from pathlib import Path
 
 from ai_constants import ENOWX_CONFIG_LOCATIONS, ENOWX_LICENSE_KEY
@@ -42,16 +43,22 @@ def setup() -> bool:
 
     print("   [1/3] enowxai logout...")
     _run_cmd(["logout"])
+    time.sleep(1)  # Brief pause after logout
 
     print("   [2/3] enowxai login...")
     login_out = _run_cmd(["login", ENOWX_LICENSE_KEY], capture=True)
     if login_out:
         print(f"   {login_out}")
+    time.sleep(1)  # Brief pause after login
 
     print("   [3/3] enowxai start...")
     start_out = _run_cmd(["start"], capture=True)
     if start_out:
         print(f"   {start_out}")
+    
+    # Wait for proxy server to fully initialize
+    print("   [WAIT] Waiting for proxy server to initialize (5 seconds)...")
+    time.sleep(5)
 
     print("   --- enowX Setup Complete ---\n")
     return True
