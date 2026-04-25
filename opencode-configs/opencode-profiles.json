@@ -397,7 +397,7 @@
           "temperature": 0.1
         },
         "oracle": {
-          "model": "enowxlabs/gpt-5.4",
+          "model": "enowxlabs/claude-opus-4.6",
           "variant": "high",
           "temperature": 0.1
         },
@@ -521,7 +521,7 @@
           "temperature": 0.1
         },
         "oracle": {
-          "model": "enowxlabs/gpt-5.4",
+          "model": "enowxlabs/claude-opus-4.6",
           "variant": "high",
           "temperature": 0.1
         },

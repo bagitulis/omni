@@ -113,7 +113,14 @@ def _handle_choice(choice: str, cli_mode: bool) -> bool:
         profile_name = MENU_OPTIONS[choice]
         if profile_name in DIRECT_PROFILES:
             if not fetch_and_inject_apikey():
-                return True
+                print("\n   [AUTO-TRIGGER] Running enowX Setup...")
+                enowx_setup()
+                print("\n   [RETRY] Fetching apikey after setup...")
+                if not fetch_and_inject_apikey():
+                    print("\n   [ERROR] Setup completed but apikey fetch still failed")
+                    if not cli_mode:
+                        input("\n   Press Enter to continue...")
+                    return cli_mode
         if apply_profile(profile_name):
             start_opencode()
         return True

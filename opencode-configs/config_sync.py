@@ -28,6 +28,7 @@ from pathlib import Path
 LOCATIONS = {
     "extensions": Path("D:/Project/extensions"),
     "omni": Path("D:/Project/omni"),
+    "auto": Path("D:/Project/auto"),
 }
 
 # Files to sync (relative to project root) — full file copy
