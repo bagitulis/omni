@@ -191,24 +191,21 @@ def run_interactive(caller_dir: Path | None = None):
 
     print()
     names = list(LOCATIONS.keys())
-    # Build all possible sync directions dynamically
-    directions = []
-    for src in names:
-        for dst in names:
-            if src != dst:
-                directions.append((src, dst))
-
-    print(f"   {_B}Sync direction:{_0}")
-    for i, (src, dst) in enumerate(directions, 1):
-        print(f"   [{i}] {src} --> {dst}  ({src} is source)")
+    print(f"   {_B}Pick source (syncs to ALL others):{_0}")
+    for i, name in enumerate(names, 1):
+        tag = " *" if name == self_name else ""
+        print(f"   [{i}] {name}{tag}")
     print(f"   [Q] Back")
     print()
 
-    valid_choices = [str(i) for i in range(1, len(directions) + 1)]
+    valid_choices = [str(i) for i in range(1, len(names) + 1)]
     choice = input(f"   Select [{', '.join(valid_choices)}, Q]: ").strip().lower()
     if choice in valid_choices:
-        src, dst = directions[int(choice) - 1]
-        _run(src, dst)
+        src = names[int(choice) - 1]
+        targets = [n for n in names if n != src]
+        for dst in targets:
+            _run(src, dst)
+            print()
     else:
         print("   Cancelled.")
 
