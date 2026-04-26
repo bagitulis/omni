@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AI.py - OpenCode Provider Switcher v5.3
+AI.py - OpenCode Provider Switcher v5.4
 Thin CLI entry point — menu display and dispatch only.
 
 4 Profiles: Mix Copilot, Mix Antigravity, enowX, enowX Mix
@@ -8,13 +8,16 @@ Delivery:
   - Mix Copilot / Mix Antigravity: Plugin (antigravity-* names via Auth Plugin)
   - enowX / enowX Mix: Direct (enowxlabs/ provider via local proxy, no plugin)
 
+Hub sync: On startup, auto-pulls latest configs from D:\\Project\\ai (hub).
+  Disable with --no-sync flag or AI_HUB_PATH="" env var.
+
 Helper modules (in opencode-configs/):
   ai_constants.py  - Paths, mappings, enowX config
   ai_profiles.py   - Profile loading, merging, LSP detection, plugin transform
   ai_apply.py      - Profile application, provider detection, start opencode
   ai_enowx.py      - enowX CLI operations (setup, apikey)
   ai_sync.py       - Account/config file sync across filesystem locations
-  config_sync.py   - Cross-project config sync (models + scripts, excludes rules)
+  config_sync.py   - Cross-project config sync (hub→spoke + interactive)
 """
 
 import os
@@ -41,6 +44,48 @@ from ai_enowx import fetch_and_inject_apikey, setup as enowx_setup
 from ai_sync import smart_sync_accounts
 from ai_constants import APPDATA_DIR, CONFIG_DIR, LOCALAPPDATA_DIR, TARGET_DIR
 from config_sync import run_interactive as config_sync_interactive
+
+
+def _auto_sync_from_hub():
+    """Pull latest configs from hub if this project is not the hub itself.
+
+    Runs silently on success. Warns (non-blocking) on failure.
+    Skipped if --no-sync flag is present or AI_HUB_PATH is empty.
+    """
+    if "--no-sync" in sys.argv:
+        return
+
+    from ai_constants import AI_HUB_PATH, HUB_SYNC_TARGETS
+
+    # If AI_HUB_PATH env var is explicitly empty, skip
+    if not os.environ.get("AI_HUB_PATH", "default"):
+        return
+
+    hub = AI_HUB_PATH
+    if not hub.exists():
+        return
+
+    # Don't sync if we ARE the hub
+    if SCRIPT_DIR.resolve() == hub.resolve():
+        return
+
+    # Don't sync if we're not a known target
+    is_target = any(
+        SCRIPT_DIR.resolve() == t.resolve()
+        for t in HUB_SYNC_TARGETS.values()
+    )
+    if not is_target:
+        return
+
+    try:
+        from config_sync import sync_from_hub
+        copied, new, _skipped, _details, errors = sync_from_hub(hub, SCRIPT_DIR)
+        if errors:
+            print(f"   [HUB-SYNC] {len(errors)} error(s) syncing from hub")
+        elif copied or new:
+            print(f"   [HUB-SYNC] Updated {copied + new} file(s) from hub")
+    except Exception as e:
+        print(f"   [HUB-SYNC] Warning: {e}")
 
 
 def _is_cli_mode() -> bool:
@@ -130,6 +175,10 @@ def _handle_choice(choice: str, cli_mode: bool) -> bool:
 
 
 def main():
+    _auto_sync_from_hub()
+
+    # Strip --no-sync from argv so it doesn't interfere with CLI dispatch
+    sys.argv = [a for a in sys.argv if a != "--no-sync"]
     cli_mode = _is_cli_mode()
 
     if cli_mode:

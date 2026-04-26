@@ -76,3 +76,41 @@ ENOWX_CONFIG_LOCATIONS = [
     Path("D:/Project/omni/opencode-configs/opencode-enowx.json"),
     Path("D:/Project/Auto/opencode-configs/opencode-enowx.json"),
 ]
+
+# ── Hub Sync ─────────────────────────────────────────────────────────────────
+
+# Hub path: the single source of truth for AI.py + opencode-configs
+AI_HUB_PATH = Path(os.environ.get("AI_HUB_PATH", r"D:\Project\ai"))
+
+# Projects managed by the hub
+HUB_SYNC_TARGETS = {
+    "auto": Path("D:/Project/auto"),
+    "extensions": Path("D:/Project/extensions"),
+    "omni": Path("D:/Project/omni"),
+}
+
+# Files to sync from hub to targets (relative to project root)
+HUB_SYNC_FILES = [
+    "AI.py",
+    "opencode-configs/ai_constants.py",
+    "opencode-configs/ai_profiles.py",
+    "opencode-configs/ai_apply.py",
+    "opencode-configs/ai_enowx.py",
+    "opencode-configs/ai_sync.py",
+    "opencode-configs/config_sync.py",
+    "opencode-configs/opencode-profiles.json",
+    "opencode-configs/opencode-enowx.json",
+    "opencode-configs/opencode-plugin.json",
+    "opencode-configs/transform_config.py",
+    "opencode-configs/test-accounts.js",
+    "opencode-configs/test-accounts-helpers.js",
+]
+
+# Files to NEVER sync (project-specific or sensitive)
+HUB_SYNC_EXCLUDE = [
+    "opencode-configs/antigravity-accounts.json",
+    "opencode-configs/antigravity-accounts copy.json",
+    "opencode-configs/antigravity.json",
+    "opencode-configs/refresh_token.json",
+    "opencode-configs/AGENTS.md",
+]

@@ -421,7 +421,7 @@
           "temperature": 0.1
         },
         "momus": {
-          "model": "enowxlabs/gemini-3.1-pro",
+          "model": "enowxlabs/claude-opus-4.6",
           "variant": "high",
           "temperature": 0.1
         },
@@ -516,7 +516,7 @@
           "temperature": 0.1
         },
         "sisyphus-junior": {
-          "model": "enowxlabs/claude-sonnet-4.6",
+          "model": "enowxlabs/claude-sonnet-4.6-thinking",
           "variant": "medium",
           "temperature": 0.1
         },
@@ -527,12 +527,12 @@
         },
         "librarian": {
           "model": "enowxlabs/claude-sonnet-4.6-thinking",
-          "variant": "high",
+          "variant": "medium",
           "temperature": 0.1
         },
         "explore": {
           "model": "enowxlabs/claude-haiku-4.5-thinking",
-          "variant": "high",
+          "variant": "medium",
           "temperature": 0.1
         },
         "multimodal-looker": {
@@ -540,17 +540,17 @@
           "temperature": 0.1
         },
         "metis": {
-          "model": "enowxlabs/glm-5",
+          "model": "enowxlabs/claude-sonnet-4.6-thinking",
           "variant": "high",
           "temperature": 0.1
         },
         "momus": {
-          "model": "enowxlabs/gemini-3.1-pro",
+          "model": "enowxlabs/claude-opus-4.6",
           "variant": "high",
           "temperature": 0.1
         },
         "default": {
-          "model": "enowxlabs/claude-sonnet-4.6",
+          "model": "enowxlabs/claude-sonnet-4.6-thinking",
           "variant": "medium",
           "temperature": 0.1
         }
@@ -591,17 +591,17 @@
           "temperature": 0.1
         },
         "review": {
-          "model": "enowxlabs/gemini-3.1-pro",
+          "model": "enowxlabs/claude-sonnet-4.6-thinking",
           "variant": "high",
           "temperature": 0.1
         },
         "testing": {
-          "model": "enowxlabs/deepseek-3.2-thinking",
+          "model": "enowxlabs/claude-sonnet-4.6-thinking",
           "variant": "medium",
           "temperature": 0.1
         },
         "security": {
-          "model": "enowxlabs/deepseek-3.2-thinking",
+          "model": "enowxlabs/claude-opus-4.6",
           "variant": "high",
           "temperature": 0.1
         },

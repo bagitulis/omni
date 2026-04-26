@@ -1,21 +1,18 @@
 """
 config_sync.py - Sync opencode-configs between project locations
 
-Compares model configs and AI.py between two project directories.
-Shows diffs and prompts before overwriting. Excludes rules/AGENTS.md.
+Two sync modes:
+  1. Hub sync: D:\\Project\\ai (hub) → auto/extensions/omni (one-way, silent)
+  2. Interactive sync: any project → any other project (with diffs + prompts)
 
-Syncable files:
-  - AI.py (root)
-  - opencode-configs/ai_profiles.py
-  - opencode-configs/ai_sync.py
-  - opencode-configs/config_sync.py
-  - opencode-configs/opencode-profiles.json (profiles section only, NOT shared rules)
-  - opencode-configs/opencode-enowx.json
-  - opencode-configs/opencode-plugin.json
+Hub sync is called automatically on AI.py startup (unless --no-sync).
+Interactive sync is called from AI.py menu [X] or standalone.
 
 Called from AI.py menu [X] or standalone:
   python config_sync.py                    # Interactive
   python config_sync.py extensions->omni   # Direct
+  python config_sync.py --hub              # Hub sync to all targets
+  python config_sync.py --hub --dry-run    # Preview hub sync
 """
 
 import difflib
@@ -169,7 +166,122 @@ def _detect_self(caller_dir: Path | None = None) -> str | None:
     return None
 
 
-# ── Public API (called from AI.py) ──────────────────────────────────────────
+# ── Hub Sync (one-way: hub → targets) ───────────────────────────────────────
+
+
+def _copy_if_newer(src: Path, dst: Path) -> str:
+    """Copy src to dst if src is newer. Returns status: 'copied', 'skipped', 'new'."""
+    if not src.exists():
+        return "missing"
+    if not dst.exists():
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+        return "new"
+    if src.stat().st_mtime > dst.stat().st_mtime:
+        shutil.copy2(src, dst)
+        return "copied"
+    return "skipped"
+
+
+def sync_from_hub(
+    hub_path: Path, target_path: Path, dry_run: bool = False
+) -> tuple[int, int, int, list[str], list[str]]:
+    """Sync files from hub to a single target project.
+
+    Returns:
+        Tuple of (copied, new, skipped, details, errors).
+    """
+    from ai_constants import HUB_SYNC_FILES, HUB_SYNC_EXCLUDE
+
+    copied = 0
+    new = 0
+    skipped = 0
+    details: list[str] = []
+    errors: list[str] = []
+    exclude_set = set(HUB_SYNC_EXCLUDE)
+
+    for rel in HUB_SYNC_FILES:
+        if rel in exclude_set:
+            continue
+        src = hub_path / rel
+        dst = target_path / rel
+        if not src.exists():
+            continue
+        try:
+            if dry_run:
+                s, d = _read(src), _read(dst)
+                if s != d:
+                    label = "would_copy" if dst.exists() else "would_create"
+                    details.append(f"  {label}: {rel}")
+                    if dst.exists():
+                        copied += 1
+                    else:
+                        new += 1
+                else:
+                    skipped += 1
+            else:
+                status = _copy_if_newer(src, dst)
+                if status == "copied":
+                    copied += 1
+                    details.append(f"  updated: {rel}")
+                elif status == "new":
+                    new += 1
+                    details.append(f"  created: {rel}")
+                else:
+                    skipped += 1
+        except OSError as e:
+            errors.append(f"  {rel}: {e}")
+    return copied, new, skipped, details, errors
+
+
+def hub_sync_to_all(
+    hub_path: Path | None = None, dry_run: bool = False, quiet: bool = False
+) -> bool:
+    """Sync hub configs to all target projects.
+
+    Args:
+        hub_path: Override hub path (defaults to AI_HUB_PATH from constants).
+        dry_run: Preview without copying.
+        quiet: Suppress output (for auto-sync on startup).
+
+    Returns:
+        True if all syncs succeeded, False if any errors.
+    """
+    from ai_constants import AI_HUB_PATH, HUB_SYNC_TARGETS
+
+    hub = hub_path or AI_HUB_PATH
+    if not hub.exists():
+        if not quiet:
+            print(f"   {_R}Hub not found: {hub}{_0}")
+        return False
+
+    success = True
+    total_changed = 0
+    for name, target in HUB_SYNC_TARGETS.items():
+        if not target.exists():
+            if not quiet:
+                print(f"   {_Y}Skipping {name}: {target} not found{_0}")
+            continue
+        copied, new, _skipped, details, errors = sync_from_hub(hub, target, dry_run=dry_run)
+        total_changed += copied + new
+        if errors:
+            success = False
+            if not quiet:
+                print(f"   {_R}{name}: {len(errors)} error(s){_0}")
+                for e in errors:
+                    print(f"   {_R}{e}{_0}")
+        elif not quiet and (copied or new):
+            tag = "[DRY RUN] " if dry_run else ""
+            print(f"   {_G}{tag}{name}: {copied} updated, {new} new{_0}")
+            for d in details:
+                print(f"   {_D}{d}{_0}")
+
+    if not quiet and total_changed == 0 and success:
+        print(f"   {_G}All targets in sync with hub.{_0}")
+    return success
+
+
+# ── Interactive Sync (project ↔ project) ────────────────────────────────────
 
 
 def run_interactive(caller_dir: Path | None = None):
@@ -315,7 +427,11 @@ if __name__ == "__main__":
         sys.stdout = _io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
         sys.stderr = _io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
-    if len(sys.argv) > 1:
+    args = [a.lower() for a in sys.argv[1:]]
+    if "--hub" in args:
+        dry = "--dry-run" in args
+        hub_sync_to_all(dry_run=dry)
+    elif len(sys.argv) > 1 and "->" in sys.argv[1]:
         run_cli(sys.argv[1])
     else:
         run_interactive()
