@@ -117,15 +117,28 @@ def apply_profile(profile_name: str) -> bool:
     return True
 
 
-def start_opencode():
-    """Start OpenCode."""
-    print("\n   Starting OpenCode...")
+def start_opencode(target_dir: Path | None = None):
+    """Start OpenCode, optionally in a different project directory.
+
+    Args:
+        target_dir: If provided, launch opencode.exe from that directory.
+                    If None, launch from SCRIPT_DIR (current behavior).
+    """
+    launch_dir = target_dir if target_dir else SCRIPT_DIR
+    exe_path = launch_dir / "opencode.exe"
+
+    if target_dir:
+        print(f"\n   Starting OpenCode in {launch_dir.name}...")
+    else:
+        print("\n   Starting OpenCode...")
     print()
-    exe_path = SCRIPT_DIR / "opencode.exe"
+
     try:
         if exe_path.exists():
-            subprocess.run([str(exe_path)])
+            subprocess.run([str(exe_path)], cwd=str(launch_dir))
         else:
-            print("   [ERROR] opencode.exe not found")
+            print(f"   [ERROR] opencode.exe not found at {exe_path}")
+            if target_dir:
+                print(f"   [INFO] Copy opencode.exe to {launch_dir}")
     except Exception as e:
         print(f"   [ERROR] Failed to start OpenCode: {e}")
