@@ -348,6 +348,9 @@ class DatabaseRestoreOps:
                     return True, rows
                 else:
                     last_error = result.stderr[:200] if result.stderr else f"exit code {result.returncode}"
+                    # If error is duplicate key, force TRUNCATE on next retry
+                    if "duplicate key" in last_error or "already exists" in last_error:
+                        skip_truncate = False
                     # If error is column mismatch, log it clearly
                     if "extra data after last expected column" in last_error or "missing data for column" in last_error:
                         print(f"  [WARN] {schema}.{table}: column mismatch (schema evolved since backup)")
