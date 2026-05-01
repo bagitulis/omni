@@ -267,14 +267,6 @@ class DatabaseRestoreOps:
         fix_msg = f" ({auto_fixes} auto-fixed)" if auto_fixes else ""
         log_success(f"Restore complete: {restored_tables} tables, {restored_rows:,} rows{fix_msg}")
         return True, f"Restored {restored_tables} tables with {restored_rows:,} rows{fix_msg}"
-    
-    def run_post_restore_analyze(self) -> bool:
-        """Run ANALYZE after restore to update query planner statistics."""
-        return run_post_restore_analyze()
-
-    def terminate_active_connections(self) -> bool:
-        """Terminate active connections to prevent lock conflicts."""
-        return terminate_active_connections()
 
     def _restore_single_table(
         self, 
