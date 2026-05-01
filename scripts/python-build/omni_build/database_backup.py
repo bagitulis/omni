@@ -390,6 +390,9 @@ class DatabaseBackup:
             print(f"  [{i}/{len(to_export)}] ", end="")
             ops.export_table(item['schema'], item['table'], item['rows'])
         
+        # Backup globals (roles, permissions)
+        ops.backup_globals()
+        
         log_info("[5/6] Cleaning deleted tables...")
         ops.remove_deleted_tables(deleted)
 

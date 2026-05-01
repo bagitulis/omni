@@ -262,17 +262,32 @@ class DatabaseBackupOps:
         """Export schema structure (DDL) to _schema directory."""
         self.schema_dir.mkdir(parents=True, exist_ok=True)
         schema_file = self.schema_dir / f"{schema}.sql.gz"
+        schema_file_plain = self.schema_dir / f"{schema}.sql"
         
         try:
-            cmd = f"pg_dump -U omni -d omni_main --schema={schema} --schema-only --no-owner --no-acl 2>/dev/null | gzip -n"
-            result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "sh", "-c", cmd],
+            # Export compressed (for restore)
+            cmd_gz = f"pg_dump -U omni -d omni_main --schema={schema} --schema-only --no-owner --no-acl 2>/dev/null | gzip -n"
+            result_gz = subprocess.run(
+                ["docker", "exec", "omni-postgres", "sh", "-c", cmd_gz],
                 capture_output=True, timeout=120
             )
             
-            if result.returncode == 0 and result.stdout:
+            # Export plain text (for git diff)
+            cmd_plain = f"pg_dump -U omni -d omni_main --schema={schema} --schema-only --no-owner --no-acl 2>/dev/null"
+            result_plain = subprocess.run(
+                ["docker", "exec", "omni-postgres", "sh", "-c", cmd_plain],
+                capture_output=True, timeout=120
+            )
+            
+            if result_gz.returncode == 0 and result_gz.stdout:
                 with open(schema_file, 'wb') as f:
-                    f.write(result.stdout)
+                    f.write(result_gz.stdout)
+            
+            if result_plain.returncode == 0 and result_plain.stdout:
+                with open(schema_file_plain, 'wb') as f:
+                    f.write(result_plain.stdout)
+            
+            if result_gz.returncode == 0 and result_gz.stdout:
                 return True
             else:
                 self.warnings.append(f"Schema export warning for {schema}")
@@ -280,6 +295,25 @@ class DatabaseBackupOps:
         except Exception as e:
             self.errors.append(f"Failed to export schema {schema}: {e}")
             return False
+    
+    def log_backup_metrics(self, tables_count: int, total_rows: int, 
+                           duration_seconds: float, exported_count: int) -> None:
+        """Append backup metrics to metrics log file."""
+        metrics_file = self.backup_dir / "metrics.jsonl"
+        metrics = {
+            "timestamp": datetime.now().isoformat(),
+            "tables_total": tables_count,
+            "tables_exported": exported_count,
+            "total_rows": total_rows,
+            "duration_seconds": round(duration_seconds, 1),
+            "errors": len(self.errors),
+            "warnings": len(self.warnings),
+        }
+        try:
+            with open(metrics_file, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(metrics) + '\n')
+        except Exception:
+            pass  # Metrics logging is best-effort
     
     def export_table(self, schema: str, table: str, rows: int) -> bool:
         """Export a single table's data with container health checks."""
@@ -423,3 +457,24 @@ class DatabaseBackupOps:
                 meta_file = schema_dir / f"{item['table']}.meta.json"
                 if meta_file.exists():
                     meta_file.unlink()
+    
+    def backup_globals(self) -> bool:
+        """Backup global objects (roles, tablespaces) - not included in pg_dump."""
+        try:
+            globals_file = self.schema_dir / "_globals.sql.gz"
+            self.schema_dir.mkdir(parents=True, exist_ok=True)
+            
+            cmd = "pg_dumpall -U omni --globals-only --no-role-passwords 2>/dev/null | gzip -n"
+            result = subprocess.run(
+                ["docker", "exec", "omni-postgres", "sh", "-c", cmd],
+                capture_output=True, timeout=120
+            )
+            
+            if result.returncode == 0 and result.stdout:
+                with open(globals_file, 'wb') as f:
+                    f.write(result.stdout)
+                return True
+            return False
+        except Exception as e:
+            self.warnings.append(f"Globals backup failed: {e}")
+            return False
