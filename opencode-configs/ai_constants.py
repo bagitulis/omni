@@ -41,6 +41,7 @@ MENU_OPTIONS = {
     "2": "mix-antigravity",
     "3": "enowx",
     "4": "enowx-mix",
+    "5": "enowx-std",
 }
 
 CLI_ARGS = {
@@ -48,14 +49,18 @@ CLI_ARGS = {
     "mix-antigravity": "2",
     "enowx": "3",
     "enowx-mix": "4",
+    "enowx-std": "5",
     "enowx-setup": "e",
     "sync": "s",
     "config-sync": "x",
+    "open-auto": "open-auto",
+    "open-omni": "open-omni",
+    "open-extensions": "open-extensions",
     "current": "c",
 }
 
 # Profiles that use direct delivery (no antigravity plugin, no account sync)
-DIRECT_PROFILES = {"enowx", "enowx-mix"}
+DIRECT_PROFILES = {"enowx", "enowx-mix", "enowx-std"}
 
 # Backward-compat aliases (old proxy/plugin CLI args -> new profile names)
 DEPRECATED_CLI_ARGS = {
@@ -72,9 +77,10 @@ ENOWX_LICENSE_KEY = "ENOWX-BOVG9-DQTCC-5CW5Z-9L20N"
 
 # All opencode-enowx.json locations to update with dynamic apikey
 ENOWX_CONFIG_LOCATIONS = [
+    Path("D:/Project/ai/opencode-configs/opencode-enowx.json"),
     Path("D:/Project/extensions/opencode-configs/opencode-enowx.json"),
     Path("D:/Project/omni/opencode-configs/opencode-enowx.json"),
-    Path("D:/Project/Auto/opencode-configs/opencode-enowx.json"),
+    Path("D:/Project/auto/opencode-configs/opencode-enowx.json"),
 ]
 
 # ── Hub Sync ─────────────────────────────────────────────────────────────────
@@ -90,8 +96,9 @@ HUB_SYNC_TARGETS = {
 }
 
 # Files to sync from hub to targets (relative to project root)
+# NOTE: AI.py is NOT synced — it lives only in the hub (D:\Project\ai).
+#       Spoke projects are launched via [O] Open in from the hub.
 HUB_SYNC_FILES = [
-    "AI.py",
     "opencode-configs/ai_constants.py",
     "opencode-configs/ai_profiles.py",
     "opencode-configs/ai_apply.py",
@@ -113,4 +120,13 @@ HUB_SYNC_EXCLUDE = [
     "opencode-configs/antigravity.json",
     "opencode-configs/refresh_token.json",
     "opencode-configs/AGENTS.md",
+]
+
+# BMAD Method directories (per-project, never synced between projects)
+# Each project has its own _bmad/, .claude/skills/, and _bmad-output/
+# installed via: npx bmad-method install --modules bmm --tools claude-code --yes
+BMAD_DIRS_EXCLUDE = [
+    "_bmad/",
+    "_bmad-output/",
+    ".claude/skills/",
 ]

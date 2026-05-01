@@ -5,6 +5,8 @@ SRP: This module handles database backup coordination.
 Export operations are in database_backup_ops.py.
 """
 import json
+import re
+import shutil
 import subprocess
 import time
 from datetime import datetime
@@ -63,6 +65,66 @@ class DatabaseBackup:
         except Exception as e:
             log_error(f"Failed to start PostgreSQL: {e}")
             return False
+    
+    def check_pg_version_compatibility(self) -> Tuple[bool, str]:
+        """Verify pg_dump version >= PostgreSQL server version."""
+        try:
+            dump_result = subprocess.run(
+                ["docker", "exec", "omni-postgres", "pg_dump", "--version"],
+                capture_output=True, text=True, timeout=10
+            )
+            if dump_result.returncode != 0:
+                return True, ""  # Skip check if can't determine
+            
+            server_result = subprocess.run(
+                ["docker", "exec", "omni-postgres", "psql", "-U", "omni",
+                 "-d", "omni_main", "-t", "-A", "-c", "SHOW server_version"],
+                capture_output=True, text=True, timeout=10
+            )
+            if server_result.returncode != 0:
+                return True, ""
+            
+            dump_match = re.search(r'(\d+)', dump_result.stdout)
+            server_match = re.search(r'^(\d+)', server_result.stdout.strip())
+            
+            if dump_match and server_match:
+                dump_major = int(dump_match.group(1))
+                server_major = int(server_match.group(1))
+                if dump_major < server_major:
+                    return False, f"pg_dump v{dump_major} < server v{server_major}"
+            
+            return True, ""
+        except Exception as e:
+            log_warning(f"Version check skipped: {e}")
+            return True, ""
+    
+    def check_disk_space(self) -> Tuple[bool, str]:
+        """Verify sufficient disk space (2x database size)."""
+        try:
+            result = subprocess.run(
+                ["docker", "exec", "omni-postgres", "psql", "-U", "omni",
+                 "-d", "omni_main", "-t", "-A", "-c",
+                 "SELECT pg_database_size('omni_main')"],
+                capture_output=True, text=True, timeout=30
+            )
+            if result.returncode != 0:
+                return True, ""
+            
+            db_size = int(result.stdout.strip())
+            
+            stat = shutil.disk_usage(self.backup_dir)
+            available = stat.free
+            required = db_size * 2
+            
+            if available < required:
+                avail_gb = available / (1024**3)
+                req_gb = required / (1024**3)
+                return False, f"Disk space: {avail_gb:.1f}GB available < {req_gb:.1f}GB required"
+            
+            return True, ""
+        except Exception as e:
+            log_warning(f"Disk space check skipped: {e}")
+            return True, ""
     
     def get_all_tables(self) -> List[Dict[str, Any]]:
         """Get all tables with row counts from tenant and system schemas."""
@@ -268,6 +330,20 @@ class DatabaseBackup:
         if not self.start_postgres_if_needed():
             return False, "PostgreSQL is not available"
         log_success("PostgreSQL ready")
+        
+        # Version compatibility check
+        log_info("[1.5/6] Checking version compatibility...")
+        version_ok, version_msg = self.check_pg_version_compatibility()
+        if not version_ok:
+            return False, f"Version mismatch: {version_msg}"
+        log_success("Version compatible")
+        
+        # Disk space check
+        log_info("[1.6/6] Checking disk space...")
+        space_ok, space_msg = self.check_disk_space()
+        if not space_ok:
+            return False, f"Insufficient space: {space_msg}"
+        log_success("Disk space sufficient")
         
         log_info("[2/6] Collecting table metadata...")
         

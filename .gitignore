@@ -64,3 +64,14 @@ opencode.exe
 # Backup and temp directories
 omni_backup/
 temp_repo/
+
+# ===========================================
+# Database Backup Data (binary, not git-diffable)
+# ===========================================
+# Only manifest.json and _schema/ DDL are tracked
+# Binary data dumps are synced via file-copy (robocopy/USB/cloud)
+backups/smart/system/
+backups/smart/tenant_*/
+# Keep manifest and schema tracked:
+!backups/smart/manifest.json
+!backups/smart/_schema/

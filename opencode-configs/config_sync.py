@@ -29,8 +29,8 @@ LOCATIONS = {
 }
 
 # Files to sync (relative to project root) — full file copy
+# NOTE: AI.py is NOT synced — it lives only in the hub (D:\Project\ai).
 SYNC_FILES = [
-    "AI.py",
     "opencode-configs/ai_profiles.py",
     "opencode-configs/ai_sync.py",
     "opencode-configs/config_sync.py",

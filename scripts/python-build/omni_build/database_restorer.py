@@ -311,8 +311,17 @@ class DatabaseRestorer:
         from omni_build.database_restore_ops import DatabaseRestoreOps
         ops = DatabaseRestoreOps(self.config, self._pg_checker)
         
+        # Terminate active connections to prevent lock conflicts
+        ops.terminate_active_connections()
+
         schema_success = ops.recreate_schemas_from_backup(self.data_dir)
         if not schema_success:
             log_warning("Schema recreation had issues - continuing with data restore")
         
-        return ops.restore_tables(info, self.data_dir)
+        success, message = ops.restore_tables(info, self.data_dir)
+
+        # Run ANALYZE after successful restore to update statistics
+        if success:
+            ops.run_post_restore_analyze()
+
+        return success, message
