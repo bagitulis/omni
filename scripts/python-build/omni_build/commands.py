@@ -285,7 +285,7 @@ def restore(force: bool, keep_extra: bool):
 @click.option("--force", is_flag=True)
 @click.option("--dry-run", is_flag=True)
 def backup(force: bool, dry_run: bool):
-    """Backup database."""
+    """Backup database (smart format - pg_dump per table)."""
     config = Config.from_env()
     backup_handler = DatabaseBackup(config)
     
@@ -295,5 +295,47 @@ def backup(force: bool, dry_run: bool):
         log_success(f"Backup completed: {message}")
     else:
         log_error(f"Backup failed: {message}")
+    
+    sys.exit(0 if success else 1)
+
+
+@cli.command("sync-export")
+def sync_export():
+    """Export database to NDJSON (git-friendly, like Extensions)."""
+    config = Config.from_env()
+    from omni_build.ndjson_sync import export_all
+    
+    success, results = export_all(config.project_root)
+    
+    if success:
+        total = sum(r.exported for r in results)
+        log_success(f"Sync export complete: {len(results)} tables, {total:,} rows")
+        log_info("Next: git add backups/sync/ && git commit && git push")
+    else:
+        log_error("Sync export failed")
+    
+    sys.exit(0 if success else 1)
+
+
+@cli.command("sync-import")
+@click.option("--force", is_flag=True, help="Skip confirmation")
+def sync_import(force: bool):
+    """Import database from NDJSON (restore from git sync)."""
+    config = Config.from_env()
+    from omni_build.ndjson_sync import import_all
+    
+    if not force:
+        if not confirm("This will TRUNCATE and reimport all tables. Continue?"):
+            log_info("Cancelled")
+            sys.exit(0)
+    
+    success, results = import_all(config.project_root)
+    
+    if success:
+        total = sum(r.imported for r in results)
+        log_success(f"Sync import complete: {len(results)} tables, {total:,} rows")
+    else:
+        errors = sum(r.errors for r in results)
+        log_error(f"Sync import failed ({errors} errors)")
     
     sys.exit(0 if success else 1)
