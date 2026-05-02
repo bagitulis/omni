@@ -284,8 +284,7 @@ def restore(force: bool, keep_extra: bool):
 @cli.command()
 @click.option("--force", is_flag=True)
 @click.option("--dry-run", is_flag=True)
-@click.option("--sync", is_flag=True, help="Sync to OneDrive after backup")
-def backup(force: bool, dry_run: bool, sync: bool):
+def backup(force: bool, dry_run: bool):
     """Backup database."""
     config = Config.from_env()
     backup_handler = DatabaseBackup(config)
@@ -294,60 +293,7 @@ def backup(force: bool, dry_run: bool, sync: bool):
     
     if success:
         log_success(f"Backup completed: {message}")
-        
-        if sync and not dry_run:
-            log_info("Syncing to OneDrive...")
-            from omni_build.onedrive_sync import OneDriveSync
-            sync_handler = OneDriveSync(config.project_root)
-            sync_success, sync_message = sync_handler.sync_to_cloud()
-            if sync_success:
-                log_success(f"Sync completed: {sync_message}")
-            else:
-                log_warning(f"Sync issue: {sync_message}")
     else:
         log_error(f"Backup failed: {message}")
-    
-    sys.exit(0 if success else 1)
-
-
-@cli.command()
-def sync_restore():
-    """Sync from OneDrive and restore database."""
-    config = Config.from_env()
-    
-    log_info("Syncing from OneDrive...")
-    from omni_build.onedrive_sync import OneDriveSync
-    sync_handler = OneDriveSync(config.project_root)
-    sync_success, sync_message = sync_handler.sync_from_cloud()
-    
-    if not sync_success:
-        log_error(f"Sync failed: {sync_message}")
-        sys.exit(1)
-    
-    log_success(f"Sync completed: {sync_message}")
-    
-    # Now restore
-    restorer = DatabaseRestorer(config)
-    
-    if not restorer.has_backup():
-        log_error("No backup found after sync!")
-        sys.exit(1)
-    
-    restorer.print_backup_status()
-    
-    if not confirm("Continue with database restore?"):
-        log_info("Cancelled")
-        sys.exit(0)
-    
-    if not restorer.check_postgres_running():
-        log_error("PostgreSQL container is not running!")
-        sys.exit(1)
-    
-    success, message = restorer.restore(force=True)
-    
-    if success:
-        log_success("Database restore completed!")
-    else:
-        log_error(f"Database restore failed: {message}")
     
     sys.exit(0 if success else 1)
