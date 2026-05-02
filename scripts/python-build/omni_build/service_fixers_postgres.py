@@ -7,6 +7,7 @@ import subprocess
 import time
 from pathlib import Path
 
+from omni_build.db_config import DatabaseConfig
 from omni_build.logger import log_error, log_fix, log_info, log_success, log_warning
 
 
@@ -43,7 +44,7 @@ class PostgresFixer:
         try:
             log_info("Adding Docker network to pg_hba.conf...")
             subprocess.run(
-                ["docker", "exec", "omni-postgres", "sh", "-c",
+                ["docker", "exec", DatabaseConfig.CONTAINER_NAME, "sh", "-c",
                  "echo 'host    all    all    172.0.0.0/8    trust' >> /var/lib/postgresql/data/pg_hba.conf"],
                 capture_output=True,
                 check=False,
@@ -51,7 +52,7 @@ class PostgresFixer:
             )
             
             subprocess.run(
-                ["docker", "exec", "omni-postgres", "sh", "-c",
+                ["docker", "exec", DatabaseConfig.CONTAINER_NAME, "sh", "-c",
                  "echo 'host    all    all    192.168.0.0/16    trust' >> /var/lib/postgresql/data/pg_hba.conf"],
                 capture_output=True,
                 check=False,
@@ -60,7 +61,7 @@ class PostgresFixer:
             
             log_info("Reloading PostgreSQL configuration...")
             subprocess.run(
-                ["docker", "exec", "omni-postgres", "su", "postgres", "-c",
+                ["docker", "exec", DatabaseConfig.CONTAINER_NAME, "su", "postgres", "-c",
                  "pg_ctl reload -D /var/lib/postgresql/data"],
                 capture_output=True,
                 check=False,
@@ -88,7 +89,7 @@ class PostgresFixer:
         try:
             # First ensure postgres container is running
             result = subprocess.run(
-                ["docker", "inspect", "--format", "{{.State.Status}}", "omni-postgres"],
+                ["docker", "inspect", "--format", "{{.State.Status}}", DatabaseConfig.CONTAINER_NAME],
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -108,10 +109,11 @@ class PostgresFixer:
                 time.sleep(15)
             
             # Check if database exists first
-            log_info("Checking if database 'omni_main' exists...")
+            _db = DatabaseConfig.DATABASE
+            log_info(f"Checking if database '{_db}' exists...")
             check_result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "psql", "-U", "omni", "-d", "postgres",
-                 "-tAc", "SELECT 1 FROM pg_database WHERE datname='omni_main'"],
+                ["docker", "exec", DatabaseConfig.CONTAINER_NAME, "psql", "-U", DatabaseConfig.USER, "-d", "postgres",
+                 "-tAc", f"SELECT 1 FROM pg_database WHERE datname='{_db}'"],
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -120,7 +122,7 @@ class PostgresFixer:
             )
             
             if check_result.stdout.strip() == "1":
-                log_success("Database 'omni_main' already exists!")
+                log_success(f"Database '{_db}' already exists!")
                 PostgresFixer.repair_postgres_pg_hba()
                 return True
             
@@ -135,10 +137,10 @@ class PostgresFixer:
                 log_warning("No backup found - will create empty database with init script")
             
             # Create database first
-            log_info("Creating database 'omni_main'...")
+            log_info(f"Creating database '{_db}'...")
             create_result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "psql", "-U", "omni", "-d", "postgres",
-                 "-c", "CREATE DATABASE omni_main WITH ENCODING='UTF8' LC_COLLATE='C' LC_CTYPE='C' TEMPLATE=template0;"],
+                ["docker", "exec", DatabaseConfig.CONTAINER_NAME, "psql", "-U", DatabaseConfig.USER, "-d", "postgres",
+                 "-c", f"CREATE DATABASE {_db} WITH ENCODING='UTF8' LC_COLLATE='C' LC_CTYPE='C' TEMPLATE=template0;"],
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -150,7 +152,7 @@ class PostgresFixer:
                 log_warning(f"Failed to create database: {create_result.stderr}")
                 return PostgresFixer.repair_postgres_database()
             
-            log_success("Database 'omni_main' created successfully!")
+            log_success(f"Database '{_db}' created successfully!")
             
             # Fix pg_hba.conf for Docker networks BEFORE restore
             PostgresFixer.repair_postgres_pg_hba()
@@ -196,8 +198,8 @@ class PostgresFixer:
                 )
                 
                 result = subprocess.run(
-                    ["docker", "exec", "omni-postgres", "psql", "-U", "omni",
-                     "-d", "omni_main", "-f", "/tmp/init.sql"],
+                    ["docker", "exec", DatabaseConfig.CONTAINER_NAME, "psql",
+                     "-U", DatabaseConfig.USER, "-d", DatabaseConfig.DATABASE, "-f", "/tmp/init.sql"],
                     capture_output=True,
                     text=True,
                     encoding='utf-8',
@@ -214,7 +216,7 @@ class PostgresFixer:
             for _ in range(5):
                 time.sleep(2)
                 check = subprocess.run(
-                    ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni", "-d", "omni_main"],
+                    ["docker", "exec", DatabaseConfig.CONTAINER_NAME, "pg_isready", "-U", DatabaseConfig.USER, "-d", DatabaseConfig.DATABASE],
                     capture_output=True,
                     timeout=10,
                 )
@@ -247,7 +249,7 @@ class PostgresFixer:
             
             log_info("Removing PostgreSQL container...")
             subprocess.run(
-                ["docker", "rm", "-f", "omni-postgres"],
+                ["docker", "rm", "-f", DatabaseConfig.CONTAINER_NAME],
                 capture_output=True,
                 check=False
             )
@@ -273,7 +275,7 @@ class PostgresFixer:
             for i in range(12):
                 time.sleep(5)
                 result = subprocess.run(
-                    ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni", "-d", "omni_main"],
+                    ["docker", "exec", DatabaseConfig.CONTAINER_NAME, "pg_isready", "-U", DatabaseConfig.USER, "-d", DatabaseConfig.DATABASE],
                     capture_output=True,
                     text=True,
                     encoding='utf-8',
@@ -299,7 +301,7 @@ class PostgresFixer:
         """Repair corrupted PostgreSQL data."""
         log_warning("PostgreSQL data corruption detected")
         log_info("Stopping PostgreSQL container...")
-        subprocess.run(["docker", "stop", "omni-postgres"], 
+        subprocess.run(["docker", "stop", DatabaseConfig.CONTAINER_NAME], 
                       capture_output=True, check=False)
         log_info("Container will reinitialize on next start")
         return True
@@ -314,7 +316,7 @@ class PostgresFixer:
                       capture_output=True, check=False)
         
         log_info("Stopping all containers to reset network...")
-        containers = ["omni-backend", "omni-frontend", "omni-postgres", 
+        containers = ["omni-backend", "omni-frontend", DatabaseConfig.CONTAINER_NAME, 
                      "omni-redis", "omni-pgbouncer", "omni-nginx", 
                      "omni-cloudflared", "omni-pgweb"]
         
@@ -342,14 +344,14 @@ class PostgresFixer:
         
         # Force checkpoint to flush data
         subprocess.run(
-            ["docker", "exec", "omni-postgres", "psql", "-U", "omni", "-d", "omni_main",
+            ["docker", "exec", DatabaseConfig.CONTAINER_NAME, "psql", "-U", DatabaseConfig.USER, "-d", DatabaseConfig.DATABASE,
              "-c", "CHECKPOINT;"],
             capture_output=True, check=False, timeout=30
         )
         
         # Restart PostgreSQL to clear any stuck I/O
         log_info("Restarting PostgreSQL to clear I/O state...")
-        return _restart_container("omni-postgres", timeout=90)
+        return _restart_container(DatabaseConfig.CONTAINER_NAME, timeout=90)
     
     @staticmethod
     def repair_postgres_checkpoint() -> bool:
@@ -358,7 +360,7 @@ class PostgresFixer:
         
         # Force checkpoint with wait
         result = subprocess.run(
-            ["docker", "exec", "omni-postgres", "psql", "-U", "omni", "-d", "omni_main",
+            ["docker", "exec", DatabaseConfig.CONTAINER_NAME, "psql", "-U", DatabaseConfig.USER, "-d", DatabaseConfig.DATABASE,
              "-c", "CHECKPOINT;"],
             capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=60
         )
@@ -368,7 +370,7 @@ class PostgresFixer:
             return True
         
         log_warning("Checkpoint failed, restarting PostgreSQL...")
-        return _restart_container("omni-postgres", timeout=90)
+        return _restart_container(DatabaseConfig.CONTAINER_NAME, timeout=90)
     
     @staticmethod
     def repair_postgres_wal() -> bool:
@@ -378,7 +380,7 @@ class PostgresFixer:
         
         # Try to reset WAL by restarting
         log_info("Restarting PostgreSQL to reset WAL state...")
-        return _restart_container("omni-postgres", timeout=90)
+        return _restart_container(DatabaseConfig.CONTAINER_NAME, timeout=90)
     
     @staticmethod
     def repair_postgres_deadlock() -> bool:
@@ -387,7 +389,7 @@ class PostgresFixer:
         
         # Terminate blocking queries
         result = subprocess.run(
-            ["docker", "exec", "omni-postgres", "psql", "-U", "omni", "-d", "omni_main",
+            ["docker", "exec", DatabaseConfig.CONTAINER_NAME, "psql", "-U", DatabaseConfig.USER, "-d", DatabaseConfig.DATABASE,
              "-c", """
                 SELECT pg_terminate_backend(pid) 
                 FROM pg_stat_activity 
@@ -412,7 +414,7 @@ class PostgresFixer:
         
         # Terminate idle connections
         result = subprocess.run(
-            ["docker", "exec", "omni-postgres", "psql", "-U", "omni", "-d", "omni_main",
+            ["docker", "exec", DatabaseConfig.CONTAINER_NAME, "psql", "-U", DatabaseConfig.USER, "-d", DatabaseConfig.DATABASE,
              "-c", """
                 SELECT pg_terminate_backend(pid) 
                 FROM pg_stat_activity 

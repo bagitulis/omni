@@ -157,9 +157,6 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		// Notifications (Facebook-style persistent)
 		&models.Notification{},
 		&models.NotificationSettings{},
-
-		// Analytics Cache
-		&models.AnalyticsCacheMetadata{},
 	}
 
 	for _, model := range tenantModels {

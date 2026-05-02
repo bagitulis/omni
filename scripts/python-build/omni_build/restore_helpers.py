@@ -10,6 +10,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Tuple
 
+from omni_build.db_config import DatabaseConfig
 from omni_build.logger import log_error, log_info, log_success, log_warning
 
 
@@ -100,9 +101,8 @@ def recreate_schemas_from_backup(data_dir: Path, pg_checker) -> bool:
                 if not pg_checker.recover():
                     return False
 
-            drop_cmd = [
-                "docker", "exec", "omni-postgres", "psql", "-U", "omni",
-                "-d", "omni_main", "-c",
+            drop_cmd = DatabaseConfig.psql_cmd() + [
+                "-c",
                 f"DROP SCHEMA IF EXISTS {schema_name} CASCADE;"
             ]
             subprocess.run(drop_cmd, capture_output=True, text=True, timeout=60)
@@ -118,8 +118,7 @@ def recreate_schemas_from_backup(data_dir: Path, pg_checker) -> bool:
             sql_content = sql_bytes.decode('utf-8')
 
             result = subprocess.run(
-                ["docker", "exec", "-i", "omni-postgres", "psql", "-U", "omni",
-                 "-d", "omni_main"],
+                DatabaseConfig.psql_cmd(interactive=True),
                 input=sql_content,
                 capture_output=True,
                 text=True,
@@ -146,12 +145,14 @@ def recreate_schemas_from_backup(data_dir: Path, pg_checker) -> bool:
 def terminate_active_connections() -> bool:
     """Terminate active connections to prevent lock conflicts during restore."""
     try:
+        _db = DatabaseConfig.DATABASE
         result = subprocess.run(
-            ["docker", "exec", "omni-postgres", "psql", "-U", "omni",
-             "-d", "postgres", "-c",
-             "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
-             "WHERE datname = 'omni_main' AND pid <> pg_backend_pid() "
-             "AND state = 'active';"],
+            DatabaseConfig.psql_cmd(database="postgres") + [
+                "-c",
+                f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                f"WHERE datname = '{_db}' AND pid <> pg_backend_pid() "
+                f"AND state = 'active';"
+            ],
             capture_output=True, text=True, timeout=30,
             encoding='utf-8', errors='replace',
         )
@@ -168,8 +169,7 @@ def run_post_restore_analyze() -> bool:
     try:
         log_info("Running ANALYZE on restored tables...")
         result = subprocess.run(
-            ["docker", "exec", "omni-postgres", "psql", "-U", "omni",
-             "-d", "omni_main", "-c", "ANALYZE;"],
+            DatabaseConfig.psql_cmd() + ["-c", "ANALYZE;"],
             capture_output=True, text=True, timeout=300,
             encoding='utf-8', errors='replace',
         )

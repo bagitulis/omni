@@ -161,11 +161,6 @@ describe("appStore — setActiveTab", () => {
     expect(useAppStore.getState().activeTab).toBe("product-management");
   });
 
-  it("sets activeTab to analytics", () => {
-    useAppStore.getState().setActiveTab("analytics");
-    expect(useAppStore.getState().activeTab).toBe("analytics");
-  });
-
   it("sets activeTab to settings", () => {
     useAppStore.getState().setActiveTab("settings");
     expect(useAppStore.getState().activeTab).toBe("settings");

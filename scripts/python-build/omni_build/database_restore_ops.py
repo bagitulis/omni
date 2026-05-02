@@ -21,6 +21,7 @@ from omni_build.restore_helpers import (
 )
 
 from omni_build.config import Config
+from omni_build.db_config import DatabaseConfig
 from omni_build.logger import log_error, log_info, log_success, log_warning
 
 
@@ -41,9 +42,8 @@ class DatabaseRestoreOps:
     def _get_table_count(self, schema: str, table: str) -> Tuple[bool, int, str]:
         """Get table row count from PostgreSQL."""
         count_result = subprocess.run(
-            [
-                "docker", "exec", "omni-postgres", "psql", "-U", "omni",
-                "-d", "omni_main", "-t", "-c", f"SELECT COUNT(*) FROM {schema}.{table};"
+            DatabaseConfig.psql_cmd() + [
+                "-t", "-c", f"SELECT COUNT(*) FROM {schema}.{table};"
             ],
             capture_output=True,
             text=True,
@@ -123,9 +123,8 @@ class DatabaseRestoreOps:
         
         log_info(f"Clearing {len(tables_to_restore)} tables...")
         for schema_name, table_name, _, _, _ in tables_to_restore:
-            clear_cmd = [
-                "docker", "exec", "omni-postgres", "psql", "-U", "omni",
-                "-d", "omni_main", "-c", f"TRUNCATE {schema_name}.{table_name} CASCADE;"
+            clear_cmd = DatabaseConfig.psql_cmd() + [
+                "-c", f"TRUNCATE {schema_name}.{table_name} CASCADE;"
             ]
             clear_result = subprocess.run(
                 clear_cmd,
@@ -283,9 +282,8 @@ class DatabaseRestoreOps:
         for attempt in range(1, max_retries + 1):
             try:
                 if not skip_truncate:
-                    clear_cmd = [
-                        "docker", "exec", "omni-postgres", "psql", "-U", "omni", 
-                        "-d", "omni_main", "-c", f"TRUNCATE {schema}.{table};"
+                    clear_cmd = DatabaseConfig.psql_cmd() + [
+                        "-c", f"TRUNCATE {schema}.{table};"
                     ]
                     subprocess.run(clear_cmd, capture_output=True, timeout=30)
                 
@@ -306,16 +304,14 @@ class DatabaseRestoreOps:
                 
                 # Disable triggers (FK constraints) before restore to allow
                 # insertion regardless of table ordering
-                disable_cmd = [
-                    "docker", "exec", "omni-postgres", "psql", "-U", "omni",
-                    "-d", "omni_main", "-c",
+                disable_cmd = DatabaseConfig.psql_cmd() + [
+                    "-c",
                     f"ALTER TABLE {schema}.{table} DISABLE TRIGGER ALL;"
                 ]
                 subprocess.run(disable_cmd, capture_output=True, timeout=30)
                 
                 result = subprocess.run(
-                    ["docker", "exec", "-i", "omni-postgres", "psql", "-U", "omni", "-d", "omni_main",
-                     "-v", "ON_ERROR_STOP=1"],
+                    DatabaseConfig.psql_cmd(interactive=True) + ["-v", "ON_ERROR_STOP=1"],
                     input=sql_content,
                     capture_output=True,
                     text=True,
@@ -325,9 +321,8 @@ class DatabaseRestoreOps:
                 )
                 
                 # Re-enable triggers after restore
-                enable_cmd = [
-                    "docker", "exec", "omni-postgres", "psql", "-U", "omni",
-                    "-d", "omni_main", "-c",
+                enable_cmd = DatabaseConfig.psql_cmd() + [
+                    "-c",
                     f"ALTER TABLE {schema}.{table} ENABLE TRIGGER ALL;"
                 ]
                 subprocess.run(enable_cmd, capture_output=True, timeout=30)
@@ -394,7 +389,7 @@ class DatabaseRestoreOps:
             
             # Get all columns ordered by position
             col_result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "psql", "-U", "omni", "-d", "omni_main", "-t", "-c",
+                DatabaseConfig.psql_cmd() + ["-t", "-c",
                  f"SELECT string_agg(column_name, ', ' ORDER BY ordinal_position) FROM information_schema.columns WHERE table_schema = '{schema}' AND table_name = '{table}';"],
                 capture_output=True, text=True, timeout=30
             )
@@ -420,9 +415,10 @@ class DatabaseRestoreOps:
             
             # Disable triggers before bulk COPY
             subprocess.run(
-                ["docker", "exec", "omni-postgres", "psql", "-U", "omni",
-                 "-d", "omni_main", "-c",
-                 f"ALTER TABLE {schema}.{table} DISABLE TRIGGER ALL;"],
+                DatabaseConfig.psql_cmd() + [
+                    "-c",
+                    f"ALTER TABLE {schema}.{table} DISABLE TRIGGER ALL;"
+                ],
                 capture_output=True, timeout=30
             )
             
@@ -438,8 +434,7 @@ class DatabaseRestoreOps:
                         copy_sql = f"COPY {schema}.{table} ({columns}) FROM stdin;\n{tsv_data}\\.\n"
                         
                         result = subprocess.run(
-                            ["docker", "exec", "-i", "omni-postgres", "psql", "-U", "omni", "-d", "omni_main",
-                             "-v", "ON_ERROR_STOP=1"],
+                            DatabaseConfig.psql_cmd(interactive=True) + ["-v", "ON_ERROR_STOP=1"],
                             input=copy_sql,
                             capture_output=True,
                             text=True,
@@ -473,9 +468,10 @@ class DatabaseRestoreOps:
             
             # Re-enable triggers
             subprocess.run(
-                ["docker", "exec", "omni-postgres", "psql", "-U", "omni",
-                 "-d", "omni_main", "-c",
-                 f"ALTER TABLE {schema}.{table} ENABLE TRIGGER ALL;"],
+                DatabaseConfig.psql_cmd() + [
+                    "-c",
+                    f"ALTER TABLE {schema}.{table} ENABLE TRIGGER ALL;"
+                ],
                 capture_output=True, timeout=30
             )
             

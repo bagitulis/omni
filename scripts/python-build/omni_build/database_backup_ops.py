@@ -12,14 +12,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from omni_build.db_config import DatabaseConfig
 from omni_build.logger import log_error, log_info, log_success, log_warning
 
 
 class DatabaseBackupOps:
     """Handles database export operations for backup."""
     
-    LARGE_TABLE_THRESHOLD = 50000
-    CHUNK_SIZE = 25000
+    LARGE_TABLE_THRESHOLD = DatabaseConfig.LARGE_TABLE_THRESHOLD
+    CHUNK_SIZE = DatabaseConfig.CHUNK_SIZE
     
     def __init__(self, backup_dir: Path) -> None:
         self.backup_dir = backup_dir
@@ -107,20 +108,7 @@ class DatabaseBackupOps:
 
         try:
             pk_result = subprocess.run(
-                [
-                    "docker",
-                    "exec",
-                    "omni-postgres",
-                    "psql",
-                    "-U",
-                    "omni",
-                    "-d",
-                    "omni_main",
-                    "-t",
-                    "-A",
-                    "-c",
-                    pk_query,
-                ],
+                DatabaseConfig.psql_cmd() + ["-t", "-A", "-c", pk_query],
                 capture_output=True,
                 text=True,
                 timeout=30,
@@ -134,12 +122,13 @@ class DatabaseBackupOps:
 
     def _calculate_live_single_checksum(self, schema: str, table: str) -> str:
         """Calculate checksum from live PostgreSQL dump stream (single-file strategy)."""
+        _u, _d = DatabaseConfig.USER, DatabaseConfig.DATABASE
         cmd = (
-            f"pg_dump -U omni -d omni_main --table={schema}.{table} "
+            f"pg_dump -U {_u} -d {_d} --table={schema}.{table} "
             "--data-only --no-owner --no-acl 2>/dev/null | gzip -n"
         )
         result = subprocess.run(
-            ["docker", "exec", "omni-postgres", "sh", "-c", cmd],
+            DatabaseConfig.docker_exec_prefix() + ["sh", "-c", cmd],
             capture_output=True,
             timeout=300,
         )
@@ -165,13 +154,14 @@ class DatabaseBackupOps:
         chunk_num = 0
         while offset < total_rows:
             chunk_name = f"{table}.chunk{chunk_num:03d}.sql.gz"
+            _u, _d = DatabaseConfig.USER, DatabaseConfig.DATABASE
             copy_cmd = (
-                f'psql -U omni -d omni_main -c "COPY (SELECT * FROM {schema}.{table} '
+                f'psql -U {_u} -d {_d} -c "COPY (SELECT * FROM {schema}.{table} '
                 f'ORDER BY {order_by} LIMIT {self.CHUNK_SIZE} OFFSET {offset}) TO STDOUT" '
                 '2>/dev/null | gzip -n'
             )
             result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "sh", "-c", copy_cmd],
+                DatabaseConfig.docker_exec_prefix() + ["sh", "-c", copy_cmd],
                 capture_output=True,
                 timeout=600,
             )
@@ -213,7 +203,9 @@ class DatabaseBackupOps:
         """Quick check if PostgreSQL is responsive."""
         try:
             result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni", "-d", "omni_main"],
+                DatabaseConfig.docker_exec_prefix() + [
+                    "pg_isready", "-U", DatabaseConfig.USER, "-d", DatabaseConfig.DATABASE
+                ],
                 capture_output=True, text=True, timeout=5
             )
             return result.returncode == 0
@@ -226,14 +218,14 @@ class DatabaseBackupOps:
         
         try:
             result = subprocess.run(
-                ["docker", "inspect", "--format", "{{.State.Status}}", "omni-postgres"],
+                ["docker", "inspect", "--format", "{{.State.Status}}", DatabaseConfig.CONTAINER_NAME],
                 capture_output=True, text=True, timeout=10
             )
             status = result.stdout.strip()
             
             if status == "exited":
                 log_info("Container exited - attempting restart...")
-                subprocess.run(["docker", "start", "omni-postgres"], 
+                subprocess.run(["docker", "start", DatabaseConfig.CONTAINER_NAME], 
                               capture_output=True, timeout=30)
                 
                 for _ in range(30):
@@ -265,17 +257,19 @@ class DatabaseBackupOps:
         schema_file_plain = self.schema_dir / f"{schema}.sql"
         
         try:
+            _u, _d = DatabaseConfig.USER, DatabaseConfig.DATABASE
+            _prefix = DatabaseConfig.docker_exec_prefix()
             # Export compressed (for restore)
-            cmd_gz = f"pg_dump -U omni -d omni_main --schema={schema} --schema-only --no-owner --no-acl 2>/dev/null | gzip -n"
+            cmd_gz = f"pg_dump -U {_u} -d {_d} --schema={schema} --schema-only --no-owner --no-acl 2>/dev/null | gzip -n"
             result_gz = subprocess.run(
-                ["docker", "exec", "omni-postgres", "sh", "-c", cmd_gz],
+                _prefix + ["sh", "-c", cmd_gz],
                 capture_output=True, timeout=120
             )
             
             # Export plain text (for git diff)
-            cmd_plain = f"pg_dump -U omni -d omni_main --schema={schema} --schema-only --no-owner --no-acl 2>/dev/null"
+            cmd_plain = f"pg_dump -U {_u} -d {_d} --schema={schema} --schema-only --no-owner --no-acl 2>/dev/null"
             result_plain = subprocess.run(
-                ["docker", "exec", "omni-postgres", "sh", "-c", cmd_plain],
+                _prefix + ["sh", "-c", cmd_plain],
                 capture_output=True, timeout=120
             )
             
@@ -362,9 +356,10 @@ class DatabaseBackupOps:
             meta_file.unlink()
         
         try:
-            cmd = f"pg_dump -U omni -d omni_main --table={schema}.{table} --data-only --no-owner --no-acl 2>/dev/null | gzip -n"
+            _u, _d = DatabaseConfig.USER, DatabaseConfig.DATABASE
+            cmd = f"pg_dump -U {_u} -d {_d} --table={schema}.{table} --data-only --no-owner --no-acl 2>/dev/null | gzip -n"
             result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "sh", "-c", cmd],
+                DatabaseConfig.docker_exec_prefix() + ["sh", "-c", cmd],
                 capture_output=True, timeout=300
             )
             
@@ -402,11 +397,12 @@ class DatabaseBackupOps:
         while offset < total_rows:
             chunk_file = dest_dir / f"{table}.chunk{chunk_num:03d}.sql.gz"
             
-            copy_cmd = f'psql -U omni -d omni_main -c "COPY (SELECT * FROM {schema}.{table} ORDER BY {order_by} LIMIT {self.CHUNK_SIZE} OFFSET {offset}) TO STDOUT" 2>/dev/null | gzip -n'
+            _u, _d = DatabaseConfig.USER, DatabaseConfig.DATABASE
+            copy_cmd = f'psql -U {_u} -d {_d} -c "COPY (SELECT * FROM {schema}.{table} ORDER BY {order_by} LIMIT {self.CHUNK_SIZE} OFFSET {offset}) TO STDOUT" 2>/dev/null | gzip -n'
             
             try:
                 result = subprocess.run(
-                    ["docker", "exec", "omni-postgres", "sh", "-c", copy_cmd],
+                    DatabaseConfig.docker_exec_prefix() + ["sh", "-c", copy_cmd],
                     capture_output=True, timeout=600
                 )
                 
@@ -464,9 +460,9 @@ class DatabaseBackupOps:
             globals_file = self.schema_dir / "_globals.sql.gz"
             self.schema_dir.mkdir(parents=True, exist_ok=True)
             
-            cmd = "pg_dumpall -U omni --globals-only --no-role-passwords 2>/dev/null | gzip -n"
+            cmd = f"pg_dumpall -U {DatabaseConfig.USER} --globals-only --no-role-passwords 2>/dev/null | gzip -n"
             result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "sh", "-c", cmd],
+                DatabaseConfig.docker_exec_prefix() + ["sh", "-c", cmd],
                 capture_output=True, timeout=120
             )
             

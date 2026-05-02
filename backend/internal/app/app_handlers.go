@@ -6,7 +6,6 @@ import (
 
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/handlers"
-	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/autofunction"
 	"github.com/omni/backend/internal/services/google"
@@ -54,11 +53,6 @@ type ExtendedHandlers struct {
 	SpreadsheetRegistryHandler *handlers.SpreadsheetRegistryHandler
 	FilterPreferenceHandler    *handlers.FilterPreferenceHandler
 	WholesaleHandler           *handlers.WholesaleHandler
-
-	// Ads handlers
-	AdsHandler             *handlers.AdsHandler
-	TiktokAnalyticsHandler *handlers.TiktokAnalyticsHandler
-	ShopeeAnalyticsHandler *handlers.ShopeeAnalyticsHandler
 
 	// Monitoring handler
 	MonitoringHandler *handlers.MonitoringHandler
@@ -136,11 +130,6 @@ func (a *App) InitExtendedHandlers(db *gorm.DB, googleAuth *google.AuthService) 
 		FilterPreferenceHandler:    handlers.NewFilterPreferenceHandler(db),
 		WholesaleHandler:           handlers.NewWholesaleHandler(db),
 
-		// Ads handlers
-		AdsHandler:             handlers.NewAdsHandler(db),
-		TiktokAnalyticsHandler: handlers.NewTiktokAnalyticsHandler(),
-		ShopeeAnalyticsHandler: handlers.NewShopeeAnalyticsHandler(),
-
 		// Monitoring handler
 		MonitoringHandler: handlers.NewSimpleMonitoringHandler(),
 
@@ -166,16 +155,9 @@ func registerDefaultAutoFunctionHandlers(executor *autofunction.Executor) {
 }
 
 // startBackgroundJobExecutor initializes and starts the multi-tenant job executor
-// for processing long-running background jobs like escrow sync
+// for processing long-running background jobs
 func startBackgroundJobExecutor(systemDB *gorm.DB, basePath string) {
 	jobExecutor := jobs.NewMultiTenantExecutor(systemDB, basePath)
-
-	// Create escrow sync handler
-	escrowHandler := jobs.NewEscrowSyncHandler(systemDB)
-
-	// Register handlers for escrow sync job types
-	jobExecutor.RegisterHandler(models.JobTypeShopeeEscrowSync, escrowHandler.HandleShopeeEscrowSync)
-	jobExecutor.RegisterHandler(models.JobTypeTiktokEscrowSync, escrowHandler.HandleTiktokEscrowSync)
 
 	// Start the executor
 	jobExecutor.Start()

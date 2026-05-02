@@ -25,6 +25,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from omni_build.db_config import DatabaseConfig
 from omni_build.logger import log_error, log_info, log_success, log_warning
 from omni_build.ndjson_sql_helpers import build_batch_insert, build_single_upsert
 
@@ -75,8 +76,7 @@ class SyncResult:
 def _psql_exec(sql: str, timeout: int = 60) -> Tuple[bool, str]:
     """Execute SQL via docker exec psql."""
     result = subprocess.run(
-        ["docker", "exec", "-i", "omni-postgres", "psql", "-U", "omni",
-         "-d", "omni_main", "-v", "ON_ERROR_STOP=1"],
+        DatabaseConfig.psql_cmd(interactive=True) + ["-v", "ON_ERROR_STOP=1"],
         input=sql,
         capture_output=True, text=True, timeout=timeout,
         encoding='utf-8', errors='replace',
@@ -89,8 +89,7 @@ def _psql_exec(sql: str, timeout: int = 60) -> Tuple[bool, str]:
 def _psql_query(sql: str, timeout: int = 60) -> Tuple[bool, str]:
     """Execute query and return raw output."""
     result = subprocess.run(
-        ["docker", "exec", "omni-postgres", "psql", "-U", "omni",
-         "-d", "omni_main", "-t", "-A", "-F", "\t", "-c", sql],
+        DatabaseConfig.psql_cmd() + ["-t", "-A", "-F", "\t", "-c", sql],
         capture_output=True, text=True, timeout=timeout,
         encoding='utf-8', errors='replace',
     )

@@ -130,26 +130,6 @@ func main() {
 	routes.RegisterWholesaleRoutes(api, extHandlers.WholesaleHandler)
 	routes.RegisterWholesaleExtendedRoutes(api, cfg.DatabasePath)
 
-	// Ads routes
-	routes.RegisterAdsRoutes(api, extHandlers.AdsHandler)
-	routes.RegisterTiktokAnalyticsRoutes(api, extHandlers.TiktokAnalyticsHandler)
-	routes.RegisterShopeeAnalyticsRoutes(api, extHandlers.ShopeeAnalyticsHandler)
-
-	// Ads Analytics routes (for frontend composables)
-	routes.RegisterShopeeAdsAnalyticsRoutes(api, cfg.DatabasePath)
-	routes.RegisterTiktokAdsAnalyticsRoutes(api, cfg.DatabasePath)
-
-	// ML Analytics routes (new ML-powered analytics)
-	routes.RegisterMLAnalyticsRoutes(api, application.CacheService)
-
-	// Budget Simulation & Intelligence routes
-	routes.RegisterSimulationRoutes(api, cfg.DatabasePath)
-
-	// Unified Analytics & Cache Management routes
-	routes.RegisterUnifiedAnalyticsRoutes(api, cfg.DatabasePath, application.CacheService)
-
-
-
 	// Ads Report routes (Shopee/TikTok ads reporting)
 	routes.RegisterReportRoutes(api, application.SystemDB)
 
@@ -272,9 +252,6 @@ func main() {
 
 	// TikTok Shipping routes (shipping document/label)
 	routes.RegisterTiktokShippingRoutes(api, cfg.DatabasePath)
-
-	// Note: Analytics routes are registered via routes.RegisterShopeeAnalyticsRoutes,
-	// routes.RegisterTiktokAnalyticsRoutes, and routes.RegisterAdsRoutes above.
 
 	// ====== Extended Platform Routes ======
 	// Lazada Product Extended routes (db products, categories, attributes)

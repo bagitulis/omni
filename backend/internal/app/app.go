@@ -71,7 +71,6 @@ type App struct {
 	AnalyticsHandler    *handlers.AnalyticsHandler
 	WebhookHandler      *handlers.WebhookHandler
 	PlatformAuthHandler *handlers.PlatformAuthHandler
-	AdsHandler          *handlers.AdsHandler
 }
 
 // New creates and initializes the application
@@ -279,7 +278,6 @@ func (a *App) initHandlers() {
 		a.BasePath,
 	)
 
-	a.AdsHandler = handlers.NewAdsHandler(a.SystemDB)
 }
 
 // Close closes all database connections

@@ -46,29 +46,11 @@ const ProductImportPage = React.lazy(
 const SimplifiedInventoryPage = React.lazy(
   () => import("./pages/inventory/SimplifiedInventoryPage"),
 );
-const AnalyticsHubPage = React.lazy(
-  () => import("./pages/analytics/AnalyticsHubPage"),
-);
 const ShopeeReportPage = React.lazy(
   () => import("./pages/report/ShopeeReportPage"),
 );
 const TiktokReportPage = React.lazy(
   () => import("./pages/report/TiktokReportPage"),
-);
-const ShopeeAdsAnalyticsPage = React.lazy(
-  () => import("./pages/analytics/ShopeeAdsAnalyticsPage"),
-);
-const TiktokAdsAnalyticsPage = React.lazy(
-  () => import("./pages/analytics/TiktokAdsAnalyticsPage"),
-);
-const MLDashboardPage = React.lazy(
-  () => import("./pages/analytics/MLDashboardPage"),
-);
-const BudgetSimulatorPage = React.lazy(
-  () => import("./pages/analytics/BudgetSimulatorPage"),
-);
-const ProductClassificationPage = React.lazy(
-  () => import("./pages/analytics/ProductClassificationPage"),
 );
 
 const SettingsPage = React.lazy(() => import("./pages/settings/SettingsPage"));
@@ -140,7 +122,6 @@ function AppContent() {
                       path="/inventory"
                       element={<SimplifiedInventoryPage />}
                     />
-                    <Route path="/analytics" element={<AnalyticsHubPage />} />
                     <Route
                       path="/report/shopee"
                       element={<ShopeeReportPage />}
@@ -148,23 +129,6 @@ function AppContent() {
                     <Route
                       path="/report/tiktok"
                       element={<TiktokReportPage />}
-                    />
-                    <Route
-                      path="/analytics/shopee-ads"
-                      element={<ShopeeAdsAnalyticsPage />}
-                    />
-                    <Route
-                      path="/analytics/tiktok-ads"
-                      element={<TiktokAdsAnalyticsPage />}
-                    />
-                    <Route path="/analytics/ml" element={<MLDashboardPage />} />
-                    <Route
-                      path="/analytics/budget-simulator"
-                      element={<BudgetSimulatorPage />}
-                    />
-                    <Route
-                      path="/analytics/product-classification"
-                      element={<ProductClassificationPage />}
                     />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route

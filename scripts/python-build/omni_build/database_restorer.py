@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 from omni_build.config import Config
+from omni_build.db_config import DatabaseConfig
 from omni_build.logger import log_error, log_info, log_success, log_warning
 
 
@@ -24,7 +25,9 @@ class PostgresHealthChecker:
         """Check if PostgreSQL container is running and ready."""
         try:
             result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni", "-d", "omni_main"],
+                DatabaseConfig.docker_exec_prefix() + [
+                    "pg_isready", "-U", DatabaseConfig.USER, "-d", DatabaseConfig.DATABASE
+                ],
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -39,7 +42,7 @@ class PostgresHealthChecker:
         """Check if PostgreSQL container is healthy."""
         try:
             result = subprocess.run(
-                ["docker", "inspect", "--format", "{{.State.Health.Status}}", "omni-postgres"],
+                ["docker", "inspect", "--format", "{{.State.Health.Status}}", DatabaseConfig.CONTAINER_NAME],
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -54,7 +57,9 @@ class PostgresHealthChecker:
         """Quick check if PostgreSQL container is running and responsive."""
         try:
             result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni", "-d", "omni_main"],
+                DatabaseConfig.docker_exec_prefix() + [
+                    "pg_isready", "-U", DatabaseConfig.USER, "-d", DatabaseConfig.DATABASE
+                ],
                 capture_output=True, text=True, timeout=5
             )
             return result.returncode == 0
@@ -66,7 +71,7 @@ class PostgresHealthChecker:
         log_info("Starting PostgreSQL container...")
         try:
             result = subprocess.run(
-                ["docker", "start", "omni-postgres"],
+                ["docker", "start", DatabaseConfig.CONTAINER_NAME],
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -89,14 +94,14 @@ class PostgresHealthChecker:
         
         try:
             result = subprocess.run(
-                ["docker", "inspect", "--format", "{{.State.Status}}", "omni-postgres"],
+                ["docker", "inspect", "--format", "{{.State.Status}}", DatabaseConfig.CONTAINER_NAME],
                 capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10
             )
             status = result.stdout.strip()
             
             if status == "exited":
                 log_info("Container exited - attempting restart...")
-                subprocess.run(["docker", "start", "omni-postgres"], 
+                subprocess.run(["docker", "start", DatabaseConfig.CONTAINER_NAME], 
                               capture_output=True, timeout=30)
                 
                 for _ in range(30):
@@ -136,7 +141,7 @@ class PostgresHealthChecker:
                 result = subprocess.run(
                     ["docker", "inspect", "--format", 
                      "{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}",
-                     "omni-postgres"],
+                     DatabaseConfig.CONTAINER_NAME],
                     capture_output=True,
                     text=True,
                     encoding='utf-8',
@@ -169,8 +174,7 @@ class PostgresHealthChecker:
                 if self.check_running():
                     try:
                         verify = subprocess.run(
-                            ["docker", "exec", "omni-postgres", 
-                             "psql", "-U", "omni", "-d", "omni_main", "-c", "SELECT 1"],
+                            DatabaseConfig.psql_cmd() + ["-c", "SELECT 1"],
                             capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10,
                         )
                         if verify.returncode == 0:

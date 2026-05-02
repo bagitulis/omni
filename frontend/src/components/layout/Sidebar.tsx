@@ -7,7 +7,6 @@ import {
   ShoppingOutlined,
   SkinOutlined,
   InboxOutlined,
-  BarChartOutlined,
   SettingOutlined,
   NodeIndexOutlined,
   CodeOutlined,
@@ -64,19 +63,6 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         ],
       },
       {
-        key: "/analytics",
-        icon: <BarChartOutlined />,
-        label: "Analytics",
-        children: [
-          { key: "/analytics", label: "Overview" },
-          { key: "/analytics/shopee-ads", label: "Shopee Ads" },
-          { key: "/analytics/tiktok-ads", label: "TikTok Ads" },
-          { key: "/analytics/ml", label: "ML Dashboard" },
-          { key: "/analytics/budget-simulator", label: "Budget Simulator" },
-          { key: "/analytics/product-classification", label: "Classification" },
-        ],
-      },
-      {
         key: "/script-monitor",
         icon: <CodeOutlined />,
         label: "Script Monitor",
@@ -99,10 +85,6 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
     if (location.pathname.startsWith("/report")) {
       return location.pathname;
     }
-    // Analytics sub-routes: exact match to children keys
-    if (location.pathname.startsWith("/analytics")) {
-      return location.pathname;
-    }
     // Script monitor: always highlight the single menu item regardless of ?tab=
     if (location.pathname.startsWith("/script-monitor")) {
       return "/script-monitor";
@@ -115,8 +97,6 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
     if (location.pathname.startsWith("/products")) keys.push("/products");
     if (location.pathname.startsWith("/report")) {
       keys.push("/report");
-    } else if (location.pathname.startsWith("/analytics")) {
-      keys.push("/analytics");
     }
     return keys;
   });

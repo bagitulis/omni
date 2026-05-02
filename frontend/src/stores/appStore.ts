@@ -7,7 +7,6 @@ export type ActiveTab =
   | "order-management"
   | "inventory"
   | "settings"
-  | "analytics"
   | "script-monitor"
   | "logs";
 

@@ -24,12 +24,14 @@ class DatabaseConfig:
     HEALTH_CHECK_TIMEOUT = int(os.getenv("HEALTH_CHECK_TIMEOUT", "10"))
 
     @classmethod
-    def docker_exec_prefix(cls) -> List[str]:
+    def docker_exec_prefix(cls, interactive: bool = False) -> List[str]:
         """Return the docker exec prefix for PostgreSQL commands."""
+        if interactive:
+            return ["docker", "exec", "-i", cls.CONTAINER_NAME]
         return ["docker", "exec", cls.CONTAINER_NAME]
 
     @classmethod
-    def psql_cmd(cls, database: str = "") -> List[str]:
+    def psql_cmd(cls, database: str = "", interactive: bool = False) -> List[str]:
         """Return psql command with user and database."""
         db = database or cls.DATABASE
-        return cls.docker_exec_prefix() + ["psql", "-U", cls.USER, "-d", db]
+        return cls.docker_exec_prefix(interactive=interactive) + ["psql", "-U", cls.USER, "-d", db]

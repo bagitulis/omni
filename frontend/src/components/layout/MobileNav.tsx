@@ -5,7 +5,6 @@ import {
   ShoppingOutlined,
   SkinOutlined,
   InboxOutlined,
-  BarChartOutlined,
   CodeOutlined,
 } from "@ant-design/icons";
 
@@ -21,7 +20,6 @@ export default function MobileNav() {
     { key: "/order-manager", icon: <ShoppingOutlined />, label: "Orders" },
     { key: "/products", icon: <SkinOutlined />, label: "Products" },
     { key: "/inventory", icon: <InboxOutlined />, label: "Inventory" },
-    { key: "/analytics", icon: <BarChartOutlined />, label: "Data" },
     {
       key: "/script-monitor?tab=current",
       icon: <CodeOutlined />,

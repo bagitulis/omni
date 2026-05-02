@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from omni_build.backup_change_detector import BackupChangeDetector
 from omni_build.config import Config
+from omni_build.db_config import DatabaseConfig
 from omni_build.logger import log_error, log_info, log_success, log_warning
 
 
@@ -38,7 +39,9 @@ class DatabaseBackup:
         """Check if PostgreSQL is running and ready."""
         try:
             result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni", "-d", "omni_main"],
+                DatabaseConfig.docker_exec_prefix() + [
+                    "pg_isready", "-U", DatabaseConfig.USER, "-d", DatabaseConfig.DATABASE
+                ],
                 capture_output=True, text=True, timeout=10
             )
             return result.returncode == 0
@@ -52,7 +55,7 @@ class DatabaseBackup:
         
         log_info("Starting PostgreSQL container...")
         try:
-            subprocess.run(["docker", "start", "omni-postgres"], 
+            subprocess.run(["docker", "start", DatabaseConfig.CONTAINER_NAME], 
                           capture_output=True, timeout=30)
             
             for _ in range(30):
@@ -70,15 +73,14 @@ class DatabaseBackup:
         """Verify pg_dump version >= PostgreSQL server version."""
         try:
             dump_result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "pg_dump", "--version"],
+                DatabaseConfig.docker_exec_prefix() + ["pg_dump", "--version"],
                 capture_output=True, text=True, timeout=10
             )
             if dump_result.returncode != 0:
                 return True, ""  # Skip check if can't determine
             
             server_result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "psql", "-U", "omni",
-                 "-d", "omni_main", "-t", "-A", "-c", "SHOW server_version"],
+                DatabaseConfig.psql_cmd() + ["-t", "-A", "-c", "SHOW server_version"],
                 capture_output=True, text=True, timeout=10
             )
             if server_result.returncode != 0:
@@ -101,10 +103,12 @@ class DatabaseBackup:
     def check_disk_space(self) -> Tuple[bool, str]:
         """Verify sufficient disk space (2x database size)."""
         try:
+            _db = DatabaseConfig.DATABASE
             result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "psql", "-U", "omni",
-                 "-d", "omni_main", "-t", "-A", "-c",
-                 "SELECT pg_database_size('omni_main')"],
+                DatabaseConfig.psql_cmd() + [
+                    "-t", "-A", "-c",
+                    f"SELECT pg_database_size('{_db}')"
+                ],
                 capture_output=True, text=True, timeout=30
             )
             if result.returncode != 0:
@@ -141,8 +145,7 @@ class DatabaseBackup:
         
         try:
             result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "psql", "-U", "omni", 
-                 "-d", "omni_main", "-t", "-A", "-F", "|", "-c", query],
+                DatabaseConfig.psql_cmd() + ["-t", "-A", "-F", "|", "-c", query],
                 capture_output=True, text=True, timeout=60
             )
             
@@ -178,9 +181,10 @@ class DatabaseBackup:
         """Get actual row count for a table."""
         try:
             result = subprocess.run(
-                ["docker", "exec", "omni-postgres", "psql", "-U", "omni",
-                 "-d", "omni_main", "-t", "-A", "-c", 
-                 f'SELECT COUNT(*) FROM "{schema}"."{table}"'],
+                DatabaseConfig.psql_cmd() + [
+                    "-t", "-A", "-c",
+                    f'SELECT COUNT(*) FROM "{schema}"."{table}"'
+                ],
                 capture_output=True, text=True, timeout=60
             )
             if result.returncode == 0:

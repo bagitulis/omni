@@ -6,6 +6,7 @@ SRP: This module contains fix implementations for silent errors
 """
 import subprocess
 
+from omni_build.db_config import DatabaseConfig
 from omni_build.logger import log_fix, log_info, log_success, log_warning
 
 
@@ -194,13 +195,15 @@ class PgBouncerSilentFixer:
         
         # Check PostgreSQL health first
         result = subprocess.run(
-            ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni", "-d", "omni_main"],
+            DatabaseConfig.docker_exec_prefix() + [
+                "pg_isready", "-U", DatabaseConfig.USER, "-d", DatabaseConfig.DATABASE
+            ],
             capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=10
         )
         
         if result.returncode != 0:
             log_warning("PostgreSQL not ready, waiting...")
-            return _restart_container("omni-postgres", timeout=90)
+            return _restart_container(DatabaseConfig.CONTAINER_NAME, timeout=90)
         
         return _restart_container("omni-pgbouncer")
 
