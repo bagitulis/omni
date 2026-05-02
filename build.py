@@ -41,6 +41,8 @@ def interactive_menu():
         ("Full rebuild + DB restore (for new PC)", ["full", "--restore"]),
         ("Smart build + DB restore", ["smart", "--restore"]),
         ("Backup database", ["backup"]),
+        ("Backup + Sync to OneDrive", ["backup", "--sync"]),
+        ("Sync from OneDrive + Restore", ["sync-restore"]),
         ("Restore database only", ["restore"]),
         ("Validate only (no build)", ["validate"]),
         ("Clean Docker resources", ["clean"]),
