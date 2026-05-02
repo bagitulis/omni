@@ -216,6 +216,9 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     sync_dir = project_root / SYNC_DIR
     sync_dir.mkdir(parents=True, exist_ok=True)
 
+    # Run ANALYZE first for accurate row counts
+    _psql_exec("ANALYZE;", timeout=300)
+
     log_info("Discovering tables...")
     tables = discover_tables()
     if not tables:
@@ -320,6 +323,42 @@ def _export_table(table: TableInfo, dest_dir: Path) -> SyncResult:
     return SyncResult(table=table.full_name, exported=count)
 
 
+def _check_lfs_pointers(sync_dir: Path) -> bool:
+    """Check if LFS files are actual data (not unresolved pointers)."""
+    large_dir = sync_dir / "_large"
+    if not large_dir.exists():
+        return True
+    for f in large_dir.glob("*.ndjson.gz"):
+        with open(f, 'rb') as fh:
+            header = fh.read(30)
+            if header.startswith(b'version https://git-lfs'):
+                log_error(f"Git LFS pointer detected: {f.name}")
+                log_error("Run: git lfs install && git lfs pull")
+                return False
+    return True
+
+
+def _reset_sequences(tables: List[TableInfo]) -> None:
+    """Reset all sequences to max(pk) + 1 after import."""
+    log_info("Resetting sequences...")
+    for table in tables:
+        if len(table.pk_columns) != 1:
+            continue
+        pk = table.pk_columns[0]
+        # Only reset if PK is likely a serial/identity column
+        sql = (
+            f"DO $$ BEGIN "
+            f"IF EXISTS (SELECT pg_get_serial_sequence('{table.schema}.{table.name}', '{pk}')) THEN "
+            f"PERFORM setval("
+            f"pg_get_serial_sequence('{table.schema}.{table.name}', '{pk}'), "
+            f"COALESCE((SELECT MAX(\"{pk}\") FROM {table.schema}.{table.name}), 0) + 1, "
+            f"false); "
+            f"END IF; "
+            f"END $$;"
+        )
+        _psql_exec(sql, timeout=10)
+
+
 def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     """Import all NDJSON files into PostgreSQL (like Extensions ImportAll)."""
     sync_dir = project_root / SYNC_DIR
@@ -330,6 +369,10 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     manifest_path = sync_dir / "manifest.json"
     if not manifest_path.exists():
         log_error("No manifest.json found in sync directory")
+        return False, []
+
+    # Check for unresolved LFS pointers
+    if not _check_lfs_pointers(sync_dir):
         return False, []
 
     with open(manifest_path, 'r', encoding='utf-8') as f:
@@ -345,19 +388,30 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     if not tables:
         return False, []
 
-    # Disable FK checks for the duration of import
-    log_info("Disabling FK constraints...")
-    _psql_exec("SET session_replication_role = 'replica';")
-
-    # Sort by dependencies
+    # Sort by dependencies (parents first)
     sorted_tables = _topo_sort(tables)
 
+    # Phase 1: TRUNCATE all tables in REVERSE order (children first)
+    # This avoids CASCADE which could destroy data in unrelated tables
+    log_info("Truncating tables (reverse dependency order)...")
+    for table in reversed(sorted_tables):
+        schema_dir = sync_dir / table.schema
+        ndjson_file = schema_dir / f"{table.name}.ndjson"
+        large_file = sync_dir / "_large" / f"{table.schema}.{table.name}.ndjson.gz"
+        if ndjson_file.exists() or large_file.exists():
+            # Use session_replication_role to skip FK checks during truncate
+            _psql_exec(
+                f"SET session_replication_role = 'replica';\n"
+                f"TRUNCATE {table.schema}.{table.name};",
+                timeout=30
+            )
+
+    # Phase 2: Import all tables in dependency order (parents first)
     results = []
     total_imported = 0
     errors = 0
 
     for table in sorted_tables:
-        # Find the NDJSON file
         schema_dir = sync_dir / table.schema
         ndjson_file = schema_dir / f"{table.name}.ndjson"
         large_file = sync_dir / "_large" / f"{table.schema}.{table.name}.ndjson.gz"
@@ -373,10 +427,10 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
         total_imported += r.imported
         errors += r.errors
 
-    # Re-enable FK checks
-    _psql_exec("SET session_replication_role = 'origin';")
+    # Phase 3: Reset sequences to max(pk) + 1
+    _reset_sequences(sorted_tables)
 
-    # Run ANALYZE
+    # Phase 4: Run ANALYZE for query planner
     log_info("Running ANALYZE...")
     _psql_exec("ANALYZE;", timeout=300)
 
@@ -389,7 +443,7 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
 
 
 def _import_table(table: TableInfo, filepath: Path, compressed: bool) -> SyncResult:
-    """Import a single NDJSON file using upsert."""
+    """Import a single NDJSON file using upsert (FK disabled per-session)."""
     # Read lines
     if compressed:
         with gzip.open(filepath, 'rt', encoding='utf-8') as f:
@@ -401,8 +455,9 @@ def _import_table(table: TableInfo, filepath: Path, compressed: bool) -> SyncRes
     if not lines:
         return SyncResult(table=table.full_name, imported=0)
 
-    # Parse first line to discover available columns
-    first_row = json.loads(lines[0])
+    # Parse first line to discover available columns (handles schema evolution)
+    from decimal import Decimal
+    first_row = json.loads(lines[0], parse_float=Decimal)
     available_cols = [c for c in table.all_columns if c in first_row]
 
     if not available_cols:
@@ -417,17 +472,16 @@ def _import_table(table: TableInfo, filepath: Path, compressed: bool) -> SyncRes
         log_warning(f"  {table.full_name}: no primary key, skipping")
         return SyncResult(table=table.full_name, skipped=len(lines))
 
-    # Truncate table first (clean restore)
-    _psql_exec(f"TRUNCATE {table.schema}.{table.name} CASCADE;", timeout=30)
-
-    # Batch import using COPY for speed, fallback to upsert for conflicts
+    # Batch import (each batch includes SET session_replication_role via helpers)
     imported = 0
     error_count = 0
     batch_size = 1000
 
     for batch_start in range(0, len(lines), batch_size):
         batch = lines[batch_start:batch_start + batch_size]
-        batch_sql = build_batch_insert(table.schema, table.name, available_cols, pk_cols, non_pk_cols, batch)
+        batch_sql = build_batch_insert(
+            table.schema, table.name, available_cols, pk_cols, non_pk_cols, batch
+        )
 
         ok, err_msg = _psql_exec(batch_sql, timeout=120)
         if ok:
@@ -435,8 +489,10 @@ def _import_table(table: TableInfo, filepath: Path, compressed: bool) -> SyncRes
         else:
             # Fallback: insert one by one
             for line in batch:
-                row = json.loads(line)
-                single_sql = build_single_upsert(table.schema, table.name, available_cols, pk_cols, non_pk_cols, row)
+                row = json.loads(line, parse_float=Decimal)
+                single_sql = build_single_upsert(
+                    table.schema, table.name, available_cols, pk_cols, non_pk_cols, row
+                )
                 single_ok, _ = _psql_exec(single_sql, timeout=30)
                 if single_ok:
                     imported += 1
@@ -447,6 +503,3 @@ def _import_table(table: TableInfo, filepath: Path, compressed: bool) -> SyncRes
     print(f"  [{status}] {table.full_name}: {imported:,}/{len(lines):,} rows")
 
     return SyncResult(table=table.full_name, imported=imported, errors=error_count)
-
-
-    # SQL helpers are in ndjson_sql_helpers.py (SRP extraction)

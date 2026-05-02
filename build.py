@@ -62,13 +62,13 @@ def interactive_menu():
 
     while True:
         try:
-            choice = input("Pilih menu [1-11]: ").strip()
+            choice = input(f"Pilih menu [1-{len(options)}]: ").strip()
         except (EOFError, KeyboardInterrupt):
             print("\nBatal.")
             sys.exit(0)
 
         if not choice.isdigit():
-            print("Input tidak valid, masukkan angka 1-11.")
+            print(f"Input tidak valid, masukkan angka 1-{len(options)}.")
             continue
 
         idx = int(choice)
