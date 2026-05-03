@@ -24,6 +24,8 @@ func (s *StagingImportService) ImportFromTiktokStaging(
 		return nil, fmt.Errorf("tiktok staging import: fetch products: %w", err)
 	}
 
+	// Guard: skip products with empty ProductID to prevent orphan creation.
+	products = filterValidTiktokProducts(products)
 	for _, p := range products {
 		// 2a. Tier 1: Check if already linked by platform product ID.
 		masterProduct, err := s.findMasterProductByPlatformItemID(ctx, tenantID, "tiktok", p.ProductID)
@@ -207,4 +209,16 @@ func (s *StagingImportService) processTiktokDefaultSku(
 		return
 	}
 	result.LinksCreated++
+}
+
+// filterValidTiktokProducts removes products with empty ProductID to prevent orphan creation.
+func filterValidTiktokProducts(products []models.TiktokProduct) []models.TiktokProduct {
+	valid := make([]models.TiktokProduct, 0, len(products))
+	for _, p := range products {
+		if p.ProductID == "" {
+			continue
+		}
+		valid = append(valid, p)
+	}
+	return valid
 }

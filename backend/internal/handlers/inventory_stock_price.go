@@ -59,6 +59,18 @@ func (h *InventoryHandler) UpdateStock(c *gin.Context) {
 	orchestrator := inventoryService.NewStockUpdateOrchestrator(db, tenantID, credService)
 	result, stockValue, err := orchestrator.UpdateStockFromInventory(c.Request.Context(), req.SKU, req.Stock, platforms)
 	if err != nil {
+		// Fallback: if no inventory record but stock value is provided,
+		// sync directly to platform (e.g. fallback-SKU products from staging import).
+		if errors.Is(err, inventoryService.ErrInventoryStockSKUNotFound) && req.Stock != nil {
+			directResult, directErr := orchestrator.UpdateStock(c.Request.Context(), req.SKU, *req.Stock, platforms)
+			if directErr != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": directErr.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"success": true, "data": directResult, "stock_from_inventory": *req.Stock})
+			return
+		}
+
 		if errors.Is(err, inventoryService.ErrInventoryStockSKUNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "SKU not found in inventory"})
 			return
@@ -156,6 +168,7 @@ func (h *InventoryHandler) UpdateStockBatch(c *gin.Context) {
 // UpdatePriceRequest represents price update request
 type UpdatePriceRequest struct {
 	SKU       string   `json:"sku" binding:"required"`
+	Price     *float64 `json:"price"`
 	Platform  string   `json:"platform"`
 	Platforms []string `json:"platforms"`
 }
@@ -181,18 +194,28 @@ func (h *InventoryHandler) UpdatePrice(c *gin.Context) {
 		return
 	}
 
-	// Get price from inventory_records
+	// Try to get price from inventory_records first.
+	var priceValue float64
 	var record models.InventoryRecord
 	err = db.WithContext(c.Request.Context()).
 		Where("tenant_id = ? AND key_value = ?", tenantID, req.SKU).
 		First(&record).Error
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "SKU not found in inventory"})
-		return
+		// Fallback: if no inventory record but price value is provided in request,
+		// use the request price directly (e.g. fallback-SKU products from staging import).
+		if req.Price != nil {
+			priceValue = *req.Price
+		} else {
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "SKU not found in inventory"})
+			return
+		}
+	} else {
+		priceValue = inventoryService.GetPrice(record)
+		// If inventory has price=0 but request provides a price, prefer request price.
+		if priceValue == 0 && req.Price != nil {
+			priceValue = *req.Price
+		}
 	}
-
-	// Get price value from inventory data
-	priceValue := inventoryService.GetPrice(record)
 
 	// Determine platforms to update
 	platforms := req.Platforms

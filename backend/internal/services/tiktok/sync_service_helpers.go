@@ -49,6 +49,12 @@ func (s *SyncService) syncProductsWithDB(
 	zlog := zerolog.Ctx(ctx)
 
 	for _, prod := range products {
+		// Guard: skip products with empty ID to prevent orphan creation.
+		if prod.ID == "" {
+			zlog.Warn().Msg("Skipping TikTok product with empty ID")
+			continue
+		}
+
 		dbProd := &models.TiktokProduct{
 			TenantID:    s.tenantID,
 			ProductID:   prod.ID,
@@ -143,17 +149,46 @@ func (s *SyncService) syncProductSkus(
 }
 
 func (s *SyncService) updateProductSummary(ctx context.Context, tx *gorm.DB, productID uint, prod tiktokPkg.ProductSearchItem) {
-	if len(prod.Skus) == 0 {
+	// If SearchProducts response has SKU data, use it directly.
+	if len(prod.Skus) > 0 {
+		totalStock := 0
+		for _, sku := range prod.Skus {
+			totalStock += sumInventory(sku.Inventory)
+		}
+
+		firstSku := prod.Skus[0]
+		firstPrice := parsePrice(firstSku.Price.SalePrice, firstSku.Price.OriginalPrice, firstSku.Price.TaxExclusivePrice)
+
+		err := tx.WithContext(ctx).
+			Model(&models.TiktokProduct{}).
+			Where("id = ?", productID).
+			Updates(map[string]interface{}{
+				"price":    firstPrice,
+				"quantity": totalStock,
+			}).Error
+		if err != nil {
+			zerolog.Ctx(ctx).Warn().Uint("product_id", productID).Err(err).Msg("Failed to update TikTok product summary")
+		}
+		return
+	}
+
+	// Fallback: SearchProducts didn't include SKU data, but GetProductDetail
+	// may have synced SKUs to DB. Read from tiktok_skus to update summary.
+	var dbSkus []models.TiktokSku
+	if err := tx.WithContext(ctx).
+		Where("product_id = ?", productID).
+		Find(&dbSkus).Error; err != nil || len(dbSkus) == 0 {
 		return
 	}
 
 	totalStock := 0
-	for _, sku := range prod.Skus {
-		totalStock += sumInventory(sku.Inventory)
+	var firstPrice float64
+	for i, sku := range dbSkus {
+		totalStock += sku.Quantity
+		if i == 0 {
+			firstPrice = sku.Price
+		}
 	}
-
-	firstSku := prod.Skus[0]
-	firstPrice := parsePrice(firstSku.Price.SalePrice, firstSku.Price.OriginalPrice, firstSku.Price.TaxExclusivePrice)
 
 	err := tx.WithContext(ctx).
 		Model(&models.TiktokProduct{}).
@@ -163,7 +198,7 @@ func (s *SyncService) updateProductSummary(ctx context.Context, tx *gorm.DB, pro
 			"quantity": totalStock,
 		}).Error
 	if err != nil {
-		zerolog.Ctx(ctx).Warn().Uint("product_id", productID).Err(err).Msg("Failed to update TikTok product summary")
+		zerolog.Ctx(ctx).Warn().Uint("product_id", productID).Err(err).Msg("Failed to update TikTok product summary from DB")
 	}
 }
 
