@@ -19,6 +19,7 @@ Correctness guarantees:
 import json
 import os
 import shutil
+import socket
 import subprocess
 import tempfile
 from datetime import datetime
@@ -98,6 +99,8 @@ def _psql_query(sql: str, timeout: int = 60) -> Tuple[bool, str]:
 
 def discover_tables() -> List[TableInfo]:
     """Discover all syncable tables with columns and PKs (dynamic, like Extensions)."""
+    from omni_build.ndjson_sql_helpers import validate_identifier
+
     # Get all tables
     ok, output = _psql_query("""
         SELECT table_schema, table_name
@@ -120,57 +123,114 @@ def discover_tables() -> List[TableInfo]:
             if schema and name:
                 tables.append((schema, name))
 
-    # Get columns and PKs for each table
+    if not tables:
+        return []
+
+    # Bug #17: Batch discovery queries to avoid N+1
+    schema_list = ','.join(f"'{s}'" for s, _ in tables)
+    table_list = ','.join(f"'{n}'" for _, n in tables)
+
+    # Columns query (batched)
+    ok, col_output = _psql_query(f"""
+        SELECT table_schema, table_name,
+               string_agg(column_name, ',' ORDER BY ordinal_position)
+        FROM information_schema.columns
+        WHERE table_schema IN ({schema_list}) AND table_name IN ({table_list})
+        GROUP BY table_schema, table_name;
+    """)
+    col_map: Dict[str, List[str]] = {}
+    if ok:
+        for line in col_output.split('\n'):
+            if not line.strip():
+                continue
+            parts = line.split('\t')
+            if len(parts) >= 3:
+                key = f"{parts[0].strip()}.{parts[1].strip()}"
+                col_map[key] = [c.strip() for c in parts[2].split(',') if c.strip()]
+
+    # PK query (batched)
+    ok, pk_output = _psql_query(f"""
+        SELECT n.nspname, c.relname,
+               string_agg(a.attname, ',' ORDER BY array_position(i.indkey, a.attnum))
+        FROM pg_index i
+        JOIN pg_class c ON c.oid = i.indrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+        WHERE i.indisprimary
+          AND n.nspname IN ({schema_list})
+          AND c.relname IN ({table_list})
+        GROUP BY n.nspname, c.relname;
+    """)
+    pk_map: Dict[str, List[str]] = {}
+    if ok:
+        for line in pk_output.split('\n'):
+            if not line.strip():
+                continue
+            parts = line.split('\t')
+            if len(parts) >= 3:
+                key = f"{parts[0].strip()}.{parts[1].strip()}"
+                pk_map[key] = [c.strip() for c in parts[2].split(',') if c.strip()]
+
+    # Row count query (batched)
+    ok, count_output = _psql_query(f"""
+        SELECT schemaname, relname, n_live_tup
+        FROM pg_stat_user_tables
+        WHERE schemaname IN ({schema_list}) AND relname IN ({table_list});
+    """)
+    count_map: Dict[str, int] = {}
+    if ok:
+        for line in count_output.split('\n'):
+            if not line.strip():
+                continue
+            parts = line.split('\t')
+            if len(parts) >= 3:
+                key = f"{parts[0].strip()}.{parts[1].strip()}"
+                val = parts[2].strip()
+                count_map[key] = int(val) if val.isdigit() else 0
+
+    # Bug #12: FK query — removed tc.table_schema = ccu.table_schema filter
+    # to detect cross-schema FKs (e.g., tenant_x.orders -> system.users)
+    ok, fk_output = _psql_query(f"""
+        SELECT tc.table_schema, tc.table_name,
+               string_agg(DISTINCT ccu.table_schema || '.' || ccu.table_name, ',')
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.constraint_column_usage ccu
+            ON tc.constraint_name = ccu.constraint_name
+        WHERE tc.constraint_type = 'FOREIGN KEY'
+          AND tc.table_schema IN ({schema_list})
+          AND tc.table_name IN ({table_list})
+          AND NOT (ccu.table_schema = tc.table_schema AND ccu.table_name = tc.table_name)
+        GROUP BY tc.table_schema, tc.table_name;
+    """)
+    fk_map: Dict[str, List[str]] = {}
+    if ok:
+        for line in fk_output.split('\n'):
+            if not line.strip():
+                continue
+            parts = line.split('\t')
+            if len(parts) >= 3:
+                key = f"{parts[0].strip()}.{parts[1].strip()}"
+                fk_map[key] = [d.strip() for d in parts[2].split(',') if d.strip()]
+
+    # Bug #11: Validate identifiers before building result
     result = []
     for schema, name in tables:
-        # Skip materialized views
-        if name.startswith("mv_"):
+        if name.startswith('mv_'):
             continue
-
-        # Get columns
-        ok, col_output = _psql_query(f"""
-            SELECT column_name
-            FROM information_schema.columns
-            WHERE table_schema = '{schema}' AND table_name = '{name}'
-            ORDER BY ordinal_position;
-        """)
-        if not ok:
-            continue
-        columns = [c.strip() for c in col_output.split('\n') if c.strip()]
+        key = f"{schema}.{name}"
+        columns = col_map.get(key, [])
         if not columns:
             continue
-
-        # Get PK columns
-        ok, pk_output = _psql_query(f"""
-            SELECT a.attname
-            FROM pg_index i
-            JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
-            WHERE i.indrelid = '{schema}.{name}'::regclass AND i.indisprimary
-            ORDER BY array_position(i.indkey, a.attnum);
-        """)
-        pk_cols = [c.strip() for c in pk_output.split('\n') if c.strip()] if ok else []
-
-        # Get row count (approximate from pg_stat)
-        ok, count_output = _psql_query(
-            f"SELECT n_live_tup FROM pg_stat_user_tables "
-            f"WHERE schemaname = '{schema}' AND relname = '{name}';"
-        )
-        row_count = int(count_output.strip()) if ok and count_output.strip().isdigit() else 0
-
-        # Get FK dependencies (within same schema)
-        ok, fk_output = _psql_query(f"""
-            SELECT DISTINCT ccu.table_name
-            FROM information_schema.table_constraints tc
-            JOIN information_schema.constraint_column_usage ccu
-                ON tc.constraint_name = ccu.constraint_name
-                AND tc.table_schema = ccu.table_schema
-            WHERE tc.constraint_type = 'FOREIGN KEY'
-            AND tc.table_schema = '{schema}'
-            AND tc.table_name = '{name}'
-            AND ccu.table_name != '{name}';
-        """)
-        deps = [d.strip() for d in fk_output.split('\n') if d.strip()] if ok else []
-
+        # Validate schema/table names (SQL injection prevention)
+        try:
+            validate_identifier(schema)
+            validate_identifier(name)
+        except ValueError:
+            log_warning(f"  Skipping invalid identifier: {key}")
+            continue
+        pk_cols = pk_map.get(key, [])
+        row_count = count_map.get(key, 0)
+        deps = fk_map.get(key, [])
         result.append(TableInfo(
             schema=schema, name=name,
             pk_columns=pk_cols, all_columns=columns,
@@ -281,7 +341,25 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     if not tables:
         return False, []
 
+    # Bug #18: Skip tables without PK (can't be imported via upsert)
+    exportable = []
+    for t in tables:
+        if not t.pk_columns:
+            log_warning(f"  Skipping {t.full_name}: no primary key (cannot upsert)")
+        else:
+            exportable.append(t)
+    tables = exportable
+
     log_info(f"Found {len(tables)} tables to export")
+
+    # Bug #14: Consistent snapshot — export all tables from same snapshot
+    ok, snapshot_output = _psql_query(
+        "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ; "
+        "SELECT pg_export_snapshot();"
+    )
+    snapshot_id = snapshot_output.strip() if ok else None
+    if snapshot_id:
+        log_info(f"Using consistent snapshot: {snapshot_id}")
 
     results = []
     total_rows = 0
@@ -299,10 +377,14 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
         schema_dir.mkdir(parents=True, exist_ok=True)
 
         for table in schema_tables:
-            r = _export_table(table, schema_dir)
+            r = _export_table(table, schema_dir, snapshot_id=snapshot_id)
             results.append(r)
             total_rows += r.exported
             exported_table_keys.add(f"{schema}.{table.name}")
+
+    # End snapshot transaction
+    if snapshot_id:
+        _psql_exec("COMMIT;", timeout=10)
 
     # Cleanup orphan NDJSON files (tables that no longer exist in DB)
     orphans_removed = _cleanup_orphan_files(sync_dir, exported_table_keys)
@@ -312,7 +394,7 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     # Write manifest
     manifest = {
         "exported_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "machine": subprocess.run(["hostname"], capture_output=True, text=True).stdout.strip(),
+        "machine": socket.gethostname(),
         "version": 2,
         "tables": {r.table: r.exported for r in results},
         "total_rows": total_rows,
@@ -326,9 +408,17 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     return True, results
 
 
-def _export_table(table: TableInfo, dest_dir: Path) -> SyncResult:
+def _export_table(table: TableInfo, dest_dir: Path,
+                  snapshot_id: Optional[str] = None) -> SyncResult:
     """Export a single table to NDJSON (delegates to ndjson_table_ops)."""
     from omni_build.ndjson_table_ops import export_table
+
+    def _snapshot_query(sql: str, timeout: int) -> Tuple[bool, str]:
+        """Wrap psql query to use consistent snapshot if available."""
+        if snapshot_id:
+            sql = f"BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ; SET TRANSACTION SNAPSHOT '{snapshot_id}'; {sql} COMMIT;"
+        return _psql_query(sql, timeout)
+
     exported, errors = export_table(
         schema=table.schema,
         name=table.name,
@@ -338,7 +428,7 @@ def _export_table(table: TableInfo, dest_dir: Path) -> SyncResult:
         is_large=table.is_large,
         dest_dir=dest_dir,
         large_file_size_bytes=LARGE_FILE_SIZE_BYTES,
-        psql_query_fn=_psql_query,
+        psql_query_fn=_snapshot_query,
     )
     return SyncResult(table=table.full_name, exported=exported, errors=errors)
 
@@ -375,11 +465,11 @@ def _create_pre_import_backup(sorted_tables: List[TableInfo], sync_dir: Path) ->
 
         # Dump table data using pg_dump --data-only for this table
         dump_file = backup_dir / f"{table.schema}.{table.name}.sql"
-        dump_cmd = DatabaseConfig.docker_cmd() + [
-            "pg_dump", "-U", DatabaseConfig.user(),
+        dump_cmd = DatabaseConfig.docker_exec_prefix() + [
+            "pg_dump", "-U", DatabaseConfig.USER,
             "--data-only", "--no-owner", "--no-privileges",
             "-t", f"{table.schema}.{table.name}",
-            DatabaseConfig.database(),
+            DatabaseConfig.DATABASE,
         ]
         try:
             result = subprocess.run(
@@ -445,6 +535,8 @@ def _cleanup_backup(backup_dir: Optional[Path]) -> None:
     """Remove temporary backup directory."""
     if backup_dir and backup_dir.exists():
         shutil.rmtree(backup_dir, ignore_errors=True)
+
+
 def _reset_sequences(tables: List[TableInfo]) -> None:
     """Reset ALL sequences in each schema to max value of their linked column."""
     log_info("Resetting sequences...")
@@ -514,6 +606,12 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     with open(manifest_path, 'r', encoding='utf-8') as f:
         manifest = json.load(f)
 
+    # Bug #19: Validate manifest version
+    manifest_version = manifest.get('version')
+    if manifest_version != 2:
+        log_error(f"Incompatible manifest version: {manifest_version} (expected 2)")
+        return False, []
+
     log_info(f"Importing from: {manifest.get('exported_at', 'unknown')}")
     log_info(f"Machine: {manifest.get('machine', 'unknown')}")
     log_info(f"Total rows: {manifest.get('total_rows', 0):,}")
@@ -539,41 +637,57 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     # Sort by dependencies (parents first)
     sorted_tables = _topo_sort(tables)
 
-    # Phase 1: TRUNCATE all tables in REVERSE order (children first)
-    # This avoids CASCADE which could destroy data in unrelated tables
-    log_info("Truncating tables (reverse dependency order)...")
-    for table in reversed(sorted_tables):
-        schema_dir = sync_dir / table.schema
-        ndjson_file = schema_dir / f"{table.name}.ndjson"
-        large_file = sync_dir / "_large" / f"{table.schema}.{table.name}.ndjson.gz"
-        if ndjson_file.exists() or large_file.exists():
-            # Use session_replication_role to skip FK checks during truncate
-            _psql_exec(
-                f"SET session_replication_role = 'replica';\n"
-                f"TRUNCATE {table.schema}.{table.name};",
-                timeout=30
-            )
+    # Pre-import safety: backup current data before destructive truncate
+    log_info("Creating pre-import backup...")
+    backup_dir = _create_pre_import_backup(sorted_tables, sync_dir)
 
-    # Phase 2: Import all tables in dependency order (parents first)
-    results = []
-    total_imported = 0
-    errors = 0
+    try:
+        # Phase 1: TRUNCATE all tables in REVERSE order (children first)
+        # This avoids CASCADE which could destroy data in unrelated tables
+        log_info("Truncating tables (reverse dependency order)...")
+        for table in reversed(sorted_tables):
+            schema_dir = sync_dir / table.schema
+            ndjson_file = schema_dir / f"{table.name}.ndjson"
+            large_file = sync_dir / "_large" / f"{table.schema}.{table.name}.ndjson.gz"
+            if ndjson_file.exists() or large_file.exists():
+                # Use session_replication_role to skip FK checks during truncate
+                _psql_exec(
+                    f"SET session_replication_role = 'replica';\n"
+                    f"TRUNCATE {table.schema}.{table.name};",
+                    timeout=30
+                )
 
-    for table in sorted_tables:
-        schema_dir = sync_dir / table.schema
-        ndjson_file = schema_dir / f"{table.name}.ndjson"
-        large_file = sync_dir / "_large" / f"{table.schema}.{table.name}.ndjson.gz"
+        # Phase 2: Import all tables in dependency order (parents first)
+        results = []
+        total_imported = 0
+        errors = 0
 
-        if large_file.exists():
-            r = _import_table(table, large_file, compressed=True)
-        elif ndjson_file.exists():
-            r = _import_table(table, ndjson_file, compressed=False)
+        for table in sorted_tables:
+            schema_dir = sync_dir / table.schema
+            ndjson_file = schema_dir / f"{table.name}.ndjson"
+            large_file = sync_dir / "_large" / f"{table.schema}.{table.name}.ndjson.gz"
+
+            if large_file.exists():
+                r = _import_table(table, large_file, compressed=True)
+            elif ndjson_file.exists():
+                r = _import_table(table, ndjson_file, compressed=False)
+            else:
+                continue
+
+            results.append(r)
+            total_imported += r.imported
+            errors += r.errors
+
+    except Exception as exc:
+        log_error(f"Import failed with exception: {exc}")
+        if backup_dir:
+            _restore_from_backup(backup_dir)
         else:
-            continue
+            log_warning("No pre-import backup available (tables were empty)")
+        return False, []
 
-        results.append(r)
-        total_imported += r.imported
-        errors += r.errors
+    # Import succeeded — cleanup backup
+    _cleanup_backup(backup_dir)
 
     # Phase 3: Reset sequences to max(pk) + 1
     _reset_sequences(sorted_tables)
@@ -592,6 +706,21 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
 
 def _import_table(table: TableInfo, filepath: Path, compressed: bool) -> SyncResult:
     """Import a single NDJSON file (delegates to ndjson_table_ops)."""
+    # Query NOT NULL columns (excluding PK and columns with defaults)
+    not_null_cols: list = []
+    if table.pk_columns:
+        pk_in = ", ".join(f"'{c}'" for c in table.pk_columns)
+        nn_sql = (
+            f"SELECT column_name FROM information_schema.columns "
+            f"WHERE table_schema = '{table.schema}' AND table_name = '{table.name}' "
+            f"AND is_nullable = 'NO' "
+            f"AND column_default IS NULL "
+            f"AND column_name NOT IN ({pk_in})"
+        )
+        ok, nn_output = _psql_query(nn_sql)
+        if ok and nn_output.strip():
+            not_null_cols = [c.strip() for c in nn_output.split('\n') if c.strip()]
+
     from omni_build.ndjson_table_ops import import_table
     imported, skipped, errors = import_table(
         schema=table.schema,
@@ -602,5 +731,6 @@ def _import_table(table: TableInfo, filepath: Path, compressed: bool) -> SyncRes
         filepath=filepath,
         compressed=compressed,
         psql_exec_fn=_psql_exec,
+        not_null_columns=not_null_cols,
     )
     return SyncResult(table=table.full_name, imported=imported, skipped=skipped, errors=errors)
