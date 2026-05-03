@@ -18,7 +18,9 @@ Correctness guarantees:
 """
 import json
 import os
+import shutil
 import subprocess
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -72,7 +74,7 @@ class SyncResult:
 def _psql_exec(sql: str, timeout: int = 60) -> Tuple[bool, str]:
     """Execute SQL via docker exec psql."""
     result = subprocess.run(
-        DatabaseConfig.psql_cmd(interactive=True) + ["-v", "ON_ERROR_STOP=1"],
+        DatabaseConfig.psql_cmd(interactive=True) + ["-q", "-v", "ON_ERROR_STOP=1"],
         input=sql,
         capture_output=True, text=True, timeout=timeout,
         encoding='utf-8', errors='replace',
@@ -85,7 +87,7 @@ def _psql_exec(sql: str, timeout: int = 60) -> Tuple[bool, str]:
 def _psql_query(sql: str, timeout: int = 60) -> Tuple[bool, str]:
     """Execute query and return raw output."""
     result = subprocess.run(
-        DatabaseConfig.psql_cmd() + ["-t", "-A", "-F", "\t", "-c", sql],
+        DatabaseConfig.psql_cmd() + ["-q", "-t", "-A", "-F", "\t", "-c", sql],
         capture_output=True, text=True, timeout=timeout,
         encoding='utf-8', errors='replace',
     )
@@ -179,20 +181,31 @@ def discover_tables() -> List[TableInfo]:
 
 
 def _topo_sort(tables: List[TableInfo]) -> List[TableInfo]:
-    """Topological sort by FK dependencies (parents first)."""
+    """Topological sort by FK dependencies (parents first).
+
+    Detects circular FK dependencies and breaks cycles with a warning.
+    """
     by_name: Dict[str, TableInfo] = {t.name: t for t in tables}
-    visited = set()
-    sorted_tables = []
+    visited: set = set()
+    in_progress: set = set()  # Cycle detection: nodes currently being visited
+    sorted_tables: List[TableInfo] = []
 
     def visit(name: str):
         if name in visited:
             return
-        visited.add(name)
+        if name in in_progress:
+            # Circular dependency detected — break the cycle
+            log_warning(f"Circular FK dependency detected involving '{name}', breaking cycle")
+            return
+        in_progress.add(name)
         t = by_name.get(name)
         if not t:
+            in_progress.discard(name)
             return
         for dep in t.deps:
             visit(dep)
+        in_progress.discard(name)
+        visited.add(name)
         sorted_tables.append(t)
 
     for t in tables:
@@ -344,25 +357,142 @@ def _check_lfs_pointers(sync_dir: Path) -> bool:
     return True
 
 
-def _reset_sequences(tables: List[TableInfo]) -> None:
-    """Reset all sequences to max(pk) + 1 after import."""
-    log_info("Resetting sequences...")
-    for table in tables:
-        if len(table.pk_columns) != 1:
+def _create_pre_import_backup(sorted_tables: List[TableInfo], sync_dir: Path) -> Optional[Path]:
+    """Create a temporary backup of tables that will be truncated.
+
+    Uses pg_dump per-table to capture current state. Returns the temp
+    directory path on success, or None if backup is skipped (empty tables).
+    """
+    backup_dir = Path(tempfile.mkdtemp(prefix='ndjson_import_backup_'))
+    tables_backed_up = 0
+
+    for table in sorted_tables:
+        schema_dir = sync_dir / table.schema
+        ndjson_file = schema_dir / f"{table.name}.ndjson"
+        large_file = sync_dir / "_large" / f"{table.schema}.{table.name}.ndjson.gz"
+        if not (ndjson_file.exists() or large_file.exists()):
             continue
-        pk = table.pk_columns[0]
-        # Only reset if PK is likely a serial/identity column
-        sql = (
-            f"DO $$ BEGIN "
-            f"IF EXISTS (SELECT pg_get_serial_sequence('{table.schema}.{table.name}', '{pk}')) THEN "
-            f"PERFORM setval("
-            f"pg_get_serial_sequence('{table.schema}.{table.name}', '{pk}'), "
-            f"COALESCE((SELECT MAX(\"{pk}\") FROM {table.schema}.{table.name}), 0) + 1, "
-            f"false); "
-            f"END IF; "
-            f"END $$;"
+
+        # Dump table data using pg_dump --data-only for this table
+        dump_file = backup_dir / f"{table.schema}.{table.name}.sql"
+        dump_cmd = DatabaseConfig.docker_cmd() + [
+            "pg_dump", "-U", DatabaseConfig.user(),
+            "--data-only", "--no-owner", "--no-privileges",
+            "-t", f"{table.schema}.{table.name}",
+            DatabaseConfig.database(),
+        ]
+        try:
+            result = subprocess.run(
+                dump_cmd, capture_output=True, text=True,
+                timeout=120, encoding='utf-8', errors='replace',
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                dump_file.write_text(result.stdout, encoding='utf-8')
+                tables_backed_up += 1
+        except (subprocess.TimeoutExpired, OSError) as e:
+            log_warning(f"  Backup of {table.full_name} failed: {e}")
+
+    if tables_backed_up == 0:
+        shutil.rmtree(backup_dir, ignore_errors=True)
+        return None
+
+    log_info(f"Pre-import backup created: {tables_backed_up} tables → {backup_dir}")
+    return backup_dir
+
+
+def _restore_from_backup(backup_dir: Path) -> bool:
+    """Restore tables from pre-import backup after a failed import.
+
+    Replays the pg_dump SQL files to restore data to pre-truncate state.
+    """
+    log_warning("Import failed — restoring from pre-import backup...")
+    restore_errors = 0
+
+    for dump_file in sorted(backup_dir.glob('*.sql')):
+        # Filename: schema.table.sql
+        parts = dump_file.stem.split('.', 1)
+        if len(parts) != 2:
+            continue
+        table_ref = f"{parts[0]}.{parts[1]}"
+        sql = dump_file.read_text(encoding='utf-8')
+        if not sql.strip():
+            continue
+
+        # Wrap restore in session_replication_role to skip FK checks
+        restore_sql = (
+            "SET session_replication_role = 'replica';\n"
+            + sql
         )
-        _psql_exec(sql, timeout=10)
+        ok, err = _psql_exec(restore_sql, timeout=120)
+        if ok:
+            log_info(f"  Restored: {table_ref}")
+        else:
+            log_error(f"  Failed to restore {table_ref}: {err}")
+            restore_errors += 1
+
+    if restore_errors > 0:
+        log_error(
+            f"Restore completed with {restore_errors} error(s). "
+            f"Backup files preserved at: {backup_dir}"
+        )
+        return False
+
+    log_success("Pre-import backup restored successfully")
+    return True
+
+
+def _cleanup_backup(backup_dir: Optional[Path]) -> None:
+    """Remove temporary backup directory."""
+    if backup_dir and backup_dir.exists():
+        shutil.rmtree(backup_dir, ignore_errors=True)
+def _reset_sequences(tables: List[TableInfo]) -> None:
+    """Reset ALL sequences in each schema to max value of their linked column."""
+    log_info("Resetting sequences...")
+    reset_schemas: set = set()
+    for table in tables:
+        reset_schemas.add(table.schema)
+
+    for schema in sorted(reset_schemas):
+        # Query pg_sequences to find ALL sequences in this schema
+        ok, output = _psql_query(
+            f"SELECT sequencename FROM pg_sequences "
+            f"WHERE schemaname = '{schema}';"
+        )
+        if not ok or not output.strip():
+            continue
+
+        for line in output.split('\n'):
+            seq_name = line.strip()
+            if not seq_name:
+                continue
+            # Find the column this sequence is linked to via pg_depend + pg_attribute
+            ok2, col_info = _psql_query(
+                f"SELECT a.attname, c.relname, n.nspname "
+                f"FROM pg_depend d "
+                f"JOIN pg_class s ON s.oid = d.objid "
+                f"JOIN pg_class c ON c.oid = d.refobjid "
+                f"JOIN pg_namespace n ON n.oid = c.relnamespace "
+                f"JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = d.refobjsubid "
+                f"WHERE s.relkind = 'S' "
+                f"AND s.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = '{schema}') "
+                f"AND s.relname = '{seq_name}' "
+                f"AND d.deptype = 'a' "
+                f"LIMIT 1;"
+            )
+            if not ok2 or not col_info.strip():
+                continue
+            parts = col_info.strip().split('\t')
+            if len(parts) < 3:
+                continue
+            col_name, table_name, table_schema = parts[0], parts[1], parts[2]
+            # setval(seq, max_val, true) means value already used
+            # When table is empty (max=0), pass false so nextval returns 1
+            sql = (
+                f"SELECT setval('{schema}.{seq_name}', "
+                f"COALESCE((SELECT MAX(\"{col_name}\") FROM {table_schema}.{table_name}), 0), "
+                f"COALESCE((SELECT MAX(\"{col_name}\") FROM {table_schema}.{table_name}), 0) > 0);"
+            )
+            _psql_exec(sql, timeout=10)
 
 
 def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:

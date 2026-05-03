@@ -4,6 +4,7 @@ SQL helper functions for NDJSON sync.
 SRP: PostgreSQL literal escaping and upsert SQL generation.
 Extracted from ndjson_sync.py for ~300 line compliance.
 """
+import math
 import json
 import re
 from decimal import Decimal
@@ -33,7 +34,10 @@ def pg_literal(value: Any) -> str:
     if isinstance(value, (int, Decimal)):
         return str(value)
     if isinstance(value, float):
-        # Preserve full precision for floats
+        if math.isnan(value):
+            return "'NaN'::float"
+        if math.isinf(value):
+            return "'Infinity'::float" if value > 0 else "'-Infinity'::float"
         return repr(value)
     if isinstance(value, (dict, list)):
         # JSON value — serialize and quote

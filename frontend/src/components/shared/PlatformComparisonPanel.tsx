@@ -22,14 +22,6 @@ export function PlatformComparisonPanel({ products, mode }: PlatformComparisonPa
   const { token } = theme.useToken();
   if (products.length === 0) return null;
 
-  // Build lookup: seller_sku → { productTitle, variantName }
-  const skuLookup = new Map<string, { productTitle: string; variantName: string }>();
-  for (const p of products) {
-    for (const sku of p.skus) {
-      skuLookup.set(sku.seller_sku, { productTitle: p.title, variantName: sku.variant_name });
-    }
-  }
-
   // Aggregate all SKU platform data
   const skuEntries = products.flatMap((p) =>
     p.skus.map((sku) => ({
