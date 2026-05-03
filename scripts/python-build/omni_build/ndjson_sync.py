@@ -352,20 +352,11 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
 
     log_info(f"Found {len(tables)} tables to export")
 
-    # Bug #14: Consistent snapshot — export all tables from same snapshot
-    ok, snapshot_output = _psql_query(
-        "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ; "
-        "SELECT pg_export_snapshot();"
-    )
-    snapshot_id = snapshot_output.strip() if ok else None
-    if snapshot_id:
-        log_info(f"Using consistent snapshot: {snapshot_id}")
-
     results = []
     total_rows = 0
 
     # Group by schema
-    schemas = {}
+    schemas: dict[str, list[TableInfo]] = {}
     for t in tables:
         schemas.setdefault(t.schema, []).append(t)
 
@@ -377,14 +368,10 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
         schema_dir.mkdir(parents=True, exist_ok=True)
 
         for table in schema_tables:
-            r = _export_table(table, schema_dir, snapshot_id=snapshot_id)
+            r = _export_table(table, schema_dir)
             results.append(r)
             total_rows += r.exported
             exported_table_keys.add(f"{schema}.{table.name}")
-
-    # End snapshot transaction
-    if snapshot_id:
-        _psql_exec("COMMIT;", timeout=10)
 
     # Cleanup orphan NDJSON files (tables that no longer exist in DB)
     orphans_removed = _cleanup_orphan_files(sync_dir, exported_table_keys)
@@ -408,22 +395,22 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     return True, results
 
 
-def _export_table(table: TableInfo, dest_dir: Path,
-                  snapshot_id: Optional[str] = None) -> SyncResult:
-    """Export a single table to NDJSON (delegates to ndjson_table_ops)."""
+def _export_table(table: TableInfo, dest_dir: Path) -> SyncResult:
+    """Export a single table to NDJSON (delegates to ndjson_table_ops).
+
+    Each table is exported within a REPEATABLE READ transaction via _psql_exec
+    (stdin-based) to ensure per-table consistency.
+    """
     from omni_build.ndjson_table_ops import export_table
 
-    def _snapshot_query(sql: str, timeout: int) -> Tuple[bool, str]:
-        """Wrap psql query to use consistent snapshot if available."""
-        if snapshot_id:
-            sql = f"BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ; SET TRANSACTION SNAPSHOT '{snapshot_id}'; {sql} COMMIT;"
-        return _psql_query(sql, timeout)
-
-    def _snapshot_exec(sql: str, timeout: int) -> Tuple[bool, str]:
-        """Wrap psql exec to use consistent snapshot if available."""
-        if snapshot_id:
-            sql = f"BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;\nSET TRANSACTION SNAPSHOT '{snapshot_id}';\n{sql}\nCOMMIT;"
-        return _psql_exec(sql, timeout)
+    def _rr_exec(sql: str, timeout: int) -> Tuple[bool, str]:
+        """Wrap SQL in REPEATABLE READ transaction for consistent per-table export."""
+        wrapped = (
+            "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;\n"
+            f"{sql}\n"
+            "COMMIT;"
+        )
+        return _psql_exec(wrapped, timeout)
 
     exported, errors = export_table(
         schema=table.schema,
@@ -434,8 +421,8 @@ def _export_table(table: TableInfo, dest_dir: Path,
         is_large=table.is_large,
         dest_dir=dest_dir,
         large_file_size_bytes=LARGE_FILE_SIZE_BYTES,
-        psql_query_fn=_snapshot_query,
-        psql_exec_fn=_snapshot_exec,
+        psql_query_fn=_psql_query,
+        psql_exec_fn=_rr_exec,
     )
     return SyncResult(table=table.full_name, exported=exported, errors=errors)
 
@@ -515,9 +502,10 @@ def _restore_from_backup(backup_dir: Path) -> bool:
         if not sql.strip():
             continue
 
-        # Wrap restore in session_replication_role to skip FK checks
+        # TRUNCATE first to avoid duplicates from partial import, then replay dump
         restore_sql = (
             "SET session_replication_role = 'replica';\n"
+            f"TRUNCATE {table_ref};\n"
             + sql
         )
         ok, err = _psql_exec(restore_sql, timeout=120)
@@ -584,12 +572,17 @@ def _reset_sequences(tables: List[TableInfo]) -> None:
             if len(parts) < 3:
                 continue
             col_name, table_name, table_schema = parts[0], parts[1], parts[2]
+            # Use quoted identifiers for safety (values from pg_catalog)
             # setval(seq, max_val, true) means value already used
             # When table is empty (max=0), pass false so nextval returns 1
+            q_schema = f'"{table_schema}"'
+            q_table = f'"{table_name}"'
+            q_col = f'"{col_name}"'
+            q_seq = f'"{schema}"."{seq_name}"'
             sql = (
-                f"SELECT setval('{schema}.{seq_name}', "
-                f"COALESCE((SELECT MAX(\"{col_name}\") FROM {table_schema}.{table_name}), 0), "
-                f"COALESCE((SELECT MAX(\"{col_name}\") FROM {table_schema}.{table_name}), 0) > 0);"
+                f"SELECT setval('{q_seq}', "
+                f"COALESCE((SELECT MAX({q_col}) FROM {q_schema}.{q_table}), 0), "
+                f"COALESCE((SELECT MAX({q_col}) FROM {q_schema}.{q_table}), 0) > 0);"
             )
             _psql_exec(sql, timeout=10)
 

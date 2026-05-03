@@ -69,6 +69,8 @@ def build_batch_insert(schema: str, table: str, cols: List[str],
     Prepends SET session_replication_role = 'replica' to disable FK triggers
     for the duration of this psql session.
     """
+    safe_schema = validate_identifier(schema)
+    safe_table = validate_identifier(table)
     col_list = ', '.join(validate_identifier(c) for c in cols)
     conflict_cols = ', '.join(validate_identifier(c) for c in pk_cols)
 
@@ -90,14 +92,14 @@ def build_batch_insert(schema: str, table: str, cols: List[str],
         )
         return (
             f'{prefix}'
-            f'INSERT INTO {schema}.{table} ({col_list})\n'
+            f'INSERT INTO {safe_schema}.{safe_table} ({col_list})\n'
             f'VALUES {values_str}\n'
             f'ON CONFLICT ({conflict_cols}) DO UPDATE SET {updates};'
         )
     else:
         return (
             f'{prefix}'
-            f'INSERT INTO {schema}.{table} ({col_list})\n'
+            f'INSERT INTO {safe_schema}.{safe_table} ({col_list})\n'
             f'VALUES {values_str}\n'
             f'ON CONFLICT ({conflict_cols}) DO NOTHING;'
         )
@@ -107,6 +109,8 @@ def build_single_upsert(schema: str, table: str, cols: List[str],
                          pk_cols: List[str], non_pk_cols: List[str],
                          row: dict[str, Any]) -> str:
     """Build single-row upsert SQL with FK disable."""
+    safe_schema = validate_identifier(schema)
+    safe_table = validate_identifier(table)
     col_list = ', '.join(validate_identifier(c) for c in cols)
     conflict_cols = ', '.join(validate_identifier(c) for c in pk_cols)
     vals = [pg_literal(row.get(c)) for c in cols]
@@ -121,14 +125,14 @@ def build_single_upsert(schema: str, table: str, cols: List[str],
         )
         return (
             f'{prefix}'
-            f'INSERT INTO {schema}.{table} ({col_list}) '
+            f'INSERT INTO {safe_schema}.{safe_table} ({col_list}) '
             f'VALUES ({values_str}) '
             f'ON CONFLICT ({conflict_cols}) DO UPDATE SET {updates};'
         )
     else:
         return (
             f'{prefix}'
-            f'INSERT INTO {schema}.{table} ({col_list}) '
+            f'INSERT INTO {safe_schema}.{safe_table} ({col_list}) '
             f'VALUES ({values_str}) '
             f'ON CONFLICT ({conflict_cols}) DO NOTHING;'
         )
