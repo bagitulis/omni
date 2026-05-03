@@ -162,7 +162,8 @@ export async function buildStockRecommendations(
             lockedQty,
           },
         ] as const;
-      } catch (err) { console.warn("Operation failed:", err);
+      } catch {
+        // 404 expected for SKUs without inventory records — use master stock fallback
         const activePlatforms = linkedPlatformsBySku?.[sku];
         return [sku, fallbackRecommendation(fallbackStock, activePlatforms)] as const;
       }

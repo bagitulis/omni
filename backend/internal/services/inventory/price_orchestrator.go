@@ -3,10 +3,13 @@ package inventory
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"strconv"
 
+	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services"
 	lazadaPkg "github.com/omni/backend/pkg/lazada"
 	shopeePkg "github.com/omni/backend/pkg/shopee"
@@ -115,6 +118,9 @@ func (o *PriceUpdateOrchestrator) UpdatePrice(ctx context.Context, sku string, p
 	}
 
 	result.Success, result.Errors = summarizePriceResults(result.Platforms)
+
+	// Record sync history per platform (same pattern as stock)
+	recordPriceSyncHistory(ctx, o.db, o.tenantID, sku, price, result)
 
 	return result, nil
 }
@@ -335,4 +341,58 @@ func (o *PriceUpdateOrchestrator) updateTiktokPrice(_ context.Context, ids *Tikt
 	log.Info().Msgf("[PriceOrchestrator] ✅ TikTok price updated successfully: product_id=%s, sku_id=%s, price=%.0f",
 		ids.ProductID, ids.SkuID, price)
 	return result
+}
+
+func recordPriceSyncHistory(
+	ctx context.Context,
+	db *gorm.DB,
+	tenantID string,
+	sku string,
+	price float64,
+	result *PriceUpdateOrchestratorResult,
+) {
+	if result == nil {
+		return
+	}
+
+	repo := repositories.NewMarketplaceSyncHistoryRepo(db)
+
+	for platform, platformResult := range result.Platforms {
+		status := "failed"
+		if platformResult.Success {
+			status = "success"
+		}
+
+		requestDataBytes, _ := json.Marshal(map[string]interface{}{
+			"sku":      sku,
+			"platform": platform,
+			"price":    price,
+		})
+		responseDataBytes, _ := json.Marshal(platformResult)
+
+		var errorMessage *string
+		if platformResult.Error != "" {
+			errorMessage = toPtr(platformResult.Error)
+		}
+
+		entry := &models.MarketplaceSyncHistory{
+			TenantID:     tenantID,
+			SKU:          sku,
+			Platform:     platform,
+			Operation:    "price_update",
+			Status:       status,
+			RequestData:  toPtr(string(requestDataBytes)),
+			ResponseData: toPtr(string(responseDataBytes)),
+			ErrorMessage: errorMessage,
+		}
+
+		if err := repo.Create(ctx, entry); err != nil {
+			log.Error().
+				Err(err).
+				Str("tenant_id", tenantID).
+				Str("sku", sku).
+				Str("platform", platform).
+				Msg("Failed to record price sync history")
+		}
+	}
 }

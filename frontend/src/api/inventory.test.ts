@@ -268,7 +268,7 @@ describe("inventory api contract adapters", () => {
     );
   });
 
-  it("throws when batch stock sync has failed sku results", async () => {
+  it("returns structured result when batch stock sync has failed sku results", async () => {
     mockPost.mockResolvedValue({
       success: true,
       data: [
@@ -292,15 +292,19 @@ describe("inventory api contract adapters", () => {
       ],
     });
 
-    await expect(
-      updateStockBatch([
-        { sku: "SKU-1", stock: 7, platforms: ["shopee"] },
-        { sku: "SKU-2", stock: 5, platforms: ["shopee"] },
-      ]),
-    ).rejects.toThrow("shopee API error [code=E2002]: Model not found");
+    const result = await updateStockBatch([
+      { sku: "SKU-1", stock: 7, platforms: ["shopee"] },
+      { sku: "SKU-2", stock: 5, platforms: ["shopee"] },
+    ]);
+    expect(result.total).toBe(2);
+    expect(result.succeeded).toBe(1);
+    expect(result.failed).toBe(1);
+    expect(result.results[1].platforms?.shopee?.error).toBe(
+      "shopee API error [code=E2002]: Model not found",
+    );
   });
 
-  it("throws when batch stock sync fails from structured data payload", async () => {
+  it("returns structured result when batch stock sync fails from structured data payload", async () => {
     mockPost.mockResolvedValue({
       success: true,
       data: {
@@ -319,9 +323,15 @@ describe("inventory api contract adapters", () => {
       },
     });
 
-    await expect(
-      updateStockBatch([{ sku: "SKU-3", stock: 2, platforms: ["lazada"] }]),
-    ).rejects.toThrow("lazada API error [code=1000]: Invalid seller sku");
+    const result = await updateStockBatch([
+      { sku: "SKU-3", stock: 2, platforms: ["lazada"] },
+    ]);
+    expect(result.total).toBe(1);
+    expect(result.succeeded).toBe(0);
+    expect(result.failed).toBe(1);
+    expect(result.results[0].platforms?.lazada?.error).toBe(
+      "lazada API error [code=1000]: Invalid seller sku",
+    );
   });
 
   it("checks platform status using selected skus", async () => {

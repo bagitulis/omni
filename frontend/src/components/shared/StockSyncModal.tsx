@@ -168,11 +168,7 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
 
   const skippedSkuCount = Math.max(0, totalSelectedSkus - validSkuCount);
 
-  const handleSync = async () => {
-    if (validItems.length === 0) {
-      return;
-    }
-
+  const executeSync = async () => {
     setLoading(true);
     try {
       await onSync(validItems);
@@ -180,6 +176,32 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSync = () => {
+    if (validItems.length === 0) {
+      return;
+    }
+
+    // Warn when syncing stock=0 in uniform mode (dangerous: hides listings)
+    if (mode === "uniform" && uniformStock === 0) {
+      const activePlatforms = (Object.entries(uniformPlatforms) as [Platform, boolean][])
+        .filter(([, on]) => on)
+        .map(([p]) => p.charAt(0).toUpperCase() + p.slice(1))
+        .join(", ");
+
+      Modal.confirm({
+        title: "Set stock to 0?",
+        content: `This will set stock to 0 for ${validItems.length} SKUs on ${activePlatforms}. Products with 0 stock may be hidden from marketplace listings.`,
+        okText: "Yes, set to 0",
+        okType: "danger",
+        cancelText: "Cancel",
+        onOk: executeSync,
+      });
+      return;
+    }
+
+    void executeSync();
   };
 
   const applyInventoryRecommendations = () => {

@@ -22,10 +22,20 @@ export function PlatformComparisonPanel({ products, mode }: PlatformComparisonPa
   const { token } = theme.useToken();
   if (products.length === 0) return null;
 
+  // Build lookup: seller_sku → { productTitle, variantName }
+  const skuLookup = new Map<string, { productTitle: string; variantName: string }>();
+  for (const p of products) {
+    for (const sku of p.skus) {
+      skuLookup.set(sku.seller_sku, { productTitle: p.title, variantName: sku.variant_name });
+    }
+  }
+
   // Aggregate all SKU platform data
   const skuEntries = products.flatMap((p) =>
     p.skus.map((sku) => ({
       sellerSku: sku.seller_sku,
+      productTitle: p.title,
+      variantName: sku.variant_name,
       inventoryPrice: sku.inventory_price ?? 0,
       inventoryStock: sku.inventory_stock ?? 0,
       masterPrice: sku.price,
@@ -71,14 +81,18 @@ export function PlatformComparisonPanel({ products, mode }: PlatformComparisonPa
           >
             <Typography.Text
               type="secondary"
-              style={{ fontSize: 11, minWidth: 100, fontFamily: "monospace" }}
-              ellipsis={{ tooltip: sku.sellerSku }}
+              style={{ fontSize: 11, minWidth: 100, maxWidth: 180 }}
+              ellipsis={{ tooltip: `${sku.productTitle} — ${sku.variantName || sku.sellerSku}` }}
             >
-              {sku.sellerSku}
+              {sku.variantName
+                ? `${sku.productTitle.length > 20 ? sku.productTitle.slice(0, 20) + "…" : sku.productTitle} — ${sku.variantName}`
+                : sku.productTitle}
             </Typography.Text>
 
             <Tag style={{ margin: 0, fontSize: 10, lineHeight: "18px" }}>
-              Inv: {mode === "price" ? (displayRef > 0 ? `Rp ${idrFormatter.format(displayRef)}` : "—") : (displayRef > 0 ? displayRef.toLocaleString("id-ID") : "—")}
+              {mode === "price"
+                ? (displayRef > 0 ? `Rp ${idrFormatter.format(displayRef)}` : "—")
+                : `Stock: ${displayRef}`}
             </Tag>
 
             <Space size={4}>

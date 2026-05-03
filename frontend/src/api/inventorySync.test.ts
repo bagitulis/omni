@@ -107,8 +107,14 @@ describe("inventorySync", () => {
     it("handles legacy string array input", async () => {
       mockPost.mockResolvedValue({ success: true, data: [] });
 
-      await updateStockBatch(["SKU-001", "SKU-002"], ["shopee"]);
+      const result = await updateStockBatch(["SKU-001", "SKU-002"], ["shopee"]);
 
+      expect(result).toEqual({
+        total: 0,
+        succeeded: 0,
+        failed: 0,
+        results: [],
+      });
       expect(mockPost).toHaveBeenCalledWith("/inventory/update-stock-batch", {
         skus: ["SKU-001", "SKU-002"],
         platforms: ["shopee"],
@@ -145,7 +151,7 @@ describe("inventorySync", () => {
       );
     });
 
-    it("throws when any result has success=false (array response)", async () => {
+    it("returns structured result with failures (array response)", async () => {
       mockPost.mockResolvedValue({
         success: true,
         data: [
@@ -154,12 +160,14 @@ describe("inventorySync", () => {
         ],
       });
 
-      await expect(updateStockBatch(["SKU-001", "SKU-002"])).rejects.toThrow(
-        "SKU-002 sync failed",
-      );
+      const result = await updateStockBatch(["SKU-001", "SKU-002"]);
+      expect(result.total).toBe(2);
+      expect(result.succeeded).toBe(1);
+      expect(result.failed).toBe(1);
+      expect(result.results[1].error).toBe("SKU-002 sync failed");
     });
 
-    it("throws when results in object response have failures", async () => {
+    it("returns structured result from object response with failures", async () => {
       mockPost.mockResolvedValue({
         success: true,
         data: {
@@ -167,12 +175,14 @@ describe("inventorySync", () => {
         },
       });
 
-      await expect(updateStockBatch(["SKU-001", "SKU-002"])).rejects.toThrow(
-        "sync error",
-      );
+      const result = await updateStockBatch(["SKU-001", "SKU-002"]);
+      expect(result.total).toBe(2);
+      expect(result.succeeded).toBe(1);
+      expect(result.failed).toBe(1);
+      expect(result.results[0].error).toBe("sync error");
     });
 
-    it("handles response with data array", async () => {
+    it("handles response with data array (all success)", async () => {
       mockPost.mockResolvedValue({
         success: true,
         data: {
@@ -180,9 +190,10 @@ describe("inventorySync", () => {
         },
       });
 
-      await expect(
-        updateStockBatch(["SKU-001", "SKU-002"]),
-      ).resolves.toBeUndefined();
+      const result = await updateStockBatch(["SKU-001", "SKU-002"]);
+      expect(result.total).toBe(2);
+      expect(result.succeeded).toBe(2);
+      expect(result.failed).toBe(0);
     });
   });
 

@@ -2,6 +2,7 @@ import { message } from "antd";
 import { useCallback, useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import { updateStockBatch } from "@/api/inventorySync";
+import type { StockBatchResult } from "@/api/inventorySync";
 import { updatePriceBatch } from "@/api/pricing";
 import { deleteProduct, getProductById } from "@/api/products";
 import type { RowActionKey } from "@/pages/products/utils/productColumns";
@@ -17,6 +18,18 @@ import {
 } from "./useUnifiedProductsActionDialogs";
 import { useUnifiedProductsModals } from "./useUnifiedProductsModals";
 import { executeSyncMarketplace } from "./useSyncMarketplace";
+
+/** Extract first error message from stock sync results */
+function collectFirstStockError(results: StockBatchResult["results"]): string {
+  for (const r of results) {
+    if (r.error) return r.error;
+    if (r.errors?.length) return r.errors[0];
+    for (const p of Object.values(r.platforms ?? {})) {
+      if (p?.error) return p.error;
+    }
+  }
+  return "Unknown error";
+}
 
 interface UseUnifiedProductsActionsParams {
   navigate: NavigateFunction;
@@ -92,17 +105,19 @@ export function useUnifiedProductsActions({
           })),
         );
 
-        if (items.length === 1) {
-          const sku = items[0].seller_sku;
-          const success = result.success > 0;
-          if (success) {
-            message.success(`Successfully updated price for ${sku}`);
-          } else {
-            message.error(`Failed to update price for ${sku}`);
-          }
-        } else {
+        if (result.failed === 0) {
           message.success(
-            `Price sync complete: ${result.success} succeeded, ${result.failed} failed of ${result.total} items.`,
+            `Price synced: ${result.total} items × platforms = ${result.success} operations succeeded`,
+          );
+        } else if (result.success === 0) {
+          const firstErr = result.results.find((r) => r.errors?.length)?. errors?.[0]
+            || "Unknown error";
+          message.error(`Price sync failed: ${firstErr}`);
+        } else {
+          const firstErr = result.results.find((r) => !r.success)?.errors?.[0]
+            || "Unknown error";
+          message.warning(
+            `Price sync: ${result.success} succeeded, ${result.failed} failed. Failed: ${firstErr}`,
           );
         }
         await refreshProducts();
@@ -122,7 +137,7 @@ export function useUnifiedProductsActions({
       }>,
     ) => {
       try {
-        await updateStockBatch(
+        const result = await updateStockBatch(
           items.map((item) => ({
             sku: item.seller_sku,
             stock: item.stock,
@@ -130,7 +145,21 @@ export function useUnifiedProductsActions({
           })),
         );
 
-        message.success(`Synced stock for ${items.length} SKU updates`);
+        if (result.failed === 0) {
+          message.success(
+            `Stock synced: ${result.total} SKUs × platforms = ${result.succeeded} operations succeeded`,
+          );
+        } else if (result.succeeded === 0) {
+          const firstErr = collectFirstStockError(result.results);
+          message.error(`Stock sync failed: ${firstErr}`);
+        } else {
+          const firstErr = collectFirstStockError(
+            result.results.filter((r) => r.success === false),
+          );
+          message.warning(
+            `Stock sync: ${result.succeeded} succeeded, ${result.failed} failed. Failed: ${firstErr}`,
+          );
+        }
         await refreshProducts();
       } catch (error) {
         message.error(getErrorMessage(error));

@@ -32,6 +32,13 @@ interface StockSyncResult {
   platforms?: Record<string, PlatformStockSyncResult>;
 }
 
+export interface StockBatchResult {
+  total: number;
+  succeeded: number;
+  failed: number;
+  results: StockSyncResult[];
+}
+
 function collectStockSyncErrors(result: StockSyncResult | undefined): string[] {
   if (!result) {
     return [];
@@ -91,7 +98,7 @@ export async function updateStock(
 export async function updateStockBatch(
   itemsOrSkus: StockBatchSyncItem[] | string[],
   platforms?: string[],
-): Promise<void> {
+): Promise<StockBatchResult> {
   const useLegacySkuList = itemsOrSkus.every(
     (item) => typeof item === "string",
   );
@@ -127,13 +134,15 @@ export async function updateStockBatch(
         : [];
 
   const parsedResults = rawResults as StockSyncResult[];
-  const failedResults = parsedResults.filter(
-    (result) => result.success === false,
-  );
-  if (failedResults.length > 0) {
-    const firstError = firstStockSyncError(failedResults[0]);
-    throw new Error(firstError || "Stock sync failed");
-  }
+  const succeeded = parsedResults.filter((r) => r.success !== false).length;
+  const failed = parsedResults.filter((r) => r.success === false).length;
+
+  return {
+    total: parsedResults.length,
+    succeeded,
+    failed,
+    results: parsedResults,
+  };
 }
 
 /**
