@@ -16,19 +16,15 @@ Correctness guarantees:
   - Per-table transactions with rollback on failure
   - Idempotent: run import twice = same result
 """
-import gzip
 import json
 import os
 import subprocess
-import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from omni_build.db_config import DatabaseConfig
 from omni_build.logger import log_error, log_info, log_success, log_warning
-from omni_build.ndjson_sql_helpers import build_batch_insert, build_single_upsert
-
 # Threshold: tables with >= this many rows use compressed format (Git LFS)
 LARGE_TABLE_THRESHOLD = 10000
 
@@ -210,6 +206,55 @@ def _topo_sort(tables: List[TableInfo]) -> List[TableInfo]:
     return sorted_tables
 
 
+def _cleanup_orphan_files(sync_dir: Path, exported_keys: set) -> int:
+    """Remove NDJSON files for tables that no longer exist in the database.
+
+    After export, any .ndjson or .ndjson.gz file that doesn't correspond to
+    a currently-exported table is orphaned (table was dropped/renamed).
+    Removing these prevents stale data from being imported on another machine.
+    """
+    removed = 0
+
+    # Check schema directories for orphan .ndjson files
+    for schema_dir in sync_dir.iterdir():
+        if not schema_dir.is_dir():
+            continue
+        # Skip special directories
+        if schema_dir.name.startswith('_') or schema_dir.name == 'manifest.json':
+            continue
+
+        schema_name = schema_dir.name
+        for ndjson_file in list(schema_dir.glob('*.ndjson')):
+            table_name = ndjson_file.stem  # e.g. 'orders' from 'orders.ndjson'
+            key = f"{schema_name}.{table_name}"
+            if key not in exported_keys:
+                ndjson_file.unlink()
+                removed += 1
+                log_info(f"  Removed orphan: {schema_name}/{ndjson_file.name}")
+
+    # Check _large directory for orphan compressed files
+    large_dir = sync_dir / '_large'
+    if large_dir.exists():
+        for gz_file in list(large_dir.glob('*.ndjson.gz')):
+            # Filename format: schema.table.ndjson.gz
+            parts = gz_file.stem.replace('.ndjson', '').split('.', 1)
+            if len(parts) == 2:
+                key = f"{parts[0]}.{parts[1]}"
+                if key not in exported_keys:
+                    gz_file.unlink()
+                    removed += 1
+                    log_info(f"  Removed orphan: _large/{gz_file.name}")
+
+    # Remove empty schema directories
+    for schema_dir in list(sync_dir.iterdir()):
+        if schema_dir.is_dir() and not schema_dir.name.startswith('_'):
+            remaining = list(schema_dir.iterdir())
+            if not remaining:
+                schema_dir.rmdir()
+                log_info(f"  Removed empty directory: {schema_dir.name}/")
+
+    return removed
+
 def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     """Export all tables to NDJSON files (like Extensions ExportAll)."""
     sync_dir = project_root / SYNC_DIR
@@ -233,6 +278,9 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     for t in tables:
         schemas.setdefault(t.schema, []).append(t)
 
+    # Track exported table names for orphan cleanup
+    exported_table_keys: set = set()
+
     for schema, schema_tables in schemas.items():
         schema_dir = sync_dir / schema
         schema_dir.mkdir(parents=True, exist_ok=True)
@@ -241,12 +289,18 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
             r = _export_table(table, schema_dir)
             results.append(r)
             total_rows += r.exported
+            exported_table_keys.add(f"{schema}.{table.name}")
+
+    # Cleanup orphan NDJSON files (tables that no longer exist in DB)
+    orphans_removed = _cleanup_orphan_files(sync_dir, exported_table_keys)
+    if orphans_removed > 0:
+        log_info(f"Cleaned up {orphans_removed} orphan file(s) from previous exports")
 
     # Write manifest
     manifest = {
         "exported_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "machine": subprocess.run(["hostname"], capture_output=True, text=True).stdout.strip(),
-        "version": 1,
+        "version": 2,
         "tables": {r.table: r.exported for r in results},
         "total_rows": total_rows,
         "large_threshold": LARGE_TABLE_THRESHOLD,
@@ -260,67 +314,20 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
 
 
 def _export_table(table: TableInfo, dest_dir: Path) -> SyncResult:
-    """Export a single table to NDJSON."""
-    col_list = ', '.join(f'"{c}"' for c in table.all_columns)
-    pk_order = ', '.join(f'"{c}"' for c in table.pk_columns) if table.pk_columns else '1'
-
-    # Use JSON export via psql: row_to_json outputs each row as JSON
-    query = (
-        f"SELECT row_to_json(t) FROM "
-        f"(SELECT {col_list} FROM {table.schema}.{table.name} ORDER BY {pk_order}) t;"
+    """Export a single table to NDJSON (delegates to ndjson_table_ops)."""
+    from omni_build.ndjson_table_ops import export_table
+    exported, errors = export_table(
+        schema=table.schema,
+        name=table.name,
+        full_name=table.full_name,
+        all_columns=table.all_columns,
+        pk_columns=table.pk_columns,
+        is_large=table.is_large,
+        dest_dir=dest_dir,
+        large_file_size_bytes=LARGE_FILE_SIZE_BYTES,
+        psql_query_fn=_psql_query,
     )
-
-    ok, output = _psql_query(query, timeout=300)
-    if not ok:
-        log_warning(f"  Export {table.full_name} failed: {output[:100]}")
-        return SyncResult(table=table.full_name, errors=1)
-
-    lines = [line for line in output.split('\n') if line.strip()]
-    count = len(lines)
-
-    if count == 0:
-        # Empty table — write empty file
-        filename = f"{table.name}.ndjson"
-        filepath = dest_dir / filename
-        filepath.write_text("", encoding='utf-8')
-        return SyncResult(table=table.full_name, exported=0)
-
-    # First write as plain text to check size
-    content = '\n'.join(lines) + '\n'
-    content_size = len(content.encode('utf-8'))
-
-    # Determine format: large tables OR large files → compressed (Git LFS)
-    use_lfs = table.is_large or content_size > LARGE_FILE_SIZE_BYTES
-
-    if use_lfs:
-        # Compressed for Git LFS
-        large_dir = dest_dir.parent / "_large"
-        large_dir.mkdir(parents=True, exist_ok=True)
-        filename = f"{table.schema}.{table.name}.ndjson.gz"
-        filepath = large_dir / filename
-        with gzip.open(filepath, 'wt', encoding='utf-8') as f:
-            f.write(content)
-        size_mb = filepath.stat().st_size / (1024 * 1024)
-        print(f"  [OK] {table.full_name}: {count:,} rows ({size_mb:.1f} MB, compressed)")
-        # Remove plain file if it existed from previous export
-        plain_file = dest_dir / f"{table.name}.ndjson"
-        if plain_file.exists():
-            plain_file.unlink()
-    else:
-        # Plain text for git (small, diffable)
-        filename = f"{table.name}.ndjson"
-        filepath = dest_dir / filename
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(content)
-        print(f"  [OK] {table.full_name}: {count:,} rows")
-        # Remove compressed file if it existed from previous export
-        large_dir = dest_dir.parent / "_large"
-        compressed_file = large_dir / f"{table.schema}.{table.name}.ndjson.gz"
-        if compressed_file.exists():
-            compressed_file.unlink()
-
-    return SyncResult(table=table.full_name, exported=count)
-
+    return SyncResult(table=table.full_name, exported=exported, errors=errors)
 
 def _check_lfs_pointers(sync_dir: Path) -> bool:
     """Check if LFS files are actual data (not unresolved pointers)."""
@@ -387,6 +394,18 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     if not tables:
         return False, []
 
+    # Build lookup of known tables for orphan detection
+    known_table_keys = {f"{t.schema}.{t.name}" for t in tables}
+
+    # Detect NDJSON files that have no matching table in DB (orphan warning)
+    manifest_tables = manifest.get('tables', {})
+    orphan_files = [k for k in manifest_tables if k not in known_table_keys]
+    if orphan_files:
+        log_warning(
+            f"{len(orphan_files)} table(s) in sync files have no matching DB table "
+            f"(skipped): {', '.join(orphan_files[:5])}"
+        )
+
     # Sort by dependencies (parents first)
     sorted_tables = _topo_sort(tables)
 
@@ -442,63 +461,16 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
 
 
 def _import_table(table: TableInfo, filepath: Path, compressed: bool) -> SyncResult:
-    """Import a single NDJSON file using upsert (FK disabled per-session)."""
-    # Read lines
-    if compressed:
-        with gzip.open(filepath, 'rt', encoding='utf-8') as f:
-            lines = [line.strip() for line in f if line.strip()]
-    else:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            lines = [line.strip() for line in f if line.strip()]
-
-    if not lines:
-        return SyncResult(table=table.full_name, imported=0)
-
-    # Parse first line to discover available columns (handles schema evolution)
-    from decimal import Decimal
-    first_row = json.loads(lines[0], parse_float=Decimal)
-    available_cols = [c for c in table.all_columns if c in first_row]
-
-    if not available_cols:
-        log_warning(f"  {table.full_name}: no matching columns")
-        return SyncResult(table=table.full_name, errors=1)
-
-    # Determine PK and non-PK columns for upsert
-    pk_cols = table.pk_columns
-    non_pk_cols = [c for c in available_cols if c not in pk_cols]
-
-    if not pk_cols:
-        log_warning(f"  {table.full_name}: no primary key, skipping")
-        return SyncResult(table=table.full_name, skipped=len(lines))
-
-    # Batch import (each batch includes SET session_replication_role via helpers)
-    imported = 0
-    error_count = 0
-    batch_size = 1000
-
-    for batch_start in range(0, len(lines), batch_size):
-        batch = lines[batch_start:batch_start + batch_size]
-        batch_sql = build_batch_insert(
-            table.schema, table.name, available_cols, pk_cols, non_pk_cols, batch
-        )
-
-        ok, err_msg = _psql_exec(batch_sql, timeout=120)
-        if ok:
-            imported += len(batch)
-        else:
-            # Fallback: insert one by one
-            for line in batch:
-                row = json.loads(line, parse_float=Decimal)
-                single_sql = build_single_upsert(
-                    table.schema, table.name, available_cols, pk_cols, non_pk_cols, row
-                )
-                single_ok, _ = _psql_exec(single_sql, timeout=30)
-                if single_ok:
-                    imported += 1
-                else:
-                    error_count += 1
-
-    status = "OK" if error_count == 0 else "WARN"
-    print(f"  [{status}] {table.full_name}: {imported:,}/{len(lines):,} rows")
-
-    return SyncResult(table=table.full_name, imported=imported, errors=error_count)
+    """Import a single NDJSON file (delegates to ndjson_table_ops)."""
+    from omni_build.ndjson_table_ops import import_table
+    imported, skipped, errors = import_table(
+        schema=table.schema,
+        name=table.name,
+        full_name=table.full_name,
+        all_columns=table.all_columns,
+        pk_columns=table.pk_columns,
+        filepath=filepath,
+        compressed=compressed,
+        psql_exec_fn=_psql_exec,
+    )
+    return SyncResult(table=table.full_name, imported=imported, skipped=skipped, errors=errors)
