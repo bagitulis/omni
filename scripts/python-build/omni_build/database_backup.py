@@ -337,3 +337,23 @@ class DatabaseBackup:
     def print_backup_status(self) -> None:
         """Print backup status information."""
         self._manifest.print_status()
+
+    def save_manifest(
+        self,
+        tables: List[Dict[str, Any]],
+        prev_manifest: Optional[Dict[str, Any]] = None,
+        generated_checksums: Optional[Dict[str, str]] = None,
+        generated_rows: Optional[Dict[str, int]] = None,
+    ) -> bool:
+        """Save backup manifest (delegates to BackupManifest)."""
+        return self._manifest.save_manifest(
+            tables,
+            prev_manifest=prev_manifest,
+            generated_checksums=generated_checksums,
+            generated_rows=generated_rows,
+        )
+
+    @property
+    def manifest_file(self) -> 'Path':
+        """Path to manifest file (for test compatibility)."""
+        return self._manifest.manifest_file

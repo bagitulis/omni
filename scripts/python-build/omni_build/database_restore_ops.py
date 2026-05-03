@@ -1,28 +1,30 @@
-#MY|"""
-#WH|Database Restore Operations module for Omni Build System.
-#HW|
-#RB|SRP: This module handles table restore operations (single + chunked).
-#YT|Checksum verification and schema recreation are in restore_helpers.py.
-#MX|"""
-#SS|import subprocess
-#SW|from pathlib import Path
-#HS|from typing import Any, List, Tuple
-#TX|
-#XY|from omni_build.database_backup_ops import DatabaseBackupOps
-#ST|from omni_build.restore_helpers import (
-#HZ|    is_sha256_checksum,
-#HJ|    recreate_schemas_from_backup,
-#WX|    run_post_restore_analyze,
-#XV|    terminate_active_connections,
-#JV|)
-#ZP|from omni_build.restore_table_ops import (
-#PS|    restore_single_table,
-#XR|    restore_chunked_files,
-#MN|)
-#HK|
-#JJ|from omni_build.config import Config
-#TY|from omni_build.db_config import DatabaseConfig
-#RV|from omni_build.logger import log_error, log_info, log_success, log_warning
+"""
+Database Restore Operations module for Omni Build System.
+
+SRP: This module handles table restore orchestration.
+Per-table restore logic is in restore_table_ops.py.
+Checksum verification and schema recreation are in restore_helpers.py.
+"""
+import subprocess
+from pathlib import Path
+from typing import Any, List, Tuple
+
+from omni_build.database_backup_ops import DatabaseBackupOps
+from omni_build.restore_helpers import (
+    is_sha256_checksum,
+    recreate_schemas_from_backup,
+    run_post_restore_analyze,
+    terminate_active_connections,
+)
+from omni_build.restore_table_ops import (
+    restore_single_table,
+    restore_chunked_files,
+)
+
+from omni_build.config import Config
+from omni_build.db_config import DatabaseConfig
+from omni_build.logger import log_error, log_info, log_success, log_warning
+
 
 class DatabaseRestoreOps:
     """Handles database restore operations for tables and schemas."""
@@ -31,49 +33,22 @@ class DatabaseRestoreOps:
         self.config = config
         self._pg_checker = pg_checker
 
-    def _parse_count(self, raw_count: str) -> int:
-        """Parse COUNT(*) output safely."""
-        try:
-            return int(raw_count.strip())
-        except (TypeError, ValueError, AttributeError):
-            return -1
+    def _is_sha256_checksum(self, checksum: Any) -> bool:
+        """Validate checksum format as sha256 hex string."""
+        return is_sha256_checksum(checksum)
 
-    def _get_table_count(self, schema: str, table: str) -> Tuple[bool, int, str]:
-        """Get table row count from PostgreSQL."""
-        count_result = subprocess.run(
-            DatabaseConfig.psql_cmd() + [
-                "-t", "-c", f"SELECT COUNT(*) FROM {schema}.{table};"
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            encoding='utf-8',
-            errors='replace',
-        )
-        if count_result.returncode != 0:
-            return False, 0, f"count query failed: {count_result.stderr[:100]}"
+    def _calculate_backup_table_checksum(self, schema: str, table: str, schema_dir: Path) -> Tuple[bool, str, str]:
+        """Calculate checksum for backup artifact(s) used by restore."""
+        from omni_build.restore_helpers import calculate_backup_table_checksum
+        return calculate_backup_table_checksum(schema, table, schema_dir)
 
-        rows = self._parse_count(count_result.stdout)
-        if rows < 0:
-            return False, 0, "invalid row count output"
+    def _verify_backup_checksum(
+        self, schema: str, table: str, schema_dir: Path, expected_checksum: str,
+    ) -> Tuple[bool, str]:
+        """Verify backup file checksum against manifest checksum."""
+        from omni_build.restore_helpers import verify_backup_checksum
+        return verify_backup_checksum(schema, table, schema_dir, expected_checksum)
 
-        return True, rows, ""
-
-    #KQ|    def _is_sha256_checksum(self, checksum: Any) -> bool:
-#BH|        """Validate checksum format as sha256 hex string."""
-#KN|        return is_sha256_checksum(checksum)
-#JQ|
-#HN|    def _calculate_backup_table_checksum(self, schema: str, table: str, schema_dir: Path) -> Tuple[bool, str, str]:
-#VM|        """Calculate checksum for backup artifact(s) used by restore."""
-#SN|        from omni_build.restore_helpers import calculate_backup_table_checksum
-#YY|        return calculate_backup_table_checksum(schema, table, schema_dir)
-#TN|
-#WT|    def _verify_backup_checksum(
-#WT|        self, schema: str, table: str, schema_dir: Path, expected_checksum: str,
-#WT|    ) -> Tuple[bool, str]:
-#YW|        """Verify backup file checksum against manifest checksum."""
-#QN|        from omni_build.restore_helpers import verify_backup_checksum
-#JW|        return verify_backup_checksum(schema, table, schema_dir, expected_checksum)
     def recreate_schemas_from_backup(self, data_dir: Path) -> bool:
         """Recreate schemas from backup _schema dumps."""
         return recreate_schemas_from_backup(data_dir, self._pg_checker)
@@ -85,6 +60,23 @@ class DatabaseRestoreOps:
     def run_post_restore_analyze(self) -> bool:
         """Run ANALYZE after restore to update query planner statistics."""
         return run_post_restore_analyze()
+
+    def _restore_single_table(
+        self, schema: str, table: str, sql_file: Path,
+        skip_truncate: bool = False, max_retries: int = 3, expected_rows: int = 0
+    ) -> Tuple[bool, int]:
+        """Restore single table (delegates to restore_table_ops)."""
+        return restore_single_table(
+            schema, table, sql_file, self._pg_checker,
+            skip_truncate=skip_truncate, max_retries=max_retries,
+            expected_rows=expected_rows,
+        )
+
+    def _restore_chunked_files(
+        self, schema: str, table: str, chunk_files: List[Path], expected: int
+    ) -> Tuple[bool, int]:
+        """Restore chunked table (delegates to restore_table_ops)."""
+        return restore_chunked_files(schema, table, chunk_files, expected)
     
     def restore_tables(self, manifest: dict[str, Any], data_dir: Path) -> Tuple[bool, str]:
         """Restore tables from backup files."""
@@ -171,15 +163,17 @@ class DatabaseRestoreOps:
             
             chunk_files = sorted(schema_dir.glob(f"{table_name}.chunk*.sql.gz"))
             
-            #SM|            if chunk_files:
-                #XM|                success, rows = restore_chunked_files(
-                    #HK|                    schema_name, table_name, chunk_files, expected_rows
-                #BT|                )
+            if chunk_files:
+                success, rows = self._restore_chunked_files(
+                    schema_name, table_name, chunk_files, expected_rows
+                )
             else:
                 sql_file = schema_dir / f"{table_name}.sql.gz"
                 if not sql_file.exists():
                     if expected_rows == 0:
-                        count_ok, rows, count_error = self._get_table_count(schema_name, table_name)
+                        # Table expected to be empty — verify it is
+                        from omni_build.restore_table_ops import _get_table_count
+                        count_ok, rows, count_error = _get_table_count(schema_name, table_name)
                         if not count_ok:
                             errors.append(f"{schema_name}.{table_name} ({count_error})")
                         elif rows != 0:
@@ -192,10 +186,10 @@ class DatabaseRestoreOps:
 
                     errors.append(f"{schema_name}.{table_name} (backup file not found)")
                     continue
-                #BH|                success, rows = restore_single_table(
-                    #MQ|                    schema_name, table_name, sql_file, self._pg_checker,
-                    #WB|                    skip_truncate=True, expected_rows=expected_rows
-                #WK|                )
+                success, rows = self._restore_single_table(
+                    schema_name, table_name, sql_file,
+                    skip_truncate=True, expected_rows=expected_rows
+                )
 
             if success:
                 if rows != expected_rows:
@@ -218,17 +212,17 @@ class DatabaseRestoreOps:
                         # Rows missing — retry once with TRUNCATE to clear backend-seeded conflicts
                         print(f"  [WARN] {schema_name}.{table_name}: {rows:,}/{artifact_rows:,} rows — retrying with TRUNCATE...")
                         retry_success = False
-                        #TZ|                        chunk_files = sorted(schema_dir.glob(f"{table_name}.chunk*.sql.gz"))
-                        #PX|                        if chunk_files:
-                            #MB|                            retry_ok, retry_rows = restore_chunked_files(
-                                #VK|                                schema_name, table_name, chunk_files, artifact_rows
-                            #YB|                            )
+                        chunk_files = sorted(schema_dir.glob(f"{table_name}.chunk*.sql.gz"))
+                        if chunk_files:
+                            retry_ok, retry_rows = self._restore_chunked_files(
+                                schema_name, table_name, chunk_files, artifact_rows
+                            )
                         else:
-                            #HW|                            sql_file = schema_dir / f"{table_name}.sql.gz"
-                            #WV|                            retry_ok, retry_rows = restore_single_table(
-                                #NS|                                schema_name, table_name, sql_file, self._pg_checker,
-                                #TK|                                skip_truncate=False, expected_rows=artifact_rows
-                            #XK|                            )
+                            sql_file = schema_dir / f"{table_name}.sql.gz"
+                            retry_ok, retry_rows = self._restore_single_table(
+                                schema_name, table_name, sql_file,
+                                skip_truncate=False, expected_rows=artifact_rows
+                            )
                         if retry_ok and retry_rows >= artifact_rows:
                             print(f"  [FIX] {schema_name}.{table_name}: retry succeeded — {retry_rows:,} rows")
                             rows = retry_rows
@@ -265,4 +259,4 @@ class DatabaseRestoreOps:
 
         fix_msg = f" ({auto_fixes} auto-fixed)" if auto_fixes else ""
         log_success(f"Restore complete: {restored_tables} tables, {restored_rows:,} rows{fix_msg}")
-        #SK|        return True, f"Restored {restored_tables} tables with {restored_rows:,} rows{fix_msg}"
+        return True, f"Restored {restored_tables} tables with {restored_rows:,} rows{fix_msg}"

@@ -7,12 +7,12 @@ import gzip
 import hashlib
 import json
 import subprocess
-import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
 
 from omni_build.backup_checksum import LiveChecksumCalculator
+from omni_build.backup_pg_health import PostgresHealthManager
 from omni_build.db_config import DatabaseConfig
 from omni_build.logger import log_error, log_info, log_success, log_warning
 
@@ -30,6 +30,8 @@ class DatabaseBackupOps:
         self.table_checksums: Dict[str, str] = {}
         self.table_row_counts: Dict[str, int] = {}
         self._checksum_calculator = LiveChecksumCalculator(self._get_primary_key_column)
+        self._health_manager = PostgresHealthManager(lambda msg: self.errors.append(msg))
+
     def _update_hash_from_file(self, file_path: Path, hasher: "hashlib._Hash") -> None:
         """Update hasher from file bytes in chunks."""
         with open(file_path, 'rb') as f:
@@ -139,54 +141,12 @@ class DatabaseBackupOps:
     
     def ensure_postgres_healthy(self) -> bool:
         """Quick check if PostgreSQL is responsive."""
-        try:
-            result = subprocess.run(
-                DatabaseConfig.docker_exec_prefix() + [
-                    "pg_isready", "-U", DatabaseConfig.USER, "-d", DatabaseConfig.DATABASE
-                ],
-                capture_output=True, text=True, timeout=5
-            )
-            return result.returncode == 0
-        except Exception:
-            return False
+        return self._health_manager.ensure_postgres_healthy()
     
     def recover_postgres(self) -> bool:
         """Attempt to recover PostgreSQL after a crash."""
-        log_info("Attempting PostgreSQL recovery...")
-        
-        try:
-            result = subprocess.run(
-                ["docker", "inspect", "--format", "{{.State.Status}}", DatabaseConfig.CONTAINER_NAME],
-                capture_output=True, text=True, timeout=10
-            )
-            status = result.stdout.strip()
-            
-            if status == "exited":
-                log_info("Container exited - attempting restart...")
-                subprocess.run(["docker", "start", DatabaseConfig.CONTAINER_NAME], 
-                              capture_output=True, timeout=30)
-                
-                for _ in range(30):
-                    time.sleep(2)
-                    if self.ensure_postgres_healthy():
-                        log_success("PostgreSQL recovered successfully")
-                        return True
-                
-                self.errors.append("PostgreSQL failed to recover within 60 seconds")
-                return False
-            elif status == "running":
-                for _ in range(10):
-                    time.sleep(2)
-                    if self.ensure_postgres_healthy():
-                        return True
-                return False
-            else:
-                self.errors.append(f"Container in unexpected state: {status}")
-                return False
-                
-        except Exception as e:
-            self.errors.append(f"Recovery failed: {e}")
-            return False
+        return self._health_manager.recover_postgres()
+
     
     def export_schema(self, schema: str) -> bool:
         """Export schema structure (DDL) to _schema directory."""
@@ -197,17 +157,17 @@ class DatabaseBackupOps:
         try:
             _u, _d = DatabaseConfig.USER, DatabaseConfig.DATABASE
             _prefix = DatabaseConfig.docker_exec_prefix()
+            base_cmd = f"pg_dump -U {_u} -d {_d} --schema={schema} --schema-only --no-owner --no-acl 2>/dev/null"
+            
             # Export compressed (for restore)
-            cmd_gz = f"pg_dump -U {_u} -d {_d} --schema={schema} --schema-only --no-owner --no-acl 2>/dev/null | gzip -n"
             result_gz = subprocess.run(
-                _prefix + ["sh", "-c", cmd_gz],
+                _prefix + ["sh", "-c", base_cmd + " | gzip -n"],
                 capture_output=True, timeout=120
             )
             
             # Export plain text (for git diff)
-            cmd_plain = f"pg_dump -U {_u} -d {_d} --schema={schema} --schema-only --no-owner --no-acl 2>/dev/null"
             result_plain = subprocess.run(
-                _prefix + ["sh", "-c", cmd_plain],
+                _prefix + ["sh", "-c", base_cmd],
                 capture_output=True, timeout=120
             )
             
@@ -287,6 +247,7 @@ class DatabaseBackupOps:
         """Export small table as single gzipped SQL file."""
         table_file = dest_dir / f"{table}.sql.gz"
         
+        # Remove old chunks and metadata
         for old_chunk in dest_dir.glob(f"{table}.chunk*.sql.gz"):
             old_chunk.unlink()
         meta_file = dest_dir / f"{table}.meta.json"
@@ -314,18 +275,38 @@ class DatabaseBackupOps:
             self.errors.append(f"Failed to export {schema}.{table}: {e}")
             return False
     
+    def _cleanup_old_chunks(self, dest_dir: Path, table: str) -> None:
+        """Remove old chunk files and metadata."""
+        old_file = dest_dir / f"{table}.sql.gz"
+        if old_file.exists():
+            old_file.unlink()
+        for old_chunk in dest_dir.glob(f"{table}.chunk*.sql.gz"):
+            old_chunk.unlink()
+    
+    def _write_chunk_metadata(self, dest_dir: Path, table: str, schema: str, 
+                              total_rows: int, success_count: int, order_by: str) -> None:
+        """Write metadata file for chunked export."""
+        meta_file = dest_dir / f"{table}.meta.json"
+        meta = {
+            'table': table,
+            'schema': schema,
+            'total_rows': total_rows,
+            'chunks': success_count,
+            'chunk_size': self.CHUNK_SIZE,
+            'order_by': order_by,
+            'exported_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        with open(meta_file, 'w', encoding='utf-8') as f:
+            json.dump(meta, f, indent=2)
+    
+
     def _export_table_chunked(
         self, schema: str, table: str, total_rows: int, dest_dir: Path
     ) -> bool:
         """Export large table in chunks using LIMIT/OFFSET."""
         print(f"  [INFO] {schema}.{table}: exporting {total_rows:,} rows in chunks...")
         
-        old_file = dest_dir / f"{table}.sql.gz"
-        if old_file.exists():
-            old_file.unlink()
-        for old_chunk in dest_dir.glob(f"{table}.chunk*.sql.gz"):
-            old_chunk.unlink()
-        
+        self._cleanup_old_chunks(dest_dir, table)
         order_by = self._get_primary_key_column(schema, table)
         
         offset = 0
@@ -360,19 +341,7 @@ class DatabaseBackupOps:
             offset += self.CHUNK_SIZE
             chunk_num += 1
         
-        meta_file = dest_dir / f"{table}.meta.json"
-        meta = {
-            'table': table,
-            'schema': schema,
-            'total_rows': total_rows,
-            'chunks': success_count,
-            'chunk_size': self.CHUNK_SIZE,
-            'order_by': order_by,
-            'exported_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        with open(meta_file, 'w', encoding='utf-8') as f:
-            json.dump(meta, f, indent=2)
-        
+        self._write_chunk_metadata(dest_dir, table, schema, total_rows, success_count, order_by)
         print(f"  [OK] {schema}.{table}: {success_count} chunks exported")
         return success_count > 0
     
