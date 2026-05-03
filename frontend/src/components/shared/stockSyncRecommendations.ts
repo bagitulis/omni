@@ -116,6 +116,13 @@ export async function buildStockRecommendations(
 
   const entries = await Promise.all(
     Object.entries(stockBySku).map(async ([sku, fallbackStock]) => {
+      // Skip API call for platform-fallback SKUs (tiktok_*, shopee_*, lazada_*)
+      // — they never have inventory records and would cause 404 console noise.
+      if (/^(tiktok|shopee|lazada)_/.test(sku)) {
+        const activePlatforms = linkedPlatformsBySku?.[sku];
+        return [sku, fallbackRecommendation(fallbackStock, activePlatforms)] as const;
+      }
+
       try {
         const record = await getInventoryBySku(sku);
         const rowData = record.data || {};

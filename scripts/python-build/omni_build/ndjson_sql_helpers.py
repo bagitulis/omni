@@ -105,7 +105,7 @@ def build_batch_insert(schema: str, table: str, cols: List[str],
 
 def build_single_upsert(schema: str, table: str, cols: List[str],
                          pk_cols: List[str], non_pk_cols: List[str],
-                         row: dict) -> str:
+                         row: dict[str, Any]) -> str:
     """Build single-row upsert SQL with FK disable."""
     col_list = ', '.join(validate_identifier(c) for c in cols)
     conflict_cols = ', '.join(validate_identifier(c) for c in pk_cols)

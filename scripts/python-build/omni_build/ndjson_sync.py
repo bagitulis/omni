@@ -279,7 +279,7 @@ def _topo_sort(tables: List[TableInfo]) -> List[TableInfo]:
     return sorted_tables
 
 
-def _cleanup_orphan_files(sync_dir: Path, exported_keys: set) -> int:
+def _cleanup_orphan_files(sync_dir: Path, exported_keys: set[str]) -> int:
     """Remove NDJSON files for tables that no longer exist in the database.
 
     After export, any .ndjson or .ndjson.gz file that doesn't correspond to
@@ -370,7 +370,7 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
         schemas.setdefault(t.schema, []).append(t)
 
     # Track exported table names for orphan cleanup
-    exported_table_keys: set = set()
+    exported_table_keys: set[str] = set()
 
     for schema, schema_tables in schemas.items():
         schema_dir = sync_dir / schema
@@ -547,7 +547,7 @@ def _cleanup_backup(backup_dir: Optional[Path]) -> None:
 def _reset_sequences(tables: List[TableInfo]) -> None:
     """Reset ALL sequences in each schema to max value of their linked column."""
     log_info("Resetting sequences...")
-    reset_schemas: set = set()
+    reset_schemas: set[str] = set()
     for table in tables:
         reset_schemas.add(table.schema)
 
@@ -714,7 +714,7 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
 def _import_table(table: TableInfo, filepath: Path, compressed: bool) -> SyncResult:
     """Import a single NDJSON file (delegates to ndjson_table_ops)."""
     # Query NOT NULL columns (excluding PK and columns with defaults)
-    not_null_cols: list = []
+    not_null_cols: list[str] = []
     if table.pk_columns:
         pk_in = ", ".join(f"'{c}'" for c in table.pk_columns)
         nn_sql = (
