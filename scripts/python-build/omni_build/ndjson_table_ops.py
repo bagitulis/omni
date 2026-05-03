@@ -133,7 +133,7 @@ def import_table(
 
     # Pass 1: Stream through file to discover union of column keys
     # Only parses JSON keys, does not store full lines in memory
-    ndjson_cols: set = set()
+    ndjson_cols: set[str] = set()
     total_lines = 0
     with _open_ndjson(filepath, compressed) as f:
         for line in f:
@@ -184,11 +184,35 @@ def import_table(
     imported = 0
     error_count = 0
     batch_size = 1000
+    max_batch_bytes = 10 * 1024 * 1024  # 10 MB
 
     for batch in _stream_batches(filepath, compressed, batch_size):
         batch_sql = build_batch_insert(
             schema, name, available_cols, pk_cols, non_pk_cols, batch
         )
+
+        # Bug #15: Dynamic batch size — reduce if SQL exceeds 10MB
+        if len(batch_sql.encode('utf-8')) > max_batch_bytes and len(batch) > 1:
+            half = len(batch) // 2
+            for sub_batch in [batch[:half], batch[half:]]:
+                sub_sql = build_batch_insert(
+                    schema, name, available_cols, pk_cols, non_pk_cols, sub_batch
+                )
+                ok, _ = psql_exec_fn(sub_sql, 120)
+                if ok:
+                    imported += len(sub_batch)
+                else:
+                    for line in sub_batch:
+                        row = json.loads(line, parse_float=Decimal)
+                        single_sql = build_single_upsert(
+                            schema, name, available_cols, pk_cols, non_pk_cols, row
+                        )
+                        single_ok, _ = psql_exec_fn(single_sql, 30)
+                        if single_ok:
+                            imported += 1
+                        else:
+                            error_count += 1
+            continue
 
         ok, _ = psql_exec_fn(batch_sql, 120)
         if ok:

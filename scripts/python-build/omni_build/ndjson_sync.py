@@ -246,8 +246,8 @@ def _topo_sort(tables: List[TableInfo]) -> List[TableInfo]:
     Detects circular FK dependencies and breaks cycles with a warning.
     """
     by_name: Dict[str, TableInfo] = {t.name: t for t in tables}
-    visited: set = set()
-    in_progress: set = set()  # Cycle detection: nodes currently being visited
+    visited: set[str] = set()
+    in_progress: set[str] = set()  # Cycle detection: nodes currently being visited
     sorted_tables: List[TableInfo] = []
 
     def visit(name: str):
@@ -419,6 +419,12 @@ def _export_table(table: TableInfo, dest_dir: Path,
             sql = f"BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ; SET TRANSACTION SNAPSHOT '{snapshot_id}'; {sql} COMMIT;"
         return _psql_query(sql, timeout)
 
+    def _snapshot_exec(sql: str, timeout: int) -> Tuple[bool, str]:
+        """Wrap psql exec to use consistent snapshot if available."""
+        if snapshot_id:
+            sql = f"BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;\nSET TRANSACTION SNAPSHOT '{snapshot_id}';\n{sql}\nCOMMIT;"
+        return _psql_exec(sql, timeout)
+
     exported, errors = export_table(
         schema=table.schema,
         name=table.name,
@@ -429,6 +435,7 @@ def _export_table(table: TableInfo, dest_dir: Path,
         dest_dir=dest_dir,
         large_file_size_bytes=LARGE_FILE_SIZE_BYTES,
         psql_query_fn=_snapshot_query,
+        psql_exec_fn=_snapshot_exec,
     )
     return SyncResult(table=table.full_name, exported=exported, errors=errors)
 

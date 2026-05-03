@@ -196,6 +196,7 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
         okText: "Yes, set to 0",
         okType: "danger",
         cancelText: "Cancel",
+        zIndex: 1100,
         onOk: executeSync,
       });
       return;
