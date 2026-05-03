@@ -16,6 +16,30 @@ stale_if_changed:
 
 ---
 
+## Quick Reference (Most Used)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/auth/login` | Login |
+| POST | `/api/auth/refresh` | Refresh token |
+| GET | `/api/orders` | List orders |
+| POST | `/api/orders/sync-all` | Sync all orders |
+| GET | `/api/products/master` | List master products |
+| POST | `/api/master-products/import` | Import products |
+| GET | `/api/inventory` | Get inventory |
+| POST | `/api/inventory/update-stock-batch` | Batch update stock |
+| GET | `/api/shopee/products` | Shopee products |
+| GET | `/api/tiktok/products` | TikTok products |
+| GET | `/api/lazada/products` | Lazada products |
+| GET | `/api/analytics/dashboard` | Dashboard data |
+| GET | `/api/notifications` | List notifications |
+| GET | `/api/platform-auth/status` | Platform connection status |
+| GET | `/api/health` | Health check |
+
+> **Full catalog below.** Most tasks only need the endpoints above.
+
+---
+
 ## Public Routes (No Auth Required)
 
 ### Health & Status

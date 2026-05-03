@@ -29,7 +29,7 @@ RULES_JSON = os.path.join(SCRIPT_DIR, "rules.json")
 
 # Import validation helpers (extracted for SRP / ~300 line target)
 sys.path.insert(0, SCRIPT_DIR)
-from validators import scan_orphan_markers, validate_compose_coverage
+from validators import scan_orphan_markers, validate_compose_coverage, validate_doc_freshness
 
 MARKER_OPEN = "<!-- MASTER:{key} -->"
 MARKER_CLOSE = "<!-- /MASTER:{key} -->"
@@ -340,6 +340,16 @@ def main():
                 for kind, name in gaps:
                     print(f"  ⚠ {kind} '{name}' has no prompt_compose mapping")
 
+    # --- Documentation freshness check ---
+    if not args.section and not args.target:
+        stale = validate_doc_freshness("docs", PROJECT_ROOT)
+        if stale:
+            has_warnings = True
+            print("\n--- Stale Documentation (code changed after doc last_updated) ---")
+            for s in stale:
+                print(f"  ⚠ {s['doc']} (updated: {s['last_updated']}, {s['changed_count']} file(s) changed since)")
+                for ex in s['examples']:
+                    print(f"    → {ex}")
     print("\n--- Sync Results ---")
     for filepath, status in results:
         icon = "*" if "update" in status or "generate" in status else " "

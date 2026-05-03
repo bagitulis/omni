@@ -1,0 +1,584 @@
+- generic [ref=e12]:
+  - link "Skip to main content" [ref=e13] [cursor=pointer]:
+    - /url: "#main-content"
+  - complementary [ref=e14]:
+    - generic [ref=e15]:
+      - generic [ref=e16]: OMNI
+      - menu [ref=e17]:
+        - menuitem "dashboard Dashboard" [ref=e18] [cursor=pointer]:
+          - img "dashboard" [ref=e19]:
+            - img [ref=e20]
+          - generic [ref=e22]: Dashboard
+        - menuitem "shopping Orders" [ref=e23] [cursor=pointer]:
+          - img "shopping" [ref=e24]:
+            - img [ref=e25]
+          - generic [ref=e27]: Orders
+        - menuitem "skin Products" [ref=e28] [cursor=pointer]:
+          - img "skin" [ref=e29]:
+            - img [ref=e30]
+          - generic [ref=e32]: Products
+        - menuitem "inbox Inventory" [ref=e40] [cursor=pointer]:
+          - img "inbox" [ref=e41]:
+            - img [ref=e42]
+          - generic [ref=e44]: Inventory
+        - menuitem "node-index Route Mapping" [ref=e45] [cursor=pointer]:
+          - img "node-index" [ref=e46]:
+            - img [ref=e47]
+          - generic [ref=e49]: Route Mapping
+        - menuitem "file-text Report" [ref=e50] [cursor=pointer]:
+          - img "file-text" [ref=e51]:
+            - img [ref=e52]
+          - generic [ref=e54]: Report
+        - menuitem "code Script Monitor" [ref=e55] [cursor=pointer]:
+          - img "code" [ref=e56]:
+            - img [ref=e57]
+          - generic [ref=e59]: Script Monitor
+        - menuitem "setting Settings" [ref=e60] [cursor=pointer]:
+          - img "setting" [ref=e61]:
+            - img [ref=e62]
+          - generic [ref=e64]: Settings
+  - generic [ref=e65]:
+    - banner [ref=e66]:
+      - button "Collapse sidebar" [ref=e68] [cursor=pointer]:
+        - img "menu-fold" [ref=e804]:
+          - img [ref=e805]
+      - generic [ref=e73]:
+        - generic [ref=e74] [cursor=pointer]:
+          - generic [ref=e76]:
+            - combobox [ref=e78]
+            - generic "Bertigamart" [ref=e79]
+          - img [ref=e80]:
+            - img [ref=e81]
+        - button "Switch to dark mode" [ref=e83] [cursor=pointer]:
+          - img "moon" [ref=e85]:
+            - img [ref=e86]
+        - button "key" [ref=e89] [cursor=pointer]:
+          - img "key" [ref=e91]:
+            - img [ref=e92]
+        - generic [ref=e94]:
+          - button "Notifications (2 unread)" [ref=e95] [cursor=pointer]:
+            - img "bell" [ref=e97]:
+              - img [ref=e98]
+          - superscript [ref=e100]:
+            - generic [ref=e102]: "2"
+        - generic [ref=e103] [cursor=pointer]:
+          - img "user" [ref=e106]:
+            - img [ref=e107]
+          - generic [ref=e110]: tester
+    - main [ref=e111]:
+      - generic [ref=e112]:
+        - generic [ref=e113]:
+          - generic [ref=e115]:
+            - heading "Products" [level=4] [ref=e116]
+            - generic [ref=e117]:
+              - button "plus Add Product" [ref=e118] [cursor=pointer]:
+                - img "plus" [ref=e120]:
+                  - img [ref=e121]
+                - generic [ref=e124]: Add Product
+              - button "upload Import" [ref=e125] [cursor=pointer]:
+                - img "upload" [ref=e127]:
+                  - img [ref=e128]
+                - generic [ref=e130]: Import
+              - button "cloud-download Sync History (409)" [ref=e131] [cursor=pointer]:
+                - img "cloud-download" [ref=e133]:
+                  - img [ref=e134]
+                - generic [ref=e137]: Sync History (409)
+          - generic [ref=e142]:
+            - generic [ref=e144]:
+              - generic [ref=e145]:
+                - generic [ref=e146]: Platform Synchronization
+                - generic [ref=e147]: Sync platform data to staging, then import to master catalog.
+              - generic [ref=e148]:
+                - generic [ref=e150]: "Created: 0"
+                - generic [ref=e152]: "Matched: 0"
+                - generic [ref=e154]: "SKUs: 0"
+                - generic [ref=e156]: "Links: 0"
+                - generic [ref=e158]: "Errors: 0"
+            - generic [ref=e160]:
+              - generic [ref=e164]:
+                - generic [ref=e167]:
+                  - generic [ref=e169]: Shopee
+                  - generic [ref=e170]: Staging to Master
+                - generic [ref=e172]:
+                  - button "Sync to DB" [ref=e173] [cursor=pointer]:
+                    - generic [ref=e174]: Sync to DB
+                  - button "Import" [ref=e175] [cursor=pointer]:
+                    - generic [ref=e176]: Import
+                - generic [ref=e177]: Run sync first when staging data is stale, then import.
+              - generic [ref=e181]:
+                - generic [ref=e184]:
+                  - generic [ref=e186]: TikTok
+                  - generic [ref=e187]: Staging to Master
+                - generic [ref=e189]:
+                  - button "Sync to DB" [ref=e190] [cursor=pointer]:
+                    - generic [ref=e191]: Sync to DB
+                  - button "Import" [ref=e192] [cursor=pointer]:
+                    - generic [ref=e193]: Import
+                - generic [ref=e194]: Run sync first when staging data is stale, then import.
+              - generic [ref=e198]:
+                - generic [ref=e201]:
+                  - generic [ref=e203]: Lazada
+                  - generic [ref=e204]: Staging to Master
+                - generic [ref=e206]:
+                  - button "Sync to DB" [ref=e207] [cursor=pointer]:
+                    - generic [ref=e208]: Sync to DB
+                  - button "Import" [ref=e209] [cursor=pointer]:
+                    - generic [ref=e210]: Import
+                - generic [ref=e211]: Run sync first when staging data is stale, then import.
+          - generic [ref=e214]:
+            - generic [ref=e215]:
+              - tablist [ref=e216]:
+                - generic [ref=e218]:
+                  - tab "All Products 99+" [selected] [ref=e220] [cursor=pointer]:
+                    - generic [ref=e221]:
+                      - text: All Products
+                      - superscript [ref=e223]: 99+
+                  - tab "Mapped" [ref=e225] [cursor=pointer]
+                  - tab "Unmapped ?" [ref=e227] [cursor=pointer]:
+                    - generic [ref=e228]:
+                      - text: Unmapped
+                      - superscript [ref=e230]: "?"
+              - generic:
+                - generic:
+                  - tabpanel "All Products 99+"
+            - generic [ref=e231]:
+              - generic [ref=e232]:
+                - img "search" [ref=e234]:
+                  - img [ref=e235]
+                - textbox "Search products..." [ref=e237]
+              - generic [ref=e239] [cursor=pointer]:
+                - generic [ref=e241]:
+                  - combobox [ref=e243]
+                  - generic "All Platforms" [ref=e244]
+                - img [ref=e245]:
+                  - img [ref=e246]
+              - generic [ref=e248] [cursor=pointer]:
+                - generic [ref=e250]:
+                  - combobox [ref=e252]
+                  - generic "All Status" [ref=e253]
+                - generic:
+                  - img:
+                    - img
+              - generic [ref=e254] [cursor=pointer]:
+                - generic [ref=e256]:
+                  - combobox [ref=e258]
+                  - generic "All Categories" [ref=e259]
+                - generic:
+                  - img:
+                    - img
+            - separator [ref=e260]
+            - generic [ref=e261]:
+              - generic [ref=e263]:
+                - button "bars List" [ref=e265] [cursor=pointer]:
+                  - img "bars" [ref=e267]:
+                    - img [ref=e268]
+                  - generic [ref=e270]: List
+                - button "appstore Grid" [ref=e272] [cursor=pointer]:
+                  - img "appstore" [ref=e274]:
+                    - img [ref=e275]
+                  - generic [ref=e277]: Grid
+              - button "Column settings" [ref=e808] [cursor=pointer]:
+                - img "setting" [ref=e810]:
+                  - img [ref=e811]
+            - generic [ref=e286]:
+              - table [ref=e290]:
+                - rowgroup [ref=e300]:
+                  - row "Select all Image Name Price Stock Platforms Actions" [ref=e815]:
+                    - columnheader [ref=e302]
+                    - columnheader "Select all" [ref=e303]:
+                      - checkbox "Select all" [checked=mixed] [ref=e307] [cursor=pointer]
+                    - columnheader "Image" [ref=e309]
+                    - columnheader "Name" [ref=e310]
+                    - columnheader "Price" [ref=e311]
+                    - columnheader "Stock" [ref=e816]
+                    - columnheader "Platforms" [ref=e817]
+                    - columnheader "Actions" [ref=e314]
+                - rowgroup [ref=e315]:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - checkbox [checked=mixed]
+                  - 'row "Collapse row Susu Bubuk Frisian Flag Primagro 750gr Umur 3+ Tahun Susu Bubuk Frisian Flag Primagro 750gr Umur 3+ Tahun SKU: FFGUM4248 Variant: Madu, Vanila Rp 91.400 12 Shopee platform indicator TikTok platform indicator Lazada platform indicator Actions down" [ref=e1135]':
+                    - cell "Collapse row" [ref=e1136]:
+                      - button "Collapse row" [expanded] [active] [ref=e1137] [cursor=pointer]
+                    - cell [ref=e319]:
+                      - checkbox [checked] [ref=e322] [cursor=pointer]
+                    - cell "Susu Bubuk Frisian Flag Primagro 750gr Umur 3+ Tahun" [ref=e324]:
+                      - img "Susu Bubuk Frisian Flag Primagro 750gr Umur 3+ Tahun" [ref=e326]
+                    - 'cell "Susu Bubuk Frisian Flag Primagro 750gr Umur 3+ Tahun SKU: FFGUM4248 Variant: Madu, Vanila" [ref=e327]':
+                      - generic [ref=e328]:
+                        - strong [ref=e331]: Susu Bubuk Frisian Flag Primagro 750gr Umur 3+ Tahun
+                        - generic [ref=e333]: "SKU: FFGUM4248"
+                        - generic [ref=e335]: "Variant: Madu, Vanila"
+                    - cell "Rp 91.400" [ref=e336]
+                    - cell "12" [ref=e819]
+                    - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e820]:
+                      - generic [ref=e821]:
+                        - button "Shopee platform indicator" [disabled] [ref=e968]:
+                          - img "Shopee"
+                        - button "TikTok platform indicator" [disabled] [ref=e828]:
+                          - img "TikTok"
+                        - button "Lazada platform indicator" [disabled] [ref=e832]:
+                          - img "Lazada"
+                    - cell "Actions down" [ref=e352]:
+                      - button "Actions down" [ref=e353] [cursor=pointer]:
+                        - generic [ref=e354]: Actions
+                        - img "down" [ref=e355]:
+                          - img [ref=e356]
+                  - 'row "2 Variations Platform columns: price · stock Variant Details Stock Price Platform (Price · Stock) Linked Madu SKU: FFGUM4248 6 Rp 91.400 shopee Rp 89.200 · 6 tiktok — · — lazada — · — Shopee Vanila SKU: FFGUM3934 6 Rp 91.400 shopee Rp 89.200 · 6 tiktok — · — lazada — · — Shopee" [ref=e1138]':
+                    - 'cell "2 Variations Platform columns: price · stock Variant Details Stock Price Platform (Price · Stock) Linked Madu SKU: FFGUM4248 6 Rp 91.400 shopee Rp 89.200 · 6 tiktok — · — lazada — · — Shopee Vanila SKU: FFGUM3934 6 Rp 91.400 shopee Rp 89.200 · 6 tiktok — · — lazada — · — Shopee" [ref=e1139]':
+                      - generic [ref=e1140]:
+                        - generic [ref=e1141]:
+                          - strong [ref=e1143]: 2 Variations
+                          - generic [ref=e1144]: "Platform columns: price · stock"
+                        - generic [ref=e1145]:
+                          - generic [ref=e1146]:
+                            - generic [ref=e1147]: Variant Details
+                            - generic [ref=e1148]: Stock
+                            - generic [ref=e1149]: Price
+                            - generic [ref=e1150]: Platform (Price · Stock)
+                            - generic [ref=e1151]: Linked
+                          - generic [ref=e1152]:
+                            - generic [ref=e1154]:
+                              - strong [ref=e1157]: Madu
+                              - generic [ref=e1159]: "SKU: FFGUM4248"
+                            - generic [ref=e1160]: "6"
+                            - generic [ref=e1161]: Rp 91.400
+                            - generic [ref=e1163]:
+                              - generic [ref=e1165]:
+                                - img "shopee" [ref=e1166]
+                                - text: Rp 89.200
+                                - generic [ref=e1167]: ·
+                                - generic [ref=e1168]: "6"
+                              - generic [ref=e1170]:
+                                - img "tiktok" [ref=e1171]
+                                - text: —
+                                - generic [ref=e1172]: ·
+                                - generic [ref=e1173]: —
+                              - generic [ref=e1175]:
+                                - img "lazada" [ref=e1176]
+                                - text: —
+                                - generic [ref=e1177]: ·
+                                - generic [ref=e1178]: —
+                            - generic [ref=e1182]: Shopee
+                          - generic [ref=e1183]:
+                            - generic [ref=e1185]:
+                              - strong [ref=e1188]: Vanila
+                              - generic [ref=e1190]: "SKU: FFGUM3934"
+                            - generic [ref=e1191]: "6"
+                            - generic [ref=e1192]: Rp 91.400
+                            - generic [ref=e1194]:
+                              - generic [ref=e1196]:
+                                - img "shopee" [ref=e1197]
+                                - text: Rp 89.200
+                                - generic [ref=e1198]: ·
+                                - generic [ref=e1199]: "6"
+                              - generic [ref=e1201]:
+                                - img "tiktok" [ref=e1202]
+                                - text: —
+                                - generic [ref=e1203]: ·
+                                - generic [ref=e1204]: —
+                              - generic [ref=e1206]:
+                                - img "lazada" [ref=e1207]
+                                - text: —
+                                - generic [ref=e1208]: ·
+                                - generic [ref=e1209]: —
+                            - generic [ref=e1213]: Shopee
+                  - 'row "Expand row Susu Bubuk Frisian Flag Primagro 360gr Umur 3+ Tahun Susu Bubuk Frisian Flag Primagro 360gr Umur 3+ Tahun SKU: FFGUM4250 Variant: Madu, Vanila Rp 49.900 16 Shopee platform indicator TikTok platform indicator Lazada platform indicator Actions down" [ref=e833]':
+                    - cell "Expand row" [ref=e359]:
+                      - button "Expand row" [ref=e360] [cursor=pointer]
+                    - cell [ref=e361]:
+                      - checkbox [ref=e364] [cursor=pointer]
+                    - cell "Susu Bubuk Frisian Flag Primagro 360gr Umur 3+ Tahun" [ref=e366]:
+                      - img "Susu Bubuk Frisian Flag Primagro 360gr Umur 3+ Tahun" [ref=e368]
+                    - 'cell "Susu Bubuk Frisian Flag Primagro 360gr Umur 3+ Tahun SKU: FFGUM4250 Variant: Madu, Vanila" [ref=e369]':
+                      - generic [ref=e370]:
+                        - strong [ref=e373]: Susu Bubuk Frisian Flag Primagro 360gr Umur 3+ Tahun
+                        - generic [ref=e375]: "SKU: FFGUM4250"
+                        - generic [ref=e377]: "Variant: Madu, Vanila"
+                    - cell "Rp 49.900" [ref=e378]
+                    - cell "16" [ref=e834]
+                    - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e835]:
+                      - generic [ref=e836]:
+                        - button "Shopee platform indicator" [disabled] [ref=e969]:
+                          - img "Shopee"
+                        - button "TikTok platform indicator" [disabled] [ref=e843]:
+                          - img "TikTok"
+                        - button "Lazada platform indicator" [disabled] [ref=e847]:
+                          - img "Lazada"
+                    - cell "Actions down" [ref=e394]:
+                      - button "Actions down" [ref=e395] [cursor=pointer]:
+                        - generic [ref=e396]: Actions
+                        - img "down" [ref=e397]:
+                          - img [ref=e398]
+                  - 'row "Expand row Susu Bubuk Frisian Flag Primagro 360gr Umur 1+ Tahun Susu Bubuk Frisian Flag Primagro 360gr Umur 1+ Tahun SKU: FFGUM2909 Variant: Vanila, Coklat +1 Rp 52.400 24 Shopee platform indicator TikTok platform indicator Lazada platform indicator Actions down" [ref=e848]':
+                    - cell "Expand row" [ref=e401]:
+                      - button "Expand row" [ref=e402] [cursor=pointer]
+                    - cell [ref=e403]:
+                      - checkbox [ref=e406] [cursor=pointer]
+                    - cell "Susu Bubuk Frisian Flag Primagro 360gr Umur 1+ Tahun" [ref=e408]:
+                      - img "Susu Bubuk Frisian Flag Primagro 360gr Umur 1+ Tahun" [ref=e410]
+                    - 'cell "Susu Bubuk Frisian Flag Primagro 360gr Umur 1+ Tahun SKU: FFGUM2909 Variant: Vanila, Coklat +1" [ref=e411]':
+                      - generic [ref=e412]:
+                        - strong [ref=e415]: Susu Bubuk Frisian Flag Primagro 360gr Umur 1+ Tahun
+                        - generic [ref=e417]: "SKU: FFGUM2909"
+                        - generic [ref=e419]: "Variant: Vanila, Coklat +1"
+                    - cell "Rp 52.400" [ref=e420]
+                    - cell "24" [ref=e849]
+                    - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e850]:
+                      - generic [ref=e851]:
+                        - button "Shopee platform indicator" [disabled] [ref=e970]:
+                          - img "Shopee"
+                        - button "TikTok platform indicator" [disabled] [ref=e858]:
+                          - img "TikTok"
+                        - button "Lazada platform indicator" [disabled] [ref=e862]:
+                          - img "Lazada"
+                    - cell "Actions down" [ref=e436]:
+                      - button "Actions down" [ref=e437] [cursor=pointer]:
+                        - generic [ref=e438]: Actions
+                        - img "down" [ref=e439]:
+                          - img [ref=e440]
+                  - 'row "Royco Bumbu Pelezat Rasa Ayam 1kg Bawang Daging Royco Bumbu Pelezat Rasa Ayam 1kg Bawang Daging SKU: UFROY6744 Rp 47.900 0 Shopee platform indicator TikTok platform indicator Lazada platform indicator Actions down" [ref=e863]':
+                    - cell [ref=e443]
+                    - cell [ref=e444]:
+                      - checkbox [ref=e447] [cursor=pointer]
+                    - cell "Royco Bumbu Pelezat Rasa Ayam 1kg Bawang Daging" [ref=e449]:
+                      - img "Royco Bumbu Pelezat Rasa Ayam 1kg Bawang Daging" [ref=e451]
+                    - 'cell "Royco Bumbu Pelezat Rasa Ayam 1kg Bawang Daging SKU: UFROY6744" [ref=e452]':
+                      - generic [ref=e453]:
+                        - strong [ref=e456]: Royco Bumbu Pelezat Rasa Ayam 1kg Bawang Daging
+                        - generic [ref=e458]: "SKU: UFROY6744"
+                    - cell "Rp 47.900" [ref=e459]
+                    - cell "0" [ref=e864]
+                    - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e865]:
+                      - generic [ref=e866]:
+                        - button "Shopee platform indicator" [disabled] [ref=e870]:
+                          - img "Shopee"
+                        - button "TikTok platform indicator" [disabled] [ref=e971]:
+                          - img "TikTok"
+                        - button "Lazada platform indicator" [disabled] [ref=e877]:
+                          - img "Lazada"
+                    - cell "Actions down" [ref=e475]:
+                      - button "Actions down" [ref=e476] [cursor=pointer]:
+                        - generic [ref=e477]: Actions
+                        - img "down" [ref=e478]:
+                          - img [ref=e479]
+                  - 'row "Royco Bumbu Penyedap Rasa Sapi Pouch 1kg Bawang Daging Royco Bumbu Penyedap Rasa Sapi Pouch 1kg Bawang Daging SKU: UFROY6742 Rp 47.900 0 Shopee platform indicator TikTok platform indicator Lazada platform indicator Actions down" [ref=e878]':
+                    - cell [ref=e482]
+                    - cell [ref=e483]:
+                      - checkbox [ref=e486] [cursor=pointer]
+                    - cell "Royco Bumbu Penyedap Rasa Sapi Pouch 1kg Bawang Daging" [ref=e488]:
+                      - img "Royco Bumbu Penyedap Rasa Sapi Pouch 1kg Bawang Daging" [ref=e490]
+                    - 'cell "Royco Bumbu Penyedap Rasa Sapi Pouch 1kg Bawang Daging SKU: UFROY6742" [ref=e491]':
+                      - generic [ref=e492]:
+                        - strong [ref=e495]: Royco Bumbu Penyedap Rasa Sapi Pouch 1kg Bawang Daging
+                        - generic [ref=e497]: "SKU: UFROY6742"
+                    - cell "Rp 47.900" [ref=e498]
+                    - cell "0" [ref=e879]
+                    - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e880]:
+                      - generic [ref=e881]:
+                        - button "Shopee platform indicator" [disabled] [ref=e885]:
+                          - img "Shopee"
+                        - button "TikTok platform indicator" [disabled] [ref=e972]:
+                          - img "TikTok"
+                        - button "Lazada platform indicator" [disabled] [ref=e892]:
+                          - img "Lazada"
+                    - cell "Actions down" [ref=e514]:
+                      - button "Actions down" [ref=e515] [cursor=pointer]:
+                        - generic [ref=e516]: Actions
+                        - img "down" [ref=e517]:
+                          - img [ref=e518]
+                  - 'row "Royco penyedap rasa sapi 460gr Bahan Bawang Royco penyedap rasa sapi 460gr Bahan Bawang SKU: UFROY0796 Rp 23.600 0 Shopee platform indicator TikTok platform indicator Lazada platform indicator Actions down" [ref=e893]':
+                    - cell [ref=e521]
+                    - cell [ref=e522]:
+                      - checkbox [ref=e525] [cursor=pointer]
+                    - cell "Royco penyedap rasa sapi 460gr Bahan Bawang" [ref=e527]:
+                      - img "Royco penyedap rasa sapi 460gr Bahan Bawang" [ref=e529]
+                    - 'cell "Royco penyedap rasa sapi 460gr Bahan Bawang SKU: UFROY0796" [ref=e530]':
+                      - generic [ref=e531]:
+                        - strong [ref=e534]: Royco penyedap rasa sapi 460gr Bahan Bawang
+                        - generic [ref=e536]: "SKU: UFROY0796"
+                    - cell "Rp 23.600" [ref=e537]
+                    - cell "0" [ref=e894]
+                    - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e895]:
+                      - generic [ref=e896]:
+                        - button "Shopee platform indicator" [disabled] [ref=e900]:
+                          - img "Shopee"
+                        - button "TikTok platform indicator" [disabled] [ref=e973]:
+                          - img "TikTok"
+                        - button "Lazada platform indicator" [disabled] [ref=e907]:
+                          - img "Lazada"
+                    - cell "Actions down" [ref=e553]:
+                      - button "Actions down" [ref=e554] [cursor=pointer]:
+                        - generic [ref=e555]: Actions
+                        - img "down" [ref=e556]:
+                          - img [ref=e557]
+                  - 'row "Expand row royco penyedap rasa ayam 460 gr Bahan Bawang royco penyedap rasa ayam 460 gr Bahan Bawang SKU: tiktok_1729650314608871711_1731451834528400671 Variant: Kemasan:sapi, Kemasan:ayam Rp 22.400 0 Shopee platform indicator TikTok platform indicator Lazada platform indicator Actions down" [ref=e908]':
+                    - cell "Expand row" [ref=e560]:
+                      - button "Expand row" [ref=e561] [cursor=pointer]
+                    - cell [ref=e562]:
+                      - checkbox [ref=e565] [cursor=pointer]
+                    - cell "royco penyedap rasa ayam 460 gr Bahan Bawang" [ref=e567]:
+                      - img "royco penyedap rasa ayam 460 gr Bahan Bawang" [ref=e569]
+                    - 'cell "royco penyedap rasa ayam 460 gr Bahan Bawang SKU: tiktok_1729650314608871711_1731451834528400671 Variant: Kemasan:sapi, Kemasan:ayam" [ref=e570]':
+                      - generic [ref=e571]:
+                        - strong [ref=e574]: royco penyedap rasa ayam 460 gr Bahan Bawang
+                        - generic [ref=e576]: "SKU: tiktok_1729650314608871711_1731451834528400671"
+                        - generic [ref=e578]: "Variant: Kemasan:sapi, Kemasan:ayam"
+                    - cell "Rp 22.400" [ref=e579]
+                    - cell "0" [ref=e909]
+                    - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e910]:
+                      - generic [ref=e911]:
+                        - button "Shopee platform indicator" [disabled] [ref=e915]:
+                          - img "Shopee"
+                        - button "TikTok platform indicator" [disabled] [ref=e974]:
+                          - img "TikTok"
+                        - button "Lazada platform indicator" [disabled] [ref=e922]:
+                          - img "Lazada"
+                    - cell "Actions down" [ref=e595]:
+                      - button "Actions down" [ref=e596] [cursor=pointer]:
+                        - generic [ref=e597]: Actions
+                        - img "down" [ref=e598]:
+                          - img [ref=e599]
+                  - 'row "Knorr Penyedap Rasa Chicken Powder Ayam Masakan 1 KG Knorr Penyedap Rasa Chicken Powder Ayam Masakan 1 KG SKU: tiktok_1729650321513744671_1729650321513810207 Rp 105.300 0 Shopee platform indicator TikTok platform indicator Lazada platform indicator Actions down" [ref=e923]':
+                    - cell [ref=e602]
+                    - cell [ref=e603]:
+                      - checkbox [ref=e606] [cursor=pointer]
+                    - cell "Knorr Penyedap Rasa Chicken Powder Ayam Masakan 1 KG" [ref=e608]:
+                      - img "Knorr Penyedap Rasa Chicken Powder Ayam Masakan 1 KG" [ref=e610]
+                    - 'cell "Knorr Penyedap Rasa Chicken Powder Ayam Masakan 1 KG SKU: tiktok_1729650321513744671_1729650321513810207" [ref=e611]':
+                      - generic [ref=e612]:
+                        - strong [ref=e615]: Knorr Penyedap Rasa Chicken Powder Ayam Masakan 1 KG
+                        - generic [ref=e617]: "SKU: tiktok_1729650321513744671_1729650321513810207"
+                    - cell "Rp 105.300" [ref=e618]
+                    - cell "0" [ref=e924]
+                    - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e925]:
+                      - generic [ref=e926]:
+                        - button "Shopee platform indicator" [disabled] [ref=e930]:
+                          - img "Shopee"
+                        - button "TikTok platform indicator" [disabled] [ref=e975]:
+                          - img "TikTok"
+                        - button "Lazada platform indicator" [disabled] [ref=e937]:
+                          - img "Lazada"
+                    - cell "Actions down" [ref=e634]:
+                      - button "Actions down" [ref=e635] [cursor=pointer]:
+                        - generic [ref=e636]: Actions
+                        - img "down" [ref=e637]:
+                          - img [ref=e638]
+                  - 'row "Knorr Saus Barbaque Demiglace 1kg Black Hitam Knorr Saus Barbaque Demiglace 1kg Black Hitam SKU: SausDemiGlaceKnorr1Kg Rp 171.500 0 Shopee platform indicator TikTok platform indicator Lazada platform indicator Actions down" [ref=e938]':
+                    - cell [ref=e641]
+                    - cell [ref=e642]:
+                      - checkbox [ref=e645] [cursor=pointer]
+                    - cell "Knorr Saus Barbaque Demiglace 1kg Black Hitam" [ref=e647]:
+                      - img "Knorr Saus Barbaque Demiglace 1kg Black Hitam" [ref=e649]
+                    - 'cell "Knorr Saus Barbaque Demiglace 1kg Black Hitam SKU: SausDemiGlaceKnorr1Kg" [ref=e650]':
+                      - generic [ref=e651]:
+                        - strong [ref=e654]: Knorr Saus Barbaque Demiglace 1kg Black Hitam
+                        - generic [ref=e656]: "SKU: SausDemiGlaceKnorr1Kg"
+                    - cell "Rp 171.500" [ref=e657]
+                    - cell "0" [ref=e939]
+                    - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e940]:
+                      - generic [ref=e941]:
+                        - button "Shopee platform indicator" [disabled] [ref=e945]:
+                          - img "Shopee"
+                        - button "TikTok platform indicator" [disabled] [ref=e976]:
+                          - img "TikTok"
+                        - button "Lazada platform indicator" [disabled] [ref=e952]:
+                          - img "Lazada"
+                    - cell "Actions down" [ref=e673]:
+                      - button "Actions down" [ref=e674] [cursor=pointer]:
+                        - generic [ref=e675]: Actions
+                        - img "down" [ref=e676]:
+                          - img [ref=e677]
+                  - 'row "Knorr Bumbu Jeruk Nipis Lime Powder 400 gr Masakan Knorr Bumbu Jeruk Nipis Lime Powder 400 gr Masakan SKU: UFKNO0866 Rp 83.500 0 Shopee platform indicator TikTok platform indicator Lazada platform indicator Actions down" [ref=e953]':
+                    - cell [ref=e680]
+                    - cell [ref=e681]:
+                      - checkbox [ref=e684] [cursor=pointer]
+                    - cell "Knorr Bumbu Jeruk Nipis Lime Powder 400 gr Masakan" [ref=e686]:
+                      - img "Knorr Bumbu Jeruk Nipis Lime Powder 400 gr Masakan" [ref=e688]
+                    - 'cell "Knorr Bumbu Jeruk Nipis Lime Powder 400 gr Masakan SKU: UFKNO0866" [ref=e689]':
+                      - generic [ref=e690]:
+                        - strong [ref=e693]: Knorr Bumbu Jeruk Nipis Lime Powder 400 gr Masakan
+                        - generic [ref=e695]: "SKU: UFKNO0866"
+                    - cell "Rp 83.500" [ref=e696]
+                    - cell "0" [ref=e954]
+                    - cell "Shopee platform indicator TikTok platform indicator Lazada platform indicator" [ref=e955]:
+                      - generic [ref=e956]:
+                        - button "Shopee platform indicator" [disabled] [ref=e960]:
+                          - img "Shopee"
+                        - button "TikTok platform indicator" [disabled] [ref=e977]:
+                          - img "TikTok"
+                        - button "Lazada platform indicator" [disabled] [ref=e967]:
+                          - img "Lazada"
+                    - cell "Actions down" [ref=e712]:
+                      - button "Actions down" [ref=e713] [cursor=pointer]:
+                        - generic [ref=e714]: Actions
+                        - img "down" [ref=e715]:
+                          - img [ref=e716]
+              - list [ref=e718]:
+                - listitem [ref=e719]: Total 137 products
+                - listitem "Previous Page" [ref=e720]:
+                  - button "left" [disabled] [ref=e721]:
+                    - img "left" [ref=e722]:
+                      - img [ref=e723]
+                - listitem "1" [ref=e725] [cursor=pointer]:
+                  - generic [ref=e726]: "1"
+                - listitem "2" [ref=e727] [cursor=pointer]:
+                  - generic [ref=e728]: "2"
+                - listitem "3" [ref=e729] [cursor=pointer]:
+                  - generic [ref=e730]: "3"
+                - listitem "4" [ref=e731] [cursor=pointer]:
+                  - generic [ref=e732]: "4"
+                - listitem "5" [ref=e733] [cursor=pointer]:
+                  - generic [ref=e734]: "5"
+                - listitem "Next 5 Pages" [ref=e735] [cursor=pointer]:
+                  - generic [ref=e737]:
+                    - img "double-right" [ref=e738]:
+                      - img [ref=e739]
+                    - generic [ref=e741]: •••
+                - listitem "14" [ref=e742] [cursor=pointer]:
+                  - generic [ref=e743]: "14"
+                - listitem "Next Page" [ref=e744] [cursor=pointer]:
+                  - button "right" [ref=e745]:
+                    - img "right" [ref=e746]:
+                      - img [ref=e747]
+                - listitem [ref=e749]:
+                  - generic "Page Size" [ref=e750] [cursor=pointer]:
+                    - generic [ref=e752]:
+                      - combobox "Page Size" [ref=e754]
+                      - generic "10 / page" [ref=e755]
+                    - generic:
+                      - img:
+                        - img
+        - toolbar "Batch actions" [ref=e978]:
+          - strong [ref=e980]: 1 selected
+          - separator [ref=e981]
+          - generic [ref=e982]:
+            - button "Sync Stock" [ref=e985] [cursor=pointer]:
+              - img "sync" [ref=e987]:
+                - img [ref=e988]
+              - generic [ref=e990]: Sync Stock
+            - button "Sync Marketplace" [ref=e993] [cursor=pointer]:
+              - img "cloud-sync" [ref=e995]:
+                - img [ref=e996]
+              - generic [ref=e999]: Sync Marketplace
+            - button "Update Price" [ref=e1002] [cursor=pointer]:
+              - img "dollar" [ref=e1004]:
+                - img [ref=e1005]
+              - generic [ref=e1007]: Update Price
+            - button "Bulk Pricing" [ref=e1010] [cursor=pointer]:
+              - img "shop" [ref=e1012]:
+                - img [ref=e1013]
+              - generic [ref=e1015]: Bulk Pricing
+            - button "Clone" [ref=e1018] [cursor=pointer]:
+              - img "copy" [ref=e1020]:
+                - img [ref=e1021]
+              - generic [ref=e1023]: Clone
+            - button "Delete" [ref=e1026] [cursor=pointer]:
+              - img "delete" [ref=e1028]:
+                - img [ref=e1029]
+              - generic [ref=e1031]: Delete
+          - button "Clear selection" [ref=e1032] [cursor=pointer]:
+            - img "close" [ref=e1034]:
+              - img [ref=e1035]
+            - generic [ref=e1037]: Clear
