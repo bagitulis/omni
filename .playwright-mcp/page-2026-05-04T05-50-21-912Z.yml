@@ -1,0 +1,119 @@
+- generic [ref=e1]:
+  - generic [ref=e60]:
+    - link "Skip to main content" [ref=e61] [cursor=pointer]:
+      - /url: "#main-content"
+    - complementary [ref=e62]:
+      - generic [ref=e63]:
+        - generic [ref=e64]: OMNI
+        - menu [ref=e65]:
+          - menuitem "dashboard Dashboard" [ref=e66] [cursor=pointer]:
+            - img "dashboard" [ref=e67]:
+              - img [ref=e68]
+            - generic [ref=e70]: Dashboard
+          - menuitem "shopping Orders" [ref=e71] [cursor=pointer]:
+            - img "shopping" [ref=e72]:
+              - img [ref=e73]
+            - generic [ref=e75]: Orders
+          - menuitem "skin Products" [ref=e76] [cursor=pointer]:
+            - img "skin" [ref=e77]:
+              - img [ref=e78]
+            - generic [ref=e80]: Products
+          - menuitem "inbox Inventory" [ref=e81] [cursor=pointer]:
+            - img "inbox" [ref=e82]:
+              - img [ref=e83]
+            - generic [ref=e85]: Inventory
+          - menuitem "node-index Route Mapping" [ref=e86] [cursor=pointer]:
+            - img "node-index" [ref=e87]:
+              - img [ref=e88]
+            - generic [ref=e90]: Route Mapping
+          - menuitem "file-text Report" [expanded] [ref=e91] [cursor=pointer]:
+            - img "file-text" [ref=e92]:
+              - img [ref=e93]
+            - generic [ref=e95]: Report
+          - menu [ref=e96]:
+            - menuitem "Shopee Report" [ref=e97] [cursor=pointer]:
+              - generic [ref=e98]: Shopee Report
+            - menuitem "TikTok Report" [ref=e99] [cursor=pointer]:
+              - generic [ref=e100]: TikTok Report
+          - menuitem "bar-chart Analytics" [ref=e101] [cursor=pointer]:
+            - img "bar-chart" [ref=e102]:
+              - img [ref=e103]
+            - generic [ref=e105]: Analytics
+          - menuitem "code Script Monitor" [ref=e106] [cursor=pointer]:
+            - img "code" [ref=e107]:
+              - img [ref=e108]
+            - generic [ref=e110]: Script Monitor
+          - menuitem "setting Settings" [ref=e111] [cursor=pointer]:
+            - img "setting" [ref=e112]:
+              - img [ref=e113]
+            - generic [ref=e115]: Settings
+    - generic [ref=e116]:
+      - banner [ref=e117]:
+        - button "Collapse sidebar" [ref=e119] [cursor=pointer]:
+          - img "menu-fold" [ref=e121]:
+            - img [ref=e122]
+        - generic [ref=e124]:
+          - button "Switch to dark mode" [ref=e125] [cursor=pointer]:
+            - img "moon" [ref=e127]:
+              - img [ref=e128]
+          - button "key" [ref=e131] [cursor=pointer]:
+            - img "key" [ref=e133]:
+              - img [ref=e134]
+          - generic [ref=e136]:
+            - button "Notifications (2 unread)" [ref=e137] [cursor=pointer]:
+              - img "bell" [ref=e139]:
+                - img [ref=e140]
+            - superscript [ref=e142]:
+              - generic [ref=e144]: "2"
+          - generic [ref=e145] [cursor=pointer]:
+            - img "user" [ref=e148]:
+              - img [ref=e149]
+            - generic [ref=e152]: yumna
+      - main [ref=e153]:
+        - generic [ref=e154]:
+          - generic [ref=e155]:
+            - generic [ref=e156]:
+              - heading "Shopee Report" [level=2] [ref=e157]:
+                - generic [ref=e158]: Shopee Report
+              - text: Price & Shipping Fee Analysis
+            - button "setting Settings" [ref=e159] [cursor=pointer]:
+              - img "setting" [ref=e161]:
+                - img [ref=e162]
+              - generic [ref=e164]: Settings
+          - generic [ref=e165]:
+            - tablist [ref=e166]:
+              - generic [ref=e168]:
+                - tab "Price Analysis" [selected] [ref=e170] [cursor=pointer]
+                - tab "Shipping Fee" [ref=e172] [cursor=pointer]
+            - generic:
+              - generic:
+                - tabpanel "Price Analysis"
+          - generic [ref=e174]:
+            - generic [ref=e176]:
+              - generic [ref=e178] [cursor=pointer]:
+                - generic [ref=e180]:
+                  - combobox [ref=e182]
+                  - generic "April" [ref=e183]
+                - generic:
+                  - img:
+                    - img
+              - generic [ref=e185] [cursor=pointer]:
+                - generic [ref=e187]:
+                  - combobox [ref=e189]
+                  - generic "2026" [ref=e190]
+                - generic:
+                  - img:
+                    - img
+              - generic [ref=e192]: Not synced
+            - button "sync Sync Escrow" [active] [ref=e196] [cursor=pointer]:
+              - img "sync" [ref=e211]:
+                - img [ref=e212]
+              - generic [ref=e201]: Sync Escrow
+          - generic [ref=e215]:
+            - generic [ref=e217]: Ready
+            - progressbar [ref=e218]:
+              - generic "0%" [ref=e221]
+  - generic [ref=e223]:
+    - img "check-circle" [ref=e224]:
+      - img [ref=e225]
+    - generic [ref=e227]: Sync job started

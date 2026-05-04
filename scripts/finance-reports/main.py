@@ -82,13 +82,10 @@ def main():
     print("=" * 60)
     print()
     print("Sheets:")
-    print(f"  1. Ringkasan        - {s['order_count']} pesanan, Rp {s['total_escrow']:,.0f} dana cair")
-    print(f"  2. Daftar Pesanan   - Per order: dana cair + rincian biaya")
-    print(f"  3. Detail Produk    - {s['item_count']} items, {s['total_qty_sold']} pcs, Product ID + SKU")
-    print(f"  4. Ringkasan Produk - Total qty terjual per SKU")
-    print(f"  5. Rekap Potongan   - Komisi, service fee, ongkir, persentase")
-    print(f"  6. Analisis Margin  - Harga modal vs dana cair per pcs, UNTUNG/RUGI")
-    print(f"  7. Data Produk      - Referensi harga modal dari Sheet ALL PRODUCT")
+    print(f"  1. Ringkasan         - {s['order_count']} pesanan, Rp {s['total_escrow']:,.0f} dana cair")
+    print(f"  2. Daftar Transaksi  - Per order: subtotal produk, biaya admin/layanan/proses, dana cair")
+    print(f"  3. Analisis Margin   - Per SKU per tier qty: modal vs cair, % biaya, status")
+    print(f"  4. Data Modal        - Referensi harga modal dari Sheet ALL PRODUCT")
 
 
 if __name__ == "__main__":

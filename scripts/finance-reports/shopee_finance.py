@@ -157,7 +157,7 @@ class ShopeeFinanceFetcher:
         return rows
 
     def get_product_costs(self, skus):
-        """Read Google Sheets ALL PRODUCT -> {sku: {modal_per_pcs, ...}}."""
+        """Read Google Sheets ALL PRODUCT -> {sku: {modal_per_unit, ...}}."""
         print("\n[SHEETS] Reading harga modal...")
         try:
             from google.oauth2 import service_account
@@ -172,20 +172,39 @@ class ShopeeFinanceFetcher:
         svc = build("sheets", "v4", credentials=creds)
         data = svc.spreadsheets().values().get(spreadsheetId=SHEET_ALL_PRODUCT, range="'ALL PRODUCT'!A1:O1000").execute()
 
+        # Header: 0=Margin%, 1=Biaya%, 2=SKU, 3=Kode, 4=Brand, 5=Nama, 6=HargaMP,
+        #         7=Ukuran, 8=PkgLusin, 9=PkgPcs, 10=BeliExPPN, 11=BeliInPPN, 12=Margin, 13=HargaJual, 14=MPKarton
         costs = {}
         for row in data.get("values", [])[1:]:
             if len(row) < 14: continue
             sku = row[2]
             if sku not in skus: continue
             pcs = int(row[9]) if len(row) > 9 and row[9].isdigit() else 1
-            beli = _parse_rp(row[11]) if len(row) > 11 else 0
-            jual = _parse_rp(row[13]) if len(row) > 13 else 0
+            beli_karton = _parse_rp(row[11]) if len(row) > 11 else 0
+            jual_karton = _parse_rp(row[13]) if len(row) > 13 else 0  # beli + margin 3%
+            harga_mp = int(row[6]) if len(row) > 6 and row[6].isdigit() else 0  # harga marketplace per unit
+
+            # Modal per unit = harga jual (beli+3%) per karton / pcs per karton
+            # Tapi untuk perbandingan, pakai harga_mp sebagai referensi satuan jual
+            beli_per_unit = round(beli_karton / pcs) if pcs else 0
+            modal_per_unit = round(jual_karton / pcs) if pcs else 0
+
+            # Tentukan satuan jual dari nama barang
+            nama = row[5] if len(row) > 5 else ""
+            satuan = "pcs"
+            if "renceng" in nama.lower() or "sachet" in nama.lower():
+                satuan = "renceng"
+            elif "renceng" in str(row[7]).lower():
+                satuan = "renceng"
+
             costs[sku] = {
-                "nama_sheet": row[5] if len(row) > 5 else "",
+                "nama_sheet": nama,
+                "satuan_jual": satuan,
                 "pcs_per_karton": pcs,
-                "beli_per_pcs": round(beli / pcs) if pcs else 0,
-                "modal_per_pcs": round(jual / pcs) if pcs else 0,
-                "beli_per_karton": beli, "modal_per_karton": jual,
+                "harga_mp": harga_mp,
+                "beli_per_karton": beli_karton,
+                "beli_per_unit": beli_per_unit,
+                "modal_per_unit": modal_per_unit,  # beli + 3%
             }
 
         nf = [s for s in skus if s and s not in costs]
@@ -201,19 +220,19 @@ class ShopeeFinanceFetcher:
         costs = self.get_product_costs(all_skus)
 
         te = sum(o["escrow_amount"] for o in orders)
+        total_subtotal = sum(i["original_price"] for i in items)  # subtotal produk
+
         summary = {"period": f"{month:02d}/{year}", "order_count": len(orders),
             "item_count": len(items), "total_qty_sold": sum(i["quantity"] for i in items),
-            "total_buyer_amount": sum(o["buyer_total_amount"] for o in orders),
+            "total_subtotal": total_subtotal,
             "total_escrow": te,
             "total_commission": sum(o["commission_fee"] for o in orders),
             "total_service_fee": sum(o["service_fee"] for o in orders),
-            "total_processing_fee": sum(o["seller_processing_fee"] for o in orders),
-            "total_shipping": sum(o["actual_shipping_fee"] for o in orders),
-            "total_shipping_rebate": sum(o["shopee_shipping_rebate"] for o in orders)}
+            "total_processing_fee": sum(o["seller_processing_fee"] for o in orders)}
 
         print(f"\n{'='*55}")
         print(f"  DANA CAIR SHOPEE - {month:02d}/{year}")
-        print(f"  {len(orders)} pesanan | {summary['total_qty_sold']} pcs | Rp {te:,.0f}")
+        print(f"  {len(orders)} pesanan | {summary['total_qty_sold']} unit | Rp {te:,.0f}")
         print(f"{'='*55}")
 
         return {"orders": orders, "items": items, "summary": summary,
