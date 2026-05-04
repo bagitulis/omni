@@ -5,24 +5,21 @@ OMNI Finance Report Generator - Shopee Dana Cair
 Generates detailed XLSX report of settled/disbursed funds from Shopee.
 
 Usage:
-    python main.py                    # Default: April 2026
+    python main.py                          # Default: April 2026
     python main.py --month 4 --year 2026
-    python main.py --month 3 --year 2026 --output custom_report.xlsx
+    python main.py --output custom.xlsx
 
-Output:
-    Multi-sheet XLSX with:
-    - Sheet 1: Ringkasan (Executive Summary)
-    - Sheet 2: Transaksi Dana Cair (All settled transactions)
-    - Sheet 3: Detail Escrow per Order (Fee breakdown per order)
-    - Sheet 4: Detail Produk per Item (Product ID, SKU, Qty, Prices)
-    - Sheet 5: Rekap Potongan (Fee/Deduction summary)
+Output (4 sheets):
+    1. Ringkasan       - Executive summary: totals, fee breakdown
+    2. Daftar Pesanan  - Per order: escrow, komisi, service fee, ongkir
+    3. Detail Produk   - Per item: product ID, SKU, qty, harga, diskon
+    4. Rekap Potongan  - Fee summary with percentages
 """
 
 import argparse
 import sys
 import os
 
-# Add script directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import DEFAULT_MONTH, DEFAULT_YEAR
@@ -32,33 +29,25 @@ from xlsx_exporter import XLSXExporter
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Generate Shopee Dana Cair (Settled Funds) Report"
-    )
+    parser = argparse.ArgumentParser(description="Generate Shopee Dana Cair Report")
     parser.add_argument("--month", type=int, default=DEFAULT_MONTH, help="Report month (1-12)")
     parser.add_argument("--year", type=int, default=DEFAULT_YEAR, help="Report year")
     parser.add_argument("--output", type=str, default=None, help="Custom output filename")
     parser.add_argument("--base-url", type=str, default=None, help="Override base URL")
     parser.add_argument("--username", type=str, default=None, help="Override username")
     parser.add_argument("--password", type=str, default=None, help="Override password")
-
     args = parser.parse_args()
 
-    # Validate
     if not 1 <= args.month <= 12:
         print("[ERROR] Month must be between 1 and 12")
         sys.exit(1)
-    if args.year < 2020:
-        print("[ERROR] Year must be 2020 or later")
-        sys.exit(1)
 
-    print("=" * 70)
+    print("=" * 60)
     print("  OMNI FINANCE REPORT GENERATOR")
     print("  Shopee - Dana Cair (Settled Funds)")
-    print("=" * 70)
-    print()
+    print("=" * 60)
 
-    # Initialize API client
+    # Init client
     kwargs = {}
     if args.base_url:
         kwargs["base_url"] = args.base_url
@@ -68,8 +57,6 @@ def main():
         kwargs["password"] = args.password
 
     client = OmniAPIClient(**kwargs)
-
-    # Login
     if not client.login():
         print("\n[FATAL] Cannot authenticate. Aborting.")
         sys.exit(1)
@@ -78,28 +65,30 @@ def main():
     fetcher = ShopeeFinanceFetcher(client)
     report_data = fetcher.get_full_settlement_report(args.month, args.year)
 
-    # Check if we got data
     if report_data["summary"]["order_count"] == 0:
-        print("\n[WARN] No orders found for this period.")
-        print("       Generating report with available data anyway...")
+        print("\n[WARN] No completed orders found for this period.")
+        print("       Try running 'Sync Escrow' from the web UI first.")
+        sys.exit(1)
 
     # Generate XLSX
     exporter = XLSXExporter()
     filepath = exporter.generate_full_report(report_data, args.month, args.year, args.output)
 
+    s = report_data["summary"]
     print()
-    print("=" * 70)
+    print("=" * 60)
     print(f"  REPORT GENERATED SUCCESSFULLY")
     print(f"  File: {filepath}")
-    print("=" * 70)
+    print("=" * 60)
     print()
-    print("Sheets included:")
-    print("  1. Ringkasan       - Summary pesanan, escrow, items terjual")
-    print("  2. Daftar Pesanan  - Semua order + escrow amount + produk + SKU")
-    print("  3. Detail Escrow   - Breakdown biaya per order")
-    print("  4. Detail Produk   - Product ID, SKU, qty, harga per item")
-    print("  4. Detail Produk      - Product ID, SKU, qty, harga per item")
-    print("  5. Rekap Potongan     - Total semua jenis potongan")
+    print("Sheets:")
+    print(f"  1. Ringkasan        - {s['order_count']} pesanan, Rp {s['total_escrow']:,.0f} dana cair")
+    print(f"  2. Daftar Pesanan   - Per order: dana cair + rincian biaya")
+    print(f"  3. Detail Produk    - {s['item_count']} items, {s['total_qty_sold']} pcs, Product ID + SKU")
+    print(f"  4. Ringkasan Produk - Total qty terjual per SKU")
+    print(f"  5. Rekap Potongan   - Komisi, service fee, ongkir, persentase")
+    print(f"  6. Analisis Margin  - Harga modal vs dana cair per pcs, UNTUNG/RUGI")
+    print(f"  7. Data Produk      - Referensi harga modal dari Sheet ALL PRODUCT")
 
 
 if __name__ == "__main__":

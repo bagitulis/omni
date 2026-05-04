@@ -1,396 +1,377 @@
 """
-XLSX Report Exporter.
-Generates professional multi-sheet Excel reports for company finance reporting.
+XLSX Report Exporter - Shopee Dana Cair.
+7 Sheets: Ringkasan, Daftar Pesanan, Detail Produk, Ringkasan Produk,
+          Rekap Potongan, Analisis Margin, Data Produk (Referensi)
+Sheets:
+1. Ringkasan           - Executive summary
+2. Daftar Pesanan      - Per order: escrow, fee breakdown
+3. Detail Produk       - Per item: product ID, SKU, qty, harga
+4. Ringkasan Produk    - Total qty terjual per produk/SKU
+5. Rekap Potongan      - Fee summary with percentages
 """
 
 import os
 import sys
+from collections import defaultdict
 from datetime import datetime
 from typing import Optional
 
 try:
     from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, numbers
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from openpyxl.utils import get_column_letter
 except ImportError:
-    print("Installing openpyxl...")
     import subprocess
     subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "-q"])
     from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, numbers
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from openpyxl.utils import get_column_letter
 
-from config import (
-    HEADER_FILL_COLOR,
-    HEADER_FONT_COLOR,
-    CURRENCY_FORMAT,
-    FEE_CATEGORIES,
-    OUTPUT_DIR,
-)
+from config import HEADER_FILL_COLOR, HEADER_FONT_COLOR, CURRENCY_FORMAT, OUTPUT_DIR
 
 
 class XLSXExporter:
-    """Generates professional XLSX finance reports."""
 
     def __init__(self):
         self.wb = Workbook()
-        # Remove default sheet
         self.wb.remove(self.wb.active)
+        self.hdr_font = Font(name="Calibri", size=10, bold=True, color=HEADER_FONT_COLOR)
+        self.hdr_fill = PatternFill(start_color=HEADER_FILL_COLOR, end_color=HEADER_FILL_COLOR, fill_type="solid")
+        self.hdr_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        self.bold = Font(name="Calibri", size=10, bold=True)
+        self.title = Font(name="Calibri", size=14, bold=True)
+        self.sub = Font(name="Calibri", size=10, italic=True, color="555555")
+        self.border = Border(left=Side("thin"), right=Side("thin"), top=Side("thin"), bottom=Side("thin"))
 
-        # Styles
-        self.header_font = Font(name="Calibri", size=11, bold=True, color=HEADER_FONT_COLOR)
-        self.header_fill = PatternFill(start_color=HEADER_FILL_COLOR, end_color=HEADER_FILL_COLOR, fill_type="solid")
-        self.header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        self.currency_font = Font(name="Calibri", size=10)
-        self.title_font = Font(name="Calibri", size=14, bold=True)
-        self.subtitle_font = Font(name="Calibri", size=11, italic=True)
-        self.thin_border = Border(
-            left=Side(style="thin"),
-            right=Side(style="thin"),
-            top=Side(style="thin"),
-            bottom=Side(style="thin"),
-        )
+    def _hdr(self, ws, row, count):
+        for c in range(1, count + 1):
+            cell = ws.cell(row=row, column=c)
+            cell.font, cell.fill, cell.alignment, cell.border = self.hdr_font, self.hdr_fill, self.hdr_align, self.border
 
-    def _style_header_row(self, ws, row: int, col_count: int):
-        """Apply header styling to a row."""
-        for col in range(1, col_count + 1):
-            cell = ws.cell(row=row, column=col)
-            cell.font = self.header_font
-            cell.fill = self.header_fill
-            cell.alignment = self.header_alignment
-            cell.border = self.thin_border
-
-    def _auto_width(self, ws):
-        """Auto-adjust column widths based on content."""
+    def _auto(self, ws):
         for col in ws.columns:
-            max_length = 0
-            col_letter = get_column_letter(col[0].column)
-            for cell in col:
-                if cell.value:
-                    cell_len = len(str(cell.value))
-                    max_length = max(max_length, min(cell_len, 50))
-            ws.column_dimensions[col_letter].width = max(max_length + 3, 12)
+            mx = max((min(len(str(c.value or "")), 40) for c in col), default=8)
+            ws.column_dimensions[get_column_letter(col[0].column)].width = mx + 3
 
-    def _apply_currency_format(self, ws, col: int, start_row: int, end_row: int):
-        """Apply currency format to a column range."""
-        for row in range(start_row, end_row + 1):
-            cell = ws.cell(row=row, column=col)
-            cell.number_format = CURRENCY_FORMAT
+    def _row(self, ws, r, data, money_cols=None):
+        for c, v in enumerate(data, 1):
+            cell = ws.cell(row=r, column=c, value=v)
+            cell.border = self.border
+            if money_cols and c in money_cols:
+                cell.number_format = CURRENCY_FORMAT
 
-    def create_summary_sheet(self, summary: dict, month: int, year: int):
-        """Sheet 1: Executive Summary."""
+    # -- Sheet 1: Ringkasan --
+
+    def _sheet_summary(self, s, month, year):
         ws = self.wb.create_sheet("Ringkasan")
+        ws.cell(row=1, column=1, value="LAPORAN DANA CAIR - SHOPEE").font = self.title
+        ws.merge_cells("A1:C1")
+        ws.cell(row=2, column=1, value=f"Periode: {_bulan(month)} {year}").font = self.sub
+        ws.cell(row=3, column=1, value=f"Dibuat: {datetime.now().strftime('%d/%m/%Y %H:%M')}").font = self.sub
 
-        # Title
-        ws.cell(row=1, column=1, value="LAPORAN KEUANGAN - SHOPEE")
-        ws.cell(row=1, column=1).font = self.title_font
+        r = 5
+        for c, h in enumerate(["Keterangan", "Jumlah", "Nominal (Rp)"], 1):
+            ws.cell(row=r, column=c, value=h)
+        self._hdr(ws, r, 3)
+
+        rows = [
+            ("Pesanan Selesai", s["order_count"], ""),
+            ("Total Qty Terjual", f"{s['total_qty_sold']} pcs", ""),
+            ("", "", ""),
+            ("Dibayar Pembeli", "", s["total_buyer_amount"]),
+            ("(-) Komisi Platform", "", -s["total_commission"]),
+            ("(-) Biaya Layanan", "", -s["total_service_fee"]),
+            ("(-) Biaya Proses", "", -s["total_processing_fee"]),
+            ("Ongkir Aktual", "", s["total_shipping"]),
+            ("(+) Subsidi Ongkir", "", s["total_shipping_rebate"]),
+            ("", "", ""),
+            ("DANA CAIR (Escrow)", s["order_count"], s["total_escrow"]),
+        ]
+        for i, (desc, qty, nom) in enumerate(rows, 1):
+            rr = r + i
+            ws.cell(row=rr, column=1, value=desc)
+            ws.cell(row=rr, column=2, value=qty)
+            ws.cell(row=rr, column=3, value=nom)
+            if isinstance(nom, (int, float)) and nom != "":
+                ws.cell(row=rr, column=3).number_format = CURRENCY_FORMAT
+            for c in range(1, 4):
+                ws.cell(row=rr, column=c).border = self.border
+            if "DANA CAIR" in str(desc):
+                for c in range(1, 4):
+                    ws.cell(row=rr, column=c).font = self.bold
+        self._auto(ws)
+
+    # -- Sheet 2: Daftar Pesanan --
+
+    def _sheet_orders(self, orders):
+        ws = self.wb.create_sheet("Daftar Pesanan")
+        hdrs = ["No", "Order SN", "Tanggal", "Buyer",
+                "Bayar Pembeli (Rp)", "Dana Cair (Rp)",
+                "Komisi (Rp)", "Service Fee (Rp)", "Biaya Proses (Rp)",
+                "Ongkir (Rp)", "Subsidi Ongkir (Rp)"]
+        for c, h in enumerate(hdrs, 1):
+            ws.cell(row=1, column=c, value=h)
+        self._hdr(ws, 1, len(hdrs))
+        money = {5, 6, 7, 8, 9, 10, 11}
+
+        for i, o in enumerate(orders, 1):
+            self._row(ws, i + 1, [
+                i, o["order_sn"], o["order_date"], o["buyer_username"],
+                o["buyer_total_amount"], o["escrow_amount"],
+                o["commission_fee"], o["service_fee"], o["seller_processing_fee"],
+                o["actual_shipping_fee"], o["shopee_shipping_rebate"],
+            ], money)
+
+        if orders:
+            tr = len(orders) + 2
+            ws.cell(row=tr, column=3, value="TOTAL").font = self.bold
+            for ci, k in [(5,"buyer_total_amount"),(6,"escrow_amount"),(7,"commission_fee"),
+                          (8,"service_fee"),(9,"seller_processing_fee"),(10,"actual_shipping_fee"),
+                          (11,"shopee_shipping_rebate")]:
+                c = ws.cell(row=tr, column=ci, value=sum(o[k] for o in orders))
+                c.number_format = CURRENCY_FORMAT
+                c.font = self.bold
+        self._auto(ws)
+
+    # -- Sheet 3: Detail Produk --
+
+    def _sheet_items(self, items):
+        ws = self.wb.create_sheet("Detail Produk")
+        hdrs = ["No", "Order SN", "Product ID", "SKU",
+                "Nama Produk", "Varian", "Qty",
+                "Harga Asli (Rp)", "Harga Jual (Rp)", "Harga Diskon (Rp)",
+                "Diskon Seller (Rp)", "Diskon Shopee (Rp)"]
+        for c, h in enumerate(hdrs, 1):
+            ws.cell(row=1, column=c, value=h)
+        self._hdr(ws, 1, len(hdrs))
+        money = {8, 9, 10, 11, 12}
+
+        for i, it in enumerate(items, 1):
+            self._row(ws, i + 1, [
+                i, it["order_sn"], it["item_id"], it["model_sku"] or it["sku"],
+                it["item_name"], it["model_name"], it["quantity"],
+                it["original_price"], it["selling_price"], it["discounted_price"],
+                it["seller_discount"], it["shopee_discount"],
+            ], money)
+
+        if items:
+            tr = len(items) + 2
+            ws.cell(row=tr, column=6, value="TOTAL").font = self.bold
+            ws.cell(row=tr, column=7, value=sum(i["quantity"] for i in items)).font = self.bold
+            for ci, k in [(8,"original_price"),(10,"discounted_price")]:
+                c = ws.cell(row=tr, column=ci, value=sum(i[k] for i in items))
+                c.number_format = CURRENCY_FORMAT
+                c.font = self.bold
+        self._auto(ws)
+
+    # -- Sheet 4: Ringkasan Produk --
+
+    def _sheet_product_summary(self, items):
+        ws = self.wb.create_sheet("Ringkasan Produk")
+        ws.cell(row=1, column=1, value="RINGKASAN PENJUALAN PER PRODUK").font = self.title
+        ws.merge_cells("A1:F1")
+
+        hdrs = ["No", "Product ID", "SKU", "Nama Produk", "Varian",
+                "Total Qty", "Total Penjualan (Rp)", "Jumlah Transaksi"]
+        r = 3
+        for c, h in enumerate(hdrs, 1):
+            ws.cell(row=r, column=c, value=h)
+        self._hdr(ws, r, len(hdrs))
+
+        # Aggregate by SKU
+        agg = defaultdict(lambda: {
+            "item_id": "", "sku": "", "item_name": "", "model_name": "",
+            "qty": 0, "revenue": 0.0, "tx_count": 0,
+        })
+        for it in items:
+            key = it["model_sku"] or it["sku"] or it["item_id"]
+            rec = agg[key]
+            rec["item_id"] = it["item_id"]
+            rec["sku"] = it["model_sku"] or it["sku"]
+            rec["item_name"] = it["item_name"]
+            rec["model_name"] = it["model_name"]
+            rec["qty"] += it["quantity"]
+            rec["revenue"] += it["discounted_price"]
+            rec["tx_count"] += 1
+
+        sorted_products = sorted(agg.values(), key=lambda x: x["qty"], reverse=True)
+
+        for i, p in enumerate(sorted_products, 1):
+            self._row(ws, r + i, [
+                i, p["item_id"], p["sku"], p["item_name"], p["model_name"],
+                p["qty"], p["revenue"], p["tx_count"],
+            ], {7})
+
+        if sorted_products:
+            tr = r + len(sorted_products) + 1
+            ws.cell(row=tr, column=5, value="TOTAL").font = self.bold
+            ws.cell(row=tr, column=6, value=sum(p["qty"] for p in sorted_products)).font = self.bold
+            c = ws.cell(row=tr, column=7, value=sum(p["revenue"] for p in sorted_products))
+            c.number_format = CURRENCY_FORMAT
+            c.font = self.bold
+            ws.cell(row=tr, column=8, value=sum(p["tx_count"] for p in sorted_products)).font = self.bold
+        self._auto(ws)
+
+    # -- Sheet 5: Rekap Potongan --
+
+    def _sheet_deductions(self, s):
+        ws = self.wb.create_sheet("Rekap Potongan")
+        ws.cell(row=1, column=1, value="REKAP POTONGAN & BIAYA").font = self.title
         ws.merge_cells("A1:D1")
 
-        ws.cell(row=2, column=1, value=f"Periode: {_month_name(month)} {year}")
-        ws.cell(row=2, column=1).font = self.subtitle_font
+        r = 3
+        hdrs = ["Jenis Potongan", "Total (Rp)", "Rata-rata/Order (Rp)", "% dari Pembeli"]
+        for c, h in enumerate(hdrs, 1):
+            ws.cell(row=r, column=c, value=h)
+        self._hdr(ws, r, 4)
 
-        ws.cell(row=3, column=1, value=f"Generated: {datetime.now().strftime('%d %B %Y %H:%M WIB')}")
-        ws.cell(row=3, column=1).font = self.subtitle_font
+        buyer = s["total_buyer_amount"] or 1
+        cnt = s["order_count"] or 1
 
-        # Summary table
-        row = 5
-        headers = ["Kategori", "Jumlah", "Total (Rp)", "Keterangan"]
-        for col, h in enumerate(headers, 1):
-            ws.cell(row=row, column=col, value=h)
-        self._style_header_row(ws, row, len(headers))
-
-        rows_data = [
-            ("Total Pesanan", summary.get("order_count", 0), summary.get("total_order_amount", 0), "Semua pesanan Shopee di periode ini"),
-            ("Escrow Amount (Dana Cair)", summary.get("escrow_count", 0), summary.get("total_escrow_amount", 0), "Jumlah bersih yang diterima seller"),
-            ("Total Item Terjual", summary.get("total_items_sold", 0), "-", "Total qty semua produk"),
-            ("Wallet Transactions", summary.get("wallet_tx_count", 0), "-", "Transaksi wallet (jika tersedia)"),
+        fees = [
+            ("Komisi Platform", s["total_commission"]),
+            ("Biaya Layanan", s["total_service_fee"]),
+            ("Biaya Proses Pesanan", s["total_processing_fee"]),
+            ("Ongkir Aktual", s["total_shipping"]),
+            ("(-) Subsidi Ongkir Shopee", -s["total_shipping_rebate"]),
         ]
+        for i, (label, amt) in enumerate(fees, 1):
+            rr = r + i
+            ws.cell(row=rr, column=1, value=label).border = self.border
+            c = ws.cell(row=rr, column=2, value=amt)
+            c.number_format = CURRENCY_FORMAT
+            c.border = self.border
+            c = ws.cell(row=rr, column=3, value=round(amt / cnt))
+            c.number_format = CURRENCY_FORMAT
+            c.border = self.border
+            ws.cell(row=rr, column=4, value=f"{(amt/buyer)*100:.1f}%").border = self.border
 
-        for i, (cat, count, total, note) in enumerate(rows_data, 1):
-            r = row + i
-            ws.cell(row=r, column=1, value=cat)
-            ws.cell(row=r, column=2, value=count)
-            ws.cell(row=r, column=3, value=total)
-            if isinstance(total, (int, float)):
-                ws.cell(row=r, column=3).number_format = CURRENCY_FORMAT
-            ws.cell(row=r, column=4, value=note)
+        total_fee = s["total_commission"] + s["total_service_fee"] + s["total_processing_fee"]
+        net_ship = s["total_shipping"] - s["total_shipping_rebate"]
 
-            if "Escrow" in cat:
-                for col in range(1, 5):
-                    ws.cell(row=r, column=col).font = Font(bold=True, size=11)
+        tr = r + len(fees) + 2
+        ws.cell(row=tr, column=1, value="Total Potongan (excl ongkir)").font = self.bold
+        c = ws.cell(row=tr, column=2, value=total_fee)
+        c.number_format = CURRENCY_FORMAT
+        c.font = self.bold
+        ws.cell(row=tr, column=4, value=f"{(total_fee/buyer)*100:.1f}%").font = self.bold
 
-        self._auto_width(ws)
+        tr += 1
+        ws.cell(row=tr, column=1, value="Ongkir Netto (Aktual - Subsidi)")
+        ws.cell(row=tr, column=2, value=net_ship).number_format = CURRENCY_FORMAT
 
-    def create_transactions_sheet(self, orders: list[dict], escrow_details: list[dict]):
-        """Sheet 2: Orders with Escrow Overview."""
-        ws = self.wb.create_sheet("Daftar Pesanan")
+        tr += 2
+        ws.cell(row=tr, column=1, value="Dana Cair = Bayar Pembeli - Potongan - Ongkir Netto").font = self.bold
+        tr += 1
+        ws.cell(row=tr, column=1, value=f"Rp {s['total_escrow']:,.0f} = Rp {buyer:,.0f} - Rp {total_fee:,.0f} - Rp {net_ship:,.0f}")
+        self._auto(ws)
 
-        headers = [
-            "No", "Order SN", "Status", "Buyer",
-            "Total Amount (Rp)", "Escrow Amount (Rp)",
-            "Produk", "SKU", "Qty", "Kurir", "Payment"
-        ]
+    # -- Sheet 6: Analisis Margin --
 
-        for col, h in enumerate(headers, 1):
-            ws.cell(row=1, column=col, value=h)
-        self._style_header_row(ws, 1, len(headers))
+    def _sheet_margin(self, margin_rows, costs):
+        ws = self.wb.create_sheet("Analisis Margin")
+        ws.cell(row=1, column=1, value="ANALISIS MARGIN PER PRODUK").font = self.title
+        ws.merge_cells("A1:N1")
+        ws.cell(row=2, column=1, value="Alur: Harga Beli/pcs + Margin 3% = Harga Modal/pcs. Lalu dibandingkan dengan Dana Cair/pcs dari Shopee.").font = self.sub
+        ws.cell(row=3, column=1, value="Biaya Proses Rp 1.250 per order (flat), dibagi rata ke qty. Makin banyak qty per order, makin kecil biaya proses/pcs.").font = self.sub
 
-        for i, (order, escrow) in enumerate(zip(orders, escrow_details), 1):
-            row = i + 1
-            ws.cell(row=row, column=1, value=i)
-            ws.cell(row=row, column=2, value=order.get("order_sn", ""))
-            ws.cell(row=row, column=3, value=order.get("order_status", ""))
-            ws.cell(row=row, column=4, value=escrow.get("buyer_username", order.get("buyer_username", "")))
-            ws.cell(row=row, column=5, value=order.get("total_amount", 0))
-            ws.cell(row=row, column=5).number_format = CURRENCY_FORMAT
-            ws.cell(row=row, column=6, value=escrow.get("total_amount", 0))
-            ws.cell(row=row, column=6).number_format = CURRENCY_FORMAT
-            # First item info
-            items = escrow.get("items", [])
-            if items:
-                ws.cell(row=row, column=7, value=items[0].get("item_name", ""))
-                ws.cell(row=row, column=8, value=items[0].get("sku", ""))
-                ws.cell(row=row, column=9, value=sum(it.get("quantity", 0) for it in items))
-            ws.cell(row=row, column=10, value=order.get("shipping_carrier", ""))
-            ws.cell(row=row, column=11, value=order.get("payment_method", ""))
+        hdrs = ["No", "SKU", "Nama Produk", "Varian", "Tier Qty",
+                "Jml Order", "Total Qty",
+                "Harga Listing/pcs", "Harga Beli/pcs", "Harga Modal/pcs (Beli+3%)",
+                "Dana Cair/pcs", "Selisih vs Modal/pcs", "Status", "Keterangan Biaya"]
+        r = 5
+        for c, h in enumerate(hdrs, 1):
+            ws.cell(row=r, column=c, value=h)
+        self._hdr(ws, r, len(hdrs))
+        money = {8, 9, 10, 11, 12}
 
-            for col in range(1, len(headers) + 1):
-                ws.cell(row=row, column=col).border = self.thin_border
+        red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
+        red_font = Font(name="Calibri", size=10, bold=True, color="9C0006")
+        green_font = Font(name="Calibri", size=10, color="006100")
 
-        # Total row
-        if orders:
-            total_row = len(orders) + 2
-            ws.cell(row=total_row, column=4, value="TOTAL:")
-            ws.cell(row=total_row, column=4).font = Font(bold=True)
-            ws.cell(row=total_row, column=5, value=sum(o.get("total_amount", 0) for o in orders))
-            ws.cell(row=total_row, column=5).number_format = CURRENCY_FORMAT
-            ws.cell(row=total_row, column=5).font = Font(bold=True)
-            ws.cell(row=total_row, column=6, value=sum(e.get("total_amount", 0) for e in escrow_details))
-            ws.cell(row=total_row, column=6).number_format = CURRENCY_FORMAT
-            ws.cell(row=total_row, column=6).font = Font(bold=True)
+        for i, mr in enumerate(margin_rows, 1):
+            sku = mr["sku"]
+            cost = costs.get(sku)
+            beli = cost["beli_per_pcs"] if cost else 0
+            modal = cost["modal_per_pcs"] if cost else 0  # beli + 3%
+            selisih = mr["avg_cair"] - modal if modal > 0 else 0
 
-        self._auto_width(ws)
+            if modal == 0:
+                status = "DATA MODAL TIDAK DITEMUKAN"
+            elif selisih < 0:
+                status = f"DI BAWAH TARGET (RUGI Rp {abs(selisih):,.0f})"
+            else:
+                status = f"DI ATAS TARGET +Rp {selisih:,.0f}"
 
-    def create_escrow_detail_sheet(self, escrow_details: list[dict]):
-        """Sheet 3: Escrow Detail per Order with Item Breakdown."""
-        ws = self.wb.create_sheet("Detail Escrow per Order")
+            # Keterangan biaya platform
+            ket = f"Komisi Rp {mr['avg_komisi']:,.0f} + Svc Rp {mr['avg_svc']:,.0f} + Proses Rp {mr['avg_proc']:,.0f}"
 
-        headers = [
-            "No", "Order SN", "Buyer", "Status",
-            "Escrow Amount (Rp)", "Komisi (Rp)", "Biaya Layanan (Rp)",
-            "Biaya Transaksi (Rp)", "Biaya Proses (Rp)",
-            "Ongkir Aktual (Rp)", "Subsidi Ongkir (Rp)",
-            "Total Pembeli (Rp)", "Metode Bayar"
-        ]
+            self._row(ws, r + i, [
+                i, sku or "(tanpa SKU)", mr["item_name"], mr["model_name"], mr["tier"],
+                mr["jml_order"], mr["total_qty"],
+                mr["avg_listing"], beli, modal, mr["avg_cair"], selisih, status, ket,
+            ], money)
 
-        for col, h in enumerate(headers, 1):
-            ws.cell(row=1, column=col, value=h)
-        self._style_header_row(ws, 1, len(headers))
+            # Highlight
+            if modal > 0 and selisih < 0:
+                for c in range(1, len(hdrs) + 1):
+                    ws.cell(row=r + i, column=c).fill = red_fill
+                    ws.cell(row=r + i, column=c).font = red_font
+            elif modal > 0:
+                ws.cell(row=r + i, column=13).font = green_font
 
-        for i, detail in enumerate(escrow_details, 1):
-            row = i + 1
-            income = detail.get("order_income", {})
+        self._auto(ws)
 
-            ws.cell(row=row, column=1, value=i)
-            ws.cell(row=row, column=2, value=detail.get("order_sn", ""))
-            ws.cell(row=row, column=3, value=detail.get("buyer_username", ""))
-            ws.cell(row=row, column=4, value=detail.get("order_status", ""))
-            ws.cell(row=row, column=5, value=income.get("escrow_amount", 0))
-            ws.cell(row=row, column=6, value=income.get("commission_fee", 0))
-            ws.cell(row=row, column=7, value=income.get("service_fee", 0))
-            ws.cell(row=row, column=8, value=income.get("seller_transaction_fee", 0))
-            ws.cell(row=row, column=9, value=income.get("seller_order_processing_fee", 0))
-            ws.cell(row=row, column=10, value=income.get("actual_shipping_fee", 0))
-            ws.cell(row=row, column=11, value=income.get("shopee_shipping_rebate", 0))
-            ws.cell(row=row, column=12, value=income.get("buyer_total_amount", 0))
-            ws.cell(row=row, column=13, value=income.get("buyer_payment_method", ""))
+    # -- Sheet 7: Data Produk (Referensi) --
 
-            # Currency format for money columns
-            for col in range(5, 13):
-                ws.cell(row=row, column=col).number_format = CURRENCY_FORMAT
+    def _sheet_product_ref(self, costs):
+        ws = self.wb.create_sheet("Data Produk (Referensi)")
+        ws.cell(row=1, column=1, value="CARA HITUNG HARGA MODAL PER PRODUK").font = self.title
+        ws.merge_cells("A1:H1")
+        ws.cell(row=2, column=1, value="Sumber: Google Sheet 'ALL PRODUCT'. Hanya produk yang terjual di periode ini.").font = self.sub
+        ws.cell(row=3, column=1, value="Rumus: Harga Beli/Karton (in PPN) / Pcs per Karton = Harga Beli/pcs. Lalu + Margin 3% = Harga Modal/pcs.").font = self.sub
 
-            # Border
-            for col in range(1, len(headers) + 1):
-                ws.cell(row=row, column=col).border = self.thin_border
+        hdrs = ["No", "SKU", "Nama Barang", "Pcs/Karton",
+                "Harga Beli/Karton in PPN (Rp)", "Harga Beli/pcs (Rp)",
+                "Harga Modal/Karton +3% (Rp)", "Harga Modal/pcs +3% (Rp)"]
+        r = 5
+        for c, h in enumerate(hdrs, 1):
+            ws.cell(row=r, column=c, value=h)
+        self._hdr(ws, r, len(hdrs))
+        money = {5, 6, 7, 8}
 
-        # Totals
-        if escrow_details:
-            total_row = len(escrow_details) + 2
-            ws.cell(row=total_row, column=4, value="TOTAL:")
-            ws.cell(row=total_row, column=4).font = Font(bold=True)
-            for col_idx, key in [(5, "escrow_amount"), (6, "commission_fee"), (7, "service_fee"),
-                                  (8, "seller_transaction_fee"), (9, "seller_order_processing_fee"),
-                                  (10, "actual_shipping_fee"), (11, "shopee_shipping_rebate"),
-                                  (12, "buyer_total_amount")]:
-                total = sum(d.get("order_income", {}).get(key, 0) for d in escrow_details)
-                ws.cell(row=total_row, column=col_idx, value=total)
-                ws.cell(row=total_row, column=col_idx).number_format = CURRENCY_FORMAT
-                ws.cell(row=total_row, column=col_idx).font = Font(bold=True)
+        sorted_costs = sorted(costs.items(), key=lambda x: x[0])
+        for i, (sku, c) in enumerate(sorted_costs, 1):
+            self._row(ws, r + i, [
+                i, sku, c["nama_sheet"], c["pcs_per_karton"],
+                c["beli_per_karton"], c["beli_per_pcs"],
+                c["modal_per_karton"], c["modal_per_pcs"],
+            ], money)
 
-        self._auto_width(ws)
+        self._auto(ws)
 
-    def create_item_detail_sheet(self, escrow_details: list[dict]):
-        """Sheet 4: Item-level detail (Product ID, SKU, Qty, Prices)."""
-        ws = self.wb.create_sheet("Detail Produk per Item")
+    # -- Generate --
 
-        headers = [
-            "No", "Order SN", "Item ID", "Model ID", "Nama Produk",
-            "Varian/Model", "SKU (Item)", "SKU (Model)",
-            "Qty", "Harga Asli (Rp)", "Harga Jual (Rp)", "Harga Diskon (Rp)",
-            "Diskon Seller (Rp)", "Diskon Shopee (Rp)",
-            "Diskon Coin (Rp)", "Voucher Seller (Rp)", "Voucher Shopee (Rp)",
-            "Komisi AMS (Rp)", "Biaya Proses (Rp)"
-        ]
+    def generate_full_report(self, data, month, year, filename=None):
+        s = data["summary"]
+        print("\n[EXPORT] Generating XLSX...")
+        self._sheet_summary(s, month, year)
+        self._sheet_orders(data["orders"])
+        self._sheet_items(data["items"])
+        self._sheet_product_summary(data["items"])
+        self._sheet_deductions(s)
+        self._sheet_margin(data["margin_rows"], data["costs"])
+        self._sheet_product_ref(data["costs"])
 
-        for col, h in enumerate(headers, 1):
-            ws.cell(row=1, column=col, value=h)
-        self._style_header_row(ws, 1, len(headers))
-
-        row_num = 2
-        for detail in escrow_details:
-            order_sn = detail.get("order_sn", "")
-            items = detail.get("items", [])
-
-            for item in items:
-                ws.cell(row=row_num, column=1, value=row_num - 1)
-                ws.cell(row=row_num, column=2, value=order_sn)
-                ws.cell(row=row_num, column=3, value=item.get("item_id", ""))
-                ws.cell(row=row_num, column=4, value=item.get("model_id", ""))
-                ws.cell(row=row_num, column=5, value=item.get("item_name", ""))
-                ws.cell(row=row_num, column=6, value=item.get("model_name", ""))
-                ws.cell(row=row_num, column=7, value=item.get("item_sku", ""))
-                ws.cell(row=row_num, column=8, value=item.get("model_sku", item.get("sku", "")))
-                ws.cell(row=row_num, column=9, value=item.get("quantity", item.get("quantity_purchased", 0)))
-                ws.cell(row=row_num, column=10, value=item.get("original_price", 0))
-                ws.cell(row=row_num, column=11, value=item.get("selling_price", 0))
-                ws.cell(row=row_num, column=12, value=item.get("discounted_price", 0))
-                ws.cell(row=row_num, column=13, value=item.get("seller_discount", 0))
-                ws.cell(row=row_num, column=14, value=item.get("shopee_discount", 0))
-                ws.cell(row=row_num, column=15, value=item.get("discount_from_coin", 0))
-                ws.cell(row=row_num, column=16, value=item.get("discount_from_voucher_seller", 0))
-                ws.cell(row=row_num, column=17, value=item.get("discount_from_voucher_shopee", 0))
-                ws.cell(row=row_num, column=18, value=item.get("ams_commission_fee", 0))
-                ws.cell(row=row_num, column=19, value=item.get("seller_order_processing_fee", 0))
-
-                # Currency format
-                for col in range(10, 20):
-                    ws.cell(row=row_num, column=col).number_format = CURRENCY_FORMAT
-
-                # Border
-                for col in range(1, len(headers) + 1):
-                    ws.cell(row=row_num, column=col).border = self.thin_border
-
-                row_num += 1
-
-        # Summary at bottom
-        if row_num > 2:
-            ws.cell(row=row_num + 1, column=1, value=f"Total Items: {row_num - 2}")
-            ws.cell(row=row_num + 1, column=1).font = Font(bold=True)
-            total_qty = 0
-            for detail in escrow_details:
-                for item in detail.get("items", []):
-                    total_qty += item.get("quantity", item.get("quantity_purchased", 0))
-            ws.cell(row=row_num + 1, column=9, value=total_qty)
-            ws.cell(row=row_num + 1, column=9).font = Font(bold=True)
-
-        self._auto_width(ws)
-
-    def create_fee_breakdown_sheet(self, escrow_details: list[dict]):
-        """Sheet 5: Fee/Deduction Breakdown Summary."""
-        ws = self.wb.create_sheet("Rekap Potongan")
-
-        # Title
-        ws.cell(row=1, column=1, value="REKAP POTONGAN & BIAYA")
-        ws.cell(row=1, column=1).font = self.title_font
-        ws.merge_cells("A1:C1")
-
-        # Fee summary table
-        headers = ["Jenis Potongan", "Total (Rp)", "Jumlah Order Terkena"]
-        row = 3
-        for col, h in enumerate(headers, 1):
-            ws.cell(row=row, column=col, value=h)
-        self._style_header_row(ws, row, len(headers))
-
-        # Calculate fee totals
-        fee_totals = {}
-        fee_counts = {}
-        for key, label in FEE_CATEGORIES.items():
-            total = 0
-            count = 0
-            for detail in escrow_details:
-                income = detail.get("order_income", {})
-                val = income.get(key, 0)
-                if val != 0:
-                    total += val
-                    count += 1
-            fee_totals[key] = total
-            fee_counts[key] = count
-
-        # Write fee rows
-        for i, (key, label) in enumerate(FEE_CATEGORIES.items(), 1):
-            r = row + i
-            ws.cell(row=r, column=1, value=label)
-            ws.cell(row=r, column=2, value=fee_totals[key])
-            ws.cell(row=r, column=2).number_format = CURRENCY_FORMAT
-            ws.cell(row=r, column=3, value=fee_counts[key])
-
-            for col in range(1, 4):
-                ws.cell(row=r, column=col).border = self.thin_border
-
-        # Grand total
-        grand_total_row = row + len(FEE_CATEGORIES) + 1
-        ws.cell(row=grand_total_row, column=1, value="TOTAL POTONGAN")
-        ws.cell(row=grand_total_row, column=1).font = Font(bold=True)
-        ws.cell(row=grand_total_row, column=2, value=sum(fee_totals.values()))
-        ws.cell(row=grand_total_row, column=2).number_format = CURRENCY_FORMAT
-        ws.cell(row=grand_total_row, column=2).font = Font(bold=True)
-
-        self._auto_width(ws)
-
-    def save(self, filename: str, month: int, year: int) -> str:
-        """Save workbook to file. Returns full path."""
         os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-        if not filename:
-            filename = f"Laporan_Dana_Cair_Shopee_{_month_name(month)}_{year}.xlsx"
-
-        filepath = os.path.join(OUTPUT_DIR, filename)
-        self.wb.save(filepath)
-        print(f"\n[EXPORT] Report saved: {os.path.abspath(filepath)}")
-        return os.path.abspath(filepath)
-
-    def generate_full_report(self, report_data: dict, month: int, year: int, filename: Optional[str] = None) -> str:
-        """Generate complete multi-sheet XLSX report."""
-        summary = report_data["summary"]
-        orders = report_data["orders"]
-        escrow_details = report_data["escrow_details"]
-
-        print("\n[EXPORT] Generating XLSX report...")
-
-        # Sheet 1: Summary
-        self.create_summary_sheet(summary, month, year)
-
-        # Sheet 2: Orders with escrow overview
-        self.create_transactions_sheet(orders, escrow_details)
-
-        # Sheet 3: Escrow detail per order (fee breakdown)
-        self.create_escrow_detail_sheet(escrow_details)
-
-        # Sheet 4: Item-level detail
-        self.create_item_detail_sheet(escrow_details)
-
-        # Sheet 5: Fee breakdown summary
-        self.create_fee_breakdown_sheet(escrow_details)
-
-        # Save
-        return self.save(filename, month, year)
+        fn = filename or f"Laporan_Dana_Cair_Shopee_{_bulan(month)}_{year}.xlsx"
+        path = os.path.join(OUTPUT_DIR, fn)
+        self.wb.save(path)
+        full = os.path.abspath(path)
+        print(f"[EXPORT] Saved: {full}")
+        return full
 
 
-def _month_name(month: int) -> str:
-    """Get Indonesian month name."""
-    months = {
-        1: "Januari", 2: "Februari", 3: "Maret", 4: "April",
-        5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus",
-        9: "September", 10: "Oktober", 11: "November", 12: "Desember"
-    }
-    return months.get(month, str(month))
+def _bulan(m):
+    return {1:"Januari",2:"Februari",3:"Maret",4:"April",5:"Mei",6:"Juni",
+            7:"Juli",8:"Agustus",9:"September",10:"Oktober",11:"November",12:"Desember"}.get(m, str(m))

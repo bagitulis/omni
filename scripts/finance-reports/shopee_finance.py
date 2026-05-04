@@ -1,173 +1,220 @@
 """
 Shopee Finance Data Fetcher.
-Pulls order data and escrow details for a given month.
+Pulls COMPLETED (dana cair) orders + margin analysis vs harga modal.
 
-Strategy:
-1. Sync orders from Shopee API (triggers backend to fetch fresh data)
-2. Get order list from local DB
-3. Get escrow details for each order (calls Shopee API via backend)
-4. Combine into report data
+Flow:
+1. Trigger escrow sync via /api/analytics/shopee/sync
+2. Query escrow data from DB
+3. Query margin analysis per SKU per qty tier
+4. Read Google Sheets for harga modal per SKU
 """
 
 import time
-from typing import Optional
+import subprocess
+import sys
 
 from api_client import OmniAPIClient
-from config import (
-    WALLET_TRANSACTIONS_ENDPOINT,
-    ESCROW_BATCH_ENDPOINT,
-    WALLET_PAGE_SIZE,
-    ESCROW_BATCH_SIZE,
-    SETTLED_TRANSACTION_TYPES,
-)
+
+DB_CONTAINER = "omni-postgres"
+DB_USER = "omni"
+DB_NAME = "omni_main"
+SA_FILE = "D:/Project/omni/backend/config/static/google/bertigahemat-f1bd6932b229.json"
+SHEET_ALL_PRODUCT = "1H3TltJKcUfnrizmgRNXqjsHgeR44wNZYmfJ784SPXiI"
+
+
+def run_db_query(query: str) -> str:
+    cmd = ["docker", "exec", DB_CONTAINER, "psql", "-U", DB_USER, "-d", DB_NAME, "-t", "-A", "-F", "\t", "-c", query]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    if result.returncode != 0:
+        raise RuntimeError(f"DB query failed: {result.stderr}")
+    return result.stdout.strip()
+
+
+def _extract_date(sn: str) -> str:
+    return f"{sn[4:6]}/{sn[2:4]}/20{sn[0:2]}" if len(sn) >= 6 else ""
+
+
+def _f(v): 
+    try: return float(v) if v else 0.0
+    except: return 0.0
+
+
+def _i(v):
+    try: return int(v) if v else 0
+    except: return 0
+
+
+def _parse_rp(v):
+    if not v: return 0
+    v = v.replace("Rp", "").replace(" ", "").replace(".", "").replace(",", "")
+    try: return int(v)
+    except: return 0
 
 
 class ShopeeFinanceFetcher:
-    """Fetches Shopee financial data via OMNI backend API."""
 
     def __init__(self, client: OmniAPIClient):
         self.client = client
+        self.schema = f"tenant_{client.tenant_id}"
 
-    def sync_orders(self) -> dict:
-        """Trigger order sync from Shopee API to local DB."""
-        print("\n[SYNC] Syncing orders from Shopee...")
-        resp = self.client.post("/api/orders/sync-all")
+    def trigger_escrow_sync(self, month, year):
+        print(f"\n[SYNC] Checking escrow sync for {month:02d}/{year}...")
+        s = self.client.get("/api/analytics/shopee/sync-status", {"month": str(month), "year": str(year)})
+        if s.get("data", {}).get("synced"):
+            print(f"[SYNC] Already synced: {s['data'].get('total_orders', 0)} orders.")
+            return True
+        print("[SYNC] Triggering sync...")
+        self.client.post("/api/analytics/shopee/sync", {"month": month, "year": year, "force_resync": False})
+        for i in range(60):
+            time.sleep(3)
+            s = self.client.get("/api/analytics/shopee/sync-status", {"month": str(month), "year": str(year)})
+            if s.get("data", {}).get("synced"):
+                print(f"[SYNC] Done: {s['data'].get('total_orders', 0)} orders")
+                return True
+            if i % 5 == 0: print(f"  Syncing... ({i*3}s)")
+        return False
 
-        if not resp.get("success") and resp.get("code") != "PARTIAL_SYNC_FAILURE":
-            print(f"[SYNC] Warning: {resp.get('error', 'Unknown')}")
-            return {}
+    def get_escrow_orders(self, month, year):
+        print("\n[DB] Querying escrow orders...")
+        raw = run_db_query(f"""
+        SELECT o.order_sn, o.escrow_amount, o.commission_fee, o.service_fee,
+               o.seller_processing_fee, o.actual_shipping_fee,
+               o.shopee_shipping_rebate, o.buyer_total_amount, o.buyer_user_name
+        FROM {self.schema}.shopee_escrow_orders o
+        WHERE o.month={month} AND o.year={year} ORDER BY o.order_sn;""")
+        if not raw: return []
+        orders = []
+        for line in raw.split("\n"):
+            c = line.split("\t")
+            if len(c) < 9: continue
+            orders.append({"order_sn": c[0], "order_date": _extract_date(c[0]),
+                "escrow_amount": _f(c[1]), "commission_fee": _f(c[2]), "service_fee": _f(c[3]),
+                "seller_processing_fee": _f(c[4]), "actual_shipping_fee": _f(c[5]),
+                "shopee_shipping_rebate": _f(c[6]), "buyer_total_amount": _f(c[7]),
+                "buyer_username": c[8] if c[8] else ""})
+        print(f"[DB] {len(orders)} orders")
+        return orders
 
-        sync_data = resp.get("data", {})
-        shopee_count = 0
-        for category, cat_data in sync_data.items():
-            if isinstance(cat_data, dict) and "data" in cat_data:
-                shopee_info = cat_data["data"].get("shopee", {})
-                shopee_count += shopee_info.get("count", 0)
+    def get_escrow_items(self, month, year):
+        print("[DB] Querying escrow items...")
+        raw = run_db_query(f"""
+        SELECT i.order_sn, i.item_id, i.model_id, i.item_name, i.model_name,
+               i.sku, i.model_sku, i.quantity, i.original_price,
+               i.selling_price, i.discounted_price, i.seller_discount, i.shopee_discount
+        FROM {self.schema}.shopee_escrow_items i
+        JOIN {self.schema}.shopee_escrow_orders o ON o.id = i.escrow_order_id
+        WHERE o.month={month} AND o.year={year} ORDER BY i.order_sn, i.item_id;""")
+        if not raw: return []
+        items = []
+        for line in raw.split("\n"):
+            c = line.split("\t")
+            if len(c) < 13: continue
+            items.append({"order_sn": c[0], "item_id": c[1], "model_id": c[2],
+                "item_name": c[3], "model_name": c[4], "sku": c[5], "model_sku": c[6],
+                "quantity": _i(c[7]), "original_price": _f(c[8]), "selling_price": _f(c[9]),
+                "discounted_price": _f(c[10]), "seller_discount": _f(c[11]), "shopee_discount": _f(c[12])})
+        print(f"[DB] {len(items)} items")
+        return items
 
-        print(f"[SYNC] Synced {shopee_count} Shopee orders")
-        return sync_data
-
-    def get_shopee_orders(self, month: int, year: int) -> list[dict]:
-        """Get all Shopee orders, filtered by month from order_sn prefix."""
-        print(f"\n[ORDERS] Fetching Shopee orders for {month:02d}/{year}...")
-
-        all_orders = []
-        page = 1
-        while True:
-            resp = self.client.get("/api/shopee/orders", {"page": str(page), "page_size": "50"})
-            if not resp.get("success"):
-                print(f"[ORDERS] Error: {resp.get('error', 'Unknown')}")
-                break
-            orders = resp.get("data", [])
-            if not orders:
-                break
-            all_orders.extend(orders)
-            meta = resp.get("meta", {})
-            total = meta.get("total", len(all_orders))
-            if page * 50 >= total:
-                break
-            page += 1
-
-        # Filter by order_sn date prefix: YYMMDD
-        yy = str(year)[2:]
-        month_prefixes = [f"{yy}{month:02d}{day:02d}" for day in range(1, 32)]
-        filtered = [o for o in all_orders if any(o.get("order_sn", "").startswith(p) for p in month_prefixes)]
-
-        print(f"[ORDERS] Total in DB: {len(all_orders)}, For {month:02d}/{year}: {len(filtered)}")
-        return filtered
-
-    def get_escrow_details_batch(self, order_sns: list[str]) -> list[dict]:
-        """Get escrow details for orders in batches of 50."""
-        if not order_sns:
-            return []
-
-        print(f"\n[ESCROW] Fetching escrow details for {len(order_sns)} orders...")
-        all_details = []
-
-        for i in range(0, len(order_sns), ESCROW_BATCH_SIZE):
-            batch = order_sns[i:i + ESCROW_BATCH_SIZE]
-            batch_num = (i // ESCROW_BATCH_SIZE) + 1
-            total_batches = (len(order_sns) + ESCROW_BATCH_SIZE - 1) // ESCROW_BATCH_SIZE
-            print(f"  [Batch {batch_num}/{total_batches}] Processing {len(batch)} orders...")
-
-            try:
-                resp = self.client.post(ESCROW_BATCH_ENDPOINT, {"order_sn_list": batch})
-                if not resp.get("success"):
-                    print(f"  [WARN] Batch {batch_num} failed: {resp.get('error', 'Unknown')}")
-                    continue
-                details = resp.get("data", {}).get("responses", [])
-                all_details.extend(details)
-            except Exception as e:
-                print(f"  [WARN] Batch {batch_num} error: {e}")
-                break
-
-            if i + ESCROW_BATCH_SIZE < len(order_sns):
-                time.sleep(1.0)
-
-        print(f"[ESCROW] Got escrow details for {len(all_details)} orders")
-        return all_details
-
-    def get_wallet_transactions(self, month: int, year: int) -> list[dict]:
-        """Try to get wallet transactions (supplementary)."""
-        print(f"\n[WALLET] Checking wallet transactions for {month:02d}/{year}...")
-        start_date = f"{year}-{month:02d}-01"
-        end_date = f"{year}-{month + 1:02d}-01" if month < 12 else f"{year + 1}-01-01"
-
-        resp = self.client.get(WALLET_TRANSACTIONS_ENDPOINT, {
-            "start_date": start_date, "end_date": end_date, "page_size": "100",
-        })
-        if not resp.get("success"):
-            return []
-        transactions = resp.get("data", {}).get("transactions", [])
-        print(f"[WALLET] Found {len(transactions)} wallet transactions")
-        return transactions
-
-    def get_full_settlement_report(self, month: int, year: int) -> dict:
-        """
-        Complete settlement report:
-        1. Sync fresh orders from Shopee
-        2. Get orders for the target month
-        3. Get escrow details for each order
-        4. Try wallet transactions as supplement
-        5. Build summary
-        """
-        self.sync_orders()
-        orders = self.get_shopee_orders(month, year)
-        order_sns = [o.get("order_sn") for o in orders if o.get("order_sn")]
-        escrow_details = self.get_escrow_details_batch(order_sns)
-        wallet_tx = self.get_wallet_transactions(month, year)
-
-        total_escrow = sum(d.get("total_amount", 0) for d in escrow_details)
-        total_items = sum(
-            sum(item.get("quantity", 0) for item in d.get("items", []))
-            for d in escrow_details
+    def get_margin_analysis(self, month, year):
+        """Per SKU per qty-tier. Uses COALESCE(model_sku, sku) to handle empty model_sku."""
+        print("[DB] Querying margin analysis...")
+        raw = run_db_query(f"""
+        WITH single_item AS (
+          SELECT COALESCE(NULLIF(i.model_sku,''), i.sku) as effective_sku,
+                 i.item_name, i.model_name, i.quantity,
+                 i.original_price, o.escrow_amount, o.commission_fee, o.service_fee, o.seller_processing_fee
+          FROM {self.schema}.shopee_escrow_items i
+          JOIN {self.schema}.shopee_escrow_orders o ON o.id = i.escrow_order_id
+          WHERE o.month={month} AND o.year={year}
+          AND o.id IN (SELECT escrow_order_id FROM {self.schema}.shopee_escrow_items GROUP BY escrow_order_id HAVING COUNT(*)=1)
+        ), tiered AS (
+          SELECT *, CASE WHEN quantity=1 THEN '1 pcs' WHEN quantity BETWEEN 2 AND 3 THEN '2-3 pcs'
+            WHEN quantity BETWEEN 4 AND 5 THEN '4-5 pcs' ELSE '6+ pcs' END as tier,
+            CASE WHEN quantity=1 THEN 1 WHEN quantity BETWEEN 2 AND 3 THEN 2
+            WHEN quantity BETWEEN 4 AND 5 THEN 3 ELSE 4 END as tier_sort
+          FROM single_item
         )
-        total_order_amount = sum(o.get("total_amount", 0) for o in orders)
+        SELECT effective_sku, item_name, model_name, tier,
+          COUNT(*), SUM(quantity),
+          ROUND(AVG(original_price::numeric/quantity),0),
+          ROUND(AVG(escrow_amount::numeric/quantity),0),
+          ROUND(AVG(commission_fee::numeric/quantity),0),
+          ROUND(AVG(service_fee::numeric/quantity),0),
+          ROUND(AVG(seller_processing_fee::numeric/quantity),0)
+        FROM tiered GROUP BY effective_sku, item_name, model_name, tier, tier_sort
+        ORDER BY effective_sku, tier_sort;""")
+        if not raw: return []
+        rows = []
+        for line in raw.split("\n"):
+            c = line.split("\t")
+            if len(c) < 11: continue
+            rows.append({"sku": c[0], "item_name": c[1], "model_name": c[2], "tier": c[3],
+                "jml_order": _i(c[4]), "total_qty": _i(c[5]),
+                "avg_listing": _f(c[6]), "avg_cair": _f(c[7]),
+                "avg_komisi": _f(c[8]), "avg_svc": _f(c[9]), "avg_proc": _f(c[10])})
+        print(f"[DB] {len(rows)} margin rows")
+        return rows
 
-        summary = {
-            "period": f"{month:02d}/{year}",
-            "order_count": len(orders),
-            "escrow_count": len(escrow_details),
-            "total_order_amount": total_order_amount,
-            "total_escrow_amount": total_escrow,
-            "total_items_sold": total_items,
-            "wallet_tx_count": len(wallet_tx),
-            "platform": "Shopee",
-        }
+    def get_product_costs(self, skus):
+        """Read Google Sheets ALL PRODUCT -> {sku: {modal_per_pcs, ...}}."""
+        print("\n[SHEETS] Reading harga modal...")
+        try:
+            from google.oauth2 import service_account
+            from googleapiclient.discovery import build
+        except ImportError:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "google-auth", "google-api-python-client", "-q"])
+            from google.oauth2 import service_account
+            from googleapiclient.discovery import build
 
-        print(f"\n{'='*60}")
-        print(f"[SUMMARY] Period: {summary['period']}")
-        print(f"  Total Orders:        {summary['order_count']}")
-        print(f"  Escrow Data:         {summary['escrow_count']} orders")
-        print(f"  Total Order Amount:  Rp {total_order_amount:,.0f}")
-        print(f"  Total Escrow (Cair): Rp {total_escrow:,.0f}")
-        print(f"  Total Items Sold:    {total_items} pcs")
-        print(f"  Wallet Transactions: {summary['wallet_tx_count']}")
-        print(f"{'='*60}")
+        creds = service_account.Credentials.from_service_account_file(SA_FILE,
+            scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"])
+        svc = build("sheets", "v4", credentials=creds)
+        data = svc.spreadsheets().values().get(spreadsheetId=SHEET_ALL_PRODUCT, range="'ALL PRODUCT'!A1:O1000").execute()
 
-        return {
-            "orders": orders,
-            "escrow_details": escrow_details,
-            "wallet_transactions": wallet_tx,
-            "summary": summary,
-        }
+        costs = {}
+        for row in data.get("values", [])[1:]:
+            if len(row) < 14: continue
+            sku = row[2]
+            if sku not in skus: continue
+            pcs = int(row[9]) if len(row) > 9 and row[9].isdigit() else 1
+            beli = _parse_rp(row[11]) if len(row) > 11 else 0
+            jual = _parse_rp(row[13]) if len(row) > 13 else 0
+            costs[sku] = {
+                "nama_sheet": row[5] if len(row) > 5 else "",
+                "pcs_per_karton": pcs,
+                "beli_per_pcs": round(beli / pcs) if pcs else 0,
+                "modal_per_pcs": round(jual / pcs) if pcs else 0,
+                "beli_per_karton": beli, "modal_per_karton": jual,
+            }
+
+        nf = [s for s in skus if s and s not in costs]
+        print(f"[SHEETS] {len(costs)} ditemukan, {len(nf)} tidak: {nf if nf else '-'}")
+        return costs
+
+    def get_full_settlement_report(self, month, year):
+        self.trigger_escrow_sync(month, year)
+        orders = self.get_escrow_orders(month, year)
+        items = self.get_escrow_items(month, year)
+        margin_rows = self.get_margin_analysis(month, year)
+        all_skus = list(set(r["sku"] for r in margin_rows if r["sku"]))
+        costs = self.get_product_costs(all_skus)
+
+        te = sum(o["escrow_amount"] for o in orders)
+        summary = {"period": f"{month:02d}/{year}", "order_count": len(orders),
+            "item_count": len(items), "total_qty_sold": sum(i["quantity"] for i in items),
+            "total_buyer_amount": sum(o["buyer_total_amount"] for o in orders),
+            "total_escrow": te,
+            "total_commission": sum(o["commission_fee"] for o in orders),
+            "total_service_fee": sum(o["service_fee"] for o in orders),
+            "total_processing_fee": sum(o["seller_processing_fee"] for o in orders),
+            "total_shipping": sum(o["actual_shipping_fee"] for o in orders),
+            "total_shipping_rebate": sum(o["shopee_shipping_rebate"] for o in orders)}
+
+        print(f"\n{'='*55}")
+        print(f"  DANA CAIR SHOPEE - {month:02d}/{year}")
+        print(f"  {len(orders)} pesanan | {summary['total_qty_sold']} pcs | Rp {te:,.0f}")
+        print(f"{'='*55}")
+
+        return {"orders": orders, "items": items, "summary": summary,
+                "margin_rows": margin_rows, "costs": costs}
