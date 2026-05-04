@@ -50,6 +50,19 @@ def _parse_rp(v):
     try: return int(v)
     except: return 0
 
+def _extract_isi(nama: str) -> int:
+    """Extract isi per renceng/pack dari nama produk. Returns 1 jika satuan."""
+    import re
+    n = nama.lower()
+    # 'isi 12', 'isi 10', 'Isi 6'
+    m = re.search(r'isi\s*(\d+)', n)
+    if m: return int(m.group(1))
+    # '(6+1)', '12+1' — renceng promo (angka pertama = isi)
+    m = re.search(r'(\d+)\+\d+', nama)
+    if m:
+        v = int(m.group(1))
+        if v <= 20: return v
+    return 1
 
 class ShopeeFinanceFetcher:
 
@@ -159,8 +172,8 @@ class ShopeeFinanceFetcher:
         print(f"[DB] {len(rows)} margin rows")
         return rows
 
-    def get_product_costs(self, skus):
-        """Read Google Sheets ALL PRODUCT -> {sku: {modal_per_unit, ...}}."""
+    def get_product_costs(self, skus, shopee_names):
+        """Read Google Sheets ALL PRODUCT. shopee_names = {sku: nama_di_shopee} for renceng parsing."""
         print("\n[SHEETS] Reading harga modal...")
         try:
             from google.oauth2 import service_account
@@ -188,14 +201,21 @@ class ShopeeFinanceFetcher:
             beli_karton = _parse_rp(row[11]) if len(row) > 11 else 0
             jual_karton = _parse_rp(row[13]) if len(row) > 13 else 0
 
+            # Pakai nama Shopee (lebih deskriptif) untuk detect rencengan
+            nama_shopee = shopee_names.get(sku, nama)
+            isi_renceng = _extract_isi(nama_shopee)
+            modal_per_pcs = round(jual_karton / pcs) if pcs else 0
+            modal_per_unit = modal_per_pcs * isi_renceng  # kalikan isi jika rencengan
+
             costs[sku] = {
                 "nama_sheet": nama,
                 "pcs_per_karton": pcs,
-                "beli_per_karton": beli_karton,                          # Kolom M
-                "beli_per_unit": round(beli_karton / pcs) if pcs else 0,  # Beli/unit
-                "jual_karton": jual_karton,                               # Kolom O = Beli + 3%
-                "modal_per_unit": round(jual_karton / pcs) if pcs else 0, # MODAL = (Beli+3%)/unit
-                "harga_mp": harga_mp,                                     # Kolom G (referensi saja)
+                "isi_per_renceng": isi_renceng,
+                "beli_per_karton": beli_karton,
+                "beli_per_unit": round(beli_karton / pcs * isi_renceng) if pcs else 0,
+                "jual_karton": jual_karton,
+                "modal_per_unit": modal_per_unit,  # MODAL = (Beli+3%)/pcs x isi renceng
+                "harga_mp": harga_mp,
             }
 
         nf = [s for s in skus if s and s not in costs]
@@ -208,7 +228,12 @@ class ShopeeFinanceFetcher:
         items = self.get_escrow_items(month, year)
         margin_rows = self.get_margin_analysis(month, year)
         all_skus = list(set(r["sku"] for r in margin_rows if r["sku"]))
-        costs = self.get_product_costs(all_skus)
+        # Build shopee names map for renceng detection
+        shopee_names = {}
+        for r in margin_rows:
+            if r["sku"] and r["sku"] not in shopee_names:
+                shopee_names[r["sku"]] = r["item_name"]
+        costs = self.get_product_costs(all_skus, shopee_names)
 
         te = sum(o["escrow_amount"] for o in orders)
         total_subtotal = sum(i["discounted_price"] for i in items)  # subtotal aktual (setelah diskon seller)
