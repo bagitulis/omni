@@ -91,14 +91,6 @@ var tableNameMapping = map[string]string{
 	// Audit
 	"AuditLog": "audit_logs",
 
-	// Ads
-	"ShopeeAdsUploadBatch":    "shopee_ads_upload_batches",
-	"ShopeeAdsProductData":    "shopee_ads_product_data",
-	"TiktokAdsUploadBatch":    "tiktok_ads_upload_batches",
-	"TiktokAdsCreativeData":   "tiktok_ads_creative_data",
-	"TiktokAdsProductSummary": "tiktok_ads_product_summaries",
-	"TiktokAdsMLPrediction":   "tiktok_ads_ml_predictions",
-
 	// ML Reports
 	"MLReport": "ml_reports",
 	"MLJob":    "ml_jobs",

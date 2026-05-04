@@ -165,7 +165,7 @@ func TestLighthouseQuick(t *testing.T) {
 
 // TestLighthouseCategory runs Lighthouse test for a specific category
 func TestLighthouseCategory(t *testing.T) {
-	categories := []string{"core", "product", "order", "script", "report", "analytics", "settings"}
+	categories := []string{"core", "product", "order", "script", "report", "settings"}
 
 	for _, category := range categories {
 		t.Run(category, func(t *testing.T) {

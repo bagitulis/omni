@@ -130,8 +130,8 @@ func main() {
 	routes.RegisterWholesaleRoutes(api, extHandlers.WholesaleHandler)
 	routes.RegisterWholesaleExtendedRoutes(api, cfg.DatabasePath)
 
-	// Ads Report routes (Shopee/TikTok ads reporting)
-	routes.RegisterReportRoutes(api, application.SystemDB)
+
+	// Image Gallery routes
 
 	// Image Gallery routes
 	imageHandler := handlers.NewImageHandler(application.SystemDB)

@@ -844,7 +844,7 @@
       "name": "enowX Labs",
       "npm": "@ai-sdk/openai-compatible",
       "options": {
-        "apiKey": "enx-30525cfdc4521e4f7def34f643b0d9ee4ee734a77f5e43c9ee74f44cf414f23b",
+        "apiKey": "enx-ee77ad316f6d91ec59ff411d32f4992a0f4b04739887e2cd517307ef7c5b8f2a",
         "baseURL": "http://localhost:1430/v1"
       }
     }

@@ -10,42 +10,6 @@ import (
 	"github.com/omni/backend/internal/services/jobs"
 )
 
-// ---------------------------------------------------------------------------
-// EscrowSyncHandler
-// ---------------------------------------------------------------------------
-
-// TestNewEscrowSyncHandler_Constructor verifies constructor with nil DB returns non-nil.
-func TestNewEscrowSyncHandler_Constructor(t *testing.T) {
-	h := jobs.NewEscrowSyncHandler(nil)
-	if h == nil {
-		t.Fatal("expected non-nil EscrowSyncHandler")
-	}
-}
-
-// TestEscrowSyncHandler_ShopeeInvalidJSON verifies that invalid JSON payload
-// returns an error containing "invalid job data" before any DB is touched.
-func TestEscrowSyncHandler_ShopeeInvalidJSON(t *testing.T) {
-	h := jobs.NewEscrowSyncHandler(nil)
-	_, err := h.HandleShopeeEscrowSync(context.Background(), "not-valid-json{{{")
-	if err == nil {
-		t.Fatal("expected error for invalid JSON payload")
-	}
-	if !strings.Contains(err.Error(), "invalid job data") {
-		t.Errorf("expected error containing 'invalid job data', got: %v", err)
-	}
-}
-
-// TestEscrowSyncHandler_TiktokInvalidJSON verifies same invalid-JSON path for TikTok.
-func TestEscrowSyncHandler_TiktokInvalidJSON(t *testing.T) {
-	h := jobs.NewEscrowSyncHandler(nil)
-	_, err := h.HandleTiktokEscrowSync(context.Background(), "{bad json}")
-	if err == nil {
-		t.Fatal("expected error for invalid JSON payload")
-	}
-	if !strings.Contains(err.Error(), "invalid job data") {
-		t.Errorf("expected error containing 'invalid job data', got: %v", err)
-	}
-}
 
 // ---------------------------------------------------------------------------
 // Executor

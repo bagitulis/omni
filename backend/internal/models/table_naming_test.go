@@ -66,12 +66,6 @@ func TestGetTableName(t *testing.T) {
 		{"JobHistory", "job_history"},
 		{"AutoFunctionsConfig", "auto_functions_config"},
 
-		// Ads
-		{"ShopeeAdsUploadBatch", "shopee_ads_upload_batches"},
-		{"ShopeeAdsProductData", "shopee_ads_product_data"},
-		{"TiktokAdsUploadBatch", "tiktok_ads_upload_batches"},
-		{"TiktokAdsCreativeData", "tiktok_ads_creative_data"},
-
 		// Global Config
 		{"GlobalConfig", "global_config"},
 	}

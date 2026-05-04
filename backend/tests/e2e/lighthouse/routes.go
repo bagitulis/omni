@@ -19,16 +19,6 @@ func GetAllRoutes() []Route {
 		// SKIP: parameterized route - requires valid product ID: /products/:id/edit
 		// SKIP: requires file upload fixture: /products/import
 		// SKIP: parameterized route - requires valid platform slug: /order-manager/:platform
-
-		// Analytics
-		{Name: "Analytics Hub", Path: "/analytics"},
-		{Name: "Shopee Ads Analytics", Path: "/analytics/shopee-ads"},
-		{Name: "TikTok Ads Analytics", Path: "/analytics/tiktok-ads"},
-		{Name: "ML Dashboard", Path: "/analytics/ml"},
-		{Name: "Budget Simulator", Path: "/analytics/budget-simulator"},
-		{Name: "Product Classification", Path: "/analytics/product-classification"},
-		{Name: "AI Reports", Path: "/analytics/ai-reports"},
-
 		// Reports
 		{Name: "Shopee Report", Path: "/report/shopee"},
 		{Name: "TikTok Report", Path: "/report/tiktok"},
@@ -43,7 +33,7 @@ func GetQuickTestRoutes() []Route {
 	return []Route{
 		{Name: "Dashboard", Path: "/"},
 		{Name: "Order Manager", Path: "/order-manager"},
-		{Name: "Analytics Hub", Path: "/analytics"},
+		{Name: "Products", Path: "/products"},
 	}
 }
 
@@ -53,12 +43,11 @@ func GetRoutesByCategory(category string) []Route {
 	var filtered []Route
 
 	categoryPrefixes := map[string][]string{
-		"core":      {"/", "/inventory", "/route-mapping", "/settings"},
-		"product":   {"/products"},
-		"order":     {"/order-manager"},
-		"script":    {"/script-monitor"},
-		"report":    {"/report"},
-		"analytics": {"/analytics"},
+		"core":    {"/", "/inventory", "/route-mapping", "/settings"},
+		"product": {"/products"},
+		"order":   {"/order-manager"},
+		"script":  {"/script-monitor"},
+		"report":  {"/report"},
 	}
 
 	prefixes, ok := categoryPrefixes[category]
