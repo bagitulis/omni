@@ -175,44 +175,59 @@ class XLSXExporter:
         red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
         red_font = Font(name="Calibri", size=10, bold=True, color="9C0006")
         green_font = Font(name="Calibri", size=10, color="006100")
+        sku_header_font = Font(name="Calibri", size=10, bold=True, color="1F4E79")
 
-        for i, mr in enumerate(margin_rows, 1):
-            sku = mr["sku"]
+        # Group margin_rows by SKU
+        from collections import OrderedDict
+        grouped = OrderedDict()
+        for mr in margin_rows:
+            key = mr["sku"] or "(tanpa SKU)"
+            grouped.setdefault(key, []).append(mr)
+
+        row_num = r + 1
+        num = 0
+        for sku, rows in grouped.items():
+            # Separate SKU groups with 2 blank rows (except first)
+            if num > 0:
+                row_num += 2
+
             cost = costs.get(sku)
             modal = cost["modal_per_unit"] if cost else 0
-            selisih = mr["avg_cair"] - modal if modal > 0 else 0
-            subtotal = mr["avg_listing"]
 
-            # Persentase biaya
-            pct_admin = (mr["avg_komisi"] / subtotal * 100) if subtotal > 0 else 0
-            pct_svc = (mr["avg_svc"] / subtotal * 100) if subtotal > 0 else 0
+            for mr in rows:
+                num += 1
+                selisih = mr["avg_cair"] - modal if modal > 0 else 0
+                subtotal = mr["avg_listing"]
+                pct_admin = (mr["avg_komisi"] / subtotal * 100) if subtotal > 0 else 0
+                pct_svc = (mr["avg_svc"] / subtotal * 100) if subtotal > 0 else 0
 
-            if modal == 0:
-                status = "DATA MODAL TIDAK DITEMUKAN"
-            elif selisih < 0:
-                status = f"DI BAWAH TARGET (RUGI Rp {abs(selisih):,.0f})"
-            else:
-                status = f"DI ATAS TARGET +Rp {selisih:,.0f}"
+                if modal == 0:
+                    status = "DATA MODAL TIDAK DITEMUKAN"
+                elif selisih < 0:
+                    status = f"DI BAWAH TARGET (RUGI Rp {abs(selisih):,.0f})"
+                else:
+                    status = f"DI ATAS TARGET +Rp {selisih:,.0f}"
 
-            self._row(ws, r + i, [
-                i, sku or "(tanpa SKU)", mr["item_name"], mr["model_name"], mr["tier"],
-                mr["jml_order"], mr["total_qty"],
-                subtotal, mr["avg_komisi"], pct_admin,
-                mr["avg_svc"], pct_svc, mr["avg_proc"],
-                mr["avg_cair"], modal, selisih, status,
-            ], money)
+                self._row(ws, row_num, [
+                    num, sku, mr["item_name"], mr["model_name"], mr["tier"],
+                    mr["jml_order"], mr["total_qty"],
+                    subtotal, mr["avg_komisi"], pct_admin,
+                    mr["avg_svc"], pct_svc, mr["avg_proc"],
+                    mr["avg_cair"], modal, selisih, status,
+                ], money)
 
-            # Format pct columns manually (not using number_format since values are plain floats)
-            ws.cell(row=r + i, column=10).number_format = '0.0"%"'
-            ws.cell(row=r + i, column=12).number_format = '0.0"%"'
+                ws.cell(row=row_num, column=10).number_format = '0.0"%"'
+                ws.cell(row=row_num, column=12).number_format = '0.0"%"'
 
-            # Highlight RUGI
-            if modal > 0 and selisih < 0:
-                for c in range(1, len(hdrs) + 1):
-                    ws.cell(row=r + i, column=c).fill = red_fill
-                    ws.cell(row=r + i, column=c).font = red_font
-            elif modal > 0 and selisih >= 0:
-                ws.cell(row=r + i, column=17).font = green_font
+                # Highlight RUGI
+                if modal > 0 and selisih < 0:
+                    for c in range(1, len(hdrs) + 1):
+                        ws.cell(row=row_num, column=c).fill = red_fill
+                        ws.cell(row=row_num, column=c).font = red_font
+                elif modal > 0 and selisih >= 0:
+                    ws.cell(row=row_num, column=17).font = green_font
+
+                row_num += 1
 
         self._auto(ws)
 
