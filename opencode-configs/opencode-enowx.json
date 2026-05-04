@@ -2,7 +2,15 @@
   "$schema": "https://opencode.ai/config.json",
   "theme": "system",
   "plugin": [
-    "oh-my-china"
+    "oh-my-openagent@latest",
+    "cc-safety-net@latest",
+    "@ramtinj95/opencode-tokenscope@latest",
+    "@plannotator/opencode@latest",
+    "opencode-supermemory@latest",
+    "opencode-agent-skills@latest",
+    "opencode-mystatus@latest",
+    "opencode-firecrawl",
+    "opencode-wakatime"
   ],
   "provider": {
     "enowxlabs": {
@@ -15,10 +23,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "auto (enowX Labs)"
@@ -31,10 +46,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "auto-thinking (enowX Labs)"
@@ -47,10 +69,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "claude-haiku-4.5 (enowX Labs)"
@@ -63,10 +92,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "reasoning": true,
@@ -80,10 +116,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "reasoning": true,
@@ -97,10 +140,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "claude-sonnet-4 (enowX Labs)"
@@ -113,10 +163,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "claude-sonnet-4-thinking (enowX Labs)"
@@ -129,10 +186,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "claude-sonnet-4.6 (enowX Labs)"
@@ -145,10 +209,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "reasoning": true,
@@ -162,10 +233,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "deepseek-3.2 (enowX Labs)"
@@ -178,10 +256,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "reasoning": true,
@@ -195,10 +280,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "deepseek-v3-2-volc (enowX Labs)"
@@ -211,10 +303,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "enowx-default (enowX Labs)"
@@ -227,10 +326,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "gemini-2.5-flash (enowX Labs)"
@@ -243,10 +349,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "gemini-2.5-pro (enowX Labs)"
@@ -259,10 +372,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "gemini-3.0-flash (enowX Labs)"
@@ -275,10 +395,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "gemini-3.1-flash-lite (enowX Labs)"
@@ -291,10 +418,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "gemini-3.1-pro (enowX Labs)"
@@ -307,10 +441,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "glm-5 (enowX Labs)"
@@ -323,10 +464,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "reasoning": true,
@@ -340,10 +488,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "gpt-5.1 (enowX Labs)"
@@ -356,10 +511,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "gpt-5.1-codex (enowX Labs)"
@@ -372,10 +534,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "gpt-5.1-codex-max (enowX Labs)"
@@ -388,10 +557,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "gpt-5.1-codex-mini (enowX Labs)"
@@ -404,10 +580,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "gpt-5.2 (enowX Labs)"
@@ -420,10 +603,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "gpt-5.2-codex (enowX Labs)"
@@ -436,10 +626,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "gpt-5.3-codex (enowX Labs)"
@@ -452,13 +649,35 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
+            ],
+            "output": [
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
+            ]
+          },
+          "name": "gpt-5.4 (enowX Labs)"
+        },
+        "codex-gpt-5.4": {
+          "limit": {
+            "context": 400000,
+            "output": 128000
+          },
+          "modalities": {
+            "input": [
+              "text"
             ],
             "output": [
               "text"
             ]
           },
-          "name": "gpt-5.4 (enowX Labs)"
+          "name": "codex-gpt-5.4 (enowX Labs)"
         },
         "kimi-k2.5": {
           "limit": {
@@ -468,10 +687,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "kimi-k2.5 (enowX Labs)"
@@ -484,10 +710,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "minimax-m2.1 (enowX Labs)"
@@ -500,10 +733,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "minimax-m2.1-thinking (enowX Labs)"
@@ -516,10 +756,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "minimax-m2.5 (enowX Labs)"
@@ -532,10 +779,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "minimax-m2.5-thinking (enowX Labs)"
@@ -548,10 +802,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "qwen3-coder-next (enowX Labs)"
@@ -564,10 +825,17 @@
           "modalities": {
             "input": [
               "text",
-              "image"
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ],
             "output": [
-              "text"
+              "text",
+              "audio",
+              "image",
+              "video",
+              "pdf"
             ]
           },
           "name": "qwen3-coder-next-thinking (enowX Labs)"
@@ -576,7 +844,7 @@
       "name": "enowX Labs",
       "npm": "@ai-sdk/openai-compatible",
       "options": {
-        "apiKey": "enx-ee77ad316f6d91ec59ff411d32f4992a0f4b04739887e2cd517307ef7c5b8f2a",
+        "apiKey": "enx-30525cfdc4521e4f7def34f643b0d9ee4ee734a77f5e43c9ee74f44cf414f23b",
         "baseURL": "http://localhost:1430/v1"
       }
     }

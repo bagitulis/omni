@@ -136,3 +136,31 @@ def build_single_upsert(schema: str, table: str, cols: List[str],
             f'VALUES ({values_str}) '
             f'ON CONFLICT ({conflict_cols}) DO NOTHING;'
         )
+
+
+def build_batch_plain_insert(schema: str, table: str, cols: List[str],
+                              lines: List[str]) -> str:
+    """Build batch INSERT without ON CONFLICT (for post-TRUNCATE imports).
+
+    Since the table is empty after TRUNCATE and secondary UNIQUE constraints
+    are temporarily dropped, no conflict handling is needed.
+    Prepends SET session_replication_role = 'replica' to disable FK triggers.
+    """
+    safe_schema = validate_identifier(schema)
+    safe_table = validate_identifier(table)
+    col_list = ', '.join(validate_identifier(c) for c in cols)
+
+    values_parts = []
+    for line in lines:
+        row = json.loads(line, parse_float=Decimal)
+        vals = [pg_literal(row.get(col)) for col in cols]
+        values_parts.append(f"({', '.join(vals)})")
+
+    values_str = ',\n'.join(values_parts)
+
+    prefix = "SET session_replication_role = 'replica';\n"
+    return (
+        f'{prefix}'
+        f'INSERT INTO {safe_schema}.{safe_table} ({col_list})\n'
+        f'VALUES {values_str};'
+    )

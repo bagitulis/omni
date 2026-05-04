@@ -27,7 +27,17 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from omni_build.db_config import DatabaseConfig
+from omni_build.ndjson_lfs import materialize_lfs_pointers
 from omni_build.logger import log_error, log_info, log_success, log_warning
+from omni_build.ndjson_constraints import (
+    _delete_constraint_manifest,
+    _discover_secondary_unique_constraints,
+    _drop_secondary_unique_constraints,
+    _load_constraint_manifest,
+    _recover_constraints_if_needed,
+    _recreate_secondary_unique_constraints,
+    _save_constraint_manifest,
+)
 # Threshold: tables with >= this many rows use compressed format (Git LFS)
 LARGE_TABLE_THRESHOLD = 10000
 
@@ -96,6 +106,21 @@ def _psql_query(sql: str, timeout: int = 60) -> Tuple[bool, str]:
         return False, result.stderr[:300]
     return True, result.stdout.strip()
 
+def _psql_query_large(sql: str, timeout: int = 600) -> Tuple[bool, str]:
+    """Execute query via stdin with -t -A flags (for large result sets).
+
+    Combines stdin mode (no shell argument length limit) with -t -A
+    (tuples-only, unaligned) for clean output without headers.
+    """
+    result = subprocess.run(
+        DatabaseConfig.psql_cmd(interactive=True) + ["-q", "-t", "-A"],
+        input=sql,
+        capture_output=True, text=True, timeout=timeout,
+        encoding='utf-8', errors='replace',
+    )
+    if result.returncode != 0:
+        return False, result.stderr[:300]
+    return True, result.stdout
 
 def discover_tables() -> List[TableInfo]:
     """Discover all syncable tables with columns and PKs (dynamic, like Extensions)."""
@@ -333,6 +358,8 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     sync_dir = project_root / SYNC_DIR
     sync_dir.mkdir(parents=True, exist_ok=True)
 
+    # Auto-recover constraints from a previous crashed import
+    _recover_constraints_if_needed(sync_dir, psql_exec_fn=_psql_exec)
     # Run ANALYZE first for accurate row counts
     _psql_exec("ANALYZE;", timeout=300)
 
@@ -398,19 +425,18 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
 def _export_table(table: TableInfo, dest_dir: Path) -> SyncResult:
     """Export a single table to NDJSON (delegates to ndjson_table_ops).
 
-    Each table is exported within a REPEATABLE READ transaction via _psql_exec
-    (stdin-based) to ensure per-table consistency.
+    Wraps query in REPEATABLE READ transaction for per-table consistency.
     """
     from omni_build.ndjson_table_ops import export_table
 
-    def _rr_exec(sql: str, timeout: int) -> Tuple[bool, str]:
-        """Wrap SQL in REPEATABLE READ transaction for consistent per-table export."""
+    def _rr_query(sql: str, timeout: int) -> Tuple[bool, str]:
+        """Wrap SQL in REPEATABLE READ transaction for consistent export."""
         wrapped = (
             "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;\n"
             f"{sql}\n"
             "COMMIT;"
         )
-        return _psql_exec(wrapped, timeout)
+        return _psql_query_large(wrapped, timeout)
 
     exported, errors = export_table(
         schema=table.schema,
@@ -421,25 +447,9 @@ def _export_table(table: TableInfo, dest_dir: Path) -> SyncResult:
         is_large=table.is_large,
         dest_dir=dest_dir,
         large_file_size_bytes=LARGE_FILE_SIZE_BYTES,
-        psql_query_fn=_psql_query,
-        psql_exec_fn=_rr_exec,
+        psql_query_fn=_rr_query,
     )
     return SyncResult(table=table.full_name, exported=exported, errors=errors)
-
-def _check_lfs_pointers(sync_dir: Path) -> bool:
-    """Check if LFS files are actual data (not unresolved pointers)."""
-    large_dir = sync_dir / "_large"
-    if not large_dir.exists():
-        return True
-    for f in large_dir.glob("*.ndjson.gz"):
-        with open(f, 'rb') as fh:
-            header = fh.read(30)
-            if header.startswith(b'version https://git-lfs'):
-                log_error(f"Git LFS pointer detected: {f.name}")
-                log_error("Run: git lfs install && git lfs pull")
-                return False
-    return True
-
 
 def _create_pre_import_backup(sorted_tables: List[TableInfo], sync_dir: Path) -> Optional[Path]:
     """Create a temporary backup of tables that will be truncated.
@@ -480,7 +490,7 @@ def _create_pre_import_backup(sorted_tables: List[TableInfo], sync_dir: Path) ->
         shutil.rmtree(backup_dir, ignore_errors=True)
         return None
 
-    log_info(f"Pre-import backup created: {tables_backed_up} tables → {backup_dir}")
+    log_info(f"Pre-import backup created: {tables_backed_up} tables -> {backup_dir}")
     return backup_dir
 
 
@@ -599,22 +609,26 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
         log_error("No manifest.json found in sync directory")
         return False, []
 
-    # Check for unresolved LFS pointers
-    if not _check_lfs_pointers(sync_dir):
+    # Auto-fix unresolved LFS pointers before any destructive import step.
+    if not materialize_lfs_pointers(project_root, sync_dir):
         return False, []
 
     with open(manifest_path, 'r', encoding='utf-8') as f:
         manifest = json.load(f)
 
-    # Bug #19: Validate manifest version
+    # Bug #19: Validate manifest version.
+    # Version 1 sync files are still importable; version 2 only added export metadata.
     manifest_version = manifest.get('version')
-    if manifest_version != 2:
-        log_error(f"Incompatible manifest version: {manifest_version} (expected 2)")
+    if manifest_version not in (1, 2):
+        log_error(f"Incompatible manifest version: {manifest_version} (expected 1 or 2)")
         return False, []
 
     log_info(f"Importing from: {manifest.get('exported_at', 'unknown')}")
     log_info(f"Machine: {manifest.get('machine', 'unknown')}")
     log_info(f"Total rows: {manifest.get('total_rows', 0):,}")
+
+    # Auto-recover constraints from a previous crashed import
+    _recover_constraints_if_needed(sync_dir, psql_exec_fn=_psql_exec)
 
     # Discover current table structure
     log_info("Discovering current table structure...")
@@ -637,25 +651,46 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     # Sort by dependencies (parents first)
     sorted_tables = _topo_sort(tables)
 
+    # Discover secondary UNIQUE constraints (will be dropped during import)
+    schema_list = ','.join(f"'{t.schema}'" for t in tables)
+    table_list = ','.join(f"'{t.name}'" for t in tables)
+    secondary_constraints = _discover_secondary_unique_constraints(schema_list, table_list, psql_query_fn=_psql_query)
+    if secondary_constraints:
+        total_cons = sum(len(v) for v in secondary_constraints.values())
+        log_info(f"Found {total_cons} secondary UNIQUE constraint(s) to manage")
+
     # Pre-import safety: backup current data before destructive truncate
     log_info("Creating pre-import backup...")
     backup_dir = _create_pre_import_backup(sorted_tables, sync_dir)
 
     try:
         # Phase 1: TRUNCATE all tables in REVERSE order (children first)
-        # This avoids CASCADE which could destroy data in unrelated tables
         log_info("Truncating tables (reverse dependency order)...")
+        truncate_failures = 0
         for table in reversed(sorted_tables):
             schema_dir = sync_dir / table.schema
             ndjson_file = schema_dir / f"{table.name}.ndjson"
             large_file = sync_dir / "_large" / f"{table.schema}.{table.name}.ndjson.gz"
             if ndjson_file.exists() or large_file.exists():
-                # Use session_replication_role to skip FK checks during truncate
-                _psql_exec(
+                ok, err = _psql_exec(
                     f"SET session_replication_role = 'replica';\n"
-                    f"TRUNCATE {table.schema}.{table.name};",
+                    f"TRUNCATE {table.schema}.{table.name} CASCADE;",
                     timeout=30
                 )
+                if not ok:
+                    truncate_failures += 1
+                    log_warning(f"  TRUNCATE {table.full_name} failed: {err[:100]}")
+        if truncate_failures > 0:
+            log_warning(f"  {truncate_failures} table(s) failed to truncate")
+
+        # Phase 1.5: Drop secondary UNIQUE constraints (prevents conflicts
+        # when PK differs between export machine and import machine)
+        if secondary_constraints:
+            # Save manifest BEFORE dropping (crash recovery)
+            _save_constraint_manifest(secondary_constraints, sync_dir)
+            log_info("Dropping secondary UNIQUE constraints...")
+            dropped = _drop_secondary_unique_constraints(secondary_constraints, psql_exec_fn=_psql_exec)
+            log_info(f"  Dropped {dropped} constraint(s)")
 
         # Phase 2: Import all tables in dependency order (parents first)
         results = []
@@ -667,10 +702,16 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
             ndjson_file = schema_dir / f"{table.name}.ndjson"
             large_file = sync_dir / "_large" / f"{table.schema}.{table.name}.ndjson.gz"
 
+            # Only use plain INSERT for tables that have secondary UNIQUE constraints
+            table_key = f"{table.schema}.{table.name}"
+            table_has_secondary = table_key in secondary_constraints
+
             if large_file.exists():
-                r = _import_table(table, large_file, compressed=True)
+                r = _import_table(table, large_file, compressed=True,
+                                  use_plain_insert=table_has_secondary)
             elif ndjson_file.exists():
-                r = _import_table(table, ndjson_file, compressed=False)
+                r = _import_table(table, ndjson_file, compressed=False,
+                                  use_plain_insert=table_has_secondary)
             else:
                 continue
 
@@ -680,6 +721,11 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
 
     except Exception as exc:
         log_error(f"Import failed with exception: {exc}")
+        # Always try to recreate constraints even on failure
+        if secondary_constraints:
+            log_info("Recreating UNIQUE constraints after failure...")
+            _recreate_secondary_unique_constraints(secondary_constraints, psql_exec_fn=_psql_exec)
+            _delete_constraint_manifest(sync_dir)
         if backup_dir:
             _restore_from_backup(backup_dir)
         else:
@@ -689,10 +735,22 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     # Import succeeded — cleanup backup
     _cleanup_backup(backup_dir)
 
-    # Phase 3: Reset sequences to max(pk) + 1
+    # Phase 3: Recreate secondary UNIQUE constraints
+    if secondary_constraints:
+        log_info("Recreating secondary UNIQUE constraints...")
+        constraint_failures = _recreate_secondary_unique_constraints(secondary_constraints, psql_exec_fn=_psql_exec)
+        _delete_constraint_manifest(sync_dir)
+        if constraint_failures > 0:
+            log_warning(
+                f"{constraint_failures} constraint(s) failed to recreate "
+                f"(possible duplicate data in import)"
+            )
+            errors += constraint_failures
+
+    # Phase 4: Reset sequences to max(pk) + 1
     _reset_sequences(sorted_tables)
 
-    # Phase 4: Run ANALYZE for query planner
+    # Phase 5: Run ANALYZE for query planner
     log_info("Running ANALYZE...")
     _psql_exec("ANALYZE;", timeout=300)
 
@@ -704,7 +762,8 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     return True, results
 
 
-def _import_table(table: TableInfo, filepath: Path, compressed: bool) -> SyncResult:
+def _import_table(table: TableInfo, filepath: Path, compressed: bool,
+                  use_plain_insert: bool = False) -> SyncResult:
     """Import a single NDJSON file (delegates to ndjson_table_ops)."""
     # Query NOT NULL columns (excluding PK and columns with defaults)
     not_null_cols: list[str] = []
@@ -732,5 +791,6 @@ def _import_table(table: TableInfo, filepath: Path, compressed: bool) -> SyncRes
         compressed=compressed,
         psql_exec_fn=_psql_exec,
         not_null_columns=not_null_cols,
+        use_plain_insert=use_plain_insert,
     )
     return SyncResult(table=table.full_name, imported=imported, skipped=skipped, errors=errors)

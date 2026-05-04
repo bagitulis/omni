@@ -5,6 +5,7 @@ SRP: This module ONLY defines CLI commands.
 Build logic is in orchestrator.py.
 """
 import sys
+import time
 
 import click
 from rich.console import Console
@@ -19,6 +20,40 @@ from omni_build.health_checker import HealthChecker
 from omni_build.logger import confirm, log_error, log_info, log_success, log_warning
 from omni_build.models import BuildMode, BuildResult, SpecLevel
 from omni_build.orchestrator import BuildOrchestrator
+
+
+def _ensure_docker_and_postgres(config: Config) -> bool:
+    """Ensure Docker is running and PostgreSQL is ready (smart auto-handling)."""
+    error_handler = ErrorHandler()
+    docker_manager = DockerManager(config, error_handler)
+    restorer = DatabaseRestorer(config)
+
+    # Step 1: Ensure Docker Desktop is running
+    log_info("Checking Docker readiness...")
+    for attempt in range(3):
+        try:
+            if docker_manager.check_docker_ready():
+                break
+        except Exception as e:
+            if attempt < 2:
+                log_warning(f"Docker check failed, retrying... ({attempt+1}/3)")
+                time.sleep(5)
+            else:
+                log_error(f"Docker is not ready: {e}")
+                return False
+    else:
+        log_error("Docker is not ready after 3 attempts")
+        return False
+
+    # Step 2: Ensure PostgreSQL container is running and healthy
+    log_info("Waiting for PostgreSQL...")
+    if not restorer.wait_for_postgres(timeout=120):
+        log_error("PostgreSQL is not ready after 120s")
+        return False
+
+    log_success("Docker and PostgreSQL are ready")
+    return True
+
 
 console = Console()
 
@@ -287,15 +322,20 @@ def restore(force: bool, keep_extra: bool):
 def backup(force: bool, dry_run: bool):
     """Backup database (smart format - pg_dump per table)."""
     config = Config.from_env()
+
+    if not dry_run:
+        if not _ensure_docker_and_postgres(config):
+            sys.exit(1)
+
     backup_handler = DatabaseBackup(config)
-    
+
     success, message = backup_handler.backup(force=force, dry_run=dry_run)
-    
+
     if success:
         log_success(f"Backup completed: {message}")
     else:
         log_error(f"Backup failed: {message}")
-    
+
     sys.exit(0 if success else 1)
 
 
@@ -303,17 +343,21 @@ def backup(force: bool, dry_run: bool):
 def sync_export():
     """Export database to NDJSON (git-friendly, like Extensions)."""
     config = Config.from_env()
+
+    if not _ensure_docker_and_postgres(config):
+        sys.exit(1)
+
     from omni_build.ndjson_sync import export_all
-    
+
     success, results = export_all(config.project_root)
-    
+
     if success:
         total = sum(r.exported for r in results)
         log_success(f"Sync export complete: {len(results)} tables, {total:,} rows")
         log_info("Next: git add backups/sync/ && git commit && git push")
     else:
         log_error("Sync export failed")
-    
+
     sys.exit(0 if success else 1)
 
 
@@ -322,20 +366,24 @@ def sync_export():
 def sync_import(force: bool):
     """Import database from NDJSON (restore from git sync)."""
     config = Config.from_env()
-    from omni_build.ndjson_sync import import_all
-    
+
     if not force:
         if not confirm("This will TRUNCATE and reimport all tables. Continue?"):
             log_info("Cancelled")
             sys.exit(0)
-    
+
+    if not _ensure_docker_and_postgres(config):
+        sys.exit(1)
+
+    from omni_build.ndjson_sync import import_all
+
     success, results = import_all(config.project_root)
-    
+
     if success:
         total = sum(r.imported for r in results)
         log_success(f"Sync import complete: {len(results)} tables, {total:,} rows")
     else:
         errors = sum(r.errors for r in results)
         log_error(f"Sync import failed ({errors} errors)")
-    
+
     sys.exit(0 if success else 1)

@@ -30,7 +30,11 @@ def load_profiles(profiles_file: Path) -> dict:
 
     try:
         with open(profiles_file, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+        if "shared" not in data or "profiles" not in data:
+            print(f"   [ERROR] {profiles_file.name} missing 'shared' or 'profiles' key")
+            sys.exit(1)
+        return data
     except json.JSONDecodeError as e:
         print(f"   [ERROR] Invalid JSON in {profiles_file.name}: {e}")
         sys.exit(1)
@@ -39,27 +43,41 @@ def load_profiles(profiles_file: Path) -> dict:
 def merge_profile(shared: dict, profile: dict) -> dict:
     """Deep-merge shared config with profile overrides.
 
-    Shared provides: $schema, google_auth, browser_automation_engine,
-                     agents (prompt_append, skills), categories (prompt_append, skills).
-    Profile provides: default_model, variant,
-                      agents (model, variant, temperature, reasoningEffort),
+    Shared provides all top-level config keys: $schema, google_auth,
+    browser_automation_engine, model_fallback, runtime_fallback, hashline_edit,
+    experimental, notification, auto_update, background_task, plus
+    agents (prompt_append, skills, permission) and categories (prompt_append, skills).
+
+    Profile provides: default_model, small_model, variant,
+                      agents (model, variant, temperature, reasoningEffort, fallback_models),
                       categories (model, variant, temperature, reasoningEffort).
 
     Returns a valid oh-my-opencode.json dict (no internal keys like _comment).
     """
+    # Keys that are internal to opencode-profiles.json, not part of output
+    _internal_keys = {"_comment", "_version", "_shared_warning", "_description"}
+    # Keys that require deep-merge (shared + profile sections combined)
+    _merge_keys = {"agents", "categories"}
+    # Profile keys that are ONLY for internal use (not valid in oh-my-openagent.json)
+    # 'model' in profile root = legacy reference model, not a valid output key
+    _profile_only_keys = {"model"}
+
     result = {}
 
-    # Copy top-level shared keys
-    for key in ("$schema", "google_auth", "browser_automation_engine"):
-        if key in shared:
-            result[key] = copy.deepcopy(shared[key])
+    # Copy ALL shared top-level keys (except internal and merge-keys)
+    for key, value in shared.items():
+        if key in _internal_keys or key in _merge_keys:
+            continue
+        result[key] = copy.deepcopy(value)
 
-    # Copy profile top-level keys
-    for key in ("default_model", "variant"):
-        if key in profile:
-            result[key] = profile[key]
+    # Copy profile top-level keys (except internal, merge-keys, and profile-only)
+    # Profile keys override shared keys (e.g. profile can override auto_update)
+    for key, value in profile.items():
+        if key in _internal_keys or key in _merge_keys or key in _profile_only_keys:
+            continue
+        result[key] = copy.deepcopy(value)
 
-    # Merge agents and categories: shared props + profile props
+    # Deep-merge agents and categories: shared props + profile props
     result["agents"] = _merge_section(
         shared.get("agents", {}), profile.get("agents", {})
     )
@@ -130,4 +148,23 @@ def inject_lsp_config(config: dict) -> dict:
         if server_id not in existing_lsp:
             existing_lsp[server_id] = server_config
     config["lsp"] = existing_lsp
+    return config
+
+
+def validate_plugin_config(config: dict) -> dict:
+    """Validate and auto-fix dynamic_context_pruning to match plugin Zod schema."""
+    dcp = config.get("experimental", {}).get("dynamic_context_pruning")
+    if not dcp:
+        return config
+
+    if isinstance(dcp.get("turn_protection"), (int, float)):
+        dcp["turn_protection"] = {"enabled": True, "turns": dcp["turn_protection"]}
+        print("   [AUTO-FIX] turn_protection: number -> {enabled, turns}")
+
+    strategies = dcp.get("strategies", {})
+    for key in ("deduplication", "supersede_writes", "purge_errors"):
+        if isinstance(strategies.get(key), bool):
+            strategies[key] = {"enabled": strategies[key]}
+            print(f"   [AUTO-FIX] strategies.{key}: bool -> {{enabled}}")
+
     return config

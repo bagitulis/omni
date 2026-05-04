@@ -8,9 +8,10 @@ apikey fetching, and injecting apikey into config files.
 import json
 import subprocess
 import time
+import urllib.request
+import urllib.error
 
 from ai_constants import ENOWX_CONFIG_LOCATIONS, ENOWX_LICENSE_KEY
-
 
 def _run_cmd(args: list[str], capture: bool = False) -> str | None:
     """Run an enowxai CLI command.
@@ -42,6 +43,56 @@ def _run_cmd(args: list[str], capture: bool = False) -> str | None:
         print(f"   [ERROR] enowxai {args[0] if args else ''} timed out (30s)")
         return None
 
+
+def _wait_for_dashboard(timeout: int = 30) -> bool:
+    """Wait for dashboard to be ready by polling health endpoint.
+
+    Returns True if dashboard responds, False if timeout reached.
+    """
+    import socket
+
+    start_time = time.time()
+    check_interval = 1  # Check every second initially
+
+    while time.time() - start_time < timeout:
+        try:
+            # Try to connect to dashboard port
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(2)
+            result = sock.connect_ex(('127.0.0.1', 1431))
+            sock.close()
+
+            if result == 0:
+                # Port is open, now try HTTP request
+                try:
+                    req = urllib.request.Request(
+                        'http://127.0.0.1:1431',
+                        method='HEAD',
+                        headers={'User-Agent': 'AI.py/6.0'}
+                    )
+                    with urllib.request.urlopen(req, timeout=3) as response:
+                        # Dashboard is responding
+                        return True
+                except urllib.error.HTTPError as e:
+                    # HTTP error but server is responding (e.g., 401 Unauthorized)
+                    if e.code in (401, 403, 302, 307):
+                        # These mean dashboard is up but needs auth
+                        print(f"   [OK] Dashboard ready (auth required)")
+                        return True
+                    # Other errors might mean still initializing
+                except Exception:
+                    # Connection refused or other error, keep waiting
+                    pass
+        except Exception:
+            pass
+
+        time.sleep(check_interval)
+        # Show progress every 5 seconds
+        elapsed = int(time.time() - start_time)
+        if elapsed % 5 == 0 and elapsed > 0:
+            print(f"   [WAIT] Still waiting... ({elapsed}s/{timeout}s)")
+
+    return False
 
 def _mask_key(key: str) -> str:
     """Mask license key showing first 5 and last 5 chars only."""
@@ -98,8 +149,14 @@ def setup() -> bool:
     print(f"   [OK] {start_out}")
 
     # Wait for proxy server to fully initialize
-    print("   [WAIT] Waiting for proxy server to initialize (5 seconds)...")
-    time.sleep(5)
+    # Wait for dashboard to be ready with health check
+    print("   [WAIT] Waiting for dashboard to initialize...")
+    if not _wait_for_dashboard(timeout=30):
+        print("   [WARN] Dashboard not responding — may need login")
+        print("   [INFO] Open http://localhost:1431 in browser and login with password: 123y")
+        print("   [INFO] Then retry selecting enowX profile")
+        print("   --- enowX Setup Complete (with warnings) ---\n")
+        return True  # Return True because proxy started, just needs auth
 
     # Verify proxy is running by fetching apikey
     print("   [VERIFY] Checking proxy is responding...")
@@ -108,7 +165,8 @@ def setup() -> bool:
         print(f"   [OK] Proxy verified — apikey: {verify_out[:12]}...")
     else:
         print("   [WARN] Proxy started but apikey not yet available")
-        print("   [INFO] Try selecting a profile (option 3/4) to retry apikey fetch")
+        print("   [INFO] If dashboard shows login page, use password: 123y")
+        print("   [INFO] Then retry selecting enowX profile")
 
     print("   --- enowX Setup Complete ---\n")
     return True
@@ -124,10 +182,26 @@ def fetch_and_inject_apikey() -> bool:
     Returns True on success.
     """
     print("   [enowX] Fetching apikey...")
-    apikey = _run_cmd(["apikey"], capture=True)
+
+    # Retry with exponential backoff for dashboard initialization
+    max_retries = 5
+    base_delay = 1
+    apikey = None
+
+    for attempt in range(max_retries):
+        apikey = _run_cmd(["apikey"], capture=True)
+        if apikey and apikey.startswith("enx-"):
+            break
+        if attempt < max_retries - 1:
+            delay = base_delay * (2 ** attempt)  # 1, 2, 4, 8, 16 seconds
+            print(f"   [WAIT] Dashboard not ready, retrying in {delay}s... (attempt {attempt + 1}/{max_retries})")
+            time.sleep(delay)
+
     if not apikey:
-        print("   [ERROR] Failed to retrieve enowxai apikey")
-        print("   [INFO] Auto-triggering enowX Setup...")
+        print("   [ERROR] Failed to retrieve enowxai apikey after retries")
+        print("   [INFO] Dashboard may require authentication")
+        print("   [INFO] Open http://localhost:1431 in browser and login with password: 123y")
+        print("   [INFO] Then retry selecting enowX profile")
         return False
 
     if not apikey.startswith("enx-"):

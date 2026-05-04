@@ -55,6 +55,29 @@ def _inject_small_model(merged_config: dict, opencode_json_path: Path):
         print(f"   [WARN] Could not inject small_model: {e}")
 
 
+def _inject_small_model(merged_config: dict, opencode_json_path: Path):
+    """Inject small_model from profile into opencode.json.
+
+    Reads the copied opencode.json, sets the small_model key from the
+    merged profile config, and writes it back. This ensures opencode uses
+    the profile's preferred lightweight model for title generation instead
+    of auto-selecting from available models.
+    """
+    small_model = merged_config.get("small_model")
+    if not small_model:
+        return
+
+    try:
+        data = json.loads(opencode_json_path.read_text(encoding="utf-8"))
+        data["small_model"] = small_model
+        opencode_json_path.write_text(
+            json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"   [WARN] Could not inject small_model: {e}")
+
+
 def detect_current_provider() -> str:
     """Detect current provider from oh-my-openagent.json (or legacy oh-my-opencode.json)."""
     config_file = TARGET_DIR / "oh-my-openagent.json"

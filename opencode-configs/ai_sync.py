@@ -44,18 +44,18 @@ def smart_sync_accounts(
         (target_dir / "antigravity-accounts.json", ".config/opencode"),
     ]
 
-    # Only include AppData locations if paths are valid (not empty)
-    if appdata_dir and str(appdata_dir) != "opencode":
+    # Only include AppData locations if paths are valid (not None)
+    if appdata_dir is not None and appdata_dir.exists():
         locations.append(
             (appdata_dir / "antigravity-accounts.json", "AppData/Roaming/opencode")
         )
-    if localappdata_dir and str(localappdata_dir) != "opencode":
+    if localappdata_dir is not None and localappdata_dir.exists():
         locations.append(
             (localappdata_dir / "antigravity-accounts.json", "AppData/Local/opencode")
         )
 
     target_dir.mkdir(parents=True, exist_ok=True)
-    if appdata_dir and str(appdata_dir) != "opencode":
+    if appdata_dir is not None:
         appdata_dir.mkdir(parents=True, exist_ok=True)
 
     mtimes = [(loc, name, get_file_mtime(loc)) for loc, name in locations]
@@ -93,7 +93,7 @@ def sync_antigravity_json(
         return
 
     destinations = [target_dir / "antigravity.json"]
-    if appdata_dir and str(appdata_dir) != "opencode":
+    if appdata_dir is not None and appdata_dir.parent.exists():
         destinations.append(appdata_dir / "antigravity.json")
 
     for dst in destinations:
