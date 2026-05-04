@@ -120,13 +120,13 @@ class XLSXExporter:
                 sku = order_items[0]["model_sku"] or order_items[0]["sku"]
                 nama = order_items[0]["item_name"]
                 qty = order_items[0]["quantity"]
-                subtotal = order_items[0]["original_price"]
+                subtotal = order_items[0]["discounted_price"]
             elif len(order_items) > 1:
                 skus = [it["model_sku"] or it["sku"] for it in order_items]
                 sku = ", ".join(s for s in skus if s)
                 nama = f"({len(order_items)} produk)"
                 qty = sum(it["quantity"] for it in order_items)
-                subtotal = sum(it["original_price"] for it in order_items)
+                subtotal = sum(it["discounted_price"] for it in order_items)
             else:
                 sku, nama, qty, subtotal = "", "", 0, 0
 
@@ -146,7 +146,7 @@ class XLSXExporter:
                 if key:
                     val = sum(o[key] for o in orders)
                 else:
-                    val = sum(it["original_price"] for it in items)
+                    val = sum(it["discounted_price"] for it in items)
                 c = ws.cell(row=row_num, column=ci, value=val)
                 c.number_format = CURRENCY_FORMAT
                 c.font = self.bold
@@ -197,7 +197,7 @@ class XLSXExporter:
             for mr in rows:
                 num += 1
                 selisih = mr["avg_cair"] - modal if modal > 0 else 0
-                subtotal = mr["avg_listing"]
+                subtotal = mr["avg_subtotal"]
                 pct_admin = (mr["avg_komisi"] / subtotal * 100) if subtotal > 0 else 0
                 pct_svc = (mr["avg_svc"] / subtotal * 100) if subtotal > 0 else 0
 
@@ -235,26 +235,28 @@ class XLSXExporter:
 
     def _sheet_modal(self, costs):
         ws = self.wb.create_sheet("Data Modal (Referensi)")
-        ws.cell(row=1, column=1, value="HARGA MODAL PER PRODUK").font = self.title
-        ws.merge_cells("A1:G1")
+        ws.cell(row=1, column=1, value="CARA HITUNG HARGA MODAL & HARGA MARKETPLACE").font = self.title
+        ws.merge_cells("A1:I1")
         ws.cell(row=2, column=1, value="Sumber: Google Sheet 'ALL PRODUCT'. Hanya produk yang terjual di periode ini.").font = self.sub
-        ws.cell(row=3, column=1, value="Rumus: Harga Beli/Karton (in PPN) / Pcs per Karton = Harga Beli/unit. + Margin 3% = Harga Modal/unit.").font = self.sub
+        ws.cell(row=3, column=1, value="Rumus: Beli (in PPN) + Margin 3% = Harga Modal. Lalu Modal / (1 - 18% biaya platform) = Harga Marketplace.").font = self.sub
 
-        hdrs = ["No", "SKU", "Nama Barang", "Satuan Jual",
-                "Pcs/Karton", "Harga Beli/Karton in PPN (Rp)",
-                "Harga Beli/unit (Rp)", "Harga Modal/unit +3% (Rp)"]
+        hdrs = ["No", "SKU", "Nama Barang", "Pcs/Karton",
+                "Beli/Karton in PPN (Rp)", "Beli/unit (Rp)",
+                "Modal/Karton +3% (Rp)", "Modal/unit +3% (Rp)",
+                "Harga Marketplace (Rp) (referensi)"]
         r = 5
         for c, h in enumerate(hdrs, 1):
             ws.cell(row=r, column=c, value=h)
         self._hdr(ws, r, len(hdrs))
-        money = {6, 7, 8}
+        money = {5, 6, 7, 8, 9}
 
         sorted_costs = sorted(costs.items(), key=lambda x: x[0])
         for i, (sku, c) in enumerate(sorted_costs, 1):
             self._row(ws, r + i, [
-                i, sku, c["nama_sheet"], c.get("satuan_jual", "pcs"),
-                c["pcs_per_karton"], c["beli_per_karton"],
-                c["beli_per_unit"], c["modal_per_unit"],
+                i, sku, c["nama_sheet"], c["pcs_per_karton"],
+                c["beli_per_karton"], c["beli_per_unit"],
+                c["jual_karton"], c["modal_per_unit"],
+                c["harga_mp"],
             ], money)
 
         self._auto(ws)

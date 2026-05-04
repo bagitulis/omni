@@ -117,13 +117,14 @@ class ShopeeFinanceFetcher:
         return items
 
     def get_margin_analysis(self, month, year):
-        """Per SKU per qty-tier. Uses COALESCE(model_sku, sku) to handle empty model_sku."""
+        """Per SKU per qty-tier. Uses discounted_price as subtotal (after seller wholesale discount)."""
         print("[DB] Querying margin analysis...")
         raw = run_db_query(f"""
         WITH single_item AS (
           SELECT COALESCE(NULLIF(i.model_sku,''), i.sku) as effective_sku,
                  i.item_name, i.model_name, i.quantity,
-                 i.original_price, o.escrow_amount, o.commission_fee, o.service_fee, o.seller_processing_fee
+                 i.discounted_price, i.seller_discount,
+                 o.escrow_amount, o.commission_fee, o.service_fee, o.seller_processing_fee
           FROM {self.schema}.shopee_escrow_items i
           JOIN {self.schema}.shopee_escrow_orders o ON o.id = i.escrow_order_id
           WHERE o.month={month} AND o.year={year}
@@ -137,22 +138,24 @@ class ShopeeFinanceFetcher:
         )
         SELECT effective_sku, item_name, model_name, tier,
           COUNT(*), SUM(quantity),
-          ROUND(AVG(original_price::numeric/quantity),0),
+          ROUND(AVG(discounted_price::numeric/quantity),0),
           ROUND(AVG(escrow_amount::numeric/quantity),0),
           ROUND(AVG(commission_fee::numeric/quantity),0),
           ROUND(AVG(service_fee::numeric/quantity),0),
-          ROUND(AVG(seller_processing_fee::numeric/quantity),0)
+          ROUND(AVG(seller_processing_fee::numeric/quantity),0),
+          ROUND(AVG(seller_discount::numeric/quantity),0)
         FROM tiered GROUP BY effective_sku, item_name, model_name, tier, tier_sort
         ORDER BY effective_sku, tier_sort;""")
         if not raw: return []
         rows = []
         for line in raw.split("\n"):
             c = line.split("\t")
-            if len(c) < 11: continue
+            if len(c) < 12: continue
             rows.append({"sku": c[0], "item_name": c[1], "model_name": c[2], "tier": c[3],
                 "jml_order": _i(c[4]), "total_qty": _i(c[5]),
-                "avg_listing": _f(c[6]), "avg_cair": _f(c[7]),
-                "avg_komisi": _f(c[8]), "avg_svc": _f(c[9]), "avg_proc": _f(c[10])})
+                "avg_subtotal": _f(c[6]), "avg_cair": _f(c[7]),
+                "avg_komisi": _f(c[8]), "avg_svc": _f(c[9]), "avg_proc": _f(c[10]),
+                "avg_seller_disc": _f(c[11])})
         print(f"[DB] {len(rows)} margin rows")
         return rows
 
@@ -179,32 +182,20 @@ class ShopeeFinanceFetcher:
             if len(row) < 14: continue
             sku = row[2]
             if sku not in skus: continue
+            nama = row[5] if len(row) > 5 else ""
+            harga_mp = int(row[6]) if len(row) > 6 and row[6].isdigit() else 0
             pcs = int(row[9]) if len(row) > 9 and row[9].isdigit() else 1
             beli_karton = _parse_rp(row[11]) if len(row) > 11 else 0
-            jual_karton = _parse_rp(row[13]) if len(row) > 13 else 0  # beli + margin 3%
-            harga_mp = int(row[6]) if len(row) > 6 and row[6].isdigit() else 0  # harga marketplace per unit
-
-            # Modal per unit = harga jual (beli+3%) per karton / pcs per karton
-            # Tapi untuk perbandingan, pakai harga_mp sebagai referensi satuan jual
-            beli_per_unit = round(beli_karton / pcs) if pcs else 0
-            modal_per_unit = round(jual_karton / pcs) if pcs else 0
-
-            # Tentukan satuan jual dari nama barang
-            nama = row[5] if len(row) > 5 else ""
-            satuan = "pcs"
-            if "renceng" in nama.lower() or "sachet" in nama.lower():
-                satuan = "renceng"
-            elif "renceng" in str(row[7]).lower():
-                satuan = "renceng"
+            jual_karton = _parse_rp(row[13]) if len(row) > 13 else 0
 
             costs[sku] = {
                 "nama_sheet": nama,
-                "satuan_jual": satuan,
                 "pcs_per_karton": pcs,
-                "harga_mp": harga_mp,
-                "beli_per_karton": beli_karton,
-                "beli_per_unit": beli_per_unit,
-                "modal_per_unit": modal_per_unit,  # beli + 3%
+                "beli_per_karton": beli_karton,                          # Kolom M
+                "beli_per_unit": round(beli_karton / pcs) if pcs else 0,  # Beli/unit
+                "jual_karton": jual_karton,                               # Kolom O = Beli + 3%
+                "modal_per_unit": round(jual_karton / pcs) if pcs else 0, # MODAL = (Beli+3%)/unit
+                "harga_mp": harga_mp,                                     # Kolom G (referensi saja)
             }
 
         nf = [s for s in skus if s and s not in costs]
@@ -220,7 +211,7 @@ class ShopeeFinanceFetcher:
         costs = self.get_product_costs(all_skus)
 
         te = sum(o["escrow_amount"] for o in orders)
-        total_subtotal = sum(i["original_price"] for i in items)  # subtotal produk
+        total_subtotal = sum(i["discounted_price"] for i in items)  # subtotal aktual (setelah diskon seller)
 
         summary = {"period": f"{month:02d}/{year}", "order_count": len(orders),
             "item_count": len(items), "total_qty_sold": sum(i["quantity"] for i in items),
