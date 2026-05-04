@@ -125,7 +125,7 @@ func (s *StockService) UpdateStock(ctx context.Context, req models.StockUpdateRe
 	if err != nil {
 		result.Success = false
 		result.Message = "SKU not found"
-		return result, fmt.Errorf("SKU %s not found: %w", req.SKU, err)
+		return result, nil
 	}
 
 	// Update quantity in JSONB data

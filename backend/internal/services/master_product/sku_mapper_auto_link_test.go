@@ -31,6 +31,14 @@ func setupAutoMapLinkTestDB(t *testing.T) *gorm.DB {
 	)
 	require.NoError(t, err)
 
+	// Create unique index for SQLite ON CONFLICT matching
+	tableName := models.MasterProductPlatformLink{}.TableName()
+	err = db.Exec(fmt.Sprintf(
+		"CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_links_unique ON %s (platform, platform_product_id, platform_sku_id)",
+		tableName,
+	)).Error
+	require.NoError(t, err)
+
 	return db
 }
 

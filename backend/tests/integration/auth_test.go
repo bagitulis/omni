@@ -15,8 +15,8 @@ import (
 // Test configuration
 var (
 	baseURL  = getEnv("TEST_BASE_URL", "http://localhost:3000")
-	testUser = getEnv("TEST_USERNAME", "tester")
-	testPass = getEnv("TEST_PASSWORD", "tester@123")
+	testUser = getEnv("TEST_USERNAME", "yumna")
+	testPass = getEnv("TEST_PASSWORD", "password123")
 )
 
 func getEnv(key, fallback string) string {
@@ -36,6 +36,14 @@ type APIResponse struct {
 	User     json.RawMessage `json:"user,omitempty"`
 	Data     json.RawMessage `json:"data,omitempty"`
 	Tenants  json.RawMessage `json:"tenants,omitempty"`
+}
+
+// LoginData represents the data field in login response
+type LoginData struct {
+	Token       string `json:"token"`
+	AccessToken string `json:"access_token"`
+	TenantID    string `json:"tenant_id"`
+	ExpiresIn   int    `json:"expires_in"`
 }
 
 // TenantInfo represents tenant information
@@ -135,11 +143,30 @@ func TestLogin_Success(t *testing.T) {
 		t.Errorf("Expected success=true, got false. Error: %s", result.Error)
 	}
 
-	if result.Token == "" {
+	// Parse nested data field for token and tenant_id
+	var loginData LoginData
+	if result.Data != nil {
+		json.Unmarshal(result.Data, &loginData)
+	}
+
+	// Token can be at root level or inside data
+	token := result.Token
+	if token == "" {
+		token = loginData.Token
+	}
+	if token == "" {
+		token = loginData.AccessToken
+	}
+	if token == "" {
 		t.Error("Expected non-empty token")
 	}
 
-	if result.TenantID == "" {
+	// TenantID can be at root level or inside data
+	tenantID := result.TenantID
+	if tenantID == "" {
+		tenantID = loginData.TenantID
+	}
+	if tenantID == "" {
 		t.Error("Expected non-empty tenant_id")
 	}
 

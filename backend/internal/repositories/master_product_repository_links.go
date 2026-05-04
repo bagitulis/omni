@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/omni/backend/internal/models"
-	"gorm.io/gorm/clause"
+	"gorm.io/gorm"
 )
 
 // ================== Platform Link Operations ==================
@@ -56,7 +56,9 @@ func (r *MasterProductRepository) DeletePlatformLink(ctx context.Context, id uin
 	return r.db.WithContext(ctx).Delete(&models.MasterProductPlatformLink{}, id).Error
 }
 
-// UpsertPlatformLink creates or updates a platform link using atomic DB operation.
+// UpsertPlatformLink creates or updates a platform link.
+// Uses find-then-update-or-create to work with both PostgreSQL (partial unique index)
+// and SQLite (no named constraint support).
 func (r *MasterProductRepository) UpsertPlatformLink(ctx context.Context, link *models.MasterProductPlatformLink) error {
 	if link == nil {
 		return errors.New("platform link is nil")
@@ -68,16 +70,37 @@ func (r *MasterProductRepository) UpsertPlatformLink(ctx context.Context, link *
 	}
 	link.UpdatedAt = now
 
-	// The unique index uses COALESCE: (platform, platform_product_id, COALESCE(platform_sku_id, ''))
-	// GORM's clause.Column cannot express COALESCE, so we target the constraint by name.
-	return r.db.WithContext(ctx).
-		Clauses(clause.OnConflict{
-			OnConstraint: "idx_platform_links_unique",
-			DoUpdates: clause.AssignmentColumns([]string{
-				"master_product_id", "master_sku_id", "platform_item_id",
-				"sync_status", "last_synced_at", "updated_at",
-			}),
-		}).Create(link).Error
+	// Build the conflict match condition:
+	// Match on (platform, platform_product_id, platform_sku_id)
+	query := r.db.WithContext(ctx).Where(
+		"platform = ? AND platform_product_id = ? AND COALESCE(platform_sku_id, '') = COALESCE(?, '')",
+		link.Platform, link.PlatformProductID, link.PlatformSkuID,
+	)
+
+	var existing models.MasterProductPlatformLink
+	err := query.First(&existing).Error
+	if err == nil {
+		// Update existing link
+		updates := map[string]interface{}{
+			"master_product_id": link.MasterProductID,
+			"master_sku_id":     link.MasterSkuID,
+			"platform_item_id":  link.PlatformItemID,
+			"sync_status":       link.SyncStatus,
+			"last_synced_at":    link.LastSyncedAt,
+			"updated_at":        now,
+		}
+		if err := r.db.WithContext(ctx).Model(&existing).Updates(updates).Error; err != nil {
+			return err
+		}
+		link.ID = existing.ID
+		return nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+
+	// Create new link
+	return r.db.WithContext(ctx).Create(link).Error
 }
 
 

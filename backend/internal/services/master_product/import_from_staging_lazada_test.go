@@ -2,6 +2,7 @@ package master_product
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/omni/backend/internal/models"
@@ -18,6 +19,13 @@ func TestStagingImportService_ImportFromLazadaStaging_MatchesByExistingSellerSku
 		&models.LazadaProduct{},
 		&models.LazadaSku{},
 	)
+
+	// Create the unique index that UpsertPlatformLink relies on
+	linkTable := models.MasterProductPlatformLink{}.TableName()
+	require.NoError(t, db.Exec(fmt.Sprintf(
+		"CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_links_unique ON %s (platform, platform_product_id, COALESCE(platform_sku_id, '')) WHERE (platform_product_id IS NOT NULL)",
+		linkTable,
+	)).Error)
 	ctx := context.Background()
 	tenantID := "test-tenant"
 
@@ -92,6 +100,13 @@ func TestStagingImportService_ImportFromLazadaStaging_UsesFallbackTitleForUnname
 		&models.LazadaProduct{},
 		&models.LazadaSku{},
 	)
+
+	// Create the unique index that UpsertPlatformLink relies on
+	linkTable2 := models.MasterProductPlatformLink{}.TableName()
+	require.NoError(t, db.Exec(fmt.Sprintf(
+		"CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_links_unique ON %s (platform, platform_product_id, COALESCE(platform_sku_id, '')) WHERE (platform_product_id IS NOT NULL)",
+		linkTable2,
+	)).Error)
 	ctx := context.Background()
 	tenantID := "test-tenant"
 

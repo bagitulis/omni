@@ -16,8 +16,8 @@ import (
 var (
 	baseURL  = getEnv("TEST_BASE_URL", "http://localhost:3000")
 	apiBase  = baseURL + "/api"
-	testUser = getEnv("TEST_USERNAME", "tester")
-	testPass = getEnv("TEST_PASSWORD", "tester@123")
+	testUser = getEnv("TEST_USERNAME", "yumna")
+	testPass = getEnv("TEST_PASSWORD", "password123")
 )
 
 func getEnv(key, fallback string) string {
@@ -72,10 +72,22 @@ func getAuthToken() (string, error) {
 
 	var result struct {
 		Token string `json:"token"`
+		Data  struct {
+			Token       string `json:"token"`
+			AccessToken string `json:"access_token"`
+		} `json:"data"`
 	}
 	json.Unmarshal(body, &result)
 
-	return result.Token, nil
+	// Token can be at root level or inside data
+	token := result.Token
+	if token == "" {
+		token = result.Data.Token
+	}
+	if token == "" {
+		token = result.Data.AccessToken
+	}
+	return token, nil
 }
 
 // measureEndpoint measures response time for an endpoint

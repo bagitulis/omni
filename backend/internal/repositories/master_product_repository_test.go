@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/omni/backend/internal/models"
@@ -389,6 +390,14 @@ func TestMasterProductRepository(t *testing.T) {
 	t.Run("UpsertPlatformLink", func(t *testing.T) {
 		product := createTestProduct(t, "Product for UpsertLink")
 
+		// Create the unique index that UpsertPlatformLink relies on
+		tableName := models.MasterProductPlatformLink{}.TableName()
+		err := db.Exec(fmt.Sprintf(
+			"CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_links_unique ON %s (platform, platform_product_id, COALESCE(platform_sku_id, '')) WHERE (platform_product_id IS NOT NULL)",
+			tableName,
+		)).Error
+		require.NoError(t, err)
+
 		t.Run("creates new link", func(t *testing.T) {
 			link := &models.MasterProductPlatformLink{
 				MasterProductID:   product.ID,
@@ -412,11 +421,12 @@ func TestMasterProductRepository(t *testing.T) {
 			err := repo.UpsertPlatformLink(ctx, link)
 			require.NoError(t, err)
 
-			// Upsert with updated data
+			// Upsert with same conflict key but updated fields
 			updateLink := &models.MasterProductPlatformLink{
 				MasterProductID:   product.ID,
 				Platform:          "tiktok",
-				PlatformProductID: "UPSERT-UPDATED-123",
+				PlatformProductID: "UPSERT-EXIST-123",
+				PlatformItemID:    "UPDATED-ITEM-ID",
 				SyncStatus:        models.SyncStatusSynced,
 			}
 			err = repo.UpsertPlatformLink(ctx, updateLink)
@@ -425,7 +435,9 @@ func TestMasterProductRepository(t *testing.T) {
 			// Verify updated
 			found, err := repo.FindPlatformLinkByPlatform(ctx, product.ID, "tiktok")
 			assert.NoError(t, err)
-			assert.Equal(t, "UPSERT-UPDATED-123", found.PlatformProductID)
+			assert.Equal(t, "UPSERT-EXIST-123", found.PlatformProductID)
+			assert.Equal(t, "UPDATED-ITEM-ID", found.PlatformItemID)
+			assert.Equal(t, models.SyncStatusSynced, found.SyncStatus)
 		})
 	})
 
@@ -503,33 +515,36 @@ func TestMasterProductRepository(t *testing.T) {
 		linkedShopee := createTestProduct(t, "Linked Shopee Active Product")
 		linkedShopeeSKU := createTestSku(t, linkedShopee, "LINK-SHOPEE-SKU")
 		err := repo.CreatePlatformLink(ctx, &models.MasterProductPlatformLink{
-			MasterProductID: linkedShopee.ID,
-			MasterSkuID:     &linkedShopeeSKU.ID,
-			Platform:        "shopee",
-			PlatformItemID:  "SHOPEE-ITEM-1",
-			SyncStatus:      models.SyncStatusSynced,
+			MasterProductID:   linkedShopee.ID,
+			MasterSkuID:       &linkedShopeeSKU.ID,
+			Platform:          "shopee",
+			PlatformProductID: "SHOPEE-PROD-1",
+			PlatformItemID:    "SHOPEE-ITEM-1",
+			SyncStatus:        models.SyncStatusSynced,
 		})
 		require.NoError(t, err)
 
 		linkedOutdated := createTestProduct(t, "Linked TikTok Outdated Product")
 		linkedOutdatedSKU := createTestSku(t, linkedOutdated, "LINK-TIKTOK-SKU")
 		err = repo.CreatePlatformLink(ctx, &models.MasterProductPlatformLink{
-			MasterProductID: linkedOutdated.ID,
-			MasterSkuID:     &linkedOutdatedSKU.ID,
-			Platform:        "tiktok",
-			PlatformItemID:  "TIKTOK-ITEM-1",
-			SyncStatus:      models.SyncStatusOutdated,
+			MasterProductID:   linkedOutdated.ID,
+			MasterSkuID:       &linkedOutdatedSKU.ID,
+			Platform:          "tiktok",
+			PlatformProductID: "TIKTOK-PROD-1",
+			PlatformItemID:    "TIKTOK-ITEM-1",
+			SyncStatus:        models.SyncStatusOutdated,
 		})
 		require.NoError(t, err)
 
 		pendingOnly := createTestProduct(t, "Pending Link Product")
 		pendingOnlySKU := createTestSku(t, pendingOnly, "PENDING-SKU")
 		err = repo.CreatePlatformLink(ctx, &models.MasterProductPlatformLink{
-			MasterProductID: pendingOnly.ID,
-			MasterSkuID:     &pendingOnlySKU.ID,
-			Platform:        "shopee",
-			PlatformItemID:  "SHOPEE-ITEM-PENDING",
-			SyncStatus:      models.SyncStatusPending,
+			MasterProductID:   pendingOnly.ID,
+			MasterSkuID:       &pendingOnlySKU.ID,
+			Platform:          "shopee",
+			PlatformProductID: "SHOPEE-PROD-PENDING",
+			PlatformItemID:    "SHOPEE-ITEM-PENDING",
+			SyncStatus:        models.SyncStatusPending,
 		})
 		require.NoError(t, err)
 
@@ -542,11 +557,12 @@ func TestMasterProductRepository(t *testing.T) {
 		require.NoError(t, err)
 		draftLinkedSKU := createTestSku(t, draftLinked, "DRAFT-LINKED-SKU")
 		err = repo.CreatePlatformLink(ctx, &models.MasterProductPlatformLink{
-			MasterProductID: draftLinked.ID,
-			MasterSkuID:     &draftLinkedSKU.ID,
-			Platform:        "lazada",
-			PlatformItemID:  "LAZADA-ITEM-1",
-			SyncStatus:      models.SyncStatusSynced,
+			MasterProductID:   draftLinked.ID,
+			MasterSkuID:       &draftLinkedSKU.ID,
+			Platform:          "lazada",
+			PlatformProductID: "LAZADA-PROD-1",
+			PlatformItemID:    "LAZADA-ITEM-1",
+			SyncStatus:        models.SyncStatusSynced,
 		})
 		require.NoError(t, err)
 
