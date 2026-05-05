@@ -116,6 +116,48 @@ func GetPrice(record models.InventoryRecord) float64 {
 	return 0
 }
 
+// GetPricePerPlatform gets per-platform prices from JSONB data
+// Returns map with keys: "shopee", "tiktok", "lazada", "base"
+// Falls back to base HARGA if platform-specific price is 0 or missing
+func GetPricePerPlatform(record models.InventoryRecord) map[string]float64 {
+	data := GetDataMap(record)
+	basePrice := GetPrice(record) // Get base HARGA value
+
+	result := map[string]float64{
+		"base": basePrice,
+	}
+
+	// Platform-specific price keys from Google Sheets
+	platformKeys := map[string]string{
+		"shopee": "HARGA_SHOPEE",
+		"tiktok": "HARGA_TIKTOK",
+		"lazada": "HARGA_LAZADA",
+	}
+
+	for platform, key := range platformKeys {
+		var platformPrice float64
+		if val, ok := data[key]; ok {
+			switch v := val.(type) {
+			case float64:
+				platformPrice = v
+			case string:
+				f, _ := strconv.ParseFloat(v, 64)
+				platformPrice = f
+			case int:
+				platformPrice = float64(v)
+			}
+		}
+
+		// Fallback to base price if platform price is 0 or missing
+		if platformPrice == 0 {
+			platformPrice = basePrice
+		}
+		result[platform] = platformPrice
+	}
+
+	return result
+}
+
 // GetQuantity gets quantity/stock from common column names
 func GetQuantity(record models.InventoryRecord) int {
 	data := GetDataMap(record)

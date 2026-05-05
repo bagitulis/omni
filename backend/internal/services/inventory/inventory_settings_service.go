@@ -22,6 +22,10 @@ type SettingsInput struct {
 	DataStartRow    int      `json:"data_start_row"`
 	AutoSync        bool     `json:"auto_sync"`
 	SyncIntervalSec int      `json:"sync_interval_seconds"`
+	PriceColumn       string `json:"price_column"`
+	PriceColumnShopee string `json:"price_column_shopee"`
+	PriceColumnTiktok string `json:"price_column_tiktok"`
+	PriceColumnLazada string `json:"price_column_lazada"`
 }
 
 // GetSettings retrieves inventory settings
@@ -77,6 +81,10 @@ func (s *InventoryService) SaveSettings(ctx context.Context, input SettingsInput
 		SyncIntervalSec: input.SyncIntervalSec,
 		AllColumns:      allColumnsJSON,
 		SelectedColumns: selectedColumnsJSON,
+		PriceColumn:       input.PriceColumn,
+		PriceColumnShopee: input.PriceColumnShopee,
+		PriceColumnTiktok: input.PriceColumnTiktok,
+		PriceColumnLazada: input.PriceColumnLazada,
 		UpdatedAt:       time.Now(),
 	}
 
@@ -87,6 +95,7 @@ func (s *InventoryService) SaveSettings(ctx context.Context, input SettingsInput
 				"spreadsheet_id", "sheet_name", "key_column",
 				"header_row", "data_start_row", "auto_sync",
 				"sync_interval_seconds", "all_columns", "selected_columns",
+				"price_column", "price_column_shopee", "price_column_tiktok", "price_column_lazada",
 				"updated_at",
 			}),
 		}).Create(&settings).Error

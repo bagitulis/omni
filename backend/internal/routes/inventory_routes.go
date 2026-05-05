@@ -64,6 +64,8 @@ func RegisterInventorySimpleRoutes(router *gin.RouterGroup, handler *handlers.In
 		// Price updates (matches Node.js format: items array)
 		inventory.POST("/update-price", handler.UpdatePrice)
 		inventory.POST("/update-price-batch", handler.UpdatePriceBatch)
+		// Price recommendations (per-platform prices)
+		inventory.GET("/price-recommendations", handler.PriceRecommendations)
 
 		// ============================================================================
 		// CRUD Operations by Key Value (CRITICAL: Place AFTER specific routes!)

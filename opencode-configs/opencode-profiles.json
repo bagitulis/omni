@@ -631,11 +631,11 @@
           ]
         },
         "metis": {
-          "model": "enowxlabs/kimi-k2.5",
+          "model": "enowxlabs/claude-opus-4.6",
           "variant": "high",
           "temperature": 0.1,
           "fallback_models": [
-            "enowxlabs/claude-opus-4.6",
+            "enowxlabs/kimi-k2.5",
             "enowxlabs/codex-gpt-5.4"
           ]
         },
@@ -741,11 +741,11 @@
           ]
         },
         "atlas": {
-          "model": "enowxlabs/claude-sonnet-4.6-thinking",
+          "model": "enowxlabs/claude-opus-4.6",
           "variant": "medium",
           "temperature": 0.1,
           "fallback_models": [
-            "enowxlabs/claude-opus-4.6",
+            "enowxlabs/claude-sonnet-4.6-thinking",
             "enowxlabs/codex-gpt-5.4"
           ]
         },
@@ -803,11 +803,11 @@
           ]
         },
         "metis": {
-          "model": "enowxlabs/claude-sonnet-4.6-thinking",
+          "model": "enowxlabs/claude-opus-4.6",
           "variant": "high",
           "temperature": 0.1,
           "fallback_models": [
-            "enowxlabs/claude-opus-4.6",
+            "enowxlabs/kimi-k2.5",
             "enowxlabs/codex-gpt-5.4"
           ]
         },
