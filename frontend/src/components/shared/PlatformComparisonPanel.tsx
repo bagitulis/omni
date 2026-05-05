@@ -102,7 +102,7 @@ export function PlatformComparisonPanel({ products, mode }: PlatformComparisonPa
                       lineHeight: "18px",
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 3,
+                      gap: 4,
                       opacity: val > 0 ? 1 : 0.4,
                     }}
                   >

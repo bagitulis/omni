@@ -115,7 +115,7 @@ export function ColumnSettingsPopover({
             maxHeight: 300,
             overflowY: "auto",
             minWidth: 280,
-            gap: 10,
+            gap: 8,
           }}
         >
           {content}

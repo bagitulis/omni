@@ -65,9 +65,9 @@ export function NotificationStats({
   const chipStyle = (isError?: boolean): React.CSSProperties => ({
     display: "inline-flex",
     alignItems: "center",
-    gap: 3,
+    gap: 4,
     padding: "1px 6px",
-    borderRadius: 10,
+    borderRadius: 6,
     fontSize: 11,
     fontWeight: 600,
     background: isError ? token.colorErrorBg : token.colorSuccessBg,

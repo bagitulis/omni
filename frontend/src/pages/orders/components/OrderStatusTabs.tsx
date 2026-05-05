@@ -65,8 +65,8 @@ export function OrderStatusTabs({
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 6,
-                padding: "6px 14px",
+                gap: 8,
+                padding: "8px 16px",
                 border: "none",
                 borderRadius: 3,
                 cursor: "pointer",

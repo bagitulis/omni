@@ -12,22 +12,22 @@ interface AutoFunctionsPayload {
  */
 export async function getMonitorData(): Promise<MonitorData> {
   const response = await apiClient.get<{
-    currentJob: MonitorData["current_job"];
-    pendingQueue: MonitorData["pending_queue"];
-    recentHistory: MonitorData["recent_history"];
-    totalPending: number;
-    totalCompleted: number;
+    current_job: MonitorData["current_job"];
+    pending_queue: MonitorData["pending_queue"];
+    recent_history: MonitorData["recent_history"];
+    total_pending: number;
+    total_completed: number;
   }>("/jobs/monitor");
   if (!response.success) {
     throw new Error(response.error || "Failed to fetch monitor data");
   }
   const d = response.data!;
   return {
-    current_job: d.currentJob ?? null,
-    pending_queue: d.pendingQueue ?? [],
-    recent_history: d.recentHistory ?? [],
-    total_pending: d.totalPending ?? 0,
-    total_completed: d.totalCompleted ?? 0,
+    current_job: d.current_job ?? null,
+    pending_queue: d.pending_queue ?? [],
+    recent_history: d.recent_history ?? [],
+    total_pending: d.total_pending ?? 0,
+    total_completed: d.total_completed ?? 0,
   };
 }
 

@@ -105,7 +105,7 @@ export const getPerPlatformColumns = (
 
         return {
           title: (
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <Checkbox
                 checked={allChecked}
                 indeterminate={someChecked}

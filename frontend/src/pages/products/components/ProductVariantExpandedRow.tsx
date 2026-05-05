@@ -42,7 +42,7 @@ function PlatformDetailTag({
         lineHeight: "18px",
         display: "inline-flex",
         alignItems: "center",
-        gap: 3,
+        gap: 4,
         opacity: hasData ? 1 : 0.5,
       }}
     >

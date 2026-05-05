@@ -62,7 +62,7 @@ export function ProductMediaForm({ initialValues, onFinish, onBack }: Props) {
         style={{
           background: token.colorBgContainer,
           padding: 24,
-          borderRadius: 8,
+          borderRadius: 6,
           marginBottom: 24,
           border: `1px solid ${token.colorBorderSecondary}`,
         }}
@@ -100,7 +100,7 @@ export function ProductMediaForm({ initialValues, onFinish, onBack }: Props) {
         style={{
           background: token.colorBgContainer,
           padding: 24,
-          borderRadius: 8,
+          borderRadius: 6,
           marginBottom: 24,
           border: `1px solid ${token.colorBorderSecondary}`,
         }}

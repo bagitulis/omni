@@ -110,7 +110,7 @@ export function InventoryLockPanel({
                         ? colorBgContainerDisabled
                         : "transparent",
                       borderRadius: 3,
-                      padding: 6,
+                      padding: 8,
                     }}
                   >
                     {column}

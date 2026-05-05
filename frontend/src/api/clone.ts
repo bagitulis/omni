@@ -67,7 +67,10 @@ export async function getProductData(
   if (!response.success) {
     throw new Error(response.error || "Failed to get product data");
   }
-  return response.data!.product;
+  if (!response.data) {
+    throw new Error("Product data response is empty");
+  }
+  return response.data.product;
 }
 
 /**

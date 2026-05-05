@@ -25,10 +25,11 @@ export function usePriceDrift() {
   const [driftData, setDriftData] = useState<PriceDriftData | null>(null);
   const [loading, setLoading] = useState(false);
   const lastFetchRef = useRef<number>(0);
+  const driftDataRef = useRef<PriceDriftData | null>(null);
 
   const fetchDrift = useCallback(async (force = false) => {
     // Skip if cached and not forced
-    if (!force && Date.now() - lastFetchRef.current < CACHE_DURATION_MS && driftData) {
+    if (!force && Date.now() - lastFetchRef.current < CACHE_DURATION_MS && driftDataRef.current) {
       return;
     }
 
@@ -40,6 +41,7 @@ export function usePriceDrift() {
       const json = await response.json();
       if (json.success && json.data) {
         setDriftData(json.data);
+        driftDataRef.current = json.data;
         lastFetchRef.current = Date.now();
       }
     } catch {
@@ -47,13 +49,12 @@ export function usePriceDrift() {
     } finally {
       setLoading(false);
     }
-  }, [driftData]);
+  }, []);
 
   // Fetch on mount
   useEffect(() => {
     fetchDrift();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchDrift]);
 
   return { driftData, loading, refetch: () => fetchDrift(true) };
 }
