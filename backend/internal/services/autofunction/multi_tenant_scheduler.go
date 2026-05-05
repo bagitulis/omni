@@ -140,7 +140,7 @@ func (s *MultiTenantScheduler) checkTenantAutoFunctions(tenantID string) {
 
 	// Find all enabled auto functions that are due
 	var configs []models.AutoFunctionConfig
-	err = tenantDB.Where("enabled = ?", true).Find(&configs).Error
+	err = tenantDB.Where("enabled = ?", true).Limit(100).Find(&configs).Error
 	if err != nil {
 		log.Info().Msgf("❌ Failed to get auto functions for tenant %s: %v", tenantID, err)
 		return

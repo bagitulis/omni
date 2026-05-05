@@ -33,9 +33,9 @@ func (s *SyncService) SyncToSheets(ctx context.Context, spreadsheetID, sheetName
 		return &SheetSyncResult{Status: "ERROR", Message: "Spreadsheet not configured"}, nil
 	}
 
-	// Get all records from database
+	// Get all records from database (capped at 50000 to prevent OOM)
 	var records []models.InventoryRecord
-	if err := s.db.WithContext(ctx).Where("tenant_id = ?", s.tenantID).Find(&records).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("tenant_id = ?", s.tenantID).Limit(50000).Find(&records).Error; err != nil {
 		return &SheetSyncResult{Status: "ERROR", Message: err.Error()}, nil
 	}
 

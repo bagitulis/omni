@@ -87,71 +87,78 @@ func (c *Client) generateSignWithBody(path string, params map[string]string, bod
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// doRequest executes HTTP request (GET without body)
+// doRequest executes HTTP request (GET without body) with retry logic
 func (c *Client) doRequest(method, apiPath string, params map[string]string, result interface{}) error {
-	timestamp := time.Now().Unix()
+	const maxRetries = 3
 
-	// Add common params
-	params["app_key"] = c.appKey
-	params["timestamp"] = fmt.Sprintf("%d", timestamp)
-	if c.accessToken != "" {
-		params["access_token"] = c.accessToken
-	}
-	if c.shopCipher != "" {
-		params["shop_cipher"] = c.shopCipher
+	var lastErr error
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(1<<attempt) * 100 * time.Millisecond)
+		}
+
+		timestamp := time.Now().Unix()
+
+		// Add common params (refresh timestamp on each retry)
+		params["app_key"] = c.appKey
+		params["timestamp"] = fmt.Sprintf("%d", timestamp)
+		if c.accessToken != "" {
+			params["access_token"] = c.accessToken
+		}
+		if c.shopCipher != "" {
+			params["shop_cipher"] = c.shopCipher
+		}
+
+		// Generate signature (no body for GET requests)
+		params["sign"] = c.generateSign(apiPath, params)
+
+		// Build URL
+		u, _ := url.Parse(BaseURL + apiPath)
+		q := u.Query()
+		for k, v := range params {
+			q.Set(k, v)
+		}
+		u.RawQuery = q.Encode()
+
+		req, err := http.NewRequest(method, u.String(), nil)
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Content-Type", "application/json")
+		if c.accessToken != "" {
+			req.Header.Set("x-tts-access-token", c.accessToken)
+		}
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			lastErr = err
+			continue // Network error — retry
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		// Retry on 429 (rate limit) or 5xx (server error)
+		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
+			lastErr = fmt.Errorf("TikTok API error: status %d", resp.StatusCode)
+			continue
+		}
+
+		return json.Unmarshal(body, result)
 	}
 
-	// Generate signature (no body for GET requests)
-	params["sign"] = c.generateSign(apiPath, params)
-
-	// Build URL
-	u, _ := url.Parse(BaseURL + apiPath)
-	q := u.Query()
-	for k, v := range params {
-		q.Set(k, v)
-	}
-	u.RawQuery = q.Encode()
-
-	req, err := http.NewRequest(method, u.String(), nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	// TikTok requires access_token in header as x-tts-access-token
-	if c.accessToken != "" {
-		req.Header.Set("x-tts-access-token", c.accessToken)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(body, result)
+	return fmt.Errorf("TikTok API failed after %d retries: %w", maxRetries, lastErr)
 }
 
-// doRequestWithBody executes HTTP request with JSON body
+// doRequestWithBody executes HTTP request with JSON body and retry logic
 func (c *Client) doRequestWithBody(method, apiPath string, params map[string]string, body interface{}, result interface{}) error {
-	timestamp := time.Now().Unix()
+	const maxRetries = 3
 
-	// Add common params
-	params["app_key"] = c.appKey
-	params["timestamp"] = fmt.Sprintf("%d", timestamp)
-	if c.accessToken != "" {
-		params["access_token"] = c.accessToken
-	}
-	if c.shopCipher != "" {
-		params["shop_cipher"] = c.shopCipher
-	}
-
-	// CRITICAL: Marshal body ONCE and use same bytes for signature AND request
-	// This fixes the signature mismatch issue where re-marshaling could produce different JSON
+	// Marshal body ONCE (same bytes for signature AND request across retries)
 	var bodyBytes []byte
 	var err error
 	if body != nil {
@@ -161,40 +168,67 @@ func (c *Client) doRequestWithBody(method, apiPath string, params map[string]str
 		}
 	}
 
-	// Generate signature using raw body bytes (matches official TikTok SDK)
-	params["sign"] = c.generateSignWithBody(apiPath, params, bodyBytes)
+	var lastErr error
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(1<<attempt) * 100 * time.Millisecond)
+		}
 
-	// Build URL
-	u, _ := url.Parse(BaseURL + apiPath)
-	q := u.Query()
-	for k, v := range params {
-		q.Set(k, v)
-	}
-	u.RawQuery = q.Encode()
+		timestamp := time.Now().Unix()
 
-	// Use the SAME bodyBytes for request (critical for signature match)
-	req, err := http.NewRequest(method, u.String(), strings.NewReader(string(bodyBytes)))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	// TikTok requires access_token in header as x-tts-access-token
-	if c.accessToken != "" {
-		req.Header.Set("x-tts-access-token", c.accessToken)
+		// Add common params (refresh timestamp on each retry)
+		params["app_key"] = c.appKey
+		params["timestamp"] = fmt.Sprintf("%d", timestamp)
+		if c.accessToken != "" {
+			params["access_token"] = c.accessToken
+		}
+		if c.shopCipher != "" {
+			params["shop_cipher"] = c.shopCipher
+		}
+
+		// Generate signature using raw body bytes
+		params["sign"] = c.generateSignWithBody(apiPath, params, bodyBytes)
+
+		// Build URL
+		u, _ := url.Parse(BaseURL + apiPath)
+		q := u.Query()
+		for k, v := range params {
+			q.Set(k, v)
+		}
+		u.RawQuery = q.Encode()
+
+		req, err := http.NewRequest(method, u.String(), strings.NewReader(string(bodyBytes)))
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Content-Type", "application/json")
+		if c.accessToken != "" {
+			req.Header.Set("x-tts-access-token", c.accessToken)
+		}
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			lastErr = err
+			continue // Network error — retry
+		}
+
+		respBody, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		// Retry on 429 (rate limit) or 5xx (server error)
+		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
+			lastErr = fmt.Errorf("TikTok API error: status %d", resp.StatusCode)
+			continue
+		}
+
+		return json.Unmarshal(respBody, result)
 	}
 
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(respBody, result)
+	return fmt.Errorf("TikTok API failed after %d retries: %w", maxRetries, lastErr)
 }
 
 // DoGet executes a GET request

@@ -19,7 +19,7 @@ func NewConfigService(db *gorm.DB, tenantID string) *ConfigService {
 // GetAll retrieves all route configs
 func (s *ConfigService) GetAll() ([]models.RouteExecutionConfig, error) {
 	var configs []models.RouteExecutionConfig
-	err := s.db.Where("tenant_id = ?", s.tenantID).Find(&configs).Error
+	err := s.db.Where("tenant_id = ?", s.tenantID).Limit(500).Find(&configs).Error
 	return configs, err
 }
 
@@ -176,7 +176,7 @@ func (s *ConfigService) GetCategories() ([]string, error) {
 // GetByCategory returns routes by category
 func (s *ConfigService) GetByCategory(category string) ([]models.RouteExecutionConfig, error) {
 	var configs []models.RouteExecutionConfig
-	err := s.db.Where("tenant_id = ? AND category = ?", s.tenantID, category).Find(&configs).Error
+	err := s.db.Where("tenant_id = ? AND category = ?", s.tenantID, category).Limit(500).Find(&configs).Error
 	return configs, err
 }
 
