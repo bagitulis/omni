@@ -119,7 +119,12 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		&models.RouteConfig{},
 		&models.WholesaleSettings{},
 
-		// Unified Products
+		// Unified Products (Master Product System)
+		&models.MasterProduct{},
+		&models.MasterProductSku{},
+		&models.MasterProductPlatformLink{},
+
+		// Legacy Products (deprecated, kept for backward compat)
 		&models.Product{},
 		&models.ProductSKU{},
 
