@@ -37,10 +37,12 @@ var CSRFExemptPaths = []string{
 type CSRFTokenStore struct {
 	tokens map[string]time.Time
 	mu     sync.RWMutex
+	stopCh chan struct{}
 }
 
 var tokenStore = &CSRFTokenStore{
 	tokens: make(map[string]time.Time),
+	stopCh: make(chan struct{}),
 }
 
 // GenerateCSRFToken creates a new cryptographically secure token
@@ -152,14 +154,24 @@ func cleanupExpiredTokens() {
 	ticker := time.NewTicker(10 * time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		now := time.Now()
-		tokenStore.mu.Lock()
-		for token, expiry := range tokenStore.tokens {
-			if now.After(expiry) {
-				delete(tokenStore.tokens, token)
+	for {
+		select {
+		case <-ticker.C:
+			now := time.Now()
+			tokenStore.mu.Lock()
+			for token, expiry := range tokenStore.tokens {
+				if now.After(expiry) {
+					delete(tokenStore.tokens, token)
+				}
 			}
+			tokenStore.mu.Unlock()
+		case <-tokenStore.stopCh:
+			return
 		}
-		tokenStore.mu.Unlock()
 	}
+}
+
+// StopCSRFCleanup stops the CSRF token cleanup goroutine
+func StopCSRFCleanup() {
+	close(tokenStore.stopCh)
 }

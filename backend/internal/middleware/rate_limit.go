@@ -16,6 +16,7 @@ type RateLimiter struct {
 	rate       int           // tokens per interval
 	interval   time.Duration // refill interval
 	bucketSize int           // max tokens in bucket
+	stopCh     chan struct{}
 }
 
 type bucket struct {
@@ -33,6 +34,7 @@ func NewRateLimiter(rate int, interval time.Duration, bucketSize int) *RateLimit
 		rate:       rate,
 		interval:   interval,
 		bucketSize: bucketSize,
+		stopCh:     make(chan struct{}),
 	}
 
 	// Start cleanup goroutine
@@ -87,16 +89,26 @@ func (rl *RateLimiter) cleanup() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		rl.mu.Lock()
-		threshold := time.Now().Add(-10 * time.Minute)
-		for key, b := range rl.buckets {
-			if b.lastRefill.Before(threshold) {
-				delete(rl.buckets, key)
+	for {
+		select {
+		case <-ticker.C:
+			rl.mu.Lock()
+			threshold := time.Now().Add(-10 * time.Minute)
+			for key, b := range rl.buckets {
+				if b.lastRefill.Before(threshold) {
+					delete(rl.buckets, key)
+				}
 			}
+			rl.mu.Unlock()
+		case <-rl.stopCh:
+			return
 		}
-		rl.mu.Unlock()
 	}
+			}
+
+			// Stop stops the cleanup goroutine
+		func (rl *RateLimiter) Stop() {
+	close(rl.stopCh)
 }
 
 // RateLimitMiddleware creates Gin middleware for rate limiting

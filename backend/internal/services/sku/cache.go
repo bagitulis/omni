@@ -7,9 +7,10 @@ import (
 
 // SKUCache provides thread-safe caching for SKU status
 type SKUCache struct {
-	mu   sync.RWMutex
-	data map[string]*cacheEntry
-	ttl  time.Duration
+	mu     sync.RWMutex
+	data   map[string]*cacheEntry
+	ttl    time.Duration
+	stopCh chan struct{}
 }
 
 type cacheEntry struct {
@@ -20,8 +21,9 @@ type cacheEntry struct {
 // NewSKUCache creates a new SKU cache
 func NewSKUCache() *SKUCache {
 	cache := &SKUCache{
-		data: make(map[string]*cacheEntry),
-		ttl:  5 * time.Minute,
+		data:   make(map[string]*cacheEntry),
+		ttl:    5 * time.Minute,
+		stopCh: make(chan struct{}),
 	}
 
 	// Start cleanup goroutine
@@ -83,9 +85,19 @@ func (c *SKUCache) cleanup() {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		c.removeExpired()
+	for {
+		select {
+		case <-ticker.C:
+			c.removeExpired()
+		case <-c.stopCh:
+			return
+		}
 	}
+}
+
+			// Stop stops the cleanup goroutine
+		func (c *SKUCache) Stop() {
+	close(c.stopCh)
 }
 
 // removeExpired removes expired entries
