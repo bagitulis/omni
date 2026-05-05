@@ -152,6 +152,12 @@ func registerDefaultAutoFunctionHandlers(executor *autofunction.Executor) {
 
 	// sync_products_inventory - syncs only products whose SKUs exist in inventory
 	executor.RegisterHandler("sync_products_inventory", syncProductsInventoryHandler)
+
+	// retry_failed_syncs - retries failed marketplace sync operations from last 24h
+	executor.RegisterHandler("retry_failed_syncs", retryFailedSyncsHandler)
+
+	// price_drift_detection - detects SKUs with price drift
+	executor.RegisterHandler("price_drift_detection", priceDriftDetectionHandler)
 }
 
 // startBackgroundJobExecutor initializes and starts the multi-tenant job executor

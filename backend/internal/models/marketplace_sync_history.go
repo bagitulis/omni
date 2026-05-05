@@ -50,6 +50,7 @@ type MarketplaceSyncHistory struct {
 	RequestData  *string   `gorm:"column:request_data;type:text" json:"request_data,omitempty"`
 	ResponseData *string   `gorm:"column:response_data;type:text" json:"response_data,omitempty"`
 	ErrorMessage *string   `gorm:"column:error_message;type:text" json:"error_message,omitempty"`
+	RetryCount   int       `gorm:"column:retry_count;default:0" json:"retry_count"`
 	CreatedAt    time.Time `gorm:"column:created_at;index" json:"created_at"`
 }
 
