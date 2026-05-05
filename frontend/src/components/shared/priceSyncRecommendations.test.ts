@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   applyPriceRecommendations,
   buildPriceRecommendations,
-  type PriceRecommendation,
   type PriceRecommendationMap,
 } from "./priceSyncRecommendations";
 import type { PricePerPlatformConfig } from "./priceSyncColumns";
@@ -203,10 +202,11 @@ describe("priceSyncRecommendations", () => {
   });
 
   describe("buildPriceRecommendations", () => {
-    let fetchSpy: ReturnType<typeof vi.spyOn>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let fetchSpy: any;
 
     beforeEach(() => {
-      fetchSpy = vi.spyOn(global, "fetch");
+      fetchSpy = vi.spyOn(global, "fetch") as any;
     });
 
     afterEach(() => {
@@ -241,7 +241,7 @@ describe("priceSyncRecommendations", () => {
               platform: "tiktok",
             },
           ],
-        } as UnifiedProductRow,
+        } as unknown as UnifiedProductRow,
       ];
 
       const apiResponse = {
@@ -304,7 +304,7 @@ describe("priceSyncRecommendations", () => {
               platform: "shopee",
             },
           ],
-        } as UnifiedProductRow,
+        } as unknown as UnifiedProductRow,
       ];
 
       fetchSpy.mockRejectedValue(new Error("Network error"));
@@ -334,7 +334,7 @@ describe("priceSyncRecommendations", () => {
               platform: "shopee",
             },
           ],
-        } as UnifiedProductRow,
+        } as unknown as UnifiedProductRow,
       ];
 
       fetchSpy.mockResolvedValue({
@@ -370,7 +370,7 @@ describe("priceSyncRecommendations", () => {
               platform: "tiktok",
             },
           ],
-        } as UnifiedProductRow,
+        } as unknown as UnifiedProductRow,
       ];
 
       const result = await buildPriceRecommendations(products);
@@ -399,7 +399,7 @@ describe("priceSyncRecommendations", () => {
               platform: "shopee",
             },
           ],
-        } as UnifiedProductRow,
+        } as unknown as UnifiedProductRow,
       ];
 
       const result = await buildPriceRecommendations(products);
@@ -428,7 +428,7 @@ describe("priceSyncRecommendations", () => {
               platform: "lazada",
             },
           ],
-        } as UnifiedProductRow,
+        } as unknown as UnifiedProductRow,
       ];
 
       const result = await buildPriceRecommendations(products);
@@ -464,7 +464,7 @@ describe("priceSyncRecommendations", () => {
               platform: "tiktok",
             },
           ],
-        } as UnifiedProductRow,
+        } as unknown as UnifiedProductRow,
       ];
 
       const apiResponse = {
@@ -527,7 +527,7 @@ describe("priceSyncRecommendations", () => {
               platform: "tiktok",
             },
           ],
-        } as UnifiedProductRow,
+        } as unknown as UnifiedProductRow,
       ];
 
       const apiResponse = {
@@ -581,7 +581,7 @@ describe("priceSyncRecommendations", () => {
               platform: "shopee",
             },
           ],
-        } as UnifiedProductRow,
+        } as unknown as UnifiedProductRow,
       ];
 
       fetchSpy.mockRejectedValue(new Error("Network error"));
@@ -611,7 +611,7 @@ describe("priceSyncRecommendations", () => {
               platform: "shopee",
             },
           ],
-        } as UnifiedProductRow,
+        } as unknown as UnifiedProductRow,
       ];
 
       fetchSpy.mockRejectedValue(new Error("Network error"));
@@ -628,7 +628,7 @@ describe("priceSyncRecommendations", () => {
     });
 
     it("floors decimal prices", async () => {
-      const products: UnifiedProductRow[] = [
+      const products = [
         {
           id: "1",
           name: "Product 1",
@@ -641,7 +641,7 @@ describe("priceSyncRecommendations", () => {
               platform: "shopee",
             },
           ],
-        } as UnifiedProductRow,
+        } as unknown as UnifiedProductRow,
       ];
 
       fetchSpy.mockRejectedValue(new Error("Network error"));
