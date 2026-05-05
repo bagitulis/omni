@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  Button,
   Checkbox,
   InputNumber,
   Modal,
   Radio,
   Space,
+  Spin,
   Table,
   Tag,
   theme,
@@ -19,6 +21,11 @@ import {
   type PricePerPlatformConfig,
   type PricePerPlatformRow,
 } from "./priceSyncColumns";
+import {
+  applyPriceRecommendations,
+  buildPriceRecommendations,
+  type PriceRecommendationMap,
+} from "./priceSyncRecommendations";
 import { PlatformComparisonPanel } from "./PlatformComparisonPanel";
 
 interface PriceSyncModalProps {
@@ -55,6 +62,9 @@ export const PriceSyncModal: FC<PriceSyncModalProps> = ({
   const [perPlatformConfig, setPerPlatformConfig] =
     useState<PricePerPlatformConfig>({});
   const [loading, setLoading] = useState(false);
+  const [recommendations, setRecommendations] =
+    useState<PriceRecommendationMap>({});
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
 
   const linkedPlatformsBySku = useMemo(() => {
     const linkedMap: Record<string, Record<Platform, boolean>> = {};
@@ -86,6 +96,36 @@ export const PriceSyncModal: FC<PriceSyncModalProps> = ({
     const firstPrice = selectedProducts[0]?.skus[0]?.price ?? 0;
     setUniformPrice(firstPrice);
   }, [linkedPlatformsBySku, open, selectedProducts]);
+
+  useEffect(() => {
+    if (!open) {
+      setRecommendations({});
+      return;
+    }
+
+    let isMounted = true;
+    setRecommendationsLoading(true);
+
+    void buildPriceRecommendations(selectedProducts, linkedPlatformsBySku)
+      .then((nextRecommendations) => {
+        if (!isMounted) return;
+        setRecommendations(nextRecommendations);
+
+        // In uniform mode, suggest base price from first recommendation
+        const firstSku = selectedProducts[0]?.skus[0]?.seller_sku;
+        if (firstSku && nextRecommendations[firstSku]) {
+          setUniformPrice(nextRecommendations[firstSku].base_price);
+        }
+      })
+      .finally(() => {
+        if (!isMounted) return;
+        setRecommendationsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [open, selectedProducts, linkedPlatformsBySku]);
 
   const syncItems = useMemo(() => {
     if (mode === "uniform") {
@@ -154,14 +194,21 @@ export const PriceSyncModal: FC<PriceSyncModalProps> = ({
     }
   };
 
+  const applyInventoryRecommendations = () => {
+    setPerPlatformConfig((previous) =>
+      applyPriceRecommendations(previous, recommendations),
+    );
+  };
+
   const perPlatformColumns = useMemo(
     () =>
       getPricePerPlatformColumns(
         linkedPlatformsBySku,
         perPlatformConfig,
         setPerPlatformConfig,
+        recommendations,
       ),
-    [linkedPlatformsBySku, perPlatformConfig],
+    [linkedPlatformsBySku, perPlatformConfig, recommendations],
   );
 
   const perPlatformData: PricePerPlatformRow[] = Object.entries(
@@ -253,6 +300,15 @@ export const PriceSyncModal: FC<PriceSyncModalProps> = ({
             showIcon
             style={{ marginBottom: 16 }}
           />
+          <Space style={{ marginBottom: 12 }}>
+            <Button
+              type="dashed"
+              onClick={applyInventoryRecommendations}
+              disabled={recommendationsLoading || Object.keys(recommendations).length === 0}
+            >
+              {recommendationsLoading ? <Spin size="small" /> : "Apply Recommendations"}
+            </Button>
+          </Space>
           <Table
             columns={perPlatformColumns}
             dataSource={perPlatformData}

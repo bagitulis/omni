@@ -2,6 +2,7 @@ import { Checkbox, InputNumber } from "antd";
 import type { ColumnType } from "antd/es/table";
 import type { Dispatch, SetStateAction } from "react";
 import type { Platform, UnifiedProductRow } from "@/types/shared";
+import type { PriceRecommendationMap } from "./priceSyncRecommendations";
 
 export interface PricePerPlatformConfig {
   [sku: string]: {
@@ -48,6 +49,7 @@ export const getPricePerPlatformColumns = (
   linkedPlatformsBySku: Record<string, Record<Platform, boolean>>,
   perPlatformConfig: PricePerPlatformConfig,
   setPerPlatformConfig: Dispatch<SetStateAction<PricePerPlatformConfig>>,
+  recommendations: PriceRecommendationMap,
 ): ColumnType<PricePerPlatformRow>[] => {
   return [
     {
@@ -55,6 +57,27 @@ export const getPricePerPlatformColumns = (
       dataIndex: "sku",
       key: "sku",
       width: 180,
+    },
+    {
+      title: "Inventory Price Hint",
+      key: "inventory_price_hint",
+      width: 220,
+      render: (_: unknown, record: PricePerPlatformRow) => {
+        const hint = recommendations[record.sku];
+        if (!hint) {
+          return (
+            <span style={{ color: "var(--color-text-secondary)", fontSize: 12 }}>
+              No hint
+            </span>
+          );
+        }
+
+        return (
+          <span style={{ fontSize: 12 }}>
+            S:{hint.shopee} T:{hint.tiktok} L:{hint.lazada} ({hint.source})
+          </span>
+        );
+      },
     },
     {
       title: "Price",
