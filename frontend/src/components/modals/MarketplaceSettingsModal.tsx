@@ -219,7 +219,7 @@ export function MarketplaceSettingsModal({
               </Text>
               <Select
                 style={{ width: "100%", marginTop: 6 }}
-                value={settings.priceColumn || "HARGA"}
+                value={settings.priceColumn || undefined}
                 onChange={(value) =>
                   setSettings({ ...settings, priceColumn: value })
                 }
@@ -237,7 +237,7 @@ export function MarketplaceSettingsModal({
               </Text>
               <Select
                 style={{ width: "100%", marginTop: 6 }}
-                value={settings.priceColumnShopee || "HARGA_SHOPEE"}
+                value={settings.priceColumnShopee || undefined}
                 onChange={(value) =>
                   setSettings({ ...settings, priceColumnShopee: value })
                 }
@@ -253,7 +253,7 @@ export function MarketplaceSettingsModal({
               <Text strong>TikTok Price Column</Text>
               <Select
                 style={{ width: "100%", marginTop: 6 }}
-                value={settings.priceColumnTiktok || "HARGA_TIKTOK"}
+                value={settings.priceColumnTiktok || undefined}
                 onChange={(value) =>
                   setSettings({ ...settings, priceColumnTiktok: value })
                 }
@@ -267,7 +267,7 @@ export function MarketplaceSettingsModal({
               <Text strong>Lazada Price Column</Text>
               <Select
                 style={{ width: "100%", marginTop: 6 }}
-                value={settings.priceColumnLazada || "HARGA_LAZADA"}
+                value={settings.priceColumnLazada || undefined}
                 onChange={(value) =>
                   setSettings({ ...settings, priceColumnLazada: value })
                 }

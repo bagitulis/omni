@@ -30,10 +30,10 @@ export const defaultMarketplaceAllocationSettings: MarketplaceAllocationSettings
     autoColumn: "",
     shopeeRatio: 0.6,
     tiktokRatio: 0.3,
-    priceColumn: "HARGA",
-    priceColumnShopee: "HARGA_SHOPEE",
-    priceColumnTiktok: "HARGA_TIKTOK",
-    priceColumnLazada: "HARGA_LAZADA",
+    priceColumn: "",
+    priceColumnShopee: "",
+    priceColumnTiktok: "",
+    priceColumnLazada: "",
   };
 
 export function parseColumns(value: unknown): string[] {
@@ -110,10 +110,10 @@ export function loadMarketplaceAllocationSettings(): MarketplaceAllocationSettin
         typeof parsed.tiktokRatio === "number"
           ? parsed.tiktokRatio
           : defaultMarketplaceAllocationSettings.tiktokRatio,
-      priceColumn: parsed.priceColumn || defaultMarketplaceAllocationSettings.priceColumn,
-      priceColumnShopee: parsed.priceColumnShopee || defaultMarketplaceAllocationSettings.priceColumnShopee,
-      priceColumnTiktok: parsed.priceColumnTiktok || defaultMarketplaceAllocationSettings.priceColumnTiktok,
-      priceColumnLazada: parsed.priceColumnLazada || defaultMarketplaceAllocationSettings.priceColumnLazada,
+      priceColumn: parsed.priceColumn || "",
+      priceColumnShopee: parsed.priceColumnShopee || "",
+      priceColumnTiktok: parsed.priceColumnTiktok || "",
+      priceColumnLazada: parsed.priceColumnLazada || "",
     };
   } catch (err) { console.warn("Operation failed:", err);
     return defaultMarketplaceAllocationSettings;
