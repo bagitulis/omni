@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/middleware"
@@ -333,27 +335,48 @@ func (h *InventoryHandler) UpdatePriceBatch(c *gin.Context) {
 	credService := services.NewCredentialService(dbPath)
 
 	orchestrator := inventoryService.NewPriceUpdateOrchestrator(db, tenantID, credService)
-	results := make([]interface{}, 0, len(req.Items))
-	successCount := 0
-	failedCount := 0
 
-	for _, item := range req.Items {
-		// Use price from request (not from inventory_records)
+	// Build batch work items
+	items := make([]inventoryService.BatchWorkItem, len(req.Items))
+	for i, item := range req.Items {
 		platforms := item.Platforms
 		if len(platforms) == 0 {
-			// Default to all platforms if not specified
 			platforms = []string{"shopee", "lazada", "tiktok"}
 		}
-
-		result, err := orchestrator.UpdatePrice(c.Request.Context(), item.SKU, item.Price, platforms)
-		if err != nil {
-			results = append(results, gin.H{"sku": item.SKU, "success": false, "error": err.Error()})
-			failedCount++
-			continue
+		items[i] = inventoryService.BatchWorkItem{
+			Index:     i,
+			SKU:       item.SKU,
+			Platforms: platforms,
 		}
-		results = append(results, result)
-		// Check if it was actually a success (orchestrator result has Success field)
-		// Usually if err is nil, it's at least partially successful or we can treat as processed
+	}
+
+	// Execute in parallel with concurrency limit of 3 (external API rate limits)
+	config := inventoryService.ParallelBatchConfig{
+		MaxConcurrency: 3,
+		MaxPerPlatform: 2,
+		ItemTimeout:    30 * time.Second,
+	}
+
+	rawResults := inventoryService.RunParallelBatch(c.Request.Context(), items, config, func(ctx context.Context, item inventoryService.BatchWorkItem) interface{} {
+		result, err := orchestrator.UpdatePrice(ctx, item.SKU, req.Items[item.Index].Price, item.Platforms)
+		if err != nil {
+			return gin.H{"sku": item.SKU, "success": false, "error": err.Error()}
+		}
+		return result
+	})
+
+	// Count successes/failures from results
+	results := make([]interface{}, 0, len(rawResults))
+	successCount := 0
+	failedCount := 0
+	for _, r := range rawResults {
+		results = append(results, r)
+		if m, ok := r.(map[string]interface{}); ok {
+			if success, exists := m["success"]; exists && success == false {
+				failedCount++
+				continue
+			}
+		}
 		successCount++
 	}
 
