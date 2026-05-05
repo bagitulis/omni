@@ -353,6 +353,51 @@ def _cleanup_orphan_files(sync_dir: Path, exported_keys: set[str]) -> int:
 
     return removed
 
+def _export_schema_ddl(sync_dir: Path, schema_names: List[str]) -> None:
+    """Export schema DDL (CREATE TABLE, indexes, constraints) for full restore.
+
+    This makes ndjson backup fully self-contained — on a fresh DB, you can:
+    1. Run schema DDL to create tables
+    2. Run sync-import to populate data
+    """
+    schema_dir = sync_dir / '_schema'
+    schema_dir.mkdir(parents=True, exist_ok=True)
+
+    for schema_name in schema_names:
+        dump_cmd = DatabaseConfig.docker_exec_prefix() + [
+            'pg_dump', '-U', DatabaseConfig.USER,
+            '--schema-only', '--no-owner', '--no-privileges',
+            '-n', schema_name,
+            DatabaseConfig.DATABASE,
+        ]
+        try:
+            result = subprocess.run(
+                dump_cmd, capture_output=True, text=True,
+                timeout=60, encoding='utf-8', errors='replace',
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                ddl_file = schema_dir / f'{schema_name}.sql'
+                ddl_file.write_text(result.stdout, encoding='utf-8')
+            else:
+                log_warning(f'  Schema DDL export failed for {schema_name}: {result.stderr[:200]}')
+        except (subprocess.TimeoutExpired, OSError) as e:
+            log_warning(f'  Schema DDL export skipped for {schema_name}: {e}')
+
+    # Also export globals (roles)
+    globals_cmd = DatabaseConfig.docker_exec_prefix() + [
+        'pg_dumpall', '-U', DatabaseConfig.USER, '--globals-only',
+    ]
+    try:
+        result = subprocess.run(
+            globals_cmd, capture_output=True, text=True,
+            timeout=30, encoding='utf-8', errors='replace',
+        )
+        if result.returncode == 0:
+            globals_file = schema_dir / '_globals.sql'
+            globals_file.write_text(result.stdout, encoding='utf-8')
+    except (subprocess.TimeoutExpired, OSError):
+        pass
+
 def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     """Export all tables to NDJSON files (like Extensions ExportAll)."""
     sync_dir = project_root / SYNC_DIR
@@ -405,14 +450,18 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     if orphans_removed > 0:
         log_info(f"Cleaned up {orphans_removed} orphan file(s) from previous exports")
 
+    # Export schema DDL (CREATE TABLE statements) for full restore capability
+    _export_schema_ddl(sync_dir, list(schemas.keys()))
+
     # Write manifest
     manifest = {
         "exported_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "machine": socket.gethostname(),
-        "version": 2,
+        "version": 3,
         "tables": {r.table: r.exported for r in results},
         "total_rows": total_rows,
         "large_threshold": LARGE_TABLE_THRESHOLD,
+        "has_schema_ddl": True,
     }
     manifest_path = sync_dir / "manifest.json"
     with open(manifest_path, 'w', encoding='utf-8') as f:
