@@ -144,6 +144,10 @@ export function deriveMarketplaceAllocationSettings(
     autoColumn: saved.autoColumn || inferredAuto,
     shopeeRatio: saved.shopeeRatio,
     tiktokRatio: saved.tiktokRatio,
+    priceColumn: config?.price_column || saved.priceColumn || "",
+    priceColumnShopee: config?.price_column_shopee || saved.priceColumnShopee || "",
+    priceColumnTiktok: config?.price_column_tiktok || saved.priceColumnTiktok || "",
+    priceColumnLazada: config?.price_column_lazada || saved.priceColumnLazada || "",
   };
 }
 
