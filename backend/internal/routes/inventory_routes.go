@@ -66,6 +66,8 @@ func RegisterInventorySimpleRoutes(router *gin.RouterGroup, handler *handlers.In
 		inventory.POST("/update-price-batch", handler.UpdatePriceBatch)
 		// Price recommendations (per-platform prices)
 		inventory.GET("/price-recommendations", handler.PriceRecommendations)
+		// Price drift detection (SKUs with inventory price changed since last sync)
+		inventory.GET("/price-drift", handler.PriceDrift)
 
 		// ============================================================================
 		// CRUD Operations by Key Value (CRITICAL: Place AFTER specific routes!)
