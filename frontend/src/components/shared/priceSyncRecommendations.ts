@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import apiClient from "@/api/client";
 import type { Platform, UnifiedProductRow } from "@/types/shared";
 import type { PricePerPlatformConfig } from "./priceSyncColumns";
 
@@ -81,13 +82,12 @@ export async function buildPriceRecommendations(
   // Fetch price recommendations from backend
   let apiData: Record<string, PriceRecommendation> = {};
   try {
-    const response = await fetch(
-      `/api/inventory/price-recommendations?skus=${realSkus.join(",")}`,
+    const { data: json } = await apiClient.get<{ success: boolean; error?: string; data?: Record<string, PriceRecommendation> }>(
+      `/inventory/price-recommendations?skus=${realSkus.join(",")}`,
     );
-    const json = (await response.json()) as { success: boolean; error?: string; data?: Record<string, PriceRecommendation> };
 
-    if (!json.success) {
-      throw new Error(json.error || "Failed to fetch price recommendations");
+    if (!json?.success) {
+      throw new Error(json?.error || "Failed to fetch price recommendations");
     }
 
     apiData = json.data || {};
