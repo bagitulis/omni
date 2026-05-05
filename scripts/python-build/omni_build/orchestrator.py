@@ -278,7 +278,7 @@ class BuildOrchestrator:
             )
         
         if restore_db:
-            print(f"\n{'='*60}\nSTEP 3: DATABASE RESTORE\n{'='*60}\n")
+            print(f"\n{'='*60}\nSTEP 3: DATABASE RESTORE (NDJSON)\n{'='*60}\n")
             if not self.database_restorer.wait_for_postgres(timeout=120):
                 return BuildResult(
                     success=False,
@@ -289,16 +289,21 @@ class BuildOrchestrator:
                     warnings=warnings,
                 )
 
-            success, msg = self.database_restorer.restore(force=True)
-            if not success:
+            # Use NDJSON sync-import (primary restore mechanism)
+            from omni_build.ndjson_sync import import_all
+            sync_success, sync_results = import_all(self.config.project_root)
+            if not sync_success:
+                errors_count = sum(r.errors for r in sync_results)
                 return BuildResult(
                     success=False,
                     mode=mode,
                     spec=spec,
                     duration_seconds=time.time() - start_time,
-                    errors=[f"DB restore failed: {msg}"],
+                    errors=[f"DB restore failed: NDJSON import had {errors_count} errors"],
                     warnings=warnings,
                 )
+            total_imported = sum(r.imported for r in sync_results)
+            log_success(f"Database restored: {len(sync_results)} tables, {total_imported:,} rows")
         
         if self._helpers.verify_all_services_truly_healthy():
             log_success("All services verified healthy")

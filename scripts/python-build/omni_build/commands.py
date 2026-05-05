@@ -133,10 +133,11 @@ def smart(spec: str, skip_frontend: bool, restore: bool):
     orchestrator = BuildOrchestrator(config)
     
     if restore:
-        if not orchestrator.database_restorer.has_backup():
-            log_error("No backup found!")
+        ndjson_manifest = config.project_root / "backups" / "sync" / "manifest.json"
+        if not ndjson_manifest.exists():
+            log_error("No NDJSON backup found! Run: python build.py backup")
             sys.exit(1)
-        orchestrator.database_restorer.print_backup_status()
+        log_info("Will restore database from NDJSON backup after build")
     
     result = orchestrator.execute_build(
         mode=BuildMode.SMART,
@@ -175,10 +176,11 @@ def full(spec: str, skip_frontend: bool, restore: bool):
     orchestrator = BuildOrchestrator(config)
     
     if restore:
-        if not orchestrator.database_restorer.has_backup():
-            log_error("No backup found!")
+        ndjson_manifest = config.project_root / "backups" / "sync" / "manifest.json"
+        if not ndjson_manifest.exists():
+            log_error("No NDJSON backup found! Run: python build.py backup")
             sys.exit(1)
-        orchestrator.database_restorer.print_backup_status()
+        log_info("Will restore database from NDJSON backup after build")
         log_warning("Full rebuild with database restore will take 5-10 minutes")
     else:
         log_warning("Full rebuild will take 5-10 minutes")
@@ -285,36 +287,35 @@ def status():
 
 @cli.command()
 @click.option("--force", is_flag=True)
-@click.option("--keep-extra", is_flag=True)
-def restore(force: bool, keep_extra: bool):
-    """Restore database from backup."""
+def restore(force: bool):
+    """Restore database from NDJSON backup (alias for sync-import)."""
     config = Config.from_env()
-    restorer = DatabaseRestorer(config)
-    
-    if not restorer.has_backup():
-        log_error("No backup found!")
+
+    ndjson_manifest = config.project_root / "backups" / "sync" / "manifest.json"
+    if not ndjson_manifest.exists():
+        log_error("No NDJSON backup found! Run: python build.py backup")
         sys.exit(1)
-    
-    restorer.print_backup_status()
-    
+
     if not force:
-        if not confirm("Continue with database restore?"):
+        if not confirm("This will restore database from NDJSON backup. Continue?"):
             log_info("Cancelled")
             sys.exit(0)
-    
-    if not restorer.check_postgres_running():
-        log_error("PostgreSQL container is not running!")
-        sys.exit(1)
-    
-    success, message = restorer.restore(force=True, keep_extra=keep_extra)
-    
-    if success:
-        log_success("Database restore completed!")
-    else:
-        log_error(f"Database restore failed: {message}")
-    
-    sys.exit(0 if success else 1)
 
+    if not _ensure_docker_and_postgres(config):
+        sys.exit(1)
+
+    from omni_build.ndjson_sync import import_all
+
+    success, results = import_all(config.project_root)
+
+    if success:
+        total = sum(r.imported for r in results)
+        log_success(f"Database restored: {len(results)} tables, {total:,} rows")
+    else:
+        errors = sum(r.errors for r in results)
+        log_error(f"Restore failed ({errors} errors)")
+
+    sys.exit(0 if success else 1)
 
 @cli.command()
 @click.option("--force", is_flag=True)
