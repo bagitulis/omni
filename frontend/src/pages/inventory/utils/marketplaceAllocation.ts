@@ -133,6 +133,7 @@ export function saveMarketplaceAllocationSettings(
 export function deriveMarketplaceAllocationSettings(
   config: InventoryConfig | null | undefined,
 ): MarketplaceAllocationSettings {
+  // Fallback to localStorage for backward compatibility (migration from old localStorage-only storage)
   const saved = loadMarketplaceAllocationSettings();
   const selectedColumns = parseColumns(config?.selected_columns);
   const inferredAuto = inferAutoColumnFromSelection(selectedColumns);
@@ -141,9 +142,15 @@ export function deriveMarketplaceAllocationSettings(
     keyColumn: config?.key_column || saved.keyColumn,
     totalColumn: config?.total_column || saved.totalColumn,
     rawTotalColumn: config?.raw_total_column || saved.rawTotalColumn,
-    autoColumn: saved.autoColumn || inferredAuto,
-    shopeeRatio: saved.shopeeRatio,
-    tiktokRatio: saved.tiktokRatio,
+    autoColumn: config?.auto_column || saved.autoColumn || inferredAuto,
+    shopeeRatio:
+      typeof config?.shopee_ratio === "number" && config.shopee_ratio > 0
+        ? config.shopee_ratio
+        : saved.shopeeRatio,
+    tiktokRatio:
+      typeof config?.tiktok_ratio === "number" && config.tiktok_ratio > 0
+        ? config.tiktok_ratio
+        : saved.tiktokRatio,
     priceColumn: config?.price_column || saved.priceColumn || "",
     priceColumnShopee: config?.price_column_shopee || saved.priceColumnShopee || "",
     priceColumnTiktok: config?.price_column_tiktok || saved.priceColumnTiktok || "",

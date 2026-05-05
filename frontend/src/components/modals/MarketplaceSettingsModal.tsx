@@ -77,14 +77,18 @@ export function MarketplaceSettingsModal({
         key_column: settings.keyColumn,
         total_column: settings.totalColumn,
         raw_total_column: settings.rawTotalColumn,
+        auto_column: settings.autoColumn,
         selected_columns: mergedColumns,
         price_column: settings.priceColumn || undefined,
         price_column_shopee: settings.priceColumnShopee || undefined,
         price_column_tiktok: settings.priceColumnTiktok || undefined,
         price_column_lazada: settings.priceColumnLazada || undefined,
+        shopee_ratio: settings.shopeeRatio,
+        tiktok_ratio: settings.tiktokRatio,
       },
       {
         onSuccess: () => {
+          // Keep localStorage as fallback for backward compat during migration
           saveMarketplaceAllocationSettings(settings);
           message.success("Settings saved");
           onClose();

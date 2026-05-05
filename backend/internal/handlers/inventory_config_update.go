@@ -26,8 +26,15 @@ type updateInventoryConfigRequest struct {
 	KeyColumn           *string         `json:"key_column"`
 	TotalColumn         *string         `json:"total_column"`
 	RawTotalColumn      *string         `json:"raw_total_column"`
+	AutoColumn          *string         `json:"auto_column"`
 	AutoSync            *bool           `json:"auto_sync"`
 	SyncIntervalSeconds *int            `json:"sync_interval_seconds"`
+	PriceColumn         *string         `json:"price_column"`
+	PriceColumnShopee   *string         `json:"price_column_shopee"`
+	PriceColumnTiktok   *string         `json:"price_column_tiktok"`
+	PriceColumnLazada   *string         `json:"price_column_lazada"`
+	ShopeeRatio         *float64        `json:"shopee_ratio"`
+	TiktokRatio         *float64        `json:"tiktok_ratio"`
 }
 
 // UpdateConfig handles PUT /api/inventory/config
@@ -117,9 +124,16 @@ func (h *InventoryHandler) UpdateConfig(c *gin.Context) {
 			KeyColumn:           settings.KeyColumn,
 			TotalColumn:         settings.TotalColumn,
 			RawTotalColumn:      settings.RawTotalColumn,
+			AutoColumn:          settings.AutoColumn,
 			AutoSync:            settings.AutoSync,
 			SyncIntervalSeconds: settings.SyncIntervalSec,
 			LastSyncTimestamp:   lastSync,
+			PriceColumn:         settings.PriceColumn,
+			PriceColumnShopee:   settings.PriceColumnShopee,
+			PriceColumnTiktok:   settings.PriceColumnTiktok,
+			PriceColumnLazada:   settings.PriceColumnLazada,
+			ShopeeRatio:         settings.ShopeeRatio,
+			TiktokRatio:         settings.TiktokRatio,
 		},
 	})
 }
@@ -153,11 +167,32 @@ func applyInventoryConfigUpdates(
 	if req.RawTotalColumn != nil {
 		settings.RawTotalColumn = *req.RawTotalColumn
 	}
+	if req.AutoColumn != nil {
+		settings.AutoColumn = *req.AutoColumn
+	}
 	if req.AutoSync != nil {
 		settings.AutoSync = *req.AutoSync
 	}
 	if req.SyncIntervalSeconds != nil {
 		settings.SyncIntervalSec = *req.SyncIntervalSeconds
+	}
+	if req.PriceColumn != nil {
+		settings.PriceColumn = *req.PriceColumn
+	}
+	if req.PriceColumnShopee != nil {
+		settings.PriceColumnShopee = *req.PriceColumnShopee
+	}
+	if req.PriceColumnTiktok != nil {
+		settings.PriceColumnTiktok = *req.PriceColumnTiktok
+	}
+	if req.PriceColumnLazada != nil {
+		settings.PriceColumnLazada = *req.PriceColumnLazada
+	}
+	if req.ShopeeRatio != nil {
+		settings.ShopeeRatio = *req.ShopeeRatio
+	}
+	if req.TiktokRatio != nil {
+		settings.TiktokRatio = *req.TiktokRatio
 	}
 	if selectedColumnsProvided {
 		settings.SelectedColumns = selectedColumns
@@ -213,8 +248,15 @@ func upsertInventorySettings(ctx context.Context, db *gorm.DB, settings *models.
 				"key_column":            settings.KeyColumn,
 				"total_column":          settings.TotalColumn,
 				"raw_total_column":      settings.RawTotalColumn,
+				"auto_column":           settings.AutoColumn,
 				"auto_sync":             settings.AutoSync,
 				"sync_interval_seconds": settings.SyncIntervalSec,
+				"price_column":          settings.PriceColumn,
+				"price_column_shopee":   settings.PriceColumnShopee,
+				"price_column_tiktok":   settings.PriceColumnTiktok,
+				"price_column_lazada":   settings.PriceColumnLazada,
+				"shopee_ratio":          settings.ShopeeRatio,
+				"tiktok_ratio":          settings.TiktokRatio,
 				"updated_at":            settings.UpdatedAt,
 			}),
 		}).

@@ -47,9 +47,16 @@ type InventoryConfig struct {
 	KeyColumn           string   `json:"key_column"`
 	TotalColumn         string   `json:"total_column"`
 	RawTotalColumn      string   `json:"raw_total_column"`
+	AutoColumn          string   `json:"auto_column"`
 	AutoSync            bool     `json:"auto_sync"`
 	SyncIntervalSeconds int      `json:"sync_interval_seconds"`
 	LastSyncTimestamp   *string  `json:"last_sync_timestamp"`
+	PriceColumn         string   `json:"price_column"`
+	PriceColumnShopee   string   `json:"price_column_shopee"`
+	PriceColumnTiktok   string   `json:"price_column_tiktok"`
+	PriceColumnLazada   string   `json:"price_column_lazada"`
+	ShopeeRatio         float64  `json:"shopee_ratio"`
+	TiktokRatio         float64  `json:"tiktok_ratio"`
 }
 
 // InventoryListItem represents a single inventory item with JSONB data
@@ -183,9 +190,18 @@ func (h *InventoryHandler) GetConfig(c *gin.Context) {
 			HeaderRow:           settings.HeaderRow,
 			DataStartRow:        settings.DataStartRow,
 			KeyColumn:           settings.KeyColumn,
+			TotalColumn:         settings.TotalColumn,
+			RawTotalColumn:      settings.RawTotalColumn,
+			AutoColumn:          settings.AutoColumn,
 			AutoSync:            settings.AutoSync,
 			SyncIntervalSeconds: settings.SyncIntervalSec,
 			LastSyncTimestamp:   lastSync,
+			PriceColumn:         settings.PriceColumn,
+			PriceColumnShopee:   settings.PriceColumnShopee,
+			PriceColumnTiktok:   settings.PriceColumnTiktok,
+			PriceColumnLazada:   settings.PriceColumnLazada,
+			ShopeeRatio:         settings.ShopeeRatio,
+			TiktokRatio:         settings.TiktokRatio,
 		},
 	})
 }

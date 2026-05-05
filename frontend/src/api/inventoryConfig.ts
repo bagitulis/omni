@@ -52,6 +52,14 @@ export function normalizeInventoryConfig(
     data_start_row:
       typeof config.data_start_row === "number" ? config.data_start_row : 2,
     key_column: keyColumn,
+    total_column:
+      typeof config.total_column === "string" ? config.total_column : undefined,
+    raw_total_column:
+      typeof config.raw_total_column === "string"
+        ? config.raw_total_column
+        : undefined,
+    auto_column:
+      typeof config.auto_column === "string" ? config.auto_column : undefined,
     auto_sync: Boolean(config.auto_sync),
     sync_interval_seconds:
       typeof config.sync_interval_seconds === "number"
@@ -70,6 +78,24 @@ export function normalizeInventoryConfig(
       typeof config.low_stock_threshold === "number"
         ? config.low_stock_threshold
         : undefined,
+    price_column:
+      typeof config.price_column === "string" ? config.price_column : undefined,
+    price_column_shopee:
+      typeof config.price_column_shopee === "string"
+        ? config.price_column_shopee
+        : undefined,
+    price_column_tiktok:
+      typeof config.price_column_tiktok === "string"
+        ? config.price_column_tiktok
+        : undefined,
+    price_column_lazada:
+      typeof config.price_column_lazada === "string"
+        ? config.price_column_lazada
+        : undefined,
+    shopee_ratio:
+      typeof config.shopee_ratio === "number" ? config.shopee_ratio : undefined,
+    tiktok_ratio:
+      typeof config.tiktok_ratio === "number" ? config.tiktok_ratio : undefined,
     created_at: typeof config.created_at === "string" ? config.created_at : "",
     updated_at: typeof config.updated_at === "string" ? config.updated_at : "",
   };

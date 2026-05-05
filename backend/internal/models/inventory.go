@@ -15,10 +15,13 @@ type InventorySettings struct {
 	KeyColumn         string     `gorm:"column:key_column;size:255" json:"key_column"`
 	TotalColumn       string     `gorm:"column:total_column;size:255" json:"total_column"`
 	RawTotalColumn    string     `gorm:"column:raw_total_column;size:255" json:"raw_total_column"`
+	AutoColumn        string     `gorm:"column:auto_column;size:255" json:"auto_column"`
 	PriceColumn       string     `gorm:"column:price_column;default:HARGA" json:"price_column"`
 	PriceColumnShopee string     `gorm:"column:price_column_shopee;default:HARGA_SHOPEE" json:"price_column_shopee"`
 	PriceColumnTiktok string     `gorm:"column:price_column_tiktok;default:HARGA_TIKTOK" json:"price_column_tiktok"`
 	PriceColumnLazada string     `gorm:"column:price_column_lazada;default:HARGA_LAZADA" json:"price_column_lazada"`
+	ShopeeRatio       float64    `gorm:"column:shopee_ratio;default:0.6" json:"shopee_ratio"`
+	TiktokRatio       float64    `gorm:"column:tiktok_ratio;default:0.3" json:"tiktok_ratio"`
 	AutoSync          bool       `gorm:"column:auto_sync;default:false" json:"auto_sync"`
 	SyncIntervalSec   int        `gorm:"column:sync_interval_seconds;default:300" json:"sync_interval_seconds"`
 	LastSyncTimestamp *time.Time `gorm:"column:last_sync_timestamp" json:"last_sync_timestamp"`

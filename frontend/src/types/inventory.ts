@@ -38,6 +38,7 @@ export interface InventoryConfig {
   key_column: string;
   total_column?: string;
   raw_total_column?: string;
+  auto_column?: string;
   auto_sync: boolean;
   sync_interval_seconds: number;
   last_sync_timestamp: string | null;
@@ -48,6 +49,8 @@ export interface InventoryConfig {
   price_column_shopee?: string;
   price_column_tiktok?: string;
   price_column_lazada?: string;
+  shopee_ratio?: number;
+  tiktok_ratio?: number;
   created_at: string;
   updated_at: string;
 }

@@ -13,19 +13,22 @@ import (
 
 // SettingsInput represents input for settings update
 type SettingsInput struct {
-	SpreadsheetID   string   `json:"spreadsheet_id"`
-	SheetName       string   `json:"sheet_name"`
-	AllColumns      []string `json:"all_columns"`
-	SelectedColumns []string `json:"selected_columns"`
-	KeyColumn       string   `json:"key_column"`
-	HeaderRow       int      `json:"header_row"`
-	DataStartRow    int      `json:"data_start_row"`
-	AutoSync        bool     `json:"auto_sync"`
-	SyncIntervalSec int      `json:"sync_interval_seconds"`
-	PriceColumn       string `json:"price_column"`
-	PriceColumnShopee string `json:"price_column_shopee"`
-	PriceColumnTiktok string `json:"price_column_tiktok"`
-	PriceColumnLazada string `json:"price_column_lazada"`
+	SpreadsheetID     string   `json:"spreadsheet_id"`
+	SheetName         string   `json:"sheet_name"`
+	AllColumns        []string `json:"all_columns"`
+	SelectedColumns   []string `json:"selected_columns"`
+	KeyColumn         string   `json:"key_column"`
+	HeaderRow         int      `json:"header_row"`
+	DataStartRow      int      `json:"data_start_row"`
+	AutoColumn        string   `json:"auto_column"`
+	AutoSync          bool     `json:"auto_sync"`
+	SyncIntervalSec   int      `json:"sync_interval_seconds"`
+	PriceColumn       string   `json:"price_column"`
+	PriceColumnShopee string   `json:"price_column_shopee"`
+	PriceColumnTiktok string   `json:"price_column_tiktok"`
+	PriceColumnLazada string   `json:"price_column_lazada"`
+	ShopeeRatio       float64  `json:"shopee_ratio"`
+	TiktokRatio       float64  `json:"tiktok_ratio"`
 }
 
 // GetSettings retrieves inventory settings
@@ -70,22 +73,25 @@ func (s *InventoryService) SaveSettings(ctx context.Context, input SettingsInput
 	}
 
 	settings := models.InventorySettings{
-		ID:              "settings",
-		TenantID:        s.tenantID,
-		SpreadsheetID:   input.SpreadsheetID,
-		SheetName:       input.SheetName,
-		KeyColumn:       input.KeyColumn,
-		HeaderRow:       input.HeaderRow,
-		DataStartRow:    input.DataStartRow,
-		AutoSync:        input.AutoSync,
-		SyncIntervalSec: input.SyncIntervalSec,
-		AllColumns:      allColumnsJSON,
-		SelectedColumns: selectedColumnsJSON,
+		ID:                "settings",
+		TenantID:          s.tenantID,
+		SpreadsheetID:     input.SpreadsheetID,
+		SheetName:         input.SheetName,
+		KeyColumn:         input.KeyColumn,
+		HeaderRow:         input.HeaderRow,
+		DataStartRow:      input.DataStartRow,
+		AutoColumn:        input.AutoColumn,
+		AutoSync:          input.AutoSync,
+		SyncIntervalSec:   input.SyncIntervalSec,
+		AllColumns:        allColumnsJSON,
+		SelectedColumns:   selectedColumnsJSON,
 		PriceColumn:       input.PriceColumn,
 		PriceColumnShopee: input.PriceColumnShopee,
 		PriceColumnTiktok: input.PriceColumnTiktok,
 		PriceColumnLazada: input.PriceColumnLazada,
-		UpdatedAt:       time.Now(),
+		ShopeeRatio:       input.ShopeeRatio,
+		TiktokRatio:       input.TiktokRatio,
+		UpdatedAt:         time.Now(),
 	}
 
 	return s.db.WithContext(ctx).
@@ -93,9 +99,10 @@ func (s *InventoryService) SaveSettings(ctx context.Context, input SettingsInput
 			Columns: []clause.Column{{Name: "id"}},
 			DoUpdates: clause.AssignmentColumns([]string{
 				"spreadsheet_id", "sheet_name", "key_column",
-				"header_row", "data_start_row", "auto_sync",
+				"header_row", "data_start_row", "auto_column", "auto_sync",
 				"sync_interval_seconds", "all_columns", "selected_columns",
 				"price_column", "price_column_shopee", "price_column_tiktok", "price_column_lazada",
+				"shopee_ratio", "tiktok_ratio",
 				"updated_at",
 			}),
 		}).Create(&settings).Error
