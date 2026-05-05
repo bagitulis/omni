@@ -5,14 +5,15 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 const shipOrdersMock = vi.fn();
 const cancelOrderMock = vi.fn();
 
-vi.mock("antd", () => ({
-  Modal: { confirm: vi.fn() },
+vi.mock("@/components/AntStaticApi", () => ({
   message: {
     success: vi.fn(),
     error: vi.fn(),
     warning: vi.fn(),
     info: vi.fn(),
   },
+  modal: { confirm: vi.fn() },
+  notification: {},
 }));
 
 vi.mock("@/hooks/useOrders", () => ({
@@ -36,8 +37,7 @@ vi.mock("./printOptions", () => ({
 }));
 
 import { useOrderBulkActions } from "./useOrderBulkActions";
-import { Modal } from "antd";
-import { message } from "@/components/AntStaticApi";
+import { message, modal } from "@/components/AntStaticApi";
 import * as bulkPrintHelpers from "./bulkPrintHelpers";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -236,10 +236,10 @@ describe("useOrderBulkActions", () => {
         await result.current.handleBulkCancel();
       });
 
-      expect(Modal.confirm).not.toHaveBeenCalled();
+      expect(modal.confirm).not.toHaveBeenCalled();
     });
 
-    it("shows Modal.confirm when orders are selected", async () => {
+    it("shows modal.confirm when orders are selected", async () => {
       const props = makeHookProps({
         selectedRowKeys: ["ORD-001"],
         data: makeData(["ORD-001"]),
@@ -250,7 +250,7 @@ describe("useOrderBulkActions", () => {
         await result.current.handleBulkCancel();
       });
 
-      expect(Modal.confirm).toHaveBeenCalledWith(
+      expect(modal.confirm).toHaveBeenCalledWith(
         expect.objectContaining({ title: "Bulk Cancel Orders" }),
       );
     });
@@ -261,10 +261,10 @@ describe("useOrderBulkActions", () => {
         data: makeData(["ORD-001"]),
       });
 
-      vi.mocked(Modal.confirm).mockImplementationOnce((options) => {
+      vi.mocked(modal.confirm).mockImplementationOnce((options) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         void (options as any).onOk?.();
-        return {} as ReturnType<typeof Modal.confirm>;
+        return {} as ReturnType<typeof modal.confirm>;
       });
 
       const { result } = renderHook(() => useOrderBulkActions(props));

@@ -146,16 +146,18 @@ export const PriceSyncModal: FC<PriceSyncModalProps> = ({
       );
     }
 
-    return Object.entries(perPlatformConfig).map(([sku, config]) => ({
-      seller_sku: sku,
-      price: config.price,
-      platforms: (Object.entries(config.platforms) as [Platform, boolean][])
-        .filter(
-          ([platform, enabled]) =>
-            enabled && linkedPlatformsBySku[sku]?.[platform],
-        )
-        .map(([platform]) => platform),
-    }));
+    return Object.entries(perPlatformConfig).map(([sku, config]) => {
+      const activePlatforms = (Object.entries(config.platforms) as [Platform, boolean][])
+        .filter(([platform, enabled]) => enabled && linkedPlatformsBySku[sku]?.[platform])
+        .map(([platform]) => platform);
+      // Use first active platform's price for backward compat
+      const price = activePlatforms.length > 0 ? config.prices[activePlatforms[0]] : config.prices.shopee;
+      return {
+        seller_sku: sku,
+        price,
+        platforms: activePlatforms,
+      };
+    });
   }, [
     linkedPlatformsBySku,
     mode,
@@ -213,10 +215,9 @@ export const PriceSyncModal: FC<PriceSyncModalProps> = ({
 
   const perPlatformData: PricePerPlatformRow[] = Object.entries(
     perPlatformConfig,
-  ).map(([sku, config]) => ({
+  ).map(([sku]) => ({
     key: sku,
     sku,
-    price: config.price,
   }));
 
   return (

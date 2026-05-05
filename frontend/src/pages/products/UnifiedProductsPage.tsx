@@ -136,10 +136,14 @@ export default function UnifiedProductsPage() {
     skuMappingLoading,
     handleDeleteProduct,
     handlePriceSync,
+    handlePerPlatformPriceSync,
     handleStockSync,
     handleRowAction,
     handleBatchAction,
     batchLoading,
+    marketplaceSyncOpen,
+    setMarketplaceSyncOpen,
+    marketplaceSyncProducts,
   } = useUnifiedProductsActions({
     navigate,
     selectedRecords,
@@ -291,6 +295,10 @@ export default function UnifiedProductsPage() {
         onSkuMappingUpdate={() => {
           void refreshProducts();
         }}
+        marketplaceSyncOpen={marketplaceSyncOpen}
+        marketplaceSyncProducts={marketplaceSyncProducts}
+        onMarketplaceSyncClose={() => setMarketplaceSyncOpen(false)}
+        onPerPlatformPriceSync={handlePerPlatformPriceSync}
       />
     </div>
   );

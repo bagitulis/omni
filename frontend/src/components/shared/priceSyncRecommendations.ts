@@ -82,15 +82,15 @@ export async function buildPriceRecommendations(
   // Fetch price recommendations from backend
   let apiData: Record<string, PriceRecommendation> = {};
   try {
-    const { data: json } = await apiClient.get<{ success: boolean; error?: string; data?: Record<string, PriceRecommendation> }>(
+    const response = await apiClient.get<Record<string, PriceRecommendation>>(
       `/inventory/price-recommendations?skus=${realSkus.join(",")}`,
     );
 
-    if (!json?.success) {
-      throw new Error(json?.error || "Failed to fetch price recommendations");
+    if (!response.success) {
+      throw new Error(response.error || "Failed to fetch price recommendations");
     }
 
-    apiData = json.data || {};
+    apiData = response.data || {};
   } catch (err) {
     logger.warn("Failed to fetch price recommendations, using fallback");
     // Graceful degradation: if API fails, use fallback for all SKUs
@@ -131,8 +131,8 @@ export async function buildPriceRecommendations(
  * Apply price recommendations to the per-platform config.
  *
  * For each SKU in config:
- * - If recommendation exists, set config[sku].price to the platform-appropriate price
- * - For per-platform mode: use recommendation.shopee for shopee, recommendation.tiktok for tiktok, etc.
+ * - If recommendation exists, fill each platform's price independently
+ * - shopee gets recommendation.shopee, tiktok gets recommendation.tiktok, etc.
  *
  * Returns a new config (immutable — does not mutate input).
  */
@@ -146,27 +146,18 @@ export function applyPriceRecommendations(
     const recommendation = recommendations[sku];
 
     if (!recommendation) {
-      // No recommendation — keep existing config
       newConfig[sku] = skuConfig;
       continue;
     }
 
-    // Determine which platform price to use based on active platforms
-    // If multiple platforms are active, use the first active platform's price
-    // (this matches the stock sync behavior)
-    let targetPrice = recommendation.base_price;
-
-    if (skuConfig.platforms.shopee) {
-      targetPrice = recommendation.shopee;
-    } else if (skuConfig.platforms.tiktok) {
-      targetPrice = recommendation.tiktok;
-    } else if (skuConfig.platforms.lazada) {
-      targetPrice = recommendation.lazada;
-    }
-
+    // Fill each platform's price independently from its recommendation
     newConfig[sku] = {
       ...skuConfig,
-      price: targetPrice,
+      prices: {
+        shopee: recommendation.shopee || recommendation.base_price,
+        tiktok: recommendation.tiktok || recommendation.base_price,
+        lazada: recommendation.lazada || recommendation.base_price,
+      },
     };
   }
 

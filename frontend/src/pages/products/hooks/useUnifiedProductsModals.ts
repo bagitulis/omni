@@ -28,6 +28,10 @@ export function useUnifiedProductsModals() {
   const [skuMappingProduct, setSkuMappingProduct] =
     useState<MasterProduct | null>(null);
   const [skuMappingLoading, setSkuMappingLoading] = useState(false);
+  const [marketplaceSyncOpen, setMarketplaceSyncOpen] = useState(false);
+  const [marketplaceSyncProducts, setMarketplaceSyncProducts] = useState<
+    UnifiedProductRow[]
+  >([]);
 
   return {
     stockSyncOpen,
@@ -56,5 +60,9 @@ export function useUnifiedProductsModals() {
     setSkuMappingProduct,
     skuMappingLoading,
     setSkuMappingLoading,
+    marketplaceSyncOpen,
+    setMarketplaceSyncOpen,
+    marketplaceSyncProducts,
+    setMarketplaceSyncProducts,
   };
 }

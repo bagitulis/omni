@@ -1,4 +1,5 @@
-import { Table, Button, Space, Tag, Modal, Typography } from "antd";
+import { Table, Button, Space, Tag, Typography } from "antd";
+import { modal } from "@/components/AntStaticApi";
 import { LinkOutlined, DeleteOutlined } from "@ant-design/icons";
 import { PlatformBadge } from "@/components/ui/PlatformBadge";
 import type { TableProps } from "antd";
@@ -32,7 +33,7 @@ export function SkuMappingTable({
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
 
   const handleUnlink = (mappingId: string) => {
-    Modal.confirm({
+    modal.confirm({
       title: "Unlink SKU Mapping",
       content: "Are you sure you want to unlink this SKU mapping?",
       okText: "Unlink",
@@ -49,7 +50,7 @@ export function SkuMappingTable({
 
   const handleLink = (masterSku: string) => {
     // Placeholder - opens modal for linking
-    Modal.info({
+    modal.info({
       title: "Link SKU Mapping",
       content: `Link new platform SKU for master SKU: ${masterSku}`,
       okText: "Close",

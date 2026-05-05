@@ -1,5 +1,4 @@
-import { Modal } from "antd";
-import { message } from "@/components/AntStaticApi";
+import { message, modal } from "@/components/AntStaticApi";
 import { type BulkPrintLabelsOptions, bulkPrintLabels } from "@/api/orders";
 import { downloadOrderLabel } from "../utils/labelDownload";
 import type {
@@ -10,7 +9,7 @@ import type {
 
 export function askIncludeProductsOption(): Promise<boolean> {
 	return new Promise((resolve) => {
-		Modal.confirm({
+		modal.confirm({
 			title: "Print option",
 			content:
 				"Include product list (packing slip) for TikTok labels? Choose 'With List' or 'Label Only'.",

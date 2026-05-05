@@ -8,9 +8,9 @@ import {
   Statistic,
   Row,
   Col,
-  Modal,
   theme,
 } from "antd";
+import { message, modal } from "@/components/AntStaticApi";
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
@@ -27,7 +27,6 @@ import {
 } from "@/hooks/useProductImport";
 import { downloadImportTemplate } from "@/api/products";
 import "./ProductImportPage.css";
-import { message } from "@/components/AntStaticApi";
 
 export default function ProductImportPage() {
   const { token } = theme.useToken();
@@ -76,7 +75,7 @@ export default function ProductImportPage() {
       return;
     }
 
-    Modal.confirm({
+    modal.confirm({
       title: "Confirm Import",
       content: (
         <div>

@@ -1,14 +1,13 @@
-import { Modal } from "antd";
 import { deleteProduct } from "@/api/products";
 import { getErrorMessage } from "@/pages/products/utils/unifiedProductUtils";
 import type { UnifiedProductRow } from "@/types/shared";
-import { message } from "@/components/AntStaticApi";
+import { message, modal } from "@/components/AntStaticApi";
 
 export function confirmDeleteSingleProduct(
   record: UnifiedProductRow,
   handleDeleteProduct: (productId: number | string) => Promise<void>,
 ) {
-  Modal.confirm({
+  modal.confirm({
     title: `Delete ${record.title}?`,
     content: "This action cannot be undone.",
     okText: "Delete",
@@ -22,7 +21,7 @@ export function confirmDeleteSelectedProducts(
   clearSelection: () => void,
   refreshProducts: () => Promise<void>,
 ) {
-  Modal.confirm({
+  modal.confirm({
     title: `Delete ${selectedRecords.length} selected products?`,
     okText: "Delete",
     okButtonProps: { danger: true },

@@ -38,6 +38,7 @@ export type BatchActionType =
   | "update_price"
   | "sync_stock"
   | "sync_marketplace"
+  | "push_to_marketplace"
   | "bulk_pricing"
   | "clone"
   | "delete_products";

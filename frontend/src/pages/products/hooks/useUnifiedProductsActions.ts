@@ -71,6 +71,10 @@ export function useUnifiedProductsActions({
     setSkuMappingProduct,
     skuMappingLoading,
     setSkuMappingLoading,
+    marketplaceSyncOpen,
+    setMarketplaceSyncOpen,
+    marketplaceSyncProducts,
+    setMarketplaceSyncProducts,
   } = useUnifiedProductsModals();
 
   const [batchLoading, setBatchLoading] = useState<Partial<Record<BatchActionType, boolean>>>({});
@@ -111,6 +115,51 @@ export function useUnifiedProductsActions({
           );
         } else if (result.success === 0) {
           const firstErr = result.results.find((r) => r.errors?.length)?. errors?.[0]
+            || "Unknown error";
+          message.error(`Price sync failed: ${firstErr}`);
+        } else {
+          const firstErr = result.results.find((r) => !r.success)?.errors?.[0]
+            || "Unknown error";
+          message.warning(
+            `Price sync: ${result.success} succeeded, ${result.failed} failed. Failed: ${firstErr}`,
+          );
+        }
+        await refreshProducts();
+      } catch (error) {
+        message.error(getErrorMessage(error));
+      }
+    },
+    [refreshProducts],
+  );
+
+  // New handler for MarketplaceSyncModal per-platform price sync
+  const handlePerPlatformPriceSync = useCallback(
+    async (
+      items: Array<{
+        seller_sku: string;
+        prices: Record<Platform, number>;
+        platforms: Platform[];
+      }>,
+    ) => {
+      // Transform per-platform prices into individual items per platform
+      // Backend already supports single-platform items with different prices
+      const flatItems = items.flatMap((item) =>
+        item.platforms.map((platform) => ({
+          sku: item.seller_sku,
+          price: item.prices[platform],
+          platforms: [platform],
+        })),
+      );
+
+      try {
+        const result = await updatePriceBatch(flatItems);
+
+        if (result.failed === 0) {
+          message.success(
+            `Price synced: ${result.total} items = ${result.success} operations succeeded`,
+          );
+        } else if (result.success === 0) {
+          const firstErr = result.results.find((r) => r.errors?.length)?.errors?.[0]
             || "Unknown error";
           message.error(`Price sync failed: ${firstErr}`);
         } else {
@@ -197,6 +246,11 @@ export function useUnifiedProductsActions({
         setClonePreviewOpen(true);
         return;
       }
+      if (actionKey === "push_to_marketplace") {
+        setMarketplaceSyncProducts([record]);
+        setMarketplaceSyncOpen(true);
+        return;
+      }
       if (actionKey === "update_price") {
         setPriceSyncProducts([record]);
         setPriceSyncOpen(true);
@@ -230,6 +284,11 @@ export function useUnifiedProductsActions({
   const handleBatchAction = useCallback(
     async (actionKey: BatchActionType) => {
       if (selectedRecords.length === 0) {
+        return;
+      }
+      if (actionKey === "push_to_marketplace") {
+        setMarketplaceSyncProducts(selectedRecords);
+        setMarketplaceSyncOpen(true);
         return;
       }
       if (actionKey === "update_price") {
@@ -313,8 +372,12 @@ export function useUnifiedProductsActions({
     setSkuMappingProduct,
     skuMappingLoading,
     batchLoading,
+    marketplaceSyncOpen,
+    setMarketplaceSyncOpen,
+    marketplaceSyncProducts,
     handleDeleteProduct,
     handlePriceSync,
+    handlePerPlatformPriceSync,
     handleStockSync,
     handleRowAction,
     handleBatchAction,

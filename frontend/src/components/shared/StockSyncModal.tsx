@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FC } from "react";
 import { Modal, Radio, Alert, Tag, theme } from "antd";
+import { modal } from "@/components/AntStaticApi";
 import type { Platform, UnifiedProductRow } from "@/types/shared";
 import {
   type PerPlatformConfig,
@@ -190,7 +191,7 @@ export const StockSyncModal: FC<StockSyncModalProps> = ({
         .map(([p]) => p.charAt(0).toUpperCase() + p.slice(1))
         .join(", ");
 
-      Modal.confirm({
+      modal.confirm({
         title: "Set stock to 0?",
         content: `This will set stock to 0 for ${validItems.length} SKUs on ${activePlatforms}. Products with 0 stock may be hidden from marketplace listings.`,
         okText: "Yes, set to 0",

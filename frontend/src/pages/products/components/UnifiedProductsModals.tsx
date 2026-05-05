@@ -6,6 +6,7 @@ import { WholesaleMpqModal } from "@/components/shared/WholesaleMpqModal";
 import { ClonePreviewDiff } from "@/components/shared/ClonePreviewDiff";
 import { SkuMappingPanel } from "@/components/shared/SkuMappingPanel";
 import { StockSyncModal } from "@/components/shared/StockSyncModal";
+import { MarketplaceSyncModal } from "@/components/shared/MarketplaceSyncModal";
 import type { MasterProduct, Product } from "@/types/product";
 import type { Platform, UnifiedProductRow } from "@/types/shared";
 
@@ -48,6 +49,17 @@ interface UnifiedProductsModalsProps {
     }>,
   ) => Promise<void>;
   onSkuMappingUpdate: () => void;
+  // New unified marketplace sync modal
+  marketplaceSyncOpen: boolean;
+  marketplaceSyncProducts: UnifiedProductRow[];
+  onMarketplaceSyncClose: () => void;
+  onPerPlatformPriceSync: (
+    items: Array<{
+      seller_sku: string;
+      prices: Record<Platform, number>;
+      platforms: Platform[];
+    }>,
+  ) => Promise<void>;
 }
 
 export function UnifiedProductsModals({
@@ -77,6 +89,10 @@ export function UnifiedProductsModals({
   onPriceSync,
   onStockSync,
   onSkuMappingUpdate,
+  marketplaceSyncOpen,
+  marketplaceSyncProducts,
+  onMarketplaceSyncClose,
+  onPerPlatformPriceSync,
 }: UnifiedProductsModalsProps) {
   return (
     <>
@@ -92,6 +108,14 @@ export function UnifiedProductsModals({
         onClose={onPriceSyncClose}
         onSync={onPriceSync}
         selectedProducts={priceSyncProducts}
+      />
+
+      <MarketplaceSyncModal
+        open={marketplaceSyncOpen}
+        onClose={onMarketplaceSyncClose}
+        onStockSync={onStockSync}
+        onPriceSync={onPerPlatformPriceSync}
+        selectedProducts={marketplaceSyncProducts}
       />
 
       <WholesaleMpqModal

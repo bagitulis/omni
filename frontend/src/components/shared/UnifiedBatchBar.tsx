@@ -2,12 +2,11 @@ import React from "react";
 import { Button, Divider, Grid, Space, Tooltip, Typography, theme } from "antd";
 import {
   CloseOutlined,
-  CloudSyncOutlined,
   CopyOutlined,
   DeleteOutlined,
-  DollarOutlined,
+  ExportOutlined,
+  ImportOutlined,
   ShopOutlined,
-  SyncOutlined,
 } from "@ant-design/icons";
 import type { BatchActionType } from "@/types/shared";
 
@@ -29,22 +28,16 @@ interface UnifiedBatchAction {
 
 const UNIFIED_BATCH_ACTIONS: UnifiedBatchAction[] = [
   {
-    key: "sync_stock",
-    label: "Sync Stock",
-    icon: <SyncOutlined />,
-    tooltip: "Sync stock to selected marketplaces",
+    key: "push_to_marketplace",
+    label: "Push to Marketplace",
+    icon: <ExportOutlined />,
+    tooltip: "Push stock and prices to Shopee, TikTok, Lazada",
   },
   {
     key: "sync_marketplace",
-    label: "Sync Marketplace",
-    icon: <CloudSyncOutlined />,
-    tooltip: "Refresh price/stock from Shopee, TikTok, Lazada",
-  },
-  {
-    key: "update_price",
-    label: "Update Price",
-    icon: <DollarOutlined />,
-    tooltip: "Update price on all linked marketplaces",
+    label: "Pull from Marketplace",
+    icon: <ImportOutlined />,
+    tooltip: "Refresh product data from marketplaces",
   },
   {
     key: "bulk_pricing",

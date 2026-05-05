@@ -1,16 +1,15 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-// Mock antd Modal before imports that use it
-vi.mock("antd", () => ({
-  Modal: {
-    confirm: vi.fn(),
-  },
+// Mock AntStaticApi before imports that use it
+vi.mock("@/components/AntStaticApi", () => ({
   message: {
     success: vi.fn(),
     error: vi.fn(),
     warning: vi.fn(),
     info: vi.fn(),
   },
+  modal: { confirm: vi.fn() },
+  notification: {},
 }));
 
 vi.mock("@/api/orders", () => ({
@@ -28,8 +27,7 @@ import {
 } from "./bulkPrintHelpers";
 import * as ordersApi from "@/api/orders";
 import { downloadOrderLabel } from "../utils/labelDownload";
-import { Modal } from "antd";
-import { message } from "@/components/AntStaticApi";
+import { message, modal } from "@/components/AntStaticApi";
 
 describe("mergeUniqueOrderSns", () => {
   it("returns unique order sns", () => {
@@ -51,14 +49,14 @@ describe("mergeUniqueOrderSns", () => {
 
 describe("askIncludeProductsOption", () => {
   it("resolves true when user clicks ok", async () => {
-    const modalConfirmMock = vi.mocked(Modal.confirm);
+    const modalConfirmMock = vi.mocked(modal.confirm);
     modalConfirmMock.mockImplementationOnce(
       (options: {
         onOk?: () => void | Promise<void>;
         onCancel?: () => void;
       }) => {
         options.onOk?.();
-        return {} as ReturnType<typeof Modal.confirm>;
+        return {} as ReturnType<typeof modal.confirm>;
       },
     );
 
@@ -67,14 +65,14 @@ describe("askIncludeProductsOption", () => {
   });
 
   it("resolves false when user clicks cancel", async () => {
-    const modalConfirmMock = vi.mocked(Modal.confirm);
+    const modalConfirmMock = vi.mocked(modal.confirm);
     modalConfirmMock.mockImplementationOnce(
       (options: {
         onOk?: () => void | Promise<void>;
         onCancel?: () => void;
       }) => {
         options.onCancel?.();
-        return {} as ReturnType<typeof Modal.confirm>;
+        return {} as ReturnType<typeof modal.confirm>;
       },
     );
 

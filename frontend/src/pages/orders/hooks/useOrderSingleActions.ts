@@ -1,4 +1,4 @@
-import { Modal } from "antd";
+import { message, modal } from "@/components/AntStaticApi";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useOrderActions } from "@/hooks/useOrders";
@@ -19,11 +19,10 @@ import {
   arrangeTikTokShipment,
 } from "@/hooks/useOrders";
 import { downloadOrderLabel } from "../utils/labelDownload";
-import { message } from "@/components/AntStaticApi";
 
 function askIncludeProductsOption(): Promise<boolean> {
   return new Promise((resolve) => {
-    Modal.confirm({
+    modal.confirm({
       title: "Print option",
       content:
         "Include product list (packing slip) for TikTok label? Choose 'With List' or 'Label Only'.",

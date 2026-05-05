@@ -1,5 +1,4 @@
-import { Modal } from "antd";
-import { message } from "@/components/AntStaticApi";
+import { message, modal } from "@/components/AntStaticApi";
 import { useState } from "react";
 import type { BulkPrintLabelsOptions, CancelOrderParams } from "@/api/orders";
 import { useOrderActions } from "@/hooks/useOrders";
@@ -170,7 +169,7 @@ export function useOrderBulkActions({
 	const handleBulkCancel = async () => {
 		if (selectedRowKeys.length === 0) return;
 
-		Modal.confirm({
+		modal.confirm({
 			title: "Bulk Cancel Orders",
 			content: `Are you sure you want to cancel ${selectedRowKeys.length} orders? This cannot be undone.`,
 			okText: "Yes, Cancel All",

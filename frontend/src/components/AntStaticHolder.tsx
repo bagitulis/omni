@@ -18,6 +18,7 @@ export function AntStaticHolder() {
   const staticFunctions = App.useApp();
   setAntStaticApi({
     message: staticFunctions.message,
+    modal: staticFunctions.modal,
     notification: staticFunctions.notification,
   });
   return null;

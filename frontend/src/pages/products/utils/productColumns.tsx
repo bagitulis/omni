@@ -104,6 +104,7 @@ export type RowActionKey =
   | "edit"
   | "clone"
   | "sku_mapping"
+  | "push_to_marketplace"
   | "update_price"
   | "update_stock"
   | "delete";
@@ -264,14 +265,9 @@ export function buildProductColumns({
             label: "SKU Mapping",
           },
           {
-            key: "update_stock",
+            key: "push_to_marketplace",
             icon: <FormOutlined />,
-            label: "Update Stock",
-          },
-          {
-            key: "update_price",
-            icon: <FormOutlined />,
-            label: "Update Price",
+            label: "Push to Marketplace",
           },
           { type: "divider" },
           {

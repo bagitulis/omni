@@ -27,12 +27,13 @@ vi.mock("antd", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...(actual as Record<string, unknown>),
-    Modal: {
-      ...((actual as Record<string, unknown>).Modal as Record<string, unknown>),
-      confirm: vi.fn(({ onOk }) => onOk()),
-    },
   };
 });
+vi.mock("@/components/AntStaticApi", () => ({
+  message: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+  modal: { confirm: vi.fn(({ onOk }: { onOk?: () => void }) => onOk?.()) },
+  notification: {},
+}));
 vi.mock("react-router-dom", () => ({
   useNavigate: () => vi.fn(),
 }));
