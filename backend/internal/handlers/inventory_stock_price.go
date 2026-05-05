@@ -210,7 +210,30 @@ func (h *InventoryHandler) UpdatePrice(c *gin.Context) {
 			return
 		}
 	} else {
-		priceValue = inventoryService.GetPrice(record)
+		// Use per-platform prices if available, otherwise base HARGA
+		perPlatformPrices := inventoryService.GetPricePerPlatform(record)
+		basePrice := perPlatformPrices["base"]
+		
+		// For single-platform sync: use that platform's specific price
+		// For multi-platform or no platform specified: use base price
+		// (the orchestrator will be called once per platform with the same price)
+		if len(req.Platforms) == 1 {
+			platformKey := req.Platforms[0]
+			if pp, ok := perPlatformPrices[platformKey]; ok && pp > 0 {
+				priceValue = pp
+			} else {
+				priceValue = basePrice
+			}
+		} else if req.Platform != "" {
+			if pp, ok := perPlatformPrices[req.Platform]; ok && pp > 0 {
+				priceValue = pp
+			} else {
+				priceValue = basePrice
+			}
+		} else {
+			priceValue = basePrice
+		}
+		
 		// If inventory has price=0 but request provides a price, prefer request price.
 		if priceValue == 0 && req.Price != nil {
 			priceValue = *req.Price
@@ -231,13 +254,43 @@ func (h *InventoryHandler) UpdatePrice(c *gin.Context) {
 	credService := services.NewCredentialService(dbPath)
 
 	// Use orchestrator to update marketplace platforms
+	// For multi-platform sync with per-platform prices, call orchestrator per platform
 	orchestrator := inventoryService.NewPriceUpdateOrchestrator(db, tenantID, credService)
+	
+	if len(platforms) > 1 && record.ID != "" {
+		// Multi-platform: use per-platform prices from inventory
+		perPlatformPrices := inventoryService.GetPricePerPlatform(record)
+		allResults := make(map[string]*inventoryService.PlatformPriceResult)
+		var lastErr error
+		for _, platform := range platforms {
+			pp := perPlatformPrices[platform]
+			if pp == 0 {
+				pp = priceValue // fallback to resolved price
+			}
+			result, err := orchestrator.UpdatePrice(c.Request.Context(), req.SKU, pp, []string{platform})
+			if err != nil {
+				lastErr = err
+				continue
+			}
+			for k, v := range result.Platforms {
+				allResults[k] = v
+			}
+		}
+		if len(allResults) == 0 && lastErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": lastErr.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"sku": req.SKU, "platforms": allResults}, "price_from_inventory": priceValue})
+		return
+	}
+	
+	// Single platform or no inventory record: use resolved priceValue
 	result, err := orchestrator.UpdatePrice(c.Request.Context(), req.SKU, priceValue, platforms)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-
+	
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": result, "price_from_inventory": priceValue})
 }
 
