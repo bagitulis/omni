@@ -12,6 +12,7 @@ import (
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/google"
 	"github.com/omni/backend/internal/services/inventory"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -240,7 +241,9 @@ func (h *InventoryHandler) GetList(c *gin.Context) {
 	for _, rec := range result.Data {
 		var data map[string]interface{}
 		if rec.Data != "" {
-			json.Unmarshal([]byte(rec.Data), &data)
+			if err := json.Unmarshal([]byte(rec.Data), &data); err != nil {
+				log.Warn().Err(err).Str("key_value", rec.KeyValue).Msg("Failed to unmarshal inventory data")
+			}
 		}
 
 		platformStatus := platformMap[rec.KeyValue]

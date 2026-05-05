@@ -71,6 +71,7 @@ type MasterProductPlatformLink struct {
 	PlatformSkuID     string     `gorm:"column:platform_sku_id;size:255" json:"platform_sku_id"`
 	SyncStatus        string     `gorm:"column:sync_status;size:50;default:'pending'" json:"sync_status"`
 	LastSyncedAt      *time.Time `gorm:"column:last_synced_at" json:"last_synced_at,omitempty"`
+	ErrorMessage      string     `gorm:"column:error_message;type:text" json:"error_message,omitempty"`
 	CreatedAt         time.Time  `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt         time.Time  `gorm:"column:updated_at" json:"updated_at"`
 }

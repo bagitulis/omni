@@ -48,7 +48,12 @@ func (h *Handler) List(c *gin.Context) {
 	status := c.Query("status")
 	search := c.Query("search")
 	platform := c.Query("platform")
-	linkedOnly, err := strconv.ParseBool(c.DefaultQuery("linked_only", "false"))
+	// mapped_only is the canonical param; linked_only kept as backward-compat alias
+	mappedOnlyStr := c.DefaultQuery("mapped_only", "")
+	if mappedOnlyStr == "" {
+		mappedOnlyStr = c.DefaultQuery("linked_only", "false")
+	}
+	linkedOnly, err := strconv.ParseBool(mappedOnlyStr)
 	if err != nil {
 		linkedOnly = false
 	}

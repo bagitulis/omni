@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/rs/zerolog/log"
 	"os"
 
@@ -19,10 +21,21 @@ import (
 	"gorm.io/gorm"
 )
 
+// syncProductsMu prevents concurrent execution of sync+autolink per tenant.
+// Key: tenantID, protects against manual run + scheduled run collision.
+var syncProductsMu sync.Map
+
 // syncProductsHandler handles the "Sync Products" auto function.
 // Syncs products from all 3 platforms (Shopee, TikTok, Lazada) to staging tables.
 // Each platform sync is independent — failures are logged but don't block others.
 func syncProductsHandler(ctx context.Context, tenantID string, cfg *models.AutoFunctionConfig) (string, error) {
+	// Acquire per-tenant lock to prevent concurrent sync+autolink
+	mu := getTenantSyncMutex(tenantID)
+	if !mu.TryLock() {
+		return "Skipped: another sync is already running for this tenant", nil
+	}
+	defer mu.Unlock()
+
 	log.Info().Msgf("[AutoFunction] Running 'Sync Products' for tenant: %s", tenantID)
 
 	basePath := os.Getenv("DATA_PATH")
@@ -73,7 +86,12 @@ func syncProductsHandler(ctx context.Context, tenantID string, cfg *models.AutoF
 	log.Info().Msgf("[AutoFunction] %s for tenant: %s", resultMsg, tenantID)
 
 	// Auto-fix: bidirectional platform link scan (master↔staging) for all platforms
-	autoFixPlatformLinks(ctx, db, tenantID)
+	mappedCount, linkErrors, linkErr := autoFixPlatformLinks(ctx, db, tenantID)
+	if linkErr != nil {
+		resultMsg += fmt.Sprintf(" | Auto-link FAILED: %v", linkErr)
+	} else if mappedCount > 0 || linkErrors > 0 {
+		resultMsg += fmt.Sprintf(" | Auto-link: %d mapped, %d errors", mappedCount, linkErrors)
+	}
 
 	// Return error only if ALL platforms failed
 	if shopeeErr != nil && tiktokErr != nil && lazadaErr != nil {
@@ -146,22 +164,32 @@ func syncPlatformProducts(ctx context.Context, platform, tenantID string, db, sy
 // Direction 1: master SKUs → find in staging tables (forward scan)
 // Direction 2: staging SKUs → find in master (reverse scan)
 // This ensures links are created regardless of which side has the SKU.
-func autoFixPlatformLinks(ctx context.Context, db *gorm.DB, tenantID string) {
+// Returns (mapped_count, error_count, error) for caller visibility.
+func autoFixPlatformLinks(ctx context.Context, db *gorm.DB, tenantID string) (int, int, error) {
 	mapper := masterProductService.NewSkuMapper(db, tenantID)
 
 	// Collect all unique seller_skus from both master and all staging tables
 	allSkus := collectAllSellerSkus(ctx, db, tenantID)
 	if len(allSkus) == 0 {
-		return
+		return 0, 0, nil
 	}
 
 	result, err := mapper.AutoMapAndLinkBySkus(ctx, allSkus)
 	if err != nil {
-		log.Info().Msgf("[AutoFunction] Auto-fix link failed for %s: %v", tenantID, err)
-		return
+		log.Error().Err(err).Str("tenant_id", tenantID).Msg("[AutoFunction] Auto-fix link failed")
+		return 0, 0, fmt.Errorf("auto-fix platform links failed: %w", err)
 	}
-	log.Info().Msgf("[AutoFunction] Auto-fix links for %s: %d mapped, %d skipped, %d total SKUs scanned",
-		tenantID, result.MappedCount, result.SkippedCount, len(allSkus))
+
+	errorCount := len(result.Errors)
+	if errorCount > 0 {
+		log.Warn().Str("tenant_id", tenantID).Int("error_count", errorCount).
+			Msgf("[AutoFunction] Auto-fix links completed with %d errors: %v", errorCount, result.Errors[:min(errorCount, 5)])
+	}
+
+	log.Info().Msgf("[AutoFunction] Auto-fix links for %s: %d mapped, %d skipped, %d errors, %d total SKUs scanned",
+		tenantID, result.MappedCount, result.SkippedCount, errorCount, len(allSkus))
+
+	return result.MappedCount, errorCount, nil
 }
 
 // collectAllSellerSkus gathers unique seller_skus from master + all platform staging tables.
@@ -223,4 +251,11 @@ func collectAllSellerSkus(ctx context.Context, db *gorm.DB, tenantID string) []s
 		result = append(result, sku)
 	}
 	return result
+}
+
+// getTenantSyncMutex returns a per-tenant mutex for sync operations.
+// Uses sync.Map to lazily create mutexes per tenant.
+func getTenantSyncMutex(tenantID string) *sync.Mutex {
+	val, _ := syncProductsMu.LoadOrStore(tenantID, &sync.Mutex{})
+	return val.(*sync.Mutex)
 }

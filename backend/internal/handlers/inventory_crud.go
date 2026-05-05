@@ -54,7 +54,9 @@ func (h *InventoryHandler) GetRecordByKey(c *gin.Context) {
 	// Parse JSONB data
 	var data map[string]interface{}
 	if record.Data != "" {
-		json.Unmarshal([]byte(record.Data), &data)
+		if err := json.Unmarshal([]byte(record.Data), &data); err != nil {
+			log.Warn().Err(err).Str("key_value", record.KeyValue).Msg("Failed to unmarshal inventory data")
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -112,7 +114,9 @@ func (h *InventoryHandler) UpdateRecordByKey(c *gin.Context) {
 
 	var data map[string]interface{}
 	if record.Data != "" {
-		json.Unmarshal([]byte(record.Data), &data)
+		if err := json.Unmarshal([]byte(record.Data), &data); err != nil {
+			log.Warn().Err(err).Str("key_value", record.KeyValue).Msg("Failed to unmarshal inventory data")
+		}
 	}
 
 	log.Info().
@@ -177,7 +181,9 @@ func (h *InventoryHandler) CreateRecord(c *gin.Context) {
 
 	var data map[string]interface{}
 	if record.Data != "" {
-		json.Unmarshal([]byte(record.Data), &data)
+		if err := json.Unmarshal([]byte(record.Data), &data); err != nil {
+			log.Warn().Err(err).Str("key_value", record.KeyValue).Msg("Failed to unmarshal inventory data")
+		}
 	}
 
 	log.Info().

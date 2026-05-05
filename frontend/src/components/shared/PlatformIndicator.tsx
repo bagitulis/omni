@@ -37,7 +37,7 @@ function getStateBorderColors(
     syncing: token.colorPrimary,
     success: token.colorSuccess,
     error: token.colorError,
-    not_linked: token.colorError,
+    not_linked: token.colorBorder,
   };
 }
 
@@ -88,9 +88,9 @@ function getStateStyles(
       };
     case "not_linked":
       return {
-        opacity: 0.45,
-        filter: "grayscale(60%)",
-        border: `2px solid ${colors.not_linked}`,
+        opacity: 0.4,
+        filter: "grayscale(80%)",
+        border: `1.5px dashed ${colors.not_linked}`,
       };
     case "has_update":
       return {
@@ -124,7 +124,7 @@ function getTooltipTitle(
     return `${label}: Sync successful`;
   }
   if (state === "not_linked") {
-    return `${label}: Not linked`;
+    return `${label}: Not linked — map SKU to connect`;
   }
   if (state === "has_update") {
     return `${label}: Has pending updates`;

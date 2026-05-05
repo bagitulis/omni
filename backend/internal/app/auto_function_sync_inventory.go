@@ -87,7 +87,12 @@ func syncProductsInventoryHandler(ctx context.Context, tenantID string, cfg *mod
 	}
 
 	// Auto-fix platform links after sync
-	autoFixPlatformLinks(ctx, db, tenantID)
+	mappedCount, linkErrors, linkErr := autoFixPlatformLinks(ctx, db, tenantID)
+	if linkErr != nil {
+		results = append(results, fmt.Sprintf("Auto-link FAILED: %v", linkErr))
+	} else if mappedCount > 0 || linkErrors > 0 {
+		results = append(results, fmt.Sprintf("Auto-link: %d mapped, %d errors", mappedCount, linkErrors))
+	}
 
 	resultMsg := fmt.Sprintf("Inventory sync completed: %v", results)
 	log.Info().Msgf("[AutoFunction] %s for tenant: %s", resultMsg, tenantID)

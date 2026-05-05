@@ -113,9 +113,8 @@ function mapSyncStatus(
     case "not_synced":
       return "pending"; // Treat not_synced as pending
     default:
-      if (normalizedStatus.length > 0) {
-        return "pending";
-      }
+      // If a platform_link record exists (this function is only called for existing links),
+      // any unrecognized or empty status means the link is in a transitional state.
       return "pending";
   }
 }
