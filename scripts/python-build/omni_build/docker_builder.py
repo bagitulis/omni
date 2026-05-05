@@ -6,6 +6,16 @@ SRP: This module ONLY handles Docker image build operations.
 import subprocess
 import sys
 import time
+import io
+import os
+
+# Fix Windows console encoding for Docker build output (contains Unicode ✓/✅)
+if sys.platform == 'win32' and not os.environ.get('PYTHONIOENCODING'):
+    try:
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+    except (AttributeError, TypeError):
+        pass  # Already wrapped or no buffer
 from typing import Optional
 
 from omni_build.config import Config
