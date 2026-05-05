@@ -204,6 +204,82 @@ export function MarketplaceSettingsModal({
           </Row>
         </div>
 
+        <div>
+          <Title level={5}>Price Column Mapping</Title>
+          <Text type="secondary">
+            Configure which columns contain per-platform prices. Used for price
+            recommendations in the Sync Price modal.
+          </Text>
+          <Row gutter={16} style={{ marginTop: 12 }}>
+            <Col span={12}>
+              <Text strong>Base Price Column</Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Main price column (e.g. "HARGA")
+              </Text>
+              <Select
+                style={{ width: "100%", marginTop: 6 }}
+                value={settings.priceColumn || "HARGA"}
+                onChange={(value) =>
+                  setSettings({ ...settings, priceColumn: value })
+                }
+                placeholder="HARGA"
+                options={selectOptions}
+                loading={configLoading}
+                allowClear
+              />
+            </Col>
+            <Col span={12}>
+              <Text strong>Shopee Price Column</Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Shopee-specific price (e.g. "HARGA_SHOPEE")
+              </Text>
+              <Select
+                style={{ width: "100%", marginTop: 6 }}
+                value={settings.priceColumnShopee || "HARGA_SHOPEE"}
+                onChange={(value) =>
+                  setSettings({ ...settings, priceColumnShopee: value })
+                }
+                placeholder="HARGA_SHOPEE"
+                options={selectOptions}
+                loading={configLoading}
+                allowClear
+              />
+            </Col>
+          </Row>
+          <Row gutter={16} style={{ marginTop: 12 }}>
+            <Col span={12}>
+              <Text strong>TikTok Price Column</Text>
+              <Select
+                style={{ width: "100%", marginTop: 6 }}
+                value={settings.priceColumnTiktok || "HARGA_TIKTOK"}
+                onChange={(value) =>
+                  setSettings({ ...settings, priceColumnTiktok: value })
+                }
+                placeholder="HARGA_TIKTOK"
+                options={selectOptions}
+                loading={configLoading}
+                allowClear
+              />
+            </Col>
+            <Col span={12}>
+              <Text strong>Lazada Price Column</Text>
+              <Select
+                style={{ width: "100%", marginTop: 6 }}
+                value={settings.priceColumnLazada || "HARGA_LAZADA"}
+                onChange={(value) =>
+                  setSettings({ ...settings, priceColumnLazada: value })
+                }
+                placeholder="HARGA_LAZADA"
+                options={selectOptions}
+                loading={configLoading}
+                allowClear
+              />
+            </Col>
+          </Row>
+        </div>
+
         <AllocationRatioSection
           settings={settings}
           onChangeShopeeRatio={(value) =>
