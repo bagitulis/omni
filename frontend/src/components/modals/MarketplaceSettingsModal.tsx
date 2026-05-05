@@ -78,6 +78,10 @@ export function MarketplaceSettingsModal({
         total_column: settings.totalColumn,
         raw_total_column: settings.rawTotalColumn,
         selected_columns: mergedColumns,
+        price_column: settings.priceColumn || undefined,
+        price_column_shopee: settings.priceColumnShopee || undefined,
+        price_column_tiktok: settings.priceColumnTiktok || undefined,
+        price_column_lazada: settings.priceColumnLazada || undefined,
       },
       {
         onSuccess: () => {
@@ -144,19 +148,18 @@ export function MarketplaceSettingsModal({
         <div>
           <Title level={5}>Column Mapping</Title>
           <Text type="secondary">
-            Configure which columns from your inventory sheet map to stock and
-            allocation values.
+            Configure which columns from your inventory sheet map to stock,
+            allocation, and price values.
           </Text>
-          <Row gutter={16} style={{ marginTop: 12 }}>
+
+          <Text strong style={{ display: "block", marginTop: 16, marginBottom: 4 }}>Stock & Allocation</Text>
+          <Row gutter={16}>
             <Col span={12}>
-              <Text strong>Stock Total Column</Text>
-              <br />
               <Text type="secondary" style={{ fontSize: 12 }}>
-                Raw stock total from sheet (e.g. "TOTAL"). Used to compute
-                Sellable.
+                Stock Total (e.g. "TOTAL")
               </Text>
               <Select
-                style={{ width: "100%", marginTop: 6 }}
+                style={{ width: "100%", marginTop: 4 }}
                 value={settings.rawTotalColumn || undefined}
                 onChange={(value) =>
                   setSettings({ ...settings, rawTotalColumn: value })
@@ -168,13 +171,11 @@ export function MarketplaceSettingsModal({
               />
             </Col>
             <Col span={12}>
-              <Text strong>Allocation Column</Text>
-              <br />
               <Text type="secondary" style={{ fontSize: 12 }}>
-                Column used for ratio distribution (e.g. "Sellable").
+                Allocation Source (e.g. "Sellable")
               </Text>
               <Select
-                style={{ width: "100%", marginTop: 6 }}
+                style={{ width: "100%", marginTop: 4 }}
                 value={settings.totalColumn || undefined}
                 onChange={(value) =>
                   setSettings({ ...settings, totalColumn: value })
@@ -186,16 +187,91 @@ export function MarketplaceSettingsModal({
               />
             </Col>
           </Row>
-          <Row gutter={16} style={{ marginTop: 12 }}>
+          <Row gutter={16} style={{ marginTop: 8 }}>
             <Col span={12}>
-              <Text strong>Auto Column (Boolean)</Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Auto Mode Column (boolean)
+              </Text>
               <Select
-                style={{ width: "100%", marginTop: 6 }}
+                style={{ width: "100%", marginTop: 4 }}
                 value={settings.autoColumn || undefined}
                 onChange={(value) =>
                   setSettings({ ...settings, autoColumn: value })
                 }
                 placeholder="Select column"
+                options={selectOptions}
+                loading={configLoading}
+                allowClear
+              />
+            </Col>
+          </Row>
+
+          <Text strong style={{ display: "block", marginTop: 16, marginBottom: 4 }}>Price Columns</Text>
+          <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 8 }}>
+            Used for price recommendations in Sync Price modal. Select which columns contain per-platform prices.
+          </Text>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Base Price
+              </Text>
+              <Select
+                style={{ width: "100%", marginTop: 4 }}
+                value={settings.priceColumn || undefined}
+                onChange={(value) =>
+                  setSettings({ ...settings, priceColumn: value })
+                }
+                placeholder="e.g. HARGA"
+                options={selectOptions}
+                loading={configLoading}
+                allowClear
+              />
+            </Col>
+            <Col span={12}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Shopee Price
+              </Text>
+              <Select
+                style={{ width: "100%", marginTop: 4 }}
+                value={settings.priceColumnShopee || undefined}
+                onChange={(value) =>
+                  setSettings({ ...settings, priceColumnShopee: value })
+                }
+                placeholder="e.g. HARGA_SHOPEE"
+                options={selectOptions}
+                loading={configLoading}
+                allowClear
+              />
+            </Col>
+          </Row>
+          <Row gutter={16} style={{ marginTop: 8 }}>
+            <Col span={12}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                TikTok Price
+              </Text>
+              <Select
+                style={{ width: "100%", marginTop: 4 }}
+                value={settings.priceColumnTiktok || undefined}
+                onChange={(value) =>
+                  setSettings({ ...settings, priceColumnTiktok: value })
+                }
+                placeholder="e.g. HARGA_TIKTOK"
+                options={selectOptions}
+                loading={configLoading}
+                allowClear
+              />
+            </Col>
+            <Col span={12}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Lazada Price
+              </Text>
+              <Select
+                style={{ width: "100%", marginTop: 4 }}
+                value={settings.priceColumnLazada || undefined}
+                onChange={(value) =>
+                  setSettings({ ...settings, priceColumnLazada: value })
+                }
+                placeholder="e.g. HARGA_LAZADA"
                 options={selectOptions}
                 loading={configLoading}
                 allowClear

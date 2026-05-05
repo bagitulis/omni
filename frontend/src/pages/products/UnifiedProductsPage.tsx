@@ -18,6 +18,7 @@ import { UnifiedProductsListOrGrid } from "@/pages/products/components/UnifiedPr
 import { UnifiedProductsModals } from "@/pages/products/components/UnifiedProductsModals";
 import { UnifiedProductsControls } from "@/pages/products/components/UnifiedProductsControls";
 import { useUnifiedProductsActions } from "@/pages/products/hooks/useUnifiedProductsActions";
+import { usePriceDrift } from "@/pages/products/hooks/usePriceDrift";
 import { buildProductColumns } from "@/pages/products/utils/productColumns";
 import {
   areFiltersEqual,
@@ -67,6 +68,7 @@ export default function UnifiedProductsPage() {
     page: 1,
     page_size: 1,
   });
+  const { driftData } = usePriceDrift();
   const { columns, visibleColumns, updateOrder, reset } = useColumnManager(
     DEFAULT_PRODUCT_PAGE_COLUMNS,
     "products-page-columns",
@@ -179,6 +181,8 @@ export default function UnifiedProductsPage() {
         <UnifiedProductsHeaderActions
           navigate={navigate}
           syncHistoryTotal={syncHistoryData?.total ?? 0}
+          priceDriftCount={driftData?.total_drifted ?? 0}
+          onSyncDriftedPrices={() => { /* TODO: open PriceSyncModal with drifted SKUs */ }}
         />
 
         <Card styles={{ body: { padding: isMobile ? 16 : 24 } }}>

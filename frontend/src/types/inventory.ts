@@ -44,6 +44,10 @@ export interface InventoryConfig {
   last_headers_hash: string;
   last_sync_status: string;
   low_stock_threshold?: number;
+  price_column?: string;
+  price_column_shopee?: string;
+  price_column_tiktok?: string;
+  price_column_lazada?: string;
   created_at: string;
   updated_at: string;
 }

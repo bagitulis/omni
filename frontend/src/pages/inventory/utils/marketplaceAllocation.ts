@@ -7,6 +7,10 @@ export interface MarketplaceAllocationSettings {
   autoColumn: string;
   shopeeRatio: number;
   tiktokRatio: number;
+  priceColumn?: string;
+  priceColumnShopee?: string;
+  priceColumnTiktok?: string;
+  priceColumnLazada?: string;
 }
 
 export interface MarketplaceAllocationPreview {
@@ -26,6 +30,10 @@ export const defaultMarketplaceAllocationSettings: MarketplaceAllocationSettings
     autoColumn: "",
     shopeeRatio: 0.6,
     tiktokRatio: 0.3,
+    priceColumn: "",
+    priceColumnShopee: "",
+    priceColumnTiktok: "",
+    priceColumnLazada: "",
   };
 
 export function parseColumns(value: unknown): string[] {
@@ -102,6 +110,10 @@ export function loadMarketplaceAllocationSettings(): MarketplaceAllocationSettin
         typeof parsed.tiktokRatio === "number"
           ? parsed.tiktokRatio
           : defaultMarketplaceAllocationSettings.tiktokRatio,
+      priceColumn: parsed.priceColumn || "",
+      priceColumnShopee: parsed.priceColumnShopee || "",
+      priceColumnTiktok: parsed.priceColumnTiktok || "",
+      priceColumnLazada: parsed.priceColumnLazada || "",
     };
   } catch (err) { console.warn("Operation failed:", err);
     return defaultMarketplaceAllocationSettings;
@@ -132,6 +144,10 @@ export function deriveMarketplaceAllocationSettings(
     autoColumn: saved.autoColumn || inferredAuto,
     shopeeRatio: saved.shopeeRatio,
     tiktokRatio: saved.tiktokRatio,
+    priceColumn: config?.price_column || saved.priceColumn || "",
+    priceColumnShopee: config?.price_column_shopee || saved.priceColumnShopee || "",
+    priceColumnTiktok: config?.price_column_tiktok || saved.priceColumnTiktok || "",
+    priceColumnLazada: config?.price_column_lazada || saved.priceColumnLazada || "",
   };
 }
 
