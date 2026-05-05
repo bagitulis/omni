@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
@@ -40,16 +41,31 @@ func (h *WholesaleExtendedHandler) BatchDeleteByItemIds(c *gin.Context) {
 		return
 	}
 
-	results := make([]wholesale.SingleWholesaleResult, 0, len(req.ItemIDs))
-	processed, failed := 0, 0
+	results := make([]wholesale.SingleWholesaleResult, len(req.ItemIDs))
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 3) // External API calls
 
-	for _, itemID := range req.ItemIDs {
-		if err := service.DeleteWholesaleTiers(c.Request.Context(), itemID); err != nil {
-			failed++
-			results = append(results, wholesale.SingleWholesaleResult{ItemID: itemID, Success: false, Error: err.Error()})
-		} else {
+	for i, itemID := range req.ItemIDs {
+		wg.Add(1)
+		go func(idx int, id int64) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			if err := service.DeleteWholesaleTiers(c.Request.Context(), id); err != nil {
+				results[idx] = wholesale.SingleWholesaleResult{ItemID: id, Success: false, Error: err.Error()}
+			} else {
+				results[idx] = wholesale.SingleWholesaleResult{ItemID: id, Success: true, Message: "Wholesale deleted"}
+			}
+		}(i, itemID)
+	}
+	wg.Wait()
+
+	processed, failed := 0, 0
+	for _, r := range results {
+		if r.Success {
 			processed++
-			results = append(results, wholesale.SingleWholesaleResult{ItemID: itemID, Success: true, Message: "Wholesale deleted"})
+		} else {
+			failed++
 		}
 	}
 
@@ -83,19 +99,34 @@ func (h *WholesaleExtendedHandler) BatchAdd(c *gin.Context) {
 		return
 	}
 
-	results := make([]wholesale.SingleWholesaleResult, 0, len(req.Items))
-	processed, failed := 0, 0
+	results := make([]wholesale.SingleWholesaleResult, len(req.Items))
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 3) // External API calls
 
-	for _, item := range req.Items {
-		tiers := convertDTOTiersToService(item.Tiers)
-		if err := service.UpdateWholesaleTiers(c.Request.Context(), item.ItemID, tiers); err != nil {
-			failed++
-			results = append(results, wholesale.SingleWholesaleResult{ItemID: item.ItemID, Success: false, Error: err.Error()})
-		} else {
+	for i, item := range req.Items {
+		wg.Add(1)
+		go func(idx int, it BatchAddItem) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			tiers := convertDTOTiersToService(it.Tiers)
+			if err := service.UpdateWholesaleTiers(c.Request.Context(), it.ItemID, tiers); err != nil {
+				results[idx] = wholesale.SingleWholesaleResult{ItemID: it.ItemID, Success: false, Error: err.Error()}
+			} else {
+				results[idx] = wholesale.SingleWholesaleResult{
+					ItemID: it.ItemID, Success: true, Message: fmt.Sprintf("Added %d tier(s)", len(it.Tiers)),
+				}
+			}
+		}(i, item)
+	}
+	wg.Wait()
+
+	processed, failed := 0, 0
+	for _, r := range results {
+		if r.Success {
 			processed++
-			results = append(results, wholesale.SingleWholesaleResult{
-				ItemID: item.ItemID, Success: true, Message: fmt.Sprintf("Added %d tier(s)", len(item.Tiers)),
-			})
+		} else {
+			failed++
 		}
 	}
 

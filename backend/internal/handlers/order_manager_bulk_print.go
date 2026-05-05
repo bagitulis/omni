@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/dto/request"
@@ -41,36 +42,54 @@ func (h *OrderManagerHandler) BulkPrintLabels(c *gin.Context) {
 	labelService := labelSvc.NewLabelService(h.basePath)
 	ctx := context.Background()
 
+	type labelResult struct {
+		index   int
+		label   map[string]interface{}
+		failed  map[string]interface{}
+		success bool
+	}
+
+	resultsCh := make([]labelResult, len(req.OrderSNs))
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 3) // Limit concurrency for external API calls
+
+	for i, orderSN := range req.OrderSNs {
+		wg.Add(1)
+		go func(idx int, sn string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			result := labelService.GetLabelWithOptions(
+				ctx, tenantID, sn, req.Platform,
+				labelSvc.LabelOptions{
+					IncludeProducts:    req.IncludeProducts,
+					TikTokDocumentType: req.TikTokDocumentType,
+				},
+			)
+
+			if result.Status == "FAILED" {
+				resultsCh[idx] = labelResult{index: idx, failed: map[string]interface{}{
+					"order_sn": sn, "platform": result.Platform, "error": result.ErrorMessage,
+				}}
+			} else {
+				resultsCh[idx] = labelResult{index: idx, success: true, label: map[string]interface{}{
+					"order_sn": result.OrderSN, "platform": result.Platform,
+					"file_data": result.FileData, "status": result.Status,
+				}}
+			}
+		}(i, orderSN)
+	}
+	wg.Wait()
+
 	labels := []map[string]interface{}{}
 	failed := []map[string]interface{}{}
-
-	for _, orderSN := range req.OrderSNs {
-		result := labelService.GetLabelWithOptions(
-			ctx,
-			tenantID,
-			orderSN,
-			req.Platform,
-			labelSvc.LabelOptions{
-				IncludeProducts:    req.IncludeProducts,
-				TikTokDocumentType: req.TikTokDocumentType,
-			},
-		)
-
-		if result.Status == "FAILED" {
-			failed = append(failed, map[string]interface{}{
-				"order_sn": orderSN,
-				"platform": result.Platform,
-				"error":    result.ErrorMessage,
-			})
-			continue
+	for _, r := range resultsCh {
+		if r.success {
+			labels = append(labels, r.label)
+		} else if r.failed != nil {
+			failed = append(failed, r.failed)
 		}
-
-		labels = append(labels, map[string]interface{}{
-			"order_sn":  result.OrderSN,
-			"platform":  result.Platform,
-			"file_data": result.FileData,
-			"status":    result.Status,
-		})
 	}
 
 	c.JSON(http.StatusOK, response.Success(map[string]interface{}{

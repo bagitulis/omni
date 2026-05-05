@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/omni/backend/internal/middleware"
@@ -102,37 +103,49 @@ func (h *SkuBatchCheckHandler) BatchCheckSku(c *gin.Context) {
 		return
 	}
 
-	results := make([]SkuCheckResult, 0, len(req.Skus))
+	results := make([]SkuCheckResult, len(req.Skus))
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 10) // DB-only operations, higher concurrency OK
 
-	for _, sku := range req.Skus {
+	validCount := 0
+	for i, sku := range req.Skus {
 		sku = strings.TrimSpace(sku)
 		if sku == "" {
 			continue
 		}
+		validCount++
+		wg.Add(1)
+		go func(idx int, s string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			results[idx] = SkuCheckResult{
+				Sku:    s,
+				Lazada: h.checkLazadaSku(db, s),
+				Shopee: h.checkShopeeSku(db, s),
+				Tiktok: h.checkTiktokSku(db, s),
+			}
+		}(i, sku)
+	}
+	wg.Wait()
 
-		result := SkuCheckResult{Sku: sku}
-
-		// Check Lazada SKU
-		result.Lazada = h.checkLazadaSku(db, sku)
-
-		// Check Shopee SKU
-		result.Shopee = h.checkShopeeSku(db, sku)
-
-		// Check TikTok SKU
-		result.Tiktok = h.checkTiktokSku(db, sku)
-
-		results = append(results, result)
+	// Filter out empty results (from skipped empty SKUs)
+	finalResults := make([]SkuCheckResult, 0, validCount)
+	for _, r := range results {
+		if r.Sku != "" {
+			finalResults = append(finalResults, r)
+		}
 	}
 
 	log.Info().Msgf("[INFO] Batch SKU check completed - tenant: %s, total: %d, checked: %d",
-		tenantID, len(req.Skus), len(results))
+		tenantID, len(req.Skus), len(finalResults))
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
 			"total":   len(req.Skus),
-			"checked": len(results),
-			"results": results,
+			"checked": len(finalResults),
+			"results": finalResults,
 		},
 	})
 }

@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
@@ -95,188 +96,161 @@ func (h *OrderManagerHandler) BulkShipOrders(c *gin.Context) {
 // ===== Platform Bulk Shippers =====
 
 func (h *OrderManagerHandler) bulkShipShopee(tenantID string, orderSNs []string) []BulkShipItemResult {
-	results := make([]BulkShipItemResult, 0, len(orderSNs))
-
 	client, err := h.getShopeeClient(tenantID)
 	if err != nil {
 		return allFailed(orderSNs, "Failed to get Shopee client: "+err.Error())
 	}
 
-	for _, orderSN := range orderSNs {
+	return parallelShipOrders(orderSNs, 3, func(orderSN string) BulkShipItemResult {
 		result := BulkShipItemResult{OrderSN: orderSN}
-
 		if err := h.validateOrderStatus(tenantID, orderSN, "shopee"); err != nil {
 			result.Status = "failed"
 			result.Error = err.Error()
-			results = append(results, result)
-			continue
+			return result
 		}
-
 		shipReq := shopeePkg.ShipOrderRequest{OrderSN: orderSN}
 		if _, err := client.ShipOrder(shipReq); err != nil {
 			result.Status = "failed"
 			result.Error = err.Error()
-			results = append(results, result)
-			continue
+			return result
 		}
-
 		if err := h.updateOrderStatus(tenantID, orderSN, "SHIPPED", "shopee"); err != nil {
 			log.Warn().Str("order_sn", orderSN).Err(err).Msg("[BulkShip/Shopee] Marketplace succeeded but local DB update failed")
 			result.Status = "shipped_but_local_failed"
 			result.MarketplaceOK = true
 			result.Error = "Marketplace succeeded but local DB update failed: " + err.Error()
-			results = append(results, result)
-			continue
+			return result
 		}
-
 		result.Status = "shipped"
 		result.Message = "OK"
-		results = append(results, result)
-	}
-
-	return results
+		return result
+	})
 }
 
 func (h *OrderManagerHandler) bulkShipTikTok(tenantID string, orderSNs []string) []BulkShipItemResult {
-	results := make([]BulkShipItemResult, 0, len(orderSNs))
-
 	client, err := h.getTikTokClient(tenantID)
 	if err != nil {
 		return allFailed(orderSNs, "Failed to get TikTok client: "+err.Error())
 	}
 
-	for _, orderSN := range orderSNs {
+	return parallelShipOrders(orderSNs, 3, func(orderSN string) BulkShipItemResult {
 		result := BulkShipItemResult{OrderSN: orderSN}
-
 		if err := h.validateOrderStatus(tenantID, orderSN, "tiktok"); err != nil {
 			result.Status = "failed"
 			result.Error = err.Error()
-			results = append(results, result)
-			continue
+			return result
 		}
-
 		pkgID, _, err := client.ResolveOrderToPackageID(orderSN)
 		if err != nil {
 			result.Status = "failed"
 			result.Error = "Failed to resolve package: " + err.Error()
-			results = append(results, result)
-			continue
+			return result
 		}
-
 		shipReq := &tiktokPkg.ShipPackageRequest{HandoverMethod: "PICKUP"}
 		if _, err = client.ArrangeShipment(pkgID, shipReq); err != nil {
 			result.Status = "failed"
 			result.Error = err.Error()
-			results = append(results, result)
-			continue
+			return result
 		}
-
 		if err := h.updateOrderStatus(tenantID, orderSN, "AWAITING_COLLECTION", "tiktok"); err != nil {
 			log.Warn().Str("order_sn", orderSN).Err(err).Msg("[BulkShip/TikTok] Marketplace succeeded but local DB update failed")
 			result.Status = "shipped_but_local_failed"
 			result.MarketplaceOK = true
 			result.Error = "Marketplace succeeded but local DB update failed: " + err.Error()
-			results = append(results, result)
-			continue
+			return result
 		}
-
 		result.Status = "shipped"
 		result.Message = "OK"
-		results = append(results, result)
-	}
-	return results
+		return result
+	})
 }
 
 func (h *OrderManagerHandler) bulkShipLazada(tenantID string, orderSNs []string) []BulkShipItemResult {
-	results := make([]BulkShipItemResult, 0, len(orderSNs))
-
 	client, err := h.getLazadaClient(tenantID)
 	if err != nil {
 		return allFailed(orderSNs, "Failed to get Lazada client: "+err.Error())
 	}
-
 	db, err := config.GetTenantDB(tenantID, h.basePath)
 	if err != nil {
 		return allFailed(orderSNs, "DB error: "+err.Error())
 	}
 
-	for _, orderSN := range orderSNs {
+	return parallelShipOrders(orderSNs, 3, func(orderSN string) BulkShipItemResult {
 		result := BulkShipItemResult{OrderSN: orderSN}
-
 		if err := h.validateOrderStatus(tenantID, orderSN, "lazada"); err != nil {
 			result.Status = "failed"
 			result.Error = err.Error()
-			results = append(results, result)
-			continue
+			return result
 		}
-
-		// Fetch order items
 		itemIDs, err := fetchLazadaItemIDsFromDB(db, orderSN)
 		if err != nil {
 			result.Status = "failed"
 			result.Error = "Failed to get items: " + err.Error()
-			results = append(results, result)
-			continue
+			return result
 		}
-
-		// Fetch order info for shipping carrier and status
 		orderInfo, err := fetchLazadaOrderInfoFromDB(db, orderSN)
 		if err != nil {
 			result.Status = "failed"
 			result.Error = "Failed to get order info: " + err.Error()
-			results = append(results, result)
-			continue
+			return result
 		}
-
 		provider := orderInfo.ShippingCarrier
 		if provider == "" {
-			provider = "JNE" // Default carrier for Indonesia
+			provider = "JNE"
 		}
-
-		// Pack first if order is pending
 		if orderInfo.OrderStatus == "pending" {
 			packResp, err := client.SetStatusToPackedByMarketplace(itemIDs, provider, "dropship")
 			if err != nil {
 				result.Status = "failed"
 				result.Error = "Pack failed: " + err.Error()
-				results = append(results, result)
-				continue
+				return result
 			}
 			if packResp.Code != "0" && packResp.Code != "" {
 				result.Status = "failed"
 				result.Error = fmt.Sprintf("Pack failed (code %s): %s", packResp.Code, packResp.Message)
-				results = append(results, result)
-				continue
+				return result
 			}
 		}
-
-		// Set ready to ship
 		rtsResp, err := client.SetStatusToReadyToShip(itemIDs, provider, "", "dropship")
 		if err != nil {
 			result.Status = "failed"
 			result.Error = "RTS failed: " + err.Error()
-			results = append(results, result)
-			continue
+			return result
 		}
 		if rtsResp.Code != "0" && rtsResp.Code != "" {
 			result.Status = "failed"
 			result.Error = fmt.Sprintf("RTS failed (code %s): %s", rtsResp.Code, rtsResp.Message)
-			results = append(results, result)
-			continue
+			return result
 		}
-
 		if err := h.updateOrderStatus(tenantID, orderSN, "ready_to_ship", "lazada"); err != nil {
 			log.Warn().Str("order_sn", orderSN).Err(err).Msg("[BulkShip/Lazada] Marketplace succeeded but local DB update failed")
 			result.Status = "shipped_but_local_failed"
 			result.MarketplaceOK = true
 			result.Error = "Marketplace succeeded but local DB update failed: " + err.Error()
-			results = append(results, result)
-			continue
+			return result
 		}
-
 		result.Status = "shipped"
 		result.Message = "OK"
-		results = append(results, result)
+		return result
+	})
+}
+
+// parallelShipOrders executes ship operations in parallel with concurrency limit and per-order timeout.
+func parallelShipOrders(orderSNs []string, maxConcurrency int, shipFn func(string) BulkShipItemResult) []BulkShipItemResult {
+	results := make([]BulkShipItemResult, len(orderSNs))
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, maxConcurrency)
+
+	for i, orderSN := range orderSNs {
+		wg.Add(1)
+		go func(idx int, sn string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			results[idx] = shipFn(sn)
+		}(i, orderSN)
 	}
+
+	wg.Wait()
 	return results
 }
