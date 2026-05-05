@@ -435,6 +435,8 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     # Track exported table names for orphan cleanup
     exported_table_keys: set[str] = set()
 
+    failed_tables: List[str] = []
+
     for schema, schema_tables in schemas.items():
         schema_dir = sync_dir / schema
         schema_dir.mkdir(parents=True, exist_ok=True)
@@ -444,6 +446,31 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
             results.append(r)
             total_rows += r.exported
             exported_table_keys.add(f"{schema}.{table.name}")
+            if r.errors > 0:
+                failed_tables.append(f"{schema}.{table.name}")
+
+    # Retry failed tables once more
+    if failed_tables:
+        import time as _time
+        log_warning(f"Retrying {len(failed_tables)} failed table(s)...")
+        _time.sleep(3)
+        still_failed: List[str] = []
+        for full_name in failed_tables:
+            schema_name, table_name = full_name.split('.', 1)
+            # Find the TableInfo
+            table_info = next((t for t in tables if t.schema == schema_name and t.name == table_name), None)
+            if not table_info:
+                still_failed.append(full_name)
+                continue
+            schema_dir = sync_dir / schema_name
+            r = _export_table(table_info, schema_dir)
+            if r.errors > 0:
+                still_failed.append(full_name)
+            else:
+                # Update the result (replace failed with success)
+                total_rows += r.exported
+                log_success(f"  Retry OK: {full_name} ({r.exported:,} rows)")
+        failed_tables = still_failed
 
     # Cleanup orphan NDJSON files (tables that no longer exist in DB)
     orphans_removed = _cleanup_orphan_files(sync_dir, exported_table_keys)
@@ -454,22 +481,93 @@ def export_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     _export_schema_ddl(sync_dir, list(schemas.keys()))
 
     # Write manifest
-    manifest = {
+    manifest: dict = {
         "exported_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "machine": socket.gethostname(),
         "version": 3,
-        "tables": {r.table: r.exported for r in results},
+        "tables": {r.table: r.exported for r in results if r.errors == 0},
         "total_rows": total_rows,
         "large_threshold": LARGE_TABLE_THRESHOLD,
         "has_schema_ddl": True,
     }
+    if failed_tables:
+        manifest["failed_tables"] = failed_tables
+        log_warning(f"{len(failed_tables)} table(s) still failed after retry: {failed_tables}")
+
     manifest_path = sync_dir / "manifest.json"
     with open(manifest_path, 'w', encoding='utf-8') as f:
         json.dump(manifest, f, indent=2)
 
+    if failed_tables:
+        log_warning(f"Export completed with {len(failed_tables)} failure(s). Run 'backup --retry-failed' to retry.")
+        return True, results  # Partial success (most tables exported)
+
     log_success(f"Export complete: {len(results)} tables, {total_rows:,} rows")
     return True, results
 
+def export_failed_only(project_root: Path) -> Tuple[bool, List[SyncResult]]:
+    """Re-export only tables that failed in the previous backup.
+
+    Reads 'failed_tables' from manifest.json and retries those.
+    If all succeed, removes 'failed_tables' from manifest.
+    """
+    sync_dir = project_root / SYNC_DIR
+    manifest_path = sync_dir / "manifest.json"
+
+    if not manifest_path.exists():
+        log_error("No manifest.json found. Run 'backup' first.")
+        return False, []
+
+    with open(manifest_path, 'r', encoding='utf-8') as f:
+        manifest = json.load(f)
+
+    failed_list = manifest.get('failed_tables', [])
+    if not failed_list:
+        log_success("No failed tables to retry. All exports were successful.")
+        return True, []
+
+    log_info(f"Retrying {len(failed_list)} previously failed table(s)...")
+
+    # Discover tables to get column/PK info
+    tables = discover_tables()
+    table_map = {f"{t.schema}.{t.name}": t for t in tables}
+
+    results: List[SyncResult] = []
+    still_failed: List[str] = []
+
+    for full_name in failed_list:
+        table_info = table_map.get(full_name)
+        if not table_info:
+            log_warning(f"  Table {full_name} no longer exists in DB, skipping")
+            continue
+
+        schema_dir = sync_dir / table_info.schema
+        schema_dir.mkdir(parents=True, exist_ok=True)
+
+        r = _export_table(table_info, schema_dir)
+        results.append(r)
+        if r.errors > 0:
+            still_failed.append(full_name)
+        else:
+            log_success(f"  Retry OK: {full_name} ({r.exported:,} rows)")
+
+    # Update manifest
+    if still_failed:
+        manifest['failed_tables'] = still_failed
+        log_warning(f"{len(still_failed)} table(s) still failing: {still_failed}")
+    else:
+        manifest.pop('failed_tables', None)
+        # Update tables dict with newly exported
+        for r in results:
+            if r.errors == 0:
+                manifest.setdefault('tables', {})[r.table] = r.exported
+        log_success("All previously failed tables exported successfully!")
+
+    manifest['exported_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(manifest_path, 'w', encoding='utf-8') as f:
+        json.dump(manifest, f, indent=2)
+
+    return len(still_failed) == 0, results
 
 def _export_table(table: TableInfo, dest_dir: Path) -> SyncResult:
     """Export a single table to NDJSON (delegates to ndjson_table_ops).

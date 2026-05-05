@@ -96,11 +96,15 @@ def _export_table_streaming(
     dest_dir: Path, large_file_size_bytes: int,
     psql_query_fn: Callable[[str, int], Tuple[bool, str]],
 ) -> Tuple[int, int]:
-    """Export a large table by streaming psql output directly to gzip file.
+    """Export a large table by streaming psql output to gzip file.
 
-    Avoids loading entire result set into memory.
+    Uses atomic write (temp file -> rename) to prevent corruption on crash.
+    Retries up to 3 times with exponential backoff on failure.
     """
+    import os
     import subprocess as sp
+    import tempfile
+    import time as _time
     from omni_build.db_config import DatabaseConfig
 
     large_dir = dest_dir.parent / "_large"
@@ -108,53 +112,77 @@ def _export_table_streaming(
     filename = f"{schema}.{name}.ndjson.gz"
     filepath = large_dir / filename
 
-    # Stream psql output line-by-line to gzip file
-    cmd = DatabaseConfig.psql_cmd(interactive=True) + ["-q", "-t", "-A"]
-    try:
-        proc = sp.Popen(
-            cmd, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE,
-            text=True, encoding='utf-8', errors='replace'
-        )
-        proc.stdin.write(query)
-        proc.stdin.close()
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        # Write to temp file first (atomic: rename on success)
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix='.ndjson.gz.tmp', dir=str(large_dir))
+        os.close(tmp_fd)
+        tmp_file = Path(tmp_path)
 
-        count = 0
-        with gzip.open(filepath, 'wt', encoding='utf-8') as f:
-            for line in proc.stdout:
-                stripped = line.rstrip('\n')
-                if stripped:
-                    f.write(stripped + '\n')
-                    count += 1
+        try:
+            cmd = DatabaseConfig.psql_cmd(interactive=True) + ["-q", "-t", "-A"]
+            proc = sp.Popen(
+                cmd, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE,
+                text=True, encoding='utf-8', errors='replace'
+            )
+            proc.stdin.write(query)
+            proc.stdin.close()
 
-        proc.wait(timeout=60)
-        if proc.returncode != 0:
-            err = proc.stderr.read()[:200]
-            log_warning(f"  Export {full_name} failed: {err}")
-            return 0, 1
+            count = 0
+            with gzip.open(tmp_file, 'wt', encoding='utf-8') as f:
+                for line in proc.stdout:
+                    stripped = line.rstrip('\n')
+                    if stripped:
+                        f.write(stripped + '\n')
+                        count += 1
 
-    except sp.TimeoutExpired:
-        proc.kill()
-        log_warning(f"  Export {full_name} timed out")
-        return 0, 1
-    except Exception as e:
-        log_warning(f"  Export {full_name} error: {e}")
-        return 0, 1
+            proc.wait(timeout=120)
+            if proc.returncode != 0:
+                err = proc.stderr.read()[:200]
+                raise RuntimeError(f"psql exit code {proc.returncode}: {err}")
 
-    if count == 0:
-        filepath.unlink(missing_ok=True)
-        plain_file = dest_dir / f"{name}.ndjson"
-        plain_file.write_text("", encoding='utf-8')
-        return 0, 0
+            if count == 0:
+                tmp_file.unlink(missing_ok=True)
+                plain_file = dest_dir / f"{name}.ndjson"
+                plain_file.write_text("", encoding='utf-8')
+                return 0, 0
 
-    size_mb = filepath.stat().st_size / (1024 * 1024)
-    print(f"  [OK] {full_name}: {count:,} rows ({size_mb:.1f} MB, compressed)")
+            # Atomic rename: temp -> final (safe on same filesystem)
+            os.replace(str(tmp_file), str(filepath))
 
-    # Remove plain file if exists
-    plain_file = dest_dir / f"{name}.ndjson"
-    if plain_file.exists():
-        plain_file.unlink()
+            size_mb = filepath.stat().st_size / (1024 * 1024)
+            print(f"  [OK] {full_name}: {count:,} rows ({size_mb:.1f} MB, compressed)")
 
-    return count, 0
+            # Remove plain file if exists
+            plain_file = dest_dir / f"{name}.ndjson"
+            if plain_file.exists():
+                plain_file.unlink()
+
+            return count, 0
+
+        except sp.TimeoutExpired:
+            if proc:
+                proc.kill()
+            tmp_file.unlink(missing_ok=True)
+            if attempt < max_retries:
+                wait = 2 ** attempt
+                log_warning(f"  Export {full_name} timed out (attempt {attempt}/{max_retries}), retrying in {wait}s...")
+                _time.sleep(wait)
+            else:
+                log_warning(f"  Export {full_name} timed out after {max_retries} attempts")
+                return 0, 1
+
+        except Exception as e:
+            tmp_file.unlink(missing_ok=True)
+            if attempt < max_retries:
+                wait = 2 ** attempt
+                log_warning(f"  Export {full_name} failed (attempt {attempt}/{max_retries}): {e}, retrying in {wait}s...")
+                _time.sleep(wait)
+            else:
+                log_warning(f"  Export {full_name} failed after {max_retries} attempts: {e}")
+                return 0, 1
+
+    return 0, 1  # Should not reach here
 
 
 def _open_ndjson(filepath: Path, compressed: bool):

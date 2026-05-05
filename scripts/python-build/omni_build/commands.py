@@ -320,7 +320,8 @@ def restore(force: bool):
 @cli.command()
 @click.option("--force", is_flag=True)
 @click.option("--dry-run", is_flag=True)
-def backup(force: bool, dry_run: bool):
+@click.option("--retry-failed", is_flag=True, help="Retry only previously failed tables")
+def backup(force: bool, dry_run: bool, retry_failed: bool):
     """Backup database (NDJSON sync-export with schema DDL)."""
     config = Config.from_env()
 
@@ -332,15 +333,37 @@ def backup(force: bool, dry_run: bool):
         log_info("DRY RUN: would export all tables to NDJSON")
         sys.exit(0)
 
-    # NDJSON sync-export (primary backup format: git-friendly, includes schema DDL)
-    from omni_build.ndjson_sync import export_all
+    if retry_failed:
+        # Only retry previously failed tables
+        from omni_build.ndjson_sync import export_failed_only
+        success, results = export_failed_only(config.project_root)
+        sys.exit(0 if success else 1)
+
+    # Full NDJSON sync-export
+    from omni_build.ndjson_sync import export_all, export_failed_only
 
     success, results = export_all(config.project_root)
 
     if success:
         total = sum(r.exported for r in results)
-        log_success(f"Backup complete: {len(results)} tables, {total:,} rows")
-        log_info("Next: git add backups/sync/ && git commit && git push")
+        failed_count = sum(1 for r in results if r.errors > 0)
+
+        if failed_count > 0:
+            log_warning(f"Backup partial: {len(results) - failed_count} OK, {failed_count} failed")
+            # Interactive retry prompt
+            try:
+                answer = input(f"\nRetry {failed_count} failed table(s)? [y/N]: ").strip().lower()
+                if answer in ('y', 'yes'):
+                    retry_success, _ = export_failed_only(config.project_root)
+                    if retry_success:
+                        log_success("All tables exported successfully after retry!")
+                    else:
+                        log_warning("Some tables still failed. Run 'backup --retry-failed' later.")
+            except (EOFError, KeyboardInterrupt):
+                log_info("\nSkipped retry. Run 'backup --retry-failed' later.")
+        else:
+            log_success(f"Backup complete: {len(results)} tables, {total:,} rows")
+            log_info("Next: git add backups/sync/ && git commit && git push")
     else:
         log_error("Backup failed")
 
