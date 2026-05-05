@@ -665,11 +665,11 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
     with open(manifest_path, 'r', encoding='utf-8') as f:
         manifest = json.load(f)
 
-    # Bug #19: Validate manifest version.
-    # Version 1 sync files are still importable; version 2 only added export metadata.
+    # Validate manifest version.
+    # v1: original, v2: added export metadata, v3: added schema DDL export
     manifest_version = manifest.get('version')
-    if manifest_version not in (1, 2):
-        log_error(f"Incompatible manifest version: {manifest_version} (expected 1 or 2)")
+    if manifest_version not in (1, 2, 3):
+        log_error(f"Incompatible manifest version: {manifest_version} (expected 1, 2, or 3)")
         return False, []
 
     log_info(f"Importing from: {manifest.get('exported_at', 'unknown')}")
