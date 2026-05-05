@@ -67,26 +67,37 @@ func (o *StockUpdateOrchestrator) UpdateStockBatchFromInventory(
 	requestPlatforms []string,
 	requestPlatform string,
 ) []interface{} {
-	results := make([]interface{}, 0, len(items))
+	if len(items) == 0 {
+		return nil
+	}
 
-	for _, item := range items {
-		itemPlatforms := resolveStockPlatforms(item.Platforms, item.Platform, requestPlatforms, requestPlatform)
-		result, _, err := o.UpdateStockFromInventory(ctx, item.SKU, item.Stock, itemPlatforms)
+	// Build work items
+	workItems := make([]BatchWorkItem, len(items))
+	for i, item := range items {
+		platforms := resolveStockPlatforms(item.Platforms, item.Platform, requestPlatforms, requestPlatform)
+		workItems[i] = BatchWorkItem{
+			Index:     i,
+			SKU:       item.SKU,
+			Platforms: platforms,
+		}
+	}
+
+	// Worker function for each item
+	worker := func(workerCtx context.Context, workItem BatchWorkItem) interface{} {
+		item := items[workItem.Index]
+		result, _, err := o.UpdateStockFromInventory(workerCtx, item.SKU, item.Stock, workItem.Platforms)
 		if err != nil {
-			// Fallback: if no inventory record but stock value is provided,
-			// sync directly to platform (e.g. empty-SKU / gift products).
+			// Fallback: if no inventory record but stock value is provided
 			if errors.Is(err, ErrInventoryStockSKUNotFound) && item.Stock != nil {
-				directResult, directErr := o.UpdateStock(ctx, item.SKU, *item.Stock, itemPlatforms)
+				directResult, directErr := o.UpdateStock(workerCtx, item.SKU, *item.Stock, workItem.Platforms)
 				if directErr != nil {
-					results = append(results, map[string]interface{}{
+					return map[string]interface{}{
 						"sku":     item.SKU,
 						"success": false,
 						"error":   directErr.Error(),
-					})
-					continue
+					}
 				}
-				results = append(results, directResult)
-				continue
+				return directResult
 			}
 
 			errMessage := err.Error()
@@ -94,18 +105,19 @@ func (o *StockUpdateOrchestrator) UpdateStockBatchFromInventory(
 				errMessage = "SKU not found in inventory"
 			}
 
-			results = append(results, map[string]interface{}{
+			return map[string]interface{}{
 				"sku":     item.SKU,
 				"success": false,
 				"error":   errMessage,
-			})
-			continue
+			}
 		}
 
-		results = append(results, result)
+		return result
 	}
 
-	return results
+	// Execute in parallel
+	config := DefaultParallelBatchConfig()
+	return RunParallelBatch(ctx, workItems, config, worker)
 }
 
 func detectStockField(data map[string]interface{}) string {

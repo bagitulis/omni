@@ -2,19 +2,22 @@ import {
   CloudDownloadOutlined,
   PlusOutlined,
   UploadOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
-import { Button, Typography } from "antd";
+import { Badge, Button, Tooltip, Typography } from "antd";
 import type { FC } from "react";
 import type { NavigateFunction } from "react-router-dom";
 
 interface UnifiedProductsHeaderActionsProps {
   navigate: NavigateFunction;
   syncHistoryTotal: number;
+  priceDriftCount?: number;
+  onSyncDriftedPrices?: () => void;
 }
 
 export const UnifiedProductsHeaderActions: FC<
   UnifiedProductsHeaderActionsProps
-> = ({ navigate, syncHistoryTotal }) => {
+> = ({ navigate, syncHistoryTotal, priceDriftCount = 0, onSyncDriftedPrices }) => {
   return (
     <div
       style={{
@@ -49,6 +52,20 @@ export const UnifiedProductsHeaderActions: FC<
         >
           Sync History ({syncHistoryTotal})
         </Button>
+        {priceDriftCount > 0 && (
+          <Tooltip title={`${priceDriftCount} prices out of sync with inventory`}>
+            <Badge count={priceDriftCount} size="small" offset={[4, 0]}>
+              <Button
+                icon={<WarningOutlined />}
+                type="default"
+                style={{ color: "#fa8c16" }}
+                onClick={onSyncDriftedPrices}
+              >
+                Price Drift
+              </Button>
+            </Badge>
+          </Tooltip>
+        )}
       </div>
     </div>
   );
