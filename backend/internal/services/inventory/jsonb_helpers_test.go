@@ -133,3 +133,61 @@ func TestGetQuantity(t *testing.T) {
 	assert.Equal(t, 0, GetQuantity(recordD))
 	assert.Equal(t, 0, GetQuantity(models.InventoryRecord{Data: `{}`}))
 }
+
+
+func TestGetPricePerPlatform(t *testing.T) {
+	t.Run("all platforms have prices", func(t *testing.T) {
+		record := models.InventoryRecord{
+			Data: `{"HARGA":10000,"HARGA_SHOPEE":11000,"HARGA_TIKTOK":12000,"HARGA_LAZADA":13000}`,
+		}
+		result := GetPricePerPlatform(record)
+		assert.Equal(t, 11000.0, result["shopee"])
+		assert.Equal(t, 12000.0, result["tiktok"])
+		assert.Equal(t, 13000.0, result["lazada"])
+		assert.Equal(t, 10000.0, result["base"])
+	})
+
+	t.Run("some platforms zero fallback to base", func(t *testing.T) {
+		record := models.InventoryRecord{
+			Data: `{"HARGA":10000,"HARGA_SHOPEE":11000,"HARGA_TIKTOK":0,"HARGA_LAZADA":0}`,
+		}
+		result := GetPricePerPlatform(record)
+		assert.Equal(t, 11000.0, result["shopee"])
+		assert.Equal(t, 10000.0, result["tiktok"], "tiktok should fallback to base")
+		assert.Equal(t, 10000.0, result["lazada"], "lazada should fallback to base")
+		assert.Equal(t, 10000.0, result["base"])
+	})
+
+	t.Run("all platforms zero", func(t *testing.T) {
+		record := models.InventoryRecord{
+			Data: `{"HARGA":10000}`,
+		}
+		result := GetPricePerPlatform(record)
+		assert.Equal(t, 10000.0, result["shopee"], "shopee should fallback to base")
+		assert.Equal(t, 10000.0, result["tiktok"], "tiktok should fallback to base")
+		assert.Equal(t, 10000.0, result["lazada"], "lazada should fallback to base")
+		assert.Equal(t, 10000.0, result["base"])
+	})
+
+	t.Run("empty JSONB data", func(t *testing.T) {
+		record := models.InventoryRecord{
+			Data: `{}`,
+		}
+		result := GetPricePerPlatform(record)
+		assert.Equal(t, 0.0, result["shopee"])
+		assert.Equal(t, 0.0, result["tiktok"])
+		assert.Equal(t, 0.0, result["lazada"])
+		assert.Equal(t, 0.0, result["base"])
+	})
+
+	t.Run("string price values", func(t *testing.T) {
+		record := models.InventoryRecord{
+			Data: `{"HARGA":"15000","HARGA_SHOPEE":"16000"}`,
+		}
+		result := GetPricePerPlatform(record)
+		assert.Equal(t, 16000.0, result["shopee"])
+		assert.Equal(t, 15000.0, result["tiktok"], "tiktok should fallback to base")
+		assert.Equal(t, 15000.0, result["lazada"], "lazada should fallback to base")
+		assert.Equal(t, 15000.0, result["base"])
+	})
+}
