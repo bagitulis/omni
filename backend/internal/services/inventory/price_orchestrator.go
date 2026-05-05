@@ -60,6 +60,18 @@ func (o *PriceUpdateOrchestrator) UpdatePrice(ctx context.Context, sku string, p
 		Errors:    []string{},
 	}
 
+	// Edge case 1: Minimum price validation (Shopee/TikTok minimum is 100 IDR)
+	if price < 100 && price > 0 {
+		return nil, fmt.Errorf("price must be at least 100 IDR (got %.0f)", price)
+	}
+
+	// Edge case 2: Price=0 skip with warning
+	if price == 0 {
+		result.Success = false
+		result.Errors = append(result.Errors, "price is 0 - sync skipped")
+		return result, nil
+	}
+
 	// Default to all platforms if none specified
 	if len(platforms) == 0 {
 		platforms = []string{"shopee", "lazada", "tiktok"}
