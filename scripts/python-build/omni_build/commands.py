@@ -320,23 +320,39 @@ def restore(force: bool, keep_extra: bool):
 @click.option("--force", is_flag=True)
 @click.option("--dry-run", is_flag=True)
 def backup(force: bool, dry_run: bool):
-    """Backup database (smart format - pg_dump per table)."""
+    """Backup database (smart pg_dump + ndjson sync-export)."""
     config = Config.from_env()
 
     if not dry_run:
         if not _ensure_docker_and_postgres(config):
             sys.exit(1)
 
+    # Phase 1: Smart backup (pg_dump per table with schema)
     backup_handler = DatabaseBackup(config)
-
     success, message = backup_handler.backup(force=force, dry_run=dry_run)
 
     if success:
         log_success(f"Backup completed: {message}")
     else:
         log_error(f"Backup failed: {message}")
+        sys.exit(1)
 
-    sys.exit(0 if success else 1)
+    # Phase 2: NDJSON sync-export (git-friendly portable format)
+    if not dry_run:
+        log_info("")
+        log_info("Running NDJSON sync-export (git-friendly backup)...")
+        try:
+            from omni_build.ndjson_sync import export_all
+            sync_success, sync_results = export_all(config.project_root)
+            if sync_success:
+                total = sum(r.exported for r in sync_results)
+                log_success(f"Sync export complete: {len(sync_results)} tables, {total:,} rows")
+            else:
+                log_warning("Sync export had errors (smart backup still succeeded)")
+        except Exception as e:
+            log_warning(f"Sync export skipped: {e}")
+
+    sys.exit(0)
 
 
 @cli.command("sync-export")
