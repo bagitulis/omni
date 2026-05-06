@@ -165,6 +165,16 @@ func (s *NotificationService) List(limit int, sinceID int64, unreadOnly bool) ([
 	return items, err
 }
 
+// GetByID returns a single notification by ID.
+func (s *NotificationService) GetByID(id int64) (*models.Notification, error) {
+	var notif models.Notification
+	err := s.db.Where("id = ?", id).First(&notif).Error
+	if err != nil {
+		return nil, err
+	}
+	return &notif, nil
+}
+
 // UnreadCount returns the number of unread notifications.
 func (s *NotificationService) UnreadCount() (int64, error) {
 	var count int64

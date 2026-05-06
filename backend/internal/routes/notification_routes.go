@@ -22,5 +22,6 @@ func RegisterNotificationRoutes(router *gin.RouterGroup, handler *handlers.Notif
 		notifs.DELETE("", handler.DeleteAllNotifications)
 		notifs.GET("/settings", handler.GetSettings)
 		notifs.PUT("/settings", handler.UpdateSettings)
+		notifs.GET("/:id/detail", handler.GetNotificationDetail)
 	}
 }

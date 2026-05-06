@@ -103,8 +103,7 @@ func main() {
 	routes.RegisterProductMasterRoutes(api, extHandlers.ProductMasterHandler)
 	routes.RegisterProductCreateRoutes(api, extHandlers.ProductCreateHandler)
 	routes.RegisterProductCloneRoutes(api, extHandlers.ProductCloneHandler)
-	routes.RegisterPriceRoutes(api, extHandlers.PriceHandler)
-	routes.RegisterStockRoutes(api, extHandlers.StockHandler)
+	// PriceRoutes and StockRoutes removed (dead code - frontend uses /api/inventory/update-price and /api/inventory/update-stock)
 	routes.RegisterSKUCheckRoutes(api, extHandlers.SKUCheckHandler)
 
 	// Master Product routes (unified product management)

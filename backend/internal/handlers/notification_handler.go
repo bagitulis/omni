@@ -248,3 +248,26 @@ func (h *NotificationHandler) UpdateSettings(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
+
+// GetNotificationDetail returns full notification detail including metadata.
+// GET /api/notifications/:id/detail
+func (h *NotificationHandler) GetNotificationDetail(c *gin.Context) {
+	svc, err := h.getService(c)
+	if err != nil {
+		return
+	}
+
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid notification id"})
+		return
+	}
+
+	notif, err := svc.GetByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "notification not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": notif})
+}

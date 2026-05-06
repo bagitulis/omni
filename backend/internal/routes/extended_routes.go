@@ -124,32 +124,8 @@ func RegisterInventoryRoutes(router *gin.RouterGroup, db *gorm.DB, sheetsClient 
 	}
 }
 
-// RegisterStockRoutes registers stock management routes
-func RegisterStockRoutes(router *gin.RouterGroup, handler *handlers.StockHandler) {
-	stock := router.Group("/stock")
-	stock.Use(middleware.Auth())
-	stock.Use(middleware.Tenant())
-	{
-		stock.GET("", handler.List)
-		stock.GET("/alerts", handler.GetAlerts)
-		stock.GET("/:sku", handler.GetBySKU)
-		stock.PUT("/:sku", handler.Update)
-		stock.POST("/bulk", handler.BulkUpdate)
-	}
-}
-
-// RegisterPriceRoutes registers price management routes
-func RegisterPriceRoutes(router *gin.RouterGroup, handler *handlers.PriceHandler) {
-	price := router.Group("/price")
-	price.Use(middleware.Auth())
-	price.Use(middleware.Tenant())
-	{
-		price.GET("", handler.List)
-		price.GET("/:sku", handler.GetBySKU)
-		price.PUT("/:sku", handler.Update)
-		price.POST("/bulk", handler.BulkUpdate)
-	}
-}
+// RegisterStockRoutes and RegisterPriceRoutes removed (dead code).
+// Frontend uses /api/inventory/update-stock and /api/inventory/update-price instead.
 
 // RegisterProductCloneRoutes registers product clone routes
 func RegisterProductCloneRoutes(router *gin.RouterGroup, handler *handlers.ProductCloneHandler) {

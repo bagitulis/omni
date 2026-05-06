@@ -38,8 +38,7 @@ type ExtendedHandlers struct {
 	ProductMasterHandler *handlers.ProductMasterHandler
 	ProductCreateHandler *handlers.ProductCreateHandler
 	ProductCloneHandler  *handlers.ProductCloneHandler
-	PriceHandler         *handlers.PriceHandler
-	StockHandler         *handlers.StockHandler
+	// PriceHandler and StockHandler removed (dead code - frontend uses /api/inventory/update-price instead)
 	SKUCheckHandler      *handlers.SKUCheckHandler
 
 	// Inventory & Settings
@@ -114,8 +113,6 @@ func (a *App) InitExtendedHandlers(db *gorm.DB, googleAuth *google.AuthService) 
 		ProductMasterHandler: handlers.NewProductMasterHandler(db),
 		ProductCreateHandler: handlers.NewProductCreateHandler(db),
 		ProductCloneHandler:  handlers.NewProductCloneHandler(db),
-		PriceHandler:         handlers.NewPriceHandler(db),
-		StockHandler:         handlers.NewStockHandler(db),
 		SKUCheckHandler:      handlers.NewSKUCheckHandler(db),
 
 		// Inventory & Settings - pass Google Auth to inventory handler
