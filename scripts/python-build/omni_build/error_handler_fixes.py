@@ -3,42 +3,77 @@ Error Handler Fix Implementations for Omni Build System.
 
 SRP: This module contains infrastructure and system fix implementations.
 Service-specific fixes are in service_fixers.py.
+Cross-platform: handles Windows (taskkill, Docker Desktop.exe) and Linux (systemctl, kill).
 """
+import platform
 import subprocess
 import time
 from pathlib import Path
 
 from omni_build.logger import log_error, log_info, log_success
 
+IS_WINDOWS = platform.system() == "Windows"
+
 
 class DockerInfraFixer:
     """Fix implementations for Docker infrastructure issues."""
-    
+
     @staticmethod
     def repair_docker_engine() -> bool:
-        """Repair Docker Desktop engine with robust restart mechanism."""
+        """Repair Docker engine with robust restart mechanism."""
+        if IS_WINDOWS:
+            return DockerInfraFixer._repair_windows()
+        return DockerInfraFixer._repair_linux()
+
+    @staticmethod
+    def _repair_windows() -> bool:
+        """Repair Docker Desktop on Windows."""
         log_info("Stopping Docker Desktop...")
-        
+
         processes = ["Docker Desktop.exe", "com.docker.backend.exe",
                     "com.docker.vpnkit.exe", "com.docker.proxy.exe"]
         for proc in processes:
-            subprocess.run(["taskkill", "/F", "/IM", proc], 
+            subprocess.run(["taskkill", "/F", "/IM", proc],
                           capture_output=True, check=False)
-        
+
         time.sleep(3)
         subprocess.run(["wsl", "--shutdown"], capture_output=True, check=False)
         time.sleep(5)
-        
+
         log_info("Starting Docker Desktop...")
-        docker_path = Path("C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe")
-        if docker_path.exists():
-            subprocess.Popen([str(docker_path)], 
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            time.sleep(20)
-            log_success("Docker Desktop restart completed")
-            return True
-        
+        docker_paths = [
+            Path("C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe"),
+            Path("C:\\Program Files (x86)\\Docker\\Docker\\Docker Desktop.exe"),
+            Path.home() / "AppData" / "Local" / "Docker" / "Docker Desktop.exe",
+        ]
+        for docker_path in docker_paths:
+            if docker_path.exists():
+                subprocess.Popen([str(docker_path)],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                time.sleep(20)
+                log_success("Docker Desktop restart completed")
+                return True
+
         log_error("Docker Desktop not found")
+        return False
+
+    @staticmethod
+    def _repair_linux() -> bool:
+        """Repair Docker daemon on Linux."""
+        log_info("Restarting Docker daemon...")
+
+        subprocess.run(["sudo", "systemctl", "restart", "docker"],
+                      capture_output=True, check=False)
+        time.sleep(5)
+
+        # Verify
+        result = subprocess.run(["docker", "info"],
+                               capture_output=True, text=True, timeout=10)
+        if result.returncode == 0:
+            log_success("Docker daemon restarted successfully")
+            return True
+
+        log_error("Docker daemon restart failed")
         return False
     
     @staticmethod

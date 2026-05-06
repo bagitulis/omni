@@ -1,8 +1,11 @@
 """
 Docker Desktop Management module for Omni Build System.
 
-SRP: This module ONLY handles Docker Desktop process management on Windows.
+SRP: This module ONLY handles Docker Desktop process management.
+Cross-platform: handles Windows (Docker Desktop.exe) and Linux (docker daemon/systemd).
 """
+import platform
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -10,17 +13,26 @@ from typing import Optional
 
 from omni_build.logger import log_error, log_info, log_success, log_warning
 
+IS_WINDOWS = platform.system() == "Windows"
+IS_LINUX = platform.system() == "Linux"
+
 
 class DockerDesktopManager:
-    """Manages Docker Desktop process on Windows."""
-    
+    """Manages Docker Desktop process (Windows) or Docker daemon (Linux)."""
+
     def is_running(self) -> bool:
         """
-        Check if Docker Desktop process is running.
-        
-        Returns:
-            True if Docker Desktop.exe process is found
+        Check if Docker is running.
+
+        Windows: checks for Docker Desktop.exe process
+        Linux: checks if docker daemon is responding
         """
+        if IS_WINDOWS:
+            return self._is_running_windows()
+        return self._is_running_linux()
+
+    def _is_running_windows(self) -> bool:
+        """Check if Docker Desktop.exe process is running on Windows."""
         try:
             result = subprocess.run(
                 ["tasklist", "/FO", "CSV", "/NH"],
@@ -30,41 +42,68 @@ class DockerDesktopManager:
                 errors='replace',
                 check=False
             )
-            
+
             if "Docker Desktop.exe" in result.stdout:
                 log_info("Docker Desktop process is running")
                 return True
-            
+
             log_info("Docker Desktop process not found")
             return False
-            
+
         except Exception as e:
             log_warning(f"Could not check Docker Desktop process: {e}")
             return False
-    
+
+    def _is_running_linux(self) -> bool:
+        """Check if Docker daemon is running on Linux."""
+        try:
+            result = subprocess.run(
+                ["docker", "info"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode == 0:
+                log_info("Docker daemon is running")
+                return True
+            log_info("Docker daemon not responding")
+            return False
+        except Exception as e:
+            log_warning(f"Could not check Docker daemon: {e}")
+            return False
+
     def start(self) -> bool:
         """
-        Start Docker Desktop application.
-        
+        Start Docker.
+
+        Windows: launches Docker Desktop.exe from known paths
+        Linux: starts docker via systemctl or checks if already running
+
         Returns:
             True if started successfully
         """
+        if IS_WINDOWS:
+            return self._start_windows()
+        return self._start_linux()
+
+    def _start_windows(self) -> bool:
+        """Start Docker Desktop on Windows."""
         docker_paths = [
             Path("C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe"),
             Path("C:\\Program Files (x86)\\Docker\\Docker\\Docker Desktop.exe"),
             Path.home() / "AppData" / "Local" / "Docker" / "Docker Desktop.exe",
         ]
-        
+
         for docker_path in docker_paths:
             if docker_path.exists():
                 log_info(f"Starting Docker Desktop from: {docker_path}")
                 try:
                     subprocess.Popen(
-                        [str(docker_path)], 
-                        stdout=subprocess.DEVNULL, 
+                        [str(docker_path)],
+                        stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL
                     )
-                    
+
                     max_wait = 30
                     waited = 0
                     while waited < max_wait:
@@ -74,46 +113,88 @@ class DockerDesktopManager:
                             time.sleep(5)
                             log_success("Docker Desktop process started")
                             return True
-                    
-                    log_warning(f"Docker Desktop process not detected after {max_wait}s - will verify in next step")
-                    return False  # Process not confirmed
-                    
+
+                    log_warning(f"Docker Desktop process not detected after {max_wait}s")
+                    return False
+
                 except Exception as e:
                     log_error(f"Failed to start Docker Desktop: {e}")
                     return False
-        
+
         log_error("Docker Desktop executable not found in standard locations")
         return False
-    
+
+    def _start_linux(self) -> bool:
+        """Start Docker daemon on Linux via systemctl."""
+        # Check if already running
+        if self._is_running_linux():
+            return True
+
+        # Try systemctl
+        try:
+            log_info("Starting Docker daemon via systemctl...")
+            result = subprocess.run(
+                ["sudo", "systemctl", "start", "docker"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode == 0:
+                time.sleep(3)
+                if self._is_running_linux():
+                    log_success("Docker daemon started via systemctl")
+                    return True
+        except Exception as e:
+            log_warning(f"systemctl start docker failed: {e}")
+
+        # Try service command as fallback
+        try:
+            result = subprocess.run(
+                ["sudo", "service", "docker", "start"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode == 0:
+                time.sleep(3)
+                if self._is_running_linux():
+                    log_success("Docker daemon started via service")
+                    return True
+        except Exception as e:
+            log_warning(f"service docker start failed: {e}")
+
+        log_error("Could not start Docker. Install with: sudo apt install docker.io")
+        return False
+
     def wait_for_ready(
-        self, 
-        timeout_seconds: int = 90, 
+        self,
+        timeout_seconds: int = 90,
         activity: str = "Waiting for Docker..."
     ) -> bool:
         """
         Wait for Docker to be ready with progressive backoff.
-        
+
         Args:
             timeout_seconds: Maximum time to wait
             activity: Activity description for logging
-            
+
         Returns:
             True if Docker became ready, False if timeout
         """
         log_info(f"{activity} (timeout: {timeout_seconds}s)")
-        
+
         elapsed = 0
         interval = 3
         consecutive_ready = 0
-        
+
         while elapsed < timeout_seconds:
             time.sleep(interval)
             elapsed += interval
-            
+
             if elapsed > 30 and interval < 8:
                 interval = 8
                 log_info("Increasing check interval for efficiency...")
-            
+
             try:
                 result = subprocess.run(
                     ["docker", "info"],
@@ -123,27 +204,27 @@ class DockerDesktopManager:
                     errors='replace',
                     timeout=10,
                 )
-                
+
                 if result.returncode == 0:
                     consecutive_ready += 1
                     log_info(f"Docker responding ({consecutive_ready}/2 consecutive checks)")
-                    
+
                     if consecutive_ready >= 2:
                         log_success(f"Docker ready after {elapsed}s")
                         return True
                 else:
                     consecutive_ready = 0
-                    
+
             except subprocess.TimeoutExpired:
                 consecutive_ready = 0
                 log_info(f"Docker not responding yet ({elapsed}s elapsed)...")
             except Exception as e:
                 consecutive_ready = 0
                 log_warning(f"Docker check error: {e}")
-        
+
         log_error(f"Docker did not become ready after {timeout_seconds}s")
         return False
-    
+
     def check_engine_ready(self) -> bool:
         """Quick check if Docker engine is responding."""
         try:
