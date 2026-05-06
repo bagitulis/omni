@@ -135,7 +135,7 @@ export function useUnifiedProductsActions({
         setSyncLoading(false);
       }
     },
-    [refreshProducts, syncLoading, setSyncLoading],
+    [refreshProducts],
   );
 
   // New handler for MarketplaceSyncModal per-platform price sync
@@ -185,7 +185,7 @@ export function useUnifiedProductsActions({
         setSyncLoading(false);
       }
     },
-    [refreshProducts, syncLoading, setSyncLoading],
+    [refreshProducts],
   );
 
   const handleStockSync = useCallback(
