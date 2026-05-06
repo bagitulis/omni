@@ -116,6 +116,7 @@ func (s *NotificationService) broadcast(notif *models.Notification) {
 		select {
 		case client <- event:
 		default:
+			log.Warn().Str("tenant", s.tenantID).Msg("[SSE] Client buffer full, notification dropped")
 			// Client buffer full, skip or handle as needed
 		}
 	}
@@ -123,7 +124,7 @@ func (s *NotificationService) broadcast(notif *models.Notification) {
 
 // RegisterClient registers a new SSE client for a tenant
 func (s *NotificationService) RegisterClient(tenantID string) SSEClient {
-	client := make(SSEClient, 10)
+	client := make(SSEClient, 50)
 	globalSSEManager.mu.Lock()
 	globalSSEManager.clients[tenantID] = append(globalSSEManager.clients[tenantID], client)
 	globalSSEManager.mu.Unlock()

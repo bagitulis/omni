@@ -12,6 +12,7 @@ type Notification struct {
 	Message   string    `gorm:"column:message;type:text" json:"message"`
 	Read      bool      `gorm:"column:read;default:false" json:"read"`
 	ActionURL string    `gorm:"column:action_url;size:500" json:"action_url,omitempty"`
+	Metadata  string    `gorm:"column:metadata;type:jsonb" json:"metadata,omitempty"`
 	CreatedAt time.Time `gorm:"column:created_at;index;not null" json:"created_at"`
 }
 
