@@ -15,8 +15,9 @@ import { useNotifications } from "@/contexts/NotificationContext";
  * AntD's built-in Popover handles click-outside correctly on its own.
  */
 export function NotificationBell() {
-  const { unreadCount } = useNotifications();
+  const { unreadCount, notifications } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
+  const errorCount = notifications.filter((n) => !n.read && n.type === "error").length;
 
   return (
     <Popover
@@ -29,7 +30,7 @@ export function NotificationBell() {
       overlayInnerStyle={{ padding: 0 }}
       overlayStyle={{ width: 380 }}
     >
-      <Badge count={unreadCount} size="small" offset={[-4, 4]}>
+      <Badge count={errorCount > 0 ? errorCount : unreadCount} size="small" offset={[-4, 4]} color={errorCount > 0 ? "red" : undefined}>
         <Button
           type="text"
           icon={<BellOutlined />}
