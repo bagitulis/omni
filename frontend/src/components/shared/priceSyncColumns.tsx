@@ -53,25 +53,22 @@ export const getDefaultPricePerPlatformConfig = (
 
 // ─── Platform Price Cell ─────────────────────────────────────────────────────
 
-function PricePlatformCell({
-  sku,
-  platform,
+// eslint-disable-next-line react-refresh/only-export-components
+  const PricePlatformCell = ({
   linked,
   isChecked,
   price,
   currentPrice,
   onCheckChange,
   onPriceChange,
-}: {
-  sku: string;
-  platform: Platform;
+  }: {
   linked: boolean;
   isChecked: boolean;
   price: number;
   currentPrice: number;
   onCheckChange: (checked: boolean) => void;
   onPriceChange: (value: number) => void;
-}) {
+}) => {
   const { token } = theme.useToken();
 
   return (
@@ -100,7 +97,7 @@ function PricePlatformCell({
       )}
     </div>
   );
-}
+};
 
 // ─── Column Builder ──────────────────────────────────────────────────────────
 
@@ -146,8 +143,6 @@ export const getPricePerPlatformColumns = (
 
         return (
           <PricePlatformCell
-            sku={record.sku}
-            platform={platformOption.key}
             linked={linked}
             isChecked={isChecked}
             price={price}

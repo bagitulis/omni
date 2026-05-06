@@ -91,7 +91,7 @@ export async function buildPriceRecommendations(
     }
 
     apiData = response.data || {};
-  } catch (err) {
+  } catch {
     logger.warn("Failed to fetch price recommendations, using fallback");
     // Graceful degradation: if API fails, use fallback for all SKUs
     return Object.fromEntries(

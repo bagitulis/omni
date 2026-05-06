@@ -59,7 +59,8 @@ export const getDefaultPerPlatformConfig = (
 
 // ─── Stock Platform Cell ─────────────────────────────────────────────────────
 
-function StockPlatformCell({
+// eslint-disable-next-line react-refresh/only-export-components
+const StockPlatformCell = ({
   linked,
   enabled,
   stock,
@@ -73,7 +74,7 @@ function StockPlatformCell({
   currentStock: number;
   onEnabledChange: (checked: boolean) => void;
   onStockChange: (value: number) => void;
-}) {
+}) => {
   const { token } = theme.useToken();
 
   return (
@@ -100,7 +101,7 @@ function StockPlatformCell({
       )}
     </div>
   );
-}
+};
 
 // ─── Column Builder ──────────────────────────────────────────────────────────
 
