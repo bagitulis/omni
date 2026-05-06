@@ -96,6 +96,7 @@ func truncateString(s string, maxLen int) string {
 	}
 	return s[:maxLen] + "...[truncated]"
 }
+
 // doRequest executes HTTP request (GET without body) with retry logic
 func (c *Client) doRequest(method, apiPath string, params map[string]string, result interface{}) error {
 	const maxRetries = 3
