@@ -2,11 +2,13 @@
 config_sync.py - Sync opencode-configs between project locations
 
 Two sync modes:
-  1. Hub sync: D:\\Project\\ai (hub) → auto/extensions/omni (one-way, silent)
+  1. Hub sync: hub → auto/extensions/omni (one-way, silent)
   2. Interactive sync: any project → any other project (with diffs + prompts)
 
 Hub sync is called automatically on AI.py startup (unless --no-sync).
 Interactive sync is called from AI.py menu [X] or standalone.
+
+Cross-platform: auto-detects project paths on Windows and Linux.
 
 Called from AI.py menu [X] or standalone:
   python config_sync.py                    # Interactive
@@ -21,15 +23,51 @@ import shutil
 import sys
 from pathlib import Path
 
-# Known project locations
-LOCATIONS = {
-    "extensions": Path("D:/Project/extensions"),
-    "omni": Path("D:/Project/omni"),
-    "auto": Path("D:/Project/auto"),
-}
+
+def _get_locations() -> dict[str, Path]:
+    """Get project locations dynamically from ai_constants (if initialized)
+    or detect them based on the current platform."""
+    try:
+        from ai_constants import HUB_SYNC_TARGETS, PROJECT_ROOT
+        if HUB_SYNC_TARGETS:
+            return dict(HUB_SYNC_TARGETS)
+        # Fallback: build from PROJECT_ROOT
+        return {
+            "extensions": PROJECT_ROOT / "extensions",
+            "omni": PROJECT_ROOT / "omni",
+            "auto": PROJECT_ROOT / "auto",
+        }
+    except (ImportError, AttributeError):
+        pass
+
+    # Standalone mode: detect from script location
+    script_path = Path(__file__).resolve()
+    # config_sync.py lives in <PROJECT_ROOT>/ai/opencode-configs/
+    if script_path.parent.name == "opencode-configs":
+        ai_dir = script_path.parent.parent
+        base = ai_dir.parent
+    else:
+        base = script_path.parent
+
+    return {
+        "extensions": base / "extensions",
+        "omni": base / "omni",
+        "auto": base / "auto",
+    }
+
+
+# Lazy-loaded locations (populated on first use)
+LOCATIONS: dict[str, Path] = {}
+
+
+def _ensure_locations():
+    """Ensure LOCATIONS is populated."""
+    global LOCATIONS
+    if not LOCATIONS:
+        LOCATIONS = _get_locations()
 
 # Files to sync (relative to project root) — full file copy
-# NOTE: AI.py is NOT synced — it lives only in the hub (D:\Project\ai).
+# NOTE: AI.py is NOT synced — it lives only in the hub (ai/ project).
 SYNC_FILES = [
     "opencode-configs/ai_profiles.py",
     "opencode-configs/ai_sync.py",
@@ -157,6 +195,7 @@ def _color_diff(lines: list[str]) -> str:
 
 def _detect_self(caller_dir: Path | None = None) -> str | None:
     """Detect which location the caller is in."""
+    _ensure_locations()
     if caller_dir is None:
         return None
     caller_dir = caller_dir.resolve()
@@ -290,6 +329,7 @@ def run_interactive(caller_dir: Path | None = None):
     Args:
         caller_dir: The project root that called this (to auto-detect location).
     """
+    _ensure_locations()
     self_name = _detect_self(caller_dir)
 
     print()
@@ -324,6 +364,7 @@ def run_interactive(caller_dir: Path | None = None):
 
 def run_cli(direction: str):
     """CLI config sync — e.g. 'extensions->omni'."""
+    _ensure_locations()
     parts = direction.lower().replace(" ", "").split("->")
     if len(parts) != 2 or parts[0] not in LOCATIONS or parts[1] not in LOCATIONS:
         valid = ", ".join(f"{a}->{b}" for a in LOCATIONS for b in LOCATIONS if a != b)
@@ -426,6 +467,9 @@ if __name__ == "__main__":
     if sys.stdout.encoding != "utf-8":
         sys.stdout = _io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
         sys.stderr = _io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+
+    # Ensure locations are populated for standalone use
+    _ensure_locations()
 
     args = [a.lower() for a in sys.argv[1:]]
     if "--hub" in args:

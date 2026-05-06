@@ -1,7 +1,10 @@
 import pandas as pd
 import sys
+from pathlib import Path
 
-file_path = r"D:\Project\omni\notebooks\tiktok_ads\data\creative data for product campaigns 2026-01-01 00 ~ 2026-01-07 23.xlsx"
+# Resolve path relative to project root (scratch script lives in backend/scratch/)
+_project_root = Path(__file__).resolve().parent.parent.parent
+file_path = str(_project_root / "notebooks" / "tiktok_ads" / "data" / "creative data for product campaigns 2026-01-01 00 ~ 2026-01-07 23.xlsx")
 try:
     df = pd.read_excel(file_path)
     # Select some key columns to compare

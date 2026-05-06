@@ -3,10 +3,19 @@ ai_constants.py - Shared paths, mappings, and configuration constants
 
 Single source of truth for all path definitions, profile mappings,
 and enowX configuration used across AI.py modules.
+
+Cross-platform: auto-detects Windows vs Linux/macOS paths.
 """
 
 import os
+import platform
 from pathlib import Path
+
+# ── Platform Detection ────────────────────────────────────────────────────────
+
+IS_WINDOWS = platform.system() == "Windows"
+IS_LINUX = platform.system() == "Linux"
+IS_MACOS = platform.system() == "Darwin"
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 
@@ -16,11 +25,37 @@ CONFIG_DIR: Path = Path(".")
 PROFILES_FILE: Path = Path(".")
 TARGET_DIR: Path = Path.home() / ".config" / "opencode"
 
-# AppData paths: only set if env vars are valid (non-empty)
+# AppData paths: Windows-only (APPDATA/LOCALAPPDATA env vars)
 _appdata = os.environ.get("APPDATA", "")
 _localappdata = os.environ.get("LOCALAPPDATA", "")
 APPDATA_DIR: Path | None = Path(_appdata) / "opencode" if _appdata else None
 LOCALAPPDATA_DIR: Path | None = Path(_localappdata) / "opencode" if _localappdata else None
+
+
+def _detect_project_root() -> Path:
+    """Detect the project root directory dynamically.
+
+    Strategy: derive from SCRIPT_DIR by walking up until we find the parent
+    that contains this 'ai' project folder. No hardcoded paths.
+    """
+    script_resolved = SCRIPT_DIR.resolve()
+
+    # Walk up from SCRIPT_DIR to find the "Project" parent (or equivalent)
+    # AI.py lives in <PROJECT_ROOT>/ai/, so parent of SCRIPT_DIR is PROJECT_ROOT
+    if script_resolved.name == "ai":
+        return script_resolved.parent
+
+    # Generic: find a parent named "Project" or similar container
+    for parent in script_resolved.parents:
+        # Check if this parent contains known sibling projects
+        if (parent / "ai").exists() and (parent / "ai" / "AI.py").exists():
+            return parent
+
+    # Last resort: assume SCRIPT_DIR's parent is the root
+    return script_resolved.parent
+
+
+PROJECT_ROOT: Path = Path(".")  # Set by init()
 
 
 def init(script_dir: Path):
@@ -28,10 +63,12 @@ def init(script_dir: Path):
 
     Must be called once from AI.py before any other module uses these paths.
     """
-    global SCRIPT_DIR, CONFIG_DIR, PROFILES_FILE
+    global SCRIPT_DIR, CONFIG_DIR, PROFILES_FILE, PROJECT_ROOT
     SCRIPT_DIR = script_dir
     CONFIG_DIR = script_dir / "opencode-configs"
     PROFILES_FILE = CONFIG_DIR / "opencode-profiles.json"
+    PROJECT_ROOT = _detect_project_root()
+    _init_dynamic_paths()
 
 
 # ── Profile mappings ─────────────────────────────────────────────────────────
@@ -75,28 +112,45 @@ DEPRECATED_CLI_ARGS = {
 # License key (same across all PCs; apikey differs per PC)
 ENOWX_LICENSE_KEY = "ENOWX-BOVG9-DQTCC-5CW5Z-9L20N"
 
-# All opencode-enowx.json locations to update with dynamic apikey
-ENOWX_CONFIG_LOCATIONS = [
-    Path("D:/Project/ai/opencode-configs/opencode-enowx.json"),
-    Path("D:/Project/extensions/opencode-configs/opencode-enowx.json"),
-    Path("D:/Project/omni/opencode-configs/opencode-enowx.json"),
-    Path("D:/Project/auto/opencode-configs/opencode-enowx.json"),
-]
 
-# ── Hub Sync ─────────────────────────────────────────────────────────────────
+def _build_enowx_config_locations() -> list[Path]:
+    """Build enowX config locations based on detected PROJECT_ROOT."""
+    root = PROJECT_ROOT
+    return [
+        root / "ai" / "opencode-configs" / "opencode-enowx.json",
+        root / "extensions" / "opencode-configs" / "opencode-enowx.json",
+        root / "omni" / "opencode-configs" / "opencode-enowx.json",
+        root / "auto" / "opencode-configs" / "opencode-enowx.json",
+        root / "ads-analytics" / "opencode-configs" / "opencode-enowx.json",
+    ]
 
-# Hub path: the single source of truth for AI.py + opencode-configs
-AI_HUB_PATH = Path(os.environ.get("AI_HUB_PATH", r"D:\Project\ai"))
 
-# Projects managed by the hub
-HUB_SYNC_TARGETS = {
-    "auto": Path("D:/Project/auto"),
-    "extensions": Path("D:/Project/extensions"),
-    "omni": Path("D:/Project/omni"),
-}
+def _build_hub_sync_targets() -> dict[str, Path]:
+    """Build hub sync targets based on detected PROJECT_ROOT."""
+    root = PROJECT_ROOT
+    return {
+        "auto": root / "auto",
+        "extensions": root / "extensions",
+        "omni": root / "omni",
+        "ads-analytics": root / "ads-analytics",
+    }
+
+
+# These are initialized lazily after init() sets PROJECT_ROOT
+ENOWX_CONFIG_LOCATIONS: list[Path] = []
+AI_HUB_PATH: Path = Path(".")
+HUB_SYNC_TARGETS: dict[str, Path] = {}
+
+
+def _init_dynamic_paths():
+    """Initialize paths that depend on PROJECT_ROOT. Called from init()."""
+    global ENOWX_CONFIG_LOCATIONS, AI_HUB_PATH, HUB_SYNC_TARGETS
+    ENOWX_CONFIG_LOCATIONS = _build_enowx_config_locations()
+    AI_HUB_PATH = Path(os.environ.get("AI_HUB_PATH", str(PROJECT_ROOT / "ai")))
+    HUB_SYNC_TARGETS = _build_hub_sync_targets()
 
 # Files to sync from hub to targets (relative to project root)
-# NOTE: AI.py is NOT synced — it lives only in the hub (D:\Project\ai).
+# NOTE: AI.py is NOT synced — it lives only in the hub (ai/ project).
 #       Spoke projects are launched via [O] Open in from the hub.
 HUB_SYNC_FILES = [
     "opencode-configs/ai_constants.py",

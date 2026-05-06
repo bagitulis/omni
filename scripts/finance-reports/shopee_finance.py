@@ -12,13 +12,17 @@ Flow:
 import time
 import subprocess
 import sys
+from pathlib import Path
 
 from api_client import OmniAPIClient
 
 DB_CONTAINER = "omni-postgres"
 DB_USER = "omni"
 DB_NAME = "omni_main"
-SA_FILE = "D:/Project/omni/backend/config/static/google/bertigahemat-f1bd6932b229.json"
+# SA_FILE relative to project root (this script lives in scripts/finance-reports/)
+_SCRIPT_DIR = Path(__file__).resolve().parent
+_PROJECT_ROOT = _SCRIPT_DIR.parent.parent
+SA_FILE = str(_PROJECT_ROOT / "backend" / "config" / "static" / "google" / "bertigahemat-f1bd6932b229.json")
 SHEET_ALL_PRODUCT = "1H3TltJKcUfnrizmgRNXqjsHgeR44wNZYmfJ784SPXiI"
 
 
