@@ -123,5 +123,3 @@ export const useNotificationStore = create<NotificationStore>()(
 export const selectUnreadCount = (state: NotificationStore) =>
   state.notifications.filter((n) => !n.read).length;
 
-export const selectUnread = (state: NotificationStore) =>
-  state.notifications.filter((n) => !n.read);
