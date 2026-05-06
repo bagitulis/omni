@@ -10,6 +10,9 @@ RUN apk add --no-cache gcc musl-dev git libwebp-dev
 COPY go.mod go.sum ./
 RUN go mod download
 
+# Cache-busting arg to force rebuild when source changes
+ARG CACHEBUST=1
+
 # Copy source code
 COPY . .
 

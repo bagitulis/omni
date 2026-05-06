@@ -66,9 +66,12 @@ class DockerBuilder:
             cmd.extend(["-f", file])
         cmd.append("build")
         
+        # Add cache-busting build arg to force rebuild when source changes
+        # This ensures Docker detects Go source changes on Windows+WSL2
+        cmd.extend(["--build-arg", f"CACHEBUST={int(time.time())}"])
+        
         if no_cache:
             cmd.append("--no-cache")
-        
         for attempt in range(1, max_retries + 1):
             print(f"\n{'='*60}")
             print(f"BUILD ATTEMPT {attempt}/{max_retries}")
