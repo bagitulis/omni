@@ -60,6 +60,9 @@ const ScriptMonitorPage = React.lazy(
 const RouteMappingPage = React.lazy(
   () => import("./pages/route-mapping/RouteMappingPage"),
 );
+const NotificationsPage = React.lazy(
+  () => import("./pages/notifications/NotificationsPage"),
+);
 
 
 function AppContent() {
@@ -131,6 +134,7 @@ function AppContent() {
                       element={<TiktokReportPage />}
                     />
                     <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/notifications" element={<NotificationsPage />} />
                     <Route
                       path="/script-monitor"
                       element={<ScriptMonitorPage />}

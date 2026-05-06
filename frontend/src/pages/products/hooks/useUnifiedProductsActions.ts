@@ -18,6 +18,7 @@ import {
 } from "./useUnifiedProductsActionDialogs";
 import { useUnifiedProductsModals } from "./useUnifiedProductsModals";
 import { executeSyncMarketplace } from "./useSyncMarketplace";
+import type { BulkOperationMetadata } from "@/types/notificationMetadata";
 
 /** Extract first error message from stock sync results */
 function collectFirstStockError(results: StockBatchResult["results"]): string {
@@ -79,6 +80,8 @@ export function useUnifiedProductsActions({
 
   const [batchLoading, setBatchLoading] = useState<Partial<Record<BatchActionType, boolean>>>({});
   const [syncLoading, setSyncLoading] = useState(false);
+  const [syncResultsOpen, setSyncResultsOpen] = useState(false);
+  const [syncResults, setSyncResults] = useState<BulkOperationMetadata | null>(null);
 
   const handleDeleteProduct = useCallback(
     async (productId: number | string) => {
@@ -128,6 +131,18 @@ export function useUnifiedProductsActions({
             `Price sync: ${result.success} succeeded, ${result.failed} failed. Failed: ${firstErr}`,
           );
         }
+        // Open results drawer
+        setSyncResults({
+          operation_type: "price_sync",
+          total: result.total,
+          succeeded: result.success ?? 0,
+          failed: result.failed,
+          platforms: {},
+          failed_items: result.results
+            .filter((r) => !r.success)
+            .flatMap((r) => (r.errors || []).map((e) => ({ sku: r.sku || "", platform: "", error: e }))),
+        });
+        setSyncResultsOpen(true);
         await refreshProducts();
       } catch (error) {
         message.error(getErrorMessage(error));
@@ -223,6 +238,18 @@ export function useUnifiedProductsActions({
             `Stock sync: ${result.succeeded} succeeded, ${result.failed} failed. Failed: ${firstErr}`,
           );
         }
+        // Open results drawer
+        setSyncResults({
+          operation_type: "stock_sync",
+          total: result.total,
+          succeeded: result.succeeded,
+          failed: result.failed,
+          platforms: {},
+          failed_items: result.results
+            .filter((r) => r.success === false)
+            .map((r) => ({ sku: "", platform: "", error: r.error || r.errors?.[0] || "Unknown" })),
+        });
+        setSyncResultsOpen(true);
         await refreshProducts();
       } catch (error) {
         message.error(getErrorMessage(error));
@@ -389,6 +416,9 @@ export function useUnifiedProductsActions({
     skuMappingLoading,
     batchLoading,
     syncLoading,
+    syncResultsOpen,
+    setSyncResultsOpen,
+    syncResults,
     marketplaceSyncOpen,
     setMarketplaceSyncOpen,
     marketplaceSyncProducts,
