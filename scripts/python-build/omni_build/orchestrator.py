@@ -313,12 +313,51 @@ class BuildOrchestrator:
                 warnings=warnings,
             )
         
+        # Health check failed — try to diagnose and auto-fix
+        log_warning("Health verification failed, diagnosing...")
+        fix_applied = self._diagnose_and_fix_deploy_failure(spec)
+        
+        if fix_applied:
+            # Wait and re-verify after fix
+            time.sleep(15)
+            if self._helpers.verify_all_services_truly_healthy():
+                log_success("All services healthy after auto-fix!")
+                return BuildResult(
+                    success=True, mode=mode, spec=spec,
+                    duration_seconds=time.time() - start_time,
+                    warnings=warnings + ["Required auto-fix during deploy"],
+                )
+        
         return BuildResult(
             success=False, mode=mode, spec=spec,
             duration_seconds=time.time() - start_time,
             errors=["Health verification failed"],
             warnings=warnings,
         )
+    
+    def _diagnose_and_fix_deploy_failure(self, spec: SpecLevel) -> bool:
+        """Check container logs for known errors and apply fixes."""
+        containers = ["omni-postgres", "omni-backend", "omni-redis"]
+        
+        for container in containers:
+            try:
+                result = subprocess.run(
+                    ["docker", "logs", "--tail", "20", container],
+                    capture_output=True, text=True, encoding='utf-8',
+                    errors='replace', timeout=10,
+                )
+                logs = result.stdout + "\n" + result.stderr
+                
+                # Check for known errors
+                error_pattern = self.error_handler.detect_error(logs)
+                if error_pattern and not error_pattern.is_code_error:
+                    log_info(f"Detected in {container}: {error_pattern.name}")
+                    if self.error_handler.apply_fix(error_pattern):
+                        return True
+            except Exception:
+                continue
+        
+        return False
     
     def _cleanup_postgres_data(self, spec: SpecLevel) -> bool:
         """

@@ -48,6 +48,7 @@ def get_fix_methods() -> dict:
         "repair_postgres_database": PostgresFixer.repair_postgres_database,
         "create_postgres_database_if_not_exists": PostgresFixer.create_postgres_database_if_not_exists,
         "repair_docker_dns_postgres": PostgresFixer.repair_docker_dns_postgres,
+        "repair_postgres_ownership": PostgresFixer.repair_postgres_ownership,
         
         # Redis
         "restart_redis": RedisFixer.restart_redis,

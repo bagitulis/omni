@@ -123,6 +123,13 @@ def get_postgres_patterns() -> list[ErrorPattern]:
             fix_function="create_postgres_database_if_not_exists",
         ),
         ErrorPattern(
+            name="PostgresOwnershipError",
+            pattern=r"data directory.*wrong ownership|must be started by the user that owns the data directory",
+            description="PostgreSQL data directory ownership error (NTFS/exFAT filesystem)",
+            severity=ErrorSeverity.CRITICAL,
+            fix_function="repair_postgres_ownership",
+        ),
+        ErrorPattern(
             name="PostgresDataCorruption",
             pattern=r"could not open directory.*pg_|pg_notify.*No such file|pg_wal.*No such file|pg_xact.*No such file|database.*shut down|FATAL.*postgres|could not open file.*pg_filenode",
             description="PostgreSQL data directory corrupted",

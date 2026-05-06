@@ -440,3 +440,126 @@ class PostgresFixer:
         log_warning("Replication lag detected - monitoring only (no auto-fix)")
         log_info("Check replica status manually if using replication")
         return True
+
+    @staticmethod
+    def repair_postgres_ownership() -> bool:
+        """
+        Fix PostgreSQL data directory ownership error.
+        
+        This happens when postgres data is on NTFS/exFAT (no Unix permissions).
+        Solution: switch from bind mount to Docker named volume, then re-init.
+        """
+        import platform
+        import re
+
+        log_fix("PostgreSQL data directory ownership error...")
+        log_info("Detected: filesystem doesn't support Unix ownership (NTFS/exFAT)")
+
+        # Find project root from config
+        script_dir = Path(__file__).parent
+        project_root = script_dir.parent.parent.parent
+
+        # Check if filesystem is NTFS/exFAT
+        is_ntfs = False
+        try:
+            result = subprocess.run(
+                ["df", "-T", str(project_root)],
+                capture_output=True, text=True, timeout=10,
+            )
+            if "fuseblk" in result.stdout or "ntfs" in result.stdout.lower() or "exfat" in result.stdout.lower():
+                is_ntfs = True
+                log_info("Confirmed: project is on NTFS/exFAT filesystem")
+        except Exception:
+            # If we can't detect, assume it's the issue since the error matched
+            is_ntfs = True
+
+        if not is_ntfs and platform.system() != "Windows":
+            # On native Linux filesystem, just fix ownership
+            data_dir = project_root / "data" / "postgres"
+            if data_dir.exists():
+                log_info("Attempting chown to postgres user (UID 70)...")
+                result = subprocess.run(
+                    ["sudo", "chown", "-R", "70:70", str(data_dir)],
+                    capture_output=True, text=True, timeout=30,
+                )
+                if result.returncode == 0:
+                    log_success("Ownership fixed with chown")
+                    _restart_container("omni-postgres")
+                    return True
+
+        # NTFS/exFAT: switch to Docker named volume
+        log_info("Switching PostgreSQL to Docker named volume (NTFS workaround)...")
+
+        # Stop postgres
+        subprocess.run(["docker", "stop", "omni-postgres"],
+                      capture_output=True, check=False, timeout=30)
+        subprocess.run(["docker", "rm", "-f", "omni-postgres"],
+                      capture_output=True, check=False, timeout=30)
+
+        # Patch docker-compose to use named volume
+        compose_file = project_root / "docker-compose.tunnel.yml"
+        if compose_file.exists():
+            content = compose_file.read_text()
+
+            # Replace bind mount with named volume
+            old_mount = "./data/postgres:/var/lib/postgresql/data"
+            new_mount = "omni-pgdata:/var/lib/postgresql/data"
+
+            if old_mount in content:
+                content = content.replace(old_mount, new_mount)
+
+                # Add named volume declaration if not present
+                if "omni-pgdata:" not in content:
+                    # Find or create volumes: section at the end
+                    if "\nvolumes:" in content:
+                        content = content.replace(
+                            "\nvolumes:",
+                            "\nvolumes:\n  omni-pgdata:\n    driver: local",
+                        )
+                    else:
+                        content += "\n\nvolumes:\n  omni-pgdata:\n    driver: local\n"
+
+                compose_file.write_text(content)
+                log_success("docker-compose.tunnel.yml patched: using named volume 'omni-pgdata'")
+            else:
+                log_info("Compose file already uses named volume or different mount")
+
+        # Also patch spec-specific compose files
+        for spec_file in ["docker-compose.tunnel.standard.yml",
+                          "docker-compose.tunnel.lowspec.yml",
+                          "docker-compose.tunnel.highspec.yml"]:
+            spec_path = project_root / spec_file
+            if spec_path.exists():
+                spec_content = spec_path.read_text()
+                if old_mount in spec_content:
+                    spec_content = spec_content.replace(old_mount, new_mount)
+                    if "omni-pgdata:" not in spec_content and "volumes:" in spec_content:
+                        spec_content += "\nvolumes:\n  omni-pgdata:\n    driver: local\n"
+                    spec_path.write_text(spec_content)
+                    log_info(f"  Patched {spec_file}")
+
+        # Restart postgres with new volume
+        log_info("Starting PostgreSQL with named volume (fresh init)...")
+        compose = get_compose_command()
+        subprocess.run(
+            compose + ["-f", "docker-compose.tunnel.yml",
+                      "-f", "docker-compose.tunnel.standard.yml",
+                      "up", "-d", "postgres"],
+            capture_output=True, check=False, timeout=60,
+            cwd=str(project_root),
+        )
+
+        # Wait for postgres to be ready
+        time.sleep(10)
+        for i in range(12):
+            result = subprocess.run(
+                ["docker", "exec", "omni-postgres", "pg_isready", "-U", "omni"],
+                capture_output=True, text=True, timeout=10,
+            )
+            if result.returncode == 0:
+                log_success("PostgreSQL is ready with named volume!")
+                return True
+            time.sleep(5)
+
+        log_warning("PostgreSQL may still be initializing, continuing...")
+        return True
