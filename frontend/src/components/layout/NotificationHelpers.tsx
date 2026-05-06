@@ -1,4 +1,5 @@
-import { theme } from "antd";
+import { Tag, theme } from "antd";
+import type { BulkOperationMetadata } from "@/types/notificationMetadata";
 
 /**
  * Parsed notification message.
@@ -8,6 +9,8 @@ import { theme } from "antd";
 export interface ParsedMessage {
   summary: string;
   stats?: { total?: number; processed?: number; failed?: number };
+  platforms?: Record<string, { succeeded: number; failed: number }>;
+  failedItems?: Array<{ sku: string; platform: string; error: string; request_id?: string }>;
 }
 
 export function formatRelativeTime(dateStr: string): string {
@@ -36,6 +39,21 @@ export function parseNotificationMessage(raw: string): ParsedMessage {
       return { summary: raw };
     }
 
+    // Check if this is BulkOperationMetadata format
+    if ("operation_type" in parsed) {
+      const meta = parsed as BulkOperationMetadata;
+      const summary = `${meta.operation_type.replace("_", " ")} completed`;
+      const stats = {
+        total: meta.total,
+        processed: meta.succeeded,
+        failed: meta.failed,
+      };
+      const platforms = meta.platforms || {};
+      const failedItems = meta.failed_items || [];
+      return { summary, stats, platforms, failedItems };
+    }
+
+    // Legacy format (backward compatibility)
     const summary =
       typeof parsed.message === "string" && parsed.message.trim()
         ? parsed.message.trim()
@@ -53,13 +71,47 @@ export function parseNotificationMessage(raw: string): ParsedMessage {
   }
 }
 
+/** Renders per-platform success/failure breakdown */
+export function PlatformBreakdown({
+  platforms,
+}: {
+  platforms: Record<string, { succeeded: number; failed: number }>;
+}) {
+  const entries = Object.entries(platforms);
+  if (entries.length === 0) return null;
+
+  return (
+    <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+      {entries.map(([platform, stats]) => (
+        <div key={platform} style={{ display: "flex", gap: 4, alignItems: "center" }}>
+          <span style={{ fontSize: 11, fontWeight: 500, color: "#666" }}>
+            {platform}:
+          </span>
+          {stats.succeeded > 0 && (
+            <Tag color="success" style={{ margin: 0, fontSize: 11 }}>
+              {stats.succeeded}✓
+            </Tag>
+          )}
+          {stats.failed > 0 && (
+            <Tag color="error" style={{ margin: 0, fontSize: 11 }}>
+              {stats.failed}✗
+            </Tag>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Renders numeric stats as small chips if available */
 export function NotificationStats({
   stats,
   failed,
+  platforms,
 }: {
   stats: NonNullable<ParsedMessage["stats"]>;
   failed: boolean;
+  platforms?: Record<string, { succeeded: number; failed: number }>;
 }) {
   const { token } = theme.useToken();
   const chipStyle = (isError?: boolean): React.CSSProperties => ({
@@ -76,19 +128,22 @@ export function NotificationStats({
   });
 
   return (
-    <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
-      {stats.total !== undefined && (
-        <span style={chipStyle()}>Total: {stats.total}</span>
-      )}
-      {stats.processed !== undefined && (
-        <span style={chipStyle()}>Done: {stats.processed}</span>
-      )}
-      {stats.failed !== undefined && stats.failed > 0 && (
-        <span style={chipStyle(true)}>Failed: {stats.failed}</span>
-      )}
-      {failed && stats.failed === 0 && (
-        <span style={chipStyle()}>0 Failed</span>
-      )}
-    </div>
+    <>
+      <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
+        {stats.total !== undefined && (
+          <span style={chipStyle()}>Total: {stats.total}</span>
+        )}
+        {stats.processed !== undefined && (
+          <span style={chipStyle()}>Done: {stats.processed}</span>
+        )}
+        {stats.failed !== undefined && stats.failed > 0 && (
+          <span style={chipStyle(true)}>Failed: {stats.failed}</span>
+        )}
+        {failed && stats.failed === 0 && (
+          <span style={chipStyle()}>0 Failed</span>
+        )}
+      </div>
+      {platforms && <PlatformBreakdown platforms={platforms} />}
+    </>
   );
 }
