@@ -84,15 +84,28 @@ export const getPricePerPlatformColumns = (
   perPlatformConfig: PricePerPlatformConfig,
   setPerPlatformConfig: Dispatch<SetStateAction<PricePerPlatformConfig>>,
   recommendations: PriceRecommendationMap,
+  productNameBySku?: Record<string, string>,
 ): ColumnType<PricePerPlatformRow>[] => {
   return [
     {
       title: "SKU",
       dataIndex: "sku",
       key: "sku",
-      width: 130,
+      width: 150,
       fixed: "left" as const,
-      ellipsis: true,
+      render: (_: unknown, record: PricePerPlatformRow) => {
+        const name = productNameBySku?.[record.sku];
+        return (
+          <div>
+            <div style={{ fontWeight: 500, fontSize: 12 }}>{record.sku}</div>
+            {name && (
+              <div style={{ fontSize: 11, color: "var(--color-text-secondary)", lineHeight: 1.2, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 130 }}>
+                {name}
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: "Hint",

@@ -53,13 +53,8 @@ func (h *InventoryHandler) PriceRecommendations(c *gin.Context) {
 			First(&record).Error
 
 		if err != nil {
-			// SKU not found - return empty prices
-			result[sku] = map[string]float64{
-				"shopee":     0,
-				"tiktok":     0,
-				"lazada":     0,
-				"base_price": 0,
-			}
+			// SKU not found in inventory - skip it entirely
+			// Frontend will use fallback (current product price)
 			continue
 		}
 

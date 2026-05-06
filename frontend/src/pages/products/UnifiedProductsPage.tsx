@@ -1,4 +1,4 @@
-import { Card, Grid, Space, Tabs, theme, type TableColumnsType } from "antd";
+import { Card, Grid, message, Space, Tabs, theme, type TableColumnsType } from "antd";
 import type { Key } from "react";
 import {
   lazy,
@@ -19,16 +19,18 @@ import { UnifiedProductsModals } from "@/pages/products/components/UnifiedProduc
 import { UnifiedProductsControls } from "@/pages/products/components/UnifiedProductsControls";
 import { useUnifiedProductsActions } from "@/pages/products/hooks/useUnifiedProductsActions";
 import { usePriceDrift } from "@/pages/products/hooks/usePriceDrift";
+import { executeSyncMarketplace } from "@/pages/products/hooks/useSyncMarketplace";
 import { buildProductColumns } from "@/pages/products/utils/productColumns";
-import {
+  import {
   areFiltersEqual,
   buildFilterSearchParams,
   DEFAULT_PRODUCT_PAGE_COLUMNS,
+  getErrorMessage,
   readFiltersFromUrl,
   toLegacyProduct,
 } from "@/pages/products/utils/unifiedProductUtils";
-import { buildProductTabItems } from "@/pages/products/utils/productTabItems";
-import type {
+  import { buildProductTabItems } from "@/pages/products/utils/productTabItems";
+  import type {
   BatchActionType,
   ProductFilterValues,
   UnifiedProductRow,
@@ -58,6 +60,7 @@ export default function UnifiedProductsPage() {
   const [filters, setFilters] = useState<ProductFilterValues>(() =>
     readFiltersFromUrl(searchParams),
   );
+  const [pullLoading, setPullLoading] = useState(false);
 
   const { data, isLoading, refetch } = useUnifiedProducts(
     filters,
@@ -151,6 +154,26 @@ export default function UnifiedProductsPage() {
     refreshProducts,
   });
 
+  const handlePullFromMarketplace = useCallback(async () => {
+    const allProductIds = allProducts.map((p) => p.id);
+    if (allProductIds.length === 0) {
+      message.warning("No products to sync");
+      return;
+    }
+    setPullLoading(true);
+    try {
+      await executeSyncMarketplace(
+        allProductIds,
+        refreshProducts,
+        clearSelection,
+      );
+    } catch (error) {
+      message.error(`Pull from Marketplace failed: ${getErrorMessage(error)}`);
+    } finally {
+      setPullLoading(false);
+    }
+  }, [allProducts, refreshProducts, clearSelection]);
+
   const { token } = theme.useToken();
 
   const tableColumnMap = useMemo(
@@ -187,6 +210,8 @@ export default function UnifiedProductsPage() {
           syncHistoryTotal={syncHistoryData?.total ?? 0}
           priceDriftCount={driftData?.total_drifted ?? 0}
           onSyncDriftedPrices={() => { /* TODO: open PriceSyncModal with drifted SKUs */ }}
+          onPullFromMarketplace={handlePullFromMarketplace}
+          pullLoading={pullLoading}
         />
 
         <Card styles={{ body: { padding: isMobile ? 16 : 24 } }}>

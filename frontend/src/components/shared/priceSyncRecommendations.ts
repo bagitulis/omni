@@ -145,7 +145,8 @@ export function applyPriceRecommendations(
   for (const [sku, skuConfig] of Object.entries(config)) {
     const recommendation = recommendations[sku];
 
-    if (!recommendation) {
+    if (!recommendation || (recommendation.shopee === 0 && recommendation.tiktok === 0 && recommendation.lazada === 0 && recommendation.base_price === 0)) {
+      // Skip if no recommendation or all prices are 0 (SKU not found in inventory)
       newConfig[sku] = skuConfig;
       continue;
     }

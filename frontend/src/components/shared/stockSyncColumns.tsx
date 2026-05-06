@@ -62,6 +62,7 @@ export const getPerPlatformColumns = (
   perPlatformConfig: PerPlatformConfig,
   setPerPlatformConfig: Dispatch<SetStateAction<PerPlatformConfig>>,
   recommendations: StockRecommendationMap,
+  productNameBySku?: Record<string, string>,
 ): ColumnType<PerPlatformRow>[] => {
   return [
     {
@@ -69,6 +70,19 @@ export const getPerPlatformColumns = (
       dataIndex: "sku",
       key: "sku",
       width: 180,
+      render: (_: unknown, record: PerPlatformRow) => {
+        const name = productNameBySku?.[record.sku];
+        return (
+          <div>
+            <div style={{ fontWeight: 500, fontSize: 12 }}>{record.sku}</div>
+            {name && (
+              <div style={{ fontSize: 11, color: "var(--color-text-secondary)", lineHeight: 1.2, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 160 }}>
+                {name}
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: "Inventory Hint",

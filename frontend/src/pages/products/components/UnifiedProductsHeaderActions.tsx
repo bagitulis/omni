@@ -1,5 +1,6 @@
 import {
   CloudDownloadOutlined,
+  ImportOutlined,
   PlusOutlined,
   UploadOutlined,
   WarningOutlined,
@@ -13,11 +14,13 @@ interface UnifiedProductsHeaderActionsProps {
   syncHistoryTotal: number;
   priceDriftCount?: number;
   onSyncDriftedPrices?: () => void;
+  onPullFromMarketplace?: () => void;
+  pullLoading?: boolean;
 }
 
 export const UnifiedProductsHeaderActions: FC<
   UnifiedProductsHeaderActionsProps
-> = ({ navigate, syncHistoryTotal, priceDriftCount = 0, onSyncDriftedPrices }) => {
+> = ({ navigate, syncHistoryTotal, priceDriftCount = 0, onSyncDriftedPrices, onPullFromMarketplace, pullLoading = false }) => {
   return (
     <div
       style={{
@@ -51,6 +54,13 @@ export const UnifiedProductsHeaderActions: FC<
           onClick={() => navigate("/products/sync-history")}
         >
           Sync History ({syncHistoryTotal})
+        </Button>
+        <Button
+          icon={<ImportOutlined />}
+          onClick={onPullFromMarketplace}
+          loading={pullLoading}
+        >
+          Pull from Marketplace
         </Button>
         {priceDriftCount > 0 && (
           <Tooltip title={`${priceDriftCount} prices out of sync with inventory`}>

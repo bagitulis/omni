@@ -5,7 +5,6 @@ import {
   CopyOutlined,
   DeleteOutlined,
   ExportOutlined,
-  ImportOutlined,
   ShopOutlined,
 } from "@ant-design/icons";
 import type { BatchActionType } from "@/types/shared";
@@ -32,12 +31,6 @@ const UNIFIED_BATCH_ACTIONS: UnifiedBatchAction[] = [
     label: "Push to Marketplace",
     icon: <ExportOutlined />,
     tooltip: "Push stock and prices to Shopee, TikTok, Lazada",
-  },
-  {
-    key: "sync_marketplace",
-    label: "Pull from Marketplace",
-    icon: <ImportOutlined />,
-    tooltip: "Refresh product data from marketplaces",
   },
   {
     key: "bulk_pricing",
