@@ -122,7 +122,7 @@ export const getPricePerPlatformColumns = (
           <div>
             <div style={{ fontWeight: 500, fontSize: 12 }}>{record.sku}</div>
             {name && (
-              <div style={{ fontSize: 11, color: "var(--color-text-secondary)", lineHeight: 1.2, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 140 }}>
+              <div style={{ fontSize: 11, color: "var(--color-text-secondary)", lineHeight: 1.3, marginTop: 2, maxWidth: 140, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                 {name}
               </div>
             )}

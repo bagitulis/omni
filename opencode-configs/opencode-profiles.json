@@ -623,11 +623,11 @@
           ]
         },
         "multimodal-looker": {
-          "model": "enowxlabs/gemini-2.5-pro",
+          "model": "enowxlabs/codex-gpt-5.4",
           "temperature": 0.1,
           "fallback_models": [
-            "enowxlabs/gemini-3.0-flash",
-            "enowxlabs/codex-gpt-5.4"
+            "enowxlabs/kimi-k2.5",
+            "enowxlabs/claude-opus-4.6"
           ]
         },
         "metis": {
@@ -795,11 +795,11 @@
           ]
         },
         "multimodal-looker": {
-          "model": "enowxlabs/gemini-2.5-pro",
+          "model": "enowxlabs/codex-gpt-5.4",
           "temperature": 0.1,
           "fallback_models": [
-            "enowxlabs/gemini-3.0-flash",
-            "enowxlabs/codex-gpt-5.4"
+            "enowxlabs/auto",
+            "enowxlabs/kimi-k2.5"
           ]
         },
         "metis": {
@@ -969,11 +969,10 @@
           ]
         },
         "multimodal-looker": {
-          "model": "enowxlabs/claude-haiku-4.5",
+          "model": "enowxlabs/auto",
           "temperature": 0.1,
           "fallback_models": [
-            "enowxlabs/claude-haiku-4.5-thinking",
-            "enowxlabs/gpt-5.4"
+            "enowxlabs/codex-gpt-5.4"
           ]
         },
         "metis": {
