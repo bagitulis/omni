@@ -89,8 +89,9 @@ func (c *Client) buildURL(path string, params map[string]string) (string, error)
 
 // shopeeBaseResponse captures Shopee business-level error fields returned in 200 OK responses.
 type shopeeBaseResponse struct {
-	Error   string `json:"error"`
-	Message string `json:"message"`
+	RequestID string `json:"request_id"`
+	Error     string `json:"error"`
+	Message   string `json:"message"`
 }
 
 // doRequest executes HTTP request and parses response with centralized retry logic.
@@ -167,6 +168,11 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 
 	// HTTP-level error
 	if resp.StatusCode >= http.StatusBadRequest {
+		log.Warn().
+			Int("status", resp.StatusCode).
+			Str("path", path).
+			Str("response", truncateString(string(body), 2000)).
+			Msg("[Shopee API] HTTP error")
 		return fmt.Errorf("shopee API error [http_status=%d]: %s", resp.StatusCode, truncateString(string(body), 2000))
 	}
 
@@ -183,13 +189,22 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 
 	// Check Shopee business-level error (returned with HTTP 200)
 	var baseResp shopeeBaseResponse
-	if err := json.Unmarshal(body, &baseResp); err == nil && baseResp.Error != "" {
-		log.Warn().
+	if err := json.Unmarshal(body, &baseResp); err == nil {
+		if baseResp.Error != "" {
+			log.Warn().
+				Str("path", path).
+				Str("request_id", baseResp.RequestID).
+				Str("error", baseResp.Error).
+				Str("message", baseResp.Message).
+				Str("response", truncateString(string(body), 2000)).
+				Msg("[Shopee API] Business error in 200 response")
+			return fmt.Errorf("shopee API error: %s — %s (request_id: %s)", baseResp.Error, baseResp.Message, baseResp.RequestID)
+		}
+		// Success path - log request_id at Debug level
+		log.Debug().
 			Str("path", path).
-			Str("error", baseResp.Error).
-			Str("message", baseResp.Message).
-			Msg("[Shopee API] Business error in 200 response")
-		return fmt.Errorf("shopee API error: %s — %s", baseResp.Error, baseResp.Message)
+			Str("request_id", baseResp.RequestID).
+			Msg("[Shopee API] Success")
 	}
 
 	return json.Unmarshal(body, result)

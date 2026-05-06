@@ -117,9 +117,18 @@ func (c *Client) generateSign(params map[string]string, apiPath string) string {
 
 // lazadaBaseResponse captures Lazada business-level error fields returned in 200 OK responses.
 type lazadaBaseResponse struct {
-	Code    string `json:"code"`
-	Type    string `json:"type"`
-	Message string `json:"message"`
+	Code      string `json:"code"`
+	Type      string `json:"type"`
+	Message   string `json:"message"`
+	RequestID string `json:"request_id"`
+}
+
+// truncateString truncates a string to maxLen characters.
+	func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "...[truncated]"
 }
 
 // RawRequest executes an arbitrary Lazada REST call with proper signing.
@@ -219,13 +228,35 @@ func (c *Client) RawRequest(ctx context.Context, method, apiPath string, params 
 		return err
 	}
 	if resp.StatusCode >= http.StatusBadRequest {
+		log.Warn().
+			Int("http_status", resp.StatusCode).
+			Str("api_path", apiPath).
+			Str("raw_response", truncateString(string(respBody), 2000)).
+			Msg("[Lazada API] HTTP Error")
 		return fmt.Errorf("lazada API error [http_status=%d]: %s", resp.StatusCode, string(respBody))
 	}
 
 	// Check Lazada business-level error (returned with HTTP 200)
 	var baseResp lazadaBaseResponse
 	if jsonErr := json.Unmarshal(respBody, &baseResp); jsonErr == nil && baseResp.Code != "" && baseResp.Code != "0" {
-		return fmt.Errorf("lazada API error: code=%s, type=%s, message=%s", baseResp.Code, baseResp.Type, baseResp.Message)
+		log.Warn().
+			Str("api_path", apiPath).
+			Str("request_id", baseResp.RequestID).
+			Str("code", baseResp.Code).
+			Str("type", baseResp.Type).
+			Str("message", baseResp.Message).
+			Str("raw_response", truncateString(string(respBody), 2000)).
+			Msg("[Lazada API] Business Error")
+		return fmt.Errorf("lazada API error [request_id=%s]: code=%s, type=%s, message=%s", baseResp.RequestID, baseResp.Code, baseResp.Type, baseResp.Message)
+	}
+
+	// Success - log request_id at Debug level
+	var successResp lazadaBaseResponse
+	if jsonErr := json.Unmarshal(respBody, &successResp); jsonErr == nil {
+		log.Debug().
+			Str("api_path", apiPath).
+			Str("request_id", successResp.RequestID).
+			Msg("[Lazada API] Success")
 	}
 
 	if result == nil {

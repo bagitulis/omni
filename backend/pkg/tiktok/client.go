@@ -12,6 +12,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -87,6 +89,13 @@ func (c *Client) generateSignWithBody(path string, params map[string]string, bod
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+// truncateString truncates a string to maxLen characters
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "...[truncated]"
+}
 // doRequest executes HTTP request (GET without body) with retry logic
 func (c *Client) doRequest(method, apiPath string, params map[string]string, result interface{}) error {
 	const maxRetries = 3
@@ -144,14 +153,25 @@ func (c *Client) doRequest(method, apiPath string, params map[string]string, res
 
 		// Retry on 429 (rate limit) or 5xx (server error)
 		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
+			log.Warn().Str("method", method).Str("api_path", apiPath).Int("status_code", resp.StatusCode).Msg("TikTok API rate limit or server error, retrying")
 			lastErr = fmt.Errorf("TikTok API error: status %d", resp.StatusCode)
 			continue
 		}
 
-		return json.Unmarshal(body, result)
-	}
+		// Parse request_id from response
+		var baseResp struct {
+			RequestID string `json:"request_id"`
+		}
+		json.Unmarshal(body, &baseResp)
 
-	return fmt.Errorf("TikTok API failed after %d retries: %w", maxRetries, lastErr)
+		// Unmarshal into result
+		if err := json.Unmarshal(body, result); err != nil {
+			log.Warn().Str("method", method).Str("api_path", apiPath).Str("request_id", baseResp.RequestID).Str("raw_body", truncateString(string(body), 2000)).Msg("TikTok API unmarshal failed")
+			return err
+		}
+
+		log.Debug().Str("method", method).Str("api_path", apiPath).Str("request_id", baseResp.RequestID).Msg("TikTok API request successful")
+		return nil
 }
 
 // doRequestWithBody executes HTTP request with JSON body and retry logic
@@ -221,14 +241,25 @@ func (c *Client) doRequestWithBody(method, apiPath string, params map[string]str
 
 		// Retry on 429 (rate limit) or 5xx (server error)
 		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
+			log.Warn().Str("method", method).Str("api_path", apiPath).Int("status_code", resp.StatusCode).Msg("TikTok API rate limit or server error, retrying")
 			lastErr = fmt.Errorf("TikTok API error: status %d", resp.StatusCode)
 			continue
 		}
 
-		return json.Unmarshal(respBody, result)
-	}
+		// Parse request_id from response
+		var baseResp struct {
+			RequestID string `json:"request_id"`
+		}
+		json.Unmarshal(respBody, &baseResp)
 
-	return fmt.Errorf("TikTok API failed after %d retries: %w", maxRetries, lastErr)
+		// Unmarshal into result
+		if err := json.Unmarshal(respBody, result); err != nil {
+			log.Warn().Str("method", method).Str("api_path", apiPath).Str("request_id", baseResp.RequestID).Str("raw_body", truncateString(string(respBody), 2000)).Msg("TikTok API unmarshal failed")
+			return err
+		}
+
+		log.Debug().Str("method", method).Str("api_path", apiPath).Str("request_id", baseResp.RequestID).Msg("TikTok API request successful")
+		return nil
 }
 
 // DoGet executes a GET request
