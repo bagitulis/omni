@@ -46,9 +46,15 @@ func (o *StockUpdateOrchestrator) UpdateStockFromInventory(
 	}
 
 	if requestedStock != nil {
-		if err := o.db.WithContext(ctx).Save(&record).Error; err != nil {
+		tx := o.db.WithContext(ctx).Begin()
+		if tx.Error != nil {
+			return nil, 0, fmt.Errorf("failed to begin transaction: %w", tx.Error)
+		}
+		if err := tx.Save(&record).Error; err != nil {
+			tx.Rollback()
 			return nil, 0, err
 		}
+		tx.Commit()
 	}
 
 	result, err := o.UpdateStock(ctx, sku, stockValue, platforms)
