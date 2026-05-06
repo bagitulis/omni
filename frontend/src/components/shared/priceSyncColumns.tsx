@@ -1,4 +1,4 @@
-import { Checkbox, InputNumber, Tooltip, theme } from "antd";
+import { Checkbox, InputNumber, theme } from "antd";
 import type { ColumnType } from "antd/es/table";
 import type { Dispatch, SetStateAction } from "react";
 import type { Platform, UnifiedProductRow } from "@/types/shared";
@@ -51,47 +51,73 @@ export const getDefaultPricePerPlatformConfig = (
   return config;
 };
 
-function PriceHintCell({ hint }: { hint: PriceRecommendationMap[string] | undefined }) {
+// ─── Platform Price Cell ─────────────────────────────────────────────────────
+
+function PricePlatformCell({
+  sku,
+  platform,
+  linked,
+  isChecked,
+  price,
+  currentPrice,
+  onCheckChange,
+  onPriceChange,
+}: {
+  sku: string;
+  platform: Platform;
+  linked: boolean;
+  isChecked: boolean;
+  price: number;
+  currentPrice: number;
+  onCheckChange: (checked: boolean) => void;
+  onPriceChange: (value: number) => void;
+}) {
   const { token } = theme.useToken();
 
-  if (!hint) {
-    return (
-      <span style={{ color: token.colorTextQuaternary, fontSize: 11 }}>
-        —
-      </span>
-    );
-  }
-
-  const parts: string[] = [];
-  if (hint.shopee > 0) parts.push(`S:${idrFormatter.format(hint.shopee)}`);
-  if (hint.tiktok > 0) parts.push(`T:${idrFormatter.format(hint.tiktok)}`);
-  if (hint.lazada > 0) parts.push(`L:${idrFormatter.format(hint.lazada)}`);
-
   return (
-    <Tooltip title={`Base: Rp ${idrFormatter.format(hint.base_price)} | Source: ${hint.source}`}>
-      <span style={{ fontSize: 11, color: token.colorTextSecondary }}>
-        {parts.length > 0 ? parts.join(" ") : `Rp ${idrFormatter.format(hint.base_price)}`}
-        {hint.source === "fallback" && (
-          <span style={{ color: token.colorWarning, marginLeft: 4 }}>(fb)</span>
-        )}
-      </span>
-    </Tooltip>
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <Checkbox
+          disabled={!linked}
+          checked={isChecked}
+          onChange={(e) => onCheckChange(e.target.checked)}
+        />
+        <InputNumber
+          size="small"
+          min={0}
+          disabled={!linked || !isChecked}
+          value={price}
+          onChange={(value) => onPriceChange(value ?? 0)}
+          style={{ width: 100 }}
+          formatter={(v) => v != null ? `${Number(v).toLocaleString("id-ID")}` : ""}
+          parser={(v) => Number((v ?? "").replace(/\./g, "")) || 0}
+        />
+      </div>
+      {currentPrice > 0 && (
+        <div style={{ fontSize: 10, color: token.colorTextQuaternary, marginLeft: 24, marginTop: 2 }}>
+          now: Rp {idrFormatter.format(currentPrice)}
+        </div>
+      )}
+    </div>
   );
 }
+
+// ─── Column Builder ──────────────────────────────────────────────────────────
 
 export const getPricePerPlatformColumns = (
   linkedPlatformsBySku: Record<string, Record<Platform, boolean>>,
   perPlatformConfig: PricePerPlatformConfig,
   setPerPlatformConfig: Dispatch<SetStateAction<PricePerPlatformConfig>>,
-  recommendations: PriceRecommendationMap,
+  _recommendations: PriceRecommendationMap,
   productNameBySku?: Record<string, string>,
+  currentPricesBySku?: Record<string, Record<Platform, number>>,
 ): ColumnType<PricePerPlatformRow>[] => {
   return [
     {
       title: "SKU",
       dataIndex: "sku",
       key: "sku",
-      width: 150,
+      width: 160,
       fixed: "left" as const,
       render: (_: unknown, record: PricePerPlatformRow) => {
         const name = productNameBySku?.[record.sku];
@@ -99,7 +125,7 @@ export const getPricePerPlatformColumns = (
           <div>
             <div style={{ fontWeight: 500, fontSize: 12 }}>{record.sku}</div>
             {name && (
-              <div style={{ fontSize: 11, color: "var(--color-text-secondary)", lineHeight: 1.2, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 130 }}>
+              <div style={{ fontSize: 11, color: "var(--color-text-secondary)", lineHeight: 1.2, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 140 }}>
                 {name}
               </div>
             )}
@@ -107,82 +133,58 @@ export const getPricePerPlatformColumns = (
         );
       },
     },
-    {
-      title: "Hint",
-      key: "inventory_price_hint",
-      width: 150,
-      render: (_: unknown, record: PricePerPlatformRow) => (
-        <PriceHintCell hint={recommendations[record.sku]} />
-      ),
-    },
-    ...PRICE_PLATFORM_OPTIONS.map((platformOption) => ({
-      title: (
-        <span style={{ fontSize: 12 }}>
-          {platformOption.label}
-        </span>
-      ),
+    ...PRICE_PLATFORM_OPTIONS.map((platformOption): ColumnType<PricePerPlatformRow> => ({
+      title: <span style={{ fontSize: 12 }}>{platformOption.label}</span>,
       key: `price_${platformOption.key}`,
-      width: 150,
+      width: 175,
       render: (_: unknown, record: PricePerPlatformRow) => {
-        const linked =
-          linkedPlatformsBySku[record.sku]?.[platformOption.key] ?? false;
+        const linked = linkedPlatformsBySku[record.sku]?.[platformOption.key] ?? false;
         const config = perPlatformConfig[record.sku];
-        const isChecked = linked
-          ? (config?.platforms[platformOption.key] ?? false)
-          : false;
+        const isChecked = linked ? (config?.platforms[platformOption.key] ?? false) : false;
+        const price = config?.prices[platformOption.key] ?? 0;
+        const currentPrice = currentPricesBySku?.[record.sku]?.[platformOption.key] ?? 0;
 
         return (
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <Checkbox
-              disabled={!linked}
-              checked={isChecked}
-              onChange={(event) =>
-                setPerPlatformConfig((previous) => {
-                  const existing = previous[record.sku];
-                  if (!existing) return previous;
-
-                  return {
-                    ...previous,
-                    [record.sku]: {
-                      ...existing,
-                      platforms: {
-                        ...existing.platforms,
-                        [platformOption.key]: linked
-                          ? event.target.checked
-                          : false,
-                      },
+          <PricePlatformCell
+            sku={record.sku}
+            platform={platformOption.key}
+            linked={linked}
+            isChecked={isChecked}
+            price={price}
+            currentPrice={currentPrice}
+            onCheckChange={(checked) =>
+              setPerPlatformConfig((prev) => {
+                const existing = prev[record.sku];
+                if (!existing) return prev;
+                return {
+                  ...prev,
+                  [record.sku]: {
+                    ...existing,
+                    platforms: {
+                      ...existing.platforms,
+                      [platformOption.key]: linked ? checked : false,
                     },
-                  };
-                })
-              }
-            />
-            <InputNumber
-              size="small"
-              min={0}
-              disabled={!linked || !isChecked}
-              value={config?.prices[platformOption.key] ?? 0}
-              onChange={(value) =>
-                setPerPlatformConfig((previous) => {
-                  const existing = previous[record.sku];
-                  if (!existing) return previous;
-
-                  return {
-                    ...previous,
-                    [record.sku]: {
-                      ...existing,
-                      prices: {
-                        ...existing.prices,
-                        [platformOption.key]: value ?? 0,
-                      },
+                  },
+                };
+              })
+            }
+            onPriceChange={(value) =>
+              setPerPlatformConfig((prev) => {
+                const existing = prev[record.sku];
+                if (!existing) return prev;
+                return {
+                  ...prev,
+                  [record.sku]: {
+                    ...existing,
+                    prices: {
+                      ...existing.prices,
+                      [platformOption.key]: value,
                     },
-                  };
-                })
-              }
-              style={{ width: 95 }}
-              formatter={(value) => value != null ? `${Number(value).toLocaleString("id-ID")}` : ""}
-              parser={(value) => Number((value ?? "").replace(/\./g, "")) || 0}
-            />
-          </div>
+                  },
+                };
+              })
+            }
+          />
         );
       },
     })),

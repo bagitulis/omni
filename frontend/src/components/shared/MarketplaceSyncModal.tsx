@@ -12,7 +12,6 @@ import type { FC } from "react";
 import type { Platform, UnifiedProductRow } from "@/types/shared";
 import type { PricePerPlatformRow } from "./priceSyncColumns";
 import type { PerPlatformRow } from "./stockSyncColumns";
-import { PlatformComparisonPanel } from "./PlatformComparisonPanel";
 import { StockTabContent, PriceTabContent } from "./MarketplaceSyncTabContent";
 import { useMarketplaceSyncState } from "./useMarketplaceSyncState";
 
@@ -121,10 +120,6 @@ export const MarketplaceSyncModal: FC<MarketplaceSyncModalProps> = ({
         </div>
       }
     >
-      <PlatformComparisonPanel
-        products={selectedProducts}
-        mode={state.activeTab === "stock" ? "stock" : "price"}
-      />
 
       <Tabs
         activeKey={state.activeTab}

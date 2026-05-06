@@ -1,4 +1,4 @@
-import { Checkbox, InputNumber } from "antd";
+import { Checkbox, InputNumber, theme } from "antd";
 import type { ColumnType } from "antd/es/table";
 import type { Dispatch, SetStateAction } from "react";
 import type { Platform, UnifiedProductRow } from "@/types/shared";
@@ -57,12 +57,60 @@ export const getDefaultPerPlatformConfig = (
   return config;
 };
 
+// ─── Stock Platform Cell ─────────────────────────────────────────────────────
+
+function StockPlatformCell({
+  linked,
+  enabled,
+  stock,
+  currentStock,
+  onEnabledChange,
+  onStockChange,
+}: {
+  linked: boolean;
+  enabled: boolean;
+  stock: number;
+  currentStock: number;
+  onEnabledChange: (checked: boolean) => void;
+  onStockChange: (value: number) => void;
+}) {
+  const { token } = theme.useToken();
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <Checkbox
+          disabled={!linked}
+          checked={linked ? enabled : false}
+          onChange={(e) => onEnabledChange(e.target.checked)}
+        />
+        <InputNumber
+          size="small"
+          min={0}
+          value={stock}
+          disabled={!linked || !enabled}
+          onChange={(value) => onStockChange(value ?? 0)}
+          style={{ width: 92 }}
+        />
+      </div>
+      {currentStock > 0 && (
+        <div style={{ fontSize: 10, color: token.colorTextQuaternary, marginLeft: 32, marginTop: 2 }}>
+          now: {currentStock}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Column Builder ──────────────────────────────────────────────────────────
+
 export const getPerPlatformColumns = (
   linkedPlatformsBySku: Record<string, Record<Platform, boolean>>,
   perPlatformConfig: PerPlatformConfig,
   setPerPlatformConfig: Dispatch<SetStateAction<PerPlatformConfig>>,
-  recommendations: StockRecommendationMap,
+  _recommendations: StockRecommendationMap,
   productNameBySku?: Record<string, string>,
+  currentStockBySku?: Record<string, Record<Platform, number>>,
 ): ColumnType<PerPlatformRow>[] => {
   return [
     {
@@ -81,23 +129,6 @@ export const getPerPlatformColumns = (
               </div>
             )}
           </div>
-        );
-      },
-    },
-    {
-      title: "Inventory Hint",
-      key: "inventory_hint",
-      width: 220,
-      render: (_: unknown, record: PerPlatformRow) => {
-        const hint = recommendations[record.sku];
-        if (!hint) {
-          return <span style={{ color: "var(--color-text-secondary)", fontSize: 12 }}>No hint</span>;
-        }
-
-        return (
-          <span style={{ fontSize: 12 }}>
-            S:{hint.shopee} T:{hint.tiktok} L:{hint.lazada} ({hint.source})
-          </span>
         );
       },
     },
@@ -150,70 +181,59 @@ export const getPerPlatformColumns = (
             </div>
           ),
           key: platformOption.key,
-          width: 170,
+          width: 185,
           render: (_: unknown, record: PerPlatformRow) => {
-            const linked =
-              linkedPlatformsBySku[record.sku]?.[platformOption.key] ?? false;
-            const platformConfig =
-              perPlatformConfig[record.sku]?.platforms[platformOption.key];
+            const linked = linkedPlatformsBySku[record.sku]?.[platformOption.key] ?? false;
+            const platformConfig = perPlatformConfig[record.sku]?.platforms[platformOption.key];
+            const currentStock = currentStockBySku?.[record.sku]?.[platformOption.key] ?? 0;
 
             return (
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <Checkbox
-                  disabled={!linked}
-                  checked={linked ? (platformConfig?.enabled ?? false) : false}
-                  onChange={(event) =>
-                    setPerPlatformConfig((previous) => {
-                      const existing = previous[record.sku];
-                      if (!existing) return previous;
-
-                      const current = existing.platforms[platformOption.key];
-
-                      return {
-                        ...previous,
-                        [record.sku]: {
-                          ...existing,
-                          platforms: {
-                            ...existing.platforms,
-                            [platformOption.key]: {
-                              enabled: linked ? event.target.checked : false,
-                              stock: current.stock,
-                            },
+              <StockPlatformCell
+                linked={linked}
+                enabled={platformConfig?.enabled ?? false}
+                stock={platformConfig?.stock ?? 0}
+                currentStock={currentStock}
+                onEnabledChange={(checked) =>
+                  setPerPlatformConfig((previous) => {
+                    const existing = previous[record.sku];
+                    if (!existing) return previous;
+                    const current = existing.platforms[platformOption.key];
+                    return {
+                      ...previous,
+                      [record.sku]: {
+                        ...existing,
+                        platforms: {
+                          ...existing.platforms,
+                          [platformOption.key]: {
+                            enabled: linked ? checked : false,
+                            stock: current.stock,
                           },
                         },
-                      };
-                    })
-                  }
-                />
-                <InputNumber
-                  size="small"
-                  min={0}
-                  value={platformConfig?.stock ?? 0}
-                  disabled={!linked || !(platformConfig?.enabled ?? false)}
-                  onChange={(value) =>
-                    setPerPlatformConfig((previous) => {
-                      const existing = previous[record.sku];
-                      if (!existing) return previous;
-
-                      const current = existing.platforms[platformOption.key];
-                      return {
-                        ...previous,
-                        [record.sku]: {
-                          ...existing,
-                          platforms: {
-                            ...existing.platforms,
-                            [platformOption.key]: {
-                              ...current,
-                              stock: value ?? 0,
-                            },
+                      },
+                    };
+                  })
+                }
+                onStockChange={(value) =>
+                  setPerPlatformConfig((previous) => {
+                    const existing = previous[record.sku];
+                    if (!existing) return previous;
+                    const current = existing.platforms[platformOption.key];
+                    return {
+                      ...previous,
+                      [record.sku]: {
+                        ...existing,
+                        platforms: {
+                          ...existing.platforms,
+                          [platformOption.key]: {
+                            ...current,
+                            stock: value,
                           },
                         },
-                      };
-                    })
-                  }
-                  style={{ width: 92 }}
-                />
-              </div>
+                      },
+                    };
+                  })
+                }
+              />
             );
           },
         };

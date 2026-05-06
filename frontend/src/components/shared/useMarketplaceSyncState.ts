@@ -96,6 +96,34 @@ export function useMarketplaceSyncState({
     return map;
   }, [selectedProducts]);
 
+  const currentPricesBySku = useMemo(() => {
+    const map: Record<string, Record<Platform, number>> = {};
+    for (const product of selectedProducts) {
+      for (const sku of product.skus) {
+        const prices: Record<Platform, number> = { shopee: 0, tiktok: 0, lazada: 0 };
+        for (const pp of sku.platform_prices ?? []) {
+          prices[pp.platform] = pp.platform_price;
+        }
+        map[sku.seller_sku] = prices;
+      }
+    }
+    return map;
+  }, [selectedProducts]);
+
+  const currentStockBySku = useMemo(() => {
+    const map: Record<string, Record<Platform, number>> = {};
+    for (const product of selectedProducts) {
+      for (const sku of product.skus) {
+        const stocks: Record<Platform, number> = { shopee: 0, tiktok: 0, lazada: 0 };
+        for (const pp of sku.platform_prices ?? []) {
+          stocks[pp.platform] = pp.platform_stock;
+        }
+        map[sku.seller_sku] = stocks;
+      }
+    }
+    return map;
+  }, [selectedProducts]);
+
   // ─── Initialize on open ──────────────────────────────────────────────────
 
   useEffect(() => {
@@ -262,15 +290,15 @@ export function useMarketplaceSyncState({
 
   const applyPriceRecos = () => {
     setPricePerPlatformConfig((prev) =>
-      applyPriceRecommendations(prev, priceRecommendations),
+      applyPriceRecommendations(prev, priceRecommendations, currentPricesBySku),
     );
   };
 
   // ─── Columns ─────────────────────────────────────────────────────────────
 
   const stockColumns = useMemo(
-    () => getPerPlatformColumns(linkedPlatformsBySku, stockPerPlatformConfig, setStockPerPlatformConfig, stockRecommendations, productNameBySku),
-    [linkedPlatformsBySku, stockPerPlatformConfig, stockRecommendations, productNameBySku],
+    () => getPerPlatformColumns(linkedPlatformsBySku, stockPerPlatformConfig, setStockPerPlatformConfig, stockRecommendations, productNameBySku, currentStockBySku),
+    [linkedPlatformsBySku, stockPerPlatformConfig, stockRecommendations, productNameBySku, currentStockBySku],
   );
 
   const stockRows = useMemo(
@@ -279,8 +307,8 @@ export function useMarketplaceSyncState({
   );
 
   const priceColumns = useMemo(
-    () => getPricePerPlatformColumns(linkedPlatformsBySku, pricePerPlatformConfig, setPricePerPlatformConfig, priceRecommendations, productNameBySku),
-    [linkedPlatformsBySku, pricePerPlatformConfig, priceRecommendations, productNameBySku],
+    () => getPricePerPlatformColumns(linkedPlatformsBySku, pricePerPlatformConfig, setPricePerPlatformConfig, priceRecommendations, productNameBySku, currentPricesBySku),
+    [linkedPlatformsBySku, pricePerPlatformConfig, priceRecommendations, productNameBySku, currentPricesBySku],
   );
 
   const priceRows = useMemo(

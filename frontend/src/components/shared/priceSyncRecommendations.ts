@@ -130,34 +130,58 @@ export async function buildPriceRecommendations(
 /**
  * Apply price recommendations to the per-platform config.
  *
- * For each SKU in config:
- * - If recommendation exists, fill each platform's price independently
- * - shopee gets recommendation.shopee, tiktok gets recommendation.tiktok, etc.
+ * Cascade fallback per platform:
+ *   1. inventory recommendation (HARGA_SHOPEE, etc.)
+ *   2. current marketplace price (what's live now)
+ *   3. base_price (HARGA from inventory)
+ *   4. keep existing (don't change)
  *
  * Returns a new config (immutable — does not mutate input).
  */
 export function applyPriceRecommendations(
   config: PricePerPlatformConfig,
   recommendations: PriceRecommendationMap,
+  currentPricesBySku?: Record<string, Record<string, number>>,
 ): PricePerPlatformConfig {
   const newConfig: PricePerPlatformConfig = {};
 
   for (const [sku, skuConfig] of Object.entries(config)) {
-    const recommendation = recommendations[sku];
+    const rec = recommendations[sku];
+    const current = currentPricesBySku?.[sku];
 
-    if (!recommendation || (recommendation.shopee === 0 && recommendation.tiktok === 0 && recommendation.lazada === 0 && recommendation.base_price === 0)) {
-      // Skip if no recommendation or all prices are 0 (SKU not found in inventory)
+    // No recommendation at all — keep existing
+    if (!rec) {
       newConfig[sku] = skuConfig;
       continue;
     }
 
-    // Fill each platform's price independently from its recommendation
+    // All inventory prices are 0 AND base_price is 0 — SKU not in inventory
+    // Fall back to current marketplace prices if available
+    const allZero = rec.shopee === 0 && rec.tiktok === 0 && rec.lazada === 0 && rec.base_price === 0;
+
+    const resolvePrice = (platform: "shopee" | "tiktok" | "lazada"): number => {
+      // 1. Inventory platform-specific price
+      if (rec[platform] > 0) return rec[platform];
+      // 2. Inventory base price
+      if (rec.base_price > 0) return rec.base_price;
+      // 3. Current marketplace price
+      if (current?.[platform] && current[platform] > 0) return current[platform];
+      // 4. Keep existing
+      return skuConfig.prices[platform];
+    };
+
+    if (allZero && !current) {
+      // No inventory data AND no marketplace data — keep existing
+      newConfig[sku] = skuConfig;
+      continue;
+    }
+
     newConfig[sku] = {
       ...skuConfig,
       prices: {
-        shopee: recommendation.shopee || recommendation.base_price,
-        tiktok: recommendation.tiktok || recommendation.base_price,
-        lazada: recommendation.lazada || recommendation.base_price,
+        shopee: resolvePrice("shopee"),
+        tiktok: resolvePrice("tiktok"),
+        lazada: resolvePrice("lazada"),
       },
     };
   }
