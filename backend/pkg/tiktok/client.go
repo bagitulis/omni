@@ -173,6 +173,9 @@ func (c *Client) doRequest(method, apiPath string, params map[string]string, res
 
 		log.Debug().Str("method", method).Str("api_path", apiPath).Str("request_id", baseResp.RequestID).Msg("TikTok API request successful")
 		return nil
+	}
+
+	return fmt.Errorf("TikTok API failed after %d retries: %w", maxRetries, lastErr)
 }
 
 // doRequestWithBody executes HTTP request with JSON body and retry logic
@@ -261,6 +264,9 @@ func (c *Client) doRequestWithBody(method, apiPath string, params map[string]str
 
 		log.Debug().Str("method", method).Str("api_path", apiPath).Str("request_id", baseResp.RequestID).Msg("TikTok API request successful")
 		return nil
+	}
+
+	return fmt.Errorf("TikTok API failed after %d retries: %w", maxRetries, lastErr)
 }
 
 // DoGet executes a GET request
