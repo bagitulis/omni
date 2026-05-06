@@ -78,21 +78,25 @@ class DockerInfraFixer:
     
     @staticmethod
     def repair_wsl_mount_cache() -> bool:
-        """Repair WSL2 mount cache corruption."""
-        subprocess.run(["wsl", "--shutdown"], capture_output=True, check=False)
-        time.sleep(10)
+        """Repair WSL2 mount cache corruption (Windows only, no-op on Linux)."""
+        if IS_WINDOWS:
+            subprocess.run(["wsl", "--shutdown"], capture_output=True, check=False)
+            time.sleep(10)
         return DockerInfraFixer.repair_docker_engine()
     
     @staticmethod
     def repair_wsl_kernel() -> bool:
-        """Repair WSL2 kernel issues."""
-        subprocess.run(["wsl", "--update"], capture_output=True, check=False)
+        """Repair WSL2 kernel issues (Windows only, no-op on Linux)."""
+        if IS_WINDOWS:
+            subprocess.run(["wsl", "--update"], capture_output=True, check=False)
         time.sleep(5)
         return SystemFixer.restart_wsl()
     
     @staticmethod
     def repair_hyperv() -> bool:
-        """Repair Hyper-V services."""
+        """Repair Hyper-V services (Windows only, no-op on Linux)."""
+        if not IS_WINDOWS:
+            return DockerInfraFixer.repair_docker_engine()
         subprocess.run(["net", "stop", "vmcompute"], capture_output=True, check=False)
         time.sleep(2)
         subprocess.run(["net", "start", "vmcompute"], capture_output=True, check=False)
@@ -333,9 +337,15 @@ class NetworkFixer:
     
     @staticmethod
     def reset_network_stack() -> None:
-        """Reset network stack."""
-        subprocess.run(["netsh", "winsock", "reset"], capture_output=True, check=False)
-        subprocess.run(["netsh", "int", "ip", "reset"], capture_output=True, check=False)
+        """Reset network stack. Cross-platform."""
+        import platform
+        if platform.system() == "Windows":
+            subprocess.run(["netsh", "winsock", "reset"], capture_output=True, check=False)
+            subprocess.run(["netsh", "int", "ip", "reset"], capture_output=True, check=False)
+        else:
+            # Linux: restart Docker's network
+            subprocess.run(["docker", "network", "prune", "-f"], capture_output=True, check=False)
+            subprocess.run(["sudo", "systemctl", "restart", "docker"], capture_output=True, check=False)
 
 
 class ResourceFixer:
@@ -373,14 +383,27 @@ class SystemFixer:
     
     @staticmethod
     def flush_dns() -> None:
-        """Flush DNS cache."""
-        subprocess.run(["ipconfig", "/flushdns"], capture_output=True, check=False)
+        """Flush DNS cache. Cross-platform."""
+        import platform
+        if platform.system() == "Windows":
+            subprocess.run(["ipconfig", "/flushdns"], capture_output=True, check=False)
+        elif platform.system() == "Darwin":
+            subprocess.run(["sudo", "dscacheutil", "-flushcache"], capture_output=True, check=False)
+        else:
+            # Linux
+            subprocess.run(["sudo", "systemd-resolve", "--flush-caches"], capture_output=True, check=False)
     
     @staticmethod
     def restart_wsl() -> bool:
-        """Restart WSL."""
-        subprocess.run(["wsl", "--shutdown"], capture_output=True, check=False)
-        time.sleep(10)
+        """Restart WSL (Windows only, no-op on Linux)."""
+        import platform
+        if platform.system() == "Windows":
+            subprocess.run(["wsl", "--shutdown"], capture_output=True, check=False)
+            time.sleep(10)
+        else:
+            # Linux: restart docker daemon instead
+            subprocess.run(["sudo", "systemctl", "restart", "docker"], capture_output=True, check=False)
+            time.sleep(5)
         return True
     
     @staticmethod
