@@ -154,7 +154,7 @@ func (c *Client) doRequest(method, apiPath string, params map[string]string, res
 
 		// Retry on 429 (rate limit) or 5xx (server error)
 		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
-			log.Warn().Str("method", method).Str("api_path", apiPath).Int("status_code", resp.StatusCode).Msg("TikTok API rate limit or server error, retrying")
+			log.Warn().Str("method", method).Str("api_path", apiPath).Int("status_code", resp.StatusCode).Str("raw_body", truncateString(string(body), 2000)).Msg("TikTok API rate limit or server error, retrying")
 			lastErr = fmt.Errorf("TikTok API error: status %d", resp.StatusCode)
 			continue
 		}
@@ -245,7 +245,7 @@ func (c *Client) doRequestWithBody(method, apiPath string, params map[string]str
 
 		// Retry on 429 (rate limit) or 5xx (server error)
 		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
-			log.Warn().Str("method", method).Str("api_path", apiPath).Int("status_code", resp.StatusCode).Msg("TikTok API rate limit or server error, retrying")
+			log.Warn().Str("method", method).Str("api_path", apiPath).Int("status_code", resp.StatusCode).Str("raw_body", truncateString(string(respBody), 2000)).Msg("TikTok API rate limit or server error, retrying")
 			lastErr = fmt.Errorf("TikTok API error: status %d", resp.StatusCode)
 			continue
 		}
