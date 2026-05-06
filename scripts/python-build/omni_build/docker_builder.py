@@ -61,7 +61,8 @@ class DockerBuilder:
         compose_files = self.config.get_compose_files(spec)
         log_info(f"Building images (spec: {spec.value}, no-cache: {no_cache})...")
         
-        cmd = ["docker-compose"]
+        from omni_build.subprocess_utils import get_compose_command
+        cmd = get_compose_command()
         for file in compose_files:
             cmd.extend(["-f", file])
         cmd.append("build")

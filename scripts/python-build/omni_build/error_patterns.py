@@ -68,6 +68,13 @@ def get_docker_infrastructure_patterns() -> list[ErrorPattern]:
             fix_function="switch_docker_to_linux",
         ),
         ErrorPattern(
+            name="DockerCredentialError",
+            pattern=r"error getting credentials|no usernames for|credsStore.*desktop|credential.*helper",
+            description="Docker credential helper misconfigured (common after OS migration)",
+            severity=ErrorSeverity.HIGH,
+            fix_function="repair_docker_credentials",
+        ),
+        ErrorPattern(
             name="BuildKitError",
             pattern=r"buildkit|builder.*error|failed to solve",
             description="BuildKit cache or build issue",

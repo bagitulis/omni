@@ -119,3 +119,32 @@ def run_silent(
         check=False,
         **kwargs,
     )
+
+
+def get_compose_command() -> list[str]:
+    """
+    Get the correct docker compose command for this system.
+    
+    Returns:
+        ["docker-compose"] if standalone is available,
+        ["docker", "compose"] if only plugin is available.
+    
+    Cross-platform: works on Windows, Linux, Mac.
+    """
+    import shutil
+    
+    # Prefer standalone docker-compose (backward compat)
+    if shutil.which("docker-compose"):
+        return ["docker-compose"]
+    
+    # Try docker compose plugin
+    result = subprocess.run(
+        ["docker", "compose", "version"],
+        capture_output=True, text=True, timeout=10,
+    )
+    if result.returncode == 0:
+        return ["docker", "compose"]
+    
+    # Fallback (will fail with clear error)
+    return ["docker-compose"]
+

@@ -3,14 +3,83 @@ Frontend Builder module for Omni Build System.
 
 SRP: This module ONLY handles frontend build operations (npm install, build).
 No Docker operations, no health checks.
+
+Cross-platform: Works on Windows (cmd/powershell) and Linux/Mac (bash/zsh).
+Auto-detects npm/node location even when not in PATH.
 """
 import hashlib
+import os
+import shutil
 import subprocess
 import time
 from pathlib import Path
 
 from omni_build.config import Config
 from omni_build.logger import log_error, log_info, log_success, log_warning
+
+
+def _find_npm() -> str:
+    """
+    Find npm executable path. Cross-platform.
+    Returns the npm command string (may be full path if not in PATH).
+    """
+    # Check PATH first
+    npm_name = "npm.cmd" if os.name == "nt" else "npm"
+    found = shutil.which(npm_name)
+    if found:
+        return found
+
+    # Also try plain "npm" on Windows (git bash, WSL)
+    if os.name == "nt":
+        found = shutil.which("npm")
+        if found:
+            return found
+
+    # Search common locations
+    home = Path.home()
+    candidates = []
+
+    if os.name == "nt":
+        appdata = os.environ.get("APPDATA", "")
+        programfiles = os.environ.get("ProgramFiles", r"C:\Program Files")
+        candidates = [
+            Path(appdata) / "npm" / "npm.cmd",
+            Path(programfiles) / "nodejs" / "npm.cmd",
+        ]
+        # nvm-windows
+        nvm_root = Path(appdata) / "nvm"
+        if nvm_root.exists():
+            versions = sorted(nvm_root.glob("v*"), reverse=True)
+            for v in versions:
+                candidates.append(v / "npm.cmd")
+    else:
+        candidates = [
+            home / ".local" / "bin" / "npm",
+            Path("/usr/local/bin/npm"),
+            Path("/usr/bin/npm"),
+        ]
+        # nvm
+        nvm_dir = home / ".nvm" / "versions" / "node"
+        if nvm_dir.exists():
+            versions = sorted(nvm_dir.glob("v*"), reverse=True)
+            for v in versions:
+                candidates.append(v / "bin" / "npm")
+        # volta
+        volta_bin = home / ".volta" / "bin" / "npm"
+        candidates.append(volta_bin)
+        # fnm
+        fnm_dir = home / ".fnm" / "node-versions"
+        if fnm_dir.exists():
+            versions = sorted(fnm_dir.glob("v*"), reverse=True)
+            for v in versions:
+                candidates.append(v / "installation" / "bin" / "npm")
+
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+
+    # Not found anywhere
+    return "npm"  # Fall back, will fail with clear error
 
 
 class FrontendBuilder:
@@ -22,6 +91,7 @@ class FrontendBuilder:
     - Install npm dependencies
     - Build frontend (npm run build)
     - Retry on failure
+    - Auto-detect npm/node (cross-platform)
     """
     
     def __init__(self, config: Config) -> None:
@@ -37,6 +107,21 @@ class FrontendBuilder:
         self.package_lock = self.frontend_dir / "package-lock.json"
         self.node_modules = self.frontend_dir / "node_modules"
         self.hash_file = self.frontend_dir / ".build_cache" / "package-lock.hash"
+        self._npm_path = _find_npm()
+        self._env = self._build_env()
+    
+    def _build_env(self) -> dict:
+        """
+        Build environment dict for subprocess calls.
+        Ensures npm/node parent directory is in PATH.
+        """
+        env = os.environ.copy()
+        npm_dir = str(Path(self._npm_path).parent)
+        path_sep = ";" if os.name == "nt" else ":"
+        current_path = env.get("PATH", "")
+        if npm_dir not in current_path:
+            env["PATH"] = npm_dir + path_sep + current_path
+        return env
     
     def _get_file_hash(self, path: Path) -> str:
         """
@@ -129,19 +214,24 @@ class FrontendBuilder:
         max_retries = self.config.frontend_config.max_retries
         install_cmd = self.config.frontend_config.install_command
         
+        # Replace bare "npm" with resolved path
+        resolved_cmd = install_cmd.replace("npm ", f"{self._npm_path} ", 1)
+        
         log_info(f"Installing dependencies: {install_cmd}")
+        log_info(f"Using npm: {self._npm_path}")
         
         for attempt in range(1, max_retries + 1):
             log_info(f"Install attempt {attempt}/{max_retries}...")
             
             try:
                 result = subprocess.run(
-                    install_cmd,
+                    resolved_cmd,
                     shell=True,  # Required for npm on Windows
                     cwd=str(self.frontend_dir),
                     capture_output=True,
                     text=True,
                     timeout=self.config.npm_install_timeout,  # Use config timeout (10 min)
+                    env=self._env,
                 )
                 
                 if result.returncode == 0:
@@ -213,6 +303,9 @@ class FrontendBuilder:
         max_retries = self.config.frontend_config.max_retries
         build_cmd = self.config.frontend_config.build_command
         
+        # Replace bare "npm" with resolved path
+        resolved_build_cmd = build_cmd.replace("npm ", f"{self._npm_path} ", 1)
+        
         log_info(f"Building frontend: {build_cmd}")
         
         for attempt in range(1, max_retries + 1):
@@ -220,12 +313,13 @@ class FrontendBuilder:
             
             try:
                 result = subprocess.run(
-                    build_cmd,
+                    resolved_build_cmd,
                     shell=True,  # Required for npm on Windows
                     cwd=str(self.frontend_dir),
                     capture_output=True,
                     text=True,
                     timeout=self.config.npm_install_timeout,  # Use config timeout
+                    env=self._env,
                 )
                 
                 if result.returncode == 0:
@@ -308,11 +402,12 @@ class FrontendBuilder:
         log_info("Cleaning npm cache...")
         try:
             subprocess.run(
-                "npm cache clean --force",
+                f"{self._npm_path} cache clean --force",
                 shell=True,  # Required for npm on Windows
                 cwd=str(self.frontend_dir),
                 capture_output=True,
                 timeout=60,
+                env=self._env,
             )
             log_success("NPM cache cleaned")
         except Exception as e:

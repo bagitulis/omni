@@ -41,7 +41,8 @@ class DockerDeployer:
         compose_files = self.config.get_compose_files(spec)
         log_info(f"Deploying containers (spec: {spec.value})...")
         
-        cmd = ["docker-compose"]
+        from omni_build.subprocess_utils import get_compose_command
+        cmd = get_compose_command()
         for file in compose_files:
             cmd.extend(["-f", file])
         cmd.extend(["up", "-d", "--remove-orphans"])
@@ -275,7 +276,7 @@ class DockerDeployer:
             compose_files = self.config.get_compose_files(spec)
             log_info("Restarting nginx to refresh DNS cache...")
             
-            cmd = ["docker-compose"]
+            cmd = get_compose_command()
             for file in compose_files:
                 cmd.extend(["-f", file])
             cmd.extend(["restart", "nginx"])

@@ -194,10 +194,14 @@ class PostgresHealthChecker:
     def _start_with_compose(self) -> bool:
         """Start PostgreSQL using docker-compose."""
         try:
+            from omni_build.subprocess_utils import get_compose_command
+            cmd = get_compose_command() + [
+                "-f", "docker-compose.tunnel.yml",
+                "-f", "docker-compose.tunnel.standard.yml",
+                "up", "-d", "postgres",
+            ]
             result = subprocess.run(
-                ["docker-compose", "-f", "docker-compose.tunnel.yml", 
-                 "-f", "docker-compose.tunnel.standard.yml",
-                 "up", "-d", "postgres"],
+                cmd,
                 capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=60,
             )
             return result.returncode == 0

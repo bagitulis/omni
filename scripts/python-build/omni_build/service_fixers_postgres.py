@@ -9,6 +9,7 @@ from pathlib import Path
 
 from omni_build.db_config import DatabaseConfig
 from omni_build.logger import log_error, log_fix, log_info, log_success, log_warning
+from omni_build.subprocess_utils import get_compose_command
 
 
 def _restart_container(container_name: str, timeout: int = 60) -> bool:
@@ -100,7 +101,7 @@ class PostgresFixer:
             if result.returncode != 0 or result.stdout.strip() != "running":
                 log_info("PostgreSQL container not running, starting it...")
                 subprocess.run(
-                    ["docker-compose", "-f", "docker-compose.tunnel.yml",
+                    get_compose_command() + ["-f", "docker-compose.tunnel.yml",
                      "-f", "docker-compose.tunnel.standard.yml", "up", "-d", "postgres"],
                     capture_output=True,
                     check=False,
@@ -240,7 +241,7 @@ class PostgresFixer:
         try:
             log_info("Stopping all containers...")
             subprocess.run(
-                ["docker-compose", "-f", "docker-compose.tunnel.yml",
+                get_compose_command() + ["-f", "docker-compose.tunnel.yml",
                  "-f", "docker-compose.tunnel.standard.yml", "down"],
                 capture_output=True,
                 check=False,
@@ -264,7 +265,7 @@ class PostgresFixer:
             
             log_info("Starting fresh PostgreSQL container...")
             subprocess.run(
-                ["docker-compose", "-f", "docker-compose.tunnel.yml",
+                get_compose_command() + ["-f", "docker-compose.tunnel.yml",
                  "-f", "docker-compose.tunnel.standard.yml", "up", "-d", "postgres"],
                 capture_output=True,
                 check=False,

@@ -24,12 +24,140 @@ Quick Fix vs Smart Build:
 """
 import sys
 import os
+import subprocess
 from pathlib import Path
 
 # Add python-build to path
 project_root = Path(__file__).parent
 python_build_dir = project_root / "scripts" / "python-build"
 sys.path.insert(0, str(python_build_dir))
+
+# ----- Auto-bootstrap venv ----------------------------------------------------
+def _ensure_venv():
+    """Auto-create venv and install deps if not already running inside one."""
+    venv_dir = project_root / ".venv"
+    if os.name == "nt":
+        venv_python = venv_dir / "Scripts" / "python.exe"
+    else:
+        venv_python = venv_dir / "bin" / "python"
+
+    # Already running inside the venv? Nothing to do.
+    if sys.prefix != sys.base_prefix:
+        return
+
+    requirements = python_build_dir / "requirements.txt"
+
+    # Create venv if missing
+    if not venv_python.exists():
+        print("[AUTO] Creating virtual environment (.venv)...")
+        subprocess.check_call([sys.executable, "-m", "venv", str(venv_dir)])
+        print("[OK] Virtual environment created.")
+
+    # Check if deps already installed (marker file to skip slow pip check)
+    marker = venv_dir / ".deps_installed"
+    req_hash = ""
+    if requirements.exists():
+        import hashlib
+        req_hash = hashlib.md5(requirements.read_bytes()).hexdigest()
+
+    needs_install = True
+    if marker.exists():
+        try:
+            if marker.read_text().strip() == req_hash:
+                needs_install = False
+        except Exception:
+            pass
+
+    if needs_install:
+        print("[AUTO] Installing dependencies...")
+        pip_cmd = [str(venv_python), "-m", "pip", "install", "-q", "--disable-pip-version-check", "-r", str(requirements)]
+        subprocess.check_call(pip_cmd)
+        marker.write_text(req_hash)
+        print("[OK] Dependencies installed.")
+
+    # Re-exec this script with the venv python, preserving PATH
+    print("[AUTO] Re-launching with venv python...")
+    print()
+    os.execv(str(venv_python), [str(venv_python), __file__] + sys.argv[1:])
+
+
+def _ensure_path():
+    """
+    Ensure npm/node are discoverable in PATH.
+    Cross-platform: handles Windows (nvm, default install) and Linux (~/.local/bin, nvm, fnm, volta).
+    """
+    # Quick check: npm already in PATH?
+    npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
+    import shutil
+    if shutil.which(npm_cmd):
+        return  # Already good
+
+    # Common locations to search
+    home = Path.home()
+    candidates = []
+
+    if os.name == "nt":
+        # Windows: nvm, default nodejs, AppData/Roaming/npm
+        appdata = os.environ.get("APPDATA", "")
+        localappdata = os.environ.get("LOCALAPPDATA", "")
+        programfiles = os.environ.get("ProgramFiles", r"C:\Program Files")
+
+        candidates = [
+            Path(appdata) / "npm",
+            Path(appdata) / "nvm" / "current",
+            Path(programfiles) / "nodejs",
+            Path(localappdata) / "fnm_multishells",
+            home / ".volta" / "bin",
+        ]
+        # nvm-windows: find latest version
+        nvm_root = Path(appdata) / "nvm"
+        if nvm_root.exists():
+            versions = sorted(nvm_root.glob("v*"), reverse=True)
+            candidates.extend(versions)
+    else:
+        # Linux/Mac: ~/.local/bin, nvm, fnm, volta, system
+        candidates = [
+            home / ".local" / "bin",
+            home / ".nvm" / "current" / "bin",
+            home / ".volta" / "bin",
+            home / ".fnm" / "current" / "bin",
+            Path("/usr/local/bin"),
+        ]
+        # nvm: find default version
+        nvm_dir = home / ".nvm" / "versions" / "node"
+        if nvm_dir.exists():
+            versions = sorted(nvm_dir.glob("v*"), reverse=True)
+            for v in versions:
+                candidates.append(v / "bin")
+
+    # Add found paths to PATH
+    path_sep = ";" if os.name == "nt" else ":"
+    current_path = os.environ.get("PATH", "")
+    added = []
+
+    for candidate in candidates:
+        if not candidate.exists():
+            continue
+        candidate_str = str(candidate)
+        if candidate_str in current_path:
+            continue
+        # Check if npm exists here
+        npm_check = candidate / ("npm.cmd" if os.name == "nt" else "npm")
+        node_check = candidate / ("node.exe" if os.name == "nt" else "node")
+        if npm_check.exists() or node_check.exists():
+            added.append(candidate_str)
+
+    if added:
+        os.environ["PATH"] = path_sep.join(added) + path_sep + current_path
+        print(f"[AUTO] Added to PATH: {', '.join(added)}")
+    else:
+        # Last resort: check if node_modules/.bin has npx
+        print("[WARN] npm not found in PATH. Frontend build may fail.")
+        print("       Install Node.js: https://nodejs.org/ or use nvm/fnm/volta")
+
+
+_ensure_venv()
+_ensure_path()
 
 # ----- Interactive menu helper ------------------------------------------------
 def interactive_menu():

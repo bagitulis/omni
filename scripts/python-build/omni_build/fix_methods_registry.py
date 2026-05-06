@@ -38,6 +38,7 @@ def get_fix_methods() -> dict:
         "repair_hyperv": DockerInfraFixer.repair_hyperv,
         "switch_docker_to_linux": DockerInfraFixer.repair_docker_engine,
         "repair_buildkit": DockerInfraFixer.repair_buildkit,
+        "repair_docker_credentials": DockerInfraFixer.repair_docker_credentials,
         "repair_container_name_conflict": DockerInfraFixer.repair_container_name_conflict,
         "repair_dependency_failure": DockerInfraFixer.repair_dependency_failure,
         

@@ -185,7 +185,8 @@ class DockerManager:
         compose_files = self.config.get_compose_files(spec)
         log_info("Stopping containers...")
         
-        cmd = ["docker-compose"]
+        from omni_build.subprocess_utils import get_compose_command
+        cmd = get_compose_command()
         for file in compose_files:
             cmd.extend(["-f", file])
         cmd.extend(["down", "--remove-orphans"])
@@ -216,7 +217,8 @@ class DockerManager:
         compose_files = self.config.get_compose_files(spec)
         log_info("Restarting containers...")
         
-        cmd = ["docker-compose"]
+        from omni_build.subprocess_utils import get_compose_command
+        cmd = get_compose_command()
         for file in compose_files:
             cmd.extend(["-f", file])
         cmd.append("restart")

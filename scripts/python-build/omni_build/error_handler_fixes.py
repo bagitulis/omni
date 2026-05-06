@@ -106,6 +106,81 @@ class DockerInfraFixer:
         return True
     
     @staticmethod
+    def repair_docker_credentials() -> bool:
+        """
+        Fix Docker credential helper misconfiguration.
+        
+        Common after migrating from Windows (Docker Desktop) to Linux.
+        The 'credsStore: desktop' entry references a helper that doesn't exist on Linux.
+        """
+        import json
+        from pathlib import Path
+        
+        docker_config = Path.home() / ".docker" / "config.json"
+        
+        if not docker_config.exists():
+            docker_config.parent.mkdir(parents=True, exist_ok=True)
+            docker_config.write_text(json.dumps({"auths": {}}, indent=2))
+            log_info("Created fresh ~/.docker/config.json")
+            return True
+        
+        try:
+            config = json.loads(docker_config.read_text())
+            changed = False
+            
+            # Remove credsStore if it points to a non-existent helper
+            if "credsStore" in config:
+                creds_store = config["credsStore"]
+                helper_name = f"docker-credential-{creds_store}"
+                import shutil
+                if not shutil.which(helper_name):
+                    log_info(f"Removing invalid credsStore '{creds_store}' (helper not found)")
+                    del config["credsStore"]
+                    changed = True
+            
+            # Remove credHelpers entries that point to non-existent helpers
+            if "credHelpers" in config:
+                invalid = []
+                for registry, helper in config["credHelpers"].items():
+                    import shutil
+                    if not shutil.which(f"docker-credential-{helper}"):
+                        invalid.append(registry)
+                for reg in invalid:
+                    del config["credHelpers"][reg]
+                    changed = True
+                if not config["credHelpers"]:
+                    del config["credHelpers"]
+                    changed = True
+            
+            # Clean up empty auths entries
+            if "auths" in config:
+                empty_auths = [k for k, v in config["auths"].items() if not v]
+                for k in empty_auths:
+                    del config["auths"][k]
+                    changed = True
+            
+            # Fix currentContext if it references desktop-linux
+            if config.get("currentContext") == "desktop-linux":
+                config["currentContext"] = "default"
+                changed = True
+            
+            if changed:
+                docker_config.write_text(json.dumps(config, indent=2))
+                log_success("Fixed ~/.docker/config.json")
+            else:
+                log_info("Docker config looks OK, clearing builder cache...")
+                subprocess.run(["docker", "builder", "prune", "-af"],
+                              capture_output=True, check=False)
+            
+            return True
+        except Exception as e:
+            log_error(f"Failed to fix docker config: {e}")
+            # Nuclear option: reset config
+            docker_config.write_text(json.dumps({"auths": {}}, indent=2))
+            log_info("Reset ~/.docker/config.json to defaults")
+            return True
+    
+    @staticmethod
     def repair_container_name_conflict() -> bool:
         """Remove conflicting containers."""
         subprocess.run(["docker", "container", "prune", "-f"], 
@@ -149,15 +224,18 @@ class DockerInfraFixer:
         
         time.sleep(3)
         
+        from omni_build.subprocess_utils import get_compose_command
+        compose = get_compose_command()
+        
         subprocess.run(
-            ["docker-compose", "-f", "docker-compose.tunnel.yml",
+            compose + ["-f", "docker-compose.tunnel.yml",
              "-f", "docker-compose.tunnel.standard.yml", "up", "-d", "postgres"],
             capture_output=True, check=False)
         
         time.sleep(30)
         
         subprocess.run(
-            ["docker-compose", "-f", "docker-compose.tunnel.yml",
+            compose + ["-f", "docker-compose.tunnel.yml",
              "-f", "docker-compose.tunnel.standard.yml", "up", "-d", "redis"],
             capture_output=True, check=False)
         
