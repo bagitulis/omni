@@ -192,6 +192,11 @@ class DockerInfraFixer:
         """Repair dependency service failures by diagnosing and fixing specific issues."""
         log_info("Diagnosing dependency failure...")
         
+        # Check postgres container directly first (most common root cause)
+        postgres_error = DockerInfraFixer._diagnose_postgres_container()
+        if postgres_error:
+            return postgres_error
+        
         # Check backend logs for specific errors
         specific_error = DockerInfraFixer._diagnose_backend_error()
         
@@ -242,6 +247,34 @@ class DockerInfraFixer:
         time.sleep(10)
         log_success("Dependency services repaired")
         return True
+    
+    @staticmethod
+    def _diagnose_postgres_container() -> bool:
+        """Check postgres container logs for root cause. Returns True if fix applied."""
+        try:
+            result = subprocess.run(
+                ["docker", "logs", "omni-postgres", "--tail", "10"],
+                capture_output=True, text=True, encoding='utf-8',
+                errors='replace', timeout=10,
+            )
+            logs = result.stdout + "\n" + result.stderr
+            
+            # Check for ownership error (NTFS filesystem)
+            if "wrong ownership" in logs or "must be started by the user that owns" in logs:
+                log_info("Detected: PostgreSQL ownership error (NTFS filesystem)")
+                from omni_build.service_fixers_postgres import PostgresFixer
+                return PostgresFixer.repair_postgres_ownership()
+            
+            # Check for data corruption
+            if "could not open" in logs and "pg_" in logs:
+                log_info("Detected: PostgreSQL data corruption")
+                from omni_build.service_fixers_postgres import PostgresFixer
+                return PostgresFixer.repair_postgres_data()
+            
+        except Exception:
+            pass
+        
+        return False
     
     @staticmethod
     def _diagnose_backend_error() -> str | None:
