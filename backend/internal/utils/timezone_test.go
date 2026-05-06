@@ -28,6 +28,15 @@ func TestNowWIB(t *testing.T) {
 	}
 }
 
+func TestToWIB(t *testing.T) {
+	utcTime := time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC)
+	wibTime := ToWIB(utcTime)
+
+	// UTC 10:00 should be WIB 17:00
+	if wibTime.Hour() != 17 {
+		t.Errorf("ToWIB hour = %d, want 17", wibTime.Hour())
+	}
+}
 
 func TestConstants(t *testing.T) {
 	if ISO8601Format != "2006-01-02T15:04:05.000Z" {

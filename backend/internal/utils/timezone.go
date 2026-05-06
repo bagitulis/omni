@@ -40,3 +40,8 @@ func NowWIB() time.Time {
 	return time.Now().In(WIB)
 }
 
+// ToWIB converts any time to WIB timezone
+func ToWIB(t time.Time) time.Time {
+	return t.In(WIB)
+}
+
