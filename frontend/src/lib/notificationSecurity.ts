@@ -35,8 +35,8 @@ export function sanitizeForUser(raw: string | undefined | null): string {
   }
 
   // Truncate overly long messages
-  if (raw.length > 200) {
-    return raw.substring(0, 197) + "...";
+  if (raw.length > 500) {
+    return `${raw.substring(0, 497)}...`;
   }
 
   return raw;

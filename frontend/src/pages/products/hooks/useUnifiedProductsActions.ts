@@ -78,6 +78,7 @@ export function useUnifiedProductsActions({
   } = useUnifiedProductsModals();
 
   const [batchLoading, setBatchLoading] = useState<Partial<Record<BatchActionType, boolean>>>({});
+  const [syncLoading, setSyncLoading] = useState(false);
 
   const handleDeleteProduct = useCallback(
     async (productId: number | string) => {
@@ -100,6 +101,9 @@ export function useUnifiedProductsActions({
         platforms: Platform[];
       }>,
     ) => {
+      if (syncLoading) return;
+      setSyncLoading(true);
+
       try {
         const result = await updatePriceBatch(
           items.map((item) => ({
@@ -127,9 +131,11 @@ export function useUnifiedProductsActions({
         await refreshProducts();
       } catch (error) {
         message.error(getErrorMessage(error));
+      } finally {
+        setSyncLoading(false);
       }
     },
-    [refreshProducts],
+    [refreshProducts, syncLoading, setSyncLoading],
   );
 
   // New handler for MarketplaceSyncModal per-platform price sync
@@ -141,6 +147,9 @@ export function useUnifiedProductsActions({
         platforms: Platform[];
       }>,
     ) => {
+      if (syncLoading) return;
+      setSyncLoading(true);
+
       // Transform per-platform prices into individual items per platform
       // Backend already supports single-platform items with different prices
       const flatItems = items.flatMap((item) =>
@@ -172,9 +181,11 @@ export function useUnifiedProductsActions({
         await refreshProducts();
       } catch (error) {
         message.error(getErrorMessage(error));
+      } finally {
+        setSyncLoading(false);
       }
     },
-    [refreshProducts],
+    [refreshProducts, syncLoading, setSyncLoading],
   );
 
   const handleStockSync = useCallback(
@@ -185,6 +196,9 @@ export function useUnifiedProductsActions({
         platforms: Platform[];
       }>,
     ) => {
+      if (syncLoading) return;
+      setSyncLoading(true);
+
       try {
         const result = await updateStockBatch(
           items.map((item) => ({
@@ -212,9 +226,11 @@ export function useUnifiedProductsActions({
         await refreshProducts();
       } catch (error) {
         message.error(getErrorMessage(error));
+      } finally {
+        setSyncLoading(false);
       }
     },
-    [refreshProducts],
+    [refreshProducts, syncLoading, setSyncLoading],
   );
 
   const handleOpenSkuMapping = useCallback(
@@ -372,6 +388,7 @@ export function useUnifiedProductsActions({
     setSkuMappingProduct,
     skuMappingLoading,
     batchLoading,
+    syncLoading,
     marketplaceSyncOpen,
     setMarketplaceSyncOpen,
     marketplaceSyncProducts,

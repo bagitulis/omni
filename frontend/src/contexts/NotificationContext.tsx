@@ -24,6 +24,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const { notification } = App.useApp();
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const MAX_RECONNECT_ATTEMPTS = 10;
 
   const fetchUnreadCount = useCallback(async () => {
@@ -139,6 +140,12 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const attempts = reconnectAttemptsRef.current;
       if (attempts >= MAX_RECONNECT_ATTEMPTS) {
         console.warn('SSE: max reconnection attempts reached, falling back to polling');
+        // Start polling fallback
+        const pollInterval = setInterval(() => {
+          fetchNotifications();
+          fetchUnreadCount();
+        }, 60000); // Every 60 seconds
+        pollIntervalRef.current = pollInterval;
         return;
       }
       // Exponential backoff: 5s, 10s, 20s, 40s, ... max 60s
@@ -156,12 +163,32 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       fetchUnreadCount();
       fetchNotifications();
       setupSSE();
+
+      // Periodic refresh every 5 minutes
+      const periodicRefresh = setInterval(() => {
+        fetchUnreadCount();
+      }, 5 * 60 * 1000);
+
+      // Refresh on tab focus
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          fetchUnreadCount();
+          fetchNotifications();
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
+        }
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+        }
+        clearInterval(periodicRefresh);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     }
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-    };
   }, [tenantId, fetchUnreadCount, fetchNotifications, setupSSE]);
 
   return (
