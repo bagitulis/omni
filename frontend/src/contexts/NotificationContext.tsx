@@ -24,7 +24,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const { notification } = App.useApp();
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectAttemptsRef = useRef(0);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const MAX_RECONNECT_ATTEMPTS = 10;
 
   const fetchUnreadCount = useCallback(async () => {
