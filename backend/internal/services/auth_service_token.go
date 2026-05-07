@@ -7,6 +7,7 @@ import (
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/utils"
+	"github.com/rs/zerolog/log"
 )
 
 // RefreshToken refreshes access token using the old method (backward compatibility)
@@ -121,10 +122,11 @@ func (s *AuthService) GenerateTokenForSwitch(userID, tenantID, role string) (str
 // Returns: accessToken, refreshToken, actualUserID, error
 func (s *AuthService) GenerateDevToken(ctx context.Context, userID, username, email, tenantID, role string) (string, string, string, error) {
 	// Ensure dev user exists in DB so refresh token works
-	// This returns the actual user ID (found or created)
+	// Graceful: if DB is broken, still generate token with provided userID
 	actualUserID, err := s.ensureDevUserExists(ctx, userID, username, email, role)
 	if err != nil {
-		return "", "", "", err
+		log.Warn().Err(err).Msg("Dev login: ensureDevUserExists failed, using provided userID")
+		actualUserID = userID
 	}
 
 	// Generate access token using the ACTUAL user ID
@@ -133,12 +135,14 @@ func (s *AuthService) GenerateDevToken(ctx context.Context, userID, username, em
 		return "", "", "", err
 	}
 
-	// Generate refresh token and session
+	// Generate refresh token and session (graceful degradation: if this fails, still return access token)
 	var refreshToken string
 	if s.refreshSessionRepo != nil {
 		refreshToken, err = s.jwtService.GenerateRefreshToken()
 		if err != nil {
-			return "", "", "", err
+			// Refresh token generation failed — continue with access token only
+			log.Warn().Err(err).Msg("Dev login: refresh token generation failed, continuing with access token only")
+			return accessToken, "", actualUserID, nil
 		}
 
 		// Create refresh session in database using ACTUAL user ID
@@ -151,7 +155,9 @@ func (s *AuthService) GenerateDevToken(ctx context.Context, userID, username, em
 			UserAgent: "DevLogin",
 		}
 		if err := s.refreshSessionRepo.Create(ctx, session); err != nil {
-			return "", "", "", err
+			// Refresh session storage failed — continue with access token only
+			log.Warn().Err(err).Msg("Dev login: refresh session creation failed, continuing with access token only")
+			return accessToken, "", actualUserID, nil
 		}
 	}
 

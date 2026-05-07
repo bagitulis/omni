@@ -38,6 +38,11 @@ func MigrateSystemDatabase(db *gorm.DB) error {
 		log.Info().Msgf("  ✅ Migrated: %T", model)
 	}
 
+	// Clean zombie columns (columns in DB but not in models)
+	if GetDatabaseDriver() == DriverPostgres {
+		CleanZombieColumns(db, systemModels)
+	}
+
 	log.Info().Msg("System database migrations completed")
 	return nil
 }
@@ -183,6 +188,11 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		} else {
 			log.Info().Msg("  ✅ Ensured idx_platform_links_unique index")
 		}
+	}
+
+	// Clean zombie columns (columns in DB but not in models)
+	if GetDatabaseDriver() == DriverPostgres {
+		CleanZombieColumns(db, tenantModels)
 	}
 
 	log.Info().Msgf("✅ Tenant database migrations completed for: %s", tenantID)

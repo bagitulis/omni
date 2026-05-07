@@ -93,23 +93,18 @@ const LoginPage: React.FC = () => {
         if (auto) {
           const errMsg =
             err instanceof Error ? err.message : "Unknown error";
-          logger.warn(
-            "Auto-login failed:",
-            { message: errMsg },
-          );
-          // Only block future auto-login for genuine auth rejection
-          // Network errors (502, timeout, CORS) should allow retry on next load
+          logger.warn("Auto-login failed:", { message: errMsg });
+          // Only block future auto-login for DEFINITIVE auth rejection
+          // Transient errors (network, 502, DB issues) should allow retry
           const isHardAuthError =
-            errMsg.includes("Invalid") ||
-            errMsg.includes("tenant") ||
-            errMsg.includes("Not found") ||
+            errMsg.includes("Invalid tenant") ||
             errMsg.includes("Dev login failed");
           if (isHardAuthError) {
             sessionStorage.setItem("autoLoginFailed", "true");
           }
           setIsAutoLogin(false);
         } else {
-          // Manual click → show the actual error, not generic message
+          // Manual click → show the actual error
           const msg = err instanceof Error ? err.message : "Dev login failed";
           setError(msg);
         }
@@ -120,17 +115,35 @@ const LoginPage: React.FC = () => {
     [navigate, returnUrl, selectedDevTenant, setAuth],
   );
 
-  // Auto Login Logic for Dev
+  // Auto Login Logic for Dev — with retry on transient failures
   useEffect(() => {
-    if (
-      isLocalhost &&
-      !isAuthenticated &&
-      !sessionStorage.getItem("autoLoginFailed")
-    ) {
-      handleDevLogin(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLocalhost, isAuthenticated]);
+    if (!isLocalhost || isAuthenticated) return;
+    if (sessionStorage.getItem("autoLoginFailed")) return;
+
+    let retryTimeout: ReturnType<typeof setTimeout>;
+    let retryCount = 0;
+    const maxRetries = 3;
+    let cancelled = false;
+
+    const attemptLogin = () => {
+      if (cancelled) return;
+      handleDevLogin(true).then(() => {
+        if (cancelled) return;
+        // If still not authenticated after attempt, retry with backoff
+        if (!useAuthStore.getState().isAuthenticated && retryCount < maxRetries) {
+          retryCount++;
+          retryTimeout = setTimeout(attemptLogin, retryCount * 2000);
+        }
+      });
+    };
+
+    attemptLogin();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(retryTimeout);
+    };
+  }, [isLocalhost, isAuthenticated, handleDevLogin]);
 
   if (isAutoLogin) {
     return (
