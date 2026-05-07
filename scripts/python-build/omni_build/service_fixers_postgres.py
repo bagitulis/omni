@@ -510,8 +510,15 @@ class PostgresFixer:
 
                 # Add named volume declaration if not present
                 if "omni-pgdata:" not in content:
-                    # Find or create volumes: section at the end
-                    if "\nvolumes:" in content:
+                    # Find existing volumes: section and append to it
+                    import re
+                    volumes_match = re.search(r'\nvolumes:\s*\n', content)
+                    if volumes_match:
+                        # Insert after "volumes:\n"
+                        insert_pos = volumes_match.end()
+                        content = content[:insert_pos] + "  omni-pgdata:\n    driver: local\n" + content[insert_pos:]
+                    elif "\nvolumes:" in content:
+                        # volumes: exists but has entries on same line or next
                         content = content.replace(
                             "\nvolumes:",
                             "\nvolumes:\n  omni-pgdata:\n    driver: local",
