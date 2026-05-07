@@ -6,7 +6,6 @@ import (
 
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
-	"github.com/omni/backend/internal/services/autofunction"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
@@ -15,7 +14,7 @@ import (
 // Waits 30 seconds to allow other services to initialize, then triggers
 // sync_products_inventory for each tenant that hasn't synced recently.
 // This ensures data is fresh after server downtime (server not 24/7).
-func runStartupSync(systemDB *gorm.DB, executor *autofunction.Executor, basePath string) {
+func runStartupSync(systemDB *gorm.DB, _ interface{}, basePath string) {
 	// Wait for services to fully initialize
 	time.Sleep(30 * time.Second)
 

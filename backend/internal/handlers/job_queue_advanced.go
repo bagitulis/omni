@@ -72,6 +72,7 @@ func (h *JobQueueHandler) GetMonitor(c *gin.Context) {
 			// Convert auto-function to job-like format for frontend compatibility
 			currentJob = map[string]interface{}{
 				"id":         fmt.Sprintf("auto_%d", runningAutoFunc.ID),
+				"name":       runningAutoFunc.Name,
 				"type":       runningAutoFunc.Name,
 				"status":     "running",
 				"data":       runningAutoFunc.ProgressData,

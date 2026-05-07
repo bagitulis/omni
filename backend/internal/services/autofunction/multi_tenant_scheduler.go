@@ -183,19 +183,32 @@ func (s *MultiTenantScheduler) shouldExecute(cfg *models.AutoFunctionConfig, now
 func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *gorm.DB, cfg *models.AutoFunctionConfig, now time.Time) {
 	startTime := time.Now()
 
+	// Guard: skip if already running (prevents race condition with concurrent ticks)
+	if cfg.IsRunning {
+		log.Info().Msgf("\u26a0\ufe0f [%s] Function %s already running, skipping", tenantID, cfg.Name)
+		return
+	}
+
 	// Mark as running (visible in Script Monitor)
 	tenantDB.Model(cfg).Updates(map[string]interface{}{
 		"is_running":      true,
 		"run_started_at":  startTime,
 	})
 
+	// Track whether execution succeeded (for progress_data cleanup)
+	execSuccess := false
+
 	// Ensure is_running is cleared on exit (even on panic)
+	// Only clear progress_data on SUCCESS — preserve it on failure/panic for resume
 	defer func() {
-		tenantDB.Model(cfg).Updates(map[string]interface{}{
-			"is_running":     false,
+		updates := map[string]interface{}{
+			"is_running":    false,
 			"run_started_at": nil,
-			"progress_data":  "",
-		})
+		}
+		if execSuccess {
+			updates["progress_data"] = ""
+		}
+		tenantDB.Model(cfg).Updates(updates)
 	}()
 
 	// Get handler
@@ -216,11 +229,11 @@ func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *go
 	nextExecution := now.Add(time.Duration(cfg.IntervalMinutes) * time.Minute)
 
 	// Update config in database
-	updates := map[string]interface{}{
+	cfgUpdates := map[string]interface{}{
 		"last_executed":            now,
 		"next_scheduled_execution": nextExecution,
 	}
-	if err := tenantDB.Model(cfg).Updates(updates).Error; err != nil {
+	if err := tenantDB.Model(cfg).Updates(cfgUpdates).Error; err != nil {
 		log.Info().Msgf("\u274c [%s] Failed to update config: %v", tenantID, err)
 	}
 
@@ -232,6 +245,7 @@ func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *go
 		errMsg = err.Error()
 		log.Info().Msgf("\u274c [%s] Auto function %s failed: %v", tenantID, cfg.Name, err)
 	} else {
+		execSuccess = true
 		log.Info().Msgf("\u2705 [%s] Auto function %s completed: %s", tenantID, cfg.Name, result)
 	}
 
