@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -60,6 +61,26 @@ func (h *JobQueueHandler) GetMonitor(c *gin.Context) {
 	status := qm.GetQueueStatus()
 	recentHistory := qm.GetRecentHistory(10)
 
+	// Check for currently running auto-functions (bridges auto-function system with job monitor)
+	var runningAutoFunc models.AutoFunctionConfig
+	var currentJob interface{}
+	if status.CurrentJob != nil {
+		currentJob = status.CurrentJob
+	} else {
+		// No job queue job running — check if an auto-function is running
+		if err := db.Where("is_running = ?", true).First(&runningAutoFunc).Error; err == nil {
+			// Convert auto-function to job-like format for frontend compatibility
+			currentJob = map[string]interface{}{
+				"id":         fmt.Sprintf("auto_%d", runningAutoFunc.ID),
+				"type":       runningAutoFunc.Name,
+				"status":     "running",
+				"data":       runningAutoFunc.ProgressData,
+				"started_at": runningAutoFunc.RunStartedAt,
+				"created_at": runningAutoFunc.RunStartedAt,
+			}
+		}
+	}
+
 	// Also get auto_functions_history and merge
 	var autoFuncHistory []models.AutoFunctionHistory
 	db.Order("executed_at DESC").Limit(10).Find(&autoFuncHistory)
@@ -70,7 +91,7 @@ func (h *JobQueueHandler) GetMonitor(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"current_job":     status.CurrentJob,
+			"current_job":     currentJob,
 			"pending_queue":   status.PendingQueue,
 			"total_pending":   status.TotalPending,
 			"total_completed": status.TotalCompleted,

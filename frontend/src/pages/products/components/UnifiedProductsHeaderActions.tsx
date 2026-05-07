@@ -8,6 +8,7 @@ import {
 import { Badge, Button, Tooltip, Typography } from "antd";
 import type { FC } from "react";
 import type { NavigateFunction } from "react-router-dom";
+import { SyncStatusIndicator } from "@/components/shared/SyncStatusIndicator";
 
 interface UnifiedProductsHeaderActionsProps {
   navigate: NavigateFunction;
@@ -32,9 +33,12 @@ export const UnifiedProductsHeaderActions: FC<
         width: "100%",
       }}
     >
-      <Typography.Title level={4} style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>
-        Products
-      </Typography.Title>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <Typography.Title level={4} style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>
+          Products
+        </Typography.Title>
+        <SyncStatusIndicator />
+      </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         <Button
           icon={<PlusOutlined />}

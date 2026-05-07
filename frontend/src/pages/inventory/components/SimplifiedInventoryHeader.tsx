@@ -12,7 +12,7 @@ import {
 import { MarketplaceSettingsModal } from "@/components/modals/MarketplaceSettingsModal";
 import { ColumnManager } from "@/components/shared/ColumnManager";
 import type { ColumnConfig } from "@/types/shared";
-
+import { SyncStatusIndicator } from "@/components/shared/SyncStatusIndicator";
 interface SimplifiedInventoryHeaderProps {
   searchText: string;
   onSearch: (value: string) => void;
@@ -57,16 +57,19 @@ export function SimplifiedInventoryHeader({
         gap: 12,
       }}
     >
-      <Typography.Title
-        level={isMobile ? 4 : 2}
-        style={{
-          margin: 0,
-          whiteSpace: isMobile ? "normal" : "nowrap",
-          lineHeight: 1.2,
-        }}
-      >
-        Inventory
-      </Typography.Title>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <Typography.Title
+          level={isMobile ? 4 : 2}
+          style={{
+            margin: 0,
+            whiteSpace: isMobile ? "normal" : "nowrap",
+            lineHeight: 1.2,
+          }}
+        >
+          Inventory
+        </Typography.Title>
+        <SyncStatusIndicator />
+      </div>
 
       <div
         style={{

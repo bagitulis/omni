@@ -183,10 +183,25 @@ func (s *MultiTenantScheduler) shouldExecute(cfg *models.AutoFunctionConfig, now
 func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *gorm.DB, cfg *models.AutoFunctionConfig, now time.Time) {
 	startTime := time.Now()
 
+	// Mark as running (visible in Script Monitor)
+	tenantDB.Model(cfg).Updates(map[string]interface{}{
+		"is_running":      true,
+		"run_started_at":  startTime,
+	})
+
+	// Ensure is_running is cleared on exit (even on panic)
+	defer func() {
+		tenantDB.Model(cfg).Updates(map[string]interface{}{
+			"is_running":     false,
+			"run_started_at": nil,
+			"progress_data":  "",
+		})
+	}()
+
 	// Get handler
 	handler := s.executor.GetHandler(cfg.Name)
 	if handler == nil {
-		log.Info().Msgf("❌ [%s] No handler registered for function: %s", tenantID, cfg.Name)
+		log.Info().Msgf("\u274c [%s] No handler registered for function: %s", tenantID, cfg.Name)
 		s.recordHistory(tenantDB, cfg.Name, "failed", "no handler registered: "+cfg.Name, startTime)
 		return
 	}
@@ -206,7 +221,7 @@ func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *go
 		"next_scheduled_execution": nextExecution,
 	}
 	if err := tenantDB.Model(cfg).Updates(updates).Error; err != nil {
-		log.Info().Msgf("❌ [%s] Failed to update config: %v", tenantID, err)
+		log.Info().Msgf("\u274c [%s] Failed to update config: %v", tenantID, err)
 	}
 
 	// Record history
@@ -215,9 +230,9 @@ func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *go
 	if err != nil {
 		status = "failed"
 		errMsg = err.Error()
-		log.Info().Msgf("❌ [%s] Auto function %s failed: %v", tenantID, cfg.Name, err)
+		log.Info().Msgf("\u274c [%s] Auto function %s failed: %v", tenantID, cfg.Name, err)
 	} else {
-		log.Info().Msgf("✅ [%s] Auto function %s completed: %s", tenantID, cfg.Name, result)
+		log.Info().Msgf("\u2705 [%s] Auto function %s completed: %s", tenantID, cfg.Name, result)
 	}
 
 	s.recordHistory(tenantDB, cfg.Name, status, errMsg, startTime)
@@ -248,7 +263,7 @@ var defaultAutoFunctions = []struct {
 	{Name: "locked_today", IntervalMinutes: 1440, StartTime: "22:00", EndTime: "23:59"},           // Daily at 22:00-23:59 WIB
 	{Name: "sync_from_sheets", IntervalMinutes: 30, StartTime: "08:00", EndTime: "22:00"},         // Every 30 min during business hours
 	{Name: "auto_update_token", IntervalMinutes: 180, StartTime: "00:00", EndTime: "23:59"},       // Every 3 hours
-	{Name: "sync_products_inventory", IntervalMinutes: 120, StartTime: "08:00", EndTime: "22:00"}, // Every 2 hours during business hours
+	{Name: "sync_products_inventory", IntervalMinutes: 60, StartTime: "08:00", EndTime: "22:00"}, // Every 60 min during business hours
 }
 
 // ensureDefaultAutoFunctions ensures default auto functions exist for a tenant.

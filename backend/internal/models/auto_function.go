@@ -13,6 +13,9 @@ type AutoFunctionConfig struct {
 	EndTime                *string    `gorm:"column:end_time" json:"end_time,omitempty"`
 	LastExecuted           *time.Time `gorm:"column:last_executed" json:"last_executed,omitempty"`
 	NextScheduledExecution *time.Time `gorm:"column:next_scheduled_execution" json:"next_scheduled_execution,omitempty"`
+	IsRunning              bool       `gorm:"column:is_running;default:false" json:"is_running"`
+	RunStartedAt           *time.Time `gorm:"column:run_started_at" json:"run_started_at,omitempty"`
+	ProgressData           string     `gorm:"column:progress_data;type:text" json:"progress_data,omitempty"` // JSON: {synced_count, total_items, last_offset}
 	CreatedAt              time.Time  `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt              time.Time  `gorm:"column:updated_at" json:"updated_at"`
 }

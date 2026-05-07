@@ -38,6 +38,10 @@ export function usePriceDrift() {
       const response = await fetch("/api/inventory/price-drift", {
         credentials: "include",
       });
+      if (!response.ok) {
+        // Silent fail for non-200 responses (e.g., 401 when tenant not set)
+        return;
+      }
       const json = await response.json();
       if (json.success && json.data) {
         setDriftData(json.data);

@@ -221,7 +221,7 @@ export function buildProductColumns({
     platforms: {
       title: "Platforms",
       key: "platforms",
-      width: 180,
+      width: 240,
       render: (_, record) => <PlatformStatusCell product={record} />,
     },
     category: {

@@ -109,6 +109,7 @@ func (h *InventoryHandler) GetStats(c *gin.Context) {
 }
 
 // GetPlatformStatus handles GET /api/inventory/platform-status
+// Returns real stock/price data from platform staging tables (shopee_skus, tiktok_skus, lazada_skus).
 func (h *InventoryHandler) GetPlatformStatus(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
@@ -119,10 +120,83 @@ func (h *InventoryHandler) GetPlatformStatus(c *gin.Context) {
 		return
 	}
 
+	db, err := h.getDB(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	type PlatformStockSummary struct {
+		Platform   string `json:"platform"`
+		TotalSkus  int64  `json:"total_skus"`
+		TotalStock int64  `json:"total_stock"`
+		AvgPrice   float64 `json:"avg_price"`
+	}
+
+	results := make([]PlatformStockSummary, 0, 3)
+
+	// Query Shopee staging
+	var shopeeSummary struct {
+		Count    int64
+		SumStock int64
+		AvgPrice float64
+	}
+	db.WithContext(ctx).Table("shopee_skus").
+		Where("tenant_id = ?", tenantID).
+		Select("COUNT(*) as count, COALESCE(SUM(quantity), 0) as sum_stock, COALESCE(AVG(price), 0) as avg_price").
+		Scan(&shopeeSummary)
+	if shopeeSummary.Count > 0 {
+		results = append(results, PlatformStockSummary{
+			Platform:   "shopee",
+			TotalSkus:  shopeeSummary.Count,
+			TotalStock: shopeeSummary.SumStock,
+			AvgPrice:   shopeeSummary.AvgPrice,
+		})
+	}
+
+	// Query TikTok staging
+	var tiktokSummary struct {
+		Count    int64
+		SumStock int64
+		AvgPrice float64
+	}
+	db.WithContext(ctx).Table("tiktok_skus").
+		Where("tenant_id = ?", tenantID).
+		Select("COUNT(*) as count, COALESCE(SUM(quantity), 0) as sum_stock, COALESCE(AVG(price), 0) as avg_price").
+		Scan(&tiktokSummary)
+	if tiktokSummary.Count > 0 {
+		results = append(results, PlatformStockSummary{
+			Platform:   "tiktok",
+			TotalSkus:  tiktokSummary.Count,
+			TotalStock: tiktokSummary.SumStock,
+			AvgPrice:   tiktokSummary.AvgPrice,
+		})
+	}
+
+	// Query Lazada staging
+	var lazadaSummary struct {
+		Count    int64
+		SumStock int64
+		AvgPrice float64
+	}
+	db.WithContext(ctx).Table("lazada_skus").
+		Where("tenant_id = ?", tenantID).
+		Select("COUNT(*) as count, COALESCE(SUM(quantity), 0) as sum_stock, COALESCE(AVG(price), 0) as avg_price").
+		Scan(&lazadaSummary)
+	if lazadaSummary.Count > 0 {
+		results = append(results, PlatformStockSummary{
+			Platform:   "lazada",
+			TotalSkus:  lazadaSummary.Count,
+			TotalStock: lazadaSummary.SumStock,
+			AvgPrice:   lazadaSummary.AvgPrice,
+		})
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"success":     true,
-		"count":       0,
-		"lastChecked": nil,
-		"results":     []interface{}{},
+		"success": true,
+		"count":   len(results),
+		"results": results,
 	})
 }

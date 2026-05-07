@@ -91,6 +91,10 @@ func (a *App) InitExtendedHandlers(db *gorm.DB, googleAuth *google.AuthService) 
 	// This processes escrow sync jobs, order sync jobs, etc. that run in background
 	startBackgroundJobExecutor(db, basePath)
 
+	// Startup sync: run product sync for all tenants after a short delay
+	// This catches up on any changes that happened while server was offline
+	go runStartupSync(db, executor, basePath)
+
 	// Create Shopee API client factory function
 	shopeeAPIClientFactory := createShopeeAPIClientFactory(db, basePath)
 

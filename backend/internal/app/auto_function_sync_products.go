@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"os"
@@ -55,37 +56,76 @@ func syncProductsHandler(ctx context.Context, tenantID string, cfg *models.AutoF
 
 	results := make([]string, 0, 3)
 
-	// Shopee product sync
-	shopeeCount, shopeeErr := syncPlatformProducts(ctx, "shopee", tenantID, db, systemDB, basePath)
-	if shopeeErr != nil {
-		log.Info().Msgf("[AutoFunction] Shopee sync failed for %s: %v", tenantID, shopeeErr)
-		results = append(results, fmt.Sprintf("Shopee: error (%v)", shopeeErr))
+	// Load progress from previous run (for resume after crash)
+	progress := loadSyncProgress(cfg)
+	resumingFromCrash := false
+	if progress.StartedAt.IsZero() || time.Since(progress.StartedAt) > 30*time.Minute {
+		// No valid progress or too old — start fresh
+		progress = syncProgress{StartedAt: time.Now()}
 	} else {
-		results = append(results, fmt.Sprintf("Shopee: %d products", shopeeCount))
+		resumingFromCrash = true
+		log.Info().Msgf("[AutoFunction] Resuming sync for %s (started %v ago)", tenantID, time.Since(progress.StartedAt).Round(time.Second))
 	}
 
-	// TikTok product sync
-	tiktokCount, tiktokErr := syncPlatformProducts(ctx, "tiktok", tenantID, db, systemDB, basePath)
-	if tiktokErr != nil {
-		log.Info().Msgf("[AutoFunction] TikTok sync failed for %s: %v", tenantID, tiktokErr)
-		results = append(results, fmt.Sprintf("TikTok: error (%v)", tiktokErr))
+	// Shopee product sync (skip if already completed in this run)
+	if !progress.ShopeeComplete {
+		shopeeCount, shopeeErr := syncPlatformProducts(ctx, "shopee", tenantID, db, systemDB, basePath)
+		if shopeeErr != nil {
+			log.Info().Msgf("[AutoFunction] Shopee sync failed for %s: %v", tenantID, shopeeErr)
+			results = append(results, fmt.Sprintf("Shopee: error (%v)", shopeeErr))
+		} else {
+			progress.ShopeeComplete = true
+			progress.ShopeeCount = shopeeCount
+			saveSyncProgress(db, cfg, progress)
+			results = append(results, fmt.Sprintf("Shopee: %d products", shopeeCount))
+		}
 	} else {
-		results = append(results, fmt.Sprintf("TikTok: %d products", tiktokCount))
+		results = append(results, fmt.Sprintf("Shopee: %d products (resumed)", progress.ShopeeCount))
 	}
 
-	// Lazada product sync
-	lazadaCount, lazadaErr := syncPlatformProducts(ctx, "lazada", tenantID, db, systemDB, basePath)
-	if lazadaErr != nil {
-		log.Info().Msgf("[AutoFunction] Lazada sync failed for %s: %v", tenantID, lazadaErr)
-		results = append(results, fmt.Sprintf("Lazada: error (%v)", lazadaErr))
+	// TikTok product sync (skip if already completed in this run)
+	if !progress.TiktokComplete {
+		tiktokCount, tiktokErr := syncPlatformProducts(ctx, "tiktok", tenantID, db, systemDB, basePath)
+		if tiktokErr != nil {
+			log.Info().Msgf("[AutoFunction] TikTok sync failed for %s: %v", tenantID, tiktokErr)
+			results = append(results, fmt.Sprintf("TikTok: error (%v)", tiktokErr))
+		} else {
+			progress.TiktokComplete = true
+			progress.TiktokCount = tiktokCount
+			saveSyncProgress(db, cfg, progress)
+			results = append(results, fmt.Sprintf("TikTok: %d products", tiktokCount))
+		}
 	} else {
-		results = append(results, fmt.Sprintf("Lazada: %d products", lazadaCount))
+		results = append(results, fmt.Sprintf("TikTok: %d products (resumed)", progress.TiktokCount))
 	}
 
-	resultMsg := fmt.Sprintf("Product sync completed: %s", fmt.Sprintf("%v", results))
+	// Lazada product sync (skip if already completed in this run)
+	if !progress.LazadaComplete {
+		lazadaCount, lazadaErr := syncPlatformProducts(ctx, "lazada", tenantID, db, systemDB, basePath)
+		if lazadaErr != nil {
+			log.Info().Msgf("[AutoFunction] Lazada sync failed for %s: %v", tenantID, lazadaErr)
+			results = append(results, fmt.Sprintf("Lazada: error (%v)", lazadaErr))
+		} else {
+			progress.LazadaComplete = true
+			progress.LazadaCount = lazadaCount
+			saveSyncProgress(db, cfg, progress)
+			results = append(results, fmt.Sprintf("Lazada: %d products", lazadaCount))
+		}
+	} else {
+		results = append(results, fmt.Sprintf("Lazada: %d products (resumed)", progress.LazadaCount))
+	}
+
+	// Clear progress on completion
+	clearSyncProgress(db, cfg)
+
+	resumeSuffix := ""
+	if resumingFromCrash {
+		resumeSuffix = " [RESUMED from crash]"
+	}
+	resultMsg := fmt.Sprintf("Product sync completed: %s%s", fmt.Sprintf("%v", results), resumeSuffix)
 	log.Info().Msgf("[AutoFunction] %s for tenant: %s", resultMsg, tenantID)
 
-	// Auto-fix: bidirectional platform link scan (master↔staging) for all platforms
+	// Auto-fix: bidirectional platform link scan (master\u2194staging) for all platforms
 	mappedCount, linkErrors, linkErr := autoFixPlatformLinks(ctx, db, tenantID)
 	if linkErr != nil {
 		resultMsg += fmt.Sprintf(" | Auto-link FAILED: %v", linkErr)
@@ -93,8 +133,17 @@ func syncProductsHandler(ctx context.Context, tenantID string, cfg *models.AutoF
 		resultMsg += fmt.Sprintf(" | Auto-link: %d mapped, %d errors", mappedCount, linkErrors)
 	}
 
-	// Return error only if ALL platforms failed
-	if shopeeErr != nil && tiktokErr != nil && lazadaErr != nil {
+	// Refresh InventorySkuPlatformStatus from staging tables
+	statusCount, statusErr := refreshInventoryPlatformStatus(ctx, db, tenantID)
+	if statusErr != nil {
+		resultMsg += fmt.Sprintf(" | Platform status refresh FAILED: %v", statusErr)
+	} else if statusCount > 0 {
+		resultMsg += fmt.Sprintf(" | Platform status: %d SKUs updated", statusCount)
+	}
+
+	// Return error only if ALL platforms had no successful sync
+	allFailed := !progress.ShopeeComplete && !progress.TiktokComplete && !progress.LazadaComplete
+	if allFailed {
 		return resultMsg, fmt.Errorf("all platform syncs failed")
 	}
 
@@ -259,3 +308,4 @@ func getTenantSyncMutex(tenantID string) *sync.Mutex {
 	val, _ := syncProductsMu.LoadOrStore(tenantID, &sync.Mutex{})
 	return val.(*sync.Mutex)
 }
+
