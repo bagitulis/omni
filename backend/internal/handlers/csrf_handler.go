@@ -29,6 +29,8 @@ func (h *CSRFHandler) GetCSRFToken(c *gin.Context) {
 	}
 
 	// Set cookie with the token (for double-submit pattern)
+	// httpOnly MUST be false so frontend JavaScript can read it
+	// and include it in the x-csrf-token header
 	c.SetCookie(
 		"csrf_token",
 		token,
@@ -36,7 +38,7 @@ func (h *CSRFHandler) GetCSRFToken(c *gin.Context) {
 		"/",
 		"",    // domain (empty = current domain)
 		false, // secure (should be true in production with HTTPS)
-		true,  // httpOnly
+		false, // httpOnly = false (JS must read this for double-submit pattern)
 	)
 
 	c.JSON(http.StatusOK, gin.H{
