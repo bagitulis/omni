@@ -130,20 +130,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           }
         }
 
-        // Refresh failed - could be expired or revoked
+        // 401 = definitive auth rejection (token expired/revoked/reused)
+        // Clear auth and force re-login
         if (response.status === 401) {
           const data = await response.json().catch(() => ({}));
           if (data.code === "TOKEN_REUSE") {
             logger.error("Security alert: token reuse detected");
           }
+          get().clearAuth();
+          return false;
         }
-      } catch (error) {
-        logger.error("Token refresh failed", { error });
-      }
 
-      // Clear auth on failure
-      get().clearAuth();
-      return false;
+        // Non-401 errors (500, 502, 503, network issues) are transient
+        // Do NOT clear auth — user may still have a valid session
+        // Let the caller decide whether to retry
+        logger.warn("Token refresh returned non-401 error", { status: response.status });
+        return false;
+      } catch (error) {
+        // Network error (fetch threw) — transient, do NOT clear auth
+        logger.error("Token refresh network error", { error });
+        return false;
+      }
     })();
 
     try {
@@ -176,7 +183,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   initializeAuth: async (): Promise<boolean> => {
-    const { accessToken, refreshAccessToken, clearAuth } = get();
+    const { accessToken, refreshAccessToken } = get();
 
     const storedUser = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
     const storedTenantId = localStorage.getItem(STORAGE_KEYS.TENANT_ID);
@@ -191,8 +198,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (!accessToken) {
           const success = await refreshAccessToken();
           if (!success) {
-            // Refresh failed — clear everything and let user re-login
-            clearAuth();
+            // refreshAccessToken already calls clearAuth() on 401 (definitive rejection)
+            // For transient errors, it returns false WITHOUT clearing auth
+            // Check if auth was already cleared (401 case)
+            if (!get().isAuthenticated) {
+              // Auth was cleared by refreshAccessToken (401) — user must re-login
+              set({ isInitializing: false });
+              return false;
+            }
+            // Transient error — keep user state but mark as not fully initialized
+            // The next API call will trigger another refresh attempt via getValidToken()
+            set({ isInitializing: false });
             return false;
           }
         }

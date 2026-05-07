@@ -57,10 +57,12 @@ func setRefreshTokenCookie(c *gin.Context, token string, maxAge int) {
 
 	// Secure=true only for production HTTPS, not for localhost HTTP
 	secure := isProd && !isLocal
+
+	// SameSite=Lax for all environments:
+	// - Strict blocks cookies on top-level navigations from external links
+	// - Lax sends cookies on same-site requests + top-level GET navigations
+	// - This is the recommended setting for auth cookies
 	sameSite := http.SameSiteLaxMode
-	if secure {
-		sameSite = http.SameSiteStrictMode
-	}
 
 	c.SetSameSite(sameSite)
 	c.SetCookie(
@@ -74,9 +76,16 @@ func setRefreshTokenCookie(c *gin.Context, token string, maxAge int) {
 	)
 }
 
-// clearRefreshTokenCookie clears the refresh token cookie
+// clearRefreshTokenCookie clears the refresh token cookie.
+// CRITICAL: Must match the Secure flag of the original cookie,
+// otherwise the browser won't clear a Secure cookie with a non-Secure Set-Cookie.
 func clearRefreshTokenCookie(c *gin.Context) {
-	c.SetCookie(RefreshTokenCookieName, "", -1, RefreshTokenCookiePath, "", false, true)
+	isProd := os.Getenv("GO_ENV") == "production"
+	isLocal := isLocalhostRequest(c)
+	secure := isProd && !isLocal
+
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(RefreshTokenCookieName, "", -1, RefreshTokenCookiePath, "", secure, true)
 }
 
 // getRefreshTokenMaxAge returns max age in seconds for refresh token cookie

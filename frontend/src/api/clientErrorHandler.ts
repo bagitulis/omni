@@ -1,8 +1,12 @@
-import type { AxiosError } from "axios";
+import axios from "axios";
+import type { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { message } from "@/components/AntStaticApi";
 import { useAuthStore } from "@/stores/authStore";
 import { logger } from "@/lib/logger";
 import { sanitizeForUser } from "@/lib/notificationSecurity";
+
+// Track if a 401 retry is already in progress to prevent infinite loops
+let isRetrying = false;
 
 /**
  * Handle expired/invalid JWT token — clear auth and redirect to login.
@@ -17,6 +21,7 @@ export function handleAuthExpired(): void {
 
 /**
  * Centralized HTTP error handler for Axios responses.
+ * On 401 for non-auth endpoints: attempts token refresh before redirecting.
  * Returns a rejected promise with a descriptive Error.
  */
 export function handleResponseError(error: AxiosError): Promise<never> {
@@ -34,7 +39,7 @@ export function handleResponseError(error: AxiosError): Promise<never> {
       origin: window.location.origin,
     });
     const networkMsg =
-      "Network error — cannot connect to server. Please check your connection.";
+      "Network error \u2014 cannot connect to server. Please check your connection.";
     return Promise.reject(new Error(networkMsg));
   }
 
@@ -46,7 +51,7 @@ export function handleResponseError(error: AxiosError): Promise<never> {
     const currentPath = window.location.pathname;
     const isAuthEndpoint = error.config?.url?.includes("/auth/") ?? false;
 
-    // Auth endpoints (login, register) — pass backend message through directly
+    // Auth endpoints (login, register, refresh) — pass backend message through directly
     // These messages are controlled constants (e.g. "Invalid username or password")
     if (isAuthEndpoint) {
       const authMsg = backendMsg || "Authentication failed";
@@ -54,12 +59,47 @@ export function handleResponseError(error: AxiosError): Promise<never> {
       return Promise.reject(new Error(authMsg));
     }
 
-    // Non-auth 401 — token expired, redirect to login
-    if (currentPath !== "/login") {
-      logger.info("[API] JWT token expired or invalid - redirecting to login");
-      handleAuthExpired();
-      return Promise.reject(new Error("Session expired - please login again"));
+    // Non-auth 401 — attempt token refresh before giving up
+    // This handles the case where access token expired between getValidToken() and server receipt
+    if (currentPath !== "/login" && !isRetrying) {
+      isRetrying = true;
+      return useAuthStore
+        .getState()
+        .refreshAccessToken()
+        .then((success) => {
+          isRetrying = false;
+          if (success && error.config) {
+            // Retry the original request with new token
+            const config = error.config as InternalAxiosRequestConfig;
+            const newToken = useAuthStore.getState().accessToken;
+            if (newToken) {
+              config.headers.Authorization = `Bearer ${newToken}`;
+            }
+            // Retry the failed request with the refreshed token
+            return axios(config);
+          }
+          // Refresh failed definitively — redirect to login
+          handleAuthExpired();
+          return Promise.reject(
+            new Error("Session expired - please login again"),
+          );
+        })
+        .catch((retryError: unknown) => {
+          isRetrying = false;
+          handleAuthExpired();
+          return Promise.reject(
+            retryError instanceof Error
+              ? retryError
+              : new Error("Session expired - please login again"),
+          );
+        }) as Promise<never>;
     }
+
+    // Already retrying or on login page — just reject
+    if (currentPath !== "/login") {
+      handleAuthExpired();
+    }
+    return Promise.reject(new Error("Session expired - please login again"));
   }
 
   // 403 Forbidden
@@ -72,9 +112,9 @@ export function handleResponseError(error: AxiosError): Promise<never> {
 
   // 500 Server Error
   if (status === 500) {
-    const errorMsg = "Server error — please try again";
+    const errorMsg = "Server error \u2014 please try again";
     logger.error(`[API] 500 Server Error:`, { error: backendMsg });
-    message.error("Server error — please try again");
+    message.error("Server error \u2014 please try again");
     return Promise.reject(new Error(errorMsg));
   }
 
