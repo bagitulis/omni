@@ -1,12 +1,17 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 // ShopeeOrder represents a Shopee order in database
 // Matches Prisma schema: ShopeeOrder
 // NOTE: Only fields that exist in PostgreSQL database (from Prisma migration)
 type ShopeeOrder struct {
-	ID              uint      `gorm:"primaryKey" json:"id"`
+	ID              string    `gorm:"column:id;primaryKey;type:varchar(36)" json:"id"`
 	TenantID        string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
 	OrderSN         string    `gorm:"column:order_sn;uniqueIndex;not null" json:"order_sn"`
 	ShopID          *int64    `gorm:"column:shop_id" json:"shop_id,omitempty"`
@@ -30,10 +35,18 @@ func (ShopeeOrder) TableName() string {
 	return GetTableName("ShopeeOrder")
 }
 
+// BeforeCreate generates UUID for ShopeeOrder if ID is empty
+func (o *ShopeeOrder) BeforeCreate(tx *gorm.DB) error {
+	if o.ID == "" {
+		o.ID = uuid.New().String()
+	}
+	return nil
+}
+
 // ShopeeProduct represents a Shopee product in database
 // Matches PostgreSQL schema: shopee_products
 type ShopeeProduct struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
+	ID          string    `gorm:"column:id;primaryKey;type:varchar(36)" json:"id"`
 	TenantID    string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
 	ItemID      int64     `gorm:"column:item_id;index;not null" json:"item_id"`
 	Name        string    `gorm:"column:name" json:"name"`
@@ -51,13 +64,21 @@ func (ShopeeProduct) TableName() string {
 	return GetTableName("ShopeeProduct")
 }
 
+// BeforeCreate generates UUID for ShopeeProduct if ID is empty
+func (o *ShopeeProduct) BeforeCreate(tx *gorm.DB) error {
+	if o.ID == "" {
+		o.ID = uuid.New().String()
+	}
+	return nil
+}
+
 // ShopeeSku represents a Shopee SKU/variant
 // Matches PostgreSQL schema: shopee_skus
 // NOTE: VariantData is JSONB in PostgreSQL, use JSONMap for proper handling
 type ShopeeSku struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
+	ID          string    `gorm:"column:id;primaryKey;type:varchar(36)" json:"id"`
 	TenantID    string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
-	ProductID   uint      `gorm:"column:product_id;index;not null" json:"product_id"`
+	ProductID   string    `gorm:"column:product_id;index;not null" json:"product_id"`
 	ItemID      int64     `gorm:"column:item_id;index" json:"item_id"`
 	ModelID     *int64    `gorm:"column:model_id" json:"model_id,omitempty"`
 	SellerSku   string    `gorm:"column:seller_sku" json:"seller_sku,omitempty"`
@@ -73,10 +94,18 @@ func (ShopeeSku) TableName() string {
 	return GetTableName("ShopeeSku")
 }
 
+// BeforeCreate generates UUID for ShopeeSku if ID is empty
+func (o *ShopeeSku) BeforeCreate(tx *gorm.DB) error {
+	if o.ID == "" {
+		o.ID = uuid.New().String()
+	}
+	return nil
+}
+
 // ShopeeOrderItem represents order items
 // Matches Prisma schema: ShopeeOrderItem + tenant_id (added in database)
 type ShopeeOrderItem struct {
-	ID           uint      `gorm:"primaryKey" json:"id"`
+	ID           string    `gorm:"column:id;primaryKey;type:varchar(36)" json:"id"`
 	TenantID     string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
 	OrderSN      string    `gorm:"column:order_sn;index;not null" json:"order_sn"`
 	ItemID       int64     `gorm:"column:item_id" json:"item_id"`
@@ -94,4 +123,12 @@ type ShopeeOrderItem struct {
 
 func (ShopeeOrderItem) TableName() string {
 	return GetTableName("ShopeeOrderItem")
+}
+
+// BeforeCreate generates UUID for ShopeeOrderItem if ID is empty
+func (o *ShopeeOrderItem) BeforeCreate(tx *gorm.DB) error {
+	if o.ID == "" {
+		o.ID = uuid.New().String()
+	}
+	return nil
 }

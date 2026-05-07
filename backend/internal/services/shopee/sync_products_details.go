@@ -85,7 +85,7 @@ func (s *ProductSyncService) SyncProductsWithDetails(ctx context.Context, itemSt
 					if len(prod.Images) > 0 {
 						localPaths := s.downloadAndSaveProductImages(ctx, prod.ItemID, prod.Images)
 						if err := s.updateProductLocalImages(ctx, tx, savedProd.ID, localPaths); err != nil {
-							zlog.Warn().Err(err).Uint("product_id", savedProd.ID).Msg("Failed to update local_images")
+							zlog.Warn().Err(err).Str("product_id", savedProd.ID).Msg("Failed to update local_images")
 						}
 					}
 				}

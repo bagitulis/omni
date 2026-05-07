@@ -101,7 +101,7 @@ func (s *SyncService) syncProductsWithDB(
 func (s *SyncService) syncProductSkus(
 	ctx context.Context,
 	prodRepo *repositories.TiktokProductRepository,
-	productID uint,
+	productID string,
 	prod tiktokPkg.ProductSearchItem,
 	detailResp *tiktokPkg.ProductDetailResponse,
 ) {
@@ -148,7 +148,7 @@ func (s *SyncService) syncProductSkus(
 	}
 }
 
-func (s *SyncService) updateProductSummary(ctx context.Context, tx *gorm.DB, productID uint, prod tiktokPkg.ProductSearchItem) {
+func (s *SyncService) updateProductSummary(ctx context.Context, tx *gorm.DB, productID string, prod tiktokPkg.ProductSearchItem) {
 	// If SearchProducts response has SKU data, use it directly.
 	if len(prod.Skus) > 0 {
 		totalStock := 0
@@ -167,7 +167,7 @@ func (s *SyncService) updateProductSummary(ctx context.Context, tx *gorm.DB, pro
 				"quantity": totalStock,
 			}).Error
 		if err != nil {
-			zerolog.Ctx(ctx).Warn().Uint("product_id", productID).Err(err).Msg("Failed to update TikTok product summary")
+			zerolog.Ctx(ctx).Warn().Str("product_id", productID).Err(err).Msg("Failed to update TikTok product summary")
 		}
 		return
 	}
@@ -198,14 +198,14 @@ func (s *SyncService) updateProductSummary(ctx context.Context, tx *gorm.DB, pro
 			"quantity": totalStock,
 		}).Error
 	if err != nil {
-		zerolog.Ctx(ctx).Warn().Uint("product_id", productID).Err(err).Msg("Failed to update TikTok product summary from DB")
+		zerolog.Ctx(ctx).Warn().Str("product_id", productID).Err(err).Msg("Failed to update TikTok product summary from DB")
 	}
 }
 
 func (s *SyncService) syncProductImages(
 	ctx context.Context,
 	tx *gorm.DB,
-	productID uint,
+	productID string,
 	remoteProductID string,
 	detailResp *tiktokPkg.ProductDetailResponse,
 ) {
@@ -225,7 +225,7 @@ func (s *SyncService) syncProductImages(
 		Where("id = ?", productID).
 		Update("image", imageURLs[0]).Error
 	if err != nil {
-		zlog.Warn().Uint("product_id", productID).Err(err).Msg("Failed to update TikTok primary image")
+		zlog.Warn().Str("product_id", productID).Err(err).Msg("Failed to update TikTok primary image")
 	}
 
 	localPaths := s.downloadAndSaveProductImages(ctx, remoteProductID, imageURLs)
@@ -258,7 +258,7 @@ func (s *SyncService) downloadAndSaveProductImages(ctx context.Context, productI
 	return localPaths
 }
 
-func (s *SyncService) updateProductLocalImages(ctx context.Context, tx *gorm.DB, productID uint, localPaths []string) {
+func (s *SyncService) updateProductLocalImages(ctx context.Context, tx *gorm.DB, productID string, localPaths []string) {
 	if len(localPaths) == 0 {
 		return
 	}
@@ -274,7 +274,7 @@ func (s *SyncService) updateProductLocalImages(ctx context.Context, tx *gorm.DB,
 		Where("id = ?", productID).
 		Update("local_images", pathsJSON).Error
 	if err != nil {
-		zerolog.Ctx(ctx).Warn().Uint("product_id", productID).Err(err).Msg("Failed to update local_images")
+		zerolog.Ctx(ctx).Warn().Str("product_id", productID).Err(err).Msg("Failed to update local_images")
 	}
 }
 

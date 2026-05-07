@@ -1,12 +1,17 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 // TiktokOrder represents a TikTok order in database
 // Matches Prisma schema: TiktokOrder
 // NOTE: JSON tags use snake_case for frontend compatibility
 type TiktokOrder struct {
-	ID              uint      `gorm:"primaryKey" json:"id"`
+	ID              string    `gorm:"column:id;primaryKey;type:varchar(36)" json:"id"`
 	TenantID        string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
 	OrderSN         string    `gorm:"column:order_sn;uniqueIndex;not null" json:"order_sn"`
 	ShopID          *int64    `gorm:"column:shop_id" json:"shop_id,omitempty"`
@@ -28,11 +33,19 @@ func (TiktokOrder) TableName() string {
 	return GetTableName("TiktokOrder")
 }
 
+// BeforeCreate generates UUID for TiktokOrder if ID is empty
+func (o *TiktokOrder) BeforeCreate(tx *gorm.DB) error {
+	if o.ID == "" {
+		o.ID = uuid.New().String()
+	}
+	return nil
+}
+
 // TiktokOrderItem represents order items
 // Matches Prisma schema: TiktokOrderItem
 // NOTE: JSON tags use snake_case for frontend compatibility
 type TiktokOrderItem struct {
-	ID            uint      `gorm:"primaryKey" json:"id"`
+	ID            string    `gorm:"column:id;primaryKey;type:varchar(36)" json:"id"`
 	TenantID      string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
 	OrderSN       string    `gorm:"column:order_sn;index;not null" json:"order_sn"`
 	LineItemID    string    `gorm:"column:line_item_id" json:"line_item_id,omitempty"`
@@ -52,11 +65,19 @@ func (TiktokOrderItem) TableName() string {
 	return GetTableName("TiktokOrderItem")
 }
 
+// BeforeCreate generates UUID for TiktokOrderItem if ID is empty
+func (o *TiktokOrderItem) BeforeCreate(tx *gorm.DB) error {
+	if o.ID == "" {
+		o.ID = uuid.New().String()
+	}
+	return nil
+}
+
 // TiktokProduct represents a TikTok product in database
 // Matches Prisma schema: TiktokProduct
 // NOTE: JSON tags use snake_case for frontend compatibility
 type TiktokProduct struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
+	ID          string    `gorm:"column:id;primaryKey;type:varchar(36)" json:"id"`
 	TenantID    string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
 	ProductID   string    `gorm:"column:product_id;index;not null" json:"product_id"`
 	Name        string    `gorm:"column:name" json:"name"`
@@ -74,13 +95,21 @@ func (TiktokProduct) TableName() string {
 	return GetTableName("TiktokProduct")
 }
 
+// BeforeCreate generates UUID for TiktokProduct if ID is empty
+func (o *TiktokProduct) BeforeCreate(tx *gorm.DB) error {
+	if o.ID == "" {
+		o.ID = uuid.New().String()
+	}
+	return nil
+}
+
 // TiktokSku represents a TikTok SKU/variant
 // Matches Prisma schema: TiktokSku
 // NOTE: VariantData is JSONB in PostgreSQL, use serializer for proper handling
 type TiktokSku struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
+	ID          string    `gorm:"column:id;primaryKey;type:varchar(36)" json:"id"`
 	TenantID    string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
-	ProductID   uint      `gorm:"column:product_id;index;not null" json:"product_id"`
+	ProductID   string    `gorm:"column:product_id;index;not null" json:"product_id"`
 	SkuID       string    `gorm:"column:sku_id;uniqueIndex;not null" json:"sku_id"`
 	SellerSku   string    `gorm:"column:seller_sku" json:"seller_sku,omitempty"`
 	VariantName string    `gorm:"column:variant_name" json:"variant_name,omitempty"`
@@ -93,6 +122,14 @@ type TiktokSku struct {
 
 func (TiktokSku) TableName() string {
 	return GetTableName("TiktokSku")
+}
+
+// BeforeCreate generates UUID for TiktokSku if ID is empty
+func (o *TiktokSku) BeforeCreate(tx *gorm.DB) error {
+	if o.ID == "" {
+		o.ID = uuid.New().String()
+	}
+	return nil
 }
 
 // ProductName returns the product name (alias for Name)

@@ -99,7 +99,7 @@ func (r *GormOrderRepository) saveTiktokOrderItems(ctx context.Context, db *gorm
 		if items[i].ItemID == 0 && items[i].SKU != "" {
 			var skuModel models.TiktokSku
 			if err := db.WithContext(ctx).Where("seller_sku = ? OR sku_id = ?", items[i].SKU, items[i].SKU).First(&skuModel).Error; err == nil {
-				items[i].ItemID = int64(skuModel.ProductID)
+				items[i].ItemID = parseProductIDToInt64(skuModel.ProductID)
 			}
 		}
 	}
@@ -230,4 +230,10 @@ func (r *GormOrderRepository) upsertTiktokProductImageCache(
 			"product_id": productIDStr,
 		}).Warn("Failed to update tiktok product image cache: " + updateErr.Error())
 	}
+}
+
+// parseProductIDToInt64 converts a string product ID to int64 for item lookup
+func parseProductIDToInt64(productID string) int64 {
+	v, _ := strconv.ParseInt(productID, 10, 64)
+	return v
 }

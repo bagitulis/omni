@@ -246,7 +246,7 @@ func (s *ProductSyncService) downloadAndSaveProductImages(ctx context.Context, i
 }
 
 // updateProductLocalImages updates a product row with local image paths.
-func (s *ProductSyncService) updateProductLocalImages(ctx context.Context, db *gorm.DB, productID uint, localPaths []string) error {
+func (s *ProductSyncService) updateProductLocalImages(ctx context.Context, db *gorm.DB, productID string, localPaths []string) error {
 	if len(localPaths) == 0 {
 		return nil
 	}

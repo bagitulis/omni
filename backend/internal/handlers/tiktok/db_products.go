@@ -129,7 +129,7 @@ func (h *DBProductHandler) getMasterProducts(db *gorm.DB, offset, limit int, ten
 	}
 
 	// Build product map by ID
-	productMap := make(map[uint]models.TiktokProduct)
+	productMap := make(map[string]models.TiktokProduct)
 	for _, p := range products {
 		productMap[p.ID] = p
 	}

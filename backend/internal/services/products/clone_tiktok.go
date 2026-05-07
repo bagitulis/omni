@@ -29,7 +29,7 @@ func (s *CloneService) fetchTiktokProductFromDB(ctx context.Context, itemID stri
 	}
 
 	// If not found, search by sku_id or seller_sku (strings)
-	if err != nil || sku.ID == 0 {
+	if err != nil || sku.ID == "" {
 		err = s.db.WithContext(ctx).
 			Where("sku_id = ? OR seller_sku = ?", itemID, itemID).
 			First(&sku).Error
@@ -40,16 +40,16 @@ func (s *CloneService) fetchTiktokProductFromDB(ctx context.Context, itemID stri
 	}
 
 	var product models.TiktokProduct
-	if sku.ProductID > 0 {
-		if err := s.db.WithContext(ctx).First(&product, sku.ProductID).Error; err != nil {
-			return nil, fmt.Errorf("tiktok product record not found (id=%d): %w", sku.ProductID, err)
+	if sku.ProductID != "" {
+		if err := s.db.WithContext(ctx).Where("id = ?", sku.ProductID).First(&product).Error; err != nil {
+			return nil, fmt.Errorf("tiktok product record not found (id=%s): %w", sku.ProductID, err)
 		}
 	}
 
 	var allSkus []models.TiktokSku
-	if sku.ProductID > 0 {
+	if sku.ProductID != "" {
 		if err := s.db.WithContext(ctx).Where("product_id = ?", sku.ProductID).Find(&allSkus).Error; err != nil {
-			return nil, fmt.Errorf("failed to fetch tiktok SKUs for product %d: %w", sku.ProductID, err)
+			return nil, fmt.Errorf("failed to fetch tiktok SKUs for product %s: %w", sku.ProductID, err)
 		}
 	}
 

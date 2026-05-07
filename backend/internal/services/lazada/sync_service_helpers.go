@@ -73,7 +73,7 @@ func (s *SyncService) buildLazadaProductModel(apiProduct lazadaPkg.Product) *mod
 	}
 }
 
-func (s *SyncService) buildLazadaSkuModel(itemID string, productID uint, apiSku lazadaPkg.ProductSku) *models.LazadaSku {
+func (s *SyncService) buildLazadaSkuModel(itemID string, productID string, apiSku lazadaPkg.ProductSku) *models.LazadaSku {
 	skuName := apiSku.SellerSku
 	if skuName == "" {
 		skuName = apiSku.ShopSku
@@ -177,12 +177,12 @@ func (s *SyncService) downloadAndSaveProductImages(ctx context.Context, itemID s
 }
 
 // updateProductLocalImages updates the product with local image paths.
-func (s *SyncService) updateProductLocalImages(ctx context.Context, productID uint, localPaths []string) {
+func (s *SyncService) updateProductLocalImages(ctx context.Context, productID string, localPaths []string) {
 	s.updateProductLocalImagesWithDB(ctx, s.db, productID, localPaths)
 }
 
-func (s *SyncService) updateProductLocalImagesWithDB(ctx context.Context, db *gorm.DB, productID uint, localPaths []string) {
-	if len(localPaths) == 0 || productID == 0 {
+func (s *SyncService) updateProductLocalImagesWithDB(ctx context.Context, db *gorm.DB, productID string, localPaths []string) {
+	if len(localPaths) == 0 || productID == "" {
 		return
 	}
 
@@ -204,7 +204,7 @@ func (s *SyncService) updateProductLocalImagesWithDB(ctx context.Context, db *go
 	if err != nil {
 		zlog.Warn().
 			Str("service", "lazada_sync").
-			Uint("product_id", productID).
+			Str("product_id", productID).
 			Err(err).
 			Msg("Failed to update local_images")
 	}

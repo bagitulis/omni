@@ -30,7 +30,7 @@ func (s *CloneService) fetchShopeeProductFromDB(ctx context.Context, itemID stri
 	}
 
 	// If not found or not numeric, search by seller_sku
-	if err != nil || sku.ID == 0 {
+	if err != nil || sku.ID == "" {
 		err = s.db.WithContext(ctx).
 			Where("seller_sku = ?", itemID).
 			First(&sku).Error
@@ -42,17 +42,17 @@ func (s *CloneService) fetchShopeeProductFromDB(ctx context.Context, itemID stri
 
 	// Get product
 	var product models.ShopeeProduct
-	if sku.ProductID > 0 {
-		if err := s.db.WithContext(ctx).First(&product, sku.ProductID).Error; err != nil {
-			return nil, fmt.Errorf("shopee product record not found (id=%d): %w", sku.ProductID, err)
+	if sku.ProductID != "" {
+		if err := s.db.WithContext(ctx).Where("id = ?", sku.ProductID).First(&product).Error; err != nil {
+			return nil, fmt.Errorf("shopee product record not found (id=%s): %w", sku.ProductID, err)
 		}
 	}
 
 	// Get all SKUs for this product
 	var allSkus []models.ShopeeSku
-	if sku.ProductID > 0 {
+	if sku.ProductID != "" {
 		if err := s.db.WithContext(ctx).Where("product_id = ?", sku.ProductID).Find(&allSkus).Error; err != nil {
-			return nil, fmt.Errorf("failed to fetch shopee SKUs for product %d: %w", sku.ProductID, err)
+			return nil, fmt.Errorf("failed to fetch shopee SKUs for product %s: %w", sku.ProductID, err)
 		}
 	}
 

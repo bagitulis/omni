@@ -1,12 +1,17 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 // LazadaOrder represents a Lazada order in database
 // Matches Prisma schema: LazadaOrder
 // NOTE: JSON tags use snake_case for frontend compatibility
 type LazadaOrder struct {
-	ID              uint      `gorm:"primaryKey" json:"id"`
+	ID              string    `gorm:"column:id;primaryKey;type:varchar(36)" json:"id"`
 	TenantID        string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
 	OrderSN         string    `gorm:"column:order_sn;uniqueIndex;not null" json:"order_sn"`
 	ShopID          *int64    `gorm:"column:shop_id" json:"shop_id,omitempty"`
@@ -28,11 +33,19 @@ func (LazadaOrder) TableName() string {
 	return GetTableName("LazadaOrder")
 }
 
+// BeforeCreate generates UUID for LazadaOrder if ID is empty
+func (o *LazadaOrder) BeforeCreate(tx *gorm.DB) error {
+	if o.ID == "" {
+		o.ID = uuid.New().String()
+	}
+	return nil
+}
+
 // LazadaOrderItem represents order items
 // Matches Prisma schema: LazadaOrderItem
 // NOTE: JSON tags use snake_case for frontend compatibility
 type LazadaOrderItem struct {
-	ID            uint      `gorm:"primaryKey" json:"id"`
+	ID            string    `gorm:"column:id;primaryKey;type:varchar(36)" json:"id"`
 	TenantID      string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
 	OrderSN       string    `gorm:"column:order_sn;index;not null" json:"order_sn"`
 	ItemID        int64     `gorm:"column:item_id" json:"item_id"`
@@ -51,10 +64,18 @@ func (LazadaOrderItem) TableName() string {
 	return GetTableName("LazadaOrderItem")
 }
 
+// BeforeCreate generates UUID for LazadaOrderItem if ID is empty
+func (o *LazadaOrderItem) BeforeCreate(tx *gorm.DB) error {
+	if o.ID == "" {
+		o.ID = uuid.New().String()
+	}
+	return nil
+}
+
 // LazadaProduct represents a Lazada product in database
 // Matches Prisma schema: LazadaProduct
 type LazadaProduct struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
+	ID          string    `gorm:"column:id;primaryKey;type:varchar(36)" json:"id"`
 	TenantID    string    `gorm:"column:tenant_id;index;not null;uniqueIndex:idx_lazada_products_tenant_item,priority:1" json:"tenant_id"`
 	ItemID      string    `gorm:"column:item_id;index;not null;uniqueIndex:idx_lazada_products_tenant_item,priority:2" json:"item_id"`
 	Name        string    `json:"name"`
@@ -73,14 +94,22 @@ func (LazadaProduct) TableName() string {
 	return GetTableName("LazadaProduct")
 }
 
+// BeforeCreate generates UUID for LazadaProduct if ID is empty
+func (o *LazadaProduct) BeforeCreate(tx *gorm.DB) error {
+	if o.ID == "" {
+		o.ID = uuid.New().String()
+	}
+	return nil
+}
+
 // LazadaSku represents a Lazada SKU/variant
 // Matches Prisma schema: LazadaSku
 // NOTE: VariantData is JSONB in PostgreSQL, use JSONMap for proper handling
 type LazadaSku struct {
-	ID           uint      `gorm:"primaryKey" json:"id"`
+	ID           string    `gorm:"column:id;primaryKey;type:varchar(36)" json:"id"`
 	TenantID     string    `gorm:"column:tenant_id;index;not null" json:"tenant_id"`
 	ItemID       string    `gorm:"column:item_id;index;not null" json:"item_id"`
-	ProductID    uint      `gorm:"column:product_id;index" json:"product_id"`
+	ProductID    string    `gorm:"column:product_id;index" json:"product_id"`
 	SkuID        string    `gorm:"column:sku_id;uniqueIndex;not null" json:"sku_id"`
 	ShopSku      string    `gorm:"column:shop_sku" json:"shop_sku,omitempty"`
 	SellerSku    string    `gorm:"column:seller_sku" json:"seller_sku,omitempty"`
@@ -97,4 +126,12 @@ type LazadaSku struct {
 
 func (LazadaSku) TableName() string {
 	return GetTableName("LazadaSku")
+}
+
+// BeforeCreate generates UUID for LazadaSku if ID is empty
+func (o *LazadaSku) BeforeCreate(tx *gorm.DB) error {
+	if o.ID == "" {
+		o.ID = uuid.New().String()
+	}
+	return nil
 }

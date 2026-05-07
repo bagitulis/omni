@@ -65,6 +65,10 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 
 	// Migrate tenant-specific models
 	tenantModels := []interface{}{
+		// Auth (needed for multi-tenant login and refresh token)
+		&models.User{},
+		&models.RefreshSession{},
+
 		// OAuth
 		&models.OAuthState{},
 		&models.OAuthLog{},
