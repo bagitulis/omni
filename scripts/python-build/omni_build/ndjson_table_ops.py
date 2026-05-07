@@ -53,6 +53,23 @@ def _coerce_value(value: Any, col_name: str, col_type: str) -> Any:
 
     return value
 
+def _infer_pg_type(value: Any) -> str:
+    """Infer PostgreSQL column type from a sample Python value."""
+    if value is None:
+        return "text"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, int):
+        return "bigint"
+    if isinstance(value, float):
+        return "double precision"
+    if isinstance(value, (dict, list)):
+        return "jsonb"
+    s = str(value)
+    if _ISO_TIMESTAMP_RE.match(s):
+        return "timestamp with time zone"
+    return "text"
+
 
 def export_table(
     schema: str,
@@ -278,14 +295,33 @@ def import_table(
     if total_lines == 0:
         return 0, 0, 0
 
-    # Bug #9: Warn about columns in NDJSON that don't exist in target table
+    # Auto-create missing columns in DB (handles GORM AutoMigrate failures)
     target_col_set = set(all_columns)
     extra_cols = ndjson_cols - target_col_set
     if extra_cols:
         log_warning(
-            f"  {full_name}: {len(extra_cols)} column(s) in NDJSON not in target table "
-            f"(will be skipped): {', '.join(sorted(extra_cols))}"
+            f"  {full_name}: {len(extra_cols)} column(s) in NDJSON not in DB. "
+            f"Auto-creating: {', '.join(sorted(extra_cols))}"
         )
+        # Sample first row to infer types for missing columns
+        sample_row = {}
+        with _open_ndjson(filepath, compressed) as f:
+            for line in f:
+                stripped = line.strip()
+                if stripped:
+                    sample_row = json.loads(stripped)
+                    break
+        for col in sorted(extra_cols):
+            pg_type = _infer_pg_type(sample_row.get(col))
+            alter_sql = (
+                f'ALTER TABLE "{schema}"."{name}" '
+                f'ADD COLUMN IF NOT EXISTS "{col}" {pg_type};'
+            )
+            ok, err = psql_exec_fn(alter_sql, 30)
+            if ok:
+                all_columns = list(all_columns) + [col]  # Add to available columns
+            else:
+                log_warning(f"    Failed to create column {col}: {err[:100]}")
 
     available_cols = [c for c in all_columns if c in ndjson_cols]
 
@@ -357,23 +393,19 @@ def import_table(
         # Apply type coercion if needed
         coerced_batch = [_coerce_line(line) for line in batch] if needs_coercion else batch
 
-        if use_plain_insert:
-            batch_sql = build_batch_plain_insert(schema, name, available_cols, coerced_batch)
-        else:
-            batch_sql = build_batch_insert(
-                schema, name, available_cols, pk_cols, non_pk_cols, coerced_batch
-            )
+        # Always use upsert to handle duplicates in NDJSON data
+        # and expression-based indexes that aren't dropped during import
+        batch_sql = build_batch_insert(
+            schema, name, available_cols, pk_cols, non_pk_cols, coerced_batch
+        )
 
         # Bug #15: Dynamic batch size — reduce if SQL exceeds 10MB
         if len(batch_sql.encode('utf-8')) > max_batch_bytes and len(batch) > 1:
             half = len(batch) // 2
             for sub_batch in [batch[:half], batch[half:]]:
-                if use_plain_insert:
-                    sub_sql = build_batch_plain_insert(schema, name, available_cols, sub_batch)
-                else:
-                    sub_sql = build_batch_insert(
-                        schema, name, available_cols, pk_cols, non_pk_cols, sub_batch
-                    )
+                sub_sql = build_batch_insert(
+                    schema, name, available_cols, pk_cols, non_pk_cols, sub_batch
+                )
                 ok, err = psql_exec_fn(sub_sql, 120)
                 if ok:
                     imported += len(sub_batch)
