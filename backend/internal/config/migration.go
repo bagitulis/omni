@@ -29,6 +29,7 @@ func MigrateSystemDatabase(db *gorm.DB) error {
 		&models.User{},
 		&models.AuditLog{},
 		&models.GlobalConfig{},
+		&models.RefreshSession{},
 	}
 
 	for _, model := range systemModels {
