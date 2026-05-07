@@ -82,6 +82,24 @@ def _find_npm() -> str:
     return "npm"  # Fall back, will fail with clear error
 
 
+def _parse_npm_command(npm_path: str, command_str: str) -> list[str]:
+    """
+    Parse an npm command string into a list suitable for subprocess.
+    Replaces the leading 'npm' with the resolved npm_path.
+
+    Args:
+        npm_path: Resolved path to npm executable (may contain spaces)
+        command_str: Command string like 'npm ci --legacy-peer-deps'
+
+    Returns:
+        List of command parts, e.g. ['C:\\Program Files\\nodejs\\npm.cmd', 'ci', '--legacy-peer-deps']
+    """
+    import shlex
+    parts = command_str.split()
+    if parts and parts[0] in ('npm', 'npm.cmd'):
+        parts[0] = npm_path
+    return parts
+
 class FrontendBuilder:
     """
     Manages frontend build operations with caching and retry logic.
@@ -214,8 +232,8 @@ class FrontendBuilder:
         max_retries = self.config.frontend_config.max_retries
         install_cmd = self.config.frontend_config.install_command
         
-        # Replace bare "npm" with resolved path
-        resolved_cmd = install_cmd.replace("npm ", f"{self._npm_path} ", 1)
+        # Build command as list (safe for paths with spaces)
+        cmd_parts = _parse_npm_command(self._npm_path, install_cmd)
         
         log_info(f"Installing dependencies: {install_cmd}")
         log_info(f"Using npm: {self._npm_path}")
@@ -225,12 +243,14 @@ class FrontendBuilder:
             
             try:
                 result = subprocess.run(
-                    resolved_cmd,
-                    shell=True,  # Required for npm on Windows
+                    cmd_parts,
+                    shell=False,
                     cwd=str(self.frontend_dir),
                     capture_output=True,
                     text=True,
-                    timeout=self.config.npm_install_timeout,  # Use config timeout (10 min)
+                    encoding='utf-8',
+                    errors='replace',
+                    timeout=self.config.npm_install_timeout,
                     env=self._env,
                 )
                 
@@ -303,8 +323,8 @@ class FrontendBuilder:
         max_retries = self.config.frontend_config.max_retries
         build_cmd = self.config.frontend_config.build_command
         
-        # Replace bare "npm" with resolved path
-        resolved_build_cmd = build_cmd.replace("npm ", f"{self._npm_path} ", 1)
+        # Build command as list (safe for paths with spaces)
+        build_cmd_parts = _parse_npm_command(self._npm_path, build_cmd)
         
         log_info(f"Building frontend: {build_cmd}")
         
@@ -313,12 +333,14 @@ class FrontendBuilder:
             
             try:
                 result = subprocess.run(
-                    resolved_build_cmd,
-                    shell=True,  # Required for npm on Windows
+                    build_cmd_parts,
+                    shell=False,
                     cwd=str(self.frontend_dir),
                     capture_output=True,
                     text=True,
-                    timeout=self.config.npm_install_timeout,  # Use config timeout
+                    encoding='utf-8',
+                    errors='replace',
+                    timeout=self.config.npm_install_timeout,
                     env=self._env,
                 )
                 
@@ -402,10 +424,12 @@ class FrontendBuilder:
         log_info("Cleaning npm cache...")
         try:
             subprocess.run(
-                f"{self._npm_path} cache clean --force",
-                shell=True,  # Required for npm on Windows
+                [self._npm_path, "cache", "clean", "--force"],
+                shell=False,
                 cwd=str(self.frontend_dir),
                 capture_output=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=60,
                 env=self._env,
             )

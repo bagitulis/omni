@@ -78,7 +78,14 @@ def _ensure_venv():
     # Re-exec this script with the venv python, preserving PATH
     print("[AUTO] Re-launching with venv python...")
     print()
-    os.execv(str(venv_python), [str(venv_python), __file__] + sys.argv[1:])
+    relaunch_args = [str(venv_python), __file__] + sys.argv[1:]
+    if os.name == "nt":
+        # Windows: os.execv() doesn't replace the process, it spawns a child.
+        # Use subprocess + sys.exit to avoid double-execution.
+        result = subprocess.run(relaunch_args)
+        sys.exit(result.returncode)
+    else:
+        os.execv(str(venv_python), relaunch_args)
 
 
 def _ensure_path():

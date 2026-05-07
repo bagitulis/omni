@@ -14,6 +14,7 @@ from pathlib import Path
 from ai_constants import (
     CONFIG_DIR,
     DIRECT_PROFILES,
+    IS_WINDOWS,
     PROFILES_FILE,
     SCRIPT_DIR,
     TARGET_DIR,
@@ -25,34 +26,12 @@ from ai_profiles import (
     load_profiles,
     merge_profile,
     transform_for_plugin,
+    validate_plugin_config,
 )
 from ai_sync import copy_file, smart_sync_accounts
 
 # Minimum OpenCode version required for oh-my-openagent plugin support
 _MIN_OPENCODE_VERSION = "1.0.133"
-
-
-def _inject_small_model(merged_config: dict, opencode_json_path: Path):
-    """Inject small_model from profile into opencode.json.
-
-    Reads the copied opencode.json, sets the small_model key from the
-    merged profile config, and writes it back. This ensures opencode uses
-    the profile's preferred lightweight model for title generation instead
-    of auto-selecting from available models.
-    """
-    small_model = merged_config.get("small_model")
-    if not small_model:
-        return
-
-    try:
-        data = json.loads(opencode_json_path.read_text(encoding="utf-8"))
-        data["small_model"] = small_model
-        opencode_json_path.write_text(
-            json.dumps(data, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
-    except (json.JSONDecodeError, OSError) as e:
-        print(f"   [WARN] Could not inject small_model: {e}")
 
 
 def _inject_small_model(merged_config: dict, opencode_json_path: Path):
@@ -129,6 +108,7 @@ def apply_profile(profile_name: str) -> bool:
 
     config = merge_profile(shared, profile)
     config = inject_lsp_config(config)
+    config = validate_plugin_config(config)
 
     content = json.dumps(config, indent=2, ensure_ascii=False) + "\n"
     if not is_direct:
@@ -146,7 +126,7 @@ def apply_profile(profile_name: str) -> bool:
         write_dirs.append(APPDATA_DIR)
 
     for target_dir in write_dirs:
-        for config_name in ("oh-my-openagent.json", "oh-my-opencode.json"):
+        for config_name in ("oh-my-openagent.json", "oh-my-opencode.json", "oh-my-china.json"):
             dst = target_dir / config_name
             dst.write_text(content, encoding="utf-8")
 
@@ -187,14 +167,17 @@ def _resolve_opencode_binary(launch_dir: Path) -> str | None:
     """Find the best OpenCode binary using smart resolution order.
 
     Priority:
-      1. Local opencode.exe in launch_dir (self-updating, user's preferred)
+      1. Local opencode binary in launch_dir (opencode.exe on Windows, opencode on Linux)
       2. Global 'opencode' in PATH (npm/bun global install)
-      3. LOCALAPPDATA/opencode/opencode-cli.exe (Windows Desktop installer)
+      3. Windows-only: LOCALAPPDATA/opencode/opencode-cli.exe (Desktop installer)
 
     Returns the path string or None if not found.
     """
-    # 1. Local opencode.exe in project (self-updates, user's primary binary)
-    local_exe = launch_dir / "opencode.exe"
+    # 1. Local binary in project
+    if IS_WINDOWS:
+        local_exe = launch_dir / "opencode.exe"
+    else:
+        local_exe = launch_dir / "opencode"
     if local_exe.exists():
         return str(local_exe)
 
@@ -203,12 +186,13 @@ def _resolve_opencode_binary(launch_dir: Path) -> str | None:
     if global_cmd:
         return str(global_cmd)
 
-    # 3. Windows Desktop installer CLI
-    localappdata = os.environ.get("LOCALAPPDATA", "")
-    if localappdata:
-        desktop_cli = Path(localappdata) / "opencode" / "opencode-cli.exe"
-        if desktop_cli.exists():
-            return str(desktop_cli)
+    # 3. Windows Desktop installer CLI (Windows-only)
+    if IS_WINDOWS:
+        localappdata = os.environ.get("LOCALAPPDATA", "")
+        if localappdata:
+            desktop_cli = Path(localappdata) / "opencode" / "opencode-cli.exe"
+            if desktop_cli.exists():
+                return str(desktop_cli)
 
     return None
 
@@ -275,6 +259,63 @@ def _auto_upgrade_if_outdated(binary_path: str, version: str | None) -> str | No
     return None
 
 
+def _ensure_plugins_installed():
+    """Ensure plugins from opencode.json are installed in the cache directory.
+
+    Reads the plugin list from ~/.config/opencode/opencode.json and runs
+    `bun add` (or `npm install`) in the cache directory if the sentinel
+    package (oh-my-openagent) is missing. Non-blocking: warns on failure.
+    """
+    cache_dir = Path.home() / ".cache" / "opencode"
+    sentinel = cache_dir / "node_modules" / "oh-my-openagent"
+
+    if sentinel.exists():
+        return
+
+    # Read plugin list from the config that was just written/ensured
+    opencode_json = TARGET_DIR / "opencode.json"
+    if not opencode_json.exists():
+        return
+
+    try:
+        data = json.loads(opencode_json.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return
+
+    plugins = data.get("plugin", [])
+    if not plugins:
+        return
+
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    print("   [PLUGIN] Installing plugins...")
+
+    # Prefer bun, fallback to npm
+    bun_cmd = shutil.which("bun")
+    npm_cmd = shutil.which("npm")
+    if bun_cmd:
+        cmd = [bun_cmd, "add"] + plugins
+    elif npm_cmd:
+        cmd = [npm_cmd, "install"] + plugins
+    else:
+        print("   [WARN] Neither bun nor npm found — cannot install plugins")
+        return
+
+    try:
+        result = subprocess.run(
+            cmd, cwd=str(cache_dir),
+            capture_output=True, text=True, timeout=120,
+        )
+        if result.returncode == 0:
+            print("   [OK] Plugins installed")
+        else:
+            stderr = result.stderr[:200] if result.stderr else "unknown error"
+            print(f"   [WARN] Plugin install failed: {stderr}")
+    except subprocess.TimeoutExpired:
+        print("   [WARN] Plugin install timed out (120s)")
+    except OSError as e:
+        print(f"   [WARN] Plugin install failed: {e}")
+
+
 def _ensure_opencode_config():
     """Ensure opencode.json exists at ~/.config/opencode/ with plugin list.
 
@@ -320,14 +361,20 @@ def start_opencode(target_dir: Path | None = None):
     # Ensure opencode.json exists (plugin list needed for agents)
     _ensure_opencode_config()
 
+    # Ensure plugins are installed in cache
+    _ensure_plugins_installed()
+
     # Resolve binary
     binary = _resolve_opencode_binary(launch_dir)
     if not binary:
         print("\n   [ERROR] OpenCode not found anywhere!")
         print("   [INFO] Install options:")
-        print("          npm install -g opencode")
-        print("          bun install -g opencode")
-        print("          curl -fsSL https://opencode.ai/install | bash")
+        if IS_WINDOWS:
+            print("          npm install -g opencode-ai")
+            print("          bun install -g opencode-ai")
+        else:
+            print("          npm install -g opencode-ai")
+            print("          curl -fsSL https://opencode.ai/install | bash")
         return
 
     # Version check — auto-upgrade if too old

@@ -11,7 +11,7 @@ from omni_build.config import Config
 from omni_build.error_handler import ErrorHandler
 from omni_build.logger import log_error, log_info, log_success, log_warning
 from omni_build.models import SpecLevel
-
+from omni_build.subprocess_utils import get_compose_command
 
 class DockerDeployer:
     """Handles Docker container deployment with retry logic."""
@@ -41,7 +41,6 @@ class DockerDeployer:
         compose_files = self.config.get_compose_files(spec)
         log_info(f"Deploying containers (spec: {spec.value})...")
         
-        from omni_build.subprocess_utils import get_compose_command
         cmd = get_compose_command()
         for file in compose_files:
             cmd.extend(["-f", file])
