@@ -76,7 +76,7 @@ func (m *SkuMapper) findTiktokSku(ctx context.Context, sellerSku string) AutoMap
 	if err := m.db.WithContext(ctx).
 		Where("tenant_id = ? AND id = ?", m.tenantID, sku.ProductID).
 		First(&product).Error; err != nil {
-		result.Message = fmt.Sprintf("tiktok product not found for sku (internal id: %d)", sku.ProductID)
+		result.Message = fmt.Sprintf("tiktok product not found for sku (internal id: %s)", sku.ProductID)
 		return result
 	}
 	result.Found = true

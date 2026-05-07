@@ -62,7 +62,7 @@ func seedSkuMappingData(t *testing.T, db *gorm.DB, tenantID string) {
 	modelID := int64(50001)
 	require.NoError(t, db.Create(&models.ShopeeSku{
 		TenantID:    tenantID,
-		ProductID:   1,
+		ProductID:   "1",
 		ItemID:      10001,
 		ModelID:     &modelID,
 		SellerSku:   "bakiw5971",
@@ -74,7 +74,7 @@ func seedSkuMappingData(t *testing.T, db *gorm.DB, tenantID string) {
 	}).Error)
 
 	require.NoError(t, db.Create(&models.TiktokProduct{
-		ID:        20001,
+		ID:        "20001",
 		TenantID:  tenantID,
 		ProductID: "1729991138619650001",
 		Name:      "Case Insensitive Product",
@@ -85,7 +85,7 @@ func seedSkuMappingData(t *testing.T, db *gorm.DB, tenantID string) {
 
 	require.NoError(t, db.Create(&models.TiktokSku{
 		TenantID:    tenantID,
-		ProductID:   20001,
+		ProductID:   "20001",
 		SkuID:       "TIK-50001",
 		SellerSku:   "bakiw5971",
 		VariantName: "Default",
@@ -98,7 +98,7 @@ func seedSkuMappingData(t *testing.T, db *gorm.DB, tenantID string) {
 	require.NoError(t, db.Create(&models.LazadaSku{
 		TenantID:    tenantID,
 		ItemID:      "LZD-30001",
-		ProductID:   1,
+		ProductID:   "1",
 		SkuID:       "LZD-SKU-30001",
 		SellerSku:   "bakiw5971",
 		VariantName: "Default",
@@ -112,7 +112,7 @@ func seedSkuMappingData(t *testing.T, db *gorm.DB, tenantID string) {
 	require.NoError(t, db.Create(&models.LazadaSku{
 		TenantID:    tenantID,
 		ItemID:      "LZD-30002",
-		ProductID:   1,
+		ProductID:   "1",
 		SkuID:       "LZD-SKU-30002",
 		ShopSku:     "shop-only-sku",
 		VariantName: "ShopSkuOnly",

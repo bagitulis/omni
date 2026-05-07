@@ -69,7 +69,7 @@ func TestSkuMapper_AutoMapAndLinkBySkus(t *testing.T) {
 	modelID := int64(991122)
 	shopeeSku := &models.ShopeeSku{
 		TenantID:  "tenant-a",
-		ProductID: 1,
+		ProductID: "1",
 		ItemID:    778899,
 		ModelID:   &modelID,
 		SellerSku: "SKU-001",
@@ -117,18 +117,18 @@ func TestAutoMapAndLink_CrossPlatform(t *testing.T) {
 
 	modelID := int64(111)
 	require.NoError(t, db.Create(&models.ShopeeSku{
-		TenantID: "tenant-cross", ProductID: 1, ItemID: 900, ModelID: &modelID,
+		TenantID: "tenant-cross", ProductID: "1", ItemID: 900, ModelID: &modelID,
 		SellerSku: "CROSS-001", CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}).Error)
 
 	require.NoError(t, db.Create(&models.TiktokProduct{
-		ID: 800, TenantID: "tenant-cross", ProductID: "1729991138619656479",
+		ID: "800", TenantID: "tenant-cross", ProductID: "1729991138619656479",
 		Name: "Cross Platform Product", Status: "ACTIVATE",
 		CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}).Error)
 
 	require.NoError(t, db.Create(&models.TiktokSku{
-		TenantID: "tenant-cross", ProductID: 800, SkuID: "TIK-800",
+		TenantID: "tenant-cross", ProductID: "800", SkuID: "TIK-800",
 		SellerSku: "CROSS-001", CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}).Error)
 
@@ -173,11 +173,11 @@ func TestAutoMapAndLink_Ambiguous(t *testing.T) {
 	modelID1 := int64(1)
 	modelID2 := int64(2)
 	require.NoError(t, db.Create(&models.ShopeeSku{
-		TenantID: "tenant-amb", ProductID: 1, ItemID: 100, ModelID: &modelID1,
+		TenantID: "tenant-amb", ProductID: "1", ItemID: 100, ModelID: &modelID1,
 		SellerSku: "AMB-001", CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}).Error)
 	require.NoError(t, db.Create(&models.ShopeeSku{
-		TenantID: "tenant-amb", ProductID: 2, ItemID: 200, ModelID: &modelID2,
+		TenantID: "tenant-amb", ProductID: "2", ItemID: 200, ModelID: &modelID2,
 		SellerSku: "AMB-001", CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}).Error)
 
@@ -223,7 +223,7 @@ func TestAutoMapAndLink_CaseInsensitive(t *testing.T) {
 	// Shopee SKU stored as lowercase
 	modelID := int64(50001)
 	require.NoError(t, db.Create(&models.ShopeeSku{
-		TenantID: "tenant-ci", ProductID: 1, ItemID: 10001, ModelID: &modelID,
+		TenantID: "tenant-ci", ProductID: "1", ItemID: 10001, ModelID: &modelID,
 		SellerSku: "bakiw5971", CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}).Error)
 

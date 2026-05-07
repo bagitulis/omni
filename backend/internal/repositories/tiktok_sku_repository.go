@@ -37,14 +37,14 @@ func (r *TiktokSkuRepository) FindBySkuID(ctx context.Context, skuID string) (*m
 }
 
 // FindByProductID finds all SKUs for a product
-func (r *TiktokSkuRepository) FindByProductID(ctx context.Context, productID uint) ([]models.TiktokSku, error) {
+func (r *TiktokSkuRepository) FindByProductID(ctx context.Context, productID string) ([]models.TiktokSku, error) {
 	var skus []models.TiktokSku
 	err := r.db.WithContext(ctx).Where("product_id = ?", productID).Find(&skus).Error
 	return skus, err
 }
 
 // DeleteByProductID deletes all SKUs for a product
-func (r *TiktokSkuRepository) DeleteByProductID(ctx context.Context, productID uint) error {
+func (r *TiktokSkuRepository) DeleteByProductID(ctx context.Context, productID string) error {
 	return r.db.WithContext(ctx).Where("product_id = ?", productID).Delete(&models.TiktokSku{}).Error
 }
 

@@ -143,7 +143,7 @@ func TestTiktokSkuRepository(t *testing.T) {
 		})
 
 		t.Run("returns empty for non-existent product", func(t *testing.T) {
-			skus, err := repo.FindByProductID(ctx, 999999)
+			skus, err := repo.FindByProductID(ctx, "non-existent-id")
 			assert.NoError(t, err)
 			assert.Empty(t, skus)
 		})
