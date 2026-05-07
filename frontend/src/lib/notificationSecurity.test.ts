@@ -50,8 +50,22 @@ describe("sanitizeForUser", () => {
     expect(sanitizeForUser("apikey is expired")).toBe(SAFE_FALLBACK);
   });
 
-  it("blocks password patterns", () => {
+  it("blocks credential leak patterns with password=value", () => {
     expect(sanitizeForUser("password: incorrect")).toBe(SAFE_FALLBACK);
+    expect(sanitizeForUser("password=secret123")).toBe(SAFE_FALLBACK);
+    expect(sanitizeForUser("pwd: admin")).toBe(SAFE_FALLBACK);
+  });
+
+  it("allows safe messages containing the word password", () => {
+    expect(sanitizeForUser("Invalid username or password")).toBe(
+      "Invalid username or password",
+    );
+    expect(sanitizeForUser("Password must be at least 8 characters")).toBe(
+      "Password must be at least 8 characters",
+    );
+    expect(sanitizeForUser("Please enter your password")).toBe(
+      "Please enter your password",
+    );
   });
 
   it("blocks internal URLs", () => {
@@ -71,10 +85,10 @@ describe("sanitizeForUser", () => {
     expect(sanitizeForUser("ECONNRESET by peer")).toBe(SAFE_FALLBACK);
   });
 
-  it("truncates messages longer than 200 chars", () => {
-    const long = "A".repeat(250);
+  it("truncates messages longer than 500 chars", () => {
+    const long = "A".repeat(600);
     const result = sanitizeForUser(long);
-    expect(result.length).toBe(200);
+    expect(result.length).toBe(500);
     expect(result.endsWith("...")).toBe(true);
   });
 });

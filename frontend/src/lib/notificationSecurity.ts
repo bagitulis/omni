@@ -10,7 +10,7 @@ const BLOCKED_PATTERNS: RegExp[] = [
   /stack|traceback|at\s+\w+\.\w+\s*\(/i,
   /\/internal\/|\/pkg\/|\/src\//i,
   /token[=:]\s*\S|jwt[=:]\s*\S|bearer\s+\S|apikey|secret[=:]/i,
-  /password|passwd|pwd[=:]/i,
+  /(?:password|passwd|pwd)[=:]\s*\S/i,
   /127\.0\.0\.1:\d{4,5}|localhost:\d{4,5}/i,
   /panic:|goroutine\s+\d/i,
   /ECONNREFUSED|ECONNRESET|EPIPE/i,

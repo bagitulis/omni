@@ -158,13 +158,27 @@ describe("handleResponseError - 401", () => {
     expect(mockClearAuth).not.toHaveBeenCalled();
   });
 
-  it("does NOT redirect for /auth/ endpoints", async () => {
+  it("passes through backend error message for /auth/ endpoints", async () => {
     window.location.pathname = "/dashboard";
+    const error = makeAxiosError({
+      response: { status: 401, data: { error: "Invalid username or password" } },
+      config: { url: "/auth/login" },
+    });
+    await expect(handleResponseError(error)).rejects.toThrow(
+      "Invalid username or password",
+    );
+    expect(mockClearAuth).not.toHaveBeenCalled();
+  });
+
+  it("uses fallback message when auth endpoint returns no error message", async () => {
+    window.location.pathname = "/login";
     const error = makeAxiosError({
       response: { status: 401, data: {} },
       config: { url: "/auth/login" },
     });
-    await expect(handleResponseError(error)).rejects.toBeDefined();
+    await expect(handleResponseError(error)).rejects.toThrow(
+      "Authentication failed",
+    );
     expect(mockClearAuth).not.toHaveBeenCalled();
   });
 });

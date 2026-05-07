@@ -44,7 +44,18 @@ export function handleResponseError(error: AxiosError): Promise<never> {
   // 401 Unauthorized
   if (status === 401) {
     const currentPath = window.location.pathname;
-    if (currentPath !== "/login" && !error.config?.url?.includes("/auth/")) {
+    const isAuthEndpoint = error.config?.url?.includes("/auth/") ?? false;
+
+    // Auth endpoints (login, register) — pass backend message through directly
+    // These messages are controlled constants (e.g. "Invalid username or password")
+    if (isAuthEndpoint) {
+      const authMsg = backendMsg || "Authentication failed";
+      logger.info(`[API] Auth endpoint 401:`, { error: authMsg });
+      return Promise.reject(new Error(authMsg));
+    }
+
+    // Non-auth 401 — token expired, redirect to login
+    if (currentPath !== "/login") {
       logger.info("[API] JWT token expired or invalid - redirecting to login");
       handleAuthExpired();
       return Promise.reject(new Error("Session expired - please login again"));
