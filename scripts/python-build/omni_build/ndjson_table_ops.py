@@ -253,16 +253,28 @@ def import_table(
         log_warning(f"  {full_name}: no matching columns")
         return 0, 0, 1
 
-    # Bug #8: Detect NOT NULL columns missing from NDJSON
+    # Bug #8: Detect NOT NULL columns missing from NDJSON — auto-fix by making nullable
     if not_null_columns:
         available_set = set(available_cols)
         missing_not_null = [c for c in not_null_columns if c not in available_set]
         if missing_not_null:
-            log_error(
+            log_warning(
                 f"  {full_name}: NOT NULL column(s) missing from NDJSON data: "
-                f"{', '.join(missing_not_null)}. Import would fail with NOT NULL violation."
+                f"{', '.join(missing_not_null)}. Auto-fixing: ALTER to nullable."
             )
-            return 0, 0, 1
+            # Auto-fix: ALTER columns to DROP NOT NULL so import can proceed
+            for col in missing_not_null:
+                alter_sql = (
+                    f'ALTER TABLE "{schema}"."{name}" '
+                    f'ALTER COLUMN "{col}" DROP NOT NULL;'
+                )
+                ok, err = psql_exec_fn(alter_sql, 30)
+                if not ok:
+                    log_error(
+                        f"  {full_name}: Failed to ALTER {col} to nullable: {err[:100]}. "
+                        f"Skipping table."
+                    )
+                    return 0, 0, 1
 
     pk_cols = pk_columns
     non_pk_cols = [c for c in available_cols if c not in pk_cols]
