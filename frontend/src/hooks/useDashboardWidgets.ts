@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getWalletData,
   getShippingFeeData,
-  getSyncStatus,
 } from "@/api/dashboard";
 
 export function useWalletData(platform: string) {
@@ -21,11 +20,3 @@ export function useShippingFeeData(platform: string) {
   });
 }
 
-export function useSyncStatus(platform: string) {
-  return useQuery({
-    queryKey: ["sync-status", platform],
-    queryFn: () => getSyncStatus(platform),
-    staleTime: 30 * 1000, // Sync status updates more frequently
-    refetchInterval: 30 * 1000,
-  });
-}

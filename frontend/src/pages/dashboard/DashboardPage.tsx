@@ -21,8 +21,6 @@ import { useNavigate } from "react-router-dom";
 import { TaskCard } from "@/components/ui/TaskCard";
 import { useDashboard } from "@/hooks/useDashboard";
 import { WalletWidget } from "./components/WalletWidget";
-import { ShippingWidget } from "./components/ShippingWidget";
-import { PlatformHealthWidget } from "./components/PlatformHealthWidget";
 import { DashboardModals } from "./components/DashboardModals";
 import { DashboardActionBar } from "./components/DashboardActionBar";
 
@@ -187,14 +185,6 @@ export function DashboardPage() {
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} md={12}>
-          <ShippingWidget />
-        </Col>
-        <Col xs={24} md={12}>
-          <PlatformHealthWidget />
-        </Col>
-      </Row>
 
       {/* Ready to Ship Orders Section */}
       <Card

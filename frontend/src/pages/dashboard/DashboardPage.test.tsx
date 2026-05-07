@@ -65,9 +65,6 @@ vi.mock("./components/ShippingWidget", () => ({
   ShippingWidget: () => <div data-testid="shipping-widget" />,
 }));
 
-vi.mock("./components/PlatformHealthWidget", () => ({
-  PlatformHealthWidget: () => <div data-testid="platform-health-widget" />,
-}));
 
 vi.mock("./components/DashboardModals", () => ({
   DashboardModals: () => <div data-testid="dashboard-modals" />,
@@ -100,7 +97,6 @@ describe("DashboardPage", () => {
     render(<DashboardPage />);
     expect(screen.getByTestId("wallet-widget")).toBeInTheDocument();
     expect(screen.getByTestId("shipping-widget")).toBeInTheDocument();
-    expect(screen.getByTestId("platform-health-widget")).toBeInTheDocument();
   });
 
   it("renders recent orders table", () => {

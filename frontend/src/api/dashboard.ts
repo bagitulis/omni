@@ -5,7 +5,6 @@ import {
   RecentOrder,
   WalletData,
   ShippingFeeData,
-  SyncStatusData,
 } from "../types/dashboard";
 import { Order } from "../types/order";
 
@@ -181,19 +180,3 @@ export async function getShippingFeeData(
   return response.data as ShippingFeeData;
 }
 
-/**
- * Fetch sync status for a platform
- * Backend route: GET /api/analytics/{platform}/sync-status
- */
-export async function getSyncStatus(platform: string): Promise<SyncStatusData> {
-  const response = await apiClient.get(`/analytics/${platform}/sync-status`);
-  if (!response.success) {
-    return {
-      platform,
-      status: "error",
-      last_sync: new Date().toISOString(),
-      details: response.error,
-    };
-  }
-  return response.data as SyncStatusData;
-}

@@ -9,13 +9,11 @@ vi.mock("@tanstack/react-query", () => ({
 vi.mock("@/api/dashboard", () => ({
   getWalletData: vi.fn(),
   getShippingFeeData: vi.fn(),
-  getSyncStatus: vi.fn(),
 }));
 
 import {
   useWalletData,
   useShippingFeeData,
-  useSyncStatus,
 } from "./useDashboardWidgets";
 import * as dashboardApi from "@/api/dashboard";
 
@@ -59,28 +57,3 @@ describe("useShippingFeeData", () => {
   });
 });
 
-describe("useSyncStatus", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    useQueryMock.mockReturnValue({ data: undefined });
-  });
-
-  it("calls useQuery with correct queryKey", () => {
-    useSyncStatus("tiktok");
-    const opts = useQueryMock.mock.calls[0][0] as { queryKey: unknown[] };
-    expect(opts.queryKey).toEqual(["sync-status", "tiktok"]);
-  });
-
-  it("queryFn calls getSyncStatus with platform", () => {
-    useSyncStatus("shopee");
-    const opts = useQueryMock.mock.calls[0][0] as { queryFn: () => unknown };
-    opts.queryFn();
-    expect(dashboardApi.getSyncStatus).toHaveBeenCalledWith("shopee");
-  });
-
-  it("sets refetchInterval to 30 seconds", () => {
-    useSyncStatus("lazada");
-    const opts = useQueryMock.mock.calls[0][0] as { refetchInterval: number };
-    expect(opts.refetchInterval).toBe(30 * 1000);
-  });
-});

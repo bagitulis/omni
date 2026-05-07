@@ -5,7 +5,6 @@ import {
   getRevenueAnalytics,
   getWalletData,
   getShippingFeeData,
-  getSyncStatus,
 } from "./dashboard";
 
 const { mockGet, mockClientGet } = vi.hoisted(() => ({
@@ -180,24 +179,4 @@ describe("dashboard API", () => {
     });
   });
 
-  describe("getSyncStatus", () => {
-    it("returns sync status on success", async () => {
-      const data = {
-        platform: "shopee",
-        status: "synced",
-        last_sync: "2024-01-01",
-      };
-      mockGet.mockResolvedValue({ success: true, data });
-      const result = await getSyncStatus("shopee");
-      expect(result).toEqual(data);
-    });
-
-    it("returns error status on failure", async () => {
-      mockGet.mockResolvedValue({ success: false, error: "Sync error" });
-      const result = await getSyncStatus("tiktok");
-      expect(result.status).toBe("error");
-      expect(result.platform).toBe("tiktok");
-      expect(result.details).toBe("Sync error");
-    });
-  });
 });
