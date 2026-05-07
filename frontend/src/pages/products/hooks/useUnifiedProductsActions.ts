@@ -1,36 +1,20 @@
 import { message } from "antd";
 import { useCallback, useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
-import { updateStockBatch } from "@/api/inventorySync";
-import type { StockBatchResult } from "@/api/inventorySync";
-import { updatePriceBatch } from "@/api/pricing";
 import { deleteProduct, getProductById } from "@/api/products";
 import type { RowActionKey } from "@/pages/products/utils/productColumns";
 import { getErrorMessage } from "@/pages/products/utils/unifiedProductUtils";
 import type {
   BatchActionType,
-  Platform,
   UnifiedProductRow,
 } from "@/types/shared";
+import { useProductSyncActions } from "./useProductSyncActions";
+import { executeSyncMarketplace } from "./useSyncMarketplace";
 import {
   confirmDeleteSelectedProducts,
   confirmDeleteSingleProduct,
 } from "./useUnifiedProductsActionDialogs";
 import { useUnifiedProductsModals } from "./useUnifiedProductsModals";
-import { executeSyncMarketplace } from "./useSyncMarketplace";
-import type { BulkOperationMetadata } from "@/types/notificationMetadata";
-
-/** Extract first error message from stock sync results */
-function collectFirstStockError(results: StockBatchResult["results"]): string {
-  for (const r of results) {
-    if (r.error) return r.error;
-    if (r.errors?.length) return r.errors[0];
-    for (const p of Object.values(r.platforms ?? {})) {
-      if (p?.error) return p.error;
-    }
-  }
-  return "Unknown error";
-}
 
 interface UseUnifiedProductsActionsParams {
   navigate: NavigateFunction;
@@ -78,10 +62,17 @@ export function useUnifiedProductsActions({
     setMarketplaceSyncProducts,
   } = useUnifiedProductsModals();
 
+  const {
+    syncLoading,
+    syncResultsOpen,
+    setSyncResultsOpen,
+    syncResults,
+    handlePriceSync,
+    handlePerPlatformPriceSync,
+    handleStockSync,
+  } = useProductSyncActions({ refreshProducts });
+
   const [batchLoading, setBatchLoading] = useState<Partial<Record<BatchActionType, boolean>>>({});
-  const [syncLoading, setSyncLoading] = useState(false);
-  const [syncResultsOpen, setSyncResultsOpen] = useState(false);
-  const [syncResults, setSyncResults] = useState<BulkOperationMetadata | null>(null);
 
   const handleDeleteProduct = useCallback(
     async (productId: number | string) => {
@@ -94,170 +85,6 @@ export function useUnifiedProductsActions({
       }
     },
     [refreshProducts],
-  );
-
-  const handlePriceSync = useCallback(
-    async (
-      items: Array<{
-        seller_sku: string;
-        price: number;
-        platforms: Platform[];
-      }>,
-    ) => {
-      if (syncLoading) return;
-      setSyncLoading(true);
-
-      try {
-        const result = await updatePriceBatch(
-          items.map((item) => ({
-            sku: item.seller_sku,
-            price: item.price,
-            platforms: item.platforms,
-          })),
-        );
-
-        if (result.failed === 0) {
-          message.success(
-            `Price synced: ${result.total} items × platforms = ${result.success} operations succeeded`,
-          );
-        } else if (result.success === 0) {
-          const firstErr = result.results.find((r) => r.errors?.length)?. errors?.[0]
-            || "Unknown error";
-          message.error(`Price sync failed: ${firstErr}`);
-        } else {
-          const firstErr = result.results.find((r) => !r.success)?.errors?.[0]
-            || "Unknown error";
-          message.warning(
-            `Price sync: ${result.success} succeeded, ${result.failed} failed. Failed: ${firstErr}`,
-          );
-        }
-        // Open results drawer
-        setSyncResults({
-          operation_type: "price_sync",
-          total: result.total,
-          succeeded: result.success ?? 0,
-          failed: result.failed,
-          platforms: {},
-          failed_items: result.results
-            .filter((r) => !r.success)
-            .flatMap((r) => (r.errors || []).map((e) => ({ sku: r.sku || "", platform: "", error: e }))),
-        });
-        setSyncResultsOpen(true);
-        await refreshProducts();
-      } catch (error) {
-        message.error(getErrorMessage(error));
-      } finally {
-        setSyncLoading(false);
-      }
-    },
-    [refreshProducts],
-  );
-
-  // New handler for MarketplaceSyncModal per-platform price sync
-  const handlePerPlatformPriceSync = useCallback(
-    async (
-      items: Array<{
-        seller_sku: string;
-        prices: Record<Platform, number>;
-        platforms: Platform[];
-      }>,
-    ) => {
-      if (syncLoading) return;
-      setSyncLoading(true);
-
-      // Transform per-platform prices into individual items per platform
-      // Backend already supports single-platform items with different prices
-      const flatItems = items.flatMap((item) =>
-        item.platforms.map((platform) => ({
-          sku: item.seller_sku,
-          price: item.prices[platform],
-          platforms: [platform],
-        })),
-      );
-
-      try {
-        const result = await updatePriceBatch(flatItems);
-
-        if (result.failed === 0) {
-          message.success(
-            `Price synced: ${result.total} items = ${result.success} operations succeeded`,
-          );
-        } else if (result.success === 0) {
-          const firstErr = result.results.find((r) => r.errors?.length)?.errors?.[0]
-            || "Unknown error";
-          message.error(`Price sync failed: ${firstErr}`);
-        } else {
-          const firstErr = result.results.find((r) => !r.success)?.errors?.[0]
-            || "Unknown error";
-          message.warning(
-            `Price sync: ${result.success} succeeded, ${result.failed} failed. Failed: ${firstErr}`,
-          );
-        }
-        await refreshProducts();
-      } catch (error) {
-        message.error(getErrorMessage(error));
-      } finally {
-        setSyncLoading(false);
-      }
-    },
-    [refreshProducts],
-  );
-
-  const handleStockSync = useCallback(
-    async (
-      items: Array<{
-        seller_sku: string;
-        stock: number;
-        platforms: Platform[];
-      }>,
-    ) => {
-      if (syncLoading) return;
-      setSyncLoading(true);
-
-      try {
-        const result = await updateStockBatch(
-          items.map((item) => ({
-            sku: item.seller_sku,
-            stock: item.stock,
-            platforms: item.platforms,
-          })),
-        );
-
-        if (result.failed === 0) {
-          message.success(
-            `Stock synced: ${result.total} SKUs × platforms = ${result.succeeded} operations succeeded`,
-          );
-        } else if (result.succeeded === 0) {
-          const firstErr = collectFirstStockError(result.results);
-          message.error(`Stock sync failed: ${firstErr}`);
-        } else {
-          const firstErr = collectFirstStockError(
-            result.results.filter((r) => r.success === false),
-          );
-          message.warning(
-            `Stock sync: ${result.succeeded} succeeded, ${result.failed} failed. Failed: ${firstErr}`,
-          );
-        }
-        // Open results drawer
-        setSyncResults({
-          operation_type: "stock_sync",
-          total: result.total,
-          succeeded: result.succeeded,
-          failed: result.failed,
-          platforms: {},
-          failed_items: result.results
-            .filter((r) => r.success === false)
-            .map((r) => ({ sku: "", platform: "", error: r.error || r.errors?.[0] || "Unknown" })),
-        });
-        setSyncResultsOpen(true);
-        await refreshProducts();
-      } catch (error) {
-        message.error(getErrorMessage(error));
-      } finally {
-        setSyncLoading(false);
-      }
-    },
-    [refreshProducts, syncLoading, setSyncLoading],
   );
 
   const handleOpenSkuMapping = useCallback(
@@ -315,6 +142,8 @@ export function useUnifiedProductsActions({
       handleDeleteProduct,
       handleOpenSkuMapping,
       navigate,
+      setMarketplaceSyncOpen,
+      setMarketplaceSyncProducts,
       setPriceSyncOpen,
       setPriceSyncProducts,
       setClonePreviewOpen,
@@ -380,6 +209,8 @@ export function useUnifiedProductsActions({
       refreshProducts,
       selectedRecords,
       setBatchCloneOpen,
+      setMarketplaceSyncOpen,
+      setMarketplaceSyncProducts,
       setPriceSyncOpen,
       setPriceSyncProducts,
       setStockSyncOpen,

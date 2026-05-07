@@ -4,13 +4,11 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
-	"github.com/omni/backend/internal/services"
 	inventoryService "github.com/omni/backend/internal/services/inventory"
 )
 
@@ -43,22 +41,8 @@ func (h *InventoryHandler) UpdateStock(c *gin.Context) {
 		return
 	}
 
-	// Get stock from inventory_records
-	// Determine platforms to update
-	platforms := req.Platforms
-	if len(platforms) == 0 && req.Platform != "" {
-		platforms = []string{req.Platform}
-	}
-
-	// Initialize credential service
-	dbPath := os.Getenv("DB_PATH")
-	if dbPath == "" {
-		dbPath = "data"
-	}
-	credService := services.NewCredentialService(dbPath)
-
-	// Use orchestrator to update marketplace platforms
-	orchestrator := inventoryService.NewStockUpdateOrchestrator(db, tenantID, credService)
+	platforms := resolvePlatforms(req.Platforms, req.Platform)
+	orchestrator := newStockOrchestrator(db, tenantID)
 	result, stockValue, err := orchestrator.UpdateStockFromInventory(c.Request.Context(), req.SKU, req.Stock, platforms)
 	if err != nil {
 		// Fallback: if no inventory record but stock value is provided,
@@ -131,18 +115,10 @@ func (h *InventoryHandler) UpdateStockBatch(c *gin.Context) {
 		return
 	}
 
-	// Initialize credential service
-	dbPath := os.Getenv("DB_PATH")
-	if dbPath == "" {
-		dbPath = "data"
-	}
-	credService := services.NewCredentialService(dbPath)
-
-	orchestrator := inventoryService.NewStockUpdateOrchestrator(db, tenantID, credService)
+	orchestrator := newStockOrchestrator(db, tenantID)
 	items := req.Items
 	if len(items) == 0 {
 		items = make([]UpdateStockBatchItem, 0, len(req.SKUs))
-
 		for _, sku := range req.SKUs {
 			items = append(items, UpdateStockBatchItem{
 				SKU:       sku,
@@ -204,7 +180,7 @@ func (h *InventoryHandler) UpdatePrice(c *gin.Context) {
 		First(&record).Error
 	if err != nil {
 		// Fallback: if no inventory record but price value is provided in request,
-		// use the request price directly (e.g. fallback-SKU products from staging import).
+		// use the request price directly.
 		if req.Price != nil {
 			priceValue = *req.Price
 		} else {
@@ -212,87 +188,25 @@ func (h *InventoryHandler) UpdatePrice(c *gin.Context) {
 			return
 		}
 	} else {
-		// Use per-platform prices if available, otherwise base HARGA
-		perPlatformPrices := inventoryService.GetPricePerPlatform(record)
-		basePrice := perPlatformPrices["base"]
-		
-		// For single-platform sync: use that platform's specific price
-		// For multi-platform or no platform specified: use base price
-		// (the orchestrator will be called once per platform with the same price)
-		if len(req.Platforms) == 1 {
-			platformKey := req.Platforms[0]
-			if pp, ok := perPlatformPrices[platformKey]; ok && pp > 0 {
-				priceValue = pp
-			} else {
-				priceValue = basePrice
-			}
-		} else if req.Platform != "" {
-			if pp, ok := perPlatformPrices[req.Platform]; ok && pp > 0 {
-				priceValue = pp
-			} else {
-				priceValue = basePrice
-			}
-		} else {
-			priceValue = basePrice
-		}
-		
-		// If inventory has price=0 but request provides a price, prefer request price.
-		if priceValue == 0 && req.Price != nil {
-			priceValue = *req.Price
-		}
+		priceValue = resolvePriceFromInventory(record, req.Price, req.Platforms, req.Platform)
 	}
 
-	// Determine platforms to update
-	platforms := req.Platforms
-	if len(platforms) == 0 && req.Platform != "" {
-		platforms = []string{req.Platform}
-	}
+	platforms := resolvePlatforms(req.Platforms, req.Platform)
+	orchestrator := newPriceOrchestrator(db, tenantID)
 
-	// Initialize credential service
-	dbPath := os.Getenv("DB_PATH")
-	if dbPath == "" {
-		dbPath = "data"
-	}
-	credService := services.NewCredentialService(dbPath)
-
-	// Use orchestrator to update marketplace platforms
-	// For multi-platform sync with per-platform prices, call orchestrator per platform
-	orchestrator := inventoryService.NewPriceUpdateOrchestrator(db, tenantID, credService)
-	
 	if len(platforms) > 1 && record.ID != "" {
-		// Multi-platform: use per-platform prices from inventory
-		perPlatformPrices := inventoryService.GetPricePerPlatform(record)
-		allResults := make(map[string]*inventoryService.PlatformPriceResult)
-		var lastErr error
-		for _, platform := range platforms {
-			pp := perPlatformPrices[platform]
-			if pp == 0 {
-				pp = priceValue // fallback to resolved price
-			}
-			result, err := orchestrator.UpdatePrice(c.Request.Context(), req.SKU, pp, []string{platform})
-			if err != nil {
-				lastErr = err
-				continue
-			}
-			for k, v := range result.Platforms {
-				allResults[k] = v
-			}
-		}
-		if len(allResults) == 0 && lastErr != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": lastErr.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"sku": req.SKU, "platforms": allResults}, "price_from_inventory": priceValue})
+		allResults, lastErr := updatePriceMultiPlatform(c.Request.Context(), orchestrator, record, req.SKU, platforms, priceValue)
+		respondPriceMultiPlatform(c, req.SKU, allResults, priceValue, lastErr)
 		return
 	}
-	
+
 	// Single platform or no inventory record: use resolved priceValue
 	result, err := orchestrator.UpdatePrice(c.Request.Context(), req.SKU, priceValue, platforms)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": result, "price_from_inventory": priceValue})
 }
 
@@ -327,14 +241,7 @@ func (h *InventoryHandler) UpdatePriceBatch(c *gin.Context) {
 		return
 	}
 
-	// Initialize credential service
-	dbPath := os.Getenv("DB_PATH")
-	if dbPath == "" {
-		dbPath = "data"
-	}
-	credService := services.NewCredentialService(dbPath)
-
-	orchestrator := inventoryService.NewPriceUpdateOrchestrator(db, tenantID, credService)
+	orchestrator := newPriceOrchestrator(db, tenantID)
 
 	// Build batch work items
 	items := make([]inventoryService.BatchWorkItem, len(req.Items))
@@ -365,20 +272,7 @@ func (h *InventoryHandler) UpdatePriceBatch(c *gin.Context) {
 		return result
 	})
 
-	// Count successes/failures from results
-	results := make([]interface{}, 0, len(rawResults))
-	successCount := 0
-	failedCount := 0
-	for _, r := range rawResults {
-		results = append(results, r)
-		if m, ok := r.(map[string]interface{}); ok {
-			if success, exists := m["success"]; exists && success == false {
-				failedCount++
-				continue
-			}
-		}
-		successCount++
-	}
+	results, successCount, failedCount := countBatchResults(rawResults)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
