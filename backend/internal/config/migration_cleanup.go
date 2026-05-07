@@ -10,6 +10,7 @@ import (
 // CleanZombieColumns removes columns from the database that no longer exist in GORM models.
 // GORM AutoMigrate adds columns but never removes them. This function handles the cleanup.
 // Safe: only drops columns that are NOT referenced by any model field.
+// CONSERVATIVE: requires model to have at least 3 fields to avoid false positives.
 func CleanZombieColumns(db *gorm.DB, models []interface{}) {
 	for _, model := range models {
 		cleanZombieColumnsForModel(db, model)
@@ -27,7 +28,7 @@ func cleanZombieColumnsForModel(db *gorm.DB, model interface{}) {
 		return
 	}
 
-	// Get expected columns from GORM model
+	// Get expected columns from GORM model (only real DB columns, not relations)
 	expectedCols := make(map[string]bool)
 	for _, field := range stmt.Schema.Fields {
 		if field.DBName != "" && field.DBName != "-" {
@@ -35,7 +36,8 @@ func cleanZombieColumnsForModel(db *gorm.DB, model interface{}) {
 		}
 	}
 
-	if len(expectedCols) == 0 {
+	// SAFETY: If model has very few columns, schema parsing likely failed — skip
+	if len(expectedCols) < 3 {
 		return
 	}
 
@@ -60,7 +62,13 @@ func cleanZombieColumnsForModel(db *gorm.DB, model interface{}) {
 		return
 	}
 
+	// SAFETY: If DB has fewer columns than model expects, something is wrong — skip
+	if len(actualCols) < len(expectedCols) {
+		return
+	}
+
 	// Find zombie columns (in DB but not in model)
+	dropped := 0
 	for _, col := range actualCols {
 		if !expectedCols[col.ColumnName] {
 			// Drop the zombie column
@@ -75,12 +83,16 @@ func cleanZombieColumnsForModel(db *gorm.DB, model interface{}) {
 					Err(err).
 					Msg("Failed to drop zombie column")
 			} else {
+				dropped++
 				log.Info().
 					Str("table", tableName).
 					Str("column", col.ColumnName).
 					Msg("Dropped zombie column")
 			}
 		}
+	}
+	if dropped > 0 {
+		log.Info().Str("table", tableName).Int("dropped", dropped).Msg("Zombie column cleanup complete")
 	}
 }
 

@@ -927,6 +927,21 @@ def _import_table(table: TableInfo, filepath: Path, compressed: bool,
         if ok and nn_output.strip():
             not_null_cols = [c.strip() for c in nn_output.split('\n') if c.strip()]
 
+    # Query column types for type coercion during import
+    col_types: Dict[str, str] = {}
+    type_sql = (
+        f"SELECT column_name, data_type FROM information_schema.columns "
+        f"WHERE table_schema = '{table.schema}' AND table_name = '{table.name}'"
+    )
+    ok, type_output = _psql_query(type_sql)
+    if ok and type_output.strip():
+        for line in type_output.split('\n'):
+            if not line.strip():
+                continue
+            parts = line.split('\t')
+            if len(parts) >= 2:
+                col_types[parts[0].strip()] = parts[1].strip()
+
     from omni_build.ndjson_table_ops import import_table
     imported, skipped, errors = import_table(
         schema=table.schema,
@@ -939,5 +954,6 @@ def _import_table(table: TableInfo, filepath: Path, compressed: bool,
         psql_exec_fn=_psql_exec,
         not_null_columns=not_null_cols,
         use_plain_insert=use_plain_insert,
+        column_types=col_types,
     )
     return SyncResult(table=table.full_name, imported=imported, skipped=skipped, errors=errors)

@@ -6,13 +6,52 @@ Extracted from ndjson_sync.py for ~300 line compliance.
 """
 import gzip
 import json
+import re
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from omni_build.logger import log_error, log_warning
 from omni_build.ndjson_sql_helpers import (
     build_batch_insert, build_batch_plain_insert, build_single_upsert,
 )
+
+# ISO 8601 timestamp pattern for type coercion detection
+_ISO_TIMESTAMP_RE = re.compile(
+    r'^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}'
+)
+
+
+def _coerce_value(value: Any, col_name: str, col_type: str) -> Any:
+    """Coerce a value to match the target column type.
+
+    Handles schema drift where a column type changed between export and import.
+    E.g., a timestamp string being inserted into a bigint/integer column.
+    """
+    if value is None:
+        return None
+    if not col_type:
+        return value
+
+    col_type_lower = col_type.lower()
+
+    # Timestamp string → integer column (extract meaningful int)
+    if isinstance(value, str) and _ISO_TIMESTAMP_RE.match(value):
+        if 'int' in col_type_lower or col_type_lower == 'bigint':
+            # Extract month or year based on column name hint
+            try:
+                from datetime import datetime
+                dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                if 'month' in col_name:
+                    return dt.month
+                elif 'year' in col_name:
+                    return dt.year
+                else:
+                    # Default: convert to unix timestamp
+                    return int(dt.timestamp())
+            except (ValueError, OSError):
+                return 0  # Fallback for unparseable timestamps
+
+    return value
 
 
 def export_table(
@@ -219,6 +258,7 @@ def import_table(
     psql_exec_fn: Callable[[str, int], Tuple[bool, str]],
     not_null_columns: Optional[List[str]] = None,
     use_plain_insert: bool = False,
+    column_types: Optional[dict] = None,
 ) -> Tuple[int, int, int]:
     from decimal import Decimal
 
@@ -283,18 +323,45 @@ def import_table(
         log_warning(f"  {full_name}: no primary key, skipping")
         return 0, total_lines, 0
 
+    # Pre-compute coercion needs (only if column_types provided)
+    needs_coercion = False
+    if column_types:
+        for col in available_cols:
+            ct = column_types.get(col, '')
+            if 'int' in ct.lower() or ct.lower() == 'bigint':
+                needs_coercion = True
+                break
+
+    def _coerce_line(line: str) -> str:
+        """Apply type coercion to a single NDJSON line if needed."""
+        if not needs_coercion or not column_types:
+            return line
+        row = json.loads(line, parse_float=Decimal)
+        changed = False
+        for col in available_cols:
+            if col in row and row[col] is not None:
+                ct = column_types.get(col, '')
+                if ct:
+                    coerced = _coerce_value(row[col], col, ct)
+                    if coerced is not row[col]:
+                        row[col] = coerced
+                        changed = True
+        return json.dumps(row, default=str) if changed else line
+
     # Pass 2: Stream file again in batches for import (memory-efficient)
     imported = 0
     error_count = 0
     batch_size = 1000
     max_batch_bytes = 10 * 1024 * 1024  # 10 MB
-
     for batch in _stream_batches(filepath, compressed, batch_size):
+        # Apply type coercion if needed
+        coerced_batch = [_coerce_line(line) for line in batch] if needs_coercion else batch
+
         if use_plain_insert:
-            batch_sql = build_batch_plain_insert(schema, name, available_cols, batch)
+            batch_sql = build_batch_plain_insert(schema, name, available_cols, coerced_batch)
         else:
             batch_sql = build_batch_insert(
-                schema, name, available_cols, pk_cols, non_pk_cols, batch
+                schema, name, available_cols, pk_cols, non_pk_cols, coerced_batch
             )
 
         # Bug #15: Dynamic batch size — reduce if SQL exceeds 10MB
