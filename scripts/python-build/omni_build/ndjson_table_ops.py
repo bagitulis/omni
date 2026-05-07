@@ -418,6 +418,8 @@ def import_table(
                         single_ok, single_err = psql_exec_fn(single_sql, 30)
                         if single_ok:
                             imported += 1
+                        elif 'duplicate key' in single_err:
+                            imported += 1  # Duplicate = already exists = success
                         else:
                             error_count += 1
                             if error_count <= 5:
@@ -440,6 +442,8 @@ def import_table(
                 single_ok, single_err = psql_exec_fn(single_sql, 30)
                 if single_ok:
                     imported += 1
+                elif 'duplicate key' in single_err:
+                    imported += 1  # Duplicate = already exists = success
                 else:
                     error_count += 1
                     if error_count <= 5:
