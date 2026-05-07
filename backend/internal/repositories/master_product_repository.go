@@ -194,7 +194,8 @@ func (r *MasterProductRepository) FindLinked(
 	return r.paginatedQuery(ctx, query, page, pageSize)
 }
 
-// FindUnmapped returns paginated products whose SKUs are NOT in the inventory (GAP-16).
+// FindUnmapped returns paginated products that have ZERO platform links.
+// A product is "unmapped" when it is not connected to any marketplace platform.
 func (r *MasterProductRepository) FindUnmapped(
 	ctx context.Context,
 	tenantID string,
@@ -209,12 +210,13 @@ func (r *MasterProductRepository) FindUnmapped(
 		query = query.Where("LOWER(title) LIKE LOWER(?)", "%"+search+"%")
 	}
 
-	query = query.Where("NOT EXISTS (?)", r.inventoryExistsSubQuery(ctx, tenantID))
+	query = query.Where("NOT EXISTS (?)", r.platformLinkExistsSubQuery(ctx))
 
 	return r.paginatedQuery(ctx, query, page, pageSize)
 }
 
-// FindMapped returns paginated products whose SKUs ARE in the inventory (GAP-16).
+// FindMapped returns paginated products that have at least one platform link.
+// A product is "mapped" when it is connected to at least one marketplace platform.
 func (r *MasterProductRepository) FindMapped(
 	ctx context.Context,
 	tenantID string,
@@ -229,7 +231,7 @@ func (r *MasterProductRepository) FindMapped(
 		query = query.Where("LOWER(title) LIKE LOWER(?)", "%"+search+"%")
 	}
 
-	query = query.Where("EXISTS (?)", r.inventoryExistsSubQuery(ctx, tenantID))
+	query = query.Where("EXISTS (?)", r.platformLinkExistsSubQuery(ctx))
 
 	return r.paginatedQuery(ctx, query, page, pageSize)
 }

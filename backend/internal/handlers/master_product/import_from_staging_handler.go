@@ -128,3 +128,37 @@ func (h *StagingImportHandler) ImportFromLazada(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response.Success(result))
 }
+
+// CleanupInvalidProducts handles POST /api/master-products/import/cleanup
+// Removes master products with invalid titles (platform-prefix-only, empty, garbage).
+func (h *StagingImportHandler) CleanupInvalidProducts(c *gin.Context) {
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
+		return
+	}
+
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Database connection failed"))
+		return
+	}
+
+	svc := masterProductService.NewStagingImportService(db)
+	deleted, err := svc.CleanupInvalidProducts(c.Request.Context(), tenantID)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("tenant_id", tenantID).
+			Msg("Failed to cleanup invalid products")
+		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
+		return
+	}
+
+	log.Info().
+		Str("tenant_id", tenantID).
+		Int("deleted", deleted).
+		Msg("Invalid products cleanup completed")
+
+	c.JSON(http.StatusOK, response.Success(map[string]int{"deleted": deleted}))
+}

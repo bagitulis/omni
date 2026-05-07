@@ -44,13 +44,53 @@ func NewStagingImportService(db *gorm.DB) *StagingImportService {
 	}
 }
 
+// isValidProductTitle checks if a title is suitable for creating a master product.
+// Rejects empty titles, platform-prefix-only titles, and titles that are just SKU patterns.
+func isValidProductTitle(title string) bool {
+	trimmed := strings.TrimSpace(title)
+	if trimmed == "" {
+		return false
+	}
+	// Reject titles that are just platform prefixes (e.g. "tiktok_", "shopee_", "lazada_")
+	for _, prefix := range []string{"shopee_", "tiktok_", "lazada_"} {
+		if strings.HasPrefix(strings.ToLower(trimmed), prefix) && len(trimmed) <= len(prefix)+20 {
+			// If the title is just a platform prefix + short ID, it's not a real product name
+			remaining := trimmed[len(prefix):]
+			// Check if remaining is purely numeric/underscore (fallback pattern)
+			if remaining == "" || isNumericOrUnderscore(remaining) {
+				return false
+			}
+		}
+	}
+	// Reject titles shorter than 3 characters (likely garbage)
+	if len(trimmed) < 3 {
+		return false
+	}
+	return true
+}
+
+// isNumericOrUnderscore returns true if s contains only digits and underscores.
+func isNumericOrUnderscore(s string) bool {
+	for _, c := range s {
+		if c != '_' && (c < '0' || c > '9') {
+			return false
+		}
+	}
+	return true
+}
+
 // findOrCreateMasterProduct finds an existing master product by normalized title or creates one.
 // Returns the product, a bool indicating whether it was created (true) or matched (false), and any error.
+// Returns an error if the title is invalid (empty, platform-prefix-only, etc.).
 func (s *StagingImportService) findOrCreateMasterProduct(
 	ctx context.Context,
 	tenantID string,
 	originalTitle string,
 ) (*models.MasterProduct, bool, error) {
+	if !isValidProductTitle(originalTitle) {
+		return nil, false, fmt.Errorf("invalid product title: %q", originalTitle)
+	}
+
 	normalizedTitle := normalizeTitle(originalTitle)
 
 	existing, err := s.repo.FindByExactTitle(ctx, tenantID, normalizedTitle)
@@ -210,4 +250,31 @@ func (s *StagingImportService) upsertMasterSku(
 	}
 
 	return masterSku, true, nil
+}
+
+// CleanupInvalidProducts removes master products with invalid titles (platform-prefix-only,
+// empty, or garbage names) that were created by earlier buggy import runs.
+// Returns the number of products deleted.
+func (s *StagingImportService) CleanupInvalidProducts(ctx context.Context, tenantID string) (int, error) {
+	var products []models.MasterProduct
+	if err := s.db.WithContext(ctx).
+		Where("tenant_id = ?", tenantID).
+		Find(&products).Error; err != nil {
+		return 0, fmt.Errorf("fetch products for cleanup: %w", err)
+	}
+
+	deleted := 0
+	for _, p := range products {
+		if !isValidProductTitle(p.Title) {
+			// Delete SKUs first (cascade)
+			s.db.WithContext(ctx).Where("master_product_id = ?", p.ID).Delete(&models.MasterProductSku{})
+			// Delete platform links
+			s.db.WithContext(ctx).Where("master_product_id = ?", p.ID).Delete(&models.MasterProductPlatformLink{})
+			// Delete the product
+			if err := s.repo.Delete(ctx, p.ID); err == nil {
+				deleted++
+			}
+		}
+	}
+	return deleted, nil
 }

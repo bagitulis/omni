@@ -211,11 +211,16 @@ func (s *StagingImportService) processTiktokDefaultSku(
 	result.LinksCreated++
 }
 
-// filterValidTiktokProducts removes products with empty ProductID to prevent orphan creation.
+// filterValidTiktokProducts removes products with empty ProductID or invalid names
+// to prevent orphan/garbage master product creation.
 func filterValidTiktokProducts(products []models.TiktokProduct) []models.TiktokProduct {
 	valid := make([]models.TiktokProduct, 0, len(products))
 	for _, p := range products {
 		if p.ProductID == "" {
+			continue
+		}
+		// Skip products with empty or invalid names — these create garbage master products
+		if !isValidProductTitle(p.Name) {
 			continue
 		}
 		valid = append(valid, p)

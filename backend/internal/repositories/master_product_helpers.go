@@ -45,3 +45,14 @@ func (r *MasterProductRepository) inventoryExistsSubQuery(ctx context.Context, t
 		Where("mps.master_product_id = master_products.id").
 		Where("EXISTS (SELECT 1 FROM "+inventoryTableName+" AS ir WHERE LOWER(ir.key_value) = LOWER(mps.seller_sku) AND ir.tenant_id = ?)", tenantID)
 }
+
+// platformLinkExistsSubQuery builds a sub-query that checks whether a product
+// has ANY platform link record. Caller wraps with EXISTS / NOT EXISTS.
+func (r *MasterProductRepository) platformLinkExistsSubQuery(ctx context.Context) *gorm.DB {
+	linkTableName := models.GetTableName("MasterProductPlatformLink")
+
+	return r.db.WithContext(ctx).
+		Table(linkTableName + " AS mpl").
+		Select("1").
+		Where("mpl.master_product_id = master_products.id")
+}

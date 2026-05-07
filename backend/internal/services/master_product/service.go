@@ -206,10 +206,10 @@ func (s *Service) List(ctx context.Context, tenantID string, filter ListFilter) 
 	var err error
 
 	if filter.UnmappedOnly {
-		// GAP-16: Find products whose SKUs are NOT in inventory_records
+		// Products with ZERO platform links (not connected to any marketplace)
 		products, total, err = s.repo.FindUnmapped(ctx, tenantID, filter.Page, filter.Limit, filter.Search)
 	} else if filter.LinkedOnly && filter.Platform == "" {
-		// GAP-16: "Mapped" tab — find products whose SKUs ARE in inventory_records
+		// "Mapped" tab — products with at least one platform link
 		products, total, err = s.repo.FindMapped(ctx, tenantID, filter.Page, filter.Limit, filter.Search)
 	} else if filter.Platform != "" {
 		// Platform-specific filter — uses platform links

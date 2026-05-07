@@ -144,6 +144,13 @@ func (s *ImportService) ImportFromRows(ctx context.Context, tenantID string, row
 			continue
 		}
 
+		// Validate title before creating master product
+		if !isValidProductTitle(group.title) {
+			result.RowsSkipped += len(group.rows)
+			result.Errors = append(result.Errors, fmt.Sprintf("skipped group with invalid title: %q", group.title))
+			continue
+		}
+
 		masterProduct := &models.MasterProduct{
 			TenantID:    tenantID,
 			Title:       truncateString(group.title, models.MasterProductMaxTitleLength),

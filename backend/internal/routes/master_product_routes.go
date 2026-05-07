@@ -79,6 +79,9 @@ func RegisterMasterProductImportRoutes(router *gin.RouterGroup, basePath string)
 			importGroup.POST("/from-staging/tiktok", stagingImportHandler.ImportFromTiktok)
 			// POST /api/master-products/import/from-staging/lazada
 			importGroup.POST("/from-staging/lazada", stagingImportHandler.ImportFromLazada)
+			// Cleanup invalid products (platform-prefix-only, empty titles)
+			// POST /api/master-products/import/cleanup
+			importGroup.POST("/cleanup", stagingImportHandler.CleanupInvalidProducts)
 		}
 
 		// Mapping routes

@@ -135,6 +135,10 @@ func (s *ImportService) ImportFromShopee(ctx context.Context, tenantID string, s
 		images[i] = imgURL
 	}
 
+	// Validate title before creating master product
+	if !isValidProductTitle(product.ItemName) {
+		return nil, fmt.Errorf("invalid product title: %q", product.ItemName)
+	}
 	// Create master product
 	masterProduct := &models.MasterProduct{
 		TenantID:    tenantID,
