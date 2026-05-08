@@ -24,7 +24,7 @@ export function useScriptMonitor() {
   const monitorQuery = useQuery({
     queryKey: ["script-monitor"],
     queryFn: getMonitorData,
-    refetchInterval: 2000,
+    refetchInterval: 5000,
     enabled: isAuthenticated, // Wait for auth before querying
   });
 

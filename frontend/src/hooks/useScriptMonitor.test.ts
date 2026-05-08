@@ -101,12 +101,12 @@ describe("useScriptMonitor", () => {
     expect(secondQuery.enabled).toBe(true);
   });
 
-  it("monitorQuery has refetchInterval of 2000ms", () => {
+  it("monitorQuery has refetchInterval of 5000ms", () => {
     useScriptMonitor();
     const firstQuery = useQueryMock.mock.calls[0]?.[0] as {
       refetchInterval: number;
     };
-    expect(firstQuery.refetchInterval).toBe(2000);
+    expect(firstQuery.refetchInterval).toBe(5000);
   });
 
   it("cancelJob mutationFn calls cancelJob api", () => {

@@ -2,7 +2,7 @@ package autofunction
 
 import (
 	"context"
-	"github.com/rs/zerolog/log"
+	"fmt"
 	"sync"
 	"time"
 
@@ -10,6 +10,7 @@ import (
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/jobs"
 	"github.com/omni/backend/internal/utils"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -217,9 +218,18 @@ func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *go
 	// Track whether execution succeeded (for progress_data cleanup)
 	execSuccess := false
 
-	// Ensure is_running is cleared on exit (even on panic)
-	// Only clear progress_data on SUCCESS \u2014 preserve it on failure/panic for resume
+	// Panic recovery: prevent a single handler panic from killing the entire scheduler.
+	// Also ensures is_running is cleared on exit (even on panic).
+	// Only clear progress_data on SUCCESS — preserve it on failure/panic for resume.
 	defer func() {
+		if r := recover(); r != nil {
+			log.Error().Msgf("\U0001f525 [%s] PANIC in %s: %v", tenantID, cfg.Name, r)
+			s.recordHistory(tenantDB, cfg.Name, "failed", fmt.Sprintf("panic: %v", r), startTime)
+			if jobID != "" {
+				_ = qm.FailJob(jobID, fmt.Sprintf("panic: %v", r))
+			}
+		}
+
 		updates := map[string]interface{}{
 			"is_running":    false,
 			"run_started_at": nil,
@@ -264,7 +274,9 @@ func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *go
 		log.Info().Msgf("\u274c [%s] Failed to update config: %v", tenantID, err)
 	}
 
-	// Record history
+	// Record history: only write to auto_functions_history when no job queue entry exists.
+	// When jobID is set, the job queue entry (job_history) is the single source of truth,
+	// preventing duplicate entries in the merged History tab.
 	status := "success"
 	errMsg := ""
 	if err != nil {
@@ -282,7 +294,11 @@ func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *go
 		}
 	}
 
-	s.recordHistory(tenantDB, cfg.Name, status, errMsg, startTime)
+	// Only record to auto_functions_history if job queue entry was NOT created
+	// (avoids duplicate entries in merged history view)
+	if jobID == "" {
+		s.recordHistory(tenantDB, cfg.Name, status, errMsg, startTime)
+	}
 }
 
 // recordHistory records execution history in tenant's database
