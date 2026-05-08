@@ -83,9 +83,14 @@ func shouldRetryProductGet(code, message string) bool {
 }
 
 // GetProductsWithContext fetches products from Lazada API with retry/backoff.
-func (c *Client) GetProductsWithContext(ctx context.Context, offset, limit int) (*ProductListResponse, error) {
+// Optional filter parameter: defaults to "live" if not provided.
+func (c *Client) GetProductsWithContext(ctx context.Context, offset, limit int, filter ...string) (*ProductListResponse, error) {
+	filterValue := "live"
+	if len(filter) > 0 && filter[0] != "" {
+		filterValue = filter[0]
+	}
 	params := map[string]string{
-		"filter": "live", // Filter live products only, same as Node.js
+		"filter": filterValue,
 		"offset": fmt.Sprintf("%d", offset),
 		"limit":  fmt.Sprintf("%d", limit),
 	}

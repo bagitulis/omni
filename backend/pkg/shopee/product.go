@@ -43,12 +43,18 @@ type ProductDetail struct {
 	Images        []string `json:"images"`
 }
 
-// GetProductList fetches product list from Shopee API
-func (c *Client) GetProductList(offset, limit int) (*ProductListResponse, error) {
+// GetProductList fetches product list from Shopee API.
+// itemStatus is optional; defaults to "NORMAL" if not provided.
+func (c *Client) GetProductList(offset, limit int, itemStatus ...string) (*ProductListResponse, error) {
+	status := "NORMAL"
+	if len(itemStatus) > 0 && itemStatus[0] != "" {
+		status = itemStatus[0]
+	}
+
 	params := map[string]string{
 		"offset":      strconv.Itoa(offset),
 		"page_size":   strconv.Itoa(limit),
-		"item_status": "NORMAL",
+		"item_status": status,
 	}
 
 	var result ProductListResponse

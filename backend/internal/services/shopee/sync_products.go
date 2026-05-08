@@ -2,10 +2,14 @@ package shopee
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/image"
 	shopeePkg "github.com/omni/backend/pkg/shopee"
+	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 )
 
@@ -60,14 +64,58 @@ func (s *ProductSyncService) SyncProductsByIDs(ctx context.Context, itemIDs []in
 }
 
 func (s *ProductSyncService) fetchAllItemIDs(ctx context.Context) ([]int64, error) {
+	zlog := zerolog.Ctx(ctx)
 	allItemIDs := make([]int64, 0)
 	offset := 0
 	pageSize := 100 // Max allowed by Shopee API.
+	var totalCount int64
+	firstPage := true
+
+	const maxRetries = 3
+	baseDelay := 2 * time.Second
 
 	for {
-		listResp, err := s.client.GetProductList(offset, pageSize)
-		if err != nil {
+		if err := ctx.Err(); err != nil {
 			return nil, err
+		}
+
+		var listResp *shopeePkg.ProductListResponse
+		var lastErr error
+
+		for attempt := 0; attempt < maxRetries; attempt++ {
+			listResp, lastErr = s.client.GetProductList(offset, pageSize)
+			if lastErr == nil {
+				break
+			}
+
+			zlog.Warn().Err(lastErr).Int("attempt", attempt+1).Int("offset", offset).Msg("Shopee GetProductList failed, retrying")
+
+			if attempt >= maxRetries-1 {
+				break
+			}
+
+			delay := baseDelay * time.Duration(1<<attempt)
+			if delay > 30*time.Second {
+				delay = 30 * time.Second
+			}
+			jitter := time.Duration(rand.Intn(500)) * time.Millisecond
+			delay += jitter
+
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(delay):
+				continue
+			}
+		}
+
+		if lastErr != nil {
+			return nil, fmt.Errorf("shopee GetProductList failed after %d retries at offset %d: %w", maxRetries, offset, lastErr)
+		}
+
+		if firstPage {
+			totalCount = listResp.Response.TotalCount
+			firstPage = false
 		}
 
 		if len(listResp.Response.Item) == 0 {
@@ -83,6 +131,13 @@ func (s *ProductSyncService) fetchAllItemIDs(ctx context.Context) ([]int64, erro
 		}
 
 		offset = listResp.Response.NextOffset
+	}
+
+	if totalCount > 0 && int64(len(allItemIDs)) != totalCount {
+		zlog.Warn().
+			Int64("expected_total", totalCount).
+			Int("actual_count", len(allItemIDs)).
+			Msg("Shopee product count mismatch after pagination")
 	}
 
 	return allItemIDs, nil

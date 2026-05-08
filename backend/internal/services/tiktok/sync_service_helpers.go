@@ -3,6 +3,7 @@ package tiktok
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
@@ -11,15 +12,33 @@ import (
 	"gorm.io/gorm"
 )
 
+// maxPages is the maximum number of pages to fetch to prevent infinite loops.
+// 500 pages * 100 items/page = 50,000 products max.
+const maxPages = 500
+
+// fetchAllProducts retrieves all ACTIVATE products from TikTok with retry and pagination.
+// Status is hardcoded to "ACTIVATE"; change to "" (empty) for all statuses if deletion detection is needed.
 func (s *SyncService) fetchAllProducts(ctx context.Context) ([]tiktokPkg.ProductSearchItem, int, error) {
+	zlog := zerolog.Ctx(ctx)
 	allProducts := make([]tiktokPkg.ProductSearchItem, 0)
 	nextPageToken := ""
 	totalCount := 0
+	pageCount := 0
 
 	for {
-		resp, err := s.client.SearchProductsV202502("ACTIVATE", 100, nextPageToken)
+		if err := ctx.Err(); err != nil {
+			return nil, 0, fmt.Errorf("context cancelled during product fetch: %w", err)
+		}
+
+		pageCount++
+		if pageCount > maxPages {
+			zlog.Warn().Int("max_pages", maxPages).Int("products_fetched", len(allProducts)).Msg("Reached maxPages limit, stopping pagination")
+			break
+		}
+
+		resp, err := s.fetchProductPageWithRetry(ctx, nextPageToken)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, fmt.Errorf("failed to fetch product page %d: %w", pageCount, err)
 		}
 
 		allProducts = append(allProducts, resp.Data.Products...)
@@ -32,6 +51,13 @@ func (s *SyncService) fetchAllProducts(ctx context.Context) ([]tiktokPkg.Product
 		}
 
 		nextPageToken = resp.Data.NextPageToken
+	}
+
+	if len(allProducts) < totalCount {
+		zlog.Warn().
+			Int("total_count", totalCount).
+			Int("fetched_count", len(allProducts)).
+			Msg("TikTok product fetch incomplete: fetched fewer products than reported total")
 	}
 
 	return allProducts, totalCount, nil

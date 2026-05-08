@@ -93,22 +93,27 @@ func (s *SyncService) SyncProducts(ctx context.Context) (int, error) {
 	// Fetch ALL products with pagination (API returns max 50 per page)
 	const pageSize = 50
 	var products []lazadaPkg.Product
-
+	var totalProducts int
 	for offset := 0; ; offset += pageSize {
 		resp, err := s.client.GetProductsWithContext(ctx, offset, pageSize)
 		if err != nil {
 			return 0, fmt.Errorf("lazada fetch products offset=%d: %w", offset, err)
 		}
+		totalProducts = resp.Data.TotalProducts
 		products = append(products, resp.Data.Products...)
 		zlog.Info().
 			Int("fetched", len(resp.Data.Products)).
 			Int("total_so_far", len(products)).
-			Int("total_api", resp.Data.TotalProducts).
+			Int("total_api", totalProducts).
 			Msg("Lazada sync fetched page")
 
-		if len(resp.Data.Products) < pageSize || len(products) >= resp.Data.TotalProducts {
+		if len(resp.Data.Products) < pageSize || len(products) >= totalProducts {
 			break
 		}
+	}
+
+	if totalProducts > 0 && len(products) < totalProducts {
+		zlog.Warn().Int("expected", totalProducts).Int("fetched", len(products)).Msg("Lazada sync fetched fewer products than API reported")
 	}
 
 	zlog.Info().Int("count", len(products)).Msg("Lazada sync fetched all products")

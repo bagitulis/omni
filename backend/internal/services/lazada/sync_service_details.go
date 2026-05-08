@@ -20,6 +20,8 @@ func (s *SyncService) SyncProductsWithDetails(ctx context.Context, offset, limit
 	totalProducts := 0
 	allRows := make([]map[string]interface{}, 0)
 	allProducts := make([]lazadaPkg.Product, 0)
+	consecutiveEmpty := 0
+	const maxConsecutiveEmpty = 3
 
 	for {
 		zlog.Info().Int("page_offset", pageOffset).Int("page_limit", pageLimit).Msg("Fetching Lazada product page")
@@ -35,9 +37,21 @@ func (s *SyncService) SyncProductsWithDetails(ctx context.Context, offset, limit
 		zlog.Info().Int("fetched_products", len(products)).Int("total_products", totalProducts).Msg("Fetched Lazada products page")
 
 		if len(products) == 0 {
-			break
+			if pageOffset >= totalProducts || totalProducts == 0 {
+				break
+			}
+			// Empty page but haven't fetched all — transient issue
+			consecutiveEmpty++
+			if consecutiveEmpty >= maxConsecutiveEmpty {
+				zlog.Warn().Int("page_offset", pageOffset).Int("total_products", totalProducts).Msg("Breaking after max consecutive empty pages")
+				break
+			}
+			zlog.Warn().Int("page_offset", pageOffset).Int("total_products", totalProducts).Int("consecutive_empty", consecutiveEmpty).Msg("Empty page received before all products fetched, continuing")
+			pageOffset += pageLimit
+			continue
 		}
 
+		consecutiveEmpty = 0
 		for _, product := range products {
 			allProducts = append(allProducts, product)
 			allRows = append(allRows, s.buildProductRows(product)...)
@@ -47,6 +61,10 @@ func (s *SyncService) SyncProductsWithDetails(ctx context.Context, offset, limit
 		if pageOffset >= totalProducts {
 			break
 		}
+	}
+
+	if totalProducts > 0 && len(allProducts) < totalProducts {
+		zlog.Warn().Int("expected", totalProducts).Int("fetched", len(allProducts)).Msg("Lazada sync fetched fewer products than API reported")
 	}
 
 	if len(allProducts) == 0 {

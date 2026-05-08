@@ -133,6 +133,15 @@ func syncProductsHandler(ctx context.Context, tenantID string, cfg *models.AutoF
 		resultMsg += fmt.Sprintf(" | Auto-link: %d mapped, %d errors", mappedCount, linkErrors)
 	}
 
+	// Reconciliation: detect orphan links (platform products no longer in staging)
+	reconSvc := masterProductService.NewReconciliationService(db, tenantID)
+	reconResult, reconErr := reconSvc.Reconcile(ctx)
+	if reconErr != nil {
+		resultMsg += fmt.Sprintf(" | Reconciliation FAILED: %v", reconErr)
+	} else if reconResult.StaleDetected > 0 || reconResult.StaleCleared > 0 {
+		resultMsg += fmt.Sprintf(" | Reconciliation: %d stale, %d cleared", reconResult.StaleDetected, reconResult.StaleCleared)
+	}
+
 	// Refresh InventorySkuPlatformStatus from staging tables
 	statusCount, statusErr := refreshInventoryPlatformStatus(ctx, db, tenantID)
 	if statusErr != nil {

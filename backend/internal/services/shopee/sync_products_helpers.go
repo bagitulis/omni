@@ -3,6 +3,7 @@ package shopee
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
@@ -49,7 +50,13 @@ func (s *ProductSyncService) syncItemDetailBatches(
 
 	log.Info().Ints64("item_ids", allItemIDs).Int("total_items", len(allItemIDs)).Msg("[Shopee SyncProductsByIDs] Starting sync")
 
+	var failedItemIDs []int64
+
 	for i := 0; i < len(allItemIDs); i += batchSize {
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("context cancelled during batch sync: %w", err)
+		}
+
 		end := i + batchSize
 		if end > len(allItemIDs) {
 			end = len(allItemIDs)
@@ -61,10 +68,9 @@ func (s *ProductSyncService) syncItemDetailBatches(
 		detailResp, err := s.client.GetProductDetailWithImages(batchIDs)
 		if err != nil {
 			log.Error().Err(err).Ints64("batch_ids", batchIDs).Msg("[Shopee SyncProductsByIDs] API call FAILED")
-			zlog.Warn().Err(err).Int("batch_size", len(batchIDs)).Msg("Shopee product detail batch failed")
-			// Return error immediately for auth/API failures so
-			// the caller can report the actual error to the user
-			return err
+			zlog.Warn().Err(err).Int("batch_size", len(batchIDs)).Int("batch_start", i).Msg("Shopee product detail batch failed, continuing")
+			failedItemIDs = append(failedItemIDs, batchIDs...)
+			continue
 		}
 
 		log.Info().Int("item_count", len(detailResp.Response.ItemList)).Msg("[Shopee SyncProductsByIDs] API response received")
@@ -82,6 +88,13 @@ func (s *ProductSyncService) syncItemDetailBatches(
 			log.Info().Int64("item_id", prod.ItemID).Msg("[Shopee SyncProductsByIDs] ✅ Persisted")
 			*count = *count + 1
 		}
+	}
+
+	if len(failedItemIDs) > 0 {
+		zlog.Warn().
+			Int("failed_items", len(failedItemIDs)).
+			Int("total_items", len(allItemIDs)).
+			Msg("Shopee product sync completed with batch failures")
 	}
 
 	return nil
