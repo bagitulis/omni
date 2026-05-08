@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -27,8 +28,12 @@ func (s *MultiTenantAuthService) RefreshTokenForTenant(ctx context.Context, refr
 		tenantDB, err := s.tenantService.GetTenantDB(tenantID)
 		if err == nil {
 			refreshSessionRepo = repositories.NewRefreshSessionRepository(tenantDB)
-			session, _ = refreshSessionRepo.FindByTokenHash(ctx, tokenHash)
-			if session != nil {
+			found, findErr := refreshSessionRepo.FindByTokenHash(ctx, tokenHash)
+			if findErr != nil && !errors.Is(findErr, gorm.ErrRecordNotFound) {
+				log.Warn().Err(findErr).Str("tenant_id", tenantID).Msg("DB error during token refresh lookup")
+			}
+			if found != nil {
+				session = found
 				db = tenantDB
 				userRepo = repositories.NewUserRepository(db)
 			}
@@ -44,8 +49,13 @@ func (s *MultiTenantAuthService) RefreshTokenForTenant(ctx context.Context, refr
 				continue
 			}
 			refreshSessionRepo = repositories.NewRefreshSessionRepository(tenantDB)
-			session, _ = refreshSessionRepo.FindByTokenHash(ctx, tokenHash)
-			if session != nil {
+			found, findErr := refreshSessionRepo.FindByTokenHash(ctx, tokenHash)
+			if findErr != nil && !errors.Is(findErr, gorm.ErrRecordNotFound) {
+				log.Warn().Err(findErr).Str("tenant_id", tenant.ID).Msg("DB error during token refresh scan")
+				continue // Skip this tenant on DB error, don't treat as 'not found'
+			}
+			if found != nil {
+				session = found
 				db = tenantDB
 				userRepo = repositories.NewUserRepository(db)
 				break
@@ -60,8 +70,12 @@ func (s *MultiTenantAuthService) RefreshTokenForTenant(ctx context.Context, refr
 			return "", "", ErrInvalidToken
 		}
 		refreshSessionRepo = repositories.NewRefreshSessionRepository(systemDB)
-		session, _ = refreshSessionRepo.FindByTokenHash(ctx, tokenHash)
-		if session != nil {
+		found, findErr := refreshSessionRepo.FindByTokenHash(ctx, tokenHash)
+		if findErr != nil && !errors.Is(findErr, gorm.ErrRecordNotFound) {
+			log.Warn().Err(findErr).Msg("DB error during token refresh lookup in system DB")
+		}
+		if found != nil {
+			session = found
 			db = systemDB
 			userRepo = repositories.NewUserRepository(db)
 		}

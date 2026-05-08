@@ -35,7 +35,7 @@ export default function OAuthLogsViewer() {
   });
 
   const platformOptions = useMemo(() => {
-    const uniquePlatforms = new Set(data.map((entry) => entry.platform));
+    const uniquePlatforms = new Set((Array.isArray(data) ? data : []).map((entry) => entry.platform));
     return [{ label: "All platforms", value: "all" }].concat(
       Array.from(uniquePlatforms).map((platform) => ({
         label: platform,
@@ -45,7 +45,7 @@ export default function OAuthLogsViewer() {
   }, [data]);
 
   const statusOptions = useMemo(() => {
-    const uniqueStatuses = new Set(data.map((entry) => entry.status));
+    const uniqueStatuses = new Set((Array.isArray(data) ? data : []).map((entry) => entry.status));
     return [{ label: "All statuses", value: "all" }].concat(
       Array.from(uniqueStatuses).map((status) => ({
         label: status,
@@ -55,7 +55,7 @@ export default function OAuthLogsViewer() {
   }, [data]);
 
   const filteredData = useMemo(() => {
-    return data.filter((entry) => {
+    return (Array.isArray(data) ? data : []).filter((entry) => {
       const platformMatched =
         platformFilter === "all" || entry.platform === platformFilter;
       const statusMatched =

@@ -40,8 +40,9 @@ export function ShippingFileList({
     },
   ];
 
+  const files = filesData?.data?.files;
   const tableData =
-    filesData?.data?.files?.map((file) => ({ key: file, name: file })) || [];
+    (Array.isArray(files) ? files : []).map((file) => ({ key: file, name: file }));
 
   return (
     <div style={{ paddingTop: 16, paddingBottom: 16 }}>

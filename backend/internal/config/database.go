@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"sync"
 	"time"
 
@@ -15,6 +16,16 @@ import (
 // ErrMissingTenantID is returned when tenant ID is empty
 // AGENTS.MD: TIDAK ADA DEFAULT TENANT - harus error jika kosong
 var ErrMissingTenantID = errors.New("tenant_id is required - no default tenant allowed")
+
+// tenantIDPattern validates tenant ID format: only alphanumeric and underscore.
+// This is defense-in-depth against SQL injection via schema names.
+var tenantIDValidationPattern = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+
+// isValidTenantID validates tenant ID format for safe use in SQL identifiers.
+// Must be called before any fmt.Sprintf that builds schema/table names.
+func isValidTenantID(tenantID string) bool {
+	return tenantID != "" && tenantIDValidationPattern.MatchString(tenantID)
+}
 
 // DBDriver represents the database driver type
 type DBDriver string
@@ -125,6 +136,11 @@ func SetTenantSchema(db *gorm.DB, tenantID string) error {
 	// HARD GUARD: Reject empty tenant ID
 	if tenantID == "" {
 		return ErrMissingTenantID
+	}
+
+	// Defense-in-depth: validate tenantID format before using in SQL
+	if !isValidTenantID(tenantID) {
+		return fmt.Errorf("invalid tenant ID format: %s", tenantID)
 	}
 
 	if globalDriver != DriverPostgres {

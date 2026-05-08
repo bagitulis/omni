@@ -45,7 +45,8 @@ export function useProducts(params: ProductListFilter) {
     queryFn: async () => {
       const response = await getProducts(params);
 
-      const products = (response.data || []).map(transformToTableProduct);
+      const rawData = response.data;
+      const products = (Array.isArray(rawData) ? rawData : []).map(transformToTableProduct);
 
       return {
         products,

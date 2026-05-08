@@ -44,6 +44,13 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
     setSearchInput(values.search || "");
   }, [values.search]);
 
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    };
+  }, []);
+
   const handleSearchChange = useCallback(
     (value: string) => {
       setSearchInput(value);

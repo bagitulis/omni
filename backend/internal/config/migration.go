@@ -51,6 +51,12 @@ func MigrateSystemDatabase(db *gorm.DB) error {
 func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 	log.Info().Msgf("🔄 Running tenant database migrations for: %s", tenantID)
 
+	// Defense-in-depth: validate tenantID format before using in SQL
+	// Even though middleware validates, this prevents injection if called from other paths
+	if !isValidTenantID(tenantID) {
+		return fmt.Errorf("invalid tenant ID format: %s", tenantID)
+	}
+
 	// Create tenant schema for PostgreSQL
 	if GetDatabaseDriver() == DriverPostgres {
 		schemaName := fmt.Sprintf("tenant_%s", tenantID)

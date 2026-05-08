@@ -3,6 +3,7 @@ package handlers
 import (
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,25 @@ import (
 	"github.com/omni/backend/internal/services/webhooks"
 	"github.com/rs/zerolog/log"
 )
+
+// webhookTenantPattern validates tenant_id format to prevent injection attacks.
+// Webhooks receive tenant_id from query params (external platforms don't have JWT),
+// so we MUST validate the format here as defense-in-depth.
+var webhookTenantPattern = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+
+// extractAndValidateWebhookTenant extracts tenant_id from query/header and validates format.
+// Returns empty string if invalid (caller should still process webhook but skip tenant-specific logic).
+func extractAndValidateWebhookTenant(c *gin.Context) string {
+	tenantID := c.Query("tenant_id")
+	if tenantID == "" {
+		tenantID = c.GetHeader("x-tenant-id")
+	}
+	if tenantID != "" && !webhookTenantPattern.MatchString(tenantID) {
+		log.Warn().Str("tenant_id", tenantID).Msg("[Webhook] Invalid tenant_id format rejected")
+		return ""
+	}
+	return tenantID
+}
 
 // isSignatureError checks if the error is related to webhook signature verification
 func isSignatureError(err error) bool {
@@ -106,12 +126,9 @@ func (h *WebhookHandler) ShopeeWebhook(c *gin.Context) {
 		return
 	}
 
-	// Get signature and tenant from headers/params
+	// Get signature and validate tenant from headers/params
 	signature := c.GetHeader("Authorization")
-	tenantID := c.Query("tenant_id")
-	if tenantID == "" {
-		tenantID = c.GetHeader("x-tenant-id")
-	}
+	tenantID := extractAndValidateWebhookTenant(c)
 
 	log.Debug().Str("tenant_id", tenantID).Msg("Shopee webhook received")
 
@@ -143,10 +160,7 @@ func (h *WebhookHandler) LazadaWebhook(c *gin.Context) {
 	}
 
 	signature := c.GetHeader("Authorization")
-	tenantID := c.Query("tenant_id")
-	if tenantID == "" {
-		tenantID = c.GetHeader("x-tenant-id")
-	}
+	tenantID := extractAndValidateWebhookTenant(c)
 
 	log.Debug().Str("tenant_id", tenantID).Msg("Lazada webhook received")
 
@@ -176,10 +190,7 @@ func (h *WebhookHandler) TiktokWebhook(c *gin.Context) {
 
 	signature := c.GetHeader("x-tts-signature")
 	timestamp := c.GetHeader("x-tts-timestamp")
-	tenantID := c.Query("tenant_id")
-	if tenantID == "" {
-		tenantID = c.GetHeader("x-tenant-id")
-	}
+	tenantID := extractAndValidateWebhookTenant(c)
 
 	log.Debug().Str("tenant_id", tenantID).Msg("TikTok webhook received")
 

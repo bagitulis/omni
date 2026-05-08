@@ -47,8 +47,8 @@ func TestSKUCache_Set_And_Get(t *testing.T) {
 		},
 	}
 
-	c.Set("SKU-001", status)
-	got := c.Get("SKU-001")
+	c.Set("test-tenant", "SKU-001", status)
+	got := c.Get("test-tenant", "SKU-001")
 
 	if got == nil {
 		t.Fatal("Get() returned nil after Set()")
@@ -69,7 +69,7 @@ func TestSKUCache_Set_And_Get(t *testing.T) {
 
 func TestSKUCache_Get_MissingKey_ReturnsNil(t *testing.T) {
 	c := sku.NewSKUCache()
-	got := c.Get("NONEXISTENT-SKU")
+	got := c.Get("test-tenant", "NONEXISTENT-SKU")
 	if got != nil {
 		t.Errorf("Get() = %v, want nil for missing key", got)
 	}
@@ -78,16 +78,16 @@ func TestSKUCache_Get_MissingKey_ReturnsNil(t *testing.T) {
 func TestSKUCache_Delete(t *testing.T) {
 	c := sku.NewSKUCache()
 	status := &sku.PlatformSKUStatus{SKU: "SKU-DELETE"}
-	c.Set("SKU-DELETE", status)
+	c.Set("test-tenant", "SKU-DELETE", status)
 
 	// Verify it's set
-	if c.Get("SKU-DELETE") == nil {
+	if c.Get("test-tenant", "SKU-DELETE") == nil {
 		t.Fatal("expected value before delete")
 	}
 
-	c.Delete("SKU-DELETE")
+	c.Delete("test-tenant", "SKU-DELETE")
 
-	if got := c.Get("SKU-DELETE"); got != nil {
+	if got := c.Get("test-tenant", "SKU-DELETE"); got != nil {
 		t.Errorf("Get() after Delete() = %v, want nil", got)
 	}
 }
@@ -95,7 +95,7 @@ func TestSKUCache_Delete(t *testing.T) {
 func TestSKUCache_Delete_NonExistent_IsNoop(t *testing.T) {
 	c := sku.NewSKUCache()
 	// Should not panic
-	c.Delete("NONEXISTENT")
+	c.Delete("test-tenant", "NONEXISTENT")
 }
 
 func TestSKUCache_Clear(t *testing.T) {
@@ -104,11 +104,11 @@ func TestSKUCache_Clear(t *testing.T) {
 	// Add multiple entries
 	for i := 0; i < 5; i++ {
 		key := fmt.Sprintf("SKU-%03d", i)
-		c.Set(key, &sku.PlatformSKUStatus{SKU: key})
+		c.Set("test-tenant", key, &sku.PlatformSKUStatus{SKU: key})
 	}
 
 	// Verify at least one is set
-	if c.Get("SKU-000") == nil {
+	if c.Get("test-tenant", "SKU-000") == nil {
 		t.Fatal("expected value before clear")
 	}
 
@@ -117,7 +117,7 @@ func TestSKUCache_Clear(t *testing.T) {
 	// All should be gone
 	for i := 0; i < 5; i++ {
 		key := fmt.Sprintf("SKU-%03d", i)
-		if got := c.Get(key); got != nil {
+		if got := c.Get("test-tenant", key); got != nil {
 			t.Errorf("Get(%q) after Clear() = %v, want nil", key, got)
 		}
 	}
@@ -133,10 +133,10 @@ func TestSKUCache_Expiry(t *testing.T) {
 	c := sku.NewSKUCache()
 	c.SetTTL(50 * time.Millisecond) // very short TTL
 
-	c.Set("EXPIRING-SKU", &sku.PlatformSKUStatus{SKU: "EXPIRING-SKU"})
+	c.Set("test-tenant", "EXPIRING-SKU", &sku.PlatformSKUStatus{SKU: "EXPIRING-SKU"})
 
 	// Should be present immediately
-	if c.Get("EXPIRING-SKU") == nil {
+	if c.Get("test-tenant", "EXPIRING-SKU") == nil {
 		t.Fatal("expected value immediately after Set()")
 	}
 
@@ -144,15 +144,15 @@ func TestSKUCache_Expiry(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Should now be nil
-	if got := c.Get("EXPIRING-SKU"); got != nil {
+	if got := c.Get("test-tenant", "EXPIRING-SKU"); got != nil {
 		t.Errorf("Get() after TTL expiry = %v, want nil", got)
 	}
 }
 
 func TestSKUCache_Stats_ReturnsCounts(t *testing.T) {
 	c := sku.NewSKUCache()
-	c.Set("A", &sku.PlatformSKUStatus{SKU: "A"})
-	c.Set("B", &sku.PlatformSKUStatus{SKU: "B"})
+	c.Set("test-tenant", "A", &sku.PlatformSKUStatus{SKU: "A"})
+	c.Set("test-tenant", "B", &sku.PlatformSKUStatus{SKU: "B"})
 
 	stats := c.Stats()
 	if stats == nil {
@@ -181,10 +181,10 @@ func TestSKUCache_Overwrite(t *testing.T) {
 	first := &sku.PlatformSKUStatus{SKU: "SKU-OW", Shopee: &sku.SKUStatus{Exists: true}}
 	second := &sku.PlatformSKUStatus{SKU: "SKU-OW", Shopee: &sku.SKUStatus{Exists: false}}
 
-	c.Set("SKU-OW", first)
-	c.Set("SKU-OW", second)
+	c.Set("test-tenant", "SKU-OW", first)
+	c.Set("test-tenant", "SKU-OW", second)
 
-	got := c.Get("SKU-OW")
+	got := c.Get("test-tenant", "SKU-OW")
 	if got == nil {
 		t.Fatal("Get() returned nil")
 	}

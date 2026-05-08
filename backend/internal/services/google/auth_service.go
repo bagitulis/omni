@@ -36,6 +36,7 @@ func (s *AuthService) GetClient(ctx context.Context, tenantID string) (*sheets.S
 		return nil, fmt.Errorf("no service account credentials configured")
 	}
 
+	// Fast path: check under read lock
 	s.mu.RLock()
 	if client, ok := s.clients[tenantID]; ok {
 		s.mu.RUnlock()
@@ -43,13 +44,27 @@ func (s *AuthService) GetClient(ctx context.Context, tenantID string) (*sheets.S
 	}
 	s.mu.RUnlock()
 
-	// Create new client
+	// Slow path: acquire write lock and re-check (proper double-checked locking)
+	s.mu.Lock()
+	// Re-check after acquiring write lock to prevent duplicate creation
+	if client, ok := s.clients[tenantID]; ok {
+		s.mu.Unlock()
+		return client, nil
+	}
+	s.mu.Unlock()
+
+	// Create new client (outside lock to avoid holding lock during I/O)
 	client, err := s.createClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Store under write lock, re-check one more time (another goroutine may have created it)
 	s.mu.Lock()
+	if existing, ok := s.clients[tenantID]; ok {
+		s.mu.Unlock()
+		return existing, nil // Use the one that was created first
+	}
 	s.clients[tenantID] = client
 	s.mu.Unlock()
 
@@ -116,6 +131,7 @@ func (s *AuthService) GetDriveClient(ctx context.Context, tenantID string) (*dri
 		return nil, fmt.Errorf("no service account credentials configured")
 	}
 
+	// Fast path: check under read lock
 	s.mu.RLock()
 	if client, ok := s.driveClients[tenantID]; ok {
 		s.mu.RUnlock()
@@ -123,7 +139,15 @@ func (s *AuthService) GetDriveClient(ctx context.Context, tenantID string) (*dri
 	}
 	s.mu.RUnlock()
 
-	// Create new drive client
+	// Slow path: acquire write lock and re-check
+	s.mu.Lock()
+	if client, ok := s.driveClients[tenantID]; ok {
+		s.mu.Unlock()
+		return client, nil
+	}
+	s.mu.Unlock()
+
+	// Create new drive client (outside lock to avoid holding lock during I/O)
 	config, err := google.JWTConfigFromJSON(s.credentials, drive.DriveReadonlyScope)
 	if err != nil {
 		return nil, fmt.Errorf("parse credentials: %w", err)
@@ -135,7 +159,12 @@ func (s *AuthService) GetDriveClient(ctx context.Context, tenantID string) (*dri
 		return nil, fmt.Errorf("create drive service: %w", err)
 	}
 
+	// Store under write lock, re-check
 	s.mu.Lock()
+	if existing, ok := s.driveClients[tenantID]; ok {
+		s.mu.Unlock()
+		return existing, nil
+	}
 	s.driveClients[tenantID] = srv
 	s.mu.Unlock()
 

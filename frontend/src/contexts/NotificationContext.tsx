@@ -25,6 +25,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const MAX_RECONNECT_ATTEMPTS = 10;
 
   const fetchUnreadCount = useCallback(async () => {
@@ -152,7 +153,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const delay = Math.min(5000 * Math.pow(2, attempts), 60000);
       reconnectAttemptsRef.current = attempts + 1;
       console.warn(`SSE: reconnecting in ${delay / 1000}s (attempt ${attempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
-      setTimeout(setupSSE, delay);
+      reconnectTimerRef.current = setTimeout(setupSSE, delay);
     };
 
     eventSourceRef.current = es;
@@ -184,6 +185,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
         if (pollIntervalRef.current) {
           clearInterval(pollIntervalRef.current);
+        }
+        if (reconnectTimerRef.current) {
+          clearTimeout(reconnectTimerRef.current);
         }
         clearInterval(periodicRefresh);
         document.removeEventListener('visibilitychange', handleVisibilityChange);

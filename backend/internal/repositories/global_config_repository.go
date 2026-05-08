@@ -7,6 +7,7 @@ import (
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/utils"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -21,7 +22,13 @@ func NewGlobalConfigRepository(db *gorm.DB) *GlobalConfigRepository {
 	encKey := os.Getenv("ENCRYPTION_KEY")
 	var enc *utils.EncryptionService
 	if encKey != "" {
-		enc, _ = utils.NewEncryptionService(encKey)
+		var err error
+		enc, err = utils.NewEncryptionService(encKey)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to initialize encryption service for GlobalConfig — encrypted values will NOT be decryptable")
+		}
+	} else {
+		log.Warn().Msg("ENCRYPTION_KEY not set — GlobalConfig encrypted values will be returned as-is")
 	}
 
 	return &GlobalConfigRepository{db: db, encryption: enc}

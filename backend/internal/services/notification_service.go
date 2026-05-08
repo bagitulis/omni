@@ -95,13 +95,17 @@ func (s *NotificationService) PushJobResult(job *models.Job, success bool, detai
 
 // broadcast sends the notification to all active SSE connections for the tenant
 func (s *NotificationService) broadcast(notif *models.Notification) {
+	// Copy client slice under lock to avoid race with UnregisterClient
 	globalSSEManager.mu.RLock()
-	clients, ok := globalSSEManager.clients[s.tenantID]
-	globalSSEManager.mu.RUnlock()
-
-	if !ok || len(clients) == 0 {
+	original, ok := globalSSEManager.clients[s.tenantID]
+	if !ok || len(original) == 0 {
+		globalSSEManager.mu.RUnlock()
 		return
 	}
+	// Snapshot the slice so we can iterate safely after releasing the lock
+	clients := make([]SSEClient, len(original))
+	copy(clients, original)
+	globalSSEManager.mu.RUnlock()
 
 	data, err := json.Marshal(notif)
 	if err != nil {
@@ -117,7 +121,6 @@ func (s *NotificationService) broadcast(notif *models.Notification) {
 		case client <- event:
 		default:
 			log.Warn().Str("tenant", s.tenantID).Msg("[SSE] Client buffer full, notification dropped")
-			// Client buffer full, skip or handle as needed
 		}
 	}
 }

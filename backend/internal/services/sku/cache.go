@@ -1,6 +1,7 @@
 package sku
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
@@ -32,12 +33,13 @@ func NewSKUCache() *SKUCache {
 	return cache
 }
 
-// Get retrieves SKU status from cache
-func (c *SKUCache) Get(sku string) *PlatformSKUStatus {
+// Get retrieves SKU status from cache (tenant-scoped)
+func (c *SKUCache) Get(tenantID, sku string) *PlatformSKUStatus {
+	key := buildCacheKey(tenantID, sku)
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	entry, ok := c.data[sku]
+	entry, ok := c.data[key]
 	if !ok || time.Now().After(entry.expiry) {
 		return nil
 	}
@@ -45,23 +47,25 @@ func (c *SKUCache) Get(sku string) *PlatformSKUStatus {
 	return entry.value
 }
 
-// Set stores SKU status in cache
-func (c *SKUCache) Set(sku string, status *PlatformSKUStatus) {
+// Set stores SKU status in cache (tenant-scoped)
+func (c *SKUCache) Set(tenantID, sku string, status *PlatformSKUStatus) {
+	key := buildCacheKey(tenantID, sku)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.data[sku] = &cacheEntry{
+	c.data[key] = &cacheEntry{
 		value:  status,
 		expiry: time.Now().Add(c.ttl),
 	}
 }
 
-// Delete removes a SKU from cache
-func (c *SKUCache) Delete(sku string) {
+// Delete removes a SKU from cache (tenant-scoped)
+func (c *SKUCache) Delete(tenantID, sku string) {
+	key := buildCacheKey(tenantID, sku)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	delete(c.data, sku)
+	delete(c.data, key)
 }
 
 // Clear clears all cache entries
@@ -111,6 +115,11 @@ func (c *SKUCache) removeExpired() {
 			delete(c.data, sku)
 		}
 	}
+}
+
+// buildCacheKey creates a tenant-scoped cache key to prevent cross-tenant leakage
+func buildCacheKey(tenantID, sku string) string {
+	return fmt.Sprintf("tenant:%s:%s", tenantID, sku)
 }
 
 // Stats returns cache statistics
