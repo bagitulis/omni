@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { notificationApi, Notification } from '@/api/notifications';
 import { useAuthStore } from '@/stores/authStore';
@@ -157,6 +158,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
 
     eventSourceRef.current = es;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId, getValidToken, notification]);
 
   useEffect(() => {

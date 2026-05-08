@@ -182,7 +182,7 @@ func (r *GormOrderRepository) flattenShopeeOrders(orderModels []models.ShopeeOrd
 
 		if len(orderItems) == 0 {
 			orders = append(orders, Order{
-				ID:              fmt.Sprintf("%d", m.ID),
+				ID:              m.ID,
 				OrderSN:         m.OrderSN,
 				OrderNo:         m.OrderSN,
 				Platform:        "SHOPEE",
@@ -264,7 +264,7 @@ func (r *GormOrderRepository) flattenShopeeOrderItems(
 		}
 
 		orders = append(orders, Order{
-			ID:              fmt.Sprintf("%d", m.ID),
+			ID:              m.ID,
 			OrderSN:         m.OrderSN,
 			OrderNo:         m.OrderSN,
 			Platform:        "SHOPEE",

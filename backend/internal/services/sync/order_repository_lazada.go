@@ -163,7 +163,7 @@ func (r *GormOrderRepository) flattenLazadaOrders(orderModels []models.LazadaOrd
 
 		if len(orderItems) == 0 {
 			orders = append(orders, Order{
-				ID:              fmt.Sprintf("%d", m.ID),
+				ID:              m.ID,
 				OrderSN:         m.OrderSN,
 				OrderNo:         m.OrderSN,
 				Platform:        strings.ToUpper("lazada"),
@@ -245,7 +245,7 @@ func (r *GormOrderRepository) flattenLazadaOrderItems(
 		}
 
 		result = append(result, Order{
-			ID:              fmt.Sprintf("%d", m.ID),
+			ID:              m.ID,
 			OrderSN:         m.OrderSN,
 			OrderNo:         m.OrderSN,
 			Platform:        strings.ToUpper("lazada"),

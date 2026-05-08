@@ -225,7 +225,7 @@ func (r *GormOrderRepository) flattenTiktokOrders(orderModels []models.TiktokOrd
 
 		if len(orderItems) == 0 {
 			orders = append(orders, Order{
-				ID:              fmt.Sprintf("%d", m.ID),
+				ID:              m.ID,
 				OrderSN:         m.OrderSN,
 				OrderNo:         m.OrderSN,
 				Platform:        "TIKTOK",
@@ -311,7 +311,7 @@ func (r *GormOrderRepository) flattenTiktokOrderItems(
 		}
 
 		orders = append(orders, Order{
-			ID:              fmt.Sprintf("%d", m.ID),
+			ID:              m.ID,
 			OrderSN:         m.OrderSN,
 			OrderNo:         m.OrderSN,
 			Platform:        "TIKTOK",

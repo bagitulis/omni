@@ -206,6 +206,7 @@ describe("priceSyncRecommendations", () => {
     let fetchSpy: any;
 
     beforeEach(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fetchSpy = vi.spyOn(global, "fetch") as any;
     });
 

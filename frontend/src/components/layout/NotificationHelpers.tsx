@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { Tag, theme } from "antd";
 import type { BulkOperationMetadata } from "@/types/notificationMetadata";
 
