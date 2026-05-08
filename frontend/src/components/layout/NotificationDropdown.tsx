@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Button, Empty, Segmented, Typography, theme, Tooltip } from "antd";
+import { useNavigate } from "react-router-dom";
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -41,6 +42,7 @@ function useTypeConfig() {
  */
 export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   const { token } = theme.useToken();
+  const navigate = useNavigate();
   const typeConfig = useTypeConfig();
   const [tab, setTab] = useState<TabKey>("all");
 
@@ -65,6 +67,10 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
     if (item.action_url) {
       onClose?.();
       window.location.href = item.action_url;
+    } else {
+      // Navigate to notifications page for full detail view
+      onClose?.();
+      navigate("/notifications");
     }
   };
 
@@ -210,10 +216,13 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
         </div>
 
         {/* Footer */}
-        <div style={{ padding: "10px 16px", borderTop: `1px solid ${token.colorBorderSecondary}`, textAlign: "center", background: token.colorFillAlter }}>
+        <div style={{ padding: "10px 16px", borderTop: `1px solid ${token.colorBorderSecondary}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: token.colorFillAlter }}>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            Showing recent 50 notifications
+            Auto-delete: 30 days
           </Text>
+          <Button type="link" size="small" style={{ fontSize: 12, padding: 0 }} onClick={() => { onClose?.(); navigate("/notifications"); }}>
+            View All
+          </Button>
         </div>
       </div>
     </>

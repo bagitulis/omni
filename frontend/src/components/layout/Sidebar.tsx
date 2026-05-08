@@ -7,6 +7,7 @@ import {
   ShoppingOutlined,
   SkinOutlined,
   InboxOutlined,
+  BellOutlined,
   SettingOutlined,
   NodeIndexOutlined,
   CodeOutlined,
@@ -48,6 +49,7 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         ],
       },
       { key: "/inventory", icon: <InboxOutlined />, label: "Inventory" },
+      { key: "/notifications", icon: <BellOutlined />, label: "Notifications" },
       {
         key: "/route-mapping",
         icon: <NodeIndexOutlined />,
