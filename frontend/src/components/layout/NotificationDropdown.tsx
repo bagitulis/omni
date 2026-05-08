@@ -68,9 +68,9 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
       onClose?.();
       window.location.href = item.action_url;
     } else {
-      // Navigate to notifications page for full detail view
+      // Navigate to notifications page with this notification expanded
       onClose?.();
-      navigate("/notifications");
+      navigate(`/notifications?expand=${item.id}`);
     }
   };
 

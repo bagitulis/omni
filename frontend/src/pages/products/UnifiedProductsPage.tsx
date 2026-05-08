@@ -20,6 +20,7 @@ import { UnifiedProductsControls } from "@/pages/products/components/UnifiedProd
 import { useUnifiedProductsActions } from "@/pages/products/hooks/useUnifiedProductsActions";
 import { usePriceDrift } from "@/pages/products/hooks/usePriceDrift";
 import { executeSyncMarketplace } from "@/pages/products/hooks/useSyncMarketplace";
+import { SyncResultsDrawer } from "@/components/shared/SyncResultsDrawer";
 import { buildProductColumns } from "@/pages/products/utils/productColumns";
   import {
   areFiltersEqual,
@@ -144,6 +145,9 @@ export default function UnifiedProductsPage() {
     handleRowAction,
     handleBatchAction,
     batchLoading,
+    syncResultsOpen,
+    setSyncResultsOpen,
+    syncResults,
     marketplaceSyncOpen,
     setMarketplaceSyncOpen,
     marketplaceSyncProducts,
@@ -324,6 +328,12 @@ export default function UnifiedProductsPage() {
         marketplaceSyncProducts={marketplaceSyncProducts}
         onMarketplaceSyncClose={() => setMarketplaceSyncOpen(false)}
         onPerPlatformPriceSync={handlePerPlatformPriceSync}
+      />
+      {/* Sync Results Drawer */}
+      <SyncResultsDrawer
+        open={syncResultsOpen}
+        onClose={() => setSyncResultsOpen(false)}
+        results={syncResults}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import { Drawer, Table, Tag, Typography, theme, Empty, Badge } from "antd";
+import { Drawer, Table, Tag, Typography, theme, Empty, Badge, Spin } from "antd";
 import { CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import type { FC } from "react";
 import type {
@@ -21,7 +21,13 @@ export const SyncResultsDrawer: FC<SyncResultsDrawerProps> = ({
 }) => {
   const { token } = theme.useToken();
 
-  if (!results) return null;
+  if (!results) {
+    return (
+      <Drawer title="Sync Results" placement="right" width={480} open={open} onClose={onClose}>
+        <Spin style={{ display: "block", margin: "60px auto" }} />
+      </Drawer>
+    );
+  }
 
   const platformEntries = Object.entries(results.platforms || {});
   const failedItems = results.failed_items || [];

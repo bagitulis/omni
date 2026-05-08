@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Typography,
   Segmented,
@@ -18,6 +18,7 @@ import {
   InfoCircleOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
+import { useSearchParams } from "react-router-dom";
 import { useNotifications } from "@/contexts/NotificationContext";
 import type { Notification } from "@/api/notifications";
 import {
@@ -45,6 +46,26 @@ export default function NotificationsPage() {
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
+  const [searchParams] = useSearchParams();
+
+  // Auto-expand notification from query param (e.g., /notifications?expand=123)
+  useEffect(() => {
+    const expandId = searchParams.get("expand");
+    if (expandId) {
+      // Reset filters so the target notification is visible
+      setStatusFilter("all");
+      setCategoryFilter("all");
+      setExpandedKeys([expandId]);
+      // Mark as read
+      const notif = notifications.find((n) => String(n.id) === expandId);
+      if (notif && !notif.read) {
+        markAsRead(notif.id);
+      }
+    }
+    // Only run when searchParams changes, not on every notifications update
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const filtered = useMemo(() => {
     let items = notifications;
@@ -57,16 +78,19 @@ export default function NotificationsPage() {
 
   const handleExpand = useCallback(
     (keys: string | string[]) => {
-      const expandedKeys = Array.isArray(keys) ? keys : [keys];
-      // Mark as read when expanded
-      expandedKeys.forEach((key) => {
+      const newKeys = Array.isArray(keys) ? keys : [keys];
+      // Find newly expanded keys (not previously in expandedKeys)
+      const newlyExpanded = newKeys.filter((k) => !expandedKeys.includes(k));
+      // Mark newly expanded as read
+      newlyExpanded.forEach((key) => {
         const notif = notifications.find((n) => String(n.id) === key);
         if (notif && !notif.read) {
           markAsRead(notif.id);
         }
       });
+      setExpandedKeys(newKeys);
     },
-    [notifications, markAsRead],
+    [notifications, markAsRead, expandedKeys],
   );
 
   const collapseItems = filtered.map((notif) => {
@@ -155,6 +179,7 @@ export default function NotificationsPage() {
       ) : (
         <Collapse
           accordion={false}
+          activeKey={expandedKeys}
           onChange={handleExpand}
           items={collapseItems}
           style={{ background: token.colorBgContainer }}
