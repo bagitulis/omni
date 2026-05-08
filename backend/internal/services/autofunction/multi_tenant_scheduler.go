@@ -8,6 +8,7 @@ import (
 
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/services/jobs"
 	"github.com/omni/backend/internal/utils"
 	"gorm.io/gorm"
 )
@@ -179,7 +180,8 @@ func (s *MultiTenantScheduler) shouldExecute(cfg *models.AutoFunctionConfig, now
 	return nowWIB.After(nextExec) || nowWIB.Equal(nextExec)
 }
 
-// executeAutoFunction executes an auto function and updates its state
+// executeAutoFunction executes an auto function and updates its state.
+// Enqueues to job queue for visibility in Current Job / Queue tabs.
 func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *gorm.DB, cfg *models.AutoFunctionConfig, now time.Time) {
 	startTime := time.Now()
 
@@ -187,6 +189,16 @@ func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *go
 	if cfg.IsRunning {
 		log.Info().Msgf("\u26a0\ufe0f [%s] Function %s already running, skipping", tenantID, cfg.Name)
 		return
+	}
+
+	// Enqueue to job queue for visibility in Current Job / Queue tabs
+	qm := jobs.NewQueueManager(tenantDB, tenantID)
+	jobID, enqueueErr := qm.EnqueueJob("auto_function", map[string]interface{}{
+		"function_name": cfg.Name,
+		"trigger":       "scheduled",
+	}, "normal")
+	if enqueueErr != nil {
+		log.Info().Msgf("\u26a0\ufe0f [%s] Failed to enqueue job for %s: %v (continuing anyway)", tenantID, cfg.Name, enqueueErr)
 	}
 
 	// Mark as running (visible in Script Monitor)
@@ -199,7 +211,7 @@ func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *go
 	execSuccess := false
 
 	// Ensure is_running is cleared on exit (even on panic)
-	// Only clear progress_data on SUCCESS — preserve it on failure/panic for resume
+	// Only clear progress_data on SUCCESS \u2014 preserve it on failure/panic for resume
 	defer func() {
 		updates := map[string]interface{}{
 			"is_running":    false,
@@ -216,7 +228,15 @@ func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *go
 	if handler == nil {
 		log.Info().Msgf("\u274c [%s] No handler registered for function: %s", tenantID, cfg.Name)
 		s.recordHistory(tenantDB, cfg.Name, "failed", "no handler registered: "+cfg.Name, startTime)
+		if jobID != "" {
+			_ = qm.FailJob(jobID, "no handler registered: "+cfg.Name)
+		}
 		return
+	}
+
+	// Mark job as running in queue
+	if jobID != "" {
+		_ = qm.UpdateStatus(jobID, models.JobStatusRunning, "")
 	}
 
 	// Execute with timeout
@@ -244,9 +264,15 @@ func (s *MultiTenantScheduler) executeAutoFunction(tenantID string, tenantDB *go
 		status = "failed"
 		errMsg = err.Error()
 		log.Info().Msgf("\u274c [%s] Auto function %s failed: %v", tenantID, cfg.Name, err)
+		if jobID != "" {
+			_ = qm.FailJob(jobID, errMsg)
+		}
 	} else {
 		execSuccess = true
 		log.Info().Msgf("\u2705 [%s] Auto function %s completed: %s", tenantID, cfg.Name, result)
+		if jobID != "" {
+			_ = qm.CompleteJobWithResult(jobID, result)
+		}
 	}
 
 	s.recordHistory(tenantDB, cfg.Name, status, errMsg, startTime)
@@ -277,7 +303,10 @@ var defaultAutoFunctions = []struct {
 	{Name: "locked_today", IntervalMinutes: 1440, StartTime: "22:00", EndTime: "23:59"},           // Daily at 22:00-23:59 WIB
 	{Name: "sync_from_sheets", IntervalMinutes: 30, StartTime: "08:00", EndTime: "22:00"},         // Every 30 min during business hours
 	{Name: "auto_update_token", IntervalMinutes: 180, StartTime: "00:00", EndTime: "23:59"},       // Every 3 hours
+	{Name: "sync_products", IntervalMinutes: 120, StartTime: "08:00", EndTime: "22:00"},           // Every 2 hours during business hours
 	{Name: "sync_products_inventory", IntervalMinutes: 60, StartTime: "08:00", EndTime: "22:00"}, // Every 60 min during business hours
+	{Name: "retry_failed_syncs", IntervalMinutes: 30, StartTime: "08:00", EndTime: "22:00"},      // Every 30 min during business hours
+	{Name: "price_drift_detection", IntervalMinutes: 360, StartTime: "08:00", EndTime: "22:00"},  // Every 6 hours during business hours
 }
 
 // ensureDefaultAutoFunctions ensures default auto functions exist for a tenant.

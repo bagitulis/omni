@@ -227,7 +227,10 @@ var availableAutoFunctions = []AvailableAutoFunction{
 	{Name: "locked_today", Description: "Lock orders at end of day"},
 	{Name: "auto_update_token", Description: "Refresh platform OAuth tokens"},
 	{Name: "sync_from_sheets", Description: "Sync inventory from Google Sheets"},
+	{Name: "sync_products", Description: "Full product sync from all platforms (Shopee, TikTok, Lazada)"},
 	{Name: "sync_products_inventory", Description: "Sync products matching inventory SKUs only"},
+	{Name: "retry_failed_syncs", Description: "Retry failed marketplace sync operations from last 24h"},
+	{Name: "price_drift_detection", Description: "Detect SKUs with price drift between inventory and platforms"},
 }
 
 // ListAvailable handles GET /api/jobs/auto-functions/available
