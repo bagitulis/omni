@@ -356,7 +356,7 @@ func TestSyncService_ClearTiktokProductCache(t *testing.T) {
 	}).Error)
 	require.NoError(t, db.WithContext(ctx).Create(&models.TiktokSku{
 		TenantID:  "tenant1",
-		ProductID: 1,
+		ProductID: "1",
 		SkuID:     "sku-1",
 		SellerSku: "TENANT1-SKU",
 		Price:     10000,
@@ -371,7 +371,7 @@ func TestSyncService_ClearTiktokProductCache(t *testing.T) {
 	}).Error)
 	require.NoError(t, db.WithContext(ctx).Create(&models.TiktokSku{
 		TenantID:  "tenant2",
-		ProductID: 2,
+		ProductID: "2",
 		SkuID:     "sku-2",
 		SellerSku: "TENANT2-SKU",
 		Price:     20000,

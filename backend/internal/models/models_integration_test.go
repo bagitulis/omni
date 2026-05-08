@@ -162,7 +162,7 @@ func TestProductJSONMarshalingSnakeCase(t *testing.T) {
 
 func TestShopeeOrderJSONMarshalingSnakeCase(t *testing.T) {
 	order := &ShopeeOrder{
-		ID:        123,
+		ID:        "123",
 		TenantID:  "tenant1",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),

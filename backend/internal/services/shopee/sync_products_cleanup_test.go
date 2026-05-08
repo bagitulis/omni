@@ -41,7 +41,7 @@ func TestProductSyncService_ClearShopeeProductCache(t *testing.T) {
 	}).Error)
 	require.NoError(t, db.WithContext(ctx).Create(&models.ShopeeSku{
 		TenantID:  "tenant1",
-		ProductID: 1,
+		ProductID: "1",
 		ItemID:    1001,
 		SellerSku: "TENANT1-SKU",
 		Price:     10000,
@@ -56,7 +56,7 @@ func TestProductSyncService_ClearShopeeProductCache(t *testing.T) {
 	}).Error)
 	require.NoError(t, db.WithContext(ctx).Create(&models.ShopeeSku{
 		TenantID:  "tenant2",
-		ProductID: 2,
+		ProductID: "2",
 		ItemID:    2002,
 		SellerSku: "TENANT2-SKU",
 		Price:     20000,

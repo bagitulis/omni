@@ -2,7 +2,6 @@ package sync
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/omni/backend/internal/models"

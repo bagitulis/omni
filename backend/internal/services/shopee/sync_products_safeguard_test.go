@@ -23,7 +23,7 @@ func TestShopeeSyncProducts_SkipsDeleteWhenItemListEmpty(t *testing.T) {
 	}).Error)
 	require.NoError(t, db.WithContext(ctx).Create(&models.ShopeeSku{
 		TenantID:  "tenant1",
-		ProductID: 1,
+		ProductID: "1",
 		ItemID:    1001,
 		SellerSku: "EXISTING-SKU",
 		Price:     10000,
