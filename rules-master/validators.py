@@ -12,11 +12,11 @@ import re
 
 MARKER_SCAN_PATTERN = re.compile(r"<!-- MASTER:([a-z0-9_-]+) -->")
 
-# Agents/categories that intentionally have no prompt_append (advisory, skill-only, etc.)
+# Agents/categories that intentionally have no prompt_append (utility agents only).
+# NOTE: oracle, librarian, explore, metis, momus DO have prompt_compose mappings — they are NOT exempt.
 COMPOSE_EXEMPT = {
-    "oracle", "librarian", "explore", "multimodal-looker", "metis", "momus",
-    "default", "artistry", "writing", "review", "testing", "security",
-    "unspecified-low", "unspecified-high",
+    "default",
+    "multimodal-looker",
 }
 
 
@@ -73,74 +73,3 @@ def validate_compose_coverage(prompt_compose, profiles_path, project_root):
             gaps.append(("category", cat_name))
 
     return gaps
-
-
-def validate_doc_freshness(docs_dir="docs", project_root="."):
-    """Check if documentation files are stale based on stale_if_changed paths.
-
-    Compares doc's last_updated date against file modification times.
-    Returns list of stale docs with details.
-    """
-    from pathlib import Path
-    from datetime import datetime
-
-    stale_docs = []
-    docs_path = Path(project_root) / docs_dir
-
-    if not docs_path.exists():
-        return stale_docs
-
-    for md_file in docs_path.rglob("*.md"):
-        content = md_file.read_text(encoding="utf-8")
-        if not content.startswith("---"):
-            continue
-
-        # Extract frontmatter
-        end_idx = content.find("---", 3)
-        if end_idx == -1:
-            continue
-
-        fm_str = content[3:end_idx].strip()
-
-        # Parse last_updated
-        match = re.search(r"last_updated:\s*(.+)", fm_str)
-        if not match:
-            continue
-        try:
-            doc_date = datetime.strptime(match.group(1).strip(), "%Y-%m-%d")
-        except ValueError:
-            continue
-
-        # Parse stale_if_changed
-        stale_match = re.search(r"stale_if_changed:\s*\n((?:\s+-\s+.+\n?)+)", fm_str)
-        if not stale_match:
-            continue
-        patterns = re.findall(r"-\s+(.+)", stale_match.group(1))
-        patterns = [p.strip() for p in patterns]
-
-        # Check each path/glob
-        changed_files = []
-        root = Path(project_root)
-        for pattern in patterns:
-            if "*" in pattern:
-                matched = list(root.glob(pattern))
-            else:
-                p = root / pattern
-                matched = [p] if p.exists() else []
-
-            for f in matched:
-                if not f.exists() or f.is_dir():
-                    continue
-                file_mtime = datetime.fromtimestamp(f.stat().st_mtime)
-                if file_mtime.date() > doc_date.date():
-                    changed_files.append(str(f))
-
-        if changed_files:
-            stale_docs.append({
-                "doc": str(md_file.relative_to(project_root)),
-                "last_updated": match.group(1).strip(),
-                "changed_count": len(changed_files),
-                "examples": changed_files[:3],
-            })
-
-    return stale_docs

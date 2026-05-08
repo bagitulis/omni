@@ -29,7 +29,7 @@ RULES_JSON = os.path.join(SCRIPT_DIR, "rules.json")
 
 # Import validation helpers (extracted for SRP / ~300 line target)
 sys.path.insert(0, SCRIPT_DIR)
-from validators import scan_orphan_markers, validate_compose_coverage, validate_doc_freshness
+from validators import scan_orphan_markers, validate_compose_coverage
 
 MARKER_OPEN = "<!-- MASTER:{key} -->"
 MARKER_CLOSE = "<!-- /MASTER:{key} -->"
@@ -42,7 +42,7 @@ MARKER_PATTERN = re.compile(
 def load_rules():
     """Load and validate rules.json."""
     with open(RULES_JSON, "r", encoding="utf-8") as f:
-        data = json.load(f)
+        data = json.load(f, strict=False)
 
     blocks = data.get("blocks", {})
     targets = data.get("targets", {})
@@ -93,10 +93,29 @@ def apply_line_ending(content, ending):
 
 def generate_full_doc(filepath, config, blocks, dry_run=False):
     """Generate an entire file from a template."""
-    abs_path = os.path.join(PROJECT_ROOT, filepath)
-    template = config.get("template", [])
+    if filepath.startswith('~'):
+        abs_path = os.path.expanduser(filepath)
+    else:
+        abs_path = os.path.join(PROJECT_ROOT, filepath)
 
-    new_content = resolve_template(template, blocks)
+    # Support both 'template' (old) and 'uses' (new) formats
+    if "uses" in config:
+        # New format: uses = list of block keys, frontmatter = optional prefix
+        use_keys = config["uses"]
+        for key in use_keys:
+            if key not in blocks:
+                print(f"  ERROR: Unknown block reference '{key}' in 'uses'")
+                sys.exit(1)
+        parts = [blocks[k] for k in use_keys]
+        frontmatter = config.get("frontmatter", "")
+        if frontmatter:
+            new_content = frontmatter + "\n\n" + "\n\n".join(parts) + "\n"
+        else:
+            new_content = "\n\n".join(parts) + "\n"
+    else:
+        # Old format: template = list of lines with $block: references
+        template = config.get("template", [])
+        new_content = resolve_template(template, blocks)
 
     # Preserve line ending of existing file, or use OS default
     if os.path.exists(abs_path):
@@ -128,7 +147,10 @@ def inject_blocks(filepath, block_keys, blocks, dry_run=False):
 
     Returns: (changed: bool, status: str, missing: list[str])
     """
-    abs_path = os.path.join(PROJECT_ROOT, filepath)
+    if filepath.startswith('~'):
+        abs_path = os.path.expanduser(filepath)
+    else:
+        abs_path = os.path.join(PROJECT_ROOT, filepath)
 
     if not os.path.exists(abs_path):
         print(f"  WARNING: Target file not found: {filepath}")
@@ -198,7 +220,10 @@ def compose_prompt(block_keys, prompt_blocks):
 
 def compose_json(filepath, prompt_blocks, prompt_compose, dry_run=False):
     """Compose prompt_append strings from prompt_blocks into opencode-profiles.json."""
-    abs_path = os.path.join(PROJECT_ROOT, filepath)
+    if filepath.startswith('~'):
+        abs_path = os.path.expanduser(filepath)
+    else:
+        abs_path = os.path.join(PROJECT_ROOT, filepath)
 
     if not os.path.exists(abs_path):
         print(f"  WARNING: Target file not found: {filepath}")
@@ -278,8 +303,10 @@ def main():
 
         # If --section specified, skip generate targets that don't use that block
         if args.section:
-            template_str = "\n".join(config.get("template", []))
-            if f"$block:{args.section}" not in template_str:
+            template = config.get("template", [])
+            uses = config.get("uses", [])
+            template_str = "\n".join(template)
+            if f"$block:{args.section}" not in template_str and args.section not in uses:
                 continue
 
         changed, status = generate_full_doc(filepath, config, blocks, dry_run=args.dry_run or args.check)
@@ -340,16 +367,6 @@ def main():
                 for kind, name in gaps:
                     print(f"  ⚠ {kind} '{name}' has no prompt_compose mapping")
 
-    # --- Documentation freshness check ---
-    if not args.section and not args.target:
-        stale = validate_doc_freshness("docs", PROJECT_ROOT)
-        if stale:
-            has_warnings = True
-            print("\n--- Stale Documentation (code changed after doc last_updated) ---")
-            for s in stale:
-                print(f"  ⚠ {s['doc']} (updated: {s['last_updated']}, {s['changed_count']} file(s) changed since)")
-                for ex in s['examples']:
-                    print(f"    → {ex}")
     print("\n--- Sync Results ---")
     for filepath, status in results:
         icon = "*" if "update" in status or "generate" in status else " "
