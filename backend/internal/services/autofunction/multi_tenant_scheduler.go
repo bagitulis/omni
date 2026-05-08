@@ -80,12 +80,19 @@ func (s *MultiTenantScheduler) runLoop() {
 	// Run immediately on start
 	s.checkAllTenants()
 
+	tickCount := 0
 	for {
 		select {
 		case <-s.stopCh:
 			return
 		case <-ticker.C:
+			tickCount++
 			s.checkAllTenants()
+
+			// Cleanup old completed/failed jobs every ~6 hours (360 ticks at 60s each)
+			if tickCount%360 == 0 {
+				s.cleanupOldJobs()
+			}
 		}
 	}
 }
@@ -290,6 +297,26 @@ func (s *MultiTenantScheduler) recordHistory(tenantDB *gorm.DB, functionName, st
 
 	if err := tenantDB.Create(history).Error; err != nil {
 		log.Info().Msgf("❌ Failed to record auto function history: %v", err)
+	}
+}
+
+// cleanupOldJobs removes completed/failed jobs older than 7 days from all tenants.
+// Prevents unbounded growth of the jobs table.
+func (s *MultiTenantScheduler) cleanupOldJobs() {
+	tenantIDs, err := s.getRealTenantIDs()
+	if err != nil {
+		return
+	}
+
+	for _, tenantID := range tenantIDs {
+		tenantDB, err := config.GetTenantDB(tenantID, s.basePath)
+		if err != nil {
+			continue
+		}
+		qm := jobs.NewQueueManager(tenantDB, tenantID)
+		if _, err := qm.CleanupOldJobs(7 * 24 * time.Hour); err != nil {
+			log.Info().Msgf("\u26a0\ufe0f [%s] Job cleanup failed: %v", tenantID, err)
+		}
 	}
 }
 

@@ -23,6 +23,13 @@ import (
 // Unlike sync_products (full sync), this filters by inventory and uses SyncProductsByIDs
 // to avoid fetching all products from each platform, saving API calls and time.
 func syncProductsInventoryHandler(ctx context.Context, tenantID string, cfg *models.AutoFunctionConfig) (string, error) {
+	// Acquire per-tenant lock to prevent concurrent sync with sync_products (full sync)
+	mu := getTenantSyncMutex(tenantID)
+	if !mu.TryLock() {
+		return "Skipped: another sync is already running for this tenant", nil
+	}
+	defer mu.Unlock()
+
 	log.Info().Msgf("[AutoFunction] Running 'Sync Products (Inventory Only)' for tenant: %s", tenantID)
 
 	basePath := os.Getenv("DATA_PATH")
