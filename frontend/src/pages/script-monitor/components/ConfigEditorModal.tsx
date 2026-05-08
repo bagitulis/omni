@@ -118,6 +118,19 @@ export function ConfigEditorModal({
   const handleSubmit = async () => {
     const values = await form.validateFields();
 
+    // Validate time window: start_time must be before end_time
+    if (values.start_time && values.end_time) {
+      if (values.start_time.isAfter(values.end_time)) {
+        form.setFields([
+          {
+            name: "end_time",
+            errors: ["End time must be after start time"],
+          },
+        ]);
+        return;
+      }
+    }
+
     const payload: Partial<AutoFunctionConfig> = {
       enabled: values.enabled,
       interval_minutes: values.interval_minutes,

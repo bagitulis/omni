@@ -115,6 +115,20 @@ func (h *AutoFunctionHandler) Create(c *gin.Context) {
 		return
 	}
 
+	// Validate that the function name has a registered handler
+	if h.executor != nil && h.executor.GetHandler(req.Name) == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "unknown function name: " + req.Name + ". Use GET /api/jobs/auto-functions/available for valid names"})
+		return
+	}
+
+	// Validate time window: start_time must be before end_time (no overnight windows)
+	if req.StartTime != nil && req.EndTime != nil && *req.StartTime != "" && *req.EndTime != "" {
+		if *req.StartTime > *req.EndTime {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "start_time must be before end_time (overnight windows not supported)"})
+			return
+		}
+	}
+
 	cm := autofunction.NewConfigManager(db, tenantID)
 	// Use CreateOrUpdate to handle duplicates gracefully (upsert)
 	cfg, err := cm.CreateOrUpdate(req)
@@ -161,6 +175,13 @@ func (h *AutoFunctionHandler) Update(c *gin.Context) {
 	if (req.StartTime != nil && req.EndTime == nil) || (req.StartTime == nil && req.EndTime != nil) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Both start_time and end_time must be provided together, or neither"})
 		return
+	}
+	// Validate time window: start_time must be before end_time
+	if req.StartTime != nil && req.EndTime != nil && *req.StartTime != "" && *req.EndTime != "" {
+		if *req.StartTime > *req.EndTime {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "start_time must be before end_time (overnight windows not supported)"})
+			return
+		}
 	}
 
 	cm := autofunction.NewConfigManager(db, tenantID)

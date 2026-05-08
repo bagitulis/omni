@@ -94,6 +94,11 @@ func (s *MultiTenantScheduler) runLoop() {
 			if tickCount%360 == 0 {
 				s.cleanupOldJobs()
 			}
+
+			// Watchdog: detect and timeout stuck jobs every ~15 minutes (15 ticks at 60s each)
+			if tickCount%15 == 0 {
+				s.timeoutStuckJobs()
+			}
 		}
 	}
 }
@@ -332,6 +337,41 @@ func (s *MultiTenantScheduler) cleanupOldJobs() {
 		qm := jobs.NewQueueManager(tenantDB, tenantID)
 		if _, err := qm.CleanupOldJobs(7 * 24 * time.Hour); err != nil {
 			log.Info().Msgf("\u26a0\ufe0f [%s] Job cleanup failed: %v", tenantID, err)
+		}
+	}
+}
+
+// timeoutStuckJobs detects auto-functions stuck in is_running=true for >15 minutes
+// and clears them. Also detects stuck job queue entries via CheckAndTimeoutStuckJobs.
+func (s *MultiTenantScheduler) timeoutStuckJobs() {
+	tenantIDs, err := s.getRealTenantIDs()
+	if err != nil {
+		return
+	}
+
+	cutoff := time.Now().Add(-15 * time.Minute)
+	for _, tenantID := range tenantIDs {
+		tenantDB, err := config.GetTenantDB(tenantID, s.basePath)
+		if err != nil {
+			continue
+		}
+
+		// Clear stuck auto-function is_running flags
+		result := tenantDB.Model(&models.AutoFunctionConfig{}).
+			Where("is_running = ? AND run_started_at < ?", true, cutoff).
+			Updates(map[string]interface{}{
+				"is_running":    false,
+				"run_started_at": nil,
+			})
+		if result.RowsAffected > 0 {
+			log.Info().Msgf("\u26a0\ufe0f [%s] Watchdog: cleared %d stuck auto-functions", tenantID, result.RowsAffected)
+		}
+
+		// Clear stuck job queue entries
+		qm := jobs.NewQueueManager(tenantDB, tenantID)
+		stuckJobs := qm.CheckAndTimeoutStuckJobs(15)
+		if len(stuckJobs) > 0 {
+			log.Info().Msgf("\u26a0\ufe0f [%s] Watchdog: timed out %d stuck jobs", tenantID, len(stuckJobs))
 		}
 	}
 }
