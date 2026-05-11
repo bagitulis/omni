@@ -51,14 +51,33 @@ func (h *AuthHandler) DevLoginInfo(c *gin.Context) {
 		return
 	}
 
-	// Return available tenants for dev mode
+	// Fetch dynamic tenant list from database
+	tenants, err := h.tenantService.GetAvailableTenants(c.Request.Context())
+	if err != nil {
+		// Fallback to empty list on error
+		c.JSON(http.StatusOK, gin.H{
+			"success":  true,
+			"dev_mode": true,
+			"tenants":  []map[string]string{},
+			"username": "tester",
+			"error":    "Failed to fetch tenants: " + err.Error(),
+		})
+		return
+	}
+
+	// Convert to response format
+	tenantList := make([]map[string]string, 0, len(tenants))
+	for _, t := range tenants {
+		tenantList = append(tenantList, map[string]string{
+			"id":   t.ID,
+			"name": t.ShopName,
+		})
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success":  true,
 		"dev_mode": true,
-		"tenants": []map[string]string{
-			{"id": "yumna_bertigamart", "name": "Yumna - Bertigamart"},
-			{"id": "tika_nusseyba", "name": "Tika - Nusseyba"},
-		},
+		"tenants":  tenantList,
 		"username": "tester",
 	})
 }
@@ -86,13 +105,25 @@ func (h *AuthHandler) DevLogin(c *gin.Context) {
 		return
 	}
 
-	// Validate tenant_id - only allow known test tenants
-	validTenants := map[string]bool{
-		"yumna_bertigamart": true,
-		"tika_nusseyba":     true,
+	// Validate tenant_id - use dynamic tenant list from database
+	tenants, err := h.tenantService.GetAvailableTenants(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to validate tenant",
+		})
+		return
 	}
 
-	if !validTenants[req.TenantID] {
+	validTenant := false
+	for _, t := range tenants {
+		if t.ID == req.TenantID {
+			validTenant = true
+			break
+		}
+	}
+
+	if !validTenant {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid tenant_id for dev login",

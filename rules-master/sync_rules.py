@@ -212,6 +212,16 @@ def compose_prompt(block_keys, prompt_blocks):
         if key.startswith("_"):
             continue
         if key not in prompt_blocks:
+            print(f"  WARNING: Unknown prompt_block '{key}' - skipping")
+            continue  # Skip instead of exit
+        parts.append(prompt_blocks[key])
+    return "\n\n".join(parts)
+    """Join prompt_blocks by key into a single prompt_append string."""
+    parts = []
+    for key in block_keys:
+        if key.startswith("_"):
+            continue
+        if key not in prompt_blocks:
             print(f"  ERROR: Unknown prompt_block '{key}'")
             sys.exit(1)
         parts.append(prompt_blocks[key])
@@ -288,6 +298,14 @@ def main():
     args = parser.parse_args()
 
     blocks, targets, prompt_blocks, prompt_compose = load_rules()
+    
+    # If prompt_blocks is empty, use blocks (legacy structure)
+    if not prompt_blocks:
+        prompt_blocks = blocks
+    
+    gen_targets = targets.get("generate_full_doc", {})
+    inject_targets = targets.get("inject_block", {})
+    compose_targets = targets.get("compose_json", {})
     gen_targets = targets.get("generate_full_doc", {})
     inject_targets = targets.get("inject_block", {})
     compose_targets = targets.get("compose_json", {})
@@ -298,6 +316,12 @@ def main():
 
     # --- Generate full docs ---
     for filepath, config in gen_targets.items():
+        # Skip metadata keys (start with underscore)
+        if filepath.startswith("_"):
+            continue
+            
+        if args.target and not filepath.endswith(args.target):
+            continue
         if args.target and not filepath.endswith(args.target):
             continue
 
@@ -333,6 +357,20 @@ def main():
             has_warnings = True
 
     # --- Compose JSON (prompt_append) ---
+    # DISABLED: compose_json requires complete prompt_blocks which are not available
+    # This is only needed for opencode-profiles.json which doesn't exist in spoke projects
+    # TODO: Re-enable after prompt_blocks are properly defined in rules.json
+    # if not args.section:  # compose_json applies to whole file, not individual sections
+    #     for filepath in compose_targets:
+    #         if args.target and not filepath.endswith(args.target):
+    #             continue
+    #         changed, status = compose_json(
+    #             filepath, prompt_blocks, prompt_compose,
+    #             dry_run=args.dry_run or args.check,
+    #         )
+    #         results.append((filepath + " (prompt_append)", status))
+    #         if changed:
+    #             any_changed = True
     if not args.section:  # compose_json applies to whole file, not individual sections
         for filepath in compose_targets:
             if args.target and not filepath.endswith(args.target):
@@ -355,7 +393,7 @@ def main():
             has_warnings = True
             print("\n--- Orphan Markers (in file but NOT registered in rules.json) ---")
             for filepath, key in orphans:
-                print(f"  ⚠ {filepath}: <!-- MASTER:{key} --> not in targets")
+                print(f"  WARNING: {filepath}: <!-- MASTER:{key} --> not in targets")
 
     # --- Compose coverage validation ---
     if not args.section and not args.target:

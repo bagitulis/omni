@@ -38,6 +38,25 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
+	// Validate target role
+	if !models.IsValidRole(req.Role) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Invalid role: " + req.Role,
+		})
+		return
+	}
+
+	// Enforce role hierarchy: actor can only create users with lower privilege
+	actorRole := c.GetString("role")
+	if !middleware.CanManageRole(actorRole, req.Role) {
+		c.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"error":   "Cannot create user with role '" + req.Role + "': insufficient permissions",
+		})
+		return
+	}
+
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -97,6 +116,50 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
+	// If role is being changed, enforce hierarchy
+	actorRole := c.GetString("role")
+	if req.Role != "" {
+		if !models.IsValidRole(req.Role) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "Invalid role: " + req.Role,
+			})
+			return
+		}
+		if !middleware.CanManageRole(actorRole, req.Role) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"success": false,
+				"error":   "Cannot assign role '" + req.Role + "': insufficient permissions",
+			})
+			return
+		}
+	}
+
+	// Also check: actor must be able to manage the user's CURRENT role
+	// (e.g., admin cannot edit an owner's profile)
+	existingUser, err := h.userService.GetUser(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+	if existingUser == nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "User not found",
+		})
+		return
+	}
+	if !middleware.CanManageRole(actorRole, existingUser.Role) {
+		c.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"error":   "Cannot modify user with role '" + existingUser.Role + "': insufficient permissions",
+		})
+		return
+	}
+
 	updatedBy := c.GetString("userID")
 
 	user, err := h.userService.UpdateUser(c.Request.Context(), userID, &services.UpdateUserRequest{
@@ -129,10 +192,44 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	tenantID := middleware.GetTenantID(c)
-	deletedBy := c.GetString("userID")
+	// Cannot delete yourself
+	actorID := c.GetString("userID")
+	if actorID == userID {
+		c.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"error":   "Cannot delete your own account",
+		})
+		return
+	}
 
-	if err := h.userService.DeleteUser(c.Request.Context(), userID, deletedBy, tenantID); err != nil {
+	// Check role hierarchy: actor must outrank target
+	actorRole := c.GetString("role")
+	existingUser, err := h.userService.GetUser(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+	if existingUser == nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "User not found",
+		})
+		return
+	}
+	if !middleware.CanManageRole(actorRole, existingUser.Role) {
+		c.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"error":   "Cannot delete user with role '" + existingUser.Role + "': insufficient permissions",
+		})
+		return
+	}
+
+	tenantID := middleware.GetTenantID(c)
+
+	if err := h.userService.DeleteUser(c.Request.Context(), userID, actorID, tenantID); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   err.Error(),

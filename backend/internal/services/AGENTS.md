@@ -159,6 +159,15 @@ if err != nil {
 | Code files     | ~300 lines — MUST refactor if exceeded         |
 | After refactor | Slightly above 300 OK if SRP/DRY/OOP satisfied |
 | 400+ lines     | NOT acceptable — refactor harder or split      |
+
+**EXEMPT from line limit (NO refactoring required):**
+- Test files (`*_test.go`, `*.test.ts`, `*.spec.ts`) — tests are naturally long
+- Generated/config files (`.json`, `.yaml`, `go.sum`, `package-lock.json`)
+- Migration files (`migration*.go`, `*.sql`)
+- Documentation files (`.md`)
+- Type definition files that are purely interfaces/types
+
+**ONLY applies to:** Business logic, handlers, services, components, utilities
 <!-- /MASTER:file-size-quality -->
 
 **If exceeding:** Split by platform or responsibility.

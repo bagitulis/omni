@@ -18,7 +18,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-omni}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-omni_secure_2026}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-omni_main}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
     volumes:
@@ -68,7 +68,7 @@ services:
     container_name: omni-pgbouncer
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-omni}:${POSTGRES_PASSWORD:-omni_secure_2026}@postgres:5432/${POSTGRES_DB:-omni_main}
+      DATABASE_URL: postgres://${POSTGRES_USER:-omni}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-omni_main}
       POOL_MODE: transaction
       MAX_CLIENT_CONN: 1000
       DEFAULT_POOL_SIZE: 25
@@ -129,13 +129,13 @@ services:
       - PG_HOST=postgres
       - PG_PORT=5432
       - PG_USER=${POSTGRES_USER:-omni}
-      - PG_PASSWORD=${POSTGRES_PASSWORD:-omni_secure_2026}
+      - PG_PASSWORD=${POSTGRES_PASSWORD}
       - PG_DATABASE=${POSTGRES_DB:-omni_main}
       - PG_SSLMODE=disable
       # Redis
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis123}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
       # Other settings
       - LOG_LEVEL=info
       - CORS_ORIGINS=https://yndigital.my.id,http://yndigital.my.id,https://www.yndigital.my.id,http://www.yndigital.my.id,http://localhost,http://localhost:80,http://localhost:3000
@@ -226,7 +226,7 @@ services:
     image: redis:7-alpine
     container_name: omni-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
     networks:
@@ -240,7 +240,7 @@ services:
           cpus: "0.05"
           memory: 32M
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis123}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -254,7 +254,7 @@ services:
     container_name: omni-pgweb
     restart: unless-stopped
     environment:
-      PGWEB_DATABASE_URL: postgres://${POSTGRES_USER:-omni}:${POSTGRES_PASSWORD:-omni_secure_2026}@postgres:5432/${POSTGRES_DB:-omni_main}?sslmode=disable
+      PGWEB_DATABASE_URL: postgres://${POSTGRES_USER:-omni}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-omni_main}?sslmode=disable
     ports:
       - "8081:8081"
     networks:

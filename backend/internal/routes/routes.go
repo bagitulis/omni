@@ -41,6 +41,7 @@ func RegisterUserRoutes(router *gin.RouterGroup, userHandler *handlers.UserHandl
 	users := router.Group("/users")
 	users.Use(middleware.Auth())
 	users.Use(middleware.Tenant())
+	users.Use(middleware.RequireRole("owner", "admin", "developer"))
 	{
 		users.GET("", userHandler.ListUsers)
 		users.POST("", userHandler.CreateUser)

@@ -18,7 +18,7 @@ import {
   ToolOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { login, devLogin, LoginPayload } from "@/api/auth";
+import { login, devLogin, getDevInfo, LoginPayload } from "@/api/auth";
 import { useAuthStore } from "@/stores/authStore";
 import { logger } from "@/lib/logger";
 
@@ -41,10 +41,29 @@ const LoginPage: React.FC = () => {
   const isLocalhost =
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1";
-  const [selectedDevTenant, setSelectedDevTenant] =
-    useState("yumna_bertigamart");
+  const [selectedDevTenant, setSelectedDevTenant] = useState("");
+  const [devTenants, setDevTenants] = useState<Array<{ id: string; name: string }>>([]);
+  const [devTenantsLoading, setDevTenantsLoading] = useState(false);
 
   const returnUrl = searchParams.get("returnUrl") || "/";
+
+  // Fetch available tenants for dev mode
+  useEffect(() => {
+    if (!isLocalhost) return;
+
+    setDevTenantsLoading(true);
+    getDevInfo()
+      .then((info) => {
+        if (info.success && info.tenants?.length > 0) {
+          setDevTenants(info.tenants);
+          setSelectedDevTenant(info.tenants[0].id);
+        }
+      })
+      .catch((err) => {
+        logger.warn("Failed to fetch dev info:", { message: String(err) });
+      })
+      .finally(() => setDevTenantsLoading(false));
+  }, [isLocalhost]);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -222,9 +241,14 @@ const LoginPage: React.FC = () => {
                 value={selectedDevTenant}
                 onChange={setSelectedDevTenant}
                 style={{ width: "100%" }}
+                loading={devTenantsLoading}
+                placeholder={devTenantsLoading ? "Loading tenants..." : "Select tenant"}
               >
-                <Option value="yumna_bertigamart">Yumna - Bertigamart</Option>
-                <Option value="tika_nusseyba">Tika - Nusseyba</Option>
+                {devTenants.map((t) => (
+                  <Option key={t.id} value={t.id}>
+                    {t.name}
+                  </Option>
+                ))}
               </Select>
               <Button
                 type="primary"

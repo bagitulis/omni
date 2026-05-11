@@ -112,3 +112,16 @@ export const changePassword = async (
     throw new Error(response.error || "Failed to change password");
   }
 };
+
+export interface DevInfoResponse {
+  success: boolean;
+  dev_mode: boolean;
+  tenants: Array<{ id: string; name: string }>;
+  username: string;
+  error?: string;
+}
+
+export const getDevInfo = async (): Promise<DevInfoResponse> => {
+  const response = await api.client.get<DevInfoResponse>("/auth/dev-info");
+  return response.data;
+};

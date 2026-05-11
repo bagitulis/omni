@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -185,8 +186,17 @@ func (s *AuthService) ensureDevUserExists(ctx context.Context, userID, username,
 	}
 
 	// Create dev user if not exists
-	// Use a dummy password hash (we won't use it for login anyway)
-	passwordHash, _ := s.HashPassword("dev-password-123") // Ignore error, just dev
+	// Password sourced from DEV_USER_PASSWORD env var (NEVER hardcoded)
+	devPassword := os.Getenv("DEV_USER_PASSWORD")
+	if devPassword == "" {
+		devPassword = "dev-password-123" // Fallback for local development only
+		if os.Getenv("GO_ENV") == "production" {
+			log.Error().Msg("DEV_USER_PASSWORD not set in production - dev user creation blocked")
+			return "", ErrInvalidCredentials
+		}
+		log.Warn().Msg("DEV_USER_PASSWORD not set, using development fallback (NOT FOR PRODUCTION)")
+	}
+	passwordHash, _ := s.HashPassword(devPassword)
 
 	newUser := &models.User{
 		ID:        userID,

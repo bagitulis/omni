@@ -24,15 +24,17 @@ type AuthHandler struct {
 	authService           *services.AuthService
 	multiTenantAuth       *services.MultiTenantAuthService
 	userManagementService *services.UserManagementService
+	tenantService         *services.TenantService
 	basePath              string
 }
 
 // NewAuthHandler creates a new auth handler
-func NewAuthHandler(authService *services.AuthService, multiTenantAuth *services.MultiTenantAuthService, userManagementService *services.UserManagementService, basePath string) *AuthHandler {
+func NewAuthHandler(authService *services.AuthService, multiTenantAuth *services.MultiTenantAuthService, userManagementService *services.UserManagementService, tenantService *services.TenantService, basePath string) *AuthHandler {
 	return &AuthHandler{
 		authService:           authService,
 		multiTenantAuth:       multiTenantAuth,
 		userManagementService: userManagementService,
+		tenantService:         tenantService,
 		basePath:              basePath,
 	}
 }
