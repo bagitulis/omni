@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tenant-scoped User Management: UserHandler now builds per-request UserRepository from tenant schema instead of SystemDB, enabling proper tenant isolation (`/api/users` returns users of requested tenant, not system schema)
 - Developer cross-tenant override: middleware/tenant.go honors `x-tenant-id` header for `developer` role only, enabling tester to switch tenants; non-developer users remain locked to JWT tenant
 - Data migration scripts/fix-user-hierarchy.sql: promote `yumna` admin→owner in bertigamart tenant; create `nusseyba` owner in nusseyba tenant
+- Developer Panel: dedicated /developer page (developer role only) with cross-tenant overview — tenant list, user counts by role (owner/admin/user), health status, and "Manage Users" button that switches tenant and navigates to /users
+- Backend GET /api/dev/overview endpoint (developer-only, RequireRole guard) returns all tenants with user counts grouped by role
+- Sidebar shows "Developer Panel" menu item for developer role only
+- Route /developer protected by ProtectedRoute role="developer"
 
 ### Fixed
 
@@ -31,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Missing `strconv` import in backend/internal/handlers/tiktok/orders.go
 - UserManagementPage race condition: useEffect now gated on accessToken, wrapped in try/catch
 - ListUsers response schema: nested as `{success, data: {users, total, page, limit}}` to match frontend contract
+- SSE /notifications/stream moved outside Auth middleware group — EventSource cannot send Authorization header, ticket-based auth is now handled inside the handler via ValidateSSETicket()
+- DeveloperPanelPage handleManageUsers now uses correct /auth/switch-tenant response shape ({token, tenant_id} via response.Success wrapper)
 
 ## [1.0.0] - 2026-05-02
 

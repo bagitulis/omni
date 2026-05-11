@@ -70,6 +70,7 @@ func main() {
 	routes.RegisterAuthRoutes(api, application.AuthHandler)
 	routes.RegisterProtectedAuthRoutes(api, application.AuthHandler)
 	routes.RegisterUserRoutes(api, application.UserHandler)
+	routes.RegisterDeveloperRoutes(api, application.DeveloperHandler)
 	routes.RegisterAuditRoutes(api, application.AuditHandler)
 	routes.RegisterCaptchaRoutes(api, application.CaptchaHandler)
 	routes.RegisterOAuthRoutes(api, application.OAuthHandler)

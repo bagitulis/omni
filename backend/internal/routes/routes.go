@@ -53,6 +53,18 @@ func RegisterUserRoutes(router *gin.RouterGroup, userHandler *handlers.UserHandl
 	}
 }
 
+// RegisterDeveloperRoutes registers developer-only cross-tenant routes.
+// Gated by RequireRole("developer") so only the tester/developer account can access.
+// Tenant middleware is intentionally omitted because these endpoints operate across all tenants.
+func RegisterDeveloperRoutes(router *gin.RouterGroup, developerHandler *handlers.DeveloperHandler) {
+	dev := router.Group("/dev")
+	dev.Use(middleware.Auth())
+	dev.Use(middleware.RequireRole("developer"))
+	{
+		dev.GET("/overview", developerHandler.GetOverview)
+	}
+}
+
 // RegisterAuditRoutes registers audit log routes
 func RegisterAuditRoutes(router *gin.RouterGroup, auditHandler *handlers.AuditHandler) {
 	audit := router.Group("/audit")

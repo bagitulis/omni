@@ -13,6 +13,7 @@ import {
   CodeOutlined,
   FileTextOutlined,
   TeamOutlined,
+  ExperimentOutlined,
 } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 
@@ -36,7 +37,7 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
     },
   } = theme.useToken();
 
-  const { canManageUsers } = usePermission();
+  const { canManageUsers, isDeveloper } = usePermission();
 
   const menuItems = useMemo(() => {
     const items = [
@@ -81,6 +82,14 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         key: "/users",
         icon: <TeamOutlined />,
         label: "User Management",
+      });
+    }
+
+    if (isDeveloper) {
+      items.push({
+        key: "/developer",
+        icon: <ExperimentOutlined />,
+        label: "Developer Panel",
       });
     }
 

@@ -66,6 +66,9 @@ const NotificationsPage = React.lazy(
 const UserManagementPage = React.lazy(
   () => import("./pages/users/UserManagementPage"),
 );
+const DeveloperPanelPage = React.lazy(
+  () => import("./pages/developer/DeveloperPanelPage"),
+);
 
 
 function AppContent() {
@@ -147,6 +150,14 @@ function AppContent() {
                       element={
                         <ProtectedRoute permission="users.list">
                           <UserManagementPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/developer"
+                      element={
+                        <ProtectedRoute role="developer">
+                          <DeveloperPanelPage />
                         </ProtectedRoute>
                       }
                     />
