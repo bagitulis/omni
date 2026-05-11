@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Disable dead Price Sync button with "coming soon" message instead of empty callback
+- Add retry logic with timeout to image download service (retry on 5xx/network errors, no retry on 4xx)
+- Fix silent error swallowing in inventory sync_service (json.Marshal) with proper zerolog error logging
+- Fix silent error swallowing in route scanner_service (filepath.Walk) with proper zerolog warning
+
 ## [1.0.0] - 2026-05-02
 
 ### Added

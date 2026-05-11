@@ -132,6 +132,17 @@ func (s *UserManagementService) UpdateUser(ctx context.Context, userID string, r
 		user.Email = req.Email
 	}
 
+	// Last owner protection: prevent demoting the last owner
+	if req.Role != "" && user.Role == "owner" && req.Role != "owner" {
+		ownerCount, err := s.userRepo.CountByRole(ctx, "owner")
+		if err != nil {
+			return nil, err
+		}
+		if ownerCount <= 1 {
+			return nil, errors.New("cannot demote the last owner of this tenant")
+		}
+	}
+
 	if req.Role != "" {
 		user.Role = req.Role
 	}
@@ -155,6 +166,16 @@ func (s *UserManagementService) DeleteUser(ctx context.Context, userID, deletedB
 	if user == nil {
 		return errors.New("user not found")
 	}
+	// Last owner protection: prevent deleting the last owner
+	if user.Role == "owner" {
+		ownerCount, err := s.userRepo.CountByRole(ctx, "owner")
+		if err != nil {
+			return err
+		}
+		if ownerCount <= 1 {
+			return errors.New("cannot delete the last owner of this tenant")
+		}
+	}
 
 	if err := s.userRepo.Delete(ctx, userID); err != nil {
 		return err
@@ -176,9 +197,40 @@ func (s *UserManagementService) GetUserByUsername(ctx context.Context, username 
 	return s.userRepo.FindByUsername(ctx, username)
 }
 
-// ListUsers lists all users
-func (s *UserManagementService) ListUsers(ctx context.Context) ([]models.User, error) {
-	return s.userRepo.FindAll(ctx)
+// PaginatedUsersResponse holds paginated user list
+type PaginatedUsersResponse struct {
+	Users []models.User `json:"users"`
+	Total int64          `json:"total"`
+	Page  int            `json:"page"`
+	Limit int            `json:"limit"`
+}
+
+// ListUsers lists users with pagination
+func (s *UserManagementService) ListUsers(ctx context.Context, page, limit int) (*PaginatedUsersResponse, error) {
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+
+	total, err := s.userRepo.Count(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	offset := (page - 1) * limit
+	users, err := s.userRepo.FindPaginated(ctx, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PaginatedUsersResponse{
+		Users: users,
+		Total: total,
+		Page:  page,
+		Limit: limit,
+	}, nil
 }
 
 // UnlockUser unlocks a locked user account

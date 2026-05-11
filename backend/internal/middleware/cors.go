@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"net/url"
 	"os"
 	"strings"
 
@@ -49,8 +50,10 @@ func CORS() gin.HandlerFunc {
 		// In non-production: allow any localhost/127.0.0.1 origin (any port)
 		// This prevents breakage when Vite picks a different dev port
 		if !isAllowed && !isProd && origin != "" {
-			isAllowed = strings.HasPrefix(origin, "http://localhost") ||
-				strings.HasPrefix(origin, "http://127.0.0.1")
+			if parsed, err := url.Parse(origin); err == nil {
+				host := parsed.Hostname()
+				isAllowed = host == "localhost" || host == "127.0.0.1"
+			}
 		}
 
 		if isAllowed {

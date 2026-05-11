@@ -12,6 +12,8 @@ import {
   NodeIndexOutlined,
   CodeOutlined,
   FileTextOutlined,
+  TeamOutlined,
+import { usePermission } from "@/hooks/usePermission";
 } from "@ant-design/icons";
 
 const { Sider } = Layout;
@@ -34,8 +36,10 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
     },
   } = theme.useToken();
 
-  const menuItems = useMemo(
-    () => [
+  const { canManageUsers } = usePermission();
+
+  const menuItems = useMemo(() => {
+    const items = [
       { key: "/", icon: <DashboardOutlined />, label: "Dashboard" },
       { key: "/order-manager", icon: <ShoppingOutlined />, label: "Orders" },
       {
@@ -70,9 +74,18 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         label: "Script Monitor",
       },
       { key: "/settings", icon: <SettingOutlined />, label: "Settings" },
-    ],
-    [],
-  );
+    ];
+
+    if (canManageUsers) {
+      items.push({
+        key: "/users",
+        icon: <TeamOutlined />,
+        label: "User Management",
+      });
+    }
+
+    return items;
+  }, [canManageUsers]);
 
   const selectedKey = useMemo(() => {
     // Products sub-routes

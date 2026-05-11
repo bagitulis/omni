@@ -184,15 +184,32 @@ func (m *ImageManager) downloadImage(url string) ([]byte, error) {
 	client := http.Client{
 		Timeout: 30 * time.Second,
 	}
-	resp, err := client.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to download image, status code: %d", resp.StatusCode)
+	var lastErr error
+	for attempt := 0; attempt < 2; attempt++ {
+		if attempt > 0 {
+			time.Sleep(2 * time.Second)
+		}
+
+		resp, err := client.Get(url)
+		if err != nil {
+			lastErr = err
+			log.Warn().Err(err).Str("url", url).Int("attempt", attempt+1).Msg("Image download failed, retrying")
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+			return nil, fmt.Errorf("failed to download image, status code: %d", resp.StatusCode)
+		}
+		if resp.StatusCode != http.StatusOK {
+			lastErr = fmt.Errorf("failed to download image, status code: %d", resp.StatusCode)
+			log.Warn().Int("status", resp.StatusCode).Str("url", url).Int("attempt", attempt+1).Msg("Image download non-OK status, retrying")
+			continue
+		}
+
+		return io.ReadAll(resp.Body)
 	}
 
-	return io.ReadAll(resp.Body)
+	return nil, lastErr
 }

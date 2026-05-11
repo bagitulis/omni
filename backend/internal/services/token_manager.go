@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/rs/zerolog/log"
+	"golang.org/x/sync/singleflight"
+
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
@@ -23,6 +26,7 @@ type TokenManager struct {
 	encryption       *utils.EncryptionService
 	httpClient       *http.Client
 	basePath         string // For getting tenant DB
+	refreshGroup     singleflight.Group // Deduplicates concurrent refresh calls per platform-tenant
 }
 
 // NewTokenManager creates a new token manager
@@ -35,6 +39,11 @@ func NewTokenManager(globalConfigRepo *repositories.GlobalConfigRepository, encr
 			Timeout: 30 * time.Second,
 		},
 	}
+}
+
+// refreshKey builds a singleflight key for a platform-tenant combination
+func refreshKey(tenantID, platform string) string {
+	return tenantID + ":" + platform
 }
 
 // getTenantConfigRepo gets a TenantPlatformConfigRepository for a specific tenant
@@ -104,7 +113,24 @@ func (m *TokenManager) GetTokenStatus(ctx context.Context, tenantID, platform st
 // RefreshShopeeToken refreshes Shopee access token
 // Gets global credentials (partnerId, partnerKey) from system schema
 // Gets tenant-specific config (shopId, refreshToken) from tenant schema
+// Uses singleflight to deduplicate concurrent refresh attempts for the same tenant.
 func (m *TokenManager) RefreshShopeeToken(ctx context.Context, tenantID string) (*TokenInfo, error) {
+	key := refreshKey(tenantID, models.PlatformShopee)
+
+	result, err, shared := m.refreshGroup.Do(key, func() (interface{}, error) {
+		return m.doRefreshShopeeToken(ctx, tenantID)
+	})
+	if shared {
+		log.Info().Str("tenant_id", tenantID).Str("platform", models.PlatformShopee).
+			Msg("[TOKEN REFRESH] Deduplicated concurrent refresh request via singleflight")
+	}
+	if err != nil {
+		return nil, err
+	}
+	return result.(*TokenInfo), nil
+}
+
+func (m *TokenManager) doRefreshShopeeToken(ctx context.Context, tenantID string) (*TokenInfo, error) {
 	// Get GLOBAL credentials from system schema
 	globalCreds, err := m.globalConfigRepo.GetShopeeCredentials(ctx)
 	if err != nil {
@@ -117,12 +143,12 @@ func (m *TokenManager) RefreshShopeeToken(ctx context.Context, tenantID string) 
 	// Get TENANT-specific config from tenant schema
 	tenantRepo, err := m.getTenantConfigRepo(tenantID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get tenant config repo for shopee refresh: %w", err)
 	}
 
 	tokenInfo, err := tenantRepo.GetTokenInfo(ctx, models.PlatformShopee)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get shopee token info: %w", err)
 	}
 	if tokenInfo == nil || tokenInfo.RefreshToken == "" {
 		return nil, errors.New("shopee refresh token not found in tenant config")
@@ -139,7 +165,24 @@ func (m *TokenManager) RefreshShopeeToken(ctx context.Context, tenantID string) 
 }
 
 // RefreshLazadaToken refreshes Lazada access token
+// Uses singleflight to deduplicate concurrent refresh attempts for the same tenant.
 func (m *TokenManager) RefreshLazadaToken(ctx context.Context, tenantID string) (*TokenInfo, error) {
+	key := refreshKey(tenantID, models.PlatformLazada)
+
+	result, err, shared := m.refreshGroup.Do(key, func() (interface{}, error) {
+		return m.doRefreshLazadaToken(ctx, tenantID)
+	})
+	if shared {
+		log.Info().Str("tenant_id", tenantID).Str("platform", models.PlatformLazada).
+			Msg("[TOKEN REFRESH] Deduplicated concurrent refresh request via singleflight")
+	}
+	if err != nil {
+		return nil, err
+	}
+	return result.(*TokenInfo), nil
+}
+
+func (m *TokenManager) doRefreshLazadaToken(ctx context.Context, tenantID string) (*TokenInfo, error) {
 	// Get GLOBAL credentials from system schema
 	globalCreds, err := m.globalConfigRepo.GetLazadaCredentials(ctx)
 	if err != nil {
@@ -152,12 +195,12 @@ func (m *TokenManager) RefreshLazadaToken(ctx context.Context, tenantID string) 
 	// Get TENANT-specific config from tenant schema
 	tenantRepo, err := m.getTenantConfigRepo(tenantID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get tenant config repo for lazada refresh: %w", err)
 	}
 
 	tokenInfo, err := tenantRepo.GetTokenInfo(ctx, models.PlatformLazada)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get lazada token info: %w", err)
 	}
 	if tokenInfo == nil || tokenInfo.RefreshToken == "" {
 		return nil, errors.New("lazada refresh token not found in tenant config")
@@ -171,7 +214,24 @@ func (m *TokenManager) RefreshLazadaToken(ctx context.Context, tenantID string) 
 }
 
 // RefreshTiktokToken refreshes TikTok access token
+// Uses singleflight to deduplicate concurrent refresh attempts for the same tenant.
 func (m *TokenManager) RefreshTiktokToken(ctx context.Context, tenantID string) (*TokenInfo, error) {
+	key := refreshKey(tenantID, models.PlatformTiktok)
+
+	result, err, shared := m.refreshGroup.Do(key, func() (interface{}, error) {
+		return m.doRefreshTiktokToken(ctx, tenantID)
+	})
+	if shared {
+		log.Info().Str("tenant_id", tenantID).Str("platform", models.PlatformTiktok).
+			Msg("[TOKEN REFRESH] Deduplicated concurrent refresh request via singleflight")
+	}
+	if err != nil {
+		return nil, err
+	}
+	return result.(*TokenInfo), nil
+}
+
+func (m *TokenManager) doRefreshTiktokToken(ctx context.Context, tenantID string) (*TokenInfo, error) {
 	// Get GLOBAL credentials from system schema
 	globalCreds, err := m.globalConfigRepo.GetTiktokCredentials(ctx)
 	if err != nil {
@@ -184,12 +244,12 @@ func (m *TokenManager) RefreshTiktokToken(ctx context.Context, tenantID string) 
 	// Get TENANT-specific config from tenant schema
 	tenantRepo, err := m.getTenantConfigRepo(tenantID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get tenant config repo for tiktok refresh: %w", err)
 	}
 
 	tokenInfo, err := tenantRepo.GetTokenInfo(ctx, models.PlatformTiktok)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get tiktok token info: %w", err)
 	}
 	if tokenInfo == nil || tokenInfo.RefreshToken == "" {
 		return nil, errors.New("tiktok refresh token not found in tenant config")

@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"net/http"
-
+	"strconv"
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
@@ -276,9 +276,21 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 	})
 }
 
-// ListUsers lists all users
+// ListUsers lists all users with pagination
 func (h *UserHandler) ListUsers(c *gin.Context) {
-	users, err := h.userService.ListUsers(c.Request.Context())
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "20")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 {
+		limit = 20
+	}
+
+	result, err := h.userService.ListUsers(c.Request.Context(), page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -288,14 +300,17 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 	}
 
 	// Convert to response format
-	response := make([]models.UserResponse, len(users))
-	for i, user := range users {
+	response := make([]models.UserResponse, len(result.Users))
+	for i, user := range result.Users {
 		response[i] = user.ToResponse()
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    response,
+		"total":   result.Total,
+		"page":    result.Page,
+		"limit":   result.Limit,
 	})
 }
 

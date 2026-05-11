@@ -63,6 +63,9 @@ const RouteMappingPage = React.lazy(
 const NotificationsPage = React.lazy(
   () => import("./pages/notifications/NotificationsPage"),
 );
+const UserManagementPage = React.lazy(
+  () => import("./pages/users/UserManagementPage"),
+);
 
 
 function AppContent() {
@@ -138,6 +141,14 @@ function AppContent() {
                     <Route
                       path="/script-monitor"
                       element={<ScriptMonitorPage />}
+                    />
+                    <Route
+                      path="/users"
+                      element={
+                        <ProtectedRoute permission="users.list">
+                          <UserManagementPage />
+                        </ProtectedRoute>
+                      }
                     />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Route>

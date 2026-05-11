@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
+	"github.com/rs/zerolog/log"
 )
 
 // BatchDownloadRequest represents the request body for batch download
@@ -191,9 +194,48 @@ func resolveDocumentType(c *gin.Context) string {
 	return documentType
 }
 
+// allowedTikTokHosts contains permitted CDN hostnames for document downloads.
+var allowedTikTokHosts = []string{
+	".tiktokcdn.com",
+	".tiktokcdn-us.com",
+	".bytedance.com",
+	".ibyteimg.com",
+}
+
+// maxDownloadSize is the maximum allowed response body size (50 MB).
+const maxDownloadSize = 50 * 1024 * 1024
+
+// httpDownloadClient is a shared HTTP client with a 30-second timeout for downloads.
+var httpDownloadClient = &http.Client{
+	Timeout: 30 * time.Second,
+}
+
+// validateDocURL checks that the URL uses HTTPS and points to an allowed TikTok CDN host.
+func validateDocURL(docURL string) error {
+	parsed, err := url.Parse(docURL)
+	if err != nil {
+		return fmt.Errorf("invalid document URL: %w", err)
+	}
+	if parsed.Scheme != "https" {
+		return fmt.Errorf("document URL must use HTTPS, got %q", parsed.Scheme)
+	}
+	host := strings.ToLower(parsed.Hostname())
+	for _, allowed := range allowedTikTokHosts {
+		if host == strings.TrimPrefix(allowed, ".") || strings.HasSuffix(host, allowed) {
+			return nil
+		}
+	}
+	return fmt.Errorf("document URL host %q is not an allowed TikTok CDN domain", host)
+}
+
 // downloadPDF downloads PDF data from a URL
 func downloadPDF(docURL string) ([]byte, error) {
-	httpResp, err := http.Get(docURL)
+	if err := validateDocURL(docURL); err != nil {
+		log.Warn().Str("url", docURL).Err(err).Msg("Blocked download from untrusted URL")
+		return nil, fmt.Errorf("URL validation failed: %w", err)
+	}
+
+	httpResp, err := httpDownloadClient.Get(docURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download document: %w", err)
 	}
@@ -203,9 +245,13 @@ func downloadPDF(docURL string) ([]byte, error) {
 		return nil, fmt.Errorf("failed to download document: HTTP %d", httpResp.StatusCode)
 	}
 
-	data, err := io.ReadAll(httpResp.Body)
+	limitedReader := io.LimitReader(httpResp.Body, maxDownloadSize+1)
+	data, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read document: %w", err)
+	}
+	if len(data) > maxDownloadSize {
+		return nil, fmt.Errorf("document exceeds maximum allowed size of %d bytes", maxDownloadSize)
 	}
 	return data, nil
 }

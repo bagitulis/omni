@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/rs/zerolog/log"
 )
 
 // ScannedRoute represents a route found during scanning
@@ -175,7 +177,11 @@ func (s *ScannerService) ScanForMiddleware() map[string][]string {
 	}
 
 	_ = filepath.Walk(internalPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() || !strings.HasSuffix(path, ".go") {
+		if err != nil {
+			log.Warn().Err(err).Str("path", path).Msg("[RouteScanner] error walking path")
+			return nil
+		}
+		if info.IsDir() || !strings.HasSuffix(path, ".go") {
 			return nil
 		}
 

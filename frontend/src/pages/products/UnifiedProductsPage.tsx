@@ -213,7 +213,7 @@ export default function UnifiedProductsPage() {
           navigate={navigate}
           syncHistoryTotal={syncHistoryData?.total ?? 0}
           priceDriftCount={driftData?.total_drifted ?? 0}
-          onSyncDriftedPrices={() => { /* TODO: open PriceSyncModal with drifted SKUs */ }}
+          onSyncDriftedPrices={() => { message.info("Price sync coming soon"); }}
           onPullFromMarketplace={handlePullFromMarketplace}
           pullLoading={pullLoading}
         />

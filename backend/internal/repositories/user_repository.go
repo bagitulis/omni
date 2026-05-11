@@ -151,3 +151,24 @@ func (r *UserRepository) ExistsByEmail(ctx context.Context, email string) (bool,
 		Where("email = ?", email).Count(&count).Error
 	return count > 0, err
 }
+
+// Count returns the total number of users
+func (r *UserRepository) Count(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.User{}).Count(&count).Error
+	return count, err
+}
+
+// FindPaginated returns users with pagination
+func (r *UserRepository) FindPaginated(ctx context.Context, offset, limit int) ([]models.User, error) {
+	var users []models.User
+	err := r.db.WithContext(ctx).Order("created_at DESC").Offset(offset).Limit(limit).Find(&users).Error
+	return users, err
+}
+
+// CountByRole returns the number of users with a specific role
+func (r *UserRepository) CountByRole(ctx context.Context, role string) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.User{}).Where("role = ?", role).Count(&count).Error
+	return count, err
+}

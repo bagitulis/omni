@@ -139,8 +139,12 @@ func (s *SyncService) SyncFromSheets(ctx context.Context, spreadsheetID, sheetNa
 		settings.LastSyncStatus = result.Status
 
 		// Always update AllColumns with discovered headers from sheet
-		allColumnsJSON, _ := json.Marshal(headers)
-		settings.AllColumns = string(allColumnsJSON)
+		allColumnsJSON, err := json.Marshal(headers)
+		if err != nil {
+			log.Error().Err(err).Msg("[SyncService] failed to marshal headers to JSON")
+		} else {
+			settings.AllColumns = string(allColumnsJSON)
+		}
 
 		// Auto-populate SelectedColumns if empty (first sync scenario)
 		if settings.SelectedColumns == "" || settings.SelectedColumns == "[]" || settings.SelectedColumns == "null" {

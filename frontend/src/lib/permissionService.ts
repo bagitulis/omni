@@ -40,7 +40,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Set<string>> = {
   ]),
   admin: new Set([
     "users.list",
+    "users.create",
     "users.update",
+    "users.delete",
     "users.changePassword",
     "store.manage",
     "reports.view",

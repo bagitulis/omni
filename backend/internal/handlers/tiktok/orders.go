@@ -2,13 +2,13 @@ package tiktok
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/utils"
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
 )
 
@@ -30,7 +30,11 @@ func (h *OrderHandler) GetOrders(c *gin.Context) {
 		return
 	}
 
-	page, pageSize := parsePagination(c)
+	page, pageSize, err := utils.ValidatePagination(c.DefaultQuery("page", ""), c.DefaultQuery("pageSize", ""))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
+		return
+	}
 
 	db, err := config.GetTenantDB(tenantID, h.basePath)
 	if err != nil {

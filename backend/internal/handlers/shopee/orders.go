@@ -2,13 +2,13 @@ package shopee
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/shopee"
+	"github.com/omni/backend/internal/utils"
 )
 
 // OrderHandler handles Shopee order HTTP requests
@@ -30,14 +30,10 @@ func (h *OrderHandler) GetOrders(c *gin.Context) {
 	}
 
 	// Parse pagination
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
-
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 20
+	page, pageSize, err := utils.ValidatePagination(c.DefaultQuery("page", ""), c.DefaultQuery("pageSize", ""))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
+		return
 	}
 
 	// Get database connection

@@ -99,6 +99,14 @@ func (c *Config) Validate() error {
 	if len(c.JWTSecret) < 32 {
 		return fmt.Errorf("JWT_SECRET must be at least 32 characters")
 	}
+	if c.DBDriver == "postgres" {
+		if c.PGPassword == "" {
+			return fmt.Errorf("PG_PASSWORD is required when using postgres driver")
+		}
+		if c.PGHost == "" {
+			return fmt.Errorf("PG_HOST is required when using postgres driver")
+		}
+	}
 	return nil
 }
 

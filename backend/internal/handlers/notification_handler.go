@@ -61,6 +61,20 @@ func (h *NotificationHandler) CreateNotification(c *gin.Context) {
 // GET /api/notifications/stream
 func (h *NotificationHandler) StreamNotifications(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
+
+	// Support ticket-based auth for SSE connections
+	if tenantID == "" {
+		ticket := c.Query("ticket")
+		if ticket != "" {
+			_, ticketTenantID, valid := ValidateSSETicket(ticket)
+			if !valid {
+				c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "invalid or expired ticket"})
+				return
+			}
+			tenantID = ticketTenantID
+		}
+	}
+
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "unauthorized"})
 		return

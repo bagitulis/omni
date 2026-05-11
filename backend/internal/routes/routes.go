@@ -30,6 +30,7 @@ func RegisterProtectedAuthRoutes(router *gin.RouterGroup, authHandler *handlers.
 		auth.POST("/logout", authHandler.Logout)
 		auth.POST("/change-password", authHandler.ChangePassword)
 		auth.POST("/profile", authHandler.UpdateProfile)
+		auth.POST("/sse-ticket", handlers.CreateSSETicket)
 		auth.GET("/me", authHandler.GetCurrentUser)
 		auth.GET("/tenants", authHandler.GetTenants)
 		auth.POST("/switch-tenant", authHandler.SwitchTenant)
