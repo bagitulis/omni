@@ -104,7 +104,9 @@ func CreateSSETicket(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"ticket":  ticket,
+		"data": gin.H{
+			"ticket": ticket,
+		},
 	})
 }
 

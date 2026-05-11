@@ -3,20 +3,41 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services"
 )
 
 // UserHandler handles user management endpoints
 type UserHandler struct {
-	userService *services.UserManagementService
+	userService   *services.UserManagementService // fallback service (system scope, used only as safety net)
+	tenantService *services.TenantService
+	auditRepo     *repositories.AuditRepository
+	authService   *services.AuthService
 }
 
 // NewUserHandler creates a new user handler
-func NewUserHandler(userService *services.UserManagementService) *UserHandler {
-	return &UserHandler{userService: userService}
+func NewUserHandler(userService *services.UserManagementService, tenantService *services.TenantService, auditRepo *repositories.AuditRepository, authService *services.AuthService) *UserHandler {
+	return &UserHandler{
+		userService:   userService,
+		tenantService: tenantService,
+		auditRepo:     auditRepo,
+		authService:   authService,
+	}
+}
+
+// getTenantService builds a tenant-scoped UserManagementService for the current request.
+// Uses the tenant DB for user queries so that users are properly scoped to the tenant schema.
+func (h *UserHandler) getTenantService(tenantID string) (*services.UserManagementService, error) {
+	tenantDB, err := h.tenantService.GetTenantDB(tenantID)
+	if err != nil {
+		return nil, err
+	}
+	userRepo := repositories.NewUserRepository(tenantDB)
+	return services.NewUserManagementService(userRepo, h.auditRepo, h.authService), nil
 }
 
 // CreateUserRequest represents create user request body
@@ -68,7 +89,16 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 
 	createdBy := c.GetString("userID")
 
-	user, err := h.userService.CreateUser(c.Request.Context(), &services.CreateUserRequest{
+	userService, err := h.getTenantService(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to access tenant database: " + err.Error(),
+		})
+		return
+	}
+
+	user, err := userService.CreateUser(c.Request.Context(), &services.CreateUserRequest{
 		Username: req.Username,
 		Email:    req.Email,
 		Password: req.Password,
@@ -135,9 +165,27 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		}
 	}
 
+	// Get tenant-scoped service for all user operations
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "Missing tenant_id",
+		})
+		return
+	}
+	userService, err := h.getTenantService(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to access tenant database: " + err.Error(),
+		})
+		return
+	}
+
 	// Also check: actor must be able to manage the user's CURRENT role
 	// (e.g., admin cannot edit an owner's profile)
-	existingUser, err := h.userService.GetUser(c.Request.Context(), userID)
+	existingUser, err := userService.GetUser(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -162,7 +210,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 
 	updatedBy := c.GetString("userID")
 
-	user, err := h.userService.UpdateUser(c.Request.Context(), userID, &services.UpdateUserRequest{
+	user, err := userService.UpdateUser(c.Request.Context(), userID, &services.UpdateUserRequest{
 		Username: req.Username,
 		Email:    req.Email,
 		Role:     req.Role,
@@ -204,7 +252,23 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 
 	// Check role hierarchy: actor must outrank target
 	actorRole := c.GetString("role")
-	existingUser, err := h.userService.GetUser(c.Request.Context(), userID)
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "Missing tenant_id",
+		})
+		return
+	}
+	userService, err := h.getTenantService(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to access tenant database: " + err.Error(),
+		})
+		return
+	}
+	existingUser, err := userService.GetUser(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -227,9 +291,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	tenantID := middleware.GetTenantID(c)
-
-	if err := h.userService.DeleteUser(c.Request.Context(), userID, actorID, tenantID); err != nil {
+	if err := userService.DeleteUser(c.Request.Context(), userID, actorID, tenantID); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   err.Error(),
@@ -254,7 +316,24 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userService.GetUser(c.Request.Context(), userID)
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "Missing tenant_id",
+		})
+		return
+	}
+	userService, err := h.getTenantService(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to access tenant database: " + err.Error(),
+		})
+		return
+	}
+
+	user, err := userService.GetUser(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -290,7 +369,24 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 		limit = 20
 	}
 
-	result, err := h.userService.ListUsers(c.Request.Context(), page, limit)
+	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "Missing tenant_id",
+		})
+		return
+	}
+	userService, err := h.getTenantService(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to access tenant database: " + err.Error(),
+		})
+		return
+	}
+
+	result, err := userService.ListUsers(c.Request.Context(), page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -307,10 +403,12 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    response,
-		"total":   result.Total,
-		"page":    result.Page,
-		"limit":   result.Limit,
+		"data": gin.H{
+			"users": response,
+			"total": result.Total,
+			"page":  result.Page,
+			"limit": result.Limit,
+		},
 	})
 }
 
@@ -326,9 +424,24 @@ func (h *UserHandler) UnlockUser(c *gin.Context) {
 	}
 
 	tenantID := middleware.GetTenantID(c)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "Missing tenant_id",
+		})
+		return
+	}
 	unlockedBy := c.GetString("userID")
+	userService, err := h.getTenantService(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to access tenant database: " + err.Error(),
+		})
+		return
+	}
 
-	if err := h.userService.UnlockUser(c.Request.Context(), userID, unlockedBy, tenantID); err != nil {
+	if err := userService.UnlockUser(c.Request.Context(), userID, unlockedBy, tenantID); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   err.Error(),

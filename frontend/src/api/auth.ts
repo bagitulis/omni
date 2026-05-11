@@ -125,3 +125,15 @@ export const getDevInfo = async (): Promise<DevInfoResponse> => {
   const response = await api.client.get<DevInfoResponse>("/auth/dev-info");
   return response.data;
 };
+
+export const getSSETicket = async (): Promise<string | null> => {
+  try {
+    const response = await api.post<{ ticket: string }>("/auth/sse-ticket", {});
+    if (response.success && response.data) {
+      return response.data.ticket;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};

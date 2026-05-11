@@ -36,9 +36,18 @@ func Tenant() gin.HandlerFunc {
 		tenantID := c.GetString("tenant_id")
 		fromJWT := tenantID != ""
 
-		// If not set by Auth, check header (legacy flow)
+		// Developer role can switch tenants via x-tenant-id header (cross-tenant access).
+		// Non-developer users are locked to their JWT tenant for security.
+		role := c.GetString("role")
+		headerTenant := c.GetHeader("x-tenant-id")
+		if role == "developer" && headerTenant != "" && headerTenant != tenantID {
+			tenantID = headerTenant
+			fromJWT = false // must re-validate since it's from header
+		}
+
+		// If not set by Auth or overridden, check header (legacy flow)
 		if tenantID == "" {
-			tenantID = c.GetHeader("x-tenant-id")
+			tenantID = headerTenant
 		}
 
 		// AGENTS.MD: NO DEFAULT TENANT — must throw error if missing
@@ -51,8 +60,8 @@ func Tenant() gin.HandlerFunc {
 			return
 		}
 
-		// If tenantID came from JWT, it's already validated by Auth middleware
-		// Only validate via config if tenantID came from header (legacy flow)
+		// If tenantID came from JWT (non-developer), it's already validated by Auth middleware.
+		// Developer overrides and header-sourced IDs must go through config validation.
 		if !fromJWT {
 			// Validate tenant using config (if loaded)
 			if tenantsLoaded {

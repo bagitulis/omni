@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Admin role now has users.create and users.delete permissions
 - Sidebar shows User Management menu item for authorized roles (admin+)
 - Route /users protected by users.list permission guard
+- Tenant-scoped User Management: UserHandler now builds per-request UserRepository from tenant schema instead of SystemDB, enabling proper tenant isolation (`/api/users` returns users of requested tenant, not system schema)
+- Developer cross-tenant override: middleware/tenant.go honors `x-tenant-id` header for `developer` role only, enabling tester to switch tenants; non-developer users remain locked to JWT tenant
+- Data migration scripts/fix-user-hierarchy.sql: promote `yumna` admin→owner in bertigamart tenant; create `nusseyba` owner in nusseyba tenant
 
 ### Fixed
 
@@ -24,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add retry logic with timeout to image download service (retry on 5xx/network errors, no retry on 4xx)
 - Fix silent error swallowing in inventory sync_service (json.Marshal) with proper zerolog error logging
 - Fix silent error swallowing in route scanner_service (filepath.Walk) with proper zerolog warning
+- SSE ticket handler now returns `{success, data: {ticket}}` (was `{success, ticket}` flat, caused frontend to fall back to JWT-in-URL)
+- Missing `strconv` import in backend/internal/handlers/tiktok/orders.go
+- UserManagementPage race condition: useEffect now gated on accessToken, wrapped in try/catch
+- ListUsers response schema: nested as `{success, data: {users, total, page, limit}}` to match frontend contract
 
 ## [1.0.0] - 2026-05-02
 

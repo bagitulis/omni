@@ -13,6 +13,7 @@ const { Title } = Typography;
 export default function UserManagementPage() {
   const { message } = App.useApp();
   const user = useAuthStore((state) => state.user);
+  const accessToken = useAuthStore((state) => state.accessToken);
   const { userRole, hasPermission } = usePermission();
   const canCreate = hasPermission("users.create");
 
@@ -28,23 +29,35 @@ export default function UserManagementPage() {
 
   const fetchUsers = useCallback(async (page = 1, limit = 20) => {
     setLoading(true);
-    const response = await usersApi.list({ page, limit });
-    if (response.success && response.data) {
-      setUsers(response.data.users);
-      setPagination({
-        page: response.data.page,
-        limit: response.data.limit,
-        total: response.data.total,
-      });
-    } else {
-      message.error(response.error ?? "Failed to load users");
+    try {
+      const response = await usersApi.list({ page, limit });
+      if (response.success && response.data) {
+        setUsers(response.data.users);
+        setPagination({
+          page: response.data.page,
+          limit: response.data.limit,
+          total: response.data.total,
+        });
+      } else {
+        message.error(response.error ?? "Failed to load users");
+      }
+    } catch (err) {
+      // 401 retry may have failed — don't show error if user was redirected
+      if (useAuthStore.getState().isAuthenticated) {
+        message.error(err instanceof Error ? err.message : "Failed to load users");
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [message]);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    // Wait for access token to be available before fetching
+    // Prevents race: page mounts before initializeAuth completes refresh
+    if (accessToken) {
+      fetchUsers();
+    }
+  }, [fetchUsers, accessToken]);
 
   const handleEdit = (record: UserResponse) => {
     setEditUser(record);

@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { notificationApi, Notification } from '@/api/notifications';
+import { getSSETicket } from '@/api/auth';
 import { useAuthStore } from '@/stores/authStore';
 import { API_BASE_URL } from '@/lib/constants';
 import { App } from 'antd';
@@ -95,37 +96,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  const setupSSE = useCallback(async () => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-
-    const token = await getValidToken();
-    if (!token || !tenantId) return;
-
-    // Use token as query param for SSE since headers aren't supported
-    const sseUrl = `${API_BASE_URL}/notifications/stream?token=${token}`;
-    const es = new EventSource(sseUrl);
-
+  const setupSSEListeners = useCallback((es: EventSource) => {
     es.onopen = () => {
-      // Reset reconnect counter on successful connection
       reconnectAttemptsRef.current = 0;
     };
 
     es.addEventListener('notification', (event: MessageEvent) => {
       try {
         const newNotif: Notification = JSON.parse(event.data);
-        
-        // Add to list if not already present
         setNotifications(prev => {
           if (prev.find(n => n.id === newNotif.id)) return prev;
           return [newNotif, ...prev].slice(0, 100);
         });
-        
-        // Increment unread count
         setUnreadCount(prev => prev + 1);
-
-        // Show browser-style toast
         notification[newNotif.type]({
           message: newNotif.title,
           description: newNotif.message,
@@ -142,15 +125,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const attempts = reconnectAttemptsRef.current;
       if (attempts >= MAX_RECONNECT_ATTEMPTS) {
         console.warn('SSE: max reconnection attempts reached, falling back to polling');
-        // Start polling fallback
         const pollInterval = setInterval(() => {
           fetchNotifications();
           fetchUnreadCount();
-        }, 60000); // Every 60 seconds
+        }, 60000);
         pollIntervalRef.current = pollInterval;
         return;
       }
-      // Exponential backoff: 5s, 10s, 20s, 40s, ... max 60s
       const delay = Math.min(5000 * Math.pow(2, attempts), 60000);
       reconnectAttemptsRef.current = attempts + 1;
       console.warn(`SSE: reconnecting in ${delay / 1000}s (attempt ${attempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
@@ -159,7 +140,32 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     eventSourceRef.current = es;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenantId, getValidToken, notification]);
+  }, [notification, fetchNotifications, fetchUnreadCount]);
+
+  const setupSSE = useCallback(async () => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+    }
+
+    const token = await getValidToken();
+    if (!token || !tenantId) return;
+
+    // Exchange JWT for a short-lived one-time ticket (prevents JWT exposure in URL)
+    const ticket = await getSSETicket();
+    if (!ticket) {
+      // Fallback: use token directly (deprecated path)
+      console.warn('[SSE] Failed to get ticket, falling back to token auth (deprecated)');
+      const sseUrl = `${API_BASE_URL}/notifications/stream?token=${token}`;
+      const es = new EventSource(sseUrl);
+      setupSSEListeners(es);
+      return;
+    }
+
+    const sseUrl = `${API_BASE_URL}/notifications/stream?ticket=${ticket}`;
+    const es = new EventSource(sseUrl);
+    setupSSEListeners(es);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenantId, getValidToken, setupSSEListeners]);
 
   useEffect(() => {
     if (tenantId) {
