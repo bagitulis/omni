@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- ListUsers API now supports pagination (page/limit query params, default page=1 limit=20)
+- SSE ticket auth system: POST /api/auth/sse-ticket exchanges JWT for short-lived one-time ticket
+- Last owner protection: cannot delete or demote the last owner of a tenant
+- UserRepository: Count, FindPaginated, CountByRole methods
 - User Management frontend: full CRUD page with table, create/edit modals, role-based actions
 - Admin role now has users.create and users.delete permissions
 - Sidebar shows User Management menu item for authorized roles (admin+)
