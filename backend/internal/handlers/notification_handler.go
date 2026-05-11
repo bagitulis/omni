@@ -61,7 +61,6 @@ func (h *NotificationHandler) CreateNotification(c *gin.Context) {
 // GET /api/notifications/stream
 func (h *NotificationHandler) StreamNotifications(c *gin.Context) {
 	tenantID := c.GetString("tenant_id")
-
 	// Support ticket-based auth for SSE connections
 	if tenantID == "" {
 		ticket := c.Query("ticket")
@@ -72,6 +71,8 @@ func (h *NotificationHandler) StreamNotifications(c *gin.Context) {
 				return
 			}
 			tenantID = ticketTenantID
+			// Set tenant_id in context so GetTenantDB can find it
+			c.Set("tenant_id", tenantID)
 		}
 	}
 
@@ -79,7 +80,6 @@ func (h *NotificationHandler) StreamNotifications(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "unauthorized"})
 		return
 	}
-
 	db, err := GetTenantDB(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})

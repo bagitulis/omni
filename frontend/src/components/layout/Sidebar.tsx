@@ -13,8 +13,8 @@ import {
   CodeOutlined,
   FileTextOutlined,
   TeamOutlined,
-import { usePermission } from "@/hooks/usePermission";
 } from "@ant-design/icons";
+import { usePermission } from "@/hooks/usePermission";
 
 const { Sider } = Layout;
 

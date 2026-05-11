@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- User Management frontend: full CRUD page with table, create/edit modals, role-based actions
+- Admin role now has users.create and users.delete permissions
+- Sidebar shows User Management menu item for authorized roles (admin+)
+- Route /users protected by users.list permission guard
+
 ### Fixed
 
 - Disable dead Price Sync button with "coming soon" message instead of empty callback
