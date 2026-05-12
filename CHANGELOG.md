@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `system.tenants` table missing `deactivated_at` column causing `ListTenants` and `DeactivateTenant` to fail with SQLSTATE 42703 — added migration in `MigrateSystemDatabase` to add column
+
 - Bulk handler tests updated to match new `items: [{user_id, tenant_id}]` request struct (previously referenced old `user_ids` field)
 - `DevLoginInfo` and `DevLogin` handlers panic with nil pointer when `tenantService` is nil (added nil guards, test assertions updated)
 

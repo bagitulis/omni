@@ -39,6 +39,13 @@ func MigrateSystemDatabase(db *gorm.DB) error {
 		log.Info().Msgf("  ✅ Migrated: %T", model)
 	}
 
+	// Add deactivated_at column to system.tenants if it doesn't exist
+	if GetDatabaseDriver() == DriverPostgres {
+		if err := db.Session(&gorm.Session{}).Exec(`ALTER TABLE system.tenants ADD COLUMN IF NOT EXISTS deactivated_at TIMESTAMP NULL`).Error; err != nil {
+			log.Warn().Err(err).Msg("Failed to add deactivated_at column to system.tenants (may already exist)")
+		}
+	}
+
 
 	// NOTE: Zombie column cleanup disabled — needs verification on fresh DB
 	// to ensure GORM schema parsing correctly identifies all model columns.
