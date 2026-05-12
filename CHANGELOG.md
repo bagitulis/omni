@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `system.tenants` table missing `deactivated_at` column causing `ListTenants` and `DeactivateTenant` to fail with SQLSTATE 42703 — added migration in `MigrateSystemDatabase` to add column
 - `shopee_skus` query in platform status function referenced non-existent `sku_id` column causing SQL error (SQLSTATE 42703) and 500 on `/api/monitoring/health/detailed` — replaced with `COALESCE(CAST(model_id AS TEXT), '')`
 - Nil pointer dereference in `GetDetailedHealthMonitoring` when `MonitoringHandler.db` is nil (created via `NewSimpleMonitoringHandler()`) — added nil guard in `checkDatabase()`
+- MonitoringHandler initialized with nil DB (`NewSimpleMonitoringHandler()`) causing health endpoint to always show "Disconnected" — now uses `NewMonitoringHandler(db, nil)` with actual DB connection
 
 - Bulk handler tests updated to match new `items: [{user_id, tenant_id}]` request struct (previously referenced old `user_ids` field)
 - `DevLoginInfo` and `DevLogin` handlers panic with nil pointer when `tenantService` is nil (added nil guards, test assertions updated)

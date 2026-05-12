@@ -135,7 +135,7 @@ func (a *App) InitExtendedHandlers(ctx context.Context, db *gorm.DB, googleAuth 
 		WholesaleHandler:           handlers.NewWholesaleHandler(db),
 
 		// Monitoring handler
-		MonitoringHandler: handlers.NewSimpleMonitoringHandler(),
+		MonitoringHandler: handlers.NewMonitoringHandler(db, nil),
 
 		// API Client factories
 		ShopeeAPIClientFactory: shopeeAPIClientFactory,
