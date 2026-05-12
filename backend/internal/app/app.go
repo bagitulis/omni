@@ -246,7 +246,7 @@ func (a *App) initProcessors() {
 func (a *App) initHandlers() {
 	a.AuthHandler = handlers.NewAuthHandler(a.AuthService, a.MultiTenantAuth, a.UserService, a.TenantService, a.BasePath)
 	a.UserHandler = handlers.NewUserHandler(a.UserService, a.TenantService, a.AuditRepo, a.AuthService)
-	a.DeveloperHandler = handlers.NewDeveloperHandler(a.TenantService)
+	a.DeveloperHandler = handlers.NewDeveloperHandler(a.TenantService, a.UserService)
 	a.AuditHandler = handlers.NewAuditHandler(a.AuditService)
 	a.CaptchaHandler = handlers.NewCaptchaHandler(a.CaptchaService)
 	a.TokenHandler = handlers.NewTokenHandler(a.TokenManager)

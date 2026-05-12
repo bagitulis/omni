@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ResetPassword` service method now validates password strength before hashing (prevents weak passwords via admin reset)
 
 ### Added
+- `POST /api/dev/reset-password` endpoint for developer panel password reset (cross-tenant)
+- `developer_handler_test.go` with validation, weak password, and success test cases
+
+### Added
 - `TypeToConfirmModal` shared component for destructive action confirmation (type-to-confirm pattern)
 - Developer panel API interfaces (`TenantDetail`, `CrossTenantUser`, `SystemHealth`, `AuditLogEntry`, `BulkOperationResult`, `EnvironmentInfo`) and function stubs in `frontend/src/api/developer.ts`
 

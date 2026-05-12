@@ -1,7 +1,11 @@
 package handlers
 
 import (
+	"context"
+	"errors"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/repositories"
@@ -11,12 +15,13 @@ import (
 // DeveloperHandler provides developer-only cross-tenant operations.
 // All routes are gated by RequireRole("developer") at the router level.
 type DeveloperHandler struct {
-	tenantService *services.TenantService
+	tenantService  *services.TenantService
+	userMgmtService *services.UserManagementService
 }
 
 // NewDeveloperHandler creates a new developer handler.
-func NewDeveloperHandler(tenantService *services.TenantService) *DeveloperHandler {
-	return &DeveloperHandler{tenantService: tenantService}
+func NewDeveloperHandler(tenantService *services.TenantService, userMgmtService *services.UserManagementService) *DeveloperHandler {
+	return &DeveloperHandler{tenantService: tenantService, userMgmtService: userMgmtService}
 }
 
 // TenantOverview is a per-tenant summary for the developer panel.
@@ -73,5 +78,159 @@ func (h *DeveloperHandler) GetOverview(c *gin.Context) {
 			"tenants": overviews,
 			"total":   len(overviews),
 		},
+	})
+}
+
+// resetPasswordRequest represents the request body for password reset.
+type resetPasswordRequest struct {
+	UserID      string `json:"user_id" binding:"required"`
+	TenantID    string `json:"tenant_id" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required"`
+}
+
+// ResetPassword resets a user's password (developer cross-tenant action).
+// POST /api/dev/reset-password
+func (h *DeveloperHandler) ResetPassword(c *gin.Context) {
+	var req resetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "validation failed: " + err.Error(),
+		})
+		return
+	}
+
+	// Verify tenant exists by attempting to get its DB
+	_, err := h.tenantService.GetTenantDB(req.TenantID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "invalid tenant_id: " + err.Error(),
+		})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	resetBy := c.GetString("userID")
+	err = h.userMgmtService.ResetPassword(ctx, req.UserID, req.NewPassword, resetBy, req.TenantID)
+	if err != nil {
+		switch err.Error() {
+		case "user not found":
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error":   "user not found",
+			})
+		default:
+			// Password validation errors return 400
+			if isPasswordValidationError(err) {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"success": false,
+					"error":   err.Error(),
+				})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"success": false,
+					"error":   "failed to reset password: " + err.Error(),
+				})
+			}
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Password reset successfully",
+	})
+}
+
+// isPasswordValidationError checks if the error is from password strength validation.
+func isPasswordValidationError(err error) bool {
+	msg := err.Error()
+	return strings.Contains(msg, "password must") ||
+		strings.Contains(msg, "password is too common")
+}
+
+// DeactivateTenant soft-deletes a tenant by setting is_active=false.
+// DELETE /api/dev/tenants/:id
+func (h *DeveloperHandler) DeactivateTenant(c *gin.Context) {
+	tenantID := c.Param("id")
+	if tenantID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "tenant id is required",
+		})
+		return
+	}
+
+	ctx := c.Request.Context()
+	err := h.tenantService.DeactivateTenant(ctx, tenantID)
+	if err != nil {
+		if errors.Is(err, services.ErrTenantNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error":   "tenant not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "failed to deactivate tenant: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+	})
+}
+
+// createTenantRequest represents the request body for tenant creation.
+type createTenantRequest struct {
+	Name string `json:"name" binding:"required"`
+}
+
+// CreateTenant creates a new tenant with schema and migrations.
+// POST /api/dev/tenants
+func (h *DeveloperHandler) CreateTenant(c *gin.Context) {
+	var req createTenantRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "validation failed: name is required",
+		})
+		return
+	}
+
+	ctx := c.Request.Context()
+	result, err := h.tenantService.CreateTenant(ctx, req.Name)
+	if err != nil {
+		var validationErr *services.TenantValidationError
+		var duplicateErr *services.TenantDuplicateError
+
+		switch {
+		case errors.As(err, &validationErr):
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   validationErr.Error(),
+			})
+		case errors.As(err, &duplicateErr):
+			c.JSON(http.StatusConflict, gin.H{
+				"success": false,
+				"error":   duplicateErr.Error(),
+			})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error":   "failed to create tenant: " + err.Error(),
+			})
+		}
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"success": true,
+		"data":    result,
 	})
 }

@@ -62,6 +62,9 @@ func RegisterDeveloperRoutes(router *gin.RouterGroup, developerHandler *handlers
 	dev.Use(middleware.RequireRole("developer"))
 	{
 		dev.GET("/overview", developerHandler.GetOverview)
+		dev.POST("/reset-password", developerHandler.ResetPassword)
+		dev.DELETE("/tenants/:id", developerHandler.DeactivateTenant)
+		dev.POST("/tenants", developerHandler.CreateTenant)
 	}
 }
 

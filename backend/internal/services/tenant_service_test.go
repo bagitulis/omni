@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -101,4 +102,69 @@ func TestTenantInfo_JSONTags(t *testing.T) {
 	assert.NotEmpty(t, info.ID)
 	assert.NotEmpty(t, info.ShopName)
 	assert.True(t, info.IsGlobal)
+}
+
+func TestErrTenantNotFound(t *testing.T) {
+	// Verify ErrTenantNotFound is properly defined and usable
+	assert.NotNil(t, ErrTenantNotFound)
+	assert.Equal(t, "tenant not found", ErrTenantNotFound.Error())
+
+	// Verify errors.Is works for comparison
+	import_err := fmt.Errorf("wrapped: %w", ErrTenantNotFound)
+	assert.ErrorIs(t, import_err, ErrTenantNotFound)
+}
+
+func TestTenantNamePattern(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		valid   bool
+	}{
+		{"valid simple", "myshop", true},
+		{"valid with underscore", "my_shop", true},
+		{"valid with numbers", "shop123", true},
+		{"valid min length", "abc", true},
+		{"valid complex", "yumna_bertigamart", true},
+		{"valid 50 chars", "abcdefghijklmnopqrstuvwxyz_abcdefghijklmnopqrstuv", true},
+		{"invalid starts with number", "1shop", false},
+		{"invalid starts with underscore", "_shop", false},
+		{"invalid uppercase", "MyShop", false},
+		{"invalid special chars", "my-shop", false},
+		{"invalid too short", "ab", false},
+		{"invalid empty", "", false},
+		{"invalid spaces", "my shop", false},
+		{"invalid sql injection", "test'; DROP TABLE--", false},
+		{"invalid 51 chars", "abcdefghijklmnopqrstuvwxyz_abcdefghijklmnopqrstuvw", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tenantNamePattern.MatchString(tt.input)
+			assert.Equal(t, tt.valid, result)
+		})
+	}
+}
+
+func TestTenantValidationError(t *testing.T) {
+	err := &TenantValidationError{Msg: "invalid name"}
+	assert.Equal(t, "invalid name", err.Error())
+}
+
+func TestTenantDuplicateError(t *testing.T) {
+	err := &TenantDuplicateError{Name: "myshop"}
+	assert.Equal(t, "tenant 'myshop' already exists", err.Error())
+}
+
+func TestCreateTenantResult_Structure(t *testing.T) {
+	result := CreateTenantResult{
+		ID:        "new_tenant",
+		Name:      "new_tenant",
+		IsActive:  true,
+		CreatedAt: "2026-01-01T00:00:00Z",
+	}
+
+	assert.Equal(t, "new_tenant", result.ID)
+	assert.Equal(t, "new_tenant", result.Name)
+	assert.True(t, result.IsActive)
+	assert.Equal(t, "2026-01-01T00:00:00Z", result.CreatedAt)
 }
