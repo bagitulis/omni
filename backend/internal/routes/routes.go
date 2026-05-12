@@ -65,6 +65,7 @@ func RegisterDeveloperRoutes(router *gin.RouterGroup, developerHandler *handlers
 		dev.GET("/users/search", developerHandler.SearchUsers)
 		dev.POST("/reset-password", developerHandler.ResetPassword)
 		dev.DELETE("/tenants/:id", developerHandler.DeactivateTenant)
+		dev.GET("/tenants", developerHandler.ListTenants)
 		dev.POST("/tenants", developerHandler.CreateTenant)
 		dev.POST("/users/bulk-reset-password", developerHandler.BulkResetPasswords)
 		dev.POST("/users/bulk-disable", developerHandler.BulkDisableUsers)

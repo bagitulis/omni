@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frontend BulkActionModal passes per-user tenant_id to backend for correct multi-tenant bulk operations
 
 ### Added
+- `GET /api/dev/tenants` endpoint returning all tenants (active and inactive) with user counts, created_at, and deactivated_at for developer panel
 
 - `UsersTab` component for developer panel with cross-tenant user search (debounced 300ms, min 2 chars), results table with row selection, bulk action bar
 - `ResetPasswordModal` component with password validation (min 8 chars, upper + lower + number)

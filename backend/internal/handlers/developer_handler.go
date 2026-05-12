@@ -81,6 +81,79 @@ func (h *DeveloperHandler) GetOverview(c *gin.Context) {
 	})
 }
 
+// TenantDetailResponse represents a tenant with full details for the developer panel.
+type TenantDetailResponse struct {
+	ID            string  `json:"id"`
+	Name          string  `json:"name"`
+	IsActive      bool    `json:"is_active"`
+	UserCount     int64   `json:"user_count"`
+	CreatedAt     string  `json:"created_at"`
+	DeactivatedAt *string `json:"deactivated_at"`
+}
+
+// ListTenants returns all tenants (active and inactive) with user counts.
+// GET /api/dev/tenants
+func (h *DeveloperHandler) ListTenants(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	systemDB, err := h.tenantService.GetSystemDB()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "failed to get system db: " + err.Error(),
+		})
+		return
+	}
+
+	var tenants []struct {
+		TenantID      string     `gorm:"column:tenant_id"`
+		IsActive      bool       `gorm:"column:is_active"`
+		CreatedAt     time.Time  `gorm:"column:created_at"`
+		DeactivatedAt *time.Time `gorm:"column:deactivated_at"`
+	}
+
+	err = systemDB.WithContext(ctx).Table("system.tenants").
+		Select("tenant_id, is_active, created_at, deactivated_at").
+		Order("created_at ASC").
+		Find(&tenants).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "failed to list tenants: " + err.Error(),
+		})
+		return
+	}
+
+	results := make([]TenantDetailResponse, 0, len(tenants))
+	for _, t := range tenants {
+		detail := TenantDetailResponse{
+			ID:        t.TenantID,
+			Name:      t.TenantID,
+			IsActive:  t.IsActive,
+			CreatedAt: t.CreatedAt.Format(time.RFC3339),
+		}
+
+		if t.DeactivatedAt != nil {
+			formatted := t.DeactivatedAt.Format(time.RFC3339)
+			detail.DeactivatedAt = &formatted
+		}
+
+		// Count users in tenant schema
+		db, err := h.tenantService.GetTenantDB(t.TenantID)
+		if err == nil {
+			repo := repositories.NewUserRepository(db)
+			detail.UserCount, _ = repo.Count(ctx)
+		}
+
+		results = append(results, detail)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    results,
+	})
+}
+
 // resetPasswordRequest represents the request body for password reset.
 type resetPasswordRequest struct {
 	UserID      string `json:"user_id" binding:"required"`
