@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `TenantService.CreateTenant()` method for creating new tenants (validates name, creates schema, runs migrations, registers in system.tenants)
+- `POST /api/dev/tenants` endpoint in developer handler for tenant creation with 400/409/500 error handling
+- `TenantValidationError` and `TenantDuplicateError` typed errors for CreateTenant
+- `CreateTenantResult` struct for tenant creation response
+- Tenant name validation regex (`^[a-z][a-z0-9_]{2,49}$`) with SQL injection prevention
+- Rollback mechanism: drops schema on migration or registration failure
+- Tests for CreateTenant handler (missing name, invalid name, duplicate, success)
+- Tests for tenant name pattern validation (17 cases covering valid/invalid inputs)
 - `TenantService.DeactivateTenant()` method for soft-deleting tenants (sets `is_active=false`)
 - `DELETE /api/dev/tenants/:id` endpoint in developer handler for tenant deactivation
 - `ErrTenantNotFound` sentinel error for tenant service
