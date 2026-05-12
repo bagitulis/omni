@@ -645,8 +645,9 @@ def _restore_from_backup(backup_dir: Path) -> bool:
     """Restore tables from pre-import backup after a failed import.
 
     Replays the pg_dump SQL files to restore data to pre-truncate state.
+    Uses TRUNCATE CASCADE and session_replication_role to handle FK constraints.
     """
-    log_warning("Import failed — restoring from pre-import backup...")
+    log_warning("Import failed \u2014 restoring from pre-import backup...")
     restore_errors = 0
 
     for dump_file in sorted(backup_dir.glob('*.sql')):
@@ -659,10 +660,10 @@ def _restore_from_backup(backup_dir: Path) -> bool:
         if not sql.strip():
             continue
 
-        # TRUNCATE first to avoid duplicates from partial import, then replay dump
+        # Use session_replication_role + TRUNCATE CASCADE to avoid FK issues
         restore_sql = (
             "SET session_replication_role = 'replica';\n"
-            f"TRUNCATE {table_ref};\n"
+            f"TRUNCATE {table_ref} CASCADE;\n"
             + sql
         )
         ok, err = _psql_exec(restore_sql, timeout=120)
@@ -822,7 +823,7 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
                 ok, err = _psql_exec(
                     f"SET session_replication_role = 'replica';\n"
                     f"TRUNCATE {table.schema}.{table.name} CASCADE;",
-                    timeout=30
+                    timeout=120
                 )
                 if not ok:
                     truncate_failures += 1
