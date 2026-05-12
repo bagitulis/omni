@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Webhook body size limit (1MB) on all webhook handlers (Shopee, Lazada, TikTok)
+- Fail-closed webhook behavior: reject with 503/400 when processor is nil or tenant_id is missing
+- TikTok webhook timestamp replay protection (±5 min tolerance window)
+- Webhook signature errors now return 401 Unauthorized instead of 400 Bad Request
+
 ### Changed
 
 - Server context propagation to job executors: MultiTenantExecutor now receives a cancellable server context for coordinated shutdown

@@ -4,13 +4,22 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/services/cache"
 	"github.com/omni/backend/internal/services/webhooks"
 	"github.com/rs/zerolog/log"
+)
+
+	const (
+	// MaxWebhookBodySize is the maximum allowed webhook request body (1MB)
+	MaxWebhookBodySize = 1 * 1024 * 1024
+	// WebhookTimestampTolerance is the max age of a webhook timestamp for replay protection
+	WebhookTimestampTolerance = 5 * 60 // 5 minutes in seconds
 )
 
 // webhookTenantPattern validates tenant_id format to prevent injection attacks.
@@ -120,7 +129,7 @@ func (h *WebhookHandler) invalidateAnalyticsCache(tenantID, platform string) {
 
 // ShopeeWebhook handles Shopee webhook events
 func (h *WebhookHandler) ShopeeWebhook(c *gin.Context) {
-	body, err := io.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(io.LimitReader(c.Request.Body, MaxWebhookBodySize))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Error("Failed to read body"))
 		return
@@ -132,28 +141,40 @@ func (h *WebhookHandler) ShopeeWebhook(c *gin.Context) {
 
 	log.Debug().Str("tenant_id", tenantID).Msg("Shopee webhook received")
 
-	// Process webhook
-	if h.shopeeProcessor != nil && tenantID != "" {
-		requestURL := c.Request.URL.String()
-		if err := h.shopeeProcessor.Process(c.Request.Context(), tenantID, requestURL, string(body), signature); err != nil {
-			log.Warn().Err(err).Str("tenant_id", tenantID).Msg("Shopee webhook processing error")
-			if isSignatureError(err) {
-				c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid webhook signature"})
-				return
-			}
-			// Still return success to prevent retries
-		} else {
-			// Invalidate cache on successful processing
-			h.invalidateAnalyticsCache(tenantID, "shopee")
-		}
+	// Fail-closed: reject if no processor configured
+	if h.shopeeProcessor == nil {
+		log.Error().Msg("[Webhook] Shopee processor not configured")
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "webhook processor not configured"})
+		return
 	}
 
+	// Fail-closed: reject if no tenant
+	if tenantID == "" {
+		log.Warn().Msg("[Webhook] Shopee webhook missing or invalid tenant_id")
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "missing or invalid tenant_id"})
+		return
+	}
+
+	// Process webhook
+	requestURL := c.Request.URL.String()
+	if err := h.shopeeProcessor.Process(c.Request.Context(), tenantID, requestURL, string(body), signature); err != nil {
+		log.Warn().Err(err).Str("tenant_id", tenantID).Msg("Shopee webhook processing error")
+		if isSignatureError(err) {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "invalid webhook signature"})
+			return
+		}
+		// Non-signature errors: still return 200 to prevent platform retries
+		c.JSON(http.StatusOK, gin.H{"success": true})
+		return
+	}
+
+	// Success
+	h.invalidateAnalyticsCache(tenantID, "shopee")
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
-
 // LazadaWebhook handles Lazada webhook events
 func (h *WebhookHandler) LazadaWebhook(c *gin.Context) {
-	body, err := io.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(io.LimitReader(c.Request.Body, MaxWebhookBodySize))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Error("Failed to read body"))
 		return
@@ -164,25 +185,40 @@ func (h *WebhookHandler) LazadaWebhook(c *gin.Context) {
 
 	log.Debug().Str("tenant_id", tenantID).Msg("Lazada webhook received")
 
-	if h.lazadaProcessor != nil && tenantID != "" {
-		if err := h.lazadaProcessor.Process(c.Request.Context(), tenantID, string(body), signature); err != nil {
-			log.Warn().Err(err).Str("tenant_id", tenantID).Msg("Lazada webhook processing error")
-			if isSignatureError(err) {
-				c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid webhook signature"})
-				return
-			}
-		} else {
-			// Invalidate cache on successful processing
-			h.invalidateAnalyticsCache(tenantID, "lazada")
-		}
+	// Fail-closed: reject if no processor configured
+	if h.lazadaProcessor == nil {
+		log.Error().Msg("[Webhook] Lazada processor not configured")
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "webhook processor not configured"})
+		return
 	}
 
+	// Fail-closed: reject if no tenant
+	if tenantID == "" {
+		log.Warn().Msg("[Webhook] Lazada webhook missing or invalid tenant_id")
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "missing or invalid tenant_id"})
+		return
+	}
+
+	// Process webhook
+	if err := h.lazadaProcessor.Process(c.Request.Context(), tenantID, string(body), signature); err != nil {
+		log.Warn().Err(err).Str("tenant_id", tenantID).Msg("Lazada webhook processing error")
+		if isSignatureError(err) {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "invalid webhook signature"})
+			return
+		}
+		// Non-signature errors: still return 200 to prevent platform retries
+		c.JSON(http.StatusOK, gin.H{"success": true})
+		return
+	}
+
+	// Success
+	h.invalidateAnalyticsCache(tenantID, "lazada")
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
 // TiktokWebhook handles TikTok webhook events
 func (h *WebhookHandler) TiktokWebhook(c *gin.Context) {
-	body, err := io.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(io.LimitReader(c.Request.Body, MaxWebhookBodySize))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Error("Failed to read body"))
 		return
@@ -194,18 +230,57 @@ func (h *WebhookHandler) TiktokWebhook(c *gin.Context) {
 
 	log.Debug().Str("tenant_id", tenantID).Msg("TikTok webhook received")
 
-	if h.tiktokProcessor != nil && tenantID != "" {
-		if err := h.tiktokProcessor.Process(c.Request.Context(), tenantID, string(body), timestamp, signature); err != nil {
-			log.Warn().Err(err).Str("tenant_id", tenantID).Msg("TikTok webhook processing error")
-			if isSignatureError(err) {
-				c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid webhook signature"})
-				return
-			}
-		} else {
-			// Invalidate cache on successful processing
-			h.invalidateAnalyticsCache(tenantID, "tiktok")
+	// Replay protection: validate timestamp is within tolerance
+	if timestamp != "" {
+		ts, err := strconv.ParseInt(timestamp, 10, 64)
+		if err != nil {
+			log.Warn().Str("timestamp", timestamp).Msg("[Webhook] TikTok invalid timestamp format")
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid timestamp"})
+			return
+		}
+		now := time.Now().Unix()
+		if abs(now-ts) > WebhookTimestampTolerance {
+			log.Warn().Int64("timestamp", ts).Int64("now", now).Msg("[Webhook] TikTok webhook timestamp outside tolerance (replay?)")
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "webhook timestamp expired"})
+			return
 		}
 	}
 
+	// Fail-closed: reject if no processor configured
+	if h.tiktokProcessor == nil {
+		log.Error().Msg("[Webhook] TikTok processor not configured")
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "webhook processor not configured"})
+		return
+	}
+
+	// Fail-closed: reject if no tenant
+	if tenantID == "" {
+		log.Warn().Msg("[Webhook] TikTok webhook missing or invalid tenant_id")
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "missing or invalid tenant_id"})
+		return
+	}
+
+	// Process webhook
+	if err := h.tiktokProcessor.Process(c.Request.Context(), tenantID, string(body), timestamp, signature); err != nil {
+		log.Warn().Err(err).Str("tenant_id", tenantID).Msg("TikTok webhook processing error")
+		if isSignatureError(err) {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "invalid webhook signature"})
+			return
+		}
+		// Non-signature errors: still return 200 to prevent platform retries
+		c.JSON(http.StatusOK, gin.H{"success": true})
+		return
+	}
+
+	// Success
+	h.invalidateAnalyticsCache(tenantID, "tiktok")
 	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+// abs returns absolute value of int64
+func abs(n int64) int64 {
+	if n < 0 {
+		return -n
+	}
+	return n
 }
