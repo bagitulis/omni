@@ -406,6 +406,63 @@ func TestUserManagementService_ResetPassword_NotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "user not found")
 }
 
+func TestUserManagementService_ResetPassword_WeakPassword(t *testing.T) {
+	db := setupUserTestDB(t)
+	svc := createUserManagementService(t, db)
+	ctx := context.Background()
+
+	// Create a user
+	req := &CreateUserRequest{
+		Username: "weakpwduser",
+		Email:    "weakpwd@example.com",
+		Password: "StrongPassword123!",
+		Role:     models.RoleUser,
+		TenantID: "test-tenant",
+	}
+	created, err := svc.CreateUser(ctx, req, "admin")
+	require.NoError(t, err)
+
+	tests := []struct {
+		name       string
+		password   string
+		errContain string
+	}{
+		{
+			name:       "too short",
+			password:   "Ab1",
+			errContain: "at least 8 characters",
+		},
+		{
+			name:       "no uppercase",
+			password:   "alllowercase123",
+			errContain: "uppercase letter",
+		},
+		{
+			name:       "no lowercase",
+			password:   "ALLUPPERCASE123",
+			errContain: "lowercase letter",
+		},
+		{
+			name:       "no number",
+			password:   "NoNumbersHere",
+			errContain: "number",
+		},
+		{
+			name:       "common password - password123",
+			password:   "Password123",
+			errContain: "too common",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := svc.ResetPassword(ctx, created.ID, tt.password, "admin", "test-tenant")
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errContain)
+		})
+	}
+}
+
 func TestNewUserManagementService(t *testing.T) {
 	db := setupUserTestDB(t)
 	userRepo := repositories.NewUserRepository(db)

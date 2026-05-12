@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Seed password changed from blocklisted `password123` to compliant `DevOwner@2024`
+- `ResetPassword` service method now validates password strength before hashing (prevents weak passwords via admin reset)
+
 ### Added
 
 - Retry-After header respect in Shopee, Lazada, and TikTok SDK clients (429 responses)

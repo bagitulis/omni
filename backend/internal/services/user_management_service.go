@@ -7,6 +7,7 @@ import (
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/utils"
 )
 
 // UserManagementService handles user management operations
@@ -248,6 +249,11 @@ func (s *UserManagementService) ResetPassword(ctx context.Context, userID, newPa
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil || user == nil {
 		return errors.New("user not found")
+	}
+
+	// Validate new password strength
+	if err := utils.ValidatePasswordStrength(newPassword); err != nil {
+		return err
 	}
 
 	hash, err := s.authSvc.HashPassword(newPassword)
