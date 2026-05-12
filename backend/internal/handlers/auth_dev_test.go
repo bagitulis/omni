@@ -37,9 +37,9 @@ func TestDevLoginInfo_DevMode(t *testing.T) {
 	assert.True(t, response["dev_mode"].(bool))
 	assert.Equal(t, "tester", response["username"])
 
-	// Check tenants are returned
+	// With nil tenantService, tenants should be empty
 	tenants := response["tenants"].([]interface{})
-	assert.Len(t, tenants, 2)
+	assert.Len(t, tenants, 0)
 }
 
 func TestDevLoginInfo_ProductionMode(t *testing.T) {

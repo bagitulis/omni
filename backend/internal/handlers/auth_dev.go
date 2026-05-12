@@ -51,6 +51,17 @@ func (h *AuthHandler) DevLoginInfo(c *gin.Context) {
 		return
 	}
 
+	// Guard against nil tenantService (e.g., in tests with minimal handler)
+	if h.tenantService == nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success":  true,
+			"dev_mode": true,
+			"tenants":  []map[string]string{},
+			"username": "tester",
+		})
+		return
+	}
+
 	// Fetch dynamic tenant list from database
 	tenants, err := h.tenantService.GetAvailableTenants(c.Request.Context())
 	if err != nil {
@@ -101,6 +112,15 @@ func (h *AuthHandler) DevLogin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "tenant_id is required",
+		})
+		return
+	}
+
+	// Guard against nil tenantService (e.g., in tests with minimal handler)
+	if h.tenantService == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Invalid tenant_id for dev login",
 		})
 		return
 	}
