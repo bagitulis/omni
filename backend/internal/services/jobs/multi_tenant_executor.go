@@ -15,6 +15,7 @@ import (
 
 // MultiTenantExecutor executes jobs across all tenant schemas
 type MultiTenantExecutor struct {
+	serverCtx      context.Context
 	systemDB       *gorm.DB
 	basePath       string
 	handlers       map[string]JobHandler
@@ -28,8 +29,9 @@ type MultiTenantExecutor struct {
 }
 
 // NewMultiTenantExecutor creates a new multi-tenant job executor
-func NewMultiTenantExecutor(systemDB *gorm.DB, basePath string) *MultiTenantExecutor {
+func NewMultiTenantExecutor(ctx context.Context, systemDB *gorm.DB, basePath string) *MultiTenantExecutor {
 	return &MultiTenantExecutor{
+		serverCtx:    ctx,
 		systemDB:     systemDB,
 		basePath:     basePath,
 		handlers:     make(map[string]JobHandler),
@@ -93,10 +95,11 @@ func (e *MultiTenantExecutor) pollLoop() {
 		select {
 		case <-e.stopCh:
 			return
+		case <-e.serverCtx.Done():
+			return
 		case <-ticker.C:
 			e.processAllTenants()
 		}
-	}
 }
 
 // processAllTenants iterates all tenants and processes pending jobs
@@ -188,7 +191,7 @@ func (e *MultiTenantExecutor) executeJob(tenantDB *gorm.DB, tenantID string, job
 	}
 
 	// Create context with timeout and job ID
-	ctx, cancel := context.WithTimeout(context.Background(), e.jobTimeout)
+	ctx, cancel := context.WithTimeout(e.serverCtx, e.jobTimeout)
 	defer cancel()
 
 	// Add job ID to context for progress updates

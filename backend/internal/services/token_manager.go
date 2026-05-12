@@ -127,7 +127,11 @@ func (m *TokenManager) RefreshShopeeToken(ctx context.Context, tenantID string) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*TokenInfo), nil
+	tokenInfo, ok := result.(*TokenInfo)
+	if !ok {
+		return nil, fmt.Errorf("unexpected token refresh result type: %T", result)
+	}
+	return tokenInfo, nil
 }
 
 func (m *TokenManager) doRefreshShopeeToken(ctx context.Context, tenantID string) (*TokenInfo, error) {
@@ -179,7 +183,11 @@ func (m *TokenManager) RefreshLazadaToken(ctx context.Context, tenantID string) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*TokenInfo), nil
+	tokenInfo, ok := result.(*TokenInfo)
+	if !ok {
+		return nil, fmt.Errorf("unexpected token refresh result type: %T", result)
+	}
+	return tokenInfo, nil
 }
 
 func (m *TokenManager) doRefreshLazadaToken(ctx context.Context, tenantID string) (*TokenInfo, error) {
@@ -228,7 +236,11 @@ func (m *TokenManager) RefreshTiktokToken(ctx context.Context, tenantID string) 
 	if err != nil {
 		return nil, err
 	}
-	return result.(*TokenInfo), nil
+	tokenInfo, ok := result.(*TokenInfo)
+	if !ok {
+		return nil, fmt.Errorf("unexpected token refresh result type: %T", result)
+	}
+	return tokenInfo, nil
 }
 
 func (m *TokenManager) doRefreshTiktokToken(ctx context.Context, tenantID string) (*TokenInfo, error) {

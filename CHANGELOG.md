@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Safe type assertions in token_manager.go singleflight callbacks (comma-ok pattern prevents panics)
+
 ### Added
 
 - Secure HTTP client (`httputils.SecureGet`, `SecureGetAPI`) with host allowlist, HTTPS enforcement, and response body size limits
