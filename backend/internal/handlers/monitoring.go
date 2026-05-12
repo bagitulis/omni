@@ -76,6 +76,12 @@ func (h *MonitoringHandler) GetDetailedHealthMonitoring(c *gin.Context) {
 
 // checkDatabase checks database health
 func (h *MonitoringHandler) checkDatabase() ComponentHealth {
+	if h.db == nil {
+		return ComponentHealth{
+			Status:  "unknown",
+			Message: "Database connection not configured",
+		}
+	}
 	sqlDB, err := h.db.DB()
 	if err != nil {
 		return ComponentHealth{
