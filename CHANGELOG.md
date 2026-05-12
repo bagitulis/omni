@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `GET /api/dev/audit-logs` endpoint for cross-tenant audit log viewing in developer panel (supports action, user_id, start_date, end_date, page, page_size filters)
+
 ### Fixed
+
+- Bulk handler tests updated to match new `items: [{user_id, tenant_id}]` request struct (previously referenced old `user_ids` field)
 
 - Bulk reset passwords and bulk disable users now support cross-tenant operations (backend accepts `items: [{user_id, tenant_id}]` instead of flat `user_ids` + single `tenant_id`)
 - Frontend BulkActionModal passes per-user tenant_id to backend for correct multi-tenant bulk operations

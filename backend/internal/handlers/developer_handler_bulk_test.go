@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBulkResetPasswords_EmptyUserIDs(t *testing.T) {
+func TestBulkResetPasswords_EmptyItems(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
@@ -31,16 +31,16 @@ func TestBulkResetPasswords_EmptyUserIDs(t *testing.T) {
 			return
 		}
 
-		if len(req.UserIDs) == 0 {
+		if len(req.Items) == 0 {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
-				"error":   "user_ids must not be empty",
+				"error":   "items must not be empty",
 			})
 			return
 		}
 	})
 
-	body := `{"user_ids":[],"tenant_id":"t1","new_password":"StrongPass1!"}`
+	body := `{"items":[],"new_password":"StrongPass1!"}`
 	req, _ := http.NewRequest("POST", "/api/dev/users/bulk-reset-password", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -52,7 +52,7 @@ func TestBulkResetPasswords_EmptyUserIDs(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
-	assert.Contains(t, resp["error"].(string), "user_ids must not be empty")
+	assert.Contains(t, resp["error"].(string), "items must not be empty")
 }
 
 func TestBulkResetPasswords_ExceedsMaxUsers(t *testing.T) {
@@ -74,30 +74,30 @@ func TestBulkResetPasswords_ExceedsMaxUsers(t *testing.T) {
 			return
 		}
 
-		if len(req.UserIDs) == 0 {
+		if len(req.Items) == 0 {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
-				"error":   "user_ids must not be empty",
+				"error":   "items must not be empty",
 			})
 			return
 		}
 
-		if len(req.UserIDs) > maxBulkUsers {
+		if len(req.Items) > maxBulkUsers {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
-				"error":   fmt.Sprintf("user_ids exceeds maximum of %d users per request", maxBulkUsers),
+				"error":   fmt.Sprintf("items exceeds maximum of %d users per request", maxBulkUsers),
 			})
 			return
 		}
 	})
 
-	// Build 51 user IDs
-	userIDs := make([]string, 51)
-	for i := range userIDs {
-		userIDs[i] = fmt.Sprintf("user-%d", i)
+	// Build 51 items
+	items := make([]bulkUserItem, 51)
+	for i := range items {
+		items[i] = bulkUserItem{UserID: fmt.Sprintf("user-%d", i), TenantID: "t1"}
 	}
-	userIDsJSON, _ := json.Marshal(userIDs)
-	body := fmt.Sprintf(`{"user_ids":%s,"tenant_id":"t1","new_password":"StrongPass1!"}`, userIDsJSON)
+	itemsJSON, _ := json.Marshal(items)
+	body := fmt.Sprintf(`{"items":%s,"new_password":"StrongPass1!"}`, itemsJSON)
 
 	req, _ := http.NewRequest("POST", "/api/dev/users/bulk-reset-password", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -132,10 +132,10 @@ func TestBulkResetPasswords_WeakPassword(t *testing.T) {
 			return
 		}
 
-		if len(req.UserIDs) == 0 {
+		if len(req.Items) == 0 {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
-				"error":   "user_ids must not be empty",
+				"error":   "items must not be empty",
 			})
 			return
 		}
@@ -144,10 +144,10 @@ func TestBulkResetPasswords_WeakPassword(t *testing.T) {
 		result := bulkOperationResult{
 			Errors: make([]bulkErrorDetail, 0),
 		}
-		for _, userID := range req.UserIDs {
+		for _, item := range req.Items {
 			result.FailureCount++
 			result.Errors = append(result.Errors, bulkErrorDetail{
-				UserID: userID,
+				UserID: item.UserID,
 				Error:  "password must be at least 8 characters",
 			})
 		}
@@ -158,7 +158,7 @@ func TestBulkResetPasswords_WeakPassword(t *testing.T) {
 		})
 	})
 
-	body := `{"user_ids":["u1","u2"],"tenant_id":"t1","new_password":"weak"}`
+	body := `{"items":[{"user_id":"u1","tenant_id":"t1"},{"user_id":"u2","tenant_id":"t1"}],"new_password":"weak"}`
 	req, _ := http.NewRequest("POST", "/api/dev/users/bulk-reset-password", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -201,17 +201,17 @@ func TestBulkResetPasswords_Success(t *testing.T) {
 			return
 		}
 
-		if len(req.UserIDs) == 0 {
+		if len(req.Items) == 0 {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
-				"error":   "user_ids must not be empty",
+				"error":   "items must not be empty",
 			})
 			return
 		}
 
 		// Simulate: all succeed
 		result := bulkOperationResult{
-			SuccessCount: len(req.UserIDs),
+			SuccessCount: len(req.Items),
 			FailureCount: 0,
 			Errors:       make([]bulkErrorDetail, 0),
 		}
@@ -222,7 +222,7 @@ func TestBulkResetPasswords_Success(t *testing.T) {
 		})
 	})
 
-	body := `{"user_ids":["u1","u2","u3"],"tenant_id":"t1","new_password":"StrongPass1!"}`
+	body := `{"items":[{"user_id":"u1","tenant_id":"t1"},{"user_id":"u2","tenant_id":"t1"},{"user_id":"u3","tenant_id":"t2"}],"new_password":"StrongPass1!"}`
 	req, _ := http.NewRequest("POST", "/api/dev/users/bulk-reset-password", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -265,9 +265,8 @@ func TestBulkResetPasswords_MissingFields(t *testing.T) {
 		name string
 		body string
 	}{
-		{"missing user_ids", `{"tenant_id":"t1","new_password":"StrongPass1!"}`},
-		{"missing tenant_id", `{"user_ids":["u1"],"new_password":"StrongPass1!"}`},
-		{"missing new_password", `{"user_ids":["u1"],"tenant_id":"t1"}`},
+		{"missing items", `{"new_password":"StrongPass1!"}`},
+		{"missing new_password", `{"items":[{"user_id":"u1","tenant_id":"t1"}]}`},
 		{"empty body", `{}`},
 	}
 
@@ -289,7 +288,7 @@ func TestBulkResetPasswords_MissingFields(t *testing.T) {
 	}
 }
 
-func TestBulkDisableUsers_EmptyUserIDs(t *testing.T) {
+func TestBulkDisableUsers_EmptyItems(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
@@ -308,16 +307,16 @@ func TestBulkDisableUsers_EmptyUserIDs(t *testing.T) {
 			return
 		}
 
-		if len(req.UserIDs) == 0 {
+		if len(req.Items) == 0 {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
-				"error":   "user_ids must not be empty",
+				"error":   "items must not be empty",
 			})
 			return
 		}
 	})
 
-	body := `{"user_ids":[],"tenant_id":"t1"}`
+	body := `{"items":[]}`
 	req, _ := http.NewRequest("POST", "/api/dev/users/bulk-disable", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -329,7 +328,7 @@ func TestBulkDisableUsers_EmptyUserIDs(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
-	assert.Contains(t, resp["error"].(string), "user_ids must not be empty")
+	assert.Contains(t, resp["error"].(string), "items must not be empty")
 }
 
 func TestBulkDisableUsers_ExceedsMaxUsers(t *testing.T) {
@@ -351,29 +350,29 @@ func TestBulkDisableUsers_ExceedsMaxUsers(t *testing.T) {
 			return
 		}
 
-		if len(req.UserIDs) == 0 {
+		if len(req.Items) == 0 {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
-				"error":   "user_ids must not be empty",
+				"error":   "items must not be empty",
 			})
 			return
 		}
 
-		if len(req.UserIDs) > maxBulkUsers {
+		if len(req.Items) > maxBulkUsers {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
-				"error":   fmt.Sprintf("user_ids exceeds maximum of %d users per request", maxBulkUsers),
+				"error":   fmt.Sprintf("items exceeds maximum of %d users per request", maxBulkUsers),
 			})
 			return
 		}
 	})
 
-	userIDs := make([]string, 51)
-	for i := range userIDs {
-		userIDs[i] = fmt.Sprintf("user-%d", i)
+	items := make([]bulkUserItem, 51)
+	for i := range items {
+		items[i] = bulkUserItem{UserID: fmt.Sprintf("user-%d", i), TenantID: "t1"}
 	}
-	userIDsJSON, _ := json.Marshal(userIDs)
-	body := fmt.Sprintf(`{"user_ids":%s,"tenant_id":"t1"}`, userIDsJSON)
+	itemsJSON, _ := json.Marshal(items)
+	body := fmt.Sprintf(`{"items":%s}`, itemsJSON)
 
 	req, _ := http.NewRequest("POST", "/api/dev/users/bulk-disable", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -408,17 +407,17 @@ func TestBulkDisableUsers_Success(t *testing.T) {
 			return
 		}
 
-		if len(req.UserIDs) == 0 {
+		if len(req.Items) == 0 {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
-				"error":   "user_ids must not be empty",
+				"error":   "items must not be empty",
 			})
 			return
 		}
 
 		// Simulate: all succeed
 		result := bulkOperationResult{
-			SuccessCount: len(req.UserIDs),
+			SuccessCount: len(req.Items),
 			FailureCount: 0,
 			Errors:       make([]bulkErrorDetail, 0),
 		}
@@ -429,7 +428,7 @@ func TestBulkDisableUsers_Success(t *testing.T) {
 		})
 	})
 
-	body := `{"user_ids":["u1","u2"],"tenant_id":"t1"}`
+	body := `{"items":[{"user_id":"u1","tenant_id":"t1"},{"user_id":"u2","tenant_id":"t1"}]}`
 	req, _ := http.NewRequest("POST", "/api/dev/users/bulk-disable", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -472,9 +471,7 @@ func TestBulkDisableUsers_MissingFields(t *testing.T) {
 		name string
 		body string
 	}{
-		{"missing user_ids", `{"tenant_id":"t1"}`},
-		{"missing tenant_id", `{"user_ids":["u1"]}`},
-		{"empty body", `{}`},
+		{"missing items", `{}`},
 	}
 
 	for _, tt := range tests {
@@ -529,7 +526,7 @@ func TestBulkDisableUsers_PartialFailure(t *testing.T) {
 		})
 	})
 
-	body := `{"user_ids":["u1","u2"],"tenant_id":"t1"}`
+	body := `{"items":[{"user_id":"u1","tenant_id":"t1"},{"user_id":"u2","tenant_id":"t1"}]}`
 	req, _ := http.NewRequest("POST", "/api/dev/users/bulk-disable", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
