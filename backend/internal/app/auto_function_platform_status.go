@@ -63,7 +63,7 @@ func refreshInventoryPlatformStatus(ctx context.Context, db *gorm.DB, tenantID s
 	var shopeeSkus []stagingSku
 	db.WithContext(ctx).Table("shopee_skus").
 		Where("tenant_id = ? AND seller_sku != ''", tenantID).
-		Select("seller_sku, price, quantity, CAST(item_id AS TEXT) as item_id, CAST(sku_id AS TEXT) as sku_id").
+		Select("seller_sku, price, quantity, CAST(item_id AS TEXT) as item_id, COALESCE(CAST(model_id AS TEXT), '') as sku_id").
 		Limit(500).
 		Scan(&shopeeSkus)
 	upsertStatus("shopee", shopeeSkus)
