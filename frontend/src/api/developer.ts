@@ -75,6 +75,11 @@ export interface EnvironmentInfo {
   environment: string;
   version: string;
   build_time: string;
+  db_driver: string;
+  node_env: string;
+  api_base_url: string;
+  dev_login_enabled: string;
+  active_tenants_count: number;
 }
 
 // --- API functions ---

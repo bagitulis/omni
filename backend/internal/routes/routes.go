@@ -68,6 +68,7 @@ func RegisterDeveloperRoutes(router *gin.RouterGroup, developerHandler *handlers
 		dev.POST("/tenants", developerHandler.CreateTenant)
 		dev.POST("/users/bulk-reset-password", developerHandler.BulkResetPasswords)
 		dev.POST("/users/bulk-disable", developerHandler.BulkDisableUsers)
+		dev.GET("/environment", developerHandler.GetEnvironmentInfo)
 	}
 }
 

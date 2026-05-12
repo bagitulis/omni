@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `SystemTab` component for developer panel with system health dashboard (DB status, memory, goroutines, uptime, components) and audit trail viewer (table with filters, pagination)
 - `POST /api/dev/users/bulk-reset-password` endpoint for bulk password reset across tenants (max 50 users, partial success support)
 - `POST /api/dev/users/bulk-disable` endpoint for bulk user disable via account locking (max 50 users, partial success support)
 - `developer_handler_bulk.go` split file for bulk operations (SRP compliance)

@@ -1,6 +1,10 @@
 import { useSearchParams } from "react-router-dom";
 import { Tabs, Typography } from "antd";
 import OverviewTab from "./tabs/OverviewTab";
+import SystemTab from "./tabs/SystemTab";
+import TenantsTab from "./tabs/TenantsTab";
+import UsersTab from "./tabs/UsersTab";
+import SettingsTab from "./tabs/SettingsTab";
 
 const { Title, Text } = Typography;
 
@@ -21,22 +25,22 @@ export default function DeveloperPanelPage() {
     {
       key: "tenants",
       label: "Tenants",
-      children: <div style={{ padding: 24 }}>Coming soon</div>,
+      children: <TenantsTab />,
     },
     {
       key: "users",
       label: "Users",
-      children: <div style={{ padding: 24 }}>Coming soon</div>,
+      children: <UsersTab />,
     },
     {
       key: "system",
       label: "System",
-      children: <div style={{ padding: 24 }}>Coming soon</div>,
+      children: <SystemTab />,
     },
     {
       key: "settings",
       label: "Settings",
-      children: <div style={{ padding: 24 }}>Coming soon</div>,
+      children: <SettingsTab />,
     },
   ];
 
