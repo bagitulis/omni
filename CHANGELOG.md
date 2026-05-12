@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `UsersTab` component for developer panel with cross-tenant user search (debounced 300ms, min 2 chars), results table with row selection, bulk action bar
+- `ResetPasswordModal` component with password validation (min 8 chars, upper + lower + number)
+- `BulkActionModal` component for bulk reset passwords and bulk disable (uses TypeToConfirmModal for disable confirmation, shows success/failure result summary)
 - `SettingsTab` component for developer panel displaying read-only environment info (App Version, Environment, DB Driver, Go Version, Node Env, Build Time, API Base URL, Dev Login, Active Tenants)
 - `GET /api/dev/environment` backend handler returning non-sensitive environment info (no secrets exposed)
 - `developer_environment.go` split file for environment handler (SRP compliance)
