@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `TypeToConfirmModal` shared component for destructive action confirmation (type-to-confirm pattern)
+- Developer panel API interfaces (`TenantDetail`, `CrossTenantUser`, `SystemHealth`, `AuditLogEntry`, `BulkOperationResult`, `EnvironmentInfo`) and function stubs in `frontend/src/api/developer.ts`
 
 - Retry-After header respect in Shopee, Lazada, and TikTok SDK clients (429 responses)
 - Minimum 1s exponential backoff for rate limit (429) responses across all 3 platform clients
