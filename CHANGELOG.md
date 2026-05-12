@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `POST /api/dev/users/bulk-reset-password` endpoint for bulk password reset across tenants (max 50 users, partial success support)
+- `POST /api/dev/users/bulk-disable` endpoint for bulk user disable via account locking (max 50 users, partial success support)
+- `developer_handler_bulk.go` split file for bulk operations (SRP compliance)
+- Tests for bulk operations: empty user_ids, exceeds max, weak password, success, missing fields, partial failure
 - `GET /api/dev/users/search` endpoint for cross-tenant user search by username or email
 - `SearchUsers` handler in developer_handler.go with query validation, timeout, and 50-tenant cap
 - `UserSearchResult` struct with tenant_id/tenant_name fields (no password exposure)
