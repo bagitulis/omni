@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/services"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `TenantService.DeactivateTenant()` method for soft-deleting tenants (sets `is_active=false`)
+- `DELETE /api/dev/tenants/:id` endpoint in developer handler for tenant deactivation
+- `ErrTenantNotFound` sentinel error for tenant service
+- Tests for DeactivateTenant handler (missing ID, not found, success)
+- Test for `ErrTenantNotFound` error wrapping in tenant service
+
+### Changed
+
+- `GetAvailableTenants()` now queries `system.tenants` table with `is_active=true` filter (previously queried `information_schema.schemata`)
 ### Changed
 
 - Refactored `DeveloperPanelPage` into thin tabbed shell with URL-synced tabs (`?tab=overview|tenants|users|system|settings`)

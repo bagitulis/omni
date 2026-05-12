@@ -134,7 +134,7 @@ func TestTenantNamePattern(t *testing.T) {
 		{"invalid empty", "", false},
 		{"invalid spaces", "my shop", false},
 		{"invalid sql injection", "test'; DROP TABLE--", false},
-		{"invalid 51 chars", "abcdefghijklmnopqrstuvwxyz_abcdefghijklmnopqrstuvw", false},
+		{"invalid 51 chars", "abcdefghijklmnopqrstuvwxyz_abcdefghijklmnopqrstuvwx", false},
 	}
 
 	for _, tt := range tests {
