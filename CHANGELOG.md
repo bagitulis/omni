@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Secure HTTP client (`httputils.SecureGet`, `SecureGetAPI`) with host allowlist, HTTPS enforcement, and response body size limits
+- SSRF protection: all outbound HTTP GET calls now validated against AllowedHosts whitelist
 - ListUsers API now supports pagination (page/limit query params, default page=1 limit=20)
 - SSE ticket auth system: POST /api/auth/sse-ticket exchanges JWT for short-lived one-time ticket
 - Last owner protection: cannot delete or demote the last owner of a tenant
@@ -27,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- SSRF vulnerability in TikTok OAuth token exchange (`http.Get` replaced with secure client)
+- SSRF vulnerability in Lazada OAuth token exchange (`http.Get` replaced with secure client)
+- SSRF vulnerability in TikTok handler `doTiktokTokenRequest` (`http.Get` replaced with secure client)
+- Unbounded response body read in `DownloadImage` (now capped at 50MB via `io.LimitReader`)
 - Disable dead Price Sync button with "coming soon" message instead of empty callback
 - Add retry logic with timeout to image download service (retry on 5xx/network errors, no retry on 4xx)
 - Fix silent error swallowing in inventory sync_service (json.Marshal) with proper zerolog error logging

@@ -1,10 +1,12 @@
 package tiktok
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+
+	httputils "github.com/omni/backend/internal/utils/http"
 )
 
 // TokenResponse represents TikTok OAuth token response
@@ -46,18 +48,22 @@ func (c *Client) RefreshAccessToken(refreshToken string) (*TokenResponse, error)
 }
 
 // CreateAccessToken creates token (direct HTTP call for initial auth)
-func CreateAccessToken(appKey, appSecret, authCode string) (*TokenResponse, error) {
-	url := fmt.Sprintf("%s/api/v2/token/get?app_key=%s&app_secret=%s&auth_code=%s&grant_type=authorized_code",
+func CreateAccessToken(ctx context.Context, appKey, appSecret, authCode string) (*TokenResponse, error) {
+	rawURL := fmt.Sprintf("%s/api/v2/token/get?app_key=%s&app_secret=%s&auth_code=%s&grant_type=authorized_code",
 		BaseURL, appKey, appSecret, authCode)
 
-	resp, err := http.Get(url)
+	body, statusCode, err := httputils.SecureGetAPI(ctx, rawURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("token request failed: %w", err)
 	}
-	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	if statusCode != http.StatusOK {
+		return nil, fmt.Errorf("token exchange failed: status %d, body: %s", statusCode, string(body))
+	}
+
 	var result TokenResponse
-	json.Unmarshal(body, &result)
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("parse token response: %w", err)
+	}
 	return &result, nil
 }

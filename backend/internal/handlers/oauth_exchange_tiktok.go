@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/oauth"
+	httputils "github.com/omni/backend/internal/utils/http"
 )
 
 // exchangeTiktokToken exchanges TikTok auth code for tokens
@@ -34,7 +34,7 @@ func (h *OAuthHandler) exchangeTiktokToken(c *gin.Context, tenantID, code string
 	tokenURL, params := tiktokService.BuildTokenRequest(code)
 
 	// Make HTTP request and parse response
-	tokenResp, err := h.doTiktokTokenRequest(tokenURL, params)
+	tokenResp, err := h.doTiktokTokenRequest(ctx, tokenURL, params)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func (h *OAuthHandler) exchangeTiktokToken(c *gin.Context, tenantID, code string
 }
 
 // doTiktokTokenRequest performs the HTTP request to TikTok token endpoint
-func (h *OAuthHandler) doTiktokTokenRequest(tokenURL string, params map[string]string) (*TiktokTokenResponse, error) {
+func (h *OAuthHandler) doTiktokTokenRequest(ctx context.Context, tokenURL string, params map[string]string) (*TiktokTokenResponse, error) {
 	// Build query string
 	queryParams := url.Values{}
 	for k, v := range params {
@@ -54,25 +54,17 @@ func (h *OAuthHandler) doTiktokTokenRequest(tokenURL string, params map[string]s
 	fullURL := tokenURL + "?" + queryParams.Encode()
 	log.Info().Msgf("[TikTok OAuth] Exchanging code for token at: %s", fullURL)
 
-	// Make HTTP GET request (TikTok uses GET for token)
-	resp, err := http.Get(fullURL)
+	body, statusCode, err := httputils.SecureGetAPI(ctx, fullURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to exchange token: %w", err)
 	}
-	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
+	log.Info().Msgf("[TikTok OAuth] Token response status: %d, body_size: %d bytes", statusCode, len(body))
+
+	if statusCode != http.StatusOK {
+		return nil, fmt.Errorf("token exchange failed: status %d, body: %s", statusCode, string(body))
 	}
 
-	log.Info().Msgf("[TikTok OAuth] Token response status: %d, body_size: %d bytes", resp.StatusCode, len(body))
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("token exchange failed: status %d, body: %s", resp.StatusCode, string(body))
-	}
-
-	// Parse response
 	var tokenResp TiktokTokenResponse
 	if err := json.Unmarshal(body, &tokenResp); err != nil {
 		return nil, fmt.Errorf("failed to parse token response: %w", err)

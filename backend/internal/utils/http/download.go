@@ -26,5 +26,5 @@ func DownloadImage(ctx context.Context, url string) ([]byte, error) {
 		return nil, fmt.Errorf("http status: %d", resp.StatusCode)
 	}
 
-	return io.ReadAll(resp.Body)
+	return io.ReadAll(io.LimitReader(resp.Body, MaxResponseBody))
 }

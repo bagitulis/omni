@@ -340,7 +340,7 @@ class FrontendBuilder:
                     text=True,
                     encoding='utf-8',
                     errors='replace',
-                    timeout=self.config.npm_install_timeout,
+                    timeout=self.config.npm_build_timeout,
                     env=self._env,
                 )
                 
@@ -407,7 +407,7 @@ class FrontendBuilder:
                 time.sleep(3)
                 
             except subprocess.TimeoutExpired:
-                log_error(f"Build timed out after {self.config.npm_install_timeout}s")
+                log_error(f"Build timed out after {self.config.npm_build_timeout}s")
                 if attempt >= max_retries:
                     return False
                 time.sleep(5)

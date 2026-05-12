@@ -36,6 +36,7 @@ class Config(BaseModel):
     docker_deploy_timeout: int = Field(default=900, description="Deployment (15 min - includes health waits)")
     health_check_timeout: int = Field(default=180, description="Health checks (3 min - Go backend needs tenant init)")
     npm_install_timeout: int = Field(default=600, description="npm install (10 min - large node_modules)")
+    npm_build_timeout: int = Field(default=3600, description="npm build (60 min - TypeScript + Vite can be slow)")
     
     # Retry configuration
     max_build_retries: int = Field(default=7, description="Maximum build retry attempts")
@@ -100,6 +101,7 @@ class Config(BaseModel):
             docker_deploy_timeout=int(os.getenv("DOCKER_DEPLOY_TIMEOUT", "900")),
             health_check_timeout=int(os.getenv("HEALTH_CHECK_TIMEOUT", "120")),
             npm_install_timeout=int(os.getenv("NPM_INSTALL_TIMEOUT", "600")),
+            npm_build_timeout=int(os.getenv("NPM_BUILD_TIMEOUT", "3600")),
             
             max_build_retries=int(os.getenv("MAX_BUILD_RETRIES", "7")),
             max_deploy_retries=int(os.getenv("MAX_DEPLOY_RETRIES", "6")),

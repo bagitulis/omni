@@ -1,10 +1,12 @@
 package lazada
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+
+	httputils "github.com/omni/backend/internal/utils/http"
 )
 
 // TokenResponse represents Lazada OAuth token response
@@ -43,23 +45,27 @@ func (c *Client) RefreshAccessToken(refreshToken string) (*TokenResponse, error)
 }
 
 // CreateAccessToken creates token using auth code (direct HTTP call)
-func CreateAccessToken(appKey, appSecret, code, region string) (*TokenResponse, error) {
+func CreateAccessToken(ctx context.Context, appKey, appSecret, code, region string) (*TokenResponse, error) {
 	baseURL := "https://auth.lazada.com/rest"
 	if region == "my" {
 		baseURL = "https://auth.lazada.com.my/rest"
 	}
 
-	url := fmt.Sprintf("%s/auth/token/create?app_key=%s&app_secret=%s&code=%s",
+	rawURL := fmt.Sprintf("%s/auth/token/create?app_key=%s&app_secret=%s&code=%s",
 		baseURL, appKey, appSecret, code)
 
-	resp, err := http.Get(url)
+	body, statusCode, err := httputils.SecureGetAPI(ctx, rawURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("token request failed: %w", err)
 	}
-	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	if statusCode != http.StatusOK {
+		return nil, fmt.Errorf("token exchange failed: status %d, body: %s", statusCode, string(body))
+	}
+
 	var result TokenResponse
-	json.Unmarshal(body, &result)
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("parse token response: %w", err)
+	}
 	return &result, nil
 }
