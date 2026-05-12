@@ -47,8 +47,12 @@ func main() {
 	}
 	googleAuthService := googleService.NewAuthService(googleCredentials)
 
+	// Create server context for background services
+	serverCtx, serverCancel := context.WithCancel(context.Background())
+	defer serverCancel()
+
 	// Initialize extended handlers with Google Auth
-	extHandlers := application.InitExtendedHandlers(application.SystemDB, googleAuthService)
+	extHandlers := application.InitExtendedHandlers(serverCtx, application.SystemDB, googleAuthService)
 
 	router := gin.Default()
 	router.Use(middleware.CORS())
@@ -295,11 +299,21 @@ func main() {
 
 	log.Println("Shutting down server...")
 
-	// Create context with timeout for shutdown
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	// Signal all background services to stop via context cancellation
+	serverCancel()
+
+	// Stop job executor gracefully
+	if extHandlers.JobExecutor != nil {
+		log.Println("Stopping job executor...")
+		extHandlers.JobExecutor.Stop()
+		log.Println("Job executor stopped")
+	}
+
+	// Create context with timeout for HTTP server shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	// Shutdown server gracefully
+	// Shutdown HTTP server gracefully
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Printf("Server forced to shutdown: %v", err)
 	}

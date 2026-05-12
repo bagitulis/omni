@@ -100,6 +100,7 @@ func (e *MultiTenantExecutor) pollLoop() {
 		case <-ticker.C:
 			e.processAllTenants()
 		}
+	}
 }
 
 // processAllTenants iterates all tenants and processes pending jobs

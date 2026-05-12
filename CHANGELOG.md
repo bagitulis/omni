@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Server context propagation to job executors: MultiTenantExecutor now receives a cancellable server context for coordinated shutdown
+- Graceful shutdown sequence: executor Stop() called before HTTP server shutdown, timeout increased to 60s
+- Job execution uses server context instead of context.Background() for proper cancellation propagation
+
+### Fixed
+
+- Safe type assertions in token_manager.go singleflight callbacks (comma-ok pattern prevents panics)
+
 - Safe type assertions in token_manager.go singleflight callbacks (comma-ok pattern prevents panics)
 
 ### Added

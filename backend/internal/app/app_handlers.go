@@ -58,12 +58,15 @@ type ExtendedHandlers struct {
 
 	// API Client factories for platform routes
 	ShopeeAPIClientFactory func(tenantID string) shopeeService.APIClient
+	// Background services
+	JobExecutor *jobs.MultiTenantExecutor
+
 }
 
 // InitExtendedHandlers initializes extended handlers that use *gorm.DB
 // Handlers requiring special services (Monitoring, Security, AutoFunction, GoogleSheets)
 // should be initialized separately after their services are created
-func (a *App) InitExtendedHandlers(db *gorm.DB, googleAuth *google.AuthService) *ExtendedHandlers {
+func (a *App) InitExtendedHandlers(ctx context.Context, db *gorm.DB, googleAuth *google.AuthService) *ExtendedHandlers {
 	routeBasePath := os.Getenv("ROUTE_BASE_PATH")
 	if routeBasePath == "" {
 		routeBasePath = "./internal"
@@ -89,7 +92,7 @@ func (a *App) InitExtendedHandlers(db *gorm.DB, googleAuth *google.AuthService) 
 
 	// Initialize and start background job executor for long-running operations
 	// This processes escrow sync jobs, order sync jobs, etc. that run in background
-	startBackgroundJobExecutor(db, basePath)
+	jobExecutor := startBackgroundJobExecutor(ctx, db, basePath)
 
 	// Startup sync: run product sync for all tenants after a short delay
 	// This catches up on any changes that happened while server was offline
@@ -136,6 +139,9 @@ func (a *App) InitExtendedHandlers(db *gorm.DB, googleAuth *google.AuthService) 
 
 		// API Client factories
 		ShopeeAPIClientFactory: shopeeAPIClientFactory,
+
+		// Background services
+		JobExecutor: jobExecutor,
 	}
 }
 
@@ -166,11 +172,12 @@ func registerDefaultAutoFunctionHandlers(executor *autofunction.Executor) {
 
 // startBackgroundJobExecutor initializes and starts the multi-tenant job executor
 // for processing long-running background jobs
-func startBackgroundJobExecutor(systemDB *gorm.DB, basePath string) {
-	jobExecutor := jobs.NewMultiTenantExecutor(systemDB, basePath)
+func startBackgroundJobExecutor(ctx context.Context, systemDB *gorm.DB, basePath string) *jobs.MultiTenantExecutor {
+	jobExecutor := jobs.NewMultiTenantExecutor(ctx, systemDB, basePath)
 
 	// Start the executor
 	jobExecutor.Start()
+	return jobExecutor
 }
 
 // createShopeeAPIClientFactory creates a factory function that returns Shopee API clients
