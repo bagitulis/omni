@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Refactored `DeveloperPanelPage` into thin tabbed shell with URL-synced tabs (`?tab=overview|tenants|users|system|settings`)
+- Extracted overview content into `frontend/src/pages/developer/tabs/OverviewTab.tsx`
+
 ### Fixed
 
 - Seed password changed from blocklisted `password123` to compliant `DevOwner@2024`
