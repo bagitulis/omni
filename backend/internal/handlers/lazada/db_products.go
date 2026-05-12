@@ -103,22 +103,36 @@ func (h *DBProductHandler) getFlattenedSkuRows(db *gorm.DB, offset, limit int) (
 		return h.getProductsAsFlattenedRows(db, offset, limit)
 	}
 
-	// Query all products for lookup by ItemID
-	var products []models.LazadaProduct
-	if result := db.Find(&products); result.Error != nil {
+	// Query SKUs with pagination FIRST
+	var skus []models.LazadaSku
+	if result := db.Order("updated_at DESC").Offset(offset).Limit(limit).Find(&skus); result.Error != nil {
 		return nil, 0, result.Error
+	}
+
+	// Extract unique item IDs from paginated SKUs
+	itemIDs := make(map[string]struct{})
+	for _, sku := range skus {
+		if sku.ItemID != "" {
+			itemIDs[sku.ItemID] = struct{}{}
+		}
+	}
+	ids := make([]string, 0, len(itemIDs))
+	for id := range itemIDs {
+		ids = append(ids, id)
+	}
+
+	// Query ONLY products referenced by paginated SKUs
+	var products []models.LazadaProduct
+	if len(ids) > 0 {
+		if result := db.Where("item_id IN ?", ids).Find(&products); result.Error != nil {
+			return nil, 0, result.Error
+		}
 	}
 
 	// Build product lookup map by ItemID (string)
 	productMap := make(map[string]models.LazadaProduct)
 	for _, p := range products {
 		productMap[p.ItemID] = p
-	}
-
-	// Query SKUs with pagination
-	var skus []models.LazadaSku
-	if result := db.Order("updated_at DESC").Offset(offset).Limit(limit).Find(&skus); result.Error != nil {
-		return nil, 0, result.Error
 	}
 
 	// Build flattened result

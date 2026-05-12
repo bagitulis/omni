@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Global concurrency semaphore (max 20 jobs) and per-tenant limit (max 3 jobs) in MultiTenantExecutor
+- Panic recovery in job goroutines with automatic job failure marking
+
 ### Security
 
 - Webhook body size limit (1MB) on all webhook handlers (Shopee, Lazada, TikTok)

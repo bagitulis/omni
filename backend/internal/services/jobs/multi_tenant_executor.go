@@ -3,14 +3,23 @@ package jobs
 
 import (
 	"context"
-	"github.com/rs/zerolog/log"
+	"fmt"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services"
 	"gorm.io/gorm"
+)
+
+const (
+	// MaxGlobalConcurrency is the maximum number of jobs running simultaneously across all tenants
+	MaxGlobalConcurrency = 20
+	// MaxPerTenantConcurrency is the maximum number of jobs running simultaneously for a single tenant
+	MaxPerTenantConcurrency = 3
 )
 
 // MultiTenantExecutor executes jobs across all tenant schemas
@@ -26,6 +35,10 @@ type MultiTenantExecutor struct {
 	mu             sync.RWMutex
 	running        bool
 	notifyCallback NotifyCallback
+	// Concurrency controls
+	globalSem   chan struct{}            // Global semaphore (buffered channel)
+	tenantSem   map[string]chan struct{} // Per-tenant semaphores
+	tenantSemMu sync.Mutex              // Protects tenantSem map
 }
 
 // NewMultiTenantExecutor creates a new multi-tenant job executor
@@ -38,9 +51,10 @@ func NewMultiTenantExecutor(ctx context.Context, systemDB *gorm.DB, basePath str
 		pollInterval: 5 * time.Second,
 		jobTimeout:   30 * time.Minute, // Long timeout for escrow sync (1000+ orders)
 		stopCh:       make(chan struct{}),
+		globalSem:    make(chan struct{}, MaxGlobalConcurrency),
+		tenantSem:    make(map[string]chan struct{}),
 	}
 }
-
 // RegisterHandler registers a handler for a job type
 func (e *MultiTenantExecutor) RegisterHandler(jobType string, handler JobHandler) {
 	e.mu.Lock()
@@ -161,13 +175,56 @@ func (e *MultiTenantExecutor) processTenantJobs(tenantID string) {
 	}
 
 	log.Info().Msgf("[MultiTenantExecutor] Processing job %s (type: %s) for tenant %s", job.ID, job.Type, tenantID)
-	
-	// Execute in background so we don't block the polling loop for other tenants
+
+	// Try to acquire per-tenant semaphore (non-blocking)
+	tenantSem := e.getTenantSem(tenantID)
+	select {
+	case tenantSem <- struct{}{}:
+		// Got per-tenant slot
+	default:
+		// Tenant at max concurrency, skip this poll cycle
+		log.Debug().Str("tenant_id", tenantID).Msg("[MultiTenantExecutor] Tenant at max concurrency, skipping")
+		return
+	}
+
+	// Try to acquire global semaphore (non-blocking)
+	select {
+	case e.globalSem <- struct{}{}:
+		// Got global slot
+	default:
+		// Global limit reached, release tenant slot
+		<-tenantSem
+		log.Debug().Msg("[MultiTenantExecutor] Global concurrency limit reached, skipping")
+		return
+	}
+
+	// Execute with panic recovery
 	e.wg.Add(1)
 	go func() {
 		defer e.wg.Done()
+		defer func() { <-e.globalSem }()
+		defer func() { <-tenantSem }()
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error().Interface("panic", r).Str("job_id", job.ID).Str("tenant_id", tenantID).Msg("[MultiTenantExecutor] Job panicked")
+				qm := NewQueueManager(tenantDB, tenantID)
+				qm.FailJob(job.ID, fmt.Sprintf("job panicked: %v", r))
+			}
+		}()
 		e.executeJob(tenantDB, tenantID, job)
 	}()
+}
+
+// getTenantSem returns the per-tenant semaphore, creating it if needed
+func (e *MultiTenantExecutor) getTenantSem(tenantID string) chan struct{} {
+	e.tenantSemMu.Lock()
+	defer e.tenantSemMu.Unlock()
+	sem, ok := e.tenantSem[tenantID]
+	if !ok {
+		sem = make(chan struct{}, MaxPerTenantConcurrency)
+		e.tenantSem[tenantID] = sem
+	}
+	return sem
 }
 
 // executeJob executes a single job

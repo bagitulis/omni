@@ -122,10 +122,24 @@ func (h *DBProductHandler) getMasterProducts(db *gorm.DB, offset, limit int, ten
 		return nil, 0, result.Error
 	}
 
-	// Query products — limit to those referenced by SKUs for efficiency
+	// Extract unique product IDs from paginated SKUs
+	productIDs := make(map[string]struct{})
+	for _, sku := range skus {
+		if sku.ProductID != "" {
+			productIDs[sku.ProductID] = struct{}{}
+		}
+	}
+	ids := make([]string, 0, len(productIDs))
+	for id := range productIDs {
+		ids = append(ids, id)
+	}
+
+	// Query ONLY products referenced by paginated SKUs
 	var products []models.TiktokProduct
-	if result := db.Find(&products); result.Error != nil {
-		return nil, 0, result.Error
+	if len(ids) > 0 {
+		if result := db.Where("id IN ?", ids).Find(&products); result.Error != nil {
+			return nil, 0, result.Error
+		}
 	}
 
 	// Build product map by ID

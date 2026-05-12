@@ -225,19 +225,35 @@ func (h *DBProductHandler) getFlattenedSkuRows(db *gorm.DB, offset, limit int) (
 		return nil, 0, result.Error
 	}
 
-	var products []models.ShopeeProduct
-	if result := db.Find(&products); result.Error != nil {
+	// Query SKUs with pagination FIRST
+	var skus []models.ShopeeSku
+	if result := db.Order("updated_at DESC").Offset(offset).Limit(limit).Find(&skus); result.Error != nil {
 		return nil, 0, result.Error
+	}
+
+	// Extract unique item IDs from paginated SKUs
+	itemIDSet := make(map[int64]struct{})
+	for _, sku := range skus {
+		if sku.ItemID != 0 {
+			itemIDSet[sku.ItemID] = struct{}{}
+		}
+	}
+	itemIDs := make([]int64, 0, len(itemIDSet))
+	for id := range itemIDSet {
+		itemIDs = append(itemIDs, id)
+	}
+
+	// Query ONLY products referenced by paginated SKUs
+	var products []models.ShopeeProduct
+	if len(itemIDs) > 0 {
+		if result := db.Where("item_id IN ?", itemIDs).Find(&products); result.Error != nil {
+			return nil, 0, result.Error
+		}
 	}
 
 	productMap := make(map[int64]models.ShopeeProduct)
 	for _, p := range products {
 		productMap[p.ItemID] = p
-	}
-
-	var skus []models.ShopeeSku
-	if result := db.Order("updated_at DESC").Offset(offset).Limit(limit).Find(&skus); result.Error != nil {
-		return nil, 0, result.Error
 	}
 
 	result := make([]FlattenedSkuRow, 0, len(skus))
