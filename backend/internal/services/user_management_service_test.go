@@ -331,9 +331,9 @@ func TestUserManagementService_ListUsers(t *testing.T) {
 	}
 
 	// List users
-	users, err := svc.ListUsers(ctx)
+	result, err := svc.ListUsers(ctx, 1, 100)
 	require.NoError(t, err)
-	assert.GreaterOrEqual(t, len(users), 3)
+	assert.GreaterOrEqual(t, len(result.Users), 3)
 }
 
 func TestUserManagementService_UnlockUser(t *testing.T) {

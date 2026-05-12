@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -94,6 +95,6 @@ func TestOAuthHandler_DoTiktokTokenRequest_InvalidURL(t *testing.T) {
 	handler := NewOAuthHandler(nil, nil, nil, "http://localhost:3000")
 
 	// Call with invalid URL - should fail
-	_, err := handler.doTiktokTokenRequest("not-a-valid-url", map[string]string{})
+	_, err := handler.doTiktokTokenRequest(context.Background(), "not-a-valid-url", map[string]string{})
 	assert.Error(t, err)
 }

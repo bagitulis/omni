@@ -164,7 +164,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const sseUrl = `${API_BASE_URL}/notifications/stream?ticket=${ticket}`;
     const es = new EventSource(sseUrl);
     setupSSEListeners(es);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId, getValidToken, setupSSEListeners]);
 
   useEffect(() => {

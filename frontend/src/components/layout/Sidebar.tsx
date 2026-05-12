@@ -94,7 +94,7 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
     }
 
     return items;
-  }, [canManageUsers]);
+  }, [canManageUsers, isDeveloper]);
 
   const selectedKey = useMemo(() => {
     // Products sub-routes
