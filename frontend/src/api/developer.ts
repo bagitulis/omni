@@ -89,8 +89,8 @@ export const developerApi = {
     return api.get<DeveloperOverviewResponse>("/dev/overview");
   },
 
-  resetUserPassword: async (userId: string, newPassword: string): Promise<ApiResponse<void>> => {
-    return api.post<void>("/dev/reset-password", { user_id: userId, new_password: newPassword });
+  resetUserPassword: async (userId: string, tenantId: string, newPassword: string): Promise<ApiResponse<void>> => {
+    return api.post<void>("/dev/reset-password", { user_id: userId, tenant_id: tenantId, new_password: newPassword });
   },
 
   getTenants: async (): Promise<ApiResponse<TenantDetail[]>> => {
@@ -109,12 +109,12 @@ export const developerApi = {
     return api.get<CrossTenantUser[]>("/dev/users/search", { params: { q: query } });
   },
 
-  bulkResetPasswords: async (userIds: string[], newPassword: string): Promise<ApiResponse<BulkOperationResult>> => {
-    return api.post<BulkOperationResult>("/dev/users/bulk-reset-password", { user_ids: userIds, new_password: newPassword });
+  bulkResetPasswords: async (items: {user_id: string; tenant_id: string}[], newPassword: string): Promise<ApiResponse<BulkOperationResult>> => {
+    return api.post<BulkOperationResult>("/dev/users/bulk-reset-password", { items, new_password: newPassword });
   },
 
-  bulkDisableUsers: async (userIds: string[]): Promise<ApiResponse<BulkOperationResult>> => {
-    return api.post<BulkOperationResult>("/dev/users/bulk-disable", { user_ids: userIds });
+  bulkDisableUsers: async (items: {user_id: string; tenant_id: string}[]): Promise<ApiResponse<BulkOperationResult>> => {
+    return api.post<BulkOperationResult>("/dev/users/bulk-disable", { items });
   },
 
   getSystemHealth: async (): Promise<ApiResponse<SystemHealth>> => {

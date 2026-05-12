@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Bulk reset passwords and bulk disable users now support cross-tenant operations (backend accepts `items: [{user_id, tenant_id}]` instead of flat `user_ids` + single `tenant_id`)
+- Frontend BulkActionModal passes per-user tenant_id to backend for correct multi-tenant bulk operations
+
 ### Added
 
 - `UsersTab` component for developer panel with cross-tenant user search (debounced 300ms, min 2 chars), results table with row selection, bulk action bar

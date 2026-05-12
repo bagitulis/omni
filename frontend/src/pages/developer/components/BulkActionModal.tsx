@@ -10,7 +10,7 @@ type BulkAction = "reset-passwords" | "disable";
 interface BulkActionModalProps {
   open: boolean;
   action: BulkAction;
-  userIds: string[];
+  users: {user_id: string; tenant_id: string}[];
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -26,7 +26,7 @@ function validatePassword(password: string): string | null {
 export function BulkActionModal({
   open,
   action,
-  userIds,
+  users,
   onClose,
   onSuccess,
 }: BulkActionModalProps) {
@@ -36,7 +36,7 @@ export function BulkActionModal({
   const [result, setResult] = useState<BulkOperationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const count = userIds.length;
+  const count = users.length;
 
   const handleResetPasswords = async () => {
     const validationError = validatePassword(password);
@@ -47,7 +47,7 @@ export function BulkActionModal({
 
     setLoading(true);
     try {
-      const response = await developerApi.bulkResetPasswords(userIds, password);
+      const response = await developerApi.bulkResetPasswords(users, password);
       if (response.success && response.data) {
         setResult(response.data);
         message.success(`Reset complete: ${response.data.success_count} succeeded`);
@@ -64,7 +64,7 @@ export function BulkActionModal({
   const handleDisableUsers = async () => {
     setLoading(true);
     try {
-      const response = await developerApi.bulkDisableUsers(userIds);
+      const response = await developerApi.bulkDisableUsers(users);
       if (response.success && response.data) {
         setResult(response.data);
         message.success(`Disable complete: ${response.data.success_count} succeeded`);

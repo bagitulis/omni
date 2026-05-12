@@ -215,7 +215,7 @@ export default function UsersTab() {
         <BulkActionModal
           open={!!bulkAction}
           action={bulkAction}
-          userIds={selectedRowKeys as string[]}
+          users={users.filter(u => selectedRowKeys.includes(u.id)).map(u => ({ user_id: u.id, tenant_id: u.tenant_id }))}
           onClose={() => setBulkAction(null)}
           onSuccess={handleBulkSuccess}
         />

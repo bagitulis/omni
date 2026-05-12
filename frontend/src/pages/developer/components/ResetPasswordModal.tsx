@@ -53,7 +53,7 @@ export function ResetPasswordModal({
 
     setLoading(true);
     try {
-      const response = await developerApi.resetUserPassword(user.id, password);
+      const response = await developerApi.resetUserPassword(user.id, user.tenant_id, password);
       if (response.success) {
         message.success(`Password reset for ${user.username}`);
         onSuccess();

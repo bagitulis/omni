@@ -12,17 +12,21 @@ import (
 
 const maxBulkUsers = 50
 
+// bulkUserItem represents a single user with their tenant for bulk operations.
+type bulkUserItem struct {
+	UserID   string `json:"user_id" binding:"required"`
+	TenantID string `json:"tenant_id" binding:"required"`
+}
+
 // bulkResetPasswordRequest represents the request body for bulk password reset.
 type bulkResetPasswordRequest struct {
-	UserIDs     []string `json:"user_ids" binding:"required"`
-	TenantID    string   `json:"tenant_id" binding:"required"`
-	NewPassword string   `json:"new_password" binding:"required"`
+	Items       []bulkUserItem `json:"items" binding:"required"`
+	NewPassword string         `json:"new_password" binding:"required"`
 }
 
 // bulkDisableUsersRequest represents the request body for bulk user disable.
 type bulkDisableUsersRequest struct {
-	UserIDs  []string `json:"user_ids" binding:"required"`
-	TenantID string   `json:"tenant_id" binding:"required"`
+	Items []bulkUserItem `json:"items" binding:"required"`
 }
 
 // bulkErrorDetail represents a single failure in a bulk operation.
@@ -50,28 +54,18 @@ func (h *DeveloperHandler) BulkResetPasswords(c *gin.Context) {
 		return
 	}
 
-	if len(req.UserIDs) == 0 {
+	if len(req.Items) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   "user_ids must not be empty",
+			"error":   "items must not be empty",
 		})
 		return
 	}
 
-	if len(req.UserIDs) > maxBulkUsers {
+	if len(req.Items) > maxBulkUsers {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   fmt.Sprintf("user_ids exceeds maximum of %d users per request", maxBulkUsers),
-		})
-		return
-	}
-
-	// Verify tenant exists
-	_, err := h.tenantService.GetTenantDB(req.TenantID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "invalid tenant_id: " + err.Error(),
+			"error":   fmt.Sprintf("items exceeds maximum of %d users per request", maxBulkUsers),
 		})
 		return
 	}
@@ -88,12 +82,23 @@ func (h *DeveloperHandler) BulkResetPasswords(c *gin.Context) {
 		Errors: make([]bulkErrorDetail, 0),
 	}
 
-	for _, userID := range req.UserIDs {
-		err := h.userMgmtService.ResetPassword(ctx, userID, req.NewPassword, resetBy, req.TenantID)
+	for _, item := range req.Items {
+		// Verify tenant exists for each item
+		_, err := h.tenantService.GetTenantDB(item.TenantID)
 		if err != nil {
 			result.FailureCount++
 			result.Errors = append(result.Errors, bulkErrorDetail{
-				UserID: userID,
+				UserID: item.UserID,
+				Error:  "invalid tenant_id: " + err.Error(),
+			})
+			continue
+		}
+
+		err = h.userMgmtService.ResetPassword(ctx, item.UserID, req.NewPassword, resetBy, item.TenantID)
+		if err != nil {
+			result.FailureCount++
+			result.Errors = append(result.Errors, bulkErrorDetail{
+				UserID: item.UserID,
 				Error:  err.Error(),
 			})
 		} else {
@@ -119,28 +124,18 @@ func (h *DeveloperHandler) BulkDisableUsers(c *gin.Context) {
 		return
 	}
 
-	if len(req.UserIDs) == 0 {
+	if len(req.Items) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   "user_ids must not be empty",
+			"error":   "items must not be empty",
 		})
 		return
 	}
 
-	if len(req.UserIDs) > maxBulkUsers {
+	if len(req.Items) > maxBulkUsers {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   fmt.Sprintf("user_ids exceeds maximum of %d users per request", maxBulkUsers),
-		})
-		return
-	}
-
-	// Verify tenant exists and get DB
-	db, err := h.tenantService.GetTenantDB(req.TenantID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "invalid tenant_id: " + err.Error(),
+			"error":   fmt.Sprintf("items exceeds maximum of %d users per request", maxBulkUsers),
 		})
 		return
 	}
@@ -148,7 +143,6 @@ func (h *DeveloperHandler) BulkDisableUsers(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
 	defer cancel()
 
-	repo := repositories.NewUserRepository(db)
 	// Lock accounts permanently (100 years) to effectively disable them
 	permanentLock := 100 * 365 * 24 * time.Hour
 
@@ -156,13 +150,26 @@ func (h *DeveloperHandler) BulkDisableUsers(c *gin.Context) {
 		Errors: make([]bulkErrorDetail, 0),
 	}
 
-	for _, userID := range req.UserIDs {
+	for _, item := range req.Items {
+		// Get tenant DB for each item
+		db, err := h.tenantService.GetTenantDB(item.TenantID)
+		if err != nil {
+			result.FailureCount++
+			result.Errors = append(result.Errors, bulkErrorDetail{
+				UserID: item.UserID,
+				Error:  "invalid tenant_id: " + err.Error(),
+			})
+			continue
+		}
+
+		repo := repositories.NewUserRepository(db)
+
 		// Verify user exists
-		user, findErr := repo.FindByID(ctx, userID)
+		user, findErr := repo.FindByID(ctx, item.UserID)
 		if findErr != nil {
 			result.FailureCount++
 			result.Errors = append(result.Errors, bulkErrorDetail{
-				UserID: userID,
+				UserID: item.UserID,
 				Error:  "user not found",
 			})
 			continue
@@ -174,11 +181,11 @@ func (h *DeveloperHandler) BulkDisableUsers(c *gin.Context) {
 			continue
 		}
 
-		lockErr := repo.LockAccount(ctx, userID, permanentLock)
+		lockErr := repo.LockAccount(ctx, item.UserID, permanentLock)
 		if lockErr != nil {
 			result.FailureCount++
 			result.Errors = append(result.Errors, bulkErrorDetail{
-				UserID: userID,
+				UserID: item.UserID,
 				Error:  "failed to disable user: " + lockErr.Error(),
 			})
 		} else {
