@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `TenantsTab` component for developer panel with tenant list table (Name, Status, Users, Created, Actions columns)
+- `CreateTenantModal` component with name validation (regex `^[a-z][a-z0-9_]{2,49}$`), error display in modal
+- Deactivation flow using `TypeToConfirmModal` with tenant name confirmation
 - `SystemTab` component for developer panel with system health dashboard (DB status, memory, goroutines, uptime, components) and audit trail viewer (table with filters, pagination)
 - `POST /api/dev/users/bulk-reset-password` endpoint for bulk password reset across tenants (max 50 users, partial success support)
 - `POST /api/dev/users/bulk-disable` endpoint for bulk user disable via account locking (max 50 users, partial success support)
