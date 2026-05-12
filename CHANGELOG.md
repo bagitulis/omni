@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `SettingsTab` component for developer panel displaying read-only environment info (App Version, Environment, DB Driver, Go Version, Node Env, Build Time, API Base URL, Dev Login, Active Tenants)
+- `GET /api/dev/environment` backend handler returning non-sensitive environment info (no secrets exposed)
+- `developer_environment.go` split file for environment handler (SRP compliance)
 - `TenantsTab` component for developer panel with tenant list table (Name, Status, Users, Created, Actions columns)
 - `CreateTenantModal` component with name validation (regex `^[a-z][a-z0-9_]{2,49}$`), error display in modal
 - Deactivation flow using `TypeToConfirmModal` with tenant name confirmation
