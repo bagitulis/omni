@@ -149,7 +149,7 @@ func SetTenantSchema(db *gorm.DB, tenantID string) error {
 
 	// Direct SET search_path - more reliable than function call
 	schemaName := fmt.Sprintf("tenant_%s", tenantID)
-	result := db.Session(&gorm.Session{}).Exec(fmt.Sprintf("SET search_path TO %s, public", schemaName))
+	result := db.Session(&gorm.Session{}).Exec("SET search_path TO " + quoteIdentifier(schemaName) + ", public")
 	if result.Error != nil {
 		return fmt.Errorf("failed to set schema: %w", result.Error)
 	}

@@ -61,10 +61,10 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 	if GetDatabaseDriver() == DriverPostgres {
 		schemaName := fmt.Sprintf("tenant_%s", tenantID)
 		// Use Session() to prevent query condition accumulation
-		if err := db.Session(&gorm.Session{}).Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", schemaName)).Error; err != nil {
+		if err := db.Session(&gorm.Session{}).Exec("CREATE SCHEMA IF NOT EXISTS " + quoteIdentifier(schemaName)).Error; err != nil {
 			return fmt.Errorf("failed to create tenant schema: %w", err)
 		}
-		if err := db.Session(&gorm.Session{}).Exec(fmt.Sprintf("SET search_path TO %s, public", schemaName)).Error; err != nil {
+		if err := db.Session(&gorm.Session{}).Exec("SET search_path TO " + quoteIdentifier(schemaName) + ", public").Error; err != nil {
 			return fmt.Errorf("failed to set search_path: %w", err)
 		}
 	}

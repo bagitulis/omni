@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"strconv"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -148,12 +149,23 @@ func (c *Client) RawRequest(ctx context.Context, method, apiPath string, params 
 	var err error
 	var lastErr error
 	lastStatusCode := 0
-	maxRetries := 3
+	maxRetries := 5
+	var retryAfterDuration time.Duration
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if attempt > 0 {
-			backoff := time.Duration(1<<uint(attempt)) * 100 * time.Millisecond
-			time.Sleep(backoff)
+			if retryAfterDuration > 0 {
+				log.Info().Int("attempt", attempt+1).Dur("retry_after", retryAfterDuration).Msg("[Lazada API] Respecting Retry-After header")
+				time.Sleep(retryAfterDuration)
+				retryAfterDuration = 0
+			} else {
+				backoff := time.Duration(1<<uint(attempt)) * 200 * time.Millisecond
+				if lastStatusCode == 429 {
+					backoff = time.Duration(1<<uint(attempt)) * time.Second
+				}
+				log.Info().Int("attempt", attempt+1).Dur("backoff", backoff).Msg("[Lazada API] Retrying request")
+				time.Sleep(backoff)
+			}
 		}
 
 		// Rebuild timestamp + signature each attempt so they are fresh
@@ -206,8 +218,16 @@ func (c *Client) RawRequest(ctx context.Context, method, apiPath string, params 
 		lastStatusCode = resp.StatusCode
 
 		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
+			if resp.StatusCode == 429 {
+				if ra := resp.Header.Get("Retry-After"); ra != "" {
+					if seconds, parseErr := strconv.Atoi(ra); parseErr == nil {
+						retryAfterDuration = time.Duration(seconds) * time.Second
+					}
+				}
+			}
 			resp.Body.Close()
 			if attempt < maxRetries {
+				log.Warn().Int("status", resp.StatusCode).Msg("[Lazada API] Rate limit or server error, retrying")
 				continue
 			}
 		}

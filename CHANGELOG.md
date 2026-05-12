@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Retry-After header respect in Shopee, Lazada, and TikTok SDK clients (429 responses)
+- Minimum 1s exponential backoff for rate limit (429) responses across all 3 platform clients
+- Max retries increased from 3 to 5 for all platform SDK clients
 - Global concurrency semaphore (max 20 jobs) and per-tenant limit (max 3 jobs) in MultiTenantExecutor
 - Panic recovery in job goroutines with automatic job failure marking
 

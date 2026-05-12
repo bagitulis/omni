@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"strconv"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -99,12 +100,25 @@ func truncateString(s string, maxLen int) string {
 
 // doRequest executes HTTP request (GET without body) with retry logic
 func (c *Client) doRequest(method, apiPath string, params map[string]string, result interface{}) error {
-	const maxRetries = 3
+	const maxRetries = 5
 
 	var lastErr error
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	var lastStatusCode int
+	var retryAfterDuration time.Duration
+	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if attempt > 0 {
-			time.Sleep(time.Duration(1<<attempt) * 100 * time.Millisecond)
+			if retryAfterDuration > 0 {
+				log.Info().Int("attempt", attempt+1).Dur("retry_after", retryAfterDuration).Msg("[TikTok API] Respecting Retry-After header")
+				time.Sleep(retryAfterDuration)
+				retryAfterDuration = 0
+			} else {
+				backoff := time.Duration(1<<uint(attempt)) * 200 * time.Millisecond
+				if lastStatusCode == 429 {
+					backoff = time.Duration(1<<uint(attempt)) * time.Second
+				}
+				log.Info().Int("attempt", attempt+1).Dur("backoff", backoff).Msg("[TikTok API] Retrying request")
+				time.Sleep(backoff)
+			}
 		}
 
 		timestamp := time.Now().Unix()
@@ -154,7 +168,15 @@ func (c *Client) doRequest(method, apiPath string, params map[string]string, res
 
 		// Retry on 429 (rate limit) or 5xx (server error)
 		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
-			log.Warn().Str("method", method).Str("api_path", apiPath).Int("status_code", resp.StatusCode).Str("raw_body", truncateString(string(body), 2000)).Msg("TikTok API rate limit or server error, retrying")
+			if resp.StatusCode == 429 {
+				if ra := resp.Header.Get("Retry-After"); ra != "" {
+					if seconds, parseErr := strconv.Atoi(ra); parseErr == nil {
+						retryAfterDuration = time.Duration(seconds) * time.Second
+					}
+				}
+			}
+			lastStatusCode = resp.StatusCode
+			log.Warn().Str("method", method).Str("api_path", apiPath).Int("status_code", resp.StatusCode).Str("raw_body", truncateString(string(body), 2000)).Msg("[TikTok API] Rate limit or server error, retrying")
 			lastErr = fmt.Errorf("TikTok API error: status %d", resp.StatusCode)
 			continue
 		}
@@ -180,7 +202,7 @@ func (c *Client) doRequest(method, apiPath string, params map[string]string, res
 
 // doRequestWithBody executes HTTP request with JSON body and retry logic
 func (c *Client) doRequestWithBody(method, apiPath string, params map[string]string, body interface{}, result interface{}) error {
-	const maxRetries = 3
+	const maxRetries = 5
 
 	// Marshal body ONCE (same bytes for signature AND request across retries)
 	var bodyBytes []byte
@@ -193,9 +215,22 @@ func (c *Client) doRequestWithBody(method, apiPath string, params map[string]str
 	}
 
 	var lastErr error
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	var lastStatusCode int
+	var retryAfterDuration time.Duration
+	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if attempt > 0 {
-			time.Sleep(time.Duration(1<<attempt) * 100 * time.Millisecond)
+			if retryAfterDuration > 0 {
+				log.Info().Int("attempt", attempt+1).Dur("retry_after", retryAfterDuration).Msg("[TikTok API] Respecting Retry-After header")
+				time.Sleep(retryAfterDuration)
+				retryAfterDuration = 0
+			} else {
+				backoff := time.Duration(1<<uint(attempt)) * 200 * time.Millisecond
+				if lastStatusCode == 429 {
+					backoff = time.Duration(1<<uint(attempt)) * time.Second
+				}
+				log.Info().Int("attempt", attempt+1).Dur("backoff", backoff).Msg("[TikTok API] Retrying request")
+				time.Sleep(backoff)
+			}
 		}
 
 		timestamp := time.Now().Unix()
@@ -245,7 +280,15 @@ func (c *Client) doRequestWithBody(method, apiPath string, params map[string]str
 
 		// Retry on 429 (rate limit) or 5xx (server error)
 		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
-			log.Warn().Str("method", method).Str("api_path", apiPath).Int("status_code", resp.StatusCode).Str("raw_body", truncateString(string(respBody), 2000)).Msg("TikTok API rate limit or server error, retrying")
+			if resp.StatusCode == 429 {
+				if ra := resp.Header.Get("Retry-After"); ra != "" {
+					if seconds, parseErr := strconv.Atoi(ra); parseErr == nil {
+						retryAfterDuration = time.Duration(seconds) * time.Second
+					}
+				}
+			}
+			lastStatusCode = resp.StatusCode
+			log.Warn().Str("method", method).Str("api_path", apiPath).Int("status_code", resp.StatusCode).Str("raw_body", truncateString(string(respBody), 2000)).Msg("[TikTok API] Rate limit or server error, retrying")
 			lastErr = fmt.Errorf("TikTok API error: status %d", resp.StatusCode)
 			continue
 		}

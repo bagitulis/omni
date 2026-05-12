@@ -107,13 +107,23 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 	var err error
 	var lastErr error
 	lastStatusCode := 0
-	maxRetries := 3
+	maxRetries := 5
+	var retryAfterDuration time.Duration
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if attempt > 0 {
-			backoff := time.Duration(1<<uint(attempt)) * 100 * time.Millisecond
-			log.Info().Int("attempt", attempt+1).Dur("backoff", backoff).Msg("[Shopee API] Retrying request")
-			time.Sleep(backoff)
+			if retryAfterDuration > 0 {
+				log.Info().Int("attempt", attempt+1).Dur("retry_after", retryAfterDuration).Msg("[Shopee API] Respecting Retry-After header")
+				time.Sleep(retryAfterDuration)
+				retryAfterDuration = 0
+			} else {
+				backoff := time.Duration(1<<uint(attempt)) * 200 * time.Millisecond
+				if lastStatusCode == 429 {
+					backoff = time.Duration(1<<uint(attempt)) * time.Second
+				}
+				log.Info().Int("attempt", attempt+1).Dur("backoff", backoff).Msg("[Shopee API] Retrying request")
+				time.Sleep(backoff)
+			}
 		}
 
 		// Rebuild URL each attempt so timestamp + signature are fresh
@@ -142,6 +152,13 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 
 		// Retry on rate limit (429) or server errors (5xx)
 		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
+			if resp.StatusCode == 429 {
+				if ra := resp.Header.Get("Retry-After"); ra != "" {
+					if seconds, parseErr := strconv.Atoi(ra); parseErr == nil {
+						retryAfterDuration = time.Duration(seconds) * time.Second
+					}
+				}
+			}
 			resp.Body.Close()
 			if attempt < maxRetries {
 				log.Warn().Int("status", resp.StatusCode).Msg("[Shopee API] Rate limit or server error, retrying")
