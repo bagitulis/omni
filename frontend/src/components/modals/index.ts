@@ -16,3 +16,4 @@ export * from "./ChangePasswordModal";
 export * from "./DashboardShippingModal";
 
 export * from "./ConfigEditorModal";
+export * from "./TypeToConfirmModal";

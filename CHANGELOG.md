@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ResetPassword` service method now validates password strength before hashing (prevents weak passwords via admin reset)
 
 ### Added
+- `TypeToConfirmModal` shared component for destructive action confirmation (type-to-confirm pattern)
 
 - Retry-After header respect in Shopee, Lazada, and TikTok SDK clients (429 responses)
 - Minimum 1s exponential backoff for rate limit (429) responses across all 3 platform clients
