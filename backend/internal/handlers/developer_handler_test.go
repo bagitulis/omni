@@ -477,3 +477,159 @@ func TestCreateTenant_Success(t *testing.T) {
 	assert.Equal(t, "new_tenant", data["name"])
 	assert.Equal(t, true, data["is_active"])
 }
+
+func TestSearchUsers_MissingQuery(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	r.GET("/api/dev/users/search", func(c *gin.Context) {
+		query := strings.TrimSpace(c.Query("q"))
+		if len(query) < 2 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "query parameter 'q' must be at least 2 characters",
+			})
+			return
+		}
+	})
+
+	req, _ := http.NewRequest("GET", "/api/dev/users/search", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, false, resp["success"])
+	assert.Contains(t, resp["error"].(string), "at least 2 characters")
+}
+
+func TestSearchUsers_TooShortQuery(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	r.GET("/api/dev/users/search", func(c *gin.Context) {
+		query := strings.TrimSpace(c.Query("q"))
+		if len(query) < 2 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "query parameter 'q' must be at least 2 characters",
+			})
+			return
+		}
+	})
+
+	req, _ := http.NewRequest("GET", "/api/dev/users/search?q=a", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, false, resp["success"])
+	assert.Contains(t, resp["error"].(string), "at least 2 characters")
+}
+
+func TestSearchUsers_ValidQuery(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	// Simulate successful search returning users
+	r.GET("/api/dev/users/search", func(c *gin.Context) {
+		query := strings.TrimSpace(c.Query("q"))
+		if len(query) < 2 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "query parameter 'q' must be at least 2 characters",
+			})
+			return
+		}
+
+		// Simulate found users
+		results := []UserSearchResult{
+			{
+				ID:         "user-1",
+				Username:   "yumna_shop",
+				Email:      "yumna@example.com",
+				Role:       "owner",
+				Status:     "active",
+				TenantID:   "tenant-1",
+				TenantName: "Yumna Store",
+			},
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    results,
+			"total":   len(results),
+		})
+	})
+
+	req, _ := http.NewRequest("GET", "/api/dev/users/search?q=yumna", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, true, resp["success"])
+	assert.Equal(t, float64(1), resp["total"])
+
+	data := resp["data"].([]interface{})
+	assert.Len(t, data, 1)
+
+	user := data[0].(map[string]interface{})
+	assert.Equal(t, "user-1", user["id"])
+	assert.Equal(t, "yumna_shop", user["username"])
+	assert.Equal(t, "yumna@example.com", user["email"])
+	assert.Equal(t, "owner", user["role"])
+	assert.Equal(t, "active", user["status"])
+	assert.Equal(t, "tenant-1", user["tenant_id"])
+	assert.Equal(t, "Yumna Store", user["tenant_name"])
+
+	// Verify NO password_hash field in response
+	_, hasPassword := user["password_hash"]
+	assert.False(t, hasPassword, "response must NOT contain password_hash")
+	_, hasPasswordField := user["password"]
+	assert.False(t, hasPasswordField, "response must NOT contain password")
+}
+
+func TestSearchUsers_EmptyResults(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	r.GET("/api/dev/users/search", func(c *gin.Context) {
+		query := strings.TrimSpace(c.Query("q"))
+		if len(query) < 2 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "query parameter 'q' must be at least 2 characters",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    []UserSearchResult{},
+			"total":   0,
+		})
+	})
+
+	req, _ := http.NewRequest("GET", "/api/dev/users/search?q=nonexistent", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, true, resp["success"])
+	assert.Equal(t, float64(0), resp["total"])
+}

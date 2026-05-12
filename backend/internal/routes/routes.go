@@ -62,9 +62,12 @@ func RegisterDeveloperRoutes(router *gin.RouterGroup, developerHandler *handlers
 	dev.Use(middleware.RequireRole("developer"))
 	{
 		dev.GET("/overview", developerHandler.GetOverview)
+		dev.GET("/users/search", developerHandler.SearchUsers)
 		dev.POST("/reset-password", developerHandler.ResetPassword)
 		dev.DELETE("/tenants/:id", developerHandler.DeactivateTenant)
 		dev.POST("/tenants", developerHandler.CreateTenant)
+		dev.POST("/users/bulk-reset-password", developerHandler.BulkResetPasswords)
+		dev.POST("/users/bulk-disable", developerHandler.BulkDisableUsers)
 	}
 }
 

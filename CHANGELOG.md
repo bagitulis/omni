@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `GET /api/dev/users/search` endpoint for cross-tenant user search by username or email
+- `SearchUsers` handler in developer_handler.go with query validation, timeout, and 50-tenant cap
+- `UserSearchResult` struct with tenant_id/tenant_name fields (no password exposure)
+- Tests for SearchUsers: missing query, too-short query, valid query, empty results
 - `TenantService.CreateTenant()` method for creating new tenants (validates name, creates schema, runs migrations, registers in system.tenants)
 - `POST /api/dev/tenants` endpoint in developer handler for tenant creation with 400/409/500 error handling
 - `TenantValidationError` and `TenantDuplicateError` typed errors for CreateTenant

@@ -234,3 +234,92 @@ func (h *DeveloperHandler) CreateTenant(c *gin.Context) {
 		"data":    result,
 	})
 }
+
+// UserSearchResult represents a user found during cross-tenant search.
+type UserSearchResult struct {
+	ID         string `json:"id"`
+	Username   string `json:"username"`
+	Email      string `json:"email"`
+	Role       string `json:"role"`
+	Status     string `json:"status"`
+	TenantID   string `json:"tenant_id"`
+	TenantName string `json:"tenant_name"`
+}
+
+// SearchUsers searches users across all active tenants by username or email.
+// GET /api/dev/users/search?q=<query>
+func (h *DeveloperHandler) SearchUsers(c *gin.Context) {
+	query := strings.TrimSpace(c.Query("q"))
+	if len(query) < 2 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "query parameter 'q' must be at least 2 characters",
+		})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	tenants, err := h.tenantService.GetAvailableTenants(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "failed to list tenants: " + err.Error(),
+		})
+		return
+	}
+
+	var warning string
+	if len(tenants) > 50 {
+		warning = "search limited to first 50 tenants"
+		tenants = tenants[:50]
+	}
+
+	results := make([]UserSearchResult, 0)
+	likePattern := "%" + query + "%"
+
+	for _, t := range tenants {
+		db, err := h.tenantService.GetTenantDB(t.ID)
+		if err != nil {
+			continue
+		}
+
+		var users []struct {
+			ID       string `gorm:"column:id"`
+			Username string `gorm:"column:username"`
+			Email    string `gorm:"column:email"`
+			Role     string `gorm:"column:role"`
+		}
+		db.WithContext(ctx).
+			Table("users").
+			Select("id, username, email, role").
+			Where("username LIKE ? OR email LIKE ?", likePattern, likePattern).
+			Limit(20).
+			Find(&users)
+
+		for _, u := range users {
+			status := "active"
+			results = append(results, UserSearchResult{
+				ID:         u.ID,
+				Username:   u.Username,
+				Email:      u.Email,
+				Role:       u.Role,
+				Status:     status,
+				TenantID:   t.ID,
+				TenantName: t.ShopName,
+			})
+		}
+	}
+
+	response := gin.H{
+		"success": true,
+		"data":    results,
+		"total":   len(results),
+	}
+	if warning != "" {
+		response["warning"] = warning
+	}
+
+	c.JSON(http.StatusOK, response)
+}
