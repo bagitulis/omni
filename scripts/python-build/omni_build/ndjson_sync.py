@@ -666,7 +666,7 @@ def _restore_from_backup(backup_dir: Path) -> bool:
             f"TRUNCATE {table_ref} CASCADE;\n"
             + sql
         )
-        ok, err = _psql_exec(restore_sql, timeout=120)
+        ok, err = _psql_exec(restore_sql, timeout=600)
         if ok:
             log_info(f"  Restored: {table_ref}")
         else:

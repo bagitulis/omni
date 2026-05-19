@@ -406,7 +406,7 @@ def import_table(
                 sub_sql = build_batch_insert(
                     schema, name, available_cols, pk_cols, non_pk_cols, sub_batch
                 )
-                ok, err = psql_exec_fn(sub_sql, 120)
+                ok, err = psql_exec_fn(sub_sql, 300)
                 if ok:
                     imported += len(sub_batch)
                 else:
@@ -426,7 +426,7 @@ def import_table(
                                 log_warning(f"    Row error: {single_err[:200]}")
             continue
 
-        ok, err = psql_exec_fn(batch_sql, 120)
+        ok, err = psql_exec_fn(batch_sql, 300)
         if ok:
             imported += len(batch)
         else:
