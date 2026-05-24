@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **rules-master validation**: --check now exits 1 when declared AGENTS.md target is missing (was warning + exit 0). Removed dead duplicate compose_prompt code, duplicated target init/filter blocks, and stale compose_json-disabled comments. Documented go_rules as absent, svelte-frontend-rules as unmanaged, and .agents/skills vs .opencode/skills split. (rules-master/sync_rules.py, notepads, evidence)
 
+- **sync_rules.py hardening**: compose_prompt unknown block now exits 1 (was warning+skip). matches_target() extracted as shared function for all 3 target loops (gen, inject, compose). compose_json "not found" now triggers has_warnings+any_changed (was silently ignored). (rules-master/sync_rules.py)
+
 ### Added
 
 - `GET /api/dev/audit-logs` endpoint for cross-tenant audit log viewing in developer panel (supports action, user_id, start_date, end_date, page, page_size filters)

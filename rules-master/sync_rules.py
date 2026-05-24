@@ -212,8 +212,8 @@ def compose_prompt(block_keys, prompt_blocks):
         if key.startswith("_"):
             continue
         if key not in prompt_blocks:
-            print(f"  WARNING: Unknown prompt_block '{key}' - skipping")
-            continue  # Skip instead of exit
+            print(f"  ERROR: Unknown prompt_block '{key}' - aborting")
+            sys.exit(1)
         parts.append(prompt_blocks[key])
     return "\n\n".join(parts)
 
@@ -278,6 +278,11 @@ def compose_json(filepath, prompt_blocks, prompt_compose, dry_run=False):
         f.write(final_content)
     return True, "updated"
 
+def matches_target(filepath, args):
+    """Check if filepath passes --target CLI filter (no filter = all pass)."""
+    return not (args.target and not filepath.endswith(args.target))
+
+
 
 def main():
     parser = argparse.ArgumentParser(description="Sync master rules to target files")
@@ -307,7 +312,7 @@ def main():
         if filepath.startswith("_"):
             continue
             
-        if args.target and not filepath.endswith(args.target):
+        if not matches_target(filepath, args):
             continue
 
         # If --section specified, skip generate targets that don't use that block
@@ -325,7 +330,7 @@ def main():
 
     # --- Inject blocks ---
     for filepath, block_config in inject_targets.items():
-        if args.target and not filepath.endswith(args.target):
+        if not matches_target(filepath, args):
             continue
 
         block_keys = list(block_config.keys())
@@ -347,7 +352,7 @@ def main():
     # --- Compose JSON (prompt_append) ---
     if not args.section:  # compose_json applies to whole file, not individual sections
         for filepath in compose_targets:
-            if args.target and not filepath.endswith(args.target):
+            if not matches_target(filepath, args):
                 continue
 
             changed, status = compose_json(
@@ -356,6 +361,9 @@ def main():
             )
             results.append((filepath + " (prompt_append)", status))
             if changed:
+                any_changed = True
+            if status == "not found":
+                has_warnings = True
                 any_changed = True
 
     # --- Report ---
