@@ -216,16 +216,6 @@ def compose_prompt(block_keys, prompt_blocks):
             continue  # Skip instead of exit
         parts.append(prompt_blocks[key])
     return "\n\n".join(parts)
-    """Join prompt_blocks by key into a single prompt_append string."""
-    parts = []
-    for key in block_keys:
-        if key.startswith("_"):
-            continue
-        if key not in prompt_blocks:
-            print(f"  ERROR: Unknown prompt_block '{key}'")
-            sys.exit(1)
-        parts.append(prompt_blocks[key])
-    return "\n\n".join(parts)
 
 
 def compose_json(filepath, prompt_blocks, prompt_compose, dry_run=False):
@@ -306,9 +296,6 @@ def main():
     gen_targets = targets.get("generate_full_doc", {})
     inject_targets = targets.get("inject_block", {})
     compose_targets = targets.get("compose_json", {})
-    gen_targets = targets.get("generate_full_doc", {})
-    inject_targets = targets.get("inject_block", {})
-    compose_targets = targets.get("compose_json", {})
 
     any_changed = False
     has_warnings = False
@@ -320,8 +307,6 @@ def main():
         if filepath.startswith("_"):
             continue
             
-        if args.target and not filepath.endswith(args.target):
-            continue
         if args.target and not filepath.endswith(args.target):
             continue
 
@@ -355,22 +340,11 @@ def main():
             any_changed = True
         if missing:
             has_warnings = True
+        if status == "not found":
+            has_warnings = True
+            any_changed = True
 
     # --- Compose JSON (prompt_append) ---
-    # DISABLED: compose_json requires complete prompt_blocks which are not available
-    # This is only needed for opencode-profiles.json which doesn't exist in spoke projects
-    # TODO: Re-enable after prompt_blocks are properly defined in rules.json
-    # if not args.section:  # compose_json applies to whole file, not individual sections
-    #     for filepath in compose_targets:
-    #         if args.target and not filepath.endswith(args.target):
-    #             continue
-    #         changed, status = compose_json(
-    #             filepath, prompt_blocks, prompt_compose,
-    #             dry_run=args.dry_run or args.check,
-    #         )
-    #         results.append((filepath + " (prompt_append)", status))
-    #         if changed:
-    #             any_changed = True
     if not args.section:  # compose_json applies to whole file, not individual sections
         for filepath in compose_targets:
             if args.target and not filepath.endswith(args.target):

@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **rules-master maintenance**: Added rules-master-maintenance and sisyphus-e2e-evaluate blocks to prompt_blocks. Removed stale extension-based-testing block. Added to sisyphus + oracle prompt_compose. (rules-master/rules.json, opencode-configs/opencode-profiles.json)
 
+### Fixed
+- **rules-master validation**: --check now exits 1 when declared AGENTS.md target is missing (was warning + exit 0). Removed dead duplicate compose_prompt code, duplicated target init/filter blocks, and stale compose_json-disabled comments. Documented go_rules as absent, svelte-frontend-rules as unmanaged, and .agents/skills vs .opencode/skills split. (rules-master/sync_rules.py, notepads, evidence)
+
 ### Added
 
 - `GET /api/dev/audit-logs` endpoint for cross-tenant audit log viewing in developer panel (supports action, user_id, start_date, end_date, page, page_size filters)
