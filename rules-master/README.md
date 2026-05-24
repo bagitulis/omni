@@ -28,14 +28,21 @@ python rules-master/sync_rules.py --target AGENTS.md
 | `inject_block`      | Replace content between `<!-- MASTER:key -->` markers | `.md` rule files         |
 | `generate_full_doc` | Generate entire file from template blocks             | `DELEGATION_RULES.md`    |
 | `compose_json`      | Compose `prompt_append` strings from DRY blocks       | `opencode-profiles.json` |
+| Mode                | Purpose                                               | Target Files             |
+| ------------------- | ----------------------------------------------------- | ------------------------ |
+| `inject_block`      | Replace content between `<!-- MASTER:key -->` markers | `.md` rule files         |
+| `generate_full_doc` | Generate entire file from template blocks             | `DELEGATION_RULES.md`    |
+| `compose_json`      | Compose `prompt_append` strings from DRY blocks       | `opencode-profiles.json` |
 
 ### File Structure
 
 ```
 rules-master/
-  rules.json      ← Master: blocks + prompt_blocks + prompt_compose + targets
-  sync_rules.py   ← Sync tool (3 modes + --check + --dry-run)
-  README.md       ← This file
+  rules.json                   ← Master: blocks + prompt_blocks + prompt_compose + targets
+  sync_rules.py                ← Sync tool (3 modes + --check + --dry-run)
+  validate_drift.py            ← Independent structural validator (targets, markers, compose)
+  validate_skill_references.py ← Cross-repo skill reference integrity validator
+  README.md                    ← This file
 ```
 
 ## rules.json Structure
@@ -165,7 +172,6 @@ More manual content below...
 ```
 
 **Do NOT edit content between markers** — it will be overwritten on next sync.
-
 ## Portability
 
 To use in another project:
@@ -181,3 +187,43 @@ To use in another project:
 # Fails with exit code 1 if any target is out of sync
 python rules-master/sync_rules.py --check
 ```
+
+## Validation
+
+```bash
+# Independent structural validation (targets, markers, compose drift)
+python rules-master/validate_drift.py
+
+# Cross-repo skill reference integrity
+python rules-master/validate_skill_references.py
+```
+
+`validate_drift.py` checks:
+1. All declared target files exist on disk
+2. No orphan markers (markers in files not registered in targets)
+3. All markers have proper open/close pairs
+4. Composed prompt_append output matches source prompt_blocks
+
+`validate_skill_references.py` checks:
+1. All skills referenced in opencode-profiles.json exist in `.opencode/skills/`
+2. Skills on disk that are unregistered are documented
+3. Uses `--seed-failure REPO:SKILL` to test failure detection
+
+## Policy Notes
+
+### Schema Variant
+This project uses the **STANDARD GROUPED** target schema (`inject_block`, `compose_json`
+subsections under `targets`). No go_rules targets (n/a — Go backend rules embedded in
+per-service sub-routers). Version: 3.0.
+
+### go_rules
+Not applicable — Go backend coding rules are managed through per-service sub-routers
+(`backend/internal/handlers/AGENTS.md`, `backend/internal/services/AGENTS.md`), not as
+a separate go_rules target.
+
+### Architecture
+omni has the most mature chunk/router architecture:
+- **Thin router**: `AGENTS.md` (55 lines) — delegates to full constitution and sub-routers
+- **Canonical constitution**: `AGENTS.MD` (435 lines) — full immutable ruleset
+- **Domain sub-routers**: `backend/AGENTS.md`, `frontend/AGENTS.md`, `mcp-servers/AGENTS.md`
+- **10 skill inject targets**: `.opencode/skills/*/SKILL.md`
