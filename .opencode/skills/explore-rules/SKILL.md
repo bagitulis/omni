@@ -53,29 +53,9 @@ omni/
 ## Search Patterns
 
 <!-- MASTER:skill-explore-search-patterns -->
-### Finding Handlers
-
-```
-internal/handlers/*_handler.go
-```
-
-### Finding Services
-
-```
-internal/services/*_service.go
-```
-
-### Finding Models
-
-```
-internal/models/*.go
-```
-
-### Finding SDK Usage
-
-```
-backend/*sdk*/*.go
-```
+Before searching the codebase, read ARCHITECTURE.md in the project root.
+Use the search patterns documented there — they reflect the actual folder structure of this project.
+Do not use generic patterns (internal/handlers/*.go, etc.) without first confirming they exist in ARCHITECTURE.md.
 <!-- /MASTER:skill-explore-search-patterns -->
 
 ---

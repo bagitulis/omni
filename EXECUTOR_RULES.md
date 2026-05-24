@@ -409,18 +409,18 @@ ASK YOURSELF:
 - [ ] **Check for next steps** — is there follow-up work I should mention?
 
 <!-- MASTER:git-commit-gate -->
-### Git Commit Evidence (MANDATORY)
+### Git Commit Evidence (MANDATORY — ZERO EXCEPTIONS)
 
-If orchestrator instructed commit, you MUST provide:
+When committing, you MUST follow this EXACT sequence:
 
 ```bash
-# Step 1: Add all changes
+# Step 1: Add ALL changes (NEVER cherry-pick files)
 git add -A
 
 # Step 2: Commit with proper format
 git commit -m "type(scope): task N — description"
 
-# Step 3: Push to remote
+# Step 3: Push to remote (NEVER skip this step)
 git push
 
 # Step 4: Capture evidence
@@ -428,12 +428,17 @@ git status        # Must show "working tree clean"
 git log -1 --oneline  # Capture commit hash + subject
 ```
 
-**Evidence to Report:**
-- Working tree status (must be clean)
-- Commit hash + subject line
-- Push confirmation output
+**CRITICAL RULES:**
+- **ALWAYS `git add -A`** — never `git add <specific-file>`. ALL files, no exceptions.
+- **ALWAYS `git push`** — commit without push is INCOMPLETE. Never skip.
+- **No confirmation needed** — just commit and push.
 
-**NO evidence = task incomplete, will be rejected by orchestrator.**
+**Evidence to Report:**
+- Working tree status (must be clean — nothing left unstaged)
+- Commit hash + subject line
+- Push confirmation output (must show remote URL)
+
+**BLOCKING: NO evidence = task REJECTED by orchestrator.**
 <!-- /MASTER:git-commit-gate -->
 
 ---

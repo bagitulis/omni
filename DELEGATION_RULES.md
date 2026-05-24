@@ -9,7 +9,6 @@
 
 ## 1. Concurrency
 
-<!-- MASTER:concurrency -->
 | Setting               | Value | Controlled By                               |
 | --------------------- | ----- | ------------------------------------------- |
 | **Max running tasks** | 3     | System config (`defaultConcurrency: 3`)     |
@@ -31,13 +30,11 @@
 ❌ WRONG: Fire 3 agents → wait → wait → wait → respond
 ✅ CORRECT: Fire agents → continue working / standby → process results as they arrive
 ```
-<!-- /MASTER:concurrency -->
 
 ---
 
 ## 2. Delegation Routing
 
-<!-- MASTER:delegation-routing -->
 ### Agent-Based Delegation
 
 | Need                  | Delegate To  | Mode       |
@@ -62,13 +59,11 @@
 | Code review             | `review`             | Mid-tier   |
 | Testing                 | `testing`            | Mid-tier   |
 | Security analysis       | `security`           | High-tier  |
-<!-- /MASTER:delegation-routing -->
 
 ---
 
 ## 3. Failure Escalation (MANDATORY)
 
-<!-- MASTER:failure-escalation -->
 When a delegated task **fails or produces incorrect results** (NOT due to connection loss or timeout):
 
 | Failure Type             | Action                                                     |
@@ -82,13 +77,11 @@ When a delegated task **fails or produces incorrect results** (NOT due to connec
 > This prevents wasting retries on the same weak model that already failed.
 
 > **Fallback note:** If `@oracle` is unavailable (rate limit, timeout), use `category="deep"` with detailed analysis prompt instead. See AGENTS.md § Advisory Agent Fallback Matrix.
-<!-- /MASTER:failure-escalation -->
 
 ---
 
 ## 4. Session Continuity (MANDATORY)
 
-<!-- MASTER:session-continuity -->
 Every `task()` output includes a `session_id`. **ALWAYS use it.**
 
 > **Note:** `task(...)` is the delegation primitive. Older examples may reference `delegate_task()` — treat them as equivalent.
@@ -110,23 +103,19 @@ Every `task()` output includes a `session_id`. **ALWAYS use it.**
 ❌ WRONG: Task failed → new delegation from scratch (loses all context)
 ✅ CORRECT: Task failed → session_id="ses_xxx", prompt="Fix: [error]"
 ```
-<!-- /MASTER:session-continuity -->
 
 ---
 
 ## 5. Fallback Chain
 
-<!-- MASTER:fallback-chain -->
 - oracle → librarian → manual
 - librarian → explore + websearch → manual
 - explore → grep/glob → manual
-<!-- /MASTER:fallback-chain -->
 
 ---
 
 ## 6. Failure Counter (For Executors)
 
-<!-- MASTER:failure-counter -->
 **Failure counter tracks SAME error/issue.** If a DIFFERENT error occurs, reset counter to 1.
 
 | Count | Action                                                                                |
@@ -137,11 +126,9 @@ Every `task()` output includes a `session_id`. **ALWAYS use it.**
 | 5+    | **ASK USER.** Confirm: continue / skip / try different approach. Full failure log.    |
 
 **Reset rule:** Different error = new counter starting at 1. Same error repeating = increment counter.
-<!-- /MASTER:failure-counter -->
 
 ### Format
 
-<!-- MASTER:failure-counter-format -->
 ```markdown
 ## Fix Attempt #[N]
 
@@ -150,13 +137,11 @@ Every `task()` output includes a `session_id`. **ALWAYS use it.**
 **Hypothesis:** [why this fix should work]
 **Action:** [specific fix in specific layer]
 ```
-<!-- /MASTER:failure-counter-format -->
 
 ---
 
 ## 7. Prompt Structure for Delegation
 
-<!-- MASTER:prompt-structure -->
 Every delegation prompt MUST include 6 sections:
 
 ```
@@ -169,4 +154,3 @@ Every delegation prompt MUST include 6 sections:
 ```
 
 **Vague prompts = poor results. Be exhaustive.**
-<!-- /MASTER:prompt-structure -->
