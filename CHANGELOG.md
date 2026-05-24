@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **rules-master maintenance**: Added rules-master-maintenance and sisyphus-e2e-evaluate blocks to prompt_blocks. Removed stale extension-based-testing block. Added to sisyphus + oracle prompt_compose. (rules-master/rules.json, opencode-configs/opencode-profiles.json)
+
 ### Added
 
 - `GET /api/dev/audit-logs` endpoint for cross-tenant audit log viewing in developer panel (supports action, user_id, start_date, end_date, page, page_size filters)
