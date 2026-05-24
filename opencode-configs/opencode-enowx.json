@@ -870,7 +870,7 @@
       "name": "enowX Labs",
       "npm": "@ai-sdk/openai-compatible",
       "options": {
-        "apiKey": "enx-ee77ad316f6d91ec59ff411d32f4992a0f4b04739887e2cd517307ef7c5b8f2a",
+        "apiKey": "[REDACTED]",
         "baseURL": "http://localhost:1430/v1"
       }
     },
@@ -910,7 +910,7 @@
       "name": "DeepSeek",
       "npm": "@ai-sdk/openai-compatible",
       "options": {
-        "apiKey": "sk-afd1f58c11e840a6a1335a8700239bd9",
+        "apiKey": "[REDACTED]",
         "baseURL": "https://api.deepseek.com/v1"
       }
     },
@@ -1084,7 +1084,7 @@
       "name": "9 router",
       "npm": "@ai-sdk/openai-compatible",
       "options": {
-        "apiKey": "sk-44aa9e9159b08da4-vr2vy0-d72181ac",
+        "apiKey": "[REDACTED]",
         "baseURL": "http://localhost:20128/v1"
       }
     }

@@ -2,6 +2,18 @@
   "_comment": "Master rules source of truth. Edit blocks here, run sync_rules.py to propagate.",
   "_version": "3.0",
   "_usage": "python rules-master/sync_rules.py [--check] [--section KEY] [--target FILE] [--dry-run]",
+  "_policies": {
+    "schema": {
+      "type": "standard_grouped",
+      "description": "Standard grouped target schema with inject_block, compose_json, and generate_full_doc subsections. No dedicated go_rules section.",
+      "declared_since": "3.0",
+      "version_verified": "3.0"
+    },
+    "go_rules": {
+      "status": "n/a",
+      "reason": "omni has no separate go_rules target. Go backend rules are embedded in project-specific blocks within rules.json (e.g., codebase-structure, skill-react-*). No dedicated go_rules section or validator exists."
+    }
+  },
   "blocks": {
     "concurrency": "| Setting               | Value | Controlled By                               |\n| --------------------- | ----- | ------------------------------------------- |\n| **Max running tasks** | 3     | System config (`defaultConcurrency: 3`)     |\n| **Max queued tasks**  | ∞     | System auto-queues excess                   |\n| **Stale timeout**     | 10min | System config (`staleTimeoutMs: 600000`)    |\n| **Manual throttling** | NONE  | System handles concurrency — don't throttle |\n\n**Strategy:**\n\n- **Launch aggressively**: Fire as many delegations as the task warrants (5, 6, 10 — doesn't matter)\n- **System queues excess**: Only 3 run simultaneously; rest wait in queue automatically\n- **Stay productive**: While agents run, continue on other work items or standby for user\n- **Never block**: Don't wait idle for delegation results — system notifies on completion\n\n```\n❌ WRONG: \"I'll limit myself to 3 delegations\"\n✅ CORRECT: Fire all needed delegations → system queues → collect results when ready\n\n❌ WRONG: Fire 3 agents → wait → wait → wait → respond\n✅ CORRECT: Fire agents → continue working / standby → process results as they arrive\n```",
     "delegation-routing": "### Agent-Based Delegation\n\n| Need                  | Delegate To  | Mode       |\n| --------------------- | ------------ | ---------- |\n| Search in codebase    | `@explore`   | Background |\n| Search external docs  | `@librarian` | Background |\n| Architecture question | `@oracle`    | Sync       |\n| Pre-planning analysis | `@metis`     | Sync       |\n| Plan review           | `@momus`     | Sync       |\n\n### Category-Based Delegation\n\n| Need                    | Category             | Model Tier |\n| ----------------------- | -------------------- | ---------- |\n| UI/Frontend             | `visual-engineering` | Mid-tier   |\n| Standard coding         | `implementation`     | Mid-tier   |\n| Quick/trivial fix       | `quick`              | Mid-tier   |\n| Failed task retry       | `deep`               | High-tier  |\n| Hard logic problem      | `ultrabrain`         | High-tier  |\n| Creative/unconventional | `artistry`           | Mid-tier   |\n| Documentation           | `writing`            | Low-tier   |\n| Code review             | `review`             | Mid-tier   |\n| Testing                 | `testing`            | Mid-tier   |\n| Security analysis       | `security`           | High-tier  |",
