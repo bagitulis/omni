@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `GET /api/dev/audit-logs` endpoint for cross-tenant audit log viewing in developer panel (supports action, user_id, start_date, end_date, page, page_size filters)
 
+- **Shopee Booking models**: Registered `ShopeeBooking` and `ShopeeBookingItem` in tenant migration for GORM AutoMigrate
+
 ### Fixed
 
 - `system.tenants` table missing `deactivated_at` column causing `ListTenants` and `DeactivateTenant` to fail with SQLSTATE 42703 — added migration in `MigrateSystemDatabase` to add column

@@ -24,6 +24,8 @@ var tableNameMapping = map[string]string{
 	"ShopeeEscrowSync":  "shopee_escrow_sync",
 	"ShopeeEscrowOrder": "shopee_escrow_orders",
 	"ShopeeEscrowItem":  "shopee_escrow_items",
+	"ShopeeBooking":     "shopee_bookings",
+	"ShopeeBookingItem": "shopee_booking_items",
 
 	// Lazada
 	"LazadaOrder":     "lazada_orders",

@@ -114,6 +114,10 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		&models.ShopeeProduct{},
 		&models.ShopeeSku{},
 
+		// Shopee Bookings
+		&models.ShopeeBooking{},
+		&models.ShopeeBookingItem{},
+
 		// Lazada
 		&models.LazadaOrder{},
 		&models.LazadaOrderItem{},
