@@ -153,12 +153,13 @@ export function useOrders(
   params: GetOrdersParams,
   options: UseOrdersOptions = {},
 ) {
-  const { autoRefresh = true, refetchInterval = DEFAULT_REFETCH_INTERVAL } =
+  const { autoRefresh = true, refetchInterval = DEFAULT_REFETCH_INTERVAL, enabled = true } =
     options;
 
   const query = useQuery({
     queryKey: ["orders", params],
     queryFn: () => getOrders(params),
+    enabled,
     staleTime: 0, // Always refetch on tab change - ensures fresh data
     gcTime: 0, // Don't cache data between tab switches - prevents stale data display
     // NOTE: Removed placeholderData to show loading state immediately on tab switch

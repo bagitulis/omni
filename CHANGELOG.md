@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Booking Tab**: Added Booking tab as first tab in order manager with dedicated BookingOrdersTable component (Booking SN, Order SN, Booking/Match Status, Recipient, Items, Courier, Created/Updated, Actions). Tab icon uses FileTextOutlined. (OrderStatusTabs.constants.ts, BookingOrdersTable.tsx, OrderStatusTabs.tsx)
+- **useOrders enabled option**: Added `enabled` option to useOrders hook to conditionally skip queries (used for booking tab). (useOrders.ts)
+- **Booking sync error handling**: Booking sync catches partial failure gracefully (console.warn only, no error toast). (useOrderSync.ts)
+
+### Changed
+- **OrdersPage**: BookingOrdersTable rendered when active tab is "booking"; OrdersBulkActionsBar hidden for booking tab. (OrdersPage.tsx)
+- **useOrdersLogic**: Added "booking" to ORDER_MANAGER_VISIBLE_TABS; skips useOrders call for booking tab. (useOrdersLogic.ts)
+
 ### Changed
 - **rules-master maintenance**: Added rules-master-maintenance and sisyphus-e2e-evaluate blocks to prompt_blocks. Removed stale extension-based-testing block. Added to sisyphus + oracle prompt_compose. (rules-master/rules.json, opencode-configs/opencode-profiles.json)
 

@@ -7,10 +7,12 @@ import {
   CloseCircleOutlined,
   LockOutlined,
   CalendarOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import { ORDER_TABS } from "./OrderStatusTabs.constants";
 
 const TAB_ICONS: Record<string, React.ReactNode> = {
+  booking: <FileTextOutlined />,
   unprocess: <SendOutlined />,
   processed: <CheckCircleOutlined />,
   shipped: <CarOutlined />,

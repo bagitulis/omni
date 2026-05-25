@@ -4,6 +4,7 @@
  */
 
 export const ALL_TABS = [
+  { key: "booking", label: "Booking" },
   { key: "unprocess", label: "To Ship" },
   { key: "processed", label: "Processed" },
   { key: "shipped", label: "Shipped" },

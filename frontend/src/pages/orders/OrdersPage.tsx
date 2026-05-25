@@ -7,6 +7,7 @@ import { OrderActionBar } from "./components/OrderActionBar";
 import { OrderPageModals } from "./components/OrderPageModals";
 import { LockedOrdersPanel } from "./components/LockedOrdersPanel";
 import { TodayOrdersTable } from "./components/TodayOrdersTable";
+import { BookingOrdersTable } from "./components/BookingOrdersTable";
 import { useOrdersLogic } from "./hooks/useOrdersLogic";
 
 export default function OrdersPage() {
@@ -75,7 +76,8 @@ export default function OrdersPage() {
           onAutoRefreshChange={setters.setAutoRefresh}
         />
 
-        {/* Bulk Actions */}
+        {/* Bulk Actions — hidden for booking tab */}
+        {state.activeTab !== "booking" && (
         <OrdersBulkActionsBar
           selectedCount={state.selectedRowKeys.length}
           onBulkShip={() => void handlers.handleBulkShip()}
@@ -93,9 +95,17 @@ export default function OrdersPage() {
           printResult={state.printResult}
           cancelResult={state.cancelResult}
         />
-
-        {/* Order Content — specialized components for locked/today, generic for others */}
-        {state.activeTab === "locked" ? (
+        )}
+        {/* Order Content — specialized components for booking/locked/today, generic for others */}
+        {state.activeTab === "booking" ? (
+          <BookingOrdersTable
+            platform={state.platform}
+            onViewDetail={(booking) => {
+              console.log("View booking detail:", booking.booking_sn);
+              // Will open drawer in Phase 7
+            }}
+          />
+        ) : state.activeTab === "locked" ? (
           <LockedOrdersPanel />
         ) : state.activeTab === "today" ? (
           <TodayOrdersTable />

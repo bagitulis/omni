@@ -12,6 +12,7 @@ import type { Dayjs } from "dayjs";
 import { generateOrdersCSV, downloadCSV } from "../utils/csv";
 
 const ORDER_MANAGER_VISIBLE_TABS = new Set([
+  "booking",
   "unprocess",
   "processed",
   "shipped",
@@ -66,7 +67,8 @@ export function useOrdersLogic() {
   // Query client for cache invalidation
   const queryClient = useQueryClient();
 
-  // Hooks
+  // Hooks — skip useOrders for booking tab (BookingOrdersTable fetches its own data)
+  const isBookingTab = activeTab === "booking";
   const { data, isLoading, refetch } = useOrders(
     {
       page,
@@ -77,7 +79,7 @@ export function useOrdersLogic() {
       startDate: dateRange?.[0],
       endDate: dateRange?.[1],
     },
-    { autoRefresh },
+    { autoRefresh, enabled: !isBookingTab },
   );
 
   const { isSyncing, syncActiveTab } = useOrderSync(

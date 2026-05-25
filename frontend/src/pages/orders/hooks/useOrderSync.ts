@@ -27,9 +27,14 @@ export function useOrderSync(
         // getOrders("locked") already does POST which syncs + returns data.
         // Adding lockOrdersToday() here would cause duplicate POST calls.
       } catch (error) {
-        message.error(
-          error instanceof Error ? error.message : "Failed to sync orders",
-        );
+        if (tabKey === "booking") {
+          // Booking sync can return partial failure - just log, don't show error toast
+          console.warn("Booking sync completed with warnings:", error);
+        } else {
+          message.error(
+            error instanceof Error ? error.message : "Failed to sync orders",
+          );
+        }
       } finally {
         setIsSyncing(false);
         refetch();
