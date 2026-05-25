@@ -6,7 +6,7 @@ interface OrderActionBarProps {
   onPlatformChange: (value: string) => void;
   onDateChange: (dates: [Dayjs | null, Dayjs | null] | null) => void;
   onRefresh: () => void;
-  onExport: () => void;
+  onExport?: () => void;
   loading: boolean;
   autoRefresh: boolean;
   onAutoRefreshChange: (enabled: boolean) => void;

@@ -314,9 +314,7 @@ export async function syncBookingOrders(
   platform?: string,
 ): Promise<void> {
   const normalizedPlatform = (platform || "").toLowerCase();
-  const isSpecificPlatform = ["shopee", "lazada", "tiktok"].includes(
-    normalizedPlatform,
-  );
+  const isSpecificPlatform = normalizedPlatform === "shopee";
   const platformQuery = isSpecificPlatform
     ? `?platforms=${encodeURIComponent(normalizedPlatform)}`
     : "";

@@ -74,7 +74,7 @@ export default function OrdersPage() {
           onPlatformChange={handlers.handlePlatformChange}
           onDateChange={handlers.handleDateChange}
           onRefresh={handlers.handleRefresh}
-          onExport={handlers.handleExport}
+          onExport={state.activeTab !== "booking" ? handlers.handleExport : undefined}
           loading={state.isLoading || state.isSyncing}
           autoRefresh={state.autoRefresh}
           onAutoRefreshChange={setters.setAutoRefresh}
