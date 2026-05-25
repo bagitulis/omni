@@ -73,6 +73,37 @@ func (h *OrderSyncHandler) SyncByCategory(c *gin.Context) {
 		"platforms": platforms,
 	}).Info("Starting order sync by category")
 
+	if category == "booking" {
+		// Route to booking sync
+		bookingService := sync.GetBookingSyncService(tenantID, nil)
+		if bookingService == nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error":   "Failed to create booking sync service",
+			})
+			return
+		}
+		result := bookingService.SyncBookings(c.Request.Context(), days)
+		if !result.Success && len(result.Errors) > 0 {
+			c.JSON(http.StatusOK, gin.H{
+				"success":  false,
+				"code":     "PARTIAL_SYNC_FAILURE",
+				"error":    "One or more booking sync operations failed",
+				"data":     result,
+				"category": category,
+				"days":     days,
+			})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"success":  true,
+			"data":     result,
+			"category": category,
+			"days":     days,
+		})
+		return
+	}
+
 	service, err := sync.GetOrderSyncService(tenantID)
 	if err != nil {
 		orderSyncLogger.WithTenantID(tenantID).Error("Failed to get order sync service: " + err.Error())

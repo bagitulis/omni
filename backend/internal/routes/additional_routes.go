@@ -110,6 +110,8 @@ func RegisterOrderManagerRoutes(router *gin.RouterGroup, handler *handlers.Order
 	orders := router.Group("/orders")
 	orders.Use(middleware.Auth())
 	orders.Use(middleware.Tenant())
+
+	shopeeBookingHandler := handlers.NewShopeeBookingHandler()
 	{
 		// Compatibility alias for clients expecting GET /api/orders
 		orders.GET("", handler.GetUnprocessOrders)
@@ -151,6 +153,11 @@ func RegisterOrderManagerRoutes(router *gin.RouterGroup, handler *handlers.Order
 		orders.POST("/sync-all", handler.SyncAll)
 		orders.POST("/bulk-print-labels", handler.BulkPrintLabels)
 		orders.POST("/bulk-ship", handler.BulkShipOrders)
+
+
+		// Booking orders routes (must be before catch-all)
+		orders.GET("/booking", shopeeBookingHandler.GetBookingOrders)
+		orders.GET("/booking/:booking_sn", shopeeBookingHandler.GetBookingOrderDetail)
 
 		// IMPORTANT: This MUST be last - catch-all pattern for order_sn
 		orders.GET("/:orderSn", handler.GetOrderByOrderSn)
