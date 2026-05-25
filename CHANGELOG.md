@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Report routes**: Restored `backend/internal/routes/report_routes.go` with `RegisterShopeeAnalyticsRoutes` and `RegisterTiktokAnalyticsRoutes` (16 report endpoints, no ads/ML/unified). (report_routes.go)
+
+### Added
 - **Booking Tab**: Added Booking tab as first tab in order manager with dedicated BookingOrdersTable component (Booking SN, Order SN, Booking/Match Status, Recipient, Items, Courier, Created/Updated, Actions). Tab icon uses FileTextOutlined. (OrderStatusTabs.constants.ts, BookingOrdersTable.tsx, OrderStatusTabs.tsx)
 - **useOrders enabled option**: Added `enabled` option to useOrders hook to conditionally skip queries (used for booking tab). (useOrders.ts)
 - **Booking sync error handling**: Booking sync catches partial failure gracefully (console.warn only, no error toast). (useOrderSync.ts)
