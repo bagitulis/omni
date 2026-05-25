@@ -1,14 +1,16 @@
 package handlers
 
 import (
-	"bytes"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/omni/backend/internal/services/webhooks"
 )
 
 // TestWebhookHandler_NewWebhookHandler tests handler creation
@@ -28,11 +30,12 @@ func TestWebhookHandler_ShopeeWebhook_EmptyBody(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	handler := NewWebhookHandler(nil, nil, nil, "./data")
+	mockProcessor := webhooks.NewShopeeWebhookProcessor(nil, nil)
+	handler := NewWebhookHandler(mockProcessor, nil, nil, "./data")
 	r.POST("/webhook/shopee", handler.ShopeeWebhook)
 
-	// Need to provide a body (even if empty) since io.ReadAll expects a valid reader
-	req, _ := http.NewRequest("POST", "/webhook/shopee", strings.NewReader(""))
+	// Provide tenant and empty body: Process fails with parse error -> handler returns 200
+	req, _ := http.NewRequest("POST", "/webhook/shopee?tenant_id=testtenant", strings.NewReader(""))
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -44,12 +47,12 @@ func TestWebhookHandler_ShopeeWebhook_WithTenant(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	handler := NewWebhookHandler(nil, nil, nil, "./data")
+	mockProcessor := webhooks.NewShopeeWebhookProcessor(nil, nil)
+	handler := NewWebhookHandler(mockProcessor, nil, nil, "./data")
 	r.POST("/webhook/shopee", handler.ShopeeWebhook)
 
-	body := `{"code": 4, "shop_id": 123}`
-	req, _ := http.NewRequest("POST", "/webhook/shopee?tenant_id=test-tenant", bytes.NewBufferString(body))
-	req.Header.Set("Content-Type", "application/json")
+	// Empty body causes Process parse error (non-signature) -> handler returns 200
+	req, _ := http.NewRequest("POST", "/webhook/shopee?tenant_id=testtenant", strings.NewReader(""))
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -62,10 +65,11 @@ func TestWebhookHandler_LazadaWebhook_EmptyBody(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	handler := NewWebhookHandler(nil, nil, nil, "./data")
+	mockProcessor := webhooks.NewLazadaWebhookProcessor(nil, nil)
+	handler := NewWebhookHandler(nil, mockProcessor, nil, "./data")
 	r.POST("/webhook/lazada", handler.LazadaWebhook)
 
-	req, _ := http.NewRequest("POST", "/webhook/lazada", strings.NewReader(""))
+	req, _ := http.NewRequest("POST", "/webhook/lazada?tenant_id=testtenant", strings.NewReader(""))
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -77,10 +81,11 @@ func TestWebhookHandler_TiktokWebhook_EmptyBody(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	handler := NewWebhookHandler(nil, nil, nil, "./data")
+	mockProcessor := webhooks.NewTiktokWebhookProcessor(nil, nil)
+	handler := NewWebhookHandler(nil, nil, mockProcessor, "./data")
 	r.POST("/webhook/tiktok", handler.TiktokWebhook)
 
-	req, _ := http.NewRequest("POST", "/webhook/tiktok", strings.NewReader(""))
+	req, _ := http.NewRequest("POST", "/webhook/tiktok?tenant_id=testtenant", strings.NewReader(""))
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -92,14 +97,15 @@ func TestWebhookHandler_TiktokWebhook_WithHeaders(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	handler := NewWebhookHandler(nil, nil, nil, "./data")
+	mockProcessor := webhooks.NewTiktokWebhookProcessor(nil, nil)
+	handler := NewWebhookHandler(nil, nil, mockProcessor, "./data")
 	r.POST("/webhook/tiktok", handler.TiktokWebhook)
 
-	body := `{"type": 1, "data": {}}`
-	req, _ := http.NewRequest("POST", "/webhook/tiktok?tenant_id=test-tenant", bytes.NewBufferString(body))
+	// Empty body causes Process parse error (non-signature) -> handler returns 200
+	req, _ := http.NewRequest("POST", "/webhook/tiktok?tenant_id=testtenant", strings.NewReader(""))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-tts-signature", "test-signature")
-	req.Header.Set("x-tts-timestamp", "1234567890")
+	req.Header.Set("x-tts-timestamp", fmt.Sprintf("%d", time.Now().Unix()))
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 

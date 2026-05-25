@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Booking sync error handling**: Booking sync catches partial failure gracefully (console.warn only, no error toast). (useOrderSync.ts)
 |- **BookingDetailDrawer**: Added BookingDetailDrawer component with collapsible sections (Order Info, Recipient, Items, Courier, Timeline, Amounts, Platform Info, Memo) for viewing booking order details. Includes BookingDetailDrawerSections sub-components for each section. Added unit tests for render states and interaction.
 
+### Fixed
+- **Handler tests**: Fixed 3 pre-existing test failures in `backend/internal/handlers/` — CSRF HttpOnly assertion, inventory platform-status nil DB handling, webhook processor configuration and timestamp validation. (csrf_handler_test.go, inventory_stats_test.go, webhooks_test.go)
+
 ### Changed
 - **OrdersPage**: BookingOrdersTable rendered when active tab is "booking"; OrdersBulkActionsBar hidden for booking tab. (OrdersPage.tsx)
 - **useOrdersLogic**: Added "booking" to ORDER_MANAGER_VISIBLE_TABS; skips useOrders call for booking tab. (useOrdersLogic.ts)

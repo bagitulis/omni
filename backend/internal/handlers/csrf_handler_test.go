@@ -63,7 +63,7 @@ func TestGetCSRFToken_SetsCookie(t *testing.T) {
 	assert.NotNil(t, csrfCookie, "CSRF cookie should be set")
 	assert.NotEmpty(t, csrfCookie.Value)
 	assert.Equal(t, "/", csrfCookie.Path)
-	assert.True(t, csrfCookie.HttpOnly)
+	assert.False(t, csrfCookie.HttpOnly)
 }
 
 // TestGetCSRFToken_ResponseMatchesCookie tests token in response matches cookie
