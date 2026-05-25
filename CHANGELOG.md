@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Shopee report page**: Added missing `toCsvRows` and `isShopeeShippingOrder` helper functions that were omitted during initial page creation. (ShopeeReportPage.tsx)
+
 ### Added
 - **Task 8 — Shared frontend report layer**: Created `frontend/src/types/analytics.ts` (15 interfaces + 2 type aliases matching backend DTOs), `frontend/src/api/analytics.ts` (16 API functions for Shopee/TikTok), `frontend/src/hooks/useAnalytics.ts` (9 TanStack Query hooks with platform dispatch), `frontend/src/lib/analyticsHelpers.ts` (8 utility helpers including CSV export), and 10 shared components under `frontend/src/components/analytics/common/` (StatCard, ReconciliationSummaryCards, ReconciliationTable, ShippingFeeSummaryCards, ShippingFeeTable, SyncProgressCard, ReportSettingsModal, ReportFilters, ReportToolbar, ReportPageHeader). TypeScript and build pass with zero errors. (analytics.ts, index.ts, analytics.ts [api], useAnalytics.ts, analyticsHelpers.ts, 10 components)
 
