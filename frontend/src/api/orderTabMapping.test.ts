@@ -53,3 +53,22 @@ describe("orderTabMapping", () => {
     expect(getOrderEndpointFromTab("UNKNOWN_STATUS")).toBe("/orders/unprocess");
   });
 });
+
+describe("booking tab mapping", () => {
+  it("normalizes 'booking' to special key", () => {
+    expect(normalizeOrderTabKey("booking")).toBe("booking");
+    expect(normalizeOrderTabKey("BOOKING")).toBe("booking");
+  });
+
+  it("maps booking tab to backend endpoint", () => {
+    expect(getOrderEndpointFromTab("booking")).toBe("/orders/booking");
+  });
+
+  it("returns booking sync category", () => {
+    expect(getSyncCategoryFromTab("booking")).toBe("booking");
+  });
+
+  it("flags booking as syncable", () => {
+    expect(isSyncableOrderTab("booking")).toBe(true);
+  });
+});

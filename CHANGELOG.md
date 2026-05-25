@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Shopee Booking sync service**: Added `BookingSyncService` with Shopee manager adapter, booking detail hydration, idempotent repository upsert, item replacement, read/detail orchestration, and partial failure reporting.
 - **Shopee Booking sync tests**: Added unit tests for `rawToBooking` transform and `SyncBookings` partial failure handling with mock manager/repository
 
+- **Shopee Booking frontend API layer**: Created `types/booking.ts` with snake_case interfaces (`Booking`, `BookingItem`, `BookingListResponse`, `BookingDetailResponse`). Added `getBookingOrders`, `getBookingOrderDetail`, `syncBookingOrders` to `api/orders.ts`. Added `"booking"` tab to `orderTabMapping.ts` (endpoint, sync category, syncable flag). Created `bookingTransforms.ts` with pure display formatting functions. Added unit tests for all mapping and transform functions. (frontend/src/types/booking.ts, api/orders.ts, api/orderTabMapping.ts, pages/orders/utils/bookingTransforms.ts, test files)
 - **Shopee Booking handler tests**: Added unit tests for `GetBookingOrders`, `GetBookingOrderDetail`, and `SyncByCategory` booking routing — covers missing tenant, non-Shopee platform rejection, missing booking_sn, and valid request parsing. No DB dependency. (handlers/shopee_booking_handler_test.go)
 ### Fixed
 

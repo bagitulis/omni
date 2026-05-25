@@ -1,5 +1,9 @@
 import apiClient from "./client";
 import type {
+  BookingListResponse,
+  BookingDetailResponse,
+} from "@/types/booking";
+import type {
   OrderListResponse,
   Order,
   BackendOrderResponse,
@@ -263,4 +267,69 @@ export async function getLazadaDocument(
     throw new Error(response.error || "Failed to get Lazada document");
   }
   return response.data;
+}
+
+// --- Booking Operations ---
+
+export interface GetBookingOrdersParams {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  booking_status?: string;
+  match_status?: string;
+  platform?: string;
+}
+
+
+export async function getBookingOrders(
+  params: GetBookingOrdersParams = {},
+): Promise<BookingListResponse> {
+  const response = await apiClient.client.get<
+    BookingListResponse
+  >("/orders/booking", { params });
+  const data = response.data;
+  if (!data.success) {
+    throw new Error(data.error || "Failed to fetch booking orders");
+  }
+  return data;
+}
+
+export async function getBookingOrderDetail(
+  bookingSn: string,
+): Promise<BookingDetailResponse> {
+  const response = await apiClient.client.get<BookingDetailResponse>(
+    `/orders/booking/${bookingSn}`,
+  );
+  const data = response.data;
+  if (!data.success) {
+    throw new Error(
+      data.error || "Failed to fetch booking order detail",
+    );
+  }
+  return data;
+}
+
+export async function syncBookingOrders(
+  days: number = 7,
+  platform?: string,
+): Promise<void> {
+  const normalizedPlatform = (platform || "").toLowerCase();
+  const isSpecificPlatform = ["shopee", "lazada", "tiktok"].includes(
+    normalizedPlatform,
+  );
+  const platformQuery = isSpecificPlatform
+    ? `?platforms=${encodeURIComponent(normalizedPlatform)}`
+    : "";
+
+  const endpoint = `/orders/sync/booking${platformQuery}`;
+  const response = await apiClient.client.post(
+    endpoint,
+    { days },
+    { timeout: 120_000 },
+  );
+  if (!response.data?.success) {
+    throw new Error(
+      response.data?.error || "Failed to sync booking orders",
+    );
+  }
 }

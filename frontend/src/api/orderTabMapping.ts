@@ -6,7 +6,7 @@ export type OrderCategory =
   | "completed"
   | "cancelled";
 
-export type OrderTabKey = OrderCategory | "locked" | "today";
+export type OrderTabKey = OrderCategory | "locked" | "today" | "booking";
 
 const TAB_TO_CATEGORY: Record<string, OrderCategory> = {
   UNPAID: "unpaid",
@@ -34,7 +34,7 @@ const TAB_TO_CATEGORY: Record<string, OrderCategory> = {
 
 const TAB_TO_SPECIAL: Record<
   string,
-  Extract<OrderTabKey, "locked" | "today">
+  Extract<OrderTabKey, "locked" | "today" | "booking">
 > = {
   LOCKED: "locked",
   LOCKED_TODAY: "locked",
@@ -42,6 +42,7 @@ const TAB_TO_SPECIAL: Record<
   TODAY: "today",
   TODAYS_ORDERS: "today",
   TODAYSORDERS: "today",
+  BOOKING: "booking",
 };
 
 const TAB_TO_CATEGORY_COMPACT: Record<string, OrderCategory> =
@@ -54,7 +55,7 @@ const TAB_TO_CATEGORY_COMPACT: Record<string, OrderCategory> =
 
 const TAB_TO_SPECIAL_COMPACT: Record<
   string,
-  Extract<OrderTabKey, "locked" | "today">
+  Extract<OrderTabKey, "locked" | "today" | "booking">
 > = Object.fromEntries(
   Object.entries(TAB_TO_SPECIAL).map(([key, value]) => [
     key.replace(/[^A-Z0-9]/g, ""),
@@ -99,6 +100,8 @@ export function getOrderEndpointFromTab(tabKey: string): string {
       return "/orders/processed";
     case "locked":
       return "/orders/locked-today";
+    case "booking":
+      return "/orders/booking";
     case "today":
       return "/orders/today";
     case "shipped":
@@ -110,10 +113,13 @@ export function getOrderEndpointFromTab(tabKey: string): string {
   }
 }
 
-export function getSyncCategoryFromTab(tabKey: string): OrderCategory | null {
+export function getSyncCategoryFromTab(tabKey: string): OrderCategory | "booking" | null {
   const normalized = normalizeOrderTabKey(tabKey);
   if (normalized === "locked" || normalized === "today") {
     return null;
+  }
+  if (normalized === "booking") {
+    return "booking";
   }
   return normalized;
 }
@@ -122,6 +128,9 @@ export function isSyncableOrderTab(tabKey: string): boolean {
   const category = getSyncCategoryFromTab(tabKey);
   if (!category) {
     return false;
+  }
+  if (category === "booking") {
+    return true;
   }
   return SYNCABLE_CATEGORIES.includes(category);
 }
