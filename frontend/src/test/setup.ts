@@ -29,6 +29,13 @@ const antStaticMessage = {
   destroy: vi.fn(),
 };
 
+const antStaticModal = {
+  confirm: vi.fn(({ onOk }: { onOk?: () => void }) => {
+    if (onOk) onOk();
+  }),
+  destroyAll: vi.fn(),
+};
+
 const antStaticNotification = {
   success: vi.fn(),
   error: vi.fn(),
@@ -37,13 +44,15 @@ const antStaticNotification = {
   destroy: vi.fn(),
 };
 
-// Global mock for the context-aware Ant Design singletons used by hooks/utilities.
 vi.mock("@/components/AntStaticApi", () => ({
   message: {
     ...antStaticMessage,
   },
   notification: {
     ...antStaticNotification,
+  },
+  modal: {
+    ...antStaticModal,
   },
 }));
 

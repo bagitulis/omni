@@ -96,7 +96,7 @@ describe("PlatformStatusCell", () => {
   it("renders span wrappers with correct key pattern", () => {
     const product = makeRow({ id: 42 });
     const { container } = render(<PlatformStatusCell product={product} />);
-    const spans = container.querySelectorAll("span.platform-indicator");
+    const spans = container.querySelectorAll("[data-testid^='indicator-']");
     expect(spans).toHaveLength(3);
   });
 });

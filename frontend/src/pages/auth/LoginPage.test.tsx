@@ -41,6 +41,19 @@ const mockDevLogin = vi.fn();
 vi.mock("@/api/auth", () => ({
   login: (payload: unknown) => mockLogin(payload),
   devLogin: (payload: unknown) => mockDevLogin(payload),
+  getDevInfo: () => ({
+    dev_login_allowed: true,
+    tenant_id: "yumna_bertigamart",
+    user: {
+      id: "dev-user",
+      username: "tester",
+      email: "tester@dev.local",
+      role: "developer",
+    },
+  }),
+}));
+  login: (payload: unknown) => mockLogin(payload),
+  devLogin: (payload: unknown) => mockDevLogin(payload),
 }));
 
 const mockSetAuth = vi.fn();

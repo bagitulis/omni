@@ -23,6 +23,7 @@ function setAuth(user: User | null) {
   useAuthStore.setState({
     user,
     isAuthenticated: Boolean(user),
+    isInitializing: false,
     token: user ? "token" : null,
     accessToken: user ? "token" : null,
     tenantId: null,

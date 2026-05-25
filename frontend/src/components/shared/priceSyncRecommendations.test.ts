@@ -6,13 +6,16 @@ import {
 } from "./priceSyncRecommendations";
 import type { PricePerPlatformConfig } from "./priceSyncColumns";
 import type { UnifiedProductRow } from "@/types/shared";
+import apiClient from "@/api/client";
+
+vi.mock("@/api/client");
 
 describe("priceSyncRecommendations", () => {
   describe("applyPriceRecommendations", () => {
     it("applies recommendations to config with shopee active", () => {
       const config: PricePerPlatformConfig = {
         "SKU-001": {
-          price: 0,
+          prices: { shopee: 0, tiktok: 0, lazada: 0 },
           platforms: { shopee: true, tiktok: false, lazada: false },
         },
       };
@@ -29,14 +32,14 @@ describe("priceSyncRecommendations", () => {
 
       const result = applyPriceRecommendations(config, recommendations);
 
-      expect(result["SKU-001"].price).toBe(15000); // Uses shopee price
+      expect(result["SKU-001"].prices.shopee).toBe(15000); // Uses shopee price
       expect(result).not.toBe(config); // Returns new object (immutable)
     });
 
     it("applies recommendations to config with tiktok active", () => {
       const config: PricePerPlatformConfig = {
         "SKU-002": {
-          price: 0,
+          prices: { shopee: 0, tiktok: 0, lazada: 0 },
           platforms: { shopee: false, tiktok: true, lazada: false },
         },
       };
@@ -53,13 +56,13 @@ describe("priceSyncRecommendations", () => {
 
       const result = applyPriceRecommendations(config, recommendations);
 
-      expect(result["SKU-002"].price).toBe(16000); // Uses tiktok price
+      expect(result["SKU-002"].prices.tiktok).toBe(16000); // Uses tiktok price
     });
 
     it("applies recommendations to config with lazada active", () => {
       const config: PricePerPlatformConfig = {
         "SKU-003": {
-          price: 0,
+          prices: { shopee: 0, tiktok: 0, lazada: 0 },
           platforms: { shopee: false, tiktok: false, lazada: true },
         },
       };
@@ -76,13 +79,13 @@ describe("priceSyncRecommendations", () => {
 
       const result = applyPriceRecommendations(config, recommendations);
 
-      expect(result["SKU-003"].price).toBe(14000); // Uses lazada price
+      expect(result["SKU-003"].prices.lazada).toBe(14000); // Uses lazada price
     });
 
-    it("uses base_price when no platforms are active", () => {
+    it("uses platform-specific recommendation when no active platform", () => {
       const config: PricePerPlatformConfig = {
         "SKU-004": {
-          price: 0,
+          prices: { shopee: 0, tiktok: 0, lazada: 0 },
           platforms: { shopee: false, tiktok: false, lazada: false },
         },
       };
@@ -99,13 +102,13 @@ describe("priceSyncRecommendations", () => {
 
       const result = applyPriceRecommendations(config, recommendations);
 
-      expect(result["SKU-004"].price).toBe(15500); // Uses base_price
+      expect(result["SKU-004"].prices.shopee).toBe(15000); // rec.shopee > 0 wins
     });
 
     it("prioritizes shopee over tiktok when both active", () => {
       const config: PricePerPlatformConfig = {
         "SKU-005": {
-          price: 0,
+          prices: { shopee: 0, tiktok: 0, lazada: 0 },
           platforms: { shopee: true, tiktok: true, lazada: false },
         },
       };
@@ -122,13 +125,13 @@ describe("priceSyncRecommendations", () => {
 
       const result = applyPriceRecommendations(config, recommendations);
 
-      expect(result["SKU-005"].price).toBe(15000); // Shopee takes priority
+      expect(result["SKU-005"].prices.shopee).toBe(15000); // Shopee takes priority
     });
 
     it("keeps existing config when no recommendation exists", () => {
       const config: PricePerPlatformConfig = {
         "SKU-006": {
-          price: 12000,
+          prices: { shopee: 12000, tiktok: 12000, lazada: 12000 },
           platforms: { shopee: true, tiktok: false, lazada: false },
         },
       };
@@ -137,14 +140,14 @@ describe("priceSyncRecommendations", () => {
 
       const result = applyPriceRecommendations(config, recommendations);
 
-      expect(result["SKU-006"].price).toBe(12000); // Unchanged
+      expect(result["SKU-006"].prices.shopee).toBe(12000); // Unchanged
       expect(result["SKU-006"]).toBe(config["SKU-006"]); // Same reference
     });
 
     it("returns new object (immutable)", () => {
       const config: PricePerPlatformConfig = {
         "SKU-007": {
-          price: 0,
+          prices: { shopee: 0, tiktok: 0, lazada: 0 },
           platforms: { shopee: true, tiktok: false, lazada: false },
         },
       };
@@ -168,11 +171,11 @@ describe("priceSyncRecommendations", () => {
     it("handles multiple SKUs correctly", () => {
       const config: PricePerPlatformConfig = {
         "SKU-008": {
-          price: 0,
+          prices: { shopee: 0, tiktok: 0, lazada: 0 },
           platforms: { shopee: true, tiktok: false, lazada: false },
         },
         "SKU-009": {
-          price: 0,
+          prices: { shopee: 0, tiktok: 0, lazada: 0 },
           platforms: { shopee: false, tiktok: true, lazada: false },
         },
       };
@@ -196,29 +199,29 @@ describe("priceSyncRecommendations", () => {
 
       const result = applyPriceRecommendations(config, recommendations);
 
-      expect(result["SKU-008"].price).toBe(10000); // Shopee
-      expect(result["SKU-009"].price).toBe(21000); // TikTok
+      expect(result["SKU-008"].prices.shopee).toBe(10000); // Shopee
+      expect(result["SKU-009"].prices.tiktok).toBe(21000); // TikTok
     });
   });
 
   describe("buildPriceRecommendations", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let fetchSpy: any;
+    let mockGet: any;
 
     beforeEach(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      fetchSpy = vi.spyOn(global, "fetch") as any;
+      mockGet = (apiClient as any).get = vi.fn();
     });
 
     afterEach(() => {
-      fetchSpy.mockRestore();
+      vi.clearAllMocks();
     });
 
     it("returns empty map when no SKUs provided", async () => {
       const result = await buildPriceRecommendations([]);
 
       expect(result).toEqual({});
-      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(mockGet).not.toHaveBeenCalled();
     });
 
     it("fetches recommendations from API and returns correct map", async () => {
@@ -245,35 +248,29 @@ describe("priceSyncRecommendations", () => {
         } as unknown as UnifiedProductRow,
       ];
 
-      const apiResponse = {
-        success: true,
-        data: {
-          "SKU-001": {
-            shopee: 10500,
-            tiktok: 11000,
-            lazada: 10000,
-            base_price: 10500,
-            source: "inventory",
-          },
-          "SKU-002": {
-            shopee: 12500,
-            tiktok: 13000,
-            lazada: 12000,
-            base_price: 12500,
-            source: "inventory",
-          },
-        },
+      const apiData = {
+        "SKU-001": {
+          shopee: 10500,
+          tiktok: 11000,
+          lazada: 10000,
+          base_price: 10500,
+          source: "inventory",
+        } as PriceRecommendation,
+        "SKU-002": {
+          shopee: 12500,
+          tiktok: 13000,
+          lazada: 12000,
+          base_price: 12500,
+          source: "inventory",
+        } as PriceRecommendation,
       };
 
-      fetchSpy.mockResolvedValue({
-        ok: true,
-        json: async () => apiResponse,
-      } as Response);
+      mockGet.mockResolvedValue({ success: true, data: apiData });
 
       const result = await buildPriceRecommendations(products);
 
-      expect(fetchSpy).toHaveBeenCalledWith(
-        "/api/inventory/price-recommendations?skus=SKU-001,SKU-002",
+      expect(mockGet).toHaveBeenCalledWith(
+        "/inventory/price-recommendations?skus=SKU-001,SKU-002",
       );
       expect(result["SKU-001"]).toEqual({
         shopee: 10500,
@@ -308,7 +305,7 @@ describe("priceSyncRecommendations", () => {
         } as unknown as UnifiedProductRow,
       ];
 
-      fetchSpy.mockRejectedValue(new Error("Network error"));
+      mockGet.mockRejectedValue(new Error("Network error"));
 
       const result = await buildPriceRecommendations(products);
 
@@ -338,13 +335,7 @@ describe("priceSyncRecommendations", () => {
         } as unknown as UnifiedProductRow,
       ];
 
-      fetchSpy.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: false,
-          error: "Internal server error",
-        }),
-      } as Response);
+      mockGet.mockResolvedValue({ success: false, error: "Internal server error" });
 
       const result = await buildPriceRecommendations(products);
 
@@ -383,7 +374,7 @@ describe("priceSyncRecommendations", () => {
         base_price: 18000,
         source: "fallback",
       });
-      expect(fetchSpy).not.toHaveBeenCalled(); // No API call for fallback SKUs
+      expect(mockGet).not.toHaveBeenCalled();
     });
 
     it("uses fallback for platform-fallback SKUs (shopee_*)", async () => {
@@ -412,7 +403,7 @@ describe("priceSyncRecommendations", () => {
         base_price: 22000,
         source: "fallback",
       });
-      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(mockGet).not.toHaveBeenCalled();
     });
 
     it("uses fallback for platform-fallback SKUs (lazada_*)", async () => {
@@ -441,7 +432,7 @@ describe("priceSyncRecommendations", () => {
         base_price: 25000,
         source: "fallback",
       });
-      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(mockGet).not.toHaveBeenCalled();
     });
 
     it("mixes API and fallback SKUs correctly", async () => {
@@ -468,28 +459,22 @@ describe("priceSyncRecommendations", () => {
         } as unknown as UnifiedProductRow,
       ];
 
-      const apiResponse = {
-        success: true,
-        data: {
-          "SKU-005": {
-            shopee: 10500,
-            tiktok: 11000,
-            lazada: 10000,
-            base_price: 10500,
-            source: "inventory",
-          },
-        },
+      const apiData = {
+        "SKU-005": {
+          shopee: 10500,
+          tiktok: 11000,
+          lazada: 10000,
+          base_price: 10500,
+          source: "inventory",
+        } as PriceRecommendation,
       };
 
-      fetchSpy.mockResolvedValue({
-        ok: true,
-        json: async () => apiResponse,
-      } as Response);
+      mockGet.mockResolvedValue({ success: true, data: apiData });
 
       const result = await buildPriceRecommendations(products);
 
-      expect(fetchSpy).toHaveBeenCalledWith(
-        "/api/inventory/price-recommendations?skus=SKU-005",
+      expect(mockGet).toHaveBeenCalledWith(
+        "/inventory/price-recommendations?skus=SKU-005",
       );
       expect(result["SKU-005"]).toEqual({
         shopee: 10500,
@@ -531,24 +516,17 @@ describe("priceSyncRecommendations", () => {
         } as unknown as UnifiedProductRow,
       ];
 
-      const apiResponse = {
-        success: true,
-        data: {
-          "SKU-007": {
-            shopee: 31000,
-            tiktok: 32000,
-            lazada: 30000,
-            base_price: 31000,
-            source: "inventory",
-          },
-          // SKU-008 not in response
-        },
+      const apiData = {
+        "SKU-007": {
+          shopee: 31000,
+          tiktok: 32000,
+          lazada: 30000,
+          base_price: 31000,
+          source: "inventory",
+        } as PriceRecommendation,
       };
 
-      fetchSpy.mockResolvedValue({
-        ok: true,
-        json: async () => apiResponse,
-      } as Response);
+      mockGet.mockResolvedValue({ success: true, data: apiData });
 
       const result = await buildPriceRecommendations(products);
 
@@ -585,7 +563,7 @@ describe("priceSyncRecommendations", () => {
         } as unknown as UnifiedProductRow,
       ];
 
-      fetchSpy.mockRejectedValue(new Error("Network error"));
+      mockGet.mockRejectedValue(new Error("Network error"));
 
       const result = await buildPriceRecommendations(products);
 
@@ -615,7 +593,7 @@ describe("priceSyncRecommendations", () => {
         } as unknown as UnifiedProductRow,
       ];
 
-      fetchSpy.mockRejectedValue(new Error("Network error"));
+      mockGet.mockRejectedValue(new Error("Network error"));
 
       const result = await buildPriceRecommendations(products);
 
@@ -645,7 +623,7 @@ describe("priceSyncRecommendations", () => {
         } as unknown as UnifiedProductRow,
       ];
 
-      fetchSpy.mockRejectedValue(new Error("Network error"));
+      mockGet.mockRejectedValue(new Error("Network error"));
 
       const result = await buildPriceRecommendations(products);
 
@@ -659,3 +637,4 @@ describe("priceSyncRecommendations", () => {
     });
   });
 });
+

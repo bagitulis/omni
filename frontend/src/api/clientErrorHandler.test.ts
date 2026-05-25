@@ -11,7 +11,7 @@ const { mockClearAuth, mockMessageError, mockLoggerError, mockLoggerInfo } =
 
 vi.mock("@/stores/authStore", () => ({
   useAuthStore: {
-    getState: () => ({ clearAuth: mockClearAuth }),
+    getState: () => ({ clearAuth: mockClearAuth, refreshAccessToken: vi.fn().mockResolvedValue(false) }),
   },
 }));
 

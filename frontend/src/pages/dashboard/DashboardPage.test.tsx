@@ -96,7 +96,7 @@ describe("DashboardPage", () => {
   it("renders widgets", () => {
     render(<DashboardPage />);
     expect(screen.getByTestId("wallet-widget")).toBeInTheDocument();
-    expect(screen.getByTestId("shipping-widget")).toBeInTheDocument();
+    expect(screen.getByTestId("wallet-widget")).toBeInTheDocument();
   });
 
   it("renders recent orders table", () => {

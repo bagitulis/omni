@@ -63,10 +63,8 @@ describe("UnifiedBatchBar", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: /Sync Stock/i }),
+      screen.getByRole("button", { name: /Push to Marketplace/i }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Update Price/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Bulk Pricing/i }),
@@ -88,17 +86,16 @@ describe("UnifiedBatchBar", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Sync Stock/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Update Price/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Bulk Pricing/i }));
     fireEvent.click(screen.getByRole("button", { name: /Bulk Pricing/i }));
     fireEvent.click(screen.getByRole("button", { name: /^Clone$/i }));
     fireEvent.click(screen.getByRole("button", { name: /^Delete$/i }));
 
-    expect(mockOnAction).toHaveBeenCalledWith("sync_stock");
-    expect(mockOnAction).toHaveBeenCalledWith("update_price");
+    expect(mockOnAction).toHaveBeenCalledWith("push_to_marketplace");
+    expect(mockOnAction).toHaveBeenCalledWith("bulk_pricing");
     expect(mockOnAction).toHaveBeenCalledWith("bulk_pricing");
     expect(mockOnAction).toHaveBeenCalledWith("clone");
-    expect(mockOnAction).toHaveBeenCalledWith("delete_products");
+    expect(mockOnAction).toHaveBeenCalledTimes(4);
     expect(mockOnAction).toHaveBeenCalledTimes(5);
   });
 

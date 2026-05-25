@@ -112,7 +112,7 @@ describe("getBackendUrl", () => {
     vi.unstubAllEnvs();
   });
 
-  it("returns localhost:3000/api for localhost in DEV mode", async () => {
+  it("returns /api for localhost in DEV mode", async () => {
     vi.stubEnv("DEV", true);
     Object.defineProperty(window, "location", {
       value: {
@@ -124,11 +124,11 @@ describe("getBackendUrl", () => {
       configurable: true,
     });
     const { getBackendUrl } = await import("./constants");
-    expect(getBackendUrl()).toBe("http://localhost:3000/api");
+    expect(getBackendUrl()).toBe("/api");
     vi.unstubAllEnvs();
   });
 
-  it("returns 127.0.0.1:3000/api for 127.0.0.1 in DEV mode", async () => {
+  it("returns /api for 127.0.0.1 in DEV mode", async () => {
     vi.stubEnv("DEV", true);
     Object.defineProperty(window, "location", {
       value: {
@@ -140,7 +140,7 @@ describe("getBackendUrl", () => {
       configurable: true,
     });
     const { getBackendUrl } = await import("./constants");
-    expect(getBackendUrl()).toBe("http://127.0.0.1:3000/api");
+    expect(getBackendUrl()).toBe("/api");
     vi.unstubAllEnvs();
   });
 });

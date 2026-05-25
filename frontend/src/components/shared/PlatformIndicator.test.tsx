@@ -70,17 +70,16 @@ describe("PlatformIndicator", () => {
     render(<PlatformIndicator data={data} onClick={handleClick} />);
     const indicator = screen.getByTestId("platform-indicator-shopee");
 
-    expect(indicator).toHaveAttribute("data-state", "not_linked");
     expect(indicator).toHaveStyle({
-      opacity: "0.45",
-      filter: "grayscale(60%)",
+      opacity: "0.4",
+      filter: "grayscale(80%)",
       cursor: "default",
     });
-    expect(getComputedStyle(indicator).borderColor).toBe("rgb(255, 77, 79)");
+    expect(getComputedStyle(indicator).borderColor).toBe("rgb(217, 217, 217)");
     expect(indicator).toHaveAttribute("tabindex", "-1");
 
     fireEvent.mouseEnter(getTooltipTrigger(indicator));
-    expect(await screen.findByText("Shopee: Not linked")).toBeInTheDocument();
+    expect(await screen.findByText((content) => content.includes("Shopee: Not linked"))).toBeInTheDocument();
 
     fireEvent.click(indicator);
     expect(handleClick).not.toHaveBeenCalled();

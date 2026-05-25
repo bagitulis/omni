@@ -1,0 +1,65 @@
+PASS (1808) FAIL (29)
+
+1. handleResponseError - 401 calls handleAuthExpired and rejects with session expired message
+   TypeError: __vite_ssr_import_2__.useAuthStore.getState(...).refreshAccessToken is not a function
+       at Module.handleResponseError (C:\Users\PC\Documents\Project\omni\frontend\src\api\clientErrorHandler.ts:68:10)
+       at C:\Users\PC\Documents\Project\omni\frontend\src\api\clientErrorHandler.test.ts:143:18
+       at file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:146:14
+       at file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:533:11
+       at runWithTimeout (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:39:7)
+       at runTest (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1056:17)
+       at processTicksAndRejections (node:internal/process/task_queues:105:5)
+       at runSuite (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1205:15)
+       at runSuite (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1205:15)
+       at runFiles (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1262:5)
+2. getBackendUrl returns localhost:3000/api for localhost in DEV mode
+   AssertionError: expected '/api' to be 'http://localhost:3000/api' // Object.is equality
+       at C:\Users\PC\Documents\Project\omni\frontend\src\lib\constants.test.ts:127:29
+       at processTicksAndRejections (node:internal/process/task_queues:105:5)
+       at file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:533:5
+       at runTest (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1056:11)
+       at runSuite (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1205:15)
+       at runSuite (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1205:15)
+       at runFiles (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1262:5)
+       at startTests (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1271:3)
+       at file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:126:11
+       at withEnv (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:90:5)
+3. getBackendUrl returns 127.0.0.1:3000/api for 127.0.0.1 in DEV mode
+   AssertionError: expected '/api' to be 'http://127.0.0.1:3000/api' // Object.is equality
+       at C:\Users\PC\Documents\Project\omni\frontend\src\lib\constants.test.ts:143:29
+       at processTicksAndRejections (node:internal/process/task_queues:105:5)
+       at file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:533:5
+       at runTest (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1056:11)
+       at runSuite (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1205:15)
+       at runSuite (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1205:15)
+       at runFiles (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1262:5)
+       at startTests (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1271:3)
+       at file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:126:11
+       at withEnv (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:90:5)
+4. hasPermission admin does not have users.create
+   AssertionError: expected true to be false // Object.is equality
+       at C:\Users\PC\Documents\Project\omni\frontend\src\lib\permissionService.test.ts:66:52
+       at file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:146:14
+       at file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:533:11
+       at runWithTimeout (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:39:7)
+       at runTest (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1056:17)
+       at processTicksAndRejections (node:internal/process/task_queues:105:5)
+       at runSuite (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1205:15)
+       at runSuite (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1205:15)
+       at runFiles (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1262:5)
+       at startTests (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1271:3)
+5. canCreateUser admin cannot create users
+   AssertionError: expected true to be false // Object.is equality
+       at C:\Users\PC\Documents\Project\omni\frontend\src\lib\permissionService.test.ts:128:36
+       at file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:146:14
+       at file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:533:11
+       at runWithTimeout (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:39:7)
+       at runTest (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1056:17)
+       at processTicksAndRejections (node:internal/process/task_queues:105:5)
+       at runSuite (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1205:15)
+       at runSuite (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1205:15)
+       at runFiles (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1262:5)
+       at startTests (file:///C:/Users/PC/Documents/Project/omni/frontend/node_modules/@vitest/runner/dist/index.js:1271:3)
+
+... +24 more failures
+[full output: ~/AppData\Local\rtk\tee\1779703813_vitest_run.log]

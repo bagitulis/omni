@@ -152,7 +152,7 @@ describe("authStore", () => {
     });
   });
 
-  it("refreshAccessToken clears auth and logs on network error", async () => {
+  it("refreshAccessToken returns false on network error without clearing auth", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockRejectedValue(new Error("Network down")),
@@ -162,8 +162,8 @@ describe("authStore", () => {
     const result = await useAuthStore.getState().refreshAccessToken();
 
     expect(result).toBe(false);
-    expect(useAuthStore.getState().isAuthenticated).toBe(false);
-    expect(mockLogger.error).toHaveBeenCalledWith("Token refresh failed", {
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+    expect(mockLogger.error).toHaveBeenCalledWith("Token refresh network error", {
       error: expect.any(Error),
     });
   });

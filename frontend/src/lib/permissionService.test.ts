@@ -62,8 +62,8 @@ describe("hasPermission", () => {
     expect(hasPermission("owner", "tenant.switch")).toBe(false);
   });
 
-  it("admin does not have users.create", () => {
-    expect(hasPermission("admin", "users.create")).toBe(false);
+  it("admin has users.create", () => {
+    expect(hasPermission("admin", "users.create")).toBe(true);
   });
 
   it("user has users.changePassword", () => {
@@ -124,8 +124,8 @@ describe("canCreateUser", () => {
     expect(canCreateUser("owner")).toBe(true);
   });
 
-  it("admin cannot create users", () => {
-    expect(canCreateUser("admin")).toBe(false);
+  it("admin can create users", () => {
+    expect(canCreateUser("admin")).toBe(true);
   });
 
   it("user cannot create users", () => {
@@ -142,8 +142,8 @@ describe("canDeleteUser", () => {
     expect(canDeleteUser("owner")).toBe(true);
   });
 
-  it("admin cannot delete users", () => {
-    expect(canDeleteUser("admin")).toBe(false);
+  it("admin can delete users", () => {
+    expect(canDeleteUser("admin")).toBe(true);
   });
 
   it("user cannot delete users", () => {
