@@ -100,9 +100,7 @@ func (r *GormBookingRepository) ListBookings(ctx context.Context, tenantID strin
 
 	// Pagination defaults
 	page := params.Page
-	if page < 1 {
-		page = 1
-	}
+	page = max(page, 1)
 	pageSize := params.PageSize
 	if pageSize < 1 {
 		pageSize = 20
@@ -139,8 +137,8 @@ func (r *GormBookingRepository) ListBookings(ctx context.Context, tenantID strin
 		Where("tenant_id = ? AND booking_sn IN ?", tenantID, bookingSNs).
 		Group("booking_sn").
 		Find(&itemCounts).Error; err != nil {
-		bookingRepoLogger.WithFields(map[string]interface{}{
-			"tenant_id":    tenantID,
+		bookingRepoLogger.WithFields(map[string]any{
+			"tenant_id":        tenantID,
 			"booking_sn_count": len(bookingSNs),
 		}).Warn("Failed to fetch booking item counts: " + err.Error())
 	}
@@ -195,81 +193,82 @@ func (r *GormBookingRepository) GetBookingDetail(ctx context.Context, tenantID s
 
 func bookingToModel(b Booking) models.ShopeeBooking {
 	return models.ShopeeBooking{
-		BookingSN:           b.BookingSN,
-		OrderSN:             b.OrderSN,
-		BookingStatus:       b.BookingStatus,
-		MatchStatus:         b.MatchStatus,
-		Region:              b.Region,
-		ShippingCarrier:     b.ShippingCarrier,
-		RecipientName:       b.RecipientName,
-		RecipientPhone:      b.RecipientPhone,
+		BookingSN:            b.BookingSN,
+		OrderSN:              b.OrderSN,
+		BookingStatus:        b.BookingStatus,
+		MatchStatus:          b.MatchStatus,
+		Region:               b.Region,
+		ShippingCarrier:      b.ShippingCarrier,
+		RecipientName:        b.RecipientName,
+		RecipientPhone:       b.RecipientPhone,
 		RecipientAddressJSON: b.RecipientAddressJSON,
-		FulfillmentFlag:     b.FulfillmentFlag,
-		CreateTime:          b.CreateTime,
-		UpdateTime:          b.UpdateTime,
-		PickupDoneTime:      b.PickupDoneTime,
-		RawData:             b.RawData,
+		FulfillmentFlag:      b.FulfillmentFlag,
+		CreateTime:           b.CreateTime,
+		UpdateTime:           b.UpdateTime,
+		PickupDoneTime:       b.PickupDoneTime,
+		RawData:              b.RawData,
 	}
 }
 
 func bookingFromModel(m models.ShopeeBooking) Booking {
 	return Booking{
-		ID:                  m.ID,
-		TenantID:            m.TenantID,
-		ShopID:              m.ShopID,
-		BookingSN:           m.BookingSN,
-		OrderSN:             m.OrderSN,
-		BookingStatus:       m.BookingStatus,
-		MatchStatus:         m.MatchStatus,
-		Region:              m.Region,
-		ShippingCarrier:     m.ShippingCarrier,
-		RecipientName:       m.RecipientName,
-		RecipientPhone:      m.RecipientPhone,
+		ID:                   m.ID,
+		TenantID:             m.TenantID,
+		ShopID:               m.ShopID,
+		BookingSN:            m.BookingSN,
+		OrderSN:              m.OrderSN,
+		BookingStatus:        m.BookingStatus,
+		MatchStatus:          m.MatchStatus,
+		Region:               m.Region,
+		ShippingCarrier:      m.ShippingCarrier,
+		RecipientName:        m.RecipientName,
+		RecipientPhone:       m.RecipientPhone,
 		RecipientAddressJSON: m.RecipientAddressJSON,
-		FulfillmentFlag:     m.FulfillmentFlag,
-		CreateTime:          m.CreateTime,
-		UpdateTime:          m.UpdateTime,
-		PickupDoneTime:      m.PickupDoneTime,
-		RawData:             m.RawData,
-		SyncedAt:            m.SyncedAt,
+		FulfillmentFlag:      m.FulfillmentFlag,
+		CreateTime:           m.CreateTime,
+		UpdateTime:           m.UpdateTime,
+		PickupDoneTime:       m.PickupDoneTime,
+		RawData:              m.RawData,
+		SyncedAt:             m.SyncedAt,
 	}
 }
 
 func bookingItemToModel(item BookingItem) models.ShopeeBookingItem {
 	return models.ShopeeBookingItem{
-		ItemID:           item.ItemID,
-		ModelID:          item.ModelID,
-		ItemName:         item.ItemName,
-		ModelName:        item.ModelName,
-		ItemSku:          item.ItemSku,
-		ModelSku:         item.ModelSku,
-		SKU:              item.SKU,
-		Quantity:         item.Quantity,
-		Weight:           item.Weight,
+		LineKey:           item.LineKey,
+		ItemID:            item.ItemID,
+		ModelID:           item.ModelID,
+		ItemName:          item.ItemName,
+		ModelName:         item.ModelName,
+		ItemSku:           item.ItemSku,
+		ModelSku:          item.ModelSku,
+		SKU:               item.SKU,
+		Quantity:          item.Quantity,
+		Weight:            item.Weight,
 		ProductLocationID: item.ProductLocationID,
-		ImageURL:         item.ImageURL,
-		RawData:          item.RawData,
+		ImageURL:          item.ImageURL,
+		RawData:           item.RawData,
 	}
 }
 
 func bookingItemFromModel(m models.ShopeeBookingItem) BookingItem {
 	return BookingItem{
-		ID:               m.ID,
-		TenantID:         m.TenantID,
-		ShopID:           m.ShopID,
-		BookingSN:        m.BookingSN,
-		LineKey:          m.LineKey,
-		ItemID:           m.ItemID,
-		ModelID:          m.ModelID,
-		ItemName:         m.ItemName,
-		ModelName:        m.ModelName,
-		ItemSku:          m.ItemSku,
-		ModelSku:         m.ModelSku,
-		SKU:              m.SKU,
-		Quantity:         m.Quantity,
-		Weight:           m.Weight,
+		ID:                m.ID,
+		TenantID:          m.TenantID,
+		ShopID:            m.ShopID,
+		BookingSN:         m.BookingSN,
+		LineKey:           m.LineKey,
+		ItemID:            m.ItemID,
+		ModelID:           m.ModelID,
+		ItemName:          m.ItemName,
+		ModelName:         m.ModelName,
+		ItemSku:           m.ItemSku,
+		ModelSku:          m.ModelSku,
+		SKU:               m.SKU,
+		Quantity:          m.Quantity,
+		Weight:            m.Weight,
 		ProductLocationID: m.ProductLocationID,
-		ImageURL:         m.ImageURL,
-		RawData:          m.RawData,
+		ImageURL:          m.ImageURL,
+		RawData:           m.RawData,
 	}
 }

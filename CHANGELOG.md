@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Shopee Booking repository**: Created `GormBookingRepository` with UpsertBookings, ReplaceBookingItems, ListBookings, GetBookingDetail. Added ItemCount/HasParentOrder to Booking DTO.
 |- **Shopee Booking client methods**: Created `GetBookingList` and `GetBookingDetails` on `ShopeeAPIClient` in `platform/shopee_client_bookings.go` with token refresh, cursor pagination, and batch detail fetching (max 50).
+- **Shopee Booking sync service**: Added `BookingSyncService` with Shopee manager adapter, booking detail hydration, idempotent repository upsert, item replacement, read/detail orchestration, and partial failure reporting.
+- **Shopee Booking sync tests**: Added unit tests for `rawToBooking` transform and `SyncBookings` partial failure handling with mock manager/repository
 
 ### Fixed
 
