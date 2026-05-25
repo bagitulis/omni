@@ -5,13 +5,13 @@
  * Backend routes: /api/analytics/shopee/* and /api/analytics/tiktok/*
  */
 import apiClient from "./client";
-import {
+import type {
+  ReconciliationResult,
   ReportSettings,
-  SyncStatus,
+  ShopeeShippingFeeResult,
   SyncRequest,
   SyncResult,
-  ReconciliationResult,
-  ShopeeShippingFeeResult,
+  SyncStatus,
   TiktokShippingFeeResult,
 } from "../types/analytics";
 
