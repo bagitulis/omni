@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Task 7A — Escrow sync job handler**: Created `backend/internal/services/jobs/escrow_sync_handler.go` with `EscrowSyncService` interface, `EscrowSyncHandler` struct, `HandleShopeeEscrowSync`/`HandleTiktokEscrowSync` methods (JobHandler-compatible), and DI setters for platform service injection. (escrow_sync_handler.go)
+
+### Added
 - **Report routes**: Restored `backend/internal/routes/report_routes.go` with `RegisterShopeeAnalyticsRoutes` and `RegisterTiktokAnalyticsRoutes` (16 report endpoints, no ads/ML/unified). (report_routes.go)
 - **Analytics DTO types**: Added `backend/internal/dto/analytics_dto.go` with all report DTO types (AnalyticsSettings, SyncStatus, Reconciliation, ShippingFee, SKU groups for Shopee/TikTok). (analytics_dto.go)
 - **Shopee analytics handler**: Created `backend/internal/handlers/shopee_analytics_handler.go` with `ShopeeAnalyticsService` interface, `ShopeeAnalyticsHandler` struct, and 8 handler methods (GetSettings, SaveSettings, GetSyncStatus, SyncEscrow, DeleteSyncData, GetReconciliation, GetShippingFeeAnalysis, RepopulateItems). (shopee_analytics_handler.go)
