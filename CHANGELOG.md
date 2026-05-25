@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Report routes**: Restored `backend/internal/routes/report_routes.go` with `RegisterShopeeAnalyticsRoutes` and `RegisterTiktokAnalyticsRoutes` (16 report endpoints, no ads/ML/unified). (report_routes.go)
+- **Analytics DTO types**: Added `backend/internal/dto/analytics_dto.go` with all report DTO types (AnalyticsSettings, SyncStatus, Reconciliation, ShippingFee, SKU groups for Shopee/TikTok). (analytics_dto.go)
+- **Shopee analytics handler**: Created `backend/internal/handlers/shopee_analytics_handler.go` with `ShopeeAnalyticsService` interface, `ShopeeAnalyticsHandler` struct, and 8 handler methods (GetSettings, SaveSettings, GetSyncStatus, SyncEscrow, DeleteSyncData, GetReconciliation, GetShippingFeeAnalysis, RepopulateItems). (shopee_analytics_handler.go)
+- **TikTok analytics handler**: Created `backend/internal/handlers/tiktok_analytics.go` with `TiktokAnalyticsService` interface, `TiktokAnalyticsHandler` struct, and 8 handler methods using TikTok-specific DTOs. (tiktok_analytics.go)
+- **Handler unit tests**: Added `shopee_analytics_handler_test.go` (14 tests) and `tiktok_analytics_test.go` (11 tests) with manual mock test doubles covering missing tenant (401), valid tenant (200), service errors (500), and invalid body (400). (shopee_analytics_handler_test.go, tiktok_analytics_test.go)
 
 ### Added
 - **Booking Tab**: Added Booking tab as first tab in order manager with dedicated BookingOrdersTable component (Booking SN, Order SN, Booking/Match Status, Recipient, Items, Courier, Created/Updated, Actions). Tab icon uses FileTextOutlined. (OrderStatusTabs.constants.ts, BookingOrdersTable.tsx, OrderStatusTabs.tsx)
