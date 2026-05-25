@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Task 5 — Shopee report services**: Created `backend/internal/services/analytics/` package with `ShopeeAnalyticsService` (8 methods matching handler interface) and `ShopeeEscrowSyncService` (implements `jobs.EscrowSyncService`), plus helpers and 10 service-level tests. (shopee_analytics.go, shopee_escrow_sync.go, helpers.go, shopee_analytics_test.go)
+### Added
 - **Task 7A — Escrow sync job handler**: Created `backend/internal/services/jobs/escrow_sync_handler.go` with `EscrowSyncService` interface, `EscrowSyncHandler` struct, `HandleShopeeEscrowSync`/`HandleTiktokEscrowSync` methods (JobHandler-compatible), and DI setters for platform service injection. (escrow_sync_handler.go)
 
 ### Added
