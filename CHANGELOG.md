@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **useOrdersLogic**: Added "booking" to ORDER_MANAGER_VISIBLE_TABS; skips useOrders call for booking tab. (useOrdersLogic.ts)
 |- **OrdersPage**: Wired BookingDetailDrawer with platform prop; booking table onViewDetail triggers drawer open with selected booking_sn. (OrdersPage.tsx)
 
+### Fixed
+- **BookingDetailDrawer tests**: Fixed text matching assertion — corrected `findAllByText` to `findByText` for unique text queries in BookingDetailDrawer unit tests. (BookingDetailDrawer.test.tsx)
 ### Changed
 - **rules-master maintenance**: Added rules-master-maintenance and sisyphus-e2e-evaluate blocks to prompt_blocks. Removed stale extension-based-testing block. Added to sisyphus + oracle prompt_compose. (rules-master/rules.json, opencode-configs/opencode-profiles.json)
 

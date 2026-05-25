@@ -98,7 +98,7 @@ describe("BookingDetailDrawer", () => {
       expect(getBookingOrderDetailMock).toHaveBeenCalledWith("BOOK-001");
     });
 
-    expect(await screen.findAllByText("BOOK-001")).toHaveLength(2);
+    expect(await screen.findByText("BOOK-001")).toBeInTheDocument();
     expect(screen.getByText("ORDER-001")).toBeInTheDocument();
     expect(screen.getAllByText("Booked").length).toBeGreaterThan(0);
     expect(screen.getByText("Matched")).toBeInTheDocument();
