@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Flex, Card, Tabs, Grid, theme } from "antd";
 import { OrderTable } from "@/components/tables/OrderTable";
 import { OrderHeader } from "@/components/orders/OrderHeader";
@@ -8,10 +9,13 @@ import { OrderPageModals } from "./components/OrderPageModals";
 import { LockedOrdersPanel } from "./components/LockedOrdersPanel";
 import { TodayOrdersTable } from "./components/TodayOrdersTable";
 import { BookingOrdersTable } from "./components/BookingOrdersTable";
+import { BookingDetailDrawer } from "./components/BookingDetailDrawer";
 import { useOrdersLogic } from "./hooks/useOrdersLogic";
 
 export default function OrdersPage() {
   const { state, setters, handlers } = useOrdersLogic();
+  const [selectedBookingSn, setSelectedBookingSn] = useState<string | null>(null);
+  const [isBookingDrawerOpen, setIsBookingDrawerOpen] = useState(false);
   const screens = Grid.useBreakpoint();
   const { token } = theme.useToken();
   const isMobile = !screens.md;
@@ -101,8 +105,8 @@ export default function OrdersPage() {
           <BookingOrdersTable
             platform={state.platform}
             onViewDetail={(booking) => {
-              console.log("View booking detail:", booking.booking_sn);
-              // Will open drawer in Phase 7
+              setSelectedBookingSn(booking.booking_sn);
+              setIsBookingDrawerOpen(true);
             }}
           />
         ) : state.activeTab === "locked" ? (
@@ -164,6 +168,16 @@ export default function OrdersPage() {
             />
           </Card>
         )}
+
+        <BookingDetailDrawer
+          bookingSn={selectedBookingSn}
+          open={isBookingDrawerOpen}
+          onClose={() => {
+            setIsBookingDrawerOpen(false);
+            setSelectedBookingSn(null);
+          }}
+          platform={state.platform}
+        />
 
         {/* Modals */}
         <OrderPageModals

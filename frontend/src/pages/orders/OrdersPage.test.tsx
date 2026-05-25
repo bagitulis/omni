@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import OrdersPage from "./OrdersPage";
@@ -59,6 +59,36 @@ vi.mock("./components/LockedOrdersPanel", () => ({
 
 vi.mock("./components/TodayOrdersTable", () => ({
   TodayOrdersTable: () => <div data-testid="today-orders-table" />,
+}));
+
+vi.mock("./components/BookingOrdersTable", () => ({
+  BookingOrdersTable: ({
+    onViewDetail,
+  }: {
+    onViewDetail: (booking: { booking_sn: string }) => void;
+  }) => (
+    <button
+      data-testid="booking-orders-table"
+      onClick={() => onViewDetail({ booking_sn: "BOOK-001" })}
+      type="button"
+    >
+      Booking Orders Table
+    </button>
+  ),
+}));
+
+vi.mock("./components/BookingDetailDrawer", () => ({
+  BookingDetailDrawer: ({
+    bookingSn,
+    open,
+  }: {
+    bookingSn: string | null;
+    open: boolean;
+  }) => (
+    <div data-testid="booking-detail-drawer">
+      {open ? `Open ${bookingSn}` : "Closed"}
+    </div>
+  ),
 }));
 
 // ---------------------------------------------------------------------------
@@ -184,6 +214,15 @@ describe("OrdersPage", () => {
     expect(screen.getByTestId("today-orders-table")).toBeInTheDocument();
     expect(screen.queryByTestId("order-table")).not.toBeInTheDocument();
     expect(screen.queryByTestId("locked-orders-panel")).not.toBeInTheDocument();
+  });
+
+  it("opens BookingDetailDrawer from booking table detail action", () => {
+    mockActiveTab = "booking";
+    render(<OrdersPage />);
+
+    expect(screen.getByTestId("booking-detail-drawer")).toHaveTextContent("Closed");
+    fireEvent.click(screen.getByTestId("booking-orders-table"));
+    expect(screen.getByTestId("booking-detail-drawer")).toHaveTextContent("Open BOOK-001");
   });
 
   it("renders platform tabs via Ant Design Tabs", () => {
