@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/middleware"
@@ -74,6 +75,14 @@ func (h *OrderSyncHandler) SyncByCategory(c *gin.Context) {
 	}).Info("Starting order sync by category")
 
 	if category == "booking" {
+		if hasNonShopeePlatform(platformsQuery) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "Booking sync is only available for Shopee",
+			})
+			return
+		}
+
 		// Route to booking sync
 		bookingService := sync.GetBookingSyncService(tenantID, nil)
 		if bookingService == nil {
@@ -177,6 +186,19 @@ func (h *OrderSyncHandler) SyncByCategory(c *gin.Context) {
 		"category": category,
 		"days":     days,
 	})
+}
+
+func hasNonShopeePlatform(platforms []string) bool {
+	for _, platform := range platforms {
+		normalizedPlatform := strings.TrimSpace(strings.ToLower(platform))
+		if normalizedPlatform == "" {
+			continue
+		}
+		if normalizedPlatform != "shopee" {
+			return true
+		}
+	}
+	return false
 }
 
 // SyncPlatformOrders syncs orders for a specific platform

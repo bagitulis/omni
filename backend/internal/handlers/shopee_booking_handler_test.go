@@ -158,6 +158,7 @@ func TestOrderSyncHandler_SyncByCategory_BookingRouting(t *testing.T) {
 	tests := []struct {
 		name           string
 		category       string
+		query          string
 		hasTenant      bool
 		expectedStatus int
 		checkResp      func(t *testing.T, resp map[string]interface{})
@@ -184,6 +185,17 @@ func TestOrderSyncHandler_SyncByCategory_BookingRouting(t *testing.T) {
 				assert.Equal(t, "booking", resp["category"])
 			},
 		},
+		{
+			name:           "booking_category_rejects_non_shopee_platform",
+			category:       "booking",
+			query:          "?platforms=lazada",
+			hasTenant:      true,
+			expectedStatus: http.StatusBadRequest,
+			checkResp: func(t *testing.T, resp map[string]interface{}) {
+				assert.Equal(t, false, resp["success"])
+				assert.Equal(t, "Booking sync is only available for Shopee", resp["error"])
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -199,7 +211,7 @@ func TestOrderSyncHandler_SyncByCategory_BookingRouting(t *testing.T) {
 			})
 			r.POST("/api/orders/sync/:category", handler.SyncByCategory)
 
-			path := "/api/orders/sync/" + tt.category
+			path := "/api/orders/sync/" + tt.category + tt.query
 			req, _ := http.NewRequest("POST", path, nil)
 			w := httptest.NewRecorder()
 			r.ServeHTTP(w, req)

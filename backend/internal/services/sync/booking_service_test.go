@@ -38,6 +38,7 @@ type mockBookingRepository struct {
 	replacedItems map[string][]BookingItem
 	upsertErr     error
 	replaceErr    map[string]error
+	parentOrders  map[string]bool
 }
 
 func (r *mockBookingRepository) UpsertBookings(_ context.Context, _ string, _ uint64, bookings []Booking) error {
@@ -53,6 +54,18 @@ func (r *mockBookingRepository) ReplaceBookingItems(_ context.Context, _ string,
 	return nil
 }
 
+func (r *mockBookingRepository) UpsertBookingWithItems(_ context.Context, _ string, _ uint64, booking Booking, items []BookingItem) error {
+	if r.upsertErr != nil {
+		return r.upsertErr
+	}
+	if err := r.replaceErr[booking.BookingSN]; err != nil {
+		return err
+	}
+	r.upserted = append(r.upserted, booking)
+	r.replacedItems[booking.BookingSN] = items
+	return nil
+}
+
 func (r *mockBookingRepository) ListBookings(context.Context, string, BookingListParams) ([]Booking, int64, error) {
 	return r.upserted, int64(len(r.upserted)), nil
 }
@@ -64,6 +77,10 @@ func (r *mockBookingRepository) GetBookingDetail(_ context.Context, _ string, _ 
 		}
 	}
 	return nil, nil
+}
+
+func (r *mockBookingRepository) ParentOrderExists(_ context.Context, _ string, orderSN string) (bool, error) {
+	return r.parentOrders[orderSN], nil
 }
 
 func TestRawToBookingParsesBookingAndItems(t *testing.T) {
@@ -124,6 +141,34 @@ func TestSyncBookingsPersistsSuccessesAndReportsItemFailures(t *testing.T) {
 	require.Equal(t, 1, result.Count)
 	require.Equal(t, 1, result.FailedCount)
 	require.Len(t, result.Errors, 1)
-	require.Len(t, repo.upserted, 2)
+	require.Len(t, repo.upserted, 1)
 	require.Len(t, repo.replacedItems["BSN-1"], 1)
+}
+
+func TestGetBookingDetailAddsParentOrderStatus(t *testing.T) {
+	repo := &mockBookingRepository{
+		upserted:     []Booking{{BookingSN: "BSN-1", OrderSN: "OSN-1", Items: []BookingItem{{LineKey: "1|0||||"}}}},
+		parentOrders: map[string]bool{"OSN-1": true},
+	}
+	service := &BookingSyncService{repository: repo, tenantID: "tenant_test", shopID: 123}
+
+	booking, items, err := service.GetBookingDetail(context.Background(), "BSN-1")
+
+	require.NoError(t, err)
+	require.NotNil(t, booking)
+	require.True(t, booking.ParentOrderExists)
+	require.Equal(t, "synced", booking.ParentOrderStatus)
+	require.Len(t, items, 1)
+}
+
+func TestGetBookingDetailNoParentOrderStatus(t *testing.T) {
+	repo := &mockBookingRepository{upserted: []Booking{{BookingSN: "BSN-1"}}}
+	service := &BookingSyncService{repository: repo, tenantID: "tenant_test", shopID: 123}
+
+	booking, _, err := service.GetBookingDetail(context.Background(), "BSN-1")
+
+	require.NoError(t, err)
+	require.NotNil(t, booking)
+	require.False(t, booking.ParentOrderExists)
+	require.Equal(t, "no_parent", booking.ParentOrderStatus)
 }

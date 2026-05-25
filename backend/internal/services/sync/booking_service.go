@@ -117,7 +117,6 @@ func (s *BookingSyncService) SyncBookings(ctx context.Context, days int) *Bookin
 	}
 
 	bookingSNs := collectBookingSNs(list)
-	bookingItems := make(map[string][]BookingItem)
 	bookings := make([]Booking, 0, len(bookingSNs))
 	for i := 0; i < len(bookingSNs); i += bookingSyncBatchSize {
 		end := i + bookingSyncBatchSize
@@ -138,25 +137,15 @@ func (s *BookingSyncService) SyncBookings(ctx context.Context, days int) *Bookin
 			booking.TenantID = s.tenantID
 			booking.ShopID = s.shopID
 			booking.SyncedAt = time.Now()
-			bookingItems[booking.BookingSN] = booking.Items
-			booking.Items = nil
 			bookings = append(bookings, booking)
 		}
 	}
 
-	if len(bookings) > 0 {
-		if err := s.repository.UpsertBookings(ctx, s.tenantID, s.shopID, bookings); err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("booking upsert failed: %s", err.Error()))
-			result.FailedCount += len(bookings)
-			result.Success = false
-			return result
-		}
-	}
-
 	for _, booking := range bookings {
-		items := bookingItems[booking.BookingSN]
-		if err := s.repository.ReplaceBookingItems(ctx, s.tenantID, s.shopID, booking.BookingSN, items); err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("replace items for %s failed: %s", booking.BookingSN, err.Error()))
+		items := booking.Items
+		booking.Items = nil
+		if err := s.repository.UpsertBookingWithItems(ctx, s.tenantID, s.shopID, booking, items); err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("persist booking %s failed: %s", booking.BookingSN, err.Error()))
 			result.FailedCount++
 			continue
 		}
@@ -183,7 +172,27 @@ func (s *BookingSyncService) GetBookingDetail(ctx context.Context, bookingSN str
 	if err != nil || booking == nil {
 		return nil, nil, err
 	}
+	parentOrderExists, parentOrderStatus, err := s.resolveParentOrderStatus(ctx, booking.OrderSN)
+	if err != nil {
+		return nil, nil, err
+	}
+	booking.ParentOrderExists = parentOrderExists
+	booking.ParentOrderStatus = parentOrderStatus
 	return booking, booking.Items, nil
+}
+
+func (s *BookingSyncService) resolveParentOrderStatus(ctx context.Context, orderSN string) (bool, string, error) {
+	if orderSN == "" {
+		return false, "no_parent", nil
+	}
+	exists, err := s.repository.ParentOrderExists(ctx, s.tenantID, orderSN)
+	if err != nil {
+		return false, "", fmt.Errorf("resolve parent order status: %w", err)
+	}
+	if exists {
+		return true, "synced", nil
+	}
+	return false, "not_synced", nil
 }
 
 func rawToBooking(raw map[string]any) (Booking, []BookingItem, error) {

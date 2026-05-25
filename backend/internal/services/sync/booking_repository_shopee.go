@@ -44,6 +44,41 @@ func (r *GormBookingRepository) UpsertBookings(ctx context.Context, tenantID str
 	return nil
 }
 
+// UpsertBookingWithItems persists one booking and replaces its items atomically.
+func (r *GormBookingRepository) UpsertBookingWithItems(ctx context.Context, tenantID string, shopID uint64, booking Booking, items []BookingItem) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		model := bookingToModel(booking)
+		model.TenantID = tenantID
+		model.ShopID = shopID
+
+		if err := tx.
+			Where("tenant_id = ? AND shop_id = ? AND booking_sn = ?", tenantID, shopID, booking.BookingSN).
+			Assign(model).
+			FirstOrCreate(&model).Error; err != nil {
+			return fmt.Errorf("upsert booking with items - upsert booking: %w", err)
+		}
+
+		if err := tx.
+			Where("tenant_id = ? AND shop_id = ? AND booking_sn = ?", tenantID, shopID, booking.BookingSN).
+			Delete(&models.ShopeeBookingItem{}).Error; err != nil {
+			return fmt.Errorf("upsert booking with items - delete items: %w", err)
+		}
+
+		for _, item := range items {
+			model := bookingItemToModel(item)
+			model.TenantID = tenantID
+			model.ShopID = shopID
+			model.BookingSN = booking.BookingSN
+
+			if err := tx.Create(&model).Error; err != nil {
+				return fmt.Errorf("upsert booking with items - insert item: %w", err)
+			}
+		}
+
+		return nil
+	})
+}
+
 // ReplaceBookingItems replaces all items for a booking in a single transaction.
 // Deletes existing items then inserts the new set.
 func (r *GormBookingRepository) ReplaceBookingItems(ctx context.Context, tenantID string, shopID uint64, bookingSN string, items []BookingItem) error {
@@ -187,6 +222,17 @@ func (r *GormBookingRepository) GetBookingDetail(ctx context.Context, tenantID s
 	}
 
 	return &result, nil
+}
+
+func (r *GormBookingRepository) ParentOrderExists(ctx context.Context, tenantID string, orderSN string) (bool, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).
+		Model(&models.ShopeeOrder{}).
+		Where("tenant_id = ? AND order_sn = ?", tenantID, orderSN).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("parent order exists: %w", err)
+	}
+	return count > 0, nil
 }
 
 // --- Model <-> DTO transform helpers ---

@@ -117,11 +117,14 @@ func (h *ShopeeBookingHandler) GetBookingOrders(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"success":   true,
-		"data":      bookings,
-		"count":     total,
-		"page":      page,
-		"page_size": pageSize,
+		"success": true,
+		"data":    bookings,
+		"count":   total,
+		"pagination": gin.H{
+			"page":      page,
+			"page_size": pageSize,
+			"total":     total,
+		},
 	})
 }
 
@@ -175,6 +178,10 @@ func (h *ShopeeBookingHandler) GetBookingOrderDetail(c *gin.Context) {
 		"data": gin.H{
 			"booking": booking,
 			"items":   items,
+			"parent_order": gin.H{
+				"exists": booking.ParentOrderExists,
+				"status": booking.ParentOrderStatus,
+			},
 		},
 	})
 }

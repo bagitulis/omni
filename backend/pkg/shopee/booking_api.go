@@ -89,16 +89,17 @@ type RecipientAddress struct {
 
 // BookingItemDetail represents an item in a booking
 type BookingItemDetail struct {
-	ItemName          string    `json:"item_name"`
-	ItemSku           string    `json:"item_sku"`
-	ModelName         string    `json:"model_name"`
-	ModelSku          string    `json:"model_sku"`
-	ModelQuantity     int       `json:"model_quantity_purchased"`
-	Weight            float64   `json:"weight"`
-	ProductLocationId string    `json:"product_location_id"`
+	ItemID            int64         `json:"item_id"`
+	ModelID           int64         `json:"model_id"`
+	ItemName          string        `json:"item_name"`
+	ItemSku           string        `json:"item_sku"`
+	ModelName         string        `json:"model_name"`
+	ModelSku          string        `json:"model_sku"`
+	ModelQuantity     int           `json:"model_quantity_purchased"`
+	Weight            float64       `json:"weight"`
+	ProductLocationId string        `json:"product_location_id"`
 	ImageInfo         ItemImageInfo `json:"image_info"`
 }
-
 
 // GetBookingList gets list of bookings with pagination support
 func (c *Client) GetBookingList(ctx context.Context, req *GetBookingListRequest) (*GetBookingListResponse, error) {

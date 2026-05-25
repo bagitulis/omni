@@ -147,10 +147,13 @@ func (c *ShopeeAPIClient) GetBookingDetails(ctx context.Context, bookingSNs []st
 			items := make([]interface{}, 0, len(booking.ItemList))
 			for _, item := range booking.ItemList {
 				items = append(items, map[string]interface{}{
+					"item_id":             item.ItemID,
+					"model_id":            item.ModelID,
 					"item_name":           item.ItemName,
 					"model_name":          item.ModelName,
 					"item_sku":            item.ItemSku,
 					"model_sku":           item.ModelSku,
+					"quantity":            item.ModelQuantity,
 					"weight":              item.Weight,
 					"product_location_id": item.ProductLocationId,
 					"image_info": map[string]interface{}{
