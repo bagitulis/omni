@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Shopee Booking models**: Registered `ShopeeBooking` and `ShopeeBookingItem` in tenant migration for GORM AutoMigrate
 
 - **Shopee Booking repository**: Created `GormBookingRepository` with UpsertBookings, ReplaceBookingItems, ListBookings, GetBookingDetail. Added ItemCount/HasParentOrder to Booking DTO.
+|- **Shopee Booking client methods**: Created `GetBookingList` and `GetBookingDetails` on `ShopeeAPIClient` in `platform/shopee_client_bookings.go` with token refresh, cursor pagination, and batch detail fetching (max 50).
 
 ### Fixed
 
