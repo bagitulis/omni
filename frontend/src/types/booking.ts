@@ -24,8 +24,8 @@ export interface Booking {
 
 export interface BookingItem {
   booking_sn: string;
-  item_id: string;
-  model_id: string;
+  item_id: number;
+  model_id: number;
   item_name: string;
   model_name: string;
   item_sku: string;
@@ -39,9 +39,12 @@ export interface BookingItem {
 export interface BookingListResponse {
   success: boolean;
   data: Booking[];
-  count: number;
-  page: number;
-  page_size: number;
+  count?: number;
+  pagination?: {
+    page: number;
+    page_size: number;
+    total: number;
+  };
   error?: string;
 }
 
@@ -50,6 +53,10 @@ export interface BookingDetailResponse {
   data: {
     booking: Booking;
     items: BookingItem[];
+    parent_order?: {
+      exists: boolean;
+      status: string;
+    };
   };
   error?: string;
 }

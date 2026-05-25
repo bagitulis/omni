@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 |- **OrdersPage**: Wired BookingDetailDrawer with platform prop; booking table onViewDetail triggers drawer open with selected booking_sn. (OrdersPage.tsx)
 
 ### Fixed
+- **Shopee Booking Orders frontend audit**: Replaced parent order console stubs with order detail navigation, improved booking loading/empty/error copy with retry actions, supported pagination totals, added external refresh trigger, and aligned booking item ID types with backend responses. (BookingOrdersTable.tsx, BookingDetailDrawerSections.tsx, booking.ts)
 - **Shopee Booking Orders backend audit**: Rejected non-Shopee booking sync platforms, added list pagination metadata, exposed parent_order detail metadata, made booking+items persistence transactional per booking, and preserved item_id/model_id/quantity in Shopee booking item mapping. (backend booking handlers/services/platform SDK)
 - **BookingDetailDrawer tests**: Fixed text matching assertion — corrected `findAllByText` to `findByText` for unique text queries in BookingDetailDrawer unit tests. (BookingDetailDrawer.test.tsx)
 ### Changed

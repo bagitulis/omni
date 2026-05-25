@@ -1,5 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BookingDetailDrawer } from "./BookingDetailDrawer";
 import { getBookingOrderDetail } from "@/api/orders";
@@ -60,8 +60,8 @@ function makeBooking(overrides: Partial<Booking> = {}): Booking {
 function makeItem(overrides: Partial<BookingItem> = {}): BookingItem {
   return {
     booking_sn: "BOOK-001",
-    item_id: "ITEM-001",
-    model_id: "MODEL-001",
+    item_id: 1001,
+    model_id: 2001,
     item_name: "Test Widget",
     model_name: "Blue",
     item_sku: "ITEM-SKU-001",

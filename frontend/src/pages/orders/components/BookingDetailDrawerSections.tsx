@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { Button, Descriptions, Empty, Image, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { Booking, BookingItem } from "@/types/booking";
@@ -55,7 +56,7 @@ export function ParentOrderLink({ booking }: { booking: Booking }) {
         type="link"
         size="small"
         style={{ padding: 0, fontSize: 12 }}
-        onClick={() => console.log("View parent order:", booking.order_sn)}
+        onClick={() => window.open(`/orders/${booking.order_sn}`, "_blank")}
       >
         View Order
       </Button>

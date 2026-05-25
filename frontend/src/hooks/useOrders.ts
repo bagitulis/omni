@@ -13,6 +13,7 @@ import { message } from "@/components/AntStaticApi";
 interface UseOrdersOptions {
   autoRefresh?: boolean;
   refetchInterval?: number; // in milliseconds
+  enabled?: boolean;
 }
 
 const DEFAULT_REFETCH_INTERVAL = 30000; // 30 seconds

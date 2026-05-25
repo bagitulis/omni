@@ -1,23 +1,36 @@
-import { useState, useEffect, useCallback } from "react";
-import { Card, Table, Tag, Typography, Flex, Spin, Empty, Button, theme } from "antd";
+import { useCallback, useEffect, useState } from "react";
+import {
+  Alert,
+  Button,
+  Card,
+  Empty,
+  Flex,
+  Spin,
+  Table,
+  Tag,
+  Typography,
+  theme,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { getBookingOrders } from "@/api/orders";
 import type { Booking } from "@/types/booking";
 import {
   formatBookingStatus,
-  formatMatchStatus,
   formatBookingTime,
+  formatMatchStatus,
   getBookingStatusColor,
 } from "../utils/bookingTransforms";
 
 interface BookingOrdersTableProps {
   platform: string;
   onViewDetail: (booking: Booking) => void;
+  refreshTrigger?: number;
 }
 
 export function BookingOrdersTable({
   platform,
   onViewDetail,
+  refreshTrigger = 0,
 }: BookingOrdersTableProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +58,7 @@ export function BookingOrdersTable({
         platform: platform === "all" ? undefined : platform,
       });
       setBookings(response.data || []);
-      setTotal(response.count || 0);
+      setTotal(response.pagination?.total ?? response.count ?? 0);
     } catch (err) {
       console.warn("Failed to fetch booking orders:", err);
       setError(err instanceof Error ? err.message : "Failed to load booking orders");
@@ -56,8 +69,10 @@ export function BookingOrdersTable({
   }, [page, pageSize, platform]);
 
   useEffect(() => {
-    void fetchBookings();
-  }, [fetchBookings]);
+    if (refreshTrigger >= 0) {
+      void fetchBookings();
+    }
+  }, [fetchBookings, refreshTrigger]);
 
   // Check if platform should show unavailable message
   const isPlatformUnavailable =
@@ -101,10 +116,7 @@ export function BookingOrdersTable({
               type="link"
               size="small"
               style={{ padding: 0, fontSize: 12, fontFamily: "monospace" }}
-              onClick={() => {
-                // TODO: navigate to order detail
-                console.log("View parent order:", record.order_sn);
-              }}
+              onClick={() => window.open(`/orders/${record.order_sn}`, "_blank")}
             >
               {record.order_sn}
             </Button>
@@ -158,9 +170,9 @@ export function BookingOrdersTable({
       key: "items",
       width: 120,
       render: (_: unknown, record: Booking) => (
-        <span style={{ fontSize: 12 }}>
+        <Typography.Text style={{ fontSize: 12 }} ellipsis>
           {record.item_count} items
-        </span>
+        </Typography.Text>
       ),
     },
     {
@@ -215,7 +227,7 @@ export function BookingOrdersTable({
     return (
       <Card style={{ borderRadius: 3, boxShadow: token.boxShadow }}>
         <Flex justify="center" align="center" style={{ padding: 48 }}>
-          <Spin />
+          <Spin tip="Loading booking orders..." />
         </Flex>
       </Card>
     );
@@ -224,7 +236,13 @@ export function BookingOrdersTable({
   if (error) {
     return (
       <Card style={{ borderRadius: 3, boxShadow: token.boxShadow }}>
-        <Empty description={error} />
+        <Alert
+          type="error"
+          message="Unable to sync booking orders"
+          description={error}
+          showIcon
+          action={<Button size="small" onClick={fetchBookings}>Retry</Button>}
+        />
       </Card>
     );
   }
@@ -232,7 +250,9 @@ export function BookingOrdersTable({
   if (bookings.length === 0) {
     return (
       <Card style={{ borderRadius: 3, boxShadow: token.boxShadow }}>
-        <Empty description="No booking orders found" />
+        <Empty description="No booking orders found. Click Refresh to sync latest Shopee bookings.">
+          <Button type="primary" onClick={fetchBookings}>Refresh</Button>
+        </Empty>
       </Card>
     );
   }
