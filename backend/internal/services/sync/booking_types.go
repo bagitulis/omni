@@ -33,6 +33,8 @@ type Booking struct {
 	PickupDoneTime      int64         `json:"pickup_done_time"`
 	RawData             string        `json:"-"`
 	SyncedAt            time.Time     `json:"synced_at"`
+	ItemCount       int           `json:"item_count,omitempty"`
+	HasParentOrder  bool          `json:"has_parent_order"`
 	Items               []BookingItem `json:"items,omitempty" gorm:"-"`
 }
 
