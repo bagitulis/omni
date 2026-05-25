@@ -273,6 +273,10 @@ func main() {
 	// Webhook Extended routes (tenant-specific webhooks, test, config)
 	routes.RegisterWebhookExtendedRoutes(api, application.ShopeeProcessor, application.LazadaProcessor, application.TiktokProcessor, cfg.DatabasePath)
 
+	// ====== Shopee/TikTok Analytics Report Routes ======
+	routes.RegisterShopeeAnalyticsRoutes(api, application.ShopeeAnalyticsHandler)
+	routes.RegisterTiktokAnalyticsRoutes(api, application.TiktokAnalyticsHandler)
+
 	port := cfg.Port
 	if port == "" {
 		port = "8080"

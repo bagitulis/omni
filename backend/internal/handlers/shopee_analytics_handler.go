@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto"
 	"github.com/omni/backend/internal/middleware"
+	"github.com/omni/backend/internal/services/analytics"
 	"gorm.io/gorm"
 )
 
@@ -47,9 +49,17 @@ func (h *ShopeeAnalyticsHandler) getService(c *gin.Context) (ShopeeAnalyticsServ
 	if h.svc != nil {
 		return h.svc, true
 	}
-	// Tasks 5/6 will wire concrete service implementation via the svc field.
-	c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Service not initialized"})
-	return nil, false
+	// Create real service from systemDB when available
+	if h.systemDB == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Service not initialized"})
+		return nil, false
+	}
+	tenantDB, err := config.GetTenantDBByID(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Failed to get tenant database: " + err.Error()})
+		return nil, false
+	}
+	return analytics.NewShopeeAnalyticsService(h.systemDB, tenantDB, tenantID), true
 }
 
 // GetSettings returns analytics settings for the current tenant.

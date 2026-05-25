@@ -72,6 +72,9 @@ type App struct {
 	AnalyticsHandler    *handlers.AnalyticsHandler
 	WebhookHandler      *handlers.WebhookHandler
 	PlatformAuthHandler *handlers.PlatformAuthHandler
+	// Analytics Report Handlers (per-platform, initialized in initHandlers)
+	ShopeeAnalyticsHandler  *handlers.ShopeeAnalyticsHandler
+	TiktokAnalyticsHandler  *handlers.TiktokAnalyticsHandler
 }
 
 // New creates and initializes the application
@@ -280,6 +283,8 @@ func (a *App) initHandlers() {
 		a.BasePath,
 	)
 
+	a.ShopeeAnalyticsHandler = handlers.NewShopeeAnalyticsHandler(a.SystemDB)
+	a.TiktokAnalyticsHandler = handlers.NewTiktokAnalyticsHandler(a.SystemDB)
 }
 
 // Close closes all database connections

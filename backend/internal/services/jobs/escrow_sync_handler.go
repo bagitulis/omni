@@ -16,12 +16,17 @@ type EscrowSyncService interface {
 	SyncMonthWithProgress(ctx context.Context, month, year int, forceResync bool, onProgress func(processed, total int, message string)) error
 }
 
+// EscrowSyncServiceFactory creates an EscrowSyncService for a given tenant context.
+type EscrowSyncServiceFactory func(systemDB, tenantDB *gorm.DB, tenantID string) EscrowSyncService
+
 // EscrowSyncHandler handles escrow sync jobs for Shopee and TikTok.
 // It uses EscrowSyncService interface to remain platform-agnostic.
 type EscrowSyncHandler struct {
-	systemDB          *gorm.DB
-	shopeeSyncService EscrowSyncService
-	tiktokSyncService EscrowSyncService
+	systemDB           *gorm.DB
+	shopeeSyncService  EscrowSyncService
+	tiktokSyncService  EscrowSyncService
+	shopeeSyncFactory  EscrowSyncServiceFactory
+	tiktokSyncFactory  EscrowSyncServiceFactory
 }
 
 // NewEscrowSyncHandler creates a new EscrowSyncHandler.
@@ -39,6 +44,18 @@ func (h *EscrowSyncHandler) SetShopeeSyncService(svc EscrowSyncService) {
 // SetTiktokSyncService injects the TikTok escrow sync service.
 func (h *EscrowSyncHandler) SetTiktokSyncService(svc EscrowSyncService) {
 	h.tiktokSyncService = svc
+}
+
+// SetShopeeSyncServiceFactory sets a factory function that creates Shopee escrow sync services.
+// Used when the service cannot be pre-created because tenantDB is per-request.
+func (h *EscrowSyncHandler) SetShopeeSyncServiceFactory(factory EscrowSyncServiceFactory) {
+	h.shopeeSyncFactory = factory
+}
+
+// SetTiktokSyncServiceFactory sets a factory function that creates TikTok escrow sync services.
+// Used when the service cannot be pre-created because tenantDB is per-request.
+func (h *EscrowSyncHandler) SetTiktokSyncServiceFactory(factory EscrowSyncServiceFactory) {
+	h.tiktokSyncFactory = factory
 }
 
 // HandleShopeeEscrowSync processes a Shopee escrow sync job.
@@ -64,13 +81,30 @@ func (h *EscrowSyncHandler) handleEscrowSync(ctx context.Context, payload, platf
 		return "", fmt.Errorf("missing tenant_id in job data")
 	}
 
-	if svc == nil {
-		return "", fmt.Errorf("%s escrow sync service not initialized", platform)
-	}
+	// svc may be nil when not pre-injected — try factory functions instead
+// The factory uses per-request tenantDB which is obtained below
 
 	tenantDB, err := config.GetTenantDBByID(data.TenantID)
 	if err != nil {
 		return "", fmt.Errorf("failed to get tenant database: %w", err)
+	}
+
+	// If service was not pre-injected, try factory functions
+	// Factory creates the service with per-request tenantDB
+	if svc == nil {
+		switch platform {
+		case "Shopee":
+			if h.shopeeSyncFactory != nil {
+				svc = h.shopeeSyncFactory(h.systemDB, tenantDB, data.TenantID)
+			}
+		case "TikTok":
+			if h.tiktokSyncFactory != nil {
+				svc = h.tiktokSyncFactory(h.systemDB, tenantDB, data.TenantID)
+			}
+		}
+	}
+	if svc == nil {
+		return "", fmt.Errorf("%s escrow sync service not initialized", platform)
 	}
 
 	qm := NewQueueManager(tenantDB, data.TenantID)

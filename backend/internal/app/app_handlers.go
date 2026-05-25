@@ -7,11 +7,13 @@ import (
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/handlers"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/autofunction"
 	"github.com/omni/backend/internal/services/google"
 	"github.com/omni/backend/internal/services/jobs"
 	shopeeService "github.com/omni/backend/internal/services/shopee"
 	shopeePkg "github.com/omni/backend/pkg/shopee"
+	"github.com/omni/backend/internal/services/analytics"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
@@ -174,6 +176,18 @@ func registerDefaultAutoFunctionHandlers(executor *autofunction.Executor) {
 // for processing long-running background jobs
 func startBackgroundJobExecutor(ctx context.Context, systemDB *gorm.DB, basePath string) *jobs.MultiTenantExecutor {
 	jobExecutor := jobs.NewMultiTenantExecutor(ctx, systemDB, basePath)
+
+	// Register escrow sync handlers
+	// EscrowSyncHandler uses factory functions because tenantDB is per-request
+	escrowHandler := jobs.NewEscrowSyncHandler(systemDB)
+	escrowHandler.SetShopeeSyncServiceFactory(func(systemDB, tenantDB *gorm.DB, tenantID string) jobs.EscrowSyncService {
+		return analytics.NewShopeeEscrowSyncService(systemDB, tenantDB, tenantID)
+	})
+	escrowHandler.SetTiktokSyncServiceFactory(func(systemDB, tenantDB *gorm.DB, tenantID string) jobs.EscrowSyncService {
+		return analytics.NewTiktokEscrowSyncService(systemDB, tenantDB, tenantID)
+	})
+	jobExecutor.RegisterHandler(models.JobTypeShopeeEscrowSync, escrowHandler.HandleShopeeEscrowSync)
+	jobExecutor.RegisterHandler(models.JobTypeTiktokEscrowSync, escrowHandler.HandleTiktokEscrowSync)
 
 	// Start the executor
 	jobExecutor.Start()
