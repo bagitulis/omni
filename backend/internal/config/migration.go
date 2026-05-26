@@ -178,6 +178,12 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		// Notifications (Facebook-style persistent)
 		&models.Notification{},
 		&models.NotificationSettings{},
+
+		// Credentials (canonical tenant-scoped credential storage)
+		&models.CredentialConnection{},
+		&models.CredentialAppConfig{},
+		&models.OAuthConnectionAttempt{},
+		&models.CredentialAuditEvent{},
 	}
 
 	for _, model := range tenantModels {
@@ -209,6 +215,22 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		} else {
 			log.Info().Msg("  ✅ Ensured idx_platform_links_unique index")
 		}
+
+	// Credential connections: partial unique index for active (non-disabled) rows
+	if GetDatabaseDriver() == DriverPostgres {
+		connTable := (&models.CredentialConnection{}).TableName()
+		activeIdx := fmt.Sprintf(
+			`CREATE UNIQUE INDEX IF NOT EXISTS idx_credential_connections_active
+			 ON %s (tenant_id, platform, store_identifier)
+			 WHERE disabled_at IS NULL`,
+			connTable,
+		)
+		if err := db.Session(&gorm.Session{}).Exec(activeIdx).Error; err != nil {
+			log.Info().Msgf("  ⚠️  Warning creating credential active unique index: %v", err)
+		} else {
+			log.Info().Msg("  ✅ Ensured idx_credential_connections_active index")
+		}
+	}
 	}
 
 	// NOTE: Zombie column cleanup disabled — needs verification on fresh DB
