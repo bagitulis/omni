@@ -3,6 +3,7 @@ package testutils
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -28,6 +29,11 @@ func SetupTestPostgres(t *testing.T) *gorm.DB {
 		t.Skip("skipping integration test in short mode")
 	}
 
+	// Check Docker availability before calling testcontainers
+	if !isDockerAvailable() {
+		t.Skip("skipping integration test: Docker is not available on this platform")
+	}
+
 	ctx := context.Background()
 
 	// Create postgres container request
@@ -50,7 +56,9 @@ func SetupTestPostgres(t *testing.T) *gorm.DB {
 		ContainerRequest: req,
 		Started:          true,
 	})
-	require.NoError(t, err, "failed to start postgres container")
+	if err != nil {
+		require.NoError(t, err, "failed to start postgres container")
+	}
 
 	// Get connection string
 	port, err := container.MappedPort(ctx, "5432/tcp")
@@ -104,4 +112,10 @@ func SetupTestPostgresWithModels(t *testing.T, models ...interface{}) *gorm.DB {
 	}
 
 	return db
+}
+
+// isDockerAvailable checks if Docker is running by executing docker ps
+func isDockerAvailable() bool {
+	cmd := exec.Command("docker", "ps")
+	return cmd.Run() == nil
 }
