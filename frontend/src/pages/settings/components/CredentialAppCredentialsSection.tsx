@@ -1,7 +1,6 @@
 import { HistoryOutlined, LockOutlined } from "@ant-design/icons";
-import { Button, Card, Col, Descriptions, Row, Space, Tag } from "antd";
+import { Button, Card, Col, Descriptions, Row, Space, Tag, Typography } from "antd";
 import type { CredentialPlatformSummary } from "@/api/credentials";
-import { useAuthStore } from "@/stores/authStore";
 import {
   CREDENTIAL_STATUS_COLOR,
   CREDENTIAL_STATUS_LABEL,
@@ -11,6 +10,8 @@ import {
 interface CredentialAppCredentialsSectionProps {
   platforms: CredentialPlatformSummary[];
   platformNames: Record<string, string>;
+  privilegedActionReason: string | null;
+  manualSavingPlatform: string | null;
   onManualToken: (platform: CredentialPlatformSummary) => void;
   onViewHistory: (platform: CredentialPlatformSummary) => void;
 }
@@ -18,11 +19,12 @@ interface CredentialAppCredentialsSectionProps {
 export function CredentialAppCredentialsSection({
   platforms,
   platformNames,
+  privilegedActionReason,
+  manualSavingPlatform,
   onManualToken,
   onViewHistory,
 }: CredentialAppCredentialsSectionProps) {
-  const role = useAuthStore((state) => state.user?.role);
-  const canManageManualTokens = role === "developer" || role === "admin";
+  const canManageManualTokens = !privilegedActionReason;
 
   return (
     <Card title="App Credentials" size="small">
@@ -49,15 +51,24 @@ export function CredentialAppCredentialsSection({
                   </Descriptions.Item>
                 </Descriptions>
                 <Space>
-                  {canManageManualTokens && (
-                    <Button icon={<LockOutlined />} onClick={() => onManualToken(platform)}>
-                      Manual Token
-                    </Button>
-                  )}
+                  <Button
+                    icon={<LockOutlined />}
+                    disabled={!canManageManualTokens || manualSavingPlatform === platform.platform}
+                    loading={manualSavingPlatform === platform.platform}
+                    title={privilegedActionReason || undefined}
+                    onClick={() => onManualToken(platform)}
+                  >
+                    Manual Token
+                  </Button>
                   <Button icon={<HistoryOutlined />} onClick={() => onViewHistory(platform)}>
                     View History
                   </Button>
                 </Space>
+                {privilegedActionReason && (
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                    {privilegedActionReason}
+                  </Typography.Text>
+                )}
               </Space>
             </Card>
           </Col>

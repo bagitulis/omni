@@ -34,6 +34,8 @@ interface PlatformCardProps {
   name: string;
   onConnect: (platform: PlatformConnectionSummary) => void;
   onDisconnect: (platform: PlatformConnectionSummary) => void;
+  actionDisabledReason?: string | null;
+  destructiveActionKey?: string | null;
   formatExpiry: (expiresAt?: string) => string | null;
   onViewHistory: (platform: PlatformConnectionSummary) => void;
 }
@@ -45,6 +47,8 @@ export function PlatformCard({
   name,
   onConnect,
   onDisconnect,
+  actionDisabledReason,
+  destructiveActionKey,
   formatExpiry,
   onViewHistory,
 }: PlatformCardProps) {
@@ -132,13 +136,21 @@ export function PlatformCard({
         <div>
           {platform.connected ? (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Button icon={<LinkOutlined />} onClick={() => onConnect(platform)}>
+              <Button
+                icon={<LinkOutlined />}
+                disabled={!!actionDisabledReason}
+                title={actionDisabledReason || undefined}
+                onClick={() => onConnect(platform)}
+              >
                 Re-authorize
               </Button>
               <Button onClick={() => onViewHistory(platform)}>History</Button>
               <Button
                 danger
                 icon={<DisconnectOutlined />}
+                disabled={!!actionDisabledReason || destructiveActionKey === platform.platform}
+                loading={destructiveActionKey === platform.platform}
+                title={actionDisabledReason || undefined}
                 onClick={() => onDisconnect(platform)}
               >
                 Disconnect
@@ -148,11 +160,18 @@ export function PlatformCard({
             <Button
               type="primary"
               icon={<LinkOutlined />}
+              disabled={!!actionDisabledReason}
+              title={actionDisabledReason || undefined}
               onClick={() => onConnect(platform)}
               style={{ width: "100%", background: color, borderColor: color }}
             >
               Connect {name}
             </Button>
+          )}
+          {actionDisabledReason && (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {actionDisabledReason}
+            </Text>
           )}
         </div>
       </Space>

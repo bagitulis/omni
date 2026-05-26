@@ -1,4 +1,5 @@
 import {
+  disconnectCredentialStore,
   getCredentialAudit,
   getCredentialPlatforms,
   saveManualToken,
@@ -8,62 +9,81 @@ import type {
   CredentialPlatformSummary,
 } from "@/api/credentials";
 import { message } from "@/components/AntStaticApi";
-import {
-  LoadingOutlined,
-  ShopOutlined,
-  ShoppingOutlined,
-  VideoCameraOutlined,
-} from "@ant-design/icons";
-import { Card, Col, Form, Row, Spin, Typography, theme } from "antd";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { ShopOutlined, ShoppingOutlined, VideoCameraOutlined } from "@ant-design/icons";
+import { Form, Spin, theme } from "antd";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAuthStore } from "@/stores/authStore";
 import { CredentialAppCredentialsSection } from "../components/CredentialAppCredentialsSection";
 import { CredentialHistoryDrawer } from "../components/CredentialHistoryDrawer";
-import {
-  ManualTokenDrawer,
-} from "../components/ManualTokenDrawer";
+import { PlatformsTabHeader } from "../components/PlatformsTabHeader";
+import { PlatformStoreConnectionsSection } from "../components/PlatformStoreConnectionsSection";
+import { ManualTokenDrawer } from "../components/ManualTokenDrawer";
 import type { ManualTokenFormValues } from "../components/ManualTokenDrawer";
-import { PlatformCard } from "../components/PlatformCard";
 import type { PlatformConnectionSummary } from "../components/PlatformCard";
-
-const { Text, Title } = Typography;
-
-const PLATFORM_NAMES: Record<string, string> = {
-  shopee: "Shopee",
-  tiktok: "TikTok Shop",
-  lazada: "Lazada",
-};
+import {
+  getPrivilegedActionReason,
+  getStoreActionReason,
+  PLATFORM_NAMES,
+  sanitizeStatusText,
+} from "./platformsTabUtils";
 
 export default function PlatformsTab() {
   const { token } = theme.useToken();
+  const tenantId = useAuthStore((state) => state.tenantId);
+  const role = useAuthStore((state) => state.user?.role);
+  const [loadedTenantId, setLoadedTenantId] = useState<string | null>(null);
   const [platforms, setPlatforms] = useState<CredentialPlatformSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [historyPlatform, setHistoryPlatform] =
-    useState<CredentialPlatformSummary | null>(null);
+  const [historyPlatform, setHistoryPlatform] = useState<CredentialPlatformSummary | null>(null);
   const [historyEvents, setHistoryEvents] = useState<CredentialAuditEvent[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
-  const [manualPlatform, setManualPlatform] =
-    useState<CredentialPlatformSummary | null>(null);
+  const [manualPlatform, setManualPlatform] = useState<CredentialPlatformSummary | null>(null);
   const [manualSaving, setManualSaving] = useState(false);
+  const [destructiveActionKey, setDestructiveActionKey] = useState<string | null>(null);
+  const [actionStatus, setActionStatus] = useState<string | null>(null);
+  const requestSequenceRef = useRef(0);
   const [manualForm] = Form.useForm<ManualTokenFormValues>();
 
-  const fetchPlatformStatus = useCallback(async () => {
+  const privilegedActionReason = getPrivilegedActionReason(role);
+  const storeActionReason = getStoreActionReason(tenantId, role);
+
+  const fetchPlatformStatus = useCallback(async (requestedTenantId: string) => {
+    const requestId = requestSequenceRef.current + 1;
+    requestSequenceRef.current = requestId;
+    setPlatforms([]);
+    setLoadedTenantId(null);
+    setActionStatus(null);
     try {
       setLoading(true);
-      setPlatforms(await getCredentialPlatforms());
+      const nextPlatforms = await getCredentialPlatforms({ tenant_id: requestedTenantId });
+      if (requestSequenceRef.current !== requestId) return;
+      setPlatforms(nextPlatforms);
+      setLoadedTenantId(requestedTenantId);
     } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : "Failed to load platform status";
+      if (requestSequenceRef.current !== requestId) return;
+      const msg = sanitizeStatusText(
+        err instanceof Error ? err.message : null,
+        "credential_status_load_failed",
+      );
       message.error(msg);
     } finally {
-      setLoading(false);
+      if (requestSequenceRef.current === requestId) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    void fetchPlatformStatus();
-  }, [fetchPlatformStatus]);
+    if (!tenantId) {
+      setPlatforms([]);
+      setLoadedTenantId(null);
+      setLoading(false);
+      return;
+    }
+    void fetchPlatformStatus(tenantId);
+  }, [fetchPlatformStatus, tenantId]);
 
   const platformCards = useMemo(
     () =>
@@ -77,17 +97,11 @@ export default function PlatformsTab() {
               : token.colorInfo,
         icon:
           platform.platform === "shopee" ? (
-            <ShopOutlined
-              style={{ fontSize: 24, color: token.colorPrimary }}
-            />
+<ShopOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
           ) : platform.platform === "tiktok" ? (
-            <VideoCameraOutlined
-              style={{ fontSize: 24, color: token.colorText }}
-            />
+<VideoCameraOutlined style={{ fontSize: 24, color: token.colorText }} />
           ) : (
-            <ShoppingOutlined
-              style={{ fontSize: 24, color: token.colorInfo }}
-            />
+<ShoppingOutlined style={{ fontSize: 24, color: token.colorInfo }} />
           ),
         name: PLATFORM_NAMES[platform.platform] || platform.platform,
       })),
@@ -95,32 +109,54 @@ export default function PlatformsTab() {
   );
 
   const handleConnect = (platform: PlatformConnectionSummary) => {
+    const currentTenantId = useAuthStore.getState().tenantId;
+    const currentRole = useAuthStore.getState().user?.role;
+    const reason = getStoreActionReason(currentTenantId, currentRole);
+    if (reason || !currentTenantId) {
+      message.error(reason || "Tenant context required before managing store connections.");
+      return;
+    }
     const platformName = PLATFORM_NAMES[platform.platform] || platform.platform;
     message.info(`Opening ${platformName} authorization...`);
     window.open(
-      `/api/credentials/platforms/${platform.platform}/connections/oauth/initiate`,
+      `/api/credentials/platforms/${platform.platform}/connections/oauth/initiate?tenant_id=${encodeURIComponent(currentTenantId)}`,
       "_blank",
     );
   };
 
   const handleDisconnect = async (platform: PlatformConnectionSummary) => {
-    const platformName = PLATFORM_NAMES[platform.platform] || platform.platform;
-    message.info(
-      `Disconnect for ${platformName} is handled by backend contract`,
-    );
-  };
-
-  const formatExpiry = (expiresAt?: string) => {
-    if (!expiresAt) return null;
-    const date = new Date(expiresAt);
-    const now = new Date();
-    const days = Math.ceil(
-      (date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-    );
-    if (days < 0) return "Expired";
-    if (days === 0) return "Expires today";
-    if (days <= 7) return `Expires in ${days} days`;
-    return `Expires ${date.toLocaleDateString()}`;
+    const currentState = useAuthStore.getState();
+    const currentTenantId = currentState.tenantId;
+    const currentRole = currentState.user?.role;
+    const reason = getStoreActionReason(currentTenantId, currentRole);
+    if (reason || !currentTenantId) {
+      message.error(reason || "Tenant context required before managing store connections.");
+      return;
+    }
+    if (!platform.store_identifier || destructiveActionKey) return;
+    setDestructiveActionKey(platform.platform);
+    try {
+      const result = await disconnectCredentialStore(
+        platform.platform,
+        platform.store_identifier,
+        { tenant_id: currentTenantId },
+      );
+      const statusText = sanitizeStatusText(
+        result.code || result.remote_revoke_status || result.status,
+        "disconnect_accepted",
+      );
+      setActionStatus(`Disconnect result: ${statusText}`);
+      await fetchPlatformStatus(currentTenantId);
+    } catch (err) {
+      const msg = sanitizeStatusText(
+        err instanceof Error ? err.message : null,
+        "disconnect_failed",
+      );
+      setActionStatus(`Disconnect result: ${msg}`);
+      message.error(msg);
+    } finally {
+      setDestructiveActionKey(null);
+    }
   };
 
   const openHistory = useCallback(
@@ -129,7 +165,12 @@ export default function PlatformsTab() {
         setHistoryPlatform(platform);
         setHistoryOpen(true);
         setHistoryLoading(true);
-        setHistoryEvents(await getCredentialAudit(platform.platform));
+        const currentTenantId = useAuthStore.getState().tenantId;
+        if (!currentTenantId) {
+          message.error("Tenant context required before loading credential history.");
+          return;
+        }
+        setHistoryEvents(await getCredentialAudit(platform.platform, { tenant_id: currentTenantId }));
       } catch (err) {
         const msg =
           err instanceof Error
@@ -144,6 +185,12 @@ export default function PlatformsTab() {
   );
 
   const handleManualTokenOpen = (platform: CredentialPlatformSummary) => {
+    const currentRole = useAuthStore.getState().user?.role;
+    const reason = getPrivilegedActionReason(currentRole);
+    if (reason) {
+      message.error(reason);
+      return;
+    }
     setManualPlatform(platform);
     manualForm.setFieldsValue({
       store_identifier: "",
@@ -154,14 +201,23 @@ export default function PlatformsTab() {
   };
 
   const handleManualTokenSubmit = async () => {
-    if (!manualPlatform) return;
+    if (!manualPlatform || manualSaving) return;
     try {
+      const currentState = useAuthStore.getState();
+      const currentTenantId = currentState.tenantId;
+      const currentRole = currentState.user?.role;
+      const reason = getPrivilegedActionReason(currentRole) || getStoreActionReason(currentTenantId, currentRole);
+      if (reason || !currentTenantId) {
+        message.error(reason || "Tenant context required before managing store connections.");
+        return;
+      }
       const values = await manualForm.validateFields();
       setManualSaving(true);
-      await saveManualToken(manualPlatform.platform, values);
+      await saveManualToken(manualPlatform.platform, values, { tenant_id: currentTenantId });
+      setActionStatus("Manual token result: saved");
       message.success("Manual token saved");
       setManualOpen(false);
-      await fetchPlatformStatus();
+      await fetchPlatformStatus(currentTenantId);
     } catch (err) {
       if (err instanceof Error && err.message.includes("required")) {
         return;
@@ -174,6 +230,11 @@ export default function PlatformsTab() {
     }
   };
 
+  const tenantBanner = tenantId
+    ? `Credential status is scoped to tenant ${tenantId}.`
+    : "Credential status is unavailable until a tenant is selected.";
+  const isTenantDataReady = !!tenantId && loadedTenantId === tenantId;
+
   if (loading) {
     return (
       <div
@@ -184,67 +245,33 @@ export default function PlatformsTab() {
           minHeight: 200,
         }}
       >
-        <Spin indicator={<LoadingOutlined spin />} size="large" />
+        <Spin size="large" />
       </div>
     );
   }
 
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
-        <Title level={5} style={{ margin: 0, fontSize: 14 }}>
-          Credential Management
-        </Title>
-        <Text type="secondary" style={{ fontSize: 12 }}>
-          Separate store connections from app credentials and review masked credential history
-        </Text>
-      </div>
+      <PlatformsTabHeader
+        tenantBanner={tenantBanner}
+        isTenantDataReady={isTenantDataReady}
+        actionStatus={actionStatus}
+      />
 
-      <Card title="Store Connections" size="small" style={{ marginBottom: 24 }}>
-        <Row gutter={[16, 16]}>
-          {platformCards.map(({ platform, color, icon, name }) => (
-            <Col xs={24} md={8} key={platform.platform}>
-              <PlatformCard
-                platform={{
-                  platform: platform.platform,
-                  connected: platform.status === "connected",
-                  store_identifier: platform.stores[0]?.store_identifier,
-                  store_name: platform.stores[0]?.store_name,
-                  expires_at: platform.stores[0]?.expires_at,
-                  expires_soon: platform.status === "expired",
-                  status: platform.status,
-                  region: platform.region,
-                  last_refresh_at: platform.stores[0]?.last_refresh_at,
-                  refresh_status: platform.stores[0]?.refresh_status,
-                }}
-                color={color}
-                icon={icon}
-                name={name}
-                onConnect={handleConnect}
-                onDisconnect={handleDisconnect}
-                formatExpiry={formatExpiry}
-                onViewHistory={(selectedPlatform) =>
-                  void openHistory({
-                    platform: selectedPlatform.platform,
-                    region: platform.region,
-                    status: platform.status,
-                    app_configured: platform.app_configured,
-                    secret_mask: platform.secret_mask,
-                    app_secret_mask: platform.app_secret_mask,
-                    stores: platform.stores,
-                    app_config: platform.app_config,
-                    audit_summary: platform.audit_summary,
-                  })
-                }
-              />
-            </Col>
-          ))}
-        </Row>
-      </Card>
+      <PlatformStoreConnectionsSection
+        platformCards={platformCards}
+        storeActionReason={storeActionReason}
+        destructiveActionKey={destructiveActionKey}
+        onConnect={handleConnect}
+        onDisconnect={handleDisconnect}
+        onViewHistory={(platform) => void openHistory(platform)}
+      />
 
       <CredentialAppCredentialsSection
         platforms={platforms}
         platformNames={PLATFORM_NAMES}
+        privilegedActionReason={privilegedActionReason}
+        manualSavingPlatform={manualSaving && manualPlatform ? manualPlatform.platform : null}
         onManualToken={handleManualTokenOpen}
         onViewHistory={(platform) => void openHistory(platform)}
       />

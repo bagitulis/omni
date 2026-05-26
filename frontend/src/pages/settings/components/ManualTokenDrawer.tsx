@@ -36,7 +36,7 @@ export function ManualTokenDrawer({
     : "Manual Token";
 
   return (
-    <Drawer open={open} title={title} width={560} onClose={onClose}>
+    <Drawer open={open} title={title} width={560} onClose={saving ? undefined : onClose}>
       <Form form={form} layout="vertical">
         <Form.Item
           label="Store Identifier"
@@ -71,7 +71,7 @@ export function ManualTokenDrawer({
         >
           <Input placeholder="emergency_recovery" />
         </Form.Item>
-        <Button type="primary" onClick={onSubmit} loading={saving}>
+        <Button type="primary" onClick={onSubmit} loading={saving} disabled={saving}>
           Save Manual Token
         </Button>
       </Form>

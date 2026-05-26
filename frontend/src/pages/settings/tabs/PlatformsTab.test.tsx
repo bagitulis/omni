@@ -1,9 +1,35 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CredentialPlatformSummary } from "@/api/credentials";
 import { useAuthStore } from "@/stores/authStore";
 import PlatformsTab from "./PlatformsTab";
+
+type AuthStoreState = ReturnType<typeof useAuthStore.getState>;
+
+function setAuthState(overrides: Partial<AuthStoreState> = {}) {
+  useAuthStore.setState({
+    user: { id: "1", username: "Dev", email: "dev@example.com", role: "developer" },
+    token: "test-token",
+    accessToken: "test-token",
+    isAuthenticated: true,
+    isInitializing: false,
+    tenantId: "tenant-a",
+    expiresAt: null,
+    ...overrides,
+  });
+}
+
+async function updateAuthStateAndRerender(
+  rerender: (ui: ReactElement) => void,
+  overrides: Partial<AuthStoreState>,
+) {
+  await act(async () => {
+    useAuthStore.setState(overrides);
+    rerender(<PlatformsTab />);
+  });
+}
 
 const getCredentialPlatforms = vi.fn();
 const getCredentialAudit = vi.fn();
@@ -13,9 +39,9 @@ vi.mock("@/api/credentials", async () => {
   const actual = await vi.importActual<typeof import("@/api/credentials")>("@/api/credentials");
   return {
     ...actual,
-    getCredentialPlatforms: () => getCredentialPlatforms(),
-    getCredentialAudit: (platform: string) => getCredentialAudit(platform),
-    saveManualToken: (platform: string, payload: unknown) => saveManualToken(platform, payload),
+    getCredentialPlatforms: (context: unknown) => getCredentialPlatforms(context),
+    getCredentialAudit: (platform: string, context: unknown) => getCredentialAudit(platform, context),
+    saveManualToken: (platform: string, payload: unknown, context: unknown) => saveManualToken(platform, payload, context),
   };
 });
 
@@ -59,7 +85,7 @@ describe("PlatformsTab credential management", () => {
     vi.clearAllMocks();
     getCredentialAudit.mockResolvedValue([]);
     getCredentialPlatforms.mockResolvedValue(statusPlatforms);
-    useAuthStore.setState({ user: { id: "1", username: "Dev", email: "dev@example.com", role: "developer" } });
+    setAuthState();
   });
 
   it("separates store connections from app credentials and labels all credential states", async () => {
@@ -84,13 +110,19 @@ describe("PlatformsTab credential management", () => {
     expect(screen.queryByText("raw-secret-value")).not.toBeInTheDocument();
   });
 
-  it("hides manual token actions from tenant admins", async () => {
-    useAuthStore.setState({ user: { id: "2", username: "Admin", email: "admin@example.com", role: "owner" } });
+  it("disables manual token actions for tenant admins with deterministic reason text", async () => {
+    setAuthState({
+      user: { id: "2", username: "Admin", email: "admin@example.com", role: "owner" },
+    });
 
     render(<PlatformsTab />);
 
     await screen.findByText("App Credentials");
-    expect(screen.queryByRole("button", { name: /manual token/i })).not.toBeInTheDocument();
+    const manualButtons = screen.getAllByRole("button", { name: /manual token/i });
+    expect(manualButtons[0]).toBeDisabled();
+    expect(
+      screen.getAllByText("Developer or system admin role required for app credentials and manual tokens.").length,
+    ).toBeGreaterThan(0);
   });
 
   it("opens developer manual token drawer with write-only token fields", async () => {
@@ -122,9 +154,52 @@ describe("PlatformsTab credential management", () => {
     const historyButtons = await screen.findAllByRole("button", { name: /^history$/i });
     await user.click(historyButtons[0]);
 
-    await waitFor(() => expect(getCredentialAudit).toHaveBeenCalledWith("tiktok"));
+    await waitFor(() => expect(getCredentialAudit).toHaveBeenCalledWith("tiktok", { tenant_id: "tenant-a" }));
     expect(await screen.findByText("refresh_failed")).toBeInTheDocument();
     expect(screen.getByText("token_expired")).toBeInTheDocument();
+  });
+
+  it("keys credential status refetch by current tenant and clears stale tenant data", async () => {
+    let resolveTenantA: (value: CredentialPlatformSummary[]) => void = () => {};
+    getCredentialPlatforms.mockReturnValueOnce(
+      new Promise<CredentialPlatformSummary[]>((resolve) => {
+        resolveTenantA = resolve;
+      }),
+    );
+    getCredentialPlatforms.mockResolvedValueOnce([
+      basePlatform({
+        platform: "lazada",
+        stores: [{ store_identifier: "STORE-B", store_name: "[TEST DATA] Tenant B", status: "connected" }],
+      }),
+    ]);
+
+    const { rerender } = render(<PlatformsTab />);
+
+    expect(getCredentialPlatforms).toHaveBeenCalledWith({ tenant_id: "tenant-a" });
+    await updateAuthStateAndRerender(rerender, { tenantId: "tenant-b" });
+
+    await waitFor(() =>
+      expect(getCredentialPlatforms).toHaveBeenLastCalledWith({ tenant_id: "tenant-b" }),
+    );
+    expect(screen.queryByText("[TEST DATA] Store")).not.toBeInTheDocument();
+    expect(await screen.findByText("[TEST DATA] Tenant B")).toBeInTheDocument();
+    expect(screen.getByText("Credential status is scoped to tenant tenant-b.")).toBeInTheDocument();
+
+    resolveTenantA([basePlatform({ stores: [{ store_identifier: "STORE-A", store_name: "[TEST DATA] Tenant A", status: "connected" }] })]);
+    expect(screen.queryByText("[TEST DATA] Tenant A")).not.toBeInTheDocument();
+  });
+
+  it("allows developer and system admin manual token actions while tenant admin store actions stay available", async () => {
+    const { rerender } = render(<PlatformsTab />);
+    expect(await screen.findAllByRole("button", { name: /manual token/i })).toHaveLength(statusPlatforms.length);
+    expect(screen.getAllByRole("button", { name: /connect/i })[0]).toBeEnabled();
+
+    await updateAuthStateAndRerender(rerender, {
+      user: { id: "3", username: "System Admin", email: "admin@example.com", role: "admin" },
+    });
+
+    await screen.findByText("App Credentials");
+    expect(screen.getAllByRole("button", { name: /manual token/i })[0]).toBeEnabled();
   });
 
   it("renders responsive columns for narrow layouts", async () => {

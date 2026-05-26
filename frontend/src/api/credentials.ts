@@ -64,6 +64,21 @@ export interface CredentialAuditResponse {
   events: CredentialAuditEvent[];
 }
 
+export interface CredentialRequestContext {
+  tenant_id: string;
+}
+
+function withTenantContext(context: CredentialRequestContext) {
+  return {
+    headers: {
+      "x-tenant-id": context.tenant_id,
+    },
+    params: {
+      tenant_id: context.tenant_id,
+    },
+  };
+}
+
 export interface ManualTokenPayload {
   store_identifier: string;
   region?: string;
@@ -74,9 +89,10 @@ export interface ManualTokenPayload {
   reason: string;
 }
 
-export async function getCredentialPlatforms() {
+export async function getCredentialPlatforms(context: CredentialRequestContext) {
   const response = await apiClient.get<CredentialPlatformListResponse>(
     "/credentials/platforms",
+    withTenantContext(context),
   );
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to load credential platforms");
@@ -84,9 +100,13 @@ export async function getCredentialPlatforms() {
   return response.data.platforms;
 }
 
-export async function getCredentialAudit(platform: string) {
+export async function getCredentialAudit(
+  platform: string,
+  context: CredentialRequestContext,
+) {
   const response = await apiClient.get<CredentialAuditResponse>(
     `/credentials/platforms/${platform}/audit`,
+    withTenantContext(context),
   );
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to load credential history");
@@ -97,12 +117,38 @@ export async function getCredentialAudit(platform: string) {
 export async function saveManualToken(
   platform: string,
   payload: ManualTokenPayload,
+  context: CredentialRequestContext,
 ) {
   const response = await apiClient.post(
     `/credentials/platforms/${platform}/connections/manual-token`,
     payload,
+    withTenantContext(context),
   );
   if (!response.success) {
     throw new Error(response.error || "Failed to save manual token");
   }
+}
+
+export interface CredentialActionResult {
+  status?: CredentialStatus;
+  code?: string;
+  message?: string;
+  remote_revoke_status?: string;
+  audit_event_id?: string;
+}
+
+export async function disconnectCredentialStore(
+  platform: string,
+  storeIdentifier: string,
+  context: CredentialRequestContext,
+) {
+  const response = await apiClient.post<CredentialActionResult>(
+    `/credentials/platforms/${platform}/connections/${encodeURIComponent(storeIdentifier)}/disconnect`,
+    { reason: "disconnect_requested", revoke_remote: true },
+    withTenantContext(context),
+  );
+  if (!response.success) {
+    throw new Error(response.error || "disconnect_failed");
+  }
+  return response.data || { code: "disconnect_accepted" };
 }
