@@ -104,9 +104,10 @@ func (h *ShopeeAnalyticsHandler) GetSyncStatus(c *gin.Context) {
 		return
 	}
 
-	now := time.Now()
-	month, _ := strconv.Atoi(c.DefaultQuery("month", strconv.Itoa(int(now.Month()))))
-	year, _ := strconv.Atoi(c.DefaultQuery("year", strconv.Itoa(now.Year())))
+	month, year, ok := parseMonthYear(c)
+	if !ok {
+		return
+	}
 
 	status, err := svc.GetSyncStatus(c.Request.Context(), middleware.GetTenantID(c), month, year)
 	if err != nil {
@@ -127,9 +128,12 @@ func (h *ShopeeAnalyticsHandler) SyncEscrow(c *gin.Context) {
 	var req dto.SyncRequestDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
 		// Fallback to query parameters
-		now := time.Now()
-		req.Month, _ = strconv.Atoi(c.DefaultQuery("month", strconv.Itoa(int(now.Month()))))
-		req.Year, _ = strconv.Atoi(c.DefaultQuery("year", strconv.Itoa(now.Year())))
+		month, year, ok := parseMonthYear(c)
+		if !ok {
+			return
+		}
+		req.Month = month
+		req.Year = year
 		req.ForceResync = c.Query("force_resync") == "true"
 	}
 
@@ -148,9 +152,10 @@ func (h *ShopeeAnalyticsHandler) DeleteSyncData(c *gin.Context) {
 		return
 	}
 
-	now := time.Now()
-	month, _ := strconv.Atoi(c.DefaultQuery("month", strconv.Itoa(int(now.Month()))))
-	year, _ := strconv.Atoi(c.DefaultQuery("year", strconv.Itoa(now.Year())))
+	month, year, ok := parseMonthYear(c)
+	if !ok {
+		return
+	}
 
 	if err := svc.DeleteSyncData(c.Request.Context(), middleware.GetTenantID(c), month, year); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
@@ -166,9 +171,10 @@ func (h *ShopeeAnalyticsHandler) GetReconciliation(c *gin.Context) {
 		return
 	}
 
-	now := time.Now()
-	month, _ := strconv.Atoi(c.DefaultQuery("month", strconv.Itoa(int(now.Month()))))
-	year, _ := strconv.Atoi(c.DefaultQuery("year", strconv.Itoa(now.Year())))
+	month, year, ok := parseMonthYear(c)
+	if !ok {
+		return
+	}
 
 	result, err := svc.GetReconciliation(c.Request.Context(), middleware.GetTenantID(c), month, year)
 	if err != nil {
@@ -185,9 +191,10 @@ func (h *ShopeeAnalyticsHandler) GetShippingFeeAnalysis(c *gin.Context) {
 		return
 	}
 
-	now := time.Now()
-	month, _ := strconv.Atoi(c.DefaultQuery("month", strconv.Itoa(int(now.Month()))))
-	year, _ := strconv.Atoi(c.DefaultQuery("year", strconv.Itoa(now.Year())))
+	month, year, ok := parseMonthYear(c)
+	if !ok {
+		return
+	}
 
 	result, err := svc.GetShippingFeeAnalysis(c.Request.Context(), middleware.GetTenantID(c), month, year)
 	if err != nil {
@@ -210,4 +217,23 @@ func (h *ShopeeAnalyticsHandler) RepopulateItems(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Item repopulation triggered successfully"})
+}
+
+// parseMonthYear extracts and validates month/year query parameters.
+// Returns false with a JSON error response if validation fails.
+func parseMonthYear(c *gin.Context) (month, year int, ok bool) {
+	now := time.Now()
+	monthStr := c.DefaultQuery("month", strconv.Itoa(int(now.Month())))
+	month, err := strconv.Atoi(monthStr)
+	if err != nil || month < 1 || month > 12 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid month: must be 1-12"})
+		return 0, 0, false
+	}
+	yearStr := c.DefaultQuery("year", strconv.Itoa(now.Year()))
+	year, err = strconv.Atoi(yearStr)
+	if err != nil || year < 2000 || year > 2100 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid year"})
+		return 0, 0, false
+	}
+	return month, year, true
 }

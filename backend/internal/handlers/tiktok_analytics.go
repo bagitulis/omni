@@ -3,8 +3,6 @@ package handlers
 import (
 	"context"
 	"net/http"
-	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/config"
@@ -104,9 +102,10 @@ func (h *TiktokAnalyticsHandler) GetSyncStatus(c *gin.Context) {
 		return
 	}
 
-	now := time.Now()
-	month, _ := strconv.Atoi(c.DefaultQuery("month", strconv.Itoa(int(now.Month()))))
-	year, _ := strconv.Atoi(c.DefaultQuery("year", strconv.Itoa(now.Year())))
+	month, year, ok := parseMonthYear(c)
+	if !ok {
+		return
+	}
 
 	status, err := svc.GetSyncStatus(c.Request.Context(), middleware.GetTenantID(c), month, year)
 	if err != nil {
@@ -127,9 +126,12 @@ func (h *TiktokAnalyticsHandler) SyncEscrow(c *gin.Context) {
 	var req dto.SyncRequestDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
 		// Fallback to query parameters
-		now := time.Now()
-		req.Month, _ = strconv.Atoi(c.DefaultQuery("month", strconv.Itoa(int(now.Month()))))
-		req.Year, _ = strconv.Atoi(c.DefaultQuery("year", strconv.Itoa(now.Year())))
+		month, year, ok := parseMonthYear(c)
+		if !ok {
+			return
+		}
+		req.Month = month
+		req.Year = year
 		req.ForceResync = c.Query("force_resync") == "true"
 	}
 
@@ -148,9 +150,10 @@ func (h *TiktokAnalyticsHandler) DeleteSyncData(c *gin.Context) {
 		return
 	}
 
-	now := time.Now()
-	month, _ := strconv.Atoi(c.DefaultQuery("month", strconv.Itoa(int(now.Month()))))
-	year, _ := strconv.Atoi(c.DefaultQuery("year", strconv.Itoa(now.Year())))
+	month, year, ok := parseMonthYear(c)
+	if !ok {
+		return
+	}
 
 	if err := svc.DeleteSyncData(c.Request.Context(), middleware.GetTenantID(c), month, year); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
@@ -166,9 +169,10 @@ func (h *TiktokAnalyticsHandler) GetReconciliation(c *gin.Context) {
 		return
 	}
 
-	now := time.Now()
-	month, _ := strconv.Atoi(c.DefaultQuery("month", strconv.Itoa(int(now.Month()))))
-	year, _ := strconv.Atoi(c.DefaultQuery("year", strconv.Itoa(now.Year())))
+	month, year, ok := parseMonthYear(c)
+	if !ok {
+		return
+	}
 
 	result, err := svc.GetReconciliation(c.Request.Context(), middleware.GetTenantID(c), month, year)
 	if err != nil {
@@ -185,9 +189,10 @@ func (h *TiktokAnalyticsHandler) GetShippingFeeAnalysis(c *gin.Context) {
 		return
 	}
 
-	now := time.Now()
-	month, _ := strconv.Atoi(c.DefaultQuery("month", strconv.Itoa(int(now.Month()))))
-	year, _ := strconv.Atoi(c.DefaultQuery("year", strconv.Itoa(now.Year())))
+	month, year, ok := parseMonthYear(c)
+	if !ok {
+		return
+	}
 
 	result, err := svc.GetShippingFeeAnalysis(c.Request.Context(), middleware.GetTenantID(c), month, year)
 	if err != nil {

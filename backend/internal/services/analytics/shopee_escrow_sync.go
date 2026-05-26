@@ -58,15 +58,21 @@ func (s *ShopeeEscrowSyncService) SyncMonthWithProgress(ctx context.Context, mon
 
 	// Clear previous data when forcing a resync
 	if forceResync {
-		s.tenantDB.WithContext(ctx).
+		if err := s.tenantDB.WithContext(ctx).
 			Where("tenant_id = ? AND month = ? AND year = ?", s.tenantID, month, year).
-			Delete(&models.ShopeeEscrowItem{})
-		s.tenantDB.WithContext(ctx).
+			Delete(&models.ShopeeEscrowItem{}).Error; err != nil {
+			return fmt.Errorf("failed to clear escrow items during force resync: %w", err)
+		}
+		if err := s.tenantDB.WithContext(ctx).
 			Where("tenant_id = ? AND month = ? AND year = ?", s.tenantID, month, year).
-			Delete(&models.ShopeeEscrowOrder{})
-		s.tenantDB.WithContext(ctx).
+			Delete(&models.ShopeeEscrowOrder{}).Error; err != nil {
+			return fmt.Errorf("failed to clear escrow orders during force resync: %w", err)
+		}
+		if err := s.tenantDB.WithContext(ctx).
 			Where("tenant_id = ? AND month = ? AND year = ?", s.tenantID, month, year).
-			Delete(&models.ShopeeEscrowSync{})
+			Delete(&models.ShopeeEscrowSync{}).Error; err != nil {
+			return fmt.Errorf("failed to clear escrow sync record during force resync: %w", err)
+		}
 	}
 
 	onProgress(60, 100, "Processing escrow data...")

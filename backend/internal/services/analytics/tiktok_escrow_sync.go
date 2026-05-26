@@ -59,19 +59,25 @@ func (s *TiktokEscrowSyncService) SyncMonthWithProgress(ctx context.Context, mon
 	// Clear previous data when forcing a resync
 	if forceResync {
 		// Delete items via order IDs (TiktokEscrowItem has no Month/Year fields)
-		s.tenantDB.WithContext(ctx).
+		if err := s.tenantDB.WithContext(ctx).
 			Where("escrow_order_id IN (?)",
 				s.tenantDB.WithContext(ctx).Model(&models.TiktokEscrowOrder{}).
 					Select("id").
 					Where("tenant_id = ? AND month = ? AND year = ?", s.tenantID, month, year),
 			).
-			Delete(&models.TiktokEscrowItem{})
-		s.tenantDB.WithContext(ctx).
+			Delete(&models.TiktokEscrowItem{}).Error; err != nil {
+			return fmt.Errorf("failed to clear escrow items during force resync: %w", err)
+		}
+		if err := s.tenantDB.WithContext(ctx).
 			Where("tenant_id = ? AND month = ? AND year = ?", s.tenantID, month, year).
-			Delete(&models.TiktokEscrowOrder{})
-		s.tenantDB.WithContext(ctx).
+			Delete(&models.TiktokEscrowOrder{}).Error; err != nil {
+			return fmt.Errorf("failed to clear escrow orders during force resync: %w", err)
+		}
+		if err := s.tenantDB.WithContext(ctx).
 			Where("tenant_id = ? AND month = ? AND year = ?", s.tenantID, month, year).
-			Delete(&models.TiktokEscrowSync{})
+			Delete(&models.TiktokEscrowSync{}).Error; err != nil {
+			return fmt.Errorf("failed to clear escrow sync record during force resync: %w", err)
+		}
 	}
 
 	onProgress(60, 100, "Processing escrow data...")
