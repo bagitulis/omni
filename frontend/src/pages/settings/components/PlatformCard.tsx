@@ -1,35 +1,42 @@
-import { Button, Card, Tag, Typography, theme } from "antd";
 import {
-  LinkOutlined,
-  DisconnectOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  DisconnectOutlined,
+  LinkOutlined,
 } from "@ant-design/icons";
+import { Button, Card, Space, Tag, Typography, theme } from "antd";
+import type { CredentialStatus } from "@/api/credentials";
+import {
+  CREDENTIAL_STATUS_COLOR,
+  CREDENTIAL_STATUS_LABEL,
+} from "./credentialStatus";
 
 const { Text } = Typography;
 const { useToken } = theme;
 
-interface PlatformStatus {
+export interface PlatformConnectionSummary {
   platform: string;
   connected: boolean;
-  shop_id?: string;
-  shop_name?: string;
-  expires_at?: number;
+  store_identifier?: string;
+  store_name?: string;
+  expires_at?: string;
   expires_soon?: boolean;
-  last_checked?: string;
+  status: CredentialStatus;
+  region?: string;
+  last_refresh_at?: string;
+  refresh_status?: string;
 }
 
 interface PlatformCardProps {
-  platform: PlatformStatus;
+  platform: PlatformConnectionSummary;
   color: string;
   icon: React.ReactNode;
   name: string;
-  onConnect: (platform: PlatformStatus) => void;
-  onDisconnect: (platform: PlatformStatus) => void;
-  formatExpiry: (expiresAt?: number) => string | null;
+  onConnect: (platform: PlatformConnectionSummary) => void;
+  onDisconnect: (platform: PlatformConnectionSummary) => void;
+  formatExpiry: (expiresAt?: string) => string | null;
+  onViewHistory: (platform: PlatformConnectionSummary) => void;
 }
-
-export type { PlatformStatus };
 
 export function PlatformCard({
   platform,
@@ -39,6 +46,7 @@ export function PlatformCard({
   onConnect,
   onDisconnect,
   formatExpiry,
+  onViewHistory,
 }: PlatformCardProps) {
   const { token } = useToken();
 
@@ -51,14 +59,9 @@ export function PlatformCard({
       }}
       styles={{ body: { padding: 16 } }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {/* Header */}
+      <Space direction="vertical" size={12} style={{ width: "100%" }}>
         <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
+          style={{ display: "flex", justifyContent: "space-between", gap: 12 }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div
@@ -74,71 +77,68 @@ export function PlatformCard({
             >
               {icon}
             </div>
-            <Text strong style={{ fontSize: 14 }}>
-              {name}
-            </Text>
+            <div>
+              <Text strong style={{ fontSize: 14, display: "block" }}>
+                {name}
+              </Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {platform.store_name ||
+                  platform.store_identifier ||
+                  "Store connection"}
+              </Text>
+            </div>
           </div>
           <Tag
             icon={
-              platform.connected ? (
-                <CheckCircleOutlined />
-              ) : (
-                <CloseCircleOutlined />
-              )
+              platform.connected ? <CheckCircleOutlined /> : <CloseCircleOutlined />
             }
-            color={platform.connected ? "success" : "default"}
+            color={CREDENTIAL_STATUS_COLOR[platform.status]}
             style={{ margin: 0 }}
           >
-            {platform.connected ? "Connected" : "Disconnected"}
+            {CREDENTIAL_STATUS_LABEL[platform.status]}
           </Tag>
         </div>
 
-        {/* Shop Info */}
-        {platform.connected && (
-          <div
-            style={{
-              padding: 12,
-              background: token.colorFillTertiary,
-              borderRadius: token.borderRadius,
-            }}
-          >
-            {platform.shop_id && (
-              <>
-                <div style={{ marginBottom: 4 }}>
-                  <Text type="secondary" style={{ fontSize: 10 }}>
-                    SHOP ID
-                  </Text>
-                </div>
-                <Text style={{ fontSize: 12 }}>{platform.shop_id}</Text>
-              </>
+        <Card size="small" style={{ background: token.colorFillTertiary }}>
+          <Space direction="vertical" size={4} style={{ width: "100%" }}>
+            <Text type="secondary" style={{ fontSize: 11, letterSpacing: 0.4 }}>
+              STORE CONNECTION
+            </Text>
+            <Text style={{ fontSize: 12 }}>
+              {platform.connected ? "Connected and syncing" : "Not connected"}
+            </Text>
+            {platform.store_identifier && (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Store ID: {platform.store_identifier}
+              </Text>
             )}
             {platform.expires_at && (
-              <div style={{ marginTop: 8 }}>
-                <Text
-                  type={platform.expires_soon ? "danger" : "secondary"}
-                  style={{ fontSize: 10 }}
-                >
-                  {formatExpiry(platform.expires_at)}
-                </Text>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Actions */}
-        <div style={{ marginTop: "auto" }}>
-          {platform.connected ? (
-            <div style={{ display: "flex", gap: 8 }}>
-              <Button
-                icon={<LinkOutlined />}
-                onClick={() => onConnect(platform)}
-                style={{ flex: 1 }}
+              <Text
+                type={platform.expires_soon ? "danger" : "secondary"}
+                style={{ fontSize: 12 }}
               >
+                {formatExpiry(platform.expires_at)}
+              </Text>
+            )}
+            {platform.last_refresh_at && (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Last refresh:{" "}
+                {new Date(platform.last_refresh_at).toLocaleString()}
+              </Text>
+            )}
+          </Space>
+        </Card>
+
+        <div>
+          {platform.connected ? (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Button icon={<LinkOutlined />} onClick={() => onConnect(platform)}>
                 Re-authorize
               </Button>
+              <Button onClick={() => onViewHistory(platform)}>History</Button>
               <Button
-                icon={<DisconnectOutlined />}
                 danger
+                icon={<DisconnectOutlined />}
                 onClick={() => onDisconnect(platform)}
               >
                 Disconnect
@@ -149,17 +149,13 @@ export function PlatformCard({
               type="primary"
               icon={<LinkOutlined />}
               onClick={() => onConnect(platform)}
-              style={{
-                width: "100%",
-                background: color,
-                borderColor: color,
-              }}
+              style={{ width: "100%", background: color, borderColor: color }}
             >
               Connect {name}
             </Button>
           )}
         </div>
-      </div>
+      </Space>
     </Card>
   );
 }
