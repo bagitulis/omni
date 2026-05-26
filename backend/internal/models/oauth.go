@@ -8,6 +8,12 @@ type OAuthState struct {
 	ID          string    `gorm:"primaryKey" json:"id"`
 	TenantID    string    `gorm:"index;not null" json:"tenant_id"`
 	Platform    string    `gorm:"index;not null" json:"platform"` // shopee, lazada, tiktok
+	AttemptID   string    `gorm:"index;not null" json:"attempt_id"`
+	Intent      string    `gorm:"index;not null;default:'connect'" json:"intent"`
+	StoreID     string    `gorm:"index" json:"store_id,omitempty"`
+	UserID      string    `gorm:"index" json:"user_id,omitempty"`
+	SessionID   string    `gorm:"index" json:"session_id,omitempty"`
+	CSRFNonce   string    `gorm:"not null" json:"-"`
 	State       string    `gorm:"uniqueIndex;not null" json:"state"`
 	RedirectURL string    `json:"redirect_url,omitempty"`
 	Metadata    string    `json:"metadata,omitempty"` // JSON string

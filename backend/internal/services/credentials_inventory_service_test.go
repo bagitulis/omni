@@ -43,11 +43,15 @@ func TestCredentialsInventoryServiceInspectTenantAndRedact(t *testing.T) {
 	require.NoError(t, err)
 
 	err = db.Exec(`
-		INSERT INTO platform_configs (id, tenant_id, platform, config_key, config_value, data_type, is_encrypted, metadata, created_at, updated_at)
+		INSERT INTO platform_configs (
+			id, tenant_id, platform, config_key, config_value, data_type, is_encrypted, metadata,
+			shop_id, shop_name, access_token, refresh_token, token_expires_at, shop_cipher,
+			is_connected, auth_status, last_sync_at, settings, created_at, updated_at
+		)
 		VALUES
-		('kv-1', 'yumna_bertigamart', 'shopee', 'accessToken', 'encrypted-token-1', 'string', true, '{}'::jsonb, now(), now()),
-		('kv-2', 'yumna_bertigamart', 'shopee', 'refreshToken', 'encrypted-refresh-1', 'string', true, '{}'::jsonb, now(), now()),
-		('kv-3', 'yumna_bertigamart', 'shopee', 'shopId', '123', 'string', false, '{}'::jsonb, now(), now()),
+		('kv-1', 'yumna_bertigamart', 'shopee', 'accessToken', 'encrypted-token-1', 'string', true, '{}'::jsonb, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '{}'::jsonb, now(), now()),
+		('kv-2', 'yumna_bertigamart', 'shopee', 'refreshToken', 'encrypted-refresh-1', 'string', true, '{}'::jsonb, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '{}'::jsonb, now(), now()),
+		('kv-3', 'yumna_bertigamart', 'shopee', 'shopId', '123', 'string', false, '{}'::jsonb, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '{}'::jsonb, now(), now()),
 		('structured-1', 'yumna_bertigamart', 'shopee', NULL, NULL, NULL, NULL, '{}'::jsonb, 'shop-123', 'Demo Shop', 'structured-token-1', 'structured-refresh-1', now(), NULL, true, 'connected', now(), '{}'::jsonb, now(), now()),
 		('structured-2', 'yumna_bertigamart', 'shopee', NULL, NULL, NULL, NULL, '{}'::jsonb, 'shop-123', 'Demo Shop', 'structured-token-2', 'structured-refresh-2', now(), NULL, true, 'connected', now(), '{}'::jsonb, now(), now()),
 		('mixed-1', 'tika_nusseyba', 'lazada', 'accessToken', 'mixed-secret', 'string', true, '{}'::jsonb, 'shop-777', 'Mixed Shop', 'mixed-access-token', 'mixed-refresh-token', now(), NULL, true, 'connected', now(), '{}'::jsonb, now(), now())
@@ -76,7 +80,7 @@ func TestCredentialsInventoryServiceInspectTenantAndRedact(t *testing.T) {
 	assert.True(t, kvRow.HasSensitiveValuesSeen)
 
 	assert.Equal(t, 2, structuredRow.Count)
-	assert.Equal(t, 2, structuredRow.TargetBackfillCount)
+	assert.Equal(t, 0, structuredRow.TargetBackfillCount)
 	assert.Equal(t, 1, structuredRow.DuplicateStoreCount)
 	assert.Empty(t, structuredRow.MissingRequiredFields)
 
@@ -113,4 +117,15 @@ func TestCredentialsInventoryServiceInspectTenantAndRedact(t *testing.T) {
 	assert.Contains(t, textOutput, "⚠️ MIXED")
 	assert.NotContains(t, textOutput, "encrypted-token-1")
 	assert.Contains(t, textOutput, "Secret values: [REDACTED -")
+}
+
+func TestDetectRowShapeTreatsTenantOnlyKeyValueRowsAsKeyValue(t *testing.T) {
+	row := inventoryRowData{
+		"tenant_id":    "yumna_bertigamart",
+		"platform":     "shopee",
+		"config_key":   "accessToken",
+		"config_value": "encrypted-token-1",
+	}
+
+	assert.Equal(t, rowShapeKeyValue, detectRowShape(row))
 }

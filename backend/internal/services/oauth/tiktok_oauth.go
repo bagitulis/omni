@@ -51,6 +51,7 @@ func (s *TiktokOAuthService) GetAuthURL(state string) string {
 
 	params := url.Values{}
 	params.Add("app_key", s.config.AppKey)
+	params.Add("redirect_uri", s.config.RedirectURL)
 	params.Add("state", state)
 
 	return fmt.Sprintf("%s?%s", baseURL, params.Encode())

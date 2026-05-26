@@ -3,6 +3,7 @@ package oauth
 import (
 	"fmt"
 	"net/url"
+	"time"
 )
 
 // OAuthConfig holds OAuth configuration
@@ -45,4 +46,15 @@ func TiktokOAuthURL(appKey, redirectURI string) string {
 	baseURL := "https://auth.tiktok-shops.com/oauth/authorize"
 	return fmt.Sprintf("%s?app_key=%s&redirect_uri=%s&state=omni",
 		baseURL, appKey, url.QueryEscape(redirectURI))
+}
+
+func TiktokCallbackURL(baseURL string) string {
+	if baseURL == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s/api/platform-auth/callback/tiktok", baseURL)
+}
+
+func OAuthStateExpiry() time.Time {
+	return time.Now().Add(StateTTL)
 }

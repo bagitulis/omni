@@ -3,12 +3,27 @@ package repositories
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/omni/backend/internal/models"
 	"gorm.io/gorm"
 )
+
+type OAuthStateCreateParams struct {
+	TenantID    string
+	Platform    string
+	AttemptID   string
+	Intent      string
+	StoreID     string
+	UserID      string
+	SessionID   string
+	CSRFNonce   string
+	State       string
+	RedirectURL string
+	ExpiresAt   time.Time
+}
 
 // OAuthRepository handles OAuth data access
 type OAuthRepository struct {
@@ -18,6 +33,10 @@ type OAuthRepository struct {
 // NewOAuthRepository creates a new OAuth repository
 func NewOAuthRepository(db *gorm.DB) *OAuthRepository {
 	return &OAuthRepository{db: db}
+}
+
+func (r *OAuthRepository) DB() *gorm.DB {
+	return r.db
 }
 
 // CreateState creates a new OAuth state
@@ -36,6 +55,64 @@ func (r *OAuthRepository) CreateState(ctx context.Context, tenantID, platform, r
 		return nil, err
 	}
 	return state, nil
+}
+
+func (r *OAuthRepository) CreateBoundState(ctx context.Context, params OAuthStateCreateParams) (*models.OAuthState, error) {
+	if params.TenantID == "" {
+		return nil, fmt.Errorf("tenant_id is required")
+	}
+	if params.Platform == "" {
+		return nil, fmt.Errorf("platform is required")
+	}
+	if params.AttemptID == "" {
+		return nil, fmt.Errorf("attempt_id is required")
+	}
+	if params.State == "" {
+		return nil, fmt.Errorf("state is required")
+	}
+	state := &models.OAuthState{
+		ID:          uuid.New().String(),
+		TenantID:    params.TenantID,
+		Platform:    params.Platform,
+		AttemptID:   params.AttemptID,
+		Intent:      params.Intent,
+		StoreID:     params.StoreID,
+		UserID:      params.UserID,
+		SessionID:   params.SessionID,
+		CSRFNonce:   params.CSRFNonce,
+		State:       params.State,
+		RedirectURL: params.RedirectURL,
+		ExpiresAt:   params.ExpiresAt,
+		CreatedAt:   time.Now(),
+	}
+	if state.Intent == "" {
+		state.Intent = "connect"
+	}
+	if err := r.db.WithContext(ctx).Create(state).Error; err != nil {
+		return nil, err
+	}
+	return state, nil
+}
+
+func (r *OAuthRepository) ConsumeState(ctx context.Context, stateValue string) (*models.OAuthState, string, error) {
+	if stateValue == "" {
+		return nil, "invalid_state", nil
+	}
+	var oauthState models.OAuthState
+	err := r.db.WithContext(ctx).Where("state = ?", stateValue).First(&oauthState).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, "invalid_state", nil
+		}
+		return nil, "failed", err
+	}
+	if time.Now().After(oauthState.ExpiresAt) {
+		return &oauthState, "expired", nil
+	}
+	if err := r.db.WithContext(ctx).Where("id = ?", oauthState.ID).Delete(&models.OAuthState{}).Error; err != nil {
+		return nil, "failed", err
+	}
+	return &oauthState, "completed", nil
 }
 
 // FindStateByState finds OAuth state by state value

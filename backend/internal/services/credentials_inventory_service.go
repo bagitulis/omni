@@ -160,7 +160,7 @@ func summarizeInventoryRow(tenantID string, row inventoryRowData, storeCounts ma
 
 func detectRowShape(row inventoryRowData) string {
 	keyValueFields := []string{"config_key", "config_value"}
-	structuredFields := []string{"tenant_id", "shop_id", "shop_name", "access_token", "refresh_token"}
+	structuredFields := []string{"shop_id", "shop_name", "access_token", "refresh_token"}
 	keyValuePresent := 0
 	for _, key := range keyValueFields {
 		if presentAndNonEmpty(row[key]) {

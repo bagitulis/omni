@@ -10,8 +10,10 @@ type OAuthConnectionAttempt struct {
 	Platform        string     `gorm:"column:platform;type:varchar(50);not null;index" json:"platform"`
 	AttemptID       string     `gorm:"column:attempt_id;type:varchar(255);not null;uniqueIndex:idx_oauth_attempt" json:"attempt_id"`
 	Status          string     `gorm:"column:status;type:varchar(50);not null;default:'pending'" json:"status"`
+	Intent          string     `gorm:"column:intent;type:varchar(50);not null;default:'connect'" json:"intent"`
 	IntendedStoreID string     `gorm:"column:intended_store_id;type:varchar(255)" json:"intended_store_id,omitempty"`
 	SignedState     string     `gorm:"column:signed_state;type:text" json:"-"` // Redacted from API
+	CSRFNonce       string     `gorm:"column:csrf_nonce;type:varchar(255)" json:"-"`
 	RedirectPath    string     `gorm:"column:redirect_path;type:varchar(500)" json:"redirect_path,omitempty"`
 	ExpiresAt       time.Time  `gorm:"column:expires_at;not null" json:"expires_at"`
 	CompletedAt     *time.Time `gorm:"column:completed_at" json:"completed_at,omitempty"`
