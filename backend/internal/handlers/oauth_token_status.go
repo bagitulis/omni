@@ -127,7 +127,18 @@ func (h *OAuthHandler) RefreshAllTokens(c *gin.Context) {
 		return
 	}
 
-	configs, err := h.platformRepo.FindByTenant(c.Request.Context(), tenantID)
+	// Use tenant DB with adapter (NOT system DB + PlatformConfigRepository)
+	db, err := config.GetTenantDB(tenantID, h.basePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Database connection failed",
+		})
+		return
+	}
+
+	repo := repositories.NewPlatformConfigAdapter(db)
+	configs, err := repo.FindByTenant(c.Request.Context(), tenantID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -137,9 +148,10 @@ func (h *OAuthHandler) RefreshAllTokens(c *gin.Context) {
 	}
 
 	results := make(map[string]gin.H)
-	now := time.Now().Unix()
+	nowMs := time.Now().UnixMilli()
 	for _, cfg := range configs {
-		if cfg.ExpiresAt < now {
+		// ExpiresAt from adapter is in milliseconds (from tokenExpiry key)
+		if cfg.ExpiresAt > 0 && cfg.ExpiresAt < nowMs {
 			results[cfg.Platform] = gin.H{
 				"success": false,
 				"error":   "Token expired - manual re-authorization required",

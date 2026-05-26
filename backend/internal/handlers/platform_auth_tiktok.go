@@ -54,7 +54,7 @@ func (h *PlatformAuthHandler) GetActiveTiktokShop(c *gin.Context) {
 		return
 	}
 
-	repo := repositories.NewPlatformConfigRepository(db)
+	repo := repositories.NewPlatformConfigAdapter(db)
 	cfg, err := repo.FindByTenantAndPlatform(c.Request.Context(), tenantID, models.PlatformTiktok)
 	if err != nil || cfg == nil {
 		c.JSON(http.StatusNotFound, response.Error("TikTok not connected"))
@@ -78,7 +78,7 @@ func (h *PlatformAuthHandler) fetchTiktokShops(ctx context.Context, tenantID str
 		return nil, fmt.Errorf("database connection failed")
 	}
 
-	repo := repositories.NewPlatformConfigRepository(db)
+	repo := repositories.NewPlatformConfigAdapter(db)
 	cfg, err := repo.FindByTenantAndPlatform(ctx, tenantID, models.PlatformTiktok)
 	if err != nil || cfg == nil {
 		return nil, fmt.Errorf("TikTok not connected")

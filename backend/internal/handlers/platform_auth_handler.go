@@ -116,14 +116,14 @@ func (h *PlatformAuthHandler) disconnectPlatform(c *gin.Context, platform string
 		return
 	}
 
-	repo := repositories.NewPlatformConfigRepository(db)
+	repo := repositories.NewPlatformConfigAdapter(db)
 	cfg, err := repo.FindByTenantAndPlatform(c.Request.Context(), tenantID, platform)
 	if err != nil || cfg == nil {
 		c.JSON(http.StatusNotFound, response.Error("Platform not connected"))
 		return
 	}
 
-	if err := repo.Delete(c.Request.Context(), tenantID, platform); err != nil {
+	if err := repo.DeleteByPlatform(c.Request.Context(), platform); err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to disconnect"))
 		return
 	}
