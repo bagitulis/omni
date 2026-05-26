@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Task 8 — Frontend analytics test suite**: Created `frontend/src/lib/analyticsHelpers.test.ts` (22 tests covering formatMonthYear, formatDate, getPriceDiffStatus, formatPriceDiff, getReconciliationHealth, exportToCSV), `frontend/src/api/analytics.test.ts` (29 tests covering all 16 Shopee+TikTok API functions with endpoint/params/error assertions), and `frontend/src/hooks/useAnalytics.test.ts` (32 tests covering all 7 hooks + analyticsKeys with platform dispatch verification). Also fixed `formatDate` to return "-" for invalid date strings (e.g. `new Date("not-a-date")`). All 82 tests pass with zero lint errors. (analyticsHelpers.test.ts, analytics.test.ts [api], useAnalytics.test.ts)
+
 ### Fixed
 - **Shopee report page**: Added missing `toCsvRows` and `isShopeeShippingOrder` helper functions that were omitted during initial page creation. (ShopeeReportPage.tsx)
 
