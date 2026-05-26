@@ -137,6 +137,11 @@ func TestCredentialRepository_MissingTenant(t *testing.T) {
 		assert.Contains(t, err.Error(), "platform is required")
 	})
 
+	t.Run("get_app_config_empty_platform", func(t *testing.T) {
+		_, err := repo.GetAppConfig(ctx, "tenant-a", "")
+		require.EqualError(t, err, "platform is required")
+	})
+
 	t.Run("create_connection_empty_tenant", func(t *testing.T) {
 		conn := &models.CredentialConnection{
 			Platform:        "shopee",
@@ -155,6 +160,11 @@ func TestCredentialRepository_MissingTenant(t *testing.T) {
 		err := repo.CreateConnection(ctx, conn)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "platform is required")
+	})
+
+	t.Run("upsert_app_config_empty_platform", func(t *testing.T) {
+		err := repo.UpsertAppConfig(ctx, &models.CredentialAppConfig{TenantID: "tenant-a"})
+		require.EqualError(t, err, "platform is required")
 	})
 
 	t.Run("list_connections_empty_tenant", func(t *testing.T) {
@@ -341,6 +351,43 @@ func TestCredentialRepository_AppConfigRedactionAndScope(t *testing.T) {
 	otherTenant, err := repo.GetAppConfig(ctx, "tenant-other", "lazada")
 	require.NoError(t, err)
 	assert.Nil(t, otherTenant)
+}
+
+func TestCredentialRepository_OAuthAttemptValidation(t *testing.T) {
+	repo, ctx := setupCredentialTest(t)
+	baseAttempt := &models.OAuthConnectionAttempt{TenantID: "tenant-oauth", Platform: "tiktok", AttemptID: "attempt-1"}
+
+	t.Run("create_attempt_empty_platform", func(t *testing.T) {
+		err := repo.CreateAttempt(ctx, &models.OAuthConnectionAttempt{TenantID: "tenant-oauth", AttemptID: "attempt-1"})
+		require.EqualError(t, err, "platform is required")
+	})
+
+	t.Run("create_attempt_empty_attempt_id", func(t *testing.T) {
+		err := repo.CreateAttempt(ctx, &models.OAuthConnectionAttempt{TenantID: "tenant-oauth", Platform: "tiktok"})
+		require.EqualError(t, err, "attempt_id is required")
+	})
+
+	require.NoError(t, repo.CreateAttempt(ctx, baseAttempt))
+
+	t.Run("get_attempt_empty_platform", func(t *testing.T) {
+		_, err := repo.GetAttempt(ctx, "tenant-oauth", "", "attempt-1")
+		require.EqualError(t, err, "platform is required")
+	})
+
+	t.Run("get_attempt_empty_attempt_id", func(t *testing.T) {
+		_, err := repo.GetAttempt(ctx, "tenant-oauth", "tiktok", "")
+		require.EqualError(t, err, "attempt_id is required")
+	})
+
+	t.Run("complete_attempt_empty_platform", func(t *testing.T) {
+		err := repo.CompleteAttempt(ctx, "tenant-oauth", "", "attempt-1", "completed")
+		require.EqualError(t, err, "platform is required")
+	})
+
+	t.Run("complete_attempt_empty_attempt_id", func(t *testing.T) {
+		err := repo.CompleteAttempt(ctx, "tenant-oauth", "tiktok", "", "completed")
+		require.EqualError(t, err, "attempt_id is required")
+	})
 }
 
 func TestCredentialRepository_OAuthAttemptScope(t *testing.T) {

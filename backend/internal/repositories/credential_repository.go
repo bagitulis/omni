@@ -145,14 +145,31 @@ func (r *CredentialRepository) UpdateConnectionStatus(ctx context.Context, tenan
 }
 
 func validateConnectionScope(tenantID, platform, storeIdentifier string) error {
+	if err := validateTenantPlatformScope(tenantID, platform); err != nil {
+		return err
+	}
+	if storeIdentifier == "" {
+		return fmt.Errorf("store_identifier is required")
+	}
+	return nil
+}
+
+func validateTenantPlatformScope(tenantID, platform string) error {
 	if tenantID == "" {
 		return fmt.Errorf("tenant_id is required")
 	}
 	if platform == "" {
 		return fmt.Errorf("platform is required")
 	}
-	if storeIdentifier == "" {
-		return fmt.Errorf("store_identifier is required")
+	return nil
+}
+
+func validateAttemptScope(tenantID, platform, attemptID string) error {
+	if err := validateTenantPlatformScope(tenantID, platform); err != nil {
+		return err
+	}
+	if attemptID == "" {
+		return fmt.Errorf("attempt_id is required")
 	}
 	return nil
 }
@@ -163,8 +180,8 @@ func validateConnectionScope(tenantID, platform, storeIdentifier string) error {
 
 // GetAppConfig retrieves the app config for a tenant/platform.
 func (r *CredentialRepository) GetAppConfig(ctx context.Context, tenantID, platform string) (*models.CredentialAppConfig, error) {
-	if tenantID == "" {
-		return nil, fmt.Errorf("tenant_id is required")
+	if err := validateTenantPlatformScope(tenantID, platform); err != nil {
+		return nil, err
 	}
 	var cfg models.CredentialAppConfig
 	err := r.db.WithContext(ctx).
@@ -184,8 +201,8 @@ func (r *CredentialRepository) GetAppConfig(ctx context.Context, tenantID, platf
 
 // UpsertAppConfig encrypts secrets and creates or updates an app config.
 func (r *CredentialRepository) UpsertAppConfig(ctx context.Context, cfg *models.CredentialAppConfig) error {
-	if cfg.TenantID == "" {
-		return fmt.Errorf("tenant_id is required")
+	if err := validateTenantPlatformScope(cfg.TenantID, cfg.Platform); err != nil {
+		return err
 	}
 	if cfg.ID == "" {
 		cfg.ID = uuid.New().String()
@@ -225,8 +242,8 @@ func (r *CredentialRepository) UpsertAppConfig(ctx context.Context, cfg *models.
 
 // CreateAttempt creates a pending OAuth connection attempt.
 func (r *CredentialRepository) CreateAttempt(ctx context.Context, attempt *models.OAuthConnectionAttempt) error {
-	if attempt.TenantID == "" {
-		return fmt.Errorf("tenant_id is required")
+	if err := validateAttemptScope(attempt.TenantID, attempt.Platform, attempt.AttemptID); err != nil {
+		return err
 	}
 	if attempt.ID == "" {
 		attempt.ID = uuid.New().String()
@@ -242,8 +259,8 @@ func (r *CredentialRepository) CreateAttempt(ctx context.Context, attempt *model
 
 // GetAttempt retrieves a pending OAuth attempt by tenant, platform, and attempt_id.
 func (r *CredentialRepository) GetAttempt(ctx context.Context, tenantID, platform, attemptID string) (*models.OAuthConnectionAttempt, error) {
-	if tenantID == "" {
-		return nil, fmt.Errorf("tenant_id is required")
+	if err := validateAttemptScope(tenantID, platform, attemptID); err != nil {
+		return nil, err
 	}
 	var attempt models.OAuthConnectionAttempt
 	err := r.db.WithContext(ctx).
@@ -260,8 +277,8 @@ func (r *CredentialRepository) GetAttempt(ctx context.Context, tenantID, platfor
 
 // CompleteAttempt marks an OAuth attempt as completed or failed.
 func (r *CredentialRepository) CompleteAttempt(ctx context.Context, tenantID, platform, attemptID, status string) error {
-	if tenantID == "" {
-		return fmt.Errorf("tenant_id is required")
+	if err := validateAttemptScope(tenantID, platform, attemptID); err != nil {
+		return err
 	}
 	now := time.Now()
 	result := r.db.WithContext(ctx).

@@ -118,6 +118,9 @@ func resolveDocumentTypes(client shippingClient, orderSN, packageNumber, request
 		if trimmed == "" {
 			return
 		}
+		if !isKnownShopeeDocumentType(trimmed) {
+			return
+		}
 		if _, exists := seen[trimmed]; exists {
 			return
 		}
@@ -149,10 +152,32 @@ func resolveDocumentTypes(client shippingClient, orderSN, packageNumber, request
 		}
 	}
 
-	appendType("THERMAL_AIR_WAYBILL")
-	appendType("NORMAL_AIR_WAYBILL")
-	appendType("THERMAL_WAYBILL")
-	appendType("NORMAL_WAYBILL")
+	appendKnownShopeeDocumentTypes(appendType)
 
 	return result, lastError
+}
+
+func isKnownShopeeDocumentType(value string) bool {
+	for _, documentType := range knownShopeeDocumentTypes() {
+		if value == documentType {
+			return true
+		}
+	}
+	return false
+}
+
+func appendKnownShopeeDocumentTypes(appendType func(string)) {
+	for _, documentType := range knownShopeeDocumentTypes() {
+		appendType(documentType)
+	}
+}
+
+func knownShopeeDocumentTypes() []string {
+	return []string{
+		"THERMAL_AIR_WAYBILL",
+		"NORMAL_AIR_WAYBILL",
+		"THERMAL_JOB_AIR_WAYBILL",
+		"NORMAL_JOB_AIR_WAYBILL",
+		"THERMAL_UNPACKAGED_LABEL",
+	}
 }
