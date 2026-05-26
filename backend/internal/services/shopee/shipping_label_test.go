@@ -418,7 +418,7 @@ func TestResolveDocumentTypes_UsesOnlyShopeeAcceptedFallbacks(t *testing.T) {
 	mockClient.AssertExpectations(t)
 }
 
-func TestResolveDocumentTypes_PreservesShopeeParameterPriority(t *testing.T) {
+func TestResolveDocumentTypes_PrefersShopeeParameterPriority(t *testing.T) {
 	mockClient := new(MockAPIClient)
 	orderSN := "260526DUCVK49C"
 
@@ -444,11 +444,46 @@ func TestResolveDocumentTypes_PreservesShopeeParameterPriority(t *testing.T) {
 
 	assert.Empty(t, errMessage)
 	assert.Equal(t, []string{
-		"THERMAL_AIR_WAYBILL",
 		"THERMAL_UNPACKAGED_LABEL",
 		"NORMAL_JOB_AIR_WAYBILL",
+		"THERMAL_AIR_WAYBILL",
 		"NORMAL_AIR_WAYBILL",
 		"THERMAL_JOB_AIR_WAYBILL",
+	}, documentTypes)
+	mockClient.AssertExpectations(t)
+}
+
+func TestResolveDocumentTypes_UsesRequestedTypeWhenShopeeAllowsIt(t *testing.T) {
+	mockClient := new(MockAPIClient)
+	orderSN := "260526E4HJMPFR"
+
+	paramResp := &shopeePkg.GetShippingDocumentParameterResponse{}
+	paramResp.Response.ResultList = append(paramResp.Response.ResultList, struct {
+		OrderSN                        string   `json:"order_sn"`
+		PackageNumber                  string   `json:"package_number"`
+		SuggestShippingDocumentType    string   `json:"suggest_shipping_document_type"`
+		SelectableShippingDocumentType []string `json:"selectable_shipping_document_type"`
+		FailError                      string   `json:"fail_error,omitempty"`
+		FailMessage                    string   `json:"fail_message,omitempty"`
+	}{
+		OrderSN:                     orderSN,
+		SuggestShippingDocumentType: "THERMAL_UNPACKAGED_LABEL",
+		SelectableShippingDocumentType: []string{
+			"THERMAL_AIR_WAYBILL",
+			"THERMAL_UNPACKAGED_LABEL",
+		},
+	})
+	mockClient.On("GetShippingDocumentParameter", orderSN, "").Return(paramResp, nil).Once()
+
+	documentTypes, errMessage := resolveDocumentTypes(mockClient, orderSN, "", "THERMAL_AIR_WAYBILL")
+
+	assert.Empty(t, errMessage)
+	assert.Equal(t, []string{
+		"THERMAL_UNPACKAGED_LABEL",
+		"THERMAL_AIR_WAYBILL",
+		"NORMAL_AIR_WAYBILL",
+		"THERMAL_JOB_AIR_WAYBILL",
+		"NORMAL_JOB_AIR_WAYBILL",
 	}, documentTypes)
 	mockClient.AssertExpectations(t)
 }

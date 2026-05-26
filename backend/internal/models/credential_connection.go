@@ -21,6 +21,7 @@ type CredentialConnection struct {
 	Version         int        `gorm:"column:version;default:1" json:"version"`
 	DisabledAt      *time.Time `gorm:"column:disabled_at" json:"disabled_at,omitempty"`
 	DisabledReason  string     `gorm:"column:disabled_reason;type:varchar(255)" json:"disabled_reason,omitempty"`
+	DisabledBy      string     `gorm:"column:disabled_by;type:varchar(100)" json:"disabled_by,omitempty"`
 	CreatedBy       string     `gorm:"column:created_by;type:varchar(100)" json:"created_by"`
 	UpdatedBy       string     `gorm:"column:updated_by;type:varchar(100)" json:"updated_by"`
 	CreatedAt       time.Time  `gorm:"column:created_at;autoCreateTime" json:"created_at"`

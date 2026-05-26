@@ -114,6 +114,7 @@ func (s *ShippingService) tryStandardDownload(ctx context.Context, client shippi
 func resolveDocumentTypes(client shippingClient, orderSN, packageNumber, requestedType string) ([]string, string) {
 	result := make([]string, 0, 8)
 	seen := make(map[string]struct{}, 8)
+	parameterTypes := make([]string, 0, 4)
 	appendType := func(value string) {
 		trimmed := strings.TrimSpace(value)
 		if trimmed == "" {
@@ -128,29 +129,43 @@ func resolveDocumentTypes(client shippingClient, orderSN, packageNumber, request
 		seen[trimmed] = struct{}{}
 		result = append(result, trimmed)
 	}
-
-	appendType(requestedType)
+	appendParameterType := func(value string) {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" || !isKnownShopeeDocumentType(trimmed) {
+			return
+		}
+		if slices.Contains(parameterTypes, trimmed) {
+			return
+		}
+		parameterTypes = append(parameterTypes, trimmed)
+		appendType(trimmed)
+	}
 
 	var lastError string
 	apiResult, err := client.GetShippingDocumentParameter(orderSN, packageNumber)
 	if err != nil {
 		lastError = err.Error()
 	} else {
-		lastError = appendDocumentTypesFromParameter(apiResult, appendType)
+		lastError = appendDocumentTypesFromParameter(apiResult, appendParameterType)
 	}
 
-	if packageNumber != "" && len(result) == 1 {
+	if packageNumber != "" && len(parameterTypes) == 0 {
 		fallbackResult, fallbackErr := client.GetShippingDocumentParameter(orderSN, "")
 		if fallbackErr != nil {
 			if lastError == "" {
 				lastError = fallbackErr.Error()
 			}
 		} else {
-			fallbackParamErr := appendDocumentTypesFromParameter(fallbackResult, appendType)
+			fallbackParamErr := appendDocumentTypesFromParameter(fallbackResult, appendParameterType)
 			if lastError == "" {
 				lastError = fallbackParamErr
 			}
 		}
+	}
+
+	trimmedRequestedType := strings.TrimSpace(requestedType)
+	if len(parameterTypes) == 0 || slices.Contains(parameterTypes, trimmedRequestedType) {
+		appendType(trimmedRequestedType)
 	}
 
 	appendKnownShopeeDocumentTypes(appendType)

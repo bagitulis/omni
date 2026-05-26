@@ -144,6 +144,7 @@ func (r *CredentialRepository) UpdateConnectionStatus(ctx context.Context, tenan
 	return nil
 }
 
+
 func validateConnectionScope(tenantID, platform, storeIdentifier string) error {
 	if err := validateTenantPlatformScope(tenantID, platform); err != nil {
 		return err
