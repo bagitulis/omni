@@ -10,17 +10,16 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// GetActiveConnectionForRefresh returns the active credential row for a tenant/platform.
+// GetActiveConnectionForRefresh returns the active credential row for a tenant/platform/store.
 // The returned row is locked for update inside the current transaction scope when possible.
-func (r *CredentialRepository) GetActiveConnectionForRefresh(ctx context.Context, tenantID, platform string) (*models.CredentialConnection, error) {
-	if err := validateTenantPlatformScope(tenantID, platform); err != nil {
+func (r *CredentialRepository) GetActiveConnectionForRefresh(ctx context.Context, tenantID, platform, storeIdentifier string) (*models.CredentialConnection, error) {
+	if err := validateConnectionScope(tenantID, platform, storeIdentifier); err != nil {
 		return nil, err
 	}
 	var conn models.CredentialConnection
 	err := r.db.WithContext(ctx).
 		Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("tenant_id = ? AND platform = ? AND disabled_at IS NULL", tenantID, platform).
-		Order("updated_at DESC, version DESC").
+		Where("tenant_id = ? AND platform = ? AND store_identifier = ? AND disabled_at IS NULL", tenantID, platform, storeIdentifier).
 		First(&conn).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -67,6 +66,36 @@ func (r *CredentialRepository) UpdateConnectionTokensWithVersion(ctx context.Con
 		Updates(updates)
 	if result.Error != nil {
 		return fmt.Errorf("update connection tokens: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("stale or disabled connection: %s/%s/%s", conn.TenantID, conn.Platform, conn.StoreIdentifier)
+	}
+	return nil
+}
+
+// UpdateConnectionStatusWithVersion updates only the status field when the version matches.
+func (r *CredentialRepository) UpdateConnectionStatusWithVersion(ctx context.Context, conn *models.CredentialConnection, expectedVersion int, status, code string) error {
+	if err := validateConnectionScope(conn.TenantID, conn.Platform, conn.StoreIdentifier); err != nil {
+		return err
+	}
+	if expectedVersion <= 0 {
+		return fmt.Errorf("expected version is required")
+	}
+	updates := map[string]any{
+		"status":     status,
+		"version":    gorm.Expr("version + 1"),
+		"updated_at": time.Now(),
+		"updated_by": conn.UpdatedBy,
+	}
+	if code != "" {
+		updates["disabled_reason"] = code
+	}
+	result := r.db.WithContext(ctx).
+		Model(&models.CredentialConnection{}).
+		Where("tenant_id = ? AND platform = ? AND store_identifier = ? AND disabled_at IS NULL AND version = ?", conn.TenantID, conn.Platform, conn.StoreIdentifier, expectedVersion).
+		Updates(updates)
+	if result.Error != nil {
+		return fmt.Errorf("update connection status: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("stale or disabled connection: %s/%s/%s", conn.TenantID, conn.Platform, conn.StoreIdentifier)

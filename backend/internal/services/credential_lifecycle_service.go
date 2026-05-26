@@ -29,32 +29,44 @@ func NewCredentialLifecycleService(db *gorm.DB) *CredentialLifecycleService {
 	return &CredentialLifecycleService{db: db}
 }
 
-func (s *CredentialLifecycleService) RefreshConnection(ctx context.Context, tenantID, platform, actor, actorRole string, refreshFn func(*models.CredentialConnection) (*CredentialRefreshOutcome, error)) (*models.CredentialConnection, error) {
-	return s.applyLifecycleChange(ctx, tenantID, platform, actor, actorRole, "refresh", refreshFn)
+func (s *CredentialLifecycleService) RefreshConnection(ctx context.Context, tenantID, platform, storeIdentifier, actor, actorRole string, refreshFn func(*models.CredentialConnection) (*CredentialRefreshOutcome, error)) (*models.CredentialConnection, error) {
+	return s.applyLifecycleChange(ctx, tenantID, platform, storeIdentifier, actor, actorRole, "refresh", refreshFn)
 }
 
-func (s *CredentialLifecycleService) DisconnectConnection(ctx context.Context, tenantID, platform, actor, actorRole string, disconnectFn func(*models.CredentialConnection) (*CredentialRefreshOutcome, error)) (*models.CredentialConnection, error) {
-	return s.applyLifecycleChange(ctx, tenantID, platform, actor, actorRole, "disconnect", disconnectFn)
+func (s *CredentialLifecycleService) DisconnectConnection(ctx context.Context, tenantID, platform, storeIdentifier, actor, actorRole string, disconnectFn func(*models.CredentialConnection) (*CredentialRefreshOutcome, error)) (*models.CredentialConnection, error) {
+	return s.applyLifecycleChange(ctx, tenantID, platform, storeIdentifier, actor, actorRole, "disconnect", disconnectFn)
 }
 
-func (s *CredentialLifecycleService) applyLifecycleChange(ctx context.Context, tenantID, platform, actor, actorRole, eventType string, changeFn func(*models.CredentialConnection) (*CredentialRefreshOutcome, error)) (*models.CredentialConnection, error) {
+func (s *CredentialLifecycleService) applyLifecycleChange(ctx context.Context, tenantID, platform, storeIdentifier, actor, actorRole, eventType string, changeFn func(*models.CredentialConnection) (*CredentialRefreshOutcome, error)) (*models.CredentialConnection, error) {
 	if s.db == nil {
 		return nil, fmt.Errorf("credential database is required")
 	}
 	var updated *models.CredentialConnection
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		repo := repositories.NewCredentialRepository(tx)
-		conn, err := repo.GetActiveConnectionForRefresh(ctx, tenantID, platform)
+		conn, err := repo.GetActiveConnectionForRefresh(ctx, tenantID, platform, storeIdentifier)
 		if err != nil {
 			return err
 		}
 		if conn == nil {
-			return fmt.Errorf("connection not found for %s/%s", tenantID, platform)
+			return fmt.Errorf("connection not found for %s/%s/%s", tenantID, platform, storeIdentifier)
 		}
 		initialVersion := conn.Version
 		outcome, err := changeFn(conn)
 		if err != nil {
-			return s.writeAudit(ctx, repo, conn, actor, actorRole, eventType+"_failed", "failed", "refresh_failed", map[string]any{"store_identifier_mask": conn.StoreIdentifierMask()})
+			status := "refresh_failed"
+			if outcome != nil && outcome.Status != "" {
+				status = outcome.Status
+			}
+			if status != "refresh_failed" && status != "action_required" {
+				status = "refresh_failed"
+			}
+			if err := repo.UpdateConnectionStatusWithVersion(ctx, conn, initialVersion, status, sanitizeFailureCode(err)); err != nil {
+				return err
+			}
+			conn.Status = status
+			conn.Version = initialVersion + 1
+			return s.writeAudit(ctx, repo, conn, actor, actorRole, eventType+"_failed", "failed", sanitizeFailureCode(err), map[string]any{"store_identifier_mask": conn.StoreIdentifierMask()})
 		}
 		if outcome == nil {
 			return fmt.Errorf("credential lifecycle outcome is required")
@@ -79,9 +91,19 @@ func (s *CredentialLifecycleService) applyLifecycleChange(ctx context.Context, t
 		now := time.Now()
 		if err := repo.UpdateConnectionTokensWithVersion(ctx, conn, initialVersion, outcome.Status, outcome.Code, &now); err != nil {
 			if outcome.PreserveCurrentToken {
+				if statusErr := repo.UpdateConnectionStatusWithVersion(ctx, conn, initialVersion, "action_required", "stale_refresh_blocked"); statusErr != nil {
+					return statusErr
+				}
+				conn.Status = "action_required"
+				conn.Version = initialVersion + 1
 				return s.writeAudit(ctx, repo, conn, actor, actorRole, "refresh_failed", "failed", "stale_refresh_blocked", map[string]any{"store_identifier_mask": conn.StoreIdentifierMask()})
 			}
-			return err
+			if statusErr := repo.UpdateConnectionStatusWithVersion(ctx, conn, initialVersion, "refresh_failed", sanitizeFailureCode(err)); statusErr != nil {
+				return statusErr
+			}
+			conn.Status = "refresh_failed"
+			conn.Version = initialVersion + 1
+			return s.writeAudit(ctx, repo, conn, actor, actorRole, "refresh_failed", "failed", sanitizeFailureCode(err), map[string]any{"store_identifier_mask": conn.StoreIdentifierMask()})
 		}
 		conn.Version = initialVersion + 1
 		conn.LastRefreshAt = &now
@@ -103,4 +125,11 @@ func (s *CredentialLifecycleService) writeAudit(ctx context.Context, repo *repos
 		ActorRole:       actorRole,
 		Metadata:        models.JSONMap(metadata),
 	})
+}
+
+func sanitizeFailureCode(err error) string {
+	if err == nil {
+		return "refresh_failed"
+	}
+	return "refresh_failed"
 }

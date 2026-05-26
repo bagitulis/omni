@@ -55,6 +55,7 @@ func createLifecycleConnection(t *testing.T, repo *repositories.CredentialReposi
 func TestCredentialLifecycleServiceConcurrentRefreshPersistsOneFinalVersion(t *testing.T) {
 	svc, repo, ctx := setupCredentialLifecycleTest(t)
 	createLifecycleConnection(t, repo, ctx, "tenant-refresh", models.PlatformShopee, "shop-123")
+	createLifecycleConnection(t, repo, ctx, "tenant-refresh", models.PlatformShopee, "shop-456")
 
 	var calls int32
 	var wg sync.WaitGroup
@@ -63,9 +64,10 @@ func TestCredentialLifecycleServiceConcurrentRefreshPersistsOneFinalVersion(t *t
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, err := svc.RefreshConnection(ctx, "tenant-refresh", models.PlatformShopee, "service", "service", func(conn *models.CredentialConnection) (*CredentialRefreshOutcome, error) {
+			_, err := svc.RefreshConnection(ctx, "tenant-refresh", models.PlatformShopee, "shop-123", "service", "service", func(conn *models.CredentialConnection) (*CredentialRefreshOutcome, error) {
 				call := atomic.AddInt32(&calls, 1)
 				time.Sleep(25 * time.Millisecond)
+				assert.Equal(t, "shop-123", conn.StoreIdentifier)
 				return &CredentialRefreshOutcome{
 					AccessToken:    "new-access-token-" + string(rune('0'+call)),
 					RefreshToken:   "new-refresh-token-" + string(rune('0'+call)),
@@ -90,6 +92,12 @@ func TestCredentialLifecycleServiceConcurrentRefreshPersistsOneFinalVersion(t *t
 	assert.Equal(t, 3, conn.Version)
 	assert.True(t, strings.HasPrefix(conn.AccessToken, "new-access-token-"))
 	assert.Equal(t, "connected", conn.Status)
+	other, err := repo.GetConnection(ctx, "tenant-refresh", models.PlatformShopee, "shop-456")
+	require.NoError(t, err)
+	require.NotNil(t, other)
+	assert.Equal(t, "original-access-token", other.AccessToken)
+	assert.Equal(t, 1, other.Version)
+	assert.Equal(t, "connected", other.Status)
 	events, err := repo.ListAuditEvents(ctx, "tenant-refresh", models.PlatformShopee, 10, 0)
 	require.NoError(t, err)
 	require.Len(t, events, 2)
@@ -126,7 +134,7 @@ func TestCredentialLifecycleServiceRefreshFailurePreservesTokenAndAudits(t *test
 	svc, repo, ctx := setupCredentialLifecycleTest(t)
 	createLifecycleConnection(t, repo, ctx, "tenant-failure", models.PlatformLazada, "seller-321")
 
-	_, err := svc.RefreshConnection(ctx, "tenant-failure", models.PlatformLazada, "service", "service", func(conn *models.CredentialConnection) (*CredentialRefreshOutcome, error) {
+	_, err := svc.RefreshConnection(ctx, "tenant-failure", models.PlatformLazada, "seller-321", "service", "service", func(conn *models.CredentialConnection) (*CredentialRefreshOutcome, error) {
 		return nil, errors.New("provider rejected secret-token-value")
 	})
 	require.NoError(t, err)
@@ -134,7 +142,8 @@ func TestCredentialLifecycleServiceRefreshFailurePreservesTokenAndAudits(t *test
 	require.NoError(t, err)
 	require.NotNil(t, conn)
 	assert.Equal(t, "original-access-token", conn.AccessToken)
-	assert.Equal(t, 1, conn.Version)
+	assert.Equal(t, 2, conn.Version)
+	assert.Equal(t, "refresh_failed", conn.Status)
 
 	events, err := repo.ListAuditEvents(ctx, "tenant-failure", models.PlatformLazada, 10, 0)
 	require.NoError(t, err)
@@ -142,6 +151,7 @@ func TestCredentialLifecycleServiceRefreshFailurePreservesTokenAndAudits(t *test
 	assert.Equal(t, "refresh_failed", events[0].EventType)
 	assert.Equal(t, "failed", events[0].Status)
 	assert.Equal(t, "refresh_failed", events[0].Code)
+	assert.Equal(t, "***321", events[0].Metadata["store_identifier_mask"])
 	assertAuditContainsNoSecrets(t, events[0])
 }
 
