@@ -85,6 +85,7 @@ func main() {
 
 	// ====== Platform Auth Routes ======
 	routes.RegisterPlatformAuthRoutes(api, application.PlatformAuthHandler)
+	routes.RegisterCredentialRoutes(api, application.PlatformAuthHandler)
 
 	// ====== Extended Routes ======
 	// Utility routes
@@ -133,7 +134,6 @@ func main() {
 	routes.RegisterFilterPreferenceRoutes(api, extHandlers.FilterPreferenceHandler)
 	routes.RegisterWholesaleRoutes(api, extHandlers.WholesaleHandler)
 	routes.RegisterWholesaleExtendedRoutes(api, cfg.DatabasePath)
-
 
 	// Image Gallery routes
 

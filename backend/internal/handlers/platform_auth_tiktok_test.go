@@ -40,7 +40,7 @@ func TestPlatformAuthHandler_GetTiktokShops(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := gin.New()
-			handler := NewPlatformAuthHandler(nil, "http://localhost:3000", "./data")
+			handler := NewPlatformAuthHandler(nil, "http://localhost:3000", "./data", nil)
 
 			r.Use(func(c *gin.Context) {
 				tt.setupContext(c)
@@ -95,7 +95,7 @@ func TestPlatformAuthHandler_GetActiveTiktokShop(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := gin.New()
-			handler := NewPlatformAuthHandler(nil, "http://localhost:3000", "./data")
+			handler := NewPlatformAuthHandler(nil, "http://localhost:3000", "./data", nil)
 
 			r.Use(func(c *gin.Context) {
 				tt.setupContext(c)
@@ -150,7 +150,7 @@ func TestPlatformAuthHandler_GetStatus(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := gin.New()
-			handler := NewPlatformAuthHandler(nil, "http://localhost:3000", "./data")
+			handler := NewPlatformAuthHandler(nil, "http://localhost:3000", "./data", nil)
 
 			r.Use(func(c *gin.Context) {
 				tt.setupContext(c)
@@ -205,7 +205,7 @@ func TestPlatformAuthHandler_GetLogs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := gin.New()
-			handler := NewPlatformAuthHandler(nil, "http://localhost:3000", "./data")
+			handler := NewPlatformAuthHandler(nil, "http://localhost:3000", "./data", nil)
 
 			r.Use(func(c *gin.Context) {
 				tt.setupContext(c)

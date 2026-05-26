@@ -73,8 +73,8 @@ type App struct {
 	WebhookHandler      *handlers.WebhookHandler
 	PlatformAuthHandler *handlers.PlatformAuthHandler
 	// Analytics Report Handlers (per-platform, initialized in initHandlers)
-	ShopeeAnalyticsHandler  *handlers.ShopeeAnalyticsHandler
-	TiktokAnalyticsHandler  *handlers.TiktokAnalyticsHandler
+	ShopeeAnalyticsHandler *handlers.ShopeeAnalyticsHandler
+	TiktokAnalyticsHandler *handlers.TiktokAnalyticsHandler
 }
 
 // New creates and initializes the application
@@ -281,6 +281,7 @@ func (a *App) initHandlers() {
 		a.GlobalConfigRepo,
 		frontendURL,
 		a.BasePath,
+		services.NewCredentialApiService(a.SystemDB),
 	)
 
 	a.ShopeeAnalyticsHandler = handlers.NewShopeeAnalyticsHandler(a.SystemDB)

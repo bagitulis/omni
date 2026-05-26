@@ -26,6 +26,24 @@ func RegisterPlatformAuthRoutes(router *gin.RouterGroup, handler *handlers.Platf
 	}
 }
 
+// RegisterCredentialRoutes registers credential management routes
+func RegisterCredentialRoutes(router *gin.RouterGroup, handler *handlers.PlatformAuthHandler) {
+	credentials := router.Group("/credentials")
+	credentials.Use(middleware.Auth())
+	credentials.Use(middleware.Tenant())
+	{
+		credentials.GET("/platforms", handler.GetCredentialPlatforms)
+		credentials.PUT("/platforms/:platform/app", handler.PutCredentialApp)
+		credentials.POST("/platforms/:platform/app/rotate", handler.RotateCredentialApp)
+		credentials.POST("/platforms/:platform/connections/oauth/initiate", handler.PostCredentialOAuthInitiate)
+		credentials.POST("/platforms/:platform/connections/:store_identifier/oauth/reconnect", handler.PostCredentialOAuthReconnect)
+		credentials.POST("/platforms/:platform/connections/:store_identifier/refresh", handler.PostCredentialRefresh)
+		credentials.POST("/platforms/:platform/connections/:store_identifier/disconnect", handler.PostCredentialDisconnect)
+		credentials.GET("/platforms/:platform/audit", handler.GetCredentialAudit)
+		credentials.POST("/platforms/:platform/connections/manual-token", handler.PostCredentialManualToken)
+	}
+}
+
 // RegisterWebhookExtendedRoutes registers webhook extended routes
 func RegisterWebhookExtendedRoutes(
 	router *gin.RouterGroup,

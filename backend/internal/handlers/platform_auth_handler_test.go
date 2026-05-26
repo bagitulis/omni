@@ -15,7 +15,7 @@ func TestPlatformAuthHandler_GetOAuthURLs_MissingTenant(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	handler := NewPlatformAuthHandler(nil, "http://localhost:3000", "./data")
+	handler := NewPlatformAuthHandler(nil, "http://localhost:3000", "./data", nil)
 	r.GET("/api/platform-auth/urls", handler.GetOAuthURLs)
 
 	req, _ := http.NewRequest("GET", "/api/platform-auth/urls", nil)
@@ -35,7 +35,7 @@ func TestPlatformAuthHandler_DisconnectShopee_MissingTenant(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	handler := NewPlatformAuthHandler(nil, "http://localhost:3000", "./data")
+	handler := NewPlatformAuthHandler(nil, "http://localhost:3000", "./data", nil)
 	r.GET("/api/platform-auth/shopee/disconnect", handler.DisconnectShopee)
 
 	req, _ := http.NewRequest("GET", "/api/platform-auth/shopee/disconnect", nil)
@@ -50,7 +50,7 @@ func TestPlatformAuthHandler_DisconnectLazada_MissingTenant(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	handler := NewPlatformAuthHandler(nil, "http://localhost:3000", "./data")
+	handler := NewPlatformAuthHandler(nil, "http://localhost:3000", "./data", nil)
 	r.GET("/api/platform-auth/lazada/disconnect", handler.DisconnectLazada)
 
 	req, _ := http.NewRequest("GET", "/api/platform-auth/lazada/disconnect", nil)
@@ -65,7 +65,7 @@ func TestPlatformAuthHandler_CheckAllConnections_MissingTenant(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	handler := NewPlatformAuthHandler(nil, "http://localhost:3000", "./data")
+	handler := NewPlatformAuthHandler(nil, "http://localhost:3000", "./data", nil)
 	r.POST("/api/platform-auth/check-all", handler.CheckAllConnections)
 
 	req, _ := http.NewRequest("POST", "/api/platform-auth/check-all", nil)
