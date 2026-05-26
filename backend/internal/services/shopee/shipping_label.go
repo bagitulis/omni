@@ -2,6 +2,7 @@ package shopee
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	shopeePkg "github.com/omni/backend/pkg/shopee"
@@ -158,12 +159,7 @@ func resolveDocumentTypes(client shippingClient, orderSN, packageNumber, request
 }
 
 func isKnownShopeeDocumentType(value string) bool {
-	for _, documentType := range knownShopeeDocumentTypes() {
-		if value == documentType {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(knownShopeeDocumentTypes(), value)
 }
 
 func appendKnownShopeeDocumentTypes(appendType func(string)) {

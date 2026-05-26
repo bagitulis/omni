@@ -452,3 +452,23 @@ func TestResolveDocumentTypes_PreservesShopeeParameterPriority(t *testing.T) {
 	}, documentTypes)
 	mockClient.AssertExpectations(t)
 }
+
+func TestResolveDocumentTypes_IgnoresInvalidRequestedType(t *testing.T) {
+	mockClient := new(MockAPIClient)
+	orderSN := "260526DV6B0FUP"
+
+	mockClient.On("GetShippingDocumentParameter", orderSN, "").Return(&shopeePkg.GetShippingDocumentParameterResponse{}, nil).Once()
+
+	documentTypes, errMessage := resolveDocumentTypes(mockClient, orderSN, "", "THERMAL_WAYBILL")
+
+	assert.Empty(t, errMessage)
+	assert.Equal(t, []string{
+		"THERMAL_AIR_WAYBILL",
+		"NORMAL_AIR_WAYBILL",
+		"THERMAL_JOB_AIR_WAYBILL",
+		"NORMAL_JOB_AIR_WAYBILL",
+		"THERMAL_UNPACKAGED_LABEL",
+	}, documentTypes)
+	assert.NotContains(t, documentTypes, "THERMAL_WAYBILL")
+	mockClient.AssertExpectations(t)
+}
