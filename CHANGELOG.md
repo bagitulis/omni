@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Dry-run credentials tool**: Created `backend/cmd/dry-run-credentials/main.go` — a standalone Go CLI that connects to PostgreSQL, queries active tenants, inspects platform_configs table structure (key-value vs structured), and prints a redacted count-by-platform report. Uses database/sql + lib/pq with env-var config and no secret exposure. Added github.com/lib/pq dependency (v1.12.3). (main.go, go.mod, go.sum)
 ### Added
 - **Task 8 — Frontend analytics test suite**: Created `frontend/src/lib/analyticsHelpers.test.ts` (22 tests covering formatMonthYear, formatDate, getPriceDiffStatus, formatPriceDiff, getReconciliationHealth, exportToCSV), `frontend/src/api/analytics.test.ts` (29 tests covering all 16 Shopee+TikTok API functions with endpoint/params/error assertions), and `frontend/src/hooks/useAnalytics.test.ts` (32 tests covering all 7 hooks + analyticsKeys with platform dispatch verification). Also fixed `formatDate` to return "-" for invalid date strings (e.g. `new Date("not-a-date")`). All 82 tests pass with zero lint errors. (analyticsHelpers.test.ts, analytics.test.ts [api], useAnalytics.test.ts)
 
