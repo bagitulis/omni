@@ -198,7 +198,7 @@ func (s *ShopeeAnalyticsService) GetReconciliation(ctx context.Context, tenantID
 			COUNT(DISTINCT escrow_order_id) as order_count
 		`).
 		Where("tenant_id = ? AND month = ? AND year = ?", tenantID, month, year).
-		Group("sku, item_name").
+		Group("COALESCE(model_sku, sku, ''), COALESCE(item_name, '')").
 		Order("total_amt DESC").
 		Scan(&agg).Error
 	if err != nil {

@@ -221,7 +221,7 @@ func (s *TiktokAnalyticsService) GetReconciliation(ctx context.Context, tenantID
 		`).
 		Where("escrow_order_id IN ?", orderIDs).
 		Where("tenant_id = ?", tenantID).
-		Group("sku, item_name").
+		Group("COALESCE(seller_sku, ''), COALESCE(product_name, '')").
 		Order("total_amt DESC").
 		Scan(&agg).Error
 	if err != nil {
