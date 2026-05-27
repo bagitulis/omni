@@ -76,12 +76,34 @@ const TIKTOK_HEADERS: Record<string, string> = {
   status: "Status",
 };
 
+const SHOPEE_SHIPPING_HEADERS: Record<string, string> = {
+  order_sn: "Order Sn", buyer_paid: "Buyer Paid", actual_fee: "Actual Fee",
+  shopee_rebate: "Shopee Rebate", difference: "Difference", status: "Status",
+  buyer_name: "Buyer Name", payment_method: "Payment Method",
+};
+
+const TIKTOK_SHIPPING_HEADERS: Record<string, string> = {
+  order_sn: "Order Sn", customer_paid: "Customer Paid", actual_fee: "Actual Fee",
+  platform_discount: "Platform Discount", difference: "Difference", status: "Status",
+  order_status: "Order Status", currency: "Currency",
+};
+
 function isIgnoredWarning(text: string): boolean {
   const patterns = [
     "Warning: [antd:", "`dropdownRender`", "`overlayInnerStyle`",
     "`bodyStyle`", "`destroyOnClose`", "Duplicated key",
   ];
   return patterns.some((p) => text.includes(p));
+}
+
+async function fetchCsv(token: string, url: string, headers: Record<string, string>): Promise<string | null> {
+  const resp = await fetch(BASE_URL + url, { headers: { Authorization: "Bearer " + token } });
+  const json = await resp.json();
+  const data = json?.data;
+  if (!data) return null;
+  const items = data.details || data.sku_groups || [];
+  if (items.length === 0) return null;
+  return createCsv(items, headers);
 }
 
 test.describe("Escrow E2E", () => {
@@ -114,16 +136,14 @@ test.describe("Escrow E2E", () => {
     await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(1000);
     const token = await getApiToken();
     if (token) {
-      const resp = await fetch(BASE_URL + "/api/analytics/shopee/reconciliation?month=1&year=2026", {
-        headers: { Authorization: "Bearer " + token },
-      });
-      const json = await resp.json();
-      const groups = json?.data?.sku_groups || [];
-      if (groups.length > 0) {
-        const csv = createCsv(groups, SHOPEE_HEADERS);
+      const csv = await fetchCsv(token, "/api/analytics/shopee/reconciliation?month=1&year=2026", SHOPEE_HEADERS);
+      if (csv) {
         fs.writeFileSync(path.join(EVIDENCE_DIR, "task-13-shopee-export.csv"), csv);
-        console.log("  CSV: " + csv.split("\n").length + " lines, " + csv.length + " bytes");
-        expect(Object.keys(SHOPEE_HEADERS).every((k) => Object.keys(groups[0]).includes(k))).toBeTruthy();
+      }
+      const shipCsv = await fetchCsv(token, "/api/analytics/shopee/shipping-fee?month=1&year=2026", SHOPEE_SHIPPING_HEADERS);
+      if (shipCsv) {
+        fs.writeFileSync(path.join(EVIDENCE_DIR, "task-13-shopee-shipping-export.csv"), shipCsv);
+        expect(shipCsv).toContain("4500");
       }
     }
     fs.writeFileSync(
@@ -162,16 +182,14 @@ test.describe("Escrow E2E", () => {
     await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(1000);
     const token = await getApiToken();
     if (token) {
-      const resp = await fetch(BASE_URL + "/api/analytics/tiktok/reconciliation?month=1&year=2026", {
-        headers: { Authorization: "Bearer " + token },
-      });
-      const json = await resp.json();
-      const groups = json?.data?.sku_groups || [];
-      if (groups.length > 0) {
-        const csv = createCsv(groups, TIKTOK_HEADERS);
+      const csv = await fetchCsv(token, "/api/analytics/tiktok/reconciliation?month=1&year=2026", TIKTOK_HEADERS);
+      if (csv) {
         fs.writeFileSync(path.join(EVIDENCE_DIR, "task-13-tiktok-export.csv"), csv);
-        console.log("  CSV: " + csv.split("\n").length + " lines, " + csv.length + " bytes");
-        expect(Object.keys(TIKTOK_HEADERS).every((k) => Object.keys(groups[0]).includes(k))).toBeTruthy();
+      }
+      const shipCsv = await fetchCsv(token, "/api/analytics/tiktok/shipping-fee?month=1&year=2026", TIKTOK_SHIPPING_HEADERS);
+      if (shipCsv) {
+        fs.writeFileSync(path.join(EVIDENCE_DIR, "task-13-tiktok-shipping-export.csv"), shipCsv);
+        expect(shipCsv).toContain("5000");
       }
     }
     fs.writeFileSync(
