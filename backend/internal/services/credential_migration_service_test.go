@@ -114,7 +114,7 @@ func TestCredentialLegacyFallbackDefaultAndOverride(t *testing.T) {
 
 func setupCredentialMigrationSQLite(t *testing.T) *gorm.DB {
 	t.Helper()
-	t.Setenv("ENCRYPTION_KEY", "test-key-32-chars-long-for-aes-256!!")
+	t.Setenv("ENCRYPTION_KEY", "h_mHtONC5qZ7RP7rGRsk2RGuX8UPkVSBUDowPxO08zc=")
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, db.AutoMigrate(&models.CredentialConnection{}, &models.CredentialAppConfig{}, &models.CredentialAuditEvent{}))
