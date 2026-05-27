@@ -41,9 +41,13 @@ const mockDevLogin = vi.fn();
 vi.mock("@/api/auth", () => ({
   login: (payload: unknown) => mockLogin(payload),
   devLogin: (payload: unknown) => mockDevLogin(payload),
-  getDevInfo: () => ({
+  getDevInfo: () => Promise.resolve({
+    success: true,
     dev_login_allowed: true,
+    dev_mode: true,
     tenant_id: "yumna_bertigamart",
+    tenants: [{ id: "yumna_bertigamart", name: "Yumna Bertigamart" }],
+    username: "tester",
     user: {
       id: "dev-user",
       username: "tester",
@@ -52,18 +56,22 @@ vi.mock("@/api/auth", () => ({
     },
   }),
 }));
-  login: (payload: unknown) => mockLogin(payload),
-  devLogin: (payload: unknown) => mockDevLogin(payload),
-}));
 
-const mockSetAuth = vi.fn();
-const mockIsAuthenticated = false;
+const { mockSetAuth, mockUseAuthStore } = vi.hoisted(() => {
+  const setAuth = vi.fn();
+  const useStore = () => ({
+    setAuth,
+    isAuthenticated: false,
+  });
+  useStore.getState = () => ({
+    setAuth,
+    isAuthenticated: setAuth.mock.calls.length > 0,
+  });
+  return { mockSetAuth: setAuth, mockUseAuthStore: useStore };
+});
 
 vi.mock("@/stores/authStore", () => ({
-  useAuthStore: () => ({
-    setAuth: mockSetAuth,
-    isAuthenticated: mockIsAuthenticated,
-  }),
+  useAuthStore: mockUseAuthStore,
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -92,7 +100,7 @@ describe("LoginPage", () => {
     expect(screen.getByRole("button", { name: /login/i })).toBeInTheDocument();
   });
 
-  it("renders dev mode login when on localhost", () => {
+  it("renders dev mode login when on localhost", async () => {
     // Mock window.location.hostname
     Object.defineProperty(window, "location", {
       writable: true,
@@ -101,8 +109,8 @@ describe("LoginPage", () => {
     sessionStorage.setItem("autoLoginFailed", "true");
 
     render(<LoginPage />);
-    expect(screen.getByText("Dev Mode (Localhost)")).toBeInTheDocument();
-    expect(screen.getByText("Quick Dev Login")).toBeInTheDocument();
+    expect(await screen.findByText("Dev Mode (Localhost)")).toBeInTheDocument();
+    expect(await screen.findByText("Quick Dev Login")).toBeInTheDocument();
   });
 
   it("handles standard login", async () => {

@@ -85,6 +85,9 @@ describe("UnifiedBatchBar", () => {
       />,
     );
 
+    fireEvent.click(
+      screen.getByRole("button", { name: /Push to Marketplace/i }),
+    );
     fireEvent.click(screen.getByRole("button", { name: /Bulk Pricing/i }));
     fireEvent.click(screen.getByRole("button", { name: /Bulk Pricing/i }));
     fireEvent.click(screen.getByRole("button", { name: /^Clone$/i }));
@@ -94,7 +97,7 @@ describe("UnifiedBatchBar", () => {
     expect(mockOnAction).toHaveBeenCalledWith("bulk_pricing");
     expect(mockOnAction).toHaveBeenCalledWith("bulk_pricing");
     expect(mockOnAction).toHaveBeenCalledWith("clone");
-    expect(mockOnAction).toHaveBeenCalledTimes(4);
+    expect(mockOnAction).toHaveBeenCalledWith("delete_products");
     expect(mockOnAction).toHaveBeenCalledTimes(5);
   });
 

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"os"
 	"testing"
 
 	"github.com/omni/backend/internal/models"
@@ -115,7 +114,7 @@ func TestCredentialLegacyFallbackDefaultAndOverride(t *testing.T) {
 
 func setupCredentialMigrationSQLite(t *testing.T) *gorm.DB {
 	t.Helper()
-	_ = os.Unsetenv("ENCRYPTION_KEY")
+	t.Setenv("ENCRYPTION_KEY", "test-key-32-chars-long-for-aes-256!!")
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, db.AutoMigrate(&models.CredentialConnection{}, &models.CredentialAppConfig{}, &models.CredentialAuditEvent{}))

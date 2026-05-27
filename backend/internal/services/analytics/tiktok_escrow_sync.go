@@ -277,12 +277,7 @@ func (s *TiktokEscrowSyncService) processSingleOrder(
 ) (int, error) {
 	transaction, err := client.GetOrderTransactions(order.ID)
 	if err != nil {
-		log.Warn().Str("order_id", order.ID).Err(err).
-			Msg("[TiktokEscrowSync] v202501 failed, falling back to v202309")
-		transaction, err = client.GetOrderTransactionsV202309(order.ID)
-		if err != nil {
-			return 0, fmt.Errorf("both API versions failed for order %s: %w", order.ID, err)
-		}
+		return 0, fmt.Errorf("TikTok v202501 order transactions failed for order %s: %w", order.ID, err)
 	}
 	if transaction == nil || transaction.Data.OrderID == "" {
 		return 0, fmt.Errorf("no transaction data for order %s", order.ID)

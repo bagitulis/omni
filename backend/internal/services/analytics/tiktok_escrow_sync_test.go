@@ -478,10 +478,9 @@ func TestTiktokEscrowSync_UsesV202501ForSEAIndonesia(t *testing.T) {
 	if v202501Calls < 2 {
 		t.Errorf("expected at least 2 v202501 calls, got %d", v202501Calls)
 	}
-	// Since v202501 returns success for known orders, v202309 should not be consulted.
-	// v202309 fallback is only used when v202501 returns an error.
-	// With our fake, known orders return code=0 so v202309 should NOT be called for them.
-	_ = v202309Calls
+	if v202309Calls != 0 {
+		t.Errorf("expected v202309 fallback to remain unused for SEA/Indonesia order statements, got %d calls", v202309Calls)
+	}
 }
 
 // ---------------------------------------------------------------------------
