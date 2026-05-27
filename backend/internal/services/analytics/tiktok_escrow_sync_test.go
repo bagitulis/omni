@@ -44,7 +44,7 @@ func setupTiktokSyncTestDB(t *testing.T) *gorm.DB {
 
 type callRecord struct {
 	method string
-	args   []interface{}
+	args   []any
 }
 
 type FakeTiktokClient struct {
@@ -221,7 +221,7 @@ func newFakeTiktokClient() *FakeTiktokClient {
 
 func (f *FakeTiktokClient) SearchOrders(req tiktokPkg.OrderSearchRequest, pageSize int, pageToken string) (*tiktokPkg.OrderSearchResponse, error) {
 	f.mu.Lock()
-	f.calls = append(f.calls, callRecord{method: "SearchOrders", args: []interface{}{req, pageSize, pageToken}})
+	f.calls = append(f.calls, callRecord{method: "SearchOrders", args: []any{req, pageSize, pageToken}})
 	f.mu.Unlock()
 
 	var filtered []tiktokPkg.TiktokOrder
@@ -246,7 +246,7 @@ func (f *FakeTiktokClient) SearchOrders(req tiktokPkg.OrderSearchRequest, pageSi
 
 func (f *FakeTiktokClient) GetOrderDetail(orderIDs []string) (*tiktokPkg.OrderDetailResponse, error) {
 	f.mu.Lock()
-	f.calls = append(f.calls, callRecord{method: "GetOrderDetail", args: []interface{}{orderIDs}})
+	f.calls = append(f.calls, callRecord{method: "GetOrderDetail", args: []any{orderIDs}})
 	f.mu.Unlock()
 
 	idSet := make(map[string]bool, len(orderIDs))
@@ -300,7 +300,7 @@ func buildOrderLineItems(items []tiktokPkg.TiktokOrderItem) []tiktokPkg.OrderLin
 
 func (f *FakeTiktokClient) GetOrderTransactions(orderID string) (*tiktokPkg.OrderTransactionResponse, error) {
 	f.mu.Lock()
-	f.calls = append(f.calls, callRecord{method: "GetOrderTransactions(v202501)", args: []interface{}{orderID}})
+	f.calls = append(f.calls, callRecord{method: "GetOrderTransactions(v202501)", args: []any{orderID}})
 	f.mu.Unlock()
 
 	tx, ok := f.transactions[orderID]
@@ -312,7 +312,7 @@ func (f *FakeTiktokClient) GetOrderTransactions(orderID string) (*tiktokPkg.Orde
 
 func (f *FakeTiktokClient) GetOrderTransactionsV202309(orderID string) (*tiktokPkg.OrderTransactionResponse, error) {
 	f.mu.Lock()
-	f.calls = append(f.calls, callRecord{method: "GetOrderTransactions(v202309)", args: []interface{}{orderID}})
+	f.calls = append(f.calls, callRecord{method: "GetOrderTransactions(v202309)", args: []any{orderID}})
 	f.mu.Unlock()
 
 	return &tiktokPkg.OrderTransactionResponse{Code: 40001, Message: "not found"}, nil

@@ -307,7 +307,7 @@ func (s *TiktokEscrowSyncService) saveSyncRecord(
 		Where("tenant_id = ? AND month = ? AND year = ?", s.tenantID, month, year).
 		Delete(nil)
 
-	record := map[string]interface{}{
+	record := map[string]any{
 		"id":               uuid.New().String(),
 		"tenant_id":        s.tenantID,
 		"month":            month,

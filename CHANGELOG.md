@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **F3 Final Manual QA evidence**: Added `.sisyphus/evidence/f3-manual-qa/summary.txt` documenting the Final Verification Wave browser QA attempt for Shopee/TikTok report pages. Verdict: REJECT with high confidence because the current E2E app URL refused connection and existing Task 13 screenshots prove empty-state page rendering plus CSV formula values, but do not prove current loaded rows, drill-down drawers, month/year filter behavior, or current console/network cleanliness.
 - **Task 14 — Build, Test, Docker, and Migration/Backup Verification**: Ran full backend (`go build ./...`, `ENCRYPTION_KEY=... go test ./... -count=1`) and frontend (`npm test`, `npm run build`, ESLint) verification. `go build` compiles cleanly. Backend tests: 30/31 `internal/...` packages pass; 1 pre-existing test bug in `credential_migration_service_test.go` (test unsetenv ENCRYPTION_KEY itself). All 75 analytics tests pass. Frontend: 173/175 files pass (1942 tests), 2 pre-existing syntax errors in unrelated test files; 109 escrow-related tests all pass; build compiles 3623 modules zero TS errors; ESLint clean. `python build.py smart` full build: FAILS (Docker unavailable — environmental, `--dry-run` validates OK). `python build.py backup` not required (no schema changes). Evidence: `.sisyphus/evidence/task-14-backend-verification.txt`, `.sisyphus/evidence/task-14-frontend-docker-verification.txt`.
 
 ### Fixed
