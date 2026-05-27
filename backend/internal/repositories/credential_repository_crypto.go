@@ -10,7 +10,7 @@ import (
 // encryptSecrets encrypts plaintext secret fields on a CredentialConnection.
 func (r *CredentialRepository) encryptSecrets(conn *models.CredentialConnection) error {
 	if r.encryption == nil {
-		return nil
+		return fmt.Errorf("encryption not configured: cannot store unencrypted secrets")
 	}
 	var err error
 	if conn.AccessToken != "" && !utils.IsEncrypted(conn.AccessToken) {
@@ -64,7 +64,7 @@ func (r *CredentialRepository) decryptSecrets(conn *models.CredentialConnection)
 // encryptAppConfigSecrets encrypts plaintext secret fields on a CredentialAppConfig.
 func (r *CredentialRepository) encryptAppConfigSecrets(cfg *models.CredentialAppConfig) error {
 	if r.encryption == nil {
-		return nil
+		return fmt.Errorf("encryption not configured: cannot store unencrypted secrets")
 	}
 	var err error
 	if cfg.AppKey != "" && !utils.IsEncrypted(cfg.AppKey) {

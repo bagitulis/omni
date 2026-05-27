@@ -152,3 +152,31 @@ export async function disconnectCredentialStore(
   }
   return response.data || { code: "disconnect_accepted" };
 }
+
+export interface OAuthInitiatePayload {
+  intent: string;
+  store_identifier?: string;
+  redirect_path: string;
+}
+
+export interface OAuthInitiateResult {
+  auth_url: string;
+  attempt_id: string;
+  expires_at: string;
+}
+
+export async function initiateOAuth(
+  platform: string,
+  payload: OAuthInitiatePayload,
+  context: CredentialRequestContext,
+) {
+  const response = await apiClient.post<OAuthInitiateResult>(
+    `/credentials/platforms/${platform}/connections/oauth/initiate`,
+    payload,
+    withTenantContext(context),
+  );
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Failed to initiate OAuth");
+  }
+  return response.data;
+}

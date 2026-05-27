@@ -2,6 +2,7 @@ import {
   disconnectCredentialStore,
   getCredentialAudit,
   getCredentialPlatforms,
+  initiateOAuth,
   saveManualToken,
 } from "@/api/credentials";
 import type {
@@ -108,20 +109,24 @@ export default function PlatformsTab() {
     [platforms, token.colorPrimary, token.colorInfo, token.colorText],
   );
 
-  const handleConnect = (platform: PlatformConnectionSummary) => {
+  const handleConnect = async (platform: PlatformConnectionSummary) => {
     const currentTenantId = useAuthStore.getState().tenantId;
     const currentRole = useAuthStore.getState().user?.role;
     const reason = getStoreActionReason(currentTenantId, currentRole);
     if (reason || !currentTenantId) {
-      message.error(reason || "Tenant context required before managing store connections.");
+      message.error(reason || 'Tenant context required before managing store connections.');
       return;
     }
-    const platformName = PLATFORM_NAMES[platform.platform] || platform.platform;
-    message.info(`Opening ${platformName} authorization...`);
-    window.open(
-      `/api/credentials/platforms/${platform.platform}/connections/oauth/initiate?tenant_id=${encodeURIComponent(currentTenantId)}`,
-      "_blank",
-    );
+    try {
+      const result = await initiateOAuth(
+        platform.platform,
+        { intent: 'connect', redirect_path: window.location.pathname },
+        { tenant_id: currentTenantId },
+      );
+      window.open(result.auth_url, '_blank');
+    } catch (err: any) {
+      message.error(err?.message || 'Failed to initiate OAuth');
+    }
   };
 
   const handleDisconnect = async (platform: PlatformConnectionSummary) => {

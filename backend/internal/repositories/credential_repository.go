@@ -25,7 +25,13 @@ func NewCredentialRepository(db *gorm.DB) *CredentialRepository {
 	encKey := os.Getenv("ENCRYPTION_KEY")
 	var enc *utils.EncryptionService
 	if encKey != "" {
-		enc, _ = utils.NewEncryptionService(encKey)
+		var err error
+		enc, err = utils.NewEncryptionService(encKey)
+		if err != nil {
+			log.Warn().Err(err).Msg("Invalid ENCRYPTION_KEY, credential encryption disabled")
+		}
+	} else {
+		log.Warn().Msg("ENCRYPTION_KEY not set, credential encryption disabled")
 	}
 	return &CredentialRepository{db: db, encryption: enc}
 }
@@ -62,7 +68,7 @@ func (r *CredentialRepository) ListConnections(ctx context.Context, tenantID, pl
 		return nil, fmt.Errorf("tenant_id is required")
 	}
 	var conns []models.CredentialConnection
-	query := r.db.WithContext(ctx).Where("tenant_id = ?", tenantID)
+	query := r.db.WithContext(ctx).Where("tenant_id = ? AND disabled_at IS NULL", tenantID)
 	if platform != "" {
 		query = query.Where("platform = ?", platform)
 	}

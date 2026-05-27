@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
+
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"gorm.io/gorm"
@@ -179,7 +181,22 @@ func (s *CredentialApiService) UpsertAppCredential(ctx context.Context, tenantID
 	if rotate {
 		secretMask = "rotated"
 	}
-	return &CredentialMutationResponse{Platform: req.Platform, Status: "connected", Configured: masked.Configured, SecretMask: secretMask, AuditEventID: uuid.NewString()}, nil
+	eventType := "app_credential_upsert"
+	if rotate {
+		eventType = "app_credential_rotate"
+	}
+	auditEvent := &models.CredentialAuditEvent{
+		TenantID: tenantID, Platform: req.Platform,
+		EventType: eventType, Status: "success", Actor: userID, ActorRole: role,
+		Metadata: models.JSONMap{"reason": req.Reason},
+	}
+	auditEventID := ""
+	if err := repo.CreateAuditEvent(ctx, auditEvent); err != nil {
+		log.Error().Err(err).Str("event_type", auditEvent.EventType).Msg("Failed to persist audit event")
+	} else {
+		auditEventID = auditEvent.ID
+	}
+	return &CredentialMutationResponse{Platform: req.Platform, Status: "connected", Configured: masked.Configured, SecretMask: secretMask, AuditEventID: auditEventID}, nil
 }
 
 func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role, userID string, req CredentialOAuthInitiateRequest) (*CredentialOAuthAttemptResponse, error) {
@@ -188,6 +205,9 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 	}
 	if req.RedirectPath == "" {
 		return nil, fmt.Errorf("redirect_path is required")
+	}
+	if role != "developer" && role != "admin" {
+		return nil, fmt.Errorf("forbidden")
 	}
 	attemptID := uuid.NewString()
 	return &CredentialOAuthAttemptResponse{AuthURL: "https://example.invalid/oauth/" + req.Platform, AttemptID: attemptID, ExpiresAt: time.Now().Add(15 * time.Minute).Format(time.RFC3339)}, nil
@@ -204,6 +224,9 @@ func (s *CredentialApiService) ChangeConnectionStatus(ctx context.Context, tenan
 	if tenantID == "" {
 		return nil, fmt.Errorf("Missing tenant_id")
 	}
+	if role != "developer" && role != "admin" {
+		return nil, fmt.Errorf("forbidden")
+	}
 	if req.StoreIdentifier == "" {
 		return nil, fmt.Errorf("store_identifier is required")
 	}
@@ -219,12 +242,34 @@ func (s *CredentialApiService) ChangeConnectionStatus(ctx context.Context, tenan
 		if err := repo.UpdateConnectionStatus(ctx, tenantID, req.Platform, req.StoreIdentifier, "connected"); err != nil {
 			return nil, err
 		}
-		return &CredentialMutationResponse{Platform: req.Platform, StoreIdentifierMask: conn.StoreIdentifierMask(), Status: "connected", LastRefreshAt: time.Now().Format(time.RFC3339), ExpiresAt: time.UnixMilli(conn.TokenExpiry).Format(time.RFC3339)}, nil
+		auditEvent := &models.CredentialAuditEvent{
+			TenantID: tenantID, Platform: req.Platform, StoreIdentifier: req.StoreIdentifier,
+			EventType: "connection_refresh", Status: "success", Actor: userID, ActorRole: role,
+			Metadata: models.JSONMap{"reason": req.Reason},
+		}
+		auditEventID := ""
+		if err := repo.CreateAuditEvent(ctx, auditEvent); err != nil {
+			log.Error().Err(err).Str("event_type", auditEvent.EventType).Msg("Failed to persist audit event")
+		} else {
+			auditEventID = auditEvent.ID
+		}
+		return &CredentialMutationResponse{Platform: req.Platform, StoreIdentifierMask: conn.StoreIdentifierMask(), Status: "connected", LastRefreshAt: time.Now().Format(time.RFC3339), ExpiresAt: time.UnixMilli(conn.TokenExpiry).Format(time.RFC3339), AuditEventID: auditEventID}, nil
 	}
 	if err := repo.DisableConnectionWithVersion(ctx, conn, conn.Version, req.Reason); err != nil {
 		return nil, err
 	}
-	return &CredentialMutationResponse{Platform: req.Platform, StoreIdentifierMask: conn.StoreIdentifierMask(), Status: "disconnected", RemoteRevokeStatus: "not_supported", AuditEventID: uuid.NewString()}, nil
+	auditEvent := &models.CredentialAuditEvent{
+		TenantID: tenantID, Platform: req.Platform, StoreIdentifier: req.StoreIdentifier,
+		EventType: "connection_disconnect", Status: "success", Actor: userID, ActorRole: role,
+		Metadata: models.JSONMap{"reason": req.Reason},
+	}
+	auditEventID := ""
+	if err := repo.CreateAuditEvent(ctx, auditEvent); err != nil {
+		log.Error().Err(err).Str("event_type", auditEvent.EventType).Msg("Failed to persist audit event")
+	} else {
+		auditEventID = auditEvent.ID
+	}
+	return &CredentialMutationResponse{Platform: req.Platform, StoreIdentifierMask: conn.StoreIdentifierMask(), Status: "disconnected", RemoteRevokeStatus: "not_supported", AuditEventID: auditEventID}, nil
 }
 
 func (s *CredentialApiService) ListAuditEvents(ctx context.Context, tenantID, role, userID, platform, storeIdentifier, limitStr, cursor string) (*CredentialAuditListResponse, error) {
@@ -260,10 +305,28 @@ func (s *CredentialApiService) ApplyManualToken(ctx context.Context, tenantID, r
 	if conn.Region == "" {
 		conn.Region = "id"
 	}
+	if req.ExpiresAt != "" {
+		parsed, err := time.Parse(time.RFC3339, req.ExpiresAt)
+		if err != nil {
+			return nil, fmt.Errorf("invalid expires_at: must be RFC3339 format")
+		}
+		conn.TokenExpiry = parsed.UnixMilli()
+	}
 	if err := repo.CreateConnection(ctx, conn); err != nil {
 		return nil, err
 	}
-	return &CredentialMutationResponse{Platform: req.Platform, StoreIdentifierMask: conn.StoreIdentifierMask(), Status: conn.Status, Configured: true, AuditEventID: uuid.NewString()}, nil
+	auditEvent := &models.CredentialAuditEvent{
+		TenantID: tenantID, Platform: req.Platform, StoreIdentifier: req.StoreIdentifier,
+		EventType: "manual_token_apply", Status: "success", Actor: userID, ActorRole: role,
+		Metadata: models.JSONMap{"reason": req.Reason},
+	}
+	auditEventID := ""
+	if err := repo.CreateAuditEvent(ctx, auditEvent); err != nil {
+		log.Error().Err(err).Str("event_type", auditEvent.EventType).Msg("Failed to persist audit event")
+	} else {
+		auditEventID = auditEvent.ID
+	}
+	return &CredentialMutationResponse{Platform: req.Platform, StoreIdentifierMask: conn.StoreIdentifierMask(), Status: conn.Status, Configured: true, AuditEventID: auditEventID}, nil
 }
 
 func maskedConnectionsForPlatform(conns []models.CredentialConnection, storeIdentifier string) []models.CredentialConnectionMaskedResponse {

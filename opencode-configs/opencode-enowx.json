@@ -939,6 +939,22 @@
           },
           "name": "auto (9 router)"
         },
+        "mix": {
+          "limit": {
+            "context": 1000000,
+            "output": 64000
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "name": "mix (9 router)"
+        },
         "claude-opus-4.7": {
           "limit": {
             "context": 1000000,

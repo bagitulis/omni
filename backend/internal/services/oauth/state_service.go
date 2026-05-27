@@ -36,7 +36,10 @@ func BuildSignedState(claims StateClaims) (string, error) {
 		return "", fmt.Errorf("marshal state claims: %w", err)
 	}
 	encodedPayload := base64.RawURLEncoding.EncodeToString(payload)
-	signature := signState(encodedPayload)
+	signature, err := signState(encodedPayload)
+	if err != nil {
+		return "", err
+	}
 	return encodedPayload + "." + signature, nil
 }
 
@@ -45,7 +48,11 @@ func ParseSignedState(state string) (StateClaims, error) {
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 		return StateClaims{}, fmt.Errorf("invalid_state")
 	}
-	if !hmac.Equal([]byte(signState(parts[0])), []byte(parts[1])) {
+	expectedSig, err := signState(parts[0])
+	if err != nil {
+		return StateClaims{}, fmt.Errorf("invalid_state")
+	}
+	if !hmac.Equal([]byte(expectedSig), []byte(parts[1])) {
 		return StateClaims{}, fmt.Errorf("invalid_state")
 	}
 	payload, err := base64.RawURLEncoding.DecodeString(parts[0])
@@ -70,15 +77,23 @@ func NewNonce() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(buf), nil
 }
 
-func signState(payload string) string {
-	mac := hmac.New(sha256.New, []byte(stateSecret()))
+func signState(payload string) (string, error) {
+	secret, err := stateSecret()
+	if err != nil {
+		return "", err
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write([]byte(payload))
-	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil)), nil
 }
 
-func stateSecret() string {
-	if secret := os.Getenv("OAUTH_STATE_SECRET"); secret != "" {
-		return secret
+func stateSecret() (string, error) {
+	secret := os.Getenv("OAUTH_STATE_SECRET")
+	if secret == "" {
+		secret = os.Getenv("JWT_SECRET")
 	}
-	return os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return "", fmt.Errorf("OAUTH_STATE_SECRET or JWT_SECRET must be configured")
+	}
+	return secret, nil
 }
