@@ -65,7 +65,6 @@ describe("UnifiedBatchBar", () => {
     expect(
       screen.getByRole("button", { name: /Push to Marketplace/i }),
     ).toBeInTheDocument();
-    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Bulk Pricing/i }),
     ).toBeInTheDocument();

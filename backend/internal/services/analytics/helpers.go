@@ -2,7 +2,7 @@ package analytics
 
 import (
 	"fmt"
-
+)
 
 // validateMonthYear validates month (1-12) and year (2000-2099).
 func validateMonthYear(month, year int) error {

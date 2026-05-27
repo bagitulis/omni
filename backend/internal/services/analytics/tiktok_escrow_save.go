@@ -234,7 +234,7 @@ func (s *TiktokEscrowSyncService) saveEscrowItemsTx(
 
 // saveSkuTransactionsTx saves SKU transactions as escrow items.
 func (s *TiktokEscrowSyncService) saveSkuTransactionsTx(
-	ctx context.Context, dbTx *gorm.DB,
+	_ context.Context, dbTx *gorm.DB,
 	escrowOrderID, orderID string,
 	skuTxs []tiktokPkg.SkuTransaction,
 	lineItems []tiktokPkg.TiktokOrderItem,
@@ -313,7 +313,7 @@ func (s *TiktokEscrowSyncService) saveSkuTransactionsTx(
 
 // saveLineItemsTx saves line items as fallback when no SKU transactions exist.
 func (s *TiktokEscrowSyncService) saveLineItemsTx(
-	ctx context.Context, dbTx *gorm.DB,
+	_ context.Context, dbTx *gorm.DB,
 	escrowOrderID, orderID string,
 	lineItems []tiktokPkg.TiktokOrderItem,
 	itemTable string,

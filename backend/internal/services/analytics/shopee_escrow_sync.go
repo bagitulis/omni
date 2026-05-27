@@ -50,7 +50,7 @@ func (s *ShopeeEscrowSyncService) SetShopeeClient(client ShopeeEscrowAPI) {
 }
 
 // getClient returns the injected client or errors (no silent fallback).
-func (s *ShopeeEscrowSyncService) getClient(ctx context.Context) (ShopeeEscrowAPI, error) {
+func (s *ShopeeEscrowSyncService) getClient(_ context.Context) (ShopeeEscrowAPI, error) {
 	if s.apiClient != nil {
 		return s.apiClient, nil
 	}
@@ -246,7 +246,7 @@ func (s *ShopeeEscrowSyncService) getWalletTransactions(
 // fetchWalletChunk fetches one paginated chunk of wallet transactions
 // with wallet_order_income tab and MONEY_IN flow filter.
 func fetchWalletChunk(
-	ctx context.Context,
+	_ context.Context,
 	client ShopeeEscrowAPI,
 	startDate, endDate time.Time,
 ) ([]WalletTx, error) {
@@ -317,10 +317,7 @@ func processOrderBatches(
 ) (totalItems, processedOrders int, failedOrderIDs []string) {
 	total := len(orderSNs)
 	for i := 0; i < total; i += escrowBatchSize {
-		end := i + escrowBatchSize
-		if end > total {
-			end = total
-		}
+		end := min(i+escrowBatchSize, total)
 		batch := orderSNs[i:end]
 
 		if onProgress != nil {

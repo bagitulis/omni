@@ -110,7 +110,7 @@ func (s *TiktokEscrowSyncService) isAlreadySynced(ctx context.Context, month, ye
 	return err == nil
 }
 
-func (s *TiktokEscrowSyncService) getClient(ctx context.Context) (TiktokEscrowClient, error) {
+func (s *TiktokEscrowSyncService) getClient(_ context.Context) (TiktokEscrowClient, error) {
 	if s.client != nil {
 		return s.client, nil
 	}
@@ -128,7 +128,7 @@ func (s *TiktokEscrowSyncService) getClient(ctx context.Context) (TiktokEscrowCl
 }
 
 func (s *TiktokEscrowSyncService) fetchOrdersForSettlementWindow(
-	ctx context.Context, client TiktokEscrowClient, month, year int,
+	_ context.Context, client TiktokEscrowClient, month, year int,
 ) ([]tiktokPkg.TiktokOrder, error) {
 	monthStart := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 	endDate := monthStart.AddDate(0, 1, 0)
@@ -161,14 +161,11 @@ func (s *TiktokEscrowSyncService) fetchOrdersForSettlementWindow(
 }
 
 func (s *TiktokEscrowSyncService) enrichOrdersWithDetails(
-	ctx context.Context, client TiktokEscrowClient, orders []tiktokPkg.TiktokOrder,
+	_ context.Context, client TiktokEscrowClient, orders []tiktokPkg.TiktokOrder,
 ) {
 	const batchSize = 50
 	for i := 0; i < len(orders); i += batchSize {
-		end := i + batchSize
-		if end > len(orders) {
-			end = len(orders)
-		}
+		end := min(i+batchSize, len(orders))
 		ids := make([]string, 0, end-i)
 		for _, o := range orders[i:end] {
 			ids = append(ids, o.ID)

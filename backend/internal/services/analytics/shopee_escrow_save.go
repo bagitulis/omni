@@ -114,7 +114,7 @@ func saveEscrowOrder(
 
 // saveEscrowItemTx creates a single escrow item within an existing transaction.
 func saveEscrowItemTx(
-	ctx context.Context,
+	_ context.Context,
 	tx *gorm.DB,
 	escrowOrderID, orderSN, tenantID string,
 	item shopeePkg.EscrowItemData,
