@@ -71,9 +71,10 @@ type CredentialManualTokenRequest struct {
 }
 
 type CredentialOAuthAttemptResponse struct {
-	AuthURL   string `json:"auth_url"`
-	AttemptID string `json:"attempt_id"`
-	ExpiresAt string `json:"expires_at"`
+AuthURL string `json:"auth_url"`
+AttemptID string `json:"attempt_id"`
+ExpiresAt string `json:"expires_at"`
+AuditEventID string `json:"audit_event_id,omitempty"`
 }
 
 type CredentialMutationResponse struct {
@@ -209,8 +210,22 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 	if role != "developer" && role != "admin" {
 		return nil, fmt.Errorf("forbidden")
 	}
+	repo := repositories.NewCredentialRepository(s.db)
 	attemptID := uuid.NewString()
-	return &CredentialOAuthAttemptResponse{AuthURL: "https://example.invalid/oauth/" + req.Platform, AttemptID: attemptID, ExpiresAt: time.Now().Add(15 * time.Minute).Format(time.RFC3339)}, nil
+	auditEvent := &models.CredentialAuditEvent{
+		TenantID: tenantID, Platform: req.Platform,
+		StoreIdentifier: req.StoreIdentifier,
+		EventType: "oauth_initiate", Status: "initiated",
+		Actor: userID, ActorRole: role,
+		Metadata: models.JSONMap{"intent": req.Intent},
+	}
+	auditEventID := ""
+	if err := repo.CreateAuditEvent(ctx, auditEvent); err != nil {
+		log.Error().Err(err).Str("event_type", auditEvent.EventType).Msg("Failed to persist audit event")
+	} else {
+		auditEventID = auditEvent.ID
+	}
+	return &CredentialOAuthAttemptResponse{AuthURL: "https://example.invalid/oauth/" + req.Platform, AttemptID: attemptID, ExpiresAt: time.Now().Add(15 * time.Minute).Format(time.RFC3339), AuditEventID: auditEventID}, nil
 }
 
 func (s *CredentialApiService) ReconnectOAuth(ctx context.Context, tenantID, role, userID string, req CredentialOAuthReconnectRequest) (*CredentialOAuthAttemptResponse, error) {
