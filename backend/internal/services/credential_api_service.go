@@ -71,10 +71,10 @@ type CredentialManualTokenRequest struct {
 }
 
 type CredentialOAuthAttemptResponse struct {
-AuthURL string `json:"auth_url"`
-AttemptID string `json:"attempt_id"`
-ExpiresAt string `json:"expires_at"`
-AuditEventID string `json:"audit_event_id,omitempty"`
+	AuthURL      string `json:"auth_url"`
+	AttemptID    string `json:"attempt_id"`
+	ExpiresAt    string `json:"expires_at"`
+	AuditEventID string `json:"audit_event_id,omitempty"`
 }
 
 type CredentialMutationResponse struct {
@@ -215,7 +215,7 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 	auditEvent := &models.CredentialAuditEvent{
 		TenantID: tenantID, Platform: req.Platform,
 		StoreIdentifier: req.StoreIdentifier,
-		EventType: "oauth_initiate", Status: "initiated",
+		EventType:       "oauth_initiate", Status: "initiated",
 		Actor: userID, ActorRole: role,
 		Metadata: models.JSONMap{"intent": req.Intent},
 	}
