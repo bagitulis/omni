@@ -82,9 +82,6 @@ backups/smart/
 # Sisyphus evidence (screenshots, test artifacts, ephemeral)
 .sisyphus/evidence/
 
-# Sisyphus plans and notepads (AI working memory, not source)
-.sisyphus/plans/
-.sisyphus/notepads/
 
 # ===========================================
 # Runtime / OS Generated
