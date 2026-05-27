@@ -270,11 +270,11 @@ func TestShopeeAnalyticsHandler_GetReconciliation_ValidTenant_Returns200(t *test
 		svc: &mockShopeeService{
 			reconciliation: &dto.ReconciliationResultDTO{
 				Summary: dto.ReconciliationSummaryDTO{
-					TotalSKU: 10,
-					SKUOk:    8,
+					TotalSku: 10,
+					SkuOk:    8,
 				},
-				Details: []dto.SkuGroupDTO{
-					{SKU: "SKU001", TotalQuantity: 5, TotalAmount: 100.0},
+				SkuGroups: []dto.SkuGroupDTO{
+					{Sku: "SKU001", TotalTransactions: 5, Status: "OK"},
 				},
 			},
 		},
@@ -308,9 +308,9 @@ func TestShopeeAnalyticsHandler_GetShippingFeeAnalysis_ValidTenant_Returns200(t 
 					OrdersWithDifference: 3,
 					NetImpact:            -15000.0,
 				},
-				Details: []dto.ShopeeShippingOrderDTO{
-					{OrderSN: "ORD001", PlatformFee: 10000, ActualFee: 8000, Difference: -2000},
-				},
+			Details: []dto.ShopeeShippingOrderDTO{
+				{OrderSN: "ORD001", BuyerPaid: 10000, ActualFee: 8000, Difference: -2000},
+			},
 			},
 		},
 	}

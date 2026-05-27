@@ -31,47 +31,59 @@ type SyncResultDTO struct {
 
 // ReconciliationSummaryDTO summarizes reconciliation results
 type ReconciliationSummaryDTO struct {
-	TotalSKU          int `json:"total_sku"`
+	TotalSku          int `json:"total_sku"`
 	TotalTransactions int `json:"total_transactions"`
-	SKUOk             int `json:"sku_ok"`
-	SKUWithPriceDiff  int `json:"sku_with_price_diff"`
-	SKUNoInventory    int `json:"sku_no_inventory"`
+	SkuOk             int `json:"sku_ok"`
+	SkuWithPriceDiff  int `json:"sku_with_price_diff"`
+	SkuNoInventory    int `json:"sku_no_inventory"`
 }
 
-// SkuGroupDTO represents a SKU group result for Shopee reconciliation
+// SkuGroupDTO represents a SKU group result for Shopee reconciliation.
+// Uses per-unit price analysis with inventory lookup status classification.
+// Status values: OK, PRICE_DIFF, NO_INVENTORY.
 type SkuGroupDTO struct {
-	SKU              string  `json:"sku"`
-	ItemName         string  `json:"item_name"`
-	TotalQuantity    int     `json:"total_quantity"`
-	TotalAmount      float64 `json:"total_amount"`
-	SystemAmount     float64 `json:"system_amount"`
-	PriceDiff        float64 `json:"price_diff"`
-	PriceDiffPercent float64 `json:"price_diff_percent"`
-	OrderCount       int     `json:"order_count"`
+	Sku                 string    `json:"sku"`
+	ModelSku            string    `json:"model_sku"`
+	ItemName            string    `json:"item_name"`
+	ModelName           string    `json:"model_name"`
+	VariantName         string    `json:"variant_name"`
+	InventoryPrice      *float64  `json:"inventory_price"`
+	ExpectedIncome      *float64  `json:"expected_income"`
+	TotalTransactions   int       `json:"total_transactions"`
+	UniqueUnitPrices    []float64 `json:"unique_unit_prices"`
+	UniqueActualIncomes []float64 `json:"unique_actual_incomes"`
+	HasMultiplePrices   bool      `json:"has_multiple_prices"`
+	HasPriceDifference  bool      `json:"has_price_difference"`
+	Status              string    `json:"status"`
 }
 
-// TiktokSkuGroupDTO represents a SKU group result for TikTok reconciliation
+// TiktokSkuGroupDTO represents a SKU group result for TikTok reconciliation.
+// Uses per-unit price analysis with inventory lookup status classification.
 type TiktokSkuGroupDTO struct {
-	SKU              string  `json:"sku"`
-	ItemName         string  `json:"item_name"`
-	TotalQuantity    int     `json:"total_quantity"`
-	TotalAmount      float64 `json:"total_amount"`
-	SystemAmount     float64 `json:"system_amount"`
-	PriceDiff        float64 `json:"price_diff"`
-	PriceDiffPercent float64 `json:"price_diff_percent"`
-	OrderCount       int     `json:"order_count"`
+	Sku                 string    `json:"sku"`
+	SellerSku           string    `json:"seller_sku"`
+	ProductName         string    `json:"product_name"`
+	VariantName         string    `json:"variant_name"`
+	InventoryPrice      *float64  `json:"inventory_price"`
+	ExpectedIncome      *float64  `json:"expected_income"`
+	TotalTransactions   int       `json:"total_transactions"`
+	UniqueUnitPrices    []float64 `json:"unique_unit_prices"`
+	UniqueActualIncomes []float64 `json:"unique_actual_incomes"`
+	HasMultiplePrices   bool      `json:"has_multiple_prices"`
+	HasPriceDifference  bool      `json:"has_price_difference"`
+	Status              string    `json:"status"`
 }
 
 // ReconciliationResultDTO represents the Shopee reconciliation result
 type ReconciliationResultDTO struct {
-	Summary ReconciliationSummaryDTO `json:"summary"`
-	Details []SkuGroupDTO            `json:"details"`
+	Summary   ReconciliationSummaryDTO `json:"summary"`
+	SkuGroups []SkuGroupDTO            `json:"sku_groups"`
 }
 
 // TiktokReconciliationResultDTO represents the TikTok reconciliation result
 type TiktokReconciliationResultDTO struct {
-	Summary ReconciliationSummaryDTO `json:"summary"`
-	Details []TiktokSkuGroupDTO      `json:"details"`
+	Summary   ReconciliationSummaryDTO `json:"summary"`
+	SkuGroups []TiktokSkuGroupDTO      `json:"sku_groups"`
 }
 
 // ShippingFeeSummaryDTO summarizes shipping fee analysis
@@ -86,27 +98,33 @@ type ShippingFeeSummaryDTO struct {
 // ShopeeShippingOrderDTO represents a Shopee shipping order entry
 type ShopeeShippingOrderDTO struct {
 	OrderSN     string  `json:"order_sn"`
-	PlatformFee float64 `json:"platform_fee"`
+	BuyerPaid   float64 `json:"buyer_paid"`
 	ActualFee   float64 `json:"actual_fee"`
+	ShopeeRebate float64 `json:"shopee_rebate"`
 	Difference  float64 `json:"difference"`
 	Status      string  `json:"status"`
 	OrderDate   string  `json:"order_date"`
+	BuyerName   string  `json:"buyer_name"`
+	PaymentMethod string `json:"payment_method"`
 }
 
 // ShopeeShippingFeeResultDTO represents the Shopee shipping fee analysis result
 type ShopeeShippingFeeResultDTO struct {
-	Summary ShippingFeeSummaryDTO   `json:"summary"`
+	Summary ShippingFeeSummaryDTO    `json:"summary"`
 	Details []ShopeeShippingOrderDTO `json:"details"`
 }
 
 // TiktokShippingOrderDTO represents a TikTok shipping order entry
 type TiktokShippingOrderDTO struct {
-	OrderSN     string  `json:"order_sn"`
-	ShippingFee float64 `json:"shipping_fee"`
-	ActualFee   float64 `json:"actual_fee"`
-	Difference  float64 `json:"difference"`
-	Status      string  `json:"status"`
-	OrderDate   string  `json:"order_date"`
+	OrderSN          string  `json:"order_sn"`
+	CustomerPaid     float64 `json:"customer_paid"`
+	ActualFee        float64 `json:"actual_fee"`
+	PlatformDiscount float64 `json:"platform_discount"`
+	Difference       float64 `json:"difference"`
+	Status           string  `json:"status"`
+	OrderDate        string  `json:"order_date"`
+	OrderStatus      string  `json:"order_status"`
+	Currency         string  `json:"currency"`
 }
 
 // TiktokShippingFeeResultDTO represents the TikTok shipping fee analysis result

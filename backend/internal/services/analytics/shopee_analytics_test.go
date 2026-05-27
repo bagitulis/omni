@@ -33,6 +33,7 @@ func setupTestDB(t *testing.T) *gorm.DB {
 		&models.ShopeeEscrowSync{},
 		&models.ShopeeEscrowOrder{},
 		&models.ShopeeEscrowItem{},
+		&models.InventoryRecord{},
 	); err != nil {
 		t.Fatalf("failed to auto-migrate: %v", err)
 	}
@@ -313,8 +314,8 @@ func TestGetReconciliation_WithOrders_ReturnsSummaryAndDetails(t *testing.T) {
 			ModelSku:      &modelSku,
 			ItemName:      stringPtr("Test Item"),
 			Quantity:      2,
-			SellingPrice:  10000, // total = 20000
-			OriginalPrice: 9500,  // total = 19000
+			SellingPrice:  10000,
+			OriginalPrice: 9500,
 			Month:         intPtr(3),
 			Year:          intPtr(2026),
 		},
@@ -326,8 +327,8 @@ func TestGetReconciliation_WithOrders_ReturnsSummaryAndDetails(t *testing.T) {
 			ModelSku:      &modelSku,
 			ItemName:      stringPtr("Test Item"),
 			Quantity:      1,
-			SellingPrice:  10000, // total = 10000
-			OriginalPrice: 10000, // total = 10000
+			SellingPrice:  10000,
+			OriginalPrice: 10000,
 			Month:         intPtr(3),
 			Year:          intPtr(2026),
 		},
@@ -347,32 +348,37 @@ func TestGetReconciliation_WithOrders_ReturnsSummaryAndDetails(t *testing.T) {
 	}
 
 	// Summary checks
-	if result.Summary.TotalSKU != 1 {
-		t.Errorf("expected TotalSKU=1, got %d", result.Summary.TotalSKU)
+	if result.Summary.TotalSku != 1 {
+		t.Errorf("expected TotalSku=1, got %d", result.Summary.TotalSku)
 	}
-	if result.Summary.TotalTransactions != 3 {
-		t.Errorf("expected TotalTransactions=3, got %d", result.Summary.TotalTransactions)
+	if result.Summary.TotalTransactions != 2 {
+		t.Errorf("expected TotalTransactions=2, got %d", result.Summary.TotalTransactions)
 	}
 
-	// Detail checks
-	if len(result.Details) != 1 {
-		t.Fatalf("expected 1 detail, got %d", len(result.Details))
+	// Detail checks (new rich DTO)
+	if len(result.SkuGroups) != 1 {
+		t.Fatalf("expected 1 sku group, got %d", len(result.SkuGroups))
 	}
-	detail := result.Details[0]
-	if detail.SKU != modelSku {
-		t.Errorf("expected SKU=%s, got %s", modelSku, detail.SKU)
+	detail := result.SkuGroups[0]
+	if detail.Sku != modelSku {
+		t.Errorf("expected Sku=%s, got %s", modelSku, detail.Sku)
 	}
-	if detail.TotalQuantity != 3 {
-		t.Errorf("expected TotalQuantity=3, got %d", detail.TotalQuantity)
+	if detail.TotalTransactions != 2 {
+		t.Errorf("expected TotalTransactions=2, got %d", detail.TotalTransactions)
 	}
-	if detail.TotalAmount != 30000 {
-		t.Errorf("expected TotalAmount=30000, got %f", detail.TotalAmount)
+	// Without inventory, status should be NO_INVENTORY
+	if detail.Status != "NO_INVENTORY" {
+		t.Errorf("expected Status=NO_INVENTORY (no inventory record), got %s", detail.Status)
 	}
-	if detail.SystemAmount != 29000 {
-		t.Errorf("expected SystemAmount=29000, got %f", detail.SystemAmount)
+	// Two items with unit prices 9500/2=4750 and 10000/1=10000
+	if len(detail.UniqueUnitPrices) != 2 {
+		t.Errorf("expected 2 unique unit prices, got %d: %v", len(detail.UniqueUnitPrices), detail.UniqueUnitPrices)
 	}
-	if detail.PriceDiff != -1000 {
-		t.Errorf("expected PriceDiff=-1000, got %f", detail.PriceDiff)
+	if !detail.HasMultiplePrices {
+		t.Error("expected HasMultiplePrices=true")
+	}
+	if detail.InventoryPrice != nil {
+		t.Errorf("expected InventoryPrice=nil (no inventory), got %v", *detail.InventoryPrice)
 	}
 }
 
@@ -388,15 +394,15 @@ func TestGetReconciliation_NoData_ReturnsEmpty(t *testing.T) {
 	if result == nil {
 		t.Fatal("expected non-nil result")
 	}
-	if result.Summary.TotalSKU != 0 {
-		t.Errorf("expected TotalSKU=0, got %d", result.Summary.TotalSKU)
+	if result.Summary.TotalSku != 0 {
+		t.Errorf("expected TotalSku=0, got %d", result.Summary.TotalSku)
 	}
 	if result.Summary.TotalTransactions != 0 {
 		t.Errorf("expected TotalTransactions=0, got %d", result.Summary.TotalTransactions)
 	}
-	if len(result.Details) != 0 {
-		t.Errorf("expected empty details, got %d items", len(result.Details))
-	}
+if len(result.SkuGroups) != 0 {
+t.Errorf("expected empty sku groups, got %d items", len(result.SkuGroups))
+}
 }
 
 // ---------------------------------------------------------------------------
@@ -556,6 +562,354 @@ func TestComputeShopeeShippingDiff_NegativeDifference_Works(t *testing.T) {
 		t.Errorf("expected -1500, got %f", diff)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Rich Reconciliation Tests
+// ---------------------------------------------------------------------------
+
+func TestGetReconciliation_OKStatus_WithInventory_ReturnsOK(t *testing.T) {
+	db := setupTestDB(t)
+	svc := setupService(t, db)
+	ctx := context.Background()
+	tenantID := "test-tenant"
+
+	// Insert order
+	order := models.ShopeeEscrowOrder{
+		ID:       uuid.New().String(),
+		TenantID: tenantID,
+		OrderSN:  "ORD-OK-001",
+		Month:    3,
+		Year:     2026,
+	}
+	if err := db.Create(&order).Error; err != nil {
+		t.Fatalf("failed to insert order: %v", err)
+	}
+
+	// Insert a single item with unit price matching inventory
+	inventoryPrice := 10000.0
+	sku := "SKU-OK-TEST"
+	items := []models.ShopeeEscrowItem{
+		{
+			ID:            uuid.New().String(),
+			TenantID:      tenantID,
+			EscrowOrderID: order.ID,
+			Sku:           &sku,
+			ModelSku:      &sku,
+			ItemName:      stringPtr("OK Item"),
+			Quantity:      1,
+			OriginalPrice: 10000,
+			Month:         intPtr(3),
+			Year:          intPtr(2026),
+		},
+	}
+	for _, item := range items {
+		if err := db.Create(&item).Error; err != nil {
+			t.Fatalf("failed to insert item: %v", err)
+		}
+	}
+
+	// Insert inventory record so reconciliation finds it
+	invData := `{"HARGA":10000,"Nama Barang":"OK Inventory Item"}`
+	invRecord := models.InventoryRecord{
+		ID:            uuid.New().String(),
+		TenantID:      tenantID,
+		Data:          invData,
+		KeyValue:      sku,
+		KeyColumnName: "SKU",
+	}
+	if err := db.Create(&invRecord).Error; err != nil {
+		t.Fatalf("failed to insert inventory record: %v", err)
+	}
+
+	result, err := svc.GetReconciliation(ctx, tenantID, 3, 2026)
+	if err != nil {
+		t.Fatalf("GetReconciliation returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
+
+	if len(result.SkuGroups) != 1 {
+		t.Fatalf("expected 1 sku group, got %d", len(result.SkuGroups))
+	}
+	detail := result.SkuGroups[0]
+	if detail.Status != "OK" {
+		t.Errorf("expected Status=OK, got %s", detail.Status)
+	}
+	if detail.InventoryPrice == nil {
+		t.Fatal("expected InventoryPrice to be set")
+	}
+	if *detail.InventoryPrice != inventoryPrice {
+		t.Errorf("expected InventoryPrice=10000, got %f", *detail.InventoryPrice)
+	}
+	if detail.ExpectedIncome == nil {
+		t.Fatal("expected ExpectedIncome to be set")
+	}
+	// Expected: (10000 - 1500) * 0.84 = 7140
+	expected := (10000 - 1500) * 0.84
+	if *detail.ExpectedIncome != expected {
+		t.Errorf("expected ExpectedIncome=%f, got %f", expected, *detail.ExpectedIncome)
+	}
+	if detail.HasMultiplePrices {
+		t.Error("expected HasMultiplePrices=false for single item")
+	}
+}
+
+func TestGetReconciliation_PRICE_DIFF_Status_WithMismatch(t *testing.T) {
+	db := setupTestDB(t)
+	svc := setupService(t, db)
+	ctx := context.Background()
+	tenantID := "test-tenant"
+
+	order := models.ShopeeEscrowOrder{
+		ID:       uuid.New().String(),
+		TenantID: tenantID,
+		OrderSN:  "ORD-DIFF-001",
+		Month:    3,
+		Year:     2026,
+	}
+	if err := db.Create(&order).Error; err != nil {
+		t.Fatalf("failed to insert order: %v", err)
+	}
+
+	sku := "SKU-DIFF-TEST"
+	// Item with unit price 8000, but inventory says 10000 → PRICE_DIFF
+	item := models.ShopeeEscrowItem{
+		ID:            uuid.New().String(),
+		TenantID:      tenantID,
+		EscrowOrderID: order.ID,
+		Sku:           &sku,
+		ModelSku:      &sku,
+		ItemName:      stringPtr("Price Diff Item"),
+		Quantity:      1,
+		OriginalPrice: 8000,
+		Month:         intPtr(3),
+		Year:          intPtr(2026),
+	}
+	if err := db.Create(&item).Error; err != nil {
+		t.Fatalf("failed to insert item: %v", err)
+	}
+
+	// Inventory has different price
+	invData := `{"HARGA":10000,"Nama Barang":"Diff Inventory"}`
+	invRecord := models.InventoryRecord{
+		ID:            uuid.New().String(),
+		TenantID:      tenantID,
+		Data:          invData,
+		KeyValue:      sku,
+		KeyColumnName: "SKU",
+	}
+	if err := db.Create(&invRecord).Error; err != nil {
+		t.Fatalf("failed to insert inventory record: %v", err)
+	}
+
+	result, err := svc.GetReconciliation(ctx, tenantID, 3, 2026)
+	if err != nil {
+		t.Fatalf("GetReconciliation returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
+
+	if len(result.SkuGroups) != 1 {
+		t.Fatalf("expected 1 sku group, got %d", len(result.SkuGroups))
+	}
+	detail := result.SkuGroups[0]
+	if detail.Status != "PRICE_DIFF" {
+		t.Errorf("expected Status=PRICE_DIFF, got %s", detail.Status)
+	}
+	if !detail.HasPriceDifference {
+		t.Error("expected HasPriceDifference=true when unit price differs from inventory")
+	}
+}
+
+func TestGetReconciliation_MultipleActualIncomes_TracksCorrectly(t *testing.T) {
+	db := setupTestDB(t)
+	svc := setupService(t, db)
+	ctx := context.Background()
+	tenantID := "test-tenant"
+
+	// Two separate single-item orders to get escrow amounts
+	order1 := models.ShopeeEscrowOrder{
+		ID:           uuid.New().String(),
+		TenantID:     tenantID,
+		OrderSN:      "ORD-INC-001",
+		Month:        6,
+		Year:         2026,
+		EscrowAmount: 9500, // actual income for this order
+	}
+	if err := db.Create(&order1).Error; err != nil {
+		t.Fatalf("failed to insert order1: %v", err)
+	}
+	order2 := models.ShopeeEscrowOrder{
+		ID:           uuid.New().String(),
+		TenantID:     tenantID,
+		OrderSN:      "ORD-INC-002",
+		Month:        6,
+		Year:         2026,
+		EscrowAmount: 10500, // different actual income
+	}
+	if err := db.Create(&order2).Error; err != nil {
+		t.Fatalf("failed to insert order2: %v", err)
+	}
+
+	sku := "SKU-INC-TEST"
+	modelSku := "SKU-INC-MODEL"
+	items := []models.ShopeeEscrowItem{
+		{
+			ID:            uuid.New().String(),
+			TenantID:      tenantID,
+			EscrowOrderID: order1.ID,
+			Sku:           &sku,
+			ModelSku:      &modelSku,
+			ItemName:      stringPtr("Income Item"),
+			Quantity:      1,
+			OriginalPrice: 10000,
+			Month:         intPtr(6),
+			Year:          intPtr(2026),
+		},
+		{
+			ID:            uuid.New().String(),
+			TenantID:      tenantID,
+			EscrowOrderID: order2.ID,
+			Sku:           &sku,
+			ModelSku:      &modelSku,
+			ItemName:      stringPtr("Income Item"),
+			Quantity:      1,
+			OriginalPrice: 10000,
+			Month:         intPtr(6),
+			Year:          intPtr(2026),
+		},
+	}
+	for _, item := range items {
+		if err := db.Create(&item).Error; err != nil {
+			t.Fatalf("failed to insert item: %v", err)
+		}
+	}
+
+	result, err := svc.GetReconciliation(ctx, tenantID, 6, 2026)
+	if err != nil {
+		t.Fatalf("GetReconciliation returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
+
+	if len(result.SkuGroups) != 1 {
+		t.Fatalf("expected 1 sku group, got %d", len(result.SkuGroups))
+	}
+	detail := result.SkuGroups[0]
+	// Both orders are single-item, so actual incomes should be tracked
+	if len(detail.UniqueActualIncomes) != 2 {
+		t.Errorf("expected 2 unique actual incomes, got %d: %v", len(detail.UniqueActualIncomes), detail.UniqueActualIncomes)
+	}
+}
+
+func TestGetReconciliation_TenantIsolation_DoesNotLeak(t *testing.T) {
+	db := setupTestDB(t)
+	svcA := analytics.NewShopeeAnalyticsService(db, db, "tenant-a")
+	svcB := analytics.NewShopeeAnalyticsService(db, db, "tenant-b")
+	ctx := context.Background()
+
+	// Insert order + items for tenant A
+	orderA := models.ShopeeEscrowOrder{
+		ID:       uuid.New().String(),
+		TenantID: "tenant-a",
+		OrderSN:  "ORD-A-001",
+		Month:    6,
+		Year:     2026,
+	}
+	if err := db.Create(&orderA).Error; err != nil {
+		t.Fatalf("failed to insert order A: %v", err)
+	}
+	skuA := "SKU-A-TEST"
+	itemA := models.ShopeeEscrowItem{
+		ID:            uuid.New().String(),
+		TenantID:      "tenant-a",
+		EscrowOrderID: orderA.ID,
+		ModelSku:      &skuA,
+		Quantity:      1,
+		OriginalPrice: 10000,
+		Month:         intPtr(6),
+		Year:          intPtr(2026),
+	}
+	if err := db.Create(&itemA).Error; err != nil {
+		t.Fatalf("failed to insert item A: %v", err)
+	}
+
+	// Query as tenant B — should see no data
+	result, err := svcB.GetReconciliation(ctx, "tenant-b", 6, 2026)
+	if err != nil {
+		t.Fatalf("GetReconciliation for tenant B returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
+	if result.Summary.TotalSku != 0 {
+		t.Errorf("expected TotalSku=0 for tenant B, got %d", result.Summary.TotalSku)
+	}
+	if len(result.SkuGroups) != 0 {
+		t.Errorf("expected 0 sku groups for tenant B, got %d", len(result.SkuGroups))
+	}
+
+	// Verify tenant A still has its data
+	resultA, err := svcA.GetReconciliation(ctx, "tenant-a", 6, 2026)
+	if err != nil {
+		t.Fatalf("GetReconciliation for tenant A returned error: %v", err)
+	}
+	if resultA.Summary.TotalSku != 1 {
+		t.Errorf("expected TotalSku=1 for tenant A, got %d", resultA.Summary.TotalSku)
+	}
+}
+
+func TestGetShippingFeeAnalysis_WithShopeeRebate_IncludesRebateInDiff(t *testing.T) {
+	db := setupTestDB(t)
+	svc := setupService(t, db)
+	ctx := context.Background()
+	tenantID := "test-tenant"
+
+	orderDate := time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)
+	order := models.ShopeeEscrowOrder{
+		ID:                   uuid.New().String(),
+		TenantID:             tenantID,
+		OrderSN:              "ORD-REBATE-001",
+		Month:                3,
+		Year:                 2026,
+		BuyerPaidShippingFee: 10000,
+		ActualShippingFee:    7000,
+		ShopeeShippingRebate: 1500,
+		OrderDate:            &orderDate,
+	}
+	if err := db.Create(&order).Error; err != nil {
+		t.Fatalf("failed to insert order: %v", err)
+	}
+
+	result, err := svc.GetShippingFeeAnalysis(ctx, tenantID, 3, 2026)
+	if err != nil {
+		t.Fatalf("GetShippingFeeAnalysis returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
+	if len(result.Details) != 1 {
+		t.Fatalf("expected 1 detail, got %d", len(result.Details))
+	}
+	detail := result.Details[0]
+	// 10000 - 7000 + 1500 = 4500
+	if detail.Difference != 4500 {
+		t.Errorf("expected Difference=4500 (10000-7000+1500), got %f", detail.Difference)
+	}
+	if detail.ShopeeRebate != 1500 {
+		t.Errorf("expected ShopeeRebate=1500, got %f", detail.ShopeeRebate)
+	}
+	if detail.BuyerPaid != 10000 {
+		t.Errorf("expected BuyerPaid=10000, got %f", detail.BuyerPaid)
+	}
+	if detail.ActualFee != 7000 {
+		t.Errorf("expected ActualFee=7000, got %f", detail.ActualFee)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -567,4 +921,3 @@ func stringPtr(s string) *string {
 func intPtr(i int) *int {
 	return &i
 }
-

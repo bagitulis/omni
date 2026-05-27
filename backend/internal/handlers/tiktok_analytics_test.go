@@ -247,12 +247,12 @@ func TestTiktokAnalyticsHandler_GetReconciliation_ValidTenant_Returns200(t *test
 		svc: &mockTiktokService{
 			reconciliation: &dto.TiktokReconciliationResultDTO{
 				Summary: dto.ReconciliationSummaryDTO{
-					TotalSKU:          20,
+					TotalSku:          20,
 					TotalTransactions: 100,
-					SKUOk:             18,
+					SkuOk:             18,
 				},
-				Details: []dto.TiktokSkuGroupDTO{
-					{SKU: "TIKTOK-SKU-001", TotalQuantity: 10, TotalAmount: 250.0},
+				SkuGroups: []dto.TiktokSkuGroupDTO{
+					{Sku: "TIKTOK-SKU-001", TotalTransactions: 10, Status: "OK"},
 				},
 			},
 		},
@@ -287,9 +287,9 @@ func TestTiktokAnalyticsHandler_GetShippingFeeAnalysis_ValidTenant_Returns200(t 
 					OrdersWithDifference: 5,
 					NetImpact:            -5000.0,
 				},
-				Details: []dto.TiktokShippingOrderDTO{
-					{OrderSN: "TK-ORD-001", ShippingFee: 15000, ActualFee: 12000, Difference: -3000},
-				},
+			Details: []dto.TiktokShippingOrderDTO{
+				{OrderSN: "TK-ORD-001", CustomerPaid: 15000, ActualFee: 12000, Difference: -3000},
+			},
 			},
 		},
 	}
