@@ -284,8 +284,22 @@ func TestShopeeAnalyticsHandler_GetReconciliation_ValidTenant_Returns200(t *test
 					SkuOk:    8,
 				},
 				SkuGroups: []dto.SkuGroupDTO{
-					{Sku: "SKU001", TotalTransactions: 5, Status: "OK"},
-				},
+					{
+						Sku:                 "SKU001",
+						ModelSku:            "MODEL001",
+						ItemName:            "Test Item",
+						ModelName:           "Blue",
+						VariantName:         "Large",
+						InventoryPrice:      float64Ptr(10000),
+						ExpectedIncome:      float64Ptr(4500),
+						TotalTransactions:   5,
+						UniqueUnitPrices:    []float64{10000},
+						UniqueActualIncomes: []float64{4500},
+						HasMultiplePrices:   false,
+						HasPriceDifference:  true,
+						Status:              "PRICE_DIFF",
+					},
+			},
 			},
 		},
 	}
@@ -306,6 +320,21 @@ func TestShopeeAnalyticsHandler_GetReconciliation_ValidTenant_Returns200(t *test
 	summary := data["summary"].(map[string]any)
 	assert.Equal(t, float64(10), summary["total_sku"])
 	assert.Equal(t, float64(8), summary["sku_ok"])
+
+	// Assert restored SkuGroup fields in response
+	groups := data["sku_groups"].([]any)
+	if assert.Equal(t, 1, len(groups)) {
+		first := groups[0].(map[string]any)
+		assert.Equal(t, "SKU001", first["sku"])
+		assert.Equal(t, "MODEL001", first["model_sku"])
+		assert.Equal(t, "Large", first["variant_name"])
+		assert.Equal(t, 4500.0, first["expected_income"])
+		assert.Equal(t, []any{float64(10000)}, first["unique_unit_prices"])
+		assert.Equal(t, []any{float64(4500)}, first["unique_actual_incomes"])
+		assert.Equal(t, false, first["has_multiple_prices"])
+		assert.Equal(t, true, first["has_price_difference"])
+		assert.Equal(t, "PRICE_DIFF", first["status"])
+	}
 }
 
 func TestShopeeAnalyticsHandler_GetShippingFeeAnalysis_ValidTenant_Returns200(t *testing.T) {
@@ -319,7 +348,9 @@ func TestShopeeAnalyticsHandler_GetShippingFeeAnalysis_ValidTenant_Returns200(t 
 					NetImpact:            -15000.0,
 				},
 			Details: []dto.ShopeeShippingOrderDTO{
-				{OrderSN: "ORD001", BuyerPaid: 10000, ActualFee: 8000, Difference: -2000},
+				{OrderSN: "ORD001", BuyerPaid: 10000, ActualFee: 8000,
+					ShopeeRebate: 500, Difference: 2500, Status: "profit",
+					OrderDate: "2026-01-01", BuyerName: "Test Buyer", PaymentMethod: "COD"},
 			},
 			},
 		},
@@ -337,6 +368,15 @@ func TestShopeeAnalyticsHandler_GetShippingFeeAnalysis_ValidTenant_Returns200(t 
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
+
+	data := resp["data"].(map[string]any)
+	details := data["details"].([]any)
+	if assert.Equal(t, 1, len(details)) {
+		first := details[0].(map[string]any)
+		assert.Equal(t, "ORD001", first["order_sn"])
+		assert.Equal(t, "Test Buyer", first["buyer_name"])
+		assert.Equal(t, "COD", first["payment_method"])
+	}
 }
 
 func TestShopeeAnalyticsHandler_RepopulateItems_ValidTenant_Returns200(t *testing.T) {
@@ -509,4 +549,8 @@ func TestShopeeAnalyticsHandler_GetOrderItems_MissingOrderSN_Returns400(t *testi
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
 	assert.Contains(t, resp["error"], "Missing order_sn")
+}
+
+func float64Ptr(f float64) *float64 {
+	return &f
 }

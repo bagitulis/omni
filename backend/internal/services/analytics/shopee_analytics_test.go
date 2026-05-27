@@ -313,6 +313,7 @@ func TestGetReconciliation_WithOrders_ReturnsSummaryAndDetails(t *testing.T) {
 			Sku:           &sku,
 			ModelSku:      &modelSku,
 			ItemName:      stringPtr("Test Item"),
+			ModelName:     stringPtr("Test Item"),
 			Quantity:      2,
 			SellingPrice:  10000,
 			OriginalPrice: 9500,
@@ -326,6 +327,7 @@ func TestGetReconciliation_WithOrders_ReturnsSummaryAndDetails(t *testing.T) {
 			Sku:           &sku,
 			ModelSku:      &modelSku,
 			ItemName:      stringPtr("Test Item"),
+			ModelName:     stringPtr("Test Item"),
 			Quantity:      1,
 			SellingPrice:  10000,
 			OriginalPrice: 10000,
@@ -378,6 +380,22 @@ func TestGetReconciliation_WithOrders_ReturnsSummaryAndDetails(t *testing.T) {
 		t.Error("expected HasMultiplePrices=true")
 	}
 	if detail.InventoryPrice != nil {
+	if detail.ModelSku != modelSku {
+		t.Errorf("expected ModelSku=%s, got %s", modelSku, detail.ModelSku)
+	}
+	if detail.ItemName != "Test Item" {
+		t.Errorf("expected ItemName=Test Item, got %s", detail.ItemName)
+	}
+	if detail.VariantName != "Test Item" {
+		t.Errorf("expected VariantName=Test Item, got %s", detail.VariantName)
+	}
+	// UniqueActualIncomes should be empty (multi-item orders have no per-order escrow mapping)
+	if len(detail.UniqueActualIncomes) != 0 {
+		t.Errorf("expected 0 unique actual incomes for multi-item orders, got %d: %v", len(detail.UniqueActualIncomes), detail.UniqueActualIncomes)
+	}
+	if detail.HasPriceDifference {
+		t.Error("expected HasPriceDifference=false (no inventory to compare)")
+	}
 		t.Errorf("expected InventoryPrice=nil (no inventory), got %v", *detail.InventoryPrice)
 	}
 }
@@ -652,6 +670,15 @@ func TestGetReconciliation_OKStatus_WithInventory_ReturnsOK(t *testing.T) {
 	}
 	if detail.HasMultiplePrices {
 		t.Error("expected HasMultiplePrices=false for single item")
+	}
+	if detail.ModelSku != sku {
+		t.Errorf("expected ModelSku=%s, got %s", sku, detail.ModelSku)
+	}
+	if detail.VariantName != "" {
+		t.Errorf("expected VariantName=\"\" (no variant info), got %s", detail.VariantName)
+	}
+	if detail.HasPriceDifference {
+		t.Error("expected HasPriceDifference=false (unit price matches inventory)")
 	}
 }
 

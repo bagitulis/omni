@@ -262,8 +262,21 @@ func TestTiktokAnalyticsHandler_GetReconciliation_ValidTenant_Returns200(t *test
 					SkuOk:             18,
 				},
 				SkuGroups: []dto.TiktokSkuGroupDTO{
-					{Sku: "TIKTOK-SKU-001", TotalTransactions: 10, Status: "OK"},
-				},
+					{
+						Sku:                 "TIKTOK-SKU-001",
+						SellerSku:           "SELLER-SKU-001",
+						ProductName:         "TikTok Product",
+						VariantName:         "Default",
+						InventoryPrice:      float64Ptr(12000),
+						ExpectedIncome:      float64Ptr(7310),
+						TotalTransactions:   10,
+						UniqueUnitPrices:    []float64{12000},
+						UniqueActualIncomes: []float64{7310},
+						HasMultiplePrices:   false,
+						HasPriceDifference:  false,
+						Status:              "OK",
+					},
+			},
 			},
 		},
 	}
@@ -285,6 +298,16 @@ func TestTiktokAnalyticsHandler_GetReconciliation_ValidTenant_Returns200(t *test
 	assert.Equal(t, float64(20), summary["total_sku"])
 	assert.Equal(t, float64(100), summary["total_transactions"])
 	assert.Equal(t, float64(18), summary["sku_ok"])
+
+	// Assert restored TiktokSkuGroup fields in response
+	groups := data["sku_groups"].([]any)
+	if assert.Equal(t, 1, len(groups)) {
+		first := groups[0].(map[string]any)
+		assert.Equal(t, "TIKTOK-SKU-001", first["sku"])
+		assert.Equal(t, "SELLER-SKU-001", first["seller_sku"])
+		assert.Equal(t, "Default", first["variant_name"])
+		assert.Equal(t, 7310.0, first["expected_income"])
+	}
 }
 
 func TestTiktokAnalyticsHandler_GetShippingFeeAnalysis_ValidTenant_Returns200(t *testing.T) {
@@ -298,7 +321,9 @@ func TestTiktokAnalyticsHandler_GetShippingFeeAnalysis_ValidTenant_Returns200(t 
 					NetImpact:            -5000.0,
 				},
 			Details: []dto.TiktokShippingOrderDTO{
-				{OrderSN: "TK-ORD-001", CustomerPaid: 15000, ActualFee: 12000, Difference: -3000},
+				{OrderSN: "TK-ORD-001", CustomerPaid: 15000, ActualFee: 12000,
+					PlatformDiscount: 500, Difference: 3500, Status: "profit",
+					OrderDate: "2026-01-01", OrderStatus: "COMPLETED", Currency: "IDR"},
 			},
 			},
 		},
@@ -316,6 +341,15 @@ func TestTiktokAnalyticsHandler_GetShippingFeeAnalysis_ValidTenant_Returns200(t 
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
+
+	data := resp["data"].(map[string]any)
+	details := data["details"].([]any)
+	if assert.Equal(t, 1, len(details)) {
+		first := details[0].(map[string]any)
+		assert.Equal(t, "TK-ORD-001", first["order_sn"])
+		assert.Equal(t, "COMPLETED", first["order_status"])
+		assert.Equal(t, "IDR", first["currency"])
+	}
 }
 
 func TestTiktokAnalyticsHandler_RepopulateItems_ValidTenant_Returns200(t *testing.T) {

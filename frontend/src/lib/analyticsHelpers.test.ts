@@ -322,3 +322,107 @@ describe("analytics export parity", () => {
     expect(tiktokCsv).toContain("5000");
   });
 });
+
+
+describe("explicit export header parity", () => {
+  it("includes ALL Shopee reconciliation export headers explicitly", () => {
+    const headers = getAnalyticsExportHeaders("shopee", "reconciliation");
+    const csv = createCSV(
+      [{
+        sku: "S1", model_sku: "M1", item_name: "I", model_name: "M",
+        variant_name: "V", inventory_price: 100, expected_income: 90,
+        total_transactions: 1, unique_unit_prices: [100], unique_actual_incomes: [90],
+        has_multiple_prices: false, has_price_difference: false, status: "OK",
+      }],
+      headers,
+    );
+    const headerRow = csv.split("\r\n")[0];
+    expect(headerRow).toContain("SKU");
+    expect(headerRow).toContain("Model SKU");
+    expect(headerRow).toContain("Item Name");
+    expect(headerRow).toContain("Model Name");
+    expect(headerRow).toContain("Variant Name");
+    expect(headerRow).toContain("Inventory Price");
+    expect(headerRow).toContain("Expected Income");
+    expect(headerRow).toContain("Total Transactions");
+    expect(headerRow).toContain("Unique Unit Prices");
+    expect(headerRow).toContain("Unique Actual Incomes");
+    expect(headerRow).toContain("Has Multiple Prices");
+    expect(headerRow).toContain("Has Price Difference");
+    expect(headerRow).toContain("Status");
+    expect(headerRow.split(",").length).toBe(13);
+  });
+
+  it("includes ALL TikTok reconciliation export headers explicitly", () => {
+    const headers = getAnalyticsExportHeaders("tiktok", "reconciliation");
+    const csv = createCSV(
+      [{
+        sku: "S1", seller_sku: "SS1", product_name: "P",
+        variant_name: "V", inventory_price: 100, expected_income: 90,
+        total_transactions: 1, unique_unit_prices: [100], unique_actual_incomes: [90],
+        has_multiple_prices: false, has_price_difference: false, status: "OK",
+      }],
+      headers,
+    );
+    const headerRow = csv.split("\r\n")[0];
+    expect(headerRow).toContain("SKU ID");
+    expect(headerRow).toContain("Seller SKU");
+    expect(headerRow).toContain("Product Name");
+    expect(headerRow).toContain("Variant Name");
+    expect(headerRow).toContain("Inventory Price");
+    expect(headerRow).toContain("Expected Income");
+    expect(headerRow).toContain("Total Transactions");
+    expect(headerRow).toContain("Unique Unit Prices");
+    expect(headerRow).toContain("Unique Actual Incomes");
+    expect(headerRow).toContain("Has Multiple Prices");
+    expect(headerRow).toContain("Has Price Difference");
+    expect(headerRow).toContain("Status");
+    expect(headerRow.split(",").length).toBe(12);
+  });
+
+  it("includes ALL Shopee shipping export headers explicitly", () => {
+    const headers = getAnalyticsExportHeaders("shopee", "shipping_fee");
+    const csv = createCSV(
+      [{
+        order_sn: "O1", buyer_paid: 100, actual_fee: 50,
+        shopee_rebate: 10, difference: 60, status: "profit",
+        order_date: "2026-01-01", buyer_name: "Buyer", payment_method: "COD",
+      }],
+      headers,
+    );
+    const headerRow = csv.split("\r\n")[0];
+    expect(headerRow).toContain("Order SN");
+    expect(headerRow).toContain("Buyer Paid Shipping Fee");
+    expect(headerRow).toContain("Actual Shipping Fee");
+    expect(headerRow).toContain("Shopee Shipping Rebate");
+    expect(headerRow).toContain("Difference");
+    expect(headerRow).toContain("Status");
+    expect(headerRow).toContain("Order Date");
+    expect(headerRow).toContain("Buyer Name");
+    expect(headerRow).toContain("Payment Method");
+    expect(headerRow.split(",").length).toBe(9);
+  });
+
+  it("includes ALL TikTok shipping export headers explicitly", () => {
+    const headers = getAnalyticsExportHeaders("tiktok", "shipping_fee");
+    const csv = createCSV(
+      [{
+        order_sn: "O1", customer_paid: 100, actual_fee: 50,
+        platform_discount: 10, difference: 60, status: "profit",
+        order_date: "2026-01-01", order_status: "COMPLETED", currency: "IDR",
+      }],
+      headers,
+    );
+    const headerRow = csv.split("\r\n")[0];
+    expect(headerRow).toContain("Order SN");
+    expect(headerRow).toContain("Shipping Fee Customer Paid");
+    expect(headerRow).toContain("Shipping Fee Actual");
+    expect(headerRow).toContain("Shipping Fee Platform Discount");
+    expect(headerRow).toContain("Difference");
+    expect(headerRow).toContain("Status");
+    expect(headerRow).toContain("Order Date");
+    expect(headerRow).toContain("Order Status");
+    expect(headerRow).toContain("Currency");
+    expect(headerRow.split(",").length).toBe(9);
+  });
+});

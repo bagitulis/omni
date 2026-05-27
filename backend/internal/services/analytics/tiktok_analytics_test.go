@@ -365,6 +365,12 @@ func TestTiktokGetReconciliation_WithOrders_ReturnsSummaryAndDetails(t *testing.
 	if detail.Status != "NO_INVENTORY" {
 		t.Errorf("expected Status=NO_INVENTORY (no inventory record), got %s", detail.Status)
 	}
+	if detail.SellerSku != sku {
+		t.Errorf("expected SellerSku=%s, got %s", sku, detail.SellerSku)
+	}
+	if detail.VariantName != "" {
+		t.Errorf("expected VariantName=\"\" (no TiktokSku record in fixture), got %s", detail.VariantName)
+	}
 	if !detail.HasMultiplePrices {
 		t.Error("expected HasMultiplePrices=true")
 	}
@@ -992,6 +998,9 @@ func TestTiktokGetReconciliation_OKStatus_WithInventory_ReturnsOK(t *testing.T) 
 	if detail.ExpectedIncome == nil {
 		t.Fatal("expected ExpectedIncome to be set")
 	}
+	if detail.VariantName != "" {
+		t.Errorf("expected VariantName=\"\" (no variant info in item fixture), got %s", detail.VariantName)
+	}
 	if *detail.ExpectedIncome != expected {
 		t.Errorf("expected ExpectedIncome=%f, got %f", expected, *detail.ExpectedIncome)
 	}
@@ -1055,6 +1064,9 @@ func TestTiktokGetReconciliation_PRICE_DIFF_Status_WithMismatch(t *testing.T) {
 	if detail.Status != "PRICE_DIFF" {
 		t.Errorf("expected Status=PRICE_DIFF, got %s", detail.Status)
 	}
+	if detail.SellerSku != "TK-SKU-DIFF" {
+		t.Errorf("expected SellerSku=TK-SKU-DIFF, got %s", detail.SellerSku)
+	}
 	if !detail.HasPriceDifference {
 		t.Error("expected HasPriceDifference=true")
 	}
@@ -1102,6 +1114,12 @@ func TestTiktokGetShippingFeeAnalysis_WithPlatformDiscount_IncludesDiscount(t *t
 	}
 	if detail.ActualFee != 8000 {
 		t.Errorf("expected ActualFee=8000, got %f", detail.ActualFee)
+	}
+	if detail.OrderStatus != "" {
+		t.Errorf("expected OrderStatus=\"\" (not set in fixture), got %s", detail.OrderStatus)
+	}
+	if detail.Currency != "IDR" {
+		t.Errorf("expected Currency=IDR (default), got %s", detail.Currency)
 	}
 	if detail.PlatformDiscount != 1000 {
 		t.Errorf("expected PlatformDiscount=1000, got %f", detail.PlatformDiscount)
