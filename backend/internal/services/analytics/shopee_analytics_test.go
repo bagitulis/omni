@@ -921,3 +921,188 @@ func stringPtr(s string) *string {
 func intPtr(i int) *int {
 	return &i
 }
+
+// ---------------------------------------------------------------------------
+// Drill-down: GetSkuOrders & GetOrderItems
+// ---------------------------------------------------------------------------
+
+func TestGetSkuOrders_ReturnsOrders(t *testing.T) {
+	db := setupTestDB(t)
+	svc := setupService(t, db)
+	ctx := context.Background()
+	tenantID := "test-tenant"
+
+	orderID := uuid.New().String()
+	order := models.ShopeeEscrowOrder{
+		ID:            orderID,
+		TenantID:      tenantID,
+		OrderSN:       "SHOPEE-ORD-001",
+		Month:         1,
+		Year:          2025,
+		EscrowAmount:  75000,
+		BuyerUserName: stringPtr("Buyer A"),
+	}
+	if err := db.Create(&order).Error; err != nil {
+		t.Fatalf("failed to create order: %v", err)
+	}
+
+	item := models.ShopeeEscrowItem{
+		ID:            uuid.New().String(),
+		TenantID:      tenantID,
+		EscrowOrderID: orderID,
+		ModelSku:      stringPtr("SKU-TEST-001"),
+		ItemName:      stringPtr("Test Item"),
+		Quantity:      2,
+		OriginalPrice: 50000,
+		Month:         intPtr(1),
+		Year:          intPtr(2025),
+	}
+	if err := db.Create(&item).Error; err != nil {
+		t.Fatalf("failed to create item: %v", err)
+	}
+
+	result, err := svc.GetSkuOrders(ctx, tenantID, "SKU-TEST-001", 1, 2025)
+	if err != nil {
+		t.Fatalf("GetSkuOrders returned error: %v", err)
+	}
+	if len(result.Orders) != 1 {
+		t.Fatalf("expected 1 order, got %d", len(result.Orders))
+	}
+	if result.Orders[0].OrderSN != "SHOPEE-ORD-001" {
+		t.Errorf("expected OrderSN=SHOPEE-ORD-001, got %s", result.Orders[0].OrderSN)
+	}
+	if result.Orders[0].ModelSku != "SKU-TEST-001" {
+		t.Errorf("expected ModelSku=SKU-TEST-001, got %s", result.Orders[0].ModelSku)
+	}
+	if result.Orders[0].EscrowAmount != 75000 {
+		t.Errorf("expected EscrowAmount=75000, got %f", result.Orders[0].EscrowAmount)
+	}
+	if result.Orders[0].BuyerName != "Buyer A" {
+		t.Errorf("expected BuyerName=Buyer A, got %s", result.Orders[0].BuyerName)
+	}
+}
+
+func TestGetSkuOrders_NoMatch_ReturnsEmpty(t *testing.T) {
+	db := setupTestDB(t)
+	svc := setupService(t, db)
+	ctx := context.Background()
+
+	result, err := svc.GetSkuOrders(ctx, "test-tenant", "NONEXISTENT-SKU", 1, 2025)
+	if err != nil {
+		t.Fatalf("GetSkuOrders returned error: %v", err)
+	}
+	if result == nil || len(result.Orders) != 0 {
+		t.Errorf("expected empty orders for nonexistent SKU, got %d", len(result.Orders))
+	}
+}
+
+func TestGetSkuOrders_TenantIsolation(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+
+	// Create tenant A data
+	orderA := models.ShopeeEscrowOrder{
+		ID:       uuid.New().String(),
+		TenantID: "tenant-a",
+		OrderSN:  "ORD-A",
+		Month:    1,
+		Year:     2025,
+	}
+	if err := db.Create(&orderA).Error; err != nil {
+		t.Fatalf("failed to create order A: %v", err)
+	}
+	itemA := models.ShopeeEscrowItem{
+		ID:            uuid.New().String(),
+		TenantID:      "tenant-a",
+		EscrowOrderID: orderA.ID,
+		ModelSku:      stringPtr("SKU-SHARED"),
+		Month:         intPtr(1),
+		Year:          intPtr(2025),
+	}
+	if err := db.Create(&itemA).Error; err != nil {
+		t.Fatalf("failed to create item A: %v", err)
+	}
+
+	// Tenant B queries the same SKU - should get empty
+	svcB := analytics.NewShopeeAnalyticsService(db, db, "tenant-b")
+	result, err := svcB.GetSkuOrders(ctx, "tenant-b", "SKU-SHARED", 1, 2025)
+	if err != nil {
+		t.Fatalf("GetSkuOrders returned error: %v", err)
+	}
+	if len(result.Orders) != 0 {
+		t.Errorf("expected tenant isolation: tenant-b should not see tenant-a orders, got %d", len(result.Orders))
+	}
+}
+
+func TestGetOrderItems_ReturnsItems(t *testing.T) {
+	db := setupTestDB(t)
+	svc := setupService(t, db)
+	ctx := context.Background()
+	tenantID := "test-tenant"
+
+	orderID := uuid.New().String()
+	order := models.ShopeeEscrowOrder{
+		ID:       orderID,
+		TenantID: tenantID,
+		OrderSN:  "SHOPEE-ORD-002",
+		Month:    2,
+		Year:     2025,
+	}
+	if err := db.Create(&order).Error; err != nil {
+		t.Fatalf("failed to create order: %v", err)
+	}
+
+	items := []models.ShopeeEscrowItem{
+		{
+			ID:            uuid.New().String(),
+			TenantID:      tenantID,
+			EscrowOrderID: orderID,
+			ModelSku:      stringPtr("SKU-001"),
+			ItemName:      stringPtr("Item 1"),
+			Quantity:      1,
+			OriginalPrice: 25000,
+		},
+		{
+			ID:            uuid.New().String(),
+			TenantID:      tenantID,
+			EscrowOrderID: orderID,
+			ModelSku:      stringPtr("SKU-002"),
+			ItemName:      stringPtr("Item 2"),
+			Quantity:      3,
+			OriginalPrice: 30000,
+		},
+	}
+	for _, item := range items {
+		if err := db.Create(&item).Error; err != nil {
+			t.Fatalf("failed to create item: %v", err)
+		}
+	}
+
+	result, err := svc.GetOrderItems(ctx, tenantID, "SHOPEE-ORD-002", 2, 2025)
+	if err != nil {
+		t.Fatalf("GetOrderItems returned error: %v", err)
+	}
+	if len(result.Items) != 2 {
+		t.Fatalf("expected 2 items, got %d", len(result.Items))
+	}
+	if result.Items[0].ItemName != "Item 1" {
+		t.Errorf("expected ItemName=Item 1, got %s", result.Items[0].ItemName)
+	}
+	if result.Items[1].ItemName != "Item 2" {
+		t.Errorf("expected ItemName=Item 2, got %s", result.Items[1].ItemName)
+	}
+}
+
+func TestGetOrderItems_NoMatch_ReturnsEmpty(t *testing.T) {
+	db := setupTestDB(t)
+	svc := setupService(t, db)
+	ctx := context.Background()
+
+	result, err := svc.GetOrderItems(ctx, "test-tenant", "NONEXISTENT-ORDER", 1, 2025)
+	if err != nil {
+		t.Fatalf("GetOrderItems returned error: %v", err)
+	}
+	if result == nil || len(result.Items) != 0 {
+		t.Errorf("expected empty items for nonexistent order, got %d", len(result.Items))
+	}
+}

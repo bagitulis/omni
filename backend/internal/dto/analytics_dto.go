@@ -132,3 +132,112 @@ type TiktokShippingFeeResultDTO struct {
 	Summary ShippingFeeSummaryDTO    `json:"summary"`
 	Details []TiktokShippingOrderDTO `json:"details"`
 }
+
+// ShopeeSkuOrderDTO represents a Shopee order associated with a SKU for drill-down.
+type ShopeeSkuOrderDTO struct {
+	ID                   string  `json:"id"`
+	OrderSN              string  `json:"order_sn"`
+	EscrowAmount         float64 `json:"escrow_amount"`
+	CommissionFee        float64 `json:"commission_fee"`
+	ServiceFee           float64 `json:"service_fee"`
+	SellerProcessingFee  float64 `json:"seller_processing_fee"`
+	BuyerPaidShippingFee float64 `json:"buyer_paid_shipping_fee"`
+	ActualShippingFee    float64 `json:"actual_shipping_fee"`
+	ShopeeShippingRebate float64 `json:"shopee_shipping_rebate"`
+	EstimatedShippingFee float64 `json:"estimated_shipping_fee"`
+	BuyerTotalAmount     float64 `json:"buyer_total_amount"`
+	BuyerName            string  `json:"buyer_name"`
+	PaymentMethod        string  `json:"payment_method"`
+	OrderDate            string  `json:"order_date"`
+	ItemName             string  `json:"item_name"`
+	ModelName            string  `json:"model_name"`
+	Sku                  string  `json:"sku"`
+	ModelSku             string  `json:"model_sku"`
+	Quantity             int     `json:"quantity"`
+	OriginalPrice        float64 `json:"original_price"`
+}
+
+// ShopeeSkuOrdersResultDTO wraps Shopee SKU orders result.
+type ShopeeSkuOrdersResultDTO struct {
+	Orders []ShopeeSkuOrderDTO `json:"orders"`
+}
+
+// ShopeeOrderItemDTO represents a Shopee escrow item in an order.
+type ShopeeOrderItemDTO struct {
+	ID                        string  `json:"id"`
+	EscrowOrderID             string  `json:"escrow_order_id"`
+	ItemID                    *int64  `json:"item_id,omitempty"`
+	ModelID                   *int64  `json:"model_id,omitempty"`
+	Sku                       string  `json:"sku"`
+	ModelSku                  string  `json:"model_sku"`
+	ItemName                  string  `json:"item_name"`
+	ModelName                 string  `json:"model_name"`
+	Quantity                  int     `json:"quantity"`
+	OriginalPrice             float64 `json:"original_price"`
+	SellingPrice              float64 `json:"selling_price"`
+	DiscountedPrice           float64 `json:"discounted_price"`
+	SellerDiscount            float64 `json:"seller_discount"`
+	ShopeeDiscount            float64 `json:"shopee_discount"`
+	DiscountFromCoin          float64 `json:"discount_from_coin"`
+	DiscountFromVoucherSeller float64 `json:"discount_from_voucher_seller"`
+	DiscountFromVoucherShopee float64 `json:"discount_from_voucher_shopee"`
+	AmsCommissionFee          float64 `json:"ams_commission_fee"`
+	SellerOrderProcessingFee  float64 `json:"seller_order_processing_fee"`
+}
+
+// ShopeeOrderItemsResultDTO wraps Shopee order items result.
+type ShopeeOrderItemsResultDTO struct {
+	Items []ShopeeOrderItemDTO `json:"items"`
+}
+
+// TiktokSkuOrderDTO represents a TikTok order associated with a SKU for drill-down.
+type TiktokSkuOrderDTO struct {
+	ID                          string  `json:"id"`
+	OrderID                     string  `json:"order_id"`
+	OrderStatus                 string  `json:"order_status"`
+	TotalSettlementAmount       float64 `json:"total_settlement_amount"`
+	ProductRevenue              float64 `json:"product_revenue"`
+	PlatformCommission           float64 `json:"platform_commission"`
+	TransactionFee              float64 `json:"transaction_fee"`
+	ShippingFeeCustomerPaid     float64 `json:"shipping_fee_customer_paid"`
+	ShippingFeeActual           float64 `json:"shipping_fee_actual"`
+	ShippingFeePlatformDiscount float64 `json:"shipping_fee_platform_discount"`
+	SellerShippingDiscount      float64 `json:"seller_shipping_discount"`
+	RefundAmount                float64 `json:"refund_amount"`
+	Currency                    string  `json:"currency"`
+	BuyerName                   string  `json:"buyer_name"`
+	OrderDate                   string  `json:"order_date"`
+	ProductName                 string  `json:"product_name"`
+	SellerSku                   string  `json:"seller_sku"`
+	Quantity                    int     `json:"quantity"`
+	SalePrice                   float64 `json:"sale_price"`
+	OriginalPrice               float64 `json:"original_price"`
+}
+
+// TiktokSkuOrdersResultDTO wraps TikTok SKU orders result.
+type TiktokSkuOrdersResultDTO struct {
+	Orders []TiktokSkuOrderDTO `json:"orders"`
+}
+
+// TiktokOrderItemDTO represents a TikTok escrow item in an order.
+type TiktokOrderItemDTO struct {
+	ID                          string  `json:"id"`
+	EscrowOrderID               string  `json:"escrow_order_id"`
+	ProductName                 string  `json:"product_name"`
+	SkuID                       string  `json:"sku_id"`
+	SellerSku                   string  `json:"seller_sku"`
+	Quantity                    int     `json:"quantity"`
+	SalePrice                   float64 `json:"sale_price"`
+	OriginalPrice               float64 `json:"original_price"`
+	SubtotalAfterSellerDiscount float64 `json:"subtotal_after_seller_discount"`
+	PlatformDiscount            float64 `json:"platform_discount"`
+	SellerDiscount              float64 `json:"seller_discount"`
+	Commission                  float64 `json:"commission"`
+	TransactionFeeItem           float64 `json:"transaction_fee_item"`
+	SettlementAmount            float64 `json:"settlement_amount"`
+}
+
+// TiktokOrderItemsResultDTO wraps TikTok order items result.
+type TiktokOrderItemsResultDTO struct {
+	Items []TiktokOrderItemDTO `json:"items"`
+}

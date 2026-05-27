@@ -1256,3 +1256,180 @@ func containsStr(s, substr string) bool {
 	}
 	return false
 }
+
+// ---------------------------------------------------------------------------
+// Drill-down: GetSkuOrders & GetOrderItems
+// ---------------------------------------------------------------------------
+
+func TestTiktokGetSkuOrders_ReturnsOrders(t *testing.T) {
+	db := setupTiktokTestDB(t)
+	svc := setupTiktokService(t, db)
+	ctx := context.Background()
+	tenantID := "test-tenant"
+
+	orderID := uuid.New().String()
+	order := models.TiktokEscrowOrder{
+		ID:                    orderID,
+		TenantID:              tenantID,
+		OrderID:               "TK-ORD-001",
+		Month:                 1,
+		Year:                  2025,
+		TotalSettlementAmount: 100000,
+		Currency:              "IDR",
+		BuyerName:             stringPtr("Buyer T"),
+	}
+	if err := db.Create(&order).Error; err != nil {
+		t.Fatalf("failed to create order: %v", err)
+	}
+
+	item := models.TiktokEscrowItem{
+		ID:            uuid.New().String(),
+		TenantID:      tenantID,
+		EscrowOrderID: orderID,
+		SellerSku:     stringPtr("T-SKU-001"),
+		ProductName:   stringPtr("TikTok Product"),
+		Quantity:      2,
+		SalePrice:     50000,
+	}
+	if err := db.Create(&item).Error; err != nil {
+		t.Fatalf("failed to create item: %v", err)
+	}
+
+	result, err := svc.GetSkuOrders(ctx, tenantID, "T-SKU-001", 1, 2025)
+	if err != nil {
+		t.Fatalf("GetSkuOrders returned error: %v", err)
+	}
+	if len(result.Orders) != 1 {
+		t.Fatalf("expected 1 order, got %d", len(result.Orders))
+	}
+	if result.Orders[0].OrderID != "TK-ORD-001" {
+		t.Errorf("expected OrderID=TK-ORD-001, got %s", result.Orders[0].OrderID)
+	}
+	if result.Orders[0].SellerSku != "T-SKU-001" {
+		t.Errorf("expected SellerSku=T-SKU-001, got %s", result.Orders[0].SellerSku)
+	}
+	if result.Orders[0].TotalSettlementAmount != 100000 {
+		t.Errorf("expected TotalSettlementAmount=100000, got %f", result.Orders[0].TotalSettlementAmount)
+	}
+	if result.Orders[0].BuyerName != "Buyer T" {
+		t.Errorf("expected BuyerName=Buyer T, got %s", result.Orders[0].BuyerName)
+	}
+}
+
+func TestTiktokGetSkuOrders_NoMatch_ReturnsEmpty(t *testing.T) {
+	db := setupTiktokTestDB(t)
+	svc := setupTiktokService(t, db)
+	ctx := context.Background()
+
+	result, err := svc.GetSkuOrders(ctx, "test-tenant", "NONEXISTENT-SKU", 1, 2025)
+	if err != nil {
+		t.Fatalf("GetSkuOrders returned error: %v", err)
+	}
+	if len(result.Orders) != 0 {
+		t.Errorf("expected empty orders, got %d", len(result.Orders))
+	}
+}
+
+func TestTiktokGetSkuOrders_TenantIsolation(t *testing.T) {
+	db := setupTiktokTestDB(t)
+	ctx := context.Background()
+
+	orderA := models.TiktokEscrowOrder{
+		ID:       uuid.New().String(),
+		TenantID: "tenant-a",
+		OrderID:  "TK-ORD-A",
+		Month:    1,
+		Year:     2025,
+	}
+	if err := db.Create(&orderA).Error; err != nil {
+		t.Fatalf("failed to create order A: %v", err)
+	}
+	itemA := models.TiktokEscrowItem{
+		ID:            uuid.New().String(),
+		TenantID:      "tenant-a",
+		EscrowOrderID: orderA.ID,
+		SellerSku:     stringPtr("T-SKU-SHARED"),
+	}
+	if err := db.Create(&itemA).Error; err != nil {
+		t.Fatalf("failed to create item A: %v", err)
+	}
+
+	svcB := analytics.NewTiktokAnalyticsService(db, db, "tenant-b")
+	result, err := svcB.GetSkuOrders(ctx, "tenant-b", "T-SKU-SHARED", 1, 2025)
+	if err != nil {
+		t.Fatalf("GetSkuOrders returned error: %v", err)
+	}
+	if len(result.Orders) != 0 {
+		t.Errorf("expected tenant isolation, got %d orders", len(result.Orders))
+	}
+}
+
+func TestTiktokGetOrderItems_ReturnsItems(t *testing.T) {
+	db := setupTiktokTestDB(t)
+	svc := setupTiktokService(t, db)
+	ctx := context.Background()
+	tenantID := "test-tenant"
+
+	orderID := uuid.New().String()
+	order := models.TiktokEscrowOrder{
+		ID:       orderID,
+		TenantID: tenantID,
+		OrderID:  "TK-ORD-002",
+		Month:    2,
+		Year:     2025,
+	}
+	if err := db.Create(&order).Error; err != nil {
+		t.Fatalf("failed to create order: %v", err)
+	}
+
+	items := []models.TiktokEscrowItem{
+		{
+			ID:            uuid.New().String(),
+			TenantID:      tenantID,
+			EscrowOrderID: orderID,
+			SellerSku:     stringPtr("T-SKU-001"),
+			ProductName:   stringPtr("Product 1"),
+			Quantity:      1,
+			SalePrice:     25000,
+		},
+		{
+			ID:            uuid.New().String(),
+			TenantID:      tenantID,
+			EscrowOrderID: orderID,
+			SellerSku:     stringPtr("T-SKU-002"),
+			ProductName:   stringPtr("Product 2"),
+			Quantity:      2,
+			SalePrice:     15000,
+		},
+	}
+	for _, item := range items {
+		if err := db.Create(&item).Error; err != nil {
+			t.Fatalf("failed to create item: %v", err)
+		}
+	}
+
+	result, err := svc.GetOrderItems(ctx, tenantID, "TK-ORD-002", 2, 2025)
+	if err != nil {
+		t.Fatalf("GetOrderItems returned error: %v", err)
+	}
+	if len(result.Items) != 2 {
+		t.Fatalf("expected 2 items, got %d", len(result.Items))
+	}
+	if result.Items[0].ProductName != "Product 1" {
+		t.Errorf("expected ProductName=Product 1, got %s", result.Items[0].ProductName)
+	}
+}
+
+func TestTiktokGetOrderItems_NoMatch_ReturnsEmpty(t *testing.T) {
+	db := setupTiktokTestDB(t)
+	svc := setupTiktokService(t, db)
+	ctx := context.Background()
+
+	result, err := svc.GetOrderItems(ctx, "test-tenant", "NONEXISTENT-ORDER", 1, 2025)
+	if err != nil {
+		t.Fatalf("GetOrderItems returned error: %v", err)
+	}
+	if len(result.Items) != 0 {
+		t.Errorf("expected empty items, got %d", len(result.Items))
+	}
+}

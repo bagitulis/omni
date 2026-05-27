@@ -21,6 +21,8 @@ type mockTiktokService struct {
 	shippingFee    *dto.TiktokShippingFeeResultDTO
 	jobID          string
 	err            error
+	skuOrders      *dto.TiktokSkuOrdersResultDTO
+	orderItems     *dto.TiktokOrderItemsResultDTO
 }
 
 func (m *mockTiktokService) GetSettings(_ context.Context, _ string) (*dto.AnalyticsSettingsDTO, error) {
@@ -53,6 +55,14 @@ func (m *mockTiktokService) GetShippingFeeAnalysis(_ context.Context, _ string, 
 
 func (m *mockTiktokService) RepopulateItems(_ context.Context, _ string, _ string) error {
 	return m.err
+}
+
+func (m *mockTiktokService) GetSkuOrders(_ context.Context, _ string, _ string, _, _ int) (*dto.TiktokSkuOrdersResultDTO, error) {
+	return m.skuOrders, m.err
+}
+
+func (m *mockTiktokService) GetOrderItems(_ context.Context, _ string, _ string, _, _ int) (*dto.TiktokOrderItemsResultDTO, error) {
+	return m.orderItems, m.err
 }
 
 func TestTiktokAnalyticsHandler_GetSettings_MissingTenant_Returns401(t *testing.T) {
@@ -327,4 +337,112 @@ func TestTiktokAnalyticsHandler_RepopulateItems_ValidTenant_Returns200(t *testin
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
 	assert.Contains(t, resp["message"], "repopulation")
+}
+
+func TestTiktokAnalyticsHandler_GetSkuOrders_ValidTenant_Returns200(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := &TiktokAnalyticsHandler{
+		svc: &mockTiktokService{
+			skuOrders: &dto.TiktokSkuOrdersResultDTO{
+				Orders: []dto.TiktokSkuOrderDTO{
+					{OrderID: "TKTK-001", SellerSku: "TIKTOK-SKU", TotalSettlementAmount: 75000},
+				},
+			},
+		},
+	}
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/sku-orders?sku=TIKTOK-SKU&month=1&year=2025", nil)
+	c.Set("tenant_id", "test-tenant-123")
+
+	handler.GetSkuOrders(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, true, resp["success"])
+	data := resp["data"].(map[string]interface{})
+	orders := data["orders"].([]interface{})
+	assert.Equal(t, 1, len(orders))
+	first := orders[0].(map[string]interface{})
+	assert.Equal(t, "TKTK-001", first["order_id"])
+	assert.Equal(t, "TIKTOK-SKU", first["seller_sku"])
+	assert.Equal(t, 75000.0, first["total_settlement_amount"])
+}
+
+func TestTiktokAnalyticsHandler_GetSkuOrders_MissingSku_Returns400(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := &TiktokAnalyticsHandler{
+		svc: &mockTiktokService{},
+	}
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/sku-orders", nil)
+	c.Set("tenant_id", "test-tenant-123")
+
+	handler.GetSkuOrders(c)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, false, resp["success"])
+	assert.Contains(t, resp["error"], "Missing sku")
+}
+
+func TestTiktokAnalyticsHandler_GetOrderItems_ValidTenant_Returns200(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := &TiktokAnalyticsHandler{
+		svc: &mockTiktokService{
+			orderItems: &dto.TiktokOrderItemsResultDTO{
+				Items: []dto.TiktokOrderItemDTO{
+					{ProductName: "TikTok Product", SellerSku: "TSKU-001", Quantity: 3, SalePrice: 15000},
+				},
+			},
+		},
+	}
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/order-items?order_sn=TKTK-001&month=1&year=2025", nil)
+	c.Set("tenant_id", "test-tenant-123")
+
+	handler.GetOrderItems(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, true, resp["success"])
+	data := resp["data"].(map[string]interface{})
+	items := data["items"].([]interface{})
+	assert.Equal(t, 1, len(items))
+	first := items[0].(map[string]interface{})
+	assert.Equal(t, "TikTok Product", first["product_name"])
+	assert.Equal(t, "TSKU-001", first["seller_sku"])
+	assert.Equal(t, float64(3), first["quantity"])
+}
+
+func TestTiktokAnalyticsHandler_GetOrderItems_MissingOrderSN_Returns400(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := &TiktokAnalyticsHandler{
+		svc: &mockTiktokService{},
+	}
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/order-items?month=1&year=2025", nil)
+	c.Set("tenant_id", "test-tenant-123")
+
+	handler.GetOrderItems(c)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, false, resp["success"])
+	assert.Contains(t, resp["error"], "Missing order_sn")
 }

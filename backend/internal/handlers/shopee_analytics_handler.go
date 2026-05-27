@@ -25,6 +25,8 @@ type ShopeeAnalyticsService interface {
 	GetReconciliation(ctx context.Context, tenantID string, month, year int) (*dto.ReconciliationResultDTO, error)
 	GetShippingFeeAnalysis(ctx context.Context, tenantID string, month, year int) (*dto.ShopeeShippingFeeResultDTO, error)
 	RepopulateItems(ctx context.Context, tenantID string, period string) error
+	GetSkuOrders(ctx context.Context, tenantID string, sku string, month, year int) (*dto.ShopeeSkuOrdersResultDTO, error)
+	GetOrderItems(ctx context.Context, tenantID string, orderSN string, month, year int) (*dto.ShopeeOrderItemsResultDTO, error)
 }
 
 // ShopeeAnalyticsHandler handles Shopee analytics report endpoints.
@@ -217,6 +219,58 @@ func (h *ShopeeAnalyticsHandler) RepopulateItems(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Item repopulation triggered successfully"})
+}
+
+// GetSkuOrders returns orders for a SKU within the given month/year.
+func (h *ShopeeAnalyticsHandler) GetSkuOrders(c *gin.Context) {
+	svc, ok := h.getService(c)
+	if !ok {
+		return
+	}
+
+	sku := c.Query("sku")
+	if sku == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing sku query parameter"})
+		return
+	}
+
+	month, year, ok := parseMonthYear(c)
+	if !ok {
+		return
+	}
+
+	result, err := svc.GetSkuOrders(c.Request.Context(), middleware.GetTenantID(c), sku, month, year)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+}
+
+// GetOrderItems returns items for an order within the given month/year.
+func (h *ShopeeAnalyticsHandler) GetOrderItems(c *gin.Context) {
+	svc, ok := h.getService(c)
+	if !ok {
+		return
+	}
+
+	orderSN := c.Query("order_sn")
+	if orderSN == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Missing order_sn query parameter"})
+		return
+	}
+
+	month, year, ok := parseMonthYear(c)
+	if !ok {
+		return
+	}
+
+	result, err := svc.GetOrderItems(c.Request.Context(), middleware.GetTenantID(c), orderSN, month, year)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
 }
 
 // parseMonthYear extracts and validates month/year query parameters.

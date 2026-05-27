@@ -21,6 +21,8 @@ func RegisterShopeeAnalyticsRoutes(router *gin.RouterGroup, handler *handlers.Sh
 		shopee.GET("/shipping-fee", handler.GetShippingFeeAnalysis)
 		shopee.POST("/repopulate-items", handler.RepopulateItems)
 	}
+		shopee.GET("/sku-orders", handler.GetSkuOrders)
+		shopee.GET("/order-items", handler.GetOrderItems)
 }
 
 // RegisterTiktokAnalyticsRoutes registers TikTok analytics report routes
@@ -38,4 +40,6 @@ func RegisterTiktokAnalyticsRoutes(router *gin.RouterGroup, handler *handlers.Ti
 		tiktok.GET("/shipping-fee", handler.GetShippingFeeAnalysis)
 		tiktok.POST("/repopulate-items", handler.RepopulateItems)
 	}
+		tiktok.GET("/sku-orders", handler.GetSkuOrders)
+		tiktok.GET("/order-items", handler.GetOrderItems)
 }

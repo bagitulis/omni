@@ -21,6 +21,8 @@ type mockShopeeService struct {
 	shippingFee    *dto.ShopeeShippingFeeResultDTO
 	jobID          string
 	err            error
+	skuOrders      *dto.ShopeeSkuOrdersResultDTO
+	orderItems     *dto.ShopeeOrderItemsResultDTO
 }
 
 func (m *mockShopeeService) GetSettings(_ context.Context, _ string) (*dto.AnalyticsSettingsDTO, error) {
@@ -53,6 +55,14 @@ func (m *mockShopeeService) GetShippingFeeAnalysis(_ context.Context, _ string, 
 
 func (m *mockShopeeService) RepopulateItems(_ context.Context, _ string, _ string) error {
 	return m.err
+}
+
+func (m *mockShopeeService) GetSkuOrders(_ context.Context, _ string, _ string, _, _ int) (*dto.ShopeeSkuOrdersResultDTO, error) {
+	return m.skuOrders, m.err
+}
+
+func (m *mockShopeeService) GetOrderItems(_ context.Context, _ string, _ string, _, _ int) (*dto.ShopeeOrderItemsResultDTO, error) {
+	return m.orderItems, m.err
 }
 
 func TestShopeeAnalyticsHandler_GetSettings_MissingTenant_Returns401(t *testing.T) {
@@ -374,4 +384,129 @@ func TestShopeeAnalyticsHandler_GetReconciliation_MissingTenant_Returns401(t *te
 	handler.GetReconciliation(c)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestShopeeAnalyticsHandler_GetSkuOrders_ValidTenant_Returns200(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := &ShopeeAnalyticsHandler{
+		svc: &mockShopeeService{
+			skuOrders: &dto.ShopeeSkuOrdersResultDTO{
+				Orders: []dto.ShopeeSkuOrderDTO{
+					{OrderSN: "ORD001", Sku: "SKU-TEST", EscrowAmount: 50000},
+				},
+			},
+		},
+	}
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/sku-orders?sku=SKU-TEST&month=1&year=2025", nil)
+	c.Set("tenant_id", "test-tenant-123")
+
+	handler.GetSkuOrders(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, true, resp["success"])
+	data := resp["data"].(map[string]interface{})
+	orders := data["orders"].([]interface{})
+	assert.Equal(t, 1, len(orders))
+	first := orders[0].(map[string]interface{})
+	assert.Equal(t, "ORD001", first["order_sn"])
+	assert.Equal(t, "SKU-TEST", first["sku"])
+	assert.Equal(t, 50000.0, first["escrow_amount"])
+}
+
+func TestShopeeAnalyticsHandler_GetSkuOrders_MissingSku_Returns400(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := &ShopeeAnalyticsHandler{
+		svc: &mockShopeeService{},
+	}
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/sku-orders", nil)
+	c.Set("tenant_id", "test-tenant-123")
+
+	handler.GetSkuOrders(c)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, false, resp["success"])
+	assert.Contains(t, resp["error"], "Missing sku")
+}
+
+func TestShopeeAnalyticsHandler_GetSkuOrders_MissingTenant_Returns401(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := &ShopeeAnalyticsHandler{}
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/sku-orders?sku=SKU-TEST", nil)
+
+	handler.GetSkuOrders(c)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, false, resp["success"])
+}
+
+func TestShopeeAnalyticsHandler_GetOrderItems_ValidTenant_Returns200(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := &ShopeeAnalyticsHandler{
+		svc: &mockShopeeService{
+			orderItems: &dto.ShopeeOrderItemsResultDTO{
+				Items: []dto.ShopeeOrderItemDTO{
+					{ItemName: "Test Item", ModelSku: "SKU-TEST", Quantity: 2, OriginalPrice: 25000},
+				},
+			},
+		},
+	}
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/order-items?order_sn=ORD001&month=1&year=2025", nil)
+	c.Set("tenant_id", "test-tenant-123")
+
+	handler.GetOrderItems(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, true, resp["success"])
+	data := resp["data"].(map[string]interface{})
+	items := data["items"].([]interface{})
+	assert.Equal(t, 1, len(items))
+	first := items[0].(map[string]interface{})
+	assert.Equal(t, "Test Item", first["item_name"])
+	assert.Equal(t, "SKU-TEST", first["model_sku"])
+	assert.Equal(t, float64(2), first["quantity"])
+}
+
+func TestShopeeAnalyticsHandler_GetOrderItems_MissingOrderSN_Returns400(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := &ShopeeAnalyticsHandler{
+		svc: &mockShopeeService{},
+	}
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/order-items?month=1&year=2025", nil)
+	c.Set("tenant_id", "test-tenant-123")
+
+	handler.GetOrderItems(c)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, false, resp["success"])
+	assert.Contains(t, resp["error"], "Missing order_sn")
 }
