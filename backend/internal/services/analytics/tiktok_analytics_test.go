@@ -699,7 +699,7 @@ func TestTiktokRepopulateGuard_RejectsNoopOnItemRestoration(t *testing.T) {
 	// Seed items with raw JSON data
 	rawItemData := `{"product_name":"Guard Test Product"}`
 	itemCount := 3
-	for i := 0; i < itemCount; i++ {
+	for i := range itemCount {
 		item := models.TiktokEscrowItem{
 			ID:            uuid.New().String(),
 			TenantID:      tenantID,
