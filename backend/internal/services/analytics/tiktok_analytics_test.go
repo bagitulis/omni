@@ -2,16 +2,18 @@ package analytics_test
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
 	"github.com/omni/backend/internal/dto"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/analytics"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -21,13 +23,11 @@ import (
 
 func setupTiktokTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	path := fmt.Sprintf("/tmp/tiktok_test_%s.db", uuid.New().String())
+	db, err := gorm.Open(sqlite.Open(path+"?_pragma=journal_mode(MEMORY)&_pragma=synchronous(OFF)"), &gorm.Config{})
 	if err != nil {
-		t.Fatalf("failed to open in-memory SQLite: %v", err)
+		t.Fatalf("failed to open SQLite: %v", err)
 	}
-
-	// Auto-migrate the tables we need
 	if err := db.AutoMigrate(
 		&models.AnalyticsSettings{},
 		&models.TiktokEscrowSync{},
@@ -37,7 +37,7 @@ func setupTiktokTestDB(t *testing.T) *gorm.DB {
 	); err != nil {
 		t.Fatalf("failed to auto-migrate: %v", err)
 	}
-
+	t.Cleanup(func() { os.Remove(path) })
 	return db
 }
 

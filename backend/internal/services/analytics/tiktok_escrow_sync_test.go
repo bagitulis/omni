@@ -2,16 +2,41 @@ package analytics_test
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/glebarez/sqlite"
+	"github.com/google/uuid"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/analytics"
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"gorm.io/gorm"
 )
+
+func setupTiktokSyncTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
+	path := fmt.Sprintf("/tmp/tiktok_sync_test_%s.db", uuid.New().String())
+	db, err := gorm.Open(sqlite.Open(path+"?_pragma=journal_mode(MEMORY)&_pragma=synchronous(OFF)"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("failed to open SQLite: %v", err)
+	}
+	if err := db.AutoMigrate(
+		&models.AnalyticsSettings{},
+		&models.TiktokEscrowSync{},
+		&models.TiktokEscrowOrder{},
+		&models.TiktokEscrowItem{},
+		&models.Job{},
+	); err != nil {
+		t.Fatalf("failed to auto-migrate: %v", err)
+	}
+	t.Cleanup(func() { os.Remove(path) })
+	return db
+}
 
 // ---------------------------------------------------------------------------
 // FakeTiktokClient — simulates TikTok API for integration tests
@@ -311,7 +336,7 @@ func (f *FakeTiktokClient) GetCallCount(method string) int {
 
 func TestTiktokEscrowSync_PersistsOrdersItemsAndRawJSON(t *testing.T) {
 	log.Logger = log.Output(zerolog.NewTestWriter(t))
-	db := setupTiktokTestDB(t)
+	db := setupTiktokSyncTestDB(t)
 	svc := analytics.NewTiktokEscrowSyncService(db, db, "test-tenant")
 	fake := newFakeTiktokClient()
 	svc.SetClient(fake)
@@ -390,7 +415,7 @@ func TestTiktokEscrowSync_PersistsOrdersItemsAndRawJSON(t *testing.T) {
 
 func TestTiktokEscrowSync_NormalizesNegativeShippingFee(t *testing.T) {
 	log.Logger = log.Output(zerolog.NewTestWriter(t))
-	db := setupTiktokTestDB(t)
+	db := setupTiktokSyncTestDB(t)
 	svc := analytics.NewTiktokEscrowSyncService(db, db, "test-tenant")
 	fake := newFakeTiktokClient()
 	svc.SetClient(fake)
@@ -432,7 +457,7 @@ func TestTiktokEscrowSync_NormalizesNegativeShippingFee(t *testing.T) {
 
 func TestTiktokEscrowSync_UsesV202501ForSEAIndonesia(t *testing.T) {
 	log.Logger = log.Output(zerolog.NewTestWriter(t))
-	db := setupTiktokTestDB(t)
+	db := setupTiktokSyncTestDB(t)
 	svc := analytics.NewTiktokEscrowSyncService(db, db, "test-tenant")
 	fake := newFakeTiktokClient()
 	svc.SetClient(fake)
@@ -465,7 +490,7 @@ func TestTiktokEscrowSync_UsesV202501ForSEAIndonesia(t *testing.T) {
 
 func TestTiktokSyncGuard_WithFakeClient_PersistsData(t *testing.T) {
 	log.Logger = log.Output(zerolog.NewTestWriter(t))
-	db := setupTiktokTestDB(t)
+	db := setupTiktokSyncTestDB(t)
 	svc := analytics.NewTiktokEscrowSyncService(db, db, "test-tenant")
 	fake := newFakeTiktokClient()
 	svc.SetClient(fake)
