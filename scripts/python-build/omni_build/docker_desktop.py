@@ -31,6 +31,21 @@ class DockerDesktopManager:
             return self._is_running_windows()
         return self._is_running_linux()
 
+    def _is_daemon_running_but_no_perms(self) -> bool:
+        """Check if Docker daemon is running but user lacks socket permissions.
+        
+        Uses sudo to check if the daemon is actually alive, to distinguish between
+        'docker not installed/running' vs 'docker running but no group membership'.
+        """
+        try:
+            result = subprocess.run(
+                ["sudo", "docker", "info"],
+                capture_output=True, text=True, timeout=10,
+            )
+            return result.returncode == 0
+        except Exception:
+            return False
+
     def _is_running_windows(self) -> bool:
         """Check if Docker Desktop.exe process is running on Windows."""
         try:
@@ -66,7 +81,12 @@ class DockerDesktopManager:
             if result.returncode == 0:
                 log_info("Docker daemon is running")
                 return True
-            log_info("Docker daemon not responding")
+            # Detect permission denied vs daemon not running
+            stderr_lower = (result.stderr or "").lower()
+            if "permission denied" in stderr_lower:
+                log_warning("Permission denied — user not in docker group")
+            else:
+                log_info("Docker daemon not responding")
             return False
         except Exception as e:
             log_warning(f"Could not check Docker daemon: {e}")
@@ -130,6 +150,19 @@ class DockerDesktopManager:
         if self._is_running_linux():
             return True
 
+        # Check for permission issue first
+        try:
+            id_result = subprocess.run(
+                ["id", "-nG"],
+                capture_output=True, text=True, timeout=5,
+            )
+            groups = id_result.stdout.strip().split()
+            if "docker" not in groups and self._is_daemon_running_but_no_perms():
+                log_warning("User not in docker group. Run: sudo usermod -aG docker $USER && newgrp docker")
+                return False
+        except Exception:
+            pass
+
         # Try systemctl
         try:
             log_info("Starting Docker daemon via systemctl...")
@@ -163,7 +196,7 @@ class DockerDesktopManager:
         except Exception as e:
             log_warning(f"service docker start failed: {e}")
 
-        log_error("Could not start Docker. Install with: sudo apt install docker.io")
+        log_error("Could not start Docker. Install: sudo pacman -S docker (Arch) or sudo apt install docker.io (Debian)")
         return False
 
     def wait_for_ready(
