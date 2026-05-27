@@ -1,4 +1,4 @@
-import { Table, Tag, theme } from "antd";
+import { Table, Tag, Typography, theme } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { formatCurrency, formatDate } from "@/lib/analyticsHelpers";
 import type {
@@ -11,6 +11,11 @@ interface ShippingFeeTableProps {
   data: ShopeeShippingOrder[] | TiktokShippingOrder[] | null | undefined;
   loading: boolean;
   platform: ReportPlatform;
+  onOrderClick?: (row: ShopeeShippingOrder | TiktokShippingOrder) => void;
+}
+
+function selectorId(value: string) {
+  return value.replace(/[^a-zA-Z0-9_-]/g, "-");
 }
 
 /**
@@ -22,6 +27,7 @@ export function ShippingFeeTable({
   data,
   loading,
   platform,
+  onOrderClick,
 }: ShippingFeeTableProps) {
   const { token } = theme.useToken();
 
@@ -32,6 +38,17 @@ export function ShippingFeeTable({
       key: "order_sn",
       width: 180,
       ellipsis: true,
+      render: (value: string, row) => (
+        <Typography.Link
+          data-testid={`shipping-order-${selectorId(value)}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            onOrderClick?.(row);
+          }}
+        >
+          {value}
+        </Typography.Link>
+      ),
     },
     {
       title: "Status",
@@ -152,6 +169,10 @@ export function ShippingFeeTable({
         showTotal: (total) => `Total ${total} orders`,
       }}
       scroll={{ x: 1000 }}
+      onRow={(row) => ({
+        onClick: () => onOrderClick?.(row),
+        style: onOrderClick ? { cursor: "pointer" } : undefined,
+      })}
     />
   );
 }

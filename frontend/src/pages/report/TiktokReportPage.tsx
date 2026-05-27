@@ -5,6 +5,7 @@ import { SettingOutlined } from "@ant-design/icons";
 import { ReportFilters } from "@/components/analytics/common/ReportFilters";
 import { ReportPageHeader } from "@/components/analytics/common/ReportPageHeader";
 import { ReportSettingsModal } from "@/components/analytics/common/ReportSettingsModal";
+import { ReconciliationDrilldownDrawer, ShippingFeeDrilldownDrawer } from "@/components/analytics/common/ReportDrilldownDrawers";
 import { ReportToolbar } from "@/components/analytics/common/ReportToolbar";
 import { ReconciliationSummaryCards } from "@/components/analytics/common/ReconciliationSummaryCards";
 import { ReconciliationTable } from "@/components/analytics/common/ReconciliationTable";
@@ -49,6 +50,8 @@ export const TiktokReportPage = () => {
   const [year, setYear] = useState(today.year());
   const [activeTab, setActiveTab] = useState<ReportTab>("reconciliation");
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [selectedSku, setSelectedSku] = useState<TiktokSkuGroup | null>(null);
+  const [selectedShippingOrder, setSelectedShippingOrder] = useState<TiktokShippingOrder | null>(null);
   const { token } = theme.useToken();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
@@ -174,7 +177,7 @@ export const TiktokReportPage = () => {
               style={{ borderRadius: 3, border: `1px solid ${token.colorBorderSecondary}` }}
             >
               {reconciliationQuery.isLoading || reconciliationDetails.length > 0 ? (
-                <ReconciliationTable data={reconciliationDetails} loading={reconciliationQuery.isLoading} />
+                <ReconciliationTable data={reconciliationDetails} loading={reconciliationQuery.isLoading} onRowClick={(row) => setSelectedSku(row as TiktokSkuGroup)} />
               ) : (
                 <Empty description={`No TikTok reconciliation data for ${periodLabel}`} />
               )}
@@ -192,7 +195,7 @@ export const TiktokReportPage = () => {
               style={{ borderRadius: 3, border: `1px solid ${token.colorBorderSecondary}` }}
             >
               {shippingFeeQuery.isLoading || shippingFeeDetails.length > 0 ? (
-                <ShippingFeeTable data={shippingFeeDetails} loading={shippingFeeQuery.isLoading} platform={PLATFORM} />
+                <ShippingFeeTable data={shippingFeeDetails} loading={shippingFeeQuery.isLoading} platform={PLATFORM} onOrderClick={(row) => setSelectedShippingOrder(row as TiktokShippingOrder)} />
               ) : (
                 <Empty description={`No TikTok shipping fee data for ${periodLabel}`} />
               )}
@@ -218,6 +221,22 @@ export const TiktokReportPage = () => {
         settings={settingsQuery.data}
         onSave={handleSaveSettings}
         saving={saveSettingsMutation.isPending}
+      />
+      <ReconciliationDrilldownDrawer
+        open={selectedSku !== null}
+        row={selectedSku}
+        onClose={() => setSelectedSku(null)}
+        platform={PLATFORM}
+        month={month}
+        year={year}
+      />
+      <ShippingFeeDrilldownDrawer
+        open={selectedShippingOrder !== null}
+        row={selectedShippingOrder}
+        onClose={() => setSelectedShippingOrder(null)}
+        platform={PLATFORM}
+        month={month}
+        year={year}
       />
     </div>
   );

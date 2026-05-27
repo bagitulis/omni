@@ -52,16 +52,21 @@ vi.mock("@/hooks/useAnalytics", () => ({
         sku_with_price_diff: 0,
         sku_no_inventory: 0,
       },
-      details: [
+      sku_groups: [
         {
           sku: "SKU-001",
+          model_sku: "MODEL-SKU-001",
           item_name: "Test Product",
-          total_quantity: 2,
-          total_amount: 100000,
-          system_amount: 100000,
-          price_diff: 0,
-          price_diff_percent: 0,
-          order_count: 1,
+          model_name: "Model",
+          variant_name: "Blue",
+          inventory_price: 7000,
+          expected_income: 4500,
+          total_transactions: 1,
+          unique_unit_prices: [10000],
+          unique_actual_incomes: [4500],
+          has_multiple_prices: false,
+          has_price_difference: false,
+          status: "OK",
         },
       ],
     },
@@ -79,11 +84,14 @@ vi.mock("@/hooks/useAnalytics", () => ({
       details: [
         {
           order_sn: "TEST-ORDER-001",
-          platform_fee: 15000,
+          buyer_paid: 15000,
           actual_fee: 10000,
+          shopee_rebate: 0,
           difference: 5000,
           status: "completed",
           order_date: "2026-05-01T00:00:00Z",
+          buyer_name: "Test Buyer",
+          payment_method: "COD",
         },
       ],
     },
@@ -93,6 +101,16 @@ vi.mock("@/hooks/useAnalytics", () => ({
   useTriggerSync: () => ({ mutate: mutateMocks.triggerSync, isPending: false }),
   useDeleteSync: () => ({ mutate: mutateMocks.deleteSync, isPending: false }),
   useRepopulateItems: () => ({ mutate: mutateMocks.repopulateItems, isPending: false }),
+  useSkuOrders: () => ({
+    data: { orders: [{ id: "sku-order-1", order_sn: "TEST-ORDER-001", escrow_amount: 4500, commission_fee: 0, service_fee: 0, seller_processing_fee: 0, buyer_paid_shipping_fee: 15000, actual_shipping_fee: 10000, shopee_shipping_rebate: 0, estimated_shipping_fee: 0, buyer_total_amount: 10000, buyer_name: "Test Buyer", payment_method: "COD", order_date: "2026-05-01T00:00:00Z", item_name: "Test Product", model_name: "Model", sku: "SKU-001", model_sku: "MODEL-SKU-001", quantity: 1, original_price: 10000 }] },
+    isLoading: false,
+    isError: false,
+  }),
+  useOrderItems: () => ({
+    data: { items: [{ id: "item-1", escrow_order_id: "order-1", item_id: 1, model_id: 2, sku: "SKU-001", model_sku: "MODEL-SKU-001", item_name: "Test Product", model_name: "Model", quantity: 1, original_price: 10000, selling_price: 9000, discounted_price: 9000, seller_discount: 500, shopee_discount: 500, discount_from_coin: 0, discount_from_voucher_seller: 0, discount_from_voucher_shopee: 0, ams_commission_fee: 100, seller_order_processing_fee: 50 }] },
+    isLoading: false,
+    isError: false,
+  }),
 }));
 
 describe("ShopeeReportPage", () => {
@@ -117,6 +135,22 @@ describe("ShopeeReportPage", () => {
     expect(screen.getByText("Shipping Fee Differences")).toBeInTheDocument();
     expect(screen.getByText("Net Impact")).toBeInTheDocument();
     expect(screen.getByText("TEST-ORDER-001")).toBeInTheDocument();
+  });
+
+  it("opens reconciliation and shipping fee drilldown drawers", async () => {
+    const user = userEvent.setup();
+    render(<ShopeeReportPage />);
+
+    await user.click(screen.getByTestId("reconciliation-row-SKU-001"));
+    expect(await screen.findByText("SKU Metadata")).toBeInTheDocument();
+    expect(screen.getByText("MODEL-SKU-001")).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText("Close"));
+    await user.click(screen.getByText("Shipping Fee"));
+    await user.click(screen.getByTestId("shipping-order-TEST-ORDER-001"));
+
+    expect(await screen.findByText("Order Metadata")).toBeInTheDocument();
+    expect(screen.getByText("Order Items")).toBeInTheDocument();
   });
 
   it("wires toolbar actions to Shopee report mutations", async () => {

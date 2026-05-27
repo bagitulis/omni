@@ -8,6 +8,11 @@ type ReconciliationRow = SkuGroup | TiktokSkuGroup;
 interface ReconciliationTableProps {
   data: ReconciliationRow[] | null | undefined;
   loading: boolean;
+  onRowClick?: (row: ReconciliationRow) => void;
+}
+
+function selectorId(value: string) {
+  return value.replace(/[^a-zA-Z0-9_-]/g, "-");
 }
 
 /**
@@ -18,6 +23,7 @@ interface ReconciliationTableProps {
 export function ReconciliationTable({
   data,
   loading,
+  onRowClick,
 }: ReconciliationTableProps) {
   const { token } = theme.useToken();
 
@@ -106,6 +112,18 @@ export function ReconciliationTable({
         showTotal: (total) => `Total ${total} SKUs`,
       }}
       scroll={{ x: 900 }}
+      onRow={(row) => ({
+        "data-testid": `reconciliation-row-${selectorId(row.sku)}`,
+        onClick: () => onRowClick?.(row),
+        onKeyDown: (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            onRowClick?.(row);
+          }
+        },
+        role: onRowClick ? "button" : undefined,
+        tabIndex: onRowClick ? 0 : undefined,
+        style: onRowClick ? { cursor: "pointer" } : undefined,
+      })}
     />
   );
 }

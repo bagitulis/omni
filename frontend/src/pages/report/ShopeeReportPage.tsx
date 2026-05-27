@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { ReportFilters } from "@/components/analytics/common/ReportFilters";
 import { ReportPageHeader } from "@/components/analytics/common/ReportPageHeader";
 import { ReportSettingsModal } from "@/components/analytics/common/ReportSettingsModal";
+import { ReconciliationDrilldownDrawer, ShippingFeeDrilldownDrawer } from "@/components/analytics/common/ReportDrilldownDrawers";
 import { ReportToolbar } from "@/components/analytics/common/ReportToolbar";
 import { ReconciliationSummaryCards } from "@/components/analytics/common/ReconciliationSummaryCards";
 import { ReconciliationTable } from "@/components/analytics/common/ReconciliationTable";
@@ -22,7 +23,7 @@ import {
   useTriggerSync,
 } from "@/hooks/useAnalytics";
 import { exportToCSV, formatMonthYear, getAnalyticsExportHeaders } from "@/lib/analyticsHelpers";
-import type { ReportSettings, ReportTab, SkuGroup, ShopeeShippingOrder } from "@/types/analytics";
+import type { ReportSettings, ReportTab, ShopeeShippingOrder, SkuGroup } from "@/types/analytics";
 const PLATFORM = "shopee";
 const { Text } = Typography;
 
@@ -51,6 +52,8 @@ export const ShopeeReportPage = () => {
   const [year, setYear] = useState(today.year());
   const [activeTab, setActiveTab] = useState<ReportTab>("reconciliation");
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [selectedSku, setSelectedSku] = useState<SkuGroup | null>(null);
+  const [selectedShippingOrder, setSelectedShippingOrder] = useState<ShopeeShippingOrder | null>(null);
 
   const settingsQuery = useReportSettings(PLATFORM);
   const syncStatusQuery = useSyncStatus(PLATFORM, month, year);
@@ -138,6 +141,7 @@ export const ShopeeReportPage = () => {
         <ReconciliationTable
           data={reconciliationDetails}
           loading={reconciliationQuery.isLoading}
+          onRowClick={(row) => setSelectedSku(row as SkuGroup)}
         />
       );
     }
@@ -147,6 +151,7 @@ export const ShopeeReportPage = () => {
         data={shippingFeeDetails}
         loading={shippingFeeQuery.isLoading}
         platform={PLATFORM}
+        onOrderClick={(row) => setSelectedShippingOrder(row as ShopeeShippingOrder)}
       />
     );
   };
@@ -262,6 +267,22 @@ export const ShopeeReportPage = () => {
         settings={settingsQuery.data}
         onSave={handleSaveSettings}
         saving={saveSettingsMutation.isPending || settingsQuery.isLoading}
+      />
+      <ReconciliationDrilldownDrawer
+        open={selectedSku !== null}
+        row={selectedSku}
+        onClose={() => setSelectedSku(null)}
+        platform={PLATFORM}
+        month={month}
+        year={year}
+      />
+      <ShippingFeeDrilldownDrawer
+        open={selectedShippingOrder !== null}
+        row={selectedShippingOrder}
+        onClose={() => setSelectedShippingOrder(null)}
+        platform={PLATFORM}
+        month={month}
+        year={year}
       />
     </div>
   );
