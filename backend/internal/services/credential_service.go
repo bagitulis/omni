@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/omni/backend/internal/config"
@@ -82,16 +83,35 @@ func (s *CredentialService) GetPlatformCredentials(tenantID, platform string) (*
 		IsProduction: true, // Default to production
 	}
 
-	// Get global credentials (partner/app level) from system schema
-	if err := s.loadGlobalCredentials(systemDB, platform, creds); err != nil {
+	canonicalState, err := s.loadCanonicalCredentials(ctx, tenantDB, tenantID, platform, creds)
+	if err != nil {
 		return nil, err
 	}
-
-	// Get shop-level credentials from tenant DB (key-value format)
-	if err := s.loadTenantCredentials(ctx, tenantDB, platform, creds); err != nil {
-		// Not an error if no tenant config yet (new tenant)
-		// Just return with global credentials
+	if canonicalState.AppConfigured && canonicalState.StoreConfigured {
+		return creds, nil
 	}
+	if !IsCredentialLegacyFallbackEnabled() {
+		return creds, nil
+	}
+	_ = repositories.NewCredentialRepository(tenantDB).CreateAuditEvent(ctx, &models.CredentialAuditEvent{
+		TenantID:  tenantID,
+		Platform:  platform,
+		EventType: "credential_legacy_fallback_used",
+		Status:    "success",
+		Code:      "canonical_missing",
+		Actor:     "credential_service",
+		ActorRole: "service",
+		Metadata:  models.JSONMap{"legacy_read_only": true, "canonical_first": true},
+	})
+
+	legacyCreds := &PlatformCredentials{Platform: platform, IsProduction: true}
+	if err := s.loadGlobalCredentials(systemDB, platform, legacyCreds); err != nil {
+		return nil, err
+	}
+	if err := s.loadTenantCredentials(ctx, tenantDB, platform, legacyCreds); err != nil {
+		log.Warn().Err(err).Str("platform", platform).Str("tenant", tenantID).Msg("legacy credential fallback read failed")
+	}
+	fillMissingPlatformCredentials(creds, legacyCreds)
 
 	// Check token expiry and auto-refresh if needed
 	if s.tokenManager != nil && creds.AccessToken != "" && creds.TokenExpiry > 0 {
@@ -107,6 +127,82 @@ func (s *CredentialService) GetPlatformCredentials(tenantID, platform string) (*
 	}
 
 	return creds, nil
+}
+
+type canonicalCredentialLoadState struct {
+	AppConfigured   bool
+	StoreConfigured bool
+}
+
+func (s *CredentialService) loadCanonicalCredentials(ctx context.Context, db *gorm.DB, tenantID, platform string, creds *PlatformCredentials) (canonicalCredentialLoadState, error) {
+	repo := repositories.NewCredentialRepository(db)
+	appConfig, err := repo.GetAppConfig(ctx, tenantID, platform)
+	if err != nil {
+		return canonicalCredentialLoadState{}, err
+	}
+	connections, err := repo.ListConnections(ctx, tenantID, platform)
+	if err != nil {
+		return canonicalCredentialLoadState{}, err
+	}
+	state := canonicalCredentialLoadState{}
+	if appConfig != nil && appConfig.Configured {
+		creds.PartnerID = appConfig.PartnerID
+		creds.PartnerKey = appConfig.PartnerKey
+		creds.AppKey = appConfig.AppKey
+		creds.AppSecret = appConfig.AppSecret
+		creds.Region = appConfig.Region
+		state.AppConfigured = true
+	}
+	for _, conn := range connections {
+		if conn.DisabledAt != nil {
+			continue
+		}
+		creds.ShopID, _ = strconv.ParseInt(conn.StoreIdentifier, 10, 64)
+		creds.AccessToken = conn.AccessToken
+		creds.RefreshToken = conn.RefreshToken
+		creds.ShopCipher = conn.ShopCipher
+		creds.TokenExpiry = conn.TokenExpiry
+		if conn.Region != "" {
+			creds.Region = conn.Region
+		}
+		state.StoreConfigured = true
+		break
+	}
+	return state, nil
+}
+
+func fillMissingPlatformCredentials(target, fallback *PlatformCredentials) {
+	if target.PartnerID == 0 {
+		target.PartnerID = fallback.PartnerID
+	}
+	if target.PartnerKey == "" {
+		target.PartnerKey = fallback.PartnerKey
+	}
+	if target.ShopID == 0 {
+		target.ShopID = fallback.ShopID
+	}
+	if target.AccessToken == "" {
+		target.AccessToken = fallback.AccessToken
+	}
+	if target.RefreshToken == "" {
+		target.RefreshToken = fallback.RefreshToken
+	}
+	if target.AppKey == "" {
+		target.AppKey = fallback.AppKey
+	}
+	if target.AppSecret == "" {
+		target.AppSecret = fallback.AppSecret
+	}
+	if target.ShopCipher == "" {
+		target.ShopCipher = fallback.ShopCipher
+	}
+	if target.Region == "" {
+		target.Region = fallback.Region
+	}
+	if target.TokenExpiry == 0 {
+		target.TokenExpiry = fallback.TokenExpiry
+	}
+	target.IsProduction = target.IsProduction || fallback.IsProduction
 }
 
 func (s *CredentialService) loadGlobalCredentials(db *gorm.DB, platform string, creds *PlatformCredentials) error {
