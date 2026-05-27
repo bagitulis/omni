@@ -10,7 +10,6 @@ import (
 	"github.com/omni/backend/internal/dto"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/jobs"
-	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -342,15 +341,7 @@ func (s *TiktokAnalyticsService) GetShippingFeeAnalysis(ctx context.Context, ten
 	}, nil
 }
 
-// RepopulateItems triggers item repopulation for the given period.
-// Placeholder: actual SDK calls will be added in a future task.
-func (s *TiktokAnalyticsService) RepopulateItems(ctx context.Context, tenantID string, period string) error {
-	log.Info().
-		Str("tenant_id", tenantID).
-		Str("period", period).
-		Msg("TikTok item repopulation triggered (placeholder)")
-	return nil
-}
+// RepopulateItems is implemented in tiktok_escrow_repopulate.go
 
 // ComputeTiktokShippingDiff calculates the shipping fee difference for TikTok orders.
 // Formula: ShippingFeeCustomerPaid - ShippingFeeActual + ShippingFeePlatformDiscount.

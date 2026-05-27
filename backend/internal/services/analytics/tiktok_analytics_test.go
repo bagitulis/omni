@@ -676,7 +676,15 @@ func TestTiktokRepopulateGuard_RejectsNoopOnItemRestoration(t *testing.T) {
 
 	// Seed an order with raw JSON data that Wave 2/3 would use to reconstruct items
 	rawTransactionData := `{"transaction_id":"TXN-001"}`
-	rawOrderData := `{"order_id":"ORD-REPOP-TT-001"}`
+	rawOrderData := `{
+  "id": "ORD-REPOP-TT-001",
+  "status": "COMPLETED",
+  "line_items": [
+    {"id":"LI-001","product_id":"PROD-001","product_name":"Test Product A","sku_id":"SKU-001","sku_name":"Variant A","seller_sku":"TPA-001","quantity":1,"original_price":"10000","sale_price":"10000","platform_discount":"0","seller_discount":"0"},
+    {"id":"LI-002","product_id":"PROD-001","product_name":"Test Product B","sku_id":"SKU-002","sku_name":"Variant B","seller_sku":"TPB-002","quantity":1,"original_price":"10000","sale_price":"10000","platform_discount":"0","seller_discount":"0"},
+    {"id":"LI-003","product_id":"PROD-002","product_name":"Test Product C","sku_id":"SKU-003","sku_name":"Variant C","seller_sku":"TPC-003","quantity":1,"original_price":"10000","sale_price":"10000","platform_discount":"0","seller_discount":"0"}
+  ]
+}`
 	order := models.TiktokEscrowOrder{
 		ID:                 uuid.New().String(),
 		TenantID:           tenantID,
@@ -729,7 +737,7 @@ func TestTiktokRepopulateGuard_RejectsNoopOnItemRestoration(t *testing.T) {
 		t.Fatalf("expected 0 items after delete, got %d", afterDelete)
 	}
 
-	// Call RepopulateItems (currently a no-op placeholder)
+	// Call RepopulateItems to restore items from raw JSON data
 	if err := svc.RepopulateItems(ctx, tenantID, "2026-03"); err != nil {
 		t.Fatalf("RepopulateItems returned error: %v", err)
 	}
@@ -745,4 +753,186 @@ func TestTiktokRepopulateGuard_RejectsNoopOnItemRestoration(t *testing.T) {
 			"Current RepopulateItems is a no-op — implement item reconstruction from raw JSON.",
 			initialCount, finalCount)
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Repopulate Malformed Raw JSON — must return explicit error
+// ---------------------------------------------------------------------------
+
+func TestTiktokRepopulate_MalformedRawJSON_ReturnsError(t *testing.T) {
+	log.Logger = log.Output(zerolog.NewTestWriter(t))
+	db := setupTiktokTestDB(t)
+	svc := setupTiktokService(t, db)
+	ctx := context.Background()
+	tenantID := "test-tenant"
+
+	// Seed an order with malformed raw_order_data
+	malformedJSON := `{"id":"ORD-MALFORM-001",`  // truncated JSON
+	order := models.TiktokEscrowOrder{
+		ID:               uuid.New().String(),
+		TenantID:         tenantID,
+		OrderID:          "ORD-MALFORM-001",
+		Month:            4,
+		Year:             2026,
+		RawOrderData:     &malformedJSON,
+	}
+	if err := db.Create(&order).Error; err != nil {
+		t.Fatalf("failed to seed order: %v", err)
+	}
+
+	// Also seed a good order that should NOT be corrupted by the malformed one
+	goodRawData := `{"id":"ORD-GOOD-001","status":"COMPLETED","line_items":[{"id":"LI-GOOD","product_id":"PROD-GOOD","product_name":"Good Product","sku_id":"SKU-GOOD","sku_name":"Good Variant","seller_sku":"GP-001","quantity":1,"original_price":"5000","sale_price":"5000","platform_discount":"0","seller_discount":"0"}]}`
+	goodOrder := models.TiktokEscrowOrder{
+		ID:           uuid.New().String(),
+		TenantID:     tenantID,
+		OrderID:      "ORD-GOOD-001",
+		Month:        4,
+		Year:         2026,
+		RawOrderData: &goodRawData,
+	}
+	if err := db.Create(&goodOrder).Error; err != nil {
+		t.Fatalf("failed to seed good order: %v", err)
+	}
+
+	// Seed an item for the good order to verify it survives
+	goodItem := models.TiktokEscrowItem{
+		ID:            uuid.New().String(),
+		TenantID:      tenantID,
+		EscrowOrderID: goodOrder.ID,
+		OrderID:       "ORD-GOOD-001",
+		Quantity:      1,
+		SalePrice:     5000,
+		OriginalPrice: 5000,
+	}
+	if err := db.Create(&goodItem).Error; err != nil {
+		t.Fatalf("failed to seed good item: %v", err)
+	}
+
+	// Call RepopulateItems — should fail due to malformed JSON
+	err := svc.RepopulateItems(ctx, tenantID, "2026-04")
+	if err == nil {
+		t.Fatal("expected error for malformed raw_order_data, got nil")
+	}
+	// Must mention the order ID and "malformed" in the error
+	if !containsSubstring(err.Error(), "ORD-MALFORM-001") ||
+		!containsSubstring(err.Error(), "malformed") {
+		t.Errorf("error should name the order and mention malformed JSON, got: %v", err)
+	}
+
+	// Verify the good order's item was NOT deleted (transaction rolled back)
+	var goodItemCount int64
+	db.Model(&models.TiktokEscrowItem{}).
+		Where("tenant_id = ? AND escrow_order_id = ?", tenantID, goodOrder.ID).
+		Count(&goodItemCount)
+	if goodItemCount != 1 {
+		t.Errorf("expected good order item count=1 (transaction rolled back), got %d", goodItemCount)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Repopulate Tenant Isolation — cross-tenant data must not be affected
+// ---------------------------------------------------------------------------
+
+func TestTiktokRepopulate_TenantIsolation_DoesNotAffectOtherTenants(t *testing.T) {
+	log.Logger = log.Output(zerolog.NewTestWriter(t))
+	db := setupTiktokTestDB(t)
+	svc := setupTiktokService(t, db)
+	ctx := context.Background()
+	tenantA := "tenant-a"
+	tenantB := "tenant-b"
+
+	// Seed tenant A order with raw data and items
+	rawDataA := `{"id":"ORD-TA-001","status":"COMPLETED","line_items":[{"id":"LI-TA","product_id":"PROD-TA","product_name":"Tenant A Product","sku_id":"SKU-TA","sku_name":"TA Variant","seller_sku":"TA-001","quantity":2,"original_price":"20000","sale_price":"20000","platform_discount":"0","seller_discount":"0"}]}`
+	orderA := models.TiktokEscrowOrder{
+		ID:           uuid.New().String(),
+		TenantID:     tenantA,
+		OrderID:      "ORD-TA-001",
+		Month:        5,
+		Year:         2026,
+		RawOrderData: &rawDataA,
+	}
+	if err := db.Create(&orderA).Error; err != nil {
+		t.Fatalf("failed to seed tenant A order: %v", err)
+	}
+
+	// Seed tenant A items (will be deleted and recreated)
+	itemA := models.TiktokEscrowItem{
+		ID:            uuid.New().String(),
+		TenantID:      tenantA,
+		EscrowOrderID: orderA.ID,
+		OrderID:       "ORD-TA-001",
+		Quantity:      2,
+		SalePrice:     20000,
+		OriginalPrice: 20000,
+	}
+	if err := db.Create(&itemA).Error; err != nil {
+		t.Fatalf("failed to seed tenant A item: %v", err)
+	}
+
+	// Seed tenant B order with DIFFERENT order_id (no raw data overlap)
+	orderB := models.TiktokEscrowOrder{
+		ID:       uuid.New().String(),
+		TenantID: tenantB,
+		OrderID:  "ORD-TB-001",
+		Month:    5,
+		Year:     2026,
+		// No raw_order_data — tenant B has no items to restore from
+	}
+	if err := db.Create(&orderB).Error; err != nil {
+		t.Fatalf("failed to seed tenant B order: %v", err)
+	}
+
+	// Seed tenant B items
+	itemB := models.TiktokEscrowItem{
+		ID:            uuid.New().String(),
+		TenantID:      tenantB,
+		EscrowOrderID: orderB.ID,
+		OrderID:       "ORD-TB-001",
+		Quantity:      3,
+		SalePrice:     30000,
+		OriginalPrice: 30000,
+	}
+	if err := db.Create(&itemB).Error; err != nil {
+		t.Fatalf("failed to seed tenant B item: %v", err)
+	}
+
+	// Record pre-repopulate counts
+	var tenantBCountBefore int64
+	db.Model(&models.TiktokEscrowItem{}).Where("tenant_id = ?", tenantB).Count(&tenantBCountBefore)
+
+	// Run repopulate as tenant B — should only affect tenant B's orders with raw data
+	// Tenant B has no raw data, so this should be a no-op for tenant B
+	if err := svc.RepopulateItems(ctx, tenantB, "2026-05"); err != nil {
+		t.Fatalf("RepopulateItems for tenant B returned error: %v", err)
+	}
+
+	// Tenant B items must remain unchanged (there's no raw data to reconstruct from)
+	var tenantBCountAfter int64
+	db.Model(&models.TiktokEscrowItem{}).Where("tenant_id = ?", tenantB).Count(&tenantBCountAfter)
+	if tenantBCountAfter != tenantBCountBefore {
+		t.Errorf("tenant B item count changed from %d to %d (should be unchanged)", tenantBCountBefore, tenantBCountAfter)
+	}
+
+	// Tenant A items must remain completely untouched
+	var tenantACount int64
+	db.Model(&models.TiktokEscrowItem{}).
+		Where("tenant_id = ? AND escrow_order_id = ?", tenantA, orderA.ID).
+		Count(&tenantACount)
+	if tenantACount != 1 {
+		t.Errorf("tenant A item count changed to %d (should be 1, untouched)", tenantACount)
+	}
+}
+
+// containsSubstring is a helper for error assertions
+func containsSubstring(s, substr string) bool {
+	return len(s) >= len(substr) && containsStr(s, substr)
+}
+
+func containsStr(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }
