@@ -594,6 +594,8 @@ func TestTiktokSyncGuard_RejectsPlaceholderNoData(t *testing.T) {
 	log.Logger = log.Output(zerolog.NewTestWriter(t))
 	db := setupTiktokTestDB(t)
 	svc := analytics.NewTiktokEscrowSyncService(db, db, "test-tenant")
+	fake := newFakeTiktokClient()
+	svc.SetClient(fake)
 	ctx := context.Background()
 
 	onProgress := func(processed, total int, message string) {}
