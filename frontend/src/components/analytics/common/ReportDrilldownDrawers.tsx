@@ -61,6 +61,10 @@ function valuesLabel(values: number[]) {
   return values.length === 0 ? "-" : values.map(formatCurrency).join(" / ");
 }
 
+function safeNumber(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
 function drawerWidth(screens: ReturnType<typeof Grid.useBreakpoint>) {
   return screens.md ? 720 : "100vw";
 }
@@ -76,11 +80,11 @@ const skuOrderColumns: ColumnsType<SkuOrderRow> = [
 
 const itemColumns: ColumnsType<OrderItemRow> = [
   { title: "Product", key: "product", render: (_, row) => (isShopeeOrderItem(row) ? row.item_name : row.product_name) },
-  { title: "SKU", key: "sku", width: 150, render: (_, row) => (isShopeeOrderItem(row) ? row.model_sku || row.sku : row.seller_sku) },
+  { title: "SKU", key: "sku", width: 150, render: (_, row) => (isShopeeOrderItem(row) ? (row.model_sku ?? row.sku) : row.seller_sku) },
   { title: "Quantity", dataIndex: "quantity", key: "quantity", width: 90, align: "right" },
   { title: "Original", dataIndex: "original_price", key: "original_price", width: 110, align: "right", render: (value: number) => formatCurrency(value) },
   { title: "Net/Sale", key: "net", width: 110, align: "right", render: (_, row) => formatCurrency(isShopeeOrderItem(row) ? row.selling_price : row.sale_price) },
-  { title: "Fees", key: "fees", width: 110, align: "right", render: (_, row) => formatCurrency(isShopeeOrderItem(row) ? row.ams_commission_fee + row.seller_order_processing_fee : row.commission + row.transaction_fee_item) },
+  { title: "Fees", key: "fees", width: 110, align: "right", render: (_, row) => formatCurrency(isShopeeOrderItem(row) ? safeNumber(row.ams_commission_fee) + safeNumber(row.seller_order_processing_fee) : safeNumber(row.commission) + safeNumber(row.transaction_fee_item)) },
 ];
 
 export function ReconciliationDrilldownDrawer({ row, open, onClose, platform, month, year }: ReconciliationDrilldownDrawerProps) {

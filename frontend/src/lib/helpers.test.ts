@@ -44,6 +44,11 @@ describe("formatCurrency", () => {
     const result = formatCurrency(-50000);
     expect(result).toContain("50.000");
   });
+
+  it("formats NaN and infinity as zero", () => {
+    expect(formatCurrency(Number.NaN)).toContain("0");
+    expect(formatCurrency(Number.POSITIVE_INFINITY)).toContain("0");
+  });
 });
 
 describe("formatPrice", () => {
@@ -71,6 +76,11 @@ describe("formatPrice", () => {
     const result = formatPrice(1000000);
     expect(result).toContain("1.000.000");
   });
+
+  it("formats NaN and infinity as zero", () => {
+    expect(formatPrice(Number.NaN)).toBe("0");
+    expect(formatPrice(Number.POSITIVE_INFINITY)).toBe("0");
+  });
 });
 
 describe("formatNumber", () => {
@@ -86,6 +96,11 @@ describe("formatNumber", () => {
   it("formats large number", () => {
     const result = formatNumber(9999999);
     expect(result).toContain("9.999.999");
+  });
+
+  it("formats NaN and infinity as zero", () => {
+    expect(formatNumber(Number.NaN)).toBe("0");
+    expect(formatNumber(Number.POSITIVE_INFINITY)).toBe("0");
   });
 });
 

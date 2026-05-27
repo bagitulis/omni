@@ -82,7 +82,7 @@ describe("StockUpdateModal", () => {
 
     // Antd form validation is async
     await waitFor(() => {
-      expect(screen.getByText("Please select a product")).toBeInTheDocument();
+      expect(screen.getByText("Select product SKU")).toBeInTheDocument();
     });
     await waitFor(() => {
       expect(screen.getByText("Please enter quantity")).toBeInTheDocument();

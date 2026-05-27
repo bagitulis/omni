@@ -76,6 +76,7 @@ export function formatPriceDiff(diff: number): string {
 export function getReconciliationHealth(
   summary: ReconciliationSummary
 ): "good" | "warning" | "error" {
+  if (summary.total_sku === 0) return "warning";
   if (summary.sku_no_inventory > 0) return "error";
   if (summary.sku_with_price_diff > 0) return "warning";
   if (summary.sku_ok === summary.total_sku) return "good";
@@ -155,7 +156,7 @@ export function createCSV<T extends Record<string, unknown>>(
   data: T[],
   headers?: Record<string, string>
 ): string {
-  if (!data || data.length === 0) return "";
+  if (!data || data.length === 0 || data.some((row) => row == null)) return "";
 
   const keys = headers ? Object.keys(headers) : Object.keys(data[0]);
   const headerRow = headers ? keys.map((k) => headers[k] || k) : keys;

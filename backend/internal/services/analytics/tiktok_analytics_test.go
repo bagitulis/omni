@@ -28,14 +28,14 @@ func setupTiktokTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("failed to open SQLite: %v", err)
 	}
-if err := db.AutoMigrate(
-&models.AnalyticsSettings{},
-&models.TiktokEscrowSync{},
-&models.TiktokEscrowOrder{},
+	if err := db.AutoMigrate(
+		&models.AnalyticsSettings{},
+		&models.TiktokEscrowSync{},
+		&models.TiktokEscrowOrder{},
 		&models.TiktokEscrowItem{},
 		&models.InventoryRecord{},
-&models.Job{},
-); err != nil {
+		&models.Job{},
+	); err != nil {
 		t.Fatalf("failed to auto-migrate: %v", err)
 	}
 	t.Cleanup(func() { os.Remove(path) })
@@ -376,6 +376,50 @@ func TestTiktokGetReconciliation_WithOrders_ReturnsSummaryAndDetails(t *testing.
 	}
 }
 
+func TestTiktokGetReconciliation_NonPositiveQuantity_DefaultsToOne(t *testing.T) {
+	db := setupTiktokTestDB(t)
+	svc := setupTiktokService(t, db)
+	ctx := context.Background()
+	tenantID := "test-tenant"
+
+	order := models.TiktokEscrowOrder{
+		ID:                    uuid.New().String(),
+		TenantID:              tenantID,
+		OrderID:               "TT-NEG-QTY-001",
+		Month:                 4,
+		Year:                  2026,
+		TotalSettlementAmount: 15000,
+	}
+	if err := db.Create(&order).Error; err != nil {
+		t.Fatalf("failed to insert order: %v", err)
+	}
+
+	sellerSku := "SELLER-NEG-QTY"
+	item := models.TiktokEscrowItem{
+		ID:            uuid.New().String(),
+		TenantID:      tenantID,
+		EscrowOrderID: order.ID,
+		OrderID:       order.OrderID,
+		SellerSku:     &sellerSku,
+		Quantity:      -3,
+		SalePrice:     15000,
+	}
+	if err := db.Create(&item).Error; err != nil {
+		t.Fatalf("failed to insert item: %v", err)
+	}
+
+	result, err := svc.GetReconciliation(ctx, tenantID, 4, 2026)
+	if err != nil {
+		t.Fatalf("GetReconciliation returned error: %v", err)
+	}
+	if len(result.SkuGroups) != 1 {
+		t.Fatalf("expected 1 sku group, got %d", len(result.SkuGroups))
+	}
+	if got := result.SkuGroups[0].UniqueUnitPrices[0]; got != 15000 {
+		t.Fatalf("expected non-positive quantity to default unit price to 15000, got %f", got)
+	}
+}
+
 func TestTiktokGetReconciliation_NoData_ReturnsEmpty(t *testing.T) {
 	db := setupTiktokTestDB(t)
 	svc := setupTiktokService(t, db)
@@ -398,6 +442,7 @@ func TestTiktokGetReconciliation_NoData_ReturnsEmpty(t *testing.T) {
 		t.Errorf("expected empty sku groups, got %d items", len(result.SkuGroups))
 	}
 }
+
 // ---------------------------------------------------------------------------
 // Shipping Fee Analysis
 // ---------------------------------------------------------------------------
@@ -593,7 +638,6 @@ func TestComputeTiktokShippingDiff_NegativeDifference_Works(t *testing.T) {
 // These guardrail tests assert that SyncMonthWithProgress actually persists
 // orders, items, and raw JSON data. They SHOULD FAIL against the current
 // no-op/MVP placeholder sync and PASS only after real sync is implemented.
-//
 func TestTiktokSyncGuard_RejectsPlaceholderNoData(t *testing.T) {
 	log.Logger = log.Output(zerolog.NewTestWriter(t))
 	db := setupTiktokTestDB(t)
@@ -670,7 +714,6 @@ func TestTiktokSyncGuard_RejectsPlaceholderNoData(t *testing.T) {
 // ---------------------------------------------------------------------------
 // Repopulate Guard Tests — fail against no-op placeholder, pass after Wave 2/3
 // ---------------------------------------------------------------------------
-//
 func TestTiktokRepopulateGuard_RejectsNoopOnItemRestoration(t *testing.T) {
 	log.Logger = log.Output(zerolog.NewTestWriter(t))
 	db := setupTiktokTestDB(t)
@@ -771,14 +814,14 @@ func TestTiktokRepopulate_MalformedRawJSON_ReturnsError(t *testing.T) {
 	tenantID := "test-tenant"
 
 	// Seed an order with malformed raw_order_data
-	malformedJSON := `{"id":"ORD-MALFORM-001",`  // truncated JSON
+	malformedJSON := `{"id":"ORD-MALFORM-001",` // truncated JSON
 	order := models.TiktokEscrowOrder{
-		ID:               uuid.New().String(),
-		TenantID:         tenantID,
-		OrderID:          "ORD-MALFORM-001",
-		Month:            4,
-		Year:             2026,
-		RawOrderData:     &malformedJSON,
+		ID:           uuid.New().String(),
+		TenantID:     tenantID,
+		OrderID:      "ORD-MALFORM-001",
+		Month:        4,
+		Year:         2026,
+		RawOrderData: &malformedJSON,
 	}
 	if err := db.Create(&order).Error; err != nil {
 		t.Fatalf("failed to seed order: %v", err)
@@ -926,7 +969,6 @@ func TestTiktokRepopulate_TenantIsolation_DoesNotAffectOtherTenants(t *testing.T
 		t.Errorf("tenant A item count changed to %d (should be 1, untouched)", tenantACount)
 	}
 }
-
 
 // ---------------------------------------------------------------------------
 // Rich Reconciliation Tests (TikTok)
@@ -1080,15 +1122,15 @@ func TestTiktokGetShippingFeeAnalysis_WithPlatformDiscount_IncludesDiscount(t *t
 
 	orderDate := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)
 	order := models.TiktokEscrowOrder{
-		ID:                      uuid.New().String(),
-		TenantID:                tenantID,
-		OrderID:                 "TK-ORD-DISC-001",
-		Month:                   4,
-		Year:                    2026,
-		ShippingFeeCustomerPaid: 12000,
-		ShippingFeeActual:       8000,
+		ID:                          uuid.New().String(),
+		TenantID:                    tenantID,
+		OrderID:                     "TK-ORD-DISC-001",
+		Month:                       4,
+		Year:                        2026,
+		ShippingFeeCustomerPaid:     12000,
+		ShippingFeeActual:           8000,
 		ShippingFeePlatformDiscount: 1000,
-		OrderDate:               &orderDate,
+		OrderDate:                   &orderDate,
 	}
 	if err := db.Create(&order).Error; err != nil {
 		t.Fatalf("failed to insert order: %v", err)
@@ -1140,15 +1182,15 @@ func TestTiktokGetShippingFeeAnalysis_NegativeActualShipping_NormalizedFormula(t
 	// Note: In practice the sync normalizes to positive, but this test proves
 	// the report handles both cases.
 	order := models.TiktokEscrowOrder{
-		ID:                      uuid.New().String(),
-		TenantID:                tenantID,
-		OrderID:                 "TK-ORD-NEG-001",
-		Month:                   4,
-		Year:                    2026,
-		ShippingFeeCustomerPaid: 12000,
-		ShippingFeeActual:       -8000, // negative upstream value
+		ID:                          uuid.New().String(),
+		TenantID:                    tenantID,
+		OrderID:                     "TK-ORD-NEG-001",
+		Month:                       4,
+		Year:                        2026,
+		ShippingFeeCustomerPaid:     12000,
+		ShippingFeeActual:           -8000, // negative upstream value
 		ShippingFeePlatformDiscount: 1000,
-		OrderDate:               &orderDate,
+		OrderDate:                   &orderDate,
 	}
 	if err := db.Create(&order).Error; err != nil {
 		t.Fatalf("failed to insert order: %v", err)
@@ -1186,15 +1228,15 @@ func TestTiktokGetShippingFeeAnalysis_NegativeActualNormalized_ProducesCorrectFo
 	// but the formula must handle it correctly: 12000 - 8000 + 1000 = 5000
 	// This reflects the actual sync behavior where ShippingFeeActual is stored positive
 	order := models.TiktokEscrowOrder{
-		ID:                      uuid.New().String(),
-		TenantID:                tenantID,
-		OrderID:                 "TK-ORD-NORM-001",
-		Month:                   4,
-		Year:                    2026,
-		ShippingFeeCustomerPaid: 12000,
-		ShippingFeeActual:       8000, // normalized positive
+		ID:                          uuid.New().String(),
+		TenantID:                    tenantID,
+		OrderID:                     "TK-ORD-NORM-001",
+		Month:                       4,
+		Year:                        2026,
+		ShippingFeeCustomerPaid:     12000,
+		ShippingFeeActual:           8000, // normalized positive
 		ShippingFeePlatformDiscount: 1000,
-		OrderDate:               &orderDate,
+		OrderDate:                   &orderDate,
 	}
 	if err := db.Create(&order).Error; err != nil {
 		t.Fatalf("failed to insert order: %v", err)

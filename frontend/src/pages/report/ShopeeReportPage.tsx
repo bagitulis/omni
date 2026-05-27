@@ -119,6 +119,11 @@ export const ShopeeReportPage = () => {
   };
 
   const handleExportCSV = () => {
+    if (!hasCurrentTabData) {
+      message.info("No Shopee report data to export");
+      return;
+    }
+
     if (activeTab === "reconciliation") {
       exportToCSV(
         toCsvRows<SkuGroup>(reconciliationDetails),

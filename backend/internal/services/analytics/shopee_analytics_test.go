@@ -5,13 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
 	"github.com/omni/backend/internal/dto"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/analytics"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -380,23 +380,68 @@ func TestGetReconciliation_WithOrders_ReturnsSummaryAndDetails(t *testing.T) {
 		t.Error("expected HasMultiplePrices=true")
 	}
 	if detail.InventoryPrice != nil {
-	if detail.ModelSku != modelSku {
-		t.Errorf("expected ModelSku=%s, got %s", modelSku, detail.ModelSku)
-	}
-	if detail.ItemName != "Test Item" {
-		t.Errorf("expected ItemName=Test Item, got %s", detail.ItemName)
-	}
-	if detail.VariantName != "Test Item" {
-		t.Errorf("expected VariantName=Test Item, got %s", detail.VariantName)
-	}
-	// UniqueActualIncomes should be empty (multi-item orders have no per-order escrow mapping)
-	if len(detail.UniqueActualIncomes) != 0 {
-		t.Errorf("expected 0 unique actual incomes for multi-item orders, got %d: %v", len(detail.UniqueActualIncomes), detail.UniqueActualIncomes)
-	}
-	if detail.HasPriceDifference {
-		t.Error("expected HasPriceDifference=false (no inventory to compare)")
-	}
+		if detail.ModelSku != modelSku {
+			t.Errorf("expected ModelSku=%s, got %s", modelSku, detail.ModelSku)
+		}
+		if detail.ItemName != "Test Item" {
+			t.Errorf("expected ItemName=Test Item, got %s", detail.ItemName)
+		}
+		if detail.VariantName != "Test Item" {
+			t.Errorf("expected VariantName=Test Item, got %s", detail.VariantName)
+		}
+		// UniqueActualIncomes should be empty (multi-item orders have no per-order escrow mapping)
+		if len(detail.UniqueActualIncomes) != 0 {
+			t.Errorf("expected 0 unique actual incomes for multi-item orders, got %d: %v", len(detail.UniqueActualIncomes), detail.UniqueActualIncomes)
+		}
+		if detail.HasPriceDifference {
+			t.Error("expected HasPriceDifference=false (no inventory to compare)")
+		}
 		t.Errorf("expected InventoryPrice=nil (no inventory), got %v", *detail.InventoryPrice)
+	}
+}
+
+func TestGetReconciliation_NonPositiveQuantity_DefaultsToOne(t *testing.T) {
+	db := setupTestDB(t)
+	svc := setupService(t, db)
+	ctx := context.Background()
+	tenantID := "test-tenant"
+
+	order := models.ShopeeEscrowOrder{
+		ID:           uuid.New().String(),
+		TenantID:     tenantID,
+		OrderSN:      "ORD-NEG-QTY-001",
+		Month:        4,
+		Year:         2026,
+		EscrowAmount: 12000,
+	}
+	if err := db.Create(&order).Error; err != nil {
+		t.Fatalf("failed to insert order: %v", err)
+	}
+
+	modelSku := "MODEL-NEG-QTY"
+	item := models.ShopeeEscrowItem{
+		ID:            uuid.New().String(),
+		TenantID:      tenantID,
+		EscrowOrderID: order.ID,
+		ModelSku:      &modelSku,
+		Quantity:      -2,
+		OriginalPrice: 12000,
+		Month:         intPtr(4),
+		Year:          intPtr(2026),
+	}
+	if err := db.Create(&item).Error; err != nil {
+		t.Fatalf("failed to insert item: %v", err)
+	}
+
+	result, err := svc.GetReconciliation(ctx, tenantID, 4, 2026)
+	if err != nil {
+		t.Fatalf("GetReconciliation returned error: %v", err)
+	}
+	if len(result.SkuGroups) != 1 {
+		t.Fatalf("expected 1 sku group, got %d", len(result.SkuGroups))
+	}
+	if got := result.SkuGroups[0].UniqueUnitPrices[0]; got != 12000 {
+		t.Fatalf("expected non-positive quantity to default unit price to 12000, got %f", got)
 	}
 }
 
@@ -418,9 +463,9 @@ func TestGetReconciliation_NoData_ReturnsEmpty(t *testing.T) {
 	if result.Summary.TotalTransactions != 0 {
 		t.Errorf("expected TotalTransactions=0, got %d", result.Summary.TotalTransactions)
 	}
-if len(result.SkuGroups) != 0 {
-t.Errorf("expected empty sku groups, got %d items", len(result.SkuGroups))
-}
+	if len(result.SkuGroups) != 0 {
+		t.Errorf("expected empty sku groups, got %d items", len(result.SkuGroups))
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -549,7 +594,6 @@ func TestGetShippingFeeAnalysis_NoOrders_ReturnsEmpty(t *testing.T) {
 		t.Errorf("expected empty details, got %d items", len(result.Details))
 	}
 }
-
 
 // ---------------------------------------------------------------------------
 // Formula Deterministic Tests

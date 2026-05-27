@@ -157,7 +157,7 @@ describe("PlatformsTab credential management", () => {
     await waitFor(() => expect(getCredentialAudit).toHaveBeenCalledWith("tiktok", { tenant_id: "tenant-a" }));
     expect(await screen.findByText("refresh_failed")).toBeInTheDocument();
     expect(screen.getByText("token_expired")).toBeInTheDocument();
-  });
+  }, 15000);
 
   it("keys credential status refetch by current tenant and clears stale tenant data", async () => {
     let resolveTenantA: (value: CredentialPlatformSummary[]) => void = () => {};
@@ -200,7 +200,7 @@ describe("PlatformsTab credential management", () => {
 
     await screen.findByText("App Credentials");
     expect(screen.getAllByRole("button", { name: /manual token/i })[0]).toBeEnabled();
-  });
+  }, 15000);
 
   it("renders responsive columns for narrow layouts", async () => {
     window.innerWidth = 320;

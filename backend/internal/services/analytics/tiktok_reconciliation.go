@@ -29,7 +29,7 @@ func (s *TiktokAnalyticsService) GetReconciliation(ctx context.Context, tenantID
 
 	if len(orderIDs) == 0 {
 		return &dto.TiktokReconciliationResultDTO{
-			Summary: dto.ReconciliationSummaryDTO{},
+			Summary:   dto.ReconciliationSummaryDTO{},
 			SkuGroups: []dto.TiktokSkuGroupDTO{},
 		}, nil
 	}
@@ -81,7 +81,7 @@ func (s *TiktokAnalyticsService) GetReconciliation(ctx context.Context, tenantID
 		}
 
 		qty := item.Quantity
-		if qty == 0 {
+		if qty <= 0 {
 			qty = 1
 		}
 

@@ -60,7 +60,7 @@ func (s *ShopeeAnalyticsService) GetReconciliation(ctx context.Context, tenantID
 		}
 
 		qty := item.Quantity
-		if qty == 0 {
+		if qty <= 0 {
 			qty = 1
 		}
 

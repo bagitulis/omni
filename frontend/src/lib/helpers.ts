@@ -5,26 +5,29 @@ import { logger } from "@/lib/logger";
  * Format currency to Indonesian Rupiah.
  */
 export function formatCurrency(amount: number): string {
+  const safeAmount = Number.isFinite(amount) ? amount : 0;
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(amount || 0);
+  }).format(safeAmount);
 }
 
 /**
  * Format price as number with thousand separators.
  */
 export function formatPrice(price: number | null | undefined): string {
-  return new Intl.NumberFormat("id-ID").format(price || 0);
+  const safePrice = typeof price === "number" && Number.isFinite(price) ? price : 0;
+  return new Intl.NumberFormat("id-ID").format(safePrice);
 }
 
 /**
  * Format number with thousand separators.
  */
 export function formatNumber(num: number): string {
-  return new Intl.NumberFormat("id-ID").format(num || 0);
+  const safeNumber = Number.isFinite(num) ? num : 0;
+  return new Intl.NumberFormat("id-ID").format(safeNumber);
 }
 
 /**

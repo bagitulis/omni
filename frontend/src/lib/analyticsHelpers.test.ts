@@ -147,6 +147,18 @@ describe("getReconciliationHealth", () => {
     };
     expect(getReconciliationHealth(summary)).toBe("warning");
   });
+
+  it("returns 'warning' for an empty SKU summary", () => {
+    expect(
+      getReconciliationHealth({
+        total_sku: 0,
+        total_transactions: 0,
+        sku_ok: 0,
+        sku_with_price_diff: 0,
+        sku_no_inventory: 0,
+      })
+    ).toBe("warning");
+  });
 });
 
 // ──────────────────────────────────────────────
@@ -212,6 +224,10 @@ describe("exportToCSV", () => {
 
     expect(createElementSpy).not.toHaveBeenCalled();
     expect(clickFn).not.toHaveBeenCalled();
+  });
+
+  it("returns an empty CSV for null rows instead of throwing", () => {
+    expect(createCSV([null] as unknown as Record<string, unknown>[])).toBe("");
   });
 
   it("escapes CSV values containing commas or quotes", () => {
