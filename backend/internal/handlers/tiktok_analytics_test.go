@@ -76,7 +76,7 @@ func TestTiktokAnalyticsHandler_GetSettings_MissingTenant_Returns401(t *testing.
 	handler.GetSettings(c)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
@@ -103,11 +103,11 @@ func TestTiktokAnalyticsHandler_GetSettings_ValidTenant_Returns200(t *testing.T)
 	handler.GetSettings(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
-	data := resp["data"].(map[string]interface{})
+	data := resp["data"].(map[string]any)
 	assert.Equal(t, "cost_price", data["price_column"])
 	assert.Equal(t, 3000.0, data["formula_deduction"])
 	assert.Equal(t, 1.2, data["formula_multiplier"])
@@ -129,7 +129,7 @@ func TestTiktokAnalyticsHandler_GetSettings_ServiceError_Returns500(t *testing.T
 	handler.GetSettings(c)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
@@ -151,11 +151,11 @@ func TestTiktokAnalyticsHandler_SaveSettings_ValidBody_Returns200(t *testing.T) 
 	handler.SaveSettings(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
-	data := resp["data"].(map[string]interface{})
+	data := resp["data"].(map[string]any)
 	assert.Equal(t, "cost_price", data["price_column"])
 	assert.Equal(t, 3000.0, data["formula_deduction"])
 	assert.Equal(t, 1.2, data["formula_multiplier"])
@@ -177,7 +177,7 @@ func TestTiktokAnalyticsHandler_SaveSettings_InvalidBody_Returns400(t *testing.T
 	handler.SaveSettings(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
@@ -203,11 +203,11 @@ func TestTiktokAnalyticsHandler_GetSyncStatus_ValidTenant_Returns200(t *testing.
 	handler.GetSyncStatus(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
-	data := resp["data"].(map[string]interface{})
+	data := resp["data"].(map[string]any)
 	assert.Equal(t, false, data["synced"])
 	assert.Equal(t, float64(50), data["total_orders"])
 }
@@ -230,11 +230,11 @@ func TestTiktokAnalyticsHandler_SyncEscrow_ValidTenant_Returns202(t *testing.T) 
 	handler.SyncEscrow(c)
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
-	data := resp["data"].(map[string]interface{})
+	data := resp["data"].(map[string]any)
 	assert.Equal(t, "tiktok-job-67890", data["job_id"])
 }
 
@@ -276,12 +276,12 @@ func TestTiktokAnalyticsHandler_GetReconciliation_ValidTenant_Returns200(t *test
 	handler.GetReconciliation(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
-	data := resp["data"].(map[string]interface{})
-	summary := data["summary"].(map[string]interface{})
+	data := resp["data"].(map[string]any)
+	summary := data["summary"].(map[string]any)
 	assert.Equal(t, float64(20), summary["total_sku"])
 	assert.Equal(t, float64(100), summary["total_transactions"])
 	assert.Equal(t, float64(18), summary["sku_ok"])
@@ -312,7 +312,7 @@ func TestTiktokAnalyticsHandler_GetShippingFeeAnalysis_ValidTenant_Returns200(t 
 	handler.GetShippingFeeAnalysis(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
@@ -332,7 +332,7 @@ func TestTiktokAnalyticsHandler_RepopulateItems_ValidTenant_Returns200(t *testin
 	handler.RepopulateItems(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
@@ -359,14 +359,14 @@ func TestTiktokAnalyticsHandler_GetSkuOrders_ValidTenant_Returns200(t *testing.T
 	handler.GetSkuOrders(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
-	data := resp["data"].(map[string]interface{})
-	orders := data["orders"].([]interface{})
+	data := resp["data"].(map[string]any)
+	orders := data["orders"].([]any)
 	assert.Equal(t, 1, len(orders))
-	first := orders[0].(map[string]interface{})
+	first := orders[0].(map[string]any)
 	assert.Equal(t, "TKTK-001", first["order_id"])
 	assert.Equal(t, "TIKTOK-SKU", first["seller_sku"])
 	assert.Equal(t, 75000.0, first["total_settlement_amount"])
@@ -386,7 +386,7 @@ func TestTiktokAnalyticsHandler_GetSkuOrders_MissingSku_Returns400(t *testing.T)
 	handler.GetSkuOrders(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
@@ -413,14 +413,14 @@ func TestTiktokAnalyticsHandler_GetOrderItems_ValidTenant_Returns200(t *testing.
 	handler.GetOrderItems(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
-	data := resp["data"].(map[string]interface{})
-	items := data["items"].([]interface{})
+	data := resp["data"].(map[string]any)
+	items := data["items"].([]any)
 	assert.Equal(t, 1, len(items))
-	first := items[0].(map[string]interface{})
+	first := items[0].(map[string]any)
 	assert.Equal(t, "TikTok Product", first["product_name"])
 	assert.Equal(t, "TSKU-001", first["seller_sku"])
 	assert.Equal(t, float64(3), first["quantity"])
@@ -440,7 +440,7 @@ func TestTiktokAnalyticsHandler_GetOrderItems_MissingOrderSN_Returns400(t *testi
 	handler.GetOrderItems(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])

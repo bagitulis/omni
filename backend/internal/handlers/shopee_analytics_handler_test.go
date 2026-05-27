@@ -76,7 +76,7 @@ func TestShopeeAnalyticsHandler_GetSettings_MissingTenant_Returns401(t *testing.
 	handler.GetSettings(c)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
@@ -103,11 +103,11 @@ func TestShopeeAnalyticsHandler_GetSettings_ValidTenant_Returns200(t *testing.T)
 	handler.GetSettings(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
-	data := resp["data"].(map[string]interface{})
+	data := resp["data"].(map[string]any)
 	assert.Equal(t, "price", data["price_column"])
 	assert.Equal(t, 5000.0, data["formula_deduction"])
 	assert.Equal(t, 1.0, data["formula_multiplier"])
@@ -129,7 +129,7 @@ func TestShopeeAnalyticsHandler_GetSettings_ServiceError_Returns500(t *testing.T
 	handler.GetSettings(c)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
@@ -165,11 +165,11 @@ func TestShopeeAnalyticsHandler_SaveSettings_ValidBody_Returns200(t *testing.T) 
 	handler.SaveSettings(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
-	data := resp["data"].(map[string]interface{})
+	data := resp["data"].(map[string]any)
 	assert.Equal(t, "price", data["price_column"])
 	assert.Equal(t, 5000.0, data["formula_deduction"])
 	assert.Equal(t, 1.5, data["formula_multiplier"])
@@ -192,7 +192,7 @@ func TestShopeeAnalyticsHandler_SaveSettings_InvalidBody_Returns400(t *testing.T
 	handler.SaveSettings(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
@@ -218,11 +218,11 @@ func TestShopeeAnalyticsHandler_GetSyncStatus_ValidTenant_Returns200(t *testing.
 	handler.GetSyncStatus(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
-	data := resp["data"].(map[string]interface{})
+	data := resp["data"].(map[string]any)
 	assert.Equal(t, true, data["synced"])
 	assert.Equal(t, float64(100), data["total_orders"])
 }
@@ -245,11 +245,11 @@ func TestShopeeAnalyticsHandler_SyncEscrow_ValidTenant_Returns202(t *testing.T) 
 	handler.SyncEscrow(c)
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
-	data := resp["data"].(map[string]interface{})
+	data := resp["data"].(map[string]any)
 	assert.Equal(t, "job-12345", data["job_id"])
 }
 
@@ -267,7 +267,7 @@ func TestShopeeAnalyticsHandler_DeleteSyncData_ValidTenant_Returns200(t *testing
 	handler.DeleteSyncData(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
@@ -298,12 +298,12 @@ func TestShopeeAnalyticsHandler_GetReconciliation_ValidTenant_Returns200(t *test
 	handler.GetReconciliation(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
-	data := resp["data"].(map[string]interface{})
-	summary := data["summary"].(map[string]interface{})
+	data := resp["data"].(map[string]any)
+	summary := data["summary"].(map[string]any)
 	assert.Equal(t, float64(10), summary["total_sku"])
 	assert.Equal(t, float64(8), summary["sku_ok"])
 }
@@ -333,7 +333,7 @@ func TestShopeeAnalyticsHandler_GetShippingFeeAnalysis_ValidTenant_Returns200(t 
 	handler.GetShippingFeeAnalysis(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
@@ -353,7 +353,7 @@ func TestShopeeAnalyticsHandler_RepopulateItems_ValidTenant_Returns200(t *testin
 	handler.RepopulateItems(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
@@ -406,14 +406,14 @@ func TestShopeeAnalyticsHandler_GetSkuOrders_ValidTenant_Returns200(t *testing.T
 	handler.GetSkuOrders(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
-	data := resp["data"].(map[string]interface{})
-	orders := data["orders"].([]interface{})
+	data := resp["data"].(map[string]any)
+	orders := data["orders"].([]any)
 	assert.Equal(t, 1, len(orders))
-	first := orders[0].(map[string]interface{})
+	first := orders[0].(map[string]any)
 	assert.Equal(t, "ORD001", first["order_sn"])
 	assert.Equal(t, "SKU-TEST", first["sku"])
 	assert.Equal(t, 50000.0, first["escrow_amount"])
@@ -433,7 +433,7 @@ func TestShopeeAnalyticsHandler_GetSkuOrders_MissingSku_Returns400(t *testing.T)
 	handler.GetSkuOrders(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
@@ -451,7 +451,7 @@ func TestShopeeAnalyticsHandler_GetSkuOrders_MissingTenant_Returns401(t *testing
 	handler.GetSkuOrders(c)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
@@ -477,14 +477,14 @@ func TestShopeeAnalyticsHandler_GetOrderItems_ValidTenant_Returns200(t *testing.
 	handler.GetOrderItems(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, true, resp["success"])
-	data := resp["data"].(map[string]interface{})
-	items := data["items"].([]interface{})
+	data := resp["data"].(map[string]any)
+	items := data["items"].([]any)
 	assert.Equal(t, 1, len(items))
-	first := items[0].(map[string]interface{})
+	first := items[0].(map[string]any)
 	assert.Equal(t, "Test Item", first["item_name"])
 	assert.Equal(t, "SKU-TEST", first["model_sku"])
 	assert.Equal(t, float64(2), first["quantity"])
@@ -504,7 +504,7 @@ func TestShopeeAnalyticsHandler_GetOrderItems_MissingOrderSN_Returns400(t *testi
 	handler.GetOrderItems(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	var resp map[string]interface{}
+	var resp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
