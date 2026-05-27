@@ -124,8 +124,8 @@ export default function PlatformsTab() {
         { tenant_id: currentTenantId },
       );
       window.open(result.auth_url, '_blank');
-    } catch (err: any) {
-      message.error(err?.message || 'Failed to initiate OAuth');
+    } catch (err: unknown) {
+      message.error(err instanceof Error ? err.message : 'Failed to initiate OAuth');
     }
   };
 
