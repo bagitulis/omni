@@ -21,7 +21,7 @@ import {
   useSyncStatus,
   useTriggerSync,
 } from "@/hooks/useAnalytics";
-import { exportToCSV, formatMonthYear } from "@/lib/analyticsHelpers";
+import { exportToCSV, formatMonthYear, getAnalyticsExportHeaders } from "@/lib/analyticsHelpers";
 import type { ReportSettings, ReportTab, SkuGroup, ShopeeShippingOrder } from "@/types/analytics";
 const PLATFORM = "shopee";
 const { Text } = Typography;
@@ -33,7 +33,7 @@ function toCsvRows<T extends object>(rows: T[]): Record<string, unknown>[] {
 function isShopeeShippingOrder(
   row: ShopeeShippingOrder | import("@/types/analytics").TiktokShippingOrder
 ): row is ShopeeShippingOrder {
-  return "platform_fee" in row;
+  return "buyer_paid" in row;
 }
 
 
@@ -67,7 +67,7 @@ export const ShopeeReportPage = () => {
     [month, year]
   );
 
-  const reconciliationDetails = reconciliationQuery.data?.details ?? [];
+  const reconciliationDetails = (reconciliationQuery.data?.sku_groups ?? []) as SkuGroup[];
   const shippingFeeDetails = shippingFeeQuery.data?.details ?? [];
   const hasCurrentTabData =
     activeTab === "reconciliation"
@@ -119,14 +119,16 @@ export const ShopeeReportPage = () => {
     if (activeTab === "reconciliation") {
       exportToCSV(
         toCsvRows<SkuGroup>(reconciliationDetails),
-        `shopee-reconciliation-${period}`
+        `shopee-reconciliation-${period}`,
+        getAnalyticsExportHeaders(PLATFORM, "reconciliation")
       );
       return;
     }
 
     exportToCSV(
       toCsvRows(shippingFeeDetails.filter(isShopeeShippingOrder)),
-      `shopee-shipping-fee-${period}`
+      `shopee-shipping-fee-${period}`,
+      getAnalyticsExportHeaders(PLATFORM, "shipping_fee")
     );
   };
 

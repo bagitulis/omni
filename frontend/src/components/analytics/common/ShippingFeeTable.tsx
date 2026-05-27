@@ -63,9 +63,17 @@ export function ShippingFeeTable({
     ...(platform === "shopee"
       ? [
           {
-            title: "Platform Fee",
-            dataIndex: "platform_fee",
-            key: "platform_fee",
+            title: "Buyer Paid",
+            dataIndex: "buyer_paid",
+            key: "buyer_paid",
+            width: 130,
+            align: "right" as const,
+            render: (val: number) => formatCurrency(val),
+          },
+          {
+            title: "Shopee Rebate",
+            dataIndex: "shopee_rebate",
+            key: "shopee_rebate",
             width: 130,
             align: "right" as const,
             render: (val: number) => formatCurrency(val),
@@ -81,10 +89,18 @@ export function ShippingFeeTable({
         ]
       : [
           {
-            title: "Shipping Fee",
-            dataIndex: "shipping_fee",
-            key: "shipping_fee",
+            title: "Customer Paid",
+            dataIndex: "customer_paid",
+            key: "customer_paid",
             width: 130,
+            align: "right" as const,
+            render: (val: number) => formatCurrency(val),
+          },
+          {
+            title: "Platform Discount",
+            dataIndex: "platform_discount",
+            key: "platform_discount",
+            width: 150,
             align: "right" as const,
             render: (val: number) => formatCurrency(val),
           },

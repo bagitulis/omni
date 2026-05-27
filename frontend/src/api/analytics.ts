@@ -8,11 +8,16 @@ import apiClient from "./client";
 import type {
   ReconciliationResult,
   ReportSettings,
+  ShopeeOrderItemsResult,
   ShopeeShippingFeeResult,
+  ShopeeSkuOrdersResult,
   SyncRequest,
   SyncResult,
   SyncStatus,
+  TiktokOrderItemsResult,
+  TiktokReconciliationResult,
   TiktokShippingFeeResult,
+  TiktokSkuOrdersResult,
 } from "../types/analytics";
 
 // ──────────────────────────────────────────────
@@ -162,6 +167,36 @@ export async function repopulateShopeeItems(
   }
 }
 
+export async function getShopeeSkuOrders(params: {
+  sku: string;
+  month: number;
+  year: number;
+}): Promise<ShopeeSkuOrdersResult> {
+  const response = await apiClient.get<ShopeeSkuOrdersResult>(
+    "/analytics/shopee/sku-orders",
+    { params }
+  );
+  if (!response.success) {
+    throw new Error(response.error || "Failed to fetch Shopee SKU orders");
+  }
+  return response.data!;
+}
+
+export async function getShopeeOrderItems(params: {
+  order_sn: string;
+  month: number;
+  year: number;
+}): Promise<ShopeeOrderItemsResult> {
+  const response = await apiClient.get<ShopeeOrderItemsResult>(
+    "/analytics/shopee/order-items",
+    { params }
+  );
+  if (!response.success) {
+    throw new Error(response.error || "Failed to fetch Shopee order items");
+  }
+  return response.data!;
+}
+
 // ──────────────────────────────────────────────
 //  TikTok Analytics (8 functions)
 // ──────────────────────────────────────────────
@@ -255,8 +290,8 @@ export async function deleteTiktokSync(
 export async function getTiktokReconciliation(
   month: number,
   year: number
-): Promise<ReconciliationResult> {
-  const response = await apiClient.get<ReconciliationResult>(
+): Promise<TiktokReconciliationResult> {
+  const response = await apiClient.get<TiktokReconciliationResult>(
     "/analytics/tiktok/reconciliation",
     { params: { month, year } }
   );
@@ -307,4 +342,34 @@ export async function repopulateTiktokItems(
   if (!response.success) {
     throw new Error(response.error || "Failed to repopulate TikTok items");
   }
+}
+
+export async function getTiktokSkuOrders(params: {
+  sku: string;
+  month: number;
+  year: number;
+}): Promise<TiktokSkuOrdersResult> {
+  const response = await apiClient.get<TiktokSkuOrdersResult>(
+    "/analytics/tiktok/sku-orders",
+    { params }
+  );
+  if (!response.success) {
+    throw new Error(response.error || "Failed to fetch TikTok SKU orders");
+  }
+  return response.data!;
+}
+
+export async function getTiktokOrderItems(params: {
+  order_sn: string;
+  month: number;
+  year: number;
+}): Promise<TiktokOrderItemsResult> {
+  const response = await apiClient.get<TiktokOrderItemsResult>(
+    "/analytics/tiktok/order-items",
+    { params }
+  );
+  if (!response.success) {
+    throw new Error(response.error || "Failed to fetch TikTok order items");
+  }
+  return response.data!;
 }

@@ -7,6 +7,8 @@ import {
   deleteShopeeSync,
   getShopeeReconciliation,
   getShopeeShippingFee,
+  getShopeeSkuOrders,
+  getShopeeOrderItems,
   repopulateShopeeItems,
   getTiktokSettings,
   saveTiktokSettings,
@@ -15,6 +17,8 @@ import {
   deleteTiktokSync,
   getTiktokReconciliation,
   getTiktokShippingFee,
+  getTiktokSkuOrders,
+  getTiktokOrderItems,
   repopulateTiktokItems,
 } from "./analytics";
 
@@ -59,7 +63,7 @@ const mockReconciliationResult = {
     sku_with_price_diff: 0,
     sku_no_inventory: 0,
   },
-  details: [],
+  sku_groups: [],
 };
 
 const mockShopeeShippingFeeResult = {
@@ -246,6 +250,34 @@ describe("Shopee Analytics API", () => {
     });
   });
 
+  describe("Shopee detail endpoints", () => {
+    it("calls SKU orders endpoint with sku/month/year params", async () => {
+      const data = { orders: [] };
+      mockClientGet.mockResolvedValue({ success: true, data });
+
+      const result = await getShopeeSkuOrders({ sku: "SKU-001", month: 3, year: 2026 });
+
+      expect(mockClientGet).toHaveBeenCalledWith(
+        "/analytics/shopee/sku-orders",
+        expect.objectContaining({ params: { sku: "SKU-001", month: 3, year: 2026 } }),
+      );
+      expect(result).toEqual(data);
+    });
+
+    it("calls order items endpoint with order_sn/month/year params", async () => {
+      const data = { items: [] };
+      mockClientGet.mockResolvedValue({ success: true, data });
+
+      const result = await getShopeeOrderItems({ order_sn: "ORD-001", month: 3, year: 2026 });
+
+      expect(mockClientGet).toHaveBeenCalledWith(
+        "/analytics/shopee/order-items",
+        expect.objectContaining({ params: { order_sn: "ORD-001", month: 3, year: 2026 } }),
+      );
+      expect(result).toEqual(data);
+    });
+  });
+
   describe("repopulateShopeeItems", () => {
     it("calls POST /analytics/shopee/repopulate-items without period", async () => {
       mockClientPost.mockResolvedValue({ success: true });
@@ -412,6 +444,34 @@ describe("TikTok Analytics API", () => {
         expect.objectContaining({ params: { month: 3, year: 2026 } }),
       );
       expect(result).toEqual(mockTiktokShippingFeeResult);
+    });
+  });
+
+  describe("TikTok detail endpoints", () => {
+    it("calls SKU orders endpoint with sku/month/year params", async () => {
+      const data = { orders: [] };
+      mockClientGet.mockResolvedValue({ success: true, data });
+
+      const result = await getTiktokSkuOrders({ sku: "T-SKU-001", month: 4, year: 2025 });
+
+      expect(mockClientGet).toHaveBeenCalledWith(
+        "/analytics/tiktok/sku-orders",
+        expect.objectContaining({ params: { sku: "T-SKU-001", month: 4, year: 2025 } }),
+      );
+      expect(result).toEqual(data);
+    });
+
+    it("calls order items endpoint with order_sn/month/year params", async () => {
+      const data = { items: [] };
+      mockClientGet.mockResolvedValue({ success: true, data });
+
+      const result = await getTiktokOrderItems({ order_sn: "TK-001", month: 4, year: 2025 });
+
+      expect(mockClientGet).toHaveBeenCalledWith(
+        "/analytics/tiktok/order-items",
+        expect.objectContaining({ params: { order_sn: "TK-001", month: 4, year: 2025 } }),
+      );
+      expect(result).toEqual(data);
     });
   });
 

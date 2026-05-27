@@ -6,6 +6,8 @@ import {
   formatPriceDiff,
   getReconciliationHealth,
   exportToCSV,
+  createCSV,
+  getAnalyticsExportHeaders,
 } from "./analyticsHelpers";
 import type { ReconciliationSummary } from "@/types/analytics";
 
@@ -221,5 +223,102 @@ describe("exportToCSV", () => {
 
     expect(createElementSpy).toHaveBeenCalledWith("a");
     expect(clickFn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("analytics export parity", () => {
+  it("includes restored Shopee reconciliation headers and formula value", () => {
+    const headers = getAnalyticsExportHeaders("shopee", "reconciliation");
+    const csv = createCSV(
+      [
+        {
+          sku: "SKU-001",
+          model_sku: "MODEL-001",
+          item_name: "Test Item",
+          model_name: "Blue",
+          variant_name: "Large",
+          inventory_price: 10000,
+          expected_income: 4500,
+          total_transactions: 1,
+          unique_unit_prices: [10000],
+          unique_actual_incomes: [4500],
+          has_multiple_prices: false,
+          has_price_difference: true,
+          status: "PRICE_DIFF",
+        },
+      ],
+      headers,
+    );
+
+    expect(csv.split("\r\n")[0]).toContain("Model SKU");
+    expect(csv.split("\r\n")[0]).toContain("Expected Income");
+    expect(csv).toContain("4500");
+  });
+
+  it("includes restored TikTok reconciliation headers and formula value", () => {
+    const headers = getAnalyticsExportHeaders("tiktok", "reconciliation");
+    const csv = createCSV(
+      [
+        {
+          sku: "SKU-ID-001",
+          seller_sku: "SELLER-SKU-001",
+          product_name: "TikTok Item",
+          variant_name: "Default",
+          inventory_price: 12000,
+          expected_income: 5000,
+          total_transactions: 1,
+          unique_unit_prices: [12000],
+          unique_actual_incomes: [5000],
+          has_multiple_prices: false,
+          has_price_difference: true,
+          status: "PRICE_DIFF",
+        },
+      ],
+      headers,
+    );
+
+    expect(csv.split("\r\n")[0]).toContain("Seller SKU");
+    expect(csv.split("\r\n")[0]).toContain("Unique Actual Incomes");
+    expect(csv).toContain("5000");
+  });
+
+  it("includes platform-specific shipping fee headers and values", () => {
+    const shopeeCsv = createCSV(
+      [
+        {
+          order_sn: "TEST-SHOPEE-001",
+          buyer_paid: 10000,
+          actual_fee: 7000,
+          shopee_rebate: 1500,
+          difference: 4500,
+          status: "profit",
+          order_date: "2026-05-01",
+          buyer_name: "Test User",
+          payment_method: "COD",
+        },
+      ],
+      getAnalyticsExportHeaders("shopee", "shipping_fee"),
+    );
+    const tiktokCsv = createCSV(
+      [
+        {
+          order_sn: "TEST-TIKTOK-001",
+          customer_paid: 12000,
+          actual_fee: 8000,
+          platform_discount: 1000,
+          difference: 5000,
+          status: "profit",
+          order_date: "2026-05-01",
+          order_status: "COMPLETED",
+          currency: "IDR",
+        },
+      ],
+      getAnalyticsExportHeaders("tiktok", "shipping_fee"),
+    );
+
+    expect(shopeeCsv.split("\r\n")[0]).toContain("Shopee Shipping Rebate");
+    expect(shopeeCsv).toContain("4500");
+    expect(tiktokCsv.split("\r\n")[0]).toContain("Shipping Fee Platform Discount");
+    expect(tiktokCsv).toContain("5000");
   });
 });

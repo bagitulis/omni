@@ -21,11 +21,12 @@ import {
   useSyncStatus,
   useTriggerSync,
 } from "@/hooks/useAnalytics";
-import { exportToCSV, formatMonthYear } from "@/lib/analyticsHelpers";
+import { exportToCSV, formatMonthYear, getAnalyticsExportHeaders } from "@/lib/analyticsHelpers";
 import type {
   ReportSettings,
   ReportTab,
   ShopeeShippingOrder,
+  TiktokSkuGroup,
   TiktokShippingOrder,
 } from "@/types/analytics";
 
@@ -39,7 +40,7 @@ function toCsvRows<T extends object>(rows: T[]): Record<string, unknown>[] {
 function isTiktokShippingOrder(
   row: ShopeeShippingOrder | TiktokShippingOrder
 ): row is TiktokShippingOrder {
-  return "shipping_fee" in row;
+  return "customer_paid" in row;
 }
 
 export const TiktokReportPage = () => {
@@ -67,7 +68,7 @@ export const TiktokReportPage = () => {
     [month, year]
   );
 
-  const reconciliationDetails = reconciliationQuery.data?.details ?? [];
+  const reconciliationDetails = (reconciliationQuery.data?.sku_groups ?? []) as TiktokSkuGroup[];
   const shippingFeeDetails = (shippingFeeQuery.data?.details ?? []).filter(isTiktokShippingOrder);
   const activeRows = activeTab === "reconciliation" ? reconciliationDetails : shippingFeeDetails;
   const hasData = activeRows.length > 0;
@@ -120,7 +121,7 @@ export const TiktokReportPage = () => {
     }
 
     const rows = activeTab === "reconciliation" ? toCsvRows(reconciliationDetails) : toCsvRows(shippingFeeDetails);
-    exportToCSV(rows, `tiktok-${activeTab}-${period}`);
+    exportToCSV(rows, `tiktok-${activeTab}-${period}`, getAnalyticsExportHeaders(PLATFORM, activeTab));
     message.success("TikTok report CSV exported");
   };
 

@@ -15,6 +15,8 @@ import {
   getShopeeReconciliation,
   getShopeeShippingFee,
   repopulateShopeeItems,
+  getShopeeSkuOrders,
+  getShopeeOrderItems,
   getTiktokSettings,
   saveTiktokSettings,
   getTiktokSyncStatus,
@@ -23,6 +25,8 @@ import {
   getTiktokReconciliation,
   getTiktokShippingFee,
   repopulateTiktokItems,
+  getTiktokSkuOrders,
+  getTiktokOrderItems,
 } from "@/api/analytics";
 import type {
   ReportSettings,
@@ -31,7 +35,12 @@ import type {
   SyncResult,
   ReconciliationResult,
   ShopeeShippingFeeResult,
+  ShopeeSkuOrdersResult,
+  ShopeeOrderItemsResult,
+  TiktokReconciliationResult,
   TiktokShippingFeeResult,
+  TiktokSkuOrdersResult,
+  TiktokOrderItemsResult,
   ReportPlatform,
 } from "@/types/analytics";
 
@@ -47,6 +56,10 @@ export const analyticsKeys = {
     ["analytics", platform, "reconciliation", month, year] as const,
   shippingFee: (platform: string, month: number, year: number) =>
     ["analytics", platform, "shipping-fee", month, year] as const,
+  skuOrders: (platform: string, month: number, year: number, sku: string) =>
+    ["analytics", platform, "sku-orders", month, year, sku] as const,
+  orderItems: (platform: string, month: number, year: number, order_sn: string) =>
+    ["analytics", platform, "order-items", month, year, order_sn] as const,
 };
 
 // ──────────────────────────────────────────────
@@ -167,9 +180,39 @@ export function useReconciliation(
     platform === "shopee"
       ? getShopeeReconciliation
       : getTiktokReconciliation;
-  return useQuery<ReconciliationResult>({
+  return useQuery<ReconciliationResult | TiktokReconciliationResult>({
     queryKey: analyticsKeys.reconciliation(platform, month, year),
     queryFn: () => fn(month, year),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useSkuOrders(
+  platform: ReportPlatform,
+  sku: string,
+  month: number,
+  year: number
+) {
+  const fn = platform === "shopee" ? getShopeeSkuOrders : getTiktokSkuOrders;
+  return useQuery<ShopeeSkuOrdersResult | TiktokSkuOrdersResult>({
+    queryKey: analyticsKeys.skuOrders(platform, month, year, sku),
+    queryFn: () => fn({ sku, month, year }),
+    enabled: sku.trim().length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useOrderItems(
+  platform: ReportPlatform,
+  order_sn: string,
+  month: number,
+  year: number
+) {
+  const fn = platform === "shopee" ? getShopeeOrderItems : getTiktokOrderItems;
+  return useQuery<ShopeeOrderItemsResult | TiktokOrderItemsResult>({
+    queryKey: analyticsKeys.orderItems(platform, month, year, order_sn),
+    queryFn: () => fn({ order_sn, month, year }),
+    enabled: order_sn.trim().length > 0,
     staleTime: 5 * 60 * 1000,
   });
 }

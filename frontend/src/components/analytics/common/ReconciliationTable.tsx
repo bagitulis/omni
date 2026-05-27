@@ -1,10 +1,12 @@
 import { Table, theme } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { formatCurrency } from "@/lib/analyticsHelpers";
-import type { SkuGroup } from "@/types/analytics";
+import type { SkuGroup, TiktokSkuGroup } from "@/types/analytics";
+
+type ReconciliationRow = SkuGroup | TiktokSkuGroup;
 
 interface ReconciliationTableProps {
-  data: SkuGroup[] | null | undefined;
+  data: ReconciliationRow[] | null | undefined;
   loading: boolean;
 }
 
@@ -19,7 +21,7 @@ export function ReconciliationTable({
 }: ReconciliationTableProps) {
   const { token } = theme.useToken();
 
-  const columns: ColumnsType<SkuGroup> = [
+  const columns: ColumnsType<ReconciliationRow> = [
     {
       title: "SKU",
       dataIndex: "sku",
@@ -28,83 +30,70 @@ export function ReconciliationTable({
       ellipsis: true,
     },
     {
-      title: "Item Name",
-      dataIndex: "item_name",
-      key: "item_name",
+      title: "Product",
+      key: "name",
       ellipsis: true,
+      render: (_, row) => ("item_name" in row ? row.item_name : row.product_name),
     },
     {
-      title: "Qty",
-      dataIndex: "total_quantity",
-      key: "total_quantity",
-      width: 80,
-      align: "right",
-    },
-    {
-      title: "Total Amount",
-      dataIndex: "total_amount",
-      key: "total_amount",
+      title: "Expected Income",
+      dataIndex: "expected_income",
+      key: "expected_income",
       width: 140,
       align: "right",
-      render: (val: number) => formatCurrency(val),
+      render: (val: number | null) => (val == null ? "-" : formatCurrency(val)),
     },
     {
-      title: "System Amount",
-      dataIndex: "system_amount",
-      key: "system_amount",
+      title: "Inventory Price",
+      dataIndex: "inventory_price",
+      key: "inventory_price",
       width: 140,
       align: "right",
-      render: (val: number) => formatCurrency(val),
+      render: (val: number | null) => (val == null ? "-" : formatCurrency(val)),
     },
     {
-      title: "Price Diff",
-      dataIndex: "price_diff",
-      key: "price_diff",
+      title: "Unit Prices",
+      dataIndex: "unique_unit_prices",
+      key: "unique_unit_prices",
       width: 140,
       align: "right",
-      render: (val: number) => (
+      render: (values: number[]) => values.map(formatCurrency).join(" / "),
+    },
+    {
+      title: "Actual Incomes",
+      dataIndex: "unique_actual_incomes",
+      key: "unique_actual_incomes",
+      width: 160,
+      align: "right",
+      render: (values: number[]) => values.map(formatCurrency).join(" / "),
+    },
+    {
+      title: "Transactions",
+      dataIndex: "total_transactions",
+      key: "total_transactions",
+      width: 110,
+      align: "right",
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      width: 120,
+      render: (status: string, row) => (
         <span
           style={{
-            color: val > 0 ? token.colorSuccess : val < 0 ? token.colorError : undefined,
-            fontWeight: val !== 0 ? 600 : undefined,
+            color: row.has_price_difference ? token.colorError : token.colorSuccess,
+            fontWeight: 600,
           }}
         >
-          {val > 0 ? "+" : ""}
-          {formatCurrency(val)}
+          {status}
         </span>
       ),
-    },
-    {
-      title: "Diff %",
-      dataIndex: "price_diff_percent",
-      key: "price_diff_percent",
-      width: 100,
-      align: "right",
-      render: (val: number) => {
-        const color =
-          val > 0
-            ? token.colorSuccess
-            : val < 0
-              ? token.colorError
-              : undefined;
-        return (
-          <span style={{ color }}>
-            {val.toFixed(2)}%
-          </span>
-        );
-      },
-    },
-    {
-      title: "Orders",
-      dataIndex: "order_count",
-      key: "order_count",
-      width: 80,
-      align: "right",
     },
   ];
 
   return (
-    <Table<SkuGroup>
+    <Table<ReconciliationRow>
       columns={columns}
       dataSource={data ?? []}
       rowKey="sku"

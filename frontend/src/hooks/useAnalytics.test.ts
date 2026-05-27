@@ -19,6 +19,8 @@ const analyticsApiMock = vi.hoisted(() => ({
   deleteShopeeSync: vi.fn(),
   getShopeeReconciliation: vi.fn(),
   getShopeeShippingFee: vi.fn(),
+  getShopeeSkuOrders: vi.fn(),
+  getShopeeOrderItems: vi.fn(),
   repopulateShopeeItems: vi.fn(),
   getTiktokSettings: vi.fn(),
   saveTiktokSettings: vi.fn(),
@@ -27,6 +29,8 @@ const analyticsApiMock = vi.hoisted(() => ({
   deleteTiktokSync: vi.fn(),
   getTiktokReconciliation: vi.fn(),
   getTiktokShippingFee: vi.fn(),
+  getTiktokSkuOrders: vi.fn(),
+  getTiktokOrderItems: vi.fn(),
   repopulateTiktokItems: vi.fn(),
 }));
 
@@ -52,6 +56,8 @@ import {
   useDeleteSync,
   useReconciliation,
   useShippingFee,
+  useSkuOrders,
+  useOrderItems,
   useRepopulateItems,
   analyticsKeys,
 } from "./useAnalytics";
@@ -64,13 +70,6 @@ function getUseQueryOptions() {
     queryKey: unknown[];
     queryFn: () => unknown;
     staleTime?: number;
-  };
-}
-
-function getUseMutationOptions() {
-  return (useMutationMock.mock.calls[0] as unknown[])[0] as {
-    mutationFn: (...args: unknown[]) => unknown;
-    onSuccess?: (...args: unknown[]) => void;
   };
 }
 
@@ -407,6 +406,76 @@ describe("useShippingFee", () => {
   });
 });
 
+describe("detail hooks", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("useSkuOrders uses deterministic key and Shopee query function", () => {
+    useSkuOrders("shopee", "SKU-001", 3, 2026);
+
+    const opts = getUseQueryOptions();
+    expect(opts.queryKey).toEqual([
+      "analytics",
+      "shopee",
+      "sku-orders",
+      3,
+      2026,
+      "SKU-001",
+    ]);
+    opts.queryFn();
+    expect(analyticsApiMock.getShopeeSkuOrders).toHaveBeenCalledWith({
+      sku: "SKU-001",
+      month: 3,
+      year: 2026,
+    });
+  });
+
+  it("useSkuOrders routes TikTok query function", () => {
+    useSkuOrders("tiktok", "T-SKU-001", 4, 2025);
+
+    const opts = getUseQueryOptions();
+    opts.queryFn();
+    expect(analyticsApiMock.getTiktokSkuOrders).toHaveBeenCalledWith({
+      sku: "T-SKU-001",
+      month: 4,
+      year: 2025,
+    });
+  });
+
+  it("useOrderItems uses deterministic key and Shopee query function", () => {
+    useOrderItems("shopee", "ORD-001", 3, 2026);
+
+    const opts = getUseQueryOptions();
+    expect(opts.queryKey).toEqual([
+      "analytics",
+      "shopee",
+      "order-items",
+      3,
+      2026,
+      "ORD-001",
+    ]);
+    opts.queryFn();
+    expect(analyticsApiMock.getShopeeOrderItems).toHaveBeenCalledWith({
+      order_sn: "ORD-001",
+      month: 3,
+      year: 2026,
+    });
+  });
+
+  it("useOrderItems routes TikTok query function", () => {
+    useOrderItems("tiktok", "TK-001", 4, 2025);
+
+    const opts = getUseQueryOptions();
+    opts.queryFn();
+    expect(analyticsApiMock.getTiktokOrderItems).toHaveBeenCalledWith({
+      order_sn: "TK-001",
+      month: 4,
+      year: 2025,
+    });
+  });
+});
+
 // ──────────────────────────────────────────────
 //  useRepopulateItems
 // ──────────────────────────────────────────────
@@ -496,6 +565,25 @@ describe("analyticsKeys", () => {
       "shipping-fee",
       3,
       2026,
+    ]);
+  });
+
+  it("detail keys include platform, period, and selected identifier", () => {
+    expect(analyticsKeys.skuOrders("shopee", 3, 2026, "SKU-001")).toEqual([
+      "analytics",
+      "shopee",
+      "sku-orders",
+      3,
+      2026,
+      "SKU-001",
+    ]);
+    expect(analyticsKeys.orderItems("tiktok", 4, 2025, "TK-001")).toEqual([
+      "analytics",
+      "tiktok",
+      "order-items",
+      4,
+      2025,
+      "TK-001",
     ]);
   });
 });
