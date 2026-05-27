@@ -47,7 +47,7 @@ export function ReportSettingsModal({
       open={open}
       onCancel={onClose}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
       width={480}
     >
       <Form
