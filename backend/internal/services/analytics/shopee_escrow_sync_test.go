@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,9 +23,9 @@ import (
 // ---------------------------------------------------------------------------
 
 type fakeShopeeClient struct {
-	t               *testing.T
-	walletTxCount   int           // how many wallet transactions to return
-	escrowOrderFn   func(orderSN string) *shopeePkg.EscrowOrder // customize per order
+	t             *testing.T
+	walletTxCount int                                         // how many wallet transactions to return
+	escrowOrderFn func(orderSN string) *shopeePkg.EscrowOrder // customize per order
 }
 
 func (f *fakeShopeeClient) GetWalletTransactions(req shopeePkg.GetWalletTransactionRequest) (*shopeePkg.WalletTransactionResponse, error) {
@@ -51,7 +52,7 @@ func (f *fakeShopeeClient) GetWalletTransactions(req shopeePkg.GetWalletTransact
 	return &shopeePkg.WalletTransactionResponse{
 		Response: struct {
 			TransactionList []shopeePkg.WalletTransaction `json:"transaction_list"`
-			More            bool                           `json:"more"`
+			More            bool                          `json:"more"`
 		}{
 			TransactionList: list,
 			More:            false,
@@ -84,16 +85,16 @@ func (f *fakeShopeeClient) defaultEscrowOrder(orderSN string) shopeePkg.EscrowOr
 		BuyerUsername: "Fake Buyer",
 		TotalAmount:   100000,
 		OrderIncome: shopeePkg.EscrowOrderData{
-			EscrowAmount:              100000,
-			CommissionFee:             5000,
-			ServiceFee:                1000,
-			SellerOrderProcessingFee:  500,
-			BuyerPaidShippingFee:      10000,
-			ActualShippingFee:         7000,
-			ShopeeShippingRebate:      1500,
-			EstimatedShippingFee:      8000,
-			BuyerTotalAmount:          120000,
-			BuyerPaymentMethod:        "credit_card",
+			EscrowAmount:             100000,
+			CommissionFee:            5000,
+			ServiceFee:               1000,
+			SellerOrderProcessingFee: 500,
+			BuyerPaidShippingFee:     10000,
+			ActualShippingFee:        7000,
+			ShopeeShippingRebate:     1500,
+			EstimatedShippingFee:     8000,
+			BuyerTotalAmount:         120000,
+			BuyerPaymentMethod:       "credit_card",
 			Items: []shopeePkg.EscrowItemData{
 				{
 					ItemID:            1,
@@ -450,7 +451,7 @@ func (f *fakeShopeeClientWithDupes) GetWalletTransactions(req shopeePkg.GetWalle
 	return &shopeePkg.WalletTransactionResponse{
 		Response: struct {
 			TransactionList []shopeePkg.WalletTransaction `json:"transaction_list"`
-			More            bool                           `json:"more"`
+			More            bool                          `json:"more"`
 		}{
 			TransactionList: []shopeePkg.WalletTransaction{
 				{OrderSN: "DUP-ORDER-001", Amount: 100000, TransactionType: "wallet_order_income", BuyerUsername: "Buyer"},
@@ -473,7 +474,7 @@ func (f *fakeShopeeClientWithDupes) GetEscrowDetails(req shopeePkg.GetEscrowDeta
 				BuyerUsername: "Buyer",
 				TotalAmount:   100000,
 				OrderIncome: shopeePkg.EscrowOrderData{
-					EscrowAmount:   100000,
+					EscrowAmount: 100000,
 					Items: []shopeePkg.EscrowItemData{
 						{ItemID: 1, ItemName: "Dup Test Item", QuantityPurchased: 1, SellingPrice: 100000},
 					},
@@ -520,7 +521,7 @@ func (f *fakeShopeeClientEmpty) GetWalletTransactions(req shopeePkg.GetWalletTra
 	return &shopeePkg.WalletTransactionResponse{
 		Response: struct {
 			TransactionList []shopeePkg.WalletTransaction `json:"transaction_list"`
-			More            bool                           `json:"more"`
+			More            bool                          `json:"more"`
 		}{
 			TransactionList: []shopeePkg.WalletTransaction{},
 			More:            false,
@@ -600,7 +601,7 @@ func TestShopeeSync_RawJSONRoundTrip(t *testing.T) {
 		t.Error("raw_order_income is nil or empty")
 	} else {
 		// Verify it's valid JSON
-		var parsed map[string]interface{}
+		var parsed map[string]any
 		if err := json.Unmarshal([]byte(*order.RawOrderIncome), &parsed); err != nil {
 			t.Errorf("raw_order_income is not valid JSON: %v", err)
 		}
@@ -612,7 +613,7 @@ func TestShopeeSync_RawJSONRoundTrip(t *testing.T) {
 	if order.RawBuyerPaymentInfo == nil || *order.RawBuyerPaymentInfo == "" {
 		t.Error("raw_buyer_payment_info is nil or empty")
 	} else {
-		var parsed map[string]interface{}
+		var parsed map[string]any
 		if err := json.Unmarshal([]byte(*order.RawBuyerPaymentInfo), &parsed); err != nil {
 			t.Errorf("raw_buyer_payment_info is not valid JSON: %v", err)
 		}
@@ -706,7 +707,7 @@ func TestShopeeRepopulateGuard_RejectsNoopOnItemRestoration(t *testing.T) {
 	ctx := context.Background()
 	tenantID := "test-tenant"
 
-	rawOrderData := `{"order_sn":"ORD-REPOP-001","items":[{"item_id":123}]}`
+	rawOrderData := `{"order_sn":"ORD-REPOP-001","items":[{"item_id":123,"model_id":456,"item_name":"Guard Test Item 1","model_name":"Guard Model 1","item_sku":"SKU-GUARD-1","model_sku":"MODEL-GUARD-1","quantity_purchased":1,"original_price":10000,"selling_price":9000,"discounted_price":8000},{"item_id":124,"model_id":457,"item_name":"Guard Test Item 2","model_name":"Guard Model 2","item_sku":"SKU-GUARD-2","model_sku":"MODEL-GUARD-2","quantity_purchased":2,"original_price":20000,"selling_price":18000,"discounted_price":16000},{"item_id":125,"model_id":458,"item_name":"Guard Test Item 3","model_name":"Guard Model 3","item_sku":"SKU-GUARD-3","model_sku":"MODEL-GUARD-3","quantity_purchased":3,"original_price":30000,"selling_price":27000,"discounted_price":24000}]}`
 	rawPaymentData := `{"payment_method":"credit_card"}`
 	order := models.ShopeeEscrowOrder{
 		ID:                  uuid.New().String(),
@@ -723,7 +724,7 @@ func TestShopeeRepopulateGuard_RejectsNoopOnItemRestoration(t *testing.T) {
 
 	rawItemData := `{"item_name":"Guard Test Item","sku":"SKU-GUARD"}`
 	itemCount := 3
-	for i := 0; i < itemCount; i++ {
+	for i := range itemCount {
 		item := models.ShopeeEscrowItem{
 			ID:            uuid.New().String(),
 			TenantID:      tenantID,
@@ -770,5 +771,158 @@ func TestShopeeRepopulateGuard_RejectsNoopOnItemRestoration(t *testing.T) {
 			"Expected %d items (matching pre-delete count), got %d. "+
 			"Current RepopulateItems is a no-op — implement item reconstruction from raw JSON.",
 			initialCount, finalCount)
+	}
+}
+
+func TestShopeeRepopulateItems_RestoresItemsFromRawOrderIncome(t *testing.T) {
+	log.Logger = log.Output(zerolog.NewTestWriter(t))
+	db := setupSyncTestDB(t)
+	defer resetSyncTestDB(t, db)
+
+	svc := analytics.NewShopeeAnalyticsService(db, db, "test-tenant")
+	ctx := context.Background()
+	tenantID := "test-tenant"
+
+	rawOrderData := `{"items":[{"item_id":9001,"model_id":9101,"item_name":"Repop Item","model_name":"Repop Model","item_sku":"SKU-REPOP","model_sku":"MODEL-REPOP","quantity_purchased":4,"original_price":12000,"selling_price":11000,"discounted_price":10000,"seller_discount":500,"shopee_discount":250,"discount_from_coin":100,"discount_from_voucher_seller":200,"discount_from_voucher_shopee":300,"ams_commission_fee":400,"seller_order_processing_fee":50}]}`
+	order := models.ShopeeEscrowOrder{
+		ID:             uuid.New().String(),
+		TenantID:       tenantID,
+		OrderSN:        "ORD-RAW-RESTORE",
+		Month:          3,
+		Year:           2026,
+		RawOrderIncome: &rawOrderData,
+	}
+	if err := db.Create(&order).Error; err != nil {
+		t.Fatalf("failed to seed order: %v", err)
+	}
+
+	if err := svc.RepopulateItems(ctx, tenantID, "2026-03"); err != nil {
+		t.Fatalf("RepopulateItems returned error: %v", err)
+	}
+
+	var item models.ShopeeEscrowItem
+	if err := db.Where("tenant_id = ? AND escrow_order_id = ?", tenantID, order.ID).First(&item).Error; err != nil {
+		t.Fatalf("expected restored item: %v", err)
+	}
+	if item.Quantity != 4 || item.SellingPrice != 11000 || item.RawItemData == nil {
+		t.Fatalf("restored item mismatch: quantity=%d selling_price=%f raw_nil=%v", item.Quantity, item.SellingPrice, item.RawItemData == nil)
+	}
+	if item.ItemName == nil || *item.ItemName != "Repop Item" || item.ModelSku == nil || *item.ModelSku != "MODEL-REPOP" {
+		t.Fatalf("restored item identity mismatch: item_name=%v model_sku=%v", item.ItemName, item.ModelSku)
+	}
+}
+
+func TestShopeeRepopulateItems_MalformedRawJSONReturnsErrorAndKeepsExistingItems(t *testing.T) {
+	log.Logger = log.Output(zerolog.NewTestWriter(t))
+	db := setupSyncTestDB(t)
+	defer resetSyncTestDB(t, db)
+
+	svc := analytics.NewShopeeAnalyticsService(db, db, "test-tenant")
+	ctx := context.Background()
+	tenantID := "test-tenant"
+
+	malformedRaw := `{"items":[`
+	order := models.ShopeeEscrowOrder{
+		ID:             uuid.New().String(),
+		TenantID:       tenantID,
+		OrderSN:        "ORD-BAD-RAW",
+		Month:          3,
+		Year:           2026,
+		RawOrderIncome: &malformedRaw,
+	}
+	if err := db.Create(&order).Error; err != nil {
+		t.Fatalf("failed to seed order: %v", err)
+	}
+
+	existingItem := models.ShopeeEscrowItem{
+		ID:            uuid.New().String(),
+		TenantID:      tenantID,
+		EscrowOrderID: order.ID,
+		OrderSN:       &order.OrderSN,
+		Month:         intPtr(3),
+		Year:          intPtr(2026),
+		Quantity:      7,
+	}
+	if err := db.Create(&existingItem).Error; err != nil {
+		t.Fatalf("failed to seed existing item: %v", err)
+	}
+
+	err := svc.RepopulateItems(ctx, tenantID, "2026-03")
+	if err == nil {
+		t.Fatal("expected malformed raw JSON error")
+	}
+	if !strings.Contains(err.Error(), "raw_order_income") || !strings.Contains(err.Error(), "malformed JSON") {
+		t.Fatalf("expected actionable malformed raw JSON error, got %v", err)
+	}
+
+	var count int64
+	db.Model(&models.ShopeeEscrowItem{}).Where("tenant_id = ? AND escrow_order_id = ?", tenantID, order.ID).Count(&count)
+	if count != 1 {
+		t.Fatalf("expected existing item preserved after malformed raw JSON error, got %d", count)
+	}
+}
+
+func TestShopeeRepopulateItems_TenantIsolation(t *testing.T) {
+	log.Logger = log.Output(zerolog.NewTestWriter(t))
+	db := setupSyncTestDB(t)
+	defer resetSyncTestDB(t, db)
+
+	svc := analytics.NewShopeeAnalyticsService(db, db, "tenant-a")
+	ctx := context.Background()
+	rawTenantA := `{"items":[{"item_id":111,"item_sku":"SKU-A","quantity_purchased":1,"selling_price":1000}]}`
+	rawTenantB := `{"items":[{"item_id":222,"item_sku":"SKU-B","quantity_purchased":2,"selling_price":2000}]}`
+
+	orderA := models.ShopeeEscrowOrder{
+		ID:             uuid.New().String(),
+		TenantID:       "tenant-a",
+		OrderSN:        "ORD-SHARED",
+		Month:          3,
+		Year:           2026,
+		RawOrderIncome: &rawTenantA,
+	}
+	orderB := models.ShopeeEscrowOrder{
+		ID:             uuid.New().String(),
+		TenantID:       "tenant-b",
+		OrderSN:        "ORD-SHARED",
+		Month:          3,
+		Year:           2026,
+		RawOrderIncome: &rawTenantB,
+	}
+	if err := db.Create(&orderA).Error; err != nil {
+		t.Fatalf("failed to seed tenant A order: %v", err)
+	}
+	if err := db.Create(&orderB).Error; err != nil {
+		t.Fatalf("failed to seed tenant B order: %v", err)
+	}
+
+	tenantBItem := models.ShopeeEscrowItem{
+		ID:            uuid.New().String(),
+		TenantID:      "tenant-b",
+		EscrowOrderID: orderB.ID,
+		OrderSN:       &orderB.OrderSN,
+		Month:         intPtr(3),
+		Year:          intPtr(2026),
+		Quantity:      9,
+	}
+	if err := db.Create(&tenantBItem).Error; err != nil {
+		t.Fatalf("failed to seed tenant B item: %v", err)
+	}
+
+	if err := svc.RepopulateItems(ctx, "tenant-a", "2026-03"); err != nil {
+		t.Fatalf("RepopulateItems returned error: %v", err)
+	}
+
+	var tenantACount int64
+	db.Model(&models.ShopeeEscrowItem{}).Where("tenant_id = ? AND escrow_order_id = ?", "tenant-a", orderA.ID).Count(&tenantACount)
+	if tenantACount != 1 {
+		t.Fatalf("expected tenant A item restored, got %d", tenantACount)
+	}
+
+	var tenantBItems []models.ShopeeEscrowItem
+	if err := db.Where("tenant_id = ? AND escrow_order_id = ?", "tenant-b", orderB.ID).Find(&tenantBItems).Error; err != nil {
+		t.Fatalf("failed to read tenant B items: %v", err)
+	}
+	if len(tenantBItems) != 1 || tenantBItems[0].Quantity != 9 {
+		t.Fatalf("tenant B items changed: count=%d items=%+v", len(tenantBItems), tenantBItems)
 	}
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/omni/backend/internal/dto"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/jobs"
-	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -317,16 +316,6 @@ func (s *ShopeeAnalyticsService) GetShippingFeeAnalysis(ctx context.Context, ten
 		},
 		Details: details,
 	}, nil
-}
-
-// RepopulateItems triggers item repopulation for the given period.
-// Placeholder: actual SDK calls will be added in a future task.
-func (s *ShopeeAnalyticsService) RepopulateItems(ctx context.Context, tenantID string, period string) error {
-	log.Info().
-		Str("tenant_id", tenantID).
-		Str("period", period).
-		Msg("Shopee item repopulation triggered (placeholder)")
-	return nil
 }
 
 // ComputeShopeeShippingDiff calculates the shipping fee difference for Shopee orders.
