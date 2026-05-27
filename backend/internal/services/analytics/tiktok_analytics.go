@@ -295,7 +295,7 @@ func (s *TiktokAnalyticsService) GetShippingFeeAnalysis(ctx context.Context, ten
 	for _, o := range orders {
 		platformFee := o.ShippingFeeCustomerPaid
 		actualFee := o.ShippingFeeActual
-		diff := platformFee - actualFee
+		diff := platformFee - actualFee + o.ShippingFeePlatformDiscount
 
 		if diff > 0.01 || diff < -0.01 {
 			ordersWithDiff++
@@ -350,4 +350,11 @@ func (s *TiktokAnalyticsService) RepopulateItems(ctx context.Context, tenantID s
 		Str("period", period).
 		Msg("TikTok item repopulation triggered (placeholder)")
 	return nil
+}
+
+// ComputeTiktokShippingDiff calculates the shipping fee difference for TikTok orders.
+// Formula: ShippingFeeCustomerPaid - ShippingFeeActual + ShippingFeePlatformDiscount.
+// Exported for deterministic testing.
+func ComputeTiktokShippingDiff(customerPaid, actual, discount float64) float64 {
+	return customerPaid - actual + discount
 }

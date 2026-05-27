@@ -272,7 +272,7 @@ func (s *ShopeeAnalyticsService) GetShippingFeeAnalysis(ctx context.Context, ten
 	for _, o := range orders {
 		platformFee := o.BuyerPaidShippingFee
 		actualFee := o.ActualShippingFee
-		diff := platformFee - actualFee
+		diff := platformFee - actualFee + o.ShopeeShippingRebate
 
 		if diff > 0.01 || diff < -0.01 {
 			ordersWithDiff++
@@ -327,4 +327,11 @@ func (s *ShopeeAnalyticsService) RepopulateItems(ctx context.Context, tenantID s
 		Str("period", period).
 		Msg("Shopee item repopulation triggered (placeholder)")
 	return nil
+}
+
+// ComputeShopeeShippingDiff calculates the shipping fee difference for Shopee orders.
+// Formula: BuyerPaidShippingFee - ActualShippingFee + ShopeeShippingRebate.
+// Exported for deterministic testing.
+func ComputeShopeeShippingDiff(buyerPaid, actual, rebate float64) float64 {
+	return buyerPaid - actual + rebate
 }

@@ -551,3 +551,196 @@ func TestTiktokSyncEscrow_CreatesJob(t *testing.T) {
 		t.Errorf("expected job status pending, got %s", job.Status)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Formula Deterministic Tests
+// ---------------------------------------------------------------------------
+
+func TestComputeTiktokShippingDiff_WithFixture_ReturnsCorrectDifference(t *testing.T) {
+	// Fixture: customer_paid=12000, actual=8000, discount=1000
+	// Expected: 12000 - 8000 + 1000 = 5000
+	diff := analytics.ComputeTiktokShippingDiff(12000, 8000, 1000)
+	if diff != 5000 {
+		t.Errorf("expected 5000, got %f", diff)
+	}
+}
+
+func TestComputeTiktokShippingDiff_NoDiscount_Works(t *testing.T) {
+	// When discount is 0, formula reduces to customerPaid - actual
+	diff := analytics.ComputeTiktokShippingDiff(10000, 8000, 0)
+	if diff != 2000 {
+		t.Errorf("expected 2000, got %f", diff)
+	}
+}
+
+func TestComputeTiktokShippingDiff_NegativeDifference_Works(t *testing.T) {
+	// When actual > customerPaid, result is negative
+	diff := analytics.ComputeTiktokShippingDiff(5000, 7000, 300)
+	// 5000 - 7000 + 300 = -1700
+	if diff != -1700 {
+		t.Errorf("expected -1700, got %f", diff)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Sync Guard Tests — fail against placeholder, pass after Wave 2/3
+// ---------------------------------------------------------------------------
+//
+// These guardrail tests assert that SyncMonthWithProgress actually persists
+// orders, items, and raw JSON data. They SHOULD FAIL against the current
+// no-op/MVP placeholder sync and PASS only after real sync is implemented.
+//
+func TestTiktokSyncGuard_RejectsPlaceholderNoData(t *testing.T) {
+	log.Logger = log.Output(zerolog.NewTestWriter(t))
+	db := setupTiktokTestDB(t)
+	svc := analytics.NewTiktokEscrowSyncService(db, db, "test-tenant")
+	ctx := context.Background()
+
+	onProgress := func(processed, total int, message string) {}
+
+	err := svc.SyncMonthWithProgress(ctx, 3, 2026, false, onProgress)
+	if err != nil {
+		t.Fatalf("SyncMonthWithProgress returned error: %v", err)
+	}
+
+	tenantID := "test-tenant"
+	month := 3
+	year := 2026
+
+	// GUARD 1: Sync record must report TotalOrders > 0
+	var sync models.TiktokEscrowSync
+	if err := db.Where("tenant_id = ? AND month = ? AND year = ?", tenantID, month, year).
+		First(&sync).Error; err != nil {
+		t.Fatalf("failed to find sync record: %v", err)
+	}
+	if sync.TotalOrders == 0 {
+		t.Error("GUARD FAILED: Tiktok SyncMonthWithProgress created a sync record with TotalOrders=0. ",
+			"Real sync must set TotalOrders > 0 after persisting orders.")
+	}
+
+	// GUARD 2: Sync MUST persist order records
+	var orderCount int64
+	db.Model(&models.TiktokEscrowOrder{}).
+		Where("tenant_id = ? AND month = ? AND year = ?", tenantID, month, year).
+		Count(&orderCount)
+	if orderCount == 0 {
+		t.Error("GUARD FAILED: Tiktok SyncMonthWithProgress completed without persisting any TiktokEscrowOrder records. ",
+			"Implement real sync logic that populates TiktokEscrowOrder.")
+	}
+
+	// GUARD 3: Sync MUST persist item records
+	// (TiktokEscrowItem has no Month/Year, so query via order IDs)
+	var orderIDsForItems []string
+	db.Model(&models.TiktokEscrowOrder{}).
+		Where("tenant_id = ? AND month = ? AND year = ?", tenantID, month, year).
+		Pluck("id", &orderIDsForItems)
+
+	if len(orderIDsForItems) == 0 {
+		t.Error("GUARD FAILED: Tiktok SyncMonthWithProgress completed without persisting any TiktokEscrowItem records ",
+			"(no orders were created to associate items with).")
+	} else {
+		var itemCount int64
+		db.Model(&models.TiktokEscrowItem{}).
+			Where("tenant_id = ? AND escrow_order_id IN ?", tenantID, orderIDsForItems).
+			Count(&itemCount)
+		if itemCount == 0 {
+			t.Error("GUARD FAILED: Tiktok SyncMonthWithProgress completed without persisting any TiktokEscrowItem records. ",
+				"Implement real sync logic that populates TiktokEscrowItem.")
+		}
+	}
+
+	// GUARD 4: Sync MUST store raw JSON data (raw_transaction_data or raw_order_data)
+	var rawCount int64
+	db.Model(&models.TiktokEscrowOrder{}).
+		Where("tenant_id = ? AND month = ? AND year = ?", tenantID, month, year).
+		Where("(raw_transaction_data IS NOT NULL AND raw_transaction_data != '') OR (raw_order_data IS NOT NULL AND raw_order_data != '')").
+		Count(&rawCount)
+	if rawCount == 0 {
+		t.Error("GUARD FAILED: Tiktok SyncMonthWithProgress completed without storing raw JSON data. ",
+			"Sync must persist raw_transaction_data or raw_order_data for traceability.")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Repopulate Guard Tests — fail against no-op placeholder, pass after Wave 2/3
+// ---------------------------------------------------------------------------
+//
+func TestTiktokRepopulateGuard_RejectsNoopOnItemRestoration(t *testing.T) {
+	log.Logger = log.Output(zerolog.NewTestWriter(t))
+	db := setupTiktokTestDB(t)
+	svc := setupTiktokService(t, db)
+	ctx := context.Background()
+	tenantID := "test-tenant"
+
+	// Seed an order with raw JSON data that Wave 2/3 would use to reconstruct items
+	rawTransactionData := `{"transaction_id":"TXN-001"}`
+	rawOrderData := `{"order_id":"ORD-REPOP-TT-001"}`
+	order := models.TiktokEscrowOrder{
+		ID:                 uuid.New().String(),
+		TenantID:           tenantID,
+		OrderID:            "ORD-REPOP-TT-001",
+		Month:              3,
+		Year:               2026,
+		RawTransactionData: &rawTransactionData,
+		RawOrderData:       &rawOrderData,
+	}
+	if err := db.Create(&order).Error; err != nil {
+		t.Fatalf("failed to seed order: %v", err)
+	}
+
+	// Seed items with raw JSON data
+	rawItemData := `{"product_name":"Guard Test Product"}`
+	itemCount := 3
+	for i := 0; i < itemCount; i++ {
+		item := models.TiktokEscrowItem{
+			ID:            uuid.New().String(),
+			TenantID:      tenantID,
+			EscrowOrderID: order.ID,
+			OrderID:       "ORD-REPOP-TT-001",
+			Quantity:      1,
+			SalePrice:     10000,
+			OriginalPrice: 10000,
+			RawItemData:   &rawItemData,
+		}
+		if err := db.Create(&item).Error; err != nil {
+			t.Fatalf("failed to seed item %d: %v", i, err)
+		}
+	}
+
+	// Record initial count
+	var initialCount int64
+	db.Model(&models.TiktokEscrowItem{}).
+		Where("tenant_id = ? AND escrow_order_id = ?", tenantID, order.ID).
+		Count(&initialCount)
+	if initialCount != int64(itemCount) {
+		t.Fatalf("expected %d items initially, got %d", itemCount, initialCount)
+	}
+
+	// Clear all items (simulating data loss that repopulate should fix)
+	if err := db.Where("tenant_id = ? AND escrow_order_id = ?", tenantID, order.ID).
+		Delete(&models.TiktokEscrowItem{}).Error; err != nil {
+		t.Fatalf("failed to clear items: %v", err)
+	}
+	var afterDelete int64
+	db.Model(&models.TiktokEscrowItem{}).Where("tenant_id = ? AND escrow_order_id = ?", tenantID, order.ID).Count(&afterDelete)
+	if afterDelete != 0 {
+		t.Fatalf("expected 0 items after delete, got %d", afterDelete)
+	}
+
+	// Call RepopulateItems (currently a no-op placeholder)
+	if err := svc.RepopulateItems(ctx, tenantID, "2026-03"); err != nil {
+		t.Fatalf("RepopulateItems returned error: %v", err)
+	}
+
+	// GUARD: Items must be restored from raw JSON data
+	var finalCount int64
+	db.Model(&models.TiktokEscrowItem{}).
+		Where("tenant_id = ? AND escrow_order_id = ?", tenantID, order.ID).
+		Count(&finalCount)
+	if finalCount != initialCount {
+		t.Errorf("GUARD FAILED: Tiktok RepopulateItems did not restore items from raw JSON data. "+
+			"Expected %d items (matching pre-delete count), got %d. "+
+			"Current RepopulateItems is a no-op — implement item reconstruction from raw JSON.",
+			initialCount, finalCount)
+	}
+}
