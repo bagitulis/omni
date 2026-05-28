@@ -167,10 +167,10 @@ export default function GeneralTab() {
                   </Text>
                   <br />
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    Receive order updates and alerts via email
+                    Receive email notifications (coming soon)
                   </Text>
                 </div>
-                <Switch defaultChecked />
+                <Switch defaultChecked disabled />
               </div>
             </Form.Item>
             <Divider style={{ margin: "12px 0" }} />
@@ -192,10 +192,10 @@ export default function GeneralTab() {
                   </Text>
                   <br />
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    Show desktop notifications for important events
+                    Receive browser notifications (coming soon)
                   </Text>
                 </div>
-                <Switch defaultChecked />
+                <Switch defaultChecked disabled />
               </div>
             </Form.Item>
           </Card>
