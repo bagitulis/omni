@@ -95,7 +95,7 @@ export function ReconciliationDrilldownDrawer({ row, open, onClose, platform, mo
   const orders = query.data?.orders ?? [];
 
   return (
-    <Drawer title={row ? `SKU ${row.sku}` : "SKU Detail"} open={open} onClose={onClose} width={drawerWidth(screens)} styles={{ body: { padding: 16, background: token.colorBgLayout } }}>
+    <Drawer title={row ? `SKU ${row.sku}` : "SKU Detail"} open={open} onClose={onClose} width={drawerWidth(screens)} styles={{ body: { padding: 16, background: token.colorBgLayout } }} afterOpenChange={(visible) => { if (visible) window.setTimeout(() => document.querySelector<HTMLButtonElement>(".ant-drawer-close")?.focus(), 0); }}>
       {query.isLoading ? (
         <Flex justify="center" align="center" style={{ minHeight: 240 }}><Spin /></Flex>
       ) : query.isError ? (
@@ -136,7 +136,7 @@ export function ShippingFeeDrilldownDrawer({ row, open, onClose, platform, month
   const items = query.data?.items ?? [];
 
   return (
-    <Drawer title={row ? `Order ${row.order_sn}` : "Order Detail"} open={open} onClose={onClose} width={drawerWidth(screens)} styles={{ body: { padding: 16, background: token.colorBgLayout } }}>
+    <Drawer title={row ? `Order ${row.order_sn}` : "Order Detail"} open={open} onClose={onClose} width={drawerWidth(screens)} styles={{ body: { padding: 16, background: token.colorBgLayout } }} afterOpenChange={(visible) => { if (visible) window.setTimeout(() => document.querySelector<HTMLButtonElement>(".ant-drawer-close")?.focus(), 0); }}>
       {query.isLoading ? (
         <Flex justify="center" align="center" style={{ minHeight: 240 }}><Spin /></Flex>
       ) : query.isError ? (

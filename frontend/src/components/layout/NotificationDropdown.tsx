@@ -3,7 +3,7 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 import { Button, Empty, Segmented, Skeleton, Tooltip, Typography } from "antd";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Notification } from "@/api/notifications";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -31,6 +31,7 @@ interface NotificationDropdownProps {
 export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabKey>("all");
+  const firstActionRef = useRef<HTMLButtonElement>(null);
 
   const {
     notifications,
@@ -48,6 +49,10 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
 
   const unreadExists = notifications.some((n) => !n.read);
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  useEffect(() => {
+    window.setTimeout(() => firstActionRef.current?.focus(), 0);
+  }, []);
 
   const handleItemClick = (item: Notification) => {
     if (!item.read) markAsRead(item.id);
@@ -82,6 +87,7 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
               icon={<CheckOutlined />}
               onClick={markAllAsRead}
               className="notification-dropdown__action"
+              ref={firstActionRef}
             >
               Mark all read
             </Button>

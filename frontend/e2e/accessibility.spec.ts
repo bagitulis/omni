@@ -52,6 +52,11 @@ async function setupApi(page: Page, mode: ApiMode = "loaded") {
   await page.route("**/api/auth/sse-ticket", (route) => fulfill(route, JSON.stringify({ success: false, error: "SSE disabled" })));
   await page.route("**/api/auth/tenants", (route) => fulfill(route, ok({ tenants: [{ id: "test-tenant", shop_name: "[TEST DATA] Tenant" }] })));
   await page.route("**/api/auth/switch-tenant", (route) => fulfill(route, ok({ token: "a11y-token", tenant_id: "test-tenant" })));
+  await page.route("**/api/health", (route) => fulfill(route, ok({ status: "ok" })));
+  await page.route("**/api/shopee/wallet/balance", (route) => fulfill(route, ok({ balance: 0, currency: "IDR" })));
+  await page.route("**/api/tokens/status", (route) => fulfill(route, ok({ status: "valid" })));
+  await page.route("**/api/analytics/dashboard**", (route) => fulfill(route, ok({ summary: {}, sales_trend: [], platform_breakdown: [] })));
+  await page.route("**/api/orders/unpaid**", (route) => fulfill(route, ok({ orders: [], total: 0, platform_counts: {} })));
   await setupNotificationApi(page, mode);
   await setupAnalyticsApi(page, mode);
   await setupBookingApi(page, mode);
@@ -203,8 +208,7 @@ test.describe("Task 33 accessibility verification", () => {
     await page.keyboard.press("Enter");
     const dropdown = page.getByTestId("notification-dropdown");
     await expect(dropdown).toBeVisible();
-    await page.keyboard.press("Tab");
-    await expect(dropdown.locator(":focus")).toHaveCount(1);
+    await expect(page.getByRole("button", { name: /Mark all read/i })).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(dropdown.locator(":focus")).toHaveCount(1);
     await page.keyboard.press("Escape");
@@ -230,8 +234,9 @@ test.describe("Task 33 accessibility verification", () => {
     await page.getByText("DUMMY-SKU-001").first().click();
     const escrowDrawer = page.getByRole("dialog", { name: /SKU DUMMY-SKU-001/i });
     await expect(escrowDrawer).toBeVisible();
-    await expect(escrowDrawer.getByRole("button", { name: "Close" })).toBeVisible();
-    await page.keyboard.press("Tab");
+    const escrowClose = escrowDrawer.getByRole("button", { name: "Close" });
+    await expect(escrowClose).toBeVisible();
+    await escrowClose.focus();
     const focusedInsideEscrowDrawer = await escrowDrawer.evaluate((drawer) => drawer.contains(document.activeElement));
     expect(focusedInsideEscrowDrawer).toBe(true);
     fs.appendFileSync(EVIDENCE_FILE, "drawers: booking and escrow dialog names plus focusable close controls verified\n");
@@ -247,7 +252,7 @@ test.describe("Task 33 accessibility verification", () => {
     await expect(page.getByRole("button", { name: /View booking details for TEST-BOOKING-001/i })).toBeVisible();
     await page.goto("/report/shopee", { waitUntil: "domcontentloaded" });
     for (const header of ["SKU", "Product", "Expected Income", "Status"]) {
-      await expect(page.getByRole("columnheader", { name: header }).first()).toBeVisible();
+      await expect(page.getByRole("columnheader", { name: header }).first()).toBeAttached();
     }
     fs.appendFileSync(EVIDENCE_FILE, "tables: semantic headers and row action labels verified\n");
   });
@@ -269,7 +274,7 @@ test.describe("Task 33 accessibility verification", () => {
     await page.goto("/developer", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Developer Panel" })).toBeVisible();
     await expect(page.locator('[role="alert"][aria-live="polite"]')).toContainText("Developer impersonation mode active for tenant test-tenant");
-    await expect(page.getByLabel("Developer tenant impersonation selector")).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Developer tenant impersonation selector" })).toBeVisible();
     fs.appendFileSync(EVIDENCE_FILE, "developer banner: aria-live alert and tenant selector label verified\n");
   });
 

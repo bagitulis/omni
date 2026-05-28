@@ -99,6 +99,9 @@ export function BookingDetailDrawer({
       onClose={onClose}
       width={screens.md ? 520 : "100vw"}
       styles={{ body: { padding: 16, background: token.colorBgLayout } }}
+      afterOpenChange={(visible) => {
+        if (visible) window.setTimeout(() => document.querySelector<HTMLButtonElement>(".ant-drawer-close")?.focus(), 0);
+      }}
     >
       {loading ? (
         <Flex justify="center" align="center" style={{ minHeight: 240 }}>
