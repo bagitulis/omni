@@ -16,6 +16,9 @@ import (
 // ErrTenantNotFound is returned when a tenant does not exist in system.tenants.
 var ErrTenantNotFound = fmt.Errorf("tenant not found")
 
+// ErrExplicitTenantScopeRequired is returned when a cross-tenant operation omits an explicit tenant list.
+var ErrExplicitTenantScopeRequired = fmt.Errorf("explicit tenant scope is required")
+
 // TenantInfo represents tenant information
 type TenantInfo struct {
 	ID       string `json:"id"`
@@ -102,7 +105,7 @@ func (s *TenantService) TenantExists(ctx context.Context, tenantID string) bool 
 // GetActiveTenantsByID returns active tenant metadata for an explicit tenant scope.
 func (s *TenantService) GetActiveTenantsByID(ctx context.Context, tenantIDs []string) (map[string]TenantInfo, error) {
 	if len(tenantIDs) == 0 {
-		return map[string]TenantInfo{}, nil
+		return nil, ErrExplicitTenantScopeRequired
 	}
 	systemDB, err := config.GetSystemDB(s.basePath)
 	if err != nil {

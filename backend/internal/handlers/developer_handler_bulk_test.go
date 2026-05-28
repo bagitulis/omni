@@ -125,6 +125,43 @@ func TestBulkOperationMixedTenantScopePartialReject(t *testing.T) {
 	assert.Equal(t, "tenant_b", errors[0].(map[string]interface{})["tenant_id"])
 }
 
+func TestBulkOperationRejectsImplicitContextTenantForMutation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.POST("/api/dev/users/bulk-disable", func(c *gin.Context) {
+		c.Set("role", models.RoleDeveloper)
+		c.Set("tenant_id", "tenant_a")
+		var req bulkDisableUsersRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "validation failed: " + err.Error()})
+			return
+		}
+		result := bulkOperationResult{Errors: make([]bulkErrorDetail, 0)}
+		for _, item := range req.Items {
+			if !developerCanAccessTenant(c, item.TenantID) || !developerHasExplicitTenantScope(c) {
+				result.FailureCount++
+				result.Errors = append(result.Errors, bulkErrorDetail{UserID: item.UserID, TenantID: item.TenantID, Error: "tenant is outside authorized developer scope"})
+				continue
+			}
+			result.SuccessCount++
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+	})
+
+	body := `{"items":[{"user_id":"u1","tenant_id":"tenant_a"}]}`
+	req, _ := http.NewRequest("POST", "/api/dev/users/bulk-disable", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]interface{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	data := resp["data"].(map[string]interface{})
+	assert.Equal(t, float64(0), data["success_count"])
+	assert.Equal(t, float64(1), data["failure_count"])
+}
+
 func TestBulkResetPasswords_ExceedsMaxUsers(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()

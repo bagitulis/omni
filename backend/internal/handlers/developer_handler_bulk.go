@@ -67,6 +67,7 @@ func (h *DeveloperHandler) BulkResetPasswords(c *gin.Context) {
 		return
 	}
 	if !bulkItemsHaveExplicitTenantScope(req.Items) {
+		h.writeDeveloperAudit(c, "BULK_PASSWORD_RESET", models.AuditStatusFailed, "", "", auditDetails(map[string]interface{}{"operation": "bulk_reset_password", "reason": "missing_explicit_tenant_scope"}), "bulk operation requires explicit tenant_id for every item")
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "bulk operation requires explicit tenant_id for every item"})
 		return
 	}
@@ -92,7 +93,7 @@ func (h *DeveloperHandler) BulkResetPasswords(c *gin.Context) {
 	}
 
 	for _, item := range req.Items {
-		if !developerCanAccessTenant(c, item.TenantID) {
+		if !developerCanAccessTenant(c, item.TenantID) || !developerHasExplicitTenantScope(c) {
 			result.FailureCount++
 			result.Errors = append(result.Errors, bulkErrorDetail{UserID: item.UserID, TenantID: item.TenantID, Error: "tenant is outside authorized developer scope"})
 			continue
@@ -152,6 +153,7 @@ func (h *DeveloperHandler) BulkDisableUsers(c *gin.Context) {
 		return
 	}
 	if !bulkItemsHaveExplicitTenantScope(req.Items) {
+		h.writeDeveloperAudit(c, "BULK_DISABLE_USERS", models.AuditStatusFailed, "", "", auditDetails(map[string]interface{}{"operation": "bulk_disable_users", "reason": "missing_explicit_tenant_scope"}), "bulk operation requires explicit tenant_id for every item")
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "bulk operation requires explicit tenant_id for every item"})
 		return
 	}
@@ -175,7 +177,7 @@ func (h *DeveloperHandler) BulkDisableUsers(c *gin.Context) {
 	}
 
 	for _, item := range req.Items {
-		if !developerCanAccessTenant(c, item.TenantID) {
+		if !developerCanAccessTenant(c, item.TenantID) || !developerHasExplicitTenantScope(c) {
 			result.FailureCount++
 			result.Errors = append(result.Errors, bulkErrorDetail{UserID: item.UserID, TenantID: item.TenantID, Error: "tenant is outside authorized developer scope"})
 			continue

@@ -258,6 +258,29 @@ func TestDeveloperTenantScopeRejectsUnauthorizedTenant(t *testing.T) {
 	assert.Contains(t, resp["error"].(string), "authorized developer scope")
 }
 
+func TestDeveloperMutationRequiresExplicitTenantScope(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.POST("/dev/mutate", func(c *gin.Context) {
+		c.Set("role", models.RoleDeveloper)
+		c.Set("tenant_id", "tenant_a")
+		if !requireDeveloperMutationScope(c, "tenant_a") {
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true})
+	})
+
+	req, _ := http.NewRequest("POST", "/dev/mutate", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	var resp map[string]interface{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, false, resp["success"])
+	assert.Contains(t, resp["error"].(string), "explicit developer tenant scope")
+}
+
 func TestDeveloperRoleGrantGuardPreventsEscalation(t *testing.T) {
 	assert.False(t, canDeveloperGrantRole(models.RoleDeveloper, "dev-user", "dev-user", models.RoleAdmin))
 	assert.False(t, canDeveloperGrantRole(models.RoleDeveloper, "dev-user", "target", models.RoleDeveloper))

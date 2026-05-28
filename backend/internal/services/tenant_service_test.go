@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -114,11 +115,19 @@ func TestErrTenantNotFound(t *testing.T) {
 	assert.ErrorIs(t, import_err, ErrTenantNotFound)
 }
 
+func TestGetActiveTenantsByIDRequiresExplicitScope(t *testing.T) {
+	svc := &TenantService{basePath: "/test/path"}
+	tenants, err := svc.GetActiveTenantsByID(context.Background(), nil)
+
+	assert.Nil(t, tenants)
+	assert.ErrorIs(t, err, ErrExplicitTenantScopeRequired)
+}
+
 func TestTenantNamePattern(t *testing.T) {
 	tests := []struct {
-		name    string
-		input   string
-		valid   bool
+		name  string
+		input string
+		valid bool
 	}{
 		{"valid simple", "myshop", true},
 		{"valid with underscore", "my_shop", true},
