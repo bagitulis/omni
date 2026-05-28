@@ -131,6 +131,7 @@ func TestBulkOperationRejectsImplicitContextTenantForMutation(t *testing.T) {
 	r.POST("/api/dev/users/bulk-disable", func(c *gin.Context) {
 		c.Set("role", models.RoleDeveloper)
 		c.Set("tenant_id", "tenant_a")
+		c.Set("developer_tenant_scope", "*")
 		var req bulkDisableUsersRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "validation failed: " + err.Error()})
