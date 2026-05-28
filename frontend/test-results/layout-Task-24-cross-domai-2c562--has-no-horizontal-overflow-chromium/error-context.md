@@ -7,136 +7,70 @@
 # Test info
 
 - Name: layout.spec.ts >> Task 24 cross-domain responsive layout >> mobile-375 viewport sweep has no horizontal overflow
-- Location: e2e/layout.spec.ts:266:5
+- Location: e2e/layout.spec.ts:276:5
 
 # Error details
 
 ```
-Error: expect(locator).toBeVisible() failed
+Error: expect(received).toEqual(expected) // deep equality
 
-Locator:  getByText(/Notifications/i).first()
-Expected: visible
-Received: hidden
-Timeout:  15000ms
+- Expected  -  1
++ Received  + 48
 
-Call log:
-  - Expect "toBeVisible" with timeout 15000ms
-  - waiting for getByText(/Notifications/i).first()
-    28 × locator resolved to <span class="ant-menu-title-content">Notifications</span>
-       - unexpected value "hidden"
-
-```
-
-```yaml
-- link "Skip to main content":
-  - /url: "#main-content"
-- banner:
-  - text: OMNI
-  - button "Switch to dark mode":
-    - img "moon"
-  - button "key":
-    - img "key"
-  - button "Notifications, 2 unread, 1 error, 1 warning":
-    - img "bell"
-  - superscript
-  - img "user"
-- main:
-  - heading "Notifications" [level=3]
-  - button "reload Refresh":
-    - img "reload"
-    - text: Refresh
-  - radiogroup "segmented control":
-    - radio "All" [checked]
-    - text: All
-    - radio "Unread"
-    - text: Unread
-    - radio "Read"
-    - text: Read
-  - combobox
-  - text: All Categories
-  - button "collapsed close-circle [TEST DATA] Long notification title for responsive badge verification":
-    - img "collapsed"
-    - img "close-circle"
-    - strong: "[TEST DATA] Long notification title for responsive badge verification"
-  - button "collapsed exclamation-circle [TEST DATA] Partial sync warning":
-    - img "collapsed"
-    - img "exclamation-circle"
-    - strong: "[TEST DATA] Partial sync warning"
-- button "dashboard Home":
-  - img "dashboard"
-  - text: Home
-- button "shopping Orders":
-  - img "shopping"
-  - text: Orders
-- button "skin Products":
-  - img "skin"
-  - text: Products
-- button "inbox Inventory":
-  - img "inbox"
-  - text: Inventory
-- button "code Scripts":
-  - img "code"
-  - text: Scripts
+- Array []
++ Array [
++   "console.error: Warning: [antd: Dropdown] `dropdownRender` is deprecated. Please use `popupRender` instead.",
++   "console.error: Warning: Duplicated key '/products' used in Menu by path [/products]",
++   "console.error: Warning: [antd: Dropdown] `dropdownRender` is deprecated. Please use `popupRender` instead.",
++   "console.error: Warning: Duplicated key '/products' used in Menu by path [/products]",
++   "console.error: Warning: [antd: Dropdown] `dropdownRender` is deprecated. Please use `popupRender` instead.",
++   "console.error: Warning: Duplicated key '/products' used in Menu by path [/products]",
++   "console.error: Warning: [antd: Dropdown] `dropdownRender` is deprecated. Please use `popupRender` instead.",
++   "console.error: Warning: Duplicated key '/products' used in Menu by path [/products]",
++   "api 500: http://localhost:5174/api/orders/unprocess?page=1&pageSize=10&platform=all&search=",
++   "console.error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
++   "console.error: [ERROR] 2026-05-28T14:45:30.392Z [API] 500 Server Error: {error: undefined}",
++   "api 500: http://localhost:5174/api/orders/sync/unprocess",
++   "console.error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
++   "console.error: [ERROR] 2026-05-28T14:45:30.396Z [API] 500 Server Error: {error: undefined}",
++   "api 500: http://localhost:5174/api/orders/sync/unprocess",
++   "console.error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
++   "console.error: [ERROR] 2026-05-28T14:45:30.398Z [API] 500 Server Error: {error: undefined}",
++   "console.error: Warning: [antd: Spin] `tip` only work in nest or fullscreen pattern.",
++   "api 500: http://localhost:5174/api/orders/booking?page=1&page_size=20",
++   "console.error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
++   "console.error: [ERROR] 2026-05-28T14:45:31.167Z [API] 500 Server Error: {error: undefined}",
++   "api 500: http://localhost:5174/api/orders/sync/booking",
++   "console.error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
++   "console.error: [ERROR] 2026-05-28T14:45:31.169Z [API] 500 Server Error: {error: undefined}",
++   "api 500: http://localhost:5174/api/orders/booking?page=1&page_size=20",
++   "console.error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
++   "console.error: [ERROR] 2026-05-28T14:45:31.174Z [API] 500 Server Error: {error: undefined}",
++   "api 500: http://localhost:5174/api/orders/booking?page=1&pageSize=10&platform=all&search=",
++   "console.error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
++   "console.error: [ERROR] 2026-05-28T14:45:31.265Z [API] 500 Server Error: {error: undefined}",
++   "console.error: Warning: [antd: Dropdown] `dropdownRender` is deprecated. Please use `popupRender` instead.",
++   "console.error: Warning: Duplicated key '/products' used in Menu by path [/products]",
++   "api 500: http://localhost:5174/api/dev/overview",
++   "console.error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
++   "console.error: [ERROR] 2026-05-28T14:45:32.795Z [API] 500 Server Error: {error: undefined}",
++   "api 500: http://localhost:5174/api/dev/overview",
++   "console.error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
++   "console.error: [ERROR] 2026-05-28T14:45:32.797Z [API] 500 Server Error: {error: undefined}",
++   "console.error: Warning: [antd: Dropdown] `dropdownRender` is deprecated. Please use `popupRender` instead.",
++   "console.error: Warning: Duplicated key '/products' used in Menu by path [/products]",
++   "api 500: http://localhost:5174/api/credentials/platforms?tenant_id=test-tenant",
++   "console.error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
++   "console.error: [ERROR] 2026-05-28T14:45:34.126Z [API] 500 Server Error: {error: undefined}",
++   "api 500: http://localhost:5174/api/credentials/platforms?tenant_id=test-tenant",
++   "console.error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
++   "console.error: [ERROR] 2026-05-28T14:45:34.127Z [API] 500 Server Error: {error: undefined}",
++ ]
 ```
 
 # Test source
 
 ```ts
-  132 |     model_name: "Layout Variant",
-  133 |     variant_name: "Responsive Test Variant",
-  134 |     inventory_price: 10000,
-  135 |     expected_income: 8600,
-  136 |     total_transactions: 3,
-  137 |     unique_unit_prices: [10000, 12000],
-  138 |     unique_actual_incomes: [8500, 8600],
-  139 |     has_multiple_prices: true,
-  140 |     has_price_difference: true,
-  141 |     status: "PRICE_DIFF",
-  142 |   }] : [];
-  143 |   const shippingRows = hasRows ? [{
-  144 |     id: 1,
-  145 |     order_sn: "TEST-ORDER-001-LONG",
-  146 |     order_date: new Date().toISOString(),
-  147 |     buyer_paid: 12000,
-  148 |     customer_paid: 12000,
-  149 |     actual_fee: 7000,
-  150 |     shopee_rebate: 500,
-  151 |     platform_discount: 500,
-  152 |     difference: 5500,
-  153 |     status: mode === "loaded" ? "PARTIAL_SUCCESS" : "OK",
-  154 |     buyer_name: "Test User",
-  155 |     payment_method: "Test Wallet",
-  156 |     order_status: "PARTIAL_SUCCESS",
-  157 |     currency: "IDR",
-  158 |   }] : [];
-  159 | 
-  160 |   await page.route("**/api/analytics/*/settings", (route) => fulfill(route, ok({ formula_multiplier: 0.86, formula_deduction: 0 })));
-  161 |   await page.route("**/api/analytics/*/sync-status**", (route) =>
-  162 |     fulfill(route, ok({ status: hasRows ? "partial_success" : "idle", total_orders: hasRows ? 2 : 0, synced_orders: hasRows ? 1 : 0, failed_orders: hasRows ? 1 : 0 })),
-  163 |   );
-  164 |   await page.route("**/api/analytics/*/reconciliation**", (route) =>
-  165 |     fulfill(route, ok({ summary: { total_skus: skuRows.length, ok_count: 0, price_diff_count: skuRows.length, no_inventory_count: 0 }, sku_groups: skuRows })),
-  166 |   );
-  167 |   await page.route("**/api/analytics/*/shipping-fee**", (route) =>
-  168 |     fulfill(route, ok({ summary: { total_orders: shippingRows.length, total_difference: 5500 }, details: shippingRows })),
-  169 |   );
-  170 |   await page.route("**/api/analytics/*/sku-orders**", (route) =>
-  171 |     fulfill(route, ok({ orders: [{ id: 1, order_sn: "TEST-ORDER-001", order_id: "TEST-ORDER-001", buyer_name: "Test User", order_date: new Date().toISOString(), quantity: 1, original_price: 10000, sale_price: 10000, escrow_amount: 8500, total_settlement_amount: 8500 }] })),
-  172 |   );
-  173 |   await page.route("**/api/analytics/*/order-items**", (route) =>
-  174 |     fulfill(route, ok({ items: [{ id: 1, item_name: "[TEST DATA] Item", product_name: "[TEST DATA] Item", model_sku: "MODEL-DUMMY-001", sku: "DUMMY-SKU-001", seller_sku: "SELLER-DUMMY-001", quantity: 1, original_price: 10000, selling_price: 9000, sale_price: 9000, ams_commission_fee: 100, seller_order_processing_fee: 100, commission: 100, transaction_fee_item: 100 }] })),
-  175 |   );
-  176 | }
-  177 | 
-  178 | async function setupBookingApi(page: Page, mode: ApiMode) {
-  179 |   const bookings = mode === "empty" ? [] : [{
-  180 |     booking_sn: "TEST-BOOKING-001-LONG",
-  181 |     order_sn: "TEST-ORDER-001",
-  182 |     has_parent_order: true,
-  183 |     booking_status: "READY_TO_SHIP",
-  184 |     match_status: "matched",
-  185 |     recipient_name: "John Doe",
-  186 |     item_count: 2,
   187 |     shipping_carrier: "Test Courier",
   188 |     fulfillment_flag: "fulfilled_by_local_seller",
   189 |     create_time: Math.floor(Date.now() / 1000),
@@ -174,114 +108,169 @@ Call log:
   221 | }
   222 | 
   223 | async function openBookingTab(page: Page) {
-  224 |   const bookingTab = page.getByRole("tab", { name: /Booking/i }).first();
-  225 |   await expect(bookingTab).toBeVisible();
+  224 |   const bookingTab = page.getByText("Booking", { exact: true }).first();
+  225 |   await expect(bookingTab).toBeVisible({ timeout: 15000 });
   226 |   await bookingTab.click();
   227 | }
   228 | 
   229 | async function gotoDomain(page: Page, domain: (typeof DOMAIN_PAGES)[number]) {
   230 |   await page.goto(domain.path, { waitUntil: "domcontentloaded" });
-  231 |   if (domain.prepare) await domain.prepare(page);
-> 232 |   await expect(page.getByText(domain.marker).first()).toBeVisible({ timeout: 15000 });
-      |                                                       ^ Error: expect(locator).toBeVisible() failed
-  233 |   await page.waitForTimeout(250);
-  234 | }
-  235 | 
-  236 | async function assertNoHorizontalOverflow(page: Page, label: string) {
-  237 |   const metrics = await page.evaluate(() => ({
-  238 |     scrollWidth: document.documentElement.scrollWidth,
-  239 |     clientWidth: document.documentElement.clientWidth,
-  240 |     innerWidth: window.innerWidth,
-  241 |   }));
-  242 |   fs.appendFileSync(EVIDENCE_FILE, `${label}: scrollWidth=${metrics.scrollWidth}, innerWidth=${metrics.innerWidth}\n`);
-  243 |   expect(metrics.scrollWidth, `${label} has horizontal overflow`).toBeLessThanOrEqual(metrics.innerWidth);
-  244 | }
-  245 | 
-  246 | async function capture(page: Page, domain: string, viewport: string) {
-  247 |   await page.screenshot({ path: path.join(SCREENSHOT_DIR, `task-24-${domain}-${viewport}.png`), fullPage: true });
-  248 | }
-  249 | 
-  250 | function collectPageFailures(page: Page) {
-  251 |   const failures: string[] = [];
-  252 |   page.on("pageerror", (error) => failures.push(`pageerror: ${error.message}`));
-  253 |   page.on("console", (message) => {
-  254 |     if (message.type() === "error") failures.push(`console.error: ${message.text()}`);
-  255 |   });
-  256 |   page.on("response", (response) => {
-  257 |     if (response.url().includes("/api/") && response.status() >= 400) {
-  258 |       failures.push(`api ${response.status()}: ${response.url()}`);
-  259 |     }
-  260 |   });
-  261 |   return failures;
-  262 | }
-  263 | 
-  264 | test.describe("Task 24 cross-domain responsive layout", () => {
-  265 |   for (const viewport of VIEWPORTS) {
-  266 |     test(`${viewport.name} viewport sweep has no horizontal overflow`, async ({ page }) => {
-  267 |       await setupApi(page, "loaded");
-  268 |       await page.setViewportSize({ width: viewport.width, height: viewport.height });
-  269 |       const failures = collectPageFailures(page);
-  270 | 
-  271 |       for (const domain of DOMAIN_PAGES) {
-  272 |         await gotoDomain(page, domain);
-  273 |         await assertNoHorizontalOverflow(page, `${domain.name}/${viewport.name}`);
-  274 |         await capture(page, domain.name, viewport.name);
-  275 |       }
-  276 | 
-  277 |       expect(failures).toEqual([]);
-  278 |     });
-  279 |   }
+  231 |   await expect(page).not.toHaveURL(/\/login/);
+  232 |   if (domain.prepare) await domain.prepare(page);
+  233 |   if (typeof domain.marker === "string") {
+  234 |     if (domain.marker.startsWith("heading:")) {
+  235 |       await expect(page.getByRole("heading", { name: domain.marker.slice(8) })).toBeVisible({ timeout: 15000 });
+  236 |     } else {
+  237 |       await expect(page.getByTestId(domain.marker)).toBeVisible({ timeout: 15000 });
+  238 |     }
+  239 |   } else {
+  240 |     await expect(page.getByText(domain.marker).first()).toBeVisible({ timeout: 15000 });
+  241 |   }
+  242 |   await page.waitForTimeout(250);
+  243 | }
+  244 | 
+  245 | async function assertNoHorizontalOverflow(page: Page, label: string) {
+  246 |   const metrics = await page.evaluate(() => ({
+  247 |     scrollWidth: document.documentElement.scrollWidth,
+  248 |     clientWidth: document.documentElement.clientWidth,
+  249 |     innerWidth: window.innerWidth,
+  250 |   }));
+  251 |   fs.appendFileSync(EVIDENCE_FILE, `${label}: scrollWidth=${metrics.scrollWidth}, innerWidth=${metrics.innerWidth}\n`);
+  252 |   expect(metrics.scrollWidth, `${label} has horizontal overflow`).toBeLessThanOrEqual(metrics.innerWidth);
+  253 | }
+  254 | 
+  255 | async function capture(page: Page, domain: string, viewport: string) {
+  256 |   await page.screenshot({ path: path.join(SCREENSHOT_DIR, `task-24-${domain}-${viewport}.png`), fullPage: true });
+  257 | }
+  258 | 
+  259 | function collectPageFailures(page: Page) {
+  260 |   const failures: string[] = [];
+  261 |   page.on("pageerror", (error) => failures.push(`pageerror: ${error.message}`));
+  262 |   page.on("console", (message) => {
+  263 |     if (message.type() === "error") failures.push(`console.error: ${message.text()}`);
+  264 |   });
+  265 |   page.on("response", (response) => {
+  266 |     if (response.url().includes("/api/") && response.status() >= 400) {
+  267 |       failures.push(`api ${response.status()}: ${response.url()}`);
+  268 |     }
+  269 |   });
+  270 |   return failures;
+  271 | }
+  272 | 
+  273 | test.describe("Task 24 cross-domain responsive layout", () => {
+  274 |   test.describe.configure({ mode: "serial" });
+  275 |   for (const viewport of VIEWPORTS) {
+  276 |     test(`${viewport.name} viewport sweep has no horizontal overflow`, async ({ page }) => {
+  277 |       await setupApi(page, "loaded");
+  278 |       await page.setViewportSize({ width: viewport.width, height: viewport.height });
+  279 |       const failures = collectPageFailures(page);
   280 | 
-  281 |   test("notification badge and dropdown fit mobile header", async ({ page }) => {
-  282 |     await setupApi(page, "loaded");
-  283 |     await page.setViewportSize({ width: 375, height: 667 });
-  284 |     await page.goto("/", { waitUntil: "domcontentloaded" });
-  285 |     const bell = page.getByRole("button", { name: /Notifications/ });
-  286 |     await expect(bell).toBeVisible();
-  287 |     const box = await bell.boundingBox();
-  288 |     expect(box).not.toBeNull();
-  289 |     expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(375);
-  290 |     await bell.click();
-  291 |     const dropdown = page.getByTestId("notification-dropdown");
-  292 |     await expect(dropdown).toBeVisible();
-  293 |     await assertNoHorizontalOverflow(page, "notification-dropdown/mobile-375");
-  294 |     await capture(page, "notification-dropdown", "mobile-375");
-  295 |   });
-  296 | 
-  297 |   test("drawers fit mobile viewport and scroll internally", async ({ page }) => {
-  298 |     await setupApi(page, "loaded");
-  299 |     await page.setViewportSize({ width: 375, height: 667 });
-  300 | 
-  301 |     await page.goto("/report/shopee", { waitUntil: "domcontentloaded" });
-  302 |     await page.getByText("DUMMY-SKU-001-LONG-LABEL").first().click();
-  303 |     const analyticsDrawer = page.locator(".ant-drawer-content").last();
-  304 |     await expect(analyticsDrawer).toBeVisible();
-  305 |     await expect(analyticsDrawer).toHaveCSS("width", "375px");
-  306 |     await assertNoHorizontalOverflow(page, "analytics-drawer/mobile-375");
-  307 |     await capture(page, "escrow-drawer", "mobile-375");
-  308 |     await page.keyboard.press("Escape");
-  309 | 
-  310 |     await page.goto("/order-manager", { waitUntil: "domcontentloaded" });
-  311 |     await openBookingTab(page);
-  312 |     await page.getByRole("button", { name: /Details/i }).first().click();
-  313 |     const bookingDrawer = page.locator(".ant-drawer-content").last();
-  314 |     await expect(bookingDrawer).toBeVisible();
-  315 |     await expect(bookingDrawer).toHaveCSS("width", "375px");
-  316 |     await assertNoHorizontalOverflow(page, "booking-drawer/mobile-375");
-  317 |     await capture(page, "booking-drawer", "mobile-375");
-  318 |   });
+  281 |       for (const domain of DOMAIN_PAGES) {
+  282 |         await gotoDomain(page, domain);
+  283 |         await assertNoHorizontalOverflow(page, `${domain.name}/${viewport.name}`);
+  284 |         await capture(page, domain.name, viewport.name);
+  285 |       }
+  286 | 
+> 287 |       expect(failures).toEqual([]);
+      |                        ^ Error: expect(received).toEqual(expected) // deep equality
+  288 |     });
+  289 |   }
+  290 | 
+  291 |   test("notification badge and dropdown fit mobile header", async ({ page }) => {
+  292 |     await setupApi(page, "loaded");
+  293 |     await page.setViewportSize({ width: 375, height: 667 });
+  294 |     await page.goto("/", { waitUntil: "domcontentloaded" });
+  295 |     const bell = page.getByRole("button", { name: /Notifications/ });
+  296 |     await expect(bell).toBeVisible();
+  297 |     const box = await bell.boundingBox();
+  298 |     expect(box).not.toBeNull();
+  299 |     expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(375);
+  300 |     await bell.click();
+  301 |     const dropdown = page.getByTestId("notification-dropdown");
+  302 |     await expect(dropdown).toBeVisible();
+  303 |     await assertNoHorizontalOverflow(page, "notification-dropdown/mobile-375");
+  304 |     await capture(page, "notification-dropdown", "mobile-375");
+  305 |   });
+  306 | 
+  307 |   test("drawers fit mobile viewport and scroll internally", async ({ page }) => {
+  308 |     await setupApi(page, "loaded");
+  309 |     await page.setViewportSize({ width: 375, height: 667 });
+  310 | 
+  311 |     await page.goto("/report/shopee", { waitUntil: "domcontentloaded" });
+  312 |     await page.getByText("DUMMY-SKU-001-LONG-LABEL").first().click();
+  313 |     const analyticsDrawer = page.locator(".ant-drawer-content").last();
+  314 |     await expect(analyticsDrawer).toBeVisible();
+  315 |     await expect(analyticsDrawer).toHaveCSS("width", "375px");
+  316 |     await assertNoHorizontalOverflow(page, "analytics-drawer/mobile-375");
+  317 |     await capture(page, "escrow-drawer", "mobile-375");
+  318 |     await page.keyboard.press("Escape");
   319 | 
-  320 |   test("empty, loading, error, and partial-success states are distinct", async ({ page }) => {
-  321 |     await page.setViewportSize({ width: 375, height: 667 });
-  322 | 
-  323 |     await setupApi(page, "empty");
-  324 |     await page.goto("/report/tiktok", { waitUntil: "domcontentloaded" });
-  325 |     await expect(page.getByText(/No TikTok reconciliation data/i)).toBeVisible();
-  326 |     await capture(page, "states-empty", "mobile-375");
-  327 | 
-  328 |     const loadingPage = await page.context().newPage();
-  329 |     await setupApi(loadingPage, "loading");
-  330 |     await loadingPage.setViewportSize({ width: 375, height: 667 });
-  331 |     await loadingPage.goto("/settings?tab=platforms", { waitUntil: "domcontentloaded" });
-  332 |     await expect(loadingPage.locator(".ant-spin").first()).toBeVisible();
+  320 |     await page.goto("/order-manager", { waitUntil: "domcontentloaded" });
+  321 |     await openBookingTab(page);
+  322 |     await page.getByRole("button", { name: /Details/i }).first().click();
+  323 |     const bookingDrawer = page.locator(".ant-drawer-content").last();
+  324 |     await expect(bookingDrawer).toBeVisible();
+  325 |     await expect(bookingDrawer).toHaveCSS("width", "375px");
+  326 |     await assertNoHorizontalOverflow(page, "booking-drawer/mobile-375");
+  327 |     await capture(page, "booking-drawer", "mobile-375");
+  328 |   });
+  329 | 
+  330 |   test("empty, loading, error, and partial-success states are distinct", async ({ page }) => {
+  331 |     await page.setViewportSize({ width: 375, height: 667 });
+  332 | 
+  333 |     await setupApi(page, "empty");
+  334 |     await page.goto("/report/tiktok", { waitUntil: "domcontentloaded" });
+  335 |     await expect(page.getByText(/No TikTok reconciliation data/i)).toBeVisible();
+  336 |     await capture(page, "states-empty", "mobile-375");
+  337 | 
+  338 |     const loadingPage = await page.context().newPage();
+  339 |     await setupApi(loadingPage, "loading");
+  340 |     await loadingPage.setViewportSize({ width: 375, height: 667 });
+  341 |     await loadingPage.goto("/settings?tab=platforms", { waitUntil: "domcontentloaded" });
+  342 |     await expect(loadingPage.locator(".ant-spin").first()).toBeVisible();
+  343 |     await capture(loadingPage, "states-loading", "mobile-375");
+  344 |     await loadingPage.close();
+  345 | 
+  346 |     const errorPage = await page.context().newPage();
+  347 |     await setupApi(errorPage, "error");
+  348 |     await errorPage.setViewportSize({ width: 375, height: 667 });
+  349 |     await errorPage.goto("/order-manager", { waitUntil: "domcontentloaded" });
+  350 |     await openBookingTab(errorPage);
+  351 |     await expect(errorPage.getByText(/Unable to sync booking orders/i)).toBeVisible();
+  352 |     await capture(errorPage, "states-error", "mobile-375");
+  353 |     await errorPage.close();
+  354 | 
+  355 |     const loadedPage = await page.context().newPage();
+  356 |     await setupApi(loadedPage, "loaded");
+  357 |     await loadedPage.setViewportSize({ width: 375, height: 667 });
+  358 |     await loadedPage.goto("/report/shopee", { waitUntil: "domcontentloaded" });
+  359 |     await expect(loadedPage.getByText(/PARTIAL_SUCCESS|Partial/i).first()).toBeVisible();
+  360 |     await capture(loadedPage, "states-partial-success", "mobile-375");
+  361 |     await loadedPage.close();
+  362 |   });
+  363 | 
+  364 |   test("mobile controls remain reachable across reports and credential UI", async ({ page }) => {
+  365 |     await setupApi(page, "loaded");
+  366 |     await page.setViewportSize({ width: 375, height: 667 });
+  367 |     for (const reportPath of ["/report/shopee", "/report/tiktok"]) {
+  368 |       await page.goto(reportPath, { waitUntil: "domcontentloaded" });
+  369 |       await expect(page.getByRole("button", { name: /Sync|Force Sync/i }).first()).toBeVisible();
+  370 |       await expect(page.getByRole("button", { name: /Export CSV/i }).first()).toBeVisible();
+  371 |       await assertNoHorizontalOverflow(page, `${reportPath}/controls/mobile-375`);
+  372 |     }
+  373 |     await page.goto("/settings?tab=platforms", { waitUntil: "domcontentloaded" });
+  374 |     await expect(page.getByText(/Store Connections/i)).toBeVisible();
+  375 |     await expect(page.getByRole("button", { name: /Reconnect|Connect|History/i }).first()).toBeVisible();
+  376 |     await assertNoHorizontalOverflow(page, "credential-controls/mobile-375");
+  377 |   });
+  378 | 
+  379 |   test("developer panel exposes all five tabs without overflow", async ({ page }) => {
+  380 |     await setupApi(page, "loaded");
+  381 |     await page.setViewportSize({ width: 375, height: 667 });
+  382 |     await page.goto("/developer", { waitUntil: "domcontentloaded" });
+  383 |     for (const label of ["Overview", "Tenants", "Users", "System", "Settings"]) {
+  384 |       await expect(page.getByRole("tab", { name: label })).toBeVisible();
+  385 |     }
+  386 |     await assertNoHorizontalOverflow(page, "developer-tabs/mobile-375");
+  387 |   });
 ```

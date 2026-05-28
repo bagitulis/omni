@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +13,6 @@ import (
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/oauth"
-	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -291,7 +289,7 @@ func (h *OAuthHandler) ensureStoreWriteAllowed(c *gin.Context, state *models.OAu
 	return nil
 }
 
-func (h *OAuthHandler) credentialRepo(c *gin.Context) *repositories.CredentialRepository {
+func (h *OAuthHandler) credentialRepo(_ *gin.Context) *repositories.CredentialRepository {
 	return repositories.NewCredentialRepository(h.db)
 }
 
@@ -362,65 +360,4 @@ func (h *OAuthHandler) GetOAuthLogs(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": logs})
-}
-
-func isSupportedOAuthPlatform(platform string) bool {
-	return platform == models.PlatformShopee || platform == models.PlatformLazada || platform == models.PlatformTiktok
-}
-
-func sanitizeRedirectPath(path string) string {
-	if path == "" {
-		return "/settings"
-	}
-	if !strings.HasPrefix(path, "/") || strings.HasPrefix(path, "//") {
-		return "/settings"
-	}
-	if !isAllowedOAuthRedirectPath(path) {
-		return "/settings"
-	}
-	return path
-}
-
-func isAllowedOAuthRedirectPath(path string) bool {
-	switch path {
-	case "/settings", "/settings/platforms":
-		return true
-	default:
-		return false
-	}
-}
-
-func oauthCallbackStatusCode(status string) int {
-	switch status {
-	case "no_session":
-		return http.StatusUnauthorized
-	case "tenant_mismatch", "user_mismatch":
-		return http.StatusForbidden
-	case "expired_state", "expired", "replayed_state", "invalid_state", "invalid_attempt", "wrong_platform", "wrong_scope", "invalid_redirect":
-		return http.StatusBadRequest
-	default:
-		return http.StatusBadRequest
-	}
-}
-
-func stateMatchesClaims(state *models.OAuthState, claims oauth.StateClaims) bool {
-	return state.TenantID == claims.TenantID && state.Platform == claims.Platform && state.AttemptID == claims.AttemptID && state.Intent == claims.Intent && state.StoreID == claims.StoreID && state.CSRFNonce == claims.CSRFNonce && state.ExpiresAt.Unix() == claims.ExpiresAt
-}
-
-func sanitizeOAuthError(err error) string {
-	if err == nil {
-		return "failed"
-	}
-	return sanitizeOAuthErrorText(err.Error())
-}
-
-func sanitizeOAuthErrorText(value string) string {
-	safe := strings.ToLower(strings.TrimSpace(value))
-	safe = strings.ReplaceAll(safe, " ", "_")
-	allowed := map[string]bool{"success": true, "no_session": true, "tenant_mismatch": true, "user_mismatch": true, "invalid_state": true, "invalid_redirect": true, "expired_state": true, "expired": true, "replayed": true, "replayed_state": true, "wrong_platform": true, "wrong_scope": true, "invalid_attempt": true, "duplicate_store": true, "store_mismatch": true, "invalid_platform": true, "failed": true}
-	if allowed[safe] {
-		return safe
-	}
-	log.Warn().Str("oauth_error_code", "redacted").Msg("OAuth callback failed")
-	return "failed"
 }

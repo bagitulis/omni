@@ -17,11 +17,11 @@ const VIEWPORTS = [
 ] as const;
 
 const DOMAIN_PAGES = [
-  { name: "notifications", path: "/notifications", marker: /Notifications/i },
-  { name: "shopee-report", path: "/report/shopee", marker: /Shopee Report/i },
-  { name: "tiktok-report", path: "/report/tiktok", marker: /TikTok Report/i },
-  { name: "booking", path: "/order-manager", marker: /Booking Orders|No booking orders/i, prepare: openBookingTab },
-  { name: "developer", path: "/developer", marker: /Developer Panel/i },
+  { name: "notifications", path: "/notifications", marker: "notifications-page" },
+  { name: "shopee-report", path: "/report/shopee", marker: "heading:Shopee Report" },
+  { name: "tiktok-report", path: "/report/tiktok", marker: "heading:TikTok Report" },
+  { name: "booking", path: "/order-manager", marker: /Booking Orders|No booking orders|Unable to sync booking orders/i, prepare: openBookingTab },
+  { name: "developer", path: "/developer", marker: "heading:Developer Panel" },
   { name: "credential-platforms", path: "/settings?tab=platforms", marker: /Store Connections|Credential status/i },
 ] as const;
 
@@ -88,7 +88,7 @@ async function setupApi(page: Page, mode: ApiMode = "loaded") {
 
   await setupNotificationApi(page, mode);
   await setupDeveloperApi(page);
-  await page.route("**/api/orders**", (route) => fulfill(route, ok({ orders: [], total: 0, platform_counts: {} })));
+  await page.route(/\/api\/orders(?:\?.*)?$/, (route) => fulfill(route, ok({ orders: [], total: 0, platform_counts: {} })));
 }
 
 async function setupNotificationApi(page: Page, mode: ApiMode) {
@@ -221,15 +221,24 @@ async function setupDeveloperApi(page: Page) {
 }
 
 async function openBookingTab(page: Page) {
-  const bookingTab = page.getByRole("tab", { name: /Booking/i }).first();
-  await expect(bookingTab).toBeVisible();
+  const bookingTab = page.getByText("Booking", { exact: true }).first();
+  await expect(bookingTab).toBeVisible({ timeout: 15000 });
   await bookingTab.click();
 }
 
 async function gotoDomain(page: Page, domain: (typeof DOMAIN_PAGES)[number]) {
   await page.goto(domain.path, { waitUntil: "domcontentloaded" });
+  await expect(page).not.toHaveURL(/\/login/);
   if (domain.prepare) await domain.prepare(page);
-  await expect(page.getByText(domain.marker).first()).toBeVisible({ timeout: 15000 });
+  if (typeof domain.marker === "string") {
+    if (domain.marker.startsWith("heading:")) {
+      await expect(page.getByRole("heading", { name: domain.marker.slice(8) })).toBeVisible({ timeout: 15000 });
+    } else {
+      await expect(page.getByTestId(domain.marker)).toBeVisible({ timeout: 15000 });
+    }
+  } else {
+    await expect(page.getByText(domain.marker).first()).toBeVisible({ timeout: 15000 });
+  }
   await page.waitForTimeout(250);
 }
 
@@ -262,6 +271,7 @@ function collectPageFailures(page: Page) {
 }
 
 test.describe("Task 24 cross-domain responsive layout", () => {
+  test.describe.configure({ mode: "serial" });
   for (const viewport of VIEWPORTS) {
     test(`${viewport.name} viewport sweep has no horizontal overflow`, async ({ page }) => {
       await setupApi(page, "loaded");

@@ -158,54 +158,6 @@ func (s *CredentialService) loadCanonicalCredentials(ctx context.Context, db *go
 	return state, nil
 }
 
-func (s *CredentialService) loadGlobalCredentials(db *gorm.DB, platform string, creds *PlatformCredentials) error {
-	var configs []models.GlobalConfig
-	if err := db.Where("platform = ?", platform).Find(&configs).Error; err != nil {
-		return fmt.Errorf("query global config: %w", err)
-	}
-
-	for _, cfg := range configs {
-		// Match Node.js keys (camelCase)
-		switch cfg.ConfigKey {
-		case "partnerId":
-			fmt.Sscanf(cfg.ConfigValue, "%d", &creds.PartnerID)
-		case "partnerKey":
-			creds.PartnerKey = cfg.ConfigValue
-		case "appKey":
-			creds.AppKey = cfg.ConfigValue
-		case "appSecret":
-			creds.AppSecret = cfg.ConfigValue
-		case "isProduction":
-			creds.IsProduction = cfg.ConfigValue == "true"
-		}
-	}
-
-	return nil
-}
-
-// loadTenantCredentials loads credentials from tenant.db PlatformConfig table (key-value format)
-func (s *CredentialService) loadTenantCredentials(ctx context.Context, db *gorm.DB, platform string, creds *PlatformCredentials) error {
-	// Use the new TenantPlatformConfigRepository
-	tenantRepo := repositories.NewTenantPlatformConfigRepository(db)
-
-	tokenInfo, err := tenantRepo.GetTokenInfo(ctx, platform)
-	if err != nil {
-		return err
-	}
-	if tokenInfo == nil {
-		return nil // No tenant config yet
-	}
-
-	creds.ShopID = tokenInfo.ShopID
-	creds.AccessToken = tokenInfo.AccessToken
-	creds.RefreshToken = tokenInfo.RefreshToken
-	creds.ShopCipher = tokenInfo.ShopCipherOfSeller
-	creds.Region = tokenInfo.Region
-	creds.TokenExpiry = tokenInfo.TokenExpiry
-
-	return nil
-}
-
 // refreshAndReload refreshes the token for a platform and reloads credentials
 func (s *CredentialService) refreshAndReload(ctx context.Context, tenantDB *gorm.DB, tenantID, platform string, creds *PlatformCredentials) error {
 	key := credentialRefreshKey(tenantID, platform, creds.StoreIdentifier)

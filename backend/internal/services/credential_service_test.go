@@ -138,13 +138,11 @@ func TestPlatformCredentials_TokenExpiry(t *testing.T) {
 func TestCredentialService_ConcurrentRefreshSingleflight(t *testing.T) {
 	svc := NewCredentialService("/test/path")
 	var refreshCalls atomic.Int32
-	started := make(chan struct{})
-	release := make(chan struct{})
+	start := make(chan struct{})
 	svc.refreshTokenFn = func(ctx context.Context, tenantID, platform string) error {
 		refreshCalls.Add(1)
-		close(started)
 		select {
-		case <-release:
+		case <-time.After(100 * time.Millisecond):
 			return nil
 		case <-ctx.Done():
 			return ctx.Err()
@@ -166,11 +164,11 @@ func TestCredentialService_ConcurrentRefreshSingleflight(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			<-start
 			errs <- svc.refreshAndReload(ctx, nil, "tenant-a", "shopee", creds)
 		}()
 	}
-	<-started
-	close(release)
+	close(start)
 	wg.Wait()
 	close(errs)
 	for err := range errs {
