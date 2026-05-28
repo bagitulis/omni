@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Report job lifecycle tests (Task 12)**: Added 43 tests covering job cancellation, deduplication, tenant isolation, timezone boundaries, and idempotency across `jobs` and `analytics` packages. Tests use SQLite in-memory DB with blocking fakes for context cancellation verification. Includes QueueManager lifecycle (pending→running→completed/failed/cancelled), zombie recovery, payload validation, and Shopee/TikTok sync dedup behavior.
 ### Changed
 - **Dead route registrations removed (Task 15)**: Deleted `RegisterInventoryRoutes` (extended_routes.go) and `RegisterLazadaOrderRoutes` (additional_routes.go). Both were defined but never called in main.go. Inventory endpoints are served by `RegisterInventorySimpleRoutes`; Lazada order endpoints are served by inline platform routes in main.go. Cleaned up unused imports and stale comments.
 - **Zombie column cleanup retired (Task 18)**: Formally retired the disabled `CleanZombieColumns` calls in `migration.go` (system and tenant). Replaced ambiguous commented-out code with retirement documentation explaining why GORM AutoMigrate's additive-only behavior is intentional. Implementation in `migration_cleanup.go` kept as reference with re-enable requirements documented.
