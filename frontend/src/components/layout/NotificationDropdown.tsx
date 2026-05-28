@@ -1,17 +1,18 @@
-import { useState, useMemo } from "react";
-import { Button, Empty, Segmented, Skeleton, Typography, theme, Tooltip } from "antd";
-import { useNavigate } from "react-router-dom";
 import {
   CheckOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
-import { useNotifications } from "@/contexts/NotificationContext";
+import { Button, Empty, Segmented, Skeleton, Tooltip, Typography } from "antd";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { Notification } from "@/api/notifications";
+import { useNotifications } from "@/contexts/NotificationContext";
 import {
   formatRelativeTime,
-  parseNotificationMessage,
-  NotificationStats,
   getNotificationTypeConfig,
+  NotificationMetadata,
+  NotificationStats,
+  parseNotificationMessage,
 } from "./NotificationHelpers";
 import "./notifications.css";
 
@@ -28,7 +29,6 @@ interface NotificationDropdownProps {
  * Uses real-time database-backed NotificationContext.
  */
 export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
-  const { token } = theme.useToken();
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabKey>("all");
 
@@ -62,7 +62,7 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   };
 
   return (
-      <div className="notification-dropdown" data-testid="notification-dropdown">
+      <section className="notification-dropdown" data-testid="notification-dropdown" aria-label="Notifications">
         {/* Header */}
         <div className="notification-dropdown__header">
           <Text strong className="notification-dropdown__title">
@@ -97,71 +97,70 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
 
         {/* List */}
         <div className="notification-dropdown__list">
-          {loading && visible.length === 0 ? (
+          {loading ? (
             <div className="notification-dropdown__state">
-              <Skeleton active avatar paragraph={{ rows: 3 }} />
+              <Skeleton active avatar paragraph={{ rows: 2 }} />
             </div>
           ) : visible.length === 0 ? (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={
-                tab === "unread"
-                  ? "No unread notifications"
-                  : "No notifications yet"
-              }
+              description="No notifications"
               className="notification-dropdown__state"
             />
           ) : (
             visible.map((item) => {
-              const cfg = getNotificationTypeConfig(item.type, token);
+              const cfg = getNotificationTypeConfig(item.type);
               const parsed = parseNotificationMessage(item.message);
 
               return (
-                <button
+                <div
                   key={item.id}
-                  type="button"
                   className={`notification-item ${item.read ? "notification-item--read" : "notification-item--unread"}`}
-                  onClick={() => handleItemClick(item)}
                 >
-                  <div className="notification-item__icon" style={{ color: cfg.color }}>
-                    {cfg.icon}
-                  </div>
-
-                  <div className="notification-item__body">
-                    <div className="notification-item__header">
-                      <Text strong={!item.read} ellipsis className="notification-item__title">
-                        {item.title}
-                      </Text>
-                      <Tooltip title="Delete">
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<DeleteOutlined />}
-                          onClick={(e) => { e.stopPropagation(); deleteNotification(item.id); }}
-                          className="notification-item__delete"
-                        />
-                      </Tooltip>
+                  <button type="button" className="notification-item__content" onClick={() => handleItemClick(item)}>
+                    <div className="notification-item__icon" data-notification-type={cfg.type}>
+                      {cfg.icon}
                     </div>
 
-                    {parsed.summary && (
-                      <Text type="secondary" className="notification-item__message">
-                        {parsed.summary}
+                    <div className="notification-item__body">
+                      <div className="notification-item__header">
+                        <Text strong={!item.read} ellipsis={{ tooltip: item.title }} className="notification-item__title">
+                          {item.title}
+                        </Text>
+                      </div>
+
+                      {parsed.summary && (
+                        <Text type="secondary" className="notification-item__message">
+                          {parsed.summary}
+                        </Text>
+                      )}
+
+                      {parsed.stats && (
+                        <NotificationStats stats={parsed.stats} failed={item.type === "error"} platforms={parsed.platforms} />
+                      )}
+
+                      <NotificationMetadata metadata={item.metadata} />
+
+                      <Text type="secondary" className="notification-item__time">
+                        {formatRelativeTime(item.created_at)}
                       </Text>
-                    )}
+                    </div>
+                  </button>
 
-                    {parsed.stats && (
-                      <NotificationStats stats={parsed.stats} failed={item.type === "error"} platforms={parsed.platforms} />
-                    )}
-
-                    <Text type="secondary" className="notification-item__time">
-                      {formatRelativeTime(item.created_at)}
-                    </Text>
-                  </div>
+                  <Tooltip title="Delete">
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<DeleteOutlined />}
+                      onClick={() => deleteNotification(item.id)}
+                      className="notification-item__delete"
+                    />
+                  </Tooltip>
 
                   {!item.read && (
                     <div className="notification-item__unread-dot" />
                   )}
-                </button>
+                </div>
               );
             })
           )}
@@ -176,6 +175,6 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
             View All
           </Button>
         </div>
-      </div>
+      </section>
   );
 }

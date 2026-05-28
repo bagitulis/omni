@@ -1,7 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { CheckCircleOutlined, CloseCircleOutlined, ExclamationCircleOutlined, InfoCircleOutlined } from "@ant-design/icons";
-import { Tag, theme, Typography } from "antd";
-import type { AliasToken } from "antd/es/theme/internal";
+import { Descriptions, Tag, Typography } from "antd";
 import type { BulkOperationMetadata } from "@/types/notificationMetadata";
 import "./notifications.css";
 
@@ -19,19 +18,65 @@ export interface ParsedMessage {
   failedItems?: Array<{ sku: string; platform: string; error: string; request_id?: string }>;
 }
 
-export function getNotificationTypeConfig(type: string, token: AliasToken) {
+export type NotificationType = "success" | "error" | "warning" | "info";
+
+const notificationTypes: readonly NotificationType[] = ["success", "error", "warning", "info"];
+
+export function normalizeNotificationType(type?: string | null): NotificationType {
+  if (!type) return "info";
+  return notificationTypes.includes(type as NotificationType)
+    ? (type as NotificationType)
+    : "info";
+}
+
+export function getNotificationTypeConfig(type?: string | null) {
   const configs = {
-    success: { color: token.colorSuccess, icon: <CheckCircleOutlined />, label: "Success" },
-    error: { color: token.colorError, icon: <CloseCircleOutlined />, label: "Error" },
-    warning: { color: token.colorWarning, icon: <ExclamationCircleOutlined />, label: "Warning" },
-    info: { color: token.colorInfo, icon: <InfoCircleOutlined />, label: "Info" },
+    success: { type: "success", icon: <CheckCircleOutlined />, label: "Success" },
+    error: { type: "error", icon: <CloseCircleOutlined />, label: "Error" },
+    warning: { type: "warning", icon: <ExclamationCircleOutlined />, label: "Warning" },
+    info: { type: "info", icon: <InfoCircleOutlined />, label: "Info" },
   };
 
-  return configs[type as keyof typeof configs] ?? {
-    color: token.colorTextSecondary,
-    icon: <InfoCircleOutlined />,
-    label: "Notification",
-  };
+  return configs[normalizeNotificationType(type)];
+}
+
+export function parseNotificationMetadata(metadata?: string | null): Record<string, string> {
+  if (!metadata?.trim()) return {};
+
+  try {
+    const parsed: unknown = JSON.parse(metadata);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
+
+    return Object.entries(parsed).reduce<Record<string, string>>((acc, [key, value]) => {
+      if (value === null || value === undefined || value === "") return acc;
+      acc[key] = typeof value === "object" ? JSON.stringify(value) : String(value);
+      return acc;
+    }, {});
+  } catch {
+    return {};
+  }
+}
+
+export function NotificationMetadata({ metadata }: { metadata?: string | null }) {
+  const details = parseNotificationMetadata(metadata);
+  const entries = Object.entries(details);
+  if (entries.length === 0) return null;
+
+  return (
+    <Descriptions size="small" column={1} className="notification-metadata">
+      {entries.map(([key, value]) => (
+        <Descriptions.Item key={key} label={formatMetadataKey(key)}>
+          <Text className="notification-metadata__value" ellipsis={{ tooltip: value }}>
+            {value}
+          </Text>
+        </Descriptions.Item>
+      ))}
+    </Descriptions>
+  );
+}
+
+function formatMetadataKey(key: string): string {
+  return key.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 export function formatRelativeTime(dateStr: string): string {
@@ -134,34 +179,20 @@ export function NotificationStats({
   failed: boolean;
   platforms?: Record<string, { succeeded: number; failed: number }>;
 }) {
-  const { token } = theme.useToken();
-  const chipStyle = (isError?: boolean): React.CSSProperties => ({
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 4,
-    padding: "1px 6px",
-    borderRadius: 6,
-    fontSize: 11,
-    fontWeight: 600,
-    background: isError ? token.colorErrorBg : token.colorSuccessBg,
-    color: isError ? token.colorError : token.colorSuccess,
-    border: `1px solid ${isError ? token.colorErrorBorder : token.colorSuccessBorder}`,
-  });
-
   return (
     <>
       <div className="notification-helper-stats">
         {stats.total !== undefined && (
-          <span style={chipStyle()}>Total: {stats.total}</span>
+          <Tag color="success" className="notification-helper-stat-tag">Total: {stats.total}</Tag>
         )}
         {stats.processed !== undefined && (
-          <span style={chipStyle()}>Done: {stats.processed}</span>
+          <Tag color="success" className="notification-helper-stat-tag">Done: {stats.processed}</Tag>
         )}
         {stats.failed !== undefined && stats.failed > 0 && (
-          <span style={chipStyle(true)}>Failed: {stats.failed}</span>
+          <Tag color="error" className="notification-helper-stat-tag">Failed: {stats.failed}</Tag>
         )}
         {failed && stats.failed === 0 && (
-          <span style={chipStyle()}>0 Failed</span>
+          <Tag color="success" className="notification-helper-stat-tag">0 Failed</Tag>
         )}
       </div>
       {platforms && <PlatformBreakdown platforms={platforms} />}

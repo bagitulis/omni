@@ -1,0 +1,82 @@
+.notification-page {
+  width: min(100%, 960px);
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.notification-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.notification-page__title { margin: 0; }
+
+.notification-page__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.notification-page__category-filter { width: 156px; }
+
+.notification-page__state {
+  padding: 60px 0;
+  text-align: center;
+}
+
+.notification-page__collapse { background: var(--color-bg-container); }
+
+.notification-page-item__label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+
+.notification-page-item__icon { flex-shrink: 0; font-size: 18px; }
+.notification-page-item__main { min-width: 0; flex: 1; }
+
+.notification-page-item__title,
+.notification-page-item__stats,
+.notification-page-item__time {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notification-page-item__title,
+.notification-page-item__stats { display: block; max-width: 100%; }
+.notification-page-item__stats,
+.notification-page-item__time,
+.notification-detail__meta { font-size: 12px; }
+.notification-page-item__time { flex-shrink: 0; max-width: 96px; }
+
+.notification-page-item__unread-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--primary-color);
+}
+
+.notification-detail { padding: 8px 0; }
+.notification-detail__section { margin-bottom: 12px; }
+.notification-detail__heading { display: block; margin-bottom: 6px; }
+.notification-detail__meta { margin-top: 8px; }
+.notification-detail__summary { display: block; overflow-wrap: anywhere; }
+.notification-detail__table .ant-table-cell { overflow-wrap: anywhere; }
+
+@media (max-width: 575px) {
+  .notification-page { padding: 16px 12px; }
+  .notification-page__header { align-items: flex-start; flex-direction: column; }
+  .notification-page__filters,
+  .notification-page__filters .ant-segmented,
+  .notification-page__category-filter { width: 100%; }
+  .notification-page-item__label { align-items: flex-start; gap: 8px; }
+  .notification-page-item__time { display: none; }
+}

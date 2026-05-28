@@ -1,29 +1,32 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
-import {
-  Typography,
-  Segmented,
-  Select,
-  Empty,
-  Spin,
-  Collapse,
-  Table,
-  Tag,
-  theme,
-  Button,
-  Alert,
-} from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
-import { useSearchParams } from "react-router-dom";
-import { useNotifications } from "@/contexts/NotificationContext";
 import type { Notification } from "@/api/notifications";
 import {
-  formatRelativeTime,
-  parseNotificationMessage,
-  PlatformBreakdown,
-  getNotificationTypeConfig,
+  NotificationMetadata,
   NotificationStats,
+  PlatformBreakdown,
+  formatRelativeTime,
+  getNotificationTypeConfig,
+  parseNotificationMessage,
 } from "@/components/layout/NotificationHelpers";
 import "@/components/layout/notifications.css";
+import { useNotifications } from "@/contexts/NotificationContext";
+import {
+  Alert,
+  Button,
+  Col,
+  Collapse,
+  Empty,
+  Row,
+  Segmented,
+  Select,
+  Skeleton,
+  Table,
+  Tag,
+  Typography,
+} from "antd";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import "./NotificationsPage.css";
 
 const { Title, Text } = Typography;
 
@@ -31,7 +34,6 @@ type StatusFilter = "all" | "unread" | "read";
 type CategoryFilter = "all" | "sync" | "order" | "product" | "inventory" | "system";
 
 export default function NotificationsPage() {
-  const { token } = theme.useToken();
   const { notifications, loading, markAsRead, fetchNotifications } =
     useNotifications();
 
@@ -39,6 +41,7 @@ export default function NotificationsPage() {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [hasFetchFailed, setHasFetchFailed] = useState(false);
   const [searchParams] = useSearchParams();
 
   // Auto-expand notification from query param (e.g., /notifications?expand=123)
@@ -70,8 +73,10 @@ export default function NotificationsPage() {
     setRefreshError(null);
     try {
       await fetchNotifications();
+      setHasFetchFailed(false);
     } catch {
       setRefreshError("Unable to refresh notifications. Try again in a moment.");
+      setHasFetchFailed(true);
     }
   }, [fetchNotifications]);
 
@@ -94,12 +99,12 @@ export default function NotificationsPage() {
 
   const collapseItems = filtered.map((notif) => {
     const parsed = parseNotificationMessage(notif.message);
-    const typeConfig = getNotificationTypeConfig(notif.type, token);
+    const typeConfig = getNotificationTypeConfig(notif.type);
     return {
       key: String(notif.id),
       label: (
         <div className="notification-page-item__label">
-          <span className="notification-page-item__icon" style={{ color: typeConfig.color }}>{typeConfig.icon}</span>
+          <span className="notification-page-item__icon" data-notification-type={typeConfig.type}>{typeConfig.icon}</span>
           <div className="notification-page-item__main">
             <Text strong={!notif.read} ellipsis className="notification-page-item__title">
               {notif.title}
@@ -125,6 +130,8 @@ export default function NotificationsPage() {
       ),
     };
   });
+
+  const showErrorState = hasFetchFailed && !loading && filtered.length === 0;
 
   return (
     <div className="notification-page" data-testid="notifications-page">
@@ -167,22 +174,39 @@ export default function NotificationsPage() {
         />
       </div>
 
-      {/* List */}
-      {loading && filtered.length === 0 ? (
-        <div className="notification-page__state">
-          <Spin />
-        </div>
-      ) : filtered.length === 0 ? (
-        <Empty description="No notifications match the current filters" className="notification-page__state" />
-      ) : (
-        <Collapse
-          accordion={false}
-          activeKey={expandedKeys}
-          onChange={handleExpand}
-          items={collapseItems}
-          className="notification-page__collapse"
-        />
-      )}
+      <Row gutter={[16, 16]}>
+        <Col xs={24} md={24} lg={18} xl={16}>
+          {/* List */}
+          {showErrorState ? (
+            <Alert
+              type="error"
+              showIcon
+              message="Unable to load notifications"
+              description="Refresh the list to try again."
+              action={
+                <Button size="small" danger onClick={handleRefresh} loading={loading}>
+                  Retry
+                </Button>
+              }
+              className="notification-page__state"
+            />
+          ) : loading ? (
+            <div className="notification-page__state">
+              <Skeleton active paragraph={{ rows: 5 }} />
+            </div>
+          ) : filtered.length === 0 ? (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No notifications" className="notification-page__state" />
+          ) : (
+            <Collapse
+              accordion={false}
+              activeKey={expandedKeys}
+              onChange={handleExpand}
+              items={collapseItems}
+              className="notification-page__collapse"
+            />
+          )}
+        </Col>
+      </Row>
     </div>
   );
 }
@@ -195,8 +219,6 @@ function NotificationDetail({
   notif: Notification;
   parsed: ReturnType<typeof parseNotificationMessage>;
 }) {
-  const { token } = theme.useToken();
-
   return (
     <div className="notification-detail">
       {/* Platform breakdown */}
@@ -212,7 +234,7 @@ function NotificationDetail({
       {/* Failed items */}
       {parsed.failedItems && parsed.failedItems.length > 0 && (
         <div className="notification-detail__section">
-          <Text strong className="notification-detail__heading" style={{ color: token.colorError }}>
+          <Text strong type="danger" className="notification-detail__heading">
             Failed Items ({parsed.failedItems.length})
           </Text>
           <Table
@@ -238,6 +260,8 @@ function NotificationDetail({
       {parsed.stats && (
         <NotificationStats stats={parsed.stats} failed={notif.type === "error"} platforms={parsed.platforms} />
       )}
+
+      <NotificationMetadata metadata={notif.metadata} />
 
       {/* Metadata */}
       <div className="notification-detail__meta">

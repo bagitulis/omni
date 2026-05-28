@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { Badge, Button, Popover, theme } from "antd";
 import { BellOutlined } from "@ant-design/icons";
-import { NotificationDropdown } from "./NotificationDropdown";
+import { Badge, Button, Popover } from "antd";
+import { useState } from "react";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { NotificationDropdown } from "./NotificationDropdown";
 import "./notifications.css";
 
 /**
@@ -16,12 +16,11 @@ import "./notifications.css";
  * AntD's built-in Popover handles click-outside correctly on its own.
  */
 export function NotificationBell() {
-  const { token } = theme.useToken();
   const { unreadCount, notifications } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const errorCount = notifications.filter((n) => !n.read && n.type === "error").length;
   const warningCount = notifications.filter((n) => !n.read && n.type === "warning").length;
-  const severityColor = errorCount > 0 ? token.colorError : warningCount > 0 ? token.colorWarning : token.colorInfo;
+  const hasErrors = errorCount > 0;
   const labelParts = [`Notifications`, `${unreadCount} unread`];
   if (errorCount > 0) labelParts.push(`${errorCount} error`);
   if (warningCount > 0) labelParts.push(`${warningCount} warning`);
@@ -37,7 +36,12 @@ export function NotificationBell() {
       overlayClassName="notification-popover"
     >
       <span className="notification-bell-wrapper">
-        <Badge count={unreadCount} size="small" offset={[-4, 4]} color={severityColor}>
+        <Badge
+          count={unreadCount}
+          dot={hasErrors}
+          status={hasErrors ? "error" : "default"}
+          size="small"
+        >
           <Button
             type="text"
             icon={<BellOutlined />}
@@ -45,13 +49,6 @@ export function NotificationBell() {
             className="notification-bell-button"
           />
         </Badge>
-        {(errorCount > 0 || warningCount > 0) && (
-          <span
-            className="notification-severity-dot"
-            style={{ backgroundColor: severityColor }}
-            aria-hidden="true"
-          />
-        )}
       </span>
     </Popover>
   );

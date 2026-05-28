@@ -1,0 +1,20 @@
+.sync-results-drawer__loading,
+.sync-results-drawer__success {
+  padding: 40px 0;
+  text-align: center;
+}
+
+.sync-results-drawer__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.sync-results-drawer__section-title {
+  margin-bottom: 8px;
+}
+
+.sync-results-drawer__table {
+  margin-bottom: 20px;
+}

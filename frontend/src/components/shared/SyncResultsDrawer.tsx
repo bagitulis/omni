@@ -5,7 +5,7 @@ import type {
   BulkOperationMetadata,
   FailedItemDetail,
 } from "@/types/notificationMetadata";
-import "@/components/layout/notifications.css";
+import "./SyncResultsDrawer.css";
 
 const { Text, Title } = Typography;
 

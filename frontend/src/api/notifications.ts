@@ -6,6 +6,7 @@ export interface Notification {
   category: string;
   title: string;
   message: string;
+  metadata?: string;
   read: boolean;
   action_url?: string;
   created_at: string;
