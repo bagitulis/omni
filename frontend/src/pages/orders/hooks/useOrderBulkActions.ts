@@ -13,6 +13,7 @@ import {
 	buildBulkPrintOptions,
 	shouldPromptTikTokPackingSlip,
 } from "./printOptions";
+import { logger } from "@/lib/logger";
 
 interface UseOrderBulkActionsProps {
 	selectedRowKeys: React.Key[];

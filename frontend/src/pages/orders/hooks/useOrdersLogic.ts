@@ -10,6 +10,7 @@ import { useOrderSingleActions } from "./useOrderSingleActions";
 import type { OrderDetail, Order } from "@/types/order";
 import type { Dayjs } from "dayjs";
 import { generateOrdersCSV, downloadCSV } from "../utils/csv";
+import { logger } from "@/lib/logger";
 
 const ORDER_MANAGER_VISIBLE_TABS = new Set([
   "booking",

@@ -8,6 +8,7 @@ import {
   Alert,
 } from "antd";
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 
 export interface StockUpdateFormValues {
   sku: string;

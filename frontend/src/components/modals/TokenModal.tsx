@@ -8,6 +8,7 @@ import {
 } from "@/hooks/useTokens";
 import type { PlatformTokenStatus } from "@/api/tokens";
 import type { ColumnsType } from "antd/es/table";
+import { logger } from "@/lib/logger";
 
 interface TokenModalProps {
   open: boolean;

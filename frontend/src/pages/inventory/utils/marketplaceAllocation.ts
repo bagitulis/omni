@@ -1,4 +1,5 @@
 import type { InventoryConfig } from "@/types/inventory";
+import { logger } from "@/lib/logger";
 
 export interface MarketplaceAllocationSettings {
   keyColumn: string;

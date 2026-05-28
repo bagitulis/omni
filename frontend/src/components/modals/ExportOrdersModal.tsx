@@ -13,6 +13,7 @@ import {
 import dayjs, { Dayjs } from "dayjs";
 import { useExportOrders } from "@/hooks/useExports";
 import { ExportOrdersParams } from "@/api/exports";
+import { logger } from "@/lib/logger";
 
 const { RangePicker } = DatePicker;
 const { Text } = Typography;

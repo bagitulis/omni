@@ -13,6 +13,7 @@ import {
 	updateSettings,
 	type WholesaleSettings,
 } from "@/api/wholesale";
+import { logger } from "@/lib/logger";
 
 const DEFAULT_SETTINGS: WholesaleSettings = {
 	admin_fee: 1500,

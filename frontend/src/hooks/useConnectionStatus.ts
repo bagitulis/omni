@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from "react";
 import { useAppStore } from "@/stores/appStore";
 import apiClient from "@/api/client";
+import { logger } from "@/lib/logger";
 
 export function useConnectionStatus() {
   const setConnectionStatus = useAppStore((state) => state.setConnectionStatus);

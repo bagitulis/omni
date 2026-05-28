@@ -7,6 +7,7 @@ import { notificationApi } from '@/api/notifications';
 import type { Notification } from '@/api/notifications';
 import { API_BASE_URL } from '@/lib/constants';
 import { useAuthStore } from '@/stores/authStore';
+import { logger } from "@/lib/logger";
 
 interface NotificationContextType {
   notifications: Notification[];

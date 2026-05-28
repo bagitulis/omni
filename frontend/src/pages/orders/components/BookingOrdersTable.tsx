@@ -20,6 +20,7 @@ import {
   formatMatchStatus,
   getBookingStatusColor,
 } from "../utils/bookingTransforms";
+import { logger } from "@/lib/logger";
 
 interface BookingOrdersTableProps {
   platform: string;

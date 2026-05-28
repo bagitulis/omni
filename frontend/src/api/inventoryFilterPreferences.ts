@@ -1,4 +1,5 @@
 import apiClient from "./client";
+import { logger } from "@/lib/logger";
 
 export interface InventoryFilterPreferences {
   visible_columns: string[];

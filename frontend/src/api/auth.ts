@@ -3,6 +3,7 @@ import api from "./client";
 import { useAuthStore } from "@/stores/authStore";
 import type { ApiResponse } from "./client";
 import type { LoginResponse, User } from "@/types/auth";
+import { logger } from "@/lib/logger";
 
 export interface LoginPayload {
   username?: string;

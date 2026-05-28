@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Alert, Button, Empty, Popconfirm, Typography } from "antd";
 import { batchDeleteBySkus, batchShopeeMpq } from "@/api/wholesale";
 import type { BulkPricingItem } from "../utils/bulkPricingItems";
+import { logger } from "@/lib/logger";
 
 interface ResetPricingTabProps {
 	items: BulkPricingItem[];

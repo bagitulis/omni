@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, Table, Tag, Typography, Flex, Spin, Empty } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import apiClient from "@/api/client";
+import { logger } from "@/lib/logger";
 
 interface TodayOrderItem {
   order_sn: string;

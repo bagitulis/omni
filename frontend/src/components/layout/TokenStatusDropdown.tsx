@@ -16,6 +16,7 @@ import { message } from "@/components/AntStaticApi";
 import { KeyOutlined, ReloadOutlined } from "@ant-design/icons";
 import apiClient from "@/api/client";
 import { PLATFORM_CONFIG } from "./TokenStatusDropdown.types";
+import { logger } from "@/lib/logger";
 import type {
   BackendTokenStatusResponse,
   TokenStatusMap,

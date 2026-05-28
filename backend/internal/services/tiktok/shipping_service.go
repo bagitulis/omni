@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/omni/backend/internal/config"
-	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services"
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
 )
 
@@ -52,41 +51,17 @@ func NewShippingServiceWithFactory(basePath string, factory ClientFactory) *Ship
 
 // defaultGetClient creates TikTok API client with tenant-specific credentials
 func (s *ShippingService) defaultGetClient(ctx context.Context, tenantID string) (TikTokClient, error) {
-	db, err := config.GetTenantDB(tenantID, s.basePath)
+	_ = ctx
+	credService := services.NewCredentialService(s.basePath)
+	creds, err := credService.GetPlatformCredentials(tenantID, "tiktok")
 	if err != nil {
 		return nil, err
 	}
-
-	// Use PlatformCredentialsRepository for key-value based config
-	credRepo := repositories.NewPlatformCredentialsRepository(db)
-	tenantCreds, err := credRepo.GetTiktokCredentials(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if tenantCreds.AccessToken == "" || tenantCreds.ShopCipher == "" {
+	if creds.AccessToken == "" || creds.ShopCipher == "" {
 		return nil, fmt.Errorf("missing TikTok credentials: accessToken or shopCipher not configured")
 	}
-
-	// Use tenant credentials for appKey/appSecret if available, otherwise fall back to global
-	appKey := tenantCreds.AppKey
-	appSecret := tenantCreds.AppSecret
-
-	if appKey == "" || appSecret == "" {
-		systemDB, err := config.GetSystemDB(s.basePath)
-		if err != nil {
-			return nil, err
-		}
-		globalRepo := repositories.NewGlobalConfigRepository(systemDB)
-		globalCreds, err := globalRepo.GetTiktokCredentials(ctx)
-		if err != nil {
-			return nil, err
-		}
-		appKey = globalCreds.AppKey
-		appSecret = globalCreds.AppSecret
-	}
-
-	client := tiktokPkg.NewClient(appKey, appSecret)
-	client.SetCredentials(tenantCreds.AccessToken, tenantCreds.ShopCipher)
+	client := tiktokPkg.NewClient(creds.AppKey, creds.AppSecret)
+	client.SetCredentials(creds.AccessToken, creds.ShopCipher)
 	return client, nil
 }
 

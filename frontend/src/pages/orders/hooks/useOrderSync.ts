@@ -5,6 +5,7 @@ import {
   syncOrdersByCategory,
   syncOrdersToday,
 } from "@/api/orders";
+import { logger } from "@/lib/logger";
 
 export function useOrderSync(
   activeTab: string,

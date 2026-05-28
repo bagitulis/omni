@@ -14,6 +14,7 @@ import IntegrationUrls from "../components/IntegrationUrls";
 import WebhookLogsViewer from "../components/WebhookLogsViewer";
 import OAuthLogsViewer from "../components/OAuthLogsViewer";
 import { message } from "@/components/AntStaticApi";
+import { logger } from "@/lib/logger";
 
 const { Text, Title } = Typography;
 

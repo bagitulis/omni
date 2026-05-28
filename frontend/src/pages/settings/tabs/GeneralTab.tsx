@@ -13,6 +13,7 @@ import { useEffect, useState, useMemo } from "react";
 import { saveGeneralSettings } from "@/api/settings";
 import apiClient from "@/api/client";
 import { message } from "@/components/AntStaticApi";
+import { logger } from "@/lib/logger";
 
 const { Text } = Typography;
 const { useToken } = theme;

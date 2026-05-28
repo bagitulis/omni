@@ -9,6 +9,7 @@ import (
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services"
 	lazadaService "github.com/omni/backend/internal/services/lazada"
 	lazadaPkg "github.com/omni/backend/pkg/lazada"
 	"github.com/rs/zerolog/log"
@@ -47,10 +48,8 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 		return
 	}
 
-	// Get platform credentials from tenant's key-value storage
-	// NOTE: PostgreSQL uses schema isolation, NOT tenant_id column
-	credRepo := repositories.NewPlatformCredentialsRepository(db)
-	tenantCreds, err := credRepo.GetLazadaCredentials(c.Request.Context())
+	credService := services.NewCredentialService(h.basePath)
+	creds, err := credService.GetPlatformCredentials(tenantID, "lazada")
 	if err != nil {
 		log.Error().
 			Str("handler", "lazada_products").
@@ -60,42 +59,19 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.Error("Lazada not configured for this tenant"))
 		return
 	}
-	if tenantCreds.AccessToken == "" {
+	if creds.AccessToken == "" {
 		c.JSON(http.StatusBadRequest, response.Error("Lazada shop not connected - missing accessToken"))
 		return
 	}
 
-	// Use tenant credentials for appKey/appSecret if available, otherwise fall back to global
-	appKey := tenantCreds.AppKey
-	appSecret := tenantCreds.AppSecret
-	region := tenantCreds.Region
+	region := creds.Region
 	if region == "" {
 		region = "ID" // Default to Indonesia
 	}
 
-	if appKey == "" || appSecret == "" {
-		// Fall back to global credentials
-		systemDB, err := config.GetSystemDB(h.basePath)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, response.Error("System database failed"))
-			return
-		}
-		globalRepo := repositories.NewGlobalConfigRepository(systemDB)
-		globalCreds, err := globalRepo.GetLazadaCredentials(c.Request.Context())
-		if err != nil || globalCreds.AppKey == "" {
-			c.JSON(http.StatusBadRequest, response.Error("Lazada credentials not configured"))
-			return
-		}
-		appKey = globalCreds.AppKey
-		appSecret = globalCreds.AppSecret
-		if region == "" {
-			region = globalCreds.Region
-		}
-	}
-
 	// Create API client
-	client := lazadaPkg.NewClient(appKey, appSecret, region)
-	client.SetAccessToken(tenantCreds.AccessToken)
+	client := lazadaPkg.NewClient(creds.AppKey, creds.AppSecret, region)
+	client.SetAccessToken(creds.AccessToken)
 
 	// Use SyncService to fetch and save products with tenantID
 	syncService := lazadaService.NewSyncServiceWithTenant(client, db, tenantID)

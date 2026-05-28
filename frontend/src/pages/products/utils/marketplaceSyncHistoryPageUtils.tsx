@@ -8,6 +8,7 @@ import type {
   SyncOperation,
   SyncResultStatus,
 } from "@/types/shared";
+import { logger } from "@/lib/logger";
 
 type JsonObject = Record<string, unknown>;
 

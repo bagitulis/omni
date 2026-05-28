@@ -7,6 +7,7 @@ import {
   buildTiktokMpqProducts,
   type BatchUpdateItemInput,
 } from "./wholesaleHelpers";
+import { logger } from "@/lib/logger";
 
 // Re-export types so existing consumers don't break
 export type {

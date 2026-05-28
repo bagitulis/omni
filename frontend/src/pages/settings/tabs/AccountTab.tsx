@@ -15,6 +15,7 @@ import apiClient from "@/api/client";
 import { updateProfile, changePassword } from "@/api/settings";
 import { STORAGE_KEYS } from "@/lib/constants";
 import { message } from "@/components/AntStaticApi";
+import { logger } from "@/lib/logger";
 
 const { Text, Title } = Typography;
 const { useToken } = theme;

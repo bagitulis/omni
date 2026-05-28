@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/omni/backend/internal/models"
-	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services"
 	lazadaService "github.com/omni/backend/internal/services/lazada"
 	shopeeService "github.com/omni/backend/internal/services/shopee"
 	tiktokService "github.com/omni/backend/internal/services/tiktok"
@@ -60,11 +60,11 @@ func (s *Service) SyncSelectedProducts(ctx context.Context, tenantID string, pro
 	}
 
 	result := &SyncSelectedResult{}
-	credRepo := repositories.NewPlatformCredentialsRepository(s.db)
-	globalConfigRepo := repositories.NewGlobalConfigRepository(systemDB)
+	_ = systemDB
+	credService := services.NewCredentialService(s.basePath)
 
 	for platform, pLinks := range platformLinks {
-		count, err := s.syncPlatformItems(ctx, tenantID, platform, pLinks, credRepo, globalConfigRepo)
+		count, err := s.syncPlatformItems(ctx, tenantID, platform, pLinks, credService)
 		if err != nil {
 			result.Failed += len(pLinks)
 			result.Details = append(result.Details, fmt.Sprintf("%s: %v", platform, err))
@@ -83,16 +83,15 @@ func (s *Service) syncPlatformItems(
 	ctx context.Context,
 	tenantID, platform string,
 	links []models.MasterProductPlatformLink,
-	credRepo *repositories.PlatformCredentialsRepository,
-	globalConfigRepo *repositories.GlobalConfigRepository,
+	credService *services.CredentialService,
 ) (int, error) {
 	switch platform {
 	case "shopee":
-		return s.syncShopeeItems(ctx, tenantID, links, credRepo, globalConfigRepo)
+		return s.syncShopeeItems(ctx, tenantID, links, credService)
 	case "tiktok":
-		return s.syncTiktokItems(ctx, tenantID, links, credRepo, globalConfigRepo)
+		return s.syncTiktokItems(ctx, tenantID, links, credService)
 	case "lazada":
-		return s.syncLazadaItems(ctx, tenantID, links, credRepo, globalConfigRepo)
+		return s.syncLazadaItems(ctx, tenantID, links, credService)
 	default:
 		return 0, fmt.Errorf("unknown platform: %s", platform)
 	}
@@ -101,20 +100,16 @@ func (s *Service) syncPlatformItems(
 func (s *Service) syncShopeeItems(
 	ctx context.Context, tenantID string,
 	links []models.MasterProductPlatformLink,
-	credRepo *repositories.PlatformCredentialsRepository,
-	globalConfigRepo *repositories.GlobalConfigRepository,
+	credService *services.CredentialService,
 ) (int, error) {
-	tenantCreds, err := credRepo.GetShopeeCredentials(ctx)
+	_ = ctx
+	creds, err := credService.GetPlatformCredentials(tenantID, "shopee")
 	if err != nil {
 		return 0, fmt.Errorf("no shopee credentials: %w", err)
 	}
-	globalCreds, err := globalConfigRepo.GetShopeeCredentials(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("no shopee global config: %w", err)
-	}
 
-	client := shopeePkg.NewClient(globalCreds.PartnerID, globalCreds.PartnerKey, true)
-	client.SetShopCredentials(tenantCreds.ShopIDInt, tenantCreds.AccessToken)
+	client := shopeePkg.NewClient(creds.PartnerID, creds.PartnerKey, creds.IsProduction)
+	client.SetShopCredentials(creds.ShopID, creds.AccessToken)
 
 	// Collect unique item IDs
 	itemIDs := collectShopeeItemIDs(links)
@@ -130,26 +125,15 @@ func (s *Service) syncShopeeItems(
 func (s *Service) syncTiktokItems(
 	ctx context.Context, tenantID string,
 	links []models.MasterProductPlatformLink,
-	credRepo *repositories.PlatformCredentialsRepository,
-	globalConfigRepo *repositories.GlobalConfigRepository,
+	credService *services.CredentialService,
 ) (int, error) {
-	tenantCreds, err := credRepo.GetTiktokCredentials(ctx)
+	_ = ctx
+	creds, err := credService.GetPlatformCredentials(tenantID, "tiktok")
 	if err != nil {
 		return 0, fmt.Errorf("no tiktok credentials: %w", err)
 	}
-	appKey := tenantCreds.AppKey
-	appSecret := tenantCreds.AppSecret
-	if appKey == "" || appSecret == "" {
-		globalCreds, err := globalConfigRepo.GetTiktokCredentials(ctx)
-		if err != nil {
-			return 0, fmt.Errorf("no tiktok global config: %w", err)
-		}
-		appKey = globalCreds.AppKey
-		appSecret = globalCreds.AppSecret
-	}
-
-	client := tiktokPkg.NewClient(appKey, appSecret)
-	client.SetCredentials(tenantCreds.AccessToken, tenantCreds.ShopCipher)
+	client := tiktokPkg.NewClient(creds.AppKey, creds.AppSecret)
+	client.SetCredentials(creds.AccessToken, creds.ShopCipher)
 
 	svc := tiktokService.NewSyncServiceWithTenant(client, s.db, tenantID)
 	productIDs := collectPlatformProductIDs(links)
@@ -159,20 +143,20 @@ func (s *Service) syncTiktokItems(
 func (s *Service) syncLazadaItems(
 	ctx context.Context, tenantID string,
 	links []models.MasterProductPlatformLink,
-	credRepo *repositories.PlatformCredentialsRepository,
-	globalConfigRepo *repositories.GlobalConfigRepository,
+	credService *services.CredentialService,
 ) (int, error) {
-	tenantCreds, err := credRepo.GetLazadaCredentials(ctx)
+	_ = ctx
+	creds, err := credService.GetPlatformCredentials(tenantID, "lazada")
 	if err != nil {
 		return 0, fmt.Errorf("no lazada credentials: %w", err)
 	}
-	globalCreds, err := globalConfigRepo.GetLazadaCredentials(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("no lazada global config: %w", err)
+	region := creds.Region
+	if region == "" {
+		region = "ID"
 	}
 
-	client := lazadaPkg.NewClient(globalCreds.AppKey, globalCreds.AppSecret, "ID")
-	client.SetAccessToken(tenantCreds.AccessToken)
+	client := lazadaPkg.NewClient(creds.AppKey, creds.AppSecret, region)
+	client.SetAccessToken(creds.AccessToken)
 
 	svc := lazadaService.NewSyncServiceWithTenant(client, s.db, tenantID)
 	itemIDs := collectLazadaItemIDs(links)

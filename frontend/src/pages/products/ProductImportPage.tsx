@@ -27,6 +27,7 @@ import {
 } from "@/hooks/useProductImport";
 import { downloadImportTemplate } from "@/api/products";
 import "./ProductImportPage.css";
+import { logger } from "@/lib/logger";
 
 export default function ProductImportPage() {
   const { token } = theme.useToken();

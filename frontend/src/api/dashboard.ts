@@ -7,6 +7,7 @@ import {
   ShippingFeeData,
 } from "../types/dashboard";
 import { Order } from "../types/order";
+import { logger } from "@/lib/logger";
 
 /**
  * Fetch dashboard summary data from analytics endpoint

@@ -20,6 +20,7 @@ import {
   type PreviewRow,
   type TierKey,
 } from "../utils/mpqTabHelpers";
+import { logger } from "@/lib/logger";
 
 interface MpqTabProps {
   items: BulkPricingItem[];

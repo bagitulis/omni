@@ -17,6 +17,7 @@ import {
   getLockedOrders,
   type LockedOrderItem,
 } from "@/api/lockedOrders";
+import { logger } from "@/lib/logger";
 
 /**
  * LockedOrdersPanel — displays locked (pending) orders aggregated by SKU.

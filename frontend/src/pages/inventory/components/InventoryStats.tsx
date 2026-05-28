@@ -10,6 +10,7 @@ import {
   CloseCircleOutlined,
 } from "@ant-design/icons";
 import type { InventoryStats as InventoryStatsType } from "@/types/inventory";
+import { logger } from "@/lib/logger";
 
 interface Props {
   stats?: InventoryStatsType;
