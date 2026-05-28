@@ -11,7 +11,7 @@ import (
 
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
-	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services"
 	lazadaService "github.com/omni/backend/internal/services/lazada"
 	masterProductService "github.com/omni/backend/internal/services/master_product"
 	shopeeService "github.com/omni/backend/internal/services/shopee"
@@ -161,55 +161,42 @@ func syncProductsHandler(ctx context.Context, tenantID string, cfg *models.AutoF
 
 // syncPlatformProducts syncs products for a single platform using existing sync services.
 func syncPlatformProducts(ctx context.Context, platform, tenantID string, db, systemDB *gorm.DB, basePath string) (int, error) {
-	credRepo := repositories.NewPlatformCredentialsRepository(db)
-	globalConfigRepo := repositories.NewGlobalConfigRepository(systemDB)
+	_ = systemDB
+	credService := services.NewCredentialService(basePath)
 
 	switch platform {
 	case "shopee":
-		tenantCreds, err := credRepo.GetShopeeCredentials(ctx)
+		_ = ctx
+		creds, err := credService.GetPlatformCredentials(tenantID, "shopee")
 		if err != nil {
 			return 0, fmt.Errorf("no shopee credentials: %w", err)
 		}
-		globalCreds, err := globalConfigRepo.GetShopeeCredentials(ctx)
-		if err != nil {
-			return 0, fmt.Errorf("no shopee global config: %w", err)
-		}
-		client := shopeePkg.NewClient(globalCreds.PartnerID, globalCreds.PartnerKey, true)
-		client.SetShopCredentials(tenantCreds.ShopIDInt, tenantCreds.AccessToken)
+		client := shopeePkg.NewClient(creds.PartnerID, creds.PartnerKey, creds.IsProduction)
+		client.SetShopCredentials(creds.ShopID, creds.AccessToken)
 		svc := shopeeService.NewProductSyncService(client, db, tenantID)
 		return svc.SyncProducts(ctx)
 
 	case "tiktok":
-		tenantCreds, err := credRepo.GetTiktokCredentials(ctx)
+		creds, err := credService.GetPlatformCredentials(tenantID, "tiktok")
 		if err != nil {
 			return 0, fmt.Errorf("no tiktok credentials: %w", err)
 		}
-		appKey := tenantCreds.AppKey
-		appSecret := tenantCreds.AppSecret
-		if appKey == "" || appSecret == "" {
-			globalCreds, err := globalConfigRepo.GetTiktokCredentials(ctx)
-			if err != nil {
-				return 0, fmt.Errorf("no tiktok global config: %w", err)
-			}
-			appKey = globalCreds.AppKey
-			appSecret = globalCreds.AppSecret
-		}
-		client := tiktokPkg.NewClient(appKey, appSecret)
-		client.SetCredentials(tenantCreds.AccessToken, tenantCreds.ShopCipher)
+		client := tiktokPkg.NewClient(creds.AppKey, creds.AppSecret)
+		client.SetCredentials(creds.AccessToken, creds.ShopCipher)
 		svc := tiktokService.NewSyncServiceWithTenant(client, db, tenantID)
 		return svc.SyncProducts(ctx)
 
 	case "lazada":
-		tenantCreds, err := credRepo.GetLazadaCredentials(ctx)
+		creds, err := credService.GetPlatformCredentials(tenantID, "lazada")
 		if err != nil {
 			return 0, fmt.Errorf("no lazada credentials: %w", err)
 		}
-		globalCreds, err := globalConfigRepo.GetLazadaCredentials(ctx)
-		if err != nil {
-			return 0, fmt.Errorf("no lazada global config: %w", err)
+		region := creds.Region
+		if region == "" {
+			region = "ID"
 		}
-		client := lazadaPkg.NewClient(globalCreds.AppKey, globalCreds.AppSecret, "ID")
-		client.SetAccessToken(tenantCreds.AccessToken)
+		client := lazadaPkg.NewClient(creds.AppKey, creds.AppSecret, region)
+		client.SetAccessToken(creds.AccessToken)
 		svc := lazadaService.NewSyncServiceWithTenant(client, db, tenantID)
 		return svc.SyncProducts(ctx)
 
@@ -317,4 +304,3 @@ func getTenantSyncMutex(tenantID string) *sync.Mutex {
 	val, _ := syncProductsMu.LoadOrStore(tenantID, &sync.Mutex{})
 	return val.(*sync.Mutex)
 }
-
