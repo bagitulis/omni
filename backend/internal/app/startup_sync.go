@@ -14,9 +14,14 @@ import (
 // Waits 30 seconds to allow other services to initialize, then triggers
 // sync_products_inventory for each tenant that hasn't synced recently.
 // This ensures data is fresh after server downtime (server not 24/7).
-func runStartupSync(systemDB *gorm.DB, _ interface{}, basePath string) {
-	// Wait for services to fully initialize
-	time.Sleep(30 * time.Second)
+func runStartupSync(ctx context.Context, systemDB *gorm.DB, _ interface{}, basePath string) {
+	// Wait for services to fully initialize (cancellable)
+	select {
+	case <-time.After(30 * time.Second):
+	case <-ctx.Done():
+		log.Info().Msg("[StartupSync] Cancelled during initialization wait")
+		return
+	}
 
 	// Clear stale is_running flags from previous crash
 	clearStaleRunningFlags(systemDB, basePath)
@@ -39,6 +44,13 @@ func runStartupSync(systemDB *gorm.DB, _ interface{}, basePath string) {
 	skipped := 0
 
 	for _, schema := range schemas {
+		// Check for shutdown before processing next tenant
+		select {
+		case <-ctx.Done():
+			log.Info().Msg("[StartupSync] Shutdown signal received, stopping sync")
+			return
+		default:
+		}
 		if len(schema) <= 7 {
 			continue
 		}
@@ -57,13 +69,13 @@ func runStartupSync(systemDB *gorm.DB, _ interface{}, basePath string) {
 		}
 
 		// Trigger sync for this tenant
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		syncCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 		cfg := &models.AutoFunctionConfig{
 			Name:            "sync_products_inventory",
 			IntervalMinutes: 60,
 		}
 
-		result, syncErr := syncProductsHandler(ctx, tenantID, cfg)
+		result, syncErr := syncProductsHandler(syncCtx, tenantID, cfg)
 		cancel()
 
 		if syncErr != nil {
@@ -73,8 +85,13 @@ func runStartupSync(systemDB *gorm.DB, _ interface{}, basePath string) {
 			synced++
 		}
 
-		// Small delay between tenants to avoid overwhelming platform APIs
-		time.Sleep(5 * time.Second)
+		// Small delay between tenants to avoid overwhelming platform APIs (cancellable)
+		select {
+		case <-time.After(5 * time.Second):
+		case <-ctx.Done():
+			log.Info().Msg("[StartupSync] Shutdown signal received during inter-tenant delay")
+			return
+		}
 	}
 
 	log.Info().

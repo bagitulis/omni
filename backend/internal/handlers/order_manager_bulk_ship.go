@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sync"
@@ -37,11 +38,13 @@ type BulkShipSummary struct {
 
 // BulkShipOrders handles POST /api/orders/bulk-ship
 func (h *OrderManagerHandler) BulkShipOrders(c *gin.Context) {
+	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, response.Error("Missing tenant_id"))
 		return
 	}
+	userID := middleware.GetUserID(c)
 
 	var req request.BulkShipRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -64,11 +67,11 @@ func (h *OrderManagerHandler) BulkShipOrders(c *gin.Context) {
 
 	switch platform {
 	case "shopee":
-		results = h.bulkShipShopee(tenantID, req.OrderSNs)
+		results = h.bulkShipShopee(ctx, tenantID, userID, req.OrderSNs)
 	case "tiktok":
-		results = h.bulkShipTikTok(tenantID, req.OrderSNs)
+		results = h.bulkShipTikTok(ctx, tenantID, userID, req.OrderSNs)
 	case "lazada":
-		results = h.bulkShipLazada(tenantID, req.OrderSNs)
+		results = h.bulkShipLazada(ctx, tenantID, userID, req.OrderSNs)
 	default:
 		c.JSON(http.StatusBadRequest, response.Error("Unsupported platform: "+platform))
 		return
@@ -77,7 +80,7 @@ func (h *OrderManagerHandler) BulkShipOrders(c *gin.Context) {
 	// Build summary
 	summary := buildBulkSummary(results)
 
-	data := map[string]interface{}{
+	data := map[string]any{
 		"summary": summary,
 		"results": results,
 	}
@@ -95,18 +98,24 @@ func (h *OrderManagerHandler) BulkShipOrders(c *gin.Context) {
 
 // ===== Platform Bulk Shippers =====
 
-func (h *OrderManagerHandler) bulkShipShopee(tenantID string, orderSNs []string) []BulkShipItemResult {
+func (h *OrderManagerHandler) bulkShipShopee(ctx context.Context, tenantID, userID string, orderSNs []string) []BulkShipItemResult {
 	client, err := h.getShopeeClient(tenantID)
 	if err != nil {
 		return allFailed(orderSNs, "Failed to get Shopee client: "+err.Error())
 	}
 
-	return parallelShipOrders(orderSNs, 3, func(orderSN string) BulkShipItemResult {
+	return parallelShipOrders(ctx, orderSNs, 3, func(orderSN string) BulkShipItemResult {
 		result := BulkShipItemResult{OrderSN: orderSN}
+		if cancelled, ok := cancelledBulkShipResult(ctx, orderSN); ok {
+			return cancelled
+		}
 		if err := h.validateOrderStatus(tenantID, orderSN, "shopee"); err != nil {
 			result.Status = "failed"
 			result.Error = err.Error()
 			return result
+		}
+		if cancelled, ok := cancelledBulkShipResult(ctx, orderSN); ok {
+			return cancelled
 		}
 		shipReq := shopeePkg.ShipOrderRequest{OrderSN: orderSN}
 		if _, err := client.ShipOrder(shipReq); err != nil {
@@ -123,28 +132,38 @@ func (h *OrderManagerHandler) bulkShipShopee(tenantID string, orderSNs []string)
 		}
 		result.Status = "shipped"
 		result.Message = "OK"
+		log.Debug().Str("tenant_id", tenantID).Str("user_id", userID).Str("order_sn", orderSN).Msg("[BulkShip/Shopee] Order shipped")
 		return result
 	})
 }
 
-func (h *OrderManagerHandler) bulkShipTikTok(tenantID string, orderSNs []string) []BulkShipItemResult {
+func (h *OrderManagerHandler) bulkShipTikTok(ctx context.Context, tenantID, userID string, orderSNs []string) []BulkShipItemResult {
 	client, err := h.getTikTokClient(tenantID)
 	if err != nil {
 		return allFailed(orderSNs, "Failed to get TikTok client: "+err.Error())
 	}
 
-	return parallelShipOrders(orderSNs, 3, func(orderSN string) BulkShipItemResult {
+	return parallelShipOrders(ctx, orderSNs, 3, func(orderSN string) BulkShipItemResult {
 		result := BulkShipItemResult{OrderSN: orderSN}
+		if cancelled, ok := cancelledBulkShipResult(ctx, orderSN); ok {
+			return cancelled
+		}
 		if err := h.validateOrderStatus(tenantID, orderSN, "tiktok"); err != nil {
 			result.Status = "failed"
 			result.Error = err.Error()
 			return result
+		}
+		if cancelled, ok := cancelledBulkShipResult(ctx, orderSN); ok {
+			return cancelled
 		}
 		pkgID, _, err := client.ResolveOrderToPackageID(orderSN)
 		if err != nil {
 			result.Status = "failed"
 			result.Error = "Failed to resolve package: " + err.Error()
 			return result
+		}
+		if cancelled, ok := cancelledBulkShipResult(ctx, orderSN); ok {
+			return cancelled
 		}
 		shipReq := &tiktokPkg.ShipPackageRequest{HandoverMethod: "PICKUP"}
 		if _, err = client.ArrangeShipment(pkgID, shipReq); err != nil {
@@ -161,11 +180,12 @@ func (h *OrderManagerHandler) bulkShipTikTok(tenantID string, orderSNs []string)
 		}
 		result.Status = "shipped"
 		result.Message = "OK"
+		log.Debug().Str("tenant_id", tenantID).Str("user_id", userID).Str("order_sn", orderSN).Msg("[BulkShip/TikTok] Order shipped")
 		return result
 	})
 }
 
-func (h *OrderManagerHandler) bulkShipLazada(tenantID string, orderSNs []string) []BulkShipItemResult {
+func (h *OrderManagerHandler) bulkShipLazada(ctx context.Context, tenantID, userID string, orderSNs []string) []BulkShipItemResult {
 	client, err := h.getLazadaClient(tenantID)
 	if err != nil {
 		return allFailed(orderSNs, "Failed to get Lazada client: "+err.Error())
@@ -175,12 +195,18 @@ func (h *OrderManagerHandler) bulkShipLazada(tenantID string, orderSNs []string)
 		return allFailed(orderSNs, "DB error: "+err.Error())
 	}
 
-	return parallelShipOrders(orderSNs, 3, func(orderSN string) BulkShipItemResult {
+	return parallelShipOrders(ctx, orderSNs, 3, func(orderSN string) BulkShipItemResult {
 		result := BulkShipItemResult{OrderSN: orderSN}
+		if cancelled, ok := cancelledBulkShipResult(ctx, orderSN); ok {
+			return cancelled
+		}
 		if err := h.validateOrderStatus(tenantID, orderSN, "lazada"); err != nil {
 			result.Status = "failed"
 			result.Error = err.Error()
 			return result
+		}
+		if cancelled, ok := cancelledBulkShipResult(ctx, orderSN); ok {
+			return cancelled
 		}
 		itemIDs, err := fetchLazadaItemIDsFromDB(db, orderSN)
 		if err != nil {
@@ -199,6 +225,9 @@ func (h *OrderManagerHandler) bulkShipLazada(tenantID string, orderSNs []string)
 			provider = "JNE"
 		}
 		if orderInfo.OrderStatus == "pending" {
+			if cancelled, ok := cancelledBulkShipResult(ctx, orderSN); ok {
+				return cancelled
+			}
 			packResp, err := client.SetStatusToPackedByMarketplace(itemIDs, provider, "dropship")
 			if err != nil {
 				result.Status = "failed"
@@ -210,6 +239,9 @@ func (h *OrderManagerHandler) bulkShipLazada(tenantID string, orderSNs []string)
 				result.Error = fmt.Sprintf("Pack failed (code %s): %s", packResp.Code, packResp.Message)
 				return result
 			}
+		}
+		if cancelled, ok := cancelledBulkShipResult(ctx, orderSN); ok {
+			return cancelled
 		}
 		rtsResp, err := client.SetStatusToReadyToShip(itemIDs, provider, "", "dropship")
 		if err != nil {
@@ -231,12 +263,22 @@ func (h *OrderManagerHandler) bulkShipLazada(tenantID string, orderSNs []string)
 		}
 		result.Status = "shipped"
 		result.Message = "OK"
+		log.Debug().Str("tenant_id", tenantID).Str("user_id", userID).Str("order_sn", orderSN).Msg("[BulkShip/Lazada] Order shipped")
 		return result
 	})
 }
 
-// parallelShipOrders executes ship operations in parallel with concurrency limit and per-order timeout.
-func parallelShipOrders(orderSNs []string, maxConcurrency int, shipFn func(string) BulkShipItemResult) []BulkShipItemResult {
+func cancelledBulkShipResult(ctx context.Context, orderSN string) (BulkShipItemResult, bool) {
+	select {
+	case <-ctx.Done():
+		return BulkShipItemResult{OrderSN: orderSN, Status: "cancelled", Error: ctx.Err().Error()}, true
+	default:
+		return BulkShipItemResult{}, false
+	}
+}
+
+// parallelShipOrders executes ship operations in parallel with concurrency limit and request cancellation.
+func parallelShipOrders(ctx context.Context, orderSNs []string, maxConcurrency int, shipFn func(string) BulkShipItemResult) []BulkShipItemResult {
 	results := make([]BulkShipItemResult, len(orderSNs))
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, maxConcurrency)
@@ -245,8 +287,19 @@ func parallelShipOrders(orderSNs []string, maxConcurrency int, shipFn func(strin
 		wg.Add(1)
 		go func(idx int, sn string) {
 			defer wg.Done()
-			sem <- struct{}{}
+			select {
+			case <-ctx.Done():
+				results[idx] = BulkShipItemResult{OrderSN: sn, Status: "cancelled", Error: ctx.Err().Error()}
+				return
+			case sem <- struct{}{}:
+			}
 			defer func() { <-sem }()
+			select {
+			case <-ctx.Done():
+				results[idx] = BulkShipItemResult{OrderSN: sn, Status: "cancelled", Error: ctx.Err().Error()}
+				return
+			default:
+			}
 			results[idx] = shipFn(sn)
 		}(i, orderSN)
 	}

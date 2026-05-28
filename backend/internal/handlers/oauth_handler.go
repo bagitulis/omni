@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -187,15 +188,22 @@ func (h *OAuthHandler) buildPlatformAuthURL(c *gin.Context, platform, state stri
 
 func (h *OAuthHandler) validateCallbackState(c *gin.Context, callbackPlatform, stateValue string) (*models.OAuthState, string, error) {
 	currentTenantID := middleware.GetTenantID(c)
-	if currentTenantID == "" {
+	currentUserID := c.GetString("userID")
+	if currentTenantID == "" || currentUserID == "" {
 		return nil, "no_session", fmt.Errorf("no_session")
 	}
 	claims, err := oauth.ParseSignedState(stateValue)
 	if err != nil {
 		return nil, err.Error(), err
 	}
+	if err := validateStateClaimsForCallback(claims); err != nil {
+		return nil, err.Error(), err
+	}
 	if claims.TenantID != currentTenantID {
 		return nil, "tenant_mismatch", fmt.Errorf("tenant_mismatch")
+	}
+	if claims.UserID != currentUserID {
+		return nil, "user_mismatch", fmt.Errorf("user_mismatch")
 	}
 	if claims.Platform != callbackPlatform {
 		return nil, "wrong_platform", fmt.Errorf("wrong_platform")
@@ -204,8 +212,12 @@ func (h *OAuthHandler) validateCallbackState(c *gin.Context, callbackPlatform, s
 		return nil, "wrong_platform", fmt.Errorf("wrong_platform")
 	}
 	attempt, err := h.credentialRepo(c).GetAttempt(c.Request.Context(), claims.TenantID, claims.Platform, claims.AttemptID)
-	if err != nil || attempt == nil || attempt.CSRFNonce != claims.Nonce {
+	if err != nil || attempt == nil || attempt.CSRFNonce != claims.Nonce || attempt.SignedState != stateValue {
 		return nil, "invalid_attempt", fmt.Errorf("invalid_attempt")
+	}
+	if time.Now().After(attempt.ExpiresAt) {
+		_ = h.markAttemptByClaims(c, claims, oauthAttemptExpired)
+		return nil, "expired_state", fmt.Errorf("expired_state")
 	}
 	if attempt.Status != oauthAttemptPending || attempt.CompletedAt != nil {
 		return nil, "replayed_state", fmt.Errorf("replayed_state")
@@ -227,6 +239,14 @@ func (h *OAuthHandler) validateCallbackState(c *gin.Context, callbackPlatform, s
 	}
 	if attempt.CSRFNonce != state.CSRFNonce || claims.Nonce != state.CSRFNonce {
 		return nil, "invalid_attempt", fmt.Errorf("invalid_attempt")
+	}
+	if state.UserID != currentUserID {
+		_ = h.markAttempt(c, state, oauthAttemptFailed)
+		return nil, "user_mismatch", fmt.Errorf("user_mismatch")
+	}
+	if !redirectURLAllowed(h.frontendURL, state.RedirectURL, claims.RedirectURI) {
+		_ = h.markAttempt(c, state, oauthAttemptFailed)
+		return nil, "invalid_redirect", fmt.Errorf("invalid_redirect")
 	}
 	return state, oauthAttemptCompleted, nil
 }
@@ -280,6 +300,13 @@ func (h *OAuthHandler) markAttempt(c *gin.Context, state *models.OAuthState, sta
 		return nil
 	}
 	return h.credentialRepo(c).CompleteAttempt(c.Request.Context(), state.TenantID, state.Platform, state.AttemptID, status)
+}
+
+func (h *OAuthHandler) markAttemptByClaims(c *gin.Context, claims oauth.StateClaims, status string) error {
+	if status == "" {
+		return nil
+	}
+	return h.credentialRepo(c).CompleteAttempt(c.Request.Context(), claims.TenantID, claims.Platform, claims.AttemptID, status)
 }
 
 func (h *OAuthHandler) logOAuthCallback(c *gin.Context, tenantID, platform, status, code string) {
@@ -348,7 +375,47 @@ func sanitizeRedirectPath(path string) string {
 	if !strings.HasPrefix(path, "/") || strings.HasPrefix(path, "//") {
 		return "/settings"
 	}
+	if !isAllowedOAuthRedirectPath(path) {
+		return "/settings"
+	}
 	return path
+}
+
+func validateStateClaimsForCallback(claims oauth.StateClaims) error {
+	if claims.TenantID == "" || claims.UserID == "" || claims.Platform == "" || claims.Marketplace == "" || claims.AttemptID == "" || claims.Nonce == "" || claims.CSRFNonce == "" || claims.ExpiresAt == 0 {
+		return fmt.Errorf("invalid_state")
+	}
+	if claims.Nonce != claims.CSRFNonce {
+		return fmt.Errorf("invalid_state")
+	}
+	if !isAllowedOAuthRedirectPath(claims.RedirectURI) || claims.RedirectPath != claims.RedirectURI {
+		return fmt.Errorf("invalid_redirect")
+	}
+	return nil
+}
+
+func redirectURLAllowed(frontendURL, redirectURL, redirectPath string) bool {
+	if !isAllowedOAuthRedirectPath(redirectPath) || redirectURL == "" || frontendURL == "" {
+		return false
+	}
+	parsedFrontend, err := url.Parse(frontendURL)
+	if err != nil {
+		return false
+	}
+	parsedRedirect, err := url.Parse(redirectURL)
+	if err != nil {
+		return false
+	}
+	return parsedRedirect.Scheme == parsedFrontend.Scheme && parsedRedirect.Host == parsedFrontend.Host && parsedRedirect.Path == redirectPath
+}
+
+func isAllowedOAuthRedirectPath(path string) bool {
+	switch path {
+	case "/settings", "/settings/platforms", "/settings?tab=platforms":
+		return true
+	default:
+		return false
+	}
 }
 
 func oauthCallbackStatusCode(status string) int {
@@ -357,7 +424,7 @@ func oauthCallbackStatusCode(status string) int {
 		return http.StatusUnauthorized
 	case "tenant_mismatch":
 		return http.StatusForbidden
-	case "expired_state", "expired", "replayed_state", "invalid_state", "invalid_attempt", "wrong_platform", "wrong_scope":
+	case "expired_state", "expired", "replayed_state", "invalid_state", "invalid_attempt", "wrong_platform", "wrong_scope", "user_mismatch", "invalid_redirect":
 		return http.StatusBadRequest
 	default:
 		return http.StatusBadRequest
@@ -378,7 +445,7 @@ func sanitizeOAuthError(err error) string {
 func sanitizeOAuthErrorText(value string) string {
 	safe := strings.ToLower(strings.TrimSpace(value))
 	safe = strings.ReplaceAll(safe, " ", "_")
-	allowed := map[string]bool{"success": true, "no_session": true, "tenant_mismatch": true, "invalid_state": true, "expired_state": true, "expired": true, "replayed": true, "replayed_state": true, "wrong_platform": true, "wrong_scope": true, "invalid_attempt": true, "duplicate_store": true, "store_mismatch": true, "invalid_platform": true, "failed": true}
+	allowed := map[string]bool{"success": true, "no_session": true, "tenant_mismatch": true, "user_mismatch": true, "invalid_state": true, "invalid_redirect": true, "expired_state": true, "expired": true, "replayed": true, "replayed_state": true, "wrong_platform": true, "wrong_scope": true, "invalid_attempt": true, "duplicate_store": true, "store_mismatch": true, "invalid_platform": true, "failed": true}
 	if allowed[safe] {
 		return safe
 	}

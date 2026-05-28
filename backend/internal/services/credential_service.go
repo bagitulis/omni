@@ -10,6 +10,7 @@ import (
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/sync/singleflight"
 	"gorm.io/gorm"
 )
 
@@ -20,6 +21,7 @@ import (
 type CredentialService struct {
 	dbPath       string
 	tokenManager *TokenManager // Optional: enables auto-refresh on expired tokens
+	refreshGroup singleflight.Group
 }
 
 // globalTokenManager is set once at app startup so all CredentialService instances
@@ -46,6 +48,7 @@ type PlatformCredentials struct {
 	Region       string // For Lazada
 	IsProduction bool
 	TokenExpiry  int64 // milliseconds since epoch
+	StoreIdentifier string
 }
 
 // NewCredentialService creates a new credential service
@@ -83,6 +86,10 @@ func (s *CredentialService) GetPlatformCredentials(tenantID, platform string) (*
 		return nil, err
 	}
 	if canonicalState.AppConfigured && canonicalState.StoreConfigured {
+		if err := s.refreshIfExpiring(ctx, tenantDB, tenantID, platform, creds); err != nil {
+			log.Warn().Err(err).Str("platform", platform).
+				Msg("[CredentialService] Auto-refresh failed, returning current credentials")
+		}
 		return creds, nil
 	}
 	if !canonicalState.AppConfigured {
@@ -93,20 +100,18 @@ func (s *CredentialService) GetPlatformCredentials(tenantID, platform string) (*
 	}
 	return nil, fmt.Errorf("canonical credentials incomplete for %s/%s", tenantID, platform)
 
-	// Check token expiry and auto-refresh if needed
+}
+
+func (s *CredentialService) refreshIfExpiring(ctx context.Context, tenantDB *gorm.DB, tenantID, platform string, creds *PlatformCredentials) error {
 	if s.tokenManager != nil && creds.AccessToken != "" && creds.TokenExpiry > 0 {
 		bufferMs := int64(5 * 60 * 1000) // 5 minutes
 		if time.Now().UnixMilli()+bufferMs >= creds.TokenExpiry {
 			log.Info().Str("platform", platform).Str("tenant", tenantID).
 				Msg("[CredentialService] Token expired or expiring soon, auto-refreshing")
-			if err := s.refreshAndReload(ctx, tenantDB, tenantID, platform, creds); err != nil {
-				log.Warn().Err(err).Str("platform", platform).
-					Msg("[CredentialService] Auto-refresh failed, returning stale credentials")
-			}
+			return s.refreshAndReload(ctx, tenantDB, tenantID, platform, creds)
 		}
 	}
-
-	return creds, nil
+	return nil
 }
 
 type canonicalCredentialLoadState struct {
@@ -142,6 +147,7 @@ func (s *CredentialService) loadCanonicalCredentials(ctx context.Context, db *go
 		creds.RefreshToken = conn.RefreshToken
 		creds.ShopCipher = conn.ShopCipher
 		creds.TokenExpiry = conn.TokenExpiry
+		creds.StoreIdentifier = conn.StoreIdentifier
 		if conn.Region != "" {
 			creds.Region = conn.Region
 		}
@@ -201,6 +207,22 @@ func (s *CredentialService) loadTenantCredentials(ctx context.Context, db *gorm.
 
 // refreshAndReload refreshes the token for a platform and reloads credentials
 func (s *CredentialService) refreshAndReload(ctx context.Context, tenantDB *gorm.DB, tenantID, platform string, creds *PlatformCredentials) error {
+	key := credentialRefreshKey(tenantID, platform, creds.StoreIdentifier)
+	_, err, shared := s.refreshGroup.Do(key, func() (interface{}, error) {
+		return nil, s.doRefreshAndReload(ctx, tenantDB, tenantID, platform, creds)
+	})
+	if shared {
+		log.Info().Str("tenant_id", tenantID).Str("platform", platform).Str("store_identifier", creds.StoreIdentifier).
+			Msg("[CredentialService] Deduplicated concurrent credential refresh")
+	}
+	return err
+}
+
+func credentialRefreshKey(tenantID, platform, storeIdentifier string) string {
+	return tenantID + ":" + platform + ":" + storeIdentifier
+}
+
+func (s *CredentialService) doRefreshAndReload(ctx context.Context, tenantDB *gorm.DB, tenantID, platform string, creds *PlatformCredentials) error {
 	var err error
 	switch platform {
 	case models.PlatformShopee:
@@ -216,8 +238,8 @@ func (s *CredentialService) refreshAndReload(ctx context.Context, tenantDB *gorm
 		return fmt.Errorf("refresh %s token: %w", platform, err)
 	}
 
-	// Reload tenant credentials so creds has the fresh token
-	if err := s.loadTenantCredentials(ctx, tenantDB, platform, creds); err != nil {
+	// Reload canonical credentials so creds has the fresh token.
+	if _, err := s.loadCanonicalCredentials(ctx, tenantDB, tenantID, platform, creds); err != nil {
 		return fmt.Errorf("reload credentials after refresh: %w", err)
 	}
 

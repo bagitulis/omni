@@ -4,8 +4,10 @@ import (
 	"context"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/handlers"
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services"
 	"github.com/omni/backend/internal/services/analytics"
 	"github.com/omni/backend/internal/services/autofunction"
@@ -53,10 +55,11 @@ type ExtendedHandlers struct {
 	SpreadsheetRegistryHandler *handlers.SpreadsheetRegistryHandler
 	FilterPreferenceHandler    *handlers.FilterPreferenceHandler
 	WholesaleHandler           *handlers.WholesaleHandler
+	// Notification handler
+	NotificationHandler *handlers.NotificationHandler
 
 	// Monitoring handler
 	MonitoringHandler *handlers.MonitoringHandler
-
 	// API Client factories for platform routes
 	ShopeeAPIClientFactory func(tenantID string) shopeeService.APIClient
 	// Background services
@@ -96,7 +99,7 @@ func (a *App) InitExtendedHandlers(ctx context.Context, db *gorm.DB, googleAuth 
 
 	// Startup sync: run product sync for all tenants after a short delay
 	// This catches up on any changes that happened while server was offline
-	go runStartupSync(db, executor, basePath)
+	go runStartupSync(ctx, db, executor, basePath)
 
 	// Create Shopee API client factory function
 	shopeeAPIClientFactory := createShopeeAPIClientFactory(db, basePath)
@@ -133,10 +136,19 @@ func (a *App) InitExtendedHandlers(ctx context.Context, db *gorm.DB, googleAuth 
 		SpreadsheetRegistryHandler: handlers.NewSpreadsheetRegistryHandler(db),
 		FilterPreferenceHandler:    handlers.NewFilterPreferenceHandler(db),
 		WholesaleHandler:           handlers.NewWholesaleHandler(db),
+		// Notification handler — factory encapsulates tenant DB + service construction
+		NotificationHandler: handlers.NewNotificationHandler(func(c *gin.Context) (*services.NotificationService, error) {
+			db, err := handlers.GetTenantDBFromContext(c, db)
+			if err != nil {
+				return nil, err
+			}
+			tenantID := c.GetString("tenant_id")
+			repo := repositories.NewNotificationRepository(db)
+			return services.NewNotificationService(repo).WithTenant(tenantID), nil
+		}),
 
 		// Monitoring handler
 		MonitoringHandler: handlers.NewMonitoringHandler(db, nil),
-
 		// API Client factories
 		ShopeeAPIClientFactory: shopeeAPIClientFactory,
 

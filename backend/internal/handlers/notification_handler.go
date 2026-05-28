@@ -7,33 +7,27 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services"
 )
 
-// NotificationHandler handles notification API endpoints.
-type NotificationHandler struct{}
+// NotificationServiceFactory creates a tenant-scoped NotificationService from a request context.
+type NotificationServiceFactory func(c *gin.Context) (*services.NotificationService, error)
 
-// NewNotificationHandler creates a new handler.
-func NewNotificationHandler() *NotificationHandler {
-	return &NotificationHandler{}
+// NotificationHandler handles notification API endpoints.
+type NotificationHandler struct {
+	newService NotificationServiceFactory
 }
 
-func (h *NotificationHandler) getService(c *gin.Context) (*services.NotificationService, error) {
-	db, err := GetTenantDB(c)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
-		return nil, err
-	}
-	tenantID := c.GetString("tenant_id")
-	repo := repositories.NewNotificationRepository(db)
-	return services.NewNotificationService(repo).WithTenant(tenantID), nil
+// NewNotificationHandler creates a handler with an injected service factory.
+func NewNotificationHandler(factory NotificationServiceFactory) *NotificationHandler {
+	return &NotificationHandler{newService: factory}
 }
 
 // CreateNotification creates a manual notification (from UI).
 func (h *NotificationHandler) CreateNotification(c *gin.Context) {
-	svc, err := h.getService(c)
+	svc, err := h.newService(c)
 	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -82,14 +76,12 @@ func (h *NotificationHandler) StreamNotifications(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "unauthorized"})
 		return
 	}
-	db, err := GetTenantDB(c)
+	svc, err := h.newService(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
-	repo := repositories.NewNotificationRepository(db)
-	svc := services.NewNotificationService(repo)
 	client := svc.RegisterClient(tenantID)
 	defer svc.UnregisterClient(tenantID, client)
 
@@ -119,8 +111,9 @@ func (h *NotificationHandler) StreamNotifications(c *gin.Context) {
 
 // ListNotifications returns recent notifications.
 func (h *NotificationHandler) ListNotifications(c *gin.Context) {
-	svc, err := h.getService(c)
+	svc, err := h.newService(c)
 	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -139,8 +132,9 @@ func (h *NotificationHandler) ListNotifications(c *gin.Context) {
 
 // GetUnreadCount returns the count of unread notifications.
 func (h *NotificationHandler) GetUnreadCount(c *gin.Context) {
-	svc, err := h.getService(c)
+	svc, err := h.newService(c)
 	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -155,8 +149,9 @@ func (h *NotificationHandler) GetUnreadCount(c *gin.Context) {
 
 // MarkAsRead marks a single notification as read.
 func (h *NotificationHandler) MarkAsRead(c *gin.Context) {
-	svc, err := h.getService(c)
+	svc, err := h.newService(c)
 	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -176,8 +171,9 @@ func (h *NotificationHandler) MarkAsRead(c *gin.Context) {
 
 // MarkAllAsRead marks all notifications as read.
 func (h *NotificationHandler) MarkAllAsRead(c *gin.Context) {
-	svc, err := h.getService(c)
+	svc, err := h.newService(c)
 	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -191,8 +187,9 @@ func (h *NotificationHandler) MarkAllAsRead(c *gin.Context) {
 
 // DeleteNotification deletes a single notification.
 func (h *NotificationHandler) DeleteNotification(c *gin.Context) {
-	svc, err := h.getService(c)
+	svc, err := h.newService(c)
 	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -212,8 +209,9 @@ func (h *NotificationHandler) DeleteNotification(c *gin.Context) {
 
 // DeleteAllNotifications deletes all notifications.
 func (h *NotificationHandler) DeleteAllNotifications(c *gin.Context) {
-	svc, err := h.getService(c)
+	svc, err := h.newService(c)
 	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -227,8 +225,9 @@ func (h *NotificationHandler) DeleteAllNotifications(c *gin.Context) {
 
 // GetSettings returns notification settings.
 func (h *NotificationHandler) GetSettings(c *gin.Context) {
-	svc, err := h.getService(c)
+	svc, err := h.newService(c)
 	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -243,8 +242,9 @@ func (h *NotificationHandler) GetSettings(c *gin.Context) {
 
 // UpdateSettings updates notification settings.
 func (h *NotificationHandler) UpdateSettings(c *gin.Context) {
-	svc, err := h.getService(c)
+	svc, err := h.newService(c)
 	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -267,8 +267,9 @@ func (h *NotificationHandler) UpdateSettings(c *gin.Context) {
 // GetNotificationDetail returns full notification detail including metadata.
 // GET /api/notifications/:id/detail
 func (h *NotificationHandler) GetNotificationDetail(c *gin.Context) {
-	svc, err := h.getService(c)
+	svc, err := h.newService(c)
 	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
