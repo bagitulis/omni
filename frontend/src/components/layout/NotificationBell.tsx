@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Badge, Button, Popover } from "antd";
+import { Badge, Button, Popover, theme } from "antd";
 import { BellOutlined } from "@ant-design/icons";
 import { NotificationDropdown } from "./NotificationDropdown";
 import { useNotifications } from "@/contexts/NotificationContext";
+import "./notifications.css";
 
 /**
  * Bell icon with unread badge. Clicking opens a popover with
@@ -15,9 +16,15 @@ import { useNotifications } from "@/contexts/NotificationContext";
  * AntD's built-in Popover handles click-outside correctly on its own.
  */
 export function NotificationBell() {
+  const { token } = theme.useToken();
   const { unreadCount, notifications } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const errorCount = notifications.filter((n) => !n.read && n.type === "error").length;
+  const warningCount = notifications.filter((n) => !n.read && n.type === "warning").length;
+  const severityColor = errorCount > 0 ? token.colorError : warningCount > 0 ? token.colorWarning : token.colorInfo;
+  const labelParts = [`Notifications`, `${unreadCount} unread`];
+  if (errorCount > 0) labelParts.push(`${errorCount} error`);
+  if (warningCount > 0) labelParts.push(`${warningCount} warning`);
 
   return (
     <Popover
@@ -27,17 +34,25 @@ export function NotificationBell() {
       onOpenChange={(open) => setIsOpen(open)}
       placement="bottomRight"
       arrow={false}
-      overlayInnerStyle={{ padding: 0 }}
-      overlayStyle={{ width: 380 }}
+      overlayClassName="notification-popover"
     >
-      <Badge count={errorCount > 0 ? errorCount : unreadCount} size="small" offset={[-4, 4]} color={errorCount > 0 ? "red" : undefined}>
-        <Button
-          type="text"
-          icon={<BellOutlined />}
-          aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
-          style={{ fontSize: 16 }}
-        />
-      </Badge>
+      <span className="notification-bell-wrapper">
+        <Badge count={unreadCount} size="small" offset={[-4, 4]} color={severityColor}>
+          <Button
+            type="text"
+            icon={<BellOutlined />}
+            aria-label={labelParts.join(", ")}
+            className="notification-bell-button"
+          />
+        </Badge>
+        {(errorCount > 0 || warningCount > 0) && (
+          <span
+            className="notification-severity-dot"
+            style={{ backgroundColor: severityColor }}
+            aria-hidden="true"
+          />
+        )}
+      </span>
     </Popover>
   );
 }

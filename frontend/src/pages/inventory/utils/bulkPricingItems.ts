@@ -13,6 +13,17 @@ export interface BulkPricingExtractionResult {
   skipped_skus: string[];
 }
 
+export interface PriceColumnMap {
+  /** Base price column (e.g. "HARGA") */
+  base?: string;
+  /** Shopee-specific price column (e.g. "HARGA_SHOPEE") */
+  shopee?: string;
+  /** TikTok-specific price column (e.g. "HARGA_TIKTOK") */
+  tiktok?: string;
+  /** Lazada-specific price column (e.g. "HARGA_LAZADA") */
+  lazada?: string;
+}
+
 const PRICE_CANDIDATE_KEYS = [
   "price",
   "Price",
@@ -155,6 +166,7 @@ function extractPlatforms(record: InventoryRecord): SupportedPlatform[] {
 
 export function extractBulkPricingItems(
   records: InventoryRecord[],
+  priceColumns?: PriceColumnMap,
 ): BulkPricingExtractionResult {
   const items: BulkPricingItem[] = [];
   const skippedSkus: string[] = [];
@@ -166,19 +178,52 @@ export function extractBulkPricingItems(
       continue;
     }
 
-    const price = extractPrice(record);
-    if (price === null) {
-      skippedSkus.push(sku);
-      continue;
-    }
+    // Track if ANY platform item was valid for this SKU
+    let hasValidItem = false;
 
     for (const platform of extractPlatforms(record)) {
       const dedupeKey = `${sku}:${platform}`;
       if (dedupe.has(dedupeKey)) {
         continue;
       }
+
+      // 1. Try platform-specific price column from config
+      let price: number | null = null;
+      if (priceColumns) {
+        const platformKey =
+          platform === "shopee"
+            ? priceColumns.shopee
+            : platform === "tiktok"
+              ? priceColumns.tiktok
+              : platform === "lazada"
+                ? priceColumns.lazada
+                : undefined;
+        if (platformKey && platformKey in record.data) {
+          price = parseNumericValue(record.data[platformKey]);
+        }
+
+        // 2. Fall back to base price column
+        if ((price === null || price <= 0) && priceColumns.base && priceColumns.base in record.data) {
+          price = parseNumericValue(record.data[priceColumns.base]);
+        }
+      }
+
+      // 3. Fall back to PRICE_CANDIDATE_KEYS
+      if (price === null || price <= 0) {
+        price = extractPrice(record);
+      }
+
+      if (price === null || price <= 0) {
+        continue;
+      }
+
+      hasValidItem = true;
       dedupe.add(dedupeKey);
       items.push({ sku, price, platform });
+    }
+
+    if (!hasValidItem) {
+      skippedSkus.push(sku);
     }
   }
 

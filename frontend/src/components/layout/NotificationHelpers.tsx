@@ -1,6 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
-import { Tag, theme } from "antd";
+import { CheckCircleOutlined, CloseCircleOutlined, ExclamationCircleOutlined, InfoCircleOutlined } from "@ant-design/icons";
+import { Tag, theme, Typography } from "antd";
+import type { AliasToken } from "antd/es/theme/internal";
 import type { BulkOperationMetadata } from "@/types/notificationMetadata";
+import "./notifications.css";
+
+const { Text } = Typography;
 
 /**
  * Parsed notification message.
@@ -12,6 +17,21 @@ export interface ParsedMessage {
   stats?: { total?: number; processed?: number; failed?: number };
   platforms?: Record<string, { succeeded: number; failed: number }>;
   failedItems?: Array<{ sku: string; platform: string; error: string; request_id?: string }>;
+}
+
+export function getNotificationTypeConfig(type: string, token: AliasToken) {
+  const configs = {
+    success: { color: token.colorSuccess, icon: <CheckCircleOutlined />, label: "Success" },
+    error: { color: token.colorError, icon: <CloseCircleOutlined />, label: "Error" },
+    warning: { color: token.colorWarning, icon: <ExclamationCircleOutlined />, label: "Warning" },
+    info: { color: token.colorInfo, icon: <InfoCircleOutlined />, label: "Info" },
+  };
+
+  return configs[type as keyof typeof configs] ?? {
+    color: token.colorTextSecondary,
+    icon: <InfoCircleOutlined />,
+    label: "Notification",
+  };
 }
 
 export function formatRelativeTime(dateStr: string): string {
@@ -82,20 +102,20 @@ export function PlatformBreakdown({
   if (entries.length === 0) return null;
 
   return (
-    <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+    <div className="notification-helper-platforms">
       {entries.map(([platform, stats]) => (
-        <div key={platform} style={{ display: "flex", gap: 4, alignItems: "center" }}>
-          <span style={{ fontSize: 11, fontWeight: 500, color: "#666" }}>
+        <div key={platform} className="notification-helper-platform">
+          <Text type="secondary" className="notification-helper-platform__name">
             {platform}:
-          </span>
+          </Text>
           {stats.succeeded > 0 && (
-            <Tag color="success" style={{ margin: 0, fontSize: 11 }}>
-              {stats.succeeded}✓
+            <Tag color="success" className="notification-helper-tag">
+              {stats.succeeded} ok
             </Tag>
           )}
           {stats.failed > 0 && (
-            <Tag color="error" style={{ margin: 0, fontSize: 11 }}>
-              {stats.failed}✗
+            <Tag color="error" className="notification-helper-tag">
+              {stats.failed} failed
             </Tag>
           )}
         </div>
@@ -130,7 +150,7 @@ export function NotificationStats({
 
   return (
     <>
-      <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
+      <div className="notification-helper-stats">
         {stats.total !== undefined && (
           <span style={chipStyle()}>Total: {stats.total}</span>
         )}

@@ -115,3 +115,93 @@ describe("extractBulkPricingItems", () => {
     ]);
   });
 });
+
+describe("extractBulkPricingItems with priceColumnMap", () => {
+  it("uses platform-specific column from config", () => {
+    const result = extractBulkPricingItems(
+      [
+        createRecord({
+          key_value: "SKU-X",
+          data: {
+            HARGA: "11100",
+            HARGA_SHOPEE: "12000",
+            HARGA_TIKTOK: "13000",
+          },
+          platform_status: [
+            { platform: "shopee", platform_product_id: "1", status: "synced", stock: 1, price: 11100 },
+            { platform: "tiktok", platform_product_id: "2", status: "synced", stock: 1, price: 11100 },
+          ],
+        }),
+      ],
+      { base: "HARGA", shopee: "HARGA_SHOPEE", tiktok: "HARGA_TIKTOK" },
+    );
+
+    expect(result.skipped_skus).toEqual([]);
+    expect(result.items).toEqual([
+      { sku: "SKU-X", price: 12000, platform: "shopee" },
+      { sku: "SKU-X", price: 13000, platform: "tiktok" },
+    ]);
+  });
+
+  it("falls back to base column when platform column is missing", () => {
+    const result = extractBulkPricingItems(
+      [
+        createRecord({
+          key_value: "SKU-Y",
+          data: { HARGA: "11100" },
+        }),
+      ],
+      { base: "HARGA", shopee: "HARGA_SHOPEE" },
+    );
+
+    expect(result.items).toEqual([
+      { sku: "SKU-Y", price: 11100, platform: "shopee" },
+    ]);
+  });
+
+  it("falls back to PRICE_CANDIDATE_KEYS when no base column match", () => {
+    const result = extractBulkPricingItems(
+      [
+        createRecord({
+          key_value: "SKU-Z",
+          data: { Price: "15000" },
+        }),
+      ],
+      { base: "HARGA", shopee: "HARGA_SHOPEE" },
+    );
+
+    expect(result.items).toEqual([
+      { sku: "SKU-Z", price: 15000, platform: "shopee" },
+    ]);
+  });
+
+  it("works without priceColumns (backward compatible)", () => {
+    const result = extractBulkPricingItems([
+      createRecord({
+        key_value: "SKU-W",
+        data: { HARGA: "11100", Price: "10800" },
+      }),
+    ]);
+
+    // Without priceColumns, PRICE_CANDIDATE_KEYS finds "price" first
+    expect(result.items).toEqual([
+      { sku: "SKU-W", price: 10800, platform: "shopee" },
+    ]);
+  });
+
+  it("falls back when base column value is empty/invalid", () => {
+    const result = extractBulkPricingItems(
+      [
+        createRecord({
+          key_value: "SKU-V",
+          data: { HARGA: "", Price: "99000" },
+        }),
+      ],
+      { base: "HARGA" },
+    );
+
+    expect(result.items).toEqual([
+      { sku: "SKU-V", price: 99000, platform: "shopee" },
+    ]);
+  });
+});

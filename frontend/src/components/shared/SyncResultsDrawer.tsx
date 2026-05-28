@@ -5,6 +5,7 @@ import type {
   BulkOperationMetadata,
   FailedItemDetail,
 } from "@/types/notificationMetadata";
+import "@/components/layout/notifications.css";
 
 const { Text, Title } = Typography;
 
@@ -24,7 +25,9 @@ export const SyncResultsDrawer: FC<SyncResultsDrawerProps> = ({
   if (!results) {
     return (
       <Drawer title="Sync Results" placement="right" width={480} open={open} onClose={onClose}>
-        <Spin style={{ display: "block", margin: "60px auto" }} />
+        <div className="sync-results-drawer__loading">
+          <Spin />
+        </div>
       </Drawer>
     );
   }
@@ -37,24 +40,20 @@ export const SyncResultsDrawer: FC<SyncResultsDrawerProps> = ({
       title: "Platform",
       dataIndex: "platform",
       key: "platform",
-      render: (v: string) => (
-        <Text strong style={{ textTransform: "capitalize" as const }}>
-          {v}
-        </Text>
-      ),
+      render: (v: string) => <Text strong>{v}</Text>,
     },
     {
       title: "Success",
       dataIndex: "succeeded",
       key: "succeeded",
-      render: (v: number) => <Tag color="success">{v} ✓</Tag>,
+      render: (v: number) => <Tag color="success">{v} ok</Tag>,
     },
     {
       title: "Failed",
       dataIndex: "failed",
       key: "failed",
       render: (v: number) =>
-        v > 0 ? <Tag color="error">{v} ✗</Tag> : <Tag>{v}</Tag>,
+        v > 0 ? <Tag color="error">{v} failed</Tag> : <Tag>{v}</Tag>,
     },
   ];
 
@@ -87,10 +86,10 @@ export const SyncResultsDrawer: FC<SyncResultsDrawerProps> = ({
       width={480}
       open={open}
       onClose={onClose}
-      styles={{ body: { padding: "16px 24px" } }}
+      styles={{ body: { padding: token.paddingMD } }}
     >
       {/* Summary */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+      <div className="sync-results-drawer__summary">
         <Badge
           count={results.succeeded}
           showZero
@@ -99,7 +98,6 @@ export const SyncResultsDrawer: FC<SyncResultsDrawerProps> = ({
           <Tag
             icon={<CheckCircleOutlined />}
             color="success"
-            style={{ fontSize: 14, padding: "4px 12px" }}
           >
             Succeeded
           </Tag>
@@ -117,7 +115,6 @@ export const SyncResultsDrawer: FC<SyncResultsDrawerProps> = ({
           <Tag
             icon={<CloseCircleOutlined />}
             color={results.failed > 0 ? "error" : "default"}
-            style={{ fontSize: 14, padding: "4px 12px" }}
           >
             Failed
           </Tag>
@@ -127,7 +124,7 @@ export const SyncResultsDrawer: FC<SyncResultsDrawerProps> = ({
       {/* Per-Platform Table */}
       {platformData.length > 0 && (
         <>
-          <Title level={5} style={{ marginBottom: 8 }}>
+          <Title level={5} className="sync-results-drawer__section-title">
             Per Platform
           </Title>
           <Table
@@ -135,7 +132,7 @@ export const SyncResultsDrawer: FC<SyncResultsDrawerProps> = ({
             dataSource={platformData}
             pagination={false}
             size="small"
-            style={{ marginBottom: 20 }}
+            className="sync-results-drawer__table"
           />
         </>
       )}
@@ -143,7 +140,7 @@ export const SyncResultsDrawer: FC<SyncResultsDrawerProps> = ({
       {/* Failed Items */}
       {failedItems.length > 0 && (
         <>
-          <Title level={5} style={{ marginBottom: 8, color: token.colorError }}>
+          <Title level={5} className="sync-results-drawer__section-title" style={{ color: token.colorError }}>
             Failed Items ({failedItems.length})
           </Title>
           <Table<FailedItemDetail & { key: number }>
@@ -161,7 +158,7 @@ export const SyncResultsDrawer: FC<SyncResultsDrawerProps> = ({
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description="All items synced successfully!"
-          style={{ marginTop: 40 }}
+          className="sync-results-drawer__success"
         />
       )}
     </Drawer>

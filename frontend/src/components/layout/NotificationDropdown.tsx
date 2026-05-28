@@ -1,21 +1,19 @@
 import { useState, useMemo } from "react";
-import { Button, Empty, Segmented, Typography, theme, Tooltip } from "antd";
+import { Button, Empty, Segmented, Skeleton, Typography, theme, Tooltip } from "antd";
 import { useNavigate } from "react-router-dom";
 import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  ExclamationCircleOutlined,
-  InfoCircleOutlined,
   CheckOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
 import { useNotifications } from "@/contexts/NotificationContext";
-import { Notification } from "@/api/notifications";
+import type { Notification } from "@/api/notifications";
 import {
   formatRelativeTime,
   parseNotificationMessage,
   NotificationStats,
+  getNotificationTypeConfig,
 } from "./NotificationHelpers";
+import "./notifications.css";
 
 const { Text } = Typography;
 
@@ -25,17 +23,6 @@ interface NotificationDropdownProps {
   onClose?: () => void;
 }
 
-/** Color & icon map for notification types */
-function useTypeConfig() {
-  const { token } = theme.useToken();
-  return {
-    success: { color: token.colorSuccess, icon: <CheckCircleOutlined /> },
-    error: { color: token.colorError, icon: <CloseCircleOutlined /> },
-    warning: { color: token.colorWarning, icon: <ExclamationCircleOutlined /> },
-    info: { color: token.colorPrimary, icon: <InfoCircleOutlined /> },
-  };
-}
-
 /**
  * Notification dropdown panel.
  * Uses real-time database-backed NotificationContext.
@@ -43,7 +30,6 @@ function useTypeConfig() {
 export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   const { token } = theme.useToken();
   const navigate = useNavigate();
-  const typeConfig = useTypeConfig();
   const [tab, setTab] = useState<TabKey>("all");
 
   const {
@@ -61,6 +47,7 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   }, [tab, notifications]);
 
   const unreadExists = notifications.some((n) => !n.read);
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleItemClick = (item: Notification) => {
     if (!item.read) markAsRead(item.id);
@@ -75,34 +62,10 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   };
 
   return (
-    <>
-      <style>{`
-        .notif-item:hover {
-          background: ${token.colorFillTertiary} !important;
-        }
-      `}</style>
-
-      <div
-        style={{
-          maxHeight: 500,
-          display: "flex",
-          flexDirection: "column",
-          background: token.colorBgElevated,
-          borderRadius: token.borderRadiusLG,
-          boxShadow: token.boxShadowSecondary,
-        }}
-      >
+      <div className="notification-dropdown" data-testid="notification-dropdown">
         {/* Header */}
-        <div
-          style={{
-            padding: "12px 16px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            borderBottom: `1px solid ${token.colorBorderSecondary}`,
-          }}
-        >
-          <Text strong style={{ fontSize: 16 }}>
+        <div className="notification-dropdown__header">
+          <Text strong className="notification-dropdown__title">
             Notifications
           </Text>
           {unreadExists && (
@@ -111,7 +74,7 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
               size="small"
               icon={<CheckOutlined />}
               onClick={markAllAsRead}
-              style={{ fontSize: 12, padding: 0 }}
+              className="notification-dropdown__action"
             >
               Mark all read
             </Button>
@@ -119,65 +82,54 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
         </div>
 
         {/* Tabs */}
-        <div style={{ padding: "8px 16px" }}>
+        <div className="notification-dropdown__tabs">
           <Segmented
             block
             size="small"
             value={tab}
             onChange={(v) => setTab(v as TabKey)}
             options={[
-              { label: "All", value: "all" },
-              { label: "Unread", value: "unread" },
+              { label: `All (${notifications.length})`, value: "all" },
+              { label: `Unread (${unreadCount})`, value: "unread" },
             ]}
           />
         </div>
 
         {/* List */}
-        <div style={{ overflowY: "auto", flex: 1, minHeight: 100, maxHeight: 400 }}>
-          {visible.length === 0 ? (
+        <div className="notification-dropdown__list">
+          {loading && visible.length === 0 ? (
+            <div className="notification-dropdown__state">
+              <Skeleton active avatar paragraph={{ rows: 3 }} />
+            </div>
+          ) : visible.length === 0 ? (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
-                loading
-                  ? "Loading..."
-                  : tab === "unread"
+                tab === "unread"
                   ? "No unread notifications"
                   : "No notifications yet"
               }
-              style={{ margin: "32px 0" }}
+              className="notification-dropdown__state"
             />
           ) : (
             visible.map((item) => {
-              const cfg =
-                typeConfig[item.type as keyof typeof typeConfig] ||
-                typeConfig.info;
+              const cfg = getNotificationTypeConfig(item.type, token);
               const parsed = parseNotificationMessage(item.message);
 
               return (
-                <div
+                <button
                   key={item.id}
-                  className="notif-item"
-                  style={{
-                    padding: "12px 16px",
-                    cursor: "pointer",
-                    display: "flex",
-                    gap: 12,
-                    alignItems: "flex-start",
-                    background: item.read ? "transparent" : token.colorPrimaryBg + "44",
-                    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-                    transition: "background 0.15s ease",
-                    opacity: item.read ? 0.75 : 1,
-                    position: "relative",
-                  }}
+                  type="button"
+                  className={`notification-item ${item.read ? "notification-item--read" : "notification-item--unread"}`}
                   onClick={() => handleItemClick(item)}
                 >
-                  <div style={{ fontSize: 20, color: cfg.color, flexShrink: 0, marginTop: 2 }}>
+                  <div className="notification-item__icon" style={{ color: cfg.color }}>
                     {cfg.icon}
                   </div>
 
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
-                      <Text strong={!item.read} style={{ fontSize: 14, display: "block", lineHeight: 1.4, color: token.colorText }}>
+                  <div className="notification-item__body">
+                    <div className="notification-item__header">
+                      <Text strong={!item.read} ellipsis className="notification-item__title">
                         {item.title}
                       </Text>
                       <Tooltip title="Delete">
@@ -186,45 +138,44 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
                           size="small"
                           icon={<DeleteOutlined />}
                           onClick={(e) => { e.stopPropagation(); deleteNotification(item.id); }}
-                          style={{ opacity: 0.45, flexShrink: 0, marginLeft: 4 }}
+                          className="notification-item__delete"
                         />
                       </Tooltip>
                     </div>
 
                     {parsed.summary && (
-                      <Text type="secondary" style={{ fontSize: 12, display: "block", lineHeight: 1.5, marginTop: 3, wordBreak: "break-word" }}>
+                      <Text type="secondary" className="notification-item__message">
                         {parsed.summary}
                       </Text>
                     )}
 
                     {parsed.stats && (
-                      <NotificationStats stats={parsed.stats} failed={item.type === "error"} />
+                      <NotificationStats stats={parsed.stats} failed={item.type === "error"} platforms={parsed.platforms} />
                     )}
 
-                    <Text type="secondary" style={{ fontSize: 11, marginTop: 5, display: "block" }}>
+                    <Text type="secondary" className="notification-item__time">
                       {formatRelativeTime(item.created_at)}
                     </Text>
                   </div>
 
                   {!item.read && (
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: token.colorPrimary, flexShrink: 0, marginTop: 6 }} />
+                    <div className="notification-item__unread-dot" />
                   )}
-                </div>
+                </button>
               );
             })
           )}
         </div>
 
         {/* Footer */}
-        <div style={{ padding: "10px 16px", borderTop: `1px solid ${token.colorBorderSecondary}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: token.colorFillAlter }}>
-          <Text type="secondary" style={{ fontSize: 12 }}>
+        <div className="notification-dropdown__footer">
+          <Text type="secondary" className="notification-item__message">
             Auto-delete: 30 days
           </Text>
-          <Button type="link" size="small" style={{ fontSize: 12, padding: 0 }} onClick={() => { onClose?.(); navigate("/notifications"); }}>
+          <Button type="link" size="small" className="notification-dropdown__action" onClick={() => { onClose?.(); navigate("/notifications"); }}>
             View All
           </Button>
         </div>
       </div>
-    </>
   );
 }

@@ -4,7 +4,11 @@ import { MpqTab } from "@/pages/inventory/components/MpqTab";
 import { ResetPricingTab } from "@/pages/inventory/components/ResetPricingTab";
 import { SettingsTab } from "@/pages/inventory/components/SettingsTab";
 import { WholesaleTab } from "@/pages/inventory/components/WholesaleTab";
-import { extractBulkPricingItems } from "@/pages/inventory/utils/bulkPricingItems";
+import {
+  extractBulkPricingItems,
+  type PriceColumnMap,
+} from "@/pages/inventory/utils/bulkPricingItems";
+import { useInventoryConfig } from "@/hooks/useInventory";
 import type { InventoryRecord } from "@/types/inventory";
 import type { UnifiedProductRow } from "@/types/shared";
 
@@ -26,7 +30,8 @@ function adaptUnifiedProductsToInventoryRecords(
 
 	for (const product of products) {
 		for (const sku of product.skus) {
-			// Map platforms from platform_links to platform_status shape
+			const effectivePrice = sku.inventory_price ?? sku.price;
+
 			const platform_status = sku.platform_links.map((link) => ({
 				platform: link.platform,
 				platform_product_id: link.platform_product_id ?? "",
@@ -34,7 +39,7 @@ function adaptUnifiedProductsToInventoryRecords(
 				platform_sku: link.platform_sku_id ?? "",
 				status: link.sync_status,
 				stock: sku.stock,
-				price: sku.price,
+				price: effectivePrice,
 			}));
 
 			records.push({
@@ -42,7 +47,8 @@ function adaptUnifiedProductsToInventoryRecords(
 				key_value: sku.seller_sku,
 				key_column_name: "SKU",
 				data: {
-					price: sku.price,
+					HARGA: effectivePrice,
+					price: effectivePrice,
 					stock: sku.stock,
 					variant: sku.variant_name,
 				},
@@ -68,6 +74,18 @@ export function WholesaleMpqModal({
 	selectedRecords,
 	defaultTab = "wholesale",
 }: WholesaleMpqModalProps) {
+	const { data: inventoryConfig } = useInventoryConfig();
+
+	const priceColumns = useMemo<PriceColumnMap | undefined>(() => {
+		if (!inventoryConfig) return undefined;
+		const map: PriceColumnMap = {};
+		if (inventoryConfig.price_column) map.base = inventoryConfig.price_column;
+		if (inventoryConfig.price_column_shopee) map.shopee = inventoryConfig.price_column_shopee;
+		if (inventoryConfig.price_column_tiktok) map.tiktok = inventoryConfig.price_column_tiktok;
+		if (inventoryConfig.price_column_lazada) map.lazada = inventoryConfig.price_column_lazada;
+		return Object.keys(map).length > 0 ? map : undefined;
+	}, [inventoryConfig]);
+
 	// Convert UnifiedProductRow[] to InventoryRecord[] if needed
 	const inventoryRecords: InventoryRecord[] = useMemo(() => {
 		if (selectedRecords.length === 0) {
@@ -87,8 +105,8 @@ export function WholesaleMpqModal({
 	}, [selectedRecords]);
 
 	const { items: selectedItems, skipped_skus } = useMemo(
-		() => extractBulkPricingItems(inventoryRecords),
-		[inventoryRecords],
+		() => extractBulkPricingItems(inventoryRecords, priceColumns),
+		[inventoryRecords, priceColumns],
 	);
 
 	const items = [

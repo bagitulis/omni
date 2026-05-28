@@ -10,14 +10,9 @@ import {
   Tag,
   theme,
   Button,
+  Alert,
 } from "antd";
-import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  ExclamationCircleOutlined,
-  InfoCircleOutlined,
-  ReloadOutlined,
-} from "@ant-design/icons";
+import { ReloadOutlined } from "@ant-design/icons";
 import { useSearchParams } from "react-router-dom";
 import { useNotifications } from "@/contexts/NotificationContext";
 import type { Notification } from "@/api/notifications";
@@ -25,19 +20,15 @@ import {
   formatRelativeTime,
   parseNotificationMessage,
   PlatformBreakdown,
+  getNotificationTypeConfig,
+  NotificationStats,
 } from "@/components/layout/NotificationHelpers";
+import "@/components/layout/notifications.css";
 
 const { Title, Text } = Typography;
 
 type StatusFilter = "all" | "unread" | "read";
 type CategoryFilter = "all" | "sync" | "order" | "product" | "inventory" | "system";
-
-const typeIcons: Record<string, React.ReactNode> = {
-  success: <CheckCircleOutlined style={{ color: "#52c41a" }} />,
-  error: <CloseCircleOutlined style={{ color: "#ff4d4f" }} />,
-  warning: <ExclamationCircleOutlined style={{ color: "#faad14" }} />,
-  info: <InfoCircleOutlined style={{ color: "#1677ff" }} />,
-};
 
 export default function NotificationsPage() {
   const { token } = theme.useToken();
@@ -47,6 +38,7 @@ export default function NotificationsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
 
   // Auto-expand notification from query param (e.g., /notifications?expand=123)
@@ -63,9 +55,7 @@ export default function NotificationsPage() {
         markAsRead(notif.id);
       }
     }
-    // Only run when searchParams changes, not on every notifications update
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [markAsRead, notifications, searchParams]);
 
   const filtered = useMemo(() => {
     let items = notifications;
@@ -75,6 +65,15 @@ export default function NotificationsPage() {
       items = items.filter((n) => n.category === categoryFilter);
     return items;
   }, [notifications, statusFilter, categoryFilter]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshError(null);
+    try {
+      await fetchNotifications();
+    } catch {
+      setRefreshError("Unable to refresh notifications. Try again in a moment.");
+    }
+  }, [fetchNotifications]);
 
   const handleExpand = useCallback(
     (keys: string | string[]) => {
@@ -95,36 +94,29 @@ export default function NotificationsPage() {
 
   const collapseItems = filtered.map((notif) => {
     const parsed = parseNotificationMessage(notif.message);
+    const typeConfig = getNotificationTypeConfig(notif.type, token);
     return {
       key: String(notif.id),
       label: (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%" }}>
-          <span style={{ fontSize: 18 }}>{typeIcons[notif.type] || typeIcons.info}</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <Text strong={!notif.read} style={{ display: "block" }}>
+        <div className="notification-page-item__label">
+          <span className="notification-page-item__icon" style={{ color: typeConfig.color }}>{typeConfig.icon}</span>
+          <div className="notification-page-item__main">
+            <Text strong={!notif.read} ellipsis className="notification-page-item__title">
               {notif.title}
             </Text>
             {parsed.stats && (
-              <Text type="secondary" style={{ fontSize: 12 }}>
+              <Text type="secondary" ellipsis className="notification-page-item__stats">
                 {parsed.stats.total !== undefined && `Total: ${parsed.stats.total}`}
                 {parsed.stats.processed !== undefined && ` · Done: ${parsed.stats.processed}`}
                 {parsed.stats.failed !== undefined && parsed.stats.failed > 0 && ` · Failed: ${parsed.stats.failed}`}
               </Text>
             )}
           </div>
-          <Text type="secondary" style={{ fontSize: 12, flexShrink: 0 }}>
+          <Text type="secondary" className="notification-page-item__time">
             {formatRelativeTime(notif.created_at)}
           </Text>
           {!notif.read && (
-            <div
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: token.colorPrimary,
-                flexShrink: 0,
-              }}
-            />
+            <div className="notification-page-item__unread-dot" />
           )}
         </div>
       ),
@@ -135,18 +127,22 @@ export default function NotificationsPage() {
   });
 
   return (
-    <div style={{ padding: "24px", maxWidth: 900, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <Title level={3} style={{ margin: 0 }}>
+    <div className="notification-page" data-testid="notifications-page">
+      <div className="notification-page__header">
+        <Title level={3} className="notification-page__title">
           Notifications
         </Title>
-        <Button icon={<ReloadOutlined />} onClick={fetchNotifications} loading={loading}>
+        <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading}>
           Refresh
         </Button>
       </div>
 
+      {refreshError && (
+        <Alert type="error" showIcon message={refreshError} closable onClose={() => setRefreshError(null)} />
+      )}
+
       {/* Filters */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+      <div className="notification-page__filters">
         <Segmented
           value={statusFilter}
           onChange={(v) => setStatusFilter(v as StatusFilter)}
@@ -159,7 +155,7 @@ export default function NotificationsPage() {
         <Select
           value={categoryFilter}
           onChange={setCategoryFilter}
-          style={{ width: 140 }}
+          className="notification-page__category-filter"
           options={[
             { label: "All Categories", value: "all" },
             { label: "Sync", value: "sync" },
@@ -173,16 +169,18 @@ export default function NotificationsPage() {
 
       {/* List */}
       {loading && filtered.length === 0 ? (
-        <Spin style={{ display: "block", margin: "60px auto" }} />
+        <div className="notification-page__state">
+          <Spin />
+        </div>
       ) : filtered.length === 0 ? (
-        <Empty description="No notifications" style={{ marginTop: 60 }} />
+        <Empty description="No notifications match the current filters" className="notification-page__state" />
       ) : (
         <Collapse
           accordion={false}
           activeKey={expandedKeys}
           onChange={handleExpand}
           items={collapseItems}
-          style={{ background: token.colorBgContainer }}
+          className="notification-page__collapse"
         />
       )}
     </div>
@@ -200,11 +198,11 @@ function NotificationDetail({
   const { token } = theme.useToken();
 
   return (
-    <div style={{ padding: "8px 0" }}>
+    <div className="notification-detail">
       {/* Platform breakdown */}
       {parsed.platforms && Object.keys(parsed.platforms).length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <Text strong style={{ display: "block", marginBottom: 6 }}>
+        <div className="notification-detail__section">
+          <Text strong className="notification-detail__heading">
             Per Platform
           </Text>
           <PlatformBreakdown platforms={parsed.platforms} />
@@ -213,14 +211,16 @@ function NotificationDetail({
 
       {/* Failed items */}
       {parsed.failedItems && parsed.failedItems.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <Text strong style={{ display: "block", marginBottom: 6, color: token.colorError }}>
+        <div className="notification-detail__section">
+          <Text strong className="notification-detail__heading" style={{ color: token.colorError }}>
             Failed Items ({parsed.failedItems.length})
           </Text>
           <Table
             size="small"
             pagination={parsed.failedItems.length > 10 ? { pageSize: 10 } : false}
             dataSource={parsed.failedItems.map((item, i) => ({ ...item, key: i }))}
+            className="notification-detail__table"
+            scroll={{ x: 520 }}
             columns={[
               { title: "SKU", dataIndex: "sku", key: "sku", width: 120 },
               { title: "Platform", dataIndex: "platform", key: "platform", width: 100, render: (v: string) => v ? <Tag>{v}</Tag> : "-" },
@@ -232,12 +232,16 @@ function NotificationDetail({
 
       {/* Raw message if no structured data */}
       {!parsed.platforms && !parsed.failedItems && parsed.summary && (
-        <Text type="secondary">{parsed.summary}</Text>
+        <Text type="secondary" className="notification-detail__summary">{parsed.summary}</Text>
+      )}
+
+      {parsed.stats && (
+        <NotificationStats stats={parsed.stats} failed={notif.type === "error"} platforms={parsed.platforms} />
       )}
 
       {/* Metadata */}
-      <div style={{ marginTop: 8 }}>
-        <Text type="secondary" style={{ fontSize: 11 }}>
+      <div className="notification-detail__meta">
+        <Text type="secondary" className="notification-detail__meta">
           Category: {notif.category} · Created: {new Date(notif.created_at).toLocaleString()}
         </Text>
       </div>
