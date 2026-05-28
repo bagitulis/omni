@@ -35,11 +35,17 @@ func buildLegacyBundles(tenantID string, rows []inventoryRowData) ([]legacyCrede
 		key := bundle.TenantID + "|" + bundle.Platform + "|" + bundle.StoreIdentifier
 		structuredBundles[key] = mergeLegacyBundle(structuredBundles[key], bundle)
 	}
-	for _, rows := range keyValueRows {
-		bundle := keyValueRowsToBundle(tenantID, rows)
-		key := bundle.TenantID + "|" + bundle.Platform + "|" + bundle.StoreIdentifier
-		structuredBundles[key] = mergeLegacyBundle(structuredBundles[key], bundle)
+for _, rows := range keyValueRows {
+	bundle := keyValueRowsToBundle(tenantID, rows)
+	if bundle.StoreIdentifier == "" && (bundle.AccessToken != "" || bundle.RefreshToken != "" || bundle.ShopCipher != "") {
+		abortReasons = append(abortReasons, "missing_store_identity")
 	}
+	key := bundle.TenantID + "|" + bundle.Platform + "|" + bundle.StoreIdentifier
+	if bundle.StoreIdentifier == "" {
+		key = bundle.TenantID + "|" + bundle.Platform + "|__app_only__"
+	}
+	structuredBundles[key] = mergeLegacyBundle(structuredBundles[key], bundle)
+}
 	bundles := make([]legacyCredentialBundle, 0, len(structuredBundles))
 	for _, bundle := range structuredBundles {
 		bundles = append(bundles, bundle)
@@ -73,7 +79,7 @@ func keyValueRowsToBundle(tenantID string, rows []inventoryRowData) legacyCreden
 		values[key] = strings.TrimSpace(asString(row["config_value"]))
 		bundle.SourceKeys = append(bundle.SourceKeys, key)
 	}
-	bundle.StoreIdentifier = firstNonEmpty(values["shopId"], values["shop_id"], values["shopName"], values["shop_name"], bundle.Platform+"_legacy")
+	bundle.StoreIdentifier = firstNonEmpty(values["shopId"], values["shop_id"], values["shopName"], values["shop_name"])
 	bundle.StoreName = firstNonEmpty(values["shopName"], values["shop_name"])
 	bundle.AccessToken = firstNonEmpty(values["accessToken"], values["access_token"])
 	bundle.RefreshToken = firstNonEmpty(values["refreshToken"], values["refresh_token"])

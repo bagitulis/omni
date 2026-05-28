@@ -89,6 +89,16 @@ func TestCredentialMigrationKeyValueRowsBecomeSingleBundle(t *testing.T) {
 	assert.Equal(t, int64(1001), bundles[0].PartnerID)
 	assert.Equal(t, "test-partner-key", bundles[0].PartnerKey)
 	assert.NotEqual(t, models.PlatformShopee+"_legacy", bundles[0].StoreIdentifier)
+
+}
+func TestCredentialMigrationKeyValueRowsWithoutShopIdAborts(t *testing.T) {
+	rows := []inventoryRowData{
+		{"tenant_id": "tenant_b", "platform": models.PlatformShopee, "config_key": "accessToken", "config_value": "test-token"},
+		{"tenant_id": "tenant_b", "platform": models.PlatformShopee, "config_key": "refreshToken", "config_value": "test-refresh"},
+		{"tenant_id": "tenant_b", "platform": models.PlatformShopee, "config_key": "partnerId", "config_value": "1001"},
+	}
+	_, reasons := buildLegacyBundles("tenant_b", rows)
+	assert.Contains(t, reasons, "missing_store_identity")
 }
 
 func TestCredentialMigrationAbortGatesDetectBadSources(t *testing.T) {
