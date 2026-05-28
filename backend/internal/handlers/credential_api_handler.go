@@ -13,8 +13,8 @@ import (
 type CredentialAPIService interface {
 	GetPlatformStatus(ctx context.Context, tenantID, role, userID, platform, storeIdentifier string) ([]credentialsvc.CredentialPlatformStatus, error)
 	UpsertAppCredential(ctx context.Context, tenantID, role, userID string, req credentialsvc.CredentialAppUpsertRequest, rotate bool) (*credentialsvc.CredentialMutationResponse, error)
-	InitiateOAuth(ctx context.Context, tenantID, role, userID string, req credentialsvc.CredentialOAuthInitiateRequest) (*credentialsvc.CredentialOAuthAttemptResponse, error)
-	ReconnectOAuth(ctx context.Context, tenantID, role, userID string, req credentialsvc.CredentialOAuthReconnectRequest) (*credentialsvc.CredentialOAuthAttemptResponse, error)
+	InitiateOAuth(ctx context.Context, tenantID, role, userID, callbackBaseURL string, req credentialsvc.CredentialOAuthInitiateRequest) (*credentialsvc.CredentialOAuthAttemptResponse, error)
+	ReconnectOAuth(ctx context.Context, tenantID, role, userID, callbackBaseURL string, req credentialsvc.CredentialOAuthReconnectRequest) (*credentialsvc.CredentialOAuthAttemptResponse, error)
 	ChangeConnectionStatus(ctx context.Context, tenantID, role, userID string, req credentialsvc.CredentialConnectionActionRequest, action string) (*credentialsvc.CredentialMutationResponse, error)
 	ListAuditEvents(ctx context.Context, tenantID, role, userID, platform, storeIdentifier, limitStr, cursor string) (*credentialsvc.CredentialAuditListResponse, error)
 	ApplyManualToken(ctx context.Context, tenantID, role, userID string, req credentialsvc.CredentialManualTokenRequest) (*credentialsvc.CredentialMutationResponse, error)
@@ -68,8 +68,7 @@ func (h *PlatformAuthHandler) PostCredentialOAuthInitiate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
 		return
 	}
-	req.Platform = c.Param("platform")
-	result, err := h.credentialService.InitiateOAuth(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), req)
+	result, err := h.credentialService.InitiateOAuth(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), h.getBackendURL(c), req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
 		return
@@ -95,7 +94,7 @@ func (h *PlatformAuthHandler) PostCredentialOAuthReconnect(c *gin.Context) {
 	}
 	req.Platform = c.Param("platform")
 	req.StoreIdentifier = c.Param("store_identifier")
-	result, err := h.credentialService.ReconnectOAuth(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), req)
+	result, err := h.credentialService.ReconnectOAuth(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), h.getBackendURL(c), req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
 		return

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services/oauth"
 	"gorm.io/gorm"
 )
 
@@ -200,7 +202,7 @@ func (s *CredentialApiService) UpsertAppCredential(ctx context.Context, tenantID
 	return &CredentialMutationResponse{Platform: req.Platform, Status: "connected", Configured: masked.Configured, SecretMask: secretMask, AuditEventID: auditEventID}, nil
 }
 
-func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role, userID string, req CredentialOAuthInitiateRequest) (*CredentialOAuthAttemptResponse, error) {
+func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role, userID, callbackBaseURL string, req CredentialOAuthInitiateRequest) (*CredentialOAuthAttemptResponse, error) {
 	if tenantID == "" {
 		return nil, fmt.Errorf("Missing tenant_id")
 	}
@@ -212,12 +214,87 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 	}
 	repo := repositories.NewCredentialRepository(s.db)
 	attemptID := uuid.NewString()
+
+	// Build CSRF nonce and signed state
+	csrfNonce, err := oauth.NewNonce()
+	if err != nil {
+		return nil, fmt.Errorf("generate csrf nonce: %w", err)
+	}
+	expiresAt := time.Now().Add(10 * time.Minute)
+	claims := oauth.StateClaims{
+		TenantID:     tenantID,
+		Platform:     req.Platform,
+		AttemptID:    attemptID,
+		Intent:       req.Intent,
+		StoreID:      req.StoreIdentifier,
+		UserID:       userID,
+		CSRFNonce:    csrfNonce,
+		RedirectPath: req.RedirectPath,
+		ExpiresAt:    expiresAt.Unix(),
+	}
+	signedState, err := oauth.BuildSignedState(claims)
+	if err != nil {
+		return nil, fmt.Errorf("build signed state: %w", err)
+	}
+
+	// Persist OAuth connection attempt
+	attempt := &models.OAuthConnectionAttempt{
+		TenantID:        tenantID,
+		Platform:        req.Platform,
+		AttemptID:       attemptID,
+		Status:          "pending",
+		Intent:          req.Intent,
+		IntendedStoreID: req.StoreIdentifier,
+		SignedState:     signedState,
+		CSRFNonce:       csrfNonce,
+		RedirectPath:    req.RedirectPath,
+		ExpiresAt:       expiresAt,
+		CreatedBy:       userID,
+	}
+	if err := repo.CreateAttempt(ctx, attempt); err != nil {
+		return nil, fmt.Errorf("create oauth attempt: %w", err)
+	}
+
+	// Get app credentials to build real platform auth URL
+	callbackURL := callbackBaseURL + "/api/credentials/callback/" + req.Platform
+	var authURL string
+
+	switch req.Platform {
+	case models.PlatformShopee:
+		cfg, _ := repo.GetAppConfig(ctx, tenantID, req.Platform)
+		if cfg != nil && cfg.PartnerID > 0 && cfg.PartnerKey != "" {
+			svc := oauth.NewShopeeOAuthService(cfg.PartnerID, cfg.PartnerKey, callbackURL, false)
+			authURL = svc.GetAuthURL(signedState)
+		} else {
+			authURL = callbackURL + "?state=" + url.QueryEscape(signedState)
+		}
+	case models.PlatformLazada:
+		cfg, _ := repo.GetAppConfig(ctx, tenantID, req.Platform)
+		if cfg != nil && cfg.AppKey != "" && cfg.AppSecret != "" {
+			svc := oauth.NewLazadaOAuthService(cfg.AppKey, cfg.AppSecret, callbackURL, false)
+			authURL = svc.GetAuthURL(signedState)
+		} else {
+			authURL = callbackURL + "?state=" + url.QueryEscape(signedState)
+		}
+	case models.PlatformTiktok:
+		cfg, _ := repo.GetAppConfig(ctx, tenantID, req.Platform)
+		if cfg != nil && cfg.AppKey != "" && cfg.AppSecret != "" {
+			svc := oauth.NewTiktokOAuthService(cfg.AppKey, cfg.AppSecret, callbackURL, false)
+			authURL = svc.GetAuthURL(signedState)
+		} else {
+			authURL = callbackURL + "?state=" + url.QueryEscape(signedState)
+		}
+	default:
+		authURL = callbackURL + "?state=" + url.QueryEscape(signedState)
+	}
+
+	// Write audit event
 	auditEvent := &models.CredentialAuditEvent{
 		TenantID: tenantID, Platform: req.Platform,
 		StoreIdentifier: req.StoreIdentifier,
 		EventType:       "oauth_initiate", Status: "initiated",
 		Actor: userID, ActorRole: role,
-		Metadata: models.JSONMap{"intent": req.Intent},
+		Metadata: models.JSONMap{"intent": req.Intent, "attempt_id": attemptID},
 	}
 	auditEventID := ""
 	if err := repo.CreateAuditEvent(ctx, auditEvent); err != nil {
@@ -225,14 +302,22 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 	} else {
 		auditEventID = auditEvent.ID
 	}
-	return &CredentialOAuthAttemptResponse{AuthURL: "https://example.invalid/oauth/" + req.Platform, AttemptID: attemptID, ExpiresAt: time.Now().Add(15 * time.Minute).Format(time.RFC3339), AuditEventID: auditEventID}, nil
+
+	return &CredentialOAuthAttemptResponse{
+		AuthURL:      authURL,
+		AttemptID:    attemptID,
+		ExpiresAt:    expiresAt.Format(time.RFC3339),
+		AuditEventID: auditEventID,
+	}, nil
 }
 
-func (s *CredentialApiService) ReconnectOAuth(ctx context.Context, tenantID, role, userID string, req CredentialOAuthReconnectRequest) (*CredentialOAuthAttemptResponse, error) {
+func (s *CredentialApiService) ReconnectOAuth(ctx context.Context, tenantID, role, userID, callbackBaseURL string, req CredentialOAuthReconnectRequest) (*CredentialOAuthAttemptResponse, error) {
 	if req.StoreIdentifier == "" {
 		return nil, fmt.Errorf("store_identifier is required")
 	}
-	return s.InitiateOAuth(ctx, tenantID, role, userID, CredentialOAuthInitiateRequest{Platform: req.Platform, Intent: req.Intent, StoreIdentifier: req.StoreIdentifier, RedirectPath: req.RedirectPath})
+	return s.InitiateOAuth(ctx, tenantID, role, userID, callbackBaseURL, CredentialOAuthInitiateRequest{
+		Platform: req.Platform, Intent: req.Intent, StoreIdentifier: req.StoreIdentifier, RedirectPath: req.RedirectPath,
+	})
 }
 
 func (s *CredentialApiService) ChangeConnectionStatus(ctx context.Context, tenantID, role, userID string, req CredentialConnectionActionRequest, action string) (*CredentialMutationResponse, error) {
