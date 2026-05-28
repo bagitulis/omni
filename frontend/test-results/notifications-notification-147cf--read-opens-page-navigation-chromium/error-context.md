@@ -14,7 +14,7 @@
 ```
 Error: locator.click: Error: strict mode violation: getByTestId('notification-dropdown').getByRole('button', { name: /Mark read by opening notification/ }) resolved to 2 elements:
     1) <button type="button" class="notification-item__content" aria-label="Unread notification: [TEST DATA] Mark read by opening notification">…</button> aka getByRole('button', { name: 'Unread notification: [TEST' })
-    2) <button type="button" aria-describedby="_r_2i_" aria-label="Delete notification: [TEST DATA] Mark read by opening notification" class="ant-btn css-dev-only-do-not-override-gxuwbr ant-btn-text ant-btn-color-default ant-btn-variant-text ant-btn-sm ant-btn-icon-only notification-item__delete">…</button> aka getByRole('button', { name: 'Delete notification: [TEST' })
+    2) <button type="button" aria-describedby="_r_1q_" aria-label="Delete notification: [TEST DATA] Mark read by opening notification" class="ant-btn css-dev-only-do-not-override-gxuwbr ant-btn-text ant-btn-color-default ant-btn-variant-text ant-btn-sm ant-btn-icon-only notification-item__delete">…</button> aka getByRole('button', { name: 'Delete notification: [TEST' })
 
 Call log:
   - waiting for getByTestId('notification-dropdown').getByRole('button', { name: /Mark read by opening notification/ })

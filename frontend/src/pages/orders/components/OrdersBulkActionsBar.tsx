@@ -123,7 +123,7 @@ export function OrdersBulkActionsBar({
               Bulk Cancel
             </Button>
           </Space>
-          <Button type="text" onClick={onClearSelection} aria-label="Clear selected orders">
+          <Button type="text" onClick={onClearSelection}>
             Clear Selection
           </Button>
         </Flex>
