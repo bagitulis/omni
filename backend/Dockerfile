@@ -21,6 +21,7 @@ RUN go mod tidy
 
 # Build the binary
 RUN CGO_ENABLED=1 GOOS=linux go build -o /app/server ./cmd/server
+RUN CGO_ENABLED=1 GOOS=linux go build -o /app/credential-migration ./cmd/credential-migration
 
 # Runtime stage
 FROM alpine:3.19
@@ -36,6 +37,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Copy binary from builder
 COPY --from=builder /app/server /app/server
+COPY --from=builder /app/credential-migration /app/credential-migration
 
 # Copy Google service account credentials from config
 COPY config/static/google /app/config/static/google

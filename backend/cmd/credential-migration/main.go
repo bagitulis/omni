@@ -22,9 +22,20 @@ func main() {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(2)
 	}
-	config.Load()
-	if os.Getenv("DB_DRIVER") != "" {
-		config.SetDatabaseDriver(config.DBDriver(os.Getenv("DB_DRIVER")), nil)
+	cfg := config.Load()
+	if cfg.DBDriver == "sqlite" && os.Getenv("DB_DRIVER") != "" {
+		cfg.DBDriver = os.Getenv("DB_DRIVER")
+	}
+	if cfg.DBDriver == "postgres" {
+		pgConfig := &config.PostgresConfig{
+			Host:     cfg.PGHost,
+			Port:     cfg.PGPort,
+			User:     cfg.PGUser,
+			Password: cfg.PGPassword,
+			DBName:   cfg.PGDatabase,
+			SSLMode:  cfg.PGSSLMode,
+		}
+		config.SetDatabaseDriver(config.DriverPostgres, pgConfig)
 	}
 	basePath := os.Getenv("CONFIG_PATH")
 	if basePath == "" {

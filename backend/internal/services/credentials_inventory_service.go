@@ -78,6 +78,7 @@ func platformConfigColumns(ctx context.Context, db *gorm.DB) ([]string, error) {
 		SELECT column_name
 		FROM information_schema.columns
 		WHERE table_name = 'platform_configs'
+		AND table_schema = current_schema()
 		ORDER BY ordinal_position
 	`).Scan(&cols).Error; err != nil {
 		return nil, fmt.Errorf("list platform_configs columns: %w", err)
