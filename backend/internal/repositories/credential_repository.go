@@ -1,17 +1,16 @@
 package repositories
 
 import (
-	"context"
-	"fmt"
-	"os"
-	"strings"
-	"time"
+"context"
+"fmt"
+"os"
+"strings"
 
-	"github.com/google/uuid"
-	"github.com/omni/backend/internal/models"
-	"github.com/omni/backend/internal/utils"
-	"github.com/rs/zerolog/log"
-	"gorm.io/gorm"
+"github.com/google/uuid"
+"github.com/omni/backend/internal/models"
+"github.com/omni/backend/internal/utils"
+"github.com/rs/zerolog/log"
+"gorm.io/gorm"
 )
 
 // CredentialRepository handles tenant-scoped credential CRUD with encryption.
@@ -187,160 +186,7 @@ func validateAttemptScope(tenantID, platform, attemptID string) error {
 	return nil
 }
 
-//------------------------------------------------------------------------------
-// App Config Methods
-//------------------------------------------------------------------------------
-
-// GetAppConfig retrieves the app config for a tenant/platform.
-func (r *CredentialRepository) GetAppConfig(ctx context.Context, tenantID, platform string) (*models.CredentialAppConfig, error) {
-	if err := validateTenantPlatformScope(tenantID, platform); err != nil {
-		return nil, err
-	}
-	var cfg models.CredentialAppConfig
-	err := r.db.WithContext(ctx).
-		Where("tenant_id = ? AND platform = ?", tenantID, platform).
-		First(&cfg).Error
-	if err != nil {
-		if isMissingRelationError(err) {
-			return nil, nil
-		}
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("get app config: %w", err)
-	}
-	if err := r.decryptAppConfigSecrets(&cfg); err != nil {
-		return nil, err
-	}
-	return &cfg, nil
-}
-
-// UpsertAppConfig encrypts secrets and creates or updates an app config.
-func (r *CredentialRepository) UpsertAppConfig(ctx context.Context, cfg *models.CredentialAppConfig) error {
-	if err := validateTenantPlatformScope(cfg.TenantID, cfg.Platform); err != nil {
-		return err
-	}
-	if cfg.ID == "" {
-		cfg.ID = uuid.New().String()
-	}
-	if cfg.Region == "" {
-		cfg.Region = "id"
-	}
-	if err := r.encryptAppConfigSecrets(cfg); err != nil {
-		return err
-	}
-	var existing models.CredentialAppConfig
-	result := r.db.WithContext(ctx).
-		Where("tenant_id = ? AND platform = ? AND COALESCE(store_identifier, '') = COALESCE(?, '')", cfg.TenantID, cfg.Platform, cfg.StoreIdentifier).
-		First(&existing)
-	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
-		return fmt.Errorf("upsert app config lookup: %w", result.Error)
-	}
-	if result.Error == gorm.ErrRecordNotFound {
-		if err := r.db.WithContext(ctx).Create(cfg).Error; err != nil {
-			return fmt.Errorf("create app config: %w", err)
-		}
-		return nil
-	}
-	cfg.ID = existing.ID
-	if err := r.db.WithContext(ctx).
-		Model(&existing).
-		Where("id = ?", existing.ID).
-		Updates(cfg).Error; err != nil {
-		return fmt.Errorf("upsert app config: %w", err)
-	}
-	return nil
-}
-
-//------------------------------------------------------------------------------
-// OAuth Attempt Methods
-//------------------------------------------------------------------------------
-
-// CreateAttempt creates a pending OAuth connection attempt.
-func (r *CredentialRepository) CreateAttempt(ctx context.Context, attempt *models.OAuthConnectionAttempt) error {
-	if err := validateAttemptScope(attempt.TenantID, attempt.Platform, attempt.AttemptID); err != nil {
-		return err
-	}
-	if attempt.ID == "" {
-		attempt.ID = uuid.New().String()
-	}
-	if attempt.Status == "" {
-		attempt.Status = "pending"
-	}
-	if err := r.db.WithContext(ctx).Create(attempt).Error; err != nil {
-		return fmt.Errorf("create attempt: %w", err)
-	}
-	return nil
-}
-
-// GetAttempt retrieves a pending OAuth attempt by tenant, platform, and attempt_id.
-func (r *CredentialRepository) GetAttempt(ctx context.Context, tenantID, platform, attemptID string) (*models.OAuthConnectionAttempt, error) {
-	if err := validateAttemptScope(tenantID, platform, attemptID); err != nil {
-		return nil, err
-	}
-	var attempt models.OAuthConnectionAttempt
-	err := r.db.WithContext(ctx).
-		Where("tenant_id = ? AND platform = ? AND attempt_id = ?", tenantID, platform, attemptID).
-		First(&attempt).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("get attempt: %w", err)
-	}
-	return &attempt, nil
-}
-
-// CompleteAttempt marks an OAuth attempt as completed or failed.
-func (r *CredentialRepository) CompleteAttempt(ctx context.Context, tenantID, platform, attemptID, status string) error {
-	if err := validateAttemptScope(tenantID, platform, attemptID); err != nil {
-		return err
-	}
-	now := time.Now()
-	result := r.db.WithContext(ctx).
-		Model(&models.OAuthConnectionAttempt{}).
-		Where("tenant_id = ? AND platform = ? AND attempt_id = ?", tenantID, platform, attemptID).
-		Updates(map[string]any{
-			"status":       status,
-			"completed_at": &now,
-		})
-	if result.Error != nil {
-		return fmt.Errorf("complete attempt: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("attempt not found: %s", attemptID)
-	}
-	return nil
-}
-
-//------------------------------------------------------------------------------
-// Audit Methods
-//------------------------------------------------------------------------------
-
-// ListAuditEvents returns sanitized audit events for a tenant/platform.
-func (r *CredentialRepository) ListAuditEvents(ctx context.Context, tenantID, platform string, limit, offset int) ([]models.CredentialAuditEvent, error) {
-	if tenantID == "" {
-		return nil, fmt.Errorf("tenant_id is required")
-	}
-	if limit <= 0 {
-		limit = 50
-	}
-	var events []models.CredentialAuditEvent
-	err := r.db.WithContext(ctx).
-		Where("tenant_id = ? AND platform = ?", tenantID, platform).
-		Order("created_at DESC").
-		Limit(limit).
-		Offset(offset).
-		Find(&events).Error
-	if err != nil {
-		if isMissingRelationError(err) {
-			return []models.CredentialAuditEvent{}, nil
-		}
-		return nil, fmt.Errorf("list audit events: %w", err)
-	}
-	return events, nil
-}
-
+// isMissingRelationError checks if a database error is caused by a missing table.
 func isMissingRelationError(err error) bool {
 	if err == nil {
 		return false
@@ -349,18 +195,4 @@ func isMissingRelationError(err error) bool {
 	return strings.Contains(message, "sqlstate 42p01") ||
 		strings.Contains(message, "relation ") && strings.Contains(message, " does not exist") ||
 		strings.Contains(message, "no such table")
-}
-
-// CreateAuditEvent creates a sanitized audit event.
-func (r *CredentialRepository) CreateAuditEvent(ctx context.Context, event *models.CredentialAuditEvent) error {
-	if event.TenantID == "" {
-		return fmt.Errorf("tenant_id is required")
-	}
-	if event.ID == "" {
-		event.ID = uuid.New().String()
-	}
-	if err := r.db.WithContext(ctx).Create(event).Error; err != nil {
-		return fmt.Errorf("create audit event: %w", err)
-	}
-	return nil
 }
