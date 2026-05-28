@@ -27,7 +27,7 @@ func (c *Client) GetOrders(ctx context.Context, params OrderListParams) (*OrderL
 		timeRangeField = "create_time"
 	}
 
-	return c.api.GetOrderList(start.Unix(), end.Unix(), timeRangeField, params.Status, "")
+	return c.api.GetOrderList(ctx, start.Unix(), end.Unix(), timeRangeField, params.Status, "")
 }
 
 // GetOrderDetails fetches order details for up to 50 order_sn values.
@@ -38,7 +38,7 @@ func (c *Client) GetOrderDetails(ctx context.Context, params OrderDetailParams) 
 	if len(params.OrderSNs) == 0 {
 		return nil, errors.New("order_sns is required")
 	}
-	return c.api.GetOrderDetail(params.OrderSNs)
+	return c.api.GetOrderDetail(ctx, params.OrderSNs)
 }
 
 // GetEscrowDetails returns escrow breakdown for orders.

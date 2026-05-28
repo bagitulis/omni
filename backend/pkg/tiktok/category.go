@@ -1,6 +1,7 @@
 package tiktok
 
 import (
+	"context"
 	"fmt"
 )
 
@@ -50,7 +51,7 @@ type RecommendedCategory struct {
 // RecommendCategory calls TikTok API to get recommended category based on product info
 // API: POST /product/202309/categories/recommend
 // Reference: backend-node/tiktok_sdk/api/productV202309Api.ts - CategoriesRecommendPost
-func (c *Client) RecommendCategory(title, description string, imageURIs []string) (*RecommendCategoryData, error) {
+func (c *Client) RecommendCategory(ctx context.Context, title, description string, imageURIs []string) (*RecommendCategoryData, error) {
 	apiPath := "/product/202309/categories/recommend"
 
 	// Build request body
@@ -68,7 +69,7 @@ func (c *Client) RecommendCategory(title, description string, imageURIs []string
 	params := make(map[string]string)
 
 	var resp RecommendCategoryResponse
-	err := c.doRequestWithBody("POST", apiPath, params, reqBody, &resp)
+	err := c.doRequestWithBody(ctx, "POST", apiPath, params, reqBody, &resp)
 	if err != nil {
 		return nil, fmt.Errorf("RecommendCategory failed: %w", err)
 	}
@@ -85,8 +86,8 @@ func (c *Client) RecommendCategory(title, description string, imageURIs []string
 }
 
 // GetRecommendedCategoryID is a convenience method that returns just the leaf category ID
-func (c *Client) GetRecommendedCategoryID(title, description string, imageURIs []string) (string, error) {
-	data, err := c.RecommendCategory(title, description, imageURIs)
+func (c *Client) GetRecommendedCategoryID(ctx context.Context, title, description string, imageURIs []string) (string, error) {
+	data, err := c.RecommendCategory(ctx, title, description, imageURIs)
 	if err != nil {
 		return "", err
 	}
@@ -129,7 +130,7 @@ type AttributeValueInfo struct {
 
 // GetCategoryAttributes fetches required and optional attributes for a category
 // API: GET /product/202309/categories/{category_id}/attributes
-func (c *Client) GetCategoryAttributes(categoryID string) ([]CategoryAttribute, error) {
+func (c *Client) GetCategoryAttributes(ctx context.Context, categoryID string) ([]CategoryAttribute, error) {
 	apiPath := fmt.Sprintf("/product/202309/categories/%s/attributes", categoryID)
 	params := map[string]string{
 		"category_version": "v2", // Use v2 for SEA market
@@ -137,7 +138,7 @@ func (c *Client) GetCategoryAttributes(categoryID string) ([]CategoryAttribute, 
 	}
 
 	var resp GetAttributesResponse
-	err := c.doRequest("GET", apiPath, params, &resp)
+	err := c.doRequest(ctx, "GET", apiPath, params, &resp)
 	if err != nil {
 		return nil, fmt.Errorf("GetCategoryAttributes failed: %w", err)
 	}
@@ -154,8 +155,8 @@ func (c *Client) GetCategoryAttributes(categoryID string) ([]CategoryAttribute, 
 }
 
 // GetRequiredAttributes returns only required PRODUCT_PROPERTY attributes with their first valid value
-func (c *Client) GetRequiredAttributes(categoryID string) ([]ProductAttribute, error) {
-	attrs, err := c.GetCategoryAttributes(categoryID)
+func (c *Client) GetRequiredAttributes(ctx context.Context, categoryID string) ([]ProductAttribute, error) {
+	attrs, err := c.GetCategoryAttributes(ctx, categoryID)
 	if err != nil {
 		return nil, err
 	}

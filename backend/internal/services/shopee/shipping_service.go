@@ -11,9 +11,9 @@ import (
 
 // shippingClient interface for pkg/shopee.Client methods used by shipping service
 type shippingClient interface {
-	GetShippingParameter(orderSN string) (*shopeePkg.GetShippingParameterResponse, error)
+	GetShippingParameter(ctx context.Context, orderSN string) (*shopeePkg.GetShippingParameterResponse, error)
 	ShipOrder(req shopeePkg.ShipOrderRequest) (*shopeePkg.ShipOrderResponse, error)
-	GetTrackingNumber(orderSN string) (*shopeePkg.GetTrackingNumberResponse, error)
+	GetTrackingNumber(ctx context.Context, orderSN string) (*shopeePkg.GetTrackingNumberResponse, error)
 	GetShippingDocumentParameter(orderSN, packageNumber string) (*shopeePkg.GetShippingDocumentParameterResponse, error)
 	CreateShippingDocument(orderSN, packageNumber string) (*shopeePkg.CreateShippingDocumentResponse, error)
 	CreateShippingDocumentWithOptions(orderSN, packageNumber string, options shopeePkg.ShippingDocumentRequestOptions) (*shopeePkg.CreateShippingDocumentResponse, error)
@@ -22,7 +22,7 @@ type shippingClient interface {
 	DownloadShippingDocument(orderSN, packageNumber, documentType string) (*shopeePkg.DownloadShippingDocumentResponse, error)
 	GetShippingDocumentDataInfo(orderSN, packageNumber string) (*shopeePkg.ShippingDocumentDataInfoResponse, error)
 	SearchPackageList(packageStatus int, cursor string, pageSize int) (*shopeePkg.SearchPackageListResponse, error)
-	GetPackageDetail(packageNumbers []string) (*shopeePkg.GetPackageDetailResponse, error)
+	GetPackageDetail(ctx context.Context, packageNumbers []string) (*shopeePkg.GetPackageDetailResponse, error)
 }
 
 // ShippingService handles Shopee shipping operations
@@ -139,7 +139,7 @@ func (s *ShippingService) GetShippingOptions(ctx context.Context, orderSN string
 		return nil, err
 	}
 
-	result, err := client.GetShippingParameter(orderSN)
+	result, err := client.GetShippingParameter(ctx, orderSN)
 	if err != nil {
 		return nil, fmt.Errorf("get shipping parameter: %w", err)
 	}
@@ -233,7 +233,7 @@ func (s *ShippingService) GetTrackingInfo(ctx context.Context, orderSN string) (
 		return nil, err
 	}
 
-	result, err := client.GetTrackingNumber(orderSN)
+	result, err := client.GetTrackingNumber(ctx, orderSN)
 	if err != nil {
 		return nil, fmt.Errorf("get tracking number: %w", err)
 	}

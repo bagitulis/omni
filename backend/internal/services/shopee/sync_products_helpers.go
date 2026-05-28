@@ -65,7 +65,7 @@ func (s *ProductSyncService) syncItemDetailBatches(
 
 		log.Info().Ints64("batch_ids", batchIDs).Int("batch_size", len(batchIDs)).Msg("[Shopee SyncProductsByIDs] Fetching product details")
 
-		detailResp, err := s.client.GetProductDetailWithImages(batchIDs)
+		detailResp, err := s.client.GetProductDetailWithImages(ctx, batchIDs)
 		if err != nil {
 			log.Error().Err(err).Ints64("batch_ids", batchIDs).Msg("[Shopee SyncProductsByIDs] API call FAILED")
 			zlog.Warn().Err(err).Int("batch_size", len(batchIDs)).Int("batch_start", i).Msg("Shopee product detail batch failed, continuing")
@@ -166,7 +166,7 @@ func (s *ProductSyncService) syncProductSKUs(
 	itemID int64,
 	itemSKU string,
 ) error {
-	modelResp, err := s.client.GetModelList(itemID)
+	modelResp, err := s.client.GetModelList(ctx, itemID)
 	if err != nil {
 		return err
 	}

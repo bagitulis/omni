@@ -253,7 +253,7 @@ func (o *PriceUpdateOrchestrator) updateLazadaPrice(_ context.Context, ids *Laza
 }
 
 // updateTiktokPrice updates price on TikTok platform
-func (o *PriceUpdateOrchestrator) updateTiktokPrice(_ context.Context, ids *TiktokProductIds, price float64) *PlatformPriceResult {
+func (o *PriceUpdateOrchestrator) updateTiktokPrice(ctx context.Context, ids *TiktokProductIds, price float64) *PlatformPriceResult {
 	result := &PlatformPriceResult{
 		Success:  false,
 		ItemID:   ids.ProductID,
@@ -297,7 +297,7 @@ func (o *PriceUpdateOrchestrator) updateTiktokPrice(_ context.Context, ids *Tikt
 		},
 	}
 
-	resp, err := client.UpdateProductPrice(req)
+	resp, err := client.UpdateProductPrice(ctx, req)
 	if err != nil {
 		log.Error().Err(err).
 			Str("product_id", ids.ProductID).

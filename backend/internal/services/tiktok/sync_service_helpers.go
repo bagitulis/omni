@@ -103,7 +103,7 @@ func (s *SyncService) syncProductsWithDB(
 			continue
 		}
 
-		detailResp, err := s.client.GetProductDetail(prod.ID)
+		detailResp, err := s.client.GetProductDetail(ctx, prod.ID)
 		if err != nil {
 			zlog.Error().Str("product_id", prod.ID).Err(err).Msg("Failed to get product detail, syncing product without variant/image enrichment")
 			detailResp = nil

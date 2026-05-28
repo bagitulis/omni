@@ -1,6 +1,7 @@
 package shopee
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -164,13 +165,13 @@ func (c *Client) CancelOrder(req CancelOrderRequest) (*CancelOrderResponse, erro
 }
 
 // GetShippingParameter gets shipping parameter for an order
-func (c *Client) GetShippingParameter(orderSN string) (*GetShippingParameterResponse, error) {
+func (c *Client) GetShippingParameter(ctx context.Context, orderSN string) (*GetShippingParameterResponse, error) {
 	params := map[string]string{
 		"order_sn": orderSN,
 	}
 
 	var result GetShippingParameterResponse
-	if err := c.doRequest("GET", "/api/v2/logistics/get_shipping_parameter", params, &result); err != nil {
+	if err := c.doRequest(ctx, "GET", "/api/v2/logistics/get_shipping_parameter", params, &result); err != nil {
 		return nil, err
 	}
 
@@ -183,13 +184,13 @@ func (c *Client) GetShippingParameter(orderSN string) (*GetShippingParameterResp
 }
 
 // GetTrackingNumber gets tracking number for an order
-func (c *Client) GetTrackingNumber(orderSN string) (*GetTrackingNumberResponse, error) {
+func (c *Client) GetTrackingNumber(ctx context.Context, orderSN string) (*GetTrackingNumberResponse, error) {
 	params := map[string]string{
 		"order_sn": orderSN,
 	}
 
 	var result GetTrackingNumberResponse
-	if err := c.doRequest("GET", "/api/v2/logistics/get_tracking_number", params, &result); err != nil {
+	if err := c.doRequest(ctx, "GET", "/api/v2/logistics/get_tracking_number", params, &result); err != nil {
 		return nil, err
 	}
 

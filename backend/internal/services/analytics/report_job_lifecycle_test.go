@@ -77,20 +77,20 @@ type blockingFakeTiktokClient struct {
 	blockSignal <-chan struct{}
 }
 
-func (f *blockingFakeTiktokClient) SearchOrders(req tiktokPkg.OrderSearchRequest, pageSize int, pageToken string) (*tiktokPkg.OrderSearchResponse, error) {
+func (f *blockingFakeTiktokClient) SearchOrders(ctx context.Context, req tiktokPkg.OrderSearchRequest, pageSize int, pageToken string) (*tiktokPkg.OrderSearchResponse, error) {
 	<-f.blockSignal
 	return nil, context.Canceled
 }
 
-func (f *blockingFakeTiktokClient) GetOrderDetail(orderIDs []string) (*tiktokPkg.OrderDetailResponse, error) {
+func (f *blockingFakeTiktokClient) GetOrderDetail(ctx context.Context, orderIDs []string) (*tiktokPkg.OrderDetailResponse, error) {
 	return &tiktokPkg.OrderDetailResponse{Code: 0, Message: "success"}, nil
 }
 
-func (f *blockingFakeTiktokClient) GetOrderTransactions(orderID string) (*tiktokPkg.OrderTransactionResponse, error) {
+func (f *blockingFakeTiktokClient) GetOrderTransactions(ctx context.Context, orderID string) (*tiktokPkg.OrderTransactionResponse, error) {
 	return &tiktokPkg.OrderTransactionResponse{Code: 40001, Message: "not found"}, nil
 }
 
-func (f *blockingFakeTiktokClient) GetOrderTransactionsV202309(orderID string) (*tiktokPkg.OrderTransactionResponse, error) {
+func (f *blockingFakeTiktokClient) GetOrderTransactionsV202309(ctx context.Context, orderID string) (*tiktokPkg.OrderTransactionResponse, error) {
 	return &tiktokPkg.OrderTransactionResponse{Code: 40001, Message: "not found"}, nil
 }
 

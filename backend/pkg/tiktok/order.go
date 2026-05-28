@@ -1,7 +1,10 @@
 // Package tiktok provides Order API types and methods for TikTok Shop
 package tiktok
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // =============================================================================
 // Order Search API
@@ -75,7 +78,7 @@ type TiktokOrderItem struct {
 }
 
 // SearchOrders searches orders from TikTok API
-func (c *Client) SearchOrders(req OrderSearchRequest, pageSize int, pageToken string) (*OrderSearchResponse, error) {
+func (c *Client) SearchOrders(ctx context.Context, req OrderSearchRequest, pageSize int, pageToken string) (*OrderSearchResponse, error) {
 	params := map[string]string{
 		"page_size": fmt.Sprintf("%d", pageSize),
 	}
@@ -96,6 +99,6 @@ func (c *Client) SearchOrders(req OrderSearchRequest, pageSize int, pageToken st
 	}
 
 	var result OrderSearchResponse
-	err := c.doRequestWithBody("POST", "/order/202309/orders/search", params, body, &result)
+	err := c.doRequestWithBody(ctx, "POST", "/order/202309/orders/search", params, body, &result)
 	return &result, err
 }

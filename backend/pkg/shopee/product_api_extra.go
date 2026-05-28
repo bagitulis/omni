@@ -2,6 +2,7 @@ package shopee
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -105,7 +106,7 @@ type CategoryRecommendResponse struct {
 }
 
 // GetCategoryRecommend gets category recommendation by product name
-func (c *Client) GetCategoryRecommend(itemName string, imageID string) (*CategoryRecommendResponse, error) {
+func (c *Client) GetCategoryRecommend(ctx context.Context, itemName string, imageID string) (*CategoryRecommendResponse, error) {
 	params := map[string]string{
 		"item_name": itemName,
 	}
@@ -114,7 +115,7 @@ func (c *Client) GetCategoryRecommend(itemName string, imageID string) (*Categor
 	}
 
 	var result CategoryRecommendResponse
-	if err := c.doRequest("GET", "/api/v2/product/category_recommend", params, &result); err != nil {
+	if err := c.doRequest(ctx, "GET", "/api/v2/product/category_recommend", params, &result); err != nil {
 		return nil, fmt.Errorf("category recommend request failed: %w", err)
 	}
 
@@ -156,14 +157,14 @@ type RecommendedAttrValue struct {
 }
 
 // GetRecommendAttribute gets recommended attributes for a category
-func (c *Client) GetRecommendAttribute(categoryID int64, itemName string) (*RecommendAttributeResponse, error) {
+func (c *Client) GetRecommendAttribute(ctx context.Context, categoryID int64, itemName string) (*RecommendAttributeResponse, error) {
 	params := map[string]string{
 		"category_id": fmt.Sprintf("%d", categoryID),
 		"item_name":   itemName,
 	}
 
 	var result RecommendAttributeResponse
-	if err := c.doRequest("GET", "/api/v2/product/get_recommend_attribute", params, &result); err != nil {
+	if err := c.doRequest(ctx, "GET", "/api/v2/product/get_recommend_attribute", params, &result); err != nil {
 		return nil, fmt.Errorf("get recommend attribute request failed: %w", err)
 	}
 
@@ -192,9 +193,9 @@ type LogisticChannel struct {
 }
 
 // GetLogisticChannels gets available logistics channels for shop
-func (c *Client) GetLogisticChannels() (*GetLogisticChannelsResponse, error) {
+func (c *Client) GetLogisticChannels(ctx context.Context) (*GetLogisticChannelsResponse, error) {
 	var result GetLogisticChannelsResponse
-	if err := c.doRequest("GET", "/api/v2/logistics/get_channel_list", nil, &result); err != nil {
+	if err := c.doRequest(ctx, "GET", "/api/v2/logistics/get_channel_list", nil, &result); err != nil {
 		return nil, fmt.Errorf("get logistics channels failed: %w", err)
 	}
 

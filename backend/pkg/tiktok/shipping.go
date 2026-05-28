@@ -1,7 +1,10 @@
 // Package tiktok provides Shipping/Fulfillment API types and methods for TikTok Shop
 package tiktok
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // =============================================================================
 // Order Detail API (includes packages)
@@ -54,7 +57,7 @@ type PaymentInfo struct {
 
 // GetOrderDetail fetches detailed order info including packages
 // TikTok API: GET /order/202309/orders
-func (c *Client) GetOrderDetail(orderIDs []string) (*OrderDetailResponse, error) {
+func (c *Client) GetOrderDetail(ctx context.Context, orderIDs []string) (*OrderDetailResponse, error) {
 	apiPath := "/order/202309/orders"
 	params := map[string]string{}
 
@@ -71,7 +74,7 @@ func (c *Client) GetOrderDetail(orderIDs []string) (*OrderDetailResponse, error)
 	}
 
 	var result OrderDetailResponse
-	if err := c.doRequest("GET", apiPath, params, &result); err != nil {
+	if err := c.doRequest(ctx, "GET", apiPath, params, &result); err != nil {
 		return nil, fmt.Errorf("GetOrderDetail failed: %w", err)
 	}
 
@@ -104,12 +107,12 @@ type HandoverTimeSlot struct {
 
 // GetHandoverTimeSlots retrieves available pickup/drop-off time slots for a package
 // TikTok API: GET /fulfillment/202309/packages/{package_id}/handover_time_slots
-func (c *Client) GetHandoverTimeSlots(packageID string) (*HandoverTimeSlotsResponse, error) {
+func (c *Client) GetHandoverTimeSlots(ctx context.Context, packageID string) (*HandoverTimeSlotsResponse, error) {
 	apiPath := fmt.Sprintf("/fulfillment/202309/packages/%s/handover_time_slots", packageID)
 	params := map[string]string{}
 
 	var result HandoverTimeSlotsResponse
-	if err := c.doRequest("GET", apiPath, params, &result); err != nil {
+	if err := c.doRequest(ctx, "GET", apiPath, params, &result); err != nil {
 		return nil, fmt.Errorf("GetHandoverTimeSlots failed: %w", err)
 	}
 
@@ -123,7 +126,7 @@ func (c *Client) GetHandoverTimeSlots(packageID string) (*HandoverTimeSlotsRespo
 // GetHandoverTimeSlotsForOrder retrieves available time slots using order ID
 // This first resolves the order to package ID, then fetches time slots
 // TikTok API: GET /fulfillment/202309/orders/{order_id}/handover_time_slots
-func (c *Client) GetHandoverTimeSlotsForOrder(orderID string, lineItemIDs []string) (*HandoverTimeSlotsResponse, error) {
+func (c *Client) GetHandoverTimeSlotsForOrder(ctx context.Context, orderID string, lineItemIDs []string) (*HandoverTimeSlotsResponse, error) {
 	apiPath := fmt.Sprintf("/fulfillment/202309/orders/%s/handover_time_slots", orderID)
 	params := map[string]string{}
 
@@ -135,7 +138,7 @@ func (c *Client) GetHandoverTimeSlotsForOrder(orderID string, lineItemIDs []stri
 	}
 
 	var result HandoverTimeSlotsResponse
-	if err := c.doRequest("GET", apiPath, params, &result); err != nil {
+	if err := c.doRequest(ctx, "GET", apiPath, params, &result); err != nil {
 		return nil, fmt.Errorf("GetHandoverTimeSlotsForOrder failed: %w", err)
 	}
 
@@ -169,12 +172,12 @@ type PackageDetailResponse struct {
 
 // GetPackageDetail gets detailed package info
 // TikTok API: GET /fulfillment/202309/packages/{package_id}
-func (c *Client) GetPackageDetail(packageID string) (*PackageDetailResponse, error) {
+func (c *Client) GetPackageDetail(ctx context.Context, packageID string) (*PackageDetailResponse, error) {
 	apiPath := fmt.Sprintf("/fulfillment/202309/packages/%s", packageID)
 	params := map[string]string{}
 
 	var result PackageDetailResponse
-	if err := c.doRequest("GET", apiPath, params, &result); err != nil {
+	if err := c.doRequest(ctx, "GET", apiPath, params, &result); err != nil {
 		return nil, fmt.Errorf("GetPackageDetail failed: %w", err)
 	}
 
@@ -191,8 +194,8 @@ func (c *Client) GetPackageDetail(packageID string) (*PackageDetailResponse, err
 
 // ResolveOrderToPackageID resolves an order ID to its first package ID
 // Returns packageID and package status, or error if not found
-func (c *Client) ResolveOrderToPackageID(orderID string) (string, string, error) {
-	orderDetail, err := c.GetOrderDetail([]string{orderID})
+func (c *Client) ResolveOrderToPackageID(ctx context.Context, orderID string) (string, string, error) {
+	orderDetail, err := c.GetOrderDetail(ctx, []string{orderID})
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get order detail: %w", err)
 	}

@@ -1,7 +1,10 @@
 // Package tiktok provides Finance API types and methods for TikTok Shop
 package tiktok
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // =============================================================================
 // Finance API - Get Transactions by Order
@@ -68,21 +71,21 @@ type StatementTransaction struct {
 }
 
 // GetOrderTransactions fetches transaction details for an order (v202501 API)
-func (c *Client) GetOrderTransactions(orderID string) (*OrderTransactionResponse, error) {
+func (c *Client) GetOrderTransactions(ctx context.Context, orderID string) (*OrderTransactionResponse, error) {
 	params := map[string]string{}
 
 	var result OrderTransactionResponse
 	// Use v202501 API for full SKU transaction details
-	err := c.doRequest("GET", "/finance/202501/orders/"+orderID+"/statement_transactions", params, &result)
+	err := c.doRequest(ctx, "GET", "/finance/202501/orders/"+orderID+"/statement_transactions", params, &result)
 	return &result, err
 }
 
 // GetOrderTransactionsV202309 fetches transactions using older API version
-func (c *Client) GetOrderTransactionsV202309(orderID string) (*OrderTransactionResponse, error) {
+func (c *Client) GetOrderTransactionsV202309(ctx context.Context, orderID string) (*OrderTransactionResponse, error) {
 	params := map[string]string{}
 
 	var result OrderTransactionResponse
-	err := c.doRequest("GET", "/finance/202309/orders/"+orderID+"/statement_transactions", params, &result)
+	err := c.doRequest(ctx, "GET", "/finance/202309/orders/"+orderID+"/statement_transactions", params, &result)
 	return &result, err
 }
 
@@ -127,7 +130,7 @@ type StatementTxItem struct {
 // GetStatements fetches statement IDs for a settlement time window.
 // Uses /finance/202309/statements which works for all regions.
 // TikTok generates one statement per day at 00:00 UTC.
-func (c *Client) GetStatements(startTime, endTime int64, pageToken string) (*StatementListResponse, error) {
+func (c *Client) GetStatements(ctx context.Context, startTime, endTime int64, pageToken string) (*StatementListResponse, error) {
 	params := map[string]string{
 		"sort_field":        "statement_time",
 		"sort_order":        "ASC",
@@ -139,13 +142,13 @@ func (c *Client) GetStatements(startTime, endTime int64, pageToken string) (*Sta
 		params["page_token"] = pageToken
 	}
 	var result StatementListResponse
-	err := c.doRequest("GET", "/finance/202309/statements", params, &result)
+	err := c.doRequest(ctx, "GET", "/finance/202309/statements", params, &result)
 	return &result, err
 }
 
 // GetStatementTransactions fetches order transactions for a specific statement.
 // Uses /finance/202501 (all-region support including SEA/Indonesia).
-func (c *Client) GetStatementTransactions(statementID, pageToken string) (*StatementTxListResponse, error) {
+func (c *Client) GetStatementTransactions(ctx context.Context, statementID, pageToken string) (*StatementTxListResponse, error) {
 	params := map[string]string{
 		"sort_field": "order_create_time",
 		"sort_order": "ASC",
@@ -155,7 +158,7 @@ func (c *Client) GetStatementTransactions(statementID, pageToken string) (*State
 		params["page_token"] = pageToken
 	}
 	var result StatementTxListResponse
-	err := c.doRequest("GET", "/finance/202501/statements/"+statementID+"/statement_transactions", params, &result)
+	err := c.doRequest(ctx, "GET", "/finance/202501/statements/"+statementID+"/statement_transactions", params, &result)
 	return &result, err
 }
 

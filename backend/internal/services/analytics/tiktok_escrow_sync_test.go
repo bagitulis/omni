@@ -219,7 +219,7 @@ func newFakeTiktokClient() *FakeTiktokClient {
 	}
 }
 
-func (f *FakeTiktokClient) SearchOrders(req tiktokPkg.OrderSearchRequest, pageSize int, pageToken string) (*tiktokPkg.OrderSearchResponse, error) {
+func (f *FakeTiktokClient) SearchOrders(ctx context.Context, req tiktokPkg.OrderSearchRequest, pageSize int, pageToken string) (*tiktokPkg.OrderSearchResponse, error) {
 	f.mu.Lock()
 	f.calls = append(f.calls, callRecord{method: "SearchOrders", args: []any{req, pageSize, pageToken}})
 	f.mu.Unlock()
@@ -244,7 +244,7 @@ func (f *FakeTiktokClient) SearchOrders(req tiktokPkg.OrderSearchRequest, pageSi
 	}, nil
 }
 
-func (f *FakeTiktokClient) GetOrderDetail(orderIDs []string) (*tiktokPkg.OrderDetailResponse, error) {
+func (f *FakeTiktokClient) GetOrderDetail(ctx context.Context, orderIDs []string) (*tiktokPkg.OrderDetailResponse, error) {
 	f.mu.Lock()
 	f.calls = append(f.calls, callRecord{method: "GetOrderDetail", args: []any{orderIDs}})
 	f.mu.Unlock()
@@ -298,7 +298,7 @@ func buildOrderLineItems(items []tiktokPkg.TiktokOrderItem) []tiktokPkg.OrderLin
 	return result
 }
 
-func (f *FakeTiktokClient) GetOrderTransactions(orderID string) (*tiktokPkg.OrderTransactionResponse, error) {
+func (f *FakeTiktokClient) GetOrderTransactions(ctx context.Context, orderID string) (*tiktokPkg.OrderTransactionResponse, error) {
 	f.mu.Lock()
 	f.calls = append(f.calls, callRecord{method: "GetOrderTransactions(v202501)", args: []any{orderID}})
 	f.mu.Unlock()
@@ -310,7 +310,7 @@ func (f *FakeTiktokClient) GetOrderTransactions(orderID string) (*tiktokPkg.Orde
 	return tx, nil
 }
 
-func (f *FakeTiktokClient) GetOrderTransactionsV202309(orderID string) (*tiktokPkg.OrderTransactionResponse, error) {
+func (f *FakeTiktokClient) GetOrderTransactionsV202309(ctx context.Context, orderID string) (*tiktokPkg.OrderTransactionResponse, error) {
 	f.mu.Lock()
 	f.calls = append(f.calls, callRecord{method: "GetOrderTransactions(v202309)", args: []any{orderID}})
 	f.mu.Unlock()

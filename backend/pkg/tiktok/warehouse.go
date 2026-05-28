@@ -1,6 +1,7 @@
 package tiktok
 
 import (
+	"context"
 	"fmt"
 	"log"
 )
@@ -36,11 +37,11 @@ type Warehouse struct {
 
 // GetWarehouses fetches warehouse list from TikTok API
 // API: GET /logistics/202309/warehouses
-func (c *Client) GetWarehouses() (*WarehouseResponse, error) {
+func (c *Client) GetWarehouses(ctx context.Context) (*WarehouseResponse, error) {
 	params := map[string]string{}
 
 	var result WarehouseResponse
-	err := c.doRequest("GET", "/logistics/202309/warehouses", params, &result)
+	err := c.doRequest(ctx, "GET", "/logistics/202309/warehouses", params, &result)
 	if err != nil {
 		log.Printf("[TikTok Warehouse] API error: %v", err)
 		return nil, err
@@ -62,8 +63,8 @@ func (c *Client) GetWarehouses() (*WarehouseResponse, error) {
 }
 
 // GetDefaultWarehouseID returns the default warehouse ID, or the first one if no default
-func (c *Client) GetDefaultWarehouseID() (string, error) {
-	resp, err := c.GetWarehouses()
+func (c *Client) GetDefaultWarehouseID(ctx context.Context) (string, error) {
+	resp, err := c.GetWarehouses(ctx)
 	if err != nil {
 		return "", err
 	}

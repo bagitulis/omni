@@ -35,7 +35,7 @@ func (c *Client) GetShippingParameter(ctx context.Context, orderSN string) (*Get
 	if orderSN == "" {
 		return nil, errors.New("order_sn is required")
 	}
-	return c.api.GetShippingParameter(orderSN)
+	return c.api.GetShippingParameter(ctx, orderSN)
 }
 
 // GetTrackingNumber fetches tracking number for an order.
@@ -46,5 +46,5 @@ func (c *Client) GetTrackingNumber(ctx context.Context, orderSN string) (*GetTra
 	if orderSN == "" {
 		return nil, errors.New("order_sn is required")
 	}
-	return c.api.GetTrackingNumber(orderSN)
+	return c.api.GetTrackingNumber(ctx, orderSN)
 }

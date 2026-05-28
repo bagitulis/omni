@@ -156,7 +156,11 @@ func (c *Client) RawRequest(ctx context.Context, method, apiPath string, params 
 		if attempt > 0 {
 			if retryAfterDuration > 0 {
 				log.Info().Int("attempt", attempt+1).Dur("retry_after", retryAfterDuration).Msg("[Lazada API] Respecting Retry-After header")
-				time.Sleep(retryAfterDuration)
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(retryAfterDuration):
+				}
 				retryAfterDuration = 0
 			} else {
 				backoff := time.Duration(1<<uint(attempt)) * 200 * time.Millisecond
@@ -164,7 +168,11 @@ func (c *Client) RawRequest(ctx context.Context, method, apiPath string, params 
 					backoff = time.Duration(1<<uint(attempt)) * time.Second
 				}
 				log.Info().Int("attempt", attempt+1).Dur("backoff", backoff).Msg("[Lazada API] Retrying request")
-				time.Sleep(backoff)
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(backoff):
+				}
 			}
 		}
 

@@ -109,7 +109,7 @@ func (s *ShippingFeeService) GetMonthlyShippingFees(ctx context.Context, month, 
 	cursor := ""
 
 	for {
-		orderResp, err := s.client.GetOrderList(startDate.Unix(), endDate.Unix(), "create_time", "", cursor)
+		orderResp, err := s.client.GetOrderList(ctx, startDate.Unix(), endDate.Unix(), "create_time", "", cursor)
 		if err != nil {
 			return nil, fmt.Errorf("get order list: %w", err)
 		}

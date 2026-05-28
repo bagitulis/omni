@@ -15,7 +15,7 @@ func (s *ShippingService) ensureShipmentReady(ctx context.Context, client shippi
 	var err error
 
 	for i := 0; i < 3; i++ {
-		resp, err = client.GetTrackingNumber(orderSN)
+		resp, err = client.GetTrackingNumber(ctx, orderSN)
 		if err == nil && resp != nil && resp.Response.TrackingNumber != "" {
 			return resp, nil
 		}
@@ -24,9 +24,12 @@ func (s *ShippingService) ensureShipmentReady(ctx context.Context, client shippi
 			log.Warn().
 				Str("order_sn", orderSN).
 				Str("package_number", packageNumber).
-				Int("attempt", i+1).
 				Msg("Tracking number not ready, retrying...")
-			time.Sleep(500 * time.Millisecond)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(500 * time.Millisecond):
+			}
 		}
 	}
 
@@ -47,7 +50,7 @@ func (s *ShippingService) applyDefaultPickupTime(ctx context.Context, client shi
 		return nil
 	}
 
-	resp, err := client.GetShippingParameter(orderSN)
+	resp, err := client.GetShippingParameter(ctx, orderSN)
 	if err != nil {
 		return fmt.Errorf("get shipping parameter: %w", err)
 	}

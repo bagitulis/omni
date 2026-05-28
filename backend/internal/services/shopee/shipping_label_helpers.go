@@ -11,7 +11,6 @@ import (
 )
 
 func (s *ShippingService) pollAndDownload(ctx context.Context, client shippingClient, orderSN, packageNumber, documentType, createErrorMessage string) (*ShippingLabelResult, error) {
-	_ = ctx
 	lastStatus := ""
 	effectivePackageNumber := packageNumber
 	for i := 0; i < 30; i++ {
@@ -49,7 +48,11 @@ func (s *ShippingService) pollAndDownload(ctx context.Context, client shippingCl
 		}
 
 		if i < 29 {
-			time.Sleep(2 * time.Second)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(2 * time.Second):
+			}
 		}
 	}
 

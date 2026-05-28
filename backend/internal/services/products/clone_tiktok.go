@@ -62,7 +62,7 @@ func (s *CloneService) fetchTiktokProductFromDB(ctx context.Context, itemID stri
 			Str("product_id", product.ProductID).
 			Msg("No images in DB, fetching from TikTok API")
 
-		apiImages := s.fetchTiktokImagesFromAPI(product.ProductID)
+		apiImages := s.fetchTiktokImagesFromAPI(ctx, product.ProductID)
 		if len(apiImages) > 0 {
 			images = apiImages
 		}
@@ -81,7 +81,7 @@ func (s *CloneService) fetchTiktokProductFromDB(ctx context.Context, itemID stri
 }
 
 // fetchTiktokImagesFromAPI fetches product images from TikTok API
-func (s *CloneService) fetchTiktokImagesFromAPI(productID string) []string {
+func (s *CloneService) fetchTiktokImagesFromAPI(ctx context.Context, productID string) []string {
 	creds, err := s.credService.GetPlatformCredentials(s.tenantID, "tiktok")
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get TikTok credentials for API fetch")
@@ -91,7 +91,7 @@ func (s *CloneService) fetchTiktokImagesFromAPI(productID string) []string {
 	client := tiktokPkg.NewClient(creds.AppKey, creds.AppSecret)
 	client.SetCredentials(creds.AccessToken, creds.ShopCipher)
 
-	resp, err := client.GetProductDetail(productID)
+	resp, err := client.GetProductDetail(ctx, productID)
 	if err != nil {
 		log.Error().Err(err).Str("product_id", productID).Msg("Failed to fetch TikTok product detail")
 		return nil
@@ -121,7 +121,7 @@ func (s *CloneService) fetchTiktokImagesFromAPI(productID string) []string {
 // =============================================================================
 
 // createTiktokProduct creates a product on TikTok platform
-func (s *CloneService) createTiktokProduct(_ context.Context, data *ProductData) (string, error) {
+func (s *CloneService) createTiktokProduct(ctx context.Context, data *ProductData) (string, error) {
 	creds, err := s.credService.GetPlatformCredentials(s.tenantID, "tiktok")
 	if err != nil {
 		return "", fmt.Errorf("failed to get TikTok credentials: %w", err)
@@ -131,7 +131,7 @@ func (s *CloneService) createTiktokProduct(_ context.Context, data *ProductData)
 	client.SetCredentials(creds.AccessToken, creds.ShopCipher)
 
 	// Step 1: Get warehouse ID
-	warehouseID, err := client.GetDefaultWarehouseID()
+	warehouseID, err := client.GetDefaultWarehouseID(ctx)
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to get warehouse ID, proceeding without it")
 	}
@@ -144,13 +144,13 @@ func (s *CloneService) createTiktokProduct(_ context.Context, data *ProductData)
 	}
 
 	// Step 3: Get recommended category from TikTok (uses image URIs for better recommendation)
-	categoryID, err := s.getTiktokCategory(client, data, imageURIs)
+	categoryID, err := s.getTiktokCategory(ctx, client, data, imageURIs)
 	if err != nil {
 		return "", err
 	}
 
 	// Step 4: Get required attributes for this category
-	requiredAttrs := s.getTiktokRequiredAttributes(client, categoryID)
+	requiredAttrs := s.getTiktokRequiredAttributes(ctx, client, categoryID)
 
 	// Step 5: Build SKUs with variants
 	skus := s.buildTiktokSKUs(data, warehouseID)
@@ -162,7 +162,7 @@ func (s *CloneService) createTiktokProduct(_ context.Context, data *ProductData)
 	s.logTiktokProductCreation(data, categoryID, uploadedImages, skus, warehouseID)
 
 	// Step 7: Call TikTok API
-	result, err := client.CreateProduct(req)
+	result, err := client.CreateProduct(ctx, req)
 	if err != nil {
 		return "", fmt.Errorf("TikTok CreateProduct: %w", err)
 	}

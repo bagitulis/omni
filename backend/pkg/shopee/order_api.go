@@ -1,13 +1,14 @@
 package shopee
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 )
 
 // GetOrderList gets list of orders with pagination support
-func (c *Client) GetOrderList(timeFrom, timeTo int64, timeRangeField string, orderStatus string, cursor string) (*GetOrderListResponse, error) {
+func (c *Client) GetOrderList(ctx context.Context, timeFrom, timeTo int64, timeRangeField string, orderStatus string, cursor string) (*GetOrderListResponse, error) {
 	path := "/api/v2/order/get_order_list"
 	params := map[string]string{
 		"time_from":        strconv.FormatInt(timeFrom, 10),
@@ -27,7 +28,7 @@ func (c *Client) GetOrderList(timeFrom, timeTo int64, timeRangeField string, ord
 	}
 
 	var result GetOrderListResponse
-	err := c.doRequest("GET", path, params, &result)
+	err := c.doRequest(ctx, "GET", path, params, &result)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +43,7 @@ func (c *Client) GetOrderList(timeFrom, timeTo int64, timeRangeField string, ord
 
 // GetOrderDetail gets order details by order SNs
 // Includes buyer info, payment, shipping via response_optional_fields
-func (c *Client) GetOrderDetail(orderSNList []string) (*GetOrderDetailResponse, error) {
+func (c *Client) GetOrderDetail(ctx context.Context, orderSNList []string) (*GetOrderDetailResponse, error) {
 	path := "/api/v2/order/get_order_detail"
 	// Request all important optional fields from Shopee API
 	optionalFields := strings.Join([]string{
@@ -85,7 +86,7 @@ func (c *Client) GetOrderDetail(orderSNList []string) (*GetOrderDetailResponse, 
 	}
 
 	var result GetOrderDetailResponse
-	err := c.doRequest("GET", path, params, &result)
+	err := c.doRequest(ctx, "GET", path, params, &result)
 	if err != nil {
 		return nil, err
 	}

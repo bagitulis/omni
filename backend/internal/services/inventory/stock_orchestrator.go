@@ -262,7 +262,7 @@ func (o *StockUpdateOrchestrator) updateLazadaStock(_ context.Context, ids *Laza
 }
 
 // updateTiktokStock updates stock on TikTok platform
-func (o *StockUpdateOrchestrator) updateTiktokStock(_ context.Context, ids *TiktokProductIds, stock int) *PlatformStockResult {
+func (o *StockUpdateOrchestrator) updateTiktokStock(ctx context.Context, ids *TiktokProductIds, stock int) *PlatformStockResult {
 	result := &PlatformStockResult{
 		Success: false,
 		ItemID:  ids.ProductID,
@@ -296,7 +296,7 @@ func (o *StockUpdateOrchestrator) updateTiktokStock(_ context.Context, ids *Tikt
 		},
 	}
 
-	resp, err := client.UpdateInventory(req)
+	resp, err := client.UpdateInventory(ctx, req)
 	if err != nil {
 		result.Error = err.Error()
 		return result

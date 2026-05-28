@@ -47,12 +47,12 @@ func (c *ShopeeAPIClient) GetClient() *shopeePkg.Client {
 // GetProductList fetches products using Shopee API v2
 // API: GET /api/v2/product/get_item_list
 // Docs: https://open.shopee.com/documents/v2/v2.product.get_item_list
-func (c *ShopeeAPIClient) GetProductList(_ context.Context, offset, limit int) ([]map[string]interface{}, error) {
+func (c *ShopeeAPIClient) GetProductList(ctx context.Context, offset, limit int) ([]map[string]interface{}, error) {
 	if !c.IsInitialized() {
 		return nil, fmt.Errorf("shopee client not initialized")
 	}
 
-	rawResp, err := c.client.GetItemList(offset, limit, "NORMAL")
+	rawResp, err := c.client.GetItemList(ctx, offset, limit, "NORMAL")
 	if err != nil {
 		return nil, err
 	}

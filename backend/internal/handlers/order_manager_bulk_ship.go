@@ -156,7 +156,7 @@ func (h *OrderManagerHandler) bulkShipTikTok(ctx context.Context, tenantID, user
 		if cancelled, ok := cancelledBulkShipResult(ctx, orderSN); ok {
 			return cancelled
 		}
-		pkgID, _, err := client.ResolveOrderToPackageID(orderSN)
+		pkgID, _, err := client.ResolveOrderToPackageID(ctx, orderSN)
 		if err != nil {
 			result.Status = "failed"
 			result.Error = "Failed to resolve package: " + err.Error()
@@ -166,7 +166,7 @@ func (h *OrderManagerHandler) bulkShipTikTok(ctx context.Context, tenantID, user
 			return cancelled
 		}
 		shipReq := &tiktokPkg.ShipPackageRequest{HandoverMethod: "PICKUP"}
-		if _, err = client.ArrangeShipment(pkgID, shipReq); err != nil {
+		if _, err = client.ArrangeShipment(ctx, pkgID, shipReq); err != nil {
 			result.Status = "failed"
 			result.Error = err.Error()
 			return result

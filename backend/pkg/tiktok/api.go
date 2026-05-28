@@ -1,7 +1,10 @@
 // Package tiktok provides core API types and methods for TikTok Shop
 package tiktok
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // =============================================================================
 // Core Response Types
@@ -41,7 +44,7 @@ type OrderListResponse struct {
 }
 
 // GetOrders fetches orders from TikTok API
-func (c *Client) GetOrders(status string, pageSize int) (*OrderListResponse, error) {
+func (c *Client) GetOrders(ctx context.Context, status string, pageSize int) (*OrderListResponse, error) {
 	params := map[string]string{
 		"page_size": fmt.Sprintf("%d", pageSize),
 	}
@@ -50,7 +53,7 @@ func (c *Client) GetOrders(status string, pageSize int) (*OrderListResponse, err
 	}
 
 	var result OrderListResponse
-	err := c.doRequest("GET", "/order/202309/orders/search", params, &result)
+	err := c.doRequest(ctx, "GET", "/order/202309/orders/search", params, &result)
 	return &result, err
 }
 
@@ -75,13 +78,13 @@ type ProductListResponse struct {
 }
 
 // GetProducts fetches products from TikTok API
-func (c *Client) GetProducts(pageSize int) (*ProductListResponse, error) {
+func (c *Client) GetProducts(ctx context.Context, pageSize int) (*ProductListResponse, error) {
 	params := map[string]string{
 		"page_size": fmt.Sprintf("%d", pageSize),
 	}
 
 	var result ProductListResponse
-	err := c.doRequest("GET", "/product/202309/products/search", params, &result)
+	err := c.doRequest(ctx, "GET", "/product/202309/products/search", params, &result)
 	return &result, err
 }
 
@@ -120,12 +123,12 @@ type ShipPackageResponse struct {
 // packageID: obtained from order detail
 // For TikTok Shipping: set HandoverMethod to "PICKUP" or "DROP_OFF"
 // For Seller Shipping: set SelfShipment with tracking_number and shipping_provider_id
-func (c *Client) ShipPackage(packageID string, req *ShipPackageRequest) (*ShipPackageResponse, error) {
+func (c *Client) ShipPackage(ctx context.Context, packageID string, req *ShipPackageRequest) (*ShipPackageResponse, error) {
 	apiPath := fmt.Sprintf("/fulfillment/202309/packages/%s/ship", packageID)
 	params := map[string]string{}
 
 	var result ShipPackageResponse
-	if err := c.doRequestWithBody("POST", apiPath, params, req, &result); err != nil {
+	if err := c.doRequestWithBody(ctx, "POST", apiPath, params, req, &result); err != nil {
 		return nil, fmt.Errorf("API request failed: %w", err)
 	}
 
@@ -157,12 +160,12 @@ type PackageInfo struct {
 }
 
 // GetOrderPackages gets packages for an order
-func (c *Client) GetOrderPackages(orderID string) (*GetPackageDetailResponse, error) {
+func (c *Client) GetOrderPackages(ctx context.Context, orderID string) (*GetPackageDetailResponse, error) {
 	apiPath := fmt.Sprintf("/order/202309/orders/%s", orderID)
 	params := map[string]string{}
 
 	var result GetPackageDetailResponse
-	if err := c.doRequest("GET", apiPath, params, &result); err != nil {
+	if err := c.doRequest(ctx, "GET", apiPath, params, &result); err != nil {
 		return nil, fmt.Errorf("API request failed: %w", err)
 	}
 
@@ -176,14 +179,14 @@ type CancelOrderRequest struct {
 }
 
 // CancelOrder cancels an order
-func (c *Client) CancelOrder(req CancelOrderRequest) (*BaseResponse, error) {
+func (c *Client) CancelOrder(ctx context.Context, req CancelOrderRequest) (*BaseResponse, error) {
 	params := map[string]string{
 		"order_id":      req.OrderID,
 		"cancel_reason": req.CancelReason,
 	}
 
 	var result BaseResponse
-	err := c.doRequest("POST", "/order/202309/orders/cancel", params, &result)
+	err := c.doRequest(ctx, "POST", "/order/202309/orders/cancel", params, &result)
 	return &result, err
 }
 
@@ -224,7 +227,7 @@ type UpdateInventoryResponse struct {
 
 // UpdateInventory updates product inventory
 // TikTok v202309 API: POST /product/202309/products/{product_id}/inventory/update
-func (c *Client) UpdateInventory(req UpdateInventoryRequest) (*UpdateInventoryResponse, error) {
+func (c *Client) UpdateInventory(ctx context.Context, req UpdateInventoryRequest) (*UpdateInventoryResponse, error) {
 	params := map[string]string{}
 
 	body := struct {
@@ -235,7 +238,7 @@ func (c *Client) UpdateInventory(req UpdateInventoryRequest) (*UpdateInventoryRe
 
 	var result UpdateInventoryResponse
 	endpoint := fmt.Sprintf("/product/202309/products/%s/inventory/update", req.ProductID)
-	err := c.doRequestWithBody("POST", endpoint, params, body, &result)
+	err := c.doRequestWithBody(ctx, "POST", endpoint, params, body, &result)
 
 	if err != nil {
 		return nil, err

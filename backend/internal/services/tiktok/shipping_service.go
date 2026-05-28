@@ -11,13 +11,13 @@ import (
 // TikTokClient defines the interface for TikTok API operations
 // This allows for mocking in tests
 type TikTokClient interface {
-	ArrangeShipment(packageID string, req *tiktokPkg.ShipPackageRequest) (*tiktokPkg.ShipPackageResponse, error)
-	GetShippingDocument(packageID, documentType string) (string, error)
-	GetOrderPackages(orderID string) (*tiktokPkg.GetPackageDetailResponse, error)
-	GetOrderDetail(orderIDs []string) (*tiktokPkg.OrderDetailResponse, error)
-	GetHandoverTimeSlots(packageID string) (*tiktokPkg.HandoverTimeSlotsResponse, error)
-	GetHandoverTimeSlotsForOrder(orderID string, lineItemIDs []string) (*tiktokPkg.HandoverTimeSlotsResponse, error)
-	ResolveOrderToPackageID(orderID string) (string, string, error)
+	ArrangeShipment(ctx context.Context, packageID string, req *tiktokPkg.ShipPackageRequest) (*tiktokPkg.ShipPackageResponse, error)
+	GetShippingDocument(ctx context.Context, packageID, documentType string) (string, error)
+	GetOrderPackages(ctx context.Context, orderID string) (*tiktokPkg.GetPackageDetailResponse, error)
+	GetOrderDetail(ctx context.Context, orderIDs []string) (*tiktokPkg.OrderDetailResponse, error)
+	GetHandoverTimeSlots(ctx context.Context, packageID string) (*tiktokPkg.HandoverTimeSlotsResponse, error)
+	GetHandoverTimeSlotsForOrder(ctx context.Context, orderID string, lineItemIDs []string) (*tiktokPkg.HandoverTimeSlotsResponse, error)
+	ResolveOrderToPackageID(ctx context.Context, orderID string) (string, string, error)
 }
 
 // Ensure tiktokPkg.Client implements TikTokClient
@@ -71,7 +71,7 @@ func (s *ShippingService) ArrangeShipment(ctx context.Context, tenantID, package
 	if err != nil {
 		return nil, err
 	}
-	return client.ArrangeShipment(packageID, req)
+	return client.ArrangeShipment(ctx, packageID, req)
 }
 
 // GetShippingLabel retrieves shipping label URL
@@ -82,19 +82,19 @@ func (s *ShippingService) GetShippingLabel(ctx context.Context, tenantID, packag
 	}
 
 	// Try getting shipping document directly with packageID
-	docURL, err := client.GetShippingDocument(packageID, documentType)
+	docURL, err := client.GetShippingDocument(ctx, packageID, documentType)
 	if err == nil && docURL != "" {
 		return docURL, nil
 	}
 
 	// If failed, maybe packageID is actually orderSN? Try to resolve packageID from orderSN
 	// This handles the case where frontend sends order_sn because it doesn't have package_id
-	pkgResp, pkgErr := client.GetOrderPackages(packageID) // Treat 'packageID' input as 'orderID'
+	pkgResp, pkgErr := client.GetOrderPackages(ctx, packageID) // Treat 'packageID' input as 'orderID'
 	if pkgErr == nil && pkgResp != nil && len(pkgResp.Data.Packages) > 0 {
 		realPackageID := pkgResp.Data.Packages[0].ID
 		if realPackageID != "" && realPackageID != packageID {
 			// Retry with resolved packageID
-			return client.GetShippingDocument(realPackageID, documentType)
+			return client.GetShippingDocument(ctx, realPackageID, documentType)
 		}
 	}
 
@@ -110,13 +110,13 @@ func (s *ShippingService) GetHandoverTimeSlots(ctx context.Context, tenantID, or
 	}
 
 	// First try treating input as package ID
-	resp, firstErr := client.GetHandoverTimeSlots(orderOrPackageID)
+	resp, firstErr := client.GetHandoverTimeSlots(ctx, orderOrPackageID)
 	if firstErr == nil && resp != nil && len(resp.Data.TimeSlots) > 0 {
 		return resp, nil
 	}
 
 	// If failed, try treating input as order ID
-	resp, secondErr := client.GetHandoverTimeSlotsForOrder(orderOrPackageID, nil)
+	resp, secondErr := client.GetHandoverTimeSlotsForOrder(ctx, orderOrPackageID, nil)
 	if secondErr == nil {
 		return resp, nil
 	}
@@ -135,7 +135,7 @@ func (s *ShippingService) GetOrderDetail(ctx context.Context, tenantID, orderID 
 		return nil, err
 	}
 
-	return client.GetOrderDetail([]string{orderID})
+	return client.GetOrderDetail(ctx, []string{orderID})
 }
 
 // ArrangeShipmentByOrder arranges shipment using order ID (resolves to package ID automatically)
@@ -146,7 +146,7 @@ func (s *ShippingService) ArrangeShipmentByOrder(ctx context.Context, tenantID, 
 	}
 
 	// Resolve order ID to package ID
-	packageID, status, err := client.ResolveOrderToPackageID(orderID)
+	packageID, status, err := client.ResolveOrderToPackageID(ctx, orderID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve order to package: %w", err)
 	}
@@ -156,7 +156,7 @@ func (s *ShippingService) ArrangeShipmentByOrder(ctx context.Context, tenantID, 
 		return nil, fmt.Errorf("package already shipped with status: %s", status)
 	}
 
-	return client.ArrangeShipment(packageID, req)
+	return client.ArrangeShipment(ctx, packageID, req)
 }
 
 // GetShippingLabelByOrder retrieves shipping label using order ID
@@ -167,7 +167,7 @@ func (s *ShippingService) GetShippingLabelByOrder(ctx context.Context, tenantID,
 	}
 
 	// Get order detail to find package ID
-	orderDetail, err := client.GetOrderDetail([]string{orderID})
+	orderDetail, err := client.GetOrderDetail(ctx, []string{orderID})
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to get order detail: %w", err)
 	}
@@ -183,7 +183,7 @@ func (s *ShippingService) GetShippingLabelByOrder(ctx context.Context, tenantID,
 
 	// Get shipping document for first package
 	packageID := order.Packages[0].ID
-	docURL, err := client.GetShippingDocument(packageID, documentType)
+	docURL, err := client.GetShippingDocument(ctx, packageID, documentType)
 	if err != nil {
 		return "", order, fmt.Errorf("failed to get shipping document: %w", err)
 	}

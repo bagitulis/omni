@@ -70,7 +70,7 @@ func (h *CreateHandler) SaveDraft(c *gin.Context) {
 		SaveMode: "AS_DRAFT",
 	}
 
-	resp, err := client.CreateProduct(createReq)
+	resp, err := client.CreateProduct(c.Request.Context(), createReq)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to create draft: "+err.Error()))
 		return
@@ -139,7 +139,7 @@ func (h *CreateHandler) PublishDraft(c *gin.Context) {
 		SaveMode: "LISTING",
 	}
 
-	resp, err := client.CreateProduct(createReq)
+	resp, err := client.CreateProduct(c.Request.Context(), createReq)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to publish product: "+err.Error()))
 		return
@@ -191,7 +191,7 @@ func (h *CreateHandler) GetWarehouses(c *gin.Context) {
 		return
 	}
 
-	warehouseResp, err := client.GetWarehouses()
+	warehouseResp, err := client.GetWarehouses(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.ErrorWithPlatform("tiktok", "", err.Error()))
 		return

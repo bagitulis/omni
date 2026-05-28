@@ -10,7 +10,7 @@ func (c *Client) GetProducts(ctx context.Context, offset, limit int) (*ProductLi
 	if err := apiReady(ctx); err != nil {
 		return nil, err
 	}
-	return c.api.GetProductList(offset, limit)
+	return c.api.GetProductList(ctx, offset, limit)
 }
 
 // GetProductBaseInfo returns base info for up to 50 item IDs.
@@ -21,7 +21,7 @@ func (c *Client) GetProductBaseInfo(ctx context.Context, itemIDs []int64) (*Prod
 	if len(itemIDs) == 0 {
 		return nil, errors.New("item_ids is required")
 	}
-	return c.api.GetProductDetail(itemIDs)
+	return c.api.GetProductDetail(ctx, itemIDs)
 }
 
 // GetProductInfoWithImages fetches base info plus image URLs.
@@ -32,7 +32,7 @@ func (c *Client) GetProductInfoWithImages(ctx context.Context, itemIDs []int64) 
 	if len(itemIDs) == 0 {
 		return nil, errors.New("item_ids is required")
 	}
-	return c.api.GetProductDetailWithImages(itemIDs)
+	return c.api.GetProductDetailWithImages(ctx, itemIDs)
 }
 
 // GetModelList returns models/SKUs for an item.
@@ -43,7 +43,7 @@ func (c *Client) GetModelList(ctx context.Context, itemID int64) (*ModelListResp
 	if itemID == 0 {
 		return nil, errors.New("item_id is required")
 	}
-	return c.api.GetModelList(itemID)
+	return c.api.GetModelList(ctx, itemID)
 }
 
 // CreateProduct creates a new item.

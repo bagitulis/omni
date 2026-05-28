@@ -119,7 +119,7 @@ func (c *Client) GetBookingList(ctx context.Context, req *GetBookingListRequest)
 	}
 
 	var result GetBookingListResponse
-	err := c.doRequest("GET", path, params, &result)
+	err := c.doRequest(ctx, "GET", path, params, &result)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (c *Client) GetBookingDetail(ctx context.Context, req *GetBookingDetailRequ
 	}
 
 	var result GetBookingDetailResponse
-	err := c.doRequest("GET", path, params, &result)
+	err := c.doRequest(ctx, "GET", path, params, &result)
 	if err != nil {
 		return nil, err
 	}

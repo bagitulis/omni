@@ -152,7 +152,7 @@ func (s *ImageService) fetchImagesFromAPI(ctx context.Context, itemIDs []int64) 
 func (s *ImageService) fetchBatchImages(ctx context.Context, itemIDs []int64) (map[int64]string, error) {
 	result := make(map[int64]string)
 
-	resp, err := s.shopeeClient.GetProductDetailWithImages(itemIDs)
+	resp, err := s.shopeeClient.GetProductDetailWithImages(ctx, itemIDs)
 	if err != nil {
 		return nil, fmt.Errorf("shopee API error: %w", err)
 	}

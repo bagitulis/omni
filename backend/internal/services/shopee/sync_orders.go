@@ -39,7 +39,7 @@ func (s *OrderSyncService) SyncOrders(ctx context.Context, daysBack int) (int, e
 	cursor := ""
 
 	for {
-		listResp, err := s.client.GetOrderList(timeFrom, timeTo, "create_time", "", cursor)
+		listResp, err := s.client.GetOrderList(ctx, timeFrom, timeTo, "create_time", "", cursor)
 		if err != nil {
 			return 0, err
 		}
@@ -71,7 +71,7 @@ func (s *OrderSyncService) SyncOrders(ctx context.Context, daysBack int) (int, e
 		}
 		batchSNs := allOrderSNs[i:end]
 
-		detailResp, err := s.client.GetOrderDetail(batchSNs)
+		detailResp, err := s.client.GetOrderDetail(ctx, batchSNs)
 		if err != nil {
 			return 0, fmt.Errorf("get order detail batch: %w", err)
 		}

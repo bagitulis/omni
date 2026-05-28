@@ -24,26 +24,26 @@ type TokenResponse struct {
 }
 
 // GetAccessToken exchanges auth code for access token
-func (c *Client) GetAccessToken(authCode string) (*TokenResponse, error) {
+func (c *Client) GetAccessToken(ctx context.Context, authCode string) (*TokenResponse, error) {
 	params := map[string]string{
 		"auth_code":  authCode,
 		"grant_type": "authorized_code",
 	}
 
 	var result TokenResponse
-	err := c.doRequest("POST", "/api/v2/token/get", params, &result)
+	err := c.doRequest(ctx, "POST", "/api/v2/token/get", params, &result)
 	return &result, err
 }
 
 // RefreshAccessToken refreshes the access token
-func (c *Client) RefreshAccessToken(refreshToken string) (*TokenResponse, error) {
+func (c *Client) RefreshAccessToken(ctx context.Context, refreshToken string) (*TokenResponse, error) {
 	params := map[string]string{
 		"refresh_token": refreshToken,
 		"grant_type":    "refresh_token",
 	}
 
 	var result TokenResponse
-	err := c.doRequest("POST", "/api/v2/token/refresh", params, &result)
+	err := c.doRequest(ctx, "POST", "/api/v2/token/refresh", params, &result)
 	return &result, err
 }
 

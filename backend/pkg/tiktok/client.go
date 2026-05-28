@@ -1,6 +1,7 @@
 package tiktok
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -99,7 +100,7 @@ func truncateString(s string, maxLen int) string {
 }
 
 // doRequest executes HTTP request (GET without body) with retry logic
-func (c *Client) doRequest(method, apiPath string, params map[string]string, result interface{}) error {
+func (c *Client) doRequest(ctx context.Context, method, apiPath string, params map[string]string, result interface{}) error {
 	const maxRetries = 5
 
 	var lastErr error
@@ -109,7 +110,11 @@ func (c *Client) doRequest(method, apiPath string, params map[string]string, res
 		if attempt > 0 {
 			if retryAfterDuration > 0 {
 				log.Info().Int("attempt", attempt+1).Dur("retry_after", retryAfterDuration).Msg("[TikTok API] Respecting Retry-After header")
-				time.Sleep(retryAfterDuration)
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(retryAfterDuration):
+				}
 				retryAfterDuration = 0
 			} else {
 				backoff := time.Duration(1<<uint(attempt)) * 200 * time.Millisecond
@@ -117,7 +122,11 @@ func (c *Client) doRequest(method, apiPath string, params map[string]string, res
 					backoff = time.Duration(1<<uint(attempt)) * time.Second
 				}
 				log.Info().Int("attempt", attempt+1).Dur("backoff", backoff).Msg("[TikTok API] Retrying request")
-				time.Sleep(backoff)
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(backoff):
+				}
 			}
 		}
 
@@ -144,7 +153,7 @@ func (c *Client) doRequest(method, apiPath string, params map[string]string, res
 		}
 		u.RawQuery = q.Encode()
 
-		req, err := http.NewRequest(method, u.String(), nil)
+		req, err := http.NewRequestWithContext(ctx, method, u.String(), nil)
 		if err != nil {
 			return err
 		}
@@ -201,7 +210,7 @@ func (c *Client) doRequest(method, apiPath string, params map[string]string, res
 }
 
 // doRequestWithBody executes HTTP request with JSON body and retry logic
-func (c *Client) doRequestWithBody(method, apiPath string, params map[string]string, body interface{}, result interface{}) error {
+func (c *Client) doRequestWithBody(ctx context.Context, method, apiPath string, params map[string]string, body interface{}, result interface{}) error {
 	const maxRetries = 5
 
 	// Marshal body ONCE (same bytes for signature AND request across retries)
@@ -221,7 +230,11 @@ func (c *Client) doRequestWithBody(method, apiPath string, params map[string]str
 		if attempt > 0 {
 			if retryAfterDuration > 0 {
 				log.Info().Int("attempt", attempt+1).Dur("retry_after", retryAfterDuration).Msg("[TikTok API] Respecting Retry-After header")
-				time.Sleep(retryAfterDuration)
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(retryAfterDuration):
+				}
 				retryAfterDuration = 0
 			} else {
 				backoff := time.Duration(1<<uint(attempt)) * 200 * time.Millisecond
@@ -229,7 +242,11 @@ func (c *Client) doRequestWithBody(method, apiPath string, params map[string]str
 					backoff = time.Duration(1<<uint(attempt)) * time.Second
 				}
 				log.Info().Int("attempt", attempt+1).Dur("backoff", backoff).Msg("[TikTok API] Retrying request")
-				time.Sleep(backoff)
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(backoff):
+				}
 			}
 		}
 
@@ -256,7 +273,7 @@ func (c *Client) doRequestWithBody(method, apiPath string, params map[string]str
 		}
 		u.RawQuery = q.Encode()
 
-		req, err := http.NewRequest(method, u.String(), strings.NewReader(string(bodyBytes)))
+		req, err := http.NewRequestWithContext(ctx, method, u.String(), strings.NewReader(string(bodyBytes)))
 		if err != nil {
 			return err
 		}
@@ -313,27 +330,27 @@ func (c *Client) doRequestWithBody(method, apiPath string, params map[string]str
 }
 
 // DoGet executes a GET request
-func (c *Client) DoGet(apiPath string, params map[string]string, result interface{}) error {
+func (c *Client) DoGet(ctx context.Context, apiPath string, params map[string]string, result interface{}) error {
 	if params == nil {
 		params = make(map[string]string)
 	}
-	return c.doRequest("GET", apiPath, params, result)
+	return c.doRequest(ctx, "GET", apiPath, params, result)
 }
 
 // DoPost executes a POST request with JSON body
-func (c *Client) DoPost(apiPath string, params map[string]string, body interface{}, result interface{}) error {
+func (c *Client) DoPost(ctx context.Context, apiPath string, params map[string]string, body interface{}, result interface{}) error {
 	if params == nil {
 		params = make(map[string]string)
 	}
-	return c.doRequestWithBody("POST", apiPath, params, body, result)
+	return c.doRequestWithBody(ctx, "POST", apiPath, params, body, result)
 }
 
 // DoPut executes a PUT request with JSON body
-func (c *Client) DoPut(apiPath string, params map[string]string, body interface{}, result interface{}) error {
+func (c *Client) DoPut(ctx context.Context, apiPath string, params map[string]string, body interface{}, result interface{}) error {
 	if params == nil {
 		params = make(map[string]string)
 	}
-	return c.doRequestWithBody("PUT", apiPath, params, body, result)
+	return c.doRequestWithBody(ctx, "PUT", apiPath, params, body, result)
 }
 
 // ShippingDocumentResponse represents the TikTok shipping document API response
@@ -348,14 +365,14 @@ type ShippingDocumentResponse struct {
 
 // GetShippingDocument retrieves shipping label/document URL for a package
 // documentType: "SHIPPING_LABEL", "PACKING_SLIP", etc.
-func (c *Client) GetShippingDocument(packageID, documentType string) (string, error) {
+func (c *Client) GetShippingDocument(ctx context.Context, packageID, documentType string) (string, error) {
 	apiPath := fmt.Sprintf("/fulfillment/202309/packages/%s/shipping_documents", packageID)
 	params := map[string]string{
 		"document_type": documentType,
 	}
 
 	var result ShippingDocumentResponse
-	if err := c.doRequest("GET", apiPath, params, &result); err != nil {
+	if err := c.doRequest(ctx, "GET", apiPath, params, &result); err != nil {
 		return "", fmt.Errorf("API request failed: %w", err)
 	}
 
@@ -367,6 +384,6 @@ func (c *Client) GetShippingDocument(packageID, documentType string) (string, er
 }
 
 // ArrangeShipment is a wrapper for ShipPackage to match the service interface
-func (c *Client) ArrangeShipment(packageID string, req *ShipPackageRequest) (*ShipPackageResponse, error) {
-	return c.ShipPackage(packageID, req)
+func (c *Client) ArrangeShipment(ctx context.Context, packageID string, req *ShipPackageRequest) (*ShipPackageResponse, error) {
+	return c.ShipPackage(ctx, packageID, req)
 }

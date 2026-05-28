@@ -83,7 +83,7 @@ func (s *ProductSyncService) fetchAllItemIDs(ctx context.Context) ([]int64, erro
 		var lastErr error
 
 		for attempt := 0; attempt < maxRetries; attempt++ {
-			listResp, lastErr = s.client.GetProductList(offset, pageSize)
+			listResp, lastErr = s.client.GetProductList(ctx, offset, pageSize)
 			if lastErr == nil {
 				break
 			}

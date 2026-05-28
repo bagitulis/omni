@@ -29,7 +29,7 @@ func (s *ImportService) PreviewFromShopee(ctx context.Context, tenantID string, 
 	}
 
 	// Fetch product details
-	productResp, err := client.GetProductDetailWithImages([]int64{shopeeItemID})
+	productResp, err := client.GetProductDetailWithImages(ctx, []int64{shopeeItemID})
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch shopee product: %w", err)
 	}
@@ -41,7 +41,7 @@ func (s *ImportService) PreviewFromShopee(ctx context.Context, tenantID string, 
 	product := productResp.Response.ItemList[0]
 
 	// Fetch models/SKUs
-	modelResp, err := client.GetModelList(shopeeItemID)
+	modelResp, err := client.GetModelList(ctx, shopeeItemID)
 	if err != nil {
 		log.Warn().Err(err).Int64("item_id", shopeeItemID).Msg("Failed to fetch models, product may have no variants")
 	}
@@ -110,7 +110,7 @@ func (s *ImportService) ImportFromShopee(ctx context.Context, tenantID string, s
 	}
 
 	// Fetch product details
-	productResp, err := client.GetProductDetailWithImages([]int64{shopeeItemID})
+	productResp, err := client.GetProductDetailWithImages(ctx, []int64{shopeeItemID})
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch shopee product: %w", err)
 	}
@@ -122,7 +122,7 @@ func (s *ImportService) ImportFromShopee(ctx context.Context, tenantID string, s
 	product := productResp.Response.ItemList[0]
 
 	// Fetch models/SKUs
-	modelResp, err := client.GetModelList(shopeeItemID)
+	modelResp, err := client.GetModelList(ctx, shopeeItemID)
 	if err != nil {
 		log.Warn().Err(err).Int64("item_id", shopeeItemID).Msg("Failed to fetch models")
 	}

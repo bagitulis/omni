@@ -91,7 +91,7 @@ func (p *ProductAPI) GetItemWholesale(ctx context.Context, itemID int64) ([]Whol
 	}
 
 	var result GetItemBaseInfoResponse
-	if err := p.client.doRequest("GET", "/api/v2/product/get_item_base_info", params, &result); err != nil {
+	if err := p.client.doRequest(ctx, "GET", "/api/v2/product/get_item_base_info", params, &result); err != nil {
 		return nil, err
 	}
 

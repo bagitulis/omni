@@ -1,6 +1,7 @@
 package analytics
 
 import (
+	"context"
 	"strconv"
 	"time"
 
@@ -8,10 +9,10 @@ import (
 )
 
 type TiktokEscrowClient interface {
-	SearchOrders(req tiktokPkg.OrderSearchRequest, pageSize int, pageToken string) (*tiktokPkg.OrderSearchResponse, error)
-	GetOrderDetail(orderIDs []string) (*tiktokPkg.OrderDetailResponse, error)
-	GetOrderTransactions(orderID string) (*tiktokPkg.OrderTransactionResponse, error)
-	GetOrderTransactionsV202309(orderID string) (*tiktokPkg.OrderTransactionResponse, error)
+	SearchOrders(ctx context.Context, req tiktokPkg.OrderSearchRequest, pageSize int, pageToken string) (*tiktokPkg.OrderSearchResponse, error)
+	GetOrderDetail(ctx context.Context, orderIDs []string) (*tiktokPkg.OrderDetailResponse, error)
+	GetOrderTransactions(ctx context.Context, orderID string) (*tiktokPkg.OrderTransactionResponse, error)
+	GetOrderTransactionsV202309(ctx context.Context, orderID string) (*tiktokPkg.OrderTransactionResponse, error)
 }
 
 type TiktokEscrowTables struct {

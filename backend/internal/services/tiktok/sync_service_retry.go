@@ -34,7 +34,7 @@ func (s *SyncService) fetchProductPageWithRetry(ctx context.Context, pageToken s
 			}
 		}
 
-		resp, err := s.client.SearchProductsV202502("ACTIVATE", 100, pageToken)
+		resp, err := s.client.SearchProductsV202502(ctx, "ACTIVATE", 100, pageToken)
 		if err == nil {
 			return resp, nil
 		}

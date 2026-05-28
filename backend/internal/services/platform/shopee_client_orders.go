@@ -59,7 +59,7 @@ func (c *ShopeeAPIClient) getOrdersViaOrderListAPI(ctx context.Context, status s
 	cursor := ""
 
 	for {
-		response, err := c.client.GetOrderList(timeFrom, timeTo, timeRangeField, status, cursor)
+		response, err := c.client.GetOrderList(ctx, timeFrom, timeTo, timeRangeField, status, cursor)
 		if err != nil {
 			return allOrders, fmt.Errorf("get order list: %w", err)
 		}
@@ -133,7 +133,7 @@ func (c *ShopeeAPIClient) getProcessedOrdersViaPackageAPI(ctx context.Context) (
 		}
 		batch := packageNumbers[i:end]
 
-		detailResp, err := c.client.GetPackageDetail(batch)
+		detailResp, err := c.client.GetPackageDetail(ctx, batch)
 		if err != nil {
 			log.Warn().Err(err).Str("platform", "shopee").Msg("Failed to get package detail")
 			continue
@@ -234,7 +234,7 @@ func (c *ShopeeAPIClient) GetOrderDetails(ctx context.Context, orderIDs []string
 	c.client.SetShopCredentials(shopID, c.config.GetAccessToken())
 
 	// Call the actual client method (GetOrderDetail, singular)
-	response, err := c.client.GetOrderDetail(orderIDs)
+	response, err := c.client.GetOrderDetail(ctx, orderIDs)
 	if err != nil {
 		return nil, fmt.Errorf("get order details: %w", err)
 	}

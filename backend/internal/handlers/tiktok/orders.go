@@ -125,7 +125,7 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 		shipReq.HandoverMethod = req.HandoverMethod
 	}
 
-	resp, err := client.ShipPackage(req.PackageID, shipReq)
+	resp, err := client.ShipPackage(c.Request.Context(), req.PackageID, shipReq)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to ship order: "+err.Error()))
 		return
@@ -172,7 +172,7 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 		CancelReason: req.CancelReason,
 	}
 
-	resp, err := client.CancelOrder(cancelReq)
+	resp, err := client.CancelOrder(c.Request.Context(), cancelReq)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to cancel order: "+err.Error()))
 		return

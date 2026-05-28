@@ -2,6 +2,7 @@
 package products
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -14,7 +15,7 @@ import (
 // =============================================================================
 
 // getShopeeCategory gets or recommends category for Shopee
-func (s *CloneService) getShopeeCategory(client *shopeePkg.Client, data *ProductData) (int64, error) {
+func (s *CloneService) getShopeeCategory(ctx context.Context, client *shopeePkg.Client, data *ProductData) (int64, error) {
 	// If category already provided, use it
 	if data.CategoryID != "" {
 		var categoryID int64
@@ -25,7 +26,7 @@ func (s *CloneService) getShopeeCategory(client *shopeePkg.Client, data *Product
 
 	// Auto-recommend category based on product name
 	log.Info().Str("item_name", data.Name).Msg("Getting Shopee category recommendation")
-	resp, err := client.GetCategoryRecommend(data.Name, "")
+	resp, err := client.GetCategoryRecommend(ctx, data.Name, "")
 	if err != nil {
 		return 0, fmt.Errorf("failed to get category recommendation: %w", err)
 	}
@@ -46,8 +47,8 @@ func (s *CloneService) getShopeeCategory(client *shopeePkg.Client, data *Product
 // =============================================================================
 
 // getShopeeRecommendedAttributes gets recommended attributes for category
-func (s *CloneService) getShopeeRecommendedAttributes(client *shopeePkg.Client, categoryID int64, itemName string) []shopeePkg.AttributeInfo {
-	resp, err := client.GetRecommendAttribute(categoryID, itemName)
+func (s *CloneService) getShopeeRecommendedAttributes(ctx context.Context, client *shopeePkg.Client, categoryID int64, itemName string) []shopeePkg.AttributeInfo {
+	resp, err := client.GetRecommendAttribute(ctx, categoryID, itemName)
 	if err != nil {
 		log.Warn().Err(err).Int64("category_id", categoryID).Msg("Failed to get recommended attributes, proceeding without")
 		return nil
@@ -79,8 +80,8 @@ func (s *CloneService) getShopeeRecommendedAttributes(client *shopeePkg.Client, 
 // =============================================================================
 
 // getShopeeLogistics gets enabled logistics for shop
-func (s *CloneService) getShopeeLogistics(client *shopeePkg.Client) []shopeePkg.LogisticInfo {
-	resp, err := client.GetLogisticChannels()
+func (s *CloneService) getShopeeLogistics(ctx context.Context, client *shopeePkg.Client) []shopeePkg.LogisticInfo {
+	resp, err := client.GetLogisticChannels(ctx)
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to get logistics, using default")
 		return nil

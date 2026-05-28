@@ -1,10 +1,12 @@
 package shopee
 
 import (
+	"context"
+
 	shopeePkg "github.com/omni/backend/pkg/shopee"
 )
 
-func resolvePackageNumber(client shippingClient, orderSN, packageNumber string, trackingResp *shopeePkg.GetTrackingNumberResponse) (string, string) {
+func resolvePackageNumber(ctx context.Context, client shippingClient, orderSN, packageNumber string, trackingResp *shopeePkg.GetTrackingNumberResponse) (string, string) {
 	if packageNumber != "" {
 		return packageNumber, ""
 	}
@@ -19,7 +21,7 @@ func resolvePackageNumber(client shippingClient, orderSN, packageNumber string, 
 		return resolved, ""
 	}
 
-	resolved, packageError := resolvePackageNumberFromPackageAPI(client, orderSN, trackingNumber)
+	resolved, packageError := resolvePackageNumberFromPackageAPI(ctx, client, orderSN, trackingNumber)
 	if resolved != "" {
 		return resolved, ""
 	}
@@ -44,7 +46,7 @@ func resolvePackageNumberFromDocumentData(client shippingClient, orderSN string)
 	return resp.Response.PackageNumber, ""
 }
 
-func resolvePackageNumberFromPackageAPI(client shippingClient, orderSN, trackingNumber string) (string, string) {
+func resolvePackageNumberFromPackageAPI(ctx context.Context, client shippingClient, orderSN, trackingNumber string) (string, string) {
 	packageStatuses := []int{3, 2, 1, 0}
 
 	for _, status := range packageStatuses {
@@ -67,7 +69,7 @@ func resolvePackageNumberFromPackageAPI(client shippingClient, orderSN, tracking
 			if trackingNumber != "" {
 				packageNumbers := collectPackageNumbers(resp.Response.PackagesList)
 				if len(packageNumbers) > 0 {
-					resolved, err := resolvePackageByDetailMatch(client, packageNumbers, orderSN, trackingNumber)
+					resolved, err := resolvePackageByDetailMatch(ctx, client, packageNumbers, orderSN, trackingNumber)
 					if err != nil {
 						return "", err.Error()
 					}
@@ -105,9 +107,9 @@ func collectPackageNumbers(packages []shopeePkg.PackageBasic) []string {
 	return result
 }
 
-func resolvePackageByDetailMatch(client shippingClient, packageNumbers []string, orderSN, trackingNumber string) (string, error) {
+func resolvePackageByDetailMatch(ctx context.Context, client shippingClient, packageNumbers []string, orderSN, trackingNumber string) (string, error) {
 	for _, batch := range chunkStrings(packageNumbers, 50) {
-		detailResp, err := client.GetPackageDetail(batch)
+		detailResp, err := client.GetPackageDetail(ctx, batch)
 		if err != nil {
 			return "", err
 		}

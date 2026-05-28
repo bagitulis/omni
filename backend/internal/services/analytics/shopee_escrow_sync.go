@@ -332,7 +332,11 @@ func processOrderBatches(
 		failedOrderIDs = append(failedOrderIDs, failed...)
 
 		if end < total {
-			time.Sleep(500 * time.Millisecond)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(500 * time.Millisecond):
+			}
 		}
 	}
 	return

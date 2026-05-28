@@ -128,7 +128,7 @@ func (s *TiktokEscrowSyncService) getClient(_ context.Context) (TiktokEscrowClie
 }
 
 func (s *TiktokEscrowSyncService) fetchOrdersForSettlementWindow(
-	_ context.Context, client TiktokEscrowClient, month, year int,
+	ctx context.Context, client TiktokEscrowClient, month, year int,
 ) ([]tiktokPkg.TiktokOrder, error) {
 	monthStart := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 	endDate := monthStart.AddDate(0, 1, 0)
@@ -143,7 +143,7 @@ func (s *TiktokEscrowSyncService) fetchOrdersForSettlementWindow(
 	var allOrders []tiktokPkg.TiktokOrder
 	pageToken := ""
 	for {
-		resp, err := client.SearchOrders(req, 100, pageToken)
+		resp, err := client.SearchOrders(ctx, req, 100, pageToken)
 		if err != nil {
 			return nil, fmt.Errorf("SearchOrders: %w", err)
 		}
@@ -155,13 +155,17 @@ func (s *TiktokEscrowSyncService) fetchOrdersForSettlementWindow(
 		if pageToken == "" {
 			break
 		}
-		time.Sleep(200 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(200 * time.Millisecond):
+		}
 	}
 	return allOrders, nil
 }
 
 func (s *TiktokEscrowSyncService) enrichOrdersWithDetails(
-	_ context.Context, client TiktokEscrowClient, orders []tiktokPkg.TiktokOrder,
+	ctx context.Context, client TiktokEscrowClient, orders []tiktokPkg.TiktokOrder,
 ) {
 	const batchSize = 50
 	for i := 0; i < len(orders); i += batchSize {
@@ -170,7 +174,7 @@ func (s *TiktokEscrowSyncService) enrichOrdersWithDetails(
 		for _, o := range orders[i:end] {
 			ids = append(ids, o.ID)
 		}
-		detail, err := client.GetOrderDetail(ids)
+		detail, err := client.GetOrderDetail(ctx, ids)
 		if err != nil {
 			log.Warn().Err(err).Int("batch", i/batchSize).
 				Msg("[TiktokEscrowSync] GetOrderDetail failed, skipping enrichment")
@@ -187,7 +191,11 @@ func (s *TiktokEscrowSyncService) enrichOrdersWithDetails(
 			}
 			enrichOrderFromDetail(&orders[j], d)
 		}
-		time.Sleep(200 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(200 * time.Millisecond):
+		}
 	}
 }
 
@@ -275,7 +283,7 @@ func (s *TiktokEscrowSyncService) processOrdersConcurrent(
 func (s *TiktokEscrowSyncService) processSingleOrder(
 	ctx context.Context, client TiktokEscrowClient, order tiktokPkg.TiktokOrder, month, year int,
 ) (int, error) {
-	transaction, err := client.GetOrderTransactions(order.ID)
+	transaction, err := client.GetOrderTransactions(ctx, order.ID)
 	if err != nil {
 		return 0, fmt.Errorf("TikTok v202501 order transactions failed for order %s: %w", order.ID, err)
 	}

@@ -31,7 +31,7 @@ func (s *ShippingService) GetShippingLabel(ctx context.Context, orderSN, package
 		trackingNumber = strings.TrimSpace(trackingResp.Response.TrackingNumber)
 	}
 
-	resolvedPackageNumber, packageResolveError := resolvePackageNumber(client, orderSN, packageNumber, trackingResp)
+	resolvedPackageNumber, packageResolveError := resolvePackageNumber(ctx, client, orderSN, packageNumber, trackingResp)
 	if resolvedPackageNumber != "" {
 		effectivePackageNumber = resolvedPackageNumber
 	}

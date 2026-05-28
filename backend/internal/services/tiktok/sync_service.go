@@ -50,7 +50,7 @@ func NewSyncServiceWithTenant(client *tiktokPkg.Client, db *gorm.DB, tenantID st
 
 // SyncOrders fetches orders from TikTok API and saves to database
 func (s *SyncService) SyncOrders(ctx context.Context, status string) (int, error) {
-	resp, err := s.client.GetOrders(status, 100)
+	resp, err := s.client.GetOrders(ctx, status, 100)
 	if err != nil {
 		return 0, err
 	}
@@ -127,7 +127,7 @@ func (s *SyncService) SyncProductsByIDs(ctx context.Context, productIDs []string
 
 	count := 0
 	for _, pid := range productIDs {
-		detailResp, err := s.client.GetProductDetail(pid)
+		detailResp, err := s.client.GetProductDetail(ctx, pid)
 		if err != nil {
 			zlog.Warn().Err(err).Str("product_id", pid).Msg("TikTok product detail fetch failed")
 			// Return API/auth errors so they appear in sync response

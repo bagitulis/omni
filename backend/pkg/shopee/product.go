@@ -1,6 +1,7 @@
 package shopee
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 )
@@ -45,7 +46,7 @@ type ProductDetail struct {
 
 // GetProductList fetches product list from Shopee API.
 // itemStatus is optional; defaults to "NORMAL" if not provided.
-func (c *Client) GetProductList(offset, limit int, itemStatus ...string) (*ProductListResponse, error) {
+func (c *Client) GetProductList(ctx context.Context, offset, limit int, itemStatus ...string) (*ProductListResponse, error) {
 	status := "NORMAL"
 	if len(itemStatus) > 0 && itemStatus[0] != "" {
 		status = itemStatus[0]
@@ -58,7 +59,7 @@ func (c *Client) GetProductList(offset, limit int, itemStatus ...string) (*Produ
 	}
 
 	var result ProductListResponse
-	err := c.doRequest("GET", "/api/v2/product/get_item_list", params, &result)
+	err := c.doRequest(ctx, "GET", "/api/v2/product/get_item_list", params, &result)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +75,7 @@ func (c *Client) GetProductList(offset, limit int, itemStatus ...string) (*Produ
 // GetProductDetail fetches product details from Shopee API
 // API: /api/v2/product/get_item_base_info
 // Note: need_tax_info and need_complaint_policy are optional
-func (c *Client) GetProductDetail(itemIDs []int64) (*ProductDetailResponse, error) {
+func (c *Client) GetProductDetail(ctx context.Context, itemIDs []int64) (*ProductDetailResponse, error) {
 	// Join item IDs with comma
 	ids := ""
 	for i, id := range itemIDs {
@@ -89,7 +90,7 @@ func (c *Client) GetProductDetail(itemIDs []int64) (*ProductDetailResponse, erro
 	}
 
 	var result ProductDetailResponse
-	err := c.doRequest("GET", "/api/v2/product/get_item_base_info", params, &result)
+	err := c.doRequest(ctx, "GET", "/api/v2/product/get_item_base_info", params, &result)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +106,7 @@ func (c *Client) GetProductDetail(itemIDs []int64) (*ProductDetailResponse, erro
 // GetProductDetailWithImages fetches product details including images from Shopee API
 // Uses /api/v2/product/get_item_base_info with need_media field to get image data
 // Note: "image" is included in default response, but may be a struct instead of array
-func (c *Client) GetProductDetailWithImages(itemIDs []int64) (*ProductDetailWithImagesResponse, error) {
+func (c *Client) GetProductDetailWithImages(ctx context.Context, itemIDs []int64) (*ProductDetailWithImagesResponse, error) {
 	// Join item IDs with comma
 	ids := ""
 	for i, id := range itemIDs {
@@ -120,7 +121,7 @@ func (c *Client) GetProductDetailWithImages(itemIDs []int64) (*ProductDetailWith
 	}
 
 	var result ProductDetailWithImagesResponse
-	err := c.doRequest("GET", "/api/v2/product/get_item_base_info", params, &result)
+	err := c.doRequest(ctx, "GET", "/api/v2/product/get_item_base_info", params, &result)
 	if err != nil {
 		return nil, err
 	}
@@ -206,13 +207,13 @@ type Model struct {
 }
 
 // GetModelList fetches model list for an item from Shopee API
-func (c *Client) GetModelList(itemID int64) (*ModelListResponse, error) {
+func (c *Client) GetModelList(ctx context.Context, itemID int64) (*ModelListResponse, error) {
 	params := map[string]string{
 		"item_id": strconv.FormatInt(itemID, 10),
 	}
 
 	var result ModelListResponse
-	err := c.doRequest("GET", "/api/v2/product/get_model_list", params, &result)
+	err := c.doRequest(ctx, "GET", "/api/v2/product/get_model_list", params, &result)
 	if err != nil {
 		return nil, err
 	}

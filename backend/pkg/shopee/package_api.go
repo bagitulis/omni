@@ -1,6 +1,7 @@
 package shopee
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -122,7 +123,7 @@ func (c *Client) SearchPackageList(packageStatus int, cursor string, pageSize in
 
 // GetPackageDetail gets package details including tracking and items
 // GET /api/v2/order/get_package_detail
-func (c *Client) GetPackageDetail(packageNumbers []string) (*GetPackageDetailResponse, error) {
+func (c *Client) GetPackageDetail(ctx context.Context, packageNumbers []string) (*GetPackageDetailResponse, error) {
 	if len(packageNumbers) == 0 {
 		return &GetPackageDetailResponse{}, nil
 	}
@@ -138,7 +139,7 @@ func (c *Client) GetPackageDetail(packageNumbers []string) (*GetPackageDetailRes
 	}
 
 	var result GetPackageDetailResponse
-	err := c.doRequest("GET", path, params, &result)
+	err := c.doRequest(ctx, "GET", path, params, &result)
 	if err != nil {
 		return nil, err
 	}

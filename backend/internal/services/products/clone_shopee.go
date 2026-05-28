@@ -63,7 +63,7 @@ func (s *CloneService) fetchShopeeProductFromDB(ctx context.Context, itemID stri
 	// If images empty, try to fetch from Shopee API
 	if len(images) == 0 && sku.ItemID > 0 {
 		log.Info().Int64("item_id", sku.ItemID).Msg("Fetching product data from Shopee API (DB images empty)")
-		apiImages, apiCategoryID := s.fetchShopeeProductFromAPI(sku.ItemID)
+		apiImages, apiCategoryID := s.fetchShopeeProductFromAPI(ctx, sku.ItemID)
 		if len(apiImages) > 0 {
 			images = apiImages
 			log.Info().Int("count", len(images)).Msg("Got images from Shopee API")
@@ -89,7 +89,7 @@ func (s *CloneService) fetchShopeeProductFromDB(ctx context.Context, itemID stri
 }
 
 // fetchShopeeProductFromAPI fetches product details from Shopee API
-func (s *CloneService) fetchShopeeProductFromAPI(itemID int64) (images []string, categoryID string) {
+func (s *CloneService) fetchShopeeProductFromAPI(ctx context.Context, itemID int64) (images []string, categoryID string) {
 	if s.credService == nil {
 		log.Error().Msg("CredService is nil, cannot fetch from Shopee API")
 		return nil, ""
@@ -112,7 +112,7 @@ func (s *CloneService) fetchShopeeProductFromAPI(itemID int64) (images []string,
 	client.SetShopCredentials(creds.ShopID, creds.AccessToken)
 
 	log.Info().Int64("item_id", itemID).Msg("Calling Shopee GetProductDetailWithImages API")
-	resp, err := client.GetProductDetailWithImages([]int64{itemID})
+	resp, err := client.GetProductDetailWithImages(ctx, []int64{itemID})
 	if err != nil {
 		log.Error().Err(err).Int64("item_id", itemID).Msg("Shopee API call failed")
 		return nil, ""
@@ -148,7 +148,7 @@ func (s *CloneService) fetchShopeeProductFromAPI(itemID int64) (images []string,
 // =============================================================================
 
 // createShopeeProduct creates a product on Shopee platform
-func (s *CloneService) createShopeeProduct(_ context.Context, data *ProductData) (string, error) {
+func (s *CloneService) createShopeeProduct(ctx context.Context, data *ProductData) (string, error) {
 	creds, err := s.credService.GetPlatformCredentials(s.tenantID, "shopee")
 	if err != nil {
 		return "", err
@@ -165,17 +165,17 @@ func (s *CloneService) createShopeeProduct(_ context.Context, data *ProductData)
 	log.Info().Int("count", len(imageIDs)).Msg("Uploaded images to Shopee CDN")
 
 	// Step 2: Get category (from data or auto-recommend)
-	categoryID, err := s.getShopeeCategory(client, data)
+	categoryID, err := s.getShopeeCategory(ctx, client, data)
 	if err != nil {
 		return "", err
 	}
 	log.Info().Int64("category_id", categoryID).Msg("Using Shopee category")
 
 	// Step 3: Get recommended attributes
-	attributes := s.getShopeeRecommendedAttributes(client, categoryID, data.Name)
+	attributes := s.getShopeeRecommendedAttributes(ctx, client, categoryID, data.Name)
 
 	// Step 4: Get logistics
-	logistics := s.getShopeeLogistics(client)
+	logistics := s.getShopeeLogistics(ctx, client)
 
 	// Step 5: Build and submit product request
 	req := s.buildShopeeProductRequest(data, categoryID, imageIDs, logistics, attributes)

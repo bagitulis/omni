@@ -50,7 +50,7 @@ func (c *Client) GetWalletBalance(ctx context.Context) (map[string]interface{}, 
 	params := map[string]string{}
 
 	var result map[string]interface{}
-	err := c.doRequest("GET", path, params, &result)
+	err := c.doRequest(ctx, "GET", path, params, &result)
 	if err != nil {
 		return nil, err
 	}

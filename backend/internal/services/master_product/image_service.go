@@ -56,7 +56,7 @@ func (m *ImageManager) ProcessImages(ctx context.Context, tenantID string, image
 		// Download image
 		// TODO: Implement a more robust download with timeout and retry
 		// For now, simple http.Get
-		imageData, err := m.downloadImage(url)
+		imageData, err := m.downloadImage(ctx, url)
 		if err != nil {
 			log.Warn().Err(err).Str("url", url).Msg("Failed to download image, skipping")
 			continue
@@ -180,7 +180,7 @@ func (m *ImageManager) DeleteJoinTableEntries(ctx context.Context, productID uin
 	})
 }
 
-func (m *ImageManager) downloadImage(url string) ([]byte, error) {
+func (m *ImageManager) downloadImage(ctx context.Context, url string) ([]byte, error) {
 	client := http.Client{
 		Timeout: 30 * time.Second,
 	}
@@ -188,7 +188,11 @@ func (m *ImageManager) downloadImage(url string) ([]byte, error) {
 	var lastErr error
 	for attempt := 0; attempt < 2; attempt++ {
 		if attempt > 0 {
-			time.Sleep(2 * time.Second)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(2 * time.Second):
+			}
 		}
 
 		resp, err := client.Get(url)

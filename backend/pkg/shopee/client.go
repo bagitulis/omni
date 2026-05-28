@@ -96,7 +96,7 @@ type shopeeBaseResponse struct {
 
 // doRequest executes HTTP request and parses response with centralized retry logic.
 // Checks both HTTP-level and Shopee business-level errors.
-func (c *Client) doRequest(method, path string, params map[string]string, result interface{}) error {
+func (c *Client) doRequest(ctx context.Context, method, path string, params map[string]string, result interface{}) error {
 	log.Info().
 		Str("method", method).
 		Str("path", path).
@@ -114,7 +114,11 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 		if attempt > 0 {
 			if retryAfterDuration > 0 {
 				log.Info().Int("attempt", attempt+1).Dur("retry_after", retryAfterDuration).Msg("[Shopee API] Respecting Retry-After header")
-				time.Sleep(retryAfterDuration)
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(retryAfterDuration):
+				}
 				retryAfterDuration = 0
 			} else {
 				backoff := time.Duration(1<<uint(attempt)) * 200 * time.Millisecond
@@ -122,7 +126,11 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 					backoff = time.Duration(1<<uint(attempt)) * time.Second
 				}
 				log.Info().Int("attempt", attempt+1).Dur("backoff", backoff).Msg("[Shopee API] Retrying request")
-				time.Sleep(backoff)
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(backoff):
+				}
 			}
 		}
 
@@ -132,7 +140,7 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 			return urlErr
 		}
 
-		req, reqErr := http.NewRequest(method, reqURL, nil)
+		req, reqErr := http.NewRequestWithContext(ctx, method, reqURL, nil)
 		if reqErr != nil {
 			log.Error().Err(reqErr).Msg("[Shopee API] Failed to create request")
 			return reqErr
@@ -229,7 +237,7 @@ func (c *Client) doRequest(method, path string, params map[string]string, result
 
 // GetItemList fetches product items via Shopee API v2
 // API: GET /api/v2/product/get_item_list
-func (c *Client) GetItemList(offset, pageSize int, itemStatus string) (map[string]interface{}, error) {
+func (c *Client) GetItemList(ctx context.Context, offset, pageSize int, itemStatus string) (map[string]interface{}, error) {
 	params := map[string]string{
 		"offset":      strconv.Itoa(offset),
 		"page_size":   strconv.Itoa(pageSize),
@@ -237,7 +245,7 @@ func (c *Client) GetItemList(offset, pageSize int, itemStatus string) (map[strin
 	}
 
 	var result map[string]interface{}
-	if err := c.doRequest("GET", "/api/v2/product/get_item_list", params, &result); err != nil {
+	if err := c.doRequest(ctx, "GET", "/api/v2/product/get_item_list", params, &result); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -251,7 +259,7 @@ func (c *Client) GetShipmentInfo(ctx context.Context, orderSN string) (map[strin
 	}
 
 	var result map[string]interface{}
-	err := c.doRequest("GET", path, params, &result)
+	err := c.doRequest(ctx, "GET", path, params, &result)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +274,7 @@ func (c *Client) GetShippingOptions(ctx context.Context, orderSn string) (map[st
 	}
 
 	var result map[string]interface{}
-	err := c.doRequest("GET", path, params, &result)
+	err := c.doRequest(ctx, "GET", path, params, &result)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +289,7 @@ func (c *Client) GetTrackingInfo(ctx context.Context, orderSn string) (map[strin
 	}
 
 	var result map[string]interface{}
-	err := c.doRequest("GET", path, params, &result)
+	err := c.doRequest(ctx, "GET", path, params, &result)
 	if err != nil {
 		return nil, err
 	}

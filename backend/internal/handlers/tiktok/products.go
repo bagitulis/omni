@@ -94,7 +94,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	resp, err := client.CreateProduct(req)
+	resp, err := client.CreateProduct(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to create product: "+err.Error()))
 		return
@@ -133,7 +133,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	resp, err := client.UpdateProduct(req)
+	resp, err := client.UpdateProduct(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to update product: "+err.Error()))
 		return
@@ -165,7 +165,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 		return
 	}
 
-	resp, err := client.DeleteProduct(productID)
+	resp, err := client.DeleteProduct(c.Request.Context(), productID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.Error("Failed to delete product: "+err.Error()))
 		return

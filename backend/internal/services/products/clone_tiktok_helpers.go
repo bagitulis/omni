@@ -2,6 +2,7 @@
 package products
 
 import (
+	"context"
 	"fmt"
 
 	tiktokPkg "github.com/omni/backend/pkg/tiktok"
@@ -43,14 +44,14 @@ func (s *CloneService) uploadTiktokImages(client *tiktokPkg.Client, images []str
 // =============================================================================
 
 // getTiktokCategory gets recommended category from TikTok API
-func (s *CloneService) getTiktokCategory(client *tiktokPkg.Client, data *ProductData, imageURIs []string) (string, error) {
+func (s *CloneService) getTiktokCategory(ctx context.Context, client *tiktokPkg.Client, data *ProductData, imageURIs []string) (string, error) {
 	log.Info().
 		Str("source_category", data.CategoryID).
 		Str("title", data.Name).
 		Int("images", len(imageURIs)).
 		Msg("Getting TikTok category recommendation based on product info")
 
-	recommendedID, err := client.GetRecommendedCategoryID(data.Name, data.Description, imageURIs)
+	recommendedID, err := client.GetRecommendedCategoryID(ctx, data.Name, data.Description, imageURIs)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get recommended category from TikTok")
 		return "", fmt.Errorf("category recommendation failed: %w - please ensure product title and description are clear", err)
@@ -65,8 +66,8 @@ func (s *CloneService) getTiktokCategory(client *tiktokPkg.Client, data *Product
 }
 
 // getTiktokRequiredAttributes fetches required attributes for a category
-func (s *CloneService) getTiktokRequiredAttributes(client *tiktokPkg.Client, categoryID string) []tiktokPkg.ProductAttribute {
-	requiredAttrs, err := client.GetRequiredAttributes(categoryID)
+func (s *CloneService) getTiktokRequiredAttributes(ctx context.Context, client *tiktokPkg.Client, categoryID string) []tiktokPkg.ProductAttribute {
+	requiredAttrs, err := client.GetRequiredAttributes(ctx, categoryID)
 	if err != nil {
 		log.Warn().Err(err).Str("category_id", categoryID).Msg("Failed to get required attributes, proceeding without them")
 		return []tiktokPkg.ProductAttribute{}

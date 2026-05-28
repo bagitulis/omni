@@ -1,7 +1,10 @@
 // Package tiktok provides Product API types and methods for TikTok Shop
 package tiktok
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // =============================================================================
 // Product Create API
@@ -96,12 +99,12 @@ type CreateProductResponse struct {
 }
 
 // CreateProduct creates a new product
-func (c *Client) CreateProduct(req CreateProductRequest) (*CreateProductResponse, error) {
+func (c *Client) CreateProduct(ctx context.Context, req CreateProductRequest) (*CreateProductResponse, error) {
 	// TikTok uses JSON body for product creation
 	params := map[string]string{}
 
 	var result CreateProductResponse
-	err := c.doRequestWithBody("POST", "/product/202309/products", params, req, &result)
+	err := c.doRequestWithBody(ctx, "POST", "/product/202309/products", params, req, &result)
 	return &result, err
 }
 
@@ -127,11 +130,11 @@ type UpdateProductSku struct {
 }
 
 // UpdateProduct updates an existing product (Requires Description/Title)
-func (c *Client) UpdateProduct(req UpdateProductRequest) (*BaseResponse, error) {
+func (c *Client) UpdateProduct(ctx context.Context, req UpdateProductRequest) (*BaseResponse, error) {
 	params := map[string]string{}
 
 	var result BaseResponse
-	err := c.doRequestWithBody("PUT", "/product/202309/products/"+req.ProductID, params, req, &result)
+	err := c.doRequestWithBody(ctx, "PUT", "/product/202309/products/"+req.ProductID, params, req, &result)
 	return &result, err
 }
 
@@ -161,24 +164,24 @@ type UpdateProductPriceResponse struct {
 
 // UpdateProductPrice updates the prices for specified SKUs of a product
 // TikTok v202309 API: POST /product/202309/products/{product_id}/prices/update
-func (c *Client) UpdateProductPrice(req UpdateProductPriceRequest) (*UpdateProductPriceResponse, error) {
+func (c *Client) UpdateProductPrice(ctx context.Context, req UpdateProductPriceRequest) (*UpdateProductPriceResponse, error) {
 	params := map[string]string{}
 	endpoint := fmt.Sprintf("/product/202309/products/%s/prices/update", req.ProductID)
 
 	var result UpdateProductPriceResponse
-	err := c.doRequestWithBody("POST", endpoint, params, req, &result)
+	err := c.doRequestWithBody(ctx, "POST", endpoint, params, req, &result)
 	return &result, err
 }
 
 // DeleteProduct deactivates a product
-func (c *Client) DeleteProduct(productID string) (*BaseResponse, error) {
+func (c *Client) DeleteProduct(ctx context.Context, productID string) (*BaseResponse, error) {
 	params := map[string]string{}
 	body := map[string][]string{
 		"product_ids": {productID},
 	}
 
 	var result BaseResponse
-	err := c.doRequestWithBody("POST", "/product/202309/products/deactivate", params, body, &result)
+	err := c.doRequestWithBody(ctx, "POST", "/product/202309/products/deactivate", params, body, &result)
 	return &result, err
 }
 
@@ -228,7 +231,7 @@ type SearchProductsResponse struct {
 }
 
 // SearchProductsV202502 searches products using v202502 API (POST with body)
-func (c *Client) SearchProductsV202502(status string, pageSize int, pageToken string) (*SearchProductsResponse, error) {
+func (c *Client) SearchProductsV202502(ctx context.Context, status string, pageSize int, pageToken string) (*SearchProductsResponse, error) {
 	params := map[string]string{
 		"page_size": fmt.Sprintf("%d", pageSize),
 	}
@@ -242,7 +245,7 @@ func (c *Client) SearchProductsV202502(status string, pageSize int, pageToken st
 	}
 
 	var result SearchProductsResponse
-	err := c.doRequestWithBody("POST", "/product/202502/products/search", params, body, &result)
+	err := c.doRequestWithBody(ctx, "POST", "/product/202502/products/search", params, body, &result)
 	return &result, err
 }
 
@@ -298,10 +301,10 @@ type ProductDetailResponse struct {
 }
 
 // GetProductDetail fetches product detail with sales_attributes
-func (c *Client) GetProductDetail(productID string) (*ProductDetailResponse, error) {
+func (c *Client) GetProductDetail(ctx context.Context, productID string) (*ProductDetailResponse, error) {
 	params := map[string]string{}
 
 	var result ProductDetailResponse
-	err := c.doRequest("GET", "/product/202309/products/"+productID, params, &result)
+	err := c.doRequest(ctx, "GET", "/product/202309/products/"+productID, params, &result)
 	return &result, err
 }

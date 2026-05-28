@@ -49,7 +49,7 @@ func (s *ProductSyncService) SyncProductsWithDetails(ctx context.Context, itemSt
 			}
 
 			batchIDs := allItemIDs[i:end]
-			detailResp, err := s.client.GetProductDetail(batchIDs)
+			detailResp, err := s.client.GetProductDetail(ctx, batchIDs)
 			if err != nil {
 				zlog.Error().Err(err).Msg("GetProductDetail batch error")
 				return err
