@@ -118,6 +118,7 @@ export function BookingOrdersTable({
               size="small"
               style={{ padding: 0, fontSize: 12, fontFamily: "monospace" }}
               onClick={() => window.open(`/orders/${record.order_sn}`, "_blank")}
+              aria-label={`Open parent order ${record.order_sn}`}
             >
               {record.order_sn}
             </Button>
@@ -217,6 +218,7 @@ export function BookingOrdersTable({
           size="small"
           style={{ fontSize: 12 }}
           onClick={() => onViewDetail(record)}
+          aria-label={`View booking details for ${record.booking_sn}`}
         >
           Details
         </Button>

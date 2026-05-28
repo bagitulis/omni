@@ -15,11 +15,12 @@ export { formatCurrency };
  * Example: "January 2026"
  */
 export function formatMonthYear(month: number, year: number): string {
-  const date = new Date(year, month - 1, 1);
-  return date.toLocaleDateString("en-US", {
+  const date = new Date(Date.UTC(year, month - 1, 1));
+  return new Intl.DateTimeFormat("en-US", {
     month: "long",
     year: "numeric",
-  });
+    timeZone: "UTC",
+  }).format(date);
 }
 
 /**
@@ -32,11 +33,12 @@ export function formatDate(dateStr: string | null | undefined): string {
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return "-";
-    return date.toLocaleDateString("en-US", {
+    return new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
-    });
+      timeZone: "UTC",
+    }).format(date);
   } catch {
     return "-";
   }

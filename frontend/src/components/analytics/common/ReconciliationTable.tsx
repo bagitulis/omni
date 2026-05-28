@@ -63,7 +63,7 @@ export function ReconciliationTable({
       key: "unique_unit_prices",
       width: 140,
       align: "right",
-      render: (values: number[]) => values.map(formatCurrency).join(" / "),
+      render: (values: number[]) => values.map((value) => formatCurrency(value)).join(" / "),
     },
     {
       title: "Actual Incomes",
@@ -71,7 +71,7 @@ export function ReconciliationTable({
       key: "unique_actual_incomes",
       width: 160,
       align: "right",
-      render: (values: number[]) => values.map(formatCurrency).join(" / "),
+      render: (values: number[]) => values.map((value) => formatCurrency(value)).join(" / "),
     },
     {
       title: "Transactions",

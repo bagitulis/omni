@@ -24,7 +24,7 @@ func NewDataHandler(db *gorm.DB) *DataHandler {
 func (h *DataHandler) List(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -44,7 +44,7 @@ func (h *DataHandler) List(c *gin.Context) {
 	svc := inventoryService.NewInventoryService(h.db, tenantID)
 	result, err := svc.GetRecords(c.Request.Context(), filter)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -55,25 +55,25 @@ func (h *DataHandler) List(c *gin.Context) {
 func (h *DataHandler) GetBySKU(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	sku := c.Param("sku")
 	if sku == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "SKU required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "SKU required"})
 		return
 	}
 
 	svc := inventoryService.NewInventoryService(h.db, tenantID)
 	record, err := svc.GetBySKU(c.Request.Context(), sku)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	if record == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "SKU not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "SKU not found"})
 		return
 	}
 
@@ -84,19 +84,19 @@ func (h *DataHandler) GetBySKU(c *gin.Context) {
 func (h *DataHandler) Update(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	sku := c.Param("sku")
 	if sku == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "SKU required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "SKU required"})
 		return
 	}
 
 	var updates map[string]interface{}
 	if err := c.ShouldBindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -107,7 +107,7 @@ func (h *DataHandler) Update(c *gin.Context) {
 
 	svc := inventoryService.NewInventoryService(h.db, tenantID)
 	if err := svc.Update(c.Request.Context(), sku, updates); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -118,19 +118,19 @@ func (h *DataHandler) Update(c *gin.Context) {
 func (h *DataHandler) Delete(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	sku := c.Param("sku")
 	if sku == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "SKU required"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "SKU required"})
 		return
 	}
 
 	svc := inventoryService.NewInventoryService(h.db, tenantID)
 	if err := svc.Delete(c.Request.Context(), sku); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -141,14 +141,14 @@ func (h *DataHandler) Delete(c *gin.Context) {
 func (h *DataHandler) GetCategories(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	svc := inventoryService.NewInventoryService(h.db, tenantID)
 	categories, err := svc.GetCategories(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 

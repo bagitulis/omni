@@ -175,19 +175,29 @@ function Header({ collapsed, onCollapse }: HeaderProps) {
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {/* Tenant Switcher (Developer Only) */}
         {isDeveloper && tenants.length > 0 && (
-          <Select
-            value={tenantId || undefined}
-            onChange={handleSwitchTenant}
-            loading={switching}
-            size="small"
-            style={{ minWidth: 160 }}
-            suffixIcon={<SwapOutlined />}
-            options={tenants.map((t) => ({
-              value: t.id,
-              label: t.shop_name || t.id,
-            }))}
-            className="tenant-switcher"
-          />
+          <>
+            <span
+              role="alert"
+              aria-live="polite"
+              className="developer-impersonation-announcement"
+            >
+              Developer impersonation mode active for tenant {tenantId || "none"}
+            </span>
+            <Select
+              value={tenantId || undefined}
+              onChange={handleSwitchTenant}
+              loading={switching}
+              size="small"
+              style={{ minWidth: 160 }}
+              suffixIcon={<SwapOutlined />}
+              options={tenants.map((t) => ({
+                value: t.id,
+                label: t.shop_name || t.id,
+              }))}
+              className="tenant-switcher"
+              aria-label="Developer tenant impersonation selector"
+            />
+          </>
         )}
 
         <Button
@@ -238,6 +248,17 @@ function Header({ collapsed, onCollapse }: HeaderProps) {
           .tenant-switcher {
             display: none !important;
           }
+        }
+        .developer-impersonation-announcement {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
         }
       `}</style>
     </AntHeader>

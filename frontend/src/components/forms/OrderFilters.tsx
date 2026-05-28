@@ -121,6 +121,7 @@ export function OrderFilters({
                   size="small"
                   checked={autoRefresh}
                   onChange={onAutoRefreshChange}
+                  aria-label="Toggle automatic order refresh"
                 />
               </Flex>
             </Tooltip>
@@ -129,11 +130,12 @@ export function OrderFilters({
                 icon={<ReloadOutlined />}
                 onClick={onRefresh}
                 loading={loading}
+                aria-label={loading ? "Refresh orders in progress" : "Refresh orders"}
               >
                 Refresh
               </Button>
               {onExport && (
-                <Button icon={<DownloadOutlined />} onClick={onExport}>
+                <Button icon={<DownloadOutlined />} onClick={onExport} aria-label="Export orders">
                   Export
                 </Button>
               )}

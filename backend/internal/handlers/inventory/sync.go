@@ -25,7 +25,7 @@ func NewSyncHandler(db *gorm.DB, sheetsClient inventoryService.SheetsClient) *Sy
 func (h *SyncHandler) TriggerSync(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -41,7 +41,7 @@ func (h *SyncHandler) TriggerSync(c *gin.Context) {
 	svc := inventoryService.NewSyncService(h.db, tenantID, h.sheetsClient)
 	result, err := svc.SyncFromSheets(c.Request.Context(), req.SpreadsheetID, req.SheetName)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -52,7 +52,7 @@ func (h *SyncHandler) TriggerSync(c *gin.Context) {
 func (h *SyncHandler) GetSyncHistory(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
@@ -61,7 +61,7 @@ func (h *SyncHandler) GetSyncHistory(c *gin.Context) {
 	svc := inventoryService.NewInventoryService(h.db, tenantID)
 	history, err := svc.GetSyncHistory(c.Request.Context(), limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 

@@ -58,7 +58,7 @@ function skuLabel(row: ReconciliationRow) {
 }
 
 function valuesLabel(values: number[]) {
-  return values.length === 0 ? "-" : values.map(formatCurrency).join(" / ");
+  return values.length === 0 ? "-" : values.map((value) => formatCurrency(value)).join(" / ");
 }
 
 function safeNumber(value: number | null | undefined) {

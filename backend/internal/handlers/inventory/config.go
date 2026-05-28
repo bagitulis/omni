@@ -23,14 +23,14 @@ func NewConfigHandler(db *gorm.DB) *ConfigHandler {
 func (h *ConfigHandler) GetSettings(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	svc := inventoryService.NewInventoryService(h.db, tenantID)
 	settings, err := svc.GetSettings(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
@@ -41,19 +41,19 @@ func (h *ConfigHandler) GetSettings(c *gin.Context) {
 func (h *ConfigHandler) UpdateSettings(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing tenant_id"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "Missing tenant_id"})
 		return
 	}
 
 	var input inventoryService.SettingsInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
 	svc := inventoryService.NewInventoryService(h.db, tenantID)
 	if err := svc.SaveSettings(c.Request.Context(), input); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 

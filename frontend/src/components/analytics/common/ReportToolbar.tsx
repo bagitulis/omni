@@ -48,6 +48,7 @@ export function ReportToolbar({
         loading={syncing}
         disabled={syncing}
         size="small"
+        aria-label={syncing ? "Sync report data in progress" : "Sync report data"}
       >
         Sync
       </Button>
@@ -56,6 +57,7 @@ export function ReportToolbar({
         icon={<DeleteOutlined />}
         onClick={handleDelete}
         size="small"
+        aria-label="Delete synced report data"
       >
         Delete Sync
       </Button>
@@ -63,6 +65,7 @@ export function ReportToolbar({
         icon={<ReloadOutlined />}
         onClick={onRepopulate}
         size="small"
+        aria-label="Repopulate report items"
       >
         Repopulate Items
       </Button>
@@ -71,6 +74,7 @@ export function ReportToolbar({
         onClick={onExportCSV}
         disabled={!hasData}
         size="small"
+        aria-label="Export report data as CSV"
       >
         Export CSV
       </Button>

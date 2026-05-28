@@ -9,6 +9,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// MaxExportRows caps the number of inventory records that can be exported
+// in a single operation to prevent unbounded memory usage.
+const MaxExportRows = 10000
 // SheetExportService handles Google Sheets export/import operations
 type SheetExportService struct {
 	db           *gorm.DB
@@ -32,7 +35,7 @@ func (s *SheetExportService) ExportToSheet(ctx context.Context, opts ExportOptio
 	}
 
 	var records []models.InventoryRecord
-	query := s.db.WithContext(ctx).Where("tenant_id = ?", s.tenantID)
+	query := s.db.WithContext(ctx).Where("tenant_id = ?", s.tenantID).Limit(MaxExportRows)
 	if err := query.Find(&records).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch inventory: %w", err)
 	}
@@ -140,7 +143,7 @@ func (s *SheetExportService) SyncFromSheet(ctx context.Context, opts SyncOptions
 // Export exports inventory to CSV format
 func (s *SheetExportService) Export(ctx context.Context, format string) ([]byte, string, string, error) {
 	var records []models.InventoryRecord
-	if err := s.db.WithContext(ctx).Where("tenant_id = ?", s.tenantID).Find(&records).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("tenant_id = ?", s.tenantID).Limit(MaxExportRows).Find(&records).Error; err != nil {
 		return nil, "", "", err
 	}
 

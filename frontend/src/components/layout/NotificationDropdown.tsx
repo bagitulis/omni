@@ -62,7 +62,14 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   };
 
   return (
-      <section className="notification-dropdown" data-testid="notification-dropdown" aria-label="Notifications">
+      <section
+        className="notification-dropdown"
+        data-testid="notification-dropdown"
+        aria-label="Notifications"
+        onKeyDown={(event) => {
+          if (event.key === "Escape") onClose?.();
+        }}
+      >
         {/* Header */}
         <div className="notification-dropdown__header">
           <Text strong className="notification-dropdown__title">
@@ -117,7 +124,12 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
                   key={item.id}
                   className={`notification-item ${item.read ? "notification-item--read" : "notification-item--unread"}`}
                 >
-                  <button type="button" className="notification-item__content" onClick={() => handleItemClick(item)}>
+                  <button
+                    type="button"
+                    className="notification-item__content"
+                    onClick={() => handleItemClick(item)}
+                    aria-label={`${item.read ? "Read" : "Unread"} notification: ${item.title}`}
+                  >
                     <div className="notification-item__icon" data-notification-type={cfg.type}>
                       {cfg.icon}
                     </div>
@@ -153,6 +165,7 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
                       size="small"
                       icon={<DeleteOutlined />}
                       onClick={() => deleteNotification(item.id)}
+                      aria-label={`Delete notification: ${item.title}`}
                       className="notification-item__delete"
                     />
                   </Tooltip>

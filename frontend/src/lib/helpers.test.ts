@@ -439,3 +439,76 @@ describe("throttle", () => {
     expect(fn).toHaveBeenCalledTimes(2);
   });
 });
+
+// ──────────────────────────────────────────────
+//  Timezone Consistency
+// ──────────────────────────────────────────────
+describe("Timezone stability", () => {
+  it("formatDate uses UTC so same ISO string shows same day regardless of system TZ", () => {
+    // "2026-05-01T00:00:00Z" is May 1 UTC midnight
+    // Without timeZone: 'UTC', a browser in UTC-5 would show "April 30, 2026"
+    const result = formatDate("2026-05-01T00:00:00Z");
+    expect(result).toContain("1");
+    expect(result).toContain("Mei");  // id-ID locale = "Mei" for May
+    expect(result).toContain("2026");
+  });
+
+  it("formatTime uses UTC timezone", () => {
+    const result = formatTime("2026-05-01T15:30:00Z");
+    // UTC 15:30 should be displayed as 15:30, not shifted to local time
+    expect(result).toContain("15.30");
+  });
+});
+
+// ──────────────────────────────────────────────
+//  Currency Consistency
+// ──────────────────────────────────────────────
+describe("Currency precision", () => {
+  it("formats IDR with 0 decimal places (default)", () => {
+    const result = formatCurrency(100.50, "IDR");
+    // id-ID locale: IDR with 0 decimals rounds 100.50 → 101
+    expect(result).toContain("101");
+  });
+
+  it("formats THB with 2 decimal places", () => {
+    const result = formatCurrency(100.50, "THB");
+    // id-ID locale uses comma as decimal separator
+    expect(result).toContain("100,50");
+  });
+
+  it("formats PHP with 2 decimal places", () => {
+    const result = formatCurrency(100.50, "PHP");
+    // id-ID locale uses comma as decimal separator
+    expect(result).toContain("100,50");
+  });
+
+  it("formats VND with 0 decimal places", () => {
+    const result = formatCurrency(100.50, "VND");
+    // VND with 0 decimals rounds 100.50 → 101
+    expect(result).toContain("101");
+  });
+
+  it("formats MYR with 2 decimal places", () => {
+    const result = formatCurrency(100.50, "MYR");
+    // id-ID locale uses comma as decimal separator
+    expect(result).toContain("100,50");
+  });
+
+  it("formats SGD with 2 decimal places", () => {
+    const result = formatCurrency(100.50, "SGD");
+    // id-ID locale uses comma as decimal separator
+    expect(result).toContain("100,50");
+  });
+
+  it("respects explicit decimals override", () => {
+    const result = formatCurrency(100.50, "IDR", 2);
+    // id-ID locale uses comma as decimal separator
+    expect(result).toContain("100,50");
+  });
+
+  it("defaults to IDR when no currency specified", () => {
+    const result = formatCurrency(100000);
+    expect(result).toContain("Rp");
+    expect(result).toContain("100.000");
+  });
+});

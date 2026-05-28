@@ -107,6 +107,7 @@ export function getOrderTableColumns({
             block
             disabled={!canShipOrder(record.status, record.platform)}
             onClick={() => onShip(record)}
+            aria-label={`Ship order ${record.order_sn}`}
             style={{
               backgroundColor: canShipOrder(record.status, record.platform)
                 ? token.colorPrimary
@@ -122,6 +123,7 @@ export function getOrderTableColumns({
               size="small"
               style={{ padding: 0, fontSize: 11, height: "auto" }}
               onClick={() => onViewDetail?.(record)}
+              aria-label={`View details for order ${record.order_sn}`}
             >
               Details
             </Button>
@@ -153,7 +155,7 @@ export function getOrderTableColumns({
                 size="small"
                 icon={<MoreOutlined />}
                 style={{ padding: 0 }}
-                aria-label="More actions"
+                aria-label={`More actions for order ${record.order_sn}`}
               />
             </Dropdown>
           </Flex>

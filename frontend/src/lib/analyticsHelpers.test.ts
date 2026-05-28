@@ -441,4 +441,47 @@ describe("explicit export header parity", () => {
     expect(headerRow).toContain("Currency");
     expect(headerRow.split(",").length).toBe(9);
   });
+
+// ──────────────────────────────────────────────
+//  Timezone Consistency
+// ──────────────────────────────────────────────
+describe("Timezone stability (analytics)", () => {
+  it("formatDate always returns UTC date regardless of system timezone", () => {
+    // "2026-05-01T00:00:00Z" is UTC midnight May 1
+    // Without timeZone: 'UTC', browser in UTC-5 shows "Apr 30, 2026"
+    const result = formatDate("2026-05-01T00:00:00Z");
+    expect(result).toBe("May 1, 2026");
+  });
+
+  it("formatDate handles late-night UTC without date shift", () => {
+    // "2026-05-01T23:59:00Z" is 11:59pm UTC on May 1
+    // In UTC+7 this becomes "May 2, 2026 06:59am" - must NOT shift
+    const result = formatDate("2026-05-01T23:59:00Z");
+    expect(result).toBe("May 1, 2026");
+  });
+
+  it("formatDate handles first-second of month without date shift", () => {
+    // "2026-02-01T00:00:00Z" in UTC-12 would be "Jan 31" without timezone fix
+    const result = formatDate("2026-02-01T00:00:00Z");
+    expect(result).toBe("Feb 1, 2026");
+  });
+});
+
+// ──────────────────────────────────────────────
+//  Locale Consistency
+// ──────────────────────────────────────────────
+describe("Locale consistency (analytics)", () => {
+  it("formatMonthYear uses en-US locale consistently", () => {
+    expect(formatMonthYear(1, 2026)).toBe("January 2026");
+    expect(formatMonthYear(6, 2026)).toBe("June 2026");
+    expect(formatMonthYear(12, 2026)).toBe("December 2026");
+  });
+
+  it("formatMonthYear is stable for UTC boundary months", () => {
+    // Month/year pair at UTC boundaries should be stable
+    expect(formatMonthYear(1, 2026)).toBe("January 2026");
+    expect(formatMonthYear(2, 2026)).toBe("February 2026");
+    expect(formatMonthYear(12, 2025)).toBe("December 2025");
+  });
+});
 });

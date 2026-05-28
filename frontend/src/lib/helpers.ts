@@ -1,16 +1,34 @@
+/**
+ * Returns the standard number of decimal digits for a given currency.
+ * Most SE Asian currencies use 0 (IDR, VND) or 2 (THB, PHP, MYR, SGD).
+ */
+function currencyDecimalDigits(currency: string): number {
+  switch (currency.toUpperCase()) {
+    case "IDR":
+    case "VND":
+    case "JPY":
+    case "KRW":
+      return 0;
+    default:
+      return 2;
+  }
+}
+
 // Utility helper functions for the application
 import { logger } from "@/lib/logger";
 
 /**
- * Format currency to Indonesian Rupiah.
+ * Format currency with appropriate code, symbol, and precision.
+ * Defaults to Indonesian Rupiah (IDR) with 0 decimal places.
  */
-export function formatCurrency(amount: number): string {
+export function formatCurrency(amount: number, currency = "IDR", decimals?: number): string {
   const safeAmount = Number.isFinite(amount) ? amount : 0;
+  const fractionDigits = decimals ?? currencyDecimalDigits(currency);
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    currency,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
   }).format(safeAmount);
 }
 
@@ -42,6 +60,7 @@ export function formatDate(date: string | Date): string {
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: "UTC",
     }).format(parsedDate);
   } catch (error) {
     logger.error("Error formatting date", { error });
@@ -54,7 +73,12 @@ export function formatDate(date: string | Date): string {
  */
 export function formatTime(timestamp: string): string {
   const date = new Date(timestamp);
-  return date.toLocaleTimeString();
+  return new Intl.DateTimeFormat("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZone: "UTC",
+  }).format(date);
 }
 
 /**

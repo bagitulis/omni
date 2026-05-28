@@ -15,7 +15,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 
 const monthOptions = Array.from({ length: 12 }, (_, i) => ({
   value: i + 1,
-  label: new Date(2000, i, 1).toLocaleDateString("en-US", { month: "long" }),
+  label: new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2000, i, 1))),
 }));
 
 const yearOptions = Array.from({ length: 5 }, (_, i) => ({

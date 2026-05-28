@@ -102,6 +102,7 @@ export function OrdersBulkActionsBar({
               icon={<SendOutlined />}
               onClick={onBulkShip}
               loading={isShipping}
+              aria-label={isShipping ? "Bulk ship orders in progress" : "Bulk ship selected orders"}
             >
               Bulk Ship
             </Button>
@@ -109,14 +110,20 @@ export function OrdersBulkActionsBar({
               icon={<PrinterOutlined />}
               onClick={onBulkPrint}
               loading={isPrinting}
+              aria-label={isPrinting ? "Bulk print labels in progress" : "Bulk print labels for selected orders"}
             >
               Bulk Print Labels
             </Button>
-            <Button danger onClick={onBulkCancel} loading={isCancelling}>
+            <Button
+              danger
+              onClick={onBulkCancel}
+              loading={isCancelling}
+              aria-label={isCancelling ? "Bulk cancel orders in progress" : "Bulk cancel selected orders"}
+            >
               Bulk Cancel
             </Button>
           </Space>
-          <Button type="text" onClick={onClearSelection}>
+          <Button type="text" onClick={onClearSelection} aria-label="Clear selected orders">
             Clear Selection
           </Button>
         </Flex>
