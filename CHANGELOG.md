@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **Stale TODOs and obsolete ?token= references (Task 14)**: Searched all notification-related files across backend/ (handlers, models, services, repositories, routes) and frontend/src/ for TODO/FIXME/HACK/XXX markers, ?token= references, and deprecated labels. Result: zero stale references remain — all cleanup was already completed by prior tasks. Verified `inventory_notification.go` metadata TODO is gone. Evidence: `.sisyphus/evidence/task-14-stale-comment-search.txt`.
+
 ### Changed
 - **F1-F4 Final Verification Wave**: Marked all Final Verification tasks ([x]) in the restoration plan and committed F1 plan compliance audit evidence. All four gates (F1 Plan Compliance, F2 Code Quality, F3 Manual QA, F4 Scope Fidelity) are now formally complete. Evidence: `.sisyphus/evidence/f1-plan-compliance.txt`.
 - **Legacy email/browser notification toggles disabled in GeneralTab (Task 11)**: Set `Switch` components for `notifications_email` and `notifications_browser` to `disabled={true}` with updated helper text indicating these features require additional configuration (coming soon). Controls preserved per Task 1 decision (indicate availability problem without implementing delivery).
