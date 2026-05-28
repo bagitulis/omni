@@ -3,14 +3,11 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/handlers"
-	inventoryHandler "github.com/omni/backend/internal/handlers/inventory"
 	shopeeHandler "github.com/omni/backend/internal/handlers/shopee"
 	tiktokHandler "github.com/omni/backend/internal/handlers/tiktok"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/services/google"
-	"github.com/omni/backend/internal/services/inventory"
 	shopeeService "github.com/omni/backend/internal/services/shopee"
-	"gorm.io/gorm"
 )
 
 // RegisterShopeeWalletRoutes registers Shopee wallet routes
@@ -80,52 +77,8 @@ func RegisterShopeeShippingFeeRoutes(router *gin.RouterGroup, getAPIClient func(
 	}
 }
 
-// RegisterInventoryRoutes registers inventory management routes
-func RegisterInventoryRoutes(router *gin.RouterGroup, db *gorm.DB, sheetsClient inventory.SheetWriterClient) {
-	dataHandler := inventoryHandler.NewDataHandler(db)
-	configHandler := inventoryHandler.NewConfigHandler(db)
-	syncHandler := inventoryHandler.NewSyncHandler(db, nil) // Pass nil for SheetsClient, or use type assertion if needed
-	columnsHandler := inventoryHandler.NewColumnsHandler(db)
-	sheetHandler := inventoryHandler.NewSheetHandler(db, sheetsClient)
-
-	inv := router.Group("/inventory")
-	inv.Use(middleware.Auth())
-	inv.Use(middleware.Tenant())
-	{
-		// Data endpoints
-		inv.GET("/data", dataHandler.List)
-		inv.GET("/data/:sku", dataHandler.GetBySKU)
-		inv.PUT("/data/:sku", dataHandler.Update)
-		inv.DELETE("/data/:sku", dataHandler.Delete)
-		inv.GET("/categories", dataHandler.GetCategories)
-
-		// Config endpoints
-		inv.GET("/config", configHandler.GetSettings)
-		inv.PUT("/config", configHandler.UpdateSettings)
-
-		// Sync endpoints
-		inv.POST("/sync", syncHandler.TriggerSync)
-		inv.GET("/sync/history", syncHandler.GetSyncHistory)
-		inv.POST("/sync/partial", sheetHandler.PartialSync)
-
-		// Column configuration
-		inv.GET("/columns/available", columnsHandler.GetAvailableColumns)
-		inv.GET("/columns/selected", columnsHandler.GetSelectedColumns)
-		inv.POST("/columns/selected", columnsHandler.SaveSelectedColumns)
-
-		// Note: Stock/Price update routes are registered via RegisterInventorySimpleRoutes
-		// in handlers/inventory_stock_price.go (the active handlers with orchestrator support).
-
-		// Sheet export/import
-		inv.GET("/export", sheetHandler.Export)
-		inv.POST("/export-to-sheet", sheetHandler.ExportToSheet)
-		inv.POST("/import-from-sheet", sheetHandler.ImportFromSheet)
-		inv.POST("/sync-from-sheet", sheetHandler.SyncFromSheet)
-	}
-}
-
-// RegisterStockRoutes and RegisterPriceRoutes removed (dead code).
-// Frontend uses /api/inventory/update-stock and /api/inventory/update-price instead.
+// RegisterInventoryRoutes removed (dead code).
+// Frontend uses RegisterInventorySimpleRoutes in inventory_routes.go for all inventory endpoints.
 
 // RegisterProductCloneRoutes registers product clone routes
 func RegisterProductCloneRoutes(router *gin.RouterGroup, handler *handlers.ProductCloneHandler) {

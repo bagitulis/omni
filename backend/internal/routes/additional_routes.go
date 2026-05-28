@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/handlers"
-	lazadaHandler "github.com/omni/backend/internal/handlers/lazada"
 	"github.com/omni/backend/internal/middleware"
 )
 
@@ -250,17 +249,5 @@ func RegisterShippingFilesRoutes(router *gin.RouterGroup, handler *handlers.Ship
 	}
 }
 
-// RegisterLazadaOrderRoutes registers Lazada order routes
-func RegisterLazadaOrderRoutes(router *gin.RouterGroup, basePath string) {
-	handler := lazadaHandler.NewOrderHandler(basePath)
-	orders := router.Group("/lazada/orders")
-	orders.Use(middleware.Auth())
-	orders.Use(middleware.Tenant())
-	{
-		orders.GET("", handler.GetOrders)
-		orders.GET("/:orderId", handler.GetOrderByID)
-		orders.POST("/ship", handler.ShipOrder)
-		orders.POST("/cancel", handler.CancelOrder)
-		orders.POST("/document", handler.GetDocument)
-	}
-}
+// RegisterLazadaOrderRoutes removed (dead code).
+// Lazada order endpoints are registered inline in cmd/server/main.go.

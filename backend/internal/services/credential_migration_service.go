@@ -3,16 +3,14 @@ package services
 import (
 	"context"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
+)
 	"gorm.io/gorm"
 )
-
-const CredentialLegacyFallbackEnv = "CREDENTIAL_LEGACY_FALLBACK_ENABLED"
 
 type CredentialMigrationService struct {
 	tenantService *TenantService
@@ -20,10 +18,6 @@ type CredentialMigrationService struct {
 
 func NewCredentialMigrationService(basePath string) *CredentialMigrationService {
 	return &CredentialMigrationService{tenantService: NewTenantService(basePath)}
-}
-
-func IsCredentialLegacyFallbackEnabled() bool {
-	return strings.EqualFold(os.Getenv(CredentialLegacyFallbackEnv), "true")
 }
 
 func (s *CredentialMigrationService) Run(ctx context.Context, opts CredentialMigrationOptions) (*CredentialMigrationReport, error) {
@@ -59,10 +53,8 @@ func newCredentialMigrationReport(mode CredentialMigrationMode) *CredentialMigra
 	if mode == "" {
 		mode = CredentialMigrationModeDryRun
 	}
-	fallbackEnabled := IsCredentialLegacyFallbackEnabled()
 	return &CredentialMigrationReport{
 		Mode:                   string(mode),
-		FallbackEnabled:        fallbackEnabled,
 		SourceKeyCounts:        map[string]int{},
 		TargetCredentialCounts: map[string]int{},
 		Rollback: CredentialMigrationRollback{
@@ -72,12 +64,10 @@ func newCredentialMigrationReport(mode CredentialMigrationMode) *CredentialMigra
 			PreservesRotated:      true,
 			PreservesDisconnected: true,
 			OperatorSteps: []string{
-				"Set CREDENTIAL_LEGACY_FALLBACK_ENABLED=true to re-enable canonical-first legacy reads.",
 				"Keep canonical credential tables intact; do not delete migrated, newly created, rotated, or disconnected rows.",
-				"Use legacy platform_configs and system.global_config as read-only fallback only; keep new writes canonical.",
+				"Restore from canonical credential backup data; legacy plaintext credential reads are not supported.",
 			},
 		},
-		Fallback: CredentialMigrationFallback{EnvVar: CredentialLegacyFallbackEnv, Enabled: fallbackEnabled, CanonicalFirst: true, LegacyReadOnly: true, AuditEvent: "credential_legacy_fallback_mode_reported"},
 	}
 }
 

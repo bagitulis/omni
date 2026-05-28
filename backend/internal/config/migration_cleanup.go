@@ -7,10 +7,19 @@ import (
 	"gorm.io/gorm"
 )
 
-// CleanZombieColumns removes columns from the database that no longer exist in GORM models.
-// GORM AutoMigrate adds columns but never removes them. This function handles the cleanup.
-// Safe: only drops columns that are NOT referenced by any model field.
-// CONSERVATIVE: requires model to have at least 3 fields to avoid false positives.
+// CleanZombieColumns REMOVED from active migration (2026-05-28).
+//
+// RETIRED: This function is no longer called from MigrateSystemDatabase or
+// MigrateTenantDatabase. It is kept here as reference only.
+//
+// Reason for retirement:
+//   - GORM AutoMigrate is additive-only by design (adds columns, never drops)
+//   - Column ownership across 60+ model types is unproven
+//   - Destructive DROP COLUMN requires disposable DB verification first
+//   - GORM schema parsing with embedded structs/associations has edge cases
+//
+// To re-enable: Write a disposable DB integration test that proves cleanup
+// is idempotent, safe, and the app boots correctly afterward.
 func CleanZombieColumns(db *gorm.DB, models []interface{}) {
 	for _, model := range models {
 		cleanZombieColumnsForModel(db, model)

@@ -46,10 +46,14 @@ func MigrateSystemDatabase(db *gorm.DB) error {
 		}
 	}
 
-
-	// NOTE: Zombie column cleanup disabled — needs verification on fresh DB
-	// to ensure GORM schema parsing correctly identifies all model columns.
-	// Re-enable after testing: CleanZombieColumns(db, systemModels)
+	// NOTE: Zombie column cleanup is intentionally RETIRED (2026-05-28).
+	// GORM AutoMigrate is additive-only by design — it adds columns but never drops them.
+	// Columns removed from model structs are retained in the database to avoid:
+	//   - Destructive data loss from premature DROP COLUMN
+	//   - GORM schema parsing edge cases with embedded structs/associations
+	//   - Unproven column ownership across 60+ model types
+	// Destructive cleanup requires a dedicated migration with disposable DB verification.
+	// See migration_cleanup.go for the retired implementation (kept as reference).
 	log.Info().Msg("System database migrations completed")
 	return nil
 }
@@ -230,8 +234,7 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 			log.Info().Msg("  ✅ Ensured idx_platform_links_unique index")
 		}
 
-	// Credential connections: partial unique index for active (non-disabled) rows
-	if GetDatabaseDriver() == DriverPostgres {
+		// Credential connections: partial unique index for active (non-disabled) rows
 		connTable := (&models.CredentialConnection{}).TableName()
 		activeIdx := fmt.Sprintf(
 			`CREATE UNIQUE INDEX IF NOT EXISTS idx_credential_connections_active
@@ -245,10 +248,9 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 			log.Info().Msg("  ✅ Ensured idx_credential_connections_active index")
 		}
 	}
-	}
 
-	// NOTE: Zombie column cleanup disabled — needs verification on fresh DB
-	// Re-enable after testing: CleanZombieColumns(db, tenantModels)
+	// NOTE: Zombie column cleanup intentionally RETIRED — see MigrateSystemDatabase comments.
+	// GORM AutoMigrate is additive-only; removed model fields are retained in the database.
 
 	log.Info().Msgf("✅ Tenant database migrations completed for: %s", tenantID)
 	return nil

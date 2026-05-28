@@ -26,7 +26,7 @@ func RegisterSkuBatchCheckRoutes(router *gin.RouterGroup, handler *handlers.SkuB
 
 // RegisterInventorySimpleRoutes registers simple inventory routes
 // Path: /api/inventory (basic endpoints)
-// NOTE: Use RegisterInventoryRoutes in extended_routes.go for full inventory functionality
+// RegisterInventorySimpleRoutes registers simple inventory routes
 func RegisterInventorySimpleRoutes(router *gin.RouterGroup, handler *handlers.InventoryHandler) {
 	inventory := router.Group("/inventory")
 	inventory.Use(middleware.Auth())

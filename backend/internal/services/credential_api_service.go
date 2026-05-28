@@ -14,6 +14,8 @@ import (
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/oauth"
+	"github.com/omni/backend/internal/services/platform"
+	"github.com/omni/backend/internal/services/sync"
 	"gorm.io/gorm"
 )
 
@@ -146,12 +148,15 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 	claims := oauth.StateClaims{
 		TenantID:     tenantID,
 		Platform:     req.Platform,
+		Marketplace:  req.Platform,
 		AttemptID:    attemptID,
 		Intent:       req.Intent,
 		StoreID:      req.StoreIdentifier,
 		UserID:       userID,
 		CSRFNonce:    csrfNonce,
+		Nonce:        csrfNonce,
 		RedirectPath: req.RedirectPath,
+		RedirectURI:  req.RedirectPath,
 		ExpiresAt:    expiresAt.Unix(),
 	}
 	signedState, err := oauth.BuildSignedState(claims)
@@ -280,6 +285,7 @@ func (s *CredentialApiService) ChangeConnectionStatus(ctx context.Context, tenan
 	if err := repo.DisableConnectionWithVersion(ctx, conn, conn.Version, req.Reason); err != nil {
 		return nil, err
 	}
+	invalidateCredentialCaches(tenantID)
 	auditEvent := &models.CredentialAuditEvent{
 		TenantID: tenantID, Platform: req.Platform, StoreIdentifier: req.StoreIdentifier,
 		EventType: "connection_disconnect", Status: "success", Actor: userID, ActorRole: role,
@@ -367,4 +373,9 @@ func normalizeRegion(region string) string {
 		return "id"
 	}
 	return region
+}
+
+func invalidateCredentialCaches(tenantID string) {
+	platform.InvalidateTenantPlatformService(tenantID)
+	sync.InvalidateTenantInstance(tenantID)
 }

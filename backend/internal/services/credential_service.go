@@ -72,11 +72,6 @@ func (s *CredentialService) GetPlatformCredentials(tenantID, platform string) (*
 		return nil, fmt.Errorf("get tenant DB: %w", err)
 	}
 
-	// Get system database for global config
-	systemDB, err := config.GetSystemDB(s.dbPath)
-	if err != nil {
-		return nil, fmt.Errorf("get system DB: %w", err)
-	}
 
 	creds := &PlatformCredentials{
 		Platform:     platform,
@@ -90,34 +85,13 @@ func (s *CredentialService) GetPlatformCredentials(tenantID, platform string) (*
 	if canonicalState.AppConfigured && canonicalState.StoreConfigured {
 		return creds, nil
 	}
-	if !IsCredentialLegacyFallbackEnabled() {
-		if !canonicalState.AppConfigured {
-			return nil, fmt.Errorf("canonical app credentials not configured for %s/%s", tenantID, platform)
-		}
-		if !canonicalState.StoreConfigured {
-			return nil, fmt.Errorf("canonical store connection not configured for %s/%s", tenantID, platform)
-		}
-		return nil, fmt.Errorf("canonical credentials incomplete for %s/%s", tenantID, platform)
+	if !canonicalState.AppConfigured {
+		return nil, fmt.Errorf("canonical app credentials not configured for %s/%s", tenantID, platform)
 	}
-	_ = repositories.NewCredentialRepository(tenantDB).CreateAuditEvent(ctx, &models.CredentialAuditEvent{
-		TenantID:  tenantID,
-		Platform:  platform,
-		EventType: "credential_legacy_fallback_used",
-		Status:    "success",
-		Code:      "canonical_missing",
-		Actor:     "credential_service",
-		ActorRole: "service",
-		Metadata:  models.JSONMap{"legacy_read_only": true, "canonical_first": true},
-	})
-
-	legacyCreds := &PlatformCredentials{Platform: platform, IsProduction: true}
-	if err := s.loadGlobalCredentials(systemDB, platform, legacyCreds); err != nil {
-		return nil, err
+	if !canonicalState.StoreConfigured {
+		return nil, fmt.Errorf("canonical store connection not configured for %s/%s", tenantID, platform)
 	}
-	if err := s.loadTenantCredentials(ctx, tenantDB, platform, legacyCreds); err != nil {
-		log.Warn().Err(err).Str("platform", platform).Str("tenant", tenantID).Msg("legacy credential fallback read failed")
-	}
-	fillMissingPlatformCredentials(creds, legacyCreds)
+	return nil, fmt.Errorf("canonical credentials incomplete for %s/%s", tenantID, platform)
 
 	// Check token expiry and auto-refresh if needed
 	if s.tokenManager != nil && creds.AccessToken != "" && creds.TokenExpiry > 0 {
@@ -175,40 +149,6 @@ func (s *CredentialService) loadCanonicalCredentials(ctx context.Context, db *go
 		break
 	}
 	return state, nil
-}
-
-func fillMissingPlatformCredentials(target, fallback *PlatformCredentials) {
-	if target.PartnerID == 0 {
-		target.PartnerID = fallback.PartnerID
-	}
-	if target.PartnerKey == "" {
-		target.PartnerKey = fallback.PartnerKey
-	}
-	if target.ShopID == 0 {
-		target.ShopID = fallback.ShopID
-	}
-	if target.AccessToken == "" {
-		target.AccessToken = fallback.AccessToken
-	}
-	if target.RefreshToken == "" {
-		target.RefreshToken = fallback.RefreshToken
-	}
-	if target.AppKey == "" {
-		target.AppKey = fallback.AppKey
-	}
-	if target.AppSecret == "" {
-		target.AppSecret = fallback.AppSecret
-	}
-	if target.ShopCipher == "" {
-		target.ShopCipher = fallback.ShopCipher
-	}
-	if target.Region == "" {
-		target.Region = fallback.Region
-	}
-	if target.TokenExpiry == 0 {
-		target.TokenExpiry = fallback.TokenExpiry
-	}
-	target.IsProduction = target.IsProduction || fallback.IsProduction
 }
 
 func (s *CredentialService) loadGlobalCredentials(db *gorm.DB, platform string, creds *PlatformCredentials) error {

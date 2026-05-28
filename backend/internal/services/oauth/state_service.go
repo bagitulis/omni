@@ -17,18 +17,30 @@ const StateTTL = 10 * time.Minute
 type StateClaims struct {
 	TenantID     string `json:"tenant_id"`
 	Platform     string `json:"platform"`
+	Marketplace  string `json:"marketplace"`
 	AttemptID    string `json:"attempt_id"`
 	Intent       string `json:"intent"`
 	StoreID      string `json:"store_id,omitempty"`
 	UserID       string `json:"user_id,omitempty"`
 	SessionID    string `json:"session_id,omitempty"`
 	CSRFNonce    string `json:"csrf_nonce"`
+	Nonce        string `json:"nonce"`
 	RedirectPath string `json:"redirect_path"`
+	RedirectURI  string `json:"redirect_uri"`
 	ExpiresAt    int64  `json:"expires_at"`
 }
 
 func BuildSignedState(claims StateClaims) (string, error) {
-	if claims.TenantID == "" || claims.Platform == "" || claims.AttemptID == "" || claims.CSRFNonce == "" || claims.ExpiresAt == 0 {
+	if claims.Marketplace == "" {
+		claims.Marketplace = claims.Platform
+	}
+	if claims.Nonce == "" {
+		claims.Nonce = claims.CSRFNonce
+	}
+	if claims.RedirectURI == "" {
+		claims.RedirectURI = claims.RedirectPath
+	}
+	if claims.TenantID == "" || claims.Platform == "" || claims.Marketplace == "" || claims.AttemptID == "" || claims.CSRFNonce == "" || claims.Nonce == "" || claims.RedirectURI == "" || claims.ExpiresAt == 0 {
 		return "", fmt.Errorf("state claims are incomplete")
 	}
 	payload, err := json.Marshal(claims)
