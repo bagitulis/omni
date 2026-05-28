@@ -8,7 +8,7 @@ import (
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
-	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services"
 	shopeeService "github.com/omni/backend/internal/services/shopee"
 	shopeePkg "github.com/omni/backend/pkg/shopee"
 	"github.com/rs/zerolog/log"
@@ -48,17 +48,8 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 		return
 	}
 
-	// Get system database for global credentials
-	systemDB, err := config.GetSystemDB(h.basePath)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("System database failed"))
-		return
-	}
-
-	// Get platform credentials from tenant's key-value storage
-	// NOTE: PostgreSQL uses schema isolation, NOT tenant_id column
-	credRepo := repositories.NewPlatformCredentialsRepository(db)
-	tenantCreds, err := credRepo.GetShopeeCredentials(c.Request.Context())
+	credService := services.NewCredentialService(h.basePath)
+	creds, err := credService.GetPlatformCredentials(tenantID, "shopee")
 	if err != nil {
 		log.Error().
 			Str("handler", "shopee_products").
@@ -68,22 +59,18 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.Error("Shopee not configured for this tenant"))
 		return
 	}
-	if tenantCreds.ShopIDInt == 0 || tenantCreds.AccessToken == "" {
+	if creds.ShopID == 0 || creds.AccessToken == "" {
 		c.JSON(http.StatusBadRequest, response.Error("Shopee shop not connected - missing shopId or accessToken"))
 		return
 	}
-
-	// Get global credentials (partnerId, partnerKey)
-	configRepo := repositories.NewGlobalConfigRepository(systemDB)
-	globalCreds, err := configRepo.GetShopeeCredentials(c.Request.Context())
-	if err != nil || globalCreds.PartnerID == 0 {
+	if creds.PartnerID == 0 || creds.PartnerKey == "" {
 		c.JSON(http.StatusBadRequest, response.Error("Shopee global credentials not configured"))
 		return
 	}
 
 	// Create API client with global + tenant credentials
-	client := shopeePkg.NewClient(globalCreds.PartnerID, globalCreds.PartnerKey, true)
-	client.SetShopCredentials(tenantCreds.ShopIDInt, tenantCreds.AccessToken)
+	client := shopeePkg.NewClient(creds.PartnerID, creds.PartnerKey, creds.IsProduction)
+	client.SetShopCredentials(creds.ShopID, creds.AccessToken)
 
 	// Use SyncService to fetch and save products with tenant ID
 	syncService := shopeeService.NewSyncServiceWithTenant(client, db, tenantID)
