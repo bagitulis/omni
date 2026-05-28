@@ -7,11 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Standardized console.error/warn through logger**: Replaced all 51 production `console.error`/`console.warn` calls across 29 frontend source files with the centralized `logger` utility (`src/lib/logger.ts`). Logger imports added to all affected files. Error context preserved via `{ err }` context objects. Test files and `logger.ts` implementation itself excluded. TypeScript compiles clean; all 1978 tests pass.
+
 ### Fixed
 - **Audited math/rand usage in backend (security audit)**: All 3 non-test files using math/rand (Lazada API jitter, TikTok sync retry jitter, Shopee sync retry jitter) classified as non-security retry backoff jitter. All 5 files using crypto/rand correctly handle security-sensitive operations (JWT, OAuth state, CSRF, SSE tickets, notification nonces). Zero security-sensitive math/rand instances found. Evidence: .sisyphus/evidence/task-22-math-rand.txt.
 
 ### Added
 - **Playwright E2E spec stubs for consolidated gap remediation**: Added 5 stub spec files to `frontend/e2e/` covering layout viewport sweep, accessibility axe-core audits, credential lifecycle (shopee/lazada/tiktok), developer impersonation context, and booking integration. All tests use `test.skip()`. Unblocks T24, T27, T29, T33.
+- **Escrow formula correctness tests for Shopee and TikTok (T7)**: Added 98 comprehensive tests in `backend/internal/services/analytics/escrow_formula_test.go` covering Shopee formula (BuyerPaidShippingFee - ActualShippingFee + ShopeeShippingRebate) and TikTok formula (ShippingFeeCustomerPaid - ShippingFeeActual + ShippingFeePlatformDiscount). Tests cover: negative values, zero quantity items, canceled items, chargebacks, shipping adjustments, multi-line allocation, cross-currency rows, partial pagination failure, monetary precision, and formula invariants. All 163 analytics tests pass.
 
 ### Fixed
 - **Task 10 credential migration store identity fix**: Removed `platform_legacy` fallback from `keyValueRowsToBundle` — key-value rows without a `shopId` now emit a `missing_store_identity` abort reason instead of creating an invalid canonical store record. Verified with focused test.

@@ -3,6 +3,7 @@ package master_product
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -61,7 +62,11 @@ func (s *Service) SyncSelectedProducts(ctx context.Context, tenantID string, pro
 
 	result := &SyncSelectedResult{}
 	_ = systemDB
-	credService := services.NewCredentialService(s.basePath)
+	basePath := os.Getenv("DATA_PATH")
+	if basePath == "" {
+		basePath = "./data"
+	}
+	credService := services.NewCredentialService(basePath)
 
 	for platform, pLinks := range platformLinks {
 		count, err := s.syncPlatformItems(ctx, tenantID, platform, pLinks, credService)
