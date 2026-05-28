@@ -31,12 +31,7 @@ type blockingFakeShopeeClient struct {
 
 func (f *blockingFakeShopeeClient) GetWalletTransactions(req shopeePkg.GetWalletTransactionRequest) (*shopeePkg.WalletTransactionResponse, error) {
 	<-f.blockSignal
-	return &shopeePkg.WalletTransactionResponse{
-		Response: struct {
-			TransactionList []shopeePkg.WalletTransaction `json:"transaction_list"`
-			More            bool                          `json:"more"`
-		}{},
-	}, nil
+	return nil, context.Canceled
 }
 
 func (f *blockingFakeShopeeClient) GetEscrowDetails(req shopeePkg.GetEscrowDetailsRequest) (*shopeePkg.GetEscrowDetailsResponse, error) {
@@ -85,7 +80,7 @@ type blockingFakeTiktokClient struct {
 
 func (f *blockingFakeTiktokClient) SearchOrders(req tiktokPkg.OrderSearchRequest, pageSize int, pageToken string) (*tiktokPkg.OrderSearchResponse, error) {
 	<-f.blockSignal
-	return &tiktokPkg.OrderSearchResponse{Code: 0, Message: "success"}, nil
+	return nil, context.Canceled
 }
 
 func (f *blockingFakeTiktokClient) GetOrderDetail(orderIDs []string) (*tiktokPkg.OrderDetailResponse, error) {
