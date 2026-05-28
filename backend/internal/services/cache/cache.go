@@ -13,6 +13,8 @@ type CacheManager interface {
 	Set(tenantID, key string, value interface{}, ttl time.Duration) error
 	Delete(tenantID, key string) error
 	DeletePattern(tenantID, pattern string) error
+	DeletePattern(tenantID, pattern string) error
+	ClearTenant(tenantID string)
 	Count() int
 	Stop()
 }

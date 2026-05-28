@@ -32,9 +32,6 @@ func setupExternalOpTestDB(t *testing.T) *gorm.DB {
 // ============================================================================
 
 func TestExternalOperationStatus_StateTransitions(t *testing.T) {
-	tests := []struct {
-		source, dest ExternalOperationStatus
-		func TestExternalOperationStatus_StateTransitions(t *testing.T) {
 	assert.False(t, ExtOpPending.IsTerminal(), "pending is not terminal")
 	assert.False(t, ExtOpUnknown.IsTerminal(), "unknown is not terminal")
 	assert.True(t, ExtOpSucceeded.IsTerminal(), "succeeded is terminal")
