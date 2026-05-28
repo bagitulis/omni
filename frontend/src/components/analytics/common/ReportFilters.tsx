@@ -63,6 +63,7 @@ export function ReportFilters({
           options={monthOptions}
           style={{ width: 140 }}
           size="small"
+          aria-label="Report month"
         />
       </Col>
       <Col>
@@ -72,6 +73,7 @@ export function ReportFilters({
           options={yearOptions}
           style={{ width: 100 }}
           size="small"
+          aria-label="Report year"
         />
       </Col>
       <Col flex="auto">

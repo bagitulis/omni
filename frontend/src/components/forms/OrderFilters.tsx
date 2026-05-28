@@ -61,6 +61,7 @@ export function OrderFilters({
               defaultValue="all"
               style={{ width: "100%" }}
               onChange={onPlatformChange}
+              aria-label="Order platform filter"
               options={[
                 { value: "all", label: "All Platforms" },
                 { value: "shopee", label: "Shopee" },
@@ -77,7 +78,11 @@ export function OrderFilters({
             <Text type="secondary" style={{ fontSize: 12 }}>
               Order Date
             </Text>
-            <RangePicker style={{ width: "100%" }} onChange={onDateChange} />
+            <RangePicker
+              style={{ width: "100%" }}
+              onChange={onDateChange}
+              aria-label="Order date range filter"
+            />
           </Flex>
         </Col>
 

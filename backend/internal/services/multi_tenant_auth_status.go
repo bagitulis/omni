@@ -74,6 +74,8 @@ func (s *MultiTenantAuthService) SwitchTenant(ctx context.Context, userID, curre
 
 	// Verify tenant exists
 	if !s.tenantService.TenantExists(ctx, newTenantID) {
+		return "", &AuthError{Code: "TENANT_NOT_FOUND", Message: "Tenant not found"}
+	}
 
 	// Update all active refresh sessions in system DB to the new tenant
 	// This ensures token refresh after page reload uses the correct tenant
