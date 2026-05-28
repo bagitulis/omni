@@ -128,7 +128,7 @@ func TestListBookings_Pagination(t *testing.T) {
 	ctx := context.Background()
 
 	// Seed 5 bookings
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		b := sampleBooking("BSN-PG-"+string(rune('A'+i)), "OSN-PG-"+string(rune('A'+i)))
 		require.NoError(t, repo.UpsertBookingWithItems(ctx, "tenant_a", 100, b, nil))
 	}
@@ -378,13 +378,13 @@ func TestListBookings_CrossTenantIsolation(t *testing.T) {
 	ctx := context.Background()
 
 	// Seed bookings for tenant_a
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		b := sampleBooking("BSN-TA-"+string(rune('1'+i)), "OSN-TA-"+string(rune('1'+i)))
 		require.NoError(t, repoA.UpsertBookingWithItems(ctx, "tenant_a", 100, b, nil))
 	}
 
 	// Seed bookings for tenant_b
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		b := sampleBooking("BSN-TB-"+string(rune('1'+i)), "OSN-TB-"+string(rune('1'+i)))
 		require.NoError(t, repoB.UpsertBookingWithItems(ctx, "tenant_b", 200, b, nil))
 	}

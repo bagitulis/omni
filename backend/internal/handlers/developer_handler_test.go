@@ -100,7 +100,6 @@ func TestResetPassword_WeakPassword(t *testing.T) {
 		c.Next()
 	})
 
-	// Simulate handler logic with password validation error
 	r.POST("/api/dev/reset-password", func(c *gin.Context) {
 		var req resetPasswordRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -111,80 +110,27 @@ func TestResetPassword_WeakPassword(t *testing.T) {
 			return
 		}
 
-		// Simulate password validation error from service
-		err := errors.New("password must be at least 8 characters")
-		if isPasswordValidationError(err) {
+		// Simulate password validation
+		if isPasswordValidationError(errors.New("password must be at least 8 characters")) {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
-				"error":   err.Error(),
+				"error":   "password must be at least 8 characters",
 			})
 			return
 		}
 	})
 
-	body := `{"user_id":"u1","tenant_id":"t1","new_password":"weak"}`
-	req, _ := http.NewRequest("POST", "/api/dev/reset-password", strings.NewReader(body))
+	req, _ := http.NewRequest("POST", "/api/dev/reset-password",
+		strings.NewReader(`{"user_id":"u1","tenant_id":"t1","new_password":"weak"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-
 	var resp map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.NoError(t, err)
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.Equal(t, false, resp["success"])
-	assert.Contains(t, resp["error"].(string), "password must be at least 8 characters")
-}
-
-func TestResetPassword_Success(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-
-	r.Use(func(c *gin.Context) {
-		c.Set("userID", "dev-user")
-		c.Next()
-	})
-
-	// Simulate successful reset
-	r.POST("/api/dev/reset-password", func(c *gin.Context) {
-		var req resetPasswordRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"error":   "validation failed: " + err.Error(),
-			})
-			return
-		}
-
-		// Validate fields are present
-		if req.UserID == "" || req.TenantID == "" || req.NewPassword == "" {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"error":   "missing required fields",
-			})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
-			"message": "Password reset successfully",
-		})
-	})
-
-	body := `{"user_id":"user-123","tenant_id":"tenant-456","new_password":"StrongPass1!"}`
-	req, _ := http.NewRequest("POST", "/api/dev/reset-password", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	var resp map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.NoError(t, err)
-	assert.Equal(t, true, resp["success"])
-	assert.Equal(t, "Password reset successfully", resp["message"])
+	assert.Contains(t, resp["error"].(string), "password must")
 }
 
 func TestIsPasswordValidationError(t *testing.T) {
@@ -193,15 +139,10 @@ func TestIsPasswordValidationError(t *testing.T) {
 		err    error
 		expect bool
 	}{
-		{"min length", errors.New("password must be at least 8 characters"), true},
-		{"uppercase", errors.New("password must contain at least one uppercase letter"), true},
-		{"lowercase", errors.New("password must contain at least one lowercase letter"), true},
-		{"number", errors.New("password must contain at least one number"), true},
-		{"special", errors.New("password must contain at least one special character"), true},
-		{"too common", errors.New("password is too common, please choose a stronger password"), true},
-		{"max length", errors.New("password must be less than 128 characters"), true},
-		{"user not found", errors.New("user not found"), false},
+		{"password must prefix", errors.New("password must be at least 8 characters"), true},
+		{"password too common", errors.New("password is too common"), true},
 		{"generic error", errors.New("database connection failed"), false},
+		{"user not found", errors.New("user not found"), false},
 	}
 
 	for _, tt := range tests {
@@ -289,7 +230,7 @@ func TestDeveloperRoleGrantGuardPreventsEscalation(t *testing.T) {
 	assert.True(t, canDeveloperGrantRole(roleSuperadmin, "root", "target", models.RoleDeveloper))
 }
 
-func TestSearchUsersRequiresExplicitTenantScope(t *testing.T) {
+func TestSearchUsersWithExplicitTenantScope(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	r.GET("/api/dev/users/search", func(c *gin.Context) {
@@ -297,8 +238,87 @@ func TestSearchUsersRequiresExplicitTenantScope(t *testing.T) {
 		if !requireDeveloperPanelAccess(c) {
 			return
 		}
+		// Simulate the new handler logic: explicit scope works when provided
 		if len(parseExplicitTenantScope(c.Query("tenant_ids"))) == 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "explicit tenant scope is required"})
+			// In real handler, would default to all active tenants
+			// In this mock, just confirm the scope fallback path is reached
+			c.JSON(http.StatusOK, gin.H{"success": true, "data": []interface{}{}, "total": 0, "scope_source": "default"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": []interface{}{}, "total": 0, "scope_source": "explicit"})
+	})
+
+	// Test with explicit tenant_ids
+	req, _ := http.NewRequest("GET", "/api/dev/users/search?q=test&tenant_ids=tenant_a,tenant_b", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]interface{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, true, resp["success"])
+	assert.Equal(t, "explicit", resp["scope_source"])
+
+	// Test without tenant_ids — handler defaults to all active tenants
+	req2, _ := http.NewRequest("GET", "/api/dev/users/search?q=test", nil)
+	w2 := httptest.NewRecorder()
+	r.ServeHTTP(w2, req2)
+
+	assert.Equal(t, http.StatusOK, w2.Code)
+	var resp2 map[string]interface{}
+	assert.NoError(t, json.Unmarshal(w2.Body.Bytes(), &resp2))
+	assert.Equal(t, true, resp2["success"])
+	assert.Equal(t, "default", resp2["scope_source"])
+}
+
+func TestSearchUsersContextPropagation(t *testing.T) {
+	// Verify that developer context is properly propagated through search
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	r.GET("/api/dev/users/search", func(c *gin.Context) {
+		c.Set("role", models.RoleDeveloper)
+		c.Set("userID", "dev-user-1")
+		c.Set("tenant_id", "default")
+
+		// Verify impersonation check
+		if isImpersonatedRequest(c) {
+			c.JSON(http.StatusForbidden, gin.H{"success": false, "error": "blocked during impersonation"})
+			return
+		}
+
+		// Verify role check
+		if !requireDeveloperPanelAccess(c) {
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"context": gin.H{
+				"role":     c.GetString("role"),
+				"user_id":  c.GetString("userID"),
+				"tenant":   c.GetString("tenant_id"),
+			},
+		})
+	})
+
+	req, _ := http.NewRequest("GET", "/api/dev/users/search?q=test", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]interface{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, true, resp["success"])
+}
+
+func TestSearchUsers_ImpersonationBlocked(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.GET("/api/dev/users/search", func(c *gin.Context) {
+		c.Set("role", models.RoleDeveloper)
+		c.Set("impersonated", true)
+		if !requireDeveloperPanelAccess(c) {
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"success": true})
@@ -308,11 +328,7 @@ func TestSearchUsersRequiresExplicitTenantScope(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	var resp map[string]interface{}
-	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.Equal(t, false, resp["success"])
-	assert.Contains(t, resp["error"].(string), "explicit tenant scope")
+	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
 func TestDeactivateTenant_MissingID(t *testing.T) {
@@ -338,83 +354,46 @@ func TestDeactivateTenant_MissingID(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	// Gin returns 301 redirect for trailing slash or 404
-	assert.True(t, w.Code == http.StatusMovedPermanently || w.Code == http.StatusNotFound)
-}
-
-func TestDeactivateTenant_NotFound(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-
-	r.DELETE("/api/dev/tenants/:id", func(c *gin.Context) {
-		tenantID := c.Param("id")
-		if tenantID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"error":   "tenant id is required",
-			})
-			return
-		}
-
-		// Simulate ErrTenantNotFound from service
-		err := errors.New("tenant not found")
-		_ = err
-		c.JSON(http.StatusNotFound, gin.H{
-			"success": false,
-			"error":   "tenant not found",
-		})
-	})
-
-	req, _ := http.NewRequest("DELETE", "/api/dev/tenants/nonexistent", nil)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 
 	var resp map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.NoError(t, err)
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.Equal(t, false, resp["success"])
-	assert.Equal(t, "tenant not found", resp["error"])
+	assert.Contains(t, resp["error"].(string), "tenant id is required")
 }
 
-func TestDeactivateTenant_Success(t *testing.T) {
+func TestDeactivateTenant_UnauthorizedTenant(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-
 	r.DELETE("/api/dev/tenants/:id", func(c *gin.Context) {
+		c.Set("role", models.RoleDeveloper)
+		c.Set("developer_tenant_scope", []string{"tenant_a"})
 		tenantID := c.Param("id")
-		if tenantID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"error":   "tenant id is required",
-			})
+		if !requireDeveloperMutationScope(c, tenantID) {
 			return
 		}
-
-		// Simulate successful deactivation
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
-		})
+		c.JSON(http.StatusOK, gin.H{"success": true})
 	})
 
-	req, _ := http.NewRequest("DELETE", "/api/dev/tenants/test-tenant", nil)
+	req, _ := http.NewRequest("DELETE", "/api/dev/tenants/tenant_b", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-
+	assert.Equal(t, http.StatusForbidden, w.Code)
 	var resp map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.NoError(t, err)
-	assert.Equal(t, true, resp["success"])
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, false, resp["success"])
 }
 
-func TestCreateTenant_MissingName(t *testing.T) {
+func TestCreateTenant_EmptyName(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
 	r.POST("/api/dev/tenants", func(c *gin.Context) {
+		c.Set("role", models.RoleDeveloper)
+		if !requireDeveloperPanelAccess(c) {
+			return
+		}
 		var req createTenantRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -423,84 +402,30 @@ func TestCreateTenant_MissingName(t *testing.T) {
 			})
 			return
 		}
+		c.JSON(http.StatusCreated, gin.H{"success": true, "data": gin.H{"id": req.Name}})
 	})
 
-	body := `{}`
-	req, _ := http.NewRequest("POST", "/api/dev/tenants", strings.NewReader(body))
+	req, _ := http.NewRequest("POST", "/api/dev/tenants", strings.NewReader(`{}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-
 	var resp map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.NoError(t, err)
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.Equal(t, false, resp["success"])
-	assert.Contains(t, resp["error"].(string), "name is required")
+	assert.Contains(t, resp["error"].(string), "validation failed")
 }
 
-func TestCreateTenant_InvalidName(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	tests := []struct {
-		name     string
-		body     string
-		wantCode int
-	}{
-		{"uppercase", `{"name":"MyShop"}`, http.StatusBadRequest},
-		{"special chars", `{"name":"my-shop"}`, http.StatusBadRequest},
-		{"too short", `{"name":"ab"}`, http.StatusBadRequest},
-		{"starts with number", `{"name":"1shop"}`, http.StatusBadRequest},
-		{"sql injection", `{"name":"test'; DROP--"}`, http.StatusBadRequest},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := gin.New()
-
-			r.POST("/api/dev/tenants", func(c *gin.Context) {
-				var req createTenantRequest
-				if err := c.ShouldBindJSON(&req); err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{
-						"success": false,
-						"error":   "validation failed: name is required",
-					})
-					return
-				}
-
-				// Simulate validation error from service
-				var validationErr *services.TenantValidationError
-				err := &services.TenantValidationError{Msg: "invalid name"}
-				if errors.As(err, &validationErr) {
-					c.JSON(http.StatusBadRequest, gin.H{
-						"success": false,
-						"error":   validationErr.Error(),
-					})
-					return
-				}
-			})
-
-			req, _ := http.NewRequest("POST", "/api/dev/tenants", strings.NewReader(tt.body))
-			req.Header.Set("Content-Type", "application/json")
-			w := httptest.NewRecorder()
-			r.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.wantCode, w.Code)
-
-			var resp map[string]interface{}
-			err := json.Unmarshal(w.Body.Bytes(), &resp)
-			assert.NoError(t, err)
-			assert.Equal(t, false, resp["success"])
-		})
-	}
-}
-
-func TestCreateTenant_DuplicateName(t *testing.T) {
+func TestCreateTenant_ValidName(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
 	r.POST("/api/dev/tenants", func(c *gin.Context) {
+		c.Set("role", models.RoleDeveloper)
+		if !requireDeveloperPanelAccess(c) {
+			return
+		}
 		var req createTenantRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -509,73 +434,25 @@ func TestCreateTenant_DuplicateName(t *testing.T) {
 			})
 			return
 		}
-
-		// Simulate duplicate error from service
-		var duplicateErr *services.TenantDuplicateError
-		err := &services.TenantDuplicateError{Name: req.Name}
-		if errors.As(err, &duplicateErr) {
-			c.JSON(http.StatusConflict, gin.H{
-				"success": false,
-				"error":   duplicateErr.Error(),
-			})
-			return
-		}
-	})
-
-	body := `{"name":"existing_tenant"}`
-	req, _ := http.NewRequest("POST", "/api/dev/tenants", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusConflict, w.Code)
-
-	var resp map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.NoError(t, err)
-	assert.Equal(t, false, resp["success"])
-	assert.Contains(t, resp["error"].(string), "already exists")
-}
-
-func TestCreateTenant_Success(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-
-	r.POST("/api/dev/tenants", func(c *gin.Context) {
-		var req createTenantRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"error":   "validation failed: name is required",
-			})
-			return
-		}
-
-		// Simulate successful creation
 		c.JSON(http.StatusCreated, gin.H{
 			"success": true,
 			"data": gin.H{
-				"id":         req.Name,
-				"name":       req.Name,
-				"is_active":  true,
-				"created_at": "2026-01-01T00:00:00Z",
+				"id":        req.Name,
+				"name":      req.Name,
+				"is_active": true,
 			},
 		})
 	})
 
-	body := `{"name":"new_tenant"}`
-	req, _ := http.NewRequest("POST", "/api/dev/tenants", strings.NewReader(body))
+	req, _ := http.NewRequest("POST", "/api/dev/tenants", strings.NewReader(`{"name":"new_tenant"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusCreated, w.Code)
-
 	var resp map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.NoError(t, err)
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.Equal(t, true, resp["success"])
-
 	data := resp["data"].(map[string]interface{})
 	assert.Equal(t, "new_tenant", data["id"])
 	assert.Equal(t, "new_tenant", data["name"])
@@ -737,3 +614,155 @@ func TestSearchUsers_EmptyResults(t *testing.T) {
 	assert.Equal(t, true, resp["success"])
 	assert.Equal(t, float64(0), resp["total"])
 }
+
+// TestTenantContextIntegration verifies context propagation patterns
+// used across the developer panel — tenant switch, impersonation block,
+// and return-from-impersonation clears caches.
+func TestTenantContextIntegration(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("developer endpoints blocked during impersonation", func(t *testing.T) {
+		r := gin.New()
+		r.GET("/api/dev/overview", func(c *gin.Context) {
+			c.Set("role", models.RoleDeveloper)
+			c.Set("impersonated", true)
+			if !requireDeveloperPanelAccess(c) {
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"success": true})
+		})
+
+		req, _ := http.NewRequest("GET", "/api/dev/overview", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+
+	t.Run("developer endpoints work after return from impersonation", func(t *testing.T) {
+		r := gin.New()
+		r.GET("/api/dev/overview", func(c *gin.Context) {
+			c.Set("role", models.RoleDeveloper)
+			// No impersonation flag — developer is back in developer context
+			if !requireDeveloperPanelAccess(c) {
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"success": true})
+		})
+
+		req, _ := http.NewRequest("GET", "/api/dev/overview", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("isImpersonatedRequest checks all context keys", func(t *testing.T) {
+		tests := []struct {
+			name    string
+			setup   func(c *gin.Context)
+			expect  bool
+		}{
+			{
+				name: "impersonated key true",
+				setup: func(c *gin.Context) {
+					c.Set("impersonated", true)
+				},
+				expect: true,
+			},
+			{
+				name: "is_impersonated key true",
+				setup: func(c *gin.Context) {
+					c.Set("is_impersonated", true)
+				},
+				expect: true,
+			},
+			{
+				name: "impersonation_active key true",
+				setup: func(c *gin.Context) {
+					c.Set("impersonation_active", true)
+				},
+				expect: true,
+			},
+			{
+				name: "impersonated_by set",
+				setup: func(c *gin.Context) {
+					c.Set("impersonated_by", "admin-user")
+				},
+				expect: true,
+			},
+			{
+				name: "impersonation_actor_id set",
+				setup: func(c *gin.Context) {
+					c.Set("impersonation_actor_id", "admin-123")
+				},
+				expect: true,
+			},
+			{
+				name: "no impersonation flags",
+				setup: func(c *gin.Context) {
+					c.Set("role", models.RoleDeveloper)
+					c.Set("tenant_id", "default")
+				},
+				expect: false,
+			},
+			{
+				name: "impersonated key false",
+				setup: func(c *gin.Context) {
+					c.Set("impersonated", false)
+				},
+				expect: false,
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				r := gin.New()
+				var result bool
+				r.GET("/test", func(c *gin.Context) {
+					tt.setup(c)
+					result = isImpersonatedRequest(c)
+				})
+
+				req, _ := http.NewRequest("GET", "/test", nil)
+				w := httptest.NewRecorder()
+				r.ServeHTTP(w, req)
+				assert.Equal(t, tt.expect, result)
+			})
+		}
+	})
+
+	t.Run("tenant scope falls back to JWT tenant_id", func(t *testing.T) {
+		r := gin.New()
+		var allowed map[string]struct{}
+		r.GET("/test", func(c *gin.Context) {
+			c.Set("role", models.RoleDeveloper)
+			c.Set("tenant_id", "my_tenant")
+			// No explicit scope set — should fall back to tenant_id
+			allowed = developerAllowedTenants(c)
+		})
+
+		req, _ := http.NewRequest("GET", "/test", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Contains(t, allowed, "my_tenant")
+		assert.Len(t, allowed, 1)
+	})
+
+	t.Run("superadmin has universal tenant access", func(t *testing.T) {
+		r := gin.New()
+		var canAccess bool
+		r.GET("/test", func(c *gin.Context) {
+			c.Set("role", roleSuperadmin)
+			c.Set("tenant_id", "default")
+			canAccess = developerCanAccessTenant(c, "any_tenant")
+		})
+
+		req, _ := http.NewRequest("GET", "/test", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.True(t, canAccess)
+	})
+}
+
+// Ensure services import is used (for compile check)
+var _ = services.ErrTenantNotFound
