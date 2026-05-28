@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -53,6 +54,75 @@ func TestBulkResetPasswords_EmptyItems(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, false, resp["success"])
 	assert.Contains(t, resp["error"].(string), "items must not be empty")
+}
+
+func TestBulkResetPasswordsRequiresExplicitTenantList(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.POST("/api/dev/users/bulk-reset-password", func(c *gin.Context) {
+		c.Set("role", models.RoleDeveloper)
+		var req bulkResetPasswordRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "validation failed: " + err.Error()})
+			return
+		}
+		if !bulkItemsHaveExplicitTenantScope(req.Items) {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "bulk operation requires explicit tenant_id for every item"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true})
+	})
+
+	body := `{"items":[{"user_id":"u1"}],"new_password":"StrongPass1!"}`
+	req, _ := http.NewRequest("POST", "/api/dev/users/bulk-reset-password", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	var resp map[string]interface{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, false, resp["success"])
+	assert.Contains(t, resp["error"], "explicit tenant_id")
+}
+
+func TestBulkOperationMixedTenantScopePartialReject(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.POST("/api/dev/users/bulk-disable", func(c *gin.Context) {
+		c.Set("role", models.RoleDeveloper)
+		c.Set("developer_tenant_scope", []string{"tenant_a"})
+		var req bulkDisableUsersRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "validation failed: " + err.Error()})
+			return
+		}
+		result := bulkOperationResult{Errors: make([]bulkErrorDetail, 0)}
+		for _, item := range req.Items {
+			if !developerCanAccessTenant(c, item.TenantID) {
+				result.FailureCount++
+				result.Errors = append(result.Errors, bulkErrorDetail{UserID: item.UserID, TenantID: item.TenantID, Error: "tenant is outside authorized developer scope"})
+				continue
+			}
+			result.SuccessCount++
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+	})
+
+	body := `{"items":[{"user_id":"u1","tenant_id":"tenant_a"},{"user_id":"u2","tenant_id":"tenant_b"}]}`
+	req, _ := http.NewRequest("POST", "/api/dev/users/bulk-disable", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]interface{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	data := resp["data"].(map[string]interface{})
+	assert.Equal(t, float64(1), data["success_count"])
+	assert.Equal(t, float64(1), data["failure_count"])
+	errors := data["errors"].([]interface{})
+	assert.Equal(t, "tenant_b", errors[0].(map[string]interface{})["tenant_id"])
 }
 
 func TestBulkResetPasswords_ExceedsMaxUsers(t *testing.T) {

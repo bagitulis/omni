@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services"
 	"github.com/stretchr/testify/assert"
 )
@@ -209,6 +210,86 @@ func TestIsPasswordValidationError(t *testing.T) {
 			assert.Equal(t, tt.expect, result)
 		})
 	}
+}
+
+func TestDeveloperPanelAccessBlocksImpersonation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.GET("/dev/protected", func(c *gin.Context) {
+		c.Set("role", models.RoleDeveloper)
+		c.Set("impersonated", true)
+		if !requireDeveloperPanelAccess(c) {
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true})
+	})
+
+	req, _ := http.NewRequest("GET", "/dev/protected", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	var resp map[string]interface{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, false, resp["success"])
+	assert.Contains(t, resp["error"].(string), "impersonation")
+}
+
+func TestDeveloperTenantScopeRejectsUnauthorizedTenant(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.GET("/dev/scope", func(c *gin.Context) {
+		c.Set("role", models.RoleDeveloper)
+		c.Set("developer_tenant_scope", []string{"tenant_a"})
+		if !requireDeveloperTenantAccess(c, "tenant_b") {
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true})
+	})
+
+	req, _ := http.NewRequest("GET", "/dev/scope", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	var resp map[string]interface{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, false, resp["success"])
+	assert.Contains(t, resp["error"].(string), "authorized developer scope")
+}
+
+func TestDeveloperRoleGrantGuardPreventsEscalation(t *testing.T) {
+	assert.False(t, canDeveloperGrantRole(models.RoleDeveloper, "dev-user", "dev-user", models.RoleAdmin))
+	assert.False(t, canDeveloperGrantRole(models.RoleDeveloper, "dev-user", "target", models.RoleDeveloper))
+	assert.False(t, canDeveloperGrantRole(models.RoleDeveloper, "dev-user", "target", roleSuperadmin))
+	assert.True(t, canDeveloperGrantRole(models.RoleDeveloper, "dev-user", "target", models.RoleAdmin))
+	assert.True(t, canDeveloperGrantRole(roleSuperadmin, "root", "target", models.RoleDeveloper))
+}
+
+func TestSearchUsersRequiresExplicitTenantScope(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.GET("/api/dev/users/search", func(c *gin.Context) {
+		c.Set("role", models.RoleDeveloper)
+		if !requireDeveloperPanelAccess(c) {
+			return
+		}
+		if len(parseExplicitTenantScope(c.Query("tenant_ids"))) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "explicit tenant scope is required"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true})
+	})
+
+	req, _ := http.NewRequest("GET", "/api/dev/users/search?q=test", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	var resp map[string]interface{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, false, resp["success"])
+	assert.Contains(t, resp["error"].(string), "explicit tenant scope")
 }
 
 func TestDeactivateTenant_MissingID(t *testing.T) {

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"net/http"
@@ -37,13 +38,18 @@ var CSRFExemptPaths = []string{
 type CSRFTokenStore struct {
 	tokens map[string]time.Time
 	mu     sync.RWMutex
-	stopCh chan struct{}
 }
 
 var tokenStore = &CSRFTokenStore{
 	tokens: make(map[string]time.Time),
-	stopCh: make(chan struct{}),
 }
+
+var (
+	csrfShutdown       = make(chan struct{})
+	csrfLifecycleMu    sync.Mutex
+	csrfCleanupAlive   bool
+	csrfShutdownClosed bool
+)
 
 // GenerateCSRFToken creates a new cryptographically secure token
 func GenerateCSRFToken() (string, error) {
@@ -93,9 +99,6 @@ func isSafeMethod(method string) bool {
 
 // CSRFProtection implements double-submit cookie pattern for CSRF protection
 func CSRFProtection() gin.HandlerFunc {
-	// Start cleanup goroutine for expired tokens
-	go cleanupExpiredTokens()
-
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
 
@@ -149,8 +152,31 @@ func CSRFProtection() gin.HandlerFunc {
 	}
 }
 
+// StartCSRFCleanup starts lifecycle-managed cleanup for expired CSRF tokens.
+func StartCSRFCleanup(ctx context.Context) {
+	csrfLifecycleMu.Lock()
+	defer csrfLifecycleMu.Unlock()
+
+	if csrfCleanupAlive {
+		return
+	}
+	csrfShutdown = make(chan struct{})
+	csrfCleanupAlive = true
+	csrfShutdownClosed = false
+	shutdown := csrfShutdown
+
+	go cleanupExpiredTokens(ctx, shutdown)
+}
+
 // cleanupExpiredTokens removes expired tokens periodically
-func cleanupExpiredTokens() {
+func cleanupExpiredTokens(ctx context.Context, stopCh <-chan struct{}) {
+	defer func() {
+		csrfLifecycleMu.Lock()
+		csrfCleanupAlive = false
+		csrfShutdownClosed = false
+		csrfLifecycleMu.Unlock()
+	}()
+
 	ticker := time.NewTicker(10 * time.Minute)
 	defer ticker.Stop()
 
@@ -165,7 +191,9 @@ func cleanupExpiredTokens() {
 				}
 			}
 			tokenStore.mu.Unlock()
-		case <-tokenStore.stopCh:
+		case <-ctx.Done():
+			return
+		case <-stopCh:
 			return
 		}
 	}
@@ -173,5 +201,12 @@ func cleanupExpiredTokens() {
 
 // StopCSRFCleanup stops the CSRF token cleanup goroutine
 func StopCSRFCleanup() {
-	close(tokenStore.stopCh)
+	csrfLifecycleMu.Lock()
+	defer csrfLifecycleMu.Unlock()
+
+	if !csrfCleanupAlive || csrfShutdownClosed {
+		return
+	}
+	close(csrfShutdown)
+	csrfShutdownClosed = true
 }

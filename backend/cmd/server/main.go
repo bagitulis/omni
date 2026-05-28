@@ -50,6 +50,8 @@ func main() {
 	// Create server context for background services
 	serverCtx, serverCancel := context.WithCancel(context.Background())
 	defer serverCancel()
+	handlers.StartSSECleanup(serverCtx)
+	middleware.StartCSRFCleanup(serverCtx)
 
 	// Initialize extended handlers with Google Auth
 	extHandlers := application.InitExtendedHandlers(serverCtx, application.SystemDB, googleAuthService)
@@ -304,6 +306,8 @@ func main() {
 
 	// Signal all background services to stop via context cancellation
 	serverCancel()
+	handlers.StopSSECleanup()
+	middleware.StopCSRFCleanup()
 
 	// Stop job executor gracefully
 	if extHandlers.JobExecutor != nil {

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
 	"sync"
 
@@ -11,6 +10,13 @@ import (
 	"github.com/omni/backend/internal/middleware"
 	labelSvc "github.com/omni/backend/internal/services/label"
 )
+
+type bulkPrintLabelResult struct {
+	index   int
+	label   map[string]any
+	failed  map[string]any
+	success bool
+}
 
 // BulkPrintLabels handles POST /api/orders/bulk-print-labels
 // Routes to the correct platform's shipping label service per order.
@@ -40,16 +46,9 @@ func (h *OrderManagerHandler) BulkPrintLabels(c *gin.Context) {
 	}
 
 	labelService := labelSvc.NewLabelService(h.basePath)
-	ctx := context.Background()
+	ctx := c.Request.Context()
 
-	type labelResult struct {
-		index   int
-		label   map[string]interface{}
-		failed  map[string]interface{}
-		success bool
-	}
-
-	resultsCh := make([]labelResult, len(req.OrderSNs))
+	resultsCh := make([]bulkPrintLabelResult, len(req.OrderSNs))
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, 3) // Limit concurrency for external API calls
 
@@ -57,8 +56,20 @@ func (h *OrderManagerHandler) BulkPrintLabels(c *gin.Context) {
 		wg.Add(1)
 		go func(idx int, sn string) {
 			defer wg.Done()
-			sem <- struct{}{}
+			select {
+			case <-ctx.Done():
+				resultsCh[idx] = cancelledLabelResult(idx, sn, req.Platform, ctx.Err())
+				return
+			case sem <- struct{}{}:
+			}
 			defer func() { <-sem }()
+
+			select {
+			case <-ctx.Done():
+				resultsCh[idx] = cancelledLabelResult(idx, sn, req.Platform, ctx.Err())
+				return
+			default:
+			}
 
 			result := labelService.GetLabelWithOptions(
 				ctx, tenantID, sn, req.Platform,
@@ -69,11 +80,11 @@ func (h *OrderManagerHandler) BulkPrintLabels(c *gin.Context) {
 			)
 
 			if result.Status == "FAILED" {
-				resultsCh[idx] = labelResult{index: idx, failed: map[string]interface{}{
+				resultsCh[idx] = bulkPrintLabelResult{index: idx, failed: map[string]any{
 					"order_sn": sn, "platform": result.Platform, "error": result.ErrorMessage,
 				}}
 			} else {
-				resultsCh[idx] = labelResult{index: idx, success: true, label: map[string]interface{}{
+				resultsCh[idx] = bulkPrintLabelResult{index: idx, success: true, label: map[string]any{
 					"order_sn": result.OrderSN, "platform": result.Platform,
 					"file_data": result.FileData, "status": result.Status,
 				}}
@@ -82,8 +93,8 @@ func (h *OrderManagerHandler) BulkPrintLabels(c *gin.Context) {
 	}
 	wg.Wait()
 
-	labels := []map[string]interface{}{}
-	failed := []map[string]interface{}{}
+	labels := []map[string]any{}
+	failed := []map[string]any{}
 	for _, r := range resultsCh {
 		if r.success {
 			labels = append(labels, r.label)
@@ -92,9 +103,17 @@ func (h *OrderManagerHandler) BulkPrintLabels(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, response.Success(map[string]interface{}{
+	c.JSON(http.StatusOK, response.Success(map[string]any{
 		"labels": labels,
 		"failed": failed,
 		"count":  len(labels),
 	}))
+}
+
+func cancelledLabelResult(index int, orderSN, platform string, err error) bulkPrintLabelResult {
+	return bulkPrintLabelResult{index: index, failed: map[string]any{
+		"order_sn": orderSN,
+		"platform": platform,
+		"error":    err.Error(),
+	}}
 }

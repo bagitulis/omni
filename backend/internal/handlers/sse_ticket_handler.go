@@ -4,6 +4,7 @@ package handlers
 // This prevents JWT exposure in SSE URL query params.
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"net/http"
@@ -30,13 +31,60 @@ var sseTicketStore = &SSETicketStore{
 	tickets: make(map[string]*SSETicket),
 }
 
-func init() {
+var (
+	sseShutdown       = make(chan struct{})
+	sseLifecycleMu    sync.Mutex
+	sseCleanupAlive   bool
+	sseShutdownClosed bool
+)
+
+// StartSSECleanup starts lifecycle-managed cleanup for expired SSE tickets.
+func StartSSECleanup(ctx context.Context) {
+	sseLifecycleMu.Lock()
+	defer sseLifecycleMu.Unlock()
+
+	if sseCleanupAlive {
+		return
+	}
+	sseShutdown = make(chan struct{})
+	sseCleanupAlive = true
+	sseShutdownClosed = false
+	shutdown := sseShutdown
+
 	go func() {
+		defer func() {
+			sseLifecycleMu.Lock()
+			sseCleanupAlive = false
+			sseShutdownClosed = false
+			sseLifecycleMu.Unlock()
+		}()
+
 		ticker := time.NewTicker(1 * time.Minute)
-		for range ticker.C {
-			sseTicketStore.cleanup()
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				sseTicketStore.cleanup()
+			case <-ctx.Done():
+				return
+			case <-shutdown:
+				return
+			}
 		}
 	}()
+}
+
+// StopSSECleanup stops the SSE ticket cleanup worker.
+func StopSSECleanup() {
+	sseLifecycleMu.Lock()
+	defer sseLifecycleMu.Unlock()
+
+	if !sseCleanupAlive || sseShutdownClosed {
+		return
+	}
+	close(sseShutdown)
+	sseShutdownClosed = true
 }
 
 // Create generates a new one-time ticket for the given user/tenant.

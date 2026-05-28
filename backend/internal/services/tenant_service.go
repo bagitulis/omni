@@ -99,6 +99,32 @@ func (s *TenantService) TenantExists(ctx context.Context, tenantID string) bool 
 	return false
 }
 
+// GetActiveTenantsByID returns active tenant metadata for an explicit tenant scope.
+func (s *TenantService) GetActiveTenantsByID(ctx context.Context, tenantIDs []string) (map[string]TenantInfo, error) {
+	if len(tenantIDs) == 0 {
+		return map[string]TenantInfo{}, nil
+	}
+	systemDB, err := config.GetSystemDB(s.basePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get system db: %w", err)
+	}
+	var tenants []struct {
+		TenantID string `gorm:"column:tenant_id"`
+		IsActive bool   `gorm:"column:is_active"`
+	}
+	if err := systemDB.WithContext(ctx).Table("system.tenants").
+		Select("tenant_id, is_active").
+		Where("tenant_id IN ? AND is_active = ?", tenantIDs, true).
+		Find(&tenants).Error; err != nil {
+		return nil, fmt.Errorf("failed to get scoped tenants: %w", err)
+	}
+	result := make(map[string]TenantInfo, len(tenants))
+	for _, tenant := range tenants {
+		result[tenant.TenantID] = TenantInfo{ID: tenant.TenantID, ShopName: formatShopName(tenant.TenantID)}
+	}
+	return result, nil
+}
+
 // DeactivateTenant soft-deletes a tenant by setting is_active=false.
 // Does NOT drop schema or delete any data.
 func (s *TenantService) DeactivateTenant(ctx context.Context, tenantID string) error {

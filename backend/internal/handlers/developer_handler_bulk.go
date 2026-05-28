@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 )
 
@@ -15,7 +16,7 @@ const maxBulkUsers = 50
 // bulkUserItem represents a single user with their tenant for bulk operations.
 type bulkUserItem struct {
 	UserID   string `json:"user_id" binding:"required"`
-	TenantID string `json:"tenant_id" binding:"required"`
+	TenantID string `json:"tenant_id"`
 }
 
 // bulkResetPasswordRequest represents the request body for bulk password reset.
@@ -31,8 +32,9 @@ type bulkDisableUsersRequest struct {
 
 // bulkErrorDetail represents a single failure in a bulk operation.
 type bulkErrorDetail struct {
-	UserID string `json:"user_id"`
-	Error  string `json:"error"`
+	UserID   string `json:"user_id"`
+	TenantID string `json:"tenant_id,omitempty"`
+	Error    string `json:"error"`
 }
 
 // bulkOperationResult represents the result of a bulk operation.
@@ -45,6 +47,9 @@ type bulkOperationResult struct {
 // BulkResetPasswords resets passwords for multiple users in a tenant.
 // POST /api/dev/users/bulk-reset-password
 func (h *DeveloperHandler) BulkResetPasswords(c *gin.Context) {
+	if !requireDeveloperPanelAccess(c) {
+		return
+	}
 	var req bulkResetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -59,6 +64,10 @@ func (h *DeveloperHandler) BulkResetPasswords(c *gin.Context) {
 			"success": false,
 			"error":   "items must not be empty",
 		})
+		return
+	}
+	if !bulkItemsHaveExplicitTenantScope(req.Items) {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "bulk operation requires explicit tenant_id for every item"})
 		return
 	}
 
@@ -83,13 +92,19 @@ func (h *DeveloperHandler) BulkResetPasswords(c *gin.Context) {
 	}
 
 	for _, item := range req.Items {
+		if !developerCanAccessTenant(c, item.TenantID) {
+			result.FailureCount++
+			result.Errors = append(result.Errors, bulkErrorDetail{UserID: item.UserID, TenantID: item.TenantID, Error: "tenant is outside authorized developer scope"})
+			continue
+		}
 		// Verify tenant exists for each item
 		_, err := h.tenantService.GetTenantDB(item.TenantID)
 		if err != nil {
 			result.FailureCount++
 			result.Errors = append(result.Errors, bulkErrorDetail{
-				UserID: item.UserID,
-				Error:  "invalid tenant_id: " + err.Error(),
+				UserID:   item.UserID,
+				TenantID: item.TenantID,
+				Error:    "invalid tenant_id: " + err.Error(),
 			})
 			continue
 		}
@@ -98,13 +113,15 @@ func (h *DeveloperHandler) BulkResetPasswords(c *gin.Context) {
 		if err != nil {
 			result.FailureCount++
 			result.Errors = append(result.Errors, bulkErrorDetail{
-				UserID: item.UserID,
-				Error:  err.Error(),
+				UserID:   item.UserID,
+				TenantID: item.TenantID,
+				Error:    err.Error(),
 			})
 		} else {
 			result.SuccessCount++
 		}
 	}
+	h.writeDeveloperAudit(c, "BULK_PASSWORD_RESET", models.AuditStatusSuccess, "", "", auditDetails(map[string]interface{}{"operation": "bulk_reset_password", "success_count": result.SuccessCount, "failure_count": result.FailureCount}), "")
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -115,6 +132,9 @@ func (h *DeveloperHandler) BulkResetPasswords(c *gin.Context) {
 // BulkDisableUsers disables multiple users in a tenant by locking their accounts.
 // POST /api/dev/users/bulk-disable
 func (h *DeveloperHandler) BulkDisableUsers(c *gin.Context) {
+	if !requireDeveloperPanelAccess(c) {
+		return
+	}
 	var req bulkDisableUsersRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -129,6 +149,10 @@ func (h *DeveloperHandler) BulkDisableUsers(c *gin.Context) {
 			"success": false,
 			"error":   "items must not be empty",
 		})
+		return
+	}
+	if !bulkItemsHaveExplicitTenantScope(req.Items) {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "bulk operation requires explicit tenant_id for every item"})
 		return
 	}
 
@@ -151,13 +175,19 @@ func (h *DeveloperHandler) BulkDisableUsers(c *gin.Context) {
 	}
 
 	for _, item := range req.Items {
+		if !developerCanAccessTenant(c, item.TenantID) {
+			result.FailureCount++
+			result.Errors = append(result.Errors, bulkErrorDetail{UserID: item.UserID, TenantID: item.TenantID, Error: "tenant is outside authorized developer scope"})
+			continue
+		}
 		// Get tenant DB for each item
 		db, err := h.tenantService.GetTenantDB(item.TenantID)
 		if err != nil {
 			result.FailureCount++
 			result.Errors = append(result.Errors, bulkErrorDetail{
-				UserID: item.UserID,
-				Error:  "invalid tenant_id: " + err.Error(),
+				UserID:   item.UserID,
+				TenantID: item.TenantID,
+				Error:    "invalid tenant_id: " + err.Error(),
 			})
 			continue
 		}
@@ -169,8 +199,9 @@ func (h *DeveloperHandler) BulkDisableUsers(c *gin.Context) {
 		if findErr != nil {
 			result.FailureCount++
 			result.Errors = append(result.Errors, bulkErrorDetail{
-				UserID: item.UserID,
-				Error:  "user not found",
+				UserID:   item.UserID,
+				TenantID: item.TenantID,
+				Error:    "user not found",
 			})
 			continue
 		}
@@ -185,16 +216,27 @@ func (h *DeveloperHandler) BulkDisableUsers(c *gin.Context) {
 		if lockErr != nil {
 			result.FailureCount++
 			result.Errors = append(result.Errors, bulkErrorDetail{
-				UserID: item.UserID,
-				Error:  "failed to disable user: " + lockErr.Error(),
+				UserID:   item.UserID,
+				TenantID: item.TenantID,
+				Error:    "failed to disable user: " + lockErr.Error(),
 			})
 		} else {
 			result.SuccessCount++
 		}
 	}
+	h.writeDeveloperAudit(c, "BULK_DISABLE_USERS", models.AuditStatusSuccess, "", "", auditDetails(map[string]interface{}{"operation": "bulk_disable_users", "success_count": result.SuccessCount, "failure_count": result.FailureCount}), "")
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    result,
 	})
+}
+
+func bulkItemsHaveExplicitTenantScope(items []bulkUserItem) bool {
+	for _, item := range items {
+		if item.TenantID == "" {
+			return false
+		}
+	}
+	return true
 }

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"sync"
@@ -106,6 +107,7 @@ func (h *SkuBatchCheckHandler) BatchCheckSku(c *gin.Context) {
 	results := make([]SkuCheckResult, len(req.Skus))
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, 10) // DB-only operations, higher concurrency OK
+	ctx := c.Request.Context()
 
 	validCount := 0
 	for i, sku := range req.Skus {
@@ -117,13 +119,22 @@ func (h *SkuBatchCheckHandler) BatchCheckSku(c *gin.Context) {
 		wg.Add(1)
 		go func(idx int, s string) {
 			defer wg.Done()
-			sem <- struct{}{}
+			select {
+			case <-ctx.Done():
+				return
+			case sem <- struct{}{}:
+			}
 			defer func() { <-sem }()
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 			results[idx] = SkuCheckResult{
 				Sku:    s,
-				Lazada: h.checkLazadaSku(db, s),
-				Shopee: h.checkShopeeSku(db, s),
-				Tiktok: h.checkTiktokSku(db, s),
+				Lazada: h.checkLazadaSku(ctx, db, s),
+				Shopee: h.checkShopeeSku(ctx, db, s),
+				Tiktok: h.checkTiktokSku(ctx, db, s),
 			}
 		}(i, sku)
 	}
@@ -151,9 +162,9 @@ func (h *SkuBatchCheckHandler) BatchCheckSku(c *gin.Context) {
 }
 
 // checkLazadaSku checks if SKU exists in Lazada
-func (h *SkuBatchCheckHandler) checkLazadaSku(db *gorm.DB, sku string) bool {
+func (h *SkuBatchCheckHandler) checkLazadaSku(ctx context.Context, db *gorm.DB, sku string) bool {
 	var count int64
-	err := db.Table("lazada_skus").
+	err := db.WithContext(ctx).Table("lazada_skus").
 		Where("sku_id = ? OR seller_sku = ?", sku, sku).
 		Count(&count).Error
 	if err != nil {
@@ -165,9 +176,9 @@ func (h *SkuBatchCheckHandler) checkLazadaSku(db *gorm.DB, sku string) bool {
 
 // checkShopeeSku checks if SKU exists in Shopee
 // Note: shopee_skus table only has seller_sku column, not model_sku
-func (h *SkuBatchCheckHandler) checkShopeeSku(db *gorm.DB, sku string) bool {
+func (h *SkuBatchCheckHandler) checkShopeeSku(ctx context.Context, db *gorm.DB, sku string) bool {
 	var count int64
-	err := db.Table("shopee_skus").
+	err := db.WithContext(ctx).Table("shopee_skus").
 		Where("seller_sku = ? OR CAST(model_id AS TEXT) = ?", sku, sku).
 		Count(&count).Error
 	if err != nil {
@@ -178,9 +189,9 @@ func (h *SkuBatchCheckHandler) checkShopeeSku(db *gorm.DB, sku string) bool {
 }
 
 // checkTiktokSku checks if SKU exists in TikTok
-func (h *SkuBatchCheckHandler) checkTiktokSku(db *gorm.DB, sku string) bool {
+func (h *SkuBatchCheckHandler) checkTiktokSku(ctx context.Context, db *gorm.DB, sku string) bool {
 	var count int64
-	err := db.Table("tiktok_skus").
+	err := db.WithContext(ctx).Table("tiktok_skus").
 		Where("sku_id = ? OR seller_sku = ?", sku, sku).
 		Count(&count).Error
 	if err != nil {

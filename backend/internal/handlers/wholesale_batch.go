@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sync"
@@ -44,14 +45,24 @@ func (h *WholesaleExtendedHandler) BatchDeleteByItemIds(c *gin.Context) {
 	results := make([]wholesale.SingleWholesaleResult, len(req.ItemIDs))
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, 3) // External API calls
+	ctx := c.Request.Context()
 
 	for i, itemID := range req.ItemIDs {
 		wg.Add(1)
 		go func(idx int, id int64) {
 			defer wg.Done()
-			sem <- struct{}{}
+			select {
+			case <-ctx.Done():
+				results[idx] = cancelledWholesaleResult(id, "")
+				return
+			case sem <- struct{}{}:
+			}
 			defer func() { <-sem }()
-			if err := service.DeleteWholesaleTiers(c.Request.Context(), id); err != nil {
+			if cancelled, ok := cancelledWholesaleResultIfDone(ctx, id, ""); ok {
+				results[idx] = cancelled
+				return
+			}
+			if err := service.DeleteWholesaleTiers(ctx, id); err != nil {
 				results[idx] = wholesale.SingleWholesaleResult{ItemID: id, Success: false, Error: err.Error()}
 			} else {
 				results[idx] = wholesale.SingleWholesaleResult{ItemID: id, Success: true, Message: "Wholesale deleted"}
@@ -102,15 +113,25 @@ func (h *WholesaleExtendedHandler) BatchAdd(c *gin.Context) {
 	results := make([]wholesale.SingleWholesaleResult, len(req.Items))
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, 3) // External API calls
+	ctx := c.Request.Context()
 
 	for i, item := range req.Items {
 		wg.Add(1)
 		go func(idx int, it BatchAddItem) {
 			defer wg.Done()
-			sem <- struct{}{}
+			select {
+			case <-ctx.Done():
+				results[idx] = cancelledWholesaleResult(it.ItemID, "")
+				return
+			case sem <- struct{}{}:
+			}
 			defer func() { <-sem }()
+			if cancelled, ok := cancelledWholesaleResultIfDone(ctx, it.ItemID, ""); ok {
+				results[idx] = cancelled
+				return
+			}
 			tiers := convertDTOTiersToService(it.Tiers)
-			if err := service.UpdateWholesaleTiers(c.Request.Context(), it.ItemID, tiers); err != nil {
+			if err := service.UpdateWholesaleTiers(ctx, it.ItemID, tiers); err != nil {
 				results[idx] = wholesale.SingleWholesaleResult{ItemID: it.ItemID, Success: false, Error: err.Error()}
 			} else {
 				results[idx] = wholesale.SingleWholesaleResult{
@@ -199,20 +220,33 @@ func (h *WholesaleExtendedHandler) ImportWholesale(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.Error(err.Error()))
 		return
 	}
+	ctx := c.Request.Context()
 
 	results := make([]wholesale.SingleWholesaleResult, 0, len(req.Data))
 	processed, failed := 0, 0
 
 	for _, item := range req.Data {
-		itemID, lookupErr := service.LookupItemIDBySKU(c.Request.Context(), item.SKU)
+		if cancelled, ok := cancelledWholesaleResultIfDone(ctx, 0, item.SKU); ok {
+			failed++
+			results = append(results, cancelled)
+			continue
+		}
+
+		itemID, lookupErr := service.LookupItemIDBySKU(ctx, item.SKU)
 		if lookupErr != nil {
 			failed++
 			results = append(results, wholesale.SingleWholesaleResult{SKU: item.SKU, Success: false, Error: "SKU not found: " + item.SKU})
 			continue
 		}
 
+		if cancelled, ok := cancelledWholesaleResultIfDone(ctx, itemID, item.SKU); ok {
+			failed++
+			results = append(results, cancelled)
+			continue
+		}
+
 		tiers := convertDTOTiersToService(item.Tiers)
-		if err := service.UpdateWholesaleTiers(c.Request.Context(), itemID, tiers); err != nil {
+		if err := service.UpdateWholesaleTiers(ctx, itemID, tiers); err != nil {
 			failed++
 			results = append(results, wholesale.SingleWholesaleResult{ItemID: itemID, SKU: item.SKU, Success: false, Error: err.Error()})
 		} else {
@@ -254,4 +288,17 @@ func convertDTOTiersToService(dtoTiers []WholesaleTier) []wholesale.WholesaleTie
 		tiers[i] = wholesale.WholesaleTier{MinCount: t.MinCount, MaxCount: t.MaxCount, UnitPrice: t.UnitPrice}
 	}
 	return tiers
+}
+
+func cancelledWholesaleResultIfDone(ctx context.Context, itemID int64, sku string) (wholesale.SingleWholesaleResult, bool) {
+	select {
+	case <-ctx.Done():
+		return cancelledWholesaleResult(itemID, sku), true
+	default:
+		return wholesale.SingleWholesaleResult{}, false
+	}
+}
+
+func cancelledWholesaleResult(itemID int64, sku string) wholesale.SingleWholesaleResult {
+	return wholesale.SingleWholesaleResult{ItemID: itemID, SKU: sku, Success: false, Error: "request cancelled"}
 }

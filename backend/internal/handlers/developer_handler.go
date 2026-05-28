@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services"
 )
@@ -15,13 +17,158 @@ import (
 // DeveloperHandler provides developer-only cross-tenant operations.
 // All routes are gated by RequireRole("developer") at the router level.
 type DeveloperHandler struct {
-	tenantService  *services.TenantService
+	tenantService   *services.TenantService
 	userMgmtService *services.UserManagementService
 }
 
 // NewDeveloperHandler creates a new developer handler.
 func NewDeveloperHandler(tenantService *services.TenantService, userMgmtService *services.UserManagementService) *DeveloperHandler {
 	return &DeveloperHandler{tenantService: tenantService, userMgmtService: userMgmtService}
+}
+
+const (
+	developerScopeContextKey        = "developer_tenant_scope"
+	developerImpersonatedContextKey = "impersonated"
+	roleSuperadmin                  = "superadmin"
+	developerAuditTenant            = "system"
+)
+
+func requireDeveloperPanelAccess(c *gin.Context) bool {
+	if isImpersonatedRequest(c) {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "error": "developer endpoints are blocked during impersonation"})
+		return false
+	}
+	role := c.GetString("role")
+	if role != models.RoleDeveloper && role != models.RoleService && role != roleSuperadmin {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "error": "developer role required"})
+		return false
+	}
+	return true
+}
+
+func isImpersonatedRequest(c *gin.Context) bool {
+	for _, key := range []string{developerImpersonatedContextKey, "is_impersonated", "impersonation_active"} {
+		if value, exists := c.Get(key); exists {
+			if flag, ok := value.(bool); ok && flag {
+				return true
+			}
+		}
+	}
+	return c.GetString("impersonated_by") != "" || c.GetString("impersonation_actor_id") != ""
+}
+
+func developerAllowedTenants(c *gin.Context) map[string]struct{} {
+	allowed := map[string]struct{}{}
+	add := func(tenantID string) {
+		if trimmed := strings.TrimSpace(tenantID); trimmed != "" {
+			allowed[trimmed] = struct{}{}
+		}
+	}
+	if value, exists := c.Get(developerScopeContextKey); exists {
+		switch tenants := value.(type) {
+		case []string:
+			for _, tenantID := range tenants {
+				add(tenantID)
+			}
+		case string:
+			for _, tenantID := range strings.Split(tenants, ",") {
+				add(tenantID)
+			}
+		}
+	}
+	if len(allowed) == 0 {
+		add(c.GetString("tenant_id"))
+	}
+	return allowed
+}
+
+func developerCanAccessTenant(c *gin.Context, tenantID string) bool {
+	role := c.GetString("role")
+	if role == models.RoleService || role == roleSuperadmin {
+		return true
+	}
+	_, ok := developerAllowedTenants(c)[tenantID]
+	return ok
+}
+
+func requireDeveloperTenantAccess(c *gin.Context, tenantID string) bool {
+	if !requireDeveloperPanelAccess(c) {
+		return false
+	}
+	if !developerCanAccessTenant(c, tenantID) {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "error": "tenant is outside authorized developer scope"})
+		return false
+	}
+	return true
+}
+
+func canDeveloperGrantRole(actorRole, actorID, targetUserID, targetRole string) bool {
+	if targetRole == "" {
+		return true
+	}
+	if targetRole == roleSuperadmin || targetRole == models.RoleDeveloper || targetRole == models.RoleService {
+		return actorRole == roleSuperadmin || actorRole == models.RoleService
+	}
+	if actorRole == models.RoleDeveloper && actorID == targetUserID && targetRole == models.RoleAdmin {
+		return false
+	}
+	return actorRole == models.RoleDeveloper || actorRole == roleSuperadmin || actorRole == models.RoleService
+}
+
+func parseExplicitTenantScope(raw string) []string {
+	seen := map[string]struct{}{}
+	var tenants []string
+	for _, part := range strings.Split(raw, ",") {
+		tenantID := strings.TrimSpace(part)
+		if tenantID == "" {
+			continue
+		}
+		if _, exists := seen[tenantID]; exists {
+			continue
+		}
+		seen[tenantID] = struct{}{}
+		tenants = append(tenants, tenantID)
+	}
+	return tenants
+}
+
+func (h *DeveloperHandler) writeDeveloperAudit(c *gin.Context, action, status, targetUserID, targetTenantID string, details map[string]interface{}, errMsg string) {
+	systemDB, err := h.tenantService.GetSystemDB()
+	if err != nil {
+		return
+	}
+	if details == nil {
+		details = map[string]interface{}{}
+	}
+	details["actor_role"] = c.GetString("role")
+	repo := repositories.NewAuditRepository(systemDB)
+	_ = repo.Create(c.Request.Context(), &models.AuditLogEntry{
+		TenantID:       developerAuditTenant,
+		Action:         action,
+		UserID:         c.GetString("userID"),
+		TargetUserID:   targetUserID,
+		TargetTenantID: targetTenantID,
+		Details:        details,
+		Status:         status,
+		ErrorMessage:   errMsg,
+		IPAddress:      c.ClientIP(),
+		UserAgent:      c.Request.UserAgent(),
+	})
+}
+
+func auditDetails(values map[string]interface{}) map[string]interface{} {
+	if values == nil {
+		return map[string]interface{}{}
+	}
+	encoded, err := json.Marshal(values)
+	if err != nil {
+		return map[string]interface{}{"metadata": "unavailable"}
+	}
+	var sanitized map[string]interface{}
+	if err := json.Unmarshal(encoded, &sanitized); err != nil {
+		return map[string]interface{}{"metadata": "unavailable"}
+	}
+	return sanitized
 }
 
 // TenantOverview is a per-tenant summary for the developer panel.
@@ -38,6 +185,9 @@ type TenantOverview struct {
 // GetOverview returns list of tenants with user counts grouped by role.
 // GET /api/dev/overview
 func (h *DeveloperHandler) GetOverview(c *gin.Context) {
+	if !requireDeveloperPanelAccess(c) {
+		return
+	}
 	ctx := c.Request.Context()
 
 	tenants, err := h.tenantService.GetAvailableTenants(ctx)
@@ -51,6 +201,9 @@ func (h *DeveloperHandler) GetOverview(c *gin.Context) {
 
 	overviews := make([]TenantOverview, 0, len(tenants))
 	for _, t := range tenants {
+		if !developerCanAccessTenant(c, t.ID) {
+			continue
+		}
 		overview := TenantOverview{
 			ID:       t.ID,
 			ShopName: t.ShopName,
@@ -94,6 +247,9 @@ type TenantDetailResponse struct {
 // ListTenants returns all tenants (active and inactive) with user counts.
 // GET /api/dev/tenants
 func (h *DeveloperHandler) ListTenants(c *gin.Context) {
+	if !requireDeveloperPanelAccess(c) {
+		return
+	}
 	ctx := c.Request.Context()
 
 	systemDB, err := h.tenantService.GetSystemDB()
@@ -126,6 +282,9 @@ func (h *DeveloperHandler) ListTenants(c *gin.Context) {
 
 	results := make([]TenantDetailResponse, 0, len(tenants))
 	for _, t := range tenants {
+		if !developerCanAccessTenant(c, t.TenantID) {
+			continue
+		}
 		detail := TenantDetailResponse{
 			ID:        t.TenantID,
 			Name:      t.TenantID,
@@ -172,6 +331,10 @@ func (h *DeveloperHandler) ResetPassword(c *gin.Context) {
 		})
 		return
 	}
+	if !requireDeveloperTenantAccess(c, req.TenantID) {
+		h.writeDeveloperAudit(c, models.AuditActionPasswordReset, models.AuditStatusFailed, req.UserID, req.TenantID, auditDetails(map[string]interface{}{"reason": "unauthorized_tenant"}), "tenant is outside authorized developer scope")
+		return
+	}
 
 	// Verify tenant exists by attempting to get its DB
 	_, err := h.tenantService.GetTenantDB(req.TenantID)
@@ -189,6 +352,7 @@ func (h *DeveloperHandler) ResetPassword(c *gin.Context) {
 	resetBy := c.GetString("userID")
 	err = h.userMgmtService.ResetPassword(ctx, req.UserID, req.NewPassword, resetBy, req.TenantID)
 	if err != nil {
+		h.writeDeveloperAudit(c, models.AuditActionPasswordReset, models.AuditStatusFailed, req.UserID, req.TenantID, auditDetails(map[string]interface{}{"operation": "reset_password"}), err.Error())
 		switch err.Error() {
 		case "user not found":
 			c.JSON(http.StatusNotFound, gin.H{
@@ -211,6 +375,7 @@ func (h *DeveloperHandler) ResetPassword(c *gin.Context) {
 		}
 		return
 	}
+	h.writeDeveloperAudit(c, models.AuditActionPasswordReset, models.AuditStatusSuccess, req.UserID, req.TenantID, auditDetails(map[string]interface{}{"operation": "reset_password"}), "")
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -236,10 +401,15 @@ func (h *DeveloperHandler) DeactivateTenant(c *gin.Context) {
 		})
 		return
 	}
+	if !requireDeveloperTenantAccess(c, tenantID) {
+		h.writeDeveloperAudit(c, "TENANT_DEACTIVATED", models.AuditStatusFailed, "", tenantID, auditDetails(map[string]interface{}{"reason": "unauthorized_tenant"}), "tenant is outside authorized developer scope")
+		return
+	}
 
 	ctx := c.Request.Context()
 	err := h.tenantService.DeactivateTenant(ctx, tenantID)
 	if err != nil {
+		h.writeDeveloperAudit(c, "TENANT_DEACTIVATED", models.AuditStatusFailed, "", tenantID, auditDetails(map[string]interface{}{"operation": "deactivate_tenant"}), err.Error())
 		if errors.Is(err, services.ErrTenantNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"success": false,
@@ -253,6 +423,7 @@ func (h *DeveloperHandler) DeactivateTenant(c *gin.Context) {
 		})
 		return
 	}
+	h.writeDeveloperAudit(c, "TENANT_DEACTIVATED", models.AuditStatusSuccess, "", tenantID, auditDetails(map[string]interface{}{"operation": "deactivate_tenant"}), "")
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -267,6 +438,9 @@ type createTenantRequest struct {
 // CreateTenant creates a new tenant with schema and migrations.
 // POST /api/dev/tenants
 func (h *DeveloperHandler) CreateTenant(c *gin.Context) {
+	if !requireDeveloperPanelAccess(c) {
+		return
+	}
 	var req createTenantRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -279,6 +453,7 @@ func (h *DeveloperHandler) CreateTenant(c *gin.Context) {
 	ctx := c.Request.Context()
 	result, err := h.tenantService.CreateTenant(ctx, req.Name)
 	if err != nil {
+		h.writeDeveloperAudit(c, "TENANT_CREATED", models.AuditStatusFailed, "", req.Name, auditDetails(map[string]interface{}{"operation": "create_tenant"}), err.Error())
 		var validationErr *services.TenantValidationError
 		var duplicateErr *services.TenantDuplicateError
 
@@ -301,6 +476,7 @@ func (h *DeveloperHandler) CreateTenant(c *gin.Context) {
 		}
 		return
 	}
+	h.writeDeveloperAudit(c, "TENANT_CREATED", models.AuditStatusSuccess, "", result.ID, auditDetails(map[string]interface{}{"operation": "create_tenant"}), "")
 
 	c.JSON(http.StatusCreated, gin.H{
 		"success": true,
@@ -322,6 +498,9 @@ type UserSearchResult struct {
 // SearchUsers searches users across all active tenants by username or email.
 // GET /api/dev/users/search?q=<query>
 func (h *DeveloperHandler) SearchUsers(c *gin.Context) {
+	if !requireDeveloperPanelAccess(c) {
+		return
+	}
 	query := strings.TrimSpace(c.Query("q"))
 	if len(query) < 2 {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -333,27 +512,41 @@ func (h *DeveloperHandler) SearchUsers(c *gin.Context) {
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
-
-	tenants, err := h.tenantService.GetAvailableTenants(ctx)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "failed to list tenants: " + err.Error(),
-		})
+	explicitTenants := parseExplicitTenantScope(c.Query("tenant_ids"))
+	if len(explicitTenants) == 0 {
+		explicitTenants = parseExplicitTenantScope(c.GetHeader("x-tenant-scope"))
+	}
+	if len(explicitTenants) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "explicit tenant scope is required"})
 		return
+	}
+	for _, tenantID := range explicitTenants {
+		if !developerCanAccessTenant(c, tenantID) {
+			c.JSON(http.StatusForbidden, gin.H{"success": false, "error": "tenant is outside authorized developer scope"})
+			return
+		}
 	}
 
 	var warning string
-	if len(tenants) > 50 {
+	if len(explicitTenants) > 50 {
 		warning = "search limited to first 50 tenants"
-		tenants = tenants[:50]
+		explicitTenants = explicitTenants[:50]
+	}
+	scopedTenants, err := h.tenantService.GetActiveTenantsByID(ctx, explicitTenants)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to list tenants: " + err.Error()})
+		return
 	}
 
 	results := make([]UserSearchResult, 0)
 	likePattern := "%" + query + "%"
 
-	for _, t := range tenants {
-		db, err := h.tenantService.GetTenantDB(t.ID)
+	for _, tenantID := range explicitTenants {
+		tenantInfo, tenantActive := scopedTenants[tenantID]
+		if !tenantActive {
+			continue
+		}
+		db, err := h.tenantService.GetTenantDB(tenantID)
 		if err != nil {
 			continue
 		}
@@ -379,8 +572,8 @@ func (h *DeveloperHandler) SearchUsers(c *gin.Context) {
 				Email:      u.Email,
 				Role:       u.Role,
 				Status:     status,
-				TenantID:   t.ID,
-				TenantName: t.ShopName,
+				TenantID:   tenantID,
+				TenantName: tenantInfo.ShopName,
 			})
 		}
 	}

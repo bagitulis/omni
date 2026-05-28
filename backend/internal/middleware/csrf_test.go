@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -191,5 +192,31 @@ func TestCSRFProtection_AllowsValidMatchingHeaderAndCookie(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
+	}
+}
+
+func TestCSRFCleanupLifecycleStartStop(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	StartCSRFCleanup(ctx)
+	StopCSRFCleanup()
+	StopCSRFCleanup()
+
+	StartCSRFCleanup(ctx)
+	cancel()
+	deadline := time.After(200 * time.Millisecond)
+	for {
+		csrfLifecycleMu.Lock()
+		alive := csrfCleanupAlive
+		csrfLifecycleMu.Unlock()
+		if !alive {
+			return
+		}
+		select {
+		case <-deadline:
+			t.Fatal("CSRF cleanup worker did not stop after context cancellation")
+		case <-time.After(10 * time.Millisecond):
+		}
 	}
 }
