@@ -40,7 +40,7 @@ export function SettingsTab() {
 				if (!cancelled && loaded) {
 					form.setFieldsValue(loaded);
 				}
-			} catch (err) { console.warn("Operation failed:", err);
+			} catch (err) { logger.warn("Operation failed:", { err: err });
 				if (!cancelled) {
 					form.setFieldsValue(DEFAULT_SETTINGS);
 				}

@@ -168,7 +168,7 @@ export function useOrdersLogic() {
 
       downloadCSV(csv, filename);
       message.success("Orders exported successfully");
-    } catch (err) { console.warn("Operation failed:", err);
+    } catch (err) { logger.warn("Operation failed:", { err: err });
       message.error("Failed to export orders");
     }
   };

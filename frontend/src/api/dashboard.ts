@@ -65,7 +65,7 @@ async function getPendingCount(): Promise<number> {
       params: { page: 1, pageSize: 1 },
     });
     return response.data?.count || 0;
-  } catch (err) { console.warn("Operation failed:", err);
+  } catch (err) { logger.warn("Operation failed:", { err: err });
     return 0;
   }
 }
@@ -80,7 +80,7 @@ async function getReadyToShipCount(): Promise<number> {
       params: { page: 1, pageSize: 1 },
     });
     return response.data?.count || 0;
-  } catch (err) { console.warn("Operation failed:", err);
+  } catch (err) { logger.warn("Operation failed:", { err: err });
     return 0;
   }
 }

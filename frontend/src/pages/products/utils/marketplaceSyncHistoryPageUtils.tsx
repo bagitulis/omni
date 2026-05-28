@@ -38,7 +38,7 @@ function parseJsonObject(value: unknown): JsonObject | undefined {
         !Array.isArray(parsed)
         ? (parsed as JsonObject)
         : undefined;
-    } catch (err) { console.warn("Operation failed:", err);
+    } catch (err) { logger.warn("Operation failed:", { err: err });
       return undefined;
     }
   }
@@ -100,7 +100,7 @@ export function toPrettyPayload(value: unknown): string {
   if (typeof value === "string") {
     try {
       return JSON.stringify(JSON.parse(value), null, 2);
-    } catch (err) { console.warn("Operation failed:", err);
+    } catch (err) { logger.warn("Operation failed:", { err: err });
       return value;
     }
   }

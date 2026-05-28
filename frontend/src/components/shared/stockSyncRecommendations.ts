@@ -64,7 +64,7 @@ export async function buildLockedStockMap(): Promise<LockedStockMap> {
     }
 
     return map;
-  } catch (err) { console.warn("Operation failed:", err);
+  } catch (err) { logger.warn("Operation failed:", { err: err });
     // Graceful degradation: if locked orders API fails,
     // recommendations will use full inventory stock
     logger.warn("Failed to fetch locked orders, using full stock");
@@ -110,7 +110,7 @@ export async function buildStockRecommendations(
   // in the inventory JSONB data before we read it.
   try {
     await syncLockedToday(7);
-  } catch (err) { console.warn("Operation failed:", err);
+  } catch (err) { logger.warn("Operation failed:", { err: err });
     logger.warn("Failed to trigger locked-today sync, using existing data");
   }
 

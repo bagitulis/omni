@@ -47,7 +47,7 @@ export function MpqTab({ items }: MpqTabProps) {
         if (!cancelled && loaded) {
           setSettings(loaded);
         }
-      } catch (err) { console.warn("Operation failed:", err);
+      } catch (err) { logger.warn("Operation failed:", { err: err });
         // Settings load error — use defaults and inform user
         if (!cancelled) {
           message.warning("Could not load MPQ settings — using defaults");

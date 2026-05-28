@@ -46,7 +46,7 @@ export function StockUpdateModal({
       await onConfirm(values);
       setSubmitting(false);
       onClose();
-    } catch (err) { console.warn("Operation failed:", err);
+    } catch (err) { logger.warn("Operation failed:", { err: err });
       setSubmitting(false);
     }
   };

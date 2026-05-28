@@ -43,7 +43,7 @@ export function TodayOrdersTable() {
         const raw = response as unknown as Record<string, unknown>;
         const data = (response.data?.items ?? (raw.items as TodayOrderItem[]) ?? []);
         setItems(data);
-      } catch (err) { console.warn("Operation failed:", err);
+      } catch (err) { logger.warn("Operation failed:", { err: err });
         setItems([]);
       } finally {
         setLoading(false);

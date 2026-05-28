@@ -16,7 +16,7 @@ export function useConnectionStatus() {
         setConnectionStatus("disconnected");
       }
     } catch (err) {
-      console.warn("Health check failed:", err);
+      logger.warn("Health check failed:", { err: err });
       setConnectionStatus("error");
     }
   }, [setConnectionStatus]);

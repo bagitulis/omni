@@ -76,8 +76,8 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		}
 	}
 
-	// Migrate tenant-specific models
-	tenantModels := []interface{}{
+	// Required models — migration failure aborts startup
+	requiredModels := []interface{}{
 		// Auth (needed for multi-tenant login and refresh token)
 		&models.User{},
 		&models.RefreshSession{},
@@ -89,6 +89,30 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		// Platform Config
 		&models.PlatformConfig{},
 
+		// Orders
+		&models.OrderTodayItem{},
+		&models.LockedOrder{},
+
+		// Jobs
+		&models.Job{},
+		&models.JobHistory{},
+		&models.AutoFunctionConfig{},
+		&models.AutoFunctionHistory{},
+		&models.RouteExecutionConfig{},
+
+		// Notifications (Facebook-style persistent)
+		&models.Notification{},
+		&models.NotificationSettings{},
+
+		// Credentials (canonical tenant-scoped credential storage)
+		&models.CredentialConnection{},
+		&models.CredentialAppConfig{},
+		&models.OAuthConnectionAttempt{},
+		&models.CredentialAuditEvent{},
+	}
+
+	// Optional models — migration failure logs warning and continues
+	optionalModels := []interface{}{
 		// Webhooks
 		&models.WebhookLog{},
 		&models.WebhookOrderEvent{},
@@ -162,38 +186,28 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		&models.ShopeeProductImage{},
 		&models.TiktokProductImage{},
 		&models.LazadaProductImage{},
-
-		// Orders
-		&models.OrderTodayItem{},
-		&models.LockedOrder{},
-
-		// Jobs
-		// Jobs
-		&models.Job{},
-		&models.JobHistory{},
-		&models.AutoFunctionConfig{},
-		&models.AutoFunctionHistory{},
-		&models.RouteExecutionConfig{},
-
-		// Notifications (Facebook-style persistent)
-		&models.Notification{},
-		&models.NotificationSettings{},
-
-		// Credentials (canonical tenant-scoped credential storage)
-		&models.CredentialConnection{},
-		&models.CredentialAppConfig{},
-		&models.OAuthConnectionAttempt{},
-		&models.CredentialAuditEvent{},
 	}
 
-	for _, model := range tenantModels {
+	// Migrate required models — failure aborts startup
+	for _, model := range requiredModels {
 		if err := dropLegacyUniqueConstraints(db, model); err != nil {
 			log.Info().Msgf("  ⚠️  Warning normalizing unique constraints for %T: %v", model, err)
 		}
 
 		if err := db.AutoMigrate(model); err != nil {
-			log.Info().Msgf("  ⚠️  Warning migrating %T: %v", model, err)
-			// Continue with other models
+			return fmt.Errorf("failed to migrate required model %T: %w", model, err)
+		}
+		log.Info().Msgf("  ✅ Migrated: %T", model)
+	}
+
+	// Migrate optional models — failure logs warning and continues
+	for _, model := range optionalModels {
+		if err := dropLegacyUniqueConstraints(db, model); err != nil {
+			log.Info().Msgf("  ⚠️  Warning normalizing unique constraints for %T: %v", model, err)
+		}
+
+		if err := db.AutoMigrate(model); err != nil {
+			log.Warn().Err(err).Msgf("Failed to migrate optional model %T, skipping", model)
 			continue
 		}
 		log.Info().Msgf("  ✅ Migrated: %T", model)

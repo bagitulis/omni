@@ -61,7 +61,7 @@ export function ResetPricingTab({ items }: ResetPricingTabProps) {
 				try {
 					await batchShopeeMpq(shopeeItems, 1);
 					results.push(`Shopee MPQ: reset to 1`);
-				} catch (err) { console.warn("Operation failed:", err);
+				} catch (err) { logger.warn("Operation failed:", { err: err });
 					results.push(`Shopee MPQ: failed to reset`);
 					hasError = true;
 				}

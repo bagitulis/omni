@@ -30,7 +30,7 @@ export default function WebhooksTab() {
         secret_key: values.secret_key,
       });
       message.success("Webhook configuration saved");
-    } catch (err) { console.warn("Operation failed:", err);
+    } catch (err) { logger.warn("Operation failed:", { err: err });
       const fieldErrors = (err as { errorFields?: { errors: string[] }[] })?.errorFields;
       if (fieldErrors) {
         // Form validation error — fields are already highlighted

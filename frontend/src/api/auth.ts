@@ -95,7 +95,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
     if (axios.isAxiosError(err) && err.response?.status === 401) {
       return null; // Not authenticated — expected case
     }
-    console.error("[Auth] Failed to fetch current user:", err);
+    logger.error("[Auth] Failed to fetch current user:", { err: err });
     throw err; // Propagate unexpected errors
   }
 };

@@ -29,7 +29,7 @@ export function useOrderSync(
       } catch (error) {
         if (tabKey === "booking") {
           // Booking sync can return partial failure - just log, don't show error toast
-          console.warn("Booking sync completed with warnings:", error);
+          logger.warn("Booking sync completed with warnings:", { err: error });
         } else {
           message.error(
             error instanceof Error ? error.message : "Failed to sync orders",

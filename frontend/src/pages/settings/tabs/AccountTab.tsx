@@ -58,7 +58,7 @@ export default function AccountTab() {
           phone: response.data.phone,
         });
       }
-    } catch (err) { console.warn("Operation failed:", err);
+    } catch (err) { logger.warn("Operation failed:", { err: err });
       // Fallback to sessionStorage
       const storedUser = sessionStorage.getItem(STORAGE_KEYS.AUTH_USER);
       if (storedUser) {
@@ -69,7 +69,7 @@ export default function AccountTab() {
             name: parsed.username,
             email: parsed.email,
           });
-        } catch (err) { console.warn("Operation failed:", err);
+        } catch (err) { logger.warn("Operation failed:", { err: err });
           // Ignore parse error
         }
       }

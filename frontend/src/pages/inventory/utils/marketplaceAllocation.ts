@@ -56,7 +56,7 @@ export function parseColumns(value: unknown): string[] {
           (item): item is string => typeof item === "string",
         );
       }
-    } catch (err) { console.warn("Operation failed:", err);
+    } catch (err) { logger.warn("Operation failed:", { err: err });
       return [];
     }
   }
@@ -115,7 +115,7 @@ export function loadMarketplaceAllocationSettings(): MarketplaceAllocationSettin
       priceColumnTiktok: parsed.priceColumnTiktok || "",
       priceColumnLazada: parsed.priceColumnLazada || "",
     };
-  } catch (err) { console.warn("Operation failed:", err);
+  } catch (err) { logger.warn("Operation failed:", { err: err });
     return defaultMarketplaceAllocationSettings;
   }
 }

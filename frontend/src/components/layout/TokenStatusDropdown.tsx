@@ -67,7 +67,7 @@ export function TokenStatusDropdown() {
         });
         setTokenStatus(transformed);
       }
-    } catch (err) { console.warn("Operation failed:", err);
+    } catch (err) { logger.warn("Operation failed:", { err: err });
       // Error silently handled - loading state resets in finally block
     } finally {
       setLoading(false);

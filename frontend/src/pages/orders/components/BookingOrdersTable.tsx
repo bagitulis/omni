@@ -60,7 +60,7 @@ export function BookingOrdersTable({
       setBookings(response.data || []);
       setTotal(response.pagination?.total ?? response.count ?? 0);
     } catch (err) {
-      console.warn("Failed to fetch booking orders:", err);
+      logger.warn("Failed to fetch booking orders:", { err: err });
       setError(err instanceof Error ? err.message : "Failed to load booking orders");
       setBookings([]);
     } finally {

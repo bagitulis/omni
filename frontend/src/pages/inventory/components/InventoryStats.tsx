@@ -71,7 +71,7 @@ export function InventoryStats({ stats, loading, syncStatus }: Props) {
       if (diffHours < 24) return `${diffHours} hours ago`;
       if (diffDays < 7) return `${diffDays} days ago`;
       return date.toLocaleDateString();
-    } catch (err) { console.warn("Operation failed:", err);
+    } catch (err) { logger.warn("Operation failed:", { err: err });
       return "Never synced";
     }
   };

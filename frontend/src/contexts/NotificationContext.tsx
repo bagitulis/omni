@@ -40,7 +40,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         setUnreadCount(res.data.unread_count);
       }
     } catch (err) {
-      console.warn('Failed to fetch unread count', err);
+      logger.warn('Failed to fetch unread count', { err: err });
     }
   }, []);
 
@@ -57,7 +57,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         });
       }
     } catch (err) {
-      console.warn('Failed to fetch notifications', err);
+      logger.warn('Failed to fetch notifications', { err: err });
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
     } catch (err) {
-      console.warn('Failed to mark as read', err);
+      logger.warn('Failed to mark as read', { err: err });
     }
   };
 
@@ -85,7 +85,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         setUnreadCount(0);
       }
     } catch (err) {
-      console.warn('Failed to mark all as read', err);
+      logger.warn('Failed to mark all as read', { err: err });
     }
   };
 
@@ -100,7 +100,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     } catch (err) {
-      console.warn('Failed to delete notification', err);
+      logger.warn('Failed to delete notification', { err: err });
     }
   };
 
@@ -125,7 +125,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           duration: 5,
         });
       } catch (err) {
-        console.error('Failed to parse SSE notification', err);
+        logger.error('Failed to parse SSE notification', { err: err });
       }
     });
 
@@ -133,7 +133,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       es.close();
       const attempts = reconnectAttemptsRef.current;
       if (attempts >= MAX_RECONNECT_ATTEMPTS) {
-        console.warn('SSE: max reconnection attempts reached, falling back to polling');
+        logger.warn('SSE: max reconnection attempts reached, falling back to polling');
         const pollInterval = setInterval(() => {
           fetchNotifications();
           fetchUnreadCount();
@@ -143,7 +143,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       }
       const delay = Math.min(5000 * (2 ** attempts), 60000);
       reconnectAttemptsRef.current = attempts + 1;
-      console.warn(`SSE: reconnecting in ${delay / 1000}s (attempt ${attempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
+      logger.warn(`SSE: reconnecting in ${delay / 1000}s (attempt ${attempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
       reconnectTimerRef.current = setTimeout(() => setupSSERef.current(), delay);
     };
 
@@ -161,7 +161,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     // Exchange JWT for a short-lived one-time ticket (prevents JWT exposure in URL)
     const ticket = await getSSETicket();
     if (!ticket) {
-      console.warn('[SSE] Failed to get ticket, SSE unavailable');
+      logger.warn('[SSE] Failed to get ticket, SSE unavailable');
       return;
     }
 

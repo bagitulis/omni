@@ -131,7 +131,7 @@ class CacheService {
         // Expired, remove
         localStorage.removeItem(`api_cache_${key}`);
       }
-    } catch (err) { console.warn("Operation failed:", err);
+    } catch (err) { logger.warn("Operation failed:", { err: err });
       // Invalid data, remove
       localStorage.removeItem(`api_cache_${key}`);
     }
