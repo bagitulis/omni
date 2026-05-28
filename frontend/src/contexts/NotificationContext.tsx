@@ -1,10 +1,12 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { notificationApi, Notification } from '@/api/notifications';
-import { getSSETicket } from '@/api/auth';
-import { useAuthStore } from '@/stores/authStore';
-import { API_BASE_URL } from '@/lib/constants';
 import { App } from 'antd';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
+import { getSSETicket } from '@/api/auth';
+import { notificationApi } from '@/api/notifications';
+import type { Notification } from '@/api/notifications';
+import { API_BASE_URL } from '@/lib/constants';
+import { useAuthStore } from '@/stores/authStore';
 
 interface NotificationContextType {
   notifications: Notification[];
@@ -18,7 +20,7 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -28,6 +30,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const reconnectAttemptsRef = useRef(0);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setupSSERef = useRef<() => void>(() => {});
   const MAX_RECONNECT_ATTEMPTS = 10;
 
   const fetchUnreadCount = useCallback(async () => {
@@ -109,7 +112,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           return [newNotif, ...prev].slice(0, 100);
         });
         setUnreadCount(prev => prev + 1);
-        notification[newNotif.type]({
+        const notify = notification[newNotif.type] ?? notification.info;
+        notify({
           message: newNotif.title,
           description: newNotif.message,
           placement: 'topRight',
@@ -132,14 +136,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         pollIntervalRef.current = pollInterval;
         return;
       }
-      const delay = Math.min(5000 * Math.pow(2, attempts), 60000);
+      const delay = Math.min(5000 * (2 ** attempts), 60000);
       reconnectAttemptsRef.current = attempts + 1;
       console.warn(`SSE: reconnecting in ${delay / 1000}s (attempt ${attempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
-      reconnectTimerRef.current = setTimeout(setupSSE, delay);
+      reconnectTimerRef.current = setTimeout(() => setupSSERef.current(), delay);
     };
 
     eventSourceRef.current = es;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notification, fetchNotifications, fetchUnreadCount]);
 
   const setupSSE = useCallback(async () => {
@@ -153,11 +156,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     // Exchange JWT for a short-lived one-time ticket (prevents JWT exposure in URL)
     const ticket = await getSSETicket();
     if (!ticket) {
-      // Fallback: use token directly (deprecated path)
-      console.warn('[SSE] Failed to get ticket, falling back to token auth (deprecated)');
-      const sseUrl = `${API_BASE_URL}/notifications/stream?token=${token}`;
-      const es = new EventSource(sseUrl);
-      setupSSEListeners(es);
+      console.warn('[SSE] Failed to get ticket, SSE unavailable');
       return;
     }
 
@@ -165,6 +164,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const es = new EventSource(sseUrl);
     setupSSEListeners(es);
   }, [tenantId, getValidToken, setupSSEListeners]);
+
+  useEffect(() => {
+    setupSSERef.current = setupSSE;
+  }, [setupSSE]);
 
   useEffect(() => {
     if (tenantId) {
