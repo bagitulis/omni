@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Task 10 credential migration store identity fix**: Removed `platform_legacy` fallback from `keyValueRowsToBundle` — key-value rows without a `shopId` now emit a `missing_store_identity` abort reason instead of creating an invalid canonical store record. Verified with focused test.
+- **Credential repository missing-relation safety**: Added `isMissingRelationError()` guard to `GetConnection`, `ListConnections`, `GetAppConfig`, and `ListAuditEvents` so the credential API degrades gracefully to empty/disconnected state when canonical tables are absent (before migration runs).
+
 ### Changed
 - **Final Wave remediation gaps closed (post-review fixes)**: Fixed settings copy in GeneralTab.tsx ("coming soon" → "not yet available in this remediation"), removed stale remark in notification_handler.go:120, and created discoverable notification contract notes at `.sisyphus/evidence/task-14-contract-notes.txt`.
 ### Removed
