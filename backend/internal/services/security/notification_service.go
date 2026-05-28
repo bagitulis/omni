@@ -1,7 +1,9 @@
 package security
 
 import (
+	"crypto/rand"
 	"fmt"
+	"math/big"
 	"sync"
 	"time"
 
@@ -185,7 +187,12 @@ func randomString(n int) string {
 	const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
 	b := make([]byte, n)
 	for i := range b {
-		b[i] = letters[time.Now().UnixNano()%int64(len(letters))]
+		idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
+		if err != nil {
+			b[i] = letters[0] // fallback, should never happen
+			continue
+		}
+		b[i] = letters[idx.Int64()]
 	}
 	return string(b)
 }

@@ -82,14 +82,17 @@ func (s *NotificationService) PushJobResult(job *models.Job, success bool, detai
 	title := models.JobTypeToTitle(job.Type, success)
 	category := models.JobTypeToCategory(job.Type)
 
-	s.Push(
+	_, err := s.Push(
 		notifType,
 		category,
 		title,
 		detail,
 		"", // ActionURL can be added based on category later
 	)
-	return nil
+	if err != nil {
+		log.Error().Err(err).Str("job_type", job.Type).Msg("Failed to push job result notification")
+	}
+	return err
 }
 
 // broadcast sends the notification to all active SSE connections for the tenant

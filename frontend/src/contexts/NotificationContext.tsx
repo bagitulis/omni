@@ -40,7 +40,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         setUnreadCount(res.data.unread_count);
       }
     } catch (err) {
-      console.error('Failed to fetch unread count', err);
+      console.warn('Failed to fetch unread count', err);
     }
   }, []);
 
@@ -52,7 +52,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         setNotifications(res.data.items);
       }
     } catch (err) {
-      console.error('Failed to fetch notifications', err);
+      console.warn('Failed to fetch notifications', err);
     } finally {
       setLoading(false);
     }
@@ -68,7 +68,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
     } catch (err) {
-      console.error('Failed to mark as read', err);
+      console.warn('Failed to mark as read', err);
     }
   };
 
@@ -80,7 +80,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         setUnreadCount(0);
       }
     } catch (err) {
-      console.error('Failed to mark all as read', err);
+      console.warn('Failed to mark all as read', err);
     }
   };
 
@@ -95,7 +95,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     } catch (err) {
-      console.error('Failed to delete notification', err);
+      console.warn('Failed to delete notification', err);
     }
   };
 
