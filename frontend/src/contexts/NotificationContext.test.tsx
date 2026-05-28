@@ -59,6 +59,7 @@ vi.mock("antd", () => ({
 describe("NotificationProvider SSE setup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthState.tenantId = "tenant_test";
     mockGetValidToken.mockResolvedValue("raw-jwt-token");
     mockList.mockResolvedValue({ success: true, data: { items: [] } });
     mockUnreadCount.mockResolvedValue({ success: true, data: { unread_count: 0 } });
@@ -95,6 +96,37 @@ describe("NotificationProvider SSE setup", () => {
 
     await waitFor(() => expect(eventSourceSpy).toHaveBeenCalledWith("/api/notifications/stream?ticket=sse-ticket"));
   });
+
+  it("keeps one SSE notification listener for the active tenant", async () => {
+    const addEventListener = vi.fn();
+    const close = vi.fn();
+    const eventSourceSpy = vi.fn().mockImplementation(() => ({
+      close,
+      addEventListener,
+    }));
+    vi.stubGlobal("EventSource", eventSourceSpy);
+    mockGetSSETicket.mockResolvedValue("sse-ticket");
+
+    const { rerender } = render(
+      <NotificationProvider>
+        <div>child</div>
+      </NotificationProvider>,
+    );
+
+    await waitFor(() => expect(eventSourceSpy).toHaveBeenCalledTimes(1));
+    expect(addEventListener).toHaveBeenCalledTimes(1);
+    expect(addEventListener).toHaveBeenCalledWith("notification", expect.any(Function));
+
+    rerender(
+      <NotificationProvider>
+        <div>child again</div>
+      </NotificationProvider>,
+    );
+
+    expect(eventSourceSpy).toHaveBeenCalledTimes(1);
+    expect(addEventListener).toHaveBeenCalledTimes(1);
+    expect(close).not.toHaveBeenCalled();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -121,6 +153,7 @@ function NotificationStateConsumer() {
 describe("NotificationProvider state consistency", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthState.tenantId = "tenant_test";
     mockGetValidToken.mockResolvedValue("raw-jwt-token");
     mockGetSSETicket.mockResolvedValue("sse-ticket");
   });
@@ -202,6 +235,93 @@ describe("NotificationProvider state consistency", () => {
     expect(screen.getByTestId("notification-ids")).toHaveTextContent("42");
   });
 
+  it("clears stale notifications and opens a fresh SSE stream when tenant changes", async () => {
+    const tenantOneNotif: Notification = {
+      id: 101,
+      type: "info",
+      category: "sync",
+      title: "Tenant one",
+      message: "",
+      read: false,
+      created_at: new Date().toISOString(),
+    };
+    const tenantTwoNotif: Notification = {
+      id: 202,
+      type: "success",
+      category: "order",
+      title: "Tenant two",
+      message: "",
+      read: false,
+      created_at: new Date().toISOString(),
+    };
+    const closeFns: Array<ReturnType<typeof vi.fn>> = [];
+    vi.stubGlobal("EventSource", vi.fn(() => {
+      const close = vi.fn();
+      closeFns.push(close);
+      return { close, addEventListener: vi.fn() };
+    }));
+    mockList.mockResolvedValueOnce({ success: true, data: { items: [tenantOneNotif], count: 1 } });
+    mockList.mockResolvedValueOnce({ success: true, data: { items: [tenantTwoNotif], count: 1 } });
+    mockUnreadCount.mockResolvedValue({ success: true, data: { unread_count: 1 } });
+
+    const { rerender } = render(
+      <NotificationProvider>
+        <NotificationStateConsumer />
+      </NotificationProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId("notification-ids")).toHaveTextContent("101"));
+
+    mockAuthState.tenantId = "tenant_next";
+    rerender(
+      <NotificationProvider>
+        <NotificationStateConsumer />
+      </NotificationProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId("notification-ids")).toHaveTextContent("202"));
+    expect(screen.getByTestId("notification-ids")).not.toHaveTextContent("101");
+    expect(closeFns[0]).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows a notification missed during disconnect once after fetch and SSE replay", async () => {
+    const missedNotif: Notification = {
+      id: 303,
+      type: "warning",
+      category: "system",
+      title: "Missed while offline",
+      message: "",
+      read: false,
+      created_at: new Date().toISOString(),
+    };
+    let triggerEvent: ((data: unknown) => void) | null = null;
+    vi.stubGlobal("EventSource", vi.fn(() => ({
+      close: vi.fn(),
+      addEventListener: vi.fn((_type: string, handler: (event: MessageEvent) => void) => {
+        triggerEvent = (data: unknown) => handler({ data: JSON.stringify(data) } as MessageEvent);
+      }),
+    })));
+    mockList.mockResolvedValueOnce({ success: true, data: { items: [], count: 0 } });
+    mockList.mockResolvedValueOnce({ success: true, data: { items: [missedNotif], count: 1 } });
+    mockUnreadCount.mockResolvedValue({ success: true, data: { unread_count: 1 } });
+
+    render(
+      <NotificationProvider>
+        <NotificationStateConsumer />
+      </NotificationProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId("notification-count")).toHaveTextContent("0"));
+
+    fireEvent.click(screen.getByText("fetch"));
+    await waitFor(() => expect(screen.getByTestId("notification-ids")).toHaveTextContent("303"));
+
+    triggerEvent?.(missedNotif);
+
+    await waitFor(() => expect(screen.getByTestId("notification-count")).toHaveTextContent("1"));
+    expect(screen.getByTestId("notification-ids").textContent?.split(",").filter(id => id === "303")).toHaveLength(1);
+  });
+
 });
 
 // ---------------------------------------------------------------------------
@@ -224,6 +344,7 @@ function NotificationActionConsumer() {
 describe("NotificationProvider mutations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthState.tenantId = "tenant_test";
     mockGetValidToken.mockResolvedValue("raw-jwt-token");
     mockGetSSETicket.mockResolvedValue("sse-ticket");
   });

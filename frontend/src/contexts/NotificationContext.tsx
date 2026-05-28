@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { App } from 'antd';
 import { getSSETicket } from '@/api/auth';
@@ -23,10 +23,10 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const { tenantId, getValidToken } = useAuthStore();
   const { notification } = App.useApp();
+  const notificationRef = useRef(notification);
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -34,12 +34,46 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const setupSSERef = useRef<() => void>(() => {});
   const MAX_RECONNECT_ATTEMPTS = 10;
 
+  useEffect(() => {
+    notificationRef.current = notification;
+  }, [notification]);
+
+  const unreadCount = useMemo(
+    () => notifications.filter(notificationItem => !notificationItem.read).length,
+    [notifications],
+  );
+
+  const clearConnections = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+  }, []);
+
+  const mergeNotifications = useCallback((incoming: Notification[]) => {
+    setNotifications(prev => {
+      const byId = new Map<number, Notification>();
+      [...prev, ...incoming].forEach(notificationItem => {
+        const existing = byId.get(notificationItem.id);
+        byId.set(notificationItem.id, existing ? { ...existing, ...notificationItem } : notificationItem);
+      });
+      return Array.from(byId.values()).sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+    });
+  }, []);
+
   const fetchUnreadCount = useCallback(async () => {
     try {
-      const res = await notificationApi.getUnreadCount();
-      if (res.success && res.data) {
-        setUnreadCount(res.data.unread_count);
-      }
+      await notificationApi.getUnreadCount();
     } catch (err) {
       logger.warn('Failed to fetch unread count', { err: err });
     }
@@ -50,19 +84,14 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     try {
       const res = await notificationApi.list({ limit: 50 });
       if (res.success && res.data) {
-        const items = res.data.items;
-        setNotifications(prev => {
-          const map = new Map(prev.map(n => [n.id, n]));
-          items.forEach(n => { map.set(n.id, n); });
-          return Array.from(map.values());
-        });
+        mergeNotifications(res.data.items);
       }
     } catch (err) {
       logger.warn('Failed to fetch notifications', { err: err });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [mergeNotifications]);
 
   const markAsRead = async (id: number) => {
     try {
@@ -71,7 +100,6 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         setNotifications(prev =>
           prev.map(n => (n.id === id ? { ...n, read: true } : n))
         );
-        setUnreadCount(prev => Math.max(0, prev - 1));
       }
     } catch (err) {
       logger.warn('Failed to mark as read', { err: err });
@@ -83,7 +111,6 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       const res = await notificationApi.markAllAsRead();
       if (res.success) {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-        setUnreadCount(0);
       }
     } catch (err) {
       logger.warn('Failed to mark all as read', { err: err });
@@ -96,9 +123,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       if (res.success) {
         const deletedWasUnread = notifications.find(n => n.id === id)?.read === false;
         setNotifications(prev => prev.filter(n => n.id !== id));
-        if (deletedWasUnread) {
-          setUnreadCount(prev => Math.max(0, prev - 1));
-        }
+        if (deletedWasUnread) await fetchUnreadCount();
       }
     } catch (err) {
       logger.warn('Failed to delete notification', { err: err });
@@ -113,12 +138,9 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     es.addEventListener('notification', (event: MessageEvent) => {
       try {
         const newNotif: Notification = JSON.parse(event.data);
-        setNotifications(prev => {
-          if (prev.find(n => n.id === newNotif.id)) return prev;
-          return [newNotif, ...prev].slice(0, 100);
-        });
-        setUnreadCount(prev => prev + 1);
-        const notify = notification[newNotif.type] ?? notification.info;
+        mergeNotifications([newNotif]);
+        const notifier = notificationRef.current;
+        const notify = notifier[newNotif.type] ?? notifier.info;
         notify({
           message: newNotif.title,
           description: newNotif.message,
@@ -135,6 +157,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       const attempts = reconnectAttemptsRef.current;
       if (attempts >= MAX_RECONNECT_ATTEMPTS) {
         logger.warn('SSE: max reconnection attempts reached, falling back to polling');
+        if (pollIntervalRef.current) return;
         const pollInterval = setInterval(() => {
           fetchNotifications();
           fetchUnreadCount();
@@ -149,12 +172,10 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     };
 
     eventSourceRef.current = es;
-  }, [notification, fetchNotifications, fetchUnreadCount]);
+  }, [fetchNotifications, fetchUnreadCount, mergeNotifications]);
 
   const setupSSE = useCallback(async () => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
+    clearConnections();
 
     const token = await getValidToken();
     if (!token || !tenantId) return;
@@ -169,47 +190,44 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     const sseUrl = `${API_BASE_URL}/notifications/stream?ticket=${ticket}`;
     const es = new EventSource(sseUrl);
     setupSSEListeners(es);
-  }, [tenantId, getValidToken, setupSSEListeners]);
+  }, [tenantId, getValidToken, setupSSEListeners, clearConnections]);
 
   useEffect(() => {
     setupSSERef.current = setupSSE;
   }, [setupSSE]);
 
   useEffect(() => {
+    clearConnections();
+    reconnectAttemptsRef.current = 0;
+    setNotifications([]);
+
     if (tenantId) {
-      fetchUnreadCount();
-      fetchNotifications();
-      setupSSE();
+      void fetchUnreadCount();
+      void fetchNotifications();
+      void setupSSE();
 
       // Periodic refresh every 5 minutes
       const periodicRefresh = setInterval(() => {
-        fetchUnreadCount();
-      }, 5 * 60 * 1000);
+          void fetchUnreadCount();
+        }, 5 * 60 * 1000);
 
       // Refresh on tab focus
       const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible') {
-          fetchUnreadCount();
-          fetchNotifications();
+          void fetchUnreadCount();
+          void fetchNotifications();
         }
       };
       document.addEventListener('visibilitychange', handleVisibilityChange);
 
       return () => {
-        if (eventSourceRef.current) {
-          eventSourceRef.current.close();
-        }
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current);
-        }
-        if (reconnectTimerRef.current) {
-          clearTimeout(reconnectTimerRef.current);
-        }
+        clearConnections();
         clearInterval(periodicRefresh);
         document.removeEventListener('visibilitychange', handleVisibilityChange);
       };
     }
-  }, [tenantId, fetchUnreadCount, fetchNotifications, setupSSE]);
+    return clearConnections;
+  }, [tenantId, fetchUnreadCount, fetchNotifications, setupSSE, clearConnections]);
 
   return (
     <NotificationContext.Provider
