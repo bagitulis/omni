@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
-import { App } from 'antd';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { App } from 'antd';
 import { getSSETicket } from '@/api/auth';
 import { notificationApi } from '@/api/notifications';
 import type { Notification } from '@/api/notifications';
@@ -49,7 +49,12 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     try {
       const res = await notificationApi.list({ limit: 50 });
       if (res.success && res.data) {
-        setNotifications(res.data.items);
+        const items = res.data.items;
+        setNotifications(prev => {
+          const map = new Map(prev.map(n => [n.id, n]));
+          items.forEach(n => { map.set(n.id, n); });
+          return Array.from(map.values());
+        });
       }
     } catch (err) {
       console.warn('Failed to fetch notifications', err);
