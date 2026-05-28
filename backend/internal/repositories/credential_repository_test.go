@@ -323,14 +323,14 @@ func TestCredentialRepository_AppConfigRedactionAndScope(t *testing.T) {
 	repo, ctx := setupCredentialTest(t)
 
 	cfg := &models.CredentialAppConfig{
-		TenantID:  "tenant-app",
-		Platform:  "lazada",
-		Region:    "id",
-		AppKey:    "raw-app-key",
-		AppSecret: "raw-app-secret",
+		TenantID:   "tenant-app",
+		Platform:   "lazada",
+		Region:     "id",
+		AppKey:     "raw-app-key",
+		AppSecret:  "raw-app-secret",
 		Configured: true,
-		CreatedBy: "developer",
-		UpdatedBy: "developer",
+		CreatedBy:  "developer",
+		UpdatedBy:  "developer",
 	}
 	require.NoError(t, repo.UpsertAppConfig(ctx, cfg))
 
@@ -351,6 +351,28 @@ func TestCredentialRepository_AppConfigRedactionAndScope(t *testing.T) {
 	otherTenant, err := repo.GetAppConfig(ctx, "tenant-other", "lazada")
 	require.NoError(t, err)
 	assert.Nil(t, otherTenant)
+}
+
+func TestCredentialRepository_MissingCanonicalTablesAreReadSafe(t *testing.T) {
+	db := testutils.SetupTestPostgresWithModels(t)
+	repo := NewCredentialRepository(db)
+	ctx := context.Background()
+
+	app, err := repo.GetAppConfig(ctx, "tenant-missing", models.PlatformShopee)
+	require.NoError(t, err)
+	assert.Nil(t, app)
+
+	connections, err := repo.ListConnections(ctx, "tenant-missing", models.PlatformShopee)
+	require.NoError(t, err)
+	assert.Empty(t, connections)
+
+	conn, err := repo.GetConnection(ctx, "tenant-missing", models.PlatformShopee, "12345")
+	require.NoError(t, err)
+	assert.Nil(t, conn)
+
+	events, err := repo.ListAuditEvents(ctx, "tenant-missing", models.PlatformShopee, 10, 0)
+	require.NoError(t, err)
+	assert.Empty(t, events)
 }
 
 func TestCredentialRepository_OAuthAttemptValidation(t *testing.T) {

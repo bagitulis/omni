@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -51,6 +52,9 @@ func (r *CredentialRepository) GetConnection(ctx context.Context, tenantID, plat
 		Where("tenant_id = ? AND platform = ? AND store_identifier = ? AND disabled_at IS NULL", tenantID, platform, storeIdentifier).
 		First(&conn).Error
 	if err != nil {
+		if isMissingRelationError(err) {
+			return nil, nil
+		}
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
@@ -73,6 +77,9 @@ func (r *CredentialRepository) ListConnections(ctx context.Context, tenantID, pl
 		query = query.Where("platform = ?", platform)
 	}
 	if err := query.Find(&conns).Error; err != nil {
+		if isMissingRelationError(err) {
+			return []models.CredentialConnection{}, nil
+		}
 		return nil, fmt.Errorf("list connections: %w", err)
 	}
 	for i := range conns {
@@ -150,7 +157,6 @@ func (r *CredentialRepository) UpdateConnectionStatus(ctx context.Context, tenan
 	return nil
 }
 
-
 func validateConnectionScope(tenantID, platform, storeIdentifier string) error {
 	if err := validateTenantPlatformScope(tenantID, platform); err != nil {
 		return err
@@ -195,6 +201,9 @@ func (r *CredentialRepository) GetAppConfig(ctx context.Context, tenantID, platf
 		Where("tenant_id = ? AND platform = ?", tenantID, platform).
 		First(&cfg).Error
 	if err != nil {
+		if isMissingRelationError(err) {
+			return nil, nil
+		}
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
@@ -324,9 +333,22 @@ func (r *CredentialRepository) ListAuditEvents(ctx context.Context, tenantID, pl
 		Offset(offset).
 		Find(&events).Error
 	if err != nil {
+		if isMissingRelationError(err) {
+			return []models.CredentialAuditEvent{}, nil
+		}
 		return nil, fmt.Errorf("list audit events: %w", err)
 	}
 	return events, nil
+}
+
+func isMissingRelationError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "sqlstate 42p01") ||
+		strings.Contains(message, "relation ") && strings.Contains(message, " does not exist") ||
+		strings.Contains(message, "no such table")
 }
 
 // CreateAuditEvent creates a sanitized audit event.
