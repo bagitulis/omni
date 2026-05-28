@@ -411,7 +411,7 @@ func redirectURLAllowed(frontendURL, redirectURL, redirectPath string) bool {
 
 func isAllowedOAuthRedirectPath(path string) bool {
 	switch path {
-	case "/settings", "/settings/platforms", "/settings?tab=platforms":
+	case "/settings", "/settings/platforms":
 		return true
 	default:
 		return false
@@ -422,7 +422,7 @@ func oauthCallbackStatusCode(status string) int {
 	switch status {
 	case "no_session":
 		return http.StatusUnauthorized
-	case "tenant_mismatch":
+	case "tenant_mismatch", "user_mismatch":
 		return http.StatusForbidden
 	case "expired_state", "expired", "replayed_state", "invalid_state", "invalid_attempt", "wrong_platform", "wrong_scope", "user_mismatch", "invalid_redirect":
 		return http.StatusBadRequest

@@ -22,6 +22,8 @@ type CredentialService struct {
 	dbPath       string
 	tokenManager *TokenManager // Optional: enables auto-refresh on expired tokens
 	refreshGroup singleflight.Group
+	refreshTokenFn func(context.Context, string, string) error
+	reloadCredentialsFn func(context.Context, *gorm.DB, string, string, *PlatformCredentials) error
 }
 
 // globalTokenManager is set once at app startup so all CredentialService instances
@@ -223,6 +225,15 @@ func credentialRefreshKey(tenantID, platform, storeIdentifier string) string {
 }
 
 func (s *CredentialService) doRefreshAndReload(ctx context.Context, tenantDB *gorm.DB, tenantID, platform string, creds *PlatformCredentials) error {
+	if s.refreshTokenFn != nil {
+		if err := s.refreshTokenFn(ctx, tenantID, platform); err != nil {
+			return fmt.Errorf("refresh %s token: %w", platform, err)
+		}
+		if s.reloadCredentialsFn != nil {
+			return s.reloadCredentialsFn(ctx, tenantDB, tenantID, platform, creds)
+		}
+		return nil
+	}
 	var err error
 	switch platform {
 	case models.PlatformShopee:

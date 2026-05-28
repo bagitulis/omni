@@ -41,6 +41,8 @@ func setupOAuthSecurityTest(t *testing.T) (*OAuthHandler, *repositories.OAuthRep
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest("GET", "/api/platform-auth/callback/tiktok", nil)
 	c.Request.Host = "backend.test"
+	c.Set("tenant_id", "tenant-a")
+	c.Set("userID", "user-1")
 	return handler, oauthRepo, credentialRepo, c
 }
 
@@ -49,7 +51,7 @@ func createSignedOAuthAttempt(t *testing.T, repo *repositories.OAuthRepository, 
 	attemptID := uuid.New().String()
 	nonce, err := oauth.NewNonce()
 	require.NoError(t, err)
-	claims := oauth.StateClaims{TenantID: tenantID, Platform: platform, AttemptID: attemptID, Intent: intent, StoreID: storeID, CSRFNonce: nonce, RedirectPath: "/settings", ExpiresAt: expiresAt.Unix()}
+	claims := oauth.StateClaims{TenantID: tenantID, Platform: platform, AttemptID: attemptID, Intent: intent, StoreID: storeID, UserID: "user-1", CSRFNonce: nonce, Nonce: nonce, RedirectPath: "/settings", RedirectURI: "/settings", ExpiresAt: expiresAt.Unix()}
 	signedState, err := oauth.BuildSignedState(claims)
 	require.NoError(t, err)
 	_, err = repo.CreateBoundState(contextWithTestTimeout(t), repositories.OAuthStateCreateParams{TenantID: tenantID, Platform: platform, AttemptID: attemptID, Intent: intent, StoreID: storeID, CSRFNonce: nonce, State: signedState, RedirectURL: "http://frontend.test/settings", ExpiresAt: expiresAt})
@@ -77,7 +79,28 @@ func TestOAuthSignedStateReplayAndScopeValidation(t *testing.T) {
 	replayed, replayStatus, replayErr := handler.validateCallbackState(c, models.PlatformTiktok, state)
 	require.Error(t, replayErr)
 	assert.Nil(t, replayed)
-	assert.Equal(t, "invalid_state", replayStatus)
+	assert.Equal(t, "replayed_state", replayStatus)
+}
+
+func TestOAuthSignedStateRejectsTenantMismatch(t *testing.T) {
+	handler, repo, credentialRepo, c := setupOAuthSecurityTest(t)
+	state := createSignedOAuthAttempt(t, repo, credentialRepo, "tenant-b", models.PlatformTiktok, "connect", "", time.Now().Add(10*time.Minute))
+
+	validated, status, err := handler.validateCallbackState(c, models.PlatformTiktok, state)
+	require.Error(t, err)
+	assert.Nil(t, validated)
+	assert.Equal(t, "tenant_mismatch", status)
+}
+
+func TestOAuthSignedStateRejectsNoSession(t *testing.T) {
+	handler, repo, credentialRepo, c := setupOAuthSecurityTest(t)
+	c.Set("tenant_id", "")
+	state := createSignedOAuthAttempt(t, repo, credentialRepo, "tenant-a", models.PlatformTiktok, "connect", "", time.Now().Add(10*time.Minute))
+
+	validated, status, err := handler.validateCallbackState(c, models.PlatformTiktok, state)
+	require.Error(t, err)
+	assert.Nil(t, validated)
+	assert.Equal(t, "no_session", status)
 }
 
 func TestOAuthSignedStateRejectsWrongPlatform(t *testing.T) {
@@ -92,7 +115,7 @@ func TestOAuthSignedStateRejectsWrongPlatform(t *testing.T) {
 
 func TestOAuthSignedStateRejectsExpiredAndCancelledAttempts(t *testing.T) {
 	handler, repo, credentialRepo, c := setupOAuthSecurityTest(t)
-	expiredClaims := oauth.StateClaims{TenantID: "tenant-a", Platform: models.PlatformTiktok, AttemptID: uuid.New().String(), Intent: "connect", CSRFNonce: "nonce", RedirectPath: "/settings", ExpiresAt: time.Now().Add(-time.Minute).Unix()}
+	expiredClaims := oauth.StateClaims{TenantID: "tenant-a", Platform: models.PlatformTiktok, AttemptID: uuid.New().String(), Intent: "connect", UserID: "user-1", CSRFNonce: "nonce", Nonce: "nonce", RedirectPath: "/settings", RedirectURI: "/settings", ExpiresAt: time.Now().Add(-time.Minute).Unix()}
 	expired, err := oauth.BuildSignedState(expiredClaims)
 	require.NoError(t, err)
 	_, status, err := handler.validateCallbackState(c, models.PlatformTiktok, expired)
@@ -106,7 +129,26 @@ func TestOAuthSignedStateRejectsExpiredAndCancelledAttempts(t *testing.T) {
 	validated, status, err := handler.validateCallbackState(c, models.PlatformTiktok, cancelled)
 	require.Error(t, err)
 	assert.Nil(t, validated)
-	assert.Equal(t, "invalid_attempt", status)
+	assert.Equal(t, "replayed_state", status)
+}
+
+func TestOAuthSignedStateRejectsDisallowedRedirect(t *testing.T) {
+	handler, repo, credentialRepo, c := setupOAuthSecurityTest(t)
+	attemptID := uuid.New().String()
+	nonce, err := oauth.NewNonce()
+	require.NoError(t, err)
+	expiresAt := time.Now().Add(10 * time.Minute)
+	claims := oauth.StateClaims{TenantID: "tenant-a", Platform: models.PlatformTiktok, Marketplace: models.PlatformTiktok, AttemptID: attemptID, Intent: "connect", UserID: "user-1", CSRFNonce: nonce, Nonce: nonce, RedirectPath: "https://evil.test/callback", RedirectURI: "https://evil.test/callback", ExpiresAt: expiresAt.Unix()}
+	signedState, err := oauth.BuildSignedState(claims)
+	require.NoError(t, err)
+	_, err = repo.CreateBoundState(contextWithTestTimeout(t), repositories.OAuthStateCreateParams{TenantID: "tenant-a", Platform: models.PlatformTiktok, AttemptID: attemptID, Intent: "connect", UserID: "user-1", CSRFNonce: nonce, State: signedState, RedirectURL: "https://evil.test/callback", ExpiresAt: expiresAt})
+	require.NoError(t, err)
+	require.NoError(t, credentialRepo.CreateAttempt(contextWithTestTimeout(t), &models.OAuthConnectionAttempt{TenantID: "tenant-a", Platform: models.PlatformTiktok, AttemptID: attemptID, Status: oauthAttemptPending, Intent: "connect", SignedState: signedState, CSRFNonce: nonce, RedirectPath: "https://evil.test/callback", ExpiresAt: expiresAt, CreatedBy: "user-1"}))
+
+	validated, status, err := handler.validateCallbackState(c, models.PlatformTiktok, signedState)
+	require.Error(t, err)
+	assert.Nil(t, validated)
+	assert.Equal(t, "invalid_redirect", status)
 }
 
 func TestOAuthDuplicateStoreReconciliation(t *testing.T) {
