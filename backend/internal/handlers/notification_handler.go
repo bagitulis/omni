@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services"
 )
 
@@ -25,7 +26,8 @@ func (h *NotificationHandler) getService(c *gin.Context) (*services.Notification
 		return nil, err
 	}
 	tenantID := c.GetString("tenant_id")
-	return services.NewNotificationService(db).WithTenant(tenantID), nil
+	repo := repositories.NewNotificationRepository(db)
+	return services.NewNotificationService(repo).WithTenant(tenantID), nil
 }
 
 // CreateNotification creates a manual notification (from UI).
@@ -86,7 +88,8 @@ func (h *NotificationHandler) StreamNotifications(c *gin.Context) {
 		return
 	}
 
-	svc := services.NewNotificationService(db)
+	repo := repositories.NewNotificationRepository(db)
+	svc := services.NewNotificationService(repo)
 	client := svc.RegisterClient(tenantID)
 	defer svc.UnregisterClient(tenantID, client)
 

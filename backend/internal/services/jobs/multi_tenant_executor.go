@@ -11,6 +11,7 @@ import (
 
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services"
 	"gorm.io/gorm"
 )
@@ -298,7 +299,8 @@ func (e *MultiTenantExecutor) SetNotifyCallback(cb NotifyCallback) {
 // pushNotificationToDB pushes a notification after job completion
 func (e *MultiTenantExecutor) pushNotificationToDB(db *gorm.DB, tenantID string, job *models.Job, success bool, detail string) {
 	// First push to database for persistence and SSE broadcasting
-	svc := services.NewNotificationService(db).WithTenant(tenantID)
+	repo := repositories.NewNotificationRepository(db)
+	svc := services.NewNotificationService(repo).WithTenant(tenantID)
 	err := svc.PushJobResult(job, success, detail)
 	if err != nil {
 		log.Error().Err(err).Msg("[MultiTenantExecutor] Failed to push notification to DB")
@@ -368,7 +370,8 @@ func (e *MultiTenantExecutor) runMaintenance() {
 			continue
 		}
 
-		svc := services.NewNotificationService(tenantDB)
+		repo := repositories.NewNotificationRepository(tenantDB)
+		svc := services.NewNotificationService(repo)
 		settings, err := svc.GetSettings()
 		if err == nil && settings.RetentionDays > 0 {
 			deleted := svc.CleanupOlderThan(settings.RetentionDays)

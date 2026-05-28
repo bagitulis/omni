@@ -1,14 +1,15 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/repositories"
 	"github.com/rs/zerolog/log"
-	"gorm.io/gorm"
 )
 
 // SSEClient represents a connected SSE client
@@ -27,16 +28,13 @@ var globalSSEManager = &SSEManager{
 
 // NotificationService manages in-app notifications per tenant.
 type NotificationService struct {
-	db       *gorm.DB
+	repo     *repositories.NotificationRepository
 	tenantID string
 }
 
 // NewNotificationService creates a new notification service.
-// It requires a DB connection and the tenantID to route SSE events correctly.
-func NewNotificationService(db *gorm.DB) *NotificationService {
-	// Try to extract tenantID from DB session if possible, or expect it to be set later
-	// For simplicity, we'll assume the caller ensures the DB is tenant-scoped.
-	return &NotificationService{db: db}
+func NewNotificationService(repo *repositories.NotificationRepository) *NotificationService {
+	return &NotificationService{repo: repo}
 }
 
 // WithTenant sets the tenant ID for SSE routing
@@ -56,9 +54,9 @@ func (s *NotificationService) Push(notifType, category, title, message, actionUR
 		Read:      false,
 		CreatedAt: time.Now(),
 	}
-	
+
 	// 1. Save to Database
-	if err := s.db.Create(notif).Error; err != nil {
+	if err := s.repo.Create(context.Background(), notif); err != nil {
 		log.Error().Err(err).Str("title", title).Msg("Failed to push notification to DB")
 		return nil, err
 	}
@@ -79,10 +77,7 @@ func (s *NotificationService) PushJobResult(job *models.Job, success bool, detai
 
 	title := models.JobTypeToTitle(job.Type, success)
 	category := models.JobTypeToCategory(job.Type)
-	
-	// If the job has a tenant ID in models, we should use it
-	// Assuming MultiTenantExecutor sets the tenant-scoped DB before calling this
-	
+
 	s.Push(
 		notifType,
 		category,
@@ -151,104 +146,54 @@ func (s *NotificationService) UnregisterClient(tenantID string, client SSEClient
 
 // List returns recent notifications.
 func (s *NotificationService) List(limit int, sinceID int64, unreadOnly bool) ([]models.Notification, error) {
-	if limit <= 0 || limit > 100 {
-		limit = 50
-	}
-
-	query := s.db.Order("created_at DESC").Limit(limit)
-	if sinceID > 0 {
-		query = query.Where("id < ?", sinceID) // Pagination: items older than sinceID
-	}
-	if unreadOnly {
-		query = query.Where("read = false")
-	}
-
-	var items []models.Notification
-	err := query.Find(&items).Error
-	return items, err
+	return s.repo.List(context.Background(), limit, sinceID, unreadOnly)
 }
 
 // GetByID returns a single notification by ID.
 func (s *NotificationService) GetByID(id int64) (*models.Notification, error) {
-	var notif models.Notification
-	err := s.db.Where("id = ?", id).First(&notif).Error
-	if err != nil {
-		return nil, err
-	}
-	return &notif, nil
+	return s.repo.GetByID(context.Background(), id)
 }
 
 // UnreadCount returns the number of unread notifications.
 func (s *NotificationService) UnreadCount() (int64, error) {
-	var count int64
-	err := s.db.Model(&models.Notification{}).Where("read = false").Count(&count).Error
-	return count, err
+	return s.repo.UnreadCount(context.Background())
 }
 
 // MarkAsRead marks a single notification as read.
 func (s *NotificationService) MarkAsRead(id int64) error {
-	return s.db.Model(&models.Notification{}).
-		Where("id = ?", id).
-		Update("read", true).Error
+	return s.repo.MarkAsRead(context.Background(), id)
 }
 
 // MarkAllAsRead marks all notifications as read.
 func (s *NotificationService) MarkAllAsRead() error {
-	return s.db.Model(&models.Notification{}).
-		Where("read = false").
-		Update("read", true).Error
+	return s.repo.MarkAllAsRead(context.Background())
 }
 
 // Delete removes a single notification.
 func (s *NotificationService) Delete(id int64) error {
-	return s.db.Delete(&models.Notification{}, id).Error
+	return s.repo.Delete(context.Background(), id)
 }
 
 // DeleteAll removes all notifications.
 func (s *NotificationService) DeleteAll() error {
-	return s.db.Where("1=1").Delete(&models.Notification{}).Error
+	return s.repo.DeleteAll(context.Background())
 }
 
 // CleanupOlderThan removes notifications older than the given number of days.
 func (s *NotificationService) CleanupOlderThan(days int) int64 {
-	if days <= 0 {
-		return 0
+	rowsAffected, err := s.repo.CleanupOlderThan(context.Background(), days)
+	if err != nil {
+		log.Error().Err(err).Int("days", days).Msg("Failed to cleanup old notifications")
 	}
-	cutoff := time.Now().AddDate(0, 0, -days)
-	result := s.db.Where("created_at < ?", cutoff).Delete(&models.Notification{})
-	if result.Error != nil {
-		log.Error().Err(result.Error).Int("days", days).Msg("Failed to cleanup old notifications")
-	}
-	return result.RowsAffected
+	return rowsAffected
 }
 
 // GetSettings returns notification settings for the current tenant.
 func (s *NotificationService) GetSettings() (*models.NotificationSettings, error) {
-	var settings models.NotificationSettings
-	err := s.db.First(&settings).Error
-	if err == gorm.ErrRecordNotFound {
-		return &models.NotificationSettings{RetentionDays: 30}, nil
-	}
-	return &settings, err
+	return s.repo.GetSettings(context.Background())
 }
 
 // SaveSettings upserts notification settings.
 func (s *NotificationService) SaveSettings(retentionDays int) error {
-	var existing models.NotificationSettings
-	err := s.db.First(&existing).Error
-
-	if err == gorm.ErrRecordNotFound {
-		return s.db.Create(&models.NotificationSettings{
-			RetentionDays: retentionDays,
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		}).Error
-	}
-	if err != nil {
-		return err
-	}
-
-	existing.RetentionDays = retentionDays
-	existing.UpdatedAt = time.Now()
-	return s.db.Save(&existing).Error
+	return s.repo.SaveSettings(context.Background(), retentionDays)
 }
