@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Dead route registrations removed (Task 15)**: Deleted `RegisterInventoryRoutes` (extended_routes.go) and `RegisterLazadaOrderRoutes` (additional_routes.go). Both were defined but never called in main.go. Inventory endpoints are served by `RegisterInventorySimpleRoutes`; Lazada order endpoints are served by inline platform routes in main.go. Cleaned up unused imports and stale comments.
 - **Zombie column cleanup retired (Task 18)**: Formally retired the disabled `CleanZombieColumns` calls in `migration.go` (system and tenant). Replaced ambiguous commented-out code with retirement documentation explaining why GORM AutoMigrate's additive-only behavior is intentional. Implementation in `migration_cleanup.go` kept as reference with re-enable requirements documented.
 
 
@@ -23,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Playwright E2E spec stubs for consolidated gap remediation**: Added 5 stub spec files to `frontend/e2e/` covering layout viewport sweep, accessibility axe-core audits, credential lifecycle (shopee/lazada/tiktok), developer impersonation context, and booking integration. All tests use `test.skip()`. Unblocks T24, T27, T29, T33.
 - **Escrow formula correctness tests for Shopee and TikTok (T7)**: Added 98 comprehensive tests in `backend/internal/services/analytics/escrow_formula_test.go` covering Shopee formula (BuyerPaidShippingFee - ActualShippingFee + ShopeeShippingRebate) and TikTok formula (ShippingFeeCustomerPaid - ShippingFeeActual + ShippingFeePlatformDiscount). Tests cover: negative values, zero quantity items, canceled items, chargebacks, shipping adjustments, multi-line allocation, cross-currency rows, partial pagination failure, monetary precision, and formula invariants. All 163 analytics tests pass.
+- **Booking idempotency and parent matching tests (T10)**: Added 35 comprehensive tests in `backend/internal/services/sync/booking_idempotency_test.go` using SQLite in-memory DB. Covers: duplicate sync idempotency (single row after re-sync, items replaced not duplicated), booking-before-parent resolution, cross-tenant isolation (tenant B cannot see tenant A orders/bookings), shop-level isolation, partial fulfillment/cancellation (no orphaned items), API failure reporting, line key determinism, and raw parsing edge cases. All 35 tests pass.
 
 ### Fixed
 - **Marketplace client credential unification**: Migrated Lazada, TikTok, and remaining Shopee client creation paths to `CredentialService.GetPlatformCredentials()` so canonical credentials, legacy fallback, and token auto-refresh are consistently used across handlers, auto-functions, clone sync, and master-product sync/import flows.
