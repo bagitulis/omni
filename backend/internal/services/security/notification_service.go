@@ -1,8 +1,11 @@
 package security
 
 import (
+	"fmt"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 // NotificationService handles security notifications and alerts
@@ -12,6 +15,9 @@ type NotificationService struct {
 	maxAlerts   int
 	rateLimiter map[string]time.Time // alertType -> lastSent
 	minInterval time.Duration
+
+	// canonicalPush, if set, routes high/critical alerts to the main notification feed
+	canonicalPush func(tenantID, notifType, category, title, message string) error
 }
 
 // NewNotificationService creates a new notification service
@@ -22,6 +28,13 @@ func NewNotificationService() *NotificationService {
 		rateLimiter: make(map[string]time.Time),
 		minInterval: 5 * time.Minute,
 	}
+}
+
+// SetCanonicalPush sets a callback that routes high/critical security alerts
+// into the main persisted notification feed via the canonical service.
+// This is a one-way bridge: security stats remain independent.
+func (s *NotificationService) SetCanonicalPush(fn func(tenantID, notifType, category, title, message string) error) {
+	s.canonicalPush = fn
 }
 
 // SecurityAlert represents a security alert
@@ -60,6 +73,22 @@ func (s *NotificationService) RecordAlert(alert SecurityAlert) bool {
 
 	// Update rate limiter
 	s.rateLimiter[alert.Type] = time.Now()
+
+	// Bridge high/critical security alerts to main notification feed
+	// LOW/MEDIUM severity alerts do NOT create persisted notifications
+	if s.canonicalPush != nil && (alert.Severity == "high" || alert.Severity == "critical") {
+		notifType := "warning"
+		if alert.Severity == "critical" {
+			notifType = "error"
+		}
+		title := fmt.Sprintf("Security %s: %s", alert.Severity, alert.Type)
+		if err := s.canonicalPush(alert.TenantID, notifType, "security", title, alert.Message); err != nil {
+			log.Error().Err(err).
+				Str("severity", alert.Severity).
+				Str("alert_type", alert.Type).
+				Msg("Failed to push security alert to main notification feed")
+		}
+	}
 
 	return true
 }

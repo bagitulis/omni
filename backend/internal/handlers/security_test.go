@@ -12,7 +12,7 @@ import (
 
 // TestSecurityHandler_NewSecurityHandler tests handler creation
 func TestSecurityHandler_NewSecurityHandler(t *testing.T) {
-	handler := NewSecurityHandler(nil)
+	handler := NewSecurityHandler(nil, nil)
 	assert.NotNil(t, handler)
 }
 
@@ -26,7 +26,7 @@ func TestSecurityHandler_ReportIssue_MissingBody(t *testing.T) {
 		c.Next()
 	})
 
-	handler := NewSecurityHandler(nil)
+	handler := NewSecurityHandler(nil, nil)
 	r.POST("/api/security/report", handler.ReportIssue)
 
 	req, _ := http.NewRequest("POST", "/api/security/report", nil)
@@ -47,7 +47,7 @@ func TestSecurityHandler_ReportIssue_MissingRequiredFields(t *testing.T) {
 		c.Next()
 	})
 
-	handler := NewSecurityHandler(nil)
+	handler := NewSecurityHandler(nil, nil)
 	r.POST("/api/security/report", handler.ReportIssue)
 
 	body := `{"type": "test"}`
@@ -70,7 +70,7 @@ func TestSecurityHandler_ReportIssue_InvalidJSON(t *testing.T) {
 		c.Next()
 	})
 
-	handler := NewSecurityHandler(nil)
+	handler := NewSecurityHandler(nil, nil)
 	r.POST("/api/security/report", handler.ReportIssue)
 
 	body := `{invalid json`

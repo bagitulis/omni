@@ -14,8 +14,12 @@ type SecurityHandler struct {
 	notificationService *security.NotificationService
 }
 
-// NewSecurityHandler creates a new security handler
-func NewSecurityHandler(ns *security.NotificationService) *SecurityHandler {
+// NewSecurityHandler creates a new security handler.
+// If canonicalPushFn is non-nil, high/critical alerts are bridged to the main notification feed.
+func NewSecurityHandler(ns *security.NotificationService, canonicalPushFn func(tenantID, notifType, category, title, message string) error) *SecurityHandler {
+	if ns != nil && canonicalPushFn != nil {
+		ns.SetCanonicalPush(canonicalPushFn)
+	}
 	return &SecurityHandler{notificationService: ns}
 }
 

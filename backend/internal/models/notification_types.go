@@ -17,7 +17,8 @@ const (
 	CatSystem    = "system"
 	CatAuth      = "auth"
 	CatExport    = "export"
-)
+	CatSecurity  = "security"
+	)
 
 // JobTypeToCategory maps background job types to notification categories
 func JobTypeToCategory(jobType string) string {
