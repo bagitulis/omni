@@ -35,7 +35,7 @@ export function PlatformStoreConnectionsSection({
     <Card title="Store Connections" size="small" style={{ marginBottom: 24 }}>
       <Row gutter={[16, 16]}>
         {platformCards.map(({ platform, color, icon, name }) => (
-          <Col xs={24} md={8} key={platform.platform}>
+          <Col xs={24} sm={12} lg={8} key={platform.platform}>
             <PlatformCard
               platform={toConnectionSummary(platform)}
               color={color}

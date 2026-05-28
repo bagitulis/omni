@@ -60,6 +60,7 @@ export function PlatformCard({
         borderRadius: token.borderRadius,
         borderTop: `3px solid ${color}`,
         height: "100%",
+        overflow: "hidden",
       }}
       styles={{ body: { padding: 16 } }}
     >
@@ -82,7 +83,7 @@ export function PlatformCard({
               {icon}
             </div>
             <div>
-              <Text strong style={{ fontSize: 14, display: "block" }}>
+              <Text strong style={{ fontSize: 14, display: "block", wordBreak: "break-word" }}>
                 {name}
               </Text>
               <Text type="secondary" style={{ fontSize: 12 }}>
@@ -133,40 +134,15 @@ export function PlatformCard({
           </Space>
         </Card>
 
-        <div>
+        <div style={{ overflow: "hidden" }}>
           {platform.connected ? (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Button
-                icon={<LinkOutlined />}
-                disabled={!!actionDisabledReason}
-                title={actionDisabledReason || undefined}
-                onClick={() => onConnect(platform)}
-              >
-                Re-authorize
-              </Button>
-              <Button onClick={() => onViewHistory(platform)}>History</Button>
-              <Button
-                danger
-                icon={<DisconnectOutlined />}
-                disabled={!!actionDisabledReason || destructiveActionKey === platform.platform}
-                loading={destructiveActionKey === platform.platform}
-                title={actionDisabledReason || undefined}
-                onClick={() => onDisconnect(platform)}
-              >
-                Disconnect
-              </Button>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <Button size="small" icon={<LinkOutlined />} disabled={!!actionDisabledReason} title={actionDisabledReason || undefined} onClick={() => onConnect(platform)}>Re-authorize</Button>
+              <Button size="small" onClick={() => onViewHistory(platform)}>History</Button>
+              <Button size="small" danger icon={<DisconnectOutlined />} disabled={!!actionDisabledReason || destructiveActionKey === platform.platform} loading={destructiveActionKey === platform.platform} title={actionDisabledReason || undefined} onClick={() => onDisconnect(platform)}>Disconnect</Button>
             </div>
           ) : (
-            <Button
-              type="primary"
-              icon={<LinkOutlined />}
-              disabled={!!actionDisabledReason}
-              title={actionDisabledReason || undefined}
-              onClick={() => onConnect(platform)}
-              style={{ width: "100%", background: color, borderColor: color }}
-            >
-              Connect {name}
-            </Button>
+            <Button type="primary" icon={<LinkOutlined />} disabled={!!actionDisabledReason} title={actionDisabledReason || undefined} onClick={() => onConnect(platform)} style={{ width: "100%", background: color, borderColor: color }}>Connect {name}</Button>
           )}
           {actionDisabledReason && (
             <Text type="secondary" style={{ fontSize: 12 }}>
