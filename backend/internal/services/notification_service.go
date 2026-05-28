@@ -44,7 +44,7 @@ func (s *NotificationService) WithTenant(tenantID string) *NotificationService {
 }
 
 // Push creates a new notification in the database and broadcasts it via SSE.
-func (s *NotificationService) Push(notifType, category, title, message, actionURL string) (*models.Notification, error) {
+func (s *NotificationService) Push(notifType, category, title, message, actionURL string, metadata ...string) (*models.Notification, error) {
 	notif := &models.Notification{
 		Type:      notifType,
 		Category:  category,
@@ -53,6 +53,10 @@ func (s *NotificationService) Push(notifType, category, title, message, actionUR
 		ActionURL: actionURL,
 		Read:      false,
 		CreatedAt: time.Now(),
+	}
+
+	if len(metadata) > 0 {
+		notif.Metadata = metadata[0]
 	}
 
 	// 1. Save to Database

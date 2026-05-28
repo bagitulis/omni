@@ -48,19 +48,12 @@ func pushBulkOperationNotification(
 		metadata.Total, metadata.Succeeded, metadata.Failed, len(metadata.Platforms))
 
 	// Push notification
-	notif, pushErr := notifSvc.Push(notifType, category, title, message, "")
+	notif, pushErr := notifSvc.Push(notifType, category, title, message, "", string(metadataJSON))
 	if pushErr != nil {
 		log.Error().Err(pushErr).Msg("[Notification] Failed to push bulk operation notification")
 		return
 	}
 
-	// Update metadata field (Push doesn't set it directly)
-	if notif != nil && notifSvc != nil {
-		notif.Metadata = string(metadataJSON)
-		// Save metadata update via direct DB access through service
-		// For now we store metadata in the message field as JSON (NotificationHelpers parses it)
-		// TODO: Update Push() to accept metadata parameter in future refactor
-	}
 
 	log.Info().
 		Int64("notification_id", notif.ID).
