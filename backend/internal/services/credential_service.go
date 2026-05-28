@@ -91,7 +91,13 @@ func (s *CredentialService) GetPlatformCredentials(tenantID, platform string) (*
 		return creds, nil
 	}
 	if !IsCredentialLegacyFallbackEnabled() {
-		return creds, nil
+		if !canonicalState.AppConfigured {
+			return nil, fmt.Errorf("canonical app credentials not configured for %s/%s", tenantID, platform)
+		}
+		if !canonicalState.StoreConfigured {
+			return nil, fmt.Errorf("canonical store connection not configured for %s/%s", tenantID, platform)
+		}
+		return nil, fmt.Errorf("canonical credentials incomplete for %s/%s", tenantID, platform)
 	}
 	_ = repositories.NewCredentialRepository(tenantDB).CreateAuditEvent(ctx, &models.CredentialAuditEvent{
 		TenantID:  tenantID,

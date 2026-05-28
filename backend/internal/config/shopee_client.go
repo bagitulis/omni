@@ -31,6 +31,10 @@ func GetShopeeClient(tenantID, basePath string) (*shopee.Client, error) {
 		return nil, fmt.Errorf("get system DB: %w", err)
 	}
 
+	// Try canonical credentials first (per-tenant credential_app_configs + credential_connections)
+	if creds, err := loadShopeeCanonicalCredentials(context.Background(), tenantDB, tenantID); err == nil {
+		return creds, nil
+	}
 	// Load global credentials (partner_id, partner_key) with ENV fallback
 	globalCreds, err := loadShopeeGlobalCredentials(systemDB)
 	if err != nil {
@@ -47,6 +51,36 @@ func GetShopeeClient(tenantID, basePath string) (*shopee.Client, error) {
 	client := shopee.NewClient(globalCreds.PartnerID, globalCreds.PartnerKey, true)
 	client.SetShopCredentials(tenantCreds.ShopID, tenantCreds.AccessToken)
 
+	return client, nil
+}
+
+// loadShopeeCanonicalCredentials loads Shopee credentials from canonical tenant tables
+// Returns (client, nil) on success, (nil, error) to trigger legacy fallback
+func loadShopeeCanonicalCredentials(ctx context.Context, tenantDB *gorm.DB, tenantID string) (*shopee.Client, error) {
+	repo := repositories.NewCredentialRepository(tenantDB)
+
+	// Get app config (partner_id, partner_key)
+	appConfig, err := repo.GetAppConfig(ctx, tenantID, "shopee")
+	if err != nil || appConfig == nil {
+		return nil, fmt.Errorf("canonical app config not available")
+	}
+
+	// Check partner ID is configured
+	partnerID := appConfig.PartnerID
+	if partnerID == 0 {
+		return nil, fmt.Errorf("canonical partner_id not configured")
+	}
+
+	// Get first active store connection
+	conns, err := repo.ListConnections(ctx, tenantID, "shopee")
+	if err != nil || len(conns) == 0 {
+		return nil, fmt.Errorf("canonical store connection not available")
+	}
+
+	// Create client with per-tenant canonical credentials
+	shopID, _ := strconv.ParseInt(conns[0].StoreIdentifier, 10, 64)
+	client := shopee.NewClient(partnerID, appConfig.PartnerKey, true)
+	client.SetShopCredentials(shopID, conns[0].AccessToken)
 	return client, nil
 }
 
