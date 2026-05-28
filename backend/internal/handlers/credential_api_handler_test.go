@@ -1,14 +1,16 @@
 package handlers
 
 import (
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
+"encoding/json"
+"net/http"
+"net/http/httptest"
+"os"
+"strings"
+"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/models"
+"github.com/omni/backend/internal/utils"
 	credentialsvc "github.com/omni/backend/internal/services"
 	"github.com/omni/backend/internal/testutils"
 	"github.com/stretchr/testify/assert"
@@ -34,6 +36,9 @@ func TestCredentialApiHandler_MissingTenant(t *testing.T) {
 
 func TestCredentialApiHandler_ListAndMutate(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+	key, err := utils.GenerateKey()
+	require.NoError(t, err)
+	os.Setenv("ENCRYPTION_KEY", key)
 	r := gin.New()
 	db := testutils.SetupTestPostgresWithModels(t, &models.CredentialConnection{}, &models.CredentialAppConfig{}, &models.OAuthConnectionAttempt{}, &models.CredentialAuditEvent{})
 	service := credentialsvc.NewCredentialApiService(db)
@@ -86,6 +91,9 @@ func TestCredentialApiHandler_ListAndMutate(t *testing.T) {
 
 func TestCredentialApiHandler_ManualTokenRoleGate(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+	key, err := utils.GenerateKey()
+	require.NoError(t, err)
+	os.Setenv("ENCRYPTION_KEY", key)
 	r := gin.New()
 	db := testutils.SetupTestPostgresWithModels(t, &models.CredentialConnection{}, &models.CredentialAppConfig{}, &models.OAuthConnectionAttempt{}, &models.CredentialAuditEvent{})
 	service := credentialsvc.NewCredentialApiService(db)
@@ -112,6 +120,9 @@ func TestCredentialApiHandler_ManualTokenRoleGate(t *testing.T) {
 
 func TestCredentialApiHandler_ManualTokenRequiresReason(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+	key, err := utils.GenerateKey()
+	require.NoError(t, err)
+	os.Setenv("ENCRYPTION_KEY", key)
 	r := gin.New()
 	db := testutils.SetupTestPostgresWithModels(t, &models.CredentialConnection{}, &models.CredentialAppConfig{}, &models.OAuthConnectionAttempt{}, &models.CredentialAuditEvent{})
 	service := credentialsvc.NewCredentialApiService(db)
