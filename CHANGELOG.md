@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Playwright E2E spec stubs for consolidated gap remediation**: Added 5 stub spec files to `frontend/e2e/` covering layout viewport sweep, accessibility axe-core audits, credential lifecycle (shopee/lazada/tiktok), developer impersonation context, and booking integration. All tests use `test.skip()`. Unblocks T24, T27, T29, T33.
+
 ### Fixed
 - **Task 10 credential migration store identity fix**: Removed `platform_legacy` fallback from `keyValueRowsToBundle` — key-value rows without a `shopId` now emit a `missing_store_identity` abort reason instead of creating an invalid canonical store record. Verified with focused test.
 - **Credential repository missing-relation safety**: Added `isMissingRelationError()` guard to `GetConnection`, `ListConnections`, `GetAppConfig`, and `ListAuditEvents` so the credential API degrades gracefully to empty/disconnected state when canonical tables are absent (before migration runs).
