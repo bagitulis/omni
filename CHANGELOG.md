@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **F4 scope fidelity final verification gate**: Audited consolidated-gap-remediation outputs for T0-T36, wrote `.sisyphus/evidence/F4-scope-fidelity.txt`, and recorded notepad findings. Verdict: REJECT due to missing consolidated evidence artifacts, incomplete T26/T30/T31 acceptance criteria, insufficient T24/T33 evidence quality, and unrelated scope drift in final-verification git history.
 - **F1 compliance audit final verification gate**: Re-ran the consolidated-gap-remediation plan compliance audit for T0-T36, refreshed `.sisyphus/evidence/F1-compliance-audit.txt`, and recorded notepad findings. Verdict: REJECT with high confidence due to missing or insufficient required evidence for 13 tasks.
 
 ### Fixed
