@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **F1/F4 missing task evidence backfill**: Created concise `.sisyphus/evidence/task-N-*.txt` artifacts for T1, T2, T8, T11, T17, T19, T20, T21, and T23, recording commit hashes, work summaries, verification commands, pass/fail results, and PASS verdicts for the final approval evidence gap.
 
 ### Changed
+- **SG secrets/PII redaction gate v2**: Re-ran required redaction scans with clarified handling for gitignored Shopee TEST credentials, wrote `.sisyphus/evidence/SG-redaction-gate-v2.txt`, and recorded final verdict: APPROVE.
+- **F1 compliance audit v2 evidence tracking**: Added a narrow `.gitignore` exception so `.sisyphus/evidence/F1-compliance-audit-v2.txt` is tracked with the audit rerun verdict.
 - **F4 scope fidelity re-run v2**: Re-verified consolidated-gap-remediation T0-T36 after the missing evidence artifact backfill, wrote `.sisyphus/evidence/F4-scope-fidelity-v2.txt`, and recorded final verdict: APPROVE.
 - **F1 compliance audit re-run v2**: Re-audited consolidated-gap-remediation T0-T36 after the missing evidence artifact backfill, wrote `.sisyphus/evidence/F1-compliance-audit-v2.txt`, and recorded final verdict: APPROVE.
 - **F4 scope fidelity final verification gate**: Audited consolidated-gap-remediation outputs for T0-T36, wrote `.sisyphus/evidence/F4-scope-fidelity.txt`, and recorded notepad findings. Verdict: REJECT due to missing consolidated evidence artifacts, incomplete T26/T30/T31 acceptance criteria, insufficient T24/T33 evidence quality, and unrelated scope drift in final-verification git history.
