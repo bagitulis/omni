@@ -20,15 +20,16 @@ func TestNotificationRepository(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Create", func(t *testing.T) {
-		notif := &models.Notification{
-			Type:      "success",
-			Category:  "sync",
-			Title:     "Test Notification",
-			Message:   "This is a test notification",
-			ActionURL: "",
-			Read:      false,
-			CreatedAt: time.Now(),
-		}
+			notif := &models.Notification{
+				Type:      "success",
+				Category:  "sync",
+				Title:     "Test Notification",
+				Message:   "This is a test notification",
+				ActionURL: "",
+				Metadata:  "{}",
+				Read:      false,
+				CreatedAt: time.Now(),
+			}
 
 		err := repo.Create(ctx, notif)
 		assert.NoError(t, err)
@@ -37,15 +38,16 @@ func TestNotificationRepository(t *testing.T) {
 
 	t.Run("List", func(t *testing.T) {
 		// Create a few notifications
-		for i := 0; i < 3; i++ {
-			notif := &models.Notification{
-				Type:      "info",
-				Category:  "order",
-				Title:     "Order update",
-				Message:   "Order updated notification",
-				Read:      false,
-				CreatedAt: time.Now(),
-			}
+		for range 3 {
+				notif := &models.Notification{
+					Type:      "info",
+					Category:  "order",
+					Title:     "Order update",
+					Message:   "Order updated notification",
+					Metadata:  "{}",
+					Read:      false,
+					CreatedAt: time.Now(),
+				}
 			err := repo.Create(ctx, notif)
 			require.NoError(t, err)
 		}
@@ -62,6 +64,7 @@ func TestNotificationRepository(t *testing.T) {
 			Category:  "test",
 			Title:     "Read notification",
 			Message:   "Already read",
+			Metadata:  "{}",
 			Read:      true,
 			CreatedAt: time.Now(),
 		}
@@ -73,6 +76,7 @@ func TestNotificationRepository(t *testing.T) {
 			Category:  "test",
 			Title:     "Unread notification",
 			Message:   "Not yet read",
+			Metadata:  "{}",
 			Read:      false,
 			CreatedAt: time.Now(),
 		}
@@ -92,6 +96,7 @@ func TestNotificationRepository(t *testing.T) {
 			Category:  "product",
 			Title:     "GetByID test",
 			Message:   "Testing GetByID",
+			Metadata:  "{}",
 			Read:      false,
 			CreatedAt: time.Now(),
 		}
@@ -115,6 +120,7 @@ func TestNotificationRepository(t *testing.T) {
 			Category:  "test",
 			Title:     "Unread count test",
 			Message:   "Testing unread count",
+			Metadata:  "{}",
 			Read:      false,
 			CreatedAt: time.Now(),
 		}
@@ -132,6 +138,7 @@ func TestNotificationRepository(t *testing.T) {
 			Category:  "sync",
 			Title:     "MarkAsRead test",
 			Message:   "Will be marked as read",
+			Metadata:  "{}",
 			Read:      false,
 			CreatedAt: time.Now(),
 		}
@@ -148,12 +155,13 @@ func TestNotificationRepository(t *testing.T) {
 
 	t.Run("MarkAllAsRead", func(t *testing.T) {
 		// Create two unread notifications
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			notif := &models.Notification{
 				Type:      "warning",
 				Category:  "test",
 				Title:     "MarkAll test",
 				Message:   "Will be marked all as read",
+				Metadata:  "{}",
 				Read:      false,
 				CreatedAt: time.Now(),
 			}
@@ -175,6 +183,7 @@ func TestNotificationRepository(t *testing.T) {
 			Category:  "test",
 			Title:     "Delete test",
 			Message:   "Will be deleted",
+			Metadata:  "{}",
 			Read:      false,
 			CreatedAt: time.Now(),
 		}
@@ -195,6 +204,7 @@ func TestNotificationRepository(t *testing.T) {
 			Category:  "test",
 			Title:     "DeleteAll test",
 			Message:   "Will be deleted with all",
+			Metadata:  "{}",
 			Read:      false,
 			CreatedAt: time.Now(),
 		}
@@ -225,6 +235,7 @@ func TestNotificationRepository(t *testing.T) {
 			Category:  "tenant-a",
 			Title:     "Tenant A notification",
 			Message:   "Should be deleted by DeleteAll",
+			Metadata:  "{}",
 			Read:      false,
 			CreatedAt: time.Now(),
 		}
@@ -237,6 +248,7 @@ func TestNotificationRepository(t *testing.T) {
 			Category:  "tenant-b",
 			Title:     "Tenant B notification",
 			Message:   "Should survive DeleteAll on tenant A",
+			Metadata:  "{}",
 			Read:      false,
 			CreatedAt: time.Now(),
 		}
@@ -283,6 +295,7 @@ func TestNotificationRepository(t *testing.T) {
 			Category:  "cleanup",
 			Title:     "Old notification",
 			Message:   "This should be cleaned up",
+			Metadata:  "{}",
 			Read:      false,
 			CreatedAt: time.Now().Add(-48 * time.Hour), // 2 days ago
 		}

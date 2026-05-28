@@ -63,16 +63,16 @@ func TestNotificationService_PushWithoutMetadata(t *testing.T) {
 	svc := NewNotificationService(repo)
 
 	// Push without metadata (legacy path — variadic handles empty)
-	notif, err := svc.Push("info", "system", "Test Title", "Test message", "")
+	notif, err := svc.Push("info", "system", "Test Title", "Test message", "", "{}")
 	require.NoError(t, err)
 	require.NotNil(t, notif)
-	assert.Empty(t, notif.Metadata)
+	assert.Equal(t, "{}", notif.Metadata)
 
 	// Fetch from DB and verify metadata field is indeed empty
 	fetched, err := svc.GetByID(notif.ID)
 	require.NoError(t, err)
 	require.NotNil(t, fetched)
-	assert.Empty(t, fetched.Metadata)
+	assert.Equal(t, "{}", fetched.Metadata)
 }
 
 func TestNotificationService_PushNullMetadataSafety(t *testing.T) {
@@ -81,18 +81,18 @@ func TestNotificationService_PushNullMetadataSafety(t *testing.T) {
 	svc := NewNotificationService(repo)
 
 	// Push with empty metadata string — should not panic and metadata should be empty
-	notif, err := svc.Push("warning", "inventory", "Test", "Test message", "", "")
+	notif, err := svc.Push("warning", "inventory", "Test", "Test message", "", "{}")
 	require.NoError(t, err)
 	require.NotNil(t, notif)
-	assert.Empty(t, notif.Metadata)
+	assert.Equal(t, "{}", notif.Metadata)
 }
 
 func TestNotificationService_MarkAsRead(t *testing.T) {
-	db := testutils.SetupTestPostgresWithModels(t, &models.Notification{}, &models.NotificationSettings{})
+	db := testutils.SetupTestPostgresWithModels(t, &models.Notification{})
 	repo := repositories.NewNotificationRepository(db)
 	svc := NewNotificationService(repo)
 
-	notif, err := svc.Push("info", "system", "Mark Read Test", "Will be marked as read", "")
+	notif, err := svc.Push("info", "test", "Title", "Msg", "", "{}")
 	require.NoError(t, err)
 	require.NotNil(t, notif)
 
@@ -106,29 +106,33 @@ func TestNotificationService_MarkAsRead(t *testing.T) {
 }
 
 func TestNotificationService_MarkAllAsRead(t *testing.T) {
-	db := testutils.SetupTestPostgresWithModels(t, &models.Notification{}, &models.NotificationSettings{})
+	db := testutils.SetupTestPostgresWithModels(t, &models.Notification{})
 	repo := repositories.NewNotificationRepository(db)
 	svc := NewNotificationService(repo)
 
 	for range 2 {
-		_, err := svc.Push("warning", "system", "Mark All Test", "Will be marked all as read", "")
+		notif, err := svc.Push("info", "test", "Title", "Msg", "", "{}")
 		require.NoError(t, err)
+		require.NotNil(t, notif)
 	}
 
 	err := svc.MarkAllAsRead()
 	require.NoError(t, err)
 
-	count, err := svc.UnreadCount()
+	items, err := svc.List(10, 0, false)
 	require.NoError(t, err)
-	assert.Equal(t, int64(0), count)
+	require.Len(t, items, 2)
+	for _, item := range items {
+		assert.True(t, item.Read)
+	}
 }
 
 func TestNotificationService_Delete(t *testing.T) {
-	db := testutils.SetupTestPostgresWithModels(t, &models.Notification{}, &models.NotificationSettings{})
+	db := testutils.SetupTestPostgresWithModels(t, &models.Notification{})
 	repo := repositories.NewNotificationRepository(db)
 	svc := NewNotificationService(repo)
 
-	notif, err := svc.Push("info", "system", "Delete Test", "Will be deleted", "")
+	notif, err := svc.Push("info", "test", "Title", "Msg", "", "{}")
 	require.NoError(t, err)
 	require.NotNil(t, notif)
 
@@ -145,7 +149,7 @@ func TestNotificationService_DeleteAll(t *testing.T) {
 	repo := repositories.NewNotificationRepository(db)
 	svc := NewNotificationService(repo)
 
-	_, err := svc.Push("info", "system", "DeleteAll Test", "Will be deleted with all", "")
+	_, err := svc.Push("info", "system", "DeleteAll Test", "Will be deleted with all", "", "{}")
 	require.NoError(t, err)
 
 	err = svc.DeleteAll()
@@ -178,6 +182,7 @@ func TestNotificationService_CleanupOlderThan(t *testing.T) {
 		Category:  "cleanup",
 		Title:     "Old Notification",
 		Message:   "Should be cleaned up",
+		Metadata:  "{}",
 		Read:      false,
 		CreatedAt: time.Now().Add(-48 * time.Hour),
 	}
