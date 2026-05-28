@@ -7,6 +7,7 @@ import (
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services/cache"
 	"github.com/omni/backend/internal/utils"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
@@ -18,8 +19,8 @@ type MultiTenantAuthService struct {
 	tenantService *TenantService
 	jwtService    *utils.JWTService
 	basePath      string
+	cache         cache.CacheManager
 }
-
 // NewMultiTenantAuthService creates a new multi-tenant auth service
 func NewMultiTenantAuthService(tenantService *TenantService, jwtService *utils.JWTService, basePath string) *MultiTenantAuthService {
 	return &MultiTenantAuthService{
@@ -27,6 +28,11 @@ func NewMultiTenantAuthService(tenantService *TenantService, jwtService *utils.J
 		jwtService:    jwtService,
 		basePath:      basePath,
 	}
+}
+
+// SetCacheManager sets the cache manager for tenant-aware cache clearing
+func (s *MultiTenantAuthService) SetCacheManager(c cache.CacheManager) {
+	s.cache = c
 }
 
 // MultiTenantLoginRequest represents login request

@@ -70,6 +70,13 @@ func (s *MultiTenantAuthService) SwitchTenant(ctx context.Context, userID, curre
 		return "", &AuthError{Code: "TENANT_NOT_FOUND", Message: "Tenant not found"}
 	}
 
+	// Clear any cached data for the target tenant to prevent stale state leaks
+	// (belt-and-suspenders: caches are already tenant-scoped by key, but
+	// ClearTenant provides an additional guarantee on tenant switch)
+	if s.cache != nil {
+		s.cache.ClearTenant(newTenantID)
+	}
+
 	// Update all active refresh sessions in system DB to the new tenant
 	// This ensures token refresh after page reload uses the correct tenant
 	systemDB, err := s.tenantService.GetSystemDB()

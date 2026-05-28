@@ -1,4 +1,5 @@
 import React, { useMemo, useCallback, useEffect, useState } from "react";
+import { queryClient } from "@/api/queryClient";
 import {
   Layout,
   Button,
@@ -90,6 +91,8 @@ function Header({ collapsed, onCollapse }: HeaderProps) {
             });
           }
           message.success(`Switched to ${newTenantId}`);
+          // Clear TanStack Query cache before full page reload as belt-and-suspenders
+          queryClient.clear();
           window.location.reload();
         }
       } catch (err: unknown) {
