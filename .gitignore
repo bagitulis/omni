@@ -84,6 +84,7 @@ backups/smart/
 !.sisyphus/evidence/
 .sisyphus/evidence/*
 !.sisyphus/evidence/F1-compliance-audit-v2.txt
+!.sisyphus/evidence/F4-scope-fidelity-v2.txt
 
 
 # ===========================================
