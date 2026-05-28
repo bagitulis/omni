@@ -7,11 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **F1/F4 missing task evidence backfill**: Created concise `.sisyphus/evidence/task-N-*.txt` artifacts for T1, T2, T8, T11, T17, T19, T20, T21, and T23, recording commit hashes, work summaries, verification commands, pass/fail results, and PASS verdicts for the final approval evidence gap.
+
 ### Changed
 - **F4 scope fidelity final verification gate**: Audited consolidated-gap-remediation outputs for T0-T36, wrote `.sisyphus/evidence/F4-scope-fidelity.txt`, and recorded notepad findings. Verdict: REJECT due to missing consolidated evidence artifacts, incomplete T26/T30/T31 acceptance criteria, insufficient T24/T33 evidence quality, and unrelated scope drift in final-verification git history.
 - **F1 compliance audit final verification gate**: Re-ran the consolidated-gap-remediation plan compliance audit for T0-T36, refreshed `.sisyphus/evidence/F1-compliance-audit.txt`, and recorded notepad findings. Verdict: REJECT with high confidence due to missing or insufficient required evidence for 13 tasks.
 
 ### Fixed
+- **F2 stale shipping test mocks**: Updated Shopee and TikTok shipping test mocks to match context-aware client interfaces, restoring `go vet ./...` and targeted shipping package tests.
 - **SG secrets/PII redaction final verification gate**: Ran the required evidence, `.env`, screenshot inventory, recent git history, and notepad scans with sanitized output. Final verdict: REJECT due to credential-bearing `.env`/`.env.example` entries; values redacted in `.sisyphus/evidence/SG-redaction-gate.txt`.
 - **F2 code quality final verification gate**: Ran Go build, Go vet, TypeScript noEmit, and frontend production build in order. Go build, TypeScript, and frontend build passed; Go vet failed with three test mock interface signature mismatches. Final verdict: REJECT. Evidence: `.sisyphus/evidence/F2-code-quality.txt`.
 - **F4 scope fidelity gate**: Completed consolidated remediation scope audit across T0-T36 and recorded final REJECT verdict at `.sisyphus/evidence/F4-scope-fidelity.txt`. Identified missing consolidated evidence artifacts, incomplete notification/external-operation/cache-isolation requirements, insufficient T24/T33 evidence quality, and unrelated final-verification scope drift in git history.

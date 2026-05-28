@@ -15,7 +15,8 @@ type MockShippingClient struct {
 	mock.Mock
 }
 
-func (m *MockShippingClient) GetShippingParameter(orderSN string) (*shopeePkg.GetShippingParameterResponse, error) {
+func (m *MockShippingClient) GetShippingParameter(ctx context.Context, orderSN string) (*shopeePkg.GetShippingParameterResponse, error) {
+	_ = ctx
 	args := m.Called(orderSN)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -31,7 +32,8 @@ func (m *MockShippingClient) ShipOrder(req shopeePkg.ShipOrderRequest) (*shopeeP
 	return args.Get(0).(*shopeePkg.ShipOrderResponse), args.Error(1)
 }
 
-func (m *MockShippingClient) GetTrackingNumber(orderSN string) (*shopeePkg.GetTrackingNumberResponse, error) {
+func (m *MockShippingClient) GetTrackingNumber(ctx context.Context, orderSN string) (*shopeePkg.GetTrackingNumberResponse, error) {
+	_ = ctx
 	args := m.Called(orderSN)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -103,7 +105,8 @@ func (m *MockShippingClient) SearchPackageList(packageStatus int, cursor string,
 	return args.Get(0).(*shopeePkg.SearchPackageListResponse), args.Error(1)
 }
 
-func (m *MockShippingClient) GetPackageDetail(packageNumbers []string) (*shopeePkg.GetPackageDetailResponse, error) {
+func (m *MockShippingClient) GetPackageDetail(ctx context.Context, packageNumbers []string) (*shopeePkg.GetPackageDetailResponse, error) {
+	_ = ctx
 	args := m.Called(packageNumbers)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)

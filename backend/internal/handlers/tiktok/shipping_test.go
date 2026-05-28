@@ -20,7 +20,8 @@ type MockTikTokClient struct {
 	mock.Mock
 }
 
-func (m *MockTikTokClient) ArrangeShipment(packageID string, req *tiktokPkg.ShipPackageRequest) (*tiktokPkg.ShipPackageResponse, error) {
+func (m *MockTikTokClient) ArrangeShipment(ctx context.Context, packageID string, req *tiktokPkg.ShipPackageRequest) (*tiktokPkg.ShipPackageResponse, error) {
+	_ = ctx
 	args := m.Called(packageID, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -28,12 +29,14 @@ func (m *MockTikTokClient) ArrangeShipment(packageID string, req *tiktokPkg.Ship
 	return args.Get(0).(*tiktokPkg.ShipPackageResponse), args.Error(1)
 }
 
-func (m *MockTikTokClient) GetShippingDocument(packageID, documentType string) (string, error) {
+func (m *MockTikTokClient) GetShippingDocument(ctx context.Context, packageID, documentType string) (string, error) {
+	_ = ctx
 	args := m.Called(packageID, documentType)
 	return args.String(0), args.Error(1)
 }
 
-func (m *MockTikTokClient) GetOrderPackages(orderID string) (*tiktokPkg.GetPackageDetailResponse, error) {
+func (m *MockTikTokClient) GetOrderPackages(ctx context.Context, orderID string) (*tiktokPkg.GetPackageDetailResponse, error) {
+	_ = ctx
 	args := m.Called(orderID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -41,7 +44,8 @@ func (m *MockTikTokClient) GetOrderPackages(orderID string) (*tiktokPkg.GetPacka
 	return args.Get(0).(*tiktokPkg.GetPackageDetailResponse), args.Error(1)
 }
 
-func (m *MockTikTokClient) GetOrderDetail(orderIDs []string) (*tiktokPkg.OrderDetailResponse, error) {
+func (m *MockTikTokClient) GetOrderDetail(ctx context.Context, orderIDs []string) (*tiktokPkg.OrderDetailResponse, error) {
+	_ = ctx
 	args := m.Called(orderIDs)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -49,7 +53,8 @@ func (m *MockTikTokClient) GetOrderDetail(orderIDs []string) (*tiktokPkg.OrderDe
 	return args.Get(0).(*tiktokPkg.OrderDetailResponse), args.Error(1)
 }
 
-func (m *MockTikTokClient) GetHandoverTimeSlots(packageID string) (*tiktokPkg.HandoverTimeSlotsResponse, error) {
+func (m *MockTikTokClient) GetHandoverTimeSlots(ctx context.Context, packageID string) (*tiktokPkg.HandoverTimeSlotsResponse, error) {
+	_ = ctx
 	args := m.Called(packageID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -57,7 +62,8 @@ func (m *MockTikTokClient) GetHandoverTimeSlots(packageID string) (*tiktokPkg.Ha
 	return args.Get(0).(*tiktokPkg.HandoverTimeSlotsResponse), args.Error(1)
 }
 
-func (m *MockTikTokClient) GetHandoverTimeSlotsForOrder(orderID string, lineItemIDs []string) (*tiktokPkg.HandoverTimeSlotsResponse, error) {
+func (m *MockTikTokClient) GetHandoverTimeSlotsForOrder(ctx context.Context, orderID string, lineItemIDs []string) (*tiktokPkg.HandoverTimeSlotsResponse, error) {
+	_ = ctx
 	args := m.Called(orderID, lineItemIDs)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -65,7 +71,8 @@ func (m *MockTikTokClient) GetHandoverTimeSlotsForOrder(orderID string, lineItem
 	return args.Get(0).(*tiktokPkg.HandoverTimeSlotsResponse), args.Error(1)
 }
 
-func (m *MockTikTokClient) ResolveOrderToPackageID(orderID string) (string, string, error) {
+func (m *MockTikTokClient) ResolveOrderToPackageID(ctx context.Context, orderID string) (string, string, error) {
+	_ = ctx
 	args := m.Called(orderID)
 	return args.String(0), args.String(1), args.Error(2)
 }
