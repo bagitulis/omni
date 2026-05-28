@@ -209,7 +209,7 @@ func (s *CredentialService) loadTenantCredentials(ctx context.Context, db *gorm.
 // refreshAndReload refreshes the token for a platform and reloads credentials
 func (s *CredentialService) refreshAndReload(ctx context.Context, tenantDB *gorm.DB, tenantID, platform string, creds *PlatformCredentials) error {
 	key := credentialRefreshKey(tenantID, platform, creds.StoreIdentifier)
-	_, err, shared := s.refreshGroup.Do(key, func() (interface{}, error) {
+	_, err, shared := s.refreshGroup.Do(key, func() (any, error) {
 		return nil, s.doRefreshAndReload(ctx, tenantDB, tenantID, platform, creds)
 	})
 	if shared {
