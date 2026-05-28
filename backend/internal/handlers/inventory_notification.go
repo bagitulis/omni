@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services"
 	"github.com/rs/zerolog/log"
 )
@@ -75,10 +77,10 @@ func operationTypeLabel(opType string) string {
 	}
 }
 
-// buildStockMetadata constructs BulkOperationMetadata from stock batch results.
-func buildStockMetadata(results []interface{}) *models.BulkOperationMetadata {
+// buildBulkOperationMetadata constructs BulkOperationMetadata from batch results.
+func buildBulkOperationMetadata(operationType string, results []interface{}) *models.BulkOperationMetadata {
 	meta := &models.BulkOperationMetadata{
-		OperationType: "stock_sync",
+		OperationType: operationType,
 		Platforms:     make(map[string]models.PlatformSyncStats),
 		FailedItems:   []models.FailedItemDetail{},
 	}
@@ -137,4 +139,24 @@ func buildStockMetadata(results []interface{}) *models.BulkOperationMetadata {
 	}
 
 	return meta
+}
+
+// pushInventoryBatchNotification creates a NotificationService from the request context
+// and pushes a bulk operation notification for the given operation type and results.
+func (h *InventoryHandler) pushInventoryBatchNotification(c *gin.Context, operationType string, results []interface{}) {
+	db, err := GetTenantDBFromContext(c, h.fallbackDB)
+	if err != nil {
+		log.Error().Err(err).Msg("[Notification] Failed to get tenant DB for batch notification")
+		return
+	}
+
+	tenantID := c.GetString("tenant_id")
+	if tenantID == "" {
+		return
+	}
+
+	repo := repositories.NewNotificationRepository(db)
+	notifSvc := services.NewNotificationService(repo).WithTenant(tenantID)
+	meta := buildBulkOperationMetadata(operationType, results)
+	pushBulkOperationNotification(notifSvc, meta)
 }

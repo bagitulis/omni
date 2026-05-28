@@ -93,11 +93,13 @@ func (h *OAuthHandler) HandleCallback(c *gin.Context) {
 	if exchangeErr != nil {
 		_ = h.markAttempt(c, state, oauthAttemptFailed)
 		h.logOAuthCallback(c, state.TenantID, state.Platform, models.OAuthStatusFailed, sanitizeOAuthError(exchangeErr))
+		h.createCredentialAudit(c, state.TenantID, state.Platform, state.StoreID, state.UserID, "oauth_callback_failed", "failed", sanitizeOAuthError(exchangeErr))
 		h.redirectOAuthResult(c, state.RedirectURL, sanitizeOAuthError(exchangeErr))
 		return
 	}
 
 	_ = h.markAttempt(c, state, oauthAttemptCompleted)
+	h.createCredentialAudit(c, state.TenantID, state.Platform, state.StoreID, state.UserID, "oauth_callback_completed", "success", "callback_completed")
 	h.redirectOAuthResult(c, state.RedirectURL, "success")
 }
 
@@ -312,6 +314,25 @@ func (h *OAuthHandler) logOAuthCallback(c *gin.Context, tenantID, platform, stat
 		return
 	}
 	_ = h.oauthRepo.CreateLog(c.Request.Context(), &models.OAuthLog{TenantID: tenantID, Platform: platform, EventType: models.OAuthEventCallback, Status: status, ErrorMsg: sanitizeOAuthErrorText(code)})
+}
+
+// createCredentialAudit creates a CredentialAuditEvent for OAuth callback outcomes.
+// Uses sanitized fields — no tokens or secrets are persisted.
+func (h *OAuthHandler) createCredentialAudit(c *gin.Context, tenantID, platform, storeIdentifier, userID, eventType, status, code string) {
+	if h.db == nil || tenantID == "" || platform == "" {
+		return
+	}
+	repo := repositories.NewCredentialRepository(h.db)
+	_ = repo.CreateAuditEvent(c.Request.Context(), &models.CredentialAuditEvent{
+		TenantID:        tenantID,
+		Platform:        platform,
+		StoreIdentifier: storeIdentifier,
+		EventType:       eventType,
+		Status:          status,
+		Code:            code,
+		Actor:           userID,
+		ActorRole:       middleware.GetRole(c),
+	})
 }
 
 func (h *OAuthHandler) redirectOAuthResult(c *gin.Context, redirectURL, result string) {

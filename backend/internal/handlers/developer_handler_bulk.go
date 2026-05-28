@@ -91,6 +91,7 @@ func (h *DeveloperHandler) BulkResetPasswords(c *gin.Context) {
 	result := bulkOperationResult{
 		Errors: make([]bulkErrorDetail, 0),
 	}
+	var targetTenants []string
 
 	for _, item := range req.Items {
 		if !developerCanAccessTenant(c, item.TenantID) || !developerHasExplicitTenantScope(c) {
@@ -120,9 +121,10 @@ func (h *DeveloperHandler) BulkResetPasswords(c *gin.Context) {
 			})
 		} else {
 			result.SuccessCount++
+			targetTenants = appendUniqueTenant(targetTenants, item.TenantID)
 		}
 	}
-	h.writeDeveloperAudit(c, "BULK_PASSWORD_RESET", models.AuditStatusSuccess, "", "", auditDetails(map[string]interface{}{"operation": "bulk_reset_password", "success_count": result.SuccessCount, "failure_count": result.FailureCount}), "")
+	h.writeDeveloperAudit(c, "BULK_PASSWORD_RESET", models.AuditStatusSuccess, "", "", auditDetails(map[string]interface{}{"operation": "bulk_reset_password", "success_count": result.SuccessCount, "failure_count": result.FailureCount, "target_tenant_ids": targetTenants}), "")
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -175,6 +177,7 @@ func (h *DeveloperHandler) BulkDisableUsers(c *gin.Context) {
 	result := bulkOperationResult{
 		Errors: make([]bulkErrorDetail, 0),
 	}
+	var targetTenants []string
 
 	for _, item := range req.Items {
 		if !developerCanAccessTenant(c, item.TenantID) || !developerHasExplicitTenantScope(c) {
@@ -211,6 +214,7 @@ func (h *DeveloperHandler) BulkDisableUsers(c *gin.Context) {
 		// Skip already locked users
 		if user.IsLocked() {
 			result.SuccessCount++
+			targetTenants = appendUniqueTenant(targetTenants, item.TenantID)
 			continue
 		}
 
@@ -224,9 +228,10 @@ func (h *DeveloperHandler) BulkDisableUsers(c *gin.Context) {
 			})
 		} else {
 			result.SuccessCount++
+			targetTenants = appendUniqueTenant(targetTenants, item.TenantID)
 		}
 	}
-	h.writeDeveloperAudit(c, "BULK_DISABLE_USERS", models.AuditStatusSuccess, "", "", auditDetails(map[string]interface{}{"operation": "bulk_disable_users", "success_count": result.SuccessCount, "failure_count": result.FailureCount}), "")
+	h.writeDeveloperAudit(c, "BULK_DISABLE_USERS", models.AuditStatusSuccess, "", "", auditDetails(map[string]interface{}{"operation": "bulk_disable_users", "success_count": result.SuccessCount, "failure_count": result.FailureCount, "target_tenant_ids": targetTenants}), "")
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -241,4 +246,14 @@ func bulkItemsHaveExplicitTenantScope(items []bulkUserItem) bool {
 		}
 	}
 	return true
+}
+
+// appendUniqueTenant appends a tenant ID only if not already present.
+func appendUniqueTenant(tenants []string, tenantID string) []string {
+	for _, t := range tenants {
+		if t == tenantID {
+			return tenants
+		}
+	}
+	return append(tenants, tenantID)
 }

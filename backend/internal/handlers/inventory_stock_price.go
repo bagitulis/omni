@@ -140,6 +140,11 @@ func (h *InventoryHandler) UpdateStockBatch(c *gin.Context) {
 
 	results := orchestrator.UpdateStockBatchFromInventory(c.Request.Context(), syncItems, req.Platforms, req.Platform)
 
+	// Push notification for bulk stock sync in background
+	go h.pushInventoryBatchNotification(c, "stock_sync", results)
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": results})
+
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": results})
 }
 
@@ -273,6 +278,9 @@ func (h *InventoryHandler) UpdatePriceBatch(c *gin.Context) {
 	})
 
 	results, successCount, failedCount := countBatchResults(rawResults)
+
+	// Push notification for bulk price sync in background
+	go h.pushInventoryBatchNotification(c, "price_sync", rawResults)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

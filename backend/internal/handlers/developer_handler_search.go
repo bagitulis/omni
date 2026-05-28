@@ -20,7 +20,7 @@ type UserSearchResult struct {
 	TenantName string `json:"tenant_name"`
 }
 
-// SearchUsers searches users across explicitly scoped active tenants by username or email.
+// SearchUsers searches users across active tenants by username or email.
 // GET /api/dev/users/search?q=<query>&tenant_ids=<tenant_id>[,<tenant_id>]
 func (h *DeveloperHandler) SearchUsers(c *gin.Context) {
 	if !requireDeveloperPanelAccess(c) {
@@ -42,7 +42,19 @@ func (h *DeveloperHandler) SearchUsers(c *gin.Context) {
 		explicitTenants = parseExplicitTenantScope(c.GetHeader("x-tenant-scope"))
 	}
 	if len(explicitTenants) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "explicit tenant scope is required"})
+		// No explicit scope provided — default to all active tenants.
+		// Each tenant is still gated by developerCanAccessTenant below.
+		activeTenants, err := h.tenantService.GetAvailableTenants(ctx)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to list tenants: " + err.Error()})
+			return
+		}
+		for _, t := range activeTenants {
+			explicitTenants = append(explicitTenants, t.ID)
+		}
+	}
+	if len(explicitTenants) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "no active tenants available"})
 		return
 	}
 	for _, tenantID := range explicitTenants {
