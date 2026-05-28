@@ -9,7 +9,7 @@ import (
 
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
-	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services"
 	lazadaService "github.com/omni/backend/internal/services/lazada"
 	shopeeService "github.com/omni/backend/internal/services/shopee"
 	tiktokService "github.com/omni/backend/internal/services/tiktok"
@@ -67,27 +67,27 @@ func syncProductsInventoryHandler(ctx context.Context, tenantID string, cfg *mod
 	}
 	log.Info().Msgf("[AutoFunction] Platform SKU counts: shopee=%d, tiktok=%d, lazada=%d", shopeeSkuCount, tiktokSkuCount, lazadaSkuCount)
 
-	credRepo := repositories.NewPlatformCredentialsRepository(db)
-	globalConfigRepo := repositories.NewGlobalConfigRepository(systemDB)
+	_ = systemDB
+	credService := services.NewCredentialService(basePath)
 	results := make([]string, 0, 3)
 
 	// 4. Sync each platform using only inventory-matched item IDs
 	if shopeeSkuCount > 0 {
-		shopeeResult := syncShopeeByInventory(ctx, tenantID, db, inventorySkus, credRepo, globalConfigRepo)
+		shopeeResult := syncShopeeByInventory(ctx, tenantID, db, inventorySkus, credService)
 		results = append(results, shopeeResult)
 	} else {
 		results = append(results, "Shopee: skipped (no SKU data)")
 	}
 
 	if tiktokSkuCount > 0 {
-		tiktokResult := syncTiktokByInventory(ctx, tenantID, db, inventorySkus, credRepo, globalConfigRepo)
+		tiktokResult := syncTiktokByInventory(ctx, tenantID, db, inventorySkus, credService)
 		results = append(results, tiktokResult)
 	} else {
 		results = append(results, "TikTok: skipped (no SKU data)")
 	}
 
 	if lazadaSkuCount > 0 {
-		lazadaResult := syncLazadaByInventory(ctx, tenantID, db, inventorySkus, credRepo, globalConfigRepo)
+		lazadaResult := syncLazadaByInventory(ctx, tenantID, db, inventorySkus, credService)
 		results = append(results, lazadaResult)
 	} else {
 		results = append(results, "Lazada: skipped (no SKU data)")
@@ -143,8 +143,7 @@ func getPlatformSkuCounts(ctx context.Context, db *gorm.DB, tenantID string) (sh
 func syncShopeeByInventory(
 	ctx context.Context, tenantID string, db *gorm.DB,
 	inventorySkus []string,
-	credRepo *repositories.PlatformCredentialsRepository,
-	globalConfigRepo *repositories.GlobalConfigRepository,
+	credService *services.CredentialService,
 ) string {
 	// Find Shopee item IDs where seller_sku matches inventory
 	var itemIDs []int64
@@ -160,17 +159,13 @@ func syncShopeeByInventory(
 	}
 	log.Info().Msgf("[AutoFunction] Shopee: %d items matched inventory SKUs", len(itemIDs))
 
-	tenantCreds, err := credRepo.GetShopeeCredentials(ctx)
+	creds, err := credService.GetPlatformCredentials(tenantID, "shopee")
 	if err != nil {
 		return fmt.Sprintf("Shopee: no credentials (%v)", err)
 	}
-	globalCreds, err := globalConfigRepo.GetShopeeCredentials(ctx)
-	if err != nil {
-		return fmt.Sprintf("Shopee: no global config (%v)", err)
-	}
 
-	client := shopeePkg.NewClient(globalCreds.PartnerID, globalCreds.PartnerKey, true)
-	client.SetShopCredentials(tenantCreds.ShopIDInt, tenantCreds.AccessToken)
+	client := shopeePkg.NewClient(creds.PartnerID, creds.PartnerKey, creds.IsProduction)
+	client.SetShopCredentials(creds.ShopID, creds.AccessToken)
 	svc := shopeeService.NewProductSyncService(client, db, tenantID)
 
 	count, syncErr := svc.SyncProductsByIDs(ctx, itemIDs)
@@ -184,8 +179,7 @@ func syncShopeeByInventory(
 func syncTiktokByInventory(
 	ctx context.Context, tenantID string, db *gorm.DB,
 	inventorySkus []string,
-	credRepo *repositories.PlatformCredentialsRepository,
-	globalConfigRepo *repositories.GlobalConfigRepository,
+	credService *services.CredentialService,
 ) string {
 	// TikTok: seller_sku → product_id (FK to tiktok_products.id) → tiktok_products.product_id (string)
 	var productDBIDs []uint
@@ -213,23 +207,13 @@ func syncTiktokByInventory(
 	}
 	log.Info().Msgf("[AutoFunction] TikTok: %d products matched inventory SKUs (from %d DB IDs)", len(productIDs), len(productDBIDs))
 
-	tenantCreds, err := credRepo.GetTiktokCredentials(ctx)
+	creds, err := credService.GetPlatformCredentials(tenantID, "tiktok")
 	if err != nil {
 		return fmt.Sprintf("TikTok: no credentials (%v)", err)
 	}
-	appKey := tenantCreds.AppKey
-	appSecret := tenantCreds.AppSecret
-	if appKey == "" || appSecret == "" {
-		globalCreds, err := globalConfigRepo.GetTiktokCredentials(ctx)
-		if err != nil {
-			return fmt.Sprintf("TikTok: no global config (%v)", err)
-		}
-		appKey = globalCreds.AppKey
-		appSecret = globalCreds.AppSecret
-	}
 
-	client := tiktokPkg.NewClient(appKey, appSecret)
-	client.SetCredentials(tenantCreds.AccessToken, tenantCreds.ShopCipher)
+	client := tiktokPkg.NewClient(creds.AppKey, creds.AppSecret)
+	client.SetCredentials(creds.AccessToken, creds.ShopCipher)
 	svc := tiktokService.NewSyncServiceWithTenant(client, db, tenantID)
 
 	count, syncErr := svc.SyncProductsByIDs(ctx, productIDs)
@@ -243,8 +227,7 @@ func syncTiktokByInventory(
 func syncLazadaByInventory(
 	ctx context.Context, tenantID string, db *gorm.DB,
 	inventorySkus []string,
-	credRepo *repositories.PlatformCredentialsRepository,
-	globalConfigRepo *repositories.GlobalConfigRepository,
+	credService *services.CredentialService,
 ) string {
 	// Lazada: seller_sku OR shop_sku → item_id
 	var itemIDStrs []string
@@ -276,17 +259,17 @@ func syncLazadaByInventory(
 	}
 	log.Info().Msgf("[AutoFunction] Lazada: %d items matched inventory SKUs (skipped=%d)", len(itemIDs), skipped)
 
-	tenantCreds, err := credRepo.GetLazadaCredentials(ctx)
+	creds, err := credService.GetPlatformCredentials(tenantID, "lazada")
 	if err != nil {
 		return fmt.Sprintf("Lazada: no credentials (%v)", err)
 	}
-	globalCreds, err := globalConfigRepo.GetLazadaCredentials(ctx)
-	if err != nil {
-		return fmt.Sprintf("Lazada: no global config (%v)", err)
+	region := creds.Region
+	if region == "" {
+		region = "ID"
 	}
 
-	client := lazadaPkg.NewClient(globalCreds.AppKey, globalCreds.AppSecret, "ID")
-	client.SetAccessToken(tenantCreds.AccessToken)
+	client := lazadaPkg.NewClient(creds.AppKey, creds.AppSecret, region)
+	client.SetAccessToken(creds.AccessToken)
 	svc := lazadaService.NewSyncServiceWithTenant(client, db, tenantID)
 
 	count, syncErr := svc.SyncProductsByIDs(ctx, itemIDs)

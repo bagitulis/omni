@@ -4,16 +4,15 @@ import (
 	"context"
 	"os"
 
-	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/handlers"
-	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/services"
+	"github.com/omni/backend/internal/services/analytics"
 	"github.com/omni/backend/internal/services/autofunction"
 	"github.com/omni/backend/internal/services/google"
 	"github.com/omni/backend/internal/services/jobs"
 	shopeeService "github.com/omni/backend/internal/services/shopee"
 	shopeePkg "github.com/omni/backend/pkg/shopee"
-	"github.com/omni/backend/internal/services/analytics"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
@@ -41,7 +40,7 @@ type ExtendedHandlers struct {
 	ProductCreateHandler *handlers.ProductCreateHandler
 	ProductCloneHandler  *handlers.ProductCloneHandler
 	// PriceHandler and StockHandler removed (dead code - frontend uses /api/inventory/update-price instead)
-	SKUCheckHandler      *handlers.SKUCheckHandler
+	SKUCheckHandler *handlers.SKUCheckHandler
 
 	// Inventory & Settings
 	InventoryHandler            *handlers.InventoryHandler
@@ -62,7 +61,6 @@ type ExtendedHandlers struct {
 	ShopeeAPIClientFactory func(tenantID string) shopeeService.APIClient
 	// Background services
 	JobExecutor *jobs.MultiTenantExecutor
-
 }
 
 // InitExtendedHandlers initializes extended handlers that use *gorm.DB
@@ -195,35 +193,20 @@ func startBackgroundJobExecutor(ctx context.Context, systemDB *gorm.DB, basePath
 }
 
 // createShopeeAPIClientFactory creates a factory function that returns Shopee API clients
-// for a given tenant. It loads credentials from both tenant DB and system DB.
+// for a given tenant. It loads credentials through CredentialService canonical-first lookup.
 func createShopeeAPIClientFactory(systemDB *gorm.DB, basePath string) func(tenantID string) shopeeService.APIClient {
 	return func(tenantID string) shopeeService.APIClient {
-		// Get tenant database
-		tenantDB, err := config.GetTenantDB(tenantID, basePath)
+		_ = systemDB
+		credService := services.NewCredentialService(basePath)
+		creds, err := credService.GetPlatformCredentials(tenantID, "shopee")
 		if err != nil {
-			log.Error().Err(err).Str("tenant_id", tenantID).Msg("Failed to get tenant DB for Shopee client")
-			return nil
-		}
-
-		// Get tenant credentials (ShopID, AccessToken)
-		credRepo := repositories.NewPlatformCredentialsRepository(tenantDB)
-		tenantCreds, err := credRepo.GetShopeeCredentials(context.Background())
-		if err != nil {
-			log.Error().Err(err).Str("tenant_id", tenantID).Msg("Failed to get Shopee tenant credentials")
-			return nil
-		}
-
-		// Get global credentials (PartnerID, PartnerKey)
-		configRepo := repositories.NewGlobalConfigRepository(systemDB)
-		globalCreds, err := configRepo.GetShopeeCredentials(context.Background())
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to get Shopee global credentials")
+			log.Error().Err(err).Str("tenant_id", tenantID).Msg("Failed to get Shopee credentials")
 			return nil
 		}
 
 		// Create and configure client
-		client := shopeePkg.NewClient(globalCreds.PartnerID, globalCreds.PartnerKey, true)
-		client.SetShopCredentials(tenantCreds.ShopIDInt, tenantCreds.AccessToken)
+		client := shopeePkg.NewClient(creds.PartnerID, creds.PartnerKey, creds.IsProduction)
+		client.SetShopCredentials(creds.ShopID, creds.AccessToken)
 
 		return client
 	}

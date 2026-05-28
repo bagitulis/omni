@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services"
 	"github.com/omni/backend/pkg/shopee"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
@@ -276,34 +276,14 @@ func timePtr(t time.Time) *time.Time {
 
 // getShopeeClient creates a Shopee API client for the tenant
 func (s *SyncService) getShopeeClient(tenantID string) (*shopee.Client, error) {
-	tenantDB, err := config.GetTenantDB(tenantID, s.basePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get tenant database: %w", err)
-	}
-
-	systemDB, err := config.GetSystemDB(s.basePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get system database: %w", err)
-	}
-
-	credRepo := repositories.NewPlatformCredentialsRepository(tenantDB)
-	tenantCreds, err := credRepo.GetShopeeCredentials(context.Background())
-	if err != nil {
+	credService := services.NewCredentialService(s.basePath)
+	creds, err := credService.GetPlatformCredentials(tenantID, "shopee")
+	if err != nil || creds.PartnerID == 0 || creds.ShopID == 0 || creds.AccessToken == "" {
 		return nil, ErrPlatformNotConfigured
 	}
 
-	if tenantCreds.ShopIDInt == 0 || tenantCreds.AccessToken == "" {
-		return nil, ErrPlatformNotConfigured
-	}
-
-	configRepo := repositories.NewGlobalConfigRepository(systemDB)
-	globalCreds, err := configRepo.GetShopeeCredentials(context.Background())
-	if err != nil || globalCreds.PartnerID == 0 {
-		return nil, ErrPlatformNotConfigured
-	}
-
-	client := shopee.NewClient(globalCreds.PartnerID, globalCreds.PartnerKey, true)
-	client.SetShopCredentials(tenantCreds.ShopIDInt, tenantCreds.AccessToken)
+	client := shopee.NewClient(creds.PartnerID, creds.PartnerKey, creds.IsProduction)
+	client.SetShopCredentials(creds.ShopID, creds.AccessToken)
 
 	return client, nil
 }

@@ -6,9 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
-	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services"
 	"github.com/omni/backend/pkg/shopee"
 	"github.com/rs/zerolog/log"
 )
@@ -320,39 +319,16 @@ func (s *ImportService) ImportFromShopee(ctx context.Context, tenantID string, s
 
 // getShopeeClient creates a Shopee API client for the tenant
 func (s *ImportService) getShopeeClient(ctx context.Context, tenantID string) (*shopee.Client, error) {
-	// Get tenant database
-	tenantDB, err := config.GetTenantDB(tenantID, s.basePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get tenant database: %w", err)
-	}
-
-	// Get system database for global credentials
-	systemDB, err := config.GetSystemDB(s.basePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get system database: %w", err)
-	}
-
-	// Get tenant credentials
-	credRepo := repositories.NewPlatformCredentialsRepository(tenantDB)
-	tenantCreds, err := credRepo.GetShopeeCredentials(ctx)
-	if err != nil {
-		return nil, ErrShopeeNotConfigured
-	}
-
-	if tenantCreds.ShopIDInt == 0 || tenantCreds.AccessToken == "" {
-		return nil, ErrShopeeNotConfigured
-	}
-
-	// Get global credentials
-	configRepo := repositories.NewGlobalConfigRepository(systemDB)
-	globalCreds, err := configRepo.GetShopeeCredentials(ctx)
-	if err != nil || globalCreds.PartnerID == 0 {
+	_ = ctx
+	credService := services.NewCredentialService(s.basePath)
+	creds, err := credService.GetPlatformCredentials(tenantID, "shopee")
+	if err != nil || creds.PartnerID == 0 || creds.ShopID == 0 || creds.AccessToken == "" {
 		return nil, ErrShopeeNotConfigured
 	}
 
 	// Create client
-	client := shopee.NewClient(globalCreds.PartnerID, globalCreds.PartnerKey, true)
-	client.SetShopCredentials(tenantCreds.ShopIDInt, tenantCreds.AccessToken)
+	client := shopee.NewClient(creds.PartnerID, creds.PartnerKey, creds.IsProduction)
+	client.SetShopCredentials(creds.ShopID, creds.AccessToken)
 
 	return client, nil
 }
