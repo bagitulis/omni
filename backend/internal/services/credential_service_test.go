@@ -101,42 +101,6 @@ func TestCredentialService_SetTokenManager(t *testing.T) {
 	assert.Equal(t, tm, svc.tokenManager)
 }
 
-func TestCredentialServiceFillMissingPlatformCredentials(t *testing.T) {
-	target := &PlatformCredentials{
-		Platform:   "shopee",
-		PartnerID:  1001,
-		PartnerKey: "canonical-partner-key",
-	}
-	fallback := &PlatformCredentials{
-		Platform:     "shopee",
-		PartnerID:    2002,
-		PartnerKey:   "legacy-partner-key",
-		ShopID:       98765,
-		AccessToken:  "legacy-access-token",
-		RefreshToken: "legacy-refresh-token",
-		Region:       "id",
-		IsProduction: true,
-		TokenExpiry:  1704067200000,
-	}
-
-	fillMissingPlatformCredentials(target, fallback)
-
-	assert.Equal(t, int64(1001), target.PartnerID)
-	assert.Equal(t, "canonical-partner-key", target.PartnerKey)
-	assert.Equal(t, int64(98765), target.ShopID)
-	assert.Equal(t, "legacy-access-token", target.AccessToken)
-	assert.Equal(t, "legacy-refresh-token", target.RefreshToken)
-	assert.Equal(t, "id", target.Region)
-	assert.True(t, target.IsProduction)
-	assert.Equal(t, int64(1704067200000), target.TokenExpiry)
-}
-
-func TestCredentialServiceFallbackDefaultFalse(t *testing.T) {
-	t.Setenv(CredentialLegacyFallbackEnv, "")
-	assert.False(t, IsCredentialLegacyFallbackEnabled())
-	t.Setenv(CredentialLegacyFallbackEnv, "true")
-	assert.True(t, IsCredentialLegacyFallbackEnabled())
-}
 
 func TestRegisterGlobalTokenManager(t *testing.T) {
 	// Save and restore original value

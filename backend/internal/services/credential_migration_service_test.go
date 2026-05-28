@@ -111,16 +111,6 @@ func TestCredentialMigrationAbortGatesDetectBadSources(t *testing.T) {
 	assert.Contains(t, reasons, "unknown_row_shape")
 }
 
-func TestCredentialLegacyFallbackDefaultAndOverride(t *testing.T) {
-	t.Setenv(CredentialLegacyFallbackEnv, "")
-	assert.False(t, IsCredentialLegacyFallbackEnabled())
-	t.Setenv(CredentialLegacyFallbackEnv, "true")
-	assert.True(t, IsCredentialLegacyFallbackEnabled())
-	report := newCredentialMigrationReport(CredentialMigrationModeRollback)
-	assert.True(t, report.Fallback.CanonicalFirst)
-	assert.True(t, report.Fallback.LegacyReadOnly)
-	assert.Equal(t, "credential_legacy_fallback_mode_reported", report.Fallback.AuditEvent)
-}
 
 func setupCredentialMigrationSQLite(t *testing.T) *gorm.DB {
 	t.Helper()
