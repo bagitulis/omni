@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Stale TODO cleanup**: Removed outdated TODO comment in `master_product/image_service.go` — `downloadImage` already implements 30s timeout + 2-attempt retry. Replaced TODO in `wholesale_extended_handler.go` with documented deferral explaining TikTok Shop API lacks wholesale tier endpoints.
 ### Added
 - **F1/F4 missing task evidence backfill**: Created concise `.sisyphus/evidence/task-N-*.txt` artifacts for T1, T2, T8, T11, T17, T19, T20, T21, and T23, recording commit hashes, work summaries, verification commands, pass/fail results, and PASS verdicts for the final approval evidence gap.
 

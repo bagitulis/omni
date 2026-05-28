@@ -219,7 +219,13 @@ func (h *WholesaleExtendedHandler) LookupItemId(c *gin.Context) {
 }
 
 // SetTiktokWholesale handles POST /api/wholesale/tiktok/:productId
-// TODO: Implement real TikTok API call (requires TikTok API client)
+//
+// DEFERRED: TikTok Shop API does not expose wholesale/quantity-tier endpoints
+// equivalent to Shopee's wholesale tier API. TikTok manages pricing through SKU-level
+// pricing and promotions only. If TikTok adds a wholesale API in the future, implement
+// via pkg/tiktok/product.go following the same pattern as Shopee (wholesale service
+// layer + handler). Until then, this endpoint returns 501 Not Implemented.
+// See: https://partner.tiktokglobalshop.com/docs — no wholesale endpoints available as of 2025.
 func (h *WholesaleExtendedHandler) SetTiktokWholesale(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c)
 	if tenantID == "" {

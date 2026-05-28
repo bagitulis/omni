@@ -53,9 +53,7 @@ func (m *ImageManager) ProcessImages(ctx context.Context, tenantID string, image
 			continue
 		}
 
-		// Download image
-		// TODO: Implement a more robust download with timeout and retry
-		// For now, simple http.Get
+		// Download image (uses 30s timeout + 2 attempts with retry; see downloadImage)
 		imageData, err := m.downloadImage(ctx, url)
 		if err != nil {
 			log.Warn().Err(err).Str("url", url).Msg("Failed to download image, skipping")

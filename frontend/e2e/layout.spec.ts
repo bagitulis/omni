@@ -381,13 +381,13 @@ test.describe("Task 24 cross-domain responsive layout", () => {
     await page.setViewportSize({ width: 375, height: 667 });
     for (const reportPath of ["/report/shopee", "/report/tiktok"]) {
       await page.goto(reportPath, { waitUntil: "domcontentloaded" });
-      await expect(page.getByRole("button", { name: /Sync|Force Sync/i }).first()).toBeVisible();
-      await expect(page.getByRole("button", { name: /Export CSV/i }).first()).toBeVisible();
+      await expect(page.getByRole("button", { name: /Sync report data/i }).first()).toBeVisible();
+      await expect(page.getByRole("button", { name: /Export report data as CSV/i }).first()).toBeVisible();
       await assertNoHorizontalOverflow(page, `${reportPath}/controls/mobile-375`);
     }
     await page.goto("/settings?tab=platforms", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("Store Connections", { exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Reconnect|Connect|History/i }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /Re-authorize|Connect Shopee|Connect Lazada|Connect TikTok Shop|History|View History/i }).first()).toBeVisible();
     await assertNoHorizontalOverflow(page, "credential-controls/mobile-375");
   });
 
