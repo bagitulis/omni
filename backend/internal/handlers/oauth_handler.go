@@ -85,7 +85,7 @@ func (h *OAuthHandler) HandleCallback(c *gin.Context) {
 	state, status, err := h.validateCallbackState(c, platform, stateValue)
 	if err != nil || state == nil {
 		h.logOAuthCallback(c, "", platform, models.OAuthStatusFailed, status)
-		h.redirectOAuthResult(c, "", status)
+		c.JSON(oauthCallbackStatusCode(status), gin.H{"success": false, "error": sanitizeOAuthErrorText(status)})
 		return
 	}
 	h.logOAuthCallback(c, state.TenantID, state.Platform, models.OAuthStatusReceived, "callback_received")
@@ -119,13 +119,16 @@ func (h *OAuthHandler) createBoundOAuthState(c *gin.Context, tenantID, platform 
 	claims := oauth.StateClaims{
 		TenantID:     tenantID,
 		Platform:     platform,
+		Marketplace:  platform,
 		AttemptID:    attemptID,
 		Intent:       intent,
 		StoreID:      storeID,
 		UserID:       middleware.GetUserID(c),
 		SessionID:    c.GetHeader("X-Session-ID"),
 		CSRFNonce:    nonce,
+		Nonce:        nonce,
 		RedirectPath: redirectPath,
+		RedirectURI:  redirectPath,
 		ExpiresAt:    expiresAt.Unix(),
 	}
 	signedState, err := oauth.BuildSignedState(claims)
@@ -183,12 +186,29 @@ func (h *OAuthHandler) buildPlatformAuthURL(c *gin.Context, platform, state stri
 }
 
 func (h *OAuthHandler) validateCallbackState(c *gin.Context, callbackPlatform, stateValue string) (*models.OAuthState, string, error) {
+	currentTenantID := middleware.GetTenantID(c)
+	if currentTenantID == "" {
+		return nil, "no_session", fmt.Errorf("no_session")
+	}
 	claims, err := oauth.ParseSignedState(stateValue)
 	if err != nil {
 		return nil, err.Error(), err
 	}
+	if claims.TenantID != currentTenantID {
+		return nil, "tenant_mismatch", fmt.Errorf("tenant_mismatch")
+	}
 	if claims.Platform != callbackPlatform {
 		return nil, "wrong_platform", fmt.Errorf("wrong_platform")
+	}
+	if claims.Marketplace != "" && claims.Marketplace != claims.Platform {
+		return nil, "wrong_platform", fmt.Errorf("wrong_platform")
+	}
+	attempt, err := h.credentialRepo(c).GetAttempt(c.Request.Context(), claims.TenantID, claims.Platform, claims.AttemptID)
+	if err != nil || attempt == nil || attempt.CSRFNonce != claims.Nonce {
+		return nil, "invalid_attempt", fmt.Errorf("invalid_attempt")
+	}
+	if attempt.Status != oauthAttemptPending || attempt.CompletedAt != nil {
+		return nil, "replayed_state", fmt.Errorf("replayed_state")
 	}
 	state, status, err := h.oauthRepo.ConsumeState(c.Request.Context(), stateValue)
 	if err != nil || state == nil {
@@ -205,8 +225,7 @@ func (h *OAuthHandler) validateCallbackState(c *gin.Context, callbackPlatform, s
 		_ = h.markAttempt(c, state, oauthAttemptFailed)
 		return nil, "wrong_scope", fmt.Errorf("wrong_scope")
 	}
-	attempt, err := h.credentialRepo(c).GetAttempt(c.Request.Context(), state.TenantID, state.Platform, state.AttemptID)
-	if err != nil || attempt == nil || attempt.Status != oauthAttemptPending || attempt.CSRFNonce != state.CSRFNonce {
+	if attempt.CSRFNonce != state.CSRFNonce || claims.Nonce != state.CSRFNonce {
 		return nil, "invalid_attempt", fmt.Errorf("invalid_attempt")
 	}
 	return state, oauthAttemptCompleted, nil
@@ -332,6 +351,19 @@ func sanitizeRedirectPath(path string) string {
 	return path
 }
 
+func oauthCallbackStatusCode(status string) int {
+	switch status {
+	case "no_session":
+		return http.StatusUnauthorized
+	case "tenant_mismatch":
+		return http.StatusForbidden
+	case "expired_state", "expired", "replayed_state", "invalid_state", "invalid_attempt", "wrong_platform", "wrong_scope":
+		return http.StatusBadRequest
+	default:
+		return http.StatusBadRequest
+	}
+}
+
 func stateMatchesClaims(state *models.OAuthState, claims oauth.StateClaims) bool {
 	return state.TenantID == claims.TenantID && state.Platform == claims.Platform && state.AttemptID == claims.AttemptID && state.Intent == claims.Intent && state.StoreID == claims.StoreID && state.CSRFNonce == claims.CSRFNonce && state.ExpiresAt.Unix() == claims.ExpiresAt
 }
@@ -346,7 +378,7 @@ func sanitizeOAuthError(err error) string {
 func sanitizeOAuthErrorText(value string) string {
 	safe := strings.ToLower(strings.TrimSpace(value))
 	safe = strings.ReplaceAll(safe, " ", "_")
-	allowed := map[string]bool{"success": true, "invalid_state": true, "expired_state": true, "expired": true, "replayed": true, "wrong_platform": true, "wrong_scope": true, "invalid_attempt": true, "duplicate_store": true, "store_mismatch": true, "invalid_platform": true, "failed": true}
+	allowed := map[string]bool{"success": true, "no_session": true, "tenant_mismatch": true, "invalid_state": true, "expired_state": true, "expired": true, "replayed": true, "replayed_state": true, "wrong_platform": true, "wrong_scope": true, "invalid_attempt": true, "duplicate_store": true, "store_mismatch": true, "invalid_platform": true, "failed": true}
 	if allowed[safe] {
 		return safe
 	}

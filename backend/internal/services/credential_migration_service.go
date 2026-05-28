@@ -8,7 +8,6 @@ import (
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
-)
 	"gorm.io/gorm"
 )
 

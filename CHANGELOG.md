@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Zombie column cleanup retired (Task 18)**: Formally retired the disabled `CleanZombieColumns` calls in `migration.go` (system and tenant). Replaced ambiguous commented-out code with retirement documentation explaining why GORM AutoMigrate's additive-only behavior is intentional. Implementation in `migration_cleanup.go` kept as reference with re-enable requirements documented.
+
+
+### Changed
 - **Migration cleanup documentation**: Documented that zombie-column cleanup remains retired from active system and tenant migrations until a dedicated destructive-migration verification path exists.
 - **Standardized console.error/warn through logger**: Replaced all 51 production `console.error`/`console.warn` calls across 29 frontend source files with the centralized `logger` utility (`src/lib/logger.ts`). Logger imports added to all affected files. Error context preserved via `{ err }` context objects. Test files and `logger.ts` implementation itself excluded. TypeScript compiles clean; all 1978 tests pass.
 

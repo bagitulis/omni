@@ -282,7 +282,6 @@ func TestTenantIsolation_SeparateDatabases(t *testing.T) {
 		t.Errorf("tenant B should not find tenant A's job, but got job with ID=%s", got.ID)
 	}
 
-	var countA, countB int64
 	// Count: tenant A DB has 1, tenant B DB has 1
 	var countA, countB int64
 	dbA.Model(&models.Job{}).Count(&countA)
@@ -542,7 +541,7 @@ func TestJobStats_CancellationCounted(t *testing.T) {
 	}
 
 	// Check cancelled count
-	cancelled, ok := stats[models.JobStatusCancelled]
+	cancelled, ok := stats[string(models.JobStatusCancelled)]
 	if !ok {
 		t.Fatal("expected cancelled status in stats")
 	}
@@ -550,7 +549,7 @@ func TestJobStats_CancellationCounted(t *testing.T) {
 		t.Errorf("expected 1 cancelled job, got %v", cancelled)
 	}
 
-	completed, ok := stats[models.JobStatusCompleted]
+	completed, ok := stats[string(models.JobStatusCompleted)]
 	if !ok {
 		t.Fatal("expected completed status in stats")
 	}
