@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -381,34 +380,6 @@ func sanitizeRedirectPath(path string) string {
 	return path
 }
 
-func validateStateClaimsForCallback(claims oauth.StateClaims) error {
-	if claims.TenantID == "" || claims.UserID == "" || claims.Platform == "" || claims.Marketplace == "" || claims.AttemptID == "" || claims.Nonce == "" || claims.CSRFNonce == "" || claims.ExpiresAt == 0 {
-		return fmt.Errorf("invalid_state")
-	}
-	if claims.Nonce != claims.CSRFNonce {
-		return fmt.Errorf("invalid_state")
-	}
-	if !isAllowedOAuthRedirectPath(claims.RedirectURI) || claims.RedirectPath != claims.RedirectURI {
-		return fmt.Errorf("invalid_redirect")
-	}
-	return nil
-}
-
-func redirectURLAllowed(frontendURL, redirectURL, redirectPath string) bool {
-	if !isAllowedOAuthRedirectPath(redirectPath) || redirectURL == "" || frontendURL == "" {
-		return false
-	}
-	parsedFrontend, err := url.Parse(frontendURL)
-	if err != nil {
-		return false
-	}
-	parsedRedirect, err := url.Parse(redirectURL)
-	if err != nil {
-		return false
-	}
-	return parsedRedirect.Scheme == parsedFrontend.Scheme && parsedRedirect.Host == parsedFrontend.Host && parsedRedirect.Path == redirectPath
-}
-
 func isAllowedOAuthRedirectPath(path string) bool {
 	switch path {
 	case "/settings", "/settings/platforms":
@@ -424,7 +395,7 @@ func oauthCallbackStatusCode(status string) int {
 		return http.StatusUnauthorized
 	case "tenant_mismatch", "user_mismatch":
 		return http.StatusForbidden
-	case "expired_state", "expired", "replayed_state", "invalid_state", "invalid_attempt", "wrong_platform", "wrong_scope", "user_mismatch", "invalid_redirect":
+	case "expired_state", "expired", "replayed_state", "invalid_state", "invalid_attempt", "wrong_platform", "wrong_scope", "invalid_redirect":
 		return http.StatusBadRequest
 	default:
 		return http.StatusBadRequest

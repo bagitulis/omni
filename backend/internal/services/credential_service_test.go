@@ -1,9 +1,15 @@
 package services
 
 import (
+	"context"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 func TestNewCredentialService(t *testing.T) {
@@ -101,7 +107,6 @@ func TestCredentialService_SetTokenManager(t *testing.T) {
 	assert.Equal(t, tm, svc.tokenManager)
 }
 
-
 func TestRegisterGlobalTokenManager(t *testing.T) {
 	// Save and restore original value
 	original := globalTokenManager
@@ -128,4 +133,48 @@ func TestPlatformCredentials_TokenExpiry(t *testing.T) {
 	// Zero value means no expiry set
 	emptyCreds := &PlatformCredentials{}
 	assert.Equal(t, int64(0), emptyCreds.TokenExpiry)
+}
+
+func TestCredentialService_ConcurrentRefreshSingleflight(t *testing.T) {
+	svc := NewCredentialService("/test/path")
+	var refreshCalls int32
+	started := make(chan struct{})
+	release := make(chan struct{})
+	svc.refreshTokenFn = func(ctx context.Context, tenantID, platform string) error {
+		atomic.AddInt32(&refreshCalls, 1)
+		close(started)
+		select {
+		case <-release:
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	svc.reloadCredentialsFn = func(ctx context.Context, tenantDB *gorm.DB, tenantID, platform string, creds *PlatformCredentials) error {
+		creds.AccessToken = "fresh-token"
+		creds.TokenExpiry = time.Now().Add(time.Hour).UnixMilli()
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	creds := &PlatformCredentials{Platform: "shopee", StoreIdentifier: "store-1", AccessToken: "expired-token", TokenExpiry: time.Now().Add(-time.Minute).UnixMilli()}
+	var wg sync.WaitGroup
+	const goroutines = 8
+	errs := make(chan error, goroutines)
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			errs <- svc.refreshAndReload(ctx, nil, "tenant-a", "shopee", creds)
+		}()
+	}
+	<-started
+	close(release)
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		require.NoError(t, err)
+	}
+	assert.Equal(t, int32(1), atomic.LoadInt32(&refreshCalls))
 }

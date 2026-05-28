@@ -19,10 +19,10 @@ import (
 // - Global credentials (partnerId, partnerKey, appKey, appSecret) from system schema
 // - Tenant-specific config (shopId, accessToken, refreshToken) from tenant.db
 type CredentialService struct {
-	dbPath       string
-	tokenManager *TokenManager // Optional: enables auto-refresh on expired tokens
-	refreshGroup singleflight.Group
-	refreshTokenFn func(context.Context, string, string) error
+	dbPath              string
+	tokenManager        *TokenManager // Optional: enables auto-refresh on expired tokens
+	refreshGroup        singleflight.Group
+	refreshTokenFn      func(context.Context, string, string) error
 	reloadCredentialsFn func(context.Context, *gorm.DB, string, string, *PlatformCredentials) error
 }
 
@@ -38,18 +38,18 @@ func RegisterGlobalTokenManager(tm *TokenManager) {
 
 // PlatformCredentials holds credentials for a platform
 type PlatformCredentials struct {
-	Platform     string
-	PartnerID    int64
-	PartnerKey   string
-	ShopID       int64
-	AccessToken  string
-	RefreshToken string
-	AppKey       string // For Lazada/TikTok
-	AppSecret    string
-	ShopCipher   string // For TikTok
-	Region       string // For Lazada
-	IsProduction bool
-	TokenExpiry  int64 // milliseconds since epoch
+	Platform        string
+	PartnerID       int64
+	PartnerKey      string
+	ShopID          int64
+	AccessToken     string
+	RefreshToken    string
+	AppKey          string // For Lazada/TikTok
+	AppSecret       string
+	ShopCipher      string // For TikTok
+	Region          string // For Lazada
+	IsProduction    bool
+	TokenExpiry     int64 // milliseconds since epoch
 	StoreIdentifier string
 }
 
@@ -76,7 +76,6 @@ func (s *CredentialService) GetPlatformCredentials(tenantID, platform string) (*
 	if err != nil {
 		return nil, fmt.Errorf("get tenant DB: %w", err)
 	}
-
 
 	creds := &PlatformCredentials{
 		Platform:     platform,
