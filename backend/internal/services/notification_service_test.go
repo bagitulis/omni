@@ -1,8 +1,10 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
@@ -83,4 +85,105 @@ func TestNotificationService_PushNullMetadataSafety(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, notif)
 	assert.Empty(t, notif.Metadata)
+}
+
+func TestNotificationService_MarkAsRead(t *testing.T) {
+	db := testutils.SetupTestPostgresWithModels(t, &models.Notification{}, &models.NotificationSettings{})
+	repo := repositories.NewNotificationRepository(db)
+	svc := NewNotificationService(repo)
+
+	notif, err := svc.Push("info", "system", "Mark Read Test", "Will be marked as read", "")
+	require.NoError(t, err)
+	require.NotNil(t, notif)
+
+	err = svc.MarkAsRead(notif.ID)
+	require.NoError(t, err)
+
+	fetched, err := svc.GetByID(notif.ID)
+	require.NoError(t, err)
+	require.NotNil(t, fetched)
+	assert.True(t, fetched.Read)
+}
+
+func TestNotificationService_MarkAllAsRead(t *testing.T) {
+	db := testutils.SetupTestPostgresWithModels(t, &models.Notification{}, &models.NotificationSettings{})
+	repo := repositories.NewNotificationRepository(db)
+	svc := NewNotificationService(repo)
+
+	for range 2 {
+		_, err := svc.Push("warning", "system", "Mark All Test", "Will be marked all as read", "")
+		require.NoError(t, err)
+	}
+
+	err := svc.MarkAllAsRead()
+	require.NoError(t, err)
+
+	count, err := svc.UnreadCount()
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), count)
+}
+
+func TestNotificationService_Delete(t *testing.T) {
+	db := testutils.SetupTestPostgresWithModels(t, &models.Notification{}, &models.NotificationSettings{})
+	repo := repositories.NewNotificationRepository(db)
+	svc := NewNotificationService(repo)
+
+	notif, err := svc.Push("info", "system", "Delete Test", "Will be deleted", "")
+	require.NoError(t, err)
+	require.NotNil(t, notif)
+
+	err = svc.Delete(notif.ID)
+	require.NoError(t, err)
+
+	fetched, err := svc.GetByID(notif.ID)
+	assert.Error(t, err)
+	assert.Nil(t, fetched)
+}
+
+func TestNotificationService_DeleteAll(t *testing.T) {
+	db := testutils.SetupTestPostgresWithModels(t, &models.Notification{})
+	repo := repositories.NewNotificationRepository(db)
+	svc := NewNotificationService(repo)
+
+	_, err := svc.Push("info", "system", "DeleteAll Test", "Will be deleted with all", "")
+	require.NoError(t, err)
+
+	err = svc.DeleteAll()
+	require.NoError(t, err)
+
+	items, err := svc.List(10, 0, false)
+	require.NoError(t, err)
+	assert.Equal(t, 0, len(items))
+}
+
+func TestNotificationService_GetSettingsDefault(t *testing.T) {
+	db := testutils.SetupTestPostgresWithModels(t, &models.Notification{}, &models.NotificationSettings{})
+	repo := repositories.NewNotificationRepository(db)
+	svc := NewNotificationService(repo)
+
+	settings, err := svc.GetSettings()
+	require.NoError(t, err)
+	require.NotNil(t, settings)
+	assert.Equal(t, 30, settings.RetentionDays)
+}
+
+func TestNotificationService_CleanupOlderThan(t *testing.T) {
+	db := testutils.SetupTestPostgresWithModels(t, &models.Notification{})
+	repo := repositories.NewNotificationRepository(db)
+	svc := NewNotificationService(repo)
+
+	// Create a notification with an old timestamp via repo directly
+	oldNotif := &models.Notification{
+		Type:      "info",
+		Category:  "cleanup",
+		Title:     "Old Notification",
+		Message:   "Should be cleaned up",
+		Read:      false,
+		CreatedAt: time.Now().Add(-48 * time.Hour),
+	}
+	err := repo.Create(context.Background(), oldNotif)
+	require.NoError(t, err)
+
+	rows := svc.CleanupOlderThan(1) // cleanup older than 1 day
+	assert.GreaterOrEqual(t, rows, int64(1))
 }
