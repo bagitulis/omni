@@ -80,7 +80,7 @@ func (r *NotificationRepository) Delete(ctx context.Context, id int64) error {
 
 // DeleteAll removes all notifications.
 func (r *NotificationRepository) DeleteAll(ctx context.Context) error {
-	return r.db.WithContext(ctx).Where("1=1").Delete(&models.Notification{}).Error
+	return r.db.WithContext(ctx).Delete(&models.Notification{}).Error
 }
 
 // CleanupOlderThan removes notifications older than the given number of days.

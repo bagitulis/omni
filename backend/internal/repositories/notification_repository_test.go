@@ -209,6 +209,56 @@ func TestNotificationRepository(t *testing.T) {
 		assert.Equal(t, 0, len(items))
 	})
 
+	t.Run("DeleteAll_TenantScoped", func(t *testing.T) {
+		// Create a second DB instance simulating a different tenant
+		// (tenant isolation is schema-based, so separate DB = separate tenant)
+		db2 := testutils.SetupTestPostgresWithModels(t,
+			&models.Notification{},
+			&models.NotificationSettings{},
+		)
+		repoA := NewNotificationRepository(db)
+		repoB := NewNotificationRepository(db2)
+
+		// Seed a notification in tenant A
+		notifA := &models.Notification{
+			Type:      "info",
+			Category:  "tenant-a",
+			Title:     "Tenant A notification",
+			Message:   "Should be deleted by DeleteAll",
+			Read:      false,
+			CreatedAt: time.Now(),
+		}
+		err := repoA.Create(ctx, notifA)
+		require.NoError(t, err)
+
+		// Seed a notification in tenant B
+		notifB := &models.Notification{
+			Type:      "info",
+			Category:  "tenant-b",
+			Title:     "Tenant B notification",
+			Message:   "Should survive DeleteAll on tenant A",
+			Read:      false,
+			CreatedAt: time.Now(),
+		}
+		err = repoB.Create(ctx, notifB)
+		require.NoError(t, err)
+
+		// Call DeleteAll on tenant A only
+		err = repoA.DeleteAll(ctx)
+		assert.NoError(t, err)
+
+		// Verify tenant A has 0 notifications
+		itemsA, err := repoA.List(ctx, 10, 0, false)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(itemsA), "Tenant A should have 0 notifications after DeleteAll")
+
+		// Verify tenant B still has its notifications (tenant isolation)
+		itemsB, err := repoB.List(ctx, 10, 0, false)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(itemsB), "Tenant B should still have 1 notification")
+		assert.Equal(t, "Tenant B notification", itemsB[0].Title, "Tenant B notification title should match")
+	})
+
 	t.Run("GetSettings", func(t *testing.T) {
 		settings, err := repo.GetSettings(ctx)
 		assert.NoError(t, err)
