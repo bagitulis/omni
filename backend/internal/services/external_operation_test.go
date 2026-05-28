@@ -34,34 +34,21 @@ func setupExternalOpTestDB(t *testing.T) *gorm.DB {
 func TestExternalOperationStatus_StateTransitions(t *testing.T) {
 	tests := []struct {
 		source, dest ExternalOperationStatus
-		valid        bool
-	}{
-		{ExtOpPending, ExtOpSucceeded, true},
-		{ExtOpPending, ExtOpFailed, true},
-		{ExtOpPending, ExtOpCanceled, true},
-		{ExtOpPending, ExtOpUnknown, true},
-		{ExtOpSucceeded, ExtOpFailed, false},
-		{ExtOpSucceeded, ExtOpCanceled, false},
-		{ExtOpSucceeded, ExtOpUnknown, false},
-		{ExtOpFailed, ExtOpPending, true},
-		{ExtOpCanceled, ExtOpPending, true},
-		{ExtOpUnknown, ExtOpSucceeded, true},
-		{ExtOpUnknown, ExtOpFailed, true},
-	}
-
-	for _, tc := range tests {
-		key := string(tc.source) + "->" + string(tc.dest)
-		can := tc.source.IsTerminal() && string(tc.source) != string(tc.dest)
-		if can != !tc.valid {
-			t.Errorf("%s: terminal=%v valid=%v mismatch", key, tc.source.IsTerminal(), tc.valid)
-		}
-	}
-
+		func TestExternalOperationStatus_StateTransitions(t *testing.T) {
 	assert.False(t, ExtOpPending.IsTerminal(), "pending is not terminal")
 	assert.False(t, ExtOpUnknown.IsTerminal(), "unknown is not terminal")
 	assert.True(t, ExtOpSucceeded.IsTerminal(), "succeeded is terminal")
 	assert.True(t, ExtOpFailed.IsTerminal(), "failed is terminal")
 	assert.True(t, ExtOpCanceled.IsTerminal(), "canceled is terminal")
+
+	assert.False(t, ExtOpSucceeded.CanRetry(), "succeeded is done forever — no transition")
+	assert.True(t, ExtOpFailed.CanRetry(), "failed can retry — new attempt starts at pending")
+	assert.True(t, ExtOpCanceled.CanRetry(), "canceled can retry — new attempt starts at pending")
+	assert.False(t, ExtOpPending.CanRetry(), "pending cannot double-retry")
+	assert.False(t, ExtOpUnknown.CanRetry(), "unknown must reconcile first")
+
+	assert.True(t, ExtOpUnknown.NeedsReconciliation(), "unknown blocks retry until reconciled")
+	assert.False(t, ExtOpSucceeded.NeedsReconciliation(), "succeeded needs no reconciliation")
 }
 
 func TestExternalOperationStatus_RetryPolicy(t *testing.T) {
@@ -145,8 +132,8 @@ func TestBulkShip_CancelledOrders_NotRetried(t *testing.T) {
 	}
 	assert.True(t, result.Status.CanRetry(),
 		"canceled operations can be retried with a fresh context")
-	assert.False(t, result.Status.IsTerminal(),
-		"...but since it's ExtOpCanceled, it IS terminal (reset to pending for retry)")
+	assert.True(t, result.Status.IsTerminal(),
+		"canceled is terminal for the current attempt, but a new attempt starts at pending")
 }
 
 // ============================================================================
