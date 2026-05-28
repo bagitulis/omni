@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Final Wave remediation gaps closed (post-review fixes)**: Fixed settings copy in GeneralTab.tsx ("coming soon" → "not yet available in this remediation"), removed stale remark in notification_handler.go:120, and created discoverable notification contract notes at `.sisyphus/evidence/task-14-contract-notes.txt`.
 ### Removed
 - **Stale TODOs and obsolete ?token= references (Task 14)**: Searched all notification-related files across backend/ (handlers, models, services, repositories, routes) and frontend/src/ for TODO/FIXME/HACK/XXX markers, ?token= references, and deprecated labels. Result: zero stale references remain — all cleanup was already completed by prior tasks. Verified `inventory_notification.go` metadata TODO is gone. Evidence: `.sisyphus/evidence/task-14-stale-comment-search.txt`.
 

@@ -117,8 +117,6 @@ func (h *NotificationHandler) StreamNotifications(c *gin.Context) {
 	})
 }
 
-// (Other standard methods remain, just need to ensure getService used)
-
 // ListNotifications returns recent notifications.
 func (h *NotificationHandler) ListNotifications(c *gin.Context) {
 	svc, err := h.getService(c)

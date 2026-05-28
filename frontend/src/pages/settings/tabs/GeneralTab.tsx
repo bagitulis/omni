@@ -167,7 +167,7 @@ export default function GeneralTab() {
                   </Text>
                   <br />
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    Receive email notifications (coming soon)
+                    Receive email notifications (not yet available in this remediation)
                   </Text>
                 </div>
                 <Switch defaultChecked disabled />
@@ -192,7 +192,7 @@ export default function GeneralTab() {
                   </Text>
                   <br />
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    Receive browser notifications (coming soon)
+                    Receive browser notifications (not yet available in this remediation)
                   </Text>
                 </div>
                 <Switch defaultChecked disabled />

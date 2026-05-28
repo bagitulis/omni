@@ -1,0 +1,50 @@
+f9fad7278 chore: task 14 — clean up stale notification-related comments/docs
+.sisyphus/boulder.json
+CHANGELOG.md
+3c54f4930 chore(task-13): full build/test verification and evidence capture
+.sisyphus/boulder.json
+CHANGELOG.md
+frontend/test-results/.last-run.json
+frontend/test-results/notifications-notification-6ea7d-ion-bell-shows-unread-...
+frontend/test-results/notifications-notification-6ea7d-ion-bell-shows-unread-...
+frontend/test-results/notifications-notification-6ea7d-ion-bell-shows-unread-...
+535f1a44b test(frontend): task 12 notification lifecycle e2e
+.sisyphus/boulder.json
+.sisyphus/notepads/notification-architecture-layout-remediation/learnings.md
+CHANGELOG.md
+backend/internal/repositories/credential_repository.go
+backend/internal/repositories/credential_repository_test.go
+frontend/e2e/notifications.spec.ts
+frontend/test-results/.last-run.json
+frontend/test-results/notification-layout-notifi-5c7d2-shots-at-required-view...
+frontend/test-results/notification-layout-notifi-5c7d2-shots-at-required-view...
+frontend/test-results/notification-layout-notifi-5c7d2-shots-at-required-view...
+frontend/test-results/notification-layout-notifi-e5b32-shots-at-required-view...
+frontend/test-results/notification-layout-notifi-e5b32-shots-at-required-view...
+frontend/test-results/notification-layout-notifi-e5b32-shots-at-required-view...
+e03cb6cff chore(settings): disable legacy email/browser notification toggles ...
+.env
+.sisyphus/boulder.json
+CHANGELOG.md
+frontend/src/pages/settings/tabs/GeneralTab.tsx
+5c7bdc76d test(backend): add notification service coverage
+.sisyphus/boulder.json
+.sisyphus/notepads/notification-architecture-layout-remediation/learnings.md
+CHANGELOG.md
+backend/internal/repositories/notification_repository.go
+backend/internal/repositories/notification_repository_test.go
+backend/internal/services/notification_service_test.go
+a6590438c test(notifications): task 10 — notification unit and integration te...
+.sisyphus/boulder.json
+.sisyphus/notepads/notification-architecture-layout-remediation/learnings.md
+CHANGELOG.md
+backend/internal/services/notification_service_test.go
+frontend/src/api/notifications.test.ts
+frontend/src/contexts/NotificationContext.test.tsx
+ddcd9cd9e fix(frontend): task 9 — notification layout UX remediation
+.sisyphus/boulder.json
+.sisyphus/notepads/notification-architecture-layout-remediation/learnings.md
+CHANGELOG.md
+frontend/src/api/notifications.ts
+frontend/src/components/layout/NotificationBell.tsx
+frontend/src/components/layout/NotificationDropdown.test.tsx
