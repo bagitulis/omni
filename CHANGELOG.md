@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **B7 nginx alt configs domain parameterization**: Replaced hardcoded `yndigital.my.id` with `$host` in `nginx/conf.d/default.conf.disabled` (lines 7, 34) and `nginx/nginx-traffic-split.conf` (lines 76, 152). Zero `yndigital` references remain. Evidence: `.sisyphus/evidence/task-b7-*.txt`.
 ### Changed
+- **B4 nginx CSP consolidation + domain parameterization**: Extracted 3 duplicated Content-Security-Policy headers from `frontend/nginx-default.conf` (lines 26, 66, 87) into single `frontend/nginx-csp.conf` include file. Replaced hardcoded `yndigital.my.id` with `$host` nginx variable. Merged to most comprehensive CSP version (added fonts.googleapis.com, fonts.gstatic.com, :3000 port). Evidence: `.sisyphus/evidence/task-b4-*.txt`.
 - **SG secrets/PII redaction gate v2**: Re-ran required redaction scans with clarified handling for gitignored Shopee TEST credentials, wrote `.sisyphus/evidence/SG-redaction-gate-v2.txt`, and recorded final verdict: APPROVE.
 - **F1 compliance audit v2 evidence tracking**: Added a narrow `.gitignore` exception so `.sisyphus/evidence/F1-compliance-audit-v2.txt` is tracked with the audit rerun verdict.
 - **F4 scope fidelity re-run v2**: Re-verified consolidated-gap-remediation T0-T36 after the missing evidence artifact backfill, wrote `.sisyphus/evidence/F4-scope-fidelity-v2.txt`, and recorded final verdict: APPROVE.

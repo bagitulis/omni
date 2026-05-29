@@ -15,9 +15,6 @@ func TestLoad(t *testing.T) {
 	if cfg.Port != "8080" {
 		t.Errorf("expected Port '8080', got '%s'", cfg.Port)
 	}
-	if cfg.DBDriver != "sqlite" {
-		t.Errorf("expected DBDriver 'sqlite', got '%s'", cfg.DBDriver)
-	}
 	if cfg.PGPort != 5432 {
 		t.Errorf("expected PGPort 5432, got %d", cfg.PGPort)
 	}
@@ -27,11 +24,9 @@ func TestLoadWithEnvVars(t *testing.T) {
 	// Set environment variables
 	os.Setenv("GO_ENV", "production")
 	os.Setenv("PORT", "3000")
-	os.Setenv("DB_DRIVER", "postgres")
 	defer func() {
 		os.Unsetenv("GO_ENV")
 		os.Unsetenv("PORT")
-		os.Unsetenv("DB_DRIVER")
 	}()
 
 	cfg := Load()
@@ -41,9 +36,6 @@ func TestLoadWithEnvVars(t *testing.T) {
 	}
 	if cfg.Port != "3000" {
 		t.Errorf("expected Port '3000', got '%s'", cfg.Port)
-	}
-	if cfg.DBDriver != "postgres" {
-		t.Errorf("expected DBDriver 'postgres', got '%s'", cfg.DBDriver)
 	}
 }
 
@@ -59,6 +51,8 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: &Config{
 				JWTSecret:     "this-is-a-very-long-secret-key-for-testing-purposes",
 				EncryptionKey: "some-encryption-key",
+				PGHost:        "localhost",
+				PGPassword:    "test-pass",
 			},
 			wantError: false,
 		},
@@ -76,6 +70,7 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: &Config{
 				JWTSecret:     "this-is-a-very-long-secret-key-for-testing-purposes",
 				EncryptionKey: "",
+				PGPassword:    "test-pass",
 			},
 			wantError: true,
 			errorMsg:  "ENCRYPTION_KEY is required",
@@ -85,6 +80,7 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: &Config{
 				JWTSecret:     "short",
 				EncryptionKey: "some-key",
+				PGPassword:    "test-pass",
 			},
 			wantError: true,
 			errorMsg:  "JWT_SECRET must be at least 32 characters",

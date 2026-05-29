@@ -114,10 +114,6 @@ func main() {
 	}
 
 	cfg := config.Load()
-	if cfg.DBDriver != "postgres" {
-		fmt.Println("FAILED: DB_DRIVER must be postgres")
-		os.Exit(1)
-	}
 
 	config.SetDatabaseDriver(config.DriverPostgres, &config.PostgresConfig{
 		Host:     cfg.PGHost,

@@ -11,9 +11,9 @@ import (
 	"gorm.io/gorm"
 )
 
-// initCredentialService creates a CredentialService using DB_PATH env var.
+// initCredentialService creates a CredentialService using DATABASE_PATH env var.
 func initCredentialService() *services.CredentialService {
-	dbPath := os.Getenv("DB_PATH")
+	dbPath := os.Getenv("DATABASE_PATH")
 	if dbPath == "" {
 		dbPath = "data"
 	}

@@ -20,7 +20,7 @@ func (h *DeveloperHandler) GetEnvironmentInfo(c *gin.Context) {
 
 	dbDriver := os.Getenv("DB_DRIVER")
 	if dbDriver == "" {
-		dbDriver = "sqlite"
+		dbDriver = "postgres"
 	}
 
 	version := os.Getenv("APP_VERSION")

@@ -255,7 +255,7 @@ func (a *App) initHandlers() {
 	a.TokenHandler = handlers.NewTokenHandler(a.TokenManager)
 	a.AnalyticsHandler = handlers.NewAnalyticsHandler(a.SystemDB)
 
-	frontendURL := os.Getenv("FRONTEND_URL")
+	frontendURL := a.Config.FrontendURL
 	if frontendURL == "" {
 		if os.Getenv("GO_ENV") == "production" {
 			zlog.Warn().Msg("FRONTEND_URL not set in production, defaulting to localhost")

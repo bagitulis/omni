@@ -19,18 +19,16 @@ func main() {
 	// Load config
 	cfg := config.Load()
 
-	// Set up database driver
-	if cfg.DBDriver == "postgres" {
-		pgConfig := &config.PostgresConfig{
-			Host:     cfg.PGHost,
-			Port:     cfg.PGPort,
-			User:     cfg.PGUser,
-			Password: cfg.PGPassword,
-			DBName:   cfg.PGDatabase,
-			SSLMode:  cfg.PGSSLMode,
-		}
-		config.SetDatabaseDriver(config.DriverPostgres, pgConfig)
+	// Set up database driver (PostgreSQL only)
+	pgConfig := &config.PostgresConfig{
+		Host:     cfg.PGHost,
+		Port:     cfg.PGPort,
+		User:     cfg.PGUser,
+		Password: cfg.PGPassword,
+		DBName:   cfg.PGDatabase,
+		SSLMode:  cfg.PGSSLMode,
 	}
+	config.SetDatabaseDriver(config.DriverPostgres, pgConfig)
 
 	// Migrate system DB first
 	systemDB, err := config.GetSystemDB(cfg.DatabasePath)

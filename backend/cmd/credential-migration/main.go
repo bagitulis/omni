@@ -23,20 +23,15 @@ func main() {
 		os.Exit(2)
 	}
 	cfg := config.Load()
-	if cfg.DBDriver == "sqlite" && os.Getenv("DB_DRIVER") != "" {
-		cfg.DBDriver = os.Getenv("DB_DRIVER")
+	pgConfig := &config.PostgresConfig{
+		Host:     cfg.PGHost,
+		Port:     cfg.PGPort,
+		User:     cfg.PGUser,
+		Password: cfg.PGPassword,
+		DBName:   cfg.PGDatabase,
+		SSLMode:  cfg.PGSSLMode,
 	}
-	if cfg.DBDriver == "postgres" {
-		pgConfig := &config.PostgresConfig{
-			Host:     cfg.PGHost,
-			Port:     cfg.PGPort,
-			User:     cfg.PGUser,
-			Password: cfg.PGPassword,
-			DBName:   cfg.PGDatabase,
-			SSLMode:  cfg.PGSSLMode,
-		}
-		config.SetDatabaseDriver(config.DriverPostgres, pgConfig)
-	}
+	config.SetDatabaseDriver(config.DriverPostgres, pgConfig)
 	basePath := os.Getenv("CONFIG_PATH")
 	if basePath == "" {
 		basePath = "/app/config"

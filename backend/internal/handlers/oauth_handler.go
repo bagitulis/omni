@@ -40,7 +40,7 @@ func NewOAuthHandler(
 	platformRepo *repositories.PlatformConfigRepository,
 	frontendURL string,
 ) *OAuthHandler {
-	basePath := os.Getenv("DB_BASE_PATH")
+	basePath := os.Getenv("DATABASE_PATH")
 	if basePath == "" {
 		basePath = "./data"
 	}

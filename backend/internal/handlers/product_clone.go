@@ -18,7 +18,7 @@ type ProductCloneHandler struct {
 
 // NewProductCloneHandler creates a new product clone handler
 func NewProductCloneHandler(db *gorm.DB) *ProductCloneHandler {
-	dbPath := os.Getenv("DB_PATH")
+	dbPath := os.Getenv("DATABASE_PATH")
 	if dbPath == "" {
 		dbPath = "data" // Default path
 	}

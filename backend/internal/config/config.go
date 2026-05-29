@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/rs/zerolog/log"
 )
 
 // Config holds application configuration
@@ -31,13 +33,16 @@ type Config struct {
 	// Database driver selection
 	DBDriver string // "sqlite" or "postgres"
 
-	// PostgreSQL settings (used when DBDriver = "postgres")
+	// PostgreSQL settings
 	PGHost     string
 	PGPort     int
 	PGUser     string
 	PGPassword string
 	PGDatabase string
 	PGSSLMode  string
+
+	// External URLs
+	FrontendURL string
 }
 
 // TenantConfig represents a tenant configuration
@@ -62,7 +67,7 @@ var (
 
 // Load reads configuration from environment variables
 func Load() *Config {
-	return &Config{
+	cfg := &Config{
 		Environment:     getEnv("GO_ENV", "development"),
 		Port:            getEnv("PORT", "8080"),
 		DatabasePath:    getEnv("DATABASE_PATH", "../backend/data"),
@@ -85,7 +90,32 @@ func Load() *Config {
 		PGPassword: getEnv("PG_PASSWORD", ""),
 		PGDatabase: getEnv("PG_DATABASE", "omni_main"),
 		PGSSLMode:  getEnv("PG_SSLMODE", "disable"),
+
+		// External URLs
+		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:5173"),
 	}
+
+	if cfg.IsProduction() {
+		cfg.FrontendURL = getEnv("FRONTEND_URL", "")
+	}
+
+	if cfg.IsProduction() && cfg.FrontendURL == "" {
+		log.Fatal().Str("missing_env", "FRONTEND_URL").Msg("startup configuration validation failed")
+	}
+	if cfg.IsProduction() && cfg.FrontendURL == "http://localhost:5173" {
+		log.Fatal().Str("invalid_env", "FRONTEND_URL").Msg("startup configuration validation failed: production FRONTEND_URL cannot use localhost")
+	}
+	if cfg.IsProduction() && cfg.JWTSecret == "" {
+		log.Fatal().Str("missing_env", "JWT_SECRET").Msg("startup configuration validation failed")
+	}
+	if cfg.IsProduction() && cfg.EncryptionKey == "" {
+		log.Fatal().Str("missing_env", "ENCRYPTION_KEY").Msg("startup configuration validation failed")
+	}
+	if err := cfg.Validate(); cfg.IsProduction() && err != nil {
+		log.Fatal().Err(err).Msg("startup configuration validation failed")
+	}
+
+	return cfg
 }
 
 // Validate checks if required configuration is present
@@ -98,6 +128,12 @@ func (c *Config) Validate() error {
 	}
 	if len(c.JWTSecret) < 32 {
 		return fmt.Errorf("JWT_SECRET must be at least 32 characters")
+	}
+	if c.IsProduction() && c.FrontendURL == "" {
+		return fmt.Errorf("FRONTEND_URL is required in production")
+	}
+	if c.IsProduction() && c.FrontendURL == "http://localhost:5173" {
+		return fmt.Errorf("FRONTEND_URL must be set to a non-localhost value in production")
 	}
 	if c.DBDriver == "postgres" {
 		if c.PGPassword == "" {
