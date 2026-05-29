@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- **F3 real manual QA rerun**: Executed all requested flexible-deployment QA scenarios, reran shell scripts with Git Bash after Windows WSL `bash.exe` was unavailable, verified backend build/vet/config tests, domain sweep, CI deploy gating, VPS SSH secret usage, and bash syntax for all deployment scripts. Evidence: `.sisyphus/evidence/f3-manual-qa-scenarios-rerun.txt`, `.sisyphus/evidence/f3-script-syntax.txt`.
+
 ### Added
 - **T19 Backup script**: Added `scripts/backup.sh` (285 lines) for PostgreSQL (`pg_dump -Fc` custom format) + Redis (`BGSAVE` + `dump.rdb` copy) + uploads (`tar.gz`) + config (`.env` + nginx `tar.gz`) backup with JSON manifest (timestamp, file sizes, sha256 checksums — no secret values), retention management (delete older than N days, always keep >= 1), lock file to prevent concurrent backups (`/tmp/omni-backup.lock` for VPS, `./backups/.lock` for local), disk space check (abort if < 20% free), `--dry-run` mode, `--type full|db-only|volumes-only` scope, and `--target local|vps` selection. Both targets use `docker exec` for pg_dump/redis-cli. Evidence: `.sisyphus/evidence/task-19-backup-sh.txt`.
 - **T21 Deployment documentation**: Added Deployment section to `README.md` with 11 subsections covering prerequisites, quick start, environment setup, deployment targets table (6 target/spec combos), compose layering diagram, CI/CD pipeline, GitHub Secrets, health checks, backups, rollback, monitoring via Telegram, and a make targets reference table. Added Section 11 "Deployment Reference" to `AGENTS.md` with deploy commands table, environment variable documentation, compose layering explanation, and deployment scripts reference. All examples use `<YOUR_...>` placeholders, zero literal IPs, zero hardcoded domain references.
