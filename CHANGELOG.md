@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **T12 VPS deployment script**: Added `scripts/deploy-vps.sh` for rsync-over-SSH VPS deployments with dry-run planning, highspec/standard/lowspec compose overlays, skip-build redeploys, pre-deploy backup copies, rollback, SSH retry/accept-new handling, remote disk/env checks, rsync excludes, Docker Compose restart, health verification, and rollback guidance on failure.
+
 ### Fixed
 - **T7 CORS origin normalization**: `CORS_ORIGINS` parsing now normalizes origins — strips trailing slashes (`https://domain.com/` → `https://domain.com`), trims whitespace (`foo.com, bar.com` → 2 clean origins), and skips empty entries (`foo.com,,bar.com` → 2 origins). Added `normalizeOrigin()` function and comprehensive unit tests. Evidence: `.sisyphus/evidence/task-7-cors-parsing.txt`.
 
