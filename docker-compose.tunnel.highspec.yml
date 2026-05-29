@@ -1,0 +1,73 @@
+# ============================================
+# HIGH SPEC Override untuk Tunnel
+# RAM: 8GB, CPU: 2 cores
+# Use: docker-compose -f docker-compose.tunnel.yml -f docker-compose.tunnel.highspec.yml up
+# ============================================
+
+services:
+  backend:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=2048
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2944M
+        reservations:
+          cpus: "0.5"
+          memory: 1024M
+
+  frontend:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=512
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+
+  redis:
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123} --maxmemory 512mb --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.05"
+          memory: 128M
+
+  postgres:
+    command:
+      - postgres
+      - -c max_connections=200
+      - -c shared_buffers=1GB
+      - -c effective_cache_size=2GB
+      - -c work_mem=32MB
+      - -c maintenance_work_mem=256MB
+      - -c timezone=Asia/Jakarta
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 2048M
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  nginx:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  pgbouncer:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 128M
