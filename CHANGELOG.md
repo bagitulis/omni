@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- **T15 Makefile deploy targets**: Added 6 new Makefile targets wrapping deployment scripts: `deploy-vps`, `deploy-local`, `deploy-dry-run`, `setup-vps`, `health`, and `backup`. All recipe lines use tabs. `health` and `backup` accept `TARGET` variable (defaults to `local`). Existing targets (`test`, `build`) preserved.
 - **T12 VPS deployment script**: Added `scripts/deploy-vps.sh` for rsync-over-SSH VPS deployments with dry-run planning, highspec/standard/lowspec compose overlays, skip-build redeploys, pre-deploy backup copies, rollback, SSH retry/accept-new handling, remote disk/env checks, rsync excludes, Docker Compose restart, health verification, and rollback guidance on failure.
 
 ### Fixed
