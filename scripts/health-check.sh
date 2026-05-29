@@ -173,7 +173,7 @@ check_disk() {
     dp="$(disk_path)"
     [[ ! -e "$dp" ]] && dp="/"
 
-    usage=$(df "$dp" 2>/dev/null | tail -1 | awk '{print $5}' | tr -d '%') && {
+    usage=$(df "$dp" 2>/dev/null | tail -1 | awk '{print $(NF-1)}' | tr -d '%') && {
         if   [[ "$usage" -lt "$DISK_THRESHOLD" ]]; then
             record "disk" "healthy"   "${usage}% used (threshold: ${DISK_THRESHOLD}%)"
         elif [[ "$usage" -lt 95 ]]; then

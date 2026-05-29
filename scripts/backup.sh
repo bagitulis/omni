@@ -29,20 +29,18 @@ usage() {
     cat <<'USAGE'
 Usage: scripts/backup.sh [options]
 
-
 Options:
   --target local|vps         Deployment target (default: local)
   --output /path/to/backups  Output directory (default: BACKUP_PATH or ./backups)
   --dry-run                  Print steps without executing
   --retention 7              Days to keep (default: BACKUP_RETENTION_DAYS or 7)
-  --type full|db-only|volumes-only
   --type full|db-only|volumes-only  Backup scope (default: full)
 Examples:
   scripts/backup.sh --dry-run
   scripts/backup.sh --type db-only
   scripts/backup.sh --target vps --retention 14
 USAGE
-
+}
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --target)
@@ -77,7 +75,11 @@ check_disk_space() {
     fi
     free_pct=$(awk "BEGIN{printf \"%d\", ($avail_kb/($(df -Pk "$dir" | awk 'NR==2{print $3}') + avail_kb)) * 100}" 2>/dev/null || echo 100)
     if [[ "$free_pct" -lt 20 ]]; then
-        die "Insufficient disk space: ${free_pct}% free on $dir (requires >= 20%)"
+        if $DRY_RUN; then
+            warn "Low disk space: ${free_pct}% free on $dir (would abort in real run)"
+        else
+            die "Insufficient disk space: ${free_pct}% free on $dir (requires >= 20%)"
+        fi
     fi
     info "Disk space: ${free_pct}% free on $dir"
 }
