@@ -86,6 +86,9 @@ backups/smart/
 !.sisyphus/evidence/F1-compliance-audit-v2.txt
 !.sisyphus/evidence/F4-scope-fidelity-v2.txt
 !.sisyphus/evidence/SG-redaction-gate-v2.txt
+!.sisyphus/evidence/task-b8-audit-report.md
+!.sisyphus/evidence/task-b8-completeness.txt
+!.sisyphus/evidence/task-b8-fail-fast.txt
 
 
 # ===========================================
