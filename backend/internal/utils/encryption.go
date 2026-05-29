@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"encoding/base64"
+	"strings"
 	"errors"
 	"time"
 
@@ -67,10 +67,6 @@ func GenerateKey() (string, error) {
 
 // IsEncrypted checks if a string looks like a Fernet token
 func IsEncrypted(value string) bool {
-	// Fernet tokens are base64 encoded and start with specific pattern
-	if len(value) < 50 {
-		return false
-	}
-	_, err := base64.URLEncoding.DecodeString(value)
-	return err == nil
+	// Fernet tokens are base64url encoded, version byte 0x80 → always start with "gAAAAA"
+	return strings.HasPrefix(value, "gAAAAA")
 }
