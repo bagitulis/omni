@@ -8,11 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **B8 os.Getenv crash-path startup validation**: Audited all current backend `os.Getenv` call sites, added production fail-fast validation for `FRONTEND_URL`, `JWT_SECRET`, and `ENCRYPTION_KEY` in `config.Load()`, and moved OAuth frontend URL startup wiring onto typed config.
-- **Playwright layout mobile control locators**: Updated report and credential settings button locators in `frontend/e2e/layout.spec.ts` to match current accessible names for sync, export, and credential actions.
-- **Stale TODO cleanup**: Removed outdated TODO comment in `master_product/image_service.go` — `downloadImage` already implements 30s timeout + 2-attempt retry. Replaced TODO in `wholesale_extended_handler.go` with documented deferral explaining TikTok Shop API lacks wholesale tier endpoints.
-- **B6 hardcoded domain in test scripts**: Replaced hardcoded `yndigital.my.id` in `scripts/python-build/test_login.py` and `scripts/finance-reports/config.py` with `os.getenv('DOMAIN_NAME', 'https://localhost:5173')` for environment-agnostic usage.
-- **B1 CORS hardcoded domain removal**: Removed 4 hardcoded `yndigital.my.id` entries from `backend/internal/middleware/cors.go`. Production domains now come exclusively from `CORS_ORIGINS` env var (single source of truth). Added zerolog warning when `CORS_ORIGINS` is empty in production mode (fail-secure).
+- **B3 path env var consistency verification**: Confirmed zero stale references to legacy path var names (DB_BASE_PATH, DB_PATH, DATA_PATH) across all Go, YML, SH, and env files. Canonical names DATABASE_PATH and UPLOAD_PATH verified present in 20+ Go files. Added UPLOAD_PATH to .env.example for documentation completeness. Build verified: go build ./... passes.
 ### Added
 - **Frontend Dockerfile nginx-csp.conf COPY**: Added missing `COPY nginx-csp.conf /etc/nginx/conf.d/nginx-csp.conf` to `frontend/Dockerfile` so the consolidated CSP include file (B4) is available inside the container.
 - **F1/F4 missing task evidence backfill**: Created concise `.sisyphus/evidence/task-N-*.txt` artifacts for T1, T2, T8, T11, T17, T19, T20, T21, and T23, recording commit hashes, work summaries, verification commands, pass/fail results, and PASS verdicts for the final approval evidence gap.
