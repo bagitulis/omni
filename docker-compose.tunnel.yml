@@ -138,10 +138,10 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       # Other settings
       - LOG_LEVEL=info
-      - CORS_ORIGINS=https://yndigital.my.id,http://yndigital.my.id,https://www.yndigital.my.id,http://www.yndigital.my.id,http://localhost,http://localhost:80,http://localhost:3000
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://${DOMAIN_NAME:?DOMAIN_NAME is required},https://www.${DOMAIN_NAME},http://localhost,http://localhost:80,http://localhost:3000}
       - SHOPEE_PARTNER_KEY=${SHOPEE_PARTNER_KEY}
       # Frontend URL for OAuth redirects
-      - FRONTEND_URL=https://yndigital.my.id
+      - FRONTEND_URL=${FRONTEND_URL:-https://${DOMAIN_NAME:?DOMAIN_NAME is required}}
       - FRONTEND_SOURCE_PATH=/app/frontend/src
     volumes:
       - ./backend/logs:/app/logs

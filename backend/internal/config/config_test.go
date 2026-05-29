@@ -186,13 +186,43 @@ func TestGetEnvList(t *testing.T) {
 	if len(got) != 3 || got[0] != "a" || got[1] != "b" || got[2] != "c" {
 		t.Errorf("getEnvList() with spaces = %v, want [a b c]", got)
 	}
+	// Test with trailing slash removal
+	os.Setenv("TEST_LIST_TRAILING_SLASH", "https://domain.com/")
+	defer os.Unsetenv("TEST_LIST_TRAILING_SLASH")
 
-	// Test with non-existing
-	got = getEnvList("NON_EXISTING_LIST", []string{"default"})
-	if len(got) != 1 || got[0] != "default" {
-		t.Errorf("getEnvList() = %v, want [default]", got)
+	got = getEnvList("TEST_LIST_TRAILING_SLASH", []string{})
+	if len(got) != 1 || got[0] != "https://domain.com" {
+		t.Errorf("getEnvList() with trailing slash = %v, want [https://domain.com]", got)
 	}
-}
+
+	// Test with trailing slash + spaces: "foo.com, bar.com"
+	os.Setenv("TEST_LIST_SPACES2", "foo.com, bar.com")
+	defer os.Unsetenv("TEST_LIST_SPACES2")
+
+	got = getEnvList("TEST_LIST_SPACES2", []string{})
+	if len(got) != 2 || got[0] != "foo.com" || got[1] != "bar.com" {
+		t.Errorf("getEnvList() with spaces = %v, want [foo.com bar.com]", got)
+	}
+
+	// Test with empty entries: "foo.com,,bar.com" → 2 origins (skip empty)
+	os.Setenv("TEST_LIST_EMPTY", "foo.com,,bar.com")
+	defer os.Unsetenv("TEST_LIST_EMPTY")
+
+	got = getEnvList("TEST_LIST_EMPTY", []string{})
+	if len(got) != 2 || got[0] != "foo.com" || got[1] != "bar.com" {
+		t.Errorf("getEnvList() with empty entries = %v, want [foo.com bar.com]", got)
+	}
+
+	// Test with trailing slash on multiple origins
+	os.Setenv("TEST_LIST_MULTI_SLASH", "https://a.com/, https://b.com/")
+	defer os.Unsetenv("TEST_LIST_MULTI_SLASH")
+
+	got = getEnvList("TEST_LIST_MULTI_SLASH", []string{})
+	if len(got) != 2 || got[0] != "https://a.com" || got[1] != "https://b.com" {
+		t.Errorf("getEnvList() with multi trailing slash = %v, want [https://a.com https://b.com]", got)
+	}
+
+	// Test non-existing (already covered above)
 
 func TestSplitString(t *testing.T) {
 	tests := []struct {
@@ -238,6 +268,29 @@ func TestTrimSpace(t *testing.T) {
 		t.Run(tt.input, func(t *testing.T) {
 			if got := trimSpace(tt.input); got != tt.expected {
 				t.Errorf("trimSpace() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestNormalizeOrigin(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"https://domain.com/", "https://domain.com"},
+		{"https://domain.com///", "https://domain.com"},
+		{"  https://domain.com/  ", "https://domain.com"},
+		{"https://domain.com", "https://domain.com"},
+		{"", ""},
+		{"  ", ""},
+		{"/", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			if got := normalizeOrigin(tt.input); got != tt.expected {
+				t.Errorf("normalizeOrigin(%q) = %q, want %q", tt.input, got, tt.expected)
 			}
 		})
 	}

@@ -261,11 +261,10 @@ func getEnvInt(key string, defaultVal int) int {
 
 func getEnvList(key string, defaultVal []string) []string {
 	if value := os.Getenv(key); value != "" {
-		// Simple comma-separated parsing
 		var result []string
 		for _, v := range splitString(value, ",") {
-			if trimmed := trimSpace(v); trimmed != "" {
-				result = append(result, trimmed)
+			if normalized := normalizeOrigin(v); normalized != "" {
+				result = append(result, normalized)
 			}
 		}
 		if len(result) > 0 {
@@ -299,6 +298,15 @@ func trimSpace(s string) string {
 		end--
 	}
 	return s[start:end]
+}
+
+// normalizeOrigin trims whitespace and strips trailing slashes from a CORS origin.
+func normalizeOrigin(origin string) string {
+	origin = trimSpace(origin)
+	for len(origin) > 0 && origin[len(origin)-1] == '/' {
+		origin = origin[:len(origin)-1]
+	}
+	return origin
 }
 
 func isTestProcess() bool {
