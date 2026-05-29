@@ -100,7 +100,11 @@ def _ensure_path():
         return  # Already good
 
     # Common locations to search
-    home = Path.home()
+    try:
+            import pwd as _pwd
+            home = Path(_pwd.getpwuid(os.getuid()).pw_dir)
+        except (ImportError, KeyError):
+            home = Path.home()
     candidates = []
 
     if os.name == "nt":

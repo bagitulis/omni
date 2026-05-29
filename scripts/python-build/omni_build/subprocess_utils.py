@@ -5,8 +5,19 @@ This module provides wrappers around subprocess functions that ensure
 UTF-8 encoding is used instead of the Windows default (cp1252), preventing
 UnicodeDecodeError when Docker or other tools output non-ASCII characters.
 """
+import os
 import subprocess
 from typing import Any, Optional
+
+
+def _real_home():
+    try:
+        import pwd
+        from pathlib import Path
+        return Path(pwd.getpwuid(os.getuid()).pw_dir)
+    except (ImportError, KeyError):
+        from pathlib import Path
+        return Path.home()
 
 
 def run(
@@ -141,7 +152,7 @@ def get_compose_command() -> list[str]:
     from pathlib import Path
 
     def repair_docker_cli_config() -> None:
-        config_path = Path.home() / ".docker" / "config.json"
+        config_path = _real_home() / ".docker" / "config.json"
         if not config_path.exists():
             return
         try:
@@ -169,7 +180,7 @@ def get_compose_command() -> list[str]:
             return
         if system != "linux" or not buildx_arch:
             return
-        plugin_path = Path.home() / ".docker" / "cli-plugins" / "docker-buildx"
+        plugin_path = _real_home() / ".docker" / "cli-plugins" / "docker-buildx"
         try:
             if plugin_path.is_symlink() and not plugin_path.exists():
                 plugin_path.unlink()
@@ -232,7 +243,7 @@ def get_compose_command() -> list[str]:
     arch = arch_map.get(machine)
 
     if system == "linux" and arch:
-        plugin_dir = Path.home() / ".docker" / "cli-plugins"
+        plugin_dir = _real_home() / ".docker" / "cli-plugins"
         plugin_path = plugin_dir / "docker-compose"
         url = f"https://github.com/docker/compose/releases/latest/download/docker-compose-linux-{arch}"
         try:

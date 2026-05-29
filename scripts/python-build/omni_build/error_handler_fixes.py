@@ -6,11 +6,20 @@ Service-specific fixes are in service_fixers.py.
 Cross-platform: handles Windows (taskkill, Docker Desktop.exe) and Linux (systemctl, kill).
 """
 import json
+import os
 import platform
 import shutil
 import subprocess
 import time
 from pathlib import Path
+
+
+def _real_home():
+    try:
+        import pwd
+        return Path(pwd.getpwuid(os.getuid()).pw_dir)
+    except (ImportError, KeyError):
+        return Path.home()
 
 from omni_build.logger import log_error, log_info, log_success, log_warning
 
@@ -47,7 +56,7 @@ class DockerInfraFixer:
         docker_paths = [
             Path("C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe"),
             Path("C:\\Program Files (x86)\\Docker\\Docker\\Docker Desktop.exe"),
-            Path.home() / "AppData" / "Local" / "Docker" / "Docker Desktop.exe",
+            _real_home() / "AppData" / "Local" / "Docker" / "Docker Desktop.exe",
         ]
         for docker_path in docker_paths:
             if docker_path.exists():
@@ -135,7 +144,7 @@ class DockerInfraFixer:
         Common after migrating from Windows (Docker Desktop) to Linux.
         The 'credsStore: desktop' entry references a helper that doesn't exist on Linux.
         """
-        docker_config = Path.home() / ".docker" / "config.json"
+        docker_config = _real_home() / ".docker" / "config.json"
         
         if not docker_config.exists():
             docker_config.parent.mkdir(parents=True, exist_ok=True)

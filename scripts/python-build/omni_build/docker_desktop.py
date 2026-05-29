@@ -4,12 +4,21 @@ Docker Desktop Management module for Omni Build System.
 SRP: This module ONLY handles Docker Desktop process management.
 Cross-platform: handles Windows (Docker Desktop.exe) and Linux (docker daemon/systemd).
 """
+import os
 import platform
 import shutil
 import subprocess
 import time
 from pathlib import Path
 from typing import Optional
+
+
+def _real_home():
+    try:
+        import pwd
+        return Path(pwd.getpwuid(os.getuid()).pw_dir)
+    except (ImportError, KeyError):
+        return Path.home()
 
 from omni_build.logger import log_error, log_info, log_success, log_warning
 
@@ -111,7 +120,7 @@ class DockerDesktopManager:
         docker_paths = [
             Path("C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe"),
             Path("C:\\Program Files (x86)\\Docker\\Docker\\Docker Desktop.exe"),
-            Path.home() / "AppData" / "Local" / "Docker" / "Docker Desktop.exe",
+            _real_home() / "AppData" / "Local" / "Docker" / "Docker Desktop.exe",
         ]
 
         for docker_path in docker_paths:
