@@ -432,4 +432,58 @@ Fallback chain:
 
 ---
 
+## 11. Deployment Reference
+
+### Deploy Commands
+
+| Command | Description |
+|---|---|
+| `make deploy-vps` | Deploy to VPS via rsync over SSH |
+| `make deploy-local` | Deploy locally with Docker Compose |
+| `make deploy-dry-run` | Preview VPS deploy without changes |
+| `make setup-vps` | One-time VPS preparation (Docker, UFW, dirs) |
+| `make health` | Check all service health endpoints |
+| `make health TARGET=vps` | Check VPS service health |
+| `make backup` | Create database backup |
+| `make backup TARGET=vps` | Create VPS database backup |
+
+Rollback: `make deploy-vps ROLLBACK=<commit-sha>`
+
+### Environment Variables
+
+Key deployment variables (see `.env.example` for full reference):
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `DEPLOY_TARGET` | `local` or `vps` | Required |
+| `DEPLOY_SPEC` | `lowspec`, `standard`, `highspec` | `highspec` |
+| `DOMAIN_NAME` | Your domain (e.g. `example.com`) | Required for production |
+| `SSL_MODE` | `cloudflare` for tunnel mode | `cloudflare` |
+| `VPS_HOST` | Server IP (GitHub Secret) | `__SET_IN_GH_SECRETS__` |
+| `VPS_SSH_KEY` | SSH private key (GitHub Secret) | `__SET_IN_GH_SECRETS__` |
+| `VPS_DEPLOY_PATH` | Deploy directory on VPS | `/opt/omni` |
+| `CLOUDFLARE_TUNNEL_TOKEN` | Tunnel token (GitHub Secret) | `__SET_IN_GH_SECRETS__` |
+| `ALERT_TELEGRAM_BOT_TOKEN` | Alert bot token (GitHub Secret) | `__SET_IN_GH_SECRETS__` |
+
+### Compose Layering
+
+```
+docker-compose.tunnel.yml          (base: all services, networks, volumes)
+  + docker-compose.tunnel.<spec>.yml  (overlay: resource limits, Postgres tuning)
+```
+
+The `DEPLOY_SPEC` env var selects the overlay. The deploy scripts handle the `-f` flags automatically.
+
+### Deployment Scripts
+
+| Script | Purpose |
+|---|---|
+| `scripts/deploy-vps.sh` | VPS deployment via rsync over SSH (dry-run, rollback, backup, spec overlays) |
+| `scripts/deploy-local.sh` | Local Docker Compose deployment (spec overlays, tunnel mode, port conflict detection) |
+| `scripts/health-check.sh` | Service health verification (HTTP, Docker, DB, Redis, disk usage) |
+| `scripts/backup.sh` | Database backup with target awareness |
+| `scripts/validate-env.sh` | Environment variable validation (required vars, secret masking, target-specific checks) |
+| `scripts/docker-host-setup.sh` | One-time VPS preparation: Docker CE, UFW, log rotation, deploy directory |
+
+
 **For detailed context:** See directory-specific `AGENTS.md` files.
