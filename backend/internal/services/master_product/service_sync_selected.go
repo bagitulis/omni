@@ -62,7 +62,7 @@ func (s *Service) SyncSelectedProducts(ctx context.Context, tenantID string, pro
 
 	result := &SyncSelectedResult{}
 	_ = systemDB
-	basePath := os.Getenv("DATA_PATH")
+	basePath := os.Getenv("UPLOAD_PATH")
 	if basePath == "" {
 		basePath = "./data"
 	}

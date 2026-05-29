@@ -39,7 +39,7 @@ func syncProductsHandler(ctx context.Context, tenantID string, cfg *models.AutoF
 
 	log.Info().Msgf("[AutoFunction] Running 'Sync Products' for tenant: %s", tenantID)
 
-	basePath := os.Getenv("DATA_PATH")
+	basePath := os.Getenv("UPLOAD_PATH")
 	if basePath == "" {
 		basePath = "./data"
 	}

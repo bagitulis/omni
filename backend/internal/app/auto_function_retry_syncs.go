@@ -69,7 +69,7 @@ func retryFailedSyncsHandler(ctx context.Context, tenantID string, cfg *models.A
 	log.Info().Msgf("[AutoFunction] Retrying %d syncs (skipped %d credential errors)", len(retryable), skippedCredErrors)
 
 	// Initialize credential service with dbPath
-	basePath := os.Getenv("DATA_PATH")
+	basePath := os.Getenv("UPLOAD_PATH")
 	if basePath == "" {
 		basePath = "./data"
 	}
@@ -219,7 +219,7 @@ func updateRetryCount(ctx context.Context, db *gorm.DB, syncID string) {
 // getTenantDB is a helper to get tenant database (reuse pattern from other auto functions)
 // getTenantDB is a helper to get tenant database
 func getTenantDB(tenantID string) (*gorm.DB, error) {
-	basePath := os.Getenv("DATA_PATH")
+	basePath := os.Getenv("UPLOAD_PATH")
 	if basePath == "" {
 		basePath = "./data"
 	}

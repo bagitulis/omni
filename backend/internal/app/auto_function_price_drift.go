@@ -16,7 +16,7 @@ import (
 func priceDriftDetectionHandler(ctx context.Context, tenantID string, cfg *models.AutoFunctionConfig) (string, error) {
 	log.Info().Msgf("[AutoFunction] Running 'Price Drift Detection' for tenant: %s", tenantID)
 
-	basePath := os.Getenv("DATA_PATH")
+	basePath := os.Getenv("UPLOAD_PATH")
 	if basePath == "" {
 		basePath = "./data"
 	}

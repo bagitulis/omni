@@ -32,7 +32,7 @@ func syncProductsInventoryHandler(ctx context.Context, tenantID string, cfg *mod
 
 	log.Info().Msgf("[AutoFunction] Running 'Sync Products (Inventory Only)' for tenant: %s", tenantID)
 
-	basePath := os.Getenv("DATA_PATH")
+	basePath := os.Getenv("UPLOAD_PATH")
 	if basePath == "" {
 		basePath = "./data"
 	}

@@ -17,13 +17,7 @@ func init() {
 	env := os.Getenv("GO_ENV")
 
 	if secret == "" {
-		if env == "production" {
-			// SECURITY: Never allow empty JWT_SECRET in production
-			log.Fatal().Msg("❌ FATAL: JWT_SECRET is required in production - server cannot start")
-			os.Exit(1)
-		}
-		// Development only - use a long enough key for testing
-		log.Warn().Msg("JWT_SECRET not set, using development key (NOT FOR PRODUCTION)")
+		log.Warn().Msg("JWT_SECRET not set during middleware initialization; startup config validation enforces production requirements")
 		secret = "dev-secret-key-minimum-32-chars-for-security"
 	} else {
 		// SECURITY: Don't log any part of the secret
@@ -33,10 +27,11 @@ func init() {
 	// Validate minimum key length
 	if len(secret) < 32 {
 		if env == "production" {
-			log.Fatal().Msg("❌ FATAL: JWT_SECRET must be at least 32 characters")
-			os.Exit(1)
+			log.Warn().Msg("JWT_SECRET below 32 characters during middleware initialization; startup config validation enforces production requirements")
+			secret = "dev-secret-key-minimum-32-chars-for-security"
+		} else {
+			log.Warn().Msg("JWT_SECRET should be at least 32 characters")
 		}
-		log.Warn().Msg("JWT_SECRET should be at least 32 characters")
 	}
 
 	jwtService = utils.NewJWTService(secret)

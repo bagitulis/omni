@@ -24,9 +24,15 @@ func TestLoadWithEnvVars(t *testing.T) {
 	// Set environment variables
 	os.Setenv("GO_ENV", "production")
 	os.Setenv("PORT", "3000")
+	os.Setenv("FRONTEND_URL", "https://example.com")
+	os.Setenv("JWT_SECRET", "this-is-a-very-long-secret-key-for-testing-purposes")
+	os.Setenv("ENCRYPTION_KEY", "test-encryption-key-32chars-long!")
 	defer func() {
 		os.Unsetenv("GO_ENV")
 		os.Unsetenv("PORT")
+		os.Unsetenv("FRONTEND_URL")
+		os.Unsetenv("JWT_SECRET")
+		os.Unsetenv("ENCRYPTION_KEY")
 	}()
 
 	cfg := Load()

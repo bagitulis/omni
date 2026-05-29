@@ -75,7 +75,7 @@ func (a *App) InitExtendedHandlers(ctx context.Context, db *gorm.DB, googleAuth 
 		routeBasePath = "./internal"
 	}
 
-	basePath := os.Getenv("DATA_PATH")
+	basePath := os.Getenv("UPLOAD_PATH")
 	if basePath == "" {
 		basePath = "./data"
 	}

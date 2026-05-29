@@ -28,7 +28,7 @@ import (
 func lockedTodayHandler(ctx context.Context, tenantID string, cfg *models.AutoFunctionConfig) (string, error) {
 	log.Info().Msgf("[AutoFunction] Running 'Locked Today' for tenant: %s", tenantID)
 
-	basePath := os.Getenv("DATA_PATH")
+	basePath := os.Getenv("UPLOAD_PATH")
 	if basePath == "" {
 		basePath = "./data"
 	}
@@ -151,7 +151,7 @@ func aggregateLockedOrdersForAutoFunc(unprocessOrders, processedOrders []sync.Or
 func autoUpdateTokenHandler(ctx context.Context, tenantID string, cfg *models.AutoFunctionConfig) (string, error) {
 	log.Info().Msgf("[AutoFunction] Running 'Auto Update Token' for tenant: %s", tenantID)
 
-	basePath := os.Getenv("DATA_PATH")
+	basePath := os.Getenv("UPLOAD_PATH")
 	if basePath == "" {
 		basePath = "./data"
 	}
@@ -218,7 +218,7 @@ func autoUpdateTokenHandler(ctx context.Context, tenantID string, cfg *models.Au
 func syncFromSheetsHandler(ctx context.Context, tenantID string, cfg *models.AutoFunctionConfig) (string, error) {
 	log.Info().Msgf("[AutoFunction] Running 'Sync From Sheets' for tenant: %s", tenantID)
 
-	basePath := os.Getenv("DATA_PATH")
+	basePath := os.Getenv("UPLOAD_PATH")
 	if basePath == "" {
 		basePath = "./data"
 	}

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **B8 os.Getenv crash-path startup validation**: Audited all current backend `os.Getenv` call sites, added production fail-fast validation for `FRONTEND_URL`, `JWT_SECRET`, and `ENCRYPTION_KEY` in `config.Load()`, and moved OAuth frontend URL startup wiring onto typed config.
 - **Playwright layout mobile control locators**: Updated report and credential settings button locators in `frontend/e2e/layout.spec.ts` to match current accessible names for sync, export, and credential actions.
 - **Stale TODO cleanup**: Removed outdated TODO comment in `master_product/image_service.go` — `downloadImage` already implements 30s timeout + 2-attempt retry. Replaced TODO in `wholesale_extended_handler.go` with documented deferral explaining TikTok Shop API lacks wholesale tier endpoints.
 - **B6 hardcoded domain in test scripts**: Replaced hardcoded `yndigital.my.id` in `scripts/python-build/test_login.py` and `scripts/finance-reports/config.py` with `os.getenv('DOMAIN_NAME', 'https://localhost:5173')` for environment-agnostic usage.
@@ -16,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **F1/F4 missing task evidence backfill**: Created concise `.sisyphus/evidence/task-N-*.txt` artifacts for T1, T2, T8, T11, T17, T19, T20, T21, and T23, recording commit hashes, work summaries, verification commands, pass/fail results, and PASS verdicts for the final approval evidence gap.
 
 - **B7 nginx alt configs domain parameterization**: Replaced hardcoded `yndigital.my.id` with `$host` in `nginx/conf.d/default.conf.disabled` (lines 7, 34) and `nginx/nginx-traffic-split.conf` (lines 76, 152). Zero `yndigital` references remain. Evidence: `.sisyphus/evidence/task-b7-*.txt`.
+- **B2 dead SQLite code removal + path env var consolidation**: Removed `DBDriver` field from `Config` struct (config.go), eliminated all `cfg.DBDriver` conditional guards in cmd/migrate-images, cmd/seed, cmd/credential-migration, scripts/dedupe_product_images. PG validation is now unconditional. Developer panel defaults to "postgres". Consolidated 3 path env var aliases to canonical names: `DB_BASE_PATH`/`DB_PATH` → `DATABASE_PATH` (3 files), `DATA_PATH` → `UPLOAD_PATH` (7 files, 10 occurrences). `CONFIG_PATH` retained (active, used by 4+ files).
 ### Changed
 - **B4 nginx CSP consolidation + domain parameterization**: Extracted 3 duplicated Content-Security-Policy headers from `frontend/nginx-default.conf` (lines 26, 66, 87) into single `frontend/nginx-csp.conf` include file. Replaced hardcoded `yndigital.my.id` with `$host` nginx variable. Merged to most comprehensive CSP version (added fonts.googleapis.com, fonts.gstatic.com, :3000 port). Evidence: `.sisyphus/evidence/task-b4-*.txt`.
 - **SG secrets/PII redaction gate v2**: Re-ran required redaction scans with clarified handling for gitignored Shopee TEST credentials, wrote `.sisyphus/evidence/SG-redaction-gate-v2.txt`, and recorded final verdict: APPROVE.

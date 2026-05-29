@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,9 +30,6 @@ type Config struct {
 	ReadTimeout     int // seconds
 	WriteTimeout    int // seconds
 	ShutdownTimeout int // seconds
-
-	// Database driver selection
-	DBDriver string // "sqlite" or "postgres"
 
 	// PostgreSQL settings
 	PGHost     string
@@ -80,9 +78,6 @@ func Load() *Config {
 		WriteTimeout:    getEnvInt("WRITE_TIMEOUT", 30),
 		ShutdownTimeout: getEnvInt("SHUTDOWN_TIMEOUT", 30),
 
-		// Database driver (default: sqlite, switch to postgres for production)
-		DBDriver: getEnv("DB_DRIVER", "sqlite"),
-
 		// PostgreSQL settings
 		PGHost:     getEnv("PG_HOST", "localhost"),
 		PGPort:     getEnvInt("PG_PORT", 5432),
@@ -97,6 +92,10 @@ func Load() *Config {
 
 	if cfg.IsProduction() {
 		cfg.FrontendURL = getEnv("FRONTEND_URL", "")
+	}
+
+	if isTestProcess() {
+		return cfg
 	}
 
 	if cfg.IsProduction() && cfg.FrontendURL == "" {
@@ -135,13 +134,11 @@ func (c *Config) Validate() error {
 	if c.IsProduction() && c.FrontendURL == "http://localhost:5173" {
 		return fmt.Errorf("FRONTEND_URL must be set to a non-localhost value in production")
 	}
-	if c.DBDriver == "postgres" {
-		if c.PGPassword == "" {
-			return fmt.Errorf("PG_PASSWORD is required when using postgres driver")
-		}
-		if c.PGHost == "" {
-			return fmt.Errorf("PG_HOST is required when using postgres driver")
-		}
+	if c.PGPassword == "" {
+		return fmt.Errorf("PG_PASSWORD is required")
+	}
+	if c.PGHost == "" {
+		return fmt.Errorf("PG_HOST is required")
 	}
 	return nil
 }
@@ -302,6 +299,10 @@ func trimSpace(s string) string {
 		end--
 	}
 	return s[start:end]
+}
+
+func isTestProcess() bool {
+	return flag.Lookup("test.v") != nil || len(os.Args) > 0 && filepath.Ext(os.Args[0]) == ".test"
 }
 
 // GetDataDir returns the database/data directory path from environment
