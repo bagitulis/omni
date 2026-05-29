@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Changed
+- **NDJSON backup refresh**: Re-exported 158 tables (22,717 rows) from PostgreSQL to `backups/sync/`. Credential tables (`credential_app_configs`, `credential_connections`, `credential_audit_events`) confirmed empty (0 rows) — no marketplace OAuth connections yet. `platform_configs` backed up (38 rows) but credential columns all NULL — accounts disconnected. 3 large tables compressed to `.ndjson.gz`. Schema DDL updated for all tenants.
 - **F3 real manual QA rerun**: Executed all requested flexible-deployment QA scenarios, reran shell scripts with Git Bash after Windows WSL `bash.exe` was unavailable, verified backend build/vet/config tests, domain sweep, CI deploy gating, VPS SSH secret usage, and bash syntax for all deployment scripts. Evidence: `.sisyphus/evidence/f3-manual-qa-scenarios-rerun.txt`, `.sisyphus/evidence/f3-script-syntax.txt`.
 
 ### Added
