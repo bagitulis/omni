@@ -34,6 +34,7 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 # Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY nginx-default.conf /etc/nginx/conf.d/default.conf
+COPY nginx-csp.conf /etc/nginx/conf.d/nginx-csp.conf
 
 # Expose port
 EXPOSE 80
