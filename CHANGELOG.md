@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **T2 highspec Docker Compose overlay**: Created `docker-compose.tunnel.highspec.yml` with resource limits optimized for 8GB RAM, 2 cores. 6 services (backend 2944M, frontend 768M, redis 512M, postgres 2048M, nginx 256M, pgbouncer 128M = 6656M total). PostgreSQL tuned with shared_buffers=1GB, effective_cache_size=2GB, work_mem=32MB. All 3 overlay combos validated. Evidence: `.sisyphus/evidence/task-2-*.txt`.
+
+
 - **T1 .env.example deployment variables**: Rewrote `.env.example` from 95 to 130 lines with 15 organized sections (Application, Security, Database, Redis, Domain/CORS, Deploy Target, Cloudflare, Rate Limiting, Account Lockout, Marketplace APIs, Email, Logging, Testing, Monitoring/Alerting, Backup). 74 active env vars, 6 `__SET_IN_GH_SECRETS__` placeholders, 6 `CHANGE_ME` markers. Zero real domains/IPs/credentials. Evidence: `.sisyphus/evidence/task-1-env-example.txt`.
 - **B5 nginx X-Forwarded-Proto + uploads CORS**: Replaced 6 hardcoded `proxy_set_header X-Forwarded-Proto https` with `$scheme` in `nginx/conf.d/tunnel.conf`. Replaced wildcard CORS `"*"` with `"$scheme://$host"` on uploads in both `tunnel.conf` (3 locations) and `frontend/nginx-default.conf` (1 location). No behavioral change for Cloudflare Tunnel. Evidence: `.sisyphus/evidence/task-b5-*.txt`.
 ### Fixed
