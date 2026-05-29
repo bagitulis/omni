@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **T5 Nginx Cloudflare real_ip configuration**: Created `nginx/conf.d/cloudflare-real-ip.conf` with all 22 Cloudflare IPv4+IPv6 CIDR ranges (15 IPv4 + 7 IPv6), `real_ip_header CF-Connecting-IP`, and `real_ip_recursive on`. Added read-only volume mount in `docker-compose.tunnel.yml` nginx service. Source: https://www.cloudflare.com/ips/. Evidence: `.sisyphus/evidence/task-5-cidr-count.txt`, `.sisyphus/evidence/task-5-nginx-test.txt`.
 - **T2 highspec Docker Compose overlay**: Created `docker-compose.tunnel.highspec.yml` with resource limits optimized for 8GB RAM, 2 cores. 6 services (backend 2944M, frontend 768M, redis 512M, postgres 2048M, nginx 256M, pgbouncer 128M = 6656M total). PostgreSQL tuned with shared_buffers=1GB, effective_cache_size=2GB, work_mem=32MB. All 3 overlay combos validated. Evidence: `.sisyphus/evidence/task-2-*.txt`.
 
 
