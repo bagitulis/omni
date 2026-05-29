@@ -231,6 +231,9 @@ func (h *SettingsHandler) UpdateGeneralSettings(c *gin.Context) {
 			ID:       generateID(),
 			TenantID: tenantID,
 		}
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
 	}
 
 	settings.Language = req.Language

@@ -312,6 +312,6 @@ func (m *QueueManager) GetJobsByType(jobType string, status models.JobStatus) ([
 	if status != "" {
 		query = query.Where("status = ?", status)
 	}
-	err := query.Order("created_at DESC").Find(&jobs).Error
+	err := query.Order("created_at DESC").Limit(1000).Find(&jobs).Error
 	return jobs, err
 }

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -130,6 +131,19 @@ func (s *CredentialLifecycleService) writeAudit(ctx context.Context, repo *repos
 func sanitizeFailureCode(err error) string {
 	if err == nil {
 		return "refresh_failed"
+	}
+	errMsg := err.Error()
+	if strings.Contains(errMsg, "no access_token") || strings.Contains(errMsg, "invalid_refresh_token") {
+		return "invalid_refresh_token"
+	}
+	if strings.Contains(errMsg, "invalid_acceess_token") || strings.Contains(errMsg, "invalid_access_token") {
+		return "invalid_access_token"
+	}
+	if strings.Contains(errMsg, "timeout") || strings.Contains(errMsg, "deadline") {
+		return "refresh_timeout"
+	}
+	if strings.Contains(errMsg, "forbidden") || strings.Contains(errMsg, "403") {
+		return "forbidden"
 	}
 	return "refresh_failed"
 }

@@ -301,7 +301,7 @@ func (e *MultiTenantExecutor) pushNotificationToDB(db *gorm.DB, tenantID string,
 	// First push to database for persistence and SSE broadcasting
 	repo := repositories.NewNotificationRepository(db)
 	svc := services.NewNotificationService(repo).WithTenant(tenantID)
-	err := svc.PushJobResult(job, success, detail)
+	err := svc.PushJobResult(context.Background(), job, success, detail)
 	if err != nil {
 		log.Error().Err(err).Msg("[MultiTenantExecutor] Failed to push notification to DB")
 	}
@@ -372,9 +372,9 @@ func (e *MultiTenantExecutor) runMaintenance() {
 
 		repo := repositories.NewNotificationRepository(tenantDB)
 		svc := services.NewNotificationService(repo)
-		settings, err := svc.GetSettings()
+		settings, err := svc.GetSettings(context.Background())
 		if err == nil && settings.RetentionDays > 0 {
-			deleted := svc.CleanupOlderThan(settings.RetentionDays)
+			deleted := svc.CleanupOlderThan(context.Background(), settings.RetentionDays)
 			if deleted > 0 {
 				log.Info().Msgf("[MultiTenantExecutor] Maintenance: Cleaned up %d notifications for tenant %s", deleted, tenantID)
 			}

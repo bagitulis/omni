@@ -75,7 +75,7 @@ func (s *CredentialApiService) UpsertAppCredential(ctx context.Context, tenantID
 	if tenantID == "" {
 		return nil, fmt.Errorf("Missing tenant_id")
 	}
-	if role != "developer" && role != "admin" {
+	if role != "developer" && role != "admin" && role != "owner" {
 		return nil, fmt.Errorf("forbidden")
 	}
 	repo := repositories.NewCredentialRepository(s.db)
@@ -133,7 +133,7 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 	if req.RedirectPath == "" {
 		return nil, fmt.Errorf("redirect_path is required")
 	}
-	if role != "developer" && role != "admin" {
+	if role != "developer" && role != "admin" && role != "owner" {
 		return nil, fmt.Errorf("forbidden")
 	}
 	repo := repositories.NewCredentialRepository(s.db)
@@ -251,7 +251,7 @@ func (s *CredentialApiService) ChangeConnectionStatus(ctx context.Context, tenan
 	if tenantID == "" {
 		return nil, fmt.Errorf("Missing tenant_id")
 	}
-	if role != "developer" && role != "admin" {
+	if role != "developer" && role != "admin" && role != "owner" {
 		return nil, fmt.Errorf("forbidden")
 	}
 	if req.StoreIdentifier == "" {
@@ -269,6 +269,7 @@ func (s *CredentialApiService) ChangeConnectionStatus(ctx context.Context, tenan
 		if err := repo.UpdateConnectionStatus(ctx, tenantID, req.Platform, req.StoreIdentifier, "connected"); err != nil {
 			return nil, err
 		}
+		invalidateCredentialCaches(tenantID)
 		auditEvent := &models.CredentialAuditEvent{
 			TenantID: tenantID, Platform: req.Platform, StoreIdentifier: req.StoreIdentifier,
 			EventType: "connection_refresh", Status: "success", Actor: userID, ActorRole: role,
@@ -322,31 +323,77 @@ func (s *CredentialApiService) ApplyManualToken(ctx context.Context, tenantID, r
 	if tenantID == "" {
 		return nil, fmt.Errorf("Missing tenant_id")
 	}
-	if role != "developer" && role != "admin" {
+	if role != "developer" && role != "admin" && role != "owner" {
 		return nil, fmt.Errorf("forbidden")
 	}
 	if req.Reason == "" {
 		return nil, fmt.Errorf("reason is required")
 	}
 	repo := repositories.NewCredentialRepository(s.db)
-	conn := &models.CredentialConnection{TenantID: tenantID, Platform: req.Platform, StoreIdentifier: req.StoreIdentifier, Region: normalizeRegion(req.Region), AccessToken: req.AccessToken, RefreshToken: req.RefreshToken, ShopCipher: req.ShopCipher, Status: "connected", CreatedBy: userID, UpdatedBy: userID}
-	if conn.Region == "" {
-		conn.Region = "id"
-	}
-	if req.ExpiresAt != "" {
-		parsed, err := time.Parse(time.RFC3339, req.ExpiresAt)
-		if err != nil {
-			return nil, fmt.Errorf("invalid expires_at: must be RFC3339 format")
+
+	// Check for existing connection (including disabled ones — upsert pattern)
+	var existing *models.CredentialConnection
+	allConns, _ := repo.ListConnections(ctx, tenantID, req.Platform)
+	for _, c := range allConns {
+		if c.StoreIdentifier == req.StoreIdentifier {
+			existing = &c
+			break
 		}
-		conn.TokenExpiry = parsed.UnixMilli()
 	}
-	if err := repo.CreateConnection(ctx, conn); err != nil {
-		return nil, err
+
+	region := normalizeRegion(req.Region)
+	if region == "" {
+		region = "id"
 	}
+
+	var conn *models.CredentialConnection
+	if existing != nil {
+		// Update existing connection with new token
+		existing.AccessToken = req.AccessToken
+		existing.RefreshToken = req.RefreshToken
+		existing.ShopCipher = req.ShopCipher
+		existing.Status = "connected"
+		existing.UpdatedBy = userID
+		existing.DisabledAt = nil
+		existing.DisabledReason = ""
+		existing.Region = region
+		if req.ExpiresAt != "" {
+			parsed, err := time.Parse(time.RFC3339, req.ExpiresAt)
+			if err != nil {
+				return nil, fmt.Errorf("invalid expires_at: must be RFC3339 format")
+			}
+			existing.TokenExpiry = parsed.UnixMilli()
+		}
+		conn = existing
+		if existing.DisabledAt != nil {
+			// Re-enable disabled connection
+			if err := repo.ReconnectWithToken(ctx, conn); err != nil {
+				return nil, err
+			}
+		} else {
+			if err := repo.UpdateConnection(ctx, conn); err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		// Create new connection
+		conn = &models.CredentialConnection{TenantID: tenantID, Platform: req.Platform, StoreIdentifier: req.StoreIdentifier, Region: region, AccessToken: req.AccessToken, RefreshToken: req.RefreshToken, ShopCipher: req.ShopCipher, Status: "connected", CreatedBy: userID, UpdatedBy: userID}
+		if req.ExpiresAt != "" {
+			parsed, err := time.Parse(time.RFC3339, req.ExpiresAt)
+			if err != nil {
+				return nil, fmt.Errorf("invalid expires_at: must be RFC3339 format")
+			}
+			conn.TokenExpiry = parsed.UnixMilli()
+		}
+		if err := repo.CreateConnection(ctx, conn); err != nil {
+			return nil, err
+		}
+	}
+	invalidateCredentialCaches(tenantID)
 	auditEvent := &models.CredentialAuditEvent{
 		TenantID: tenantID, Platform: req.Platform, StoreIdentifier: req.StoreIdentifier,
 		EventType: "manual_token_apply", Status: "success", Actor: userID, ActorRole: role,
-		Metadata: models.JSONMap{"reason": req.Reason},
+		Metadata: models.JSONMap{"reason": req.Reason, "action": func() string { if existing != nil { return "updated" }; return "created" }()},
 	}
 	auditEventID := ""
 	if err := repo.CreateAuditEvent(ctx, auditEvent); err != nil {

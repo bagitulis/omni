@@ -44,7 +44,7 @@ func (s *NotificationService) WithTenant(tenantID string) *NotificationService {
 }
 
 // Push creates a new notification in the database and broadcasts it via SSE.
-func (s *NotificationService) Push(notifType, category, title, message, actionURL string, metadata ...string) (*models.Notification, error) {
+func (s *NotificationService) Push(ctx context.Context, notifType, category, title, message, actionURL string, metadata ...string) (*models.Notification, error) {
 	notif := &models.Notification{
 		Type:      notifType,
 		Category:  category,
@@ -60,7 +60,7 @@ func (s *NotificationService) Push(notifType, category, title, message, actionUR
 	}
 
 	// 1. Save to Database
-	if err := s.repo.Create(context.Background(), notif); err != nil {
+	if err := s.repo.Create(ctx, notif); err != nil {
 		log.Error().Err(err).Str("title", title).Msg("Failed to push notification to DB")
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (s *NotificationService) Push(notifType, category, title, message, actionUR
 }
 
 // PushJobResult creates a notification from a completed job using standardized helpers.
-func (s *NotificationService) PushJobResult(job *models.Job, success bool, detail string) error {
+func (s *NotificationService) PushJobResult(ctx context.Context, job *models.Job, success bool, detail string) error {
 	notifType := models.NotifTypeSuccess
 	if !success {
 		notifType = models.NotifTypeError
@@ -83,6 +83,7 @@ func (s *NotificationService) PushJobResult(job *models.Job, success bool, detai
 	category := models.JobTypeToCategory(job.Type)
 
 	_, err := s.Push(
+		ctx,
 		notifType,
 		category,
 		title,
@@ -152,43 +153,43 @@ func (s *NotificationService) UnregisterClient(tenantID string, client SSEClient
 }
 
 // List returns recent notifications.
-func (s *NotificationService) List(limit int, sinceID int64, unreadOnly bool) ([]models.Notification, error) {
-	return s.repo.List(context.Background(), limit, sinceID, unreadOnly)
+func (s *NotificationService) List(ctx context.Context, limit int, sinceID int64, unreadOnly bool) ([]models.Notification, error) {
+	return s.repo.List(ctx, limit, sinceID, unreadOnly)
 }
 
 // GetByID returns a single notification by ID.
-func (s *NotificationService) GetByID(id int64) (*models.Notification, error) {
-	return s.repo.GetByID(context.Background(), id)
+func (s *NotificationService) GetByID(ctx context.Context, id int64) (*models.Notification, error) {
+	return s.repo.GetByID(ctx, id)
 }
 
 // UnreadCount returns the number of unread notifications.
-func (s *NotificationService) UnreadCount() (int64, error) {
-	return s.repo.UnreadCount(context.Background())
+func (s *NotificationService) UnreadCount(ctx context.Context) (int64, error) {
+	return s.repo.UnreadCount(ctx)
 }
 
 // MarkAsRead marks a single notification as read.
-func (s *NotificationService) MarkAsRead(id int64) error {
-	return s.repo.MarkAsRead(context.Background(), id)
+func (s *NotificationService) MarkAsRead(ctx context.Context, id int64) error {
+	return s.repo.MarkAsRead(ctx, id)
 }
 
 // MarkAllAsRead marks all notifications as read.
-func (s *NotificationService) MarkAllAsRead() error {
-	return s.repo.MarkAllAsRead(context.Background())
+func (s *NotificationService) MarkAllAsRead(ctx context.Context) error {
+	return s.repo.MarkAllAsRead(ctx)
 }
 
 // Delete removes a single notification.
-func (s *NotificationService) Delete(id int64) error {
-	return s.repo.Delete(context.Background(), id)
+func (s *NotificationService) Delete(ctx context.Context, id int64) error {
+	return s.repo.Delete(ctx, id)
 }
 
 // DeleteAll removes all notifications.
-func (s *NotificationService) DeleteAll() error {
-	return s.repo.DeleteAll(context.Background())
+func (s *NotificationService) DeleteAll(ctx context.Context) error {
+	return s.repo.DeleteAll(ctx)
 }
 
 // CleanupOlderThan removes notifications older than the given number of days.
-func (s *NotificationService) CleanupOlderThan(days int) int64 {
-	rowsAffected, err := s.repo.CleanupOlderThan(context.Background(), days)
+func (s *NotificationService) CleanupOlderThan(ctx context.Context, days int) int64 {
+	rowsAffected, err := s.repo.CleanupOlderThan(ctx, days)
 	if err != nil {
 		log.Error().Err(err).Int("days", days).Msg("Failed to cleanup old notifications")
 	}
@@ -196,11 +197,11 @@ func (s *NotificationService) CleanupOlderThan(days int) int64 {
 }
 
 // GetSettings returns notification settings for the current tenant.
-func (s *NotificationService) GetSettings() (*models.NotificationSettings, error) {
-	return s.repo.GetSettings(context.Background())
+func (s *NotificationService) GetSettings(ctx context.Context) (*models.NotificationSettings, error) {
+	return s.repo.GetSettings(ctx)
 }
 
 // SaveSettings upserts notification settings.
-func (s *NotificationService) SaveSettings(retentionDays int) error {
-	return s.repo.SaveSettings(context.Background(), retentionDays)
+func (s *NotificationService) SaveSettings(ctx context.Context, retentionDays int) error {
+	return s.repo.SaveSettings(ctx, retentionDays)
 }

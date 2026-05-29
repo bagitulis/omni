@@ -355,10 +355,16 @@ func (h *OAuthHandler) redirectOAuthResult(c *gin.Context, redirectURL, result s
 
 func (h *OAuthHandler) getBackendURL(c *gin.Context) string {
 	scheme := "https"
-	if c.Request.TLS == nil {
+	if fwdProto := c.GetHeader("X-Forwarded-Proto"); fwdProto != "" {
+		scheme = fwdProto
+	} else if c.Request.TLS == nil {
 		scheme = "http"
 	}
-	return fmt.Sprintf("%s://%s", scheme, c.Request.Host)
+	host := c.GetHeader("X-Forwarded-Host")
+	if host == "" {
+		host = c.Request.Host
+	}
+	return fmt.Sprintf("%s://%s", scheme, host)
 }
 
 func (h *OAuthHandler) GetOAuthLogs(c *gin.Context) {

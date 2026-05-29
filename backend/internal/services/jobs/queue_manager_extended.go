@@ -87,7 +87,7 @@ func (m *QueueManager) GetHistoryPaginated(filter PaginatedFilter) (*PaginatedHi
 		jobQuery = jobQuery.Where("job_id ILIKE ? OR job_type ILIKE ?", "%"+filter.Search+"%", "%"+filter.Search+"%")
 	}
 
-	if err := jobQuery.Find(&jobHistoryItems).Error; err != nil {
+	if err := jobQuery.Order("created_at DESC").Limit(1000).Find(&jobHistoryItems).Error; err != nil {
 		log.Error().Err(err).Msg("Failed to query job_history")
 	}
 
@@ -105,7 +105,7 @@ func (m *QueueManager) GetHistoryPaginated(filter PaginatedFilter) (*PaginatedHi
 		autoQuery = autoQuery.Where("function_name ILIKE ?", "%"+filter.Search+"%")
 	}
 
-	if err := autoQuery.Find(&autoFuncHistoryItems).Error; err != nil {
+	if err := autoQuery.Order("executed_at DESC").Limit(1000).Find(&autoFuncHistoryItems).Error; err != nil {
 		log.Error().Err(err).Msg("Failed to query auto_functions_history")
 	}
 

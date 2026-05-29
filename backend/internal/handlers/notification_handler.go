@@ -44,7 +44,7 @@ func (h *NotificationHandler) CreateNotification(c *gin.Context) {
 		return
 	}
 
-	notif, err := svc.Push(body.Type, body.Category, body.Title, body.Message, body.ActionURL)
+	notif, err := svc.Push(c.Request.Context(), body.Type, body.Category, body.Title, body.Message, body.ActionURL)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -121,7 +121,7 @@ func (h *NotificationHandler) ListNotifications(c *gin.Context) {
 	sinceID, _ := strconv.ParseInt(c.DefaultQuery("since_id", "0"), 10, 64)
 	unreadOnly := c.DefaultQuery("unread_only", "false") == "true"
 
-	items, err := svc.List(limit, sinceID, unreadOnly)
+	items, err := svc.List(c.Request.Context(), limit, sinceID, unreadOnly)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -138,7 +138,7 @@ func (h *NotificationHandler) GetUnreadCount(c *gin.Context) {
 		return
 	}
 
-	count, err := svc.UnreadCount()
+	count, err := svc.UnreadCount(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -161,7 +161,7 @@ func (h *NotificationHandler) MarkAsRead(c *gin.Context) {
 		return
 	}
 
-	if err := svc.MarkAsRead(id); err != nil {
+	if err := svc.MarkAsRead(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
@@ -177,7 +177,7 @@ func (h *NotificationHandler) MarkAllAsRead(c *gin.Context) {
 		return
 	}
 
-	if err := svc.MarkAllAsRead(); err != nil {
+	if err := svc.MarkAllAsRead(c.Request.Context()); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
@@ -199,7 +199,7 @@ func (h *NotificationHandler) DeleteNotification(c *gin.Context) {
 		return
 	}
 
-	if err := svc.Delete(id); err != nil {
+	if err := svc.Delete(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
@@ -215,7 +215,7 @@ func (h *NotificationHandler) DeleteAllNotifications(c *gin.Context) {
 		return
 	}
 
-	if err := svc.DeleteAll(); err != nil {
+	if err := svc.DeleteAll(c.Request.Context()); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
@@ -231,7 +231,7 @@ func (h *NotificationHandler) GetSettings(c *gin.Context) {
 		return
 	}
 
-	settings, err := svc.GetSettings()
+	settings, err := svc.GetSettings(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -256,7 +256,7 @@ func (h *NotificationHandler) UpdateSettings(c *gin.Context) {
 		return
 	}
 
-	if err := svc.SaveSettings(body.RetentionDays); err != nil {
+	if err := svc.SaveSettings(c.Request.Context(), body.RetentionDays); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
@@ -279,7 +279,7 @@ func (h *NotificationHandler) GetNotificationDetail(c *gin.Context) {
 		return
 	}
 
-	notif, err := svc.GetByID(id)
+	notif, err := svc.GetByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "notification not found"})
 		return

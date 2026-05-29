@@ -7,7 +7,7 @@ export const PLATFORM_NAMES: Record<string, string> = {
   lazada: "Lazada",
 };
 
-const PRIVILEGED_ROLES = new Set(["developer", "admin"]);
+const PRIVILEGED_ROLES = new Set(["developer", "admin", "owner"]);
 
 export function sanitizeStatusText(value: unknown, fallback: string) {
   if (typeof value !== "string") return fallback;

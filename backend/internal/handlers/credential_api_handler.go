@@ -68,6 +68,7 @@ func (h *PlatformAuthHandler) PostCredentialOAuthInitiate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
 		return
 	}
+	req.Platform = c.Param("platform")
 	result, err := h.credentialService.InitiateOAuth(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), h.getBackendURL(c), req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
