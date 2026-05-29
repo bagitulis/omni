@@ -4,7 +4,7 @@
 server {
     listen 80;
     listen [::]:80;
-    server_name yndigital.my.id www.yndigital.my.id;
+    server_name $host www.$host;
 
     # Redirect all HTTP to HTTPS
     return 301 https://$host$request_uri;
@@ -31,7 +31,7 @@ server {
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name yndigital.my.id www.yndigital.my.id;
+    server_name $host www.$host;
 
     # SSL certificates (Cloudflare Origin Certificate)
     ssl_certificate /etc/nginx/ssl/cert.pem;

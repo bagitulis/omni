@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **F1/F4 missing task evidence backfill**: Created concise `.sisyphus/evidence/task-N-*.txt` artifacts for T1, T2, T8, T11, T17, T19, T20, T21, and T23, recording commit hashes, work summaries, verification commands, pass/fail results, and PASS verdicts for the final approval evidence gap.
 
+- **B7 nginx alt configs domain parameterization**: Replaced hardcoded `yndigital.my.id` with `$host` in `nginx/conf.d/default.conf.disabled` (lines 7, 34) and `nginx/nginx-traffic-split.conf` (lines 76, 152). Zero `yndigital` references remain. Evidence: `.sisyphus/evidence/task-b7-*.txt`.
 ### Changed
 - **SG secrets/PII redaction gate v2**: Re-ran required redaction scans with clarified handling for gitignored Shopee TEST credentials, wrote `.sisyphus/evidence/SG-redaction-gate-v2.txt`, and recorded final verdict: APPROVE.
 - **F1 compliance audit v2 evidence tracking**: Added a narrow `.gitignore` exception so `.sisyphus/evidence/F1-compliance-audit-v2.txt` is tracked with the audit rerun verdict.

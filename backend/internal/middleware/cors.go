@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 // CORS handles Cross-Origin Resource Sharing
@@ -21,10 +22,6 @@ func CORS() gin.HandlerFunc {
 		"http://localhost:3000",
 		"http://localhost:80",
 		"http://localhost",
-		"https://yndigital.my.id",
-		"https://www.yndigital.my.id",
-		"http://yndigital.my.id",
-		"http://www.yndigital.my.id",
 	}
 	for _, origin := range defaults {
 		allowedOrigins[origin] = true
@@ -39,6 +36,8 @@ func CORS() gin.HandlerFunc {
 				allowedOrigins[origin] = true
 			}
 		}
+	} else if isProd {
+		log.Warn().Msg("CORS_ORIGINS is empty in production — no external origins will be allowed")
 	}
 
 	return func(c *gin.Context) {
