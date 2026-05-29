@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Playwright layout mobile control locators**: Updated report and credential settings button locators in `frontend/e2e/layout.spec.ts` to match current accessible names for sync, export, and credential actions.
 - **Stale TODO cleanup**: Removed outdated TODO comment in `master_product/image_service.go` — `downloadImage` already implements 30s timeout + 2-attempt retry. Replaced TODO in `wholesale_extended_handler.go` with documented deferral explaining TikTok Shop API lacks wholesale tier endpoints.
 - **B6 hardcoded domain in test scripts**: Replaced hardcoded `yndigital.my.id` in `scripts/python-build/test_login.py` and `scripts/finance-reports/config.py` with `os.getenv('DOMAIN_NAME', 'https://localhost:5173')` for environment-agnostic usage.
+- **B1 CORS hardcoded domain removal**: Removed 4 hardcoded `yndigital.my.id` entries from `backend/internal/middleware/cors.go`. Production domains now come exclusively from `CORS_ORIGINS` env var (single source of truth). Added zerolog warning when `CORS_ORIGINS` is empty in production mode (fail-secure).
 ### Added
 - **F1/F4 missing task evidence backfill**: Created concise `.sisyphus/evidence/task-N-*.txt` artifacts for T1, T2, T8, T11, T17, T19, T20, T21, and T23, recording commit hashes, work summaries, verification commands, pass/fail results, and PASS verdicts for the final approval evidence gap.
 
