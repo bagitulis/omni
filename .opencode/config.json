@@ -1,0 +1,38 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "theme": "dark",
+  "provider": {
+    "kr": {
+      "name": "9 Router",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "apiKey": "kr-router-local",
+        "baseURL": "http://localhost:20128/v1"
+      },
+      "models": {
+        "auto": {
+          "name": "auto (9 router)",
+          "limit": { "context": 1000000, "output": 64000 },
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        },
+        "mix": {
+          "name": "mix (9 router)",
+          "limit": { "context": 1000000, "output": 64000 },
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        },
+        "claude-opus-4.6": {
+          "name": "claude-opus-4.6 (9 router)",
+          "limit": { "context": 1000000, "output": 64000 },
+          "modalities": { "input": ["text", "image"], "output": ["text"] },
+          "reasoning": true
+        },
+        "claude-sonnet-4": {
+          "name": "claude-sonnet-4 (9 router)",
+          "limit": { "context": 200000, "output": 64000 },
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        }
+      }
+    }
+  },
+  "small_model": "kr/mix"
+}

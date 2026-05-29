@@ -1,9 +1,8 @@
 # ============================================
 # VPS Production Override untuk Omni
 # ============================================
-# - Cloudflared dimatikan (VPS punya public IP, pakai CF proxy langsung).
-# - pgweb dimatikan (gak perlu di produksi).
-# - Security: UFW firewall yang block port selain 22 dan 80.
+# - Cloudflared aktif (Cloudflare Tunnel dari VPS)
+# - pgweb dimatikan (gak perlu di produksi)
 #
 # USAGE:
 #   docker compose -f docker-compose.tunnel.yml -f docker-compose.vps.yml up -d --build
@@ -11,16 +10,7 @@
 
 services:
   # ============================================
-  # Cloudflared — MATIKAN di VPS
-  # VPS punya public IP, pakai Cloudflare proxy (A record)
-  # ============================================
-  cloudflared:
-    profiles:
-      - disabled-vps
-
-  # ============================================
   # pgweb — MATIKAN di VPS (gak perlu di produksi)
-  # Akses DB via SSH tunnel: ssh -L 5432:localhost:5432 root@VPS
   # ============================================
   pgweb:
     profiles:
