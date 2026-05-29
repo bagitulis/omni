@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   test-backend:
@@ -169,3 +170,135 @@ jobs:
       - name: Stop Docker Compose
         if: always()
         run: docker compose -f docker-compose.tunnel.yml down
+
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [test-backend, test-frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    concurrency:
+      group: deploy
+      cancel-in-progress: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up SSH
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if [ -z "${VPS_HOST}" ]; then
+            echo "VPS_HOST secret must be set" >&2
+            exit 1
+          fi
+          if [ -z "${VPS_SSH_KEY}" ]; then
+            echo "VPS_SSH_KEY secret must be set" >&2
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${VPS_SSH_KEY}" > ~/.ssh/omni_deploy_key
+          chmod 600 ~/.ssh/omni_deploy_key
+          ssh-keyscan -H "${VPS_HOST}" >> ~/.ssh/known_hosts
+
+      - name: Validate deployment environment
+        shell: bash
+        env:
+          DEPLOY_TARGET: vps
+          DEPLOY_PROFILE: production
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+          DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+        run: |
+          missing=0
+          for name in VPS_HOST VPS_USER VPS_DEPLOY_PATH DOMAIN_NAME; do
+            if [ -z "${!name}" ]; then
+              echo "${name} secret must be set" >&2
+              missing=1
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then
+            exit 1
+          fi
+          bash scripts/validate-env.sh
+
+      - name: Rsync repository to VPS
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+        run: |
+          rsync_args=(
+            -az
+            --delete
+            --exclude='.git/'
+            --exclude='node_modules/'
+            --exclude='.env'
+            --exclude='*.log'
+            --exclude='backups/'
+            -e "ssh -i ~/.ssh/omni_deploy_key -o StrictHostKeyChecking=yes -o ConnectTimeout=10"
+            ./
+            "${VPS_USER}@${VPS_HOST}:${VPS_DEPLOY_PATH}/"
+          )
+          for attempt in 1 2; do
+            if rsync "${rsync_args[@]}"; then
+              exit 0
+            fi
+            if [ "${attempt}" -lt 2 ]; then
+              echo "rsync failed; retrying once in 10s" >&2
+              sleep 10
+            fi
+          done
+          echo "rsync failed after retry" >&2
+          exit 1
+
+      - name: Remote Docker Compose up
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+        run: |
+          ssh -i ~/.ssh/omni_deploy_key -o StrictHostKeyChecking=yes -o ConnectTimeout=10 "${VPS_USER}@${VPS_HOST}" \
+            "cd '${VPS_DEPLOY_PATH}' && docker compose -f docker-compose.tunnel.yml -f docker-compose.tunnel.highspec.yml up -d --build"
+
+      - name: Health check
+        id: health_check
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+        run: |
+          deadline=$((SECONDS + 60))
+          while [ "${SECONDS}" -lt "${deadline}" ]; do
+            if curl -fsS "https://${DOMAIN_NAME}/api/health" >/dev/null; then
+              echo "Remote health check passed"
+              exit 0
+            fi
+            if ssh -i ~/.ssh/omni_deploy_key -o StrictHostKeyChecking=yes -o ConnectTimeout=10 "${VPS_USER}@${VPS_HOST}" \
+              "curl -fsS http://localhost/api/health >/dev/null"; then
+              echo "Remote localhost health check passed"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Remote health check timed out after 60s" >&2
+          exit 1
+
+      - name: Notify health check failure
+        if: failure() && steps.health_check.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: 'Deployment health check failed after 60 seconds. Inspect the VPS Docker Compose logs and GitHub Actions deploy job output.'
+            })
