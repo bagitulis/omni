@@ -47,6 +47,18 @@ func (s *InventoryService) GetSettings(ctx context.Context) (*models.InventorySe
 func (s *InventoryService) UpdateSettings(ctx context.Context, settings *models.InventorySettings) error {
 	settings.TenantID = s.tenantID
 	settings.UpdatedAt = time.Now()
+
+	// Ensure ID is never empty — GORM treats empty ID as INSERT, causing duplicate pkey
+	if settings.ID == "" {
+		var existing models.InventorySettings
+		err := s.db.WithContext(ctx).Where("tenant_id = ?", s.tenantID).First(&existing).Error
+		if err == nil {
+			settings.ID = existing.ID
+		} else {
+			settings.ID = "settings"
+		}
+	}
+
 	return s.db.WithContext(ctx).Save(settings).Error
 }
 

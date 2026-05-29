@@ -12,6 +12,7 @@ import (
 	"github.com/omni/backend/internal/utils"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // MultiTenantScheduler manages auto-function scheduling across all tenants
@@ -393,17 +394,15 @@ var defaultAutoFunctions = []struct {
 }
 
 // ensureDefaultAutoFunctions ensures default auto functions exist for a tenant.
-// Uses per-name check so new defaults are seeded even when other configs exist.
+// Uses ON CONFLICT DO NOTHING to atomically skip existing rows, preventing duplicates
+// even under race conditions where Count returns 0 for concurrent callers.
 func (s *MultiTenantScheduler) ensureDefaultAutoFunctions(tenantDB *gorm.DB, tenantID string) {
 	now := time.Now()
 
-	for _, def := range defaultAutoFunctions {
-		var count int64
-		tenantDB.Model(&models.AutoFunctionConfig{}).Where("name = ?", def.Name).Count(&count)
-		if count > 0 {
-			continue
-		}
+	// Ensure unique index exists (idempotent — fails silently if already present)
+	tenantDB.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_auto_functions_config_name ON auto_functions_config (name)`)
 
+	for _, def := range defaultAutoFunctions {
 		startTime := def.StartTime
 		endTime := def.EndTime
 		nextExec := now.Add(time.Duration(def.IntervalMinutes) * time.Minute)
@@ -419,10 +418,8 @@ func (s *MultiTenantScheduler) ensureDefaultAutoFunctions(tenantDB *gorm.DB, ten
 			UpdatedAt:              now,
 		}
 
-		if err := tenantDB.Create(cfg).Error; err != nil {
+		if err := tenantDB.Clauses(clause.OnConflict{DoNothing: true}).Create(cfg).Error; err != nil {
 			log.Info().Msgf("❌ [%s] Failed to seed %s: %v", tenantID, def.Name, err)
-		} else {
-			log.Info().Msgf("✅ [%s] Seeded auto function: %s (interval: %dm)", tenantID, def.Name, def.IntervalMinutes)
 		}
 	}
 }

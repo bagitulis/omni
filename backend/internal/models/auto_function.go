@@ -6,7 +6,7 @@ import "time"
 // JSON tags use snake_case as per AGENTS.md standard
 type AutoFunctionConfig struct {
 	ID                     uint       `gorm:"primaryKey" json:"id"`
-	Name                   string     `gorm:"column:name;not null" json:"name"`
+	Name                   string     `gorm:"column:name;not null;uniqueIndex" json:"name"`
 	Enabled                bool       `gorm:"column:enabled;default:false" json:"enabled"`
 	IntervalMinutes        int        `gorm:"column:interval_minutes;default:30" json:"interval_minutes"`
 	StartTime              *string    `gorm:"column:start_time" json:"start_time,omitempty"`

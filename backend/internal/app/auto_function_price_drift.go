@@ -45,7 +45,7 @@ func priceDriftDetectionHandler(ctx context.Context, tenantID string, cfg *model
 		FROM inventory_records ir
 		LEFT JOIN LATERAL (
 			SELECT created_at, platform
-			FROM marketplace_sync_histories
+			FROM marketplace_sync_history
 			WHERE sku = ir.key_value 
 				AND tenant_id = ir.tenant_id
 				AND operation = 'price_update' 

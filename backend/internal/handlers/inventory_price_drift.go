@@ -66,7 +66,7 @@ func (h *InventoryHandler) PriceDrift(c *gin.Context) {
 		FROM inventory_records ir
 		LEFT JOIN LATERAL (
 			SELECT created_at, platform, request_data
-			FROM marketplace_sync_histories
+			FROM marketplace_sync_history
 			WHERE sku = ir.key_value 
 				AND tenant_id = ir.tenant_id
 				AND operation = 'price_update' 
