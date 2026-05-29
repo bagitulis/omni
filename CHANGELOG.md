@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **T7 CORS origin normalization**: `CORS_ORIGINS` parsing now normalizes origins — strips trailing slashes (`https://domain.com/` → `https://domain.com`), trims whitespace (`foo.com, bar.com` → 2 clean origins), and skips empty entries (`foo.com,,bar.com` → 2 origins). Added `normalizeOrigin()` function and comprehensive unit tests. Evidence: `.sisyphus/evidence/task-7-cors-parsing.txt`.
+- **F2 Code Review fixes**: Fixed 4 bugs from flexible-deployment review — (1) removed hardcoded `redis123` fallback password in `docker-compose.tunnel.highspec.yml` (now requires `REDIS_PASSWORD` env var), (2) added compose file flags to rollback in `deploy-vps.sh` so rollback uses same overlay as deploy, (3) changed deploy lock from warning to abort (concurrent deploys can corrupt state), (4) aligned SSH `StrictHostKeyChecking` from `accept-new` to `yes` matching CI workflow.
 
 
 ### Added

@@ -104,7 +104,7 @@ remote_target() {
 
 ssh_base_args() {
     local key_path="${SSH_KEY_PATH:-${VPS_SSH_KEY:-}}"
-    printf '%s\n' "-o" "StrictHostKeyChecking=accept-new" "-o" "ConnectTimeout=10" "-p" "${VPS_PORT:-22}"
+    printf '%s\n' "-o" "StrictHostKeyChecking=yes" "-o" "ConnectTimeout=10" "-p" "${VPS_PORT:-22}"
     if [[ -n "$key_path" && "$key_path" != __SET_IN_GH_SECRETS__ ]]; then
         printf '%s\n' "-i" "$key_path"
     fi
@@ -179,9 +179,9 @@ check_remote_env() {
     run_ssh "test -f '${VPS_DEPLOY_PATH}/.env' || { echo 'create .env on VPS first: ${VPS_DEPLOY_PATH}/.env' >&2; exit 1; }"
 }
 
-warn_lock_and_dirty_tree() {
+check_lock_and_dirty_tree() {
     info "Checking remote deploy lock and working tree"
-    run_ssh "if [ -f '${VPS_DEPLOY_PATH}/.deploy.lock' ]; then echo 'WARNING: deploy lock exists at ${VPS_DEPLOY_PATH}/.deploy.lock'; fi; if [ -d '${VPS_DEPLOY_PATH}/.git' ] && command -v git >/dev/null 2>&1; then cd '${VPS_DEPLOY_PATH}' && if [ -n \"\$(git status --porcelain 2>/dev/null)\" ]; then echo 'WARNING: remote git working tree has local changes; rsync deploy will overwrite files'; fi; fi"
+    run_ssh "if [ -f '${VPS_DEPLOY_PATH}/.deploy.lock' ]; then echo 'ERROR: deploy lock exists at ${VPS_DEPLOY_PATH}/.deploy.lock — remove it to proceed' >&2; exit 1; fi; if [ -d '${VPS_DEPLOY_PATH}/.git' ] && command -v git >/dev/null 2>&1; then cd '${VPS_DEPLOY_PATH}' && if [ -n \"\$(git status --porcelain 2>/dev/null)\" ]; then echo 'WARNING: remote git working tree has local changes; rsync deploy will overwrite files'; fi; fi"
 }
 
 list_remote_backups() {
@@ -211,7 +211,7 @@ rsync_repo() {
         --exclude='.env' \
         --exclude='*.log' \
         --exclude='backups/' \
-        -e "ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -p ${VPS_PORT:-22} $(ssh_key_option)" \
+        -e "ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -p ${VPS_PORT:-22} $(ssh_key_option)" \
         "${ROOT_DIR}/" "$(remote_target):${VPS_DEPLOY_PATH}/"
 }
 
@@ -246,7 +246,7 @@ rollback() {
     info "Rollback requested for ${VPS_DEPLOY_PATH}-backup-${ROLLBACK_TS}"
     list_remote_backups
     run_ssh "test -d '${VPS_DEPLOY_PATH}-backup-${ROLLBACK_TS}' || { echo 'Backup not found: ${VPS_DEPLOY_PATH}-backup-${ROLLBACK_TS}' >&2; exit 1; }"
-    run_ssh "rsync -av '${VPS_DEPLOY_PATH}-backup-${ROLLBACK_TS}/' '${VPS_DEPLOY_PATH}/' && cd '${VPS_DEPLOY_PATH}' && docker compose up -d"
+    run_ssh "rsync -av '${VPS_DEPLOY_PATH}-backup-${ROLLBACK_TS}/' '${VPS_DEPLOY_PATH}/' && cd '${VPS_DEPLOY_PATH}' && docker compose -f docker-compose.tunnel.yml -f docker-compose.tunnel.${SPEC}.yml up -d"
     success "Rollback command completed"
 }
 
@@ -260,7 +260,7 @@ deploy() {
     test_ssh_connectivity
     check_disk_space
     check_remote_env
-    warn_lock_and_dirty_tree
+    check_lock_and_dirty_tree
     create_predeploy_backup
     run_backup_tooling
     rsync_repo
