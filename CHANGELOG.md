@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- **T7 CORS origin normalization**: `CORS_ORIGINS` parsing now normalizes origins — strips trailing slashes (`https://domain.com/` → `https://domain.com`), trims whitespace (`foo.com, bar.com` → 2 clean origins), and skips empty entries (`foo.com,,bar.com` → 2 origins). Added `normalizeOrigin()` function and comprehensive unit tests. Evidence: `.sisyphus/evidence/task-7-cors-parsing.txt`.
+
 
 ### Added
 - **T11 domain reference parameterization (final sweep)**: Replaced hardcoded `yndigital.my.id` in `backups/db-tools/fresh-install.ps1` (line 298: now uses `$env:DOMAIN_NAME`) and `mcp-servers/mcp-config.json` (line 10: now uses `n8n.example.com` placeholder). Zero non-doc domain references remain. Evidence: `.sisyphus/evidence/task-11-domain-complete.txt`.

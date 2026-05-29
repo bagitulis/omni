@@ -223,7 +223,12 @@ func TestGetEnvList(t *testing.T) {
 	}
 
 	// Test non-existing (already covered above)
-
+	// Test with non-existing
+	got = getEnvList("NON_EXISTING_LIST", []string{"default"})
+	if len(got) != 1 || got[0] != "default" {
+		t.Errorf("getEnvList() = %v, want [default]", got)
+	}
+}
 func TestSplitString(t *testing.T) {
 	tests := []struct {
 		input    string
