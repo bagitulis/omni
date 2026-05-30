@@ -33,6 +33,7 @@ type CredentialAPIService interface {
 	ChangeConnectionStatus(ctx context.Context, tenantID, role, userID string, req credentialsvc.CredentialConnectionActionRequest, action string) (*credentialsvc.CredentialMutationResponse, error)
 	ListAuditEvents(ctx context.Context, tenantID, role, userID, platform, storeIdentifier, limitStr, cursor string) (*credentialsvc.CredentialAuditListResponse, error)
 	ApplyManualToken(ctx context.Context, tenantID, role, userID string, req credentialsvc.CredentialManualTokenRequest) (*credentialsvc.CredentialMutationResponse, error)
+	HandleCredentialCallback(c *gin.Context)
 }
 
 // GetCredentialPlatforms handles GET /api/credentials/platforms
@@ -211,4 +212,13 @@ func (h *PlatformAuthHandler) changeConnectionStatus(c *gin.Context, action stri
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(result))
+}
+
+// HandleCredentialCallback handles GET /api/credentials/callback/:platform
+func (h *PlatformAuthHandler) HandleCredentialCallback(c *gin.Context) {
+	if h.credentialService == nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Credential service unavailable"))
+		return
+	}
+	h.credentialService.HandleCredentialCallback(c)
 }
