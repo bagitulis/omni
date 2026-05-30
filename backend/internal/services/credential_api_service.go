@@ -193,7 +193,7 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 			svc := oauth.NewShopeeOAuthService(cfg.PartnerID, cfg.PartnerKey, callbackURL, false)
 			authURL = svc.GetAuthURL(signedState)
 		} else {
-			authURL = callbackURL + "?state=" + url.QueryEscape(signedState)
+			return nil, fmt.Errorf("shopee app credentials not configured for tenant %s", tenantID)
 		}
 	case models.PlatformLazada:
 		cfg, _ := repo.GetAppConfig(ctx, tenantID, req.Platform)

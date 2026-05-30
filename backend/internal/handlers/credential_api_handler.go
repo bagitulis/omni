@@ -3,12 +3,27 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
 	credentialsvc "github.com/omni/backend/internal/services"
 )
+
+func credentialErrorStatus(err error) int {
+	msg := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(msg, "forbidden") || strings.Contains(msg, "not authorized"):
+		return http.StatusForbidden
+	case strings.Contains(msg, "not found"):
+		return http.StatusNotFound
+	case strings.HasPrefix(msg, "missing") || strings.Contains(msg, "invalid") || strings.Contains(msg, "unsupported"):
+		return http.StatusBadRequest
+	default:
+		return http.StatusInternalServerError
+	}
+}
 
 type CredentialAPIService interface {
 	GetPlatformStatus(ctx context.Context, tenantID, role, userID, platform, storeIdentifier string) ([]credentialsvc.CredentialPlatformStatus, error)
@@ -71,7 +86,7 @@ func (h *PlatformAuthHandler) PostCredentialOAuthInitiate(c *gin.Context) {
 	req.Platform = c.Param("platform")
 	result, err := h.credentialService.InitiateOAuth(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), h.getBackendURL(c), req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
+		c.JSON(credentialErrorStatus(err), response.Error(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(result))
@@ -97,7 +112,7 @@ func (h *PlatformAuthHandler) PostCredentialOAuthReconnect(c *gin.Context) {
 	req.StoreIdentifier = c.Param("store_identifier")
 	result, err := h.credentialService.ReconnectOAuth(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), h.getBackendURL(c), req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
+		c.JSON(credentialErrorStatus(err), response.Error(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(result))
@@ -122,7 +137,7 @@ func (h *PlatformAuthHandler) GetCredentialAudit(c *gin.Context) {
 	}
 	result, err := h.credentialService.ListAuditEvents(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), c.Param("platform"), c.Query("store_identifier"), c.Query("limit"), c.Query("cursor"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
+		c.JSON(credentialErrorStatus(err), response.Error(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(result))
@@ -147,7 +162,7 @@ func (h *PlatformAuthHandler) PostCredentialManualToken(c *gin.Context) {
 	req.Platform = c.Param("platform")
 	result, err := h.credentialService.ApplyManualToken(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
+		c.JSON(credentialErrorStatus(err), response.Error(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(result))
@@ -171,7 +186,7 @@ func (h *PlatformAuthHandler) upsertCredentialApp(c *gin.Context, rotate bool) {
 	req.Platform = c.Param("platform")
 	result, err := h.credentialService.UpsertAppCredential(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), req, rotate)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
+		c.JSON(credentialErrorStatus(err), response.Error(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(result))
@@ -196,7 +211,7 @@ func (h *PlatformAuthHandler) changeConnectionStatus(c *gin.Context, action stri
 	req.StoreIdentifier = c.Param("store_identifier")
 	result, err := h.credentialService.ChangeConnectionStatus(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), req, action)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
+		c.JSON(credentialErrorStatus(err), response.Error(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(result))

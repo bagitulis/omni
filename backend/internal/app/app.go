@@ -284,6 +284,10 @@ func (a *App) initHandlers() {
 		services.NewCredentialApiService(a.SystemDB),
 	)
 
+	if err := services.SeedShopeeAppCredentials(a.SystemDB, "yumna_bertigamart"); err != nil {
+		zlog.Error().Err(err).Msg("Failed to seed Shopee app credentials")
+	}
+
 	a.ShopeeAnalyticsHandler = handlers.NewShopeeAnalyticsHandler(a.SystemDB)
 	a.TiktokAnalyticsHandler = handlers.NewTiktokAnalyticsHandler(a.SystemDB)
 }

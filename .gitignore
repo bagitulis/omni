@@ -105,3 +105,8 @@ desktop.ini
 # Credentials (NEVER commit)
 *.env
 .sisyphus/plans/*.env
+.omo/plans/*.env
+.omo/evidence/
+
+# NOTE: .env (root) is currently tracked by git.
+# To untrack: git rm --cached .env (run manually, AI agents cannot execute git rm)
