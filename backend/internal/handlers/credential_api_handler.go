@@ -51,11 +51,7 @@ func (h *PlatformAuthHandler) GetCredentialPlatforms(c *gin.Context) {
 	storeIdentifier := c.Query("store_identifier")
 	result, err := h.credentialService.GetPlatformStatus(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), platform, storeIdentifier)
 	if err != nil {
-		status := http.StatusInternalServerError
-		if err.Error() == "Missing tenant_id" || err.Error() == "tenant_id is required" {
-			status = http.StatusUnauthorized
-		}
-		c.JSON(status, response.Error(err.Error()))
+		c.JSON(credentialErrorStatus(err), response.Error(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(gin.H{"platforms": result}))
