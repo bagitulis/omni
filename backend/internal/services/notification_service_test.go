@@ -36,13 +36,13 @@ func TestNotificationService_PushWithMetadata(t *testing.T) {
 	require.NoError(t, err)
 
 	// Push with metadata
-	notif, err := svc.Push("success", "inventory", "Bulk Stock Sync", "Test message", "", string(metadataJSON))
+	notif, err := svc.Push(context.Background(), "success", "inventory", "Bulk Stock Sync", "Test message", "", string(metadataJSON))
 	require.NoError(t, err)
 	require.NotNil(t, notif)
 	assert.NotZero(t, notif.ID)
 
 	// Fetch from DB and verify metadata persisted
-	fetched, err := svc.GetByID(notif.ID)
+	fetched, err := svc.GetByID(context.Background(), notif.ID)
 	require.NoError(t, err)
 	require.NotNil(t, fetched)
 
@@ -63,13 +63,13 @@ func TestNotificationService_PushWithoutMetadata(t *testing.T) {
 	svc := NewNotificationService(repo)
 
 	// Push without metadata (legacy path — variadic handles empty)
-	notif, err := svc.Push("info", "system", "Test Title", "Test message", "", "{}")
+	notif, err := svc.Push(context.Background(), "info", "system", "Test Title", "Test message", "", "{}")
 	require.NoError(t, err)
 	require.NotNil(t, notif)
 	assert.Equal(t, "{}", notif.Metadata)
 
 	// Fetch from DB and verify metadata field is indeed empty
-	fetched, err := svc.GetByID(notif.ID)
+	fetched, err := svc.GetByID(context.Background(), notif.ID)
 	require.NoError(t, err)
 	require.NotNil(t, fetched)
 	assert.Equal(t, "{}", fetched.Metadata)
@@ -81,7 +81,7 @@ func TestNotificationService_PushNullMetadataSafety(t *testing.T) {
 	svc := NewNotificationService(repo)
 
 	// Push with empty metadata string — should not panic and metadata should be empty
-	notif, err := svc.Push("warning", "inventory", "Test", "Test message", "", "{}")
+	notif, err := svc.Push(context.Background(), "warning", "inventory", "Test", "Test message", "", "{}")
 	require.NoError(t, err)
 	require.NotNil(t, notif)
 	assert.Equal(t, "{}", notif.Metadata)
@@ -92,14 +92,14 @@ func TestNotificationService_MarkAsRead(t *testing.T) {
 	repo := repositories.NewNotificationRepository(db)
 	svc := NewNotificationService(repo)
 
-	notif, err := svc.Push("info", "test", "Title", "Msg", "", "{}")
+	notif, err := svc.Push(context.Background(), "info", "test", "Title", "Msg", "", "{}")
 	require.NoError(t, err)
 	require.NotNil(t, notif)
 
-	err = svc.MarkAsRead(notif.ID)
+	err = svc.MarkAsRead(context.Background(), notif.ID)
 	require.NoError(t, err)
 
-	fetched, err := svc.GetByID(notif.ID)
+	fetched, err := svc.GetByID(context.Background(), notif.ID)
 	require.NoError(t, err)
 	require.NotNil(t, fetched)
 	assert.True(t, fetched.Read)
@@ -111,15 +111,15 @@ func TestNotificationService_MarkAllAsRead(t *testing.T) {
 	svc := NewNotificationService(repo)
 
 	for range 2 {
-		notif, err := svc.Push("info", "test", "Title", "Msg", "", "{}")
+		notif, err := svc.Push(context.Background(), "info", "test", "Title", "Msg", "", "{}")
 		require.NoError(t, err)
 		require.NotNil(t, notif)
 	}
 
-	err := svc.MarkAllAsRead()
+	err := svc.MarkAllAsRead(context.Background())
 	require.NoError(t, err)
 
-	items, err := svc.List(10, 0, false)
+	items, err := svc.List(context.Background(), 10, 0, false)
 	require.NoError(t, err)
 	require.Len(t, items, 2)
 	for _, item := range items {
@@ -132,14 +132,14 @@ func TestNotificationService_Delete(t *testing.T) {
 	repo := repositories.NewNotificationRepository(db)
 	svc := NewNotificationService(repo)
 
-	notif, err := svc.Push("info", "test", "Title", "Msg", "", "{}")
+	notif, err := svc.Push(context.Background(), "info", "test", "Title", "Msg", "", "{}")
 	require.NoError(t, err)
 	require.NotNil(t, notif)
 
-	err = svc.Delete(notif.ID)
+	err = svc.Delete(context.Background(), notif.ID)
 	require.NoError(t, err)
 
-	fetched, err := svc.GetByID(notif.ID)
+	fetched, err := svc.GetByID(context.Background(), notif.ID)
 	assert.Error(t, err)
 	assert.Nil(t, fetched)
 }
@@ -149,13 +149,13 @@ func TestNotificationService_DeleteAll(t *testing.T) {
 	repo := repositories.NewNotificationRepository(db)
 	svc := NewNotificationService(repo)
 
-	_, err := svc.Push("info", "system", "DeleteAll Test", "Will be deleted with all", "", "{}")
+	_, err := svc.Push(context.Background(), "info", "system", "DeleteAll Test", "Will be deleted with all", "", "{}")
 	require.NoError(t, err)
 
-	err = svc.DeleteAll()
+	err = svc.DeleteAll(context.Background())
 	require.NoError(t, err)
 
-	items, err := svc.List(10, 0, false)
+	items, err := svc.List(context.Background(), 10, 0, false)
 	require.NoError(t, err)
 	assert.Equal(t, 0, len(items))
 }
@@ -165,7 +165,7 @@ func TestNotificationService_GetSettingsDefault(t *testing.T) {
 	repo := repositories.NewNotificationRepository(db)
 	svc := NewNotificationService(repo)
 
-	settings, err := svc.GetSettings()
+	settings, err := svc.GetSettings(context.Background())
 	require.NoError(t, err)
 	require.NotNil(t, settings)
 	assert.Equal(t, 30, settings.RetentionDays)
@@ -189,6 +189,6 @@ func TestNotificationService_CleanupOlderThan(t *testing.T) {
 	err := repo.Create(context.Background(), oldNotif)
 	require.NoError(t, err)
 
-	rows := svc.CleanupOlderThan(1) // cleanup older than 1 day
+	rows := svc.CleanupOlderThan(context.Background(), 1) // cleanup older than 1 day
 	assert.GreaterOrEqual(t, rows, int64(1))
 }
