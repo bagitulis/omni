@@ -44,6 +44,14 @@ func RegisterCredentialRoutes(router *gin.RouterGroup, handler *handlers.Platfor
 	}
 }
 
+// RegisterCredentialCallbackRoute registers the public credential OAuth callback route
+// This route has NO auth or tenant middleware — it's a browser redirect from Shopee
+func RegisterCredentialCallbackRoute(router *gin.RouterGroup, handler *handlers.PlatformAuthHandler) {
+	callback := router.Group("/credentials/callback")
+	// No middleware — browser redirect from Shopee, no JWT available
+	callback.GET("/:platform", handler.HandleCredentialCallback)
+}
+
 // RegisterWebhookExtendedRoutes registers webhook extended routes
 func RegisterWebhookExtendedRoutes(
 	router *gin.RouterGroup,
