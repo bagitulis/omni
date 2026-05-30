@@ -101,3 +101,7 @@ docker-compose.override.yml
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Credentials (NEVER commit)
+*.env
+.sisyphus/plans/*.env
