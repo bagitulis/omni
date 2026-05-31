@@ -16,16 +16,19 @@ import (
 	"github.com/omni/backend/internal/services/oauth"
 	"github.com/omni/backend/internal/services/platform"
 	"github.com/omni/backend/internal/services/sync"
-	"gorm.io/gorm"
 )
 
-func NewCredentialApiService(db *gorm.DB) *CredentialApiService { return &CredentialApiService{db: db} }
+func NewCredentialApiService(dbPath string) *CredentialApiService { return &CredentialApiService{dbPath: dbPath} }
 
 func (s *CredentialApiService) GetPlatformStatus(ctx context.Context, tenantID, role, userID, platform, storeIdentifier string) ([]CredentialPlatformStatus, error) {
 	if tenantID == "" {
 		return nil, fmt.Errorf("Missing tenant_id")
 	}
-	repo := repositories.NewCredentialRepository(s.db)
+	tenantDB, err := s.tenantDB(tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("get tenant DB: %w", err)
+	}
+	repo := repositories.NewCredentialRepository(tenantDB)
 	if platform == "" {
 		platforms := []CredentialPlatformStatus{{Platform: models.PlatformShopee, Status: "disconnected"}, {Platform: models.PlatformLazada, Status: "disconnected", Region: "id"}, {Platform: models.PlatformTiktok, Status: "disconnected"}}
 		for i := range platforms {
@@ -78,7 +81,11 @@ func (s *CredentialApiService) UpsertAppCredential(ctx context.Context, tenantID
 	if role != "developer" && role != "admin" && role != "owner" {
 		return nil, fmt.Errorf("forbidden")
 	}
-	repo := repositories.NewCredentialRepository(s.db)
+	tenantDB, err := s.tenantDB(tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("get tenant DB: %w", err)
+	}
+	repo := repositories.NewCredentialRepository(tenantDB)
 	cfg, err := repo.GetAppConfig(ctx, tenantID, req.Platform)
 	if err != nil {
 		return nil, err
@@ -136,7 +143,11 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 	if role != "developer" && role != "admin" && role != "owner" {
 		return nil, fmt.Errorf("forbidden")
 	}
-	repo := repositories.NewCredentialRepository(s.db)
+	tenantDB, err := s.tenantDB(tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("get tenant DB: %w", err)
+	}
+	repo := repositories.NewCredentialRepository(tenantDB)
 	attemptID := uuid.NewString()
 
 	// Build CSRF nonce and signed state
@@ -264,7 +275,11 @@ func (s *CredentialApiService) ChangeConnectionStatus(ctx context.Context, tenan
 	if req.StoreIdentifier == "" {
 		return nil, fmt.Errorf("store_identifier is required")
 	}
-	repo := repositories.NewCredentialRepository(s.db)
+	tenantDB, err := s.tenantDB(tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("get tenant DB: %w", err)
+	}
+	repo := repositories.NewCredentialRepository(tenantDB)
 	conn, err := repo.GetConnection(ctx, tenantID, req.Platform, req.StoreIdentifier)
 	if err != nil {
 		return nil, err
@@ -318,7 +333,11 @@ func (s *CredentialApiService) ListAuditEvents(ctx context.Context, tenantID, ro
 			limit = parsed
 		}
 	}
-	repo := repositories.NewCredentialRepository(s.db)
+	tenantDB, err := s.tenantDB(tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("get tenant DB: %w", err)
+	}
+	repo := repositories.NewCredentialRepository(tenantDB)
 	events, err := repo.ListAuditEvents(ctx, tenantID, platform, limit, 0)
 	if err != nil {
 		return nil, err
@@ -336,7 +355,11 @@ func (s *CredentialApiService) ApplyManualToken(ctx context.Context, tenantID, r
 	if req.Reason == "" {
 		return nil, fmt.Errorf("reason is required")
 	}
-	repo := repositories.NewCredentialRepository(s.db)
+	tenantDB, err := s.tenantDB(tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("get tenant DB: %w", err)
+	}
+	repo := repositories.NewCredentialRepository(tenantDB)
 
 	// Check for existing connection (including disabled ones — upsert pattern)
 	var existing *models.CredentialConnection

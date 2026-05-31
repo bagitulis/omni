@@ -75,7 +75,12 @@ func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 	}
 
 	// Step 3: Validate attempt
-	repo := repositories.NewCredentialRepository(s.db)
+	tenantDB, err := s.tenantDB(claims.TenantID)
+	if err != nil {
+		redirectWithError(c, frontendURL, redirectPath, "tenant_db_error")
+		return
+	}
+	repo := repositories.NewCredentialRepository(tenantDB)
 	attempt, err := repo.GetAttempt(ctx, claims.TenantID, claims.Platform, claims.AttemptID)
 	if err != nil || attempt == nil || attempt.Status != "pending" {
 		redirectWithError(c, frontendURL, redirectPath, "invalid_attempt")
@@ -220,7 +225,7 @@ func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 	}
 
 	// Step 8: Dual-write to platform_configs (best-effort with retry)
-	platformConfigRepo := repositories.NewTenantPlatformConfigRepository(s.db)
+	platformConfigRepo := repositories.NewTenantPlatformConfigRepository(tenantDB)
 	expiresInSeconds := (conn.TokenExpiry - time.Now().UnixMilli()) / 1000
 	refreshExpiresInSeconds := (conn.RefreshExpiry - time.Now().UnixMilli()) / 1000
 	if dwErr := retryDualWrite(ctx, 3, func() error {

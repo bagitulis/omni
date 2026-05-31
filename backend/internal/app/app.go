@@ -281,7 +281,7 @@ func (a *App) initHandlers() {
 		a.GlobalConfigRepo,
 		frontendURL,
 		a.BasePath,
-		services.NewCredentialApiService(a.SystemDB),
+		services.NewCredentialApiService(a.BasePath),
 	)
 
 	if err := services.SeedShopeeAppCredentials(a.SystemDB, "yumna_bertigamart"); err != nil {
