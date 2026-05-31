@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **Multi-platform OAuth callback helpers**: Added Lazada (`credential_callback_lazada.go`) and TikTok (`credential_callback_tiktok.go`) token exchange + store identifier fetch functions for Phase 2 credential OAuth.
+### Changed
+- **Dynamic callback URL**: Replaced hardcoded `yndigital.my.id` with `APP_URL` env var (fallback to `yndigital.my.id`) in both `credential_api_service.go` and `credential_callback_service.go`.
+- **Removed fake URL fallbacks**: Lazada, TikTok, and default platform cases in `InitiateOAuth` now return explicit errors instead of generating fake callback URLs.
 ### Fixed
 - **Shopee OAuth InitiateOAuth**: Verified explicit error return when app credentials not configured (no silent fake URL fallback). Fixed extraneous brace syntax error in credential_api_handler.go GetCredentialPlatforms that blocked build.
 

@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
-	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -183,6 +183,11 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 	}
 
 	// Get app credentials to build real platform auth URL
+	callbackBaseURL = os.Getenv("APP_URL")
+	if callbackBaseURL == "" {
+		callbackBaseURL = "https://yndigital.my.id"
+		log.Warn().Msg("APP_URL not set, using fallback for callback URL")
+	}
 	callbackURL := callbackBaseURL + "/api/credentials/callback/" + req.Platform
 	var authURL string
 
@@ -201,7 +206,7 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 			svc := oauth.NewLazadaOAuthService(cfg.AppKey, cfg.AppSecret, callbackURL, false)
 			authURL = svc.GetAuthURL(signedState)
 		} else {
-			authURL = callbackURL + "?state=" + url.QueryEscape(signedState)
+			return nil, fmt.Errorf("lazada app credentials not configured for tenant %s", tenantID)
 		}
 	case models.PlatformTiktok:
 		cfg, _ := repo.GetAppConfig(ctx, tenantID, req.Platform)
@@ -209,10 +214,10 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 			svc := oauth.NewTiktokOAuthService(cfg.AppKey, cfg.AppSecret, callbackURL, false)
 			authURL = svc.GetAuthURL(signedState)
 		} else {
-			authURL = callbackURL + "?state=" + url.QueryEscape(signedState)
+			return nil, fmt.Errorf("tiktok app credentials not configured for tenant %s", tenantID)
 		}
 	default:
-		authURL = callbackURL + "?state=" + url.QueryEscape(signedState)
+		return nil, fmt.Errorf("unsupported platform: %s", req.Platform)
 	}
 
 	// Write audit event

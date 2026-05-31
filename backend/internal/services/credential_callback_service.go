@@ -89,7 +89,12 @@ func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 	}
 
 	isSandbox := os.Getenv("SHOPEE_ENV") != "live"
-	callbackURL := "https://yndigital.my.id/api/credentials/callback/shopee"
+	callbackBaseURL := os.Getenv("APP_URL")
+	if callbackBaseURL == "" {
+		callbackBaseURL = "https://yndigital.my.id"
+		log.Warn().Msg("APP_URL not set, using fallback for callback URL")
+	}
+	callbackURL := callbackBaseURL + "/api/credentials/callback/shopee"
 	shopeeService := oauth.NewShopeeOAuthService(appConfig.PartnerID, appConfig.PartnerKey, callbackURL, isSandbox)
 
 	shopIDInt, err := shopeeService.ParseShopID(shopIDStr)
