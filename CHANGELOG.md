@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- **Multi-platform OAuth callback dispatch with dual-write bridge**: Refactored `HandleCredentialCallback` to dispatch on `claims.Platform` (shopee/lazada/tiktok) with platform validation against URL param. Extracted Shopee callback logic into `credential_callback_shopee.go` (`handleShopeeCallback`, `exchangeShopeeToken`, `shopeeTokenResponse`). Added best-effort dual-write to `platform_configs` via `TenantPlatformConfigRepository.UpdateTokens` after credential_connections persistence. Platform-specific refresh expiry: Shopee 7d, Lazada from `refresh_expires_in`, TikTok from `refresh_expires_in`.
+- **Multi-platform OAuth callback helpers**: Added Lazada (`credential_callback_lazada.go`) and TikTok (`credential_callback_tiktok.go`) token exchange + store identifier fetch functions for Phase 2 credential OAuth.
+### Added
 - **Multi-platform OAuth callback helpers**: Added Lazada (`credential_callback_lazada.go`) and TikTok (`credential_callback_tiktok.go`) token exchange + store identifier fetch functions for Phase 2 credential OAuth.
 ### Changed
 - **Dynamic callback URL**: Replaced hardcoded `yndigital.my.id` with `APP_URL` env var (fallback to `yndigital.my.id`) in both `credential_api_service.go` and `credential_callback_service.go`.

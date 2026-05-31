@@ -1,10 +1,6 @@
 package services
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -26,9 +22,9 @@ func redirectWithError(c *gin.Context, frontendURL, redirectPath, errorKey strin
 	c.Redirect(http.StatusTemporaryRedirect, target+"?error="+errorKey)
 }
 
-// HandleCredentialCallback processes the Shopee OAuth callback.
-// It parses the signed state, validates the attempt, exchanges the auth code for tokens,
-// persists the connection, and redirects the user back to the frontend.
+// HandleCredentialCallback processes OAuth callbacks from Shopee, Lazada, and TikTok.
+// It parses the signed state, validates the attempt, dispatches to the platform-specific
+// token exchange, persists the connection, dual-writes to platform_configs, and redirects.
 func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 	ctx := c.Request.Context()
 	frontendURL := os.Getenv("FRONTEND_URL")
@@ -55,7 +51,7 @@ func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 
 	redirectPath := claims.RedirectPath
 
-	// Step 2: Check for Shopee error/cancel
+	// Step 2: Check for error/cancel
 	if errParam := c.Query("error"); errParam == "access_denied" {
 		redirectWithError(c, frontendURL, redirectPath, "access_denied")
 		return
@@ -67,9 +63,14 @@ func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 		return
 	}
 
-	shopIDStr := c.Query("shop_id")
-	if shopIDStr == "" {
-		redirectWithError(c, frontendURL, redirectPath, "missing_shop_id")
+	// Step 2.5: Platform validation — prevent URL path manipulation
+	urlPlatform := c.Param("platform")
+	if claims.Platform != urlPlatform {
+		log.Warn().
+			Str("claims_platform", claims.Platform).
+			Str("url_platform", urlPlatform).
+			Msg("Platform mismatch between state claims and URL param")
+		redirectWithError(c, frontendURL, redirectPath, "platform_mismatch")
 		return
 	}
 
@@ -81,56 +82,120 @@ func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 		return
 	}
 
-	// Step 4: Exchange auth code for tokens
+	// Step 4: Fetch app config
 	appConfig, err := repo.GetAppConfig(ctx, claims.TenantID, claims.Platform)
 	if err != nil || appConfig == nil {
 		redirectWithError(c, frontendURL, redirectPath, "app_not_configured")
 		return
 	}
 
-	isSandbox := os.Getenv("SHOPEE_ENV") != "live"
+	// Step 5: Build callback URL base
 	callbackBaseURL := os.Getenv("APP_URL")
 	if callbackBaseURL == "" {
 		callbackBaseURL = "https://yndigital.my.id"
 		log.Warn().Msg("APP_URL not set, using fallback for callback URL")
 	}
-	callbackURL := callbackBaseURL + "/api/credentials/callback/shopee"
-	shopeeService := oauth.NewShopeeOAuthService(appConfig.PartnerID, appConfig.PartnerKey, callbackURL, isSandbox)
 
-	shopIDInt, err := shopeeService.ParseShopID(shopIDStr)
-	if err != nil {
-		log.Error().Err(err).Str("shop_id", shopIDStr).Msg("Failed to parse shop_id")
-		repo.CompleteAttempt(ctx, claims.TenantID, claims.Platform, claims.AttemptID, "failed")
-		redirectWithError(c, frontendURL, redirectPath, "token_exchange_failed")
+	// Step 6: Platform dispatch — each case builds a CredentialConnection struct
+	var conn *models.CredentialConnection
+
+	switch claims.Platform {
+	case "shopee":
+		shopIDStr := c.Query("shop_id")
+		if shopIDStr == "" {
+			redirectWithError(c, frontendURL, redirectPath, "missing_shop_id")
+			return
+		}
+		conn, err = handleShopeeCallback(ctx, appConfig, code, shopIDStr, claims)
+		if err != nil {
+			log.Error().Err(err).Msg("Shopee callback failed")
+			repo.CompleteAttempt(ctx, claims.TenantID, claims.Platform, claims.AttemptID, "failed")
+			redirectWithError(c, frontendURL, redirectPath, "token_exchange_failed")
+			return
+		}
+
+	case "lazada":
+		callbackURL := callbackBaseURL + "/api/credentials/callback/lazada"
+		lazadaService := oauth.NewLazadaOAuthService(appConfig.AppKey, appConfig.AppSecret, callbackURL, false)
+
+		tokenResp, tokenErr := exchangeLazadaToken(ctx, lazadaService, code)
+		if tokenErr != nil {
+			log.Error().Err(tokenErr).Msg("Lazada token exchange failed")
+			repo.CompleteAttempt(ctx, claims.TenantID, claims.Platform, claims.AttemptID, "failed")
+			redirectWithError(c, frontendURL, redirectPath, "token_exchange_failed")
+			return
+		}
+
+		storeIdentifier, storeName, fetchErr := fetchLazadaStoreIdentifier(ctx, lazadaService, tokenResp.AccessToken)
+		if fetchErr != nil {
+			log.Error().Err(fetchErr).Msg("Lazada store identifier fetch failed")
+			repo.CompleteAttempt(ctx, claims.TenantID, claims.Platform, claims.AttemptID, "failed")
+			redirectWithError(c, frontendURL, redirectPath, "token_exchange_failed")
+			return
+		}
+
+		tokenExpiry := time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix()
+		refreshExpiry := time.Now().Add(time.Duration(tokenResp.RefreshExpiresIn) * time.Second).Unix()
+
+		conn = &models.CredentialConnection{
+			TenantID:        claims.TenantID,
+			Platform:        claims.Platform,
+			StoreIdentifier: storeIdentifier,
+			StoreName:       storeName,
+			Status:          "connected",
+			AccessToken:     tokenResp.AccessToken,
+			RefreshToken:    tokenResp.RefreshToken,
+			TokenExpiry:     tokenExpiry,
+			RefreshExpiry:   refreshExpiry,
+			CreatedBy:       claims.UserID,
+			UpdatedBy:       claims.UserID,
+		}
+
+	case "tiktok":
+		callbackURL := callbackBaseURL + "/api/credentials/callback/tiktok"
+		tiktokService := oauth.NewTiktokOAuthService(appConfig.AppKey, appConfig.AppSecret, callbackURL, false)
+
+		tokenResp, tokenErr := exchangeTiktokToken(ctx, tiktokService, code)
+		if tokenErr != nil {
+			log.Error().Err(tokenErr).Msg("TikTok token exchange failed")
+			repo.CompleteAttempt(ctx, claims.TenantID, claims.Platform, claims.AttemptID, "failed")
+			redirectWithError(c, frontendURL, redirectPath, "token_exchange_failed")
+			return
+		}
+
+		storeIdentifier, shopCipher, storeName, fetchErr := fetchTiktokStoreIdentifier(ctx, tiktokService, tokenResp.AccessToken)
+		if fetchErr != nil {
+			log.Error().Err(fetchErr).Msg("TikTok store identifier fetch failed")
+			repo.CompleteAttempt(ctx, claims.TenantID, claims.Platform, claims.AttemptID, "failed")
+			redirectWithError(c, frontendURL, redirectPath, "token_exchange_failed")
+			return
+		}
+
+		tokenExpiry := time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix()
+		refreshExpiry := time.Now().Add(time.Duration(tokenResp.RefreshExpiresIn) * time.Second).Unix()
+
+		conn = &models.CredentialConnection{
+			TenantID:        claims.TenantID,
+			Platform:        claims.Platform,
+			StoreIdentifier: storeIdentifier,
+			StoreName:       storeName,
+			ShopCipher:      shopCipher,
+			Status:          "connected",
+			AccessToken:     tokenResp.AccessToken,
+			RefreshToken:    tokenResp.RefreshToken,
+			TokenExpiry:     tokenExpiry,
+			RefreshExpiry:   refreshExpiry,
+			CreatedBy:       claims.UserID,
+			UpdatedBy:       claims.UserID,
+		}
+
+	default:
+		redirectWithError(c, frontendURL, redirectPath, "unsupported_platform")
 		return
 	}
 
-	tokenResp, err := exchangeShopeeToken(ctx, shopeeService, code, shopIDInt)
-	if err != nil {
-		log.Error().Err(err).Msg("Token exchange failed")
-		repo.CompleteAttempt(ctx, claims.TenantID, claims.Platform, claims.AttemptID, "failed")
-		redirectWithError(c, frontendURL, redirectPath, "token_exchange_failed")
-		return
-	}
-
-	// Step 5: Persist connection
-	storeIdentifier := fmt.Sprintf("%d", shopIDInt)
-	tokenExpiry := time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix()
-	refreshExpiry := time.Now().Add(7 * 24 * time.Hour).Unix()
-
-	conn := &models.CredentialConnection{
-		TenantID:        claims.TenantID,
-		Platform:        claims.Platform,
-		StoreIdentifier: storeIdentifier,
-		Status:          "connected",
-		AccessToken:     tokenResp.AccessToken,
-		RefreshToken:    tokenResp.RefreshToken,
-		TokenExpiry:     tokenExpiry,
-		RefreshExpiry:   refreshExpiry,
-		CreatedBy:       claims.UserID,
-		UpdatedBy:       claims.UserID,
-	}
-
+	// Step 7: Persist connection
+	storeIdentifier := conn.StoreIdentifier
 	existing, _ := repo.GetConnection(ctx, claims.TenantID, claims.Platform, storeIdentifier)
 	if existing != nil {
 		conn.Region = existing.Region
@@ -149,7 +214,15 @@ func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 		}
 	}
 
-	// Step 6: Complete attempt + audit event
+	// Step 8: Dual-write to platform_configs (best-effort)
+	platformConfigRepo := repositories.NewTenantPlatformConfigRepository(s.db)
+	expiresInSeconds := conn.TokenExpiry - time.Now().Unix()
+	refreshExpiresInSeconds := conn.RefreshExpiry - time.Now().Unix()
+	if dwErr := platformConfigRepo.UpdateTokens(ctx, conn.Platform, conn.AccessToken, conn.RefreshToken, expiresInSeconds, refreshExpiresInSeconds); dwErr != nil {
+		log.Warn().Err(dwErr).Msg("dual-write to platform_configs failed")
+	}
+
+	// Step 9: Complete attempt + audit event
 	repo.CompleteAttempt(ctx, claims.TenantID, claims.Platform, claims.AttemptID, "completed")
 
 	auditEvent := &models.CredentialAuditEvent{
@@ -171,49 +244,4 @@ func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 		target += redirectPath
 	}
 	c.Redirect(http.StatusTemporaryRedirect, target+"?success=true")
-}
-
-// shopeeTokenResponse represents the Shopee token exchange response.
-type shopeeTokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int    `json:"expires_in"`
-	ShopID       int64  `json:"shop_id"`
-	Error        string `json:"error"`
-}
-
-// exchangeShopeeToken performs the HTTP POST to exchange an auth code for tokens.
-func exchangeShopeeToken(ctx context.Context, shopeeService *oauth.ShopeeOAuthService, code string, shopID int64) (*shopeeTokenResponse, error) {
-	tokenURL := shopeeService.GetTokenURL()
-	reqBody := shopeeService.BuildTokenRequest(code, shopID)
-	bodyJSON, err := json.Marshal(reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("marshal token request: %w", err)
-	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", tokenURL, bytes.NewReader(bodyJSON))
-	if err != nil {
-		return nil, fmt.Errorf("create token request: %w", err)
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(httpReq)
-	if err != nil {
-		return nil, fmt.Errorf("token exchange request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	var tokenResp shopeeTokenResponse
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
-		return nil, fmt.Errorf("decode token response: %w", err)
-	}
-
-	if tokenResp.Error != "" {
-		return nil, fmt.Errorf("shopee token error: %s", tokenResp.Error)
-	}
-	if tokenResp.AccessToken == "" {
-		return nil, fmt.Errorf("empty access_token in response")
-	}
-
-	return &tokenResp, nil
 }
