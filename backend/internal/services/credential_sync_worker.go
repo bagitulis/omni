@@ -2,9 +2,9 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -13,9 +13,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// retryDualWrite retries a dual-write operation with exponential backoff.
+// retryDualWrite retries a dual-write operation with linear backoff.
+// Respects context cancellation between attempts.
 // Returns the last error if all attempts fail.
-func retryDualWrite(maxAttempts int, fn func() error) error {
+func retryDualWrite(ctx context.Context, maxAttempts int, fn func() error) error {
 	var lastErr error
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		if err := fn(); err != nil {
@@ -27,7 +28,11 @@ func retryDualWrite(maxAttempts int, fn func() error) error {
 					Int("max_attempts", maxAttempts).
 					Dur("backoff", backoff).
 					Msg("dual-write retry")
-				time.Sleep(backoff)
+				select {
+				case <-time.After(backoff):
+				case <-ctx.Done():
+					return fmt.Errorf("dual-write cancelled: %w", ctx.Err())
+				}
 			}
 		} else {
 			return nil
@@ -36,14 +41,10 @@ func retryDualWrite(maxAttempts int, fn func() error) error {
 	return fmt.Errorf("dual-write failed after %d attempts: %w", maxAttempts, lastErr)
 }
 
-// isStaleVersionError checks if an error is due to optimistic lock conflict
-// (version mismatch or stale/disabled connection).
+// isStaleVersionError checks if an error is due to optimistic lock conflict.
+// Uses sentinel error matching for robustness against message refactors.
 func isStaleVersionError(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := err.Error()
-	return strings.Contains(msg, "stale") || strings.Contains(msg, "RowsAffected")
+	return errors.Is(err, repositories.ErrStaleVersion)
 }
 
 // syncPlatforms lists platforms to sync after auto-refresh.

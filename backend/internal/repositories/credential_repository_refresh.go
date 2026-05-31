@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -32,6 +33,10 @@ func (r *CredentialRepository) GetActiveConnectionForRefresh(ctx context.Context
 	}
 	return &conn, nil
 }
+
+// ErrStaleVersion is returned when an optimistic lock check fails
+// because the row version has changed since it was last read.
+var ErrStaleVersion = errors.New("stale or disabled connection")
 
 // UpdateConnectionTokensWithVersion updates tokens only when the row version matches.
 // It preserves disabled rows and prevents stale refresh writes from overwriting newer tokens.
@@ -68,7 +73,7 @@ func (r *CredentialRepository) UpdateConnectionTokensWithVersion(ctx context.Con
 		return fmt.Errorf("update connection tokens: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("stale or disabled connection: %s/%s/%s", conn.TenantID, conn.Platform, conn.StoreIdentifier)
+		return fmt.Errorf("%w: %s/%s/%s", ErrStaleVersion, conn.TenantID, conn.Platform, conn.StoreIdentifier)
 	}
 	return nil
 }
@@ -98,7 +103,7 @@ func (r *CredentialRepository) UpdateConnectionStatusWithVersion(ctx context.Con
 		return fmt.Errorf("update connection status: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("stale or disabled connection: %s/%s/%s", conn.TenantID, conn.Platform, conn.StoreIdentifier)
+		return fmt.Errorf("%w: %s/%s/%s", ErrStaleVersion, conn.TenantID, conn.Platform, conn.StoreIdentifier)
 	}
 	return nil
 }
@@ -127,7 +132,7 @@ func (r *CredentialRepository) DisableConnectionWithVersion(ctx context.Context,
 		return fmt.Errorf("disable connection: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("stale or disabled connection: %s/%s/%s", conn.TenantID, conn.Platform, conn.StoreIdentifier)
+		return fmt.Errorf("%w: %s/%s/%s", ErrStaleVersion, conn.TenantID, conn.Platform, conn.StoreIdentifier)
 	}
 	return nil
 }

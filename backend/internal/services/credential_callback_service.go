@@ -223,7 +223,7 @@ func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 	platformConfigRepo := repositories.NewTenantPlatformConfigRepository(s.db)
 	expiresInSeconds := (conn.TokenExpiry - time.Now().UnixMilli()) / 1000
 	refreshExpiresInSeconds := (conn.RefreshExpiry - time.Now().UnixMilli()) / 1000
-	if dwErr := retryDualWrite(3, func() error {
+	if dwErr := retryDualWrite(ctx, 3, func() error {
 		return platformConfigRepo.UpdateTokens(ctx, conn.Platform, conn.AccessToken, conn.RefreshToken, expiresInSeconds, refreshExpiresInSeconds)
 	}); dwErr != nil {
 		log.Error().Err(dwErr).
