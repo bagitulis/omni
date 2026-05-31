@@ -51,5 +51,6 @@ export function toConnectionSummary(platform: CredentialPlatformSummary): Platfo
     region: platform.region,
     last_refresh_at: store?.last_refresh_at,
     refresh_status: store?.refresh_status,
+    app_configured: platform.app_configured,
   };
 }

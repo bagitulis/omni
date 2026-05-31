@@ -25,6 +25,7 @@ export interface PlatformConnectionSummary {
   region?: string;
   last_refresh_at?: string;
   refresh_status?: string;
+  app_configured?: boolean;
 }
 
 interface PlatformCardProps {
@@ -135,6 +136,20 @@ export function PlatformCard({
         </Card>
 
         <div style={{ overflow: "hidden" }}>
+          {!platform.connected && !platform.app_configured && (
+            <div
+              style={{
+                padding: "6px 10px",
+                marginBottom: 8,
+                borderRadius: token.borderRadius,
+                background: token.colorWarningBg,
+                border: `1px solid ${token.colorWarningBorder}`,
+                fontSize: 12,
+              }}
+            >
+              ⚠️ Configure app credentials before connecting
+            </div>
+          )}
           {platform.connected ? (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <Button size="small" icon={<LinkOutlined />} disabled={!!actionDisabledReason} title={actionDisabledReason || undefined} onClick={() => onConnect(platform)}>Re-authorize</Button>
@@ -142,7 +157,16 @@ export function PlatformCard({
               <Button size="small" danger icon={<DisconnectOutlined />} disabled={!!actionDisabledReason || destructiveActionKey === platform.platform} loading={destructiveActionKey === platform.platform} title={actionDisabledReason || undefined} onClick={() => onDisconnect(platform)}>Disconnect</Button>
             </div>
           ) : (
-            <Button type="primary" icon={<LinkOutlined />} disabled={!!actionDisabledReason} title={actionDisabledReason || undefined} onClick={() => onConnect(platform)} style={{ width: "100%", background: color, borderColor: color }}>Connect {name}</Button>
+            <Button
+              type="primary"
+              icon={<LinkOutlined />}
+              disabled={!!actionDisabledReason || !platform.app_configured}
+              title={actionDisabledReason || (!platform.app_configured ? "Configure app credentials first" : undefined)}
+              onClick={() => onConnect(platform)}
+              style={{ width: "100%", background: platform.app_configured ? color : undefined, borderColor: platform.app_configured ? color : undefined }}
+            >
+              Connect {name}
+            </Button>
           )}
           {actionDisabledReason && (
             <Text type="secondary" style={{ fontSize: 12 }}>

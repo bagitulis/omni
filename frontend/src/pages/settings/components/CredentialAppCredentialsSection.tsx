@@ -1,4 +1,10 @@
-import { HistoryOutlined, LockOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  HistoryOutlined,
+  LockOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
 import { Button, Card, Col, Descriptions, Row, Space, Tag, Typography } from "antd";
 import type { CredentialPlatformSummary } from "@/api/credentials";
 import {
@@ -6,6 +12,7 @@ import {
   CREDENTIAL_STATUS_LABEL,
   formatRegion,
 } from "./credentialStatus";
+import type { AppCredentialDrawerMode } from "./AppCredentialFormDrawer";
 
 interface CredentialAppCredentialsSectionProps {
   platforms: CredentialPlatformSummary[];
@@ -14,6 +21,25 @@ interface CredentialAppCredentialsSectionProps {
   manualSavingPlatform: string | null;
   onManualToken: (platform: CredentialPlatformSummary) => void;
   onViewHistory: (platform: CredentialPlatformSummary) => void;
+  onManageAppCredential: (
+    platform: CredentialPlatformSummary,
+    mode: AppCredentialDrawerMode,
+  ) => void;
+}
+
+function formatRelativeTime(dateStr?: string): string | null {
+  if (!dateStr) return null;
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
 }
 
 export function CredentialAppCredentialsSection({
@@ -23,8 +49,9 @@ export function CredentialAppCredentialsSection({
   manualSavingPlatform,
   onManualToken,
   onViewHistory,
+  onManageAppCredential,
 }: CredentialAppCredentialsSectionProps) {
-  const canManageManualTokens = !privilegedActionReason;
+  const canManage = !privilegedActionReason;
 
   return (
     <Card title="App Credentials" size="small">
@@ -36,32 +63,88 @@ export function CredentialAppCredentialsSection({
               title={`${platformNames[platform.platform] || platform.platform} App`}
             >
               <Space direction="vertical" size={8} style={{ width: "100%" }}>
-                <Tag color={CREDENTIAL_STATUS_COLOR[platform.status]}>
-                  {CREDENTIAL_STATUS_LABEL[platform.status]}
-                </Tag>
+                <Space>
+                  <Tag color={CREDENTIAL_STATUS_COLOR[platform.status]}>
+                    {CREDENTIAL_STATUS_LABEL[platform.status]}
+                  </Tag>
+                  <Tag
+                    color={platform.app_configured ? "green" : "red"}
+                    style={{ margin: 0 }}
+                  >
+                    {platform.app_configured ? "App Configured" : "Not Configured"}
+                  </Tag>
+                </Space>
                 <Descriptions size="small" column={1} bordered>
                   <Descriptions.Item label="Region">
                     {formatRegion(platform.region)}
                   </Descriptions.Item>
                   <Descriptions.Item label="Secret Mask">
-                    {platform.secret_mask || platform.app_secret_mask || "configured"}
+                    {platform.secret_mask || platform.app_secret_mask || "—"}
                   </Descriptions.Item>
                   <Descriptions.Item label="Stores">
                     {platform.stores.length}
                   </Descriptions.Item>
+                  {platform.audit_summary?.last_event_at && (
+                    <Descriptions.Item label="Last Updated">
+                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        {formatRelativeTime(platform.audit_summary.last_event_at)}
+                        {platform.audit_summary.last_event_type && (
+                          <span>
+                            {" "}
+                            ({platform.audit_summary.last_event_type.replace(/_/g, " ")})
+                          </span>
+                        )}
+                      </Typography.Text>
+                    </Descriptions.Item>
+                  )}
                 </Descriptions>
-                <Space>
+                <Space wrap>
+                  {!platform.app_configured ? (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      disabled={!canManage}
+                      title={privilegedActionReason || "Configure app credentials"}
+                      onClick={() => onManageAppCredential(platform, "setup")}
+                    >
+                      Configure
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        icon={<EditOutlined />}
+                        disabled={!canManage}
+                        title={privilegedActionReason || "Edit app credentials"}
+                        onClick={() => onManageAppCredential(platform, "setup")}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        icon={<ReloadOutlined />}
+                        disabled={!canManage}
+                        title={privilegedActionReason || "Rotate credentials"}
+                        onClick={() => onManageAppCredential(platform, "rotate")}
+                      >
+                        Rotate
+                      </Button>
+                    </>
+                  )}
                   <Button
                     icon={<LockOutlined />}
-                    disabled={!canManageManualTokens || manualSavingPlatform === platform.platform}
+                    disabled={
+                      !canManage || manualSavingPlatform === platform.platform
+                    }
                     loading={manualSavingPlatform === platform.platform}
                     title={privilegedActionReason || undefined}
                     onClick={() => onManualToken(platform)}
                   >
                     Manual Token
                   </Button>
-                  <Button icon={<HistoryOutlined />} onClick={() => onViewHistory(platform)}>
-                    View History
+                  <Button
+                    icon={<HistoryOutlined />}
+                    onClick={() => onViewHistory(platform)}
+                  >
+                    History
                   </Button>
                 </Space>
                 {privilegedActionReason && (
