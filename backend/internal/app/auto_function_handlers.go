@@ -195,6 +195,20 @@ func autoUpdateTokenHandler(ctx context.Context, tenantID string, cfg *models.Au
 		}
 	}
 
+	// Sync refreshed tokens from platform_configs to credential_connections (best-effort)
+	if successCount > 0 {
+		tenantDB, tenantErr := config.GetTenantDBWithContext(tenantID, basePath)
+		if tenantErr != nil {
+			log.Warn().Err(tenantErr).Str("tenant_id", tenantID).Msg("credential sync: failed to get tenant DB")
+		} else {
+			if syncCount, syncErr := services.SyncCredentialTokens(ctx, tenantDB, tenantID); syncErr != nil {
+				log.Warn().Err(syncErr).Str("tenant_id", tenantID).Msg("credential sync failed (non-fatal)")
+			} else if syncCount > 0 {
+				log.Info().Int("synced", syncCount).Str("tenant_id", tenantID).Msg("credential tokens synced")
+			}
+		}
+	}
+
 	// If no tokens needed refresh, check status
 	if len(results) == 0 {
 		statuses, _ := tokenManager.GetAllTokenStatus(ctx, tenantID)
