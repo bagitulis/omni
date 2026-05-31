@@ -194,30 +194,36 @@ func (r *TenantPlatformConfigRepository) GetTokenInfo(ctx context.Context, platf
 	return info, nil
 }
 
-// UpdateTokens saves new tokens after refresh
+// UpdateTokens saves new tokens after refresh.
+// All writes are wrapped in a DB transaction to prevent partial state on failure.
 func (r *TenantPlatformConfigRepository) UpdateTokens(ctx context.Context, platform, accessToken, refreshToken string, expiresInSeconds, refreshExpiresInSeconds int64) error {
-	// Always encrypt tokens
-	if err := r.SetConfig(ctx, platform, "accessToken", accessToken, true); err != nil {
-		return fmt.Errorf("save access token: %w", err)
-	}
-	if err := r.SetConfig(ctx, platform, "refreshToken", refreshToken, true); err != nil {
-		return fmt.Errorf("save refresh token: %w", err)
-	}
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Create a transactional repo that shares encryption but uses tx
+		txRepo := &TenantPlatformConfigRepository{db: tx, encryption: r.encryption}
 
-	// Store expiry as milliseconds
-	tokenExpiryMs := time.Now().UnixMilli() + (expiresInSeconds * 1000)
-	if err := r.SetConfig(ctx, platform, "tokenExpiry", strconv.FormatInt(tokenExpiryMs, 10), false); err != nil {
-		return fmt.Errorf("save token expiry: %w", err)
-	}
-
-	if refreshExpiresInSeconds > 0 {
-		refreshExpiryMs := time.Now().UnixMilli() + (refreshExpiresInSeconds * 1000)
-		if err := r.SetConfig(ctx, platform, "refreshTokenExpiry", strconv.FormatInt(refreshExpiryMs, 10), false); err != nil {
-			return fmt.Errorf("save refresh token expiry: %w", err)
+		// Always encrypt tokens
+		if err := txRepo.SetConfig(ctx, platform, "accessToken", accessToken, true); err != nil {
+			return fmt.Errorf("save access token: %w", err)
 		}
-	}
+		if err := txRepo.SetConfig(ctx, platform, "refreshToken", refreshToken, true); err != nil {
+			return fmt.Errorf("save refresh token: %w", err)
+		}
 
-	return nil
+		// Store expiry as milliseconds
+		tokenExpiryMs := time.Now().UnixMilli() + (expiresInSeconds * 1000)
+		if err := txRepo.SetConfig(ctx, platform, "tokenExpiry", strconv.FormatInt(tokenExpiryMs, 10), false); err != nil {
+			return fmt.Errorf("save token expiry: %w", err)
+		}
+
+		if refreshExpiresInSeconds > 0 {
+			refreshExpiryMs := time.Now().UnixMilli() + (refreshExpiresInSeconds * 1000)
+			if err := txRepo.SetConfig(ctx, platform, "refreshTokenExpiry", strconv.FormatInt(refreshExpiryMs, 10), false); err != nil {
+				return fmt.Errorf("save refresh token expiry: %w", err)
+			}
+		}
+
+		return nil
+	})
 }
 
 // parseExpiry parses expiry from either milliseconds or ISO string

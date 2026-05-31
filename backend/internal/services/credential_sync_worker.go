@@ -2,7 +2,9 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/omni/backend/internal/models"
@@ -10,6 +12,39 @@ import (
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
+
+// retryDualWrite retries a dual-write operation with exponential backoff.
+// Returns the last error if all attempts fail.
+func retryDualWrite(maxAttempts int, fn func() error) error {
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		if err := fn(); err != nil {
+			lastErr = err
+			if attempt < maxAttempts {
+				backoff := time.Duration(attempt*100) * time.Millisecond
+				log.Debug().Err(err).
+					Int("attempt", attempt).
+					Int("max_attempts", maxAttempts).
+					Dur("backoff", backoff).
+					Msg("dual-write retry")
+				time.Sleep(backoff)
+			}
+		} else {
+			return nil
+		}
+	}
+	return fmt.Errorf("dual-write failed after %d attempts: %w", maxAttempts, lastErr)
+}
+
+// isStaleVersionError checks if an error is due to optimistic lock conflict
+// (version mismatch or stale/disabled connection).
+func isStaleVersionError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "stale") || strings.Contains(msg, "RowsAffected")
+}
 
 // syncPlatforms lists platforms to sync after auto-refresh.
 var syncPlatforms = []string{models.PlatformShopee, models.PlatformLazada, models.PlatformTiktok}
@@ -97,6 +132,40 @@ func syncPlatformTokens(
 	if updateErr := credentialRepo.UpdateConnectionTokensWithVersion(
 		ctx, updateConn, conn.Version, "connected", "", &now,
 	); updateErr != nil {
+		// Retry once on optimistic lock conflict (stale version)
+		if isStaleVersionError(updateErr) {
+			log.Debug().
+				Str("platform", platformName).
+				Str("store", storeIdentifier).
+				Msg("sync: version conflict, re-reading connection for retry")
+
+			refreshedConn, reReadErr := credentialRepo.GetConnection(ctx, tenantID, platformName, storeIdentifier)
+			if reReadErr != nil || refreshedConn == nil {
+				log.Warn().Err(reReadErr).
+					Str("platform", platformName).
+					Str("store", storeIdentifier).
+					Msg("sync: re-read failed after version conflict")
+				return 0, nil
+			}
+
+			now = time.Now()
+			if retryErr := credentialRepo.UpdateConnectionTokensWithVersion(
+				ctx, updateConn, refreshedConn.Version, "connected", "", &now,
+			); retryErr != nil {
+				log.Warn().Err(retryErr).
+					Str("platform", platformName).
+					Str("store", storeIdentifier).
+					Msg("sync: retry also failed after version conflict")
+				return 0, nil
+			}
+
+			log.Debug().
+				Str("platform", platformName).
+				Str("store", storeIdentifier).
+				Msg("sync: credential tokens synced (after retry)")
+			return 1, nil
+		}
+
 		log.Warn().Err(updateErr).
 			Str("platform", platformName).
 			Str("store", storeIdentifier).

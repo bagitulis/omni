@@ -219,12 +219,17 @@ func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 		}
 	}
 
-	// Step 8: Dual-write to platform_configs (best-effort)
+	// Step 8: Dual-write to platform_configs (best-effort with retry)
 	platformConfigRepo := repositories.NewTenantPlatformConfigRepository(s.db)
 	expiresInSeconds := (conn.TokenExpiry - time.Now().UnixMilli()) / 1000
 	refreshExpiresInSeconds := (conn.RefreshExpiry - time.Now().UnixMilli()) / 1000
-	if dwErr := platformConfigRepo.UpdateTokens(ctx, conn.Platform, conn.AccessToken, conn.RefreshToken, expiresInSeconds, refreshExpiresInSeconds); dwErr != nil {
-		log.Warn().Err(dwErr).Msg("dual-write to platform_configs failed")
+	if dwErr := retryDualWrite(3, func() error {
+		return platformConfigRepo.UpdateTokens(ctx, conn.Platform, conn.AccessToken, conn.RefreshToken, expiresInSeconds, refreshExpiresInSeconds)
+	}); dwErr != nil {
+		log.Error().Err(dwErr).
+			Str("platform", conn.Platform).
+			Str("store", storeIdentifier).
+			Msg("dual-write to platform_configs FAILED after retries — manual reconciliation may be needed")
 	}
 
 	// Step 9: Complete attempt + audit event
