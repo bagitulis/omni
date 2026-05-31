@@ -183,10 +183,12 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 	}
 
 	// Get app credentials to build real platform auth URL
-	callbackBaseURL = os.Getenv("APP_URL")
+	if callbackBaseURL == "" {
+		callbackBaseURL = os.Getenv("APP_URL")
+	}
 	if callbackBaseURL == "" {
 		callbackBaseURL = "https://yndigital.my.id"
-		log.Warn().Msg("APP_URL not set, using fallback for callback URL")
+		log.Warn().Msg("InitiateOAuth: APP_URL not set, using fallback")
 	}
 	callbackURL := callbackBaseURL + "/api/credentials/callback/" + req.Platform
 	var authURL string
@@ -359,6 +361,7 @@ func (s *CredentialApiService) ApplyManualToken(ctx context.Context, tenantID, r
 		existing.ShopCipher = req.ShopCipher
 		existing.Status = "connected"
 		existing.UpdatedBy = userID
+		wasDisabled := existing.DisabledAt != nil
 		existing.DisabledAt = nil
 		existing.DisabledReason = ""
 		existing.Region = region
@@ -370,7 +373,7 @@ func (s *CredentialApiService) ApplyManualToken(ctx context.Context, tenantID, r
 			existing.TokenExpiry = parsed.UnixMilli()
 		}
 		conn = existing
-		if existing.DisabledAt != nil {
+		if wasDisabled {
 			// Re-enable disabled connection
 			if err := repo.ReconnectWithToken(ctx, conn); err != nil {
 				return nil, err

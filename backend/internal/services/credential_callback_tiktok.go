@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -20,6 +21,8 @@ type tiktokTokenResponse struct {
 	RefreshToken     string `json:"refresh_token"`
 	ExpiresIn        int64  `json:"expires_in"`
 	RefreshExpiresIn int64  `json:"refresh_expires_in"`
+	ErrorCode        int    `json:"code"`
+	ErrorMsg         string `json:"message"`
 }
 
 // exchangeTiktokToken performs the HTTP GET to exchange an auth code for tokens.
@@ -45,11 +48,19 @@ func exchangeTiktokToken(ctx context.Context, tiktokService *oauth.TiktokOAuthSe
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("exchangeTiktokToken: HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
 	var tokenResp tiktokTokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
 		return nil, fmt.Errorf("decode token response: %w", err)
 	}
 
+	if tokenResp.ErrorCode != 0 {
+		return nil, fmt.Errorf("exchangeTiktokToken: API error code=%d: %s", tokenResp.ErrorCode, tokenResp.ErrorMsg)
+	}
 	if tokenResp.AccessToken == "" {
 		return nil, fmt.Errorf("empty access_token in response")
 	}
@@ -91,11 +102,19 @@ func fetchTiktokStoreIdentifier(ctx context.Context, tiktokService *oauth.Tiktok
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", "", "", fmt.Errorf("fetchTiktokStoreIdentifier: HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
 	var shopsResp tiktokShopsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&shopsResp); err != nil {
 		return "", "", "", fmt.Errorf("decode shops response: %w", err)
 	}
 
+	if shopsResp.Code != 0 {
+		return "", "", "", fmt.Errorf("fetchTiktokStoreIdentifier: API error code=%d: %s", shopsResp.Code, shopsResp.Message)
+	}
 	if len(shopsResp.Data) == 0 {
 		return "", "", "", fmt.Errorf("no authorized shops returned")
 	}

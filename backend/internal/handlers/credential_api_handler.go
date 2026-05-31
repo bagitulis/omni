@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,7 @@ func credentialErrorStatus(err error) int {
 		return http.StatusForbidden
 	case strings.Contains(msg, "not found"):
 		return http.StatusNotFound
-	case strings.HasPrefix(msg, "missing") || strings.Contains(msg, "invalid") || strings.Contains(msg, "unsupported"):
+	case strings.HasPrefix(msg, "missing") || strings.Contains(msg, "invalid") || strings.Contains(msg, "unsupported") || strings.Contains(msg, "required"):
 		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
@@ -105,6 +106,7 @@ func (h *PlatformAuthHandler) PostCredentialOAuthReconnect(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
 		return
 	}
+	// URL params are authoritative — overwrite any values from JSON body
 	req.Platform = c.Param("platform")
 	req.StoreIdentifier = c.Param("store_identifier")
 	result, err := h.credentialService.ReconnectOAuth(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), h.getBackendURL(c), req)
@@ -217,7 +219,12 @@ func (h *PlatformAuthHandler) changeConnectionStatus(c *gin.Context, action stri
 // HandleCredentialCallback handles GET /api/credentials/callback/:platform
 func (h *PlatformAuthHandler) HandleCredentialCallback(c *gin.Context) {
 	if h.credentialService == nil {
-		c.JSON(http.StatusInternalServerError, response.Error("Credential service unavailable"))
+		// OAuth callback = browser redirect, must redirect not return JSON
+		frontendURL := os.Getenv("FRONTEND_URL")
+		if frontendURL == "" {
+			frontendURL = "https://yndigital.my.id"
+		}
+		c.Redirect(http.StatusTemporaryRedirect, frontendURL+"?error=service_unavailable")
 		return
 	}
 	h.credentialService.HandleCredentialCallback(c)

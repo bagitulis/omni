@@ -134,8 +134,8 @@ func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 			return
 		}
 
-		tokenExpiry := time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix()
-		refreshExpiry := time.Now().Add(time.Duration(tokenResp.RefreshExpiresIn) * time.Second).Unix()
+		tokenExpiry := time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).UnixMilli()
+		refreshExpiry := time.Now().Add(time.Duration(tokenResp.RefreshExpiresIn) * time.Second).UnixMilli()
 
 		conn = &models.CredentialConnection{
 			TenantID:        claims.TenantID,
@@ -171,8 +171,8 @@ func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 			return
 		}
 
-		tokenExpiry := time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix()
-		refreshExpiry := time.Now().Add(time.Duration(tokenResp.RefreshExpiresIn) * time.Second).Unix()
+		tokenExpiry := time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).UnixMilli()
+		refreshExpiry := time.Now().Add(time.Duration(tokenResp.RefreshExpiresIn) * time.Second).UnixMilli()
 
 		conn = &models.CredentialConnection{
 			TenantID:        claims.TenantID,
@@ -196,7 +196,12 @@ func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 
 	// Step 7: Persist connection
 	storeIdentifier := conn.StoreIdentifier
-	existing, _ := repo.GetConnection(ctx, claims.TenantID, claims.Platform, storeIdentifier)
+	existing, getErr := repo.GetConnection(ctx, claims.TenantID, claims.Platform, storeIdentifier)
+	if getErr != nil {
+		log.Error().Err(getErr).Str("tenant_id", claims.TenantID).Str("platform", claims.Platform).Msg("failed to check existing connection")
+		redirectWithError(c, frontendURL, redirectPath, "connection_check_failed")
+		return
+	}
 	if existing != nil {
 		conn.Region = existing.Region
 		if err := repo.ReconnectWithToken(ctx, conn); err != nil {
@@ -216,8 +221,8 @@ func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 
 	// Step 8: Dual-write to platform_configs (best-effort)
 	platformConfigRepo := repositories.NewTenantPlatformConfigRepository(s.db)
-	expiresInSeconds := conn.TokenExpiry - time.Now().Unix()
-	refreshExpiresInSeconds := conn.RefreshExpiry - time.Now().Unix()
+	expiresInSeconds := (conn.TokenExpiry - time.Now().UnixMilli()) / 1000
+	refreshExpiresInSeconds := (conn.RefreshExpiry - time.Now().UnixMilli()) / 1000
 	if dwErr := platformConfigRepo.UpdateTokens(ctx, conn.Platform, conn.AccessToken, conn.RefreshToken, expiresInSeconds, refreshExpiresInSeconds); dwErr != nil {
 		log.Warn().Err(dwErr).Msg("dual-write to platform_configs failed")
 	}

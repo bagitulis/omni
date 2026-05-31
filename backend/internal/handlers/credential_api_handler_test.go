@@ -112,7 +112,7 @@ func TestCredentialApiHandler_ManualTokenRoleGate(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, http.StatusForbidden, w.Code)
 	var resp map[string]any
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.Equal(t, false, resp["success"])
@@ -160,6 +160,7 @@ func TestCredentialErrorStatus(t *testing.T) {
 		{"missing", fmt.Errorf("missing tenant_id"), 400},
 		{"invalid", fmt.Errorf("invalid platform"), 400},
 		{"unsupported", fmt.Errorf("unsupported platform"), 400},
+		{"required", fmt.Errorf("reason is required"), 400},
 		{"generic error", fmt.Errorf("something went wrong"), 500},
 	}
 	for _, tt := range tests {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -18,7 +19,7 @@ import (
 type shopeeTokenResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int    `json:"expires_in"`
+	ExpiresIn    int64  `json:"expires_in"`
 	ShopID       int64  `json:"shop_id"`
 	Error        string `json:"error"`
 }
@@ -43,6 +44,11 @@ func exchangeShopeeToken(ctx context.Context, shopeeService *oauth.ShopeeOAuthSe
 		return nil, fmt.Errorf("token exchange request: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("exchangeShopeeToken: HTTP %d: %s", resp.StatusCode, string(body))
+	}
 
 	var tokenResp shopeeTokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
@@ -85,13 +91,14 @@ func handleShopeeCallback(ctx context.Context, appConfig *models.CredentialAppCo
 	}
 
 	storeIdentifier := fmt.Sprintf("%d", shopIDInt)
-	tokenExpiry := time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix()
-	refreshExpiry := time.Now().Add(7 * 24 * time.Hour).Unix()
+	tokenExpiry := time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).UnixMilli()
+	refreshExpiry := time.Now().Add(7 * 24 * time.Hour).UnixMilli()
 
 	conn := &models.CredentialConnection{
 		TenantID:        claims.TenantID,
 		Platform:        claims.Platform,
 		StoreIdentifier: storeIdentifier,
+		StoreName:       fmt.Sprintf("Shopee Shop %d", shopIDInt),
 		Status:          "connected",
 		AccessToken:     tokenResp.AccessToken,
 		RefreshToken:    tokenResp.RefreshToken,

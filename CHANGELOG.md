@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Removed fake URL fallbacks**: Lazada, TikTok, and default platform cases in `InitiateOAuth` now return explicit errors instead of generating fake callback URLs.
 ### Fixed
 - **Shopee OAuth InitiateOAuth**: Verified explicit error return when app credentials not configured (no silent fake URL fallback). Fixed extraneous brace syntax error in credential_api_handler.go GetCredentialPlatforms that blocked build.
+- **Credential API service/handler fixes**: Fixed dead code in `ApplyManualToken` where `DisabledAt` was cleared before being checked (saved `wasDisabled` first). `HandleCredentialCallback` now redirects browser (not JSON) on service unavailable. `InitiateOAuth` preserves caller's `callbackBaseURL` with env var fallback instead of unconditionally overwriting. `credentialErrorStatus` now maps "required" errors to 400. `ManualTokenRoleGate` test expects correct 403 status. `ReconnectOAuth` double-set documented with authoritative URL params comment.
 
 ### Changed
 - **NDJSON backup refresh**: Re-exported 158 tables (22,717 rows) from PostgreSQL to `backups/sync/`. Credential tables (`credential_app_configs`, `credential_connections`, `credential_audit_events`) confirmed empty (0 rows) — no marketplace OAuth connections yet. `platform_configs` backed up (38 rows) but credential columns all NULL — accounts disconnected. 3 large tables compressed to `.ndjson.gz`. Schema DDL updated for all tenants.

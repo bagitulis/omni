@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -59,6 +60,11 @@ func exchangeLazadaToken(ctx context.Context, lazadaService *oauth.LazadaOAuthSe
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("exchangeLazadaToken: HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
 	var tokenResp lazadaTokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
 		return nil, fmt.Errorf("decode lazada token response: %w", err)
@@ -96,6 +102,11 @@ func fetchLazadaStoreIdentifier(ctx context.Context, lazadaService *oauth.Lazada
 		return "", "", fmt.Errorf("lazada seller info request: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", "", fmt.Errorf("fetchLazadaStoreIdentifier: HTTP %d: %s", resp.StatusCode, string(body))
+	}
 
 	var sellerResp lazadaSellerInfoResponse
 	if err := json.NewDecoder(resp.Body).Decode(&sellerResp); err != nil {
