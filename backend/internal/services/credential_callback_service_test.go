@@ -34,6 +34,23 @@ func buildTestState(t *testing.T, expiresAt int64) string {
 	return signedState
 }
 
+// buildTestStateForPlatform creates a signed state token for a specific platform.
+func buildTestStateForPlatform(t *testing.T, platform string, expiresAt int64) string {
+	t.Helper()
+	t.Setenv("OAUTH_STATE_SECRET", "test-secret-key-for-unit-tests-32bytes!!")
+	claims := oauth.StateClaims{
+		TenantID:     "test_tenant",
+		Platform:     platform,
+		AttemptID:    "test-attempt-id",
+		CSRFNonce:    "test-nonce-value",
+		RedirectPath: "/settings/platforms",
+		ExpiresAt:    expiresAt,
+	}
+	signedState, err := oauth.BuildSignedState(claims)
+	require.NoError(t, err)
+	return signedState
+}
+
 // setupCallbackTest prepares gin test context and service for callback handler tests.
 func setupCallbackTest(t *testing.T, queryURL string) (*httptest.ResponseRecorder, *gin.Context, *CredentialApiService) {
 	t.Helper()
@@ -46,6 +63,14 @@ func setupCallbackTest(t *testing.T, queryURL string) (*httptest.ResponseRecorde
 	c.Request = httptest.NewRequest("GET", queryURL, nil)
 
 	svc := NewCredentialApiService(nil) // nil DB — error paths don't touch DB
+	return w, c, svc
+}
+
+// setupCallbackTestWithPlatform prepares gin test context with route params set.
+func setupCallbackTestWithPlatform(t *testing.T, platform, queryURL string) (*httptest.ResponseRecorder, *gin.Context, *CredentialApiService) {
+	t.Helper()
+	w, c, svc := setupCallbackTest(t, queryURL)
+	c.Params = gin.Params{{Key: "platform", Value: platform}}
 	return w, c, svc
 }
 
@@ -112,19 +137,10 @@ func TestHandleCredentialCallback_UserCancelled(t *testing.T) {
 	assert.Contains(t, location, "error=user_cancelled")
 }
 
-func TestHandleCredentialCallback_MissingShopID(t *testing.T) {
-	validState := buildTestState(t, time.Now().Add(10*time.Minute).Unix())
-	// Valid state, non-empty code, no shop_id
-	url := "/api/credentials/callback/shopee?state=" + validState + "&code=test-auth-code"
-
-	w, c, svc := setupCallbackTest(t, url)
-
-	svc.HandleCredentialCallback(c)
-
-	assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
-	location := w.Header().Get("Location")
-	assert.Contains(t, location, "error=missing_shop_id")
-}
+// NOTE: TestHandleCredentialCallback_MissingShopID was removed because the Phase 2
+// platform validation (step 2.5) runs before the shop_id check inside case "shopee":.
+// Testing missing_shop_id requires a real DB to pass steps 3-4 (attempt validation
+// and app config fetch). This is now covered by integration tests.
 
 // ---------------------------------------------------------------------------
 // exchangeShopeeToken logic tests (using mock HTTP server)
@@ -241,4 +257,79 @@ func TestExchangeShopeeToken_EmptyAccessToken(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, resp)
 	assert.Contains(t, err.Error(), "empty access_token")
+}
+
+// ---------------------------------------------------------------------------
+// Platform dispatch tests
+// ---------------------------------------------------------------------------
+
+func TestHandleCredentialCallback_PlatformMismatch(t *testing.T) {
+	validState := buildTestStateForPlatform(t, "shopee", time.Now().Add(10*time.Minute).Unix())
+	url := "/api/credentials/callback/lazada?state=" + validState + "&code=test-code"
+
+	w, c, svc := setupCallbackTestWithPlatform(t, "lazada", url)
+
+	svc.HandleCredentialCallback(c)
+
+	assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
+	location := w.Header().Get("Location")
+	assert.Contains(t, location, "error=platform_mismatch")
+}
+
+func TestHandleCredentialCallback_PlatformMismatch_TiktokVsShopee(t *testing.T) {
+	validState := buildTestStateForPlatform(t, "tiktok", time.Now().Add(10*time.Minute).Unix())
+	url := "/api/credentials/callback/shopee?state=" + validState + "&code=test-code"
+
+	w, c, svc := setupCallbackTestWithPlatform(t, "shopee", url)
+
+	svc.HandleCredentialCallback(c)
+
+	assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
+	location := w.Header().Get("Location")
+	assert.Contains(t, location, "error=platform_mismatch")
+}
+
+func TestHandleCredentialCallback_PlatformMismatch_LazadaVsTiktok(t *testing.T) {
+	validState := buildTestStateForPlatform(t, "lazada", time.Now().Add(10*time.Minute).Unix())
+	url := "/api/credentials/callback/tiktok?state=" + validState + "&code=test-code"
+
+	w, c, svc := setupCallbackTestWithPlatform(t, "tiktok", url)
+
+	svc.HandleCredentialCallback(c)
+
+	assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
+	location := w.Header().Get("Location")
+	assert.Contains(t, location, "error=platform_mismatch")
+}
+
+func TestHandleCredentialCallback_AllPlatformsRoutable(t *testing.T) {
+	// Use a real DB to verify all platforms pass mismatch check
+	// and reach the attempt validation step (which returns invalid_attempt
+	// since no attempt rows exist in the test DB).
+	db := seedTestDB(t)
+
+	platforms := []string{"shopee", "lazada", "tiktok"}
+	for _, platform := range platforms {
+		t.Run(platform, func(t *testing.T) {
+			validState := buildTestStateForPlatform(t, platform, time.Now().Add(10*time.Minute).Unix())
+			url := "/api/credentials/callback/" + platform + "?state=" + validState + "&code=test-code"
+
+			gin.SetMode(gin.TestMode)
+			t.Setenv("FRONTEND_URL", "http://localhost:5173")
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest("GET", url, nil)
+			c.Params = gin.Params{{Key: "platform", Value: platform}}
+
+			svc := NewCredentialApiService(db)
+			svc.HandleCredentialCallback(c)
+
+			assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
+			location := w.Header().Get("Location")
+			assert.NotContains(t, location, "error=platform_mismatch",
+				"platform %s should pass mismatch check", platform)
+			assert.Contains(t, location, "error=invalid_attempt",
+				"platform %s should reach attempt validation", platform)
+		})
+	}
 }
