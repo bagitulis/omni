@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+### Added
+- **Backfill fail-fast for corrupted encrypted values**: Added decrypt validation during backfill to prevent inserting corrupted Fernet tokens into canonical tables. Required credential fields (partnerKey, appKey, appSecret, accessToken, refreshToken) that fail to decrypt cause FAIL FAST — tenant/platform is skipped. Optional metadata fields (shopCipher) silently insert NULL on decrypt failure. Added `BackfillValidationReport` type and `validateCredentialConfigMap` helper. Redacted validation report emitted via zerolog. Extracted validation helpers to `credential_backfill_validation.go`. Added `TestBackfillCorruptedRequired` and `TestBackfillCorruptedConnectionRequired` tests. [backend/internal/services/credential_backfill.go, credential_backfill_validation.go, credential_backfill_test.go]
+
 - **Backfill parity validation and refactor**: Added `TestBackfillParity` test comparing row counts and key fields between legacy platform_configs and canonical tables. Verifies 3 app_configs + 3 connections = 6 canonical rows, all with valid non-null platform + identifier fields, and encrypted values preserved via decryption round-trip. Refactored `BackfillAppConfigs` and `BackfillConnections` to share `readAndClassify()` helper, eliminating duplicated platformConfigColumns/readPlatformConfigRows logic. Cleaned up duplicate section headers in test file. [backend/internal/services/credential_backfill.go, backend/internal/services/credential_backfill_test.go]
 
 ### Added

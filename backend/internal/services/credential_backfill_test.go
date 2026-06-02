@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
@@ -356,4 +358,88 @@ func TestBackfillParity(t *testing.T) {
 	assert.Equal(t, "tiktok-at-enc", tiktokConn.AccessToken, "TikTok access_token decrypted matches original")
 	assert.Equal(t, "tiktok-rt-enc", tiktokConn.RefreshToken, "TikTok refresh_token decrypted matches original")
 	assert.Equal(t, "TikTok Parity Store", tiktokConn.StoreName, "TikTok store_name preserved")
+}
+
+// TestBackfillCorruptedRequired verifies that BackfillAppConfigs fails fast when
+// a required credential field contains a corrupted Fernet token that cannot be
+// decrypted. The tenant/platform must be skipped — no garbage inserted.
+func TestBackfillCorruptedRequired(t *testing.T) {
+	db := backfillTestDB(t)
+	ctx := context.Background()
+	tenantID := "corrupted_test"
+
+	repo := repositories.NewTenantPlatformConfigRepository(db)
+
+	// Seed Shopee partnerId as plaintext (non-credential, always passes)
+	require.NoError(t, repo.SetConfig(ctx, models.PlatformShopee, "partnerId", "1001", false))
+
+	// Insert a corrupted Fernet token for partnerKey directly via GORM.
+	// It has the "gAAAAA" prefix so IsEncrypted() returns true, but the
+	// payload is garbage so Decrypt() fails.
+	corruptedToken := "gAAAAA" + "corrupted_fernet_payload_that_will_never_decrypt"
+	require.NoError(t, db.WithContext(ctx).Create(&repositories.TenantPlatformConfig{
+		ID:          fmt.Sprintf("%s_%s_%d", models.PlatformShopee, "partnerKey", time.Now().UnixNano()),
+		Platform:    models.PlatformShopee,
+		ConfigKey:   "partnerKey",
+		ConfigValue: corruptedToken,
+		IsEncrypted: true,
+	}).Error)
+
+	// Seed valid Lazada data (should NOT be processed since Shopee fails first)
+	seedBackfillAppData(t, db, models.PlatformLazada, 0, "", "lazada-app-key", "lazada-app-secret")
+
+	// Call backfill — should FAIL FAST due to corrupted Shopee partnerKey
+	err := BackfillAppConfigs(ctx, db, tenantID)
+	assert.Error(t, err, "BackfillAppConfigs should fail on corrupted required credential")
+	assert.Contains(t, err.Error(), "corrupted", "Error should mention corruption")
+	assert.Contains(t, err.Error(), models.PlatformShopee, "Error should mention the platform")
+
+	// Verify NO app configs were created (fail-fast means no partial inserts)
+	credRepo := repositories.NewCredentialRepository(db)
+	shopeeCfg, err := credRepo.GetAppConfig(ctx, tenantID, models.PlatformShopee)
+	require.NoError(t, err)
+	assert.Nil(t, shopeeCfg, "Shopee app config should NOT exist — corrupted data must not be inserted")
+
+	lazadaCfg, err := credRepo.GetAppConfig(ctx, tenantID, models.PlatformLazada)
+	require.NoError(t, err)
+	assert.Nil(t, lazadaCfg, "Lazada app config should NOT exist — backfill failed before processing it")
+}
+
+// TestBackfillCorruptedConnectionRequired verifies that BackfillConnections
+// skips a connection when accessToken or refreshToken contains a corrupted
+// Fernet token.
+func TestBackfillCorruptedConnectionRequired(t *testing.T) {
+	db := backfillTestDB(t)
+	ctx := context.Background()
+	tenantID := "corrupted_conn_test"
+
+	repo := repositories.NewTenantPlatformConfigRepository(db)
+
+	// Seed non-credential fields as plaintext
+	require.NoError(t, repo.SetConfig(ctx, models.PlatformShopee, "shopId", "99887", false))
+	require.NoError(t, repo.SetConfig(ctx, models.PlatformShopee, "shopName", "Test Shop", false))
+	require.NoError(t, repo.SetConfig(ctx, models.PlatformShopee, "region", "id", false))
+
+	// Insert corrupted Fernet token for accessToken
+	corruptedToken := "gAAAAA" + "corrupted_fernet_payload"
+	require.NoError(t, db.WithContext(ctx).Create(&repositories.TenantPlatformConfig{
+		ID:          fmt.Sprintf("%s_%s_%d", models.PlatformShopee, "accessToken", time.Now().UnixNano()),
+		Platform:    models.PlatformShopee,
+		ConfigKey:   "accessToken",
+		ConfigValue: corruptedToken,
+		IsEncrypted: true,
+	}).Error)
+
+	// Insert valid refreshToken (doesn't matter — accessToken is already corrupted)
+	require.NoError(t, repo.SetConfig(ctx, models.PlatformShopee, "refreshToken", "valid-refresh", true))
+
+	// Call backfill — should skip Shopee connection, return nil (other platforms OK)
+	err := BackfillConnections(ctx, db, tenantID)
+	require.NoError(t, err, "BackfillConnections should not return error — just skips corrupted connections")
+
+	// Verify no Shopee connection was created
+	credRepo := repositories.NewCredentialRepository(db)
+	shopeeConn, err := credRepo.GetConnection(ctx, tenantID, models.PlatformShopee, "99887")
+	require.NoError(t, err)
+	assert.Nil(t, shopeeConn, "Shopee connection should NOT exist — corrupted token must prevent insertion")
 }

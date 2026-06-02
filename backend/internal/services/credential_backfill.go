@@ -3,11 +3,13 @@ package services
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/utils"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
@@ -30,6 +32,19 @@ var appCredentialKeys = map[string][]string{
 	models.PlatformShopee: {"partnerId", "partnerKey"},
 	models.PlatformLazada: {"appKey", "appSecret"},
 	models.PlatformTiktok: {"appKey", "appSecret"},
+}
+
+// BackfillValidationReport tracks decrypt failures during backfill (redacted).
+type BackfillValidationReport struct {
+	Failures []BackfillDecryptFailure `json:"failures"`
+}
+
+// BackfillDecryptFailure records a single decrypt failure (no plaintext secrets).
+type BackfillDecryptFailure struct {
+	TenantID   string `json:"tenant_id"`
+	Platform   string `json:"platform"`
+	ConfigKey  string `json:"config_key"`
+	IsRequired bool   `json:"is_required"`
 }
 
 // ClassifyRows splits inventory rows into credential and non-credential categories.
@@ -82,6 +97,13 @@ func BackfillAppConfigs(ctx context.Context, db *gorm.DB, tenantID string) error
 		}
 
 		configMap := buildConfigMap(pRows)
+
+		// Validate encrypted credential fields can be decrypted
+		valReport := validateCredentialConfigMap(configMap, requiredKeys)
+		if hasBlockingFailures(valReport) {
+			emitBackfillValidationReport(valReport, tenantID, "app_config_"+platform)
+			return fmt.Errorf("corrupted encrypted credentials for platform %s — %d required field(s) failed to decrypt", platform, countBlockingFailures(valReport))
+		}
 
 		for _, requiredKey := range requiredKeys {
 			if configMap[requiredKey] == "" {
@@ -140,6 +162,30 @@ func BackfillConnections(ctx context.Context, db *gorm.DB, tenantID string) erro
 				Str("shop_id", shopID).
 				Msg("Skipping connection backfill — no tokens found")
 			continue
+		}
+
+		// Validate encrypted credential fields can be decrypted
+		connRequiredKeys := []string{"accessToken", "refreshToken"}
+		valReport := validateCredentialConfigMap(configMap, connRequiredKeys)
+		if hasBlockingFailures(valReport) {
+			emitBackfillValidationReport(valReport, tenantID, "connection_"+platform+"_"+shopID)
+			log.Error().
+				Str("tenant_id", tenantID).
+				Str("platform", platform).
+				Str("shop_id", shopID).
+				Msg("Skipping connection — required credential fields failed to decrypt")
+			continue
+		}
+		// Optional field: shopCipher — silently clear if corrupted
+		if platform == "tiktok" {
+			if v := configMap["shopCipher"]; v != "" && utils.IsEncrypted(v) {
+				if enc, encErr := utils.NewEncryptionService(os.Getenv("ENCRYPTION_KEY")); encErr == nil {
+					if _, decErr := enc.Decrypt(v); decErr != nil {
+						log.Warn().Str("tenant_id", tenantID).Str("platform", platform).Msg("[Backfill] shopCipher decrypt failed — inserting NULL")
+						configMap["shopCipher"] = ""
+					}
+				}
+			}
 		}
 
 		existing, err := credRepo.GetConnection(ctx, tenantID, platform, shopID)
@@ -274,3 +320,5 @@ func readAndClassify(ctx context.Context, db *gorm.DB) (credRows, allRows []inve
 	credRows, _ = ClassifyRows(allRows)
 	return credRows, allRows, nil
 }
+
+
