@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- **Credential backfill RED tests**: Added 6 TDD RED tests in `credential_backfill_test.go` verifying backfill service behavior. `TestBackfillAppConfigs_EmptyCanonical` seeds platform_configs for 3 platforms and asserts credential_app_configs populated. `TestBackfillConnections_EmptyCanonical` asserts credential_connections populated. `TestBackfill_Idempotent` verifies no duplicate rows on double run. `TestBackfill_EmptyTenant` handles empty tenant gracefully. `TestBackfill_MissingRequiredKeys` asserts error for missing partnerId. `TestClassifyRows_CredentialVsNonCredential` separates credential from non-credential rows. 5/6 tests FAIL (RED phase). Uses testcontainers-go with PostgreSQL 15-alpine. [backend/internal/services/credential_backfill_test.go]
+### Added
 - **Pre-backfill encrypted value validation**: Added `ValidateEncryptedValuesPreflight()` in `credential_migration_preflight.go` that iterates all `platform_configs` rows with `is_encrypted=true` across all tenant schemas, attempts Fernet decryption, and blocks migration if any required credential field (partnerKey, appKey, appSecret, accessToken, refreshToken) fails. Detects Fernet key change when ALL encrypted rows fail. Report saved to `.sisyphus/evidence/task-1-6-preflight-validation.txt`. [backend/internal/services/credential_migration_preflight.go, credential_migration_preflight_test.go, cmd/preflight_validation/main.go]
 
 ### Added
