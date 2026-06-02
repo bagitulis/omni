@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- **Fixed 5 documentation gaps from Oracle review**: Updated tiktok.md to replace 2 stale `platform-auth` endpoint references with current `/credentials/platforms/...` endpoints. Corrected schema.md credential section to distinguish public-schema tables (credential_app_configs/connections/audit_events) from tenant-schema tables (platform_configs). Softened overview.md platform_configs wording from "DEPRECATED" to "being migrated" (still actively used as bridge). Added Connection Row Note to lazada.md documenting that missing connection row (no shopId) is expected behavior. Deprecated .env credential vars in README.md Configuration section, noting PostgreSQL is the source of truth. [docs/integrations/tiktok.md, docs/database/schema.md, docs/architecture/overview.md, docs/integrations/lazada.md, README.md]
 ### Added
 - **Fixed TestHandleCredentialCallback_AllPlatformsRoutable**: Updated test assertions to expect `tenant_db_error` instead of `invalid_attempt`. The test uses `NewCredentialApiService("")` with empty dbPath, so `tenantDB()` fails before reaching attempt validation. Removed unused `seedTestDB` call. All 4 subtests (shopee, lazada, tiktok, parent) now pass. [backend/internal/services/credential_callback_service_test.go]
 - **Fixed TestExchangeShopeeToken_HappyPath int vs int64 mismatch**: Changed test assertion from `assert.Equal(t, 14400, resp.ExpiresIn)` to `assert.Equal(t, int64(14400), resp.ExpiresIn)` to match the struct field type. Pre-existing test failure. [backend/internal/services/credential_callback_service_test.go]

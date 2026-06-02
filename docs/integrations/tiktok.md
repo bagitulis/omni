@@ -64,8 +64,8 @@ backend/tiktok_sdk/           # Comprehensive SDK (100+ files)
 ## Multi-Shop Support
 
 TikTok accounts can have multiple shops. OMNI handles this:
-- `GET /api/platform-auth/tiktok/shops` — List available shops
-- `GET /api/platform-auth/tiktok/active-shop` — Get current active shop
+- `GET /api/credentials/platforms/tiktok/shops` — List available shops
+- `GET /api/credentials/platforms/tiktok/active-shop` — Get current active shop
 - Shop selection affects all subsequent API calls
 
 ## Key API Operations

@@ -197,7 +197,7 @@ PostgreSQL (public schema):
   credential_app_configs     — App-level credentials (partner ID, API keys)
   credential_connections      — Store-level connections (access/refresh tokens)
   credential_audit_events    — Lifecycle audit log (never contains secrets)
-  platform_configs (DEPRECATED) — Legacy key-value storage, retained for backward compat
+  platform_configs (being migrated) — Legacy bridge table, transitioning to canonical credential tables
 ```
 
 ### Resolution Chain

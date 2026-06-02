@@ -94,7 +94,7 @@ PostgreSQL Database: omni
 
 ## System Tables — Credentials
 
-All credential tables live in the `public` schema (shared across tenants). Each row is scoped by `tenant_id`. Secrets are Fernet-encrypted (AES-128-CBC) via `ENCRYPTION_KEY` env var.
+Credential tables `credential_app_configs`, `credential_connections`, and `credential_audit_events` live in the `public` schema (shared across tenants, scoped by `tenant_id`). The legacy `platform_configs` table lives in each tenant schema (`tenant_{tenantID}`) and is being migrated to the canonical public-schema tables.
 
 ### credential_app_configs
 

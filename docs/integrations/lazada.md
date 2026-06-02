@@ -59,6 +59,10 @@ backend/lazada_sdk/iop-sdk-go/  # Official IOP SDK
 | access_token | OAuth flow | Auto-refreshed |
 | refresh_token | OAuth flow | Auto-refreshed |
 
+### Connection Row Note
+
+Lazada does **not** create a `credential_connections` row during OAuth. Unlike Shopee and TikTok, Lazada doesn't expose a `shopId` or `storeIdentifier` via its OAuth flow. The access/refresh tokens are stored, but the connection record uses an empty store identifier. This is expected behavior, not a bug.
+
 ## Key API Operations
 
 | Operation | API Endpoint | Notes |

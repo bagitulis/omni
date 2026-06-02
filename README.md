@@ -118,9 +118,7 @@ Key environment variables (see `.env.example`):
 - `JWT_SECRET` - JWT signing key (min 32 chars)
 - `JWT_REFRESH_SECRET` - Refresh token signing key
 - `ENCRYPTION_KEY` - Data encryption key (32 chars)
-- `SHOPEE_*` - Shopee API credentials
-- `LAZADA_*` - Lazada API credentials
-- `TIKTOK_*` - TikTok Shop API credentials
+- `SHOPEE_*`, `LAZADA_*`, `TIKTOK_*` - Platform credentials (**deprecated**: stored in PostgreSQL via credential tables, not `.env`)
 
 ## Documentation
 
