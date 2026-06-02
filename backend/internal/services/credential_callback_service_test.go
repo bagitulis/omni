@@ -303,11 +303,9 @@ func TestHandleCredentialCallback_PlatformMismatch_LazadaVsTiktok(t *testing.T) 
 }
 
 func TestHandleCredentialCallback_AllPlatformsRoutable(t *testing.T) {
-	// Use a real DB to verify all platforms pass mismatch check
-	// and reach the attempt validation step (which returns invalid_attempt
-	// since no attempt rows exist in the test DB).
-	_ = seedTestDB(t) // seed DB even though service uses empty dbPath
-
+	// Verify all platforms pass the mismatch check (step 2.5) and reach the
+	// tenant DB step. With an empty dbPath (no running PostgreSQL in unit tests),
+	// tenantDB() fails and the handler returns tenant_db_error.
 	platforms := []string{"shopee", "lazada", "tiktok"}
 	for _, platform := range platforms {
 		t.Run(platform, func(t *testing.T) {
@@ -321,15 +319,15 @@ func TestHandleCredentialCallback_AllPlatformsRoutable(t *testing.T) {
 			c.Request = httptest.NewRequest("GET", url, nil)
 			c.Params = gin.Params{{Key: "platform", Value: platform}}
 
-			svc := NewCredentialApiService("") // empty dbPath — test verifies routing, not DB access
+			svc := NewCredentialApiService("")
 			svc.HandleCredentialCallback(c)
 
 			assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
 			location := w.Header().Get("Location")
 			assert.NotContains(t, location, "error=platform_mismatch",
 				"platform %s should pass mismatch check", platform)
-			assert.Contains(t, location, "error=invalid_attempt",
-				"platform %s should reach attempt validation", platform)
+			assert.Contains(t, location, "error=tenant_db_error",
+				"platform %s should reach tenant DB validation", platform)
 		})
 	}
 }
