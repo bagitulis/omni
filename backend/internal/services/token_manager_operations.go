@@ -3,42 +3,85 @@ package services
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/platform"
 	"github.com/omni/backend/internal/services/sync"
+	"github.com/omni/backend/internal/utils"
 )
 
-// saveNewTokens saves refreshed tokens to tenant database using key-value format
-// This matches Node.js behavior: saves to PlatformConfig table with configKey/configValue
+// saveNewTokens saves refreshed tokens to credential_connections (canonical store)
 // IMPORTANT: Also invalidates cached platform clients so they will reload with new tokens
 func (m *TokenManager) saveNewTokens(ctx context.Context, tenantID, platformName, accessToken, refreshToken string, expiresIn, refreshExpiresIn int64) (*TokenInfo, error) {
-	tenantRepo, err := m.getTenantConfigRepo(tenantID)
+	credRepo, err := m.getCredentialRepo(tenantID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Save tokens using the key-value format (matches Node.js)
-	err = tenantRepo.UpdateTokens(ctx, platformName, accessToken, refreshToken, expiresIn, refreshExpiresIn)
+	// Get existing connection to obtain version and current shop_cipher
+	conn, err := credRepo.GetConnection(ctx, tenantID, platformName, "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get connection for token save: %w", err)
+	}
+	if conn == nil {
+		return nil, fmt.Errorf("no credential connection found for %s/%s", tenantID, platformName)
+	}
+
+	// Build encryption service (same key as CredentialRepository)
+	encKey := os.Getenv("ENCRYPTION_KEY")
+	if encKey == "" {
+		return nil, fmt.Errorf("ENCRYPTION_KEY not configured")
+	}
+	enc, err := utils.NewEncryptionService(encKey)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ENCRYPTION_KEY: %w", err)
+	}
+
+	// Encrypt tokens before storing
+	encryptedAccess, err := enc.Encrypt(accessToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt access token: %w", err)
+	}
+	encryptedRefresh, err := enc.Encrypt(refreshToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt refresh token: %w", err)
+	}
+
+	// Calculate absolute expiry timestamps in milliseconds
+	now := time.Now()
+	accessExpiryMs := now.UnixMilli() + (expiresIn * 1000)
+	refreshExpiryMs := now.UnixMilli() + (refreshExpiresIn * 1000)
+
+	// Update connection with new tokens using optimistic locking
+	updateConn := &models.CredentialConnection{
+		TenantID:        tenantID,
+		Platform:        platformName,
+		StoreIdentifier: conn.StoreIdentifier,
+		AccessToken:     encryptedAccess,
+		RefreshToken:    encryptedRefresh,
+		ShopCipher:      conn.ShopCipher,
+		TokenExpiry:     accessExpiryMs,
+		RefreshExpiry:   refreshExpiryMs,
+		Status:          "connected",
+	}
+	err = credRepo.UpdateConnectionTokensWithVersion(ctx, updateConn, conn.Version, "connected", "refresh_success", &now)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save tokens: %w", err)
 	}
 
 	// CRITICAL: Invalidate cached platform clients so they reload with new tokens
-	// Without this, the old token would still be used until server restart
 	platform.InvalidateTenantPlatformService(tenantID)
 	sync.InvalidateTenantInstance(tenantID)
-
-	expiresAt := time.Now().Add(time.Duration(expiresIn) * time.Second)
-	refreshExpiresAt := time.Now().Add(time.Duration(refreshExpiresIn) * time.Second)
 
 	return &TokenInfo{
 		Platform:            platformName,
 		AccessToken:         accessToken,
 		RefreshToken:        refreshToken,
-		ExpiresAt:           expiresAt,
-		RefreshTokenExpires: refreshExpiresAt,
+		ExpiresAt:           now.Add(time.Duration(expiresIn) * time.Second),
+		RefreshTokenExpires: now.Add(time.Duration(refreshExpiresIn) * time.Second),
 		IsValid:             true,
 		NeedsRefresh:        false,
 		RefreshExpired:      false,
@@ -88,22 +131,26 @@ func (m *TokenManager) RefreshExpiredTokens(ctx context.Context, tenantID string
 	return results, nil
 }
 
-// GetShopID returns the shop ID for a platform from tenant config
+// GetShopID returns the shop ID for a platform from credential_connections
 func (m *TokenManager) GetShopID(ctx context.Context, tenantID, platformName string) (int64, error) {
-	tenantRepo, err := m.getTenantConfigRepo(tenantID)
+	credRepo, err := m.getCredentialRepo(tenantID)
 	if err != nil {
 		return 0, err
 	}
 
-	tokenInfo, err := tenantRepo.GetTokenInfo(ctx, platformName)
+	conn, err := credRepo.GetConnection(ctx, tenantID, platformName, "")
 	if err != nil {
 		return 0, err
 	}
-	if tokenInfo == nil {
-		return 0, fmt.Errorf("no config found for platform %s", platformName)
+	if conn == nil {
+		return 0, fmt.Errorf("no connection found for platform %s", platformName)
 	}
 
-	return tokenInfo.ShopID, nil
+	shopID, err := strconv.ParseInt(conn.StoreIdentifier, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid shop ID for platform %s: %s", platformName, conn.StoreIdentifier)
+	}
+	return shopID, nil
 }
 
 // GetAccessToken returns decrypted access token for a platform

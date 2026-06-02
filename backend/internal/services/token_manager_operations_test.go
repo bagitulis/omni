@@ -32,7 +32,7 @@ func TestNewTokenManager_WithEmptyBasePath(t *testing.T) {
 func TestTokenManager_GetAllTokenStatus_NoBasePath(t *testing.T) {
 	mgr := NewTokenManager(nil, nil, "")
 
-	// getTenantConfigRepo will fail because basePath="" and config.GetTenantDBWithContext
+	// getCredentialRepo will fail because basePath="" and config.GetTenantDBWithContext
 	// cannot connect, so each platform entry will be marked invalid.
 	result, err := mgr.GetAllTokenStatus(nil, "test-tenant")
 
