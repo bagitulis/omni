@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- **Stale large file orphan cleanup**: Updated `_cleanup_orphan_files()` in `ndjson_sync.py` to remove stale `.ndjson.gz` files from `_large/` when a table now has 0 rows but was previously exported as large. Handles edge case where stale gzip contains actual data (logs WARNING, does not auto-delete). Added `_gzip_has_content()` helper and 10 unit tests in `test_ndjson_cleanup.py`. [scripts/python-build/omni_build/ndjson_sync.py, scripts/python-build/tests/test_ndjson_cleanup.py]
 ### Added
 - **Credential backfill RED tests**: Added 6 TDD RED tests in `credential_backfill_test.go` verifying backfill service behavior. `TestBackfillAppConfigs_EmptyCanonical` seeds platform_configs for 3 platforms and asserts credential_app_configs populated. `TestBackfillConnections_EmptyCanonical` asserts credential_connections populated. `TestBackfill_Idempotent` verifies no duplicate rows on double run. `TestBackfill_EmptyTenant` handles empty tenant gracefully. `TestBackfill_MissingRequiredKeys` asserts error for missing partnerId. `TestClassifyRows_CredentialVsNonCredential` separates credential from non-credential rows. 5/6 tests FAIL (RED phase). Uses testcontainers-go with PostgreSQL 15-alpine. [backend/internal/services/credential_backfill_test.go]
 ### Added
