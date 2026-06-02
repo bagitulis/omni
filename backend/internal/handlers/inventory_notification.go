@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -50,7 +51,7 @@ func pushBulkOperationNotification(
 		metadata.Total, metadata.Succeeded, metadata.Failed, len(metadata.Platforms))
 
 	// Push notification
-	notif, pushErr := notifSvc.Push(notifType, category, title, message, "", string(metadataJSON))
+	notif, pushErr := notifSvc.Push(context.Background(), notifType, category, title, message, "", string(metadataJSON))
 	if pushErr != nil {
 		log.Error().Err(pushErr).Msg("[Notification] Failed to push bulk operation notification")
 		return

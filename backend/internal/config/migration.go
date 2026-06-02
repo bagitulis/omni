@@ -172,6 +172,7 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		&models.Spreadsheet{},
 		&models.RouteConfig{},
 		&models.WholesaleSettings{},
+		&models.GeneralSettings{},
 
 		// Unified Products (Master Product System)
 		&models.MasterProduct{},

@@ -3,11 +3,17 @@ package services
 import (
 "gorm.io/gorm"
 
+"github.com/omni/backend/internal/config"
 "github.com/omni/backend/internal/models"
 )
 // CredentialApiService handles credential management API operations.
 type CredentialApiService struct {
-	db *gorm.DB
+	dbPath string
+}
+
+// tenantDB returns a tenant-scoped database connection.
+func (s *CredentialApiService) tenantDB(tenantID string) (*gorm.DB, error) {
+	return config.GetTenantDB(tenantID, s.dbPath)
 }
 
 // CredentialPlatformStatus represents the status of credentials for a platform.

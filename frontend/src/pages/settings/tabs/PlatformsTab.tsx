@@ -3,17 +3,22 @@ import {
   getCredentialAudit,
   getCredentialPlatforms,
   initiateOAuth,
+  rotateAppCredential,
   saveManualToken,
+  upsertAppCredential,
 } from "@/api/credentials";
 import type {
+  AppCredentialUpsertPayload,
   CredentialAuditEvent,
   CredentialPlatformSummary,
 } from "@/api/credentials";
-import { message } from "@/components/AntStaticApi";
+import { message, modal } from "@/components/AntStaticApi";
 import { ShopOutlined, ShoppingOutlined, VideoCameraOutlined } from "@ant-design/icons";
 import { Form, Spin, theme } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
+import { AppCredentialFormDrawer } from "../components/AppCredentialFormDrawer";
+import type { AppCredentialDrawerMode } from "../components/AppCredentialFormDrawer";
 import { CredentialAppCredentialsSection } from "../components/CredentialAppCredentialsSection";
 import { CredentialHistoryDrawer } from "../components/CredentialHistoryDrawer";
 import { PlatformsTabHeader } from "../components/PlatformsTabHeader";
@@ -46,6 +51,12 @@ export default function PlatformsTab() {
   const [actionStatus, setActionStatus] = useState<string | null>(null);
   const requestSequenceRef = useRef(0);
   const [manualForm] = Form.useForm<ManualTokenFormValues>();
+
+  // App credential drawer state
+  const [appDrawerOpen, setAppDrawerOpen] = useState(false);
+  const [appDrawerPlatform, setAppDrawerPlatform] = useState<CredentialPlatformSummary | null>(null);
+  const [appDrawerMode, setAppDrawerMode] = useState<AppCredentialDrawerMode>("setup");
+  const [appDrawerSaving, setAppDrawerSaving] = useState(false);
 
   const privilegedActionReason = getPrivilegedActionReason(role);
   const storeActionReason = getStoreActionReason(tenantId, role);
@@ -98,11 +109,11 @@ export default function PlatformsTab() {
               : token.colorInfo,
         icon:
           platform.platform === "shopee" ? (
-<ShopOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
+            <ShopOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
           ) : platform.platform === "tiktok" ? (
-<VideoCameraOutlined style={{ fontSize: 24, color: token.colorText }} />
+            <VideoCameraOutlined style={{ fontSize: 24, color: token.colorText }} />
           ) : (
-<ShoppingOutlined style={{ fontSize: 24, color: token.colorInfo }} />
+            <ShoppingOutlined style={{ fontSize: 24, color: token.colorInfo }} />
           ),
         name: PLATFORM_NAMES[platform.platform] || platform.platform,
       })),
@@ -235,6 +246,104 @@ export default function PlatformsTab() {
     }
   };
 
+  // ── App Credential Drawer Handlers ──────────────────────────────────
+
+  const handleManageAppCredential = (
+    platform: CredentialPlatformSummary,
+    mode: AppCredentialDrawerMode,
+  ) => {
+    const currentRole = useAuthStore.getState().user?.role;
+    const reason = getPrivilegedActionReason(currentRole);
+    if (reason) {
+      message.error(reason);
+      return;
+    }
+
+    // FIX-2: Confirmation dialog for rotate mode
+    if (mode === "rotate") {
+      const platformName = PLATFORM_NAMES[platform.platform] || platform.platform;
+      modal.confirm({
+        title: `Rotate ${platformName} Credentials?`,
+        content: `Rotating credentials will invalidate all existing OAuth tokens for ${platformName}. Connected stores will need to re-authorize. Continue?`,
+        okText: "Continue",
+        okType: "danger",
+        cancelText: "Cancel",
+        onOk: () => {
+          setAppDrawerPlatform(platform);
+          setAppDrawerMode(mode);
+          setAppDrawerOpen(true);
+        },
+      });
+      return;
+    }
+
+    setAppDrawerPlatform(platform);
+    setAppDrawerMode(mode);
+    setAppDrawerOpen(true);
+  };
+
+  const handleAppCredentialSubmit = async (payload: AppCredentialUpsertPayload) => {
+    if (!appDrawerPlatform) return;
+
+    const currentState = useAuthStore.getState();
+    const currentTenantId = currentState.tenantId;
+    if (!currentTenantId) {
+      message.error("Tenant context required.");
+      return;
+    }
+
+    setAppDrawerSaving(true);
+    const platformName = PLATFORM_NAMES[appDrawerPlatform.platform] || appDrawerPlatform.platform;
+
+    try {
+      if (appDrawerMode === "rotate") {
+        await rotateAppCredential(appDrawerPlatform.platform, payload, {
+          tenant_id: currentTenantId,
+        });
+        // FIX-1: Optimistic UI — immediately update local state
+        setPlatforms((prev) =>
+          prev.map((p) =>
+            p.platform === appDrawerPlatform.platform
+              ? { ...p, app_configured: true, secret_mask: "rotated" }
+              : p,
+          ),
+        );
+        message.success(`${platformName} credentials rotated successfully`);
+        setActionStatus(`${platformName} app credentials rotated`);
+      } else {
+        await upsertAppCredential(appDrawerPlatform.platform, payload, {
+          tenant_id: currentTenantId,
+        });
+        // FIX-1: Optimistic UI
+        setPlatforms((prev) =>
+          prev.map((p) =>
+            p.platform === appDrawerPlatform.platform
+              ? { ...p, app_configured: true, secret_mask: "configured" }
+              : p,
+          ),
+        );
+        message.success(`${platformName} credentials saved successfully`);
+        setActionStatus(`${platformName} app credentials configured`);
+      }
+
+      setAppDrawerOpen(false);
+
+      // FIX-3: Error handling for refetch failure
+      try {
+        await fetchPlatformStatus(currentTenantId);
+      } catch {
+        message.warning(
+          "Credentials saved, but status refresh failed. Please refresh the page.",
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to save credentials";
+      message.error(msg);
+    } finally {
+      setAppDrawerSaving(false);
+    }
+  };
+
   const tenantBanner = tenantId
     ? `Credential status is scoped to tenant ${tenantId}.`
     : "Credential status is unavailable until a tenant is selected.";
@@ -279,6 +388,7 @@ export default function PlatformsTab() {
         manualSavingPlatform={manualSaving && manualPlatform ? manualPlatform.platform : null}
         onManualToken={handleManualTokenOpen}
         onViewHistory={(platform) => void openHistory(platform)}
+        onManageAppCredential={handleManageAppCredential}
       />
 
       <CredentialHistoryDrawer
@@ -298,6 +408,16 @@ export default function PlatformsTab() {
         saving={manualSaving}
         onClose={() => setManualOpen(false)}
         onSubmit={() => void handleManualTokenSubmit()}
+      />
+
+      <AppCredentialFormDrawer
+        open={appDrawerOpen}
+        platform={appDrawerPlatform?.platform ?? null}
+        mode={appDrawerMode}
+        appConfigured={appDrawerPlatform?.app_configured ?? false}
+        saving={appDrawerSaving}
+        onSubmit={(payload) => void handleAppCredentialSubmit(payload)}
+        onClose={() => setAppDrawerOpen(false)}
       />
     </div>
   );

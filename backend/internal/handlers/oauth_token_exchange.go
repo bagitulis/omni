@@ -62,6 +62,11 @@ func (h *OAuthHandler) exchangeShopeeToken(c *gin.Context, tenantID, code, shopI
 	return h.saveShopeeTokens(ctx, tenantID, shopID, tokenResp)
 }
 
+// oauthHTTPClient is a shared HTTP client with timeout for OAuth token exchanges.
+var oauthHTTPClient = &http.Client{
+	Timeout: 30 * time.Second,
+}
+
 // doShopeeTokenRequest performs the HTTP request to Shopee token endpoint
 func (h *OAuthHandler) doShopeeTokenRequest(tokenURL string, body map[string]interface{}) (*ShopeeTokenResponse, error) {
 	bodyJSON, err := json.Marshal(body)
@@ -71,13 +76,19 @@ func (h *OAuthHandler) doShopeeTokenRequest(tokenURL string, body map[string]int
 
 	log.Info().Str("url", tokenURL).Msg("[Shopee OAuth] Exchanging code for token")
 
-	resp, err := http.Post(tokenURL, "application/json", strings.NewReader(string(bodyJSON)))
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, tokenURL, strings.NewReader(string(bodyJSON)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := oauthHTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to exchange token: %w", err)
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20)) // 1MB limit
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}

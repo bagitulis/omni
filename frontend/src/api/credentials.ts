@@ -180,3 +180,70 @@ export async function initiateOAuth(
   }
   return response.data;
 }
+
+// ── App Credential Management ────────────────────────────────────────
+
+export interface ShopeeAppCredentialPayload {
+  partner_id: number;
+  partner_key: string;
+  region: string;
+  reason?: string;
+}
+
+export interface LazadaAppCredentialPayload {
+  app_key: string;
+  app_secret: string;
+  region: string;
+  reason?: string;
+}
+
+export interface TiktokAppCredentialPayload {
+  app_key: string;
+  app_secret: string;
+  reason?: string;
+}
+
+export type AppCredentialUpsertPayload =
+  | ShopeeAppCredentialPayload
+  | LazadaAppCredentialPayload
+  | TiktokAppCredentialPayload;
+
+export interface AppCredentialMutationResult {
+  platform: string;
+  status: string;
+  configured: boolean;
+  secret_mask?: string;
+  audit_event_id?: string;
+}
+
+export async function upsertAppCredential(
+  platform: string,
+  payload: AppCredentialUpsertPayload,
+  context: CredentialRequestContext,
+) {
+  const response = await apiClient.put<AppCredentialMutationResult>(
+    `/credentials/platforms/${platform}/app`,
+    payload,
+    withTenantContext(context),
+  );
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Failed to save app credential");
+  }
+  return response.data;
+}
+
+export async function rotateAppCredential(
+  platform: string,
+  payload: AppCredentialUpsertPayload,
+  context: CredentialRequestContext,
+) {
+  const response = await apiClient.post<AppCredentialMutationResult>(
+    `/credentials/platforms/${platform}/app/rotate`,
+    payload,
+    withTenantContext(context),
+  );
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Failed to rotate app credential");
+  }
+  return response.data;
+}

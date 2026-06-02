@@ -149,7 +149,10 @@ services:
       # Other settings
       - LOG_LEVEL=info
       - CORS_ORIGINS=${CORS_ORIGINS:-https://${DOMAIN_NAME:?DOMAIN_NAME is required},https://www.${DOMAIN_NAME},http://localhost,http://localhost:80,http://localhost:3000}
+      - SHOPEE_ENV=${SHOPEE_ENV:-test}
+      - SHOPEE_PARTNER_ID=${SHOPEE_PARTNER_ID}
       - SHOPEE_PARTNER_KEY=${SHOPEE_PARTNER_KEY}
+      - SHOPEE_REDIRECT_URL=${SHOPEE_REDIRECT_URL}
       # Frontend URL for OAuth redirects
       - FRONTEND_URL=${FRONTEND_URL:-https://${DOMAIN_NAME:?DOMAIN_NAME is required}}
       - FRONTEND_SOURCE_PATH=/app/frontend/src

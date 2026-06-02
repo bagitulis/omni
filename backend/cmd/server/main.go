@@ -88,6 +88,7 @@ func main() {
 	// ====== Platform Auth Routes ======
 	routes.RegisterPlatformAuthRoutes(api, application.PlatformAuthHandler)
 	routes.RegisterCredentialRoutes(api, application.PlatformAuthHandler)
+	routes.RegisterCredentialCallbackRoute(api, application.PlatformAuthHandler)
 
 	// ====== Extended Routes ======
 	// Utility routes

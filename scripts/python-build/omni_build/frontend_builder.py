@@ -36,7 +36,11 @@ def _find_npm() -> str:
             return found
 
     # Search common locations
-    home = Path.home()
+    try:
+        import pwd as _pwd
+        home = Path(_pwd.getpwuid(os.getuid()).pw_dir)
+    except (ImportError, KeyError):
+        home = Path.home()
     candidates = []
 
     if os.name == "nt":

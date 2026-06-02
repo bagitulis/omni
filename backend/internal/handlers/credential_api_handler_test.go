@@ -1,16 +1,17 @@
 package handlers
 
 import (
-"encoding/json"
-"net/http"
-"net/http/httptest"
-"os"
-"strings"
-"testing"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/models"
-"github.com/omni/backend/internal/utils"
+	"github.com/omni/backend/internal/utils"
 	credentialsvc "github.com/omni/backend/internal/services"
 	"github.com/omni/backend/internal/testutils"
 	"github.com/stretchr/testify/assert"
@@ -111,7 +112,7 @@ func TestCredentialApiHandler_ManualTokenRoleGate(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, http.StatusForbidden, w.Code)
 	var resp map[string]any
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.Equal(t, false, resp["success"])
@@ -145,4 +146,26 @@ func TestCredentialApiHandler_ManualTokenRequiresReason(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.Equal(t, false, resp["success"])
 	assert.Equal(t, "reason is required", resp["error"])
+}
+
+func TestCredentialErrorStatus(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		expected int
+	}{
+		{"forbidden", fmt.Errorf("forbidden action"), 403},
+		{"not authorized", fmt.Errorf("not authorized for this"), 403},
+		{"not found", fmt.Errorf("connection not found"), 404},
+		{"missing", fmt.Errorf("missing tenant_id"), 400},
+		{"invalid", fmt.Errorf("invalid platform"), 400},
+		{"unsupported", fmt.Errorf("unsupported platform"), 400},
+		{"required", fmt.Errorf("reason is required"), 400},
+		{"generic error", fmt.Errorf("something went wrong"), 500},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, credentialErrorStatus(tt.err))
+		})
+	}
 }

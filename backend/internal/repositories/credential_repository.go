@@ -117,6 +117,37 @@ func (r *CredentialRepository) CreateConnection(ctx context.Context, conn *model
 	return nil
 }
 
+// ReconnectWithToken re-enables a disabled connection and updates its tokens.
+// Unlike UpdateConnection, this works on disabled connections too.
+func (r *CredentialRepository) ReconnectWithToken(ctx context.Context, conn *models.CredentialConnection) error {
+	if err := validateConnectionScope(conn.TenantID, conn.Platform, conn.StoreIdentifier); err != nil {
+		return err
+	}
+	if err := r.encryptSecrets(conn); err != nil {
+		return err
+	}
+	result := r.db.WithContext(ctx).Model(&models.CredentialConnection{}).
+		Where("tenant_id = ? AND platform = ? AND store_identifier = ?", conn.TenantID, conn.Platform, conn.StoreIdentifier).
+		Updates(map[string]interface{}{
+			"access_token":    conn.AccessToken,
+			"refresh_token":   conn.RefreshToken,
+			"shop_cipher":     conn.ShopCipher,
+			"token_expiry":    conn.TokenExpiry,
+			"status":          "connected",
+			"region":          conn.Region,
+			"updated_by":      conn.UpdatedBy,
+			"disabled_at":     nil,
+			"disabled_reason": "",
+		})
+	if result.Error != nil {
+		return fmt.Errorf("reconnect with token: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("connection not found for %s/%s/%s", conn.TenantID, conn.Platform, conn.StoreIdentifier)
+	}
+	return nil
+}
+
 // UpdateConnection encrypts changed secrets and updates a credential connection.
 func (r *CredentialRepository) UpdateConnection(ctx context.Context, conn *models.CredentialConnection) error {
 	if err := validateConnectionScope(conn.TenantID, conn.Platform, conn.StoreIdentifier); err != nil {

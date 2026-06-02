@@ -17,13 +17,47 @@ IS_WINDOWS = platform.system() == "Windows"
 IS_LINUX = platform.system() == "Linux"
 IS_MACOS = platform.system() == "Darwin"
 
+
+def _get_real_home() -> Path:
+    """Get the real home directory, bypassing $HOME env overrides.
+
+    On Linux/macOS, uses pwd module to read from /etc/passwd — this always
+    returns the actual system home (e.g. /root) regardless of $HOME overrides
+    by tools like Hermes Agent profiles, tmux sessions, or sudo.
+
+    On Windows, falls back to USERPROFILE or Path.home().
+    """
+    if IS_WINDOWS:
+        # Windows: USERPROFILE is stable, not overridden by tools
+        userprofile = os.environ.get("USERPROFILE", "")
+        if userprofile:
+            return Path(userprofile)
+        return Path.home()
+    else:
+        # Linux/macOS: use pwd to get real home from /etc/passwd
+        try:
+            import pwd
+            return Path(pwd.getpwuid(os.getuid()).pw_dir)
+        except (ImportError, KeyError):
+            # Fallback: expanduser for the actual username
+            try:
+                username = os.environ.get("USER") or os.environ.get("LOGNAME") or "root"
+                return Path(os.path.expanduser(f"~{username}"))
+            except Exception:
+                return Path.home()
+
+
+_REAL_HOME = _get_real_home()
+
 # ── Paths ────────────────────────────────────────────────────────────────────
 
 # SCRIPT_DIR is set dynamically by AI.py (the root caller) via init()
 SCRIPT_DIR: Path = Path(".")
 CONFIG_DIR: Path = Path(".")
 PROFILES_FILE: Path = Path(".")
-TARGET_DIR: Path = Path.home() / ".config" / "opencode"
+# TARGET_DIR uses real home (from /etc/passwd), not $HOME which may be
+# overridden by Hermes Agent profiles or other tools
+TARGET_DIR: Path = _REAL_HOME / ".config" / "opencode"
 
 # AppData paths: Windows-only (APPDATA/LOCALAPPDATA env vars)
 _appdata = os.environ.get("APPDATA", "")

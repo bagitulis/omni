@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
-	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -16,16 +16,19 @@ import (
 	"github.com/omni/backend/internal/services/oauth"
 	"github.com/omni/backend/internal/services/platform"
 	"github.com/omni/backend/internal/services/sync"
-	"gorm.io/gorm"
 )
 
-func NewCredentialApiService(db *gorm.DB) *CredentialApiService { return &CredentialApiService{db: db} }
+func NewCredentialApiService(dbPath string) *CredentialApiService { return &CredentialApiService{dbPath: dbPath} }
 
 func (s *CredentialApiService) GetPlatformStatus(ctx context.Context, tenantID, role, userID, platform, storeIdentifier string) ([]CredentialPlatformStatus, error) {
 	if tenantID == "" {
 		return nil, fmt.Errorf("Missing tenant_id")
 	}
-	repo := repositories.NewCredentialRepository(s.db)
+	tenantDB, err := s.tenantDB(tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("get tenant DB: %w", err)
+	}
+	repo := repositories.NewCredentialRepository(tenantDB)
 	if platform == "" {
 		platforms := []CredentialPlatformStatus{{Platform: models.PlatformShopee, Status: "disconnected"}, {Platform: models.PlatformLazada, Status: "disconnected", Region: "id"}, {Platform: models.PlatformTiktok, Status: "disconnected"}}
 		for i := range platforms {
@@ -75,10 +78,14 @@ func (s *CredentialApiService) UpsertAppCredential(ctx context.Context, tenantID
 	if tenantID == "" {
 		return nil, fmt.Errorf("Missing tenant_id")
 	}
-	if role != "developer" && role != "admin" {
+	if role != "developer" && role != "admin" && role != "owner" {
 		return nil, fmt.Errorf("forbidden")
 	}
-	repo := repositories.NewCredentialRepository(s.db)
+	tenantDB, err := s.tenantDB(tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("get tenant DB: %w", err)
+	}
+	repo := repositories.NewCredentialRepository(tenantDB)
 	cfg, err := repo.GetAppConfig(ctx, tenantID, req.Platform)
 	if err != nil {
 		return nil, err
@@ -133,10 +140,14 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 	if req.RedirectPath == "" {
 		return nil, fmt.Errorf("redirect_path is required")
 	}
-	if role != "developer" && role != "admin" {
+	if role != "developer" && role != "admin" && role != "owner" {
 		return nil, fmt.Errorf("forbidden")
 	}
-	repo := repositories.NewCredentialRepository(s.db)
+	tenantDB, err := s.tenantDB(tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("get tenant DB: %w", err)
+	}
+	repo := repositories.NewCredentialRepository(tenantDB)
 	attemptID := uuid.NewString()
 
 	// Build CSRF nonce and signed state
@@ -183,6 +194,13 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 	}
 
 	// Get app credentials to build real platform auth URL
+	if callbackBaseURL == "" {
+		callbackBaseURL = os.Getenv("APP_URL")
+	}
+	if callbackBaseURL == "" {
+		callbackBaseURL = "https://yndigital.my.id"
+		log.Warn().Msg("InitiateOAuth: APP_URL not set, using fallback")
+	}
 	callbackURL := callbackBaseURL + "/api/credentials/callback/" + req.Platform
 	var authURL string
 
@@ -193,7 +211,7 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 			svc := oauth.NewShopeeOAuthService(cfg.PartnerID, cfg.PartnerKey, callbackURL, false)
 			authURL = svc.GetAuthURL(signedState)
 		} else {
-			authURL = callbackURL + "?state=" + url.QueryEscape(signedState)
+			return nil, fmt.Errorf("shopee app credentials not configured for tenant %s", tenantID)
 		}
 	case models.PlatformLazada:
 		cfg, _ := repo.GetAppConfig(ctx, tenantID, req.Platform)
@@ -201,7 +219,7 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 			svc := oauth.NewLazadaOAuthService(cfg.AppKey, cfg.AppSecret, callbackURL, false)
 			authURL = svc.GetAuthURL(signedState)
 		} else {
-			authURL = callbackURL + "?state=" + url.QueryEscape(signedState)
+			return nil, fmt.Errorf("lazada app credentials not configured for tenant %s", tenantID)
 		}
 	case models.PlatformTiktok:
 		cfg, _ := repo.GetAppConfig(ctx, tenantID, req.Platform)
@@ -209,10 +227,10 @@ func (s *CredentialApiService) InitiateOAuth(ctx context.Context, tenantID, role
 			svc := oauth.NewTiktokOAuthService(cfg.AppKey, cfg.AppSecret, callbackURL, false)
 			authURL = svc.GetAuthURL(signedState)
 		} else {
-			authURL = callbackURL + "?state=" + url.QueryEscape(signedState)
+			return nil, fmt.Errorf("tiktok app credentials not configured for tenant %s", tenantID)
 		}
 	default:
-		authURL = callbackURL + "?state=" + url.QueryEscape(signedState)
+		return nil, fmt.Errorf("unsupported platform: %s", req.Platform)
 	}
 
 	// Write audit event
@@ -251,13 +269,17 @@ func (s *CredentialApiService) ChangeConnectionStatus(ctx context.Context, tenan
 	if tenantID == "" {
 		return nil, fmt.Errorf("Missing tenant_id")
 	}
-	if role != "developer" && role != "admin" {
+	if role != "developer" && role != "admin" && role != "owner" {
 		return nil, fmt.Errorf("forbidden")
 	}
 	if req.StoreIdentifier == "" {
 		return nil, fmt.Errorf("store_identifier is required")
 	}
-	repo := repositories.NewCredentialRepository(s.db)
+	tenantDB, err := s.tenantDB(tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("get tenant DB: %w", err)
+	}
+	repo := repositories.NewCredentialRepository(tenantDB)
 	conn, err := repo.GetConnection(ctx, tenantID, req.Platform, req.StoreIdentifier)
 	if err != nil {
 		return nil, err
@@ -269,6 +291,7 @@ func (s *CredentialApiService) ChangeConnectionStatus(ctx context.Context, tenan
 		if err := repo.UpdateConnectionStatus(ctx, tenantID, req.Platform, req.StoreIdentifier, "connected"); err != nil {
 			return nil, err
 		}
+		invalidateCredentialCaches(tenantID)
 		auditEvent := &models.CredentialAuditEvent{
 			TenantID: tenantID, Platform: req.Platform, StoreIdentifier: req.StoreIdentifier,
 			EventType: "connection_refresh", Status: "success", Actor: userID, ActorRole: role,
@@ -310,7 +333,11 @@ func (s *CredentialApiService) ListAuditEvents(ctx context.Context, tenantID, ro
 			limit = parsed
 		}
 	}
-	repo := repositories.NewCredentialRepository(s.db)
+	tenantDB, err := s.tenantDB(tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("get tenant DB: %w", err)
+	}
+	repo := repositories.NewCredentialRepository(tenantDB)
 	events, err := repo.ListAuditEvents(ctx, tenantID, platform, limit, 0)
 	if err != nil {
 		return nil, err
@@ -322,31 +349,82 @@ func (s *CredentialApiService) ApplyManualToken(ctx context.Context, tenantID, r
 	if tenantID == "" {
 		return nil, fmt.Errorf("Missing tenant_id")
 	}
-	if role != "developer" && role != "admin" {
+	if role != "developer" && role != "admin" && role != "owner" {
 		return nil, fmt.Errorf("forbidden")
 	}
 	if req.Reason == "" {
 		return nil, fmt.Errorf("reason is required")
 	}
-	repo := repositories.NewCredentialRepository(s.db)
-	conn := &models.CredentialConnection{TenantID: tenantID, Platform: req.Platform, StoreIdentifier: req.StoreIdentifier, Region: normalizeRegion(req.Region), AccessToken: req.AccessToken, RefreshToken: req.RefreshToken, ShopCipher: req.ShopCipher, Status: "connected", CreatedBy: userID, UpdatedBy: userID}
-	if conn.Region == "" {
-		conn.Region = "id"
+	tenantDB, err := s.tenantDB(tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("get tenant DB: %w", err)
 	}
-	if req.ExpiresAt != "" {
-		parsed, err := time.Parse(time.RFC3339, req.ExpiresAt)
-		if err != nil {
-			return nil, fmt.Errorf("invalid expires_at: must be RFC3339 format")
+	repo := repositories.NewCredentialRepository(tenantDB)
+
+	// Check for existing connection (including disabled ones — upsert pattern)
+	var existing *models.CredentialConnection
+	allConns, _ := repo.ListConnections(ctx, tenantID, req.Platform)
+	for _, c := range allConns {
+		if c.StoreIdentifier == req.StoreIdentifier {
+			existing = &c
+			break
 		}
-		conn.TokenExpiry = parsed.UnixMilli()
 	}
-	if err := repo.CreateConnection(ctx, conn); err != nil {
-		return nil, err
+
+	region := normalizeRegion(req.Region)
+	if region == "" {
+		region = "id"
 	}
+
+	var conn *models.CredentialConnection
+	if existing != nil {
+		// Update existing connection with new token
+		existing.AccessToken = req.AccessToken
+		existing.RefreshToken = req.RefreshToken
+		existing.ShopCipher = req.ShopCipher
+		existing.Status = "connected"
+		existing.UpdatedBy = userID
+		wasDisabled := existing.DisabledAt != nil
+		existing.DisabledAt = nil
+		existing.DisabledReason = ""
+		existing.Region = region
+		if req.ExpiresAt != "" {
+			parsed, err := time.Parse(time.RFC3339, req.ExpiresAt)
+			if err != nil {
+				return nil, fmt.Errorf("invalid expires_at: must be RFC3339 format")
+			}
+			existing.TokenExpiry = parsed.UnixMilli()
+		}
+		conn = existing
+		if wasDisabled {
+			// Re-enable disabled connection
+			if err := repo.ReconnectWithToken(ctx, conn); err != nil {
+				return nil, err
+			}
+		} else {
+			if err := repo.UpdateConnection(ctx, conn); err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		// Create new connection
+		conn = &models.CredentialConnection{TenantID: tenantID, Platform: req.Platform, StoreIdentifier: req.StoreIdentifier, Region: region, AccessToken: req.AccessToken, RefreshToken: req.RefreshToken, ShopCipher: req.ShopCipher, Status: "connected", CreatedBy: userID, UpdatedBy: userID}
+		if req.ExpiresAt != "" {
+			parsed, err := time.Parse(time.RFC3339, req.ExpiresAt)
+			if err != nil {
+				return nil, fmt.Errorf("invalid expires_at: must be RFC3339 format")
+			}
+			conn.TokenExpiry = parsed.UnixMilli()
+		}
+		if err := repo.CreateConnection(ctx, conn); err != nil {
+			return nil, err
+		}
+	}
+	invalidateCredentialCaches(tenantID)
 	auditEvent := &models.CredentialAuditEvent{
 		TenantID: tenantID, Platform: req.Platform, StoreIdentifier: req.StoreIdentifier,
 		EventType: "manual_token_apply", Status: "success", Actor: userID, ActorRole: role,
-		Metadata: models.JSONMap{"reason": req.Reason},
+		Metadata: models.JSONMap{"reason": req.Reason, "action": func() string { if existing != nil { return "updated" }; return "created" }()},
 	}
 	auditEventID := ""
 	if err := repo.CreateAuditEvent(ctx, auditEvent); err != nil {

@@ -3,12 +3,28 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/middleware"
 	credentialsvc "github.com/omni/backend/internal/services"
 )
+
+func credentialErrorStatus(err error) int {
+	msg := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(msg, "forbidden") || strings.Contains(msg, "not authorized"):
+		return http.StatusForbidden
+	case strings.Contains(msg, "not found"):
+		return http.StatusNotFound
+	case strings.HasPrefix(msg, "missing") || strings.Contains(msg, "invalid") || strings.Contains(msg, "unsupported") || strings.Contains(msg, "required"):
+		return http.StatusBadRequest
+	default:
+		return http.StatusInternalServerError
+	}
+}
 
 type CredentialAPIService interface {
 	GetPlatformStatus(ctx context.Context, tenantID, role, userID, platform, storeIdentifier string) ([]credentialsvc.CredentialPlatformStatus, error)
@@ -18,6 +34,7 @@ type CredentialAPIService interface {
 	ChangeConnectionStatus(ctx context.Context, tenantID, role, userID string, req credentialsvc.CredentialConnectionActionRequest, action string) (*credentialsvc.CredentialMutationResponse, error)
 	ListAuditEvents(ctx context.Context, tenantID, role, userID, platform, storeIdentifier, limitStr, cursor string) (*credentialsvc.CredentialAuditListResponse, error)
 	ApplyManualToken(ctx context.Context, tenantID, role, userID string, req credentialsvc.CredentialManualTokenRequest) (*credentialsvc.CredentialMutationResponse, error)
+	HandleCredentialCallback(c *gin.Context)
 }
 
 // GetCredentialPlatforms handles GET /api/credentials/platforms
@@ -36,11 +53,7 @@ func (h *PlatformAuthHandler) GetCredentialPlatforms(c *gin.Context) {
 	storeIdentifier := c.Query("store_identifier")
 	result, err := h.credentialService.GetPlatformStatus(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), platform, storeIdentifier)
 	if err != nil {
-		status := http.StatusInternalServerError
-		if err.Error() == "Missing tenant_id" || err.Error() == "tenant_id is required" {
-			status = http.StatusUnauthorized
-		}
-		c.JSON(status, response.Error(err.Error()))
+		c.JSON(credentialErrorStatus(err), response.Error(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(gin.H{"platforms": result}))
@@ -68,9 +81,10 @@ func (h *PlatformAuthHandler) PostCredentialOAuthInitiate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
 		return
 	}
+	req.Platform = c.Param("platform")
 	result, err := h.credentialService.InitiateOAuth(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), h.getBackendURL(c), req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
+		c.JSON(credentialErrorStatus(err), response.Error(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(result))
@@ -92,11 +106,12 @@ func (h *PlatformAuthHandler) PostCredentialOAuthReconnect(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
 		return
 	}
+	// URL params are authoritative — overwrite any values from JSON body
 	req.Platform = c.Param("platform")
 	req.StoreIdentifier = c.Param("store_identifier")
 	result, err := h.credentialService.ReconnectOAuth(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), h.getBackendURL(c), req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
+		c.JSON(credentialErrorStatus(err), response.Error(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(result))
@@ -121,7 +136,7 @@ func (h *PlatformAuthHandler) GetCredentialAudit(c *gin.Context) {
 	}
 	result, err := h.credentialService.ListAuditEvents(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), c.Param("platform"), c.Query("store_identifier"), c.Query("limit"), c.Query("cursor"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
+		c.JSON(credentialErrorStatus(err), response.Error(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(result))
@@ -146,7 +161,7 @@ func (h *PlatformAuthHandler) PostCredentialManualToken(c *gin.Context) {
 	req.Platform = c.Param("platform")
 	result, err := h.credentialService.ApplyManualToken(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
+		c.JSON(credentialErrorStatus(err), response.Error(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(result))
@@ -170,7 +185,7 @@ func (h *PlatformAuthHandler) upsertCredentialApp(c *gin.Context, rotate bool) {
 	req.Platform = c.Param("platform")
 	result, err := h.credentialService.UpsertAppCredential(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), req, rotate)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
+		c.JSON(credentialErrorStatus(err), response.Error(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(result))
@@ -195,8 +210,22 @@ func (h *PlatformAuthHandler) changeConnectionStatus(c *gin.Context, action stri
 	req.StoreIdentifier = c.Param("store_identifier")
 	result, err := h.credentialService.ChangeConnectionStatus(c.Request.Context(), tenantID, c.GetString("role"), c.GetString("userID"), req, action)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Error(err.Error()))
+		c.JSON(credentialErrorStatus(err), response.Error(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(result))
+}
+
+// HandleCredentialCallback handles GET /api/credentials/callback/:platform
+func (h *PlatformAuthHandler) HandleCredentialCallback(c *gin.Context) {
+	if h.credentialService == nil {
+		// OAuth callback = browser redirect, must redirect not return JSON
+		frontendURL := os.Getenv("FRONTEND_URL")
+		if frontendURL == "" {
+			frontendURL = "https://yndigital.my.id"
+		}
+		c.Redirect(http.StatusTemporaryRedirect, frontendURL+"?error=service_unavailable")
+		return
+	}
+	h.credentialService.HandleCredentialCallback(c)
 }
