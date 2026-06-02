@@ -86,21 +86,30 @@ func (s *CredentialService) GetPlatformCredentials(tenantID, platform string) (*
 	if err != nil {
 		return nil, err
 	}
-	if canonicalState.AppConfigured && canonicalState.StoreConfigured {
+	partialState, err := s.validateAndRepairPartialState(ctx, tenantDB, tenantID, platform, canonicalState)
+	if err != nil {
+		return nil, err
+	}
+	switch partialState {
+	case StateBothPresent:
 		if err := s.refreshIfExpiring(ctx, tenantDB, tenantID, platform, creds); err != nil {
 			log.Warn().Err(err).Str("platform", platform).
 				Msg("[CredentialService] Auto-refresh failed, returning current credentials")
 		}
 		return creds, nil
-	}
-	if !canonicalState.AppConfigured {
-		return nil, fmt.Errorf("canonical app credentials not configured for %s/%s", tenantID, platform)
-	}
-	if !canonicalState.StoreConfigured {
-		return nil, fmt.Errorf("canonical store connection not configured for %s/%s", tenantID, platform)
-	}
-	return nil, fmt.Errorf("canonical credentials incomplete for %s/%s", tenantID, platform)
-
+	case StateConnectionOnly:
+		// Repair created app config — reload credentials now that both exist
+		reloadedState, err := s.loadCanonicalCredentials(ctx, tenantDB, tenantID, platform, creds)
+		if err != nil {
+			return nil, fmt.Errorf("reload after repair: %w", err)
+		}
+		if reloadedState.AppConfigured && reloadedState.StoreConfigured {
+			return creds, nil
+		}
+		return nil, fmt.Errorf("canonical credentials incomplete after repair for %s/%s", tenantID, platform)
+	default:
+		return nil, fmt.Errorf("canonical credentials not configured for %s/%s (state: %s)", tenantID, platform, partialState)
+}
 }
 
 func (s *CredentialService) refreshIfExpiring(ctx context.Context, tenantDB *gorm.DB, tenantID, platform string, creds *PlatformCredentials) error {
