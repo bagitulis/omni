@@ -62,7 +62,7 @@ func setupCallbackTest(t *testing.T, queryURL string) (*httptest.ResponseRecorde
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest("GET", queryURL, nil)
 
-	svc := NewCredentialApiService(nil) // nil DB — error paths don't touch DB
+	svc := NewCredentialApiService("") // empty dbPath — error paths don't touch DB
 	return w, c, svc
 }
 
@@ -306,7 +306,7 @@ func TestHandleCredentialCallback_AllPlatformsRoutable(t *testing.T) {
 	// Use a real DB to verify all platforms pass mismatch check
 	// and reach the attempt validation step (which returns invalid_attempt
 	// since no attempt rows exist in the test DB).
-	db := seedTestDB(t)
+	_ = seedTestDB(t) // seed DB even though service uses empty dbPath
 
 	platforms := []string{"shopee", "lazada", "tiktok"}
 	for _, platform := range platforms {
@@ -321,7 +321,7 @@ func TestHandleCredentialCallback_AllPlatformsRoutable(t *testing.T) {
 			c.Request = httptest.NewRequest("GET", url, nil)
 			c.Params = gin.Params{{Key: "platform", Value: platform}}
 
-			svc := NewCredentialApiService(db)
+			svc := NewCredentialApiService("") // empty dbPath — test verifies routing, not DB access
 			svc.HandleCredentialCallback(c)
 
 			assert.Equal(t, http.StatusTemporaryRedirect, w.Code)

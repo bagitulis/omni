@@ -41,8 +41,8 @@ func TestShopeeRefreshToken_DefaultExpiry_25d5h(t *testing.T) {
 
 	// This will fail at saveNewTokens (nil repos) but we need to check the parse logic.
 	// Instead, let's verify the constant value directly.
-	expectedDefault := int64(25*24*60*60 + 5*60*60) // 2,163,600 seconds
-	assert.Equal(t, int64(2163600), expectedDefault, "default Shopee refresh expiry should be 25d5h")
+	expectedDefault := int64(25*24*60*60 + 5*60*60) // 2,178,000 seconds (25 days + 5 hours)
+	assert.Equal(t, int64(2178000), expectedDefault, "default Shopee refresh expiry should be 25d5h")
 
 	// Verify the old 30-day value is NOT used
 	wrongValue := int64(30 * 24 * 60 * 60) // 2,592,000
@@ -103,7 +103,7 @@ func TestShopeeRefreshToken_ResponseParsing_DefaultWhenMissing(t *testing.T) {
 	if val, ok := result["refresh_expire_in"].(float64); ok && val > 0 {
 		refreshExpiresIn = int64(val)
 	}
-	assert.Equal(t, int64(2163600), refreshExpiresIn, "should use default 25d5h when API doesn't return refresh_expire_in")
+	assert.Equal(t, int64(2178000), refreshExpiresIn, "should use default 25d5h when API doesn't return refresh_expire_in")
 }
 
 func TestShopeeRefreshToken_ResponseParsing_UsesAPIValue(t *testing.T) {
@@ -135,7 +135,7 @@ func TestShopeeRefreshToken_ResponseParsing_UsesAPIValue(t *testing.T) {
 func TestShopeeRefreshToken_ConstantsVerify(t *testing.T) {
 	// Verify the constant values used in production code
 	shopeeRefreshDefault := int64(25*24*60*60 + 5*60*60)
-	assert.Equal(t, int64(2163600), shopeeRefreshDefault)
+	assert.Equal(t, int64(2178000), shopeeRefreshDefault)
 	assert.Equal(t, int64(25*24*60*60+5*60*60), shopeeRefreshDefault)
 
 	// Verify it's less than 30 days (the old bug)
@@ -150,8 +150,8 @@ func TestShopeeRefreshToken_ShardExpiryMilliseconds(t *testing.T) {
 	defaultSeconds := int64(25*24*60*60 + 5*60*60)
 	defaultMilliseconds := defaultSeconds * 1000
 
-	assert.Equal(t, int64(2163600), defaultSeconds)
-	assert.Equal(t, int64(2163600000), defaultMilliseconds)
+	assert.Equal(t, int64(2178000), defaultSeconds)
+	assert.Equal(t, int64(2178000000), defaultMilliseconds)
 
 	// Old 30-day value in ms
 	oldMs := int64(30 * 24 * 60 * 60 * 1000) // 2,592,000,000

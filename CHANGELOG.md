@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Shopee refresh token expiry test suite**: Added 7 tests in `token_manager_refresh_test.go` covering: default 25d5h expiry calculation, `refresh_expire_in` API response parsing, fallback when field is missing, API value override, constant verification, millisecond conversion, and platform constant integration. [backend/internal/services/token_manager_refresh_test.go]
+
+### Fixed
+- **Shopee refresh token expiry comment accuracy**: Corrected inline comment from '2,163,600 seconds' to '2,178,000 seconds' (25d5h actual value). [backend/internal/services/token_manager_refresh.go]
+- **Pre-existing test compilation error**: Fixed `credential_callback_service_test.go` passing `nil`/`*gorm.DB` where `NewCredentialApiService(string)` expects `string`. Changed to empty string for error-path tests. [backend/internal/services/credential_callback_service_test.go]
 ### Fixed
 - **parseTimestampMs error handling**: `parseTimestampMs()` now checks `fmt.Sscanf` return value and returns error for invalid/non-numeric/empty strings instead of silently returning 0. `buildPlatformTokenStatus()` returns `invalid_config` status when tokenExpiry parsing fails, preventing corrupt credentials from appearing as valid/connected. [backend/internal/handlers/oauth_token_status.go, oauth_token_status_test.go]
 
