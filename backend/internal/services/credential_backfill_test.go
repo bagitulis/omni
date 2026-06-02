@@ -443,3 +443,91 @@ func TestBackfillCorruptedConnectionRequired(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, shopeeConn, "Shopee connection should NOT exist — corrupted token must prevent insertion")
 }
+
+// TestBackfillDuplicateKeyResolution verifies that when platform_configs has
+// duplicate rows for the same platform+config_key, the backfill resolves them:
+//   - Duplicate keys with conflicting non-empty values → latest updated_at wins
+//   - Duplicate keys with one empty and one non-empty → use non-empty
+func TestBackfillDuplicateKeyResolution(t *testing.T) {
+	db := backfillTestDB(t)
+	repo := repositories.NewTenantPlatformConfigRepository(db)
+	ctx := context.Background()
+	tenantID := "dup_key_test"
+
+	// --- Test 1: Duplicate keys with conflicting values → latest wins ---
+	t1 := time.Now().Add(-1 * time.Hour)
+	t2 := time.Now()
+
+	// Insert older row: partnerKey = "old-key"
+	require.NoError(t, db.WithContext(ctx).Create(&repositories.TenantPlatformConfig{
+		ID:          fmt.Sprintf("%s_%s_%d", models.PlatformShopee, "partnerKey", t1.UnixNano()),
+		Platform:    models.PlatformShopee,
+		ConfigKey:   "partnerKey",
+		ConfigValue: "old-key",
+		IsEncrypted: false,
+		UpdatedAt:   t1,
+	}).Error)
+
+	// Insert newer row: partnerKey = "new-key"
+	require.NoError(t, db.WithContext(ctx).Create(&repositories.TenantPlatformConfig{
+		ID:          fmt.Sprintf("%s_%s_%d", models.PlatformShopee, "partnerKey", t2.UnixNano()),
+		Platform:    models.PlatformShopee,
+		ConfigKey:   "partnerKey",
+		ConfigValue: "new-key",
+		IsEncrypted: false,
+		UpdatedAt:   t2,
+	}).Error)
+
+	// Seed required partnerId via repo (single row, no conflict)
+	require.NoError(t, repo.SetConfig(ctx, models.PlatformShopee, "partnerId", "1001", false))
+
+	// Backfill should succeed — duplicate partnerKey resolved to latest value
+	err := BackfillAppConfigs(ctx, db, tenantID)
+	require.NoError(t, err)
+
+	// Verify canonical app config uses "new-key" (latest updated_at)
+	credRepo := repositories.NewCredentialRepository(db)
+	shopeeCfg, err := credRepo.GetAppConfig(ctx, tenantID, models.PlatformShopee)
+	require.NoError(t, err)
+	require.NotNil(t, shopeeCfg, "Shopee app config should exist")
+	assert.Equal(t, "new-key", shopeeCfg.PartnerKey, "Duplicate key should resolve to latest updated_at value")
+	assert.Equal(t, int64(1001), shopeeCfg.PartnerID)
+
+	// --- Test 2: Duplicate keys with one empty and one non-empty → use non-empty ---
+	tenantID2 := "dup_key_empty_test"
+	t3 := time.Now().Add(-2 * time.Hour)
+	t4 := time.Now().Add(-1 * time.Hour)
+
+	// Insert older row: appKey = ""
+	require.NoError(t, db.WithContext(ctx).Create(&repositories.TenantPlatformConfig{
+		ID:          fmt.Sprintf("%s_%s_%d", models.PlatformLazada, "appKey", t3.UnixNano()),
+		Platform:    models.PlatformLazada,
+		ConfigKey:   "appKey",
+		ConfigValue: "",
+		IsEncrypted: false,
+		UpdatedAt:   t3,
+	}).Error)
+
+	// Insert newer row: appKey = "lazada-app"
+	require.NoError(t, db.WithContext(ctx).Create(&repositories.TenantPlatformConfig{
+		ID:          fmt.Sprintf("%s_%s_%d", models.PlatformLazada, "appKey", t4.UnixNano()),
+		Platform:    models.PlatformLazada,
+		ConfigKey:   "appKey",
+		ConfigValue: "lazada-app",
+		IsEncrypted: false,
+		UpdatedAt:   t4,
+	}).Error)
+
+	// Seed appSecret via repo (single row, no conflict)
+	require.NoError(t, repo.SetConfig(ctx, models.PlatformLazada, "appSecret", "lazada-secret", false))
+
+	err = BackfillAppConfigs(ctx, db, tenantID2)
+	require.NoError(t, err)
+
+	lazadaCfg, err := credRepo.GetAppConfig(ctx, tenantID2, models.PlatformLazada)
+	require.NoError(t, err)
+	require.NotNil(t, lazadaCfg, "Lazada app config should exist")
+	assert.Equal(t, "lazada-app", lazadaCfg.AppKey, "Empty+non-empty duplicate should use non-empty value")
+	assert.Equal(t, "lazada-secret", lazadaCfg.AppSecret)
+}
+

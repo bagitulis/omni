@@ -259,18 +259,6 @@ func groupByPlatform(rows []inventoryRowData) map[string][]inventoryRowData {
 	return result
 }
 
-// buildConfigMap creates a key-value map from platform config rows.
-func buildConfigMap(rows []inventoryRowData) map[string]string {
-	m := make(map[string]string, len(rows))
-	for _, row := range rows {
-		key := strings.TrimSpace(asString(row["config_key"]))
-		value := asString(row["config_value"])
-		if key != "" {
-			m[key] = value
-		}
-	}
-	return m
-}
 
 // buildAppConfig constructs a CredentialAppConfig from the platform config values.
 func buildAppConfig(tenantID, platform string, configMap map[string]string) *models.CredentialAppConfig {
