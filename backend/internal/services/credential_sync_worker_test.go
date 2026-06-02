@@ -42,7 +42,7 @@ func seedPlatformConfig(t *testing.T, db *gorm.DB, platform string, shopID int64
 }
 
 // seedCredentialConnection creates a credential_connection row.
-func seedCredentialConnection(t *testing.T, db *gorm.DB, tenantID, platform, storeIdentifier string, tokenExpirySec, refreshExpirySec int64) {
+func seedCredentialConnection(t *testing.T, db *gorm.DB, tenantID, platform, storeIdentifier string, tokenExpiryMs, refreshExpiryMs int64) {
 	t.Helper()
 	repo := repositories.NewCredentialRepository(db)
 	ctx := context.Background()
@@ -56,8 +56,8 @@ func seedCredentialConnection(t *testing.T, db *gorm.DB, tenantID, platform, sto
 		Status:          "connected",
 		AccessToken:     "old-access-token",
 		RefreshToken:    "old-refresh-token",
-		TokenExpiry:     tokenExpirySec,
-		RefreshExpiry:   refreshExpirySec,
+		TokenExpiry:     tokenExpiryMs,
+		RefreshExpiry:   refreshExpiryMs,
 		Version:         1,
 		CreatedBy:       "test",
 		UpdatedBy:       "test",
@@ -79,11 +79,11 @@ func TestSyncCredentialTokens_NewerToken(t *testing.T) {
 
 	seedPlatformConfig(t, db, platform, shopID, "new-access-token", platformExpiryMs, platformRefreshExpiryMs)
 
-	// credential_connection has an OLDER token (expiring 10 min ago, in seconds)
-	oldExpirySec := time.Now().Add(-10 * time.Minute).Unix()
-	oldRefreshExpirySec := time.Now().Add(30 * 24 * time.Hour).Unix()
+	// credential_connection has an OLDER token (expiring 10 min ago, in milliseconds)
+	oldExpiryMs := time.Now().Add(-10 * time.Minute).UnixMilli()
+	oldRefreshExpiryMs := time.Now().Add(30 * 24 * time.Hour).UnixMilli()
 	storeIdentifier := strconv.FormatInt(shopID, 10)
-	seedCredentialConnection(t, db, tenantID, platform, storeIdentifier, oldExpirySec, oldRefreshExpirySec)
+	seedCredentialConnection(t, db, tenantID, platform, storeIdentifier, oldExpiryMs, oldRefreshExpiryMs)
 
 	synced, err := SyncCredentialTokens(ctx, db, tenantID)
 	require.NoError(t, err)
@@ -97,9 +97,8 @@ func TestSyncCredentialTokens_NewerToken(t *testing.T) {
 
 	assert.Equal(t, "new-access-token", conn.AccessToken)
 	assert.Equal(t, "auto_sync", conn.UpdatedBy)
-	// Token expiry should be updated to platformExpiryMs / 1000
-	expectedExpirySec := platformExpiryMs / 1000
-	assert.Equal(t, expectedExpirySec, conn.TokenExpiry)
+	// Token expiry should be updated to platformExpiryMs (milliseconds)
+	assert.Equal(t, platformExpiryMs, conn.TokenExpiry)
 }
 
 func TestSyncCredentialTokens_SameToken(t *testing.T) {
@@ -109,19 +108,56 @@ func TestSyncCredentialTokens_SameToken(t *testing.T) {
 	platform := models.PlatformShopee
 	var shopID int64 = 55667
 
-	// Both platform_configs and credential_connection have the same expiry
-	nowSec := time.Now().Unix()
-	platformExpiryMs := nowSec * 1000 // Same time in ms
-	refreshExpiryMs := (nowSec + 86400) * 1000
+	// Both platform_configs and credential_connection have the same expiry (milliseconds)
+	nowMs := time.Now().UnixMilli()
+	platformExpiryMs := nowMs // Same time in ms
+	refreshExpiryMs := nowMs + (86400 * 1000)
 
 	seedPlatformConfig(t, db, platform, shopID, "same-access-token", platformExpiryMs, refreshExpiryMs)
 
 	storeIdentifier := strconv.FormatInt(shopID, 10)
-	seedCredentialConnection(t, db, tenantID, platform, storeIdentifier, nowSec, nowSec+86400)
+	seedCredentialConnection(t, db, tenantID, platform, storeIdentifier, nowMs, nowMs+(86400*1000))
 
 	synced, err := SyncCredentialTokens(ctx, db, tenantID)
 	require.NoError(t, err)
 	assert.Equal(t, 0, synced, "no connections should be synced when expiry is the same")
+}
+
+// TestSyncCredentialTokens_NewerExpiryMs is a regression test: platform_configs expiry (ms)
+// > credential_connections expiry (ms) → sync must copy newer token.
+// This would have caught the bug where /1000 caused false "not newer" comparisons.
+func TestSyncCredentialTokens_NewerExpiryMs(t *testing.T) {
+	db := syncTestDB(t)
+	ctx := context.Background()
+	tenantID := "sync_test_tenant"
+	platform := models.PlatformShopee
+	var shopID int64 = 44556
+
+	// platform_configs: token expiring in 30 minutes from now (13-digit ms timestamp)
+	nowMs := time.Now().UnixMilli()
+	platformExpiryMs := nowMs + (30 * 60 * 1000)
+	platformRefreshExpiryMs := nowMs + (30 * 24 * 60 * 60 * 1000)
+
+	seedPlatformConfig(t, db, platform, shopID, "regression-new-token", platformExpiryMs, platformRefreshExpiryMs)
+
+	// credential_connection: token expiring in 10 minutes from now (also ms, OLDER)
+	connExpiryMs := nowMs + (10 * 60 * 1000)
+	connRefreshExpiryMs := nowMs + (20 * 24 * 60 * 60 * 1000)
+	storeIdentifier := strconv.FormatInt(shopID, 10)
+	seedCredentialConnection(t, db, tenantID, platform, storeIdentifier, connExpiryMs, connRefreshExpiryMs)
+
+	synced, err := SyncCredentialTokens(ctx, db, tenantID)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, synced, 1, "should sync when platform_configs has newer ms expiry")
+
+	// Verify the credential_connection was updated with the newer ms expiry
+	repo := repositories.NewCredentialRepository(db)
+	conn, err := repo.GetConnection(ctx, tenantID, platform, storeIdentifier)
+	require.NoError(t, err)
+	require.NotNil(t, conn)
+	assert.Equal(t, "regression-new-token", conn.AccessToken)
+	assert.Equal(t, platformExpiryMs, conn.TokenExpiry, "TokenExpiry should be synced in ms")
+	assert.Equal(t, "auto_sync", conn.UpdatedBy)
 }
 
 func TestSyncCredentialTokens_NoConnection(t *testing.T) {

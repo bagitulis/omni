@@ -206,7 +206,6 @@ export function TokenStatusDropdown() {
                           : token.colorSuccess,
                       }}
                     >
-                      {data?.isExpired ? "Expired" : "Valid"} •{" "}
                       {formatTimeRemaining(data?.expiresAt ?? null)}
                     </Text>
                   </Flex>

@@ -109,13 +109,13 @@ func syncPlatformTokens(
 		return 0, nil
 	}
 
-	// platform_configs stores tokenExpiry in milliseconds; credential_connections in seconds.
-	platformExpirySec := tokenInfo.TokenExpiry / 1000
-	if platformExpirySec <= conn.TokenExpiry {
+	// Both platform_configs and credential_connections store tokenExpiry in milliseconds.
+	platformExpiryMs := tokenInfo.TokenExpiry
+	if platformExpiryMs <= conn.TokenExpiry {
 		return 0, nil // platform_configs does not have a newer token
 	}
 
-	platformRefreshExpirySec := tokenInfo.RefreshTokenExpiry / 1000
+	platformRefreshExpiryMs := tokenInfo.RefreshTokenExpiry
 	now := time.Now()
 
 	updateConn := &models.CredentialConnection{
@@ -125,8 +125,8 @@ func syncPlatformTokens(
 		AccessToken:     tokenInfo.AccessToken,
 		RefreshToken:    tokenInfo.RefreshToken,
 		ShopCipher:      tokenInfo.ShopCipherOfSeller,
-		TokenExpiry:     platformExpirySec,
-		RefreshExpiry:   platformRefreshExpirySec,
+		TokenExpiry:     platformExpiryMs,
+		RefreshExpiry:   platformRefreshExpiryMs,
 		UpdatedBy:       "auto_sync",
 	}
 

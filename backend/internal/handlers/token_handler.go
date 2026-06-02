@@ -255,7 +255,12 @@ func (h *TokenHandler) buildStatusWithTokensData(c *gin.Context, tenantID string
 			data[platform] = gin.H{"platform": platform, "connected": false, "is_expired": true}
 			continue
 		}
-		statusObj := gin.H{"platform": platform, "connected": status.IsValid, "is_expired": !status.IsValid || status.NeedsRefresh}
+		statusObj := gin.H{
+			"platform":        platform,
+			"connected":       status.IsValid,
+			"is_expired":      !status.IsValid || status.NeedsRefresh,
+			"refresh_expired": status.RefreshExpired,
+		}
 		if !status.ExpiresAt.IsZero() {
 			statusObj["expires_at"] = FormatISOTimestamp(status.ExpiresAt)
 		}

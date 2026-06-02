@@ -30,6 +30,7 @@ func TestTokenInfo(t *testing.T) {
 		ShopCipher:          "cipher-abc",
 		IsValid:             true,
 		NeedsRefresh:        false,
+		RefreshExpired:      false,
 	}
 
 	assert.Equal(t, "shopee", info.Platform)
@@ -41,6 +42,7 @@ func TestTokenInfo(t *testing.T) {
 	assert.Equal(t, "cipher-abc", info.ShopCipher)
 	assert.True(t, info.IsValid)
 	assert.False(t, info.NeedsRefresh)
+	assert.False(t, info.RefreshExpired)
 }
 
 func TestTokenManager_GetAllTokenStatus_NilRepo(t *testing.T) {
@@ -139,6 +141,76 @@ func TestTokenInfo_ShopIDAndCipher(t *testing.T) {
 			}
 			assert.Equal(t, tt.shopID, info.ShopID)
 			assert.Equal(t, tt.shopCipher, info.ShopCipher)
+		})
+	}
+}
+
+func TestTokenInfo_RefreshExpiredField(t *testing.T) {
+	tests := []struct {
+		name            string
+		accessExpiry    time.Duration // relative to now
+		refreshExpiry   time.Duration // relative to now
+		wantValid       bool
+		wantNeedsRefresh bool
+		wantRefreshExpired bool
+	}{
+		{
+			name:               "both tokens valid",
+			accessExpiry:       4 * time.Hour,
+			refreshExpiry:      30 * 24 * time.Hour,
+			wantValid:          true,
+			wantNeedsRefresh:   false,
+			wantRefreshExpired: false,
+		},
+		{
+			name:               "access expired, refresh still valid",
+			accessExpiry:       -1 * time.Hour,
+			refreshExpiry:      30 * 24 * time.Hour,
+			wantValid:          false,
+			wantNeedsRefresh:   true,
+			wantRefreshExpired: false,
+		},
+		{
+			name:               "both access and refresh expired",
+			accessExpiry:       -1 * time.Hour,
+			refreshExpiry:      -1 * time.Hour,
+			wantValid:          false,
+			wantNeedsRefresh:   false, // suppressed because refresh is expired
+			wantRefreshExpired: true,
+		},
+		{
+			name:               "access valid near expiry, refresh expired",
+			accessExpiry:       30 * time.Minute,
+			refreshExpiry:      -1 * time.Hour,
+			wantValid:          true,
+			wantNeedsRefresh:   false, // suppressed because refresh is expired
+			wantRefreshExpired: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			now := time.Now()
+			expiresAt := now.Add(tt.accessExpiry)
+			refreshExpiresAt := now.Add(tt.refreshExpiry)
+
+			refreshExpired := now.After(refreshExpiresAt)
+			needsRefresh := now.After(expiresAt.Add(-1 * time.Hour))
+			if refreshExpired {
+				needsRefresh = false
+			}
+
+			info := TokenInfo{
+				ExpiresAt:           expiresAt,
+				RefreshTokenExpires: refreshExpiresAt,
+				IsValid:             now.Before(expiresAt),
+				NeedsRefresh:        needsRefresh,
+				RefreshExpired:      refreshExpired,
+			}
+
+			assert.Equal(t, tt.wantValid, info.IsValid, "IsValid mismatch")
+			assert.Equal(t, tt.wantNeedsRefresh, info.NeedsRefresh, "NeedsRefresh mismatch")
+			assert.Equal(t, tt.wantRefreshExpired, info.RefreshExpired, "RefreshExpired mismatch")
 		})
 	}
 }
