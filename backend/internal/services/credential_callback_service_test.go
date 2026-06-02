@@ -212,7 +212,7 @@ func TestExchangeShopeeToken_HappyPath(t *testing.T) {
 
 	assert.Equal(t, "test-access-token", resp.AccessToken)
 	assert.Equal(t, "test-refresh-token", resp.RefreshToken)
-	assert.Equal(t, 14400, resp.ExpiresIn)
+	assert.Equal(t, int64(14400), resp.ExpiresIn)
 	assert.Equal(t, int64(12345), resp.ShopID)
 }
 
