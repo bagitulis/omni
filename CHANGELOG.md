@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **GlobalConfig credential RED tests**: Added 4 TDD RED tests in `global_config_credential_test.go` verifying that `GetShopeeCredentials`/`GetLazadaCredentials`/`GetTiktokCredentials` should NOT fall back to `os.Getenv`. Tests create a `GlobalConfigService` with nil DB, set env vars to wrong values, and assert env values are NOT returned. All 10 assertions fail (RED phase). `TestGetCredentials_MissingInDB_ReturnsError` asserts error returned for missing credentials. [backend/internal/config/global_config_credential_test.go]
 
 ### Added
 - **UpdateManualConnectionWithVersion optimistic locking**: New `UpdateManualConnectionWithVersion()` in credential_repository.go prevents manual token application from silently overwriting auto-refreshed tokens. Uses version check in WHERE clause, returns `ErrStaleVersion` on conflict. Unlike `UpdateConnectionTokensWithVersion()`, this also updates `region`, `disabled_at`, `disabled_reason`. Caller changed from `UpdateConnection()` to version-checked variant in `ApplyManualToken`. Added 6 tests covering success, version conflict, disabled connection, invalid version, and disabled status clearing. [backend/internal/repositories/credential_repository.go, credential_repository_test.go, services/credential_api_service.go]

@@ -16,6 +16,7 @@ Correctness guarantees:
   - Per-table transactions with rollback on failure
   - Idempotent: run import twice = same result
 """
+import gzip
 import json
 import os
 import shutil
@@ -304,6 +305,18 @@ def _topo_sort(tables: List[TableInfo]) -> List[TableInfo]:
     return sorted_tables
 
 
+def _gzip_has_content(gz_path: Path) -> bool:
+    'Check if a gzip file contains any uncompressed content beyond the header.'
+
+    try:
+        with gzip.open(gz_path, 'rt', encoding='utf-8') as f:
+            for line in f:
+                if line.strip():
+                    return True
+        return False
+    except Exception:
+        return True
+
 def _cleanup_orphan_files(sync_dir: Path, exported_keys: set[str]) -> int:
     """Remove NDJSON files for tables that no longer exist in the database.
 
@@ -312,6 +325,14 @@ def _cleanup_orphan_files(sync_dir: Path, exported_keys: set[str]) -> int:
     Removing these prevents stale data from being imported on another machine.
     """
     removed = 0
+
+    # Load manifest for row count info (used to detect stale large files for 0-row tables)
+    manifest_path = sync_dir / "manifest.json"
+    manifest = {}
+    if manifest_path.exists():
+        with open(manifest_path, 'r', encoding='utf-8') as f:
+            manifest = json.load(f)
+    manifest_tables = manifest.get('tables', {})
 
     # Check schema directories for orphan .ndjson files
     for schema_dir in sync_dir.iterdir():
@@ -330,7 +351,7 @@ def _cleanup_orphan_files(sync_dir: Path, exported_keys: set[str]) -> int:
                 removed += 1
                 log_info(f"  Removed orphan: {schema_name}/{ndjson_file.name}")
 
-    # Check _large directory for orphan compressed files
+    # Check _large directory for orphan or stale compressed files
     large_dir = sync_dir / '_large'
     if large_dir.exists():
         for gz_file in list(large_dir.glob('*.ndjson.gz')):
@@ -342,6 +363,23 @@ def _cleanup_orphan_files(sync_dir: Path, exported_keys: set[str]) -> int:
                     gz_file.unlink()
                     removed += 1
                     log_info(f"  Removed orphan: _large/{gz_file.name}")
+                elif key in exported_keys:
+                    # Key IS in exported_keys — check if table now has 0 rows
+                    row_count = manifest_tables.get(key, -1)
+                    if row_count == 0:
+                        schema_dir = sync_dir / parts[0]
+                        plain_file = schema_dir / f"{parts[1]}.ndjson"
+                        if plain_file.exists():
+                            if _gzip_has_content(gz_file):
+                                log_warning(
+                                    f"  Stale large file {gz_file.name} has data but "
+                                    f"manifest reports 0 rows — data integrity issue, "
+                                    f"not deleting"
+                                )
+                            else:
+                                gz_file.unlink()
+                                removed += 1
+                                log_info(f"  Removed stale large file: {gz_file.name}")
 
     # Remove empty schema directories
     for schema_dir in list(sync_dir.iterdir()):
