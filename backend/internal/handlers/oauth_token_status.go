@@ -114,9 +114,14 @@ func parseTimestampMs(s string) (int64, error) {
 		return 0, fmt.Errorf("invalid timestamp: empty string")
 	}
 	var ms int64
-	n, _ := fmt.Sscanf(s, "%d", &ms)
-	if n != 1 {
+	var extra byte
+	n, _ := fmt.Sscanf(s, "%d%c", &ms, &extra)
+	if n < 1 {
 		return 0, fmt.Errorf("invalid timestamp: %s", s)
+	}
+	if n == 2 {
+		// Parsed a number but there's a trailing character — reject partial parse
+		return 0, fmt.Errorf("invalid timestamp: trailing characters in %s", s)
 	}
 	return ms, nil
 }

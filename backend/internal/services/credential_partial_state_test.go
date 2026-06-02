@@ -93,7 +93,7 @@ func TestPartialState_ConnectionOnly_RepairShopee(t *testing.T) {
 	seedBackfillAppData(t, db, "shopee", 12345, "partner-key-123", "", "")
 
 	// Seed a connection in credential_connections
-	seedCredentialConnection(t, db, tenantID, "shopee", "67890", "access-tok", "refresh-tok", 0, 0)
+	seedRawConnection(t, db, tenantID, "shopee", "67890", "access-tok", "refresh-tok", 0, 0)
 
 	svc := &CredentialService{dbPath: ""}
 
@@ -125,7 +125,7 @@ func TestPartialState_ConnectionOnly_RepairLazada(t *testing.T) {
 	seedBackfillAppData(t, db, "lazada", 0, "", "lazada-app-key", "lazada-app-secret")
 
 	// Seed a connection
-	seedCredentialConnection(t, db, tenantID, "lazada", "shop-123", "access-tok", "refresh-tok", 0, 0)
+	seedRawConnection(t, db, tenantID, "lazada", "shop-123", "access-tok", "refresh-tok", 0, 0)
 
 	svc := &CredentialService{dbPath: ""}
 
@@ -156,7 +156,7 @@ func TestPartialState_ConnectionOnly_RepairTikTok(t *testing.T) {
 	seedBackfillAppData(t, db, "tiktok", 0, "", "tiktok-app-key", "tiktok-app-secret")
 
 	// Seed a connection
-	seedCredentialConnection(t, db, tenantID, "tiktok", "seller-456", "access-tok", "refresh-tok", 0, 0)
+	seedRawConnection(t, db, tenantID, "tiktok", "seller-456", "access-tok", "refresh-tok", 0, 0)
 
 	svc := &CredentialService{dbPath: ""}
 
@@ -184,7 +184,7 @@ func TestPartialState_ConnectionOnly_NoPlatformConfigs_ReturnsError(t *testing.T
 	tenantID := "partial_no_configs"
 
 	// Seed a connection but NO platform_configs data
-	seedCredentialConnection(t, db, tenantID, "shopee", "67890", "access-tok", "refresh-tok", 0, 0)
+	seedRawConnection(t, db, tenantID, "shopee", "67890", "access-tok", "refresh-tok", 0, 0)
 
 	svc := &CredentialService{dbPath: ""}
 
@@ -222,7 +222,7 @@ func TestPartialState_RepairIdempotent(t *testing.T) {
 	seedBackfillAppData(t, db, "shopee", 12345, "partner-key-123", "", "")
 
 	// Seed a connection
-	seedCredentialConnection(t, db, tenantID, "shopee", "67890", "access-tok", "refresh-tok", 0, 0)
+	seedRawConnection(t, db, tenantID, "shopee", "67890", "access-tok", "refresh-tok", 0, 0)
 
 	svc := &CredentialService{dbPath: ""}
 	loadState := canonicalCredentialLoadState{
@@ -252,7 +252,7 @@ func TestPartialState_RepairIdempotent(t *testing.T) {
 // Helpers
 // =============================================================================
 
-func seedCredentialConnection(t *testing.T, db *gorm.DB, tenantID, platform, storeID, accessToken, refreshToken string, tokenExpiry, refreshExpiry int64) {
+func seedRawConnection(t *testing.T, db *gorm.DB, tenantID, platform, storeID, accessToken, refreshToken string, tokenExpiry, refreshExpiry int64) {
 	t.Helper()
 	// Use raw SQL to insert connection directly (avoids encryption complexity in tests)
 	db.Exec(
