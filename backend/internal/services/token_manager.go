@@ -68,6 +68,7 @@ type TokenInfo struct {
 	ShopCipher          string // TikTok shop cipher
 	IsValid             bool
 	NeedsRefresh        bool
+	RefreshExpired      bool // True when refresh token expiry < now
 }
 
 // GetTokenStatus gets token status for a tenant/platform
@@ -97,6 +98,13 @@ func (m *TokenManager) GetTokenStatus(ctx context.Context, tenantID, platform st
 	// Token needs refresh if within 1 hour of expiry
 	needsRefresh := time.Now().After(expiresAt.Add(-1 * time.Hour))
 
+	refreshExpired := time.Now().After(refreshExpiresAt)
+
+	// When refresh token is expired, suppress NeedsRefresh to avoid futile API calls
+	if refreshExpired {
+		needsRefresh = false
+	}
+
 	return &TokenInfo{
 		Platform:            platform,
 		AccessToken:         tokenInfo.AccessToken,
@@ -107,6 +115,7 @@ func (m *TokenManager) GetTokenStatus(ctx context.Context, tenantID, platform st
 		ShopCipher:          tokenInfo.ShopCipherOfSeller,
 		IsValid:             time.Now().Before(expiresAt),
 		NeedsRefresh:        needsRefresh,
+		RefreshExpired:      refreshExpired,
 	}, nil
 }
 

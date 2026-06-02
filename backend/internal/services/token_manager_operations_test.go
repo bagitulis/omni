@@ -53,12 +53,13 @@ func TestTokenManager_GetAllTokenStatus_NoBasePath(t *testing.T) {
 // TestTokenInfo_Fields verifies TokenInfo struct fields are accessible.
 func TestTokenInfo_Fields(t *testing.T) {
 	info := &TokenInfo{
-		Platform:     "shopee",
-		AccessToken:  "at-123",
-		RefreshToken: "rt-456",
-		ShopID:       987654,
-		IsValid:      true,
-		NeedsRefresh: false,
+		Platform:       "shopee",
+		AccessToken:    "at-123",
+		RefreshToken:   "rt-456",
+		ShopID:         987654,
+		IsValid:        true,
+		NeedsRefresh:   false,
+		RefreshExpired: false,
 	}
 
 	assert.Equal(t, "shopee", info.Platform)
@@ -67,4 +68,5 @@ func TestTokenInfo_Fields(t *testing.T) {
 	assert.Equal(t, int64(987654), info.ShopID)
 	assert.True(t, info.IsValid)
 	assert.False(t, info.NeedsRefresh)
+	assert.False(t, info.RefreshExpired)
 }

@@ -41,6 +41,7 @@ func (m *TokenManager) saveNewTokens(ctx context.Context, tenantID, platformName
 		RefreshTokenExpires: refreshExpiresAt,
 		IsValid:             true,
 		NeedsRefresh:        false,
+		RefreshExpired:      false,
 	}, nil
 }
 
