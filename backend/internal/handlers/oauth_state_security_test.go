@@ -75,6 +75,7 @@ func TestOAuthSignedStateReplayAndScopeValidation(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, oauthAttemptCompleted, status)
 	require.Equal(t, "tenant-a", validated.TenantID)
+	require.NoError(t, credentialRepo.CompleteAttempt(contextWithTestTimeout(t), validated.TenantID, validated.Platform, validated.AttemptID, oauthAttemptCompleted))
 
 	replayed, replayStatus, replayErr := handler.validateCallbackState(c, models.PlatformTiktok, state)
 	require.Error(t, replayErr)
