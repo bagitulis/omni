@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **parseTimestampMs error handling**: `parseTimestampMs()` now checks `fmt.Sscanf` return value and returns error for invalid/non-numeric/empty strings instead of silently returning 0. `buildPlatformTokenStatus()` returns `invalid_config` status when tokenExpiry parsing fails, preventing corrupt credentials from appearing as valid/connected. [backend/internal/handlers/oauth_token_status.go, oauth_token_status_test.go]
+
+### Fixed
+
 - **Lazada OAuth timestamp generation**: Replaced fragile `fmt.Sprintf("%d000", time.Now().Unix())` with `fmt.Sprintf("%d", time.Now().UnixMilli())` in `lazada_oauth.go` BuildCommonParams. String-concatenation approach could overflow on large timestamps. [backend/internal/services/oauth/lazada_oauth.go]
 ### Fixed
 - **TokenStatusDropdown "Expired • Expired" display bug**: Removed redundant `isExpired ? "Expired" : "Valid"` prefix on Access Token line. Now renders only `formatTimeRemaining(expiresAt)` which already handles all states (Expired, time remaining, Unknown). [frontend/src/components/layout/TokenStatusDropdown.tsx]

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/omni/backend/internal/testutils"
+	"github.com/omni/backend/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,8 +20,8 @@ func TestTenantPlatformConfigRepository(t *testing.T) {
 	createConfig := func(t *testing.T, platform, key, value string) {
 		config := TenantPlatformConfig{
 			ID:          platform + "_" + key + "_" + time.Now().String(),
-			Platform:    platform,
 			ConfigKey:   key,
+			Platform:    platform,
 			ConfigValue: value,
 			DataType:    "string",
 			IsEncrypted: false,
@@ -138,5 +139,94 @@ func TestTenantPlatformConfigRepository(t *testing.T) {
 				assert.Equal(t, tt.expected, result)
 			})
 		}
+	})
+}
+
+func TestDecryptValue(t *testing.T) {
+	// Generate a Fernet key for testing
+	key, err := utils.GenerateKey()
+	require.NoError(t, err)
+
+	encSvc, err := utils.NewEncryptionService(key)
+	require.NoError(t, err)
+
+	// Repos with and without encryption
+	repoWithEnc := &TenantPlatformConfigRepository{encryption: encSvc}
+	repoNoEnc := &TenantPlatformConfigRepository{encryption: nil}
+
+	// Encrypt a known value for testing
+	encrypted, err := encSvc.Encrypt("secret-token-123")
+	require.NoError(t, err)
+	require.NotEmpty(t, encrypted)
+
+	t.Run("plaintext returns as-is", func(t *testing.T) {
+		cfg := &TenantPlatformConfig{
+			ConfigValue: "plaintext-value",
+			IsEncrypted: false,
+		}
+		val, err := repoWithEnc.decryptValue(cfg)
+		assert.NoError(t, err)
+		assert.Equal(t, "plaintext-value", val)
+	})
+
+	t.Run("valid encrypted decrypts", func(t *testing.T) {
+		cfg := &TenantPlatformConfig{
+			Platform:    "testplat",
+			ConfigKey:   "accessToken",
+			ConfigValue: encrypted,
+			IsEncrypted: true,
+		}
+		val, err := repoWithEnc.decryptValue(cfg)
+		assert.NoError(t, err)
+		assert.Equal(t, "secret-token-123", val)
+	})
+
+	t.Run("corrupted encrypted returns error", func(t *testing.T) {
+		cfg := &TenantPlatformConfig{
+			Platform:    "testplat",
+			ConfigKey:   "accessToken",
+			ConfigValue: "not-a-valid-fernet-token",
+			IsEncrypted: true,
+		}
+		val, err := repoWithEnc.decryptValue(cfg)
+		assert.Error(t, err)
+		assert.Empty(t, val)
+		assert.Contains(t, err.Error(), "testplat")
+		assert.Contains(t, err.Error(), "accessToken")
+	})
+
+	t.Run("no encryption service returns plaintext", func(t *testing.T) {
+		cfg := &TenantPlatformConfig{
+			ConfigValue: "plain",
+			IsEncrypted: false,
+		}
+		val, err := repoNoEnc.decryptValue(cfg)
+		assert.NoError(t, err)
+		assert.Equal(t, "plain", val)
+	})
+
+	t.Run("encrypted but no encryption service returns ciphertext", func(t *testing.T) {
+		cfg := &TenantPlatformConfig{
+			ConfigValue: "encrypted-blob",
+			IsEncrypted: true,
+		}
+		val, err := repoNoEnc.decryptValue(cfg)
+		assert.NoError(t, err)
+		assert.Equal(t, "encrypted-blob", val)
+	})
+
+	t.Run("nil cfg returns empty", func(t *testing.T) {
+		val, err := repoWithEnc.decryptValue(nil)
+		assert.NoError(t, err)
+		assert.Empty(t, val)
+	})
+
+	t.Run("empty value returns empty", func(t *testing.T) {
+		cfg := &TenantPlatformConfig{
+			ConfigValue: "",
+		}
+		val, err := repoWithEnc.decryptValue(cfg)
+		assert.NoError(t, err)
+		assert.Empty(t, val)
 	})
 }

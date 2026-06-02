@@ -12,7 +12,8 @@ type TokenResponse struct {
 	AccessToken  string  `json:"access_token"`
 	RefreshToken string  `json:"refresh_token"`
 	ExpireIn     int64   `json:"expire_in"`
-	ShopIDList   []int64 `json:"shop_id_list"`
+	RefreshExpireIn int64   `json:"refresh_expire_in"`
+	ShopIDList      []int64 `json:"shop_id_list"`
 	Error        string  `json:"error"`
 	Message      string  `json:"message"`
 }

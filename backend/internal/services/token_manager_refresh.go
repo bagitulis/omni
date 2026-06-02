@@ -45,8 +45,11 @@ func (m *TokenManager) executeShopeeTokenRefresh(ctx context.Context, tenantID, 
 	if val, ok := result["expire_in"].(float64); ok && val > 0 {
 		expiresIn = int64(val)
 	}
-	// Shopee refresh token valid for 30 days
-	refreshExpiresIn := int64(30 * 24 * 60 * 60)
+	// Shopee Indonesia refresh token valid for 25 days 5 hours (2,163,600 seconds)
+	refreshExpiresIn := int64(25*24*60*60 + 5*60*60)
+	if val, ok := result["refresh_expire_in"].(float64); ok && val > 0 {
+		refreshExpiresIn = int64(val)
+	}
 
 	log.Info().
 		Int64("expires_in", expiresIn).

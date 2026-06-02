@@ -88,8 +88,6 @@ func TestBuildPlatformTokenStatus_EmptyTokenExpiry(t *testing.T) {
 
 // TestBuildPlatformTokenStatus_ValidToken verifies valid token expiry computes correct status
 func TestBuildPlatformTokenStatus_ValidToken(t *testing.T) {
-	futureMs := int64(1730000000000) // some future timestamp
-	pastMs := int64(1600000000000)   // some past timestamp
 	nowMs := int64(1700000000000)
 
 	t.Run("valid future token", func(t *testing.T) {
@@ -112,13 +110,9 @@ func TestBuildPlatformTokenStatus_ValidToken(t *testing.T) {
 			"shopId":      "test-shop",
 			"shopName":    "Test Shop",
 		}
-		// nowMs is 1700000000000, so 1600000000000 is in the past
 		result := buildPlatformTokenStatus(configMap, nowMs)
 		assert.Equal(t, "expired", result["status"])
 		assert.Equal(t, false, result["valid"])
 		assert.Equal(t, true, result["isExpired"])
 	})
-
-	_ = futureMs
-	_ = pastMs
 }

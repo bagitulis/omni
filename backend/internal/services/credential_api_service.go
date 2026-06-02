@@ -401,10 +401,22 @@ func (s *CredentialApiService) ApplyManualToken(ctx context.Context, tenantID, r
 			if err := repo.ReconnectWithToken(ctx, conn); err != nil {
 				return nil, err
 			}
+		} else {
+			expectedVersion := conn.Version
+			if err := repo.UpdateManualConnectionWithVersion(ctx, conn, expectedVersion); err != nil {
+				return nil, err
+			}
+		}
+		if wasDisabled {
+			// Re-enable disabled connection
+			if err := repo.ReconnectWithToken(ctx, conn); err != nil {
+				return nil, err
+			}
+		} else {
 			if err := repo.UpdateManualConnectionWithVersion(ctx, conn, conn.Version); err != nil {
 				return nil, err
 			}
-	} else {
+		}
 		// Create new connection
 		conn = &models.CredentialConnection{TenantID: tenantID, Platform: req.Platform, StoreIdentifier: req.StoreIdentifier, Region: region, AccessToken: req.AccessToken, RefreshToken: req.RefreshToken, ShopCipher: req.ShopCipher, Status: "connected", CreatedBy: userID, UpdatedBy: userID}
 		if req.ExpiresAt != "" {

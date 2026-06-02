@@ -138,6 +138,7 @@ func (r *TenantPlatformConfigRepository) GetAllConfigByPlatform(ctx context.Cont
 		if val, err := r.decryptValue(&cfg); err == nil {
 			result[cfg.ConfigKey] = val
 		}
+	}
 	return result, nil
 }
 
