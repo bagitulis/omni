@@ -15,15 +15,8 @@ import (
 )
 
 // =============================================================================
-// Stub Functions — RED Phase (connections backfill not yet implemented)
+// Helpers
 // =============================================================================
-
-// BackfillConnections backfills credential_connections from platform_configs.
-// RED phase: stub does nothing. Tests expecting row creation will fail.
-func BackfillConnections(ctx context.Context, db *gorm.DB, tenantID string) error {
-	return nil
-}
-
 // =============================================================================
 // Helpers
 // =============================================================================

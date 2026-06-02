@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- **BackfillConnections implementation**: Added `BackfillConnections(ctx, db, tenantID)` to `credential_backfill.go` that reads platform_configs rows, groups by platform, and creates credential_connections for each platform-shop pair with tokens present. Handles Shopee (shopName), Lazada (country→region), TikTok (shopCipher, sellerName). Idempotent: skips existing connections. NULL tokens: logs warning and skips. Removed stub from test file — all 6 backfill tests now GREEN. [backend/internal/services/credential_backfill.go, backend/internal/services/credential_backfill_test.go]
+
+### Added
 - **BackfillAppConfigs implementation**: Created `credential_backfill.go` with `BackfillAppConfigs(ctx, db, tenantID)` function that reads platform_configs, classifies rows via `ClassifyRows`, and inserts credential_app_configs for each platform (Shopee, Lazada, TikTok). Added `CreateAppConfig` method to credential_repository.go for insert-only app config creation. Handles empty tenants (no-op), idempotent runs (skips existing), and missing required keys (error). Encrypted Fernet values pass through as-is. [backend/internal/services/credential_backfill.go, backend/internal/repositories/credential_app_config_repo.go]
 ### Fixed
 - **Stale large file orphan cleanup**: Updated `_cleanup_orphan_files()` in `ndjson_sync.py` to remove stale `.ndjson.gz` files from `_large/` when a table now has 0 rows but was previously exported as large. Handles edge case where stale gzip contains actual data (logs WARNING, does not auto-delete). Added `_gzip_has_content()` helper and 10 unit tests in `test_ndjson_cleanup.py`. [scripts/python-build/omni_build/ndjson_sync.py, scripts/python-build/tests/test_ndjson_cleanup.py]
