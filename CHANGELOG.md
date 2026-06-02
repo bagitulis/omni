@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **SeedShopeeAppCredentials: removed .env fallback**: Rewrote `SeedShopeeAppCredentials` to read Shopee credentials exclusively from canonical `credential_app_configs` DB table. Removed all `os.Getenv` calls for `SHOPEE_LIVE_PARTNER_ID`, `SHOPEE_LIVE_PARTNER_KEY`, `SHOPEE_PARTNER_ID`, `SHOPEE_PARTNER_KEY`. Function now validates DB has config and returns error if missing. Replaced env-based tests with DB-only tests. [backend/internal/services/seed_shopee_credentials.go, seed_shopee_credentials_test.go]
 - **CredentialService canonical-only verification**: Confirmed `credential_service.go` has zero references to `platform_configs`. `GetPlatformCredentials` resolves ALL platforms (Shopee/Lazada/TikTok) exclusively from canonical tables via `CredentialRepository.GetAppConfig()` + `CredentialRepository.ListConnections()`. No fallback paths exist. `loadCanonicalCredentials` returns explicit errors when app or store data is missing. All 4 CredentialService tests pass. [backend/internal/services/credential_service.go]
 ### Added
 ### Added

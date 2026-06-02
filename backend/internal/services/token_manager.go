@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -46,15 +47,62 @@ func refreshKey(tenantID, platform string) string {
 	return tenantID + ":" + platform
 }
 
-// getTenantConfigRepo gets a TenantPlatformConfigRepository for a specific tenant
-// This reads from tenant schema's PlatformConfig table (key-value format)
-func (m *TokenManager) getTenantConfigRepo(tenantID string) (*repositories.TenantPlatformConfigRepository, error) {
-	// FIXED: Use GetTenantDBWithContext to properly set search_path for PostgreSQL
+// getCredentialRepo gets a CredentialRepository for a specific tenant
+// This reads from credential_connections table (canonical store)
+func (m *TokenManager) getCredentialRepo(tenantID string) (*repositories.CredentialRepository, error) {
 	db, err := config.GetTenantDBWithContext(tenantID, m.basePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tenant DB for %s: %w", tenantID, err)
 	}
-	return repositories.NewTenantPlatformConfigRepository(db), nil
+	return repositories.NewCredentialRepository(db), nil
+}
+
+// getConnectionTokenInfo reads from credential_connections and converts to TokenInfo.
+// Returns nil,nil when no active connection exists for the given platform.
+func (m *TokenManager) getConnectionTokenInfo(ctx context.Context, tenantID, platform string) (*TokenInfo, error) {
+	credRepo, err := m.getCredentialRepo(tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := credRepo.GetConnection(ctx, tenantID, platform, "")
+	if err != nil {
+		return nil, err
+	}
+	if conn == nil || conn.AccessToken == "" {
+		return &TokenInfo{
+			Platform: platform,
+			IsValid:  false,
+		}, nil
+	}
+
+	expiresAt := time.UnixMilli(conn.TokenExpiry)
+	refreshExpiresAt := time.UnixMilli(conn.RefreshExpiry)
+
+	needsRefresh := time.Now().After(expiresAt.Add(-1 * time.Hour))
+	refreshExpired := time.Now().After(refreshExpiresAt)
+
+	if refreshExpired {
+		needsRefresh = false
+	}
+
+	var shopID int64
+	if conn.StoreIdentifier != "" {
+		shopID, _ = strconv.ParseInt(conn.StoreIdentifier, 10, 64)
+	}
+
+	return &TokenInfo{
+		Platform:            platform,
+		AccessToken:         conn.AccessToken,
+		RefreshToken:        conn.RefreshToken,
+		ExpiresAt:           expiresAt,
+		RefreshTokenExpires: refreshExpiresAt,
+		ShopID:              shopID,
+		ShopCipher:          conn.ShopCipher,
+		IsValid:             time.Now().Before(expiresAt),
+		NeedsRefresh:        needsRefresh,
+		RefreshExpired:      refreshExpired,
+	}, nil
 }
 
 // TokenInfo represents token information
@@ -72,15 +120,9 @@ type TokenInfo struct {
 }
 
 // GetTokenStatus gets token status for a tenant/platform
-// Reads from tenant schema PlatformConfig table (key-value format like Node.js)
+// Reads from credential_connections table (canonical store)
 func (m *TokenManager) GetTokenStatus(ctx context.Context, tenantID, platform string) (*TokenInfo, error) {
-	tenantRepo, err := m.getTenantConfigRepo(tenantID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get token info from tenant database (key-value format)
-	tokenInfo, err := tenantRepo.GetTokenInfo(ctx, platform)
+	tokenInfo, err := m.getConnectionTokenInfo(ctx, tenantID, platform)
 	if err != nil {
 		return nil, err
 	}
@@ -90,33 +132,7 @@ func (m *TokenManager) GetTokenStatus(ctx context.Context, tenantID, platform st
 			IsValid:  false,
 		}, nil
 	}
-
-	// Convert milliseconds to time
-	expiresAt := time.UnixMilli(tokenInfo.TokenExpiry)
-	refreshExpiresAt := time.UnixMilli(tokenInfo.RefreshTokenExpiry)
-
-	// Token needs refresh if within 1 hour of expiry
-	needsRefresh := time.Now().After(expiresAt.Add(-1 * time.Hour))
-
-	refreshExpired := time.Now().After(refreshExpiresAt)
-
-	// When refresh token is expired, suppress NeedsRefresh to avoid futile API calls
-	if refreshExpired {
-		needsRefresh = false
-	}
-
-	return &TokenInfo{
-		Platform:            platform,
-		AccessToken:         tokenInfo.AccessToken,
-		RefreshToken:        tokenInfo.RefreshToken,
-		ExpiresAt:           expiresAt,
-		RefreshTokenExpires: refreshExpiresAt,
-		ShopID:              tokenInfo.ShopID,
-		ShopCipher:          tokenInfo.ShopCipherOfSeller,
-		IsValid:             time.Now().Before(expiresAt),
-		NeedsRefresh:        needsRefresh,
-		RefreshExpired:      refreshExpired,
-	}, nil
+	return tokenInfo, nil
 }
 
 // RefreshShopeeToken refreshes Shopee access token
@@ -153,21 +169,16 @@ func (m *TokenManager) doRefreshShopeeToken(ctx context.Context, tenantID string
 		return nil, errors.New("shopee global credentials (partnerId/partnerKey) not configured in system schema")
 	}
 
-	// Get TENANT-specific config from tenant schema
-	tenantRepo, err := m.getTenantConfigRepo(tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get tenant config repo for shopee refresh: %w", err)
-	}
-
-	tokenInfo, err := tenantRepo.GetTokenInfo(ctx, models.PlatformShopee)
+	// Get TENANT-specific tokens from credential_connections
+	tokenInfo, err := m.getConnectionTokenInfo(ctx, tenantID, models.PlatformShopee)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get shopee token info: %w", err)
 	}
 	if tokenInfo == nil || tokenInfo.RefreshToken == "" {
-		return nil, errors.New("shopee refresh token not found in tenant config")
+		return nil, errors.New("shopee refresh token not found in credential connections")
 	}
 	if tokenInfo.ShopID == 0 {
-		return nil, errors.New("shopee shopId not found in tenant config")
+		return nil, errors.New("shopee shopId not found in credential connections")
 	}
 
 	// Build refresh request using global credentials + tenant's refresh token
@@ -209,18 +220,13 @@ func (m *TokenManager) doRefreshLazadaToken(ctx context.Context, tenantID string
 		return nil, errors.New("lazada global credentials (appKey/appSecret) not configured in system schema")
 	}
 
-	// Get TENANT-specific config from tenant schema
-	tenantRepo, err := m.getTenantConfigRepo(tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get tenant config repo for lazada refresh: %w", err)
-	}
-
-	tokenInfo, err := tenantRepo.GetTokenInfo(ctx, models.PlatformLazada)
+	// Get TENANT-specific tokens from credential_connections
+	tokenInfo, err := m.getConnectionTokenInfo(ctx, tenantID, models.PlatformLazada)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get lazada token info: %w", err)
 	}
 	if tokenInfo == nil || tokenInfo.RefreshToken == "" {
-		return nil, errors.New("lazada refresh token not found in tenant config")
+		return nil, errors.New("lazada refresh token not found in credential connections")
 	}
 
 	// Build refresh request
@@ -262,18 +268,13 @@ func (m *TokenManager) doRefreshTiktokToken(ctx context.Context, tenantID string
 		return nil, errors.New("tiktok global credentials (appKey/appSecret) not configured in system schema")
 	}
 
-	// Get TENANT-specific config from tenant schema
-	tenantRepo, err := m.getTenantConfigRepo(tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get tenant config repo for tiktok refresh: %w", err)
-	}
-
-	tokenInfo, err := tenantRepo.GetTokenInfo(ctx, models.PlatformTiktok)
+	// Get TENANT-specific tokens from credential_connections
+	tokenInfo, err := m.getConnectionTokenInfo(ctx, tenantID, models.PlatformTiktok)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tiktok token info: %w", err)
 	}
 	if tokenInfo == nil || tokenInfo.RefreshToken == "" {
-		return nil, errors.New("tiktok refresh token not found in tenant config")
+		return nil, errors.New("tiktok refresh token not found in credential connections")
 	}
 
 	// Build refresh request

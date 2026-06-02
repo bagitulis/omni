@@ -5,16 +5,16 @@ import (
 	"testing"
 )
 
-// RED PHASE tests for removing os.Getenv fallback from credential methods.
+// Tests for removing os.Getenv fallback from credential methods.
 //
 // These tests verify that GetShopeeCredentials / GetTiktokCredentials / GetLazadaCredentials
 // return ONLY database values and do NOT fall back to environment variables.
 //
-// Current implementation (RED): env fallback is still active -> these tests FAIL.
-// Expected implementation (GREEN): env fallback removed -> these tests PASS.
-
+// When DB is unavailable and env fallback is removed, credential methods MUST return an error.
+// This is proven by: (1) setting env vars to WRONG values, (2) creating service with nil DB,
+// (3) asserting error is returned (proving env fallback is NOT used to silently provide values).
 func TestGetShopeeCredentials_DBOnly_NoEnvFallback(t *testing.T) {
-	// Set env vars to WRONG values that should NOT be returned
+	// Set env vars to WRONG values — if env fallback were active, these would be returned
 	envPartnerID := "WRONG_ENV_PARTNER_ID_SHOULD_NOT_BE_USED"
 	envPartnerKey := "WRONG_ENV_PARTNER_KEY_SHOULD_NOT_BE_USED"
 	envPushKey := "WRONG_ENV_PUSH_KEY_SHOULD_NOT_BE_USED"
@@ -27,29 +27,28 @@ func TestGetShopeeCredentials_DBOnly_NoEnvFallback(t *testing.T) {
 	defer os.Unsetenv("SHOPEE_PUSH_PARTNER_KEY")
 
 	// Create service with nil DB — no database available
-	// GetConfig will return "" because getDB() fails (no PostgreSQL)
+	// With env fallback removed, this MUST return an error (no DB = no credentials)
 	svc := &GlobalConfigService{}
 
 	creds, err := svc.GetShopeeCredentials()
-	if err != nil {
-		t.Fatalf("GetShopeeCredentials returned error: %v", err)
+	if err == nil {
+		// If no error, env fallback is still active — check creds don't match env values
+		if creds.PartnerID == envPartnerID {
+			t.Errorf("FAIL: GetShopeeCredentials returned env SHOPEE_PARTNER_ID ('%s') — env fallback still active", creds.PartnerID)
+		}
+		if creds.PartnerKey == envPartnerKey {
+			t.Errorf("FAIL: GetShopeeCredentials returned env SHOPEE_PARTNER_KEY ('%s') — env fallback still active", creds.PartnerKey)
+		}
+		if creds.PushPartnerKey == envPushKey {
+			t.Errorf("FAIL: GetShopeeCredentials returned env SHOPEE_PUSH_PARTNER_KEY ('%s') — env fallback still active", creds.PushPartnerKey)
+		}
+		t.Fatal("FAIL: GetShopeeCredentials returned nil error — expected error when credentials missing and no env fallback")
 	}
-
-	// RED: env fallback is still active — returns env values instead of DB-only
-	// These assertions FAIL because env fallback pollutes the result
-	if creds.PartnerID == envPartnerID {
-		t.Errorf("RED (must fix): GetShopeeCredentials returned env SHOPEE_PARTNER_ID ('%s') instead of DB-only value", creds.PartnerID)
-	}
-	if creds.PartnerKey == envPartnerKey {
-		t.Errorf("RED (must fix): GetShopeeCredentials returned env SHOPEE_PARTNER_KEY ('%s') instead of DB-only value", creds.PartnerKey)
-	}
-	if creds.PushPartnerKey == envPushKey {
-		t.Errorf("RED (must fix): GetShopeeCredentials returned env SHOPEE_PUSH_PARTNER_KEY ('%s') instead of DB-only value", creds.PushPartnerKey)
-	}
+	// GREEN: error returned — env fallback is not active
 }
 
 func TestGetLazadaCredentials_DBOnly_NoEnvFallback(t *testing.T) {
-	// Set env vars to WRONG values that should NOT be returned
+	// Set env vars to WRONG values — if env fallback were active, these would be returned
 	envAppKey := "WRONG_ENV_LAZADA_APP_KEY_SHOULD_NOT_BE_USED"
 	envAppSecret := "WRONG_ENV_LAZADA_APP_SECRET_SHOULD_NOT_BE_USED"
 
@@ -61,21 +60,20 @@ func TestGetLazadaCredentials_DBOnly_NoEnvFallback(t *testing.T) {
 	svc := &GlobalConfigService{}
 
 	creds, err := svc.GetLazadaCredentials()
-	if err != nil {
-		t.Fatalf("GetLazadaCredentials returned error: %v", err)
+	if err == nil {
+		if creds.AppKey == envAppKey {
+			t.Errorf("FAIL: GetLazadaCredentials returned env LAZADA_APP_KEY ('%s') — env fallback still active", creds.AppKey)
+		}
+		if creds.AppSecret == envAppSecret {
+			t.Errorf("FAIL: GetLazadaCredentials returned env LAZADA_APP_SECRET ('%s') — env fallback still active", creds.AppSecret)
+		}
+		t.Fatal("FAIL: GetLazadaCredentials returned nil error — expected error when credentials missing and no env fallback")
 	}
-
-	// RED: env fallback is still active
-	if creds.AppKey == envAppKey {
-		t.Errorf("RED (must fix): GetLazadaCredentials returned env LAZADA_APP_KEY ('%s') instead of DB-only value", creds.AppKey)
-	}
-	if creds.AppSecret == envAppSecret {
-		t.Errorf("RED (must fix): GetLazadaCredentials returned env LAZADA_APP_SECRET ('%s') instead of DB-only value", creds.AppSecret)
-	}
+	// GREEN: error returned — env fallback is not active
 }
 
 func TestGetTiktokCredentials_DBOnly_NoEnvFallback(t *testing.T) {
-	// Set env vars to WRONG values that should NOT be returned
+	// Set env vars to WRONG values — if env fallback were active, these would be returned
 	envAppKey := "WRONG_ENV_TIKTOK_APP_KEY_SHOULD_NOT_BE_USED"
 	envAppSecret := "WRONG_ENV_TIKTOK_APP_SECRET_SHOULD_NOT_BE_USED"
 
@@ -87,17 +85,16 @@ func TestGetTiktokCredentials_DBOnly_NoEnvFallback(t *testing.T) {
 	svc := &GlobalConfigService{}
 
 	creds, err := svc.GetTiktokCredentials()
-	if err != nil {
-		t.Fatalf("GetTiktokCredentials returned error: %v", err)
+	if err == nil {
+		if creds.AppKey == envAppKey {
+			t.Errorf("FAIL: GetTiktokCredentials returned env TIKTOK_APP_KEY ('%s') — env fallback still active", creds.AppKey)
+		}
+		if creds.AppSecret == envAppSecret {
+			t.Errorf("FAIL: GetTiktokCredentials returned env TIKTOK_APP_SECRET ('%s') — env fallback still active", creds.AppSecret)
+		}
+		t.Fatal("FAIL: GetTiktokCredentials returned nil error — expected error when credentials missing and no env fallback")
 	}
-
-	// RED: env fallback is still active
-	if creds.AppKey == envAppKey {
-		t.Errorf("RED (must fix): GetTiktokCredentials returned env TIKTOK_APP_KEY ('%s') instead of DB-only value", creds.AppKey)
-	}
-	if creds.AppSecret == envAppSecret {
-		t.Errorf("RED (must fix): GetTiktokCredentials returned env TIKTOK_APP_SECRET ('%s') instead of DB-only value", creds.AppSecret)
-	}
+	// GREEN: error returned — env fallback is not active
 }
 
 func TestGetCredentials_MissingInDB_ReturnsError(t *testing.T) {
