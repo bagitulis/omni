@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-03
+last_updated: 2026-06-02
 updated_by: agent
 relates_to: backend/lazada-sdk/, backend/lazada_sdk/
 stale_if_changed:
@@ -33,13 +33,31 @@ backend/lazada_sdk/iop-sdk-go/  # Official IOP SDK
 ## Authentication Flow
 
 ```
-1. User clicks "Connect Lazada" → GET /api/platform-auth/initiate/lazada
+1. User clicks "Connect Lazada" → POST /api/credentials/platforms/lazada/connections/oauth/initiate
 2. Redirect to Lazada OAuth page
 3. User authorizes → Lazada redirects to callback URL
-4. GET /api/platform-auth/callback/lazada → Exchange code for tokens
-5. Store access_token + refresh_token (encrypted)
-6. Auto-refresh before expiry
+4. GET /api/credentials/callback/lazada → Exchange code for tokens
+5. Tokens stored encrypted in credential_connections (PostgreSQL, public schema)
+6. App credentials (app_key, app_secret) stored in credential_app_configs
+7. Auto-refresh before expiry via TokenManager
 ```
+
+### Credential Storage
+
+| What | Table | Key Fields |
+|------|-------|------------|
+| App credentials | credential_app_configs | app_key, app_secret (Fernet-encrypted) |
+| Store tokens | credential_connections | access_token, refresh_token (Fernet-encrypted) |
+| Audit trail | credential_audit_events | Metadata only, never secrets |
+
+### Required Credentials
+
+| Field | Source | Notes |
+|-------|--------|-------|
+| app_key | Lazada Open Platform | String, per-app |
+| app_secret | Lazada Open Platform | Encrypted at rest |
+| access_token | OAuth flow | Auto-refreshed |
+| refresh_token | OAuth flow | Auto-refreshed |
 
 ## Key API Operations
 

@@ -38,7 +38,6 @@ type App struct {
 	WebhookRepo        *repositories.WebhookRepository
 	AnalyticsRepo      *repositories.AnalyticsRepository
 	GlobalConfigRepo   *repositories.GlobalConfigRepository
-	PlatformRepo       *repositories.PlatformConfigRepository
 	RefreshSessionRepo *repositories.RefreshSessionRepository
 
 	// OAuth Services
@@ -193,7 +192,6 @@ func (a *App) initRepositories() {
 	a.WebhookRepo = repositories.NewWebhookRepository(a.SystemDB)
 	a.AnalyticsRepo = repositories.NewAnalyticsRepository(a.SystemDB)
 	a.GlobalConfigRepo = repositories.NewGlobalConfigRepository(a.SystemDB)
-	a.PlatformRepo = repositories.NewPlatformConfigRepository(a.SystemDB)
 	a.RefreshSessionRepo = repositories.NewRefreshSessionRepository(a.SystemDB)
 }
 
@@ -265,7 +263,6 @@ func (a *App) initHandlers() {
 	a.OAuthHandler = handlers.NewOAuthHandler(
 		a.OAuthRepo,
 		a.GlobalConfigRepo,
-		a.PlatformRepo,
 		frontendURL,
 	)
 

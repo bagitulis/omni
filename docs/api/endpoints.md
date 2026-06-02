@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-03
+last_updated: 2026-06-02
 updated_by: agent
 relates_to: backend/internal/routes/
 stale_if_changed:
@@ -132,6 +132,30 @@ stale_if_changed:
 | POST | `/api/tokens/refresh/:platform` | Refresh platform token |
 | POST | `/api/tokens/refresh-all` | Refresh all tokens |
 
+### Credential Management
+
+All credential endpoints require auth + tenant middleware. Secrets are never returned in API responses (masked or omitted).
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/credentials/platforms` | List all platform credential status for current tenant |
+| PUT | `/api/credentials/platforms/:platform/app` | Create or update app-level credentials (Shopee partner keys, Lazada/TikTok API keys) |
+| POST | `/api/credentials/platforms/:platform/app/rotate` | Rotate app credentials (invalidates old values, creates audit event) |
+| POST | `/api/credentials/platforms/:platform/connections/oauth/initiate` | Start OAuth flow for a new store connection |
+| POST | `/api/credentials/platforms/:platform/connections/:store_identifier/oauth/reconnect` | Re-authorize an existing store connection |
+| POST | `/api/credentials/platforms/:platform/connections/:store_identifier/refresh` | Manually refresh tokens for a connection |
+| POST | `/api/credentials/platforms/:platform/connections/:store_identifier/disconnect` | Soft-delete a store connection (sets disabled_at) |
+| POST | `/api/credentials/platforms/:platform/connections/manual-token` | Apply tokens manually (for testing or when OAuth isn't available) |
+| GET | `/api/credentials/platforms/:platform/audit` | Get audit events for a platform
+
+**Public callback (no auth)**:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/credentials/callback/:platform` | OAuth callback handler (browser redirect, no JWT available) |
+
+
+### Orders
 ### Orders
 
 | Method | Path | Description |

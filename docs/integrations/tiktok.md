@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-03
+last_updated: 2026-06-02
 updated_by: agent
 relates_to: backend/tiktok_sdk/
 stale_if_changed:
@@ -34,13 +34,32 @@ backend/tiktok_sdk/           # Comprehensive SDK (100+ files)
 ## Authentication Flow
 
 ```
-1. User clicks "Connect TikTok" → GET /api/platform-auth/initiate/tiktok
+1. User clicks "Connect TikTok" → POST /api/credentials/platforms/tiktok/connections/oauth/initiate
 2. Redirect to TikTok OAuth page
 3. User authorizes → TikTok redirects to callback URL
-4. GET /api/platform-auth/callback/tiktok → Exchange code for tokens
-5. Store access_token + refresh_token (encrypted)
-6. Select active shop (TikTok supports multiple shops per account)
+4. GET /api/credentials/callback/tiktok → Exchange code for tokens
+5. Tokens stored encrypted in credential_connections (PostgreSQL, public schema)
+6. App credentials (app_key, app_secret) stored in credential_app_configs
+7. Select active shop (TikTok supports multiple shops per account)
 ```
+
+### Credential Storage
+
+| What | Table | Key Fields |
+|------|-------|------------|
+| App credentials | credential_app_configs | app_key, app_secret (Fernet-encrypted) |
+| Store tokens | credential_connections | access_token, refresh_token, shop_cipher (Fernet-encrypted) |
+| Audit trail | credential_audit_events | Metadata only, never secrets |
+
+### Required Credentials
+
+| Field | Source | Notes |
+|-------|--------|-------|
+| app_key | TikTok Shop Open Platform | String, per-app |
+| app_secret | TikTok Shop Open Platform | Encrypted at rest |
+| access_token | OAuth flow | Auto-refreshed |
+| refresh_token | OAuth flow | Auto-refreshed |
+| shop_cipher | TikTok-specific | Encrypted shop identifier for API calls |
 
 ## Multi-Shop Support
 

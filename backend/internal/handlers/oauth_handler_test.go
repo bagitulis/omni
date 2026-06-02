@@ -15,7 +15,7 @@ func TestOAuthHandler_InitiateAuth_MissingTenant(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	handler := NewOAuthHandler(nil, nil, nil, "http://localhost:3000")
+	handler := NewOAuthHandler(nil, nil, "http://localhost:3000")
 	r.GET("/api/oauth/:platform/initiate", handler.InitiateAuth)
 
 	req, _ := http.NewRequest("GET", "/api/oauth/shopee/initiate", nil)
@@ -41,7 +41,7 @@ func TestOAuthHandler_InitiateAuth_InvalidPlatform(t *testing.T) {
 		c.Next()
 	})
 
-	handler := NewOAuthHandler(nil, nil, nil, "http://localhost:3000")
+	handler := NewOAuthHandler(nil, nil, "http://localhost:3000")
 	r.GET("/api/oauth/:platform/initiate", handler.InitiateAuth)
 
 	req, _ := http.NewRequest("GET", "/api/oauth/invalid/initiate", nil)
@@ -65,7 +65,7 @@ func TestOAuthHandler_HandleCallback_InvalidState(t *testing.T) {
 	// With nil repository, the handler will panic when trying to lookup state
 	// This is expected behavior - in production, repository is never nil
 	// We use recover to verify the panic occurs
-	handler := NewOAuthHandler(nil, nil, nil, "http://localhost:3000")
+	handler := NewOAuthHandler(nil, nil, "http://localhost:3000")
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -91,7 +91,7 @@ func TestOAuthHandler_GetOAuthLogs_MissingTenant(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	handler := NewOAuthHandler(nil, nil, nil, "http://localhost:3000")
+	handler := NewOAuthHandler(nil, nil, "http://localhost:3000")
 	r.GET("/api/oauth/logs", handler.GetOAuthLogs)
 
 	req, _ := http.NewRequest("GET", "/api/oauth/logs", nil)
@@ -111,7 +111,7 @@ func TestOAuthHandler_GetBackendURL_HTTP(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	handler := NewOAuthHandler(nil, nil, nil, "http://localhost:3000")
+	handler := NewOAuthHandler(nil, nil, "http://localhost:3000")
 	r.GET("/test", func(c *gin.Context) {
 		url := handler.getBackendURL(c)
 		c.JSON(http.StatusOK, gin.H{"url": url})

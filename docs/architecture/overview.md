@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-03
+last_updated: 2026-06-02
 updated_by: agent
 relates_to: backend/internal/, frontend/src/
 stale_if_changed:
@@ -183,6 +183,53 @@ Login → JWT Access Token (short-lived) + Refresh Token (long-lived)
      → Middleware extracts tenant_id from token
      → All queries scoped to tenant
 ```
+
+---
+
+## Credential System
+
+All platform credentials (Shopee, Lazada, TikTok) are stored in PostgreSQL. No `.env` fallback exists. PostgreSQL is the single source of truth.
+
+### Storage Tables
+
+```
+PostgreSQL (public schema):
+  credential_app_configs     — App-level credentials (partner ID, API keys)
+  credential_connections      — Store-level connections (access/refresh tokens)
+  credential_audit_events    — Lifecycle audit log (never contains secrets)
+  platform_configs (DEPRECATED) — Legacy key-value storage, retained for backward compat
+```
+
+### Resolution Chain
+
+```
+CredentialService.GetPlatformCredentials(tenantID, platform)
+  │
+  ├── CredentialRepository.GetAppConfig(tenantID, platform)
+  │     → credential_app_configs table
+  │     → PartnerID, PartnerKey (Shopee) or AppKey, AppSecret (Lazada/TikTok)
+  │
+  └── CredentialRepository.ListConnections(tenantID, platform)
+        → credential_connections table
+        → AccessToken, RefreshToken, TokenExpiry, RefreshExpiry
+```
+
+### Encryption
+
+All secrets are encrypted at rest using Fernet (AES-128-CBC). The encryption key comes from the `ENCRYPTION_KEY` environment variable. Tokens and API keys are encrypted before storage and decrypted on read by the repository layer.
+
+### Token Lifecycle
+
+```
+OAuth Callback → CredentialService stores tokens → credential_connections
+Auto-Refresh   → TokenManager refreshes → writes back to credential_connections
+Manual Token   → POST /credentials/platforms/:platform/connections/manual-token
+Audit Trail    → Every mutation logs a credential_audit_events row (metadata only, no secrets)
+```
+
+### Optimistic Locking
+
+Credential connections use a `version` column for optimistic concurrency control. Manual token application and auto-refresh both check the version before writing, preventing silent token overwrites.
 
 ---
 

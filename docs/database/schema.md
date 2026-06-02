@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-03
+last_updated: 2026-06-02
 updated_by: agent
 relates_to: backend/internal/models/
 stale_if_changed:
@@ -29,7 +29,10 @@ stale_if_changed:
 PostgreSQL Database: omni
 ├── Schema: public (shared)
 │   ├── users
-│   └── audit_logs
+│   ├── audit_logs
+│   ├── credential_app_configs
+│   ├── credential_connections
+│   └── credential_audit_events
 ├── Schema: tenant_abc123
 │   ├── shopee_orders, shopee_order_items
 │   ├── shopee_products, shopee_skus
@@ -87,6 +90,99 @@ PostgreSQL Database: omni
 | user_agent | string | | Client user agent |
 | created_at | time | auto | Timestamp |
 
+---
+
+## System Tables — Credentials
+
+All credential tables live in the `public` schema (shared across tenants). Each row is scoped by `tenant_id`. Secrets are Fernet-encrypted (AES-128-CBC) via `ENCRYPTION_KEY` env var.
+
+### credential_app_configs
+
+App-level credentials per tenant/platform (Shopee partner keys, Lazada/TikTok API keys).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | varchar(255) | PK | UUID primary key |
+| tenant_id | varchar(100) | not null, index | Tenant identifier |
+| platform | varchar(50) | not null, index | shopee / lazada / tiktok |
+| store_identifier | varchar(255) | | Platform shop ID (optional at app level) |
+| region | varchar(50) | default 'id' | Platform region (e.g. id, my, th) |
+| app_key | text | | App key (Lazada/TikTok). NEVER exposed in JSON |
+| app_secret | text | | App secret (Lazada/TikTok). NEVER exposed in JSON |
+| partner_id | bigint | | Shopee partner ID. NEVER exposed in JSON |
+| partner_key | text | | Shopee partner key. NEVER exposed in JSON |
+| configured | bool | default false | Whether app credentials are set |
+| last_tested_at | *time | | Last connectivity test timestamp |
+| created_by | varchar(100) | | User who created |
+| updated_by | varchar(100) | | User who last updated |
+| created_at | time | autoCreateTime | Created timestamp |
+| updated_at | time | autoUpdateTime | Updated timestamp |
+
+### credential_connections
+
+Per-store OAuth connections. One row per active shop. Tokens expire and get refreshed by TokenManager.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | varchar(255) | PK | UUID primary key |
+| tenant_id | varchar(100) | not null, index | Tenant identifier |
+| platform | varchar(50) | not null, index | shopee / lazada / tiktok |
+| store_identifier | varchar(255) | not null | Platform shop ID |
+| store_name | varchar(255) | | Shop display name |
+| status | varchar(50) | not null, default 'disconnected' | connected / disconnected |
+| region | varchar(50) | | Platform region |
+| access_token | text | | OAuth access token. NEVER exposed in JSON |
+| refresh_token | text | | OAuth refresh token. NEVER exposed in JSON |
+| shop_cipher | text | | TikTok shop cipher. NEVER exposed in JSON |
+| token_expiry | bigint | | Access token expiry (milliseconds since epoch) |
+| refresh_expiry | bigint | | Refresh token expiry (milliseconds since epoch) |
+| last_refresh_at | *time | | Last auto-refresh timestamp |
+| version | int | default 1 | Optimistic locking version |
+| disabled_at | *time | | When connection was disabled (soft delete) |
+| disabled_reason | varchar(255) | | Why connection was disabled |
+| disabled_by | varchar(100) | | Who disabled the connection |
+| created_by | varchar(100) | | User who created |
+| updated_by | varchar(100) | | User who last updated |
+| created_at | time | autoCreateTime | Created timestamp |
+| updated_at | time | autoUpdateTime | Updated timestamp |
+
+**Active uniqueness**: `tenant_id + platform + store_identifier` where `disabled_at IS NULL`.
+
+### credential_audit_events
+
+Lifecycle audit log for credential operations. Never stores secret values, only metadata and reason codes.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | varchar(255) | PK | UUID primary key |
+| tenant_id | varchar(100) | not null, index | Tenant identifier |
+| platform | varchar(50) | not null, index | shopee / lazada / tiktok |
+| store_identifier | varchar(255) | | Shop ID (optional) |
+| event_type | varchar(100) | not null, index | OAuth connected / token refreshed / manual applied / etc. |
+| status | varchar(50) | not null | success / failed |
+| code | varchar(100) | | Reason code |
+| actor | varchar(100) | | User or system identifier |
+| actor_role | varchar(50) | | admin / system / user |
+| metadata | jsonb | default '{}' | Redacted event details (no secrets) |
+| created_at | time | autoCreateTime | Event timestamp |
+
+### platform_configs (DEPRECATED)
+
+Legacy key-value credential storage per tenant schema. Retained for backward compatibility during migration. New code must NOT write to this table.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | varchar(255) | PK | UUID primary key |
+| platform | varchar(50) | not null, index | shopee / lazada / tiktok |
+| config_key | varchar(255) | not null | Key name (e.g. accessToken, refreshToken) |
+| config_value | text | | Encrypted value |
+| data_type | varchar(50) | default 'string' | Value type |
+| is_encrypted | bool | default false | Whether value is Fernet-encrypted |
+| metadata | jsonb | default '{}' | Additional metadata |
+| created_at | time | | Created timestamp |
+| updated_at | time | | Updated timestamp |
+
+> **Migration path**: Data from `platform_configs` has been backfilled into `credential_app_configs` and `credential_connections` via the backfill service. The legacy table is retained only for rollback safety.
 ---
 
 ## Tenant Tables — Platform Orders

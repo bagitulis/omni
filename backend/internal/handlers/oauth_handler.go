@@ -28,7 +28,6 @@ const (
 type OAuthHandler struct {
 	oauthRepo    *repositories.OAuthRepository
 	configRepo   *repositories.GlobalConfigRepository
-	platformRepo *repositories.PlatformConfigRepository
 	db           *gorm.DB
 	frontendURL  string
 	basePath     string
@@ -37,7 +36,6 @@ type OAuthHandler struct {
 func NewOAuthHandler(
 	oauthRepo *repositories.OAuthRepository,
 	configRepo *repositories.GlobalConfigRepository,
-	platformRepo *repositories.PlatformConfigRepository,
 	frontendURL string,
 ) *OAuthHandler {
 	basePath := os.Getenv("DATABASE_PATH")
@@ -48,7 +46,7 @@ func NewOAuthHandler(
 	if oauthRepo != nil {
 		db = oauthRepo.DB()
 	}
-	return &OAuthHandler{oauthRepo: oauthRepo, configRepo: configRepo, platformRepo: platformRepo, db: db, frontendURL: frontendURL, basePath: basePath}
+	return &OAuthHandler{oauthRepo: oauthRepo, configRepo: configRepo, db: db, frontendURL: frontendURL, basePath: basePath}
 }
 
 func (h *OAuthHandler) InitiateAuth(c *gin.Context) {

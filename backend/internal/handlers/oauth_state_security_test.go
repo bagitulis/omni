@@ -36,7 +36,7 @@ func setupOAuthSecurityTest(t *testing.T) (*OAuthHandler, *repositories.OAuthRep
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_credential_connections_active ON credential_connections (tenant_id, platform, store_identifier) WHERE disabled_at IS NULL`)
 	oauthRepo := repositories.NewOAuthRepository(db)
 	credentialRepo := repositories.NewCredentialRepository(db)
-	handler := NewOAuthHandler(oauthRepo, nil, nil, "http://frontend.test")
+	handler := NewOAuthHandler(oauthRepo, nil, "http://frontend.test")
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest("GET", "/api/platform-auth/callback/tiktok", nil)

@@ -68,7 +68,7 @@ func TestTiktokTokenResponse_Structure(t *testing.T) {
 func TestExchangeShopeeToken_NoConfigRepo(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := NewOAuthHandler(nil, nil, nil, "http://localhost:3000")
+	handler := NewOAuthHandler(nil, nil, "http://localhost:3000")
 
 	// Create a mock gin context
 	w := httptest.NewRecorder()
@@ -83,7 +83,7 @@ func TestExchangeShopeeToken_NoConfigRepo(t *testing.T) {
 
 // TestOAuthHandler_DoLazadaTokenRequest_InvalidURL tests invalid URL handling
 func TestOAuthHandler_DoLazadaTokenRequest_InvalidURL(t *testing.T) {
-	handler := NewOAuthHandler(nil, nil, nil, "http://localhost:3000")
+	handler := NewOAuthHandler(nil, nil, "http://localhost:3000")
 
 	// Call with invalid URL - should fail
 	_, err := handler.doLazadaTokenRequest("not-a-valid-url", map[string]string{})
@@ -92,7 +92,7 @@ func TestOAuthHandler_DoLazadaTokenRequest_InvalidURL(t *testing.T) {
 
 // TestOAuthHandler_DoTiktokTokenRequest_InvalidURL tests invalid URL handling
 func TestOAuthHandler_DoTiktokTokenRequest_InvalidURL(t *testing.T) {
-	handler := NewOAuthHandler(nil, nil, nil, "http://localhost:3000")
+	handler := NewOAuthHandler(nil, nil, "http://localhost:3000")
 
 	// Call with invalid URL - should fail
 	_, err := handler.doTiktokTokenRequest(context.Background(), "not-a-valid-url", map[string]string{})

@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-03
+last_updated: 2026-06-02
 updated_by: agent
 relates_to: backend/shopee-sdk/
 stale_if_changed:
@@ -31,13 +31,31 @@ backend/shopee-sdk/
 ## Authentication Flow
 
 ```
-1. User clicks "Connect Shopee" → GET /api/platform-auth/initiate/shopee
+1. User clicks "Connect Shopee" → POST /api/credentials/platforms/shopee/connections/oauth/initiate
 2. Redirect to Shopee OAuth page
 3. User authorizes → Shopee redirects to callback URL
-4. GET /api/platform-auth/callback/shopee → Exchange code for tokens
-5. Store access_token + refresh_token (encrypted)
-6. Auto-refresh before expiry
+4. GET /api/credentials/callback/shopee → Exchange code for tokens
+5. Tokens stored encrypted in credential_connections (PostgreSQL, public schema)
+6. App credentials (partner_id, partner_key) stored in credential_app_configs
+7. Auto-refresh before expiry via TokenManager
 ```
+
+### Credential Storage
+
+| What | Table | Key Fields |
+|------|-------|------------|
+| App credentials | credential_app_configs | partner_id, partner_key (Fernet-encrypted) |
+| Store tokens | credential_connections | access_token, refresh_token (Fernet-encrypted) |
+| Audit trail | credential_audit_events | Metadata only, never secrets |
+
+### Required Credentials
+
+| Field | Source | Notes |
+|-------|--------|-------|
+| partner_id | Shopee Open Platform | Integer, per-app |
+| partner_key | Shopee Open Platform | Encrypted at rest |
+| access_token | OAuth flow | Auto-refreshed, ~2 hour lifetime |
+| refresh_token | OAuth flow | Auto-refreshed, 25 days 5 hours lifetime |
 
 ## Key API Operations
 
