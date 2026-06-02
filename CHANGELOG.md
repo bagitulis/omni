@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **CredentialService canonical-only verification**: Confirmed `credential_service.go` has zero references to `platform_configs`. `GetPlatformCredentials` resolves ALL platforms (Shopee/Lazada/TikTok) exclusively from canonical tables via `CredentialRepository.GetAppConfig()` + `CredentialRepository.ListConnections()`. No fallback paths exist. `loadCanonicalCredentials` returns explicit errors when app or store data is missing. All 4 CredentialService tests pass. [backend/internal/services/credential_service.go]
 ### Added
 ### Added
 - **Backfill duplicate key precedence policy**: Added `buildConfigMap` with duplicate key resolution for platform_configs rows. Policy: (1) duplicate keys with one empty and one non-empty → use non-empty; (2) duplicate keys with conflicting non-empty values → log warning with key name and timestamps, use latest `updated_at`. Extracted duplicate resolution to `credential_backfill_helpers.go` with `configEntry` type and `resolveDuplicateKey` helper. Added `TestBackfillDuplicateKeyResolution` test covering both conflict scenarios. Refactored `credential_backfill.go` to 312 lines (under ~300 signal). [backend/internal/services/credential_backfill.go, credential_backfill_helpers.go, credential_backfill_test.go]

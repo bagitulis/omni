@@ -24,7 +24,7 @@ func redirectWithError(c *gin.Context, frontendURL, redirectPath, errorKey strin
 
 // HandleCredentialCallback processes OAuth callbacks from Shopee, Lazada, and TikTok.
 // It parses the signed state, validates the attempt, dispatches to the platform-specific
-// token exchange, persists the connection, dual-writes to platform_configs, and redirects.
+// token exchange, persists the connection, and redirects.
 func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 	ctx := c.Request.Context()
 	frontendURL := os.Getenv("FRONTEND_URL")
@@ -224,18 +224,12 @@ func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 		}
 	}
 
-	// Step 8: Dual-write to platform_configs (best-effort with retry)
-	platformConfigRepo := repositories.NewTenantPlatformConfigRepository(tenantDB)
-	expiresInSeconds := (conn.TokenExpiry - time.Now().UnixMilli()) / 1000
-	refreshExpiresInSeconds := (conn.RefreshExpiry - time.Now().UnixMilli()) / 1000
-	if dwErr := retryDualWrite(ctx, 3, func() error {
-		return platformConfigRepo.UpdateTokens(ctx, conn.Platform, conn.AccessToken, conn.RefreshToken, expiresInSeconds, refreshExpiresInSeconds)
-	}); dwErr != nil {
-		log.Error().Err(dwErr).
-			Str("platform", conn.Platform).
-			Str("store", storeIdentifier).
-			Msg("dual-write to platform_configs FAILED after retries — manual reconciliation may be needed")
-	}
+
+	// Step 8: Token persistence complete (platform_configs dual-write removed)
+	log.Info().
+		Str("platform", conn.Platform).
+		Str("store", storeIdentifier).
+		Msg("OAuth tokens written to canonical tables only")
 
 	// Step 9: Complete attempt + audit event
 	repo.CompleteAttempt(ctx, claims.TenantID, claims.Platform, claims.AttemptID, "completed")

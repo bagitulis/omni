@@ -194,18 +194,12 @@ func (s *GlobalConfigService) SetConfig(platform, key, value string, encrypt boo
 // GetShopeeCredentials returns Shopee platform credentials
 func (s *GlobalConfigService) GetShopeeCredentials() (*ShopeeCredentials, error) {
 	partnerId, _ := s.GetConfig("shopee", "partnerId")
-	if partnerId == "" {
-		partnerId = os.Getenv("SHOPEE_PARTNER_ID")
-	}
-
 	partnerKey, _ := s.GetConfig("shopee", "partnerKey")
-	if partnerKey == "" {
-		partnerKey = os.Getenv("SHOPEE_PARTNER_KEY")
-	}
-
 	pushPartnerKey, _ := s.GetConfig("shopee", "pushPartnerKey")
-	if pushPartnerKey == "" {
-		pushPartnerKey = os.Getenv("SHOPEE_PUSH_PARTNER_KEY")
+
+	if partnerId == "" || partnerKey == "" {
+		log.Warn().Str("platform", "shopee").Msg("missing credentials in global_config")
+		return nil, fmt.Errorf("shopee credentials not found in global_config: partnerId=%q, partnerKey=%q", partnerId, partnerKey)
 	}
 
 	return &ShopeeCredentials{
@@ -218,13 +212,11 @@ func (s *GlobalConfigService) GetShopeeCredentials() (*ShopeeCredentials, error)
 // GetTiktokCredentials returns TikTok platform credentials
 func (s *GlobalConfigService) GetTiktokCredentials() (*TiktokCredentials, error) {
 	appKey, _ := s.GetConfig("tiktok", "appKey")
-	if appKey == "" {
-		appKey = os.Getenv("TIKTOK_APP_KEY")
-	}
-
 	appSecret, _ := s.GetConfig("tiktok", "appSecret")
-	if appSecret == "" {
-		appSecret = os.Getenv("TIKTOK_APP_SECRET")
+
+	if appKey == "" || appSecret == "" {
+		log.Warn().Str("platform", "tiktok").Msg("missing credentials in global_config")
+		return nil, fmt.Errorf("tiktok credentials not found in global_config: appKey=%q, appSecret=%q", appKey, appSecret)
 	}
 
 	return &TiktokCredentials{
@@ -236,13 +228,11 @@ func (s *GlobalConfigService) GetTiktokCredentials() (*TiktokCredentials, error)
 // GetLazadaCredentials returns Lazada platform credentials
 func (s *GlobalConfigService) GetLazadaCredentials() (*LazadaCredentials, error) {
 	appKey, _ := s.GetConfig("lazada", "appKey")
-	if appKey == "" {
-		appKey = os.Getenv("LAZADA_APP_KEY")
-	}
-
 	appSecret, _ := s.GetConfig("lazada", "appSecret")
-	if appSecret == "" {
-		appSecret = os.Getenv("LAZADA_APP_SECRET")
+
+	if appKey == "" || appSecret == "" {
+		log.Warn().Str("platform", "lazada").Msg("missing credentials in global_config")
+		return nil, fmt.Errorf("lazada credentials not found in global_config: appKey=%q, appSecret=%q", appKey, appSecret)
 	}
 
 	return &LazadaCredentials{
