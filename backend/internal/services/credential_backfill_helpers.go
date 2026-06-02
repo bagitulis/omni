@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/omni/backend/internal/models"
-	"github.com/omni/backend/internal/utils"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
