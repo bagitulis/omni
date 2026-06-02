@@ -1300,7 +1300,7 @@ BEGIN
     EXECUTE format('CREATE INDEX IF NOT EXISTS idx_platform_links_sku ON %I.master_product_platform_links(master_sku_id)', schema_name);
     EXECUTE format('CREATE INDEX IF NOT EXISTS idx_platform_links_platform ON %I.master_product_platform_links(platform)', schema_name);
     EXECUTE format('CREATE INDEX IF NOT EXISTS idx_platform_links_sync_status ON %I.master_product_platform_links(sync_status)', schema_name);
-    EXECUTE format('CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_links_unique ON %I.master_product_platform_links(platform, platform_product_id) WHERE platform_product_id IS NOT NULL', schema_name);
+    EXECUTE format('CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_links_unique ON %I.master_product_platform_links(platform, platform_product_id, platform_sku_id)', schema_name);
 
     -- ========================================
     -- Create Indexes for Performance

@@ -57,8 +57,8 @@ func (r *MasterProductRepository) DeletePlatformLink(ctx context.Context, id uin
 }
 
 // UpsertPlatformLink creates or updates a platform link.
-// Uses ON CONFLICT on the partial unique index idx_platform_links_unique
-// (platform, platform_product_id) WHERE platform_product_id IS NOT NULL.
+// Uses ON CONFLICT on the unique index idx_platform_links_unique
+// (platform, platform_product_id, platform_sku_id).
 func (r *MasterProductRepository) UpsertPlatformLink(ctx context.Context, link *models.MasterProductPlatformLink) error {
 	if link == nil {
 		return errors.New("platform link is nil")
@@ -71,11 +71,11 @@ func (r *MasterProductRepository) UpsertPlatformLink(ctx context.Context, link *
 	link.UpdatedAt = now
 
 	// Use ON CONFLICT for atomic upsert — prevents race conditions
-	// The unique index covers (platform, platform_product_id) WHERE platform_product_id IS NOT NULL
+	// The unique index covers (platform, platform_product_id, platform_sku_id)
 	if link.PlatformProductID != "" {
 		return r.db.WithContext(ctx).
 			Clauses(clause.OnConflict{
-				Columns: []clause.Column{{Name: "platform"}, {Name: "platform_product_id"}},
+				Columns: []clause.Column{{Name: "platform"}, {Name: "platform_product_id"}, {Name: "platform_sku_id"}},
 				DoUpdates: clause.AssignmentColumns([]string{
 					"master_product_id", "master_sku_id", "platform_item_id",
 					"platform_sku_id", "sync_status", "last_synced_at",

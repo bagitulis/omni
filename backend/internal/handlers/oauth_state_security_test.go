@@ -54,7 +54,7 @@ func createSignedOAuthAttempt(t *testing.T, repo *repositories.OAuthRepository, 
 	claims := oauth.StateClaims{TenantID: tenantID, Platform: platform, AttemptID: attemptID, Intent: intent, StoreID: storeID, UserID: "user-1", CSRFNonce: nonce, Nonce: nonce, RedirectPath: "/settings", RedirectURI: "/settings", ExpiresAt: expiresAt.Unix()}
 	signedState, err := oauth.BuildSignedState(claims)
 	require.NoError(t, err)
-	_, err = repo.CreateBoundState(contextWithTestTimeout(t), repositories.OAuthStateCreateParams{TenantID: tenantID, Platform: platform, AttemptID: attemptID, Intent: intent, StoreID: storeID, CSRFNonce: nonce, State: signedState, RedirectURL: "http://frontend.test/settings", ExpiresAt: expiresAt})
+	_, err = repo.CreateBoundState(contextWithTestTimeout(t), repositories.OAuthStateCreateParams{TenantID: tenantID, Platform: platform, AttemptID: attemptID, Intent: intent, StoreID: storeID, UserID: "user-1", CSRFNonce: nonce, State: signedState, RedirectURL: "http://frontend.test/settings", ExpiresAt: expiresAt})
 	require.NoError(t, err)
 	require.NoError(t, credentialRepo.CreateAttempt(contextWithTestTimeout(t), &models.OAuthConnectionAttempt{TenantID: tenantID, Platform: platform, AttemptID: attemptID, Status: oauthAttemptPending, Intent: intent, IntendedStoreID: storeID, SignedState: signedState, CSRFNonce: nonce, RedirectPath: "/settings", ExpiresAt: expiresAt, CreatedBy: "user-1"}))
 	return signedState

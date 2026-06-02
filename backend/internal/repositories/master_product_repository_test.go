@@ -393,7 +393,7 @@ func TestMasterProductRepository(t *testing.T) {
 		// Create the unique index that UpsertPlatformLink relies on
 		tableName := models.MasterProductPlatformLink{}.TableName()
 		err := db.Exec(fmt.Sprintf(
-			"CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_links_unique ON %s (platform, platform_product_id, COALESCE(platform_sku_id, '')) WHERE (platform_product_id IS NOT NULL)",
+			"CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_links_unique ON %s (platform, platform_product_id, platform_sku_id)",
 			tableName,
 		)).Error
 		require.NoError(t, err)
