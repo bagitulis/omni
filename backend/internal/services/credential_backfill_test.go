@@ -17,9 +17,6 @@ import (
 // =============================================================================
 // Helpers
 // =============================================================================
-// =============================================================================
-// Helpers
-// =============================================================================
 
 func backfillTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -264,4 +261,99 @@ func TestClassifyRows_CredentialVsNonCredential(t *testing.T) {
 				"Non-credential row should have a non-credential key")
 		}
 	}
+}
+
+// TestBackfillParity verifies row counts and key field integrity after backfill.
+// Compares legacy platform_configs against canonical tables:
+//   - 3 app_configs + 3 connections = 6 canonical rows
+//   - All canonical rows have valid non-null platform + identifier fields
+//   - Encrypted values preserved (decrypted canonical == original plaintext)
+func TestBackfillParity(t *testing.T) {
+	db := backfillTestDB(t)
+	ctx := context.Background()
+	tenantID := "parity_test"
+
+	// Seed app-level credentials for all 3 platforms
+	seedBackfillAppData(t, db, models.PlatformShopee, 2001, "shopee-pk-encrypted", "", "")
+	seedBackfillAppData(t, db, models.PlatformLazada, 0, "", "lazada-appkey-enc", "lazada-appsecret-enc")
+	seedBackfillAppData(t, db, models.PlatformTiktok, 0, "", "tiktok-appkey-enc", "tiktok-appsecret-enc")
+
+	// Seed connection-level data for all 3 platforms (including TikTok)
+	seedBackfillConnData(t, db, models.PlatformShopee, 11223, "Shopee Parity Store", "shopee-at-enc", "shopee-rt-enc", "id")
+	seedBackfillConnData(t, db, models.PlatformLazada, 44556, "Lazada Parity Store", "lazada-at-enc", "lazada-rt-enc", "sg")
+	seedBackfillConnData(t, db, models.PlatformTiktok, 77889, "TikTok Parity Store", "tiktok-at-enc", "tiktok-rt-enc", "")
+
+	// Run backfill
+	err := BackfillAppConfigs(ctx, db, tenantID)
+	require.NoError(t, err)
+	err = BackfillConnections(ctx, db, tenantID)
+	require.NoError(t, err)
+
+	credRepo := repositories.NewCredentialRepository(db)
+
+	// --- Row count parity ---
+	var appCfgs []models.CredentialAppConfig
+	require.NoError(t, db.WithContext(ctx).Find(&appCfgs).Error)
+	assert.Len(t, appCfgs, 3, "Expected 3 canonical app_config rows")
+
+	conns, err := credRepo.ListConnections(ctx, tenantID, "")
+	require.NoError(t, err)
+	assert.Len(t, conns, 3, "Expected 3 canonical connection rows")
+
+	totalCanonical := len(appCfgs) + len(conns)
+	assert.Equal(t, 6, totalCanonical, "3 app_configs + 3 connections = 6 canonical rows")
+
+	// --- Key field validation ---
+	for _, cfg := range appCfgs {
+		assert.NotEmpty(t, cfg.Platform, "App config platform must not be empty")
+		assert.NotEmpty(t, cfg.TenantID, "App config tenant_id must not be empty")
+	}
+	for _, conn := range conns {
+		assert.NotEmpty(t, conn.Platform, "Connection platform must not be empty")
+		assert.NotEmpty(t, conn.TenantID, "Connection tenant_id must not be empty")
+		assert.NotEmpty(t, conn.StoreIdentifier, "Connection store_identifier must not be empty")
+	}
+
+	// --- Encrypted value preservation ---
+	// Verify app config secrets preserved via decryption round-trip
+	shopeeApp, err := credRepo.GetAppConfig(ctx, tenantID, models.PlatformShopee)
+	require.NoError(t, err)
+	require.NotNil(t, shopeeApp)
+	assert.Equal(t, int64(2001), shopeeApp.PartnerID, "Shopee partner_id preserved")
+	assert.Equal(t, "shopee-pk-encrypted", shopeeApp.PartnerKey, "Shopee partner_key decrypted matches original")
+
+	lazadaApp, err := credRepo.GetAppConfig(ctx, tenantID, models.PlatformLazada)
+	require.NoError(t, err)
+	require.NotNil(t, lazadaApp)
+	assert.Equal(t, "lazada-appkey-enc", lazadaApp.AppKey, "Lazada app_key decrypted matches original")
+	assert.Equal(t, "lazada-appsecret-enc", lazadaApp.AppSecret, "Lazada app_secret decrypted matches original")
+
+	tiktokApp, err := credRepo.GetAppConfig(ctx, tenantID, models.PlatformTiktok)
+	require.NoError(t, err)
+	require.NotNil(t, tiktokApp)
+	assert.Equal(t, "tiktok-appkey-enc", tiktokApp.AppKey, "TikTok app_key decrypted matches original")
+	assert.Equal(t, "tiktok-appsecret-enc", tiktokApp.AppSecret, "TikTok app_secret decrypted matches original")
+
+	// Verify connection secrets preserved via decryption round-trip
+	shopeeConn, err := credRepo.GetConnection(ctx, tenantID, models.PlatformShopee, "11223")
+	require.NoError(t, err)
+	require.NotNil(t, shopeeConn)
+	assert.Equal(t, "shopee-at-enc", shopeeConn.AccessToken, "Shopee access_token decrypted matches original")
+	assert.Equal(t, "shopee-rt-enc", shopeeConn.RefreshToken, "Shopee refresh_token decrypted matches original")
+	assert.Equal(t, "Shopee Parity Store", shopeeConn.StoreName, "Shopee store_name preserved")
+	assert.Equal(t, "id", shopeeConn.Region, "Shopee region preserved")
+
+	lazadaConn, err := credRepo.GetConnection(ctx, tenantID, models.PlatformLazada, "44556")
+	require.NoError(t, err)
+	require.NotNil(t, lazadaConn)
+	assert.Equal(t, "lazada-at-enc", lazadaConn.AccessToken, "Lazada access_token decrypted matches original")
+	assert.Equal(t, "lazada-rt-enc", lazadaConn.RefreshToken, "Lazada refresh_token decrypted matches original")
+	assert.Equal(t, "sg", lazadaConn.Region, "Lazada region preserved")
+
+	tiktokConn, err := credRepo.GetConnection(ctx, tenantID, models.PlatformTiktok, "77889")
+	require.NoError(t, err)
+	require.NotNil(t, tiktokConn)
+	assert.Equal(t, "tiktok-at-enc", tiktokConn.AccessToken, "TikTok access_token decrypted matches original")
+	assert.Equal(t, "tiktok-rt-enc", tiktokConn.RefreshToken, "TikTok refresh_token decrypted matches original")
+	assert.Equal(t, "TikTok Parity Store", tiktokConn.StoreName, "TikTok store_name preserved")
 }

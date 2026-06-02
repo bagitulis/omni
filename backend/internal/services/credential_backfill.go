@@ -54,20 +54,10 @@ func BackfillAppConfigs(ctx context.Context, db *gorm.DB, tenantID string) error
 		return nil
 	}
 
-	columns, err := platformConfigColumns(ctx, db)
+	credRows, _, err := readAndClassify(ctx, db)
 	if err != nil {
-		return fmt.Errorf("discover platform_configs columns: %w", err)
+		return err
 	}
-	if len(columns) == 0 {
-		return nil
-	}
-
-	rows, err := readPlatformConfigRows(ctx, db, columns)
-	if err != nil {
-		return fmt.Errorf("read platform_configs: %w", err)
-	}
-
-	credRows, _ := ClassifyRows(rows)
 	if len(credRows) == 0 {
 		return nil
 	}
@@ -122,24 +112,16 @@ func BackfillConnections(ctx context.Context, db *gorm.DB, tenantID string) erro
 		return nil
 	}
 
-	columns, err := platformConfigColumns(ctx, db)
+	_, allRows, err := readAndClassify(ctx, db)
 	if err != nil {
-		return fmt.Errorf("discover platform_configs columns: %w", err)
+		return err
 	}
-	if len(columns) == 0 {
-		return nil
-	}
-
-	rows, err := readPlatformConfigRows(ctx, db, columns)
-	if err != nil {
-		return fmt.Errorf("read platform_configs: %w", err)
-	}
-	if len(rows) == 0 {
+	if len(allRows) == 0 {
 		return nil
 	}
 
 	credRepo := repositories.NewCredentialRepository(db)
-	platformRows := groupByPlatform(rows)
+	platformRows := groupByPlatform(allRows)
 
 	for platform, pRows := range platformRows {
 		configMap := buildConfigMap(pRows)
@@ -271,4 +253,24 @@ func buildAppConfig(tenantID, platform string, configMap map[string]string) *mod
 
 	cfg.Configured = true
 	return cfg
+}
+
+// readAndClassify reads all platform_configs rows and splits them into
+// credential and non-credential categories. Shared helper for backfill functions.
+func readAndClassify(ctx context.Context, db *gorm.DB) (credRows, allRows []inventoryRowData, err error) {
+	columns, err := platformConfigColumns(ctx, db)
+	if err != nil {
+		return nil, nil, fmt.Errorf("discover platform_configs columns: %w", err)
+	}
+	if len(columns) == 0 {
+		return nil, nil, nil
+	}
+
+	allRows, err = readPlatformConfigRows(ctx, db, columns)
+	if err != nil {
+		return nil, nil, fmt.Errorf("read platform_configs: %w", err)
+	}
+
+	credRows, _ = ClassifyRows(allRows)
+	return credRows, allRows, nil
 }

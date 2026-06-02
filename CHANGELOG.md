@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- **Backfill parity validation and refactor**: Added `TestBackfillParity` test comparing row counts and key fields between legacy platform_configs and canonical tables. Verifies 3 app_configs + 3 connections = 6 canonical rows, all with valid non-null platform + identifier fields, and encrypted values preserved via decryption round-trip. Refactored `BackfillAppConfigs` and `BackfillConnections` to share `readAndClassify()` helper, eliminating duplicated platformConfigColumns/readPlatformConfigRows logic. Cleaned up duplicate section headers in test file. [backend/internal/services/credential_backfill.go, backend/internal/services/credential_backfill_test.go]
+
+### Added
 - **BackfillConnections implementation**: Added `BackfillConnections(ctx, db, tenantID)` to `credential_backfill.go` that reads platform_configs rows, groups by platform, and creates credential_connections for each platform-shop pair with tokens present. Handles Shopee (shopName), Lazada (country→region), TikTok (shopCipher, sellerName). Idempotent: skips existing connections. NULL tokens: logs warning and skips. Removed stub from test file — all 6 backfill tests now GREEN. [backend/internal/services/credential_backfill.go, backend/internal/services/credential_backfill_test.go]
 
 ### Added
