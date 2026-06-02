@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/utils"
 	"gorm.io/gorm"
@@ -61,7 +63,7 @@ func (r *TenantPlatformConfigRepository) GetConfig(ctx context.Context, platform
 		}
 		return "", err
 	}
-	return r.decryptValue(&cfg), nil
+	return r.decryptValue(&cfg)
 }
 
 // SetConfig saves a config value (upsert)
@@ -102,19 +104,23 @@ func (r *TenantPlatformConfigRepository) SetConfig(ctx context.Context, platform
 	}).Error
 }
 
-// decryptValue decrypts if needed
-func (r *TenantPlatformConfigRepository) decryptValue(cfg *TenantPlatformConfig) string {
+func (r *TenantPlatformConfigRepository) decryptValue(cfg *TenantPlatformConfig) (string, error) {
 	if cfg == nil || cfg.ConfigValue == "" {
-		return ""
+		return "", nil
 	}
 	if cfg.IsEncrypted && r.encryption != nil {
 		decrypted, err := r.encryption.Decrypt(cfg.ConfigValue)
 		if err == nil {
-			return decrypted
+			return decrypted, nil
 		}
-		// Return original if decryption fails
+		log.Warn().
+			Err(err).
+			Str("platform", cfg.Platform).
+			Str("config_key", cfg.ConfigKey).
+			Msg("Failed to decrypt config value")
+		return "", fmt.Errorf("failed to decrypt %s.%s: %w", cfg.Platform, cfg.ConfigKey, err)
 	}
-	return cfg.ConfigValue
+	return cfg.ConfigValue, nil
 }
 
 // GetAllConfigByPlatform gets all configs for a platform
@@ -129,8 +135,9 @@ func (r *TenantPlatformConfigRepository) GetAllConfigByPlatform(ctx context.Cont
 
 	result := make(map[string]string)
 	for _, cfg := range configs {
-		result[cfg.ConfigKey] = r.decryptValue(&cfg)
-	}
+		if val, err := r.decryptValue(&cfg); err == nil {
+			result[cfg.ConfigKey] = val
+		}
 	return result, nil
 }
 

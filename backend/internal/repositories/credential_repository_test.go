@@ -518,3 +518,98 @@ func TestCredentialConnectionMasking(t *testing.T) {
 	masked := conn.ToMaskedResponse()
 	assert.Equal(t, "***345", masked.StoreIdentifierMask)
 }
+
+//------------------------------------------------------------------------------
+// Optimistic locking tests for UpdateManualConnectionWithVersion
+//------------------------------------------------------------------------------
+
+func TestCredentialRepository_UpdateManualConnectionWithVersion(t *testing.T) {
+	repo, ctx := setupCredentialTest(t)
+
+	t.Run("successful_update_increments_version", func(t *testing.T) {
+		conn := createTestConnection(t, repo, ctx, "tenant-ver", "shopee", "ver-store-1")
+		expectedVersion := conn.Version
+
+		// Modify fields that manual token apply would set
+		conn.AccessToken = "new-manual-token"
+		conn.RefreshToken = "new-manual-refresh"
+		conn.ShopCipher = "new-cipher"
+		conn.Status = "connected"
+		conn.UpdatedBy = "developer"
+		conn.Region = "sg"
+		conn.TokenExpiry = 1704067200000
+
+		err := repo.UpdateManualConnectionWithVersion(ctx, conn, expectedVersion)
+		require.NoError(t, err)
+
+		// Read back and verify all fields updated
+		updated, err := repo.GetConnection(ctx, "tenant-ver", "shopee", "ver-store-1")
+		require.NoError(t, err)
+		require.NotNil(t, updated)
+		assert.Equal(t, "new-manual-token", updated.AccessToken)
+		assert.Equal(t, "new-manual-refresh", updated.RefreshToken)
+		assert.Equal(t, "new-cipher", updated.ShopCipher)
+		assert.Equal(t, expectedVersion+1, updated.Version)
+		assert.Equal(t, "sg", updated.Region)
+		assert.Nil(t, updated.DisabledAt)
+		assert.Empty(t, updated.DisabledReason)
+	})
+
+	t.Run("version_conflict_returns_error", func(t *testing.T) {
+		conn := createTestConnection(t, repo, ctx, "tenant-ver", "shopee", "ver-store-2")
+
+		conn.AccessToken = "stale-token"
+		err := repo.UpdateManualConnectionWithVersion(ctx, conn, 999) // wrong version
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, ErrStaleVersion)
+	})
+
+	t.Run("disabled_connection_returns_error", func(t *testing.T) {
+		now := time.Now()
+		disabledConn := &models.CredentialConnection{
+			ID:              uuid.New().String(),
+			TenantID:        "tenant-ver",
+			Platform:        "shopee",
+			StoreIdentifier: "ver-store-disabled",
+			Status:          "disconnected",
+			DisabledAt:      &now,
+			Version:         1,
+		}
+		require.NoError(t, repo.CreateConnection(ctx, disabledConn))
+
+		// disabled_at IS NULL check in WHERE means 0 rows affected
+		err := repo.UpdateManualConnectionWithVersion(ctx, disabledConn, 1)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, ErrStaleVersion)
+	})
+
+	t.Run("invalid_expected_version_returns_error", func(t *testing.T) {
+		conn := createTestConnection(t, repo, ctx, "tenant-ver", "shopee", "ver-store-3")
+		err := repo.UpdateManualConnectionWithVersion(ctx, conn, 0)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "expected version is required")
+	})
+
+	t.Run("manual_update_clears_disabled_status", func(t *testing.T) {
+		conn := createTestConnection(t, repo, ctx, "tenant-ver", "lazada", "ver-store-4")
+		expectedVersion := conn.Version
+
+		// Simulate a manual token apply that clears previous disabled state
+		conn.DisabledAt = nil
+		conn.DisabledReason = ""
+		conn.Status = "connected"
+		conn.Region = "my"
+		conn.UpdatedBy = "admin"
+
+		err := repo.UpdateManualConnectionWithVersion(ctx, conn, expectedVersion)
+		require.NoError(t, err)
+
+		updated, err := repo.GetConnection(ctx, "tenant-ver", "lazada", "ver-store-4")
+		require.NoError(t, err)
+		require.NotNil(t, updated)
+		assert.Equal(t, "my", updated.Region)
+		assert.Nil(t, updated.DisabledAt)
+		assert.Empty(t, updated.DisabledReason)
+		assert.Equal(t, expectedVersion+1, updated.Version)
+	})
+}

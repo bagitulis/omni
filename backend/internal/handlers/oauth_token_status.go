@@ -74,8 +74,18 @@ func buildNotConfiguredStatus() gin.H {
 
 // buildPlatformTokenStatus builds token status from config map
 func buildPlatformTokenStatus(configMap map[string]string, nowMs int64) gin.H {
-	tokenExpiryMs := parseTimestampMs(configMap["tokenExpiry"])
-	refreshTokenExpiryMs := parseTimestampMs(configMap["refreshTokenExpiry"])
+	tokenExpiryMs, err := parseTimestampMs(configMap["tokenExpiry"])
+	if err != nil {
+		return gin.H{
+			"isExpired":             true,
+			"expiresAt":             nil,
+			"refreshTokenExpiresAt": nil,
+			"status":                "invalid_config",
+			"valid":                 false,
+		}
+	}
+
+	refreshTokenExpiryMs, _ := parseTimestampMs(configMap["refreshTokenExpiry"])
 
 	isExpired := tokenExpiryMs > 0 && tokenExpiryMs < nowMs
 	expiresSoon := tokenExpiryMs > 0 && tokenExpiryMs < nowMs+(24*60*60*1000)
@@ -99,12 +109,16 @@ func buildPlatformTokenStatus(configMap map[string]string, nowMs int64) gin.H {
 }
 
 // parseTimestampMs parses a millisecond timestamp string
-func parseTimestampMs(s string) int64 {
-	var ms int64
-	if s != "" {
-		fmt.Sscanf(s, "%d", &ms)
+func parseTimestampMs(s string) (int64, error) {
+	if s == "" {
+		return 0, fmt.Errorf("invalid timestamp: empty string")
 	}
-	return ms
+	var ms int64
+	n, _ := fmt.Sscanf(s, "%d", &ms)
+	if n != 1 {
+		return 0, fmt.Errorf("invalid timestamp: %s", s)
+	}
+	return ms, nil
 }
 
 // formatTimestampMs formats a millisecond timestamp to RFC3339 string

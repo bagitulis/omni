@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Fixed
+- **Lazada OAuth timestamp generation**: Replaced fragile `fmt.Sprintf("%d000", time.Now().Unix())` with `fmt.Sprintf("%d", time.Now().UnixMilli())` in `lazada_oauth.go` BuildCommonParams. String-concatenation approach could overflow on large timestamps. [backend/internal/services/oauth/lazada_oauth.go]
 ### Fixed
 - **TokenStatusDropdown "Expired • Expired" display bug**: Removed redundant `isExpired ? "Expired" : "Valid"` prefix on Access Token line. Now renders only `formatTimeRemaining(expiresAt)` which already handles all states (Expired, time remaining, Unknown). [frontend/src/components/layout/TokenStatusDropdown.tsx]
 - **Multi-platform OAuth test suite**: Added 21 new unit/integration tests across 3 new test files and 1 modified test file. `credential_callback_lazada_test.go` (6 tests): token exchange happy/error/empty/POST-verify + store identifier happy/error. `credential_callback_tiktok_test.go` (6 tests): token exchange happy/error/empty/GET-verify + store identifier happy/empty-shops. `credential_sync_worker_test.go` (5 tests): newer-token sync, same-token skip, no-connection skip, platform coverage, no-config skip. `credential_callback_service_test.go` (4 dispatch tests): platform mismatch variants (shopee/lazada/tiktok combos) + AllPlatformsRoutable proving all 3 platforms pass validation. Removed obsolete `MissingShopID` test (broken by Phase 2 platform validation architecture).

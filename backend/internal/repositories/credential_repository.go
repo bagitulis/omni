@@ -5,7 +5,7 @@ import (
 "fmt"
 "os"
 "strings"
-
+"time"
 "github.com/google/uuid"
 "github.com/omni/backend/internal/models"
 "github.com/omni/backend/internal/utils"
@@ -165,6 +165,46 @@ func (r *CredentialRepository) UpdateConnection(ctx context.Context, conn *model
 	}
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("connection not found for id: %s", conn.ID)
+	}
+	return nil
+}
+
+// UpdateManualConnectionWithVersion updates manual token fields with optimistic locking.
+// Prevents manual token application from silently overwriting auto-refreshed tokens.
+// Unlike UpdateConnection(), this checks version to detect stale writes.
+// Unlike UpdateConnectionTokensWithVersion(), this also updates region and disabled_at.
+func (r *CredentialRepository) UpdateManualConnectionWithVersion(ctx context.Context, conn *models.CredentialConnection, expectedVersion int) error {
+	if err := validateConnectionScope(conn.TenantID, conn.Platform, conn.StoreIdentifier); err != nil {
+		return err
+	}
+	if expectedVersion <= 0 {
+		return fmt.Errorf("expected version is required")
+	}
+	if err := r.encryptSecrets(conn); err != nil {
+		return err
+	}
+	updates := map[string]any{
+		"access_token":    conn.AccessToken,
+		"refresh_token":   conn.RefreshToken,
+		"shop_cipher":     conn.ShopCipher,
+		"token_expiry":    conn.TokenExpiry,
+		"status":          "connected",
+		"region":          conn.Region,
+		"disabled_at":     nil,
+		"disabled_reason": "",
+		"version":         gorm.Expr("version + 1"),
+		"updated_at":      time.Now(),
+		"updated_by":      conn.UpdatedBy,
+	}
+	result := r.db.WithContext(ctx).
+		Model(&models.CredentialConnection{}).
+		Where("tenant_id = ? AND platform = ? AND store_identifier = ? AND disabled_at IS NULL AND version = ?", conn.TenantID, conn.Platform, conn.StoreIdentifier, expectedVersion).
+		Updates(updates)
+	if result.Error != nil {
+		return fmt.Errorf("update manual connection: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("%w: %s/%s/%s", ErrStaleVersion, conn.TenantID, conn.Platform, conn.StoreIdentifier)
 	}
 	return nil
 }
