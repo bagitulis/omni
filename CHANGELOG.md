@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **UpdateManualConnectionWithVersion optimistic locking**: New `UpdateManualConnectionWithVersion()` in credential_repository.go prevents manual token application from silently overwriting auto-refreshed tokens. Uses version check in WHERE clause, returns `ErrStaleVersion` on conflict. Unlike `UpdateConnectionTokensWithVersion()`, this also updates `region`, `disabled_at`, `disabled_reason`. Caller changed from `UpdateConnection()` to version-checked variant in `ApplyManualToken`. Added 6 tests covering success, version conflict, disabled connection, invalid version, and disabled status clearing. [backend/internal/repositories/credential_repository.go, credential_repository_test.go, services/credential_api_service.go]
+
+### Fixed
+### Added
 - **Shopee refresh token expiry test suite**: Added 7 tests in `token_manager_refresh_test.go` covering: default 25d5h expiry calculation, `refresh_expire_in` API response parsing, fallback when field is missing, API value override, constant verification, millisecond conversion, and platform constant integration. [backend/internal/services/token_manager_refresh_test.go]
 
 ### Fixed
