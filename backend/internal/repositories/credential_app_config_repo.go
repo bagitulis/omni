@@ -70,3 +70,24 @@ func (r *CredentialRepository) UpsertAppConfig(ctx context.Context, cfg *models.
 	}
 	return nil
 }
+
+// CreateAppConfig encrypts secrets and inserts a new app config.
+// Returns an error if the record already exists (use UpsertAppConfig for idempotent writes).
+func (r *CredentialRepository) CreateAppConfig(ctx context.Context, cfg *models.CredentialAppConfig) error {
+	if err := validateTenantPlatformScope(cfg.TenantID, cfg.Platform); err != nil {
+		return err
+	}
+	if cfg.ID == "" {
+		cfg.ID = uuid.New().String()
+	}
+	if cfg.Region == "" {
+		cfg.Region = "id"
+	}
+	if err := r.encryptAppConfigSecrets(cfg); err != nil {
+		return err
+	}
+	if err := r.db.WithContext(ctx).Create(cfg).Error; err != nil {
+		return fmt.Errorf("create app config: %w", err)
+	}
+	return nil
+}

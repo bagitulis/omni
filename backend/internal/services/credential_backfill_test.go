@@ -15,25 +15,13 @@ import (
 )
 
 // =============================================================================
-// Stub Functions — RED Phase (no implementation yet)
+// Stub Functions — RED Phase (connections backfill not yet implemented)
 // =============================================================================
-
-// BackfillAppConfigs backfills credential_app_configs from platform_configs.
-// RED phase: stub does nothing. Tests expecting row creation will fail.
-func BackfillAppConfigs(ctx context.Context, db *gorm.DB, tenantID string) error {
-	return nil
-}
 
 // BackfillConnections backfills credential_connections from platform_configs.
 // RED phase: stub does nothing. Tests expecting row creation will fail.
 func BackfillConnections(ctx context.Context, db *gorm.DB, tenantID string) error {
 	return nil
-}
-
-// ClassifyRows splits inventory rows into credential and non-credential categories.
-// RED phase: stub returns nothing. Tests expecting classification will fail.
-func ClassifyRows(rows []inventoryRowData) (credRows, nonCredRows []inventoryRowData) {
-	return nil, nil
 }
 
 // =============================================================================
