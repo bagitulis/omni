@@ -1,10 +1,15 @@
 package services
 
 import (
+	"context"
+	"fmt"
+	"strconv"
 	"strings"
-	"time"
 
+	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/utils"
 	"github.com/rs/zerolog/log"
+	"gorm.io/gorm"
 )
 
 // configEntry tracks a single config_key row with its timestamp for duplicate resolution.
@@ -86,4 +91,122 @@ func resolveDuplicateKey(key string, entries []configEntry) string {
 		Msg("Duplicate config_key resolved — latest updated_at wins")
 
 	return entries[bestIdx].value
+}
+
+// ClassifyRows splits inventory rows into credential and non-credential categories.
+func ClassifyRows(rows []inventoryRowData) (credRows, nonCredRows []inventoryRowData) {
+	for _, row := range rows {
+		key := asString(row["config_key"])
+		if credentialKeys[key] {
+			credRows = append(credRows, row)
+		} else {
+			nonCredRows = append(nonCredRows, row)
+		}
+	}
+	return credRows, nonCredRows
+}
+
+// groupByPlatform groups classified rows by their platform field.
+func groupByPlatform(rows []inventoryRowData) map[string][]inventoryRowData {
+	result := make(map[string][]inventoryRowData)
+	for _, row := range rows {
+		platform := strings.TrimSpace(asString(row["platform"]))
+		if platform != "" {
+			result[platform] = append(result[platform], row)
+		}
+	}
+	return result
+}
+
+// buildAppConfig constructs a CredentialAppConfig from the platform config values.
+func buildAppConfig(tenantID, platform string, configMap map[string]string) *models.CredentialAppConfig {
+	region := configMap["region"]
+	if region == "" {
+		region = configMap["country"]
+	}
+	if region == "" {
+		region = "id"
+	}
+
+	cfg := &models.CredentialAppConfig{
+		TenantID: tenantID,
+		Platform: platform,
+		Region:   region,
+	}
+
+	switch platform {
+	case models.PlatformShopee:
+		cfg.PartnerID, _ = strconv.ParseInt(configMap["partnerId"], 10, 64)
+		cfg.PartnerKey = configMap["partnerKey"]
+	case models.PlatformLazada, models.PlatformTiktok:
+		cfg.AppKey = configMap["appKey"]
+		cfg.AppSecret = configMap["appSecret"]
+	}
+
+	cfg.Configured = true
+	return cfg
+}
+
+// readAndClassify reads all platform_configs rows and splits them into
+// credential and non-credential categories. Shared helper for backfill functions.
+func readAndClassify(ctx context.Context, db *gorm.DB) (credRows, allRows []inventoryRowData, err error) {
+	columns, err := platformConfigColumns(ctx, db)
+	if err != nil {
+		return nil, nil, fmt.Errorf("discover platform_configs columns: %w", err)
+	}
+	if len(columns) == 0 {
+		return nil, nil, nil
+	}
+
+	allRows, err = readPlatformConfigRows(ctx, db, columns)
+	if err != nil {
+		return nil, nil, fmt.Errorf("read platform_configs: %w", err)
+	}
+
+	credRows, _ = ClassifyRows(allRows)
+	return credRows, allRows, nil
+}
+
+// buildConnectionFromConfig assembles a CredentialConnection from the resolved configMap.
+// Handles shopName→sellerName fallback, region→country fallback, TikTok shopCipher,
+// and token expiry parsing.
+func buildConnectionFromConfig(tenantID, platform string, configMap map[string]string) *models.CredentialConnection {
+	storeName := configMap["shopName"]
+	if storeName == "" {
+		storeName = configMap["sellerName"]
+	}
+
+	region := configMap["region"]
+	if region == "" {
+		region = configMap["country"]
+	}
+
+	conn := &models.CredentialConnection{
+		TenantID:        tenantID,
+		Platform:        platform,
+		StoreIdentifier: configMap["shopId"],
+		StoreName:       storeName,
+		Status:          "connected",
+		Region:          region,
+		AccessToken:     configMap["accessToken"],
+		RefreshToken:    configMap["refreshToken"],
+		CreatedBy:       "backfill",
+	}
+
+	if platform == "tiktok" {
+		conn.ShopCipher = configMap["shopCipher"]
+	}
+
+	if v := configMap["tokenExpiry"]; v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+			conn.TokenExpiry = n
+		}
+	}
+	if v := configMap["refreshTokenExpiry"]; v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+			conn.RefreshExpiry = n
+		}
+	}
+
+	return conn
 }
