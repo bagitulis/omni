@@ -164,3 +164,53 @@ func TestSeedShopeeAppCredentials_InvalidPartnerIDReturnsNil(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, cfg, "no row should be created when partner_id is invalid")
 }
+
+// RED phase tests: expect DB-based credential reading (no env fallback).
+// These MUST fail until the no-env implementation replaces os.Getenv.
+
+func TestSeedShopeeAppCredentials_ReadsFromDB_NotEnv(t *testing.T) {
+	clearShopeeEnv(t)
+
+	db := seedTestDB(t)
+	repo := repositories.NewCredentialRepository(db)
+	ctx := context.Background()
+
+	// Pre-seed DB with live credentials (as-if from migration)
+	err := repo.UpsertAppConfig(ctx, &models.CredentialAppConfig{
+		TenantID:   "test_tenant",
+		Platform:   models.PlatformShopee,
+		PartnerID:  2011782,
+		PartnerKey: "db-partner-key",
+		Configured: true,
+		CreatedBy:  "migration",
+		UpdatedBy:  "migration",
+	})
+	require.NoError(t, err)
+
+	// Set env vars to DIFFERENT values to prove function reads from DB, not env
+	t.Setenv("SHOPEE_ENV", "test")
+	t.Setenv("SHOPEE_PARTNER_ID", "9999999")
+	t.Setenv("SHOPEE_PARTNER_KEY", "env-key")
+
+	// Call the function — should read from DB, ignoring env
+	err = SeedShopeeAppCredentials(db, "test_tenant")
+	require.NoError(t, err)
+
+	// Verify DB values were NOT overwritten by env
+	cfg, err := repo.GetAppConfig(ctx, "test_tenant", models.PlatformShopee)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.Equal(t, int64(2011782), cfg.PartnerID, "should read partner_id from DB, not env")
+	assert.Equal(t, "db-partner-key", cfg.PartnerKey, "should read partner_key from DB, not env")
+}
+
+func TestSeedShopeeAppCredentials_MissingDB_ReturnsError(t *testing.T) {
+	clearShopeeEnv(t)
+
+	db := seedTestDB(t)
+	// Intentionally leave DB empty — no pre-seeded record
+
+	// Call the function — no env, no DB → should error
+	err := SeedShopeeAppCredentials(db, "test_tenant")
+	require.Error(t, err, "should error when no env vars and no DB record")
+}
