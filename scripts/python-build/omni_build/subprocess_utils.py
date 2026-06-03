@@ -8,6 +8,7 @@ UnicodeDecodeError when Docker or other tools output non-ASCII characters.
 import os
 import subprocess
 from typing import Any, Optional
+from omni_build.container_runtime import get_runtime
 
 
 def _real_home():
@@ -134,15 +135,24 @@ def run_silent(
 
 def get_compose_command() -> list[str]:
     """
-    Get the correct docker compose command for this system.
+    Get the correct compose command for this system.
+
+    Tries the unified container_runtime (Podman + Docker) first,
+    then falls back to legacy Docker-only detection for backward
+    compatibility.
 
     Returns:
-        ["docker-compose"] if standalone is available,
-        ["docker", "compose"] if the plugin is available.
+        A list of strings forming the compose command.
 
-    If Compose is missing, try a user-local plugin install so build.py can
-    self-heal machines that have Docker but not Compose.
+    Raises:
+        RuntimeError if no compose variant is found.
     """
+    try:
+        return get_runtime().get_compose_command()
+    except RuntimeError:
+        pass
+
+    # Fall back to legacy Docker-only detection
     import os
     import platform
     import shutil

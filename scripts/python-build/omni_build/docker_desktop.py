@@ -1,8 +1,7 @@
-"""
-Docker Desktop Management module for Omni Build System.
+"""Docker Desktop / Podman Management module for Omni Build System.
 
-SRP: This module ONLY handles Docker Desktop process management.
-Cross-platform: handles Windows (Docker Desktop.exe) and Linux (docker daemon/systemd).
+SRP: This module ONLY handles Docker Desktop / Podman process management.
+Cross-platform: handles Windows (Docker Desktop.exe / podman machine) and Linux (docker daemon/systemd).
 """
 import os
 import platform
@@ -28,14 +27,14 @@ IS_LINUX = platform.system() == "Linux"
 
 
 class DockerDesktopManager:
-    """Manages Docker Desktop process (Windows) or Docker daemon (Linux)."""
+    """Manages Docker Desktop / Podman process (Windows) or daemon (Linux)."""
 
     def is_running(self) -> bool:
         """
-        Check if Docker is running.
+        Check if container runtime is running.
 
-        Windows: checks for Docker Desktop.exe process
-        Linux: checks if docker daemon is responding
+        Windows: checks via runtime abstraction, falls back to Docker Desktop.exe process
+        Linux: checks if docker/podman daemon is responding
         """
         if IS_WINDOWS:
             return self._is_running_windows()
