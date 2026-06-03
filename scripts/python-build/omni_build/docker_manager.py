@@ -16,6 +16,7 @@ from omni_build.error_handler import ErrorHandler
 from omni_build.logger import log_error, log_info, log_success, log_warning
 from omni_build.models import ContainerStatus, SpecLevel
 from omni_build.output_parser import OutputParser
+from omni_build.container_runtime import get_runtime
 
 
 class DockerManager:
@@ -43,12 +44,12 @@ class DockerManager:
         Check if Docker Desktop is running and ready.
         AUTO-START if not running, AUTO-FIX if errors.
         """
-        log_info("Checking Docker Desktop status...")
+        log_info("Checking container runtime status...")
         
         if not self._desktop.is_running():
-            log_info("Docker Desktop not running, starting it...")
+            log_info("Container runtime not running, starting it...")
             if not self._desktop.start():
-                log_error("Failed to start Docker Desktop")
+                log_error("Failed to start container runtime")
                 return False
             
             log_info("Waiting for Docker Desktop cold start...")
@@ -56,10 +57,10 @@ class DockerManager:
                 log_warning("Docker Desktop took too long, attempting repair...")
                 return self._auto_fix_docker()
             
-            log_success("Docker Desktop started successfully")
+            log_success("Container runtime started successfully")
             return True
         
-        log_info("Docker Desktop process found, checking engine...")
+        log_info("Container runtime found, checking engine...")
         
         if self._desktop.check_engine_ready():
             log_success("Docker engine is ready")
@@ -91,7 +92,7 @@ class DockerManager:
                 
                 try:
                     result = subprocess.run(
-                        ["docker", "info"],
+                        get_runtime().info(),
                         capture_output=True,
                         text=True,
                         encoding='utf-8',
@@ -104,7 +105,7 @@ class DockerManager:
                         
                         try:
                             verify = subprocess.run(
-                                ["docker", "ps"],
+                                get_runtime().ps(),
                                 capture_output=True,
                                 timeout=10,
                             )
@@ -135,7 +136,7 @@ class DockerManager:
         """Verify Docker is in Linux containers mode."""
         try:
             result = subprocess.run(
-                ["docker", "version", "--format", "{{.Server.Os}}"],
+                get_runtime().version("{{.Server.Os}}"),
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -250,7 +251,7 @@ class DockerManager:
         try:
             for container in [self.config.container_backend, self.config.container_frontend]:
                 result = subprocess.run(
-                    ["docker", "inspect", "--format", "{{.State.Status}}", container],
+                    get_runtime().inspect(container, "{{.State.Status}}"),
                     capture_output=True,
                     text=True,
                     encoding='utf-8',
@@ -268,11 +269,7 @@ class DockerManager:
         """Get status of all Omni containers."""
         try:
             result = subprocess.run(
-                [
-                    "docker", "ps", "-a",
-                    "--filter", "name=omni-",
-                    "--format", "{{.Names}}\t{{.Status}}\t{{.State}}\t{{.CreatedAt}}",
-                ],
+                get_runtime().ps(["-a", "--filter", "name=omni-", "--format", "{{.Names}}\t{{.Status}}\t{{.State}}\t{{.CreatedAt}}"]),
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
