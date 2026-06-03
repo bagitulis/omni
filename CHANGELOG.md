@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **ContainerRuntime abstraction layer**: Created `container_runtime.py` as the single entry point for all Docker/Podman CLI operations. Wraps 18 CLI methods (inspect, ps, exec, restart, start, stop, rm, logs, cp, info, version, prune, compose) returning command arrays. Supports `CONTAINER_RUNTIME` env var for Docker/Podman override with auto-detection fallback. Singleton pattern via `get_runtime()`. Podman-specific systemd handling for service restart. 50 unit tests covering all methods, compose detection, and singleton behavior. [scripts/python-build/omni_build/container_runtime.py, tests/test_container_runtime.py]
+
 ### Changed
 - **Refactored credential_backfill.go** (312→163 lines): Extracted types (`credentialKeys`, `appCredentialKeys`, `BackfillValidationReport`, `BackfillDecryptFailure`) to new `credential_backfill_types.go` (37 lines). Moved `ClassifyRows`, `groupByPlatform`, `buildAppConfig`, `readAndClassify` to `credential_backfill_helpers.go`. Extracted `buildConnectionFromConfig` helper for connection assembly logic. Pure file reorganization, no logic changes. [backend/internal/services/]
 - **Refactored global_config.go** (326→230 lines): Extracted credential types and methods to `global_config_credentials.go` (103 lines). Moved `ShopeeCredentials`, `TiktokCredentials`, `LazadaCredentials` structs and their `Get*Credentials()`/`Has*Credentials()` methods. Pure file reorganization, no logic changes. [backend/internal/config/global_config.go, backend/internal/config/global_config_credentials.go]
