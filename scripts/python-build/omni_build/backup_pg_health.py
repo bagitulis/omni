@@ -43,7 +43,7 @@ class PostgresHealthManager:
         
         try:
             result = subprocess.run(
-                get_runtime().inspect(DatabaseConfig.CONTAINER_NAME, "{{.State.Status}}")
+                get_runtime().inspect(DatabaseConfig.CONTAINER_NAME, "{{.State.Status}}"),
                 capture_output=True, text=True, timeout=10
             )
             status = result.stdout.strip()
