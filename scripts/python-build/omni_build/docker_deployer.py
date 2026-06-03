@@ -12,6 +12,7 @@ from omni_build.error_handler import ErrorHandler
 from omni_build.logger import log_error, log_info, log_success, log_warning
 from omni_build.models import SpecLevel
 from omni_build.subprocess_utils import get_compose_command
+from omni_build.container_runtime import get_runtime
 
 class DockerDeployer:
     """Handles Docker container deployment with retry logic."""
@@ -127,7 +128,7 @@ class DockerDeployer:
         
         return False
     
-    def _check_core_containers_status(self) -> dict:
+    def _check_core_containers_status(self) -> dict[str, bool]:
         """Check status of core containers."""
         status = {
             'postgres_running': False,
@@ -145,7 +146,7 @@ class DockerDeployer:
             ]
             for container, key in containers:
                 result = subprocess.run(
-                    ["docker", "inspect", "--format", "{{.State.Status}}", container],
+                    get_runtime().inspect(container, "{{.State.Status}}"),
                     capture_output=True,
                     text=True,
                     encoding='utf-8',
@@ -165,7 +166,7 @@ class DockerDeployer:
         """Restart any unhealthy containers."""
         try:
             result = subprocess.run(
-                ["docker", "ps", "--filter", "health=unhealthy", "--format", "{{.Names}}"],
+                get_runtime().ps(["--filter", "health=unhealthy", "--format", "{{.Names}}"]),
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -177,7 +178,7 @@ class DockerDeployer:
                 for container in unhealthy:
                     log_info(f"Restarting unhealthy container: {container}")
                     subprocess.run(
-                        ["docker", "restart", container], 
+                        get_runtime().restart(container), 
                         capture_output=True, 
                         timeout=30
                     )
@@ -207,9 +208,8 @@ class DockerDeployer:
             for container, must_be_healthy in critical_containers:
                 try:
                     result = subprocess.run(
-                        ["docker", "inspect", "--format", 
-                         "{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}",
-                         container],
+                        get_runtime().inspect(container,
+                         "{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}"),
                         capture_output=True,
                         text=True,
                         encoding='utf-8',
@@ -256,8 +256,8 @@ class DockerDeployer:
         log_info("Container health status:")
         try:
             result = subprocess.run(
-                ["docker", "ps", "-a", "--filter", "name=omni-",
-                 "--format", "  {{.Names}}: {{.Status}}"],
+                get_runtime().ps(["-a", "--filter", "name=omni-",
+                 "--format", "  {{.Names}}: {{.Status}}"]),
                 capture_output=True,
                 text=True,
                 encoding='utf-8',

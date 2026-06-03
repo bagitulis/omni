@@ -22,6 +22,7 @@ def _real_home():
         return Path.home()
 
 from omni_build.logger import log_error, log_info, log_success, log_warning
+from omni_build.container_runtime import get_runtime
 
 IS_WINDOWS = platform.system() == "Windows"
 IS_LINUX = platform.system() == "Linux"
@@ -76,14 +77,10 @@ class DockerInfraFixer:
 
         # Try systemctl first (most common)
         restarted = False
-        if shutil.which("systemctl"):
-            result = subprocess.run(["sudo", "systemctl", "restart", "docker"],
-                                   capture_output=True, check=False)
-            restarted = result.returncode == 0
-
-        # Fallback to service command
-        if not restarted and shutil.which("service"):
-            result = subprocess.run(["sudo", "service", "docker", "restart"],
+        restarted = False
+        cmd = get_runtime().restart_docker_service()
+        if shutil.which(cmd[1]):
+            result = subprocess.run(cmd,
                                    capture_output=True, check=False)
             restarted = result.returncode == 0
 
@@ -94,7 +91,7 @@ class DockerInfraFixer:
         time.sleep(5)
 
         # Verify
-        result = subprocess.run(["docker", "info"],
+        result = subprocess.run(get_runtime().info(),
                                capture_output=True, text=True, timeout=10)
         if result.returncode == 0:
             log_success("Docker daemon restarted successfully")
@@ -132,7 +129,7 @@ class DockerInfraFixer:
     @staticmethod
     def repair_buildkit() -> bool:
         """Clear BuildKit cache."""
-        subprocess.run(["docker", "builder", "prune", "-af"], 
+        subprocess.run(get_runtime().builder_prune(all=True), 
                       capture_output=True, check=False)
         return True
     
@@ -195,7 +192,7 @@ class DockerInfraFixer:
                 log_success("Fixed ~/.docker/config.json")
             else:
                 log_info("Docker config looks OK, clearing builder cache...")
-                subprocess.run(["docker", "builder", "prune", "-af"],
+                subprocess.run(get_runtime().builder_prune(all=True),
                               capture_output=True, check=False)
             
             return True
@@ -209,7 +206,7 @@ class DockerInfraFixer:
     @staticmethod
     def repair_container_name_conflict() -> bool:
         """Remove conflicting containers."""
-        subprocess.run(["docker", "container", "prune", "-f"], 
+        subprocess.run(get_runtime().container_prune(), 
                       capture_output=True, check=False)
         return True
     
@@ -239,7 +236,7 @@ class DockerInfraFixer:
         if specific_error == "connection_refused":
             log_info("Detected: PostgreSQL connection refused")
             # Restart postgres and wait
-            subprocess.run(["docker", "restart", "omni-postgres"],
+            subprocess.run(get_runtime().restart("omni-postgres"),
                           capture_output=True, check=False, timeout=60)
             time.sleep(30)
             return True
@@ -250,7 +247,7 @@ class DockerInfraFixer:
         containers = ["omni-backend", "omni-frontend", "omni-pgbouncer",
                      "omni-redis", "omni-postgres"]
         for c in containers:
-            subprocess.run(["docker", "stop", c],
+            subprocess.run(get_runtime().stop(c),
                           capture_output=True, check=False, timeout=30)
         
         time.sleep(3)
@@ -283,7 +280,7 @@ class DockerInfraFixer:
         """Check postgres container logs for root cause. Returns True if fix applied."""
         try:
             result = subprocess.run(
-                ["docker", "logs", "omni-postgres", "--tail", "10"],
+                get_runtime().logs("omni-postgres", tail=10),
                 capture_output=True, text=True, encoding='utf-8',
                 errors='replace', timeout=10,
             )
@@ -311,7 +308,7 @@ class DockerInfraFixer:
         """Check backend container logs to diagnose specific error."""
         try:
             result = subprocess.run(
-                ["docker", "logs", "omni-backend", "--tail", "30"],
+                get_runtime().logs("omni-backend", tail=30),
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -357,7 +354,7 @@ class NetworkFixer:
     @staticmethod
     def repair_network() -> bool:
         """Repair network issues."""
-        subprocess.run(["docker", "network", "prune", "-f"], 
+        subprocess.run(get_runtime().network_prune(), 
                       capture_output=True, check=False)
         return True
     
@@ -370,11 +367,10 @@ class NetworkFixer:
             subprocess.run(["netsh", "int", "ip", "reset"], capture_output=True, check=False)
         else:
             # Linux: restart Docker's network
-            subprocess.run(["docker", "network", "prune", "-f"], capture_output=True, check=False)
-            if shutil.which("systemctl"):
-                subprocess.run(["sudo", "systemctl", "restart", "docker"], capture_output=True, check=False)
-            elif shutil.which("service"):
-                subprocess.run(["sudo", "service", "docker", "restart"], capture_output=True, check=False)
+            subprocess.run(get_runtime().network_prune(), capture_output=True, check=False)
+            cmd = get_runtime().restart_docker_service()
+            if shutil.which(cmd[1]):
+                subprocess.run(cmd, capture_output=True, check=False)
 
 
 class ResourceFixer:
@@ -383,7 +379,7 @@ class ResourceFixer:
     @staticmethod
     def cleanup_disk_space() -> bool:
         """Cleanup disk space."""
-        subprocess.run(["docker", "system", "prune", "-af"], 
+        subprocess.run(get_runtime().system_prune(all=True), 
                       capture_output=True, check=False)
         return True
     
@@ -393,7 +389,7 @@ class ResourceFixer:
         log_info("Stopping all containers to free memory...")
         try:
             result = subprocess.run(
-                ["docker", "ps", "-q"],
+                get_runtime().ps(["-q"]),
                 capture_output=True, text=True, timeout=10,
             )
             if result.returncode == 0 and result.stdout.strip():
@@ -401,7 +397,7 @@ class ResourceFixer:
                     container_id = container_id.strip()
                     if container_id:
                         subprocess.run(
-                            ["docker", "stop", container_id],
+                            get_runtime().stop(container_id),
                             capture_output=True, check=False, timeout=30,
                         )
         except Exception as e:
@@ -410,9 +406,9 @@ class ResourceFixer:
         time.sleep(5)
         
         # Prune stopped containers and dangling images to free memory
-        subprocess.run(["docker", "container", "prune", "-f"],
+        subprocess.run(get_runtime().container_prune(),
                       capture_output=True, check=False)
-        subprocess.run(["docker", "image", "prune", "-f"],
+        subprocess.run(get_runtime().image_prune(),
                       capture_output=True, check=False)
         
         log_info("Restarting Docker engine after OOM cleanup...")
@@ -452,7 +448,7 @@ class ResourceFixer:
         
         if conflicts_found:
             log_info("Stopping Omni containers to release ports...")
-            subprocess.run(["docker", "container", "prune", "-f"],
+            subprocess.run(get_runtime().container_prune(),
                           capture_output=True, check=False)
         else:
             log_info("No port conflicts detected")
@@ -505,21 +501,20 @@ class SystemFixer:
             time.sleep(10)
         else:
             # Linux: restart docker daemon instead
-            if shutil.which("systemctl"):
-                subprocess.run(["sudo", "systemctl", "restart", "docker"], capture_output=True, check=False)
-            elif shutil.which("service"):
-                subprocess.run(["sudo", "service", "docker", "restart"], capture_output=True, check=False)
+            cmd = get_runtime().restart_docker_service()
+            if shutil.which(cmd[1]):
+                subprocess.run(cmd, capture_output=True, check=False)
             time.sleep(5)
         return True
     
     @staticmethod
     def light_cleanup() -> None:
         """Light cleanup - dangling images only."""
-        subprocess.run(["docker", "image", "prune", "-f"], 
+        subprocess.run(get_runtime().image_prune(), 
                       capture_output=True, check=False)
     
     @staticmethod
     def aggressive_cleanup() -> None:
         """Aggressive cleanup - all unused resources."""
-        subprocess.run(["docker", "system", "prune", "-af", "--volumes"], 
+        subprocess.run(get_runtime().system_prune(all=True, volumes=True), 
                       capture_output=True, check=False)

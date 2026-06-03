@@ -13,6 +13,7 @@ from typing import List, Optional, Tuple
 from omni_build.config import Config
 from omni_build.db_config import DatabaseConfig
 from omni_build.logger import log_error, log_info, log_success, log_warning
+from omni_build.container_runtime import get_runtime
 
 
 class PostgresHealthChecker:
@@ -42,7 +43,7 @@ class PostgresHealthChecker:
         """Check if PostgreSQL container is healthy."""
         try:
             result = subprocess.run(
-                ["docker", "inspect", "--format", "{{.State.Health.Status}}", DatabaseConfig.CONTAINER_NAME],
+                get_runtime().inspect(DatabaseConfig.CONTAINER_NAME, "{{.State.Health.Status}}"),
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -71,7 +72,7 @@ class PostgresHealthChecker:
         log_info("Starting PostgreSQL container...")
         try:
             result = subprocess.run(
-                ["docker", "start", DatabaseConfig.CONTAINER_NAME],
+                get_runtime().start_container(DatabaseConfig.CONTAINER_NAME),
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -94,14 +95,14 @@ class PostgresHealthChecker:
         
         try:
             result = subprocess.run(
-                ["docker", "inspect", "--format", "{{.State.Status}}", DatabaseConfig.CONTAINER_NAME],
+                get_runtime().inspect(DatabaseConfig.CONTAINER_NAME, "{{.State.Status}}"),
                 capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10
             )
             status = result.stdout.strip()
             
             if status == "exited":
                 log_info("Container exited - attempting restart...")
-                subprocess.run(["docker", "start", DatabaseConfig.CONTAINER_NAME], 
+                subprocess.run(get_runtime().start_container(DatabaseConfig.CONTAINER_NAME), 
                               capture_output=True, timeout=30)
                 
                 for _ in range(30):
@@ -139,9 +140,10 @@ class PostgresHealthChecker:
             
             try:
                 result = subprocess.run(
-                    ["docker", "inspect", "--format", 
-                     "{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}",
-                     DatabaseConfig.CONTAINER_NAME],
+                    get_runtime().inspect(
+                        DatabaseConfig.CONTAINER_NAME,
+                        "{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}",
+                    ),
                     capture_output=True,
                     text=True,
                     encoding='utf-8',
@@ -235,7 +237,7 @@ class DatabaseRestorer:
         """Check if container exists (running or stopped)."""
         try:
             result = subprocess.run(
-                ["docker", "inspect", container_name],
+                get_runtime().inspect(container_name),
                 capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10,
             )
             return result.returncode == 0

@@ -18,6 +18,7 @@ from omni_build.backup_manifest import BackupManifest
 from omni_build.config import Config
 from omni_build.db_config import DatabaseConfig
 from omni_build.logger import log_error, log_info, log_success, log_warning
+from omni_build.container_runtime import get_runtime
 
 
 class DatabaseBackup:
@@ -56,8 +57,7 @@ class DatabaseBackup:
         
         log_info("Starting PostgreSQL container...")
         try:
-            subprocess.run(["docker", "start", DatabaseConfig.CONTAINER_NAME], 
-                          capture_output=True, timeout=30)
+            get_runtime().start_container(DatabaseConfig.CONTAINER_NAME)
             
             for _ in range(30):
                 if self.check_postgres_ready():
