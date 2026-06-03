@@ -77,7 +77,6 @@ class DockerInfraFixer:
 
         # Try systemctl first (most common)
         restarted = False
-        restarted = False
         cmd = get_runtime().restart_docker_service()
         if shutil.which(cmd[1]):
             result = subprocess.run(cmd,

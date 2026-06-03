@@ -8,6 +8,7 @@ import time
 from typing import Callable, List
 
 from omni_build.db_config import DatabaseConfig
+from omni_build.container_runtime import get_runtime
 from omni_build.logger import log_info, log_success
 
 
@@ -42,14 +43,14 @@ class PostgresHealthManager:
         
         try:
             result = subprocess.run(
-                ["docker", "inspect", "--format", "{{.State.Status}}", DatabaseConfig.CONTAINER_NAME],
+                get_runtime().inspect(DatabaseConfig.CONTAINER_NAME, "{{.State.Status}}")
                 capture_output=True, text=True, timeout=10
             )
             status = result.stdout.strip()
             
             if status == "exited":
                 log_info("Container exited - attempting restart...")
-                subprocess.run(["docker", "start", DatabaseConfig.CONTAINER_NAME], 
+                subprocess.run(get_runtime().start_container(DatabaseConfig.CONTAINER_NAME),
                               capture_output=True, timeout=30)
                 
                 for _ in range(30):
