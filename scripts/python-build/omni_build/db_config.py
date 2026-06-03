@@ -5,6 +5,7 @@ SRP: Centralized database configuration to avoid hardcoded values.
 """
 import os
 from typing import List
+from omni_build.container_runtime import get_runtime
 
 
 class DatabaseConfig:
@@ -25,10 +26,9 @@ class DatabaseConfig:
 
     @classmethod
     def docker_exec_prefix(cls, interactive: bool = False) -> List[str]:
-        """Return the docker exec prefix for PostgreSQL commands."""
-        if interactive:
-            return ["docker", "exec", "-i", cls.CONTAINER_NAME]
-        return ["docker", "exec", cls.CONTAINER_NAME]
+        """Return the exec prefix for PostgreSQL commands."""
+        runtime = get_runtime()
+        return runtime.exec(cls.CONTAINER_NAME, interactive=interactive)
 
     @classmethod
     def psql_cmd(cls, database: str = "", interactive: bool = False) -> List[str]:

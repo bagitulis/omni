@@ -11,6 +11,7 @@ import subprocess
 import time
 from pathlib import Path
 from typing import Optional
+from omni_build.container_runtime import get_runtime
 
 
 def _real_home():
@@ -56,7 +57,16 @@ class DockerDesktopManager:
             return False
 
     def _is_running_windows(self) -> bool:
-        """Check if Docker Desktop.exe process is running on Windows."""
+        """Check if Docker or Podman is running on Windows."""
+        # Try runtime abstraction first (works for both Docker and Podman)
+        try:
+            if get_runtime().is_running():
+                log_info(f"{get_runtime().name} is running (via runtime check)")
+                return True
+        except Exception:
+            pass
+
+        # Fallback: check Docker Desktop.exe process directly
         try:
             result = subprocess.run(
                 ["tasklist", "/FO", "CSV", "/NH"],
@@ -71,34 +81,34 @@ class DockerDesktopManager:
                 log_info("Docker Desktop process is running")
                 return True
 
-            log_info("Docker Desktop process not found")
+            log_info("No container runtime detected on Windows")
             return False
 
         except Exception as e:
-            log_warning(f"Could not check Docker Desktop process: {e}")
+            log_warning(f"Could not check container runtime process: {e}")
             return False
 
     def _is_running_linux(self) -> bool:
-        """Check if Docker daemon is running on Linux."""
+        """Check if container daemon is running on Linux."""
         try:
             result = subprocess.run(
-                ["docker", "info"],
+                get_runtime().info(),
                 capture_output=True,
                 text=True,
                 timeout=10,
             )
             if result.returncode == 0:
-                log_info("Docker daemon is running")
+                log_info(f"{get_runtime().name} daemon is running")
                 return True
             # Detect permission denied vs daemon not running
             stderr_lower = (result.stderr or "").lower()
             if "permission denied" in stderr_lower:
-                log_warning("Permission denied — user not in docker group")
+                log_warning("Permission denied — user not in docker/podman group")
             else:
-                log_info("Docker daemon not responding")
+                log_info(f"{get_runtime().name} daemon not responding")
             return False
         except Exception as e:
-            log_warning(f"Could not check Docker daemon: {e}")
+            log_warning(f"Could not check container daemon: {e}")
             return False
 
     def start(self) -> bool:
@@ -116,7 +126,29 @@ class DockerDesktopManager:
         return self._start_linux()
 
     def _start_windows(self) -> bool:
-        """Start Docker Desktop on Windows."""
+        """Start Docker or Podman on Windows."""
+        runtime = get_runtime()
+
+        # Podman: use podman machine start
+        if runtime.name == "podman":
+            log_info("Starting Podman machine...")
+            try:
+                result = subprocess.run(
+                    ["podman", "machine", "start"],
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+                if result.returncode == 0:
+                    time.sleep(3)
+                    if runtime.is_running():
+                        log_success("Podman machine started")
+                        return True
+                log_warning("Podman machine start did not confirm running state")
+            except Exception as e:
+                log_error(f"Failed to start Podman machine: {e}")
+
+        # Docker Desktop fallback
         docker_paths = [
             Path("C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe"),
             Path("C:\\Program Files (x86)\\Docker\\Docker\\Docker Desktop.exe"),
@@ -150,7 +182,7 @@ class DockerDesktopManager:
                     log_error(f"Failed to start Docker Desktop: {e}")
                     return False
 
-        log_error("Docker Desktop executable not found in standard locations")
+        log_error("No container runtime executable found")
         return False
 
     def _start_linux(self) -> bool:
@@ -239,7 +271,7 @@ class DockerDesktopManager:
 
             try:
                 result = subprocess.run(
-                    ["docker", "info"],
+                    get_runtime().info(),
                     capture_output=True,
                     text=True,
                     encoding='utf-8',
@@ -249,29 +281,29 @@ class DockerDesktopManager:
 
                 if result.returncode == 0:
                     consecutive_ready += 1
-                    log_info(f"Docker responding ({consecutive_ready}/2 consecutive checks)")
+                    log_info(f"{get_runtime().name} responding ({consecutive_ready}/2 consecutive checks)")
 
                     if consecutive_ready >= 2:
-                        log_success(f"Docker ready after {elapsed}s")
+                        log_success(f"{get_runtime().name} ready after {elapsed}s")
                         return True
                 else:
                     consecutive_ready = 0
 
             except subprocess.TimeoutExpired:
                 consecutive_ready = 0
-                log_info(f"Docker not responding yet ({elapsed}s elapsed)...")
+                log_info(f"{get_runtime().name} not responding yet ({elapsed}s elapsed)...")
             except Exception as e:
                 consecutive_ready = 0
-                log_warning(f"Docker check error: {e}")
+                log_warning(f"Container runtime check error: {e}")
 
         log_error(f"Docker did not become ready after {timeout_seconds}s")
         return False
 
     def check_engine_ready(self) -> bool:
-        """Quick check if Docker engine is responding."""
+        """Quick check if container engine is responding."""
         try:
             result = subprocess.run(
-                ["docker", "info"],
+                get_runtime().info(),
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
