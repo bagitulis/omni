@@ -7,6 +7,7 @@ import subprocess
 import time
 from typing import Optional
 
+from omni_build.container_runtime import get_runtime
 from omni_build.logger import log_error, log_info, log_success, log_warning
 from omni_build.models import ErrorPattern
 
@@ -138,7 +139,7 @@ class OrchestratorHelpers:
         """Verify backend can connect to database by checking logs."""
         try:
             result = subprocess.run(
-                ["docker", "logs", "--tail", "30", "omni-backend"],
+                get_runtime().logs("omni-backend", tail=30),
                 capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10,
             )
             
@@ -173,9 +174,10 @@ class OrchestratorHelpers:
         for container, name, is_critical in ALL_SERVICES:
             try:
                 result = subprocess.run(
-                    ["docker", "inspect", "--format",
-                     "{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}",
-                     container],
+                    get_runtime().inspect(
+                        container,
+                        "{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}",
+                    ),
                     capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10,
                 )
                 
@@ -219,7 +221,7 @@ class OrchestratorHelpers:
             for attempt in range(2):
                 try:
                     result = subprocess.run(
-                        ["docker", "logs", "--tail", "50", container],
+                        get_runtime().logs(container, tail=50),
                         capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10,
                     )
                     if result.returncode == 0:
@@ -243,7 +245,7 @@ class OrchestratorHelpers:
             try:
                 log_info(f"Restarting {service}...")
                 result = subprocess.run(
-                    ["docker", "restart", container],
+                    get_runtime().restart(container),
                     capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=60,
                 )
                 if result.returncode == 0:

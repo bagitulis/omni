@@ -9,6 +9,7 @@ import subprocess
 import time
 
 from omni_build.logger import log_error, log_fix, log_info, log_success, log_warning
+from omni_build.container_runtime import get_runtime
 
 
 class ServiceFixer:
@@ -24,7 +25,7 @@ class ServiceFixer:
         try:
             log_info(f"Restarting {container_name}...")
             result = subprocess.run(
-                ["docker", "restart", container_name],
+                get_runtime().restart(container_name),
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -45,7 +46,7 @@ class ServiceFixer:
         """Stop a Docker container."""
         try:
             subprocess.run(
-                ["docker", "stop", container_name],
+                get_runtime().stop(container_name),
                 capture_output=True,
                 timeout=timeout,
                 check=False
@@ -59,7 +60,7 @@ class ServiceFixer:
         """Remove a Docker container."""
         try:
             subprocess.run(
-                ["docker", "rm", "-f", container_name],
+                get_runtime().rm(container_name, force=True),
                 capture_output=True,
                 check=False
             )
@@ -96,7 +97,7 @@ class NginxFixer(ServiceFixer):
         
         for container in ["omni-backend", "omni-frontend"]:
             result = subprocess.run(
-                ["docker", "inspect", "--format", "{{.State.Status}}", container],
+                get_runtime().inspect(container, "{{.State.Status}}"),
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -131,7 +132,7 @@ class PgBouncerFixer(ServiceFixer):
         log_fix("Restarting PgBouncer connection pooler...")
         
         result = subprocess.run(
-            ["docker", "inspect", "--format", "{{.State.Health.Status}}", "omni-postgres"],
+            get_runtime().inspect("omni-postgres", "{{.State.Health.Status}}"),
             capture_output=True,
             text=True,
             encoding='utf-8',
@@ -192,7 +193,7 @@ class BackendFixer(ServiceFixer):
         log_fix("Restarting unhealthy containers...")
         
         result = subprocess.run(
-            ["docker", "ps", "--filter", "health=unhealthy", "--format", "{{.Names}}"],
+            get_runtime().ps(["--filter", "health=unhealthy", "--format", "{{.Names}}"]),
             capture_output=True,
             text=True,
             encoding='utf-8',

@@ -2,7 +2,7 @@
 Health Checker module for Omni Build System.
 
 SRP: This module ONLY handles health checks for containers and HTTP endpoints.
-No Docker operations, no builds.
+No Docker/Podman operations, no builds.
 """
 import subprocess
 import time
@@ -13,6 +13,7 @@ import requests
 from omni_build.config import Config
 from omni_build.logger import log_error, log_info, log_success, log_warning
 from omni_build.models import HealthCheckResult
+from omni_build.container_runtime import get_runtime
 
 
 class HealthChecker:
@@ -47,12 +48,7 @@ class HealthChecker:
         try:
             # Get container health status
             result = subprocess.run(
-                [
-                    "docker",
-                    "inspect",
-                    "--format", "{{.State.Health.Status}}",
-                    container_name,
-                ],
+                get_runtime().inspect(container_name, "{{.State.Health.Status}}"),
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -288,7 +284,7 @@ class HealthChecker:
         try:
             # Get last 50 lines of backend logs
             result = subprocess.run(
-                ["docker", "logs", "--tail", "50", self.config.container_backend],
+                get_runtime().logs(self.config.container_backend, tail=50),
                 capture_output=True,
                 text=True,
                 encoding='utf-8',

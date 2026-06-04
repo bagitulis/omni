@@ -49,22 +49,29 @@ class TestDetectRuntime:
         with patch.dict(os.environ, {"CONTAINER_RUNTIME": "  podman  "}):
             assert detect_runtime() == "podman"
 
-    def test_auto_detect_podman_first(self):
-        with patch.dict(os.environ, {"CONTAINER_RUNTIME": ""}, clear=False):
-            with patch("omni_build.container_runtime.shutil.which") as mock_which:
-                mock_which.side_effect = lambda cmd: cmd == "podman"
-                with patch("omni_build.container_runtime.run_silent") as mock_run:
-                    mock_run.return_value = MagicMock(returncode=0)
-                    assert detect_runtime() == "podman"
-
-    def test_auto_detect_docker_fallback(self):
+    def test_auto_detect_docker_first(self):
         with patch.dict(os.environ, {"CONTAINER_RUNTIME": ""}, clear=False):
             with patch("omni_build.container_runtime.shutil.which") as mock_which:
                 mock_which.side_effect = lambda cmd: cmd == "docker"
-                with patch("omni_build.container_runtime.run_silent") as mock_run:
+                with patch("omni_build.container_runtime._run_silent") as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
                     assert detect_runtime() == "docker"
 
+    def test_auto_detect_podman_fallback(self):
+        with patch.dict(os.environ, {"CONTAINER_RUNTIME": ""}, clear=False):
+            with patch("omni_build.container_runtime.shutil.which") as mock_which:
+                mock_which.side_effect = lambda cmd: cmd == "podman"
+                with patch("omni_build.container_runtime._run_silent") as mock_run:
+                    mock_run.return_value = MagicMock(returncode=0)
+                    assert detect_runtime() == "podman"
+
+    def test_auto_detect_docker_first_when_both_available(self):
+        with patch.dict(os.environ, {"CONTAINER_RUNTIME": ""}, clear=False):
+            with patch("omni_build.container_runtime.shutil.which") as mock_which:
+                mock_which.side_effect = lambda cmd: cmd in ("docker", "podman")
+                with patch("omni_build.container_runtime._run_silent") as mock_run:
+                    mock_run.return_value = MagicMock(returncode=0)
+                    assert detect_runtime() == "docker"
     def test_auto_detect_raises_when_none_found(self):
         with patch.dict(os.environ, {"CONTAINER_RUNTIME": ""}, clear=False):
             with patch("omni_build.container_runtime.shutil.which", return_value=None):
@@ -234,7 +241,7 @@ class TestComposeCommand:
     def test_docker_compose_plugin(self):
         rt = ContainerRuntime("docker")
         with patch("omni_build.container_runtime.shutil.which", return_value=None):
-            with patch("omni_build.container_runtime.run_silent") as mock_run:
+            with patch("omni_build.container_runtime._run_silent") as mock_run:
                 mock_run.return_value = MagicMock(returncode=0)
                 assert rt.get_compose_command() == ["docker", "compose"]
 
@@ -247,14 +254,14 @@ class TestComposeCommand:
     def test_podman_compose_plugin(self):
         rt = ContainerRuntime("podman")
         with patch("omni_build.container_runtime.shutil.which", return_value=None):
-            with patch("omni_build.container_runtime.run_silent") as mock_run:
+            with patch("omni_build.container_runtime._run_silent") as mock_run:
                 mock_run.return_value = MagicMock(returncode=0)
                 assert rt.get_compose_command() == ["podman", "compose"]
 
     def test_raises_when_no_compose(self):
         rt = ContainerRuntime("docker")
         with patch("omni_build.container_runtime.shutil.which", return_value=None):
-            with patch("omni_build.container_runtime.run_silent") as mock_run:
+            with patch("omni_build.container_runtime._run_silent") as mock_run:
                 mock_run.return_value = MagicMock(returncode=1)
                 with pytest.raises(RuntimeError, match="not available"):
                     rt.get_compose_command()
@@ -285,20 +292,20 @@ class TestIsRunning:
 
     def test_returns_true_when_running(self):
         rt = ContainerRuntime("docker")
-        with patch("omni_build.container_runtime.run_silent") as mock_run:
+        with patch("omni_build.container_runtime._run_silent") as mock_run:
             mock_run.return_value = MagicMock(returncode=0)
             assert rt.is_running() is True
 
     def test_returns_false_when_not_running(self):
         rt = ContainerRuntime("docker")
-        with patch("omni_build.container_runtime.run_silent") as mock_run:
+        with patch("omni_build.container_runtime._run_silent") as mock_run:
             mock_run.return_value = MagicMock(returncode=1)
             assert rt.is_running() is False
 
     def test_returns_false_on_timeout(self):
         import subprocess
         rt = ContainerRuntime("docker")
-        with patch("omni_build.container_runtime.run_silent", side_effect=subprocess.TimeoutExpired("docker", 10)):
+        with patch("omni_build.container_runtime._run_silent", side_effect=subprocess.TimeoutExpired("docker", 10)):
             assert rt.is_running() is False
 
 

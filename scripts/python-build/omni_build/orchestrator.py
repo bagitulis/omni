@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import time
+from omni_build.container_runtime import get_runtime
 
 from omni_build.config import Config
 from omni_build.database_restorer import DatabaseRestorer
@@ -342,7 +343,7 @@ class BuildOrchestrator:
         for container in containers:
             try:
                 result = subprocess.run(
-                    ["docker", "logs", "--tail", "20", container],
+                    get_runtime().logs(container, tail=20),
                     capture_output=True, text=True, encoding='utf-8',
                     errors='replace', timeout=10,
                 )
@@ -378,7 +379,7 @@ class BuildOrchestrator:
         log_info("Removing PostgreSQL container...")
         try:
             subprocess.run(
-                ["docker", "rm", "-f", "omni-postgres"],
+                get_runtime().rm("omni-postgres", force=True),
                 capture_output=True,
                 check=False,
                 timeout=30,

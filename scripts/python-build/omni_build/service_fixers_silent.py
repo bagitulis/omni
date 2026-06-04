@@ -5,6 +5,7 @@ SRP: This module contains fix implementations for silent errors
 (errors that occur while services are still running).
 """
 import subprocess
+from omni_build.container_runtime import get_runtime
 
 from omni_build.db_config import DatabaseConfig
 from omni_build.logger import log_fix, log_info, log_success, log_warning
@@ -15,7 +16,7 @@ def _restart_container(container_name: str, timeout: int = 60) -> bool:
     try:
         log_info(f"Restarting {container_name}...")
         result = subprocess.run(
-            ["docker", "restart", container_name],
+            get_runtime().restart(container_name),
             capture_output=True,
             text=True,
             encoding='utf-8',
@@ -41,7 +42,7 @@ class RedisSilentFixer:
         
         # Try to trigger BGSAVE
         result = subprocess.run(
-            ["docker", "exec", "omni-redis", "redis-cli", "BGSAVE"],
+            get_runtime().exec("omni-redis", "redis-cli", "BGSAVE"),
             capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=30
         )
         
@@ -67,7 +68,7 @@ class RedisSilentFixer:
         
         # Try MEMORY DOCTOR
         result = subprocess.run(
-            ["docker", "exec", "omni-redis", "redis-cli", "MEMORY", "DOCTOR"],
+            get_runtime().exec("omni-redis", "redis-cli", "MEMORY", "DOCTOR"),
             capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=30
         )
         
@@ -158,7 +159,7 @@ class CloudflaredSilentFixer:
         # Check if backend and nginx are running
         for container in ["omni-backend", "omni-nginx"]:
             result = subprocess.run(
-                ["docker", "inspect", "--format", "{{.State.Status}}", container],
+                get_runtime().inspect(container, "{{.State.Status}}"),
                 capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=10
             )
             if result.returncode != 0 or result.stdout.strip() != "running":
@@ -227,7 +228,7 @@ class SystemSilentFixer:
         
         # Prune Docker to free memory
         subprocess.run(
-            ["docker", "system", "prune", "-f"],
+            get_runtime().system_prune(),
             capture_output=True, check=False, timeout=60
         )
         

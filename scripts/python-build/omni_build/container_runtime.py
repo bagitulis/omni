@@ -9,11 +9,23 @@ import os
 import platform
 import shutil
 import subprocess
-from typing import Optional
 
-from omni_build.subprocess_utils import run_silent
 
-_runtime: Optional[ContainerRuntime] = None
+def _run_silent(
+    args: list[str],
+    timeout: float | None = None,
+) -> subprocess.CompletedProcess[str]:
+    """Run a command silently, suppressing output. Internal to avoid circular import."""
+    return subprocess.run(
+        args,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        check=False,
+    )
+
+
+_runtime: ContainerRuntime | None = None
 
 
 def _real_home():
@@ -30,17 +42,17 @@ def _real_home():
 def detect_runtime() -> str:
     """Detect which container runtime is available.
 
-    Priority: CONTAINER_RUNTIME env var > podman > docker.
+    Priority: CONTAINER_RUNTIME env var > docker > podman.
     Returns "docker" or "podman". Raises RuntimeError if none found.
     """
     env_runtime = os.environ.get("CONTAINER_RUNTIME", "").strip().lower()
     if env_runtime in ("docker", "podman"):
         return env_runtime
 
-    for candidate in ("podman", "docker"):
+    for candidate in ("docker", "podman"):
         if shutil.which(candidate):
             try:
-                result = run_silent([candidate, "info"], timeout=10)
+                result = _run_silent([candidate, "info"], timeout=10)
                 if result.returncode == 0:
                     return candidate
             except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -87,7 +99,7 @@ class ContainerRuntime:
         if shutil.which("podman-compose"):
             return ["podman-compose"]
         try:
-            result = run_silent(["podman", "compose", "version"], timeout=10)
+            result = _run_silent(["podman", "compose", "version"], timeout=10)
             if result.returncode == 0:
                 return ["podman", "compose"]
         except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -101,7 +113,7 @@ class ContainerRuntime:
         if shutil.which("docker-compose"):
             return ["docker-compose"]
         try:
-            result = run_silent(["docker", "compose", "version"], timeout=10)
+            result = _run_silent(["docker", "compose", "version"], timeout=10)
             if result.returncode == 0:
                 return ["docker", "compose"]
         except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -116,7 +128,7 @@ class ContainerRuntime:
     def is_running(self) -> bool:
         """Check if the container runtime daemon is available."""
         try:
-            result = run_silent(self.info(), timeout=10)
+            result = _run_silent(self.info(), timeout=10)
             return result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError):
             return False
@@ -130,7 +142,7 @@ class ContainerRuntime:
     def _start_podman(self) -> bool:
         if self._is_windows or platform.system() == "Darwin":
             try:
-                result = run_silent(["podman", "machine", "start"], timeout=120)
+                result = _run_silent(["podman", "machine", "start"], timeout=120)
                 return result.returncode == 0
             except (subprocess.TimeoutExpired, FileNotFoundError):
                 return False
@@ -144,7 +156,7 @@ class ContainerRuntime:
                     ["sudo", "service", "docker", "start"]):
             if shutil.which(cmd[1]):
                 try:
-                    result = run_silent(cmd, timeout=30)
+                    result = _run_silent(cmd, timeout=30)
                     if result.returncode == 0:
                         return True
                 except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -185,7 +197,7 @@ class ContainerRuntime:
 
     # === CLI wrappers (return command arrays) ===
 
-    def inspect(self, container: str, format_str: Optional[str] = None) -> list[str]:
+    def inspect(self, container: str, format_str: str | None = None) -> list[str]:
         """Return inspect command. E.g. ["docker", "inspect", "--format", "{{.State.Status}}", "c"]"""
         cmd = self.get_cli_command() + ["inspect"]
         if format_str is not None:
@@ -193,7 +205,7 @@ class ContainerRuntime:
         cmd.append(container)
         return cmd
 
-    def ps(self, args: Optional[list[str]] = None) -> list[str]:
+    def ps(self, args: list[str] | None = None) -> list[str]:
         """Return ps command. E.g. ["docker", "ps", "-a", "--filter", "name=omni-"]"""
         cmd = self.get_cli_command() + ["ps"]
         if args:
@@ -229,7 +241,7 @@ class ContainerRuntime:
         cmd.append(container)
         return cmd
 
-    def logs(self, container: str, tail: Optional[int] = None) -> list[str]:
+    def logs(self, container: str, tail: int | None = None) -> list[str]:
         """Return logs command. tail=N adds --tail N."""
         cmd = self.get_cli_command() + ["logs"]
         if tail is not None:
@@ -245,7 +257,7 @@ class ContainerRuntime:
         """Return info command."""
         return self.get_cli_command() + ["info"]
 
-    def version(self, format_str: Optional[str] = None) -> list[str]:
+    def version(self, format_str: str | None = None) -> list[str]:
         """Return version command. format_str adds --format flag."""
         cmd = self.get_cli_command() + ["version"]
         if format_str is not None:
