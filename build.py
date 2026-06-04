@@ -171,6 +171,50 @@ _ensure_venv()
 _ensure_path()
 
 # ----- Interactive menu helper ------------------------------------------------
+def _detect_available_runtimes() -> list[str]:
+    """Return list of runtimes that are installed and responsive."""
+    available = []
+    import shutil as _shutil
+    import subprocess as _sp
+    for rt in ("docker", "podman"):
+        if _shutil.which(rt):
+            try:
+                result = _sp.run([rt, "info"], capture_output=True, timeout=10)
+                if result.returncode == 0:
+                    available.append(rt)
+            except Exception:
+                pass
+    return available
+
+
+def _prompt_runtime_choice(available: list[str]) -> str | None:
+    """If both runtimes available, ask user. Returns choice or None (auto)."""
+    if len(available) < 2:
+        return None
+
+    print("-" * 60)
+    print("  Container Runtime:")
+    for idx, rt in enumerate(available, start=1):
+        tag = "Docker Desktop" if rt == "docker" else "Podman"
+        print(f"    {idx}. {tag}")
+    print(f"    {len(available) + 1}. Auto-detect (env CONTAINER_RUNTIME)")
+    print()
+
+    while True:
+        try:
+            c = input(f"  Pilih runtime [1-{len(available) + 1}]: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            return None
+        if not c.isdigit():
+            continue
+        n = int(c)
+        if 1 <= n <= len(available):
+            return available[n - 1]
+        if n == len(available) + 1:
+            return None
+        print("  Di luar range.")
+
+
 def interactive_menu():
     """Prompt user to choose a build action; returns list of CLI args."""
     options = [
@@ -187,12 +231,32 @@ def interactive_menu():
         ("Keluar / Batal", None),
     ]
 
+    available = _detect_available_runtimes()
+
     # Clear screen
     os.system('cls' if os.name == 'nt' else 'clear')
-    
+
     print("=" * 60)
     print(" Omni Build Menu")
     print("=" * 60)
+    rt_display = " + ".join(r.upper() for r in available) if available else "NONE"
+    print(f"  Runtime terdeteksi: {rt_display}")
+    print("-" * 60)
+
+    # Runtime selection (only if both available)
+    chosen = _prompt_runtime_choice(available)
+    if chosen:
+        os.environ["CONTAINER_RUNTIME"] = chosen
+        print(f"  >> Runtime: {chosen.upper()}\n")
+    elif available:
+        # Show which will be used (env or auto-detect priority)
+        env_rt = os.environ.get("CONTAINER_RUNTIME", "").strip().lower()
+        if env_rt in ("docker", "podman"):
+            print(f"  >> Runtime: {env_rt.upper()} (dari env)")
+        else:
+            print(f"  >> Runtime: {available[0].upper()} (auto-detect)")
+    print()
+
     for idx, (label, _) in enumerate(options, start=1):
         print(f"  {idx}. {label}")
     print()
