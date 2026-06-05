@@ -3,9 +3,10 @@ alwaysApply: true
 description: Proxy configuration - disable vision features when not supported
 ---
 
-# Proxy Mode (No Vision)
+# Proxy Vision — Auto-Model Switch
 
-> **Context**: Using local proxy (localhost:20128) that may not support vision APIs.
+> **Context**: Using local proxy (localhost:20128) at `http://localhost:20128/dashboard/combos`.
+> Default model (`mix-pro`, `mix-std`) may not support vision. Use `mix-vision` for visual tasks.
 
 ## Visual Features - DISABLED
 
