@@ -1,14 +1,43 @@
 {
   "permissions": {
     "allow": [
+      "Bash",
       "Bash(*)",
-      "Write",
       "Edit",
-      "MultiEdit",
-      "NotebookEdit",
+      "Edit(*)",
+      "Write",
+      "Write(*)",
+      "Read",
+      "Read(*)",
+      "Glob",
+      "Grep",
+      "Agent",
+      "Agent(*)",
       "WebFetch",
       "WebSearch",
+      "NotebookEdit",
+      "TaskCreate",
+      "TaskUpdate",
+      "TaskList",
+      "TaskGet",
+      "TaskOutput",
+      "TaskStop",
+      "CronCreate",
+      "CronDelete",
+      "CronList",
+      "EnterPlanMode",
+      "ExitPlanMode",
+      "EnterWorktree",
+      "ExitWorktree",
+      "Skill",
+      "Skill(*)",
+      "Workflow",
+      "AskUserQuestion",
+      "ScheduleWakeup",
       "mcp__*"
-    ]
+    ],
+    "deny": [],
+    "ask": [],
+    "defaultMode": "bypassPermissions"
   }
 }
