@@ -188,6 +188,60 @@ To use in another project:
 python rules-master/sync_rules.py --check
 ```
 
+## Claude Code Integration
+
+Claude Code rules live di `.claude/rules/*.md` dan **auto-generated** dari `rules.json` pakai mode `generate_full_doc`.
+
+### Current Targets
+
+| File | Scope | Blocks Included |
+| --- | --- | --- |
+| `.claude/rules/delegation-rules.md` | `alwaysApply: true` | delegation-routing-compact, failure-escalation, fallback-chain, session-continuity, failure-counter, prompt-structure |
+| `.claude/rules/code-quality.md` | `alwaysApply: true` | file-size-quality, git-commit-gate, stuck-recovery-understand-flow, stuck-recovery-research-protocol |
+| `.claude/rules/react-rules.md` | `globs: frontend/**` | skill-react-role, stack, critical-principles, design-system, naming-conventions, anti-patterns |
+
+### Sync Command
+
+```bash
+# Sync all (termasuk Claude Code rules)
+python rules-master/sync_rules.py
+
+# Sync cuma Claude Code rules
+python rules-master/sync_claude_rules.py
+
+# CI check (drift detection)
+python rules-master/sync_claude_rules.py --check
+```
+
+### Adding New Claude Code Rules
+
+1. **Pilih blocks** dari `rules.json` → `blocks` yang mau di-include
+2. **Tambah target** di `rules.json` → `targets.generate_full_doc`:
+   ```json
+   ".claude/rules/nama-rules.md": {
+     "uses": ["block-key-1", "block-key-2"],
+     "frontmatter": "---\nalwaysApply: true\ndescription: Deskripsi singkat\n---\n\n<!-- AUTO-GENERATED -->"
+   }
+   ```
+3. **Update `sync_claude_rules.py`** → tambah ke list `CLAUDE_TARGETS`
+4. **Run** `python rules-master/sync_rules.py`
+
+### Frontmatter Options
+
+| Field | Type | Purpose |
+| --- | --- | --- |
+| `alwaysApply` | boolean | `true` = load di semua session |
+| `description` | string | Deskripsi 1-line buat Claude |
+| `globs` | array | File patterns yang trigger rule (ex: `["frontend/**/*.ts"]`) |
+
+### Auto-Update Strategy
+
+Rules auto-update tiap kali lu jalanin `python rules-master/sync_rules.py`. Cara paling simple:
+- **Manual**: Jalain command itu setiap kali edit `rules.json`
+- **Pre-commit**: Tambahin ke pre-commit hook (lihat `.git/hooks/`)
+- **CI**: Jalain `--check` di CI pipeline, fail kalau ada drift
+- **Claude session**: Claude auto-run sync tiap kali ada perubahan di `rules.json`
+
 ## Validation
 
 ```bash
