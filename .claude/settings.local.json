@@ -33,8 +33,7 @@
       "Skill(*)",
       "Workflow",
       "AskUserQuestion",
-      "ScheduleWakeup",
-      "mcp__*"
+      "ScheduleWakeup"
     ],
     "deny": [],
     "ask": [],
