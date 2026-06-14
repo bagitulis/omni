@@ -125,6 +125,11 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) handleRequest(req JSONRPCRequest) {
+	// JSON-RPC notifications (no id) must not receive a response
+	if req.ID == nil {
+		// Silently ignore notifications per JSON-RPC 2.0 spec
+		return
+	}
 	switch req.Method {
 	case "initialize":
 		s.handleInitialize(req)
