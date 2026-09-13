@@ -2,7 +2,6 @@ package testutils
 
 import (
 	"context"
-	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,11 +9,19 @@ import (
 	"gorm.io/gorm"
 )
 
+// skipIfTestcontainersUnsupported is retained for the tests in this file.
+//
+// It delegates to skipIfNoContainerRuntime so there is exactly one definition of
+// "can these tests run here". It intentionally does NOT check runtime.GOOS: an
+// earlier version skipped on Windows with the reason "rootless Docker
+// unsupported", which was wrong (rootless is a Linux concept, and testcontainers
+// works on Windows via Docker Desktop or Podman with a WSL2 backend). The
+// practical effect was that every Postgres integration test was skipped on
+// Windows even when a runtime was present, so Postgres-specific SQL (jsonb
+// operators, ILIKE, regex, ON CONFLICT) went unverified.
 func skipIfTestcontainersUnsupported(t *testing.T) {
 	t.Helper()
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping testcontainers test on Windows: rootless Docker unsupported")
-	}
+	skipIfNoContainerRuntime(t)
 }
 
 // TestSetupTeardown verifies the postgres container lifecycle works correctly

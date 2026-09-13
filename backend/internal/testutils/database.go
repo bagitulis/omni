@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -38,8 +39,16 @@ var (
 // SetupTestPostgres starts (or reuses) a shared postgres container and returns
 // a GORM DB connection to a per-test isolated database.
 // The container lives for the entire test process; only the test database is
-// dropped on cleanup. In short mode or when Docker is unavailable, the test
-// is skipped.
+// dropped on cleanup.
+//
+// The test is SKIPPED (never failed) when either:
+//   - short mode is active, or
+//   - no reachable container runtime is available.
+//
+// The runtime check lives here rather than only in the per-package guard so that
+// every caller inherits it. Callers outside this package (for example
+// services/notification_service_test.go) previously failed outright on a machine
+// with no running container runtime instead of skipping.
 func SetupTestPostgres(t *testing.T) *gorm.DB {
 	t.Helper()
 
@@ -47,10 +56,30 @@ func SetupTestPostgres(t *testing.T) *gorm.DB {
 		t.Skip("skipping integration test in short mode")
 	}
 
+	skipIfNoContainerRuntime(t)
+
 	initSharedContainer(t)
 
 	db, _ := createTestDatabase(t)
 	return db
+}
+
+// skipIfNoContainerRuntime skips the calling test unless a container runtime is
+// installed AND reachable.
+//
+// Two distinct reasons are reported so the cause is obvious from the test log:
+// no CLI at all, versus a CLI whose VM/daemon is not running.
+func skipIfNoContainerRuntime(t *testing.T) {
+	t.Helper()
+
+	if resolveContainerCLI() == "" {
+		t.Skip("skipping integration test: no container runtime (docker/podman) found on PATH")
+	}
+
+	if !isContainerRuntimeAvailable() {
+		t.Skip("skipping integration test: container runtime found but not reachable " +
+			"(start it with `podman machine start` or launch Docker Desktop)")
+	}
 }
 
 // TeardownTestPostgres terminates the postgres container.
@@ -73,13 +102,41 @@ func SetupTestPostgresWithModels(t *testing.T, models ...interface{}) *gorm.DB {
 	return db
 }
 
+// startContainerSafely calls the testcontainers constructor and converts panics
+// into errors.
+//
+// testcontainers-go v0.40.0 PANICS rather than returning an error when it cannot
+// determine a usable Docker/container host (see internal/core.MustExtractDockerHost,
+// which panics with "rootless Docker is not supported on Windows" on some Windows
+// setups). Without this recovery the panic escapes the test binary and aborts the
+// whole run, so a missing runtime looks like a crash instead of a skip.
+func startContainerSafely(
+	ctx context.Context,
+	req testcontainers.ContainerRequest,
+) (container testcontainers.Container, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			container = nil
+			err = fmt.Errorf("testcontainers could not initialise a container host: %v", r)
+		}
+	}()
+
+	return testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+}
+
 // initSharedContainer creates the shared postgres container exactly once.
 func initSharedContainer(t *testing.T) {
 	t.Helper()
 
 	sharedOnce.Do(func() {
-		if !isDockerAvailable() {
-			sharedErr = fmt.Errorf("Docker is not available on this platform")
+		if !isContainerRuntimeAvailable() {
+			sharedErr = fmt.Errorf(
+				"no container runtime available: install Docker or Podman, " +
+					"or set CONTAINER_RUNTIME=docker|podman",
+			)
 			return
 		}
 
@@ -99,10 +156,7 @@ func initSharedContainer(t *testing.T) {
 			),
 		}
 
-		container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-			ContainerRequest: req,
-			Started:          true,
-		})
+		container, err := startContainerSafely(ctx, req)
 		if err != nil {
 			sharedErr = fmt.Errorf("failed to start shared postgres container: %w", err)
 			return
@@ -195,8 +249,65 @@ func sanitizeDBName(name string) string {
 	return result
 }
 
-// isDockerAvailable checks if Docker is running by executing docker ps
-func isDockerAvailable() bool {
-	cmd := exec.Command("docker", "ps")
-	return cmd.Run() == nil
+// resolveContainerCLI determines which container CLI to use for testcontainers.
+//
+// Priority matches scripts/python-build/omni_build/container_runtime.py:
+//
+//	CONTAINER_RUNTIME env var > docker (if on PATH) > podman (if on PATH) > ""
+//
+// An empty return means no runtime is available; callers should skip rather
+// than fail. Detection is deliberately runtime-based, NOT OS-based: a Windows
+// host running Docker Desktop or Podman can run these tests fine, and keying
+// off runtime.GOOS would silently skip them.
+func resolveContainerCLI() string {
+	if override := strings.TrimSpace(os.Getenv("CONTAINER_RUNTIME")); override != "" {
+		return override
+	}
+
+	for _, candidate := range []string{"docker", "podman"} {
+		if _, err := exec.LookPath(candidate); err == nil {
+			return candidate
+		}
+	}
+
+	return ""
 }
+
+// isContainerRuntimeAvailable reports whether a usable container runtime exists.
+//
+// Two conditions must hold:
+//  1. A CLI is resolvable (see resolveContainerCLI), and
+//  2. that CLI can actually reach a container host.
+//
+// The second check matters on Windows: Podman and Docker Desktop both ship a CLI
+// that is present on PATH before the backing VM is started. Without a liveness
+// probe, `isContainerRuntimeAvailable()` returns true, the test proceeds, and
+// testcontainers then fails (or panics) on a machine that simply has no running
+// VM — turning an expected skip into a red test run.
+//
+// The probe is `info`, mirroring scripts/python-build/omni_build/container_runtime.py,
+// which uses the same command in ContainerRuntime.is_running().
+func isContainerRuntimeAvailable() bool {
+	cli := resolveContainerCLI()
+	if cli == "" {
+		return false
+	}
+
+	// Fast path: the CLI may not be on PATH even when CONTAINER_RUNTIME names it
+	// (e.g. Podman installed to Program Files but not added to PATH).
+	path, err := exec.LookPath(cli)
+	if err != nil {
+		path = cli
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), runtimeProbeTimeout)
+	defer cancel()
+
+	return exec.CommandContext(ctx, path, "info").Run() == nil
+}
+
+// runtimeProbeTimeout bounds the `info` liveness probe. Starting a stopped
+// Podman machine or Docker daemon is not attempted here: this helper only
+// answers "can I use a runtime right now", so a slow or absent host must not
+// stall the test suite.
+const runtimeProbeTimeout = 10 * time.Second
