@@ -3,23 +3,18 @@ FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies (git needed for go mod, libwebp-dev for WebP encoding)
-RUN apk add --no-cache gcc musl-dev git libwebp-dev
+# Install build dependencies (gcc/musl-dev for CGO, libwebp-dev for WebP encoding)
+RUN apk add --no-cache gcc musl-dev libwebp-dev
 
-# Copy go mod files
+# Copy go mod files first so dependency download is cached independently of source changes
 COPY go.mod go.sum ./
 RUN go mod download
-
-# Cache-busting arg to force rebuild when source changes
-ARG CACHEBUST=1
 
 # Copy source code
 COPY . .
 
-# Ensure all dependencies are resolved (git needed for this)
-RUN go mod tidy
-
 # Build the binary
+# NOTE: CGO is required for libwebp. CGO_ENABLED=1 with alpine musl is intentional.
 RUN CGO_ENABLED=1 GOOS=linux go build -o /app/server ./cmd/server
 RUN CGO_ENABLED=1 GOOS=linux go build -o /app/credential-migration ./cmd/credential-migration
 
@@ -28,8 +23,9 @@ FROM alpine:3.19
 
 WORKDIR /app
 
-# Install runtime dependencies including timezone data and libwebp for image encoding
-RUN apk add --no-cache ca-certificates sqlite tzdata libwebp
+# Install runtime deps. libwebp is required at runtime for image encoding.
+# sqlite is NOT required: runtime database is PostgreSQL-only.
+RUN apk add --no-cache ca-certificates tzdata libwebp
 
 # Set timezone to Asia/Jakarta (WIB - UTC+7)
 ENV TZ=Asia/Jakarta
@@ -48,7 +44,6 @@ EXPOSE 3000
 # Environment variables
 ENV GO_ENV=production
 ENV PORT=3000
-ENV DATABASE_PATH=/app/data
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

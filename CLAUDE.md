@@ -46,7 +46,7 @@ cd mcp-servers && go build ./...
 | Layer | Technology |
 |-------|-----------|
 | **Backend** | Go 1.24, Gin, GORM, zerolog |
-| **Database** | PostgreSQL (prod, multi-tenant) / SQLite (dev) |
+| **Database** | PostgreSQL 16 only (prod + dev); SQLite in-memory for unit tests only |
 | **Frontend** | React 19, TypeScript 5.7+, Vite 6 |
 | **UI** | Ant Design 5, Zustand, TanStack Query |
 | **MCP** | Go 1.21+, JSON-RPC 2.0 |
@@ -58,7 +58,7 @@ cd mcp-servers && go build ./...
 - **Lazada** — Orders, products sync
 - **TikTok** — Orders sync
 - **Google** — Auth, Sheets API, service accounts
-- **Multi-tenant** — Schema-based tenant isolation
+- **Multi-tenant** — Schema-based tenant isolation (`tenant_{tenant_id}` + `search_path`). Postgres-only at runtime; a pooled connection is created per tenant and PgBouncer fronts them in production.
 
 ## AI Platform Support
 

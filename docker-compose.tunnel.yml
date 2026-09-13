@@ -264,11 +264,16 @@ services:
   # ============================================
   # pgweb - Lightweight PostgreSQL Web Admin
   # Access: http://localhost:8081
+  # DEV ONLY: gated behind the `dev-tools` profile.
+  # It does not start on a default `docker compose up` (dev or VPS).
+  # Enable it explicitly: docker compose --profile dev-tools up -d
   # ============================================
   pgweb:
     image: sosedoff/pgweb:latest
     container_name: omni-pgweb
     restart: unless-stopped
+    profiles:
+      - dev-tools
     environment:
       PGWEB_DATABASE_URL: postgres://${POSTGRES_USER:-omni}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-omni_main}?sslmode=disable
     ports:

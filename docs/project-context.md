@@ -33,7 +33,7 @@ OMNI is a **multi-platform e-commerce Order Management System (OMS)** that integ
 |-------|-----------|---------|-------|
 | Backend | Go (Gin + GORM) | 1.24 | Layered architecture |
 | Frontend | React + TypeScript | 19 | Vite 6, Ant Design 5, Zustand |
-| Database | PostgreSQL / SQLite | 16 / dev | Multi-tenant (schema-based) |
+| Database | **PostgreSQL only** | 16 | Multi-tenant (schema-based). SQLite is used **only** for in-memory unit tests, never at runtime. |
 | Build | Python (build.py) | 3.10+ | Docker orchestration |
 | Proxy | Nginx | latest | Reverse proxy + static |
 | MCP Servers | Go | 1.21+ | GitHub, Antigravity, Shopee Ads, TikTok Ads |
@@ -60,9 +60,9 @@ Request → Nginx → Backend API → Handler → Service → Repository → Dat
 
 ## Multi-Tenant Architecture
 
-- **Isolation**: Schema-based tenant separation in PostgreSQL
+- **Isolation**: Schema-based tenant separation in PostgreSQL (`tenant_{tenant_id}` + `search_path`)
 - **Tenant ID**: Required on ALL protected endpoints (no default tenant)
-- **Dev Mode**: SQLite with per-tenant database files in `backend/data/`
+- **Connection model**: One pooled Postgres connection **per tenant** (`maxOpen=25` each), fronted by PgBouncer in production. Do NOT remove PgBouncer — without it, ~8 tenants exhaust Postgres `max_connections`.
 - **Auth**: JWT with refresh tokens, rate limiting
 
 ---
@@ -104,6 +104,9 @@ Request → Nginx → Backend API → Handler → Service → Repository → Dat
 - Windows development environment (case-sensitivity issues)
 - Directory casing: React uses lowercase (`modals/`), Vue legacy uses uppercase (`Modals/`)
 - Frontend build: TS1261 errors from casing mismatches on Windows
+- **Database is PostgreSQL-only at runtime.** `config.SetDatabaseDriver()` in `internal/app/app.go` hardcodes `DriverPostgres`; `DB_DRIVER` env var is not read. There is no SQLite runtime code path.
+- **Unit tests use SQLite (`glebarez/sqlite`) in-memory, but production SQL uses Postgres-only syntax.** Queries in `services/inventory/inventory_filters.go` (`data->>'stock'`, `::INTEGER`, `~` regex), `inventory_service.go` (`data::text ILIKE`), `platform/config_manager_base.go` (`gen_random_uuid()`, `ON CONFLICT ... DO UPDATE`), and all `ILIKE` usages **cannot execute on SQLite**. Green unit tests do not validate these code paths.
+- **`basePath` is a tenant-config concept, not a DB path.** It is threaded through handlers/routes/services to locate `tenants.json`. `config.GetTenantDB(tenantID, basePath)` ignores `basePath` internally (Postgres connection is keyed by tenant only). Do not remove `basePath` from signatures without tracing all call sites.
 
 ### What NOT To Do
 - Never use `git rm` on `backups/smart/` or `nginx/logs/error.log` (intentionally tracked)
@@ -112,6 +115,7 @@ Request → Nginx → Backend API → Handler → Service → Repository → Dat
 - Never use camelCase in JSON API responses (always snake_case)
 - Never put business logic in handlers
 - Never suppress TypeScript errors with `as any` or `@ts-ignore`
+- Never document the database as "PostgreSQL / SQLite" — SQLite is test-only
 
 ---
 

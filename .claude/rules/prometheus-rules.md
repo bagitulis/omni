@@ -669,7 +669,7 @@ Please evaluate. ACC or REJECT with issues to fix.
 
 ```
 Framework:    GIN (not Fiber)
-Database:     SQLite (dev) / PostgreSQL (prod, multi-tenant)
+Database:     PostgreSQL 16 only (SQLite = in-memory unit tests, never runtime)
 ORM:          GORM
 Logging:      zerolog
 JSON:         snake_case

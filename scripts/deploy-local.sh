@@ -76,11 +76,36 @@ esac
 # ---------------------------------------------------------------------------
 # Pre-flight checks
 # ---------------------------------------------------------------------------
-check_docker() {
-    if ! command -v docker &>/dev/null; then
-        die "Docker is not installed. Install Docker: https://docs.docker.com/get-docker/"
+CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-}"
+
+detect_runtime() {
+    if [[ -n "$CONTAINER_RUNTIME" ]]; then
+        command -v "$CONTAINER_RUNTIME" &>/dev/null \
+            || die "CONTAINER_RUNTIME='${CONTAINER_RUNTIME}' is set but not found in PATH."
+        return
     fi
-    if ! docker info &>/dev/null 2>&1; then
+
+    if command -v docker &>/dev/null; then
+        CONTAINER_RUNTIME=docker
+    elif command -v podman &>/dev/null; then
+        CONTAINER_RUNTIME=podman
+    else
+        die "No container runtime found. Install Docker or Podman, or set CONTAINER_RUNTIME=docker|podman."
+    fi
+}
+
+run_compose() {
+    "$CONTAINER_RUNTIME" compose "$@"
+}
+
+check_docker() {
+    detect_runtime
+    info "Using container runtime: ${CONTAINER_RUNTIME}"
+
+    if ! "$CONTAINER_RUNTIME" info &>/dev/null 2>&1; then
+        if [[ "$CONTAINER_RUNTIME" == "podman" ]]; then
+            die "Podman is not running. Start it with: podman machine start"
+        fi
         die "Docker daemon is not running. Start Docker and try again."
     fi
 }
@@ -112,10 +137,10 @@ check_ports() {
 check_existing_containers() {
     local compose_args=(-f docker-compose.tunnel.yml -f "docker-compose.tunnel.${SPEC}.yml")
 
-    if docker compose "${compose_args[@]}" ps -q 2>/dev/null | grep -q .; then
+    if run_compose "${compose_args[@]}" ps -q 2>/dev/null | grep -q .; then
         if [[ "$FORCE" == true ]]; then
             warn "Existing containers found; stopping (--force)"
-            docker compose "${compose_args[@]}" down
+            run_compose "${compose_args[@]}" down
         else
             die "Existing containers found. Use --force to stop them first."
         fi
@@ -194,7 +219,7 @@ Steps:
   4. Check for existing containers
   5. Validate environment variables
   6. Ensure localhost domain (override production domains)
-  7. Start services with docker compose
+  7. Start services with the detected container runtime (docker or podman)
   8. Verify health endpoint
 PLAN
 }
@@ -207,8 +232,8 @@ print_compose_config() {
 
     info "Resolved compose configuration:"
     echo "---"
-    docker compose "${args[@]}" config 2>/dev/null || {
-        warn "docker compose config failed; showing file references instead"
+    run_compose "${args[@]}" config 2>/dev/null || {
+        warn "${CONTAINER_RUNTIME} compose config failed; showing file references instead"
         echo "Compose files:"
         echo "  - docker-compose.tunnel.yml"
         echo "  - docker-compose.tunnel.${SPEC}.yml"
@@ -229,10 +254,10 @@ start_services() {
 
     if [[ "$TUNNEL" == true ]]; then
         info "Starting all services including Cloudflare tunnel"
-        docker compose "${args[@]}" up "${up_args[@]}"
+        run_compose "${args[@]}" up "${up_args[@]}"
     else
         info "Starting local services (without Cloudflare tunnel)"
-        docker compose "${args[@]}" up "${up_args[@]}" \
+        run_compose --profile dev-tools "${args[@]}" up "${up_args[@]}" \
             postgres pgbouncer redis backend frontend nginx pgweb
     fi
 }
@@ -254,7 +279,7 @@ health_check() {
     while IFS= read -r line; do
         args+=("$line")
     done < <(compose_args)
-    docker compose "${args[@]}" logs --tail=60 2>/dev/null || true
+    run_compose "${args[@]}" logs --tail=60 2>/dev/null || true
     exit 1
 }
 

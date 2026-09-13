@@ -345,13 +345,28 @@ Task Complete → git add -A → git commit → git push → Done
 ## 6. Database Configuration
 
 ```
-Default: SQLite (development)
-  Path: backend/data/ (per-tenant databases)
+PostgreSQL 16 — the ONLY runtime database (dev, test, and production).
 
-PostgreSQL (production - via env vars):
-  DB_DRIVER=postgres
-  PG_HOST, PG_PORT, PG_USER, PG_PASSWORD, PG_DATABASE
+Connection settings (env vars):
+  PG_HOST, PG_PORT, PG_USER, PG_PASSWORD, PG_DATABASE, PG_SSLMODE
+
+Tenant isolation: schema-based (`tenant_{tenant_id}` + `search_path`).
+One pooled connection per tenant (maxOpen=25); PgBouncer fronts them in production.
+Do NOT remove PgBouncer — without it, ~8 tenants exhaust Postgres max_connections.
 ```
+
+> **SQLite is test-only.** Unit tests use `glebarez/sqlite` in-memory for speed.
+> SQLite is NEVER used at runtime — `config.SetDatabaseDriver()` hardcodes Postgres,
+> and the `DB_DRIVER` env var is not read.
+>
+> **Warning:** Because tests run on SQLite but production SQL is Postgres-only,
+> Postgres-specific queries are NOT covered by the test suite. This includes
+> `->>` / `::INTEGER` JSON operators, `ILIKE`, regex `~`, `gen_random_uuid()`,
+> and `ON CONFLICT ... DO UPDATE`. A green test run does not validate these paths.
+>
+> **`DATABASE_PATH` / `basePath`:** `basePath` locates tenant config (`tenants.json`),
+> not a database file. It is threaded through handlers/routes/services. Do not remove
+> it from signatures without tracing every call site.
 
 ---
 

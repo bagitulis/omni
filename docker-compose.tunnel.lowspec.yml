@@ -6,8 +6,6 @@
 
 services:
   backend:
-    environment:
-      - NODE_OPTIONS=--max-old-space-size=256
     deploy:
       resources:
         limits:
@@ -18,8 +16,6 @@ services:
           memory: 128M
 
   frontend:
-    environment:
-      - NODE_OPTIONS=--max-old-space-size=192
     deploy:
       resources:
         limits:

@@ -2,16 +2,20 @@
 # VPS Production Override untuk Omni
 # ============================================
 # - Cloudflared aktif (Cloudflare Tunnel dari VPS)
-# - pgweb dimatikan (gak perlu di produksi)
+# - pgweb disabled (not needed in production)
 #
 # USAGE:
 #   docker compose -f docker-compose.tunnel.yml -f docker-compose.vps.yml up -d --build
+#
+# NOTE: pgweb is gated behind the `dev-tools` profile in docker-compose.tunnel.yml.
+# Because this override does not enable that profile, pgweb stays off here.
 # ============================================
 
 services:
   # ============================================
-  # pgweb — MATIKAN di VPS (gak perlu di produksi)
+  # pgweb — keep OFF in production.
+  # The `dev-tools` profile is enabled explicitly via `--profile dev-tools`.
   # ============================================
   pgweb:
     profiles:
-      - disabled-vps
+      - dev-tools

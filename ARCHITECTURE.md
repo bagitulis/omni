@@ -9,7 +9,7 @@
 - **Module:** `github.com/omni/backend`
 - **Framework:** Gin (HTTP router)
 - **ORM:** GORM
-- **Database:** PostgreSQL (production, multi-tenant schema-based) / SQLite (development)
+- **Database:** PostgreSQL 16 only (multi-tenant schema-based). SQLite is in-memory for unit tests, never runtime.
 - **Logging:** zerolog
 - **Architecture:** Handler → Service → Repository → Database
 
