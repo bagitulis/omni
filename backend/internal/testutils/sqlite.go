@@ -23,13 +23,26 @@ import (
 // and schema/search_path handling — is NOT exercised here and must still be
 // verified against Postgres.
 //
-// Each call gets its own database (unique DSN), so tests never share state.
+// The database is named after the test, so each call gets its own database and
+// tests never share state. When a single test needs several INDEPENDENT
+// databases (for example to model two tenants that must not see each other's
+// rows), use SetupNamedTestSQLite — otherwise the per-test name is reused and
+// both handles point at the same in-memory database.
 func SetupTestSQLite(t *testing.T, models ...any) *gorm.DB {
 	t.Helper()
+	return SetupNamedTestSQLite(t, sanitizeDBName(t.Name()), models...)
+}
 
-	// A distinct named in-memory DB per test avoids cross-test bleed when the
-	// sqlite driver pools connections.
-	dsn := "file:" + sanitizeDBName(t.Name()) + "?mode=memory&cache=shared"
+// SetupNamedTestSQLite opens an in-memory SQLite database under an explicit
+// name.
+//
+// Needed when one test models multiple isolated stores: SetupTestSQLite alone
+// would hand back the same database for every call in that test, which silently
+// destroys any isolation assertion built on top of it.
+func SetupNamedTestSQLite(t *testing.T, name string, models ...any) *gorm.DB {
+	t.Helper()
+
+	dsn := "file:" + name + "?mode=memory&cache=shared"
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})

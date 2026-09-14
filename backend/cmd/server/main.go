@@ -12,13 +12,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/app"
 	"github.com/omni/backend/internal/config"
+	"github.com/omni/backend/internal/extensions"
 	"github.com/omni/backend/internal/handlers"
 	"github.com/omni/backend/internal/handlers/lazada"
 	"github.com/omni/backend/internal/handlers/shopee"
 	"github.com/omni/backend/internal/handlers/tiktok"
 	"github.com/omni/backend/internal/middleware"
+	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/routes"
 	googleService "github.com/omni/backend/internal/services/google"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -158,6 +161,34 @@ func main() {
 
 	// ====== Notification Routes (Facebook-style persistent) ======
 	routes.RegisterNotificationRoutes(api, extHandlers.NotificationHandler)
+
+	// ====== Extensions (browser automation) ======
+	// The hub owns its own event loop; the context is cancelled on shutdown so
+	// live extension sockets are closed rather than leaking goroutines.
+	extHub := extensions.NewHub(nil)
+	extCtx, extCancel := context.WithCancel(serverCtx)
+	go extHub.Run(extCtx)
+	defer extCancel()
+
+	tenantDBFor := func(tenantID string) (*gorm.DB, error) {
+		return config.GetTenantDBWithContext(tenantID, cfg.DatabasePath)
+	}
+
+	extService := extensions.NewService(tenantDBFor, extHub)
+
+	// A confirming browser holds no JWT — the pairing code is its only handle —
+	// so the code is resolved across tenants. Codes are unique by construction
+	// (40 bits of CSPRNG, single-use, 5-minute TTL).
+	extService.SetPairingCodeResolver(func(ctx context.Context, code string) (string, error) {
+		return extensions.ResolveTenantForPairingCode(ctx, code, tenantDBFor, config.GetRealTenants)
+	})
+	extService.SetTokenResolver(func(ctx context.Context, token string) (string, *models.Extension, error) {
+		return extensions.ResolveExtensionByToken(ctx, token, tenantDBFor, config.GetRealTenants)
+	})
+
+	extHandler := handlers.NewExtensionHandler(extService)
+	extWSConfig := handlers.BuildExtensionWSConfig(extService, extHub, []string{})
+	routes.RegisterExtensionRoutes(api, extHandler, handlers.NewExtensionWSHandler(extWSConfig))
 
 	// Platform-specific handlers (existing)
 	sOrder := shopee.NewOrderHandler(cfg.DatabasePath)

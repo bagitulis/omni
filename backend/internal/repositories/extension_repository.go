@@ -29,6 +29,21 @@ func NewExtensionRepository(db *gorm.DB) *ExtensionRepository {
 	return &ExtensionRepository{db: db}
 }
 
+// FindPairingCode looks up a pairing code without consuming it.
+//
+// Used to discover which tenant owns a code before redeeming it, since the
+// browser has no JWT and the code is its only handle.
+func (r *ExtensionRepository) FindPairingCode(ctx context.Context, code string) (*models.PairingCode, error) {
+	if code == "" {
+		return nil, gorm.ErrRecordNotFound
+	}
+	var found models.PairingCode
+	if err := r.db.WithContext(ctx).Where("code = ?", code).First(&found).Error; err != nil {
+		return nil, err
+	}
+	return &found, nil
+}
+
 // CreateExtension inserts a newly paired extension.
 func (r *ExtensionRepository) CreateExtension(ctx context.Context, ext *models.Extension) error {
 	return r.db.WithContext(ctx).Create(ext).Error
@@ -107,6 +122,12 @@ func (r *ExtensionRepository) MarkAllExtensionsDisconnected(ctx context.Context)
 		Model(&models.Extension{}).
 		Where("status = ?", models.ExtensionStatusConnected).
 		Update("status", models.ExtensionStatusDisconnected).Error
+}
+
+// UpdateExtension persists changes to an existing extension row (re-pairing:
+// refreshed metadata, capabilities, and token hash).
+func (r *ExtensionRepository) UpdateExtension(ctx context.Context, ext *models.Extension) error {
+	return r.db.WithContext(ctx).Save(ext).Error
 }
 
 // CreatePairingCode inserts a new pairing code.

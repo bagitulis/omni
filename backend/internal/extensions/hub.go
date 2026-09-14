@@ -136,9 +136,10 @@ type Hub struct {
 
 	// connectedQ and listQ carry read-only membership questions to the event
 	// loop, so callers never read the maps concurrently with the loop.
-	connectedQ chan connectedQuery
-	listQ      chan listQuery
-	syncQ      chan syncRequest
+	connectedQ  chan connectedQuery
+	listQ       chan listQuery
+	syncQ       chan syncRequest
+	disconnectQ chan disconnectRequest
 
 	stop     chan struct{}
 	done     chan struct{}
@@ -171,6 +172,7 @@ func NewHub(_ any) *Hub {
 		connectedQ:  make(chan connectedQuery, 32),
 		listQ:       make(chan listQuery, 32),
 		syncQ:       make(chan syncRequest, 32),
+		disconnectQ: make(chan disconnectRequest, 16),
 		stop:        make(chan struct{}),
 		done:        make(chan struct{}),
 	}
@@ -230,6 +232,10 @@ func (h *Hub) Run(ctx context.Context) {
 			// Ack after all earlier cases have been processed, giving the caller
 			// a happens-before edge on any register/unregister they queued.
 			close(s.ack)
+
+		case d := <-h.disconnectQ:
+			h.removeClient(d.extensionID)
+			close(d.done)
 		}
 	}
 }
@@ -537,6 +543,25 @@ func (h *Hub) ConnectedIDs() []string {
 		return nil
 	case <-time.After(eventLoopTimeout):
 		return nil
+	}
+}
+
+// Disconnect removes and closes an extension's connection, so an operator who
+// unpairs or revokes a browser cannot have it keep acting on live commands.
+func (h *Hub) Disconnect(extensionID string) {
+	probe := make(chan struct{}, 1)
+	select {
+	case h.disconnectQ <- disconnectRequest{extensionID: extensionID, done: probe}:
+	case <-h.done:
+		return
+	case <-time.After(eventLoopTimeout):
+		log.Printf("extensions: Disconnect timed out for %s", extensionID)
+		return
+	}
+	select {
+	case <-probe:
+	case <-h.done:
+	case <-time.After(eventLoopTimeout):
 	}
 }
 

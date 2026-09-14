@@ -26,3 +26,10 @@ type listQuery struct {
 type syncRequest struct {
 	ack chan<- struct{}
 }
+
+// disconnectRequest asks the loop to close one extension's connection and
+// signals completion on done.
+type disconnectRequest struct {
+	extensionID string
+	done        chan<- struct{}
+}
