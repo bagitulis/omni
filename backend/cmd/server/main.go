@@ -21,6 +21,7 @@ import (
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/routes"
 	googleService "github.com/omni/backend/internal/services/google"
+	shopeeScraper "github.com/omni/backend/internal/services/scraper/shopee"
 	"gorm.io/gorm"
 )
 
@@ -188,7 +189,9 @@ func main() {
 
 	extHandler := handlers.NewExtensionHandler(extService)
 	extWSConfig := handlers.BuildExtensionWSConfig(extService, extHub, []string{})
-	routes.RegisterExtensionRoutes(api, extHandler, handlers.NewExtensionWSHandler(extWSConfig))
+	scrapeService := shopeeScraper.NewScrapeService(tenantDBFor, extHub)
+	scrapeHandler := handlers.NewScrapeHandler(tenantDBFor, scrapeService)
+	routes.RegisterExtensionRoutes(api, extHandler, handlers.NewExtensionWSHandler(extWSConfig), scrapeHandler)
 
 	// Platform-specific handlers (existing)
 	sOrder := shopee.NewOrderHandler(cfg.DatabasePath)

@@ -26,6 +26,7 @@ func RegisterExtensionRoutes(
 	router *gin.RouterGroup,
 	handler *handlers.ExtensionHandler,
 	wsHandler *handlers.ExtensionWSHandler,
+	scrapeHandler *handlers.ScrapeHandler,
 ) {
 	group := router.Group("/extensions")
 
@@ -41,6 +42,11 @@ func RegisterExtensionRoutes(
 		authed.GET("", handler.List)
 		authed.POST("/pairing/generate", handler.GeneratePairingCode)
 		authed.DELETE("/:extension_id", handler.Unpair)
+
+		if scrapeHandler != nil {
+			authed.POST("/scrape", scrapeHandler.Start)
+			authed.GET("/scraped-products", scrapeHandler.ListProducts)
+		}
 	}
 }
 
