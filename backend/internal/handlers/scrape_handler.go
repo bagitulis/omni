@@ -6,9 +6,11 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/omni/backend/internal/dto/response"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services/jobs"
 	"github.com/omni/backend/internal/services/scraper/shopee"
 	"gorm.io/gorm"
 )
@@ -54,10 +56,16 @@ type startScrapeRequest struct {
 
 // Start handles POST /api/extensions/scrape.
 //
-// The scrape runs in the request goroutine. That is deliberate for a first
-// version: it returns the full result set, which is what the UI needs for a
-// small scrape. A long scrape should be moved onto the jobs queue, which the
-// service already supports via RunJob.
+// A scrape is queued as a job rather than run inline:
+//
+//   - It is long-running and drives a browser, so holding a request open for its
+//     whole duration would tie up a connection and time out behind a proxy.
+//   - Queuing gives status and cancellation for free through the existing
+//     /api/jobs endpoints (GET /api/jobs/:id, POST /api/jobs/cancel/:jobId),
+//     instead of duplicating a second control surface here.
+//
+// The response carries the job id, which is also the id scraped products are
+// grouped under.
 func (h *ScrapeHandler) Start(c *gin.Context) {
 	tenantID := tenantIDFromContext(c)
 	if tenantID == "" {
@@ -80,7 +88,13 @@ func (h *ScrapeHandler) Start(c *gin.Context) {
 		return
 	}
 
-	payload := shopee.ScrapeJobData{
+	db, err := h.tenantDB(tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to resolve tenant database"))
+		return
+	}
+
+	data := shopee.ScrapeJobData{
 		Mode:        body.Mode,
 		Query:       body.Query,
 		ShopURL:     body.ShopURL,
@@ -91,15 +105,34 @@ func (h *ScrapeHandler) Start(c *gin.Context) {
 		ExtensionID: body.ExtensionID,
 	}
 
-	summary, err := h.scraper.RunJob(c.Request.Context(), tenantID, mustJSON(payload))
+	// The job id doubles as the results group id, so the caller can go straight
+	// from "queued" to "show me what it collected".
+	jobID := uuid.New().String()
+	data.ResultsJobID = jobID
+
+	payload, err := json.Marshal(data)
 	if err != nil {
-		// The failure reason is surfaced rather than swallowed: an unreachable
-		// extension and a blocked scrape are different operator problems.
-		c.JSON(http.StatusBadGateway, response.Error(err.Error()))
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to build the job payload"))
 		return
 	}
 
-	c.JSON(http.StatusOK, response.Success(gin.H{"summary": summary}))
+	queue := jobs.NewQueueManager(db, "")
+	job, err := queue.AddJob(models.CreateJobRequest{
+		ID:       jobID,
+		Type:     models.JobTypeShopeeScrape,
+		Data:     string(payload),
+		Priority: "normal",
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Error("Failed to queue the scrape job"))
+		return
+	}
+
+	c.JSON(http.StatusAccepted, response.Success(gin.H{
+		"job_id":      job.ID,
+		"status":      job.Status,
+		"results_url": "/api/extensions/scraped-products?job_id=" + job.ID,
+	}))
 }
 
 // validateScrapeRequest enforces the mode-specific requirements before any work

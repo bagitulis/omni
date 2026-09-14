@@ -94,17 +94,32 @@ export async function unpairExtension(extensionId: string): Promise<void> {
   }
 }
 
+/**
+ * The response of a queued scrape.
+ *
+ * The scrape is queued as a job rather than run inline, so this returns the job
+ * id immediately. The same id groups the scraped products, and status and
+ * cancellation go through the existing /api/jobs endpoints.
+ */
+export interface StartScrapeResponse {
+  job_id: string;
+  status: string;
+  results_url: string;
+}
+
 export async function startScrape(
   req: ScrapeRequest,
-): Promise<{ summary: string }> {
-  const response = await apiClient.post<{ summary: string }>(
+): Promise<StartScrapeResponse> {
+  const response = await apiClient.post<StartScrapeResponse>(
     "/extensions/scrape",
     req,
   );
-  if (!response.success) {
-    throw new Error(response.error || "Failed to start the scrape");
+  if (!response.success || !response.data) {
+    // The backend distinguishes an unreachable extension from a blocked scrape,
+    // so the message is surfaced rather than replaced with a generic one.
+    throw new Error(response.error || "Failed to queue the scrape");
   }
-  return response.data ?? { summary: "" };
+  return response.data;
 }
 
 /**

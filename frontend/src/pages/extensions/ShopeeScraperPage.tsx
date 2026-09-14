@@ -12,6 +12,7 @@ import {
   message,
 } from "antd";
 import { PlayCircleOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 import { useExtensions, useStartScrape } from "@/hooks/useExtensions";
 import type { ScrapeRequest } from "@/api/extensions";
 
@@ -42,6 +43,9 @@ export function ShopeeScraperPage() {
   const [mode, setMode] = useState<ScrapeMode>("search");
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The queued job id, kept so the operator can jump straight to its results.
+  const [queuedJobId, setQueuedJobId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const { data: extensions } = useExtensions();
   const startScrape = useStartScrape();
@@ -66,8 +70,9 @@ export function ShopeeScraperPage() {
 
     startScrape.mutate(payload, {
       onSuccess: (data) => {
-        setResult(data.summary || "Scrape completed");
-        message.success("Scrape completed");
+        setQueuedJobId(data.job_id);
+        setResult(`Queued as job ${data.job_id}`);
+        message.success("Scrape queued");
       },
       onError: (err: Error) => {
         // The backend distinguishes an unreachable extension from a blocked
@@ -222,8 +227,30 @@ export function ShopeeScraperPage() {
           style={{ marginTop: 16 }}
           type="success"
           showIcon
-          message="Scrape completed"
-          description={<Text code>{result}</Text>}
+          message="Scrape queued"
+          description={
+            <Space direction="vertical" size={4}>
+              <Text>{result}</Text>
+              <Text type="secondary">
+                It runs in the background and results appear as they are
+                collected.
+              </Text>
+              {queuedJobId && (
+                <Button
+                  size="small"
+                  type="link"
+                  style={{ paddingLeft: 0 }}
+                  onClick={() =>
+                    navigate(
+                      `/extensions/results?job_id=${encodeURIComponent(queuedJobId)}`,
+                    )
+                  }
+                >
+                  View results for this job
+                </Button>
+              )}
+            </Space>
+          }
         />
       )}
     </div>

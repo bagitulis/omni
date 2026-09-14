@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Alert,
   Button,
@@ -31,9 +32,23 @@ function SourceTag({ source }: { source?: string }) {
 }
 
 export function ExtensionResultsPage() {
-  const [jobId, setJobId] = useState("");
-  const [pendingJobId, setPendingJobId] = useState("");
+  // The job id is read from the URL so the scraper page can link straight to a
+  // queued job's results, and so the view is shareable.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlJobId = searchParams.get("job_id") ?? "";
+
+  const [jobId, setJobId] = useState(urlJobId);
+  const [pendingJobId, setPendingJobId] = useState(urlJobId);
   const [page, setPage] = useState(1);
+
+  const applyJobId = (next: string) => {
+    const trimmed = next.trim();
+    setJobId(trimmed);
+    setPendingJobId(trimmed);
+    setPage(1);
+    // Keep the URL in step so a refresh or a shared link shows the same view.
+    setSearchParams(trimmed ? { job_id: trimmed } : {});
+  };
 
   const { data, isLoading, isError, error, refetch, isFetching } =
     useScrapedProducts(jobId, page, 50);
@@ -113,33 +128,20 @@ export function ExtensionResultsPage() {
             placeholder="Job id (optional)"
             value={pendingJobId}
             onChange={(e) => setPendingJobId(e.target.value)}
-            onPressEnter={() => {
-              setPage(1);
-              setJobId(pendingJobId.trim());
-            }}
+            onPressEnter={() => applyJobId(pendingJobId)}
             style={{ width: 320 }}
             allowClear
           />
           <Button
             type="primary"
             icon={<SearchOutlined />}
-            onClick={() => {
-              setPage(1);
-              setJobId(pendingJobId.trim());
-            }}
+            onClick={() => applyJobId(pendingJobId)}
             disabled={!pendingJobId.trim()}
           >
             Load
           </Button>
           {jobId && (
-            <Button
-              onClick={() => {
-                setPendingJobId("");
-                setJobId("");
-              }}
-            >
-              Clear
-            </Button>
+            <Button onClick={() => applyJobId("")}>Clear</Button>
           )}
           <Button
             icon={<ReloadOutlined />}

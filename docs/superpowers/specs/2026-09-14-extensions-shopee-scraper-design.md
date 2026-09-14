@@ -291,19 +291,36 @@ All API types snake_case.
 
 ## 7. API Surface
 
-All under `/api/extensions`, all requiring `middleware.Auth()` + `middleware.Tenant()`.
+All under `/api/extensions`, all requiring `middleware.Auth()` + `middleware.Tenant()`
+unless noted.
 
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/extensions` | list paired extensions for tenant |
 | POST | `/api/extensions/pairing/generate` | create pairing code |
-| POST | `/api/extensions/pairing/confirm` | extension confirms pairing (public, like `pairing/confirm`) |
+| POST | `/api/extensions/pairing/confirm` | extension confirms pairing (public) |
 | DELETE | `/api/extensions/{id}` | unpair + force-disconnect |
-| GET | `/api/extensions/ws` | WebSocket upgrade (token authenticated) |
-| POST | `/api/extensions/scrape` | enqueue scrape job → returns job_id |
-| GET | `/api/extensions/scrape/{job_id}` | job status + progress |
-| POST | `/api/extensions/scrape/{job_id}/stop` | cancel |
+| GET | `/api/extensions/ws` | WebSocket upgrade (token authenticated, public) |
+| POST | `/api/extensions/scrape` | enqueue scrape job → 202 with job_id |
 | GET | `/api/extensions/scraped-products` | paginated results |
+
+### As-built deviations from the original draft
+
+Two endpoints in the original draft were **not** implemented as separate routes:
+
+- `GET /api/extensions/scrape/{job_id}` and
+  `POST /api/extensions/scrape/{job_id}/stop`.
+
+They would have duplicated `GET /api/jobs/:id` and
+`POST /api/jobs/cancel/:jobId`, which already exist and operate on the same
+`jobs` table. A scrape is queued via the standard job queue, so those generic
+endpoints already give status and cancellation for a scrape job. Adding a second
+control surface would have meant two places to keep in sync for no added
+capability.
+
+The scrape endpoint therefore returns **202 Accepted** with the job id rather
+than running inline, and the job id doubles as the results group id — so a caller
+goes straight from "queued" to `scraped-products?job_id=...`.
 
 Response envelope follows Omni convention exactly:
 `{"success": true, "data": ...}` / `{"success": false, "error": "..."}`.

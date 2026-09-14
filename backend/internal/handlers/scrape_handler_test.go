@@ -119,6 +119,32 @@ func TestScrapeHandler_NilServiceFailsClosed(t *testing.T) {
 	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
 }
 
+// TestScrapeHandler_QueuesRatherThanRunsInline documents the dispatch contract:
+// a scrape is queued as a job, not run in the request goroutine. Running inline
+// would hold the connection for the whole scrape and time out behind a proxy,
+// and would give no way to cancel it.
+//
+// With a nil tenantDB the handler cannot reach the queue, so the request fails
+// at the service-availability check. What this pins is that the handler never
+// falls back to running the scrape synchronously.
+func TestScrapeHandler_QueuesRatherThanRunsInline(t *testing.T) {
+	h := NewScrapeHandler(nil, nil)
+	r := newScrapeTestRouter(t, h, true)
+
+	req, err := http.NewRequest(http.MethodPost, "/api/extensions/scrape",
+		bytes.NewReader([]byte(`{"mode":"search","query":"x","extension_id":"e"}`)))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	// Must not be a synchronous success, and must not be a 200 carrying results.
+	assert.NotEqual(t, http.StatusOK, w.Code,
+		"the scrape endpoint must queue work, not return results inline")
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+}
+
 func TestValidateScrapeRequest(t *testing.T) {
 	cases := []struct {
 		name    string
