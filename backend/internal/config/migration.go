@@ -191,6 +191,13 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		&models.ShopeeProductImage{},
 		&models.TiktokProductImage{},
 		&models.LazadaProductImage{},
+
+		// Extensions (browser automation — paired Chrome installs, pairing
+		// codes, and Shopee scrape results). Tenant-scoped: these live inside
+		// tenant_{id} and carry no tenant_id column (schema isolation).
+		&models.Extension{},
+		&models.PairingCode{},
+		&models.ScrapedProduct{},
 	}
 
 	// Migrate required models — failure aborts startup

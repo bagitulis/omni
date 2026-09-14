@@ -86,6 +86,11 @@ var tableNameMapping = map[string]string{
 	"AutoFunctionsConfig":  "auto_functions_config",
 	"AutoFunctionsHistory": "auto_functions_history",
 
+	// Extensions (browser automation)
+	"Extension":      "extensions",
+	"PairingCode":    "pairing_codes",
+	"ScrapedProduct": "scraped_products",
+
 	// Order Today
 	"OrderTodayItem": "order_today_items",
 	"LockedOrder":    "locked_orders",
