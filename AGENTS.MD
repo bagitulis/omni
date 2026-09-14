@@ -13,6 +13,11 @@
 
 | Rule              | Requirement                            | Verification                    |
 | ----------------- | -------------------------------------- | ------------------------------- |
+| **CodeGraph MCP** | `codegraph_explore` BEFORE any Read/Grep/Glob on code | Tool output = verbatim source; do not re-read |
+| **enowx-rag**     | Retrieve BEFORE deciding rules/architecture/"why" | Retrieved passages cited in reasoning |
+| **Recheck**       | A map is NOT proof — verify every claim | `codegraph impact`/`callers` output, or read the cited lines |
+| **TDD**           | RED → GREEN → REFACTOR, always         | Failing-test output captured before implementing |
+| **Dry Run**       | Before destructive / state-changing ops | What did NOT happen + blast radius reported |
 | **SRP**           | One function = one purpose             | Check before writing code       |
 | **DRY**           | No duplicated logic                    | Extract to shared utilities     |
 | **OOP**           | Proper encapsulation                   | Use interfaces and composition  |
@@ -24,10 +29,110 @@
 **REMINDER TRIGGERS:**
 
 - Starting a new task → Re-read this checklist
+- About to read/search code → **CodeGraph MCP first** (not Read/Grep/Glob)
+- About to decide a rule/convention → **enowx-rag first**
+- About to edit a symbol → Run `codegraph impact`; quote the real caller count
+- Writing behaviour code → **TDD: watch the test FAIL first**
 - About to commit → Verify ALL files included
+- Destructive/mutating op → **Dry run first, report blast radius**
 - Delegating task → Fire in background, continue immediately
 - Editing code → Check SRP/DRY/OOP compliance
 - File > ~300 lines → Review for SRP/DRY/OOP violation
+
+<!-- MASTER:mandatory-tooling-gate -->
+## Mandatory Tooling Gate — CodeGraph MCP + enowx-rag
+
+> **STATUS: MANDATORY.** Skipping either tool is a **rule violation**, not a shortcut.
+> These are prerequisites, not optional accelerators.
+
+| Step | Required Tool | When | Evidence |
+| --- | --- | --- | --- |
+| 1 | **MCP CodeGraph** (`codegraph_explore`) | BEFORE any `Read`/`Grep`/`Glob` on code, and BEFORE editing any symbol | Tool output showing the symbol + blast radius |
+| 2 | **enowx-rag** (`rag_retrieve_context` / `rag_semantic_search`) | BEFORE deciding architecture, conventions, or "why" — for all rules, decisions, history | Retrieved passages cited in reasoning |
+| 3 | Recheck | AFTER CodeGraph, BEFORE acting | Real command output (`codegraph callers`/`impact`, or a file read of the cited lines) |
+
+**Division of labour:**
+
+- **CodeGraph = WHAT and WHERE** — code, graph, blast radius, callers.
+- **enowx-rag = WHY** — decisions, rationale, gotchas, historical context, project rules.
+
+CodeGraph does **not** index markdown. Rules, decisions, and history live in enowx-rag (or project docs).
+
+### Recheck is mandatory — a map is not proof
+
+CodeGraph output is a map, not ground truth. Every claim that is reported OR used as the basis for an edit MUST be verified:
+
+| Claim | Minimum recheck |
+| --- | --- |
+| "Code behaves like X" | Open the cited lines (`codegraph node <symbol>` or read the range) and confirm |
+| "There are N callers / impact is Y" | Run `codegraph impact` / `callers` — quote the real number, never guess |
+| "A test exists" | Run the actual test; blast-radius lists are static guesses |
+| "There is a rule/convention" | Check project docs / enowx-rag, not memory |
+
+Claiming "already checked" when only the map was read is **forbidden**. Without inspected command output, the status is **unverified**.
+
+### Anti-patterns (FORBIDDEN)
+
+| Don't | Do instead |
+| --- | --- |
+| `Read`/`Grep` first, CodeGraph later | CodeGraph first; its output is already verbatim source — do not re-read files it covered |
+| Guess a caller count | Run `codegraph impact` and quote the number |
+| Invent rules from memory | Retrieve from enowx-rag or project docs |
+| Treat map output as verified truth | Recheck the specific lines before editing |
+
+**Violation = task failure.**
+<!-- /MASTER:mandatory-tooling-gate -->
+
+<!-- MASTER:tdd-dry-run-gate -->
+## TDD + Dry Run (MANDATORY)
+
+### TDD — RED → GREEN → REFACTOR
+
+Every behaviour change MUST follow TDD. Writing implementation before a failing test is a violation.
+
+| Phase | Required action | Evidence |
+| --- | --- | --- |
+| **RED** | Write the test first; run it and watch it FAIL for the right reason | Failing test output |
+| **GREEN** | Minimal implementation to pass | Passing test output |
+| **REFACTOR** | Clean up, keep tests green (DRY/SRP) | Tests still passing |
+
+**Rules:**
+
+- **Happy path is NOT enough.** Include negative and error-path cases whenever code can reject, time out, or fail.
+- **Never weaken tests** to make them pass: no lowered assertions, no unexplained skips, no assertion edits purely to go green, no deleting failing tests.
+- **A test that cannot fail proves nothing.** Verify RED actually fails before implementing.
+- Bug fixes also require a reproducing test first.
+
+### Dry Run — mandatory before risky operations
+
+A **dry run** executes the whole flow WITHOUT its final effect, then inspects the output. Required BEFORE:
+
+- destructive migrations / mutations (DB, mass `DELETE`/`UPDATE`, pruning, retention sweeps)
+- operations touching real accounts, credentials, or live connections
+- backup restore, bulk toggles, or anything changing production state
+- changes that delete/move files or write to external stores
+
+**Acceptable dry-run forms** (use what exists; never invent one):
+
+1. **Flag** — `--dry-run`, `--plan`, `--check`, or an existing read-only mode
+2. **Test with hooks** — fake clock, temporary DB, in-memory store
+3. **Bounded rehearsal** — one unit, one account, one request; never the whole population
+
+**Must be reported:** what was run, evidence of what did **NOT** happen, and how many entities would be affected.
+After approval, run the real version and compare against the prediction. A dry run **does not replace** tests.
+
+### Anti-patterns (FORBIDDEN)
+
+| Don't | Do instead |
+| --- | --- |
+| Implement then write tests | RED first — watch it fail |
+| Only test the happy path | Add negative + error paths |
+| Loosen assertions to go green | Fix the code or the test's premise |
+| Run a destructive op "carefully" | Run it dry first and report the blast radius |
+| Claim TDD without failing-test evidence | Capture RED output |
+
+**Violation = task failure.**
+<!-- /MASTER:tdd-dry-run-gate -->
 
 ---
 

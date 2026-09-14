@@ -118,7 +118,9 @@
     "clarify-or-assume-gate": "❓ CLARIFY OR DECLARE ASSUMPTIONS (GATE — Before Implementation):\n\n**If requirements are ambiguous, you MUST either ask for clarification OR explicitly declare your assumption.**\n\n**When to Trigger:**\n- Multiple valid interpretations of the request\n- Missing acceptance criteria\n- Unclear scope boundaries\n- Technical approach not specified\n- Edge cases not defined\n\n**Options:**\n1. **ASK** (preferred for high-impact ambiguity):\n   ```\n   I need clarification on [specific point]:\n   - Option A: [interpretation 1] — [implications]\n   - Option B: [interpretation 2] — [implications]\n   Which should I proceed with?\n   ```\n\n2. **DECLARE** (acceptable for low-impact ambiguity):\n   ```\n   ASSUMPTION: [what you're assuming]\n   RATIONALE: [why this is reasonable]\n   IMPACT: [what changes if assumption is wrong]\n   Proceeding with this assumption. Let me know if incorrect.\n   ```\n\n**Anti-Patterns:**\n```\n❌ Silently picking an interpretation and hoping it's right\n❌ Building the wrong feature because you didn't ask\n❌ 'I assumed...' after delivering wrong result\n```\n\n**Rule:** Ambiguity discovered during work → STOP and clarify/declare before continuing.",
     "zero-suspicion-gate": "🔒 ZERO-SUSPICION COMPLETION GATE (MANDATORY — ALL Agents):\n\n**No task is DONE and no ACC is valid if ANY unverified suspicion, caveat, or hedging language remains.**\n\nThis is a UNIVERSAL rule. It applies to every agent (Sisyphus, Oracle, Atlas, Hephaestus, Sisyphus-Junior, Prometheus, Explore, Librarian, Metis, Momus) and every category.\n\n### Banned Language in DONE/ACC Verdicts\n\nThe following words/phrases are FORBIDDEN in any completion claim or ACC verdict:\n\n| Banned Phrase | Why | Required Replacement |\n| ------------- | --- | -------------------- |\n| \"might\" / \"may\" (as uncertainty) | Unverified suspicion | PROVE it does or doesn't — with evidence |\n| \"possible\" / \"possibly\" | Speculative risk | VERIFY and state definitively |\n| \"potential\" / \"potentially\" | Hedging | TEST the scenario, report result |\n| \"could\" (as uncertainty) | Unverified | CONFIRM or DENY with evidence |\n| \"residual risk\" | Unresolved concern | CLOSE the risk — prove it's not a risk or FIX it |\n| \"minor concern\" | Dismissed suspicion | INVESTIGATE and resolve, or prove it's not an issue |\n| \"should be fine\" | Assumed correctness | VERIFY it IS fine — show evidence |\n| \"probably\" / \"likely\" | Probabilistic | CONFIRM with certainty — test it |\n| \"edge case not tested\" | Known gap | TEST the edge case or document why it's unreachable |\n| \"low risk\" | Accepted risk without proof | PROVE it's zero risk or FIX it |\n| \"medium confidence\" | Insufficient certainty | Investigate until HIGH confidence or REJECT |\n\n### The Zero-Suspicion Protocol\n\nWhen you discover a concern during work or review:\n\n```\nSTEP 1: LOG the suspicion explicitly\n   \"SUSPICION: [description of concern]\"\n\nSTEP 2: INVESTIGATE with evidence\n   - Write a test that targets the concern\n   - Read the code path that would trigger it\n   - Check existing tests that cover it\n   - Run the scenario if possible\n\nSTEP 3: CLOSE with verdict + evidence\n   ✅ CLEARED: [suspicion] — FALSE because [evidence]\n   ❌ CONFIRMED: [suspicion] — TRUE, fixing now → [fix description]\n   🔍 UNREACHABLE: [suspicion] — Cannot occur because [proof]\n\nSTEP 4: NEVER leave a suspicion open\n   - If you cannot close it → REJECT / NOT DONE\n   - If closing requires more time → explicitly state: \"BLOCKED on [suspicion] — need [action]\"\n   - NEVER say \"done\" with open suspicions\n```\n\n### For Oracle (Evaluator Role)\n\nOracle MUST apply zero-suspicion when issuing ACC:\n- Every concern raised during review MUST be closed with evidence\n- If Oracle cannot close a concern → REJECT (not conditional ACC)\n- Oracle's ACC means: \"I have verified everything, found zero unresolved concerns\"\n- \"ACC with notes\" or \"ACC with minor concerns\" = INVALID, use REJECT instead\n\n### For Executors (Implementation Role)\n\nBefore claiming DONE:\n- [ ] Every TODO item addressed\n- [ ] Every suspicion that arose during work → investigated and closed\n- [ ] Zero hedging language in completion report\n- [ ] Evidence provided for every claim\n\n### For Orchestrators (Sisyphus)\n\nBefore accepting work as complete:\n- [ ] Executor's completion report contains zero hedging language\n- [ ] Oracle ACC (if required) contains zero caveats\n- [ ] All suspicions from any agent during the task → have CLEARED/CONFIRMED/UNREACHABLE verdicts\n- [ ] User will see ZERO \"might/possible/potential\" language in final report\n\n### Anti-Patterns (BLOCKING violations)\n\n```\n❌ \"ACC — looks good, though there might be an edge case with X\"\n   → REJECT: Must test edge case X first\n\n❌ \"DONE — all tests pass. Note: possible issue with empty array handling\"\n   → NOT DONE: Must verify empty array handling\n\n❌ \"Task complete. Minor concern about performance under load\"\n   → NOT DONE: Must benchmark or prove performance is acceptable\n\n❌ Oracle: \"ACC with medium confidence\"\n   → INVALID: Must investigate until high confidence or REJECT\n\n❌ \"Should work fine in production\"\n   → Must PROVE it works — show test results\n```\n\n**Rule:** If you have a doubt, it's not done. Investigate, prove, or fix. No exceptions.",
     "oracle-acc-gate": "🔮 ORACLE ACC GATE (MANDATORY — Orchestrator Only):\n\n**ORCHESTRATOR RULE:** After completing a significant task, you MUST consult Oracle for evaluation and iterate until ACC.\n\n**When This Applies (Orchestrator decides):**\n- Feature implementation (new functionality)\n- Bug fixes affecting multiple files\n- Refactoring or architecture changes\n- Any task with 3+ changed files\n- Rules/config system changes\n\n**When This Does NOT Apply:**\n- Trivial single-file fixes (typo, formatting)\n- Documentation-only changes\n- User explicitly says 'skip Oracle'\n- Quick category tasks (orchestrator may skip)\n\n**Flow:**\n```\nImplementation → Build → Testing → Oracle Evaluation\n                                        ↓\n                              ACC? ─────┼───── REJECT?\n                                ↓       │         ↓\n                             DONE    Fix issues, re-test\n                                        ↓\n                              Re-consult Oracle (session_id)\n                                        ↓\n                              Loop until ACC\n```\n\n**Oracle Consultation Format:**\n```\ntask(\n  subagent_type=\"oracle\",\n  session_id=\"[previous session if continuing]\",\n  prompt=\"\n## EVALUATION REQUEST\n\n### Changes Made:\n[list of files changed and what was done]\n\n### Evidence:\n- Build: [pass/fail + output]\n- Tests: [pass/fail + output]\n- Lint: [clean/issues]\n\n### Verification Done:\n[what you tested and how]\n\nPlease evaluate. ACC or REJECT with issues to fix.\n  \"\n)\n```\n\n**On REJECT:**\n1. Read Oracle's issues carefully\n2. Fix ALL issues mentioned\n3. Re-run build + tests\n4. Re-consult Oracle with session_id (preserve context)\n5. Repeat until ACC\n\n**Fallback (if Oracle unavailable):**\n- Timeout/rate-limit: Use `category=\"deep\"` with detailed analysis prompt\n- Deep also fails: Document issues found, proceed with caution, note in commit\n- See AGENTS.md § Advisory Agent Fallback Matrix\n\n**Anti-Patterns:**\n```\n❌ Declaring 'done' without Oracle ACC on significant tasks\n❌ Ignoring Oracle REJECT and proceeding anyway\n❌ Starting fresh Oracle session instead of using session_id\n❌ Executor agents calling Oracle (orchestrator's job)\n```\n\n**Rule:** Significant task without Oracle ACC = NOT complete.",
-    "oracle-strict-acceptance": "🔮 ORACLE STRICT ACCEPTANCE POLICY (MANDATORY — Oracle Only):\n\n**Oracle's ACC verdict carries weight — it must be BULLETPROOF.**\n\n### ACC Requirements (ALL must be true)\n\n1. **HIGH Confidence Only** — No \"medium confidence\" ACC. If confidence is not HIGH, issue REJECT and explain what needs investigation.\n2. **Zero Caveats** — ACC with caveats is INVALID. If you have a caveat, it's a REJECT with action items.\n3. **Zero Hedging Language** — See zero-suspicion-gate banned phrases. None allowed in ACC.\n4. **Every Concern Closed** — Every suspicion raised during review must have a CLEARED/CONFIRMED/UNREACHABLE verdict with evidence.\n5. **Evidence-Based Only** — ACC must reference specific evidence (test output, code paths verified, build results). \"Looks good\" is not evidence.\n\n### ACC Output Format (MANDATORY)\n\n```markdown\n## ACC — HIGH CONFIDENCE\n\n### Verified Items\n- [x] [item 1] — [evidence: test output / code path / build result]\n- [x] [item 2] — [evidence]\n- [x] [item N] — [evidence]\n\n### Suspicions Investigated & Closed\n- ✅ CLEARED: [suspicion 1] — FALSE because [specific evidence]\n- ✅ CLEARED: [suspicion 2] — FALSE because [specific evidence]\n- 🔍 UNREACHABLE: [suspicion 3] — Cannot occur because [proof]\n(If none: \"No suspicions arose during review.\")\n\n### Verdict\nACC — All items verified with evidence. Zero open concerns.\n```\n\n### REJECT Output Format (MANDATORY)\n\n```markdown\n## REJECT — [reason]\n\n### Issues Found\n1. [Issue] — [evidence] — [required fix]\n2. [Issue] — [evidence] — [required fix]\n\n### Open Suspicions (MUST be resolved before ACC)\n- ⚠️ [suspicion] — needs [specific investigation/test]\n\n### Required Actions Before Re-submission\n1. [action 1]\n2. [action 2]\n```\n\n### What Triggers REJECT (not ACC)\n\n| Trigger | Why |\n| ------- | --- |\n| Any untested edge case mentioned | Untested = unknown = cannot ACC |\n| File size concern without measurement | Measure it, then decide |\n| Performance concern without benchmark | Benchmark it, then decide |\n| \"Probably handles X correctly\" | VERIFY it handles X correctly |\n| Confidence below HIGH | Not enough investigation done |\n| Any phrase from banned language list | Zero-suspicion gate violation |\n\n### Anti-Patterns (Oracle-specific)\n\n```\n❌ \"ACC — overall good work, minor note about [X]\"\n   → If [X] matters, it's a REJECT. If it truly doesn't matter, don't mention it.\n\n❌ \"ACC with medium confidence — recommend monitoring [Y]\"\n   → REJECT: Investigate [Y] until confident, then ACC or REJECT.\n\n❌ \"ACC — tests pass but didn't verify [Z] scenario\"\n   → REJECT: Verify [Z] first, then re-evaluate.\n\n❌ \"ACC — code looks clean\" (no evidence cited)\n   → REJECT-worthy ACC: Must cite specific evidence per item.\n```\n\n**Rule:** Oracle ACC = absolute certainty with evidence. Anything less = REJECT."
+    "oracle-strict-acceptance": "🔮 ORACLE STRICT ACCEPTANCE POLICY (MANDATORY — Oracle Only):\n\n**Oracle's ACC verdict carries weight — it must be BULLETPROOF.**\n\n### ACC Requirements (ALL must be true)\n\n1. **HIGH Confidence Only** — No \"medium confidence\" ACC. If confidence is not HIGH, issue REJECT and explain what needs investigation.\n2. **Zero Caveats** — ACC with caveats is INVALID. If you have a caveat, it's a REJECT with action items.\n3. **Zero Hedging Language** — See zero-suspicion-gate banned phrases. None allowed in ACC.\n4. **Every Concern Closed** — Every suspicion raised during review must have a CLEARED/CONFIRMED/UNREACHABLE verdict with evidence.\n5. **Evidence-Based Only** — ACC must reference specific evidence (test output, code paths verified, build results). \"Looks good\" is not evidence.\n\n### ACC Output Format (MANDATORY)\n\n```markdown\n## ACC — HIGH CONFIDENCE\n\n### Verified Items\n- [x] [item 1] — [evidence: test output / code path / build result]\n- [x] [item 2] — [evidence]\n- [x] [item N] — [evidence]\n\n### Suspicions Investigated & Closed\n- ✅ CLEARED: [suspicion 1] — FALSE because [specific evidence]\n- ✅ CLEARED: [suspicion 2] — FALSE because [specific evidence]\n- 🔍 UNREACHABLE: [suspicion 3] — Cannot occur because [proof]\n(If none: \"No suspicions arose during review.\")\n\n### Verdict\nACC — All items verified with evidence. Zero open concerns.\n```\n\n### REJECT Output Format (MANDATORY)\n\n```markdown\n## REJECT — [reason]\n\n### Issues Found\n1. [Issue] — [evidence] — [required fix]\n2. [Issue] — [evidence] — [required fix]\n\n### Open Suspicions (MUST be resolved before ACC)\n- ⚠️ [suspicion] — needs [specific investigation/test]\n\n### Required Actions Before Re-submission\n1. [action 1]\n2. [action 2]\n```\n\n### What Triggers REJECT (not ACC)\n\n| Trigger | Why |\n| ------- | --- |\n| Any untested edge case mentioned | Untested = unknown = cannot ACC |\n| File size concern without measurement | Measure it, then decide |\n| Performance concern without benchmark | Benchmark it, then decide |\n| \"Probably handles X correctly\" | VERIFY it handles X correctly |\n| Confidence below HIGH | Not enough investigation done |\n| Any phrase from banned language list | Zero-suspicion gate violation |\n\n### Anti-Patterns (Oracle-specific)\n\n```\n❌ \"ACC — overall good work, minor note about [X]\"\n   → If [X] matters, it's a REJECT. If it truly doesn't matter, don't mention it.\n\n❌ \"ACC with medium confidence — recommend monitoring [Y]\"\n   → REJECT: Investigate [Y] until confident, then ACC or REJECT.\n\n❌ \"ACC — tests pass but didn't verify [Z] scenario\"\n   → REJECT: Verify [Z] first, then re-evaluate.\n\n❌ \"ACC — code looks clean\" (no evidence cited)\n   → REJECT-worthy ACC: Must cite specific evidence per item.\n```\n\n**Rule:** Oracle ACC = absolute certainty with evidence. Anything less = REJECT.",
+    "mandatory-tooling-gate": "## Mandatory Tooling Gate — CodeGraph MCP + enowx-rag\n\n> **STATUS: MANDATORY.** Skipping either tool is a **rule violation**, not a shortcut.\n> These are prerequisites, not optional accelerators.\n\n| Step | Required Tool | When | Evidence |\n| --- | --- | --- | --- |\n| 1 | **MCP CodeGraph** (`codegraph_explore`) | BEFORE any `Read`/`Grep`/`Glob` on code, and BEFORE editing any symbol | Tool output showing the symbol + blast radius |\n| 2 | **enowx-rag** (`rag_retrieve_context` / `rag_semantic_search`) | BEFORE deciding architecture, conventions, or \"why\" — for all rules, decisions, history | Retrieved passages cited in reasoning |\n| 3 | Recheck | AFTER CodeGraph, BEFORE acting | Real command output (`codegraph callers`/`impact`, or a file read of the cited lines) |\n\n**Division of labour:**\n\n- **CodeGraph = WHAT and WHERE** — code, graph, blast radius, callers.\n- **enowx-rag = WHY** — decisions, rationale, gotchas, historical context, project rules.\n\nCodeGraph does **not** index markdown. Rules, decisions, and history live in enowx-rag (or project docs).\n\n### Recheck is mandatory — a map is not proof\n\nCodeGraph output is a map, not ground truth. Every claim that is reported OR used as the basis for an edit MUST be verified:\n\n| Claim | Minimum recheck |\n| --- | --- |\n| \"Code behaves like X\" | Open the cited lines (`codegraph node <symbol>` or read the range) and confirm |\n| \"There are N callers / impact is Y\" | Run `codegraph impact` / `callers` — quote the real number, never guess |\n| \"A test exists\" | Run the actual test; blast-radius lists are static guesses |\n| \"There is a rule/convention\" | Check project docs / enowx-rag, not memory |\n\nClaiming \"already checked\" when only the map was read is **forbidden**. Without inspected command output, the status is **unverified**.\n\n### Anti-patterns (FORBIDDEN)\n\n| Don't | Do instead |\n| --- | --- |\n| `Read`/`Grep` first, CodeGraph later | CodeGraph first; its output is already verbatim source — do not re-read files it covered |\n| Guess a caller count | Run `codegraph impact` and quote the number |\n| Invent rules from memory | Retrieve from enowx-rag or project docs |\n| Treat map output as verified truth | Recheck the specific lines before editing |\n\n**Violation = task failure.**",
+    "tdd-dry-run-gate": "## TDD + Dry Run (MANDATORY)\n\n### TDD — RED → GREEN → REFACTOR\n\nEvery behaviour change MUST follow TDD. Writing implementation before a failing test is a violation.\n\n| Phase | Required action | Evidence |\n| --- | --- | --- |\n| **RED** | Write the test first; run it and watch it FAIL for the right reason | Failing test output |\n| **GREEN** | Minimal implementation to pass | Passing test output |\n| **REFACTOR** | Clean up, keep tests green (DRY/SRP) | Tests still passing |\n\n**Rules:**\n\n- **Happy path is NOT enough.** Include negative and error-path cases whenever code can reject, time out, or fail.\n- **Never weaken tests** to make them pass: no lowered assertions, no unexplained skips, no assertion edits purely to go green, no deleting failing tests.\n- **A test that cannot fail proves nothing.** Verify RED actually fails before implementing.\n- Bug fixes also require a reproducing test first.\n\n### Dry Run — mandatory before risky operations\n\nA **dry run** executes the whole flow WITHOUT its final effect, then inspects the output. Required BEFORE:\n\n- destructive migrations / mutations (DB, mass `DELETE`/`UPDATE`, pruning, retention sweeps)\n- operations touching real accounts, credentials, or live connections\n- backup restore, bulk toggles, or anything changing production state\n- changes that delete/move files or write to external stores\n\n**Acceptable dry-run forms** (use what exists; never invent one):\n\n1. **Flag** — `--dry-run`, `--plan`, `--check`, or an existing read-only mode\n2. **Test with hooks** — fake clock, temporary DB, in-memory store\n3. **Bounded rehearsal** — one unit, one account, one request; never the whole population\n\n**Must be reported:** what was run, evidence of what did **NOT** happen, and how many entities would be affected.\nAfter approval, run the real version and compare against the prediction. A dry run **does not replace** tests.\n\n### Anti-patterns (FORBIDDEN)\n\n| Don't | Do instead |\n| --- | --- |\n| Implement then write tests | RED first — watch it fail |\n| Only test the happy path | Add negative + error paths |\n| Loosen assertions to go green | Fix the code or the test's premise |\n| Run a destructive op \"carefully\" | Run it dry first and report the blast radius |\n| Claim TDD without failing-test evidence | Capture RED output |\n\n**Violation = task failure.**"
   },
   "prompt_blocks": {
     "_comment": "DRY prompt_append building blocks. Composed into agent/category prompt_append strings by sync_rules.py.",
@@ -162,7 +164,9 @@
     "doc-maintenance": "📝 DOC MAINTENANCE (MANDATORY — When Changing Documented Behavior):\n\n**When you change code that affects documented behavior, you MUST update the corresponding doc in the SAME commit.**\n\n| Code Change | Doc to Update |\n| --- | --- |\n| API endpoint added/removed/changed | `docs/api/endpoints.md` |\n| Database model/migration changed | `docs/database/schema.md` |\n| Docker/nginx/build config changed | `docs/deployment/setup.md` or `docs/deployment/docker.md` |\n| Architecture decision made | Create new ADR in `docs/architecture/decisions/` |\n| Platform SDK behavior changed | `docs/integrations/{platform}.md` |\n| Environment variable added/removed | `docs/deployment/setup.md` + `.env.example` |\n| Project structure changed | `docs/project-context.md` |\n\n**Rule:** Code change without doc update (when applicable) = INCOMPLETE work.",
     "changelog-commit-flow": "⚡ COMMIT FLOW (MANDATORY — AFTER EVERY COMPLETED TASK, NO EXCEPTIONS):\n1. Update CHANGELOG.md → Add entry under [Unreleased] (Keep a Changelog format: Added/Changed/Fixed/Removed)\n2. git add -A (ALL files, NEVER cherry-pick)\n3. git commit -m \"type(scope): description\"\n4. git push (NEVER skip, NEVER ask confirmation)\nSKIPPING ANY STEP = TASK INCOMPLETE. This applies even if the task prompt does not mention commit/changelog.",
     "rules-master-maintenance": "📌 RULES-MASTER MAINTENANCE PROTOCOL (MANDATORY):\n\nIf you discover ANY block in `rules-master/rules.json` that is no longer relevant to this project (stale file paths, unused technology references, incorrect architecture, missing project-specific context, etc.), you MUST update it.\n\n### Detection Triggers:\n- File path in a block doesn't exist in the project anymore\n- Technology/library referenced is no longer used\n- Architecture description is incorrect or outdated\n- A block exists in `prompt_blocks`/`blocks` but is only referenced by agents that don't exist in this project\n- Project-specific context in universal blocks is stale\n\n### Fix Protocol:\n1. Update the irrelevant block(s) in `rules.json`\n2. If a block is no longer needed by ANY agent, remove it from `prompt_blocks` (or `blocks`) AND from all `prompt_compose` entries\n3. Run: `python rules-master/sync_rules.py` to regenerate all target files\n4. Verify zero drift: `python rules-master/sync_rules.py --check`\n5. Run `lsp_diagnostics` on changed files\n6. Commit both `rules.json` AND the synced target files in the SAME commit\n7. If changes span multiple projects, verify each project individually",
-    "sisyphus-e2e-evaluate": "🔍 SISYPHUS POST-EXECUTION SELF-EVALUATION (MANDATORY — After Any Orchestration):\n\nAfter completing orchestration work (especially multi-project or cross-project changes), you MUST run this verification checklist:\n\n### E2E Verification Gate:\n1. **[ALL changed files]** — `lsp_diagnostics` clean on every modified file\n2. **[Per project]** — Run `git diff --stat` to verify ONLY intended files changed\n3. **[Rules changes]** — `python rules-master/sync_rules.py --check` returns zero drift\n4. **[Rules changed]** — `python rules-master/sync_rules.py` to sync if needed\n5. **[Git status]** — Working tree clean after sync, no untracked debris\n6. **[Multi-project]** — Each affected project independently verified\n7. **[Evidence captured]** — Build/test/lint output saved for each project\n\n### Definition of Done (ALL must be true):\n- [ ] All planned changes implemented and verified\n- [ ] Cross-project consistency confirmed (sync --check on each)\n- [ ] No broken references or orphaned blocks introduced\n- [ ] Build/test/lint pass (or pre-existing failures documented)\n- [ ] Changes committed and pushed\n- [ ] Zero open suspicions or unverified claims"
+    "sisyphus-e2e-evaluate": "🔍 SISYPHUS POST-EXECUTION SELF-EVALUATION (MANDATORY — After Any Orchestration):\n\nAfter completing orchestration work (especially multi-project or cross-project changes), you MUST run this verification checklist:\n\n### E2E Verification Gate:\n1. **[ALL changed files]** — `lsp_diagnostics` clean on every modified file\n2. **[Per project]** — Run `git diff --stat` to verify ONLY intended files changed\n3. **[Rules changes]** — `python rules-master/sync_rules.py --check` returns zero drift\n4. **[Rules changed]** — `python rules-master/sync_rules.py` to sync if needed\n5. **[Git status]** — Working tree clean after sync, no untracked debris\n6. **[Multi-project]** — Each affected project independently verified\n7. **[Evidence captured]** — Build/test/lint output saved for each project\n\n### Definition of Done (ALL must be true):\n- [ ] All planned changes implemented and verified\n- [ ] Cross-project consistency confirmed (sync --check on each)\n- [ ] No broken references or orphaned blocks introduced\n- [ ] Build/test/lint pass (or pre-existing failures documented)\n- [ ] Changes committed and pushed\n- [ ] Zero open suspicions or unverified claims",
+    "mandatory-tooling-gate": "🗺️ MANDATORY TOOLING GATE: CodeGraph MCP (`codegraph_explore`) MUST be called BEFORE any Read/Grep/Glob on code and BEFORE editing any symbol. enowx-rag (`rag_retrieve_context` / `rag_semantic_search`) MUST be called BEFORE deciding architecture, conventions, or 'why'. CodeGraph = WHAT/WHERE (code, callers, blast radius) and does NOT index markdown; enowx-rag = WHY (decisions, rules, history). RECHECK IS MANDATORY: a map is not proof — verify every claim with real command output (`codegraph impact`/`callers`, or reading the cited lines) before acting or reporting. Never claim 'already checked' from the map alone. Violation = task failure.",
+    "tdd-dry-run-gate": "🧪 TDD + DRY RUN (MANDATORY): Every behaviour change follows RED (write test, run it, watch it FAIL) → GREEN (minimal impl) → REFACTOR. Happy path is NOT enough — include negative and error-path cases. Never weaken tests (no lowered assertions, unexplained skips, or deleting failing tests). A test that cannot fail proves nothing. DRY RUN is mandatory BEFORE destructive migrations/mutations, real-account or credential operations, backup restores, and anything changing production state — use an existing --dry-run/--plan/--check flag, a test with hooks, or a bounded rehearsal; report what did NOT happen and how many entities would be affected; compare the real run against the prediction. Dry run does NOT replace tests. Violation = task failure."
   },
   "prompt_compose": {
     "_comment": "Maps agents/categories to ordered lists of prompt_blocks. sync_rules.py joins blocks with '\\n\\n' separator and writes to shared.agents.X.prompt_append / shared.categories.X.prompt_append in opencode-profiles.json. Note: 'default' and 'multimodal-looker' are intentionally excluded — they are utility agents with no specific rules.",
@@ -194,7 +198,9 @@
         "rules-master-maintenance",
         "git-commit-enforcement",
         "git-restricted-operations",
-        "doc-maintenance"
+        "doc-maintenance",
+        "mandatory-tooling-gate",
+        "tdd-dry-run-gate"
       ],
       "prometheus": [
         "read-file-prometheus",
@@ -205,7 +211,8 @@
         "prometheus-bug-tracking",
         "zero-suspicion-gate",
         "momus-plan-acc-gate",
-        "git-restricted-operations"
+        "git-restricted-operations",
+        "mandatory-tooling-gate"
       ],
       "atlas": [
         "changelog-commit-flow",
@@ -233,7 +240,9 @@
         "no-premature-done",
         "git-commit-enforcement",
         "git-restricted-operations",
-        "doc-maintenance"
+        "doc-maintenance",
+        "mandatory-tooling-gate",
+        "tdd-dry-run-gate"
       ],
       "hephaestus": [
         "read-file-executor",
@@ -259,7 +268,9 @@
         "zero-suspicion-gate",
         "no-premature-done",
         "git-restricted-operations",
-        "doc-maintenance"
+        "doc-maintenance",
+        "mandatory-tooling-gate",
+        "tdd-dry-run-gate"
       ],
       "sisyphus-junior": [
         "changelog-commit-flow",
@@ -285,7 +296,9 @@
         "no-premature-done",
         "git-commit-enforcement",
         "git-restricted-operations",
-        "doc-maintenance"
+        "doc-maintenance",
+        "mandatory-tooling-gate",
+        "tdd-dry-run-gate"
       ],
       "oracle": [
         "constitution",
@@ -354,7 +367,8 @@
         "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement",
-        "git-restricted-operations"
+        "git-restricted-operations",
+        "mandatory-tooling-gate"
       ],
       "implementation": [
         "changelog-commit-flow",
@@ -378,7 +392,8 @@
         "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement",
-        "git-restricted-operations"
+        "git-restricted-operations",
+        "mandatory-tooling-gate"
       ],
       "quick": [
         "changelog-commit-flow",
@@ -396,7 +411,8 @@
         "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement",
-        "git-restricted-operations"
+        "git-restricted-operations",
+        "mandatory-tooling-gate"
       ],
       "deep": [
         "changelog-commit-flow",
@@ -417,7 +433,8 @@
         "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement",
-        "git-restricted-operations"
+        "git-restricted-operations",
+        "mandatory-tooling-gate"
       ],
       "ultrabrain": [
         "changelog-commit-flow",
@@ -437,7 +454,8 @@
         "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement",
-        "git-restricted-operations"
+        "git-restricted-operations",
+        "mandatory-tooling-gate"
       ],
       "artistry": [
         "changelog-commit-flow",
@@ -454,7 +472,8 @@
         "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement",
-        "git-restricted-operations"
+        "git-restricted-operations",
+        "mandatory-tooling-gate"
       ],
       "writing": [
         "changelog-commit-flow",
@@ -466,7 +485,8 @@
         "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement",
-        "git-restricted-operations"
+        "git-restricted-operations",
+        "mandatory-tooling-gate"
       ],
       "review": [
         "constitution",
@@ -481,7 +501,8 @@
         "post-task-evaluation",
         "zero-suspicion-gate",
         "no-premature-done",
-        "git-restricted-operations"
+        "git-restricted-operations",
+        "mandatory-tooling-gate"
       ],
       "testing": [
         "changelog-commit-flow",
@@ -499,7 +520,8 @@
         "post-task-evaluation",
         "zero-suspicion-gate",
         "no-premature-done",
-        "git-restricted-operations"
+        "git-restricted-operations",
+        "mandatory-tooling-gate"
       ],
       "security": [
         "changelog-commit-flow",
@@ -517,7 +539,8 @@
         "post-task-evaluation",
         "zero-suspicion-gate",
         "no-premature-done",
-        "git-restricted-operations"
+        "git-restricted-operations",
+        "mandatory-tooling-gate"
       ],
       "unspecified-low": [
         "changelog-commit-flow",
@@ -532,7 +555,8 @@
         "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement",
-        "git-restricted-operations"
+        "git-restricted-operations",
+        "mandatory-tooling-gate"
       ],
       "unspecified-high": [
         "changelog-commit-flow",
@@ -552,22 +576,44 @@
         "zero-suspicion-gate",
         "no-premature-done",
         "git-commit-enforcement",
-        "git-restricted-operations"
+        "git-restricted-operations",
+        "mandatory-tooling-gate"
       ]
     }
   },
   "targets": {
     "generate_full_doc": {
       ".claude/rules/delegation-rules.md": {
-        "uses": ["delegation-routing-compact", "failure-escalation", "fallback-chain", "session-continuity", "failure-counter", "prompt-structure"],
+        "uses": [
+          "delegation-routing-compact",
+          "failure-escalation",
+          "fallback-chain",
+          "session-continuity",
+          "failure-counter",
+          "prompt-structure"
+        ],
         "frontmatter": "---\nalwaysApply: true\ndescription: Agent delegation, escalation, failure handling, and session continuity\n---\n\n<!-- AUTO-GENERATED by rules-master/sync_rules.py — DO NOT EDIT -->\n<!-- Edit rules-master/rules.json blocks instead, then run: python rules-master/sync_rules.py -->"
       },
       ".claude/rules/code-quality.md": {
-        "uses": ["file-size-quality", "git-commit-gate", "skill-stuck-recovery-understand-flow", "skill-stuck-recovery-research-protocol"],
+        "uses": [
+          "file-size-quality",
+          "git-commit-gate",
+          "skill-stuck-recovery-understand-flow",
+          "skill-stuck-recovery-research-protocol",
+          "mandatory-tooling-gate",
+          "tdd-dry-run-gate"
+        ],
         "frontmatter": "---\nalwaysApply: true\ndescription: Code quality standards, file size limits, git evidence, and stuck recovery\n---\n\n<!-- AUTO-GENERATED by rules-master/sync_rules.py — DO NOT EDIT -->\n<!-- Edit rules-master/rules.json blocks instead, then run: python rules-master/sync_rules.py -->"
       },
       ".claude/rules/react-rules.md": {
-        "uses": ["skill-react-role", "skill-react-stack", "skill-react-critical-principles", "skill-react-design-system", "skill-react-naming-conventions", "skill-react-anti-patterns"],
+        "uses": [
+          "skill-react-role",
+          "skill-react-stack",
+          "skill-react-critical-principles",
+          "skill-react-design-system",
+          "skill-react-naming-conventions",
+          "skill-react-anti-patterns"
+        ],
         "frontmatter": "---\nalwaysApply: false\ndescription: React frontend rules — stack, design system, naming, anti-patterns\nglobs: [\"frontend/**/*.tsx\", \"frontend/**/*.ts\", \"frontend/src/**/*\"]\n---\n\n<!-- AUTO-GENERATED by rules-master/sync_rules.py — DO NOT EDIT -->\n<!-- Edit rules-master/rules.json blocks instead, then run: python rules-master/sync_rules.py -->"
       },
       "DELEGATION_RULES.md": {
@@ -631,7 +677,9 @@
       "AGENTS.md": {
         "delegation-routing-compact": {},
         "failure-escalation": {},
-        "fallback-chain": {}
+        "fallback-chain": {},
+        "mandatory-tooling-gate": {},
+        "tdd-dry-run-gate": {}
       },
       "SISYPHUS_RULES.md": {
         "concurrency": {},
