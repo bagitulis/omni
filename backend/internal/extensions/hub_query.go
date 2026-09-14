@@ -33,3 +33,10 @@ type disconnectRequest struct {
 	extensionID string
 	done        chan<- struct{}
 }
+
+// ownerUpdate attributes an already-registered result channel to an extension,
+// so a lost reply can release the right in-flight slot.
+type ownerUpdate struct {
+	msgID       string
+	extensionID string
+}

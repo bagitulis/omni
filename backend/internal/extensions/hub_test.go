@@ -3,6 +3,7 @@ package extensions
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -300,8 +301,13 @@ func TestHub_IsConnectedAndConnectedIDs(t *testing.T) {
 	}
 }
 
-// In-flight capacity must be released by a reply, otherwise a long-lived
-// extension would exhaust its allowance after 10 commands and stall forever.
+// In-flight capacity must be released by a correlated reply, otherwise a
+// long-lived extension would exhaust its allowance after 10 commands and stall
+// forever.
+//
+// The reply must carry the SAME id the command was sent with: capacity is only
+// released by a reply that matches an outstanding command, which is what stops
+// unrelated traffic from resetting the counter and bypassing the cap.
 func TestHub_ReplyReleasesCapacity(t *testing.T) {
 	h := NewHub(nil)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -315,15 +321,64 @@ func TestHub_ReplyReleasesCapacity(t *testing.T) {
 	}
 	h.RegisterSync(client)
 
-	// Send/answer pairs well beyond the in-flight cap. Each reply must free a
-	// slot, so none of these should be rejected.
+	// Send/answer pairs well beyond the in-flight cap. Each correlated reply must
+	// free a slot, so none of these should be rejected.
 	for i := 0; i < maxInFlightPerExtension*3; i++ {
-		if err := h.SendToExtension("ext-cap", WSMessage{ID: "cap", Type: MsgTypeCommand}); err != nil {
+		msgID := fmt.Sprintf("cap-%d", i)
+
+		// Register the waiter the way HubSender does, so the reply can be
+		// correlated by id.
+		resultCh := make(chan WSMessage, 1)
+		h.RegisterResultChannel(msgID, resultCh)
+		h.SetResultOwner(msgID, "ext-cap")
+
+		if err := h.SendToExtension("ext-cap", WSMessage{ID: msgID, Type: MsgTypeCommand}); err != nil {
 			t.Fatalf("send %d rejected despite replies freeing capacity: %v", i, err)
 		}
-		<-client.send // read it so the buffer cannot mask the in-flight state
-		h.Route(client, WSMessage{ID: "cap", Type: MsgTypeResult})
-		time.Sleep(2 * time.Millisecond)
+		<-client.send // drain so the buffer cannot mask the in-flight state
+
+		h.Route(client, WSMessage{ID: msgID, Type: MsgTypeResult})
+
+		select {
+		case <-resultCh:
+		case <-time.After(time.Second):
+			t.Fatalf("reply for %s was never correlated", msgID)
+		}
+		h.UnregisterResultChannel(msgID)
+	}
+}
+
+// Unrelated inbound traffic must NOT release capacity, or a chatty extension
+// could reset the counter and bypass the flood cap entirely.
+func TestHub_UnrelatedTrafficDoesNotReleaseCapacity(t *testing.T) {
+	h := NewHub(nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go h.Run(ctx)
+
+	client := &Client{
+		extensionID: "ext-noisy",
+		send:        make(chan []byte, 4096),
+		done:        make(chan struct{}),
+	}
+	h.RegisterSync(client)
+
+	// Fill the cap with commands that will not be answered.
+	for i := 0; i < maxInFlightPerExtension; i++ {
+		if err := h.SendToExtension("ext-noisy", WSMessage{ID: fmt.Sprintf("c%d", i), Type: MsgTypeCommand}); err != nil {
+			t.Fatalf("filling cap: %v", err)
+		}
+	}
+
+	// Flush unrelated frames.
+	for i := 0; i < 50; i++ {
+		h.Route(client, WSMessage{ID: "noise", Type: "progress", Action: "update"})
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	if err := h.SendToExtension("ext-noisy", WSMessage{ID: "over", Type: MsgTypeCommand}); err == nil {
+		t.Error("capacity was released by unrelated traffic, so the in-flight cap " +
+			"can be bypassed by any extension that sends extra frames")
 	}
 }
 

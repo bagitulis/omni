@@ -79,6 +79,11 @@ type Client struct {
 
 	// OnClose is invoked once when the client is removed, so callers can release
 	// per-connection resources without the hub knowing about them.
+	//
+	// It MUST NOT BLOCK: it is invoked on the event loop, so a callback that
+	// waits on anything (a database write, a mutex held by a caller currently
+	// blocked in a hub send) stalls the entire hub and every other extension.
+	// Long work belongs in a goroutine started from here.
 	OnClose func(extensionID string)
 }
 
@@ -95,11 +100,29 @@ func (c *Client) SendChan() <-chan []byte { return c.send }
 func (c *Client) Done() <-chan struct{} { return c.done }
 
 // close signals the client's pump to stop. Safe to call more than once.
+//
+// OnClose is dispatched on its own goroutine. It is invoked from the event loop,
+// so calling it inline would let a slow callback — a database write, a lock held
+// by a caller blocked in a hub send — stall the hub and therefore every other
+// extension. Running it detached means the hub cannot be held hostage by a
+// callback, and the contract no longer relies on callers being careful.
 func (c *Client) close() {
 	c.closeOnce.Do(func() {
 		close(c.done)
 		if c.OnClose != nil {
-			c.OnClose(c.extensionID)
+			cb := c.OnClose
+			id := c.extensionID
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						// A panicking callback must not take the process down:
+						// it is running detached, so the recover is the only
+						// thing between it and a fatal crash.
+						log.Printf("extensions: OnClose panic for %s: %v", id, r)
+					}
+				}()
+				cb(id)
+			}()
 		}
 	})
 }
@@ -115,12 +138,20 @@ type sendCmd struct {
 type resultReg struct {
 	msgID string
 	ch    chan WSMessage
+	// extensionID is the extension the command targets, recorded so a lost reply
+	// can release that extension's in-flight slot during a sweep.
+	extensionID string
 }
 
 // resultEntry tracks a pending result channel and when it was registered.
 type resultEntry struct {
 	ch        chan WSMessage
 	createdAt time.Time
+
+	// extensionID records which extension the command was sent to, so the
+	// sweep can release that extension's in-flight slot when a reply never
+	// arrives. Without it, a lost reply would consume capacity permanently.
+	extensionID string
 }
 
 // Hub routes commands to extensions and correlates their replies.
@@ -142,6 +173,7 @@ type Hub struct {
 	listQ       chan listQuery
 	syncQ       chan syncRequest
 	disconnectQ chan disconnectRequest
+	ownerQ      chan ownerUpdate
 
 	stop     chan struct{}
 	done     chan struct{}
@@ -184,6 +216,7 @@ func NewHub(_ any) *Hub {
 		listQ:       make(chan listQuery, 32),
 		syncQ:       make(chan syncRequest, 32),
 		disconnectQ: make(chan disconnectRequest, 16),
+		ownerQ:      make(chan ownerUpdate, 64),
 		stop:        make(chan struct{}),
 		done:        make(chan struct{}),
 	}
@@ -232,12 +265,22 @@ func (h *Hub) Run(ctx context.Context) {
 			if reg.ch == nil {
 				delete(h.resultChans, reg.msgID)
 			} else {
-				h.resultChans[reg.msgID] = resultEntry{ch: reg.ch, createdAt: time.Now()}
+				h.resultChans[reg.msgID] = resultEntry{
+					ch:          reg.ch,
+					createdAt:   time.Now(),
+					extensionID: reg.extensionID,
+				}
 			}
 
 		case q := <-h.connectedQ:
 			_, ok := h.clients[q.extensionID]
 			q.result <- ok
+
+		case u := <-h.ownerQ:
+			if entry, ok := h.resultChans[u.msgID]; ok {
+				entry.extensionID = u.extensionID
+				h.resultChans[u.msgID] = entry
+			}
 
 		case q := <-h.listQ:
 			ids := make([]string, 0, len(h.clients))
@@ -259,8 +302,18 @@ func (h *Hub) Run(ctx context.Context) {
 }
 
 // shutdown closes every client and pending result channel exactly once.
+//
+// It also drains the buffered control channels. A caller can have queued work
+// that the loop never reached — including a result-channel registration whose
+// waiter would otherwise never be told. Leaving those queued means a caller
+// waiting only on its channel hangs forever, which is worse than the shutdown
+// itself.
 func (h *Hub) shutdown() {
 	h.stopped.Store(true)
+
+	// Drain and answer anything already queued, so no caller is left waiting.
+	h.drainPending()
+
 	for id := range h.clients {
 		h.removeClient(id)
 	}
@@ -269,6 +322,68 @@ func (h *Hub) shutdown() {
 		close(entry.ch)
 		delete(h.resultChans, msgID)
 	}
+}
+
+// drainPending empties the buffered request channels, answering each caller.
+//
+// Non-blocking by construction: the channels are drained with a default branch so
+// shutdown cannot itself block on a caller that has already given up.
+func (h *Hub) drainPending() {
+	for {
+		select {
+		case c := <-h.register:
+			// Admitted after shutdown: close it so its socket teardown runs.
+			c.close()
+		case c := <-h.unregister:
+			c.close()
+		case cmd := <-h.send:
+			select {
+			case cmd.err <- errHubStopped():
+			default:
+			}
+		case reg := <-h.resultReg:
+			if reg.ch != nil {
+				// Registered too late to ever be answered: close it so the
+				// waiter is unblocked rather than hanging.
+				close(reg.ch)
+			}
+		case d := <-h.disconnectQ:
+			close(d.done)
+		case _ = <-h.route:
+			// Inbound traffic after shutdown has nowhere to go.
+		case q := <-h.connectedQ:
+			select {
+			case q.result <- false:
+			default:
+			}
+		case q := <-h.listQ:
+			select {
+			case q.result <- nil:
+			default:
+			}
+		case s := <-h.syncQ:
+			// A barrier waiting for a loop that is shutting down: ack it once so
+			// the caller is not left blocked. Guarded by a recover-free approach:
+			// the ack channel is only ever closed here, and syncRequest holders
+			// do not close it themselves.
+			closeSyncAck(s)
+		default:
+			return
+		}
+	}
+}
+
+// closeSyncAck acks a barrier exactly once, tolerating an already-closed
+// channel. A double close would panic on the loop goroutine and take the server
+// down, so it is guarded rather than assumed.
+func closeSyncAck(s syncRequest) {
+	defer func() {
+		if r := recover(); r != nil {
+			// Already closed by the normal path; nothing to do.
+			_ = r
+		}
+	}()
+	close(s.ack)
 }
 
 // Stop halts the event loop. Safe to call more than once, and safe to call on a
@@ -300,12 +415,20 @@ func (h *Hub) removeClient(extensionID string) {
 	delete(h.inFlight, extensionID)
 }
 
-// sweepStaleResults closes and drops result channels nobody answered.
+// sweepStaleResults closes and drops result channels nobody answered, releasing
+// the in-flight slot each one held.
+//
+// Releasing matters: handleRoute only decrements on a correlated reply, so
+// without this a reply lost in transit (dropped frame, extension crash) would
+// consume that extension's capacity permanently and eventually starve it.
 func (h *Hub) sweepStaleResults() {
 	now := time.Now()
 	for msgID, entry := range h.resultChans {
 		if now.Sub(entry.createdAt) > resultChanTTL {
 			close(entry.ch)
+			if entry.extensionID != "" && h.inFlight[entry.extensionID] > 0 {
+				h.inFlight[entry.extensionID]--
+			}
 			delete(h.resultChans, msgID)
 		}
 	}
@@ -350,22 +473,27 @@ func (h *Hub) handleRoute(msg *routedMessage) {
 		return
 	}
 
-	// Any reply frees an in-flight slot. Decrement before correlating so a
-	// dropped/failed result cannot permanently consume capacity.
-	if h.inFlight[msg.client.extensionID] > 0 {
-		h.inFlight[msg.client.extensionID]--
-	}
-
 	if wsm.Type != MsgTypeResult && wsm.Type != MsgTypeError {
+		// Not a reply, so it must not consume in-flight capacity. Decrementing on
+		// every inbound frame let a chatty extension reset the counter with
+		// unrelated traffic (progress events, pings) and bypass the cap entirely,
+		// which is the one thing the cap exists to prevent.
 		return
 	}
 
+	// Only a reply that actually matches an outstanding command frees its slot.
+	// An unsolicited or stale reply must not, or the same bypass applies.
 	entry, ok := h.resultChans[wsm.ID]
 	if !ok {
 		// Late or unsolicited result: the waiter already gave up. Dropping it is
 		// correct — it must not be delivered to a stale channel.
 		return
 	}
+
+	if h.inFlight[msg.client.extensionID] > 0 {
+		h.inFlight[msg.client.extensionID]--
+	}
+
 	select {
 	case entry.ch <- wsm:
 	default:
@@ -484,12 +612,32 @@ func (h *Hub) SendToExtension(extensionID string, msg WSMessage) error {
 // RegisterResultChannel registers ch to receive the reply whose ID matches
 // msgID. Call before sending so the reply cannot be missed.
 func (h *Hub) RegisterResultChannel(msgID string, ch chan WSMessage) {
+	h.RegisterResultChannelFor(msgID, "", ch)
+}
+
+// RegisterResultChannelFor registers a result channel and records which
+// extension the command targets.
+//
+// The owner matters for capacity accounting: a reply that never arrives would
+// otherwise hold the extension's in-flight slot forever, so the sweep needs to
+// know whose slot to release.
+func (h *Hub) RegisterResultChannelFor(msgID, extensionID string, ch chan WSMessage) {
 	select {
-	case h.resultReg <- resultReg{msgID: msgID, ch: ch}:
+	case h.resultReg <- resultReg{msgID: msgID, ch: ch, extensionID: extensionID}:
 	case <-h.done:
 		close(ch)
 	case <-time.After(eventLoopTimeout):
 		log.Printf("extensions: RegisterResultChannel timed out for %s", msgID)
+	}
+}
+
+// SetResultOwner records which extension an already-registered result channel
+// belongs to. Provided for callers that register before knowing the target.
+func (h *Hub) SetResultOwner(msgID, extensionID string) {
+	select {
+	case h.ownerQ <- ownerUpdate{msgID: msgID, extensionID: extensionID}:
+	case <-h.done:
+	case <-time.After(eventLoopTimeout):
 	}
 }
 

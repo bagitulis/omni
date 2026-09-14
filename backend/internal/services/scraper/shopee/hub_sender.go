@@ -56,7 +56,10 @@ func (s *HubSender) Send(ctx context.Context, action string, payload any) (json.
 
 	msgID := uuid.New().String()
 	resultCh := make(chan extensions.WSMessage, 1)
-	s.hub.RegisterResultChannel(msgID, resultCh)
+	// Register with the target extension so a reply that never arrives can
+	// release this extension's in-flight slot during the hub's sweep. Without
+	// the owner, one lost reply would hold capacity indefinitely.
+	s.hub.RegisterResultChannelFor(msgID, s.extensionID, resultCh)
 	defer s.hub.UnregisterResultChannel(msgID)
 
 	msg := extensions.WSMessage{
