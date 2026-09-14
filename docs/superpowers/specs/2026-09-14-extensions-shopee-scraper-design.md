@@ -410,3 +410,18 @@ then add the network-first optimization with a proven fallback already in place.
   (`models/auto_function.go`), price-alert thresholds.
 - Beyond: Camoufox headless fallback, captcha solving, shop audit/AI scoring,
   Lazada/TikTok scrapers.
+
+## 13. Pre-existing Conditions (not introduced here)
+
+Recorded so they are not mistaken for regressions from this feature, and so
+anyone picking this up knows the baseline is not green.
+
+| Package | Status | Evidence |
+|---|---|---|
+| `internal/utils` | `TestIsEncrypted/valid_base64_but_not_fernet` fails | Reproduced in a worktree at baseline commit `28e4e786`, before any extensions work |
+| `internal/services` | Multiple failures (migration backfill, bulk ship status validation, booking sync idempotency, order sync staleness) | Same baseline worktree, failing identically |
+| `frontend` | `PlatformsTab.test.tsx` — "disables manual token actions..." fails | Reproduced with all extensions work stashed; file unmodified |
+| `rules-master/validate_skill_references.py` | Crashes with `KeyError: 'category'` at line 187 | Fails identically with the rule changes reverted |
+
+Also noted: `rules-master/sync_rules.py --check` was failing with
+`DRIFT DETECTED` (exit 1) before this session's rule work and passes now.
