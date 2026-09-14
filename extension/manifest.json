@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Omni Extensions",
+  "version": "0.1.0",
+  "description": "Omni browser automation agent (Shopee data collection)",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://shopee.co.id/*",
+    "https://www.shopee.co.id/*"
+  ],
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://shopee.co.id/*", "https://www.shopee.co.id/*"],
+      "js": ["content-shopee.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["main-network-observer.js"],
+      "matches": ["https://shopee.co.id/*", "https://www.shopee.co.id/*"]
+    }
+  ]
+}

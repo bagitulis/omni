@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Omni Extensions</title>
+  <style>
+    body {
+      width: 320px;
+      margin: 0;
+      padding: 16px;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 13px;
+      color: #1f1f1f;
+    }
+    h1 { font-size: 15px; margin: 0 0 12px; }
+    label { display: block; margin-bottom: 4px; font-weight: 600; }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 7px 8px;
+      margin-bottom: 10px;
+      border: 1px solid #d9d9d9;
+      border-radius: 3px;
+      font-family: inherit;
+      font-size: 13px;
+    }
+    button {
+      width: 100%;
+      padding: 8px;
+      background: #0369a1;
+      color: #fff;
+      border: 0;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    button:disabled { opacity: 0.6; cursor: default; }
+    button.secondary { background: #f5f5f5; color: #1f1f1f; margin-top: 6px; }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+      padding: 8px;
+      border-radius: 3px;
+      background: #fafafa;
+    }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #bfbfbf;
+      flex-shrink: 0;
+    }
+    .dot.connected { background: #52c41a; }
+    .dot.connecting { background: #faad14; }
+    .dot.error, .dot.misconfigured { background: #ff4d4f; }
+    .meta { color: #8c8c8c; font-size: 11px; word-break: break-all; }
+    .msg {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 3px;
+      font-size: 12px;
+      display: none;
+    }
+    .msg.ok { display: block; background: #f6ffed; border: 1px solid #b7eb8f; }
+    .msg.err { display: block; background: #fff2f0; border: 1px solid #ffccc7; }
+    hr { border: 0; border-top: 1px solid #f0f0f0; margin: 14px 0; }
+  </style>
+</head>
+<body>
+  <h1>Omni Extensions</h1>
+
+  <div class="status">
+    <span class="dot" id="dot"></span>
+    <span id="statusText">Checking…</span>
+  </div>
+
+  <label for="serverUrl">Server URL</label>
+  <input id="serverUrl" type="text" placeholder="https://app.example.com" />
+
+  <label for="code">Pairing code</label>
+  <input id="code" type="text" placeholder="ABCD1234" maxlength="8" autocomplete="off" />
+
+  <button id="pair">Pair</button>
+  <button id="reconnect" class="secondary">Reconnect</button>
+
+  <div class="msg" id="msg"></div>
+
+  <hr />
+  <div class="meta" id="extensionId"></div>
+  <div class="meta" id="debug"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
