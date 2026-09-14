@@ -14,6 +14,7 @@ import {
   FileTextOutlined,
   TeamOutlined,
   ExperimentOutlined,
+  ApiOutlined,
 } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 
@@ -74,6 +75,16 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         icon: <CodeOutlined />,
         label: "Script Monitor",
       },
+      {
+        key: "/extensions",
+        icon: <ApiOutlined />,
+        label: "Extensions",
+        children: [
+          { key: "/extensions", label: "Installed Extensions" },
+          { key: "/extensions/shopee", label: "Shopee Scraper" },
+          { key: "/extensions/results", label: "Results" },
+        ],
+      },
       { key: "/settings", icon: <SettingOutlined />, label: "Settings" },
     ];
 
@@ -113,6 +124,11 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
     if (location.pathname.startsWith("/script-monitor")) {
       return "/script-monitor";
     }
+    // Extensions sub-routes: each child is its own key, and the exact path is
+    // the selected key so the submenu shows which page is open.
+    if (location.pathname.startsWith("/extensions")) {
+      return location.pathname;
+    }
     return location.pathname;
   }, [location.pathname]);
 
@@ -121,6 +137,9 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
     if (location.pathname.startsWith("/products")) keys.push("/products");
     if (location.pathname.startsWith("/report")) {
       keys.push("/report");
+    }
+    if (location.pathname.startsWith("/extensions")) {
+      keys.push("/extensions");
     }
     return keys;
   });

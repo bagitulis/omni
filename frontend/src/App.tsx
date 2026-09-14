@@ -57,6 +57,15 @@ const SettingsPage = React.lazy(() => import("./pages/settings/SettingsPage"));
 const ScriptMonitorPage = React.lazy(
   () => import("./pages/script-monitor/ScriptMonitorPage"),
 );
+const ExtensionsPage = React.lazy(
+  () => import("./pages/extensions/ExtensionsPage"),
+);
+const ShopeeScraperPage = React.lazy(
+  () => import("./pages/extensions/ShopeeScraperPage"),
+);
+const ExtensionResultsPage = React.lazy(
+  () => import("./pages/extensions/ExtensionResultsPage"),
+);
 const RouteMappingPage = React.lazy(
   () => import("./pages/route-mapping/RouteMappingPage"),
 );
@@ -144,6 +153,15 @@ function AppContent() {
                     <Route
                       path="/script-monitor"
                       element={<ScriptMonitorPage />}
+                    />
+                    <Route path="/extensions" element={<ExtensionsPage />} />
+                    <Route
+                      path="/extensions/shopee"
+                      element={<ShopeeScraperPage />}
+                    />
+                    <Route
+                      path="/extensions/results"
+                      element={<ExtensionResultsPage />}
                     />
                     <Route
                       path="/users"
