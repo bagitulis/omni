@@ -7,6 +7,33 @@
 import { describe, expect, it } from "vitest";
 import { summariseSources, type ScrapedProduct } from "./extensions";
 
+/**
+ * Mirror of the defensive normalisation in useScrapedProducts.
+ *
+ * The job id arrives from a URL query parameter, so it can be undefined; calling
+ * `.length` on it would throw and take the page down.
+ */
+function normaliseJobId(jobId: string | undefined | null): string {
+  return typeof jobId === "string" ? jobId.trim() : "";
+}
+
+describe("job id normalisation", () => {
+  it("tolerates undefined and null without throwing", () => {
+    expect(() => normaliseJobId(undefined)).not.toThrow();
+    expect(normaliseJobId(undefined)).toBe("");
+    expect(normaliseJobId(null)).toBe("");
+  });
+
+  it("trims whitespace so a padded id still matches", () => {
+    expect(normaliseJobId("  job-1  ")).toBe("job-1");
+    expect(normaliseJobId("   ")).toBe("");
+  });
+
+  it("passes a normal id through", () => {
+    expect(normaliseJobId("job-abc")).toBe("job-abc");
+  });
+});
+
 function product(source: string): ScrapedProduct {
   return {
     id: 1,

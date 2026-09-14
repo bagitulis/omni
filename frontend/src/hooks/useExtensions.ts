@@ -52,11 +52,27 @@ export function useStartScrape() {
   });
 }
 
-export function useScrapedProducts(jobId: string, page = 1, pageSize = 50) {
+/**
+ * Fetch scraped products for a job.
+ *
+ * `jobId` is normalised defensively rather than trusted: it reaches here from a
+ * URL query parameter, and `undefined.length` throws. A malformed or absent id
+ * must disable the query, not crash the page.
+ */
+export function useScrapedProducts(
+  jobId: string | undefined | null,
+  page = 1,
+  pageSize = 50,
+) {
+  const safeJobId = typeof jobId === "string" ? jobId.trim() : "";
+
   return useQuery({
-    queryKey: [...PRODUCTS_KEY, jobId, page, pageSize],
-    queryFn: () => listScrapedProducts(jobId, page, pageSize),
+    queryKey: [...PRODUCTS_KEY, safeJobId, page, pageSize],
+    queryFn: () => listScrapedProducts(safeJobId, page, pageSize),
     // Nothing to fetch until a run has produced rows.
-    enabled: jobId.length > 0,
+    enabled: safeJobId.length > 0,
+    // A finished run's rows do not change, so there is no value in refetching on
+    // every focus; an explicit refresh button covers the live case.
+    refetchOnWindowFocus: false,
   });
 }

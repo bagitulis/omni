@@ -37,16 +37,29 @@ export function ExtensionResultsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlJobId = searchParams.get("job_id") ?? "";
 
-  const [jobId, setJobId] = useState(urlJobId);
+  // The URL is the source of truth for the job id. Initialising state from it
+  // once would ignore later navigations: arriving from the scraper while already
+  // on this page changes only the query string, so the component does not
+  // remount and the state would keep showing the previous job.
   const [pendingJobId, setPendingJobId] = useState(urlJobId);
   const [page, setPage] = useState(1);
+  const [lastUrlJobId, setLastUrlJobId] = useState(urlJobId);
 
+  if (urlJobId !== lastUrlJobId) {
+    // Sync during render rather than in an effect, so the table never renders
+    // one frame of the previous job's data under the new job's heading.
+    setLastUrlJobId(urlJobId);
+    setPendingJobId(urlJobId);
+    setPage(1);
+  }
+
+  const jobId = urlJobId;
+
+  // A page change must reset when the job changes; the sync above handles it.
   const applyJobId = (next: string) => {
     const trimmed = next.trim();
-    setJobId(trimmed);
     setPendingJobId(trimmed);
     setPage(1);
-    // Keep the URL in step so a refresh or a shared link shows the same view.
     setSearchParams(trimmed ? { job_id: trimmed } : {});
   };
 

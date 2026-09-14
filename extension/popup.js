@@ -12,6 +12,9 @@ const STATUS_LABELS = {
   unpaired: 'Not paired',
   paired: 'Paired',
   misconfigured: 'Misconfigured',
+  // Terminal state: the server rejected the stored credential, so the operator
+  // must pair again rather than wait for a reconnect that will never succeed.
+  auth_failed: 'Not paired — pair again',
   error: 'Error',
 };
 
@@ -35,6 +38,20 @@ function showMessage(text, kind) {
 function clearMessage() {
   el.msg.textContent = '';
   el.msg.className = 'msg';
+}
+
+/**
+ * Surface a rejected credential prominently.
+ *
+ * Without this the extension looks merely "disconnected", and the operator waits
+ * for a reconnect that will never come because the token is dead.
+ */
+function warnIfRevoked(state) {
+  if (state !== 'auth_failed') return;
+  showMessage(
+    'This extension is no longer paired (the credential was rejected). Generate a new pairing code in Omni and pair again.',
+    'err',
+  );
 }
 
 /** Normalize a typed pairing code: codes are upper-case and exclude lookalikes. */
@@ -68,6 +85,10 @@ async function refreshStatus() {
   el.debug.textContent = detail ? detail : '';
 
   el.pair.disabled = state === 'connecting';
+
+  // Show the terminal state prominently: otherwise the extension looks merely
+  // disconnected and the operator waits for a reconnect that cannot happen.
+  warnIfRevoked(state);
 }
 
 el.pair.addEventListener('click', async () => {

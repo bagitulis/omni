@@ -161,12 +161,16 @@ export async function listScrapedProducts(
   }
 
   const products = response.data ?? [];
+  // The backend always sends meta for this endpoint. Falling back to
+  // products.length would be worse than reporting zero: it would cap the pager at
+  // one page and silently hide every later page of results.
+  const meta = response.meta;
   return {
     products,
-    total: response.meta?.total ?? products.length,
-    page: response.meta?.page ?? page,
-    page_size: response.meta?.page_size ?? pageSize,
-    total_pages: response.meta?.total_pages ?? (products.length > 0 ? 1 : 0),
+    total: meta?.total ?? 0,
+    page: meta?.page ?? page,
+    page_size: meta?.page_size ?? pageSize,
+    total_pages: meta?.total_pages ?? 0,
   };
 }
 

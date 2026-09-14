@@ -34,6 +34,12 @@ let reconnectAttempt = 0;
 let reconnectTimer = null;
 let activeTaskId = null;
 
+// Set when the server rejects our credential, so the close handler can tell a
+// terminal rejection from a transient network drop. Module state resets when
+// MV3 terminates the worker, which is correct here: a bad token will be
+// rejected again on the next attempt, re-setting the flag.
+let authRejected = false;
+
 // ─── Storage helpers ────────────────────────────────────────────────────────
 
 async function getConfig() {
@@ -126,6 +132,19 @@ async function connect() {
   ws.addEventListener('close', async () => {
     wsReady = false;
     stopPing();
+
+    // A rejected credential is terminal, not transient. Retrying forever with a
+    // token the server will never accept burns the operator's battery and keeps
+    // producing rejected handshakes. Surface it and stop.
+    if (authRejected) {
+      authRejected = false;
+      await setConnectionStatus(
+        'auth_failed',
+        'This extension is no longer paired. Pair it again to reconnect.',
+      );
+      return; // deliberately does not scheduleReconnect()
+    }
+
     await setConnectionStatus('disconnected');
     scheduleReconnect();
   });
@@ -200,7 +219,20 @@ async function handleServerMessage(msg) {
 
   if (type === 'auth_ok') {
     wsReady = true;
+    authRejected = false;
     await setConnectionStatus('connected');
+    return;
+  }
+
+  // The server rejected the credential (revoked, or the tenant was
+  // deactivated). Mark it so the close handler stops retrying, and report it so
+  // the operator sees why the extension is offline rather than guessing.
+  if (type === 'auth_failed' || action === 'auth_failed') {
+    authRejected = true;
+    await setConnectionStatus(
+      'auth_failed',
+      (payload && payload.reason) || 'Credential rejected. Pair again to reconnect.',
+    );
     return;
   }
 
@@ -391,6 +423,12 @@ chrome.runtime.onStartup.addListener(async () => {
 // was terminated, which is what re-establishes the socket.
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== KEEPALIVE_ALARM) return;
+
+  // Do not resurrect a connection the server has rejected. The alarm would
+  // otherwise retry a dead credential every 25 seconds forever, which is the
+  // exact behaviour the authRejected flag exists to prevent.
+  if (authRejected) return;
+
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     connect();
   } else {
@@ -421,6 +459,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message?.type === 'omni_reconnect') {
+    // An explicit user action overrides a previous rejection: the operator may
+    // have re-paired or the server may have been fixed, and refusing to retry
+    // would leave them stuck with no way to recover from the UI.
+    authRejected = false;
     reconnectAttempt = 0;
     disconnect();
     connect();
@@ -460,26 +502,39 @@ export async function pairWithCode(code, serverUrl) {
   const { extensionId } = await getConfig();
   const deviceId = extensionId || crypto.randomUUID();
 
-  const resp = await fetch(httpBase + '/api/extensions/pairing/confirm', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      code: String(code).trim().toUpperCase(),
-      extension_id: deviceId,
-      hostname: 'browser-extension',
-      browser_info: navigator.userAgent,
-      chrome_version: (navigator.userAgent.match(/Chrome\/([\d.]+)/) || [])[1] || 'unknown',
-      extension_version: chrome.runtime.getManifest().version,
-      protocol_version: '1',
-      capabilities: ['shopee_scrape', 'tab_discovery'],
-    }),
-  });
+  let resp;
+  try {
+    resp = await fetch(httpBase + '/api/extensions/pairing/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: String(code).trim().toUpperCase(),
+        extension_id: deviceId,
+        hostname: 'browser-extension',
+        browser_info: navigator.userAgent,
+        chrome_version: (navigator.userAgent.match(/Chrome\/([\d.]+)/) || [])[1] || 'unknown',
+        extension_version: chrome.runtime.getManifest().version,
+        protocol_version: '1',
+        capabilities: ['shopee_scrape', 'tab_discovery'],
+      }),
+    });
+  } catch (err) {
+    // A network failure (server unreachable, DNS, offline) must be reported as
+    // itself. Without this the popup would spin with no explanation.
+    return { success: false, error: 'Could not reach the server: ' + String(err) };
+  }
 
   const body = await resp.json().catch(() => ({}));
   if (!resp.ok || !body?.success) {
     // The server deliberately returns one generic message for unknown, expired,
     // and already-used codes; surface it rather than guessing which it was.
-    return { success: false, error: body?.error || 'Pairing failed' };
+    return { success: false, error: body?.error || `Pairing failed (HTTP ${resp.status})` };
+  }
+
+  if (!body.data?.token) {
+    // A 200 without a token is a server contract violation. Treating it as
+    // success would store an empty token and then fail authentication forever.
+    return { success: false, error: 'Server did not return a pairing token' };
   }
 
   await chrome.storage.local.set({
@@ -489,6 +544,10 @@ export async function pairWithCode(code, serverUrl) {
     connectionStatus: 'paired',
   });
 
+  // Pairing succeeded, so any previous rejection is no longer relevant and the
+  // alarm is allowed to reconnect again.
+  authRejected = false;
+  reconnectAttempt = 0;
   connect();
   return { success: true, extension_id: deviceId };
 }
