@@ -80,17 +80,27 @@ func (s *Scraper) Run(ctx context.Context, cfg Config) (*Result, error) {
 		return nil, fmt.Errorf("scraper: no command sender configured")
 	}
 
+	// Validate the mode's required input BEFORE doing any work. Catching a
+	// missing URL here means the caller never opens a browser tab only to fail
+	// on navigation, and the error names the actual problem.
 	switch cfg.Mode {
 	case "search", "":
 		if strings.TrimSpace(cfg.Query) == "" {
 			return nil, fmt.Errorf("scraper: query is required for search mode")
 		}
-		return s.runPaginated(ctx, cfg)
-	case "shop", "product":
-		return s.runPaginated(ctx, cfg)
+	case "shop":
+		if strings.TrimSpace(cfg.ShopURL) == "" {
+			return nil, fmt.Errorf("scraper: shop_url is required for shop mode")
+		}
+	case "product":
+		if strings.TrimSpace(cfg.ProductURL) == "" {
+			return nil, fmt.Errorf("scraper: product_url is required for product mode")
+		}
 	default:
 		return nil, fmt.Errorf("scraper: unsupported mode %q", cfg.Mode)
 	}
+
+	return s.runPaginated(ctx, cfg)
 }
 
 // runPaginated drives the page loop: navigate, capture, extract, repeat.
@@ -179,6 +189,12 @@ func (s *Scraper) runPaginated(ctx context.Context, cfg Config) (*Result, error)
 			break
 		}
 		if page < maxPages {
+			// A mode with no further pages (product detail) yields no URL, so
+			// there is nothing more to capture. Without this the loop would
+			// re-navigate to the same page until maxPages.
+			if s.pageURL(cfg, page+1) == "" {
+				break
+			}
 			if nextErr := s.nextPage(ctx); nextErr != nil {
 				break
 			}
@@ -256,6 +272,11 @@ func (s *Scraper) navigate(ctx context.Context, cfg Config, page int) error {
 //
 // Shopee paginates with a 0-indexed `page` query parameter, and its search URL
 // uses `keyword`, so both are constructed here rather than in the transport.
+//
+// Product mode returns "" for any page after the first: a product detail page
+// has no pagination, so "page 2 of a product" does not exist. Returning the same
+// URL would make the loop navigate to and re-capture the identical page up to
+// maxPages times.
 func (s *Scraper) pageURL(cfg Config, page int) string {
 	base := cfg.BaseURL
 	if base == "" {
@@ -263,12 +284,17 @@ func (s *Scraper) pageURL(cfg Config, page int) string {
 	}
 	base = strings.TrimRight(base, "/")
 
+	if cfg.Mode == "product" {
+		if page > 1 {
+			return ""
+		}
+		return cfg.ProductURL
+	}
+
 	var url string
 	switch cfg.Mode {
 	case "shop":
 		url = cfg.ShopURL
-	case "product":
-		return cfg.ProductURL
 	default:
 		url = fmt.Sprintf("%s/search?keyword=%s", base, urlEncode(cfg.Query))
 	}
@@ -365,16 +391,33 @@ func (s *Scraper) fromNetwork(ctx context.Context, baseURL string) ([]ParsedProd
 }
 
 // unwrapEnvelope returns the "data" member of a content-script reply, or the
-// input unchanged when there is no envelope. Returning the input on failure
-// keeps a bare payload working.
+// input unchanged when there is no usable envelope.
+//
+// An explicit `"data": null` must NOT be treated as a payload: returning it
+// discards any sibling fields, and unmarshalling the literal `null` into a
+// struct silently succeeds with a zero value. A reply like
+// {"data":null,"responses":[...]} would then lose its responses entirely and
+// look like a genuinely empty result.
 func unwrapEnvelope(raw json.RawMessage) json.RawMessage {
 	var envelope struct {
 		Data json.RawMessage `json:"data"`
 	}
-	if err := json.Unmarshal(raw, &envelope); err == nil && len(envelope.Data) > 0 {
-		return envelope.Data
+	if err := json.Unmarshal(raw, &envelope); err != nil {
+		return raw
 	}
-	return raw
+	if !isUsableJSONPayload(envelope.Data) {
+		return raw
+	}
+	return envelope.Data
+}
+
+// isUsableJSONPayload reports whether a raw JSON value is present and non-null.
+func isUsableJSONPayload(raw json.RawMessage) bool {
+	if len(raw) == 0 {
+		return false
+	}
+	trimmed := strings.TrimSpace(string(raw))
+	return trimmed != "" && trimmed != "null"
 }
 
 // fromDOM asks the content script to extract product cards.

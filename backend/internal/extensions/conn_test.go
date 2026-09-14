@@ -64,6 +64,28 @@ func newTestConnEnv(t *testing.T, authErr error) *testConnEnv {
 	return env
 }
 
+// writeConnectFrame sends the handshake frame in the shape the client actually
+// uses: a `type`/`action` envelope wrapping the connect payload.
+//
+// The envelope matters — the server validates the frame type before trusting the
+// payload, so a test that omitted it would be exercising a shape the real client
+// never sends.
+func writeConnectFrame(t *testing.T, conn *websocket.Conn, token, extensionID string) {
+	t.Helper()
+	payload, err := json.Marshal(ConnectRequest{Token: token, ExtensionID: extensionID})
+	if err != nil {
+		t.Fatalf("marshal connect payload: %v", err)
+	}
+	frame := map[string]any{
+		"type":    HandshakeType,
+		"action":  HandshakeAction,
+		"payload": json.RawMessage(payload),
+	}
+	if err := conn.WriteJSON(frame); err != nil {
+		t.Fatalf("write connect frame: %v", err)
+	}
+}
+
 func dialWS(t *testing.T, env *testConnEnv) *websocket.Conn {
 	t.Helper()
 	url := "ws" + strings.TrimPrefix(env.server.URL, "http") + "/api/extensions/ws"
@@ -79,9 +101,7 @@ func TestConn_HappyPathAuthAndReceive(t *testing.T) {
 	conn := dialWS(t, env)
 	defer conn.Close()
 
-	if err := conn.WriteJSON(ConnectRequest{Token: "tok", ExtensionID: "ext-ws-1"}); err != nil {
-		t.Fatalf("write connect: %v", err)
-	}
+	writeConnectFrame(t, conn, "tok", "ext-ws-1")
 
 	// Server must acknowledge only after the extension is routable.
 	var ack WSMessage
@@ -114,9 +134,7 @@ func TestConn_ResultCorrelationOverTheWire(t *testing.T) {
 	conn := dialWS(t, env)
 	defer conn.Close()
 
-	if err := conn.WriteJSON(ConnectRequest{Token: "tok", ExtensionID: "ext-ws-2"}); err != nil {
-		t.Fatalf("connect: %v", err)
-	}
+	writeConnectFrame(t, conn, "tok", "ext-ws-2")
 	var ack WSMessage
 	if err := conn.ReadJSON(&ack); err != nil {
 		t.Fatalf("ack: %v", err)
@@ -146,9 +164,7 @@ func TestConn_RejectedAuthClosesWithoutRegistering(t *testing.T) {
 	conn := dialWS(t, env)
 	defer conn.Close()
 
-	if err := conn.WriteJSON(ConnectRequest{Token: "bad", ExtensionID: "ext-bad"}); err != nil {
-		t.Fatalf("connect: %v", err)
-	}
+	writeConnectFrame(t, conn, "bad", "ext-bad")
 
 	// The server must close rather than acknowledge.
 	_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
@@ -170,9 +186,7 @@ func TestConn_InvalidExtensionIDRejected(t *testing.T) {
 	defer conn.Close()
 
 	// A path-traversal style ID must be refused before registration.
-	if err := conn.WriteJSON(ConnectRequest{Token: "tok", ExtensionID: "../../etc/passwd"}); err != nil {
-		t.Fatalf("connect: %v", err)
-	}
+	writeConnectFrame(t, conn, "tok", "../../etc/passwd")
 
 	_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
 	for {
@@ -190,9 +204,7 @@ func TestConn_DisappearsFromHubOnClose(t *testing.T) {
 	env := newTestConnEnv(t, nil)
 	conn := dialWS(t, env)
 
-	if err := conn.WriteJSON(ConnectRequest{Token: "tok", ExtensionID: "ext-close"}); err != nil {
-		t.Fatalf("connect: %v", err)
-	}
+	writeConnectFrame(t, conn, "tok", "ext-close")
 	var ack WSMessage
 	if err := conn.ReadJSON(&ack); err != nil {
 		t.Fatalf("ack: %v", err)
@@ -223,9 +235,7 @@ func TestConn_MalformedFrameKeepsConnectionAlive(t *testing.T) {
 	conn := dialWS(t, env)
 	defer conn.Close()
 
-	if err := conn.WriteJSON(ConnectRequest{Token: "tok", ExtensionID: "ext-bad-json"}); err != nil {
-		t.Fatalf("connect: %v", err)
-	}
+	writeConnectFrame(t, conn, "tok", "ext-bad-json")
 	var ack WSMessage
 	if err := conn.ReadJSON(&ack); err != nil {
 		t.Fatalf("ack: %v", err)

@@ -24,7 +24,14 @@ func TestFormatShopeePrice(t *testing.T) {
 		{"pad boundary", "99999", "0.99999", "just below one whole unit"},
 		{"exact hundred", "10000000", "100", "trailing zeros removed from fraction"},
 		{"null price marker", "-1", "", "Shopee uses a negative value for a null price"},
-		{"already formatted", "Rp15.000", "Rp15.000", "non-numeric input is passed through"},
+		{
+			name: "formatted input is rejected, not passed through",
+			raw:  "Rp15.000",
+			want: "",
+			why: "this function scales a JSON number literal; an already-formatted " +
+				"string belongs to the DOM path and storing it here would put " +
+				"uncomparable text in a price column",
+		},
 		{"whitespace", "  200000  ", "2", "surrounding space tolerated"},
 	}
 

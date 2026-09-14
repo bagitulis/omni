@@ -28,6 +28,16 @@ func mergeTabID(t *testing.T, payload map[string]any, tabID int64) map[string]an
 	return out
 }
 
+// silentClient registers an extension on the hub that accepts commands but never
+// replies, so a pending result channel stays open until something else closes it.
+func silentClient(t *testing.T, hub *extensions.Hub, id string) string {
+	t.Helper()
+	if err := hub.RegisterTestClient(id); err != nil {
+		t.Fatalf("register silent client: %v", err)
+	}
+	return id
+}
+
 func TestHubSender_MergesTabIDIntoPayload(t *testing.T) {
 	// A payload's own keys must survive, and the tab id must be added.
 	merged := mergeTabID(t, map[string]any{"filter": "search_items", "limit": 5}, 42)
@@ -161,5 +171,51 @@ func TestHubSender_TimeoutIsBounded(t *testing.T) {
 	}
 	if elapsed > 5*time.Second {
 		t.Errorf("send blocked for %v; it must fail fast, not wait out the timer", elapsed)
+	}
+}
+
+// A hub that shuts down while a command is outstanding closes the result
+// channel rather than delivering a reply. The sender must report that as an
+// error, not as a successful command with an empty payload.
+//
+// Without the `ok` check on the receive, this returns success with zero bytes,
+// and a scrape would be reported as having captured nothing when in fact the
+// hub had died.
+func TestHubSender_HubShutdownIsAnErrorNotAnEmptySuccess(t *testing.T) {
+	hub := extensions.NewHub(nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	go hub.Run(ctx)
+	time.Sleep(20 * time.Millisecond)
+
+	// A client that accepts the command but never answers, so the send registers
+	// a pending result channel that only the hub can unblock.
+	silent := silentClient(t, hub, "ext-silent")
+
+	s := NewHubSender(hub, silent)
+	s.timeout = 10 * time.Second
+
+	type outcome struct {
+		payload []byte
+		err     error
+	}
+	results := make(chan outcome, 1)
+	go func() {
+		payload, err := s.Send(context.Background(), "extract", map[string]any{})
+		results <- outcome{payload: payload, err: err}
+	}()
+
+	// Let the send reach the wait, then shut the hub down underneath it.
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+	hub.Stop()
+
+	select {
+	case got := <-results:
+		if got.err == nil {
+			t.Fatalf("hub shutdown must surface as an error, got success with payload %q "+
+				"(a scrape would be reported as capturing nothing)", string(got.payload))
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("send did not return after the hub shut down")
 	}
 }

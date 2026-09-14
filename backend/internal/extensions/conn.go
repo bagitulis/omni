@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -34,6 +35,16 @@ const (
 
 	// handshakeTimeout bounds the upgrade itself.
 	handshakeTimeout = 10 * time.Second
+
+	// authHandshakeDeadline bounds how long an unauthenticated socket may stay
+	// open waiting to send its connect frame.
+	//
+	// Deliberately much shorter than pongWait: pongWait governs a healthy,
+	// authenticated connection that may legitimately be idle, whereas this
+	// window is for a socket that has not proved anything yet. Using pongWait
+	// here let an unauthenticated client hold a connection slot for a minute,
+	// which is a cheap way to exhaust the connection budget.
+	authHandshakeDeadline = 10 * time.Second
 )
 
 // upgrader is configured for extensions (chrome-extension:// origins) and
@@ -98,6 +109,86 @@ type ConnectionIdentity struct {
 	DB          any // tenant-scoped *gorm.DB, opaque to this package
 }
 
+// decodeConnectRequest extracts the handshake payload from a frame, accepting
+// the fields either nested under `payload` or at the top level.
+//
+// The nested form is what the extension actually sends; the top-level form is
+// accepted because the envelope has varied between drafts and a client that used
+// the flat shape would otherwise fail with a confusing "missing token".
+func decodeConnectRequest(frame rawFrame) ConnectRequest {
+	var req ConnectRequest
+	if len(frame.Payload) > 0 {
+		_ = json.Unmarshal(frame.Payload, &req)
+	}
+	// Top-level fields fill anything the payload did not provide.
+	if req.Token == "" {
+		req.Token = frame.Token
+	}
+	if req.ExtensionID == "" {
+		req.ExtensionID = frame.ExtID
+	}
+	if req.ExtensionID == "" {
+		req.ExtensionID = frame.TopExtID
+	}
+	return req
+}
+
+// reject closes a handshake with a policy-violation close frame and a reason.
+//
+// Centralised because all three rejection paths must behave identically: a
+// graceful close with a reason, and a log line. Previously one path closed
+// without a reason, so a failure was silent in the client and only discoverable
+// in server logs.
+func (cfg ConnConfig) reject(conn *websocket.Conn, reason string, cause error) {
+	_ = conn.WriteControl(
+		websocket.CloseMessage,
+		websocket.FormatCloseMessage(websocket.ClosePolicyViolation, reason),
+		time.Now().Add(writeWait),
+	)
+	_ = conn.Close()
+	if cause != nil {
+		log.Printf("extensions: handshake rejected (%s): %v", reason, cause)
+	}
+}
+
+// Handshake frame values.
+const (
+	// HandshakeType is the `type` a client must send on the connect frame.
+	HandshakeType = "auth"
+	// HandshakeAction is the `action` a client must send on the connect frame.
+	HandshakeAction = "connect"
+)
+
+// rawFrame is the minimal envelope needed to classify an inbound frame before
+// deciding whether its payload is trustworthy.
+type rawFrame struct {
+	Type    string          `json:"type"`
+	Action  string          `json:"action"`
+	Payload json.RawMessage `json:"payload"`
+	Token   string          `json:"token"`
+	ExtID   string          `json:"extension_id"`
+	// Fields are also read from the top level so both shaping styles work, since
+	// the client is ours and the envelope has varied between drafts.
+	TopExtID string `json:"extensionId"`
+}
+
+// isConnectFrame reports whether a decoded frame is shaped like a connect
+// request.
+//
+// A frame with no recognisable type is either a client bug or protocol drift.
+// Accepting it would authenticate a caller that was not actually sending a
+// connect request, and would hide the mismatch until something later failed
+// confusingly. The `action` is checked too: `type: auth` is used for more than
+// one action, so the type alone is ambiguous.
+func isConnectFrame(frame rawFrame, req ConnectRequest) bool {
+	if frame.Type != HandshakeType || frame.Action != HandshakeAction {
+		return false
+	}
+	// The payload must name a token and an extension. A frame that announces
+	// itself as a handshake but carries nothing usable is not authenticated.
+	return req.Token != "" && req.ExtensionID != ""
+}
+
 // ServeUpgrade handles the HTTP→WebSocket upgrade for an extension.
 //
 // The first message MUST be an auth/connect frame within the handshake window.
@@ -118,16 +209,32 @@ func (cfg ConnConfig) ServeUpgrade(w http.ResponseWriter, r *http.Request) {
 	}
 
 	conn.SetReadLimit(maxMessageSize)
-	_ = conn.SetReadDeadline(time.Now().Add(pongWait))
+	// Use the short pre-auth deadline, not pongWait: this socket has proved
+	// nothing yet, and letting it idle for a full pongWait would hold a
+	// connection slot cheaply.
+	_ = conn.SetReadDeadline(time.Now().Add(authHandshakeDeadline))
 
 	// Expect the connect frame promptly; an idle socket must not hold a
 	// connection slot open.
-	var req ConnectRequest
-	if err := conn.ReadJSON(&req); err != nil {
-		_ = conn.WriteControl(websocket.CloseMessage,
-			websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "expected connect frame"),
-			time.Now().Add(writeWait))
-		_ = conn.Close()
+	var frame rawFrame
+	if err := conn.ReadJSON(&frame); err != nil {
+		cfg.reject(conn, "expected connect frame", err)
+		return
+	}
+
+	// The client may express the handshake in one of two shapes: fields inside
+	// `payload`, or at the top level. Both are accepted so a client variation
+	// does not break pairing silently, but the frame TYPE must be present either
+	// way.
+	req := decodeConnectRequest(frame)
+
+	// Validate the frame shape before trusting any of its contents. Without
+	// this, any JSON object authenticates, so a client/server protocol mismatch
+	// (or a frame sent by the wrong code path) is accepted silently.
+	if !isConnectFrame(frame, req) {
+		cfg.reject(conn, "expected connect frame",
+			fmt.Errorf("frame type=%q action=%q did not name a connect handshake",
+				frame.Type, frame.Action))
 		return
 	}
 
@@ -135,16 +242,14 @@ func (cfg ConnConfig) ServeUpgrade(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// Deliberately generic: distinguishing "unknown token" from "expired"
 		// would let a caller probe for valid tokens.
-		_ = conn.WriteControl(websocket.CloseMessage,
-			websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "unauthorized"),
-			time.Now().Add(writeWait))
-		_ = conn.Close()
-		log.Printf("extensions: handshake rejected: %v", err)
+		cfg.reject(conn, "unauthorized", err)
 		return
 	}
 
 	if err := ValidateExtensionID(identity.ExtensionID); err != nil {
-		_ = conn.Close()
+		// Rejected with a reason, like the two paths above: an unexplained drop
+		// leaves the operator nothing to diagnose.
+		cfg.reject(conn, "invalid extension id", err)
 		return
 	}
 

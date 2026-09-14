@@ -16,8 +16,10 @@ package extensions
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -144,7 +146,16 @@ type Hub struct {
 	stop     chan struct{}
 	done     chan struct{}
 	stopOnce sync.Once
-	stopped  bool
+	// started records that Run has begun, so Stop can tell "the loop is running
+	// and will close done" from "the loop was never started, so nothing will
+	// ever close done". Without it, Stop on a never-started hub blocks forever.
+	started atomic.Bool
+
+	// stopped is written by the event loop and read by callers on other
+	// goroutines, so it must be atomic. A plain bool here was a data race: the
+	// read was unsynchronised and unsynchronised reads can be cached
+	// indefinitely, so a caller could keep seeing false after shutdown.
+	stopped atomic.Bool
 
 	// OnActivity is called on the event loop whenever any message arrives from
 	// an extension, so the caller can refresh last_seen without the hub knowing
@@ -180,6 +191,13 @@ func NewHub(_ any) *Hub {
 
 // Run is the single event loop. Call it in its own goroutine.
 func (h *Hub) Run(ctx context.Context) {
+	// Record that the loop is live before anything else, so a concurrent Stop
+	// knows h.done will eventually close. Guarded by CompareAndSwap so a second
+	// Run call is rejected rather than racing to close done twice.
+	if !h.started.CompareAndSwap(false, true) {
+		log.Printf("extensions: Run called on an already-started hub; ignoring")
+		return
+	}
 	defer close(h.done)
 
 	ticker := time.NewTicker(cleanupInterval)
@@ -242,7 +260,7 @@ func (h *Hub) Run(ctx context.Context) {
 
 // shutdown closes every client and pending result channel exactly once.
 func (h *Hub) shutdown() {
-	h.stopped = true
+	h.stopped.Store(true)
 	for id := range h.clients {
 		h.removeClient(id)
 	}
@@ -253,11 +271,23 @@ func (h *Hub) shutdown() {
 	}
 }
 
-// Stop halts the event loop. Safe to call more than once.
+// Stop halts the event loop. Safe to call more than once, and safe to call on a
+// hub whose Run was never started.
+//
+// The started check matters: h.done is closed only by Run, so waiting on it
+// before the loop has begun would block forever. That turned a shutdown path
+// into a hang, which is far worse than a shutdown that reports nothing to do.
 func (h *Hub) Stop() {
 	h.stopOnce.Do(func() {
 		close(h.stop)
 	})
+
+	if !h.started.Load() {
+		// No loop is running, so nothing will ever close done. Mark stopped so
+		// callers observe the terminal state, and return rather than block.
+		h.stopped.Store(true)
+		return
+	}
 	<-h.done
 }
 
@@ -565,4 +595,23 @@ func (h *Hub) Disconnect(extensionID string) {
 	}
 }
 
-func (h *Hub) isStopped() bool { return h.stopped }
+// RegisterTestClient registers a connection that accepts commands and never
+// replies, for tests that need a pending command to stay outstanding.
+//
+// Exported so a test in another package can drive the hub without building a
+// real socket. The client's queue is never drained, so a command is accepted and
+// then simply not answered.
+func (h *Hub) RegisterTestClient(extensionID string) error {
+	if extensionID == "" {
+		return fmt.Errorf("extensions: extensionID is required")
+	}
+	c := &Client{
+		extensionID: extensionID,
+		send:        make(chan []byte, sendBufferSize),
+		done:        make(chan struct{}),
+	}
+	h.RegisterSync(c)
+	return nil
+}
+
+func (h *Hub) isStopped() bool { return h.stopped.Load() }

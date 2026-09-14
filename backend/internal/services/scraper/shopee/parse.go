@@ -75,30 +75,58 @@ type ParsedProduct struct {
 // Returns an empty slice (not an error) when the body is valid JSON but contains
 // no items: an empty result page is a normal end-of-results signal, and treating
 // it as an error would abort a scrape that has simply reached the end.
+//
+// Items are decoded individually. Decoding the whole array at once means one
+// malformed entry — a non-numeric itemid, a boolean where a number belongs —
+// fails the entire unmarshal and discards every valid product on the page. That
+// turns a single bad card into a lost page.
 func ParseSearchResponse(body []byte, baseURL string) ([]ParsedProduct, error) {
 	if len(body) == 0 {
 		return nil, fmt.Errorf("empty response body")
 	}
 
-	var resp searchResponse
-	if err := json.Unmarshal(body, &resp); err != nil {
+	// Decode the envelope, keeping items raw so each can be parsed alone.
+	var envelope struct {
+		Items    []json.RawMessage `json:"items"`
+		Error    *int              `json:"error"`
+		ErrorMsg string            `json:"error_msg"`
+	}
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		// A body that is not even the expected envelope shape is a real error:
+		// the caller may be looking at an HTML error page or a changed API.
 		return nil, fmt.Errorf("parse search response: %w", err)
 	}
 
 	// Shopee reports its own errors inside a 200 body; surfacing them here gives
 	// an actionable message instead of an empty result.
-	if resp.Error != nil && *resp.Error != 0 {
-		return nil, fmt.Errorf("shopee returned error %d: %s", *resp.Error, resp.ErrorMsg)
+	if envelope.Error != nil && *envelope.Error != 0 {
+		return nil, fmt.Errorf("shopee returned error %d: %s", *envelope.Error, envelope.ErrorMsg)
 	}
 
-	out := make([]ParsedProduct, 0, len(resp.Items))
-	for _, it := range resp.Items {
-		p := parseItemBasic(it.ItemBasic, baseURL)
+	out := make([]ParsedProduct, 0, len(envelope.Items))
+	skipped := 0
+	for _, rawItem := range envelope.Items {
+		var item searchItem
+		if err := json.Unmarshal(rawItem, &item); err != nil {
+			// One malformed card must not cost the whole page. Counted so a
+			// systemic change (all items malformed) is visible rather than
+			// looking like a genuinely empty result.
+			skipped++
+			continue
+		}
+		p := parseItemBasic(item.ItemBasic, baseURL)
 		if !isUsableProduct(p) {
 			continue
 		}
 		out = append(out, p)
 	}
+
+	if len(out) == 0 && skipped > 0 {
+		// Every item failed to parse: that is a shape change, not an empty page,
+		// and reporting it as empty would silently stop the scrape.
+		return nil, fmt.Errorf("all %d items failed to parse; the response shape may have changed", skipped)
+	}
+
 	return out, nil
 }
 
@@ -201,23 +229,60 @@ func isNumeric(s string) bool {
 	return true
 }
 
+// isPlainInteger reports whether s is a run of ASCII digits only: no sign, no
+// decimal point, no exponent, no whitespace.
+//
+// Used before scaling a price. A JSON number may legally be written as "1e5" or
+// "1500000.00000"; passing either through the integer path would store the
+// literal text as a price ("1e5"), which is not a price at all.
+func isPlainInteger(s string) bool {
+	if s == "" {
+		return false
+	}
+	return isNumeric(s)
+}
+
 // formatShopeePrice converts Shopee's integer price (1/100000 units) to a
 // decimal string.
 //
 // Done with integer arithmetic rather than float, because float64 cannot exactly
 // represent values like 15000000 and would introduce rounding into a field users
 // compare across rows.
+//
+// Only a plain digit run is scaled. Anything else — a sign prefix, a decimal
+// point, exponent notation — is not the integer this function expects and is
+// rejected rather than stored verbatim: writing "1e5" into a price column
+// produces a value that looks like data but cannot be compared or summed.
 func formatShopeePrice(raw string) string {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return ""
 	}
-	if !isNumeric(raw) {
-		// Already formatted (for example "Rp15.000"), or negative for a null price.
+
+	if !isPlainInteger(raw) {
+		// A negative value is Shopee's sentinel for a null price.
 		if strings.HasPrefix(raw, "-") {
 			return ""
 		}
-		return raw
+		// A decimal literal (e.g. "1500000.00000") still denotes a real amount,
+		// so scale its integer part rather than discarding the price.
+		if whole, _, found := strings.Cut(raw, "."); found && isPlainInteger(whole) {
+			return formatShopeePrice(whole)
+		}
+		// Exponent form or any other shape: not a price we can trust. Returning
+		// empty is honest; storing the literal would look like data.
+		return ""
+	}
+
+	// Normalise leading zeros BEFORE scaling. Padding first would change the
+	// value: "0100" padded to six digits becomes "000100", which reads as
+	// 0.001 rather than 100/100000 = 0.001 ... precisely the kind of silent
+	// magnitude error this function exists to avoid. Stripping the zeros first
+	// makes the digit count meaningful.
+	raw = strings.TrimLeft(raw, "0")
+	if raw == "" {
+		// The value was all zeros: a zero price.
+		return "0"
 	}
 
 	// Pad to at least 6 digits so the fractional part always exists.

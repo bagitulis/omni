@@ -83,7 +83,18 @@ func (s *HubSender) Send(ctx context.Context, action string, payload any) (json.
 		return nil, fmt.Errorf("hub sender: cancelled waiting for %s: %w", action, ctx.Err())
 	case <-timer.C:
 		return nil, fmt.Errorf("hub sender: timeout after %s waiting for %s", timeout, action)
-	case result := <-resultCh:
+	case result, ok := <-resultCh:
+		// ok == false means the hub closed this channel instead of delivering a
+		// reply — which it does for every pending channel on shutdown, and
+		// immediately if the loop has already exited.
+		//
+		// Without this check the receive yields a zero-value WSMessage, which
+		// interpretResult accepts as a SUCCESS with an empty payload. That would
+		// report a scrape as having captured nothing when in fact the hub died,
+		// so the two cases must be distinguished here.
+		if !ok {
+			return nil, fmt.Errorf("hub sender: hub closed the result channel while waiting for %s (hub stopped)", action)
+		}
 		return interpretResult(action, result)
 	}
 }

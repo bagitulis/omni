@@ -150,59 +150,109 @@ func CleanDOMPrice(raw string) string {
 
 // CleanDOMSold extracts the numeric part of a sold-count string.
 //
-// Shopee renders these as "1,2rb terjual" (Indonesian for "1.2k sold"), so the
-// leading number is kept and the unit word dropped. Abbreviations are expanded
-// because storing "1,2rb" would make sorting by sold count useless.
+// Shopee renders these as "1,2rb terjual" (Indonesian for "1.2k sold"). The unit
+// word is expanded because storing "1,2rb" would make sorting by sold count
+// useless.
+//
+// Two properties matter for correctness:
+//
+//   - The unit must be the marker IMMEDIATELY after the number. Searching the
+//     whole string for "rb" matched any word containing those letters
+//     ("garbage", "arb"), inflating a count by 1000x.
+//   - The count need not be the first thing in the string. Requiring a leading
+//     digit returned "" for "Terjual 1,2rb", silently losing the value.
 func CleanDOMSold(raw string) string {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return ""
 	}
 
-	lower := strings.ToLower(raw)
+	// Find the start of the numeric run. A leading separator is part of the
+	// number (",5rb" means 0.5rb = 500), so it must not be skipped: starting at
+	// the first digit would read ",5rb" as "5rb" and inflate it 10x.
+	start := -1
+	for i, r := range trimmed {
+		if (r >= '0' && r <= '9') || r == ',' || r == '.' {
+			start = i
+			break
+		}
+	}
+	if start < 0 {
+		// A word-only value ("terjual") carries no count.
+		return ""
+	}
 
-	// Collect the leading numeric run. A separator between digits is a decimal
-	// point; one that ends the run is not.
+	number, rest := splitLeadingNumber(trimmed[start:])
+	if number == "" {
+		return ""
+	}
+
+	multiplier := unitMultiplier(rest)
+	return expandAbbreviated(number, multiplier)
+}
+
+// splitLeadingNumber splits a numeric run from the text that follows it.
+//
+// A separator between digits is kept as a decimal point; two separators in a row
+// end the run, since that is grouping rather than a number. The returned unit
+// text is what immediately follows the digits, which is what determines the
+// multiplier.
+func splitLeadingNumber(s string) (number, rest string) {
 	var num strings.Builder
 	sawSeparator := false
-	for _, r := range lower {
+
+	for i, r := range s {
 		switch {
 		case r >= '0' && r <= '9':
 			num.WriteRune(r)
 			sawSeparator = false
 		case r == ',' || r == '.':
-			// A leading separator is not part of a number.
-			if num.Len() == 0 {
-				continue
-			}
-			// Two separators in a row ends the numeric run.
 			if sawSeparator {
-				goto parsed
+				// Two separators in a row: the number ended before the second.
+				return strings.TrimSuffix(num.String(), "."), s[i:]
+			}
+			// A leading separator with no integer part is 0.x, so make the
+			// absent integer part explicit. Dropping it turned ",5rb" (500)
+			// into "5rb" (5000), a 10x overstatement.
+			if num.Len() == 0 {
+				num.WriteRune('0')
 			}
 			num.WriteRune('.')
 			sawSeparator = true
 		default:
-			goto parsed
+			return strings.TrimSuffix(num.String(), "."), s[i:]
 		}
 	}
 
-parsed:
-	digits := strings.TrimSuffix(num.String(), ".")
-	if digits == "" {
-		// A word-only value ("terjual") carries no count.
-		return ""
-	}
+	return strings.TrimSuffix(num.String(), "."), ""
+}
 
-	// Determine the multiplier from the unit that follows the number.
-	multiplier := int64(1)
+// unitMultiplier maps the unit marker following a count to its multiplier.
+//
+// Only the leading token is examined, and only as a prefix, so "rb" must START
+// the unit text. That is what stops "garbage" from being read as a thousands
+// marker while still accepting "rb terjual" and "rbterjual".
+func unitMultiplier(rest string) int64 {
+	// Take the first token: everything up to the first non-letter.
+	token := strings.ToLower(strings.TrimLeft(rest, " \t\u00a0"))
+	end := 0
+	for i, r := range token {
+		if (r >= 'a' && r <= 'z') || r == '+' {
+			end = i + len(string(r))
+			continue
+		}
+		break
+	}
+	token = token[:end]
+
 	switch {
-	case strings.Contains(lower, "rb"):
-		multiplier = 1000
-	case strings.Contains(lower, "jt"), strings.Contains(lower, "mio"):
-		multiplier = 1000000
+	case strings.HasPrefix(token, "rb"):
+		return 1000
+	case strings.HasPrefix(token, "jt"), strings.HasPrefix(token, "mio"):
+		return 1000000
+	default:
+		return 1
 	}
-
-	return expandAbbreviated(digits, multiplier)
 }
 
 // expandAbbreviated turns a possibly fractional count into a whole number.
@@ -212,20 +262,31 @@ parsed:
 // becomes 1200 rather than a truncated 1000 or a fractional value.
 func expandAbbreviated(digits string, multiplier int64) string {
 	if multiplier == 1 {
-		// No unit word: drop the decimal separator to yield an integer.
-		return strings.ReplaceAll(digits, ".", "")
+		// No unit word: drop the grouping separators to yield an integer, then
+		// normalise leading zeros so "05" and "5" compare equal. Without this
+		// the stored value is not comparable across rows.
+		return normalizeDigits(strings.ReplaceAll(digits, ".", ""))
 	}
 
 	value, err := strconv.ParseFloat(digits, 64)
 	if err != nil {
 		// Unparseable but numeric-looking: keep the digits rather than lose data.
-		return strings.ReplaceAll(digits, ".", "")
+		return normalizeDigits(strings.ReplaceAll(digits, ".", ""))
 	}
 
 	scaled := value * float64(multiplier)
 	if scaled >= float64(1<<62) {
 		// Guard against an absurd value overflowing the conversion below.
-		return strings.ReplaceAll(digits, ".", "")
+		return normalizeDigits(strings.ReplaceAll(digits, ".", ""))
 	}
 	return strconv.FormatInt(int64(math.Round(scaled)), 10)
+}
+
+// normalizeDigits strips leading zeros, keeping a lone "0" for zero itself.
+func normalizeDigits(s string) string {
+	s = strings.TrimLeft(s, "0")
+	if s == "" {
+		return "0"
+	}
+	return s
 }
