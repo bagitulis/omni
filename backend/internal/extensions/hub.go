@@ -173,7 +173,6 @@ type Hub struct {
 	listQ       chan listQuery
 	syncQ       chan syncRequest
 	disconnectQ chan disconnectRequest
-	ownerQ      chan ownerUpdate
 
 	stop     chan struct{}
 	done     chan struct{}
@@ -216,7 +215,6 @@ func NewHub(_ any) *Hub {
 		listQ:       make(chan listQuery, 32),
 		syncQ:       make(chan syncRequest, 32),
 		disconnectQ: make(chan disconnectRequest, 16),
-		ownerQ:      make(chan ownerUpdate, 64),
 		stop:        make(chan struct{}),
 		done:        make(chan struct{}),
 	}
@@ -275,12 +273,6 @@ func (h *Hub) Run(ctx context.Context) {
 		case q := <-h.connectedQ:
 			_, ok := h.clients[q.extensionID]
 			q.result <- ok
-
-		case u := <-h.ownerQ:
-			if entry, ok := h.resultChans[u.msgID]; ok {
-				entry.extensionID = u.extensionID
-				h.resultChans[u.msgID] = entry
-			}
 
 		case q := <-h.listQ:
 			ids := make([]string, 0, len(h.clients))
@@ -628,16 +620,6 @@ func (h *Hub) RegisterResultChannelFor(msgID, extensionID string, ch chan WSMess
 		close(ch)
 	case <-time.After(eventLoopTimeout):
 		log.Printf("extensions: RegisterResultChannel timed out for %s", msgID)
-	}
-}
-
-// SetResultOwner records which extension an already-registered result channel
-// belongs to. Provided for callers that register before knowing the target.
-func (h *Hub) SetResultOwner(msgID, extensionID string) {
-	select {
-	case h.ownerQ <- ownerUpdate{msgID: msgID, extensionID: extensionID}:
-	case <-h.done:
-	case <-time.After(eventLoopTimeout):
 	}
 }
 

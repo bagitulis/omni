@@ -31,6 +31,10 @@ frontend-vue/dist/
 # TypeScript incremental build artifacts
 *.tsbuildinfo
 
+# CodeGraph index (local analysis cache, rebuilt with `codegraph init`)
+# Contains ~100k nodes / ~220k edges of derived data — never commit it.
+.codegraph/
+
 # Vite compile artifacts (generated from .ts source)
 frontend/vite.config.js
 frontend/vite.config.d.ts

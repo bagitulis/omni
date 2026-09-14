@@ -327,10 +327,9 @@ func TestHub_ReplyReleasesCapacity(t *testing.T) {
 		msgID := fmt.Sprintf("cap-%d", i)
 
 		// Register the waiter the way HubSender does, so the reply can be
-		// correlated by id.
+		// correlated by id and capacity is attributable to this extension.
 		resultCh := make(chan WSMessage, 1)
-		h.RegisterResultChannel(msgID, resultCh)
-		h.SetResultOwner(msgID, "ext-cap")
+		h.RegisterResultChannelFor(msgID, "ext-cap", resultCh)
 
 		if err := h.SendToExtension("ext-cap", WSMessage{ID: msgID, Type: MsgTypeCommand}); err != nil {
 			t.Fatalf("send %d rejected despite replies freeing capacity: %v", i, err)
