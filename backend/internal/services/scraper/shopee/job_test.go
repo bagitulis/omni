@@ -1,7 +1,9 @@
 package shopee
 
 import (
+	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/omni/backend/internal/models"
@@ -190,5 +192,53 @@ func TestTrimSlashAndFirstNonEmpty(t *testing.T) {
 	}
 	if got := firstNonEmpty("", ""); got != "" {
 		t.Errorf("firstNonEmpty with all empty = %q, want empty", got)
+	}
+}
+
+// The executor passes the tenant through the context, not as an argument, so the
+// handler must read it there — and must fail closed when it is absent, since
+// without a tenant there is no schema to write into.
+func TestScrapeService_HandlerRequiresTenantInContext(t *testing.T) {
+	svc := NewScrapeService(nil, nil)
+	handler := svc.Handler()
+
+	// No tenant in the context: must fail, and must not reach the service.
+	_, err := handler(context.Background(), `{"mode":"search","query":"x","extension_id":"e"}`)
+	if err == nil {
+		t.Fatal("a missing tenant in the job context must be an error, not a default")
+	}
+	if !strings.Contains(err.Error(), "tenant_id") {
+		t.Errorf("error should name the missing tenant, got: %v", err)
+	}
+}
+
+func TestScrapeService_HandlerReadsTenantFromContext(t *testing.T) {
+	svc := NewScrapeService(nil, nil) // nil tenantDB: reaching it would panic
+	handler := svc.Handler()
+
+	ctx := context.WithValue(context.Background(), models.ContextKeyTenantID, "tenant-a")
+
+	// A malformed payload proves the tenant was read successfully: the error is
+	// about the payload, meaning execution got past the tenant check and into
+	// RunJob's parsing.
+	_, err := handler(ctx, `{not json`)
+	if err == nil {
+		t.Fatal("a malformed payload must be an error")
+	}
+	if strings.Contains(err.Error(), "tenant_id missing") {
+		t.Errorf("tenant should have been read from the context, got: %v", err)
+	}
+}
+
+func TestJobTypeConstantMatchesModels(t *testing.T) {
+	// The scraper's alias and the shared constant must not drift, or a queued
+	// job would never find its handler.
+	if JobTypeShopeeScrape != models.JobTypeShopeeScrape {
+		t.Errorf("JobTypeShopeeScrape = %q, want the models constant %q",
+			JobTypeShopeeScrape, models.JobTypeShopeeScrape)
+	}
+	if models.JobTypeShopeeScrape != "shopee_scrape" {
+		t.Errorf("job type value changed to %q; this is persisted and is a breaking change",
+			models.JobTypeShopeeScrape)
 	}
 }

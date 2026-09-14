@@ -13,7 +13,30 @@ import (
 )
 
 // Job type registered with the existing job executor.
-const JobTypeShopeeScrape = "shopee_scrape"
+//
+// The constant lives in models alongside the other job types, so registration
+// and dispatch cannot drift; this alias keeps the scraper package's call sites
+// readable.
+const JobTypeShopeeScrape = models.JobTypeShopeeScrape
+
+// Handler returns a function matching the job executor's JobHandler signature.
+//
+// The executor supplies the tenant through the context
+// (models.ContextKeyTenantID), not as an argument, so the tenant is read from
+// there. This preserves the same guarantee as the synchronous path: the job
+// cannot name a tenant it does not belong to — the executor resolved it from the
+// job's own schema before calling.
+func (s *ScrapeService) Handler() func(ctx context.Context, payload string) (string, error) {
+	return func(ctx context.Context, payload string) (string, error) {
+		tenantID, _ := ctx.Value(models.ContextKeyTenantID).(string)
+		if tenantID == "" {
+			// Fail closed rather than guessing: with no tenant there is no schema
+			// to write into.
+			return "", fmt.Errorf("scrape: tenant_id missing from job context")
+		}
+		return s.RunJob(ctx, tenantID, payload)
+	}
+}
 
 // ScrapeJobData is the payload stored on a queued job.
 //

@@ -25,6 +25,11 @@ const (
 	// Ads jobs
 	JobTypeShopeeAdsSync = "shopee_ads_sync"
 	JobTypeTiktokAdsSync = "tiktok_ads_sync"
+
+	// Browser-automation jobs. Unlike the sync jobs above, these run in the
+	// operator's own browser via a paired extension rather than against a
+	// platform API.
+	JobTypeShopeeScrape = "shopee_scrape"
 )
 
 // EscrowSyncJobData represents escrow sync job payload

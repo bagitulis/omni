@@ -193,6 +193,14 @@ func main() {
 	scrapeHandler := handlers.NewScrapeHandler(tenantDBFor, scrapeService)
 	routes.RegisterExtensionRoutes(api, extHandler, handlers.NewExtensionWSHandler(extWSConfig), scrapeHandler)
 
+	// Register the scrape job type with the background executor, so a scrape can
+	// be queued rather than run inline. Done here rather than inside the
+	// executor's own builder because a scrape needs the extension hub, which
+	// that builder does not have.
+	if extHandlers.JobExecutor != nil {
+		extHandlers.JobExecutor.RegisterHandler(models.JobTypeShopeeScrape, scrapeService.Handler())
+	}
+
 	// Platform-specific handlers (existing)
 	sOrder := shopee.NewOrderHandler(cfg.DatabasePath)
 	sProd := shopee.NewProductHandler(cfg.DatabasePath)
