@@ -84,26 +84,67 @@ func decodeDOMItems(raw []byte) ([]DOMProduct, error) {
 	return envelope.Data, nil
 }
 
-// normalizeDOMLink makes a card's href absolute.
+// normalizeDOMLink makes a card's href absolute AND canonical.
 //
-// The content script usually absolutises already, but a relative href would
-// otherwise be stored and then fail to match the canonical form used by the
-// network path — breaking dedup between the two capture paths.
+// Canonicalising matters as much as absolutising: links are the dedup key and
+// the database's unique key, and the two capture paths see the same product
+// differently. The DOM path gets a slug with tracking parameters
+// (".../Name-i.111.222?sp_atk=abc") while the network path builds
+// ".../product/111/222". Left alone, one product would be stored twice whenever a
+// run mixes capture paths across pages.
+//
+// When the shop and item ids cannot be recovered the link is only absolutised:
+// keeping an imperfect link is better than dropping the product.
 func normalizeDOMLink(link, baseURL string) string {
 	link = strings.TrimSpace(link)
 	if link == "" {
 		return ""
 	}
-	if strings.HasPrefix(link, "http://") || strings.HasPrefix(link, "https://") {
-		return link
+
+	absolute := link
+	if !strings.HasPrefix(absolute, "http://") && !strings.HasPrefix(absolute, "https://") {
+		if baseURL == "" {
+			baseURL = "https://shopee.co.id"
+		}
+		if !strings.HasPrefix(absolute, "/") {
+			absolute = "/" + absolute
+		}
+		absolute = strings.TrimRight(baseURL, "/") + absolute
 	}
-	if baseURL == "" {
-		baseURL = "https://shopee.co.id"
+
+	// Collapse to the canonical form when both ids are present.
+	if shopID, itemID := ExtractShopIDs(absolute); shopID != "" && itemID != "" {
+		origin := baseURL
+		if origin == "" {
+			origin = originOf(absolute)
+		}
+		if canonical := BuildProductURL(origin, shopID, itemID); canonical != "" {
+			return canonical
+		}
 	}
-	if !strings.HasPrefix(link, "/") {
-		link = "/" + link
+
+	// Otherwise at least drop the fragment, which never identifies a product.
+	if idx := strings.IndexByte(absolute, '#'); idx >= 0 {
+		absolute = absolute[:idx]
 	}
-	return strings.TrimRight(baseURL, "/") + link
+	return absolute
+}
+
+// originOf returns the scheme and host of an absolute URL, or "" when it cannot
+// be determined.
+func originOf(rawURL string) string {
+	schemeEnd := strings.Index(rawURL, "://")
+	if schemeEnd < 0 {
+		return ""
+	}
+	rest := rawURL[schemeEnd+3:]
+	if slash := strings.IndexByte(rest, '/'); slash >= 0 {
+		rest = rest[:slash]
+	}
+	if rest == "" {
+		return ""
+	}
+	return rawURL[:schemeEnd+3] + rest
 }
 
 // CleanDOMPrice normalises a formatted price string for storage.

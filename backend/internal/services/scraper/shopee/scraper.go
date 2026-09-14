@@ -145,11 +145,21 @@ func (s *Scraper) runPaginated(ctx context.Context, cfg Config) (*Result, error)
 
 		if len(pageProducts) == 0 {
 			consecutiveEmpty++
+			// Report the page even though it yielded nothing. Without this a
+			// caller watching progress sees nothing at all during the empty
+			// pages that precede a stop, and cannot tell a slow page from a
+			// stalled scrape.
+			if cfg.OnPage != nil {
+				cfg.OnPage(page, len(res.Products))
+			}
 			if consecutiveEmpty >= emptyPagesBeforeStop {
 				break
 			}
 			// Try the next page rather than stopping on the first empty one.
 			if page < maxPages && !s.isLastPage(ctx) {
+				if s.pageURL(cfg, page+1) == "" {
+					break
+				}
 				if nextErr := s.nextPage(ctx); nextErr != nil {
 					break
 				}

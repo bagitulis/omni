@@ -128,9 +128,11 @@ func TestParseDOMProducts_AcceptsEnvelopeShape(t *testing.T) {
 	}
 }
 
-func TestParseDOMProducts_RelativeLinkAbsolutised(t *testing.T) {
-	// A relative href must be made absolute, or it would not match the canonical
-	// link the network path produces and dedup between paths would break.
+func TestParseDOMProducts_RelativeLinkAbsoluteAndCanonical(t *testing.T) {
+	// A relative href must be made absolute AND canonical. Absolutising alone
+	// was not enough: the slug form would not match the canonical link the
+	// network path produces, so the same product would be stored twice whenever a
+	// run mixed capture paths across pages.
 	raw := []byte(`[{"name":"A","price":"1","link":"/A-i.5.6"}]`)
 
 	products, err := ParseDOMProducts(raw, "https://shopee.co.id")
@@ -140,8 +142,10 @@ func TestParseDOMProducts_RelativeLinkAbsolutised(t *testing.T) {
 	if len(products) != 1 {
 		t.Fatalf("got %d products, want 1", len(products))
 	}
-	if products[0].Link != "https://shopee.co.id/A-i.5.6" {
-		t.Errorf("Link = %q, want an absolute URL", products[0].Link)
+	// Must equal what the network path would produce for the same product.
+	want := BuildProductURL("https://shopee.co.id", "5", "6")
+	if products[0].Link != want {
+		t.Errorf("Link = %q, want the canonical %q", products[0].Link, want)
 	}
 	if products[0].ShopID != "5" || products[0].ShopeeItemID != "6" {
 		t.Errorf("relative link ids not extracted: (%q, %q)", products[0].ShopID, products[0].ShopeeItemID)

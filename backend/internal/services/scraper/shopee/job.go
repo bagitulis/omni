@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/omni/backend/internal/extensions"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
@@ -106,14 +107,27 @@ func (s *ScrapeService) RunJob(ctx context.Context, tenantID, payload string) (s
 	}
 
 	// The job id is the correlation key for scraped products. A caller that
-	// wants the rows to be groupable supplies one; otherwise a unique id is
-	// generated so rows are still attributable to this run.
+	// wants the rows groupable supplies one; otherwise a unique id is derived so
+	// rows are still attributable to this run.
 	jobID := data.JobID()
 	if jobID == "" {
-		jobID = fmt.Sprintf("scrape_%d", s.now().UnixNano())
+		jobID = deriveJobID(s.now)
 	}
 
 	return s.run(ctx, db, &data, jobID)
+}
+
+// deriveJobID produces a unique id for a run that did not supply one.
+//
+// A timestamp alone is not sufficient: two runs starting within the same clock
+// tick would collide, and Windows timer granularity makes that reachable under
+// load. A random suffix removes the possibility entirely, which matters because
+// a collision would merge two runs' products under one group.
+func deriveJobID(now func() time.Time) string {
+	if now == nil {
+		now = time.Now
+	}
+	return fmt.Sprintf("scrape_%d_%s", now().UnixNano(), uuid.New().String()[:8])
 }
 
 // run performs the scrape and persists the results.
