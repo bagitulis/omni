@@ -59,6 +59,15 @@ type ParsedProduct struct {
 	ImageURL     string
 	ShopeeItemID string
 	ShopID       string
+
+	// Page is the 1-based page the product was captured from. Recorded so a
+	// partial run can be resumed and so operators can see where coverage stopped.
+	Page int
+
+	// Source records which capture path produced this row: ScrapeSourceNetwork or
+	// ScrapeSourceDOM. Exposed so it is visible when the fallback is doing the
+	// work in production, which would otherwise go unnoticed.
+	Source string
 }
 
 // ParseSearchResponse extracts products from a Shopee search_items body.

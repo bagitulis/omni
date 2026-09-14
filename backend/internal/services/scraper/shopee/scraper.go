@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/omni/backend/internal/models"
 	"strings"
 )
 
@@ -155,7 +156,12 @@ func (s *Scraper) runPaginated(ctx context.Context, cfg Config) (*Result, error)
 				continue
 			}
 			seen[p.Link] = true
+			// Stamp provenance here rather than in each capture path, so both
+			// paths are attributed consistently and the page number cannot be
+			// forgotten in one of them.
+			p.Page = page
 			res.Products = append(res.Products, p)
+			res.Source = p.Source
 			if len(res.Products) >= maxProducts {
 				break
 			}
@@ -209,11 +215,28 @@ func (s *Scraper) capturePage(ctx context.Context, cfg Config, baseURL string, p
 
 	// Network first.
 	if products, err := s.fromNetwork(ctx, baseURL); err == nil && len(products) > 0 {
+		markSource(products, models.ScrapeSourceNetwork)
 		return products, nil
 	}
 
 	// DOM fallback.
-	return s.fromDOM(ctx, baseURL)
+	products, err := s.fromDOM(ctx, baseURL)
+	if err != nil {
+		return nil, err
+	}
+	markSource(products, models.ScrapeSourceDOM)
+	return products, nil
+}
+
+// markSource stamps the capture path onto each product.
+//
+// Done centrally so a path cannot forget to label its output, which would make
+// it impossible to tell from the data whether the fallback is carrying
+// production traffic.
+func markSource(products []ParsedProduct, source string) {
+	for i := range products {
+		products[i].Source = source
+	}
 }
 
 // navigate opens the URL for the requested page.
