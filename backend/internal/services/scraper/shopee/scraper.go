@@ -389,15 +389,19 @@ func (s *Scraper) fromNetwork(ctx context.Context, baseURL string) ([]ParsedProd
 		if parseErr != nil {
 			continue // try the next captured response
 		}
+
+		// Use the FIRST response that parses, then stop. Walking on would bleed a
+		// previous page's rows into the current one: a valid-but-empty response
+		// for this page is a real answer, and appending an older page's products
+		// would stamp them with the wrong page number and stop the empty-page
+		// counter from advancing, so the scrape would never detect the end.
 		all = append(all, products...)
-		// Trim rather than break: one response can exceed the cap on its own, and
-		// breaking before trimming would let a single large payload through.
 		if len(all) >= maxProductsPerPage {
 			all = all[:maxProductsPerPage]
-			break
 		}
+		return all, nil
 	}
-	return all, nil
+	return nil, nil
 }
 
 // unwrapEnvelope returns the "data" member of a content-script reply, or the

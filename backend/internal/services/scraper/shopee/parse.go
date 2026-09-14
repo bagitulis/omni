@@ -104,27 +104,47 @@ func ParseSearchResponse(body []byte, baseURL string) ([]ParsedProduct, error) {
 	}
 
 	out := make([]ParsedProduct, 0, len(envelope.Items))
-	skipped := 0
+	// Two failure kinds are tracked separately, because they mean different
+	// things:
+	//   malformed — the item could not be decoded at all
+	//   unusable  — it decoded but yielded no usable product
+	//   emptyIds  — a specific bad-data case (ids present but malformed)
+	var malformed, unusable, badIDs int
+
 	for _, rawItem := range envelope.Items {
 		var item searchItem
 		if err := json.Unmarshal(rawItem, &item); err != nil {
-			// One malformed card must not cost the whole page. Counted so a
-			// systemic change (all items malformed) is visible rather than
-			// looking like a genuinely empty result.
-			skipped++
+			malformed++
 			continue
 		}
 		p := parseItemBasic(item.ItemBasic, baseURL)
-		if !isUsableProduct(p) {
+		if isUsableProduct(p) {
+			out = append(out, p)
 			continue
 		}
-		out = append(out, p)
+		// Distinguish a malformed id (bad data) from a missing whole payload
+		// (shape change). An id present but not a plain integer is a bad row, not
+		// a structural change, so it must not be reported as one.
+		if p.ProductName != "" && (p.ShopeeItemID != "" || p.ShopID != "") {
+			badIDs++
+			continue
+		}
+		unusable++
 	}
 
-	if len(out) == 0 && skipped > 0 {
-		// Every item failed to parse: that is a shape change, not an empty page,
-		// and reporting it as empty would silently stop the scrape.
-		return nil, fmt.Errorf("all %d items failed to parse; the response shape may have changed", skipped)
+	if len(out) == 0 && (malformed > 0 || unusable > 0) {
+		// Every item was unusable: that is a shape change, not an empty page, and
+		// reporting it as empty would silently stop the scrape after a few pages.
+		return nil, fmt.Errorf("%d items were present but none were usable "+
+			"(malformed=%d, unusable=%d); the response shape may have changed",
+			malformed+unusable, malformed, unusable)
+	}
+
+	if len(out) == 0 && badIDs > 0 {
+		// Only malformed identifiers were present. That is bad data, not a shape
+		// change: report it as an error so it is visible, but the wording makes
+		// the difference clear to whoever reads the logs.
+		return nil, fmt.Errorf("%d items had malformed identifiers and none were usable", badIDs)
 	}
 
 	return out, nil
@@ -141,10 +161,30 @@ func isUsableProduct(p ParsedProduct) bool {
 	if p.ProductName == "" || p.Link == "" {
 		return false
 	}
-	if p.ShopeeItemID == "" || p.ShopeeItemID == "0" {
+	if !isUsableID(p.ShopeeItemID) || !isUsableID(p.ShopID) {
 		return false
 	}
-	return p.ShopID != "" && p.ShopID != "0"
+	return true
+}
+
+// isUsableID reports whether an identifier is a plain positive integer.
+//
+// The id is interpolated into a product URL, so a non-integer value produces a
+// fabricated link that looks real: an id of "1.5" yields
+// ".../product/2/1.5", which would then be persisted and deduped as if it named
+// a real product. Rejecting non-integers is what keeps that from happening.
+func isUsableID(id string) bool {
+	if id == "" || id == "0" {
+		return false
+	}
+	if !isNumeric(id) {
+		return false
+	}
+	// A leading zero means the value was not a plain canonical id.
+	if len(id) > 1 && id[0] == '0' {
+		return false
+	}
+	return true
 }
 
 // parseItemBasic converts one API item into our representation.
@@ -194,27 +234,39 @@ func BuildProductURL(baseURL, shopID, itemID string) string {
 
 // ExtractShopIDs pulls shop and item IDs out of a product URL.
 //
-// Used by the DOM fallback, where the only identifier available is the link
-// itself. Returns empty strings when the URL does not match, which callers treat
-// as "keep the product but without an ID" rather than dropping it.
+// Query and fragment parts are stripped first. Without that, a perfectly valid
+// canonical link carrying tracking parameters ("/product/111/222?sp_atk=abc")
+// fails the numeric check on "222?sp_atk=abc" and the product is discarded even
+// though it is fully identifiable.
+//
+// Returns empty strings when the URL does not match, which callers treat as
+// "drop the product" rather than inventing an id.
 func ExtractShopIDs(link string) (shopID, itemID string) {
 	if link == "" {
 		return "", ""
 	}
-	m := productURLRe.FindStringSubmatch(link)
-	if len(m) < 3 {
-		// The canonical /product/{shop}/{item} form has no -i. segment.
-		parts := strings.Split(strings.Trim(link, "/"), "/")
-		for i := 0; i+1 < len(parts); i++ {
-			if parts[i] == "product" {
-				if isNumeric(parts[i+1]) && i+2 < len(parts) && isNumeric(parts[i+2]) {
-					return parts[i+1], parts[i+2]
-				}
-			}
-		}
-		return "", ""
+
+	// Strip the fragment and query so only the path is examined.
+	clean := link
+	if i := strings.IndexByte(clean, '#'); i >= 0 {
+		clean = clean[:i]
 	}
-	return m[1], m[2]
+	if i := strings.IndexByte(clean, '?'); i >= 0 {
+		clean = clean[:i]
+	}
+
+	if m := productURLRe.FindStringSubmatch(clean); len(m) >= 3 {
+		return m[1], m[2]
+	}
+
+	// The canonical /product/{shop}/{item} form has no -i. segment.
+	parts := strings.Split(strings.Trim(clean, "/"), "/")
+	for i := 0; i+2 < len(parts); i++ {
+		if parts[i] == "product" && isNumeric(parts[i+1]) && isNumeric(parts[i+2]) {
+			return parts[i+1], parts[i+2]
+		}
+	}
+	return "", ""
 }
 
 func isNumeric(s string) bool {

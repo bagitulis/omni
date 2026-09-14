@@ -244,6 +244,10 @@ func TestParseSearchResponse_SkipsEmptyEntries(t *testing.T) {
 
 // A zero id must never reach a link: every malformed entry would otherwise
 // collapse onto the same fake "product/0/0" URL and destroy the dedup key.
+//
+// A page consisting only of such rows is now reported as bad data rather than
+// returned as an empty page, because returning empty would look like the end of
+// the results and silently stop the scrape.
 func TestParseSearchResponse_NoZeroIDLinks(t *testing.T) {
 	body := []byte(`{"items":[
       {"item_basic":{"itemid":0,"shopid":0,"name":"A"}},
@@ -252,13 +256,33 @@ func TestParseSearchResponse_NoZeroIDLinks(t *testing.T) {
     ]}`)
 
 	products, err := ParseSearchResponse(body, "")
-	if err != nil {
-		t.Fatalf("error: %v", err)
+	if len(products) != 0 {
+		t.Fatalf("junk-id rows must not be persisted, got %+v", products)
+	}
+	if err == nil {
+		t.Error("a page of malformed identifiers must be reported rather than " +
+			"returned as a genuinely empty page")
 	}
 	for _, p := range products {
 		if strings.Contains(p.Link, "/product/0/") || strings.HasSuffix(p.Link, "/0") {
 			t.Errorf("product with a junk link was kept: %+v", p)
 		}
+	}
+}
+
+// A valid row must still be kept when other rows on the page are junk.
+func TestParseSearchResponse_KeepsGoodRowsAlongsideJunk(t *testing.T) {
+	body := []byte(`{"items":[
+      {"item_basic":{"itemid":0,"shopid":0,"name":"junk"}},
+      {"item_basic":{"itemid":222,"shopid":111,"name":"Good","price":100000}}
+    ]}`)
+
+	products, err := ParseSearchResponse(body, "")
+	if err != nil {
+		t.Fatalf("a page with one good row must not fail: %v", err)
+	}
+	if len(products) != 1 || products[0].ProductName != "Good" {
+		t.Errorf("got %+v, want the single good row", products)
 	}
 }
 

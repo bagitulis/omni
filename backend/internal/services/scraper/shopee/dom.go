@@ -159,6 +159,14 @@ func CleanDOMPrice(raw string) string {
 		return ""
 	}
 
+	// A negative amount is not a price we can use, and dropping the sign would
+	// invent a positive one: "-15.000" must be rejected, not stored as "15000".
+	// A minus AFTER digits is a range separator ("15.000 - 25.000"), where the
+	// leading value is the one to keep.
+	if idx := strings.IndexByte(raw, '-'); idx >= 0 && countDigitsBefore(raw, '-') == 0 {
+		return ""
+	}
+
 	var b strings.Builder
 	for _, r := range raw {
 		switch {
@@ -168,11 +176,17 @@ func CleanDOMPrice(raw string) string {
 			// Separators are dropped: Shopee mixes "." and "," between locales,
 			// so preserving either would be inconsistent.
 			continue
-		case r == '-' || r == '~':
-			// A range or a negative marker means the value is not a single
-			// price; keep the leading digits only.
+		case r == '~':
+			// A range marker: the leading value is the price to keep.
 			if b.Len() > 0 {
-				return b.String()
+				return normalizeDigits(b.String())
+			}
+		case r == '-':
+			// A range separator. Everything after it is the high bound, which is
+			// not the price to store — returning here is what stops
+			// "Rp10.000 - Rp20.000" from concatenating into "1000020000".
+			if b.Len() > 0 {
+				return normalizeDigits(b.String())
 			}
 		}
 	}
@@ -181,13 +195,26 @@ func CleanDOMPrice(raw string) string {
 	if digits == "" {
 		return ""
 	}
-	// Strip leading zeros so "015000" and "15000" compare equal.
-	trimmed := strings.TrimLeft(digits, "0")
-	if trimmed == "" {
-		return "0"
-	}
-	return trimmed
+	return normalizeDigits(digits)
 }
+
+// countDigitsBefore counts digits appearing before the first occurrence of sep.
+func countDigitsBefore(s string, sep rune) int {
+	n := 0
+	for _, r := range s {
+		if r == sep {
+			return n
+		}
+		if r >= '0' && r <= '9' {
+			n++
+		}
+	}
+	return n
+}
+
+// soldLabelHints are words that mark a sold count. When one is present, the
+// number nearest to it is the count — not merely the first number in the string.
+var soldLabelHints = []string{"terjual", "sold", "terkirim", "dibeli"}
 
 // CleanDOMSold extracts the numeric part of a sold-count string.
 //
@@ -195,41 +222,84 @@ func CleanDOMPrice(raw string) string {
 // word is expanded because storing "1,2rb" would make sorting by sold count
 // useless.
 //
-// Two properties matter for correctness:
+// Three properties matter for correctness:
 //
 //   - The unit must be the marker IMMEDIATELY after the number. Searching the
 //     whole string for "rb" matched any word containing those letters
 //     ("garbage", "arb"), inflating a count by 1000x.
-//   - The count need not be the first thing in the string. Requiring a leading
-//     digit returned "" for "Terjual 1,2rb", silently losing the value.
+//   - When a sold indicator is present ("terjual"), the number NEAREST to it is
+//     the count. Taking the first number read a discount as the count:
+//     "Promo 20% terjual 5" became 20 instead of 5.
+//   - A separator with no integer part before it is a decimal only when it sits
+//     directly against digits; otherwise it is punctuation. "Baru, terjual 12"
+//     must yield 12, not a spurious 0.
 func CleanDOMSold(raw string) string {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
 		return ""
 	}
 
-	// Find the start of the numeric run. A leading separator is part of the
-	// number (",5rb" means 0.5rb = 500), so it must not be skipped: starting at
-	// the first digit would read ",5rb" as "5rb" and inflate it 10x.
-	start := -1
-	for i, r := range trimmed {
-		if (r >= '0' && r <= '9') || r == ',' || r == '.' {
-			start = i
-			break
-		}
+	region := trimmed
+	// Prefer the segment after the sold label, so an earlier number (a discount,
+	// a rating) is not mistaken for the count.
+	if idx := indexOfSoldLabel(trimmed); idx >= 0 {
+		region = trimmed[idx:]
+	}
+
+	start := numericRunStart(region)
+	if start < 0 {
+		// No number in the sold region; fall back to anywhere in the string so a
+		// layout we did not anticipate still yields a count.
+		region = trimmed
+		start = numericRunStart(region)
 	}
 	if start < 0 {
-		// A word-only value ("terjual") carries no count.
 		return ""
 	}
 
-	number, rest := splitLeadingNumber(trimmed[start:])
+	number, rest := splitLeadingNumber(region[start:])
 	if number == "" {
 		return ""
 	}
 
 	multiplier := unitMultiplier(rest)
 	return expandAbbreviated(number, multiplier)
+}
+
+// indexOfSoldLabel returns the offset just past the first sold indicator, or -1.
+func indexOfSoldLabel(s string) int {
+	lower := strings.ToLower(s)
+	best := -1
+	for _, hint := range soldLabelHints {
+		if i := strings.Index(lower, hint); i >= 0 {
+			end := i + len(hint)
+			if best == -1 || end < best {
+				best = end
+			}
+		}
+	}
+	return best
+}
+
+// numericRunStart returns the index of the first character that can begin a
+// number, or -1.
+//
+// A separator only counts as the start of a number when a digit follows it
+// directly. Otherwise it is punctuation: treating the comma in "Baru, terjual 12"
+// as a decimal point produced a spurious "0".
+func numericRunStart(s string) int {
+	runes := []rune(s)
+	for i, r := range runes {
+		if r >= '0' && r <= '9' {
+			return len(string(runes[:i]))
+		}
+		if r == ',' || r == '.' {
+			if i+1 < len(runes) && runes[i+1] >= '0' && runes[i+1] <= '9' {
+				return len(string(runes[:i]))
+			}
+		}
+	}
+	return -1
 }
 
 // splitLeadingNumber splits a numeric run from the text that follows it.
