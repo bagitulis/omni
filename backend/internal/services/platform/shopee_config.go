@@ -2,8 +2,10 @@ package platform
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/omni/backend/internal/config"
+	shopeePkg "github.com/omni/backend/pkg/shopee"
 )
 
 // ShopeeConfigManager handles Shopee-specific configuration
@@ -61,4 +63,18 @@ func (m *ShopeeConfigManager) LoadConfig(ctx context.Context) error {
 // IsConfigured returns whether Shopee is properly configured
 func (m *ShopeeConfigManager) IsConfigured() bool {
 	return m.PartnerID != "" && m.PartnerKey != "" && m.ShopID != ""
+}
+
+// ApplyActivePair picks between the live and test partner pairs per the
+// tenant's `active_partner_env` toggle and writes the winning pair into
+// PartnerID / PartnerKey. Safety default is live (see
+// pkg/shopee.SelectActivePair for the exact rule).
+//
+// Callers with access to `credential_app_configs` build both pairs from
+// PartnerID/PartnerKey + TestPartnerID/TestPartnerKey and pass ActivePartnerEnv
+// as the env; the config manager stays free of DB imports.
+func (m *ShopeeConfigManager) ApplyActivePair(live, test shopeePkg.PartnerPair, env string) {
+	chosen := shopeePkg.SelectActivePair(live, test, env)
+	m.PartnerID = strconv.FormatInt(chosen.ID, 10)
+	m.PartnerKey = chosen.Key
 }
