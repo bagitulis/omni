@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { loginAs } from "./helpers/auth";
-import { resetTestState } from "./helpers/db-reset";
+import { clearBrowserState } from "./helpers/clearBrowserState";
 
 test.describe("Orders", () => {
   test.beforeEach(async ({ page }) => {
@@ -10,7 +10,7 @@ test.describe("Orders", () => {
   });
 
   test.afterEach(async ({ page }) => {
-    await resetTestState(page);
+    await clearBrowserState(page);
   });
 
   test("order manager page loads without error", async ({ page }) => {
@@ -80,6 +80,15 @@ test.describe("Orders", () => {
   });
 
   test("export/print button opens modal or dropdown", async ({ page }) => {
+    // Phase-2 backlog: replace escape-hatch fallbacks with a deterministic
+    // selector (add data-testid="orders-export-btn" on OrdersPage export
+    // control) so this test asserts the real flow instead of silently passing
+    // when neither export nor kebab is found.
+    // Tracking: docs/superpowers/specs/2026-09-15-realtime-e2e-platform-drift-design.md § Phase 2
+    test.fixme(
+      true,
+      "export/print flow needs deterministic testid — see Phase 2 in the E2E design spec",
+    );
     // Look for export/print button
     const exportButton = page.locator(
       'button:has-text("Export"), button:has-text("Print"), [class*="export"], [class*="download"]',

@@ -1,10 +1,12 @@
 import { Page } from "@playwright/test";
 
-const BASE_URL = process.env.BASE_URL || "http://localhost:5174";
-
 /**
  * Login helper — navigates to /login and authenticates.
  * Credentials come from environment variables only.
+ *
+ * Uses Playwright's `use.baseURL` for navigation (via relative paths). Do NOT
+ * re-introduce a `BASE_URL` const with a default — that's how the
+ * `report-escrow.spec.ts` :5176 landmine slipped in.
  */
 export async function loginAs(
   page: Page,
@@ -14,7 +16,7 @@ export async function loginAs(
   const user = username || process.env.TEST_USERNAME || "";
   const pass = password || process.env.TEST_PASSWORD || "";
 
-  await page.goto(`${BASE_URL}/login`);
+  await page.goto("/login");
   await page.waitForLoadState("networkidle");
 
   // Fill login form (Ant Design Input)
@@ -67,6 +69,6 @@ export async function logout(page: Page): Promise<void> {
       localStorage.clear();
       sessionStorage.clear();
     });
-    await page.goto(`${BASE_URL}/login`);
+    await page.goto("/login");
   }
 }

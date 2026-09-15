@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { loginAs } from "./helpers/auth";
-import { resetTestState } from "./helpers/db-reset";
+import { clearBrowserState } from "./helpers/clearBrowserState";
 
 test.describe("Script Monitor", () => {
   test.beforeEach(async ({ page }) => {
@@ -10,7 +10,7 @@ test.describe("Script Monitor", () => {
   });
 
   test.afterEach(async ({ page }) => {
-    await resetTestState(page);
+    await clearBrowserState(page);
   });
 
   test("script monitor page loads with tabs", async ({ page }) => {
@@ -65,6 +65,16 @@ test.describe("Script Monitor", () => {
   });
 
   test("history tab shows past jobs", async ({ page }) => {
+    // Phase-2 backlog: table-header assertions are gated on `count() > 0` so
+    // they never fail when the table is empty. To unblock, seed at least one
+    // history row (mock via page.route) and drop the gate so headers are
+    // asserted unconditionally.
+    // Tracking: docs/superpowers/specs/2026-09-15-realtime-e2e-platform-drift-design.md § Phase 2
+    test.fixme(
+      true,
+      "history-tab headers are gated on non-empty data — see Phase 2 in the E2E design spec",
+    );
+
     // Navigate to History tab
     await page.click(".ant-tabs-tab:has-text('History')");
 

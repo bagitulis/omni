@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { loginAs } from "./helpers/auth";
-import { resetTestState } from "./helpers/db-reset";
+import { clearBrowserState } from "./helpers/clearBrowserState";
 
 test.describe("Inventory", () => {
   test.beforeEach(async ({ page }) => {
@@ -10,7 +10,7 @@ test.describe("Inventory", () => {
   });
 
   test.afterEach(async ({ page }) => {
-    await resetTestState(page);
+    await clearBrowserState(page);
   });
 
   test("inventory page loads", async ({ page }) => {

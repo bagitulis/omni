@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { loginAs } from "./helpers/auth";
-import { resetTestState } from "./helpers/db-reset";
+import { clearBrowserState } from "./helpers/clearBrowserState";
 
 test.describe("Route Mapping", () => {
   test.beforeEach(async ({ page }) => {
@@ -10,7 +10,7 @@ test.describe("Route Mapping", () => {
   });
 
   test.afterEach(async ({ page }) => {
-    await resetTestState(page);
+    await clearBrowserState(page);
   });
 
   test("route mapping page loads with tabs", async ({ page }) => {
@@ -84,6 +84,15 @@ test.describe("Route Mapping", () => {
   });
 
   test("refresh button triggers reload", async ({ page }) => {
+    // Phase-2 backlog: `if (await refreshBtn.isVisible())` with an empty body
+    // means the test passes even when the refresh control is missing. To
+    // unblock, add data-testid="route-mapping-refresh" and assert a network
+    // request or a spinner appears.
+    // Tracking: docs/superpowers/specs/2026-09-15-realtime-e2e-platform-drift-design.md § Phase 2
+    test.fixme(
+      true,
+      "refresh flow has no assertion — see Phase 2 in the E2E design spec",
+    );
     const refreshBtn = page
       .locator("button.ant-btn-icon-only")
       .filter({ has: page.locator(".anticon-reload") })

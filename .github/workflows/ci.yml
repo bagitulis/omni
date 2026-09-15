@@ -170,6 +170,77 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.tunnel.yml down
 
+  test-e2e:
+    name: Frontend E2E (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [runtime-strict]
+    # Non-blocking during Phase 0 stabilisation. Convert to a required check
+    # once Phase 2 unskips the 24 placeholder tests and Phase 4 exercises the
+    # new realtime hooks. Tracking:
+    # docs/superpowers/specs/2026-09-15-realtime-e2e-platform-drift-design.md
+    continue-on-error: true
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Start Docker Compose (backend + frontend)
+        run: |
+          docker compose -f docker-compose.tunnel.yml up -d \
+            postgres redis backend frontend nginx
+        env:
+          ENCRYPTION_KEY: ci-test-encryption-key-32chars!!
+          JWT_SECRET: ci-test-jwt-secret
+          JWT_REFRESH_SECRET: ci-test-jwt-refresh-secret
+
+      - name: Wait for frontend :5174
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:5174/login > /dev/null 2>&1; then
+              echo "Frontend :5174 ready after ${i}s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Frontend :5174 did not become ready in time"
+          docker compose -f docker-compose.tunnel.yml logs frontend
+          exit 1
+
+      - name: Run Playwright
+        working-directory: frontend
+        env:
+          CI: "true"
+          TEST_USERNAME: tester
+          TEST_PASSWORD: tester@123
+        run: npx playwright test --reporter=list,html
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+
+      - name: Stop Docker Compose
+        if: always()
+        run: docker compose -f docker-compose.tunnel.yml down
+
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest

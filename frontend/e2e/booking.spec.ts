@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { resetTestState } from "./helpers/db-reset";
+import { clearBrowserState } from "./helpers/clearBrowserState";
 
 /**
  * Dev-login helper for localhost (Docker) environment.
@@ -26,7 +26,7 @@ test.describe("Booking Tab UI Flows", () => {
   });
 
   test.afterEach(async ({ page }) => {
-    await resetTestState(page);
+    await clearBrowserState(page);
   });
 
   test("Booking tab is first in the status tabs list", async ({ page }) => {

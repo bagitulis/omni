@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { loginAs, logout } from "./helpers/auth";
-import { resetTestState } from "./helpers/db-reset";
+import { clearBrowserState } from "./helpers/clearBrowserState";
 
 test.describe("Authentication", () => {
   test.afterEach(async ({ page }) => {
-    await resetTestState(page);
+    await clearBrowserState(page);
   });
 
   test("happy path: login redirects to dashboard", async ({ page }) => {

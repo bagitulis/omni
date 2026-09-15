@@ -5,10 +5,15 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const BASE_URL = process.env.BASE_URL || "http://localhost:5176";
+// Base URL comes from Playwright config (`use.baseURL`, currently
+// http://localhost:5174). Do NOT re-declare a default here — that's how the
+// old `:5176` landmine slipped in. Read from PLAYWRIGHT_BASE_URL only for the
+// raw `fetch(...)` calls further down that don't go through the `page` object.
+const BASE_URL =
+  process.env.PLAYWRIGHT_BASE_URL || "http://localhost:5174";
 const EVIDENCE_DIR = path.resolve(__dirname, "..", "..", ".sisyphus/evidence");
-const USER = process.env.TEST_USERNAME || "yumna";
-const PASS = process.env.TEST_PASSWORD || "password123";
+const USER = process.env.TEST_USERNAME || "";
+const PASS = process.env.TEST_PASSWORD || "";
 
 if (!fs.existsSync(EVIDENCE_DIR)) fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
 
@@ -17,7 +22,8 @@ async function screenshot(page: Page, name: string) {
 }
 
 async function login(page: Page) {
-  await page.goto(BASE_URL + "/login", { timeout: 20000, waitUntil: "domcontentloaded" });
+  // Relative path — resolves against playwright.config.ts `use.baseURL`.
+  await page.goto("/login", { timeout: 20000, waitUntil: "domcontentloaded" });
   await page.waitForTimeout(2000);
   if (!page.url().includes("/login")) return;
   await page.waitForTimeout(10000);
@@ -121,7 +127,7 @@ test.describe("Escrow E2E", () => {
         errors.push("API " + resp.status() + ": " + resp.url().replace(BASE_URL, ""));
       }
     });
-    await page.goto(BASE_URL + "/report/shopee", { timeout: 15000, waitUntil: "domcontentloaded" });
+    await page.goto("/report/shopee", { timeout: 15000, waitUntil: "domcontentloaded" });
     await page.waitForTimeout(3000);
     expect(page.url()).toContain("/report");
     await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(1000);
@@ -167,7 +173,7 @@ test.describe("Escrow E2E", () => {
         errors.push("API " + resp.status() + ": " + resp.url().replace(BASE_URL, ""));
       }
     });
-    await page.goto(BASE_URL + "/report/tiktok", { timeout: 15000, waitUntil: "domcontentloaded" });
+    await page.goto("/report/tiktok", { timeout: 15000, waitUntil: "domcontentloaded" });
     await page.waitForTimeout(3000);
     expect(page.url()).toContain("/report");
     await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(1000);
