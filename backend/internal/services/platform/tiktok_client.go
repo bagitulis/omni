@@ -37,29 +37,49 @@ func NewTiktokConfigManager(tenantID string) *TiktokConfigManager {
 
 // LoadConfig loads TikTok config from database
 func (m *TiktokConfigManager) LoadConfig(ctx context.Context) error {
-	// 1. Load global credentials from system.db
-	globalConfig := config.GetGlobalConfigService()
-	if globalConfig != nil {
-		creds, err := globalConfig.GetTiktokCredentials()
-		if err == nil {
-			m.AppKey = creds.AppKey
-			m.AppSecret = creds.AppSecret
+	// Phase 11.4 — canonical-first load (Batch 2 gap fix for TikTok).
+	// Read AppKey/AppSecret/ShopID/ShopCipher/tokens from
+	// credential_app_configs + credential_connections when available; the
+	// legacy loaders below stay for tenants without canonical rows yet.
+	if canonical, err := LoadTiktokCanonical(ctx, m.tenantID); err == nil {
+		canonical.applyTo(m)
+	} else {
+		m.logger.WithTenantID(m.tenantID).Warn("TikTok canonical load failed, falling back to legacy: " + err.Error())
+	}
+
+	// 1. Load global credentials from system.db (fallback when canonical didn't populate).
+	if m.AppKey == "" || m.AppSecret == "" {
+		globalConfig := config.GetGlobalConfigService()
+		if globalConfig != nil {
+			creds, err := globalConfig.GetTiktokCredentials()
+			if err == nil {
+				if m.AppKey == "" {
+					m.AppKey = creds.AppKey
+				}
+				if m.AppSecret == "" {
+					m.AppSecret = creds.AppSecret
+				}
+			}
 		}
 	}
 
-	// 2. Load tenant-specific config from tenant db
+	// 2. Load tenant-specific legacy config for any fields canonical didn't cover.
 	if err := m.LoadConfigFromDB(ctx); err != nil {
 		m.logger.WithTenantID(m.tenantID).Warn("Failed to load config from DB: " + err.Error())
 	}
 
-	// Parse ShopID
-	if shopID, ok := m.GetConfig("shopId"); ok && shopID != "" {
-		m.ShopID = shopID
+	// Parse ShopID from legacy configs if canonical didn't supply one.
+	if m.ShopID == "" {
+		if shopID, ok := m.GetConfig("shopId"); ok && shopID != "" {
+			m.ShopID = shopID
+		}
 	}
 
-	// Parse ShopCipher - required for TikTok Shop API
-	if shopCipher, ok := m.GetConfig("shopCipher"); ok && shopCipher != "" {
-		m.ShopCipher = shopCipher
+	// Parse ShopCipher from legacy configs if canonical didn't supply one.
+	if m.ShopCipher == "" {
+		if shopCipher, ok := m.GetConfig("shopCipher"); ok && shopCipher != "" {
+			m.ShopCipher = shopCipher
+		}
 	}
 
 	// Log status
