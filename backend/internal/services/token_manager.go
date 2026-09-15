@@ -59,17 +59,31 @@ func (m *TokenManager) getCredentialRepo(tenantID string) (*repositories.Credent
 
 // getConnectionTokenInfo reads from credential_connections and converts to TokenInfo.
 // Returns nil,nil when no active connection exists for the given platform.
+//
+// Bug A companion fix: the old implementation called
+// `GetConnection(ctx, tenantID, platform, "")` with an empty store_identifier,
+// which fails validation ("store_identifier is required") the moment the
+// service is actually invoked. Now uses ListConnections + first-active
+// selection to mirror how the credential API and the sync layer resolve a
+// tenant's default connection.
 func (m *TokenManager) getConnectionTokenInfo(ctx context.Context, tenantID, platform string) (*TokenInfo, error) {
 	credRepo, err := m.getCredentialRepo(tenantID)
 	if err != nil {
 		return nil, err
 	}
 
-	conn, err := credRepo.GetConnection(ctx, tenantID, platform, "")
+	conns, err := credRepo.ListConnections(ctx, tenantID, platform)
 	if err != nil {
 		return nil, err
 	}
-	if conn == nil || conn.AccessToken == "" {
+	var conn *models.CredentialConnection
+	for i := range conns {
+		if conns[i].DisabledAt == nil && conns[i].AccessToken != "" {
+			conn = &conns[i]
+			break
+		}
+	}
+	if conn == nil {
 		return &TokenInfo{
 			Platform: platform,
 			IsValid:  false,

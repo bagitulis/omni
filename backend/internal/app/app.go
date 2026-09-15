@@ -274,11 +274,21 @@ func (a *App) initHandlers() {
 		a.CacheService,
 	)
 
+	credentialSvc := services.NewCredentialApiService(a.BasePath)
+	// Bug A: wire the real remote OAuth refresh path so
+	// POST /credentials/.../refresh actually calls Shopee / Lazada / TikTok
+	// rather than silently flipping the row status. TokenRefreshAdapter's
+	// signature (RefreshXxxToken(ctx, tenantID) → access, refresh, err)
+	// matches CredentialTokenRefresher exactly.
+	if a.TokenManager != nil {
+		credentialSvc.SetTokenRefresher(services.NewTokenRefreshAdapter(a.TokenManager))
+	}
+
 	a.PlatformAuthHandler = handlers.NewPlatformAuthHandler(
 		a.GlobalConfigRepo,
 		frontendURL,
 		a.BasePath,
-		services.NewCredentialApiService(a.BasePath),
+		credentialSvc,
 	)
 
 	if err := services.SeedShopeeAppCredentials(a.SystemDB, "yumna_bertigamart"); err != nil {

@@ -13,6 +13,27 @@ import (
 	"github.com/omni/backend/internal/utils"
 )
 
+// getFirstActiveConnection looks up the first non-disabled credential
+// connection for a tenant/platform. Kept private to token_manager because
+// several ops (save, GetShopID) need the same lookup and calling
+// GetConnection(..., "") fails scope validation.
+func (m *TokenManager) getFirstActiveConnection(ctx context.Context, tenantID, platformName string) (*models.CredentialConnection, error) {
+	credRepo, err := m.getCredentialRepo(tenantID)
+	if err != nil {
+		return nil, err
+	}
+	conns, err := credRepo.ListConnections(ctx, tenantID, platformName)
+	if err != nil {
+		return nil, err
+	}
+	for i := range conns {
+		if conns[i].DisabledAt == nil {
+			return &conns[i], nil
+		}
+	}
+	return nil, nil
+}
+
 // saveNewTokens saves refreshed tokens to credential_connections (canonical store)
 // IMPORTANT: Also invalidates cached platform clients so they will reload with new tokens
 func (m *TokenManager) saveNewTokens(ctx context.Context, tenantID, platformName, accessToken, refreshToken string, expiresIn, refreshExpiresIn int64) (*TokenInfo, error) {
@@ -21,8 +42,10 @@ func (m *TokenManager) saveNewTokens(ctx context.Context, tenantID, platformName
 		return nil, err
 	}
 
-	// Get existing connection to obtain version and current shop_cipher
-	conn, err := credRepo.GetConnection(ctx, tenantID, platformName, "")
+	// Get existing connection to obtain version and current shop_cipher.
+	// Bug A companion: use first-active lookup instead of the invalid
+	// GetConnection(..., "") that fails scope validation.
+	conn, err := m.getFirstActiveConnection(ctx, tenantID, platformName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get connection for token save: %w", err)
 	}
@@ -133,12 +156,7 @@ func (m *TokenManager) RefreshExpiredTokens(ctx context.Context, tenantID string
 
 // GetShopID returns the shop ID for a platform from credential_connections
 func (m *TokenManager) GetShopID(ctx context.Context, tenantID, platformName string) (int64, error) {
-	credRepo, err := m.getCredentialRepo(tenantID)
-	if err != nil {
-		return 0, err
-	}
-
-	conn, err := credRepo.GetConnection(ctx, tenantID, platformName, "")
+	conn, err := m.getFirstActiveConnection(ctx, tenantID, platformName)
 	if err != nil {
 		return 0, err
 	}

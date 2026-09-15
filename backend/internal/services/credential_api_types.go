@@ -7,8 +7,22 @@ import (
 "github.com/omni/backend/internal/models"
 )
 // CredentialApiService handles credential management API operations.
+//
+// Bug A: `refresher` is optional. When nil (backward compat, or app startup
+// hasn't wired it yet), ChangeConnectionStatus with action="refresh" returns
+// a descriptive error instead of silently no-op'ing as it did before. When
+// wired via SetTokenRefresher, the refresh call delegates to the remote
+// OAuth endpoint (Shopee/Lazada/TikTok) via the CredentialTokenRefresher.
 type CredentialApiService struct {
-	dbPath string
+	dbPath    string
+	refresher CredentialTokenRefresher
+}
+
+// SetTokenRefresher wires the token refresher (typically a *TokenManager
+// wrapped by TokenRefreshAdapter). Safe to call at app startup; callers may
+// pass nil to keep the pre-Bug-A behaviour (endpoint returns "not wired").
+func (s *CredentialApiService) SetTokenRefresher(r CredentialTokenRefresher) {
+	s.refresher = r
 }
 
 // tenantDB returns a tenant-scoped database connection.

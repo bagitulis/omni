@@ -42,7 +42,10 @@ func (s *CredentialApiService) GetPlatformStatus(ctx context.Context, tenantID, 
 			}
 			platforms[i].Status = "disconnected"
 			if len(conns) > 0 {
-				platforms[i].Status = "connected"
+				// Bug B: honor token expiry via EffectiveStatus so the badge
+				// reflects reality (e.g. row column says "connected" but
+				// tokens dead → report "expired" or "refresh_required").
+				platforms[i].Status = conns[0].EffectiveStatus()
 			}
 			platforms[i].AppConfigured = app != nil
 			platforms[i].Stores = maskedConnectionsForPlatform(conns, "")
@@ -64,7 +67,7 @@ func (s *CredentialApiService) GetPlatformStatus(ctx context.Context, tenantID, 
 	}
 	status := "disconnected"
 	if len(conns) > 0 {
-		status = "connected"
+		status = conns[0].EffectiveStatus() // Bug B: honor token expiry
 	}
 	platforms := []CredentialPlatformStatus{{Platform: platform, Status: status, AppConfigured: app != nil}}
 	for i := range platforms {
@@ -322,14 +325,21 @@ func (s *CredentialApiService) ChangeConnectionStatus(ctx context.Context, tenan
 		return nil, fmt.Errorf("connection not found")
 	}
 	if action == "refresh" {
-		if err := repo.UpdateConnectionStatus(ctx, tenantID, req.Platform, req.StoreIdentifier, "connected"); err != nil {
-			return nil, err
+		// Bug A fix: actually call the remote OAuth refresh endpoint via
+		// the injected refresher. Record the real outcome in the audit
+		// event and bubble errors up as HTTP 500 rather than lying with
+		// "success".
+		_, _, refreshErr := invokeRemoteRefresh(ctx, s.refresher, req.Platform, tenantID)
+		auditStatus := "success"
+		var auditErrMsg string
+		if refreshErr != nil {
+			auditStatus = "failure"
+			auditErrMsg = refreshErr.Error()
 		}
-		invalidateCredentialCaches(tenantID)
 		auditEvent := &models.CredentialAuditEvent{
 			TenantID: tenantID, Platform: req.Platform, StoreIdentifier: req.StoreIdentifier,
-			EventType: "connection_refresh", Status: "success", Actor: userID, ActorRole: role,
-			Metadata: models.JSONMap{"reason": req.Reason},
+			EventType: "connection_refresh", Status: auditStatus, Actor: userID, ActorRole: role,
+			Metadata: models.JSONMap{"reason": req.Reason, "error": auditErrMsg},
 		}
 		auditEventID := ""
 		if err := repo.CreateAuditEvent(ctx, auditEvent); err != nil {
@@ -337,7 +347,27 @@ func (s *CredentialApiService) ChangeConnectionStatus(ctx context.Context, tenan
 		} else {
 			auditEventID = auditEvent.ID
 		}
-		return &CredentialMutationResponse{Platform: req.Platform, StoreIdentifierMask: conn.StoreIdentifierMask(), Status: "connected", LastRefreshAt: time.Now().Format(time.RFC3339), ExpiresAt: time.UnixMilli(conn.TokenExpiry).Format(time.RFC3339), AuditEventID: auditEventID}, nil
+		if refreshErr != nil {
+			return nil, fmt.Errorf("refresh %s connection: %w", req.Platform, refreshErr)
+		}
+		// Re-read the connection so the response carries the freshly
+		// updated token_expiry that RefreshShopeeToken / RefreshLazadaToken
+		// / RefreshTiktokToken wrote via the repo.
+		fresh, _ := repo.GetConnection(ctx, tenantID, req.Platform, req.StoreIdentifier)
+		invalidateCredentialCaches(tenantID)
+		lastRefresh := time.Now().Format(time.RFC3339)
+		expiresAt := ""
+		mask := conn.StoreIdentifierMask()
+		if fresh != nil {
+			expiresAt = time.UnixMilli(fresh.TokenExpiry).Format(time.RFC3339)
+			mask = fresh.StoreIdentifierMask()
+			if fresh.LastRefreshAt != nil {
+				lastRefresh = fresh.LastRefreshAt.Format(time.RFC3339)
+			}
+		} else {
+			expiresAt = time.UnixMilli(conn.TokenExpiry).Format(time.RFC3339)
+		}
+		return &CredentialMutationResponse{Platform: req.Platform, StoreIdentifierMask: mask, Status: "connected", LastRefreshAt: lastRefresh, ExpiresAt: expiresAt, AuditEventID: auditEventID}, nil
 	}
 	if err := repo.DisableConnectionWithVersion(ctx, conn, conn.Version, req.Reason); err != nil {
 		return nil, err
