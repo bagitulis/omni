@@ -14,6 +14,7 @@ import (
 	"github.com/omni/backend/internal/services/cache"
 	"github.com/omni/backend/internal/services/oauth"
 	"github.com/omni/backend/internal/services/platform"
+	"github.com/omni/backend/internal/services/sync"
 	"github.com/omni/backend/internal/services/webhooks"
 	"github.com/omni/backend/internal/utils"
 	zlog "github.com/rs/zerolog/log"
@@ -283,6 +284,11 @@ func (a *App) initHandlers() {
 	if a.TokenManager != nil {
 		credentialSvc.SetTokenRefresher(services.NewTokenRefreshAdapter(a.TokenManager))
 	}
+	// Phase 10.3: fire an H-30 backfill sweep the moment an OAuth callback
+	// succeeds so sellers immediately see the orders that piled up while
+	// their token was dead. Best-effort — a backfill error never blocks
+	// the redirect (see credential_callback_service.go).
+	credentialSvc.SetBackfillTrigger(sync.NewCredentialBackfillAdapter())
 
 	a.PlatformAuthHandler = handlers.NewPlatformAuthHandler(
 		a.GlobalConfigRepo,

@@ -247,6 +247,20 @@ func (s *CredentialApiService) HandleCredentialCallback(c *gin.Context) {
 		log.Error().Err(err).Msg("Failed to create audit event")
 	}
 
+	// Phase 10.3 — best-effort H-30 backfill so a re-authorized shop
+	// immediately sees the orders that piled up while its token was dead.
+	// Failure is logged, never blocks the redirect: sellers still land on
+	// a working session even if the backfill has to retry via the cron.
+	if err := invokeBackfill(ctx, s.backfillTrigger, claims.TenantID, claims.Platform, storeIdentifier); err != nil {
+		if err == errBackfillNotWired {
+			log.Info().Str("tenant_id", claims.TenantID).Str("platform", claims.Platform).
+				Msg("Auto-backfill skipped (trigger not wired)")
+		} else {
+			log.Error().Err(err).Str("tenant_id", claims.TenantID).Str("platform", claims.Platform).
+				Str("store", storeIdentifier).Msg("Auto-backfill failed (non-blocking)")
+		}
+	}
+
 	// Redirect to frontend with success
 	target := frontendURL
 	if redirectPath != "" {

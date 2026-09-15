@@ -13,9 +13,15 @@ import (
 // a descriptive error instead of silently no-op'ing as it did before. When
 // wired via SetTokenRefresher, the refresh call delegates to the remote
 // OAuth endpoint (Shopee/Lazada/TikTok) via the CredentialTokenRefresher.
+//
+// Phase 10.3: `backfillTrigger` is optional. When wired via
+// SetBackfillTrigger, HandleCredentialCallback fires a best-effort H-30
+// backfill on OAuth success so sellers see their missed orders immediately
+// after re-authorization instead of waiting for the cron sweep.
 type CredentialApiService struct {
-	dbPath    string
-	refresher CredentialTokenRefresher
+	dbPath          string
+	refresher       CredentialTokenRefresher
+	backfillTrigger CredentialBackfillTrigger
 }
 
 // SetTokenRefresher wires the token refresher (typically a *TokenManager
@@ -23,6 +29,13 @@ type CredentialApiService struct {
 // pass nil to keep the pre-Bug-A behaviour (endpoint returns "not wired").
 func (s *CredentialApiService) SetTokenRefresher(r CredentialTokenRefresher) {
 	s.refresher = r
+}
+
+// SetBackfillTrigger wires the post-OAuth backfill trigger. Safe to call at
+// startup; nil is accepted and uninstalls any previously-set trigger so tests
+// can toggle the wiring on/off deterministically.
+func (s *CredentialApiService) SetBackfillTrigger(t CredentialBackfillTrigger) {
+	s.backfillTrigger = t
 }
 
 // tenantDB returns a tenant-scoped database connection.
