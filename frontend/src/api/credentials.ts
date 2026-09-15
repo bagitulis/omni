@@ -30,6 +30,14 @@ export interface CredentialAppConfig {
   updated_by?: string;
   store_identifier?: string | null;
   fields?: string[];
+  // Phase 8 additions (Shopee-focused; other platforms leave these unset).
+  partner_id?: number;
+  test_partner_id?: number;
+  test_configured?: boolean;
+  partner_key_expires_at?: string;
+  test_partner_key_expires_at?: string;
+  app_status?: "online" | "offline";
+  active_partner_env?: "live" | "test";
 }
 
 export interface CredentialPlatformSummary {
@@ -188,6 +196,13 @@ export interface ShopeeAppCredentialPayload {
   partner_key: string;
   region: string;
   reason?: string;
+  // Phase 8 — optional sandbox pair + expiry + operational toggles.
+  test_partner_id?: number;
+  test_partner_key?: string;
+  partner_key_expires_at?: string;       // RFC3339
+  test_partner_key_expires_at?: string;  // RFC3339
+  app_status?: "online" | "offline";
+  active_partner_env?: "live" | "test";
 }
 
 export interface LazadaAppCredentialPayload {

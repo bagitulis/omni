@@ -17,15 +17,26 @@ func (s *CredentialApiService) tenantDB(tenantID string) (*gorm.DB, error) {
 }
 
 // CredentialPlatformStatus represents the status of credentials for a platform.
+//
+// Phase 8 adds the safe (non-secret) fields from CredentialAppConfig's masked
+// response so the frontend can render the expiry banner + toggles without a
+// second round-trip.
 type CredentialPlatformStatus struct {
 	Platform      string                                      `json:"platform"`
 	Region        string                                      `json:"region,omitempty"`
 	Status        string                                      `json:"status"`
 	AppConfigured bool                                        `json:"app_configured"`
 	Stores        []models.CredentialConnectionMaskedResponse `json:"stores"`
+	// Phase 8 — populated when app_config exists for this platform.
+	AppConfig *models.CredentialAppConfigMaskedResponse `json:"app_config,omitempty"`
 }
 
 // CredentialAppUpsertRequest is the request body for upserting an app credential.
+//
+// Phase 8 adds Shopee-specific fields (TestPartnerID/TestPartnerKey plus two
+// expiry timestamps) and two operational toggles that apply to any platform
+// (AppStatus, ActivePartnerEnv). All new fields are optional; when omitted
+// the upsert preserves the existing value rather than nulling it.
 type CredentialAppUpsertRequest struct {
 	Platform        string `json:"-"`
 	Region          string `json:"region,omitempty"`
@@ -35,6 +46,13 @@ type CredentialAppUpsertRequest struct {
 	PartnerID       int64  `json:"partner_id,omitempty"`
 	PartnerKey      string `json:"partner_key,omitempty"`
 	Reason          string `json:"reason"`
+	// Phase 8 additions (Shopee-focused sandbox + expiry, all optional).
+	TestPartnerID           int64  `json:"test_partner_id,omitempty"`
+	TestPartnerKey          string `json:"test_partner_key,omitempty"`
+	PartnerKeyExpiresAt     string `json:"partner_key_expires_at,omitempty"`      // RFC3339 (e.g. "2026-11-25T22:59:00+07:00")
+	TestPartnerKeyExpiresAt string `json:"test_partner_key_expires_at,omitempty"` // RFC3339
+	AppStatus               string `json:"app_status,omitempty"`                  // "online" | "offline"
+	ActivePartnerEnv        string `json:"active_partner_env,omitempty"`          // "live" | "test" (Shopee only)
 }
 
 // CredentialOAuthInitiateRequest is the request body for initiating OAuth.

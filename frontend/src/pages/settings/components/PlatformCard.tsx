@@ -5,14 +5,45 @@ import {
   LinkOutlined,
 } from "@ant-design/icons";
 import { Button, Card, Space, Tag, Typography, theme } from "antd";
+import type { GlobalToken } from "antd/es/theme/interface";
 import type { CredentialStatus } from "@/api/credentials";
 import {
   CREDENTIAL_STATUS_COLOR,
   CREDENTIAL_STATUS_LABEL,
 } from "./credentialStatus";
+import { isPartnerKeyExpiring } from "./partnerKeyExpiry";
 
 const { Text } = Typography;
 const { useToken } = theme;
+
+function renderPartnerKeyExpiryBanner(
+  platform: PlatformConnectionSummary,
+  token: GlobalToken,
+) {
+  const { expired, expiring, days_left } = isPartnerKeyExpiring(
+    platform.partner_key_expires_at,
+  );
+  if (!expiring) return null;
+  const isRed = expired;
+  return (
+    <div
+      style={{
+        padding: "6px 10px",
+        marginBottom: 8,
+        borderRadius: token.borderRadius,
+        background: isRed ? token.colorErrorBg : token.colorWarningBg,
+        border: `1px solid ${
+          isRed ? token.colorErrorBorder : token.colorWarningBorder
+        }`,
+        fontSize: 12,
+      }}
+    >
+      {isRed ? "🔴" : "⚠️"}{" "}
+      <strong>Partner Key {isRed ? "expired" : `expires in ${days_left}d`}</strong>{" "}
+      — rotate soon via the Configure drawer.
+    </div>
+  );
+}
 
 export interface PlatformConnectionSummary {
   platform: string;
@@ -26,6 +57,11 @@ export interface PlatformConnectionSummary {
   last_refresh_at?: string;
   refresh_status?: string;
   app_configured?: boolean;
+  // Phase 8 — Shopee partner-key expiry + operational toggles surfaced to the card.
+  partner_key_expires_at?: string;
+  app_status?: "online" | "offline";
+  active_partner_env?: "live" | "test";
+  test_configured?: boolean;
 }
 
 interface PlatformCardProps {
@@ -136,6 +172,36 @@ export function PlatformCard({
         </Card>
 
         <div style={{ overflow: "hidden" }}>
+          {renderPartnerKeyExpiryBanner(platform, token)}
+          {platform.app_status === "offline" && (
+            <div
+              style={{
+                padding: "6px 10px",
+                marginBottom: 8,
+                borderRadius: token.borderRadius,
+                background: token.colorFillTertiary,
+                border: `1px solid ${token.colorBorder}`,
+                fontSize: 12,
+              }}
+            >
+              ⏸️ App marked <strong>Offline</strong> — sync workers will skip
+              this platform.
+            </div>
+          )}
+          {platform.active_partner_env === "test" && (
+            <div
+              style={{
+                padding: "6px 10px",
+                marginBottom: 8,
+                borderRadius: token.borderRadius,
+                background: token.colorInfoBg,
+                border: `1px solid ${token.colorInfoBorder}`,
+                fontSize: 12,
+              }}
+            >
+              🧪 Runtime pinned to <strong>Test</strong> partner pair.
+            </div>
+          )}
           {!platform.connected && !platform.app_configured && (
             <div
               style={{

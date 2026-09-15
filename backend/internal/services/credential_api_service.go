@@ -48,6 +48,8 @@ func (s *CredentialApiService) GetPlatformStatus(ctx context.Context, tenantID, 
 			platforms[i].Stores = maskedConnectionsForPlatform(conns, "")
 			if app != nil {
 				platforms[i].Region = app.Region
+				masked := app.ToMaskedResponse()
+				platforms[i].AppConfig = &masked
 			}
 		}
 		return platforms, nil
@@ -69,6 +71,8 @@ func (s *CredentialApiService) GetPlatformStatus(ctx context.Context, tenantID, 
 		platforms[i].Stores = maskedConnectionsForPlatform(conns, storeIdentifier)
 		if app != nil {
 			platforms[i].Region = app.Region
+			masked := app.ToMaskedResponse()
+			platforms[i].AppConfig = &masked
 		}
 	}
 	return platforms, nil
@@ -102,9 +106,39 @@ func (s *CredentialApiService) UpsertAppCredential(ctx context.Context, tenantID
 	case models.PlatformShopee:
 		cfg.PartnerID = req.PartnerID
 		cfg.PartnerKey = req.PartnerKey
+		// Phase 8 — sandbox pair. Both fields must arrive together to update;
+		// an empty pair means "leave existing sandbox creds untouched" rather
+		// than "clear them" (protects against accidental blanking via UI).
+		if req.TestPartnerID > 0 && req.TestPartnerKey != "" {
+			cfg.TestPartnerID = req.TestPartnerID
+			cfg.TestPartnerKey = req.TestPartnerKey
+		}
 	case models.PlatformLazada, models.PlatformTiktok:
 		cfg.AppKey = req.AppKey
 		cfg.AppSecret = req.AppSecret
+	}
+	// Phase 8 — apply optional operational toggles regardless of platform.
+	if exp, ok := parseRFC3339OrNil(req.PartnerKeyExpiresAt); ok {
+		cfg.PartnerKeyExpiresAt = exp
+	}
+	if exp, ok := parseRFC3339OrNil(req.TestPartnerKeyExpiresAt); ok {
+		cfg.TestPartnerKeyExpiresAt = exp
+	}
+	if req.AppStatus != "" {
+		if req.AppStatus != "online" && req.AppStatus != "offline" {
+			return nil, fmt.Errorf("invalid app_status: must be 'online' or 'offline'")
+		}
+		cfg.AppStatus = req.AppStatus
+	} else if cfg.AppStatus == "" {
+		cfg.AppStatus = "online"
+	}
+	if req.ActivePartnerEnv != "" {
+		if req.ActivePartnerEnv != "live" && req.ActivePartnerEnv != "test" {
+			return nil, fmt.Errorf("invalid active_partner_env: must be 'live' or 'test'")
+		}
+		cfg.ActivePartnerEnv = req.ActivePartnerEnv
+	} else if cfg.ActivePartnerEnv == "" {
+		cfg.ActivePartnerEnv = "live"
 	}
 	cfg.Configured = true
 	if err := repo.UpsertAppConfig(ctx, cfg); err != nil {
@@ -452,6 +486,22 @@ func normalizeRegion(region string) string {
 		return "id"
 	}
 	return region
+}
+
+// parseRFC3339OrNil parses an RFC3339 timestamp string; returns (nil, false)
+// when the input is empty (caller keeps the existing value) or malformed
+// (caller silently ignores; validation should already have blocked malformed
+// input at the handler layer). Kept intentionally lenient here so an "leave
+// as-is" behaviour is trivially expressible from JSON.
+func parseRFC3339OrNil(v string) (*time.Time, bool) {
+	if v == "" {
+		return nil, false
+	}
+	t, err := time.Parse(time.RFC3339, v)
+	if err != nil {
+		return nil, false
+	}
+	return &t, true
 }
 
 func invalidateCredentialCaches(tenantID string) {

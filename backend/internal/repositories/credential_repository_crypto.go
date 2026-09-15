@@ -85,6 +85,13 @@ func (r *CredentialRepository) encryptAppConfigSecrets(cfg *models.CredentialApp
 			return fmt.Errorf("encrypt partner_key: %w", err)
 		}
 	}
+	// Phase 8 — sandbox pair (Shopee only). Same crypto contract as partner_key.
+	if cfg.TestPartnerKey != "" && !utils.IsEncrypted(cfg.TestPartnerKey) {
+		cfg.TestPartnerKey, err = r.encryption.Encrypt(cfg.TestPartnerKey)
+		if err != nil {
+			return fmt.Errorf("encrypt test_partner_key: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -110,6 +117,12 @@ func (r *CredentialRepository) decryptAppConfigSecrets(cfg *models.CredentialApp
 		cfg.PartnerKey, err = r.encryption.Decrypt(cfg.PartnerKey)
 		if err != nil {
 			return fmt.Errorf("decrypt partner_key: %w", err)
+		}
+	}
+	if cfg.TestPartnerKey != "" && utils.IsEncrypted(cfg.TestPartnerKey) {
+		cfg.TestPartnerKey, err = r.encryption.Decrypt(cfg.TestPartnerKey)
+		if err != nil {
+			return fmt.Errorf("decrypt test_partner_key: %w", err)
 		}
 	}
 	return nil
