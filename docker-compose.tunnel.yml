@@ -300,8 +300,13 @@ services:
     image: nginx:alpine
     container_name: omni-nginx
     restart: unless-stopped
+    # Port 8443 on host (rootless podman can't bind privileged <1024).
+    # Cloudflared reaches nginx via internal podman network (container port
+    # 80), and the host port is only exposed for LAN access + smoke probes
+    # from the host machine — public traffic goes through the Cloudflare
+    # tunnel which never touches this host port.
     ports:
-      - "80:80"
+      - "8443:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d/tunnel.conf:/etc/nginx/conf.d/default.conf:ro
