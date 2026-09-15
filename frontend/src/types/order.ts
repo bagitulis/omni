@@ -45,6 +45,20 @@ export interface OrderDetail extends Order {
   shipping_address?: ShippingAddress;
   buyer_email?: string;
   buyer_phone?: string;
+  /**
+   * Lazada PII masking metadata (rolled out 2026-07-01, docId=145548).
+   * When present and `any_masked` is true, the listed `masked_fields` were
+   * returned by Lazada as e.g. "J***s" / "+62812***56". Downstream UI should
+   * render the raw masked string and surface a "Apply for DBS unmasking"
+   * affordance; DO NOT try to parse or synthesize the underlying value.
+   *
+   * Only populated for orders originating from Lazada. Shopee, TikTok, and
+   * other platforms leave this undefined.
+   */
+  pii_mask?: {
+    any_masked: boolean;
+    masked_fields: string[];
+  };
 }
 
 export interface ShippingAddress {
