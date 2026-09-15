@@ -87,6 +87,10 @@ backups/smart/
 # Playwright MCP session recordings (auto-generated browser snapshots)
 .playwright-mcp/
 
+# Playwright test artifacts (per-run traces, screenshots, videos, reports)
+frontend/test-results/
+frontend/playwright-report/
+
 # Sisyphus evidence (screenshots, test artifacts, ephemeral)
 .sisyphus/evidence/
 !.sisyphus/evidence/
