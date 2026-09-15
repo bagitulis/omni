@@ -21,13 +21,19 @@ type Notification struct {
 	DedupKey        *string    `gorm:"column:dedup_key;size:200" json:"dedup_key,omitempty"`
 	DedupCount      int        `gorm:"column:dedup_count;not null;default:1" json:"dedup_count"`
 	Source          string     `gorm:"column:source;size:60" json:"source,omitempty"`
-	ActorUserID     *int64     `gorm:"column:actor_user_id" json:"actor_user_id,omitempty"`
-	RecipientUserID *int64     `gorm:"column:recipient_user_id;index" json:"recipient_user_id,omitempty"`
+	ActorUserID     *string    `gorm:"column:actor_user_id;size:64" json:"actor_user_id,omitempty"`
+	RecipientUserID *string    `gorm:"column:recipient_user_id;size:64;index" json:"recipient_user_id,omitempty"`
 	ExpiresAt       *time.Time `gorm:"column:expires_at" json:"expires_at,omitempty"`
 	SnoozedUntil    *time.Time `gorm:"column:snoozed_until" json:"snoozed_until,omitempty"`
-	Read            bool       `gorm:"column:read;default:false" json:"-"` // legacy, kept for backward compat during migration window; not serialized
+	Read            bool       `gorm:"column:read;default:false" json:"-"` // legacy; not serialized
 	CreatedAt       time.Time  `gorm:"column:created_at;index;not null" json:"created_at"`
-	UpdatedAt       time.Time  `gorm:"column:updated_at;not null" json:"updated_at"`
+	// UpdatedAt is nullable in the DB because AutoMigrate cannot add a NOT
+	// NULL column to a table that already has rows without a default.
+	// EnsureNotificationV2Backfill (called from MigrateTenantDatabase) fills
+	// legacy rows with created_at, and new writes always set updated_at via
+	// UpsertDedup / Create. Model stays a time.Time so the API contract is
+	// unchanged for consumers.
+	UpdatedAt       time.Time  `gorm:"column:updated_at" json:"updated_at"`
 }
 
 // TableName returns the table name
@@ -36,10 +42,11 @@ func (Notification) TableName() string {
 }
 
 // NotificationRead tracks per-user read state for a notification.
-// Composite PK (notification_id, user_id).
+// Composite PK (notification_id, user_id). UserID is a UUID string to match
+// the auth middleware (claims.UserID).
 type NotificationRead struct {
 	NotificationID int64     `gorm:"column:notification_id;primaryKey;not null" json:"notification_id"`
-	UserID         int64     `gorm:"column:user_id;primaryKey;not null;index" json:"user_id"`
+	UserID         string    `gorm:"column:user_id;primaryKey;not null;size:64;index" json:"user_id"`
 	ReadAt         time.Time `gorm:"column:read_at;not null;default:CURRENT_TIMESTAMP" json:"read_at"`
 }
 

@@ -53,23 +53,23 @@ func (s *NotificationService) ListActive(ctx context.Context, f repositories.Lis
 }
 
 // CountsForUser returns total/unread/by-severity for a user.
-func (s *NotificationService) CountsForUser(ctx context.Context, userID int64) (*repositories.Counts, error) {
+func (s *NotificationService) CountsForUser(ctx context.Context, userID string) (*repositories.Counts, error) {
 	return s.repo.CountsForUser(ctx, userID)
 }
 
 // MarkReadForUser records that a specific user has read a notification.
-func (s *NotificationService) MarkReadForUser(ctx context.Context, id, userID int64) error {
+func (s *NotificationService) MarkReadForUser(ctx context.Context, id int64, userID string) error {
 	return s.repo.MarkReadForUser(ctx, id, userID)
 }
 
 // MarkAllReadForUser bulk-marks every currently-unread notification as read
 // for the user. Returns the number of newly-inserted read rows.
-func (s *NotificationService) MarkAllReadForUser(ctx context.Context, userID int64) (int64, error) {
+func (s *NotificationService) MarkAllReadForUser(ctx context.Context, userID string) (int64, error) {
 	return s.repo.MarkAllReadForUser(ctx, userID)
 }
 
 // BulkMarkReadForUser marks the specified IDs as read for the user.
-func (s *NotificationService) BulkMarkReadForUser(ctx context.Context, userID int64, ids []int64) (int64, error) {
+func (s *NotificationService) BulkMarkReadForUser(ctx context.Context, userID string, ids []int64) (int64, error) {
 	return s.repo.BulkMarkReadForUser(ctx, userID, ids)
 }
 

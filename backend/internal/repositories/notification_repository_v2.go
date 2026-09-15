@@ -99,7 +99,7 @@ func (r *NotificationRepository) ExpireStaleDedupKeys(ctx context.Context, older
 
 // MarkReadForUser records that userID has read notificationID.
 // Idempotent: repeated calls do not create duplicates.
-func (r *NotificationRepository) MarkReadForUser(ctx context.Context, notificationID, userID int64) error {
+func (r *NotificationRepository) MarkReadForUser(ctx context.Context, notificationID int64, userID string) error {
 	rec := &models.NotificationRead{
 		NotificationID: notificationID,
 		UserID:         userID,
@@ -113,7 +113,7 @@ func (r *NotificationRepository) MarkReadForUser(ctx context.Context, notificati
 
 // MarkAllReadForUser bulk-inserts a read record for every existing notification
 // the user has not already read. Returns number of rows inserted.
-func (r *NotificationRepository) MarkAllReadForUser(ctx context.Context, userID int64) (int64, error) {
+func (r *NotificationRepository) MarkAllReadForUser(ctx context.Context, userID string) (int64, error) {
 	res := r.db.WithContext(ctx).Exec(`
 		INSERT INTO notification_reads (notification_id, user_id, read_at)
 		SELECT n.id, ?, now()
@@ -127,7 +127,7 @@ func (r *NotificationRepository) MarkAllReadForUser(ctx context.Context, userID 
 
 // BulkMarkReadForUser marks the given IDs as read for a user. Returns number
 // of rows inserted (skips IDs that are already read or do not exist).
-func (r *NotificationRepository) BulkMarkReadForUser(ctx context.Context, userID int64, ids []int64) (int64, error) {
+func (r *NotificationRepository) BulkMarkReadForUser(ctx context.Context, userID string, ids []int64) (int64, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
@@ -159,7 +159,7 @@ func (r *NotificationRepository) Snooze(ctx context.Context, id int64, until tim
 }
 
 // CountsForUser returns total, unread-for-user, and per-severity breakdown.
-func (r *NotificationRepository) CountsForUser(ctx context.Context, userID int64) (*Counts, error) {
+func (r *NotificationRepository) CountsForUser(ctx context.Context, userID string) (*Counts, error) {
 	c := &Counts{BySeverity: map[int16]int64{}}
 
 	if err := r.db.WithContext(ctx).Model(&models.Notification{}).Count(&c.Total).Error; err != nil {

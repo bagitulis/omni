@@ -16,20 +16,22 @@ import (
 // Layout: one method per endpoint, each keeps to the standard pattern
 // (tenant/user extract → parse → svc → response).
 
-func (h *NotificationHandler) getUser(c *gin.Context) int64 {
-	// Middleware sets user_id as int64 on the context.
-	if v, ok := c.Get("user_id"); ok {
-		if id, ok := v.(int64); ok {
-			return id
-		}
+// getUser returns the UUID user ID stashed by middleware.Auth (see
+// internal/middleware/auth.go which uses c.Set("userID", claims.UserID)).
+// Kept tolerant of alternate keys used by other middlewares.
+func (h *NotificationHandler) getUser(c *gin.Context) string {
+	if s := c.GetString("userID"); s != "" {
+		return s
 	}
-	// Fallback: some middlewares stash strings.
 	if s := c.GetString("user_id"); s != "" {
-		if id, err := strconv.ParseInt(s, 10, 64); err == nil {
-			return id
+		return s
+	}
+	if v, ok := c.Get("userID"); ok {
+		if s, ok := v.(string); ok {
+			return s
 		}
 	}
-	return 0
+	return ""
 }
 
 // GetCounts returns total, unread-per-user, and severity breakdown.
@@ -76,7 +78,7 @@ func (h *NotificationHandler) ListV2(c *gin.Context) {
 	})
 }
 
-func parseListFilter(c *gin.Context, userID int64) repositories.ListFilter {
+func parseListFilter(c *gin.Context, userID string) repositories.ListFilter {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
 	sinceID, _ := strconv.ParseInt(c.DefaultQuery("since_id", "0"), 10, 64)
 	unreadOnly := c.DefaultQuery("unread_only", "false") == "true"
@@ -117,7 +119,7 @@ func (h *NotificationHandler) MarkReadV2(c *gin.Context) {
 		return
 	}
 	uid := h.getUser(c)
-	if uid == 0 {
+	if uid == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "missing user_id"})
 		return
 	}
@@ -137,7 +139,7 @@ func (h *NotificationHandler) MarkAllReadV2(c *gin.Context) {
 		return
 	}
 	uid := h.getUser(c)
-	if uid == 0 {
+	if uid == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "missing user_id"})
 		return
 	}
@@ -165,7 +167,7 @@ func (h *NotificationHandler) BulkMarkRead(c *gin.Context) {
 		return
 	}
 	uid := h.getUser(c)
-	if uid == 0 {
+	if uid == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "missing user_id"})
 		return
 	}

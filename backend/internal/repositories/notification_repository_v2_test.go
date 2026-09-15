@@ -116,13 +116,13 @@ func TestNotificationRepositoryV2_PerUserReads(t *testing.T) {
 	require.NoError(t, err)
 
 	// User A marks read; user B still unread.
-	require.NoError(t, repo.MarkReadForUser(ctx, n.ID, 100))
+	require.NoError(t, repo.MarkReadForUser(ctx, n.ID, "user-a"))
 
-	countA, err := repo.CountsForUser(ctx, 100)
+	countA, err := repo.CountsForUser(ctx, "user-a")
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), countA.Unread)
 
-	countB, err := repo.CountsForUser(ctx, 200)
+	countB, err := repo.CountsForUser(ctx, "user-b")
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), countB.Unread)
 }
@@ -141,11 +141,11 @@ func TestNotificationRepositoryV2_MarkAllForUser(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	affected, err := repo.MarkAllReadForUser(ctx, 42)
+	affected, err := repo.MarkAllReadForUser(ctx, "u42")
 	require.NoError(t, err)
 	assert.Equal(t, int64(3), affected)
 
-	c, err := repo.CountsForUser(ctx, 42)
+	c, err := repo.CountsForUser(ctx, "u42")
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), c.Unread)
 }
@@ -166,7 +166,7 @@ func TestNotificationRepositoryV2_BulkReadReturnsAffected(t *testing.T) {
 	}
 	ids = append(ids, 9_999_999) // non-existent
 
-	affected, err := repo.BulkMarkReadForUser(ctx, 7, ids)
+	affected, err := repo.BulkMarkReadForUser(ctx, "u7", ids)
 	require.NoError(t, err)
 	assert.Equal(t, int64(3), affected, "only real IDs count")
 }
@@ -211,7 +211,7 @@ func TestNotificationRepositoryV2_CountsBySeverity(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	c, err := repo.CountsForUser(ctx, 1)
+	c, err := repo.CountsForUser(ctx, "u1")
 	require.NoError(t, err)
 	assert.Equal(t, int64(4), c.Total)
 	assert.Equal(t, int64(4), c.Unread)
@@ -235,7 +235,7 @@ func TestNotificationRepositoryV2_SnoozeHidesFromUnread(t *testing.T) {
 	until := time.Now().Add(time.Hour)
 	require.NoError(t, repo.Snooze(ctx, n.ID, until))
 
-	items, err := repo.ListActive(ctx, ListFilter{Limit: 50, UnreadOnly: true, UserID: 1})
+	items, err := repo.ListActive(ctx, ListFilter{Limit: 50, UnreadOnly: true, UserID: "u1"})
 	require.NoError(t, err)
 	for _, it := range items {
 		assert.NotEqual(t, n.ID, it.ID, "snoozed notif must not appear in unread")
@@ -253,19 +253,19 @@ func TestNotificationRepositoryV2_SearchAndFilter(t *testing.T) {
 		Title: "Order arrived", Message: "hello"})
 
 	// Search by term in title.
-	items, err := repo.ListActive(ctx, ListFilter{Limit: 50, UserID: 1, Search: "shopee"})
+	items, err := repo.ListActive(ctx, ListFilter{Limit: 50, UserID: "u1", Search: "shopee"})
 	require.NoError(t, err)
 	require.Len(t, items, 1)
 	assert.True(t, strings.Contains(strings.ToLower(items[0].Title), "shopee"))
 
 	// Filter by category.
-	items, err = repo.ListActive(ctx, ListFilter{Limit: 50, UserID: 1, Category: models.CatOrder})
+	items, err = repo.ListActive(ctx, ListFilter{Limit: 50, UserID: "u1", Category: models.CatOrder})
 	require.NoError(t, err)
 	require.Len(t, items, 1)
 	assert.Equal(t, models.CatOrder, items[0].Category)
 
 	// Filter by min severity.
-	items, err = repo.ListActive(ctx, ListFilter{Limit: 50, UserID: 1, MinSeverity: models.SeverityHigh})
+	items, err = repo.ListActive(ctx, ListFilter{Limit: 50, UserID: "u1", MinSeverity: models.SeverityHigh})
 	require.NoError(t, err)
 	require.Len(t, items, 1)
 	assert.Equal(t, models.NotifTypeError, items[0].Type)

@@ -25,8 +25,8 @@ type Event struct {
 	Metadata        string     // JSON string; "" is normalized to "{}"
 	ActionURL       string     // SPA-relative path (see SafeActionURL); "" = no action
 	Source          string     // "cron:refresh_expiry", "handler:inventory.bulk", "security"
-	ActorUserID     *int64     // who triggered this notification (nil = system)
-	RecipientUserID *int64     // nil = tenant-wide, non-nil = target user only
+	ActorUserID     *string    // who triggered this notification (nil = system); UUID from auth claims
+	RecipientUserID *string    // nil = tenant-wide, non-nil = target user only (UUID)
 	ExpiresAt       *time.Time // notification hides after this time
 }
 

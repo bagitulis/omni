@@ -23,7 +23,7 @@ type ListFilter struct {
 	Limit       int
 	SinceID     int64
 	UnreadOnly  bool
-	UserID      int64  // required when UnreadOnly is set
+	UserID      string // required when UnreadOnly is set (UUID from auth claims)
 	Category    string // exact match, "" = any
 	MinSeverity int16  // >= filter, 0 = no filter
 	Search      string // ILIKE substring against title/message, "" = no filter

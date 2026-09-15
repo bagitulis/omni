@@ -269,6 +269,17 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		} else {
 			log.Info().Msg("  ✅ Ensured ix_notif_dedup_active index")
 		}
+
+		// Notifications V2: backfill NULL updated_at with created_at on legacy
+		// rows. Idempotent — WHERE updated_at IS NULL means subsequent runs
+		// are no-ops. Required because AutoMigrate cannot ADD NOT NULL to a
+		// table with existing rows; model keeps updated_at as time.Time so
+		// callers see a valid time.
+		if err := db.Session(&gorm.Session{}).Exec(
+			`UPDATE notifications SET updated_at = created_at WHERE updated_at IS NULL`,
+		).Error; err != nil {
+			log.Info().Msgf("  ⚠️  Warning backfilling notifications.updated_at: %v", err)
+		}
 	}
 
 	// NOTE: Zombie column cleanup intentionally RETIRED — see MigrateSystemDatabase comments.
