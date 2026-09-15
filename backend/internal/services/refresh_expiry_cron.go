@@ -13,7 +13,7 @@ import (
 
 	"github.com/omni/backend/internal/config"
 	"github.com/omni/backend/internal/models"
-	"github.com/omni/backend/internal/realtime"
+	"github.com/omni/backend/internal/notify"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
@@ -127,7 +127,12 @@ func (c *RefreshExpiryCron) scanTenant(ctx context.Context, tenantID string) int
 	}
 	delivered := 0
 	notifRepo := repositories.NewNotificationRepository(tenantDB)
-	notifSvc := NewNotificationService(notifRepo).WithTenant(tenantID)
+	// V2: attach notify.Bus so EmitWithKey de-dupes storms from repeated cron
+	// runs (one row per platform+store, dedup_count increments instead of a
+	// new notification every hour). Bus fanout defaults to in-process; when
+	// realtime.Publisher is wired, events also broadcast to /api/realtime/ws.
+	bus := notify.NewBus(notifRepo, notify.NewInProcessFanout())
+	notifSvc := NewNotificationService(notifRepo).WithTenant(tenantID).WithBus(bus)
 	for _, w := range warnings {
 		if err := c.deliver(ctx, notifSvc, w); err != nil {
 			log.Warn().Err(err).Str("tenant_id", tenantID).Str("platform", w.Platform).
@@ -142,28 +147,37 @@ func (c *RefreshExpiryCron) scanTenant(ctx context.Context, tenantID string) int
 // deliver persists a notification row + publishes a compact realtime
 // event. Failure to publish realtime is logged but not returned so the
 // persisted row (source of truth) still counts as delivered.
+//
+// Uses EmitWithKey so repeated cron runs collapse into one row per
+// platform+store (dedup_count increments) instead of flooding the feed.
 func (c *RefreshExpiryCron) deliver(ctx context.Context, notifSvc *NotificationService, w RefreshExpiryWarning) error {
 	title := FormatExpiryWarningTitle(w)
 	message := FormatExpiryWarningMessage(w)
 	notifType := models.NotifTypeWarning
+	severity := models.SeverityMedium
 	if w.AlreadyExpired {
 		notifType = models.NotifTypeError
+		severity = models.SeverityHigh
 	}
-	// Metadata is stored as JSON in notifications.metadata (jsonb column),
-	// so build a proper object rather than variadic "key=value" strings.
 	metaJSON, _ := json.Marshal(map[string]string{
-		"platform": w.Platform,
-		"store":    w.StoreIdentifier,
+		"platform":  w.Platform,
+		"store":     w.StoreIdentifier,
 		"days_left": fmt.Sprintf("%d", w.DaysLeft),
 	})
-	_, err := notifSvc.Push(ctx, notifType, "credentials", title, message, "/settings?tab=platforms", string(metaJSON))
+	key := fmt.Sprintf("cron:refresh_expiry:%s:%s", w.Platform, w.StoreIdentifier)
+	_, err := notifSvc.EmitWithKey(ctx, key, notify.Event{
+		Type:      notifType,
+		Category:  models.CatAuth,
+		Severity:  severity,
+		Title:     title,
+		Message:   message,
+		Metadata:  string(metaJSON),
+		ActionURL: "/settings?tab=platforms",
+		Source:    "cron:refresh_expiry",
+	})
 	if err != nil {
-		return fmt.Errorf("notif push: %w", err)
+		return fmt.Errorf("notif emit: %w", err)
 	}
-	// Push method already fans the compact `notifications/updated` event
-	// via realtime.Get().PublishNotification (see notification_service.go
-	// broadcast). No need to double-publish here.
-	_ = realtime.Get() // no-op call kept so the import isn't marked unused if push wiring changes
 	return nil
 }
 

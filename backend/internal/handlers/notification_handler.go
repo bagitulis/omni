@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omni/backend/internal/notify"
 	"github.com/omni/backend/internal/services"
 )
 
@@ -24,6 +25,7 @@ func NewNotificationHandler(factory NotificationServiceFactory) *NotificationHan
 }
 
 // CreateNotification creates a manual notification (from UI).
+// The action_url is validated by notify.SafeActionURL (SPA-relative paths only).
 func (h *NotificationHandler) CreateNotification(c *gin.Context) {
 	svc, err := h.newService(c)
 	if err != nil {
@@ -44,7 +46,19 @@ func (h *NotificationHandler) CreateNotification(c *gin.Context) {
 		return
 	}
 
-	notif, err := svc.Push(c.Request.Context(), body.Type, body.Category, body.Title, body.Message, body.ActionURL)
+	if _, err := notify.SafeActionURL(body.ActionURL); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid action_url"})
+		return
+	}
+
+	notif, err := svc.Emit(c.Request.Context(), notify.Event{
+		Type:      body.Type,
+		Category:  body.Category,
+		Title:     body.Title,
+		Message:   body.Message,
+		ActionURL: body.ActionURL,
+		Source:    "handler:notifications.create",
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -204,7 +218,7 @@ func (h *NotificationHandler) DeleteNotification(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"affected": int64(1)}})
 }
 
 // DeleteAllNotifications deletes all notifications.

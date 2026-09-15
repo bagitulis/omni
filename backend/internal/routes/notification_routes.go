@@ -16,15 +16,22 @@ func RegisterNotificationRoutes(router *gin.RouterGroup, handler *handlers.Notif
 	notifs.Use(middleware.Auth())
 	notifs.Use(middleware.Tenant())
 	{
-		notifs.GET("", handler.ListNotifications)
+		// V2 primary routes — per-user reads, filters, bulk, counts, snooze.
+		notifs.GET("", handler.ListV2)
 		notifs.POST("", handler.CreateNotification)
-		notifs.GET("/unread-count", handler.GetUnreadCount)
-		notifs.PATCH("/:id/read", handler.MarkAsRead)
-		notifs.PATCH("/read-all", handler.MarkAllAsRead)
+		notifs.GET("/counts", handler.GetCounts)
+		notifs.PATCH("/:id/read", handler.MarkReadV2)
+		notifs.PATCH("/read-all", handler.MarkAllReadV2)
+		notifs.POST("/bulk/read", handler.BulkMarkRead)
+		notifs.POST("/bulk/delete", handler.BulkDelete)
+		notifs.POST("/:id/snooze", handler.Snooze)
 		notifs.DELETE("/:id", handler.DeleteNotification)
 		notifs.DELETE("", handler.DeleteAllNotifications)
 		notifs.GET("/settings", handler.GetSettings)
 		notifs.PUT("/settings", handler.UpdateSettings)
 		notifs.GET("/:id/detail", handler.GetNotificationDetail)
+
+		// Legacy alias — kept for any pre-V2 clients on unread-count.
+		notifs.GET("/unread-count", handler.GetUnreadCount)
 	}
 }

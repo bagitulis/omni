@@ -104,8 +104,9 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 		&models.AutoFunctionHistory{},
 		&models.RouteExecutionConfig{},
 
-		// Notifications (Facebook-style persistent)
+		// Notifications (Facebook-style persistent) + per-user reads (V2)
 		&models.Notification{},
+		&models.NotificationRead{},
 		&models.NotificationSettings{},
 
 		// Credentials (canonical tenant-scoped credential storage)
@@ -254,6 +255,19 @@ func MigrateTenantDatabase(db *gorm.DB, tenantID string) error {
 			log.Info().Msgf("  ⚠️  Warning creating credential active unique index: %v", err)
 		} else {
 			log.Info().Msg("  ✅ Ensured idx_credential_connections_active index")
+		}
+
+		// Notifications V2: partial unique index on dedup_key so UpsertDedup
+		// can UPSERT race-safely. Predicate is intentionally time-free
+		// (Postgres forbids now() in index predicates); the "active window"
+		// scoping is enforced at the app layer via ExpireStaleDedupKeys.
+		notifDedupIdx := `CREATE UNIQUE INDEX IF NOT EXISTS ix_notif_dedup_active
+			 ON notifications (dedup_key)
+			 WHERE dedup_key IS NOT NULL`
+		if err := db.Session(&gorm.Session{}).Exec(notifDedupIdx).Error; err != nil {
+			log.Info().Msgf("  ⚠️  Warning creating notifications dedup index: %v", err)
+		} else {
+			log.Info().Msg("  ✅ Ensured ix_notif_dedup_active index")
 		}
 	}
 

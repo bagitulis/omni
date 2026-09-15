@@ -19,6 +19,7 @@ import (
 	"github.com/omni/backend/internal/handlers/tiktok"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/notify"
 	"github.com/omni/backend/internal/realtime"
 	"github.com/omni/backend/internal/routes"
 	googleService "github.com/omni/backend/internal/services/google"
@@ -208,6 +209,14 @@ func main() {
 	// a direct hub reference. Fan-out is a no-op until Wire runs, so early
 	// startup calls are safe (counted in Stats().SkippedNoHub).
 	realtime.Get().Wire(realtimeHub)
+
+	// Bridge notify.Bus events to the shared realtime publisher so any dashboard
+	// connected to /api/realtime/ws receives notification events under
+	// TopicNotifications. Without this, Bus fans out only to in-process
+	// subscribers used by tests.
+	notify.SetRealtimePublisher(func(tenantID string, payload any) {
+		realtime.Get().PublishNotification(tenantID, payload)
+	})
 	realtimeCfg := &realtime.ConnConfig{
 		Hub: realtimeHub,
 		Authenticate: func(token string) (string, string, string, error) {

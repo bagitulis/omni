@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/handlers"
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/notify"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services"
 	"github.com/omni/backend/internal/services/analytics"
@@ -18,6 +19,13 @@ import (
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
+
+// notifyFanout is the process-wide fanout for notification events. Every
+// request creates a fresh Bus (tenant-scoped) but they all share this fanout
+// so subscribers on any goroutine see events from every emitter. In-process
+// is fine for single-replica; swap to notify.NewRedisFanout() when scaling
+// beyond one API replica.
+var notifyFanout = notify.NewInProcessFanout()
 
 // ExtendedHandlers contains additional handlers not in core App
 // Handlers requiring complex dependencies (monitoring, security, autofunction)
@@ -136,7 +144,10 @@ func (a *App) InitExtendedHandlers(ctx context.Context, db *gorm.DB, googleAuth 
 		SpreadsheetRegistryHandler: handlers.NewSpreadsheetRegistryHandler(db),
 		FilterPreferenceHandler:    handlers.NewFilterPreferenceHandler(db),
 		WholesaleHandler:           handlers.NewWholesaleHandler(db),
-		// Notification handler — factory encapsulates tenant DB + service construction
+		// Notification handler — factory encapsulates tenant DB + service construction.
+		// V2: attaches a notify.Bus so Emit/EmitWithKey go through sanitizer +
+		// dedup UPSERT + fanout. Fanout impl defaults to in-process; swap to
+		// notify.NewRedisFanout() once multi-replica is enabled.
 		NotificationHandler: handlers.NewNotificationHandler(func(c *gin.Context) (*services.NotificationService, error) {
 			db, err := handlers.GetTenantDBFromContext(c, db)
 			if err != nil {
@@ -144,7 +155,8 @@ func (a *App) InitExtendedHandlers(ctx context.Context, db *gorm.DB, googleAuth 
 			}
 			tenantID := c.GetString("tenant_id")
 			repo := repositories.NewNotificationRepository(db)
-			return services.NewNotificationService(repo).WithTenant(tenantID), nil
+			bus := notify.NewBus(repo, notifyFanout)
+			return services.NewNotificationService(repo).WithTenant(tenantID).WithBus(bus), nil
 		}),
 
 		// Monitoring handler

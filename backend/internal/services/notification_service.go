@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/notify"
 	"github.com/omni/backend/internal/realtime"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/rs/zerolog/log"
@@ -31,6 +32,7 @@ var globalSSEManager = &SSEManager{
 type NotificationService struct {
 	repo     *repositories.NotificationRepository
 	tenantID string
+	bus      *notify.Bus // V2 pipeline (optional; legacy path used when nil)
 }
 
 // NewNotificationService creates a new notification service.

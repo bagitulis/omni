@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Notification } from "@/api/notifications";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { isSafeActionURL } from "@/lib/notificationSecurity";
 import {
   formatRelativeTime,
   getNotificationTypeConfig,
@@ -56,12 +57,11 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
 
   const handleItemClick = (item: Notification) => {
     if (!item.read) markAsRead(item.id);
-    if (item.action_url) {
-      onClose?.();
-      window.location.href = item.action_url;
+    const target = item.action_url;
+    onClose?.();
+    if (target && isSafeActionURL(target)) {
+      navigate(target);
     } else {
-      // Navigate to notifications page with this notification expanded
-      onClose?.();
       navigate(`/notifications?expand=${item.id}`);
     }
   };

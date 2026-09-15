@@ -41,3 +41,21 @@ export function sanitizeForUser(raw: string | undefined | null): string {
 
   return raw;
 }
+
+// SPA-relative path allowlist — mirrors backend/internal/notify/safe_url.go.
+// The single source of truth is the backend regex; keep this in sync.
+const SAFE_PATH_RE = /^\/[A-Za-z0-9\-_./?=&%#]*$/;
+
+/**
+ * isSafeActionURL returns true when `url` is a SPA-relative path safe to
+ * navigate to via react-router. Empty is treated as "no action" (true).
+ * Any absolute URL, protocol-relative URL, or non-http scheme is rejected.
+ */
+export function isSafeActionURL(url: string | null | undefined): boolean {
+  if (!url) return true;
+  const trimmed = url.trim();
+  if (trimmed === "") return false;
+  if (trimmed.length > 500) return false;
+  if (trimmed.startsWith("//")) return false;
+  return SAFE_PATH_RE.test(trimmed);
+}

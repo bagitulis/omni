@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/notify"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services"
 	"github.com/rs/zerolog/log"
@@ -50,13 +51,32 @@ func pushBulkOperationNotification(
 	message := fmt.Sprintf("%d total, %d succeeded, %d failed across %d platforms",
 		metadata.Total, metadata.Succeeded, metadata.Failed, len(metadata.Platforms))
 
-	// Push notification
-	notif, pushErr := notifSvc.Push(context.Background(), notifType, category, title, message, "", string(metadataJSON))
+	// V2: emit via bus so title/message get sanitized, and dedup by request_id
+	// so retries of the same bulk operation collapse instead of flooding the
+	// feed. A missing request_id falls back to Emit (no dedup).
+	ev := notify.Event{
+		Type:     notifType,
+		Category: category,
+		Severity: severityForBulk(metadata.Failed, metadata.Succeeded),
+		Title:    title,
+		Message:  message,
+		Metadata: string(metadataJSON),
+		Source:   "handler:inventory.bulk",
+	}
+	var (
+		notif   *models.Notification
+		pushErr error
+	)
+	if metadata.RequestID != "" {
+		notif, pushErr = notifSvc.EmitWithKey(context.Background(),
+			"bulk:"+metadata.OperationType+":"+metadata.RequestID, ev)
+	} else {
+		notif, pushErr = notifSvc.Emit(context.Background(), ev)
+	}
 	if pushErr != nil {
 		log.Error().Err(pushErr).Msg("[Notification] Failed to push bulk operation notification")
 		return
 	}
-
 
 	log.Info().
 		Int64("notification_id", notif.ID).
@@ -64,6 +84,19 @@ func pushBulkOperationNotification(
 		Int("succeeded", metadata.Succeeded).
 		Int("failed", metadata.Failed).
 		Msg("[Notification] Bulk operation notification pushed")
+}
+
+// severityForBulk maps success/failure counts to a numeric severity. Fully
+// failed = high, partial = medium, all-good = low.
+func severityForBulk(failed, succeeded int) int16 {
+	switch {
+	case failed > 0 && succeeded == 0:
+		return models.SeverityHigh
+	case failed > 0:
+		return models.SeverityMedium
+	default:
+		return models.SeverityLow
+	}
 }
 
 // operationTypeLabel returns a human-readable label for the operation type.
@@ -157,7 +190,8 @@ func (h *InventoryHandler) pushInventoryBatchNotification(c *gin.Context, operat
 	}
 
 	repo := repositories.NewNotificationRepository(db)
-	notifSvc := services.NewNotificationService(repo).WithTenant(tenantID)
+	bus := notify.NewBus(repo, notify.NewInProcessFanout())
+	notifSvc := services.NewNotificationService(repo).WithTenant(tenantID).WithBus(bus)
 	meta := buildBulkOperationMetadata(operationType, results)
 	pushBulkOperationNotification(notifSvc, meta)
 }

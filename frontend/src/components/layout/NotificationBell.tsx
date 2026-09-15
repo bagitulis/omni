@@ -16,14 +16,16 @@ import "./notifications.css";
  * AntD's built-in Popover handles click-outside correctly on its own.
  */
 export function NotificationBell() {
-  const { unreadCount, notifications } = useNotifications();
+  const { unreadCount, counts } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
-  const errorCount = notifications.filter((n) => !n.read && n.type === "error").length;
-  const warningCount = notifications.filter((n) => !n.read && n.type === "warning").length;
-  const hasErrors = errorCount > 0;
+  // Counts are authoritative — the loaded list may be capped at 50, so the
+  // bell would previously under-report errors/warnings.
+  const criticalCount = counts.by_severity?.["50"] ?? 0;
+  const highCount = counts.by_severity?.["40"] ?? 0;
+  const hasErrors = criticalCount > 0 || highCount > 0;
   const labelParts = [`Notifications`, `${unreadCount} unread`];
-  if (errorCount > 0) labelParts.push(`${errorCount} error`);
-  if (warningCount > 0) labelParts.push(`${warningCount} warning`);
+  if (criticalCount > 0) labelParts.push(`${criticalCount} critical`);
+  if (highCount > 0) labelParts.push(`${highCount} high`);
 
   return (
     <Popover

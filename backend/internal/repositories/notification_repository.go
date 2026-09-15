@@ -18,6 +18,26 @@ func NewNotificationRepository(db *gorm.DB) *NotificationRepository {
 	return &NotificationRepository{db: db}
 }
 
+// ListFilter drives ListActive with the V2 filter set.
+type ListFilter struct {
+	Limit       int
+	SinceID     int64
+	UnreadOnly  bool
+	UserID      int64  // required when UnreadOnly is set
+	Category    string // exact match, "" = any
+	MinSeverity int16  // >= filter, 0 = no filter
+	Search      string // ILIKE substring against title/message, "" = no filter
+	From        *time.Time
+	To          *time.Time
+}
+
+// Counts is the shape returned by CountsForUser.
+type Counts struct {
+	Total      int64
+	Unread     int64
+	BySeverity map[int16]int64
+}
+
 // Create saves a notification to the database.
 func (r *NotificationRepository) Create(ctx context.Context, notif *models.Notification) error {
 	return r.db.WithContext(ctx).Create(notif).Error

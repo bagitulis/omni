@@ -12,6 +12,7 @@ import (
 	"time"
 	"unicode"
 
+	_ "github.com/lib/pq" // Register "postgres" driver for admin sql.Open used by test-database bootstrap
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -227,6 +228,9 @@ func createTestDatabase(t *testing.T) (*gorm.DB, string) {
 }
 
 // sanitizeDBName turns a Go test name into a valid PostgreSQL identifier.
+// PostgreSQL folds unquoted identifiers to lowercase, so we normalize to
+// lowercase up-front. Otherwise a CREATE DATABASE MyName followed by a
+// connection to "MyName" would fail with "database does not exist".
 func sanitizeDBName(name string) string {
 	var b strings.Builder
 	for _, r := range name {
@@ -236,7 +240,7 @@ func sanitizeDBName(name string) string {
 			b.WriteRune('_')
 		}
 	}
-	result := b.String()
+	result := strings.ToLower(b.String())
 
 	if len(result) > 60 {
 		result = result[:60]

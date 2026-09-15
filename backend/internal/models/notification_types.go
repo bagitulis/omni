@@ -18,7 +18,33 @@ const (
 	CatAuth      = "auth"
 	CatExport    = "export"
 	CatSecurity  = "security"
-	)
+)
+
+// Notification severity levels (numeric so DB indexes are efficient and
+// filtering by "min_severity" is a simple >= comparison).
+const (
+	SeverityInfo     int16 = 10
+	SeverityLow      int16 = 20
+	SeverityMedium   int16 = 30
+	SeverityHigh     int16 = 40
+	SeverityCritical int16 = 50
+)
+
+// SeverityFromType returns a sensible default severity for a legacy
+// notification type. Producers that care about severity should set it
+// explicitly; this fallback keeps existing call sites working.
+func SeverityFromType(notifType string) int16 {
+	switch notifType {
+	case NotifTypeError:
+		return SeverityHigh
+	case NotifTypeWarning:
+		return SeverityMedium
+	case NotifTypeSuccess:
+		return SeverityLow
+	default:
+		return SeverityInfo
+	}
+}
 
 // JobTypeToCategory maps background job types to notification categories
 func JobTypeToCategory(jobType string) string {
