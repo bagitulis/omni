@@ -14,7 +14,6 @@
 | Rule              | Requirement                            | Verification                    |
 | ----------------- | -------------------------------------- | ------------------------------- |
 | **CodeGraph MCP** | `codegraph_explore` BEFORE any Read/Grep/Glob on code | Tool output = verbatim source; do not re-read |
-| **enowx-rag**     | Retrieve BEFORE deciding rules/architecture/"why" | Retrieved passages cited in reasoning |
 | **Recheck**       | A map is NOT proof — verify every claim | `codegraph impact`/`callers` output, or read the cited lines |
 | **TDD**           | RED → GREEN → REFACTOR, always         | Failing-test output captured before implementing |
 | **Dry Run**       | Before destructive / state-changing ops | What did NOT happen + blast radius reported |
@@ -30,7 +29,7 @@
 
 - Starting a new task → Re-read this checklist
 - About to read/search code → **CodeGraph MCP first** (not Read/Grep/Glob)
-- About to decide a rule/convention → **enowx-rag first**
+- About to decide a rule/convention → **Read the project rules/docs first**
 - About to edit a symbol → Run `codegraph impact`; quote the real caller count
 - Writing behaviour code → **TDD: watch the test FAIL first**
 - About to commit → Verify ALL files included
@@ -40,23 +39,22 @@
 - File > ~300 lines → Review for SRP/DRY/OOP violation
 
 <!-- MASTER:mandatory-tooling-gate -->
-## Mandatory Tooling Gate — CodeGraph MCP + enowx-rag
+## Mandatory Tooling Gate — CodeGraph MCP
 
-> **STATUS: MANDATORY.** Skipping either tool is a **rule violation**, not a shortcut.
-> These are prerequisites, not optional accelerators.
+> **STATUS: MANDATORY.** Skipping the tool is a **rule violation**, not a shortcut.
+> It is a prerequisite, not an optional accelerator.
 
 | Step | Required Tool | When | Evidence |
 | --- | --- | --- | --- |
 | 1 | **MCP CodeGraph** (`codegraph_explore`) | BEFORE any `Read`/`Grep`/`Glob` on code, and BEFORE editing any symbol | Tool output showing the symbol + blast radius |
-| 2 | **enowx-rag** (`rag_retrieve_context` / `rag_semantic_search`) | BEFORE deciding architecture, conventions, or "why" — for all rules, decisions, history | Retrieved passages cited in reasoning |
-| 3 | Recheck | AFTER CodeGraph, BEFORE acting | Real command output (`codegraph callers`/`impact`, or a file read of the cited lines) |
+| 2 | Recheck | AFTER CodeGraph, BEFORE acting | Real command output (`codegraph callers`/`impact`, or a file read of the cited lines) |
 
 **Division of labour:**
 
 - **CodeGraph = WHAT and WHERE** — code, graph, blast radius, callers.
-- **enowx-rag = WHY** — decisions, rationale, gotchas, historical context, project rules.
+- **Project docs = WHY** — decisions, rationale, gotchas, historical context, project rules.
 
-CodeGraph does **not** index markdown. Rules, decisions, and history live in enowx-rag (or project docs).
+CodeGraph does **not** index markdown. Rules, decisions, and history live in the project docs (`AGENTS.md`, `.claude/rules/`, `docs/`, `rules-master/`) — read them directly.
 
 ### Recheck is mandatory — a map is not proof
 
@@ -67,7 +65,7 @@ CodeGraph output is a map, not ground truth. Every claim that is reported OR use
 | "Code behaves like X" | Open the cited lines (`codegraph node <symbol>` or read the range) and confirm |
 | "There are N callers / impact is Y" | Run `codegraph impact` / `callers` — quote the real number, never guess |
 | "A test exists" | Run the actual test; blast-radius lists are static guesses |
-| "There is a rule/convention" | Check project docs / enowx-rag, not memory |
+| "There is a rule/convention" | Check project docs (`.claude/rules/`, `docs/`), not memory |
 
 Claiming "already checked" when only the map was read is **forbidden**. Without inspected command output, the status is **unverified**.
 
@@ -77,7 +75,7 @@ Claiming "already checked" when only the map was read is **forbidden**. Without 
 | --- | --- |
 | `Read`/`Grep` first, CodeGraph later | CodeGraph first; its output is already verbatim source — do not re-read files it covered |
 | Guess a caller count | Run `codegraph impact` and quote the number |
-| Invent rules from memory | Retrieve from enowx-rag or project docs |
+| Invent rules from memory | Read the project docs (`.claude/rules/`, `docs/`) |
 | Treat map output as verified truth | Recheck the specific lines before editing |
 
 **Violation = task failure.**
