@@ -459,13 +459,36 @@ def run_build():
             filtered_argv = [arg for arg in sys.argv[1:] if not arg.startswith('--dry-run') and not arg.startswith('--validate-only')]
             sys.argv = ['build.py'] + filtered_argv
             
+            # Detect whether we're about to run a build that produces new
+            # image layers so we can prune dangling images afterwards.
+            _prune_after = filtered_argv and filtered_argv[0] in ("smart", "full", "quickfix")
+
             # Run CLI - catch SystemExit to allow returning to menu
             try:
                 cli()
-                return 0
+                exit_code = 0
             except SystemExit as e:
                 # CLI called sys.exit(), capture the exit code
-                return e.code if e.code is not None else 0
+                exit_code = e.code if e.code is not None else 0
+
+            # Post-build podman retention: prevent the 20-30 GB dangling
+            # rubbish pile-up observed 2026-09-15. Keeps :latest of omni
+            # repos + up to 3 recent dangling per bucket. Best-effort; a
+            # prune failure never masks a successful build.
+            if _prune_after and exit_code == 0:
+                try:
+                    retention = project_root / "scripts" / "podman-retention.py"
+                    if retention.exists():
+                        print()
+                        print("[RETENTION] Running podman image retention (keep=3)...")
+                        subprocess.run(
+                            [sys.executable, str(retention), "--keep", "3"],
+                            check=False,
+                        )
+                except Exception as retention_err:
+                    print(f"[WARN] Retention step skipped: {retention_err}")
+
+            return exit_code
 
     except ImportError as e:
         print()
