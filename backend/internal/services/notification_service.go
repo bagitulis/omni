@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/realtime"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/rs/zerolog/log"
 )
@@ -97,7 +98,22 @@ func (s *NotificationService) PushJobResult(ctx context.Context, job *models.Job
 }
 
 // broadcast sends the notification to all active SSE connections for the tenant
+// AND fans a compact `notifications/updated` event over the realtime WebSocket
+// hub (Phase 5 wire-in). SSE stays authoritative for now — the WS event lets
+// the FE invalidate its cache immediately without waiting for the SSE tick.
 func (s *NotificationService) broadcast(notif *models.Notification) {
+	// 1) Realtime WS fan-out — fire-and-forget. Publisher is a no-op if the
+	//    hub isn't wired yet (early startup), so this is always safe.
+	realtime.Get().PublishNotification(s.tenantID, map[string]any{
+		"id":         notif.ID,
+		"type":       notif.Type,
+		"category":   notif.Category,
+		"title":      notif.Title,
+		"created_at": notif.CreatedAt,
+	})
+
+	// 2) Legacy SSE broadcast — remains the primary channel until the FE
+	//    fully migrates in a follow-up.
 	// Copy client slice under lock to avoid race with UnregisterClient
 	globalSSEManager.mu.RLock()
 	original, ok := globalSSEManager.clients[s.tenantID]

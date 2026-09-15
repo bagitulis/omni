@@ -203,6 +203,11 @@ func main() {
 	rtCtx, rtCancel := context.WithCancel(serverCtx)
 	go realtimeHub.Run(rtCtx)
 	defer rtCancel()
+	// Wire the process-wide Publisher so any service-layer code can call
+	// `realtime.Get().PublishOrderUpdated(tenantID, payload)` without needing
+	// a direct hub reference. Fan-out is a no-op until Wire runs, so early
+	// startup calls are safe (counted in Stats().SkippedNoHub).
+	realtime.Get().Wire(realtimeHub)
 	realtimeCfg := &realtime.ConnConfig{
 		Hub: realtimeHub,
 		Authenticate: func(token string) (string, string, string, error) {
