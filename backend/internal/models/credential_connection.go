@@ -51,6 +51,38 @@ func (c *CredentialConnection) IsRefreshTokenExpired() bool {
 	return time.Now().UnixMilli() >= c.RefreshExpiry
 }
 
+// RefreshExpiryDaysLeft returns whole days remaining before the refresh
+// token expires. Returns 0 for unset (0) or already-expired timestamps —
+// callers combine this with IsRefreshTokenExpired to distinguish "0 days
+// left, expiring today" from "already dead N days ago".
+func (c *CredentialConnection) RefreshExpiryDaysLeft() int {
+	if c.RefreshExpiry == 0 {
+		return 0
+	}
+	deltaMs := c.RefreshExpiry - time.Now().UnixMilli()
+	if deltaMs <= 0 {
+		return 0
+	}
+	return int(deltaMs / 86_400_000)
+}
+
+// IsRefreshExpiringWithin reports whether the refresh token is expiring
+// (or already expired) inside a `windowDays` warning window. Phase 11.5
+// notifier fires when this returns true so sellers can re-authorize
+// BEFORE their refresh_token dies + they lose the auto-recovery path.
+// A window of 0 or negative disables the warning (returns false always).
+func (c *CredentialConnection) IsRefreshExpiringWithin(windowDays int) bool {
+	if windowDays <= 0 {
+		return false
+	}
+	if c.RefreshExpiry == 0 {
+		return true // treat unset as expired — matches IsRefreshTokenExpired
+	}
+	deltaMs := c.RefreshExpiry - time.Now().UnixMilli()
+	windowMs := int64(windowDays) * 86_400_000
+	return deltaMs <= windowMs
+}
+
 // EffectiveStatus is the status the API should report to the frontend, honoring
 // token expiry. Rules (in order):
 //  1. row disabled → "disconnected"

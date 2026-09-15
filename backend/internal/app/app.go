@@ -303,6 +303,13 @@ func (a *App) initHandlers() {
 
 	a.ShopeeAnalyticsHandler = handlers.NewShopeeAnalyticsHandler(a.SystemDB)
 	a.TiktokAnalyticsHandler = handlers.NewTiktokAnalyticsHandler(a.SystemDB)
+
+	// Phase 11.5 — daily refresh-token expiry warning cron. Delivers a
+	// notification (persisted + realtime) 7 days before any tenant's
+	// refresh_token dies so sellers can re-authorize before losing the
+	// auto-recovery grace period (learned the hard way with Yumna Shopee).
+	expiryCron := services.NewRefreshExpiryCron(a.SystemDB, a.BasePath, 0, 0)
+	expiryCron.Start()
 }
 
 // Close closes all database connections
