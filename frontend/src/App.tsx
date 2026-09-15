@@ -66,9 +66,6 @@ const ShopeeScraperPage = React.lazy(
 const ExtensionResultsPage = React.lazy(
   () => import("./pages/extensions/ExtensionResultsPage"),
 );
-const RouteMappingPage = React.lazy(
-  () => import("./pages/route-mapping/RouteMappingPage"),
-);
 const NotificationsPage = React.lazy(
   () => import("./pages/notifications/NotificationsPage"),
 );
@@ -135,7 +132,6 @@ function AppContent() {
                       path="/products/:id/edit"
                       element={<ProductEditPage />}
                     />
-                    <Route path="/route-mapping" element={<RouteMappingPage />} />
                     <Route
                       path="/inventory"
                       element={<SimplifiedInventoryPage />}

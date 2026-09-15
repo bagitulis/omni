@@ -9,7 +9,6 @@ import {
   InboxOutlined,
   BellOutlined,
   SettingOutlined,
-  NodeIndexOutlined,
   CodeOutlined,
   FileTextOutlined,
   TeamOutlined,
@@ -56,11 +55,6 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
       },
       { key: "/inventory", icon: <InboxOutlined />, label: "Inventory" },
       { key: "/notifications", icon: <BellOutlined />, label: "Notifications" },
-      {
-        key: "/route-mapping",
-        icon: <NodeIndexOutlined />,
-        label: "Route Mapping",
-      },
       {
         key: "/report",
         icon: <FileTextOutlined />,
