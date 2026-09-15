@@ -5,6 +5,7 @@ export type CredentialStatus =
   | "incomplete"
   | "connected"
   | "expired"
+  | "refresh_required" // Phase 10.2 — access dead, refresh still alive (auto-recoverable)
   | "refresh_failed"
   | "action_required";
 

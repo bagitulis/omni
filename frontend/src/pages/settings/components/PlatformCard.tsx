@@ -45,6 +45,38 @@ function renderPartnerKeyExpiryBanner(
   );
 }
 
+// Phase 10.2 — Surface backend `EffectiveStatus` results ("expired" hard-dead,
+// "refresh_required" auto-recoverable) as a prominent banner so sellers know
+// they need to re-authorize instead of just seeing a small status tag.
+function renderTokenExpiredBanner(
+  platform: PlatformConnectionSummary,
+  token: GlobalToken,
+) {
+  const isHardExpired = platform.status === "expired";
+  const isRefreshRequired = platform.status === "refresh_required";
+  if (!isHardExpired && !isRefreshRequired) return null;
+  return (
+    <div
+      style={{
+        padding: "6px 10px",
+        marginBottom: 8,
+        borderRadius: token.borderRadius,
+        background: isHardExpired ? token.colorErrorBg : token.colorWarningBg,
+        border: `1px solid ${
+          isHardExpired ? token.colorErrorBorder : token.colorWarningBorder
+        }`,
+        fontSize: 12,
+      }}
+    >
+      {isHardExpired ? "🔴" : "⚠️"}{" "}
+      <strong>Access token expired</strong> —{" "}
+      {isHardExpired
+        ? "click Re-authorize below to reconnect."
+        : "auto-refresh will run on next sync, or click Re-authorize to refresh now."}
+    </div>
+  );
+}
+
 export interface PlatformConnectionSummary {
   platform: string;
   connected: boolean;
@@ -172,6 +204,7 @@ export function PlatformCard({
         </Card>
 
         <div style={{ overflow: "hidden" }}>
+          {renderTokenExpiredBanner(platform, token)}
           {renderPartnerKeyExpiryBanner(platform, token)}
           {platform.app_status === "offline" && (
             <div
@@ -231,7 +264,11 @@ export function PlatformCard({
               onClick={() => onConnect(platform)}
               style={{ width: "100%", background: platform.app_configured ? color : undefined, borderColor: platform.app_configured ? color : undefined }}
             >
-              Connect {name}
+              {/* Phase 10.2 — "expired"/"refresh_required" carry an existing token
+                  pair; the action is a re-authorization, not a first-time connect. */}
+              {platform.status === "expired" || platform.status === "refresh_required"
+                ? `Re-authorize ${name}`
+                : `Connect ${name}`}
             </Button>
           )}
           {actionDisabledReason && (

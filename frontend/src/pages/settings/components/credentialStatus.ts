@@ -5,6 +5,7 @@ export const CREDENTIAL_STATUS_COLOR: Record<CredentialStatus, string> = {
   incomplete: "warning",
   connected: "success",
   expired: "error",
+  refresh_required: "warning", // Phase 10.2 — softer than "expired": auto-recoverable via refresh flow
   refresh_failed: "error",
   action_required: "warning",
 };
@@ -14,6 +15,7 @@ export const CREDENTIAL_STATUS_LABEL: Record<CredentialStatus, string> = {
   incomplete: "Incomplete",
   connected: "Connected",
   expired: "Expired",
+  refresh_required: "Refresh Required", // Phase 10.2
   refresh_failed: "Refresh Failed",
   action_required: "Action Required",
 };
